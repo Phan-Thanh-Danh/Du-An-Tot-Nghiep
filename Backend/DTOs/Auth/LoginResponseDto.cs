@@ -1,0 +1,9 @@
+namespace Backend.DTOs.Auth;
+
+public class LoginResponseDto
+{
+    public string AccessToken { get; set; } = string.Empty;
+    public DateTime ExpiresAt { get; set; }
+    public bool RequiresPasswordChange { get; set; }
+    public AuthUserDto User { get; set; } = new();
+}

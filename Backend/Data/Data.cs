@@ -1,3 +1,5 @@
+using Backend.Constants;
+using Backend.Helpers;
 using Backend.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -5,6 +7,12 @@ namespace Backend.Data;
 
 public static class Data
 {
+    private const string RootUnitName = "LMS Root";
+    private const string SuperAdminEmail = "superadmin@lms.local";
+    private const string SuperAdminDefaultPassword = "Admin@123456";
+    private const string SuperAdminFullName = "Super Administrator";
+    private const string SuperAdminRoleCode = "sieu_quan_tri";
+
     public static async Task SeedRolesAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
@@ -19,7 +27,8 @@ public static class Data
             new VaiTro { MaVaiTro = 5, MaCodeVaiTro = "hieu_truong", TenVaiTro = "Hiệu trưởng/BGH" },
             new VaiTro { MaVaiTro = 6, MaCodeVaiTro = "phu_huynh", TenVaiTro = "Phụ huynh" },
             new VaiTro { MaVaiTro = 7, MaCodeVaiTro = "sieu_quan_tri", TenVaiTro = "Siêu quản trị" },
-            new VaiTro { MaVaiTro = 8, MaCodeVaiTro = "quan_tri_co_so", TenVaiTro = "Quản trị cơ sở" }
+            new VaiTro { MaVaiTro = 8, MaCodeVaiTro = "quan_tri_co_so", TenVaiTro = "Quản trị cơ sở" },
+            new VaiTro { MaVaiTro = 9, MaCodeVaiTro = "quan_tri_co_so_con", TenVaiTro = "Quản trị cơ sở con" }
         };
 
         foreach (var role in roles)
@@ -34,6 +43,59 @@ public static class Data
             }
 
             existingRole.TenVaiTro = role.TenVaiTro;
+        }
+
+        await context.SaveChangesAsync();
+
+        var rootUnit = await context.DonVis.FirstOrDefaultAsync(x => x.CapDonVi == "root");
+        if (rootUnit is null)
+        {
+            rootUnit = new DonVi
+            {
+                TenDonVi = RootUnitName,
+                CapDonVi = "root",
+                ConHoatDong = true,
+                NgayTao = DateTime.UtcNow
+            };
+
+            context.DonVis.Add(rootUnit);
+            await context.SaveChangesAsync();
+        }
+
+        var superAdmin = await context.NguoiDungs
+            .FirstOrDefaultAsync(x => x.Email == SuperAdminEmail);
+
+        if (superAdmin is null)
+        {
+            superAdmin = new NguoiDung
+            {
+                MaDonVi = rootUnit.MaDonVi,
+                Email = SuperAdminEmail,
+                HoTen = SuperAdminFullName,
+                VaiTroChinh = SuperAdminRoleCode,
+                TrangThai = UserStatuses.DbFirstLogin,
+                MatKhauHash = PasswordHelper.HashPassword(SuperAdminDefaultPassword),
+                NgayTao = DateTime.UtcNow,
+                SoLanSaiMatKhau = 0,
+                DangNhapLanDau = true
+            };
+
+            context.NguoiDungs.Add(superAdmin);
+        }
+        else
+        {
+            superAdmin.MaDonVi = rootUnit.MaDonVi;
+            superAdmin.HoTen = string.IsNullOrWhiteSpace(superAdmin.HoTen)
+                ? SuperAdminFullName
+                : superAdmin.HoTen;
+            superAdmin.VaiTroChinh = SuperAdminRoleCode;
+
+            if (string.IsNullOrWhiteSpace(superAdmin.MatKhauHash))
+            {
+                superAdmin.MatKhauHash = PasswordHelper.HashPassword(SuperAdminDefaultPassword);
+                superAdmin.TrangThai = UserStatuses.DbFirstLogin;
+                superAdmin.DangNhapLanDau = true;
+            }
         }
 
         await context.SaveChangesAsync();
