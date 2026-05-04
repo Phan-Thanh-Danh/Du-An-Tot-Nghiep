@@ -1,0 +1,45 @@
+<mxfile host="Electron" pages="2">
+  <diagram name="Vài Trò" id="Ft0n2QiPvXqcr1pDVW9f">
+    <mxGraphModel dx="1140" dy="603" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="WPEU4-ydU5r-iafEVqDh-2" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Học Sinh" vertex="1">
+          <mxGeometry height="60" width="30" x="250" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="WPEU4-ydU5r-iafEVqDh-3" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Giảng viên" vertex="1">
+          <mxGeometry height="60" width="30" x="360" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="WPEU4-ydU5r-iafEVqDh-4" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Giáo vụ&amp;nbsp;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="30" x="460" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="WPEU4-ydU5r-iafEVqDh-5" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Hiệu Trưởng/BGH" vertex="1">
+          <mxGeometry height="60" width="30" x="210" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="WPEU4-ydU5r-iafEVqDh-6" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Phụ huynh" vertex="1">
+          <mxGeometry height="60" width="30" x="520" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="WPEU4-ydU5r-iafEVqDh-8" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Super Admin" vertex="1">
+          <mxGeometry height="60" width="30" x="170" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="WPEU4-ydU5r-iafEVqDh-9" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Campus Admin" vertex="1">
+          <mxGeometry height="60" width="30" x="490" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="WPEU4-ydU5r-iafEVqDh-10" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Actor" vertex="1">
+          <mxGeometry height="60" width="30" x="280" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="WPEU4-ydU5r-iafEVqDh-11" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Sub Campus Admin" vertex="1">
+          <mxGeometry height="60" width="30" x="360" y="610" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="5ZIvuwWO5rAKHKCTBsAK" name="Page-2">
+    <mxGraphModel dx="1653" dy="875" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
