@@ -58,7 +58,7 @@ const router = createRouter({
           path: 'courses/:courseId',
           name: 'student-course-detail',
           component: () => import('../views/Student/CourseDetailView.vue'),
-          meta: { title: 'Chi tiết khóa học' },
+          meta: { title: 'Chi tiết khóa học' },//jasdujasjdasd
         },
         {
           path: 'assignments',
