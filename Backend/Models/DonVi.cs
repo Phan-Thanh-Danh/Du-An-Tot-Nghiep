@@ -8,6 +8,8 @@ public class DonVi
     public string CapDonVi { get; set; } = string.Empty;
     public bool ConHoatDong { get; set; }
     public DateTime NgayTao { get; set; }
+    public DateTime? NgayCapNhat { get; set; }
 
     public DonVi? DonViCha { get; set; }
+    public ICollection<DonVi> DonViCons { get; set; } = new List<DonVi>();
 }

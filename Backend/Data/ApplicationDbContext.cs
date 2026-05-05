@@ -1179,9 +1179,18 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("ngay_tao")
                 .HasColumnType("datetime2")
                 .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.NgayCapNhat)
+                .HasColumnName("ngay_cap_nhat")
+                .HasColumnType("datetime2");
+            entity.HasIndex(e => e.MaDonViCha)
+                .HasDatabaseName("IX_DonVi_ma_don_vi_cha");
+            entity.HasIndex(e => e.CapDonVi)
+                .HasDatabaseName("IX_DonVi_cap_don_vi");
+            entity.HasIndex(e => e.ConHoatDong)
+                .HasDatabaseName("IX_DonVi_con_hoat_dong");
             entity.ToTable(t => t.HasCheckConstraint("CK_DonVi_cap_don_vi_1", "[cap_don_vi] IN (N'root', N'co_so', N'co_so_con')"));
             entity.HasOne(e => e.DonViCha)
-                .WithMany()
+                .WithMany(e => e.DonViCons)
                 .HasForeignKey(e => e.MaDonViCha)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_DonVi_ma_don_vi_cha__DonVi");
