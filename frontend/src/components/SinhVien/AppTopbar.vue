@@ -249,8 +249,3 @@ function getIcon(name) {
     </div>
   </header>
 </template>
-
-<script>
-import * as LucideIcons from 'lucide-vue-next'
-export default { components: { ...LucideIcons } }
-</script>

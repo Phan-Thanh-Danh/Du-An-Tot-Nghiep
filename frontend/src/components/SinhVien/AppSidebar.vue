@@ -1,5 +1,4 @@
 <script setup>
-import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   PanelLeftClose,
@@ -11,7 +10,7 @@ import {
 import SidebarMenuGroup from './SidebarMenuGroup.vue'
 import { sinhVienMenuGroups, mockUser } from './data/menuData.js'
 
-const props = defineProps({
+defineProps({
   collapsed: { type: Boolean, default: false },
 })
 

@@ -2,10 +2,14 @@
 import { ref } from 'vue'
 import {
   BookOpen, ClipboardList, CalendarDays, CreditCard,
-  TrendingUp, AlertTriangle, Clock, MapPin,
+  AlertTriangle, Clock, MapPin,
   ChevronRight, CheckCircle2, Bell, X,
-  FileText, Star, UserCheck, BarChart2,
+  Star, UserCheck, BarChart2,
 } from 'lucide-vue-next'
+
+defineOptions({
+  name: 'StudentDashboard',
+})
 
 // ── KPI Cards ──────────────────────────────────────────────
 const kpiCards = [

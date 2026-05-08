@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import {
-  Search, Filter, ChevronDown, CheckCircle2,
+  Search, ChevronDown, CheckCircle2,
   Clock, Users, BookOpen, MoreVertical,
   PlayCircle, LayoutGrid, List
 } from 'lucide-vue-next'
