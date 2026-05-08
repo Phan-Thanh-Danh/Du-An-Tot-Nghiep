@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
 
 // ─────────────────────────────────────────────────────────
 // Router config cho hệ thống LMS
@@ -13,7 +12,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: HomeView,
+      redirect: '/student/dashboard',
     },
     {
       path: '/about',
