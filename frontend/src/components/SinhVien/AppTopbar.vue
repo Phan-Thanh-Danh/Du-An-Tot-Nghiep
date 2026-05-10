@@ -2,10 +2,14 @@
 import { ref, computed } from 'vue'
 import { Search, Bell, X, Menu } from 'lucide-vue-next'
 import * as LucideIcons from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 import AppBreadcrumb from './AppBreadcrumb.vue'
 import { mockUser, mockNotifications } from './data/menuData.js'
+import { useAuthStore } from '@/stores/auth'
 
 const emit = defineEmits(['toggle-sidebar'])
+const router = useRouter()
+const authStore = useAuthStore()
 
 // Search
 const searchQuery = ref('')
@@ -47,6 +51,12 @@ function notifColorClass(color) {
 
 function getIcon(name) {
   return LucideIcons[name] || LucideIcons.Bell
+}
+
+function logout() {
+  authStore.logout()
+  userMenuOpen.value = false
+  router.replace('/login')
 }
 </script>
 
@@ -184,12 +194,12 @@ function getIcon(name) {
       >
         <!-- Avatar -->
         <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold shadow-sm">
-          {{ mockUser.initials }}
+          {{ authStore.initials || mockUser.initials }}
         </div>
         <!-- Name (ẩn trên mobile nhỏ) -->
         <div class="hidden sm:block text-left">
-          <p class="text-[13px] font-semibold text-slate-700 leading-tight">{{ mockUser.name }}</p>
-          <p class="text-[11px] text-slate-400 leading-tight">{{ mockUser.class }}</p>
+          <p class="text-[13px] font-semibold text-slate-700 leading-tight">{{ authStore.displayName || mockUser.name }}</p>
+          <p class="text-[11px] text-slate-400 leading-tight">{{ authStore.role || mockUser.class }}</p>
         </div>
         <LucideIcons.ChevronDown :size="14" class="hidden sm:block text-slate-400" />
       </button>
@@ -209,11 +219,11 @@ function getIcon(name) {
         >
           <!-- User info header -->
           <div class="border-b border-slate-100 px-4 py-3">
-            <p class="text-sm font-semibold text-slate-800">{{ mockUser.name }}</p>
-            <p class="text-xs text-slate-500 mt-0.5">{{ mockUser.email }}</p>
+            <p class="text-sm font-semibold text-slate-800">{{ authStore.displayName || mockUser.name }}</p>
+            <p class="text-xs text-slate-500 mt-0.5">{{ authStore.user?.email || mockUser.email }}</p>
             <span class="mt-1.5 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
               <LucideIcons.GraduationCap :size="10" />
-              {{ mockUser.campus }}
+              Cơ sở {{ authStore.user?.campusId || mockUser.campus }}
             </span>
           </div>
 
@@ -239,7 +249,10 @@ function getIcon(name) {
 
           <!-- Logout -->
           <div class="border-t border-slate-100 p-1.5">
-            <button class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors">
+            <button
+              class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+              @click="logout"
+            >
               <LucideIcons.LogOut :size="16" />
               Đăng xuất
             </button>

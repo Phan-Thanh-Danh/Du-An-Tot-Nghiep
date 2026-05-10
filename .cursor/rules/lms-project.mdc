@@ -1,0 +1,48 @@
+---
+alwaysApply: true
+---
+
+# LMS Project Rules
+
+Áp dụng cho toàn bộ repo LMS Academic Management System.
+
+## Backend Rules
+
+- Đọc `README.md`, `AGENTS.md`, `CLAUDE.md` và docs liên quan trước khi sửa backend.
+- Giữ kiến trúc Controller -> Service -> DTO -> EF Core DbContext.
+- Controller đặt trong `Backend/Controllers`; service đặt trong `Backend/Services/<Module>`; DTO đặt trong `Backend/DTOs/<Module>`.
+- Dùng `ApiException` và middleware hiện có cho lỗi nghiệp vụ.
+- Dùng `AuthRoles` thay vì hardcode role string nếu role đã có constant.
+- Không sửa migration/model/database mapping ngoài phạm vi yêu cầu.
+
+## Frontend Rules
+
+- Giữ stack Vue 3 + Vite + Pinia + Vue Router + Tailwind.
+- Route chỉnh trong `frontend/src/router/index.js`.
+- Store đặt trong `frontend/src/stores`.
+- Không gọi API rải rác nếu đã có hoặc cần tạo API client chung.
+- Không hardcode token/user/role trong component.
+- Màn hình async phải có loading, error và empty state khi phù hợp.
+
+## API Contract Rules
+
+- Luôn đối chiếu `docs/API_CONTRACT.md` trước khi gọi hoặc thêm API.
+- Endpoint chỉ được ghi là `đã có` khi tồn tại controller/action thật.
+- Nếu chưa chắc endpoint tồn tại, ghi `dự kiến` hoặc `cần bổ sung`.
+- Khi thêm/sửa endpoint, cập nhật contract cùng task.
+
+## Auth, Role, Permission Rules
+
+- Endpoint cần đăng nhập phải dùng `[Authorize]`.
+- Endpoint theo vai trò phải dùng role trong `Backend/Constants/AuthConstants.cs`.
+- Không bỏ qua JWT middleware, first-login middleware hoặc campus scope nếu liên quan dữ liệu người dùng/cơ sở.
+- Không expose dữ liệu ngoài phạm vi `MaDonVi`/campus khi nghiệp vụ yêu cầu phân quyền theo cơ sở.
+
+## Safety Rules
+
+- Không bịa endpoint, request body hoặc response body.
+- Không hardcode secret, token, password, connection string thật.
+- Không copy nguyên source LMS open-source khác.
+- Không đổi stack, không thêm dependency mới nếu chưa được yêu cầu.
+- Không format toàn bộ repo.
+- Không xóa code/migration/entity hiện có nếu người dùng chưa yêu cầu.

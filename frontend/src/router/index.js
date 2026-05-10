@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 // ─────────────────────────────────────────────────────────
 // Router config cho hệ thống LMS
@@ -171,13 +172,26 @@ const router = createRouter({
   },
 })
 
-// ── Navigation Guard (stub) ────────────────────────────────
+// ── Navigation Guard ────────────────────────────────────────
 router.beforeEach((to, from, next) => {
-  // TODO: kiểm tra auth token từ Pinia store
-  // const authStore = useAuthStore()
-  // if (to.meta.requiresAuth && !authStore.isLoggedIn) {
-  //   return next('/login')
-  // }
+  const authStore = useAuthStore()
+  authStore.ensureFreshSession()
+
+  if (to.meta.public && authStore.isAuthenticated) {
+    return next('/student/dashboard')
+  }
+
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    return next({
+      path: '/login',
+      query: { redirect: to.fullPath },
+    })
+  }
+
+  if (to.meta.role && !authStore.hasRole(to.meta.role)) {
+    return next({ name: 'not-found' })
+  }
+
   next()
 })
 

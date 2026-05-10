@@ -9,6 +9,7 @@ import {
 } from 'lucide-vue-next'
 import SidebarMenuGroup from './SidebarMenuGroup.vue'
 import { sinhVienMenuGroups, mockUser } from './data/menuData.js'
+import { useAuthStore } from '@/stores/auth'
 
 defineProps({
   collapsed: { type: Boolean, default: false },
@@ -17,10 +18,11 @@ defineProps({
 const emit = defineEmits(['toggle'])
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 function logout() {
-  // TODO: gọi auth store logout
-  router.push('/login')
+  authStore.logout()
+  router.replace('/login')
 }
 </script>
 
@@ -93,12 +95,16 @@ function logout() {
       <div :class="['flex items-center gap-3', collapsed ? '' : '']">
         <!-- Avatar -->
         <div class="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold shadow">
-          {{ mockUser.initials }}
+          {{ authStore.initials || mockUser.initials }}
         </div>
         <Transition name="fade-slide">
           <div v-if="!collapsed" class="overflow-hidden min-w-0">
-            <p class="text-[13px] font-semibold text-slate-700 truncate leading-tight">{{ mockUser.name }}</p>
-            <p class="text-[11px] text-slate-400 truncate leading-tight">{{ mockUser.studentId }}</p>
+            <p class="text-[13px] font-semibold text-slate-700 truncate leading-tight">
+              {{ authStore.displayName || mockUser.name }}
+            </p>
+            <p class="text-[11px] text-slate-400 truncate leading-tight">
+              {{ authStore.user?.email || mockUser.studentId }}
+            </p>
           </div>
         </Transition>
       </div>
