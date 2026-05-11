@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260504094511_InitialCreate")]
+    [Migration("20260511141206_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -1579,6 +1579,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_don_vi_cha");
 
+                    b.Property<DateTime?>("NgayCapNhat")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ngay_cap_nhat");
+
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -1594,7 +1598,14 @@ namespace Backend.Migrations
                     b.HasKey("MaDonVi")
                         .HasName("PK_DonVi");
 
-                    b.HasIndex("MaDonViCha");
+                    b.HasIndex("CapDonVi")
+                        .HasDatabaseName("IX_DonVi_cap_don_vi");
+
+                    b.HasIndex("ConHoatDong")
+                        .HasDatabaseName("IX_DonVi_con_hoat_dong");
+
+                    b.HasIndex("MaDonViCha")
+                        .HasDatabaseName("IX_DonVi_ma_don_vi_cha");
 
                     b.ToTable("DonVi", "dbo", t =>
                         {
@@ -2404,7 +2415,7 @@ namespace Backend.Migrations
                         {
                             t.HasCheckConstraint("CK_NguoiDung_trang_thai_2", "[trang_thai] IN (N'hoat_dong', N'bi_khoa', N'dang_nhap_lan_dau')");
 
-                            t.HasCheckConstraint("CK_NguoiDung_vai_tro_chinh_1", "[vai_tro_chinh] IN (N'quan_tri', N'giao_vien', N'hoc_sinh', N'nhan_vien', N'hieu_truong', N'phu_huynh')");
+                            t.HasCheckConstraint("CK_NguoiDung_vai_tro_chinh_1", "[vai_tro_chinh] IN (N'quan_tri', N'giao_vien', N'hoc_sinh', N'nhan_vien', N'hieu_truong', N'phu_huynh', N'sieu_quan_tri', N'quan_tri_co_so', N'quan_tri_co_so_con')");
                         });
                 });
 
@@ -2685,6 +2696,61 @@ namespace Backend.Migrations
                         {
                             t.HasCheckConstraint("CK_NopBaiDanhGia_so_lan_nop_1", "[so_lan_nop] BETWEEN 0 AND 2");
                         });
+                });
+
+            modelBuilder.Entity("Backend.Models.PasswordResetOtp", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreatedAt")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("Email");
+
+                    b.Property<DateTime>("ExpiredAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ExpiredAt");
+
+                    b.Property<bool>("IsUsed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsUsed");
+
+                    b.Property<bool>("IsVerified")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsVerified");
+
+                    b.Property<string>("OtpCode")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)")
+                        .HasColumnName("OtpCode");
+
+                    b.HasKey("Id")
+                        .HasName("PK_PasswordResetOtps");
+
+                    b.HasIndex("Email")
+                        .HasDatabaseName("IX_PasswordResetOtps_Email");
+
+                    b.HasIndex("Email", "IsUsed", "CreatedAt")
+                        .HasDatabaseName("IX_PasswordResetOtps_Email_IsUsed_CreatedAt");
+
+                    b.ToTable("PasswordResetOtps", "dbo");
                 });
 
             modelBuilder.Entity("Backend.Models.PhanQuyenNguoiDung", b =>
@@ -4238,7 +4304,7 @@ namespace Backend.Migrations
             modelBuilder.Entity("Backend.Models.DonVi", b =>
                 {
                     b.HasOne("Backend.Models.DonVi", "DonViCha")
-                        .WithMany()
+                        .WithMany("DonViCons")
                         .HasForeignKey("MaDonViCha")
                         .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK_DonVi_ma_don_vi_cha__DonVi");
@@ -5069,6 +5135,11 @@ namespace Backend.Migrations
                     b.Navigation("NguoiDuyetNavigation");
 
                     b.Navigation("NguoiYeuCauNavigation");
+                });
+
+            modelBuilder.Entity("Backend.Models.DonVi", b =>
+                {
+                    b.Navigation("DonViCons");
                 });
 #pragma warning restore 612, 618
         }

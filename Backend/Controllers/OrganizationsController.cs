@@ -87,6 +87,6 @@ public class OrganizationsController : ControllerBase
             return currentUser.UserId;
         }
 
-        throw new ApiException(StatusCodes.Status401Unauthorized, "Invalid authentication token.");
+        throw new ApiException(StatusCodes.Status401Unauthorized, "Token xác thực không hợp lệ.");
     }
 }

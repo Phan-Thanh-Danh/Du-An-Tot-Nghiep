@@ -2695,6 +2695,61 @@ namespace Backend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Backend.Models.PasswordResetOtp", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreatedAt")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("Email");
+
+                    b.Property<DateTime>("ExpiredAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ExpiredAt");
+
+                    b.Property<bool>("IsUsed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsUsed");
+
+                    b.Property<bool>("IsVerified")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsVerified");
+
+                    b.Property<string>("OtpCode")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)")
+                        .HasColumnName("OtpCode");
+
+                    b.HasKey("Id")
+                        .HasName("PK_PasswordResetOtps");
+
+                    b.HasIndex("Email")
+                        .HasDatabaseName("IX_PasswordResetOtps_Email");
+
+                    b.HasIndex("Email", "IsUsed", "CreatedAt")
+                        .HasDatabaseName("IX_PasswordResetOtps_Email_IsUsed_CreatedAt");
+
+                    b.ToTable("PasswordResetOtps", "dbo");
+                });
+
             modelBuilder.Entity("Backend.Models.PhanQuyenNguoiDung", b =>
                 {
                     b.Property<int>("MaNguoiDung")

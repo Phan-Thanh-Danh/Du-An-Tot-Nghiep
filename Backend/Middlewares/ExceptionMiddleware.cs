@@ -35,7 +35,7 @@ public class ExceptionMiddleware
 
             var message = _environment.IsDevelopment()
                 ? exception.Message
-                : "An unexpected error occurred.";
+                : "Đã xảy ra lỗi không mong muốn.";
 
             await WriteErrorAsync(context, StatusCodes.Status500InternalServerError, message);
         }

@@ -28,7 +28,7 @@ public class AuthService : IAuthService
 
         if (user is null)
         {
-            throw new ApiException(StatusCodes.Status401Unauthorized, "Invalid email or password.");
+            throw new ApiException(StatusCodes.Status401Unauthorized, "Email hoặc mật khẩu không chính xác.");
         }
 
         var role = AuthRoles.FromDatabaseCode(user.VaiTroChinh);
@@ -38,7 +38,7 @@ public class AuthService : IAuthService
         {
             await AddAuditLogAsync(user, "LOGIN_LOCKED", null, new { user.Email, Status = status });
             await _context.SaveChangesAsync();
-            throw new ApiException(StatusCodes.Status403Forbidden, "Your account is locked.");
+            throw new ApiException(StatusCodes.Status403Forbidden, "Tài khoản của bạn đang bị khóa.");
         }
 
         if (!PasswordHelper.VerifyPassword(request.Password, user.MatKhauHash ?? string.Empty))
@@ -55,7 +55,7 @@ public class AuthService : IAuthService
             await AddAuditLogAsync(user, "LOGIN_FAILED", null, new { user.Email });
             await _context.SaveChangesAsync();
 
-            throw new ApiException(StatusCodes.Status401Unauthorized, "Invalid email or password.");
+            throw new ApiException(StatusCodes.Status401Unauthorized, "Email hoặc mật khẩu không chính xác.");
         }
 
         user.SoLanSaiMatKhau = 0;
@@ -80,14 +80,30 @@ public class AuthService : IAuthService
         var user = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.MaNguoiDung == userId);
         if (user is null)
         {
-            throw new ApiException(StatusCodes.Status404NotFound, "User was not found.");
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy người dùng.");
         }
 
         if (!PasswordHelper.VerifyPassword(request.OldPassword, user.MatKhauHash ?? string.Empty))
         {
-            await AddAuditLogAsync(user, "PASSWORD_CHANGE_FAILED", null, new { Reason = "Old password did not match" });
+            await AddAuditLogAsync(user, "PASSWORD_CHANGE_FAILED", null, new { Reason = "Mật khẩu hiện tại không khớp" });
             await _context.SaveChangesAsync();
-            throw new ApiException(StatusCodes.Status400BadRequest, "Old password is incorrect.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Mật khẩu hiện tại không chính xác.");
+        }
+
+        if (request.NewPassword != request.ConfirmPassword)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Mật khẩu xác nhận không khớp.");
+        }
+
+        var passwordStrengthError = PasswordHelper.GetPasswordStrengthError(request.NewPassword);
+        if (passwordStrengthError is not null)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, passwordStrengthError);
+        }
+
+        if (PasswordHelper.VerifyPassword(request.NewPassword, user.MatKhauHash ?? string.Empty))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Mật khẩu mới không được trùng với mật khẩu hiện tại.");
         }
 
         user.MatKhauHash = PasswordHelper.HashPassword(request.NewPassword);

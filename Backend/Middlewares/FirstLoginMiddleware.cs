@@ -30,7 +30,7 @@ public class FirstLoginMiddleware
             await context.Response.WriteAsync(JsonSerializer.Serialize(new
             {
                 statusCode = StatusCodes.Status403Forbidden,
-                message = "You must change your password before continuing.",
+                message = "Bạn phải đổi mật khẩu trước khi tiếp tục.",
                 traceId = context.TraceIdentifier
             }));
             return;

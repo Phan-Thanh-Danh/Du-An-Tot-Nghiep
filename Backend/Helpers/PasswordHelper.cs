@@ -24,6 +24,46 @@ public static class PasswordHelper
             Convert.ToBase64String(hash));
     }
 
+    public static string? GetPasswordStrengthError(string password)
+    {
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            return "Mật khẩu mới không được để trống.";
+        }
+
+        if (password.Length < 8)
+        {
+            return "Mật khẩu mới phải có tối thiểu 8 ký tự.";
+        }
+
+        if (password.Any(char.IsWhiteSpace))
+        {
+            return "Mật khẩu mới không được chứa khoảng trắng.";
+        }
+
+        if (!password.Any(char.IsUpper))
+        {
+            return "Mật khẩu mới phải có ít nhất 1 chữ hoa.";
+        }
+
+        if (!password.Any(char.IsLower))
+        {
+            return "Mật khẩu mới phải có ít nhất 1 chữ thường.";
+        }
+
+        if (!password.Any(char.IsDigit))
+        {
+            return "Mật khẩu mới phải có ít nhất 1 chữ số.";
+        }
+
+        if (!password.Any(ch => char.IsPunctuation(ch) || char.IsSymbol(ch)))
+        {
+            return "Mật khẩu mới phải có ít nhất 1 ký tự đặc biệt.";
+        }
+
+        return null;
+    }
+
     public static bool VerifyPassword(string password, string passwordHash)
     {
         if (string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(passwordHash))

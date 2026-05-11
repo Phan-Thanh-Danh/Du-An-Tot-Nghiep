@@ -2,6 +2,7 @@ using System.Text.Json;
 using Backend.Data;
 using Backend.Helpers;
 using Backend.Middlewares;
+using Backend.Services;
 using Backend.Services.Auth;
 using Backend.Services.Organizations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -23,7 +24,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
         var response = new
         {
             statusCode = StatusCodes.Status400BadRequest,
-            message = "Validation failed.",
+            message = "Dữ liệu không hợp lệ.",
             traceId = context.HttpContext.TraceIdentifier
         };
 
@@ -35,9 +36,13 @@ builder.Services.AddOpenApi();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
 builder.Services.AddSingleton<JwtHelper>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddCors(options =>
 {
@@ -62,11 +67,11 @@ builder.Services
             OnChallenge = async context =>
             {
                 context.HandleResponse();
-                await WriteJsonAsync(context.HttpContext, StatusCodes.Status401Unauthorized, "Authentication is required.");
+                await WriteJsonAsync(context.HttpContext, StatusCodes.Status401Unauthorized, "Vui lòng đăng nhập để tiếp tục.");
             },
             OnForbidden = async context =>
             {
-                await WriteJsonAsync(context.HttpContext, StatusCodes.Status403Forbidden, "You are not allowed to access this resource.");
+                await WriteJsonAsync(context.HttpContext, StatusCodes.Status403Forbidden, "Bạn không có quyền truy cập tài nguyên này.");
             }
         };
     });

@@ -75,7 +75,8 @@ namespace Backend.Migrations
                     ten_don_vi = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     cap_don_vi = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     con_hoat_dong = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
-                    ngay_tao = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                    ngay_tao = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
+                    ngay_cap_nhat = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -105,6 +106,25 @@ namespace Backend.Migrations
                 {
                     table.PrimaryKey("PK_MauThongBao", x => x.ma_mau_tb);
                     table.CheckConstraint("CK_MauThongBao_kenh_gui_1", "[kenh_gui] IN (N'email', N'thong_bao_day', N'sms')");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PasswordResetOtps",
+                schema: "dbo",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    OtpCode = table.Column<string>(type: "nvarchar(512)", maxLength: 512, nullable: false),
+                    ExpiredAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsVerified = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    IsUsed = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PasswordResetOtps", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -1245,7 +1265,7 @@ namespace Backend.Migrations
                 {
                     table.PrimaryKey("PK_NguoiDung", x => x.ma_nguoi_dung);
                     table.CheckConstraint("CK_NguoiDung_trang_thai_2", "[trang_thai] IN (N'hoat_dong', N'bi_khoa', N'dang_nhap_lan_dau')");
-                    table.CheckConstraint("CK_NguoiDung_vai_tro_chinh_1", "[vai_tro_chinh] IN (N'quan_tri', N'giao_vien', N'hoc_sinh', N'nhan_vien', N'hieu_truong', N'phu_huynh')");
+                    table.CheckConstraint("CK_NguoiDung_vai_tro_chinh_1", "[vai_tro_chinh] IN (N'quan_tri', N'giao_vien', N'hoc_sinh', N'nhan_vien', N'hieu_truong', N'phu_huynh', N'sieu_quan_tri', N'quan_tri_co_so', N'quan_tri_co_so_con')");
                     table.ForeignKey(
                         name: "FK_NguoiDung_ma_don_vi__DonVi",
                         column: x => x.ma_don_vi,
@@ -2344,6 +2364,18 @@ namespace Backend.Migrations
                 column: "nguoi_duyet_hien_tai");
 
             migrationBuilder.CreateIndex(
+                name: "IX_DonVi_cap_don_vi",
+                schema: "dbo",
+                table: "DonVi",
+                column: "cap_don_vi");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DonVi_con_hoat_dong",
+                schema: "dbo",
+                table: "DonVi",
+                column: "con_hoat_dong");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_DonVi_ma_don_vi_cha",
                 schema: "dbo",
                 table: "DonVi",
@@ -2628,6 +2660,18 @@ namespace Backend.Migrations
                 table: "NopBaiDanhGia",
                 columns: new[] { "ma_hoc_sinh", "ma_giao_vien", "ma_hoc_ky" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PasswordResetOtps_Email",
+                schema: "dbo",
+                table: "PasswordResetOtps",
+                column: "Email");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PasswordResetOtps_Email_IsUsed_CreatedAt",
+                schema: "dbo",
+                table: "PasswordResetOtps",
+                columns: new[] { "Email", "IsUsed", "CreatedAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_PhanQuyenNguoiDung_ma_vai_tro",
@@ -3313,6 +3357,10 @@ namespace Backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "NopBaiDanhGia",
+                schema: "dbo");
+
+            migrationBuilder.DropTable(
+                name: "PasswordResetOtps",
                 schema: "dbo");
 
             migrationBuilder.DropTable(

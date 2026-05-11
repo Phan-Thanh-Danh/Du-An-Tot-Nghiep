@@ -50,6 +50,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<MauThongBao> MauThongBaos => Set<MauThongBao>();
     public DbSet<MonHocTienQuyet> MonHocTienQuyets => Set<MonHocTienQuyet>();
     public DbSet<NguoiDung> NguoiDungs => Set<NguoiDung>();
+    public DbSet<PasswordResetOtp> PasswordResetOtps => Set<PasswordResetOtp>();
     public DbSet<NhatKyDuyetDon> NhatKyDuyetDons => Set<NhatKyDuyetDon>();
     public DbSet<NhatKyKiemToan> NhatKyKiemToans => Set<NhatKyKiemToan>();
     public DbSet<NhatKyThayDoiDiem> NhatKyThayDoiDiems => Set<NhatKyThayDoiDiem>();
@@ -1761,6 +1762,37 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaLop)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_NguoiDung_ma_lop__LopHanhChinh");
+        });
+
+        modelBuilder.Entity<PasswordResetOtp>(entity =>
+        {
+            entity.ToTable("PasswordResetOtps", "dbo");
+            entity.HasKey(e => e.Id).HasName("PK_PasswordResetOtps");
+            entity.Property(e => e.Id)
+                .HasColumnName("Id");
+            entity.Property(e => e.Email)
+                .HasColumnName("Email")
+                .HasMaxLength(255)
+                .IsRequired();
+            entity.Property(e => e.OtpCode)
+                .HasColumnName("OtpCode")
+                .HasMaxLength(512)
+                .IsRequired();
+            entity.Property(e => e.ExpiredAt)
+                .HasColumnName("ExpiredAt")
+                .HasColumnType("datetime2");
+            entity.Property(e => e.IsVerified)
+                .HasColumnName("IsVerified")
+                .HasDefaultValue(false);
+            entity.Property(e => e.IsUsed)
+                .HasColumnName("IsUsed")
+                .HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("CreatedAt")
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.HasIndex(e => e.Email).HasDatabaseName("IX_PasswordResetOtps_Email");
+            entity.HasIndex(e => new { e.Email, e.IsUsed, e.CreatedAt }).HasDatabaseName("IX_PasswordResetOtps_Email_IsUsed_CreatedAt");
         });
 
         modelBuilder.Entity<NhatKyDuyetDon>(entity =>

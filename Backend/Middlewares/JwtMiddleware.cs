@@ -33,7 +33,7 @@ public class JwtMiddleware
 
         if (!authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {
-            await WriteJsonAsync(context, StatusCodes.Status401Unauthorized, "Invalid authorization header.");
+            await WriteJsonAsync(context, StatusCodes.Status401Unauthorized, "Header xác thực không hợp lệ.");
             return;
         }
 
@@ -41,14 +41,14 @@ public class JwtMiddleware
         var principal = jwtHelper.ValidateToken(token);
         if (principal is null)
         {
-            await WriteJsonAsync(context, StatusCodes.Status401Unauthorized, "Invalid or expired token.");
+            await WriteJsonAsync(context, StatusCodes.Status401Unauthorized, "Token không hợp lệ hoặc đã hết hạn.");
             return;
         }
 
         var currentUser = CreateCurrentUser(principal);
         if (currentUser is null)
         {
-            await WriteJsonAsync(context, StatusCodes.Status401Unauthorized, "Invalid authentication token claims.");
+            await WriteJsonAsync(context, StatusCodes.Status401Unauthorized, "Thông tin xác thực trong token không hợp lệ.");
             return;
         }
 

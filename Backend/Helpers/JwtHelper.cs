@@ -113,7 +113,7 @@ public class JwtHelper
         var value = _configuration[key];
         if (string.IsNullOrWhiteSpace(value))
         {
-            throw new InvalidOperationException($"Missing configuration value: {key}");
+            throw new InvalidOperationException($"Thiếu cấu hình bắt buộc: {key}");
         }
 
         return value;

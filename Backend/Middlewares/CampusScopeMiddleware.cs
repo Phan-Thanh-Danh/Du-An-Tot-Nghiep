@@ -130,7 +130,7 @@ public class CampusScopeMiddleware
         await context.Response.WriteAsync(JsonSerializer.Serialize(new
         {
             statusCode = StatusCodes.Status403Forbidden,
-            message = "You are not allowed to access data from this campus.",
+            message = "Bạn không có quyền truy cập dữ liệu của cơ sở này.",
             traceId = context.TraceIdentifier
         }));
     }

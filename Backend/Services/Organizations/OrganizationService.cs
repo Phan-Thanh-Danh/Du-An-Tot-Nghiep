@@ -51,7 +51,7 @@ public class OrganizationService : IOrganizationService
 
         if (organization is null)
         {
-            throw new ApiException(StatusCodes.Status404NotFound, "Organization was not found.");
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy đơn vị.");
         }
 
         return ToResponseDto(organization);
@@ -88,7 +88,7 @@ public class OrganizationService : IOrganizationService
         var organization = await _context.DonVis.FirstOrDefaultAsync(x => x.MaDonVi == id);
         if (organization is null)
         {
-            throw new ApiException(StatusCodes.Status404NotFound, "Organization was not found.");
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy đơn vị.");
         }
 
         var name = NormalizeName(dto.Name);
@@ -115,7 +115,7 @@ public class OrganizationService : IOrganizationService
         var organization = await _context.DonVis.FirstOrDefaultAsync(x => x.MaDonVi == id);
         if (organization is null)
         {
-            throw new ApiException(StatusCodes.Status404NotFound, "Organization was not found.");
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy đơn vị.");
         }
 
         organization.ConHoatDong = false;
@@ -131,7 +131,7 @@ public class OrganizationService : IOrganizationService
         var organization = await _context.DonVis.FirstOrDefaultAsync(x => x.MaDonVi == id);
         if (organization is null)
         {
-            throw new ApiException(StatusCodes.Status404NotFound, "Organization was not found.");
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy đơn vị.");
         }
 
         var blockers = await GetHardDeleteBlockersAsync(id);
@@ -139,7 +139,7 @@ public class OrganizationService : IOrganizationService
         {
             throw new ApiException(
                 StatusCodes.Status400BadRequest,
-                $"Cannot hard delete this organization because related data exists: {string.Join(", ", blockers)}.");
+                $"Không thể xóa cứng đơn vị này vì còn dữ liệu liên quan: {string.Join(", ", blockers)}.");
         }
 
         _context.DonVis.Remove(organization);
@@ -153,7 +153,7 @@ public class OrganizationService : IOrganizationService
 
         if (root is null)
         {
-            throw new ApiException(StatusCodes.Status404NotFound, "Organization was not found.");
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy đơn vị.");
         }
 
         return BuildNode(root, organizations);
@@ -167,7 +167,7 @@ public class OrganizationService : IOrganizationService
         {
             if (parentId.HasValue)
             {
-                throw new ApiException(StatusCodes.Status400BadRequest, "Root organization cannot have a parent.");
+                throw new ApiException(StatusCodes.Status400BadRequest, "Đơn vị gốc không được có đơn vị cha.");
             }
 
             return;
@@ -175,7 +175,7 @@ public class OrganizationService : IOrganizationService
 
         if (!parentId.HasValue)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Campus and SubCampus organizations must have a parent.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Cơ sở và cơ sở con phải có đơn vị cha.");
         }
 
         var parent = await _context.DonVis
@@ -184,17 +184,17 @@ public class OrganizationService : IOrganizationService
 
         if (parent is null)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Parent organization is invalid or inactive.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Đơn vị cha không hợp lệ hoặc không hoạt động.");
         }
 
         if (level == DbCampus && parent.CapDonVi != DbRoot)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Campus organization must have a Root parent.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Đơn vị cấp cơ sở phải có đơn vị cha là cấp gốc.");
         }
 
         if (level == DbSubCampus && parent.CapDonVi != DbCampus)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "SubCampus organization must have a Campus parent.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Đơn vị cấp cơ sở con phải có đơn vị cha là cấp cơ sở.");
         }
     }
 
@@ -207,7 +207,7 @@ public class OrganizationService : IOrganizationService
 
         if (id == newParentId.Value)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Organization cannot be its own parent.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Đơn vị không thể là đơn vị cha của chính nó.");
         }
 
         var organizations = await _context.DonVis
@@ -223,7 +223,7 @@ public class OrganizationService : IOrganizationService
         {
             if (currentParentId.Value == id)
             {
-                throw new ApiException(StatusCodes.Status400BadRequest, "Circular organization hierarchy is not allowed.");
+                throw new ApiException(StatusCodes.Status400BadRequest, "Cấu trúc đơn vị không được tạo vòng lặp.");
             }
 
             if (!visited.Add(currentParentId.Value) ||
@@ -302,7 +302,7 @@ public class OrganizationService : IOrganizationService
         var currentUser = _httpContextAccessor.HttpContext?.Items["CurrentUser"] as CurrentUserContext;
         if (currentUser is null)
         {
-            throw new ApiException(StatusCodes.Status401Unauthorized, "Invalid authentication token.");
+            throw new ApiException(StatusCodes.Status401Unauthorized, "Token xác thực không hợp lệ.");
         }
 
         return currentUser;
@@ -357,12 +357,12 @@ public class OrganizationService : IOrganizationService
         var normalizedName = name.Trim();
         if (string.IsNullOrWhiteSpace(normalizedName))
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Organization name is required.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Tên đơn vị không được để trống.");
         }
 
         if (normalizedName.Length > 255)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Organization name cannot exceed 255 characters.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Tên đơn vị không được vượt quá 255 ký tự.");
         }
 
         return normalizedName;
@@ -378,7 +378,7 @@ public class OrganizationService : IOrganizationService
             var value when value.Equals(DbRoot, StringComparison.OrdinalIgnoreCase) => DbRoot,
             var value when value.Equals(DbCampus, StringComparison.OrdinalIgnoreCase) => DbCampus,
             var value when value.Equals(DbSubCampus, StringComparison.OrdinalIgnoreCase) => DbSubCampus,
-            _ => throw new ApiException(StatusCodes.Status400BadRequest, "OrganizationLevel must be Root, Campus, or SubCampus.")
+            _ => throw new ApiException(StatusCodes.Status400BadRequest, "Cấp đơn vị phải là Root, Campus hoặc SubCampus.")
         };
     }
 
