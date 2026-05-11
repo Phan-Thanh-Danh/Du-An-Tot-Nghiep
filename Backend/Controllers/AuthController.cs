@@ -31,6 +31,30 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("refresh-token")]
+    [AllowAnonymous]
+    public async Task<ActionResult<LoginResponseDto>> RefreshToken(RefreshTokenRequestDto request)
+    {
+        var response = await _authService.RefreshTokenAsync(request);
+        return Ok(response);
+    }
+
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Logout(RevokeTokenRequestDto request)
+    {
+        await _authService.LogoutAsync(request);
+        return Ok(new { message = "Đăng xuất thành công." });
+    }
+
+    [HttpPost("revoke-token")]
+    [Authorize(Roles = $"{AuthRoles.Admin},{AuthRoles.SuperAdmin},{AuthRoles.CampusAdmin}")]
+    public async Task<IActionResult> RevokeToken(RevokeTokenRequestDto request)
+    {
+        await _authService.RevokeTokenAsync(request);
+        return Ok(new { message = "Thu hồi refresh token thành công." });
+    }
+
     [HttpPost("change-password")]
     [Authorize]
     public async Task<IActionResult> ChangePassword(ChangePasswordDto request)

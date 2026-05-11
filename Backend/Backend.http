@@ -1,6 +1,45 @@
 @Backend_HostAddress = http://localhost:5097
+@AccessToken = paste_access_token_here
+@RefreshToken = paste_refresh_token_here
 
-GET {{Backend_HostAddress}}/weatherforecast/
+POST {{Backend_HostAddress}}/api/auth/login
+Content-Type: application/json
 Accept: application/json
+
+{
+  "email": "superadmin@lms.local",
+  "password": "Admin@123456"
+}
+
+###
+
+POST {{Backend_HostAddress}}/api/auth/refresh-token
+Content-Type: application/json
+Accept: application/json
+
+{
+  "refreshToken": "{{RefreshToken}}"
+}
+
+###
+
+POST {{Backend_HostAddress}}/api/auth/logout
+Content-Type: application/json
+Accept: application/json
+
+{
+  "refreshToken": "{{RefreshToken}}"
+}
+
+###
+
+POST {{Backend_HostAddress}}/api/auth/revoke-token
+Authorization: Bearer {{AccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "refreshToken": "{{RefreshToken}}"
+}
 
 ###
