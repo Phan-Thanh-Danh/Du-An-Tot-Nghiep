@@ -82,8 +82,17 @@ async function submitLogin() {
     return
   }
 
-  const redirectPath = typeof route.query.redirect === 'string' ? route.query.redirect : '/student/dashboard'
-  router.replace(redirectPath)
+  // Ưu tiên chuyển hướng theo vai trò để tránh lỗi 404 nếu redirect cũ không phù hợp
+  let targetPath = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
+  
+  // Nếu đang ở trang chủ hoặc trang không thuộc quyền hạn, ép buộc về đúng Dashboard
+  if (targetPath === '/' || targetPath.startsWith('/student') || targetPath.startsWith('/teacher') || targetPath.startsWith('/staff')) {
+    if (authStore.hasRole('Teacher')) targetPath = '/teacher/dashboard'
+    else if (authStore.hasRole('AcademicStaff')) targetPath = '/staff/dashboard'
+    else targetPath = '/student/dashboard'
+  }
+
+  router.replace(targetPath)
 }
 </script>
 

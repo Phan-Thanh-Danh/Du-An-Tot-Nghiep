@@ -7,7 +7,7 @@
     </div>
     <h3 class="mt-4 text-base font-semibold text-slate-600">Trang không tồn tại</h3>
     <p class="mt-1 text-sm text-slate-400">Đường dẫn bạn truy cập không hợp lệ.</p>
-    <router-link to="/student/dashboard" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
+    <router-link to="/" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
       ← Về Dashboard
     </router-link>
   </div>
