@@ -97,10 +97,10 @@ watch(() => route.path, () => {
     <template v-else>
       <button
         ref="buttonRef"
-        class="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-150"
+        class="lg-sidebar-item group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20"
         :class="[
           isGroupActive
-            ? 'text-blue-700 font-semibold'
+            ? 'lg-sidebar-item-active font-semibold'
             : 'text-slate-500 hover:text-slate-700',
           collapsed ? 'justify-center' : '',
         ]"
@@ -114,7 +114,7 @@ watch(() => route.path, () => {
           :stroke-width="isGroupActive ? 2.5 : 1.8"
           :class="[
             'flex-shrink-0 transition-colors',
-            isGroupActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600',
+            isGroupActive ? 'text-white' : 'text-slate-400 group-hover:text-blue-600',
           ]"
         />
 
@@ -143,7 +143,7 @@ watch(() => route.path, () => {
         leave-from-class="opacity-100 translate-y-0"
         leave-to-class="opacity-0 -translate-y-1"
       >
-        <div v-if="!collapsed && isOpen" class="ml-4 mt-0.5 space-y-0.5 border-l border-slate-100 pl-3">
+        <div v-if="!collapsed && isOpen" class="ml-4 mt-1 space-y-1 border-l border-white/45 pl-3">
           <SidebarMenuItem
             v-for="child in group.children"
             :key="child.id"
@@ -168,7 +168,7 @@ watch(() => route.path, () => {
             v-if="collapsed && flyoutVisible"
             ref="menuRef"
             :style="flyoutStyle"
-            class="fixed z-[100] min-w-[200px] rounded-xl border border-slate-100 bg-white p-2 shadow-2xl"
+            class="lg-glass-strong fixed z-[100] min-w-[220px] rounded-2xl p-2 shadow-2xl"
           >
             <!-- Group label trong flyout -->
             <div class="mb-1.5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">

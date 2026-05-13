@@ -10,11 +10,11 @@ defineProps({
     <!-- Page header: title + actions slot -->
     <div
       v-if="title || $slots.actions"
-      class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6"
+      class="lg-page-enter lg-glass-strong mb-6 flex flex-col gap-3 rounded-[28px] px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <div>
-        <h1 class="text-xl font-bold text-slate-800 leading-tight">{{ title }}</h1>
-        <p v-if="subtitle" class="text-sm text-slate-500 mt-0.5">{{ subtitle }}</p>
+        <h1 class="text-xl font-bold leading-tight text-slate-950">{{ title }}</h1>
+        <p v-if="subtitle" class="mt-1 text-sm text-slate-600">{{ subtitle }}</p>
       </div>
       <div v-if="$slots.actions" class="flex items-center gap-2 flex-shrink-0">
         <slot name="actions" />

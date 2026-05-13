@@ -1,10 +1,12 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import {
   Search, ChevronDown, CheckCircle2,
   Clock, Users, BookOpen, MoreVertical,
   PlayCircle, LayoutGrid, List
 } from 'lucide-vue-next'
+import LmsBadge from '@/components/LmsBadge.vue'
+import LmsCard from '@/components/LmsCard.vue'
 
 // Mock Data
 const courses = ref([
@@ -87,13 +89,33 @@ const colorMap = {
   purple: 'bg-purple-500',
   slate: 'bg-slate-400'
 }
+
+const statusMeta = {
+  learning: { label: 'Đang học', badge: 'info', dot: 'bg-blue-500' },
+  completed: { label: 'Hoàn thành', badge: 'success', dot: 'bg-green-500' },
+  upcoming: { label: 'Sắp tới', badge: 'warning', dot: 'bg-purple-500' },
+}
+
+const filteredCourses = computed(() => {
+  const keyword = searchQuery.value.trim().toLowerCase()
+
+  return courses.value.filter((course) => {
+    const matchesKeyword = !keyword ||
+      course.name.toLowerCase().includes(keyword) ||
+      course.id.toLowerCase().includes(keyword) ||
+      course.instructor.toLowerCase().includes(keyword)
+    const matchesStatus = selectedFilter.value === 'all' || course.status === selectedFilter.value
+
+    return matchesKeyword && matchesStatus
+  })
+})
 </script>
 
 <template>
-  <div class="space-y-6 pb-10">
+  <div class="lg-page-enter space-y-6 pb-10">
 
     <!-- Header Actions -->
-    <div class="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+    <LmsCard variant="glass" class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
       <div class="flex flex-1 items-center gap-4 w-full">
         <!-- Search -->
         <div class="relative w-full sm:w-80">
@@ -102,7 +124,8 @@ const colorMap = {
             v-model="searchQuery"
             type="text"
             placeholder="Tìm kiếm môn học..."
-            class="w-full rounded-xl border-none bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-shadow"
+            class="lg-control w-full py-2.5 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-400"
+            aria-label="Tìm kiếm khóa học"
           >
         </div>
 
@@ -110,7 +133,8 @@ const colorMap = {
         <div class="relative hidden sm:block">
           <select
             v-model="selectedFilter"
-            class="appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pl-4 pr-10 text-sm font-medium text-slate-700 outline-none hover:bg-slate-50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+            class="lg-control cursor-pointer appearance-none py-2.5 pl-4 pr-10 text-sm font-medium text-slate-700"
+            aria-label="Lọc khóa học"
           >
             <option value="all">Tất cả khóa học</option>
             <option value="learning">Đang học</option>
@@ -124,27 +148,29 @@ const colorMap = {
       <div class="flex items-center gap-2">
         <div class="flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1">
           <button
-            @click="viewMode = 'grid'"
             :class="['rounded-lg p-1.5 transition-colors', viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600']"
             title="Lưới"
+            aria-label="Hiển thị dạng lưới"
+            @click="viewMode = 'grid'"
           >
             <LayoutGrid :size="18" />
           </button>
           <button
-            @click="viewMode = 'list'"
             :class="['rounded-lg p-1.5 transition-colors', viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600']"
             title="Danh sách"
+            aria-label="Hiển thị dạng danh sách"
+            @click="viewMode = 'list'"
           >
             <List :size="18" />
           </button>
         </div>
       </div>
-    </div>
+    </LmsCard>
 
     <!-- Stats -->
     <div class="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-      <div class="flex items-center gap-3 rounded-2xl bg-white px-5 py-3 border border-slate-100 shadow-sm min-w-max">
-        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+      <div class="lg-nav flex min-w-max items-center gap-3 rounded-2xl px-5 py-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/20">
           <BookOpen :size="18" />
         </div>
         <div>
@@ -152,8 +178,8 @@ const colorMap = {
           <p class="text-base font-bold text-slate-800">3 môn</p>
         </div>
       </div>
-      <div class="flex items-center gap-3 rounded-2xl bg-white px-5 py-3 border border-slate-100 shadow-sm min-w-max">
-        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-green-50 text-green-600">
+      <div class="lg-nav flex min-w-max items-center gap-3 rounded-2xl px-5 py-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/20">
           <CheckCircle2 :size="18" />
         </div>
         <div>
@@ -161,8 +187,8 @@ const colorMap = {
           <p class="text-base font-bold text-slate-800">1 môn</p>
         </div>
       </div>
-      <div class="flex items-center gap-3 rounded-2xl bg-white px-5 py-3 border border-slate-100 shadow-sm min-w-max">
-        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-purple-50 text-purple-600">
+      <div class="lg-nav flex min-w-max items-center gap-3 rounded-2xl px-5 py-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-500/20">
           <Clock :size="18" />
         </div>
         <div>
@@ -177,30 +203,25 @@ const colorMap = {
       v-if="viewMode === 'grid'"
       class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
     >
-      <div
-        v-for="course in courses"
+      <router-link
+        v-for="course in filteredCourses"
         :key="course.id"
-        class="group flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-1"
+        :to="`/student/courses/${course.id}`"
+        class="lg-card-hover lg-glass group flex flex-col overflow-hidden rounded-[28px]"
       >
         <!-- Thumbnail -->
         <div class="relative h-36 w-full overflow-hidden bg-slate-100">
           <img :src="course.image" :alt="course.name" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
           <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-          <button class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 transition-all duration-300 group-hover:opacity-100 hover:scale-110">
+          <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:scale-110">
             <PlayCircle :size="48" stroke-width="1.5" />
-          </button>
+          </span>
 
           <!-- Status Badge -->
           <div class="absolute left-3 top-3">
-            <span v-if="course.status === 'learning'" class="rounded-full bg-blue-500/90 backdrop-blur px-2.5 py-1 text-[10px] font-bold text-white uppercase tracking-wider">
-              Đang học
-            </span>
-            <span v-else-if="course.status === 'completed'" class="rounded-full bg-green-500/90 backdrop-blur px-2.5 py-1 text-[10px] font-bold text-white uppercase tracking-wider">
-              Hoàn thành
-            </span>
-            <span v-else class="rounded-full bg-purple-500/90 backdrop-blur px-2.5 py-1 text-[10px] font-bold text-white uppercase tracking-wider">
-              Sắp tới
-            </span>
+            <LmsBadge :variant="statusMeta[course.status].badge" size="sm">
+              {{ statusMeta[course.status].label }}
+            </LmsBadge>
           </div>
         </div>
 
@@ -211,9 +232,9 @@ const colorMap = {
               <p class="text-xs font-semibold text-blue-600 mb-1">{{ course.id }}</p>
               <h3 class="text-base font-bold text-slate-800 leading-tight line-clamp-2 hover:text-blue-600 cursor-pointer transition-colors">{{ course.name }}</h3>
             </div>
-            <button class="text-slate-300 hover:text-slate-600">
+            <span class="lg-icon-button p-1 text-slate-300 group-hover:text-slate-600">
               <MoreVertical :size="18" />
-            </button>
+            </span>
           </div>
 
           <div class="space-y-2 mt-auto">
@@ -239,7 +260,7 @@ const colorMap = {
             <p class="mt-2 text-[11px] text-slate-400">Đã học {{ course.completedSessions }}/{{ course.totalSessions }} buổi · Truy cập: {{ course.lastAccessed }}</p>
           </div>
         </div>
-      </div>
+      </router-link>
     </div>
 
     <!-- Course List -->
@@ -247,10 +268,11 @@ const colorMap = {
       v-else
       class="flex flex-col gap-3"
     >
-      <div
-        v-for="course in courses"
+      <router-link
+        v-for="course in filteredCourses"
         :key="course.id"
-        class="group flex items-center gap-4 overflow-hidden rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all hover:border-blue-200 hover:shadow-md cursor-pointer"
+        :to="`/student/courses/${course.id}`"
+        class="lg-card-hover lg-glass-soft group flex cursor-pointer items-center gap-4 overflow-hidden rounded-[24px] p-3"
       >
         <div class="h-20 w-32 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100 relative">
           <img :src="course.image" :alt="course.name" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
@@ -260,9 +282,7 @@ const colorMap = {
         <div class="flex min-w-0 flex-1 items-center justify-between gap-6">
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 mb-1">
-              <span v-if="course.status === 'learning'" class="h-2 w-2 rounded-full bg-blue-500" />
-              <span v-else-if="course.status === 'completed'" class="h-2 w-2 rounded-full bg-green-500" />
-              <span v-else class="h-2 w-2 rounded-full bg-purple-500" />
+              <span :class="['h-2 w-2 rounded-full', statusMeta[course.status].dot]" />
               <p class="text-xs font-semibold text-slate-500">{{ course.id }}</p>
             </div>
             <h3 class="text-sm font-bold text-slate-800 leading-tight truncate group-hover:text-blue-600 transition-colors">{{ course.name }}</h3>
@@ -293,8 +313,14 @@ const colorMap = {
             </div>
           </div>
         </div>
-      </div>
+      </router-link>
     </div>
+
+    <LmsCard v-if="filteredCourses.length === 0" variant="solid" class="text-center">
+      <BookOpen :size="36" class="mx-auto text-slate-300" />
+      <p class="mt-3 text-sm font-semibold text-slate-800">Không tìm thấy khóa học</p>
+      <p class="mt-1 text-sm text-slate-500">Thử đổi từ khóa hoặc bộ lọc trạng thái.</p>
+    </LmsCard>
 
   </div>
 </template>
