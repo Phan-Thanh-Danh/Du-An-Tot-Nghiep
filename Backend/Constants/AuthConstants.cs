@@ -28,6 +28,41 @@ public static class AuthRoles
             _ => roleCode
         };
     }
+
+    public static string ToDatabaseCode(string role)
+    {
+        return role switch
+        {
+            Admin => "quan_tri",
+            Student => "hoc_sinh",
+            Teacher => "giao_vien",
+            AcademicStaff => "nhan_vien",
+            Principal => "hieu_truong",
+            Parent => "phu_huynh",
+            SuperAdmin => "sieu_quan_tri",
+            CampusAdmin => "quan_tri_co_so",
+            SubCampusAdmin => "quan_tri_co_so_con",
+            _ => role
+        };
+    }
+
+    public static readonly IReadOnlySet<string> DatabaseRoleCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "quan_tri",
+        "hoc_sinh",
+        "giao_vien",
+        "nhan_vien",
+        "hieu_truong",
+        "phu_huynh",
+        "sieu_quan_tri",
+        "quan_tri_co_so",
+        "quan_tri_co_so_con"
+    };
+
+    public static bool IsKnownDatabaseCode(string roleCode)
+    {
+        return DatabaseRoleCodes.Contains(roleCode);
+    }
 }
 
 public static class UserStatuses

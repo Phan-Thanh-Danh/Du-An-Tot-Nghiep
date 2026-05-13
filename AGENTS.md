@@ -40,6 +40,7 @@ Frontend:
 
 - Controller đặt trong `Backend/Controllers`.
 - Service interface/implementation đặt trong `Backend/Services/<Module>`.
+- Interface và lớp truy vấn/data access theo module cũng đặt trong `Backend/Services/<Module>` nếu team tách riêng khỏi service chính; không tạo thư mục `Repositories` riêng trừ khi có yêu cầu thống nhất mới.
 - DTO đặt trong `Backend/DTOs/<Module>`.
 - Entity đặt trong `Backend/Models`.
 - Mapping database tập trung trong `Backend/Data/ApplicationDbContext.cs`.

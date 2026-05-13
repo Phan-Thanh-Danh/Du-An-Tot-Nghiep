@@ -129,9 +129,11 @@ public class CampusScopeMiddleware
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsync(JsonSerializer.Serialize(new
         {
-            statusCode = StatusCodes.Status403Forbidden,
+            success = false,
             message = "Bạn không có quyền truy cập dữ liệu của cơ sở này.",
-            traceId = context.TraceIdentifier
+            errors = new[] { "Bạn không có quyền truy cập dữ liệu của cơ sở này." },
+            traceId = context.TraceIdentifier,
+            statusCode = StatusCodes.Status403Forbidden
         }));
     }
 }

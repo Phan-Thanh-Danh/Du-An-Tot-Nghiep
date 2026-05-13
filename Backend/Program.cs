@@ -3,8 +3,13 @@ using Backend.Data;
 using Backend.Helpers;
 using Backend.Middlewares;
 using Backend.Services;
+using Backend.Services.AdminUsers;
+using Backend.Services.AdministrativeClasses;
+using Backend.Services.Audit;
 using Backend.Services.Auth;
 using Backend.Services.Organizations;
+using Backend.Services.Rbac;
+using Backend.Services.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,11 +26,19 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
     {
+        var errors = context.ModelState
+            .Where(x => x.Value?.Errors.Count > 0)
+            .SelectMany(x => x.Value!.Errors.Select(error => string.IsNullOrWhiteSpace(error.ErrorMessage)
+                ? $"Trường {x.Key} không hợp lệ."
+                : error.ErrorMessage))
+            .ToList();
         var response = new
         {
-            statusCode = StatusCodes.Status400BadRequest,
+            success = false,
             message = "Dữ liệu không hợp lệ.",
-            traceId = context.HttpContext.TraceIdentifier
+            errors,
+            traceId = context.HttpContext.TraceIdentifier,
+            statusCode = StatusCodes.Status400BadRequest
         };
 
         return new BadRequestObjectResult(response);
@@ -44,6 +57,13 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAdministrativeClassService, AdministrativeClassService>();
+builder.Services.AddScoped<IRbacRepository, RbacRepository>();
+builder.Services.AddScoped<IRbacService, RbacService>();
+builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", policy =>
@@ -79,6 +99,8 @@ builder.Services
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin", "SuperAdmin"));
+    options.AddPolicy("AdminUserManagement", policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin"));
+    options.AddPolicy("RbacManagement", policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin"));
     options.AddPolicy("AcademicOperations", policy => policy.RequireRole("Admin", "SuperAdmin", "AcademicStaff", "CampusAdmin"));
     options.AddPolicy("Reports", policy => policy.RequireRole("Admin", "SuperAdmin", "Principal", "CampusAdmin"));
 });
@@ -124,8 +146,10 @@ static async Task WriteJsonAsync(HttpContext context, int statusCode, string mes
 
     await context.Response.WriteAsync(JsonSerializer.Serialize(new
     {
-        statusCode,
+        success = false,
         message,
-        traceId = context.TraceIdentifier
+        errors = new[] { message },
+        traceId = context.TraceIdentifier,
+        statusCode
     }));
 }

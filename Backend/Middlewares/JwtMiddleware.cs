@@ -99,6 +99,13 @@ public class JwtMiddleware
     {
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
-        await context.Response.WriteAsync(JsonSerializer.Serialize(new { statusCode, message, traceId = context.TraceIdentifier }));
+        await context.Response.WriteAsync(JsonSerializer.Serialize(new
+        {
+            success = false,
+            message,
+            errors = new[] { message },
+            traceId = context.TraceIdentifier,
+            statusCode
+        }));
     }
 }

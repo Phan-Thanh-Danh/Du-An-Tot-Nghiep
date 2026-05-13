@@ -53,9 +53,11 @@ public class ExceptionMiddleware
 
         var response = new
         {
-            statusCode,
+            success = false,
             message,
-            traceId = context.TraceIdentifier
+            errors = new[] { message },
+            traceId = context.TraceIdentifier,
+            statusCode
         };
 
         await context.Response.WriteAsync(JsonSerializer.Serialize(response));

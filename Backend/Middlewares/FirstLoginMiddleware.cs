@@ -29,9 +29,11 @@ public class FirstLoginMiddleware
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(JsonSerializer.Serialize(new
             {
-                statusCode = StatusCodes.Status403Forbidden,
+                success = false,
                 message = "Bạn phải đổi mật khẩu trước khi tiếp tục.",
-                traceId = context.TraceIdentifier
+                errors = new[] { "Bạn phải đổi mật khẩu trước khi tiếp tục." },
+                traceId = context.TraceIdentifier,
+                statusCode = StatusCodes.Status403Forbidden
             }));
             return;
         }

@@ -6,9 +6,10 @@ Base path hiện tại: `/api`
 
 ## Response/Error Chung
 
-- Validation lỗi model: `400` với `{ statusCode, message, traceId }`.
-- Authentication lỗi: `401` với `{ statusCode, message, traceId }`.
-- Authorization lỗi: `403` với `{ statusCode, message, traceId }`.
+- Thành công ở API mới: `{ success, message, data }`.
+- Validation lỗi model: `400` với `{ success, message, errors, traceId, statusCode }`.
+- Authentication lỗi: `401` với `{ success, message, errors, traceId, statusCode }`.
+- Authorization lỗi: `403` với `{ success, message, errors, traceId, statusCode }`.
 - Lỗi nghiệp vụ nên dùng `ApiException` và đi qua `ExceptionMiddleware`.
 
 ## Auth APIs
@@ -18,15 +19,17 @@ Base path hiện tại: `/api`
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
 | POST | `/api/auth/login` | Public | Đăng nhập bằng email/password, trả access token, expiresAt, requiresPasswordChange, user. |
+| POST | `/api/auth/refresh-token` | Public | Xoay vòng refresh token và cấp access token mới. |
+| POST | `/api/auth/logout` | Public | Thu hồi refresh token hiện tại. |
+| POST | `/api/auth/revoke-token` | Admin/SuperAdmin/CampusAdmin | Thu hồi refresh token theo yêu cầu quản trị. |
 | POST | `/api/auth/change-password` | JWT | Đổi mật khẩu người dùng hiện tại. |
+| POST | `/api/auth/forgot-password` | Public | Gửi OTP đặt lại mật khẩu qua email. |
+| POST | `/api/auth/verify-otp` | Public | Xác thực OTP đặt lại mật khẩu. |
+| POST | `/api/auth/reset-password` | Public | Đặt lại mật khẩu bằng OTP đã xác thực. |
 
 ### Dự kiến/cần bổ sung
 
-- `POST /api/auth/refresh-token`
-- `POST /api/auth/logout`
 - `GET /api/auth/me`
-- `POST /api/auth/forgot-password`
-- `POST /api/auth/reset-password`
 
 ## Users APIs
 
@@ -35,16 +38,54 @@ Base path hiện tại: `/api`
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
 | GET | `/api/admin/accounts` | Admin/SuperAdmin/CampusAdmin | Endpoint mẫu, chưa phải account management đầy đủ. |
+| GET | `/api/account/me` | JWT | Xem hồ sơ tài khoản hiện tại. |
+| PUT | `/api/account/profile` | JWT | Cập nhật email, họ tên, số điện thoại của tài khoản hiện tại. |
+| PUT | `/api/account/change-password` | JWT | Đổi mật khẩu tài khoản hiện tại. |
+| GET | `/api/admin/users` | Admin/SuperAdmin/CampusAdmin | Danh sách user có phân trang, tìm kiếm, lọc role/trạng thái/đơn vị và scope theo cơ sở. |
+| GET | `/api/admin/users/{id}` | Admin/SuperAdmin/CampusAdmin | Chi tiết user, gồm vai trò, đơn vị và lớp hành chính nếu là học sinh. |
+| POST | `/api/admin/users` | Admin/SuperAdmin/CampusAdmin | Tạo user, hash password, gán role và ghi audit. |
+| PUT | `/api/admin/users/{id}` | Admin/SuperAdmin/CampusAdmin | Cập nhật thông tin, đơn vị, lớp, vai trò và ghi audit. |
+| PATCH | `/api/admin/users/{id}/lock` | Admin/SuperAdmin/CampusAdmin | Khóa tài khoản bằng trạng thái `bi_khoa`, không xóa vật lý. |
+| PATCH | `/api/admin/users/{id}/unlock` | Admin/SuperAdmin/CampusAdmin | Mở khóa tài khoản bằng trạng thái `hoat_dong`. |
+| PATCH | `/api/admin/users/{id}/reset-password` | Admin/SuperAdmin/CampusAdmin | Admin đặt lại mật khẩu user và ghi audit. |
 
 ### Dự kiến/cần bổ sung
 
-- `GET /api/users`
-- `GET /api/users/{id}`
-- `POST /api/users`
-- `PUT /api/users/{id}`
-- `PATCH /api/users/{id}/status`
-- `POST /api/users/{id}/reset-password`
-- `GET /api/users/me`
+- Import CSV tài khoản.
+
+## RBAC APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/admin/rbac/roles` | Admin/SuperAdmin/CampusAdmin | Danh sách vai trò. |
+| GET | `/api/admin/rbac/roles/{id}` | Admin/SuperAdmin/CampusAdmin | Chi tiết vai trò. |
+| POST | `/api/admin/rbac/roles` | Admin/SuperAdmin | Tạo vai trò hệ thống; chỉ chấp nhận mã vai trò được backend hỗ trợ. |
+| PUT | `/api/admin/rbac/roles/{id}` | Admin/SuperAdmin | Cập nhật mã/tên vai trò; không đổi mã nếu vai trò đang được gán. |
+| DELETE | `/api/admin/rbac/roles/{id}` | Admin/SuperAdmin | Xóa vai trò nếu chưa được gán cho user. |
+| GET | `/api/admin/rbac/users/{userId}/roles` | Admin/SuperAdmin/CampusAdmin | Xem vai trò đã gán cho user theo scope đơn vị. |
+| PUT | `/api/admin/rbac/users/{userId}/roles` | Admin/SuperAdmin/CampusAdmin | Gán lại vai trò cho user, cập nhật `PhanQuyenNguoiDung` và `NguoiDung.VaiTroChinh`. |
+
+### Dự kiến/cần bổ sung
+
+- Ma trận permission chi tiết theo từng action nếu mở rộng ngoài role-based authorization hiện tại.
+
+## Administrative Classes APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/admin/classes` | Admin/SuperAdmin/AcademicStaff/CampusAdmin | Danh sách lớp hành chính có phân trang, tìm kiếm, lọc đơn vị/trạng thái và scope theo cơ sở. |
+| GET | `/api/admin/classes/{id}` | Admin/SuperAdmin/AcademicStaff/CampusAdmin | Chi tiết lớp hành chính. |
+| POST | `/api/admin/classes` | Admin/SuperAdmin/AcademicStaff/CampusAdmin | Tạo lớp hành chính, mã lớp là duy nhất toàn hệ thống. |
+| PUT | `/api/admin/classes/{id}` | Admin/SuperAdmin/AcademicStaff/CampusAdmin | Cập nhật lớp hành chính, đơn vị, giáo viên chủ nhiệm, năm nhập học và trạng thái. |
+| DELETE | `/api/admin/classes/{id}` | Admin/SuperAdmin/AcademicStaff/CampusAdmin | Xóa mềm lớp hành chính bằng `ConHoatDong = false`. |
+
+### Dự kiến/cần bổ sung
+
+- Import danh sách lớp hành chính từ CSV/Excel nếu cần cho dữ liệu demo lớn.
 
 ## Organizations APIs
 
