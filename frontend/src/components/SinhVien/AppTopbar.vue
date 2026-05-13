@@ -64,10 +64,11 @@ function logout() {
   <!-- Overlay để close popups -->
   <div v-if="notifOpen || userMenuOpen" class="fixed inset-0 z-30" @click="closeAll" />
 
-  <header class="relative z-40 flex h-[60px] items-center gap-4 border-b border-slate-100 bg-white px-5 flex-shrink-0">
+  <header class="lg-topbar relative z-40 flex h-[64px] flex-shrink-0 items-center gap-4 px-5">
     <!-- Mobile: toggle sidebar button -->
     <button
-      class="flex lg:hidden items-center justify-center rounded-lg p-2 text-slate-500 hover:bg-slate-100 transition-colors"
+      class="lg-icon-button flex p-2 text-slate-500 hover:text-blue-700 lg:hidden"
+      aria-label="Mở menu"
       @click="emit('toggle-sidebar')"
     >
       <Menu :size="20" />
@@ -85,8 +86,8 @@ function logout() {
     <div class="relative hidden md:flex items-center">
       <div
         :class="[
-          'flex items-center gap-2 rounded-xl border bg-slate-50 px-3 py-2 transition-all duration-200',
-          searchFocused ? 'border-blue-300 bg-white shadow-sm ring-2 ring-blue-100 w-64' : 'border-slate-200 w-48',
+          'lg-control flex items-center gap-2 px-3 py-2 transition-all duration-200',
+          searchFocused ? 'w-64' : 'w-48',
         ]"
       >
         <Search :size="15" class="flex-shrink-0 text-slate-400" />
@@ -95,10 +96,16 @@ function logout() {
           type="text"
           placeholder="Tìm kiếm..."
           class="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+          aria-label="Tìm kiếm"
           @focus="searchFocused = true"
           @blur="searchFocused = false"
         />
-        <button v-if="searchQuery" @click="searchQuery = ''" class="text-slate-400 hover:text-slate-600">
+        <button
+          v-if="searchQuery"
+          class="lg-icon-button p-0.5 text-slate-400 hover:text-slate-600"
+          aria-label="Xóa tìm kiếm"
+          @click="searchQuery = ''"
+        >
           <X :size="13" />
         </button>
       </div>
@@ -108,11 +115,11 @@ function logout() {
     <div class="relative">
       <button
         :class="[
-          'relative flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
-          notifOpen ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-100',
+          'lg-icon-button relative h-10 w-10 border border-white/50 bg-white/45 text-slate-500 shadow-sm backdrop-blur-xl focus:outline-none focus:ring-4 focus:ring-blue-500/20',
+          notifOpen ? 'bg-blue-50/90 text-blue-700 shadow-md' : 'hover:text-blue-700',
         ]"
-        @click="toggleNotif"
         aria-label="Thông báo"
+        @click="toggleNotif"
       >
         <Bell :size="18" stroke-width="1.8" />
         <!-- Unread badge -->
@@ -135,7 +142,7 @@ function logout() {
       >
         <div
           v-if="notifOpen"
-          class="absolute right-0 top-full mt-2 w-[340px] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl ring-1 ring-slate-100"
+          class="lg-glass-strong absolute right-0 top-full mt-2 w-[340px] overflow-hidden rounded-[24px]"
         >
           <!-- Header -->
           <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
@@ -151,8 +158,8 @@ function logout() {
               v-for="notif in mockNotifications"
               :key="notif.id"
               :class="[
-                'flex gap-3 px-4 py-3.5 cursor-pointer transition-colors hover:bg-slate-50',
-                !notif.read ? 'bg-blue-50/40' : '',
+                'flex cursor-pointer gap-3 px-4 py-3.5 transition-colors hover:bg-white/70',
+                !notif.read ? 'bg-blue-50/50' : '',
               ]"
             >
               <!-- Icon -->
@@ -187,13 +194,14 @@ function logout() {
     <div class="relative">
       <button
         :class="[
-          'flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-colors',
-          userMenuOpen ? 'bg-slate-100' : 'hover:bg-slate-100',
+          'flex items-center gap-2.5 rounded-2xl border border-white/45 bg-white/45 px-2.5 py-1.5 shadow-sm backdrop-blur-xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20',
+          userMenuOpen ? 'bg-white/85 shadow-md' : 'hover:bg-white/70',
         ]"
+        aria-label="Mở menu tài khoản"
         @click="toggleUserMenu"
       >
         <!-- Avatar -->
-        <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold shadow-sm">
+        <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 text-xs font-bold text-white shadow-sm ring-2 ring-white/70">
           {{ authStore.initials || mockUser.initials }}
         </div>
         <!-- Name (ẩn trên mobile nhỏ) -->
@@ -215,7 +223,7 @@ function logout() {
       >
         <div
           v-if="userMenuOpen"
-          class="absolute right-0 top-full mt-2 w-[220px] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl"
+          class="lg-glass-strong absolute right-0 top-full mt-2 w-[230px] overflow-hidden rounded-[24px]"
         >
           <!-- User info header -->
           <div class="border-b border-slate-100 px-4 py-3">
@@ -231,7 +239,7 @@ function logout() {
           <div class="p-1.5">
             <router-link
               to="/student/profile"
-              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100 transition-colors"
+              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 transition-colors hover:bg-white/70 hover:text-slate-950"
               @click="closeAll"
             >
               <LucideIcons.UserCircle :size="16" class="text-slate-400" />
@@ -239,7 +247,7 @@ function logout() {
             </router-link>
             <router-link
               to="/student/tuition"
-              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100 transition-colors"
+              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 transition-colors hover:bg-white/70 hover:text-slate-950"
               @click="closeAll"
             >
               <LucideIcons.CreditCard :size="16" class="text-slate-400" />
@@ -250,7 +258,7 @@ function logout() {
           <!-- Logout -->
           <div class="border-t border-slate-100 p-1.5">
             <button
-              class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+              class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
               @click="logout"
             >
               <LucideIcons.LogOut :size="16" />

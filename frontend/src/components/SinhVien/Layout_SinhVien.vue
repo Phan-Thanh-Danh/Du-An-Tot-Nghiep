@@ -91,7 +91,12 @@ const currentPageMeta = computed(() => {
     Layout: [Sidebar] | [Topbar + Content]
     ═══════════════════════════════════════════════════════
   -->
-  <div class="flex h-screen w-full overflow-hidden bg-[#F8FAFC] font-sans">
+  <div class="lg-app-bg flex h-screen w-full overflow-hidden font-sans">
+    <div class="pointer-events-none absolute inset-0 -z-0 overflow-hidden">
+      <div class="lg-orb -left-28 top-16 h-80 w-80 bg-cyan-300/30" />
+      <div class="lg-orb right-[-8rem] top-[-5rem] h-96 w-96 bg-violet-300/24 [animation-delay:-6s]" />
+      <div class="lg-orb bottom-[-9rem] left-1/3 h-96 w-96 bg-blue-300/20 [animation-delay:-12s]" />
+    </div>
 
     <!-- ═══════════ MOBILE OVERLAY ═══════════ -->
     <Transition
@@ -111,7 +116,7 @@ const currentPageMeta = computed(() => {
 
     <!-- ═══════════ SIDEBAR ═══════════ -->
     <!-- Desktop sidebar (luôn visible, collapsed hoặc expanded) -->
-    <div class="hidden lg:flex flex-shrink-0 h-full">
+    <div class="relative z-10 hidden h-full flex-shrink-0 lg:flex">
       <AppSidebar
         :collapsed="sidebarCollapsed"
         @toggle="toggleSidebar"
@@ -139,7 +144,7 @@ const currentPageMeta = computed(() => {
     </Transition>
 
     <!-- ═══════════ MAIN AREA (Topbar + Content) ═══════════ -->
-    <div class="flex flex-1 flex-col min-w-0 overflow-hidden">
+    <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden">
 
       <!-- Topbar -->
       <AppTopbar @toggle-sidebar="toggleSidebar" />
@@ -155,8 +160,8 @@ const currentPageMeta = computed(() => {
           >
             <router-view v-slot="{ Component }">
               <Transition
-                enter-active-class="transition-all duration-200 ease-out"
-                enter-from-class="opacity-0 translate-y-2"
+                enter-active-class="transition-all duration-300 ease-out"
+                enter-from-class="opacity-0 translate-y-3 blur-sm"
                 enter-to-class="opacity-100 translate-y-0"
                 mode="out-in"
               >
