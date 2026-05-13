@@ -1,14 +1,15 @@
 <script setup>
 /**
- * Layout_GiangVien.vue
+ * Layout_BGH.vue
  * ─────────────────────────────────────────────────────────
- * App Shell chính cho giao diện Giảng viên (Teacher).
+ * App Shell chính cho giao diện Hiệu trưởng / Ban giám hiệu (BGH).
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import AppSidebar from './AppSidebar.vue'
 import AppTopbar from '../SinhVien/AppTopbar.vue'
 import PageContainer from '../SinhVien/PageContainer.vue'
+import { GraduationCap } from 'lucide-vue-next'
 
 // ── Sidebar state ──────────────────────────────────────────
 const sidebarCollapsed = ref(false)
@@ -47,13 +48,11 @@ function closeMobileSidebar() {
 const route = useRoute()
 
 const pageTitleMap = {
-  '/teacher/dashboard': { title: 'Tổng quan giảng dạy', subtitle: 'Chào mừng TS. Khoa! Đây là báo cáo công việc giảng dạy của bạn.' },
-  '/teacher/classes': { title: 'Lớp học của tôi', subtitle: 'Quản lý các lớp học đang phụ trách' },
-  '/teacher/assignments': { title: 'Quản lý bài tập', subtitle: 'Tạo và quản lý bài tập cho sinh viên' },
-  '/teacher/grading': { title: 'Chấm bài', subtitle: 'Danh sách bài nộp cần chấm điểm' },
-  '/teacher/schedule': { title: 'Thời khóa biểu dạy', subtitle: 'Lịch giảng dạy chi tiết theo tuần' },
-  '/teacher/attendance': { title: 'Điểm danh', subtitle: 'Ghi nhận điểm danh sinh viên trong lớp' },
-  '/teacher/profile': { title: 'Hồ sơ cá nhân', subtitle: 'Thông tin giảng viên và cài đặt' },
+  '/bgh/dashboard': { title: 'Dashboard chiến lược', subtitle: 'Tổng quan hệ thống đào tạo, chất lượng và thống kê' },
+  '/bgh/schedule/pending': { title: 'TKB chờ duyệt', subtitle: 'Phê duyệt thời khóa biểu trước khi công bố' },
+  '/bgh/academic/overview': { title: 'Tổng quan học tập', subtitle: 'Báo cáo điểm số, sinh viên và cảnh báo học vụ' },
+  '/bgh/evaluations/overview': { title: 'Đánh giá giảng viên', subtitle: 'Theo dõi phản hồi và chất lượng giảng dạy' },
+  '/bgh/strategic/dashboard': { title: 'Báo cáo chiến lược', subtitle: 'Báo cáo chuyên sâu theo học kỳ và cơ sở' },
 }
 
 const currentPageMeta = computed(() => {
@@ -61,12 +60,19 @@ const currentPageMeta = computed(() => {
   for (const [key, val] of Object.entries(pageTitleMap)) {
     if (route.path.startsWith(key + '/')) return val
   }
-  return { title: 'Trang giảng viên', subtitle: '' }
+  return { title: 'Ban giám hiệu', subtitle: 'Hệ thống quản lý LMS' }
 })
 </script>
 
 <template>
-  <div class="flex h-screen w-full overflow-hidden bg-[#F8FAFC] font-sans relative">
+  <div class="flex h-screen w-full overflow-hidden lg-app-bg font-sans">
+    
+    <!-- Mảng trang trí Liquid Glass Background (Blobs) for BGH (Indigo/Purple focused) -->
+    <div class="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+      <div class="lg-blob lg-blob-violet" style="top: -10%; left: -5%; animation: lg-float 18s infinite;"></div>
+      <div class="lg-blob lg-blob-blue" style="top: 20%; right: -10%; animation: lg-float-slow 24s infinite;"></div>
+      <div class="lg-blob bg-indigo-500/10 blur-[80px]" style="height: 24rem; width: 24rem; bottom: -15%; left: 30%; border-radius: 50%; animation: lg-float 20s infinite reverse; position: absolute;"></div>
+    </div>
 
     <!-- MOBILE OVERLAY -->
     <Transition
@@ -85,7 +91,7 @@ const currentPageMeta = computed(() => {
     </Transition>
 
     <!-- SIDEBAR -->
-    <div class="hidden lg:flex flex-shrink-0 h-full">
+    <div class="hidden lg:flex flex-shrink-0 h-full relative z-10">
       <AppSidebar
         :collapsed="sidebarCollapsed"
         @toggle="toggleSidebar"
@@ -113,8 +119,7 @@ const currentPageMeta = computed(() => {
     </Transition>
 
     <!-- MAIN AREA -->
-    <div class="flex flex-1 flex-col min-w-0 overflow-hidden">
-      <!-- Reusing Student Topbar as it is mostly generic -->
+    <div class="flex flex-1 flex-col min-w-0 overflow-hidden relative z-0">
       <AppTopbar @toggle-sidebar="toggleSidebar" />
 
       <main class="flex-1 overflow-y-auto">
@@ -132,12 +137,12 @@ const currentPageMeta = computed(() => {
               >
                 <component :is="Component" v-if="Component" />
                 <div v-else class="flex flex-col items-center justify-center py-24 text-center">
-                  <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50">
-                     <GraduationCap class="h-8 w-8 text-indigo-300" />
+                  <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 border border-indigo-100">
+                     <GraduationCap class="h-8 w-8 text-indigo-500" />
                   </div>
                   <h3 class="mt-4 text-base font-semibold text-slate-700">Trang đang phát triển</h3>
-                  <p class="mt-1.5 text-sm text-slate-400 max-w-xs">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng.</p>
-                  <router-link to="/teacher/dashboard" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors">← Về Dashboard</router-link>
+                  <p class="mt-1.5 text-sm text-slate-400 max-w-xs">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng bởi bộ phận kỹ thuật.</p>
+                  <router-link to="/bgh/dashboard" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors">← Về Dashboard</router-link>
                 </div>
               </Transition>
             </router-view>
@@ -149,6 +154,7 @@ const currentPageMeta = computed(() => {
 </template>
 
 <style>
+/* Font and scrollbar are globally managed or in other layouts, but keeping them here for safety */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 .font-sans {

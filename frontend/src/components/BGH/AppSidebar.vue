@@ -5,10 +5,10 @@ import {
   PanelLeftOpen,
   HelpCircle,
   LogOut,
-  ShieldCheck,
+  GraduationCap,
 } from 'lucide-vue-next'
 import SidebarMenuGroup from '../SinhVien/SidebarMenuGroup.vue'
-import { giaoVuMenuGroups, mockStaff } from './data/menuData.js'
+import { bghMenuGroups, mockBGH } from './data/menuData.js'
 import { useAuthStore } from '@/stores/auth'
 
 defineProps({
@@ -29,22 +29,22 @@ function logout() {
 <template>
   <aside
     :class="[
-      'relative z-50 flex flex-col h-full bg-white border-r border-slate-100 transition-all duration-300 ease-in-out select-none shadow-xl shadow-slate-200/50',
+      'relative flex flex-col h-full bg-white/70 backdrop-blur-md border-r border-slate-200/50 transition-all duration-300 ease-in-out select-none',
       collapsed ? 'w-[64px]' : 'w-[248px]',
     ]"
   >
     <!-- ──────────── LOGO / BRAND ──────────── -->
     <div
-      class="flex items-center gap-3 border-b border-slate-100 px-4 py-4"
+      class="flex items-center gap-3 border-b border-slate-200/50 px-4 py-4"
       :class="collapsed ? 'justify-center px-2' : ''"
     >
-      <div class="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-teal-600 to-teal-500 shadow-md shadow-teal-200">
-        <ShieldCheck :size="20" color="white" :stroke-width="2.2" />
+      <div class="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200">
+        <GraduationCap :size="20" color="white" :stroke-width="2.2" />
       </div>
       <Transition name="fade-slide">
         <div v-if="!collapsed" class="overflow-hidden">
           <p class="text-[15px] font-bold leading-tight text-slate-800">EduLMS</p>
-          <p class="text-[11px] text-slate-400 leading-tight">Phòng Giáo vụ</p>
+          <p class="text-[11px] text-slate-500 leading-tight">Ban Giám Hiệu</p>
         </div>
       </Transition>
     </div>
@@ -52,7 +52,7 @@ function logout() {
     <!-- ──────────── MENU SCROLL AREA ──────────── -->
     <nav class="flex-1 overflow-y-auto overflow-x-visible px-2 py-3 space-y-0.5 scrollbar-thin">
       <SidebarMenuGroup
-        v-for="group in giaoVuMenuGroups"
+        v-for="group in bghMenuGroups"
         :key="group.id"
         :group="group"
         :collapsed="collapsed"
@@ -60,11 +60,11 @@ function logout() {
     </nav>
 
     <!-- ──────────── BOTTOM: HELP + LOGOUT ──────────── -->
-    <div class="border-t border-slate-100 px-2 py-3 space-y-0.5">
+    <div class="border-t border-slate-200/50 px-2 py-3 space-y-0.5">
       <button
         :title="collapsed ? 'Trợ giúp' : ''"
         :class="[
-          'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors',
+          'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-white/50 hover:text-slate-800 transition-colors',
           collapsed ? 'justify-center' : '',
         ]"
       >
@@ -87,20 +87,20 @@ function logout() {
 
     <!-- ──────────── USER CARD ──────────── -->
     <div
-      class="border-t border-slate-100 p-3"
+      class="border-t border-slate-200/50 p-3"
       :class="collapsed ? 'flex justify-center' : ''"
     >
       <div :class="['flex items-center gap-3', collapsed ? '' : '']">
-        <div class="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 text-white text-xs font-bold shadow">
-          {{ authStore.initials || mockStaff.initials }}
+        <div class="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-bold shadow">
+          {{ authStore.initials || mockBGH.initials }}
         </div>
         <Transition name="fade-slide">
           <div v-if="!collapsed" class="overflow-hidden min-w-0">
-            <p class="text-[13px] font-semibold text-slate-700 truncate leading-tight">
-              {{ authStore.displayName || mockStaff.name }}
+            <p class="text-[13px] font-semibold text-slate-800 truncate leading-tight">
+              {{ authStore.displayName || mockBGH.name }}
             </p>
-            <p class="text-[11px] text-slate-400 truncate leading-tight">
-              {{ authStore.user?.email || mockStaff.staffId }}
+            <p class="text-[11px] text-slate-500 truncate leading-tight">
+              {{ authStore.user?.email || mockBGH.email }}
             </p>
           </div>
         </Transition>
@@ -109,7 +109,7 @@ function logout() {
 
     <!-- ──────────── TOGGLE BUTTON ──────────── -->
     <button
-      class="absolute -right-3 top-[60px] z-10 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md text-slate-500 hover:text-teal-600 hover:border-teal-300 transition-all"
+      class="absolute -right-3 top-[60px] z-10 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-all"
       :title="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       @click="emit('toggle')"
     >
@@ -136,7 +136,7 @@ function logout() {
   background: transparent;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
+  background: rgba(226, 232, 240, 0.8);
   border-radius: 999px;
 }
 </style>

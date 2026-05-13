@@ -49,7 +49,17 @@ const route = useRoute()
 const pageTitleMap = {
   '/staff/dashboard': { title: 'Tổng quan công việc', subtitle: 'Chào mừng trở lại! Đây là các đầu việc giáo vụ cần xử lý hôm nay.' },
   '/staff/schedule': { title: 'Quản lý Thời khóa biểu', subtitle: 'Sắp xếp lịch học và lịch thi' },
-  '/staff/registrations': { title: 'Đăng ký môn học', subtitle: 'Quản lý các đợt đăng ký và lớp học phần' },
+  '/staff/assignments': { title: 'Phân công giảng viên', subtitle: 'Gán giảng viên phụ trách cho các lớp học phần' },
+  '/staff/rooms': { title: 'Quản lý phòng học', subtitle: 'Theo dõi sức chứa và thiết bị phòng' },
+  '/staff/conflicts': { title: 'Kiểm tra xung đột', subtitle: 'Phát hiện trùng lịch giảng viên và phòng học' },
+  '/staff/schedule/pending': { title: 'Lịch chờ duyệt', subtitle: 'Danh sách TKB đang chờ Ban giám hiệu phê duyệt' },
+  '/staff/schedule/published': { title: 'Lịch đã công bố', subtitle: 'Thời khóa biểu chính thức đang áp dụng' },
+  '/staff/registrations': { title: 'Đợt đăng ký môn học', subtitle: 'Quản lý các đợt đăng ký và cấu hình tín chỉ' },
+  '/staff/sections': { title: 'Lớp học phần', subtitle: 'Theo dõi sĩ số và trạng thái các lớp mở trong kỳ' },
+  '/staff/registration-list': { title: 'Danh sách đăng ký', subtitle: 'Chi tiết sinh viên đăng ký môn học' },
+  '/staff/waitlist': { title: 'Hàng chờ (Waitlist)', subtitle: 'Quản lý sinh viên trong danh sách chờ' },
+  '/staff/capacity': { title: 'Điều chỉnh sức chứa', subtitle: 'Thay đổi giới hạn số lượng sinh viên cho lớp' },
+  '/staff/course-status': { title: 'Hủy / Mở lớp', subtitle: 'Xử lý các lớp không đủ sĩ số tối thiểu' },
   '/staff/requests': { title: 'Xử lý đơn từ', subtitle: 'Phê duyệt hoặc từ chối các yêu cầu từ sinh viên/giảng viên' },
   '/staff/notices/send': { title: 'Gửi thông báo', subtitle: 'Gửi thông báo học vụ đến sinh viên và giảng viên' },
   '/staff/profile': { title: 'Hồ sơ cá nhân', subtitle: 'Thông tin giáo vụ và cài đặt' },
@@ -58,14 +68,21 @@ const pageTitleMap = {
 const currentPageMeta = computed(() => {
   if (pageTitleMap[route.path]) return pageTitleMap[route.path]
   for (const [key, val] of Object.entries(pageTitleMap)) {
-    if (route.path.startsWith(key + '/')) return val
+    if (route.path.startsWith(key)) return val
   }
-  return { title: 'Trang giáo vụ', subtitle: '' }
+  return { title: 'Hệ thống Giáo vụ', subtitle: '' }
 })
 </script>
 
 <template>
-  <div class="flex h-screen w-full overflow-hidden bg-[#F8FAFC] font-sans">
+  <div class="flex h-screen w-full overflow-hidden lg-app-bg font-sans relative">
+    
+    <!-- Mảng trang trí Liquid Glass Background (Blobs) -->
+    <div class="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+      <div class="lg-blob lg-blob-cyan" style="top: -10%; left: -5%; animation: lg-float 18s infinite;"></div>
+      <div class="lg-blob lg-blob-violet" style="top: 20%; right: -10%; animation: lg-float-slow 24s infinite;"></div>
+      <div class="lg-blob lg-blob-blue" style="bottom: -15%; left: 30%; animation: lg-float 20s infinite reverse;"></div>
+    </div>
 
     <!-- MOBILE OVERLAY -->
     <Transition
@@ -112,34 +129,29 @@ const currentPageMeta = computed(() => {
     </Transition>
 
     <!-- MAIN AREA -->
-    <div class="flex flex-1 flex-col min-w-0 overflow-hidden">
+    <div class="flex flex-1 flex-col min-w-0 overflow-hidden relative z-10">
       <AppTopbar @toggle-sidebar="toggleSidebar" />
 
       <main class="flex-1 overflow-y-auto">
-        <div class="mx-auto max-w-[1440px] px-4 sm:px-6 py-6">
-          <PageContainer
-            :title="currentPageMeta.title"
-            :subtitle="currentPageMeta.subtitle"
-          >
-            <router-view v-slot="{ Component }">
-              <Transition
-                enter-active-class="transition-all duration-200 ease-out"
-                enter-from-class="opacity-0 translate-y-2"
-                enter-to-class="opacity-100 translate-y-0"
-                mode="out-in"
-              >
-                <component :is="Component" v-if="Component" />
-                <div v-else class="flex flex-col items-center justify-center py-24 text-center">
-                  <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-50">
-                     <ShieldCheck class="h-8 w-8 text-teal-400" />
-                  </div>
-                  <h3 class="mt-4 text-base font-semibold text-slate-700">Trang đang phát triển</h3>
-                  <p class="mt-1.5 text-sm text-slate-400 max-w-xs">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng bởi bộ phận kỹ thuật.</p>
-                  <router-link to="/staff/dashboard" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 transition-colors">← Về Dashboard</router-link>
+        <div class="mx-auto max-w-[1440px] px-4 sm:px-6 py-6 min-h-full flex flex-col">
+          <router-view v-slot="{ Component }">
+            <Transition
+              enter-active-class="transition-all duration-200 ease-out"
+              enter-from-class="opacity-0 translate-y-2"
+              enter-to-class="opacity-100 translate-y-0"
+              mode="out-in"
+            >
+              <component :is="Component" :key="route.fullPath" v-if="Component" />
+              <div v-else class="flex-1 flex flex-col items-center justify-center py-24 text-center">
+                <div class="flex h-20 w-20 items-center justify-center rounded-3xl bg-teal-50 border border-teal-100 shadow-sm">
+                   <ShieldCheck class="h-10 w-10 text-teal-500" />
                 </div>
-              </Transition>
-            </router-view>
-          </PageContainer>
+                <h3 class="mt-6 text-xl font-black text-slate-800">Trang đang phát triển</h3>
+                <p class="mt-2 text-sm font-medium text-slate-400 max-w-sm">Trang này hiện đang được xây dựng hoặc đường dẫn không tồn tại. Vui lòng quay lại sau.</p>
+                <router-link to="/staff/dashboard" class="mt-8 inline-flex items-center gap-2 rounded-2xl bg-teal-600 px-8 py-3 text-sm font-bold text-white hover:bg-teal-700 shadow-lg shadow-teal-500/20 transition-all active:scale-95">← Về Dashboard</router-link>
+              </div>
+            </Transition>
+          </router-view>
         </div>
       </main>
     </div>

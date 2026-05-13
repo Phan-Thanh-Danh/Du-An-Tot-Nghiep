@@ -104,7 +104,7 @@ export const useAuthStore = defineStore('auth', () => {
     // ── MOCK LOGIN CHO QUÁ TRÌNH PHÁT TRIỂN ──
     const email = credentials.email.trim().toLowerCase()
     
-    if (email === 'student' || email === 'teacher' || email === 'staff') {
+    if (email === 'student' || email === 'teacher' || email === 'staff' || email === 'bgh') {
       let mockUser = {}
       
       if (email === 'student') {
@@ -121,6 +121,11 @@ export const useAuthStore = defineStore('auth', () => {
         mockUser = {
           userId: 777, email: 'staff@mock.local', fullName: 'Trần Thị Giáo Vụ',
           role: 'AcademicStaff', campusId: 1, status: 'Active'
+        }
+      } else if (email === 'bgh') {
+        mockUser = {
+          userId: 666, email: 'principal@mock.local', fullName: 'Nguyễn Văn Hiệu Trưởng',
+          role: 'Principal', campusId: 1, status: 'Active'
         }
       }
 
