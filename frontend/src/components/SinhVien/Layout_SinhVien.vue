@@ -116,7 +116,7 @@ const currentPageMeta = computed(() => {
 
     <!-- ═══════════ SIDEBAR ═══════════ -->
     <!-- Desktop sidebar (luôn visible, collapsed hoặc expanded) -->
-    <div class="relative z-10 hidden h-full flex-shrink-0 lg:flex">
+    <div class="relative z-20 hidden h-full flex-shrink-0 lg:flex">
       <AppSidebar
         :collapsed="sidebarCollapsed"
         @toggle="toggleSidebar"
@@ -151,7 +151,7 @@ const currentPageMeta = computed(() => {
 
       <!-- ═══════════ CONTENT AREA ═══════════ -->
       <main class="flex-1 overflow-y-auto">
-        <div class="mx-auto max-w-[1440px] px-4 sm:px-6 py-6">
+        <div class="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6">
 
           <!-- Tất cả page đều render qua PageContainer + RouterView -->
           <PageContainer

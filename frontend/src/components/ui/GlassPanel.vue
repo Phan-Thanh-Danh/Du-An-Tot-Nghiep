@@ -6,19 +6,45 @@ const props = defineProps({
     type: String,
     default: 'section',
   },
+  variant: {
+    type: String,
+    default: 'default',
+    validator: (value) => ['default', 'strong', 'soft', 'solid'].includes(value),
+  },
+  density: {
+    type: String,
+    default: 'normal',
+    validator: (value) => ['compact', 'normal', 'spacious'].includes(value),
+  },
   strong: Boolean,
   soft: Boolean,
   interactive: Boolean,
   padding: {
     type: String,
-    default: 'p-5 sm:p-6',
+    default: '',
   },
 })
 
 const surfaceClass = computed(() => {
   if (props.strong) return 'lg-glass-strong'
   if (props.soft) return 'lg-glass-soft'
+  if (props.variant === 'strong') return 'lg-glass-strong'
+  if (props.variant === 'soft') return 'lg-glass-soft'
+  if (props.variant === 'solid') return 'lg-solid-soft'
+  if (props.variant === 'readable') return 'lg-readable'
   return 'lg-glass'
+})
+
+const densityClass = computed(() => {
+  if (props.padding) return props.padding
+
+  return (
+    {
+      compact: 'lg-density-compact',
+      normal: 'lg-density-normal',
+      spacious: 'lg-density-spacious',
+    }[props.density] || 'lg-density-normal'
+  )
 })
 </script>
 
@@ -28,7 +54,7 @@ const surfaceClass = computed(() => {
     :class="[
       'lg-card relative overflow-hidden',
       surfaceClass,
-      padding,
+      densityClass,
       interactive ? 'lg-card-hover' : '',
     ]"
   >

@@ -1,26 +1,53 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { Search, Bell, X, Menu } from 'lucide-vue-next'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { Search, Bell, X, Menu, Target, Sparkles } from 'lucide-vue-next'
 import * as LucideIcons from 'lucide-vue-next'
-import { useRouter } from 'vue-router'
-import AppBreadcrumb from './AppBreadcrumb.vue'
+import { useRoute, useRouter } from 'vue-router'
 import { mockUser, mockNotifications } from './data/menuData.js'
 import { useAuthStore } from '@/stores/auth'
 
 const emit = defineEmits(['toggle-sidebar'])
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
+
+// Refs for click outside
+const profileMenuRef = ref(null)
+const notifMenuRef = ref(null)
 
 // Search
 const searchQuery = ref('')
 const searchFocused = ref(false)
 
-// Notification panel
+// Panels state
 const notifOpen = ref(false)
+const userMenuOpen = ref(false)
 const unreadCount = computed(() => mockNotifications.filter((n) => !n.read).length)
 
-// User menu
-const userMenuOpen = ref(false)
+const pageTitleMap = {
+  '/student/dashboard': { title: 'Dashboard', subtitle: 'Tổng quan học tập hôm nay' },
+  '/student/courses': { title: 'Khóa học', subtitle: 'Tiếp tục bài học và theo dõi tiến độ' },
+  '/student/assignments': { title: 'Bài tập', subtitle: 'Deadline, bài nộp và phản hồi' },
+  '/student/exams': { title: 'Thi / Kiểm tra', subtitle: 'Bài thi đang mở và kết quả đã công bố' },
+  '/student/grades': { title: 'Bảng điểm', subtitle: 'GPA, điểm môn và trạng thái học phần' },
+  '/student/schedule': { title: 'Lịch học', subtitle: 'Buổi học, phòng học và giảng viên' },
+  '/student/attendance': { title: 'Điểm danh', subtitle: 'Chuyên cần và cảnh báo vắng học' },
+  '/student/registrations': { title: 'Đăng ký', subtitle: 'Đợt đăng ký và lớp học phần' },
+  '/student/tuition': { title: 'Tài chính', subtitle: 'Học phí, hóa đơn và thanh toán' },
+  '/student/support-tickets': { title: 'Hỗ trợ', subtitle: 'Ticket và phản hồi từ nhà trường' },
+  '/student/requests': { title: 'Đơn từ', subtitle: 'Yêu cầu học vụ đang xử lý' },
+  '/student/evaluations': { title: 'Đánh giá', subtitle: 'Khảo sát chất lượng giảng dạy' },
+  '/student/profile': { title: 'Cá nhân', subtitle: 'Hồ sơ và cài đặt tài khoản' },
+  '/student/parent-links': { title: 'Phụ huynh', subtitle: 'Quyền truy cập thông tin học tập' },
+}
+
+const currentMeta = computed(() => {
+  if (pageTitleMap[route.path]) return pageTitleMap[route.path]
+  for (const [path, meta] of Object.entries(pageTitleMap)) {
+    if (route.path.startsWith(`${path}/`)) return meta
+  }
+  return { title: 'Trang học sinh', subtitle: 'Không gian học tập cá nhân' }
+})
 
 function toggleNotif() {
   notifOpen.value = !notifOpen.value
@@ -32,13 +59,35 @@ function toggleUserMenu() {
   notifOpen.value = false
 }
 
-// Close popups on outside click
 function closeAll() {
   notifOpen.value = false
   userMenuOpen.value = false
 }
 
-// Get notification icon color class
+// Click outside logic
+function handleClickOutside(event) {
+  if (profileMenuRef.value && !profileMenuRef.value.contains(event.target)) {
+    userMenuOpen.value = false
+  }
+  if (notifMenuRef.value && !notifMenuRef.value.contains(event.target)) {
+    notifOpen.value = false
+  }
+}
+
+function handleEscape(event) {
+  if (event.key === 'Escape') closeAll()
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', handleClickOutside)
+  document.addEventListener('keydown', handleEscape)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', handleClickOutside)
+  document.removeEventListener('keydown', handleEscape)
+})
+
 function notifColorClass(color) {
   const map = {
     red: 'bg-red-100 text-red-600',
@@ -55,17 +104,14 @@ function getIcon(name) {
 
 function logout() {
   authStore.logout()
-  userMenuOpen.value = false
+  closeAll()
   router.replace('/login')
 }
 </script>
 
 <template>
-  <!-- Overlay để close popups -->
-  <div v-if="notifOpen || userMenuOpen" class="fixed inset-0 z-30" @click="closeAll" />
-
-  <header class="lg-topbar relative z-40 flex h-[64px] flex-shrink-0 items-center gap-4 px-5">
-    <!-- Mobile: toggle sidebar button -->
+  <header class="lg-topbar sticky top-3 z-40 mx-3 mt-3 flex h-16 flex-shrink-0 items-center gap-3 rounded-[26px] px-4 sm:mx-4 sm:mt-4 sm:gap-4 sm:px-5">
+    <!-- Mobile toggle -->
     <button
       class="lg-icon-button flex p-2 text-slate-500 hover:text-blue-700 lg:hidden"
       aria-label="Mở menu"
@@ -74,23 +120,27 @@ function logout() {
       <Menu :size="20" />
     </button>
 
-    <!-- Breadcrumb -->
-    <div class="hidden sm:flex flex-1 min-w-0">
-      <AppBreadcrumb />
+    <!-- Page title -->
+    <div class="hidden min-w-0 flex-1 sm:block">
+      <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+        <Sparkles :size="12" class="text-cyan-600" />
+        Student workspace
+      </div>
+      <div class="mt-0.5 flex min-w-0 items-baseline gap-2">
+        <h1 class="truncate text-lg font-bold leading-tight text-slate-950">{{ currentMeta.title }}</h1>
+        <span class="hidden text-xs font-medium text-slate-500 lg:inline">{{ currentMeta.subtitle }}</span>
+      </div>
     </div>
 
-    <!-- Spacer on mobile -->
-    <div class="flex-1 sm:hidden" />
-
-    <!-- ── Search ── -->
-    <div class="relative hidden md:flex items-center">
+    <!-- Search -->
+    <div class="relative hidden items-center md:flex">
       <div
         :class="[
-          'lg-control flex items-center gap-2 px-3 py-2 transition-all duration-200',
-          searchFocused ? 'w-64' : 'w-48',
+          'lg-control flex h-10 items-center gap-2 px-3 transition-all duration-200',
+          searchFocused ? 'w-80' : 'w-64',
         ]"
       >
-        <Search :size="15" class="flex-shrink-0 text-slate-400" />
+        <Search :size="14" class="flex-shrink-0 text-slate-400" />
         <input
           v-model="searchQuery"
           type="text"
@@ -100,146 +150,129 @@ function logout() {
           @focus="searchFocused = true"
           @blur="searchFocused = false"
         />
-        <button
-          v-if="searchQuery"
-          class="lg-icon-button p-0.5 text-slate-400 hover:text-slate-600"
-          aria-label="Xóa tìm kiếm"
-          @click="searchQuery = ''"
-        >
-          <X :size="13" />
-        </button>
       </div>
     </div>
 
-    <!-- ── Notification bell ── -->
-    <div class="relative">
+    <button
+      class="lg-button-secondary hidden h-9 px-3 text-xs font-bold text-slate-700 xl:inline-flex"
+      aria-label="Bật chế độ tập trung"
+    >
+      <Target :size="14" />
+      Tập trung
+    </button>
+
+    <!-- Notification -->
+    <div ref="notifMenuRef" class="relative">
       <button
         :class="[
-          'lg-icon-button relative h-10 w-10 border border-white/50 bg-white/45 text-slate-500 shadow-sm backdrop-blur-xl focus:outline-none focus:ring-4 focus:ring-blue-500/20',
-          notifOpen ? 'bg-blue-50/90 text-blue-700 shadow-md' : 'hover:text-blue-700',
+          'lg-icon-button relative h-9 w-9 border border-white/50 bg-white/45 text-slate-500 shadow-sm backdrop-blur-xl focus:outline-none',
+          notifOpen ? 'bg-blue-50 text-blue-700 shadow-md' : 'hover:text-blue-700',
         ]"
         aria-label="Thông báo"
-        @click="toggleNotif"
+        @click.stop="toggleNotif"
       >
-        <Bell :size="18" stroke-width="1.8" />
-        <!-- Unread badge -->
+        <Bell :size="17" />
         <span
           v-if="unreadCount > 0"
-          class="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-white"
+          class="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white ring-2 ring-white"
         >
-          {{ unreadCount > 9 ? '9+' : unreadCount }}
+          {{ unreadCount }}
         </span>
       </button>
 
-      <!-- Notification Dropdown -->
+      <!-- Dropdown đổ xuống ngay tại đây -->
       <Transition
         enter-active-class="transition-all duration-200 ease-out"
-        enter-from-class="opacity-0 translate-y-1 scale-95"
+        enter-from-class="opacity-0 translate-y-2 scale-95"
         enter-to-class="opacity-100 translate-y-0 scale-100"
         leave-active-class="transition-all duration-150 ease-in"
         leave-from-class="opacity-100 translate-y-0 scale-100"
-        leave-to-class="opacity-0 translate-y-1 scale-95"
+        leave-to-class="opacity-0 translate-y-2 scale-95"
       >
         <div
           v-if="notifOpen"
-          class="lg-glass-strong absolute right-0 top-full mt-2 w-[340px] overflow-hidden rounded-[24px]"
+          class="absolute right-0 top-full z-[100] mt-3 w-[320px] origin-top-right overflow-hidden rounded-[24px] border border-white/60 bg-white/80 p-1 shadow-[0_20px_50px_rgba(0,0,0,0.15)] backdrop-blur-2xl"
+          @click.stop
         >
-          <!-- Header -->
-          <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-            <h3 class="text-sm font-semibold text-slate-800">Thông báo</h3>
-            <span v-if="unreadCount" class="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+          <div class="flex items-center justify-between border-b border-slate-100/50 px-4 py-3">
+            <h3 class="text-sm font-bold text-slate-800">Thông báo</h3>
+            <span v-if="unreadCount" class="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
               {{ unreadCount }} mới
             </span>
           </div>
-
-          <!-- Notification list -->
-          <div class="max-h-[360px] overflow-y-auto divide-y divide-slate-50">
+          <div class="max-h-[320px] overflow-y-auto divide-y divide-slate-50/50">
             <div
               v-for="notif in mockNotifications"
               :key="notif.id"
-              :class="[
-                'flex cursor-pointer gap-3 px-4 py-3.5 transition-colors hover:bg-white/70',
-                !notif.read ? 'bg-blue-50/50' : '',
-              ]"
+              class="flex cursor-pointer gap-3 px-4 py-3 transition-all hover:bg-white/60 active:scale-[0.98]"
+              @click="closeAll"
             >
-              <!-- Icon -->
-              <div :class="['flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs', notifColorClass(notif.color)]">
-                <component :is="getIcon(notif.icon)" :size="15" />
+              <div :class="['flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[10px]', notifColorClass(notif.color)]">
+                <component :is="getIcon(notif.icon)" :size="14" />
               </div>
-              <!-- Content -->
               <div class="min-w-0 flex-1">
-                <div class="flex items-start justify-between gap-2">
-                  <p :class="['text-[13px] leading-snug', !notif.read ? 'font-semibold text-slate-800' : 'font-medium text-slate-700']">
-                    {{ notif.title }}
-                  </p>
-                  <span v-if="!notif.read" class="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
-                </div>
-                <p class="mt-0.5 text-[12px] text-slate-500 leading-snug">{{ notif.description }}</p>
-                <p class="mt-1 text-[11px] text-slate-400">{{ notif.time }}</p>
+                <p class="text-[12px] font-bold leading-tight text-slate-800">{{ notif.title }}</p>
+                <p class="mt-0.5 line-clamp-2 text-[11px] font-medium leading-snug text-slate-500">{{ notif.description }}</p>
+                <p class="mt-1.5 text-[10px] font-bold text-slate-400">{{ notif.time }}</p>
               </div>
             </div>
           </div>
-
-          <!-- Footer -->
-          <div class="border-t border-slate-100 px-4 py-2.5">
-            <button class="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors">
-              Xem tất cả thông báo →
-            </button>
+          <div class="border-t border-slate-100/50 px-4 py-2.5 text-center bg-slate-50/30">
+            <button class="text-[11px] font-bold text-blue-600 hover:text-blue-700">Xem tất cả thông báo</button>
           </div>
         </div>
       </Transition>
     </div>
 
-    <!-- ── User avatar / menu ── -->
-    <div class="relative">
+    <!-- Profile menu -->
+    <div ref="profileMenuRef" class="relative">
       <button
         :class="[
-          'flex items-center gap-2.5 rounded-2xl border border-white/45 bg-white/45 px-2.5 py-1.5 shadow-sm backdrop-blur-xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20',
-          userMenuOpen ? 'bg-white/85 shadow-md' : 'hover:bg-white/70',
+          'flex items-center gap-2 rounded-xl border border-white/45 bg-white/45 p-1 transition-all duration-200 focus:outline-none ring-offset-2 focus:ring-2 focus:ring-blue-500/20',
+          userMenuOpen ? 'bg-white shadow-md' : 'hover:bg-white/70',
         ]"
-        aria-label="Mở menu tài khoản"
-        @click="toggleUserMenu"
+        aria-haspopup="menu"
+        :aria-expanded="userMenuOpen"
+        aria-label="Mở hồ sơ"
+        @click.stop="toggleUserMenu"
       >
-        <!-- Avatar -->
-        <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 text-xs font-bold text-white shadow-sm ring-2 ring-white/70">
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500 text-[10px] font-bold text-white shadow-sm ring-1 ring-white/70">
           {{ authStore.initials || mockUser.initials }}
         </div>
-        <!-- Name (ẩn trên mobile nhỏ) -->
-        <div class="hidden sm:block text-left">
-          <p class="text-[13px] font-semibold text-slate-700 leading-tight">{{ authStore.displayName || mockUser.name }}</p>
-          <p class="text-[11px] text-slate-400 leading-tight">{{ authStore.role || mockUser.class }}</p>
+        <div class="hidden pr-1.5 text-left sm:block">
+          <p class="text-[12px] font-bold leading-tight text-slate-800">{{ authStore.displayName || mockUser.name }}</p>
+          <p class="text-[10px] font-medium text-slate-400">{{ authStore.role || 'Sinh viên' }}</p>
         </div>
-        <LucideIcons.ChevronDown :size="14" class="hidden sm:block text-slate-400" />
       </button>
 
-      <!-- User Dropdown -->
+      <!-- Dropdown đổ xuống ngay tại đây -->
       <Transition
         enter-active-class="transition-all duration-200 ease-out"
-        enter-from-class="opacity-0 translate-y-1 scale-95"
+        enter-from-class="opacity-0 translate-y-2 scale-95"
         enter-to-class="opacity-100 translate-y-0 scale-100"
         leave-active-class="transition-all duration-150 ease-in"
         leave-from-class="opacity-100 translate-y-0 scale-100"
-        leave-to-class="opacity-0 translate-y-1 scale-95"
+        leave-to-class="opacity-0 translate-y-2 scale-95"
       >
         <div
           v-if="userMenuOpen"
-          class="lg-glass-strong absolute right-0 top-full mt-2 w-[230px] overflow-hidden rounded-[24px]"
+          class="absolute right-0 top-full z-[100] mt-3 w-[240px] origin-top-right overflow-hidden rounded-[24px] border border-white/60 bg-white/80 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.15)] backdrop-blur-2xl"
+          role="menu"
+          @click.stop
         >
-          <!-- User info header -->
-          <div class="border-b border-slate-100 px-4 py-3">
-            <p class="text-sm font-semibold text-slate-800">{{ authStore.displayName || mockUser.name }}</p>
-            <p class="text-xs text-slate-500 mt-0.5">{{ authStore.user?.email || mockUser.email }}</p>
-            <span class="mt-1.5 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-              <LucideIcons.GraduationCap :size="10" />
+          <div class="border-b border-slate-100/50 px-4 py-3.5 bg-white/40">
+            <p class="text-[13px] font-bold text-slate-800">{{ authStore.displayName || mockUser.name }}</p>
+            <p class="mt-0.5 truncate text-[11px] font-medium text-slate-500">{{ authStore.user?.email || mockUser.email }}</p>
+            <span class="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-[9px] font-bold text-blue-700 border border-blue-100 shadow-sm">
+              <LucideIcons.GraduationCap :size="11" />
               Cơ sở {{ authStore.user?.campusId || mockUser.campus }}
             </span>
           </div>
 
-          <!-- Menu items -->
-          <div class="p-1.5">
+          <div class="p-1 space-y-0.5">
             <router-link
               to="/student/profile"
-              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 transition-colors hover:bg-white/70 hover:text-slate-950"
+              class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-slate-600 transition-all hover:bg-white hover:text-blue-700 hover:shadow-sm"
               @click="closeAll"
             >
               <LucideIcons.UserCircle :size="16" class="text-slate-400" />
@@ -247,7 +280,7 @@ function logout() {
             </router-link>
             <router-link
               to="/student/tuition"
-              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 transition-colors hover:bg-white/70 hover:text-slate-950"
+              class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-slate-600 transition-all hover:bg-white hover:text-blue-700 hover:shadow-sm"
               @click="closeAll"
             >
               <LucideIcons.CreditCard :size="16" class="text-slate-400" />
@@ -255,10 +288,9 @@ function logout() {
             </router-link>
           </div>
 
-          <!-- Logout -->
-          <div class="border-t border-slate-100 p-1.5">
+          <div class="border-t border-slate-100/50 p-1">
             <button
-              class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+              class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-red-600 transition-all hover:bg-red-50 hover:text-red-700"
               @click="logout"
             >
               <LucideIcons.LogOut :size="16" />
@@ -270,3 +302,4 @@ function logout() {
     </div>
   </header>
 </template>
+

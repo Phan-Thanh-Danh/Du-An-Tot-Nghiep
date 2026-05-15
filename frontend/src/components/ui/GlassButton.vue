@@ -26,7 +26,7 @@ const emit = defineEmits(['click'])
 const variantClass = computed(() => ({
   primary: 'lg-button-primary font-semibold',
   secondary: 'lg-button-secondary font-semibold',
-  ghost: 'font-semibold text-slate-600 hover:bg-white/55 hover:text-slate-950 focus-visible:ring-4 focus-visible:ring-blue-500/20',
+  ghost: 'lg-button-ghost font-semibold',
   danger: 'bg-red-600 text-white shadow-lg shadow-red-600/20 hover:bg-red-700 focus-visible:ring-4 focus-visible:ring-red-500/20',
 }[props.variant]))
 
