@@ -5,6 +5,7 @@ public class LopHocPhan
     public int MaLopHocPhan { get; set; }
     public int MaDonVi { get; set; }
     public int MaMonHoc { get; set; }
+    // TODO: Add MaSyllabus to LopHocPhan in next migration so each class section can bind to a concrete CourseSyllabus version.
     public int MaHocKy { get; set; }
     public string MaCodeLopHocPhan { get; set; } = string.Empty;
     public int SucChua { get; set; }

@@ -8,9 +8,14 @@ using Backend.Services.AdministrativeClasses;
 using Backend.Services.AcademicTerms;
 using Backend.Services.Audit;
 using Backend.Services.Auth;
+using Backend.Services.CampusSpecializations;
+using Backend.Services.CourseSyllabuses;
+using Backend.Services.Majors;
 using Backend.Services.Organizations;
 using Backend.Services.Rbac;
 using Backend.Services.Security;
+using Backend.Services.Specializations;
+using Backend.Services.Subjects;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -66,6 +71,11 @@ builder.Services.AddScoped<IRbacRepository, RbacRepository>();
 builder.Services.AddScoped<IRbacService, RbacService>();
 builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<INganhDaoTaoService, NganhDaoTaoService>();
+builder.Services.AddScoped<IChuyenNganhService, ChuyenNganhService>();
+builder.Services.AddScoped<IChuyenNganhTheoCoSoService, ChuyenNganhTheoCoSoService>();
+builder.Services.AddScoped<ICourseSyllabusService, CourseSyllabusService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", policy =>
