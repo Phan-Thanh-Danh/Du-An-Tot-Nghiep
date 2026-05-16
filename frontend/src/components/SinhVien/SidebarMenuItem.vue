@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import * as LucideIcons from 'lucide-vue-next'
 
 const props = defineProps({

@@ -29,15 +29,17 @@ function logout() {
 <template>
   <aside
     :class="[
-      'lg-sidebar relative flex h-full flex-col overflow-hidden transition-all duration-300 ease-in-out select-none',
-      collapsed ? 'w-[72px]' : 'w-[260px]',
+      'lg-sidebar relative flex h-full flex-col transition-all duration-300 ease-in-out select-none',
+      collapsed ? 'w-[76px]' : 'w-[260px]',
     ]"
+    style="overflow: visible !important;"
   >
     <div class="pointer-events-none absolute -left-24 top-24 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl" />
     <div class="pointer-events-none absolute -bottom-20 right-0 h-60 w-60 rounded-full bg-blue-300/20 blur-3xl" />
+    
     <!-- ──────────── LOGO / BRAND ──────────── -->
     <div
-      class="relative flex items-center gap-3 border-b border-white/45 px-4 py-4"
+      class="relative flex items-center gap-3 border-b border-white/45 px-4 py-4 flex-shrink-0"
       :class="collapsed ? 'justify-center px-2' : ''"
     >
       <div class="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/40 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 shadow-lg shadow-blue-500/24">
@@ -45,8 +47,8 @@ function logout() {
       </div>
       <Transition name="fade-slide">
         <div v-if="!collapsed" class="overflow-hidden">
-          <p class="text-[15px] font-bold leading-tight text-slate-950">EduLMS</p>
-          <p class="text-[11px] text-slate-500 leading-tight">Cổng học sinh</p>
+          <p class="text-[15px] font-bold leading-tight text-slate-950">LMS Workspace</p>
+          <p class="text-[11px] font-semibold text-slate-500 leading-tight">Student Portal</p>
         </div>
       </Transition>
     </div>
@@ -62,8 +64,7 @@ function logout() {
     </nav>
 
     <!-- ──────────── BOTTOM: HELP + LOGOUT ──────────── -->
-    <div class="relative space-y-1 border-t border-white/45 px-2 py-3">
-      <!-- Help -->
+    <div class="relative space-y-1 border-t border-white/45 px-3 py-3 flex-shrink-0">
       <button
         :title="collapsed ? 'Trợ giúp' : ''"
         :class="[
@@ -76,7 +77,6 @@ function logout() {
         <span v-if="!collapsed" class="text-sm font-medium">Trợ giúp</span>
       </button>
 
-      <!-- Logout -->
       <button
         :title="collapsed ? 'Đăng xuất' : ''"
         :class="[
@@ -93,21 +93,21 @@ function logout() {
 
     <!-- ──────────── USER CARD ──────────── -->
     <div
-      class="relative border-t border-white/45 p-3"
+      class="relative border-t border-white/45 p-3 flex-shrink-0"
       :class="collapsed ? 'flex justify-center' : ''"
     >
-      <div :class="['lg-nav flex items-center gap-3 rounded-2xl p-2', collapsed ? '' : '']">
-        <!-- Avatar -->
-        <div class="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 text-xs font-bold text-white shadow-lg shadow-blue-500/20 ring-2 ring-white/70">
-          {{ authStore.initials || mockUser.initials }}
+      <div :class="['lg-nav flex items-center gap-3 rounded-2xl p-2.5', collapsed ? '' : 'w-full']">
+        <div class="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 text-xs font-bold text-white shadow-lg shadow-blue-500/20 ring-2 ring-white/70">
+          <span>{{ authStore.initials || mockUser.initials }}</span>
+          <span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
         </div>
         <Transition name="fade-slide">
           <div v-if="!collapsed" class="overflow-hidden min-w-0">
-            <p class="text-[13px] font-semibold text-slate-700 truncate leading-tight">
-              {{ authStore.displayName || mockUser.name }}
+            <p class="text-[13px] font-semibold text-slate-800 truncate leading-tight">
+              {{ authStore.displayName || 'Sinh Viên Demo' }}
             </p>
-            <p class="text-[11px] text-slate-400 truncate leading-tight">
-              {{ authStore.user?.email || mockUser.studentId }}
+            <p class="text-[11px] font-semibold text-slate-500 truncate leading-tight">
+              {{ mockUser.class }}
             </p>
           </div>
         </Transition>
@@ -116,7 +116,7 @@ function logout() {
 
     <!-- ──────────── TOGGLE BUTTON ──────────── -->
     <button
-      class="absolute -right-3 top-[60px] z-10 flex h-7 w-7 items-center justify-center rounded-full border border-white/70 bg-white/90 text-slate-500 shadow-lg shadow-slate-900/10 backdrop-blur-xl transition-all hover:border-blue-300 hover:text-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20"
+      class="absolute -right-3.5 top-[64px] z-[60] flex h-7 w-7 items-center justify-center rounded-full border border-white/70 bg-white/90 text-slate-500 shadow-lg shadow-slate-900/10 backdrop-blur-xl transition-all hover:border-blue-300 hover:text-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20"
       :title="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       :aria-label="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       @click="emit('toggle')"
@@ -127,7 +127,6 @@ function logout() {
 </template>
 
 <style scoped>
-/* Smooth fade + slide cho label text */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -137,8 +136,6 @@ function logout() {
   opacity: 0;
   transform: translateX(-6px);
 }
-
-/* Scrollbar nhỏ cho nav */
 .scrollbar-thin::-webkit-scrollbar {
   width: 3px;
 }

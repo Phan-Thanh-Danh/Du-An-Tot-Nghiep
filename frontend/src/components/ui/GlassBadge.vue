@@ -3,24 +3,37 @@ defineProps({
   variant: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'success', 'warning', 'danger', 'info'].includes(value),
+    validator: (value) =>
+      ['default', 'primary', 'success', 'warning', 'danger', 'info', 'violet'].includes(value),
+  },
+  size: {
+    type: String,
+    default: 'sm',
+    validator: (value) => ['sm', 'md'].includes(value),
   },
 })
 
 const classes = {
-  default: 'border-slate-200/70 bg-white/65 text-slate-700',
-  success: 'border-emerald-200/80 bg-emerald-50/80 text-emerald-700',
-  warning: 'border-amber-200/80 bg-amber-50/85 text-amber-700',
-  danger: 'border-red-200/80 bg-red-50/85 text-red-700',
-  info: 'border-sky-200/80 bg-sky-50/85 text-sky-700',
+  default: 'lg-badge',
+  primary: 'lg-badge lg-badge-primary',
+  success: 'lg-badge lg-badge-success',
+  warning: 'lg-badge lg-badge-warning',
+  danger: 'lg-badge lg-badge-danger',
+  info: 'lg-badge lg-badge-info',
+  violet: 'lg-badge lg-badge-violet',
+}
+
+const sizes = {
+  sm: 'px-2.5 py-1 text-[11px]',
+  md: 'px-3 py-1.5 text-xs',
 }
 </script>
 
 <template>
   <span
     :class="[
-      'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold backdrop-blur-md',
       classes[variant],
+      sizes[size],
     ]"
   >
     <slot />

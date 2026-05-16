@@ -6,7 +6,7 @@ export const sinhVienMenuGroups = [
   // ── DASHBOARD ─────────────────────────────────────────────
   {
     id: 'dashboard',
-    label: 'Dashboard',
+    label: 'Tổng quan',
     icon: 'LayoutDashboard',
     route: '/student/dashboard',
     children: [],
@@ -30,6 +30,15 @@ export const sinhVienMenuGroups = [
         icon: 'ClipboardList',
         route: '/student/assignments',
       },
+    ],
+  },
+
+  // ── KẾT QUẢ ──────────────────────────────────────────────
+  {
+    id: 'ket-qua',
+    label: 'Kết quả',
+    icon: 'BarChart3',
+    children: [
       {
         id: 'exams',
         label: 'Thi / Kiểm tra',
@@ -147,12 +156,12 @@ export const sinhVienMenuGroups = [
 
 // ── Mock user info ─────────────────────────────────────────
 export const mockUser = {
-  name: 'Nguyễn Văn An',
+  name: 'Sinh Viên Demo',
   studentId: 'SV2024001',
   email: 'an.nguyen@student.edu.vn',
   avatar: null, // null = dùng initials
-  initials: 'NA',
-  class: 'CNTT-K2024',
+  initials: 'SV',
+  class: 'CNTT K26A',
   campus: 'Cơ sở Hà Nội',
 }
 
