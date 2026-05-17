@@ -129,6 +129,20 @@ Base path hiện tại: `/api`
 | PATCH | `/api/master-data/majors/{id}/activate` | SuperAdmin | Mở khóa ngành đào tạo bằng `ConHoatDong = true`. |
 | PATCH | `/api/master-data/majors/{id}/deactivate` | SuperAdmin | Khóa ngành đào tạo bằng `ConHoatDong = false`. |
 
+## Cohorts APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/master-data/cohorts` | Admin/SuperAdmin/AcademicStaff/CampusAdmin | Danh sách khóa tuyển sinh có phân trang, tìm kiếm theo mã/tên, lọc năm bắt đầu và trạng thái hoạt động. |
+| GET | `/api/master-data/cohorts/{id}` | Admin/SuperAdmin/AcademicStaff/CampusAdmin | Chi tiết khóa tuyển sinh. |
+| POST | `/api/master-data/cohorts` | SuperAdmin | Tạo khóa tuyển sinh, mã khóa là duy nhất toàn hệ thống và được chuẩn hóa uppercase. |
+| PUT | `/api/master-data/cohorts/{id}` | SuperAdmin | Cập nhật khóa tuyển sinh, năm học và trạng thái hoạt động. |
+| DELETE | `/api/master-data/cohorts/{id}` | SuperAdmin | Vô hiệu hóa khóa tuyển sinh bằng `ConHoatDong = false`, không xóa vật lý. |
+| PATCH | `/api/master-data/cohorts/{id}/activate` | SuperAdmin | Kích hoạt khóa tuyển sinh bằng `ConHoatDong = true`. |
+| PATCH | `/api/master-data/cohorts/{id}/deactivate` | SuperAdmin | Vô hiệu hóa khóa tuyển sinh bằng `ConHoatDong = false`. |
+
 ## Specializations APIs
 
 ### Đã có

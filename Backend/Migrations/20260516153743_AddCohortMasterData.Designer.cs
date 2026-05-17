@@ -4,6 +4,7 @@ using Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260516153743_AddCohortMasterData")]
+    partial class AddCohortMasterData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1066,91 +1069,6 @@ namespace Backend.Migrations
                             t.HasCheckConstraint("CK_ChuyenNganhTheoCoSo_nam_bat_dau_1", "[nam_bat_dau] IS NULL OR [nam_bat_dau] >= 2000");
 
                             t.HasCheckConstraint("CK_ChuyenNganhTheoCoSo_trang_thai_1", "[trang_thai] IN (N'draft', N'pending_approval', N'approved', N'active', N'inactive', N'rejected')");
-                        });
-                });
-
-            modelBuilder.Entity("Backend.Models.CourseSyllabus", b =>
-                {
-                    b.Property<int>("MaSyllabus")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("ma_syllabus");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaSyllabus"));
-
-                    b.Property<bool>("BatBuoc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true)
-                        .HasColumnName("bat_buoc");
-
-                    b.Property<bool>("ConHoatDong")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true)
-                        .HasColumnName("con_hoat_dong");
-
-                    b.Property<int?>("HocKyDuKien")
-                        .HasColumnType("int")
-                        .HasColumnName("hoc_ky_du_kien");
-
-                    b.Property<int>("MaChuyenNganh")
-                        .HasColumnType("int")
-                        .HasColumnName("ma_chuyen_nganh");
-
-                    b.Property<int?>("MaDonVi")
-                        .HasColumnType("int")
-                        .HasColumnName("ma_don_vi");
-
-                    b.Property<int>("MaMonHoc")
-                        .HasColumnType("int")
-                        .HasColumnName("ma_mon_hoc");
-
-                    b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("ngay_cap_nhat");
-
-                    b.Property<DateTime>("NgayTao")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<string>("TenSyllabus")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
-                        .HasColumnName("ten_syllabus");
-
-                    b.Property<string>("TrangThai")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
-                        .HasColumnName("trang_thai");
-
-                    b.Property<string>("Version")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("version");
-
-                    b.HasKey("MaSyllabus")
-                        .HasName("PK_CourseSyllabus");
-
-                    b.HasIndex("MaChuyenNganh");
-
-                    b.HasIndex("MaDonVi");
-
-                    b.HasIndex("MaMonHoc", "MaChuyenNganh", "MaDonVi", "Version")
-                        .IsUnique()
-                        .HasDatabaseName("UQ_CourseSyllabus_1")
-                        .HasFilter("[ma_don_vi] IS NOT NULL");
-
-                    b.ToTable("CourseSyllabus", "dbo", t =>
-                        {
-                            t.HasCheckConstraint("CK_CourseSyllabus_hoc_ky_du_kien_1", "[hoc_ky_du_kien] IS NULL OR [hoc_ky_du_kien] > 0");
-
-                            t.HasCheckConstraint("CK_CourseSyllabus_trang_thai_1", "[trang_thai] IN (N'draft', N'pending_approval', N'approved', N'active', N'inactive', N'archived')");
                         });
                 });
 
@@ -4409,35 +4327,6 @@ namespace Backend.Migrations
                     b.Navigation("ChuyenNganh");
 
                     b.Navigation("DonVi");
-                });
-
-            modelBuilder.Entity("Backend.Models.CourseSyllabus", b =>
-                {
-                    b.HasOne("Backend.Models.ChuyenNganh", "ChuyenNganh")
-                        .WithMany()
-                        .HasForeignKey("MaChuyenNganh")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("FK_CourseSyllabus_ma_chuyen_nganh__ChuyenNganh");
-
-                    b.HasOne("Backend.Models.DonVi", "DonVi")
-                        .WithMany()
-                        .HasForeignKey("MaDonVi")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .HasConstraintName("FK_CourseSyllabus_ma_don_vi__DonVi");
-
-                    b.HasOne("Backend.Models.DanhMucMonHoc", "MonHoc")
-                        .WithMany()
-                        .HasForeignKey("MaMonHoc")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("FK_CourseSyllabus_ma_mon_hoc__DanhMucMonHoc");
-
-                    b.Navigation("ChuyenNganh");
-
-                    b.Navigation("DonVi");
-
-                    b.Navigation("MonHoc");
                 });
 
             modelBuilder.Entity("Backend.Models.DangKyHocPhan", b =>
