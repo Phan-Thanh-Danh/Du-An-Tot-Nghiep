@@ -132,12 +132,12 @@ const currentPageMeta = computed(() => {
               >
                 <component :is="Component" v-if="Component" />
                 <div v-else class="flex flex-col items-center justify-center py-24 text-center">
-                  <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50">
-                     <GraduationCap class="h-8 w-8 text-indigo-300" />
+                  <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50">
+                     <GraduationCap class="h-8 w-8 text-blue-300" />
                   </div>
                   <h3 class="mt-4 text-base font-semibold text-slate-700">Trang đang phát triển</h3>
                   <p class="mt-1.5 text-sm text-slate-400 max-w-xs">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng.</p>
-                  <router-link to="/teacher/dashboard" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors">← Về Dashboard</router-link>
+                  <router-link to="/teacher/dashboard" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">← Về Dashboard</router-link>
                 </div>
               </Transition>
             </router-view>

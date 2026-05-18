@@ -41,8 +41,8 @@ const isActive = computed(() => {
   >
     <!-- Active indicator line -->
     <span
-      v-if="isActive && depth === 0"
-      class="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-blue-600"
+      class="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-blue-600 transition-all duration-300 ease-out origin-center"
+      :class="[isActive && depth === 0 ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-50']"
     />
 
     <!-- Icon -->
@@ -51,7 +51,7 @@ const isActive = computed(() => {
       :size="depth === 0 ? 18 : 15"
       :stroke-width="isActive ? 2.5 : 1.8"
       :class="[
-        'flex-shrink-0 transition-colors',
+        'flex-shrink-0 transition-colors duration-300',
         isActive 
           ? depth === 0 ? 'text-white' : 'text-blue-600'
           : 'text-slate-400 group-hover:text-blue-600',
@@ -59,14 +59,14 @@ const isActive = computed(() => {
     />
 
     <!-- Label -->
-    <span v-if="!collapsed" class="flex-1 truncate leading-tight">
+    <span v-if="!collapsed" class="flex-1 truncate leading-tight transition-colors duration-300">
       {{ item.label }}
     </span>
 
     <!-- Active dot for depth > 0 -->
     <div
-      v-if="isActive && depth > 0 && !collapsed"
-      class="h-1.5 w-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+      class="h-1.5 w-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all duration-300 ease-out"
+      :class="[isActive && depth > 0 && !collapsed ? 'opacity-100 scale-100' : 'opacity-0 scale-0']"
     />
   </router-link>
 

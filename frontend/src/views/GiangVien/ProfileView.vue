@@ -4,6 +4,9 @@ import {
   User, Mail, Phone, Lock, Save, Camera, 
   ShieldCheck, MapPin, Briefcase, Calendar 
 } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
 
 const user = ref({
   name: 'TS. Nguyễn Minh Khoa',
@@ -15,30 +18,18 @@ const user = ref({
   address: 'Quận 7, TP. Hồ Chí Minh'
 })
 
-const isChangingPassword = ref(false)
-const passwords = ref({
-  current: '',
-  new: '',
-  confirm: ''
-})
-
 function handleUpdate() {
   alert('Đã cập nhật thông tin cá nhân!')
-}
-
-function handlePasswordChange() {
-  alert('Đã đổi mật khẩu thành công!')
-  isChangingPassword.value = false
 }
 </script>
 
 <template>
   <div class="space-y-6 pb-10 text-slate-800">
     <!-- Header Hero -->
-    <div class="relative h-48 rounded-[32px] bg-gradient-to-r from-indigo-600 to-violet-600 overflow-hidden shadow-2xl">
+    <div class="relative h-48 rounded-[32px] bg-gradient-to-r from-blue-600 to-blue-600 overflow-hidden shadow-2xl">
        <div class="absolute inset-0 opacity-20">
           <div class="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-          <div class="absolute bottom-0 left-0 w-48 h-48 bg-indigo-300 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl"></div>
+          <div class="absolute bottom-0 left-0 w-48 h-48 bg-blue-300 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl"></div>
        </div>
     </div>
 
@@ -49,11 +40,13 @@ function handlePasswordChange() {
              <!-- Avatar Area -->
              <div class="relative shrink-0">
                 <div class="h-32 w-32 rounded-3xl bg-white p-1 shadow-xl border border-slate-100">
-                   <div class="h-full w-full rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                      <User :size="64" />
+                   <div :class="['h-full w-full rounded-2xl bg-gradient-to-br flex items-center justify-center text-white font-bold text-4xl overflow-hidden', 
+                      authStore.hasRole('Principal') ? 'from-blue-600 to-cyan-600' : 'from-blue-600 to-cyan-500']">
+                      <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" class="h-full w-full object-cover" />
+                      <span v-else>{{ authStore.initials || 'TN' }}</span>
                    </div>
                 </div>
-                <button class="absolute -bottom-2 -right-2 h-10 w-10 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-lg border-2 border-white hover:scale-110 transition-transform">
+                <button class="absolute -bottom-2 -right-2 h-10 w-10 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-lg border-2 border-white hover:scale-110 transition-transform" title="Đổi ảnh đại diện">
                    <Camera :size="18" />
                 </button>
              </div>
@@ -64,18 +57,18 @@ function handlePasswordChange() {
                    <div>
                       <h1 class="text-3xl font-black text-slate-800 tracking-tight">{{ user.name }}</h1>
                       <div class="flex items-center gap-3 mt-1">
-                         <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md uppercase tracking-wider">{{ user.position }}</span>
+                         <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md uppercase tracking-wider">{{ user.position }}</span>
                          <span class="text-xs font-bold text-slate-400">• {{ user.department }}</span>
                       </div>
                    </div>
-                   <div class="flex gap-2">
-                      <button @click="isChangingPassword = true" class="lg-button-secondary py-2.5 px-5 text-xs font-bold flex items-center gap-2">
-                         <Lock :size="16" /> Đổi mật khẩu
-                      </button>
-                      <button @click="handleUpdate" class="lg-button-primary py-2.5 px-6 text-xs font-bold flex items-center gap-2" style="background: linear-gradient(135deg, #4f46e5, #6366f1 52%, #8b5cf6);">
-                         <Save :size="16" /> Cập nhật hồ sơ
-                      </button>
-                   </div>
+                    <div class="flex gap-2">
+                       <router-link to="/teacher/change-password" class="lg-button-secondary py-2.5 px-5 text-xs font-bold flex items-center gap-2">
+                          <Lock :size="16" /> Đổi mật khẩu
+                       </router-link>
+                       <button @click="handleUpdate" class="lg-button-primary py-2.5 px-6 text-xs font-bold flex items-center gap-2" style="background: linear-gradient(135deg, #4f46e5, #6366f1 52%, #8b5cf6);">
+                          <Save :size="16" /> Cập nhật hồ sơ
+                       </button>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 border-t border-slate-100">
@@ -132,7 +125,7 @@ function handlePasswordChange() {
 
        <div class="lg-card-glass p-8 border-slate-100">
           <h2 class="text-lg font-bold mb-6 flex items-center gap-2">
-             <MapPin :size="20" class="text-indigo-500" /> Địa chỉ công tác
+             <MapPin :size="20" class="text-blue-500" /> Địa chỉ công tác
           </h2>
           <div class="space-y-4">
              <div class="p-4 rounded-2xl bg-slate-50">
@@ -147,29 +140,5 @@ function handlePasswordChange() {
        </div>
     </div>
 
-    <!-- Password Modal -->
-    <div v-if="isChangingPassword" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-       <div class="w-full max-w-md lg-card-glass p-8 border-white bg-white/95 shadow-2xl animate-in fade-in zoom-in duration-300">
-          <h3 class="text-xl font-black text-slate-800 mb-6">Đổi mật khẩu</h3>
-          <div class="space-y-4">
-             <div class="space-y-1">
-                <label class="text-[10px] font-black text-slate-400 uppercase">Mật khẩu hiện tại</label>
-                <input type="password" v-model="passwords.current" class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-indigo-400" />
-             </div>
-             <div class="space-y-1">
-                <label class="text-[10px] font-black text-slate-400 uppercase">Mật khẩu mới</label>
-                <input type="password" v-model="passwords.new" class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-indigo-400" />
-             </div>
-             <div class="space-y-1">
-                <label class="text-[10px] font-black text-slate-400 uppercase">Xác nhận mật khẩu</label>
-                <input type="password" v-model="passwords.confirm" class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-indigo-400" />
-             </div>
-             <div class="pt-6 flex gap-3">
-                <button @click="isChangingPassword = false" class="flex-1 rounded-xl bg-slate-100 py-3 text-sm font-bold text-slate-500 hover:bg-slate-200 transition-all">Hủy</button>
-                <button @click="handlePasswordChange" class="flex-1 rounded-xl bg-slate-900 py-3 text-sm font-bold text-white hover:bg-slate-800 transition-all">Lưu thay đổi</button>
-             </div>
-          </div>
-       </div>
-    </div>
   </div>
 </template>

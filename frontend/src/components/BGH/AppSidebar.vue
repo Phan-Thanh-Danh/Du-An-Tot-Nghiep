@@ -91,8 +91,9 @@ function logout() {
       :class="collapsed ? 'flex justify-center' : ''"
     >
       <div :class="['flex items-center gap-3', collapsed ? '' : '']">
-        <div class="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-bold shadow">
-          {{ authStore.initials || mockBGH.initials }}
+        <div class="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-bold shadow overflow-hidden">
+          <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" class="h-full w-full object-cover" />
+          <span v-else>{{ authStore.initials || mockBGH.initials }}</span>
         </div>
         <Transition name="fade-slide">
           <div v-if="!collapsed" class="overflow-hidden min-w-0">

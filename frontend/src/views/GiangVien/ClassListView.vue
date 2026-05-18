@@ -33,7 +33,7 @@ const filterSemester = ref('Spring 2026')
     <div class="rounded-[24px] border border-slate-100 bg-white p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center">
       <div class="relative flex-1 w-full">
         <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input type="text" placeholder="Tìm theo mã lớp, tên lớp..." class="w-full rounded-xl border border-slate-100 bg-slate-50 pl-11 pr-4 py-2.5 text-sm outline-none focus:border-indigo-300" />
+        <input type="text" placeholder="Tìm theo mã lớp, tên lớp..." class="w-full rounded-xl border border-slate-100 bg-slate-50 pl-11 pr-4 py-2.5 text-sm outline-none focus:border-blue-300" />
       </div>
       <div class="flex items-center gap-3 w-full md:w-auto">
         <select v-model="filterSemester" class="flex-1 md:w-48 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm font-medium outline-none">
@@ -50,7 +50,7 @@ const filterSemester = ref('Spring 2026')
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div v-for="cls in classes" :key="cls.id" class="lg-card-glass lg-card-hover group border-slate-100 p-6 flex flex-col">
         <div class="flex justify-between items-start mb-4">
-          <div class="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100/50">
+          <div class="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100/50">
             <GraduationCap :size="24" />
           </div>
           <button class="p-1.5 text-slate-300 hover:text-slate-600"><MoreHorizontal :size="20" /></button>
@@ -71,18 +71,18 @@ const filterSemester = ref('Spring 2026')
             </div>
             <div class="flex items-center gap-3 text-sm text-slate-600">
               <Calendar :size="16" class="text-slate-400" />
-              <span>Học kỳ: <span class="font-bold text-indigo-600">{{ cls.semester }}</span></span>
+              <span>Học kỳ: <span class="font-bold text-blue-600">{{ cls.semester }}</span></span>
             </div>
           </div>
         </div>
 
         <div class="mt-8 pt-4 border-t border-slate-50 flex items-center justify-between">
-           <router-link to="/teacher/class-progress" class="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1">
+           <router-link :to="`/teacher/classes/${cls.code}/details`" class="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
              Xem chi tiết <ChevronRight :size="14" />
            </router-link>
-           <button class="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 transition-all flex items-center gap-2">
+           <router-link :to="`/teacher/classes/${cls.code}/workspace`" class="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 transition-all flex items-center gap-2">
              <Eye :size="14" /> View class
-           </button>
+           </router-link>
         </div>
       </div>
     </div>

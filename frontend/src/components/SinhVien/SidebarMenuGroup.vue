@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import * as LucideIcons from 'lucide-vue-next'
 import SidebarMenuItem from './SidebarMenuItem.vue'
 
@@ -10,6 +10,7 @@ const props = defineProps({
 })
 
 const route = useRoute()
+const router = useRouter()
 
 const GroupIcon = computed(() => LucideIcons[props.group.icon] || LucideIcons.Circle)
 const hasChildren = computed(() => props.group.children && props.group.children.length > 0)
@@ -33,15 +34,18 @@ function updatePosition() {
     flyoutStyle.value = {
       position: 'fixed',
       top: `${rect.top}px`,
-      left: `${rect.right + 10}px`,
+      left: `${rect.right}px`,
       display: flyoutVisible.value ? 'block' : 'none',
       zIndex: 999999
     }
   }
 }
 
+let hoverTimeout = null;
+
 function showFlyout() {
   if (props.collapsed && hasChildren.value) {
+    if (hoverTimeout) clearTimeout(hoverTimeout)
     flyoutVisible.value = true
     updatePosition()
   }
@@ -49,14 +53,17 @@ function showFlyout() {
 
 function hideFlyout() {
   if (props.collapsed) {
-    flyoutVisible.value = false
-    updatePosition()
+    hoverTimeout = setTimeout(() => {
+      flyoutVisible.value = false
+    }, 10)
   }
 }
 
 function handleToggle() {
   if (!props.collapsed) {
-    if (hasChildren.value) isOpen.value = !isOpen.value
+    if (hasChildren.value) {
+      isOpen.value = !isOpen.value
+    }
   } else {
     if (hasChildren.value) {
       flyoutVisible.value = !flyoutVisible.value
@@ -120,6 +127,7 @@ watch(() => props.collapsed, () => {
         ]"
         @click.stop="handleToggle"
         @mouseenter="showFlyout"
+        @mouseleave="hideFlyout"
       >
         <component
           :is="GroupIcon"
@@ -138,19 +146,25 @@ watch(() => props.collapsed, () => {
         <LucideIcons.ChevronDown
           v-if="!collapsed"
           :size="14"
-          :class="['flex-shrink-0 transition-transform duration-200 text-slate-400', isOpen ? 'rotate-180' : '']"
+          :class="['flex-shrink-0 transition-transform duration-300 text-slate-400', isOpen ? 'rotate-180' : '']"
         />
       </button>
 
-      <!-- ACCORDION KHI MỞ -->
-      <div v-if="!collapsed && isOpen" class="ml-4 mt-1 space-y-1 border-l border-slate-200 pl-3">
-        <SidebarMenuItem
-          v-for="child in group.children"
-          :key="child.id"
-          :item="child"
-          :collapsed="false"
-          :depth="1"
-        />
+      <!-- ACCORDION KHI MỞ: Dùng grid để animate height từ 0 -> auto mượt mà -->
+      <div 
+        v-if="!collapsed" 
+        class="grid transition-all duration-300 ease-in-out overflow-hidden"
+        :class="isOpen ? 'grid-rows-[1fr] opacity-100 mt-1 visible' : 'grid-rows-[0fr] opacity-0 mt-0 invisible'"
+      >
+        <div class="min-h-0 ml-4 space-y-1 border-l border-slate-200 pl-3">
+          <SidebarMenuItem
+            v-for="child in group.children"
+            :key="child.id"
+            :item="child"
+            :collapsed="false"
+            :depth="1"
+          />
+        </div>
       </div>
 
       <!-- FLYOUT KHI THU GỌN -->
@@ -159,28 +173,30 @@ watch(() => props.collapsed, () => {
           v-if="collapsed && flyoutVisible"
           :id="`flyout-${group.id}`"
           :style="flyoutStyle"
-          class="lg-glass-strong fixed min-w-[220px] rounded-2xl p-1.5 shadow-[0_30px_90px_rgba(0,0,0,0.3)] border border-white/60 backdrop-blur-3xl"
+          class="fixed z-[999999]"
           @mouseenter="showFlyout"
           @mouseleave="hideFlyout"
         >
-          <div class="mb-1.5 px-3 py-2.5 border-b border-slate-100/50 bg-white/40 rounded-t-xl">
-            <div class="flex items-center gap-2">
-              <div class="h-6 w-6 flex items-center justify-center rounded-lg bg-blue-100 text-blue-700">
-                <component :is="GroupIcon" :size="14" />
+          <div class="ml-[10px] lg-glass-strong min-w-[220px] rounded-2xl p-1.5 shadow-[0_30px_90px_rgba(0,0,0,0.3)] border border-white/60 backdrop-blur-3xl">
+            <div class="mb-1.5 px-3 py-2.5 border-b border-slate-100/50 bg-white/40 rounded-t-xl">
+              <div class="flex items-center gap-2">
+                <div class="h-6 w-6 flex items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                  <component :is="GroupIcon" :size="14" />
+                </div>
+                <p class="text-[13px] font-bold text-slate-900">{{ group.label }}</p>
               </div>
-              <p class="text-[13px] font-bold text-slate-900">{{ group.label }}</p>
             </div>
-          </div>
-          
-          <div class="space-y-0.5">
-            <SidebarMenuItem
-              v-for="child in group.children"
-              :key="child.id"
-              :item="child"
-              :collapsed="false"
-              :depth="0"
-              @click="hideFlyout"
-            />
+            
+            <div class="space-y-0.5">
+              <SidebarMenuItem
+                v-for="child in group.children"
+                :key="child.id"
+                :item="child"
+                :collapsed="false"
+                :depth="0"
+                @click="hideFlyout"
+              />
+            </div>
           </div>
         </div>
       </Teleport>

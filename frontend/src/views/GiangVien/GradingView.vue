@@ -2,7 +2,8 @@
 import { ref } from 'vue'
 import { 
   ArrowLeft, Search, Download, ExternalLink, 
-  MessageSquare, Star, Save, CheckCircle2, AlertCircle 
+  MessageSquare, Star, Save, CheckCircle2, AlertCircle,
+  FileBox, FileDigit, Clock, Edit3, X
 } from 'lucide-vue-next'
 
 const submissions = ref([
@@ -31,155 +32,201 @@ function saveGrade() {
 </script>
 
 <template>
-  <div class="space-y-6 pb-10">
-    <!-- Header -->
-    <div class="flex items-center gap-4">
-      <router-link to="/teacher/assignments" class="p-2 rounded-xl bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 transition-all shadow-sm">
-        <ArrowLeft :size="20" />
-      </router-link>
-      <div>
-        <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Chấm bài: Assignment 1</h1>
-        <p class="text-sm text-slate-500">Lớp SE1601 • Hạn nộp: 20/05/2026</p>
+  <div class="space-y-8 pb-10 text-slate-800">
+    <!-- ── Header ── -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden">
+      <!-- Decorative background -->
+      <div class="absolute -right-32 -bottom-32 h-96 w-96 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-50 to-transparent rounded-full pointer-events-none" />
+      
+      <div class="relative z-10 flex items-center gap-5">
+        <router-link to="/teacher/assignments" class="h-16 w-16 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-white hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm hover:shadow-md">
+           <ArrowLeft :size="24" />
+        </router-link>
+        <div>
+          <div class="flex items-center gap-3 mb-1">
+             <span class="rounded-lg bg-blue-50 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-blue-600 border border-blue-100">Assignment 1</span>
+             <span class="rounded-lg bg-slate-50 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500 border border-slate-200">SE1601</span>
+          </div>
+          <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Chấm bài tập</h1>
+        </div>
+      </div>
+      <div class="relative z-10 flex gap-4">
+         <div class="text-right">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Hạn nộp</p>
+            <p class="text-sm font-bold text-slate-800 flex items-center gap-1.5"><Clock :size="14" class="text-blue-500"/> 20/05/2026 23:59</p>
+         </div>
+         <div class="w-px bg-slate-200 hidden sm:block"></div>
+         <div class="text-right">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Đã chấm</p>
+            <p class="text-sm font-bold text-slate-800"><span class="text-blue-600">2</span> / 4</p>
+         </div>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <!-- Alert Instruction -->
+    <div class="rounded-[24px] bg-amber-50 border border-amber-100 p-5 flex gap-4 items-start shadow-sm">
+       <div class="h-10 w-10 shrink-0 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
+          <AlertCircle :size="20" />
+       </div>
+       <div>
+          <h4 class="text-sm font-bold text-amber-900">Lưu ý về bài nộp trễ</h4>
+          <p class="text-xs font-medium text-amber-700 mt-1 leading-relaxed">Hệ thống đánh dấu các bài nộp sau ngày 20/05/2026 là "Nộp trễ". Giảng viên có thể xem xét trừ điểm tùy theo quy định của môn học.</p>
+       </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
       <!-- Left: List of Submissions -->
-      <div class="xl:col-span-2 space-y-4">
-        <div class="rounded-[28px] border border-slate-100 bg-white shadow-sm overflow-hidden">
-          <div class="p-6 border-b border-slate-50 flex items-center justify-between gap-4">
-            <h2 class="text-lg font-bold text-slate-800">Danh sách bài nộp</h2>
-            <div class="relative w-64">
-              <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input type="text" placeholder="Tìm sinh viên..." class="w-full rounded-xl border border-slate-100 bg-slate-50 pl-9 pr-4 py-2 text-xs outline-none" />
+      <div class="xl:col-span-2 space-y-6">
+        <div class="rounded-[32px] border border-slate-100 bg-white shadow-sm overflow-hidden p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h2 class="text-lg font-black text-slate-900 flex items-center gap-2">
+               <Users :size="20" class="text-blue-500" /> Danh sách sinh viên
+            </h2>
+            <div class="relative w-full sm:w-72">
+              <Search :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input type="text" placeholder="Tìm sinh viên, MSSV..." class="w-full rounded-[16px] border border-slate-200 bg-slate-50 pl-11 pr-4 py-3 text-sm font-medium outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-colors" />
             </div>
           </div>
           
-          <div class="overflow-x-auto">
-            <table class="w-full text-left">
-              <thead>
-                <tr class="bg-slate-50/50 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  <th class="px-6 py-4">Sinh viên</th>
-                  <th class="px-6 py-4">File bài nộp</th>
-                  <th class="px-6 py-4">Thời gian</th>
-                  <th class="px-6 py-4">Điểm</th>
-                  <th class="px-6 py-4 text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-50">
-                <tr v-for="sub in submissions" :key="sub.id" 
-                    :class="['group hover:bg-slate-50/50 transition-colors cursor-pointer', selectedSubmission?.id === sub.id ? 'bg-indigo-50/50' : '']"
-                    @click="selectGrading(sub)">
-                  <td class="px-6 py-4">
-                    <div class="flex items-center gap-3">
-                      <div class="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-[10px]">
-                        {{ sub.name.split(' ').pop()[0] }}
+          <div class="space-y-3">
+             <div v-for="(sub, index) in submissions" :key="sub.id" 
+                  @click="selectGrading(sub)"
+                  class="group rounded-[24px] border transition-colors cursor-pointer p-4 animate-fade-in-up"
+                  :style="{ animationDelay: `${index * 50}ms` }"
+                  :class="selectedSubmission?.id === sub.id ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-white border-slate-100 hover:border-blue-200 hover:bg-slate-50/50 hover:shadow-md'">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                   <!-- Student Info -->
+                   <div class="flex items-center gap-4 flex-1">
+                      <div :class="['h-12 w-12 rounded-2xl flex items-center justify-center font-black text-sm transition-colors shadow-sm',
+                                    selectedSubmission?.id === sub.id ? 'bg-blue-600 text-white' : 'bg-slate-50 border border-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 group-hover:border-blue-200']">
+                         {{ sub.name.split(' ').pop()[0] }}
                       </div>
-                      <div class="min-w-0">
-                        <p class="text-xs font-bold text-slate-800 truncate">{{ sub.name }}</p>
-                        <p class="text-[9px] text-slate-400 uppercase">{{ sub.studentId }}</p>
+                      <div>
+                         <p class="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition-colors">{{ sub.name }}</p>
+                         <div class="flex items-center gap-2 mt-0.5">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ sub.studentId }}</span>
+                            <div v-if="sub.status === 'Late'" class="h-1 w-1 rounded-full bg-rose-400"></div>
+                            <span v-if="sub.status === 'Late'" class="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-1"><AlertCircle :size="10"/> Nộp trễ</span>
+                         </div>
                       </div>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4">
-                    <div class="flex items-center gap-2 text-xs text-indigo-600 font-bold hover:underline">
-                      <Download :size="14" /> {{ sub.file }}
-                    </div>
-                  </td>
-                  <td class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-500">{{ sub.time }}</p>
-                    <span v-if="sub.status === 'Late'" class="text-[9px] font-black text-rose-500 uppercase tracking-tighter">Nộp trễ</span>
-                  </td>
-                  <td class="px-6 py-4">
-                    <span v-if="sub.score !== null" class="text-sm font-black text-indigo-600">{{ sub.score }}</span>
-                    <span v-else class="text-xs text-slate-300 italic">Chưa chấm</span>
-                  </td>
-                  <td class="px-6 py-4 text-right">
-                    <button class="p-2 text-slate-400 hover:text-indigo-600 rounded-lg"><ChevronRight :size="18" /></button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                   </div>
+
+                   <!-- Submission Details -->
+                   <div class="flex flex-col sm:items-end gap-1 flex-1">
+                      <div class="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 w-max">
+                         <FileBox :size="14" class="text-blue-400" />
+                         <span class="truncate max-w-[120px]">{{ sub.file }}</span>
+                      </div>
+                      <span class="text-[10px] font-semibold text-slate-400 flex items-center gap-1"><Clock :size="10"/> {{ sub.time }}</span>
+                   </div>
+
+                   <!-- Score & Action -->
+                   <div class="flex items-center justify-between sm:justify-end gap-6 sm:w-32 shrink-0 border-t sm:border-t-0 border-slate-100 pt-3 sm:pt-0">
+                      <div class="flex flex-col items-center sm:items-end">
+                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Điểm</span>
+                         <span v-if="sub.score !== null" class="text-xl font-black text-emerald-600">{{ sub.score.toFixed(1) }}</span>
+                         <span v-else class="text-xs font-bold text-slate-300 italic">--</span>
+                      </div>
+                      <div :class="['h-10 w-10 rounded-xl flex items-center justify-center transition-all shadow-sm', 
+                                   selectedSubmission?.id === sub.id ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-white border border-slate-200 text-slate-400 group-hover:text-blue-600 group-hover:border-blue-200 group-hover:bg-blue-50']">
+                         <Edit3 :size="18" />
+                      </div>
+                   </div>
+                </div>
+             </div>
           </div>
         </div>
       </div>
 
       <!-- Right: Grading Panel -->
       <div class="xl:col-span-1">
-        <div v-if="selectedSubmission" class="rounded-[28px] border border-slate-100 bg-white shadow-xl p-6 sticky top-6">
-           <div class="flex items-center gap-4 mb-6 pb-6 border-b border-slate-50">
-              <div class="h-14 w-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                 <Star :size="32" />
+        <div v-if="selectedSubmission" class="rounded-[32px] border border-slate-100 bg-white shadow-xl p-8 sticky top-6">
+           <div class="flex items-center justify-between mb-8 pb-6 border-b border-slate-50">
+              <div class="flex items-center gap-4">
+                 <div class="h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-200">
+                    <FileDigit :size="24" />
+                 </div>
+                 <div>
+                    <h2 class="text-xl font-black text-slate-900">Chấm điểm</h2>
+                    <p class="text-sm font-bold text-slate-500">{{ selectedSubmission.name }}</p>
+                 </div>
               </div>
-              <div>
-                 <h2 class="text-lg font-bold text-slate-800">Chấm điểm</h2>
-                 <p class="text-sm text-slate-400 font-medium">{{ selectedSubmission.name }}</p>
-              </div>
+              <button @click="selectedSubmission = null" class="h-8 w-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-colors">
+                 <X :size="16" />
+              </button>
            </div>
 
-           <div class="space-y-6 text-slate-800">
-              <div class="space-y-2">
-                 <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Xem bài nộp</label>
-                 <button class="w-full flex items-center justify-between rounded-xl bg-slate-50 border border-slate-100 p-4 text-sm font-bold text-slate-600 hover:bg-slate-100 transition-all">
+           <div class="space-y-8 text-slate-800">
+              <!-- File Attachment -->
+              <div class="space-y-3">
+                 <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><FileBox :size="14"/> File bài nộp</label>
+                 <a href="#" class="group flex items-center justify-between rounded-[20px] bg-slate-50 border border-slate-200 p-4 hover:border-blue-300 hover:bg-white hover:shadow-md transition-all">
                     <div class="flex items-center gap-3">
-                       <Download :size="18" class="text-indigo-500" />
-                       <span>Tải về file bài làm</span>
+                       <div class="h-10 w-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                          <Download :size="18" />
+                       </div>
+                       <div>
+                          <p class="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{{ selectedSubmission.file }}</p>
+                          <p class="text-[10px] font-semibold text-slate-400 mt-0.5">{{ selectedSubmission.time }}</p>
+                       </div>
                     </div>
-                    <ExternalLink :size="16" class="text-slate-300" />
-                 </button>
+                    <ExternalLink :size="16" class="text-slate-300 group-hover:text-blue-400" />
+                 </a>
               </div>
 
-              <div class="space-y-2">
-                 <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Nhập điểm (0-10)</label>
-                 <input 
-                    type="number" 
-                    v-model="selectedSubmission.score"
-                    max="10" min="0" step="0.1"
-                    placeholder="Ví dụ: 8.5"
-                    class="w-full rounded-2xl border border-slate-200 bg-white p-4 text-2xl font-black outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all"
-                 />
+              <!-- Score Input -->
+              <div class="space-y-3">
+                 <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Star :size="14"/> Điểm số (0-10)</label>
+                 <div class="relative">
+                    <input 
+                       type="number" 
+                       v-model="selectedSubmission.score"
+                       max="10" min="0" step="0.1"
+                       placeholder="0.0"
+                       class="w-full rounded-[24px] border border-slate-200 bg-white px-6 py-5 text-4xl font-black text-blue-600 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-colors text-center shadow-sm placeholder:text-slate-200"
+                    />
+                 </div>
               </div>
 
-              <div class="space-y-2">
-                 <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Nhận xét của giảng viên</label>
-                 <textarea 
-                    v-model="selectedSubmission.comment"
-                    rows="5"
-                    placeholder="Ghi chú cho sinh viên..."
-                    class="w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all leading-relaxed"
-                 ></textarea>
+              <!-- Comment Input -->
+              <div class="space-y-3">
+                 <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><MessageSquare :size="14"/> Nhận xét</label>
+                 <div class="relative group/textarea">
+                    <textarea 
+                       v-model="selectedSubmission.comment"
+                       rows="4"
+                       placeholder="Nhập phản hồi cho sinh viên..."
+                       class="w-full rounded-[24px] border border-slate-200 bg-slate-50 p-5 text-sm font-medium outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-colors leading-relaxed resize-none shadow-sm group-hover/textarea:border-slate-300"
+                    ></textarea>
+                 </div>
               </div>
 
-              <div class="pt-4 flex gap-3">
-                 <button @click="selectedSubmission = null" class="flex-1 rounded-2xl border border-slate-200 py-4 text-sm font-bold text-slate-500 hover:bg-slate-50 transition-all">Hủy</button>
-                 <button @click="saveGrade" class="flex-2 rounded-2xl bg-indigo-600 py-4 px-8 text-sm font-bold text-white shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
-                    <CheckCircle2 :size="18" /> Hoàn tất chấm điểm
+              <div class="pt-4">
+                 <button @click="saveGrade" class="w-full rounded-[20px] bg-gradient-to-br from-blue-500 to-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2">
+                    <CheckCircle2 :size="18" /> Lưu kết quả
                  </button>
               </div>
            </div>
         </div>
 
-        <div v-else class="rounded-[28px] border border-dashed border-slate-200 bg-slate-50/50 p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
-           <div class="h-20 w-20 rounded-full bg-white flex items-center justify-center text-slate-200 mb-4 shadow-sm">
-              <MessageSquare :size="40" />
+        <div v-else class="rounded-[32px] border-2 border-dashed border-slate-200 bg-slate-50/50 p-12 text-center flex flex-col items-center justify-center min-h-[500px] sticky top-6">
+           <div class="h-24 w-24 rounded-full bg-white flex items-center justify-center text-slate-300 mb-6 shadow-sm border border-slate-100">
+              <Edit3 :size="40" />
            </div>
-           <h3 class="text-lg font-bold text-slate-400">Chọn sinh viên</h3>
-           <p class="text-sm text-slate-300 mt-1 max-w-[200px]">Chọn bài nộp từ danh sách bên trái để thực hiện chấm điểm và nhận xét.</p>
+           <h3 class="text-xl font-black text-slate-800">Chưa chọn bài</h3>
+           <p class="text-sm font-medium text-slate-500 mt-2 max-w-[200px] leading-relaxed">Nhấp vào một sinh viên trong danh sách để bắt đầu chấm điểm.</p>
         </div>
       </div>
-    </div>
-
-    <!-- Instructions -->
-    <div class="lg-alert lg-alert-warning flex gap-4">
-       <AlertCircle :size="24" class="shrink-0" />
-       <div>
-          <p class="font-bold">Lưu ý về bài nộp trễ</p>
-          <p class="text-xs opacity-80 mt-1">Hệ thống đánh dấu các bài nộp sau ngày 20/05/2026 là "Late". Giảng viên có thể xem xét trừ điểm tùy theo quy định của môn học.</p>
-       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.flex-2 { flex: 2; }
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.3s ease-out forwards;
+}
 </style>

@@ -69,9 +69,9 @@ const currentPageMeta = computed(() => {
     
     <!-- Mảng trang trí Liquid Glass Background (Blobs) for BGH (Indigo/Purple focused) -->
     <div class="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-      <div class="lg-blob lg-blob-violet" style="top: -10%; left: -5%; animation: lg-float 18s infinite;"></div>
-      <div class="lg-blob lg-blob-blue" style="top: 20%; right: -10%; animation: lg-float-slow 24s infinite;"></div>
-      <div class="lg-blob bg-indigo-500/10 blur-[80px]" style="height: 24rem; width: 24rem; bottom: -15%; left: 30%; border-radius: 50%; animation: lg-float 20s infinite reverse; position: absolute;"></div>
+      <div class="lg-blob lg-blob-violet" style="top: -10%; left: -5%;"></div>
+      <div class="lg-blob lg-blob-blue" style="top: 20%; right: -10%;"></div>
+      <div class="lg-blob bg-indigo-500/5 blur-[40px]" style="height: 24rem; width: 24rem; bottom: -15%; left: 30%; border-radius: 50%; position: absolute;"></div>
     </div>
 
     <!-- MOBILE OVERLAY -->

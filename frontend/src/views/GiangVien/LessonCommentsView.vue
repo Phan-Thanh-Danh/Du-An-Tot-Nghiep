@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { 
   MessageCircle, User, ThumbsUp, Reply, 
-  MoreHorizontal, Search, BookOpen, Clock 
+  MoreHorizontal, Search, BookOpen, Clock, Send, CheckCircle2
 } from 'lucide-vue-next'
 
 const threads = ref([
@@ -28,71 +28,101 @@ const threads = ref([
 </script>
 
 <template>
-  <div class="space-y-6 pb-10 text-slate-800">
-    <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Bình luận bài học</h1>
-        <p class="text-slate-500 mt-1">Theo dõi các cuộc thảo luận của sinh viên dưới mỗi bài giảng.</p>
+  <div class="space-y-8 pb-10 text-slate-800">
+    <!-- ── Header ── -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden">
+      <!-- Decorative background using radial gradient -->
+      <div class="absolute -right-32 -top-32 h-96 w-96 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-50 to-transparent rounded-full pointer-events-none" />
+      
+      <div class="relative z-10 flex items-center gap-5">
+        <div class="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white shadow-md shadow-blue-200">
+           <MessageCircle :size="32" />
+        </div>
+        <div>
+          <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Thảo luận bài học</h1>
+          <p class="text-sm font-medium text-slate-500 mt-1">Theo dõi và phản hồi các thắc mắc của sinh viên dưới bài giảng.</p>
+        </div>
       </div>
-      <div class="relative w-64">
-        <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input type="text" placeholder="Tìm theo bài học..." class="w-full rounded-xl border border-slate-100 bg-white px-9 py-2 text-xs outline-none focus:border-indigo-300 shadow-sm" />
+      <div class="relative z-10 w-full md:w-80">
+        <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input type="text" placeholder="Tìm kiếm câu hỏi, sinh viên..." class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-11 py-3.5 text-sm font-medium outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-colors" />
       </div>
     </div>
 
-    <!-- Threads List -->
+    <!-- ── Threads List ── -->
     <div class="space-y-6 max-w-5xl mx-auto">
-      <div v-for="thread in threads" :key="thread.id" class="rounded-[32px] border border-slate-100 bg-white shadow-sm overflow-hidden p-8">
+      <div v-for="thread in threads" :key="thread.id" 
+           class="group rounded-[32px] border border-slate-100 bg-white shadow-sm overflow-hidden p-8 hover:shadow-md hover:border-blue-100 transition-colors">
+           
          <!-- Topic Info -->
-         <div class="flex items-center gap-2 mb-6 border-b border-slate-50 pb-4">
-            <BookOpen :size="16" class="text-indigo-500" />
-            <span class="text-xs font-black text-slate-400 uppercase tracking-widest">{{ thread.lesson }}</span>
+         <div class="flex items-center justify-between mb-8 pb-4 border-b border-slate-50">
+            <div class="flex items-center gap-3 px-4 py-2 rounded-xl bg-blue-50/50 border border-blue-100/50 text-blue-700">
+               <BookOpen :size="16" />
+               <span class="text-xs font-black uppercase tracking-widest">{{ thread.lesson }}</span>
+            </div>
+            <button class="text-slate-300 hover:text-blue-600 transition-colors p-2 rounded-lg hover:bg-blue-50"><MoreHorizontal :size="20" /></button>
          </div>
 
          <!-- Parent Comment -->
-         <div class="flex gap-4">
-            <div class="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold">
-               {{ thread.user.split(' ').pop()[0] }}
+         <div class="flex gap-5">
+            <div class="relative flex-shrink-0">
+               <div class="h-14 w-14 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-lg shadow-inner group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                  {{ thread.user.split(' ').pop()[0] }}
+               </div>
             </div>
             <div class="flex-1">
                <div class="flex items-center gap-3">
-                  <h3 class="text-sm font-bold text-slate-800">{{ thread.user }}</h3>
-                  <span class="text-[10px] text-slate-400">{{ thread.time }}</span>
+                  <h3 class="text-base font-bold text-slate-900">{{ thread.user }}</h3>
+                  <div class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400">
+                     <Clock :size="12" /> {{ thread.time }}
+                  </div>
                </div>
-               <p class="mt-2 text-[15px] text-slate-600 leading-relaxed">{{ thread.content }}</p>
+               <p class="mt-2.5 text-base text-slate-700 leading-relaxed font-medium">{{ thread.content }}</p>
                
-               <div class="mt-4 flex items-center gap-4">
-                  <button class="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors">
-                     <ThumbsUp :size="14" /> Thích
+               <div class="mt-5 flex items-center gap-6">
+                  <button class="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-blue-600 transition-colors">
+                     <ThumbsUp :size="16" /> <span class="text-xs">Hữu ích</span>
                   </button>
-                  <button class="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors">
-                     <Reply :size="14" /> Phản hồi
+                  <button class="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-blue-600 transition-colors">
+                     <Reply :size="16" /> <span class="text-xs">Phản hồi</span>
                   </button>
-                  <button class="ml-auto text-slate-300 hover:text-slate-600 transition-colors"><MoreHorizontal :size="18" /></button>
                </div>
 
                <!-- Replies -->
-               <div v-if="thread.replies.length > 0" class="mt-6 space-y-6 border-l-2 border-slate-50 pl-8">
-                  <div v-for="reply in thread.replies" :key="reply.id" class="flex gap-4">
-                     <div :class="['h-10 w-10 rounded-full flex items-center justify-center font-bold text-xs shadow-sm', reply.isTeacher ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400']">
-                        {{ reply.user.split(' ').pop()[0] }}
-                     </div>
-                     <div class="flex-1 p-4 rounded-2xl" :class="reply.isTeacher ? 'bg-indigo-50/50 border border-indigo-100/50' : 'bg-slate-50'">
-                        <div class="flex items-center gap-3">
-                           <h4 class="text-xs font-bold text-slate-800">{{ reply.user }}</h4>
-                           <span v-if="reply.isTeacher" class="rounded-full bg-indigo-600 px-2 py-0.5 text-[8px] font-black text-white uppercase tracking-tighter">Giảng viên</span>
-                           <span class="text-[9px] text-slate-400 ml-auto">{{ reply.time }}</span>
+               <div v-if="thread.replies.length > 0" class="mt-8 space-y-6 relative before:absolute before:inset-y-0 before:left-6 before:w-0.5 before:bg-slate-100 before:-z-10">
+                  <div v-for="reply in thread.replies" :key="reply.id" class="flex gap-5 relative z-10">
+                     <div class="flex-shrink-0">
+                        <div :class="['h-12 w-12 rounded-2xl flex items-center justify-center font-black text-sm shadow-sm ring-4 ring-white', 
+                                    reply.isTeacher ? 'bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-blue-100' : 'bg-slate-100 text-slate-500']">
+                           {{ reply.user.split(' ').pop()[0] }}
                         </div>
-                        <p class="mt-1.5 text-sm text-slate-600 leading-relaxed">{{ reply.content }}</p>
+                     </div>
+                     <div class="flex-1 p-5 rounded-[24px]" 
+                          :class="reply.isTeacher ? 'bg-blue-50/50 border border-blue-100 shadow-sm relative overflow-hidden' : 'bg-slate-50 border border-slate-100'">
+                        <div class="flex items-center gap-3 relative z-10">
+                           <h4 class="text-sm font-bold text-slate-900">{{ reply.user }}</h4>
+                           <span v-if="reply.isTeacher" class="flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-[9px] font-black text-blue-700 uppercase tracking-widest border border-blue-200">
+                              <CheckCircle2 :size="10" /> Giảng viên
+                           </span>
+                           <span class="text-[10px] font-semibold text-slate-400 ml-auto flex items-center gap-1">
+                              <Clock :size="10" /> {{ reply.time }}
+                           </span>
+                        </div>
+                        <p class="mt-2 text-[15px] text-slate-700 leading-relaxed font-medium relative z-10">{{ reply.content }}</p>
                      </div>
                   </div>
                </div>
 
                <!-- Quick Reply Input -->
-               <div class="mt-6 flex gap-3">
-                  <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-[10px] shrink-0">MK</div>
-                  <input type="text" placeholder="Viết phản hồi..." class="flex-1 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2 text-xs outline-none focus:border-indigo-300" />
+               <div class="mt-8 flex gap-4 items-start">
+                  <div class="h-10 w-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm shadow-blue-100">MK</div>
+                  <div class="relative flex-1 group/input">
+                     <input type="text" placeholder="Viết câu trả lời của bạn..." 
+                            class="w-full rounded-[20px] border border-slate-200 bg-slate-50 pl-5 pr-12 py-3.5 text-sm font-medium outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-colors shadow-sm" />
+                     <button class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl text-blue-500 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                        <Send :size="18" />
+                     </button>
+                  </div>
                </div>
             </div>
          </div>

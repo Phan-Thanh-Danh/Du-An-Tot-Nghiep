@@ -32,7 +32,7 @@ function createAssignment() {
     <!-- Stats Summary -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
        <div class="lg-card-glass p-6 border-slate-100 flex items-center gap-5">
-          <div class="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <div class="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
              <ClipboardList :size="24" />
           </div>
           <div>
@@ -85,14 +85,14 @@ function createAssignment() {
             <tr v-for="asm in assignments" :key="asm.id" class="group hover:bg-slate-50/50 transition-colors">
               <td class="px-8 py-5">
                 <div class="flex items-center gap-3">
-                  <div class="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
+                  <div class="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">
                     <FileText :size="20" />
                   </div>
                   <p class="text-sm font-bold">{{ asm.name }}</p>
                 </div>
               </td>
               <td class="px-6 py-5">
-                <span class="rounded-lg bg-indigo-50 px-2.5 py-1 text-[11px] font-black text-indigo-600 uppercase tracking-wider">
+                <span class="rounded-lg bg-blue-50 px-2.5 py-1 text-[11px] font-black text-blue-600 uppercase tracking-wider">
                   {{ asm.className }}
                 </span>
               </td>
@@ -106,12 +106,12 @@ function createAssignment() {
                 <div class="flex items-center gap-3">
                    <span class="text-sm font-black">{{ asm.submissions }}</span>
                    <div class="h-1.5 w-16 bg-slate-100 rounded-full overflow-hidden">
-                      <div class="h-full bg-indigo-500" style="width: 80%"></div>
+                      <div class="h-full bg-blue-500" style="width: 80%"></div>
                    </div>
                 </div>
               </td>
               <td class="px-8 py-5 text-right">
-                <router-link to="/teacher/grading" class="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-indigo-600 hover:text-white transition-all">
+                <router-link to="/teacher/grading" class="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-blue-600 hover:text-white transition-all">
                   Chấm điểm <ChevronRight :size="14" />
                 </router-link>
               </td>

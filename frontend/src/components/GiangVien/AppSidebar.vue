@@ -38,7 +38,7 @@ function logout() {
       class="flex items-center gap-3 border-b border-slate-100 px-4 py-4"
       :class="collapsed ? 'justify-center px-2' : ''"
     >
-      <div class="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200">
+      <div class="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-500 shadow-md shadow-blue-200">
         <GraduationCap :size="20" color="white" :stroke-width="2.2" />
       </div>
       <Transition name="fade-slide">
@@ -94,7 +94,7 @@ function logout() {
     >
       <div :class="['flex items-center gap-3', collapsed ? '' : '']">
         <!-- Avatar -->
-        <div class="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-bold shadow">
+        <div class="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 text-white text-xs font-bold shadow">
           {{ authStore.initials || mockTeacher.initials }}
         </div>
         <Transition name="fade-slide">
@@ -112,7 +112,7 @@ function logout() {
 
     <!-- ──────────── TOGGLE BUTTON ──────────── -->
     <button
-      class="absolute -right-3 top-[60px] z-10 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-all"
+      class="absolute -right-3 top-[60px] z-10 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md text-slate-500 hover:text-blue-600 hover:border-blue-300 transition-all"
       :title="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       @click="emit('toggle')"
     >

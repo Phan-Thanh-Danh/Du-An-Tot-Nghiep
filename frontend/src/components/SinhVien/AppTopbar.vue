@@ -102,11 +102,28 @@ function getIcon(name) {
   return LucideIcons[name] || LucideIcons.Bell
 }
 
-function logout() {
+const logout = () => {
   authStore.logout()
   closeAll()
   router.replace('/login')
 }
+
+// ── Role-aware logic ──────────────────────────────────────
+const profileLink = computed(() => {
+  if (authStore.hasRole('Principal')) return '/bgh/profile'
+  if (authStore.hasRole('Teacher')) return '/teacher/profile'
+  if (authStore.hasRole('AcademicStaff')) return '/staff/profile'
+  return '/student/profile'
+})
+
+const isStudent = computed(() => authStore.hasRole('Student'))
+
+const workspaceName = computed(() => {
+  if (authStore.hasRole('Principal')) return 'Management workspace'
+  if (authStore.hasRole('Teacher')) return 'Faculty workspace'
+  if (authStore.hasRole('AcademicStaff')) return 'Staff workspace'
+  return 'Student workspace'
+})
 </script>
 
 <template>
@@ -123,8 +140,9 @@ function logout() {
     <!-- Page title -->
     <div class="hidden min-w-0 flex-1 sm:block">
       <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-        <Sparkles :size="12" class="text-cyan-600" />
-        Student workspace
+        <Sparkles :size="12" class="text-indigo-500" v-if="authStore.hasRole('Principal')" />
+        <Sparkles :size="12" class="text-cyan-600" v-else />
+        {{ workspaceName }}
       </div>
       <div class="mt-0.5 flex min-w-0 items-baseline gap-2">
         <h1 class="truncate text-lg font-bold leading-tight text-slate-950">{{ currentMeta.title }}</h1>
@@ -236,12 +254,14 @@ function logout() {
         aria-label="Mở hồ sơ"
         @click.stop="toggleUserMenu"
       >
-        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500 text-[10px] font-bold text-white shadow-sm ring-1 ring-white/70">
-          {{ authStore.initials || mockUser.initials }}
+        <div :class="['flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm ring-1 ring-white/70 overflow-hidden bg-gradient-to-br', 
+          authStore.hasRole('Principal') ? 'from-indigo-600 to-purple-600' : 'from-blue-600 to-cyan-500']">
+          <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" class="h-full w-full object-cover" />
+          <span v-else>{{ authStore.initials || mockUser.initials }}</span>
         </div>
         <div class="hidden pr-1.5 text-left sm:block">
           <p class="text-[12px] font-bold leading-tight text-slate-800">{{ authStore.displayName || mockUser.name }}</p>
-          <p class="text-[10px] font-medium text-slate-400">{{ authStore.role || 'Sinh viên' }}</p>
+          <p class="text-[10px] font-medium text-slate-400 capitalize">{{ (authStore.role || 'Sinh viên').toLowerCase() }}</p>
         </div>
       </button>
 
@@ -271,7 +291,7 @@ function logout() {
 
           <div class="p-1 space-y-0.5">
             <router-link
-              to="/student/profile"
+              :to="profileLink"
               class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-slate-600 transition-all hover:bg-white hover:text-blue-700 hover:shadow-sm"
               @click="closeAll"
             >
@@ -279,6 +299,7 @@ function logout() {
               Hồ sơ cá nhân
             </router-link>
             <router-link
+              v-if="isStudent"
               to="/student/tuition"
               class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-slate-600 transition-all hover:bg-white hover:text-blue-700 hover:shadow-sm"
               @click="closeAll"

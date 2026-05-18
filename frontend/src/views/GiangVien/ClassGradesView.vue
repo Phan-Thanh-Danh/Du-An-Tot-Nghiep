@@ -44,7 +44,7 @@ function calculateTotal(sv) {
     <div class="rounded-[24px] border border-slate-100 bg-white p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center">
       <div class="relative flex-1 w-full">
         <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input type="text" placeholder="Tìm sinh viên bằng tên hoặc MSSV..." class="w-full rounded-xl border border-slate-100 bg-slate-50 pl-11 pr-4 py-2.5 text-sm outline-none focus:border-indigo-300" />
+        <input type="text" placeholder="Tìm sinh viên bằng tên hoặc MSSV..." class="w-full rounded-xl border border-slate-100 bg-slate-50 pl-11 pr-4 py-2.5 text-sm outline-none focus:border-blue-300" />
       </div>
       <div class="flex items-center gap-3 w-full md:w-auto">
         <button class="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors">
@@ -67,7 +67,7 @@ function calculateTotal(sv) {
                  <div class="flex items-center gap-2">Điểm thi (60%) <ArrowUpDown :size="12" /></div>
               </th>
               <th class="px-6 py-5">
-                 <div class="flex items-center gap-2 text-indigo-600">Điểm tổng kết <ArrowUpDown :size="12" /></div>
+                 <div class="flex items-center gap-2 text-blue-600">Điểm tổng kết <ArrowUpDown :size="12" /></div>
               </th>
               <th class="px-8 py-5 text-right">Thao tác</th>
             </tr>
@@ -76,7 +76,7 @@ function calculateTotal(sv) {
             <tr v-for="sv in gradesData" :key="sv.id" class="group hover:bg-slate-50/50 transition-colors">
               <td class="px-8 py-5">
                 <div class="flex items-center gap-3">
-                  <div class="h-9 w-9 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                  <div class="h-9 w-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xs">
                     {{ sv.name.split(' ').pop()[0] }}
                   </div>
                   <div>
@@ -93,7 +93,7 @@ function calculateTotal(sv) {
                   type="number" 
                   v-model="sv.assignment" 
                   @input="calculateTotal(sv)"
-                  class="w-20 rounded-lg border border-indigo-200 bg-white px-2 py-1.5 text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-50"
+                  class="w-20 rounded-lg border border-blue-200 bg-white px-2 py-1.5 text-sm font-bold outline-none focus:ring-4 focus:ring-blue-50"
                   max="10" min="0" step="0.1"
                 />
                 <span v-else class="text-sm font-bold text-slate-700">{{ sv.assignment }}</span>
@@ -106,7 +106,7 @@ function calculateTotal(sv) {
                   type="number" 
                   v-model="sv.exam" 
                   @input="calculateTotal(sv)"
-                  class="w-20 rounded-lg border border-indigo-200 bg-white px-2 py-1.5 text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-50"
+                  class="w-20 rounded-lg border border-blue-200 bg-white px-2 py-1.5 text-sm font-bold outline-none focus:ring-4 focus:ring-blue-50"
                   max="10" min="0" step="0.1"
                 />
                 <span v-else class="text-sm font-bold text-slate-700">{{ sv.exam }}</span>
@@ -114,7 +114,7 @@ function calculateTotal(sv) {
 
               <!-- Total Grade -->
               <td class="px-6 py-5">
-                <span :class="['text-base font-black', sv.total < 5 ? 'text-rose-500' : 'text-indigo-600']">
+                <span :class="['text-base font-black', sv.total < 5 ? 'text-rose-500' : 'text-blue-600']">
                   {{ sv.total }}
                 </span>
               </td>
@@ -126,7 +126,7 @@ function calculateTotal(sv) {
                     'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all',
                     sv.isEditing 
                       ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100 hover:bg-emerald-700' 
-                      : 'bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'
+                      : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-600'
                   ]"
                 >
                   <component :is="sv.isEditing ? CheckCircle : Edit3" :size="14" />

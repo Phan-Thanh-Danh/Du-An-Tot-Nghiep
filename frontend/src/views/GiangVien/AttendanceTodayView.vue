@@ -42,7 +42,7 @@ function submitAttendance() {
            @click="selectClass(cls)"
            class="lg-card-glass lg-card-hover group border-slate-100 p-6 cursor-pointer">
         <div class="flex justify-between items-start mb-6">
-           <div class="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100/50 shadow-sm group-hover:scale-110 transition-transform">
+           <div class="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100/50 shadow-sm group-hover:scale-110 transition-transform">
               <Calendar :size="24" />
            </div>
            <span class="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-600 uppercase">Sắp diễn ra</span>
@@ -75,7 +75,7 @@ function submitAttendance() {
     <!-- ── STEP 2: Attendance Check ── -->
     <div v-else class="space-y-6">
        <div class="flex items-center gap-4">
-          <button @click="selectedClass = null" class="p-2 rounded-xl bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 shadow-sm transition-all">
+          <button @click="selectedClass = null" class="p-2 rounded-xl bg-white border border-slate-100 text-slate-400 hover:text-blue-600 shadow-sm transition-all">
              <ArrowLeft :size="20" />
           </button>
           <div>
@@ -98,7 +98,7 @@ function submitAttendance() {
              </div>
              <div class="relative w-64">
                 <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input type="text" placeholder="Tìm sinh viên..." class="w-full rounded-xl border border-slate-100 bg-slate-50 pl-9 pr-4 py-2 text-xs outline-none focus:border-indigo-300" />
+                <input type="text" placeholder="Tìm sinh viên..." class="w-full rounded-xl border border-slate-100 bg-slate-50 pl-9 pr-4 py-2 text-xs outline-none focus:border-blue-300" />
              </div>
           </div>
 
@@ -147,7 +147,7 @@ function submitAttendance() {
           </div>
 
           <div class="p-8 bg-slate-50/50 border-t border-slate-100 flex justify-end">
-             <button @click="submitAttendance" class="rounded-2xl bg-indigo-600 px-10 py-4 text-sm font-black text-white shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 flex items-center gap-3">
+             <button @click="submitAttendance" class="rounded-2xl bg-blue-600 px-10 py-4 text-sm font-black text-white shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 flex items-center gap-3">
                 <Save :size="20" /> HOÀN TẤT ĐIỂM DANH
              </button>
           </div>

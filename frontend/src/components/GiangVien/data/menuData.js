@@ -5,7 +5,7 @@
 export const giangVienMenuGroups = [
   {
     id: 'dashboard',
-    label: 'Dashboard',
+    label: 'Trang chủ',
     icon: 'LayoutDashboard',
     route: '/teacher/dashboard',
     children: [],
@@ -52,10 +52,10 @@ export const giangVienMenuGroups = [
     label: 'Thi cử',
     icon: 'ShieldCheck',
     children: [
-      { id: 'question-bank', label: 'Ngân hàng câu hỏi', icon: 'Database', route: '/teacher/questions' },
+      { id: 'question-bank', label: 'Thư viện câu hỏi', icon: 'Database', route: '/teacher/questions' },
       { id: 'exams', label: 'Đề thi', icon: 'FileEdit', route: '/teacher/exams' },
       { id: 'exam-results', label: 'Kết quả bài thi', icon: 'Award', route: '/teacher/exam-results' },
-      { id: 'proctoring', label: 'Canh thi (Proctoring)', icon: 'Video', route: '/teacher/proctoring' },
+      { id: 'proctoring', label: 'Canh thi', icon: 'Video', route: '/teacher/proctoring', badge: true },
     ],
   },
 
