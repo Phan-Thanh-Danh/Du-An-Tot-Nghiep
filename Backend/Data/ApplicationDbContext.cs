@@ -47,6 +47,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<HocKy> HocKys => Set<HocKy>();
     public DbSet<KhenThuong> KhenThuongs => Set<KhenThuong>();
     public DbSet<KhoaHoc> KhoaHocs => Set<KhoaHoc>();
+    public DbSet<KhoaTuyenSinh> KhoaTuyenSinhs => Set<KhoaTuyenSinh>();
     public DbSet<LienKetPhuHuynh> LienKetPhuHuynhs => Set<LienKetPhuHuynh>();
     public DbSet<LopHanhChinh> LopHanhChinhs => Set<LopHanhChinh>();
     public DbSet<LopHocPhan> LopHocPhans => Set<LopHocPhan>();
@@ -1675,6 +1676,40 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaMonHoc)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_KhoaHoc_ma_mon_hoc__DanhMucMonHoc");
+        });
+
+        modelBuilder.Entity<KhoaTuyenSinh>(entity =>
+        {
+            entity.ToTable("KhoaTuyenSinh", "dbo");
+            entity.HasKey(e => e.MaKhoaTuyenSinh).HasName("PK_KhoaTuyenSinh");
+            entity.Property(e => e.MaKhoaTuyenSinh)
+                .HasColumnName("ma_khoa_tuyen_sinh");
+            entity.Property(e => e.MaCodeKhoa)
+                .HasColumnName("ma_code_khoa")
+                .HasMaxLength(50)
+                .IsRequired();
+            entity.Property(e => e.TenKhoa)
+                .HasColumnName("ten_khoa")
+                .HasMaxLength(255)
+                .IsRequired();
+            entity.Property(e => e.NamBatDau)
+                .HasColumnName("nam_bat_dau");
+            entity.Property(e => e.NamKetThucDuKien)
+                .HasColumnName("nam_ket_thuc_du_kien");
+            entity.Property(e => e.MoTa)
+                .HasColumnName("mo_ta")
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.ConHoatDong)
+                .HasColumnName("con_hoat_dong")
+                .HasDefaultValue(true);
+            entity.Property(e => e.NgayTao)
+                .HasColumnName("ngay_tao")
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.NgayCapNhat)
+                .HasColumnName("ngay_cap_nhat")
+                .HasColumnType("datetime2");
+            entity.HasIndex(e => e.MaCodeKhoa).IsUnique().HasDatabaseName("UQ_KhoaTuyenSinh_1");
         });
 
         modelBuilder.Entity<LienKetPhuHuynh>(entity =>

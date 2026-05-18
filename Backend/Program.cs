@@ -9,6 +9,7 @@ using Backend.Services.AcademicTerms;
 using Backend.Services.Audit;
 using Backend.Services.Auth;
 using Backend.Services.CampusSpecializations;
+using Backend.Services.Cohorts;
 using Backend.Services.CourseSyllabuses;
 using Backend.Services.Majors;
 using Backend.Services.Organizations;
@@ -76,6 +77,7 @@ builder.Services.AddScoped<INganhDaoTaoService, NganhDaoTaoService>();
 builder.Services.AddScoped<IChuyenNganhService, ChuyenNganhService>();
 builder.Services.AddScoped<IChuyenNganhTheoCoSoService, ChuyenNganhTheoCoSoService>();
 builder.Services.AddScoped<ICourseSyllabusService, CourseSyllabusService>();
+builder.Services.AddScoped<ICohortService, CohortService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", policy =>
