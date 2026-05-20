@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { Search, Bell, X, Menu, Target, Sparkles } from 'lucide-vue-next'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { Search, Bell, Menu, Target, Sparkles } from 'lucide-vue-next'
 import * as LucideIcons from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
 import { mockUser, mockNotifications } from './data/menuData.js'
@@ -17,8 +17,6 @@ const notifMenuRef = ref(null)
 
 // Search
 const searchQuery = ref('')
-const searchFocused = ref(false)
-
 // Panels state
 const notifOpen = ref(false)
 const userMenuOpen = ref(false)
@@ -88,6 +86,11 @@ onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleEscape)
 })
 
+watch(() => route.fullPath, () => {
+  userMenuOpen.value = false
+  notifOpen.value = false
+})
+
 function notifColorClass(color) {
   const map = {
     red: 'bg-red-100 text-red-600',
@@ -127,7 +130,7 @@ const workspaceName = computed(() => {
 </script>
 
 <template>
-  <header class="lg-topbar sticky top-3 z-40 mx-3 mt-3 flex h-16 flex-shrink-0 items-center gap-3 rounded-[26px] px-4 sm:mx-4 sm:mt-4 sm:gap-4 sm:px-5">
+  <header class="lg-topbar sticky top-3 z-50 mx-3 mt-3 flex h-16 flex-shrink-0 items-center gap-3 overflow-visible rounded-[26px] px-4 sm:mx-4 sm:mt-4 sm:gap-4 sm:px-5">
     <!-- Mobile toggle -->
     <button
       class="lg-icon-button flex p-2 text-slate-500 hover:text-blue-700 lg:hidden"
@@ -153,10 +156,7 @@ const workspaceName = computed(() => {
     <!-- Search -->
     <div class="relative hidden items-center md:flex">
       <div
-        :class="[
-          'lg-control flex h-10 items-center gap-2 px-3 transition-all duration-200',
-          searchFocused ? 'w-80' : 'w-64',
-        ]"
+        class="lg-control flex h-10 w-64 items-center gap-2 px-3 transition-colors duration-200 xl:w-72"
       >
         <Search :size="14" class="flex-shrink-0 text-slate-400" />
         <input
@@ -165,8 +165,6 @@ const workspaceName = computed(() => {
           placeholder="Tìm kiếm..."
           class="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
           aria-label="Tìm kiếm"
-          @focus="searchFocused = true"
-          @blur="searchFocused = false"
         />
       </div>
     </div>
@@ -187,6 +185,8 @@ const workspaceName = computed(() => {
           notifOpen ? 'bg-blue-50 text-blue-700 shadow-md' : 'hover:text-blue-700',
         ]"
         aria-label="Thông báo"
+        aria-haspopup="menu"
+        :aria-expanded="notifOpen"
         @click.stop="toggleNotif"
       >
         <Bell :size="17" />
@@ -209,7 +209,8 @@ const workspaceName = computed(() => {
       >
         <div
           v-if="notifOpen"
-          class="absolute right-0 top-full z-[100] mt-3 w-[320px] origin-top-right overflow-hidden rounded-[24px] border border-white/60 bg-white/80 p-1 shadow-[0_20px_50px_rgba(0,0,0,0.15)] backdrop-blur-2xl"
+          class="absolute right-0 top-[calc(100%+0.75rem)] z-[80] w-80 origin-top-right overflow-hidden rounded-[24px] border border-white/60 bg-white/88 p-1 shadow-[0_20px_50px_rgba(0,0,0,0.15)] backdrop-blur-2xl"
+          role="menu"
           @click.stop
         >
           <div class="flex items-center justify-between border-b border-slate-100/50 px-4 py-3">
@@ -218,20 +219,22 @@ const workspaceName = computed(() => {
               {{ unreadCount }} mới
             </span>
           </div>
-          <div class="max-h-[320px] overflow-y-auto divide-y divide-slate-50/50">
+          <div class="max-h-[320px] divide-y divide-slate-50/50 overflow-y-auto" role="none">
             <div
               v-for="notif in mockNotifications"
               :key="notif.id"
               class="flex cursor-pointer gap-3 px-4 py-3 transition-all hover:bg-white/60 active:scale-[0.98]"
+              role="menuitem"
+              tabindex="0"
               @click="closeAll"
             >
               <div :class="['flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[10px]', notifColorClass(notif.color)]">
                 <component :is="getIcon(notif.icon)" :size="14" />
               </div>
               <div class="min-w-0 flex-1">
-                <p class="text-[12px] font-bold leading-tight text-slate-800">{{ notif.title }}</p>
+                <p class="text-xs font-semibold leading-tight text-slate-800">{{ notif.title }}</p>
                 <p class="mt-0.5 line-clamp-2 text-[11px] font-medium leading-snug text-slate-500">{{ notif.description }}</p>
-                <p class="mt-1.5 text-[10px] font-bold text-slate-400">{{ notif.time }}</p>
+                <p class="mt-1.5 text-[10px] font-semibold text-slate-400">{{ notif.time }}</p>
               </div>
             </div>
           </div>
@@ -276,14 +279,14 @@ const workspaceName = computed(() => {
       >
         <div
           v-if="userMenuOpen"
-          class="absolute right-0 top-full z-[100] mt-3 w-[240px] origin-top-right overflow-hidden rounded-[24px] border border-white/60 bg-white/80 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.15)] backdrop-blur-2xl"
+          class="absolute right-0 top-[calc(100%+0.75rem)] z-[80] w-72 origin-top-right overflow-hidden rounded-[24px] border border-white/60 bg-white/88 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.15)] backdrop-blur-2xl"
           role="menu"
           @click.stop
         >
           <div class="border-b border-slate-100/50 px-4 py-3.5 bg-white/40">
             <p class="text-[13px] font-bold text-slate-800">{{ authStore.displayName || mockUser.name }}</p>
             <p class="mt-0.5 truncate text-[11px] font-medium text-slate-500">{{ authStore.user?.email || mockUser.email }}</p>
-            <span class="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-[9px] font-bold text-blue-700 border border-blue-100 shadow-sm">
+            <span class="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-700 border border-blue-100 shadow-sm">
               <LucideIcons.GraduationCap :size="11" />
               Cơ sở {{ authStore.user?.campusId || mockUser.campus }}
             </span>
@@ -293,6 +296,7 @@ const workspaceName = computed(() => {
             <router-link
               :to="profileLink"
               class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-slate-600 transition-all hover:bg-white hover:text-blue-700 hover:shadow-sm"
+              role="menuitem"
               @click="closeAll"
             >
               <LucideIcons.UserCircle :size="16" class="text-slate-400" />
@@ -302,6 +306,7 @@ const workspaceName = computed(() => {
               v-if="isStudent"
               to="/student/tuition"
               class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-slate-600 transition-all hover:bg-white hover:text-blue-700 hover:shadow-sm"
+              role="menuitem"
               @click="closeAll"
             >
               <LucideIcons.CreditCard :size="16" class="text-slate-400" />
@@ -312,6 +317,7 @@ const workspaceName = computed(() => {
           <div class="border-t border-slate-100/50 p-1">
             <button
               class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-red-600 transition-all hover:bg-red-50 hover:text-red-700"
+              role="menuitem"
               @click="logout"
             >
               <LucideIcons.LogOut :size="16" />
@@ -323,4 +329,3 @@ const workspaceName = computed(() => {
     </div>
   </header>
 </template>
-

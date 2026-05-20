@@ -22,14 +22,14 @@ defineProps({
 <template>
   <GlassPanel
     variant="strong"
-    density="normal"
-    class="relative rounded-[32px] overflow-hidden"
+    density="none"
+    class="relative rounded-[32px]"
   >
     <div class="pointer-events-none absolute -right-20 -top-16 h-56 w-56 rounded-full bg-cyan-300/12 blur-3xl" />
-    <div class="relative grid min-h-[240px] gap-6 lg:grid-cols-[1.35fr_0.9fr] lg:items-center px-6 py-5 lg:px-8">
+    <div class="relative grid min-h-[225px] gap-5 p-5 lg:grid-cols-[1.35fr_0.9fr] lg:items-center lg:p-6">
       <div class="flex flex-col justify-center space-y-4">
         <div class="flex flex-wrap items-center gap-2">
-          <div class="inline-flex items-center gap-1.5 rounded-full border border-white/60 bg-white/72 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-teal-700 backdrop-blur-xl shadow-sm">
+          <div class="inline-flex items-center gap-1.5 rounded-full border border-white/60 bg-white/72 px-2.5 py-1 text-[11px] font-semibold text-teal-700 backdrop-blur-xl shadow-sm">
             <Sparkles :size="10" />
             {{ student.semester }}
           </div>
@@ -43,16 +43,16 @@ defineProps({
             Chào mừng trở lại, {{ student.name }}
           </h2>
           <p class="max-w-md text-sm leading-relaxed text-slate-600">
-            Bạn có {{ summary.classesToday }} buổi học và {{ summary.assignmentsDue }} bài tập cần xử lý trong hôm nay. Bắt đầu ngay nhé!
+            Bạn có {{ summary.classesToday }} buổi học và {{ summary.assignmentsDue }} bài tập cần xử lý trong hôm nay. Ưu tiên tiến độ môn học và deadline gần nhất.
           </p>
         </div>
 
         <div class="flex flex-wrap gap-2.5 pt-1">
-          <router-link to="/student/courses" class="lg-button-primary h-9 rounded-[14px] px-4 text-[11px] font-bold uppercase tracking-wide shadow-md">
+          <router-link to="/student/courses" class="lg-button-primary h-9 rounded-xl px-4 text-sm font-semibold shadow-md">
             <PlayCircle :size="14" />
             Tiếp tục học
           </router-link>
-          <router-link to="/student/schedule" class="lg-button-secondary h-9 rounded-[14px] px-4 text-[11px] font-bold uppercase tracking-wide">
+          <router-link to="/student/schedule" class="lg-button-secondary h-9 rounded-xl px-4 text-sm font-semibold">
             <CalendarDays :size="14" />
             Lịch học
           </router-link>
@@ -67,11 +67,11 @@ defineProps({
                 <Trophy :size="18" />
               </div>
               <div>
-                <p class="text-[9px] font-bold uppercase tracking-widest text-slate-500">Tiến độ tuần</p>
+                <p class="text-xs font-medium text-slate-500">Tiến độ tuần</p>
                 <p class="mt-0.5 text-xl font-bold leading-none text-slate-950">{{ weekProgress }}%</p>
               </div>
             </div>
-            <div class="rounded-full bg-blue-50 px-2.5 py-1 text-[9px] font-bold text-blue-700">
+            <div class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
               {{ summary.completedThisWeek }} NV
             </div>
           </div>
@@ -80,11 +80,11 @@ defineProps({
 
           <div class="grid grid-cols-2 gap-2">
             <div class="rounded-2xl bg-white/80 p-2.5 border border-white shadow-sm">
-              <p class="text-[9px] font-bold uppercase tracking-wider text-slate-500">Deadline</p>
+              <p class="text-xs font-medium text-slate-500">Deadline</p>
               <p class="mt-1 text-xs font-bold text-amber-700 truncate">{{ summary.nearestDeadline }}</p>
             </div>
             <div class="rounded-2xl bg-white/80 p-2.5 border border-white shadow-sm">
-              <p class="text-[9px] font-bold uppercase tracking-wider text-slate-500">GPA</p>
+              <p class="text-xs font-medium text-slate-500">GPA</p>
               <p class="mt-1 text-xs font-bold text-blue-700">{{ summary.gpa }}/10</p>
             </div>
           </div>

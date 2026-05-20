@@ -59,23 +59,23 @@ const trendClass = computed(
 
 <template>
   <router-link :to="item.route" class="group block rounded-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30">
-    <GlassPanel interactive soft density="compact" class="min-h-[140px] rounded-[24px] kpi-route-tile overflow-hidden">
+    <GlassPanel interactive soft density="none" class="min-h-[128px] rounded-[24px] kpi-route-tile">
       <div :class="['pointer-events-none absolute -right-8 -top-8 h-16 w-16 rounded-full blur-2xl opacity-60', tintClass]" />
-      <div class="flex h-full min-h-[120px] flex-col justify-between p-1">
+      <div class="flex h-full min-h-[124px] flex-col justify-between p-4">
         <div class="flex items-start justify-between">
-          <div :class="['flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg', toneClass]">
+          <div :class="['flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl shadow-md transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg', toneClass]">
             <component :is="IconComponent" :size="18" />
           </div>
-          <span class="flex h-6 w-6 place-items-center rounded-full border border-white/60 bg-white/68 text-slate-400 shadow-sm transition-all duration-300 group-hover:bg-blue-600 group-hover:text-white" aria-hidden="true">
+          <span class="flex h-6 w-6 place-items-center rounded-full border border-white/60 bg-white/68 text-slate-400 opacity-0 shadow-sm transition-all duration-300 group-hover:bg-blue-600 group-hover:text-white group-hover:opacity-100" aria-hidden="true">
             <ArrowUpRight :size="12" />
           </span>
         </div>
 
         <div class="space-y-0.5">
           <p class="text-3xl font-bold tracking-tight text-slate-950 group-hover:text-blue-700 transition-colors">{{ item.value }}</p>
-          <p class="text-[13px] font-bold text-slate-600 leading-tight">{{ item.label }}</p>
+          <p class="text-[13px] font-semibold text-slate-600 leading-tight">{{ item.label }}</p>
           <div class="pt-2 flex items-center">
-            <span :class="['inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-tight shadow-sm', trendClass]">
+            <span :class="['inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium shadow-sm', trendClass]">
               {{ item.trend }}
             </span>
           </div>

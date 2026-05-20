@@ -9,12 +9,12 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'strong', 'soft', 'solid'].includes(value),
+    validator: (value) => ['default', 'strong', 'soft', 'solid', 'readable'].includes(value),
   },
   density: {
     type: String,
     default: 'normal',
-    validator: (value) => ['compact', 'normal', 'spacious'].includes(value),
+    validator: (value) => ['none', 'compact', 'normal', 'spacious'].includes(value),
   },
   strong: Boolean,
   soft: Boolean,
@@ -22,6 +22,10 @@ const props = defineProps({
   padding: {
     type: String,
     default: '',
+  },
+  clip: {
+    type: Boolean,
+    default: true,
   },
 })
 
@@ -40,6 +44,7 @@ const densityClass = computed(() => {
 
   return (
     {
+      none: 'p-0',
       compact: 'lg-density-compact',
       normal: 'lg-density-normal',
       spacious: 'lg-density-spacious',
@@ -52,9 +57,10 @@ const densityClass = computed(() => {
   <component
     :is="as"
     :class="[
-      'lg-card relative overflow-hidden',
+      'lg-card relative',
       surfaceClass,
       densityClass,
+      clip ? 'overflow-hidden' : 'overflow-visible',
       interactive ? 'lg-card-hover' : '',
     ]"
   >

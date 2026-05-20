@@ -27,8 +27,10 @@ const isActive = computed(() => {
     v-if="item.route"
     :to="item.route"
     :title="collapsed ? item.label : ''"
+    :aria-current="isActive ? 'page' : undefined"
+    role="menuitem"
     :class="[
-      'lg-sidebar-item group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20',
+      'lg-sidebar-item group relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20',
       depth === 0
         ? 'text-slate-600 hover:text-slate-950'
         : 'pl-4 text-[13px] text-slate-500 hover:text-slate-800',
@@ -73,8 +75,9 @@ const isActive = computed(() => {
   <button
     v-else
     :title="collapsed ? item.label : ''"
+    role="menuitem"
     :class="[
-      'lg-sidebar-item group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20',
+      'lg-sidebar-item group relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20',
       depth === 0
         ? 'text-slate-600 hover:text-slate-950'
         : 'pl-4 text-[13px] text-slate-500 hover:text-slate-800',

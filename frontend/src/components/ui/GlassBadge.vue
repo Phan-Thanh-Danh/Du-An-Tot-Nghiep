@@ -1,5 +1,9 @@
 <script setup>
 defineProps({
+  as: {
+    type: String,
+    default: 'span',
+  },
   variant: {
     type: String,
     default: 'default',
@@ -30,12 +34,13 @@ const sizes = {
 </script>
 
 <template>
-  <span
+  <component
+    :is="as"
     :class="[
       classes[variant],
       sizes[size],
     ]"
   >
     <slot />
-  </span>
+  </component>
 </template>

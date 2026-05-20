@@ -136,23 +136,21 @@ function toneClass(tone, part) {
 </script>
 
 <template>
-  <div class="lg-page-enter space-y-5">
-    <LmsCard variant="glass" class="relative overflow-hidden">
-      <div class="pointer-events-none absolute -right-20 -top-28 h-60 w-60 rounded-full bg-cyan-300/30 blur-3xl" />
-      <div class="pointer-events-none absolute -bottom-32 left-1/3 h-64 w-64 rounded-full bg-violet-300/20 blur-3xl" />
-      <div class="pointer-events-none absolute left-8 top-8 h-24 w-24 rounded-full bg-white/30 blur-2xl" />
+  <div class="lg-page-enter space-y-4">
+    <LmsCard variant="glass-soft" class="relative">
+      <div class="pointer-events-none absolute -right-16 -top-24 h-48 w-48 rounded-full bg-cyan-300/18 blur-3xl" />
 
-      <div class="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
+      <div class="relative grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
         <div class="flex min-w-0 gap-4">
-          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/35 bg-gradient-to-br from-blue-900 via-blue-700 to-cyan-500 text-white shadow-lg shadow-blue-900/24">
-            <component :is="HeroIcon" :size="27" :stroke-width="2.15" />
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/35 bg-gradient-to-br from-blue-800 via-blue-700 to-cyan-500 text-white shadow-md shadow-blue-900/18">
+            <component :is="HeroIcon" :size="24" :stroke-width="2.15" />
           </div>
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="text-xs font-bold uppercase tracking-[0.08em] text-teal-700">{{ eyebrow }}</span>
+              <span class="text-xs font-semibold text-teal-700">{{ eyebrow }}</span>
               <LmsBadge variant="info" size="sm">{{ status }}</LmsBadge>
             </div>
-            <h2 class="mt-2 text-2xl font-extrabold leading-tight tracking-[-0.02em] text-slate-950">
+            <h2 class="mt-2 text-2xl font-bold leading-tight text-slate-950">
               {{ title }}
             </h2>
             <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
@@ -185,13 +183,13 @@ function toneClass(tone, part) {
         :key="metric.label"
         variant="glass-soft"
         interactive
-        class="min-h-[132px]"
+        class="min-h-[116px]"
       >
         <div class="flex items-start justify-between gap-3">
           <div>
             <p class="text-xs font-semibold text-slate-500">{{ metric.label }}</p>
             <div class="mt-2 flex items-baseline gap-1">
-              <span class="text-2xl font-extrabold tracking-[-0.02em] text-slate-950">{{ metric.value }}</span>
+              <span class="text-2xl font-bold text-slate-950">{{ metric.value }}</span>
               <span v-if="metric.unit" class="text-xs font-semibold text-slate-500">{{ metric.unit }}</span>
             </div>
           </div>
@@ -211,7 +209,7 @@ function toneClass(tone, part) {
       </LmsCard>
     </div>
 
-    <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+    <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
       <LmsCard variant="solid" padding="0" class="overflow-hidden">
         <div class="border-b border-white/55 bg-white/45 px-5 py-4">
           <h3 class="text-base font-bold text-slate-950">{{ primaryTitle }}</h3>
@@ -276,7 +274,7 @@ function toneClass(tone, part) {
         />
       </LmsCard>
 
-      <div class="space-y-5">
+      <div class="space-y-4">
         <LmsCard variant="glass" padding="0" class="overflow-hidden">
           <div class="border-b border-white/50 px-5 py-4">
             <h3 class="text-base font-bold text-slate-950">{{ timelineTitle }}</h3>

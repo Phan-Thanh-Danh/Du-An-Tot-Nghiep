@@ -31,19 +31,18 @@ const Icon = computed(() => LucideIcons[props.icon] || LucideIcons.Sparkles)
 </script>
 
 <template>
-  <div class="space-y-5">
-    <LmsCard variant="glass" class="relative overflow-hidden">
-      <div class="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-cyan-300/30 blur-3xl" />
-      <div class="pointer-events-none absolute -bottom-28 left-1/4 h-56 w-56 rounded-full bg-violet-300/20 blur-3xl" />
+  <div class="space-y-4">
+    <LmsCard variant="glass-soft" class="relative">
+      <div class="pointer-events-none absolute -right-16 -top-24 h-44 w-44 rounded-full bg-cyan-300/18 blur-3xl" />
 
-      <div class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <div class="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-start gap-4">
-          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-900 text-white shadow-lg shadow-blue-900/20">
-            <component :is="Icon" :size="26" :stroke-width="2.1" />
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-900 text-white shadow-md shadow-blue-900/18">
+            <component :is="Icon" :size="23" :stroke-width="2.1" />
           </div>
           <div>
             <LmsBadge variant="info" size="sm">{{ status }}</LmsBadge>
-            <h2 class="mt-3 text-xl font-bold leading-tight text-slate-950">{{ title }}</h2>
+            <h2 class="mt-2 text-xl font-bold leading-tight text-slate-950">{{ title }}</h2>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
               {{ subtitle || 'Module này đã có vị trí trong frontend và sẽ được nối API khi backend hoàn thiện controller tương ứng.' }}
             </p>
@@ -59,12 +58,12 @@ const Icon = computed(() => LucideIcons[props.icon] || LucideIcons.Sparkles)
       </div>
     </LmsCard>
 
-    <div class="grid gap-4 md:grid-cols-3">
+    <div class="grid gap-3 md:grid-cols-3">
       <LmsCard
         v-for="item in items"
         :key="item.title"
         variant="solid"
-        class="min-h-[132px]"
+        class="min-h-[116px]"
       >
         <p class="text-sm font-semibold text-slate-900">{{ item.title }}</p>
         <p class="mt-2 text-sm leading-6 text-slate-600">{{ item.description }}</p>

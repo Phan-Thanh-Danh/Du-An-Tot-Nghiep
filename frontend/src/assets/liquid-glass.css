@@ -36,6 +36,12 @@
   --lg-shadow-sm: 0 8px 24px rgba(15, 23, 42, 0.08);
   --lg-shadow-md: 0 18px 60px rgba(15, 23, 42, 0.13);
   --lg-shadow-lg: 0 28px 90px rgba(15, 23, 42, 0.18);
+
+  --z-sticky: 50;
+  --z-dropdown: 80;
+  --z-flyout: 90;
+  --z-modal: 100;
+  --z-toast: 110;
 }
 
 html {
@@ -177,7 +183,7 @@ body {
       rgba(255, 255, 255, 0.1) 26%,
       transparent 52%
     );
-  opacity: 0.4;
+  opacity: 0.44;
 }
 
 .lg-glass::after,

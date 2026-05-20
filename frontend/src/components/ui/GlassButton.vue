@@ -15,6 +15,7 @@ const props = defineProps({
   },
   loading: Boolean,
   disabled: Boolean,
+  block: Boolean,
   type: {
     type: String,
     default: 'button',
@@ -24,16 +25,16 @@ const props = defineProps({
 const emit = defineEmits(['click'])
 
 const variantClass = computed(() => ({
-  primary: 'lg-button-primary font-semibold',
+  primary: 'bg-blue-600 text-white shadow-[0_10px_24px_rgba(37,99,235,0.24)] hover:bg-blue-700 focus-visible:ring-4 focus-visible:ring-blue-500/20 font-semibold',
   secondary: 'lg-button-secondary font-semibold',
   ghost: 'lg-button-ghost font-semibold',
   danger: 'bg-red-600 text-white shadow-lg shadow-red-600/20 hover:bg-red-700 focus-visible:ring-4 focus-visible:ring-red-500/20',
 }[props.variant]))
 
 const sizeClass = computed(() => ({
-  sm: 'min-h-9 px-3 py-1.5 text-xs',
-  md: 'min-h-10 px-4 py-2.5 text-sm',
-  lg: 'min-h-12 px-5 py-3 text-base',
+  sm: 'min-h-9 rounded-xl px-3 py-1.5 text-xs',
+  md: 'min-h-10 rounded-xl px-4 py-2.5 text-sm',
+  lg: 'min-h-12 rounded-2xl px-5 py-3 text-base',
 }[props.size]))
 </script>
 
@@ -41,14 +42,20 @@ const sizeClass = computed(() => ({
   <button
     :type="type"
     :disabled="disabled || loading"
+    :aria-busy="loading ? 'true' : undefined"
     :class="[
-      'inline-flex items-center justify-center gap-2 rounded-[20px] transition-all duration-200 ease-out active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60',
+      'items-center justify-center gap-2 transition-all duration-200 ease-out active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60',
+      block ? 'flex w-full' : 'inline-flex',
       variantClass,
       sizeClass,
     ]"
     @click="emit('click', $event)"
   >
-    <LoaderCircle v-if="loading" :size="17" class="animate-spin" />
-    <slot />
+    <LoaderCircle v-if="loading" :size="17" class="animate-spin" aria-hidden="true" />
+    <slot name="leading" />
+    <span>
+      <slot />
+    </span>
+    <slot name="trailing" />
   </button>
 </template>

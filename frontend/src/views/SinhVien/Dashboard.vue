@@ -9,7 +9,6 @@ import TodaySchedulePanel from '@/components/SinhVien/dashboard/TodaySchedulePan
 import TuitionMiniPanel from '@/components/SinhVien/dashboard/TuitionMiniPanel.vue'
 import UpcomingAssignmentsPanel from '@/components/SinhVien/dashboard/UpcomingAssignmentsPanel.vue'
 import WelcomeHero from '@/components/SinhVien/dashboard/WelcomeHero.vue'
-import GlassBadge from '@/components/ui/GlassBadge.vue'
 import { studentDashboardMock } from '@/data/studentDashboard.mock'
 
 defineOptions({
@@ -20,7 +19,7 @@ const dashboard = studentDashboardMock
 </script>
 
 <template>
-  <div class="space-y-4 pb-6">
+  <div class="lg-page-enter space-y-4 pb-5">
     <!-- Row 1: Hero Today Summary + Today Focus AI -->
     <div class="grid gap-4 xl:grid-cols-12">
       <section class="xl:col-span-7">
