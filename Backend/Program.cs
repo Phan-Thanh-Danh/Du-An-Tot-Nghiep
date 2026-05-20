@@ -17,6 +17,7 @@ using Backend.Services.Rbac;
 using Backend.Services.Security;
 using Backend.Services.Specializations;
 using Backend.Services.Subjects;
+using Backend.Services.TrainingPrograms;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -78,6 +79,7 @@ builder.Services.AddScoped<IChuyenNganhService, ChuyenNganhService>();
 builder.Services.AddScoped<IChuyenNganhTheoCoSoService, ChuyenNganhTheoCoSoService>();
 builder.Services.AddScoped<ICourseSyllabusService, CourseSyllabusService>();
 builder.Services.AddScoped<ICohortService, CohortService>();
+builder.Services.AddScoped<ITrainingProgramService, TrainingProgramService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", policy =>
@@ -115,7 +117,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin", "SuperAdmin"));
     options.AddPolicy("AdminUserManagement", policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin"));
     options.AddPolicy("RbacManagement", policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin"));
-    options.AddPolicy("AcademicOperations", policy => policy.RequireRole("Admin", "SuperAdmin", "AcademicStaff", "CampusAdmin"));
+    options.AddPolicy("AcademicOperations", policy => policy.RequireRole("Admin", "SuperAdmin", "AcademicStaff", "CampusAdmin", "Chairman"));
     options.AddPolicy("Reports", policy => policy.RequireRole("Admin", "SuperAdmin", "Principal", "CampusAdmin"));
 });
 

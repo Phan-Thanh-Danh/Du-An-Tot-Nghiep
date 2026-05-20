@@ -16,6 +16,7 @@ public class UserService : IUserService
     {
         AuthRoles.ToDatabaseCode(AuthRoles.Admin),
         AuthRoles.ToDatabaseCode(AuthRoles.CampusAdmin),
+        AuthRoles.ToDatabaseCode(AuthRoles.Chairman),
         AuthRoles.ToDatabaseCode(AuthRoles.AcademicStaff),
         AuthRoles.ToDatabaseCode(AuthRoles.Teacher),
         AuthRoles.ToDatabaseCode(AuthRoles.Student)

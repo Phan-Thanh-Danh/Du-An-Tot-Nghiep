@@ -28,7 +28,8 @@ public static class Data
             new VaiTro { MaVaiTro = 6, MaCodeVaiTro = "phu_huynh", TenVaiTro = "Phụ huynh" },
             new VaiTro { MaVaiTro = 7, MaCodeVaiTro = "sieu_quan_tri", TenVaiTro = "Siêu quản trị" },
             new VaiTro { MaVaiTro = 8, MaCodeVaiTro = "quan_tri_co_so", TenVaiTro = "Quản trị cơ sở" },
-            new VaiTro { MaVaiTro = 9, MaCodeVaiTro = "quan_tri_co_so_con", TenVaiTro = "Quản trị cơ sở con" }
+            new VaiTro { MaVaiTro = 9, MaCodeVaiTro = "quan_tri_co_so_con", TenVaiTro = "Quản trị cơ sở con" },
+            new VaiTro { MaVaiTro = 10, MaCodeVaiTro = "chu_tich", TenVaiTro = "Chủ tịch" }
         };
 
         foreach (var role in roles)

@@ -173,6 +173,26 @@ Base path hiện tại: `/api`
 | PATCH | `/api/master-data/campus-specializations/{id}/approve` | SuperAdmin | Phê duyệt đề xuất mở chuyên ngành tại cơ sở, đặt `TrangThai = approved`. |
 | PATCH | `/api/master-data/campus-specializations/{id}/reject` | SuperAdmin | Từ chối đề xuất mở chuyên ngành tại cơ sở, đặt `TrangThai = rejected` và có thể cập nhật `GhiChu`. |
 
+## Training Programs APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/master-data/training-programs` | SuperAdmin/Chairman/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách chương trình đào tạo chuẩn có phân trang, lọc theo chuyên ngành, ngành, khóa tuyển sinh, trạng thái và trạng thái hoạt động. `MaDonVi` chỉ dùng để lọc chương trình có chuyên ngành đang được mở tại cơ sở qua `ChuyenNganhTheoCoSo`; campus chỉ xem chương trình `active`. |
+| GET | `/api/master-data/training-programs/{id}` | SuperAdmin/Chairman/CampusAdmin/SubCampusAdmin/AcademicStaff | Chi tiết chương trình đào tạo chuẩn; campus chỉ xem được chương trình active thuộc chuyên ngành đang được mở trong phạm vi cơ sở của mình. |
+| POST | `/api/master-data/training-programs` | SuperAdmin | Tạo chương trình đào tạo chuẩn theo `ChuyenNganh + KhoaTuyenSinh`, mã chương trình được chuẩn hóa uppercase và mặc định ở `draft`. |
+| PUT | `/api/master-data/training-programs/{id}` | SuperAdmin | Cập nhật chương trình đào tạo chuẩn nếu chương trình đang `draft` hoặc `rejected`. |
+| DELETE | `/api/master-data/training-programs/{id}` | SuperAdmin | Vô hiệu hóa mềm chương trình đào tạo bằng `TrangThai = inactive`, `ConHoatDong = false`. |
+| PATCH | `/api/master-data/training-programs/{id}/submit` | SuperAdmin | Gửi duyệt chương trình `draft` hoặc `rejected`, chuyển sang `pending_approval`. |
+| PATCH | `/api/master-data/training-programs/{id}/approve` | Chairman | Chủ tịch duyệt chương trình đang `pending_approval`, chuyển sang `approved`. Body tùy chọn `{ "ghiChuDuyet": "..." }`. |
+| PATCH | `/api/master-data/training-programs/{id}/reject` | Chairman | Chủ tịch từ chối chương trình đang `pending_approval`, chuyển sang `rejected`. Body bắt buộc `{ "lyDoTuChoi": "..." }`. |
+| PATCH | `/api/master-data/training-programs/{id}/activate` | Chairman | Kích hoạt chương trình đã duyệt hoặc đang inactive bằng `TrangThai = active`, `ConHoatDong = true`; không cho có chương trình active khác cùng chuyên ngành và khóa tuyển sinh. |
+| PATCH | `/api/master-data/training-programs/{id}/deactivate` | Chairman | Vô hiệu hóa chương trình active bằng `TrangThai = inactive`, `ConHoatDong = false`. |
+| PATCH | `/api/master-data/training-programs/{id}/archive` | Chairman | Lưu trữ chương trình approved/active/inactive bằng `TrangThai = archived`, `ConHoatDong = false`. |
+
+Ghi chú: `ChuongTrinhDaoTao` là khung chuẩn toàn hệ thống theo `ChuyenNganh + KhoaTuyenSinh`. `ChuyenNganhTheoCoSo` chỉ xác định cơ sở nào được phép mở chuyên ngành và được dùng cho scope/filter khi campus xem dữ liệu; không phải khóa tạo chương trình. Người duyệt cuối cùng của workflow là `Chairman`/Chủ tịch, không dùng `Principal` cho luồng duyệt này. Danh sách môn học trong chương trình là module/bảng dự kiến `MonHocTrongChuongTrinh`, chưa được thêm trong endpoint này.
+
 ## Course Syllabuses APIs
 
 ### Đã có

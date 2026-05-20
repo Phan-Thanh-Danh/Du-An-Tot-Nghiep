@@ -28,6 +28,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<CauHoiThuongGap> CauHoiThuongGaps => Set<CauHoiThuongGap>();
     public DbSet<ChuyenNganh> ChuyenNganhs => Set<ChuyenNganh>();
     public DbSet<ChuyenNganhTheoCoSo> ChuyenNganhTheoCoSos => Set<ChuyenNganhTheoCoSo>();
+    public DbSet<ChuongTrinhDaoTao> ChuongTrinhDaoTaos => Set<ChuongTrinhDaoTao>();
     public DbSet<Chuong> Chuongs => Set<Chuong>();
     public DbSet<CourseSyllabus> CourseSyllabuses => Set<CourseSyllabus>();
     public DbSet<DangKyHocPhan> DangKyHocPhans => Set<DangKyHocPhan>();
@@ -781,6 +782,131 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaDonVi)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_ChuyenNganhTheoCoSo_ma_don_vi__DonVi");
+        });
+
+        modelBuilder.Entity<ChuongTrinhDaoTao>(entity =>
+        {
+            entity.ToTable("ChuongTrinhDaoTao", "dbo");
+            entity.HasKey(e => e.MaChuongTrinh).HasName("PK_ChuongTrinhDaoTao");
+            entity.Property(e => e.MaChuongTrinh)
+                .HasColumnName("ma_chuong_trinh");
+            entity.Property(e => e.MaChuyenNganh)
+                .HasColumnName("ma_chuyen_nganh");
+            entity.Property(e => e.MaKhoaTuyenSinh)
+                .HasColumnName("ma_khoa_tuyen_sinh");
+            entity.Property(e => e.MaCodeChuongTrinh)
+                .HasColumnName("ma_code_chuong_trinh")
+                .HasMaxLength(100)
+                .IsRequired();
+            entity.Property(e => e.TenChuongTrinh)
+                .HasColumnName("ten_chuong_trinh")
+                .HasMaxLength(255)
+                .IsRequired();
+            entity.Property(e => e.Version)
+                .HasColumnName("version")
+                .HasMaxLength(50)
+                .IsRequired();
+            entity.Property(e => e.SoHocKy)
+                .HasColumnName("so_hoc_ky");
+            entity.Property(e => e.ThoiGianDaoTaoThang)
+                .HasColumnName("thoi_gian_dao_tao_thang");
+            entity.Property(e => e.TongTinChiYeuCau)
+                .HasColumnName("tong_tin_chi_yeu_cau");
+            entity.Property(e => e.SoTinChiToiThieuMoiKy)
+                .HasColumnName("so_tin_chi_toi_thieu_moi_ky");
+            entity.Property(e => e.SoTinChiToiDaMoiKy)
+                .HasColumnName("so_tin_chi_toi_da_moi_ky");
+            entity.Property(e => e.TrangThai)
+                .HasColumnName("trang_thai")
+                .HasMaxLength(30)
+                .IsRequired();
+            entity.Property(e => e.MoTa)
+                .HasColumnName("mo_ta")
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.NguonChuongTrinhId)
+                .HasColumnName("nguon_chuong_trinh_id");
+            entity.Property(e => e.GhiChuThayDoi)
+                .HasColumnName("ghi_chu_thay_doi")
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.NgayHieuLuc)
+                .HasColumnName("ngay_hieu_luc")
+                .HasColumnType("date");
+            entity.Property(e => e.NgayHetHieuLuc)
+                .HasColumnName("ngay_het_hieu_luc")
+                .HasColumnType("date");
+            entity.Property(e => e.NguoiGuiDuyetId)
+                .HasColumnName("nguoi_gui_duyet_id");
+            entity.Property(e => e.ThoiGianGuiDuyet)
+                .HasColumnName("thoi_gian_gui_duyet")
+                .HasColumnType("datetime2");
+            entity.Property(e => e.NguoiDuyetId)
+                .HasColumnName("nguoi_duyet_id");
+            entity.Property(e => e.ThoiGianDuyet)
+                .HasColumnName("thoi_gian_duyet")
+                .HasColumnType("datetime2");
+            entity.Property(e => e.GhiChuDuyet)
+                .HasColumnName("ghi_chu_duyet")
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.NguoiTuChoiId)
+                .HasColumnName("nguoi_tu_choi_id");
+            entity.Property(e => e.ThoiGianTuChoi)
+                .HasColumnName("thoi_gian_tu_choi")
+                .HasColumnType("datetime2");
+            entity.Property(e => e.LyDoTuChoi)
+                .HasColumnName("ly_do_tu_choi")
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.ConHoatDong)
+                .HasColumnName("con_hoat_dong")
+                .HasDefaultValue(true);
+            entity.Property(e => e.NgayTao)
+                .HasColumnName("ngay_tao")
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.NgayCapNhat)
+                .HasColumnName("ngay_cap_nhat")
+                .HasColumnType("datetime2");
+            entity.HasIndex(e => e.MaCodeChuongTrinh)
+                .IsUnique()
+                .HasDatabaseName("UQ_ChuongTrinhDaoTao_ma_code_chuong_trinh");
+            entity.HasIndex(e => new { e.MaChuyenNganh, e.MaKhoaTuyenSinh, e.Version })
+                .IsUnique()
+                .HasDatabaseName("UQ_ChuongTrinhDaoTao_chuyen_nganh_khoa_version");
+            entity.ToTable(t => t.HasCheckConstraint("CK_ChuongTrinhDaoTao_trang_thai", "[trang_thai] IN (N'draft', N'pending_approval', N'approved', N'rejected', N'active', N'inactive', N'archived')"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_ChuongTrinhDaoTao_so_hoc_ky", "[so_hoc_ky] > 0"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_ChuongTrinhDaoTao_thoi_gian_dao_tao_thang", "[thoi_gian_dao_tao_thang] > 0"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_ChuongTrinhDaoTao_tong_tin_chi_yeu_cau", "[tong_tin_chi_yeu_cau] IS NULL OR [tong_tin_chi_yeu_cau] > 0"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_ChuongTrinhDaoTao_tin_chi_toi_da_moi_ky", "[so_tin_chi_toi_da_moi_ky] IS NULL OR [so_tin_chi_toi_da_moi_ky] > 0"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_ChuongTrinhDaoTao_tin_chi_toi_thieu_moi_ky", "[so_tin_chi_toi_thieu_moi_ky] IS NULL OR [so_tin_chi_toi_thieu_moi_ky] >= 0"));
+            entity.HasOne(e => e.ChuyenNganh)
+                .WithMany()
+                .HasForeignKey(e => e.MaChuyenNganh)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_ChuongTrinhDaoTao_ma_chuyen_nganh__ChuyenNganh");
+            entity.HasOne(e => e.KhoaTuyenSinh)
+                .WithMany()
+                .HasForeignKey(e => e.MaKhoaTuyenSinh)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_ChuongTrinhDaoTao_ma_khoa_tuyen_sinh__KhoaTuyenSinh");
+            entity.HasOne(e => e.NguonChuongTrinh)
+                .WithMany(e => e.ChuongTrinhPhienBanCon)
+                .HasForeignKey(e => e.NguonChuongTrinhId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_ChuongTrinhDaoTao_nguon_chuong_trinh_id__ChuongTrinhDaoTao");
+            entity.HasOne<NguoiDung>()
+                .WithMany()
+                .HasForeignKey(e => e.NguoiGuiDuyetId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_ChuongTrinhDaoTao_nguoi_gui_duyet_id__NguoiDung");
+            entity.HasOne<NguoiDung>()
+                .WithMany()
+                .HasForeignKey(e => e.NguoiDuyetId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_ChuongTrinhDaoTao_nguoi_duyet_id__NguoiDung");
+            entity.HasOne<NguoiDung>()
+                .WithMany()
+                .HasForeignKey(e => e.NguoiTuChoiId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_ChuongTrinhDaoTao_nguoi_tu_choi_id__NguoiDung");
         });
 
         modelBuilder.Entity<Chuong>(entity =>
@@ -1964,7 +2090,7 @@ public class ApplicationDbContext : DbContext
                 .HasDefaultValue(true);
             entity.HasIndex(e => e.Email).IsUnique().HasDatabaseName("UQ_NguoiDung_1");
             entity.HasIndex(e => e.MaDonVi).HasDatabaseName("IX_NguoiDung_ma_don_vi");
-            entity.ToTable(t => t.HasCheckConstraint("CK_NguoiDung_vai_tro_chinh_1", "[vai_tro_chinh] IN (N'quan_tri', N'giao_vien', N'hoc_sinh', N'nhan_vien', N'hieu_truong', N'phu_huynh', N'sieu_quan_tri', N'quan_tri_co_so', N'quan_tri_co_so_con')"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_NguoiDung_vai_tro_chinh_1", "[vai_tro_chinh] IN (N'quan_tri', N'giao_vien', N'hoc_sinh', N'nhan_vien', N'hieu_truong', N'phu_huynh', N'sieu_quan_tri', N'quan_tri_co_so', N'quan_tri_co_so_con', N'chu_tich')"));
             entity.ToTable(t => t.HasCheckConstraint("CK_NguoiDung_trang_thai_2", "[trang_thai] IN (N'hoat_dong', N'bi_khoa', N'dang_nhap_lan_dau')"));
             entity.HasOne(e => e.DonVi)
                 .WithMany()
