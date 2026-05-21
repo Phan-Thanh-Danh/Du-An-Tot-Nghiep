@@ -281,9 +281,17 @@ public class TrainingProgramService : ITrainingProgramService
         var sourceSubjects = await _context.MonHocTrongChuongTrinhs
             .AsNoTracking()
             .Where(x => x.MaChuongTrinh == sourceProgram.MaChuongTrinh && x.ConHoatDong)
+            .OrderBy(x => x.HocKyDuKien)
+            .ThenBy(x => x.ThuTu)
+            .ThenBy(x => x.MaChuongTrinhMonHoc)
             .ToListAsync(cancellationToken);
 
-        foreach (var sourceSubject in sourceSubjects)
+        var distinctSubjects = sourceSubjects
+            .GroupBy(x => x.MaMonHoc)
+            .Select(g => g.First())
+            .ToList();
+
+        foreach (var sourceSubject in distinctSubjects)
         {
             _context.MonHocTrongChuongTrinhs.Add(new MonHocTrongChuongTrinh
             {
@@ -299,6 +307,8 @@ public class TrainingProgramService : ITrainingProgramService
                 NgayTao = DateTime.UtcNow
             });
         }
+
+        // TODO: Clone CourseSyllabus sau khi nghiệp vụ syllabus theo MonHocTrongChuongTrinh được hoàn thiện.
 
         await _context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
