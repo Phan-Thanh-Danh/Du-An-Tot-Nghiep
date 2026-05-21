@@ -4,6 +4,7 @@ using Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260521151630_AddTrainingProgramSubjectToCourseSyllabus")]
+    partial class AddTrainingProgramSubjectToCourseSyllabus
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1305,10 +1308,10 @@ namespace Backend.Migrations
                         .HasColumnName("version");
 
                     b.HasKey("MaSyllabus")
-                        .HasName("PK_DeCuongMonHoc");
+                        .HasName("PK_CourseSyllabus");
 
                     b.HasIndex("MaChuongTrinhMonHoc")
-                        .HasDatabaseName("IX_DeCuongMonHoc_ma_chuong_trinh_mon_hoc");
+                        .HasDatabaseName("IX_CourseSyllabus_ma_chuong_trinh_mon_hoc");
 
                     b.HasIndex("MaChuyenNganh");
 
@@ -1316,14 +1319,14 @@ namespace Backend.Migrations
 
                     b.HasIndex("MaMonHoc", "MaChuyenNganh", "MaDonVi", "Version")
                         .IsUnique()
-                        .HasDatabaseName("UQ_DeCuongMonHoc_1")
+                        .HasDatabaseName("UQ_CourseSyllabus_1")
                         .HasFilter("[ma_don_vi] IS NOT NULL");
 
-                    b.ToTable("DeCuongMonHoc", "dbo", t =>
+                    b.ToTable("CourseSyllabus", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_DeCuongMonHoc_hoc_ky_du_kien_1", "[hoc_ky_du_kien] IS NULL OR [hoc_ky_du_kien] > 0");
+                            t.HasCheckConstraint("CK_CourseSyllabus_hoc_ky_du_kien_1", "[hoc_ky_du_kien] IS NULL OR [hoc_ky_du_kien] > 0");
 
-                            t.HasCheckConstraint("CK_DeCuongMonHoc_trang_thai_1", "[trang_thai] IN (N'draft', N'pending_approval', N'approved', N'active', N'inactive', N'archived')");
+                            t.HasCheckConstraint("CK_CourseSyllabus_trang_thai_1", "[trang_thai] IN (N'draft', N'pending_approval', N'approved', N'active', N'inactive', N'archived')");
                         });
                 });
 
@@ -4723,27 +4726,27 @@ namespace Backend.Migrations
                         .WithMany()
                         .HasForeignKey("MaChuongTrinhMonHoc")
                         .OnDelete(DeleteBehavior.NoAction)
-                        .HasConstraintName("FK_DeCuongMonHoc_ma_chuong_trinh_mon_hoc__MonHocTrongChuongTrinh");
+                        .HasConstraintName("FK_CourseSyllabus_ma_chuong_trinh_mon_hoc__MonHocTrongChuongTrinh");
 
                     b.HasOne("Backend.Models.ChuyenNganh", "ChuyenNganh")
                         .WithMany()
                         .HasForeignKey("MaChuyenNganh")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("FK_DeCuongMonHoc_ma_chuyen_nganh__ChuyenNganh");
+                        .HasConstraintName("FK_CourseSyllabus_ma_chuyen_nganh__ChuyenNganh");
 
                     b.HasOne("Backend.Models.DonVi", "DonVi")
                         .WithMany()
                         .HasForeignKey("MaDonVi")
                         .OnDelete(DeleteBehavior.NoAction)
-                        .HasConstraintName("FK_DeCuongMonHoc_ma_don_vi__DonVi");
+                        .HasConstraintName("FK_CourseSyllabus_ma_don_vi__DonVi");
 
                     b.HasOne("Backend.Models.DanhMucMonHoc", "MonHoc")
                         .WithMany()
                         .HasForeignKey("MaMonHoc")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("FK_DeCuongMonHoc_ma_mon_hoc__DanhMucMonHoc");
+                        .HasConstraintName("FK_CourseSyllabus_ma_mon_hoc__DanhMucMonHoc");
 
                     b.Navigation("ChuyenNganh");
 

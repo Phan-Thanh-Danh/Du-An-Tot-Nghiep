@@ -937,8 +937,8 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<CourseSyllabus>(entity =>
         {
-            entity.ToTable("CourseSyllabus", "dbo");
-            entity.HasKey(e => e.MaSyllabus).HasName("PK_CourseSyllabus");
+            entity.ToTable("DeCuongMonHoc", "dbo");
+            entity.HasKey(e => e.MaSyllabus).HasName("PK_DeCuongMonHoc");
             entity.Property(e => e.MaSyllabus)
                 .HasColumnName("ma_syllabus");
             entity.Property(e => e.MaMonHoc)
@@ -947,6 +947,8 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("ma_chuyen_nganh");
             entity.Property(e => e.MaDonVi)
                 .HasColumnName("ma_don_vi");
+            entity.Property(e => e.MaChuongTrinhMonHoc)
+                .HasColumnName("ma_chuong_trinh_mon_hoc");
             entity.Property(e => e.TenSyllabus)
                 .HasColumnName("ten_syllabus")
                 .HasMaxLength(255)
@@ -976,24 +978,31 @@ public class ApplicationDbContext : DbContext
                 .HasColumnType("datetime2");
             entity.HasIndex(e => new { e.MaMonHoc, e.MaChuyenNganh, e.MaDonVi, e.Version })
                 .IsUnique()
-                .HasDatabaseName("UQ_CourseSyllabus_1");
-            entity.ToTable(t => t.HasCheckConstraint("CK_CourseSyllabus_trang_thai_1", "[trang_thai] IN (N'draft', N'pending_approval', N'approved', N'active', N'inactive', N'archived')"));
-            entity.ToTable(t => t.HasCheckConstraint("CK_CourseSyllabus_hoc_ky_du_kien_1", "[hoc_ky_du_kien] IS NULL OR [hoc_ky_du_kien] > 0"));
+                .HasDatabaseName("UQ_DeCuongMonHoc_1");
+            entity.HasIndex(e => e.MaChuongTrinhMonHoc)
+                .HasDatabaseName("IX_DeCuongMonHoc_ma_chuong_trinh_mon_hoc");
+            entity.ToTable(t => t.HasCheckConstraint("CK_DeCuongMonHoc_trang_thai_1", "[trang_thai] IN (N'draft', N'pending_approval', N'approved', N'active', N'inactive', N'archived')"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_DeCuongMonHoc_hoc_ky_du_kien_1", "[hoc_ky_du_kien] IS NULL OR [hoc_ky_du_kien] > 0"));
             entity.HasOne(e => e.MonHoc)
                 .WithMany()
                 .HasForeignKey(e => e.MaMonHoc)
                 .OnDelete(DeleteBehavior.NoAction)
-                .HasConstraintName("FK_CourseSyllabus_ma_mon_hoc__DanhMucMonHoc");
+                .HasConstraintName("FK_DeCuongMonHoc_ma_mon_hoc__DanhMucMonHoc");
             entity.HasOne(e => e.ChuyenNganh)
                 .WithMany()
                 .HasForeignKey(e => e.MaChuyenNganh)
                 .OnDelete(DeleteBehavior.NoAction)
-                .HasConstraintName("FK_CourseSyllabus_ma_chuyen_nganh__ChuyenNganh");
+                .HasConstraintName("FK_DeCuongMonHoc_ma_chuyen_nganh__ChuyenNganh");
             entity.HasOne(e => e.DonVi)
                 .WithMany()
                 .HasForeignKey(e => e.MaDonVi)
                 .OnDelete(DeleteBehavior.NoAction)
-                .HasConstraintName("FK_CourseSyllabus_ma_don_vi__DonVi");
+                .HasConstraintName("FK_DeCuongMonHoc_ma_don_vi__DonVi");
+            entity.HasOne(e => e.MonHocTrongChuongTrinh)
+                .WithMany()
+                .HasForeignKey(e => e.MaChuongTrinhMonHoc)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_DeCuongMonHoc_ma_chuong_trinh_mon_hoc__MonHocTrongChuongTrinh");
         });
 
         modelBuilder.Entity<DangKyHocPhan>(entity =>

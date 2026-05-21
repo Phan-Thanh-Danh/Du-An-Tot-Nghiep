@@ -97,6 +97,16 @@ public class CourseSyllabusService : ICourseSyllabusService
             query = query.Where(x => x.Syllabus.ConHoatDong == parameters.ConHoatDong.Value);
         }
 
+        if (parameters.MaChuongTrinhMonHoc.HasValue)
+        {
+            query = query.Where(x => x.Syllabus.MaChuongTrinhMonHoc == parameters.MaChuongTrinhMonHoc.Value);
+        }
+
+        if (parameters.MaChuongTrinh.HasValue)
+        {
+            query = query.Where(x => x.ProgramSubject != null && x.ProgramSubject.MaChuongTrinh == parameters.MaChuongTrinh.Value);
+        }
+
         var totalItems = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderBy(x => x.Subject.MaCodeMonHoc)
@@ -105,7 +115,7 @@ public class CourseSyllabusService : ICourseSyllabusService
             .ThenBy(x => x.Syllabus.Version)
             .Skip((parameters.PageIndex - 1) * parameters.PageSize)
             .Take(parameters.PageSize)
-            .Select(x => ToDto(x.Syllabus, x.Subject, x.Specialization, x.Major, x.Organization))
+            .Select(x => ToDto(x.Syllabus, x.Subject, x.Specialization, x.Major, x.Organization, x.ProgramSubject))
             .ToListAsync(cancellationToken);
 
         return new PagedResultDto<CourseSyllabusDto>
@@ -130,7 +140,7 @@ public class CourseSyllabusService : ICourseSyllabusService
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy đề cương môn học.");
         }
 
-        return ToDto(result.Syllabus, result.Subject, result.Specialization, result.Major, result.Organization);
+        return ToDto(result.Syllabus, result.Subject, result.Specialization, result.Major, result.Organization, result.ProgramSubject);
     }
 
     public async Task<CourseSyllabusDto> CreateAsync(
@@ -158,10 +168,28 @@ public class CourseSyllabusService : ICourseSyllabusService
         var syllabusName = NormalizeRequiredText(request.TenSyllabus, "Tên đề cương");
         var version = NormalizeRequiredText(request.Version, "Phiên bản");
         ValidateExpectedTerm(request.HocKyDuKien);
+        MonHocTrongChuongTrinh? programSubject = null;
+        if (request.MaChuongTrinhMonHoc.HasValue)
+        {
+            programSubject = await _context.MonHocTrongChuongTrinhs
+                .Include(x => x.ChuongTrinhDaoTao)
+                .FirstOrDefaultAsync(x => x.MaChuongTrinhMonHoc == request.MaChuongTrinhMonHoc.Value, cancellationToken);
+
+            if (programSubject is null)
+                throw new ApiException(StatusCodes.Status400BadRequest, "Môn học trong chương trình đào tạo không tồn tại.");
+
+            if (!programSubject.ConHoatDong)
+                throw new ApiException(StatusCodes.Status400BadRequest, "Môn học trong chương trình đào tạo không hoạt động.");
+
+            if (programSubject.MaMonHoc != request.MaMonHoc)
+                throw new ApiException(StatusCodes.Status400BadRequest, "Môn học của syllabus không khớp với môn học trong chương trình đào tạo.");
+        }
+
         await ValidateUniqueSyllabusAsync(
             request.MaMonHoc,
             request.MaChuyenNganh,
             request.MaDonVi,
+            request.MaChuongTrinhMonHoc,
             version,
             null,
             cancellationToken);
@@ -171,6 +199,7 @@ public class CourseSyllabusService : ICourseSyllabusService
             MaMonHoc = subject.MaMonHoc,
             MaChuyenNganh = specialization.MaChuyenNganh,
             MaDonVi = organization?.MaDonVi,
+            MaChuongTrinhMonHoc = request.MaChuongTrinhMonHoc,
             TenSyllabus = syllabusName,
             Version = version,
             HocKyDuKien = request.HocKyDuKien,
@@ -183,7 +212,7 @@ public class CourseSyllabusService : ICourseSyllabusService
         await _context.SaveChangesAsync(cancellationToken);
 
         var major = await GetMajorAsync(specialization.MaNganh, cancellationToken);
-        return ToDto(syllabus, subject, specialization, major, organization);
+        return ToDto(syllabus, subject, specialization, major, organization, programSubject);
     }
 
     public async Task<CourseSyllabusDto> UpdateAsync(
@@ -203,10 +232,29 @@ public class CourseSyllabusService : ICourseSyllabusService
         var version = NormalizeRequiredText(request.Version, "Phiên bản");
         var status = NormalizeStatus(request.TrangThai);
         ValidateExpectedTerm(request.HocKyDuKien);
+
+        MonHocTrongChuongTrinh? programSubject = null;
+        if (request.MaChuongTrinhMonHoc.HasValue)
+        {
+            programSubject = await _context.MonHocTrongChuongTrinhs
+                .Include(x => x.ChuongTrinhDaoTao)
+                .FirstOrDefaultAsync(x => x.MaChuongTrinhMonHoc == request.MaChuongTrinhMonHoc.Value, cancellationToken);
+
+            if (programSubject is null)
+                throw new ApiException(StatusCodes.Status400BadRequest, "Môn học trong chương trình đào tạo không tồn tại.");
+
+            if (!programSubject.ConHoatDong)
+                throw new ApiException(StatusCodes.Status400BadRequest, "Môn học trong chương trình đào tạo không hoạt động.");
+
+            if (programSubject.MaMonHoc != request.MaMonHoc)
+                throw new ApiException(StatusCodes.Status400BadRequest, "Môn học của syllabus không khớp với môn học trong chương trình đào tạo.");
+        }
+
         await ValidateUniqueSyllabusAsync(
             request.MaMonHoc,
             request.MaChuyenNganh,
             request.MaDonVi,
+            request.MaChuongTrinhMonHoc,
             version,
             syllabusId,
             cancellationToken);
@@ -214,6 +262,7 @@ public class CourseSyllabusService : ICourseSyllabusService
         syllabus.MaMonHoc = subject.MaMonHoc;
         syllabus.MaChuyenNganh = specialization.MaChuyenNganh;
         syllabus.MaDonVi = organization?.MaDonVi;
+        syllabus.MaChuongTrinhMonHoc = request.MaChuongTrinhMonHoc;
         syllabus.TenSyllabus = syllabusName;
         syllabus.Version = version;
         syllabus.HocKyDuKien = request.HocKyDuKien;
@@ -225,7 +274,7 @@ public class CourseSyllabusService : ICourseSyllabusService
         await _context.SaveChangesAsync(cancellationToken);
 
         var major = await GetMajorAsync(specialization.MaNganh, cancellationToken);
-        return ToDto(syllabus, subject, specialization, major, organization);
+        return ToDto(syllabus, subject, specialization, major, organization, programSubject);
     }
 
     public async Task DeleteAsync(int syllabusId, CancellationToken cancellationToken = default)
@@ -288,6 +337,9 @@ public class CourseSyllabusService : ICourseSyllabusService
                 on syllabus.MaChuyenNganh equals specialization.MaChuyenNganh
             join major in _context.NganhDaoTaos.AsNoTracking()
                 on specialization.MaNganh equals major.MaNganh
+            join programSubject in _context.MonHocTrongChuongTrinhs.AsNoTracking()
+                on syllabus.MaChuongTrinhMonHoc equals programSubject.MaChuongTrinhMonHoc into programSubjectJoin
+            from programSubject in programSubjectJoin.DefaultIfEmpty()
             join organization in _context.DonVis.AsNoTracking()
                 on syllabus.MaDonVi equals organization.MaDonVi into organizationJoin
             from organization in organizationJoin.DefaultIfEmpty()
@@ -297,7 +349,8 @@ public class CourseSyllabusService : ICourseSyllabusService
                 Subject = subject,
                 Specialization = specialization,
                 Major = major,
-                Organization = organization
+                Organization = organization,
+                ProgramSubject = programSubject
             };
     }
 
@@ -402,10 +455,25 @@ public class CourseSyllabusService : ICourseSyllabusService
         int subjectId,
         int specializationId,
         int? organizationId,
+        int? maChuongTrinhMonHoc,
         string version,
         int? excludedSyllabusId,
         CancellationToken cancellationToken)
     {
+        if (maChuongTrinhMonHoc.HasValue)
+        {
+            var existsWithProgram = await _context.CourseSyllabuses
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.MaChuongTrinhMonHoc == maChuongTrinhMonHoc.Value &&
+                    x.Version == version &&
+                    (!excludedSyllabusId.HasValue || x.MaSyllabus != excludedSyllabusId.Value),
+                    cancellationToken);
+
+            if (existsWithProgram)
+                throw new ApiException(StatusCodes.Status409Conflict, "Đề cương môn học đã tồn tại cho môn học trong chương trình đào tạo và phiên bản này.");
+        }
+
         var exists = await _context.CourseSyllabuses
             .AsNoTracking()
             .AnyAsync(x =>
@@ -527,8 +595,11 @@ public class CourseSyllabusService : ICourseSyllabusService
         DanhMucMonHoc subject,
         ChuyenNganh specialization,
         NganhDaoTao major,
-        DonVi? organization)
+        DonVi? organization,
+        MonHocTrongChuongTrinh? programSubject = null)
     {
+        var programSubjectInfo = programSubject ?? syllabus.MonHocTrongChuongTrinh;
+
         return new CourseSyllabusDto
         {
             MaSyllabus = syllabus.MaSyllabus,
@@ -543,6 +614,13 @@ public class CourseSyllabusService : ICourseSyllabusService
             TenNganh = major.TenNganh,
             MaDonVi = syllabus.MaDonVi,
             TenDonVi = organization?.TenDonVi,
+            MaChuongTrinhMonHoc = syllabus.MaChuongTrinhMonHoc,
+            MaChuongTrinh = programSubjectInfo?.MaChuongTrinh,
+            MaCodeChuongTrinh = programSubjectInfo?.ChuongTrinhDaoTao?.MaCodeChuongTrinh,
+            TenChuongTrinh = programSubjectInfo?.ChuongTrinhDaoTao?.TenChuongTrinh,
+            HocKyDuKienTrongChuongTrinh = programSubjectInfo?.HocKyDuKien,
+            SoTinChiTrongChuongTrinh = programSubjectInfo?.SoTinChi,
+            LoaiMonHocTrongChuongTrinh = programSubjectInfo?.LoaiMonHoc,
             TenSyllabus = syllabus.TenSyllabus,
             Version = syllabus.Version,
             HocKyDuKien = syllabus.HocKyDuKien,
@@ -561,5 +639,6 @@ public class CourseSyllabusService : ICourseSyllabusService
         public ChuyenNganh Specialization { get; init; } = null!;
         public NganhDaoTao Major { get; init; } = null!;
         public DonVi? Organization { get; init; }
+        public MonHocTrongChuongTrinh? ProgramSubject { get; init; }
     }
 }

@@ -11,6 +11,8 @@ public class CourseSyllabusQueryParameters
     public int? MaDonVi { get; set; }
     public string? TrangThai { get; set; }
     public bool? ConHoatDong { get; set; }
+    public int? MaChuongTrinhMonHoc { get; set; }
+    public int? MaChuongTrinh { get; set; }
 
     [Range(1, int.MaxValue, ErrorMessage = "pageIndex phải lớn hơn 0.")]
     public int PageIndex { get; set; } = 1;

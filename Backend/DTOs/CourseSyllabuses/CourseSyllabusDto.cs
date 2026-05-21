@@ -14,6 +14,13 @@ public class CourseSyllabusDto
     public string TenNganh { get; set; } = string.Empty;
     public int? MaDonVi { get; set; }
     public string? TenDonVi { get; set; }
+    public int? MaChuongTrinhMonHoc { get; set; }
+    public int? MaChuongTrinh { get; set; }
+    public string? MaCodeChuongTrinh { get; set; }
+    public string? TenChuongTrinh { get; set; }
+    public int? HocKyDuKienTrongChuongTrinh { get; set; }
+    public int? SoTinChiTrongChuongTrinh { get; set; }
+    public string? LoaiMonHocTrongChuongTrinh { get; set; }
     public string TenSyllabus { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
     public int? HocKyDuKien { get; set; }

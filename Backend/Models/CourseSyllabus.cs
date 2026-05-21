@@ -6,6 +6,7 @@ public class CourseSyllabus
     public int MaMonHoc { get; set; }
     public int MaChuyenNganh { get; set; }
     public int? MaDonVi { get; set; }
+    public int? MaChuongTrinhMonHoc { get; set; }
     public string TenSyllabus { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
     public int? HocKyDuKien { get; set; }
@@ -18,4 +19,5 @@ public class CourseSyllabus
     public DanhMucMonHoc? MonHoc { get; set; }
     public ChuyenNganh? ChuyenNganh { get; set; }
     public DonVi? DonVi { get; set; }
+    public MonHocTrongChuongTrinh? MonHocTrongChuongTrinh { get; set; }
 }

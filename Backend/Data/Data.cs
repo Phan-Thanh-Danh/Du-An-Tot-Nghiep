@@ -21,6 +21,7 @@ public static class Data
     private const string ApprovedStatus = "approved";
     private const string ActiveStatus = "active";
     private const string RequiredSubjectType = "bat_buoc";
+    private const string SyllabusDraftStatus = "draft";
     private const string TrainingProgramSourceCode = "PTPM-K21";
 
     public static async Task SeedRolesAsync(IServiceProvider serviceProvider)
@@ -216,6 +217,66 @@ public static class Data
         await UpsertTrainingProgramSubjectAsync(context, trainingProgram, dbi101, 2, 3, 1, "Môn học kỳ 2 của PTPM-K21");
         await UpsertTrainingProgramSubjectAsync(context, trainingProgram, web101, 2, 3, 2, "Môn học kỳ 2 của PTPM-K21");
         await UpsertTrainingProgramSubjectAsync(context, trainingProgram, oop101, 3, 3, 1, "Môn học kỳ 3 của PTPM-K21");
+
+        await SeedCourseSyllabusTestDataAsync(context, trainingProgram, specialization, pro101);
+    }
+
+    private static async Task SeedCourseSyllabusTestDataAsync(
+        ApplicationDbContext context,
+        ChuongTrinhDaoTao trainingProgram,
+        ChuyenNganh specialization,
+        DanhMucMonHoc pro101)
+    {
+        var pro101ProgramSubject = await context.MonHocTrongChuongTrinhs
+            .FirstOrDefaultAsync(x => x.MaChuongTrinh == trainingProgram.MaChuongTrinh && x.MaMonHoc == pro101.MaMonHoc);
+
+        if (pro101ProgramSubject != null)
+        {
+            await UpsertCourseSyllabusAsync(context, pro101, specialization, pro101ProgramSubject,
+                "Syllabus PRO101 - PTPM-K21", "2026.1",
+                "Syllabus test cho môn PRO101 trong chương trình PTPM-K21");
+        }
+
+        await UpsertCourseSyllabusAsync(context, pro101, specialization, null,
+            "Syllabus chung PRO101", "common-2026",
+            "Syllabus chung cho môn PRO101");
+    }
+
+    private static async Task UpsertCourseSyllabusAsync(
+        ApplicationDbContext context,
+        DanhMucMonHoc subject,
+        ChuyenNganh specialization,
+        MonHocTrongChuongTrinh? programSubject,
+        string name,
+        string version,
+        string description)
+    {
+        var maChuongTrinhMonHoc = programSubject?.MaChuongTrinhMonHoc;
+
+        var syllabus = await context.CourseSyllabuses
+            .FirstOrDefaultAsync(x =>
+                x.MaMonHoc == subject.MaMonHoc &&
+                x.MaChuongTrinhMonHoc == maChuongTrinhMonHoc &&
+                x.Version == version);
+
+        if (syllabus is null)
+        {
+            syllabus = new CourseSyllabus
+            {
+                MaMonHoc = subject.MaMonHoc,
+                MaChuyenNganh = specialization.MaChuyenNganh,
+                NgayTao = DateTime.UtcNow
+            };
+            context.CourseSyllabuses.Add(syllabus);
+        }
+
+        syllabus.TenSyllabus = name;
+        syllabus.Version = version;
+        syllabus.MaChuongTrinhMonHoc = programSubject?.MaChuongTrinhMonHoc;
+        syllabus.TrangThai = SyllabusDraftStatus;
+        syllabus.ConHoatDong = true;
+        syllabus.BatBuoc = true;
+        syllabus.NgayCapNhat = DateTime.UtcNow;
     }
 
     private static async Task<DonVi> GetOrCreateCampusAsync(ApplicationDbContext context, DonVi rootUnit)

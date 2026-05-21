@@ -11,6 +11,7 @@ public class CreateCourseSyllabusRequest
     public int MaChuyenNganh { get; set; }
 
     public int? MaDonVi { get; set; }
+    public int? MaChuongTrinhMonHoc { get; set; }
 
     [Required(ErrorMessage = "Tên đề cương không được để trống.")]
     [MaxLength(255, ErrorMessage = "Tên đề cương không được vượt quá 255 ký tự.")]
