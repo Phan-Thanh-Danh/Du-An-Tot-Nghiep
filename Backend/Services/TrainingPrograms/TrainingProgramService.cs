@@ -185,6 +185,101 @@ public class TrainingProgramService : ITrainingProgramService
         return await GetByIdAsync(program.MaChuongTrinh, cancellationToken);
     }
 
+    public async Task<TrainingProgramDto> CloneAsync(
+        int sourceProgramId,
+        CloneTrainingProgramRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureSuperAdmin();
+
+        var sourceProgram = await _context.ChuongTrinhDaoTaos
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.MaChuongTrinh == sourceProgramId, cancellationToken);
+
+        if (sourceProgram is null)
+        {
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy chương trình nguồn.");
+        }
+
+        var sourceStatus = sourceProgram.TrangThai.Trim().ToLowerInvariant();
+        if (!sourceProgram.ConHoatDong || sourceStatus == ArchivedStatus)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chương trình nguồn không khả dụng để clone.");
+        }
+
+        if (sourceStatus is not ApprovedStatus and not ActiveStatus)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ được clone từ chương trình đã được duyệt hoặc đang active.");
+        }
+
+        await ValidateTargetCohortAsync(request.MaKhoaTuyenSinhMoi, cancellationToken);
+
+        if (sourceProgram.MaKhoaTuyenSinh == request.MaKhoaTuyenSinhMoi)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Không thể clone chương trình sang cùng khóa tuyển sinh.");
+        }
+
+        var programCode = NormalizeCode(request.MaCodeChuongTrinh);
+        var programName = NormalizeRequiredText(request.TenChuongTrinh, "Tên chương trình");
+        var version = NormalizeRequiredText(request.Version, "Phiên bản");
+        ValidateTrainingProgramData(
+            sourceProgram.SoHocKy,
+            sourceProgram.ThoiGianDaoTaoThang,
+            sourceProgram.TongTinChiYeuCau,
+            sourceProgram.SoTinChiToiThieuMoiKy,
+            sourceProgram.SoTinChiToiDaMoiKy,
+            request.NgayHieuLuc,
+            request.NgayHetHieuLuc);
+
+        await EnsureCodeUniqueAsync(programCode, null, cancellationToken);
+        await EnsureProgramUniqueAsync(
+            sourceProgram.MaChuyenNganh,
+            request.MaKhoaTuyenSinhMoi,
+            version,
+            null,
+            cancellationToken);
+
+        var changeNote = NormalizeOptionalText(request.GhiChuThayDoi)
+            ?? $"Clone từ chương trình {sourceProgram.MaCodeChuongTrinh}";
+
+        var program = new ChuongTrinhDaoTao
+        {
+            MaChuyenNganh = sourceProgram.MaChuyenNganh,
+            MaKhoaTuyenSinh = request.MaKhoaTuyenSinhMoi,
+            MaCodeChuongTrinh = programCode,
+            TenChuongTrinh = programName,
+            Version = version,
+            SoHocKy = sourceProgram.SoHocKy,
+            ThoiGianDaoTaoThang = sourceProgram.ThoiGianDaoTaoThang,
+            TongTinChiYeuCau = sourceProgram.TongTinChiYeuCau,
+            SoTinChiToiThieuMoiKy = sourceProgram.SoTinChiToiThieuMoiKy,
+            SoTinChiToiDaMoiKy = sourceProgram.SoTinChiToiDaMoiKy,
+            TrangThai = DraftStatus,
+            MoTa = sourceProgram.MoTa,
+            NguonChuongTrinhId = sourceProgram.MaChuongTrinh,
+            GhiChuThayDoi = changeNote,
+            NgayHieuLuc = request.NgayHieuLuc,
+            NgayHetHieuLuc = request.NgayHetHieuLuc,
+            ConHoatDong = true,
+            NgayTao = DateTime.UtcNow,
+            NgayCapNhat = null,
+            NguoiGuiDuyetId = null,
+            ThoiGianGuiDuyet = null,
+            NguoiDuyetId = null,
+            ThoiGianDuyet = null,
+            GhiChuDuyet = null,
+            NguoiTuChoiId = null,
+            ThoiGianTuChoi = null,
+            LyDoTuChoi = null
+        };
+
+        // TODO: sau khi có MonHocTrongChuongTrinh, mở rộng CloneAsync để clone danh sách môn học trong chương trình.
+        _context.ChuongTrinhDaoTaos.Add(program);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return await GetByIdAsync(program.MaChuongTrinh, cancellationToken);
+    }
+
     public async Task<TrainingProgramDto> UpdateAsync(
         int id,
         UpdateTrainingProgramRequest request,
@@ -537,6 +632,23 @@ public class TrainingProgramService : ITrainingProgramService
         if (!cohort.ConHoatDong)
         {
             throw new ApiException(StatusCodes.Status400BadRequest, "Khóa tuyển sinh không hoạt động.");
+        }
+    }
+
+    private async Task ValidateTargetCohortAsync(int cohortId, CancellationToken cancellationToken)
+    {
+        var cohort = await _context.KhoaTuyenSinhs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.MaKhoaTuyenSinh == cohortId, cancellationToken);
+
+        if (cohort is null)
+        {
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy khóa tuyển sinh mới.");
+        }
+
+        if (!cohort.ConHoatDong)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Khóa tuyển sinh mới không hoạt động.");
         }
     }
 

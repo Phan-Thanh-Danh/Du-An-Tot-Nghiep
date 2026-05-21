@@ -8,6 +8,7 @@ public interface ITrainingProgramService
     Task<PagedResultDto<TrainingProgramDto>> GetAsync(TrainingProgramQueryParameters parameters, CancellationToken cancellationToken = default);
     Task<TrainingProgramDto> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<TrainingProgramDto> CreateAsync(CreateTrainingProgramRequest request, CancellationToken cancellationToken = default);
+    Task<TrainingProgramDto> CloneAsync(int sourceProgramId, CloneTrainingProgramRequest request, CancellationToken cancellationToken = default);
     Task<TrainingProgramDto> UpdateAsync(int id, UpdateTrainingProgramRequest request, CancellationToken cancellationToken = default);
     Task DeleteAsync(int id, CancellationToken cancellationToken = default);
     Task<TrainingProgramDto> SubmitAsync(int id, SubmitTrainingProgramRequest request, CancellationToken cancellationToken = default);

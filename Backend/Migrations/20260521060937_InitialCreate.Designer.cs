@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260516153743_AddCohortMasterData")]
-    partial class AddCohortMasterData
+    [Migration("20260521060937_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -945,6 +945,172 @@ namespace Backend.Migrations
                     b.ToTable("Chuong", "dbo");
                 });
 
+            modelBuilder.Entity("Backend.Models.ChuongTrinhDaoTao", b =>
+                {
+                    b.Property<int>("MaChuongTrinh")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("ma_chuong_trinh");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaChuongTrinh"));
+
+                    b.Property<bool>("ConHoatDong")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true)
+                        .HasColumnName("con_hoat_dong");
+
+                    b.Property<string>("GhiChuDuyet")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ghi_chu_duyet");
+
+                    b.Property<string>("GhiChuThayDoi")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ghi_chu_thay_doi");
+
+                    b.Property<string>("LyDoTuChoi")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ly_do_tu_choi");
+
+                    b.Property<int>("MaChuyenNganh")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_chuyen_nganh");
+
+                    b.Property<string>("MaCodeChuongTrinh")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("ma_code_chuong_trinh");
+
+                    b.Property<int>("MaKhoaTuyenSinh")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_khoa_tuyen_sinh");
+
+                    b.Property<string>("MoTa")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("mo_ta");
+
+                    b.Property<DateTime?>("NgayCapNhat")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ngay_cap_nhat");
+
+                    b.Property<DateOnly?>("NgayHetHieuLuc")
+                        .HasColumnType("date")
+                        .HasColumnName("ngay_het_hieu_luc");
+
+                    b.Property<DateOnly?>("NgayHieuLuc")
+                        .HasColumnType("date")
+                        .HasColumnName("ngay_hieu_luc");
+
+                    b.Property<DateTime>("NgayTao")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ngay_tao")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int?>("NguoiDuyetId")
+                        .HasColumnType("int")
+                        .HasColumnName("nguoi_duyet_id");
+
+                    b.Property<int?>("NguoiGuiDuyetId")
+                        .HasColumnType("int")
+                        .HasColumnName("nguoi_gui_duyet_id");
+
+                    b.Property<int?>("NguoiTuChoiId")
+                        .HasColumnType("int")
+                        .HasColumnName("nguoi_tu_choi_id");
+
+                    b.Property<int?>("NguonChuongTrinhId")
+                        .HasColumnType("int")
+                        .HasColumnName("nguon_chuong_trinh_id");
+
+                    b.Property<int>("SoHocKy")
+                        .HasColumnType("int")
+                        .HasColumnName("so_hoc_ky");
+
+                    b.Property<int?>("SoTinChiToiDaMoiKy")
+                        .HasColumnType("int")
+                        .HasColumnName("so_tin_chi_toi_da_moi_ky");
+
+                    b.Property<int?>("SoTinChiToiThieuMoiKy")
+                        .HasColumnType("int")
+                        .HasColumnName("so_tin_chi_toi_thieu_moi_ky");
+
+                    b.Property<string>("TenChuongTrinh")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("ten_chuong_trinh");
+
+                    b.Property<int>("ThoiGianDaoTaoThang")
+                        .HasColumnType("int")
+                        .HasColumnName("thoi_gian_dao_tao_thang");
+
+                    b.Property<DateTime?>("ThoiGianDuyet")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("thoi_gian_duyet");
+
+                    b.Property<DateTime?>("ThoiGianGuiDuyet")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("thoi_gian_gui_duyet");
+
+                    b.Property<DateTime?>("ThoiGianTuChoi")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("thoi_gian_tu_choi");
+
+                    b.Property<int?>("TongTinChiYeuCau")
+                        .HasColumnType("int")
+                        .HasColumnName("tong_tin_chi_yeu_cau");
+
+                    b.Property<string>("TrangThai")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasColumnName("trang_thai");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("version");
+
+                    b.HasKey("MaChuongTrinh")
+                        .HasName("PK_ChuongTrinhDaoTao");
+
+                    b.HasIndex("MaCodeChuongTrinh")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_ChuongTrinhDaoTao_ma_code_chuong_trinh");
+
+                    b.HasIndex("MaKhoaTuyenSinh");
+
+                    b.HasIndex("NguoiDuyetId");
+
+                    b.HasIndex("NguoiGuiDuyetId");
+
+                    b.HasIndex("NguoiTuChoiId");
+
+                    b.HasIndex("NguonChuongTrinhId");
+
+                    b.HasIndex("MaChuyenNganh", "MaKhoaTuyenSinh", "Version")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_ChuongTrinhDaoTao_chuyen_nganh_khoa_version");
+
+                    b.ToTable("ChuongTrinhDaoTao", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_so_hoc_ky", "[so_hoc_ky] > 0");
+
+                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_thoi_gian_dao_tao_thang", "[thoi_gian_dao_tao_thang] > 0");
+
+                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_tin_chi_toi_da_moi_ky", "[so_tin_chi_toi_da_moi_ky] IS NULL OR [so_tin_chi_toi_da_moi_ky] > 0");
+
+                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_tin_chi_toi_thieu_moi_ky", "[so_tin_chi_toi_thieu_moi_ky] IS NULL OR [so_tin_chi_toi_thieu_moi_ky] >= 0");
+
+                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_tong_tin_chi_yeu_cau", "[tong_tin_chi_yeu_cau] IS NULL OR [tong_tin_chi_yeu_cau] > 0");
+
+                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_trang_thai", "[trang_thai] IN (N'draft', N'pending_approval', N'approved', N'rejected', N'active', N'inactive', N'archived')");
+                        });
+                });
+
             modelBuilder.Entity("Backend.Models.ChuyenNganh", b =>
                 {
                     b.Property<int>("MaChuyenNganh")
@@ -1069,6 +1235,91 @@ namespace Backend.Migrations
                             t.HasCheckConstraint("CK_ChuyenNganhTheoCoSo_nam_bat_dau_1", "[nam_bat_dau] IS NULL OR [nam_bat_dau] >= 2000");
 
                             t.HasCheckConstraint("CK_ChuyenNganhTheoCoSo_trang_thai_1", "[trang_thai] IN (N'draft', N'pending_approval', N'approved', N'active', N'inactive', N'rejected')");
+                        });
+                });
+
+            modelBuilder.Entity("Backend.Models.CourseSyllabus", b =>
+                {
+                    b.Property<int>("MaSyllabus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("ma_syllabus");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaSyllabus"));
+
+                    b.Property<bool>("BatBuoc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true)
+                        .HasColumnName("bat_buoc");
+
+                    b.Property<bool>("ConHoatDong")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true)
+                        .HasColumnName("con_hoat_dong");
+
+                    b.Property<int?>("HocKyDuKien")
+                        .HasColumnType("int")
+                        .HasColumnName("hoc_ky_du_kien");
+
+                    b.Property<int>("MaChuyenNganh")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_chuyen_nganh");
+
+                    b.Property<int?>("MaDonVi")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_don_vi");
+
+                    b.Property<int>("MaMonHoc")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_mon_hoc");
+
+                    b.Property<DateTime?>("NgayCapNhat")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ngay_cap_nhat");
+
+                    b.Property<DateTime>("NgayTao")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ngay_tao")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("TenSyllabus")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("ten_syllabus");
+
+                    b.Property<string>("TrangThai")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasColumnName("trang_thai");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("version");
+
+                    b.HasKey("MaSyllabus")
+                        .HasName("PK_CourseSyllabus");
+
+                    b.HasIndex("MaChuyenNganh");
+
+                    b.HasIndex("MaDonVi");
+
+                    b.HasIndex("MaMonHoc", "MaChuyenNganh", "MaDonVi", "Version")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_CourseSyllabus_1")
+                        .HasFilter("[ma_don_vi] IS NOT NULL");
+
+                    b.ToTable("CourseSyllabus", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_CourseSyllabus_hoc_ky_du_kien_1", "[hoc_ky_du_kien] IS NULL OR [hoc_ky_du_kien] > 0");
+
+                            t.HasCheckConstraint("CK_CourseSyllabus_trang_thai_1", "[trang_thai] IN (N'draft', N'pending_approval', N'approved', N'active', N'inactive', N'archived')");
                         });
                 });
 
@@ -2652,7 +2903,7 @@ namespace Backend.Migrations
                         {
                             t.HasCheckConstraint("CK_NguoiDung_trang_thai_2", "[trang_thai] IN (N'hoat_dong', N'bi_khoa', N'dang_nhap_lan_dau')");
 
-                            t.HasCheckConstraint("CK_NguoiDung_vai_tro_chinh_1", "[vai_tro_chinh] IN (N'quan_tri', N'giao_vien', N'hoc_sinh', N'nhan_vien', N'hieu_truong', N'phu_huynh', N'sieu_quan_tri', N'quan_tri_co_so', N'quan_tri_co_so_con')");
+                            t.HasCheckConstraint("CK_NguoiDung_vai_tro_chinh_1", "[vai_tro_chinh] IN (N'quan_tri', N'giao_vien', N'hoc_sinh', N'nhan_vien', N'hieu_truong', N'phu_huynh', N'sieu_quan_tri', N'quan_tri_co_so', N'quan_tri_co_so_con', N'chu_tich')");
                         });
                 });
 
@@ -4296,6 +4547,53 @@ namespace Backend.Migrations
                     b.Navigation("KhoaHoc");
                 });
 
+            modelBuilder.Entity("Backend.Models.ChuongTrinhDaoTao", b =>
+                {
+                    b.HasOne("Backend.Models.ChuyenNganh", "ChuyenNganh")
+                        .WithMany()
+                        .HasForeignKey("MaChuyenNganh")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_ChuongTrinhDaoTao_ma_chuyen_nganh__ChuyenNganh");
+
+                    b.HasOne("Backend.Models.KhoaTuyenSinh", "KhoaTuyenSinh")
+                        .WithMany()
+                        .HasForeignKey("MaKhoaTuyenSinh")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_ChuongTrinhDaoTao_ma_khoa_tuyen_sinh__KhoaTuyenSinh");
+
+                    b.HasOne("Backend.Models.NguoiDung", null)
+                        .WithMany()
+                        .HasForeignKey("NguoiDuyetId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_ChuongTrinhDaoTao_nguoi_duyet_id__NguoiDung");
+
+                    b.HasOne("Backend.Models.NguoiDung", null)
+                        .WithMany()
+                        .HasForeignKey("NguoiGuiDuyetId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_ChuongTrinhDaoTao_nguoi_gui_duyet_id__NguoiDung");
+
+                    b.HasOne("Backend.Models.NguoiDung", null)
+                        .WithMany()
+                        .HasForeignKey("NguoiTuChoiId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_ChuongTrinhDaoTao_nguoi_tu_choi_id__NguoiDung");
+
+                    b.HasOne("Backend.Models.ChuongTrinhDaoTao", "NguonChuongTrinh")
+                        .WithMany("ChuongTrinhPhienBanCon")
+                        .HasForeignKey("NguonChuongTrinhId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_ChuongTrinhDaoTao_nguon_chuong_trinh_id__ChuongTrinhDaoTao");
+
+                    b.Navigation("ChuyenNganh");
+
+                    b.Navigation("KhoaTuyenSinh");
+
+                    b.Navigation("NguonChuongTrinh");
+                });
+
             modelBuilder.Entity("Backend.Models.ChuyenNganh", b =>
                 {
                     b.HasOne("Backend.Models.NganhDaoTao", "NganhDaoTao")
@@ -4327,6 +4625,35 @@ namespace Backend.Migrations
                     b.Navigation("ChuyenNganh");
 
                     b.Navigation("DonVi");
+                });
+
+            modelBuilder.Entity("Backend.Models.CourseSyllabus", b =>
+                {
+                    b.HasOne("Backend.Models.ChuyenNganh", "ChuyenNganh")
+                        .WithMany()
+                        .HasForeignKey("MaChuyenNganh")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("FK_CourseSyllabus_ma_chuyen_nganh__ChuyenNganh");
+
+                    b.HasOne("Backend.Models.DonVi", "DonVi")
+                        .WithMany()
+                        .HasForeignKey("MaDonVi")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_CourseSyllabus_ma_don_vi__DonVi");
+
+                    b.HasOne("Backend.Models.DanhMucMonHoc", "MonHoc")
+                        .WithMany()
+                        .HasForeignKey("MaMonHoc")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("FK_CourseSyllabus_ma_mon_hoc__DanhMucMonHoc");
+
+                    b.Navigation("ChuyenNganh");
+
+                    b.Navigation("DonVi");
+
+                    b.Navigation("MonHoc");
                 });
 
             modelBuilder.Entity("Backend.Models.DangKyHocPhan", b =>
@@ -5405,6 +5732,11 @@ namespace Backend.Migrations
                     b.Navigation("NguoiDuyetNavigation");
 
                     b.Navigation("NguoiYeuCauNavigation");
+                });
+
+            modelBuilder.Entity("Backend.Models.ChuongTrinhDaoTao", b =>
+                {
+                    b.Navigation("ChuongTrinhPhienBanCon");
                 });
 
             modelBuilder.Entity("Backend.Models.ChuyenNganh", b =>

@@ -49,6 +49,16 @@ public class TrainingProgramsController : ControllerBase
             ApiResponseDto<TrainingProgramDto>.Ok(program, "Tạo chương trình đào tạo thành công"));
     }
 
+    [HttpPost("{id:int}/clone")]
+    public async Task<ActionResult<ApiResponseDto<TrainingProgramDto>>> Clone(
+        int id,
+        CloneTrainingProgramRequest request,
+        CancellationToken cancellationToken)
+    {
+        var program = await _trainingProgramService.CloneAsync(id, request, cancellationToken);
+        return Ok(ApiResponseDto<TrainingProgramDto>.Ok(program, "Clone chương trình đào tạo thành công"));
+    }
+
     [HttpPut("{id:int}")]
     public async Task<ActionResult<ApiResponseDto<TrainingProgramDto>>> Update(
         int id,
