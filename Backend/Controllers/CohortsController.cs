@@ -1,5 +1,7 @@
+using Backend.Constants;
 using Backend.DTOs.Cohorts;
 using Backend.DTOs.Common;
+using Backend.DTOs.TrainingPrograms;
 using Backend.Services.Cohorts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +10,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/master-data/cohorts")]
-[Authorize(Policy = "AcademicOperations")]
+[Authorize(Roles = $"{AuthRoles.Admin},{AuthRoles.SuperAdmin},{AuthRoles.Chairman},{AuthRoles.CampusAdmin},{AuthRoles.SubCampusAdmin},{AuthRoles.AcademicStaff}")]
 public class CohortsController : ControllerBase
 {
     private readonly ICohortService _cohortService;
@@ -34,6 +36,15 @@ public class CohortsController : ControllerBase
     {
         var cohort = await _cohortService.GetByIdAsync(id, cancellationToken);
         return Ok(ApiResponseDto<CohortDto>.Ok(cohort, "Lấy thông tin khóa tuyển sinh thành công"));
+    }
+
+    [HttpGet("{id:int}/training-program-setup")]
+    public async Task<ActionResult<ApiResponseDto<TrainingProgramSetupDto>>> GetTrainingProgramSetup(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var setup = await _cohortService.GetTrainingProgramSetupAsync(id, cancellationToken);
+        return Ok(ApiResponseDto<TrainingProgramSetupDto>.Ok(setup, "Lấy cấu hình chương trình đào tạo theo khóa tuyển sinh thành công"));
     }
 
     [HttpPost]

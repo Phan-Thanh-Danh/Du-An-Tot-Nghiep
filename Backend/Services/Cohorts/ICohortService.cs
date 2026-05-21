@@ -1,5 +1,6 @@
 using Backend.DTOs.Cohorts;
 using Backend.DTOs.Common;
+using Backend.DTOs.TrainingPrograms;
 
 namespace Backend.Services.Cohorts;
 
@@ -12,4 +13,5 @@ public interface ICohortService
     Task DeleteAsync(int id, CancellationToken cancellationToken = default);
     Task<CohortDto> ActivateAsync(int id, CancellationToken cancellationToken = default);
     Task<CohortDto> DeactivateAsync(int id, CancellationToken cancellationToken = default);
+    Task<TrainingProgramSetupDto> GetTrainingProgramSetupAsync(int cohortId, CancellationToken cancellationToken = default);
 }

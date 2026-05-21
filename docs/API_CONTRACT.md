@@ -137,6 +137,7 @@ Base path hiện tại: `/api`
 |---|---|---|---|
 | GET | `/api/master-data/cohorts` | Admin/SuperAdmin/AcademicStaff/CampusAdmin | Danh sách khóa tuyển sinh có phân trang, tìm kiếm theo mã/tên, lọc năm bắt đầu và trạng thái hoạt động. |
 | GET | `/api/master-data/cohorts/{id}` | Admin/SuperAdmin/AcademicStaff/CampusAdmin | Chi tiết khóa tuyển sinh. |
+| GET | `/api/master-data/cohorts/{id}/training-program-setup` | Admin/SuperAdmin/Chairman/CampusAdmin/SubCampusAdmin/AcademicStaff | Xem cấu hình setup chương trình đào tạo theo khóa tuyển sinh: chuyên ngành đã/chưa có chương trình và chương trình nguồn đề xuất để clone nếu có. |
 | POST | `/api/master-data/cohorts` | SuperAdmin | Tạo khóa tuyển sinh, mã khóa là duy nhất toàn hệ thống và được chuẩn hóa uppercase. |
 | PUT | `/api/master-data/cohorts/{id}` | SuperAdmin | Cập nhật khóa tuyển sinh, năm học và trạng thái hoạt động. |
 | DELETE | `/api/master-data/cohorts/{id}` | SuperAdmin | Vô hiệu hóa khóa tuyển sinh bằng `ConHoatDong = false`, không xóa vật lý. |
