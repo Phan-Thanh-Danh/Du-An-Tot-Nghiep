@@ -20,6 +20,7 @@ public static class Data
     private const string CampusLevel = "co_so";
     private const string ApprovedStatus = "approved";
     private const string ActiveStatus = "active";
+    private const string RequiredSubjectType = "bat_buoc";
     private const string TrainingProgramSourceCode = "PTPM-K21";
 
     public static async Task SeedRolesAsync(IServiceProvider serviceProvider)
@@ -203,7 +204,18 @@ public static class Data
         var major = await GetOrCreateMajorAsync(context);
         var specialization = await GetOrCreateSpecializationAsync(context, major);
         await GetOrCreateCampusSpecializationAsync(context, specialization, campus);
-        await GetOrCreateTrainingProgramAsync(context, specialization, cohortK21);
+        var trainingProgram = await GetOrCreateTrainingProgramAsync(context, specialization, cohortK21);
+        await context.SaveChangesAsync();
+
+        var pro101 = await GetOrCreateSubjectAsync(context, "PRO101", "Nhập môn lập trình", 3);
+        var dbi101 = await GetOrCreateSubjectAsync(context, "DBI101", "Cơ sở dữ liệu", 3);
+        var web101 = await GetOrCreateSubjectAsync(context, "WEB101", "Thiết kế web", 3);
+        var oop101 = await GetOrCreateSubjectAsync(context, "OOP101", "Lập trình hướng đối tượng", 3);
+
+        await UpsertTrainingProgramSubjectAsync(context, trainingProgram, pro101, 1, 3, 1, "Môn học kỳ 1 của PTPM-K21");
+        await UpsertTrainingProgramSubjectAsync(context, trainingProgram, dbi101, 2, 3, 1, "Môn học kỳ 2 của PTPM-K21");
+        await UpsertTrainingProgramSubjectAsync(context, trainingProgram, web101, 2, 3, 2, "Môn học kỳ 2 của PTPM-K21");
+        await UpsertTrainingProgramSubjectAsync(context, trainingProgram, oop101, 3, 3, 1, "Môn học kỳ 3 của PTPM-K21");
     }
 
     private static async Task<DonVi> GetOrCreateCampusAsync(ApplicationDbContext context, DonVi rootUnit)
@@ -394,5 +406,66 @@ public static class Data
         trainingProgram.NgayCapNhat = DateTime.UtcNow;
 
         return trainingProgram;
+    }
+
+    private static async Task<DanhMucMonHoc> GetOrCreateSubjectAsync(
+        ApplicationDbContext context,
+        string code,
+        string name,
+        int credits)
+    {
+        var subject = await context.DanhMucMonHocs.FirstOrDefaultAsync(x => x.MaCodeMonHoc == code);
+        if (subject is null)
+        {
+            subject = new DanhMucMonHoc
+            {
+                MaCodeMonHoc = code
+            };
+
+            context.DanhMucMonHocs.Add(subject);
+        }
+
+        subject.TenMonHoc = name;
+        subject.SoTinChi = credits;
+        subject.ConHoatDong = true;
+
+        await context.SaveChangesAsync();
+        return subject;
+    }
+
+    private static async Task UpsertTrainingProgramSubjectAsync(
+        ApplicationDbContext context,
+        ChuongTrinhDaoTao trainingProgram,
+        DanhMucMonHoc subject,
+        int expectedTerm,
+        int credits,
+        int order,
+        string note)
+    {
+        var programSubject = await context.MonHocTrongChuongTrinhs
+            .FirstOrDefaultAsync(x =>
+                x.MaChuongTrinh == trainingProgram.MaChuongTrinh &&
+                x.MaMonHoc == subject.MaMonHoc);
+
+        if (programSubject is null)
+        {
+            programSubject = new MonHocTrongChuongTrinh
+            {
+                MaChuongTrinh = trainingProgram.MaChuongTrinh,
+                MaMonHoc = subject.MaMonHoc,
+                NgayTao = DateTime.UtcNow
+            };
+
+            context.MonHocTrongChuongTrinhs.Add(programSubject);
+        }
+
+        programSubject.HocKyDuKien = expectedTerm;
+        programSubject.SoTinChi = credits;
+        programSubject.LoaiMonHoc = RequiredSubjectType;
+        programSubject.BatBuoc = true;
+        programSubject.ThuTu = order;
+        programSubject.GhiChu = note;
+        programSubject.ConHoatDong = true;
+        programSubject.NgayCapNhat = DateTime.UtcNow;
     }
 }

@@ -193,7 +193,22 @@ Base path hiện tại: `/api`
 | PATCH | `/api/master-data/training-programs/{id}/deactivate` | Chairman | Vô hiệu hóa chương trình active bằng `TrangThai = inactive`, `ConHoatDong = false`. |
 | PATCH | `/api/master-data/training-programs/{id}/archive` | Chairman | Lưu trữ chương trình approved/active/inactive bằng `TrangThai = archived`, `ConHoatDong = false`. |
 
-Ghi chú: `ChuongTrinhDaoTao` là khung chuẩn toàn hệ thống theo `ChuyenNganh + KhoaTuyenSinh`. `ChuyenNganhTheoCoSo` chỉ xác định cơ sở nào được phép mở chuyên ngành và được dùng cho scope/filter khi campus xem dữ liệu; không phải khóa tạo chương trình. Người duyệt cuối cùng của workflow là `Chairman`/Chủ tịch, không dùng `Principal` cho luồng duyệt này. Danh sách môn học trong chương trình là module/bảng dự kiến `MonHocTrongChuongTrinh`, chưa được thêm trong endpoint này và chưa được clone sâu khi clone chương trình đào tạo.
+Ghi chú: `ChuongTrinhDaoTao` là khung chuẩn toàn hệ thống theo `ChuyenNganh + KhoaTuyenSinh`. `ChuyenNganhTheoCoSo` chỉ xác định cơ sở nào được phép mở chuyên ngành và được dùng cho scope/filter khi campus xem dữ liệu; không phải khóa tạo chương trình. Người duyệt cuối cùng của workflow là `Chairman`/Chủ tịch, không dùng `Principal` cho luồng duyệt này. Danh sách môn học trong chương trình nằm ở module `MonHocTrongChuongTrinh` và được clone cùng khung chương trình; nội dung học liệu/deep syllabus không được clone trong luồng này.
+
+## Training Program Subjects APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/master-data/training-program-subjects` | SuperAdmin/Chairman/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách môn học trong chương trình có phân trang, lọc theo chương trình, môn học, học kỳ, loại môn, bắt buộc và trạng thái hoạt động. Campus/SubCampus/AcademicStaff chỉ xem chương trình active trong scope cơ sở. |
+| GET | `/api/master-data/training-program-subjects/{id}` | SuperAdmin/Chairman/CampusAdmin/SubCampusAdmin/AcademicStaff | Chi tiết môn học trong chương trình. |
+| GET | `/api/master-data/training-program-subjects/by-program/{programId}` | SuperAdmin/Chairman/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách môn học đang hoạt động của một chương trình, sắp theo học kỳ, thứ tự và tên môn. |
+| POST | `/api/master-data/training-program-subjects` | SuperAdmin | Thêm môn học vào chương trình đào tạo đang `draft` hoặc `rejected`; không cho trùng `MaChuongTrinh + MaMonHoc`. |
+| PUT | `/api/master-data/training-program-subjects/{id}` | SuperAdmin | Cập nhật học kỳ, tín chỉ, loại môn, bắt buộc, thứ tự, ghi chú và trạng thái hoạt động nếu chương trình đang `draft` hoặc `rejected`. |
+| DELETE | `/api/master-data/training-program-subjects/{id}` | SuperAdmin | Xóa mềm môn học khỏi chương trình bằng `ConHoatDong = false` nếu chương trình đang `draft` hoặc `rejected`. |
+
+Ghi chú: `MonHocTrongChuongTrinh` chỉ khai báo danh sách môn trong khung chương trình đào tạo. Nội dung chi tiết môn học, video, bài học, quiz và đề cương chi tiết vẫn thuộc các module khác như `CourseSyllabus`; clone chương trình đào tạo chỉ clone danh sách môn trong chương trình, không clone nội dung học liệu.
 
 ## Course Syllabuses APIs
 

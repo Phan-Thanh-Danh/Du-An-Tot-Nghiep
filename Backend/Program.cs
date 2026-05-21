@@ -17,6 +17,7 @@ using Backend.Services.Rbac;
 using Backend.Services.Security;
 using Backend.Services.Specializations;
 using Backend.Services.Subjects;
+using Backend.Services.TrainingProgramSubjects;
 using Backend.Services.TrainingPrograms;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
@@ -79,6 +80,7 @@ builder.Services.AddScoped<IChuyenNganhService, ChuyenNganhService>();
 builder.Services.AddScoped<IChuyenNganhTheoCoSoService, ChuyenNganhTheoCoSoService>();
 builder.Services.AddScoped<ICourseSyllabusService, CourseSyllabusService>();
 builder.Services.AddScoped<ICohortService, CohortService>();
+builder.Services.AddScoped<ITrainingProgramSubjectService, TrainingProgramSubjectService>();
 builder.Services.AddScoped<ITrainingProgramService, TrainingProgramService>();
 builder.Services.AddCors(options =>
 {

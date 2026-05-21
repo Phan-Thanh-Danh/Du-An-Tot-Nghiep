@@ -53,6 +53,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<LopHanhChinh> LopHanhChinhs => Set<LopHanhChinh>();
     public DbSet<LopHocPhan> LopHocPhans => Set<LopHocPhan>();
     public DbSet<MauThongBao> MauThongBaos => Set<MauThongBao>();
+    public DbSet<MonHocTrongChuongTrinh> MonHocTrongChuongTrinhs => Set<MonHocTrongChuongTrinh>();
     public DbSet<MonHocTienQuyet> MonHocTienQuyets => Set<MonHocTienQuyet>();
     public DbSet<NganhDaoTao> NganhDaoTaos => Set<NganhDaoTao>();
     public DbSet<NguoiDung> NguoiDungs => Set<NguoiDung>();
@@ -1984,6 +1985,67 @@ public class ApplicationDbContext : DbContext
                 .IsRequired();
             entity.HasIndex(e => new { e.LoaiSuKien, e.KenhGui }).IsUnique().HasDatabaseName("UQ_MauThongBao_1");
             entity.ToTable(t => t.HasCheckConstraint("CK_MauThongBao_kenh_gui_1", "[kenh_gui] IN (N'email', N'thong_bao_day', N'sms')"));
+        });
+
+        modelBuilder.Entity<MonHocTrongChuongTrinh>(entity =>
+        {
+            entity.ToTable("MonHocTrongChuongTrinh", "dbo");
+            entity.HasKey(e => e.MaChuongTrinhMonHoc).HasName("PK_MonHocTrongChuongTrinh");
+            entity.Property(e => e.MaChuongTrinhMonHoc)
+                .HasColumnName("ma_chuong_trinh_mon_hoc");
+            entity.Property(e => e.MaChuongTrinh)
+                .HasColumnName("ma_chuong_trinh")
+                .IsRequired();
+            entity.Property(e => e.MaMonHoc)
+                .HasColumnName("ma_mon_hoc")
+                .IsRequired();
+            entity.Property(e => e.HocKyDuKien)
+                .HasColumnName("hoc_ky_du_kien");
+            entity.Property(e => e.SoTinChi)
+                .HasColumnName("so_tin_chi");
+            entity.Property(e => e.LoaiMonHoc)
+                .HasColumnName("loai_mon_hoc")
+                .HasMaxLength(30)
+                .IsRequired();
+            entity.Property(e => e.BatBuoc)
+                .HasColumnName("bat_buoc")
+                .HasDefaultValue(true);
+            entity.Property(e => e.ThuTu)
+                .HasColumnName("thu_tu")
+                .HasDefaultValue(0);
+            entity.Property(e => e.GhiChu)
+                .HasColumnName("ghi_chu")
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.ConHoatDong)
+                .HasColumnName("con_hoat_dong")
+                .HasDefaultValue(true);
+            entity.Property(e => e.NgayTao)
+                .HasColumnName("ngay_tao")
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.NgayCapNhat)
+                .HasColumnName("ngay_cap_nhat")
+                .HasColumnType("datetime2");
+            entity.HasIndex(e => new { e.MaChuongTrinh, e.MaMonHoc })
+                .IsUnique()
+                .HasDatabaseName("UQ_MonHocTrongChuongTrinh_chuong_trinh_mon_hoc");
+            entity.HasIndex(e => new { e.MaChuongTrinh, e.HocKyDuKien })
+                .HasDatabaseName("IX_MonHocTrongChuongTrinh_chuong_trinh_hoc_ky");
+            entity.HasIndex(e => e.MaMonHoc)
+                .HasDatabaseName("IX_MonHocTrongChuongTrinh_ma_mon_hoc");
+            entity.ToTable(t => t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_hoc_ky_du_kien", "[hoc_ky_du_kien] > 0"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_so_tin_chi", "[so_tin_chi] > 0"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_loai_mon_hoc", "[loai_mon_hoc] IN (N'bat_buoc', N'tu_chon', N'thay_the')"));
+            entity.HasOne(e => e.ChuongTrinhDaoTao)
+                .WithMany()
+                .HasForeignKey(e => e.MaChuongTrinh)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_MonHocTrongChuongTrinh_ma_chuong_trinh__ChuongTrinhDaoTao");
+            entity.HasOne(e => e.DanhMucMonHoc)
+                .WithMany()
+                .HasForeignKey(e => e.MaMonHoc)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_MonHocTrongChuongTrinh_ma_mon_hoc__DanhMucMonHoc");
         });
 
         modelBuilder.Entity<MonHocTienQuyet>(entity =>

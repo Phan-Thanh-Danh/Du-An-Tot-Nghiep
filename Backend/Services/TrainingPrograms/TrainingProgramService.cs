@@ -273,9 +273,35 @@ public class TrainingProgramService : ITrainingProgramService
             LyDoTuChoi = null
         };
 
-        // TODO: sau khi có MonHocTrongChuongTrinh, mở rộng CloneAsync để clone danh sách môn học trong chương trình.
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
         _context.ChuongTrinhDaoTaos.Add(program);
         await _context.SaveChangesAsync(cancellationToken);
+
+        var sourceSubjects = await _context.MonHocTrongChuongTrinhs
+            .AsNoTracking()
+            .Where(x => x.MaChuongTrinh == sourceProgram.MaChuongTrinh && x.ConHoatDong)
+            .ToListAsync(cancellationToken);
+
+        foreach (var sourceSubject in sourceSubjects)
+        {
+            _context.MonHocTrongChuongTrinhs.Add(new MonHocTrongChuongTrinh
+            {
+                MaChuongTrinh = program.MaChuongTrinh,
+                MaMonHoc = sourceSubject.MaMonHoc,
+                HocKyDuKien = sourceSubject.HocKyDuKien,
+                SoTinChi = sourceSubject.SoTinChi,
+                LoaiMonHoc = sourceSubject.LoaiMonHoc,
+                BatBuoc = sourceSubject.BatBuoc,
+                ThuTu = sourceSubject.ThuTu,
+                GhiChu = sourceSubject.GhiChu,
+                ConHoatDong = true,
+                NgayTao = DateTime.UtcNow
+            });
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return await GetByIdAsync(program.MaChuongTrinh, cancellationToken);
     }
