@@ -1,17 +1,36 @@
 <!-- ExamsView.vue -->
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { 
   Plus, Search, FileEdit, Clock, HelpCircle, 
-  ChevronRight, MoreVertical, Send, CheckCircle2,
+  Send, CheckCircle2,
   FileSignature, Calendar, Settings
 } from 'lucide-vue-next'
 
-const exams = ref([
+const defaultExams = [
   { id: 1, name: 'Thi giữa kỳ: Lập trình Web', duration: '90 phút', questions: 40, status: 'Published', date: '25/05/2026', type: 'Trắc nghiệm' },
   { id: 2, name: 'Thi kết thúc môn: Java Basic', duration: '120 phút', questions: 50, status: 'Draft', date: '15/06/2026', type: 'Hỗn hợp' },
   { id: 3, name: 'Quiz 2: Cấu trúc dữ liệu', duration: '15 phút', questions: 10, status: 'Published', date: '18/05/2026', type: 'Trắc nghiệm' },
-])
+]
+
+const exams = ref([])
+const searchQuery = ref('')
+
+onMounted(() => {
+  const stored = localStorage.getItem('teacher_exams')
+  if (stored) {
+    exams.value = JSON.parse(stored)
+  } else {
+    exams.value = [...defaultExams]
+    localStorage.setItem('teacher_exams', JSON.stringify(defaultExams))
+  }
+})
+
+const filteredExams = computed(() => {
+  return exams.value.filter(ex => 
+    ex.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+  )
+})
 
 const isConfigModalOpen = ref(false)
 const configuringExam = ref(null)
@@ -25,8 +44,17 @@ const saveConfig = () => {
   const idx = exams.value.findIndex(e => e.id === configuringExam.value.id)
   if (idx !== -1) {
     exams.value[idx] = { ...exams.value[idx], ...configuringExam.value }
+    localStorage.setItem('teacher_exams', JSON.stringify(exams.value))
   }
   isConfigModalOpen.value = false
+}
+
+const publishExam = (examId) => {
+  const idx = exams.value.findIndex(e => e.id === examId)
+  if (idx !== -1) {
+    exams.value[idx].status = 'Published'
+    localStorage.setItem('teacher_exams', JSON.stringify(exams.value))
+  }
 }
 
 const getStatusStyle = (status) => {
@@ -63,17 +91,17 @@ const getStatusStyle = (status) => {
     <div class="flex items-center justify-between gap-4">
        <div class="flex items-center gap-2">
           <h2 class="text-lg font-black text-slate-800">Danh sách đề thi</h2>
-          <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-black text-blue-700">{{ exams.length }}</span>
+          <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-black text-blue-700">{{ filteredExams.length }}</span>
        </div>
        <div class="relative w-64">
           <Search :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input type="text" placeholder="Tìm đề thi..." class="w-full rounded-[16px] border border-slate-200 bg-white pl-11 pr-4 py-3 text-sm font-medium outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-colors shadow-sm" />
+          <input v-model="searchQuery" type="text" placeholder="Tìm đề thi..." class="w-full rounded-[16px] border border-slate-200 bg-white pl-11 pr-4 py-3 text-sm font-medium outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-colors shadow-sm" />
        </div>
     </div>
 
     <!-- Main List -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div v-for="(exam, index) in exams" :key="exam.id" 
+      <div v-for="(exam, index) in filteredExams" :key="exam.id" 
            class="group rounded-[32px] bg-white border border-slate-100 p-8 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all flex flex-col animate-fade-in-up"
            :style="{ animationDelay: `${index * 100}ms` }">
         <div class="flex justify-between items-start mb-6">
@@ -119,7 +147,7 @@ const getStatusStyle = (status) => {
            <button @click="openConfigModal(exam)" class="flex-1 rounded-2xl bg-white border border-slate-200 py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 hover:text-blue-600 transition-colors shadow-sm">
               Cấu hình
            </button>
-           <button v-if="exam.status === 'Draft'" class="flex-1 rounded-2xl bg-blue-600 py-3 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+           <button v-if="exam.status === 'Draft'" @click="publishExam(exam.id)" class="flex-1 rounded-2xl bg-blue-600 py-3 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
               <Send :size="16" /> Xuất bản
            </button>
            <button v-else class="flex-1 rounded-2xl bg-emerald-50 py-3 text-sm font-bold text-emerald-600 flex items-center justify-center gap-2 border border-emerald-100">
@@ -128,8 +156,6 @@ const getStatusStyle = (status) => {
         </div>
       </div>
     </div>
-  </div>
-
   <!-- Configure Exam Modal -->
   <Teleport to="body">
     <div v-if="isConfigModalOpen" class="fixed inset-0 z-[999] flex items-center justify-center p-4">
@@ -203,6 +229,7 @@ const getStatusStyle = (status) => {
       </div>
     </div>
   </Teleport>
+</div>
 </template>
 
 <style scoped>
