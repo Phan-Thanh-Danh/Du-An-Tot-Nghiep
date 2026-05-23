@@ -1,15 +1,18 @@
 <script setup>
-import AttendanceHealthPanel from '@/components/SinhVien/dashboard/AttendanceHealthPanel.vue'
-import CourseProgressPanel from '@/components/SinhVien/dashboard/CourseProgressPanel.vue'
+import { defineAsyncComponent } from 'vue'
 import FocusAiCard from '@/components/SinhVien/dashboard/FocusAiCard.vue'
 import KpiCard from '@/components/SinhVien/dashboard/KpiCard.vue'
-import NotificationsPanel from '@/components/SinhVien/dashboard/NotificationsPanel.vue'
-import RecentGradesPanel from '@/components/SinhVien/dashboard/RecentGradesPanel.vue'
-import TodaySchedulePanel from '@/components/SinhVien/dashboard/TodaySchedulePanel.vue'
-import TuitionMiniPanel from '@/components/SinhVien/dashboard/TuitionMiniPanel.vue'
-import UpcomingAssignmentsPanel from '@/components/SinhVien/dashboard/UpcomingAssignmentsPanel.vue'
 import WelcomeHero from '@/components/SinhVien/dashboard/WelcomeHero.vue'
 import { studentDashboardMock } from '@/data/studentDashboard.mock'
+
+// Lazy load below-the-fold components to prioritize initial render and prevent jank
+const CourseProgressPanel = defineAsyncComponent(() => import('@/components/SinhVien/dashboard/CourseProgressPanel.vue'))
+const UpcomingAssignmentsPanel = defineAsyncComponent(() => import('@/components/SinhVien/dashboard/UpcomingAssignmentsPanel.vue'))
+const TodaySchedulePanel = defineAsyncComponent(() => import('@/components/SinhVien/dashboard/TodaySchedulePanel.vue'))
+const RecentGradesPanel = defineAsyncComponent(() => import('@/components/SinhVien/dashboard/RecentGradesPanel.vue'))
+const NotificationsPanel = defineAsyncComponent(() => import('@/components/SinhVien/dashboard/NotificationsPanel.vue'))
+const AttendanceHealthPanel = defineAsyncComponent(() => import('@/components/SinhVien/dashboard/AttendanceHealthPanel.vue'))
+const TuitionMiniPanel = defineAsyncComponent(() => import('@/components/SinhVien/dashboard/TuitionMiniPanel.vue'))
 
 defineOptions({
   name: 'StudentDashboard',
@@ -22,53 +25,54 @@ const dashboard = studentDashboardMock
   <div class="lg-page-enter space-y-4 pb-5">
     <!-- Row 1: Hero Today Summary + Today Focus AI -->
     <div class="grid gap-4 xl:grid-cols-12">
-      <section class="xl:col-span-7">
+      <section class="xl:col-span-7 flex flex-col">
         <WelcomeHero
           :student="dashboard.student"
           :summary="dashboard.focusSummary"
           :week-progress="dashboard.weekProgress"
+          class="h-full"
         />
       </section>
-      <section class="xl:col-span-5">
-        <FocusAiCard />
+      <section class="xl:col-span-5 flex flex-col">
+        <FocusAiCard class="h-full" />
       </section>
     </div>
 
     <!-- Row 2: KPI grid (Compact cards) -->
-    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <KpiCard v-for="item in dashboard.kpis" :key="item.id" :item="item" />
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <KpiCard v-for="item in dashboard.kpis" :key="item.id" :item="item" class="h-full" />
     </div>
 
     <!-- Row 3: Primary Content (Courses + Assignments) -->
     <div class="grid gap-4 xl:grid-cols-12">
-      <section class="xl:col-span-7">
-        <CourseProgressPanel :courses="dashboard.courses" />
+      <section class="xl:col-span-7 flex flex-col">
+        <CourseProgressPanel :courses="dashboard.courses" class="h-full" />
       </section>
-      <section class="xl:col-span-5">
-        <UpcomingAssignmentsPanel :assignments="dashboard.assignments" />
+      <section class="xl:col-span-5 flex flex-col">
+        <UpcomingAssignmentsPanel :assignments="dashboard.assignments" class="h-full" />
       </section>
     </div>
 
     <!-- Row 4: Secondary Content (Schedule + Grades + Notifications) -->
     <div class="grid gap-4 xl:grid-cols-12">
-      <section class="xl:col-span-4">
-        <TodaySchedulePanel :schedule="dashboard.schedule" />
+      <section class="xl:col-span-4 flex flex-col">
+        <TodaySchedulePanel :schedule="dashboard.schedule" class="h-full" />
       </section>
-      <section class="xl:col-span-4">
-        <RecentGradesPanel :grades="dashboard.grades" />
+      <section class="xl:col-span-4 flex flex-col">
+        <RecentGradesPanel :grades="dashboard.grades" class="h-full" />
       </section>
-      <section class="xl:col-span-4">
-        <NotificationsPanel :notifications="dashboard.notifications" />
+      <section class="xl:col-span-4 flex flex-col">
+        <NotificationsPanel :notifications="dashboard.notifications" class="h-full" />
       </section>
     </div>
 
     <!-- Row 5: Health & Utilities (Attendance + Tuition) -->
     <div class="grid gap-4 xl:grid-cols-12">
-      <section class="xl:col-span-6">
-        <AttendanceHealthPanel :attendance="dashboard.attendance" />
+      <section class="xl:col-span-6 flex flex-col">
+        <AttendanceHealthPanel :attendance="dashboard.attendance" class="h-full" />
       </section>
-      <section class="xl:col-span-6">
-        <TuitionMiniPanel :tuition="dashboard.tuition" :registration="dashboard.registration" />
+      <section class="xl:col-span-6 flex flex-col">
+        <TuitionMiniPanel :tuition="dashboard.tuition" :registration="dashboard.registration" class="h-full" />
       </section>
     </div>
   </div>
