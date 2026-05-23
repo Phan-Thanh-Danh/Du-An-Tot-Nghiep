@@ -361,4 +361,115 @@ const metrics = computed(()=>{
 
 @media(max-width:900px){.metrics-row{grid-template-columns:repeat(2,1fr)}.week-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:640px){.schedule-page{padding:1rem}.metrics-row{grid-template-columns:repeat(2,1fr);gap:.75rem}.week-grid{grid-template-columns:repeat(2,1fr)}.drawer{width:100%}}
+
+/* ── Dark Mode ─────────────────────────────────────── */
+:global(.dark) .page-title{color:#f1f5f9}
+:global(.dark) .page-sub{color:#94a3b8}
+:global(.dark) .eyebrow{color:#93c5fd}
+
+:global(.dark) .filter-select{
+  background:rgba(15,23,42,.6);
+  border-color:rgba(255,255,255,.12);
+  color:#e2e8f0;
+  backdrop-filter:blur(12px);
+}
+
+:global(.dark) .metric-card{
+  background:rgba(15,23,42,.55);
+  border-color:rgba(255,255,255,.1);
+  box-shadow:0 4px 20px rgba(2,6,23,.4),inset 0 1px 0 rgba(255,255,255,.06);
+}
+:global(.dark) .metric-val{color:#f1f5f9}
+:global(.dark) .metric-lbl{color:#94a3b8}
+:global(.dark) .metric-blue .metric-val{color:#93c5fd}
+:global(.dark) .metric-violet .metric-val{color:#c4b5fd}
+:global(.dark) .metric-red .metric-val{color:#fca5a5}
+:global(.dark) .metric-amber .metric-val{color:#fcd34d}
+
+:global(.dark) .cal-controls{
+  background:rgba(15,23,42,.55);
+  border-color:rgba(255,255,255,.1);
+  box-shadow:0 4px 20px rgba(2,6,23,.4);
+}
+:global(.dark) .view-toggle{background:rgba(2,6,23,.4)}
+:global(.dark) .toggle-btn{color:#94a3b8}
+:global(.dark) .toggle-btn.active{background:rgba(30,41,59,.9);color:#f1f5f9;box-shadow:0 1px 4px rgba(2,6,23,.4)}
+:global(.dark) .nav-btn{
+  background:rgba(15,23,42,.6);
+  border-color:rgba(255,255,255,.12);
+  color:#94a3b8;
+}
+:global(.dark) .nav-btn:hover{border-color:#93c5fd;color:#93c5fd}
+:global(.dark) .period-label{color:#f1f5f9}
+:global(.dark) .today-btn{background:#2563eb;box-shadow:0 4px 14px rgba(37,99,235,.4)}
+
+:global(.dark) .day-col{
+  background:rgba(15,23,42,.5);
+  border-color:rgba(255,255,255,.1);
+}
+:global(.dark) .day-header{
+  background:rgba(2,6,23,.3);
+  border-bottom-color:rgba(255,255,255,.08);
+}
+:global(.dark) .day-header.day-today{background:rgba(37,99,235,.18)}
+:global(.dark) .day-name{color:#64748b}
+:global(.dark) .day-num{color:#f1f5f9}
+:global(.dark) .day-today .day-num{color:#93c5fd}
+:global(.dark) .no-event{color:#334155}
+
+:global(.dark) .ev-blue{background:rgba(37,99,235,.18);border-color:rgba(37,99,235,.35)}
+:global(.dark) .ev-teal{background:rgba(15,118,110,.18);border-color:rgba(15,118,110,.35)}
+:global(.dark) .ev-violet{background:rgba(124,58,237,.18);border-color:rgba(124,58,237,.35)}
+:global(.dark) .ev-amber{background:rgba(217,119,6,.18);border-color:rgba(217,119,6,.35)}
+:global(.dark) .ev-red{background:rgba(220,38,38,.15);border-color:rgba(220,38,38,.3)}
+:global(.dark) .ev-time{color:#64748b}
+:global(.dark) .ev-name{color:#e2e8f0}
+:global(.dark) .ev-meta{color:#94a3b8}
+
+:global(.dark) .badge-published{background:rgba(22,163,74,.18);color:#86efac}
+:global(.dark) .badge-cancelled{background:rgba(220,38,38,.18);color:#fca5a5}
+:global(.dark) .badge-makeup{background:rgba(217,119,6,.18);color:#fcd34d}
+:global(.dark) .badge-online{background:rgba(124,58,237,.18);color:#c4b5fd}
+
+:global(.dark) .month-grid{background:rgba(2,6,23,.3);border-color:rgba(255,255,255,.08)}
+:global(.dark) .month-dow{background:rgba(15,23,42,.6);color:#64748b}
+:global(.dark) .month-cell{background:rgba(15,23,42,.45)}
+:global(.dark) .month-cell:hover{background:rgba(30,41,59,.7)}
+:global(.dark) .cell-today{background:rgba(37,99,235,.15)!important}
+:global(.dark) .month-day-num{color:#94a3b8}
+:global(.dark) .cell-today .month-day-num{color:#93c5fd}
+:global(.dark) .ev-dot-blue{background:rgba(37,99,235,.2);color:#93c5fd}
+:global(.dark) .ev-dot-teal{background:rgba(15,118,110,.2);color:#5eead4}
+:global(.dark) .ev-dot-violet{background:rgba(124,58,237,.2);color:#c4b5fd}
+:global(.dark) .ev-dot-amber{background:rgba(217,119,6,.2);color:#fcd34d}
+:global(.dark) .ev-dot-red{background:rgba(220,38,38,.15);color:#fca5a5}
+
+:global(.dark) .drawer{
+  background:rgba(10,16,32,.92);
+  backdrop-filter:saturate(160%) blur(28px);
+  box-shadow:-8px 0 48px rgba(2,6,23,.6);
+}
+:global(.dark) .drawer-header{border-bottom-color:rgba(255,255,255,.08)}
+:global(.dark) .drawer-title{color:#f1f5f9}
+:global(.dark) .drawer-code{color:#64748b}
+:global(.dark) .close-btn{
+  background:rgba(30,41,59,.8);
+  border-color:rgba(255,255,255,.12);
+  color:#94a3b8;
+}
+:global(.dark) .info-row{color:#cbd5e1}
+:global(.dark) .info-icon{color:#475569}
+:global(.dark) .meet-link{color:#c4b5fd}
+:global(.dark) .meet-link:hover{color:#a78bfa}
+:global(.dark) .cancel-notice{background:rgba(220,38,38,.12);color:#fca5a5;border-color:rgba(220,38,38,.25)}
+:global(.dark) .makeup-notice{background:rgba(217,119,6,.12);color:#fcd34d;border-color:rgba(217,119,6,.25)}
+:global(.dark) .online-notice{background:rgba(124,58,237,.12);color:#c4b5fd;border-color:rgba(124,58,237,.25)}
+:global(.dark) .drawer-footer{border-top-color:rgba(255,255,255,.08)}
+:global(.dark) .btn-secondary{
+  background:rgba(30,41,59,.7);
+  border-color:rgba(255,255,255,.12);
+  color:#cbd5e1;
+}
+:global(.dark) .btn-secondary:hover{border-color:#93c5fd;color:#93c5fd}
+:global(.dark) .btn-primary{background:#7c3aed;box-shadow:0 4px 14px rgba(124,58,237,.4)}
 </style>
