@@ -222,7 +222,11 @@ function toneClass(tone, part) {
           <div
             v-for="row in rows"
             :key="row.title"
-            class="grid gap-3 px-5 py-4 transition hover:bg-white/60 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+            @click="row.to ? $router.push(row.to) : null"
+            :class="[
+              'grid gap-3 px-5 py-4 transition md:grid-cols-[minmax(0,1fr)_auto] md:items-center',
+              row.to ? 'cursor-pointer hover:bg-white/80 active:bg-white/60' : 'hover:bg-white/60'
+            ]"
           >
             <div class="flex min-w-0 gap-3">
               <div :class="['mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1', toneClass(row.tone, 'icon')]">
@@ -255,13 +259,12 @@ function toneClass(tone, part) {
                 <p class="text-sm font-bold text-slate-950">{{ row.value }}</p>
                 <p v-if="row.valueHint" class="text-xs text-slate-500">{{ row.valueHint }}</p>
               </div>
-              <router-link
+              <span
                 v-if="row.to"
-                :to="row.to"
                 class="lg-button-secondary inline-flex h-9 items-center px-3 text-xs font-semibold"
               >
                 Mở
-              </router-link>
+              </span>
             </div>
           </div>
         </div>

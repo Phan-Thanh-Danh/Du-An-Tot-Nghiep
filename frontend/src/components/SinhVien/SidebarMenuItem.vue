@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import * as LucideIcons from 'lucide-vue-next'
 
 const props = defineProps({
@@ -10,6 +10,7 @@ const props = defineProps({
 })
 
 const route = useRoute()
+const router = useRouter()
 
 // Lấy icon component từ lucide-vue-next theo tên chuỗi
 const IconComponent = computed(() => {
@@ -20,6 +21,21 @@ const isActive = computed(() => {
   if (!props.item.route) return false
   return route.path === props.item.route || route.path.startsWith(props.item.route + '/')
 })
+
+function preloadRoute() {
+  if (!props.item.route) return
+  const match = router.resolve(props.item.route)
+  if (match && match.matched.length > 0) {
+    match.matched.forEach(m => {
+      Object.values(m.components).forEach(comp => {
+        // Trigger the dynamic import function if it's a lazy loaded component
+        if (typeof comp === 'function') {
+          comp()
+        }
+      })
+    })
+  }
+}
 </script>
 
 <template>
@@ -29,6 +45,8 @@ const isActive = computed(() => {
     :title="collapsed ? item.label : ''"
     :aria-current="isActive ? 'page' : undefined"
     role="menuitem"
+    @mouseenter="preloadRoute"
+    @focus="preloadRoute"
     :class="[
       'lg-sidebar-item group relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20',
       depth === 0
