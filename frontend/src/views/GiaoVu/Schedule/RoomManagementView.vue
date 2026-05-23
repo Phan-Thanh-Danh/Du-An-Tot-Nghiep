@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { 
   Search, 
   Filter, 
@@ -24,6 +24,14 @@ const rooms = ref([
   { id: 'PH004', name: 'Phòng 401', campus: 'Cơ sở chính', capacity: 40, type: 'Lý thuyết', devices: ['Whiteboard'], status: 'active' },
   { id: 'PH005', name: 'Studio 1', campus: 'Cơ sở chính', capacity: 15, type: 'Chuyên dụng', devices: ['Cameras', 'Green Screen'], status: 'inactive' },
 ])
+
+// ── Filters ─────────────────────────────────────────────────
+const floor = ref('Tất cả lầu')
+
+const filteredRooms = computed(() => {
+  if (floor.value === 'Tất cả lầu') return rooms.value
+  return rooms.value.filter(r => r.name.includes(floor.value.replace('Lầu ', '')))
+})
 
 const getStatusBadge = (status) => {
   switch (status) {
@@ -58,10 +66,13 @@ const getStatusBadge = (status) => {
           >
         </div>
         <div class="flex items-center gap-3">
-          <select class="bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold outline-none">
-            <option>Tất cả cơ sở</option>
-            <option>Cơ sở chính</option>
-            <option>Cơ sở phụ</option>
+          <select v-model="floor" class="bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/20">
+            <option>Tất cả lầu</option>
+            <option>Lầu 1</option>
+            <option>Lầu 2</option>
+            <option>Lầu 3</option>
+            <option>Lầu 4</option>
+            <option>Lầu 5</option>
           </select>
           <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold">
             <Filter :size="18" /> Lọc
@@ -71,7 +82,7 @@ const getStatusBadge = (status) => {
 
       <!-- ── Rooms Grid ── -->
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        <div v-for="room in rooms" :key="room.id" class="lg-card-glass group p-6 transition-all hover:-translate-y-1 hover:shadow-xl relative overflow-hidden">
+        <div v-for="room in filteredRooms" :key="room.id" class="lg-card-glass group p-6 transition-all hover:-translate-y-1 hover:shadow-xl relative overflow-hidden">
           <!-- Status Indicator -->
           <div class="absolute top-4 right-4 flex items-center gap-2">
             <span :class="['h-2 w-2 rounded-full', room.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-red-500']"></span>

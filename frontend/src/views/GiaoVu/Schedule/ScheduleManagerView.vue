@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { 
   Plus, 
   Search, 
@@ -20,6 +20,21 @@ import PageContainer from '@/components/SinhVien/PageContainer.vue'
 const semester = ref('Spring 2026')
 const campus = ref('Cơ sở chính')
 const viewMode = ref('Week') // Day, Week, Month
+
+// ── Lecturers ───────────────────────────────────────────────
+const lecturers = [
+  { id: 1, name: 'Tất cả giảng viên' },
+  { id: 2, name: 'TS. Nguyễn Văn A' },
+  { id: 3, name: 'ThS. Trần Thị B' },
+  { id: 4, name: 'TS. Lê Văn C' },
+  { id: 5, name: 'ThS. Phạm Minh Tuấn' },
+]
+const selectedLecturer = ref(lecturers[0])
+
+const filteredSchedules = computed(() => {
+  if (selectedLecturer.value.id === 1) return schedules.value
+  return schedules.value.filter(s => s.teacher === selectedLecturer.value.name)
+})
 
 // ── Mock Time Slots ─────────────────────────────────────────
 const timeSlots = [
@@ -79,7 +94,7 @@ const getStatusClass = (status) => {
 }
 
 function getSchedule(day, time) {
-  return schedules.value.find(s => s.day === day && s.startTime === time)
+  return filteredSchedules.value.find(s => s.day === day && s.startTime === time)
 }
 </script>
 
@@ -101,7 +116,7 @@ function getSchedule(day, time) {
 
     <div class="space-y-6">
       <!-- ── Toolbar ── -->
-      <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
+      <div class="lg-glass-strong p-4 rounded-[24px] flex items-center justify-between gap-4">
         <div class="flex items-center gap-4">
           <div class="flex items-center bg-white/50 rounded-xl p-1 border border-slate-100">
             <button 
@@ -138,6 +153,9 @@ function getSchedule(day, time) {
           <select v-model="campus" class="bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/20">
             <option>Cơ sở chính</option>
             <option>Cơ sở phụ</option>
+          </select>
+          <select v-model="selectedLecturer" class="bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/20">
+            <option v-for="l in lecturers" :key="l.id" :value="l">{{ l.name }}</option>
           </select>
           <button class="lg-icon-button bg-white border border-slate-100 p-2 text-slate-500">
             <Filter :size="18" />
