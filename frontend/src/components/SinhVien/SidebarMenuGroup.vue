@@ -124,7 +124,7 @@ watch(() => props.collapsed, () => {
         :class="[
           isGroupActive
             ? 'lg-sidebar-item-active font-semibold shadow-sm'
-            : 'text-slate-600 hover:text-blue-700 hover:bg-blue-50/50',
+            : 'text-slate-600 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50/50 dark:hover:bg-blue-600/10',
           collapsed ? 'justify-center' : '',
         ]"
         :aria-expanded="hasChildren ? isOpen || (collapsed && flyoutVisible) : undefined"
@@ -139,7 +139,7 @@ watch(() => props.collapsed, () => {
           :stroke-width="isGroupActive ? 2.5 : 1.8"
           :class="[
             'flex-shrink-0 transition-colors',
-            isGroupActive ? 'text-white' : 'text-slate-400 group-hover:text-blue-600',
+            isGroupActive ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400',
           ]"
         />
 
@@ -150,18 +150,18 @@ watch(() => props.collapsed, () => {
         <LucideIcons.ChevronDown
           v-if="!collapsed"
           :size="14"
-          :class="['flex-shrink-0 transition-transform duration-300 text-slate-400', isOpen ? 'rotate-180' : '']"
+          :class="['flex-shrink-0 transition-transform duration-300 text-slate-400 dark:text-slate-500', isOpen ? 'rotate-180' : '']"
         />
       </button>
 
       <!-- ACCORDION KHI MỞ: Dùng grid để animate height từ 0 -> auto mượt mà -->
-      <div 
-        v-if="!collapsed" 
+      <div
+        v-if="!collapsed"
         :id="`sidebar-group-${group.id}`"
         class="grid transition-all duration-300 ease-in-out overflow-hidden"
         :class="isOpen ? 'grid-rows-[1fr] opacity-100 mt-1 visible' : 'grid-rows-[0fr] opacity-0 mt-0 invisible'"
       >
-        <div class="min-h-0 ml-4 space-y-1 border-l border-slate-200 pl-3">
+        <div class="min-h-0 ml-4 space-y-1 border-l border-slate-200 dark:border-white/10 pl-3">
           <SidebarMenuItem
             v-for="child in group.children"
             :key="child.id"
@@ -183,16 +183,16 @@ watch(() => props.collapsed, () => {
           @mouseenter="showFlyout"
           @mouseleave="hideFlyout"
         >
-          <div class="lg-glass-strong min-w-[220px] rounded-2xl border border-white/60 p-1.5 shadow-[0_24px_70px_rgba(15,23,42,0.22)] backdrop-blur-2xl">
-            <div class="mb-1.5 px-3 py-2.5 border-b border-slate-100/50 bg-white/40 rounded-t-xl">
+          <div class="lg-glass-strong min-w-[220px] rounded-2xl border border-white/60 dark:border-white/10 p-1.5 shadow-[0_24px_70px_rgba(15,23,42,0.22)] dark:shadow-[0_24px_70px_rgba(2,6,23,0.4)] backdrop-blur-2xl">
+            <div class="mb-1.5 px-3 py-2.5 border-b border-slate-100/50 dark:border-white/10 bg-white/40 dark:bg-slate-700/30 rounded-t-xl">
               <div class="flex items-center gap-2">
-                <div class="h-6 w-6 flex items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                <div class="h-6 w-6 flex items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-600/25 text-blue-700 dark:text-blue-300">
                   <component :is="GroupIcon" :size="14" />
                 </div>
-                <p class="text-[13px] font-bold text-slate-900">{{ group.label }}</p>
+                <p class="text-[13px] font-bold text-slate-900 dark:text-slate-100">{{ group.label }}</p>
               </div>
             </div>
-            
+
             <div class="space-y-0.5">
               <SidebarMenuItem
                 v-for="child in group.children"

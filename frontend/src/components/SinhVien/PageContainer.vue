@@ -13,7 +13,7 @@ defineProps({
     </div>
 
     <div v-if="$slots.actions" class="mb-4 flex justify-end">
-      <div class="lg-glass-strong flex items-center gap-1.5 rounded-full border border-white/60 px-2.5 py-1.5 shadow-sm">
+      <div class="lg-glass-strong flex items-center gap-1.5 rounded-full border border-white/60 dark:border-white/10 px-2.5 py-1.5 shadow-sm">
         <slot name="actions" />
       </div>
     </div>

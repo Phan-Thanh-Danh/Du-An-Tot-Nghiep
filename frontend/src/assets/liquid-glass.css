@@ -1498,3 +1498,46 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════
+   DARK MODE: LOGIN PAGE & CARD OVERRIDES
+   ═══════════════════════════════════════════════════ */
+.dark .auth-liquid-page {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(37, 99, 235, 0.26), transparent 32%),
+    radial-gradient(circle at 88% 12%, rgba(124, 58, 237, 0.24), transparent 34%),
+    radial-gradient(circle at 50% 100%, rgba(15, 118, 110, 0.18), transparent 36%),
+    linear-gradient(135deg, var(--lg-bg-start) 0%, var(--lg-bg-mid) 42%, var(--lg-bg-end) 100%) !important;
+  color: var(--lg-text) !important;
+}
+
+.dark .login-card-glass {
+  background:
+    linear-gradient(135deg, var(--lg-surface-glass-strong), var(--lg-surface-glass)) !important;
+  border-color: var(--lg-border-glass) !important;
+  box-shadow:
+    var(--lg-shadow-lg),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark .login-card-icon,
+.dark .login-input-shell,
+.dark .login-security-note {
+  background: var(--lg-surface-glass) !important;
+  border-color: var(--lg-border-glass) !important;
+  box-shadow:
+    0 10px 24px rgba(2, 6, 23, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark .login-security-note p {
+  color: var(--lg-text-muted) !important;
+}
+
+.dark .login-input-shell input {
+  color: var(--lg-text) !important;
+}
+
+.dark .login-input-shell input::placeholder {
+  color: var(--lg-text-subtle) !important;
+}
