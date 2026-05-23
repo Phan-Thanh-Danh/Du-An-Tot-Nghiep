@@ -5,6 +5,7 @@ import * as LucideIcons from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
 import { mockUser, mockNotifications } from './data/menuData.js'
 import { useAuthStore } from '@/stores/auth'
+import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 
 const emit = defineEmits(['toggle-sidebar'])
 const router = useRouter()
@@ -130,7 +131,7 @@ const workspaceName = computed(() => {
 </script>
 
 <template>
-  <header class="lg-topbar sticky top-3 z-50 mx-3 mt-3 flex h-16 flex-shrink-0 items-center gap-3 overflow-visible rounded-[26px] px-4 sm:mx-4 sm:mt-4 sm:gap-4 sm:px-5">
+  <header class="lg-topbar sticky top-3 z-20 mx-3 mt-3 flex h-16 flex-shrink-0 items-center gap-3 overflow-visible rounded-[26px] px-4 sm:mx-4 sm:mt-4 sm:gap-4 sm:px-5">
     <!-- Mobile toggle -->
     <button
       class="lg-icon-button flex p-2 text-slate-500 hover:text-blue-700 lg:hidden"
@@ -176,6 +177,8 @@ const workspaceName = computed(() => {
       <Target :size="14" />
       Tập trung
     </button>
+
+    <ThemeToggle />
 
     <!-- Notification -->
     <div ref="notifMenuRef" class="relative">

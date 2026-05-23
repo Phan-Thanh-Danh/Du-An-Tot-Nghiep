@@ -1,0 +1,1001 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: ui-sans-serif, system-ui, sans-serif; }
+  .root { padding: 16px 0 32px; }
+  .mode-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; flex-wrap: wrap; gap: 10px;
+  }
+  .mode-bar h2 { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }
+  .toggle-wrap { display: flex; gap: 6px; }
+  .tab {
+    padding: 5px 14px; border-radius: 9999px; border: 0.5px solid var(--color-border-secondary);
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    background: var(--color-background-primary); color: var(--color-text-secondary);
+    transition: all 0.2s;
+  }
+  .tab.active {
+    background: var(--color-background-info); color: var(--color-text-info);
+    border-color: var(--color-border-info);
+  }
+  .section { margin-bottom: 28px; }
+  .section-title {
+    font-size: 11px; font-weight: 500; color: var(--color-text-secondary);
+    letter-spacing: 0.07em; text-transform: uppercase;
+    margin-bottom: 8px; padding-bottom: 6px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+  .grid { display: grid; gap: 6px; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: 1fr 1fr 1fr; }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+  .row {
+    display: grid; grid-template-columns: 28px 130px 1fr 60px 1fr;
+    align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-background-primary);
+    font-size: 12px;
+  }
+  .row:hover { background: var(--color-background-secondary); }
+  .swatch { width: 22px; height: 22px; border-radius: 6px; border: 0.5px solid var(--color-border-secondary); flex-shrink: 0; }
+  .token { font-family: ui-monospace, monospace; font-size: 11px; color: var(--color-text-primary); font-weight: 500; }
+  .val { font-family: ui-monospace, monospace; font-size: 10px; color: var(--color-text-secondary); word-break: break-all; }
+  .cr { font-size: 11px; font-weight: 500; text-align: center; border-radius: 4px; padding: 2px 6px; }
+  .cr-pass { background: var(--color-background-success); color: var(--color-text-success); }
+  .cr-warn { background: var(--color-background-warning); color: var(--color-text-warning); }
+  .cr-fail { background: var(--color-background-danger); color: var(--color-text-danger); }
+  .note { font-size: 11px; color: var(--color-text-secondary); }
+  .preview-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+
+  .comp-card {
+    padding: 10px 12px; border-radius: var(--border-radius-lg);
+    border: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-background-primary);
+  }
+  .comp-label { font-size: 10px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* previews */
+  .btn-primary { padding: 7px 16px; border-radius: 12px; background: #2563eb; color: #fff; font-size: 12px; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 6px 18px rgba(37,99,235,0.28); }
+  .btn-secondary-l { padding: 7px 16px; border-radius: 12px; background: rgba(255,255,255,0.62); color: #0f172a; font-size: 12px; font-weight: 600; border: 1px solid rgba(255,255,255,0.62); cursor: pointer; }
+  .btn-secondary-d { padding: 7px 16px; border-radius: 12px; background: rgba(15,23,42,0.52); color: #f8fafc; font-size: 12px; font-weight: 600; border: 1px solid rgba(255,255,255,0.14); cursor: pointer; }
+  .btn-ghost-l { padding: 7px 16px; border-radius: 12px; background: transparent; color: #475569; font-size: 12px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-ghost-d { padding: 7px 16px; border-radius: 12px; background: transparent; color: #cbd5e1; font-size: 12px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-danger { padding: 7px 16px; border-radius: 12px; background: #dc2626; color: #fff; font-size: 12px; font-weight: 700; border: none; cursor: pointer; }
+
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 9999px; font-size: 11px; font-weight: 700; border: 1px solid; }
+  .badge-primary { background: rgba(219,234,254,0.88); color: #1d4ed8; border-color: rgba(37,99,235,0.24); }
+  .badge-success { background: rgba(220,252,231,0.84); color: #15803d; border-color: rgba(22,163,74,0.24); }
+  .badge-warning { background: rgba(254,243,199,0.88); color: #b45309; border-color: rgba(217,119,6,0.28); }
+  .badge-danger { background: rgba(254,226,226,0.88); color: #b91c1c; border-color: rgba(220,38,38,0.24); }
+  .badge-violet { background: rgba(237,233,254,0.90); color: #6d28d9; border-color: rgba(124,58,237,0.24); }
+  .badge-info { background: rgba(224,242,254,0.88); color: #0369a1; border-color: rgba(2,132,199,0.24); }
+
+  .badge-d-primary { background: rgba(30,64,175,0.35); color: #93c5fd; border-color: rgba(147,197,253,0.20); }
+  .badge-d-success { background: rgba(20,83,45,0.40); color: #86efac; border-color: rgba(134,239,172,0.20); }
+  .badge-d-warning { background: rgba(120,53,15,0.40); color: #fcd34d; border-color: rgba(252,211,77,0.20); }
+  .badge-d-danger { background: rgba(127,29,29,0.40); color: #fca5a5; border-color: rgba(252,165,165,0.20); }
+  .badge-d-violet { background: rgba(88,28,135,0.40); color: #d8b4fe; border-color: rgba(216,180,254,0.20); }
+  .badge-d-info { background: rgba(12,74,110,0.40); color: #7dd3fc; border-color: rgba(125,211,252,0.20); }
+
+  .inp { padding: 7px 12px; border-radius: 12px; font-size: 12px; width: 100%; border: 1px solid rgba(255,255,255,0.56); background: rgba(255,255,255,0.58); color: #0f172a; outline: none; }
+  .inp-d { padding: 7px 12px; border-radius: 12px; font-size: 12px; width: 100%; border: 1px solid rgba(255,255,255,0.14); background: rgba(15,23,42,0.52); color: #f8fafc; outline: none; }
+  .inp-focus { border-color: rgba(37,99,235,0.58) !important; box-shadow: 0 0 0 3px rgba(37,99,235,0.14); }
+  .inp-error { border-color: rgba(220,38,38,0.60) !important; }
+
+  .card-l { padding: 12px 14px; border-radius: 18px; background: linear-gradient(135deg,rgba(255,255,255,0.76),rgba(255,255,255,0.52)); border: 1px solid rgba(255,255,255,0.50); backdrop-filter: blur(18px) saturate(165%); }
+  .card-d { padding: 12px 14px; border-radius: 18px; background: linear-gradient(135deg,rgba(15,23,42,0.68),rgba(15,23,42,0.52)); border: 1px solid rgba(255,255,255,0.14); }
+  .card-solid-l { padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,0.92); border: 1px solid rgba(226,232,240,0.78); }
+  .card-solid-d { padding: 12px 14px; border-radius: 18px; background: rgba(15,23,42,0.82); border: 1px solid rgba(148,163,184,0.24); }
+  .card-text-l { font-size: 12px; color: #0f172a; font-weight: 600; }
+  .card-sub-l { font-size: 11px; color: #475569; margin-top: 3px; }
+  .card-text-d { font-size: 12px; color: #f8fafc; font-weight: 600; }
+  .card-sub-d { font-size: 11px; color: #cbd5e1; margin-top: 3px; }
+
+  .alert { padding: 8px 12px; border-radius: 14px; font-size: 11px; font-weight: 600; border: 1px solid; }
+  .alert-success-l { background: rgba(220,252,231,0.88); color: #15803d; border-color: rgba(22,163,74,0.28); }
+  .alert-error-l { background: rgba(254,226,226,0.88); color: #b91c1c; border-color: rgba(220,38,38,0.28); }
+  .alert-warning-l { background: rgba(254,243,199,0.90); color: #b45309; border-color: rgba(217,119,6,0.30); }
+  .alert-info-l { background: rgba(224,242,254,0.90); color: #0369a1; border-color: rgba(2,132,199,0.28); }
+  .alert-success-d { background: rgba(20,83,45,0.45); color: #86efac; border-color: rgba(134,239,172,0.22); }
+  .alert-error-d { background: rgba(127,29,29,0.45); color: #fca5a5; border-color: rgba(252,165,165,0.22); }
+  .alert-warning-d { background: rgba(120,53,15,0.45); color: #fcd34d; border-color: rgba(252,211,77,0.22); }
+  .alert-info-d { background: rgba(12,74,110,0.45); color: #7dd3fc; border-color: rgba(125,211,252,0.22); }
+
+  .modal-demo {
+    border-radius: 20px; padding: 16px; 
+    background: linear-gradient(135deg,rgba(255,255,255,0.78),rgba(255,255,255,0.56));
+    border: 1px solid rgba(255,255,255,0.68); backdrop-filter: blur(30px) saturate(190%);
+  }
+  .modal-demo-d {
+    border-radius: 20px; padding: 16px;
+    background: linear-gradient(135deg,rgba(15,23,42,0.82),rgba(15,23,42,0.65));
+    border: 1px solid rgba(255,255,255,0.18);
+  }
+  .modal-title-l { font-size: 14px; font-weight: 700; color: #0f172a; }
+  .modal-body-l { font-size: 11px; color: #475569; margin-top: 4px; line-height: 1.6; }
+  .modal-title-d { font-size: 14px; font-weight: 700; color: #f8fafc; }
+  .modal-body-d { font-size: 11px; color: #cbd5e1; margin-top: 4px; line-height: 1.6; }
+
+  .toast { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 14px; font-size: 11px; font-weight: 600; border: 1px solid; }
+  .toast-l { background: rgba(255,255,255,0.82); border-color: rgba(255,255,255,0.55); color: #0f172a; backdrop-filter: blur(16px); }
+  .toast-d { background: rgba(15,23,42,0.80); border-color: rgba(255,255,255,0.14); color: #f8fafc; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  .nav-l { padding: 8px 14px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.54); background: rgba(255,255,255,0.56); backdrop-filter: saturate(140%) blur(12px); display: flex; align-items: center; gap: 10px; }
+  .nav-d { padding: 8px 14px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.14); background: rgba(15,23,42,0.52); display: flex; align-items: center; gap: 10px; }
+  .nav-logo { width: 22px; height: 22px; border-radius: 7px; background: #2563eb; }
+  .nav-text-l { font-size: 12px; font-weight: 700; color: #0f172a; }
+  .nav-text-d { font-size: 12px; font-weight: 700; color: #f8fafc; }
+  .nav-item-l { font-size: 11px; color: #475569; padding: 3px 8px; border-radius: 8px; }
+  .nav-item-d { font-size: 11px; color: #94a3b8; padding: 3px 8px; border-radius: 8px; }
+  .nav-item-active-l { background: rgba(37,99,235,0.10); color: #1d4ed8; font-weight: 600; }
+  .nav-item-active-d { background: rgba(37,99,235,0.22); color: #93c5fd; font-weight: 600; }
+
+  .tooltip { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; color: #f8fafc; background: rgba(15,23,42,0.88); }
+  .tooltip-d { color: #0f172a; background: rgba(248,250,252,0.90); }
+
+  .progress-track { height: 8px; border-radius: 9999px; background: rgba(226,232,240,0.78); overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 9999px; background: linear-gradient(90deg,#2563eb,#0891b2); }
+  .progress-track-d { background: rgba(30,41,59,0.80); }
+
+  .toggle-track { width: 36px; height: 20px; border-radius: 10px; background: rgba(148,163,184,0.35); position: relative; display: inline-block; }
+  .toggle-track-on { background: #2563eb; }
+  .toggle-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: white; box-shadow: 0 1px 4px rgba(0,0,0,.2); transition: left .2s; }
+  .toggle-thumb-on { left: 18px; }
+
+  .avatar { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+  .av-blue { background: rgba(219,234,254,0.88); color: #1d4ed8; }
+  .av-green { background: rgba(220,252,231,0.84); color: #15803d; }
+  .av-violet { background: rgba(237,233,254,0.90); color: #6d28d9; }
+
+  .divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 20px 0; }
+
+  .prompt-block {
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 16px 18px;
+  }
+  .prompt-label { font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 10px; }
+  .prompt-text { font-family: ui-monospace, monospace; font-size: 11px; color: var(--color-text-primary); line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+  .copy-btn { float: right; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 500; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); color: var(--color-text-secondary); cursor: pointer; }
+  .copy-btn:hover { color: var(--color-text-primary); }
+</style>
+
+<div class="root">
+  <h2 class="sr-only">Bảng màu component Liquid Glass LMS — light và dark mode</h2>
+
+  <div class="mode-bar">
+    <span style="font-size:14px;font-weight:500;color:var(--color-text-primary)">Bảng màu component · Liquid Glass LMS</span>
+    <div class="toggle-wrap">
+      <button class="tab active" id="tab-light" onclick="setMode('light')">Light mode</button>
+      <button class="tab" id="tab-dark" onclick="setMode('dark')">Dark mode</button>
+      <button class="tab" id="tab-token" onclick="setMode('token')">Token table</button>
+    </div>
+  </div>
+
+  <!-- LIGHT MODE -->
+  <div id="view-light">
+
+    <div class="section">
+      <div class="section-title">Buttons</div>
+      <div class="grid g2">
+        <div class="comp-card">
+          <div class="comp-label">Primary — solid opaque</div>
+          <div class="preview-row">
+            <button class="btn-primary">Đăng nhập</button>
+            <button class="btn-primary" style="opacity:.45;cursor:not-allowed">Disabled</button>
+          </div>
+          <div style="font-size:10px;color:var(--color-text-secondary);line-height:1.7">
+            bg: <code>#2563EB</code> · text: <code>#FFFFFF</code><br>
+            shadow: <code>rgba(37,99,235,0.28)</code><br>
+            hover: <code>translateY(-2px)</code> · focus: ring 4px rgba(37,99,235,.22)<br>
+            disabled: <code>opacity 0.45</code> · contrast: <b>~8.6:1 ✓ AAA</b>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-label">Secondary · Ghost · Danger</div>
+          <div class="preview-row">
+            <button class="btn-secondary-l">Hủy</button>
+            <button class="btn-ghost-l">Bỏ qua</button>
+            <button class="btn-danger">Xóa</button>
+          </div>
+          <div style="font-size:10px;color:var(--color-text-secondary);line-height:1.7">
+            Secondary bg: <code>rgba(255,255,255,0.62)</code> · text: <code>#0F172A</code> · cr ~13:1 ✓<br>
+            Ghost text: <code>#475569</code> · hover bg: <code>rgba(255,255,255,0.52)</code> · cr ~5.9:1 ✓<br>
+            Danger bg: <code>#DC2626</code> · text: <code>#FFFFFF</code> · cr ~5.1:1 ✓ AA
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Badges &amp; Chips</div>
+      <div class="comp-card">
+        <div class="comp-label">Semantic badges — light</div>
+        <div class="preview-row" style="margin-bottom:10px">
+          <span class="badge badge-primary">Primary</span>
+          <span class="badge badge-success">Success</span>
+          <span class="badge badge-warning">Warning</span>
+          <span class="badge badge-danger">Danger</span>
+          <span class="badge badge-violet">Accent</span>
+          <span class="badge badge-info">Info</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;font-size:10px;color:var(--color-text-secondary)">
+          <span>Primary: <code>#1D4ED8</code> / <code>rgba(219,234,254,.88)</code> · 6.4:1 ✓</span>
+          <span>Success: <code>#15803D</code> / <code>rgba(220,252,231,.84)</code> · 6.8:1 ✓</span>
+          <span>Warning: <code>#B45309</code> / <code>rgba(254,243,199,.88)</code> · 5.2:1 ✓</span>
+          <span>Danger: <code>#B91C1C</code> / <code>rgba(254,226,226,.88)</code> · 6.1:1 ✓</span>
+          <span>Violet: <code>#6D28D9</code> / <code>rgba(237,233,254,.90)</code> · 7.4:1 ✓</span>
+          <span>Info: <code>#0369A1</code> / <code>rgba(224,242,254,.88)</code> · 6.9:1 ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Inputs &amp; Form controls</div>
+      <div class="grid g3">
+        <div class="comp-card">
+          <div class="comp-label">Default</div>
+          <input class="inp" placeholder="Email...">
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:6px;line-height:1.6">
+            bg: <code>rgba(255,255,255,0.58)</code><br>
+            border: <code>rgba(255,255,255,0.56)</code><br>
+            text: <code>#0F172A</code> · ~14:1 ✓<br>
+            placeholder: <code>#64748B</code> · 4.6:1 ✓
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-label">Focus state</div>
+          <input class="inp inp-focus" value="user@lms.vn">
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:6px;line-height:1.6">
+            border: <code>rgba(37,99,235,0.58)</code><br>
+            bg: <code>rgba(255,255,255,0.86)</code><br>
+            ring: <code>0 0 0 4px rgba(37,99,235,.14)</code><br>
+            non-text cr: ≥ 3:1 ✓ WCAG
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-label">Error state</div>
+          <input class="inp inp-error" value="sai@email">
+          <div style="font-size:10px;color:var(--color-text-danger);margin-top:4px;font-size:10px;font-weight:600">⚠ Email không hợp lệ</div>
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:4px;line-height:1.6">
+            border: <code>rgba(220,38,38,0.60)</code><br>
+            error text: <code>#DC2626</code> · 4.9:1 ✓<br>
+            role="alert" · aria-describedby
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Cards</div>
+      <div class="grid g2">
+        <div class="comp-card">
+          <div class="comp-label">Glass card</div>
+          <div class="card-l">
+            <div class="card-text-l">Tiêu đề card</div>
+            <div class="card-sub-l">Mô tả phụ nằm bên dưới · không bị chìm màu</div>
+          </div>
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:8px;line-height:1.7">
+            bg: <code>rgba(255,255,255,0.52–0.76)</code> gradient<br>
+            title: <code>#0F172A</code> · 15.3:1 ✓ AAA<br>
+            sub: <code>#475569</code> · 7.2:1 ✓ AA<br>
+            border: <code>rgba(255,255,255,0.50)</code> · blur 18px
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-label">Solid card</div>
+          <div class="card-solid-l">
+            <div class="card-text-l">Dense content card</div>
+            <div class="card-sub-l">Dùng cho bảng điểm, nội dung dày đặc</div>
+          </div>
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:8px;line-height:1.7">
+            bg: <code>rgba(255,255,255,0.92)</code><br>
+            border: <code>rgba(226,232,240,0.78)</code><br>
+            title: <code>#0F172A</code> · 15.3:1 ✓ AAA<br>
+            sub: <code>#475569</code> · 7.2:1 ✓ AA
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Alerts &amp; Toasts</div>
+      <div class="grid g2">
+        <div class="comp-card">
+          <div class="comp-label">Alert — light</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div class="alert alert-success-l">✓ Nộp bài thành công</div>
+            <div class="alert alert-error-l">✗ Sai mật khẩu</div>
+            <div class="alert alert-warning-l">⚠ Phiên hết hạn sau 5 phút</div>
+            <div class="alert alert-info-l">ℹ Có bản cập nhật mới</div>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-label">Toast — light</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div class="toast toast-l"><div class="dot" style="background:#16a34a"></div>Lưu thành công</div>
+            <div class="toast toast-l"><div class="dot" style="background:#dc2626"></div>Không thể kết nối</div>
+            <div class="toast toast-l"><div class="dot" style="background:#d97706"></div>Tải chậm — thử lại</div>
+            <div class="toast toast-l"><div class="dot" style="background:#0284c7"></div>Có 3 thông báo mới</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Modal &amp; Popup</div>
+      <div class="comp-card">
+        <div class="comp-label">Modal glass — light</div>
+        <div class="modal-demo" style="max-width:320px">
+          <div class="modal-title-l">Xác nhận xóa bài thi</div>
+          <div class="modal-body-l">Hành động này không thể hoàn tác. Bài thi và toàn bộ dữ liệu liên quan sẽ bị xóa vĩnh viễn.</div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn-danger" style="font-size:11px;padding:5px 12px;border-radius:10px">Xóa</button>
+            <button class="btn-secondary-l" style="font-size:11px;padding:5px 12px;border-radius:10px">Hủy</button>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:8px;line-height:1.7">
+          bg: <code>rgba(255,255,255,0.78–0.84)</code> · blur 30px sat 190%<br>
+          title: <code>#0F172A</code> · body: <code>#475569</code> · scrim: <code>rgba(15,23,42,0.18)</code><br>
+          role="dialog" · aria-modal · aria-labelledby · focus trap
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Navbar &amp; Sidebar nav item</div>
+      <div class="comp-card">
+        <div class="comp-label">Navbar strip — light</div>
+        <div class="nav-l">
+          <div class="nav-logo"></div>
+          <span class="nav-text-l">LMS</span>
+          <span class="nav-item-l nav-item-active-l">Tổng quan</span>
+          <span class="nav-item-l">Khóa học</span>
+          <span class="nav-item-l">Bài thi</span>
+          <span class="nav-item-l">Cài đặt</span>
+        </div>
+        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:8px;line-height:1.7">
+          bg: <code>rgba(255,255,255,0.56)</code> · blur 12px sat 140%<br>
+          active: bg <code>rgba(37,99,235,.10)</code> · text <code>#1D4ED8</code> · 6.4:1 ✓<br>
+          idle: <code>#475569</code> · 5.9:1 ✓ AA
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Typography — text on glass light</div>
+      <div class="comp-card">
+        <div style="line-height:1">
+          <div style="font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-.03em;margin-bottom:6px">Tiêu đề H1 · #0F172A · 15.3:1 ✓ AAA</div>
+          <div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:6px">H2 · Heading màu chính</div>
+          <div style="font-size:14px;font-weight:400;color:#0f172a;line-height:1.6;margin-bottom:6px">Body text — <code>#0F172A</code> · contrast 15.3:1 trên nền trắng · AAA ✓</div>
+          <div style="font-size:14px;color:#475569;margin-bottom:4px">Muted text — <code>#475569</code> · 7.2:1 ✓ AA</div>
+          <div style="font-size:12px;color:#64748b;margin-bottom:4px">Subtle / placeholder — <code>#64748B</code> · 4.6:1 ✓ AA</div>
+          <div style="font-size:11px;font-weight:700;color:#2563eb;letter-spacing:.06em;text-transform:uppercase">LABEL / OVERLINE — <code>#2563EB</code> · 4.5:1 ✓ AA</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Icons, Avatars, Toggle, Progress</div>
+      <div class="grid g4">
+        <div class="comp-card">
+          <div class="comp-label">Icons</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+            <span style="font-size:20px;color:#0f172a">⊕</span>
+            <span style="font-size:20px;color:#2563eb">★</span>
+            <span style="font-size:20px;color:#475569">☰</span>
+            <span style="font-size:20px;color:#dc2626">✕</span>
+          </div>
+          <div style="font-size:10px;color:var(--color-text-secondary);line-height:1.6">
+            default: <code>#0F172A</code><br>
+            active: <code>#2563EB</code><br>
+            muted: <code>#475569</code><br>
+            danger: <code>#DC2626</code>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-label">Avatars</div>
+          <div style="display:flex;gap:6px;margin-bottom:6px">
+            <div class="avatar av-blue">NT</div>
+            <div class="avatar av-green">LH</div>
+            <div class="avatar av-violet">TQ</div>
+          </div>
+          <div style="font-size:10px;color:var(--color-text-secondary);line-height:1.6">
+            Blue: <code>#1D4ED8</code> / <code>rgba(219,234,254,.88)</code><br>
+            Green: <code>#15803D</code> / <code>rgba(220,252,231,.84)</code><br>
+            Violet: <code>#6D28D9</code> / <code>rgba(237,233,254,.90)</code>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-label">Toggle switch</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="toggle-track"><div class="toggle-thumb"></div></div>
+              <span style="font-size:11px;color:#475569">Off</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="toggle-track toggle-track-on"><div class="toggle-thumb toggle-thumb-on"></div></div>
+              <span style="font-size:11px;color:#0f172a;font-weight:600">On</span>
+            </div>
+          </div>
+          <div style="font-size:10px;color:var(--color-text-secondary);line-height:1.6">
+            off: <code>rgba(148,163,184,.35)</code><br>
+            on: <code>#2563EB</code><br>
+            thumb: <code>#FFFFFF</code>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-label">Progress bar</div>
+          <div style="margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#475569;margin-bottom:4px"><span>Tiến độ</span><span style="font-weight:700;color:#2563eb">72%</span></div>
+            <div class="progress-track"><div class="progress-fill" style="width:72%"></div></div>
+          </div>
+          <div style="font-size:10px;color:var(--color-text-secondary);line-height:1.6">
+            track: <code>rgba(226,232,240,.78)</code><br>
+            fill: <code>#2563EB → #0891B2</code><br>
+            label: <code>#2563EB</code> · 4.5:1 ✓
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Tooltip &amp; Dropdown</div>
+      <div class="grid g2">
+        <div class="comp-card">
+          <div class="comp-label">Tooltip — dark on light</div>
+          <span class="tooltip">Nhấn để xem chi tiết kết quả</span>
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:8px;line-height:1.6">
+            bg: <code>rgba(15,23,42,.88)</code><br>
+            text: <code>#F8FAFC</code> · 14.8:1 ✓ AAA<br>
+            radius: 8px · padding: 4px 10px
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-label">Skeleton loader</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div style="height:12px;border-radius:6px;background:linear-gradient(90deg,rgba(226,232,240,.54),rgba(255,255,255,.76),rgba(226,232,240,.54));background-size:220% 100%;width:80%"></div>
+            <div style="height:12px;border-radius:6px;background:linear-gradient(90deg,rgba(226,232,240,.54),rgba(255,255,255,.76),rgba(226,232,240,.54));background-size:220% 100%;width:60%"></div>
+            <div style="height:12px;border-radius:6px;background:linear-gradient(90deg,rgba(226,232,240,.54),rgba(255,255,255,.76),rgba(226,232,240,.54));background-size:220% 100%;width:40%"></div>
+          </div>
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:8px">shimmer: <code>rgba(226,232,240,.54 → 255,255,255,.76)</code></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DARK MODE -->
+  <div id="view-dark" style="display:none">
+
+    <div class="section">
+      <div class="section-title">Buttons — dark</div>
+      <div class="grid g2">
+        <div class="comp-card">
+          <div class="comp-label">Primary · Secondary</div>
+          <div class="preview-row">
+            <button class="btn-primary">Đăng nhập</button>
+            <button class="btn-secondary-d">Hủy</button>
+            <button class="btn-ghost-d">Bỏ qua</button>
+          </div>
+          <div style="font-size:10px;color:var(--color-text-secondary);line-height:1.7">
+            Primary bg: <code>#2563EB</code> không đổi · text: <code>#FFF</code> · ~8.6:1 ✓<br>
+            Secondary bg: <code>rgba(15,23,42,.52)</code> · text: <code>#F8FAFC</code> · ~14.8:1 ✓<br>
+            Ghost text: <code>#CBD5E1</code> · hover: <code>rgba(255,255,255,.08)</code>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-label">Danger · Disabled</div>
+          <div class="preview-row">
+            <button class="btn-danger">Xóa</button>
+            <button class="btn-primary" style="opacity:.4;cursor:not-allowed">Disabled</button>
+          </div>
+          <div style="font-size:10px;color:var(--color-text-secondary);line-height:1.7">
+            Danger bg: <code>#F87171</code> dark-mode token<br>
+            trên dark: text <code>#0F172A</code> để đảm bảo contrast<br>
+            disabled: <code>opacity .4</code> + pointer-events none
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Badges — dark</div>
+      <div class="comp-card">
+        <div class="preview-row" style="margin-bottom:10px">
+          <span class="badge badge-d-primary">Primary</span>
+          <span class="badge badge-d-success">Success</span>
+          <span class="badge badge-d-warning">Warning</span>
+          <span class="badge badge-d-danger">Danger</span>
+          <span class="badge badge-d-violet">Accent</span>
+          <span class="badge badge-d-info">Info</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;font-size:10px;color:var(--color-text-secondary)">
+          <span>Primary: text <code>#93C5FD</code> / bg dark-blue</span>
+          <span>Success: text <code>#86EFAC</code> / bg dark-green</span>
+          <span>Warning: text <code>#FCD34D</code> / bg dark-amber</span>
+          <span>Danger: text <code>#FCA5A5</code> / bg dark-red</span>
+          <span>Violet: text <code>#D8B4FE</code> / bg dark-violet</span>
+          <span>Info: text <code>#7DD3FC</code> / bg dark-cyan</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Inputs — dark</div>
+      <div class="grid g3">
+        <div class="comp-card">
+          <div class="comp-label">Default</div>
+          <input class="inp-d" placeholder="Email...">
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:6px;line-height:1.6">
+            bg: <code>rgba(15,23,42,.52)</code><br>
+            border: <code>rgba(255,255,255,.14)</code><br>
+            text: <code>#F8FAFC</code> · 14.8:1 ✓<br>
+            placeholder: <code>#94A3B8</code> · 4.5:1 ✓
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-label">Focus</div>
+          <input class="inp-d inp-focus" value="user@lms.vn">
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:6px;line-height:1.6">
+            border: <code>rgba(37,99,235,.58)</code><br>
+            ring: <code>rgba(37,99,235,.20)</code><br>
+            bg tăng lên: <code>rgba(15,23,42,.70)</code>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-label">Error</div>
+          <input class="inp-d inp-error" value="sai@email">
+          <div style="font-size:10px;color:#f87171;margin-top:4px;font-size:10px;font-weight:600">⚠ Email không hợp lệ</div>
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:4px;line-height:1.6">
+            border: <code>rgba(248,113,113,.60)</code><br>
+            error: <code>#F87171</code> · 4.6:1 ✓ AA
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Cards — dark</div>
+      <div class="grid g2">
+        <div class="comp-card">
+          <div class="comp-label">Glass card dark</div>
+          <div class="card-d">
+            <div class="card-text-d">Tiêu đề card</div>
+            <div class="card-sub-d">Mô tả phụ · contrast đảm bảo trên nền tối</div>
+          </div>
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:8px;line-height:1.7">
+            bg: <code>rgba(15,23,42,.52–.68)</code><br>
+            title: <code>#F8FAFC</code> · 14.8:1 ✓ AAA<br>
+            sub: <code>#CBD5E1</code> · 9.4:1 ✓ AA
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-label">Solid card dark</div>
+          <div class="card-solid-d">
+            <div class="card-text-d">Dense content dark</div>
+            <div class="card-sub-d">Bảng điểm, nội dung dài</div>
+          </div>
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:8px;line-height:1.7">
+            bg: <code>rgba(15,23,42,.82)</code><br>
+            border: <code>rgba(148,163,184,.24)</code><br>
+            title: <code>#F8FAFC</code> · 14.8:1 ✓
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Alerts &amp; Toasts — dark</div>
+      <div class="grid g2">
+        <div class="comp-card">
+          <div class="comp-label">Alerts dark</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div class="alert alert-success-d">✓ Nộp bài thành công</div>
+            <div class="alert alert-error-d">✗ Sai mật khẩu</div>
+            <div class="alert alert-warning-d">⚠ Phiên hết hạn sau 5 phút</div>
+            <div class="alert alert-info-d">ℹ Có bản cập nhật mới</div>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-label">Toasts dark</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div class="toast toast-d"><div class="dot" style="background:#22c55e"></div>Lưu thành công</div>
+            <div class="toast toast-d"><div class="dot" style="background:#f87171"></div>Không thể kết nối</div>
+            <div class="toast toast-d"><div class="dot" style="background:#f59e0b"></div>Tải chậm — thử lại</div>
+            <div class="toast toast-d"><div class="dot" style="background:#38bdf8"></div>Có 3 thông báo mới</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Modal — dark</div>
+      <div class="comp-card">
+        <div class="modal-demo-d" style="max-width:320px">
+          <div class="modal-title-d">Xác nhận xóa bài thi</div>
+          <div class="modal-body-d">Hành động này không thể hoàn tác. Bài thi và dữ liệu liên quan sẽ bị xóa vĩnh viễn.</div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn-danger" style="font-size:11px;padding:5px 12px;border-radius:10px">Xóa</button>
+            <button class="btn-secondary-d" style="font-size:11px;padding:5px 12px;border-radius:10px">Hủy</button>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:8px;line-height:1.7">
+          bg: <code>rgba(15,23,42,.82)</code> · border: <code>rgba(255,255,255,.18)</code><br>
+          title: <code>#F8FAFC</code> · body: <code>#CBD5E1</code><br>
+          scrim: <code>rgba(2,6,23,.56)</code>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Navbar — dark</div>
+      <div class="comp-card">
+        <div class="nav-d">
+          <div class="nav-logo"></div>
+          <span class="nav-text-d">LMS</span>
+          <span class="nav-item-d nav-item-active-d">Tổng quan</span>
+          <span class="nav-item-d">Khóa học</span>
+          <span class="nav-item-d">Bài thi</span>
+        </div>
+        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:8px;line-height:1.7">
+          bg: <code>rgba(15,23,42,.52)</code> · border: <code>rgba(255,255,255,.14)</code><br>
+          active: bg <code>rgba(37,99,235,.22)</code> · text <code>#93C5FD</code> · 6.1:1 ✓<br>
+          idle: <code>#94A3B8</code> · 4.5:1 ✓
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Typography — dark</div>
+      <div class="comp-card" style="background:rgba(15,23,42,.60)">
+        <div style="font-size:22px;font-weight:800;color:#f8fafc;letter-spacing:-.03em;margin-bottom:6px">H1 — <code>#F8FAFC</code> · 14.8:1 ✓ AAA</div>
+        <div style="font-size:14px;color:#f8fafc;margin-bottom:4px">Body text đủ sáng trên nền tối</div>
+        <div style="font-size:14px;color:#cbd5e1;margin-bottom:4px">Muted — <code>#CBD5E1</code> · 9.4:1 ✓</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">Subtle — <code>#94A3B8</code> · 4.5:1 ✓</div>
+        <div style="font-size:11px;font-weight:700;color:#60a5fa;letter-spacing:.06em;text-transform:uppercase">LABEL — <code>#60A5FA</code> · 4.5:1 ✓ AA dark</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Progress &amp; Tooltip — dark</div>
+      <div class="grid g2">
+        <div class="comp-card">
+          <div class="comp-label">Progress dark</div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;margin-bottom:4px"><span>Tiến độ</span><span style="font-weight:700;color:#60a5fa">72%</span></div>
+          <div class="progress-track progress-track-d"><div class="progress-fill" style="width:72%"></div></div>
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:8px">track: <code>rgba(30,41,59,.80)</code> · fill: không đổi</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-label">Tooltip dark</div>
+          <span class="tooltip tooltip-d">Nhấn để xem chi tiết</span>
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:8px;line-height:1.6">
+            bg: <code>rgba(248,250,252,.90)</code><br>
+            text: <code>#0F172A</code> · 15.3:1 ✓ AAA
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOKEN TABLE -->
+  <div id="view-token" style="display:none">
+    <div class="section">
+      <div class="section-title">Tất cả token · light ↔ dark</div>
+      <div id="token-rows"></div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- PROMPT -->
+  <div class="prompt-block">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="prompt-label">Prompt agent — Liquid Glass LMS full component color system</div>
+      <button class="copy-btn" id="copy-btn" onclick="copyPrompt()">Copy ↗</button>
+    </div>
+    <div class="prompt-text" id="prompt-text"></div>
+  </div>
+</div>
+
+<script>
+const PROMPT = `SYSTEM — Liquid Glass LMS: Full Component Color Token Spec
+=============================================================
+Stack: Vue 3 + Pinia + Tailwind v3 + liquid-glass.css custom classes
+Theme store: useThemeStore (isDark, toggleMode) — toggles .dark class on <html>
+Token prefix: --lg-* (CSS custom properties) redefined under .dark
+Fallback: @supports not backdrop-filter → surface-solid-soft
+
+════════════════════════════════════════════════════════════
+A. BACKGROUND & PAGE SURFACE
+════════════════════════════════════════════════════════════
+Light:  gradient linear-gradient(135deg, #EFF6FF 0%, #F8FAFC 42%, #F5F3FF 100%)
+        + 3 radial color blobs (cyan/violet/blue) opacity ≤ 0.22
+Dark:   linear-gradient(135deg, #020617 0%, #0F172A 42%, #1E293B 100%)
+        + radial blobs (blue/violet/teal) opacity ≤ 0.26
+Rule:   max 3 blobs, filter:blur(64px), animation 18s ease alternate
+        prefers-reduced-motion → animation:none !important
+
+════════════════════════════════════════════════════════════
+B. SURFACE LAYERS (backdrop-filter required)
+════════════════════════════════════════════════════════════
+.lg-glass        blur(20px) sat(170%)  bg: rgba(255,255,255,0.52–0.68) [L] / rgba(15,23,42,0.52–0.68) [D]
+.lg-glass-strong blur(30px) sat(190%)  bg: rgba(255,255,255,0.78–0.84) [L] / rgba(15,23,42,0.68–0.82) [D]
+.lg-glass-soft   blur(18px) sat(165%)  bg: rgba(255,255,255,0.44–0.64) [L] / rgba(15,23,42,0.44–0.58) [D]
+.lg-solid-soft   no blur               bg: rgba(255,255,255,0.88–0.92) [L] / rgba(15,23,42,0.82) [D]
+Border [L]: rgba(255,255,255,0.42–0.68) | Border [D]: rgba(255,255,255,0.14–0.20)
+Separator: rgba(148,163,184,0.28) [L] / rgba(148,163,184,0.24) [D]
+
+════════════════════════════════════════════════════════════
+C. TYPOGRAPHY — contrast must pass on worst-case background
+════════════════════════════════════════════════════════════
+LIGHT MODE:
+  --lg-text        #0F172A  →  15.3:1 AAA on white  (body, heading, label)
+  --lg-text-muted  #475569  →   7.2:1 AA  (secondary info, captions)
+  --lg-text-subtle #64748B  →   4.6:1 AA  (placeholder, meta, disabled label)
+  Link / label:    #2563EB  →   4.5:1 AA  (uppercase, bold only — không dùng body)
+DARK MODE:
+  --lg-text        #F8FAFC  →  14.8:1 AAA
+  --lg-text-muted  #CBD5E1  →   9.4:1 AA
+  --lg-text-subtle #94A3B8  →   4.5:1 AA
+  Link dark:       #60A5FA  →   4.5:1 AA trên dark bg
+Rule: KHÔNG dùng rgba opacity để làm nhạt màu chữ → phải đổi hex token
+      text < 14px KHÔNG được dùng --lg-text-subtle làm màu chính
+
+════════════════════════════════════════════════════════════
+D. BUTTONS
+════════════════════════════════════════════════════════════
+Primary (.lg-btn-primary):
+  bg:     linear-gradient(135deg, #1D4ED8, #2563EB 52%, #0891B2)
+  text:   #FFFFFF  · shadow: 0 14px 34px rgba(37,99,235,0.30)
+  hover:  translateY(-2px) · shadow +   | active: translateY(0) scale(0.98)
+  focus:  outline 4px rgba(37,99,235,0.22) offset 2px
+  disabled: opacity 0.45 pointer-events none
+  contrast: ~8.6:1 AAA ✓
+
+Secondary (.lg-btn-secondary):
+  bg [L]: rgba(255,255,255,0.62)  text: #0F172A  · blur(16px)
+  bg [D]: rgba(15,23,42,0.52)    text: #F8FAFC  · border rgba(255,255,255,0.14)
+  hover: bg opacity +0.16 · translateY(-1px)
+  contrast: ≥ 7:1 ✓
+
+Ghost (.lg-btn-ghost):
+  text [L]: #475569  hover bg: rgba(255,255,255,0.52)  text-hover: #0F172A
+  text [D]: #CBD5E1  hover bg: rgba(255,255,255,0.08)  text-hover: #F8FAFC
+  KHÔNG đặt bg mặc định, chỉ hover mới có bg
+
+Danger:
+  bg: #DC2626 [L] / #F87171 dark — nhưng text PHẢI là #FFFFFF [L] / #0F172A [D]
+  shadow: 0 8px 24px rgba(220,38,38,0.28)
+
+════════════════════════════════════════════════════════════
+E. FORM INPUTS (.lg-input / .lg-control)
+════════════════════════════════════════════════════════════
+Default [L]: bg rgba(255,255,255,0.58)  border rgba(255,255,255,0.56)
+Default [D]: bg rgba(15,23,42,0.52)     border rgba(255,255,255,0.14)
+Text:        --lg-text (không đổi theo mode)
+Placeholder: #64748B [L] / #94A3B8 [D]  — ≥ 4.5:1 ✓
+Focus:       border rgba(37,99,235,0.58)  ring 0 0 0 4px rgba(37,99,235,0.14)
+             bg tăng opacity: rgba(255,255,255,0.86) [L] / rgba(15,23,42,0.70) [D]
+Error:       border rgba(220,38,38,0.60) [L] / rgba(248,113,113,0.60) [D]
+             error-text #DC2626 [L] / #F87171 [D]  · role="alert"
+Disabled:    opacity 0.45  bg opacity giảm thêm 0.12
+Label:       font-weight 600  color #0F172A [L] / #F8FAFC [D]  — KHÔNG dùng muted
+
+════════════════════════════════════════════════════════════
+F. CARDS
+════════════════════════════════════════════════════════════
+Glass card (.lg-card-glass):
+  [L]: bg gradient rgba(255,255,255,0.52–0.76)  border rgba(255,255,255,0.50)
+  [D]: bg gradient rgba(15,23,42,0.52–0.68)     border rgba(255,255,255,0.14)
+  shadow: var(--lg-shadow-md) + inset 0 1px 0 rgba(255,255,255,0.62) [L]
+  title: --lg-text  sub: --lg-text-muted  · blur 18px sat 165%
+
+Solid card (.lg-card-solid):
+  [L]: rgba(255,255,255,0.92)  border rgba(226,232,240,0.78)
+  [D]: rgba(15,23,42,0.82)    border rgba(148,163,184,0.24)
+  Dùng khi: dense content, bảng điểm, form dài > 3 fields
+
+Rule: KHÔNG nest glass-card bên trong glass-card mạnh hơn
+      Card có > 3 dòng text → dùng solid-soft, không dùng glass-soft
+
+════════════════════════════════════════════════════════════
+G. BADGES & CHIPS
+════════════════════════════════════════════════════════════
+LIGHT: Luôn dùng tinted background + dark tinted text (KHÔNG dùng thuần #FFF hay #000)
+  primary:  bg rgba(219,234,254,0.88)  text #1D4ED8  border rgba(37,99,235,0.24)    6.4:1 ✓
+  success:  bg rgba(220,252,231,0.84)  text #15803D  border rgba(22,163,74,0.24)    6.8:1 ✓
+  warning:  bg rgba(254,243,199,0.88)  text #B45309  border rgba(217,119,6,0.28)    5.2:1 ✓
+  danger:   bg rgba(254,226,226,0.88)  text #B91C1C  border rgba(220,38,38,0.24)    6.1:1 ✓
+  violet:   bg rgba(237,233,254,0.90)  text #6D28D9  border rgba(124,58,237,0.24)   7.4:1 ✓
+  info:     bg rgba(224,242,254,0.88)  text #0369A1  border rgba(2,132,199,0.24)    6.9:1 ✓
+DARK: Flip sang dark-tinted bg + light text — KHÔNG dùng lại màu light
+  primary:  bg rgba(30,64,175,0.35)   text #93C5FD
+  success:  bg rgba(20,83,45,0.40)    text #86EFAC
+  warning:  bg rgba(120,53,15,0.40)   text #FCD34D
+  danger:   bg rgba(127,29,29,0.40)   text #FCA5A5
+  violet:   bg rgba(88,28,135,0.40)   text #D8B4FE
+  info:     bg rgba(12,74,110,0.40)   text #7DD3FC
+
+════════════════════════════════════════════════════════════
+H. ALERTS & TOASTS
+════════════════════════════════════════════════════════════
+Alert [L]: tinted bg (≈ badge bg) + dark text + tinted border · opacity bg ≥ 0.86
+Alert [D]: dark-tinted bg opacity ≤ 0.45 + light text (xem badge dark)
+           KHÔNG dùng solid #FFF hoặc #000 cho alert bg trong dark mode
+Toast: glass surface + semantic dot color + --lg-text
+  [L]: rgba(255,255,255,0.82)  [D]: rgba(15,23,42,0.80)
+  dot colors: #16A34A / #DC2626 / #D97706 / #0284C7 [L]
+              #22C55E / #F87171 / #F59E0B / #38BDF8 [D]
+  z-index: var(--z-toast) = 110
+
+════════════════════════════════════════════════════════════
+I. MODALS & POPUPS
+════════════════════════════════════════════════════════════
+bg [L]: rgba(255,255,255,0.78–0.84) gradient + blur 30px sat 190%
+bg [D]: rgba(15,23,42,0.82–0.90)  border rgba(255,255,255,0.18)
+scrim [L]: rgba(15,23,42,0.18)  scrim [D]: rgba(2,6,23,0.56)
+title: --lg-text  body: --lg-text-muted  · z-index: var(--z-modal) = 100
+A11Y: role="dialog" aria-modal="true" aria-labelledby="modal-title"
+      focus trap · Esc close · restore focus on close
+
+════════════════════════════════════════════════════════════
+J. NAVBAR & SIDEBAR
+════════════════════════════════════════════════════════════
+Navbar (.lg-nav / .lg-topbar): sticky top-0  z-index var(--z-sticky)=20
+  blur(12–24px) sat(140–180%)
+  bg [L]: var(--lg-surface-glass) = rgba(255,255,255,0.56)
+  bg [D]: rgba(15,23,42,0.52)
+  active-item [L]: bg rgba(37,99,235,0.10) text #1D4ED8  · 6.4:1 ✓
+  active-item [D]: bg rgba(37,99,235,0.22) text #93C5FD  · 6.1:1 ✓
+  idle-item [L]: #475569  idle-item [D]: #94A3B8
+
+Sidebar (.lg-sidebar): blur(20px) sat(180%)
+  active (.lg-sidebar-item-active): gradient primary-dark→primary→cyan
+  text: #FFFFFF  shadow: 0 15px 40px rgba(37,99,235,0.35)
+
+════════════════════════════════════════════════════════════
+K. ICONS
+════════════════════════════════════════════════════════════
+default:   --lg-text (thay đổi theo mode tự động)
+secondary: --lg-text-muted
+active:    --lg-primary = #2563EB
+muted:     --lg-text-subtle
+danger:    --lg-danger (#DC2626 / #F87171)
+success:   --lg-success (#16A34A / #22C55E)
+min size: 16px  recommended: 20px  decorative: aria-hidden="true"
+interactive icon-only: aria-label + height/width ≥ 44px touch target
+
+════════════════════════════════════════════════════════════
+L. AVATARS
+════════════════════════════════════════════════════════════
+[L] blue:   bg rgba(219,234,254,0.88)  text #1D4ED8  · initials font-weight:700
+[L] green:  bg rgba(220,252,231,0.84)  text #15803D
+[L] violet: bg rgba(237,233,254,0.90)  text #6D28D9
+[D] same palette, opacity giảm 0.10 — text vẫn giữ nguyên hex
+border: 2px solid rgba(255,255,255,0.60) [L] / rgba(255,255,255,0.18) [D]
+
+════════════════════════════════════════════════════════════
+M. TOGGLE SWITCH
+════════════════════════════════════════════════════════════
+track OFF: rgba(148,163,184,0.35)  track ON: var(--lg-primary) = #2563EB
+thumb: #FFFFFF  shadow: 0 1px 4px rgba(15,23,42,0.22)
+transition: left 0.35s cubic-bezier(0.4,0,0.2,1)
+aria-checked, role="switch", aria-label
+
+════════════════════════════════════════════════════════════
+N. PROGRESS BAR
+════════════════════════════════════════════════════════════
+track [L]: rgba(226,232,240,0.78)  track [D]: rgba(30,41,59,0.80)
+fill:      linear-gradient(90deg, #2563EB, #0891B2)
+label %:   #2563EB [L] / #60A5FA [D]  · transition width 700ms
+
+════════════════════════════════════════════════════════════
+O. TOOLTIPS
+════════════════════════════════════════════════════════════
+Dark tooltip on light page: bg rgba(15,23,42,0.88)  text #F8FAFC  · 14.8:1 ✓
+Light tooltip on dark page: bg rgba(248,250,252,0.90) text #0F172A  · 15.3:1 ✓
+radius 8px  padding 4px 10px  z-index var(--z-flyout)=90
+
+════════════════════════════════════════════════════════════
+P. SKELETON LOADER
+════════════════════════════════════════════════════════════
+[L]: shimmer rgba(226,232,240,0.54) → rgba(255,255,255,0.76)
+[D]: shimmer rgba(30,41,59,0.60)   → rgba(71,85,105,0.30)
+animation: lg-shimmer 1.6s ease-in-out infinite
+prefers-reduced-motion: animation:none → static muted bg
+
+════════════════════════════════════════════════════════════
+Q. GLOBAL RULES — KHÔNG VI PHẠM
+════════════════════════════════════════════════════════════
+1. Text contrast: WCAG AA minimum 4.5:1 (normal), 3:1 (large ≥ 18px bold)
+2. Non-text (icon, border focus): ≥ 3:1
+3. KHÔNG dùng opacity để thay thế cho hex token trên chữ
+4. KHÔNG nest nhiều lớp blur mạnh (.lg-glass-strong trên .lg-glass-strong)
+5. Mỗi viewport ≤ 5 surface có backdrop-filter active đồng thời
+6. Button primary KHÔNG được là glass — phải opaque
+7. Dark mode badges/alerts: KHÔNG copy màu light, phải đổi sang dark-tinted palette
+8. Dense content (> 3 dòng text, bảng dữ liệu): dùng solid-soft, KHÔNG glass
+9. Tất cả interactive element: height ≥ 44px, min touch target 44×44px
+10. Keyboard: Tab order hợp lý, focus-visible ring luôn hiển thị, KHÔNG :focus-within duy nhất`;
+
+document.getElementById('prompt-text').textContent = PROMPT;
+
+const tokenData = [
+  // backgrounds
+  {token:'--lg-bg-start',l:'#EFF6FF',d:'#020617',usage:'Gradient nền đầu'},
+  {token:'--lg-bg-mid',l:'#F8FAFC',d:'#0F172A',usage:'Nền chính'},
+  {token:'--lg-bg-end',l:'#F5F3FF',d:'#1E293B',usage:'Gradient nền cuối'},
+  // surfaces
+  {token:'--lg-surface-glass',l:'rgba(255,255,255,0.56)',d:'rgba(15,23,42,0.52)',usage:'Card glass mặc định'},
+  {token:'--lg-surface-glass-strong',l:'rgba(255,255,255,0.72)',d:'rgba(15,23,42,0.68)',usage:'Login card, modal, dropdown'},
+  {token:'--lg-surface-glass-soft',l:'rgba(255,255,255,0.44)',d:'rgba(15,23,42,0.44)',usage:'Chip, floating nhỏ'},
+  {token:'--lg-surface-solid-soft',l:'rgba(255,255,255,0.88)',d:'rgba(15,23,42,0.82)',usage:'Dense form / fallback'},
+  // borders
+  {token:'--lg-border-glass',l:'rgba(255,255,255,0.42)',d:'rgba(255,255,255,0.14)',usage:'Viền glass mặc định'},
+  {token:'--lg-border-strong',l:'rgba(255,255,255,0.68)',d:'rgba(255,255,255,0.20)',usage:'Viền nhấn'},
+  {token:'--lg-border-contrast',l:'rgba(148,163,184,0.28)',d:'rgba(148,163,184,0.24)',usage:'Separator, divider'},
+  // text
+  {token:'--lg-text',l:'#0F172A',d:'#F8FAFC',usage:'Chữ chính · 15.3:1 / 14.8:1 ✓'},
+  {token:'--lg-text-muted',l:'#475569',d:'#CBD5E1',usage:'Chữ phụ · 7.2:1 / 9.4:1 ✓'},
+  {token:'--lg-text-subtle',l:'#64748B',d:'#94A3B8',usage:'Placeholder, meta · 4.6:1 / 4.5:1 ✓'},
+  // brand
+  {token:'--lg-primary',l:'#2563EB',d:'#2563EB',usage:'CTA chính, focus ring, active item'},
+  {token:'--lg-primary-dark',l:'#1D4ED8',d:'#1D4ED8',usage:'Button gradient start'},
+  {token:'--lg-secondary',l:'#0F766E',d:'#0F766E',usage:'CTA phụ, success mềm'},
+  {token:'--lg-accent',l:'#7C3AED',d:'#7C3AED',usage:'Charts, highlight học thuật'},
+  {token:'--lg-cyan',l:'#0891B2',d:'#0891B2',usage:'Button gradient end, progress fill'},
+  // semantic
+  {token:'--lg-success',l:'#16A34A',d:'#22C55E',usage:'Success state'},
+  {token:'--lg-warning',l:'#D97706',d:'#F59E0B',usage:'Warning state'},
+  {token:'--lg-danger',l:'#DC2626',d:'#F87171',usage:'Error / destructive'},
+  {token:'--lg-info',l:'#0284C7',d:'#38BDF8',usage:'Info state'},
+  // shadows
+  {token:'--lg-shadow-sm',l:'0 8px 24px rgba(15,23,42,.08)',d:'0 8px 24px rgba(2,6,23,.32)',usage:'Card nhỏ, chip'},
+  {token:'--lg-shadow-md',l:'0 18px 60px rgba(15,23,42,.13)',d:'0 18px 60px rgba(2,6,23,.46)',usage:'Card thường, modal'},
+  {token:'--lg-shadow-lg',l:'0 28px 90px rgba(15,23,42,.18)',d:'0 28px 90px rgba(2,6,23,.58)',usage:'Login card, hero'},
+];
+
+function buildTokenRows() {
+  const container = document.getElementById('token-rows');
+  tokenData.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const lc = t.l.startsWith('#') ? t.l : 'transparent';
+    const dc = t.d.startsWith('#') ? t.d : 'transparent';
+    row.innerHTML = `
+      <div class="swatch" style="background:${lc};outline:1px solid rgba(0,0,0,.06)"></div>
+      <span class="token">${t.token}</span>
+      <span class="val">${t.l}</span>
+      <div class="swatch" style="background:${dc};outline:1px solid rgba(0,0,0,.06)"></div>
+      <span class="note">${t.usage}</span>
+    `;
+    container.appendChild(row);
+  });
+  // header
+  const hdr = document.createElement('div');
+  hdr.style.cssText = 'display:grid;grid-template-columns:28px 130px 1fr 60px 1fr;gap:8px;padding:6px 10px;font-size:10px;font-weight:500;color:var(--color-text-secondary);';
+  hdr.innerHTML = '<span>L</span><span>Token</span><span>Light value</span><span>D</span><span>Dùng cho</span>';
+  container.insertBefore(hdr, container.firstChild);
+}
+buildTokenRows();
+
+function setMode(m) {
+  ['light','dark','token'].forEach(v => {
+    document.getElementById('view-'+v).style.display = v===m ? 'block' : 'none';
+    document.getElementById('tab-'+v).classList.toggle('active', v===m);
+  });
+}
+
+function copyPrompt() {
+  navigator.clipboard.writeText(PROMPT).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Đã copy ✓';
+    setTimeout(() => btn.textContent = 'Copy ↗', 2000);
+  });
+}
+</script>

@@ -71,17 +71,11 @@ const schedules = ref([
 
 const getStatusClass = (status) => {
   switch (status) {
-    case 'published': return 'bg-green-500/10 text-green-600 border-green-200'
-    case 'pending': return 'bg-amber-500/10 text-amber-600 border-amber-200'
-    case 'draft': return 'bg-slate-500/10 text-slate-600 border-slate-200'
-    default: return 'bg-slate-500/10 text-slate-600 border-slate-200'
+    case 'published': return 'lg-badge-success'
+    case 'pending': return 'lg-badge-warning'
+    case 'draft': return 'lg-badge-violet'
+    default: return 'lg-badge-primary'
   }
-}
-
-const colorMap = {
-  blue: 'bg-blue-50 border-blue-200 text-blue-700',
-  indigo: 'bg-indigo-50 border-indigo-200 text-indigo-700',
-  orange: 'bg-orange-50 border-orange-200 text-orange-700',
 }
 
 function getSchedule(day, time) {
@@ -176,19 +170,19 @@ function getSchedule(day, time) {
                   <div 
                     v-if="getSchedule(day, time)" 
                     :class="[
-                      'p-3 rounded-2xl border shadow-sm transition-all hover:scale-[1.02] hover:shadow-md cursor-grab active:cursor-grabbing',
-                      colorMap[getSchedule(day, time).color]
+                      'schedule-card p-3 rounded-2xl border transition-all hover:scale-[1.02] cursor-grab active:cursor-grabbing',
+                      `schedule-card-${getSchedule(day, time).status}`
                     ]"
                   >
                     <div class="flex items-start justify-between">
-                      <p class="text-[10px] font-black uppercase tracking-tighter opacity-70">{{ getSchedule(day, time).class }}</p>
-                      <MoreVertical :size="14" class="opacity-40 cursor-pointer" />
+                      <p class="schedule-card-class text-[10px] font-bold uppercase tracking-tighter">{{ getSchedule(day, time).class }}</p>
+                      <MoreVertical :size="14" class="schedule-card-more cursor-pointer" />
                     </div>
-                    <p class="text-sm font-black mt-1 leading-tight">{{ getSchedule(day, time).subject }}</p>
+                    <p class="schedule-card-subject text-sm font-black mt-1 leading-tight">{{ getSchedule(day, time).subject }}</p>
                     <div class="mt-3 flex items-center justify-between gap-2">
                        <div class="flex flex-col gap-0.5">
-                          <span class="text-[10px] font-bold opacity-60">{{ getSchedule(day, time).teacher }}</span>
-                          <span class="text-[10px] font-bold opacity-60">{{ getSchedule(day, time).room }}</span>
+                          <span class="schedule-card-meta text-[10px] font-bold">{{ getSchedule(day, time).teacher }}</span>
+                          <span class="schedule-card-meta text-[10px] font-bold">{{ getSchedule(day, time).room }}</span>
                        </div>
                        <span :class="['px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border', getStatusClass(getSchedule(day, time).status)]">
                          {{ getSchedule(day, time).status }}
@@ -251,5 +245,88 @@ function getSchedule(day, time) {
 .overflow-x-auto::-webkit-scrollbar-thumb {
   background: #e2e8f0;
   border-radius: 99px;
+}
+</style>
+
+<style>
+/* Schedule Card Custom Styles */
+.schedule-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.schedule-card .schedule-card-class {
+  color: #64748b !important;
+  opacity: 1 !important;
+}
+
+.schedule-card .schedule-card-meta {
+  color: #475569 !important;
+  opacity: 1 !important;
+}
+
+.schedule-card .schedule-card-more {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+.schedule-card-published .schedule-card-subject {
+  color: #0f172a !important;
+}
+
+.schedule-card-pending .schedule-card-subject {
+  color: #d97706 !important;
+}
+
+.schedule-card-draft .schedule-card-subject {
+  color: #7c3aed !important;
+}
+
+/* Dark Mode Overrides */
+.dark .schedule-card {
+  background: rgba(15, 23, 42, 0.52) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.32) !important;
+  backdrop-filter: blur(20px) saturate(170%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(170%) !important;
+}
+
+.dark .schedule-card .schedule-card-class {
+  color: #94a3b8 !important;
+}
+
+.dark .schedule-card .schedule-card-meta {
+  color: #cbd5e1 !important;
+}
+
+.dark .schedule-card .schedule-card-more {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.dark .schedule-card-published {
+  border-top: 4px solid rgba(37, 99, 235, 0.55) !important;
+}
+
+.dark .schedule-card-published .schedule-card-subject {
+  color: #93c5fd !important;
+}
+
+.dark .schedule-card-pending {
+  border-top: 4px solid rgba(245, 158, 11, 0.55) !important;
+}
+
+.dark .schedule-card-pending .schedule-card-subject {
+  color: #fcd34d !important;
+}
+
+.dark .schedule-card-draft {
+  border-top: 4px solid rgba(124, 58, 237, 0.55) !important;
+}
+
+.dark .schedule-card-draft .schedule-card-subject {
+  color: #d8b4fe !important;
 }
 </style>
