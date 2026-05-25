@@ -43,22 +43,73 @@ public static class Data
     {
         var roles = new[]
         {
-            new VaiTro { MaVaiTro = 1, MaCodeVaiTro = "quan_tri", TenVaiTro = "Quản trị" },
-            new VaiTro { MaVaiTro = 2, MaCodeVaiTro = "giao_vien", TenVaiTro = "Giáo viên" },
-            new VaiTro { MaVaiTro = 3, MaCodeVaiTro = "hoc_sinh", TenVaiTro = "Học sinh" },
-            new VaiTro { MaVaiTro = 4, MaCodeVaiTro = "nhan_vien", TenVaiTro = "Nhân viên/Giáo vụ" },
-            new VaiTro { MaVaiTro = 5, MaCodeVaiTro = "hieu_truong", TenVaiTro = "Hiệu trưởng/BGH" },
-            new VaiTro { MaVaiTro = 6, MaCodeVaiTro = "phu_huynh", TenVaiTro = "Phụ huynh" },
-            new VaiTro { MaVaiTro = 7, MaCodeVaiTro = "sieu_quan_tri", TenVaiTro = "Siêu quản trị" },
-            new VaiTro { MaVaiTro = 8, MaCodeVaiTro = "quan_tri_co_so", TenVaiTro = "Quản trị cơ sở" },
-            new VaiTro { MaVaiTro = 9, MaCodeVaiTro = "quan_tri_co_so_con", TenVaiTro = "Quản trị cơ sở con" },
-            new VaiTro { MaVaiTro = 10, MaCodeVaiTro = "chu_tich", TenVaiTro = "Chủ tịch" }
+            new VaiTro
+            {
+                MaVaiTro = 1,
+                MaCodeVaiTro = "quan_tri",
+                TenVaiTro = "Quản trị",
+            },
+            new VaiTro
+            {
+                MaVaiTro = 2,
+                MaCodeVaiTro = "giao_vien",
+                TenVaiTro = "Giáo viên",
+            },
+            new VaiTro
+            {
+                MaVaiTro = 3,
+                MaCodeVaiTro = "hoc_sinh",
+                TenVaiTro = "Học sinh",
+            },
+            new VaiTro
+            {
+                MaVaiTro = 4,
+                MaCodeVaiTro = "nhan_vien",
+                TenVaiTro = "Nhân viên/Giáo vụ",
+            },
+            new VaiTro
+            {
+                MaVaiTro = 5,
+                MaCodeVaiTro = "hieu_truong",
+                TenVaiTro = "Hiệu trưởng/BGH",
+            },
+            new VaiTro
+            {
+                MaVaiTro = 6,
+                MaCodeVaiTro = "phu_huynh",
+                TenVaiTro = "Phụ huynh",
+            },
+            new VaiTro
+            {
+                MaVaiTro = 7,
+                MaCodeVaiTro = "sieu_quan_tri",
+                TenVaiTro = "Siêu quản trị",
+            },
+            new VaiTro
+            {
+                MaVaiTro = 8,
+                MaCodeVaiTro = "quan_tri_co_so",
+                TenVaiTro = "Quản trị cơ sở",
+            },
+            new VaiTro
+            {
+                MaVaiTro = 9,
+                MaCodeVaiTro = "quan_tri_co_so_con",
+                TenVaiTro = "Quản trị cơ sở con",
+            },
+            new VaiTro
+            {
+                MaVaiTro = 10,
+                MaCodeVaiTro = "chu_tich",
+                TenVaiTro = "Chủ tịch",
+            },
         };
 
         foreach (var role in roles)
         {
-            var existingRole = await context.VaiTros
-                .FirstOrDefaultAsync(x => x.MaCodeVaiTro == role.MaCodeVaiTro);
+            var existingRole = await context.VaiTros.FirstOrDefaultAsync(x =>
+                x.MaCodeVaiTro == role.MaCodeVaiTro
+            );
 
             if (existingRole is null)
             {
@@ -82,7 +133,7 @@ public static class Data
                 TenDonVi = RootUnitName,
                 CapDonVi = "root",
                 ConHoatDong = true,
-                NgayTao = DateTime.UtcNow
+                NgayTao = DateTime.UtcNow,
             };
 
             context.DonVis.Add(rootUnit);
@@ -103,8 +154,9 @@ public static class Data
 
     private static async Task SeedSuperAdminUserAsync(ApplicationDbContext context, DonVi rootUnit)
     {
-        var superAdmin = await context.NguoiDungs
-            .FirstOrDefaultAsync(x => x.Email == SuperAdminEmail);
+        var superAdmin = await context.NguoiDungs.FirstOrDefaultAsync(x =>
+            x.Email == SuperAdminEmail
+        );
 
         if (superAdmin is null)
         {
@@ -118,7 +170,7 @@ public static class Data
                 MatKhauHash = PasswordHelper.HashPassword(SuperAdminDefaultPassword),
                 NgayTao = DateTime.UtcNow,
                 SoLanSaiMatKhau = 0,
-                DangNhapLanDau = true
+                DangNhapLanDau = true,
             };
 
             context.NguoiDungs.Add(superAdmin);
@@ -144,8 +196,7 @@ public static class Data
 
     private static async Task SeedChairmanUserAsync(ApplicationDbContext context, DonVi rootUnit)
     {
-        var chairman = await context.NguoiDungs
-            .FirstOrDefaultAsync(x => x.Email == ChairmanEmail);
+        var chairman = await context.NguoiDungs.FirstOrDefaultAsync(x => x.Email == ChairmanEmail);
 
         if (chairman is null)
         {
@@ -159,7 +210,7 @@ public static class Data
                 MatKhauHash = PasswordHelper.HashPassword(ChairmanDefaultPassword),
                 NgayTao = DateTime.UtcNow,
                 SoLanSaiMatKhau = 0,
-                DangNhapLanDau = true
+                DangNhapLanDau = true,
             };
 
             context.NguoiDungs.Add(chairman);
@@ -183,7 +234,10 @@ public static class Data
         await context.SaveChangesAsync();
     }
 
-    private static async Task SeedTrainingProgramTestDataAsync(ApplicationDbContext context, DonVi rootUnit)
+    private static async Task SeedTrainingProgramTestDataAsync(
+        ApplicationDbContext context,
+        DonVi rootUnit
+    )
     {
         var campus = await GetOrCreateCampusAsync(context, rootUnit);
         var cohortK21 = await GetOrCreateCohortAsync(
@@ -192,7 +246,8 @@ public static class Data
             "Khóa K21",
             2026,
             2030,
-            "Khóa tuyển sinh K21 dùng để test chương trình đào tạo nguồn");
+            "Khóa tuyển sinh K21 dùng để test chương trình đào tạo nguồn"
+        );
 
         await GetOrCreateCohortAsync(
             context,
@@ -200,23 +255,65 @@ public static class Data
             "Khóa K22",
             2027,
             2031,
-            "Khóa tuyển sinh K22 dùng để test clone chương trình đào tạo");
+            "Khóa tuyển sinh K22 dùng để test clone chương trình đào tạo"
+        );
 
         var major = await GetOrCreateMajorAsync(context);
         var specialization = await GetOrCreateSpecializationAsync(context, major);
         await GetOrCreateCampusSpecializationAsync(context, specialization, campus);
-        var trainingProgram = await GetOrCreateTrainingProgramAsync(context, specialization, cohortK21);
+        var trainingProgram = await GetOrCreateTrainingProgramAsync(
+            context,
+            specialization,
+            cohortK21
+        );
         await context.SaveChangesAsync();
 
         var pro101 = await GetOrCreateSubjectAsync(context, "PRO101", "Nhập môn lập trình", 3);
         var dbi101 = await GetOrCreateSubjectAsync(context, "DBI101", "Cơ sở dữ liệu", 3);
         var web101 = await GetOrCreateSubjectAsync(context, "WEB101", "Thiết kế web", 3);
-        var oop101 = await GetOrCreateSubjectAsync(context, "OOP101", "Lập trình hướng đối tượng", 3);
+        var oop101 = await GetOrCreateSubjectAsync(
+            context,
+            "OOP101",
+            "Lập trình hướng đối tượng",
+            3
+        );
 
-        await UpsertTrainingProgramSubjectAsync(context, trainingProgram, pro101, 1, 3, 1, "Môn học kỳ 1 của PTPM-K21");
-        await UpsertTrainingProgramSubjectAsync(context, trainingProgram, dbi101, 2, 3, 1, "Môn học kỳ 2 của PTPM-K21");
-        await UpsertTrainingProgramSubjectAsync(context, trainingProgram, web101, 2, 3, 2, "Môn học kỳ 2 của PTPM-K21");
-        await UpsertTrainingProgramSubjectAsync(context, trainingProgram, oop101, 3, 3, 1, "Môn học kỳ 3 của PTPM-K21");
+        await UpsertTrainingProgramSubjectAsync(
+            context,
+            trainingProgram,
+            pro101,
+            1,
+            3,
+            1,
+            "Môn học kỳ 1 của PTPM-K21"
+        );
+        await UpsertTrainingProgramSubjectAsync(
+            context,
+            trainingProgram,
+            dbi101,
+            2,
+            3,
+            1,
+            "Môn học kỳ 2 của PTPM-K21"
+        );
+        await UpsertTrainingProgramSubjectAsync(
+            context,
+            trainingProgram,
+            web101,
+            2,
+            3,
+            2,
+            "Môn học kỳ 2 của PTPM-K21"
+        );
+        await UpsertTrainingProgramSubjectAsync(
+            context,
+            trainingProgram,
+            oop101,
+            3,
+            3,
+            1,
+            "Môn học kỳ 3 của PTPM-K21"
+        );
 
         await SeedCourseSyllabusTestDataAsync(context, trainingProgram, specialization, pro101);
     }
@@ -225,21 +322,35 @@ public static class Data
         ApplicationDbContext context,
         ChuongTrinhDaoTao trainingProgram,
         ChuyenNganh specialization,
-        DanhMucMonHoc pro101)
+        DanhMucMonHoc pro101
+    )
     {
-        var pro101ProgramSubject = await context.MonHocTrongChuongTrinhs
-            .FirstOrDefaultAsync(x => x.MaChuongTrinh == trainingProgram.MaChuongTrinh && x.MaMonHoc == pro101.MaMonHoc);
+        var pro101ProgramSubject = await context.MonHocTrongChuongTrinhs.FirstOrDefaultAsync(x =>
+            x.MaChuongTrinh == trainingProgram.MaChuongTrinh && x.MaMonHoc == pro101.MaMonHoc
+        );
 
         if (pro101ProgramSubject != null)
         {
-            await UpsertCourseSyllabusAsync(context, pro101, specialization, pro101ProgramSubject,
-                "Syllabus PRO101 - PTPM-K21", "2026.1",
-                "Syllabus test cho môn PRO101 trong chương trình PTPM-K21");
+            await UpsertCourseSyllabusAsync(
+                context,
+                pro101,
+                specialization,
+                pro101ProgramSubject,
+                "Syllabus PRO101 - PTPM-K21",
+                "2026.1",
+                "Syllabus test cho môn PRO101 trong chương trình PTPM-K21"
+            );
         }
 
-        await UpsertCourseSyllabusAsync(context, pro101, specialization, null,
-            "Syllabus chung PRO101", "common-2026",
-            "Syllabus chung cho môn PRO101");
+        await UpsertCourseSyllabusAsync(
+            context,
+            pro101,
+            specialization,
+            null,
+            "Syllabus chung PRO101",
+            "common-2026",
+            "Syllabus chung cho môn PRO101"
+        );
     }
 
     private static async Task UpsertCourseSyllabusAsync(
@@ -249,15 +360,16 @@ public static class Data
         MonHocTrongChuongTrinh? programSubject,
         string name,
         string version,
-        string description)
+        string description
+    )
     {
         var maChuongTrinhMonHoc = programSubject?.MaChuongTrinhMonHoc;
 
-        var syllabus = await context.CourseSyllabuses
-            .FirstOrDefaultAsync(x =>
-                x.MaMonHoc == subject.MaMonHoc &&
-                x.MaChuongTrinhMonHoc == maChuongTrinhMonHoc &&
-                x.Version == version);
+        var syllabus = await context.CourseSyllabuses.FirstOrDefaultAsync(x =>
+            x.MaMonHoc == subject.MaMonHoc
+            && x.MaChuongTrinhMonHoc == maChuongTrinhMonHoc
+            && x.Version == version
+        );
 
         if (syllabus is null)
         {
@@ -265,7 +377,7 @@ public static class Data
             {
                 MaMonHoc = subject.MaMonHoc,
                 MaChuyenNganh = specialization.MaChuyenNganh,
-                NgayTao = DateTime.UtcNow
+                NgayTao = DateTime.UtcNow,
             };
             context.CourseSyllabuses.Add(syllabus);
         }
@@ -279,7 +391,10 @@ public static class Data
         syllabus.NgayCapNhat = DateTime.UtcNow;
     }
 
-    private static async Task<DonVi> GetOrCreateCampusAsync(ApplicationDbContext context, DonVi rootUnit)
+    private static async Task<DonVi> GetOrCreateCampusAsync(
+        ApplicationDbContext context,
+        DonVi rootUnit
+    )
     {
         var campus = await context.DonVis.FirstOrDefaultAsync(x => x.TenDonVi == CampusHcmName);
         if (campus is null)
@@ -290,7 +405,7 @@ public static class Data
                 TenDonVi = CampusHcmName,
                 CapDonVi = CampusLevel,
                 ConHoatDong = true,
-                NgayTao = DateTime.UtcNow
+                NgayTao = DateTime.UtcNow,
             };
 
             context.DonVis.Add(campus);
@@ -313,16 +428,13 @@ public static class Data
         string name,
         int startYear,
         int? expectedEndYear,
-        string description)
+        string description
+    )
     {
         var cohort = await context.KhoaTuyenSinhs.FirstOrDefaultAsync(x => x.MaCodeKhoa == code);
         if (cohort is null)
         {
-            cohort = new KhoaTuyenSinh
-            {
-                MaCodeKhoa = code,
-                NgayTao = DateTime.UtcNow
-            };
+            cohort = new KhoaTuyenSinh { MaCodeKhoa = code, NgayTao = DateTime.UtcNow };
 
             context.KhoaTuyenSinhs.Add(cohort);
         }
@@ -343,11 +455,7 @@ public static class Data
         var major = await context.NganhDaoTaos.FirstOrDefaultAsync(x => x.MaCodeNganh == "CNTT");
         if (major is null)
         {
-            major = new NganhDaoTao
-            {
-                MaCodeNganh = "CNTT",
-                NgayTao = DateTime.UtcNow
-            };
+            major = new NganhDaoTao { MaCodeNganh = "CNTT", NgayTao = DateTime.UtcNow };
 
             context.NganhDaoTaos.Add(major);
         }
@@ -363,15 +471,18 @@ public static class Data
 
     private static async Task<ChuyenNganh> GetOrCreateSpecializationAsync(
         ApplicationDbContext context,
-        NganhDaoTao major)
+        NganhDaoTao major
+    )
     {
-        var specialization = await context.ChuyenNganhs.FirstOrDefaultAsync(x => x.MaCodeChuyenNganh == "PTPM");
+        var specialization = await context.ChuyenNganhs.FirstOrDefaultAsync(x =>
+            x.MaCodeChuyenNganh == "PTPM"
+        );
         if (specialization is null)
         {
             specialization = new ChuyenNganh
             {
                 MaCodeChuyenNganh = "PTPM",
-                NgayTao = DateTime.UtcNow
+                NgayTao = DateTime.UtcNow,
             };
 
             context.ChuyenNganhs.Add(specialization);
@@ -379,7 +490,8 @@ public static class Data
 
         specialization.MaNganh = major.MaNganh;
         specialization.TenChuyenNganh = "Phát triển phần mềm";
-        specialization.MoTa = "Chuyên ngành Phát triển phần mềm dùng để test clone chương trình đào tạo";
+        specialization.MoTa =
+            "Chuyên ngành Phát triển phần mềm dùng để test clone chương trình đào tạo";
         specialization.ConHoatDong = true;
         specialization.NgayCapNhat = DateTime.UtcNow;
 
@@ -390,12 +502,12 @@ public static class Data
     private static async Task<ChuyenNganhTheoCoSo> GetOrCreateCampusSpecializationAsync(
         ApplicationDbContext context,
         ChuyenNganh specialization,
-        DonVi campus)
+        DonVi campus
+    )
     {
-        var campusSpecialization = await context.ChuyenNganhTheoCoSos
-            .FirstOrDefaultAsync(x =>
-                x.MaChuyenNganh == specialization.MaChuyenNganh &&
-                x.MaDonVi == campus.MaDonVi);
+        var campusSpecialization = await context.ChuyenNganhTheoCoSos.FirstOrDefaultAsync(x =>
+            x.MaChuyenNganh == specialization.MaChuyenNganh && x.MaDonVi == campus.MaDonVi
+        );
 
         if (campusSpecialization is null)
         {
@@ -403,7 +515,7 @@ public static class Data
             {
                 MaChuyenNganh = specialization.MaChuyenNganh,
                 MaDonVi = campus.MaDonVi,
-                NgayTao = DateTime.UtcNow
+                NgayTao = DateTime.UtcNow,
             };
 
             context.ChuyenNganhTheoCoSos.Add(campusSpecialization);
@@ -422,18 +534,20 @@ public static class Data
     private static async Task<ChuongTrinhDaoTao> GetOrCreateTrainingProgramAsync(
         ApplicationDbContext context,
         ChuyenNganh specialization,
-        KhoaTuyenSinh cohort)
+        KhoaTuyenSinh cohort
+    )
     {
-        var trainingProgram = await context.ChuongTrinhDaoTaos
-            .FirstOrDefaultAsync(x => x.MaCodeChuongTrinh == TrainingProgramSourceCode);
+        var trainingProgram = await context.ChuongTrinhDaoTaos.FirstOrDefaultAsync(x =>
+            x.MaCodeChuongTrinh == TrainingProgramSourceCode
+        );
 
         if (trainingProgram is null)
         {
-            trainingProgram = await context.ChuongTrinhDaoTaos
-                .FirstOrDefaultAsync(x =>
-                    x.MaChuyenNganh == specialization.MaChuyenNganh &&
-                    x.MaKhoaTuyenSinh == cohort.MaKhoaTuyenSinh &&
-                    x.Version == "2026.1");
+            trainingProgram = await context.ChuongTrinhDaoTaos.FirstOrDefaultAsync(x =>
+                x.MaChuyenNganh == specialization.MaChuyenNganh
+                && x.MaKhoaTuyenSinh == cohort.MaKhoaTuyenSinh
+                && x.Version == "2026.1"
+            );
         }
 
         if (trainingProgram is null)
@@ -441,7 +555,7 @@ public static class Data
             trainingProgram = new ChuongTrinhDaoTao
             {
                 MaCodeChuongTrinh = TrainingProgramSourceCode,
-                NgayTao = DateTime.UtcNow
+                NgayTao = DateTime.UtcNow,
             };
 
             context.ChuongTrinhDaoTaos.Add(trainingProgram);
@@ -473,15 +587,13 @@ public static class Data
         ApplicationDbContext context,
         string code,
         string name,
-        int credits)
+        int credits
+    )
     {
         var subject = await context.DanhMucMonHocs.FirstOrDefaultAsync(x => x.MaCodeMonHoc == code);
         if (subject is null)
         {
-            subject = new DanhMucMonHoc
-            {
-                MaCodeMonHoc = code
-            };
+            subject = new DanhMucMonHoc { MaCodeMonHoc = code };
 
             context.DanhMucMonHocs.Add(subject);
         }
@@ -501,12 +613,12 @@ public static class Data
         int expectedTerm,
         int credits,
         int order,
-        string note)
+        string note
+    )
     {
-        var programSubject = await context.MonHocTrongChuongTrinhs
-            .FirstOrDefaultAsync(x =>
-                x.MaChuongTrinh == trainingProgram.MaChuongTrinh &&
-                x.MaMonHoc == subject.MaMonHoc);
+        var programSubject = await context.MonHocTrongChuongTrinhs.FirstOrDefaultAsync(x =>
+            x.MaChuongTrinh == trainingProgram.MaChuongTrinh && x.MaMonHoc == subject.MaMonHoc
+        );
 
         if (programSubject is null)
         {
@@ -514,7 +626,7 @@ public static class Data
             {
                 MaChuongTrinh = trainingProgram.MaChuongTrinh,
                 MaMonHoc = subject.MaMonHoc,
-                NgayTao = DateTime.UtcNow
+                NgayTao = DateTime.UtcNow,
             };
 
             context.MonHocTrongChuongTrinhs.Add(programSubject);
