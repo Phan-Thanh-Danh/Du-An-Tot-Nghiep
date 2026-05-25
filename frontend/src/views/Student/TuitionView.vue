@@ -1,11 +1,14 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { usePopupStore } from '@/stores/popup'
 import {
   CreditCard, Wallet, Receipt, DollarSign,
   AlertCircle, CheckCircle2, XCircle, Clock,
   Sparkles, Download, ArrowRight, ShieldCheck,
   Building2, Smartphone, FileText
 } from 'lucide-vue-next'
+
+const popupStore = usePopupStore()
 
 // Mock Data
 const metrics = [
@@ -103,12 +106,12 @@ const confirmPayment = () => {
     // Simulate redirection or success
     if (idx !== -1) mockInvoices.value[idx].status = 'Paid'
     closePaymentModal()
-    alert('Thanh toán thành công! Giao dịch của bạn đã được ghi nhận.')
+    popupStore.success('Thanh toán thành công', 'Giao dịch của bạn đã được ghi nhận.')
   }, 2000)
 }
 
 const downloadPDF = (id) => {
-  alert(`Đang tải hóa đơn ${id} từ Azure Blob...`)
+  popupStore.info('Đang tải', `Đang tải hóa đơn ${id}...`)
 }
 </script>
 

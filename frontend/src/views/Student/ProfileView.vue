@@ -1,11 +1,14 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { usePopupStore } from '@/stores/popup'
 import {
   User, ShieldCheck, Award, Link as LinkIcon, 
   MapPin, Phone, Mail, GraduationCap, Building,
   Key, Save, Download, Trash2, Plus, AlertCircle,
   ToggleLeft, ToggleRight, CheckCircle2, QrCode
 } from 'lucide-vue-next'
+
+const popupStore = usePopupStore()
 
 // Mock Data
 const profile = ref({
@@ -64,19 +67,19 @@ const isFirstLogin = computed(() => profile.value.status === 'First login')
 const updateProfile = () => {
   profile.value.phone = editPhone.value
   profile.value.address = editAddress.value
-  alert('Đã cập nhật thông tin liên lạc thành công!')
+  popupStore.success('Đã cập nhật', 'Thông tin liên lạc đã được cập nhật thành công.')
 }
 
 const changePassword = () => {
   if (newPassword.value !== confirmPassword.value) {
-    alert('Mật khẩu xác nhận không khớp!')
+    popupStore.error('Lỗi', 'Mật khẩu xác nhận không khớp!')
     return
   }
   if (!oldPassword.value || !newPassword.value) {
-    alert('Vui lòng điền đủ thông tin!')
+    popupStore.warning('Thiếu thông tin', 'Vui lòng điền đủ thông tin!')
     return
   }
-  alert('Đổi mật khẩu thành công! Tài khoản đã được bảo mật.')
+  popupStore.success('Đã đổi mật khẩu', 'Mật khẩu của bạn đã được thay đổi.')
   oldPassword.value = ''
   newPassword.value = ''
   confirmPassword.value = ''
@@ -87,12 +90,12 @@ const changePassword = () => {
 
 const downloadCertificate = (award) => {
   // Simulate PDF download with digital signature & QR
-  alert(`Đang tải file PDF Bằng khen: ${award.title}\n(File PDF đã được nhúng chữ ký số của Hiệu trưởng và mã QR xác minh trực tuyến)`)
+  popupStore.info('Tải bằng khen', `Đang tải file PDF Bằng khen: ${award.title}`)
 }
 
 const inviteParent = () => {
   if (parents.value.length >= 3) {
-    alert('Chỉ được phép liên kết tối đa 3 phụ huynh/người giám hộ.')
+    popupStore.warning('Giới hạn liên kết', 'Chỉ được phép liên kết tối đa 3 phụ huynh/người giám hộ.')
     return
   }
   if (!inviteEmail.value || !inviteName.value) return
@@ -107,7 +110,7 @@ const inviteParent = () => {
   
   inviteEmail.value = ''
   inviteName.value = ''
-  alert('Đã gửi email lời mời liên kết thành công!')
+  popupStore.success('Đã gửi lời mời', 'Email mời liên kết phụ huynh đã được gửi.')
 }
 
 const togglePermission = (parent, key) => {

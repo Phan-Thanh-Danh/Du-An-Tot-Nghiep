@@ -1,10 +1,13 @@
 <script setup>
 import { ref } from 'vue'
+import { usePopupStore } from '@/stores/popup'
 import { 
   FileText, User, Search, CheckCircle, XCircle, 
   Clock, Filter, MoreVertical, Eye, ArrowLeft,
   ChevronRight, AlertCircle, FileQuestion, Mail
 } from 'lucide-vue-next'
+
+const popupStore = usePopupStore()
 
 const requests = ref([
   { id: 1, student: 'Nguyễn Văn A', type: 'Xin vắng học', content: 'Em xin nghỉ buổi học ngày 20/05 do có việc gia đình.', status: 'Pending', time: '8:00 AM', tag: 'Vắng học', color: 'blue' },
@@ -19,7 +22,7 @@ function selectRequest(req) {
 }
 
 function processRequest(action) {
-  alert(`Đã ${action.toLowerCase()} đơn của ${selectedReq.value.student}`)
+  popupStore.success('Đã xử lý đơn', `Đã ${action.toLowerCase()} đơn của ${selectedReq.value.student}`)
   selectedReq.value = null
 }
 

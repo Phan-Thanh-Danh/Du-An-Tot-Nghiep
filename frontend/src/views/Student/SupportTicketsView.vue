@@ -1,10 +1,13 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { usePopupStore } from '@/stores/popup'
 import {
   LifeBuoy, Search, Filter, Plus, Send, Clock, 
   CheckCircle2, XCircle, AlertCircle, Paperclip,
   Star, ChevronRight, MessageSquare, Bot, FileText, X, ChevronDown
 } from 'lucide-vue-next'
+
+const popupStore = usePopupStore()
 
 // Mock Data
 const categories = ['Kỹ thuật', 'Học vụ', 'Tài chính', 'Khác']
@@ -168,7 +171,7 @@ const closeTicket = () => {
 
 const submitRating = () => {
   ratingModalOpen.value = false
-  alert('Cảm ơn bạn đã đánh giá chất lượng phục vụ!')
+  popupStore.success('Cảm ơn bạn', 'Đánh giá của bạn đã được ghi nhận.')
   rating.value = 0
   ratingFeedback.value = ''
 }

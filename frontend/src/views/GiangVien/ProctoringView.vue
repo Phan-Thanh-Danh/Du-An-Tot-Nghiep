@@ -316,6 +316,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { usePopupStore } from '@/stores/popup'
 import { 
   Monitor, WifiOff, AlertTriangle, RefreshCw, 
   Clock, ShieldAlert, XCircle, 
@@ -325,6 +326,8 @@ import {
 
 import cctvActiveImg from '@/assets/cctv_active.png'
 import cctvExamImg from '@/assets/cctv_exam.png'
+
+const popupStore = usePopupStore()
 
 const currentTime = ref('')
 let timer = null
@@ -546,21 +549,21 @@ function prevClassroom() {
 }
 
 function contactLecturer() {
-  alert(`Đã gửi thông báo yêu cầu hỗ trợ đến giảng viên ${zoomedClassroom.value.lecturer} tại ${zoomedClassroom.value.roomName}!`)
+  popupStore.info('Hỗ trợ giảng viên', `Đã gửi thông báo đến giảng viên ${zoomedClassroom.value.lecturer} tại ${zoomedClassroom.value.roomName}!`)
 }
 
 function sendBroadcast() {
   if (!broadcastText.value.trim()) return
-  alert(`Đã phát thông báo giọng nói AI đến loa ${zoomedClassroom.value.roomName}: "${broadcastText.value}"`)
+  popupStore.info('Phát thông báo', `Đã phát thông báo giọng nói AI đến loa ${zoomedClassroom.value.roomName}.`)
   broadcastText.value = ''
 }
 
 function reportIncident() {
-  alert(`Đã tạo phiếu yêu cầu kỹ thuật hỗ trợ camera tại ${zoomedClassroom.value.roomName}. Mã sự cố: TKT-${zoomedClassroom.value.id}-${Math.floor(Math.random() * 900 + 100)}`)
+  popupStore.warning('Yêu cầu kỹ thuật', `Đã tạo phiếu yêu cầu hỗ trợ camera tại ${zoomedClassroom.value.roomName}.`)
 }
 
 function takeSnapshot() {
-  alert(`Đã chụp ảnh màn hình từ camera ${activeAngle.value} của phòng ${zoomedClassroom.value.roomName} và lưu vào kho tài liệu giám sát.`)
+  popupStore.success('Chụp ảnh màn hình', `Đã chụp ảnh từ camera ${activeAngle.value} của phòng ${zoomedClassroom.value.roomName}.`)
 }
 </script>
 

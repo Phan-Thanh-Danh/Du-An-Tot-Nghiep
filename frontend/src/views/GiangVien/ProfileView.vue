@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { usePopupStore } from '@/stores/popup'
 import { 
   User, Mail, Phone, Lock, Save, Camera, 
   ShieldCheck, MapPin, Briefcase, Calendar 
@@ -7,6 +8,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
+const popupStore = usePopupStore()
 
 const user = ref({
   name: 'TS. Nguyễn Minh Khoa',
@@ -19,7 +21,7 @@ const user = ref({
 })
 
 function handleUpdate() {
-  alert('Đã cập nhật thông tin cá nhân!')
+  popupStore.success('Đã cập nhật', 'Thông tin cá nhân đã được cập nhật thành công.')
 }
 </script>
 

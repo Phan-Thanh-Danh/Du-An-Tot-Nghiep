@@ -1,12 +1,14 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { usePopupStore } from '@/stores/popup'
 import { 
   ArrowLeft, Save, Plus, Trash2, HelpCircle, 
   Layers, Shield, FileText, CheckCircle2
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const popupStore = usePopupStore()
 
 const form = ref({
   type: 'Trắc nghiệm',
@@ -40,7 +42,7 @@ function setCorrectAnswer(index) {
 }
 
 function saveQuestion() {
-  alert('Đã lưu câu hỏi thành công!')
+  popupStore.success('Đã lưu câu hỏi', 'Câu hỏi đã được lưu vào ngân hàng đề.')
   router.push('/teacher/questions')
 }
 </script>
