@@ -6,7 +6,6 @@ public class MonHocTrongChuongTrinh
     public int MaChuongTrinh { get; set; }
     public int MaMonHoc { get; set; }
     public int HocKyDuKien { get; set; }
-    public int SemesterNumber { get; set; }
     public int SoTinChi { get; set; }
     public string LoaiMonHoc { get; set; } = string.Empty;
     public bool BatBuoc { get; set; }

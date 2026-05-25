@@ -7,9 +7,6 @@ public class UpdateTrainingProgramSubjectRequest
     [Range(1, int.MaxValue, ErrorMessage = "Học kỳ dự kiến phải lớn hơn 0.")]
     public int HocKyDuKien { get; set; }
 
-    [Range(1, int.MaxValue, ErrorMessage = "Học kỳ phải lớn hơn 0.")]
-    public int SemesterNumber { get; set; }
-
     [Range(1, int.MaxValue, ErrorMessage = "Số tín chỉ phải lớn hơn 0.")]
     public int SoTinChi { get; set; }
 

@@ -2010,9 +2010,6 @@ public class ApplicationDbContext : DbContext
                 .IsRequired();
             entity.Property(e => e.HocKyDuKien)
                 .HasColumnName("hoc_ky_du_kien");
-            entity.Property(e => e.SemesterNumber)
-                .HasColumnName("semester_number")
-                .HasDefaultValue(1);
             entity.Property(e => e.SoTinChi)
                 .HasColumnName("so_tin_chi");
             entity.Property(e => e.LoaiMonHoc)
@@ -2046,7 +2043,6 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.MaMonHoc)
                 .HasDatabaseName("IX_MonHocTrongChuongTrinh_ma_mon_hoc");
             entity.ToTable(t => t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_hoc_ky_du_kien", "[hoc_ky_du_kien] > 0"));
-            entity.ToTable(t => t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_semester_number", "[semester_number] > 0"));
             entity.ToTable(t => t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_so_tin_chi", "[so_tin_chi] > 0"));
             entity.ToTable(t => t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_loai_mon_hoc", "[loai_mon_hoc] IN (N'bat_buoc', N'tu_chon', N'thay_the')"));
             entity.HasOne(e => e.ChuongTrinhDaoTao)
