@@ -66,9 +66,20 @@ const currentPageMeta = computed(() => {
 </script>
 
 <template>
-  <div class="flex h-screen w-full overflow-hidden bg-[#F8FAFC] font-sans relative">
+  <!--
+    ═══════════════════════════════════════════════════════
+    APP SHELL: Layout_GiangVien
+    Layout: [Sidebar] | [Topbar + Content]
+    ═══════════════════════════════════════════════════════
+  -->
+  <div class="lg-app-bg flex h-screen w-full overflow-hidden font-sans">
+    <div class="pointer-events-none absolute inset-0 -z-0 overflow-hidden">
+      <div class="lg-orb -left-28 top-16 h-80 w-80 bg-cyan-300/30 will-change-transform" />
+      <div class="lg-orb right-[-8rem] top-[-5rem] h-96 w-96 bg-violet-300/24 [animation-delay:-6s] will-change-transform" />
+      <div class="lg-orb bottom-[-9rem] left-1/3 h-96 w-96 bg-blue-300/20 [animation-delay:-12s] will-change-transform" />
+    </div>
 
-    <!-- MOBILE OVERLAY -->
+    <!-- ═══════════ MOBILE OVERLAY ═══════════ -->
     <Transition
       enter-active-class="transition-opacity duration-200"
       enter-from-class="opacity-0"
@@ -84,8 +95,9 @@ const currentPageMeta = computed(() => {
       />
     </Transition>
 
-    <!-- SIDEBAR -->
-    <div class="hidden lg:flex flex-shrink-0 h-full">
+    <!-- ═══════════ SIDEBAR ═══════════ -->
+    <!-- Desktop sidebar -->
+    <div class="relative z-20 hidden h-full flex-shrink-0 lg:flex">
       <AppSidebar
         :collapsed="sidebarCollapsed"
         @toggle="toggleSidebar"
@@ -112,33 +124,59 @@ const currentPageMeta = computed(() => {
       </div>
     </Transition>
 
-    <!-- MAIN AREA -->
-    <div class="flex flex-1 flex-col min-w-0 overflow-hidden">
-      <!-- Reusing Student Topbar as it is mostly generic -->
+    <!-- ═══════════ MAIN AREA (Topbar + Content) ═══════════ -->
+    <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden">
+      <!-- Topbar -->
       <AppTopbar @toggle-sidebar="toggleSidebar" />
 
+      <!-- ═══════════ CONTENT AREA ═══════════ -->
       <main class="flex-1 overflow-y-auto">
-        <div class="mx-auto max-w-[1440px] px-4 sm:px-6 py-6">
+        <div class="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6">
           <PageContainer
             :title="currentPageMeta.title"
             :subtitle="currentPageMeta.subtitle"
           >
             <router-view v-slot="{ Component }">
               <Transition
-                enter-active-class="transition-all duration-200 ease-out"
-                enter-from-class="opacity-0 translate-y-2"
+                enter-active-class="transition-all duration-300 ease-out will-change-transform will-change-opacity"
+                enter-from-class="opacity-0 translate-y-3"
                 enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition-opacity duration-75 ease-in"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
                 mode="out-in"
               >
-                <component :is="Component" v-if="Component" />
-                <div v-else class="flex flex-col items-center justify-center py-24 text-center">
-                  <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50">
-                     <GraduationCap class="h-8 w-8 text-blue-300" />
-                  </div>
-                  <h3 class="mt-4 text-base font-semibold text-slate-700">Trang đang phát triển</h3>
-                  <p class="mt-1.5 text-sm text-slate-400 max-w-xs">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng.</p>
-                  <router-link to="/teacher/dashboard" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">← Về Dashboard</router-link>
-                </div>
+                <Suspense timeout="0">
+                  <template #default>
+                    <component :is="Component" v-if="Component" />
+                    <!-- Empty state -->
+                    <div v-else class="flex flex-col items-center justify-center py-24 text-center">
+                      <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50">
+                        <GraduationCap class="h-8 w-8 text-blue-300" />
+                      </div>
+                      <h3 class="mt-4 text-base font-semibold text-slate-700">Trang đang phát triển</h3>
+                      <p class="mt-1.5 text-sm text-slate-400 max-w-xs">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng.</p>
+                      <router-link to="/teacher/dashboard" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">← Về Dashboard</router-link>
+                    </div>
+                  </template>
+                  <template #fallback>
+                    <!-- Fallback skeleton loading -->
+                    <div class="flex h-[60vh] w-full flex-col items-center justify-center space-y-6">
+                      <div class="relative flex items-center justify-center">
+                        <div class="absolute h-16 w-16 animate-ping rounded-full bg-blue-400/20"></div>
+                        <div class="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600 shadow-sm"></div>
+                      </div>
+                      <div class="flex flex-col items-center space-y-2">
+                        <p class="text-sm font-semibold tracking-wide text-slate-600">Đang nạp dữ liệu...</p>
+                        <div class="flex space-x-1">
+                          <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500" style="animation-delay: -0.3s"></div>
+                          <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500" style="animation-delay: -0.15s"></div>
+                          <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </Suspense>
               </Transition>
             </router-view>
           </PageContainer>
