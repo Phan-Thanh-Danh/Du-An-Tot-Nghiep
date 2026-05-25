@@ -521,6 +521,7 @@ public static class Data
         }
 
         programSubject.HocKyDuKien = expectedTerm;
+        programSubject.SemesterNumber = expectedTerm;
         programSubject.SoTinChi = credits;
         programSubject.LoaiMonHoc = RequiredSubjectType;
         programSubject.BatBuoc = true;

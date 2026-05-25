@@ -63,6 +63,11 @@ public class TrainingProgramSubjectService : ITrainingProgramSubjectService
             query = query.Where(x => x.HocKyDuKien == parameters.HocKyDuKien.Value);
         }
 
+        if (parameters.SemesterNumber.HasValue)
+        {
+            query = query.Where(x => x.SemesterNumber == parameters.SemesterNumber.Value);
+        }
+
         if (!string.IsNullOrWhiteSpace(parameters.LoaiMonHoc))
         {
             var subjectType = NormalizeSubjectType(parameters.LoaiMonHoc);
@@ -157,6 +162,7 @@ public class TrainingProgramSubjectService : ITrainingProgramSubjectService
         var subject = await ValidateSubjectAsync(request.MaMonHoc, cancellationToken);
         var subjectType = NormalizeSubjectType(request.LoaiMonHoc);
         ValidateTerm(request.HocKyDuKien, program.SoHocKy);
+        ValidateSemesterNumber(request.SemesterNumber, program.SoHocKy);
         ValidateCredits(request.SoTinChi);
         await EnsureUniqueProgramSubjectAsync(program.MaChuongTrinh, subject.MaMonHoc, null, cancellationToken);
 
@@ -165,6 +171,7 @@ public class TrainingProgramSubjectService : ITrainingProgramSubjectService
             MaChuongTrinh = program.MaChuongTrinh,
             MaMonHoc = subject.MaMonHoc,
             HocKyDuKien = request.HocKyDuKien,
+            SemesterNumber = request.SemesterNumber,
             SoTinChi = request.SoTinChi,
             LoaiMonHoc = subjectType,
             BatBuoc = NormalizeRequiredFlag(subjectType, request.BatBuoc),
@@ -191,9 +198,11 @@ public class TrainingProgramSubjectService : ITrainingProgramSubjectService
         var program = await ValidateEditableProgramAsync(programSubject.MaChuongTrinh, cancellationToken);
         var subjectType = NormalizeSubjectType(request.LoaiMonHoc);
         ValidateTerm(request.HocKyDuKien, program.SoHocKy);
+        ValidateSemesterNumber(request.SemesterNumber, program.SoHocKy);
         ValidateCredits(request.SoTinChi);
 
         programSubject.HocKyDuKien = request.HocKyDuKien;
+        programSubject.SemesterNumber = request.SemesterNumber;
         programSubject.SoTinChi = request.SoTinChi;
         programSubject.LoaiMonHoc = subjectType;
         programSubject.BatBuoc = NormalizeRequiredFlag(subjectType, request.BatBuoc);
@@ -437,6 +446,19 @@ public class TrainingProgramSubjectService : ITrainingProgramSubjectService
         }
     }
 
+    private static void ValidateSemesterNumber(int semesterNumber, int semesterCount)
+    {
+        if (semesterNumber <= 0)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Học kỳ phải lớn hơn 0.");
+        }
+
+        if (semesterNumber > semesterCount)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Học kỳ không được lớn hơn số học kỳ của chương trình đào tạo.");
+        }
+    }
+
     private static void ValidateCredits(int credits)
     {
         if (credits <= 0)
@@ -476,6 +498,7 @@ public class TrainingProgramSubjectService : ITrainingProgramSubjectService
             MaCodeMonHoc = subject?.MaCodeMonHoc ?? string.Empty,
             TenMonHoc = subject?.TenMonHoc ?? string.Empty,
             HocKyDuKien = programSubject.HocKyDuKien,
+            SemesterNumber = programSubject.SemesterNumber,
             SoTinChi = programSubject.SoTinChi,
             LoaiMonHoc = programSubject.LoaiMonHoc,
             BatBuoc = programSubject.BatBuoc,

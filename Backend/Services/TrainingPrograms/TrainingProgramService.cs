@@ -298,6 +298,7 @@ public class TrainingProgramService : ITrainingProgramService
                 MaChuongTrinh = program.MaChuongTrinh,
                 MaMonHoc = sourceSubject.MaMonHoc,
                 HocKyDuKien = sourceSubject.HocKyDuKien,
+                SemesterNumber = sourceSubject.SemesterNumber,
                 SoTinChi = sourceSubject.SoTinChi,
                 LoaiMonHoc = sourceSubject.LoaiMonHoc,
                 BatBuoc = sourceSubject.BatBuoc,

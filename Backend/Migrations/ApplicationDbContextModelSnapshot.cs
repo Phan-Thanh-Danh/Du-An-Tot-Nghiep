@@ -2815,6 +2815,12 @@ namespace Backend.Migrations
                         .HasColumnName("ngay_tao")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
+                    b.Property<int>("SemesterNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1)
+                        .HasColumnName("semester_number");
+
                     b.Property<int>("SoTinChi")
                         .HasColumnType("int")
                         .HasColumnName("so_tin_chi");
@@ -2843,6 +2849,8 @@ namespace Backend.Migrations
                             t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_hoc_ky_du_kien", "[hoc_ky_du_kien] > 0");
 
                             t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_loai_mon_hoc", "[loai_mon_hoc] IN (N'bat_buoc', N'tu_chon', N'thay_the')");
+
+                            t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_semester_number", "[semester_number] > 0");
 
                             t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_so_tin_chi", "[so_tin_chi] > 0");
                         });

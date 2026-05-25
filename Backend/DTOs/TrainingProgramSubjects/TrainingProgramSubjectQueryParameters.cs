@@ -7,6 +7,7 @@ public class TrainingProgramSubjectQueryParameters
     public int? MaChuongTrinh { get; set; }
     public int? MaMonHoc { get; set; }
     public int? HocKyDuKien { get; set; }
+    public int? SemesterNumber { get; set; }
     public string? LoaiMonHoc { get; set; }
     public bool? BatBuoc { get; set; }
     public bool? ConHoatDong { get; set; }
