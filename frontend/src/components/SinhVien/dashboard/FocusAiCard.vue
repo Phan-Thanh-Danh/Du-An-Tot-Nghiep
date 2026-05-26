@@ -4,7 +4,7 @@ import GlassPanel from '@/components/ui/GlassPanel.vue'
 </script>
 
 <template>
-  <GlassPanel density="none" class="relative rounded-[28px]">
+  <GlassPanel density="none" class="relative rounded-[28px] lg-glass-card-hover">
     <div class="pointer-events-none absolute -right-12 top-2 h-36 w-36 rounded-full bg-violet-300/12 blur-3xl" />
 
     <div class="relative flex min-h-[205px] flex-col justify-between gap-3 p-4 lg:p-5">

@@ -17,7 +17,7 @@ const attendanceDegrees = computed(() =>
 </script>
 
 <template>
-  <GlassPanel density="none" class="rounded-[28px]">
+  <GlassPanel density="none" class="rounded-[28px] lg-glass-card-hover">
     <div class="p-4 lg:p-5">
     <div class="flex items-start justify-between gap-3">
       <div>

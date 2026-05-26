@@ -65,13 +65,15 @@ const currentPageMeta = computed(() => {
 </script>
 
 <template>
-  <div class="flex h-screen w-full overflow-hidden lg-app-bg font-sans">
+  <div class="relative flex h-screen w-full overflow-hidden font-sans
+              bg-gradient-to-br from-slate-50 via-indigo-50/20 to-purple-50/20
+              dark:from-slate-950 dark:via-indigo-950/10 dark:to-purple-950/20">
     
-    <!-- Mảng trang trí Liquid Glass Background (Blobs) for BGH (Indigo/Purple focused) -->
-    <div class="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-      <div class="lg-blob lg-blob-violet" style="top: -10%; left: -5%;"></div>
-      <div class="lg-blob lg-blob-blue" style="top: 20%; right: -10%;"></div>
-      <div class="lg-blob bg-indigo-500/5 blur-[40px]" style="height: 24rem; width: 24rem; bottom: -15%; left: 30%; border-radius: 50%; position: absolute;"></div>
+    <!-- Radial glow orbs -->
+    <div class="pointer-events-none fixed inset-0 overflow-hidden z-0">
+      <div class="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-indigo-400/10 dark:bg-indigo-500/10 blur-[120px]" />
+      <div class="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-purple-400/10 dark:bg-purple-500/10 blur-[120px]" />
+      <div class="absolute top-1/3 left-1/2 h-[500px] w-[500px] rounded-full bg-violet-400/5 dark:bg-violet-500/5 blur-[160px]" />
     </div>
 
     <!-- MOBILE OVERLAY -->

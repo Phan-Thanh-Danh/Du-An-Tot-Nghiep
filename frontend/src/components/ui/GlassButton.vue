@@ -16,6 +16,7 @@ const props = defineProps({
   loading: Boolean,
   disabled: Boolean,
   block: Boolean,
+  glow: Boolean,
   type: {
     type: String,
     default: 'button',
@@ -48,6 +49,7 @@ const sizeClass = computed(() => ({
       block ? 'flex w-full' : 'inline-flex',
       variantClass,
       sizeClass,
+      glow ? 'lg-glow' : '',
     ]"
     @click="emit('click', $event)"
   >

@@ -1,25 +1,40 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Calendar as CalendarIcon, 
-  MoreVertical, 
-  ChevronLeft, 
+import {
+  Plus,
+  Search,
+  Filter,
+  Calendar as CalendarIcon,
+  MoreVertical,
+  ChevronLeft,
   ChevronRight,
   Download,
   Upload,
   CheckCircle2,
   AlertCircle,
-  Clock
+  Clock,
+  X
 } from 'lucide-vue-next'
+import * as XLSX from 'xlsx'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 
 // ── Filters & State ──────────────────────────────────────────
 const semester = ref('Spring 2026')
 const campus = ref('Cơ sở chính')
 const viewMode = ref('Week') // Day, Week, Month
+const showCreateModal = ref(false)
+
+// ── Form data for new schedule ──────────────────────────────
+const newScheduleForm = ref({
+  subject: '',
+  class: '',
+  teacher: '',
+  room: '',
+  day: 'Thứ 2',
+  startTime: '07:30',
+  endTime: '08:30',
+  status: 'draft'
+})
 
 // ── Lecturers ───────────────────────────────────────────────
 const lecturers = [
@@ -38,7 +53,7 @@ const filteredSchedules = computed(() => {
 
 // ── Mock Time Slots ─────────────────────────────────────────
 const timeSlots = [
-  '07:30', '08:30', '09:30', '10:30', '11:30', 
+  '07:30', '08:30', '09:30', '10:30', '11:30',
   '12:30', '13:30', '14:30', '15:30', '16:30', '17:30'
 ]
 
@@ -96,19 +111,77 @@ const getStatusClass = (status) => {
 function getSchedule(day, time) {
   return filteredSchedules.value.find(s => s.day === day && s.startTime === time)
 }
+
+// ── Export to Excel ──────────────────────────────────────────
+function exportToExcel() {
+  const dataToExport = filteredSchedules.value.map(schedule => ({
+    'Lớp': schedule.class,
+    'Môn học': schedule.subject,
+    'Giảng viên': schedule.teacher,
+    'Phòng': schedule.room,
+    'Thứ': schedule.day,
+    'Giờ bắt đầu': schedule.startTime,
+    'Giờ kết thúc': schedule.endTime,
+    'Trạng thái': schedule.status
+  }))
+
+  const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Thời khóa biểu')
+
+  // Adjust column width
+  const columnWidths = [12, 20, 20, 12, 8, 12, 12, 12]
+  worksheet['!cols'] = columnWidths.map(width => ({ wch: width }))
+
+  // Export with filename includes date
+  const now = new Date()
+  const filename = `TKB_${semester.value}_${now.toISOString().split('T')[0]}.xlsx`
+  XLSX.writeFile(workbook, filename)
+}
+
+// ── Create new schedule ──────────────────────────────────────
+function handleCreateSchedule() {
+  if (!newScheduleForm.value.subject || !newScheduleForm.value.class || !newScheduleForm.value.teacher) {
+    alert('Vui lòng điền đầy đủ thông tin')
+    return
+  }
+
+  const newSchedule = {
+    id: Math.max(...schedules.value.map(s => s.id), 0) + 1,
+    ...newScheduleForm.value,
+    color: 'indigo'
+  }
+
+  schedules.value.push(newSchedule)
+
+  // Reset form
+  newScheduleForm.value = {
+    subject: '',
+    class: '',
+    teacher: '',
+    room: '',
+    day: 'Thứ 2',
+    startTime: '07:30',
+    endTime: '08:30',
+    status: 'draft'
+  }
+
+  showCreateModal.value = false
+  alert('Tạo lịch mới thành công!')
+}
 </script>
 
 <template>
-  <PageContainer 
-    title="Quản lý thời khóa biểu" 
+  <PageContainer
+    title="Quản lý thời khóa biểu"
     subtitle="Xếp lịch học, kéo thả và kiểm tra xung đột cho học kỳ hiện tại."
   >
     <template #actions>
       <div class="flex items-center gap-3">
-        <button class="lg-button-secondary px-4 py-2 text-sm font-bold">
+        <button @click="exportToExcel" class="lg-button-secondary px-4 py-2 text-sm font-bold hover:bg-slate-100 transition-colors">
           <Download :size="16" /> Xuất Excel
         </button>
-        <button class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20">
+        <button @click="showCreateModal = true" class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20 hover:shadow-xl transition-all">
           <Plus :size="18" /> Tạo lịch mới
         </button>
       </div>
@@ -119,8 +192,8 @@ function getSchedule(day, time) {
       <div class="lg-glass-strong p-4 rounded-[24px] flex items-center justify-between gap-4">
         <div class="flex items-center gap-4">
           <div class="flex items-center bg-white/50 rounded-xl p-1 border border-slate-100">
-            <button 
-              v-for="mode in ['Day', 'Week', 'Month']" 
+            <button
+              v-for="mode in ['Day', 'Week', 'Month']"
               :key="mode"
               @click="viewMode = mode"
               :class="[
@@ -185,8 +258,8 @@ function getSchedule(day, time) {
                 </td>
                 <td v-for="day in days" :key="day" class="border-b border-r border-slate-100 p-2 relative min-h-[100px] hover:bg-blue-50/30 transition-colors cursor-pointer">
                   <!-- Event Card -->
-                  <div 
-                    v-if="getSchedule(day, time)" 
+                  <div
+                    v-if="getSchedule(day, time)"
                     :class="[
                       'schedule-card p-3 rounded-2xl border transition-all hover:scale-[1.02] cursor-grab active:cursor-grabbing',
                       `schedule-card-${getSchedule(day, time).status}`
@@ -207,7 +280,7 @@ function getSchedule(day, time) {
                        </span>
                     </div>
                   </div>
-                  
+
                   <!-- Empty state hint on hover -->
                   <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Plus :size="16" class="text-blue-300" />
@@ -250,6 +323,132 @@ function getSchedule(day, time) {
       </div>
     </div>
   </PageContainer>
+
+  <!-- ── Modal Create New Schedule ── -->
+  <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-[24px] shadow-2xl max-w-md w-full p-6 border border-slate-100">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-slate-900">Tạo lịch mới</h2>
+        <button @click="showCreateModal = false" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
+          <X :size="20" />
+        </button>
+      </div>
+
+      <!-- Form -->
+      <form @submit.prevent="handleCreateSchedule" class="space-y-4">
+        <!-- Môn học -->
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2">Môn học</label>
+          <input
+            v-model="newScheduleForm.subject"
+            type="text"
+            placeholder="Nhập tên môn học"
+            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+          />
+        </div>
+
+        <!-- Lớp -->
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2">Lớp</label>
+          <input
+            v-model="newScheduleForm.class"
+            type="text"
+            placeholder="Nhập mã lớp (vd: SE1601)"
+            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+          />
+        </div>
+
+        <!-- Giảng viên -->
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2">Giảng viên</label>
+          <select
+            v-model="newScheduleForm.teacher"
+            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+          >
+            <option value="">-- Chọn giảng viên --</option>
+            <option v-for="lecturer in lecturers" :key="lecturer.id" :value="lecturer.name" v-show="lecturer.id !== 1">
+              {{ lecturer.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Phòng -->
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2">Phòng</label>
+          <input
+            v-model="newScheduleForm.room"
+            type="text"
+            placeholder="Nhập mã phòng (vd: P.302)"
+            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+          />
+        </div>
+
+        <!-- Thứ -->
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2">Thứ</label>
+          <select
+            v-model="newScheduleForm.day"
+            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+          >
+            <option v-for="day in days" :key="day" :value="day">{{ day }}</option>
+          </select>
+        </div>
+
+        <!-- Giờ bắt đầu -->
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2">Giờ bắt đầu</label>
+          <select
+            v-model="newScheduleForm.startTime"
+            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+          >
+            <option v-for="time in timeSlots" :key="time" :value="time">{{ time }}</option>
+          </select>
+        </div>
+
+        <!-- Giờ kết thúc -->
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2">Giờ kết thúc</label>
+          <select
+            v-model="newScheduleForm.endTime"
+            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+          >
+            <option v-for="time in timeSlots" :key="time" :value="time" :disabled="time <= newScheduleForm.startTime">{{ time }}</option>
+          </select>
+        </div>
+
+        <!-- Trạng thái -->
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2">Trạng thái</label>
+          <select
+            v-model="newScheduleForm.status"
+            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+          >
+            <option value="draft">Bản nháp</option>
+            <option value="pending">Chờ duyệt</option>
+            <option value="published">Đã công bố</option>
+          </select>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-3 pt-4 border-t border-slate-200">
+          <button
+            type="button"
+            @click="showCreateModal = false"
+            class="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+          >
+            Hủy
+          </button>
+          <button
+            type="submit"
+            class="flex-1 px-4 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20"
+          >
+            Tạo lịch
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </template>
 
 <style scoped>

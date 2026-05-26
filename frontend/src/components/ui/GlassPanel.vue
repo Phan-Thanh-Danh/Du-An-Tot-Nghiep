@@ -19,6 +19,8 @@ const props = defineProps({
   strong: Boolean,
   soft: Boolean,
   interactive: Boolean,
+  glow: Boolean,
+  floating: Boolean,
   padding: {
     type: String,
     default: '',
@@ -30,6 +32,8 @@ const props = defineProps({
 })
 
 const surfaceClass = computed(() => {
+  if (props.glow) return 'lg-glass-card-hover lg-glow'
+  if (props.floating) return 'lg-glass-card-hover lg-float-card'
   if (props.strong) return 'lg-glass-strong'
   if (props.soft) return 'lg-glass-soft'
   if (props.variant === 'strong') return 'lg-glass-strong'
@@ -64,13 +68,13 @@ const densityClass = computed(() => {
       interactive ? 'lg-card-hover' : '',
     ]"
   >
-    <div v-if="$slots.header" class="mb-5 border-b border-white/45 pb-4">
+    <div v-if="$slots.header" class="mb-5 border-b border-white/45 dark:border-white/10 pb-4">
       <slot name="header" />
     </div>
 
     <slot />
 
-    <div v-if="$slots.footer" class="mt-5 border-t border-white/45 pt-4">
+    <div v-if="$slots.footer" class="mt-5 border-t border-white/45 dark:border-white/10 pt-4">
       <slot name="footer" />
     </div>
   </component>

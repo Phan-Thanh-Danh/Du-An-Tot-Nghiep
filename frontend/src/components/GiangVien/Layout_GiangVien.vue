@@ -66,7 +66,16 @@ const currentPageMeta = computed(() => {
 </script>
 
 <template>
-  <div class="flex h-screen w-full overflow-hidden bg-[#F8FAFC] font-sans relative">
+  <div class="relative flex h-screen w-full overflow-hidden font-sans
+              bg-gradient-to-br from-slate-50 via-blue-50/20 to-sky-50/20
+              dark:from-slate-950 dark:via-blue-950/10 dark:to-sky-950/20">
+
+    <!-- Radial glow orbs -->
+    <div class="pointer-events-none fixed inset-0 overflow-hidden z-0">
+      <div class="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-sky-400/10 dark:bg-sky-500/10 blur-[120px]" />
+      <div class="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-blue-400/10 dark:bg-blue-500/10 blur-[120px]" />
+      <div class="absolute top-1/2 left-1/3 h-[500px] w-[500px] rounded-full bg-cyan-400/5 dark:bg-cyan-500/5 blur-[140px]" />
+    </div>
 
     <!-- MOBILE OVERLAY -->
     <Transition
