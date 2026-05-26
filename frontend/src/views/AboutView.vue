@@ -4,7 +4,7 @@
       <span class="inline-flex rounded-full border border-blue-200 bg-blue-50/80 px-3 py-1 text-xs font-semibold text-blue-700">
         LMS Academic Management System
       </span>
-      <h1 class="mt-5 text-3xl font-extrabold leading-tight text-slate-950">
+      <h1 class="mt-5 text-xl font-extrabold leading-tight text-slate-950">
         Cổng học tập và quản lý đào tạo
       </h1>
       <p class="mt-4 text-sm leading-7 text-slate-600">

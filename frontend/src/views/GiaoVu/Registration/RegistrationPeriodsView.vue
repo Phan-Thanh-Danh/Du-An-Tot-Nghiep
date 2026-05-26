@@ -44,7 +44,7 @@ const getStatusBadge = (status) => {
       </button>
     </template>
 
-    <div class="space-y-6">
+    <div class="space-y-4">
       
       <!-- ── Search & Filter ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
@@ -63,20 +63,20 @@ const getStatusBadge = (status) => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/50">
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Đợt đăng ký</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thời gian</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Max Credits</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Trạng thái</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Đợt đăng ký</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thời gian</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Max Credits</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Trạng thái</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="period in periods" :key="period.id" class="group hover:bg-white/50 transition-colors">
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <p class="text-sm font-black text-slate-800 leading-tight">{{ period.name }}</p>
                 <p class="text-[11px] font-bold text-blue-600 mt-1 uppercase tracking-tighter">{{ period.semester }}</p>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="space-y-1">
                   <div class="flex items-center gap-2 text-xs font-bold text-slate-600">
                     <Clock :size="14" class="text-emerald-500" /> {{ period.openDate }} <ArrowRight :size="12" /> {{ period.closeDate }}
@@ -86,15 +86,15 @@ const getStatusBadge = (status) => {
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span class="text-sm font-black text-slate-800">{{ period.maxCredits }} TC</span>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span :class="['px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border', getStatusBadge(period.status)]">
                   {{ period.status }}
                 </span>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-1">
                   <button class="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-all" title="Chỉnh sửa">
                     <Edit3 :size="16" />
@@ -113,8 +113,8 @@ const getStatusBadge = (status) => {
       </div>
 
       <!-- ── Important Rules ── -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="lg-card-glass p-6 border-blue-100 bg-blue-50/20">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="lg-card-glass p-4 border-blue-100 bg-blue-50/20">
           <div class="flex gap-4">
             <div class="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
                <ShieldCheck :size="20" />
@@ -135,7 +135,7 @@ const getStatusBadge = (status) => {
           </div>
         </div>
 
-        <div class="lg-card-glass p-6 border-emerald-100 bg-emerald-50/20">
+        <div class="lg-card-glass p-4 border-emerald-100 bg-emerald-50/20">
           <div class="flex gap-4">
             <div class="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
                <Settings :size="20" />

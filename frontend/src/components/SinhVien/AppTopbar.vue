@@ -1,23 +1,29 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
-import { Search, Bell, Menu, Target, Sparkles } from 'lucide-vue-next'
+import { Search, Bell, Menu, Target } from 'lucide-vue-next'
 import * as LucideIcons from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
 import { mockUser, mockNotifications } from './data/menuData.js'
 import { useAuthStore } from '@/stores/auth'
+import { useRecentFavoritesStore } from '@/stores/recentFavorites'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
+import CommandPalette from '@/components/ui/CommandPalette.vue'
+import QuickCreate from '@/components/ui/QuickCreate.vue'
+import Breadcrumbs from '@/components/ui/Breadcrumbs.vue'
+import MiniCalendar from '@/components/ui/MiniCalendar.vue'
 
 const emit = defineEmits(['toggle-sidebar'])
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const recentStore = useRecentFavoritesStore()
+
+const commandPaletteOpen = ref(false)
 
 // Refs for click outside
 const profileMenuRef = ref(null)
 const notifMenuRef = ref(null)
 
-// Search
-const searchQuery = ref('')
 // Panels state
 const notifOpen = ref(false)
 const userMenuOpen = ref(false)
@@ -77,20 +83,56 @@ function handleEscape(event) {
   if (event.key === 'Escape') closeAll()
 }
 
+function handleGlobalKeydown(e) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault()
+    commandPaletteOpen.value = true
+  }
+}
+
 onMounted(() => {
   document.addEventListener('mousedown', handleClickOutside)
   document.addEventListener('keydown', handleEscape)
+  document.addEventListener('keydown', handleGlobalKeydown)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
   document.removeEventListener('keydown', handleEscape)
+  document.removeEventListener('keydown', handleGlobalKeydown)
 })
 
-watch(() => route.fullPath, () => {
+watch(() => route.fullPath, (path) => {
   userMenuOpen.value = false
   notifOpen.value = false
+  const title = currentMeta.value?.title
+  if (title && path && !path.startsWith('/login')) {
+    const icon = guessIcon(path)
+    recentStore.visitPage({ path, label: title, icon })
+  }
 })
+
+function guessIcon(path) {
+  if (path.includes('dashboard')) return 'LayoutDashboard'
+  if (path.includes('course')) return 'BookOpen'
+  if (path.includes('assignment')) return 'FileText'
+  if (path.includes('exam')) return 'ClipboardCheck'
+  if (path.includes('grade')) return 'BarChart3'
+  if (path.includes('schedule') || path.includes('calendar')) return 'Calendar'
+  if (path.includes('attendance')) return 'ClipboardCheck'
+  if (path.includes('profile')) return 'UserCircle'
+  if (path.includes('notif')) return 'Bell'
+  if (path.includes('tuition') || path.includes('payment')) return 'CreditCard'
+  if (path.includes('support') || path.includes('ticket')) return 'MessageSquare'
+  if (path.includes('request')) return 'Inbox'
+  if (path.includes('evaluation')) return 'Star'
+  if (path.includes('class')) return 'Users'
+  if (path.includes('lesson')) return 'BookOpen'
+  if (path.includes('grading') || path.includes('grade')) return 'CheckSquare'
+  if (path.includes('room')) return 'DoorOpen'
+  if (path.includes('conflict')) return 'AlertTriangle'
+  return 'Circle'
+}
 
 function notifColorClass(color) {
   const map = {
@@ -121,17 +163,10 @@ const profileLink = computed(() => {
 })
 
 const isStudent = computed(() => authStore.hasRole('Student'))
-
-const workspaceName = computed(() => {
-  if (authStore.hasRole('Principal')) return 'Management workspace'
-  if (authStore.hasRole('Teacher')) return 'Faculty workspace'
-  if (authStore.hasRole('AcademicStaff')) return 'Staff workspace'
-  return 'Student workspace'
-})
 </script>
 
 <template>
-  <header class="lg-topbar sticky top-3 z-20 mx-3 mt-3 flex h-16 flex-shrink-0 items-center gap-3 overflow-visible rounded-[26px] px-4 sm:mx-4 sm:mt-4 sm:gap-4 sm:px-5">
+  <header class="lg-topbar sticky top-2 z-20 mx-2 mt-2 flex h-14 flex-shrink-0 items-center gap-2 overflow-visible rounded-[22px] px-3 sm:mx-3 sm:mt-3 sm:gap-3 sm:px-4">
     <!-- Mobile toggle -->
     <button
       class="lg-icon-button flex p-2 text-slate-500 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-300 lg:hidden"
@@ -141,50 +176,46 @@ const workspaceName = computed(() => {
       <Menu :size="20" />
     </button>
 
-    <!-- Page title -->
+    <!-- Page title + Breadcrumbs -->
     <div class="hidden min-w-0 flex-1 sm:block">
-      <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-        <Sparkles :size="12" class="text-indigo-500 dark:text-indigo-400" v-if="authStore.hasRole('Principal')" />
-        <Sparkles :size="12" class="text-cyan-600 dark:text-cyan-400" v-else />
-        {{ workspaceName }}
-      </div>
-      <div class="mt-0.5 flex min-w-0 items-baseline gap-2">
-        <h1 class="truncate text-lg font-bold leading-tight text-slate-950 dark:text-slate-100">{{ currentMeta.title }}</h1>
+      <Breadcrumbs class="mb-0.5" />
+      <div class="flex min-w-0 items-baseline gap-2">
+        <h1 class="truncate text-base font-bold leading-tight text-slate-950 dark:text-slate-100">{{ currentMeta.title }}</h1>
         <span class="hidden text-xs font-medium text-slate-500 dark:text-slate-400 lg:inline">{{ currentMeta.subtitle }}</span>
       </div>
     </div>
 
-    <!-- Search -->
-    <div class="relative hidden items-center md:flex">
-      <div
-        class="lg-control flex h-10 w-64 items-center gap-2 px-3 transition-colors duration-200 xl:w-72"
-      >
-        <Search :size="14" class="flex-shrink-0 text-slate-400 dark:text-slate-500" />
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Tìm kiếm..."
-          class="w-full bg-transparent text-sm text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
-          aria-label="Tìm kiếm"
-        />
-      </div>
-    </div>
-
+    <!-- Command palette trigger (Cmd+K) -->
     <button
-      class="lg-button-secondary hidden h-9 px-3 text-xs font-bold text-slate-700 dark:text-slate-300 xl:inline-flex"
+      class="hidden md:inline-flex h-8 items-center gap-1.5 rounded-xl border border-white/50 dark:border-white/10 bg-white/45 dark:bg-slate-700/40 px-2.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400 shadow-sm backdrop-blur-xl hover:bg-white/70 dark:hover:bg-slate-700/60 hover:text-slate-700 dark:hover:text-slate-200 transition-all focus:outline-none"
+      aria-label="Mở command palette"
+      @click="commandPaletteOpen = true"
+    >
+      <Search :size="14" />
+      <span class="hidden sm:inline">Tìm kiếm</span>
+      <kbd class="ml-1 hidden rounded-md border border-slate-200 dark:border-white/10 bg-white/60 dark:bg-slate-800/60 px-1.5 py-0.5 text-[9px] font-bold text-slate-400 dark:text-slate-500 xl:inline-block">⌘K</kbd>
+    </button>
+
+    <!-- Quick Create -->
+    <QuickCreate />
+
+    <!-- Focus Mode button -->
+    <button
+      class="lg-button-secondary hidden h-8 px-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 xl:inline-flex"
       aria-label="Bật chế độ tập trung"
     >
-      <Target :size="14" />
+      <Target :size="12" />
       Tập trung
     </button>
 
+    <MiniCalendar />
     <ThemeToggle />
 
     <!-- Notification -->
     <div ref="notifMenuRef" class="relative">
       <button
         :class="[
-          'lg-icon-button relative h-9 w-9 border border-white/50 dark:border-white/10 bg-white/45 dark:bg-slate-700/40 text-slate-500 dark:text-slate-400 shadow-sm backdrop-blur-xl focus:outline-none',
+          'lg-icon-button relative h-8 w-8 border border-white/50 dark:border-white/10 bg-white/45 dark:bg-slate-700/40 text-slate-500 dark:text-slate-400 shadow-sm backdrop-blur-xl focus:outline-none',
           notifOpen ? 'bg-blue-50 dark:bg-blue-600/25 text-blue-700 dark:text-blue-300 shadow-md' : 'hover:text-blue-700 dark:hover:text-blue-300',
         ]"
         aria-label="Thông báo"
@@ -192,7 +223,7 @@ const workspaceName = computed(() => {
         :aria-expanded="notifOpen"
         @click.stop="toggleNotif"
       >
-        <Bell :size="17" />
+        <Bell :size="15" />
         <span
           v-if="unreadCount > 0"
           class="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white ring-2 ring-white dark:ring-slate-800"
@@ -331,4 +362,6 @@ const workspaceName = computed(() => {
       </Transition>
     </div>
   </header>
+
+  <CommandPalette v-if="commandPaletteOpen" @close="commandPaletteOpen = false" />
 </template>

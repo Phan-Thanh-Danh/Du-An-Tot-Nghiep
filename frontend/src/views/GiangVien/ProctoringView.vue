@@ -1,20 +1,20 @@
 <template>
-  <div class="h-[calc(100vh-120px)] flex flex-col gap-6 pb-2 animate-fade-in relative">
+  <div class="h-[calc(100vh-120px)] flex flex-col gap-4 pb-2 animate-fade-in relative">
     
     <!-- ── TOP BAR: CCTV System Info (Premium Dark Header) ── -->
-    <div class="relative overflow-hidden rounded-[28px] bg-slate-900 p-6 text-white shadow-xl flex flex-wrap items-center justify-between gap-4 flex-shrink-0 border border-slate-800">
+    <div class="relative overflow-hidden rounded-[28px] bg-slate-900 p-4 text-white shadow-xl flex flex-wrap items-center justify-between gap-4 flex-shrink-0 border border-slate-800">
       <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-blue-500/20 blur-2xl pointer-events-none" />
       <div class="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-rose-500/20 blur-2xl pointer-events-none" />
       
       <div class="relative z-10 flex items-center gap-5">
-        <div class="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 border border-white/10 shadow-inner backdrop-blur-md">
+        <div class="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 border border-white/10 shadow-inner backdrop-blur-md">
            <Video class="text-blue-400" :size="28" />
            <span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 animate-pulse">
              <div class="h-2 w-2 rounded-full bg-white"></div>
            </span>
         </div>
         <div>
-           <h1 class="text-xl md:text-2xl font-black text-white uppercase tracking-tight">Hệ Thống Giám Sát Camera Lớp Học</h1>
+           <h1 class="text-xl md:text-xl font-black text-white uppercase tracking-tight">Hệ Thống Giám Sát Camera Lớp Học</h1>
            <div class="flex flex-wrap items-center gap-4 mt-2">
               <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-slate-300">
                 <School :size="14" class="text-blue-400" /> Tổng số phòng: {{ systemStats.total }}
@@ -35,18 +35,18 @@
         </div>
       </div>
       
-      <div class="relative z-10 flex items-center gap-4 bg-black/40 border border-white/10 px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-xl">
+      <div class="relative z-10 flex items-center gap-4 bg-black/40 border border-white/10 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl">
          <Clock :size="24" class="text-blue-400 animate-pulse" />
          <div class="flex flex-col items-end">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Thời gian thực tế</span>
-            <span class="text-3xl font-black font-mono leading-none text-white tracking-wider drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">{{ currentTime }}</span>
+            <span class="text-xl font-black font-mono leading-none text-white tracking-wider drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">{{ currentTime }}</span>
          </div>
       </div>
     </div>
 
     <!-- ── CCTV GRID ── -->
     <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 pb-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 pb-6">
         <div v-for="(room, idx) in classrooms" :key="room.id" 
              class="group relative rounded-2xl bg-black border border-slate-800 overflow-hidden aspect-video shadow-lg cursor-pointer hover:ring-2 hover:ring-blue-500 hover:shadow-blue-500/20 transition-all flex flex-col justify-center items-center"
              @click="openZoom(idx)">
@@ -133,7 +133,7 @@
         <div v-if="isZoomOpen" class="fixed inset-0 z-[100] flex bg-slate-950/95 backdrop-blur-xl">
           
           <!-- Left: Big Camera View -->
-          <div class="flex-1 flex flex-col p-6 relative">
+          <div class="flex-1 flex flex-col p-4 relative">
              <!-- Modal Header -->
              <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-4">
@@ -168,7 +168,7 @@
              </div>
 
              <!-- Big Camera Feed -->
-             <div class="flex-1 bg-black rounded-[32px] border border-slate-800 shadow-2xl relative overflow-hidden flex flex-col group">
+             <div class="flex-1 bg-black rounded-2xl border border-slate-800 shadow-2xl relative overflow-hidden flex flex-col group">
                 <!-- Camera Switcher Tabs -->
                 <div class="absolute top-4 left-4 z-20 flex gap-2 bg-black/60 backdrop-blur border border-white/10 p-1 rounded-xl">
                    <button v-for="angle in ['CAM-01', 'CAM-02', 'PC-GV']" :key="angle"
@@ -244,10 +244,10 @@
                    </div>
 
                    <!-- Navigation Controls -->
-                   <button @click.stop="prevClassroom" class="absolute left-6 h-14 w-14 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur border border-white/10 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:scale-110 z-20">
+                   <button @click.stop="prevClassroom" class="absolute left-6 h-10 w-10 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur border border-white/10 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:scale-110 z-20">
                       <ChevronLeft :size="32" />
                    </button>
-                   <button @click.stop="nextClassroom" class="absolute right-6 h-14 w-14 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur border border-white/10 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:scale-110 z-20">
+                   <button @click.stop="nextClassroom" class="absolute right-6 h-10 w-10 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur border border-white/10 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:scale-110 z-20">
                       <ChevronRight :size="32" />
                    </button>
                 </div>
@@ -257,7 +257,7 @@
           <!-- Right: Details & Actions Sidebar -->
           <div class="w-[400px] border-l border-slate-800 bg-slate-900 flex flex-col shadow-2xl relative">
              <!-- Logs -->
-             <div class="flex-1 flex flex-col p-6 overflow-hidden border-b border-slate-800">
+             <div class="flex-1 flex flex-col p-4 overflow-hidden border-b border-slate-800">
                 <div class="flex items-center justify-between mb-4">
                    <div class="flex items-center gap-2">
                       <Terminal :size="18" class="text-blue-400" />
@@ -277,7 +277,7 @@
              </div>
 
              <!-- Actions -->
-             <div class="p-6 space-y-4">
+             <div class="p-4 space-y-4">
                 <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Hành động của Giám thị / Giáo vụ</h3>
                 
                 <button @click="contactLecturer"

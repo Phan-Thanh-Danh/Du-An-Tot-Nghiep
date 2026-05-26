@@ -51,7 +51,7 @@ const campusInsights = ref([
            
            <div class="relative z-10">
               <div class="flex items-center gap-4 mb-10">
-                 <div class="h-12 w-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
+                 <div class="h-10 w-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
                     <PieChart :size="24" class="text-blue-400" />
                  </div>
                  <h3 class="text-xl font-black">Phân bổ cảm xúc toàn trường</h3>
@@ -70,7 +70,7 @@ const campusInsights = ref([
                     </div>
                  </div>
 
-                 <div class="flex-1 space-y-6">
+                 <div class="flex-1 space-y-4">
                     <div v-for="(val, key) in sentimentSummary" :key="key" class="space-y-2">
                        <div class="flex justify-between text-xs font-black uppercase tracking-widest">
                           <span :class="key === 'positive' ? 'text-emerald-400' : key === 'negative' ? 'text-rose-400' : 'text-slate-400'">{{ key }}</span>
@@ -89,7 +89,7 @@ const campusInsights = ref([
         </div>
 
         <!-- Topic Cloud Mock -->
-        <div class="lg-card-glass p-8 overflow-hidden relative">
+        <div class="lg-card-glass p-5 overflow-hidden relative">
            <h4 class="text-sm font-black text-slate-800 uppercase tracking-wide mb-8 flex items-center gap-2">
               <Zap :size="18" class="text-amber-500" /> Chủ đề phổ biến (AI Topics)
            </h4>
@@ -117,7 +117,7 @@ const campusInsights = ref([
          <div class="lg-card-glass p-8">
             <h4 class="text-sm font-black text-slate-800 uppercase tracking-wide mb-8">Tổng hợp Insight theo Cơ sở</h4>
             <div class="space-y-4">
-               <div v-for="ins in campusInsights" :key="ins.campus" class="p-6 bg-slate-50/50 rounded-[32px] border border-slate-100 group hover:border-blue-200 transition-all">
+               <div v-for="ins in campusInsights" :key="ins.campus" class="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group hover:border-blue-200 transition-all">
                   <div class="flex items-center justify-between mb-4">
                      <div class="flex items-center gap-3">
                         <MapPin :size="18" class="text-slate-400 group-hover:text-blue-500" />
@@ -137,9 +137,9 @@ const campusInsights = ref([
          </div>
 
          <!-- AI Prediction vs Goal -->
-         <div class="lg-card-glass p-8 bg-indigo-50/20 border-indigo-100">
+         <div class="lg-card-glass p-5 bg-indigo-50/20 border-indigo-100">
             <div class="flex items-center gap-4 mb-8">
-               <div class="h-12 w-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg">
+               <div class="h-10 w-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg">
                   <TrendingUp :size="24" />
                </div>
                <h4 class="text-lg font-black text-indigo-900">Dự báo chất lượng học kỳ tới</h4>

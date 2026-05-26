@@ -47,10 +47,10 @@ const distribution = [
     <div class="space-y-8">
       
       <!-- ── KPI Cards ── -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        <div v-for="kpi in kpis" :key="kpi.id" class="lg-card-glass p-6 group hover:scale-[1.02] transition-all">
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div v-for="kpi in kpis" :key="kpi.id" class="lg-card-glass p-4 group hover:scale-[1.02] transition-all">
            <div class="flex items-center justify-between mb-4">
-              <div :class="['h-12 w-12 rounded-2xl flex items-center justify-center shadow-sm border border-white/50', kpi.bgColor, kpi.color]">
+              <div :class="['h-10 w-10 rounded-2xl flex items-center justify-center shadow-sm border border-white/50', kpi.bgColor, kpi.color]">
                  <component :is="kpi.icon" :size="24" />
               </div>
               <span :class="['text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg', kpi.trend.includes('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600']">
@@ -58,14 +58,14 @@ const distribution = [
               </span>
            </div>
            <p class="text-xs font-black text-slate-400 uppercase tracking-widest">{{ kpi.label }}</p>
-           <h3 class="text-3xl font-black text-slate-800 mt-1">{{ kpi.value }}</h3>
+           <h3 class="text-xl font-black text-slate-800 mt-1">{{ kpi.value }}</h3>
         </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <!-- ── Chart Section (Visual Mock) ── -->
-        <div class="lg:col-span-2 lg-card-glass p-8 overflow-hidden relative">
+        <div class="lg:col-span-2 lg-card-glass p-5 overflow-hidden relative">
            <div class="flex items-center justify-between mb-10">
               <div>
                  <h4 class="text-sm font-black text-slate-800 uppercase tracking-wide">Xu hướng GPA theo học kỳ</h4>
@@ -102,7 +102,7 @@ const distribution = [
         <!-- ── Distribution List ── -->
         <div class="lg-card-glass p-8">
            <h4 class="text-sm font-black text-slate-800 uppercase tracking-wide mb-8">Phân phối điểm số</h4>
-           <div class="space-y-6">
+           <div class="space-y-4">
               <div v-for="item in distribution" :key="item.range">
                  <div class="flex items-center justify-between mb-2">
                     <span class="text-xs font-black text-slate-600 uppercase tracking-tighter">{{ item.range }}</span>
@@ -128,8 +128,8 @@ const distribution = [
       </div>
 
       <!-- ── Quick Insights ── -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-         <div class="lg-card-glass p-6 bg-gradient-to-br from-amber-50 to-orange-50 border-amber-100">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+         <div class="lg-card-glass p-4 bg-gradient-to-br from-amber-50 to-orange-50 border-amber-100">
             <div class="flex items-start gap-4">
                <div class="h-10 w-10 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600 shadow-sm">
                   <TrendingUp :size="20" />
@@ -145,7 +145,7 @@ const distribution = [
                </div>
             </div>
          </div>
-         <div class="lg-card-glass p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
+         <div class="lg-card-glass p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
             <div class="flex items-start gap-4">
                <div class="h-10 w-10 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 shadow-sm">
                   <BarChart3 :size="20" />

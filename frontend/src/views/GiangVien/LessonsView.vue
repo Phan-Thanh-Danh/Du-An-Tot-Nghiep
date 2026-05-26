@@ -84,16 +84,16 @@ function addLesson(chapterId) {
 <template>
   <div class="space-y-8 pb-10 text-slate-800 animate-fade-in">
     <!-- ── Header ── -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
       <!-- Decorative background -->
-      <div class="absolute -right-32 -bottom-32 h-96 w-96 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-50 to-transparent rounded-full pointer-events-none" />
+      
       
       <div class="relative z-10 flex items-center gap-5">
-        <div class="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-200">
+        <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-200">
            <BookOpen :size="32" />
         </div>
         <div>
-          <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Bài học & Học liệu</h1>
+          <h1 class="text-xl md:text-xl font-black text-slate-900 tracking-tight">Bài học & Học liệu</h1>
           <p class="text-sm font-medium text-slate-500 mt-1">Xây dựng và quản lý nội dung bài giảng cho sinh viên.</p>
         </div>
       </div>
@@ -108,15 +108,15 @@ function addLesson(chapterId) {
     <div class="flex flex-col lg:flex-row-reverse gap-8 h-[calc(100vh-260px)] min-h-[600px]">
       
       <!-- ── RIGHT SIDEBAR: Syllabus / Chapters ── -->
-      <aside class="w-full lg:w-[400px] flex flex-col bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden shrink-0">
-        <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <aside class="w-full lg:w-[400px] flex flex-col bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden shrink-0">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <h2 class="font-black text-slate-800 flex items-center gap-2 text-lg">
             <Layout :size="20" class="text-blue-500" />
             Chương trình học
           </h2>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
+        <div class="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
           <div v-for="chapter in chapters" :key="chapter.id" class="space-y-3">
             <div class="flex items-center justify-between group px-1">
               <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">{{ chapter.title }}</h3>
@@ -169,13 +169,13 @@ function addLesson(chapterId) {
       </aside>
 
       <!-- ── LEFT CONTENT: Lesson Editor / Details ── -->
-      <main class="flex-1 flex flex-col bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+      <main class="flex-1 flex flex-col bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         
         <template v-if="activeLessonId">
           <!-- Toolbar -->
-          <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/30 relative z-10">
+          <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/30 relative z-10">
             <div class="flex items-center gap-4">
-              <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center text-blue-600 border border-blue-100 shadow-inner">
+              <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center text-blue-600 border border-blue-100 shadow-inner">
                  <Edit2 :size="20" />
               </div>
               <div>
@@ -190,14 +190,14 @@ function addLesson(chapterId) {
               <button class="flex items-center gap-2 rounded-2xl bg-white px-5 py-2.5 border border-slate-200 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition-colors font-bold text-sm text-slate-600">
                 <Eye :size="16" /> Xem trước
               </button>
-              <button class="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-200 hover:shadow-lg transition-all hover:-translate-y-0.5 active:translate-y-0">
+              <button class="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-200 hover:shadow-lg transition-all hover:-translate-y-0.5 active:translate-y-0">
                 <Save :size="16" /> Lưu thay đổi
               </button>
             </div>
           </div>
 
           <!-- Editor Area -->
-          <div class="flex-1 overflow-y-auto p-8 lg:p-10 custom-scrollbar">
+          <div class="flex-1 overflow-y-auto p-5 lg:p-10 custom-scrollbar">
             <div class="max-w-4xl mx-auto space-y-10">
               
               <!-- Lesson Config -->
@@ -218,28 +218,28 @@ function addLesson(chapterId) {
               </div>
 
               <!-- Content Specific Blocks -->
-              <div class="space-y-6">
+              <div class="space-y-4">
                 
                 <!-- Video Block -->
-                <div v-if="activeLesson.type === 'video'" class="rounded-[32px] border-2 border-dashed border-blue-200 bg-blue-50/50 p-12 text-center transition-all hover:bg-blue-50">
-                  <div class="mx-auto w-20 h-20 rounded-[24px] bg-white shadow-sm border border-blue-100 flex items-center justify-center text-blue-500 mb-6">
+                <div v-if="activeLesson.type === 'video'" class="rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50/50 p-12 text-center transition-all hover:bg-blue-50">
+                  <div class="mx-auto w-20 h-20 rounded-[24px] bg-white shadow-sm border border-blue-100 flex items-center justify-center text-blue-500 mb-4">
                     <FileVideo :size="36" stroke-width="1.5" />
                   </div>
                   <h3 class="text-xl font-black text-slate-800">Tải lên Video bài giảng</h3>
                   <p class="text-sm font-medium text-slate-500 mt-2 mb-8">Hỗ trợ định dạng MP4, MKV. Dung lượng tối đa 500MB.</p>
-                  <button class="inline-flex items-center gap-2 rounded-2xl bg-white border border-blue-200 px-8 py-3.5 text-sm font-bold text-blue-600 shadow-sm hover:border-blue-300 hover:bg-blue-50 transition-all">
+                  <button class="inline-flex items-center gap-2 rounded-2xl bg-white border border-blue-200 px-5 py-3.5 text-sm font-bold text-blue-600 shadow-sm hover:border-blue-300 hover:bg-blue-50 transition-all">
                     <Upload :size="18" /> Chọn File Video
                   </button>
                 </div>
 
                 <!-- PDF Block -->
-                <div v-if="activeLesson.type === 'pdf'" class="rounded-[32px] border-2 border-dashed border-cyan-200 bg-cyan-50/50 p-12 text-center transition-all hover:bg-cyan-50">
-                  <div class="mx-auto w-20 h-20 rounded-[24px] bg-white shadow-sm border border-cyan-100 flex items-center justify-center text-cyan-500 mb-6">
+                <div v-if="activeLesson.type === 'pdf'" class="rounded-2xl border-2 border-dashed border-cyan-200 bg-cyan-50/50 p-12 text-center transition-all hover:bg-cyan-50">
+                  <div class="mx-auto w-20 h-20 rounded-[24px] bg-white shadow-sm border border-cyan-100 flex items-center justify-center text-cyan-500 mb-4">
                     <FileText :size="36" stroke-width="1.5" />
                   </div>
                   <h3 class="text-xl font-black text-slate-800">Tải lên tài liệu PDF</h3>
                   <p class="text-sm font-medium text-slate-500 mt-2 mb-8">Tài liệu học tập hoặc slide bài giảng cho sinh viên.</p>
-                  <button class="inline-flex items-center gap-2 rounded-2xl bg-white border border-cyan-200 px-8 py-3.5 text-sm font-bold text-cyan-600 shadow-sm hover:border-cyan-300 hover:bg-cyan-50 transition-all">
+                  <button class="inline-flex items-center gap-2 rounded-2xl bg-white border border-cyan-200 px-5 py-3.5 text-sm font-bold text-cyan-600 shadow-sm hover:border-cyan-300 hover:bg-cyan-50 transition-all">
                     <Upload :size="18" /> Chọn File PDF
                   </button>
                 </div>
@@ -250,13 +250,13 @@ function addLesson(chapterId) {
                   <textarea 
                     v-model="activeLesson.content" 
                     rows="12" 
-                    class="w-full rounded-[24px] border border-slate-200 bg-slate-50 p-6 text-[15px] font-medium text-slate-700 outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all leading-relaxed shadow-inner resize-none"
+                    class="w-full rounded-[24px] border border-slate-200 bg-slate-50 p-4 text-[15px] font-medium text-slate-700 outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all leading-relaxed shadow-inner resize-none"
                     placeholder="Nhập nội dung bài học tại đây..."
                   ></textarea>
                 </div>
 
                 <!-- Quiz Block -->
-                <div v-if="activeLesson.type === 'quiz'" class="rounded-[32px] border border-slate-200 bg-slate-50 p-8 shadow-inner">
+                <div v-if="activeLesson.type === 'quiz'" class="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-inner">
                    <div class="flex items-center justify-between mb-8 border-b border-slate-200 pb-6">
                      <div class="flex items-center gap-3">
                         <div class="h-10 w-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
@@ -292,10 +292,10 @@ function addLesson(chapterId) {
 
         <!-- No Selection State -->
         <div v-else class="h-full flex flex-col items-center justify-center text-center opacity-70 p-8">
-           <div class="h-32 w-32 rounded-[32px] bg-slate-50 flex items-center justify-center mb-6 shadow-sm border border-slate-100">
+           <div class="h-32 w-32 rounded-2xl bg-slate-50 flex items-center justify-center mb-4 shadow-sm border border-slate-100">
               <Layout :size="48" class="text-slate-300" />
            </div>
-           <h3 class="text-2xl font-black text-slate-600">Bắt đầu xây dựng bài giảng</h3>
+           <h3 class="text-xl font-black text-slate-600">Bắt đầu xây dựng bài giảng</h3>
            <p class="text-slate-400 mt-2 max-w-sm font-medium">Chọn một bài học từ danh sách bên trái hoặc nhấn "Thêm chương mới" để bắt đầu.</p>
         </div>
       </main>

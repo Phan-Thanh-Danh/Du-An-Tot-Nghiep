@@ -49,7 +49,7 @@ const getChannelIcon = (ch) => {
     title="Lịch sử thông báo" 
     subtitle="Xem lại danh sách và trạng thái gửi của các thông báo học vụ đã phát hành."
   >
-    <div class="space-y-6">
+    <div class="space-y-4">
       
       <!-- ── Filters ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
@@ -67,11 +67,11 @@ const getChannelIcon = (ch) => {
       </div>
 
       <!-- ── History Grid ── -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div 
           v-for="nt in notices" 
           :key="nt.id"
-          class="lg-card-glass p-6 group hover:shadow-xl hover:shadow-slate-200/50 transition-all border-slate-100"
+          class="lg-card-glass p-4 group hover:shadow-xl hover:shadow-slate-200/50 transition-all border-slate-100"
         >
            <div class="flex items-start justify-between mb-5">
               <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm', getStatusBadge(nt.status)]">
@@ -120,7 +120,7 @@ const getChannelIcon = (ch) => {
 
       <!-- ── Empty State ── -->
       <div v-if="notices.length === 0" class="py-24 text-center">
-         <div class="h-20 w-20 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-200 mx-auto mb-6">
+         <div class="h-20 w-20 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-200 mx-auto mb-4">
             <Bell :size="40" />
          </div>
          <h3 class="text-xl font-black text-slate-800 tracking-tight">Chưa có thông báo nào được gửi</h3>

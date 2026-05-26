@@ -37,12 +37,12 @@ function saveGrade() {
 <template>
   <div class="space-y-8 pb-10 text-slate-800">
     <!-- ── Header ── -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
       <!-- Decorative background -->
-      <div class="absolute -right-32 -bottom-32 h-96 w-96 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-50 to-transparent rounded-full pointer-events-none" />
+      
       
       <div class="relative z-10 flex items-center gap-5">
-        <router-link to="/teacher/assignments" class="h-16 w-16 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-white hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm hover:shadow-md">
+        <router-link to="/teacher/assignments" class="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-white hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm hover:shadow-md">
            <ArrowLeft :size="24" />
         </router-link>
         <div>
@@ -50,7 +50,7 @@ function saveGrade() {
              <span class="rounded-lg bg-blue-50 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-blue-600 border border-blue-100">Assignment 1</span>
              <span class="rounded-lg bg-slate-50 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500 border border-slate-200">SE1601</span>
           </div>
-          <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Chấm bài tập</h1>
+          <h1 class="text-xl md:text-xl font-black text-slate-900 tracking-tight">Chấm bài tập</h1>
         </div>
       </div>
       <div class="relative z-10 flex gap-4">
@@ -79,9 +79,9 @@ function saveGrade() {
 
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
       <!-- Left: List of Submissions -->
-      <div class="xl:col-span-2 space-y-6">
-        <div class="rounded-[32px] border border-slate-100 bg-white shadow-sm overflow-hidden p-6">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div class="xl:col-span-2 space-y-4">
+        <div class="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden p-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <h2 class="text-lg font-black text-slate-900 flex items-center gap-2">
                <Users :size="20" class="text-blue-500" /> Danh sách sinh viên
             </h2>
@@ -100,7 +100,7 @@ function saveGrade() {
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                    <!-- Student Info -->
                    <div class="flex items-center gap-4 flex-1">
-                      <div :class="['h-12 w-12 rounded-2xl flex items-center justify-center font-black text-sm transition-colors shadow-sm',
+                      <div :class="['h-10 w-10 rounded-2xl flex items-center justify-center font-black text-sm transition-colors shadow-sm',
                                     selectedSubmission?.id === sub.id ? 'bg-blue-600 text-white' : 'bg-slate-50 border border-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 group-hover:border-blue-200']">
                          {{ sub.name.split(' ').pop()[0] }}
                       </div>
@@ -124,7 +124,7 @@ function saveGrade() {
                    </div>
 
                    <!-- Score & Action -->
-                   <div class="flex items-center justify-between sm:justify-end gap-6 sm:w-32 shrink-0 border-t sm:border-t-0 border-slate-100 pt-3 sm:pt-0">
+                   <div class="flex items-center justify-between sm:justify-end gap-4 sm:w-32 shrink-0 border-t sm:border-t-0 border-slate-100 pt-3 sm:pt-0">
                       <div class="flex flex-col items-center sm:items-end">
                          <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Điểm</span>
                          <span v-if="sub.score !== null" class="text-xl font-black text-emerald-600">{{ sub.score.toFixed(1) }}</span>
@@ -143,10 +143,10 @@ function saveGrade() {
 
       <!-- Right: Grading Panel -->
       <div class="xl:col-span-1">
-        <div v-if="selectedSubmission" class="rounded-[32px] border border-slate-100 bg-white shadow-xl p-8 sticky top-6">
+        <div v-if="selectedSubmission" class="rounded-2xl border border-slate-100 bg-white shadow-xl p-5 sticky top-4">
            <div class="flex items-center justify-between mb-8 pb-6 border-b border-slate-50">
               <div class="flex items-center gap-4">
-                 <div class="h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-200">
+                 <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-200">
                     <FileDigit :size="24" />
                  </div>
                  <div>
@@ -186,7 +186,7 @@ function saveGrade() {
                        v-model="selectedSubmission.score"
                        max="10" min="0" step="0.1"
                        placeholder="0.0"
-                       class="w-full rounded-[24px] border border-slate-200 bg-white px-6 py-5 text-4xl font-black text-blue-600 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-colors text-center shadow-sm placeholder:text-slate-200"
+                       class="w-full rounded-[24px] border border-slate-200 bg-white px-4 py-5 text-4xl font-black text-blue-600 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-colors text-center shadow-sm placeholder:text-slate-200"
                     />
                  </div>
               </div>
@@ -212,8 +212,8 @@ function saveGrade() {
            </div>
         </div>
 
-        <div v-else class="rounded-[32px] border-2 border-dashed border-slate-200 bg-slate-50/50 p-12 text-center flex flex-col items-center justify-center min-h-[500px] sticky top-6">
-           <div class="h-24 w-24 rounded-full bg-white flex items-center justify-center text-slate-300 mb-6 shadow-sm border border-slate-100">
+        <div v-else class="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-12 text-center flex flex-col items-center justify-center min-h-[500px] sticky top-4">
+           <div class="h-24 w-24 rounded-full bg-white flex items-center justify-center text-slate-300 mb-4 shadow-sm border border-slate-100">
               <Edit3 :size="40" />
            </div>
            <h3 class="text-xl font-black text-slate-800">Chưa chọn bài</h3>

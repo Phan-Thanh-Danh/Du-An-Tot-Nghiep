@@ -248,7 +248,7 @@ function saveToLocalStorage(status) {
     <!-- Toast Component -->
     <Transition name="toast-slide">
       <div v-if="toast.show" 
-           :class="['fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-300', 
+           :class="['fixed top-4 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-300', 
                     toast.type === 'success' ? 'bg-emerald-500/90 border-emerald-400 text-white' : 'bg-rose-500/90 border-rose-400 text-white']">
         <CheckCircle2 v-if="toast.type === 'success'" :size="20" />
         <AlertCircle v-else :size="20" />
@@ -257,9 +257,9 @@ function saveToLocalStorage(status) {
     </Transition>
 
     <!-- ── Header ── -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm sticky top-6 z-10 gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-4 rounded-2xl border border-slate-100 shadow-sm sticky top-4 z-10 gap-4">
       <div class="flex items-center gap-4">
-        <router-link to="/teacher/exams" class="h-12 w-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-white hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm active:scale-95">
+        <router-link to="/teacher/exams" class="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-white hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm active:scale-95">
            <ArrowLeft :size="20" />
         </router-link>
         <div>
@@ -271,7 +271,7 @@ function saveToLocalStorage(status) {
          <button @click="saveDraft" class="flex items-center gap-2 rounded-2xl bg-white px-5 py-3 border border-slate-200 shadow-sm hover:bg-slate-50 hover:text-blue-600 transition-all font-bold text-sm text-slate-700 active:scale-95">
             <Save :size="16" /> Lưu nháp
          </button>
-         <button @click="publish" class="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95">
+         <button @click="publish" class="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95">
             <Send :size="16" /> Xuất bản đề
          </button>
       </div>
@@ -282,15 +282,15 @@ function saveToLocalStorage(status) {
        <div class="lg:col-span-2 space-y-8">
           
           <!-- Thông tin cơ bản -->
-          <div class="rounded-[32px] bg-white border border-slate-100 p-8 shadow-sm">
-             <div class="flex items-center gap-3 mb-6 pb-6 border-b border-slate-50">
+          <div class="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+             <div class="flex items-center gap-3 mb-4 pb-6 border-b border-slate-50">
                 <div class="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                    <BookOpen :size="18" />
                 </div>
                 <h2 class="text-lg font-black text-slate-900">Thông tin cơ bản</h2>
              </div>
 
-             <div class="space-y-6">
+             <div class="space-y-4">
                 <div>
                    <label class="block text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">Tên đề thi *</label>
                    <input v-model="form.name" type="text" placeholder="Ví dụ: Kiểm tra giữa kỳ môn Cấu trúc dữ liệu & Giải thuật..." class="w-full rounded-[16px] border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-800 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-colors shadow-sm" />
@@ -325,8 +325,8 @@ function saveToLocalStorage(status) {
           </div>
 
           <!-- Nội dung & Câu hỏi đề thi -->
-          <div class="rounded-[32px] bg-white border border-slate-100 p-8 shadow-sm">
-             <div class="flex items-center justify-between mb-6 pb-6 border-b border-slate-50">
+          <div class="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+             <div class="flex items-center justify-between mb-4 pb-6 border-b border-slate-50">
                 <div class="flex items-center gap-3">
                    <div class="h-10 w-10 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
                       <Database :size="18" />
@@ -351,7 +351,7 @@ function saveToLocalStorage(status) {
              </div>
 
              <!-- Questions list inside exam -->
-             <div v-if="selectedQuestions.length > 0" class="space-y-4 mb-6">
+             <div v-if="selectedQuestions.length > 0" class="space-y-4 mb-4">
                <div 
                  v-for="(q, index) in selectedQuestions" 
                  :key="q.id"
@@ -428,9 +428,9 @@ function saveToLocalStorage(status) {
                <!-- Select from Bank -->
                <div 
                  @click="openQuestionBank"
-                 class="border-2 border-dashed border-slate-200 rounded-3xl p-6 bg-slate-50/20 hover:bg-indigo-50/25 hover:border-indigo-400 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center group"
+                 class="border-2 border-dashed border-slate-200 rounded-3xl p-4 bg-slate-50/20 hover:bg-indigo-50/25 hover:border-indigo-400 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center group"
                >
-                 <div class="h-12 w-12 rounded-2xl bg-white text-indigo-600 flex items-center justify-center mb-3 shadow-sm border border-slate-100 group-hover:scale-110 transition-transform">
+                 <div class="h-10 w-10 rounded-2xl bg-white text-indigo-600 flex items-center justify-center mb-3 shadow-sm border border-slate-100 group-hover:scale-110 transition-transform">
                    <Database :size="20" />
                  </div>
                  <h4 class="text-xs font-black text-slate-750">Chọn từ Thư viện câu hỏi</h4>
@@ -440,9 +440,9 @@ function saveToLocalStorage(status) {
                <!-- Add custom question inline -->
                <div 
                  @click="openQuestionCreator"
-                 class="border-2 border-dashed border-slate-200 rounded-3xl p-6 bg-slate-50/20 hover:bg-cyan-50/25 hover:border-cyan-400 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center group"
+                 class="border-2 border-dashed border-slate-200 rounded-3xl p-4 bg-slate-50/20 hover:bg-cyan-50/25 hover:border-cyan-400 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center group"
                >
-                 <div class="h-12 w-12 rounded-2xl bg-white text-cyan-600 flex items-center justify-center mb-3 shadow-sm border border-slate-100 group-hover:scale-110 transition-transform">
+                 <div class="h-10 w-10 rounded-2xl bg-white text-cyan-600 flex items-center justify-center mb-3 shadow-sm border border-slate-100 group-hover:scale-110 transition-transform">
                    <Plus :size="20" />
                  </div>
                  <h4 class="text-xs font-black text-slate-750">Tự soạn câu hỏi mới</h4>
@@ -457,8 +457,8 @@ function saveToLocalStorage(status) {
        <div class="lg:col-span-1 space-y-8">
           
           <!-- Cấu hình thi nâng cao -->
-          <div class="rounded-[32px] bg-white border border-slate-100 p-8 shadow-sm">
-             <div class="flex items-center gap-3 mb-6 pb-6 border-b border-slate-50">
+          <div class="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+             <div class="flex items-center gap-3 mb-4 pb-6 border-b border-slate-50">
                 <div class="h-10 w-10 rounded-xl bg-slate-100 text-slate-650 flex items-center justify-center border border-slate-150/40">
                    <Settings :size="18" />
                 </div>
@@ -512,8 +512,8 @@ function saveToLocalStorage(status) {
           </div>
 
           <!-- Lịch thi -->
-          <div class="rounded-[32px] bg-white border border-slate-100 p-8 shadow-sm">
-             <div class="flex items-center gap-3 mb-6 pb-6 border-b border-slate-50">
+          <div class="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+             <div class="flex items-center gap-3 mb-4 pb-6 border-b border-slate-50">
                 <div class="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100/50">
                    <Clock :size="18" />
                 </div>
@@ -543,10 +543,10 @@ function saveToLocalStorage(status) {
     <div v-if="showBankModal" class="fixed inset-0 z-[80] flex items-center justify-center p-4">
       <div @click="showBankModal = false" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300"></div>
       
-      <div class="relative w-full max-w-4xl bg-white rounded-[32px] shadow-2xl border border-slate-100 flex flex-col max-h-[85vh] overflow-hidden transform transition-all duration-300 scale-100 animate-modal-in">
+      <div class="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[85vh] overflow-hidden transform transition-all duration-300 scale-100 animate-modal-in">
         
         <!-- Header -->
-        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+        <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <div class="flex items-center gap-3">
             <div class="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100/50">
                <Database :size="20" />
@@ -593,7 +593,7 @@ function saveToLocalStorage(status) {
         </div>
 
         <!-- Questions List Body -->
-        <div class="overflow-y-auto p-6 bg-slate-50/30 flex-1 space-y-3.5">
+        <div class="overflow-y-auto p-4 bg-slate-50/30 flex-1 space-y-3.5">
           <div 
             v-for="q in filteredBankQuestions" 
             :key="q.id"
@@ -659,10 +659,10 @@ function saveToLocalStorage(status) {
     <div v-if="showCreatorModal" class="fixed inset-0 z-[80] flex items-center justify-center p-4">
       <div @click="showCreatorModal = false" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300"></div>
       
-      <div class="relative w-full max-w-2xl bg-white rounded-[32px] shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-100 animate-modal-in">
+      <div class="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-100 animate-modal-in">
         
         <!-- Header -->
-        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+        <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <div class="flex items-center gap-3">
             <div class="h-10 w-10 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center border border-cyan-100/50">
                <Plus :size="20" />
@@ -678,7 +678,7 @@ function saveToLocalStorage(status) {
         </div>
 
         <!-- Body Form -->
-        <div class="overflow-y-auto p-6 md:p-8 space-y-5 bg-slate-50/20 flex-1">
+        <div class="overflow-y-auto p-4 md:p-8 space-y-5 bg-slate-50/20 flex-1">
           <!-- Question text -->
           <div class="space-y-2">
             <label class="text-xs font-bold text-slate-700">Nội dung câu hỏi *</label>

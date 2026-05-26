@@ -225,12 +225,12 @@ function submitAssignment() {
 </script>
 
 <template>
-  <div class="space-y-6 pb-10 relative">
+  <div class="space-y-4 pb-10 relative">
     
     <!-- Toast Message Component -->
     <Transition name="toast-slide">
       <div v-if="toast.show" 
-           :class="['fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-300', 
+           :class="['fixed top-4 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-300', 
                     toast.type === 'success' ? 'bg-emerald-500/90 border-emerald-400 text-white' : 'bg-rose-500/90 border-rose-400 text-white']">
         <CheckCircle2 v-if="toast.type === 'success'" :size="20" />
         <AlertCircle v-else :size="20" />
@@ -241,50 +241,50 @@ function submitAssignment() {
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+        <h1 class="text-xl font-black text-slate-800 tracking-tight flex items-center gap-3">
           Danh sách bài tập
         </h1>
         <p class="text-slate-500 mt-1">Quản lý các bài tập về nhà, bài Lab và Assignment cho các lớp học phần.</p>
       </div>
-      <button @click="openCreateModal" class="lg-button-primary py-3 px-6 shadow-lg shadow-indigo-100 hover:shadow-xl hover:shadow-indigo-200 transition-all flex items-center gap-2 group active:scale-95" style="background: linear-gradient(135deg, #4f46e5, #6366f1 52%, #8b5cf6);">
+      <button @click="openCreateModal" class="lg-button-primary py-3 px-4 shadow-lg shadow-indigo-100 hover:shadow-xl hover:shadow-indigo-200 transition-all flex items-center gap-2 group active:scale-95" style="background: linear-gradient(135deg, #4f46e5, #6366f1 52%, #8b5cf6);">
         <Plus :size="20" class="group-hover:rotate-90 transition-transform duration-300" /> Tạo bài tập mới
       </button>
     </div>
 
     <!-- Stats Summary -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-       <div class="lg-card-glass p-6 border-slate-100/80 flex items-center gap-5 bg-white shadow-sm hover:shadow-md transition-all rounded-3xl">
-          <div class="h-14 w-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100/50">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+       <div class="lg-card-glass p-4 border-slate-100/80 flex items-center gap-5 bg-white shadow-sm hover:shadow-md transition-all rounded-3xl">
+          <div class="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100/50">
              <ClipboardList :size="26" />
           </div>
           <div>
              <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Đang mở</p>
-             <p class="text-2xl font-black text-slate-850 mt-0.5">{{ stats.active }} bài tập</p>
+             <p class="text-xl font-black text-slate-850 mt-0.5">{{ stats.active }} bài tập</p>
           </div>
        </div>
-       <div class="lg-card-glass p-6 border-slate-100/80 flex items-center gap-5 bg-white shadow-sm hover:shadow-md transition-all rounded-3xl">
-          <div class="h-14 w-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100/50">
+       <div class="lg-card-glass p-4 border-slate-100/80 flex items-center gap-5 bg-white shadow-sm hover:shadow-md transition-all rounded-3xl">
+          <div class="h-10 w-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100/50">
              <Send :size="26" />
           </div>
           <div>
              <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Tổng bài nộp</p>
-             <p class="text-2xl font-black text-slate-850 mt-0.5">{{ stats.submissions }} bài</p>
+             <p class="text-xl font-black text-slate-850 mt-0.5">{{ stats.submissions }} bài</p>
           </div>
        </div>
-       <div class="lg-card-glass p-6 border-slate-100/80 flex items-center gap-5 bg-white shadow-sm hover:shadow-md transition-all rounded-3xl">
-          <div class="h-14 w-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100/50">
+       <div class="lg-card-glass p-4 border-slate-100/80 flex items-center gap-5 bg-white shadow-sm hover:shadow-md transition-all rounded-3xl">
+          <div class="h-10 w-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100/50">
              <Clock :size="26" />
           </div>
           <div>
              <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Cần chấm điểm</p>
-             <p class="text-2xl font-black text-slate-850 mt-0.5">{{ stats.pendingGrades }} bài</p>
+             <p class="text-xl font-black text-slate-850 mt-0.5">{{ stats.pendingGrades }} bài</p>
           </div>
        </div>
     </div>
 
     <!-- Table & Filters -->
     <div class="rounded-[28px] border border-slate-100 bg-white shadow-sm overflow-hidden transition-all duration-300">
-      <div class="p-6 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="p-4 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 class="text-xl font-bold text-slate-800">Chi tiết bài tập</h2>
           <p class="text-xs font-medium text-slate-400 mt-0.5">Sử dụng công cụ tìm kiếm và lọc để tra cứu nhanh.</p>
@@ -322,17 +322,17 @@ function submitAssignment() {
         <table class="w-full text-left">
           <thead>
             <tr class="bg-slate-50/60 text-[11px] font-bold uppercase tracking-wider text-slate-450 border-b border-slate-50">
-              <th class="px-8 py-5">Tên bài tập</th>
-              <th class="px-6 py-5">Lớp</th>
-              <th class="px-6 py-5">Hạn nộp</th>
-              <th class="px-6 py-5">Số bài nộp</th>
-              <th class="px-6 py-5">Trạng thái</th>
-              <th class="px-8 py-5 text-right">Thao tác</th>
+              <th class="px-5 py-5">Tên bài tập</th>
+              <th class="px-4 py-5">Lớp</th>
+              <th class="px-4 py-5">Hạn nộp</th>
+              <th class="px-4 py-5">Số bài nộp</th>
+              <th class="px-4 py-5">Trạng thái</th>
+              <th class="px-5 py-5 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50 text-slate-800">
             <tr v-for="asm in filteredAssignments" :key="asm.id" class="group hover:bg-slate-50/40 transition-colors">
-              <td class="px-8 py-5">
+              <td class="px-5 py-5">
                 <div class="flex items-center gap-3">
                   <div class="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all border border-slate-100">
                     <FileText :size="20" />
@@ -343,18 +343,18 @@ function submitAssignment() {
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <span class="rounded-lg bg-indigo-50 px-2.5 py-1 text-[11px] font-black text-indigo-600 uppercase tracking-wider border border-indigo-100/50">
                   {{ asm.className }}
                 </span>
               </td>
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <div class="flex items-center gap-2 text-sm">
                    <Clock :size="14" class="text-slate-350" />
                    <span class="font-medium text-slate-650">{{ asm.deadline }}</span>
                 </div>
               </td>
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <div class="flex items-center gap-3">
                    <span class="text-sm font-black text-slate-700">{{ asm.submissionsCount }}/{{ asm.totalStudents }}</span>
                    <div class="h-1.5 w-16 bg-slate-100 rounded-full overflow-hidden">
@@ -362,7 +362,7 @@ function submitAssignment() {
                    </div>
                 </div>
               </td>
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <span v-if="asm.status === 'Active'" class="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-100">
                   <span class="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse"></span> Đang mở
                 </span>
@@ -373,7 +373,7 @@ function submitAssignment() {
                   <Check :size="10" /> Hoàn thành
                 </span>
               </td>
-              <td class="px-8 py-5 text-right">
+              <td class="px-5 py-5 text-right">
                 <router-link to="/teacher/grading" class="inline-flex items-center gap-1.5 rounded-xl bg-slate-50 border border-slate-200/60 px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 hover:shadow-md hover:shadow-indigo-100 transition-all duration-300">
                   Chấm điểm <ChevronRight :size="14" class="group-hover:translate-x-0.5 transition-transform" />
                 </router-link>
@@ -399,18 +399,18 @@ function submitAssignment() {
       <div @click="closeCreateModal" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300"></div>
 
       <!-- Modal Content Card -->
-      <div class="relative w-full max-w-4xl bg-white rounded-[32px] shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-100 animate-modal-in">
+      <div class="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-100 animate-modal-in">
         
         <!-- Modal Header -->
-        <div class="p-6 md:p-8 border-b border-slate-100 flex justify-between items-center relative overflow-hidden shrink-0">
+        <div class="p-4 md:p-8 border-b border-slate-100 flex justify-between items-center relative overflow-hidden shrink-0">
           <div class="absolute -right-16 -top-16 h-36 w-36 bg-gradient-to-tr from-indigo-50 to-indigo-100/30 rounded-full blur-2xl pointer-events-none" />
           
           <div class="relative z-10 flex items-center gap-4">
-            <div class="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100/50">
+            <div class="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100/50">
                <Plus :size="24" />
             </div>
             <div>
-               <h3 class="text-xl md:text-2xl font-black text-slate-850">Tạo Bài Tập Mới</h3>
+               <h3 class="text-xl md:text-xl font-black text-slate-850">Tạo Bài Tập Mới</h3>
                <p class="text-xs font-semibold text-slate-400 mt-0.5">Điền các thông tin cần thiết bên dưới để phát hành bài tập cho sinh viên.</p>
             </div>
           </div>
@@ -420,10 +420,10 @@ function submitAssignment() {
         </div>
 
         <!-- Modal Body (Scrollable form) -->
-        <div class="overflow-y-auto p-6 md:p-8 flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-50/20">
+        <div class="overflow-y-auto p-4 md:p-8 flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-50/20">
           
           <!-- Column 1: Details and Configurations -->
-          <div class="space-y-6">
+          <div class="space-y-4">
             <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">1. Thông tin chung</h4>
             
             <!-- Title -->
@@ -564,7 +564,7 @@ function submitAssignment() {
           </div>
 
           <!-- Column 2: Instructions and Attachments -->
-          <div class="space-y-6">
+          <div class="space-y-4">
             <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">2. Hướng dẫn & Tài liệu</h4>
             
             <!-- Description instructions -->
@@ -588,7 +588,7 @@ function submitAssignment() {
                 @dragover="handleDragOver"
                 @drop="handleDrop"
                 @click="triggerFileInput"
-                :class="['border-2 border-dashed rounded-[24px] p-6 text-center cursor-pointer transition-all duration-300 bg-white/50 flex flex-col items-center justify-center min-h-[160px]',
+                :class="['border-2 border-dashed rounded-[24px] p-4 text-center cursor-pointer transition-all duration-300 bg-white/50 flex flex-col items-center justify-center min-h-[160px]',
                          dragActive ? 'border-indigo-500 bg-indigo-50/20 scale-[0.99] shadow-inner' : 'border-slate-200 hover:border-indigo-400 hover:bg-white hover:shadow-sm']"
               >
                 <input 
@@ -598,7 +598,7 @@ function submitAssignment() {
                   class="hidden" 
                   @change="handleFileSelect"
                 />
-                <div class="h-12 w-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center mb-3 shadow-inner group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                <div class="h-10 w-10 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center mb-3 shadow-inner group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
                   <Upload :size="20" />
                 </div>
                 <p class="text-xs font-bold text-slate-750">
@@ -647,7 +647,7 @@ function submitAssignment() {
         </div>
 
         <!-- Modal Footer -->
-        <div class="p-6 border-t border-slate-100 flex justify-end gap-3 bg-white shrink-0">
+        <div class="p-4 border-t border-slate-100 flex justify-end gap-3 bg-white shrink-0">
           <button 
             @click="closeCreateModal"
             class="rounded-xl border border-slate-200 px-5 py-3 text-xs font-bold text-slate-500 hover:bg-slate-50 transition-all active:scale-95"
@@ -658,7 +658,7 @@ function submitAssignment() {
           <button 
             @click="submitAssignment"
             :disabled="isSubmitting"
-            class="rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 px-6 py-3 text-xs font-bold text-white shadow-md shadow-indigo-100 hover:shadow-lg hover:shadow-indigo-200 hover:-translate-y-0.5 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-70 disabled:pointer-events-none"
+            class="rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 px-4 py-3 text-xs font-bold text-white shadow-md shadow-indigo-100 hover:shadow-lg hover:shadow-indigo-200 hover:-translate-y-0.5 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-70 disabled:pointer-events-none"
           >
             <span v-if="isSubmitting" class="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
             <span v-else>Tạo bài tập</span>

@@ -14,6 +14,8 @@ import { useRoute } from 'vue-router'
 import AppSidebar from './AppSidebar.vue'
 import AppTopbar from './AppTopbar.vue'
 import PageContainer from './PageContainer.vue'
+import AiAssistant from '@/components/ui/AiAssistant.vue'
+import AnnouncementBanner from '@/components/ui/AnnouncementBanner.vue'
 
 // ── Sidebar state ──────────────────────────────────────────
 const sidebarCollapsed = ref(false)
@@ -90,14 +92,11 @@ const currentPageMeta = computed(() => {
     Layout: [Sidebar] | [Topbar + Content]
     ═══════════════════════════════════════════════════════
   -->
-  <div class="relative flex h-screen w-full overflow-hidden font-sans
-              bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/20
-              dark:from-slate-950 dark:via-blue-950/10 dark:to-indigo-950/20">
-    <!-- Radial glow orbs -->
-    <div class="pointer-events-none fixed inset-0 overflow-hidden z-0">
-      <div class="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-blue-400/10 dark:bg-blue-500/10 blur-[120px]" />
-      <div class="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-indigo-400/10 dark:bg-indigo-500/10 blur-[120px]" />
-      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-cyan-400/5 dark:bg-cyan-500/5 blur-[160px]" />
+  <div class="lg-app-bg flex h-screen w-full overflow-hidden font-sans">
+    <div class="pointer-events-none absolute inset-0 -z-0 overflow-hidden">
+      <div class="lg-orb -left-28 top-16 h-80 w-80 bg-blue-300/30 will-change-transform" />
+      <div class="lg-orb right-[-8rem] top-[-5rem] h-96 w-96 bg-indigo-300/24 [animation-delay:-6s] will-change-transform" />
+      <div class="lg-orb bottom-[-9rem] left-1/3 h-96 w-96 bg-cyan-300/20 [animation-delay:-12s] will-change-transform" />
     </div>
 
     <!-- ═══════════ MOBILE OVERLAY ═══════════ -->
@@ -151,9 +150,11 @@ const currentPageMeta = computed(() => {
       <!-- Topbar -->
       <AppTopbar @toggle-sidebar="toggleSidebar" />
 
+      <AnnouncementBanner />
+
       <!-- ═══════════ CONTENT AREA ═══════════ -->
       <main class="flex-1 overflow-y-auto">
-        <div class="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6">
+        <div class="mx-auto w-full max-w-[1500px] px-3 py-4 sm:px-4">
 
           <!-- Tất cả page đều render qua PageContainer + RouterView -->
           <PageContainer
@@ -211,6 +212,7 @@ const currentPageMeta = computed(() => {
       </main>
     </div>
   </div>
+  <AiAssistant />
 </template>
 
 <style>

@@ -37,7 +37,7 @@ const getStatusBadge = (status) => {
     title="Danh sách hàng chờ (Waitlist)" 
     subtitle="Quản lý thứ tự đăng ký khi lớp học phần đã đầy sức chứa."
   >
-    <div class="space-y-6">
+    <div class="space-y-4">
       
       <!-- ── Search & Filter ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
@@ -61,36 +61,36 @@ const getStatusBadge = (status) => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/50">
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">STT</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Sinh viên</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Lớp & Môn</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thời gian vào</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Trạng thái</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">STT</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Sinh viên</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Lớp & Môn</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thời gian vào</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Trạng thái</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="item in waitlist" :key="item.position" class="group hover:bg-white/50 transition-colors">
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span class="text-sm font-black text-slate-400">#{{ item.position }}</span>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <p class="text-sm font-black text-slate-800">{{ item.student }}</p>
                 <p class="text-[11px] font-bold text-slate-400 mt-0.5">{{ item.studentCode }}</p>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <p class="text-sm font-black text-slate-800 leading-tight">{{ item.subject }}</p>
                 <p class="text-[10px] font-bold text-blue-600 mt-1 uppercase tracking-tighter">{{ item.section }}</p>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span class="text-xs font-medium text-slate-500">{{ item.time }}</span>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span :class="['px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest', getStatusBadge(item.status)]">
                   {{ item.status }}
                 </span>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-1">
                   <button v-if="item.status === 'waiting'" class="p-2 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg text-slate-400 transition-all" title="Xác nhận vào lớp">
                     <CheckCircle2 :size="16" />
@@ -109,7 +109,7 @@ const getStatusBadge = (status) => {
       </div>
 
       <!-- ── Waitlist Info ── -->
-      <div class="lg-card-glass p-6 bg-amber-50/20 border-amber-100">
+      <div class="lg-card-glass p-4 bg-amber-50/20 border-amber-100">
         <div class="flex gap-4">
           <div class="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
              <Bell :size="20" />

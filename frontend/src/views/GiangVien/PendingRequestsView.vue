@@ -48,7 +48,7 @@ const getIconBg = (color) => {
 <template>
   <div class="space-y-8 pb-12 animate-fade-in">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-[24px] shadow-sm border border-slate-100/60 backdrop-blur-xl relative overflow-hidden">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-[24px] shadow-sm border border-slate-100/60 backdrop-blur-xl relative overflow-hidden">
       <!-- Decorative background glow -->
       <div class="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
       <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -58,7 +58,7 @@ const getIconBg = (color) => {
           <FileText :size="24" stroke-width="2" />
         </div>
         <div>
-          <h1 class="text-3xl font-black text-slate-800 tracking-tight">Đơn cần xử lý</h1>
+          <h1 class="text-xl font-black text-slate-800 tracking-tight">Đơn cần xử lý</h1>
           <p class="text-sm text-slate-500 mt-1">Phê duyệt hoặc từ chối các đơn từ, yêu cầu của sinh viên.</p>
         </div>
       </div>
@@ -71,11 +71,11 @@ const getIconBg = (color) => {
       </div>
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
       <!-- List Column -->
       <div class="xl:col-span-2">
-         <div class="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full">
-            <div class="p-6 md:p-8 border-b border-slate-100/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/30">
+         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full">
+            <div class="p-4 md:p-8 border-b border-slate-100/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/30">
                <div>
                  <h2 class="text-xl font-bold text-slate-800">Yêu cầu mới nhất</h2>
                </div>
@@ -88,13 +88,13 @@ const getIconBg = (color) => {
             <div class="divide-y divide-slate-100/80 flex-1 bg-white">
                <div v-for="req in requests" :key="req.id" 
                     @click="selectRequest(req)"
-                    :class="['p-6 cursor-pointer transition-all duration-300 group hover:bg-slate-50/50 relative overflow-hidden', selectedReq?.id === req.id ? 'bg-blue-50/30' : '']">
+                    :class="['p-4 cursor-pointer transition-all duration-300 group hover:bg-slate-50/50 relative overflow-hidden', selectedReq?.id === req.id ? 'bg-blue-50/30' : '']">
                   
                   <!-- Active Indicator -->
                   <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-600 rounded-r-full transition-transform duration-300 origin-left" :class="selectedReq?.id === req.id ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100 opacity-50'"></div>
                   
                   <div class="flex items-start gap-4">
-                    <div class="h-12 w-12 rounded-2xl flex items-center justify-center shadow-inner shrink-0 group-hover:scale-105 transition-transform" :class="getIconBg(req.color)">
+                    <div class="h-10 w-10 rounded-2xl flex items-center justify-center shadow-inner shrink-0 group-hover:scale-105 transition-transform" :class="getIconBg(req.color)">
                       <FileQuestion :size="20" />
                     </div>
                     
@@ -123,7 +123,7 @@ const getIconBg = (color) => {
 
       <!-- Detail/Action Column -->
       <div class="xl:col-span-1">
-         <div v-if="selectedReq" class="rounded-[32px] bg-white shadow-xl shadow-slate-200/50 p-8 sticky top-6 border border-slate-100 overflow-hidden relative animate-in fade-in slide-in-from-right-4 duration-500">
+         <div v-if="selectedReq" class="rounded-2xl bg-white shadow-xl shadow-slate-200/50 p-5 sticky top-4 border border-slate-100 overflow-hidden relative animate-in fade-in slide-in-from-right-4 duration-500">
             <!-- Background glow -->
             <div class="absolute top-0 right-0 w-32 h-32 blur-3xl opacity-30 rounded-full -z-10" :class="selectedReq.color === 'blue' ? 'bg-blue-400' : selectedReq.color === 'cyan' ? 'bg-cyan-400' : 'bg-emerald-400'"></div>
             
@@ -139,7 +139,7 @@ const getIconBg = (color) => {
                </div>
             </div>
 
-            <div class="space-y-6 relative z-10">
+            <div class="space-y-4 relative z-10">
                <div class="p-5 rounded-2xl bg-slate-50/80 border border-slate-100/80 relative">
                   <Mail :size="16" class="absolute top-5 right-5 text-slate-300" />
                   <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Nội dung chi tiết</label>
@@ -164,8 +164,8 @@ const getIconBg = (color) => {
             </div>
          </div>
 
-         <div v-else class="h-full min-h-[400px] rounded-[32px] border border-dashed border-slate-200 bg-slate-50/50 p-12 text-center flex flex-col items-center justify-center animate-in fade-in duration-500">
-            <div class="h-24 w-24 rounded-[28px] bg-white flex items-center justify-center text-slate-300 mb-6 shadow-sm border border-slate-100">
+         <div v-else class="h-full min-h-[400px] rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-12 text-center flex flex-col items-center justify-center animate-in fade-in duration-500">
+            <div class="h-24 w-24 rounded-[28px] bg-white flex items-center justify-center text-slate-300 mb-4 shadow-sm border border-slate-100">
                <FileQuestion :size="48" stroke-width="1.5" />
             </div>
             <h3 class="text-lg font-bold text-slate-500">Chưa chọn đơn nào</h3>

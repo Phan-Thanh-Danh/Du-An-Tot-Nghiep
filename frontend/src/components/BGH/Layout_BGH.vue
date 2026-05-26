@@ -9,6 +9,8 @@ import { useRoute } from 'vue-router'
 import AppSidebar from './AppSidebar.vue'
 import AppTopbar from '../SinhVien/AppTopbar.vue'
 import PageContainer from '../SinhVien/PageContainer.vue'
+import AiAssistant from '@/components/ui/AiAssistant.vue'
+import AnnouncementBanner from '@/components/ui/AnnouncementBanner.vue'
 import { GraduationCap } from 'lucide-vue-next'
 
 // ── Sidebar state ──────────────────────────────────────────
@@ -120,12 +122,14 @@ const currentPageMeta = computed(() => {
       </div>
     </Transition>
 
-    <!-- MAIN AREA -->
-    <div class="flex flex-1 flex-col min-w-0 overflow-hidden relative z-0">
-      <AppTopbar @toggle-sidebar="toggleSidebar" />
+      <!-- MAIN AREA -->
+      <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden">
+        <AppTopbar @toggle-sidebar="toggleSidebar" />
 
-      <main class="flex-1 overflow-y-auto">
-        <div class="mx-auto max-w-[1440px] px-4 sm:px-6 py-6">
+        <AnnouncementBanner />
+
+        <main class="flex-1 overflow-y-auto">
+        <div class="mx-auto max-w-[1440px] px-3 sm:px-4 py-4">
           <PageContainer
             :title="currentPageMeta.title"
             :subtitle="currentPageMeta.subtitle"
@@ -153,6 +157,7 @@ const currentPageMeta = computed(() => {
       </main>
     </div>
   </div>
+  <AiAssistant />
 </template>
 
 <style>

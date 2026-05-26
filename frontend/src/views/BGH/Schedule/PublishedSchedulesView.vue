@@ -36,7 +36,7 @@ const schedules = ref([
       </button>
     </template>
 
-    <div class="space-y-6">
+    <div class="space-y-4">
       
       <!-- ── Calendar Toolbar ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
@@ -81,16 +81,16 @@ const schedules = ref([
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/50">
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Lớp & Môn học</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Giảng viên</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thời gian & Phòng</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Hình thức</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Lớp & Môn học</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Giảng viên</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thời gian & Phòng</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Hình thức</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="sch in schedules" :key="sch.id" class="group hover:bg-white/50 transition-colors">
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
                   <div :class="['h-9 w-9 rounded-xl flex items-center justify-center font-black text-[10px] uppercase shadow-sm', sch.type === 'online' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-blue-50 text-blue-600 border border-blue-100']">
                     {{ sch.class.slice(0, 2) }}
@@ -101,7 +101,7 @@ const schedules = ref([
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
                    <div class="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 overflow-hidden">
                       <User :size="14" />
@@ -109,7 +109,7 @@ const schedules = ref([
                    <span class="text-xs font-bold text-slate-600">{{ sch.teacher }}</span>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex flex-col gap-1">
                    <div class="flex items-center gap-1.5 text-xs font-bold text-slate-600">
                       <Clock :size="12" class="text-slate-300" /> {{ sch.day }}, {{ sch.time }}
@@ -119,7 +119,7 @@ const schedules = ref([
                    </div>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span :class="['px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border', sch.type === 'online' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-blue-50 text-blue-600 border-blue-100']">
                   {{ sch.type }}
                 </span>
@@ -127,7 +127,7 @@ const schedules = ref([
                    <ExternalLink :size="10" /> Join Link
                 </div>
               </td>
-              <td class="px-6 py-4 text-right">
+              <td class="px-4 py-4 text-right">
                 <div class="flex items-center justify-end gap-1">
                   <button class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-all" title="Xem chi tiết">
                     <Eye :size="18" />

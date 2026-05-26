@@ -38,10 +38,10 @@ const sentiment = [
     <div class="space-y-8">
       
       <!-- ── KPI Cards ── -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        <div v-for="kpi in kpis" :key="kpi.id" class="lg-card-glass p-6 group hover:scale-[1.02] transition-all">
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div v-for="kpi in kpis" :key="kpi.id" class="lg-card-glass p-4 group hover:scale-[1.02] transition-all">
            <div class="flex items-center justify-between mb-4">
-              <div :class="['h-12 w-12 rounded-2xl flex items-center justify-center shadow-sm border border-white/50', kpi.bgColor, kpi.color]">
+              <div :class="['h-10 w-10 rounded-2xl flex items-center justify-center shadow-sm border border-white/50', kpi.bgColor, kpi.color]">
                  <component :is="kpi.icon" :size="24" />
               </div>
               <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -49,14 +49,14 @@ const sentiment = [
               </span>
            </div>
            <p class="text-xs font-black text-slate-400 uppercase tracking-widest">{{ kpi.label }}</p>
-           <h3 class="text-3xl font-black text-slate-800 mt-1">{{ kpi.value }}</h3>
+           <h3 class="text-xl font-black text-slate-800 mt-1">{{ kpi.value }}</h3>
         </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <!-- ── Rating Trends (Visual Mock) ── -->
-        <div class="lg:col-span-2 lg-card-glass p-8 relative overflow-hidden">
+        <div class="lg:col-span-2 lg-card-glass p-5 relative overflow-hidden">
            <div class="flex items-center justify-between mb-10">
               <div>
                  <h4 class="text-sm font-black text-slate-800 uppercase tracking-wide">Xu hướng điểm Rating trung bình</h4>
@@ -65,7 +65,7 @@ const sentiment = [
               <button class="lg-button-secondary px-4 py-2 text-[10px] font-black uppercase tracking-widest bg-white/50 border-slate-200">Chi tiết kỳ</button>
            </div>
 
-           <div class="h-64 flex items-end justify-between gap-6 px-4">
+           <div class="h-64 flex items-end justify-between gap-4 px-4">
               <div v-for="(h, i) in [75, 78, 82, 80, 92]" :key="i" class="flex-1 group relative">
                  <div 
                    :style="{ height: `${h}%` }" 
@@ -109,7 +109,7 @@ const sentiment = [
       </div>
 
       <!-- ── Critical Alerts ── -->
-      <div class="lg-card-glass p-6 border-rose-100 bg-rose-50/10">
+      <div class="lg-card-glass p-4 border-rose-100 bg-rose-50/10">
          <div class="flex items-start gap-4">
             <div class="h-10 w-10 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600 shadow-sm border border-rose-200">
                <ShieldAlert :size="20" />

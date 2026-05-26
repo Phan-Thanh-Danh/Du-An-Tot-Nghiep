@@ -8,6 +8,7 @@ import {
   ShieldCheck,
 } from 'lucide-vue-next'
 import SidebarMenuGroup from '../SinhVien/SidebarMenuGroup.vue'
+import SidebarRecentFavorites from '@/components/ui/SidebarRecentFavorites.vue'
 import { giaoVuMenuGroups, mockStaff } from './data/menuData.js'
 import { useAuthStore } from '@/stores/auth'
 
@@ -30,7 +31,7 @@ function logout() {
   <aside
     :class="[
       'lg-sidebar relative flex h-full flex-col transition-all duration-300 ease-in-out select-none',
-      collapsed ? 'w-[64px]' : 'w-[248px]',
+      collapsed ? 'w-[64px]' : 'w-[220px]',
     ]"
     :style="{
       '--sidebar-glow-1': 'rgba(13, 148, 136, 0.18)',
@@ -54,74 +55,75 @@ function logout() {
 
     <!-- ──────────── LOGO / BRAND ──────────── -->
     <div
-      class="relative flex items-center gap-3 border-b border-white/45 dark:border-white/10 px-4 py-4 flex-shrink-0"
+      class="relative flex items-center gap-2.5 border-b border-white/45 dark:border-white/10 px-3 py-3 flex-shrink-0"
       :class="collapsed ? 'justify-center px-2' : ''"
     >
-      <div class="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-teal-600 to-teal-500 shadow-md shadow-teal-200/40 dark:shadow-teal-500/10">
-        <ShieldCheck :size="20" color="white" :stroke-width="2.2" />
+      <div class="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-teal-600 to-teal-500 shadow-md shadow-teal-200/40 dark:shadow-teal-500/10">
+        <ShieldCheck :size="18" color="white" :stroke-width="2.2" />
       </div>
       <Transition name="fade-slide">
         <div v-if="!collapsed" class="overflow-hidden">
-          <p class="text-[15px] font-bold leading-tight text-heading dark:text-slate-100">EduLMS</p>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">Phòng Giáo vụ</p>
+          <p class="text-[13px] font-bold leading-tight text-heading dark:text-slate-100">EduLMS</p>
+          <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Phòng Giáo vụ</p>
         </div>
       </Transition>
     </div>
 
     <!-- ──────────── MENU SCROLL AREA ──────────── -->
-    <nav class="relative flex-1 overflow-y-auto overflow-x-visible px-2 py-3 space-y-0.5 scrollbar-thin">
+    <nav class="relative flex-1 overflow-y-auto overflow-x-visible px-2 py-2 space-y-0.5 scrollbar-thin">
       <SidebarMenuGroup
         v-for="group in giaoVuMenuGroups"
         :key="group.id"
         :group="group"
         :collapsed="collapsed"
       />
+      <SidebarRecentFavorites :collapsed="collapsed" />
     </nav>
 
     <!-- ──────────── BOTTOM: HELP + LOGOUT ──────────── -->
-    <div class="relative space-y-1 border-t border-white/45 dark:border-white/10 px-3 py-3 flex-shrink-0">
+    <div class="relative space-y-0.5 border-t border-white/45 dark:border-white/10 px-2 py-2 flex-shrink-0">
       <button
         :title="collapsed ? 'Trợ giúp' : ''"
         :class="[
-          'lg-sidebar-item group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 dark:text-slate-400 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]',
+          'lg-sidebar-item group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-sm text-slate-600 dark:text-slate-400 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]',
           collapsed ? 'justify-center' : '',
         ]"
         aria-label="Trợ giúp"
       >
-        <HelpCircle :size="18" stroke-width="1.8" class="flex-shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
+        <HelpCircle :size="16" stroke-width="1.8" class="flex-shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
         <span v-if="!collapsed" class="text-sm font-medium">Trợ giúp</span>
       </button>
 
       <button
         :title="collapsed ? 'Đăng xuất' : ''"
         :class="[
-          'group flex w-full items-center gap-3 rounded-xl border border-transparent dark:border-transparent px-3 py-2 text-sm text-red-600 dark:text-red-400 transition-all duration-200 hover:border-red-100 dark:hover:border-red-600/30 hover:bg-red-50/80 dark:hover:bg-red-600/20 hover:shadow-sm focus:outline-none focus:ring-4 focus:ring-red-500/15',
+          'group flex w-full items-center gap-2.5 rounded-xl border border-transparent dark:border-transparent px-2.5 py-1.5 text-sm text-red-600 dark:text-red-400 transition-all duration-200 hover:border-red-100 dark:hover:border-red-600/30 hover:bg-red-50/80 dark:hover:bg-red-600/20 hover:shadow-sm focus:outline-none focus:ring-4 focus:ring-red-500/15',
           collapsed ? 'justify-center' : '',
         ]"
         aria-label="Đăng xuất"
         @click="logout"
       >
-        <LogOut :size="18" stroke-width="1.8" class="flex-shrink-0 transition-colors" />
+        <LogOut :size="16" stroke-width="1.8" class="flex-shrink-0 transition-colors" />
         <span v-if="!collapsed" class="text-sm font-medium">Đăng xuất</span>
       </button>
     </div>
 
     <!-- ──────────── USER CARD ──────────── -->
     <div
-      class="relative border-t border-white/45 dark:border-white/10 p-3 flex-shrink-0"
+      class="relative border-t border-white/45 dark:border-white/10 p-2 flex-shrink-0"
       :class="collapsed ? 'flex justify-center' : ''"
     >
-      <div :class="['lg-nav flex items-center gap-3 rounded-2xl p-2.5', collapsed ? '' : 'w-full']">
+      <div :class="['lg-nav flex items-center gap-2 rounded-xl p-2', collapsed ? '' : 'w-full']">
         <div class="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 dark:from-teal-500/80 dark:to-emerald-600/80 text-xs font-bold text-white shadow-lg shadow-teal-500/20 dark:shadow-teal-500/10 ring-2 ring-white/70 dark:ring-white/20">
           <span>{{ authStore.initials || mockStaff.initials }}</span>
           <span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-slate-800 bg-emerald-500" />
         </div>
         <Transition name="fade-slide">
           <div v-if="!collapsed" class="overflow-hidden min-w-0">
-            <p class="text-[13px] font-semibold text-heading dark:text-slate-100 truncate leading-tight">
+            <p class="text-[12px] font-semibold text-heading dark:text-slate-100 truncate leading-tight">
               {{ authStore.displayName || mockStaff.name }}
             </p>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate leading-tight">
+            <p class="text-[10px] text-slate-500 dark:text-slate-400 truncate leading-tight">
               {{ authStore.user?.email || mockStaff.staffId }}
             </p>
           </div>
@@ -131,7 +133,7 @@ function logout() {
 
     <!-- ──────────── TOGGLE BUTTON ──────────── -->
     <button
-      class="absolute -right-3.5 top-[64px] z-[60] flex h-7 w-7 items-center justify-center rounded-full border border-white/70 dark:border-white/10 bg-white/90 dark:bg-slate-700/70 text-slate-500 dark:text-slate-400 shadow-lg shadow-slate-900/10 dark:shadow-slate-900/40 backdrop-blur-xl transition-all hover:border-teal-300 dark:hover:border-teal-500/30 hover:text-teal-700 dark:hover:text-teal-300 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]"
+      class="absolute -right-3.5 top-[56px] z-[60] flex h-6 w-6 items-center justify-center rounded-full border border-white/70 dark:border-white/10 bg-white/90 dark:bg-slate-700/70 text-slate-500 dark:text-slate-400 shadow-lg shadow-slate-900/10 dark:shadow-slate-900/40 backdrop-blur-xl transition-all hover:border-teal-300 dark:hover:border-teal-500/30 hover:text-teal-700 dark:hover:text-teal-300 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]"
       :title="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       :aria-label="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       @click="emit('toggle')"

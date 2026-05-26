@@ -48,7 +48,7 @@ const getPriorityColor = (priority) => {
     title="Đơn từ cần xử lý" 
     subtitle="Quản lý và phê duyệt các yêu cầu hành chính học vụ từ sinh viên."
   >
-    <div class="space-y-6">
+    <div class="space-y-4">
       
       <!-- ── Quick Filters ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
@@ -72,20 +72,20 @@ const getPriorityColor = (priority) => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/50">
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 w-10">#</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Sinh viên & Loại đơn</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Người xử lý</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">SLA còn lại</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Trạng thái</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 w-10">#</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Sinh viên & Loại đơn</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Người xử lý</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">SLA còn lại</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Trạng thái</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="req in requests" :key="req.id" class="group hover:bg-white/50 transition-colors">
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                  <Flag :size="16" :class="getPriorityColor(req.priority)" />
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
                   <div class="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
                     <FileText :size="18" />
@@ -96,7 +96,7 @@ const getPriorityColor = (priority) => {
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
                   <User :size="14" class="text-slate-300" />
                   <span :class="['text-xs font-bold', req.reviewer === 'Chưa phân công' ? 'text-amber-500' : 'text-slate-600']">
@@ -104,7 +104,7 @@ const getPriorityColor = (priority) => {
                   </span>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
                   <Timer :size="14" :class="req.sla === 'QUÁ HẠN' ? 'text-rose-500' : 'text-slate-400'" />
                   <span :class="['text-xs font-black uppercase tracking-tighter', req.sla === 'QUÁ HẠN' ? 'text-rose-600' : 'text-slate-500']">
@@ -112,12 +112,12 @@ const getPriorityColor = (priority) => {
                   </span>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span :class="['px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border', getStatusBadge(req.status)]">
                   {{ req.status.replace('_', ' ') }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-right">
+              <td class="px-4 py-4 text-right">
                 <div class="flex items-center justify-end gap-1">
                   <router-link :to="`/staff/requests/${req.id}`" class="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-all" title="Xem chi tiết">
                     <ArrowRight :size="18" />

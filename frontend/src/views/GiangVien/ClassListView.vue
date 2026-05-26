@@ -15,11 +15,11 @@ const filterSemester = ref('Spring 2026')
 </script>
 
 <template>
-  <div class="space-y-6 pb-10">
+  <div class="space-y-4 pb-10">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Danh sách lớp học</h1>
+        <h1 class="text-xl font-bold text-slate-800 tracking-tight">Danh sách lớp học</h1>
         <p class="text-slate-500 mt-1">Quản lý và theo dõi các lớp học bạn đang phụ trách giảng dạy.</p>
       </div>
       <div class="flex gap-2">
@@ -47,10 +47,10 @@ const filterSemester = ref('Spring 2026')
     </div>
 
     <!-- Grid / Table -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div v-for="cls in classes" :key="cls.id" class="lg-card-glass lg-card-hover group border-slate-100 p-6 flex flex-col">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div v-for="cls in classes" :key="cls.id" class="lg-card-glass lg-card-hover group border-slate-100 p-4 flex flex-col">
         <div class="flex justify-between items-start mb-4">
-          <div class="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100/50">
+          <div class="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100/50">
             <GraduationCap :size="24" />
           </div>
           <button class="p-1.5 text-slate-300 hover:text-slate-600"><MoreHorizontal :size="20" /></button>

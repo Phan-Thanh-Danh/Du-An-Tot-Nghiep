@@ -75,12 +75,12 @@ const activeWorkflow = ref(workflows.value[1]) // Selecting 'Chuyển lớp' for
       </div>
 
       <!-- ── Right: Workflow Builder ── -->
-      <div class="lg:col-span-2 space-y-6">
+      <div class="lg:col-span-2 space-y-4">
         
         <!-- Header Info -->
-        <div class="lg-card-glass p-8 flex items-center justify-between">
+        <div class="lg-card-glass p-5 flex items-center justify-between">
            <div class="flex items-center gap-5">
-              <div class="h-14 w-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+              <div class="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
                  <Settings2 :size="28" />
               </div>
               <div>
@@ -102,7 +102,7 @@ const activeWorkflow = ref(workflows.value[1]) // Selecting 'Chuyển lớp' for
            <div class="flex flex-col items-center gap-12">
               
               <!-- Step 1 -->
-              <div class="w-full max-w-sm p-6 bg-white rounded-3xl border border-slate-200 shadow-sm relative group hover:border-blue-300 transition-all">
+              <div class="w-full max-w-sm p-4 bg-white rounded-3xl border border-slate-200 shadow-sm relative group hover:border-blue-300 transition-all">
                  <div class="absolute -left-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-black shadow-md">1</div>
                  <h5 class="text-sm font-black text-slate-800 uppercase tracking-wide">Tiếp nhận & Kiểm tra</h5>
                  <div class="mt-4 flex items-center justify-between">
@@ -118,7 +118,7 @@ const activeWorkflow = ref(workflows.value[1]) // Selecting 'Chuyển lớp' for
               </div>
 
               <!-- Step 2 -->
-              <div class="w-full max-w-sm p-6 bg-white rounded-3xl border border-blue-200 shadow-md relative group">
+              <div class="w-full max-w-sm p-4 bg-white rounded-3xl border border-blue-200 shadow-md relative group">
                  <div class="absolute -left-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black shadow-md">2</div>
                  <div class="flex items-center justify-between mb-4">
                     <h5 class="text-sm font-black text-blue-700 uppercase tracking-wide">Phê duyệt chính</h5>
@@ -156,17 +156,17 @@ const activeWorkflow = ref(workflows.value[1]) // Selecting 'Chuyển lớp' for
 
            <!-- Floating Tools -->
            <div class="absolute bottom-6 right-6 flex flex-col gap-3">
-              <button class="h-12 w-12 bg-white rounded-2xl border border-slate-200 text-slate-400 hover:text-blue-600 shadow-sm flex items-center justify-center transition-all">
+              <button class="h-10 w-10 bg-white rounded-2xl border border-slate-200 text-slate-400 hover:text-blue-600 shadow-sm flex items-center justify-center transition-all">
                  <Plus :size="24" />
               </button>
-              <button class="h-12 w-12 bg-slate-800 rounded-2xl text-white shadow-xl flex items-center justify-center hover:scale-110 transition-all">
+              <button class="h-10 w-10 bg-slate-800 rounded-2xl text-white shadow-xl flex items-center justify-center hover:scale-110 transition-all">
                  <MoreVertical :size="24" />
               </button>
            </div>
         </div>
 
         <!-- Workflow Rules Summary -->
-        <div class="lg-card-glass p-6 border-blue-100 bg-blue-50/10">
+        <div class="lg-card-glass p-4 border-blue-100 bg-blue-50/10">
            <div class="flex items-start gap-4">
               <div class="h-10 w-10 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
                  <Shield :size="20" />

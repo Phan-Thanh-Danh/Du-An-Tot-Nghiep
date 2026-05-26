@@ -48,12 +48,12 @@ onMounted(() => {
 <template>
   <div class="space-y-8 pb-12 animate-fade-in text-slate-800">
     <!-- ── Header ── -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
       <!-- Decorative background -->
-      <div class="absolute -right-32 -bottom-32 h-96 w-96 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-50 to-transparent rounded-full pointer-events-none" />
+      
       
       <div class="relative z-10 flex items-center gap-5">
-        <router-link to="/teacher/classes" class="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-200 hover:scale-105 transition-transform duration-300">
+        <router-link to="/teacher/classes" class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-200 hover:scale-105 transition-transform duration-300">
            <ArrowLeft :size="28" stroke-width="2.5" />
         </router-link>
         <div>
@@ -61,61 +61,61 @@ onMounted(() => {
             <span class="px-3 py-1 rounded-xl bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest border border-blue-100/50">SE1601</span>
             <span class="px-3 py-1 rounded-xl bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-widest border border-slate-200/50">HK 2 - 2026</span>
           </div>
-          <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Chuyên cần lớp</h1>
+          <h1 class="text-xl md:text-xl font-black text-slate-900 tracking-tight">Chuyên cần lớp</h1>
         </div>
       </div>
 
       <div class="relative z-10 flex gap-3">
-         <button class="flex items-center gap-2 rounded-2xl bg-white px-6 py-3 border border-slate-200 shadow-sm hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors font-bold text-sm text-slate-700">
+         <button class="flex items-center gap-2 rounded-2xl bg-white px-4 py-3 border border-slate-200 shadow-sm hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors font-bold text-sm text-slate-700">
             <Download :size="18" /> Xuất báo cáo
          </button>
       </div>
     </div>
 
     <!-- Attendance Summary KPIs -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
         <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform duration-500"></div>
         <div class="flex items-center gap-5">
-           <div class="h-14 w-14 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100/50 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+           <div class="h-10 w-10 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100/50 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
               <Calendar :size="28" stroke-width="2" />
            </div>
            <div>
               <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tổng buổi học</p>
               <div class="flex items-baseline gap-2">
-                <p class="text-3xl font-black text-slate-800">{{ totalSessions }}</p>
+                <p class="text-xl font-black text-slate-800">{{ totalSessions }}</p>
                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">Buổi</span>
               </div>
            </div>
         </div>
       </div>
       
-      <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+      <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
         <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform duration-500"></div>
         <div class="flex items-center gap-5">
-           <div class="h-14 w-14 rounded-2xl bg-cyan-50 text-cyan-600 border border-cyan-100/50 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+           <div class="h-10 w-10 rounded-2xl bg-cyan-50 text-cyan-600 border border-cyan-100/50 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
               <UserCheck :size="28" stroke-width="2" />
            </div>
            <div>
               <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Trung bình vắng</p>
               <div class="flex items-baseline gap-2">
-                <p class="text-3xl font-black text-slate-800">2.2</p>
+                <p class="text-xl font-black text-slate-800">2.2</p>
                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">Buổi</span>
               </div>
            </div>
         </div>
       </div>
 
-      <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+      <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
         <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform duration-500"></div>
         <div class="flex items-center gap-5">
-           <div class="h-14 w-14 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100/50 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+           <div class="h-10 w-10 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100/50 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
               <BarChart3 :size="28" stroke-width="2" />
            </div>
            <div class="flex-1">
               <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tỉ lệ chuyên cần</p>
               <div class="flex items-baseline justify-between gap-2">
-                <p class="text-3xl font-black text-slate-800">{{ avgAttendance }}%</p>
+                <p class="text-xl font-black text-slate-800">{{ avgAttendance }}%</p>
               </div>
            </div>
         </div>
@@ -123,8 +123,8 @@ onMounted(() => {
     </div>
 
     <!-- Attendance Table -->
-    <div class="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-      <div class="p-6 md:p-8 border-b border-slate-100/80 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/30">
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+      <div class="p-4 md:p-5 border-b border-slate-100/80 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/30">
         <div class="flex items-center gap-4">
            <div>
              <h2 class="text-xl font-black text-slate-800">Chi tiết chuyên cần</h2>
@@ -148,18 +148,18 @@ onMounted(() => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/50 border-b border-slate-100">
-              <th class="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Sinh viên</th>
-              <th class="px-6 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Có mặt</th>
-              <th class="px-6 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Vắng</th>
-              <th class="px-6 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Tỷ lệ tham gia</th>
-              <th class="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Trạng thái</th>
+              <th class="px-5 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Sinh viên</th>
+              <th class="px-4 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Có mặt</th>
+              <th class="px-4 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Vắng</th>
+              <th class="px-4 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Tỷ lệ tham gia</th>
+              <th class="px-5 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Trạng thái</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="sv in attendanceData" :key="sv.id" class="group hover:bg-slate-50/50 transition-colors">
-              <td class="px-8 py-5">
+              <td class="px-5 py-5">
                 <div class="flex items-center gap-4">
-                  <div class="h-12 w-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 font-black text-sm group-hover:bg-blue-100 group-hover:text-blue-600 group-hover:border-blue-200 transition-colors shadow-sm">
+                  <div class="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 font-black text-sm group-hover:bg-blue-100 group-hover:text-blue-600 group-hover:border-blue-200 transition-colors shadow-sm">
                     {{ sv.name.split(' ').pop()[0] }}
                   </div>
                   <div>
@@ -168,7 +168,7 @@ onMounted(() => {
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <div class="flex items-center gap-2">
                    <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center border border-blue-100/50">
                      <CheckCircle2 :size="14" />
@@ -176,7 +176,7 @@ onMounted(() => {
                    <span class="text-sm font-bold text-slate-700">{{ sv.present }} / {{ totalSessions }}</span>
                 </div>
               </td>
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <div class="flex items-center gap-2">
                    <div class="w-7 h-7 rounded-lg flex items-center justify-center border" :class="sv.absent > 3 ? 'bg-rose-50 text-rose-500 border-rose-100/50' : 'bg-slate-50 text-slate-400 border-slate-100'">
                      <XCircle :size="14" />
@@ -184,7 +184,7 @@ onMounted(() => {
                    <span :class="['text-sm font-bold', sv.absent > 3 ? 'text-rose-500' : 'text-slate-600']">{{ sv.absent }} buổi</span>
                 </div>
               </td>
-              <td class="px-6 py-5 w-56">
+              <td class="px-4 py-5 w-56">
                 <div class="flex items-center gap-3">
                   <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
                     <!-- Unified blue gradient for all progress bars -->
@@ -194,7 +194,7 @@ onMounted(() => {
                   <span class="text-[11px] font-black text-slate-500 w-9">{{ sv.percent }}%</span>
                 </div>
               </td>
-              <td class="px-8 py-5 text-right">
+              <td class="px-5 py-5 text-right">
                 <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider shadow-sm" :class="getStatusBadge(sv.status)">
                   <AlertCircle v-if="sv.status === 'danger' || sv.status === 'warning'" :size="12" />
                   <CheckCircle2 v-else :size="12" />
@@ -207,7 +207,7 @@ onMounted(() => {
       </div>
       
       <!-- Footer Pagination -->
-      <div class="bg-slate-50/80 px-8 py-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+      <div class="bg-slate-50/80 px-5 py-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
         <span class="font-bold uppercase tracking-widest text-[10px]">Hiển thị 1-{{ attendanceData.length }} trong số 42 sinh viên</span>
         <div class="flex gap-1.5">
           <button class="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 font-bold disabled:opacity-50 transition-colors">Trước</button>

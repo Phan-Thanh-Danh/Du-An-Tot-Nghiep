@@ -85,7 +85,7 @@ const statusBadge = {
   <div class="lg-page-enter space-y-4 pb-6">
 
     <!-- ══ HERO ══════════════════════════════════════════════ -->
-    <div class="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-6 text-white shadow-lg">
+    <div class="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-4 text-white shadow-lg">
       <div class="pointer-events-none absolute right-0 top-0 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
       <div class="relative flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -93,7 +93,7 @@ const statusBadge = {
             <component :is="resolveIcon('BookOpenCheck')" :size="14" />
             Khóa học · {{ mockCourse.code }}
           </div>
-          <h1 class="text-2xl font-bold leading-tight">{{ mockCourse.title }}</h1>
+          <h1 class="text-xl font-bold leading-tight">{{ mockCourse.title }}</h1>
           <p class="mt-1 text-blue-100 text-sm">{{ mockCourse.teacher }} · {{ mockCourse.semester }} · {{ mockCourse.credits }} tín chỉ</p>
         </div>
         <div class="flex gap-2">
@@ -118,7 +118,7 @@ const statusBadge = {
           </div>
         </div>
         <div class="flex items-baseline gap-1 mb-3">
-          <span class="text-2xl font-bold text-slate-900">{{ s.value }}</span>
+          <span class="text-xl font-bold text-slate-900">{{ s.value }}</span>
           <span class="text-xs text-slate-500">{{ s.unit }}</span>
         </div>
         <div class="h-1.5 overflow-hidden rounded-full bg-slate-200">
@@ -160,7 +160,7 @@ const statusBadge = {
               <div class="absolute inset-0 flex items-center justify-center opacity-10">
                 <component :is="resolveIcon('Film')" :size="80" class="text-white" />
               </div>
-              <button class="relative flex h-16 w-16 items-center justify-center rounded-full bg-white/90 shadow-lg hover:scale-105 transition-transform">
+              <button class="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-lg hover:scale-105 transition-transform">
                 <component :is="resolveIcon('Play')" :size="24" class="text-blue-700 translate-x-0.5" />
               </button>
               <div class="absolute bottom-3 right-4 text-white/70 text-xs font-semibold">{{ watchFormatted }} / {{ currentLesson.duration }}</div>

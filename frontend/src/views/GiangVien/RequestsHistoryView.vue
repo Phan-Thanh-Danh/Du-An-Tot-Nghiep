@@ -40,7 +40,7 @@ const getAvatarGradient = (id) => {
 <template>
   <div class="space-y-8 pb-12 animate-fade-in">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-[24px] shadow-sm border border-slate-100/60 backdrop-blur-xl relative overflow-hidden">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-[24px] shadow-sm border border-slate-100/60 backdrop-blur-xl relative overflow-hidden">
       <!-- Decorative background glow -->
       <div class="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
       <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -50,7 +50,7 @@ const getAvatarGradient = (id) => {
           <History :size="24" stroke-width="2" />
         </div>
         <div>
-          <h1 class="text-3xl font-black text-slate-800 tracking-tight">Lịch sử xử lý đơn</h1>
+          <h1 class="text-xl font-black text-slate-800 tracking-tight">Lịch sử xử lý đơn</h1>
           <p class="text-sm text-slate-500 mt-1">Tra cứu lại các yêu cầu của sinh viên đã được giải quyết.</p>
         </div>
       </div>
@@ -64,17 +64,17 @@ const getAvatarGradient = (id) => {
     </div>
 
     <!-- Stats & Filters Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      <div class="lg:col-span-1 flex flex-col gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div class="lg:col-span-1 flex flex-col gap-4">
         <!-- Main Stats Card -->
-        <div class="bg-gradient-to-br from-blue-600 to-cyan-600 p-6 md:p-8 rounded-[32px] shadow-xl shadow-blue-500/20 text-white relative overflow-hidden group">
+        <div class="bg-gradient-to-br from-blue-600 to-cyan-600 p-4 md:p-8 rounded-2xl shadow-xl shadow-blue-500/20 text-white relative overflow-hidden group">
            <div class="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
            <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-black/10 rounded-full blur-2xl pointer-events-none"></div>
            
-           <div class="relative z-10 flex flex-col gap-6">
+           <div class="relative z-10 flex flex-col gap-4">
               <div>
                  <h3 class="text-[11px] font-black uppercase tracking-widest text-blue-200 mb-1">Thống kê tháng này</h3>
-                 <p class="text-3xl font-black">15 <span class="text-sm font-medium text-blue-200 ml-1">đơn</span></p>
+                 <p class="text-xl font-black">15 <span class="text-sm font-medium text-blue-200 ml-1">đơn</span></p>
               </div>
 
               <div class="space-y-4">
@@ -102,7 +102,7 @@ const getAvatarGradient = (id) => {
         </div>
         
         <!-- Filter Summary Card (Optional/Extra aesthetic) -->
-        <div class="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm">
+        <div class="bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm">
            <h3 class="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-4">Loại đơn phổ biến</h3>
            <div class="space-y-3">
               <div class="flex items-center justify-between">
@@ -126,8 +126,8 @@ const getAvatarGradient = (id) => {
 
       <div class="lg:col-span-3">
         <!-- History Table -->
-        <div class="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full">
-          <div class="p-6 border-b border-slate-100/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/30">
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full">
+          <div class="p-4 border-b border-slate-100/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/30">
             <div class="flex items-center gap-3 w-full sm:w-auto">
               <select class="w-full sm:w-40 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all shadow-sm cursor-pointer hover:bg-slate-50">
                  <option>Tất cả trạng thái</option>
@@ -149,23 +149,23 @@ const getAvatarGradient = (id) => {
             <table class="w-full text-left border-collapse">
               <thead>
                 <tr class="bg-slate-50/80 text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                  <th class="px-8 py-5 border-b border-slate-100">
+                  <th class="px-5 py-5 border-b border-slate-100">
                      <div class="flex items-center gap-2 cursor-pointer hover:text-blue-600 transition-colors">Ngày xử lý <ArrowUpDown :size="14" /></div>
                   </th>
-                  <th class="px-6 py-5 border-b border-slate-100">Sinh viên</th>
-                  <th class="px-6 py-5 border-b border-slate-100">Loại đơn</th>
-                  <th class="px-8 py-5 border-b border-slate-100 text-right">Kết quả</th>
+                  <th class="px-4 py-5 border-b border-slate-100">Sinh viên</th>
+                  <th class="px-4 py-5 border-b border-slate-100">Loại đơn</th>
+                  <th class="px-5 py-5 border-b border-slate-100 text-right">Kết quả</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100/80 bg-white">
                 <tr v-for="item in history" :key="item.id" class="group hover:bg-slate-50/50 transition-colors duration-200 cursor-pointer">
-                  <td class="px-8 py-5">
+                  <td class="px-5 py-5">
                     <div class="flex flex-col">
                       <span class="text-sm font-bold text-slate-700">{{ item.date }}</span>
                       <span class="text-[11px] font-medium text-slate-400 flex items-center gap-1 mt-0.5"><Clock :size="10" /> {{ item.time }}</span>
                     </div>
                   </td>
-                  <td class="px-6 py-5">
+                  <td class="px-4 py-5">
                     <div class="flex items-center gap-4">
                        <div class="h-10 w-10 rounded-[14px] bg-gradient-to-br flex items-center justify-center text-sm font-black shadow-inner group-hover:scale-105 transition-transform" :class="getAvatarGradient(item.id)">
                           {{ item.student.split(' ').pop()[0] }}
@@ -173,10 +173,10 @@ const getAvatarGradient = (id) => {
                        <span class="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{{ item.student }}</span>
                     </div>
                   </td>
-                  <td class="px-6 py-5">
+                  <td class="px-4 py-5">
                      <span class="text-sm font-medium text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 group-hover:border-blue-100 group-hover:bg-blue-50/50 transition-colors">{{ item.type }}</span>
                   </td>
-                  <td class="px-8 py-5 text-right">
+                  <td class="px-5 py-5 text-right">
                     <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-wider" :class="getStatusBadge(item.result)">
                       <component :is="getStatusIcon(item.result)" :size="14" />
                       {{ getStatusText(item.result) }}

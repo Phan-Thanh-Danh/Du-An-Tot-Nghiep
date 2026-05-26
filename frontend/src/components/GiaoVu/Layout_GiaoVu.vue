@@ -9,6 +9,8 @@ import { useRoute } from 'vue-router'
 import AppSidebar from './AppSidebar.vue'
 import AppTopbar from '../SinhVien/AppTopbar.vue'
 import PageContainer from '../SinhVien/PageContainer.vue'
+import AiAssistant from '@/components/ui/AiAssistant.vue'
+import AnnouncementBanner from '@/components/ui/AnnouncementBanner.vue'
 
 // ── Sidebar state ──────────────────────────────────────────
 const sidebarCollapsed = ref(false)
@@ -134,8 +136,10 @@ const currentPageMeta = computed(() => {
     <div class="flex flex-1 flex-col min-w-0 overflow-hidden relative z-10">
       <AppTopbar @toggle-sidebar="toggleSidebar" />
 
+      <AnnouncementBanner />
+
       <main class="flex-1 overflow-y-auto">
-        <div class="mx-auto max-w-[1440px] px-4 sm:px-6 py-6 min-h-full flex flex-col">
+        <div class="mx-auto max-w-[1440px] px-3 sm:px-4 py-4 min-h-full flex flex-col">
           <router-view v-slot="{ Component }">
             <Transition
               enter-active-class="transition-all duration-200 ease-out"
@@ -158,6 +162,7 @@ const currentPageMeta = computed(() => {
       </main>
     </div>
   </div>
+  <AiAssistant />
 </template>
 
 <style>

@@ -49,7 +49,7 @@ const getStatusBadge = (status) => {
       </div>
     </template>
 
-    <div class="space-y-6">
+    <div class="space-y-4">
       
       <!-- ── Toolbar ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
@@ -73,27 +73,27 @@ const getStatusBadge = (status) => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/50">
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Sinh viên</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Lớp & Môn</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Prereq</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Trạng thái</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Sinh viên</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Lớp & Môn</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Prereq</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Trạng thái</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="en in enrollments" :key="en.id" class="group hover:bg-white/50 transition-colors">
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <p class="text-sm font-black text-slate-800">{{ en.student }}</p>
                 <p class="text-[11px] font-bold text-slate-400 mt-0.5">{{ en.studentCode }}</p>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <p class="text-sm font-black text-slate-800 leading-tight">{{ en.subject }}</p>
                 <div class="flex items-center gap-2 mt-1">
                   <span class="text-[10px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">{{ en.section }}</span>
                   <span v-if="en.type === 'retake'" class="text-[9px] font-bold text-orange-600 border border-orange-200 px-1.5 py-0.5 rounded uppercase tracking-tighter">Học lại</span>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                  <div v-if="en.prereq === 'pass'" class="text-emerald-500 flex items-center gap-1.5">
                     <CheckCircle2 :size="16" /> <span class="text-[10px] font-black uppercase tracking-widest">Hợp lệ</span>
                  </div>
@@ -101,12 +101,12 @@ const getStatusBadge = (status) => {
                     <XCircle :size="16" /> <span class="text-[10px] font-black uppercase tracking-widest">Thiếu ĐK</span>
                  </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span :class="['px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest', getStatusBadge(en.status)]">
                   {{ en.status }}
                 </span>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-1">
                   <button class="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-all" title="Chuyển lớp">
                     <ArrowLeftRight :size="16" />

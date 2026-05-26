@@ -49,9 +49,9 @@ function removeSection(index) {
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
       
       <!-- ── Left: Composer ── -->
-      <div class="xl:col-span-2 space-y-6">
+      <div class="xl:col-span-2 space-y-4">
         <div class="lg-card-glass p-8">
-          <div class="space-y-6">
+          <div class="space-y-4">
              <!-- Title -->
              <div>
                 <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Tiêu đề thông báo</label>
@@ -78,7 +78,7 @@ function removeSection(index) {
                    <textarea 
                      v-model="content"
                      placeholder="Nhập nội dung thông báo tại đây..."
-                     class="w-full p-6 text-sm font-medium text-slate-600 outline-none h-64 resize-none leading-relaxed"
+                     class="w-full p-4 text-sm font-medium text-slate-600 outline-none h-64 resize-none leading-relaxed"
                    ></textarea>
                 </div>
              </div>
@@ -86,8 +86,8 @@ function removeSection(index) {
         </div>
 
         <!-- Targeting Context -->
-        <div class="lg-card-glass p-8 bg-blue-50/20 border-blue-100">
-           <h4 class="text-xs font-black text-blue-900 uppercase tracking-widest mb-6 flex items-center gap-2">
+        <div class="lg-card-glass p-5 bg-blue-50/20 border-blue-100">
+           <h4 class="text-xs font-black text-blue-900 uppercase tracking-widest mb-4 flex items-center gap-2">
               <Users :size="16" /> Đối tượng nhận thông báo
            </h4>
            
@@ -124,11 +124,11 @@ function removeSection(index) {
       </div>
 
       <!-- ── Right: Delivery Settings ── -->
-      <div class="space-y-6">
+      <div class="space-y-4">
         
         <!-- Channels -->
         <div class="lg-card-glass p-8">
-           <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">Kênh phân phối</h4>
+           <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Kênh phân phối</h4>
            <div class="space-y-3">
               <div v-for="ch in channels" :key="ch.id" class="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group">
                  <div class="flex items-center gap-3">
@@ -146,7 +146,7 @@ function removeSection(index) {
 
         <!-- Schedule -->
         <div class="lg-card-glass p-8">
-           <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">Thời gian gửi</h4>
+           <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Thời gian gửi</h4>
            <div class="flex flex-col gap-4">
               <label class="flex items-center gap-3 cursor-pointer group">
                  <div class="relative flex items-center">

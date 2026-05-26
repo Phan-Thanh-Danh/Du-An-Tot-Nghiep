@@ -46,7 +46,7 @@ const getStatusBadge = (status) => {
       </button>
     </template>
 
-    <div class="space-y-6">
+    <div class="space-y-4">
       
       <!-- ── Quick Metrics ── -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -110,23 +110,23 @@ const getStatusBadge = (status) => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/50">
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Mã LHP</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Môn & Giảng viên</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Đăng ký / Sức chứa</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Trạng thái</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Mã LHP</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Môn & Giảng viên</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Đăng ký / Sức chứa</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Trạng thái</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="sec in sections" :key="sec.id" class="group hover:bg-white/50 transition-colors">
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span class="text-xs font-black text-slate-800">{{ sec.id }}</span>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <p class="text-sm font-black text-slate-800 leading-tight">{{ sec.subject }}</p>
                 <p class="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{{ sec.teacher }}</p>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="space-y-1.5">
                   <div class="flex items-center justify-between">
                     <span class="text-[11px] font-black text-slate-700">{{ sec.enrolled }} / {{ sec.capacity }}</span>
@@ -140,12 +140,12 @@ const getStatusBadge = (status) => {
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span :class="['px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border', getStatusBadge(sec.status)]">
                   {{ sec.status.replace('_', ' ') }}
                 </span>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-1">
                   <button class="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-all" title="Sửa sức chứa">
                     <Edit3 :size="16" />

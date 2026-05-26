@@ -187,7 +187,7 @@ function handleCreateSchedule() {
       </div>
     </template>
 
-    <div class="space-y-6">
+    <div class="space-y-4">
       <!-- ── Toolbar ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex items-center justify-between gap-4">
         <div class="flex items-center gap-4">
@@ -237,7 +237,7 @@ function handleCreateSchedule() {
       </div>
 
       <!-- ── Calendar Grid ── -->
-      <div class="lg-glass-strong rounded-[32px] overflow-hidden border border-slate-100 shadow-sm">
+      <div class="lg-glass-strong rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
         <div class="overflow-x-auto">
           <table class="w-full border-collapse">
             <thead>
@@ -293,8 +293,8 @@ function handleCreateSchedule() {
       </div>
 
       <!-- ── Legend & Status ── -->
-      <div class="flex flex-wrap items-center justify-between gap-6 px-4">
-        <div class="flex items-center gap-6">
+      <div class="flex flex-wrap items-center justify-between gap-4 px-4">
+        <div class="flex items-center gap-4">
           <div class="flex items-center gap-2">
             <span class="h-3 w-3 rounded-full bg-green-500"></span>
             <span class="text-xs font-bold text-slate-600">Đã công bố</span>
@@ -326,9 +326,9 @@ function handleCreateSchedule() {
 
   <!-- ── Modal Create New Schedule ── -->
   <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-    <div class="bg-white rounded-[24px] shadow-2xl max-w-md w-full p-6 border border-slate-100">
+    <div class="bg-white rounded-[24px] shadow-2xl max-w-md w-full p-4 border border-slate-100">
       <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-bold text-slate-900">Tạo lịch mới</h2>
         <button @click="showCreateModal = false" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
           <X :size="20" />

@@ -28,7 +28,7 @@ const changes = ref([
     title="Thay đổi & Dạy bù" 
     subtitle="Theo dõi toàn bộ các biến động lịch học phát sinh sau khi Thời khóa biểu đã được công bố."
   >
-    <div class="space-y-6">
+    <div class="space-y-4">
       
       <!-- ── Toolbar ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
@@ -51,16 +51,16 @@ const changes = ref([
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/50">
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thông tin lớp học</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Sự thay đổi</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Ngày bù / Kết quả</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Lý do & Xử lý</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thông tin lớp học</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Sự thay đổi</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Ngày bù / Kết quả</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Lý do & Xử lý</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="chg in changes" :key="chg.id" class="group hover:bg-white/50 transition-colors">
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
                   <div class="h-9 w-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100">
                     <AlertCircle :size="18" />
@@ -71,7 +71,7 @@ const changes = ref([
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
                    <div class="text-center">
                       <p class="text-[10px] font-black text-slate-400 uppercase mb-0.5">Gốc</p>
@@ -84,7 +84,7 @@ const changes = ref([
                    </div>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
                    <Clock :size="14" class="text-slate-300" />
                    <span :class="['text-xs font-black uppercase tracking-tighter', chg.makeupDate === 'Bị hủy' ? 'text-rose-500' : 'text-slate-600']">
@@ -92,13 +92,13 @@ const changes = ref([
                    </span>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <p class="text-xs text-slate-600 font-medium leading-relaxed">{{ chg.reason }}</p>
                 <div class="flex items-center gap-2 mt-2 text-[10px] font-bold text-slate-400">
                    <User :size="12" /> {{ chg.processor }}
                 </div>
               </td>
-              <td class="px-6 py-4 text-right">
+              <td class="px-4 py-4 text-right">
                 <div class="flex items-center justify-end gap-1">
                   <button class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-all">
                     <Eye :size="18" />

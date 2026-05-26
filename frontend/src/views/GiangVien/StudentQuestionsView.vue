@@ -45,16 +45,16 @@ function sendReply() {
 <template>
   <div class="space-y-8 pb-10 text-slate-800">
     <!-- ── Header ── -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
       <!-- Decorative background using radial gradient instead of expensive blur -->
-      <div class="absolute -right-32 -bottom-32 h-96 w-96 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-50 to-transparent rounded-full pointer-events-none" />
+      
       
       <div class="relative z-10 flex items-center gap-5">
-        <div class="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-200">
+        <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-200">
            <HelpCircle :size="32" />
         </div>
         <div>
-          <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Hỏi đáp & Hỗ trợ</h1>
+          <h1 class="text-xl md:text-xl font-black text-slate-900 tracking-tight">Hỏi đáp & Hỗ trợ</h1>
           <p class="text-sm font-medium text-slate-500 mt-1">Giải đáp thắc mắc của sinh viên trong quá trình học tập.</p>
         </div>
       </div>
@@ -68,18 +68,18 @@ function sendReply() {
 
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
       <!-- Questions List -->
-      <div class="xl:col-span-2 space-y-6">
-        <div class="rounded-[32px] border border-slate-100 bg-white shadow-sm overflow-hidden p-6">
+      <div class="xl:col-span-2 space-y-4">
+        <div class="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden p-4">
            <!-- Filters & Search -->
-           <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+           <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
               <div class="flex gap-2 p-1 rounded-[16px] bg-slate-50 border border-slate-100">
                  <button 
                     @click="activeFilter = 'all'"
-                    :class="['px-6 py-2.5 rounded-[12px] text-xs font-bold transition-colors', activeFilter === 'all' ? 'bg-white text-blue-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50/50']"
+                    :class="['px-4 py-2.5 rounded-[12px] text-xs font-bold transition-colors', activeFilter === 'all' ? 'bg-white text-blue-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50/50']"
                  >Tất cả</button>
                  <button 
                     @click="activeFilter = 'pending'"
-                    :class="['px-6 py-2.5 rounded-[12px] text-xs font-bold transition-colors', activeFilter === 'pending' ? 'bg-white text-blue-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50/50']"
+                    :class="['px-4 py-2.5 rounded-[12px] text-xs font-bold transition-colors', activeFilter === 'pending' ? 'bg-white text-blue-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50/50']"
                  >Chưa trả lời</button>
               </div>
               <div class="relative w-full sm:w-72">
@@ -97,7 +97,7 @@ function sendReply() {
                      selectedQ?.id === q.id ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-white border-slate-100 hover:border-blue-200 hover:bg-slate-50/50'
                    ]">
                  <div class="flex items-start gap-4">
-                    <div :class="['h-12 w-12 rounded-2xl flex flex-shrink-0 items-center justify-center font-bold text-sm transition-colors', 
+                    <div :class="['h-10 w-10 rounded-2xl flex flex-shrink-0 items-center justify-center font-bold text-sm transition-colors', 
                                   selectedQ?.id === q.id ? 'bg-blue-600 text-white' : 'bg-slate-50 border border-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600']">
                        {{ q.student.split(' ').pop()[0] }}
                     </div>
@@ -129,12 +129,12 @@ function sendReply() {
 
       <!-- Reply Panel -->
       <div class="xl:col-span-1">
-         <div v-if="selectedQ" class="rounded-[32px] bg-white border border-slate-100 shadow-lg p-8 sticky top-6">
-            <h2 class="text-xl font-black text-slate-900 mb-6 flex items-center gap-2">
+         <div v-if="selectedQ" class="rounded-2xl bg-white border border-slate-100 shadow-lg p-5 sticky top-4">
+            <h2 class="text-xl font-black text-slate-900 mb-4 flex items-center gap-2">
                <MessageSquare :size="24" class="text-blue-600" /> Phản hồi sinh viên
             </h2>
             
-            <div class="p-5 rounded-[24px] bg-slate-50/80 border border-slate-100 mb-6 relative overflow-hidden">
+            <div class="p-5 rounded-[24px] bg-slate-50/80 border border-slate-100 mb-4 relative overflow-hidden">
                <div class="absolute -left-2 top-0 bottom-0 w-1 bg-blue-400 rounded-r-full"></div>
                <div class="flex items-center gap-2 mb-2">
                  <User :size="14" class="text-slate-400" />
@@ -162,7 +162,7 @@ function sendReply() {
             </div>
          </div>
 
-         <div v-else class="h-80 rounded-[32px] border-2 border-dashed border-slate-200 bg-slate-50/50 p-8 text-center flex flex-col items-center justify-center sticky top-6 opacity-60">
+         <div v-else class="h-80 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-5 text-center flex flex-col items-center justify-center sticky top-4 opacity-60">
             <div class="h-24 w-24 rounded-full bg-white shadow-sm flex items-center justify-center mb-4">
                <MessageCircle :size="40" class="text-slate-300" />
             </div>

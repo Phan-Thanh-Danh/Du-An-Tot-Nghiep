@@ -104,15 +104,15 @@ async function submitLogin() {
     </div>
 
     <section class="relative z-10 flex min-h-screen items-center justify-center px-4 py-8 sm:px-6">
-      <div class="login-card-glass w-full max-w-[440px] p-6 sm:p-8">
+      <div class="login-card-glass w-full max-w-[440px] p-4 sm:p-8">
         <div class="relative z-[1]">
           <div class="mb-7 text-center">
             <div
-              class="login-card-icon mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl text-blue-700"
+              class="login-card-icon mx-auto mb-4 grid h-10 w-10 place-items-center rounded-2xl text-blue-700"
             >
               <GraduationCap class="h-6 w-6" aria-hidden="true" />
             </div>
-            <h1 class="text-3xl font-bold leading-tight text-slate-950">Đăng nhập LMS</h1>
+            <h1 class="text-xl font-bold leading-tight text-slate-950">Đăng nhập LMS</h1>
             <p class="mt-3 text-sm leading-6 text-slate-600">
               Truy cập hệ thống học tập và học vụ của bạn.
             </p>

@@ -46,7 +46,7 @@ const getGpaColor = (gpa) => {
       </div>
     </template>
 
-    <div class="space-y-6">
+    <div class="space-y-4">
       
       <!-- ── Filters ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
@@ -73,32 +73,32 @@ const getGpaColor = (gpa) => {
       </div>
 
       <!-- ── KPI Mini Grid ── -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-         <div class="lg-card-glass p-6 bg-gradient-to-br from-indigo-50 to-blue-50 border-blue-100 flex items-center gap-5">
-            <div class="h-12 w-12 rounded-2xl bg-white flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+         <div class="lg-card-glass p-4 bg-gradient-to-br from-indigo-50 to-blue-50 border-blue-100 flex items-center gap-5">
+            <div class="h-10 w-10 rounded-2xl bg-white flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
                <Target :size="24" />
             </div>
             <div>
                <p class="text-[10px] font-black text-indigo-600 uppercase tracking-widest">GPA Mục tiêu kỳ</p>
-               <h3 class="text-2xl font-black text-slate-800 leading-tight">3.20</h3>
+               <h3 class="text-xl font-black text-slate-800 leading-tight">3.20</h3>
             </div>
          </div>
-         <div class="lg-card-glass p-6 bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100 flex items-center gap-5">
-            <div class="h-12 w-12 rounded-2xl bg-white flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-100">
+         <div class="lg-card-glass p-4 bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100 flex items-center gap-5">
+            <div class="h-10 w-10 rounded-2xl bg-white flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-100">
                <TrendingUp :size="24" />
             </div>
             <div>
                <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Tỷ lệ GPA >= 3.2</p>
-               <h3 class="text-2xl font-black text-slate-800 leading-tight">42.5%</h3>
+               <h3 class="text-xl font-black text-slate-800 leading-tight">42.5%</h3>
             </div>
          </div>
-         <div class="lg-card-glass p-6 bg-gradient-to-br from-rose-50 to-amber-50 border-rose-100 flex items-center gap-5">
-            <div class="h-12 w-12 rounded-2xl bg-white flex items-center justify-center text-rose-600 shadow-sm border border-rose-100">
+         <div class="lg-card-glass p-4 bg-gradient-to-br from-rose-50 to-amber-50 border-rose-100 flex items-center gap-5">
+            <div class="h-10 w-10 rounded-2xl bg-white flex items-center justify-center text-rose-600 shadow-sm border border-rose-100">
                <Award :size="24" />
             </div>
             <div>
                <p class="text-[10px] font-black text-rose-600 uppercase tracking-widest">Thủ khoa kỳ (GPA)</p>
-               <h3 class="text-2xl font-black text-slate-800 leading-tight">4.00</h3>
+               <h3 class="text-xl font-black text-slate-800 leading-tight">4.00</h3>
             </div>
          </div>
       </div>
@@ -108,16 +108,16 @@ const getGpaColor = (gpa) => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/50">
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Khoa / Lớp / Cơ sở</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">GPA Trung bình</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Min / Max GPA</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Dưới ngưỡng (2.0)</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Khoa / Lớp / Cơ sở</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">GPA Trung bình</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Min / Max GPA</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Dưới ngưỡng (2.0)</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="stat in gpaStats" :key="stat.id" class="group hover:bg-white/50 transition-colors">
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
                   <div class="h-9 w-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
                     <Building2 v-if="stat.group.includes('Khoa')" :size="18" />
@@ -131,13 +131,13 @@ const getGpaColor = (gpa) => {
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
                    <h3 :class="['text-lg font-black', getGpaColor(stat.avgGpa)]">{{ stat.avgGpa.toFixed(2) }}</h3>
                    <ArrowUpRight :size="14" class="text-slate-300" />
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-4">
                    <div class="text-center">
                       <p class="text-[9px] font-black text-slate-400 uppercase">Min</p>
@@ -150,12 +150,12 @@ const getGpaColor = (gpa) => {
                    </div>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border w-fit shadow-sm', stat.warningCount > 10 ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-slate-50 text-slate-500 border-slate-100']">
                   {{ stat.warningCount }} Sinh viên
                 </div>
               </td>
-              <td class="px-6 py-4 text-right">
+              <td class="px-4 py-4 text-right">
                 <button class="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-all">
                   <ChevronRight :size="18" />
                 </button>

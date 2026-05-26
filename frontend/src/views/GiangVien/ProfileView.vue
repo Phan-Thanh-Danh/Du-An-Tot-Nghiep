@@ -26,9 +26,9 @@ function handleUpdate() {
 </script>
 
 <template>
-  <div class="space-y-6 pb-10 text-slate-800">
+  <div class="space-y-4 pb-10 text-slate-800">
     <!-- Header Hero -->
-    <div class="relative h-48 rounded-[32px] bg-gradient-to-r from-blue-600 to-blue-600 overflow-hidden shadow-2xl">
+    <div class="relative h-48 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-600 overflow-hidden shadow-2xl">
        <div class="absolute inset-0 opacity-20">
           <div class="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
           <div class="absolute bottom-0 left-0 w-48 h-48 bg-blue-300 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl"></div>
@@ -37,7 +37,7 @@ function handleUpdate() {
 
     <!-- Profile Info Card -->
     <div class="relative -mt-20 px-8">
-       <div class="lg-card-glass p-8 border-white/50 shadow-xl bg-white/80 backdrop-blur-2xl">
+       <div class="lg-card-glass p-5 border-white/50 shadow-xl bg-white/80 backdrop-blur-2xl">
           <div class="flex flex-col md:flex-row gap-8">
              <!-- Avatar Area -->
              <div class="relative shrink-0">
@@ -54,10 +54,10 @@ function handleUpdate() {
              </div>
 
              <!-- Details -->
-             <div class="flex-1 space-y-6">
+             <div class="flex-1 space-y-4">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                    <div>
-                      <h1 class="text-3xl font-black text-slate-800 tracking-tight">{{ user.name }}</h1>
+                      <h1 class="text-xl font-black text-slate-800 tracking-tight">{{ user.name }}</h1>
                       <div class="flex items-center gap-3 mt-1">
                          <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md uppercase tracking-wider">{{ user.position }}</span>
                          <span class="text-xs font-bold text-slate-400">• {{ user.department }}</span>
@@ -67,13 +67,13 @@ function handleUpdate() {
                        <router-link to="/teacher/change-password" class="lg-button-secondary py-2.5 px-5 text-xs font-bold flex items-center gap-2">
                           <Lock :size="16" /> Đổi mật khẩu
                        </router-link>
-                       <button @click="handleUpdate" class="lg-button-primary py-2.5 px-6 text-xs font-bold flex items-center gap-2" style="background: linear-gradient(135deg, #4f46e5, #6366f1 52%, #8b5cf6);">
+                       <button @click="handleUpdate" class="lg-button-primary py-2.5 px-4 text-xs font-bold flex items-center gap-2" style="background: linear-gradient(135deg, #4f46e5, #6366f1 52%, #8b5cf6);">
                           <Save :size="16" /> Cập nhật hồ sơ
                        </button>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 border-t border-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t border-slate-100">
                    <div class="flex items-center gap-3">
                       <div class="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
                          <Mail :size="20" />
@@ -108,9 +108,9 @@ function handleUpdate() {
     </div>
 
     <!-- Additional Info Sections -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 px-8">
-       <div class="lg-card-glass p-8 border-slate-100">
-          <h2 class="text-lg font-bold mb-6 flex items-center gap-2">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 px-8">
+       <div class="lg-card-glass p-5 border-slate-100">
+          <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
              <ShieldCheck :size="20" class="text-emerald-500" /> Thông tin xác thực
           </h2>
           <div class="space-y-4">
@@ -125,8 +125,8 @@ function handleUpdate() {
           </div>
        </div>
 
-       <div class="lg-card-glass p-8 border-slate-100">
-          <h2 class="text-lg font-bold mb-6 flex items-center gap-2">
+       <div class="lg-card-glass p-5 border-slate-100">
+          <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
              <MapPin :size="20" class="text-blue-500" /> Địa chỉ công tác
           </h2>
           <div class="space-y-4">

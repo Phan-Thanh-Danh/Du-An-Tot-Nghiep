@@ -32,20 +32,20 @@ function submitAttendance() {
 </script>
 
 <template>
-  <div class="space-y-6 pb-10">
+  <div class="space-y-4 pb-10">
     <!-- Header -->
     <div v-if="!selectedClass">
-      <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Điểm danh hôm nay</h1>
+      <h1 class="text-xl font-bold text-slate-800 tracking-tight">Điểm danh hôm nay</h1>
       <p class="text-slate-500 mt-1">Danh sách các lớp học có lịch giảng dạy trong ngày hôm nay: {{ new Date().toLocaleDateString('vi-VN') }}</p>
     </div>
 
     <!-- ── STEP 1: Select Class ── -->
-    <div v-if="!selectedClass" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div v-if="!selectedClass" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div v-for="cls in todayClasses" :key="cls.id" 
            @click="selectClass(cls)"
-           class="lg-card-glass lg-card-hover group border-slate-100 p-6 cursor-pointer">
-        <div class="flex justify-between items-start mb-6">
-           <div class="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100/50 shadow-sm group-hover:scale-110 transition-transform">
+           class="lg-card-glass lg-card-hover group border-slate-100 p-4 cursor-pointer">
+        <div class="flex justify-between items-start mb-4">
+           <div class="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100/50 shadow-sm group-hover:scale-110 transition-transform">
               <Calendar :size="24" />
            </div>
            <span class="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-600 uppercase">Sắp diễn ra</span>
@@ -76,20 +76,20 @@ function submitAttendance() {
     </div>
 
     <!-- ── STEP 2: Attendance Check ── -->
-    <div v-else class="space-y-6">
+    <div v-else class="space-y-4">
        <div class="flex items-center gap-4">
           <button @click="selectedClass = null" class="p-2 rounded-xl bg-white border border-slate-100 text-slate-400 hover:text-blue-600 shadow-sm transition-all">
              <ArrowLeft :size="20" />
           </button>
           <div>
-             <h2 class="text-2xl font-bold text-slate-800">Điểm danh lớp {{ selectedClass.code }}</h2>
+             <h2 class="text-xl font-bold text-slate-800">Điểm danh lớp {{ selectedClass.code }}</h2>
              <p class="text-sm text-slate-500">{{ selectedClass.name }} • {{ selectedClass.time }}</p>
           </div>
        </div>
 
        <div class="rounded-[28px] border border-slate-100 bg-white shadow-xl overflow-hidden">
-          <div class="p-6 border-b border-slate-50 flex items-center justify-between gap-4">
-             <div class="flex items-center gap-6">
+          <div class="p-4 border-b border-slate-50 flex items-center justify-between gap-4">
+             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2">
                    <div class="h-3 w-3 rounded-full bg-emerald-500"></div>
                    <span class="text-xs font-bold text-slate-500">Có mặt: 42</span>
@@ -109,14 +109,14 @@ function submitAttendance() {
              <table class="w-full text-left">
                 <thead>
                    <tr class="bg-slate-50/50 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      <th class="px-8 py-4">Sinh viên</th>
-                      <th class="px-6 py-4">Mã số SV</th>
-                      <th class="px-6 py-4 text-center">Trạng thái điểm danh</th>
+                      <th class="px-5 py-4">Sinh viên</th>
+                      <th class="px-4 py-4">Mã số SV</th>
+                      <th class="px-4 py-4 text-center">Trạng thái điểm danh</th>
                    </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-50">
                    <tr v-for="sv in students" :key="sv.id" class="group hover:bg-slate-50/50 transition-colors">
-                      <td class="px-8 py-4">
+                      <td class="px-5 py-4">
                          <div class="flex items-center gap-3">
                             <div class="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs">
                                {{ sv.name.split(' ').pop()[0] }}
@@ -124,8 +124,8 @@ function submitAttendance() {
                             <p class="text-sm font-bold text-slate-700">{{ sv.name }}</p>
                          </div>
                       </td>
-                      <td class="px-6 py-4 text-sm font-medium text-slate-500">{{ sv.id }}</td>
-                      <td class="px-6 py-4">
+                      <td class="px-4 py-4 text-sm font-medium text-slate-500">{{ sv.id }}</td>
+                      <td class="px-4 py-4">
                          <div class="flex items-center justify-center gap-8">
                             <label class="flex items-center gap-2 cursor-pointer group/check">
                                <input type="radio" :name="'att-'+sv.id" :checked="sv.present" @change="sv.present = true" class="hidden" />
@@ -149,7 +149,7 @@ function submitAttendance() {
              </table>
           </div>
 
-          <div class="p-8 bg-slate-50/50 border-t border-slate-100 flex justify-end">
+          <div class="p-5 bg-slate-50/50 border-t border-slate-100 flex justify-end">
              <button @click="submitAttendance" class="rounded-2xl bg-blue-600 px-10 py-4 text-sm font-black text-white shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 flex items-center gap-3">
                 <Save :size="20" /> HOÀN TẤT ĐIỂM DANH
              </button>

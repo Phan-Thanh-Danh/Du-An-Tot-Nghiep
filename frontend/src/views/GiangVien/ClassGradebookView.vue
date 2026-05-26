@@ -18,11 +18,11 @@ const passRate = 80
 </script>
 
 <template>
-  <div class="space-y-6 pb-10">
+  <div class="space-y-4 pb-10">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Bảng điểm lớp học</h1>
+        <h1 class="text-xl font-bold text-slate-800 tracking-tight">Bảng điểm lớp học</h1>
         <p class="text-slate-500 mt-1">Tổng hợp kết quả học tập và trạng thái hoàn thành môn học của lớp SE1601.</p>
       </div>
       <div class="flex gap-2">
@@ -33,8 +33,8 @@ const passRate = 80
     </div>
 
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-       <div class="lg-card-glass p-6 border-slate-100 bg-gradient-to-br from-blue-50 to-cyan-50 relative overflow-hidden group">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+       <div class="lg-card-glass p-4 border-slate-100 bg-gradient-to-br from-blue-50 to-cyan-50 relative overflow-hidden group">
           <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-200/50 to-transparent rounded-bl-full -z-10 group-hover:scale-110 transition-transform duration-500"></div>
           <div class="flex justify-between items-center mb-4">
              <p class="text-[11px] font-black text-blue-500 uppercase tracking-widest">GPA Trung bình lớp</p>
@@ -51,7 +51,7 @@ const passRate = 80
           </div>
        </div>
 
-       <div class="lg-card-glass p-6 border-slate-100 bg-gradient-to-br from-blue-50 to-cyan-50 relative overflow-hidden group">
+       <div class="lg-card-glass p-4 border-slate-100 bg-gradient-to-br from-blue-50 to-cyan-50 relative overflow-hidden group">
           <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-cyan-200/50 to-transparent rounded-bl-full -z-10 group-hover:scale-110 transition-transform duration-500"></div>
           <div class="flex justify-between items-center mb-4">
              <p class="text-[11px] font-black text-cyan-600 uppercase tracking-widest">Tỉ lệ đạt (Pass Rate)</p>
@@ -71,7 +71,7 @@ const passRate = 80
 
     <!-- Table -->
     <div class="rounded-[28px] border border-slate-100 bg-white shadow-sm overflow-hidden">
-      <div class="p-6 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="p-4 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h2 class="text-xl font-bold text-slate-800">Bảng kết quả chi tiết</h2>
         <div class="relative w-full md:w-72">
           <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -83,17 +83,17 @@ const passRate = 80
         <table class="w-full text-left">
           <thead>
             <tr class="bg-slate-50/50 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              <th class="px-8 py-5">Sinh viên</th>
-              <th class="px-6 py-5">Mã số SV</th>
-              <th class="px-6 py-5">
+              <th class="px-5 py-5">Sinh viên</th>
+              <th class="px-4 py-5">Mã số SV</th>
+              <th class="px-4 py-5">
                  <div class="flex items-center gap-2 text-blue-600 font-black">GPA <ArrowUpDown :size="12" /></div>
               </th>
-              <th class="px-6 py-5 text-right">Trạng thái</th>
+              <th class="px-4 py-5 text-right">Trạng thái</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="sv in gradebook" :key="sv.id" class="group hover:bg-slate-50/50 transition-colors">
-              <td class="px-8 py-5">
+              <td class="px-5 py-5">
                 <div class="flex items-center gap-3">
                   <div class="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 font-bold text-sm shadow-sm group-hover:bg-blue-100 group-hover:text-blue-600 group-hover:border-blue-200 transition-colors">
                     {{ sv.name.split(' ').pop()[0] }}
@@ -101,8 +101,8 @@ const passRate = 80
                   <p class="text-sm font-bold text-slate-800">{{ sv.name }}</p>
                 </div>
               </td>
-              <td class="px-6 py-5 text-sm font-medium text-slate-500">{{ sv.id }}</td>
-              <td class="px-6 py-5">
+              <td class="px-4 py-5 text-sm font-medium text-slate-500">{{ sv.id }}</td>
+              <td class="px-4 py-5">
                 <div class="flex items-center gap-2">
                    <div class="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
                       <Award :size="16" />
@@ -110,7 +110,7 @@ const passRate = 80
                    <span :class="['text-base font-black', sv.gpa < 5 ? 'text-rose-500' : 'text-slate-800']">{{ sv.gpa }}</span>
                 </div>
               </td>
-              <td class="px-8 py-5 text-right">
+              <td class="px-5 py-5 text-right">
                 <div :class="['inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider', sv.status === 'Pass' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100']">
                   <CheckCircle2 v-if="sv.status === 'Pass'" :size="12" />
                   <XCircle v-else :size="12" />

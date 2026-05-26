@@ -112,7 +112,7 @@ const filteredCourses = computed(() => {
 </script>
 
 <template>
-  <div class="lg-page-enter space-y-6 pb-10">
+  <div class="lg-page-enter space-y-4 pb-10">
 
     <!-- Header Actions -->
     <LmsCard variant="glass" class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -201,7 +201,7 @@ const filteredCourses = computed(() => {
     <!-- Course Grid -->
     <div
       v-if="viewMode === 'grid'"
-      class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+      class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
     >
       <router-link
         v-for="course in filteredCourses"
@@ -279,7 +279,7 @@ const filteredCourses = computed(() => {
           <div class="absolute inset-0 bg-slate-900/10 group-hover:bg-transparent transition-colors" />
         </div>
 
-        <div class="flex min-w-0 flex-1 items-center justify-between gap-6">
+        <div class="flex min-w-0 flex-1 items-center justify-between gap-4">
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 mb-1">
               <span :class="['h-2 w-2 rounded-full', statusMeta[course.status].dot]" />

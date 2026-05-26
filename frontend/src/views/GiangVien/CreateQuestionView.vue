@@ -50,9 +50,9 @@ function saveQuestion() {
 <template>
   <div class="space-y-8 pb-10 text-slate-800 max-w-5xl mx-auto">
     <!-- ── Header ── -->
-    <div class="flex items-center justify-between bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm sticky top-6 z-10">
+    <div class="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-100 shadow-sm sticky top-4 z-10">
       <div class="flex items-center gap-4">
-        <router-link to="/teacher/questions" class="h-12 w-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-white hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm">
+        <router-link to="/teacher/questions" class="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-white hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm">
            <ArrowLeft :size="20" />
         </router-link>
         <div>
@@ -61,10 +61,10 @@ function saveQuestion() {
         </div>
       </div>
       <div class="flex items-center gap-3">
-         <button @click="router.push('/teacher/questions')" class="flex items-center gap-2 rounded-2xl bg-white px-6 py-3 border border-slate-200 shadow-sm hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors font-bold text-sm text-slate-700">
+         <button @click="router.push('/teacher/questions')" class="flex items-center gap-2 rounded-2xl bg-white px-4 py-3 border border-slate-200 shadow-sm hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors font-bold text-sm text-slate-700">
             Hủy bỏ
          </button>
-         <button @click="saveQuestion" class="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5 transition-all">
+         <button @click="saveQuestion" class="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5 transition-all">
             <Save :size="16" /> Lưu câu hỏi
          </button>
       </div>
@@ -75,7 +75,7 @@ function saveQuestion() {
       
       <!-- Cột Trái (Nội dung & Đáp án) -->
       <div class="lg:col-span-2 space-y-8">
-         <div class="rounded-[32px] bg-white border border-slate-100 p-8 shadow-sm space-y-6">
+         <div class="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm space-y-4">
             <div class="flex items-center gap-3 mb-2 pb-6 border-b border-slate-50">
                <div class="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                   <FileText :size="18" />
@@ -102,13 +102,13 @@ function saveQuestion() {
             <!-- Editor Câu hỏi -->
             <div>
                <label class="block text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">Đề bài *</label>
-               <textarea v-model="form.content" rows="4" placeholder="Nhập câu hỏi ở đây..." class="w-full rounded-[24px] border border-slate-200 bg-slate-50 p-6 text-sm font-medium text-slate-800 outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-colors shadow-sm resize-none leading-relaxed"></textarea>
+               <textarea v-model="form.content" rows="4" placeholder="Nhập câu hỏi ở đây..." class="w-full rounded-[24px] border border-slate-200 bg-slate-50 p-4 text-sm font-medium text-slate-800 outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-colors shadow-sm resize-none leading-relaxed"></textarea>
             </div>
          </div>
 
          <!-- Đáp án (Chỉ hiện nếu là Trắc nghiệm) -->
-         <div v-if="form.type === 'Trắc nghiệm'" class="rounded-[32px] bg-white border border-slate-100 p-8 shadow-sm">
-            <div class="flex items-center justify-between mb-6 pb-6 border-b border-slate-50">
+         <div v-if="form.type === 'Trắc nghiệm'" class="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-4 pb-6 border-b border-slate-50">
                <div class="flex items-center gap-3">
                   <div class="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                      <CheckCircle2 :size="18" />
@@ -128,7 +128,7 @@ function saveQuestion() {
                      <input v-model="opt.text" type="text" placeholder="Nhập nội dung đáp án..." 
                             :class="['w-full rounded-[16px] border bg-white pl-10 pr-4 py-3.5 text-sm font-bold outline-none transition-colors shadow-sm', opt.isCorrect ? 'border-emerald-300 focus:ring-4 focus:ring-emerald-50 text-emerald-900' : 'border-slate-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-50 text-slate-700']" />
                   </div>
-                  <button @click="removeOption(index)" class="flex-shrink-0 h-12 w-12 rounded-[16px] bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-rose-50 hover:text-rose-500 hover:border-rose-200 transition-colors shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100">
+                  <button @click="removeOption(index)" class="flex-shrink-0 h-10 w-10 rounded-[16px] bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-rose-50 hover:text-rose-500 hover:border-rose-200 transition-colors shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100">
                      <Trash2 :size="18" />
                   </button>
                </div>
@@ -139,7 +139,7 @@ function saveQuestion() {
             </div>
          </div>
          
-         <div class="rounded-[32px] bg-white border border-slate-100 p-8 shadow-sm space-y-6">
+         <div class="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm space-y-4">
             <div>
                <label class="block text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">Giải thích đáp án (Tùy chọn)</label>
                <textarea v-model="form.explanation" rows="3" placeholder="Sẽ hiển thị cho sinh viên sau khi kiểm tra xong..." class="w-full rounded-[24px] border border-slate-200 bg-white p-5 text-sm font-medium text-slate-800 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-colors shadow-sm resize-none"></textarea>
@@ -149,15 +149,15 @@ function saveQuestion() {
 
       <!-- Cột Phải (Phân loại & Thuộc tính) -->
       <div class="lg:col-span-1 space-y-8">
-         <div class="rounded-[32px] bg-white border border-slate-100 p-8 shadow-sm">
-            <div class="flex items-center gap-3 mb-6 pb-6 border-b border-slate-50">
+         <div class="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+            <div class="flex items-center gap-3 mb-4 pb-6 border-b border-slate-50">
                <div class="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
                   <Shield :size="18" />
                </div>
                <h2 class="text-lg font-black text-slate-900">Phân loại</h2>
             </div>
 
-            <div class="space-y-6">
+            <div class="space-y-4">
                <div>
                   <label class="block text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">Độ khó</label>
                   <select v-model="form.difficulty" class="w-full rounded-[16px] border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-colors shadow-sm appearance-none cursor-pointer">
@@ -179,7 +179,7 @@ function saveQuestion() {
             </div>
          </div>
          
-         <div class="rounded-[32px] bg-white border border-slate-100 p-8 shadow-sm bg-gradient-to-br from-blue-50 to-blue-50 border-none">
+         <div class="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm bg-gradient-to-br from-blue-50 to-blue-50 border-none">
             <div class="flex items-start gap-3">
                <HelpCircle :size="20" class="text-blue-500 shrink-0 mt-0.5" />
                <div>

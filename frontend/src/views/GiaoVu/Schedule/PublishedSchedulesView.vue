@@ -27,7 +27,7 @@ const publishedSchedules = ref([
     title="Lịch đã publish" 
     subtitle="Thời khóa biểu chính thức đã công bố. Mọi chỉnh sửa sẽ được lưu audit log và gửi thông báo cho GV/SV."
   >
-    <div class="space-y-6">
+    <div class="space-y-4">
       
       <!-- ── Toolbar ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
@@ -51,24 +51,24 @@ const publishedSchedules = ref([
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/50">
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thời gian</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Môn & Lớp</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Giảng viên</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Phòng</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thời gian</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Môn & Lớp</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Giảng viên</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Phòng</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="item in publishedSchedules" :key="item.id" class="group hover:bg-white/50 transition-colors">
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <p class="text-sm font-black text-slate-800">{{ item.day }}</p>
                 <p class="text-xs font-bold text-blue-600 mt-0.5">{{ item.time }}</p>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <p class="text-sm font-black text-slate-800 leading-tight">{{ item.subject }}</p>
                 <p class="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{{ item.class }}</p>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
                   <div class="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center text-[10px] font-black text-blue-600 border border-blue-100">
                     {{ item.teacher.split(' ').pop().charAt(0) }}
@@ -76,10 +76,10 @@ const publishedSchedules = ref([
                   <span class="text-sm font-bold text-slate-700">{{ item.teacher }}</span>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span class="text-sm font-black text-slate-800">{{ item.room }}</span>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-1">
                    <button class="p-2 hover:bg-orange-50 hover:text-orange-600 rounded-lg text-slate-400 transition-all" title="Hủy buổi / Thay đổi">
                       <XCircle :size="16" />
@@ -98,7 +98,7 @@ const publishedSchedules = ref([
       </div>
 
       <!-- ── Summary Info ── -->
-      <div class="flex flex-col md:flex-row items-center justify-between gap-6 px-4 py-2">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4 px-4 py-2">
          <div class="flex items-center gap-4">
             <div class="flex items-center gap-2">
                <span class="h-3 w-3 rounded-full bg-green-500 shadow-sm shadow-green-200"></span>
@@ -109,7 +109,7 @@ const publishedSchedules = ref([
                Lần cuối cập nhật: 10:30 Hôm nay
             </div>
          </div>
-         <button class="lg-button-secondary px-6 py-2.5 text-xs font-black uppercase tracking-widest flex items-center gap-2">
+         <button class="lg-button-secondary px-4 py-2.5 text-xs font-black uppercase tracking-widest flex items-center gap-2">
             <Bell :size="14" /> Gửi thông báo toàn bộ
          </button>
       </div>

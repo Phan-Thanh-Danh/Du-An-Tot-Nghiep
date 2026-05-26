@@ -30,7 +30,7 @@ const getStatusBadge = (status) => {
     title="Lịch chờ duyệt" 
     subtitle="Danh sách các thời khóa biểu đã gửi lên Ban giám hiệu chờ phê duyệt."
   >
-    <div class="space-y-6">
+    <div class="space-y-4">
       
       <!-- ── Search & Filter ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
@@ -51,9 +51,9 @@ const getStatusBadge = (status) => {
 
       <!-- ── Pending Cards ── -->
       <div class="grid grid-cols-1 gap-4">
-        <div v-for="item in pendingSchedules" :key="item.id" class="lg-card-glass p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 group hover:border-amber-200 transition-all">
-          <div class="flex items-center gap-6">
-            <div class="h-16 w-16 rounded-[24px] bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100 shrink-0">
+        <div v-for="item in pendingSchedules" :key="item.id" class="lg-card-glass p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group hover:border-amber-200 transition-all">
+          <div class="flex items-center gap-4">
+            <div class="h-10 w-10 rounded-[24px] bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100 shrink-0">
               <Calendar :size="32" />
             </div>
             <div>
@@ -75,8 +75,8 @@ const getStatusBadge = (status) => {
             </div>
           </div>
 
-          <div class="flex flex-col sm:flex-row items-center gap-6">
-            <div class="flex items-center gap-8 text-center px-6 border-x border-slate-100">
+          <div class="flex flex-col sm:flex-row items-center gap-4">
+            <div class="flex items-center gap-8 text-center px-4 border-x border-slate-100">
               <div>
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Số lớp</p>
                 <p class="text-lg font-black text-slate-700">{{ item.classCount }}</p>
@@ -100,7 +100,7 @@ const getStatusBadge = (status) => {
       </div>
 
       <!-- ── Workflow Note ── -->
-      <div class="lg-glass-strong p-6 rounded-[24px] border-amber-100 bg-amber-50/30">
+      <div class="lg-glass-strong p-4 rounded-[24px] border-amber-100 bg-amber-50/30">
         <div class="flex gap-4">
           <div class="h-10 w-10 rounded-full bg-white flex items-center justify-center text-amber-500 shadow-sm border border-amber-100 shrink-0">
              <ExternalLink :size="20" />

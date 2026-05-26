@@ -35,7 +35,7 @@ const getResultBadge = (result) => {
     title="Lịch sử xử lý đơn từ" 
     subtitle="Tra cứu và kiểm tra lại kết quả các đơn từ đã được giải quyết."
   >
-    <div class="space-y-6">
+    <div class="space-y-4">
       
       <!-- ── Filters ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
@@ -62,25 +62,25 @@ const getResultBadge = (result) => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/50">
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Mã đơn</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Sinh viên & Loại đơn</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Kết quả</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Người xử lý</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Mã đơn</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Sinh viên & Loại đơn</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Kết quả</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Người xử lý</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="h in history" :key="h.id" class="group hover:bg-white/50 transition-colors">
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span class="text-xs font-black text-slate-500 uppercase tracking-tighter">{{ h.id }}</span>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div>
                   <p class="text-sm font-black text-slate-800 leading-tight">{{ h.type }}</p>
                   <p class="text-[11px] font-bold text-slate-400 mt-0.5">{{ h.student }} • {{ h.date }}</p>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
                    <div :class="['h-6 w-6 rounded-full flex items-center justify-center border', getResultBadge(h.result)]">
                       <CheckCircle2 v-if="h.result === 'approved'" :size="14" />
@@ -91,7 +91,7 @@ const getResultBadge = (result) => {
                    </span>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
                    <div class="h-6 w-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
                       <ArrowUpRight :size="12" />
@@ -99,7 +99,7 @@ const getResultBadge = (result) => {
                    <span class="text-xs font-bold text-slate-600">{{ h.processedBy }}</span>
                 </div>
               </td>
-              <td class="px-6 py-4 text-right">
+              <td class="px-4 py-4 text-right">
                 <div class="flex items-center justify-end gap-1">
                   <button class="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-all" title="Xem kết quả">
                     <Eye :size="18" />
@@ -116,7 +116,7 @@ const getResultBadge = (result) => {
 
       <!-- ── Empty State Mock ── -->
       <div v-if="history.length === 0" class="py-20 text-center">
-         <div class="h-20 w-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mx-auto mb-6">
+         <div class="h-20 w-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mx-auto mb-4">
             <FileCheck :size="40" />
          </div>
          <h3 class="text-lg font-black text-slate-800">Không tìm thấy đơn đã xử lý</h3>

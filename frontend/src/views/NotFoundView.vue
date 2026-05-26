@@ -1,7 +1,7 @@
 <template>
   <main class="lg-page-bg flex min-h-screen items-center justify-center px-4 py-16">
-    <section class="lg-glass w-full max-w-md rounded-[2rem] p-8 text-center">
-      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50">
+    <section class="lg-glass w-full max-w-md rounded-[2rem] p-5 text-center">
+      <div class="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50">
         <svg class="h-8 w-8 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
       </svg>

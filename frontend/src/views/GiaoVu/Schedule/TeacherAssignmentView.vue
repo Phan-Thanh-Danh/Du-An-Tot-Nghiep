@@ -162,34 +162,34 @@ function goToPage(page) {
       </button>
     </template>
 
-    <div class="space-y-6">
+    <div class="space-y-4">
       <!-- ── Stats Header ── -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="lg-card-glass p-6 flex items-center gap-4">
-          <div class="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="lg-card-glass p-4 flex items-center gap-4">
+          <div class="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
             <UserPlus :size="24" />
           </div>
           <div>
             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tổng phân công</p>
-            <p class="text-2xl font-black text-slate-800">124</p>
+            <p class="text-xl font-black text-slate-800">124</p>
           </div>
         </div>
-        <div class="lg-card-glass p-6 flex items-center gap-4">
-          <div class="h-12 w-12 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600">
+        <div class="lg-card-glass p-4 flex items-center gap-4">
+          <div class="h-10 w-10 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600">
             <UserMinus :size="24" />
           </div>
           <div>
             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chưa gán GV</p>
-            <p class="text-2xl font-black text-slate-800">12</p>
+            <p class="text-xl font-black text-slate-800">12</p>
           </div>
         </div>
-        <div class="lg-card-glass p-6 flex items-center gap-4">
-          <div class="h-12 w-12 rounded-2xl bg-green-50 flex items-center justify-center text-green-600">
+        <div class="lg-card-glass p-4 flex items-center gap-4">
+          <div class="h-10 w-10 rounded-2xl bg-green-50 flex items-center justify-center text-green-600">
             <UserCheck :size="24" />
           </div>
           <div>
             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hoàn tất</p>
-            <p class="text-2xl font-black text-slate-800">90%</p>
+            <p class="text-xl font-black text-slate-800">90%</p>
           </div>
         </div>
       </div>
@@ -221,24 +221,24 @@ function goToPage(page) {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/50">
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Mã PC</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Lớp & Môn</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Giảng viên</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Tiết/Tuần</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Trạng thái</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Mã PC</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Lớp & Môn</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Giảng viên</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Tiết/Tuần</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Trạng thái</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="item in paginatedAssignments" :key="item.id" class="group hover:bg-white/50 transition-colors">
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span class="text-xs font-black text-slate-800">{{ item.id }}</span>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <p class="text-sm font-black text-slate-800 leading-tight">{{ item.subject }}</p>
                 <p class="text-[11px] font-bold text-blue-600 mt-1 uppercase">{{ item.class }}</p>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
                   <div class="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500">
                     {{ item.teacher !== 'Chưa phân công' ? item.teacher.split(' ').pop().charAt(0) : '?' }}
@@ -251,7 +251,7 @@ function goToPage(page) {
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
                   <span class="h-2 w-16 bg-slate-100 rounded-full overflow-hidden inline-flex">
                     <span :style="{ width: (item.sessions / 4) * 100 + '%' }" class="bg-blue-500 h-full"></span>
@@ -259,12 +259,12 @@ function goToPage(page) {
                   <span class="text-xs font-bold text-slate-700">{{ item.sessions }} tiết</span>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span :class="['px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest', getStatusBadge(item.status)]">
                   {{ item.status === 'assigned' ? 'Đã gán' : 'Cần gán' }}
                 </span>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
                   <button class="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-all" title="Đổi giảng viên">
                     <ArrowLeftRight :size="16" />
@@ -299,7 +299,7 @@ function goToPage(page) {
 
   <!-- ── Filter Panel ── -->
   <div v-if="showFilterPanel" class="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" @click="showFilterPanel = false"></div>
-  <div v-if="showFilterPanel" class="fixed top-24 right-6 z-50 bg-white rounded-[20px] shadow-2xl border border-slate-100 p-6 w-72 space-y-6">
+  <div v-if="showFilterPanel" class="fixed top-24 right-6 z-50 bg-white rounded-[20px] shadow-2xl border border-slate-100 p-4 w-72 space-y-4">
     <div>
       <h3 class="text-sm font-bold text-slate-700 mb-3">Trạng thái</h3>
       <div class="space-y-2">
@@ -352,9 +352,9 @@ function goToPage(page) {
 
   <!-- ── Modal Add Assignment ── -->
   <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-    <div class="bg-white rounded-[24px] shadow-2xl max-w-md w-full p-6 border border-slate-100">
+    <div class="bg-white rounded-[24px] shadow-2xl max-w-md w-full p-4 border border-slate-100">
       <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-bold text-slate-900">Thêm phân công</h2>
         <button @click="showAddModal = false" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
           <X :size="20" />

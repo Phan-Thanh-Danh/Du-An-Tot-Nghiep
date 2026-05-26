@@ -39,18 +39,18 @@ const getRiskBadge = (risk) => {
     title="Sinh viên có nguy cơ rớt môn" 
     subtitle="Hệ thống cảnh báo sớm (AI Early Warning) dựa trên dữ liệu điểm số, chuyên cần và tiến độ học tập."
   >
-    <div class="space-y-6">
+    <div class="space-y-4">
       
       <!-- ── AI Insight Banner ── -->
-      <div class="lg-card-glass p-8 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-700 text-white relative overflow-hidden group">
+      <div class="lg-card-glass p-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-700 text-white relative overflow-hidden group">
          <div class="absolute -right-20 -top-20 h-80 w-80 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-1000"></div>
          <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-            <div class="flex items-center gap-6">
+            <div class="flex items-center gap-4">
                <div class="h-20 w-20 rounded-3xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-2xl">
                   <Brain :size="48" class="text-white" />
                </div>
                <div>
-                  <h3 class="text-2xl font-black tracking-tight">AI Academic Forecast</h3>
+                  <h3 class="text-xl font-black tracking-tight">AI Academic Forecast</h3>
                   <p class="text-blue-100 mt-1 font-medium opacity-90 max-w-md">Hệ thống đã phân tích dữ liệu của 1,240 sinh viên và phát hiện 42 trường hợp có nguy cơ rớt môn cao trong kỳ này.</p>
                </div>
             </div>
@@ -78,21 +78,21 @@ const getRiskBadge = (risk) => {
               <Filter :size="18" /> Mức độ rủi ro
            </button>
         </div>
-        <button class="lg-button-primary bg-slate-800 py-2.5 px-6 text-sm font-black shadow-lg shadow-slate-200 flex items-center gap-2">
+        <button class="lg-button-primary bg-slate-800 py-2.5 px-4 text-sm font-black shadow-lg shadow-slate-200 flex items-center gap-2">
            <Bell :size="18" /> Gửi cảnh báo cho Giảng viên
         </button>
       </div>
 
       <!-- ── Risk List ── -->
-      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
          <div 
            v-for="st in riskStudents" 
            :key="st.id" 
-           class="lg-card-glass p-8 group hover:border-blue-300 transition-all border-slate-100 shadow-sm"
+           class="lg-card-glass p-5 group hover:border-blue-300 transition-all border-slate-100 shadow-sm"
          >
-            <div class="flex items-start justify-between mb-6">
+            <div class="flex items-start justify-between mb-4">
                <div class="flex items-center gap-4">
-                  <div class="h-14 w-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">
+                  <div class="h-10 w-10 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">
                      <User :size="28" />
                   </div>
                   <div>
@@ -105,7 +105,7 @@ const getRiskBadge = (risk) => {
                </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-6 mb-8">
+            <div class="grid grid-cols-2 gap-4 mb-8">
                <div class="p-4 bg-slate-50/50 rounded-2xl border border-slate-50">
                   <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Môn học hiện tại</p>
                   <p class="text-xs font-bold text-slate-700">{{ st.subject }}</p>
@@ -119,7 +119,7 @@ const getRiskBadge = (risk) => {
                </div>
             </div>
 
-            <div class="flex items-start gap-3 p-4 bg-rose-50/30 rounded-2xl border border-rose-100/50 mb-6">
+            <div class="flex items-start gap-3 p-4 bg-rose-50/30 rounded-2xl border border-rose-100/50 mb-4">
                <Zap :size="16" class="text-rose-500 shrink-0 mt-0.5" />
                <div>
                   <p class="text-[10px] font-black text-rose-700 uppercase tracking-widest">Dự đoán của AI</p>

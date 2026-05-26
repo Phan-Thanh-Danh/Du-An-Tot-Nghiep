@@ -58,13 +58,13 @@ const teacher = ref({
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
       
       <!-- ── Left: Criteria Breakdown ── -->
-      <div class="xl:col-span-2 space-y-6">
-        <div class="lg-card-glass p-8 relative overflow-hidden">
+      <div class="xl:col-span-2 space-y-4">
+        <div class="lg-card-glass p-5 relative overflow-hidden">
            <!-- Rating Badge Overlay -->
            <div class="absolute top-8 right-8 text-right">
               <div class="inline-flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-2xl border border-emerald-100 shadow-sm">
                  <Star :size="20" class="fill-emerald-500" />
-                 <span class="text-2xl font-black">{{ teacher.avgRating }}</span>
+                 <span class="text-xl font-black">{{ teacher.avgRating }}</span>
               </div>
               <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-2">Xếp loại: Xuất sắc</p>
            </div>
@@ -116,11 +116,11 @@ const teacher = ref({
       </div>
 
       <!-- ── Right: Teacher Context & AI Summary ── -->
-      <div class="space-y-6">
+      <div class="space-y-4">
         
         <!-- Teacher Profile Card -->
-        <div class="lg-card-glass p-8 text-center bg-slate-50/50">
-           <div class="h-24 w-24 rounded-[32px] bg-white border border-slate-100 p-1 mx-auto mb-6 shadow-xl">
+        <div class="lg-card-glass p-5 text-center bg-slate-50/50">
+           <div class="h-24 w-24 rounded-2xl bg-white border border-slate-100 p-1 mx-auto mb-4 shadow-xl">
               <div class="h-full w-full rounded-[28px] bg-slate-50 flex items-center justify-center text-slate-300">
                  <User :size="48" />
               </div>
@@ -147,8 +147,8 @@ const teacher = ref({
         </div>
 
         <!-- AI Narrative Summary -->
-        <div class="lg-card-glass p-8 bg-indigo-50/20 border-indigo-100">
-           <div class="flex items-center gap-3 mb-6">
+        <div class="lg-card-glass p-5 bg-indigo-50/20 border-indigo-100">
+           <div class="flex items-center gap-3 mb-4">
               <div class="h-10 w-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
                  <MessageCircle :size="20" />
               </div>
@@ -165,7 +165,7 @@ const teacher = ref({
         </div>
 
         <!-- Critical Alerts Area -->
-        <div v-if="teacher.avgRating < 3.5" class="lg-card-glass p-6 border-rose-100 bg-rose-50/20">
+        <div v-if="teacher.avgRating < 3.5" class="lg-card-glass p-4 border-rose-100 bg-rose-50/20">
            <div class="flex items-start gap-4 text-rose-600">
               <ShieldAlert :size="24" class="shrink-0 mt-0.5" />
               <div>

@@ -147,7 +147,7 @@ if (isFirstLogin.value) {
     </div>
 
     <!-- First Login Blocker -->
-    <div v-if="isFirstLogin" class="warning-banner blocker-warning mb-6">
+    <div v-if="isFirstLogin" class="warning-banner blocker-warning mb-4">
       <div class="warning-icon"><AlertCircle :size="24"/></div>
       <div class="warning-content">
         <h3>Bắt buộc đổi mật khẩu</h3>
@@ -271,7 +271,7 @@ if (isFirstLogin.value) {
           
           <!-- Awards -->
           <h3 class="pane-subtitle text-green-700 flex items-center gap-2"><Award :size="18"/> Bằng khen & Thành tích</h3>
-          <div class="cards-list mb-6">
+          <div class="cards-list mb-4">
             <div v-for="aw in awards" :key="aw.id" class="award-card">
               <div class="ac-icon"><Award :size="24" class="text-amber-500"/></div>
               <div class="ac-info">
@@ -307,7 +307,7 @@ if (isFirstLogin.value) {
         <!-- Tab 4: Parents -->
         <div v-show="activeTab === 'parents'" class="tab-pane">
           <h2 class="pane-title">Quản lý Liên kết Phụ huynh</h2>
-          <p class="text-sm text-slate-600 mb-6">Bạn có thể cấp quyền truy cập để gia đình/người giám hộ theo dõi tiến độ học tập. Tối đa 3 tài khoản liên kết.</p>
+          <p class="text-sm text-slate-600 mb-4">Bạn có thể cấp quyền truy cập để gia đình/người giám hộ theo dõi tiến độ học tập. Tối đa 3 tài khoản liên kết.</p>
 
           <div class="parents-list mb-8">
             <div v-for="(parent, idx) in parents" :key="parent.id" class="parent-card">

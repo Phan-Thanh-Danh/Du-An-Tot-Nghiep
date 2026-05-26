@@ -73,12 +73,12 @@ const closeDrawer = () => {
 <template>
   <div class="space-y-8 pb-12 animate-fade-in">
     <!-- ── Header ── -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
       <!-- Decorative background -->
-      <div class="absolute -right-32 -bottom-32 h-96 w-96 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-50 to-transparent rounded-full pointer-events-none" />
+      
       
       <div class="relative z-10 flex items-center gap-5">
-        <router-link to="/teacher/class-progress" class="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-200 hover:scale-105 transition-transform duration-300">
+        <router-link to="/teacher/class-progress" class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-200 hover:scale-105 transition-transform duration-300">
            <ArrowLeft :size="28" stroke-width="2.5" />
         </router-link>
         <div>
@@ -89,7 +89,7 @@ const closeDrawer = () => {
               Đang diễn ra
             </span>
           </div>
-          <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Chi tiết & Tiến độ</h1>
+          <h1 class="text-xl md:text-xl font-black text-slate-900 tracking-tight">Chi tiết & Tiến độ</h1>
         </div>
       </div>
       
@@ -97,15 +97,15 @@ const closeDrawer = () => {
         <button class="flex items-center gap-2 rounded-2xl bg-white px-5 py-3 border border-slate-200 shadow-sm hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors font-bold text-sm text-slate-700">
            <BookMarked :size="18" /> Giáo trình
         </button>
-        <button class="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 px-6 py-3 text-sm font-bold text-white shadow-md shadow-blue-200 hover:shadow-lg transition-all hover:-translate-y-0.5 active:translate-y-0">
+        <button class="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 px-4 py-3 text-sm font-bold text-white shadow-md shadow-blue-200 hover:shadow-lg transition-all hover:-translate-y-0.5 active:translate-y-0">
            <Mail :size="18" /> Gửi thông báo
         </button>
       </div>
     </div>
 
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div class="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
         <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform duration-500"></div>
         <div class="flex items-center gap-4 mb-4">
           <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-inner">
@@ -113,13 +113,13 @@ const closeDrawer = () => {
           </div>
           <div>
             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Sĩ số lớp</p>
-            <h4 class="text-2xl font-black text-slate-800">{{ activeStudents }}</h4>
+            <h4 class="text-xl font-black text-slate-800">{{ activeStudents }}</h4>
           </div>
         </div>
         <p class="text-xs text-slate-500 flex items-center gap-1"><span class="text-emerald-500 font-medium">100%</span> sinh viên đang học</p>
       </div>
       
-      <div class="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+      <div class="bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
         <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-cyan-50 to-cyan-100/50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform duration-500"></div>
         <div class="flex items-center gap-4 mb-4">
           <div class="w-12 h-12 rounded-2xl bg-cyan-100 text-cyan-600 flex items-center justify-center shadow-inner">
@@ -127,7 +127,7 @@ const closeDrawer = () => {
           </div>
           <div>
             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Bài giảng</p>
-            <h4 class="text-2xl font-black text-slate-800">{{ completedLessons }}<span class="text-sm text-slate-400 font-medium">/{{ totalLessons }}</span></h4>
+            <h4 class="text-xl font-black text-slate-800">{{ completedLessons }}<span class="text-sm text-slate-400 font-medium">/{{ totalLessons }}</span></h4>
           </div>
         </div>
         <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
@@ -135,7 +135,7 @@ const closeDrawer = () => {
         </div>
       </div>
 
-      <div class="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+      <div class="bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
         <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform duration-500"></div>
         <div class="flex items-center gap-4 mb-4">
           <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-inner">
@@ -143,13 +143,13 @@ const closeDrawer = () => {
           </div>
           <div>
             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Điểm TB Lớp</p>
-            <h4 class="text-2xl font-black text-slate-800">7.8</h4>
+            <h4 class="text-xl font-black text-slate-800">7.8</h4>
           </div>
         </div>
         <p class="text-xs text-slate-500 flex items-center gap-1"><span class="text-emerald-500 font-medium">+0.4</span> so với tháng trước</p>
       </div>
 
-      <div class="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+      <div class="bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
         <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-rose-50 to-rose-100/50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform duration-500"></div>
         <div class="flex items-center gap-4 mb-4">
           <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-inner">
@@ -157,7 +157,7 @@ const closeDrawer = () => {
           </div>
           <div>
             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Cảnh báo</p>
-            <h4 class="text-2xl font-black text-slate-800">2</h4>
+            <h4 class="text-xl font-black text-slate-800">2</h4>
           </div>
         </div>
         <p class="text-xs text-slate-500">Sinh viên có nguy cơ</p>
@@ -165,9 +165,9 @@ const closeDrawer = () => {
     </div>
 
     <!-- Main Charts Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <!-- Overall Progress Card -->
-      <div class="relative bg-gradient-to-br from-blue-600 to-cyan-500 rounded-[32px] p-8 text-white shadow-xl shadow-blue-500/20 overflow-hidden group">
+      <div class="relative bg-gradient-to-br from-blue-600 to-cyan-500 rounded-2xl p-5 text-white shadow-xl shadow-blue-500/20 overflow-hidden group">
         <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
         <div class="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
         
@@ -200,19 +200,19 @@ const closeDrawer = () => {
           <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 flex items-center justify-between mt-auto shadow-inner">
             <div class="text-center flex-1">
               <p class="text-[10px] text-cyan-100 font-black uppercase tracking-widest mb-1">Đã học</p>
-              <p class="text-2xl font-black">{{ completedLessons }}</p>
+              <p class="text-xl font-black">{{ completedLessons }}</p>
             </div>
             <div class="w-px h-10 bg-white/20"></div>
             <div class="text-center flex-1">
               <p class="text-[10px] text-cyan-100 font-black uppercase tracking-widest mb-1">Còn lại</p>
-              <p class="text-2xl font-black">{{ totalLessons - completedLessons }}</p>
+              <p class="text-xl font-black">{{ totalLessons - completedLessons }}</p>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Chart Card -->
-      <div class="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm lg:col-span-2 flex flex-col relative overflow-hidden group">
+      <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm lg:col-span-2 flex flex-col relative overflow-hidden group">
         <div class="flex justify-between items-start mb-8">
            <div>
              <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -253,8 +253,8 @@ const closeDrawer = () => {
     </div>
 
     <!-- Students Table Section -->
-    <div class="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-      <div class="p-6 md:p-8 border-b border-slate-100/80 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/30">
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+      <div class="p-4 md:p-8 border-b border-slate-100/80 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/30">
         <div>
           <h2 class="text-xl font-bold text-slate-800">Danh sách sinh viên</h2>
           <p class="text-sm text-slate-500 mt-1">Quản lý và theo dõi chi tiết từng sinh viên trong lớp</p>
@@ -274,17 +274,17 @@ const closeDrawer = () => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/80 text-[11px] font-bold uppercase tracking-widest text-slate-500">
-              <th class="px-8 py-5 border-b border-slate-100">Sinh viên</th>
-              <th class="px-6 py-5 border-b border-slate-100">Liên hệ</th>
-              <th class="px-6 py-5 border-b border-slate-100">Tiến độ</th>
-              <th class="px-6 py-5 border-b border-slate-100">Điểm TB</th>
-              <th class="px-6 py-5 border-b border-slate-100">Trạng thái</th>
-              <th class="px-8 py-5 border-b border-slate-100 text-right">Thao tác</th>
+              <th class="px-5 py-5 border-b border-slate-100">Sinh viên</th>
+              <th class="px-4 py-5 border-b border-slate-100">Liên hệ</th>
+              <th class="px-4 py-5 border-b border-slate-100">Tiến độ</th>
+              <th class="px-4 py-5 border-b border-slate-100">Điểm TB</th>
+              <th class="px-4 py-5 border-b border-slate-100">Trạng thái</th>
+              <th class="px-5 py-5 border-b border-slate-100 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100/80 bg-white">
             <tr v-for="sv in students" :key="sv.id" class="group hover:bg-slate-50/50 transition-colors duration-200 cursor-pointer">
-              <td class="px-8 py-5">
+              <td class="px-5 py-5">
                 <div class="flex items-center gap-4">
                   <div class="relative">
                     <div class="h-11 w-11 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 font-bold text-sm shadow-sm group-hover:bg-blue-100 group-hover:text-blue-600 group-hover:border-blue-200 transition-colors">
@@ -298,13 +298,13 @@ const closeDrawer = () => {
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <div class="flex items-center gap-2 text-sm text-slate-500 group-hover:text-slate-700 transition-colors">
                   <Mail :size="14" class="text-slate-400" />
                   {{ sv.email }}
                 </div>
               </td>
-              <td class="px-6 py-5 w-48">
+              <td class="px-4 py-5 w-48">
                 <div class="flex items-center gap-3">
                   <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
                     <div class="h-full rounded-full bg-gradient-to-r transition-all duration-1000 ease-out" 
@@ -314,21 +314,21 @@ const closeDrawer = () => {
                   <span class="text-xs font-bold text-slate-700 w-8">{{ sv.progress }}%</span>
                 </div>
               </td>
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-black" :class="sv.gpa < 5 ? 'text-rose-500' : 'text-slate-800'">{{ sv.gpa }}</span>
                   <TrendingUp v-if="sv.gpa >= 8" :size="14" class="text-emerald-500" />
                   <AlertCircle v-else-if="sv.gpa < 5" :size="14" class="text-rose-500" />
                 </div>
               </td>
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider" :class="getStatusBadge(sv.status)">
                   <CheckCircle2 v-if="sv.status === 'excellent' || sv.status === 'good'" :size="12" />
                   <AlertCircle v-else :size="12" />
                   {{ sv.status === 'excellent' ? 'Xuất sắc' : sv.status === 'good' ? 'Khá tốt' : sv.status === 'warning' ? 'Cảnh báo' : 'Nguy hiểm' }}
                 </div>
               </td>
-              <td class="px-8 py-5">
+              <td class="px-5 py-5">
                 <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-x-4 group-hover:translate-x-0">
                   <button @click="openStudentDetails(sv.id, 'profile')" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-blue-100" title="Hồ sơ">
                     <User :size="16" />
@@ -376,11 +376,11 @@ const closeDrawer = () => {
                  
                  <template v-if="selectedStudent">
                    <!-- Drawer Header -->
-                   <div class="p-8 pb-6 border-b border-slate-100 bg-slate-50/50 relative overflow-hidden">
+                   <div class="p-5 pb-6 border-b border-slate-100 bg-slate-50/50 relative overflow-hidden">
                       <div class="absolute -top-10 -right-10 w-32 h-32 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-100 to-transparent rounded-full pointer-events-none"></div>
                       
-                      <div class="flex justify-between items-start mb-6 relative z-10">
-                         <div class="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xl font-bold shadow-md shadow-blue-200">
+                      <div class="flex justify-between items-start mb-4 relative z-10">
+                         <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xl font-bold shadow-md shadow-blue-200">
                             {{ selectedStudent.name.split(' ').pop()[0] }}
                          </div>
                          <button @click="closeDrawer" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
@@ -388,12 +388,12 @@ const closeDrawer = () => {
                          </button>
                       </div>
                       <div class="relative z-10">
-                         <h2 class="text-2xl font-black text-slate-800">{{ selectedStudent.name }}</h2>
+                         <h2 class="text-xl font-black text-slate-800">{{ selectedStudent.name }}</h2>
                          <p class="text-sm font-medium text-slate-500 mt-1">{{ selectedStudent.id }} • {{ selectedStudent.email }}</p>
                       </div>
                       
                       <!-- Tabs -->
-                      <div class="flex items-center gap-6 mt-8 border-b border-slate-200">
+                      <div class="flex items-center gap-4 mt-8 border-b border-slate-200">
                          <button @click="activeTab = 'profile'" :class="['pb-3 text-sm font-bold border-b-2 transition-all', activeTab === 'profile' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600']">Hồ sơ</button>
                          <button @click="activeTab = 'assignments'" :class="['pb-3 text-sm font-bold border-b-2 transition-all', activeTab === 'assignments' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600']">Bài tập</button>
                          <button @click="activeTab = 'activity'" :class="['pb-3 text-sm font-bold border-b-2 transition-all', activeTab === 'activity' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600']">Hoạt động</button>
@@ -401,18 +401,18 @@ const closeDrawer = () => {
                    </div>
 
                    <!-- Drawer Content -->
-                   <div class="p-8 flex-1 bg-white">
+                   <div class="p-5 flex-1 bg-white">
                       
                       <!-- Profile Tab -->
                       <div v-if="activeTab === 'profile'" class="space-y-8 animate-fade-in">
                          <div class="grid grid-cols-2 gap-4">
                             <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Điểm TB (GPA)</p>
-                               <p class="text-2xl font-black text-slate-800">{{ selectedStudent.gpa }}</p>
+                               <p class="text-xl font-black text-slate-800">{{ selectedStudent.gpa }}</p>
                             </div>
                             <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Vắng mặt</p>
-                               <p class="text-2xl font-black text-rose-500">{{ selectedStudent.absent }} <span class="text-sm text-slate-500 font-medium">buổi</span></p>
+                               <p class="text-xl font-black text-rose-500">{{ selectedStudent.absent }} <span class="text-sm text-slate-500 font-medium">buổi</span></p>
                             </div>
                          </div>
                          
@@ -447,7 +447,7 @@ const closeDrawer = () => {
                       </div>
 
                       <!-- Activity Tab -->
-                      <div v-if="activeTab === 'activity'" class="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent animate-fade-in">
+                      <div v-if="activeTab === 'activity'" class="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent animate-fade-in">
                          <div v-for="(act, idx) in ['Xem video bài giảng Chương 2', 'Bình luận trên diễn đàn lớp', 'Hoàn thành Quiz 1']" :key="idx" class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                             <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-slate-100 text-slate-500 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm z-10">
                                <Activity :size="14" class="text-blue-500" />

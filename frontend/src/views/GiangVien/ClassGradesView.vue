@@ -26,18 +26,18 @@ function calculateTotal(sv) {
 </script>
 
 <template>
-  <div class="space-y-6 pb-10">
+  <div class="space-y-4 pb-10">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Bảng điểm lớp học</h1>
+        <h1 class="text-xl font-bold text-slate-800 tracking-tight">Bảng điểm lớp học</h1>
         <p class="text-slate-500 mt-1">Quản lý điểm thành phần và điểm thi kết thúc môn của lớp SE1601.</p>
       </div>
       <div class="flex gap-2">
         <button class="lg-button-secondary py-2.5 px-4 text-xs font-bold">
           <Download :size="18" /> Xuất bảng điểm
         </button>
-        <button class="lg-button-primary py-2.5 px-6 text-xs font-bold" style="background: linear-gradient(135deg, #4f46e5, #6366f1 52%, #8b5cf6);">
+        <button class="lg-button-primary py-2.5 px-4 text-xs font-bold" style="background: linear-gradient(135deg, #4f46e5, #6366f1 52%, #8b5cf6);">
           <Save :size="18" /> Lưu toàn bộ
         </button>
       </div>
@@ -62,22 +62,22 @@ function calculateTotal(sv) {
         <table class="w-full text-left">
           <thead>
             <tr class="bg-slate-50/50 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              <th class="px-8 py-5">Sinh viên</th>
-              <th class="px-6 py-5">
+              <th class="px-5 py-5">Sinh viên</th>
+              <th class="px-4 py-5">
                  <div class="flex items-center gap-2">Assignment (40%) <ArrowUpDown :size="12" /></div>
               </th>
-              <th class="px-6 py-5">
+              <th class="px-4 py-5">
                  <div class="flex items-center gap-2">Điểm thi (60%) <ArrowUpDown :size="12" /></div>
               </th>
-              <th class="px-6 py-5">
+              <th class="px-4 py-5">
                  <div class="flex items-center gap-2 text-blue-600">Điểm tổng kết <ArrowUpDown :size="12" /></div>
               </th>
-              <th class="px-8 py-5 text-right">Thao tác</th>
+              <th class="px-5 py-5 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="sv in gradesData" :key="sv.id" class="group hover:bg-slate-50/50 transition-colors">
-              <td class="px-8 py-5">
+              <td class="px-5 py-5">
                 <div class="flex items-center gap-3">
                   <div class="h-9 w-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xs">
                     {{ sv.name.split(' ').pop()[0] }}
@@ -90,7 +90,7 @@ function calculateTotal(sv) {
               </td>
               
               <!-- Assignment Grade -->
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <input 
                   v-if="sv.isEditing" 
                   type="number" 
@@ -103,7 +103,7 @@ function calculateTotal(sv) {
               </td>
 
               <!-- Exam Grade -->
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <input 
                   v-if="sv.isEditing" 
                   type="number" 
@@ -116,13 +116,13 @@ function calculateTotal(sv) {
               </td>
 
               <!-- Total Grade -->
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <span :class="['text-base font-black', sv.total < 5 ? 'text-rose-500' : 'text-blue-600']">
                   {{ sv.total }}
                 </span>
               </td>
 
-              <td class="px-8 py-5 text-right">
+              <td class="px-5 py-5 text-right">
                 <button 
                   @click="toggleEdit(sv)"
                   :class="[

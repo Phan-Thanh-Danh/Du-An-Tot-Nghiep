@@ -54,7 +54,7 @@ const getStatusBadge = (status) => {
       </button>
     </template>
 
-    <div class="space-y-6">
+    <div class="space-y-4">
       <!-- ── Filter Bar ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
         <div class="flex-1 min-w-[280px] relative">
@@ -81,8 +81,8 @@ const getStatusBadge = (status) => {
       </div>
 
       <!-- ── Rooms Grid ── -->
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        <div v-for="room in filteredRooms" :key="room.id" class="lg-card-glass group p-6 transition-all hover:-translate-y-1 hover:shadow-xl relative overflow-hidden">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div v-for="room in filteredRooms" :key="room.id" class="lg-card-glass group p-4 transition-all hover:-translate-y-1 hover:shadow-xl relative overflow-hidden">
           <!-- Status Indicator -->
           <div class="absolute top-4 right-4 flex items-center gap-2">
             <span :class="['h-2 w-2 rounded-full', room.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-red-500']"></span>
@@ -90,7 +90,7 @@ const getStatusBadge = (status) => {
           </div>
 
           <div class="flex items-start justify-between">
-            <div class="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+            <div class="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
               <Building v-if="room.type !== 'Thực hành'" :size="24" />
               <Monitor v-else :size="24" />
             </div>

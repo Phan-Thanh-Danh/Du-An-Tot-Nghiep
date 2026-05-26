@@ -50,14 +50,14 @@ const modules = ref([
 </script>
 
 <template>
-  <div class="min-h-[88vh] w-full bg-slate-900 rounded-[32px] overflow-hidden flex flex-col md:flex-row relative shadow-2xl animate-fade-in border border-slate-800">
+  <div class="min-h-[88vh] w-full bg-slate-900 rounded-2xl overflow-hidden flex flex-col md:flex-row relative shadow-2xl animate-fade-in border border-slate-800">
     
     <!-- Top Bar Overlay for Mobile/Small screens (Optional, here integrated into layout) -->
     
     <!-- Main Content Area (Google Meet) -->
     <div v-show="!isAttendanceExpanded" class="flex-1 flex flex-col relative bg-slate-900 transition-all duration-300">
        <!-- Top actions -->
-       <div class="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-10">
+       <div class="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10">
           <button @click="router.push(`/teacher/classes/${route.params.id}/details`)" class="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur flex items-center justify-center text-white transition-colors border border-white/10">
              <ArrowLeft :size="20" />
           </button>
@@ -73,18 +73,18 @@ const modules = ref([
 
        <!-- Google Meet Integration -->
        <div class="flex-1 relative flex items-center justify-center overflow-hidden bg-slate-900/50">
-          <div class="text-center space-y-6 max-w-md p-8 bg-slate-800/80 rounded-[32px] border border-slate-700 shadow-2xl backdrop-blur-sm">
+          <div class="text-center space-y-4 max-w-md p-5 bg-slate-800/80 rounded-2xl border border-slate-700 shadow-2xl backdrop-blur-sm">
              <div class="h-24 w-24 rounded-[24px] bg-gradient-to-br from-emerald-400 to-green-600 mx-auto flex items-center justify-center text-white shadow-lg shadow-green-500/20">
                 <Video :size="48" stroke-width="2" />
              </div>
              
              <div>
-               <h3 class="text-2xl font-black text-white tracking-tight">Lớp học trực tuyến</h3>
+               <h3 class="text-xl font-black text-white tracking-tight">Lớp học trực tuyến</h3>
                <p class="text-slate-400 font-medium mt-2">Buổi học hiện đang được tổ chức qua Google Meet. Nhấn vào nút bên dưới để tham gia phòng học.</p>
              </div>
 
              <div class="pt-4 border-t border-slate-700">
-               <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-3 w-full bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-1 active:translate-y-0">
+               <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-3 w-full bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-4 rounded-2xl font-bold text-lg transition-all shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-1 active:translate-y-0">
                   <Video :size="24" /> Tham gia Google Meet
                </a>
              </div>
@@ -105,7 +105,7 @@ const modules = ref([
 
        <!-- Tab: Content -->
        <div v-if="activeTab === 'content'" class="flex-1 flex flex-col min-h-0">
-          <div class="p-6 pb-2">
+          <div class="p-4 pb-2">
              <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                 <div class="bg-blue-500 h-full w-1/3"></div>
              </div>
@@ -149,7 +149,7 @@ const modules = ref([
              <div class="flex flex-col gap-3">
                 <div v-for="sv in students" :key="sv.id" :class="['flex justify-between rounded-2xl border border-slate-800 bg-slate-800/50 hover:bg-slate-800 transition-colors', isAttendanceExpanded ? 'flex-col sm:flex-row sm:items-center p-4 gap-4' : 'items-center p-3 gap-3']">
                    <div class="flex items-center gap-3">
-                      <div :class="['rounded-full bg-slate-700 text-slate-300 flex items-center justify-center font-bold border border-slate-600 shadow-inner shrink-0', isAttendanceExpanded ? 'h-12 w-12 text-lg' : 'h-9 w-9 text-xs']">
+                      <div :class="['rounded-full bg-slate-700 text-slate-300 flex items-center justify-center font-bold border border-slate-600 shadow-inner shrink-0', isAttendanceExpanded ? 'h-10 w-10 text-lg' : 'h-9 w-9 text-xs']">
                          {{ sv.name.split(' ').pop()[0] }}
                       </div>
                       <div>
@@ -159,13 +159,13 @@ const modules = ref([
                    </div>
                    <div :class="['flex items-center', isAttendanceExpanded ? 'gap-3' : 'gap-2']">
                       <button @click="sv.present = true" :class="['flex items-center justify-center rounded-xl transition-all border font-bold', 
-                           isAttendanceExpanded ? 'h-12 px-6 text-sm flex-1 sm:flex-none font-black' : 'h-9 w-9 text-xs', 
+                           isAttendanceExpanded ? 'h-12 px-4 text-sm flex-1 sm:flex-none font-black' : 'h-9 w-9 text-xs', 
                            sv.present ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.15)]' : 'bg-slate-800/50 text-slate-500 border-slate-700/50 hover:bg-slate-700 hover:text-slate-300']">
                          <span v-if="isAttendanceExpanded">CÓ MẶT</span>
                          <UserCheck v-else :size="16" />
                       </button>
                       <button @click="sv.present = false" :class="['flex items-center justify-center rounded-xl transition-all border font-bold', 
-                           isAttendanceExpanded ? 'h-12 px-6 text-sm flex-1 sm:flex-none font-black' : 'h-9 w-9 text-xs', 
+                           isAttendanceExpanded ? 'h-12 px-4 text-sm flex-1 sm:flex-none font-black' : 'h-9 w-9 text-xs', 
                            !sv.present ? 'bg-rose-500/20 text-rose-400 border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.15)]' : 'bg-slate-800/50 text-slate-500 border-slate-700/50 hover:bg-slate-700 hover:text-slate-300']">
                          <span v-if="isAttendanceExpanded">VẮNG MẶT</span>
                          <UserX v-else :size="16" />
@@ -175,7 +175,7 @@ const modules = ref([
              </div>
           </div>
           <div class="p-5 border-t border-slate-800 bg-slate-900 flex justify-end">
-             <button class="rounded-xl bg-emerald-500 text-white font-bold text-sm px-8 py-3.5 hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 w-full md:w-auto">
+             <button class="rounded-xl bg-emerald-500 text-white font-bold text-sm px-5 py-3.5 hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 w-full md:w-auto">
                 <UserCheck :size="18" /> Lưu điểm danh
              </button>
           </div>

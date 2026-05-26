@@ -198,7 +198,7 @@ const formatDate = (date) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', 
                   <component :is="statusConfig[activeRequest.status].icon" :size="14" />
                   {{ statusConfig[activeRequest.status].label }}
                 </span>
-                <h2 class="text-2xl font-bold text-slate-900">{{ activeRequest.type }}</h2>
+                <h2 class="text-xl font-bold text-slate-900">{{ activeRequest.type }}</h2>
                 <div class="text-sm text-slate-500 mt-1">Mã đơn: {{ activeRequest.id }} • Nộp lúc: {{ formatDate(activeRequest.createdAt) }}</div>
               </div>
             </div>

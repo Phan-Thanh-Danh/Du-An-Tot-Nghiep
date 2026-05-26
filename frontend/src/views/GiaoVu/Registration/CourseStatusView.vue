@@ -43,9 +43,9 @@ const cancelledClasses = ref([
         </div>
 
         <div class="grid grid-cols-1 gap-4">
-          <div v-for="cls in pendingClasses" :key="cls.id" class="lg-card-glass p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 group hover:border-rose-200 transition-all">
-            <div class="flex items-center gap-6">
-              <div class="h-14 w-14 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500 border border-rose-100 shrink-0">
+          <div v-for="cls in pendingClasses" :key="cls.id" class="lg-card-glass p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group hover:border-rose-200 transition-all">
+            <div class="flex items-center gap-4">
+              <div class="h-10 w-10 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500 border border-rose-100 shrink-0">
                 <Users :size="28" />
               </div>
               <div>
@@ -58,8 +58,8 @@ const cancelledClasses = ref([
               </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-6">
-              <div class="px-6 border-x border-slate-100">
+            <div class="flex flex-wrap items-center gap-4">
+              <div class="px-4 border-x border-slate-100">
                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sĩ số hiện tại</p>
                 <p class="text-lg font-black text-rose-600">{{ cls.enrolled }} <span class="text-slate-300 font-medium">/ {{ cls.minEnroll }}</span></p>
               </div>
@@ -89,31 +89,31 @@ const cancelledClasses = ref([
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50/50">
-                <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Lớp học phần</th>
-                <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Sĩ số lúc hủy</th>
-                <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Ngày hủy</th>
-                <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thông báo</th>
-                <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
+                <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Lớp học phần</th>
+                <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Sĩ số lúc hủy</th>
+                <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Ngày hủy</th>
+                <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thông báo</th>
+                <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
               <tr v-for="cls in cancelledClasses" :key="cls.id" class="group hover:bg-white/50 transition-colors">
-                <td class="px-6 py-4">
+                <td class="px-4 py-4">
                    <p class="text-sm font-black text-slate-700">{{ cls.subject }}</p>
                    <p class="text-[10px] font-bold text-slate-400 mt-1">{{ cls.id }}</p>
                 </td>
-                <td class="px-6 py-4">
+                <td class="px-4 py-4">
                    <span class="text-sm font-bold text-slate-600">{{ cls.enrolled }} SV</span>
                 </td>
-                <td class="px-6 py-4">
+                <td class="px-4 py-4">
                    <span class="text-xs font-medium text-slate-500">{{ cls.date }}</span>
                 </td>
-                <td class="px-6 py-4">
+                <td class="px-4 py-4">
                    <div class="flex items-center gap-1.5 text-emerald-500">
                       <Mail :size="14" /> <span class="text-[10px] font-black uppercase tracking-widest">Đã gửi SV</span>
                    </div>
                 </td>
-                <td class="px-6 py-4 text-right">
+                <td class="px-4 py-4 text-right">
                    <button class="p-2 hover:bg-slate-100 rounded-lg text-slate-400">
                       <MoreVertical :size="16" />
                    </button>
@@ -125,7 +125,7 @@ const cancelledClasses = ref([
       </section>
 
       <!-- ── Policy Note ── -->
-      <div class="lg-card-glass p-6 bg-rose-50/20 border-rose-100">
+      <div class="lg-card-glass p-4 bg-rose-50/20 border-rose-100">
         <div class="flex gap-4">
           <div class="h-10 w-10 rounded-xl bg-white flex items-center justify-center text-rose-500 shadow-sm border border-rose-100 shrink-0">
              <MessageSquare :size="20" />

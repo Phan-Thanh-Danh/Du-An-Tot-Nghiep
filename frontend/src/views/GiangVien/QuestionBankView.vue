@@ -64,28 +64,28 @@ function deleteQuestion() {
 <template>
   <div class="space-y-8 pb-10 text-slate-800">
     <!-- ── Header ── -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
       <!-- Decorative background -->
-      <div class="absolute -right-32 -bottom-32 h-96 w-96 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-sky-50 to-transparent rounded-full pointer-events-none" />
+      
       
       <div class="relative z-10 flex items-center gap-5">
-        <div class="h-16 w-16 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-sky-200">
+        <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-sky-200">
            <BookOpen :size="32" />
         </div>
         <div>
-          <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Thư viện câu hỏi</h1>
+          <h1 class="text-xl md:text-xl font-black text-slate-900 tracking-tight">Thư viện câu hỏi</h1>
           <p class="text-sm font-medium text-slate-500 mt-1">Quản lý kho tài nguyên câu hỏi trắc nghiệm và tự luận.</p>
         </div>
       </div>
       <div class="relative z-10 flex gap-3">
-         <router-link to="/teacher/questions/create" class="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5 transition-all">
+         <router-link to="/teacher/questions/create" class="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-600 px-4 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5 transition-all">
             <Plus :size="18" /> Thêm câu hỏi mới
          </router-link>
       </div>
     </div>
 
     <!-- Quick Stats & Filters -->
-    <div class="flex flex-col xl:flex-row gap-6">
+    <div class="flex flex-col xl:flex-row gap-4">
        <!-- Stats -->
        <div class="grid grid-cols-2 md:grid-cols-4 xl:w-1/2 gap-4">
           <div class="rounded-[24px] bg-white border border-slate-100 p-5 shadow-sm col-span-2 sm:col-span-1">
@@ -93,33 +93,33 @@ function deleteQuestion() {
                 <Database :size="20" />
              </div>
              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tổng câu hỏi</p>
-             <p class="text-3xl font-black text-slate-800">1,240</p>
+             <p class="text-xl font-black text-slate-800">1,240</p>
           </div>
           <div class="rounded-[24px] bg-white border border-slate-100 p-5 shadow-sm">
              <div class="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 mb-3">
                 <Target :size="20" />
              </div>
              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Mức Dễ</p>
-             <p class="text-2xl font-black text-slate-800">450</p>
+             <p class="text-xl font-black text-slate-800">450</p>
           </div>
           <div class="rounded-[24px] bg-white border border-slate-100 p-5 shadow-sm">
              <div class="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 mb-3">
                 <Target :size="20" />
              </div>
              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Mức Trung bình</p>
-             <p class="text-2xl font-black text-slate-800">620</p>
+             <p class="text-xl font-black text-slate-800">620</p>
           </div>
           <div class="rounded-[24px] bg-white border border-slate-100 p-5 shadow-sm">
              <div class="h-10 w-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 mb-3">
                 <Target :size="20" />
              </div>
              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Mức Khó</p>
-             <p class="text-2xl font-black text-slate-800">170</p>
+             <p class="text-xl font-black text-slate-800">170</p>
           </div>
        </div>
 
        <!-- Filters -->
-       <div class="flex-1 rounded-[32px] bg-white border border-slate-100 p-6 shadow-sm flex flex-col justify-center">
+       <div class="flex-1 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm flex flex-col justify-center">
           <p class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><Filter :size="16" class="text-blue-500" /> Bộ lọc tìm kiếm</p>
           <div class="flex flex-col sm:flex-row gap-4">
             <div class="relative flex-1">
@@ -140,20 +140,20 @@ function deleteQuestion() {
     </div>
 
     <!-- Questions Table -->
-    <div class="rounded-[32px] border border-slate-100 bg-white shadow-sm overflow-hidden animate-fade-in-up">
+    <div class="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden animate-fade-in-up">
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/50 border-b border-slate-100">
-              <th class="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Nội dung câu hỏi</th>
-              <th class="px-6 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Loại & Phân loại</th>
-              <th class="px-6 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Độ khó</th>
-              <th class="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Thao tác</th>
+              <th class="px-5 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Nội dung câu hỏi</th>
+              <th class="px-4 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Loại & Phân loại</th>
+              <th class="px-4 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Độ khó</th>
+              <th class="px-5 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="q in questions" :key="q.id" class="group hover:bg-slate-50/50 transition-colors">
-              <td class="px-8 py-6">
+              <td class="px-5 py-4">
                  <div class="max-w-lg">
                     <p class="text-sm font-bold text-slate-800 leading-relaxed group-hover:text-blue-700 transition-colors">{{ q.content }}</p>
                     <div class="flex items-center gap-3 mt-2">
@@ -163,7 +163,7 @@ function deleteQuestion() {
                     </div>
                  </div>
               </td>
-              <td class="px-6 py-6">
+              <td class="px-4 py-4">
                  <div class="flex flex-col gap-2">
                     <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-100 w-max">
                        <component :is="typeIcons[q.type]" :size="14" class="text-slate-400" />
@@ -174,12 +174,12 @@ function deleteQuestion() {
                     </span>
                  </div>
               </td>
-              <td class="px-6 py-6">
+              <td class="px-4 py-4">
                 <span :class="['inline-flex items-center px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border', difficultyColors[q.difficulty]]">
                   {{ q.difficulty }}
                 </span>
               </td>
-              <td class="px-8 py-6 text-right">
+              <td class="px-5 py-4 text-right">
                 <div class="flex items-center justify-end gap-2">
                    <button @click="openEditModal(q)" class="h-9 w-9 rounded-xl flex items-center justify-center text-slate-400 bg-white border border-slate-200 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-colors shadow-sm" title="Chỉnh sửa">
                       <Edit2 :size="16" />
@@ -195,7 +195,7 @@ function deleteQuestion() {
       </div>
       
       <!-- Footer -->
-      <div class="bg-slate-50/80 px-8 py-5 border-t border-slate-100 flex items-center justify-between">
+      <div class="bg-slate-50/80 px-5 py-5 border-t border-slate-100 flex items-center justify-between">
          <div class="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
             <Database :size="14" class="text-slate-400" /> Đang hiển thị {{ questions.length }} câu hỏi
          </div>
@@ -212,11 +212,11 @@ function deleteQuestion() {
       <div v-if="isEditModalOpen" class="fixed inset-0 z-[999] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="isEditModalOpen = false"></div>
         <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in-up">
-          <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+          <div class="p-4 border-b border-slate-100 bg-slate-50/50">
             <h3 class="text-xl font-bold text-slate-800">Chỉnh sửa Câu hỏi</h3>
             <p class="text-sm text-slate-500 mt-1">Cập nhật nội dung và thuộc tính phân loại.</p>
           </div>
-          <div class="p-6 space-y-5">
+          <div class="p-4 space-y-5">
             <div>
               <label class="block text-sm font-bold text-slate-700 mb-1.5">Nội dung câu hỏi</label>
               <textarea v-model="editingQuestion.content" rows="3" class="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all resize-none"></textarea>
@@ -244,7 +244,7 @@ function deleteQuestion() {
                </div>
             </div>
           </div>
-          <div class="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+          <div class="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
             <button @click="isEditModalOpen = false" class="px-5 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-200 transition-colors">Hủy</button>
             <button @click="saveQuestion" class="px-5 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200 transition-all hover:-translate-y-0.5">Lưu thay đổi</button>
           </div>
@@ -257,7 +257,7 @@ function deleteQuestion() {
       <div v-if="isDeleteModalOpen" class="fixed inset-0 z-[999] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="isDeleteModalOpen = false"></div>
         <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in-up text-center p-8">
-          <div class="mx-auto w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center text-rose-500 mb-6">
+          <div class="mx-auto w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center text-rose-500 mb-4">
             <Trash2 :size="32" stroke-width="2.5" />
           </div>
           <h3 class="text-xl font-black text-slate-800 mb-2">Xóa câu hỏi?</h3>

@@ -36,9 +36,9 @@ const activeTab = ref('Class')
     <div class="space-y-8">
       
       <!-- ── Report Generator Controls ── -->
-      <div class="lg-card-glass p-8 bg-blue-50/20 border-blue-100">
+      <div class="lg-card-glass p-5 bg-blue-50/20 border-blue-100">
          <div class="flex items-center gap-4 mb-8">
-            <div class="h-12 w-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <div class="h-10 w-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
                <FileSearch :size="24" />
             </div>
             <div>
@@ -47,7 +47,7 @@ const activeTab = ref('Class')
             </div>
          </div>
 
-         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="space-y-2">
                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Loại báo cáo</label>
                <div class="relative">
@@ -89,7 +89,7 @@ const activeTab = ref('Class')
       </div>
 
       <!-- ── Analysis Content (Mock Tabbed View) ── -->
-      <div class="space-y-6">
+      <div class="space-y-4">
          <div class="flex items-center justify-between border-b border-slate-100 pb-2">
             <div class="flex gap-8">
                <button 
@@ -109,11 +109,11 @@ const activeTab = ref('Class')
          </div>
 
          <!-- Visual Preview Cards -->
-         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <div 
               v-for="rpt in reports" 
               :key="rpt.id" 
-              class="lg-card-glass p-6 group hover:border-blue-300 transition-all border-slate-100 bg-white/50"
+              class="lg-card-glass p-4 group hover:border-blue-300 transition-all border-slate-100 bg-white/50"
             >
                <div class="flex items-start justify-between mb-4">
                   <div :class="['h-10 w-10 rounded-xl flex items-center justify-center shadow-sm', rpt.status === 'generating' ? 'bg-amber-100 text-amber-600 animate-pulse' : 'bg-blue-50 text-blue-600 border border-blue-100']">

@@ -38,35 +38,35 @@ const getSeverityClass = (severity) => {
     title="Xung đột lịch học" 
     subtitle="Giám sát các lỗi sắp xếp tài nguyên (giảng viên, phòng học, thời gian) trong toàn hệ thống."
   >
-    <div class="space-y-6">
+    <div class="space-y-4">
       
       <!-- ── Stats Grid ── -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="lg-card-glass p-6 border-rose-100 bg-rose-50/10 flex items-center gap-5">
-           <div class="h-12 w-12 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600 shadow-sm border border-rose-200">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="lg-card-glass p-4 border-rose-100 bg-rose-50/10 flex items-center gap-5">
+           <div class="h-10 w-10 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600 shadow-sm border border-rose-200">
               <ShieldAlert :size="24" />
            </div>
            <div>
               <p class="text-[10px] font-black text-rose-600 uppercase tracking-widest">Nghiêm trọng</p>
-              <h3 class="text-2xl font-black text-rose-900 leading-tight">02</h3>
+              <h3 class="text-xl font-black text-rose-900 leading-tight">02</h3>
            </div>
         </div>
-        <div class="lg-card-glass p-6 border-amber-100 bg-amber-50/10 flex items-center gap-5">
-           <div class="h-12 w-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600 shadow-sm border border-amber-200">
+        <div class="lg-card-glass p-4 border-amber-100 bg-amber-50/10 flex items-center gap-5">
+           <div class="h-10 w-10 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600 shadow-sm border border-amber-200">
               <AlertTriangle :size="24" />
            </div>
            <div>
               <p class="text-[10px] font-black text-amber-600 uppercase tracking-widest">Trung bình</p>
-              <h3 class="text-2xl font-black text-amber-900 leading-tight">01</h3>
+              <h3 class="text-xl font-black text-amber-900 leading-tight">01</h3>
            </div>
         </div>
-        <div class="lg-card-glass p-6 border-blue-100 bg-blue-50/10 flex items-center gap-5">
-           <div class="h-12 w-12 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 shadow-sm border border-blue-200">
+        <div class="lg-card-glass p-4 border-blue-100 bg-blue-50/10 flex items-center gap-5">
+           <div class="h-10 w-10 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 shadow-sm border border-blue-200">
               <Zap :size="24" />
            </div>
            <div>
               <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest">Lỗi nhẹ</p>
-              <h3 class="text-2xl font-black text-blue-900 leading-tight">01</h3>
+              <h3 class="text-xl font-black text-blue-900 leading-tight">01</h3>
            </div>
         </div>
       </div>
@@ -92,20 +92,20 @@ const getSeverityClass = (severity) => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/50">
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Loại xung đột</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Chi tiết & Đối tượng</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thời gian</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Mức độ</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Loại xung đột</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Chi tiết & Đối tượng</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thời gian</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Mức độ</th>
+              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="cf in conflicts" :key="cf.id" class="group hover:bg-white/50 transition-colors">
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                  <p class="text-sm font-black text-slate-800 leading-tight">{{ cf.type }}</p>
                  <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{{ cf.id }}</p>
               </td>
-              <td class="px-6 py-4 max-w-xs">
+              <td class="px-4 py-4 max-w-xs">
                  <p class="text-xs text-slate-600 leading-relaxed font-medium mb-2">{{ cf.description }}</p>
                  <div class="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase">
                     <User v-if="cf.type.includes('giảng viên')" :size="12" />
@@ -113,17 +113,17 @@ const getSeverityClass = (severity) => {
                     {{ cf.affected }}
                  </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                  <div class="flex items-center gap-1.5 text-xs font-bold text-slate-500">
                     <Clock :size="14" class="text-slate-300" /> {{ cf.time }}
                  </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span :class="['px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border', getSeverityClass(cf.severity)]">
                   {{ cf.severity }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-right">
+              <td class="px-4 py-4 text-right">
                 <div class="flex items-center justify-end gap-1">
                   <button class="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-all" title="Gửi thông báo nhắc nhở">
                     <Bell :size="18" />

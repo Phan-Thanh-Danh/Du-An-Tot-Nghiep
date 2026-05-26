@@ -169,7 +169,7 @@ function saveAttendanceChanges() {
     <!-- Toast Component -->
     <Transition name="toast-slide">
       <div v-if="toast.show" 
-           :class="['fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-300', 
+           :class="['fixed top-4 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-300', 
                     toast.type === 'success' ? 'bg-emerald-500/90 border-emerald-400 text-white' : 'bg-rose-500/90 border-rose-400 text-white']">
         <CheckCircle2 v-if="toast.type === 'success'" :size="20" />
         <AlertCircle v-else :size="20" />
@@ -178,16 +178,16 @@ function saveAttendanceChanges() {
     </Transition>
 
     <!-- ── Header ── -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
       <!-- Decorative background -->
-      <div class="absolute -right-32 -bottom-32 h-96 w-96 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-50 to-transparent rounded-full pointer-events-none" />
+      
       
       <div class="relative z-10 flex items-center gap-5">
-        <div class="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-emerald-200">
+        <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-emerald-200">
            <Calendar :size="32" />
         </div>
         <div>
-          <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Lịch sử điểm danh</h1>
+          <h1 class="text-xl md:text-xl font-black text-slate-900 tracking-tight">Lịch sử điểm danh</h1>
           <p class="text-sm font-medium text-slate-500 mt-1">Xem lại nhật ký điểm danh của các buổi học đã diễn ra.</p>
         </div>
       </div>
@@ -199,7 +199,7 @@ function saveAttendanceChanges() {
     </div>
 
     <!-- Quick Stats & Filters -->
-    <div class="flex flex-col xl:flex-row gap-6">
+    <div class="flex flex-col xl:flex-row gap-4">
        <!-- Stats -->
        <div class="grid grid-cols-2 md:grid-cols-4 xl:w-1/2 gap-4">
           <div class="rounded-[24px] bg-white border border-slate-100 p-5 shadow-sm">
@@ -207,14 +207,14 @@ function saveAttendanceChanges() {
                 <BookOpen :size="20" />
              </div>
              <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Tổng số buổi</p>
-             <p class="text-2xl font-black text-slate-800">24</p>
+             <p class="text-xl font-black text-slate-800">24</p>
           </div>
           <div class="rounded-[24px] bg-white border border-slate-100 p-5 shadow-sm">
              <div class="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 mb-3">
                 <CheckCircle2 :size="20" />
              </div>
              <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Đi học đúng</p>
-             <p class="text-2xl font-black text-slate-800">92%</p>
+             <p class="text-xl font-black text-slate-800">92%</p>
           </div>
           <div class="rounded-[24px] bg-white border border-slate-100 p-5 shadow-sm col-span-2 flex flex-col justify-center">
              <div class="flex items-center gap-3 mb-2">
@@ -228,7 +228,7 @@ function saveAttendanceChanges() {
        </div>
 
        <!-- Filters -->
-       <div class="flex-1 rounded-[32px] bg-white border border-slate-100 p-6 shadow-sm flex flex-col justify-center">
+       <div class="flex-1 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm flex flex-col justify-center">
           <p class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><Filter :size="16" class="text-blue-500" /> Bộ lọc dữ liệu</p>
           <div class="flex flex-col sm:flex-row gap-4">
             <div class="relative flex-1">
@@ -244,25 +244,25 @@ function saveAttendanceChanges() {
     </div>
 
     <!-- History Table -->
-    <div class="rounded-[32px] border border-slate-100 bg-white shadow-sm overflow-hidden animate-fade-in-up">
+    <div class="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden animate-fade-in-up">
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50/50 border-b border-slate-100">
-              <th class="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">
+              <th class="px-5 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">
                  <div class="flex items-center gap-2 hover:text-blue-600 cursor-pointer transition-colors w-max">Ngày học <ArrowUpDown :size="14" /></div>
               </th>
-              <th class="px-6 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Lớp học</th>
-              <th class="px-6 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Thời gian</th>
-              <th class="px-6 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 text-center">Tình trạng</th>
-              <th class="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Chi tiết</th>
+              <th class="px-4 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Lớp học</th>
+              <th class="px-4 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Thời gian</th>
+              <th class="px-4 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 text-center">Tình trạng</th>
+              <th class="px-5 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Chi tiết</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="item in filteredHistory" :key="item.id" class="group hover:bg-slate-50/50 transition-colors">
-              <td class="px-8 py-5">
+              <td class="px-5 py-5">
                 <div class="flex items-center gap-4">
-                   <div class="h-12 w-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors shadow-sm">
+                   <div class="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors shadow-sm">
                       <Calendar :size="20" />
                    </div>
                    <div>
@@ -271,19 +271,19 @@ function saveAttendanceChanges() {
                    </div>
                 </div>
               </td>
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <p class="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition-colors">{{ item.className }}</p>
                 <div class="flex items-center gap-1.5 mt-1">
                    <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500 uppercase">Phòng</span>
                    <span class="text-xs font-bold text-slate-600">{{ item.room }}</span>
                 </div>
               </td>
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <div class="flex items-center gap-2 text-sm text-slate-600 font-bold bg-slate-50 px-3 py-1.5 rounded-xl w-max border border-slate-100">
                    <Clock :size="14" class="text-blue-500" /> {{ item.time }}
                 </div>
               </td>
-              <td class="px-6 py-5 text-center">
+              <td class="px-4 py-5 text-center">
                  <div v-if="item.absences === 0" class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 border border-emerald-100 text-emerald-700">
                     <CheckCircle2 :size="14" />
                     <span class="text-xs font-bold">Đầy đủ ({{item.total}})</span>
@@ -293,7 +293,7 @@ function saveAttendanceChanges() {
                     <span class="text-xs font-bold">Vắng {{ item.absences }}/{{item.total}}</span>
                  </div>
               </td>
-              <td class="px-8 py-5 text-right">
+              <td class="px-5 py-5 text-right">
                 <button @click="openSessionDetails(item)" class="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-colors shadow-sm group-hover:shadow-md">
                    <ChevronRight :size="20" />
                 </button>
@@ -313,7 +313,7 @@ function saveAttendanceChanges() {
       </div>
       
       <!-- Footer -->
-      <div class="bg-slate-50/80 px-8 py-5 border-t border-slate-100 flex items-center justify-between">
+      <div class="bg-slate-50/80 px-5 py-5 border-t border-slate-100 flex items-center justify-between">
          <div class="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
             <Users :size="14" class="text-slate-400" /> Hiển thị {{ filteredHistory.length }} bản ghi
          </div>
@@ -332,18 +332,18 @@ function saveAttendanceChanges() {
         <div @click="isDetailModalOpen = false" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300"></div>
 
         <!-- Modal Card -->
-        <div class="relative w-full max-w-4xl bg-white rounded-[32px] shadow-2xl border border-slate-100 flex flex-col max-h-[85vh] overflow-hidden transform transition-all duration-300 scale-100 animate-modal-in">
+        <div class="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[85vh] overflow-hidden transform transition-all duration-300 scale-100 animate-modal-in">
           
           <!-- Modal Header -->
-          <div class="p-6 md:p-8 border-b border-slate-100 flex justify-between items-center relative overflow-hidden shrink-0">
+          <div class="p-4 md:p-8 border-b border-slate-100 flex justify-between items-center relative overflow-hidden shrink-0">
             <div class="absolute -right-16 -top-16 h-36 w-36 bg-gradient-to-tr from-emerald-50 to-emerald-100/30 rounded-full blur-2xl pointer-events-none" />
             
             <div class="relative z-10 flex items-center gap-4">
-              <div class="h-12 w-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100/50">
+              <div class="h-10 w-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100/50">
                  <Calendar :size="24" />
               </div>
               <div v-if="selectedSession">
-                 <h3 class="text-xl md:text-2xl font-black text-slate-850">Chi Tiết Điểm Danh</h3>
+                 <h3 class="text-xl md:text-xl font-black text-slate-850">Chi Tiết Điểm Danh</h3>
                  <p class="text-xs font-semibold text-slate-400 mt-0.5">
                    Lớp: <span class="text-slate-700 font-bold">{{ selectedSession.className }}</span> • 
                    Ngày: <span class="text-slate-700 font-bold">{{ selectedSession.date }}</span> • 
@@ -358,7 +358,7 @@ function saveAttendanceChanges() {
           </div>
 
           <!-- Modal Stats Row -->
-          <div class="px-6 py-4 md:px-8 border-b border-slate-50 bg-slate-50/40 grid grid-cols-4 gap-4 shrink-0">
+          <div class="px-4 py-4 md:px-5 border-b border-slate-50 bg-slate-50/40 grid grid-cols-4 gap-4 shrink-0">
             <div class="rounded-xl bg-white border border-slate-100 p-3 text-center shadow-sm">
               <p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Tổng số</p>
               <p class="text-base font-black text-slate-700 mt-0.5">{{ sessionStats.total }} SV</p>
@@ -378,7 +378,7 @@ function saveAttendanceChanges() {
           </div>
 
           <!-- Modal Body Toolbar -->
-          <div class="px-6 py-4 md:px-8 border-b border-slate-50 bg-white flex flex-col sm:flex-row gap-3 justify-between items-center shrink-0">
+          <div class="px-4 py-4 md:px-5 border-b border-slate-50 bg-white flex flex-col sm:flex-row gap-3 justify-between items-center shrink-0">
             <!-- Search student inside session -->
             <div class="relative w-full sm:w-64">
               <Search :size="14" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -421,21 +421,21 @@ function saveAttendanceChanges() {
           </div>
 
           <!-- Modal Body Student List (Scrollable) -->
-          <div class="overflow-y-auto p-6 md:p-8 bg-slate-50/20 flex-1">
+          <div class="overflow-y-auto p-4 md:p-8 bg-slate-50/20 flex-1">
             <div class="rounded-2xl border border-slate-100 bg-white overflow-hidden shadow-sm">
               <table class="w-full text-left border-collapse">
                 <thead>
                   <tr class="bg-slate-50/40 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-450">
-                    <th class="px-6 py-4">Sinh viên</th>
-                    <th class="px-6 py-4">Mã số SV</th>
-                    <th class="px-6 py-4">Giờ điểm danh</th>
-                    <th class="px-6 py-4 text-center">Trạng thái</th>
-                    <th class="px-6 py-4">Ghi chú</th>
+                    <th class="px-4 py-4">Sinh viên</th>
+                    <th class="px-4 py-4">Mã số SV</th>
+                    <th class="px-4 py-4">Giờ điểm danh</th>
+                    <th class="px-4 py-4 text-center">Trạng thái</th>
+                    <th class="px-4 py-4">Ghi chú</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-50 text-xs">
                   <tr v-for="(sv, idx) in filteredStudents" :key="sv.id" class="hover:bg-slate-50/30 transition-colors">
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-4">
                       <div class="flex items-center gap-3">
                         <div class="h-9 w-9 rounded-xl bg-slate-50 font-black text-slate-550 flex items-center justify-center border border-slate-100 shrink-0 uppercase shadow-inner">
                           {{ sv.name.split(' ').pop()[0] }}
@@ -443,10 +443,10 @@ function saveAttendanceChanges() {
                         <span class="font-bold text-slate-800">{{ sv.name }}</span>
                       </div>
                     </td>
-                    <td class="px-6 py-4 font-bold text-slate-500 uppercase tracking-wide">
+                    <td class="px-4 py-4 font-bold text-slate-500 uppercase tracking-wide">
                       {{ sv.id }}
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-4">
                       <div class="flex items-center gap-1 text-slate-600 font-semibold">
                         <Clock :size="12" class="text-slate-400" />
                         <span>{{ sv.time }}</span>
@@ -454,7 +454,7 @@ function saveAttendanceChanges() {
                     </td>
                     
                     <!-- Status Badge (Toggleable in edit mode) -->
-                    <td class="px-6 py-4 text-center">
+                    <td class="px-4 py-4 text-center">
                       <div v-if="!isEditing" class="inline-block">
                         <span v-if="sv.status === 'Present'" class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 border border-emerald-100">
                           Có mặt
@@ -491,7 +491,7 @@ function saveAttendanceChanges() {
                     </td>
 
                     <!-- Note column -->
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-4">
                       <div v-if="!isEditing" class="text-slate-500 italic max-w-[180px] truncate" :title="sv.note">
                         {{ sv.note || '--' }}
                       </div>
@@ -519,7 +519,7 @@ function saveAttendanceChanges() {
           </div>
 
           <!-- Modal Footer -->
-          <div class="p-6 border-t border-slate-100 flex justify-between items-center bg-white shrink-0">
+          <div class="p-4 border-t border-slate-100 flex justify-between items-center bg-white shrink-0">
             <!-- Left secondary action -->
             <button 
               type="button"
@@ -533,7 +533,7 @@ function saveAttendanceChanges() {
               <button 
                 v-if="!isEditing"
                 @click="isEditing = true"
-                class="rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-600 px-6 py-3 text-xs font-bold text-white shadow-md shadow-emerald-100 hover:shadow-lg hover:shadow-emerald-200 hover:-translate-y-0.5 transition-all flex items-center gap-1.5 active:scale-95"
+                class="rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-600 px-4 py-3 text-xs font-bold text-white shadow-md shadow-emerald-100 hover:shadow-lg hover:shadow-emerald-200 hover:-translate-y-0.5 transition-all flex items-center gap-1.5 active:scale-95"
               >
                 <Edit3 :size="16" /> Chỉnh sửa điểm danh
               </button>
@@ -547,7 +547,7 @@ function saveAttendanceChanges() {
                 </button>
                 <button 
                   @click="saveAttendanceChanges"
-                  class="rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-600 px-6 py-3 text-xs font-bold text-white shadow-md shadow-emerald-100 hover:shadow-lg hover:shadow-emerald-200 hover:-translate-y-0.5 transition-all flex items-center gap-1.5 active:scale-95"
+                  class="rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-600 px-4 py-3 text-xs font-bold text-white shadow-md shadow-emerald-100 hover:shadow-lg hover:shadow-emerald-200 hover:-translate-y-0.5 transition-all flex items-center gap-1.5 active:scale-95"
                 >
                   <Save :size="16" /> Lưu thay đổi
                 </button>

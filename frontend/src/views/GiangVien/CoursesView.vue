@@ -54,11 +54,11 @@ const getStatusStyles = (status) => {
 </script>
 
 <template>
-  <div class="space-y-6 pb-10">
+  <div class="space-y-4 pb-10">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div class="flex-1 min-w-0">
-        <h1 class="text-3xl font-bold text-slate-800 tracking-tight truncate">Quản lý Khóa học</h1>
+        <h1 class="text-xl font-bold text-slate-800 tracking-tight truncate">Quản lý Khóa học</h1>
         <p class="text-slate-500 mt-1 truncate">Xem thông tin và theo dõi tiến độ các khóa học bạn phụ trách.</p>
       </div>
     </div>
@@ -108,16 +108,16 @@ const getStatusStyles = (status) => {
         <table class="w-full text-left">
           <thead>
             <tr class="bg-slate-50/50 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              <th class="px-8 py-5">Tên khóa học</th>
-              <th class="px-6 py-5">Môn học</th>
-              <th class="px-6 py-5">Số bài học</th>
-              <th class="px-6 py-5">Trạng thái</th>
-              <th class="px-8 py-5 text-right">Thao tác</th>
+              <th class="px-5 py-5">Tên khóa học</th>
+              <th class="px-4 py-5">Môn học</th>
+              <th class="px-4 py-5">Số bài học</th>
+              <th class="px-4 py-5">Trạng thái</th>
+              <th class="px-5 py-5 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             <tr v-for="course in filteredCourses" :key="course.id" class="group hover:bg-slate-50/50 transition-colors">
-              <td class="px-8 py-5">
+              <td class="px-5 py-5">
                 <div class="flex items-center gap-4">
                   <div class="h-11 w-11 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm border border-blue-100/50 group-hover:scale-110 transition-transform">
                     <BookOpen :size="22" />
@@ -130,19 +130,19 @@ const getStatusStyles = (status) => {
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <div class="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">
                   <Layers :size="14" />
                   {{ course.subject }}
                 </div>
               </td>
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-black text-slate-700">{{ course.lessons }}</span>
                   <span class="text-xs text-slate-400 font-medium">bài giảng</span>
                 </div>
               </td>
-              <td class="px-6 py-5">
+              <td class="px-4 py-5">
                 <div :class="['inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-extrabold uppercase tracking-tight', getStatusStyles(course.status)]">
                   <CheckCircle2 v-if="course.status === 'Published'" :size="12" />
                   <Clock v-else-if="course.status === 'Draft'" :size="12" />
@@ -150,7 +150,7 @@ const getStatusStyles = (status) => {
                   {{ course.status }}
                 </div>
               </td>
-              <td class="px-8 py-5 text-right">
+              <td class="px-5 py-5 text-right">
                 <div class="flex items-center justify-end gap-1.5">
                   <button 
                     @click="$router.push('/teacher/classes')"
@@ -165,7 +165,7 @@ const getStatusStyles = (status) => {
             
             <!-- Empty State -->
             <tr v-if="filteredCourses.length === 0">
-              <td colspan="5" class="px-8 py-20 text-center">
+              <td colspan="5" class="px-5 py-20 text-center">
                 <div class="flex flex-col items-center">
                   <div class="h-20 w-20 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 mb-4 border border-dashed border-slate-200">
                     <Search :size="40" />
@@ -181,7 +181,7 @@ const getStatusStyles = (status) => {
       </div>
       
       <!-- Footer Info -->
-      <div class="bg-slate-50/50 px-8 py-4 border-t border-slate-50 text-[11px] font-bold text-slate-400 uppercase tracking-widest flex justify-between">
+      <div class="bg-slate-50/50 px-5 py-4 border-t border-slate-50 text-[11px] font-bold text-slate-400 uppercase tracking-widest flex justify-between">
         <span>Hiển thị {{ filteredCourses.length }} / {{ courses.length }} khóa học</span>
         <span>Hệ thống LMS Academic Management</span>
       </div>

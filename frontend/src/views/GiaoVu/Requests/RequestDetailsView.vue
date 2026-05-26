@@ -70,13 +70,13 @@ const getStepStatusClass = (status) => {
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
       
       <!-- ── Left: Request Content ── -->
-      <div class="xl:col-span-2 space-y-6">
+      <div class="xl:col-span-2 space-y-4">
         
         <!-- Main Card -->
         <div class="lg-card-glass p-8">
            <div class="flex items-start justify-between mb-8">
               <div class="flex items-center gap-4">
-                 <div class="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm border border-blue-100">
+                 <div class="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm border border-blue-100">
                     <FileText :size="24" />
                  </div>
                  <div>
@@ -88,7 +88,7 @@ const getStepStatusClass = (status) => {
            </div>
 
            <div class="prose prose-slate max-w-none">
-              <p class="text-sm text-slate-600 leading-relaxed font-medium bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
+              <p class="text-sm text-slate-600 leading-relaxed font-medium bg-slate-50/50 p-4 rounded-3xl border border-slate-100">
                 {{ request.content }}
               </p>
            </div>
@@ -115,10 +115,10 @@ const getStepStatusClass = (status) => {
 
         <!-- Comments Section -->
         <div class="lg-card-glass p-8">
-           <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+           <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
               <MessageSquare :size="16" /> Thảo luận xử lý
            </h4>
-           <div class="space-y-6">
+           <div class="space-y-4">
               <div v-for="cm in request.comments" :key="cm.id" class="flex gap-4">
                  <div class="h-9 w-9 rounded-full bg-teal-500 flex items-center justify-center text-white text-[10px] font-black shrink-0 shadow-sm shadow-teal-200">PM</div>
                  <div class="flex-1">
@@ -147,10 +147,10 @@ const getStepStatusClass = (status) => {
       </div>
 
       <!-- ── Right: Workflow & Info ── -->
-      <div class="space-y-6">
+      <div class="space-y-4">
         
         <!-- Workflow Stepper -->
-        <div class="lg-card-glass p-8 overflow-hidden relative">
+        <div class="lg-card-glass p-5 overflow-hidden relative">
            <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-8">Quy trình phê duyệt</h4>
            
            <div class="relative space-y-10">
@@ -172,8 +172,8 @@ const getStepStatusClass = (status) => {
         </div>
 
         <!-- Student Info Card -->
-        <div class="lg-card-glass p-6 bg-slate-50/50">
-           <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">Thông tin sinh viên</h4>
+        <div class="lg-card-glass p-4 bg-slate-50/50">
+           <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Thông tin sinh viên</h4>
            <div class="space-y-4">
               <div class="flex items-center gap-4">
                  <div class="h-11 w-11 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 p-0.5">

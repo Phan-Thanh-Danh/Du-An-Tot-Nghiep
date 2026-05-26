@@ -67,21 +67,21 @@ const getStatusStyle = (status) => {
 <template>
   <div class="space-y-8 pb-10 text-slate-800">
     <!-- ── Header ── -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
       <!-- Decorative background -->
-      <div class="absolute -right-32 -bottom-32 h-96 w-96 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-50 to-transparent rounded-full pointer-events-none" />
+      
       
       <div class="relative z-10 flex items-center gap-5">
-        <div class="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white shadow-md shadow-blue-200">
+        <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white shadow-md shadow-blue-200">
            <FileSignature :size="32" />
         </div>
         <div>
-          <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Quản lý Đề thi</h1>
+          <h1 class="text-xl md:text-xl font-black text-slate-900 tracking-tight">Quản lý Đề thi</h1>
           <p class="text-sm font-medium text-slate-500 mt-1">Thiết kế và cấu hình các bộ đề thi trắc nghiệm & tự luận.</p>
         </div>
       </div>
       <div class="relative z-10 flex gap-3">
-         <router-link to="/teacher/exams/create" class="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5 transition-all">
+         <router-link to="/teacher/exams/create" class="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600 px-4 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5 transition-all">
             <Plus :size="18" /> Tạo đề thi mới
          </router-link>
       </div>
@@ -100,12 +100,12 @@ const getStatusStyle = (status) => {
     </div>
 
     <!-- Main List -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div v-for="(exam, index) in filteredExams" :key="exam.id" 
-           class="group rounded-[32px] bg-white border border-slate-100 p-8 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all flex flex-col animate-fade-in-up"
+           class="group rounded-2xl bg-white border border-slate-100 p-5 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all flex flex-col animate-fade-in-up"
            :style="{ animationDelay: `${index * 100}ms` }">
-        <div class="flex justify-between items-start mb-6">
-           <div class="h-14 w-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors shadow-sm">
+        <div class="flex justify-between items-start mb-4">
+           <div class="h-10 w-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors shadow-sm">
               <FileEdit :size="24" />
            </div>
            <div :class="['rounded-xl border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest', getStatusStyle(exam.status)]">
@@ -129,7 +129,7 @@ const getStatusStyle = (status) => {
                     <p class="text-sm font-bold text-slate-700">{{ exam.date }}</p>
                  </div>
               </div>
-              <div class="flex items-center gap-6 mt-2 pt-4 border-t border-slate-50">
+              <div class="flex items-center gap-4 mt-2 pt-4 border-t border-slate-50">
                  <div class="flex items-center gap-2">
                     <Clock :size="14" class="text-blue-400" />
                     <span class="text-sm font-bold text-slate-600">{{ exam.duration }}</span>
@@ -161,17 +161,17 @@ const getStatusStyle = (status) => {
     <div v-if="isConfigModalOpen" class="fixed inset-0 z-[999] flex items-center justify-center p-4">
       <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="isConfigModalOpen = false"></div>
       <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in-up">
-        <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+        <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
           <div>
              <h3 class="text-xl font-bold text-slate-800">Cấu hình Đề thi</h3>
              <p class="text-sm text-slate-500 mt-1">Tùy chỉnh thông số và quy chế thi cho đề này.</p>
           </div>
-          <div class="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm border border-blue-100/50">
+          <div class="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm border border-blue-100/50">
              <Settings :size="24" />
           </div>
         </div>
         
-        <div class="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+        <div class="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
            <div class="space-y-4">
              <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2"><FileEdit :size="16" class="text-blue-500" /> Thông tin cơ bản</h4>
              <div>
@@ -193,7 +193,7 @@ const getStatusStyle = (status) => {
            <div class="space-y-4 pt-4 border-t border-slate-100">
              <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2"><Settings :size="16" class="text-amber-500" /> Quy chế thi</h4>
              
-             <div class="grid grid-cols-2 gap-6">
+             <div class="grid grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-bold text-slate-700 mb-1.5">Số lần làm bài tối đa</label>
                   <select v-model="configuringExam.maxAttempts" class="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all">
@@ -222,7 +222,7 @@ const getStatusStyle = (status) => {
            </div>
         </div>
         
-        <div class="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+        <div class="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
           <button @click="isConfigModalOpen = false" class="px-5 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-200 transition-colors">Đóng</button>
           <button @click="saveConfig" class="px-5 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200 transition-all hover:-translate-y-0.5">Lưu cấu hình</button>
         </div>

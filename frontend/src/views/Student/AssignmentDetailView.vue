@@ -96,7 +96,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
     </Transition>
 
     <!-- HERO -->
-    <div class="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-violet-700 via-violet-600 to-blue-500 p-6 text-white shadow-lg">
+    <div class="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-violet-700 via-violet-600 to-blue-500 p-4 text-white shadow-lg">
       <div class="pointer-events-none absolute right-0 top-0 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
       <div class="relative flex flex-wrap items-start justify-between gap-4">
         <div class="flex-1 min-w-0">
@@ -140,7 +140,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
           <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 text-violet-600"><component :is="icon('RefreshCw')" :size="15" /></div>
           <span class="text-xs font-semibold text-slate-500">Lượt nộp</span>
         </div>
-        <p class="text-2xl font-bold text-slate-900">{{ rules.currentAttempt }}<span class="text-sm text-slate-400">/{{ rules.maxAttempts }}</span></p>
+        <p class="text-xl font-bold text-slate-900">{{ rules.currentAttempt }}<span class="text-sm text-slate-400">/{{ rules.maxAttempts }}</span></p>
         <p class="text-xs text-slate-400 mt-0.5">Còn {{ attemptsLeft }} lượt</p>
       </div>
       <div class="rounded-[20px] border border-white/60 bg-white/80 p-4 shadow-sm backdrop-blur-md">
@@ -148,7 +148,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
           <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-green-50 text-green-600"><component :is="icon('Star')" :size="15" /></div>
           <span class="text-xs font-semibold text-slate-500">Điểm số</span>
         </div>
-        <p v-if="mockFeedback.graded" class="text-2xl font-bold text-green-600">{{ mockFeedback.score }}<span class="text-sm text-slate-400">/{{ mockFeedback.maxScore }}</span></p>
+        <p v-if="mockFeedback.graded" class="text-xl font-bold text-green-600">{{ mockFeedback.score }}<span class="text-sm text-slate-400">/{{ mockFeedback.maxScore }}</span></p>
         <p v-else class="text-sm font-semibold text-slate-500">Chờ chấm</p>
       </div>
     </div>
@@ -194,7 +194,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
           <div class="px-5 py-4 space-y-4">
             <!-- Drag drop -->
             <label @dragover.prevent="isDragging = true" @dragleave="isDragging = false" @drop.prevent="onDrop"
-              :class="['flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-8 transition-colors cursor-pointer', isDragging ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/40']">
+              :class="['flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-5 transition-colors cursor-pointer', isDragging ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/40']">
               <input type="file" class="hidden" multiple @change="onDrop" :accept="rules.allowedFormats.join(',')" />
               <component :is="icon('UploadCloud')" :size="36" :class="isDragging ? 'text-blue-500' : 'text-slate-300'" />
               <div class="text-center">
@@ -306,7 +306,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
           <div class="px-5 py-4">
             <div class="flex items-center justify-between mb-3">
               <span :class="['rounded-full px-2.5 py-1 text-xs font-bold', ps.badge]">{{ ps.label }}</span>
-              <span class="text-2xl font-bold text-slate-900">{{ mockPlagiarismResult.percentage }}%</span>
+              <span class="text-xl font-bold text-slate-900">{{ mockPlagiarismResult.percentage }}%</span>
             </div>
             <div class="h-2 overflow-hidden rounded-full bg-slate-200 mb-3">
               <div :class="['h-full rounded-full bg-gradient-to-r', ps.bar]" :style="{ width: mockPlagiarismResult.percentage + '%' }" />
@@ -324,7 +324,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
           </div>
           <div v-if="mockFeedback.graded" class="px-5 py-4 space-y-4">
             <div class="flex items-center gap-3 rounded-2xl bg-green-50 border border-green-100 p-3">
-              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-green-600 text-white font-bold text-lg">{{ mockFeedback.score }}</div>
+              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-600 text-white font-bold text-lg">{{ mockFeedback.score }}</div>
               <div>
                 <p class="text-sm font-bold text-slate-900">Điểm: {{ mockFeedback.score }}/{{ mockFeedback.maxScore }}</p>
                 <p class="text-xs text-slate-500">Chấm ngày {{ mockFeedback.gradedAt }} bởi {{ mockFeedback.gradedBy }}</p>
@@ -352,7 +352,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
               <p class="text-xs text-violet-700 leading-5">{{ mockFeedback.aiSuggestion }}</p>
             </div>
           </div>
-          <div v-else class="px-5 py-6 text-center">
+          <div v-else class="px-5 py-4 text-center">
             <component :is="icon('Hourglass')" :size="28" class="mx-auto text-slate-300 mb-2" />
             <p class="text-sm font-semibold text-slate-600">Đang chờ giảng viên chấm</p>
             <p class="text-xs text-slate-400 mt-1">Kết quả sẽ được thông báo qua email.</p>

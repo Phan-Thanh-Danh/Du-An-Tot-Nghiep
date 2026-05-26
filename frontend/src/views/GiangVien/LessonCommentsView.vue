@@ -30,16 +30,16 @@ const threads = ref([
 <template>
   <div class="space-y-8 pb-10 text-slate-800">
     <!-- ── Header ── -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
       <!-- Decorative background using radial gradient -->
       <div class="absolute -right-32 -top-32 h-96 w-96 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-50 to-transparent rounded-full pointer-events-none" />
       
       <div class="relative z-10 flex items-center gap-5">
-        <div class="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white shadow-md shadow-blue-200">
+        <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white shadow-md shadow-blue-200">
            <MessageCircle :size="32" />
         </div>
         <div>
-          <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Thảo luận bài học</h1>
+          <h1 class="text-xl md:text-xl font-black text-slate-900 tracking-tight">Thảo luận bài học</h1>
           <p class="text-sm font-medium text-slate-500 mt-1">Theo dõi và phản hồi các thắc mắc của sinh viên dưới bài giảng.</p>
         </div>
       </div>
@@ -50,9 +50,9 @@ const threads = ref([
     </div>
 
     <!-- ── Threads List ── -->
-    <div class="space-y-6 max-w-5xl mx-auto">
+    <div class="space-y-4 max-w-5xl mx-auto">
       <div v-for="thread in threads" :key="thread.id" 
-           class="group rounded-[32px] border border-slate-100 bg-white shadow-sm overflow-hidden p-8 hover:shadow-md hover:border-blue-100 transition-colors">
+           class="group rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden p-5 hover:shadow-md hover:border-blue-100 transition-colors">
            
          <!-- Topic Info -->
          <div class="flex items-center justify-between mb-8 pb-4 border-b border-slate-50">
@@ -66,7 +66,7 @@ const threads = ref([
          <!-- Parent Comment -->
          <div class="flex gap-5">
             <div class="relative flex-shrink-0">
-               <div class="h-14 w-14 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-lg shadow-inner group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+               <div class="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-lg shadow-inner group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
                   {{ thread.user.split(' ').pop()[0] }}
                </div>
             </div>
@@ -79,7 +79,7 @@ const threads = ref([
                </div>
                <p class="mt-2.5 text-base text-slate-700 leading-relaxed font-medium">{{ thread.content }}</p>
                
-               <div class="mt-5 flex items-center gap-6">
+               <div class="mt-5 flex items-center gap-4">
                   <button class="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-blue-600 transition-colors">
                      <ThumbsUp :size="16" /> <span class="text-xs">Hữu ích</span>
                   </button>
@@ -89,10 +89,10 @@ const threads = ref([
                </div>
 
                <!-- Replies -->
-               <div v-if="thread.replies.length > 0" class="mt-8 space-y-6 relative before:absolute before:inset-y-0 before:left-6 before:w-0.5 before:bg-slate-100 before:-z-10">
+               <div v-if="thread.replies.length > 0" class="mt-8 space-y-4 relative before:absolute before:inset-y-0 before:left-6 before:w-0.5 before:bg-slate-100 before:-z-10">
                   <div v-for="reply in thread.replies" :key="reply.id" class="flex gap-5 relative z-10">
                      <div class="flex-shrink-0">
-                        <div :class="['h-12 w-12 rounded-2xl flex items-center justify-center font-black text-sm shadow-sm ring-4 ring-white', 
+                        <div :class="['h-10 w-10 rounded-2xl flex items-center justify-center font-black text-sm shadow-sm ring-4 ring-white', 
                                     reply.isTeacher ? 'bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-blue-100' : 'bg-slate-100 text-slate-500']">
                            {{ reply.user.split(' ').pop()[0] }}
                         </div>
