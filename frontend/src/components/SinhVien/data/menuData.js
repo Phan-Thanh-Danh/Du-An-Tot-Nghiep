@@ -143,13 +143,7 @@ export const sinhVienMenuGroups = [
         label: 'Hồ sơ cá nhân',
         icon: 'UserCircle',
         route: '/student/profile',
-      },
-      {
-        id: 'parent-links',
-        label: 'Liên kết phụ huynh',
-        icon: 'Users',
-        route: '/student/parent-links',
-      },
+      }
     ],
   },
 ]
@@ -176,6 +170,7 @@ export const mockNotifications = [
     read: false,
     icon: 'AlertCircle',
     color: 'red',
+    link: '/student/assignments'
   },
   {
     id: 2,
@@ -186,6 +181,7 @@ export const mockNotifications = [
     read: false,
     icon: 'CheckCircle',
     color: 'green',
+    link: '/student/grades'
   },
   {
     id: 3,
@@ -196,6 +192,7 @@ export const mockNotifications = [
     read: true,
     icon: 'Calendar',
     color: 'blue',
+    link: '/student/schedule'
   },
   {
     id: 4,
@@ -206,5 +203,6 @@ export const mockNotifications = [
     read: true,
     icon: 'Wallet',
     color: 'yellow',
+    link: '/student/tuition'
   },
 ]

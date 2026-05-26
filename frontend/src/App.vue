@@ -1,15 +1,12 @@
 <script setup>
 import { RouterView } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
+import PopupNotification from '@/components/ui/PopupNotification.vue'
 
 useThemeStore()
 </script>
 
 <template>
-  <!--
-    App.vue - Root component
-    Layout_SinhVien (và các layout khác) sẽ tự xử lý
-    toàn bộ UI, không cần global header/nav ở đây.
-  -->
   <RouterView />
+  <PopupNotification />
 </template>

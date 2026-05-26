@@ -1,11 +1,14 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { usePopupStore } from '@/stores/popup'
 import {
   UserCheck, AlertTriangle, UserX, Clock,
   FileText, UploadCloud, X, CheckCircle2,
   Filter, Sparkles, AlertCircle, ChevronDown,
   Info, Eye, FileSignature
 } from 'lucide-vue-next'
+
+const popupStore = usePopupStore()
 
 // Mock Data
 const subjects = ['Tất cả', 'Cấu trúc dữ liệu & Giải thuật', 'Toán rời rạc', 'Lập trình Web']
@@ -125,7 +128,7 @@ const handleFileChange = (e) => {
 const submitExcuse = () => {
   // Mock submission
   if (!excuseForm.value.reason) return
-  alert(`Đã gửi giải trình cho môn ${selectedSession.value.subject}`)
+  popupStore.success('Đã gửi giải trình', `Giải trình cho môn ${selectedSession.value.subject} đã được gửi.`)
   modalOpen.value = false
 }
 

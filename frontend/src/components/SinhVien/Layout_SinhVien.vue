@@ -66,9 +66,8 @@ const pageTitleMap = {
   '/student/tuition': { title: 'Học phí & Thanh toán', subtitle: 'Thông tin học phí và lịch sử giao dịch' },
   '/student/support-tickets': { title: 'Hỗ trợ & Ticket', subtitle: 'Gửi yêu cầu hỗ trợ và theo dõi xử lý' },
   '/student/requests': { title: 'Đơn từ', subtitle: 'Quản lý các đơn từ và yêu cầu' },
-  '/student/evaluations': { title: 'Đánh giá giảng viên', subtitle: 'Đánh giá chất lượng giảng dạy' },
   '/student/profile': { title: 'Hồ sơ cá nhân', subtitle: 'Thông tin cá nhân và cài đặt tài khoản' },
-  '/student/parent-links': { title: 'Liên kết phụ huynh', subtitle: 'Quản lý quyền truy cập của phụ huynh' },
+  '/student/notifications': { title: 'Trung tâm thông báo', subtitle: 'Theo dõi các nhắc nhở, lịch thi, deadline và học phí' },
 }
 
 const currentPageMeta = computed(() => {

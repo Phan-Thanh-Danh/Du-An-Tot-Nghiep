@@ -1,9 +1,11 @@
 <script setup>
 import { ref } from 'vue'
+import { usePopupStore } from '@/stores/popup'
 import { Lock, ArrowLeft, ShieldCheck, KeyRound, AlertCircle } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const popupStore = usePopupStore()
 
 const passwords = ref({
   current: '',
@@ -12,7 +14,7 @@ const passwords = ref({
 })
 
 function handlePasswordChange() {
-  alert('Đã đổi mật khẩu thành công!')
+  popupStore.success('Đã đổi mật khẩu', 'Mật khẩu của bạn đã được cập nhật.')
   router.push('/teacher/profile')
 }
 </script>

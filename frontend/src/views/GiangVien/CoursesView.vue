@@ -51,75 +51,16 @@ const getStatusStyles = (status) => {
     default: return 'bg-slate-50 text-slate-500 border-slate-100'
   }
 }
-
-// ── Actions & Modals ───────────────────────────────────────
-const isEditModalOpen = ref(false)
-const isDeleteModalOpen = ref(false)
-const editingCourse = ref({ id: null, name: '', subject: 'CNTT', semester: 'Spring 2026' })
-const deletingCourseId = ref(null)
-
-function openCreateModal() {
-  editingCourse.value = { id: null, name: '', subject: 'CNTT', semester: 'Spring 2026' }
-  isEditModalOpen.value = true
-}
-
-function openEditModal(course) {
-  editingCourse.value = { ...course }
-  isEditModalOpen.value = true
-}
-
-function saveCourse() {
-  if (editingCourse.value.id) {
-    const idx = courses.value.findIndex(c => c.id === editingCourse.value.id)
-    if (idx !== -1) {
-      courses.value[idx] = { ...courses.value[idx], ...editingCourse.value }
-    }
-  } else {
-    courses.value.push({
-      id: Date.now(),
-      name: editingCourse.value.name || 'Khóa học mới',
-      subject: editingCourse.value.subject,
-      semester: editingCourse.value.semester,
-      lessons: 0,
-      status: 'Draft'
-    })
-  }
-  isEditModalOpen.value = false
-}
-
-function confirmDelete(id) {
-  deletingCourseId.value = id
-  isDeleteModalOpen.value = true
-}
-
-function deleteCourse() {
-  if (deletingCourseId.value) {
-    courses.value = courses.value.filter(c => c.id !== deletingCourseId.value)
-  }
-  isDeleteModalOpen.value = false
-  deletingCourseId.value = null
-}
-
-function publishCourse(id) {
-  const course = courses.value.find(c => c.id === id)
-  if (course) {
-    course.status = 'Published'
-  }
-}
 </script>
 
 <template>
   <div class="space-y-6 pb-10">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Quản lý Khóa học</h1>
-        <p class="text-slate-500 mt-1">Tạo, chỉnh sửa và quản lý nội dung các khóa học bạn phụ trách.</p>
+      <div class="flex-1 min-w-0">
+        <h1 class="text-3xl font-bold text-slate-800 tracking-tight truncate">Quản lý Khóa học</h1>
+        <p class="text-slate-500 mt-1 truncate">Xem thông tin và theo dõi tiến độ các khóa học bạn phụ trách.</p>
       </div>
-      <button @click="openCreateModal" class="lg-button-primary" style="background: linear-gradient(135deg, #4f46e5, #6366f1 52%, #8b5cf6);">
-        <Plus :size="20" />
-        Tạo khóa học mới
-      </button>
     </div>
 
     <!-- Filters Bar -->
@@ -212,36 +153,11 @@ function publishCourse(id) {
               <td class="px-8 py-5 text-right">
                 <div class="flex items-center justify-end gap-1.5">
                   <button 
-                    @click="openEditModal(course)"
-                    class="rounded-xl p-2.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all"
-                    title="Chỉnh sửa"
-                  >
-                    <Edit2 :size="18" />
-                  </button>
-                  
-                  <button 
-                    v-if="course.status === 'Draft'"
-                    @click="publishCourse(course.id)"
-                    class="rounded-xl p-2.5 text-emerald-400 hover:bg-emerald-50 hover:text-emerald-600 transition-all"
-                    title="Công bố"
-                  >
-                    <Send :size="18" />
-                  </button>
-
-                  <button 
                     @click="$router.push('/teacher/classes')"
                     class="rounded-xl p-2.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all"
                     title="Xem chi tiết"
                   >
                     <ExternalLink :size="18" />
-                  </button>
-
-                  <button 
-                    @click="confirmDelete(course.id)"
-                    class="rounded-xl p-2.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-all"
-                    title="Xóa"
-                  >
-                    <Trash2 :size="18" />
                   </button>
                 </div>
               </td>
@@ -270,61 +186,6 @@ function publishCourse(id) {
         <span>Hệ thống LMS Academic Management</span>
       </div>
     </div>
-
-    <!-- Edit/Create Modal -->
-    <Teleport to="body">
-      <div v-if="isEditModalOpen" class="fixed inset-0 z-[999] flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="isEditModalOpen = false"></div>
-        <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in-up">
-          <div class="p-6 border-b border-slate-100 bg-slate-50/50">
-            <h3 class="text-xl font-bold text-slate-800">{{ editingCourse.id ? 'Chỉnh sửa Khóa học' : 'Tạo Khóa học mới' }}</h3>
-            <p class="text-sm text-slate-500 mt-1">Điền thông tin chi tiết cho khóa học.</p>
-          </div>
-          <div class="p-6 space-y-5">
-            <div>
-              <label class="block text-sm font-bold text-slate-700 mb-1.5">Tên khóa học</label>
-              <input v-model="editingCourse.name" type="text" class="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all" placeholder="VD: Lập trình Web..." />
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1.5">Môn học</label>
-                <select v-model="editingCourse.subject" class="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all">
-                  <option v-for="subj in subjects" :key="subj" :value="subj">{{ subj }}</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1.5">Học kỳ</label>
-                <select v-model="editingCourse.semester" class="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all">
-                  <option v-for="s in semesters" :key="s" :value="s">{{ s }}</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
-            <button @click="isEditModalOpen = false" class="px-5 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-200 transition-colors">Hủy</button>
-            <button @click="saveCourse" class="px-5 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200 transition-all hover:-translate-y-0.5">Lưu khóa học</button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
-
-    <!-- Delete Confirm Modal -->
-    <Teleport to="body">
-      <div v-if="isDeleteModalOpen" class="fixed inset-0 z-[999] flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="isDeleteModalOpen = false"></div>
-        <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in-up text-center p-8">
-          <div class="mx-auto w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center text-rose-500 mb-6">
-            <Trash2 :size="32" stroke-width="2.5" />
-          </div>
-          <h3 class="text-xl font-black text-slate-800 mb-2">Xóa khóa học?</h3>
-          <p class="text-slate-500 text-sm mb-8 font-medium">Bạn có chắc chắn muốn xóa khóa học này không? Hành động này không thể hoàn tác.</p>
-          <div class="flex gap-3">
-            <button @click="isDeleteModalOpen = false" class="flex-1 px-4 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">Hủy</button>
-            <button @click="deleteCourse" class="flex-1 px-4 py-3 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-md shadow-rose-200 transition-all hover:-translate-y-0.5">Xóa ngay</button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
   </div>
 </template>
 

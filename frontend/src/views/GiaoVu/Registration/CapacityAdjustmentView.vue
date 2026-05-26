@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { usePopupStore } from '@/stores/popup'
 import { 
   Users, 
   ArrowRight, 
@@ -12,6 +13,8 @@ import {
   Layers
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+
+const popupStore = usePopupStore()
 
 // ── State ────────────────────────────────────────────────────
 const selectedSection = ref({
@@ -31,7 +34,7 @@ function handleAdjust() {
   isProcessing.value = true
   setTimeout(() => {
     isProcessing.value = false
-    alert('Đã cập nhật sức chứa thành công!')
+    popupStore.success('Đã cập nhật', 'Sức chứa lớp học phần đã được điều chỉnh.')
   }, 1000)
 }
 </script>

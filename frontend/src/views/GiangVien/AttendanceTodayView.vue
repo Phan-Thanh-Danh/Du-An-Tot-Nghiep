@@ -1,9 +1,12 @@
 <script setup>
 import { ref } from 'vue'
+import { usePopupStore } from '@/stores/popup'
 import { 
   CheckCircle2, XCircle, Users, Clock, MapPin, 
   ChevronRight, Save, Calendar, Search, ArrowLeft 
 } from 'lucide-vue-next'
+
+const popupStore = usePopupStore()
 
 const todayClasses = ref([
   { id: 1, code: 'SE1601', name: 'Lập trình Java', room: 'A201', time: '07:30 - 10:45', students: 45 },
@@ -23,7 +26,7 @@ function selectClass(cls) {
 }
 
 function submitAttendance() {
-  alert('Đã lưu điểm danh cho lớp ' + selectedClass.value.code)
+  popupStore.success('Đã lưu điểm danh', `Đã lưu điểm danh cho lớp ${selectedClass.value.code}`)
   selectedClass.value = null
 }
 </script>

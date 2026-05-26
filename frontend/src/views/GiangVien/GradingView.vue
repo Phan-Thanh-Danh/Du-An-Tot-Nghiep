@@ -1,10 +1,13 @@
 <script setup>
 import { ref } from 'vue'
+import { usePopupStore } from '@/stores/popup'
 import { 
   ArrowLeft, Search, Download, ExternalLink, 
   MessageSquare, Star, Save, CheckCircle2, AlertCircle,
   FileBox, FileDigit, Clock, Edit3, X
 } from 'lucide-vue-next'
+
+const popupStore = usePopupStore()
 
 const submissions = ref([
   { id: 1, studentId: 'SV16001', name: 'Nguyễn Văn A', file: 'Asm1_NVA.zip', time: '18/05/2026 09:30', score: 8.5, comment: 'Tốt, giao diện sạch sẽ.', status: 'Graded' },
@@ -26,7 +29,7 @@ function saveGrade() {
       submissions.value[idx] = { ...selectedSubmission.value, status: 'Graded' }
     }
     selectedSubmission.value = null
-    alert('Đã lưu điểm và nhận xét!')
+    popupStore.success('Đã lưu điểm', 'Điểm và nhận xét đã được lưu thành công.')
   }
 }
 </script>

@@ -29,28 +29,47 @@ function logout() {
 <template>
   <aside
     :class="[
-      'relative flex flex-col h-full bg-white/70 backdrop-blur-md border-r border-slate-200/50 transition-all duration-300 ease-in-out select-none',
+      'lg-sidebar relative flex h-full flex-col transition-all duration-300 ease-in-out select-none',
       collapsed ? 'w-[64px]' : 'w-[248px]',
     ]"
+    :style="{
+      '--sidebar-glow-1': 'rgba(99, 102, 241, 0.18)',
+      '--sidebar-glow-2': 'rgba(139, 92, 246, 0.14)',
+      '--sidebar-glow-dark-1': 'rgba(99, 102, 241, 0.10)',
+      '--sidebar-glow-dark-2': 'rgba(139, 92, 246, 0.08)',
+      '--sidebar-accent': '#6366f1',
+      '--sidebar-accent-dark': '#a5b4fc',
+      '--sidebar-indicator': '#818cf8',
+      '--sidebar-focus-ring': 'rgba(99, 102, 241, 0.2)',
+      '--active-glow': 'rgba(255, 255, 255, 0.38)',
+      '--active-start': '#4338ca',
+      '--active-mid': '#6366f1',
+      '--active-end': '#818cf8',
+      '--active-shadow-1': 'rgba(67, 56, 202, 0.35)',
+      '--active-shadow-2': 'rgba(99, 102, 241, 0.25)',
+    }"
   >
+    <div class="pointer-events-none absolute -left-24 top-24 h-56 w-56 rounded-full bg-indigo-300/20 dark:bg-indigo-500/8 blur-3xl" />
+    <div class="pointer-events-none absolute -bottom-20 right-0 h-60 w-60 rounded-full bg-violet-300/20 dark:bg-violet-500/8 blur-3xl" />
+
     <!-- ──────────── LOGO / BRAND ──────────── -->
     <div
-      class="flex items-center gap-3 border-b border-slate-200/50 px-4 py-4"
+      class="relative flex items-center gap-3 border-b border-white/45 dark:border-white/10 px-4 py-4 flex-shrink-0"
       :class="collapsed ? 'justify-center px-2' : ''"
     >
-      <div class="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200">
+      <div class="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200/40 dark:shadow-indigo-500/10">
         <GraduationCap :size="20" color="white" :stroke-width="2.2" />
       </div>
       <Transition name="fade-slide">
         <div v-if="!collapsed" class="overflow-hidden">
-          <p class="text-[15px] font-bold leading-tight text-slate-800">EduLMS</p>
-          <p class="text-[11px] text-slate-500 leading-tight">Ban Giám Hiệu</p>
+          <p class="text-[15px] font-bold leading-tight text-heading dark:text-slate-100">EduLMS</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">Ban Giám Hiệu</p>
         </div>
       </Transition>
     </div>
 
     <!-- ──────────── MENU SCROLL AREA ──────────── -->
-    <nav class="flex-1 overflow-y-auto overflow-x-visible px-2 py-3 space-y-0.5 scrollbar-thin">
+    <nav class="relative flex-1 overflow-y-auto overflow-x-visible px-2 py-3 space-y-0.5 scrollbar-thin">
       <SidebarMenuGroup
         v-for="group in bghMenuGroups"
         :key="group.id"
@@ -60,24 +79,26 @@ function logout() {
     </nav>
 
     <!-- ──────────── BOTTOM: HELP + LOGOUT ──────────── -->
-    <div class="border-t border-slate-200/50 px-2 py-3 space-y-0.5">
+    <div class="relative space-y-1 border-t border-white/45 dark:border-white/10 px-3 py-3 flex-shrink-0">
       <button
         :title="collapsed ? 'Trợ giúp' : ''"
         :class="[
-          'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-white/50 hover:text-slate-800 transition-colors',
+          'lg-sidebar-item group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 dark:text-slate-400 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]',
           collapsed ? 'justify-center' : '',
         ]"
+        aria-label="Trợ giúp"
       >
-        <HelpCircle :size="18" stroke-width="1.8" class="flex-shrink-0 text-slate-400 group-hover:text-slate-600 transition-colors" />
+        <HelpCircle :size="18" stroke-width="1.8" class="flex-shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
         <span v-if="!collapsed" class="text-sm font-medium">Trợ giúp</span>
       </button>
 
       <button
         :title="collapsed ? 'Đăng xuất' : ''"
         :class="[
-          'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors',
+          'group flex w-full items-center gap-3 rounded-xl border border-transparent dark:border-transparent px-3 py-2 text-sm text-red-600 dark:text-red-400 transition-all duration-200 hover:border-red-100 dark:hover:border-red-600/30 hover:bg-red-50/80 dark:hover:bg-red-600/20 hover:shadow-sm focus:outline-none focus:ring-4 focus:ring-red-500/15',
           collapsed ? 'justify-center' : '',
         ]"
+        aria-label="Đăng xuất"
         @click="logout"
       >
         <LogOut :size="18" stroke-width="1.8" class="flex-shrink-0 transition-colors" />
@@ -87,20 +108,21 @@ function logout() {
 
     <!-- ──────────── USER CARD ──────────── -->
     <div
-      class="border-t border-slate-200/50 p-3"
+      class="relative border-t border-white/45 dark:border-white/10 p-3 flex-shrink-0"
       :class="collapsed ? 'flex justify-center' : ''"
     >
-      <div :class="['flex items-center gap-3', collapsed ? '' : '']">
-        <div class="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-bold shadow overflow-hidden">
+      <div :class="['lg-nav flex items-center gap-3 rounded-2xl p-2.5', collapsed ? '' : 'w-full']">
+        <div class="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 dark:from-indigo-500/80 dark:to-purple-600/80 text-xs font-bold text-white shadow-lg shadow-indigo-500/20 dark:shadow-indigo-500/10 ring-2 ring-white/70 dark:ring-white/20">
           <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" class="h-full w-full object-cover" />
           <span v-else>{{ authStore.initials || mockBGH.initials }}</span>
+          <span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-slate-800 bg-emerald-500" />
         </div>
         <Transition name="fade-slide">
           <div v-if="!collapsed" class="overflow-hidden min-w-0">
-            <p class="text-[13px] font-semibold text-slate-800 truncate leading-tight">
+            <p class="text-[13px] font-semibold text-heading dark:text-slate-100 truncate leading-tight">
               {{ authStore.displayName || mockBGH.name }}
             </p>
-            <p class="text-[11px] text-slate-500 truncate leading-tight">
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate leading-tight">
               {{ authStore.user?.email || mockBGH.email }}
             </p>
           </div>
@@ -110,8 +132,9 @@ function logout() {
 
     <!-- ──────────── TOGGLE BUTTON ──────────── -->
     <button
-      class="absolute -right-3 top-[60px] z-10 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-all"
+      class="absolute -right-3.5 top-[64px] z-[60] flex h-7 w-7 items-center justify-center rounded-full border border-white/70 dark:border-white/10 bg-white/90 dark:bg-slate-700/70 text-slate-500 dark:text-slate-400 shadow-lg shadow-slate-900/10 dark:shadow-slate-900/40 backdrop-blur-xl transition-all hover:border-indigo-300 dark:hover:border-indigo-500/30 hover:text-indigo-700 dark:hover:text-indigo-300 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]"
       :title="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
+      :aria-label="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       @click="emit('toggle')"
     >
       <component :is="collapsed ? PanelLeftOpen : PanelLeftClose" :size="13" stroke-width="2" />
@@ -139,5 +162,9 @@ function logout() {
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background: rgba(226, 232, 240, 0.8);
   border-radius: 999px;
+}
+
+:global(.dark) .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #475569;
 }
 </style>

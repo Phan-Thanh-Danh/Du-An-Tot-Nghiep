@@ -437,6 +437,7 @@ public class TrainingProgramSubjectService : ITrainingProgramSubjectService
         }
     }
 
+
     private static void ValidateCredits(int credits)
     {
         if (credits <= 0)

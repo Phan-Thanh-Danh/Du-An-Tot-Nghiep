@@ -60,6 +60,48 @@ Frontend:
 - Không hardcode token/user role trong component.
 - UI cần có trạng thái loading, error, empty cho dữ liệu async.
 
+## Design Token & Color System
+
+Tất cả màu sắc phải dùng **semantic tokens** (CSS variables) thay vì hardcode Tailwind color classes.
+
+### Token Layers (trong `liquid-glass.css`)
+
+1. **Core/Primitive tokens** (`--lg-*`): màu gốc (primary, secondary, accent, cyan, indigo)
+2. **Surface tokens** (`--surface-*`): nền cho page, card, sidebar, topbar, input, dropdown, modal
+3. **Text tokens** (`--text-*`): heading, body, label, placeholder, link, inverse
+4. **Border tokens** (`--border-*`): default, card, input, input-focus, focus-ring
+5. **Semantic bg/text tokens** (`--color-*-bg`, `--color-*-text`): success, warning, danger, info
+
+### Utility Classes
+
+- `text-heading` / `text-body` / `text-label` / `text-link` / `text-placeholder` — semantic text colors
+- `surface-card` / `surface-sidebar` / `surface-input` — semantic surface backgrounds
+- `border-default` / `border-card` — semantic border colors
+
+### Role-Specific Sidebar Variables (set via `:style` inline)
+
+Mỗi role (Student/Teacher, GiaoVu, BGH) custom sidebar qua CSS variables:
+
+| Variable | Student/Teacher | GiaoVu | BGH |
+|---|---|---|---|
+| `--sidebar-accent` | blue-600 (#2563eb) | teal-600 (#0d9488) | indigo-500 (#6366f1) |
+| `--sidebar-accent-dark` | blue-400 (#60a5fa) | teal-300 (#5eead4) | indigo-300 (#a5b4fc) |
+| `--sidebar-indicator` | blue-600 | teal-500 (#14b8a6) | indigo-400 (#818cf8) |
+| `--active-start` | blue-700 (#1d4ed8) | teal-700 (#0f766e) | indigo-700 (#4338ca) |
+| `--active-mid` | blue-600 (#2563eb) | teal-600 (#0d9488) | indigo-500 (#6366f1) |
+| `--active-end` | cyan-600 (#0891b2) | teal-500 (#14b8a6) | indigo-400 (#818cf8) |
+
+### Glassmorphism Pattern
+
+Glassmorphism chỉ dùng ở **khu vực có hierarchy** (sidebar, topbar, card nổi, modal). Không dùng glass cho bảng dữ liệu, form dài, hay vùng text-heavy.
+
+- `lg-glass` / `lg-glass-strong` / `lg-glass-soft` — các biến thể glass surface (đều có dark mode)
+- `lg-sidebar` — sidebar glass với blur + gradient (custom glow per role qua `--sidebar-glow-*`)
+- `lg-topbar` — topbar glass effect
+- Các panel content như Teacher Dashboard dùng `lg-glass-soft` thay vì `bg-white border-slate-100`
+
+Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`, `border-slate-100`. Dùng semantic tokens hoặc `lg-*` class.
+
 ## Quy Ước API
 
 - Base path backend hiện dùng `/api/...`.

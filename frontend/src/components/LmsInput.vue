@@ -55,7 +55,7 @@ const errorId = computed(() => `${inputId.value}-error`)
     <label
       v-if="label"
       :for="inputId"
-      :class="['text-sm font-semibold text-slate-700', { 'after:ml-1 after:text-red-600 after:content-[\'*\']': required }]"
+      :class="['lg-label', { 'after:ml-1 after:text-red-600 after:content-[\'*\']': required }]"
     >
       {{ label }}
     </label>
@@ -65,7 +65,7 @@ const errorId = computed(() => `${inputId.value}-error`)
         v-if="icon"
         :is="icon"
         :size="18"
-        class="absolute left-3.5 top-1/2 -translate-y-1/2 shrink-0 text-slate-400 pointer-events-none"
+        class="absolute left-3.5 top-1/2 -translate-y-1/2 shrink-0 text-slate-400 dark:text-slate-500 pointer-events-none"
       />
 
       <input
@@ -84,7 +84,7 @@ const errorId = computed(() => `${inputId.value}-error`)
       />
     </div>
 
-    <p v-if="error" :id="errorId" class="text-sm font-medium text-red-600">
+    <p v-if="error" :id="errorId" class="lg-error-text">
       {{ error }}
     </p>
   </div>

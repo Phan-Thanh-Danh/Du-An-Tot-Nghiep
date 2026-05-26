@@ -1,9 +1,12 @@
 <script setup>
 import { ref } from 'vue'
+import { usePopupStore } from '@/stores/popup'
 import { 
   Search, Edit3, Save, Download, Filter, 
   ChevronRight, ArrowUpDown, CheckCircle 
 } from 'lucide-vue-next'
+
+const popupStore = usePopupStore()
 
 const gradesData = ref([
   { id: 'SV16001', name: 'Nguyễn Văn A', assignment: 8.5, exam: 7.5, total: 7.9, isEditing: false },
@@ -140,7 +143,7 @@ function calculateTotal(sv) {
     </div>
 
     <!-- Note Section -->
-    <div class="lg-alert lg-alert-info">
+    <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 text-sm text-blue-800 shadow-sm">
        <p class="font-bold">Hướng dẫn nhập điểm</p>
        <ul class="mt-1 text-xs space-y-1 list-disc list-inside opacity-80">
           <li>Điểm tổng kết được tính tự động dựa trên trọng số môn học.</li>

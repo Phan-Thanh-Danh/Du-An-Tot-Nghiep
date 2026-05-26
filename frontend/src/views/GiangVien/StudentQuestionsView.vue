@@ -1,9 +1,12 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { usePopupStore } from '@/stores/popup'
 import { 
   MessageSquare, User, Search, Send, CheckCircle2, 
   Clock, MoreHorizontal, Filter, MessageCircle, HelpCircle
 } from 'lucide-vue-next'
+
+const popupStore = usePopupStore()
 
 const questions = ref([
   { id: 1, student: 'Nguyễn Văn A', question: 'Thầy ơi, bài Assignment 1 có yêu cầu dùng Tailwind không ạ?', status: 'Pending', time: '10 phút trước' },
@@ -33,7 +36,7 @@ function openReply(q) {
 function sendReply() {
   if (selectedQ.value) {
     selectedQ.value.status = 'Answered'
-    alert('Đã gửi phản hồi cho ' + selectedQ.value.student)
+    popupStore.success('Đã gửi phản hồi', `Phản hồi đã được gửi đến ${selectedQ.value.student}`)
     selectedQ.value = null
   }
 }

@@ -105,9 +105,9 @@ function addLesson(chapterId) {
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex flex-col lg:flex-row gap-8 h-[calc(100vh-260px)] min-h-[600px]">
+    <div class="flex flex-col lg:flex-row-reverse gap-8 h-[calc(100vh-260px)] min-h-[600px]">
       
-      <!-- ── LEFT SIDEBAR: Syllabus / Chapters ── -->
+      <!-- ── RIGHT SIDEBAR: Syllabus / Chapters ── -->
       <aside class="w-full lg:w-[400px] flex flex-col bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden shrink-0">
         <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <h2 class="font-black text-slate-800 flex items-center gap-2 text-lg">
@@ -168,7 +168,7 @@ function addLesson(chapterId) {
         </div>
       </aside>
 
-      <!-- ── RIGHT CONTENT: Lesson Editor / Details ── -->
+      <!-- ── LEFT CONTENT: Lesson Editor / Details ── -->
       <main class="flex-1 flex flex-col bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
         
         <template v-if="activeLessonId">

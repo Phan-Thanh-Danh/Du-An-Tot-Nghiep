@@ -48,20 +48,20 @@ function preloadRoute() {
     @mouseenter="preloadRoute"
     @focus="preloadRoute"
     :class="[
-      'lg-sidebar-item group relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20',
+      'lg-sidebar-item group relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]',
       depth === 0
         ? 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100'
         : 'pl-4 text-[13px] text-slate-500 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-300',
       isActive
         ? depth === 0
           ? 'lg-sidebar-item-active font-semibold'
-          : 'border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-700/60 text-blue-800 dark:text-blue-300 font-semibold shadow-sm'
+          : 'border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-700/60 text-[var(--sidebar-accent-dark)] font-semibold shadow-sm'
         : '',
     ]"
   >
     <!-- Active indicator line -->
     <span
-      class="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-blue-600 dark:bg-blue-500 transition-all duration-300 ease-out origin-center"
+      class="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-[var(--sidebar-indicator)] transition-all duration-300 ease-out origin-center"
       :class="[isActive && depth === 0 ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-50']"
     />
 
@@ -73,8 +73,8 @@ function preloadRoute() {
       :class="[
         'flex-shrink-0 transition-colors duration-300',
         isActive
-          ? depth === 0 ? 'text-white' : 'text-blue-600 dark:text-blue-400'
-          : 'text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400',
+          ? depth === 0 ? 'text-white' : 'text-[var(--sidebar-accent)]'
+          : 'text-slate-400 dark:text-slate-500 group-hover:text-[var(--sidebar-accent)]',
       ]"
     />
 
@@ -85,7 +85,7 @@ function preloadRoute() {
 
     <!-- Active dot for depth > 0 -->
     <div
-      class="h-1.5 w-1.5 rounded-full bg-blue-500 dark:bg-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.5)] dark:shadow-[0_0_8px_rgba(96,165,250,0.3)] transition-all duration-300 ease-out"
+      class="h-1.5 w-1.5 rounded-full bg-[var(--sidebar-indicator)] shadow-[0_0_8px_var(--sidebar-focus-ring)] transition-all duration-300 ease-out"
       :class="[isActive && depth > 0 && !collapsed ? 'opacity-100 scale-100' : 'opacity-0 scale-0']"
     />
   </router-link>
@@ -95,7 +95,7 @@ function preloadRoute() {
     :title="collapsed ? item.label : ''"
     role="menuitem"
     :class="[
-      'lg-sidebar-item group relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20',
+      'lg-sidebar-item group relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]',
       depth === 0
         ? 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100'
         : 'pl-4 text-[13px] text-slate-500 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-300',
@@ -106,7 +106,7 @@ function preloadRoute() {
       :is="IconComponent"
       :size="depth === 0 ? 18 : 15"
       stroke-width="1.8"
-      class="flex-shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+      class="flex-shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-[var(--sidebar-accent)]"
     />
 
     <!-- Label -->

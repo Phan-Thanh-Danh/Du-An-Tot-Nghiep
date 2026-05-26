@@ -26,10 +26,10 @@ const props = defineProps({
 const emit = defineEmits(['click'])
 
 const variantClass = computed(() => ({
-  primary: 'bg-blue-600 text-white shadow-[0_10px_24px_rgba(37,99,235,0.24)] hover:bg-blue-700 focus-visible:ring-4 focus-visible:ring-blue-500/20 font-semibold',
+  primary: 'lg-button-primary font-semibold',
   secondary: 'lg-button-secondary font-semibold',
   ghost: 'lg-button-ghost font-semibold',
-  danger: 'bg-red-600 text-white shadow-lg shadow-red-600/20 hover:bg-red-700 focus-visible:ring-4 focus-visible:ring-red-500/20',
+  danger: 'lg-btn-danger font-semibold',
 }[props.variant]))
 
 const sizeClass = computed(() => ({

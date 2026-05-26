@@ -30,7 +30,7 @@ const errorId = computed(() => `${inputId.value}-error`)
 
 <template>
   <div class="block space-y-2">
-    <label v-if="label" :for="inputId" class="block text-sm font-semibold text-slate-700">
+    <label v-if="label" :for="inputId" class="lg-label">
       {{ label }}
     </label>
     <div
@@ -53,12 +53,12 @@ const errorId = computed(() => `${inputId.value}-error`)
         :required="required"
         :aria-invalid="error ? 'true' : undefined"
         :aria-describedby="error ? errorId : undefined"
-        class="min-w-0 flex-1 bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
+        class="min-w-0 flex-1 bg-transparent text-sm text-heading outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 disabled:cursor-not-allowed"
         @input="emit('update:modelValue', $event.target.value)"
       />
       <slot name="suffix" />
     </div>
-    <p v-if="error" :id="errorId" role="alert" class="text-sm font-semibold text-red-600">
+    <p v-if="error" :id="errorId" role="alert" class="lg-error-text">
       {{ error }}
     </p>
   </div>

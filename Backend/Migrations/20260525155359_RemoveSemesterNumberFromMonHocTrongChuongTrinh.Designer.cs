@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260521060937_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260525155359_RemoveSemesterNumberFromMonHocTrongChuongTrinh")]
+    partial class RemoveSemesterNumberFromMonHocTrongChuongTrinh
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1263,6 +1263,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("hoc_ky_du_kien");
 
+                    b.Property<int?>("MaChuongTrinhMonHoc")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_chuong_trinh_mon_hoc");
+
                     b.Property<int>("MaChuyenNganh")
                         .HasColumnType("int")
                         .HasColumnName("ma_chuyen_nganh");
@@ -1304,7 +1308,10 @@ namespace Backend.Migrations
                         .HasColumnName("version");
 
                     b.HasKey("MaSyllabus")
-                        .HasName("PK_CourseSyllabus");
+                        .HasName("PK_DeCuongMonHoc");
+
+                    b.HasIndex("MaChuongTrinhMonHoc")
+                        .HasDatabaseName("IX_DeCuongMonHoc_ma_chuong_trinh_mon_hoc");
 
                     b.HasIndex("MaChuyenNganh");
 
@@ -1312,14 +1319,14 @@ namespace Backend.Migrations
 
                     b.HasIndex("MaMonHoc", "MaChuyenNganh", "MaDonVi", "Version")
                         .IsUnique()
-                        .HasDatabaseName("UQ_CourseSyllabus_1")
+                        .HasDatabaseName("UQ_DeCuongMonHoc_1")
                         .HasFilter("[ma_don_vi] IS NOT NULL");
 
-                    b.ToTable("CourseSyllabus", "dbo", t =>
+                    b.ToTable("DeCuongMonHoc", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_CourseSyllabus_hoc_ky_du_kien_1", "[hoc_ky_du_kien] IS NULL OR [hoc_ky_du_kien] > 0");
+                            t.HasCheckConstraint("CK_DeCuongMonHoc_hoc_ky_du_kien_1", "[hoc_ky_du_kien] IS NULL OR [hoc_ky_du_kien] > 0");
 
-                            t.HasCheckConstraint("CK_CourseSyllabus_trang_thai_1", "[trang_thai] IN (N'draft', N'pending_approval', N'approved', N'active', N'inactive', N'archived')");
+                            t.HasCheckConstraint("CK_DeCuongMonHoc_trang_thai_1", "[trang_thai] IN (N'draft', N'pending_approval', N'approved', N'active', N'inactive', N'archived')");
                         });
                 });
 
@@ -2755,6 +2762,92 @@ namespace Backend.Migrations
                     b.ToTable("MonHocTienQuyet", "dbo", t =>
                         {
                             t.HasCheckConstraint("CK_MonHocTienQuyet_diem_toi_thieu_1", "[diem_toi_thieu] BETWEEN 0 AND 10");
+                        });
+                });
+
+            modelBuilder.Entity("Backend.Models.MonHocTrongChuongTrinh", b =>
+                {
+                    b.Property<int>("MaChuongTrinhMonHoc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("ma_chuong_trinh_mon_hoc");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaChuongTrinhMonHoc"));
+
+                    b.Property<bool>("BatBuoc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true)
+                        .HasColumnName("bat_buoc");
+
+                    b.Property<bool>("ConHoatDong")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true)
+                        .HasColumnName("con_hoat_dong");
+
+                    b.Property<string>("GhiChu")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ghi_chu");
+
+                    b.Property<int>("HocKyDuKien")
+                        .HasColumnType("int")
+                        .HasColumnName("hoc_ky_du_kien");
+
+                    b.Property<string>("LoaiMonHoc")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasColumnName("loai_mon_hoc");
+
+                    b.Property<int>("MaChuongTrinh")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_chuong_trinh");
+
+                    b.Property<int>("MaMonHoc")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_mon_hoc");
+
+                    b.Property<DateTime?>("NgayCapNhat")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ngay_cap_nhat");
+
+                    b.Property<DateTime>("NgayTao")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ngay_tao")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("SoTinChi")
+                        .HasColumnType("int")
+                        .HasColumnName("so_tin_chi");
+
+                    b.Property<int>("ThuTu")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("thu_tu");
+
+                    b.HasKey("MaChuongTrinhMonHoc")
+                        .HasName("PK_MonHocTrongChuongTrinh");
+
+                    b.HasIndex("MaMonHoc")
+                        .HasDatabaseName("IX_MonHocTrongChuongTrinh_ma_mon_hoc");
+
+                    b.HasIndex("MaChuongTrinh", "HocKyDuKien")
+                        .HasDatabaseName("IX_MonHocTrongChuongTrinh_chuong_trinh_hoc_ky");
+
+                    b.HasIndex("MaChuongTrinh", "MaMonHoc")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_MonHocTrongChuongTrinh_chuong_trinh_mon_hoc");
+
+                    b.ToTable("MonHocTrongChuongTrinh", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_hoc_ky_du_kien", "[hoc_ky_du_kien] > 0");
+
+                            t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_loai_mon_hoc", "[loai_mon_hoc] IN (N'bat_buoc', N'tu_chon', N'thay_the')");
+
+                            t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_so_tin_chi", "[so_tin_chi] > 0");
                         });
                 });
 
@@ -4629,31 +4722,39 @@ namespace Backend.Migrations
 
             modelBuilder.Entity("Backend.Models.CourseSyllabus", b =>
                 {
+                    b.HasOne("Backend.Models.MonHocTrongChuongTrinh", "MonHocTrongChuongTrinh")
+                        .WithMany()
+                        .HasForeignKey("MaChuongTrinhMonHoc")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_DeCuongMonHoc_ma_chuong_trinh_mon_hoc__MonHocTrongChuongTrinh");
+
                     b.HasOne("Backend.Models.ChuyenNganh", "ChuyenNganh")
                         .WithMany()
                         .HasForeignKey("MaChuyenNganh")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("FK_CourseSyllabus_ma_chuyen_nganh__ChuyenNganh");
+                        .HasConstraintName("FK_DeCuongMonHoc_ma_chuyen_nganh__ChuyenNganh");
 
                     b.HasOne("Backend.Models.DonVi", "DonVi")
                         .WithMany()
                         .HasForeignKey("MaDonVi")
                         .OnDelete(DeleteBehavior.NoAction)
-                        .HasConstraintName("FK_CourseSyllabus_ma_don_vi__DonVi");
+                        .HasConstraintName("FK_DeCuongMonHoc_ma_don_vi__DonVi");
 
                     b.HasOne("Backend.Models.DanhMucMonHoc", "MonHoc")
                         .WithMany()
                         .HasForeignKey("MaMonHoc")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("FK_CourseSyllabus_ma_mon_hoc__DanhMucMonHoc");
+                        .HasConstraintName("FK_DeCuongMonHoc_ma_mon_hoc__DanhMucMonHoc");
 
                     b.Navigation("ChuyenNganh");
 
                     b.Navigation("DonVi");
 
                     b.Navigation("MonHoc");
+
+                    b.Navigation("MonHocTrongChuongTrinh");
                 });
 
             modelBuilder.Entity("Backend.Models.DangKyHocPhan", b =>
@@ -5162,6 +5263,27 @@ namespace Backend.Migrations
                     b.Navigation("MonHoc");
 
                     b.Navigation("MonTienQuyet");
+                });
+
+            modelBuilder.Entity("Backend.Models.MonHocTrongChuongTrinh", b =>
+                {
+                    b.HasOne("Backend.Models.ChuongTrinhDaoTao", "ChuongTrinhDaoTao")
+                        .WithMany()
+                        .HasForeignKey("MaChuongTrinh")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_MonHocTrongChuongTrinh_ma_chuong_trinh__ChuongTrinhDaoTao");
+
+                    b.HasOne("Backend.Models.DanhMucMonHoc", "DanhMucMonHoc")
+                        .WithMany()
+                        .HasForeignKey("MaMonHoc")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_MonHocTrongChuongTrinh_ma_mon_hoc__DanhMucMonHoc");
+
+                    b.Navigation("ChuongTrinhDaoTao");
+
+                    b.Navigation("DanhMucMonHoc");
                 });
 
             modelBuilder.Entity("Backend.Models.NguoiDung", b =>

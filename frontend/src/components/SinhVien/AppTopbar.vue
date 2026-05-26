@@ -37,7 +37,7 @@ const pageTitleMap = {
   '/student/requests': { title: 'Đơn từ', subtitle: 'Yêu cầu học vụ đang xử lý' },
   '/student/evaluations': { title: 'Đánh giá', subtitle: 'Khảo sát chất lượng giảng dạy' },
   '/student/profile': { title: 'Cá nhân', subtitle: 'Hồ sơ và cài đặt tài khoản' },
-  '/student/parent-links': { title: 'Phụ huynh', subtitle: 'Quyền truy cập thông tin học tập' },
+  '/student/notifications': { title: 'Thông báo', subtitle: 'Trung tâm tin tức và nhắc nhở' },
 }
 
 const currentMeta = computed(() => {
@@ -229,7 +229,7 @@ const workspaceName = computed(() => {
               class="flex cursor-pointer gap-3 px-4 py-3 transition-all hover:bg-white/60 dark:hover:bg-white/5 active:scale-[0.98]"
               role="menuitem"
               tabindex="0"
-              @click="closeAll"
+              @click="() => { closeAll(); if(notif.link) router.push(notif.link); }"
             >
               <div :class="['flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[10px]', notifColorClass(notif.color)]">
                 <component :is="getIcon(notif.icon)" :size="14" />
@@ -242,7 +242,7 @@ const workspaceName = computed(() => {
             </div>
           </div>
           <div class="border-t border-slate-100/50 dark:border-white/10 px-4 py-2.5 text-center bg-slate-50/30 dark:bg-slate-700/20">
-            <button class="text-[11px] font-bold text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:hover:text-blue-200">Xem tất cả thông báo</button>
+            <button class="text-[11px] font-bold text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:hover:text-blue-200" @click="router.push('/student/notifications'); closeAll()">Xem tất cả thông báo</button>
           </div>
         </div>
       </Transition>
