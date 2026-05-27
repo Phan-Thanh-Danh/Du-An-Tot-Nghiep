@@ -1903,12 +1903,15 @@ public class ApplicationDbContext : DbContext
                 .IsRequired();
             entity.Property(e => e.MaGiaoVienChuNhiem)
                 .HasColumnName("ma_giao_vien_chu_nhiem");
+            entity.Property(e => e.MaChuongTrinh)
+                .HasColumnName("ma_chuong_trinh");
             entity.Property(e => e.NamNhapHoc)
                 .HasColumnName("nam_nhap_hoc");
             entity.Property(e => e.ConHoatDong)
                 .HasColumnName("con_hoat_dong")
                 .HasDefaultValue(true);
             entity.HasIndex(e => e.MaCodeLop).IsUnique().HasDatabaseName("UQ_LopHanhChinh_1");
+            entity.HasIndex(e => e.MaChuongTrinh).HasDatabaseName("IX_LopHanhChinh_ma_chuong_trinh");
             entity.HasOne(e => e.DonVi)
                 .WithMany()
                 .HasForeignKey(e => e.MaDonVi)
@@ -1919,6 +1922,11 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaGiaoVienChuNhiem)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_LopHanhChinh_ma_giao_vien_chu_nhiem__NguoiDung");
+            entity.HasOne(e => e.ChuongTrinh)
+                .WithMany(e => e.LopHanhChinhs)
+                .HasForeignKey(e => e.MaChuongTrinh)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_LopHanhChinh_ma_chuong_trinh__ChuongTrinhDaoTao");
         });
 
         modelBuilder.Entity<LopHocPhan>(entity =>

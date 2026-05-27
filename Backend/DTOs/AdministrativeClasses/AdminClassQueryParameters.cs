@@ -12,5 +12,6 @@ public class AdminClassQueryParameters
 
     public string? Keyword { get; set; }
     public int? MaDonVi { get; set; }
+    public int? MaChuongTrinh { get; set; }
     public bool? ConHoatDong { get; set; }
 }

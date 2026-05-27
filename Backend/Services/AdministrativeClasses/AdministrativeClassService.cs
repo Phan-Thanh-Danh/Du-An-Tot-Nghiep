@@ -48,6 +48,11 @@ public class AdministrativeClassService : IAdministrativeClassService
             query = query.Where(x => x.Class.MaDonVi == parameters.MaDonVi.Value);
         }
 
+        if (parameters.MaChuongTrinh.HasValue)
+        {
+            query = query.Where(x => x.Class.MaChuongTrinh == parameters.MaChuongTrinh.Value);
+        }
+
         if (parameters.ConHoatDong.HasValue)
         {
             query = query.Where(x => x.Class.ConHoatDong == parameters.ConHoatDong.Value);
@@ -59,7 +64,7 @@ public class AdministrativeClassService : IAdministrativeClassService
             .ThenBy(x => x.Class.TenLop)
             .Skip((parameters.PageIndex - 1) * parameters.PageSize)
             .Take(parameters.PageSize)
-            .Select(x => ToDto(x.Class, x.Organization, x.Teacher))
+            .Select(x => ToDto(x.Class, x.Organization, x.Teacher, x.TrainingProgram))
             .ToListAsync(cancellationToken);
 
         return new PagedResultDto<AdminClassDto>
@@ -84,7 +89,7 @@ public class AdministrativeClassService : IAdministrativeClassService
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy lớp hành chính.");
         }
 
-        return ToDto(result.Class, result.Organization, result.Teacher);
+        return ToDto(result.Class, result.Organization, result.Teacher, result.TrainingProgram);
     }
 
     public async Task<AdminClassDto> CreateAsync(
@@ -98,6 +103,7 @@ public class AdministrativeClassService : IAdministrativeClassService
         await ValidateClassCodeAsync(classCode, null, cancellationToken);
         var organization = await ValidateOrganizationAsync(request.MaDonVi, currentUser, cancellationToken);
         var teacher = await ValidateTeacherAsync(request.MaGiaoVienChuNhiem, organization.MaDonVi, cancellationToken);
+        var trainingProgram = await ValidateTrainingProgramAsync(request.MaChuongTrinh, cancellationToken);
 
         var classEntity = new LopHanhChinh
         {
@@ -105,6 +111,7 @@ public class AdministrativeClassService : IAdministrativeClassService
             MaCodeLop = classCode,
             TenLop = className,
             MaGiaoVienChuNhiem = teacher?.MaNguoiDung,
+            MaChuongTrinh = trainingProgram?.MaChuongTrinh,
             NamNhapHoc = request.NamNhapHoc,
             ConHoatDong = true
         };
@@ -112,7 +119,7 @@ public class AdministrativeClassService : IAdministrativeClassService
         _context.LopHanhChinhs.Add(classEntity);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return ToDto(classEntity, organization, teacher);
+        return ToDto(classEntity, organization, teacher, trainingProgram);
     }
 
     public async Task<AdminClassDto> UpdateAsync(
@@ -128,16 +135,18 @@ public class AdministrativeClassService : IAdministrativeClassService
         await ValidateClassCodeAsync(classCode, classId, cancellationToken);
         var organization = await ValidateOrganizationAsync(request.MaDonVi, currentUser, cancellationToken);
         var teacher = await ValidateTeacherAsync(request.MaGiaoVienChuNhiem, organization.MaDonVi, cancellationToken);
+        var trainingProgram = await ValidateTrainingProgramAsync(request.MaChuongTrinh, cancellationToken);
 
         classEntity.MaDonVi = organization.MaDonVi;
         classEntity.MaCodeLop = classCode;
         classEntity.TenLop = className;
         classEntity.MaGiaoVienChuNhiem = teacher?.MaNguoiDung;
+        classEntity.MaChuongTrinh = trainingProgram?.MaChuongTrinh;
         classEntity.NamNhapHoc = request.NamNhapHoc;
         classEntity.ConHoatDong = request.ConHoatDong;
 
         await _context.SaveChangesAsync(cancellationToken);
-        return ToDto(classEntity, organization, teacher);
+        return ToDto(classEntity, organization, teacher, trainingProgram);
     }
 
     public async Task DeleteAsync(int classId, CancellationToken cancellationToken = default)
@@ -146,6 +155,83 @@ public class AdministrativeClassService : IAdministrativeClassService
         var classEntity = await GetManagedClassAsync(classId, currentUser, cancellationToken);
         classEntity.ConHoatDong = false;
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<List<AdminClassDto>> BulkAssignClassesAsync(
+        BulkAssignClassesRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+
+        if (request.MaLops.Count != request.MaLops.Distinct().Count())
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Danh sách lớp chứa ID trùng lặp.");
+        }
+
+        var trainingProgram = await ValidateTrainingProgramAsync(request.MaChuongTrinh, cancellationToken);
+        if (trainingProgram is null)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chương trình đào tạo không tồn tại.");
+        }
+
+        if (!trainingProgram.ConHoatDong)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chương trình đào tạo không hoạt động.");
+        }
+
+        var classes = await _context.LopHanhChinhs
+            .Where(x => request.MaLops.Contains(x.MaLop))
+            .ToListAsync(cancellationToken);
+
+        var foundIds = classes.Select(x => x.MaLop).ToHashSet();
+        var missingIds = request.MaLops.Where(id => !foundIds.Contains(id)).ToList();
+        if (missingIds.Count > 0)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest,
+                $"Không tìm thấy lớp hành chính: {string.Join(", ", missingIds)}.");
+        }
+
+        foreach (var classEntity in classes)
+        {
+            if (!await CanManageOrganizationAsync(currentUser, classEntity.MaDonVi, cancellationToken))
+            {
+                throw new ApiException(StatusCodes.Status403Forbidden,
+                    $"Bạn không có quyền quản lý lớp '{classEntity.MaCodeLop}'.");
+            }
+        }
+
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            foreach (var classEntity in classes)
+            {
+                classEntity.MaChuongTrinh = trainingProgram.MaChuongTrinh;
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+
+        var classIds = classes.Select(x => x.MaLop).ToList();
+        var entities = await _context.LopHanhChinhs
+            .AsNoTracking()
+            .Include(x => x.DonVi)
+            .Include(x => x.GiaoVienChuNhiem)
+            .Include(x => x.ChuongTrinh)
+            .Where(x => classIds.Contains(x.MaLop))
+            .OrderBy(x => x.DonVi!.TenDonVi)
+            .ThenBy(x => x.TenLop)
+            .ToListAsync(cancellationToken);
+
+        return entities
+            .Select(x => ToDto(x, x.DonVi!, x.GiaoVienChuNhiem, x.ChuongTrinh))
+            .ToList();
     }
 
     private IQueryable<ClassQueryResult> CreateClassQuery()
@@ -157,7 +243,10 @@ public class AdministrativeClassService : IAdministrativeClassService
             join teacher in _context.NguoiDungs.AsNoTracking()
                 on classEntity.MaGiaoVienChuNhiem equals teacher.MaNguoiDung into teacherJoin
             from teacher in teacherJoin.DefaultIfEmpty()
-            select new ClassQueryResult(classEntity, organization, teacher);
+            join trainingProgram in _context.ChuongTrinhDaoTaos.AsNoTracking()
+                on classEntity.MaChuongTrinh equals trainingProgram.MaChuongTrinh into trainingProgramJoin
+            from trainingProgram in trainingProgramJoin.DefaultIfEmpty()
+            select new ClassQueryResult(classEntity, organization, teacher, trainingProgram);
     }
 
     private async Task<LopHanhChinh> GetManagedClassAsync(
@@ -245,6 +334,27 @@ public class AdministrativeClassService : IAdministrativeClassService
         return teacher;
     }
 
+    private async Task<ChuongTrinhDaoTao?> ValidateTrainingProgramAsync(
+        int? trainingProgramId,
+        CancellationToken cancellationToken)
+    {
+        if (!trainingProgramId.HasValue)
+        {
+            return null;
+        }
+
+        var trainingProgram = await _context.ChuongTrinhDaoTaos
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.MaChuongTrinh == trainingProgramId.Value, cancellationToken);
+
+        if (trainingProgram is null)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chương trình đào tạo không tồn tại.");
+        }
+
+        return trainingProgram;
+    }
+
     private CurrentUserContext GetCurrentUser()
     {
         var currentUser = _httpContextAccessor.HttpContext?.Items["CurrentUser"] as CurrentUserContext;
@@ -317,7 +427,11 @@ public class AdministrativeClassService : IAdministrativeClassService
         return normalizedValue;
     }
 
-    private static AdminClassDto ToDto(LopHanhChinh classEntity, DonVi organization, NguoiDung? teacher)
+    private static AdminClassDto ToDto(
+        LopHanhChinh classEntity,
+        DonVi organization,
+        NguoiDung? teacher,
+        ChuongTrinhDaoTao? trainingProgram = null)
     {
         return new AdminClassDto
         {
@@ -328,10 +442,17 @@ public class AdministrativeClassService : IAdministrativeClassService
             TenLop = classEntity.TenLop,
             MaGiaoVienChuNhiem = classEntity.MaGiaoVienChuNhiem,
             TenGiaoVienChuNhiem = teacher?.HoTen,
+            MaChuongTrinh = classEntity.MaChuongTrinh,
+            MaCodeChuongTrinh = trainingProgram?.MaCodeChuongTrinh,
+            TenChuongTrinh = trainingProgram?.TenChuongTrinh,
             NamNhapHoc = classEntity.NamNhapHoc,
             ConHoatDong = classEntity.ConHoatDong
         };
     }
 
-    private sealed record ClassQueryResult(LopHanhChinh Class, DonVi Organization, NguoiDung? Teacher);
+    private sealed record ClassQueryResult(
+        LopHanhChinh Class,
+        DonVi Organization,
+        NguoiDung? Teacher,
+        ChuongTrinhDaoTao? TrainingProgram);
 }

@@ -35,4 +35,5 @@ public class ChuongTrinhDaoTao
     public KhoaTuyenSinh? KhoaTuyenSinh { get; set; }
     public ChuongTrinhDaoTao? NguonChuongTrinh { get; set; }
     public ICollection<ChuongTrinhDaoTao> ChuongTrinhPhienBanCon { get; set; } = new List<ChuongTrinhDaoTao>();
+    public ICollection<LopHanhChinh> LopHanhChinhs { get; set; } = new List<LopHanhChinh>();
 }
