@@ -316,6 +316,7 @@ public static class Data
         );
 
         await SeedCourseSyllabusTestDataAsync(context, trainingProgram, specialization, pro101);
+        await SeedAcademicTermsAndMappingAsync(context, campus, trainingProgram);
     }
 
     private static async Task SeedCourseSyllabusTestDataAsync(
@@ -566,8 +567,8 @@ public static class Data
         trainingProgram.MaCodeChuongTrinh = TrainingProgramSourceCode;
         trainingProgram.TenChuongTrinh = "Chương trình đào tạo Phát triển phần mềm K21";
         trainingProgram.Version = "2026.1";
-        trainingProgram.SoHocKy = 7;
-        trainingProgram.ThoiGianDaoTaoThang = 28;
+        trainingProgram.SoHocKy = 9;
+        trainingProgram.ThoiGianDaoTaoThang = 36;
         trainingProgram.TongTinChiYeuCau = 125;
         trainingProgram.SoTinChiToiThieuMoiKy = 12;
         trainingProgram.SoTinChiToiDaMoiKy = 24;
@@ -575,7 +576,7 @@ public static class Data
         trainingProgram.MoTa = "Chương trình nguồn để test clone sang K22";
         trainingProgram.NguonChuongTrinhId = null;
         trainingProgram.GhiChuThayDoi = null;
-        trainingProgram.NgayHieuLuc = new DateOnly(2026, 9, 1);
+        trainingProgram.NgayHieuLuc = new DateOnly(2025, 9, 1);
         trainingProgram.NgayHetHieuLuc = null;
         trainingProgram.ConHoatDong = true;
         trainingProgram.NgayCapNhat = DateTime.UtcNow;
@@ -640,5 +641,82 @@ public static class Data
         programSubject.GhiChu = note;
         programSubject.ConHoatDong = true;
         programSubject.NgayCapNhat = DateTime.UtcNow;
+    }
+
+    private static async Task SeedAcademicTermsAndMappingAsync(
+        ApplicationDbContext context,
+        DonVi campus,
+        ChuongTrinhDaoTao trainingProgram)
+    {
+        var terms = new[]
+        {
+            // (maCode, ten, namHoc, thuTuTrongNam, start, end, block5, thuTuHocKy)
+            ("FAL2025", "Học kỳ Fall 2025",              "2025-2026", 3, new DateOnly(2025, 9, 1),  new DateOnly(2025, 12, 31), new DateOnly(2026, 1, 5),   1),
+            ("SPR2026", "Học kỳ Spring 2026",            "2025-2026", 1, new DateOnly(2026, 1, 1),  new DateOnly(2026, 4, 30),  new DateOnly(2026, 5, 5),   2),
+            ("SUM2026", "Học kỳ Summer 2026",            "2025-2026", 2, new DateOnly(2026, 5, 1),  new DateOnly(2026, 8, 31),  new DateOnly(2026, 9, 5),   3),
+            ("FAL2026", "Học kỳ Fall 2026",              "2026-2027", 3, new DateOnly(2026, 9, 1),  new DateOnly(2026, 12, 31), new DateOnly(2027, 1, 5),   4),
+            ("SPR2027", "Học kỳ Spring 2027",            "2026-2027", 1, new DateOnly(2027, 1, 1),  new DateOnly(2027, 4, 30),  new DateOnly(2027, 5, 5),   5),
+            ("SUM2027", "Học kỳ Summer 2027 (OJT)",      "2026-2027", 2, new DateOnly(2027, 5, 1),  new DateOnly(2027, 8, 31),  new DateOnly(2027, 9, 5),   6),
+            ("FAL2027", "Học kỳ Fall 2027",              "2027-2028", 3, new DateOnly(2027, 9, 1),  new DateOnly(2027, 12, 31), new DateOnly(2028, 1, 5),   7),
+            ("SPR2028", "Học kỳ Spring 2028",            "2027-2028", 1, new DateOnly(2028, 1, 1),  new DateOnly(2028, 4, 30),  new DateOnly(2028, 5, 5),   8),
+            ("SUM2028", "Học kỳ Summer 2028 (Tốt nghiệp)","2027-2028", 2, new DateOnly(2028, 5, 1),  new DateOnly(2028, 8, 31),  new DateOnly(2028, 9, 5),   9),
+        };
+
+        foreach (var (maCode, ten, namHoc, thuTuTrongNam, start, end, block5, thuTuHocKy) in terms)
+        {
+            var hocKy = await context.HocKys.FirstOrDefaultAsync(x =>
+                x.MaCodeHocKy == maCode && x.MaDonVi == campus.MaDonVi);
+
+            if (hocKy is null)
+            {
+                hocKy = new HocKy
+                {
+                    MaDonVi = campus.MaDonVi,
+                    MaCodeHocKy = maCode,
+                    TenHocKy = ten,
+                    NamHoc = namHoc,
+                    ThuTuTrongNam = thuTuTrongNam,
+                    NgayBatDau = start,
+                    NgayKetThuc = end,
+                    NgayKetThucBlock5 = block5,
+                    DaKhoa = false,
+                    SoTinChiToiDa = 24,
+                    HanRutMon = start.AddDays(14),
+                };
+                context.HocKys.Add(hocKy);
+                await context.SaveChangesAsync();
+            }
+            else
+            {
+                hocKy.MaCodeHocKy = maCode;
+                hocKy.TenHocKy = ten;
+                hocKy.NamHoc = namHoc;
+                hocKy.ThuTuTrongNam = thuTuTrongNam;
+                hocKy.NgayBatDau = start;
+                hocKy.NgayKetThuc = end;
+                hocKy.NgayKetThucBlock5 = block5;
+            }
+
+            var mapping = await context.ChuongTrinhHocKys.FirstOrDefaultAsync(x =>
+                x.MaChuongTrinh == trainingProgram.MaChuongTrinh &&
+                x.ThuTuHocKy == thuTuHocKy);
+
+            if (mapping is null)
+            {
+                mapping = new ChuongTrinhHocKy
+                {
+                    MaChuongTrinh = trainingProgram.MaChuongTrinh,
+                    MaHocKy = hocKy.MaHocKy,
+                    ThuTuHocKy = thuTuHocKy,
+                };
+                context.ChuongTrinhHocKys.Add(mapping);
+            }
+            else
+            {
+                mapping.MaHocKy = hocKy.MaHocKy;
+            }
+        }
+
+        await context.SaveChangesAsync();
     }
 }

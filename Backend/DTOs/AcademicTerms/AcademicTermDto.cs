@@ -9,6 +9,9 @@ public class AcademicTermDto
     public string TenHocKy { get; set; } = string.Empty;
     public DateOnly NgayBatDau { get; set; }
     public DateOnly NgayKetThuc { get; set; }
+    public string NamHoc { get; set; } = string.Empty;
+    public int ThuTuTrongNam { get; set; }
+    public DateOnly? NgayKetThucBlock5 { get; set; }
     public bool DaKhoa { get; set; }
     public int? SoTinChiToiDa { get; set; }
     public DateOnly? HanRutMon { get; set; }

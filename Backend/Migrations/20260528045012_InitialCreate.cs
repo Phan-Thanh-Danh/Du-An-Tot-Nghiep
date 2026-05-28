@@ -244,6 +244,9 @@ namespace Backend.Migrations
                     ten_hoc_ky = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     ngay_bat_dau = table.Column<DateOnly>(type: "date", nullable: false),
                     ngay_ket_thuc = table.Column<DateOnly>(type: "date", nullable: false),
+                    nam_hoc = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    thu_tu_trong_nam = table.Column<int>(type: "int", nullable: false),
+                    ngay_ket_thuc_block5 = table.Column<DateOnly>(type: "date", nullable: true),
                     da_khoa = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     so_tin_chi_toi_da = table.Column<int>(type: "int", nullable: true),
                     han_rut_mon = table.Column<DateOnly>(type: "date", nullable: true)
@@ -251,6 +254,7 @@ namespace Backend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_HocKy", x => x.ma_hoc_ky);
+                    table.CheckConstraint("CK_HocKy_thu_tu_trong_nam_1", "[thu_tu_trong_nam] IN (1, 2, 3)");
                     table.ForeignKey(
                         name: "FK_HocKy_ma_don_vi__DonVi",
                         column: x => x.ma_don_vi,
@@ -962,6 +966,35 @@ namespace Backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ChuongTrinhHocKy",
+                schema: "dbo",
+                columns: table => new
+                {
+                    ma_chuong_trinh_hoc_ky = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ma_chuong_trinh = table.Column<int>(type: "int", nullable: false),
+                    ma_hoc_ky = table.Column<int>(type: "int", nullable: false),
+                    thu_tu_hoc_ky = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ChuongTrinhHocKy", x => x.ma_chuong_trinh_hoc_ky);
+                    table.CheckConstraint("CK_ChuongTrinhHocKy_thu_tu_hoc_ky_1", "[thu_tu_hoc_ky] > 0");
+                    table.ForeignKey(
+                        name: "FK_ChuongTrinhHocKy_ma_chuong_trinh__ChuongTrinhDaoTao",
+                        column: x => x.ma_chuong_trinh,
+                        principalSchema: "dbo",
+                        principalTable: "ChuongTrinhDaoTao",
+                        principalColumn: "ma_chuong_trinh");
+                    table.ForeignKey(
+                        name: "FK_ChuongTrinhHocKy_ma_hoc_ky__HocKy",
+                        column: x => x.ma_hoc_ky,
+                        principalSchema: "dbo",
+                        principalTable: "HocKy",
+                        principalColumn: "ma_hoc_ky");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MonHocTrongChuongTrinh",
                 schema: "dbo",
                 columns: table => new
@@ -1488,12 +1521,19 @@ namespace Backend.Migrations
                     ma_code_lop = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     ten_lop = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     ma_giao_vien_chu_nhiem = table.Column<int>(type: "int", nullable: true),
+                    ma_chuong_trinh = table.Column<int>(type: "int", nullable: true),
                     nam_nhap_hoc = table.Column<int>(type: "int", nullable: true),
                     con_hoat_dong = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_LopHanhChinh", x => x.ma_lop);
+                    table.ForeignKey(
+                        name: "FK_LopHanhChinh_ma_chuong_trinh__ChuongTrinhDaoTao",
+                        column: x => x.ma_chuong_trinh,
+                        principalSchema: "dbo",
+                        principalTable: "ChuongTrinhDaoTao",
+                        principalColumn: "ma_chuong_trinh");
                     table.ForeignKey(
                         name: "FK_LopHanhChinh_ma_don_vi__DonVi",
                         column: x => x.ma_don_vi,
@@ -2492,6 +2532,26 @@ namespace Backend.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_ChuongTrinhHocKy_ma_hoc_ky",
+                schema: "dbo",
+                table: "ChuongTrinhHocKy",
+                column: "ma_hoc_ky");
+
+            migrationBuilder.CreateIndex(
+                name: "UQ_ChuongTrinhHocKy_1",
+                schema: "dbo",
+                table: "ChuongTrinhHocKy",
+                columns: new[] { "ma_chuong_trinh", "thu_tu_hoc_ky" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "UQ_ChuongTrinhHocKy_2",
+                schema: "dbo",
+                table: "ChuongTrinhHocKy",
+                columns: new[] { "ma_chuong_trinh", "ma_hoc_ky" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ChuyenNganh_ma_nganh",
                 schema: "dbo",
                 table: "ChuyenNganh",
@@ -2798,10 +2858,11 @@ namespace Backend.Migrations
                 filter: "[ma_giao_dich_cong] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_HocKy_ma_don_vi",
+                name: "UQ_HocKy_1",
                 schema: "dbo",
                 table: "HocKy",
-                column: "ma_don_vi");
+                columns: new[] { "ma_don_vi", "nam_hoc", "thu_tu_trong_nam" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_HoSoKyLuat_ma_don_vi",
@@ -2870,6 +2931,12 @@ namespace Backend.Migrations
                 table: "LienKetPhuHuynh",
                 columns: new[] { "ma_phu_huynh", "ma_hoc_sinh" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LopHanhChinh_ma_chuong_trinh",
+                schema: "dbo",
+                table: "LopHanhChinh",
+                column: "ma_chuong_trinh");
 
             migrationBuilder.CreateIndex(
                 name: "IX_LopHanhChinh_ma_don_vi",
@@ -3661,6 +3728,21 @@ namespace Backend.Migrations
                 table: "NguoiDung");
 
             migrationBuilder.DropForeignKey(
+                name: "FK_ChuongTrinhDaoTao_nguoi_duyet_id__NguoiDung",
+                schema: "dbo",
+                table: "ChuongTrinhDaoTao");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_ChuongTrinhDaoTao_nguoi_gui_duyet_id__NguoiDung",
+                schema: "dbo",
+                table: "ChuongTrinhDaoTao");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_ChuongTrinhDaoTao_nguoi_tu_choi_id__NguoiDung",
+                schema: "dbo",
+                table: "ChuongTrinhDaoTao");
+
+            migrationBuilder.DropForeignKey(
                 name: "FK_LopHanhChinh_ma_giao_vien_chu_nhiem__NguoiDung",
                 schema: "dbo",
                 table: "LopHanhChinh");
@@ -3707,6 +3789,10 @@ namespace Backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "CauHoiThuongGap",
+                schema: "dbo");
+
+            migrationBuilder.DropTable(
+                name: "ChuongTrinhHocKy",
                 schema: "dbo");
 
             migrationBuilder.DropTable(
@@ -3894,10 +3980,6 @@ namespace Backend.Migrations
                 schema: "dbo");
 
             migrationBuilder.DropTable(
-                name: "ChuongTrinhDaoTao",
-                schema: "dbo");
-
-            migrationBuilder.DropTable(
                 name: "BuoiHoc",
                 schema: "dbo");
 
@@ -3906,23 +3988,11 @@ namespace Backend.Migrations
                 schema: "dbo");
 
             migrationBuilder.DropTable(
-                name: "ChuyenNganh",
-                schema: "dbo");
-
-            migrationBuilder.DropTable(
-                name: "KhoaTuyenSinh",
-                schema: "dbo");
-
-            migrationBuilder.DropTable(
                 name: "ThoiKhoaBieu",
                 schema: "dbo");
 
             migrationBuilder.DropTable(
                 name: "KhoaHoc",
-                schema: "dbo");
-
-            migrationBuilder.DropTable(
-                name: "NganhDaoTao",
                 schema: "dbo");
 
             migrationBuilder.DropTable(
@@ -3951,6 +4021,22 @@ namespace Backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "LopHanhChinh",
+                schema: "dbo");
+
+            migrationBuilder.DropTable(
+                name: "ChuongTrinhDaoTao",
+                schema: "dbo");
+
+            migrationBuilder.DropTable(
+                name: "ChuyenNganh",
+                schema: "dbo");
+
+            migrationBuilder.DropTable(
+                name: "KhoaTuyenSinh",
+                schema: "dbo");
+
+            migrationBuilder.DropTable(
+                name: "NganhDaoTao",
                 schema: "dbo");
         }
     }
