@@ -308,7 +308,11 @@ public class TrainingProgramService : ITrainingProgramService
             });
         }
 
-        // TODO: Clone CourseSyllabus sau khi nghiệp vụ syllabus theo MonHocTrongChuongTrinh được hoàn thiện.
+        var sourceOldToNewIdMap = await CloneCourseSyllabusesAsync(
+            sourceProgram.MaChuongTrinh,
+            program.MaChuongTrinh,
+            distinctSubjects,
+            cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -999,6 +1003,66 @@ public class TrainingProgramService : ITrainingProgramService
     private static string? NormalizeOptionalText(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private async Task<Dictionary<int, int>> CloneCourseSyllabusesAsync(
+        int sourceProgramId,
+        int newProgramId,
+        List<MonHocTrongChuongTrinh> distinctSubjects,
+        CancellationToken cancellationToken)
+    {
+        var sourceIds = distinctSubjects
+            .Select(x => x.MaChuongTrinhMonHoc)
+            .ToHashSet();
+
+        var sourceSyllabuses = await _context.CourseSyllabuses
+            .AsNoTracking()
+            .Where(x => x.MaChuongTrinhMonHoc.HasValue
+                     && sourceIds.Contains(x.MaChuongTrinhMonHoc.Value)
+                     && x.ConHoatDong)
+            .ToListAsync(cancellationToken);
+
+        if (sourceSyllabuses.Count == 0)
+            return new Dictionary<int, int>();
+
+        var newSubjects = await _context.MonHocTrongChuongTrinhs
+            .AsNoTracking()
+            .Where(x => x.MaChuongTrinh == newProgramId && x.ConHoatDong)
+            .ToListAsync(cancellationToken);
+
+        var oldToNewIdMap = new Dictionary<int, int>();
+        foreach (var sourceSubject in distinctSubjects)
+        {
+            var newSubject = newSubjects.FirstOrDefault(x => x.MaMonHoc == sourceSubject.MaMonHoc);
+            if (newSubject != null)
+            {
+                oldToNewIdMap[sourceSubject.MaChuongTrinhMonHoc] = newSubject.MaChuongTrinhMonHoc;
+            }
+        }
+
+        foreach (var sourceSyllabus in sourceSyllabuses)
+        {
+            if (!sourceSyllabus.MaChuongTrinhMonHoc.HasValue) continue;
+            if (!oldToNewIdMap.TryGetValue(sourceSyllabus.MaChuongTrinhMonHoc.Value, out var newMaChuongTrinhMonHoc))
+                continue;
+
+            _context.CourseSyllabuses.Add(new CourseSyllabus
+            {
+                MaMonHoc = sourceSyllabus.MaMonHoc,
+                MaChuyenNganh = sourceSyllabus.MaChuyenNganh,
+                MaDonVi = sourceSyllabus.MaDonVi,
+                MaChuongTrinhMonHoc = newMaChuongTrinhMonHoc,
+                TenSyllabus = sourceSyllabus.TenSyllabus,
+                Version = sourceSyllabus.Version + "-clone-" + newProgramId,
+                HocKyDuKien = sourceSyllabus.HocKyDuKien,
+                BatBuoc = sourceSyllabus.BatBuoc,
+                TrangThai = DraftStatus,
+                ConHoatDong = true,
+                NgayTao = DateTime.UtcNow
+            });
+        }
+
+        return oldToNewIdMap;
     }
 
     private static TrainingProgramDto ToDto(ChuongTrinhDaoTao program)

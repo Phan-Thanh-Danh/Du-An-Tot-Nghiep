@@ -64,4 +64,13 @@ public class AdminClassesController : ControllerBase
         await _classService.DeleteAsync(id, cancellationToken);
         return Ok(ApiResponseDto.Ok("Xóa lớp hành chính thành công"));
     }
+
+    [HttpPost("bulk-assign")]
+    public async Task<ActionResult<ApiResponseDto<List<AdminClassDto>>>> BulkAssignClasses(
+        BulkAssignClassesRequest request,
+        CancellationToken cancellationToken)
+    {
+        var classes = await _classService.BulkAssignClassesAsync(request, cancellationToken);
+        return Ok(ApiResponseDto<List<AdminClassDto>>.Ok(classes, "Gắn chương trình đào tạo thành công"));
+    }
 }

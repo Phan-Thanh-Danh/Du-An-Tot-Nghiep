@@ -9,6 +9,9 @@ public class AdminClassDto
     public string TenLop { get; set; } = string.Empty;
     public int? MaGiaoVienChuNhiem { get; set; }
     public string? TenGiaoVienChuNhiem { get; set; }
+    public int? MaChuongTrinh { get; set; }
+    public string? MaCodeChuongTrinh { get; set; }
+    public string? TenChuongTrinh { get; set; }
     public int? NamNhapHoc { get; set; }
     public bool ConHoatDong { get; set; }
 }

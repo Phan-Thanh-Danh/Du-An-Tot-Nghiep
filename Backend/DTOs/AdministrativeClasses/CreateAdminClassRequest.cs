@@ -17,6 +17,9 @@ public class CreateAdminClassRequest
 
     public int? MaGiaoVienChuNhiem { get; set; }
 
+    [Range(1, int.MaxValue, ErrorMessage = "Chương trình đào tạo không hợp lệ.")]
+    public int? MaChuongTrinh { get; set; }
+
     [Range(1900, 2100, ErrorMessage = "Năm nhập học không hợp lệ.")]
     public int? NamNhapHoc { get; set; }
 }

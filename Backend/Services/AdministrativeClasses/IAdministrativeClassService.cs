@@ -10,4 +10,5 @@ public interface IAdministrativeClassService
     Task<AdminClassDto> CreateAsync(CreateAdminClassRequest request, CancellationToken cancellationToken = default);
     Task<AdminClassDto> UpdateAsync(int classId, UpdateAdminClassRequest request, CancellationToken cancellationToken = default);
     Task DeleteAsync(int classId, CancellationToken cancellationToken = default);
+    Task<List<AdminClassDto>> BulkAssignClassesAsync(BulkAssignClassesRequest request, CancellationToken cancellationToken = default);
 }
