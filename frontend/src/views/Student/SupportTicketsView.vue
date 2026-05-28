@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 import { usePopupStore } from '@/stores/popup'
 import {
   LifeBuoy, Search, Filter, Plus, Send, Clock, 
@@ -66,6 +67,7 @@ const chatInput = ref('')
 
 // Modals
 const createModalOpen = ref(false)
+useBodyScrollLock(createModalOpen)
 const ratingModalOpen = ref(false)
 const createStep = ref(1) // 1: Input & AI FAQ, 2: Form
 
@@ -581,8 +583,8 @@ const setRating = (val) => rating.value = val
 .btn-icon:hover { background: rgba(148,163,184,.15); color: #0f172a; }
 
 /* Modals */
-.modal-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(15,23,42,.4); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 1rem; }
-.modal-content { background: rgba(255,255,255,.95); backdrop-filter: saturate(180%) blur(24px); width: 100%; border-radius: 24px; box-shadow: 0 24px 80px rgba(2,6,23,.32); overflow: hidden; border: 1px solid rgba(255,255,255,.5); }
+.modal-overlay { position: fixed; inset: 0; z-index: 9998; background: rgba(15,23,42,.4); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.modal-content { position: relative; z-index: 9999; background: rgba(255,255,255,.95); backdrop-filter: saturate(180%) blur(24px); width: 100%; border-radius: 24px; box-shadow: 0 24px 80px rgba(2,6,23,.32); overflow: hidden; border: 1px solid rgba(255,255,255,.5); }
 .modal-content.lg { max-width: 600px; }
 .modal-content.sm { max-width: 400px; }
 .modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(148,163,184,.15); display: flex; justify-content: space-between; align-items: center; }

@@ -19,4 +19,30 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  build: {
+    chunkSizeWarningLimit: 1500,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              test: /[\\/]node_modules[\\/](?:vue|pinia|vue-router)[\\/]/,
+              name: 'vendor-vue',
+              priority: 20,
+            },
+            {
+              test: /[\\/]node_modules[\\/]xlsx[\\/]/,
+              name: 'vendor-xlsx',
+              priority: 20,
+            },
+            {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendor',
+              priority: 10,
+            },
+          ],
+        },
+      },
+    },
+  },
 })

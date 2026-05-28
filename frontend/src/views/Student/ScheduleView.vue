@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 import {
   CalendarDays, Clock, MapPin, User, Video, X,
   ChevronLeft, ChevronRight, ExternalLink, Bell,
@@ -11,6 +12,7 @@ const today = new Date()
 const currentDate = ref(new Date(today))
 const selectedEvent = ref(null)
 const drawerOpen = ref(false)
+useBodyScrollLock(drawerOpen)
 const searchSubject = ref('')
 
 const mockSessions = [
@@ -202,51 +204,49 @@ const metrics = computed(()=>{
       </div>
     </div>
 
-    <!-- Drawer Overlay -->
+    <!-- Event Detail Modal -->
     <Teleport to="body">
-      <Transition name="fade">
-        <div v-if="drawerOpen" class="drawer-overlay" @click.self="closeDrawer">
-          <Transition name="slide-right">
-            <div v-if="selectedEvent" class="drawer">
-              <div class="drawer-header">
-                <div>
-                  <span class="ev-badge lg" :class="statusConfig[selectedEvent.status]?.cls">{{ statusConfig[selectedEvent.status]?.label }}</span>
-                  <h2 class="drawer-title">{{ selectedEvent.subject }}</h2>
-                  <p class="drawer-code">{{ selectedEvent.code }}</p>
-                </div>
-                <button class="close-btn" @click="closeDrawer"><X :size="20"/></button>
+      <Transition name="modal">
+        <div v-if="drawerOpen" class="modal-overlay" @click.self="closeDrawer">
+          <div v-if="selectedEvent" class="modal-content lg">
+            <div class="modal-header">
+              <div>
+                <span class="ev-badge lg" :class="statusConfig[selectedEvent.status]?.cls">{{ statusConfig[selectedEvent.status]?.label }}</span>
+                <h2 class="modal-title">{{ selectedEvent.subject }}</h2>
+                <p class="modal-code">{{ selectedEvent.code }}</p>
               </div>
+              <button class="close-btn" @click="closeDrawer"><X :size="20"/></button>
+            </div>
 
-              <div class="drawer-body">
-                <div class="info-row"><Clock :size="16" class="info-icon"/><span>{{ fmt(selectedEvent.date) }} – {{ fmt(selectedEvent.endDate) }}</span></div>
-                <div class="info-row"><MapPin :size="16" class="info-icon"/><span>{{ selectedEvent.room }}</span></div>
-                <div class="info-row"><User :size="16" class="info-icon"/><span>{{ selectedEvent.teacher }}</span></div>
-                <div v-if="selectedEvent.type==='online'" class="info-row">
-                  <Video :size="16" class="info-icon text-violet"/>
-                  <a :href="selectedEvent.meetLink" target="_blank" class="meet-link">
-                    <ExternalLink :size="13"/>Tham gia buổi học online
-                  </a>
-                </div>
-                <div v-if="selectedEvent.status==='cancelled'" class="cancel-notice">
-                  <AlertTriangle :size="15"/>
-                  {{ selectedEvent.cancelReason || 'Buổi học bị huỷ.' }}
-                </div>
-                <div v-if="selectedEvent.status==='makeup'" class="makeup-notice">
-                  <RefreshCw :size="15"/>Đây là buổi học bù.
-                </div>
-                <div v-if="selectedEvent.type==='online'" class="online-notice">
-                  <Bell :size="15"/>Sẽ nhận thông báo 30 phút trước khi buổi học bắt đầu.
-                </div>
-              </div>
-
-              <div class="drawer-footer">
-                <button class="btn-secondary" @click="closeDrawer">Đóng</button>
-                <a v-if="selectedEvent.type==='online'" :href="selectedEvent.meetLink" target="_blank" class="btn-primary">
-                  <Video :size="15"/>Mở link học
+            <div class="modal-body">
+              <div class="info-row"><Clock :size="16" class="info-icon"/><span>{{ fmt(selectedEvent.date) }} – {{ fmt(selectedEvent.endDate) }}</span></div>
+              <div class="info-row"><MapPin :size="16" class="info-icon"/><span>{{ selectedEvent.room }}</span></div>
+              <div class="info-row"><User :size="16" class="info-icon"/><span>{{ selectedEvent.teacher }}</span></div>
+              <div v-if="selectedEvent.type==='online'" class="info-row">
+                <Video :size="16" class="info-icon text-violet"/>
+                <a :href="selectedEvent.meetLink" target="_blank" class="meet-link">
+                  <ExternalLink :size="13"/>Tham gia buổi học online
                 </a>
               </div>
+              <div v-if="selectedEvent.status==='cancelled'" class="cancel-notice">
+                <AlertTriangle :size="15"/>
+                {{ selectedEvent.cancelReason || 'Buổi học bị huỷ.' }}
+              </div>
+              <div v-if="selectedEvent.status==='makeup'" class="makeup-notice">
+                <RefreshCw :size="15"/>Đây là buổi học bù.
+              </div>
+              <div v-if="selectedEvent.type==='online'" class="online-notice">
+                <Bell :size="15"/>Sẽ nhận thông báo 30 phút trước khi buổi học bắt đầu.
+              </div>
             </div>
-          </Transition>
+
+            <div class="modal-footer">
+              <button class="btn-secondary" @click="closeDrawer">Đóng</button>
+              <a v-if="selectedEvent.type==='online'" :href="selectedEvent.meetLink" target="_blank" class="btn-primary">
+                <Video :size="15"/>Mở link học
+              </a>
+            </div>
+          </div>
         </div>
       </Transition>
     </Teleport>
@@ -330,14 +330,15 @@ const metrics = computed(()=>{
 .ev-dot-amber{background:rgba(217,119,6,.1);color:#b45309}
 .ev-dot-red{background:rgba(220,38,38,.08);color:#b91c1c}
 
-.drawer-overlay{position:fixed;inset:0;z-index:999;background:rgba(15,23,42,.3);backdrop-filter:blur(4px);display:flex;justify-content:flex-end}
-.drawer{width:420px;max-width:95vw;background:rgba(255,255,255,.92);backdrop-filter:saturate(180%) blur(24px);box-shadow:-8px 0 40px rgba(15,23,42,.18);display:flex;flex-direction:column;height:100%}
-.drawer-header{padding:1.5rem;border-bottom:1px solid rgba(148,163,184,.15);display:flex;justify-content:space-between;align-items:flex-start}
-.drawer-title{font-size:1.1rem;font-weight:800;color:#0f172a;margin:.25rem 0 .125rem;line-height:1.3}
-.drawer-code{font-size:.78rem;color:#64748b;margin:0}
+.modal-overlay{position:fixed;inset:0;z-index:9998;background:rgba(15,23,42,.4);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1rem}
+.modal-content{position:relative;z-index:9999;background:rgba(255,255,255,.95);backdrop-filter:saturate(180%) blur(24px);width:100%;max-height:90vh;border-radius:24px;box-shadow:0 24px 80px rgba(2,6,23,.32);overflow:hidden;border:1px solid rgba(255,255,255,.5);display:flex;flex-direction:column}
+.modal-content.lg{max-width:560px}
+.modal-header{padding:1.25rem 1.5rem;border-bottom:1px solid rgba(148,163,184,.15);display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}
+.modal-title{font-size:1.1rem;font-weight:800;color:#0f172a;margin:.25rem 0 .125rem;line-height:1.3}
+.modal-code{font-size:.78rem;color:#64748b;margin:0}
 .close-btn{width:36px;height:36px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:rgba(248,250,252,.8);color:#475569;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
 .close-btn:hover{border-color:#dc2626;color:#dc2626}
-.drawer-body{flex:1;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;overflow-y:auto}
+.modal-body{flex:1;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;overflow-y:auto}
 .info-row{display:flex;align-items:center;gap:.75rem;font-size:.875rem;color:#374151}
 .info-icon{color:#94a3b8;flex-shrink:0}
 .text-violet{color:#7c3aed}
@@ -347,20 +348,18 @@ const metrics = computed(()=>{
 .cancel-notice{background:rgba(220,38,38,.06);color:#b91c1c;border:1px solid rgba(220,38,38,.15)}
 .makeup-notice{background:rgba(217,119,6,.06);color:#b45309;border:1px solid rgba(217,119,6,.15)}
 .online-notice{background:rgba(124,58,237,.06);color:#6d28d9;border:1px solid rgba(124,58,237,.15)}
-.drawer-footer{padding:1.25rem 1.5rem;border-top:1px solid rgba(148,163,184,.15);display:flex;gap:.75rem;justify-content:flex-end}
+.modal-footer{padding:1.25rem 1.5rem;border-top:1px solid rgba(148,163,184,.15);display:flex;gap:.75rem;justify-content:flex-end;flex-shrink:0}
 .btn-secondary,.btn-primary{display:inline-flex;align-items:center;gap:.375rem;padding:.5rem 1.25rem;border-radius:10px;font-size:.8125rem;font-weight:700;cursor:pointer;border:none;transition:all .15s;text-decoration:none}
 .btn-secondary{background:rgba(248,250,252,.9);color:#374151;border:1px solid rgba(148,163,184,.3)}
 .btn-secondary:hover{border-color:#2563eb;color:#2563eb}
 .btn-primary{background:#7c3aed;color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.3)}
 .btn-primary:hover{background:#6d28d9;transform:translateY(-1px)}
 
-.fade-enter-active,.fade-leave-active{transition:opacity .25s}
-.fade-enter-from,.fade-leave-to{opacity:0}
-.slide-right-enter-active,.slide-right-leave-active{transition:transform .3s cubic-bezier(0.16,1,.3,1)}
-.slide-right-enter-from,.slide-right-leave-to{transform:translateX(100%)}
+.modal-enter-active,.modal-leave-active{transition:all .3s cubic-bezier(0.16,1,.3,1)}
+.modal-enter-from,.modal-leave-to{opacity:0;transform:scale(0.95)}
 
 @media(max-width:900px){.metrics-row{grid-template-columns:repeat(2,1fr)}.week-grid{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:640px){.schedule-page{padding:1rem}.metrics-row{grid-template-columns:repeat(2,1fr);gap:.75rem}.week-grid{grid-template-columns:repeat(2,1fr)}.drawer{width:100%}}
+@media(max-width:640px){.schedule-page{padding:1rem}.metrics-row{grid-template-columns:repeat(2,1fr);gap:.75rem}.week-grid{grid-template-columns:repeat(2,1fr)}.modal-content{margin:0 .5rem}}
 
 /* ── Dark Mode ─────────────────────────────────────── */
 :global(.dark) .page-title{color:#f1f5f9}
@@ -444,14 +443,15 @@ const metrics = computed(()=>{
 :global(.dark) .ev-dot-amber{background:rgba(217,119,6,.2);color:#fcd34d}
 :global(.dark) .ev-dot-red{background:rgba(220,38,38,.15);color:#fca5a5}
 
-:global(.dark) .drawer{
+:global(.dark) .modal-overlay{background:rgba(2,6,23,.6)}
+:global(.dark) .modal-content{
   background:rgba(10,16,32,.92);
-  backdrop-filter:saturate(160%) blur(28px);
-  box-shadow:-8px 0 48px rgba(2,6,23,.6);
+  border-color:rgba(255,255,255,.1);
+  box-shadow:0 24px 80px rgba(2,6,23,.6);
 }
-:global(.dark) .drawer-header{border-bottom-color:rgba(255,255,255,.08)}
-:global(.dark) .drawer-title{color:#f1f5f9}
-:global(.dark) .drawer-code{color:#64748b}
+:global(.dark) .modal-header{border-bottom-color:rgba(255,255,255,.08)}
+:global(.dark) .modal-title{color:#f1f5f9}
+:global(.dark) .modal-code{color:#64748b}
 :global(.dark) .close-btn{
   background:rgba(30,41,59,.8);
   border-color:rgba(255,255,255,.12);
@@ -464,7 +464,7 @@ const metrics = computed(()=>{
 :global(.dark) .cancel-notice{background:rgba(220,38,38,.12);color:#fca5a5;border-color:rgba(220,38,38,.25)}
 :global(.dark) .makeup-notice{background:rgba(217,119,6,.12);color:#fcd34d;border-color:rgba(217,119,6,.25)}
 :global(.dark) .online-notice{background:rgba(124,58,237,.12);color:#c4b5fd;border-color:rgba(124,58,237,.25)}
-:global(.dark) .drawer-footer{border-top-color:rgba(255,255,255,.08)}
+:global(.dark) .modal-footer{background:rgba(15,23,42,.5);border-top-color:rgba(255,255,255,.08)}
 :global(.dark) .btn-secondary{
   background:rgba(30,41,59,.7);
   border-color:rgba(255,255,255,.12);

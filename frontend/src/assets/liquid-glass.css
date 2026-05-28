@@ -509,7 +509,6 @@ body {
 }
 
 .lg-topbar {
-  position: relative;
   background:
     radial-gradient(circle at 82% 0%, rgba(8, 145, 178, 0.14), transparent 30%),
     linear-gradient(135deg, var(--lg-surface-glass-strong), var(--lg-surface-glass));

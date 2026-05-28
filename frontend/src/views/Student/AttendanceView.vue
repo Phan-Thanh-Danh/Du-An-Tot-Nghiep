@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 import { usePopupStore } from '@/stores/popup'
 import {
   UserCheck, AlertTriangle, UserX, Clock,
@@ -50,6 +51,8 @@ const selectedSubject = ref('Tất cả')
 const selectedStatus = ref('Tất cả')
 const drawerOpen = ref(false)
 const modalOpen = ref(false)
+const anyOverlayOpen = computed(() => drawerOpen.value || modalOpen.value)
+useBodyScrollLock(anyOverlayOpen)
 const selectedSession = ref(null)
 
 const excuseForm = ref({
@@ -412,7 +415,7 @@ const submitExcuse = () => {
 .btn-secondary:hover { border-color: #2563eb; color: #2563eb; }
 
 /* Drawer Overlay */
-.drawer-overlay { position: fixed; inset: 0; z-index: 999; background: rgba(15,23,42,.3); backdrop-filter: blur(4px); display: flex; justify-content: flex-end; }
+.drawer-overlay { position: fixed; inset: 0; z-index: 9998; background: rgba(15,23,42,.3); backdrop-filter: blur(4px); display: flex; justify-content: flex-end; }
 .drawer { width: 420px; max-width: 95vw; background: rgba(255,255,255,.92); backdrop-filter: saturate(180%) blur(24px); box-shadow: -8px 0 40px rgba(15,23,42,.18); display: flex; flex-direction: column; height: 100%; }
 .drawer-header { padding: 1.5rem; border-bottom: 1px solid rgba(148,163,184,.15); display: flex; justify-content: space-between; align-items: flex-start; }
 .drawer-title { font-size: 1.1rem; font-weight: 800; margin: 0; line-height: 1.3; }
@@ -431,8 +434,8 @@ const submitExcuse = () => {
 .action-box p { margin: 0; font-size: .8125rem; color: #3b82f6; }
 
 /* Modal Overlay */
-.modal-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(15,23,42,.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 1rem; }
-.modal-content { background: rgba(255,255,255,.95); backdrop-filter: saturate(180%) blur(24px); width: 100%; max-width: 500px; border-radius: 24px; box-shadow: 0 24px 80px rgba(2,6,23,.32); overflow: hidden; border: 1px solid rgba(255,255,255,.5); }
+.modal-overlay { position: fixed; inset: 0; z-index: 9998; background: rgba(15,23,42,.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.modal-content { position: relative; z-index: 9999; background: rgba(255,255,255,.95); backdrop-filter: saturate(180%) blur(24px); width: 100%; max-width: 500px; border-radius: 24px; box-shadow: 0 24px 80px rgba(2,6,23,.32); overflow: hidden; border: 1px solid rgba(255,255,255,.5); }
 .modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(148,163,184,.15); display: flex; justify-content: space-between; align-items: center; }
 .modal-header h3 { margin: 0; font-size: 1.1rem; font-weight: 700; }
 .close-btn-sm { width: 30px; height: 30px; }
