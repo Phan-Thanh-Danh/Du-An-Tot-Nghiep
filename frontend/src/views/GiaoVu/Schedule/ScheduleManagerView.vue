@@ -1,44 +1,44 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
+import { usePopupStore } from '@/stores/popup'
 import {
-  Plus,
-  Search,
-  Filter,
-  Calendar as CalendarIcon,
-  MoreVertical,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  Upload,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  X
+  Plus, Search, Filter, Download, ChevronLeft, ChevronRight,
+  CheckCircle2, AlertCircle, X, Printer, Trash2, CalendarRange,
 } from 'lucide-vue-next'
 import * as XLSX from 'xlsx'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import MonthView from '@/components/Schedule/MonthView.vue'
+import { useSchedule } from '@/composables/useSchedule'
 
-// ── Filters & State ──────────────────────────────────────────
+const {
+  monthLabel, nextMonth, prevMonth, goToToday,
+  createEvent, updateEvent, deleteEvent,
+  filterEventsByLecturer, filterEventsByQuery, exportToExcel,
+  totalEvents, publishedEvents, pendingEvents, draftEvents,
+} = useSchedule()
+
+const popup = usePopupStore()
+
 const semester = ref('Spring 2026')
 const campus = ref('Cơ sở chính')
-const viewMode = ref('Week') // Day, Week, Month
 const showCreateModal = ref(false)
-useBodyScrollLock(showCreateModal)
+const showEditModal = ref(false)
+const searchQuery = ref('')
+const eventToEdit = ref(null)
 
-// ── Form data for new schedule ──────────────────────────────
+useBodyScrollLock(showCreateModal)
+useBodyScrollLock(showEditModal)
+
 const newScheduleForm = ref({
-  subject: '',
-  class: '',
-  teacher: '',
-  room: '',
-  day: 'Thứ 2',
-  startTime: '07:30',
-  endTime: '08:30',
-  status: 'draft'
+  title: '', subject: '', teacher: '', room: '',
+  day: 'Thứ 2', startTime: '07:30', endTime: '08:30', status: 'draft', type: 'class',
 })
 
-// ── Lecturers ───────────────────────────────────────────────
+const editForm = ref({
+  title: '', teacher: '', room: '', start: '', end: '', status: 'draft', type: 'class',
+})
+
 const lecturers = [
   { id: 1, name: 'Tất cả giảng viên' },
   { id: 2, name: 'TS. Nguyễn Văn A' },
@@ -49,520 +49,407 @@ const lecturers = [
 const selectedLecturer = ref(lecturers[0])
 
 const filteredSchedules = computed(() => {
-  if (selectedLecturer.value.id === 1) return schedules.value
-  return schedules.value.filter(s => s.teacher === selectedLecturer.value.name)
+  const result = filterEventsByLecturer(selectedLecturer.value.name)
+  return filterEventsByQuery(searchQuery.value, result)
 })
 
-// ── Mock Time Slots ─────────────────────────────────────────
 const timeSlots = [
-  '07:30', '08:30', '09:30', '10:30', '11:30',
-  '12:30', '13:30', '14:30', '15:30', '16:30', '17:30'
+  '07:00', '07:30', '08:00', '08:30', '09:00', '09:30',
+  '10:00', '10:30', '11:00', '11:30',
+  '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+  '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
+  '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00',
 ]
 
-const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN']
-
-// ── Mock Schedule Data ──────────────────────────────────────
-const schedules = ref([
-  {
-    id: 1,
-    subject: 'Lập trình Java',
-    class: 'SE1601',
-    teacher: 'Nguyễn Văn A',
-    room: 'P.302',
-    day: 'Thứ 2',
-    startTime: '07:30',
-    endTime: '10:30',
-    status: 'published',
-    color: 'blue'
-  },
-  {
-    id: 2,
-    subject: 'Cấu trúc dữ liệu',
-    class: 'SE1602',
-    teacher: 'Trần Thị B',
-    room: 'P.105',
-    day: 'Thứ 3',
-    startTime: '13:30',
-    endTime: '15:30',
-    status: 'draft',
-    color: 'indigo'
-  },
-  {
-    id: 3,
-    subject: 'Web Frontend',
-    class: 'SE1603',
-    teacher: 'Lê Văn C',
-    room: 'Lab 2',
-    day: 'Thứ 4',
-    startTime: '08:30',
-    endTime: '11:30',
-    status: 'pending',
-    color: 'orange'
-  }
-])
-
-const getStatusClass = (status) => {
-  switch (status) {
-    case 'published': return 'lg-badge-success'
-    case 'pending': return 'lg-badge-warning'
-    case 'draft': return 'lg-badge-violet'
-    default: return 'lg-badge-primary'
+// ── Create ──────────────────────────────────────────────
+function resetForm() {
+  newScheduleForm.value = {
+    title: '', subject: '', teacher: '', room: '',
+    day: 'Thứ 2', startTime: '07:30', endTime: '08:30', status: 'draft', type: 'class',
   }
 }
 
-function getSchedule(day, time) {
-  return filteredSchedules.value.find(s => s.day === day && s.startTime === time)
-}
-
-// ── Export to Excel ──────────────────────────────────────────
-function exportToExcel() {
-  const dataToExport = filteredSchedules.value.map(schedule => ({
-    'Lớp': schedule.class,
-    'Môn học': schedule.subject,
-    'Giảng viên': schedule.teacher,
-    'Phòng': schedule.room,
-    'Thứ': schedule.day,
-    'Giờ bắt đầu': schedule.startTime,
-    'Giờ kết thúc': schedule.endTime,
-    'Trạng thái': schedule.status
-  }))
-
-  const worksheet = XLSX.utils.json_to_sheet(dataToExport)
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Thời khóa biểu')
-
-  // Adjust column width
-  const columnWidths = [12, 20, 20, 12, 8, 12, 12, 12]
-  worksheet['!cols'] = columnWidths.map(width => ({ wch: width }))
-
-  // Export with filename includes date
-  const now = new Date()
-  const filename = `TKB_${semester.value}_${now.toISOString().split('T')[0]}.xlsx`
-  XLSX.writeFile(workbook, filename)
-}
-
-// ── Create new schedule ──────────────────────────────────────
 function handleCreateSchedule() {
-  if (!newScheduleForm.value.subject || !newScheduleForm.value.class || !newScheduleForm.value.teacher) {
-    alert('Vui lòng điền đầy đủ thông tin')
+  if (!newScheduleForm.value.subject && !newScheduleForm.value.title) {
+    popup.warning('Thiếu thông tin', 'Vui lòng nhập tên môn học.')
     return
   }
+  const title = newScheduleForm.value.subject || newScheduleForm.value.title
+  const now = new Date()
+  const dateStr = now.toISOString().split('T')[0]
 
-  const newSchedule = {
-    id: Math.max(...schedules.value.map(s => s.id), 0) + 1,
-    ...newScheduleForm.value,
-    color: 'indigo'
-  }
+  createEvent({
+    title,
+    teacher: newScheduleForm.value.teacher,
+    room: newScheduleForm.value.room,
+    start: `${dateStr}T${newScheduleForm.value.startTime}:00`,
+    end: `${dateStr}T${newScheduleForm.value.endTime}:00`,
+    status: newScheduleForm.value.status,
+    type: newScheduleForm.value.type,
+  })
 
-  schedules.value.push(newSchedule)
-
-  // Reset form
-  newScheduleForm.value = {
-    subject: '',
-    class: '',
-    teacher: '',
-    room: '',
-    day: 'Thứ 2',
-    startTime: '07:30',
-    endTime: '08:30',
-    status: 'draft'
-  }
-
+  resetForm()
   showCreateModal.value = false
-  alert('Tạo lịch mới thành công!')
+  popup.success('Tạo lịch thành công', `Đã thêm "${title}" vào thời khóa biểu.`)
+}
+
+// ── Edit ────────────────────────────────────────────────
+function openEditModal(event) {
+  eventToEdit.value = event
+  editForm.value = {
+    id: event.id, title: event.title, teacher: event.teacher,
+    room: event.room, start: event.start, end: event.end,
+    status: event.status, type: event.type || 'class', color: event.color,
+  }
+  showEditModal.value = true
+}
+
+function handleEditSchedule() {
+  if (!eventToEdit.value) return
+  updateEvent(eventToEdit.value.id, {
+    title: editForm.value.title,
+    teacher: editForm.value.teacher,
+    room: editForm.value.room,
+    status: editForm.value.status,
+    type: editForm.value.type,
+  })
+  showEditModal.value = false
+  eventToEdit.value = null
+  popup.success('Cập nhật thành công', 'Thông tin lịch đã được cập nhật.')
+}
+
+// ── Delete ──────────────────────────────────────────────
+function handleDeleteEvent() {
+  if (!eventToEdit.value) return
+  deleteEvent(eventToEdit.value.id)
+  showEditModal.value = false
+  eventToEdit.value = null
+  popup.success('Đã xóa lịch', 'Lịch đã được xóa khỏi thời khóa biểu.')
+}
+
+// ── Export ──────────────────────────────────────────────
+function handleExportExcel() {
+  const data = exportToExcel(filteredSchedules.value, semester.value)
+  const worksheet = XLSX.utils.json_to_sheet(data)
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Thời khóa biểu')
+  const columnWidths = [30, 25, 12, 22, 22, 14]
+  worksheet['!cols'] = columnWidths.map(w => ({ wch: w }))
+  const now = new Date()
+  const filename = `TKB_${semester.value.replace(/\s/g, '_')}_${now.toISOString().split('T')[0]}.xlsx`
+  XLSX.writeFile(workbook, filename)
+  popup.success('Xuất Excel thành công', `File "${filename}" đã được tải xuống.`)
+}
+
+function handleExportPDF() {
+  const printWindow = window.open('', '_blank')
+  if (!printWindow) {
+    popup.warning('Trình duyệt chặn cửa sổ popup', 'Vui lòng cho phép popup để xuất PDF.')
+    return
+  }
+  const eventsHtml = filteredSchedules.value.map(e => {
+    const statusMap = { published: 'Đã công bố', pending: 'Chờ duyệt', draft: 'Bản nháp' }
+    return `<tr>
+      <td style="padding:8px;border:1px solid #ddd">${e.title}</td>
+      <td style="padding:8px;border:1px solid #ddd">${e.teacher}</td>
+      <td style="padding:8px;border:1px solid #ddd">${e.room}</td>
+      <td style="padding:8px;border:1px solid #ddd">${e.start}</td>
+      <td style="padding:8px;border:1px solid #ddd">${e.end}</td>
+      <td style="padding:8px;border:1px solid #ddd">${statusMap[e.status] || e.status}</td>
+    </tr>`
+  }).join('')
+
+  printWindow.document.write(`<!DOCTYPE html>
+<html><head><title>Thời khóa biểu - ${semester.value}</title>
+<style>body{font-family:'Segoe UI',sans-serif;padding:40px;color:#1e293b}h1{font-size:24px;margin-bottom:4px}h2{font-size:14px;color:#64748b;font-weight:normal;margin-bottom:24px}table{width:100%;border-collapse:collapse}th{background:#0f766e;color:white;padding:10px 8px;text-align:left;font-size:13px}td{font-size:12px;padding:8px;border:1px solid #ddd}.footer{margin-top:24px;font-size:11px;color:#94a3b8}</style></head>
+<body><h1>Thời khóa biểu</h1><h2>Học kỳ: ${semester.value} | Cơ sở: ${campus.value}</h2>
+<table><thead><tr><th>Môn học</th><th>Giảng viên</th><th>Phòng</th><th>Bắt đầu</th><th>Kết thúc</th><th>Trạng thái</th></tr></thead><tbody>${eventsHtml}</tbody></table>
+<div class="footer">Xuất ngày: ${new Date().toLocaleDateString('vi-VN')} | Hệ thống LMS</div></body></html>`)
+  printWindow.document.close()
+  printWindow.focus()
+  setTimeout(() => printWindow.print(), 500)
 }
 </script>
 
 <template>
   <PageContainer
     title="Quản lý thời khóa biểu"
-    subtitle="Xếp lịch học, kéo thả và kiểm tra xung đột cho học kỳ hiện tại."
+    subtitle="Xếp lịch học và quản lý thời khóa biểu cho học kỳ hiện tại."
   >
     <template #actions>
-      <div class="flex items-center gap-3">
-        <button @click="exportToExcel" class="lg-button-secondary px-4 py-2 text-sm font-bold hover:bg-slate-100 transition-colors">
-          <Download :size="16" /> Xuất Excel
+      <div class="flex items-center gap-2">
+        <button @click="handleExportPDF"
+          class="lg-button-secondary px-3 py-2 text-sm font-bold hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+          <Printer :size="16" /> PDF
         </button>
-        <button @click="showCreateModal = true" class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20 hover:shadow-xl transition-all">
+        <button @click="handleExportExcel"
+          class="lg-button-secondary px-3 py-2 text-sm font-bold hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+          <Download :size="16" /> Excel
+        </button>
+        <button @click="showCreateModal = true"
+          class="lg-button-primary px-4 py-2 text-sm font-bold shadow-lg shadow-teal-500/20 hover:shadow-xl transition-all">
           <Plus :size="18" /> Tạo lịch mới
         </button>
       </div>
     </template>
 
-    <div class="space-y-4">
-      <!-- ── Toolbar ── -->
-      <div class="lg-glass-strong p-4 rounded-[24px] flex items-center justify-between gap-4">
-        <div class="flex items-center gap-4">
-          <div class="flex items-center bg-white/50 rounded-xl p-1 border border-slate-100">
-            <button
-              v-for="mode in ['Day', 'Week', 'Month']"
-              :key="mode"
-              @click="viewMode = mode"
-              :class="[
-                'px-4 py-1.5 text-xs font-bold rounded-lg transition-all',
-                viewMode === mode ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              ]"
-            >
-              {{ mode }}
-            </button>
-          </div>
+    <div class="space-y-3">
+      <!-- Stats bar -->
+      <div class="lg-glass-soft px-4 py-2.5 rounded-2xl flex items-center gap-4 flex-wrap border border-slate-200/70 dark:border-white/10">
+        <div class="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+          <div class="w-2 h-2 rounded-full bg-teal-500" />
+          <span>Đã công bố: <strong class="text-slate-700 dark:text-slate-300">{{ publishedEvents }}</strong></span>
+        </div>
+        <div class="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+          <div class="w-2 h-2 rounded-full bg-amber-500" />
+          <span>Chờ duyệt: <strong class="text-slate-700 dark:text-slate-300">{{ pendingEvents }}</strong></span>
+        </div>
+        <div class="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+          <div class="w-2 h-2 rounded-full bg-slate-400" />
+          <span>Bản nháp: <strong class="text-slate-700 dark:text-slate-300">{{ draftEvents }}</strong></span>
+        </div>
+        <div class="w-px h-4 bg-slate-200 dark:bg-white/10" />
+        <div class="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+          <CalendarRange :size="13" />
+          <span>Tổng số: <strong class="text-slate-700 dark:text-slate-300">{{ totalEvents }}</strong></span>
+        </div>
+      </div>
 
-          <div class="h-6 w-px bg-slate-200"></div>
-
-          <div class="flex items-center gap-2">
-            <button class="p-2 hover:bg-white rounded-lg text-slate-500 transition-colors">
-              <ChevronLeft :size="20" />
-            </button>
-            <span class="text-sm font-bold text-slate-700">12/05 - 18/05, 2026</span>
-            <button class="p-2 hover:bg-white rounded-lg text-slate-500 transition-colors">
-              <ChevronRight :size="20" />
-            </button>
-          </div>
+      <!-- Toolbar -->
+      <div class="lg-glass-strong p-3 rounded-2xl flex items-center justify-between gap-3 flex-wrap border border-slate-200/70 dark:border-white/10">
+        <!-- Month navigation -->
+        <div class="flex items-center gap-2">
+          <button @click="prevMonth"
+            class="p-1.5 hover:bg-white/50 dark:hover:bg-white/10 rounded-lg text-slate-500 dark:text-slate-400 transition-colors">
+            <ChevronLeft :size="18" />
+          </button>
+          <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[170px] text-center select-none">
+            {{ monthLabel }}
+          </span>
+          <button @click="nextMonth"
+            class="p-1.5 hover:bg-white/50 dark:hover:bg-white/10 rounded-lg text-slate-500 dark:text-slate-400 transition-colors">
+            <ChevronRight :size="18" />
+          </button>
+          <button @click="goToToday"
+            class="ml-1 px-3 py-1.5 text-xs font-bold rounded-xl bg-white/60 dark:bg-white/10 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/20 border border-slate-200 dark:border-white/10 transition-all">
+            Hôm nay
+          </button>
         </div>
 
-        <div class="flex items-center gap-3">
-          <select v-model="semester" class="bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/20">
+        <!-- Filters -->
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <Search :size="13" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+            <input v-model="searchQuery" type="text" placeholder="Tìm kiếm..."
+              class="bg-white/70 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl pl-8 pr-2.5 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-teal-500/20 dark:text-slate-200 w-32" />
+          </div>
+          <select v-model="semester"
+            class="bg-white/70 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-teal-500/20 dark:text-slate-200">
             <option>Spring 2026</option>
             <option>Fall 2025</option>
           </select>
-          <select v-model="campus" class="bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/20">
-            <option>Cơ sở chính</option>
-            <option>Cơ sở phụ</option>
-          </select>
-          <select v-model="selectedLecturer" class="bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/20">
+          <select v-model="selectedLecturer"
+            class="bg-white/70 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-teal-500/20 dark:text-slate-200">
             <option v-for="l in lecturers" :key="l.id" :value="l">{{ l.name }}</option>
           </select>
-          <button class="lg-icon-button bg-white border border-slate-100 p-2 text-slate-500">
-            <Filter :size="18" />
+          <button
+            class="lg-icon-button bg-white/70 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-1.5 text-slate-500 dark:text-slate-400">
+            <Filter :size="16" />
           </button>
         </div>
       </div>
 
-      <!-- ── Calendar Grid ── -->
-      <div class="lg-glass-strong rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
-        <div class="overflow-x-auto">
-          <table class="w-full border-collapse">
-            <thead>
-              <tr class="bg-slate-50/50">
-                <th class="p-4 border-b border-r border-slate-100 w-20 text-[10px] font-black text-slate-400 uppercase tracking-widest">Thời gian</th>
-                <th v-for="day in days" :key="day" class="p-4 border-b border-r border-slate-100 min-w-[160px]">
-                  <div class="text-center">
-                    <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">{{ day }}</p>
-                    <p class="text-lg font-bold text-slate-800">1{{ days.indexOf(day) + 2 }}</p>
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="time in timeSlots" :key="time" class="group">
-                <td class="p-4 border-b border-r border-slate-100 text-center">
-                  <span class="text-xs font-bold text-slate-500">{{ time }}</span>
-                </td>
-                <td v-for="day in days" :key="day" class="border-b border-r border-slate-100 p-2 relative min-h-[100px] hover:bg-blue-50/30 transition-colors cursor-pointer">
-                  <!-- Event Card -->
-                  <div
-                    v-if="getSchedule(day, time)"
-                    :class="[
-                      'schedule-card p-3 rounded-2xl border transition-all hover:scale-[1.02] cursor-grab active:cursor-grabbing',
-                      `schedule-card-${getSchedule(day, time).status}`
-                    ]"
-                  >
-                    <div class="flex items-start justify-between">
-                      <p class="schedule-card-class text-[10px] font-bold uppercase tracking-tighter">{{ getSchedule(day, time).class }}</p>
-                      <MoreVertical :size="14" class="schedule-card-more cursor-pointer" />
-                    </div>
-                    <p class="schedule-card-subject text-sm font-black mt-1 leading-tight">{{ getSchedule(day, time).subject }}</p>
-                    <div class="mt-3 flex items-center justify-between gap-2">
-                       <div class="flex flex-col gap-0.5">
-                          <span class="schedule-card-meta text-[10px] font-bold">{{ getSchedule(day, time).teacher }}</span>
-                          <span class="schedule-card-meta text-[10px] font-bold">{{ getSchedule(day, time).room }}</span>
-                       </div>
-                       <span :class="['px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border', getStatusClass(getSchedule(day, time).status)]">
-                         {{ getSchedule(day, time).status }}
-                       </span>
-                    </div>
-                  </div>
+      <!-- Month Calendar -->
+      <MonthView @edit="openEditModal" />
 
-                  <!-- Empty state hint on hover -->
-                  <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Plus :size="16" class="text-blue-300" />
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- ── Legend & Status ── -->
-      <div class="flex flex-wrap items-center justify-between gap-4 px-4">
+      <!-- Legend -->
+      <div class="flex flex-wrap items-center justify-between gap-3 px-1">
         <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2">
-            <span class="h-3 w-3 rounded-full bg-green-500"></span>
-            <span class="text-xs font-bold text-slate-600">Đã công bố</span>
+          <div class="flex items-center gap-1.5">
+            <span class="h-2.5 w-2.5 rounded-full bg-green-500" />
+            <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Đã công bố</span>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="h-3 w-3 rounded-full bg-amber-500"></span>
-            <span class="text-xs font-bold text-slate-600">Chờ duyệt</span>
+          <div class="flex items-center gap-1.5">
+            <span class="h-2.5 w-2.5 rounded-full bg-amber-500" />
+            <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Chờ duyệt</span>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="h-3 w-3 rounded-full bg-slate-400"></span>
-            <span class="text-xs font-bold text-slate-600">Bản nháp</span>
+          <div class="flex items-center gap-1.5">
+            <span class="h-2.5 w-2.5 rounded-full bg-slate-400" />
+            <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Bản nháp</span>
           </div>
         </div>
 
-        <div class="flex items-center gap-4 text-xs font-bold text-slate-500">
-          <div class="flex items-center gap-2">
-            <AlertCircle :size="14" class="text-amber-500" />
-            <span>2 xung đột cần xử lý</span>
+        <div class="flex items-center gap-3 text-[11px] font-bold text-slate-400 dark:text-slate-500">
+          <div class="flex items-center gap-1.5">
+            <AlertCircle :size="13" class="text-amber-500" />
+            <span>Kiểm tra xung đột</span>
           </div>
-          <div class="h-4 w-px bg-slate-200"></div>
-          <div class="flex items-center gap-2">
-            <CheckCircle2 :size="14" class="text-green-500" />
-            <span>Dữ liệu đã được lưu</span>
+          <div class="h-3 w-px bg-slate-200 dark:bg-white/10" />
+          <div class="flex items-center gap-1.5">
+            <CheckCircle2 :size="13" class="text-green-500" />
+            <span>Dữ liệu đã đồng bộ</span>
           </div>
         </div>
       </div>
     </div>
   </PageContainer>
 
-  <!-- ── Modal Create New Schedule ── -->
+  <!-- Create Modal -->
   <Teleport to="body">
     <Transition name="modal">
-      <div v-if="showCreateModal" class="fixed inset-0 z-[9998] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" @click.self="showCreateModal = false">
-        <div class="relative z-[9999] bg-white dark:bg-slate-900 rounded-[24px] shadow-2xl max-w-md w-full p-4 border border-slate-100 dark:border-slate-700">
-          <!-- Header -->
+      <div v-if="showCreateModal"
+        class="fixed inset-0 z-[9998] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+        @click.self="showCreateModal = false">
+        <div class="relative z-[9999] lg-glass-strong rounded-[24px] shadow-2xl max-w-md w-full p-5 border border-slate-200 dark:border-white/10">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold text-slate-900">Tạo lịch mới</h2>
-            <button type="button" @click="showCreateModal = false" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
-              <X :size="20" />
+            <h2 class="text-lg font-bold text-heading">Tạo lịch mới</h2>
+            <button type="button" @click="showCreateModal = false"
+              class="p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+              <X :size="18" />
             </button>
           </div>
-
-          <!-- Form -->
           <form @submit.prevent="handleCreateSchedule" class="space-y-3">
-        <div class="grid grid-cols-2 gap-3">
-          <!-- Môn học -->
-          <div class="col-span-2">
-            <label class="block text-xs font-bold text-slate-700 mb-1">Môn học</label>
-            <input
-              v-model="newScheduleForm.subject"
-              type="text"
-              placeholder="Nhập tên môn học"
-              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-            />
-          </div>
-
-          <!-- Lớp -->
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Lớp</label>
-            <input
-              v-model="newScheduleForm.class"
-              type="text"
-              placeholder="Nhập mã lớp (vd: SE1601)"
-              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-            />
-          </div>
-
-          <!-- Phòng -->
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Phòng</label>
-            <input
-              v-model="newScheduleForm.room"
-              type="text"
-              placeholder="Nhập mã phòng (vd: P.302)"
-              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-            />
-          </div>
-
-          <!-- Giảng viên -->
-          <div class="col-span-2">
-            <label class="block text-xs font-bold text-slate-700 mb-1">Giảng viên</label>
-            <select
-              v-model="newScheduleForm.teacher"
-              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-            >
-              <option value="">-- Chọn giảng viên --</option>
-              <option v-for="lecturer in lecturers" :key="lecturer.id" :value="lecturer.name" v-show="lecturer.id !== 1">
-                {{ lecturer.name }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Thứ -->
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Thứ</label>
-            <select
-              v-model="newScheduleForm.day"
-              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-            >
-              <option v-for="day in days" :key="day" :value="day">{{ day }}</option>
-            </select>
-          </div>
-
-          <!-- Trạng thái -->
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Trạng thái</label>
-            <select
-              v-model="newScheduleForm.status"
-              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-            >
-              <option value="draft">Bản nháp</option>
-              <option value="pending">Chờ duyệt</option>
-              <option value="published">Đã công bố</option>
-            </select>
-          </div>
-
-          <!-- Giờ bắt đầu -->
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Giờ bắt đầu</label>
-            <select
-              v-model="newScheduleForm.startTime"
-              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-            >
-              <option v-for="time in timeSlots" :key="time" :value="time">{{ time }}</option>
-            </select>
-          </div>
-
-          <!-- Giờ kết thúc -->
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Giờ kết thúc</label>
-            <select
-              v-model="newScheduleForm.endTime"
-              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-            >
-              <option v-for="time in timeSlots" :key="time" :value="time" :disabled="time <= newScheduleForm.startTime">{{ time }}</option>
-            </select>
-          </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="col-span-2">
+                <label class="block text-xs font-bold text-label mb-1">Môn học <span class="text-red-500">*</span></label>
+                <input v-model="newScheduleForm.subject" type="text" placeholder="Nhập tên môn học"
+                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-input-focus transition-colors text-body" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-label mb-1">Giảng viên</label>
+                <select v-model="newScheduleForm.teacher"
+                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-input-focus transition-colors text-body">
+                  <option value="">-- Chọn --</option>
+                  <option v-for="l in lecturers.filter(x => x.id !== 1)" :key="l.id" :value="l.name">{{ l.name }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-label mb-1">Phòng</label>
+                <input v-model="newScheduleForm.room" type="text" placeholder="VD: P.302"
+                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-input-focus transition-colors text-body" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-label mb-1">Loại</label>
+                <select v-model="newScheduleForm.type"
+                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-input-focus transition-colors text-body">
+                  <option value="class">Lớp học</option>
+                  <option value="exam">Thi</option>
+                  <option value="meeting">Họp</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-label mb-1">Giờ bắt đầu</label>
+                <select v-model="newScheduleForm.startTime"
+                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-input-focus transition-colors text-body">
+                  <option v-for="t in timeSlots" :key="t" :value="t">{{ t }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-label mb-1">Giờ kết thúc</label>
+                <select v-model="newScheduleForm.endTime"
+                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-input-focus transition-colors text-body">
+                  <option v-for="t in timeSlots" :key="t" :value="t" :disabled="t <= newScheduleForm.startTime">{{ t }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-label mb-1">Trạng thái</label>
+                <select v-model="newScheduleForm.status"
+                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-input-focus transition-colors text-body">
+                  <option value="draft">Bản nháp</option>
+                  <option value="pending">Chờ duyệt</option>
+                  <option value="published">Đã công bố</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex gap-3 pt-3 mt-2 border-t border-slate-200 dark:border-white/10">
+              <button type="button" @click="showCreateModal = false"
+                class="flex-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-white/10 text-label text-sm font-bold hover:bg-black/5 dark:hover:bg-white/5 transition-colors">Hủy</button>
+              <button type="submit"
+                class="flex-1 px-4 py-2 rounded-xl bg-teal-600 text-white text-sm font-bold hover:bg-teal-700 transition-colors shadow-lg shadow-teal-500/20">Tạo lịch</button>
+            </div>
+          </form>
         </div>
+      </div>
+    </Transition>
+  </Teleport>
 
-        <!-- Actions -->
-        <div class="flex gap-3 pt-3 mt-2 border-t border-slate-200">
-          <button
-            type="button"
-            @click="showCreateModal = false"
-            class="flex-1 px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors"
-          >
-            Hủy
-          </button>
-          <button
-            type="submit"
-            class="flex-1 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20"
-          >
-            Tạo lịch
-          </button>
-        </div>
-      </form>
+  <!-- Edit Modal -->
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="showEditModal && eventToEdit"
+        class="fixed inset-0 z-[9998] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+        @click.self="showEditModal = false">
+        <div class="relative z-[9999] lg-glass-strong rounded-[24px] shadow-2xl max-w-md w-full p-5 border border-slate-200 dark:border-white/10">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-heading">Chỉnh sửa lịch</h2>
+            <button type="button" @click="showEditModal = false"
+              class="p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+              <X :size="18" />
+            </button>
           </div>
+          <form @submit.prevent="handleEditSchedule" class="space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="col-span-2">
+                <label class="block text-xs font-bold text-label mb-1">Môn học</label>
+                <input v-model="editForm.title" type="text"
+                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-input-focus transition-colors text-body" />
+              </div>
+              <div class="col-span-2">
+                <label class="block text-xs font-bold text-label mb-1">Giảng viên</label>
+                <select v-model="editForm.teacher"
+                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-input-focus transition-colors text-body">
+                  <option v-for="l in lecturers.filter(x => x.id !== 1)" :key="l.id" :value="l.name">{{ l.name }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-label mb-1">Phòng</label>
+                <input v-model="editForm.room" type="text"
+                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-input-focus transition-colors text-body" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-label mb-1">Loại</label>
+                <select v-model="editForm.type"
+                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-input-focus transition-colors text-body">
+                  <option value="class">Lớp học</option>
+                  <option value="exam">Thi</option>
+                  <option value="meeting">Họp</option>
+                </select>
+              </div>
+              <div class="col-span-2">
+                <label class="block text-xs font-bold text-label mb-1">Trạng thái</label>
+                <select v-model="editForm.status"
+                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-input-focus transition-colors text-body">
+                  <option value="draft">Bản nháp</option>
+                  <option value="pending">Chờ duyệt</option>
+                  <option value="published">Đã công bố</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex gap-2 pt-3 mt-2 border-t border-slate-200 dark:border-white/10">
+              <button type="button" @click="handleDeleteEvent"
+                class="px-3 py-2 rounded-xl border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm font-bold hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+                <Trash2 :size="14" /> Xóa
+              </button>
+              <button type="button" @click="showEditModal = false"
+                class="flex-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-white/10 text-label text-sm font-bold hover:bg-black/5 dark:hover:bg-white/5 transition-colors">Hủy</button>
+              <button type="submit"
+                class="flex-1 px-4 py-2 rounded-xl bg-teal-600 text-white text-sm font-bold hover:bg-teal-700 transition-colors shadow-lg shadow-teal-500/20">Cập nhật</button>
+            </div>
+          </form>
         </div>
-      </Transition>
-    </Teleport>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
-/* Custom scrollbar for calendar */
-.overflow-x-auto::-webkit-scrollbar {
-  height: 6px;
-}
-.overflow-x-auto::-webkit-scrollbar-track {
-  background: transparent;
-}
-.overflow-x-auto::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
-  border-radius: 99px;
-}
-
-/* Modal transitions */
 .modal-enter-active,
 .modal-leave-active {
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .modal-enter-from,
 .modal-leave-to {
   opacity: 0;
   transform: scale(0.95);
-}
-</style>
-
-<style>
-/* Schedule Card Custom Styles */
-.schedule-card {
-  background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-.schedule-card .schedule-card-class {
-  color: #64748b !important;
-  opacity: 1 !important;
-}
-
-.schedule-card .schedule-card-meta {
-  color: #475569 !important;
-  opacity: 1 !important;
-}
-
-.schedule-card .schedule-card-more {
-  color: #94a3b8 !important;
-  opacity: 1 !important;
-}
-
-.schedule-card-published .schedule-card-subject {
-  color: #0f172a !important;
-}
-
-.schedule-card-pending .schedule-card-subject {
-  color: #d97706 !important;
-}
-
-.schedule-card-draft .schedule-card-subject {
-  color: #7c3aed !important;
-}
-
-/* Dark Mode Overrides */
-.dark .schedule-card {
-  background: rgba(15, 23, 42, 0.52) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.32) !important;
-  backdrop-filter: blur(20px) saturate(170%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(170%) !important;
-}
-
-.dark .schedule-card .schedule-card-class {
-  color: #94a3b8 !important;
-}
-
-.dark .schedule-card .schedule-card-meta {
-  color: #cbd5e1 !important;
-}
-
-.dark .schedule-card .schedule-card-more {
-  color: rgba(255, 255, 255, 0.4) !important;
-}
-
-.dark .schedule-card-published {
-  border-top: 4px solid rgba(37, 99, 235, 0.55) !important;
-}
-
-.dark .schedule-card-published .schedule-card-subject {
-  color: #93c5fd !important;
-}
-
-.dark .schedule-card-pending {
-  border-top: 4px solid rgba(245, 158, 11, 0.55) !important;
-}
-
-.dark .schedule-card-pending .schedule-card-subject {
-  color: #fcd34d !important;
-}
-
-.dark .schedule-card-draft {
-  border-top: 4px solid rgba(124, 58, 237, 0.55) !important;
-}
-
-.dark .schedule-card-draft .schedule-card-subject {
-  color: #d8b4fe !important;
 }
 </style>
