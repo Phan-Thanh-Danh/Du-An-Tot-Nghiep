@@ -210,6 +210,46 @@ Ghi chú: `ChuongTrinhDaoTao` là khung chuẩn toàn hệ thống theo `ChuyenN
 
 Ghi chú: `MonHocTrongChuongTrinh` chỉ khai báo danh sách môn trong khung chương trình đào tạo. Nội dung chi tiết môn học, video, bài học, quiz và đề cương chi tiết vẫn thuộc các module khác như `CourseSyllabus`; clone chương trình đào tạo chỉ clone danh sách môn trong chương trình, không clone nội dung học liệu.
 
+## Building APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/master-data/buildings` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách tòa nhà có phân trang, tìm kiếm theo mã/tên, lọc đơn vị/trạng thái và scope theo `MaDonVi`. |
+| GET | `/api/master-data/buildings/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Chi tiết tòa nhà trong phạm vi đơn vị được xem. |
+| POST | `/api/master-data/buildings` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Tạo tòa nhà trong đơn vị được quản lý; mã tòa nhà không trùng trong cùng đơn vị. |
+| PUT | `/api/master-data/buildings/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Cập nhật tòa nhà trong phạm vi đơn vị được quản lý. |
+| DELETE | `/api/master-data/buildings/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Xóa mềm tòa nhà bằng `ConHoatDong = false`; không cho xóa nếu còn tầng hoặc phòng học hoạt động. |
+
+## Floor APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/master-data/floors` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách tầng/lầu có phân trang, tìm kiếm theo tên tầng/tòa, lọc đơn vị, tòa nhà, trạng thái và scope theo `MaDonVi`. |
+| GET | `/api/master-data/floors/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Chi tiết tầng/lầu trong phạm vi đơn vị được xem. |
+| GET | `/api/master-data/buildings/{buildingId}/floors` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách tầng/lầu của một tòa nhà. |
+| POST | `/api/master-data/floors` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Tạo tầng/lầu trong tòa nhà được quản lý; `ThuTuTang` không trùng trong cùng tòa nhà. |
+| PUT | `/api/master-data/floors/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Cập nhật tầng/lầu trong phạm vi đơn vị được quản lý. |
+| DELETE | `/api/master-data/floors/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Xóa mềm tầng/lầu bằng `ConHoatDong = false`; không cho xóa nếu còn phòng học hoạt động. |
+
+## Rooms APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/master-data/rooms` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách phòng học có phân trang, tìm kiếm theo mã/tên phòng/tòa/tầng, lọc đơn vị, tòa nhà, tầng, loại phòng, trạng thái và scope theo `MaDonVi`. |
+| GET | `/api/master-data/rooms/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Chi tiết phòng học gồm cơ sở, tòa nhà và tầng/lầu trong phạm vi được xem. |
+| GET | `/api/master-data/floors/{floorId}/rooms` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách phòng học thuộc một tầng/lầu. |
+| POST | `/api/master-data/rooms` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Tạo phòng học trong phạm vi đơn vị được quản lý; bắt buộc `MaDonVi`, `MaToaNha`, `MaTang`, kiểm tra tầng thuộc tòa và tòa thuộc đơn vị. |
+| PUT | `/api/master-data/rooms/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Cập nhật phòng học trong phạm vi đơn vị được quản lý; validate tòa/tầng, loại phòng, trạng thái, sức chứa và mã phòng. |
+| DELETE | `/api/master-data/rooms/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Xóa mềm phòng học bằng `TrangThaiPhong = ngung_hoat_dong`, không xóa vật lý. |
+
+Ghi chú: cấu trúc phòng học hiện theo mô hình `DonVi -> ToaNha -> Tang -> PhongHoc`. Migration `AddFacilityBuildingFloorRoomStructure` thêm bảng `ToaNha`, `Tang`, cột `MaToaNha`, `MaTang`, `GhiChu` cho `PhongHoc` và backfill phòng học cũ vào `Tòa nhà mặc định / Tầng 1`.
+
 ## Course Syllabuses APIs
 
 ### Đã có

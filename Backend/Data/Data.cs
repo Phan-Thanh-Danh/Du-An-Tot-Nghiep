@@ -16,10 +16,15 @@ public static class Data
     private const string ChairmanDefaultPassword = "Chairman@123456";
     private const string ChairmanFullName = "Chủ tịch hệ thống";
     private const string ChairmanRoleCode = "chu_tich";
+    private const string CampusHcmAdminEmail = "campusadmin.hcm@lms.local";
+    private const string CampusHcmAdminDefaultPassword = "CampusAdmin@123456";
+    private const string CampusHcmAdminFullName = "Quản trị cơ sở Hồ Chí Minh";
+    private const string CampusAdminRoleCode = "quan_tri_co_so";
     private const string CampusHcmName = "Cơ sở Hồ Chí Minh";
     private const string CampusLevel = "co_so";
     private const string ApprovedStatus = "approved";
     private const string ActiveStatus = "active";
+    private const string RoomActiveStatus = "hoat_dong";
     private const string RequiredSubjectType = "bat_buoc";
     private const string SyllabusDraftStatus = "draft";
     private const string TrainingProgramSourceCode = "PTPM-K21";
@@ -240,6 +245,9 @@ public static class Data
     )
     {
         var campus = await GetOrCreateCampusAsync(context, rootUnit);
+        await SeedCampusHcmAdminUserAsync(context, campus);
+        await SeedFacilityTestDataAsync(context, campus);
+
         var cohortK21 = await GetOrCreateCohortAsync(
             context,
             "K21",
@@ -317,6 +325,218 @@ public static class Data
 
         await SeedCourseSyllabusTestDataAsync(context, trainingProgram, specialization, pro101);
         await SeedAcademicTermsAndMappingAsync(context, campus, trainingProgram);
+    }
+
+    private static async Task SeedCampusHcmAdminUserAsync(
+        ApplicationDbContext context,
+        DonVi campus
+    )
+    {
+        var campusAdmin = await context.NguoiDungs.FirstOrDefaultAsync(x =>
+            x.Email == CampusHcmAdminEmail
+        );
+
+        if (campusAdmin is null)
+        {
+            campusAdmin = new NguoiDung
+            {
+                MaDonVi = campus.MaDonVi,
+                Email = CampusHcmAdminEmail,
+                HoTen = CampusHcmAdminFullName,
+                VaiTroChinh = CampusAdminRoleCode,
+                TrangThai = UserStatuses.DbFirstLogin,
+                MatKhauHash = PasswordHelper.HashPassword(CampusHcmAdminDefaultPassword),
+                NgayTao = DateTime.UtcNow,
+                SoLanSaiMatKhau = 0,
+                DangNhapLanDau = true,
+            };
+
+            context.NguoiDungs.Add(campusAdmin);
+            await context.SaveChangesAsync();
+        }
+        else
+        {
+            campusAdmin.MaDonVi = campus.MaDonVi;
+            campusAdmin.HoTen = string.IsNullOrWhiteSpace(campusAdmin.HoTen)
+                ? CampusHcmAdminFullName
+                : campusAdmin.HoTen;
+            campusAdmin.VaiTroChinh = CampusAdminRoleCode;
+
+            if (string.IsNullOrWhiteSpace(campusAdmin.MatKhauHash))
+            {
+                campusAdmin.MatKhauHash = PasswordHelper.HashPassword(CampusHcmAdminDefaultPassword);
+                campusAdmin.TrangThai = UserStatuses.DbFirstLogin;
+                campusAdmin.DangNhapLanDau = true;
+            }
+
+            await context.SaveChangesAsync();
+        }
+
+        var campusAdminRole = await context.VaiTros.FirstOrDefaultAsync(x =>
+            x.MaCodeVaiTro == CampusAdminRoleCode
+        );
+
+        if (campusAdminRole is not null)
+        {
+            var hasRoleAssignment = await context.PhanQuyenNguoiDungs.AnyAsync(x =>
+                x.MaNguoiDung == campusAdmin.MaNguoiDung && x.MaVaiTro == campusAdminRole.MaVaiTro
+            );
+
+            if (!hasRoleAssignment)
+            {
+                context.PhanQuyenNguoiDungs.Add(new PhanQuyenNguoiDung
+                {
+                    MaNguoiDung = campusAdmin.MaNguoiDung,
+                    MaVaiTro = campusAdminRole.MaVaiTro,
+                    NgayGan = DateTime.UtcNow,
+                });
+            }
+        }
+    }
+
+    private static async Task SeedFacilityTestDataAsync(ApplicationDbContext context, DonVi campus)
+    {
+        var buildingPlans = new[]
+        {
+            (Code: "A", Name: "Tòa nhà A", FloorCount: 4),
+            (Code: "B", Name: "Tòa nhà B", FloorCount: 5),
+            (Code: "C", Name: "Tòa nhà C", FloorCount: 6),
+        };
+
+        foreach (var plan in buildingPlans)
+        {
+            var building = await GetOrCreateBuildingAsync(
+                context,
+                campus,
+                plan.Code,
+                plan.Name,
+                plan.FloorCount
+            );
+
+            for (var floorNumber = 1; floorNumber <= plan.FloorCount; floorNumber++)
+            {
+                var floor = await GetOrCreateFloorAsync(context, building, floorNumber);
+                await SeedRoomsForFloorAsync(context, campus, building, floor, floorNumber);
+            }
+        }
+    }
+
+    private static async Task<ToaNha> GetOrCreateBuildingAsync(
+        ApplicationDbContext context,
+        DonVi campus,
+        string code,
+        string name,
+        int floorCount
+    )
+    {
+        var building = await context.ToaNhas.FirstOrDefaultAsync(x =>
+            x.MaDonVi == campus.MaDonVi && x.MaCodeToaNha == code
+        );
+
+        if (building is null)
+        {
+            building = new ToaNha
+            {
+                MaDonVi = campus.MaDonVi,
+                MaCodeToaNha = code,
+                NgayTao = DateTime.UtcNow,
+            };
+
+            context.ToaNhas.Add(building);
+        }
+
+        building.TenToaNha = name;
+        building.DiaChi = $"Khu {code} - {campus.TenDonVi}";
+        building.SoTang = floorCount;
+        building.ConHoatDong = true;
+        building.NgayCapNhat = DateTime.UtcNow;
+
+        await context.SaveChangesAsync();
+        return building;
+    }
+
+    private static async Task<Tang> GetOrCreateFloorAsync(
+        ApplicationDbContext context,
+        ToaNha building,
+        int floorNumber
+    )
+    {
+        var floor = await context.Tangs.FirstOrDefaultAsync(x =>
+            x.MaToaNha == building.MaToaNha && x.ThuTuTang == floorNumber
+        );
+
+        if (floor is null)
+        {
+            floor = new Tang
+            {
+                MaToaNha = building.MaToaNha,
+                ThuTuTang = floorNumber,
+            };
+
+            context.Tangs.Add(floor);
+        }
+
+        floor.TenTang = $"Tầng {floorNumber}";
+        floor.MoTa = $"Tầng {floorNumber} thuộc {building.TenToaNha}";
+        floor.ConHoatDong = true;
+
+        await context.SaveChangesAsync();
+        return floor;
+    }
+
+    private static async Task SeedRoomsForFloorAsync(
+        ApplicationDbContext context,
+        DonVi campus,
+        ToaNha building,
+        Tang floor,
+        int floorNumber
+    )
+    {
+        for (var roomNumber = 1; roomNumber <= 10; roomNumber++)
+        {
+            var roomCode = $"{building.MaCodeToaNha}{floorNumber}{roomNumber:00}";
+            var room = await context.PhongHocs.FirstOrDefaultAsync(x =>
+                x.MaDonVi == campus.MaDonVi && x.MaCodePhong == roomCode
+            );
+
+            if (room is null)
+            {
+                room = new PhongHoc
+                {
+                    MaDonVi = campus.MaDonVi,
+                    MaCodePhong = roomCode,
+                };
+
+                context.PhongHocs.Add(room);
+            }
+
+            room.MaToaNha = building.MaToaNha;
+            room.MaTang = floor.MaTang;
+            room.TenPhong = $"Phòng {roomCode}";
+            room.SucChua = GetSeedRoomCapacity(roomNumber);
+            room.LoaiPhong = GetSeedRoomType(roomNumber);
+            room.TrangThaiPhong = RoomActiveStatus;
+            room.GhiChu = $"Dữ liệu seed phòng học {building.TenToaNha} - {floor.TenTang}";
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static int GetSeedRoomCapacity(int roomNumber)
+    {
+        return roomNumber % 5 == 0 ? 80 : roomNumber % 3 == 0 ? 60 : 40;
+    }
+
+    private static string GetSeedRoomType(int roomNumber)
+    {
+        return roomNumber switch
+        {
+            9 => "lab",
+            10 => "hoi_truong",
+            3 or 6 => "phong_thi_nghiem",
+            4 or 8 => "thuc_hanh",
+            _ => "ly_thuyet"
+        };
     }
 
     private static async Task SeedCourseSyllabusTestDataAsync(

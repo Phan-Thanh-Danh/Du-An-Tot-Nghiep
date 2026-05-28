@@ -72,6 +72,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<ThoiKhoaBieu> ThoiKhoaBieus => Set<ThoiKhoaBieu>();
     public DbSet<ThongBao> ThongBaos => Set<ThongBao>();
     public DbSet<ThongBaoHenGio> ThongBaoHenGios => Set<ThongBaoHenGio>();
+    public DbSet<ToaNha> ToaNhas => Set<ToaNha>();
+    public DbSet<Tang> Tangs => Set<Tang>();
     public DbSet<TienDoBaiHoc> TienDoBaiHocs => Set<TienDoBaiHoc>();
     public DbSet<TinNhanHoTro> TinNhanHoTros => Set<TinNhanHoTro>();
     public DbSet<TokenLamMoi> TokenLamMois => Set<TokenLamMoi>();
@@ -2605,6 +2607,76 @@ public class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_PhieuHoTro_phan_cong_cho__NguoiDung");
         });
 
+        modelBuilder.Entity<ToaNha>(entity =>
+        {
+            entity.ToTable("ToaNha", "dbo");
+            entity.HasKey(e => e.MaToaNha).HasName("PK_ToaNha");
+            entity.Property(e => e.MaToaNha)
+                .HasColumnName("ma_toa_nha");
+            entity.Property(e => e.MaDonVi)
+                .HasColumnName("ma_don_vi");
+            entity.Property(e => e.MaCodeToaNha)
+                .HasColumnName("ma_code_toa_nha")
+                .HasMaxLength(50)
+                .IsRequired();
+            entity.Property(e => e.TenToaNha)
+                .HasColumnName("ten_toa_nha")
+                .HasMaxLength(255)
+                .IsRequired();
+            entity.Property(e => e.DiaChi)
+                .HasColumnName("dia_chi")
+                .HasMaxLength(500);
+            entity.Property(e => e.SoTang)
+                .HasColumnName("so_tang");
+            entity.Property(e => e.ConHoatDong)
+                .HasColumnName("con_hoat_dong")
+                .HasDefaultValue(true);
+            entity.Property(e => e.NgayTao)
+                .HasColumnName("ngay_tao")
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.NgayCapNhat)
+                .HasColumnName("ngay_cap_nhat")
+                .HasColumnType("datetime2");
+            entity.HasIndex(e => e.MaDonVi).HasDatabaseName("IX_ToaNha_ma_don_vi");
+            entity.HasIndex(e => new { e.MaDonVi, e.MaCodeToaNha }).IsUnique().HasDatabaseName("UQ_ToaNha_DonVi_Code");
+            entity.ToTable(t => t.HasCheckConstraint("CK_ToaNha_so_tang_1", "[so_tang] IS NULL OR [so_tang] > 0"));
+            entity.HasOne(e => e.DonVi)
+                .WithMany()
+                .HasForeignKey(e => e.MaDonVi)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_ToaNha_ma_don_vi__DonVi");
+        });
+
+        modelBuilder.Entity<Tang>(entity =>
+        {
+            entity.ToTable("Tang", "dbo");
+            entity.HasKey(e => e.MaTang).HasName("PK_Tang");
+            entity.Property(e => e.MaTang)
+                .HasColumnName("ma_tang");
+            entity.Property(e => e.MaToaNha)
+                .HasColumnName("ma_toa_nha");
+            entity.Property(e => e.TenTang)
+                .HasColumnName("ten_tang")
+                .HasMaxLength(100)
+                .IsRequired();
+            entity.Property(e => e.ThuTuTang)
+                .HasColumnName("thu_tu_tang");
+            entity.Property(e => e.MoTa)
+                .HasColumnName("mo_ta")
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.ConHoatDong)
+                .HasColumnName("con_hoat_dong")
+                .HasDefaultValue(true);
+            entity.HasIndex(e => e.MaToaNha).HasDatabaseName("IX_Tang_ma_toa_nha");
+            entity.HasIndex(e => new { e.MaToaNha, e.ThuTuTang }).IsUnique().HasDatabaseName("UQ_Tang_ToaNha_ThuTu");
+            entity.HasOne(e => e.ToaNha)
+                .WithMany()
+                .HasForeignKey(e => e.MaToaNha)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_Tang_ma_toa_nha__ToaNha");
+        });
+
         modelBuilder.Entity<PhongHoc>(entity =>
         {
             entity.ToTable("PhongHoc", "dbo");
@@ -2613,6 +2685,10 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("ma_phong");
             entity.Property(e => e.MaDonVi)
                 .HasColumnName("ma_don_vi");
+            entity.Property(e => e.MaToaNha)
+                .HasColumnName("ma_toa_nha");
+            entity.Property(e => e.MaTang)
+                .HasColumnName("ma_tang");
             entity.Property(e => e.MaCodePhong)
                 .HasColumnName("ma_code_phong")
                 .HasMaxLength(50)
@@ -2632,15 +2708,30 @@ public class ApplicationDbContext : DbContext
                 .HasMaxLength(20)
                 .IsRequired()
                 .HasDefaultValue("hoat_dong");
-            entity.HasIndex(e => e.MaCodePhong).IsUnique().HasDatabaseName("UQ_PhongHoc_1");
+            entity.Property(e => e.GhiChu)
+                .HasColumnName("ghi_chu")
+                .HasColumnType("nvarchar(max)");
+            entity.HasIndex(e => new { e.MaDonVi, e.MaCodePhong }).IsUnique().HasDatabaseName("UQ_PhongHoc_DonVi_Code");
+            entity.HasIndex(e => e.MaToaNha).HasDatabaseName("IX_PhongHoc_ma_toa_nha");
+            entity.HasIndex(e => e.MaTang).HasDatabaseName("IX_PhongHoc_ma_tang");
             entity.ToTable(t => t.HasCheckConstraint("CK_PhongHoc_suc_chua_1", "[suc_chua] > 0"));
-            entity.ToTable(t => t.HasCheckConstraint("CK_PhongHoc_loai_phong_2", "[loai_phong] IN (N'ly_thuyet', N'phong_thi_nghiem', N'hoi_truong', N'truc_tuyen', N'khac')"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_PhongHoc_loai_phong_2", "[loai_phong] IN (N'ly_thuyet', N'phong_thi_nghiem', N'thuc_hanh', N'lab', N'hoi_truong', N'truc_tuyen', N'khac')"));
             entity.ToTable(t => t.HasCheckConstraint("CK_PhongHoc_trang_thai_phong_3", "[trang_thai_phong] IN (N'hoat_dong', N'bao_tri', N'ngung_hoat_dong')"));
             entity.HasOne(e => e.DonVi)
                 .WithMany()
                 .HasForeignKey(e => e.MaDonVi)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_PhongHoc_ma_don_vi__DonVi");
+            entity.HasOne(e => e.ToaNha)
+                .WithMany()
+                .HasForeignKey(e => e.MaToaNha)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_PhongHoc_ma_toa_nha__ToaNha");
+            entity.HasOne(e => e.Tang)
+                .WithMany()
+                .HasForeignKey(e => e.MaTang)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_PhongHoc_ma_tang__Tang");
         });
 
         modelBuilder.Entity<ThietBiPhong>(entity =>
