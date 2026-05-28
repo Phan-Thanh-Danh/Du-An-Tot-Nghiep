@@ -6,6 +6,8 @@ public class AcademicTermQueryParameters
 {
     public string? Keyword { get; set; }
     public int? MaDonVi { get; set; }
+    public string? NamHoc { get; set; }
+    public int? ThuTuTrongNam { get; set; }
     public bool? DaKhoa { get; set; }
 
     [Range(1, int.MaxValue, ErrorMessage = "pageIndex phải lớn hơn 0.")]

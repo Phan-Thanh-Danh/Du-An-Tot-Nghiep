@@ -29,6 +29,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ChuyenNganh> ChuyenNganhs => Set<ChuyenNganh>();
     public DbSet<ChuyenNganhTheoCoSo> ChuyenNganhTheoCoSos => Set<ChuyenNganhTheoCoSo>();
     public DbSet<ChuongTrinhDaoTao> ChuongTrinhDaoTaos => Set<ChuongTrinhDaoTao>();
+    public DbSet<ChuongTrinhHocKy> ChuongTrinhHocKys => Set<ChuongTrinhHocKy>();
     public DbSet<Chuong> Chuongs => Set<Chuong>();
     public DbSet<CourseSyllabus> CourseSyllabuses => Set<CourseSyllabus>();
     public DbSet<DangKyHocPhan> DangKyHocPhans => Set<DangKyHocPhan>();
@@ -910,6 +911,37 @@ public class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_ChuongTrinhDaoTao_nguoi_tu_choi_id__NguoiDung");
         });
 
+        modelBuilder.Entity<ChuongTrinhHocKy>(entity =>
+        {
+            entity.ToTable("ChuongTrinhHocKy", "dbo");
+            entity.HasKey(e => e.MaChuongTrinhHocKy).HasName("PK_ChuongTrinhHocKy");
+            entity.Property(e => e.MaChuongTrinhHocKy)
+                .HasColumnName("ma_chuong_trinh_hoc_ky");
+            entity.Property(e => e.MaChuongTrinh)
+                .HasColumnName("ma_chuong_trinh");
+            entity.Property(e => e.MaHocKy)
+                .HasColumnName("ma_hoc_ky");
+            entity.Property(e => e.ThuTuHocKy)
+                .HasColumnName("thu_tu_hoc_ky");
+            entity.HasIndex(e => new { e.MaChuongTrinh, e.ThuTuHocKy })
+                .IsUnique()
+                .HasDatabaseName("UQ_ChuongTrinhHocKy_1");
+            entity.HasIndex(e => new { e.MaChuongTrinh, e.MaHocKy })
+                .IsUnique()
+                .HasDatabaseName("UQ_ChuongTrinhHocKy_2");
+            entity.ToTable(t => t.HasCheckConstraint("CK_ChuongTrinhHocKy_thu_tu_hoc_ky_1", "[thu_tu_hoc_ky] > 0"));
+            entity.HasOne(e => e.ChuongTrinhDaoTao)
+                .WithMany()
+                .HasForeignKey(e => e.MaChuongTrinh)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_ChuongTrinhHocKy_ma_chuong_trinh__ChuongTrinhDaoTao");
+            entity.HasOne(e => e.HocKy)
+                .WithMany()
+                .HasForeignKey(e => e.MaHocKy)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_ChuongTrinhHocKy_ma_hoc_ky__HocKy");
+        });
+
         modelBuilder.Entity<Chuong>(entity =>
         {
             entity.ToTable("Chuong", "dbo");
@@ -1705,6 +1737,15 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.NgayKetThuc)
                 .HasColumnName("ngay_ket_thuc")
                 .HasColumnType("date");
+            entity.Property(e => e.NamHoc)
+                .HasColumnName("nam_hoc")
+                .HasMaxLength(20)
+                .IsRequired();
+            entity.Property(e => e.ThuTuTrongNam)
+                .HasColumnName("thu_tu_trong_nam");
+            entity.Property(e => e.NgayKetThucBlock5)
+                .HasColumnName("ngay_ket_thuc_block5")
+                .HasColumnType("date");
             entity.Property(e => e.DaKhoa)
                 .HasColumnName("da_khoa")
                 .HasDefaultValue(false);
@@ -1718,6 +1759,10 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaDonVi)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_HocKy_ma_don_vi__DonVi");
+            entity.HasIndex(e => new { e.MaDonVi, e.NamHoc, e.ThuTuTrongNam })
+                .IsUnique()
+                .HasDatabaseName("UQ_HocKy_1");
+            entity.ToTable(t => t.HasCheckConstraint("CK_HocKy_thu_tu_trong_nam_1", "[thu_tu_trong_nam] IN (1, 2, 3)"));
         });
 
         modelBuilder.Entity<KhenThuong>(entity =>

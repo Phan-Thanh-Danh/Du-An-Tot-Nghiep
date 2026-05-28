@@ -55,6 +55,17 @@ public class AcademicTermService : IAcademicTermService
             termQuery = termQuery.Where(x => x.DaKhoa == parameters.DaKhoa.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(parameters.NamHoc))
+        {
+            var namHoc = parameters.NamHoc.Trim();
+            termQuery = termQuery.Where(x => x.NamHoc == namHoc);
+        }
+
+        if (parameters.ThuTuTrongNam.HasValue)
+        {
+            termQuery = termQuery.Where(x => x.ThuTuTrongNam == parameters.ThuTuTrongNam.Value);
+        }
+
         var query =
             from term in termQuery
             join organization in _context.DonVis.AsNoTracking()
@@ -77,6 +88,9 @@ public class AcademicTermService : IAcademicTermService
                 TenHocKy = x.Term.TenHocKy,
                 NgayBatDau = x.Term.NgayBatDau,
                 NgayKetThuc = x.Term.NgayKetThuc,
+                NamHoc = x.Term.NamHoc,
+                ThuTuTrongNam = x.Term.ThuTuTrongNam,
+                NgayKetThucBlock5 = x.Term.NgayKetThucBlock5,
                 DaKhoa = x.Term.DaKhoa,
                 SoTinChiToiDa = x.Term.SoTinChiToiDa,
                 HanRutMon = x.Term.HanRutMon
@@ -111,6 +125,9 @@ public class AcademicTermService : IAcademicTermService
                 TenHocKy = term.TenHocKy,
                 NgayBatDau = term.NgayBatDau,
                 NgayKetThuc = term.NgayKetThuc,
+                NamHoc = term.NamHoc,
+                ThuTuTrongNam = term.ThuTuTrongNam,
+                NgayKetThucBlock5 = term.NgayKetThucBlock5,
                 DaKhoa = term.DaKhoa,
                 SoTinChiToiDa = term.SoTinChiToiDa,
                 HanRutMon = term.HanRutMon
@@ -132,11 +149,15 @@ public class AcademicTermService : IAcademicTermService
         var currentUser = GetCurrentUser();
         var termCode = NormalizeRequiredText(request.MaCodeHocKy, "Mã học kỳ");
         var termName = NormalizeRequiredText(request.TenHocKy, "Tên học kỳ");
+        var namHoc = NormalizeRequiredText(request.NamHoc, "Năm học");
 
         ValidateTermData(request.NgayBatDau, request.NgayKetThuc, request.HanRutMon, request.SoTinChiToiDa);
+        ValidateNamHocFormat(namHoc);
+        ValidateThuTuTrongNam(request.ThuTuTrongNam);
 
         var organization = await ValidateOrganizationAsync(request.MaDonVi, currentUser, cancellationToken);
         await ValidateTermCodeAsync(termCode, organization.MaDonVi, null, cancellationToken);
+        await ValidateSemesterSequenceAsync(namHoc, request.ThuTuTrongNam, organization.MaDonVi, null, cancellationToken);
 
         var term = new HocKy
         {
@@ -145,6 +166,9 @@ public class AcademicTermService : IAcademicTermService
             TenHocKy = termName,
             NgayBatDau = request.NgayBatDau,
             NgayKetThuc = request.NgayKetThuc,
+            NamHoc = namHoc,
+            ThuTuTrongNam = request.ThuTuTrongNam,
+            NgayKetThucBlock5 = request.NgayKetThucBlock5,
             DaKhoa = false,
             SoTinChiToiDa = request.SoTinChiToiDa,
             HanRutMon = request.HanRutMon
@@ -170,17 +194,24 @@ public class AcademicTermService : IAcademicTermService
 
         var termCode = NormalizeRequiredText(request.MaCodeHocKy, "Mã học kỳ");
         var termName = NormalizeRequiredText(request.TenHocKy, "Tên học kỳ");
+        var namHoc = NormalizeRequiredText(request.NamHoc, "Năm học");
 
         ValidateTermData(request.NgayBatDau, request.NgayKetThuc, request.HanRutMon, request.SoTinChiToiDa);
+        ValidateNamHocFormat(namHoc);
+        ValidateThuTuTrongNam(request.ThuTuTrongNam);
 
         var organization = await ValidateOrganizationAsync(request.MaDonVi, currentUser, cancellationToken);
         await ValidateTermCodeAsync(termCode, organization.MaDonVi, termId, cancellationToken);
+        await ValidateSemesterSequenceAsync(namHoc, request.ThuTuTrongNam, organization.MaDonVi, termId, cancellationToken);
 
         term.MaDonVi = organization.MaDonVi;
         term.MaCodeHocKy = termCode;
         term.TenHocKy = termName;
+        term.NamHoc = namHoc;
+        term.ThuTuTrongNam = request.ThuTuTrongNam;
         term.NgayBatDau = request.NgayBatDau;
         term.NgayKetThuc = request.NgayKetThuc;
+        term.NgayKetThucBlock5 = request.NgayKetThucBlock5;
         term.DaKhoa = request.DaKhoa;
         term.SoTinChiToiDa = request.SoTinChiToiDa;
         term.HanRutMon = request.HanRutMon;
@@ -426,6 +457,63 @@ public class AcademicTermService : IAcademicTermService
         }
     }
 
+    private static void ValidateNamHocFormat(string namHoc)
+    {
+        if (namHoc.Length < 9 || !namHoc.Contains('-'))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Năm học không hợp lệ. Định dạng YYYY-YYYY (vd: 2025-2026).");
+        }
+
+        var parts = namHoc.Split('-');
+        if (parts.Length != 2 ||
+            !int.TryParse(parts[0], out var startYear) ||
+            !int.TryParse(parts[1], out var endYear) ||
+            startYear < 2000 ||
+            endYear != startYear + 1)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Năm học không hợp lệ. Định dạng YYYY-YYYY (vd: 2025-2026).");
+        }
+    }
+
+    private static void ValidateThuTuTrongNam(int thuTu)
+    {
+        if (thuTu < 1 || thuTu > 3)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Thứ tự trong năm phải là 1 (Spring), 2 (Summer), hoặc 3 (Fall).");
+        }
+    }
+
+    private async Task ValidateSemesterSequenceAsync(
+        string namHoc,
+        int thuTuTrongNam,
+        int organizationId,
+        int? excludedTermId,
+        CancellationToken cancellationToken)
+    {
+        var exists = await _context.HocKys
+            .AsNoTracking()
+            .AnyAsync(x =>
+                x.MaDonVi == organizationId &&
+                x.NamHoc == namHoc &&
+                x.ThuTuTrongNam == thuTuTrongNam &&
+                (!excludedTermId.HasValue || x.MaHocKy != excludedTermId.Value),
+                cancellationToken);
+
+        if (exists)
+        {
+            var termNames = new Dictionary<int, string>
+            {
+                { 1, "Spring" },
+                { 2, "Summer" },
+                { 3, "Fall" }
+            };
+
+            throw new ApiException(
+                StatusCodes.Status409Conflict,
+                $"Học kỳ {termNames[thuTuTrongNam]} đã tồn tại trong năm học {namHoc}.");
+        }
+    }
+
     private static AcademicTermDto ToDto(HocKy term, DonVi organization)
     {
         return new AcademicTermDto
@@ -437,6 +525,9 @@ public class AcademicTermService : IAcademicTermService
             TenHocKy = term.TenHocKy,
             NgayBatDau = term.NgayBatDau,
             NgayKetThuc = term.NgayKetThuc,
+            NamHoc = term.NamHoc,
+            ThuTuTrongNam = term.ThuTuTrongNam,
+            NgayKetThucBlock5 = term.NgayKetThucBlock5,
             DaKhoa = term.DaKhoa,
             SoTinChiToiDa = term.SoTinChiToiDa,
             HanRutMon = term.HanRutMon

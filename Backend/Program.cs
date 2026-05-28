@@ -82,6 +82,7 @@ builder.Services.AddScoped<ICourseSyllabusService, CourseSyllabusService>();
 builder.Services.AddScoped<ICohortService, CohortService>();
 builder.Services.AddScoped<ITrainingProgramSubjectService, TrainingProgramSubjectService>();
 builder.Services.AddScoped<ITrainingProgramService, TrainingProgramService>();
+builder.Services.AddScoped<ITrainingProgramTermService, TrainingProgramTermService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", policy =>

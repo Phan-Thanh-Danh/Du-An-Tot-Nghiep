@@ -1108,6 +1108,46 @@ namespace Backend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Backend.Models.ChuongTrinhHocKy", b =>
+                {
+                    b.Property<int>("MaChuongTrinhHocKy")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("ma_chuong_trinh_hoc_ky");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaChuongTrinhHocKy"));
+
+                    b.Property<int>("MaChuongTrinh")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_chuong_trinh");
+
+                    b.Property<int>("MaHocKy")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_hoc_ky");
+
+                    b.Property<int>("ThuTuHocKy")
+                        .HasColumnType("int")
+                        .HasColumnName("thu_tu_hoc_ky");
+
+                    b.HasKey("MaChuongTrinhHocKy")
+                        .HasName("PK_ChuongTrinhHocKy");
+
+                    b.HasIndex("MaHocKy");
+
+                    b.HasIndex("MaChuongTrinh", "MaHocKy")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_ChuongTrinhHocKy_2");
+
+                    b.HasIndex("MaChuongTrinh", "ThuTuHocKy")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_ChuongTrinhHocKy_1");
+
+                    b.ToTable("ChuongTrinhHocKy", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_ChuongTrinhHocKy_thu_tu_hoc_ky_1", "[thu_tu_hoc_ky] > 0");
+                        });
+                });
+
             modelBuilder.Entity("Backend.Models.ChuyenNganh", b =>
                 {
                     b.Property<int>("MaChuyenNganh")
@@ -2303,6 +2343,12 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_don_vi");
 
+                    b.Property<string>("NamHoc")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("nam_hoc");
+
                     b.Property<DateOnly>("NgayBatDau")
                         .HasColumnType("date")
                         .HasColumnName("ngay_bat_dau");
@@ -2310,6 +2356,10 @@ namespace Backend.Migrations
                     b.Property<DateOnly>("NgayKetThuc")
                         .HasColumnType("date")
                         .HasColumnName("ngay_ket_thuc");
+
+                    b.Property<DateOnly?>("NgayKetThucBlock5")
+                        .HasColumnType("date")
+                        .HasColumnName("ngay_ket_thuc_block5");
 
                     b.Property<int?>("SoTinChiToiDa")
                         .HasColumnType("int")
@@ -2321,12 +2371,21 @@ namespace Backend.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("ten_hoc_ky");
 
+                    b.Property<int>("ThuTuTrongNam")
+                        .HasColumnType("int")
+                        .HasColumnName("thu_tu_trong_nam");
+
                     b.HasKey("MaHocKy")
                         .HasName("PK_HocKy");
 
-                    b.HasIndex("MaDonVi");
+                    b.HasIndex("MaDonVi", "NamHoc", "ThuTuTrongNam")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_HocKy_1");
 
-                    b.ToTable("HocKy", "dbo");
+                    b.ToTable("HocKy", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_HocKy_thu_tu_trong_nam_1", "[thu_tu_trong_nam] IN (1, 2, 3)");
+                        });
                 });
 
             modelBuilder.Entity("Backend.Models.KhenThuong", b =>
@@ -4689,6 +4748,27 @@ namespace Backend.Migrations
                     b.Navigation("KhoaTuyenSinh");
 
                     b.Navigation("NguonChuongTrinh");
+                });
+
+            modelBuilder.Entity("Backend.Models.ChuongTrinhHocKy", b =>
+                {
+                    b.HasOne("Backend.Models.ChuongTrinhDaoTao", "ChuongTrinhDaoTao")
+                        .WithMany()
+                        .HasForeignKey("MaChuongTrinh")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("FK_ChuongTrinhHocKy_ma_chuong_trinh__ChuongTrinhDaoTao");
+
+                    b.HasOne("Backend.Models.HocKy", "HocKy")
+                        .WithMany()
+                        .HasForeignKey("MaHocKy")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("FK_ChuongTrinhHocKy_ma_hoc_ky__HocKy");
+
+                    b.Navigation("ChuongTrinhDaoTao");
+
+                    b.Navigation("HocKy");
                 });
 
             modelBuilder.Entity("Backend.Models.ChuyenNganh", b =>
