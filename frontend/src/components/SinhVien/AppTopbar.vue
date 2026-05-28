@@ -166,7 +166,7 @@ const isStudent = computed(() => authStore.hasRole('Student'))
 </script>
 
 <template>
-  <header class="lg-topbar sticky top-2 z-20 mx-2 mt-2 flex h-14 flex-shrink-0 items-center gap-2 overflow-visible rounded-[22px] px-3 sm:mx-3 sm:mt-3 sm:gap-3 sm:px-4">
+  <header class="lg-topbar absolute top-0 left-0 right-0 z-50 mx-2 mt-2 flex h-14 flex-shrink-0 items-center gap-2 overflow-visible rounded-[22px] px-3 sm:mx-3 sm:mt-3 sm:gap-3 sm:px-4">
     <!-- Mobile toggle -->
     <button
       class="lg-icon-button flex p-2 text-slate-500 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-300 lg:hidden"

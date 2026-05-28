@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 import { usePopupStore } from '@/stores/popup'
 import {
   CreditCard, Wallet, Receipt, DollarSign,
@@ -76,6 +77,7 @@ const formatDateTime = (date) => new Intl.DateTimeFormat('vi-VN', { day: '2-digi
 // State
 const activeTab = ref('invoices') // 'invoices' or 'history'
 const modalOpen = ref(false)
+useBodyScrollLock(modalOpen)
 const selectedInvoice = ref(null)
 const paymentMethod = ref('vnpay')
 const isProcessing = ref(false)
@@ -424,8 +426,8 @@ const downloadPDF = (id) => {
 .btn-outline:hover { color: #2563eb; border-color: #2563eb; }
 
 /* Modal */
-.modal-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(15,23,42,.4); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 1rem; }
-.modal-content { background: rgba(255,255,255,.95); backdrop-filter: saturate(180%) blur(24px); width: 100%; max-width: 500px; border-radius: 24px; box-shadow: 0 24px 80px rgba(2,6,23,.32); overflow: hidden; border: 1px solid rgba(255,255,255,.5); }
+.modal-overlay { position: fixed; inset: 0; z-index: 9998; background: rgba(15,23,42,.4); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.modal-content { position: relative; z-index: 9999; background: rgba(255,255,255,.95); backdrop-filter: saturate(180%) blur(24px); width: 100%; max-width: 500px; border-radius: 24px; box-shadow: 0 24px 80px rgba(2,6,23,.32); overflow: hidden; border: 1px solid rgba(255,255,255,.5); }
 .modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(148,163,184,.15); display: flex; justify-content: space-between; align-items: center; }
 .modal-header h3 { margin: 0; font-size: 1.1rem; font-weight: 800; color: #0f172a; }
 .close-btn-sm { background: transparent; border: none; color: #94a3b8; cursor: pointer; display: flex; transition: color .15s; }

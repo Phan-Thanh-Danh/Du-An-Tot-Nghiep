@@ -1,5 +1,5 @@
 <script setup>
-/* eslint-disable-next-line vue/multi-word-component-names */
+ 
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 

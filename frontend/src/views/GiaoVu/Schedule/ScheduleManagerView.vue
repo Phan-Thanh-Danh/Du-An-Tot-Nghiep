@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 import {
   Plus,
   Search,
@@ -23,6 +24,7 @@ const semester = ref('Spring 2026')
 const campus = ref('Cơ sở chính')
 const viewMode = ref('Week') // Day, Week, Month
 const showCreateModal = ref(false)
+useBodyScrollLock(showCreateModal)
 
 // ── Form data for new schedule ──────────────────────────────
 const newScheduleForm = ref({
@@ -325,130 +327,136 @@ function handleCreateSchedule() {
   </PageContainer>
 
   <!-- ── Modal Create New Schedule ── -->
-  <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-    <div class="bg-white rounded-[24px] shadow-2xl max-w-md w-full p-4 border border-slate-100">
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold text-slate-900">Tạo lịch mới</h2>
-        <button @click="showCreateModal = false" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
-          <X :size="20" />
-        </button>
-      </div>
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="showCreateModal" class="fixed inset-0 z-[9998] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" @click.self="showCreateModal = false">
+        <div class="relative z-[9999] bg-white dark:bg-slate-900 rounded-[24px] shadow-2xl max-w-md w-full p-4 border border-slate-100 dark:border-slate-700">
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-slate-900">Tạo lịch mới</h2>
+            <button type="button" @click="showCreateModal = false" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
+              <X :size="20" />
+            </button>
+          </div>
 
-      <!-- Form -->
-      <form @submit.prevent="handleCreateSchedule" class="space-y-4">
-        <!-- Môn học -->
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">Môn học</label>
-          <input
-            v-model="newScheduleForm.subject"
-            type="text"
-            placeholder="Nhập tên môn học"
-            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-          />
-        </div>
+          <!-- Form -->
+          <form @submit.prevent="handleCreateSchedule" class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Môn học -->
+          <div class="col-span-2">
+            <label class="block text-xs font-bold text-slate-700 mb-1">Môn học</label>
+            <input
+              v-model="newScheduleForm.subject"
+              type="text"
+              placeholder="Nhập tên môn học"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+            />
+          </div>
 
-        <!-- Lớp -->
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">Lớp</label>
-          <input
-            v-model="newScheduleForm.class"
-            type="text"
-            placeholder="Nhập mã lớp (vd: SE1601)"
-            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-          />
-        </div>
+          <!-- Lớp -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Lớp</label>
+            <input
+              v-model="newScheduleForm.class"
+              type="text"
+              placeholder="Nhập mã lớp (vd: SE1601)"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+            />
+          </div>
 
-        <!-- Giảng viên -->
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">Giảng viên</label>
-          <select
-            v-model="newScheduleForm.teacher"
-            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-          >
-            <option value="">-- Chọn giảng viên --</option>
-            <option v-for="lecturer in lecturers" :key="lecturer.id" :value="lecturer.name" v-show="lecturer.id !== 1">
-              {{ lecturer.name }}
-            </option>
-          </select>
-        </div>
+          <!-- Phòng -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Phòng</label>
+            <input
+              v-model="newScheduleForm.room"
+              type="text"
+              placeholder="Nhập mã phòng (vd: P.302)"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+            />
+          </div>
 
-        <!-- Phòng -->
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">Phòng</label>
-          <input
-            v-model="newScheduleForm.room"
-            type="text"
-            placeholder="Nhập mã phòng (vd: P.302)"
-            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-          />
-        </div>
+          <!-- Giảng viên -->
+          <div class="col-span-2">
+            <label class="block text-xs font-bold text-slate-700 mb-1">Giảng viên</label>
+            <select
+              v-model="newScheduleForm.teacher"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+            >
+              <option value="">-- Chọn giảng viên --</option>
+              <option v-for="lecturer in lecturers" :key="lecturer.id" :value="lecturer.name" v-show="lecturer.id !== 1">
+                {{ lecturer.name }}
+              </option>
+            </select>
+          </div>
 
-        <!-- Thứ -->
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">Thứ</label>
-          <select
-            v-model="newScheduleForm.day"
-            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-          >
-            <option v-for="day in days" :key="day" :value="day">{{ day }}</option>
-          </select>
-        </div>
+          <!-- Thứ -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Thứ</label>
+            <select
+              v-model="newScheduleForm.day"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+            >
+              <option v-for="day in days" :key="day" :value="day">{{ day }}</option>
+            </select>
+          </div>
 
-        <!-- Giờ bắt đầu -->
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">Giờ bắt đầu</label>
-          <select
-            v-model="newScheduleForm.startTime"
-            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-          >
-            <option v-for="time in timeSlots" :key="time" :value="time">{{ time }}</option>
-          </select>
-        </div>
+          <!-- Trạng thái -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Trạng thái</label>
+            <select
+              v-model="newScheduleForm.status"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+            >
+              <option value="draft">Bản nháp</option>
+              <option value="pending">Chờ duyệt</option>
+              <option value="published">Đã công bố</option>
+            </select>
+          </div>
 
-        <!-- Giờ kết thúc -->
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">Giờ kết thúc</label>
-          <select
-            v-model="newScheduleForm.endTime"
-            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-          >
-            <option v-for="time in timeSlots" :key="time" :value="time" :disabled="time <= newScheduleForm.startTime">{{ time }}</option>
-          </select>
-        </div>
+          <!-- Giờ bắt đầu -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Giờ bắt đầu</label>
+            <select
+              v-model="newScheduleForm.startTime"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+            >
+              <option v-for="time in timeSlots" :key="time" :value="time">{{ time }}</option>
+            </select>
+          </div>
 
-        <!-- Trạng thái -->
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">Trạng thái</label>
-          <select
-            v-model="newScheduleForm.status"
-            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-          >
-            <option value="draft">Bản nháp</option>
-            <option value="pending">Chờ duyệt</option>
-            <option value="published">Đã công bố</option>
-          </select>
+          <!-- Giờ kết thúc -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Giờ kết thúc</label>
+            <select
+              v-model="newScheduleForm.endTime"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+            >
+              <option v-for="time in timeSlots" :key="time" :value="time" :disabled="time <= newScheduleForm.startTime">{{ time }}</option>
+            </select>
+          </div>
         </div>
 
         <!-- Actions -->
-        <div class="flex gap-3 pt-4 border-t border-slate-200">
+        <div class="flex gap-3 pt-3 mt-2 border-t border-slate-200">
           <button
             type="button"
             @click="showCreateModal = false"
-            class="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+            class="flex-1 px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors"
           >
             Hủy
           </button>
           <button
             type="submit"
-            class="flex-1 px-4 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20"
+            class="flex-1 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20"
           >
             Tạo lịch
           </button>
         </div>
       </form>
-    </div>
-  </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 </template>
 
 <style scoped>
@@ -462,6 +470,17 @@ function handleCreateSchedule() {
 .overflow-x-auto::-webkit-scrollbar-thumb {
   background: #e2e8f0;
   border-radius: 99px;
+}
+
+/* Modal transitions */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
 }
 </style>
 

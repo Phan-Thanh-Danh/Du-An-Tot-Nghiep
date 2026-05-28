@@ -11,6 +11,7 @@ import AppTopbar from '../SinhVien/AppTopbar.vue'
 import PageContainer from '../SinhVien/PageContainer.vue'
 import AiAssistant from '@/components/ui/AiAssistant.vue'
 import AnnouncementBanner from '@/components/ui/AnnouncementBanner.vue'
+import { ShieldCheck } from 'lucide-vue-next'
 
 // ── Sidebar state ──────────────────────────────────────────
 const sidebarCollapsed = ref(false)
@@ -133,31 +134,56 @@ const currentPageMeta = computed(() => {
     </Transition>
 
     <!-- MAIN AREA -->
-    <div class="flex flex-1 flex-col min-w-0 overflow-hidden relative z-10">
+    <div class="flex flex-1 flex-col min-w-0 overflow-hidden relative z-10 pt-[72px]">
       <AppTopbar @toggle-sidebar="toggleSidebar" />
 
       <AnnouncementBanner />
 
       <main class="flex-1 overflow-y-auto">
         <div class="mx-auto max-w-[1440px] px-3 sm:px-4 py-4 min-h-full flex flex-col">
-          <router-view v-slot="{ Component }">
-            <Transition
-              enter-active-class="transition-all duration-200 ease-out"
-              enter-from-class="opacity-0 translate-y-2"
-              enter-to-class="opacity-100 translate-y-0"
-              mode="out-in"
-            >
-              <component :is="Component" :key="route.fullPath" v-if="Component" />
-              <div v-else class="flex-1 flex flex-col items-center justify-center py-24 text-center">
-                <div class="flex h-20 w-20 items-center justify-center rounded-3xl bg-teal-50 border border-teal-100 shadow-sm">
-                   <ShieldCheck class="h-10 w-10 text-teal-500" />
-                </div>
-                <h3 class="mt-6 text-xl font-black text-slate-800">Trang đang phát triển</h3>
-                <p class="mt-2 text-sm font-medium text-slate-400 max-w-sm">Trang này hiện đang được xây dựng hoặc đường dẫn không tồn tại. Vui lòng quay lại sau.</p>
-                <router-link to="/staff/dashboard" class="mt-8 inline-flex items-center gap-2 rounded-2xl bg-teal-600 px-8 py-3 text-sm font-bold text-white hover:bg-teal-700 shadow-lg shadow-teal-500/20 transition-all active:scale-95">← Về Dashboard</router-link>
-              </div>
-            </Transition>
-          </router-view>
+          <PageContainer
+            :title="currentPageMeta.title"
+            :subtitle="currentPageMeta.subtitle"
+          >
+            <router-view v-slot="{ Component }">
+              <Transition
+                enter-active-class="transition-all duration-200 ease-out"
+                enter-from-class="opacity-0 translate-y-2"
+                enter-to-class="opacity-100 translate-y-0"
+                mode="out-in"
+              >
+                <Suspense timeout="0">
+                  <template #default>
+                    <component :is="Component" v-if="Component" />
+                    <div v-else class="flex-1 flex flex-col items-center justify-center py-24 text-center">
+                      <div class="flex h-20 w-20 items-center justify-center rounded-3xl bg-teal-50 border border-teal-100 shadow-sm">
+                         <ShieldCheck class="h-10 w-10 text-teal-500" />
+                      </div>
+                      <h3 class="mt-6 text-xl font-black text-slate-800">Trang đang phát triển</h3>
+                      <p class="mt-2 text-sm font-medium text-slate-400 max-w-sm">Trang này hiện đang được xây dựng hoặc đường dẫn không tồn tại. Vui lòng quay lại sau.</p>
+                      <router-link to="/staff/dashboard" class="mt-8 inline-flex items-center gap-2 rounded-2xl bg-teal-600 px-8 py-3 text-sm font-bold text-white hover:bg-teal-700 shadow-lg shadow-teal-500/20 transition-all active:scale-95">← Về Dashboard</router-link>
+                    </div>
+                  </template>
+                  <template #fallback>
+                    <div class="flex h-[60vh] w-full flex-col items-center justify-center space-y-6">
+                      <div class="relative flex items-center justify-center">
+                        <div class="absolute h-16 w-16 animate-ping rounded-full bg-teal-400/20"></div>
+                        <div class="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-teal-600 shadow-sm"></div>
+                      </div>
+                      <div class="flex flex-col items-center space-y-2">
+                        <p class="text-sm font-semibold tracking-wide text-slate-600">Đang nạp dữ liệu...</p>
+                        <div class="flex space-x-1">
+                          <div class="h-2 w-2 animate-bounce rounded-full bg-teal-500" style="animation-delay: -0.3s"></div>
+                          <div class="h-2 w-2 animate-bounce rounded-full bg-teal-500" style="animation-delay: -0.15s"></div>
+                          <div class="h-2 w-2 animate-bounce rounded-full bg-teal-500"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </Suspense>
+              </Transition>
+            </router-view>
+          </PageContainer>
         </div>
       </main>
     </div>

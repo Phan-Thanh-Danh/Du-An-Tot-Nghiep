@@ -123,7 +123,7 @@ const currentPageMeta = computed(() => {
     </Transition>
 
       <!-- MAIN AREA -->
-      <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden">
+      <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden pt-[72px]">
         <AppTopbar @toggle-sidebar="toggleSidebar" />
 
         <AnnouncementBanner />
