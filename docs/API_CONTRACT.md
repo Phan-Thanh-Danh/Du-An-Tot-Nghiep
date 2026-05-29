@@ -268,6 +268,21 @@ Ghi chú: cấu trúc phòng học hiện theo mô hình `DonVi -> ToaNha -> Tan
 
 Ghi chú: `DanhMucMonHoc` chỉ là môn học gốc. Nội dung chương/bài học chuẩn theo chuyên ngành sẽ gắn với `CourseSyllabus` trong các migration/module tiếp theo. TODO: thêm `MaSyllabus` vào `LopHocPhan` để lớp học phần biết đang dùng phiên bản đề cương nào.
 
+## Finance APIs
+
+### Cấu Hình Học Phí Chương Trình - Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/finance/program-tuition-configs` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Danh sách cấu hình học phí chương trình có phân trang; lọc theo `keyword`, `maDonVi`, `maChuongTrinhDaoTao`, `maHocKy`, `namHocTrongChuongTrinh`, `hocKyTrongNam`, `soThuTuHocKy`, `conHoatDong`. Response có `coDuocSua`, `lyDoKhongDuocSua` theo ngày học kỳ. |
+| GET | `/api/finance/program-tuition-configs/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Chi tiết cấu hình học phí gồm cơ sở, chương trình đào tạo, học kỳ, học phí chính khóa, phí học liệu, tổng dự kiến và trạng thái có được sửa. |
+| POST | `/api/finance/program-tuition-configs` | SuperAdmin | Tạo cấu hình học phí cố định theo `MaDonVi + MaChuongTrinhDaoTao + MaHocKy`; MVP chỉ hỗ trợ `loaiCachTinhHocPhi = co_dinh_theo_hoc_ky`. |
+| POST | `/api/finance/program-tuition-configs/bulk` | SuperAdmin | Tạo/cập nhật hàng loạt cấu hình cho toàn bộ chương trình, ví dụ 3 năm x 3 học kỳ = 9 dòng. Nếu chương trình đã có cấu hình active thì cần `confirmReplace = true`; backend chỉ thay thế kỳ chưa diễn ra, giữ nguyên kỳ đang diễn ra/đã kết thúc. |
+| PUT | `/api/finance/program-tuition-configs/{id}` | SuperAdmin | Cập nhật cấu hình học phí; backend tự tính `tongTienDuKien = soTienHocPhi + tienHocLieu`. Chỉ cho sửa học kỳ chưa diễn ra. |
+| PATCH | `/api/finance/program-tuition-configs/{id}/deactivate` | SuperAdmin | Vô hiệu hóa mềm cấu hình bằng `ConHoatDong = false`; không hard delete trong MVP. Chỉ cho deactivate học kỳ chưa diễn ra. |
+
+Ghi chú: Module này chỉ quản lý cấu hình học phí chương trình đào tạo, chưa sinh hóa đơn, chưa tích hợp VNPay/MoMo, chưa xử lý học bổng/miễn giảm phức tạp và không có logic dự bị tiếng Anh. Cấu hình active không được trùng theo `MaDonVi + MaChuongTrinhDaoTao + MaHocKy`. API áp dụng template cấu hình riêng vào chương trình là roadmap, chưa có controller/entity template trong MVP.
+
 ## Organizations APIs
 
 ### Đã có
