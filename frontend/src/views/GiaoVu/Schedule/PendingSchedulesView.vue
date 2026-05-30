@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed, reactive } from 'vue'
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
+import { useAuthStore } from '@/stores/auth'
+import { useSchedule } from '@/composables/useSchedule'
 import {
   Clock,
   Search,
@@ -22,15 +24,17 @@ import {
   ChevronRight,
   RotateCcw,
   Info,
+  Layers,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import FloorDropdown from '@/components/ui/FloorDropdown.vue'
 
 // ── Mock Data ────────────────────────────────────────────────
 const pendingSchedules = ref([
   {
     id: 1,
     semester: 'HK2 2025–2026',
-    campus: 'Cơ sở chính',
+    floor: '3',
     classCount: 45,
     scheduleCount: 320,
     conflictCount: 2,
@@ -49,7 +53,7 @@ const pendingSchedules = ref([
   {
     id: 2,
     semester: 'HK2 2025–2026',
-    campus: 'Cơ sở phụ',
+    floor: '1',
     classCount: 12,
     scheduleCount: 84,
     conflictCount: 0,
@@ -65,7 +69,7 @@ const pendingSchedules = ref([
   {
     id: 3,
     semester: 'HK1 2025–2026',
-    campus: 'Cơ sở chính',
+    floor: '5',
     classCount: 38,
     scheduleCount: 266,
     conflictCount: 0,
@@ -81,7 +85,7 @@ const pendingSchedules = ref([
 const searchQuery = ref('')
 const filterStatus = ref('all')
 const filterSemester = ref('all')
-const filterCampus = ref('all')
+const filterFloor = ref('all')
 const showFilterPanel = ref(false)
 
 const SEMESTERS = computed(() => {
@@ -89,10 +93,7 @@ const SEMESTERS = computed(() => {
   return [...set]
 })
 
-const CAMPUSES = computed(() => {
-  const set = new Set(pendingSchedules.value.map(s => s.campus))
-  return [...set]
-})
+const FLOORS = ['1', '2', '3', '4', '5']
 
 const filteredSchedules = computed(() => {
   return pendingSchedules.value.filter(item => {
@@ -100,11 +101,11 @@ const filteredSchedules = computed(() => {
     const matchSearch = !q
       || item.semester.toLowerCase().includes(q)
       || item.requester.toLowerCase().includes(q)
-      || item.campus.toLowerCase().includes(q)
+      || item.floor.toLowerCase().includes(q)
     const matchStatus = filterStatus.value === 'all' || item.status === filterStatus.value
     const matchSemester = filterSemester.value === 'all' || item.semester === filterSemester.value
-    const matchCampus = filterCampus.value === 'all' || item.campus === filterCampus.value
-    return matchSearch && matchStatus && matchSemester && matchCampus
+    const matchFloor = filterFloor.value === 'all' || item.floor === filterFloor.value
+    return matchSearch && matchStatus && matchSemester && matchFloor
   })
 })
 
@@ -112,14 +113,14 @@ const activeFilterCount = computed(() => {
   let count = 0
   if (filterStatus.value !== 'all') count++
   if (filterSemester.value !== 'all') count++
-  if (filterCampus.value !== 'all') count++
+  if (filterFloor.value !== 'all') count++
   return count
 })
 
 function clearFilters() {
   filterStatus.value = 'all'
   filterSemester.value = 'all'
-  filterCampus.value = 'all'
+  filterFloor.value = 'all'
 }
 
 // ── Stats ────────────────────────────────────────────────────
@@ -193,6 +194,64 @@ async function resubmit(item) {
   item.note = ''
   isResubmitting.value = null
 }
+
+// ── New Schedule Submission ─────────────────────────────────
+const auth = useAuthStore()
+const { events: scheduleEvents, draftEvents, updateEvent } = useSchedule()
+
+const showNewScheduleModal = ref(false)
+const newScheduleSemester = ref('HK2 2025–2026')
+const newScheduleFloor = ref('all')
+const isSubmitting = ref(false)
+const semesterOptions = ['HK2 2025–2026', 'HK1 2025–2026', 'HK2 2024–2025']
+useBodyScrollLock(showNewScheduleModal)
+
+function openNewSchedule() {
+  newScheduleSemester.value = semesterOptions[0]
+  newScheduleFloor.value = 'all'
+  showNewScheduleModal.value = true
+}
+
+function closeNewSchedule() {
+  showNewScheduleModal.value = false
+}
+
+async function confirmNewSchedule() {
+  isSubmitting.value = true
+  await new Promise(r => setTimeout(r, 1200))
+
+  const drafts = scheduleEvents.value.filter(e => e.status === 'draft')
+
+  drafts.forEach(e => {
+    updateEvent(e.id, { status: 'pending' })
+  })
+
+  const now = new Date()
+  const newEntry = {
+    id: Date.now(),
+    semester: newScheduleSemester.value,
+    floor: newScheduleFloor.value,
+    classCount: drafts.length,
+    scheduleCount: drafts.length,
+    conflictCount: 0,
+    requester: auth.displayName || 'Trần Thị Giáo Vụ',
+    submittedDate: now.toLocaleString('vi-VN'),
+    status: 'pending',
+    note: '',
+    classes: drafts.map(e => ({
+      code: e.title.substring(0, 6).toUpperCase(),
+      subject: e.title,
+      teacher: e.teacher,
+      room: e.room,
+      schedule: `${now.toLocaleDateString('vi-VN')}`,
+      students: 35,
+    })),
+  }
+
+  pendingSchedules.value.unshift(newEntry)
+  isSubmitting.value = false
+  showNewScheduleModal.value = false
+}
 </script>
 
 <template>
@@ -205,6 +264,7 @@ async function resubmit(item) {
         id="btn-send-for-approval"
         class="lg-button-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2"
         title="Gửi TKB mới lên BGH"
+        @click="openNewSchedule"
       >
         <Send :size="16" /> Gửi duyệt TKB mới
       </button>
@@ -239,7 +299,7 @@ async function resubmit(item) {
               id="input-search-pending"
               v-model="searchQuery"
               type="text"
-              placeholder="Tìm theo học kỳ, người gửi, cơ sở..."
+               placeholder="Tìm theo học kỳ, người gửi, lầu..."
               class="w-full lg-input pl-10 pr-4 py-2.5 text-sm font-medium transition-all"
             />
             <button
@@ -261,14 +321,12 @@ async function resubmit(item) {
             <option v-for="s in SEMESTERS" :key="s" :value="s">{{ s }}</option>
           </select>
 
-          <select
-            id="select-filter-campus"
-            v-model="filterCampus"
-            class="lg-input px-3 py-2.5 text-sm font-bold"
-          >
-            <option value="all">Tất cả cơ sở</option>
-            <option v-for="c in CAMPUSES" :key="c" :value="c">{{ c }}</option>
-          </select>
+          <FloorDropdown
+            v-model="filterFloor"
+            :floors="FLOORS"
+            all-label="Tất cả lầu"
+            label=""
+          />
 
           <!-- Advanced filter toggle -->
           <button
@@ -373,7 +431,7 @@ async function resubmit(item) {
                     <User :size="13" class="text-placeholder" /> {{ item.requester }}
                   </span>
                   <span class="flex items-center gap-1.5 text-xs font-bold text-[var(--lg-primary)]">
-                    <MapPin :size="13" /> {{ item.campus }}
+                    <MapPin :size="13" /> Lầu {{ item.floor }}
                   </span>
                 </div>
               </div>
@@ -489,11 +547,11 @@ async function resubmit(item) {
 
         <div class="relative w-full max-w-2xl surface-modal rounded-[28px] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto border border-default">
           <!-- Header -->
-          <div class="bg-[var(--lg-warning)] p-6 pb-5">
+          <div class="p-6 pb-5" style="background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary) 52%, var(--lg-cyan))">
             <div class="flex items-center justify-between">
               <div>
                 <h2 class="text-xl font-black text-white">Chi tiết TKB {{ selectedSchedule.semester }}</h2>
-                <p class="text-sm text-white/80 mt-0.5">{{ selectedSchedule.campus }} · Gửi bởi {{ selectedSchedule.requester }}</p>
+                <p class="text-sm text-white/80 mt-0.5">Lầu {{ selectedSchedule.floor }} · Gửi bởi {{ selectedSchedule.requester }}</p>
               </div>
               <button
                 class="h-9 w-9 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-all"
@@ -609,7 +667,7 @@ async function resubmit(item) {
             </div>
             <h3 class="text-xl font-black text-heading">Thu hồi TKB?</h3>
             <p class="text-sm text-label mt-2 leading-relaxed">
-              Bạn sắp thu hồi <strong class="text-heading">TKB {{ withdrawTarget.semester }}</strong> ({{ withdrawTarget.campus }}).
+              Bạn sắp thu hồi <strong class="text-heading">TKB {{ withdrawTarget.semester }}</strong> (Lầu {{ withdrawTarget.floor }}).
               TKB sẽ được chuyển về trạng thái <strong class="text-heading">Draft</strong> để bạn chỉnh sửa.
             </p>
             <p class="text-xs text-placeholder mt-2">
@@ -635,6 +693,109 @@ async function resubmit(item) {
               <span v-if="isWithdrawing" class="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
               <Undo2 v-else :size="16" />
               {{ isWithdrawing ? 'Đang thu hồi...' : 'Xác nhận thu hồi' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <!-- ════════════════════════════════════════════════════════
+       New Schedule Submission Modal
+  ════════════════════════════════════════════════════════ -->
+  <Teleport to="body">
+    <Transition name="modal">
+      <div
+        v-if="showNewScheduleModal"
+        class="fixed inset-0 z-[120] flex items-center justify-center p-4"
+        @click.self="closeNewSchedule"
+      >
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+
+        <div class="relative w-full max-w-lg surface-modal rounded-[28px] shadow-2xl overflow-hidden border border-default">
+          <!-- Header -->
+          <div class="p-6 pb-5" style="background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary) 52%, var(--lg-cyan))">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center">
+                  <Send :size="20" class="text-white" />
+                </div>
+                <div>
+                  <h2 class="text-lg font-black text-white">Gửi duyệt TKB mới</h2>
+                  <p class="text-xs text-white/70 mt-0.5">Tạo bộ TKB gửi lên Ban giám hiệu</p>
+                </div>
+              </div>
+              <button
+                class="h-8 w-8 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-all"
+                @click="closeNewSchedule"
+              >
+                <X :size="16" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Body -->
+          <div class="p-6 space-y-5">
+            <!-- Semester -->
+            <div>
+              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Học kỳ</label>
+              <select
+                v-model="newScheduleSemester"
+                class="lg-input w-full px-4 py-2.5 text-sm font-bold"
+              >
+                <option v-for="s in semesterOptions" :key="s" :value="s">{{ s }}</option>
+              </select>
+            </div>
+
+            <!-- Floor -->
+            <div>
+              <FloorDropdown
+                v-model="newScheduleFloor"
+                :floors="FLOORS"
+                all-label="Tất cả lầu"
+              />
+            </div>
+
+            <!-- Draft schedules summary -->
+            <div class="surface-input rounded-2xl p-4 border border-default">
+              <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)]">
+                  <Layers :size="18" />
+                </div>
+                <div>
+                  <p class="text-sm font-black text-heading">{{ draftEvents }} lịch học bản nháp</p>
+                  <p class="text-xs text-label mt-0.5">
+                    Sẽ được gửi lên BGH để phê duyệt
+                  </p>
+                </div>
+              </div>
+              <div v-if="draftEvents === 0" class="mt-3 flex items-start gap-2 p-3 rounded-xl bg-[var(--color-warning-bg)]">
+                <AlertTriangle :size="14" class="text-[var(--color-warning-text)] shrink-0 mt-0.5" />
+                <p class="text-xs font-medium text-[var(--color-warning-text)]">
+                  Không có lịch học bản nháp nào để gửi duyệt. Vui lòng tạo lịch trước trong phần <strong class="font-black">Quản lý TKB</strong>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="px-6 pb-6 flex items-center justify-end gap-3">
+            <button
+              class="lg-button-secondary px-5 py-2.5 text-sm font-bold"
+              @click="closeNewSchedule"
+            >Hủy</button>
+            <button
+              id="btn-confirm-send-approval"
+              :class="[
+                'lg-button-primary px-6 py-2.5 text-sm font-bold flex items-center gap-2',
+                (isSubmitting || draftEvents === 0) ? 'opacity-45 pointer-events-none' : ''
+              ]"
+              :disabled="isSubmitting || draftEvents === 0"
+              @click="confirmNewSchedule"
+            >
+              <span v-if="isSubmitting" class="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              <Send v-else :size="16" />
+              {{ isSubmitting ? 'Đang gửi...' : 'Gửi duyệt' }}
             </button>
           </div>
         </div>
