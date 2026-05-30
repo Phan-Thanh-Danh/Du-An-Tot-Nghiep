@@ -16,13 +16,22 @@ public static class Data
     private const string ChairmanDefaultPassword = "Chairman@123456";
     private const string ChairmanFullName = "Chủ tịch hệ thống";
     private const string ChairmanRoleCode = "chu_tich";
+    private const string CampusHcmAdminEmail = "campusadmin.hcm@lms.local";
+    private const string CampusHcmAdminDefaultPassword = "CampusAdmin@123456";
+    private const string CampusHcmAdminFullName = "Quản trị cơ sở Hồ Chí Minh";
+    private const string CampusAdminRoleCode = "quan_tri_co_so";
     private const string CampusHcmName = "Cơ sở Hồ Chí Minh";
     private const string CampusLevel = "co_so";
     private const string ApprovedStatus = "approved";
     private const string ActiveStatus = "active";
+    private const string RoomActiveStatus = "hoat_dong";
     private const string RequiredSubjectType = "bat_buoc";
     private const string SyllabusDraftStatus = "draft";
     private const string TrainingProgramSourceCode = "PTPM-K21";
+    private const string TuitionCampusHcmName = "FPT HCM";
+    private const string TuitionCampusCanThoName = "FPT Cần Thơ";
+    private const string TuitionProgramCode = "CT_CNTT_K2026";
+    private const string TuitionCalculationType = "co_dinh_theo_hoc_ky";
 
     public static async Task SeedRolesAsync(IServiceProvider serviceProvider)
     {
@@ -240,6 +249,9 @@ public static class Data
     )
     {
         var campus = await GetOrCreateCampusAsync(context, rootUnit);
+        await SeedCampusHcmAdminUserAsync(context, campus);
+        await SeedFacilityTestDataAsync(context, campus);
+
         var cohortK21 = await GetOrCreateCohortAsync(
             context,
             "K21",
@@ -317,6 +329,219 @@ public static class Data
 
         await SeedCourseSyllabusTestDataAsync(context, trainingProgram, specialization, pro101);
         await SeedAcademicTermsAndMappingAsync(context, campus, trainingProgram);
+        await SeedProgramTuitionConfigTestDataAsync(context, rootUnit, specialization);
+    }
+
+    private static async Task SeedCampusHcmAdminUserAsync(
+        ApplicationDbContext context,
+        DonVi campus
+    )
+    {
+        var campusAdmin = await context.NguoiDungs.FirstOrDefaultAsync(x =>
+            x.Email == CampusHcmAdminEmail
+        );
+
+        if (campusAdmin is null)
+        {
+            campusAdmin = new NguoiDung
+            {
+                MaDonVi = campus.MaDonVi,
+                Email = CampusHcmAdminEmail,
+                HoTen = CampusHcmAdminFullName,
+                VaiTroChinh = CampusAdminRoleCode,
+                TrangThai = UserStatuses.DbFirstLogin,
+                MatKhauHash = PasswordHelper.HashPassword(CampusHcmAdminDefaultPassword),
+                NgayTao = DateTime.UtcNow,
+                SoLanSaiMatKhau = 0,
+                DangNhapLanDau = true,
+            };
+
+            context.NguoiDungs.Add(campusAdmin);
+            await context.SaveChangesAsync();
+        }
+        else
+        {
+            campusAdmin.MaDonVi = campus.MaDonVi;
+            campusAdmin.HoTen = string.IsNullOrWhiteSpace(campusAdmin.HoTen)
+                ? CampusHcmAdminFullName
+                : campusAdmin.HoTen;
+            campusAdmin.VaiTroChinh = CampusAdminRoleCode;
+
+            if (string.IsNullOrWhiteSpace(campusAdmin.MatKhauHash))
+            {
+                campusAdmin.MatKhauHash = PasswordHelper.HashPassword(CampusHcmAdminDefaultPassword);
+                campusAdmin.TrangThai = UserStatuses.DbFirstLogin;
+                campusAdmin.DangNhapLanDau = true;
+            }
+
+            await context.SaveChangesAsync();
+        }
+
+        var campusAdminRole = await context.VaiTros.FirstOrDefaultAsync(x =>
+            x.MaCodeVaiTro == CampusAdminRoleCode
+        );
+
+        if (campusAdminRole is not null)
+        {
+            var hasRoleAssignment = await context.PhanQuyenNguoiDungs.AnyAsync(x =>
+                x.MaNguoiDung == campusAdmin.MaNguoiDung && x.MaVaiTro == campusAdminRole.MaVaiTro
+            );
+
+            if (!hasRoleAssignment)
+            {
+                context.PhanQuyenNguoiDungs.Add(new PhanQuyenNguoiDung
+                {
+                    MaNguoiDung = campusAdmin.MaNguoiDung,
+                    MaVaiTro = campusAdminRole.MaVaiTro,
+                    NgayGan = DateTime.UtcNow,
+                });
+            }
+        }
+    }
+
+    private static async Task SeedFacilityTestDataAsync(ApplicationDbContext context, DonVi campus)
+    {
+        var buildingPlans = new[]
+        {
+            (Code: "A", Name: "Tòa nhà A", FloorCount: 4),
+            (Code: "B", Name: "Tòa nhà B", FloorCount: 5),
+            (Code: "C", Name: "Tòa nhà C", FloorCount: 6),
+        };
+
+        foreach (var plan in buildingPlans)
+        {
+            var building = await GetOrCreateBuildingAsync(
+                context,
+                campus,
+                plan.Code,
+                plan.Name,
+                plan.FloorCount
+            );
+
+            for (var floorNumber = 1; floorNumber <= plan.FloorCount; floorNumber++)
+            {
+                var floor = await GetOrCreateFloorAsync(context, building, floorNumber);
+                await SeedRoomsForFloorAsync(context, campus, building, floor, floorNumber);
+            }
+        }
+    }
+
+    private static async Task<ToaNha> GetOrCreateBuildingAsync(
+        ApplicationDbContext context,
+        DonVi campus,
+        string code,
+        string name,
+        int floorCount
+    )
+    {
+        var building = await context.ToaNhas.FirstOrDefaultAsync(x =>
+            x.MaDonVi == campus.MaDonVi && x.MaCodeToaNha == code
+        );
+
+        if (building is null)
+        {
+            building = new ToaNha
+            {
+                MaDonVi = campus.MaDonVi,
+                MaCodeToaNha = code,
+                NgayTao = DateTime.UtcNow,
+            };
+
+            context.ToaNhas.Add(building);
+        }
+
+        building.TenToaNha = name;
+        building.DiaChi = $"Khu {code} - {campus.TenDonVi}";
+        building.SoTang = floorCount;
+        building.ConHoatDong = true;
+        building.NgayCapNhat = DateTime.UtcNow;
+
+        await context.SaveChangesAsync();
+        return building;
+    }
+
+    private static async Task<Tang> GetOrCreateFloorAsync(
+        ApplicationDbContext context,
+        ToaNha building,
+        int floorNumber
+    )
+    {
+        var floor = await context.Tangs.FirstOrDefaultAsync(x =>
+            x.MaToaNha == building.MaToaNha && x.ThuTuTang == floorNumber
+        );
+
+        if (floor is null)
+        {
+            floor = new Tang
+            {
+                MaToaNha = building.MaToaNha,
+                ThuTuTang = floorNumber,
+            };
+
+            context.Tangs.Add(floor);
+        }
+
+        floor.TenTang = $"Tầng {floorNumber}";
+        floor.MoTa = $"Tầng {floorNumber} thuộc {building.TenToaNha}";
+        floor.ConHoatDong = true;
+
+        await context.SaveChangesAsync();
+        return floor;
+    }
+
+    private static async Task SeedRoomsForFloorAsync(
+        ApplicationDbContext context,
+        DonVi campus,
+        ToaNha building,
+        Tang floor,
+        int floorNumber
+    )
+    {
+        for (var roomNumber = 1; roomNumber <= 10; roomNumber++)
+        {
+            var roomCode = $"{building.MaCodeToaNha}{floorNumber}{roomNumber:00}";
+            var room = await context.PhongHocs.FirstOrDefaultAsync(x =>
+                x.MaDonVi == campus.MaDonVi && x.MaCodePhong == roomCode
+            );
+
+            if (room is null)
+            {
+                room = new PhongHoc
+                {
+                    MaDonVi = campus.MaDonVi,
+                    MaCodePhong = roomCode,
+                };
+
+                context.PhongHocs.Add(room);
+            }
+
+            room.MaToaNha = building.MaToaNha;
+            room.MaTang = floor.MaTang;
+            room.TenPhong = $"Phòng {roomCode}";
+            room.SucChua = GetSeedRoomCapacity(roomNumber);
+            room.LoaiPhong = GetSeedRoomType(roomNumber);
+            room.TrangThaiPhong = RoomActiveStatus;
+            room.GhiChu = $"Dữ liệu seed phòng học {building.TenToaNha} - {floor.TenTang}";
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static int GetSeedRoomCapacity(int roomNumber)
+    {
+        return roomNumber % 5 == 0 ? 80 : roomNumber % 3 == 0 ? 60 : 40;
+    }
+
+    private static string GetSeedRoomType(int roomNumber)
+    {
+        return roomNumber switch
+        {
+            9 => "lab",
+            10 => "hoi_truong",
+            3 or 6 => "phong_thi_nghiem",
+            4 or 8 => "thuc_hanh",
+            _ => "ly_thuyet"
+        };
     }
 
     private static async Task SeedCourseSyllabusTestDataAsync(
@@ -718,5 +943,247 @@ public static class Data
         }
 
         await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedProgramTuitionConfigTestDataAsync(
+        ApplicationDbContext context,
+        DonVi rootUnit,
+        ChuyenNganh specialization)
+    {
+        var fptHcm = await GetOrCreateCampusByNameAsync(context, rootUnit, TuitionCampusHcmName);
+        var fptCanTho = await GetOrCreateCampusByNameAsync(context, rootUnit, TuitionCampusCanThoName);
+
+        await GetOrCreateCampusSpecializationAsync(context, specialization, fptHcm);
+        await GetOrCreateCampusSpecializationAsync(context, specialization, fptCanTho);
+
+        var cohort = await GetOrCreateCohortAsync(
+            context,
+            "K2026",
+            "Khóa K2026",
+            2026,
+            2030,
+            "Khóa tuyển sinh K2026 dùng để demo cấu hình học phí chương trình"
+        );
+
+        var trainingProgram = await GetOrCreateProgramTuitionTrainingProgramAsync(
+            context,
+            specialization,
+            cohort
+        );
+        await context.SaveChangesAsync();
+
+        var hcmTerms = await GetOrCreateProgramTuitionTermsAsync(context, fptHcm);
+        var canThoTerms = await GetOrCreateProgramTuitionTermsAsync(context, fptCanTho);
+
+        await UpsertProgramTuitionConfigsAsync(
+            context,
+            fptHcm,
+            trainingProgram,
+            hcmTerms,
+            28_000_000m,
+            2_000_000m
+        );
+
+        await UpsertProgramTuitionConfigsAsync(
+            context,
+            fptCanTho,
+            trainingProgram,
+            canThoTerms,
+            25_000_000m,
+            2_000_000m
+        );
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task<DonVi> GetOrCreateCampusByNameAsync(
+        ApplicationDbContext context,
+        DonVi rootUnit,
+        string campusName)
+    {
+        var campus = await context.DonVis.FirstOrDefaultAsync(x => x.TenDonVi == campusName);
+        if (campus is null)
+        {
+            campus = new DonVi
+            {
+                MaDonViCha = rootUnit.MaDonVi,
+                TenDonVi = campusName,
+                CapDonVi = CampusLevel,
+                ConHoatDong = true,
+                NgayTao = DateTime.UtcNow,
+            };
+
+            context.DonVis.Add(campus);
+            await context.SaveChangesAsync();
+        }
+        else
+        {
+            campus.MaDonViCha = rootUnit.MaDonVi;
+            campus.CapDonVi = CampusLevel;
+            campus.ConHoatDong = true;
+            campus.NgayCapNhat = DateTime.UtcNow;
+        }
+
+        return campus;
+    }
+
+    private static async Task<ChuongTrinhDaoTao> GetOrCreateProgramTuitionTrainingProgramAsync(
+        ApplicationDbContext context,
+        ChuyenNganh specialization,
+        KhoaTuyenSinh cohort)
+    {
+        var trainingProgram = await context.ChuongTrinhDaoTaos.FirstOrDefaultAsync(x =>
+            x.MaCodeChuongTrinh == TuitionProgramCode
+        );
+
+        if (trainingProgram is null)
+        {
+            trainingProgram = await context.ChuongTrinhDaoTaos.FirstOrDefaultAsync(x =>
+                x.MaChuyenNganh == specialization.MaChuyenNganh
+                && x.MaKhoaTuyenSinh == cohort.MaKhoaTuyenSinh
+                && x.Version == "2026.1"
+            );
+        }
+
+        if (trainingProgram is null)
+        {
+            trainingProgram = new ChuongTrinhDaoTao
+            {
+                MaCodeChuongTrinh = TuitionProgramCode,
+                NgayTao = DateTime.UtcNow,
+            };
+
+            context.ChuongTrinhDaoTaos.Add(trainingProgram);
+        }
+
+        trainingProgram.MaChuyenNganh = specialization.MaChuyenNganh;
+        trainingProgram.MaKhoaTuyenSinh = cohort.MaKhoaTuyenSinh;
+        trainingProgram.MaCodeChuongTrinh = TuitionProgramCode;
+        trainingProgram.TenChuongTrinh = "Công nghệ thông tin K2026";
+        trainingProgram.Version = "2026.1";
+        trainingProgram.SoHocKy = 9;
+        trainingProgram.ThoiGianDaoTaoThang = 36;
+        trainingProgram.TongTinChiYeuCau = 125;
+        trainingProgram.SoTinChiToiThieuMoiKy = 12;
+        trainingProgram.SoTinChiToiDaMoiKy = 24;
+        trainingProgram.TrangThai = ActiveStatus;
+        trainingProgram.MoTa = "Chương trình demo cho cấu hình học phí cố định theo học kỳ";
+        trainingProgram.NguonChuongTrinhId = null;
+        trainingProgram.GhiChuThayDoi = null;
+        trainingProgram.NgayHieuLuc = new DateOnly(2026, 1, 1);
+        trainingProgram.NgayHetHieuLuc = null;
+        trainingProgram.ConHoatDong = true;
+        trainingProgram.NgayCapNhat = DateTime.UtcNow;
+
+        return trainingProgram;
+    }
+
+    private static async Task<IReadOnlyList<HocKy>> GetOrCreateProgramTuitionTermsAsync(
+        ApplicationDbContext context,
+        DonVi campus)
+    {
+        var termPlans = new[]
+        {
+            (Code: "HK1_2026", Name: "CNTT K2026 - Năm 1 - Học kỳ 1", Year: "2026-2027", TermInYear: 1, Start: new DateOnly(2026, 9, 1), End: new DateOnly(2026, 12, 31)),
+            (Code: "HK2_2027", Name: "CNTT K2026 - Năm 1 - Học kỳ 2", Year: "2026-2027", TermInYear: 2, Start: new DateOnly(2027, 1, 1), End: new DateOnly(2027, 4, 30)),
+            (Code: "HK3_2027", Name: "CNTT K2026 - Năm 1 - Học kỳ 3", Year: "2026-2027", TermInYear: 3, Start: new DateOnly(2027, 5, 1), End: new DateOnly(2027, 8, 31)),
+            (Code: "HK4_2027", Name: "CNTT K2026 - Năm 2 - Học kỳ 1", Year: "2027-2028", TermInYear: 1, Start: new DateOnly(2027, 9, 1), End: new DateOnly(2027, 12, 31)),
+            (Code: "HK5_2028", Name: "CNTT K2026 - Năm 2 - Học kỳ 2", Year: "2027-2028", TermInYear: 2, Start: new DateOnly(2028, 1, 1), End: new DateOnly(2028, 4, 30)),
+            (Code: "HK6_2028", Name: "CNTT K2026 - Năm 2 - Học kỳ 3", Year: "2027-2028", TermInYear: 3, Start: new DateOnly(2028, 5, 1), End: new DateOnly(2028, 8, 31)),
+            (Code: "HK7_2028", Name: "CNTT K2026 - Năm 3 - Học kỳ 1", Year: "2028-2029", TermInYear: 1, Start: new DateOnly(2028, 9, 1), End: new DateOnly(2028, 12, 31)),
+            (Code: "HK8_2029", Name: "CNTT K2026 - Năm 3 - Học kỳ 2", Year: "2028-2029", TermInYear: 2, Start: new DateOnly(2029, 1, 1), End: new DateOnly(2029, 4, 30)),
+            (Code: "HK9_2029", Name: "CNTT K2026 - Năm 3 - Học kỳ 3", Year: "2028-2029", TermInYear: 3, Start: new DateOnly(2029, 5, 1), End: new DateOnly(2029, 8, 31)),
+        };
+
+        var terms = new List<HocKy>();
+        foreach (var plan in termPlans)
+        {
+            var term = await context.HocKys.FirstOrDefaultAsync(x =>
+                x.MaDonVi == campus.MaDonVi && x.MaCodeHocKy == plan.Code
+            );
+
+            if (term is null)
+            {
+                term = await context.HocKys.FirstOrDefaultAsync(x =>
+                    x.MaDonVi == campus.MaDonVi
+                    && x.NamHoc == plan.Year
+                    && x.ThuTuTrongNam == plan.TermInYear
+                );
+            }
+
+            if (term is null)
+            {
+                term = new HocKy
+                {
+                    MaDonVi = campus.MaDonVi,
+                    MaCodeHocKy = plan.Code,
+                };
+
+                context.HocKys.Add(term);
+            }
+
+            term.MaCodeHocKy = plan.Code;
+            term.TenHocKy = plan.Name;
+            term.NamHoc = plan.Year;
+            term.ThuTuTrongNam = plan.TermInYear;
+            term.NgayBatDau = plan.Start;
+            term.NgayKetThuc = plan.End;
+            term.NgayKetThucBlock5 = plan.End.AddDays(5);
+            term.DaKhoa = false;
+            term.SoTinChiToiDa = 24;
+            term.HanRutMon = plan.Start.AddDays(14);
+            terms.Add(term);
+        }
+
+        await context.SaveChangesAsync();
+        return terms;
+    }
+
+    private static async Task UpsertProgramTuitionConfigsAsync(
+        ApplicationDbContext context,
+        DonVi campus,
+        ChuongTrinhDaoTao trainingProgram,
+        IReadOnlyList<HocKy> terms,
+        decimal tuitionAmount,
+        decimal materialAmount)
+    {
+        for (var index = 0; index < terms.Count; index++)
+        {
+            var term = terms[index];
+            var programTermOrder = index + 1;
+            var config = await context.CauHinhHocPhiChuongTrinhs.FirstOrDefaultAsync(x =>
+                x.MaDonVi == campus.MaDonVi
+                && x.MaChuongTrinhDaoTao == trainingProgram.MaChuongTrinh
+                && x.MaHocKy == term.MaHocKy
+            );
+
+            if (config is null)
+            {
+                config = new CauHinhHocPhiChuongTrinh
+                {
+                    MaDonVi = campus.MaDonVi,
+                    MaChuongTrinhDaoTao = trainingProgram.MaChuongTrinh,
+                    MaHocKy = term.MaHocKy,
+                    NgayTao = DateTime.UtcNow,
+                };
+
+                context.CauHinhHocPhiChuongTrinhs.Add(config);
+            }
+
+            var yearInProgram = (index / 3) + 1;
+            var termInYear = (index % 3) + 1;
+            var yearTuitionAmount = tuitionAmount + ((yearInProgram - 1) * 1_000_000m);
+
+            config.NamHocTrongChuongTrinh = yearInProgram;
+            config.HocKyTrongNam = termInYear;
+            config.SoThuTuHocKy = programTermOrder;
+            config.LoaiCachTinhHocPhi = TuitionCalculationType;
+            config.SoTienHocPhi = yearTuitionAmount;
+            config.TienHocLieu = materialAmount;
+            config.TongTienDuKien = yearTuitionAmount + materialAmount;
+            config.ConHoatDong = true;
+            config.GhiChu = $"Seed cấu hình học phí {trainingProgram.TenChuongTrinh} - {campus.TenDonVi} - năm {yearInProgram} kỳ {termInYear}";
+            config.NgayCapNhat = DateTime.UtcNow;
+        }
     }
 }

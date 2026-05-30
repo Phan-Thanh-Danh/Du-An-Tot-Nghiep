@@ -35,6 +35,9 @@ Backend/
 - `AuthController`: `POST /api/auth/login`, `POST /api/auth/change-password`.
 - `OrganizationsController`: CRUD tổ chức/cây tổ chức.
 - `AccountManagementExampleController`: endpoint mẫu `/api/admin/accounts`.
+- `BuildingsController`: CRUD tòa nhà `/api/master-data/buildings` theo scope `MaDonVi`.
+- `FloorsController`: CRUD tầng/lầu `/api/master-data/floors` và danh sách tầng theo tòa nhà.
+- `RoomsController`: CRUD phòng học `/api/master-data/rooms` theo cấu trúc `DonVi -> ToaNha -> Tang -> PhongHoc`.
 
 Quy ước:
 - Controller chỉ nhận request, gọi service, trả DTO/result.
@@ -47,6 +50,9 @@ Quy ước:
 
 - `IAuthService`/`AuthService`: login, đổi mật khẩu, audit login/password.
 - `IOrganizationService`/`OrganizationService`: cây tổ chức, validate parent, scope theo campus, xóa mềm/xóa cứng.
+- `IBuildingService`/`BuildingService`: quản lý tòa nhà, validate đơn vị, mã tòa nhà và xóa mềm.
+- `IFloorService`/`FloorService`: quản lý tầng/lầu, validate tòa nhà, thứ tự tầng và xóa mềm.
+- `IRoomService`/`RoomService`: quản lý phòng học, validate đơn vị, tòa nhà, tầng, mã phòng, loại/trạng thái phòng và xóa mềm.
 
 Quy ước:
 - Service xử lý nghiệp vụ và gọi `ApplicationDbContext`.

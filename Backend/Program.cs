@@ -8,12 +8,16 @@ using Backend.Services.AdministrativeClasses;
 using Backend.Services.AcademicTerms;
 using Backend.Services.Audit;
 using Backend.Services.Auth;
+using Backend.Services.Buildings;
 using Backend.Services.CampusSpecializations;
 using Backend.Services.Cohorts;
 using Backend.Services.CourseSyllabuses;
+using Backend.Services.Floors;
+using Backend.Services.Finance.ProgramTuitionConfigs;
 using Backend.Services.Majors;
 using Backend.Services.Organizations;
 using Backend.Services.Rbac;
+using Backend.Services.Rooms;
 using Backend.Services.Security;
 using Backend.Services.Specializations;
 using Backend.Services.Subjects;
@@ -83,6 +87,10 @@ builder.Services.AddScoped<ICohortService, CohortService>();
 builder.Services.AddScoped<ITrainingProgramSubjectService, TrainingProgramSubjectService>();
 builder.Services.AddScoped<ITrainingProgramService, TrainingProgramService>();
 builder.Services.AddScoped<ITrainingProgramTermService, TrainingProgramTermService>();
+builder.Services.AddScoped<IBuildingService, BuildingService>();
+builder.Services.AddScoped<IFloorService, FloorService>();
+builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<IProgramTuitionConfigService, ProgramTuitionConfigService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", policy =>
@@ -138,6 +146,18 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await context.Database.MigrateAsync();
+
+    if (app.Environment.IsDevelopment())
+    {
+        try
+        {
+            await context.Database.ExecuteSqlRawAsync("ALTER DATABASE SCOPED CONFIGURATION SET IDENTITY_CACHE = OFF;");
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogWarning(ex, "Không thể tắt SQL Server IDENTITY_CACHE cho database dev.");
+        }
+    }
 }
 
 await Data.SeedRolesAsync(app.Services);

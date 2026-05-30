@@ -210,6 +210,46 @@ Ghi chú: `ChuongTrinhDaoTao` là khung chuẩn toàn hệ thống theo `ChuyenN
 
 Ghi chú: `MonHocTrongChuongTrinh` chỉ khai báo danh sách môn trong khung chương trình đào tạo. Nội dung chi tiết môn học, video, bài học, quiz và đề cương chi tiết vẫn thuộc các module khác như `CourseSyllabus`; clone chương trình đào tạo chỉ clone danh sách môn trong chương trình, không clone nội dung học liệu.
 
+## Building APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/master-data/buildings` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách tòa nhà có phân trang, tìm kiếm theo mã/tên, lọc đơn vị/trạng thái và scope theo `MaDonVi`. |
+| GET | `/api/master-data/buildings/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Chi tiết tòa nhà trong phạm vi đơn vị được xem. |
+| POST | `/api/master-data/buildings` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Tạo tòa nhà trong đơn vị được quản lý; mã tòa nhà không trùng trong cùng đơn vị. |
+| PUT | `/api/master-data/buildings/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Cập nhật tòa nhà trong phạm vi đơn vị được quản lý. |
+| DELETE | `/api/master-data/buildings/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Xóa mềm tòa nhà bằng `ConHoatDong = false`; không cho xóa nếu còn tầng hoặc phòng học hoạt động. |
+
+## Floor APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/master-data/floors` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách tầng/lầu có phân trang, tìm kiếm theo tên tầng/tòa, lọc đơn vị, tòa nhà, trạng thái và scope theo `MaDonVi`. |
+| GET | `/api/master-data/floors/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Chi tiết tầng/lầu trong phạm vi đơn vị được xem. |
+| GET | `/api/master-data/buildings/{buildingId}/floors` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách tầng/lầu của một tòa nhà. |
+| POST | `/api/master-data/floors` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Tạo tầng/lầu trong tòa nhà được quản lý; `ThuTuTang` không trùng trong cùng tòa nhà. |
+| PUT | `/api/master-data/floors/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Cập nhật tầng/lầu trong phạm vi đơn vị được quản lý. |
+| DELETE | `/api/master-data/floors/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Xóa mềm tầng/lầu bằng `ConHoatDong = false`; không cho xóa nếu còn phòng học hoạt động. |
+
+## Rooms APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/master-data/rooms` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách phòng học có phân trang, tìm kiếm theo mã/tên phòng/tòa/tầng, lọc đơn vị, tòa nhà, tầng, loại phòng, trạng thái và scope theo `MaDonVi`. |
+| GET | `/api/master-data/rooms/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Chi tiết phòng học gồm cơ sở, tòa nhà và tầng/lầu trong phạm vi được xem. |
+| GET | `/api/master-data/floors/{floorId}/rooms` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách phòng học thuộc một tầng/lầu. |
+| POST | `/api/master-data/rooms` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Tạo phòng học trong phạm vi đơn vị được quản lý; bắt buộc `MaDonVi`, `MaToaNha`, `MaTang`, kiểm tra tầng thuộc tòa và tòa thuộc đơn vị. |
+| PUT | `/api/master-data/rooms/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Cập nhật phòng học trong phạm vi đơn vị được quản lý; validate tòa/tầng, loại phòng, trạng thái, sức chứa và mã phòng. |
+| DELETE | `/api/master-data/rooms/{id}` | SuperAdmin/Admin/CampusAdmin/SubCampusAdmin | Xóa mềm phòng học bằng `TrangThaiPhong = ngung_hoat_dong`, không xóa vật lý. |
+
+Ghi chú: cấu trúc phòng học hiện theo mô hình `DonVi -> ToaNha -> Tang -> PhongHoc`. Migration `AddFacilityBuildingFloorRoomStructure` thêm bảng `ToaNha`, `Tang`, cột `MaToaNha`, `MaTang`, `GhiChu` cho `PhongHoc` và backfill phòng học cũ vào `Tòa nhà mặc định / Tầng 1`.
+
 ## Course Syllabuses APIs
 
 ### Đã có
@@ -227,6 +267,21 @@ Ghi chú: `MonHocTrongChuongTrinh` chỉ khai báo danh sách môn trong khung c
 | PATCH | `/api/master-data/course-syllabuses/{id}/archive` | SuperAdmin | Lưu trữ đề cương môn học bằng `TrangThai = archived`, `ConHoatDong = false`. |
 
 Ghi chú: `DanhMucMonHoc` chỉ là môn học gốc. Nội dung chương/bài học chuẩn theo chuyên ngành sẽ gắn với `CourseSyllabus` trong các migration/module tiếp theo. TODO: thêm `MaSyllabus` vào `LopHocPhan` để lớp học phần biết đang dùng phiên bản đề cương nào.
+
+## Finance APIs
+
+### Cấu Hình Học Phí Chương Trình - Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/finance/program-tuition-configs` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Danh sách cấu hình học phí chương trình có phân trang; lọc theo `keyword`, `maDonVi`, `maChuongTrinhDaoTao`, `maHocKy`, `namHocTrongChuongTrinh`, `hocKyTrongNam`, `soThuTuHocKy`, `conHoatDong`. Response có `coDuocSua`, `lyDoKhongDuocSua` theo ngày học kỳ. |
+| GET | `/api/finance/program-tuition-configs/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Chi tiết cấu hình học phí gồm cơ sở, chương trình đào tạo, học kỳ, học phí chính khóa, phí học liệu, tổng dự kiến và trạng thái có được sửa. |
+| POST | `/api/finance/program-tuition-configs` | SuperAdmin | Tạo cấu hình học phí cố định theo `MaDonVi + MaChuongTrinhDaoTao + MaHocKy`; MVP chỉ hỗ trợ `loaiCachTinhHocPhi = co_dinh_theo_hoc_ky`. |
+| POST | `/api/finance/program-tuition-configs/bulk` | SuperAdmin | Tạo/cập nhật hàng loạt cấu hình cho toàn bộ chương trình, ví dụ 3 năm x 3 học kỳ = 9 dòng. Nếu chương trình đã có cấu hình active thì cần `confirmReplace = true`; backend chỉ thay thế kỳ chưa diễn ra, giữ nguyên kỳ đang diễn ra/đã kết thúc. |
+| PUT | `/api/finance/program-tuition-configs/{id}` | SuperAdmin | Cập nhật cấu hình học phí; backend tự tính `tongTienDuKien = soTienHocPhi + tienHocLieu`. Chỉ cho sửa học kỳ chưa diễn ra. |
+| PATCH | `/api/finance/program-tuition-configs/{id}/deactivate` | SuperAdmin | Vô hiệu hóa mềm cấu hình bằng `ConHoatDong = false`; không hard delete trong MVP. Chỉ cho deactivate học kỳ chưa diễn ra. |
+
+Ghi chú: Module này chỉ quản lý cấu hình học phí chương trình đào tạo, chưa sinh hóa đơn, chưa tích hợp VNPay/MoMo, chưa xử lý học bổng/miễn giảm phức tạp và không có logic dự bị tiếng Anh. Cấu hình active không được trùng theo `MaDonVi + MaChuongTrinhDaoTao + MaHocKy`. API áp dụng template cấu hình riêng vào chương trình là roadmap, chưa có controller/entity template trong MVP.
 
 ## Organizations APIs
 

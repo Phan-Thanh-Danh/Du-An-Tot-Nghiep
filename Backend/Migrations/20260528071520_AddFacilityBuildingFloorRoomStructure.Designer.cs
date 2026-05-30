@@ -4,6 +4,7 @@ using Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260528071520_AddFacilityBuildingFloorRoomStructure")]
+    partial class AddFacilityBuildingFloorRoomStructure
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -706,113 +709,6 @@ namespace Backend.Migrations
                             t.HasCheckConstraint("CK_CauHinhDiemMonHoc_trong_so_giua_ky_2", "[trong_so_giua_ky] BETWEEN 0 AND 100");
 
                             t.HasCheckConstraint("CK_CauHinhDiemMonHoc_trong_so_qua_trinh_1", "[trong_so_qua_trinh] BETWEEN 0 AND 100");
-                        });
-                });
-
-            modelBuilder.Entity("Backend.Models.CauHinhHocPhiChuongTrinh", b =>
-                {
-                    b.Property<int>("MaCauHinhHocPhi")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("ma_cau_hinh_hoc_phi");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaCauHinhHocPhi"));
-
-                    b.Property<bool>("ConHoatDong")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true)
-                        .HasColumnName("con_hoat_dong");
-
-                    b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("ghi_chu");
-
-                    b.Property<int>("HocKyTrongNam")
-                        .HasColumnType("int")
-                        .HasColumnName("hoc_ky_trong_nam");
-
-                    b.Property<string>("LoaiCachTinhHocPhi")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
-                        .HasDefaultValue("co_dinh_theo_hoc_ky")
-                        .HasColumnName("loai_cach_tinh_hoc_phi");
-
-                    b.Property<int>("MaChuongTrinhDaoTao")
-                        .HasColumnType("int")
-                        .HasColumnName("ma_chuong_trinh_dao_tao");
-
-                    b.Property<int>("MaDonVi")
-                        .HasColumnType("int")
-                        .HasColumnName("ma_don_vi");
-
-                    b.Property<int>("MaHocKy")
-                        .HasColumnType("int")
-                        .HasColumnName("ma_hoc_ky");
-
-                    b.Property<int>("NamHocTrongChuongTrinh")
-                        .HasColumnType("int")
-                        .HasColumnName("nam_hoc_trong_chuong_trinh");
-
-                    b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("ngay_cap_nhat");
-
-                    b.Property<DateTime>("NgayTao")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<int>("SoThuTuHocKy")
-                        .HasColumnType("int")
-                        .HasColumnName("so_thu_tu_hoc_ky");
-
-                    b.Property<decimal>("SoTienHocPhi")
-                        .HasColumnType("decimal(15,2)")
-                        .HasColumnName("so_tien_hoc_phi");
-
-                    b.Property<decimal>("TienHocLieu")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(15,2)")
-                        .HasDefaultValue(0m)
-                        .HasColumnName("tien_hoc_lieu");
-
-                    b.Property<decimal>("TongTienDuKien")
-                        .HasColumnType("decimal(15,2)")
-                        .HasColumnName("tong_tien_du_kien");
-
-                    b.HasKey("MaCauHinhHocPhi")
-                        .HasName("PK_CauHinhHocPhiChuongTrinh");
-
-                    b.HasIndex("MaChuongTrinhDaoTao")
-                        .HasDatabaseName("IX_CauHinhHocPhiChuongTrinh_ma_chuong_trinh_dao_tao");
-
-                    b.HasIndex("MaHocKy")
-                        .HasDatabaseName("IX_CauHinhHocPhiChuongTrinh_ma_hoc_ky");
-
-                    b.HasIndex("MaDonVi", "MaChuongTrinhDaoTao", "MaHocKy")
-                        .IsUnique()
-                        .HasDatabaseName("UQ_CauHinhHocPhiChuongTrinh_active_scope")
-                        .HasFilter("[con_hoat_dong] = 1");
-
-                    b.ToTable("CauHinhHocPhiChuongTrinh", "dbo", t =>
-                        {
-                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_hoc_ky_trong_nam", "[hoc_ky_trong_nam] IN (1, 2, 3)");
-
-                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_loai_cach_tinh", "[loai_cach_tinh_hoc_phi] IN (N'co_dinh_theo_hoc_ky', N'theo_tin_chi', N'theo_mon_hoc')");
-
-                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_nam_hoc", "[nam_hoc_trong_chuong_trinh] >= 1");
-
-                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_so_thu_tu", "[so_thu_tu_hoc_ky] >= 1");
-
-                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_so_tien_hoc_phi", "[so_tien_hoc_phi] >= 0");
-
-                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_tien_hoc_lieu", "[tien_hoc_lieu] >= 0");
-
-                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_tong_tien", "[tong_tien_du_kien] = [so_tien_hoc_phi] + [tien_hoc_lieu]");
                         });
                 });
 
@@ -4872,36 +4768,6 @@ namespace Backend.Migrations
                     b.Navigation("HocKy");
 
                     b.Navigation("MonHoc");
-                });
-
-            modelBuilder.Entity("Backend.Models.CauHinhHocPhiChuongTrinh", b =>
-                {
-                    b.HasOne("Backend.Models.ChuongTrinhDaoTao", "ChuongTrinhDaoTao")
-                        .WithMany()
-                        .HasForeignKey("MaChuongTrinhDaoTao")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("FK_CauHinhHocPhiChuongTrinh_ma_chuong_trinh__ChuongTrinhDaoTao");
-
-                    b.HasOne("Backend.Models.DonVi", "DonVi")
-                        .WithMany()
-                        .HasForeignKey("MaDonVi")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("FK_CauHinhHocPhiChuongTrinh_ma_don_vi__DonVi");
-
-                    b.HasOne("Backend.Models.HocKy", "HocKy")
-                        .WithMany()
-                        .HasForeignKey("MaHocKy")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("FK_CauHinhHocPhiChuongTrinh_ma_hoc_ky__HocKy");
-
-                    b.Navigation("ChuongTrinhDaoTao");
-
-                    b.Navigation("DonVi");
-
-                    b.Navigation("HocKy");
                 });
 
             modelBuilder.Entity("Backend.Models.CauHinhKhenThuong", b =>
