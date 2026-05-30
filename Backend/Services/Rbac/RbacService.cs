@@ -58,17 +58,18 @@ public class RbacService : IRbacService
         };
 
         await _repository.AddRoleAsync(role, cancellationToken);
-        await _auditLogService.AddAsync(
-            currentUser.CampusId,
-            nameof(VaiTro),
-            role.MaVaiTro,
-            "ROLE_CREATED",
-            currentUser.UserId,
+        await _repository.SaveChangesAsync(cancellationToken);
+        await _auditLogService.LogAsync(
+            "Role",
+            role.MaVaiTro.ToString(),
+            "CREATE",
             null,
             ToRoleDto(role),
+            currentUser.UserId,
+            currentUser.CampusId,
+            "Tạo vai trò hệ thống.",
             cancellationToken);
 
-        await _repository.SaveChangesAsync(cancellationToken);
         return ToRoleDto(role);
     }
 
@@ -95,17 +96,18 @@ public class RbacService : IRbacService
         role.MaCodeVaiTro = roleCode;
         role.TenVaiTro = roleName;
 
-        await _auditLogService.AddAsync(
-            currentUser.CampusId,
-            nameof(VaiTro),
-            role.MaVaiTro,
-            "ROLE_UPDATED",
-            currentUser.UserId,
+        await _repository.SaveChangesAsync(cancellationToken);
+        await _auditLogService.LogAsync(
+            "Role",
+            role.MaVaiTro.ToString(),
+            "UPDATE",
             oldValue,
             ToRoleDto(role),
+            currentUser.UserId,
+            currentUser.CampusId,
+            "Cập nhật vai trò hệ thống.",
             cancellationToken);
 
-        await _repository.SaveChangesAsync(cancellationToken);
         return ToRoleDto(role);
     }
 
@@ -123,17 +125,17 @@ public class RbacService : IRbacService
         var oldValue = ToRoleDto(role);
         _repository.RemoveRole(role);
 
-        await _auditLogService.AddAsync(
-            currentUser.CampusId,
-            nameof(VaiTro),
-            role.MaVaiTro,
-            "ROLE_DELETED",
-            currentUser.UserId,
+        await _repository.SaveChangesAsync(cancellationToken);
+        await _auditLogService.LogAsync(
+            "Role",
+            role.MaVaiTro.ToString(),
+            "DELETE",
             oldValue,
             null,
+            currentUser.UserId,
+            currentUser.CampusId,
+            "Xóa vai trò hệ thống.",
             cancellationToken);
-
-        await _repository.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<UserRoleAssignmentDto> GetUserRolesAsync(
@@ -192,17 +194,18 @@ public class RbacService : IRbacService
         user.VaiTroChinh = primaryRole.MaCodeVaiTro;
         var newValue = await ToUserRoleAssignmentDtoAsync(user, cancellationToken, roles);
 
-        await _auditLogService.AddAsync(
-            user.MaDonVi,
-            nameof(PhanQuyenNguoiDung),
-            user.MaNguoiDung,
-            "USER_ROLES_ASSIGNED",
-            currentUser.UserId,
+        await _repository.SaveChangesAsync(cancellationToken);
+        await _auditLogService.LogAsync(
+            "UserRole",
+            user.MaNguoiDung.ToString(),
+            "ASSIGN_ROLE",
             oldValue,
             newValue,
+            currentUser.UserId,
+            user.MaDonVi,
+            "Gán lại vai trò cho người dùng.",
             cancellationToken);
 
-        await _repository.SaveChangesAsync(cancellationToken);
         return await ToUserRoleAssignmentDtoAsync(user, cancellationToken);
     }
 

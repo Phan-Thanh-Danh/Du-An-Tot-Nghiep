@@ -2387,7 +2387,9 @@ public class ApplicationDbContext : DbContext
                 .HasMaxLength(100)
                 .IsRequired();
             entity.Property(e => e.MaDoiTuong)
-                .HasColumnName("ma_doi_tuong");
+                .HasColumnName("ma_doi_tuong")
+                .HasMaxLength(100)
+                .IsRequired();
             entity.Property(e => e.HanhDong)
                 .HasColumnName("hanh_dong")
                 .HasMaxLength(50)
@@ -2404,6 +2406,18 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("thoi_diem_thay_doi")
                 .HasColumnType("datetime2")
                 .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.DiaChiIp)
+                .HasColumnName("dia_chi_ip")
+                .HasMaxLength(45);
+            entity.Property(e => e.UserAgent)
+                .HasColumnName("user_agent")
+                .HasMaxLength(512);
+            entity.Property(e => e.MoTa)
+                .HasColumnName("mo_ta")
+                .HasMaxLength(500);
+            entity.Property(e => e.TraceId)
+                .HasColumnName("trace_id")
+                .HasMaxLength(100);
             entity.HasIndex(e => new { e.MaDonVi, e.ThoiDiemThayDoi }).HasDatabaseName("IX_NhatKyKiemToan_ma_don_vi_thoi_diem");
             entity.ToTable(t => t.HasCheckConstraint("CK_NhatKyKiemToan_gia_tri_cu_ISJSON", "[gia_tri_cu] IS NULL OR ISJSON([gia_tri_cu]) = 1"));
             entity.ToTable(t => t.HasCheckConstraint("CK_NhatKyKiemToan_gia_tri_moi_ISJSON", "[gia_tri_moi] IS NULL OR ISJSON([gia_tri_moi]) = 1"));

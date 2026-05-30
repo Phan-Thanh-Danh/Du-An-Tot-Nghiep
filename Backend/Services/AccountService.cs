@@ -4,6 +4,7 @@ using Backend.DTOs;
 using Backend.Exceptions;
 using Backend.Helpers;
 using Backend.Models;
+using Backend.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services;
@@ -11,10 +12,12 @@ namespace Backend.Services;
 public class AccountService : IAccountService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IAuditLogService _auditLogService;
 
-    public AccountService(ApplicationDbContext context)
+    public AccountService(ApplicationDbContext context, IAuditLogService auditLogService)
     {
         _context = context;
+        _auditLogService = auditLogService;
     }
 
     public async Task<AccountProfileResponse> GetProfileAsync(int userId, CancellationToken cancellationToken = default)
@@ -34,6 +37,7 @@ public class AccountService : IAccountService
         }
 
         var user = await GetUserAsync(userId, cancellationToken);
+        var oldValue = ToProfileResponse(user);
 
         if (request.Email is not null)
         {
@@ -73,6 +77,18 @@ public class AccountService : IAccountService
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+        var newValue = ToProfileResponse(user);
+        await _auditLogService.LogAsync(
+            "User",
+            user.MaNguoiDung.ToString(),
+            "UPDATE_PROFILE",
+            oldValue,
+            newValue,
+            user.MaNguoiDung,
+            user.MaDonVi,
+            "Người dùng cập nhật hồ sơ cá nhân.",
+            cancellationToken);
+
         return ToProfileResponse(user);
     }
 
@@ -104,6 +120,14 @@ public class AccountService : IAccountService
             throw new ApiException(StatusCodes.Status400BadRequest, "Mật khẩu mới không được trùng với mật khẩu hiện tại.");
         }
 
+        var oldValue = new
+        {
+            user.MaNguoiDung,
+            user.Email,
+            user.TrangThai,
+            user.DangNhapLanDau
+        };
+
         user.MatKhauHash = PasswordHelper.HashPassword(request.NewPassword);
         user.DangNhapLanDau = false;
         if (user.TrangThai == UserStatuses.DbFirstLogin)
@@ -112,6 +136,22 @@ public class AccountService : IAccountService
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+        await _auditLogService.LogAsync(
+            "User",
+            user.MaNguoiDung.ToString(),
+            "CHANGE_PASSWORD",
+            oldValue,
+            new
+            {
+                user.MaNguoiDung,
+                user.Email,
+                user.TrangThai,
+                user.DangNhapLanDau
+            },
+            user.MaNguoiDung,
+            user.MaDonVi,
+            "Người dùng đổi mật khẩu tài khoản.",
+            cancellationToken);
     }
 
     private async Task<NguoiDung> GetUserAsync(int userId, CancellationToken cancellationToken)

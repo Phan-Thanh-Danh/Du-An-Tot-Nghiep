@@ -4,6 +4,7 @@ using Backend.DTOs.Auth;
 using Backend.DTOs.Organizations;
 using Backend.Exceptions;
 using Backend.Models;
+using Backend.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.Organizations;
@@ -19,11 +20,16 @@ public class OrganizationService : IOrganizationService
 
     private readonly ApplicationDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IAuditLogService _auditLogService;
 
-    public OrganizationService(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
+    public OrganizationService(
+        ApplicationDbContext context,
+        IHttpContextAccessor httpContextAccessor,
+        IAuditLogService auditLogService)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
+        _auditLogService = auditLogService;
     }
 
     public async Task<IReadOnlyList<OrganizationResponseDto>> GetAllAsync()
@@ -59,8 +65,6 @@ public class OrganizationService : IOrganizationService
 
     public async Task<OrganizationResponseDto> CreateAsync(OrganizationCreateDto dto, int currentUserId)
     {
-        _ = currentUserId;
-
         var name = NormalizeName(dto.Name);
         var level = ToDatabaseLevel(dto.OrganizationLevel);
 
@@ -77,20 +81,28 @@ public class OrganizationService : IOrganizationService
 
         _context.DonVis.Add(organization);
         await _context.SaveChangesAsync();
+        await _auditLogService.LogAsync(
+            "Organization",
+            organization.MaDonVi.ToString(),
+            "CREATE",
+            null,
+            CreateAuditSnapshot(organization),
+            currentUserId,
+            organization.MaDonVi,
+            "Tạo đơn vị/cơ sở.");
 
         return ToResponseDto(organization);
     }
 
     public async Task<OrganizationResponseDto> UpdateAsync(int id, OrganizationUpdateDto dto, int currentUserId)
     {
-        _ = currentUserId;
-
         var organization = await _context.DonVis.FirstOrDefaultAsync(x => x.MaDonVi == id);
         if (organization is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy đơn vị.");
         }
 
+        var oldValue = CreateAuditSnapshot(organization);
         var name = NormalizeName(dto.Name);
         var level = ToDatabaseLevel(dto.OrganizationLevel);
 
@@ -104,36 +116,53 @@ public class OrganizationService : IOrganizationService
         organization.NgayCapNhat = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+        await _auditLogService.LogAsync(
+            "Organization",
+            organization.MaDonVi.ToString(),
+            "UPDATE",
+            oldValue,
+            CreateAuditSnapshot(organization),
+            currentUserId,
+            organization.MaDonVi,
+            "Cập nhật đơn vị/cơ sở.");
 
         return ToResponseDto(organization);
     }
 
     public async Task SoftDeleteAsync(int id, int currentUserId)
     {
-        _ = currentUserId;
-
         var organization = await _context.DonVis.FirstOrDefaultAsync(x => x.MaDonVi == id);
         if (organization is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy đơn vị.");
         }
 
+        var oldValue = CreateAuditSnapshot(organization);
         organization.ConHoatDong = false;
         organization.NgayCapNhat = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+        await _auditLogService.LogAsync(
+            "Organization",
+            organization.MaDonVi.ToString(),
+            "DEACTIVATE",
+            oldValue,
+            CreateAuditSnapshot(organization),
+            currentUserId,
+            organization.MaDonVi,
+            "Xóa mềm đơn vị/cơ sở.");
     }
 
     public async Task HardDeleteAsync(int id, int currentUserId)
     {
-        _ = currentUserId;
-
         var organization = await _context.DonVis.FirstOrDefaultAsync(x => x.MaDonVi == id);
         if (organization is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy đơn vị.");
         }
 
+        var oldValue = CreateAuditSnapshot(organization);
+        var auditOrganizationId = organization.MaDonViCha;
         var blockers = await GetHardDeleteBlockersAsync(id);
         if (blockers.Count > 0)
         {
@@ -144,6 +173,15 @@ public class OrganizationService : IOrganizationService
 
         _context.DonVis.Remove(organization);
         await _context.SaveChangesAsync();
+        await _auditLogService.LogAsync(
+            "Organization",
+            id.ToString(),
+            "DELETE",
+            oldValue,
+            null,
+            currentUserId,
+            auditOrganizationId,
+            "Xóa cứng đơn vị/cơ sở.");
     }
 
     public async Task<OrganizationTreeDto> GetSubtreeAsync(int id)
@@ -404,6 +442,21 @@ public class OrganizationService : IOrganizationService
             IsActive = organization.ConHoatDong,
             CreatedAt = organization.NgayTao,
             UpdatedAt = organization.NgayCapNhat
+        };
+    }
+
+    private static object CreateAuditSnapshot(DonVi organization)
+    {
+        return new
+        {
+            organization.MaDonVi,
+            organization.MaDonViCha,
+            organization.TenDonVi,
+            OrganizationLevel = ToApiLevel(organization.CapDonVi),
+            organization.CapDonVi,
+            organization.ConHoatDong,
+            organization.NgayTao,
+            organization.NgayCapNhat
         };
     }
 

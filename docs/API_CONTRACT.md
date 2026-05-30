@@ -304,6 +304,54 @@ Ghi chú: Module này chỉ quản lý cấu hình học phí chương trình đ
 - `GET /api/organizations/{id}/users`
 - `GET /api/organizations/{id}/courses`
 
+## Audit Logs APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/audit-logs` | SuperAdmin/Admin/CampusAdmin | Danh sách nhật ký kiểm toán có phân trang. SuperAdmin/Admin xem toàn bộ; CampusAdmin chỉ xem log thuộc `MaDonVi` trong phạm vi cơ sở/cơ sở con. |
+| GET | `/api/audit-logs/{id}` | SuperAdmin/Admin/CampusAdmin | Chi tiết nhật ký kiểm toán, gồm `oldValue`, `newValue`, `userAgent`, `traceId` nếu có. CampusAdmin chỉ xem chi tiết log trong phạm vi được phép. |
+
+Query parameters `GET /api/audit-logs`:
+
+- `pageNumber`, `pageSize` (tối đa 100)
+- `entityType`, `entityId`, `action`
+- `changedBy`, `maDonVi`
+- `fromDate`, `toDate` (`fromDate` không được lớn hơn `toDate`)
+- `keyword`
+
+Response list item:
+
+```json
+{
+  "id": 1,
+  "maDonVi": 2,
+  "tenDonVi": "Cơ sở A",
+  "entityType": "ProgramTuitionConfig",
+  "entityId": "10",
+  "action": "UPDATE",
+  "changedBy": 1,
+  "changedByName": "Super Admin",
+  "changedAt": "2026-05-30T08:30:00Z",
+  "description": "Cập nhật cấu hình học phí chương trình đào tạo.",
+  "ipAddress": "127.0.0.1"
+}
+```
+
+Response detail thêm:
+
+```json
+{
+  "oldValue": "{...}",
+  "newValue": "{...}",
+  "userAgent": "Mozilla/5.0 ...",
+  "traceId": "..."
+}
+```
+
+Ghi chú: audit log được ghi tự động bởi backend khi thao tác Auth/User, RBAC, Organizations và Program Tuition Configs. Không có public `POST`/`PUT`/`DELETE` API để tạo hoặc xóa audit log. Backend mask các field nhạy cảm như password, password hash, token, OTP và secret trước khi lưu JSON `oldValue`/`newValue`.
+
 ## Courses APIs
 
 ### Đã có
@@ -439,7 +487,6 @@ Chưa thấy controller reports trong repo hiện tại.
 - `GET /api/reports/attendance-risk`
 - `GET /api/reports/failure-risk`
 - `GET /api/reports/classroom-usage`
-- `GET /api/audit-logs`
 
 ## AI APIs
 
