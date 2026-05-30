@@ -239,8 +239,8 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(e => e.MaBaiTap).HasName("PK_BaiTap");
             entity.Property(e => e.MaBaiTap)
                 .HasColumnName("ma_bai_tap");
-            entity.Property(e => e.MaKhoaHoc)
-                .HasColumnName("ma_khoa_hoc");
+            entity.Property(e => e.MaMonHoc)
+                .HasColumnName("ma_mon_hoc");
             entity.Property(e => e.TieuDe)
                 .HasColumnName("tieu_de")
                 .HasMaxLength(255)
@@ -269,11 +269,11 @@ public class ApplicationDbContext : DbContext
             entity.ToTable(t => t.HasCheckConstraint("CK_BaiTap_so_lan_nop_toi_da_1", "[so_lan_nop_toi_da] > 0"));
             entity.ToTable(t => t.HasCheckConstraint("CK_BaiTap_trang_thai_2", "[trang_thai] IN (N'nhap', N'da_xuat_ban', N'da_dong')"));
             entity.ToTable(t => t.HasCheckConstraint("CK_BaiTap_dinh_dang_cho_phep_ISJSON", "[dinh_dang_cho_phep] IS NULL OR ISJSON([dinh_dang_cho_phep]) = 1"));
-            entity.HasOne(e => e.KhoaHoc)
+            entity.HasOne(e => e.MonHoc)
                 .WithMany()
-                .HasForeignKey(e => e.MaKhoaHoc)
+                .HasForeignKey(e => e.MaMonHoc)
                 .OnDelete(DeleteBehavior.NoAction)
-                .HasConstraintName("FK_BaiTap_ma_khoa_hoc__KhoaHoc");
+                .HasConstraintName("FK_BaiTap_ma_mon_hoc__DanhMucMonHoc");
         });
 
         modelBuilder.Entity<BaoCaoRuiRoRotMon>(entity =>
@@ -1029,8 +1029,8 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(e => e.MaChuong).HasName("PK_Chuong");
             entity.Property(e => e.MaChuong)
                 .HasColumnName("ma_chuong");
-            entity.Property(e => e.MaKhoaHoc)
-                .HasColumnName("ma_khoa_hoc");
+            entity.Property(e => e.MaMonHoc)
+                .HasColumnName("ma_mon_hoc");
             entity.Property(e => e.TieuDe)
                 .HasColumnName("tieu_de")
                 .HasMaxLength(255)
@@ -1041,11 +1041,11 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.DaAn)
                 .HasColumnName("da_an")
                 .HasDefaultValue(false);
-            entity.HasOne(e => e.KhoaHoc)
+            entity.HasOne(e => e.MonHoc)
                 .WithMany()
-                .HasForeignKey(e => e.MaKhoaHoc)
+                .HasForeignKey(e => e.MaMonHoc)
                 .OnDelete(DeleteBehavior.NoAction)
-                .HasConstraintName("FK_Chuong_ma_khoa_hoc__KhoaHoc");
+                .HasConstraintName("FK_Chuong_ma_mon_hoc__DanhMucMonHoc");
         });
 
         modelBuilder.Entity<CourseSyllabus>(entity =>
@@ -1903,6 +1903,10 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("ma_giao_vien");
             entity.Property(e => e.MaMonHoc)
                 .HasColumnName("ma_mon_hoc");
+            entity.Property(e => e.MaHocKy)
+                .HasColumnName("ma_hoc_ky");
+            entity.Property(e => e.MaLopHocPhan)
+                .HasColumnName("ma_lop_hoc_phan");
             entity.Property(e => e.TieuDe)
                 .HasColumnName("tieu_de")
                 .HasMaxLength(255)
@@ -1938,6 +1942,16 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaMonHoc)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_KhoaHoc_ma_mon_hoc__DanhMucMonHoc");
+            entity.HasOne(e => e.HocKy)
+                .WithMany()
+                .HasForeignKey(e => e.MaHocKy)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_KhoaHoc_ma_hoc_ky__HocKy");
+            entity.HasOne(e => e.LopHocPhan)
+                .WithMany()
+                .HasForeignKey(e => e.MaLopHocPhan)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_KhoaHoc_ma_lop_hoc_phan__LopHocPhan");
         });
 
         modelBuilder.Entity<KhoaTuyenSinh>(entity =>

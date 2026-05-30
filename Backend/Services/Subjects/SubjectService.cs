@@ -210,6 +210,8 @@ public class SubjectService : ISubjectService
             await _context.LopHocPhans.AnyAsync(x => x.MaMonHoc == subjectId, cancellationToken) ||
             await _context.MonHocTienQuyets.AnyAsync(x => x.MaMonHoc == subjectId || x.MaMonTienQuyet == subjectId, cancellationToken) ||
             await _context.KhoaHocs.AnyAsync(x => x.MaMonHoc == subjectId, cancellationToken) ||
+            await _context.Chuongs.AnyAsync(x => x.MaMonHoc == subjectId, cancellationToken) ||
+            await _context.BaiTaps.AnyAsync(x => x.MaMonHoc == subjectId, cancellationToken) ||
             await _context.CauHinhDiemMonHocs.AnyAsync(x => x.MaMonHoc == subjectId, cancellationToken) ||
             await _context.DiemSos.AnyAsync(x => x.MaMonHoc == subjectId, cancellationToken) ||
             await _context.CauHois.AnyAsync(x => x.MaMonHoc == subjectId, cancellationToken) ||

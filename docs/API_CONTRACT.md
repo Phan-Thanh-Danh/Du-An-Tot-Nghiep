@@ -210,7 +210,7 @@ Ghi chú: `ChuongTrinhDaoTao` là khung chuẩn toàn hệ thống theo `ChuyenN
 | PUT | `/api/master-data/training-program-subjects/{id}` | SuperAdmin | Cập nhật học kỳ, tín chỉ, loại môn, bắt buộc, thứ tự, ghi chú và trạng thái hoạt động nếu chương trình đang `draft` hoặc `rejected`. |
 | DELETE | `/api/master-data/training-program-subjects/{id}` | SuperAdmin | Xóa mềm môn học khỏi chương trình bằng `ConHoatDong = false` nếu chương trình đang `draft` hoặc `rejected`. |
 
-Ghi chú: `MonHocTrongChuongTrinh` chỉ khai báo danh sách môn trong khung chương trình đào tạo. Nội dung chi tiết môn học, video, bài học, quiz và đề cương chi tiết vẫn thuộc các module khác như `CourseSyllabus`; clone chương trình đào tạo chỉ clone danh sách môn trong chương trình, không clone nội dung học liệu.
+Ghi chú: `MonHocTrongChuongTrinh` chỉ khai báo danh sách môn trong khung chương trình đào tạo. Trong MVP, nội dung học liệu chuẩn đi theo `DanhMucMonHoc -> Chuong -> BaiHoc` và bài tập chuẩn đi theo `DanhMucMonHoc -> BaiTap`; clone chương trình đào tạo chỉ clone danh sách môn trong chương trình, không clone nội dung học liệu.
 
 ## Building APIs
 
@@ -268,7 +268,7 @@ Ghi chú: cấu trúc phòng học hiện theo mô hình `DonVi -> ToaNha -> Tan
 | PATCH | `/api/master-data/course-syllabuses/{id}/approve` | SuperAdmin | Duyệt đề cương môn học bằng `TrangThai = approved`, `ConHoatDong = true`. |
 | PATCH | `/api/master-data/course-syllabuses/{id}/archive` | SuperAdmin | Lưu trữ đề cương môn học bằng `TrangThai = archived`, `ConHoatDong = false`. |
 
-Ghi chú: `DanhMucMonHoc` chỉ là môn học gốc. Nội dung chương/bài học chuẩn theo chuyên ngành sẽ gắn với `CourseSyllabus` trong các migration/module tiếp theo. TODO: thêm `MaSyllabus` vào `LopHocPhan` để lớp học phần biết đang dùng phiên bản đề cương nào.
+Ghi chú: `DanhMucMonHoc` là môn học gốc. Trong MVP, chương/bài học/bài tập chuẩn đang gắn trực tiếp với `DanhMucMonHoc`; `CourseSyllabus` quản lý đề cương/phiên bản theo môn, chuyên ngành và cơ sở. TODO: thêm `MaSyllabus` vào `LopHocPhan` nếu cần mỗi lớp học phần dùng một phiên bản đề cương cụ thể.
 
 ## Finance APIs
 
@@ -361,6 +361,8 @@ Ghi chú: audit log được ghi tự động bởi backend khi thao tác Auth/U
 Chưa thấy controller course trong repo hiện tại.
 
 ### Dự kiến/cần bổ sung
+
+Ghi chú dữ liệu: `KhoaHoc` là bản phân công giảng dạy, không chứa nội dung chuẩn. API chi tiết khóa học dự kiến lấy `KhoaHoc.MaMonHoc` để truy `DanhMucMonHoc -> Chuong -> BaiHoc` và `DanhMucMonHoc -> BaiTap`.
 
 - `GET /api/courses`
 - `GET /api/courses/{id}`

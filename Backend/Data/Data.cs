@@ -14,6 +14,8 @@ public static class Data
     private const string CampusLevel = "co_so";
     private const string ApprovedStatus = "approved";
     private const string ActiveStatus = "active";
+    private const string PublishedStatus = "da_xuat_ban";
+    private const string ClassSectionOpenStatus = "mo";
     private const string RoomActiveStatus = "hoat_dong";
     private const string RequiredSubjectType = "bat_buoc";
     private const string TuitionCalculationType = "co_dinh_theo_hoc_ky";
@@ -39,12 +41,15 @@ public static class Data
         var cohortK2026 = await GetOrCreateCohortAsync(context);
         var terms = await SeedAcademicTermsAsync(context, hcmCampus);
         var subjects = await SeedSubjectsAsync(context);
+        await SeedLearningContentAsync(context, subjects);
         var programs = await SeedTrainingProgramsAsync(context, cohortK2026, specializations);
 
         await SeedProgramTermsAsync(context, programs.Values, terms);
         var programSubjects = await SeedProgramSubjectsAsync(context, programs, subjects);
         var users = await SeedDemoUsersAsync(context, rootCampus, hcmCampus);
         await SeedAdministrativeClassesAsync(context, hcmCampus, programs, users);
+        var courseSections = await SeedCourseSectionsAsync(context, hcmCampus, subjects, terms);
+        await SeedTeachingCoursesAsync(context, hcmCampus, subjects, terms, users, courseSections);
         await SeedParentLinkAsync(context, users);
         await SeedFacilitiesAsync(context, hcmCampus);
         await SeedCourseSyllabusesAsync(context, hcmCampus, programs, specializations, programSubjects, subjects);
@@ -466,6 +471,128 @@ public static class Data
         return result;
     }
 
+    private static async Task SeedLearningContentAsync(
+        ApplicationDbContext context,
+        IReadOnlyDictionary<string, DanhMucMonHoc> subjects)
+    {
+        var chapterPlansBySubject = new Dictionary<string, StandardChapterSeed[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["COM103"] =
+            [
+                new(
+                    1,
+                    "Tổng quan C# và .NET",
+                    [
+                        new(1, "Cài đặt môi trường .NET SDK và IDE", "video", "/demo/lessons/com103/setup-dotnet.mp4", 900, null),
+                        new(2, "Cấu trúc chương trình C# đầu tiên", "pdf", "/demo/lessons/com103/chuong-trinh-dau-tien.pdf", null, null),
+                    ]),
+                new(
+                    2,
+                    "Cú pháp nền tảng",
+                    [
+                        new(1, "Biến, kiểu dữ liệu và toán tử", "video", "/demo/lessons/com103/bien-kieu-du-lieu.mp4", 780, null),
+                        new(2, "Câu lệnh điều kiện và vòng lặp", "van_ban", null, null, "Thực hành if/else, switch, for, while và foreach trong ứng dụng console."),
+                    ]),
+            ],
+        };
+
+        foreach (var (subjectCode, chapterPlans) in chapterPlansBySubject)
+        {
+            var subject = subjects[subjectCode];
+
+            foreach (var chapterPlan in chapterPlans)
+            {
+                var chapter = await context.Chuongs.FirstOrDefaultAsync(x =>
+                    x.MaMonHoc == subject.MaMonHoc &&
+                    x.ThuTu == chapterPlan.Order);
+
+                if (chapter is null)
+                {
+                    chapter = new Chuong
+                    {
+                        MaMonHoc = subject.MaMonHoc,
+                    };
+
+                    context.Chuongs.Add(chapter);
+                }
+
+                chapter.TieuDe = chapterPlan.Title;
+                chapter.ThuTu = chapterPlan.Order;
+                chapter.DaAn = false;
+
+                await context.SaveChangesAsync();
+
+                foreach (var lessonPlan in chapterPlan.Lessons)
+                {
+                    var lesson = await context.BaiHocs.FirstOrDefaultAsync(x =>
+                        x.MaChuong == chapter.MaChuong &&
+                        x.ThuTu == lessonPlan.Order);
+
+                    if (lesson is null)
+                    {
+                        lesson = new BaiHoc
+                        {
+                            MaChuong = chapter.MaChuong,
+                        };
+
+                        context.BaiHocs.Add(lesson);
+                    }
+
+                    lesson.TieuDe = lessonPlan.Title;
+                    lesson.LoaiBaiHoc = lessonPlan.LessonType;
+                    lesson.UrlTapTin = lessonPlan.FileUrl;
+                    lesson.ThoiLuongGiay = lessonPlan.DurationSeconds;
+                    lesson.NoiDungVanBan = lessonPlan.TextContent;
+                    lesson.DieuKienMoKhoa = null;
+                    lesson.TomTatAi = null;
+                    lesson.ThuTu = lessonPlan.Order;
+                    lesson.DaAn = false;
+                }
+            }
+        }
+
+        var assignmentPlans = new[]
+        {
+            new StandardAssignmentSeed(
+                "COM103",
+                "Bài tập 1 - Console App quản lý sinh viên",
+                "Xây dựng ứng dụng console C# quản lý danh sách sinh viên, nhập/xuất dữ liệu và tìm kiếm theo mã sinh viên.",
+                new DateTime(2026, 4, 25, 23, 59, 0, DateTimeKind.Utc),
+                3,
+                [".pdf", ".docx", ".zip"],
+                "Chấm theo tính đúng chức năng, cấu trúc code, xử lý lỗi nhập liệu và báo cáo ngắn.",
+                PublishedStatus),
+        };
+
+        foreach (var plan in assignmentPlans)
+        {
+            var subject = subjects[plan.SubjectCode];
+            var assignment = await context.BaiTaps.FirstOrDefaultAsync(x =>
+                x.MaMonHoc == subject.MaMonHoc &&
+                x.TieuDe == plan.Title);
+
+            if (assignment is null)
+            {
+                assignment = new BaiTap
+                {
+                    MaMonHoc = subject.MaMonHoc,
+                };
+
+                context.BaiTaps.Add(assignment);
+            }
+
+            assignment.TieuDe = plan.Title;
+            assignment.MoTa = plan.Description;
+            assignment.HanNop = plan.DueAt;
+            assignment.SoLanNopToiDa = plan.MaxSubmissions;
+            assignment.DinhDangChoPhep = JsonSerializer.Serialize(plan.AllowedFormats, JsonOptions);
+            assignment.HuongDanChamDiem = plan.GradingGuide;
+            assignment.TrangThai = plan.Status;
+        }
+
+        await context.SaveChangesAsync();
+    }
+
     private static async Task<Dictionary<string, ChuongTrinhDaoTao>> SeedTrainingProgramsAsync(
         ApplicationDbContext context,
         KhoaTuyenSinh cohort,
@@ -803,6 +930,120 @@ public static class Data
         await context.SaveChangesAsync();
     }
 
+    private static async Task<Dictionary<string, LopHocPhan>> SeedCourseSectionsAsync(
+        ApplicationDbContext context,
+        DonVi campus,
+        IReadOnlyDictionary<string, DanhMucMonHoc> subjects,
+        IReadOnlyList<HocKy> terms)
+    {
+        var termsByCode = terms.ToDictionary(x => x.MaCodeHocKy, StringComparer.OrdinalIgnoreCase);
+        var sectionPlans = new[]
+        {
+            new CourseSectionSeed("SD1809-COM103-HK1-2026", "COM103", "HK1_2026", 35, 15, 4),
+        };
+
+        var result = new Dictionary<string, LopHocPhan>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var plan in sectionPlans)
+        {
+            var subject = subjects[plan.SubjectCode];
+            var term = termsByCode[plan.TermCode];
+            var section = await context.LopHocPhans.FirstOrDefaultAsync(x =>
+                x.MaCodeLopHocPhan == plan.Code);
+
+            if (section is null)
+            {
+                section = new LopHocPhan
+                {
+                    MaCodeLopHocPhan = plan.Code,
+                };
+
+                context.LopHocPhans.Add(section);
+            }
+
+            section.MaDonVi = campus.MaDonVi;
+            section.MaMonHoc = subject.MaMonHoc;
+            section.MaHocKy = term.MaHocKy;
+            section.SucChua = plan.Capacity;
+            section.SoDangKyToiThieu = plan.MinimumEnrollment;
+            section.SoDaDangKy = 0;
+            section.TrangThai = ClassSectionOpenStatus;
+            section.QuotaVangToiDa = plan.AbsenceQuota;
+            result[plan.Code] = section;
+        }
+
+        await context.SaveChangesAsync();
+        return result;
+    }
+
+    private static async Task SeedTeachingCoursesAsync(
+        ApplicationDbContext context,
+        DonVi campus,
+        IReadOnlyDictionary<string, DanhMucMonHoc> subjects,
+        IReadOnlyList<HocKy> terms,
+        IReadOnlyDictionary<string, NguoiDung> users,
+        IReadOnlyDictionary<string, LopHocPhan> courseSections)
+    {
+        var termsByCode = terms.ToDictionary(x => x.MaCodeHocKy, StringComparer.OrdinalIgnoreCase);
+        var coursePlans = new[]
+        {
+            new TeachingCourseSeed(
+                "COM103",
+                "teacher.cntt@lms.local",
+                "HK1_2026",
+                "SD1809-COM103-HK1-2026",
+                "Lập trình C# - Thầy Nguyễn Văn Lập Trình - SD1809",
+                "Bản phân công giảng dạy môn Lập trình C# cho lớp học phần SD1809 trong HK1_2026."),
+        };
+
+        foreach (var plan in coursePlans)
+        {
+            var subject = subjects[plan.SubjectCode];
+            var teacher = users[plan.TeacherEmail];
+            var term = termsByCode[plan.TermCode];
+            var courseSection = courseSections[plan.CourseSectionCode];
+
+            var course = await context.KhoaHocs.FirstOrDefaultAsync(x =>
+                x.MaDonVi == campus.MaDonVi &&
+                x.MaGiaoVien == teacher.MaNguoiDung &&
+                x.MaMonHoc == subject.MaMonHoc &&
+                x.MaHocKy == term.MaHocKy &&
+                x.MaLopHocPhan == courseSection.MaLopHocPhan);
+
+            if (course is null)
+            {
+                course = await context.KhoaHocs.FirstOrDefaultAsync(x =>
+                    x.MaDonVi == campus.MaDonVi &&
+                    x.TieuDe == plan.Title);
+            }
+
+            if (course is null)
+            {
+                course = new KhoaHoc
+                {
+                    MaDonVi = campus.MaDonVi,
+                    MaGiaoVien = teacher.MaNguoiDung,
+                    MaMonHoc = subject.MaMonHoc,
+                    NgayTao = DateTime.UtcNow,
+                };
+
+                context.KhoaHocs.Add(course);
+            }
+
+            course.MaDonVi = campus.MaDonVi;
+            course.MaGiaoVien = teacher.MaNguoiDung;
+            course.MaMonHoc = subject.MaMonHoc;
+            course.MaHocKy = term.MaHocKy;
+            course.MaLopHocPhan = courseSection.MaLopHocPhan;
+            course.TieuDe = plan.Title;
+            course.MoTa = plan.Description;
+            course.TrangThai = PublishedStatus;
+            course.UrlAnhBia = "/demo/courses/com103-sd1809-cover.jpg";
+        }
+
+        await context.SaveChangesAsync();
+    }
+
     private static async Task SeedParentLinkAsync(
         ApplicationDbContext context,
         IReadOnlyDictionary<string, NguoiDung> users)
@@ -1097,6 +1338,29 @@ public static class Data
 
     private sealed record SubjectSeed(string Code, string Name, int Credits);
 
+    private sealed record StandardChapterSeed(
+        int Order,
+        string Title,
+        LessonSeed[] Lessons);
+
+    private sealed record LessonSeed(
+        int Order,
+        string Title,
+        string LessonType,
+        string? FileUrl,
+        int? DurationSeconds,
+        string? TextContent);
+
+    private sealed record StandardAssignmentSeed(
+        string SubjectCode,
+        string Title,
+        string Description,
+        DateTime DueAt,
+        int MaxSubmissions,
+        string[] AllowedFormats,
+        string GradingGuide,
+        string Status);
+
     private sealed record TrainingProgramSeed(
         string Code,
         string Name,
@@ -1119,6 +1383,22 @@ public static class Data
         string ProgramCode,
         string TeacherEmail,
         string StudentEmail);
+
+    private sealed record CourseSectionSeed(
+        string Code,
+        string SubjectCode,
+        string TermCode,
+        int Capacity,
+        int MinimumEnrollment,
+        int AbsenceQuota);
+
+    private sealed record TeachingCourseSeed(
+        string SubjectCode,
+        string TeacherEmail,
+        string TermCode,
+        string CourseSectionCode,
+        string Title,
+        string Description);
 
     private sealed record RoomSeed(
         string Code,
