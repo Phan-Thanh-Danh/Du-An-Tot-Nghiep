@@ -350,7 +350,7 @@ Response detail thêm:
 }
 ```
 
-Ghi chú: audit log được ghi tự động bởi backend khi thao tác Auth/User, RBAC, Organizations và Program Tuition Configs. Không có public `POST`/`PUT`/`DELETE` API để tạo hoặc xóa audit log. Backend mask các field nhạy cảm như password, password hash, token, OTP và secret trước khi lưu JSON `oldValue`/`newValue`.
+Ghi chú: audit log được ghi tự động bởi backend khi thao tác Auth/User, RBAC, Organizations và Program Tuition Configs. Ngoài log nghiệp vụ chi tiết, backend còn ghi log request tự động cho các request `/api/*` đã đăng nhập với `entityType = "HttpRequest"` và `action = "HTTP_GET"`, `HTTP_POST`, `HTTP_PUT`, `HTTP_PATCH` hoặc `HTTP_DELETE`; endpoint `/api/audit-logs` được bỏ qua để tránh tự ghi log khi xem log. Không có public `POST`/`PUT`/`DELETE` API để tạo hoặc xóa audit log. Backend mask các field nhạy cảm như password, password hash, token, OTP và secret trước khi lưu JSON `oldValue`/`newValue`.
 
 ## Courses APIs
 

@@ -167,6 +167,7 @@ app.UseAuthentication();
 app.UseMiddleware<JwtMiddleware>();
 app.UseMiddleware<FirstLoginMiddleware>();
 app.UseMiddleware<CampusScopeMiddleware>();
+app.UseMiddleware<RequestAuditMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
