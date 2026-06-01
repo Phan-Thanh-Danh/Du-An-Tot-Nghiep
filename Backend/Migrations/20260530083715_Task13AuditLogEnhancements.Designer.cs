@@ -4,6 +4,7 @@ using Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260530083715_Task13AuditLogEnhancements")]
+    partial class Task13AuditLogEnhancements
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -255,9 +258,9 @@ namespace Backend.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("huong_dan_cham_diem");
 
-                    b.Property<int>("MaMonHoc")
+                    b.Property<int>("MaKhoaHoc")
                         .HasColumnType("int")
-                        .HasColumnName("ma_mon_hoc");
+                        .HasColumnName("ma_khoa_hoc");
 
                     b.Property<string>("MoTa")
                         .HasColumnType("nvarchar(max)")
@@ -286,7 +289,7 @@ namespace Backend.Migrations
                     b.HasKey("MaBaiTap")
                         .HasName("PK_BaiTap");
 
-                    b.HasIndex("MaMonHoc");
+                    b.HasIndex("MaKhoaHoc");
 
                     b.ToTable("BaiTap", "dbo", t =>
                         {
@@ -1025,9 +1028,9 @@ namespace Backend.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("da_an");
 
-                    b.Property<int>("MaMonHoc")
+                    b.Property<int>("MaKhoaHoc")
                         .HasColumnType("int")
-                        .HasColumnName("ma_mon_hoc");
+                        .HasColumnName("ma_khoa_hoc");
 
                     b.Property<int>("ThuTu")
                         .ValueGeneratedOnAdd()
@@ -1044,7 +1047,7 @@ namespace Backend.Migrations
                     b.HasKey("MaChuong")
                         .HasName("PK_Chuong");
 
-                    b.HasIndex("MaMonHoc");
+                    b.HasIndex("MaKhoaHoc");
 
                     b.ToTable("Chuong", "dbo");
                 });
@@ -2575,14 +2578,6 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_giao_vien");
 
-                    b.Property<int?>("MaHocKy")
-                        .HasColumnType("int")
-                        .HasColumnName("ma_hoc_ky");
-
-                    b.Property<int?>("MaLopHocPhan")
-                        .HasColumnType("int")
-                        .HasColumnName("ma_lop_hoc_phan");
-
                     b.Property<int>("MaMonHoc")
                         .HasColumnType("int")
                         .HasColumnName("ma_mon_hoc");
@@ -2621,10 +2616,6 @@ namespace Backend.Migrations
                     b.HasIndex("MaDonVi");
 
                     b.HasIndex("MaGiaoVien");
-
-                    b.HasIndex("MaHocKy");
-
-                    b.HasIndex("MaLopHocPhan");
 
                     b.HasIndex("MaMonHoc");
 
@@ -4741,14 +4732,14 @@ namespace Backend.Migrations
 
             modelBuilder.Entity("Backend.Models.BaiTap", b =>
                 {
-                    b.HasOne("Backend.Models.DanhMucMonHoc", "MonHoc")
+                    b.HasOne("Backend.Models.KhoaHoc", "KhoaHoc")
                         .WithMany()
-                        .HasForeignKey("MaMonHoc")
+                        .HasForeignKey("MaKhoaHoc")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("FK_BaiTap_ma_mon_hoc__DanhMucMonHoc");
+                        .HasConstraintName("FK_BaiTap_ma_khoa_hoc__KhoaHoc");
 
-                    b.Navigation("MonHoc");
+                    b.Navigation("KhoaHoc");
                 });
 
             modelBuilder.Entity("Backend.Models.BaoCaoRuiRoRotMon", b =>
@@ -4992,14 +4983,14 @@ namespace Backend.Migrations
 
             modelBuilder.Entity("Backend.Models.Chuong", b =>
                 {
-                    b.HasOne("Backend.Models.DanhMucMonHoc", "MonHoc")
+                    b.HasOne("Backend.Models.KhoaHoc", "KhoaHoc")
                         .WithMany()
-                        .HasForeignKey("MaMonHoc")
+                        .HasForeignKey("MaKhoaHoc")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("FK_Chuong_ma_mon_hoc__DanhMucMonHoc");
+                        .HasConstraintName("FK_Chuong_ma_khoa_hoc__KhoaHoc");
 
-                    b.Navigation("MonHoc");
+                    b.Navigation("KhoaHoc");
                 });
 
             modelBuilder.Entity("Backend.Models.ChuongTrinhDaoTao", b =>
@@ -5542,18 +5533,6 @@ namespace Backend.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_KhoaHoc_ma_giao_vien__NguoiDung");
 
-                    b.HasOne("Backend.Models.HocKy", "HocKy")
-                        .WithMany()
-                        .HasForeignKey("MaHocKy")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .HasConstraintName("FK_KhoaHoc_ma_hoc_ky__HocKy");
-
-                    b.HasOne("Backend.Models.LopHocPhan", "LopHocPhan")
-                        .WithMany()
-                        .HasForeignKey("MaLopHocPhan")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .HasConstraintName("FK_KhoaHoc_ma_lop_hoc_phan__LopHocPhan");
-
                     b.HasOne("Backend.Models.DanhMucMonHoc", "MonHoc")
                         .WithMany()
                         .HasForeignKey("MaMonHoc")
@@ -5564,10 +5543,6 @@ namespace Backend.Migrations
                     b.Navigation("DonVi");
 
                     b.Navigation("GiaoVien");
-
-                    b.Navigation("HocKy");
-
-                    b.Navigation("LopHocPhan");
 
                     b.Navigation("MonHoc");
                 });

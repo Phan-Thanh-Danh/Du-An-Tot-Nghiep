@@ -6,6 +6,8 @@ public class KhoaHoc
     public int MaDonVi { get; set; }
     public int MaGiaoVien { get; set; }
     public int MaMonHoc { get; set; }
+    public int? MaHocKy { get; set; }
+    public int? MaLopHocPhan { get; set; }
     public string TieuDe { get; set; } = string.Empty;
     public string? MoTa { get; set; }
     public string TrangThai { get; set; } = string.Empty;
@@ -15,4 +17,6 @@ public class KhoaHoc
     public DonVi? DonVi { get; set; }
     public NguoiDung? GiaoVien { get; set; }
     public DanhMucMonHoc? MonHoc { get; set; }
+    public HocKy? HocKy { get; set; }
+    public LopHocPhan? LopHocPhan { get; set; }
 }

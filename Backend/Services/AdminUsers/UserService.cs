@@ -172,17 +172,18 @@ public class UserService : IUserService
         }, cancellationToken);
 
         var snapshot = await CreateAuditSnapshotAsync(user, role, cancellationToken);
-        await _auditLogService.AddAsync(
-            user.MaDonVi,
-            nameof(NguoiDung),
-            user.MaNguoiDung,
-            "USER_CREATED",
-            currentUser.UserId,
+        await _repository.SaveChangesAsync(cancellationToken);
+        await _auditLogService.LogAsync(
+            "User",
+            user.MaNguoiDung.ToString(),
+            "CREATE",
             null,
             snapshot,
+            currentUser.UserId,
+            user.MaDonVi,
+            "Tạo tài khoản người dùng.",
             cancellationToken);
 
-        await _repository.SaveChangesAsync(cancellationToken);
         return await ToDetailDtoAsync(user, cancellationToken);
     }
 
@@ -216,17 +217,18 @@ public class UserService : IUserService
         await ReplaceRoleAssignmentAsync(user.MaNguoiDung, newRole.MaVaiTro, cancellationToken);
 
         var newValue = await CreateAuditSnapshotAsync(user, newRole, cancellationToken);
-        await _auditLogService.AddAsync(
-            user.MaDonVi,
-            nameof(NguoiDung),
-            user.MaNguoiDung,
-            "USER_UPDATED",
-            currentUser.UserId,
+        await _repository.SaveChangesAsync(cancellationToken);
+        await _auditLogService.LogAsync(
+            "User",
+            user.MaNguoiDung.ToString(),
+            "UPDATE",
             oldValue,
             newValue,
+            currentUser.UserId,
+            user.MaDonVi,
+            "Cập nhật thông tin tài khoản người dùng.",
             cancellationToken);
 
-        await _repository.SaveChangesAsync(cancellationToken);
         return await ToDetailDtoAsync(user, cancellationToken);
     }
 
@@ -246,17 +248,17 @@ public class UserService : IUserService
         user.DangNhapLanDau = false;
 
         var newValue = await CreateAuditSnapshotAsync(user, role, cancellationToken);
-        await _auditLogService.AddAsync(
-            user.MaDonVi,
-            nameof(NguoiDung),
-            user.MaNguoiDung,
-            "USER_LOCKED",
-            currentUser.UserId,
+        await _repository.SaveChangesAsync(cancellationToken);
+        await _auditLogService.LogAsync(
+            "User",
+            user.MaNguoiDung.ToString(),
+            "LOCK",
             oldValue,
             newValue,
+            currentUser.UserId,
+            user.MaDonVi,
+            "Khóa tài khoản người dùng.",
             cancellationToken);
-
-        await _repository.SaveChangesAsync(cancellationToken);
     }
 
     public async Task UnlockAsync(int userId, CancellationToken cancellationToken = default)
@@ -270,17 +272,17 @@ public class UserService : IUserService
         user.SoLanSaiMatKhau = 0;
 
         var newValue = await CreateAuditSnapshotAsync(user, role, cancellationToken);
-        await _auditLogService.AddAsync(
-            user.MaDonVi,
-            nameof(NguoiDung),
-            user.MaNguoiDung,
-            "USER_UNLOCKED",
-            currentUser.UserId,
+        await _repository.SaveChangesAsync(cancellationToken);
+        await _auditLogService.LogAsync(
+            "User",
+            user.MaNguoiDung.ToString(),
+            "UNLOCK",
             oldValue,
             newValue,
+            currentUser.UserId,
+            user.MaDonVi,
+            "Mở khóa tài khoản người dùng.",
             cancellationToken);
-
-        await _repository.SaveChangesAsync(cancellationToken);
     }
 
     public async Task ResetPasswordAsync(
@@ -307,17 +309,17 @@ public class UserService : IUserService
         }
 
         var newValue = await CreateAuditSnapshotAsync(user, role, cancellationToken);
-        await _auditLogService.AddAsync(
-            user.MaDonVi,
-            nameof(NguoiDung),
-            user.MaNguoiDung,
-            "USER_PASSWORD_RESET",
-            currentUser.UserId,
+        await _repository.SaveChangesAsync(cancellationToken);
+        await _auditLogService.LogAsync(
+            "User",
+            user.MaNguoiDung.ToString(),
+            "RESET_PASSWORD",
             oldValue,
             newValue,
+            currentUser.UserId,
+            user.MaDonVi,
+            "Đặt lại mật khẩu người dùng.",
             cancellationToken);
-
-        await _repository.SaveChangesAsync(cancellationToken);
     }
 
     private async Task<NguoiDung> GetManagedUserAsync(

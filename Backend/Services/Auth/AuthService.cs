@@ -1,11 +1,11 @@
 using System.Security.Cryptography;
-using System.Text.Json;
 using Backend.Constants;
 using Backend.Data;
 using Backend.DTOs.Auth;
 using Backend.Exceptions;
 using Backend.Helpers;
 using Backend.Models;
+using Backend.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.Auth;
@@ -16,12 +16,18 @@ public class AuthService : IAuthService
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly JwtHelper _jwtHelper;
+    private readonly IAuditLogService _auditLogService;
 
-    public AuthService(ApplicationDbContext context, IConfiguration configuration, JwtHelper jwtHelper)
+    public AuthService(
+        ApplicationDbContext context,
+        IConfiguration configuration,
+        JwtHelper jwtHelper,
+        IAuditLogService auditLogService)
     {
         _context = context;
         _configuration = configuration;
         _jwtHelper = jwtHelper;
+        _auditLogService = auditLogService;
     }
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request)
@@ -39,37 +45,69 @@ public class AuthService : IAuthService
 
         if (status == UserStatuses.Locked)
         {
-            await AddAuditLogAsync(user, "LOGIN_LOCKED", null, new { user.Email, Status = status });
-            await _context.SaveChangesAsync();
+            await AddAuditLogAsync(
+                user,
+                "LOGIN",
+                null,
+                new { user.Email, Status = status },
+                "Đăng nhập bị từ chối do tài khoản bị khóa.");
             throw new ApiException(StatusCodes.Status403Forbidden, "Tài khoản của bạn đang bị khóa.");
         }
 
         if (!PasswordHelper.VerifyPassword(request.Password, user.MatKhauHash ?? string.Empty))
         {
+            var oldValue = new
+            {
+                user.Email,
+                user.TrangThai,
+                user.SoLanSaiMatKhau
+            };
+
             user.SoLanSaiMatKhau = Math.Min(user.SoLanSaiMatKhau + 1, MaxFailedPasswordAttempts);
 
             if (user.SoLanSaiMatKhau >= MaxFailedPasswordAttempts)
             {
                 user.TrangThai = UserStatuses.DbLocked;
                 user.DangNhapLanDau = false;
-                await AddAuditLogAsync(user, "ACCOUNT_LOCKED", null, new { user.Email, Reason = "Too many failed login attempts" });
             }
 
-            await AddAuditLogAsync(user, "LOGIN_FAILED", null, new { user.Email });
             await _context.SaveChangesAsync();
+
+            if (user.TrangThai == UserStatuses.DbLocked)
+            {
+                await AddAuditLogAsync(
+                    user,
+                    "LOCK",
+                    oldValue,
+                    new { user.Email, user.TrangThai, user.SoLanSaiMatKhau },
+                    "Tự động khóa tài khoản do đăng nhập sai quá số lần cho phép.");
+            }
+
+            await AddAuditLogAsync(
+                user,
+                "LOGIN_FAILED",
+                null,
+                new { user.Email },
+                "Đăng nhập thất bại.");
 
             throw new ApiException(StatusCodes.Status401Unauthorized, "Email hoặc mật khẩu không chính xác.");
         }
 
         user.SoLanSaiMatKhau = 0;
         user.LanDangNhapCuoi = DateTime.UtcNow;
-        await AddAuditLogAsync(user, "LOGIN_SUCCESS", null, new { user.Email });
 
         status = UserStatuses.FromDatabaseStatus(user.TrangThai, user.DangNhapLanDau);
         var token = _jwtHelper.GenerateToken(user, role, status);
         var refreshToken = CreateRefreshToken(user.MaNguoiDung);
         await _context.TokenLamMois.AddAsync(refreshToken.Entity);
         await _context.SaveChangesAsync();
+
+        await AddAuditLogAsync(
+            user,
+            "LOGIN",
+            null,
+            new { user.Email, Status = status },
+            "Đăng nhập thành công.");
 
         return new LoginResponseDto
         {
@@ -97,8 +135,13 @@ public class AuthService : IAuthService
         if (status == UserStatuses.Locked)
         {
             refreshToken.ThuHoiLuc = DateTime.UtcNow;
-            await AddAuditLogAsync(user, "REFRESH_TOKEN_REJECTED_LOCKED", null, new { user.Email, Status = status });
             await _context.SaveChangesAsync();
+            await AddAuditLogAsync(
+                user,
+                "REFRESH_TOKEN_REJECTED",
+                null,
+                new { user.Email, Status = status, refreshToken.MaTokenLamMoi },
+                "Từ chối refresh token do tài khoản bị khóa.");
             throw new ApiException(StatusCodes.Status403Forbidden, "Tài khoản của bạn đang bị khóa.");
         }
 
@@ -107,8 +150,13 @@ public class AuthService : IAuthService
         await _context.TokenLamMois.AddAsync(newRefreshToken.Entity);
 
         var accessToken = _jwtHelper.GenerateToken(user, role, status);
-        await AddAuditLogAsync(user, "REFRESH_TOKEN_ROTATED", null, new { user.Email });
         await _context.SaveChangesAsync();
+        await AddAuditLogAsync(
+            user,
+            "REFRESH_TOKEN_ROTATED",
+            null,
+            new { user.Email, OldRefreshTokenId = refreshToken.MaTokenLamMoi, NewRefreshTokenId = newRefreshToken.Entity.MaTokenLamMoi },
+            "Xoay vòng refresh token.");
 
         return new LoginResponseDto
         {
@@ -125,12 +173,23 @@ public class AuthService : IAuthService
     {
         var tokenHash = HashRefreshToken(request.RefreshToken);
         var refreshToken = await _context.TokenLamMois
+            .Include(x => x.NguoiDung)
             .FirstOrDefaultAsync(x => x.TokenHash == tokenHash);
 
         if (refreshToken is not null && refreshToken.ThuHoiLuc is null)
         {
             refreshToken.ThuHoiLuc = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
+            if (refreshToken.NguoiDung is not null)
+            {
+                await AddAuditLogAsync(
+                    refreshToken.NguoiDung,
+                    "LOGOUT",
+                    null,
+                    new { refreshToken.NguoiDung.Email, refreshToken.MaTokenLamMoi },
+                    "Đăng xuất và thu hồi refresh token.");
+            }
         }
     }
 
@@ -153,12 +212,17 @@ public class AuthService : IAuthService
 
         refreshToken.ThuHoiLuc = DateTime.UtcNow;
 
+        await _context.SaveChangesAsync();
+
         if (refreshToken.NguoiDung is not null)
         {
-            await AddAuditLogAsync(refreshToken.NguoiDung, "REFRESH_TOKEN_REVOKED", null, new { refreshToken.MaTokenLamMoi });
+            await AddAuditLogAsync(
+                refreshToken.NguoiDung,
+                "REVOKE_TOKEN",
+                null,
+                new { refreshToken.NguoiDung.Email, refreshToken.MaTokenLamMoi },
+                "Quản trị thu hồi refresh token.");
         }
-
-        await _context.SaveChangesAsync();
     }
 
     public async Task ChangePasswordAsync(int userId, ChangePasswordDto request)
@@ -171,8 +235,12 @@ public class AuthService : IAuthService
 
         if (!PasswordHelper.VerifyPassword(request.OldPassword, user.MatKhauHash ?? string.Empty))
         {
-            await AddAuditLogAsync(user, "PASSWORD_CHANGE_FAILED", null, new { Reason = "Mật khẩu hiện tại không khớp" });
-            await _context.SaveChangesAsync();
+            await AddAuditLogAsync(
+                user,
+                "CHANGE_PASSWORD_FAILED",
+                null,
+                new { Reason = "Mật khẩu hiện tại không khớp" },
+                "Đổi mật khẩu thất bại.");
             throw new ApiException(StatusCodes.Status400BadRequest, "Mật khẩu hiện tại không chính xác.");
         }
 
@@ -197,8 +265,13 @@ public class AuthService : IAuthService
         user.TrangThai = UserStatuses.DbActive;
         user.SoLanSaiMatKhau = 0;
 
-        await AddAuditLogAsync(user, "PASSWORD_CHANGED", null, new { user.Email });
         await _context.SaveChangesAsync();
+        await AddAuditLogAsync(
+            user,
+            "CHANGE_PASSWORD",
+            null,
+            new { user.Email },
+            "Người dùng đổi mật khẩu.");
     }
 
     private static AuthUserDto ToAuthUserDto(NguoiDung user, string role, string status)
@@ -271,20 +344,21 @@ public class AuthService : IAuthService
             .Replace('/', '_');
     }
 
-    private async Task AddAuditLogAsync(NguoiDung user, string action, object? oldValue, object? newValue)
+    private async Task AddAuditLogAsync(
+        NguoiDung user,
+        string action,
+        object? oldValue,
+        object? newValue,
+        string description)
     {
-        var auditLog = new NhatKyKiemToan
-        {
-            MaDonVi = user.MaDonVi,
-            LoaiDoiTuong = nameof(NguoiDung),
-            MaDoiTuong = user.MaNguoiDung,
-            HanhDong = action,
-            GiaTriCu = oldValue is null ? null : JsonSerializer.Serialize(oldValue),
-            GiaTriMoi = newValue is null ? null : JsonSerializer.Serialize(newValue),
-            NguoiThayDoi = user.MaNguoiDung,
-            ThoiDiemThayDoi = DateTime.UtcNow
-        };
-
-        await _context.NhatKyKiemToans.AddAsync(auditLog);
+        await _auditLogService.LogAsync(
+            "User",
+            user.MaNguoiDung.ToString(),
+            action,
+            oldValue,
+            newValue,
+            user.MaNguoiDung,
+            user.MaDonVi,
+            description);
     }
 }
