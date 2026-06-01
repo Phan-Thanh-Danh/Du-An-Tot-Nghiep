@@ -53,11 +53,11 @@ const getPriorityColor = (priority) => {
       <!-- ── Quick Filters ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
         <div class="flex-1 min-w-[280px] relative">
-          <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder" />
           <input 
             type="text" 
             placeholder="Tìm theo mã đơn, sinh viên hoặc nội dung..." 
-            class="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
+            class="w-full lg-input pl-11 pr-4 py-2.5 text-sm font-medium"
           >
         </div>
         <div class="flex items-center gap-3">
@@ -71,43 +71,43 @@ const getPriorityColor = (priority) => {
       <div class="lg-table-shell overflow-hidden">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-slate-50/50">
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 w-10">#</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Sinh viên & Loại đơn</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Người xử lý</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">SLA còn lại</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Trạng thái</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
+            <tr class="surface-solid">
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default w-10">#</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">Sinh viên & Loại đơn</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">Người xử lý</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">SLA còn lại</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">Trạng thái</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
-            <tr v-for="req in requests" :key="req.id" class="group hover:bg-white/50 transition-colors">
+          <tbody>
+            <tr v-for="req in requests" :key="req.id" class="group hover:bg-white/10 transition-colors">
               <td class="px-4 py-4">
                  <Flag :size="16" :class="getPriorityColor(req.priority)" />
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
+                  <div class="h-9 w-9 rounded-xl surface-solid flex items-center justify-center text-placeholder shrink-0">
                     <FileText :size="18" />
                   </div>
                   <div>
-                    <p class="text-sm font-black text-slate-800 leading-tight">{{ req.type }}</p>
-                    <p class="text-[11px] font-bold text-slate-400 mt-0.5">{{ req.student }} • {{ req.id }}</p>
+                    <p class="text-sm font-black text-heading leading-tight">{{ req.type }}</p>
+                    <p class="text-[11px] font-bold text-label mt-0.5">{{ req.student }} • {{ req.id }}</p>
                   </div>
                 </div>
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
-                  <User :size="14" class="text-slate-300" />
-                  <span :class="['text-xs font-bold', req.reviewer === 'Chưa phân công' ? 'text-amber-500' : 'text-slate-600']">
+                  <User :size="14" class="text-placeholder" />
+                  <span :class="['text-xs font-bold', req.reviewer === 'Chưa phân công' ? 'text-warning' : 'text-label']">
                     {{ req.reviewer }}
                   </span>
                 </div>
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
-                  <Timer :size="14" :class="req.sla === 'QUÁ HẠN' ? 'text-rose-500' : 'text-slate-400'" />
-                  <span :class="['text-xs font-black uppercase tracking-tighter', req.sla === 'QUÁ HẠN' ? 'text-rose-600' : 'text-slate-500']">
+                  <Timer :size="14" :class="req.sla === 'QUÁ HẠN' ? 'text-danger' : 'text-placeholder'" />
+                  <span :class="['text-xs font-black uppercase tracking-tighter', req.sla === 'QUÁ HẠN' ? 'text-danger' : 'text-label']">
                     {{ req.sla }}
                   </span>
                 </div>
@@ -119,10 +119,10 @@ const getPriorityColor = (priority) => {
               </td>
               <td class="px-4 py-4 text-right">
                 <div class="flex items-center justify-end gap-1">
-                  <router-link :to="`/staff/requests/${req.id}`" class="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-all" title="Xem chi tiết">
+                  <router-link :to="`/staff/requests/${req.id}`" class="p-2 lg-button-ghost rounded-lg" title="Xem chi tiết">
                     <ArrowRight :size="18" />
                   </router-link>
-                  <button class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-all">
+                  <button class="p-2 lg-button-ghost rounded-lg">
                     <MoreVertical :size="18" />
                   </button>
                 </div>
@@ -133,14 +133,14 @@ const getPriorityColor = (priority) => {
       </div>
 
       <!-- ── SLA Legend ── -->
-      <div class="lg-card-glass p-5 border-rose-100 bg-rose-50/10">
+      <div class="lg-card-glass p-5 border-danger bg-danger/5">
         <div class="flex items-start gap-4">
-          <div class="h-10 w-10 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600 shrink-0 shadow-sm border border-rose-200">
+          <div class="h-10 w-10 rounded-2xl bg-danger/15 flex items-center justify-center text-danger shrink-0 shadow-sm border border-danger">
              <AlertCircle :size="20" />
           </div>
           <div>
-            <h4 class="text-sm font-black text-rose-900 uppercase tracking-wide">Quy tắc xử lý đơn (SLA)</h4>
-            <p class="text-xs text-rose-700 mt-1.5 leading-relaxed">
+            <h4 class="text-sm font-black text-heading uppercase tracking-wide">Quy tắc xử lý đơn (SLA)</h4>
+            <p class="text-xs text-body mt-1.5 leading-relaxed">
               Tất cả các đơn từ đều có thời hạn xử lý (SLA) quy định theo từng loại. Các đơn <strong>QUÁ HẠN</strong> sẽ được hệ thống tự động đẩy lên mức ưu tiên cao nhất và thông báo cho Trưởng phòng Giáo vụ.
             </p>
           </div>

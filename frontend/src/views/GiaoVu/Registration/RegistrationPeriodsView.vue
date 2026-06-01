@@ -184,7 +184,7 @@ const stats = computed(() => {
             { label: 'Tổng đợt',       value: stats.total, color: 'text-[var(--color-info-text)]', bg: 'bg-[var(--color-info-bg)]' },
             { label: 'Đang mở',        value: stats.open,  color: 'text-[var(--color-success-text)]', bg: 'bg-[var(--color-success-bg)]' },
             { label: 'Bản nháp',       value: stats.draft, color: 'text-[var(--color-warning-text)]', bg: 'bg-[var(--color-warning-bg)]' },
-            { label: 'Đã đóng',        value: stats.closed,color: 'text-slate-500',           bg: 'bg-slate-100' },
+            { label: 'Đã đóng',        value: stats.closed,color: 'text-label',           bg: 'surface-solid' },
           ]"
           :key="stat.label"
           :class="['rounded-2xl p-4 border border-default', stat.bg]"
@@ -225,7 +225,7 @@ const stats = computed(() => {
       <div class="lg-table-shell overflow-hidden">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-slate-50/50">
+            <tr class="surface-solid">
               <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Đợt đăng ký</th>
               <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thời gian</th>
               <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Max Credits</th>
@@ -234,7 +234,7 @@ const stats = computed(() => {
             </tr>
           </thead>
           <tbody class="divide-y divide-[var(--border-default)]">
-            <tr v-for="period in filteredPeriods" :key="period.id" class="group hover:bg-white/50 transition-colors">
+            <tr v-for="period in filteredPeriods" :key="period.id" class="group hover:bg-white/10 transition-colors">
               <td class="px-4 py-4">
                 <p class="text-sm font-black text-heading leading-tight">{{ period.name }}</p>
                 <p class="text-[11px] font-bold text-[var(--lg-primary)] mt-1 uppercase tracking-tighter">{{ period.semester }}</p>
@@ -259,13 +259,13 @@ const stats = computed(() => {
               </td>
               <td class="px-4 py-4 relative">
                 <div class="flex items-center gap-1">
-                  <button class="p-2 hover:bg-blue-50 hover:text-[var(--lg-primary)] rounded-lg text-placeholder transition-all" title="Chỉnh sửa" @click="openEdit(period)">
+                  <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--lg-primary)] rounded-lg text-placeholder transition-all" title="Chỉnh sửa" @click="openEdit(period)">
                     <Edit3 :size="16" />
                   </button>
-                  <button v-if="period.status === 'draft'" class="p-2 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg text-placeholder transition-all" title="Mở đăng ký" @click="openOpenConfirm(period)">
+                  <button v-if="period.status === 'draft'" class="p-2 hover:bg-[var(--color-success-bg)] hover:text-[var(--lg-success)] rounded-lg text-placeholder transition-all" title="Mở đăng ký" @click="openOpenConfirm(period)">
                     <CheckCircle2 :size="16" />
                   </button>
-                  <button class="p-2 hover:bg-slate-100 rounded-lg text-placeholder transition-all relative" @click.stop="toggleMenu(period.id)">
+                  <button class="p-2 hover:bg-[var(--surface-solid)] rounded-lg text-placeholder transition-all relative" @click.stop="toggleMenu(period.id)">
                     <MoreVertical :size="16" />
                   </button>
                 </div>

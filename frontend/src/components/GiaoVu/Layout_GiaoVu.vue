@@ -64,6 +64,7 @@ const pageTitleMap = {
   '/staff/capacity': { title: 'Điều chỉnh sức chứa', subtitle: 'Thay đổi giới hạn số lượng sinh viên cho lớp' },
   '/staff/course-status': { title: 'Hủy / Mở lớp', subtitle: 'Xử lý các lớp không đủ sĩ số tối thiểu' },
   '/staff/requests': { title: 'Xử lý đơn từ', subtitle: 'Phê duyệt hoặc từ chối các yêu cầu từ sinh viên/giảng viên' },
+  '/staff/notifications': { title: 'Thông báo', subtitle: 'Quản lý thông báo học vụ' },
   '/staff/notices/send': { title: 'Gửi thông báo', subtitle: 'Gửi thông báo học vụ đến sinh viên và giảng viên' },
   '/staff/profile': { title: 'Hồ sơ cá nhân', subtitle: 'Thông tin giáo vụ và cài đặt' },
 }
@@ -78,15 +79,13 @@ const currentPageMeta = computed(() => {
 </script>
 
 <template>
-  <div class="relative flex h-screen w-full overflow-hidden font-sans
-              bg-gradient-to-br from-slate-50 via-teal-50/20 to-indigo-50/20
-              dark:from-slate-950 dark:via-teal-950/10 dark:to-indigo-950/20">
+  <div class="lg-app-bg relative flex h-screen w-full overflow-hidden font-sans">
     
     <!-- Radial glow orbs -->
     <div class="pointer-events-none fixed inset-0 overflow-hidden z-0">
-      <div class="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-teal-400/10 dark:bg-teal-500/10 blur-[120px]" />
-      <div class="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-indigo-400/10 dark:bg-indigo-500/10 blur-[120px]" />
-      <div class="absolute top-1/4 left-3/4 h-[400px] w-[400px] rounded-full bg-cyan-400/5 dark:bg-cyan-500/5 blur-[140px]" />
+      <div class="lg-blob lg-blob-blue absolute -top-40 -left-40" />
+      <div class="lg-blob lg-blob-violet absolute -bottom-40 -right-40" />
+      <div class="lg-blob lg-blob-cyan absolute top-1/4 left-3/4" />
     </div>
 
     <!-- MOBILE OVERLAY -->
@@ -156,26 +155,26 @@ const currentPageMeta = computed(() => {
                   <template #default>
                     <component :is="Component" v-if="Component" />
                     <div v-else class="flex-1 flex flex-col items-center justify-center py-24 text-center">
-                      <div class="flex h-20 w-20 items-center justify-center rounded-3xl bg-teal-50 border border-teal-100 shadow-sm">
-                         <ShieldCheck class="h-10 w-10 text-teal-500" />
+                      <div class="flex h-20 w-20 items-center justify-center rounded-3xl lg-glass-strong surface-solid">
+                         <ShieldCheck class="h-10 w-10 text-heading" />
                       </div>
-                      <h3 class="mt-6 text-xl font-black text-slate-800">Trang đang phát triển</h3>
-                      <p class="mt-2 text-sm font-medium text-slate-400 max-w-sm">Trang này hiện đang được xây dựng hoặc đường dẫn không tồn tại. Vui lòng quay lại sau.</p>
-                      <router-link to="/staff/dashboard" class="mt-8 inline-flex items-center gap-2 rounded-2xl bg-teal-600 px-8 py-3 text-sm font-bold text-white hover:bg-teal-700 shadow-lg shadow-teal-500/20 transition-all active:scale-95">← Về Dashboard</router-link>
+                      <h3 class="mt-6 text-xl font-black text-heading">Trang đang phát triển</h3>
+                      <p class="mt-2 text-sm font-medium text-placeholder max-w-sm">Trang này hiện đang được xây dựng hoặc đường dẫn không tồn tại. Vui lòng quay lại sau.</p>
+                      <router-link to="/staff/dashboard" class="mt-8 lg-button-primary inline-flex items-center gap-2 px-8 py-3">← Về Dashboard</router-link>
                     </div>
                   </template>
                   <template #fallback>
                     <div class="flex h-[60vh] w-full flex-col items-center justify-center space-y-6">
                       <div class="relative flex items-center justify-center">
-                        <div class="absolute h-16 w-16 animate-ping rounded-full bg-teal-400/20"></div>
-                        <div class="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-teal-600 shadow-sm"></div>
+                        <div class="absolute h-16 w-16 animate-ping rounded-full bg-blue-400/20"></div>
+                        <div class="h-12 w-12 animate-spin rounded-full border-4 border-default border-t-blue-600 shadow-sm"></div>
                       </div>
                       <div class="flex flex-col items-center space-y-2">
-                        <p class="text-sm font-semibold tracking-wide text-slate-600">Đang nạp dữ liệu...</p>
+                        <p class="text-sm font-semibold tracking-wide text-label">Đang nạp dữ liệu...</p>
                         <div class="flex space-x-1">
-                          <div class="h-2 w-2 animate-bounce rounded-full bg-teal-500" style="animation-delay: -0.3s"></div>
-                          <div class="h-2 w-2 animate-bounce rounded-full bg-teal-500" style="animation-delay: -0.15s"></div>
-                          <div class="h-2 w-2 animate-bounce rounded-full bg-teal-500"></div>
+                          <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500" style="animation-delay: -0.3s"></div>
+                          <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500" style="animation-delay: -0.15s"></div>
+                          <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500"></div>
                         </div>
                       </div>
                     </div>
@@ -212,10 +211,10 @@ html {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border-default);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--text-placeholder);
 }
 </style>

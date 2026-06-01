@@ -36,39 +36,39 @@ const cancelledClasses = ref([
       <!-- ── Pending Cancellation ── -->
       <section class="space-y-4">
         <div class="flex items-center justify-between px-2">
-          <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
-            <AlertCircle :size="22" class="text-rose-500" /> LỚP CHỜ HỦY (DƯỚI MIN ENROLL)
+          <h3 class="text-lg font-black text-heading flex items-center gap-2">
+            <AlertCircle :size="22" class="text-[var(--lg-danger)]" /> LỚP CHỜ HỦY (DƯỚI MIN ENROLL)
           </h3>
-          <span class="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-widest">{{ pendingClasses.length }} Lớp</span>
+          <span class="px-2 py-0.5 rounded-lg bg-[var(--color-danger-bg)] text-[var(--lg-danger)] text-[10px] font-black uppercase tracking-widest">{{ pendingClasses.length }} Lớp</span>
         </div>
 
         <div class="grid grid-cols-1 gap-4">
-          <div v-for="cls in pendingClasses" :key="cls.id" class="lg-card-glass p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group hover:border-rose-200 transition-all">
+          <div v-for="cls in pendingClasses" :key="cls.id" class="lg-card-glass p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group hover:border-[var(--color-danger-bg)]/50 transition-all">
             <div class="flex items-center gap-4">
-              <div class="h-10 w-10 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500 border border-rose-100 shrink-0">
+              <div class="h-10 w-10 rounded-2xl bg-[var(--color-danger-bg)] flex items-center justify-center text-[var(--lg-danger)] border border-[var(--color-danger-bg)]/50 shrink-0">
                 <Users :size="28" />
               </div>
               <div>
-                <h4 class="text-base font-black text-slate-800">{{ cls.subject }}</h4>
+                <h4 class="text-base font-black text-heading">{{ cls.subject }}</h4>
                 <div class="mt-1 flex items-center gap-3">
-                  <span class="text-[10px] font-black text-blue-600 uppercase">{{ cls.id }}</span>
-                  <span class="h-1 w-1 rounded-full bg-slate-300"></span>
-                  <span class="text-xs font-bold text-slate-500">{{ cls.teacher }}</span>
+                  <span class="text-[10px] font-black text-link uppercase">{{ cls.id }}</span>
+                  <span class="h-1 w-1 rounded-full bg-[var(--border-default)]"></span>
+                  <span class="text-xs font-bold text-label">{{ cls.teacher }}</span>
                 </div>
               </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-4">
-              <div class="px-4 border-x border-slate-100">
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sĩ số hiện tại</p>
-                <p class="text-lg font-black text-rose-600">{{ cls.enrolled }} <span class="text-slate-300 font-medium">/ {{ cls.minEnroll }}</span></p>
+              <div class="px-4 border-x border-default">
+                <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Sĩ số hiện tại</p>
+                <p class="text-lg font-black text-[var(--lg-danger)]">{{ cls.enrolled }} <span class="text-placeholder font-medium">/ {{ cls.minEnroll }}</span></p>
               </div>
 
               <div class="flex items-center gap-2">
-                <button class="lg-button-secondary px-4 py-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50">
+                <button class="lg-button-secondary px-4 py-2 text-xs font-bold text-[var(--lg-success)] hover:bg-[var(--color-success-bg)]">
                   <CheckCircle2 :size="16" /> Mở lại lớp
                 </button>
-                <button class="lg-button-primary px-5 py-2.5 text-xs font-bold bg-rose-600 shadow-lg shadow-rose-500/20">
+                <button class="px-5 py-2.5 text-xs font-bold text-white bg-[var(--lg-danger)] hover:opacity-90 rounded-[18px] shadow-lg shadow-[var(--lg-danger)]/20 transition-all flex items-center gap-2">
                   <XCircle :size="16" /> Xác nhận hủy
                 </button>
               </div>
@@ -80,7 +80,7 @@ const cancelledClasses = ref([
       <!-- ── Recently Cancelled ── -->
       <section class="space-y-4 pt-4">
         <div class="flex items-center justify-between px-2">
-          <h3 class="text-lg font-black text-slate-400 flex items-center gap-2">
+          <h3 class="text-lg font-black text-label flex items-center gap-2">
             <RefreshCw :size="20" /> LỊCH SỬ LỚP ĐÃ HỦY
           </h3>
         </div>
@@ -88,33 +88,33 @@ const cancelledClasses = ref([
         <div class="lg-table-shell overflow-hidden opacity-80 hover:opacity-100 transition-opacity">
           <table class="w-full text-left border-collapse">
             <thead>
-              <tr class="bg-slate-50/50">
-                <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Lớp học phần</th>
-                <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Sĩ số lúc hủy</th>
-                <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Ngày hủy</th>
-                <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thông báo</th>
-                <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
+              <tr class="surface-solid">
+                <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Lớp học phần</th>
+                <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Sĩ số lúc hủy</th>
+                <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Ngày hủy</th>
+                <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thông báo</th>
+                <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-50">
-              <tr v-for="cls in cancelledClasses" :key="cls.id" class="group hover:bg-white/50 transition-colors">
+            <tbody class="divide-y divide-default">
+              <tr v-for="cls in cancelledClasses" :key="cls.id" class="group hover:bg-white/10 transition-colors">
                 <td class="px-4 py-4">
-                   <p class="text-sm font-black text-slate-700">{{ cls.subject }}</p>
-                   <p class="text-[10px] font-bold text-slate-400 mt-1">{{ cls.id }}</p>
+                   <p class="text-sm font-black text-heading">{{ cls.subject }}</p>
+                   <p class="text-[10px] font-bold text-placeholder mt-1">{{ cls.id }}</p>
                 </td>
                 <td class="px-4 py-4">
-                   <span class="text-sm font-bold text-slate-600">{{ cls.enrolled }} SV</span>
+                   <span class="text-sm font-bold text-label">{{ cls.enrolled }} SV</span>
                 </td>
                 <td class="px-4 py-4">
-                   <span class="text-xs font-medium text-slate-500">{{ cls.date }}</span>
+                   <span class="text-xs font-medium text-label">{{ cls.date }}</span>
                 </td>
                 <td class="px-4 py-4">
-                   <div class="flex items-center gap-1.5 text-emerald-500">
+                   <div class="flex items-center gap-1.5 text-[var(--lg-success)]">
                       <Mail :size="14" /> <span class="text-[10px] font-black uppercase tracking-widest">Đã gửi SV</span>
                    </div>
                 </td>
                 <td class="px-4 py-4 text-right">
-                   <button class="p-2 hover:bg-slate-100 rounded-lg text-slate-400">
+                   <button class="p-2 hover:bg-[var(--surface-solid)] rounded-lg text-placeholder">
                       <MoreVertical :size="16" />
                    </button>
                 </td>
@@ -125,14 +125,14 @@ const cancelledClasses = ref([
       </section>
 
       <!-- ── Policy Note ── -->
-      <div class="lg-card-glass p-4 bg-rose-50/20 border-rose-100">
+      <div class="lg-card-glass p-4 border border-[var(--color-danger-bg)]/50">
         <div class="flex gap-4">
-          <div class="h-10 w-10 rounded-xl bg-white flex items-center justify-center text-rose-500 shadow-sm border border-rose-100 shrink-0">
+          <div class="h-10 w-10 rounded-xl surface-card flex items-center justify-center text-[var(--lg-danger)] shadow-sm border border-[var(--color-danger-bg)]/50 shrink-0">
              <MessageSquare :size="20" />
           </div>
           <div>
-            <h4 class="text-sm font-black text-rose-900">Lưu ý khi hủy lớp</h4>
-            <p class="text-xs text-rose-700 mt-2 leading-relaxed">
+            <h4 class="text-sm font-black text-heading">Lưu ý khi hủy lớp</h4>
+            <p class="text-xs text-label mt-2 leading-relaxed">
               Khi xác nhận hủy lớp, hệ thống sẽ tự động hoàn trả tín chỉ cho sinh viên, giải phóng phòng học và gửi thông báo qua Email/App. Đối với các sinh viên đã thanh toán học phí cho môn này, hệ thống sẽ tự động tạo <strong>Credit Note</strong> (phiếu khấu trừ) cho đợt đóng tiền tiếp theo.
             </p>
           </div>

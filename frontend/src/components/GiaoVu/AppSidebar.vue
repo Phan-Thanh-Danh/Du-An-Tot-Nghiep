@@ -34,31 +34,31 @@ function logout() {
       collapsed ? 'w-[64px]' : 'w-[220px]',
     ]"
     :style="{
-      '--sidebar-glow-1': 'rgba(13, 148, 136, 0.18)',
-      '--sidebar-glow-2': 'rgba(16, 185, 129, 0.12)',
-      '--sidebar-glow-dark-1': 'rgba(13, 148, 136, 0.10)',
-      '--sidebar-glow-dark-2': 'rgba(16, 185, 129, 0.07)',
-      '--sidebar-accent': '#0d9488',
-      '--sidebar-accent-dark': '#5eead4',
-      '--sidebar-indicator': '#14b8a6',
-      '--sidebar-focus-ring': 'rgba(20, 184, 166, 0.2)',
+      '--sidebar-glow-1': 'rgba(37, 99, 235, 0.18)',
+      '--sidebar-glow-2': 'rgba(59, 130, 246, 0.12)',
+      '--sidebar-glow-dark-1': 'rgba(37, 99, 235, 0.10)',
+      '--sidebar-glow-dark-2': 'rgba(59, 130, 246, 0.07)',
+      '--sidebar-accent': '#2563eb',
+      '--sidebar-accent-dark': '#60a5fa',
+      '--sidebar-indicator': '#2563eb',
+      '--sidebar-focus-ring': 'rgba(37, 99, 235, 0.2)',
       '--active-glow': 'rgba(255, 255, 255, 0.38)',
-      '--active-start': '#0f766e',
-      '--active-mid': '#0d9488',
-      '--active-end': '#14b8a6',
-      '--active-shadow-1': 'rgba(15, 118, 110, 0.35)',
-      '--active-shadow-2': 'rgba(20, 184, 166, 0.25)',
+      '--active-start': '#1d4ed8',
+      '--active-mid': '#2563eb',
+      '--active-end': '#0891b2',
+      '--active-shadow-1': 'rgba(29, 78, 216, 0.35)',
+      '--active-shadow-2': 'rgba(8, 145, 178, 0.25)',
     }"
   >
-    <div class="pointer-events-none absolute -left-24 top-24 h-56 w-56 rounded-full bg-teal-300/20 dark:bg-teal-500/8 blur-3xl" />
-    <div class="pointer-events-none absolute -bottom-20 right-0 h-60 w-60 rounded-full bg-emerald-300/20 dark:bg-emerald-500/8 blur-3xl" />
+    <div class="pointer-events-none absolute -left-24 top-24 h-56 w-56 rounded-full bg-blue-300/20 dark:bg-blue-500/8 blur-3xl" />
+    <div class="pointer-events-none absolute -bottom-20 right-0 h-60 w-60 rounded-full bg-cyan-300/20 dark:bg-cyan-500/8 blur-3xl" />
 
     <!-- ──────────── LOGO / BRAND ──────────── -->
     <div
       class="relative flex items-center gap-2.5 border-b border-white/45 dark:border-white/10 px-3 py-3 flex-shrink-0"
       :class="collapsed ? 'justify-center px-2' : ''"
     >
-      <div class="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-teal-600 to-teal-500 shadow-md shadow-teal-200/40 dark:shadow-teal-500/10">
+      <div class="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-500 shadow-md shadow-blue-200/40 dark:shadow-blue-500/10">
         <ShieldCheck :size="18" color="white" :stroke-width="2.2" />
       </div>
       <Transition name="fade-slide">
@@ -114,9 +114,9 @@ function logout() {
       :class="collapsed ? 'flex justify-center' : ''"
     >
       <div :class="['lg-nav flex items-center gap-2 rounded-xl p-2', collapsed ? '' : 'w-full']">
-        <div class="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 dark:from-teal-500/80 dark:to-emerald-600/80 text-xs font-bold text-white shadow-lg shadow-teal-500/20 dark:shadow-teal-500/10 ring-2 ring-white/70 dark:ring-white/20">
+        <div class="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 dark:from-blue-500/80 dark:to-cyan-600/80 text-xs font-bold text-white shadow-lg shadow-blue-500/20 dark:shadow-blue-500/10 ring-2 ring-white/70 dark:ring-white/20">
           <span>{{ authStore.initials || mockStaff.initials }}</span>
-          <span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-slate-800 bg-emerald-500" />
+          <span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-slate-800 bg-blue-500" />
         </div>
         <Transition name="fade-slide">
           <div v-if="!collapsed" class="overflow-hidden min-w-0">
@@ -133,7 +133,7 @@ function logout() {
 
     <!-- ──────────── TOGGLE BUTTON ──────────── -->
     <button
-      class="absolute -right-3.5 top-[56px] z-[60] flex h-6 w-6 items-center justify-center rounded-full border border-white/70 dark:border-white/10 bg-white/90 dark:bg-slate-700/70 text-slate-500 dark:text-slate-400 shadow-lg shadow-slate-900/10 dark:shadow-slate-900/40 backdrop-blur-xl transition-all hover:border-teal-300 dark:hover:border-teal-500/30 hover:text-teal-700 dark:hover:text-teal-300 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]"
+      class="absolute -right-3.5 top-[56px] z-[60] flex h-6 w-6 items-center justify-center rounded-full border border-white/70 dark:border-white/10 bg-white/90 dark:bg-slate-700/70 text-slate-500 dark:text-slate-400 shadow-lg shadow-slate-900/10 dark:shadow-slate-900/40 backdrop-blur-xl transition-all hover:border-blue-300 dark:hover:border-blue-500/30 hover:text-blue-700 dark:hover:text-blue-300 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]"
       :title="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       :aria-label="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       @click="emit('toggle')"

@@ -54,11 +54,11 @@ const getChannelIcon = (ch) => {
       <!-- ── Filters ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
         <div class="flex-1 min-w-[300px] relative">
-          <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder" />
           <input 
             type="text" 
             placeholder="Tìm theo tiêu đề hoặc người gửi..." 
-            class="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-4 focus:ring-blue-500/10"
+            class="w-full lg-input pl-11 pr-4 py-2.5 text-sm font-medium"
           >
         </div>
         <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
@@ -71,46 +71,46 @@ const getChannelIcon = (ch) => {
         <div 
           v-for="nt in notices" 
           :key="nt.id"
-          class="lg-card-glass p-4 group hover:shadow-xl hover:shadow-slate-200/50 transition-all border-slate-100"
+           class="lg-card-glass p-4 group hover:shadow-xl transition-all border-default"
         >
            <div class="flex items-start justify-between mb-5">
               <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm', getStatusBadge(nt.status)]">
                  {{ nt.status }}
               </div>
-              <button class="text-slate-300 hover:text-slate-500"><MoreVertical :size="18" /></button>
+               <button class="text-placeholder hover:text-heading"><MoreVertical :size="18" /></button>
            </div>
 
-           <h3 class="text-base font-black text-slate-800 leading-snug group-hover:text-blue-600 transition-colors">
+            <h3 class="text-base font-black text-heading leading-snug group-hover:text-link transition-colors">
               {{ nt.title }}
            </h3>
            
            <div class="mt-4 flex flex-col gap-3">
-              <div class="flex items-center gap-2 text-xs font-bold text-slate-400">
-                 <Users :size="14" /> {{ nt.target }}
-              </div>
-              <div class="flex items-center gap-2 text-xs font-bold text-slate-400">
+               <div class="flex items-center gap-2 text-xs font-bold text-label">
+                  <Users :size="14" /> {{ nt.target }}
+               </div>
+               <div class="flex items-center gap-2 text-xs font-bold text-label">
                  <Clock :size="14" /> {{ nt.date }} • {{ nt.author }}
               </div>
            </div>
 
-           <div class="mt-6 pt-5 border-t border-slate-50 flex items-center justify-between">
+            <div class="mt-6 pt-5 border-t border-default flex items-center justify-between">
               <div class="flex items-center gap-2">
                  <div 
                    v-for="ch in nt.channels" 
                    :key="ch"
-                   class="h-7 w-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100"
+                    class="h-7 w-7 rounded-lg surface-solid flex items-center justify-center text-placeholder border-default"
                    :title="ch"
                  >
                     <component :is="getChannelIcon(ch)" :size="14" />
                  </div>
-                 <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest ml-1">{{ nt.recipients }} recipients</span>
+                  <span class="text-[10px] font-black text-placeholder uppercase tracking-widest ml-1">{{ nt.recipients }} recipients</span>
               </div>
               
               <div class="flex items-center gap-2">
-                 <button v-if="nt.status === 'failed'" class="p-2 hover:bg-rose-50 text-rose-500 rounded-lg transition-colors" title="Thử lại">
+                  <button v-if="nt.status === 'failed'" class="p-2 lg-button-ghost text-danger rounded-lg transition-colors" title="Thử lại">
                     <RotateCcw :size="16" />
                  </button>
-                 <button class="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors flex items-center gap-1 text-xs font-black uppercase tracking-widest">
+                  <button class="p-2 lg-button-ghost text-link rounded-lg transition-colors flex items-center gap-1 text-xs font-black uppercase tracking-widest">
                     Detail <ChevronRight :size="14" />
                  </button>
               </div>
@@ -120,11 +120,11 @@ const getChannelIcon = (ch) => {
 
       <!-- ── Empty State ── -->
       <div v-if="notices.length === 0" class="py-24 text-center">
-         <div class="h-20 w-20 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-200 mx-auto mb-4">
+         <div class="h-20 w-20 surface-solid rounded-3xl flex items-center justify-center text-placeholder mx-auto mb-4">
             <Bell :size="40" />
          </div>
-         <h3 class="text-xl font-black text-slate-800 tracking-tight">Chưa có thông báo nào được gửi</h3>
-         <p class="text-sm text-slate-400 mt-2 max-w-xs mx-auto">Hãy bắt đầu bằng việc tạo một thông báo học vụ mới cho sinh viên hoặc giảng viên.</p>
+         <h3 class="text-xl font-black text-heading tracking-tight">Chưa có thông báo nào được gửi</h3>
+         <p class="text-sm text-label mt-2 max-w-xs mx-auto">Hãy bắt đầu bằng việc tạo một thông báo học vụ mới cho sinh viên hoặc giảng viên.</p>
       </div>
 
     </div>

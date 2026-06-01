@@ -319,21 +319,21 @@ import dayjs from 'dayjs'
       <div class="lg-table-shell overflow-hidden">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-slate-50/50">
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thời gian</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Môn & Lớp</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Giảng viên</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Phòng</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
+            <tr class="bg-[var(--surface-input)]">
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thời gian</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Môn & Lớp</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Giảng viên</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Phòng</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
-            <tr v-for="item in filteredSchedules" :key="item.id" class="group hover:bg-white/50 transition-colors">
+          <tbody class="divide-y border-default">
+            <tr v-for="item in filteredSchedules" :key="item.id" class="group hover:bg-white/10 transition-colors">
               <td class="px-4 py-4">
                 <span :class="['inline-block px-2 py-0.5 rounded-lg text-[10px] font-black border mb-1', getDayClass(item.day)]">
                   {{ item.day }}
                 </span>
-                <p class="text-xs font-bold text-blue-600">{{ item.time }}</p>
+                <p class="text-xs font-bold text-[var(--lg-primary)]">{{ item.time }}</p>
               </td>
               <td class="px-4 py-4">
                 <p class="text-sm font-black text-heading leading-tight">{{ item.subject }}</p>
@@ -341,7 +341,7 @@ import dayjs from 'dayjs'
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center text-[10px] font-black text-blue-600 border border-blue-100">
+                  <div class="h-8 w-8 rounded-full bg-[var(--color-info-bg)] flex items-center justify-center text-[10px] font-black text-[var(--color-info-text)] border border-[var(--color-info-bg)]">
                     {{ getInitial(item.teacher) }}
                   </div>
                   <span class="text-sm font-bold text-label">{{ item.teacher }}</span>
@@ -352,13 +352,13 @@ import dayjs from 'dayjs'
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-1">
-                  <button class="p-2 hover:bg-orange-50 hover:text-orange-600 rounded-lg text-slate-400 transition-all" title="Hủy buổi / Thay đổi" @click="openCancel(item)">
+                  <button class="p-2 hover:bg-[var(--color-warning-bg)] hover:text-[var(--color-warning-text)] rounded-lg text-placeholder transition-all" title="Hủy buổi / Thay đổi" @click="openCancel(item)">
                     <XCircle :size="16" />
                   </button>
-                  <button class="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-all" title="Lịch học bù" @click="openMakeup(item)">
+                  <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-placeholder transition-all" title="Lịch học bù" @click="openMakeup(item)">
                     <RefreshCw :size="16" />
                   </button>
-                  <button class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-all" title="Lịch sử thay đổi" @click="openHistory(item)">
+                  <button class="p-2 hover:bg-white/10 rounded-lg text-placeholder transition-all" title="Lịch sử thay đổi" @click="openHistory(item)">
                     <History :size="16" />
                   </button>
                 </div>
@@ -385,7 +385,7 @@ import dayjs from 'dayjs'
       <div class="flex flex-col md:flex-row items-center justify-between gap-4 px-4 py-2">
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2">
-            <span class="h-3 w-3 rounded-full bg-green-500 shadow-sm shadow-green-200"></span>
+            <span class="h-3 w-3 rounded-full bg-[var(--lg-success)] shadow-sm shadow-[var(--lg-success)]/20"></span>
             <span class="text-xs font-bold text-label">{{ totalPublished }} Buổi học đã publish</span>
           </div>
           <div class="flex items-center gap-2 text-xs font-bold text-placeholder">
@@ -471,7 +471,7 @@ import dayjs from 'dayjs'
               :class="[
                 'px-6 py-2.5 rounded-[18px] text-sm font-bold text-white transition-all flex items-center gap-2',
                 !cancelReason.trim() || isCancelling
-                  ? 'bg-slate-400 cursor-not-allowed'
+                  ? 'bg-[var(--border-default)] cursor-not-allowed'
                   : 'bg-[var(--lg-danger)] hover:opacity-90 shadow-lg shadow-[var(--lg-danger)]/20'
               ]"
               :disabled="!cancelReason.trim() || isCancelling"
@@ -626,8 +626,8 @@ import dayjs from 'dayjs'
               >
                 <!-- Timeline dot + line -->
                 <div class="flex flex-col items-center shrink-0">
-                  <div class="h-3 w-3 rounded-full border-2 border-[var(--lg-primary)] bg-white z-10"></div>
-                  <div v-if="idx < historyLogs[historyTarget.id].length - 1" class="w-px flex-1 bg-slate-200 -mt-1"></div>
+                  <div class="h-3 w-3 rounded-full border-2 border-[var(--lg-primary)] bg-[var(--surface-card)] z-10"></div>
+                  <div v-if="idx < historyLogs[historyTarget.id].length - 1" class="w-px flex-1 bg-[var(--border-default)] -mt-1"></div>
                 </div>
                 <!-- Content -->
                 <div class="flex-1 -mt-0.5">

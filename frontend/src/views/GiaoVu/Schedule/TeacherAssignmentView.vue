@@ -157,7 +157,7 @@ function goToPage(page) {
     subtitle="Quản lý gán giảng viên cho các lớp học phần trong học kỳ."
   >
     <template #actions>
-      <button @click="showAddModal = true" class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20 hover:shadow-xl transition-all">
+      <button @click="showAddModal = true" class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-[var(--lg-primary)]/20 hover:shadow-xl transition-all">
         <Plus :size="18" /> Thêm phân công
       </button>
     </template>
@@ -166,30 +166,30 @@ function goToPage(page) {
       <!-- ── Stats Header ── -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="lg-card-glass p-4 flex items-center gap-4">
-          <div class="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
+          <div class="h-10 w-10 rounded-2xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)]">
             <UserPlus :size="24" />
           </div>
           <div>
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tổng phân công</p>
-            <p class="text-xl font-black text-slate-800">124</p>
+            <p class="text-[10px] font-black text-placeholder uppercase tracking-widest">Tổng phân công</p>
+            <p class="text-xl font-black text-heading">124</p>
           </div>
         </div>
         <div class="lg-card-glass p-4 flex items-center gap-4">
-          <div class="h-10 w-10 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600">
+          <div class="h-10 w-10 rounded-2xl bg-[var(--color-warning-bg)] flex items-center justify-center text-[var(--color-warning-text)]">
             <UserMinus :size="24" />
           </div>
           <div>
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chưa gán GV</p>
-            <p class="text-xl font-black text-slate-800">12</p>
+            <p class="text-[10px] font-black text-placeholder uppercase tracking-widest">Chưa gán GV</p>
+            <p class="text-xl font-black text-heading">12</p>
           </div>
         </div>
         <div class="lg-card-glass p-4 flex items-center gap-4">
-          <div class="h-10 w-10 rounded-2xl bg-green-50 flex items-center justify-center text-green-600">
+          <div class="h-10 w-10 rounded-2xl bg-[var(--color-success-bg)] flex items-center justify-center text-[var(--color-success-text)]">
             <UserCheck :size="24" />
           </div>
           <div>
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hoàn tất</p>
-            <p class="text-xl font-black text-slate-800">90%</p>
+            <p class="text-[10px] font-black text-placeholder uppercase tracking-widest">Hoàn tất</p>
+            <p class="text-xl font-black text-heading">90%</p>
           </div>
         </div>
       </div>
@@ -197,20 +197,20 @@ function goToPage(page) {
       <!-- ── Filter & Search ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
         <div class="flex-1 min-w-[300px] relative">
-          <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder" />
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Tìm theo môn, lớp hoặc giảng viên..."
-            class="w-full bg-white border border-slate-100 rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
+            class="w-full lg-input pl-10 pr-4 py-2.5 text-sm font-medium transition-all"
           >
         </div>
         <div class="flex items-center gap-3">
-          <button @click="showFilterPanel = !showFilterPanel" class="lg-button-secondary px-4 py-2.5 text-sm font-bold hover:bg-white transition-colors">
+          <button @click="showFilterPanel = !showFilterPanel" class="lg-button-secondary px-4 py-2.5 text-sm font-bold transition-colors">
             <Filter :size="18" /> Bộ lọc
           </button>
-          <div class="h-8 w-px bg-slate-200"></div>
-          <button class="lg-icon-button bg-white border border-slate-100 p-2.5 text-slate-500 hover:bg-slate-50">
+          <div class="h-8 w-px bg-[var(--border-default)]"></div>
+          <button class="lg-icon-button p-2.5">
             <Calendar :size="20" />
           </button>
         </div>
@@ -220,43 +220,43 @@ function goToPage(page) {
       <div class="lg-table-shell">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-slate-50/50">
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Mã PC</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Lớp & Môn</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Giảng viên</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Tiết/Tuần</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Trạng thái</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thao tác</th>
+            <tr class="bg-[var(--surface-input)]">
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Mã PC</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Lớp & Môn</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Giảng viên</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Tiết/Tuần</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Trạng thái</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
-            <tr v-for="item in paginatedAssignments" :key="item.id" class="group hover:bg-white/50 transition-colors">
+          <tbody class="divide-y border-default">
+            <tr v-for="item in paginatedAssignments" :key="item.id" class="group hover:bg-white/10 transition-colors">
               <td class="px-4 py-4">
-                <span class="text-xs font-black text-slate-800">{{ item.id }}</span>
+                <span class="text-xs font-black text-heading">{{ item.id }}</span>
               </td>
               <td class="px-4 py-4">
-                <p class="text-sm font-black text-slate-800 leading-tight">{{ item.subject }}</p>
-                <p class="text-[11px] font-bold text-blue-600 mt-1 uppercase">{{ item.class }}</p>
+                <p class="text-sm font-black text-heading leading-tight">{{ item.subject }}</p>
+                <p class="text-[11px] font-bold text-[var(--lg-primary)] mt-1 uppercase">{{ item.class }}</p>
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500">
+                  <div class="h-8 w-8 rounded-full bg-[var(--surface-input)] flex items-center justify-center text-[10px] font-black text-label">
                     {{ item.teacher !== 'Chưa phân công' ? item.teacher.split(' ').pop().charAt(0) : '?' }}
                   </div>
                   <div>
-                    <p :class="['text-sm font-bold', item.teacher === 'Chưa phân công' ? 'text-red-500 italic' : 'text-slate-700']">
+                    <p :class="['text-sm font-bold', item.teacher === 'Chưa phân công' ? 'text-[var(--lg-danger)] italic' : 'text-heading']">
                       {{ item.teacher }}
                     </p>
-                    <p v-if="item.teacher !== 'Chưa phân công'" class="text-[10px] font-medium text-slate-400">Tải dạy: 12/15</p>
+                    <p v-if="item.teacher !== 'Chưa phân công'" class="text-[10px] font-medium text-placeholder">Tải dạy: 12/15</p>
                   </div>
                 </div>
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
-                  <span class="h-2 w-16 bg-slate-100 rounded-full overflow-hidden inline-flex">
-                    <span :style="{ width: (item.sessions / 4) * 100 + '%' }" class="bg-blue-500 h-full"></span>
+                  <span class="h-2 w-16 bg-[var(--surface-input)] rounded-full overflow-hidden inline-flex">
+                    <span :style="{ width: (item.sessions / 4) * 100 + '%' }" class="bg-[var(--lg-primary)] h-full"></span>
                   </span>
-                  <span class="text-xs font-bold text-slate-700">{{ item.sessions }} tiết</span>
+                  <span class="text-xs font-bold text-label">{{ item.sessions }} tiết</span>
                 </div>
               </td>
               <td class="px-4 py-4">
@@ -266,10 +266,10 @@ function goToPage(page) {
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
-                  <button class="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-all" title="Đổi giảng viên">
+                  <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-placeholder transition-all" title="Đổi giảng viên">
                     <ArrowLeftRight :size="16" />
                   </button>
-                  <button class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-all">
+                  <button class="p-2 hover:bg-white/10 rounded-lg text-placeholder transition-all">
                     <MoreHorizontal :size="16" />
                   </button>
                 </div>
@@ -281,15 +281,15 @@ function goToPage(page) {
 
       <!-- ── Footer Info ── -->
       <div class="flex items-center justify-between px-4">
-         <p class="text-xs font-medium text-slate-500">Hiển thị {{ paginatedAssignments.length }} / {{ filteredAssignments.length }} bản ghi</p>
+         <p class="text-xs font-medium text-label">Hiển thị {{ paginatedAssignments.length }} / {{ filteredAssignments.length }} bản ghi</p>
          <div class="flex items-center gap-1">
-            <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" class="h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-white disabled:opacity-50 transition-all">
+            <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" class="h-8 w-8 rounded-lg flex items-center justify-center text-label hover:bg-white/10 disabled:opacity-50 transition-all">
               <ChevronLeft :size="16" />
             </button>
-            <button v-for="p in totalPages" :key="p" @click="goToPage(p)" :class="['h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all', p === currentPage ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-white text-slate-500']">
+            <button v-for="p in totalPages" :key="p" @click="goToPage(p)" :class="['h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all', p === currentPage ? 'bg-[var(--lg-primary)] text-white shadow-md' : 'hover:bg-white/10 text-label']">
               {{ p }}
             </button>
-            <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages" class="h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-white disabled:opacity-50 transition-all">
+            <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages" class="h-8 w-8 rounded-lg flex items-center justify-center text-label hover:bg-white/10 disabled:opacity-50 transition-all">
               <ChevronRight :size="16" />
             </button>
          </div>
@@ -299,52 +299,52 @@ function goToPage(page) {
 
   <!-- ── Filter Panel ── -->
   <div v-if="showFilterPanel" class="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" @click="showFilterPanel = false"></div>
-  <div v-if="showFilterPanel" class="fixed top-24 right-6 z-50 bg-white rounded-[20px] shadow-2xl border border-slate-100 p-4 w-72 space-y-4">
+  <div v-if="showFilterPanel" class="fixed top-24 right-6 z-50 surface-modal rounded-[20px] shadow-2xl border-default p-4 w-72 space-y-4">
     <div>
-      <h3 class="text-sm font-bold text-slate-700 mb-3">Trạng thái</h3>
+      <h3 class="text-sm font-bold text-heading mb-3">Trạng thái</h3>
       <div class="space-y-2">
         <label class="flex items-center gap-3 cursor-pointer">
           <input v-model="filters.status" type="radio" value="all" class="w-4 h-4 rounded-full">
-          <span class="text-sm text-slate-700">Tất cả</span>
+          <span class="text-sm text-label">Tất cả</span>
         </label>
         <label class="flex items-center gap-3 cursor-pointer">
           <input v-model="filters.status" type="radio" value="assigned" class="w-4 h-4 rounded-full">
-          <span class="text-sm text-slate-700">Đã gán</span>
+          <span class="text-sm text-label">Đã gán</span>
         </label>
         <label class="flex items-center gap-3 cursor-pointer">
           <input v-model="filters.status" type="radio" value="unassigned" class="w-4 h-4 rounded-full">
-          <span class="text-sm text-slate-700">Chưa gán</span>
+          <span class="text-sm text-label">Chưa gán</span>
         </label>
       </div>
     </div>
 
-    <div class="border-t border-slate-100"></div>
+    <div class="border-t border-default"></div>
 
     <div>
-      <h3 class="text-sm font-bold text-slate-700 mb-3">Phòng ban</h3>
-      <select v-model="filters.department" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/20">
+      <h3 class="text-sm font-bold text-heading mb-3">Phòng ban</h3>
+      <select v-model="filters.department" class="w-full lg-input px-3 py-2 text-sm">
         <option value="all">Tất cả</option>
         <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
       </select>
     </div>
 
-    <div class="border-t border-slate-100"></div>
+    <div class="border-t border-default"></div>
 
     <div>
-      <h3 class="text-sm font-bold text-slate-700 mb-3">Giảng viên</h3>
-      <select v-model="filters.lecturer" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/20">
+      <h3 class="text-sm font-bold text-heading mb-3">Giảng viên</h3>
+      <select v-model="filters.lecturer" class="w-full lg-input px-3 py-2 text-sm">
         <option value="all">Tất cả</option>
         <option v-for="lecturer in lecturers" :key="lecturer.id" :value="lecturer.name">{{ lecturer.name }}</option>
       </select>
     </div>
 
-    <div class="border-t border-slate-100"></div>
+    <div class="border-t border-default"></div>
 
     <div class="flex gap-3">
-      <button @click="clearFilters" class="flex-1 px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors">
+      <button @click="clearFilters" class="flex-1 lg-button-secondary px-4 py-2 text-sm font-bold">
         Xóa bộ lọc
       </button>
-      <button @click="showFilterPanel = false" class="flex-1 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors">
+      <button @click="showFilterPanel = false" class="flex-1 lg-button-primary px-4 py-2 text-sm font-bold">
         Áp dụng
       </button>
     </div>
@@ -352,11 +352,11 @@ function goToPage(page) {
 
   <!-- ── Modal Add Assignment ── -->
   <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-    <div class="bg-white rounded-[24px] shadow-2xl max-w-md w-full p-4 border border-slate-100">
+    <div class="surface-modal rounded-[24px] shadow-2xl max-w-md w-full p-4 border-default">
       <!-- Header -->
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold text-slate-900">Thêm phân công</h2>
-        <button @click="showAddModal = false" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
+        <h2 class="text-xl font-bold text-heading">Thêm phân công</h2>
+        <button @click="showAddModal = false" class="p-1.5 hover:bg-white/10 rounded-lg text-placeholder hover:text-label transition-colors">
           <X :size="20" />
         </button>
       </div>
@@ -365,32 +365,32 @@ function goToPage(page) {
       <form @submit.prevent="handleAddAssignment" class="space-y-4">
         <!-- Môn học -->
         <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">Môn học</label>
+          <label class="block text-sm font-bold text-label mb-2">Môn học</label>
           <input
             v-model="newAssignmentForm.subject"
             type="text"
             placeholder="Nhập tên môn học"
-            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+            class="w-full lg-input px-4 py-2.5"
           />
         </div>
 
         <!-- Lớp -->
         <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">Lớp</label>
+          <label class="block text-sm font-bold text-label mb-2">Lớp</label>
           <input
             v-model="newAssignmentForm.class"
             type="text"
             placeholder="Nhập mã lớp (vd: SE1601)"
-            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+            class="w-full lg-input px-4 py-2.5"
           />
         </div>
 
         <!-- Giảng viên -->
         <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">Giảng viên</label>
+          <label class="block text-sm font-bold text-label mb-2">Giảng viên</label>
           <select
             v-model="newAssignmentForm.teacher"
-            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+            class="w-full lg-input px-4 py-2.5"
           >
             <option value="">-- Chọn giảng viên --</option>
             <option v-for="lecturer in lecturers" :key="lecturer.id" :value="lecturer.name">
@@ -401,22 +401,22 @@ function goToPage(page) {
 
         <!-- Tiết/Tuần -->
         <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">Tiết/Tuần</label>
+          <label class="block text-sm font-bold text-label mb-2">Tiết/Tuần</label>
           <input
             v-model.number="newAssignmentForm.sessions"
             type="number"
             min="1"
             max="10"
-            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+            class="w-full lg-input px-4 py-2.5"
           />
         </div>
 
         <!-- Trạng thái -->
         <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">Trạng thái</label>
+          <label class="block text-sm font-bold text-label mb-2">Trạng thái</label>
           <select
             v-model="newAssignmentForm.status"
-            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+            class="w-full lg-input px-4 py-2.5"
           >
             <option value="assigned">Đã gán</option>
             <option value="unassigned">Chưa gán</option>
@@ -424,17 +424,17 @@ function goToPage(page) {
         </div>
 
         <!-- Actions -->
-        <div class="flex gap-3 pt-4 border-t border-slate-200">
+        <div class="flex gap-3 pt-4 border-t border-default">
           <button
             type="button"
             @click="showAddModal = false"
-            class="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+            class="flex-1 lg-button-secondary px-4 py-2.5 font-bold"
           >
             Hủy
           </button>
           <button
             type="submit"
-            class="flex-1 px-4 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20"
+            class="flex-1 lg-button-primary px-4 py-2.5 font-bold shadow-lg shadow-[var(--lg-primary)]/20"
           >
             Thêm
           </button>

@@ -212,6 +212,7 @@ const router = createRouter({
         { path: 'requests/:id', name: 'staff-request-details', component: () => import('../views/GiaoVu/Requests/RequestDetailsView.vue') },
         { path: 'requests-history', name: 'staff-requests-history', component: () => import('../views/GiaoVu/Requests/RequestHistoryView.vue') },
         { path: 'workflow', name: 'staff-workflow', component: () => import('../views/GiaoVu/Requests/WorkflowConfigView.vue') },
+        { path: 'notifications', name: 'staff-notifications', component: () => import('../views/GiaoVu/StaffNotificationsView.vue'), meta: { title: 'Thông báo' } },
         { path: 'notices/send', name: 'staff-notices-send', component: () => import('../views/GiaoVu/Notices/SendNoticeView.vue') },
         { path: 'notices/history', name: 'staff-notices-history', component: () => import('../views/GiaoVu/Notices/NoticeHistoryView.vue') },
         { path: 'profile', name: 'staff-profile', component: () => import('../views/GiaoVu/Profile/StaffProfileView.vue') },
