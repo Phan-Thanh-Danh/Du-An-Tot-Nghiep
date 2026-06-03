@@ -358,19 +358,23 @@ Ghi chú: audit log được ghi tự động bởi backend khi thao tác Auth/U
 
 ### Đã có
 
-Chưa thấy controller course trong repo hiện tại.
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/courses` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff/Teacher | Danh sách khóa học có phân trang; filter `maDonVi`, `maMonHoc`, `maGiaoVien`, `maHocKy`, `maLop`, `trangThai`, `keyword`. Teacher chỉ xem khóa học do mình phụ trách. |
+| GET | `/api/courses/{id}` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff/Teacher | Chi tiết khóa học gồm cơ sở, môn học chuẩn, giảng viên, học kỳ, lớp hành chính và danh sách `Chuong -> BaiHoc` lấy theo `KhoaHoc.MaMonHoc`. |
+| POST | `/api/courses` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Tạo khóa học MVP bắt buộc `MaLop`; validate cơ sở, môn học, giảng viên role `Teacher/giao_vien`, học kỳ nếu truyền, lớp thuộc đúng cơ sở và chống trùng `MaDonVi + MaMonHoc + MaHocKy + MaLop`. |
+| PUT | `/api/courses/{id}` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Cập nhật giảng viên, học kỳ, lớp hành chính, tiêu đề, mô tả, trạng thái và ảnh bìa; ghi audit khi đổi giảng viên/lớp/trạng thái. |
+| DELETE | `/api/courses/{id}` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Lưu trữ mềm khóa học bằng `TrangThai = luu_tru`, không xóa vật lý. |
 
 ### Dự kiến/cần bổ sung
 
-Ghi chú dữ liệu: `KhoaHoc` là bản phân công giảng dạy, không chứa nội dung chuẩn. API chi tiết khóa học dự kiến lấy `KhoaHoc.MaMonHoc` để truy `DanhMucMonHoc -> Chuong -> BaiHoc` và `DanhMucMonHoc -> BaiTap`.
-
-- `GET /api/courses`
-- `GET /api/courses/{id}`
-- `POST /api/courses`
-- `PUT /api/courses/{id}`
 - `PATCH /api/courses/{id}/publish`
 - `GET /api/courses/{id}/chapters`
 - `GET /api/students/me/courses`
+
+Ghi chú dữ liệu: Trong phạm vi MVP, `KhoaHoc` đại diện cho một môn học được mở cho một lớp hành chính trong một học kỳ và do một giảng viên phụ trách. Một giảng viên dạy cùng một môn cho nhiều lớp sẽ tạo nhiều `KhoaHoc` khác nhau. Nhiều giảng viên cùng dạy một môn cho các lớp khác nhau cũng tạo nhiều `KhoaHoc` khác nhau. `LopHocPhan` tạm thời chưa dùng trong MVP và được giữ nullable để mở rộng sau này khi cần hỗ trợ đăng ký học phần, học lại, ghép lớp hoặc chia nhóm thực hành. Nội dung học tập chuẩn vẫn lấy theo `DanhMucMonHoc -> Chuong -> BaiHoc`, không copy theo từng `KhoaHoc`.
+
+Roadmap: Sau MVP cần hỗ trợ cấu hình quiz/bài tập theo `KhoaHoc` để mỗi lớp có lịch mở/đóng khác nhau; `ThoiKhoaBieu`, `TienDoBaiHoc` và `DiemSo` nên cân nhắc thêm `MaKhoaHoc` nullable/required theo mức độ triển khai để phân biệt cùng môn ở lớp/giảng viên/học kỳ khác nhau.
 
 ## Lessons APIs
 

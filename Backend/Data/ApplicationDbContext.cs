@@ -1905,6 +1905,8 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("ma_mon_hoc");
             entity.Property(e => e.MaHocKy)
                 .HasColumnName("ma_hoc_ky");
+            entity.Property(e => e.MaLop)
+                .HasColumnName("ma_lop");
             entity.Property(e => e.MaLopHocPhan)
                 .HasColumnName("ma_lop_hoc_phan");
             entity.Property(e => e.TieuDe)
@@ -1926,6 +1928,10 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("ngay_tao")
                 .HasColumnType("datetime2")
                 .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.HasIndex(e => new { e.MaDonVi, e.MaMonHoc, e.MaHocKy, e.MaLop })
+                .IsUnique()
+                .HasFilter(null)
+                .HasDatabaseName("UQ_KhoaHoc_DonVi_MonHoc_HocKy_Lop");
             entity.ToTable(t => t.HasCheckConstraint("CK_KhoaHoc_trang_thai_1", "[trang_thai] IN (N'nhap', N'da_xuat_ban', N'luu_tru')"));
             entity.HasOne(e => e.DonVi)
                 .WithMany()
@@ -1947,6 +1953,11 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaHocKy)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_KhoaHoc_ma_hoc_ky__HocKy");
+            entity.HasOne(e => e.Lop)
+                .WithMany()
+                .HasForeignKey(e => e.MaLop)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_KhoaHoc_ma_lop__LopHanhChinh");
             entity.HasOne(e => e.LopHocPhan)
                 .WithMany()
                 .HasForeignKey(e => e.MaLopHocPhan)
