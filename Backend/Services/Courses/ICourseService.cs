@@ -1,0 +1,13 @@
+using Backend.DTOs.Common;
+using Backend.DTOs.Courses;
+
+namespace Backend.Services.Courses;
+
+public interface ICourseService
+{
+    Task<PagedResultDto<KhoaHocDto>> GetAsync(KhoaHocQueryParameters parameters, CancellationToken cancellationToken = default);
+    Task<KhoaHocDetailDto> GetByIdAsync(int courseId, CancellationToken cancellationToken = default);
+    Task<KhoaHocDto> CreateAsync(CreateKhoaHocRequest request, CancellationToken cancellationToken = default);
+    Task<KhoaHocDto> UpdateAsync(int courseId, UpdateKhoaHocRequest request, CancellationToken cancellationToken = default);
+    Task DeleteAsync(int courseId, CancellationToken cancellationToken = default);
+}
