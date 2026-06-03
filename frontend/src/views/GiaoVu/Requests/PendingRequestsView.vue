@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { 
   Search, 
   Filter, 
@@ -13,7 +13,9 @@ import {
   ArrowRight,
   MoreVertical,
   Flag,
-  Timer
+  Timer,
+  X,
+  Eye
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 
@@ -33,6 +35,14 @@ const getStatusBadge = (status) => {
   }
 }
 
+const getStatusLabel = (status) => {
+  switch (status) {
+    case 'submitted': return 'Chờ xử lý'
+    case 'under_review': return 'Đang xử lý'
+    default: return status
+  }
+}
+
 const getPriorityColor = (priority) => {
   switch (priority) {
     case 'high': return 'text-rose-500'
@@ -41,6 +51,66 @@ const getPriorityColor = (priority) => {
     default: return 'text-slate-400'
   }
 }
+
+// ── Search ───────────────────────────────────────────────────
+const searchQuery = ref('')
+const searchTriggered = ref('')
+const showFilters = ref(false)
+
+const filterStatus = ref('all')
+const filterPriority = ref('all')
+
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (filterStatus.value !== 'all') count++
+  if (filterPriority.value !== 'all') count++
+  return count
+})
+
+function doSearch() {
+  searchTriggered.value = searchQuery.value
+}
+
+function clearSearch() {
+  searchQuery.value = ''
+  searchTriggered.value = ''
+}
+
+const filteredRequests = computed(() => {
+  let result = requests.value
+  const q = searchTriggered.value.toLowerCase().trim()
+  if (q) {
+    result = result.filter(r =>
+      r.id.toLowerCase().includes(q) ||
+      r.student.toLowerCase().includes(q) ||
+      r.title.toLowerCase().includes(q) ||
+      r.type.toLowerCase().includes(q)
+    )
+  }
+  if (filterStatus.value !== 'all') {
+    result = result.filter(r => r.status === filterStatus.value)
+  }
+  if (filterPriority.value !== 'all') {
+    result = result.filter(r => r.priority === filterPriority.value)
+  }
+  return result
+})
+
+function clearAllFilters() {
+  filterStatus.value = 'all'
+  filterPriority.value = 'all'
+}
+
+// ── Context Menu ─────────────────────────────────────────────
+const contextTarget = ref(null)
+
+function toggleContextMenu(req) {
+  contextTarget.value = contextTarget.value?.id === req.id ? null : req
+}
+
+function closeContextMenu() {
+  contextTarget.value = null
+}
 </script>
 
 <template>
@@ -48,24 +118,71 @@ const getPriorityColor = (priority) => {
     title="Đơn từ cần xử lý" 
     subtitle="Quản lý và phê duyệt các yêu cầu hành chính học vụ từ sinh viên."
   >
-    <div class="space-y-4">
+    <div class="space-y-4" @click="closeContextMenu">
       
-      <!-- ── Quick Filters ── -->
+      <!-- ── Toolbar ── -->
       <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
-        <div class="flex-1 min-w-[280px] relative">
-          <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder" />
-          <input 
-            type="text" 
-            placeholder="Tìm theo mã đơn, sinh viên hoặc nội dung..." 
-            class="w-full lg-input pl-11 pr-4 py-2.5 text-sm font-medium"
-          >
+        <div class="flex-1 min-w-[280px] relative flex items-center gap-2">
+          <div class="relative flex-1">
+            <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder" />
+            <input 
+              v-model="searchQuery"
+              type="text" 
+              placeholder="Tìm theo mã đơn, sinh viên hoặc nội dung..." 
+              class="w-full lg-input pl-11 pr-4 py-2.5 text-sm font-medium"
+              @keyup.enter="doSearch"
+            >
+          </div>
+          <button class="lg-button-primary px-4 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20" @click="doSearch">
+            <Search :size="16" /> Tìm
+          </button>
+          <button v-if="searchTriggered" class="lg-button-secondary px-3 py-2.5 text-sm font-bold" @click="clearSearch" title="Xóa tìm kiếm">
+            <X :size="16" />
+          </button>
         </div>
         <div class="flex items-center gap-3">
-          <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold">
+          <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold relative" @click.stop="showFilters = !showFilters">
             <Filter :size="18" /> Lọc nâng cao
+            <span v-if="activeFilterCount > 0" class="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[var(--lg-primary)] text-white text-[9px] font-black flex items-center justify-center">{{ activeFilterCount }}</span>
           </button>
         </div>
       </div>
+
+      <!-- ── Filter Panel ── -->
+      <Transition
+        enter-active-class="transition-all duration-200 ease-out"
+        enter-from-class="opacity-0 -translate-y-2"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition-all duration-150 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 -translate-y-2"
+      >
+        <div v-if="showFilters" class="lg-glass-strong p-5 rounded-[20px] space-y-3">
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="text-[10px] font-black text-label uppercase tracking-widest min-w-[70px]">Trạng thái:</span>
+            <div class="flex gap-1.5 flex-wrap">
+              <button v-for="s in ['all','submitted','under_review']" :key="s"
+                @click="filterStatus = s"
+                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterStatus === s ? 'bg-[var(--lg-primary)] text-white shadow-md' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
+              >{{ { all: 'Tất cả', submitted: 'Chờ xử lý', under_review: 'Đang xử lý' }[s] }}</button>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="text-[10px] font-black text-label uppercase tracking-widest min-w-[70px]">Ưu tiên:</span>
+            <div class="flex gap-1.5 flex-wrap">
+              <button v-for="p in ['all','high','medium','low']" :key="p"
+                @click="filterPriority = p"
+                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterPriority === p ? 'bg-[var(--lg-primary)] text-white shadow-md' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
+              >{{ { all: 'Tất cả', high: 'Cao', medium: 'Trung bình', low: 'Thấp' }[p] }}</button>
+            </div>
+          </div>
+          <div v-if="activeFilterCount > 0" class="pt-2 border-t border-default flex justify-end">
+            <button class="text-[11px] font-bold text-placeholder hover:text-label transition-colors flex items-center gap-1" @click="clearAllFilters">
+              <X :size="13" /> Xóa tất cả bộ lọc
+            </button>
+          </div>
+        </div>
+      </Transition>
 
       <!-- ── Requests Table ── -->
       <div class="lg-table-shell overflow-hidden">
@@ -77,11 +194,11 @@ const getPriorityColor = (priority) => {
               <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">Người xử lý</th>
               <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">SLA còn lại</th>
               <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">Trạng thái</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default text-right">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">Thao tác</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="req in requests" :key="req.id" class="group hover:bg-white/10 transition-colors">
+            <tr v-for="req in filteredRequests" :key="req.id" class="group hover:bg-white/10 transition-colors">
               <td class="px-4 py-4">
                  <Flag :size="16" :class="getPriorityColor(req.priority)" />
               </td>
@@ -114,22 +231,45 @@ const getPriorityColor = (priority) => {
               </td>
               <td class="px-4 py-4">
                 <span :class="['px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border', getStatusBadge(req.status)]">
-                  {{ req.status.replace('_', ' ') }}
+                  {{ getStatusLabel(req.status) }}
                 </span>
               </td>
-              <td class="px-4 py-4 text-right">
-                <div class="flex items-center justify-end gap-1">
+              <td class="px-4 py-4 relative">
+                <div class="flex items-center gap-1">
                   <router-link :to="`/staff/requests/${req.id}`" class="p-2 lg-button-ghost rounded-lg" title="Xem chi tiết">
                     <ArrowRight :size="18" />
                   </router-link>
-                  <button class="p-2 lg-button-ghost rounded-lg">
-                    <MoreVertical :size="18" />
-                  </button>
+                  <div class="relative">
+                    <button class="p-2 lg-button-ghost rounded-lg" @click.stop="toggleContextMenu(req)">
+                      <MoreVertical :size="18" />
+                    </button>
+                    <Transition
+                      enter-active-class="transition-all duration-150 ease-out"
+                      enter-from-class="opacity-0 scale-95"
+                      enter-to-class="opacity-100 scale-100"
+                      leave-active-class="transition-all duration-100 ease-in"
+                      leave-from-class="opacity-100 scale-100"
+                      leave-to-class="opacity-0 scale-95"
+                    >
+                      <div v-if="contextTarget?.id === req.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-xl shadow-slate-900/10" @click.stop>
+                        <router-link :to="`/staff/requests/${req.id}`" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="closeContextMenu()">
+                          <Eye :size="14" /> Xem chi tiết
+                        </router-link>
+                      </div>
+                    </Transition>
+                  </div>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
+        <div v-if="filteredRequests.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
+          <div class="h-16 w-16 rounded-2xl surface-solid flex items-center justify-center mb-4">
+            <FileText :size="28" class="text-placeholder" />
+          </div>
+          <p class="text-sm font-black text-heading">Không có đơn từ nào</p>
+          <p class="text-xs font-medium text-placeholder mt-1">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
+        </div>
       </div>
 
       <!-- ── SLA Legend ── -->
