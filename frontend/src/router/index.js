@@ -54,6 +54,12 @@ const router = createRouter({
           meta: { title: 'Khóa học' },
         },
         {
+          path: 'curriculum',
+          name: 'student-curriculum',
+          component: () => import('../views/Student/CurriculumView.vue'),
+          meta: { title: 'Khung chương trình' },
+        },
+        {
           path: 'courses/:courseId',
           name: 'student-course-detail',
           component: () => import('../views/Student/CourseDetailView.vue'),
@@ -169,6 +175,8 @@ const router = createRouter({
         { path: 'class-attendance', name: 'teacher-class-attendance', component: () => import('../views/GiangVien/ClassAttendanceView.vue') },
         { path: 'class-grades', name: 'teacher-class-grades', component: () => import('../views/GiangVien/ClassGradebookView.vue') },
         { path: 'assignments', name: 'teacher-assignments', component: () => import('../views/GiangVien/AssignmentsListView.vue') },
+        { path: 'exams', name: 'teacher-exams', component: () => import('../views/GiangVien/ExamsView.vue') },
+        { path: 'exams/create', name: 'teacher-exams-create', component: () => import('../views/GiangVien/CreateExamView.vue') },
         { path: 'grading', name: 'teacher-grading', component: () => import('../views/GiangVien/GradingView.vue') },
         { path: 'exam-results', name: 'teacher-exam-results', component: () => import('../views/GiangVien/ExamResultsView.vue') },
         { path: 'proctoring', name: 'teacher-proctoring', component: () => import('../views/GiangVien/ProctoringView.vue') },

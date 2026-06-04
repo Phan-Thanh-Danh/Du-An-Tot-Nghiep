@@ -33,7 +33,7 @@ Các bảng học vụ thường có `MaDonVi`, cần chú ý phân quyền theo
 
 - `DanhMucMonHoc`: danh mục môn học.
 - `MonHocTienQuyet`: quan hệ môn tiên quyết.
-- `KhoaHoc`: bản phân công giảng dạy theo môn/giáo viên/cơ sở/học kỳ/lớp học phần.
+- `KhoaHoc`: bản phân công giảng dạy theo môn/giáo viên/cơ sở/học kỳ/lớp hành chính; `MaLopHocPhan` giữ nullable cho roadmap.
 - `Chuong`: chương chuẩn thuộc `DanhMucMonHoc`.
 - `BaiHoc`: bài học video/pdf/văn bản/trắc nghiệm, có trường `TomTatAi`.
 - `TienDoBaiHoc`: tiến độ học sinh theo bài học.
@@ -41,7 +41,7 @@ Các bảng học vụ thường có `MaDonVi`, cần chú ý phân quyền theo
 
 API cho nhóm này hiện là dự kiến, chưa thấy controller.
 
-Luồng dữ liệu dự kiến cho chi tiết khóa học: lấy `KhoaHoc` theo id để biết môn, giảng viên, lớp học phần và học kỳ; từ `KhoaHoc.MaMonHoc` truy ra `DanhMucMonHoc`, rồi lấy `Chuong -> BaiHoc` làm nội dung học tập chuẩn của môn.
+Luồng dữ liệu cho chi tiết khóa học: lấy `KhoaHoc` theo id để biết môn, giảng viên, lớp hành chính và học kỳ; từ `KhoaHoc.MaMonHoc` truy ra `DanhMucMonHoc`, rồi lấy `Chuong -> BaiHoc` làm nội dung học tập chuẩn của môn. Trong MVP không copy nội dung chuẩn theo từng `KhoaHoc`.
 
 ## Nhóm Bảng Bài Tập/Bài Nộp
 

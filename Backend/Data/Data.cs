@@ -47,9 +47,8 @@ public static class Data
         await SeedProgramTermsAsync(context, programs.Values, terms);
         var programSubjects = await SeedProgramSubjectsAsync(context, programs, subjects);
         var users = await SeedDemoUsersAsync(context, rootCampus, hcmCampus);
-        await SeedAdministrativeClassesAsync(context, hcmCampus, programs, users);
-        var courseSections = await SeedCourseSectionsAsync(context, hcmCampus, subjects, terms);
-        await SeedTeachingCoursesAsync(context, hcmCampus, subjects, terms, users, courseSections);
+        var administrativeClasses = await SeedAdministrativeClassesAsync(context, hcmCampus, programs, users);
+        await SeedTeachingCoursesAsync(context, hcmCampus, subjects, terms, users, administrativeClasses);
         await SeedParentLinkAsync(context, users);
         await SeedFacilitiesAsync(context, hcmCampus);
         await SeedCourseSyllabusesAsync(context, hcmCampus, programs, specializations, programSubjects, subjects);
@@ -427,7 +426,7 @@ public static class Data
             new SubjectSeed("DES108", "Motion Graphic căn bản", 3),
             new SubjectSeed("DES109", "Thiết kế portfolio", 2),
             new SubjectSeed("DES110", "Dự án thiết kế đồ họa", 3),
-            new SubjectSeed("MKT101", "Nguyên lý Marketing", 3),
+            new SubjectSeed("MKT101", "Marketing căn bản", 3),
             new SubjectSeed("MKT102", "Hành vi khách hàng", 3),
             new SubjectSeed("MKT103", "Digital Marketing", 3),
             new SubjectSeed("MKT104", "Content Marketing", 3),
@@ -804,6 +803,11 @@ public static class Data
             new DemoUserSeed("teacher.cntt@lms.local", "Nguyễn Văn Lập Trình", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
             new DemoUserSeed("teacher.tkdh@lms.local", "Trần Thị Thiết Kế", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
             new DemoUserSeed("teacher.mkt@lms.local", "Lê Văn Marketing", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
+            new DemoUserSeed("teacher.csharp.a@lms.local", "Nguyễn Văn An", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
+            new DemoUserSeed("teacher.csharp.b@lms.local", "Trần Thị Bình", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
+            new DemoUserSeed("teacher.database.c@lms.local", "Phạm Minh Cường", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
+            new DemoUserSeed("teacher.database.d@lms.local", "Đỗ Thị Dung", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
+            new DemoUserSeed("teacher.marketing.e@lms.local", "Lê Thị Em", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
             new DemoUserSeed("student.cntt01@lms.local", "Nguyễn Văn Sinh Viên CNTT", AuthRoles.ToDatabaseCode(AuthRoles.Student), hcmCampus.MaDonVi, 2026),
             new DemoUserSeed("student.tkdh01@lms.local", "Trần Thị Sinh Viên Thiết Kế", AuthRoles.ToDatabaseCode(AuthRoles.Student), hcmCampus.MaDonVi, 2026),
             new DemoUserSeed("student.mkt01@lms.local", "Lê Văn Sinh Viên Marketing", AuthRoles.ToDatabaseCode(AuthRoles.Student), hcmCampus.MaDonVi, 2026),
@@ -870,7 +874,7 @@ public static class Data
         return result;
     }
 
-    private static async Task SeedAdministrativeClassesAsync(
+    private static async Task<Dictionary<string, LopHanhChinh>> SeedAdministrativeClassesAsync(
         ApplicationDbContext context,
         DonVi campus,
         IReadOnlyDictionary<string, ChuongTrinhDaoTao> programs,
@@ -879,24 +883,62 @@ public static class Data
         var classPlans = new[]
         {
             new AdministrativeClassSeed(
-                "SE1901",
-                "SE1901 - Công nghệ thông tin K2026",
+                "SD1901",
+                "SD1901 - Công nghệ thông tin K2026",
                 "CT_CNTT_K2026",
-                "teacher.cntt@lms.local",
+                "teacher.csharp.a@lms.local",
                 "student.cntt01@lms.local"),
             new AdministrativeClassSeed(
-                "GD1901",
-                "GD1901 - Thiết kế đồ họa K2026",
+                "SD1902",
+                "SD1902 - Công nghệ thông tin K2026",
+                "CT_CNTT_K2026",
+                "teacher.csharp.a@lms.local",
+                null),
+            new AdministrativeClassSeed(
+                "SD1903",
+                "SD1903 - Công nghệ thông tin K2026",
+                "CT_CNTT_K2026",
+                "teacher.csharp.a@lms.local",
+                null),
+            new AdministrativeClassSeed(
+                "SD1904",
+                "SD1904 - Công nghệ thông tin K2026",
+                "CT_CNTT_K2026",
+                "teacher.csharp.b@lms.local",
+                null),
+            new AdministrativeClassSeed(
+                "SD1905",
+                "SD1905 - Công nghệ thông tin K2026",
+                "CT_CNTT_K2026",
+                "teacher.csharp.b@lms.local",
+                null),
+            new AdministrativeClassSeed(
+                "SD1906",
+                "SD1906 - Công nghệ thông tin K2026",
+                "CT_CNTT_K2026",
+                "teacher.database.c@lms.local",
+                null),
+            new AdministrativeClassSeed(
+                "TKDH1901",
+                "TKDH1901 - Thiết kế đồ họa K2026",
                 "CT_TKDH_K2026",
                 "teacher.tkdh@lms.local",
                 "student.tkdh01@lms.local"),
             new AdministrativeClassSeed(
-                "MK1901",
-                "MK1901 - Marketing K2026",
+                "MKT1901",
+                "MKT1901 - Marketing K2026",
                 "CT_MKT_K2026",
-                "teacher.mkt@lms.local",
+                "teacher.marketing.e@lms.local",
                 "student.mkt01@lms.local"),
+            new AdministrativeClassSeed(
+                "MKT1902",
+                "MKT1902 - Marketing K2026",
+                "CT_MKT_K2026",
+                "teacher.marketing.e@lms.local",
+                null),
         };
+
+        var result = new Dictionary<string, LopHanhChinh>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var plan in classPlans)
         {
@@ -919,15 +961,20 @@ public static class Data
             administrativeClass.MaChuongTrinh = programs[plan.ProgramCode].MaChuongTrinh;
             administrativeClass.NamNhapHoc = 2026;
             administrativeClass.ConHoatDong = true;
+            result[plan.Code] = administrativeClass;
 
             await context.SaveChangesAsync();
 
-            var student = users[plan.StudentEmail];
-            student.MaLop = administrativeClass.MaLop;
-            student.NamNhapHoc = 2026;
+            if (!string.IsNullOrWhiteSpace(plan.StudentEmail))
+            {
+                var student = users[plan.StudentEmail];
+                student.MaLop = administrativeClass.MaLop;
+                student.NamNhapHoc = 2026;
+            }
         }
 
         await context.SaveChangesAsync();
+        return result;
     }
 
     private static async Task<Dictionary<string, LopHocPhan>> SeedCourseSectionsAsync(
@@ -982,18 +1029,71 @@ public static class Data
         IReadOnlyDictionary<string, DanhMucMonHoc> subjects,
         IReadOnlyList<HocKy> terms,
         IReadOnlyDictionary<string, NguoiDung> users,
-        IReadOnlyDictionary<string, LopHocPhan> courseSections)
+        IReadOnlyDictionary<string, LopHanhChinh> administrativeClasses)
     {
         var termsByCode = terms.ToDictionary(x => x.MaCodeHocKy, StringComparer.OrdinalIgnoreCase);
         var coursePlans = new[]
         {
             new TeachingCourseSeed(
                 "COM103",
-                "teacher.cntt@lms.local",
-                "HK1_2026",
-                "SD1809-COM103-HK1-2026",
-                "Lập trình C# - Thầy Nguyễn Văn Lập Trình - SD1809",
-                "Bản phân công giảng dạy môn Lập trình C# cho lớp học phần SD1809 trong HK1_2026."),
+                "teacher.csharp.a@lms.local",
+                "HK3_2026",
+                "SD1901",
+                "Bản phân công giảng dạy môn Lập trình C# cho lớp SD1901 trong HK3_2026."),
+            new TeachingCourseSeed(
+                "COM103",
+                "teacher.csharp.a@lms.local",
+                "HK3_2026",
+                "SD1902",
+                "Bản phân công giảng dạy môn Lập trình C# cho lớp SD1902 trong HK3_2026."),
+            new TeachingCourseSeed(
+                "COM103",
+                "teacher.csharp.a@lms.local",
+                "HK3_2026",
+                "SD1903",
+                "Bản phân công giảng dạy môn Lập trình C# cho lớp SD1903 trong HK3_2026."),
+            new TeachingCourseSeed(
+                "COM103",
+                "teacher.csharp.b@lms.local",
+                "HK3_2026",
+                "SD1904",
+                "Bản phân công giảng dạy môn Lập trình C# cho lớp SD1904 trong HK3_2026."),
+            new TeachingCourseSeed(
+                "COM103",
+                "teacher.csharp.b@lms.local",
+                "HK3_2026",
+                "SD1905",
+                "Bản phân công giảng dạy môn Lập trình C# cho lớp SD1905 trong HK3_2026."),
+            new TeachingCourseSeed(
+                "COM102",
+                "teacher.database.c@lms.local",
+                "HK3_2026",
+                "SD1901",
+                "Bản phân công giảng dạy môn Cơ sở dữ liệu cho lớp SD1901 trong HK3_2026."),
+            new TeachingCourseSeed(
+                "COM102",
+                "teacher.database.c@lms.local",
+                "HK3_2026",
+                "SD1902",
+                "Bản phân công giảng dạy môn Cơ sở dữ liệu cho lớp SD1902 trong HK3_2026."),
+            new TeachingCourseSeed(
+                "COM102",
+                "teacher.database.d@lms.local",
+                "HK3_2026",
+                "SD1903",
+                "Bản phân công giảng dạy môn Cơ sở dữ liệu cho lớp SD1903 trong HK3_2026."),
+            new TeachingCourseSeed(
+                "MKT101",
+                "teacher.marketing.e@lms.local",
+                "HK3_2026",
+                "MKT1901",
+                "Bản phân công giảng dạy môn Marketing căn bản cho lớp MKT1901 trong HK3_2026."),
+            new TeachingCourseSeed(
+                "MKT101",
+                "teacher.marketing.e@lms.local",
+                "HK3_2026",
+                "MKT1902",
+                "Bản phân công giảng dạy môn Marketing căn bản cho lớp MKT1902 trong HK3_2026."),
         };
 
         foreach (var plan in coursePlans)
@@ -1001,21 +1101,13 @@ public static class Data
             var subject = subjects[plan.SubjectCode];
             var teacher = users[plan.TeacherEmail];
             var term = termsByCode[plan.TermCode];
-            var courseSection = courseSections[plan.CourseSectionCode];
+            var administrativeClass = administrativeClasses[plan.ClassCode];
 
             var course = await context.KhoaHocs.FirstOrDefaultAsync(x =>
                 x.MaDonVi == campus.MaDonVi &&
-                x.MaGiaoVien == teacher.MaNguoiDung &&
                 x.MaMonHoc == subject.MaMonHoc &&
                 x.MaHocKy == term.MaHocKy &&
-                x.MaLopHocPhan == courseSection.MaLopHocPhan);
-
-            if (course is null)
-            {
-                course = await context.KhoaHocs.FirstOrDefaultAsync(x =>
-                    x.MaDonVi == campus.MaDonVi &&
-                    x.TieuDe == plan.Title);
-            }
+                x.MaLop == administrativeClass.MaLop);
 
             if (course is null)
             {
@@ -1024,6 +1116,7 @@ public static class Data
                     MaDonVi = campus.MaDonVi,
                     MaGiaoVien = teacher.MaNguoiDung,
                     MaMonHoc = subject.MaMonHoc,
+                    MaLop = administrativeClass.MaLop,
                     NgayTao = DateTime.UtcNow,
                 };
 
@@ -1034,11 +1127,12 @@ public static class Data
             course.MaGiaoVien = teacher.MaNguoiDung;
             course.MaMonHoc = subject.MaMonHoc;
             course.MaHocKy = term.MaHocKy;
-            course.MaLopHocPhan = courseSection.MaLopHocPhan;
-            course.TieuDe = plan.Title;
+            course.MaLop = administrativeClass.MaLop;
+            course.MaLopHocPhan = null;
+            course.TieuDe = $"{subject.TenMonHoc} - {administrativeClass.MaCodeLop} - {term.TenHocKy} - {teacher.HoTen}";
             course.MoTa = plan.Description;
             course.TrangThai = PublishedStatus;
-            course.UrlAnhBia = "/demo/courses/com103-sd1809-cover.jpg";
+            course.UrlAnhBia = $"/demo/courses/{subject.MaCodeMonHoc.ToLowerInvariant()}-{administrativeClass.MaCodeLop.ToLowerInvariant()}-cover.jpg";
         }
 
         await context.SaveChangesAsync();
@@ -1382,7 +1476,7 @@ public static class Data
         string Name,
         string ProgramCode,
         string TeacherEmail,
-        string StudentEmail);
+        string? StudentEmail);
 
     private sealed record CourseSectionSeed(
         string Code,
@@ -1396,8 +1490,7 @@ public static class Data
         string SubjectCode,
         string TeacherEmail,
         string TermCode,
-        string CourseSectionCode,
-        string Title,
+        string ClassCode,
         string Description);
 
     private sealed record RoomSeed(

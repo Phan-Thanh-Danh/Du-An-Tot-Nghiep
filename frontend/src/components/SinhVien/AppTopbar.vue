@@ -166,7 +166,7 @@ const isStudent = computed(() => authStore.hasRole('Student'))
 </script>
 
 <template>
-  <header class="lg-topbar absolute top-0 left-0 right-0 z-50 mx-2 mt-2 flex h-14 flex-shrink-0 items-center gap-2 overflow-visible rounded-[22px] px-3 sm:mx-3 sm:mt-3 sm:gap-3 sm:px-4">
+  <header class="lg-topbar absolute top-0 left-0 right-0 z-50 mx-2 mt-2 flex h-[52px] flex-shrink-0 items-center gap-2 overflow-visible rounded-[20px] px-3 sm:mx-3 sm:mt-2.5 sm:gap-3 sm:px-4">
     <!-- Mobile toggle -->
     <button
       class="lg-icon-button flex p-2 text-slate-500 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-300 lg:hidden"
@@ -187,7 +187,7 @@ const isStudent = computed(() => authStore.hasRole('Student'))
 
     <!-- Command palette trigger (Cmd+K) -->
     <button
-      class="hidden md:inline-flex h-8 items-center gap-1.5 rounded-xl border border-white/50 dark:border-white/10 bg-white/45 dark:bg-slate-700/40 px-2.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400 shadow-sm backdrop-blur-xl hover:bg-white/70 dark:hover:bg-slate-700/60 hover:text-slate-700 dark:hover:text-slate-200 transition-all focus:outline-none"
+      class="hidden h-8 items-center gap-1.5 rounded-xl border border-card bg-surface-input px-2.5 text-[10px] font-semibold text-label shadow-sm backdrop-blur-xl transition-all hover:bg-white/70 hover:text-heading focus:outline-none md:inline-flex"
       aria-label="Mở command palette"
       @click="commandPaletteOpen = true"
     >
@@ -201,7 +201,7 @@ const isStudent = computed(() => authStore.hasRole('Student'))
 
     <!-- Focus Mode button -->
     <button
-      class="lg-button-secondary hidden h-8 px-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 xl:inline-flex"
+      class="lg-button-secondary hidden h-8 px-2.5 text-[10px] font-bold text-label xl:inline-flex"
       aria-label="Bật chế độ tập trung"
     >
       <Target :size="12" />
@@ -215,7 +215,7 @@ const isStudent = computed(() => authStore.hasRole('Student'))
     <div ref="notifMenuRef" class="relative">
       <button
         :class="[
-          'lg-icon-button relative h-8 w-8 border border-white/50 dark:border-white/10 bg-white/45 dark:bg-slate-700/40 text-slate-500 dark:text-slate-400 shadow-sm backdrop-blur-xl focus:outline-none',
+          'lg-icon-button relative h-8 w-8 border border-card bg-surface-input text-label shadow-sm backdrop-blur-xl focus:outline-none',
           notifOpen ? 'bg-blue-50 dark:bg-blue-600/25 text-blue-700 dark:text-blue-300 shadow-md' : 'hover:text-blue-700 dark:hover:text-blue-300',
         ]"
         aria-label="Thông báo"
@@ -243,7 +243,7 @@ const isStudent = computed(() => authStore.hasRole('Student'))
       >
         <div
           v-if="notifOpen"
-          class="absolute right-0 top-[calc(100%+0.75rem)] z-[80] w-80 origin-top-right overflow-hidden rounded-[24px] border border-white/60 dark:border-white/10 bg-white/88 dark:bg-slate-800/80 p-1 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(2,6,23,0.4)] backdrop-blur-2xl"
+          class="surface-dropdown absolute right-0 top-[calc(100%+0.65rem)] z-[80] w-80 origin-top-right overflow-hidden rounded-[22px] border border-card p-1 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(2,6,23,0.4)] backdrop-blur-2xl"
           role="menu"
           @click.stop
         >
@@ -283,7 +283,7 @@ const isStudent = computed(() => authStore.hasRole('Student'))
     <div ref="profileMenuRef" class="relative">
       <button
         :class="[
-          'flex items-center gap-2 rounded-xl border border-white/45 dark:border-white/10 bg-white/45 dark:bg-slate-700/40 p-1 transition-all duration-200 focus:outline-none ring-offset-2 focus:ring-2 focus:ring-blue-500/20',
+          'flex items-center gap-2 rounded-xl border border-card bg-surface-input p-1 transition-all duration-200 focus:outline-none ring-offset-2 focus:ring-2 focus:ring-blue-500/20',
           userMenuOpen ? 'bg-white dark:bg-slate-700/60 shadow-md' : 'hover:bg-white/70 dark:hover:bg-slate-700/60',
         ]"
         aria-haspopup="menu"
@@ -313,7 +313,7 @@ const isStudent = computed(() => authStore.hasRole('Student'))
       >
         <div
           v-if="userMenuOpen"
-          class="absolute right-0 top-[calc(100%+0.75rem)] z-[80] w-72 origin-top-right overflow-hidden rounded-[24px] border border-white/60 dark:border-white/10 bg-white/88 dark:bg-slate-800/80 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(2,6,23,0.4)] backdrop-blur-2xl"
+          class="surface-dropdown absolute right-0 top-[calc(100%+0.65rem)] z-[80] w-72 origin-top-right overflow-hidden rounded-[22px] border border-card p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(2,6,23,0.4)] backdrop-blur-2xl"
           role="menu"
           @click.stop
         >

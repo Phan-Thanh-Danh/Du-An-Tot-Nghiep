@@ -92,9 +92,18 @@ export const mockCurrentLesson = {
   chapterId: 'ch2',
   chapterTitle: 'Chương 2: Cấu trúc dữ liệu tuyến tính',
   title: 'Stack và ứng dụng trong lập trình',
+  lessonType: 'video',
+  videoUrl: '',
   duration: '20:45',
   watchedSeconds: 743, // ~12 phút
   totalSeconds: 1245, // 20:45
+  durationSeconds: 1245,
+  allowSeek: false,
+  pauseOnBlur: true,
+  minWatchPercentToComplete: 80,
+  progressPercent: 60,
+  maxWatchedSeconds: 743,
+  completedAt: null,
   videoThumb: null, // null = show placeholder
   documentTitle: 'Slide bài giảng Chương 2.pdf',
   documentPages: 34,

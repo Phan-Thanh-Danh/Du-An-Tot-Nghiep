@@ -133,13 +133,13 @@ const currentPageMeta = computed(() => {
     </Transition>
 
     <!-- MAIN AREA -->
-    <div class="flex flex-1 flex-col min-w-0 overflow-hidden relative z-10 pt-[72px]">
+    <div class="flex flex-1 flex-col min-w-0 overflow-hidden relative z-10 pt-16">
       <AppTopbar @toggle-sidebar="toggleSidebar" />
 
       <AnnouncementBanner />
 
       <main class="flex-1 overflow-y-auto">
-        <div class="mx-auto max-w-[1440px] px-3 sm:px-4 py-4 min-h-full flex flex-col">
+        <div class="mx-auto max-w-[1440px] px-3 sm:px-4 py-3 min-h-full flex flex-col">
           <PageContainer
             :title="currentPageMeta.title"
             :subtitle="currentPageMeta.subtitle"
@@ -154,20 +154,20 @@ const currentPageMeta = computed(() => {
                 <Suspense timeout="0">
                   <template #default>
                     <component :is="Component" v-if="Component" />
-                    <div v-else class="flex-1 flex flex-col items-center justify-center py-24 text-center">
-                      <div class="flex h-20 w-20 items-center justify-center rounded-3xl lg-glass-strong surface-solid">
-                         <ShieldCheck class="h-10 w-10 text-heading" />
+                    <div v-else class="flex-1 flex flex-col items-center justify-center py-16 text-center">
+                      <div class="flex h-14 w-14 items-center justify-center rounded-2xl lg-glass-strong surface-solid">
+                         <ShieldCheck class="h-7 w-7 text-heading" />
                       </div>
-                      <h3 class="mt-6 text-xl font-black text-heading">Trang đang phát triển</h3>
+                      <h3 class="mt-4 text-base font-black text-heading">Trang đang phát triển</h3>
                       <p class="mt-2 text-sm font-medium text-placeholder max-w-sm">Trang này hiện đang được xây dựng hoặc đường dẫn không tồn tại. Vui lòng quay lại sau.</p>
-                      <router-link to="/staff/dashboard" class="mt-8 lg-button-primary inline-flex items-center gap-2 px-8 py-3">← Về Dashboard</router-link>
+                      <router-link to="/staff/dashboard" class="mt-5 lg-button-primary inline-flex items-center gap-2 px-4 py-2 text-sm">← Về Dashboard</router-link>
                     </div>
                   </template>
                   <template #fallback>
                     <div class="flex h-[60vh] w-full flex-col items-center justify-center space-y-6">
                       <div class="relative flex items-center justify-center">
                         <div class="absolute h-16 w-16 animate-ping rounded-full bg-blue-400/20"></div>
-                        <div class="h-12 w-12 animate-spin rounded-full border-4 border-default border-t-blue-600 shadow-sm"></div>
+                        <div class="h-10 w-10 animate-spin rounded-full border-4 border-default border-t-[var(--lg-primary)] shadow-sm"></div>
                       </div>
                       <div class="flex flex-col items-center space-y-2">
                         <p class="text-sm font-semibold tracking-wide text-label">Đang nạp dữ liệu...</p>

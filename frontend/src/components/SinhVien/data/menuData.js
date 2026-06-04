@@ -25,6 +25,12 @@ export const sinhVienMenuGroups = [
         route: '/student/courses',
       },
       {
+        id: 'curriculum',
+        label: 'Khung chương trình',
+        icon: 'Map',
+        route: '/student/curriculum',
+      },
+      {
         id: 'assignments',
         label: 'Bài tập',
         icon: 'ClipboardList',
