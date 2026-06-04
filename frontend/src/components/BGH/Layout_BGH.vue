@@ -67,15 +67,13 @@ const currentPageMeta = computed(() => {
 </script>
 
 <template>
-  <div class="relative flex h-screen w-full overflow-hidden font-sans
-              bg-gradient-to-br from-slate-50 via-indigo-50/20 to-purple-50/20
-              dark:from-slate-950 dark:via-indigo-950/10 dark:to-purple-950/20">
+  <div class="lg-app-bg relative flex h-screen w-full overflow-hidden font-sans">
     
     <!-- Radial glow orbs -->
     <div class="pointer-events-none fixed inset-0 overflow-hidden z-0">
-      <div class="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-indigo-400/10 dark:bg-indigo-500/10 blur-[120px]" />
-      <div class="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-purple-400/10 dark:bg-purple-500/10 blur-[120px]" />
-      <div class="absolute top-1/3 left-1/2 h-[500px] w-[500px] rounded-full bg-violet-400/5 dark:bg-violet-500/5 blur-[160px]" />
+      <div class="lg-blob lg-blob-violet absolute -top-40 -left-40" />
+      <div class="lg-blob lg-blob-blue absolute -bottom-40 -right-40" />
+      <div class="lg-blob lg-blob-cyan absolute top-1/3 left-1/2" />
     </div>
 
     <!-- MOBILE OVERLAY -->
@@ -123,13 +121,13 @@ const currentPageMeta = computed(() => {
     </Transition>
 
       <!-- MAIN AREA -->
-      <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden pt-[72px]">
+      <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden pt-16">
         <AppTopbar @toggle-sidebar="toggleSidebar" />
 
         <AnnouncementBanner />
 
         <main class="flex-1 overflow-y-auto">
-        <div class="mx-auto max-w-[1440px] px-3 sm:px-4 py-4">
+        <div class="mx-auto max-w-[1440px] px-3 sm:px-4 py-3">
           <PageContainer
             :title="currentPageMeta.title"
             :subtitle="currentPageMeta.subtitle"
@@ -142,13 +140,13 @@ const currentPageMeta = computed(() => {
                 mode="out-in"
               >
                 <component :is="Component" v-if="Component" />
-                <div v-else class="flex flex-col items-center justify-center py-24 text-center">
-                  <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 border border-indigo-100">
-                     <GraduationCap class="h-8 w-8 text-indigo-500" />
+                <div v-else class="flex flex-col items-center justify-center py-16 text-center">
+                  <div class="surface-input border-card flex h-14 w-14 items-center justify-center rounded-2xl border">
+                     <GraduationCap class="h-7 w-7 text-link" />
                   </div>
-                  <h3 class="mt-4 text-base font-semibold text-slate-700">Trang đang phát triển</h3>
-                  <p class="mt-1.5 text-sm text-slate-400 max-w-xs">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng bởi bộ phận kỹ thuật.</p>
-                  <router-link to="/bgh/dashboard" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors">← Về Dashboard</router-link>
+                  <h3 class="mt-4 text-base font-semibold text-heading">Trang đang phát triển</h3>
+                  <p class="mt-1.5 max-w-xs text-sm text-body">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng bởi bộ phận kỹ thuật.</p>
+                  <router-link to="/bgh/dashboard" class="lg-button-primary mt-5 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium">← Về Dashboard</router-link>
                 </div>
               </Transition>
             </router-view>

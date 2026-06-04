@@ -1,15 +1,19 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
 import * as LucideIcons from 'lucide-vue-next'
+import LessonVideoPlayer from '@/components/learning/LessonVideoPlayer.vue'
 import {
   mockCourse, mockStats, mockLessons,
   mockCurrentLesson, mockQuizQuestions,
   mockComments, mockTimeline, mockAISummary,
 } from '@/data/courseDetail.mock.js'
-
-const route = useRoute()
-const courseId = String(route.params.courseId || mockCourse.id)
+import {
+  canStartLearning,
+  getLockedReason,
+  isLocked,
+  LEARNING_ACCESS,
+  needsEarlyLearningConfirm,
+} from '@/utils/learningAccess.js'
 
 // ── Tab & lesson state ──────────────────────────────────
 const activeTab = ref('video')
@@ -19,29 +23,183 @@ const expandedChapters = ref({ [mockCurrentLesson.chapterId]: true })
 const quizAnswers = ref({})
 const newComment = ref('')
 const likedComments = ref({})
+const accessNotice = ref(null)
+const pendingEarlyLesson = ref(null)
+const lessonProgressDrafts = ref({})
+
+const lessonAccessOverrides = {
+  'l1-1': {
+    accessStatus: LEARNING_ACCESS.COMPLETED,
+    plannedSemesterIndex: 1,
+    plannedBlockIndex: 1,
+    lessonType: 'video',
+    allowSeek: true,
+    pauseOnBlur: true,
+    minWatchPercentToComplete: 80,
+    progressPercent: 100,
+    maxWatchedSeconds: 1104,
+  },
+  'l1-2': {
+    accessStatus: LEARNING_ACCESS.COMPLETED,
+    plannedSemesterIndex: 1,
+    plannedBlockIndex: 1,
+    lessonType: 'video',
+    allowSeek: true,
+    pauseOnBlur: true,
+    minWatchPercentToComplete: 80,
+    progressPercent: 100,
+    maxWatchedSeconds: 1330,
+  },
+  'l1-3': {
+    accessStatus: LEARNING_ACCESS.EARLY_COMPLETED,
+    plannedSemesterIndex: 1,
+    plannedBlockIndex: 1,
+    allowEarlyLearning: true,
+    earlyScore: 8.5,
+    attemptType: 'early',
+  },
+  'l2-1': {
+    accessStatus: LEARNING_ACCESS.COMPLETED,
+    plannedSemesterIndex: 1,
+    plannedBlockIndex: 2,
+    lessonType: 'video',
+    allowSeek: true,
+    pauseOnBlur: true,
+    minWatchPercentToComplete: 80,
+    progressPercent: 95,
+    maxWatchedSeconds: 1590,
+  },
+  'l2-2': {
+    accessStatus: LEARNING_ACCESS.OFFICIAL,
+    plannedSemesterIndex: 1,
+    plannedBlockIndex: 2,
+    lessonType: 'video',
+    allowSeek: false,
+    pauseOnBlur: true,
+    minWatchPercentToComplete: 80,
+    progressPercent: 60,
+    maxWatchedSeconds: 743,
+  },
+  'l2-3': {
+    accessStatus: LEARNING_ACCESS.LOCKED_PREREQUISITE,
+    plannedSemesterIndex: 1,
+    plannedBlockIndex: 2,
+    lockedReason: 'Cần xem video bài trước tối thiểu 80%.',
+    prerequisiteProgress: 60,
+    requiredProgress: 80,
+  },
+  'l2-4': {
+    accessStatus: LEARNING_ACCESS.LOCKED_PREREQUISITE,
+    plannedSemesterIndex: 1,
+    plannedBlockIndex: 2,
+    lockedReason: 'Cần hoàn thành quiz chương 1.',
+    prerequisiteProgress: 0,
+    requiredProgress: 100,
+  },
+}
+
+const chapterAccessOverrides = {
+  ch1: { accessStatus: LEARNING_ACCESS.COMPLETED, plannedSemesterIndex: 1, plannedBlockIndex: 1 },
+  ch2: { accessStatus: LEARNING_ACCESS.OFFICIAL, plannedSemesterIndex: 1, plannedBlockIndex: 2 },
+  ch3: {
+    accessStatus: LEARNING_ACCESS.LOCKED_PREREQUISITE,
+    plannedSemesterIndex: 2,
+    plannedBlockIndex: 1,
+    lockedReason: 'Hoàn thành 100% chương 2 để mở chương này.',
+  },
+  ch4: {
+    accessStatus: LEARNING_ACCESS.EARLY_AVAILABLE,
+    plannedSemesterIndex: 2,
+    plannedBlockIndex: 2,
+    allowEarlyLearning: true,
+  },
+}
+
+const learningLessons = computed(() =>
+  mockLessons.map((chapter) => ({
+    studentCurrentSemesterIndex: 1,
+    studentCurrentBlockIndex: 2,
+    ...chapter,
+    accessStatus: LEARNING_ACCESS.OFFICIAL,
+    ...chapterAccessOverrides[chapter.id],
+    lessons: chapter.lessons.map((lesson) => ({
+      studentCurrentSemesterIndex: 1,
+      studentCurrentBlockIndex: 2,
+      allowEarlyLearning: false,
+      accessStatus: lesson.status === 'completed' ? LEARNING_ACCESS.COMPLETED : LEARNING_ACCESS.OFFICIAL,
+      ...lesson,
+      ...lessonAccessOverrides[lesson.id],
+    })),
+  }))
+)
 
 const currentLesson = ref({ ...mockCurrentLesson })
-const watchProgress = computed(() =>
-  Math.round((currentLesson.value.watchedSeconds / currentLesson.value.totalSeconds) * 100)
-)
-const watchFormatted = computed(() => {
-  const s = currentLesson.value.watchedSeconds
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
-})
 
 function selectLesson(chapter, lesson) {
-  if (lesson.status === 'locked') return
+  accessNotice.value = null
+
+  if (isLocked(lesson)) {
+    accessNotice.value = {
+      title: 'Bạn chưa đủ điều kiện mở bài này.',
+      message: getLockedReason(lesson),
+    }
+    return
+  }
+
+  if (needsEarlyLearningConfirm(lesson)) {
+    pendingEarlyLesson.value = { ...lesson, chapter }
+    return
+  }
+
+  activateLesson(chapter, lesson)
+}
+
+function activateLesson(chapter, lesson) {
+  if (!canStartLearning(lesson) && lesson.accessStatus !== LEARNING_ACCESS.COMPLETED && lesson.accessStatus !== LEARNING_ACCESS.EARLY_COMPLETED) return
   selectedChapterId.value = chapter.id
   selectedLessonId.value = lesson.id
   currentLesson.value = {
     ...mockCurrentLesson,
+    ...lesson,
+    ...lessonProgressDrafts.value[lesson.id],
     id: lesson.id,
     chapterId: chapter.id,
     chapterTitle: `${chapter.chapter}: ${chapter.title}`,
     title: lesson.title,
     duration: lesson.duration,
+    durationSeconds: parseDurationSeconds(lesson.duration) || lesson.durationSeconds || mockCurrentLesson.durationSeconds,
   }
   activeTab.value = 'video'
+}
+
+function parseDurationSeconds(duration) {
+  if (!duration || !String(duration).includes(':')) return 0
+  const [minutes, seconds] = String(duration).split(':').map(Number)
+  return (minutes * 60) + (seconds || 0)
+}
+
+function handleVideoProgress(payload) {
+  lessonProgressDrafts.value[payload.lessonId] = {
+    watchedSeconds: payload.currentTimeSeconds,
+    maxWatchedSeconds: payload.maxWatchedSeconds,
+    progressPercent: payload.progressPercent,
+    completedAt: payload.completed ? new Date().toISOString() : null,
+  }
+}
+
+function handleVideoCompleted(payload) {
+  handleVideoProgress(payload)
+}
+
+function confirmEarlyLesson() {
+  if (!pendingEarlyLesson.value) return
+  const { chapter, ...lesson } = pendingEarlyLesson.value
+  pendingEarlyLesson.value = null
+  activateLesson(chapter, lesson)
+}
+
+function closeEarlyLessonModal() {
+  pendingEarlyLesson.value = null
 }
 
 function toggleChapter(id) {
@@ -78,6 +236,33 @@ const statusBadge = {
   active: 'bg-blue-100 text-blue-700',
   locked: 'bg-slate-100 text-slate-500',
   upcoming: 'bg-amber-100 text-amber-700',
+}
+
+const accessBadge = {
+  [LEARNING_ACCESS.OFFICIAL]: 'Đang học',
+  [LEARNING_ACCESS.EARLY_AVAILABLE]: 'Có thể học trước',
+  [LEARNING_ACCESS.EARLY_COMPLETED]: 'Đã học trước',
+  [LEARNING_ACCESS.LOCKED_PREREQUISITE]: 'Bị khóa',
+  [LEARNING_ACCESS.FUTURE_LOCKED]: 'Chưa mở',
+  [LEARNING_ACCESS.COMPLETED]: 'Đã hoàn thành',
+}
+
+function accessTone(status) {
+  return {
+    [LEARNING_ACCESS.OFFICIAL]: 'access-official',
+    [LEARNING_ACCESS.EARLY_AVAILABLE]: 'access-early',
+    [LEARNING_ACCESS.EARLY_COMPLETED]: 'access-early-done',
+    [LEARNING_ACCESS.LOCKED_PREREQUISITE]: 'access-locked',
+    [LEARNING_ACCESS.FUTURE_LOCKED]: 'access-future',
+    [LEARNING_ACCESS.COMPLETED]: 'access-completed',
+  }[status] || 'access-future'
+}
+
+function lessonIcon(lesson) {
+  if (lesson.accessStatus === LEARNING_ACCESS.COMPLETED || lesson.accessStatus === LEARNING_ACCESS.EARLY_COMPLETED) return 'CheckCircle2'
+  if (isLocked(lesson)) return 'Lock'
+  if (needsEarlyLearningConfirm(lesson)) return 'FastForward'
+  return 'Play'
 }
 </script>
 
@@ -156,26 +341,12 @@ const statusBadge = {
 
           <!-- Tab: Video -->
           <div v-if="activeTab === 'video'" class="p-5">
-            <div class="relative flex h-52 w-full items-center justify-center rounded-2xl bg-gradient-to-br from-slate-800 to-slate-700 mb-4 overflow-hidden">
-              <div class="absolute inset-0 flex items-center justify-center opacity-10">
-                <component :is="resolveIcon('Film')" :size="80" class="text-white" />
-              </div>
-              <button class="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-lg hover:scale-105 transition-transform">
-                <component :is="resolveIcon('Play')" :size="24" class="text-blue-700 translate-x-0.5" />
-              </button>
-              <div class="absolute bottom-3 right-4 text-white/70 text-xs font-semibold">{{ watchFormatted }} / {{ currentLesson.duration }}</div>
-            </div>
-            <div class="mb-4">
-              <div class="flex justify-between text-xs text-slate-500 mb-1">
-                <span>Đã xem</span><span>{{ watchProgress }}%</span>
-              </div>
-              <div class="h-2 overflow-hidden rounded-full bg-slate-200">
-                <div class="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 transition-all" :style="{ width: watchProgress + '%' }" />
-              </div>
-            </div>
-            <button class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm">
-              <component :is="resolveIcon('Play')" :size="15" /> Tiếp tục học
-            </button>
+            <LessonVideoPlayer
+              :key="currentLesson.id"
+              :lesson="currentLesson"
+              @progress="handleVideoProgress"
+              @completed="handleVideoCompleted"
+            />
           </div>
 
           <!-- Tab: Tài liệu -->
@@ -264,7 +435,7 @@ const statusBadge = {
             <h3 class="text-base font-bold text-slate-900">Cấu trúc chương học</h3>
           </div>
           <div class="divide-y divide-slate-100">
-            <div v-for="ch in mockLessons" :key="ch.id">
+            <div v-for="ch in learningLessons" :key="ch.id">
               <!-- Chapter Header -->
               <button @click="toggleChapter(ch.id)"
                 :class="['flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-slate-50/80', ch.status === 'locked' ? 'opacity-60' : '']">
@@ -275,9 +446,11 @@ const statusBadge = {
                   <div class="flex flex-wrap items-center gap-2 mb-0.5">
                     <span class="text-sm font-bold text-slate-900">{{ ch.chapter }}: {{ ch.title }}</span>
                     <span :class="['rounded-full px-2 py-0.5 text-[11px] font-semibold', statusBadge[ch.status] || statusBadge.upcoming]">{{ ch.badge }}</span>
+                    <span :class="['learning-access-badge', accessTone(ch.accessStatus)]">{{ accessBadge[ch.accessStatus] }}</span>
                   </div>
                   <div class="flex items-center gap-3">
                     <span v-for="m in ch.meta" :key="m" class="text-xs text-slate-400">{{ m }}</span>
+                    <span class="text-xs text-slate-400">Kỳ {{ ch.studentCurrentSemesterIndex }} · Block {{ ch.studentCurrentBlockIndex }} hiện tại</span>
                   </div>
                   <div v-if="ch.progress > 0" class="mt-2 h-1 overflow-hidden rounded-full bg-slate-200 w-32">
                     <div :class="['h-full rounded-full bg-gradient-to-r', toneBar[ch.tone] || toneBar.slate]" :style="{ width: ch.progress + '%' }" />
@@ -290,12 +463,18 @@ const statusBadge = {
               <div v-if="expandedChapters[ch.id] && ch.lessons.length" class="bg-slate-50/50 px-5 pb-3 space-y-1">
                 <button v-for="lesson in ch.lessons" :key="lesson.id"
                   @click="selectLesson(ch, lesson)"
-                  :class="['flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all', lesson.status === 'locked' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white cursor-pointer', selectedLessonId === lesson.id ? 'bg-blue-50 ring-1 ring-blue-200' : '']"
-                  :disabled="lesson.status === 'locked'"
-                  :title="lesson.status === 'locked' ? 'Cần hoàn thành bài trước' : ''">
-                  <component :is="resolveIcon(lesson.status === 'completed' ? 'CheckCircle2' : lesson.status === 'active' ? 'Play' : 'Lock')"
-                    :size="14" :class="lesson.status === 'completed' ? 'text-green-500' : lesson.status === 'active' ? 'text-blue-500' : 'text-slate-400'" />
-                  <span :class="['flex-1 text-sm', selectedLessonId === lesson.id ? 'font-semibold text-blue-800' : 'text-slate-600']">{{ lesson.title }}</span>
+                  :class="['lesson-access-row', isLocked(lesson) ? 'is-access-locked' : 'hover:bg-white cursor-pointer', selectedLessonId === lesson.id ? 'is-selected' : '']"
+                  :aria-disabled="isLocked(lesson)"
+                  :title="isLocked(lesson) ? getLockedReason(lesson) : ''">
+                  <component :is="resolveIcon(lessonIcon(lesson))"
+                    :size="14" :class="isLocked(lesson) ? 'text-slate-400' : needsEarlyLearningConfirm(lesson) ? 'text-violet-500' : lesson.accessStatus === LEARNING_ACCESS.COMPLETED || lesson.accessStatus === LEARNING_ACCESS.EARLY_COMPLETED ? 'text-green-500' : 'text-blue-500'" />
+                  <span class="flex-1 min-w-0">
+                    <span :class="['block text-sm', selectedLessonId === lesson.id ? 'font-semibold text-blue-800' : 'text-slate-600']">{{ lesson.title }}</span>
+                    <span v-if="isLocked(lesson)" class="block text-[11px] font-medium text-slate-400">{{ getLockedReason(lesson) }}</span>
+                    <span v-else-if="needsEarlyLearningConfirm(lesson)" class="block text-[11px] font-medium text-violet-500">Nội dung kỳ sau, có thể học trước.</span>
+                    <span v-else-if="lesson.accessStatus === LEARNING_ACCESS.EARLY_COMPLETED" class="block text-[11px] font-medium text-violet-500">Đã học trước · điểm {{ lesson.earlyScore }}/10</span>
+                  </span>
+                  <span :class="['learning-access-badge shrink-0', accessTone(lesson.accessStatus)]">{{ accessBadge[lesson.accessStatus] }}</span>
                   <span class="text-xs text-slate-400 shrink-0">{{ lesson.duration }}</span>
                 </button>
               </div>
@@ -367,5 +546,251 @@ const statusBadge = {
 
       </div>
     </div>
+
+    <section v-if="accessNotice" class="course-access-notice" role="status">
+      <component :is="resolveIcon('ShieldAlert')" :size="16" />
+      <div>
+        <strong>{{ accessNotice.title }}</strong>
+        <p>{{ accessNotice.message }}</p>
+      </div>
+      <button type="button" @click="accessNotice = null">Đóng</button>
+    </section>
+
+    <Teleport to="body">
+      <div v-if="pendingEarlyLesson" class="course-modal-backdrop" @click.self="closeEarlyLessonModal">
+        <section class="course-early-modal" role="dialog" aria-modal="true" aria-labelledby="course-early-title">
+          <div class="course-modal-icon">
+            <component :is="resolveIcon('FastForward')" :size="20" />
+          </div>
+          <h2 id="course-early-title">Bạn đang học trước lộ trình</h2>
+          <p>
+            Nội dung này thuộc Kỳ {{ pendingEarlyLesson.plannedSemesterIndex }} · Block {{ pendingEarlyLesson.plannedBlockIndex }}
+            trong lộ trình tương lai. Bạn vẫn có thể học trước và kết quả sẽ được ghi nhận ở trạng thái học trước.
+            Khi đến đúng kỳ/block, hệ thống sẽ áp dụng theo quy định của môn học.
+          </p>
+          <div class="course-modal-subject">
+            <strong>{{ pendingEarlyLesson.title }}</strong>
+            <span>{{ pendingEarlyLesson.chapter.chapter }} · {{ pendingEarlyLesson.chapter.title }}</span>
+          </div>
+          <div class="course-modal-actions">
+            <button type="button" class="course-ghost-button" @click="closeEarlyLessonModal">Quay lại</button>
+            <button type="button" class="course-primary-button" @click="confirmEarlyLesson">
+              Tiếp tục học trước
+            </button>
+          </div>
+        </section>
+      </div>
+    </Teleport>
   </div>
 </template>
+
+<style scoped>
+.learning-access-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.35rem;
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.66rem;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.access-official { color: var(--color-success-text); background: var(--color-success-bg); }
+.access-early { color: #7c3aed; background: rgba(237, 233, 254, 0.82); }
+.access-early-done { color: #6d28d9; background: rgba(237, 233, 254, 0.72); }
+.access-locked { color: var(--color-warning-text); background: var(--color-warning-bg); }
+.access-future { color: var(--text-placeholder); background: var(--surface-input); }
+.access-completed { color: var(--text-link); background: color-mix(in srgb, var(--color-info-bg) 72%, transparent); }
+
+:global(.dark) .access-early,
+:global(.dark) .access-early-done {
+  color: #d8b4fe;
+  background: rgba(88, 28, 135, 0.36);
+}
+
+.lesson-access-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.lesson-access-row.is-selected {
+  background: var(--color-info-bg);
+  box-shadow: 0 0 0 1px var(--border-input-focus);
+}
+
+.lesson-access-row.is-access-locked {
+  cursor: not-allowed;
+  background: color-mix(in srgb, var(--surface-input) 82%, transparent);
+}
+
+.course-access-notice {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  max-width: min(26rem, calc(100vw - 2rem));
+  border: 1px solid var(--border-card);
+  border-radius: 18px;
+  background: var(--surface-card-strong);
+  color: var(--text-body);
+  padding: 0.75rem;
+  box-shadow: var(--lg-shadow-md);
+  backdrop-filter: blur(18px) saturate(160%);
+}
+
+.course-access-notice strong {
+  display: block;
+  color: var(--text-heading);
+  font-size: 0.82rem;
+}
+
+.course-access-notice p {
+  margin: 0.15rem 0 0;
+  color: var(--text-label);
+  font-size: 0.75rem;
+}
+
+.course-access-notice button {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: var(--text-link);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.course-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.44);
+  padding: 1rem;
+  backdrop-filter: blur(8px);
+}
+
+.course-early-modal {
+  width: min(30rem, 100%);
+  border: 1px solid var(--border-card);
+  border-radius: 22px;
+  background: var(--surface-modal);
+  color: var(--text-body);
+  padding: 1rem;
+  box-shadow: var(--lg-shadow-lg);
+}
+
+.course-modal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 16px;
+  color: #7c3aed;
+  background: rgba(237, 233, 254, 0.78);
+}
+
+:global(.dark) .course-modal-icon {
+  color: #d8b4fe;
+  background: rgba(88, 28, 135, 0.32);
+}
+
+.course-early-modal h2 {
+  margin: 0.8rem 0 0;
+  color: var(--text-heading);
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.course-early-modal p {
+  margin: 0.55rem 0 0;
+  color: var(--text-label);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.course-modal-subject {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.75rem;
+  border: 1px solid var(--border-card);
+  border-radius: 14px;
+  background: var(--surface-input);
+  padding: 0.65rem;
+}
+
+.course-modal-subject strong {
+  color: var(--text-heading);
+  font-size: 0.85rem;
+}
+
+.course-modal-subject span {
+  color: var(--text-label);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.course-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.course-ghost-button,
+.course-primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.35rem;
+  border-radius: 12px;
+  cursor: pointer;
+  padding: 0 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.course-ghost-button {
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  color: var(--text-label);
+}
+
+.course-primary-button {
+  border: 0;
+  background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary));
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
+}
+
+@media (max-width: 640px) {
+  .lesson-access-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .course-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .course-ghost-button,
+  .course-primary-button {
+    width: 100%;
+  }
+}
+</style>

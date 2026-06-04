@@ -59,6 +59,7 @@ const route = useRoute()
 const pageTitleMap = {
   '/student/dashboard': { title: 'Dashboard', subtitle: 'Chào mừng bạn trở lại! Đây là tổng quan học tập hôm nay.' },
   '/student/courses': { title: 'Khóa học', subtitle: 'Danh sách các môn học đang theo học' },
+  '/student/curriculum': { title: 'Khung chương trình', subtitle: 'Theo dõi lộ trình học tập theo kỳ và block' },
   '/student/assignments': { title: 'Bài tập', subtitle: 'Danh sách bài tập và hạn nộp' },
   '/student/exams': { title: 'Thi / Kiểm tra', subtitle: 'Lịch thi và kết quả kiểm tra' },
   '/student/grades': { title: 'Bảng điểm', subtitle: 'Kết quả học tập theo từng học kỳ' },
@@ -81,8 +82,6 @@ const currentPageMeta = computed(() => {
   }
   return { title: 'Trang học sinh', subtitle: '' }
 })
-
-
 </script>
 
 <template>
@@ -145,8 +144,7 @@ const currentPageMeta = computed(() => {
     </Transition>
 
     <!-- ═══════════ MAIN AREA (Topbar + Content) ═══════════ -->
-    <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden pt-[72px]">
-
+    <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden pt-16">
       <!-- Topbar -->
       <AppTopbar @toggle-sidebar="toggleSidebar" />
 
@@ -155,8 +153,7 @@ const currentPageMeta = computed(() => {
 
       <!-- ═══════════ CONTENT AREA ═══════════ -->
       <main class="flex-1 overflow-y-auto">
-        <div class="mx-auto w-full max-w-[1500px] px-3 py-4 sm:px-4">
-
+        <div class="mx-auto w-full max-w-[1500px] px-3 py-3 sm:px-4">
           <!-- Tất cả page đều render qua PageContainer + RouterView -->
           <PageContainer
             :title="currentPageMeta.title"
@@ -176,15 +173,15 @@ const currentPageMeta = computed(() => {
                   <template #default>
                     <component :is="Component" v-if="Component" />
                     <!-- Empty state -->
-                    <div v-else class="flex flex-col items-center justify-center py-24 text-center">
-                      <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50">
-                        <svg class="h-8 w-8 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <div v-else class="flex flex-col items-center justify-center py-16 text-center">
+                      <div class="surface-input border-card flex h-14 w-14 items-center justify-center rounded-2xl border">
+                        <svg class="h-7 w-7 text-link" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
                         </svg>
                       </div>
-                      <h3 class="mt-4 text-base font-semibold text-slate-700">Trang đang phát triển</h3>
-                      <p class="mt-1.5 text-sm text-slate-400 max-w-xs">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng.</p>
-                      <router-link to="/student/dashboard" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">← Về Dashboard</router-link>
+                      <h3 class="mt-4 text-base font-semibold text-heading">Trang đang phát triển</h3>
+                      <p class="mt-1.5 max-w-xs text-sm text-body">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng.</p>
+                      <router-link to="/student/dashboard" class="lg-button-primary mt-5 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium">← Về Dashboard</router-link>
                     </div>
                   </template>
                   <template #fallback>
@@ -192,10 +189,10 @@ const currentPageMeta = computed(() => {
                     <div class="flex h-[60vh] w-full flex-col items-center justify-center space-y-6">
                       <div class="relative flex items-center justify-center">
                         <div class="absolute h-16 w-16 animate-ping rounded-full bg-blue-400/20"></div>
-                        <div class="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600 shadow-sm"></div>
+                        <div class="h-10 w-10 animate-spin rounded-full border-4 border-default border-t-[var(--lg-primary)] shadow-sm"></div>
                       </div>
                       <div class="flex flex-col items-center space-y-2">
-                        <p class="text-sm font-semibold tracking-wide text-slate-600">Đang nạp dữ liệu...</p>
+                        <p class="text-sm font-semibold tracking-wide text-label">Đang nạp dữ liệu...</p>
                         <div class="flex space-x-1">
                           <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500" style="animation-delay: -0.3s"></div>
                           <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500" style="animation-delay: -0.15s"></div>
@@ -208,7 +205,6 @@ const currentPageMeta = computed(() => {
               </Transition>
             </router-view>
           </PageContainer>
-
         </div>
       </main>
     </div>
@@ -241,10 +237,10 @@ html {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border-default);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--text-placeholder);
 }
 </style>

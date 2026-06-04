@@ -9,7 +9,7 @@ body {
   background:
     radial-gradient(circle at top, rgba(14, 165, 233, 0.14), transparent 30%),
     linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
-  color: #0f172a;
+  color: var(--text-body, #0f172a);
   font-family:
     Inter,
     system-ui,
@@ -26,9 +26,9 @@ body {
 .dark body,
 :root.dark body {
   background:
-    radial-gradient(circle at top, rgba(37, 99, 235, 0.18), transparent 30%),
-    linear-gradient(180deg, #020617 0%, #0f172a 100%);
-  color: #f8fafc;
+    radial-gradient(circle at top, rgba(37, 99, 235, 0.12), transparent 32%),
+    linear-gradient(180deg, #0b1220 0%, #111827 100%);
+  color: var(--text-body, #e2e8f0);
 }
 
 .dark :root {

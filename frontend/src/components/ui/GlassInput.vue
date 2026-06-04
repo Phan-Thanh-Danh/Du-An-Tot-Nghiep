@@ -35,7 +35,7 @@ const errorId = computed(() => `${inputId.value}-error`)
     </label>
     <div
       :class="[
-        'lg-input flex min-h-11 items-center gap-2 px-3.5',
+        'lg-input flex min-h-10 items-center gap-2 px-3',
         error ? 'border-red-300 bg-red-50/70 shadow-[0_0_0_4px_rgba(220,38,38,0.10)]' : '',
         disabled ? 'cursor-not-allowed opacity-60' : '',
       ]"

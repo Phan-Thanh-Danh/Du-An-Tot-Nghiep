@@ -33,9 +33,9 @@ const variantClass = computed(() => ({
 }[props.variant]))
 
 const sizeClass = computed(() => ({
-  sm: 'min-h-9 rounded-xl px-3 py-1.5 text-xs',
-  md: 'min-h-10 rounded-xl px-4 py-2.5 text-sm',
-  lg: 'min-h-12 rounded-2xl px-5 py-3 text-base',
+  sm: 'min-h-8 rounded-xl px-2.5 py-1 text-xs',
+  md: 'min-h-9 rounded-xl px-3.5 py-2 text-sm',
+  lg: 'min-h-10 rounded-2xl px-4 py-2.5 text-sm',
 }[props.size]))
 </script>
 
