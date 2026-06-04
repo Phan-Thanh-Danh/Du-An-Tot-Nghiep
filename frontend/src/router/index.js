@@ -84,6 +84,18 @@ const router = createRouter({
           meta: { title: 'Thi / Kiểm tra' },
         },
         {
+          path: 'exams/detail/:examId',
+          name: 'student-exam-detail',
+          component: () => import('../views/Student/ExamDetailView.vue'),
+          meta: { title: 'Chi tiết bài thi' },
+        },
+        {
+          path: 'exams/:examId/take',
+          name: 'student-exam-take',
+          component: () => import('../views/Student/ExamTakeView.vue'),
+          meta: { title: 'Làm bài thi' },
+        },
+        {
           path: 'exams/:examResultId',
           name: 'student-exam-result',
           component: () => import('../views/Student/ExamResultView.vue'),
@@ -289,56 +301,28 @@ const router = createRouter({
         {
           path: 'organizations',
           name: 'super-admin-organizations',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/OrganizationsView.vue'),
           meta: { title: 'Quản lý cây tổ chức' },
         },
-        {
-          path: 'organizations/form',
-          name: 'super-admin-organizations-form',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
-          meta: { title: 'Tạo/Chỉnh sửa cơ sở' },
-        },
-        {
-          path: 'organizations/lock',
-          name: 'super-admin-organizations-lock',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
-          meta: { title: 'Khóa/Mở cơ sở' },
-        },
-        {
-          path: 'organizations/admin-roles',
-          name: 'super-admin-organizations-admin-roles',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
-          meta: { title: 'Phân quyền Admin cơ sở' },
-        },
+
         // 3. Tài khoản và Phân quyền (RBAC)
         {
           path: 'users',
           name: 'super-admin-users',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/UsersView.vue'),
           meta: { title: 'Danh sách người dùng' },
         },
-        {
-          path: 'users/import',
-          name: 'super-admin-users-import',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
-          meta: { title: 'Tạo/Import tài khoản' },
-        },
-        {
-          path: 'users/lock',
-          name: 'super-admin-users-lock',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
-          meta: { title: 'Khóa/Mở tài khoản' },
-        },
+
         {
           path: 'roles-permissions',
           name: 'super-admin-roles-permissions',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/RolesPermissionsView.vue'),
           meta: { title: 'Vai trò & Quyền hạn' },
         },
         {
           path: 'login-history',
           name: 'super-admin-login-history',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/LoginHistoryView.vue'),
           meta: { title: 'Lịch sử đăng nhập' },
         },
         // 4. Quản lý Đào tạo và Học vụ

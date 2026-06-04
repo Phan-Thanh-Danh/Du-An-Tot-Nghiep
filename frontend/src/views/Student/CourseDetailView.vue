@@ -244,6 +244,34 @@ function toggleChapter(id) {
   expandedChapters.value[id] = !expandedChapters.value[id]
 }
 
+const quizSubmitted = ref(false)
+
+function isQuestionLocked(index) {
+  if (index === 0) return false
+  for (let i = 0; i < index; i++) {
+    const prevQId = mockQuizQuestions[i].id
+    if (quizAnswers.value[prevQId] === undefined || quizAnswers.value[prevQId] === null) {
+      return true
+    }
+  }
+  return false
+}
+
+const isQuizFullyAnswered = computed(() => {
+  return mockQuizQuestions.every(q => quizAnswers.value[q.id] !== undefined && quizAnswers.value[q.id] !== null)
+})
+
+function submitQuiz() {
+  quizSubmitted.value = true
+  if (currentLesson.value) {
+    currentLesson.value.progressPercent = 100
+    lessonProgressDrafts.value[currentLesson.value.id] = {
+      progressPercent: 100,
+      completedAt: new Date().toISOString()
+    }
+  }
+}
+
 function selectAnswer(qId, idx) {
   quizAnswers.value[qId] = idx
 }
@@ -402,13 +430,24 @@ function lessonTypeLabel(lesson) {
             </div>
 
             <div v-else-if="activeTab === 'quiz'" class="quiz-view">
-              <div v-for="q in mockQuizQuestions" :key="q.id" class="quiz-card">
-                <p>{{ q.question }}</p>
+              <div
+                v-for="(q, index) in mockQuizQuestions"
+                :key="q.id"
+                class="quiz-card"
+                :class="{ 'opacity-50 pointer-events-none': isQuestionLocked(index) }"
+              >
+                <div class="flex items-center justify-between mb-2">
+                  <p class="font-medium text-heading">Câu {{ index + 1 }}: {{ q.question }}</p>
+                  <span v-if="isQuestionLocked(index)" class="text-xs text-amber-500 font-bold flex items-center gap-1">
+                    <component :is="resolveIcon('Lock')" :size="12" /> Làm câu trước đó
+                  </span>
+                </div>
                 <div class="quiz-options">
                   <button
                     v-for="(opt, idx) in q.options"
                     :key="idx"
                     type="button"
+                    :disabled="isQuestionLocked(index)"
                     :class="{ selected: quizAnswers[q.id] === idx }"
                     @click="selectAnswer(q.id, idx)"
                   >
@@ -417,10 +456,18 @@ function lessonTypeLabel(lesson) {
                   </button>
                 </div>
               </div>
-              <button type="button" class="primary-action">
+              <button
+                type="button"
+                class="primary-action w-full justify-center"
+                :disabled="!isQuizFullyAnswered"
+                @click="submitQuiz"
+              >
                 <component :is="resolveIcon('Send')" :size="15" />
-                Nộp bài
+                Nộp bài Quiz
               </button>
+              <p v-if="quizSubmitted" class="text-xs text-green-500 font-semibold text-center mt-3">
+                Chúc mừng! Bạn đã hoàn thành bài Quiz. Tiến độ bài học đã được cập nhật thành 100%.
+              </p>
             </div>
 
             <div v-else class="discussion-view">

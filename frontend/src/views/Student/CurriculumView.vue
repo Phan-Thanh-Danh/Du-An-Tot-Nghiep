@@ -19,6 +19,9 @@ import {
   Trophy,
 } from 'lucide-vue-next'
 
+const viewMode = ref('card')
+const showEarlyLearningNotification = ref(true)
+
 // Mock local chờ API thật: dự kiến GET /api/student/curriculum
 const studentCurriculum = {
   studentName: 'Sinh Viên Demo',
@@ -381,6 +384,25 @@ function canApplyEarlyResult(item) {
       </div>
     </section>
 
+    <!-- Banner Thông báo Học trước & Bảo lưu kết quả -->
+    <div v-if="showEarlyLearningNotification" class="early-notification-banner glass-card">
+      <div class="banner-icon">
+        <Rocket :size="22" class="text-blue-600 animate-bounce" />
+      </div>
+      <div class="banner-body">
+        <h3>Nhắc nhở học trước & Bảo lưu kết quả</h3>
+        <p>
+          Hệ thống ghi nhận bạn đang có kết quả tự học trước của môn <strong>Kiểm thử phần mềm (TEST101)</strong> đạt <strong>8.4/10</strong> (hoàn thành 64% chương trình).
+          Kết quả này sẽ tự động được bảo lưu và áp dụng chính thức khi bạn bước vào Kỳ 2 - Block 2!
+        </p>
+        <div class="supplement-info">
+          <span class="supplement-badge">Cập nhật môn học</span>
+          <span>Đối với môn <strong>Lập trình C# nâng cấp (NET102)</strong>, kết quả học trước môn tương đương cũ <strong>NET101 (8.5/10)</strong> đã được áp dụng và bảo lưu thành công, bạn chỉ cần học bổ sung 30% nội dung cập nhật mới.</span>
+        </div>
+      </div>
+      <button type="button" class="banner-close-btn" @click="showEarlyLearningNotification = false">Đóng</button>
+    </div>
+
     <section class="version-panel" aria-label="Version chương trình">
       <div class="version-heading">
         <div>
@@ -527,18 +549,44 @@ function canApplyEarlyResult(item) {
     </section>
 
     <section class="filter-strip" aria-label="Bộ lọc trạng thái">
-      <button
-        v-for="filter in filterOptions"
-        :key="filter.key"
-        type="button"
-        :class="['filter-chip', { active: activeFilter === filter.key }]"
-        @click="activeFilter = filter.key"
-      >
-        {{ filter.label }}
-      </button>
+      <div class="filter-chips">
+        <button
+          v-for="filter in filterOptions"
+          :key="filter.key"
+          type="button"
+          :class="['filter-chip', { active: activeFilter === filter.key }]"
+          @click="activeFilter = filter.key"
+        >
+          {{ filter.label }}
+        </button>
+      </div>
+
+      <!-- Switcher chế độ xem Bảng/Thẻ -->
+      <div class="view-mode-switcher">
+        <button
+          type="button"
+          :class="['switcher-btn', { active: viewMode === 'card' }]"
+          @click="viewMode = 'card'"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          </svg>
+          Dạng thẻ
+        </button>
+        <button
+          type="button"
+          :class="['switcher-btn', { active: viewMode === 'table' }]"
+          @click="viewMode = 'table'"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Dạng bảng
+        </button>
+      </div>
     </section>
 
-    <section v-if="filteredSemesters.length" class="semester-timeline" aria-label="Lộ trình học tập">
+    <section v-if="filteredSemesters.length && viewMode === 'card'" class="semester-timeline" aria-label="Lộ trình học tập">
       <article v-for="semester in filteredSemesters" :key="semester.semesterIndex" class="semester-card">
         <header class="semester-header">
           <div>
@@ -637,6 +685,80 @@ function canApplyEarlyResult(item) {
           </section>
         </div>
       </article>
+    </section>
+
+    <!-- DẠNG BẢNG (TABLE VIEW) -->
+    <section v-else-if="filteredSemesters.length && viewMode === 'table'" class="curriculum-table-section glass-card">
+      <div class="table-container">
+        <table class="curriculum-table">
+          <thead>
+            <tr>
+              <th>Học kỳ & Block</th>
+              <th>Mã môn</th>
+              <th>Tên môn học</th>
+              <th>Số tín chỉ</th>
+              <th>Trạng thái học</th>
+              <th>Kết quả / Điểm</th>
+              <th>Tiến độ</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-for="semester in filteredSemesters" :key="semester.semesterIndex">
+              <template v-for="block in semester.blocks" :key="block.blockIndex">
+                <tr v-for="(item, idx) in block.subjects" :key="item.id" class="table-row">
+                  <td
+                    v-if="idx === 0"
+                    :rowspan="block.subjects.length"
+                    class="semester-block-cell"
+                  >
+                    <div class="sem-block-badge">
+                      Kỳ {{ semester.semesterIndex }} - {{ block.blockName }}
+                    </div>
+                  </td>
+                  <td class="code-cell font-mono font-bold text-link">{{ item.subjectCode }}</td>
+                  <td class="name-cell font-semibold text-heading">{{ item.subjectName }}</td>
+                  <td class="credits-cell">{{ item.credits }} tín chỉ</td>
+                  <td class="status-cell">
+                    <span class="status-badge" :class="statusConfig[item.status]?.className">
+                      <component :is="statusConfig[item.status]?.icon" :size="12" />
+                      {{ statusConfig[item.status]?.label }}
+                    </span>
+                  </td>
+                  <td class="score-cell">
+                    <div class="score-container">
+                      <span v-if="item.score" class="score-text">Chính thức: {{ item.score }}</span>
+                      <span v-else-if="item.earlyScore" class="early-score-text">Học trước: {{ item.earlyScore }}</span>
+                      <span v-else-if="item.earlyScoreFromOldVersion" class="early-score-text text-purple-600">Bảo lưu: {{ item.earlyScoreFromOldVersion }}</span>
+                      <span v-else class="text-placeholder">--</span>
+                    </div>
+                  </td>
+                  <td class="progress-cell">
+                    <div class="table-progress-bar">
+                      <span class="progress-num">{{ item.earlyProgressPercent ?? item.progressPercent }}%</span>
+                      <div class="track">
+                        <div class="fill" :style="{ width: `${item.earlyProgressPercent ?? item.progressPercent}%` }" />
+                      </div>
+                    </div>
+                  </td>
+                  <td class="action-cell">
+                    <router-link
+                      v-if="!isActionDisabled(item)"
+                      class="table-action-btn"
+                      to="/student/courses/CTDL101"
+                    >
+                      {{ actionLabel(item) }}
+                    </router-link>
+                    <button v-else class="table-action-btn disabled" type="button" disabled>
+                      {{ actionLabel(item) }}
+                    </button>
+                  </td>
+                </tr>
+              </template>
+            </template>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <section v-else class="empty-state">
@@ -1335,6 +1457,282 @@ function canApplyEarlyResult(item) {
   .curriculum-hero,
   .early-section {
     border-radius: 18px;
+  }
+}
+
+/* Styles cho Banner Thông báo Học trước */
+.early-notification-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  border-radius: 20px;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  background: linear-gradient(135deg, rgba(239, 246, 255, 0.8), rgba(255, 255, 255, 0.6));
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.05);
+}
+
+:global(.dark) .early-notification-banner {
+  border-color: rgba(96, 165, 250, 0.25);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.5));
+}
+
+.banner-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 14px;
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+}
+
+:global(.dark) .banner-icon {
+  background: rgba(96, 165, 250, 0.12);
+  color: #60a5fa;
+}
+
+.banner-body {
+  flex: 1;
+}
+
+.banner-body h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 850;
+  color: var(--text-heading);
+}
+
+.banner-body p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-body);
+  line-height: 1.5;
+}
+
+.supplement-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-card);
+  font-size: 0.75rem;
+  color: var(--text-label);
+}
+
+.supplement-badge {
+  flex-shrink: 0;
+  font-size: 0.625rem;
+  font-weight: 900;
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
+  padding: 0.1rem 0.4rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+:global(.dark) .supplement-badge {
+  background: rgba(139, 92, 246, 0.16);
+  color: #a78bfa;
+}
+
+.banner-close-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text-placeholder);
+  font-size: 0.75rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.banner-close-btn:hover {
+  color: var(--text-heading);
+}
+
+/* Styles cho View Mode Switcher */
+.filter-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.view-mode-switcher {
+  display: flex;
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  background: var(--surface-input);
+  padding: 0.2rem;
+  gap: 0.15rem;
+}
+
+.switcher-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-label);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.switcher-btn:hover {
+  color: var(--text-heading);
+}
+
+.switcher-btn.active {
+  background: var(--surface-card);
+  color: var(--text-link);
+  box-shadow: var(--lg-shadow-sm);
+}
+
+/* Styles cho Dạng bảng (Table View) */
+.curriculum-table-section {
+  padding: 1rem;
+}
+
+.table-container {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.curriculum-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.curriculum-table th {
+  border-bottom: 1.5px solid var(--border-card);
+  padding: 0.75rem 1rem;
+  color: var(--text-placeholder);
+  font-size: 0.7rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.curriculum-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-card);
+  font-size: 0.8rem;
+  vertical-align: middle;
+}
+
+.semester-block-cell {
+  background: var(--surface-input);
+  font-weight: 900;
+  border-right: 1px solid var(--border-card);
+  vertical-align: middle !important;
+}
+
+.sem-block-badge {
+  font-size: 0.75rem;
+  color: var(--text-heading);
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.code-cell {
+  font-size: 0.8rem;
+}
+
+.name-cell {
+  font-size: 0.825rem;
+}
+
+.credits-cell {
+  color: var(--text-label);
+}
+
+.score-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.75rem;
+}
+
+.score-text {
+  font-weight: 800;
+  color: var(--color-success-text);
+}
+
+.early-score-text {
+  font-weight: 850;
+  color: var(--text-link);
+}
+
+.table-progress-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100px;
+}
+
+.progress-num {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--text-heading);
+}
+
+.table-progress-bar .track {
+  height: 0.35rem;
+  background: var(--surface-input);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.table-progress-bar .fill {
+  height: 100%;
+  background: var(--text-link);
+  border-radius: inherit;
+}
+
+.table-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  background: var(--surface-input);
+  color: var(--text-label);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 850;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.table-action-btn:hover:not(.disabled) {
+  background: var(--surface-card-strong);
+  color: var(--text-heading);
+  border-color: var(--border-input-focus);
+}
+
+.table-action-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .curriculum-table th,
+  .curriculum-table td {
+    padding: 0.5rem;
+  }
+  .semester-block-cell {
+    display: none;
   }
 }
 </style>

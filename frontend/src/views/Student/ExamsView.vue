@@ -623,7 +623,7 @@ function navigateExam(exam) {
     return
   }
 
-  router.push(`/student/exams/${exam.id}`)
+  router.push(`/student/exams/detail/${exam.id}`)
 }
 
 function confirmEarlyLearning() {
@@ -1034,20 +1034,8 @@ function accessStateLabel(exam) {
 
 .exam-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(218px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 0.8rem;
-}
-
-@media (min-width: 1280px) {
-  .exam-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .exam-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
 }
 
 .exam-card {

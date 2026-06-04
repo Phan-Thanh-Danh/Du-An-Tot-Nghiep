@@ -36,24 +36,8 @@ export const superAdminMenuGroups = [
         icon: 'Network',
         route: '/super-admin/organizations',
       },
-      {
-        id: 'org-form',
-        label: 'Tạo/Chỉnh sửa cơ sở',
-        icon: 'PlusCircle',
-        route: '/super-admin/organizations/form',
-      },
-      {
-        id: 'org-lock',
-        label: 'Khóa/Mở cơ sở',
-        icon: 'Lock',
-        route: '/super-admin/organizations/lock',
-      },
-      {
-        id: 'org-admin-roles',
-        label: 'Phân quyền Admin cơ sở',
-        icon: 'UserCheck',
-        route: '/super-admin/organizations/admin-roles',
-      },
+
+
     ],
   },
 
@@ -69,18 +53,7 @@ export const superAdminMenuGroups = [
         icon: 'UserCog',
         route: '/super-admin/users',
       },
-      {
-        id: 'users-import',
-        label: 'Tạo/Import tài khoản',
-        icon: 'FileSpreadsheet',
-        route: '/super-admin/users/import',
-      },
-      {
-        id: 'users-lock',
-        label: 'Khóa/Mở tài khoản',
-        icon: 'UserX',
-        route: '/super-admin/users/lock',
-      },
+
       {
         id: 'roles-permissions',
         label: 'Vai trò & Quyền hạn',
