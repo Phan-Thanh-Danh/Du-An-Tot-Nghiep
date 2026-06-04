@@ -3,9 +3,13 @@ import { ref, computed } from 'vue'
 import * as LucideIcons from 'lucide-vue-next'
 import LessonVideoPlayer from '@/components/learning/LessonVideoPlayer.vue'
 import {
-  mockCourse, mockStats, mockLessons,
-  mockCurrentLesson, mockQuizQuestions,
-  mockComments, mockTimeline, mockAISummary,
+  mockCourse,
+  mockStats,
+  mockLessons,
+  mockCurrentLesson,
+  mockQuizQuestions,
+  mockComments,
+  mockAISummary,
 } from '@/data/courseDetail.mock.js'
 import {
   canStartLearning,
@@ -15,10 +19,9 @@ import {
   needsEarlyLearningConfirm,
 } from '@/utils/learningAccess.js'
 
-// ── Tab & lesson state ──────────────────────────────────
 const activeTab = ref('video')
+const sideTab = ref('outline')
 const selectedLessonId = ref(mockCurrentLesson.id)
-const selectedChapterId = ref(mockCurrentLesson.chapterId)
 const expandedChapters = ref({ [mockCurrentLesson.chapterId]: true })
 const quizAnswers = ref({})
 const newComment = ref('')
@@ -54,6 +57,7 @@ const lessonAccessOverrides = {
     accessStatus: LEARNING_ACCESS.EARLY_COMPLETED,
     plannedSemesterIndex: 1,
     plannedBlockIndex: 1,
+    lessonType: 'quiz',
     allowEarlyLearning: true,
     earlyScore: 8.5,
     attemptType: 'early',
@@ -84,6 +88,7 @@ const lessonAccessOverrides = {
     accessStatus: LEARNING_ACCESS.LOCKED_PREREQUISITE,
     plannedSemesterIndex: 1,
     plannedBlockIndex: 2,
+    lessonType: 'video',
     lockedReason: 'Cần xem video bài trước tối thiểu 80%.',
     prerequisiteProgress: 60,
     requiredProgress: 80,
@@ -92,6 +97,7 @@ const lessonAccessOverrides = {
     accessStatus: LEARNING_ACCESS.LOCKED_PREREQUISITE,
     plannedSemesterIndex: 1,
     plannedBlockIndex: 2,
+    lessonType: 'assignment',
     lockedReason: 'Cần hoàn thành quiz chương 1.',
     prerequisiteProgress: 0,
     requiredProgress: 100,
@@ -127,6 +133,7 @@ const learningLessons = computed(() =>
       studentCurrentBlockIndex: 2,
       allowEarlyLearning: false,
       accessStatus: lesson.status === 'completed' ? LEARNING_ACCESS.COMPLETED : LEARNING_ACCESS.OFFICIAL,
+      lessonType: lesson.type || 'video',
       ...lesson,
       ...lessonAccessOverrides[lesson.id],
     })),
@@ -134,6 +141,31 @@ const learningLessons = computed(() =>
 )
 
 const currentLesson = ref({ ...mockCurrentLesson })
+
+const flatLessons = computed(() =>
+  learningLessons.value.flatMap((chapter) =>
+    chapter.lessons.map((lesson) => ({
+      chapter,
+      lesson,
+    }))
+  )
+)
+
+const currentLessonIndex = computed(() =>
+  flatLessons.value.findIndex((item) => item.lesson.id === selectedLessonId.value)
+)
+
+const previousLesson = computed(() => flatLessons.value[currentLessonIndex.value - 1] || null)
+const nextLesson = computed(() => flatLessons.value[currentLessonIndex.value + 1] || null)
+
+const miniStats = computed(() => [
+  { label: 'Tiến độ', value: `${mockStats[0]?.value || 0}%` },
+  { label: 'Bài học', value: `${mockStats[1]?.value || 0}${mockStats[1]?.unit || ''}` },
+  { label: 'Bài tập', value: `${mockStats[2]?.value || 0} mục` },
+  { label: 'Tài liệu', value: `${mockStats[3]?.value || 0} file` },
+])
+
+const currentLessonStatusLabel = computed(() => accessBadge[currentLesson.value.accessStatus] || 'Đang học')
 
 function selectLesson(chapter, lesson) {
   accessNotice.value = null
@@ -156,8 +188,8 @@ function selectLesson(chapter, lesson) {
 
 function activateLesson(chapter, lesson) {
   if (!canStartLearning(lesson) && lesson.accessStatus !== LEARNING_ACCESS.COMPLETED && lesson.accessStatus !== LEARNING_ACCESS.EARLY_COMPLETED) return
-  selectedChapterId.value = chapter.id
   selectedLessonId.value = lesson.id
+  expandedChapters.value[chapter.id] = true
   currentLesson.value = {
     ...mockCurrentLesson,
     ...lesson,
@@ -169,7 +201,7 @@ function activateLesson(chapter, lesson) {
     duration: lesson.duration,
     durationSeconds: parseDurationSeconds(lesson.duration) || lesson.durationSeconds || mockCurrentLesson.durationSeconds,
   }
-  activeTab.value = 'video'
+  activeTab.value = lesson.lessonType === 'quiz' ? 'quiz' : lesson.lessonType === 'assignment' ? 'document' : 'video'
 }
 
 function parseDurationSeconds(duration) {
@@ -184,6 +216,12 @@ function handleVideoProgress(payload) {
     maxWatchedSeconds: payload.maxWatchedSeconds,
     progressPercent: payload.progressPercent,
     completedAt: payload.completed ? new Date().toISOString() : null,
+  }
+  if (payload.lessonId === currentLesson.value.id) {
+    currentLesson.value = {
+      ...currentLesson.value,
+      ...lessonProgressDrafts.value[payload.lessonId],
+    }
   }
 }
 
@@ -206,36 +244,28 @@ function toggleChapter(id) {
   expandedChapters.value[id] = !expandedChapters.value[id]
 }
 
-function selectAnswer(qId, idx) { quizAnswers.value[qId] = idx }
-function toggleLike(cId) { likedComments.value[cId] = !likedComments.value[cId] }
+function selectAnswer(qId, idx) {
+  quizAnswers.value[qId] = idx
+}
 
-function resolveIcon(name) { return LucideIcons[name] || LucideIcons.Circle }
+function toggleLike(cId) {
+  likedComments.value[cId] = !likedComments.value[cId]
+}
 
-const toneIcon = {
-  blue: 'bg-blue-50 text-blue-700 ring-blue-100',
-  green: 'bg-green-50 text-green-700 ring-green-100',
-  orange: 'bg-orange-50 text-orange-700 ring-orange-100',
-  violet: 'bg-violet-50 text-violet-700 ring-violet-100',
-  amber: 'bg-amber-50 text-amber-700 ring-amber-100',
-  slate: 'bg-slate-100 text-slate-500 ring-slate-200',
+function navigateRelative(target) {
+  if (!target) return
+  selectLesson(target.chapter, target.lesson)
 }
-const toneBar = {
-  blue: 'from-blue-600 to-cyan-500',
-  green: 'from-green-600 to-teal-500',
-  orange: 'from-orange-500 to-amber-400',
-  violet: 'from-violet-600 to-indigo-500',
-  amber: 'from-amber-500 to-orange-400',
-  slate: 'from-slate-400 to-slate-300',
+
+function resolveIcon(name) {
+  return LucideIcons[name] || LucideIcons.Circle
 }
-const toneDot = {
-  blue: 'bg-blue-500', green: 'bg-green-500', orange: 'bg-orange-500',
-  violet: 'bg-violet-500', amber: 'bg-amber-500', slate: 'bg-slate-400',
-}
-const statusBadge = {
-  completed: 'bg-green-100 text-green-700',
-  active: 'bg-blue-100 text-blue-700',
-  locked: 'bg-slate-100 text-slate-500',
-  upcoming: 'bg-amber-100 text-amber-700',
+
+const typeConfig = {
+  video: { label: 'Video', icon: 'PlayCircle' },
+  document: { label: 'Tài liệu', icon: 'FileText' },
+  quiz: { label: 'Quiz', icon: 'ListChecks' },
+  assignment: { label: 'Bài tập', icon: 'ClipboardList' },
 }
 
 const accessBadge = {
@@ -262,290 +292,292 @@ function lessonIcon(lesson) {
   if (lesson.accessStatus === LEARNING_ACCESS.COMPLETED || lesson.accessStatus === LEARNING_ACCESS.EARLY_COMPLETED) return 'CheckCircle2'
   if (isLocked(lesson)) return 'Lock'
   if (needsEarlyLearningConfirm(lesson)) return 'FastForward'
-  return 'Play'
+  return typeConfig[lesson.lessonType]?.icon || 'PlayCircle'
+}
+
+function progressWidth(lesson) {
+  return `${Math.max(0, Math.min(100, lessonProgressDrafts.value[lesson.id]?.progressPercent ?? lesson.progressPercent ?? 0))}%`
+}
+
+function lessonTypeLabel(lesson) {
+  return typeConfig[lesson.lessonType]?.label || 'Bài học'
 }
 </script>
 
 <template>
-  <div class="lg-page-enter space-y-4 pb-6">
-
-    <!-- ══ HERO ══════════════════════════════════════════════ -->
-    <div class="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-4 text-white shadow-lg">
-      <div class="pointer-events-none absolute right-0 top-0 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-      <div class="relative flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-2 text-blue-200 text-xs font-semibold mb-2">
-            <component :is="resolveIcon('BookOpenCheck')" :size="14" />
-            Khóa học · {{ mockCourse.code }}
-          </div>
-          <h1 class="text-xl font-bold leading-tight">{{ mockCourse.title }}</h1>
-          <p class="mt-1 text-blue-100 text-sm">{{ mockCourse.teacher }} · {{ mockCourse.semester }} · {{ mockCourse.credits }} tín chỉ</p>
+  <div class="course-player-page">
+    <header class="course-header">
+      <div class="course-header-main">
+        <div class="course-eyebrow">
+          <component :is="resolveIcon('BookOpenCheck')" :size="14" />
+          {{ mockCourse.code }} · {{ mockCourse.semester }}
         </div>
-        <div class="flex gap-2">
-          <router-link to="/student/courses" class="inline-flex items-center gap-1.5 rounded-xl bg-white/20 px-3 py-2 text-xs font-semibold hover:bg-white/30 transition-colors">
-            <component :is="resolveIcon('ArrowLeft')" :size="13" /> Tất cả khóa học
-          </router-link>
-          <router-link to="/student/assignments" class="inline-flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50 transition-colors">
-            <component :is="resolveIcon('ClipboardList')" :size="13" /> Bài tập
-          </router-link>
+        <h1>{{ mockCourse.title }}</h1>
+        <p>{{ mockCourse.teacher }} · {{ mockCourse.credits }} tín chỉ</p>
+      </div>
+
+      <div class="course-header-actions">
+        <router-link to="/student/courses" class="ghost-action">
+          <component :is="resolveIcon('ArrowLeft')" :size="14" />
+          Tất cả khóa học
+        </router-link>
+        <router-link to="/student/assignments" class="primary-action">
+          <component :is="resolveIcon('ClipboardList')" :size="14" />
+          Bài tập
+        </router-link>
+      </div>
+
+      <div class="course-mini-stats" aria-label="Tổng quan khóa học">
+        <div v-for="stat in miniStats" :key="stat.label" class="mini-stat">
+          <span>{{ stat.label }}</span>
+          <strong>{{ stat.value }}</strong>
         </div>
       </div>
-    </div>
+    </header>
 
-    <!-- ══ STATS ════════════════════════════════════════════ -->
-    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <div v-for="s in mockStats" :key="s.label"
-        class="rounded-[20px] border border-white/60 bg-white/80 p-4 shadow-sm backdrop-blur-md">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-semibold text-slate-500">{{ s.label }}</span>
-          <div :class="['flex h-9 w-9 items-center justify-center rounded-xl ring-1', toneIcon[s.tone] || toneIcon.blue]">
-            <component :is="resolveIcon(s.icon)" :size="16" />
-          </div>
-        </div>
-        <div class="flex items-baseline gap-1 mb-3">
-          <span class="text-xl font-bold text-slate-900">{{ s.value }}</span>
-          <span class="text-xs text-slate-500">{{ s.unit }}</span>
-        </div>
-        <div class="h-1.5 overflow-hidden rounded-full bg-slate-200">
-          <div :class="['h-full rounded-full bg-gradient-to-r', toneBar[s.tone] || toneBar.blue]" :style="{ width: s.progress + '%' }" />
-        </div>
-        <p class="mt-2 text-xs text-slate-400">{{ s.hint }}</p>
-      </div>
-    </div>
-
-    <!-- ══ MAIN LAYOUT ══════════════════════════════════════ -->
-    <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-
-      <!-- LEFT: Lesson Viewer + Course Outline -->
-      <div class="space-y-4">
-
-        <!-- LESSON VIEWER -->
-        <div class="rounded-[24px] border border-white/60 bg-white/80 shadow-sm backdrop-blur-md overflow-hidden">
-          <!-- Header -->
-          <div class="border-b border-slate-100 bg-white/60 px-5 py-4">
-            <div class="flex items-center gap-2 mb-1">
-              <span class="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">Đang học</span>
-              <span class="text-xs text-slate-400">{{ currentLesson.chapterTitle }}</span>
+    <main class="learning-shell">
+      <section class="lesson-column">
+        <article class="lesson-panel">
+          <div class="lesson-heading">
+            <div class="lesson-title-block">
+              <span class="chapter-chip">{{ currentLesson.chapterTitle }}</span>
+              <h2>{{ currentLesson.title }}</h2>
+              <div class="lesson-meta-row">
+                <span>
+                  <component :is="resolveIcon(typeConfig[currentLesson.lessonType]?.icon || 'PlayCircle')" :size="14" />
+                  {{ lessonTypeLabel(currentLesson) }}
+                </span>
+                <span>
+                  <component :is="resolveIcon('Clock3')" :size="14" />
+                  {{ currentLesson.duration }}
+                </span>
+                <span>
+                  <component :is="resolveIcon('Gauge')" :size="14" />
+                  {{ currentLesson.progressPercent || 0 }}%
+                </span>
+              </div>
             </div>
-            <h2 class="text-base font-bold text-slate-900">{{ currentLesson.title }}</h2>
+            <span :class="['learning-access-badge', accessTone(currentLesson.accessStatus)]">
+              {{ currentLessonStatusLabel }}
+            </span>
           </div>
 
-          <!-- Tabs -->
-          <div class="flex gap-0 border-b border-slate-100 bg-white/40 px-5">
-            <button v-for="tab in ['video','taiLieu','quiz','thaoLuan']" :key="tab"
-              @click="activeTab = tab"
-              :class="['px-4 py-3 text-sm font-semibold border-b-2 transition-colors', activeTab === tab ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800']">
-              {{ { video: '▶ Video', taiLieu: '📄 Tài liệu', quiz: '📝 Quiz', thaoLuan: '💬 Thảo luận' }[tab] }}
+          <div class="lesson-tabs" aria-label="Nội dung bài học">
+            <button
+              v-for="tab in [
+                { key: 'video', label: 'Video', icon: 'PlayCircle' },
+                { key: 'document', label: 'Tài liệu', icon: 'FileText' },
+                { key: 'quiz', label: 'Quiz', icon: 'ListChecks' },
+                { key: 'discussion', label: 'Thảo luận', icon: 'MessagesSquare' },
+              ]"
+              :key="tab.key"
+              type="button"
+              :class="{ active: activeTab === tab.key }"
+              @click="activeTab = tab.key"
+            >
+              <component :is="resolveIcon(tab.icon)" :size="14" />
+              {{ tab.label }}
             </button>
           </div>
 
-          <!-- Tab: Video -->
-          <div v-if="activeTab === 'video'" class="p-5">
+          <div class="lesson-content">
             <LessonVideoPlayer
+              v-if="activeTab === 'video'"
               :key="currentLesson.id"
               :lesson="currentLesson"
               @progress="handleVideoProgress"
               @completed="handleVideoCompleted"
             />
-          </div>
 
-          <!-- Tab: Tài liệu -->
-          <div v-else-if="activeTab === 'taiLieu'" class="p-5">
-            <div class="flex h-44 items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 mb-4">
-              <div class="text-center">
-                <component :is="resolveIcon('FileText')" :size="36" class="mx-auto text-slate-300 mb-2" />
-                <p class="text-sm font-semibold text-slate-600">{{ currentLesson.documentTitle }}</p>
-                <p class="text-xs text-slate-400 mt-1">Trang {{ currentLesson.documentCurrentPage }} / {{ currentLesson.documentPages }}</p>
+            <div v-else-if="activeTab === 'document'" class="document-viewer">
+              <div class="document-preview">
+                <component :is="resolveIcon('FileText')" :size="36" />
+                <strong>{{ currentLesson.documentTitle }}</strong>
+                <span>Trang {{ currentLesson.documentCurrentPage }} / {{ currentLesson.documentPages }}</span>
               </div>
+              <button type="button" class="secondary-action">
+                <component :is="resolveIcon('ExternalLink')" :size="15" />
+                Mở tài liệu
+              </button>
             </div>
-            <button class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-              <component :is="resolveIcon('ExternalLink')" :size="15" /> Mở tài liệu
-            </button>
-          </div>
 
-          <!-- Tab: Quiz -->
-          <div v-else-if="activeTab === 'quiz'" class="p-5 space-y-5">
-            <div v-for="q in mockQuizQuestions" :key="q.id" class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-              <p class="text-sm font-bold text-slate-900 mb-3">{{ q.question }}</p>
-              <div class="space-y-2">
-                <button v-for="(opt, idx) in q.options" :key="idx"
-                  @click="selectAnswer(q.id, idx)"
-                  :class="['flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-sm text-left transition-all', quizAnswers[q.id] === idx ? 'border-blue-400 bg-blue-50 text-blue-800 font-semibold' : 'border-slate-200 bg-white text-slate-700 hover:border-blue-200']">
-                  <span :class="['flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold shrink-0', quizAnswers[q.id] === idx ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500']">
-                    {{ ['A','B','C','D'][idx] }}
-                  </span>
-                  {{ opt }}
-                </button>
-              </div>
-            </div>
-            <button class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm">
-              <component :is="resolveIcon('Send')" :size="15" /> Nộp bài
-            </button>
-          </div>
-
-          <!-- Tab: Thảo luận -->
-          <div v-else-if="activeTab === 'thaoLuan'" class="p-5 space-y-4">
-            <div class="flex gap-3">
-              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 text-xs font-bold text-white">SV</div>
-              <div class="flex-1">
-                <textarea v-model="newComment" placeholder="Nhập câu hỏi hoặc thảo luận về bài học..." rows="2"
-                  class="w-full resize-none rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all" />
-                <button class="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors">
-                  <component :is="resolveIcon('Send')" :size="12" /> Gửi
-                </button>
-              </div>
-            </div>
-            <div v-for="c in mockComments" :key="c.id" class="rounded-2xl border border-slate-100 bg-white/70 p-4">
-              <div class="flex gap-3">
-                <div :class="['flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-bold text-white', c.avatarColor]">{{ c.initials }}</div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1">
-                    <span class="text-sm font-bold text-slate-900">{{ c.author }}</span>
-                    <span class="text-xs text-slate-400">{{ c.time }}</span>
-                  </div>
-                  <p class="text-sm text-slate-600">{{ c.content }}</p>
-                  <div class="flex items-center gap-3 mt-2">
-                    <button @click="toggleLike(c.id)" :class="['flex items-center gap-1 text-xs font-semibold transition-colors', likedComments[c.id] ? 'text-blue-600' : 'text-slate-400 hover:text-blue-500']">
-                      <component :is="resolveIcon('ThumbsUp')" :size="12" /> {{ (c.likes + (likedComments[c.id] ? 1 : 0)) }}
-                    </button>
-                    <button class="text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors">Trả lời</button>
-                  </div>
-                  <div v-if="c.replies?.length" class="mt-3 space-y-2 pl-3 border-l-2 border-slate-100">
-                    <div v-for="r in c.replies" :key="r.id" class="flex gap-2">
-                      <div :class="['flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[10px] font-bold text-white', r.avatarColor]">{{ r.initials }}</div>
-                      <div>
-                        <div class="flex items-center gap-2 mb-0.5">
-                          <span class="text-xs font-bold text-slate-800">{{ r.author }}</span>
-                          <span v-if="r.isTeacher" class="rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700">Giảng viên</span>
-                          <span class="text-[10px] text-slate-400">{{ r.time }}</span>
-                        </div>
-                        <p class="text-xs text-slate-600">{{ r.content }}</p>
-                      </div>
-                    </div>
-                  </div>
+            <div v-else-if="activeTab === 'quiz'" class="quiz-view">
+              <div v-for="q in mockQuizQuestions" :key="q.id" class="quiz-card">
+                <p>{{ q.question }}</p>
+                <div class="quiz-options">
+                  <button
+                    v-for="(opt, idx) in q.options"
+                    :key="idx"
+                    type="button"
+                    :class="{ selected: quizAnswers[q.id] === idx }"
+                    @click="selectAnswer(q.id, idx)"
+                  >
+                    <span>{{ ['A', 'B', 'C', 'D'][idx] }}</span>
+                    {{ opt }}
+                  </button>
                 </div>
               </div>
+              <button type="button" class="primary-action">
+                <component :is="resolveIcon('Send')" :size="15" />
+                Nộp bài
+              </button>
+            </div>
+
+            <div v-else class="discussion-view">
+              <div class="comment-composer">
+                <div class="avatar">SV</div>
+                <div>
+                  <textarea
+                    v-model="newComment"
+                    rows="2"
+                    placeholder="Nhập câu hỏi hoặc thảo luận về bài học..."
+                  />
+                  <button type="button" class="primary-action compact">
+                    <component :is="resolveIcon('Send')" :size="12" />
+                    Gửi
+                  </button>
+                </div>
+              </div>
+
+              <article v-for="comment in mockComments" :key="comment.id" class="comment-card">
+                <div :class="['avatar gradient bg-gradient-to-br', comment.avatarColor]">{{ comment.initials }}</div>
+                <div class="comment-body">
+                  <div class="comment-author">
+                    <strong>{{ comment.author }}</strong>
+                    <span>{{ comment.time }}</span>
+                  </div>
+                  <p>{{ comment.content }}</p>
+                  <button type="button" :class="{ liked: likedComments[comment.id] }" @click="toggleLike(comment.id)">
+                    <component :is="resolveIcon('ThumbsUp')" :size="12" />
+                    {{ comment.likes + (likedComments[comment.id] ? 1 : 0) }}
+                  </button>
+                </div>
+              </article>
             </div>
           </div>
+        </article>
+
+        <section class="lesson-body">
+          <div>
+            <span class="section-kicker">Nội dung bài học</span>
+            <h3>{{ currentLesson.title }}</h3>
+            <p>
+              Bài học tập trung vào cách sử dụng {{ currentLesson.title.toLowerCase() }} trong bài toán thực tế,
+              đi từ khái niệm, thao tác chính đến tình huống áp dụng trong thuật toán.
+            </p>
+          </div>
+          <div class="completion-callout">
+            <component :is="resolveIcon('ShieldCheck')" :size="16" />
+            <span v-if="(currentLesson.progressPercent || 0) >= (currentLesson.minWatchPercentToComplete || 80)">
+              Bạn đã đạt điều kiện hoàn thành bài học.
+            </span>
+            <span v-else>
+              Cần xem tối thiểu {{ currentLesson.minWatchPercentToComplete || 80 }}% video để mở bài tiếp theo.
+            </span>
+          </div>
+        </section>
+
+        <nav class="lesson-nav" aria-label="Điều hướng bài học">
+          <button type="button" class="secondary-action" :disabled="!previousLesson" @click="navigateRelative(previousLesson)">
+            <component :is="resolveIcon('ArrowLeft')" :size="15" />
+            Bài trước
+          </button>
+
+          <div v-if="nextLesson && isLocked(nextLesson.lesson)" class="next-lock-copy">
+            {{ getLockedReason(nextLesson.lesson) }}
+          </div>
+
+          <button
+            type="button"
+            class="primary-action"
+            :disabled="!nextLesson || isLocked(nextLesson.lesson)"
+            @click="navigateRelative(nextLesson)"
+          >
+            Bài tiếp theo
+            <component :is="resolveIcon('ArrowRight')" :size="15" />
+          </button>
+        </nav>
+      </section>
+
+      <aside class="course-side">
+        <div class="side-tabs" aria-label="Công cụ học tập">
+          <button :class="{ active: sideTab === 'outline' }" type="button" @click="sideTab = 'outline'">Lộ trình</button>
+          <button :class="{ active: sideTab === 'ai' }" type="button" @click="sideTab = 'ai'">AI</button>
+          <button :class="{ active: sideTab === 'notes' }" type="button" @click="sideTab = 'notes'">Ghi chú</button>
         </div>
 
-        <!-- COURSE OUTLINE -->
-        <div class="rounded-[24px] border border-white/60 bg-white/80 shadow-sm backdrop-blur-md overflow-hidden">
-          <div class="border-b border-slate-100 bg-white/60 px-5 py-4">
-            <h3 class="text-base font-bold text-slate-900">Cấu trúc chương học</h3>
+        <section v-if="sideTab === 'outline'" class="outline-panel">
+          <div class="side-heading">
+            <h3>Course outline</h3>
+            <span>{{ flatLessons.length }} bài</span>
           </div>
-          <div class="divide-y divide-slate-100">
-            <div v-for="ch in learningLessons" :key="ch.id">
-              <!-- Chapter Header -->
-              <button @click="toggleChapter(ch.id)"
-                :class="['flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-slate-50/80', ch.status === 'locked' ? 'opacity-60' : '']">
-                <div :class="['flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1', toneIcon[ch.tone] || toneIcon.slate]">
-                  <component :is="resolveIcon(ch.icon)" :size="16" />
+
+          <div class="chapter-list">
+            <article v-for="chapter in learningLessons" :key="chapter.id" class="chapter-block">
+              <button type="button" class="chapter-header" @click="toggleChapter(chapter.id)">
+                <div>
+                  <strong>{{ chapter.chapter }}</strong>
+                  <span>{{ chapter.title }}</span>
                 </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex flex-wrap items-center gap-2 mb-0.5">
-                    <span class="text-sm font-bold text-slate-900">{{ ch.chapter }}: {{ ch.title }}</span>
-                    <span :class="['rounded-full px-2 py-0.5 text-[11px] font-semibold', statusBadge[ch.status] || statusBadge.upcoming]">{{ ch.badge }}</span>
-                    <span :class="['learning-access-badge', accessTone(ch.accessStatus)]">{{ accessBadge[ch.accessStatus] }}</span>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <span v-for="m in ch.meta" :key="m" class="text-xs text-slate-400">{{ m }}</span>
-                    <span class="text-xs text-slate-400">Kỳ {{ ch.studentCurrentSemesterIndex }} · Block {{ ch.studentCurrentBlockIndex }} hiện tại</span>
-                  </div>
-                  <div v-if="ch.progress > 0" class="mt-2 h-1 overflow-hidden rounded-full bg-slate-200 w-32">
-                    <div :class="['h-full rounded-full bg-gradient-to-r', toneBar[ch.tone] || toneBar.slate]" :style="{ width: ch.progress + '%' }" />
-                  </div>
-                </div>
-                <component :is="resolveIcon(expandedChapters[ch.id] ? 'ChevronUp' : 'ChevronDown')" :size="16" class="text-slate-400 shrink-0" />
+                <component :is="resolveIcon(expandedChapters[chapter.id] ? 'ChevronUp' : 'ChevronDown')" :size="15" />
               </button>
 
-              <!-- Lesson List -->
-              <div v-if="expandedChapters[ch.id] && ch.lessons.length" class="bg-slate-50/50 px-5 pb-3 space-y-1">
-                <button v-for="lesson in ch.lessons" :key="lesson.id"
-                  @click="selectLesson(ch, lesson)"
-                  :class="['lesson-access-row', isLocked(lesson) ? 'is-access-locked' : 'hover:bg-white cursor-pointer', selectedLessonId === lesson.id ? 'is-selected' : '']"
-                  :aria-disabled="isLocked(lesson)"
-                  :title="isLocked(lesson) ? getLockedReason(lesson) : ''">
-                  <component :is="resolveIcon(lessonIcon(lesson))"
-                    :size="14" :class="isLocked(lesson) ? 'text-slate-400' : needsEarlyLearningConfirm(lesson) ? 'text-violet-500' : lesson.accessStatus === LEARNING_ACCESS.COMPLETED || lesson.accessStatus === LEARNING_ACCESS.EARLY_COMPLETED ? 'text-green-500' : 'text-blue-500'" />
-                  <span class="flex-1 min-w-0">
-                    <span :class="['block text-sm', selectedLessonId === lesson.id ? 'font-semibold text-blue-800' : 'text-slate-600']">{{ lesson.title }}</span>
-                    <span v-if="isLocked(lesson)" class="block text-[11px] font-medium text-slate-400">{{ getLockedReason(lesson) }}</span>
-                    <span v-else-if="needsEarlyLearningConfirm(lesson)" class="block text-[11px] font-medium text-violet-500">Nội dung kỳ sau, có thể học trước.</span>
-                    <span v-else-if="lesson.accessStatus === LEARNING_ACCESS.EARLY_COMPLETED" class="block text-[11px] font-medium text-violet-500">Đã học trước · điểm {{ lesson.earlyScore }}/10</span>
+              <div v-if="expandedChapters[chapter.id]" class="lesson-list">
+                <button
+                  v-for="lesson in chapter.lessons"
+                  :key="lesson.id"
+                  type="button"
+                  :class="['outline-lesson', { active: selectedLessonId === lesson.id, locked: isLocked(lesson) }]"
+                  :title="isLocked(lesson) ? getLockedReason(lesson) : ''"
+                  @click="selectLesson(chapter, lesson)"
+                >
+                  <component :is="resolveIcon(lessonIcon(lesson))" :size="14" />
+                  <span class="outline-lesson-main">
+                    <strong>{{ lesson.title }}</strong>
+                    <small>
+                      {{ lessonTypeLabel(lesson) }} · {{ lesson.duration }}
+                      <template v-if="isLocked(lesson)"> · {{ getLockedReason(lesson) }}</template>
+                    </small>
+                    <span class="outline-progress" aria-hidden="true">
+                      <span :style="{ width: progressWidth(lesson) }" />
+                    </span>
                   </span>
-                  <span :class="['learning-access-badge shrink-0', accessTone(lesson.accessStatus)]">{{ accessBadge[lesson.accessStatus] }}</span>
-                  <span class="text-xs text-slate-400 shrink-0">{{ lesson.duration }}</span>
+                  <span :class="['learning-access-badge mini', accessTone(lesson.accessStatus)]">
+                    {{ accessBadge[lesson.accessStatus] }}
+                  </span>
                 </button>
               </div>
-            </div>
+            </article>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <!-- RIGHT SIDEBAR -->
-      <div class="space-y-4">
+        <section v-else-if="sideTab === 'ai'" class="side-card ai-card">
+          <div class="side-heading">
+            <h3>AI tóm tắt bài học</h3>
+            <component :is="resolveIcon('Sparkles')" :size="16" />
+          </div>
+          <ul>
+            <li v-for="point in mockAISummary.points" :key="point">{{ point }}</li>
+          </ul>
+          <button type="button" class="secondary-action full">
+            <component :is="resolveIcon('MessageSquare')" :size="15" />
+            Hỏi AI về bài học
+          </button>
+        </section>
 
-        <!-- Learning Path / Timeline -->
-        <div class="rounded-[24px] border border-white/60 bg-white/80 shadow-sm backdrop-blur-md overflow-hidden">
-          <div class="border-b border-slate-100 px-5 py-4">
-            <h3 class="text-base font-bold text-slate-900">Lộ trình học</h3>
+        <section v-else class="side-card notes-card">
+          <div class="side-heading">
+            <h3>Ghi chú học tập</h3>
+            <component :is="resolveIcon('PenLine')" :size="16" />
           </div>
-          <div class="px-5 py-4 space-y-0">
-            <div v-for="item in mockTimeline" :key="item.id"
-              class="relative border-l-2 border-slate-200 pl-5 pb-5 last:pb-0">
-              <span :class="['absolute -left-[5px] top-1 h-2.5 w-2.5 rounded-full ring-4 ring-white', toneDot[item.tone] || toneDot.slate]" />
-              <div class="flex items-start gap-2">
-                <div class="flex-1">
-                  <p class="text-sm font-bold text-slate-900">{{ item.title }}</p>
-                  <p class="text-xs text-slate-500 mt-0.5">{{ item.description }}</p>
-                  <span :class="['mt-1.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold', statusBadge[item.tone] || 'bg-slate-100 text-slate-500']">{{ item.time }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- AI Summary -->
-        <div class="rounded-[24px] border border-violet-100 bg-gradient-to-br from-violet-50/80 to-white shadow-sm overflow-hidden">
-          <div class="border-b border-violet-100 px-5 py-4 flex items-center gap-2">
-            <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
-              <component :is="resolveIcon('Sparkles')" :size="16" />
-            </div>
-            <h3 class="text-sm font-bold text-slate-900">AI Tóm tắt bài học</h3>
-          </div>
-          <div class="px-5 py-4">
-            <ul class="space-y-2">
-              <li v-for="(pt, i) in mockAISummary.points" :key="i" class="flex gap-2 text-sm text-slate-600">
-                <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-400"></span>
-                {{ pt }}
-              </li>
-            </ul>
-            <button class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-700 hover:bg-violet-100 transition-colors">
-              <component :is="resolveIcon('MessageSquare')" :size="15" /> Hỏi AI về bài học
-            </button>
-          </div>
-        </div>
-
-        <!-- Study Notes -->
-        <div class="rounded-[24px] border border-white/60 bg-white/80 shadow-sm backdrop-blur-md overflow-hidden">
-          <div class="border-b border-slate-100 px-5 py-4 flex items-center gap-2">
-            <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-              <component :is="resolveIcon('PenLine')" :size="16" />
-            </div>
-            <h3 class="text-sm font-bold text-slate-900">Ghi chú học tập</h3>
-          </div>
-          <div class="px-5 py-4">
-            <textarea placeholder="Ghi chú nhanh về bài học này..." rows="4"
-              class="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 transition-all" />
-            <button class="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-600 transition-colors">
-              <component :is="resolveIcon('Save')" :size="12" /> Lưu ghi chú
-            </button>
-          </div>
-        </div>
-
-      </div>
-    </div>
+          <textarea rows="7" placeholder="Ghi chú nhanh về bài học này..." />
+          <button type="button" class="primary-action compact">
+            <component :is="resolveIcon('Save')" :size="13" />
+            Lưu ghi chú
+          </button>
+        </section>
+      </aside>
+    </main>
 
     <section v-if="accessNotice" class="course-access-notice" role="status">
       <component :is="resolveIcon('ShieldAlert')" :size="16" />
@@ -574,9 +606,7 @@ function lessonIcon(lesson) {
           </div>
           <div class="course-modal-actions">
             <button type="button" class="course-ghost-button" @click="closeEarlyLessonModal">Quay lại</button>
-            <button type="button" class="course-primary-button" @click="confirmEarlyLesson">
-              Tiếp tục học trước
-            </button>
+            <button type="button" class="course-primary-button" @click="confirmEarlyLesson">Tiếp tục học trước</button>
           </div>
         </section>
       </div>
@@ -585,6 +615,651 @@ function lessonIcon(lesson) {
 </template>
 
 <style scoped>
+.course-player-page {
+  display: grid;
+  gap: 0.9rem;
+  padding-bottom: 1rem;
+}
+
+.course-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border-card) 72%, transparent);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(8, 145, 178, 0.32), transparent 34%),
+    linear-gradient(135deg, #1d4ed8, #2563eb 52%, #0891b2);
+  color: #ffffff;
+  padding: 1rem;
+  box-shadow: var(--lg-shadow-sm);
+}
+
+.course-eyebrow,
+.lesson-meta-row,
+.chapter-chip,
+.section-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.course-eyebrow {
+  color: rgba(219, 234, 254, 0.9);
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.course-header h1,
+.lesson-heading h2,
+.lesson-body h3,
+.side-heading h3 {
+  margin: 0;
+  color: inherit;
+}
+
+.course-header h1 {
+  margin-top: 0.3rem;
+  font-size: 1.22rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.course-header p {
+  margin: 0.35rem 0 0;
+  color: rgba(239, 246, 255, 0.82);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.course-header-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.course-mini-stats {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.mini-stat {
+  display: grid;
+  gap: 0.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 0.48rem 0.65rem;
+  backdrop-filter: blur(12px);
+}
+
+.mini-stat span {
+  color: rgba(219, 234, 254, 0.78);
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.mini-stat strong {
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.learning-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 360px);
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.lesson-column {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.lesson-panel,
+.lesson-body,
+.course-side,
+.outline-panel,
+.side-card {
+  border: 1px solid var(--border-card);
+  background: var(--surface-card);
+  box-shadow: var(--lg-shadow-sm);
+  backdrop-filter: blur(18px) saturate(160%);
+}
+
+.lesson-panel,
+.lesson-body,
+.outline-panel,
+.side-card {
+  border-radius: 20px;
+}
+
+.lesson-panel {
+  overflow: hidden;
+}
+
+.lesson-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+  border-bottom: 1px solid var(--border-card);
+  background: color-mix(in srgb, var(--surface-card-strong) 86%, transparent);
+  padding: 0.9rem 1rem 0.75rem;
+}
+
+.lesson-title-block {
+  min-width: 0;
+}
+
+.chapter-chip {
+  width: fit-content;
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  background: var(--surface-input);
+  color: var(--text-link);
+  padding: 0.22rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 850;
+}
+
+.lesson-heading h2 {
+  margin-top: 0.5rem;
+  color: var(--text-heading);
+  font-size: 1.1rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.lesson-meta-row {
+  flex-wrap: wrap;
+  margin-top: 0.45rem;
+  color: var(--text-label);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.lesson-meta-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.lesson-tabs,
+.side-tabs {
+  display: flex;
+  gap: 0.35rem;
+  border-bottom: 1px solid var(--border-card);
+  background: var(--surface-input);
+  padding: 0.45rem;
+}
+
+.lesson-tabs button,
+.side-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text-label);
+  cursor: pointer;
+  padding: 0 0.7rem;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.lesson-tabs button.active,
+.side-tabs button.active {
+  background: var(--surface-card-strong);
+  color: var(--text-link);
+  box-shadow: 0 0 0 1px var(--border-card);
+}
+
+.lesson-content {
+  padding: 0.8rem;
+}
+
+.document-viewer,
+.quiz-view,
+.discussion-view {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.document-preview {
+  display: grid;
+  place-items: center;
+  gap: 0.35rem;
+  min-height: 14rem;
+  border: 1px dashed var(--border-default);
+  border-radius: 16px;
+  background: var(--surface-input);
+  color: var(--text-label);
+  text-align: center;
+}
+
+.document-preview strong {
+  color: var(--text-heading);
+  font-size: 0.92rem;
+}
+
+.document-preview span {
+  color: var(--text-placeholder);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.quiz-card,
+.comment-card,
+.comment-composer {
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  background: var(--surface-input);
+  padding: 0.75rem;
+}
+
+.quiz-card p,
+.comment-card p,
+.lesson-body p {
+  margin: 0;
+  color: var(--text-body);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.quiz-card p {
+  color: var(--text-heading);
+  font-weight: 850;
+}
+
+.quiz-options {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.quiz-options button {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  background: var(--surface-card);
+  color: var(--text-label);
+  cursor: pointer;
+  padding: 0.55rem;
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.quiz-options button.selected {
+  border-color: var(--border-input-focus);
+  background: var(--color-info-bg);
+  color: var(--text-heading);
+}
+
+.quiz-options span {
+  display: grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: var(--surface-input);
+  color: var(--text-link);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.comment-composer,
+.comment-card {
+  display: flex;
+  gap: 0.7rem;
+}
+
+.comment-composer > div:last-child,
+.comment-body {
+  flex: 1;
+  min-width: 0;
+}
+
+textarea {
+  width: 100%;
+  resize: none;
+  border: 1px solid var(--border-input);
+  border-radius: 13px;
+  background: var(--surface-input);
+  color: var(--text-heading);
+  outline: 0;
+  padding: 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+textarea::placeholder {
+  color: var(--text-placeholder);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--lg-primary), var(--lg-cyan));
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.comment-author {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.comment-author strong {
+  color: var(--text-heading);
+  font-size: 0.8rem;
+}
+
+.comment-author span {
+  color: var(--text-placeholder);
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.comment-body button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.45rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-placeholder);
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.comment-body button.liked {
+  color: var(--text-link);
+}
+
+.lesson-body {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+}
+
+.section-kicker {
+  color: var(--text-link);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.lesson-body h3 {
+  margin-top: 0.3rem;
+  color: var(--text-heading);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.completion-callout,
+.next-lock-copy {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  border: 1px solid var(--border-card);
+  border-radius: 14px;
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  padding: 0.55rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.lesson-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  border: 1px solid var(--border-card);
+  border-radius: 18px;
+  background: var(--surface-card);
+  padding: 0.65rem;
+}
+
+.next-lock-copy {
+  max-width: 24rem;
+  margin-left: auto;
+}
+
+.course-side {
+  position: sticky;
+  top: 1rem;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+.side-tabs {
+  border-bottom-color: var(--border-card);
+}
+
+.outline-panel,
+.side-card {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.side-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0.9rem 0.65rem;
+}
+
+.side-heading h3 {
+  color: var(--text-heading);
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.side-heading span,
+.side-heading svg {
+  color: var(--text-placeholder);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.chapter-list {
+  max-height: min(65vh, 42rem);
+  overflow: auto;
+  padding: 0 0.55rem 0.65rem;
+}
+
+.chapter-block {
+  overflow: hidden;
+  border: 1px solid var(--border-card);
+  border-radius: 15px;
+  background: var(--surface-input);
+}
+
+.chapter-block + .chapter-block {
+  margin-top: 0.5rem;
+}
+
+.chapter-header {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-heading);
+  cursor: pointer;
+  padding: 0.65rem 0.7rem;
+  text-align: left;
+}
+
+.chapter-header strong,
+.chapter-header span {
+  display: block;
+}
+
+.chapter-header strong {
+  color: var(--text-link);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.chapter-header span {
+  margin-top: 0.15rem;
+  color: var(--text-heading);
+  font-size: 0.8rem;
+  font-weight: 850;
+  line-height: 1.3;
+}
+
+.lesson-list {
+  display: grid;
+  gap: 0.35rem;
+  border-top: 1px solid var(--border-card);
+  padding: 0.45rem;
+}
+
+.outline-lesson {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-label);
+  cursor: pointer;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.outline-lesson:hover,
+.outline-lesson.active {
+  border-color: var(--border-input-focus);
+  background: var(--color-info-bg);
+}
+
+.outline-lesson.locked {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.outline-lesson svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: var(--text-link);
+}
+
+.outline-lesson.locked svg {
+  color: var(--text-placeholder);
+}
+
+.outline-lesson-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.outline-lesson-main strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text-heading);
+  font-size: 0.77rem;
+  font-weight: 850;
+  line-height: 1.28;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.outline-lesson-main small {
+  display: block;
+  overflow: hidden;
+  margin-top: 0.15rem;
+  color: var(--text-placeholder);
+  font-size: 0.66rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.outline-progress {
+  display: block;
+  height: 0.25rem;
+  overflow: hidden;
+  margin-top: 0.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-card-strong) 78%, transparent);
+}
+
+.outline-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--lg-primary), var(--lg-cyan));
+}
+
+.side-card {
+  padding: 0 0.9rem 0.9rem;
+}
+
+.ai-card ul {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ai-card li {
+  position: relative;
+  padding-left: 0.8rem;
+  color: var(--text-label);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.ai-card li::before {
+  position: absolute;
+  top: 0.55rem;
+  left: 0;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: var(--lg-accent);
+  content: "";
+}
+
+.notes-card textarea {
+  min-height: 11rem;
+}
+
 .learning-access-badge {
   display: inline-flex;
   align-items: center;
@@ -595,6 +1270,12 @@ function lessonIcon(lesson) {
   font-weight: 850;
   line-height: 1;
   white-space: nowrap;
+}
+
+.learning-access-badge.mini {
+  display: none;
+  padding-inline: 0.4rem;
+  font-size: 0.58rem;
 }
 
 .access-official { color: var(--color-success-text); background: var(--color-success-bg); }
@@ -610,27 +1291,65 @@ function lessonIcon(lesson) {
   background: rgba(88, 28, 135, 0.36);
 }
 
-.lesson-access-row {
-  display: flex;
-  width: 100%;
+.ghost-action,
+.primary-action,
+.secondary-action {
+  display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
-  border-radius: 0.75rem;
-  padding: 0.625rem 0.75rem;
-  text-align: left;
-  transition:
-    background-color 160ms ease,
-    box-shadow 160ms ease;
+  justify-content: center;
+  gap: 0.38rem;
+  min-height: 2.15rem;
+  border-radius: 12px;
+  cursor: pointer;
+  padding: 0 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-decoration: none;
+  transition: transform 160ms ease, opacity 160ms ease;
 }
 
-.lesson-access-row.is-selected {
-  background: var(--color-info-bg);
-  box-shadow: 0 0 0 1px var(--border-input-focus);
+.ghost-action {
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
 }
 
-.lesson-access-row.is-access-locked {
+.primary-action {
+  border: 0;
+  background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary));
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
+}
+
+.course-header .primary-action {
+  background: #ffffff;
+  color: #1d4ed8;
+  box-shadow: none;
+}
+
+.secondary-action {
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  color: var(--text-label);
+}
+
+.primary-action.compact,
+.secondary-action.compact {
+  min-height: 1.95rem;
+  padding-inline: 0.65rem;
+  font-size: 0.72rem;
+}
+
+.secondary-action.full {
+  width: 100%;
+  margin-top: 0.8rem;
+}
+
+.primary-action:disabled,
+.secondary-action:disabled {
   cursor: not-allowed;
-  background: color-mix(in srgb, var(--surface-input) 82%, transparent);
+  opacity: 0.52;
+  transform: none;
 }
 
 .course-access-notice {
@@ -778,19 +1497,67 @@ function lessonIcon(lesson) {
   box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
 }
 
-@media (max-width: 640px) {
-  .lesson-access-row {
-    align-items: flex-start;
+@media (max-width: 1180px) {
+  .learning-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .course-side {
+    position: static;
+  }
+
+  .chapter-list {
+    max-height: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .course-header {
+    grid-template-columns: 1fr;
+  }
+
+  .course-header-actions,
+  .lesson-nav {
     flex-wrap: wrap;
   }
 
-  .course-modal-actions {
-    flex-direction: column-reverse;
+  .course-mini-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .course-ghost-button,
-  .course-primary-button {
+  .lesson-heading {
+    flex-direction: column;
+  }
+
+  .lesson-tabs {
+    overflow-x: auto;
+  }
+
+  .next-lock-copy {
+    order: 3;
     width: 100%;
+    max-width: none;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .course-mini-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .course-header-actions > *,
+  .lesson-nav > button,
+  .course-modal-actions > * {
+    width: 100%;
+  }
+
+  .outline-lesson {
+    flex-wrap: wrap;
+  }
+
+  .outline-lesson-main {
+    flex-basis: calc(100% - 2rem);
   }
 }
 </style>
