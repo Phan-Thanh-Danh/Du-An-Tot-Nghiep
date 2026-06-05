@@ -489,6 +489,26 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.KhoaLuc)
                 .HasColumnName("khoa_luc")
                 .HasColumnType("datetime2");
+            entity.Property(e => e.DiemDanhBatDauLuc)
+                .HasColumnName("diem_danh_bat_dau_luc")
+                .HasColumnType("datetime2");
+            entity.Property(e => e.DiemDanhHanGuiLuc)
+                .HasColumnName("diem_danh_han_gui_luc")
+                .HasColumnType("datetime2");
+            entity.Property(e => e.DiemDanhDaGuiLuc)
+                .HasColumnName("diem_danh_da_gui_luc")
+                .HasColumnType("datetime2");
+            entity.Property(e => e.DiemDanhHanChinhSuaLuc)
+                .HasColumnName("diem_danh_han_chinh_sua_luc")
+                .HasColumnType("datetime2");
+            entity.Property(e => e.DiemDanhKhoaLuc)
+                .HasColumnName("diem_danh_khoa_luc")
+                .HasColumnType("datetime2");
+            entity.Property(e => e.TrangThaiDiemDanh)
+                .HasColumnName("trang_thai_diem_danh")
+                .HasMaxLength(30)
+                .IsRequired()
+                .HasDefaultValue("chua_mo");
             entity.Property(e => e.NgayTao)
                 .HasColumnName("ngay_tao")
                 .HasColumnType("datetime2")
@@ -503,12 +523,19 @@ public class ApplicationDbContext : DbContext
                 .HasDatabaseName("IX_BuoiHoc_Ngay_Ca_Phong");
             entity.HasIndex(e => new { e.NgayHoc, e.MaCaHoc, e.MaGiaoVien })
                 .HasDatabaseName("IX_BuoiHoc_Ngay_Ca_GiaoVien");
+            entity.HasIndex(e => new { e.TrangThaiDiemDanh, e.DiemDanhHanGuiLuc })
+                .HasDatabaseName("IX_BuoiHoc_DiemDanh_HanGui");
+            entity.HasIndex(e => new { e.TrangThaiDiemDanh, e.DiemDanhHanChinhSuaLuc })
+                .HasDatabaseName("IX_BuoiHoc_DiemDanh_HanChinhSua");
             entity.ToTable(t => t.HasCheckConstraint(
                 "CK_BuoiHoc_trang_thai_buoi",
                 "[trang_thai_buoi] IN (N'du_kien', N'da_dien_ra', N'da_huy', N'doi_lich', N'day_thay')"));
             entity.ToTable(t => t.HasCheckConstraint(
                 "CK_BuoiHoc_loai_thay_doi",
                 "[loai_thay_doi] IS NULL OR [loai_thay_doi] IN (N'doi_giang_vien', N'doi_phong', N'doi_ca', N'huy_buoi', N'doi_lich')"));
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_BuoiHoc_trang_thai_diem_danh",
+                "[trang_thai_diem_danh] IN (N'chua_mo', N'dang_diem_danh', N'da_gui', N'da_khoa')"));
             entity.HasOne(e => e.Tkb)
                 .WithMany()
                 .HasForeignKey(e => e.MaTkb)
