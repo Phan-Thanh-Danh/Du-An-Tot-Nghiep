@@ -55,6 +55,7 @@ public static class Data
         await SeedScheduleTemplatesAsync(context, hcmCampus, subjects, terms, administrativeClasses, shifts);
         await SeedCourseSyllabusesAsync(context, hcmCampus, programs, specializations, programSubjects, subjects);
         await SeedProgramTuitionConfigsAsync(context, hcmCampus, programs, terms);
+        await SeedTuitionReceivingAccountAsync(context, hcmCampus);
 
         await context.SaveChangesAsync();
     }
@@ -74,6 +75,9 @@ public static class Data
             new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.SubCampusAdmin), "Quản trị cơ sở con"),
             new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.Chairman), "Chủ tịch hệ thống"),
             new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.HoiDongQuanLyNoiDung), "Hội đồng quản lý nội dung"),
+            new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.FinanceAdmin), "Admin tài chính"),
+            new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.CampusAccountant), "Kế toán cơ sở"),
+            new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.CampusChiefAccountant), "Kế toán trưởng cơ sở"),
         };
 
         var nextRoleId = ((await context.VaiTros.MaxAsync(x => (int?)x.MaVaiTro)) ?? 0) + 1;
@@ -1521,6 +1525,50 @@ public static class Data
                 config.NgayCapNhat = DateTime.UtcNow;
             }
         }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedTuitionReceivingAccountAsync(
+        ApplicationDbContext context,
+        DonVi campus)
+    {
+        const string bankCode = "MB";
+        const string demoAccountNumber = "123456789";
+
+        var account = await context.TaiKhoanNhanTiens.FirstOrDefaultAsync(x =>
+            x.MaDonVi == campus.MaDonVi &&
+            x.MaNganHang == bankCode &&
+            x.SoTaiKhoan == demoAccountNumber);
+
+        if (account is null)
+        {
+            account = new TaiKhoanNhanTien
+            {
+                MaDonVi = campus.MaDonVi,
+                MaNganHang = bankCode,
+                SoTaiKhoan = demoAccountNumber,
+                NgayTao = DateTime.UtcNow,
+            };
+
+            context.TaiKhoanNhanTiens.Add(account);
+        }
+
+        var hasOtherDefaultAccount = await context.TaiKhoanNhanTiens.AnyAsync(x =>
+            x.MaDonVi == campus.MaDonVi &&
+            x.MaTaiKhoanNhanTien != account.MaTaiKhoanNhanTien &&
+            x.LaMacDinh &&
+            x.ConHoatDong);
+
+        account.TenNganHang = "MB Bank";
+        account.TenChuTaiKhoan = "TRUONG CAO DANG DEMO";
+        account.ChiNhanh = "HCM";
+        account.NhaCungCapThanhToan = "payos";
+        account.TrangThaiDuyet = "da_duyet";
+        account.ConHoatDong = true;
+        account.LaMacDinh = !hasOtherDefaultAccount;
+        account.NgayDuyet ??= DateTime.UtcNow;
+        account.NgayCapNhat = DateTime.UtcNow;
 
         await context.SaveChangesAsync();
     }

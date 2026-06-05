@@ -13,6 +13,9 @@ public static class AuthRoles
     public const string SubCampusAdmin = "SubCampusAdmin";
     public const string Chairman = "Chairman";
     public const string HoiDongQuanLyNoiDung = "HoiDongQuanLyNoiDung";
+    public const string FinanceAdmin = "FinanceAdmin";
+    public const string CampusAccountant = "CampusAccountant";
+    public const string CampusChiefAccountant = "CampusChiefAccountant";
 
     public static string FromDatabaseCode(string roleCode)
     {
@@ -29,6 +32,9 @@ public static class AuthRoles
             "quan_tri_co_so_con" => SubCampusAdmin,
             "chu_tich" => Chairman,
             "hoidong_quanly_noidung" => HoiDongQuanLyNoiDung,
+            "admin_tai_chinh" => FinanceAdmin,
+            "ke_toan_co_so" => CampusAccountant,
+            "ke_toan_truong_co_so" => CampusChiefAccountant,
             _ => roleCode
         };
     }
@@ -48,6 +54,9 @@ public static class AuthRoles
             SubCampusAdmin => "quan_tri_co_so_con",
             Chairman => "chu_tich",
             HoiDongQuanLyNoiDung => "hoidong_quanly_noidung",
+            FinanceAdmin => "admin_tai_chinh",
+            CampusAccountant => "ke_toan_co_so",
+            CampusChiefAccountant => "ke_toan_truong_co_so",
             _ => role
         };
     }
@@ -64,7 +73,10 @@ public static class AuthRoles
         "quan_tri_co_so",
         "quan_tri_co_so_con",
         "chu_tich",
-        "hoidong_quanly_noidung"
+        "hoidong_quanly_noidung",
+        "admin_tai_chinh",
+        "ke_toan_co_so",
+        "ke_toan_truong_co_so"
     };
 
     public static bool IsKnownDatabaseCode(string roleCode)
