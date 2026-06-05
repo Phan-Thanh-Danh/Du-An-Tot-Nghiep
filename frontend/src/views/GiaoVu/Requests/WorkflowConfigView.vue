@@ -212,60 +212,66 @@ const getStatusLabel = (status) => {
         </div>
 
         <!-- Builder Visualizer -->
-         <div class="lg-card-glass p-10 surface-solid relative overflow-hidden">
+         <div class="lg-card-glass p-10 surface-solid relative overflow-visible">
            
            <div class="flex flex-col items-center gap-12">
               
-              <!-- Step 1 -->
-               <div class="w-full max-w-sm p-4 lg-glass-soft border-default shadow-sm relative group hover:border-blue-300 transition-all">
-                  <div class="absolute -left-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-black shadow-md">1</div>
-                  <h5 class="text-sm font-black text-heading uppercase tracking-wide">Tiếp nhận & Kiểm tra</h5>
-                 <div class="mt-4 flex items-center justify-between">
-                     <div class="flex items-center gap-2 text-[11px] font-bold text-label">
-                        <Shield :size="14" class="text-link" /> Vai trò: Giáo vụ khoa
+               <!-- Step 1 -->
+                <div class="flex items-center w-full max-w-sm">
+                   <div class="h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-black shadow-md shrink-0">1</div>
+                   <div class="flex-1 -ml-3 p-4 lg-glass-soft border-default shadow-sm group hover:border-blue-300 transition-all">
+                      <h5 class="text-sm font-black text-heading uppercase tracking-wide">Tiếp nhận & Kiểm tra</h5>
+                     <div class="mt-4 flex items-center justify-between">
+                         <div class="flex items-center gap-2 text-[11px] font-bold text-label">
+                            <Shield :size="14" class="text-link" /> Vai trò: Giáo vụ khoa
+                         </div>
+                         <span class="text-[10px] font-black text-warning uppercase tracking-widest bg-warning/10 px-2 py-1 rounded-lg">SLA: 24h</span>
                      </div>
-                     <span class="text-[10px] font-black text-warning uppercase tracking-widest bg-warning/10 px-2 py-1 rounded-lg">SLA: 24h</span>
-                 </div>
-              </div>
+                  </div>
+               </div>
 
                <div class="h-10 w-0.5 border-default flex items-center justify-center">
                   <div class="h-2 w-2 rounded-full bg-link animate-bounce"></div>
                </div>
 
-               <!-- Step 2 -->
-                <div class="w-full max-w-sm p-4 lg-glass-soft rounded-3xl border border-blue-200 shadow-md relative group">
-                  <div class="absolute -left-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-black shadow-md">2</div>
-                 <div class="flex items-center justify-between mb-4">
-                     <h5 class="text-sm font-black text-heading uppercase tracking-wide">Phê duyệt chính</h5>
-                     <Zap :size="18" class="text-warning fill-warning" title="Auto-Execute Available" />
-                 </div>
-                 <div class="flex items-center justify-between">
-                     <div class="flex items-center gap-2 text-[11px] font-bold text-label">
-                        <Shield :size="14" class="text-body" /> Trưởng phòng Giáo vụ
+                <!-- Step 2 -->
+                 <div class="flex items-center w-full max-w-sm">
+                   <div class="h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-black shadow-md shrink-0">2</div>
+                   <div class="flex-1 -ml-3 p-4 lg-glass-soft rounded-3xl border border-blue-200 shadow-md group">
+                      <div class="flex items-center justify-between mb-4">
+                         <h5 class="text-sm font-black text-heading uppercase tracking-wide">Phê duyệt chính</h5>
+                         <Zap :size="18" class="text-warning fill-warning" title="Auto-Execute Available" />
                      </div>
-                     <span class="text-[10px] font-black text-warning uppercase tracking-widest bg-warning/10 px-2 py-1 rounded-lg">SLA: 48h</span>
-                 </div>
-              </div>
+                     <div class="flex items-center justify-between">
+                         <div class="flex items-center gap-2 text-[11px] font-bold text-label">
+                            <Shield :size="14" class="text-body" /> Trưởng phòng Giáo vụ
+                         </div>
+                         <span class="text-[10px] font-black text-warning uppercase tracking-widest bg-warning/10 px-2 py-1 rounded-lg">SLA: 48h</span>
+                     </div>
+                  </div>
+               </div>
 
                <div class="h-10 w-0.5 border-default flex items-center justify-center">
                   <div class="h-2 w-2 rounded-full bg-link"></div>
               </div>
 
-              <!-- Execution Step -->
-               <div class="w-full max-w-sm p-5 surface-solid rounded-3xl border-2 border-dashed border-default relative">
-                  <div class="absolute -left-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-black shadow-md">
-                    <CheckCircle2 :size="18" />
-                 </div>
-                 <div class="flex items-center gap-3">
-                    <div class="h-10 w-10 rounded-xl lg-glass-soft flex items-center justify-center text-success shadow-sm">
-                       <FileJson :size="20" />
-                    </div>
-                    <div>
-                        <h5 class="text-xs font-black text-heading uppercase tracking-widest">Thực thi tự động</h5>
-                        <p class="text-[10px] font-bold text-success mt-1 uppercase tracking-tighter">Update DB + Send PDF Email</p>
-                    </div>
-                 </div>
-              </div>
+               <!-- Execution Step -->
+                <div class="flex items-center w-full max-w-sm">
+                   <div class="h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-black shadow-md shrink-0">
+                     <CheckCircle2 :size="18" />
+                  </div>
+                   <div class="flex-1 -ml-3 p-5 surface-solid rounded-3xl border-2 border-dashed border-default">
+                     <div class="flex items-center gap-3">
+                        <div class="h-10 w-10 rounded-xl lg-glass-soft flex items-center justify-center text-success shadow-sm">
+                           <FileJson :size="20" />
+                        </div>
+                        <div>
+                            <h5 class="text-xs font-black text-heading uppercase tracking-widest">Thực thi tự động</h5>
+                            <p class="text-[10px] font-bold text-success mt-1 uppercase tracking-tighter">Update DB + Send PDF Email</p>
+                        </div>
+                     </div>
+                  </div>
+               </div>
 
            </div>
 

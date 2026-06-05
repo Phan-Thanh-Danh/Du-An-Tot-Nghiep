@@ -6,19 +6,25 @@ import {
   ArrowLeft, Save, Send, Database, Clock, 
   Settings, BookOpen, AlertCircle, Check, Plus,
   X, Search, Trash2, Award, CheckCircle2,
-  Info
+  Info, Users, ShieldCheck
 } from 'lucide-vue-next'
+import { EXAM_STATUS } from '@/utils/examAccess.js'
 
 const router = useRouter()
 
 const form = ref({
   name: '',
   description: '',
+  subjectName: 'Lập trình Web',
+  classSectionCode: 'WEB201-SD1904-B1',
   type: 'Trắc nghiệm',
   duration: 60,
   passingScore: 5.0,
+  maxAttempts: 1,
   shuffle: true,
   showResult: true,
+  allowEarlyLearning: false,
+  status: EXAM_STATUS.SCHEDULED,
   startTime: '',
   endTime: ''
 })
@@ -205,9 +211,9 @@ function publish() {
 
 function saveToLocalStorage(status) {
   const defaultExams = [
-    { id: 1, name: 'Thi giữa kỳ: Lập trình Web', duration: '90 phút', questions: 40, status: 'Published', date: '25/05/2026', type: 'Trắc nghiệm' },
-    { id: 2, name: 'Thi kết thúc môn: Java Basic', duration: '120 phút', questions: 50, status: 'Draft', date: '15/06/2026', type: 'Hỗn hợp' },
-    { id: 3, name: 'Quiz 2: Cấu trúc dữ liệu', duration: '15 phút', questions: 10, status: 'Published', date: '18/05/2026', type: 'Trắc nghiệm' },
+    { id: 1, name: 'Thi giữa kỳ: Lập trình Web', subjectName: 'Lập trình Web', classSectionCode: 'WEB201-SD1904-B1', duration: '90 phút', questions: 40, status: EXAM_STATUS.OPEN, date: '04/06/2026', openAt: '2026-06-04T08:00', closeAt: '2026-06-04T10:00', type: 'Trắc nghiệm', maxAttempts: 1, allowedStudents: 42, completedStudents: 31, pendingStudents: 11, allowEarlyLearning: false },
+    { id: 2, name: 'Thi kết thúc môn: Java Basic', subjectName: 'Java Basic', classSectionCode: 'JAVA101-SD1905-B2', duration: '120 phút', questions: 50, status: EXAM_STATUS.DRAFT, date: '15/06/2026', openAt: '2026-06-15T08:00', closeAt: '2026-06-15T10:00', type: 'Hỗn hợp', maxAttempts: 1, allowedStudents: 38, completedStudents: 0, pendingStudents: 38, allowEarlyLearning: false },
+    { id: 3, name: 'Quiz 2: Cấu trúc dữ liệu', subjectName: 'Cấu trúc dữ liệu', classSectionCode: 'CTDL101-SD1904-B1', duration: '15 phút', questions: 10, status: EXAM_STATUS.RESULT_PUBLISHED, date: '18/05/2026', openAt: '2026-05-18T08:00', closeAt: '2026-05-18T23:59', type: 'Trắc nghiệm', maxAttempts: 2, allowedStudents: 42, completedStudents: 42, pendingStudents: 0, allowEarlyLearning: true },
   ]
   
   const stored = localStorage.getItem('teacher_exams')
@@ -225,11 +231,25 @@ function saveToLocalStorage(status) {
   const newExam = {
     id: examId,
     name: form.value.name,
+    subjectName: form.value.subjectName,
+    classSectionCode: form.value.classSectionCode,
     duration: form.value.duration + ' phút',
     questions: selectedQuestions.value.length,
-    status: status,
+    // Phase 7: exam access is controlled by schedule/class/attempt, not password.
+    status: status === 'Published' ? form.value.status : EXAM_STATUS.DRAFT,
     date: examDate,
-    type: form.value.type
+    openAt: form.value.startTime,
+    closeAt: form.value.endTime,
+    type: form.value.type,
+    maxAttempts: form.value.maxAttempts,
+    allowedStudents: 40,
+    completedStudents: 0,
+    pendingStudents: 40,
+    allowEarlyLearning: form.value.allowEarlyLearning,
+    accessPolicy: {
+      requirePassword: false,
+      controlledBy: 'class_section_schedule_attempt',
+    },
   }
   
   examList.unshift(newExam)
@@ -243,7 +263,7 @@ function saveToLocalStorage(status) {
 </script>
 
 <template>
-  <div class="space-y-8 pb-10 text-slate-800 max-w-7xl mx-auto relative">
+  <div class="teacher-create-exam-page space-y-8 pb-10 text-slate-800 max-w-7xl mx-auto relative">
     
     <!-- Toast Component -->
     <Transition name="toast-slide">
@@ -299,6 +319,23 @@ function saveToLocalStorage(status) {
                 <div>
                    <label class="block text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">Mô tả / Hướng dẫn làm bài</label>
                    <textarea v-model="form.description" rows="3" placeholder="Nhập quy chế, lưu ý và hướng dẫn cho sinh viên trước khi làm bài..." class="w-full rounded-[16px] border border-slate-200 bg-white px-5 py-4 text-sm font-medium text-slate-850 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-colors shadow-sm resize-none leading-relaxed"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <div>
+                      <label class="block text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">Môn học</label>
+                      <div class="relative">
+                        <BookOpen :size="16" class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input v-model="form.subjectName" type="text" class="w-full rounded-[16px] border border-slate-200 bg-white pl-12 pr-5 py-4 text-sm font-bold text-slate-800 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-colors shadow-sm" />
+                      </div>
+                   </div>
+                   <div>
+                      <label class="block text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">Lớp học phần áp dụng</label>
+                      <div class="relative">
+                        <Users :size="16" class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input v-model="form.classSectionCode" type="text" class="w-full rounded-[16px] border border-slate-200 bg-white pl-12 pr-5 py-4 text-sm font-bold text-slate-800 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-colors shadow-sm" />
+                      </div>
+                   </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -515,9 +552,9 @@ function saveToLocalStorage(status) {
           <div class="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
              <div class="flex items-center gap-3 mb-4 pb-6 border-b border-slate-50">
                 <div class="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100/50">
-                   <Clock :size="18" />
+                   <ShieldCheck :size="18" />
                 </div>
-                <h2 class="text-lg font-black text-slate-900">Thời gian mở đề</h2>
+                <h2 class="text-lg font-black text-slate-900">Điều kiện mở đề</h2>
              </div>
 
              <div class="space-y-4">
@@ -529,10 +566,40 @@ function saveToLocalStorage(status) {
                    <label class="block text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">Tự động đóng</label>
                    <input v-model="form.endTime" type="datetime-local" class="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-650 outline-none focus:border-amber-400 transition-colors shadow-sm cursor-pointer" />
                 </div>
+                <div>
+                   <label class="block text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">Số lần làm tối đa</label>
+                   <select v-model.number="form.maxAttempts" class="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-650 outline-none focus:border-amber-400 transition-colors shadow-sm cursor-pointer">
+                     <option :value="1">1 lần</option>
+                     <option :value="2">2 lần</option>
+                     <option :value="3">3 lần</option>
+                     <option :value="999">Không giới hạn</option>
+                   </select>
+                </div>
+                <div>
+                   <label class="block text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">Trạng thái sau khi xuất bản</label>
+                   <select v-model="form.status" class="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-650 outline-none focus:border-amber-400 transition-colors shadow-sm cursor-pointer">
+                     <option :value="EXAM_STATUS.SCHEDULED">Đã lên lịch</option>
+                     <option :value="EXAM_STATUS.OPEN">Đang mở</option>
+                     <option :value="EXAM_STATUS.CLOSED">Đã đóng</option>
+                   </select>
+                </div>
+                <div class="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <div>
+                    <p class="text-sm font-bold text-slate-800">Cho phép làm trước</p>
+                    <p class="text-[10px] font-semibold text-slate-400 mt-0.5">Nếu bật, sinh viên sẽ thấy cảnh báo học/làm trước trước khi vào.</p>
+                  </div>
+                  <button
+                    type="button"
+                    @click="form.allowEarlyLearning = !form.allowEarlyLearning"
+                    :class="['w-11 h-6 rounded-full transition-colors relative focus:outline-none shrink-0', form.allowEarlyLearning ? 'bg-indigo-650' : 'bg-slate-200']"
+                  >
+                    <div :class="['h-5 w-5 rounded-full bg-white shadow-sm transition-transform absolute top-0.5 left-0.5', form.allowEarlyLearning ? 'translate-x-5' : 'translate-x-0']"></div>
+                  </button>
+                </div>
                 
                 <div class="mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-start gap-3">
                    <Info :size="16" class="text-slate-400 shrink-0 mt-0.5" />
-                   <p class="text-[10px] font-bold text-slate-450 leading-relaxed">Nếu bỏ trống thời gian, đề thi sẽ được mở không thời hạn cho đến khi bạn khóa thủ công.</p>
+                   <p class="text-[10px] font-bold text-slate-450 leading-relaxed">Không cần mật khẩu đề thi. Truy cập được kiểm soát bằng lớp học phần, thời gian mở/đóng, trạng thái đề và số lần làm.</p>
                 </div>
              </div>
           </div>
@@ -826,5 +893,55 @@ function saveToLocalStorage(status) {
 }
 .bg-indigo-650 {
   background-color: #4f46e5;
+}
+
+.teacher-create-exam-page {
+  color: var(--text-body);
+}
+
+:global(.dark) .teacher-create-exam-page :deep(.bg-white) {
+  background: var(--surface-card-strong);
+  color: var(--text-body);
+}
+
+:global(.dark) .teacher-create-exam-page :deep(.bg-slate-50),
+:global(.dark) .teacher-create-exam-page :deep(.bg-slate-50\/20),
+:global(.dark) .teacher-create-exam-page :deep(.bg-slate-50\/30),
+:global(.dark) .teacher-create-exam-page :deep(.bg-slate-50\/50) {
+  background: var(--surface-input);
+}
+
+:global(.dark) .teacher-create-exam-page :deep(.border-slate-100),
+:global(.dark) .teacher-create-exam-page :deep(.border-slate-200),
+:global(.dark) .teacher-create-exam-page :deep(.border-slate-50) {
+  border-color: var(--border-card);
+}
+
+:global(.dark) .teacher-create-exam-page :deep(.text-slate-900),
+:global(.dark) .teacher-create-exam-page :deep(.text-slate-850),
+:global(.dark) .teacher-create-exam-page :deep(.text-slate-800),
+:global(.dark) .teacher-create-exam-page :deep(.text-slate-750),
+:global(.dark) .teacher-create-exam-page :deep(.text-slate-700),
+:global(.dark) .teacher-create-exam-page :deep(.text-slate-650) {
+  color: var(--text-heading);
+}
+
+:global(.dark) .teacher-create-exam-page :deep(.text-slate-600),
+:global(.dark) .teacher-create-exam-page :deep(.text-slate-500),
+:global(.dark) .teacher-create-exam-page :deep(.text-slate-450) {
+  color: var(--text-label);
+}
+
+:global(.dark) .teacher-create-exam-page :deep(input),
+:global(.dark) .teacher-create-exam-page :deep(textarea),
+:global(.dark) .teacher-create-exam-page :deep(select) {
+  background: var(--surface-input);
+  border-color: var(--border-input);
+  color: var(--text-heading);
+}
+
+:global(.dark) .teacher-create-exam-page :deep(input::placeholder),
+:global(.dark) .teacher-create-exam-page :deep(textarea::placeholder) {
+  color: var(--text-placeholder);
 }
 </style>

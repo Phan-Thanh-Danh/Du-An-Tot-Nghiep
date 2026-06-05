@@ -34,20 +34,20 @@ function logout() {
       collapsed ? 'w-[64px]' : 'w-[220px]',
     ]"
     :style="{
-      '--sidebar-glow-1': 'rgba(37, 99, 235, 0.18)',
-      '--sidebar-glow-2': 'rgba(59, 130, 246, 0.12)',
-      '--sidebar-glow-dark-1': 'rgba(37, 99, 235, 0.10)',
-      '--sidebar-glow-dark-2': 'rgba(59, 130, 246, 0.07)',
-      '--sidebar-accent': '#2563eb',
-      '--sidebar-accent-dark': '#60a5fa',
-      '--sidebar-indicator': '#2563eb',
-      '--sidebar-focus-ring': 'rgba(37, 99, 235, 0.2)',
+      '--sidebar-glow-1': 'rgba(13, 148, 136, 0.18)',
+      '--sidebar-glow-2': 'rgba(20, 184, 166, 0.12)',
+      '--sidebar-glow-dark-1': 'rgba(13, 148, 136, 0.10)',
+      '--sidebar-glow-dark-2': 'rgba(20, 184, 166, 0.07)',
+      '--sidebar-accent': '#0d9488',
+      '--sidebar-accent-dark': '#5eead4',
+      '--sidebar-indicator': '#14b8a6',
+      '--sidebar-focus-ring': 'rgba(13, 148, 136, 0.2)',
       '--active-glow': 'rgba(255, 255, 255, 0.38)',
-      '--active-start': '#1d4ed8',
-      '--active-mid': '#2563eb',
-      '--active-end': '#0891b2',
-      '--active-shadow-1': 'rgba(29, 78, 216, 0.35)',
-      '--active-shadow-2': 'rgba(8, 145, 178, 0.25)',
+      '--active-start': '#0f766e',
+      '--active-mid': '#0d9488',
+      '--active-end': '#14b8a6',
+      '--active-shadow-1': 'rgba(15, 118, 110, 0.35)',
+      '--active-shadow-2': 'rgba(20, 184, 166, 0.25)',
     }"
   >
     <div class="pointer-events-none absolute -left-24 top-24 h-56 w-56 rounded-full bg-blue-300/20 dark:bg-blue-500/8 blur-3xl" />
@@ -133,7 +133,7 @@ function logout() {
 
     <!-- ──────────── TOGGLE BUTTON ──────────── -->
     <button
-      class="absolute -right-3.5 top-[56px] z-[60] flex h-6 w-6 items-center justify-center rounded-full border border-white/70 dark:border-white/10 bg-white/90 dark:bg-slate-700/70 text-slate-500 dark:text-slate-400 shadow-lg shadow-slate-900/10 dark:shadow-slate-900/40 backdrop-blur-xl transition-all hover:border-blue-300 dark:hover:border-blue-500/30 hover:text-blue-700 dark:hover:text-blue-300 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]"
+      class="absolute -right-3.5 top-[56px] z-[60] flex h-6 w-6 items-center justify-center rounded-full border border-white/70 dark:border-white/10 bg-white/90 dark:bg-slate-700/70 text-slate-500 dark:text-slate-400 shadow-lg shadow-slate-900/10 dark:shadow-slate-900/40 backdrop-blur-xl transition-all hover:border-[var(--sidebar-accent)]/40 dark:hover:border-[var(--sidebar-accent-dark)]/30 hover:text-[var(--sidebar-accent)] dark:hover:text-[var(--sidebar-accent-dark)] focus:outline-none focus:ring-[var(--sidebar-focus-ring)]"
       :title="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       :aria-label="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       @click="emit('toggle')"

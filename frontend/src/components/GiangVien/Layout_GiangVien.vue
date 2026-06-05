@@ -11,6 +11,7 @@ import AppTopbar from '../SinhVien/AppTopbar.vue'
 import PageContainer from '../SinhVien/PageContainer.vue'
 import AiAssistant from '@/components/ui/AiAssistant.vue'
 import AnnouncementBanner from '@/components/ui/AnnouncementBanner.vue'
+import { GraduationCap } from 'lucide-vue-next'
 
 // ── Sidebar state ──────────────────────────────────────────
 const sidebarCollapsed = ref(false)
@@ -127,7 +128,7 @@ const currentPageMeta = computed(() => {
     </Transition>
 
     <!-- ═══════════ MAIN AREA (Topbar + Content) ═══════════ -->
-    <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden pt-[72px]">
+    <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden pt-16">
       <!-- Topbar -->
       <AppTopbar @toggle-sidebar="toggleSidebar" />
 
@@ -135,7 +136,7 @@ const currentPageMeta = computed(() => {
 
       <!-- ═══════════ CONTENT AREA ═══════════ -->
       <main class="flex-1 overflow-y-auto">
-        <div class="mx-auto w-full max-w-[1500px] px-3 py-4 sm:px-4">
+        <div class="mx-auto w-full max-w-[1500px] px-3 py-3 sm:px-4">
           <PageContainer
             :title="currentPageMeta.title"
             :subtitle="currentPageMeta.subtitle"
@@ -154,13 +155,13 @@ const currentPageMeta = computed(() => {
                   <template #default>
                     <component :is="Component" v-if="Component" />
                     <!-- Empty state -->
-                    <div v-else class="flex flex-col items-center justify-center py-24 text-center">
-                      <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50">
+                    <div v-else class="flex flex-col items-center justify-center py-16 text-center">
+                      <div class="surface-input border-card flex h-14 w-14 items-center justify-center rounded-2xl border">
                         <GraduationCap class="h-8 w-8 text-blue-300" />
                       </div>
-                      <h3 class="mt-4 text-base font-semibold text-slate-700">Trang đang phát triển</h3>
-                      <p class="mt-1.5 text-sm text-slate-400 max-w-xs">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng.</p>
-                      <router-link to="/teacher/dashboard" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">← Về Dashboard</router-link>
+                      <h3 class="mt-4 text-base font-semibold text-heading">Trang đang phát triển</h3>
+                      <p class="mt-1.5 max-w-xs text-sm text-body">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng.</p>
+                      <router-link to="/teacher/dashboard" class="lg-button-primary mt-5 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium">← Về Dashboard</router-link>
                     </div>
                   </template>
                   <template #fallback>
@@ -168,10 +169,10 @@ const currentPageMeta = computed(() => {
                     <div class="flex h-[60vh] w-full flex-col items-center justify-center space-y-6">
                       <div class="relative flex items-center justify-center">
                         <div class="absolute h-16 w-16 animate-ping rounded-full bg-blue-400/20"></div>
-                        <div class="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600 shadow-sm"></div>
+                        <div class="h-10 w-10 animate-spin rounded-full border-4 border-default border-t-[var(--lg-primary)] shadow-sm"></div>
                       </div>
                       <div class="flex flex-col items-center space-y-2">
-                        <p class="text-sm font-semibold tracking-wide text-slate-600">Đang nạp dữ liệu...</p>
+                        <p class="text-sm font-semibold tracking-wide text-label">Đang nạp dữ liệu...</p>
                         <div class="flex space-x-1">
                           <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500" style="animation-delay: -0.3s"></div>
                           <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500" style="animation-delay: -0.15s"></div>

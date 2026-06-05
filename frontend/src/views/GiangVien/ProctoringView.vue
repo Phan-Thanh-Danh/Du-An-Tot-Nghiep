@@ -44,6 +44,42 @@
       </div>
     </div>
 
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 flex-shrink-0">
+      <div
+        v-for="session in examSessions"
+        :key="session.id"
+        class="exam-session-card rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ session.classSectionCode }}</p>
+            <h2 class="mt-1 text-sm font-black text-slate-900">{{ session.title }}</h2>
+            <p class="mt-1 text-xs font-bold text-slate-500">{{ session.subject }}</p>
+          </div>
+          <span :class="['rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest', getSessionTone(session.status)]">
+            {{ getSessionStatusLabel(session.status) }}
+          </span>
+        </div>
+        <div class="mt-3 grid grid-cols-3 gap-2 text-center">
+          <div class="rounded-xl bg-slate-50 px-2 py-2">
+            <p class="text-[9px] font-black uppercase text-slate-400">Đang làm</p>
+            <p class="text-sm font-black text-slate-800">{{ session.activeStudents }}</p>
+          </div>
+          <div class="rounded-xl bg-amber-50 px-2 py-2">
+            <p class="text-[9px] font-black uppercase text-amber-500">Cảnh báo</p>
+            <p class="text-sm font-black text-amber-700">{{ session.focusWarnings }}</p>
+          </div>
+          <div class="rounded-xl bg-blue-50 px-2 py-2">
+            <p class="text-[9px] font-black uppercase text-blue-500">Tổng</p>
+            <p class="text-sm font-black text-blue-700">{{ session.totalStudents }}</p>
+          </div>
+        </div>
+        <p class="mt-3 text-[10px] font-bold leading-relaxed text-slate-400">
+          Canh thi ở Phase 7 chỉ theo dõi ca thi, số sinh viên và cảnh báo focus/tab mock. Không triển khai proctoring phức tạp.
+        </p>
+      </div>
+    </div>
+
     <!-- ── CCTV GRID ── -->
     <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 pb-6">
@@ -346,6 +382,51 @@ function updateTime() {
   currentTime.value = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
+const examSessions = [
+  {
+    id: 'session-web201-midterm',
+    title: 'Thi giữa kỳ Lập trình Web',
+    subject: 'WEB201 · Frontend với Vue',
+    classSectionCode: 'WEB201-SD1904-B1',
+    status: 'running',
+    activeStudents: 31,
+    totalStudents: 42,
+    focusWarnings: 3,
+  },
+  {
+    id: 'session-java101-final',
+    title: 'Thi kết thúc môn Java Basic',
+    subject: 'JAVA101 · Java Basic',
+    classSectionCode: 'JAVA101-SD1905-B2',
+    status: 'scheduled',
+    activeStudents: 0,
+    totalStudents: 38,
+    focusWarnings: 0,
+  },
+  {
+    id: 'session-ctdl101-quiz',
+    title: 'Quiz 2: Cấu trúc dữ liệu',
+    subject: 'CTDL101 · Cây & Đồ thị',
+    classSectionCode: 'CTDL101-SD1904-B1',
+    status: 'ended',
+    activeStudents: 0,
+    totalStudents: 42,
+    focusWarnings: 2,
+  },
+]
+
+function getSessionStatusLabel(status) {
+  if (status === 'running') return 'Đang diễn ra'
+  if (status === 'ended') return 'Đã kết thúc'
+  return 'Chưa bắt đầu'
+}
+
+function getSessionTone(status) {
+  if (status === 'running') return 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+  if (status === 'ended') return 'bg-slate-100 text-slate-600 border border-slate-200'
+  return 'bg-cyan-50 text-cyan-700 border border-cyan-100'
+}
+
 const classrooms = ref([
   { 
     id: 'PM401', 
@@ -604,6 +685,38 @@ function takeSnapshot() {
 }
 .animate-pulse-soft {
   animation: pulse-soft 2s infinite ease-in-out;
+}
+
+:global(.dark) .exam-session-card {
+  background: var(--surface-card-strong);
+  border-color: var(--border-card);
+}
+
+:global(.dark) .exam-session-card h2 {
+  color: var(--text-heading);
+}
+
+:global(.dark) .exam-session-card p {
+  color: var(--text-label);
+}
+
+:global(.dark) .exam-session-card .bg-slate-50,
+:global(.dark) .exam-session-card .bg-amber-50,
+:global(.dark) .exam-session-card .bg-blue-50 {
+  background: var(--surface-input);
+}
+
+:global(.dark) .exam-session-card .text-slate-800,
+:global(.dark) .exam-session-card .text-amber-700,
+:global(.dark) .exam-session-card .text-blue-700 {
+  color: var(--text-heading);
+}
+
+:global(.dark) .exam-session-card .text-slate-400,
+:global(.dark) .exam-session-card .text-slate-500,
+:global(.dark) .exam-session-card .text-amber-500,
+:global(.dark) .exam-session-card .text-blue-500 {
+  color: var(--text-label);
 }
 
 @keyframes bounce-slow {

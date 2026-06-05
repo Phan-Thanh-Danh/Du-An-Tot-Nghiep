@@ -2693,6 +2693,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_hoc_ky");
 
+                    b.Property<int>("MaLop")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_lop");
+
                     b.Property<int?>("MaLopHocPhan")
                         .HasColumnType("int")
                         .HasColumnName("ma_lop_hoc_phan");
@@ -2732,15 +2736,19 @@ namespace Backend.Migrations
                     b.HasKey("MaKhoaHoc")
                         .HasName("PK_KhoaHoc");
 
-                    b.HasIndex("MaDonVi");
-
                     b.HasIndex("MaGiaoVien");
 
                     b.HasIndex("MaHocKy");
 
+                    b.HasIndex("MaLop");
+
                     b.HasIndex("MaLopHocPhan");
 
                     b.HasIndex("MaMonHoc");
+
+                    b.HasIndex("MaDonVi", "MaMonHoc", "MaHocKy", "MaLop")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_KhoaHoc_DonVi_MonHoc_HocKy_Lop");
 
                     b.ToTable("KhoaHoc", "dbo", t =>
                         {
@@ -5674,6 +5682,13 @@ namespace Backend.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK_KhoaHoc_ma_hoc_ky__HocKy");
 
+                    b.HasOne("Backend.Models.LopHanhChinh", "Lop")
+                        .WithMany()
+                        .HasForeignKey("MaLop")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("FK_KhoaHoc_ma_lop__LopHanhChinh");
+
                     b.HasOne("Backend.Models.LopHocPhan", "LopHocPhan")
                         .WithMany()
                         .HasForeignKey("MaLopHocPhan")
@@ -5692,6 +5707,8 @@ namespace Backend.Migrations
                     b.Navigation("GiaoVien");
 
                     b.Navigation("HocKy");
+
+                    b.Navigation("Lop");
 
                     b.Navigation("LopHocPhan");
 

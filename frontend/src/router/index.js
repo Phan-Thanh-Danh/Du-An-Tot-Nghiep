@@ -15,6 +15,7 @@ const router = createRouter({
       name: 'home',
       redirect: () => {
         const authStore = useAuthStore()
+        if (authStore.hasRole('SuperAdmin')) return '/super-admin/dashboard'
         if (authStore.hasRole('Principal')) return '/bgh/dashboard'
         if (authStore.hasRole('Teacher')) return '/teacher/dashboard'
         if (authStore.hasRole('AcademicStaff')) return '/staff/dashboard'
@@ -53,6 +54,12 @@ const router = createRouter({
           meta: { title: 'Khóa học' },
         },
         {
+          path: 'curriculum',
+          name: 'student-curriculum',
+          component: () => import('../views/Student/CurriculumView.vue'),
+          meta: { title: 'Khung chương trình' },
+        },
+        {
           path: 'courses/:courseId',
           name: 'student-course-detail',
           component: () => import('../views/Student/CourseDetailView.vue'),
@@ -75,6 +82,18 @@ const router = createRouter({
           name: 'student-exams',
           component: () => import('../views/Student/ExamsView.vue'),
           meta: { title: 'Thi / Kiểm tra' },
+        },
+        {
+          path: 'exams/detail/:examId',
+          name: 'student-exam-detail',
+          component: () => import('../views/Student/ExamDetailView.vue'),
+          meta: { title: 'Chi tiết bài thi' },
+        },
+        {
+          path: 'exams/:examId/take',
+          name: 'student-exam-take',
+          component: () => import('../views/Student/ExamTakeView.vue'),
+          meta: { title: 'Làm bài thi' },
         },
         {
           path: 'exams/:examResultId',
@@ -168,6 +187,8 @@ const router = createRouter({
         { path: 'class-attendance', name: 'teacher-class-attendance', component: () => import('../views/GiangVien/ClassAttendanceView.vue') },
         { path: 'class-grades', name: 'teacher-class-grades', component: () => import('../views/GiangVien/ClassGradebookView.vue') },
         { path: 'assignments', name: 'teacher-assignments', component: () => import('../views/GiangVien/AssignmentsListView.vue') },
+        { path: 'exams', name: 'teacher-exams', component: () => import('../views/GiangVien/ExamsView.vue') },
+        { path: 'exams/create', name: 'teacher-exams-create', component: () => import('../views/GiangVien/CreateExamView.vue') },
         { path: 'grading', name: 'teacher-grading', component: () => import('../views/GiangVien/GradingView.vue') },
         { path: 'exam-results', name: 'teacher-exam-results', component: () => import('../views/GiangVien/ExamResultsView.vue') },
         { path: 'proctoring', name: 'teacher-proctoring', component: () => import('../views/GiangVien/ProctoringView.vue') },
@@ -257,6 +278,266 @@ const router = createRouter({
       ],
     },
 
+    // ── Super Admin Layout ────────────────────────────────
+    {
+      path: '/super-admin',
+      component: () => import('../components/SuperAdmin/Layout_SuperAdmin.vue'),
+      meta: { requiresAuth: true, role: 'SuperAdmin' },
+      children: [
+        { path: '', redirect: '/super-admin/dashboard' },
+        {
+          path: 'dashboard',
+          name: 'super-admin-dashboard',
+          component: () => import('../views/SuperAdmin/Dashboard.vue'),
+          meta: { title: 'Dashboard Quản trị' },
+        },
+        {
+          path: 'profile',
+          name: 'super-admin-profile',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Hồ sơ cá nhân Admin' },
+        },
+        // 2. Quản lý Cơ sở (Organization Hierarchy)
+        {
+          path: 'organizations',
+          name: 'super-admin-organizations',
+          component: () => import('../views/SuperAdmin/OrganizationsView.vue'),
+          meta: { title: 'Quản lý cây tổ chức' },
+        },
+
+        // 3. Tài khoản và Phân quyền (RBAC)
+        {
+          path: 'users',
+          name: 'super-admin-users',
+          component: () => import('../views/SuperAdmin/UsersView.vue'),
+          meta: { title: 'Danh sách người dùng' },
+        },
+
+        {
+          path: 'roles-permissions',
+          name: 'super-admin-roles-permissions',
+          component: () => import('../views/SuperAdmin/RolesPermissionsView.vue'),
+          meta: { title: 'Vai trò & Quyền hạn' },
+        },
+        {
+          path: 'login-history',
+          name: 'super-admin-login-history',
+          component: () => import('../views/SuperAdmin/LoginHistoryView.vue'),
+          meta: { title: 'Lịch sử đăng nhập' },
+        },
+        // 4. Quản lý Đào tạo và Học vụ
+        {
+          path: 'training/semesters',
+          name: 'super-admin-training-semesters',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Cấu hình học kỳ' },
+        },
+        {
+          path: 'training/programs',
+          name: 'super-admin-training-programs',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Cấu trúc chương trình' },
+        },
+        {
+          path: 'training/subjects',
+          name: 'super-admin-training-subjects',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Quản lý môn học' },
+        },
+        {
+          path: 'training/courses',
+          name: 'super-admin-training-courses',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Quản lý khóa học' },
+        },
+        {
+          path: 'training/exam-periods',
+          name: 'super-admin-training-exam-periods',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Mở/Đóng giai đoạn thi' },
+        },
+        {
+          path: 'operations/schedules',
+          name: 'super-admin-operations-schedules',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Thời khóa biểu' },
+        },
+        {
+          path: 'operations/schedules/approval',
+          name: 'super-admin-operations-schedules-approval',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Duyệt/Publish TKB' },
+        },
+        {
+          path: 'operations/attendance-policy',
+          name: 'super-admin-operations-attendance-policy',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Quỹ vắng & Chuyên cần' },
+        },
+        {
+          path: 'operations/registration-periods',
+          name: 'super-admin-operations-registration-periods',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Mở/Đóng đăng ký môn' },
+        },
+        {
+          path: 'operations/pass-fail-rules',
+          name: 'super-admin-operations-pass-fail-rules',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Điều kiện Pass/Fail' },
+        },
+        // 5. Tài chính và Học phí
+        {
+          path: 'finance/tuition-config',
+          name: 'super-admin-finance-tuition-config',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Cấu hình học phí' },
+        },
+        {
+          path: 'finance/student-debts',
+          name: 'super-admin-finance-student-debts',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Công nợ sinh viên' },
+        },
+        {
+          path: 'finance/payments',
+          name: 'super-admin-finance-payments',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Theo dõi thanh toán' },
+        },
+        {
+          path: 'finance/refunds',
+          name: 'super-admin-finance-refunds',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Hoàn phí/Bảo lưu' },
+        },
+        // 6. Hỗ trợ, Đơn từ và Đánh giá
+        {
+          path: 'support/tickets',
+          name: 'super-admin-support-tickets',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Ticket hỗ trợ' },
+        },
+        {
+          path: 'support/faq',
+          name: 'super-admin-support-faq',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Quản lý FAQ' },
+        },
+        {
+          path: 'approvals/requests',
+          name: 'super-admin-approvals-requests',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Đơn cần duyệt' },
+        },
+        {
+          path: 'approvals/history',
+          name: 'super-admin-approvals-history',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Lịch sử duyệt đơn' },
+        },
+        {
+          path: 'evaluations/config',
+          name: 'super-admin-evaluations-config',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Cấu hình đánh giá GV' },
+        },
+        {
+          path: 'evaluations/results',
+          name: 'super-admin-evaluations-results',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Kết quả đánh giá GV' },
+        },
+        {
+          path: 'awards',
+          name: 'super-admin-awards',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Khen thưởng' },
+        },
+        {
+          path: 'discipline',
+          name: 'super-admin-discipline',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Kỷ luật' },
+        },
+        // 7. Báo cáo và Phân tích (Analytics)
+        {
+          path: 'reports/education-overview',
+          name: 'super-admin-reports-education-overview',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Tổng quan đào tạo' },
+        },
+        {
+          path: 'reports/learning',
+          name: 'super-admin-reports-learning',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Báo cáo học tập' },
+        },
+        {
+          path: 'reports/attendance',
+          name: 'super-admin-reports-attendance',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Báo cáo chuyên cần' },
+        },
+        {
+          path: 'reports/campus-comparison',
+          name: 'super-admin-reports-campus-comparison',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'So sánh cơ sở' },
+        },
+        {
+          path: 'reports/export',
+          name: 'super-admin-reports-export',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Export dữ liệu' },
+        },
+        // 8. Trung tâm Thông báo (Notification Hub)
+        {
+          path: 'notifications/templates',
+          name: 'super-admin-notifications-templates',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Template thông báo' },
+        },
+        {
+          path: 'notifications/send',
+          name: 'super-admin-notifications-send',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Gửi thông báo toàn hệ thống' },
+        },
+        {
+          path: 'notifications/history',
+          name: 'super-admin-notifications-history',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Lịch sử thông báo' },
+        },
+        // 9. Quản trị Hệ thống, Audit và Bảo mật
+        {
+          path: 'audit/logs',
+          name: 'super-admin-audit-logs',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Audit Log' },
+        },
+        {
+          path: 'security/alerts',
+          name: 'super-admin-security-alerts',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Security Alert' },
+        },
+        {
+          path: 'system/modules',
+          name: 'super-admin-system-modules',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Bật/Tắt module' },
+        },
+        {
+          path: 'system/ai-automation',
+          name: 'super-admin-system-ai-automation',
+          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          meta: { title: 'Cấu hình AI & Automation' },
+        },
+      ],
+    },
+
     // ── 404 ───────────────────────────────────────────────
     {
       path: '/:pathMatch(.*)*',
@@ -278,6 +559,7 @@ router.beforeEach((to, from, next) => {
 
   // Chuyển hướng nếu truy cập trang public khi đã login
   if (to.meta.public && authStore.isAuthenticated) {
+    if (authStore.hasRole('SuperAdmin')) return next('/super-admin/dashboard')
     if (authStore.hasRole('Teacher')) return next('/teacher/dashboard')
     if (authStore.hasRole('AcademicStaff')) return next('/staff/dashboard')
     return next('/student/dashboard')

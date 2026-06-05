@@ -68,13 +68,13 @@ const densityClass = computed(() => {
       interactive ? 'lg-card-hover' : '',
     ]"
   >
-    <div v-if="$slots.header" class="mb-5 border-b border-white/45 dark:border-white/10 pb-4">
+    <div v-if="$slots.header" class="mb-4 border-b border-card pb-3">
       <slot name="header" />
     </div>
 
     <slot />
 
-    <div v-if="$slots.footer" class="mt-5 border-t border-white/45 dark:border-white/10 pt-4">
+    <div v-if="$slots.footer" class="mt-4 border-t border-card pt-3">
       <slot name="footer" />
     </div>
   </component>
