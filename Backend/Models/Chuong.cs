@@ -7,6 +7,9 @@ public class Chuong
     public string TieuDe { get; set; } = string.Empty;
     public int ThuTu { get; set; }
     public bool DaAn { get; set; }
+    public DateTime NgayTao { get; set; }
+    public DateTime? NgayCapNhat { get; set; }
 
     public DanhMucMonHoc? MonHoc { get; set; }
+    public ICollection<BaiHoc> BaiHocs { get; set; } = new List<BaiHoc>();
 }

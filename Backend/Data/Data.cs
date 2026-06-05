@@ -72,6 +72,7 @@ public static class Data
             new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.CampusAdmin), "Quản trị cơ sở"),
             new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.SubCampusAdmin), "Quản trị cơ sở con"),
             new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.Chairman), "Chủ tịch hệ thống"),
+            new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.HoiDongQuanLyNoiDung), "Hội đồng quản lý nội dung"),
         };
 
         var nextRoleId = ((await context.VaiTros.MaxAsync(x => (int?)x.MaVaiTro)) ?? 0) + 1;
@@ -808,6 +809,7 @@ public static class Data
             new DemoUserSeed("student.tkdh01@lms.local", "Trần Thị Sinh Viên Thiết Kế", AuthRoles.ToDatabaseCode(AuthRoles.Student), hcmCampus.MaDonVi, 2026),
             new DemoUserSeed("student.mkt01@lms.local", "Lê Văn Sinh Viên Marketing", AuthRoles.ToDatabaseCode(AuthRoles.Student), hcmCampus.MaDonVi, 2026),
             new DemoUserSeed("parent01@lms.local", "Phụ Huynh Demo", AuthRoles.ToDatabaseCode(AuthRoles.Parent), hcmCampus.MaDonVi),
+            new DemoUserSeed("hoidong.quanly.noidung@lms.local", "Hội Đồng Quản Lý Nội Dung", AuthRoles.ToDatabaseCode(AuthRoles.HoiDongQuanLyNoiDung), hcmCampus.MaDonVi),
         };
 
         var roles = await context.VaiTros.ToDictionaryAsync(

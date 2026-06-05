@@ -45,3 +45,7 @@ pnpm-debug.log*
 
 # Local git metadata backups
 .git-metadata-backups/
+
+# Postman testing files
+lms_task1_postman_collection.json
+
