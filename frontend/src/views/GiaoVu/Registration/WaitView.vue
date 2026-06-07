@@ -211,7 +211,7 @@ function closeTransferModal() {
               @keyup.enter="doSearch"
             >
           </div>
-          <button class="lg-button-primary px-4 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20" @click="doSearch">
+          <button class="lg-button-primary px-4 py-2.5 text-sm font-bold" @click="doSearch">
             <Search :size="16" /> Tìm
           </button>
           <button v-if="searchTriggered" class="lg-button-secondary px-3 py-2.5 text-sm font-bold" @click="clearSearch" title="Xóa tìm kiếm">
@@ -240,7 +240,7 @@ function closeTransferModal() {
             <div class="flex gap-1.5 flex-wrap">
               <button v-for="s in ['all', ...sections]" :key="s"
                 @click="filterSection = s"
-                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterSection === s ? 'bg-[var(--lg-primary)] text-white shadow-md' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
+                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterSection === s ? 'bg-[var(--lg-primary)] text-white shadow-sm' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
               >{{ s === 'all' ? 'Tất cả' : s }}</button>
             </div>
           </div>
@@ -265,7 +265,7 @@ function closeTransferModal() {
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
-            <tr v-for="item in filteredWaitlist" :key="item.id" class="group hover:bg-white/10 transition-colors">
+            <tr v-for="item in filteredWaitlist" :key="item.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-4">
                 <span class="text-sm font-black text-placeholder">#{{ item.position }}</span>
               </td>
@@ -310,7 +310,7 @@ function closeTransferModal() {
                       leave-from-class="opacity-100 scale-100"
                       leave-to-class="opacity-0 scale-95"
                     >
-                      <div v-if="contextTarget?.id === item.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-xl shadow-slate-900/10" @click.stop>
+                      <div v-if="contextTarget?.id === item.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
                         <button v-if="item.status === 'waiting'" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-success-bg)] hover:text-[var(--lg-success)] transition-all" @click="openConfirmModal(item); closeContextMenu()">
                           <UserCheck :size="14" /> Xác nhận vào lớp
                         </button>
@@ -363,7 +363,7 @@ function closeTransferModal() {
     >
       <div v-if="showConfirmModal && confirmTarget" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="closeConfirmModal">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-md lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div v-if="confirmDone" class="flex flex-col items-center py-8 text-center">
             <div class="h-16 w-16 rounded-full bg-[var(--color-success-bg)] text-[var(--lg-success)] flex items-center justify-center mb-4">
               <Check :size="32" />
@@ -384,7 +384,7 @@ function closeTransferModal() {
               </button>
             </div>
             <div class="surface-solid p-4 rounded-2xl flex items-center gap-3 mb-4">
-              <div class="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+              <div class="h-10 w-10 rounded-full bg-[var(--color-success-bg)] text-[var(--color-success-text)] text-xs font-black flex items-center justify-center flex-shrink-0 border border-default">
                 {{ confirmTarget.studentCode.slice(-2) }}
               </div>
               <div>
@@ -401,7 +401,7 @@ function closeTransferModal() {
             </div>
             <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
               <button class="lg-button-secondary px-5 py-2.5 text-sm font-bold" @click="closeConfirmModal">Hủy</button>
-              <button class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-2 bg-[var(--lg-success)] hover:bg-emerald-600" @click="doConfirm" :disabled="confirming">
+              <button class="lg-button-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2 bg-[var(--lg-success)] hover:opacity-90" @click="doConfirm" :disabled="confirming">
                 <Loader2 v-if="confirming" :size="16" class="animate-spin" />
                 <CheckCircle2 v-else :size="16" />
                 {{ confirming ? 'Đang xử lý...' : 'Xác nhận' }}
@@ -422,7 +422,7 @@ function closeTransferModal() {
     >
       <div v-if="showRemoveModal && removeTarget" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="closeRemoveModal">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-md lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
               <div class="h-8 w-8 rounded-lg bg-[var(--color-danger-bg)] text-[var(--lg-danger)] flex items-center justify-center">
@@ -435,7 +435,7 @@ function closeTransferModal() {
             </button>
           </div>
           <div class="surface-solid p-4 rounded-2xl flex items-center gap-3 mb-4">
-            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+            <div class="h-10 w-10 rounded-full bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] text-xs font-black flex items-center justify-center flex-shrink-0 border border-default">
               {{ removeTarget.studentCode.slice(-2) }}
             </div>
             <div>
@@ -474,7 +474,7 @@ function closeTransferModal() {
     >
       <div v-if="showTransferModal && transferTarget" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="closeTransferModal">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-md lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
               <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
@@ -487,7 +487,7 @@ function closeTransferModal() {
             </button>
           </div>
           <div class="surface-solid p-4 rounded-2xl flex items-center gap-3 mb-5">
-            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+            <div class="h-10 w-10 rounded-full bg-[var(--color-info-bg)] text-[var(--color-info-text)] text-xs font-black flex items-center justify-center flex-shrink-0 border border-default">
               {{ transferTarget.studentCode.slice(-2) }}
             </div>
             <div>
@@ -516,7 +516,7 @@ function closeTransferModal() {
           </div>
           <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
             <button class="lg-button-secondary px-5 py-2.5 text-sm font-bold" @click="closeTransferModal">Hủy</button>
-            <button class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20 flex items-center gap-2" :disabled="!transferSection" :class="{ 'opacity-50 cursor-not-allowed': !transferSection }" @click="confirmTransfer">
+            <button class="lg-button-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2" :disabled="!transferSection" :class="{ 'opacity-50 cursor-not-allowed': !transferSection }" @click="confirmTransfer">
               <ArrowLeftRight :size="16" /> Chuyển
             </button>
           </div>

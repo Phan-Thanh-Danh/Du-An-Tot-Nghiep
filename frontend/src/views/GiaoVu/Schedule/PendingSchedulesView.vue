@@ -387,7 +387,7 @@ async function confirmNewSchedule() {
           v-for="item in filteredSchedules"
           :key="item.id"
           :class="[
-            'lg-card lg-glass group p-5 transition-all hover:-translate-y-0.5 hover:shadow-xl cursor-default',
+            'lg-card surface-card group p-4 transition-all hover:-translate-y-0.5 hover:shadow-sm cursor-default',
             item.status === 'returned' ? 'ring-1 ring-[var(--lg-danger)]/20' : ''
           ]"
         >
@@ -545,16 +545,16 @@ async function confirmNewSchedule() {
       >
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
 
-        <div class="relative w-full max-w-2xl surface-modal rounded-[28px] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto border border-default">
+        <div class="relative w-full max-w-2xl surface-modal rounded-2xl shadow-sm overflow-hidden max-h-[90vh] overflow-y-auto border border-default">
           <!-- Header -->
-          <div class="p-6 pb-5" style="background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary) 52%, var(--lg-cyan))">
+          <div class="modal-header p-5">
             <div class="flex items-center justify-between">
               <div>
-                <h2 class="text-xl font-black text-white">Chi tiết TKB {{ selectedSchedule.semester }}</h2>
-                <p class="text-sm text-white/80 mt-0.5">Lầu {{ selectedSchedule.floor }} · Gửi bởi {{ selectedSchedule.requester }}</p>
+                <h2 class="text-xl font-black text-heading">Chi tiết TKB {{ selectedSchedule.semester }}</h2>
+                <p class="text-sm text-label mt-0.5">Lầu {{ selectedSchedule.floor }} · Gửi bởi {{ selectedSchedule.requester }}</p>
               </div>
               <button
-                class="h-9 w-9 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-all"
+                class="h-9 w-9 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
                 @click="closeDetail"
               >
                 <X :size="18" />
@@ -660,7 +660,7 @@ async function confirmNewSchedule() {
       >
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
 
-        <div class="relative w-full max-w-md surface-modal rounded-[28px] shadow-2xl overflow-hidden border border-default">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
           <div class="p-6 text-center">
             <div class="h-16 w-16 rounded-3xl bg-[var(--color-danger-bg)] flex items-center justify-center text-[var(--color-danger-text)] mx-auto mb-4">
               <Undo2 :size="28" />
@@ -712,21 +712,21 @@ async function confirmNewSchedule() {
       >
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
 
-        <div class="relative w-full max-w-lg surface-modal rounded-[28px] shadow-2xl overflow-hidden border border-default">
+        <div class="relative w-full max-w-lg surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
           <!-- Header -->
-          <div class="p-6 pb-5" style="background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary) 52%, var(--lg-cyan))">
+          <div class="modal-header p-5">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center">
-                  <Send :size="20" class="text-white" />
+                <div class="h-10 w-10 rounded-2xl surface-input flex items-center justify-center">
+                  <Send :size="20" class="text-link" />
                 </div>
                 <div>
-                  <h2 class="text-lg font-black text-white">Gửi duyệt TKB mới</h2>
-                  <p class="text-xs text-white/70 mt-0.5">Tạo bộ TKB gửi lên Ban giám hiệu</p>
+                  <h2 class="text-lg font-black text-heading">Gửi duyệt TKB mới</h2>
+                  <p class="text-xs text-label mt-0.5">Tạo bộ TKB gửi lên Ban giám hiệu</p>
                 </div>
               </div>
               <button
-                class="h-8 w-8 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-all"
+                class="h-8 w-8 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
                 @click="closeNewSchedule"
               >
                 <X :size="16" />
@@ -805,6 +805,11 @@ async function confirmNewSchedule() {
 </template>
 
 <style scoped>
+.modal-header {
+  border-bottom: 1px solid var(--border-card);
+  background: var(--surface-input);
+}
+
 /* Slide-down filter panel */
 .slide-down-enter-active,
 .slide-down-leave-active {

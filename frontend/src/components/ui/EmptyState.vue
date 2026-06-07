@@ -14,19 +14,53 @@ defineProps({
 </script>
 
 <template>
-  <div class="lg-glass-soft rounded-[22px] px-5 py-8 text-center">
-    <div class="relative mx-auto flex h-14 w-14 items-center justify-center">
-      <span class="absolute inset-0 rounded-full bg-cyan-300/30 blur-2xl" />
-      <span class="surface-input border-card relative flex h-12 w-12 items-center justify-center rounded-2xl border text-link shadow-sm">
+  <div class="empty-state">
+    <div class="relative mx-auto flex h-12 w-12 items-center justify-center">
+      <span class="empty-state-glow" />
+      <span class="empty-state-icon">
         <slot name="icon">
-          <Inbox :size="24" />
+          <Inbox :size="22" />
         </slot>
       </span>
     </div>
-    <h3 class="mt-4 text-base font-bold text-heading">{{ title }}</h3>
-    <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-body">{{ description }}</p>
-    <div v-if="$slots.default" class="mt-4">
+    <h3 class="mt-3 text-sm font-bold text-heading">{{ title }}</h3>
+    <p class="mx-auto mt-1.5 max-w-md text-sm leading-6 text-body">{{ description }}</p>
+    <div v-if="$slots.default" class="mt-3">
       <slot />
     </div>
   </div>
 </template>
+
+<style scoped>
+.empty-state {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-card);
+  background: var(--surface-card);
+  padding: var(--card-padding-lg);
+  text-align: center;
+  box-shadow: var(--lg-shadow-sm);
+}
+
+.empty-state-glow {
+  position: absolute;
+  inset: 0.25rem;
+  border-radius: 9999px;
+  background: var(--accent-cyan-soft);
+  filter: blur(14px);
+  opacity: 0.45;
+}
+
+.empty-state-icon {
+  position: relative;
+  display: flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  color: var(--text-link);
+  box-shadow: var(--lg-shadow-sm);
+}
+</style>

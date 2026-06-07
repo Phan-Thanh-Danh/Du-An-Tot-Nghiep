@@ -67,13 +67,18 @@ const currentPageMeta = computed(() => {
 </script>
 
 <template>
-  <div class="lg-app-bg relative flex h-screen w-full overflow-hidden font-sans">
-    
-    <!-- Radial glow orbs -->
-    <div class="pointer-events-none fixed inset-0 overflow-hidden z-0">
-      <div class="lg-blob lg-blob-violet absolute -top-40 -left-40" />
-      <div class="lg-blob lg-blob-blue absolute -bottom-40 -right-40" />
-      <div class="lg-blob lg-blob-cyan absolute top-1/3 left-1/2" />
+  <div
+    class="lg-app-bg relative flex h-screen w-full overflow-hidden font-sans"
+    :style="{
+      '--sidebar-accent': '#6366f1',
+      '--active-start': '#4338ca',
+      '--active-mid': '#6366f1',
+      '--active-end': '#818cf8',
+    }"
+  >
+    <div class="lg-shell-orbs">
+      <div class="lg-shell-orb lg-shell-orb-primary" />
+      <div class="lg-shell-orb lg-shell-orb-secondary" />
     </div>
 
     <!-- MOBILE OVERLAY -->
@@ -87,7 +92,7 @@ const currentPageMeta = computed(() => {
     >
       <div
         v-if="mobileSidebarOpen"
-        class="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden"
+        class="lg-mobile-scrim fixed inset-0 z-40 lg:hidden"
         @click="closeMobileSidebar"
       />
     </Transition>
@@ -127,7 +132,7 @@ const currentPageMeta = computed(() => {
         <AnnouncementBanner />
 
         <main class="flex-1 overflow-y-auto">
-        <div class="mx-auto max-w-[1440px] px-3 sm:px-4 py-3">
+        <div class="lg-shell-content mx-auto">
           <PageContainer
             :title="currentPageMeta.title"
             :subtitle="currentPageMeta.subtitle"
@@ -140,8 +145,8 @@ const currentPageMeta = computed(() => {
                 mode="out-in"
               >
                 <component :is="Component" v-if="Component" />
-                <div v-else class="flex flex-col items-center justify-center py-16 text-center">
-                  <div class="surface-input border-card flex h-14 w-14 items-center justify-center rounded-2xl border">
+                <div v-else class="lg-shell-empty">
+                  <div class="surface-input border-card flex h-12 w-12 items-center justify-center rounded-[var(--radius-lg)] border">
                      <GraduationCap class="h-7 w-7 text-link" />
                   </div>
                   <h3 class="mt-4 text-base font-semibold text-heading">Trang đang phát triển</h3>

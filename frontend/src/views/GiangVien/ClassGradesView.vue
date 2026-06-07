@@ -1,12 +1,21 @@
 <script setup>
-import { ref } from 'vue'
-import { usePopupStore } from '@/stores/popup'
-import { 
-  Search, Edit3, Save, Download, Filter, 
-  ChevronRight, ArrowUpDown, CheckCircle 
+import { computed, ref } from 'vue'
+import {
+  AlertCircle,
+  ArrowUpDown,
+  CheckCircle,
+  Download,
+  Edit3,
+  Filter,
+  Save,
+  Search,
+  Users,
 } from 'lucide-vue-next'
 
-const popupStore = usePopupStore()
+import GlassBadge from '@/components/ui/GlassBadge.vue'
+import GlassButton from '@/components/ui/GlassButton.vue'
+import GlassPanel from '@/components/ui/GlassPanel.vue'
+import TableShell from '@/components/ui/TableShell.vue'
 
 const gradesData = ref([
   { id: 'SV16001', name: 'Nguyễn Văn A', assignment: 8.5, exam: 7.5, total: 7.9, isEditing: false },
@@ -14,6 +23,22 @@ const gradesData = ref([
   { id: 'SV16003', name: 'Lê Hoàng C', assignment: 9.5, exam: 9.0, total: 9.2, isEditing: false },
   { id: 'SV16004', name: 'Phạm Minh D', assignment: 5.0, exam: 4.5, total: 4.7, isEditing: false },
 ])
+
+const gradeSummary = computed(() => {
+  const entered = gradesData.value.filter((sv) => sv.assignment !== null && sv.exam !== null).length
+  const passed = gradesData.value.filter((sv) => Number(sv.total) >= 5).length
+  const failed = gradesData.value.filter((sv) => Number(sv.total) < 5).length
+  const average =
+    gradesData.value.reduce((sum, sv) => sum + Number(sv.total), 0) / gradesData.value.length
+
+  return [
+    { label: 'Sinh viên', value: gradesData.value.length, tone: 'primary' },
+    { label: 'Đã nhập', value: entered, tone: 'success' },
+    { label: 'Đạt', value: passed, tone: 'success' },
+    { label: 'Rớt', value: failed, tone: 'danger' },
+    { label: 'TB lớp', value: average.toFixed(1), tone: 'neutral' },
+  ]
+})
 
 function toggleEdit(sv) {
   sv.isEditing = !sv.isEditing
@@ -23,133 +48,530 @@ function calculateTotal(sv) {
   // Mock formula: 40% assignment, 60% exam
   sv.total = (sv.assignment * 0.4 + sv.exam * 0.6).toFixed(1)
 }
+
+function gradeStatusVariant(total) {
+  return Number(total) >= 5 ? 'success' : 'danger'
+}
+
+function gradeStatusLabel(total) {
+  return Number(total) >= 5 ? 'Đạt' : 'Rớt'
+}
 </script>
 
 <template>
-  <div class="space-y-4 pb-10">
-    <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <h1 class="text-xl font-bold text-slate-800 tracking-tight">Bảng điểm lớp học</h1>
-        <p class="text-slate-500 mt-1">Quản lý điểm thành phần và điểm thi kết thúc môn của lớp SE1601.</p>
+  <div class="grades-page lg-page-enter">
+    <GlassPanel variant="flat" density="compact" class="grades-header">
+      <div class="header-copy">
+        <div class="eyebrow">
+          <Users :size="15" />
+          SE1601 · Lập trình Java
+        </div>
+        <div>
+          <h1>Bảng điểm lớp học</h1>
+          <p>Quản lý điểm thành phần và điểm thi kết thúc môn của lớp SE1601.</p>
+        </div>
       </div>
-      <div class="flex gap-2">
-        <button class="lg-button-secondary py-2.5 px-4 text-xs font-bold">
-          <Download :size="18" /> Xuất bảng điểm
-        </button>
-        <button class="lg-button-primary py-2.5 px-4 text-xs font-bold" style="background: linear-gradient(135deg, #4f46e5, #6366f1 52%, #8b5cf6);">
-          <Save :size="18" /> Lưu toàn bộ
-        </button>
-      </div>
-    </div>
 
-    <!-- Filters & Search -->
-    <div class="rounded-[24px] border border-slate-100 bg-white p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center">
-      <div class="relative flex-1 w-full">
-        <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input type="text" placeholder="Tìm sinh viên bằng tên hoặc MSSV..." class="w-full rounded-xl border border-slate-100 bg-slate-50 pl-11 pr-4 py-2.5 text-sm outline-none focus:border-blue-300" />
+      <div class="header-actions">
+        <GlassButton variant="secondary" size="sm">
+          <template #leading>
+            <Download :size="16" />
+          </template>
+          Xuất bảng điểm
+        </GlassButton>
+        <GlassButton variant="primary" size="sm">
+          <template #leading>
+            <Save :size="16" />
+          </template>
+          Lưu toàn bộ
+        </GlassButton>
       </div>
-      <div class="flex items-center gap-3 w-full md:w-auto">
-        <button class="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors">
-          <Filter :size="16" /> Lọc nâng cao
-        </button>
-      </div>
-    </div>
+    </GlassPanel>
 
-    <!-- Grades Table -->
-    <div class="rounded-[28px] border border-slate-100 bg-white shadow-sm overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left">
+    <GlassPanel variant="flat" density="compact" class="context-panel">
+      <div class="filter-row">
+        <label class="search-field">
+          <Search :size="16" />
+          <input type="text" placeholder="Tìm sinh viên bằng tên hoặc MSSV..." />
+        </label>
+        <GlassButton variant="secondary" size="sm">
+          <template #leading>
+            <Filter :size="15" />
+          </template>
+          Lọc nâng cao
+        </GlassButton>
+      </div>
+
+      <div class="summary-strip">
+        <div v-for="item in gradeSummary" :key="item.label" :class="['summary-pill', item.tone]">
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
+        </div>
+      </div>
+    </GlassPanel>
+
+    <GlassPanel variant="flat" density="compact" class="table-panel">
+      <div class="table-title">
+        <div>
+          <h2>Điểm thành phần</h2>
+          <p>Điểm tổng kết tự tính theo trọng số: Assignment 40%, điểm thi 60%.</p>
+        </div>
+        <GlassBadge variant="info">Học kỳ Spring 2026</GlassBadge>
+      </div>
+
+      <TableShell density="compact">
+        <table>
           <thead>
-            <tr class="bg-slate-50/50 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              <th class="px-5 py-5">Sinh viên</th>
-              <th class="px-4 py-5">
-                 <div class="flex items-center gap-2">Assignment (40%) <ArrowUpDown :size="12" /></div>
+            <tr>
+              <th>Sinh viên</th>
+              <th>
+                <span class="sortable-label">
+                  Assignment (40%)
+                  <ArrowUpDown :size="12" />
+                </span>
               </th>
-              <th class="px-4 py-5">
-                 <div class="flex items-center gap-2">Điểm thi (60%) <ArrowUpDown :size="12" /></div>
+              <th>
+                <span class="sortable-label">
+                  Điểm thi (60%)
+                  <ArrowUpDown :size="12" />
+                </span>
               </th>
-              <th class="px-4 py-5">
-                 <div class="flex items-center gap-2 text-blue-600">Điểm tổng kết <ArrowUpDown :size="12" /></div>
+              <th>
+                <span class="sortable-label total-label">
+                  Tổng kết
+                  <ArrowUpDown :size="12" />
+                </span>
               </th>
-              <th class="px-5 py-5 text-right">Thao tác</th>
+              <th>Trạng thái</th>
+              <th class="text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
-            <tr v-for="sv in gradesData" :key="sv.id" class="group hover:bg-slate-50/50 transition-colors">
-              <td class="px-5 py-5">
-                <div class="flex items-center gap-3">
-                  <div class="h-9 w-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xs">
-                    {{ sv.name.split(' ').pop()[0] }}
-                  </div>
-                  <div>
-                    <p class="text-sm font-bold text-slate-800">{{ sv.name }}</p>
-                    <p class="text-[10px] text-slate-400">{{ sv.id }}</p>
-                  </div>
+          <tbody>
+            <tr v-for="sv in gradesData" :key="sv.id">
+              <td>
+                <div class="student-cell">
+                  <span class="student-avatar">{{ sv.name.split(' ').pop()[0] }}</span>
+                  <span>
+                    <strong>{{ sv.name }}</strong>
+                    <small>{{ sv.id }}</small>
+                  </span>
                 </div>
               </td>
-              
-              <!-- Assignment Grade -->
-              <td class="px-4 py-5">
-                <input 
-                  v-if="sv.isEditing" 
-                  type="number" 
-                  v-model="sv.assignment" 
+
+              <td>
+                <input
+                  v-if="sv.isEditing"
+                  v-model="sv.assignment"
+                  type="number"
+                  max="10"
+                  min="0"
+                  step="0.1"
+                  class="grade-input"
                   @input="calculateTotal(sv)"
-                  class="w-20 rounded-lg border border-blue-200 bg-white px-2 py-1.5 text-sm font-bold outline-none focus:ring-4 focus:ring-blue-50"
-                  max="10" min="0" step="0.1"
                 />
-                <span v-else class="text-sm font-bold text-slate-700">{{ sv.assignment }}</span>
+                <span v-else class="grade-value">{{ sv.assignment }}</span>
               </td>
 
-              <!-- Exam Grade -->
-              <td class="px-4 py-5">
-                <input 
-                  v-if="sv.isEditing" 
-                  type="number" 
-                  v-model="sv.exam" 
+              <td>
+                <input
+                  v-if="sv.isEditing"
+                  v-model="sv.exam"
+                  type="number"
+                  max="10"
+                  min="0"
+                  step="0.1"
+                  class="grade-input"
                   @input="calculateTotal(sv)"
-                  class="w-20 rounded-lg border border-blue-200 bg-white px-2 py-1.5 text-sm font-bold outline-none focus:ring-4 focus:ring-blue-50"
-                  max="10" min="0" step="0.1"
                 />
-                <span v-else class="text-sm font-bold text-slate-700">{{ sv.exam }}</span>
+                <span v-else class="grade-value">{{ sv.exam }}</span>
               </td>
 
-              <!-- Total Grade -->
-              <td class="px-4 py-5">
-                <span :class="['text-base font-black', sv.total < 5 ? 'text-rose-500' : 'text-blue-600']">
+              <td>
+                <strong :class="['total-score', Number(sv.total) < 5 ? 'failed' : 'passed']">
                   {{ sv.total }}
-                </span>
+                </strong>
               </td>
 
-              <td class="px-5 py-5 text-right">
-                <button 
-                  @click="toggleEdit(sv)"
-                  :class="[
-                    'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all',
-                    sv.isEditing 
-                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100 hover:bg-emerald-700' 
-                      : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-600'
-                  ]"
-                >
-                  <component :is="sv.isEditing ? CheckCircle : Edit3" :size="14" />
-                  {{ sv.isEditing ? 'Xong' : 'Sửa điểm' }}
-                </button>
+              <td>
+                <GlassBadge :variant="gradeStatusVariant(sv.total)">
+                  {{ gradeStatusLabel(sv.total) }}
+                </GlassBadge>
+              </td>
+
+              <td>
+                <div class="row-actions">
+                  <GlassButton
+                    :variant="sv.isEditing ? 'success' : 'secondary'"
+                    size="sm"
+                    @click="toggleEdit(sv)"
+                  >
+                    <template #leading>
+                      <component :is="sv.isEditing ? CheckCircle : Edit3" :size="14" />
+                    </template>
+                    {{ sv.isEditing ? 'Xong' : 'Sửa điểm' }}
+                  </GlassButton>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
-      </div>
-    </div>
+      </TableShell>
+    </GlassPanel>
 
-    <!-- Note Section -->
-    <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 text-sm text-blue-800 shadow-sm">
-       <p class="font-bold">Hướng dẫn nhập điểm</p>
-       <ul class="mt-1 text-xs space-y-1 list-disc list-inside opacity-80">
+    <GlassPanel variant="flat" density="compact" class="note-panel">
+      <div class="note-icon">
+        <AlertCircle :size="18" />
+      </div>
+      <div>
+        <h3>Hướng dẫn nhập điểm</h3>
+        <ul>
           <li>Điểm tổng kết được tính tự động dựa trên trọng số môn học.</li>
           <li>Sau khi sửa điểm, hãy nhấn "Lưu toàn bộ" để cập nhật vào hệ thống chính thức.</li>
-          <li>Các trường hợp điểm dưới 5.0 sẽ được đánh dấu đỏ tự động.</li>
-       </ul>
-    </div>
+          <li>Các trường hợp điểm dưới 5.0 sẽ được đánh dấu rớt tự động.</li>
+        </ul>
+      </div>
+    </GlassPanel>
   </div>
 </template>
+
+<style scoped>
+.grades-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding-bottom: 2.5rem;
+  color: var(--text-body);
+}
+
+.grades-header,
+.context-panel {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  background: var(--surface-input);
+  color: var(--text-link);
+  padding: 0.25rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.header-copy h1 {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: 1.45rem;
+  line-height: 1.15;
+  font-weight: 900;
+}
+
+.header-copy p,
+.table-title p,
+.student-cell small,
+.note-panel li,
+.summary-pill span {
+  color: var(--text-muted);
+}
+
+.header-copy p,
+.table-title p {
+  margin: 0.25rem 0 0;
+  font-size: 0.84rem;
+}
+
+.header-actions,
+.filter-row,
+.summary-strip,
+.row-actions,
+.sortable-label,
+.student-cell,
+.note-panel {
+  display: flex;
+  align-items: center;
+}
+
+.header-actions,
+.filter-row,
+.summary-strip {
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.context-panel {
+  align-items: center;
+}
+
+.filter-row {
+  min-width: min(24rem, 100%);
+}
+
+.search-field {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  width: min(22rem, 100%);
+  gap: 0.45rem;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0 0.7rem;
+  color: var(--text-placeholder);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.search-field:focus-within {
+  border-color: var(--border-input-focus);
+  background: var(--surface-input-focus);
+  box-shadow: 0 0 0 3px var(--border-focus-ring);
+}
+
+.search-field input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-heading);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.search-field input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.summary-strip {
+  justify-content: flex-end;
+}
+
+.summary-pill {
+  display: grid;
+  min-width: 5rem;
+  gap: 0.05rem;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0.45rem 0.6rem;
+}
+
+.summary-pill strong {
+  color: var(--text-heading);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.summary-pill span {
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.summary-pill.primary {
+  background: var(--accent-primary-soft);
+}
+
+.summary-pill.success {
+  background: var(--color-success-bg);
+}
+
+.summary-pill.danger {
+  background: var(--color-danger-bg);
+}
+
+.table-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.table-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border-card);
+  padding-bottom: 0.75rem;
+}
+
+.table-title h2 {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.sortable-label {
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.total-label {
+  color: var(--text-link);
+}
+
+.student-cell {
+  min-width: 13rem;
+  gap: 0.65rem;
+}
+
+.student-avatar {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  background: var(--surface-input);
+  color: var(--text-link);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.student-cell strong {
+  display: block;
+  color: var(--text-heading);
+  font-size: 0.86rem;
+}
+
+.student-cell small {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.grade-value,
+.total-score {
+  color: var(--text-heading);
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.grade-input {
+  width: 4.5rem;
+  min-height: 2rem;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  background: var(--surface-input);
+  color: var(--text-heading);
+  padding: 0 0.55rem;
+  outline: none;
+  font-size: 0.84rem;
+  font-weight: 850;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.grade-input:focus {
+  border-color: var(--border-input-focus);
+  background: var(--surface-input-focus);
+  box-shadow: 0 0 0 3px var(--border-focus-ring);
+}
+
+.total-score {
+  display: inline-flex;
+  min-width: 2.3rem;
+  justify-content: center;
+}
+
+.total-score.passed {
+  color: var(--color-success-text);
+}
+
+.total-score.failed {
+  color: var(--color-danger-text);
+}
+
+.row-actions {
+  justify-content: flex-end;
+}
+
+.note-panel {
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: var(--color-warning-bg);
+}
+
+.note-icon {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  color: var(--color-warning-text);
+}
+
+.note-panel h3 {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.note-panel ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1rem;
+}
+
+.note-panel li {
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+@media (max-width: 1024px) {
+  .grades-header,
+  .context-panel,
+  .table-title {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .summary-strip {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-actions,
+  .filter-row,
+  .summary-strip {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .search-field,
+  .summary-pill {
+    width: 100%;
+  }
+
+  .row-actions {
+    justify-content: flex-start;
+  }
+}
+</style>

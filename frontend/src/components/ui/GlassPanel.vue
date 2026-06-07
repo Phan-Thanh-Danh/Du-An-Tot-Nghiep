@@ -9,12 +9,14 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'strong', 'soft', 'solid', 'readable'].includes(value),
+    validator: (value) =>
+      ['default', 'strong', 'soft', 'flat', 'surface', 'solid', 'readable'].includes(value),
   },
   density: {
     type: String,
-    default: 'normal',
-    validator: (value) => ['none', 'compact', 'normal', 'spacious'].includes(value),
+    default: 'default',
+    validator: (value) =>
+      ['none', 'compact', 'default', 'normal', 'comfortable', 'spacious'].includes(value),
   },
   strong: Boolean,
   soft: Boolean,
@@ -38,6 +40,7 @@ const surfaceClass = computed(() => {
   if (props.soft) return 'lg-glass-soft'
   if (props.variant === 'strong') return 'lg-glass-strong'
   if (props.variant === 'soft') return 'lg-glass-soft'
+  if (props.variant === 'flat' || props.variant === 'surface') return 'glass-panel-flat'
   if (props.variant === 'solid') return 'lg-solid-soft'
   if (props.variant === 'readable') return 'lg-readable'
   return 'lg-glass'
@@ -50,7 +53,9 @@ const densityClass = computed(() => {
     {
       none: 'p-0',
       compact: 'lg-density-compact',
+      default: 'lg-density-normal',
       normal: 'lg-density-normal',
+      comfortable: 'lg-density-spacious',
       spacious: 'lg-density-spacious',
     }[props.density] || 'lg-density-normal'
   )
@@ -68,14 +73,34 @@ const densityClass = computed(() => {
       interactive ? 'lg-card-hover' : '',
     ]"
   >
-    <div v-if="$slots.header" class="mb-4 border-b border-card pb-3">
+    <div v-if="$slots.header" class="glass-panel-header">
       <slot name="header" />
     </div>
 
     <slot />
 
-    <div v-if="$slots.footer" class="mt-4 border-t border-card pt-3">
+    <div v-if="$slots.footer" class="glass-panel-footer">
       <slot name="footer" />
     </div>
   </component>
 </template>
+
+<style scoped>
+.glass-panel-flat {
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  box-shadow: none;
+}
+
+.glass-panel-header {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.625rem;
+  border-bottom: 1px solid var(--border-card);
+}
+
+.glass-panel-footer {
+  margin-top: 0.75rem;
+  padding-top: 0.625rem;
+  border-top: 1px solid var(--border-card);
+}
+</style>

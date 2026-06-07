@@ -1,9 +1,23 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { 
-  Search, Users, CheckCircle, XCircle, BarChart3, 
-  Download, Calendar, Filter, ArrowLeft, ArrowUpRight, TrendingUp, AlertCircle, UserCheck, CheckCircle2
+import { ref, onMounted, computed } from 'vue'
+import {
+  Search,
+  Users,
+  XCircle,
+  BarChart3,
+  Download,
+  Calendar,
+  ArrowLeft,
+  AlertCircle,
+  UserCheck,
+  CheckCircle2,
+  Clock,
 } from 'lucide-vue-next'
+
+import GlassBadge from '@/components/ui/GlassBadge.vue'
+import GlassButton from '@/components/ui/GlassButton.vue'
+import GlassPanel from '@/components/ui/GlassPanel.vue'
+import TableShell from '@/components/ui/TableShell.vue'
 
 const attendanceData = ref([
   { id: 'SV16001', name: 'Nguyễn Văn A', present: 12, absent: 1, percent: 92, status: 'good' },
@@ -17,24 +31,40 @@ const attendanceData = ref([
 const totalSessions = 13
 const avgAttendance = 82
 
-const getStatusBadge = (status) => {
-  const badges = {
-    excellent: 'text-emerald-600 bg-emerald-50 border-emerald-100/50',
-    good: 'text-blue-600 bg-blue-50 border-blue-100/50',
-    warning: 'text-amber-600 bg-amber-50 border-amber-100/50',
-    danger: 'text-rose-600 bg-rose-50 border-rose-100/50'
-  }
-  return badges[status] || badges.good
-}
+const summaryStats = computed(() => {
+  const absences = attendanceData.value.reduce((sum, student) => sum + student.absent, 0)
+  const late = 0
+  const excused = 0
+  const risk = attendanceData.value.filter((student) => student.status === 'danger').length
+
+  return [
+    { label: 'Sĩ số', value: attendanceData.value.length, tone: 'primary' },
+    { label: 'Tỷ lệ CC', value: `${avgAttendance}%`, tone: 'success' },
+    { label: 'Lượt vắng', value: absences, tone: 'danger' },
+    { label: 'Đi muộn', value: late, tone: 'warning' },
+    { label: 'Có phép', value: excused, tone: 'info' },
+    { label: 'Nguy cơ', value: risk, tone: 'danger' },
+  ]
+})
 
 const getStatusText = (status) => {
   const texts = {
     excellent: 'Xuất sắc',
     good: 'Ổn định',
-    warning: 'Cảnh báo',
-    danger: 'Nguy hiểm'
+    warning: 'Cần chú ý',
+    danger: 'Nguy cơ'
   }
   return texts[status] || 'Ổn định'
+}
+
+const getStatusVariant = (status) => {
+  const variants = {
+    excellent: 'success',
+    good: 'success',
+    warning: 'warning',
+    danger: 'danger'
+  }
+  return variants[status] || 'success'
 }
 
 const animateProgress = ref(false)
@@ -46,186 +76,545 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-8 pb-12 animate-fade-in text-slate-800">
-    <!-- ── Header ── -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
-      <!-- Decorative background -->
-      
-      
-      <div class="relative z-10 flex items-center gap-5">
-        <router-link to="/teacher/classes" class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-200 hover:scale-105 transition-transform duration-300">
-           <ArrowLeft :size="28" stroke-width="2.5" />
+  <div class="class-attendance-page lg-page-enter">
+    <GlassPanel variant="flat" density="compact" class="page-header">
+      <div class="header-main">
+        <router-link to="/teacher/classes" class="back-link" aria-label="Quay lại danh sách lớp">
+          <ArrowLeft :size="18" />
         </router-link>
-        <div>
-          <div class="flex items-center gap-3 mb-1.5">
-            <span class="px-3 py-1 rounded-xl bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest border border-blue-100/50">SE1601</span>
-            <span class="px-3 py-1 rounded-xl bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-widest border border-slate-200/50">HK 2 - 2026</span>
+
+        <div class="header-copy">
+          <div class="context-tags">
+            <GlassBadge variant="primary">SE1601</GlassBadge>
+            <GlassBadge variant="neutral">HK 2 - 2026</GlassBadge>
+            <GlassBadge variant="info">Sĩ số 42</GlassBadge>
           </div>
-          <h1 class="text-xl md:text-xl font-black text-slate-900 tracking-tight">Chuyên cần lớp</h1>
+          <h1>Điểm danh theo lớp</h1>
+          <p>Theo dõi chuyên cần, số buổi vắng và nguy cơ vượt quỹ vắng của sinh viên.</p>
         </div>
       </div>
 
-      <div class="relative z-10 flex gap-3">
-         <button class="flex items-center gap-2 rounded-2xl bg-white px-4 py-3 border border-slate-200 shadow-sm hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors font-bold text-sm text-slate-700">
-            <Download :size="18" /> Xuất báo cáo
-         </button>
+      <div class="header-actions">
+        <GlassButton variant="secondary" size="sm">
+          <template #leading>
+            <Calendar :size="16" />
+          </template>
+          Xem lịch sử
+        </GlassButton>
+        <GlassButton variant="primary" size="sm">
+          <template #leading>
+            <Download :size="16" />
+          </template>
+          Xuất báo cáo
+        </GlassButton>
       </div>
-    </div>
+    </GlassPanel>
 
-    <!-- Attendance Summary KPIs -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform duration-500"></div>
-        <div class="flex items-center gap-5">
-           <div class="h-10 w-10 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100/50 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
-              <Calendar :size="28" stroke-width="2" />
-           </div>
-           <div>
-              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tổng buổi học</p>
-              <div class="flex items-baseline gap-2">
-                <p class="text-xl font-black text-slate-800">{{ totalSessions }}</p>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">Buổi</span>
-              </div>
-           </div>
-        </div>
-      </div>
-      
-      <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform duration-500"></div>
-        <div class="flex items-center gap-5">
-           <div class="h-10 w-10 rounded-2xl bg-cyan-50 text-cyan-600 border border-cyan-100/50 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
-              <UserCheck :size="28" stroke-width="2" />
-           </div>
-           <div>
-              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Trung bình vắng</p>
-              <div class="flex items-baseline gap-2">
-                <p class="text-xl font-black text-slate-800">2.2</p>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">Buổi</span>
-              </div>
-           </div>
+    <GlassPanel variant="flat" density="compact" class="context-panel">
+      <div class="summary-strip">
+        <div v-for="item in summaryStats" :key="item.label" :class="['summary-pill', item.tone]">
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
         </div>
       </div>
 
-      <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform duration-500"></div>
-        <div class="flex items-center gap-5">
-           <div class="h-10 w-10 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100/50 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
-              <BarChart3 :size="28" stroke-width="2" />
-           </div>
-           <div class="flex-1">
-              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tỉ lệ chuyên cần</p>
-              <div class="flex items-baseline justify-between gap-2">
-                <p class="text-xl font-black text-slate-800">{{ avgAttendance }}%</p>
-              </div>
-           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Attendance Table -->
-    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-      <div class="p-4 md:p-5 border-b border-slate-100/80 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/30">
-        <div class="flex items-center gap-4">
-           <div>
-             <h2 class="text-xl font-black text-slate-800">Chi tiết chuyên cần</h2>
-             <p class="text-sm font-medium text-slate-500 mt-1">Danh sách theo dõi điểm danh từng sinh viên</p>
-           </div>
-        </div>
-        <div class="flex flex-col sm:flex-row items-center gap-3">
-          <select class="w-full sm:w-auto rounded-[20px] border border-slate-200 bg-white px-5 py-3.5 text-sm font-bold text-slate-600 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all shadow-sm appearance-none cursor-pointer">
-             <option>Tháng 5/2026</option>
-             <option>Tháng 4/2026</option>
-             <option>Tháng 3/2026</option>
+      <div class="filters">
+        <label class="select-shell">
+          <Calendar :size="16" />
+          <select>
+            <option>Tháng 5/2026</option>
+            <option>Tháng 4/2026</option>
+            <option>Tháng 3/2026</option>
           </select>
-          <div class="relative w-full md:w-72">
-            <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input type="text" placeholder="Tìm sinh viên, mã SV..." class="w-full rounded-[20px] border border-slate-200 bg-white pl-11 pr-4 py-3.5 text-sm font-medium outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all shadow-sm" />
-          </div>
-        </div>
+        </label>
+
+        <label class="input-shell">
+          <Search :size="16" />
+          <input type="text" placeholder="Tìm sinh viên, mã SV..." />
+        </label>
       </div>
-      
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
+    </GlassPanel>
+
+    <GlassPanel variant="flat" density="compact" class="table-panel">
+      <div class="panel-title">
+        <div>
+          <h2>
+            <Users :size="17" />
+            Chi tiết chuyên cần
+          </h2>
+          <p>Danh sách theo dõi điểm danh từng sinh viên trong lớp SE1601.</p>
+        </div>
+        <GlassBadge variant="success">{{ totalSessions }} buổi học</GlassBadge>
+      </div>
+
+      <TableShell density="compact">
+        <table>
           <thead>
-            <tr class="bg-slate-50/50 border-b border-slate-100">
-              <th class="px-5 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Sinh viên</th>
-              <th class="px-4 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Có mặt</th>
-              <th class="px-4 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Vắng</th>
-              <th class="px-4 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Tỷ lệ tham gia</th>
-              <th class="px-5 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Trạng thái</th>
+            <tr>
+              <th>Sinh viên</th>
+              <th>MSSV</th>
+              <th>Có mặt</th>
+              <th>Vắng</th>
+              <th>Đi muộn</th>
+              <th>Có phép</th>
+              <th>Tỷ lệ chuyên cần</th>
+              <th>Trạng thái</th>
+              <th class="text-right">Hành động</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
-            <tr v-for="sv in attendanceData" :key="sv.id" class="group hover:bg-slate-50/50 transition-colors">
-              <td class="px-5 py-5">
-                <div class="flex items-center gap-4">
-                  <div class="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 font-black text-sm group-hover:bg-blue-100 group-hover:text-blue-600 group-hover:border-blue-200 transition-colors shadow-sm">
-                    {{ sv.name.split(' ').pop()[0] }}
+          <tbody>
+            <tr v-for="sv in attendanceData" :key="sv.id">
+              <td>
+                <div class="student-cell">
+                  <span class="student-avatar">{{ sv.name.split(' ').pop()[0] }}</span>
+                  <span>
+                    <strong>{{ sv.name }}</strong>
+                    <small>Lập trình Java</small>
+                  </span>
+                </div>
+              </td>
+              <td class="student-code">{{ sv.id }}</td>
+              <td>
+                <span class="metric-cell success">
+                  <CheckCircle2 :size="14" />
+                  {{ sv.present }}/{{ totalSessions }}
+                </span>
+              </td>
+              <td>
+                <span :class="['metric-cell', sv.absent > 3 ? 'danger' : 'neutral']">
+                  <XCircle :size="14" />
+                  {{ sv.absent }}
+                </span>
+              </td>
+              <td>
+                <span class="metric-cell warning">
+                  <Clock :size="14" />
+                  0
+                </span>
+              </td>
+              <td>
+                <span class="metric-cell info">
+                  <UserCheck :size="14" />
+                  0
+                </span>
+              </td>
+              <td>
+                <div class="progress-cell">
+                  <div class="progress-track" aria-hidden="true">
+                    <span :style="{ width: animateProgress ? `${sv.percent}%` : '0%' }" />
                   </div>
-                  <div>
-                    <p class="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition-colors">{{ sv.name }}</p>
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{{ sv.id }}</p>
-                  </div>
+                  <strong>{{ sv.percent }}%</strong>
                 </div>
               </td>
-              <td class="px-4 py-5">
-                <div class="flex items-center gap-2">
-                   <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center border border-blue-100/50">
-                     <CheckCircle2 :size="14" />
-                   </div>
-                   <span class="text-sm font-bold text-slate-700">{{ sv.present }} / {{ totalSessions }}</span>
-                </div>
-              </td>
-              <td class="px-4 py-5">
-                <div class="flex items-center gap-2">
-                   <div class="w-7 h-7 rounded-lg flex items-center justify-center border" :class="sv.absent > 3 ? 'bg-rose-50 text-rose-500 border-rose-100/50' : 'bg-slate-50 text-slate-400 border-slate-100'">
-                     <XCircle :size="14" />
-                   </div>
-                   <span :class="['text-sm font-bold', sv.absent > 3 ? 'text-rose-500' : 'text-slate-600']">{{ sv.absent }} buổi</span>
-                </div>
-              </td>
-              <td class="px-4 py-5 w-56">
-                <div class="flex items-center gap-3">
-                  <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                    <!-- Unified blue gradient for all progress bars -->
-                    <div class="h-full rounded-full bg-gradient-to-r from-blue-400 to-cyan-400 transition-all duration-1000 ease-out" 
-                         :style="{ width: animateProgress ? sv.percent + '%' : '0%' }"></div>
-                  </div>
-                  <span class="text-[11px] font-black text-slate-500 w-9">{{ sv.percent }}%</span>
-                </div>
-              </td>
-              <td class="px-5 py-5 text-right">
-                <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider shadow-sm" :class="getStatusBadge(sv.status)">
-                  <AlertCircle v-if="sv.status === 'danger' || sv.status === 'warning'" :size="12" />
-                  <CheckCircle2 v-else :size="12" />
+              <td>
+                <GlassBadge :variant="getStatusVariant(sv.status)">
+                  <AlertCircle v-if="sv.status === 'danger' || sv.status === 'warning'" :size="11" />
+                  <CheckCircle2 v-else :size="11" />
                   {{ getStatusText(sv.status) }}
+                </GlassBadge>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <GlassButton variant="ghost" size="sm">Chi tiết</GlassButton>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
-      </div>
-      
-      <!-- Footer Pagination -->
-      <div class="bg-slate-50/80 px-5 py-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-        <span class="font-bold uppercase tracking-widest text-[10px]">Hiển thị 1-{{ attendanceData.length }} trong số 42 sinh viên</span>
-        <div class="flex gap-1.5">
-          <button class="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 font-bold disabled:opacity-50 transition-colors">Trước</button>
-          <button class="px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-600 font-black shadow-sm">1</button>
-          <button class="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 font-bold transition-colors">2</button>
-          <button class="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 font-bold transition-colors">Sau</button>
+      </TableShell>
+
+      <div class="table-footer">
+        <span>Hiển thị 1-{{ attendanceData.length }} trong số 42 sinh viên</span>
+        <div class="pagination">
+          <button type="button">Trước</button>
+          <button type="button" class="active">1</button>
+          <button type="button">2</button>
+          <button type="button">Sau</button>
         </div>
       </div>
-    </div>
+    </GlassPanel>
   </div>
 </template>
 
 <style scoped>
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
+.class-attendance-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding-bottom: 2.5rem;
+  color: var(--text-body);
 }
-.animate-fade-in {
-  animation: fade-in-up 0.4s ease-out forwards;
+
+.page-header,
+.header-main,
+.header-actions,
+.context-panel,
+.summary-strip,
+.filters,
+.panel-title,
+.student-cell,
+.metric-cell,
+.progress-cell,
+.row-actions,
+.table-footer,
+.pagination {
+  display: flex;
+  align-items: center;
+}
+
+.page-header,
+.context-panel,
+.panel-title,
+.table-footer {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header-main {
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.back-link {
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  color: var(--text-label);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.back-link:hover {
+  border-color: var(--border-input-focus);
+  background: var(--surface-input-focus);
+  color: var(--text-link);
+}
+
+.header-copy {
+  min-width: 0;
+}
+
+.context-tags,
+.header-actions,
+.summary-strip,
+.filters,
+.pagination {
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.context-tags {
+  margin-bottom: 0.45rem;
+}
+
+.header-copy h1,
+.panel-title h2 {
+  margin: 0;
+  color: var(--text-heading);
+  font-weight: 900;
+}
+
+.header-copy h1 {
+  font-size: 1.45rem;
+  line-height: 1.15;
+}
+
+.panel-title h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1rem;
+}
+
+.header-copy p,
+.panel-title p,
+.summary-pill span,
+.student-cell small,
+.student-code,
+.table-footer {
+  color: var(--text-muted);
+}
+
+.header-copy p,
+.panel-title p {
+  margin: 0.25rem 0 0;
+  font-size: 0.84rem;
+}
+
+.context-panel {
+  align-items: center;
+}
+
+.summary-strip {
+  justify-content: flex-start;
+}
+
+.summary-pill {
+  display: grid;
+  min-width: 5rem;
+  gap: 0.05rem;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0.45rem 0.6rem;
+}
+
+.summary-pill strong {
+  color: var(--text-heading);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.summary-pill span {
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.summary-pill.primary,
+.summary-pill.info {
+  background: var(--accent-primary-soft);
+}
+
+.summary-pill.success {
+  background: var(--color-success-bg);
+}
+
+.summary-pill.warning {
+  background: var(--color-warning-bg);
+}
+
+.summary-pill.danger {
+  background: var(--color-danger-bg);
+}
+
+.input-shell,
+.select-shell {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  gap: 0.45rem;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0 0.7rem;
+  color: var(--text-placeholder);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.input-shell {
+  width: min(20rem, 100%);
+}
+
+.select-shell {
+  width: min(13rem, 100%);
+}
+
+.input-shell:focus-within,
+.select-shell:focus-within {
+  border-color: var(--border-input-focus);
+  background: var(--surface-input-focus);
+  box-shadow: 0 0 0 3px var(--border-focus-ring);
+}
+
+.input-shell input,
+.select-shell select {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-heading);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.select-shell select {
+  appearance: none;
+  cursor: pointer;
+}
+
+.input-shell input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.table-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.panel-title {
+  border-bottom: 1px solid var(--border-card);
+  padding-bottom: 0.75rem;
+}
+
+.student-cell {
+  min-width: 13rem;
+  gap: 0.65rem;
+}
+
+.student-avatar {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  color: var(--text-link);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.student-cell strong {
+  display: block;
+  color: var(--text-heading);
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.student-cell small {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.student-code {
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.metric-cell {
+  gap: 0.35rem;
+  color: var(--text-heading);
+  font-size: 0.8rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.metric-cell.success {
+  color: var(--color-success-text);
+}
+
+.metric-cell.danger {
+  color: var(--color-danger-text);
+}
+
+.metric-cell.warning {
+  color: var(--color-warning-text);
+}
+
+.metric-cell.info {
+  color: var(--text-link);
+}
+
+.progress-cell {
+  min-width: 9rem;
+  gap: 0.55rem;
+}
+
+.progress-track {
+  width: 6rem;
+  height: 0.45rem;
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  background: var(--surface-input);
+  overflow: hidden;
+}
+
+.progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-primary);
+  transition: width 0.8s ease;
+}
+
+.progress-cell strong {
+  color: var(--text-heading);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.row-actions {
+  justify-content: flex-end;
+}
+
+.table-footer {
+  align-items: center;
+  border-top: 1px solid var(--border-card);
+  padding-top: 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.pagination button {
+  min-height: 2rem;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  background: var(--surface-input);
+  color: var(--text-label);
+  padding: 0 0.75rem;
+  font-size: 0.76rem;
+  font-weight: 850;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.pagination button:hover,
+.pagination button.active {
+  border-color: var(--border-input-focus);
+  background: var(--accent-primary-soft);
+  color: var(--text-link);
+}
+
+@media (max-width: 1024px) {
+  .page-header,
+  .context-panel,
+  .panel-title,
+  .table-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filters,
+  .header-actions,
+  .row-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .summary-strip,
+  .filters,
+  .pagination {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .summary-pill,
+  .input-shell,
+  .select-shell {
+    width: 100%;
+  }
 }
 </style>

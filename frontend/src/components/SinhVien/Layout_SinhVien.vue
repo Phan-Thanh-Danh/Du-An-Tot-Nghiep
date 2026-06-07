@@ -91,11 +91,18 @@ const currentPageMeta = computed(() => {
     Layout: [Sidebar] | [Topbar + Content]
     ═══════════════════════════════════════════════════════
   -->
-  <div class="lg-app-bg flex h-screen w-full overflow-hidden font-sans">
-    <div class="pointer-events-none absolute inset-0 -z-0 overflow-hidden">
-      <div class="lg-orb -left-28 top-16 h-80 w-80 bg-blue-300/30 will-change-transform" />
-      <div class="lg-orb right-[-8rem] top-[-5rem] h-96 w-96 bg-indigo-300/24 [animation-delay:-6s] will-change-transform" />
-      <div class="lg-orb bottom-[-9rem] left-1/3 h-96 w-96 bg-cyan-300/20 [animation-delay:-12s] will-change-transform" />
+  <div
+    class="lg-app-bg flex h-screen w-full overflow-hidden font-sans"
+    :style="{
+      '--sidebar-accent': '#2563eb',
+      '--active-start': '#1d4ed8',
+      '--active-mid': '#2563eb',
+      '--active-end': '#0891b2',
+    }"
+  >
+    <div class="lg-shell-orbs">
+      <div class="lg-shell-orb lg-shell-orb-primary" />
+      <div class="lg-shell-orb lg-shell-orb-secondary" />
     </div>
 
     <!-- ═══════════ MOBILE OVERLAY ═══════════ -->
@@ -109,7 +116,7 @@ const currentPageMeta = computed(() => {
     >
       <div
         v-if="mobileSidebarOpen"
-        class="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden"
+        class="lg-mobile-scrim fixed inset-0 z-40 lg:hidden"
         @click="closeMobileSidebar"
       />
     </Transition>
@@ -153,7 +160,7 @@ const currentPageMeta = computed(() => {
 
       <!-- ═══════════ CONTENT AREA ═══════════ -->
       <main class="flex-1 overflow-y-auto">
-        <div class="mx-auto w-full max-w-[1500px] px-3 py-3 sm:px-4">
+        <div class="lg-shell-content mx-auto">
           <!-- Tất cả page đều render qua PageContainer + RouterView -->
           <PageContainer
             :title="currentPageMeta.title"
@@ -173,8 +180,8 @@ const currentPageMeta = computed(() => {
                   <template #default>
                     <component :is="Component" v-if="Component" />
                     <!-- Empty state -->
-                    <div v-else class="flex flex-col items-center justify-center py-16 text-center">
-                      <div class="surface-input border-card flex h-14 w-14 items-center justify-center rounded-2xl border">
+                    <div v-else class="lg-shell-empty">
+                      <div class="surface-input border-card flex h-12 w-12 items-center justify-center rounded-[var(--radius-lg)] border">
                         <svg class="h-7 w-7 text-link" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
                         </svg>
@@ -186,19 +193,9 @@ const currentPageMeta = computed(() => {
                   </template>
                   <template #fallback>
                     <!-- Fallback skeleton loading -->
-                    <div class="flex h-[60vh] w-full flex-col items-center justify-center space-y-6">
-                      <div class="relative flex items-center justify-center">
-                        <div class="absolute h-16 w-16 animate-ping rounded-full bg-blue-400/20"></div>
-                        <div class="h-10 w-10 animate-spin rounded-full border-4 border-default border-t-[var(--lg-primary)] shadow-sm"></div>
-                      </div>
-                      <div class="flex flex-col items-center space-y-2">
-                        <p class="text-sm font-semibold tracking-wide text-label">Đang nạp dữ liệu...</p>
-                        <div class="flex space-x-1">
-                          <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500" style="animation-delay: -0.3s"></div>
-                          <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500" style="animation-delay: -0.15s"></div>
-                          <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500"></div>
-                        </div>
-                      </div>
+                    <div class="lg-shell-loading gap-3">
+                      <div class="lg-shell-loading-spinner" />
+                      <p class="text-sm font-semibold text-label">Đang nạp dữ liệu...</p>
                     </div>
                   </template>
                 </Suspense>

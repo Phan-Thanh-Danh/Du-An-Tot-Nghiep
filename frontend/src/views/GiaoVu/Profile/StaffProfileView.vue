@@ -40,18 +40,18 @@ const loginHistory = ref([
     title="Hồ sơ cá nhân" 
     subtitle="Quản lý thông tin tài khoản, bảo mật và cài đặt cá nhân của giáo vụ."
   >
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
       
       <!-- ── Left: Profile Card ── -->
       <div class="space-y-4">
-        <div class="lg-card-glass p-5 text-center">
+        <div class="surface-card border border-card rounded-2xl p-5 text-center">
            <div class="relative inline-block mb-4">
-              <div class="h-24 w-24 rounded-3xl bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 p-0.5 shadow-lg group-hover:scale-105 transition-transform">
-                 <div class="h-full w-full rounded-[22px] bg-white flex items-center justify-center overflow-hidden relative">
+              <div class="h-24 w-24 rounded-3xl bg-[var(--color-info-bg)] border border-[var(--color-info-text)]/20 p-0.5 transition-transform">
+                 <div class="h-full w-full rounded-[22px] surface-card flex items-center justify-center overflow-hidden relative">
                      <User v-if="!profile.avatar" :size="40" class="text-placeholder" />
                     <img v-else :src="profile.avatar" class="h-full w-full object-cover" />
                     
-                    <button class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+                    <button class="absolute inset-0 surface-modal opacity-0 group-hover:opacity-100 flex items-center justify-center text-inverse transition-opacity">
                        <Camera :size="18" />
                     </button>
                  </div>
@@ -84,16 +84,16 @@ const loginHistory = ref([
         </div>
 
         <!-- System Stats -->
-        <div class="lg-card-glass p-3">
+        <div class="surface-card border border-card rounded-2xl p-3">
            <div class="grid grid-cols-2 gap-3">
-               <div class="p-3 lg-glass-soft rounded-xl border-default shadow-sm">
+               <div class="p-3 surface-solid rounded-xl border border-default shadow-sm">
                   <p class="text-[8px] font-black text-label uppercase tracking-widest">Ngày tham gia</p>
                   <p class="text-xs font-black text-heading mt-0.5">{{ profile.joinDate }}</p>
                </div>
-               <div class="p-3 lg-glass-soft rounded-xl border-default shadow-sm">
+               <div class="p-3 surface-solid rounded-xl border border-default shadow-sm">
                   <p class="text-[8px] font-black text-label uppercase tracking-widest">Trạng thái</p>
-                  <p class="text-xs font-black text-success mt-0.5 flex items-center gap-1.5">
-                     <span class="h-1.5 w-1.5 rounded-full bg-success"></span> Active
+                  <p class="text-xs font-black text-[var(--color-success-text)] mt-0.5 flex items-center gap-1.5">
+                     <span class="h-1.5 w-1.5 rounded-full bg-[var(--color-success-text)]"></span> Active
                  </p>
               </div>
            </div>
@@ -101,13 +101,13 @@ const loginHistory = ref([
       </div>
 
       <!-- ── Right: Detailed Info & Security ── -->
-      <div class="xl:col-span-2 space-y-8">
+      <div class="xl:col-span-2 space-y-4">
         
          <!-- Contact & Security Section -->
-         <div class="lg-card-glass overflow-hidden">
+         <div class="surface-card border border-card rounded-2xl overflow-hidden">
              <div class="p-4 border-b border-default flex items-center justify-between">
                 <h4 class="text-xs font-black text-heading uppercase tracking-wide">Thông tin liên hệ & Bảo mật</h4>
-                <ShieldAlert :size="16" class="text-warning" />
+                <ShieldAlert :size="16" class="text-[var(--color-warning-text)]" />
             </div>
 
             <div class="p-4 space-y-5">
@@ -134,9 +134,9 @@ const loginHistory = ref([
                      </div>
                   </div>
 
-                  <div class="p-3 surface-solid rounded-2xl border-default">
+                  <div class="p-3 surface-solid rounded-2xl border border-default">
                       <div class="flex items-start justify-between mb-3">
-                         <div class="h-8 w-8 rounded-xl lg-glass-soft flex items-center justify-center text-link shadow-sm">
+                         <div class="h-8 w-8 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-link shadow-sm">
                             <KeyRound :size="16" />
                          </div>
                          <button class="text-[9px] font-black text-link uppercase tracking-widest lg-button-ghost px-2 py-1 rounded-lg shadow-sm transition-all">Thay đổi</button>
@@ -152,9 +152,9 @@ const loginHistory = ref([
                       <Clock :size="14" /> Lịch sử đăng nhập
                    </h4>
                    <div class="space-y-2">
-                      <div v-for="log in loginHistory" :key="log.id" class="flex items-center justify-between p-3 lg-glass-soft rounded-xl border-default group hover:border-blue-200 transition-all">
+                      <div v-for="log in loginHistory" :key="log.id" class="flex items-center justify-between p-3 surface-solid rounded-xl border border-default group hover:border-[var(--border-input-focus)] transition-all">
                          <div class="flex items-center gap-3">
-                            <div :class="['h-6 w-6 rounded-full flex items-center justify-center', log.status === 'current' ? 'bg-success/15 text-success' : 'surface-solid text-placeholder']">
+                            <div :class="['h-6 w-6 rounded-full flex items-center justify-center', log.status === 'current' ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]' : 'surface-solid text-placeholder']">
                                <ShieldCheck v-if="log.status === 'current'" :size="12" />
                                <ChevronRight v-else :size="12" />
                             </div>
@@ -163,7 +163,7 @@ const loginHistory = ref([
                                <p class="text-[9px] font-bold text-label mt-0.5">IP: {{ log.ip }} • {{ log.time }}</p>
                             </div>
                          </div>
-                         <span v-if="log.status === 'current'" class="text-[8px] font-black text-success uppercase tracking-widest bg-success/10 px-1.5 py-0.5 rounded-lg border border-success">Hiện tại</span>
+                         <span v-if="log.status === 'current'" class="text-[8px] font-black text-[var(--color-success-text)] uppercase tracking-widest bg-[var(--color-success-bg)] px-1.5 py-0.5 rounded-lg border border-[var(--color-success-text)]/20">Hiện tại</span>
                      </div>
                   </div>
                </div>
@@ -171,18 +171,18 @@ const loginHistory = ref([
          </div>
 
         <!-- Danger Zone -->
-        <div class="lg-card-glass p-4 border-danger bg-danger/5">
+        <div class="surface-card border border-[var(--color-danger-text)]/20 rounded-2xl p-4 bg-[var(--color-danger-bg)]">
             <div class="flex items-center justify-between">
                <div class="flex items-center gap-3">
-                  <div class="h-8 w-8 rounded-xl bg-danger/15 flex items-center justify-center text-danger shadow-sm">
+                  <div class="h-8 w-8 rounded-xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-danger-text)] shadow-sm">
                      <LogOut :size="16" />
                   </div>
                   <div>
                      <h4 class="text-xs font-black text-heading">Đăng xuất tài khoản</h4>
-                     <p class="text-[10px] text-danger mt-0.5 font-medium">Kết thúc phiên làm việc hiện tại.</p>
+                     <p class="text-[10px] text-[var(--color-danger-text)] mt-0.5 font-medium">Kết thúc phiên làm việc hiện tại.</p>
                   </div>
                </div>
-               <button class="px-3 py-2 lg-btn-danger rounded-xl text-[10px] font-black shadow-lg transition-all">ĐĂNG XUẤT</button>
+               <button class="px-3 py-2 lg-btn-danger rounded-xl text-[10px] font-black transition-all">ĐĂNG XUẤT</button>
            </div>
         </div>
 

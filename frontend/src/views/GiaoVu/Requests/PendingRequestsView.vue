@@ -29,9 +29,9 @@ const requests = ref([
 
 const getStatusBadge = (status) => {
   switch (status) {
-    case 'submitted': return 'bg-blue-100 text-blue-700 border-blue-200'
-    case 'under_review': return 'bg-amber-100 text-amber-700 border-amber-200'
-    default: return 'bg-slate-100 text-slate-700 border-slate-200'
+    case 'submitted': return 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-info-text)]/20'
+    case 'under_review': return 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--color-warning-text)]/20'
+    default: return 'surface-solid text-muted border-default'
   }
 }
 
@@ -45,10 +45,10 @@ const getStatusLabel = (status) => {
 
 const getPriorityColor = (priority) => {
   switch (priority) {
-    case 'high': return 'text-rose-500'
-    case 'medium': return 'text-amber-500'
-    case 'low': return 'text-emerald-500'
-    default: return 'text-slate-400'
+    case 'high': return 'text-[var(--color-danger-text)]'
+    case 'medium': return 'text-[var(--color-warning-text)]'
+    case 'low': return 'text-[var(--color-success-text)]'
+    default: return 'text-muted'
   }
 }
 
@@ -121,7 +121,7 @@ function closeContextMenu() {
     <div class="space-y-4" @click="closeContextMenu">
       
       <!-- ── Toolbar ── -->
-      <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
+      <div class="surface-card border border-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
         <div class="flex-1 min-w-[280px] relative flex items-center gap-2">
           <div class="relative flex-1">
             <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder" />
@@ -133,7 +133,7 @@ function closeContextMenu() {
               @keyup.enter="doSearch"
             >
           </div>
-          <button class="lg-button-primary px-4 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20" @click="doSearch">
+          <button class="lg-button-primary px-4 py-2.5 text-sm font-bold" @click="doSearch">
             <Search :size="16" /> Tìm
           </button>
           <button v-if="searchTriggered" class="lg-button-secondary px-3 py-2.5 text-sm font-bold" @click="clearSearch" title="Xóa tìm kiếm">
@@ -157,13 +157,13 @@ function closeContextMenu() {
         leave-from-class="opacity-100 translate-y-0"
         leave-to-class="opacity-0 -translate-y-2"
       >
-        <div v-if="showFilters" class="lg-glass-strong p-5 rounded-[20px] space-y-3">
+        <div v-if="showFilters" class="surface-card border border-card p-4 rounded-2xl space-y-3">
           <div class="flex flex-wrap items-center gap-3">
             <span class="text-[10px] font-black text-label uppercase tracking-widest min-w-[70px]">Trạng thái:</span>
             <div class="flex gap-1.5 flex-wrap">
               <button v-for="s in ['all','submitted','under_review']" :key="s"
                 @click="filterStatus = s"
-                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterStatus === s ? 'bg-[var(--lg-primary)] text-white shadow-md' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
+                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterStatus === s ? 'bg-[var(--lg-primary)] text-white shadow-sm' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
               >{{ { all: 'Tất cả', submitted: 'Chờ xử lý', under_review: 'Đang xử lý' }[s] }}</button>
             </div>
           </div>
@@ -172,7 +172,7 @@ function closeContextMenu() {
             <div class="flex gap-1.5 flex-wrap">
               <button v-for="p in ['all','high','medium','low']" :key="p"
                 @click="filterPriority = p"
-                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterPriority === p ? 'bg-[var(--lg-primary)] text-white shadow-md' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
+                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterPriority === p ? 'bg-[var(--lg-primary)] text-white shadow-sm' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
               >{{ { all: 'Tất cả', high: 'Cao', medium: 'Trung bình', low: 'Thấp' }[p] }}</button>
             </div>
           </div>
@@ -198,7 +198,7 @@ function closeContextMenu() {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="req in filteredRequests" :key="req.id" class="group hover:bg-white/10 transition-colors">
+            <tr v-for="req in filteredRequests" :key="req.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-4">
                  <Flag :size="16" :class="getPriorityColor(req.priority)" />
               </td>
@@ -216,15 +216,15 @@ function closeContextMenu() {
               <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
                   <User :size="14" class="text-placeholder" />
-                  <span :class="['text-xs font-bold', req.reviewer === 'Chưa phân công' ? 'text-warning' : 'text-label']">
+                    <span :class="['text-xs font-bold', req.reviewer === 'Chưa phân công' ? 'text-[var(--color-warning-text)]' : 'text-label']">
                     {{ req.reviewer }}
                   </span>
                 </div>
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
-                  <Timer :size="14" :class="req.sla === 'QUÁ HẠN' ? 'text-danger' : 'text-placeholder'" />
-                  <span :class="['text-xs font-black uppercase tracking-tighter', req.sla === 'QUÁ HẠN' ? 'text-danger' : 'text-label']">
+                  <Timer :size="14" :class="req.sla === 'QUÁ HẠN' ? 'text-[var(--color-danger-text)]' : 'text-placeholder'" />
+                  <span :class="['text-xs font-black uppercase tracking-tighter', req.sla === 'QUÁ HẠN' ? 'text-[var(--color-danger-text)]' : 'text-label']">
                     {{ req.sla }}
                   </span>
                 </div>
@@ -251,7 +251,7 @@ function closeContextMenu() {
                       leave-from-class="opacity-100 scale-100"
                       leave-to-class="opacity-0 scale-95"
                     >
-                      <div v-if="contextTarget?.id === req.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-xl shadow-slate-900/10" @click.stop>
+                      <div v-if="contextTarget?.id === req.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
                         <router-link :to="`/staff/requests/${req.id}`" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="closeContextMenu()">
                           <Eye :size="14" /> Xem chi tiết
                         </router-link>
@@ -273,9 +273,9 @@ function closeContextMenu() {
       </div>
 
       <!-- ── SLA Legend ── -->
-      <div class="lg-card-glass p-5 border-danger bg-danger/5">
+      <div class="surface-card border border-card p-5 rounded-2xl">
         <div class="flex items-start gap-4">
-          <div class="h-10 w-10 rounded-2xl bg-danger/15 flex items-center justify-center text-danger shrink-0 shadow-sm border border-danger">
+          <div class="h-10 w-10 rounded-2xl bg-[var(--color-danger-bg)] flex items-center justify-center text-[var(--color-danger-text)] shrink-0 shadow-sm border border-[var(--color-danger-text)]/20">
              <AlertCircle :size="20" />
           </div>
           <div>

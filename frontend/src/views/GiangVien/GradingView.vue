@@ -1,11 +1,28 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { usePopupStore } from '@/stores/popup'
-import { 
-  ArrowLeft, Search, Download, ExternalLink, 
-  MessageSquare, Star, Save, CheckCircle2, AlertCircle,
-  FileBox, FileDigit, Clock, Edit3, X
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  Download,
+  Edit3,
+  ExternalLink,
+  FileBox,
+  FileDigit,
+  MessageSquare,
+  Save,
+  Search,
+  Star,
+  Users,
+  X,
 } from 'lucide-vue-next'
+
+import GlassBadge from '@/components/ui/GlassBadge.vue'
+import GlassButton from '@/components/ui/GlassButton.vue'
+import GlassPanel from '@/components/ui/GlassPanel.vue'
+import TableShell from '@/components/ui/TableShell.vue'
 
 const popupStore = usePopupStore()
 
@@ -17,6 +34,26 @@ const submissions = ref([
 ])
 
 const selectedSubmission = ref(null)
+
+const gradingStats = computed(() => {
+  const graded = submissions.value.filter((submission) => submission.status === 'Graded').length
+  const late = submissions.value.filter((submission) => submission.status === 'Late').length
+  const pending = submissions.value.length - graded
+  const gradedScores = submissions.value
+    .filter((submission) => submission.score !== null)
+    .map((submission) => Number(submission.score))
+  const average = gradedScores.length
+    ? (gradedScores.reduce((sum, score) => sum + score, 0) / gradedScores.length).toFixed(1)
+    : '--'
+
+  return [
+    { label: 'Bài nộp', value: submissions.value.length, tone: 'primary' },
+    { label: 'Đã chấm', value: graded, tone: 'success' },
+    { label: 'Chờ chấm', value: pending, tone: 'warning' },
+    { label: 'Nộp trễ', value: late, tone: 'danger' },
+    { label: 'Điểm TB', value: average, tone: 'neutral' },
+  ]
+})
 
 function selectGrading(sub) {
   selectedSubmission.value = { ...sub }
@@ -32,204 +69,783 @@ function saveGrade() {
     popupStore.success('Đã lưu điểm', 'Điểm và nhận xét đã được lưu thành công.')
   }
 }
+
+function statusVariant(status) {
+  if (status === 'Graded') return 'success'
+  if (status === 'Late') return 'danger'
+  return 'warning'
+}
+
+function statusLabel(status) {
+  if (status === 'Graded') return 'Đã chấm'
+  if (status === 'Late') return 'Nộp trễ'
+  return 'Chờ chấm'
+}
 </script>
 
 <template>
-  <div class="space-y-8 pb-10 text-slate-800">
-    <!-- ── Header ── -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
-      <!-- Decorative background -->
-      
-      
-      <div class="relative z-10 flex items-center gap-5">
-        <router-link to="/teacher/assignments" class="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-white hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm hover:shadow-md">
-           <ArrowLeft :size="24" />
+  <div class="grading-page lg-page-enter">
+    <GlassPanel variant="flat" density="compact" class="page-header">
+      <div class="header-main">
+        <router-link to="/teacher/assignments" class="back-link" aria-label="Quay lại bài tập">
+          <ArrowLeft :size="18" />
         </router-link>
+
+        <div class="header-copy">
+          <div class="context-tags">
+            <GlassBadge variant="primary">Assignment 1</GlassBadge>
+            <GlassBadge variant="neutral">SE1601</GlassBadge>
+          </div>
+          <h1>Chấm bài tập</h1>
+          <p>Chấm điểm, phản hồi và theo dõi trạng thái bài nộp của lớp SE1601.</p>
+        </div>
+      </div>
+
+      <div class="header-meta">
+        <span>
+          <Clock :size="14" />
+          Hạn nộp: 20/05/2026 23:59
+        </span>
+        <span>
+          <CheckCircle2 :size="14" />
+          Đã chấm: {{ submissions.filter((sub) => sub.status === 'Graded').length }}/{{ submissions.length }}
+        </span>
+      </div>
+    </GlassPanel>
+
+    <GlassPanel variant="flat" density="compact" class="context-panel">
+      <div class="notice">
+        <span class="notice-icon">
+          <AlertCircle :size="17" />
+        </span>
         <div>
-          <div class="flex items-center gap-3 mb-1">
-             <span class="rounded-lg bg-blue-50 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-blue-600 border border-blue-100">Assignment 1</span>
-             <span class="rounded-lg bg-slate-50 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500 border border-slate-200">SE1601</span>
-          </div>
-          <h1 class="text-xl md:text-xl font-black text-slate-900 tracking-tight">Chấm bài tập</h1>
+          <h2>Lưu ý bài nộp trễ</h2>
+          <p>Hệ thống đánh dấu các bài nộp sau ngày 20/05/2026 là nộp trễ để giảng viên cân nhắc khi chấm.</p>
         </div>
       </div>
-      <div class="relative z-10 flex gap-4">
-         <div class="text-right">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Hạn nộp</p>
-            <p class="text-sm font-bold text-slate-800 flex items-center gap-1.5"><Clock :size="14" class="text-blue-500"/> 20/05/2026 23:59</p>
-         </div>
-         <div class="w-px bg-slate-200 hidden sm:block"></div>
-         <div class="text-right">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Đã chấm</p>
-            <p class="text-sm font-bold text-slate-800"><span class="text-blue-600">2</span> / 4</p>
-         </div>
+
+      <div class="summary-strip">
+        <div v-for="item in gradingStats" :key="item.label" :class="['summary-pill', item.tone]">
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
+        </div>
       </div>
-    </div>
+    </GlassPanel>
 
-    <!-- Alert Instruction -->
-    <div class="rounded-[24px] bg-amber-50 border border-amber-100 p-5 flex gap-4 items-start shadow-sm">
-       <div class="h-10 w-10 shrink-0 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
-          <AlertCircle :size="20" />
-       </div>
-       <div>
-          <h4 class="text-sm font-bold text-amber-900">Lưu ý về bài nộp trễ</h4>
-          <p class="text-xs font-medium text-amber-700 mt-1 leading-relaxed">Hệ thống đánh dấu các bài nộp sau ngày 20/05/2026 là "Nộp trễ". Giảng viên có thể xem xét trừ điểm tùy theo quy định của môn học.</p>
-       </div>
-    </div>
-
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-      <!-- Left: List of Submissions -->
-      <div class="xl:col-span-2 space-y-4">
-        <div class="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden p-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-            <h2 class="text-lg font-black text-slate-900 flex items-center gap-2">
-               <Users :size="20" class="text-blue-500" /> Danh sách sinh viên
+    <div class="grading-layout">
+      <GlassPanel variant="flat" density="compact" class="submission-panel">
+        <div class="panel-toolbar">
+          <div>
+            <h2>
+              <Users :size="17" />
+              Danh sách bài nộp
             </h2>
-            <div class="relative w-full sm:w-72">
-              <Search :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input type="text" placeholder="Tìm sinh viên, MSSV..." class="w-full rounded-[16px] border border-slate-200 bg-slate-50 pl-11 pr-4 py-3 text-sm font-medium outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-colors" />
-            </div>
+            <p>Chọn một sinh viên để nhập điểm và phản hồi.</p>
           </div>
-          
-          <div class="space-y-3">
-             <div v-for="(sub, index) in submissions" :key="sub.id" 
-                  @click="selectGrading(sub)"
-                  class="group rounded-[24px] border transition-colors cursor-pointer p-4 animate-fade-in-up"
-                  :style="{ animationDelay: `${index * 50}ms` }"
-                  :class="selectedSubmission?.id === sub.id ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-white border-slate-100 hover:border-blue-200 hover:bg-slate-50/50 hover:shadow-md'">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                   <!-- Student Info -->
-                   <div class="flex items-center gap-4 flex-1">
-                      <div :class="['h-10 w-10 rounded-2xl flex items-center justify-center font-black text-sm transition-colors shadow-sm',
-                                    selectedSubmission?.id === sub.id ? 'bg-blue-600 text-white' : 'bg-slate-50 border border-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 group-hover:border-blue-200']">
-                         {{ sub.name.split(' ').pop()[0] }}
-                      </div>
-                      <div>
-                         <p class="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition-colors">{{ sub.name }}</p>
-                         <div class="flex items-center gap-2 mt-0.5">
-                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ sub.studentId }}</span>
-                            <div v-if="sub.status === 'Late'" class="h-1 w-1 rounded-full bg-rose-400"></div>
-                            <span v-if="sub.status === 'Late'" class="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-1"><AlertCircle :size="10"/> Nộp trễ</span>
-                         </div>
-                      </div>
-                   </div>
 
-                   <!-- Submission Details -->
-                   <div class="flex flex-col sm:items-end gap-1 flex-1">
-                      <div class="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 w-max">
-                         <FileBox :size="14" class="text-blue-400" />
-                         <span class="truncate max-w-[120px]">{{ sub.file }}</span>
-                      </div>
-                      <span class="text-[10px] font-semibold text-slate-400 flex items-center gap-1"><Clock :size="10"/> {{ sub.time }}</span>
-                   </div>
+          <label class="search-field">
+            <Search :size="16" />
+            <input type="text" placeholder="Tìm sinh viên, MSSV..." />
+          </label>
+        </div>
 
-                   <!-- Score & Action -->
-                   <div class="flex items-center justify-between sm:justify-end gap-4 sm:w-32 shrink-0 border-t sm:border-t-0 border-slate-100 pt-3 sm:pt-0">
-                      <div class="flex flex-col items-center sm:items-end">
-                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Điểm</span>
-                         <span v-if="sub.score !== null" class="text-xl font-black text-emerald-600">{{ sub.score.toFixed(1) }}</span>
-                         <span v-else class="text-xs font-bold text-slate-300 italic">--</span>
-                      </div>
-                      <div :class="['h-10 w-10 rounded-xl flex items-center justify-center transition-all shadow-sm', 
-                                   selectedSubmission?.id === sub.id ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-white border border-slate-200 text-slate-400 group-hover:text-blue-600 group-hover:border-blue-200 group-hover:bg-blue-50']">
-                         <Edit3 :size="18" />
-                      </div>
-                   </div>
-                </div>
-             </div>
+        <TableShell density="compact">
+          <table>
+            <thead>
+              <tr>
+                <th>Sinh viên</th>
+                <th>File</th>
+                <th>Nộp lúc</th>
+                <th>Trạng thái</th>
+                <th>Điểm</th>
+                <th class="text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="sub in submissions"
+                :key="sub.id"
+                :class="selectedSubmission?.id === sub.id ? 'active-row' : ''"
+                @click="selectGrading(sub)"
+              >
+                <td>
+                  <div class="student-cell">
+                    <span class="student-avatar">{{ sub.name.split(' ').pop()[0] }}</span>
+                    <span>
+                      <strong>{{ sub.name }}</strong>
+                      <small>{{ sub.studentId }}</small>
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <span class="file-cell">
+                    <FileBox :size="14" />
+                    {{ sub.file }}
+                  </span>
+                </td>
+                <td>
+                  <span class="time-cell">
+                    <Clock :size="13" />
+                    {{ sub.time }}
+                  </span>
+                </td>
+                <td>
+                  <GlassBadge :variant="statusVariant(sub.status)">
+                    {{ statusLabel(sub.status) }}
+                  </GlassBadge>
+                </td>
+                <td>
+                  <strong v-if="sub.score !== null" class="score-cell">{{ sub.score.toFixed(1) }}</strong>
+                  <span v-else class="empty-score">--</span>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <GlassButton variant="ghost" size="sm">
+                      <template #leading>
+                        <Download :size="13" />
+                      </template>
+                      File
+                    </GlassButton>
+                    <GlassButton
+                      :variant="selectedSubmission?.id === sub.id ? 'primary' : 'secondary'"
+                      size="sm"
+                      @click.stop="selectGrading(sub)"
+                    >
+                      <template #leading>
+                        <Edit3 :size="13" />
+                      </template>
+                      Chấm
+                    </GlassButton>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </TableShell>
+      </GlassPanel>
+
+      <GlassPanel
+        v-if="selectedSubmission"
+        variant="flat"
+        density="compact"
+        class="grading-panel"
+        :clip="false"
+      >
+        <div class="grading-panel-header">
+          <div class="grading-title">
+            <span class="grading-icon">
+              <FileDigit :size="20" />
+            </span>
+            <span>
+              <h2>Chấm điểm</h2>
+              <p>{{ selectedSubmission.name }} · {{ selectedSubmission.studentId }}</p>
+            </span>
           </div>
-        </div>
-      </div>
-
-      <!-- Right: Grading Panel -->
-      <div class="xl:col-span-1">
-        <div v-if="selectedSubmission" class="rounded-2xl border border-slate-100 bg-white shadow-xl p-5 sticky top-4">
-           <div class="flex items-center justify-between mb-8 pb-6 border-b border-slate-50">
-              <div class="flex items-center gap-4">
-                 <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-200">
-                    <FileDigit :size="24" />
-                 </div>
-                 <div>
-                    <h2 class="text-xl font-black text-slate-900">Chấm điểm</h2>
-                    <p class="text-sm font-bold text-slate-500">{{ selectedSubmission.name }}</p>
-                 </div>
-              </div>
-              <button @click="selectedSubmission = null" class="h-8 w-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-colors">
-                 <X :size="16" />
-              </button>
-           </div>
-
-           <div class="space-y-8 text-slate-800">
-              <!-- File Attachment -->
-              <div class="space-y-3">
-                 <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><FileBox :size="14"/> File bài nộp</label>
-                 <a href="#" class="group flex items-center justify-between rounded-[20px] bg-slate-50 border border-slate-200 p-4 hover:border-blue-300 hover:bg-white hover:shadow-md transition-all">
-                    <div class="flex items-center gap-3">
-                       <div class="h-10 w-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
-                          <Download :size="18" />
-                       </div>
-                       <div>
-                          <p class="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{{ selectedSubmission.file }}</p>
-                          <p class="text-[10px] font-semibold text-slate-400 mt-0.5">{{ selectedSubmission.time }}</p>
-                       </div>
-                    </div>
-                    <ExternalLink :size="16" class="text-slate-300 group-hover:text-blue-400" />
-                 </a>
-              </div>
-
-              <!-- Score Input -->
-              <div class="space-y-3">
-                 <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Star :size="14"/> Điểm số (0-10)</label>
-                 <div class="relative">
-                    <input 
-                       type="number" 
-                       v-model="selectedSubmission.score"
-                       max="10" min="0" step="0.1"
-                       placeholder="0.0"
-                       class="w-full rounded-[24px] border border-slate-200 bg-white px-4 py-5 text-4xl font-black text-blue-600 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-colors text-center shadow-sm placeholder:text-slate-200"
-                    />
-                 </div>
-              </div>
-
-              <!-- Comment Input -->
-              <div class="space-y-3">
-                 <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><MessageSquare :size="14"/> Nhận xét</label>
-                 <div class="relative group/textarea">
-                    <textarea 
-                       v-model="selectedSubmission.comment"
-                       rows="4"
-                       placeholder="Nhập phản hồi cho sinh viên..."
-                       class="w-full rounded-[24px] border border-slate-200 bg-slate-50 p-5 text-sm font-medium outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-colors leading-relaxed resize-none shadow-sm group-hover/textarea:border-slate-300"
-                    ></textarea>
-                 </div>
-              </div>
-
-              <div class="pt-4">
-                 <button @click="saveGrade" class="w-full rounded-[20px] bg-gradient-to-br from-blue-500 to-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2">
-                    <CheckCircle2 :size="18" /> Lưu kết quả
-                 </button>
-              </div>
-           </div>
+          <button type="button" class="icon-button" @click="selectedSubmission = null">
+            <X :size="16" />
+          </button>
         </div>
 
-        <div v-else class="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-12 text-center flex flex-col items-center justify-center min-h-[500px] sticky top-4">
-           <div class="h-24 w-24 rounded-full bg-white flex items-center justify-center text-slate-300 mb-4 shadow-sm border border-slate-100">
-              <Edit3 :size="40" />
-           </div>
-           <h3 class="text-xl font-black text-slate-800">Chưa chọn bài</h3>
-           <p class="text-sm font-medium text-slate-500 mt-2 max-w-[200px] leading-relaxed">Nhấp vào một sinh viên trong danh sách để bắt đầu chấm điểm.</p>
+        <div class="grading-form">
+          <section class="form-block">
+            <label>
+              <FileBox :size="14" />
+              File bài nộp
+            </label>
+            <a href="#" class="attachment-link">
+              <span class="attachment-icon">
+                <Download :size="17" />
+              </span>
+              <span>
+                <strong>{{ selectedSubmission.file }}</strong>
+                <small>{{ selectedSubmission.time }}</small>
+              </span>
+              <ExternalLink :size="15" />
+            </a>
+          </section>
+
+          <section class="form-block">
+            <label>
+              <Star :size="14" />
+              Điểm số (0-10)
+            </label>
+            <input
+              v-model="selectedSubmission.score"
+              type="number"
+              max="10"
+              min="0"
+              step="0.1"
+              placeholder="0.0"
+              class="score-input"
+            />
+          </section>
+
+          <section class="form-block">
+            <label>
+              <MessageSquare :size="14" />
+              Nhận xét
+            </label>
+            <textarea
+              v-model="selectedSubmission.comment"
+              rows="5"
+              placeholder="Nhập phản hồi cho sinh viên..."
+              class="comment-input"
+            />
+          </section>
+
+          <section class="feedback-note">
+            <AlertCircle :size="15" />
+            <p>Phản hồi sẽ hiển thị cho sinh viên sau khi giảng viên lưu kết quả.</p>
+          </section>
+
+          <GlassButton variant="primary" size="md" block @click="saveGrade">
+            <template #leading>
+              <Save :size="17" />
+            </template>
+            Lưu kết quả
+          </GlassButton>
         </div>
-      </div>
+      </GlassPanel>
+
+      <GlassPanel v-else variant="flat" density="compact" class="empty-panel">
+        <span class="empty-icon">
+          <Edit3 :size="28" />
+        </span>
+        <h2>Chưa chọn bài</h2>
+        <p>Nhấp vào một sinh viên trong danh sách để bắt đầu chấm điểm.</p>
+      </GlassPanel>
     </div>
   </div>
 </template>
 
 <style scoped>
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
+.grading-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding-bottom: 2.5rem;
+  color: var(--text-body);
 }
-.animate-fade-in-up {
-  animation: fade-in-up 0.3s ease-out forwards;
+
+.page-header,
+.context-panel,
+.header-main,
+.header-meta,
+.summary-strip,
+.panel-toolbar,
+.row-actions,
+.student-cell,
+.file-cell,
+.time-cell,
+.grading-panel-header,
+.grading-title,
+.attachment-link,
+.form-block label,
+.feedback-note {
+  display: flex;
+  align-items: center;
+}
+
+.page-header,
+.context-panel,
+.panel-toolbar,
+.grading-panel-header {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header-main {
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.back-link,
+.icon-button,
+.student-avatar,
+.grading-icon,
+.attachment-icon,
+.notice-icon,
+.empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+}
+
+.back-link,
+.icon-button {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+  color: var(--text-label);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.back-link:hover,
+.icon-button:hover {
+  border-color: var(--border-input-focus);
+  background: var(--surface-input-focus);
+  color: var(--text-link);
+}
+
+.header-copy {
+  min-width: 0;
+}
+
+.context-tags {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.45rem;
+}
+
+.header-copy h1 {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: 1.45rem;
+  line-height: 1.15;
+  font-weight: 900;
+}
+
+.header-copy p,
+.header-meta,
+.notice p,
+.panel-toolbar p,
+.student-cell small,
+.time-cell,
+.empty-score,
+.grading-title p,
+.attachment-link small,
+.feedback-note p,
+.empty-panel p,
+.summary-pill span {
+  color: var(--text-muted);
+}
+
+.header-copy p,
+.notice p,
+.panel-toolbar p,
+.grading-title p,
+.empty-panel p {
+  margin: 0.25rem 0 0;
+  font-size: 0.84rem;
+}
+
+.header-meta {
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.header-meta span,
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.notice {
+  align-items: flex-start;
+  max-width: 34rem;
+}
+
+.notice-icon {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: var(--radius-md);
+  color: var(--color-warning-text);
+  background: var(--color-warning-bg);
+}
+
+.notice h2 {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.summary-strip {
+  justify-content: flex-end;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.summary-pill {
+  display: grid;
+  min-width: 5rem;
+  gap: 0.05rem;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0.45rem 0.6rem;
+}
+
+.summary-pill strong {
+  color: var(--text-heading);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.summary-pill span {
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.summary-pill.primary {
+  background: var(--accent-primary-soft);
+}
+
+.summary-pill.success {
+  background: var(--color-success-bg);
+}
+
+.summary-pill.warning {
+  background: var(--color-warning-bg);
+}
+
+.summary-pill.danger {
+  background: var(--color-danger-bg);
+}
+
+.grading-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+  gap: 0.875rem;
+  align-items: start;
+}
+
+.submission-panel,
+.grading-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.panel-toolbar {
+  border-bottom: 1px solid var(--border-card);
+  padding-bottom: 0.75rem;
+}
+
+.panel-toolbar h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--text-heading);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.search-field {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  width: min(18rem, 100%);
+  gap: 0.45rem;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0 0.7rem;
+  color: var(--text-placeholder);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.search-field:focus-within,
+.score-input:focus,
+.comment-input:focus {
+  border-color: var(--border-input-focus);
+  background: var(--surface-input-focus);
+  box-shadow: 0 0 0 3px var(--border-focus-ring);
+}
+
+.search-field input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-heading);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.search-field input::placeholder,
+.score-input::placeholder,
+.comment-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.active-row {
+  background: var(--accent-primary-soft);
+}
+
+.student-cell {
+  min-width: 12rem;
+  gap: 0.65rem;
+}
+
+.student-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  color: var(--text-link);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.student-cell strong {
+  display: block;
+  color: var(--text-heading);
+  font-size: 0.86rem;
+}
+
+.student-cell small {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.file-cell,
+.time-cell {
+  gap: 0.35rem;
+  min-width: 8rem;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.file-cell {
+  color: var(--text-heading);
+}
+
+.score-cell {
+  color: var(--color-success-text);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.empty-score {
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.row-actions {
+  justify-content: flex-end;
+  gap: 0.35rem;
+  min-width: 8rem;
+}
+
+.grading-panel,
+.empty-panel {
+  position: sticky;
+  top: 1rem;
+}
+
+.grading-panel-header {
+  border-bottom: 1px solid var(--border-card);
+  padding-bottom: 0.75rem;
+}
+
+.grading-title {
+  gap: 0.65rem;
+}
+
+.grading-icon {
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: var(--radius-lg);
+  color: var(--text-link);
+}
+
+.grading-title h2 {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.grading-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.form-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.form-block label {
+  gap: 0.35rem;
+  color: var(--text-label);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.attachment-link {
+  justify-content: space-between;
+  gap: 0.65rem;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0.7rem;
+  text-decoration: none;
+}
+
+.attachment-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  color: var(--text-link);
+}
+
+.attachment-link strong {
+  display: block;
+  color: var(--text-heading);
+  font-size: 0.82rem;
+}
+
+.attachment-link small {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.attachment-link > svg {
+  color: var(--text-placeholder);
+}
+
+.score-input,
+.comment-input {
+  width: 100%;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  color: var(--text-heading);
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.score-input {
+  min-height: 3rem;
+  padding: 0 0.8rem;
+  text-align: center;
+  color: var(--text-link);
+  font-size: 1.6rem;
+  font-weight: 900;
+}
+
+.comment-input {
+  min-height: 7rem;
+  padding: 0.75rem;
+  resize: none;
+  font-size: 0.84rem;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.feedback-note {
+  align-items: flex-start;
+  gap: 0.5rem;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0.65rem;
+  color: var(--text-link);
+}
+
+.feedback-note p {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.empty-panel {
+  min-height: 24rem;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-xl);
+  color: var(--text-placeholder);
+  margin: 0 auto 0.8rem;
+}
+
+.empty-panel h2 {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.empty-panel p {
+  max-width: 14rem;
+}
+
+@media (max-width: 1180px) {
+  .grading-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .grading-panel,
+  .empty-panel {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header,
+  .context-panel,
+  .panel-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .summary-strip {
+    justify-content: flex-start;
+  }
+
+  .search-field {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-meta,
+  .summary-strip,
+  .row-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .summary-pill {
+    width: 100%;
+  }
+
+  .row-actions {
+    justify-content: flex-start;
+  }
 }
 </style>

@@ -6,9 +6,11 @@ defineProps({
   },
   variant: {
     type: String,
-    default: 'default',
+    default: 'neutral',
     validator: (value) =>
-      ['default', 'primary', 'success', 'warning', 'danger', 'info', 'violet'].includes(value),
+      ['default', 'neutral', 'primary', 'success', 'warning', 'danger', 'info', 'violet'].includes(
+        value,
+      ),
   },
   size: {
     type: String,
@@ -19,6 +21,7 @@ defineProps({
 
 const classes = {
   default: 'lg-badge',
+  neutral: 'lg-badge',
   primary: 'lg-badge lg-badge-primary',
   success: 'lg-badge lg-badge-success',
   warning: 'lg-badge lg-badge-warning',
@@ -28,8 +31,8 @@ const classes = {
 }
 
 const sizes = {
-  sm: 'px-2.5 py-1 text-[11px]',
-  md: 'px-3 py-1.5 text-xs',
+  sm: 'glass-badge-sm',
+  md: 'glass-badge-md',
 }
 </script>
 
@@ -44,3 +47,17 @@ const sizes = {
     <slot />
   </component>
 </template>
+
+<style scoped>
+.glass-badge-sm {
+  min-height: 1.375rem;
+  padding: 0 0.5rem;
+  font-size: 0.6875rem;
+}
+
+.glass-badge-md {
+  min-height: 1.5rem;
+  padding: 0 0.625rem;
+  font-size: 0.75rem;
+}
+</style>

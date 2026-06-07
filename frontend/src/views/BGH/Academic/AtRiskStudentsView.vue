@@ -26,10 +26,10 @@ const riskStudents = ref([
 
 const getRiskBadge = (risk) => {
   switch (risk) {
-    case 'critical': return 'bg-rose-600 text-white border-rose-600'
-    case 'high': return 'bg-orange-500 text-white border-orange-500'
-    case 'medium': return 'bg-amber-100 text-amber-700 border-amber-200'
-    default: return 'bg-blue-100 text-blue-700 border-blue-200'
+    case 'critical': return 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger-text)]/20'
+    case 'high': return 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--color-warning-text)]/20'
+    case 'medium': return 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-info-text)]/20'
+    default: return 'surface-solid text-muted border-default'
   }
 }
 </script>
@@ -42,43 +42,42 @@ const getRiskBadge = (risk) => {
     <div class="space-y-4">
       
       <!-- ── AI Insight Banner ── -->
-      <div class="lg-card-glass p-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-700 text-white relative overflow-hidden group">
-         <div class="absolute -right-20 -top-20 h-80 w-80 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-1000"></div>
-         <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+      <div class="surface-card border border-[var(--color-info-text)]/20 bg-[var(--color-info-bg)] rounded-2xl p-5 relative overflow-hidden">
+         <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-5">
             <div class="flex items-center gap-4">
-               <div class="h-20 w-20 rounded-3xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-2xl">
-                  <Brain :size="48" class="text-white" />
+               <div class="h-14 w-14 rounded-2xl bg-[var(--surface-card)] flex items-center justify-center border border-[var(--color-info-text)]/20 shadow-sm">
+                  <Brain :size="30" class="text-[var(--color-info-text)]" />
                </div>
                <div>
-                  <h3 class="text-xl font-black tracking-tight">AI Academic Forecast</h3>
-                  <p class="text-blue-100 mt-1 font-medium opacity-90 max-w-md">Hệ thống đã phân tích dữ liệu của 1,240 sinh viên và phát hiện 42 trường hợp có nguy cơ rớt môn cao trong kỳ này.</p>
+                  <h3 class="text-lg font-black tracking-tight text-heading">AI Academic Forecast</h3>
+                  <p class="text-sm text-[var(--color-info-text)] mt-1 font-medium max-w-md">Hệ thống đã phân tích dữ liệu của 1,240 sinh viên và phát hiện 42 trường hợp có nguy cơ rớt môn cao trong kỳ này.</p>
                </div>
             </div>
             <div class="flex flex-wrap justify-center gap-3">
-               <div class="px-5 py-3 bg-white/10 rounded-2xl border border-white/20 text-center">
-                  <p class="text-[10px] font-black uppercase tracking-widest opacity-60">Độ chính xác</p>
-                  <p class="text-xl font-black">94.2%</p>
+               <div class="px-4 py-3 surface-card rounded-2xl border border-[var(--color-info-text)]/20 text-center">
+                  <p class="text-[10px] font-black uppercase tracking-widest text-muted">Độ chính xác</p>
+                  <p class="text-lg font-black text-heading">94.2%</p>
                </div>
-               <div class="px-5 py-3 bg-white/10 rounded-2xl border border-white/20 text-center">
-                  <p class="text-[10px] font-black uppercase tracking-widest opacity-60">Cần can thiệp</p>
-                  <p class="text-xl font-black">18 SV</p>
+               <div class="px-4 py-3 surface-card rounded-2xl border border-[var(--color-info-text)]/20 text-center">
+                  <p class="text-[10px] font-black uppercase tracking-widest text-muted">Cần can thiệp</p>
+                  <p class="text-lg font-black text-heading">18 SV</p>
                </div>
             </div>
          </div>
       </div>
 
       <!-- ── Toolbar ── -->
-      <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-4 flex-1">
+      <div class="surface-card border border-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-3 flex-1">
            <div class="relative max-w-sm w-full">
-              <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input type="text" placeholder="Tìm tên sinh viên, mã số hoặc lớp..." class="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-4 focus:ring-blue-500/10">
+              <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
+              <input type="text" placeholder="Tìm tên sinh viên, mã số hoặc lớp..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-[var(--border-input-focus)]">
            </div>
            <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
               <Filter :size="18" /> Mức độ rủi ro
            </button>
         </div>
-        <button class="lg-button-primary bg-slate-800 py-2.5 px-4 text-sm font-black shadow-lg shadow-slate-200 flex items-center gap-2">
+        <button class="lg-button-primary py-2.5 px-4 text-sm font-black flex items-center gap-2">
            <Bell :size="18" /> Gửi cảnh báo cho Giảng viên
         </button>
       </div>
@@ -88,16 +87,16 @@ const getRiskBadge = (risk) => {
          <div 
            v-for="st in riskStudents" 
            :key="st.id" 
-           class="lg-card-glass p-5 group hover:border-blue-300 transition-all border-slate-100 shadow-sm"
+           class="surface-card border border-card rounded-2xl p-5 group hover:border-[var(--border-input-focus)] transition-all shadow-sm"
          >
             <div class="flex items-start justify-between mb-4">
                <div class="flex items-center gap-4">
-                  <div class="h-10 w-10 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">
+                  <div class="h-10 w-10 rounded-2xl surface-solid flex items-center justify-center text-muted group-hover:bg-[var(--color-info-bg)] group-hover:text-[var(--color-info-text)] transition-all">
                      <User :size="28" />
                   </div>
                   <div>
-                     <h4 class="text-lg font-black text-slate-800 leading-tight group-hover:text-blue-600 transition-colors">{{ st.name }}</h4>
-                     <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">{{ st.code }} • Lớp {{ st.class }}</p>
+                     <h4 class="text-lg font-black text-heading leading-tight group-hover:text-link transition-colors">{{ st.name }}</h4>
+                     <p class="text-[11px] font-bold text-muted uppercase tracking-widest mt-1">{{ st.code }} • Lớp {{ st.class }}</p>
                   </div>
                </div>
                <div :class="['px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm', getRiskBadge(st.risk)]">
@@ -106,33 +105,33 @@ const getRiskBadge = (risk) => {
             </div>
 
             <div class="grid grid-cols-2 gap-4 mb-8">
-               <div class="p-4 bg-slate-50/50 rounded-2xl border border-slate-50">
-                  <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Môn học hiện tại</p>
-                  <p class="text-xs font-bold text-slate-700">{{ st.subject }}</p>
+               <div class="p-4 surface-solid rounded-2xl border border-default">
+                  <p class="text-[9px] font-black text-muted uppercase tracking-widest mb-1.5">Môn học hiện tại</p>
+                  <p class="text-xs font-bold text-label">{{ st.subject }}</p>
                </div>
-               <div class="p-4 bg-slate-50/50 rounded-2xl border border-slate-50">
-                  <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Điểm / Chuyên cần</p>
+               <div class="p-4 surface-solid rounded-2xl border border-default">
+                  <p class="text-[9px] font-black text-muted uppercase tracking-widest mb-1.5">Điểm / Chuyên cần</p>
                   <div class="flex items-center justify-between">
-                     <span class="text-sm font-black text-rose-600">{{ st.grade }}</span>
-                     <span class="text-[10px] font-bold text-slate-500">{{ st.attendance }}% vắng</span>
+                     <span class="text-sm font-black text-[var(--color-danger-text)]">{{ st.grade }}</span>
+                     <span class="text-[10px] font-bold text-muted">{{ st.attendance }}% vắng</span>
                   </div>
                </div>
             </div>
 
-            <div class="flex items-start gap-3 p-4 bg-rose-50/30 rounded-2xl border border-rose-100/50 mb-4">
-               <Zap :size="16" class="text-rose-500 shrink-0 mt-0.5" />
+            <div class="flex items-start gap-3 p-4 bg-[var(--color-danger-bg)] rounded-2xl border border-[var(--color-danger-text)]/20 mb-4">
+               <Zap :size="16" class="text-[var(--color-danger-text)] shrink-0 mt-0.5" />
                <div>
-                  <p class="text-[10px] font-black text-rose-700 uppercase tracking-widest">Dự đoán của AI</p>
-                  <p class="text-[11px] text-slate-600 font-medium leading-relaxed mt-1">{{ st.reason }}</p>
+                  <p class="text-[10px] font-black text-[var(--color-danger-text)] uppercase tracking-widest">Dự đoán của AI</p>
+                  <p class="text-[11px] text-body font-medium leading-relaxed mt-1">{{ st.reason }}</p>
                </div>
             </div>
 
-            <div class="flex items-center justify-between pt-6 border-t border-slate-50">
+            <div class="flex items-center justify-between pt-6 border-t border-default">
                <div class="flex items-center gap-1">
-                  <button class="p-2 hover:bg-slate-100 rounded-lg text-slate-400" title="Xem lịch sử"><History :size="18" /></button>
-                  <button class="p-2 hover:bg-slate-100 rounded-lg text-slate-400" title="Gửi thông báo"><Bell :size="18" /></button>
+                  <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-muted" title="Xem lịch sử"><History :size="18" /></button>
+                  <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-muted" title="Gửi thông báo"><Bell :size="18" /></button>
                </div>
-               <button class="text-xs font-black text-blue-600 uppercase tracking-widest flex items-center gap-1 hover:underline">
+               <button class="text-xs font-black text-link uppercase tracking-widest flex items-center gap-1 hover:underline">
                   Xem chi tiết hồ sơ <ChevronRight :size="14" />
                </button>
             </div>

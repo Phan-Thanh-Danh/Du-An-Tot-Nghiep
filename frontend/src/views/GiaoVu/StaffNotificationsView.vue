@@ -105,7 +105,7 @@ onMounted(loadNotifications)
 
     <div class="space-y-4">
       <!-- Toolbar -->
-      <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
+      <div class="surface-card border border-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
         <div class="flex-1 min-w-[250px] relative">
           <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder" />
           <input v-model="searchQuery" type="text" placeholder="Tìm kiếm thông báo..." class="w-full lg-input pl-11 pr-4 py-2.5 text-sm" />
@@ -137,7 +137,7 @@ onMounted(loadNotifications)
 
       <div v-else class="space-y-2">
         <div v-for="n in paginatedNotifications" :key="n.id"
-             class="lg-glass-soft p-4 rounded-[20px] cursor-pointer transition-all hover:bg-white/10"
+             class="surface-card border border-card p-4 rounded-2xl cursor-pointer transition-all hover:bg-[var(--surface-input)]"
              :class="{ 'border-l-4 border-l-[var(--lg-primary)]': !n.read }"
              @click="viewDetail(n)">
           <div class="flex items-start gap-3">

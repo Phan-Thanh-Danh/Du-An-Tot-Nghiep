@@ -1,9 +1,22 @@
 <script setup>
-import { ref } from 'vue'
-import { 
-  Search, Calendar, Filter, CheckCircle, XCircle, 
-  ArrowUpDown, Download, History, User, Clock, CheckSquare, XSquare
+import { computed, ref } from 'vue'
+import {
+  ArrowUpDown,
+  Calendar,
+  CheckCircle,
+  CheckSquare,
+  Clock,
+  Download,
+  Filter,
+  History,
+  Search,
+  XCircle,
+  XSquare,
 } from 'lucide-vue-next'
+import GlassBadge from '@/components/ui/GlassBadge.vue'
+import GlassButton from '@/components/ui/GlassButton.vue'
+import GlassPanel from '@/components/ui/GlassPanel.vue'
+import TableShell from '@/components/ui/TableShell.vue'
 
 const history = ref([
   { id: 1, date: '12/05/2026', time: '14:30', student: 'Nguyễn Văn A', type: 'Xin vắng học', result: 'Approved' },
@@ -12,208 +25,615 @@ const history = ref([
   { id: 4, date: '05/05/2026', time: '16:20', student: 'Phạm Minh D', type: 'Xin nghỉ phép', result: 'Approved' },
 ])
 
-const getStatusBadge = (status) => {
-  return status === 'Approved' 
-    ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-    : 'bg-rose-100 text-rose-700 border-rose-200'
-}
+const historyStats = computed(() => [
+  { label: 'Tổng yêu cầu', value: history.value.length, variant: 'neutral' },
+  { label: 'Đã duyệt', value: history.value.filter(item => item.result === 'Approved').length, variant: 'success' },
+  { label: 'Từ chối', value: history.value.filter(item => item.result === 'Rejected').length, variant: 'danger' },
+  { label: 'Tháng này', value: 15, variant: 'info' },
+])
+
+const typeStats = computed(() => [
+  { label: 'Xin vắng học', value: '45%' },
+  { label: 'Phúc khảo', value: '30%' },
+])
 
 const getStatusText = (status) => {
   return status === 'Approved' ? 'Đã duyệt' : 'Từ chối'
 }
 
-const getStatusIcon = (status) => {
-  return status === 'Approved' ? CheckCircle : XCircle
+const getStatusVariant = (status) => {
+  return status === 'Approved' ? 'success' : 'danger'
 }
 
-const getAvatarGradient = (id) => {
-  const gradients = [
-    'from-blue-100 to-blue-100 text-blue-700',
-    'from-cyan-100 to-pink-100 text-cyan-700',
-    'from-emerald-100 to-teal-100 text-emerald-700',
-    'from-orange-100 to-amber-100 text-orange-700'
-  ]
-  return gradients[id % 4]
+const getStatusIcon = (status) => {
+  return status === 'Approved' ? CheckCircle : XCircle
 }
 </script>
 
 <template>
-  <div class="space-y-8 pb-12 animate-fade-in">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-[24px] shadow-sm border border-slate-100/60 backdrop-blur-xl relative overflow-hidden">
-      <!-- Decorative background glow -->
-      <div class="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-      <div class="flex items-center gap-5 relative z-10">
-        <div class="p-3 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 shadow-inner">
-          <History :size="24" stroke-width="2" />
-        </div>
-        <div>
-          <h1 class="text-xl font-black text-slate-800 tracking-tight">Lịch sử xử lý đơn</h1>
-          <p class="text-sm text-slate-500 mt-1">Tra cứu lại các yêu cầu của sinh viên đã được giải quyết.</p>
+  <div class="requests-history-page">
+    <GlassPanel variant="soft" density="compact" class="page-header" :clip="false">
+      <div class="header-main">
+        <span class="header-icon">
+          <History :size="20" />
+        </span>
+        <div class="min-w-0">
+          <div class="eyebrow">Request archive</div>
+          <h1 class="page-title">Lịch sử yêu cầu</h1>
+          <p class="page-subtitle">
+            Tra cứu các đơn từ đã xử lý, kết quả phản hồi và thời gian hoàn tất.
+          </p>
         </div>
       </div>
 
-      <div class="flex items-center gap-3 relative z-10">
-        <button class="group relative px-5 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 active:scale-95 flex items-center gap-2 overflow-hidden">
-          <Download :size="18" class="group-hover:-translate-y-0.5 transition-transform duration-300" />
-          <span class="relative z-10">Xuất báo cáo</span>
-        </button>
+      <div class="header-actions">
+        <GlassButton size="sm" variant="secondary">
+          <template #leading>
+            <Download :size="14" />
+          </template>
+          Xuất báo cáo
+        </GlassButton>
       </div>
-    </div>
+    </GlassPanel>
 
-    <!-- Stats & Filters Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
-      <div class="lg:col-span-1 flex flex-col gap-4">
-        <!-- Main Stats Card -->
-        <div class="bg-gradient-to-br from-blue-600 to-cyan-600 p-4 md:p-8 rounded-2xl shadow-xl shadow-blue-500/20 text-white relative overflow-hidden group">
-           <div class="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
-           <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-black/10 rounded-full blur-2xl pointer-events-none"></div>
-           
-           <div class="relative z-10 flex flex-col gap-4">
-              <div>
-                 <h3 class="text-[11px] font-black uppercase tracking-widest text-blue-200 mb-1">Thống kê tháng này</h3>
-                 <p class="text-xl font-black">15 <span class="text-sm font-medium text-blue-200 ml-1">đơn</span></p>
-              </div>
-
-              <div class="space-y-4">
-                 <div class="flex items-center justify-between p-3 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-sm">
-                    <div class="flex items-center gap-3">
-                       <div class="p-2 rounded-xl bg-emerald-500/20 text-emerald-300 shadow-inner">
-                         <CheckSquare :size="18" />
-                       </div>
-                       <span class="text-sm font-bold">Đã duyệt</span>
-                    </div>
-                    <span class="text-xl font-black">12</span>
-                 </div>
-                 
-                 <div class="flex items-center justify-between p-3 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-sm">
-                    <div class="flex items-center gap-3">
-                       <div class="p-2 rounded-xl bg-rose-500/20 text-rose-300 shadow-inner">
-                         <XSquare :size="18" />
-                       </div>
-                       <span class="text-sm font-bold">Từ chối</span>
-                    </div>
-                    <span class="text-xl font-black">3</span>
-                 </div>
-              </div>
-           </div>
-        </div>
-        
-        <!-- Filter Summary Card (Optional/Extra aesthetic) -->
-        <div class="bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm">
-           <h3 class="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-4">Loại đơn phổ biến</h3>
-           <div class="space-y-3">
-              <div class="flex items-center justify-between">
-                 <span class="text-sm font-semibold text-slate-600">Xin vắng học</span>
-                 <span class="text-sm font-black text-slate-800">45%</span>
-              </div>
-              <div class="w-full bg-slate-100 rounded-full h-1.5 mb-2">
-                 <div class="bg-blue-500 h-1.5 rounded-full" style="width: 45%"></div>
-              </div>
-              
-              <div class="flex items-center justify-between mt-3">
-                 <span class="text-sm font-semibold text-slate-600">Phúc khảo</span>
-                 <span class="text-sm font-black text-slate-800">30%</span>
-              </div>
-              <div class="w-full bg-slate-100 rounded-full h-1.5 mb-2">
-                 <div class="bg-cyan-500 h-1.5 rounded-full" style="width: 30%"></div>
-              </div>
-           </div>
-        </div>
-      </div>
-
-      <div class="lg:col-span-3">
-        <!-- History Table -->
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full">
-          <div class="p-4 border-b border-slate-100/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/30">
-            <div class="flex items-center gap-3 w-full sm:w-auto">
-              <select class="w-full sm:w-40 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all shadow-sm cursor-pointer hover:bg-slate-50">
-                 <option>Tất cả trạng thái</option>
-                 <option>Đã phê duyệt</option>
-                 <option>Đã từ chối</option>
-              </select>
-              <button class="p-2.5 rounded-2xl border border-slate-200 bg-white text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm">
-                 <Filter :size="18" />
-              </button>
-            </div>
-            
-            <div class="relative w-full sm:w-72">
-              <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input type="text" placeholder="Tìm sinh viên hoặc loại đơn..." class="w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all shadow-sm" />
-            </div>
-          </div>
-          
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="bg-slate-50/80 text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                  <th class="px-5 py-5 border-b border-slate-100">
-                     <div class="flex items-center gap-2 cursor-pointer hover:text-blue-600 transition-colors">Ngày xử lý <ArrowUpDown :size="14" /></div>
-                  </th>
-                  <th class="px-4 py-5 border-b border-slate-100">Sinh viên</th>
-                  <th class="px-4 py-5 border-b border-slate-100">Loại đơn</th>
-                  <th class="px-5 py-5 border-b border-slate-100 text-right">Kết quả</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100/80 bg-white">
-                <tr v-for="item in history" :key="item.id" class="group hover:bg-slate-50/50 transition-colors duration-200 cursor-pointer">
-                  <td class="px-5 py-5">
-                    <div class="flex flex-col">
-                      <span class="text-sm font-bold text-slate-700">{{ item.date }}</span>
-                      <span class="text-[11px] font-medium text-slate-400 flex items-center gap-1 mt-0.5"><Clock :size="10" /> {{ item.time }}</span>
-                    </div>
-                  </td>
-                  <td class="px-4 py-5">
-                    <div class="flex items-center gap-4">
-                       <div class="h-10 w-10 rounded-[14px] bg-gradient-to-br flex items-center justify-center text-sm font-black shadow-inner group-hover:scale-105 transition-transform" :class="getAvatarGradient(item.id)">
-                          {{ item.student.split(' ').pop()[0] }}
-                       </div>
-                       <span class="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{{ item.student }}</span>
-                    </div>
-                  </td>
-                  <td class="px-4 py-5">
-                     <span class="text-sm font-medium text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 group-hover:border-blue-100 group-hover:bg-blue-50/50 transition-colors">{{ item.type }}</span>
-                  </td>
-                  <td class="px-5 py-5 text-right">
-                    <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-wider" :class="getStatusBadge(item.result)">
-                      <component :is="getStatusIcon(item.result)" :size="14" />
-                      {{ getStatusText(item.result) }}
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="p-4 border-t border-slate-100/80 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-            <span>Hiển thị 1-{{ history.length }} trong số 15 kết quả</span>
-            <div class="flex gap-1">
-              <button class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50">Trước</button>
-              <button class="px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-600 font-bold">1</button>
-              <button class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50">2</button>
-              <button class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50">Sau</button>
-            </div>
+    <GlassPanel variant="surface" density="compact" class="context-bar" :clip="false">
+      <div class="mini-stats">
+        <div v-for="item in historyStats" :key="item.label" class="mini-stat">
+          <span class="stat-label">{{ item.label }}</span>
+          <div class="stat-value-line">
+            <strong>{{ item.value }}</strong>
+            <GlassBadge :variant="item.variant" size="sm">{{ item.label }}</GlassBadge>
           </div>
         </div>
       </div>
+
+      <div class="filters">
+        <label class="select-field">
+          <Filter :size="15" />
+          <select>
+            <option>Tất cả trạng thái</option>
+            <option>Đã phê duyệt</option>
+            <option>Đã từ chối</option>
+          </select>
+        </label>
+        <label class="search-field">
+          <Search :size="15" />
+          <input type="text" placeholder="Tìm sinh viên hoặc loại đơn..." />
+        </label>
+      </div>
+    </GlassPanel>
+
+    <div class="history-layout">
+      <GlassPanel variant="surface" density="compact" class="insight-panel">
+        <template #header>
+          <div class="panel-heading">
+            <div>
+              <h2>Tổng quan tháng</h2>
+              <p>15 đơn đã ghi nhận</p>
+            </div>
+            <Calendar :size="18" />
+          </div>
+        </template>
+
+        <div class="approval-summary">
+          <div class="summary-row">
+            <span class="summary-icon success">
+              <CheckSquare :size="16" />
+            </span>
+            <span>Đã duyệt</span>
+            <strong>12</strong>
+          </div>
+          <div class="summary-row">
+            <span class="summary-icon danger">
+              <XSquare :size="16" />
+            </span>
+            <span>Từ chối</span>
+            <strong>3</strong>
+          </div>
+        </div>
+
+        <div class="type-stats">
+          <h3>Loại đơn phổ biến</h3>
+          <div v-for="item in typeStats" :key="item.label" class="type-row">
+            <div class="type-label">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </div>
+            <div class="progress-line">
+              <span :style="{ width: item.value }" />
+            </div>
+          </div>
+        </div>
+      </GlassPanel>
+
+      <GlassPanel variant="surface" density="none" class="history-table-panel">
+        <template #header>
+          <div class="panel-heading">
+            <div>
+              <h2>Bảng lịch sử</h2>
+              <p>Hiển thị 1-{{ history.length }} trong số 15 kết quả</p>
+            </div>
+            <GlassBadge variant="neutral" size="sm">Archive</GlassBadge>
+          </div>
+        </template>
+
+        <TableShell density="compact" sticky-header>
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  <span class="sortable-heading">
+                    Ngày xử lý
+                    <ArrowUpDown :size="13" />
+                  </span>
+                </th>
+                <th>Sinh viên</th>
+                <th>Loại đơn</th>
+                <th class="text-right">Kết quả</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in history" :key="item.id">
+                <td>
+                  <div class="date-cell">
+                    <strong>{{ item.date }}</strong>
+                    <span>
+                      <Clock :size="11" />
+                      {{ item.time }}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <div class="student-cell">
+                    <span class="avatar">{{ item.student.split(' ').pop()[0] }}</span>
+                    <strong>{{ item.student }}</strong>
+                  </div>
+                </td>
+                <td>
+                  <span class="type-chip">{{ item.type }}</span>
+                </td>
+                <td class="text-right">
+                  <GlassBadge :variant="getStatusVariant(item.result)" size="sm">
+                    <component :is="getStatusIcon(item.result)" :size="12" />
+                    {{ getStatusText(item.result) }}
+                  </GlassBadge>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </TableShell>
+
+        <div class="table-footer">
+          <span>Hiển thị 1-{{ history.length }} trong số 15 kết quả</span>
+          <div class="pager">
+            <button type="button">Trước</button>
+            <button type="button" class="is-active">1</button>
+            <button type="button">2</button>
+            <button type="button">Sau</button>
+          </div>
+        </div>
+      </GlassPanel>
     </div>
   </div>
 </template>
 
 <style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+.requests-history-page {
+  display: grid;
+  gap: 1rem;
+  padding-bottom: 2rem;
+  color: var(--text-body);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+.page-header,
+.context-bar,
+.header-main,
+.header-actions,
+.filters,
+.panel-heading,
+.stat-value-line,
+.summary-row,
+.type-label,
+.sortable-heading,
+.date-cell span,
+.student-cell,
+.table-footer,
+.pager {
+  display: flex;
+  align-items: center;
+}
+
+.page-header,
+.context-bar,
+.panel-heading,
+.table-footer {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header-main {
+  gap: 0.875rem;
+}
+
+.header-icon,
+.summary-icon,
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+}
+
+.header-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-lg);
+  color: var(--text-link);
+}
+
+.eyebrow,
+.page-subtitle,
+.panel-heading p,
+.stat-label,
+.date-cell span,
+.table-footer,
+.type-stats h3 {
+  color: var(--text-muted);
+}
+
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page-title {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
+  font-weight: 900;
+}
+
+.page-subtitle {
+  margin: 0.25rem 0 0;
+  max-width: 42rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.filters {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.625rem;
+}
+
+.context-bar {
+  align-items: stretch;
+}
+
+.mini-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(7rem, 1fr));
+  gap: 0.625rem;
+  flex: 1;
+}
+
+.mini-stat {
+  min-width: 0;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  padding: 0.625rem 0.75rem;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.stat-value-line {
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.375rem;
+}
+
+.stat-value-line strong {
+  color: var(--text-heading);
+  font-size: 1.125rem;
+  font-weight: 900;
+}
+
+.search-field,
+.select-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: min(18rem, 100%);
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-input);
+  background: var(--surface-input);
+  color: var(--text-muted);
+  padding: 0 0.75rem;
+}
+
+.select-field {
+  min-width: 11rem;
+}
+
+.search-field input,
+.select-field select {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.select-field select {
+  appearance: none;
+  cursor: pointer;
+}
+
+.search-field input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.search-field:focus-within,
+.select-field:focus-within {
+  border-color: var(--border-input-focus);
+  box-shadow: 0 0 0 3px var(--border-focus-ring);
+}
+
+.history-layout {
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.35fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.panel-heading h2 {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: 0.9375rem;
+  font-weight: 900;
+}
+
+.panel-heading p {
+  margin: 0.125rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.approval-summary {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.summary-row {
+  gap: 0.625rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  padding: 0.75rem;
+}
+
+.summary-row span:nth-child(2) {
+  flex: 1;
+  color: var(--text-body);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.summary-row strong {
+  color: var(--text-heading);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.summary-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+}
+
+.summary-icon.success {
+  color: var(--color-success-text);
+}
+
+.summary-icon.danger {
+  color: var(--color-danger-text);
+}
+
+.type-stats {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.type-stats h3 {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.type-row {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.type-label {
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--text-body);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.type-label strong {
+  color: var(--text-heading);
+}
+
+.progress-line {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+}
+
+.progress-line span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--text-link);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th {
+  background: var(--surface-input);
+  text-align: left;
+  white-space: nowrap;
+}
+
+td {
+  border-top: 1px solid var(--border-card);
+  vertical-align: middle;
+}
+
+tbody tr:hover {
+  background: var(--surface-input);
+}
+
+.sortable-heading {
+  gap: 0.375rem;
+}
+
+.date-cell {
+  display: grid;
+  gap: 0.1875rem;
+}
+
+.date-cell strong,
+.student-cell strong {
+  color: var(--text-heading);
+  font-size: 0.875rem;
+  font-weight: 900;
+}
+
+.date-cell span {
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.student-cell {
+  gap: 0.625rem;
+  min-width: 12rem;
+}
+
+.avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  color: var(--text-link);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.type-chip {
+  display: inline-flex;
+  width: max-content;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  color: var(--text-body);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.table-footer {
+  border-top: 1px solid var(--border-card);
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pager {
+  gap: 0.25rem;
+}
+
+.pager button {
+  min-height: 2rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-card);
+  background: var(--surface-card);
+  color: var(--text-body);
+  cursor: pointer;
+  padding: 0 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.pager button.is-active {
+  border-color: var(--border-input-focus);
+  color: var(--text-link);
+}
+
+@media (max-width: 1100px) {
+  .page-header,
+  .context-bar {
+    align-items: flex-start;
+    flex-direction: column;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .mini-stats {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filters,
+  .search-field {
+    width: 100%;
+  }
+
+  .history-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .mini-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .select-field,
+  .table-footer,
+  .pager {
+    width: 100%;
+  }
+
+  .table-footer {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

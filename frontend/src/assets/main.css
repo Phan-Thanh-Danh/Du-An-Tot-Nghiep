@@ -7,8 +7,8 @@
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top, rgba(14, 165, 233, 0.14), transparent 30%),
-    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    radial-gradient(circle at top, var(--page-gradient-a, rgba(8, 145, 178, 0.1)), transparent 32%),
+    linear-gradient(180deg, var(--surface-page, #f5f8fc) 0%, var(--surface-app, #f7f9fd) 100%);
   color: var(--text-body, #0f172a);
   font-family:
     Inter,
@@ -26,8 +26,8 @@ body {
 .dark body,
 :root.dark body {
   background:
-    radial-gradient(circle at top, rgba(37, 99, 235, 0.12), transparent 32%),
-    linear-gradient(180deg, #0b1220 0%, #111827 100%);
+    radial-gradient(circle at top, var(--page-gradient-a, rgba(37, 99, 235, 0.12)), transparent 32%),
+    linear-gradient(180deg, var(--surface-page, #0b1220) 0%, var(--surface-app, #0f172a) 100%);
   color: var(--text-body, #e2e8f0);
 }
 

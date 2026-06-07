@@ -996,7 +996,7 @@ function accessStateLabel(exam) {
   background: var(--surface-card);
   padding: 0.65rem;
   box-shadow: var(--lg-shadow-sm);
-  backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(calc(var(--glass-blur) - 4px)) saturate(130%);
 }
 
 .search-field,
@@ -1057,13 +1057,9 @@ function accessStateLabel(exam) {
   overflow: hidden;
   border: 1px solid var(--border-card);
   border-radius: 20px;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--surface-card-strong) 88%, transparent), var(--surface-card)),
-    radial-gradient(circle at 12% 0%, rgba(37, 99, 235, 0.08), transparent 32%);
-  box-shadow:
-    var(--lg-shadow-sm),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(18px) saturate(165%);
+  background: var(--surface-card);
+  box-shadow: var(--lg-shadow-sm);
+  backdrop-filter: blur(calc(var(--glass-blur) - 4px)) saturate(130%);
   transition:
     transform 180ms ease,
     border-color 180ms ease,
@@ -1081,9 +1077,9 @@ function accessStateLabel(exam) {
 }
 
 .exam-card.is-early {
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--surface-card-strong) 88%, transparent), var(--surface-card)),
-    radial-gradient(circle at 12% 0%, rgba(124, 58, 237, 0.12), transparent 34%);
+  box-shadow:
+    inset 3px 0 0 color-mix(in srgb, var(--accent-violet) 52%, transparent),
+    var(--lg-shadow-sm);
 }
 
 .card-top {
@@ -1120,26 +1116,15 @@ function accessStateLabel(exam) {
 .status-completed { color: var(--text-link); background: color-mix(in srgb, var(--color-info-bg) 72%, transparent); }
 .status-awaiting { color: var(--color-warning-text); background: var(--color-warning-bg); }
 .status-locked { color: var(--text-placeholder); background: var(--surface-input); }
-.status-early { color: #7c3aed; background: rgba(237, 233, 254, 0.82); }
+.status-early { color: var(--accent-violet); background: var(--accent-violet-soft); }
 .status-expired { color: var(--color-danger-text); background: var(--color-danger-bg); }
 
 .access-official { color: var(--color-success-text); background: var(--color-success-bg); }
-.access-early { color: #7c3aed; background: rgba(237, 233, 254, 0.82); }
-.access-early-done { color: #6d28d9; background: rgba(237, 233, 254, 0.72); }
+.access-early,
+.access-early-done { color: var(--accent-violet); background: var(--accent-violet-soft); }
 .access-locked { color: var(--color-warning-text); background: var(--color-warning-bg); }
 .access-future { color: var(--text-placeholder); background: var(--surface-input); }
 .access-completed { color: var(--text-link); background: color-mix(in srgb, var(--color-info-bg) 72%, transparent); }
-
-:global(.dark) .status-early {
-  color: #d8b4fe;
-  background: rgba(88, 28, 135, 0.36);
-}
-
-:global(.dark) .access-early,
-:global(.dark) .access-early-done {
-  color: #d8b4fe;
-  background: rgba(88, 28, 135, 0.36);
-}
 
 .card-main {
   display: flex;
@@ -1280,8 +1265,8 @@ function accessStateLabel(exam) {
 }
 
 .note-early {
-  color: #7c3aed;
-  background: rgba(237, 233, 254, 0.48);
+  color: var(--accent-violet);
+  background: var(--accent-violet-soft);
 }
 
 .note-locked {
@@ -1292,11 +1277,6 @@ function accessStateLabel(exam) {
 .note-early-done {
   color: var(--color-success-text);
   background: var(--color-success-bg);
-}
-
-:global(.dark) .note-early {
-  color: #d8b4fe;
-  background: rgba(88, 28, 135, 0.24);
 }
 
 .card-footer {
@@ -1343,20 +1323,20 @@ function accessStateLabel(exam) {
   min-height: 2rem;
   border: 0;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary));
-  color: #ffffff;
+  background: var(--accent-primary);
+  color: var(--text-inverse);
   cursor: pointer;
   padding: 0 0.7rem;
   font-size: 0.73rem;
   font-weight: 850;
   white-space: nowrap;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
+  box-shadow: var(--lg-shadow-sm);
   transition: transform 160ms ease, box-shadow 160ms ease;
 }
 
 .action-button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.3);
+  box-shadow: var(--lg-shadow-md);
 }
 
 .action-button.disabled {
@@ -1391,7 +1371,7 @@ function accessStateLabel(exam) {
   color: var(--text-body);
   padding: 0.75rem;
   box-shadow: var(--lg-shadow-md);
-  backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(calc(var(--glass-blur) - 4px)) saturate(130%);
 }
 
 .inline-notice strong {
@@ -1422,7 +1402,7 @@ function accessStateLabel(exam) {
   z-index: 50;
   display: grid;
   place-items: center;
-  background: rgba(15, 23, 42, 0.44);
+  background: color-mix(in srgb, var(--lg-bg-mid) 58%, transparent);
   padding: 1rem;
   backdrop-filter: blur(8px);
 }
@@ -1444,13 +1424,8 @@ function accessStateLabel(exam) {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 16px;
-  color: #7c3aed;
-  background: rgba(237, 233, 254, 0.78);
-}
-
-:global(.dark) .modal-icon {
-  color: #d8b4fe;
-  background: rgba(88, 28, 135, 0.32);
+  color: var(--accent-violet);
+  background: var(--accent-violet-soft);
 }
 
 .modal-copy {
@@ -1520,9 +1495,9 @@ function accessStateLabel(exam) {
 
 .primary-button {
   border: 0;
-  background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary));
-  color: #ffffff;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+  box-shadow: var(--lg-shadow-sm);
 }
 
 .empty-state {

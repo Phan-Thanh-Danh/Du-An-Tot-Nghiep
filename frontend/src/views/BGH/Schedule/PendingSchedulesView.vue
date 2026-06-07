@@ -6,12 +6,9 @@ import {
   Eye, 
   Search, 
   Filter, 
-  Calendar, 
   AlertTriangle, 
   Clock, 
-  User, 
-  ArrowRight,
-  MessageSquare,
+  User,
   Building2
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
@@ -32,17 +29,17 @@ const pendingSets = ref([
     <div class="space-y-4">
       
       <!-- ── Filters ── -->
-      <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-4 flex-1">
+      <div class="surface-card border border-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-3 flex-1">
            <div class="relative max-w-sm w-full">
-              <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
               <input 
                 type="text" 
                 placeholder="Tìm theo học kỳ, khoa..." 
-                class="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-4 focus:ring-blue-500/10"
+                class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-[var(--border-input-focus)]"
               >
            </div>
-           <select class="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none">
+           <select class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none">
               <option>Spring 2026</option>
               <option>Fall 2025</option>
            </select>
@@ -56,62 +53,62 @@ const pendingSets = ref([
       <div class="lg-table-shell overflow-hidden">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-slate-50/50">
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Khoa / Bộ phận</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Học kỳ & CS</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Quy mô</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Xung đột</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Người gửi</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
+            <tr class="surface-solid">
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Khoa / Bộ phận</th>
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Học kỳ & CS</th>
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Quy mô</th>
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Xung đột</th>
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Người gửi</th>
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
-            <tr v-for="set in pendingSets" :key="set.id" class="group hover:bg-white/50 transition-colors">
-              <td class="px-4 py-4">
+          <tbody class="divide-y divide-default">
+            <tr v-for="set in pendingSets" :key="set.id" class="group hover:bg-[var(--surface-input)] transition-colors">
+              <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
-                  <div class="h-9 w-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                  <div class="h-9 w-9 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] border border-[var(--color-info-text)]/20">
                     <Building2 :size="18" />
                   </div>
-                  <p class="text-sm font-black text-slate-800 leading-tight">{{ set.dept }}</p>
+                  <p class="text-sm font-black text-heading leading-tight">{{ set.dept }}</p>
                 </div>
               </td>
-              <td class="px-4 py-4">
+              <td class="px-4 py-3">
                 <div>
-                  <p class="text-xs font-black text-slate-700 leading-tight">{{ set.semester }}</p>
-                  <p class="text-[10px] font-bold text-slate-400 mt-0.5">{{ set.campus }}</p>
+                  <p class="text-xs font-black text-label leading-tight">{{ set.semester }}</p>
+                  <p class="text-[10px] font-bold text-muted mt-0.5">{{ set.campus }}</p>
                 </div>
               </td>
-              <td class="px-4 py-4">
+              <td class="px-4 py-3">
                 <div class="flex flex-col gap-1">
-                   <span class="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Lớp: {{ set.classes }}</span>
-                   <span class="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Lịch: {{ set.slots }}</span>
+                   <span class="text-[10px] font-black text-muted uppercase tracking-tighter">Lớp: {{ set.classes }}</span>
+                   <span class="text-[10px] font-black text-muted uppercase tracking-tighter">Lịch: {{ set.slots }}</span>
                 </div>
               </td>
-              <td class="px-4 py-4">
-                <div v-if="set.conflicts === 0" class="flex items-center gap-1.5 text-emerald-600">
+              <td class="px-4 py-3">
+                <div v-if="set.conflicts === 0" class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-success-text)]/20 bg-[var(--color-success-bg)] px-2 py-1 text-[var(--color-success-text)]">
                    <CheckCircle2 :size="14" />
                    <span class="text-[10px] font-black uppercase tracking-widest">Sẵn sàng</span>
                 </div>
-                <div v-else class="flex items-center gap-1.5 text-rose-500">
+                <div v-else class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)] px-2 py-1 text-[var(--color-danger-text)]">
                    <AlertTriangle :size="14" />
                    <span class="text-[10px] font-black uppercase tracking-widest">{{ set.conflicts }} lỗi nghiêm trọng</span>
                 </div>
               </td>
-              <td class="px-4 py-4">
-                <div class="flex items-center gap-2 text-xs font-bold text-slate-500">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2 text-xs font-bold text-label">
                    <User :size="14" /> {{ set.sender }}
                 </div>
-                <p class="text-[10px] font-bold text-slate-400 mt-1">{{ set.date }}</p>
+                <p class="text-[10px] font-bold text-muted mt-1">{{ set.date }}</p>
               </td>
-              <td class="px-4 py-4 text-right">
+              <td class="px-4 py-3 text-right">
                 <div class="flex items-center justify-end gap-1">
-                  <button class="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-all" title="Xem chi tiết TKB">
+                  <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-muted transition-all" title="Xem chi tiết TKB">
                     <Eye :size="18" />
                   </button>
-                  <button class="p-2 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg text-slate-400 transition-all" title="Phê duyệt">
+                  <button class="p-2 hover:bg-[var(--color-success-bg)] hover:text-[var(--color-success-text)] rounded-lg text-muted transition-all" title="Phê duyệt">
                     <CheckCircle2 :size="18" />
                   </button>
-                  <button class="p-2 hover:bg-rose-50 hover:text-rose-600 rounded-lg text-slate-400 transition-all" title="Từ chối">
+                  <button class="p-2 hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)] rounded-lg text-muted transition-all" title="Từ chối">
                     <XCircle :size="18" />
                   </button>
                 </div>
@@ -122,14 +119,14 @@ const pendingSets = ref([
       </div>
 
       <!-- ── Approval Policy ── -->
-      <div class="lg-card-glass p-4 border-blue-100 bg-blue-50/10">
+      <div class="surface-card border border-[var(--color-info-text)]/20 bg-[var(--color-info-bg)] rounded-2xl p-4">
          <div class="flex items-start gap-4">
-            <div class="h-10 w-10 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+            <div class="h-10 w-10 rounded-2xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-info-text)] shrink-0 border border-[var(--color-info-text)]/20">
                <Clock :size="20" />
             </div>
             <div>
-               <h4 class="text-sm font-black text-blue-900 uppercase tracking-wide">Chính sách phê duyệt TKB</h4>
-               <p class="text-xs text-blue-700 mt-1 leading-relaxed">
+               <h4 class="text-sm font-black text-heading uppercase tracking-wide">Chính sách phê duyệt TKB</h4>
+               <p class="text-xs text-[var(--color-info-text)] mt-1 leading-relaxed">
                  Hệ thống chỉ cho phép <strong>Duyệt & Publish</strong> bộ TKB khi số lượng xung đột nghiêm trọng (trùng phòng, trùng giảng viên) bằng 0. Nếu bộ TKB còn tồn tại xung đột, BGH vui lòng gửi yêu cầu Giáo vụ chỉnh sửa (Reject with comment).
                </p>
             </div>

@@ -79,13 +79,18 @@ const currentPageMeta = computed(() => {
 </script>
 
 <template>
-  <div class="lg-app-bg relative flex h-screen w-full overflow-hidden font-sans">
-    
-    <!-- Radial glow orbs -->
-    <div class="pointer-events-none fixed inset-0 overflow-hidden z-0">
-      <div class="lg-blob lg-blob-blue absolute -top-40 -left-40" />
-      <div class="lg-blob lg-blob-violet absolute -bottom-40 -right-40" />
-      <div class="lg-blob lg-blob-cyan absolute top-1/4 left-3/4" />
+  <div
+    class="lg-app-bg relative flex h-screen w-full overflow-hidden font-sans"
+    :style="{
+      '--sidebar-accent': '#0d9488',
+      '--active-start': '#0f766e',
+      '--active-mid': '#0d9488',
+      '--active-end': '#14b8a6',
+    }"
+  >
+    <div class="lg-shell-orbs">
+      <div class="lg-shell-orb lg-shell-orb-primary" />
+      <div class="lg-shell-orb lg-shell-orb-secondary" />
     </div>
 
     <!-- MOBILE OVERLAY -->
@@ -99,7 +104,7 @@ const currentPageMeta = computed(() => {
     >
       <div
         v-if="mobileSidebarOpen"
-        class="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden"
+        class="lg-mobile-scrim fixed inset-0 z-40 lg:hidden"
         @click="closeMobileSidebar"
       />
     </Transition>
@@ -139,7 +144,7 @@ const currentPageMeta = computed(() => {
       <AnnouncementBanner />
 
       <main class="flex-1 overflow-y-auto">
-        <div class="mx-auto max-w-[1440px] px-3 sm:px-4 py-3 min-h-full flex flex-col">
+        <div class="lg-shell-content mx-auto flex flex-col">
           <PageContainer
             :title="currentPageMeta.title"
             :subtitle="currentPageMeta.subtitle"
@@ -154,8 +159,8 @@ const currentPageMeta = computed(() => {
                 <Suspense timeout="0">
                   <template #default>
                     <component :is="Component" v-if="Component" />
-                    <div v-else class="flex-1 flex flex-col items-center justify-center py-16 text-center">
-                      <div class="flex h-14 w-14 items-center justify-center rounded-2xl lg-glass-strong surface-solid">
+                    <div v-else class="lg-shell-empty">
+                      <div class="surface-input border-card flex h-12 w-12 items-center justify-center rounded-[var(--radius-lg)] border">
                          <ShieldCheck class="h-7 w-7 text-heading" />
                       </div>
                       <h3 class="mt-4 text-base font-black text-heading">Trang đang phát triển</h3>
@@ -164,19 +169,9 @@ const currentPageMeta = computed(() => {
                     </div>
                   </template>
                   <template #fallback>
-                    <div class="flex h-[60vh] w-full flex-col items-center justify-center space-y-6">
-                      <div class="relative flex items-center justify-center">
-                        <div class="absolute h-16 w-16 animate-ping rounded-full bg-blue-400/20"></div>
-                        <div class="h-10 w-10 animate-spin rounded-full border-4 border-default border-t-[var(--lg-primary)] shadow-sm"></div>
-                      </div>
-                      <div class="flex flex-col items-center space-y-2">
-                        <p class="text-sm font-semibold tracking-wide text-label">Đang nạp dữ liệu...</p>
-                        <div class="flex space-x-1">
-                          <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500" style="animation-delay: -0.3s"></div>
-                          <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500" style="animation-delay: -0.15s"></div>
-                          <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500"></div>
-                        </div>
-                      </div>
+                    <div class="lg-shell-loading gap-3">
+                      <div class="lg-shell-loading-spinner" />
+                      <p class="text-sm font-semibold text-label">Đang nạp dữ liệu...</p>
                     </div>
                   </template>
                 </Suspense>

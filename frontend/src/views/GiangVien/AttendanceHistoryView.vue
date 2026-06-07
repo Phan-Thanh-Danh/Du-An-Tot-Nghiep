@@ -1,11 +1,27 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { 
-  Search, Calendar, Filter, Download, 
-  ChevronRight, ArrowUpDown, Clock, Users,
-  CheckCircle2, AlertTriangle, BookOpen, X,
-  Edit3, Save, AlertCircle
+import {
+  Search,
+  Calendar,
+  Filter,
+  Download,
+  ChevronRight,
+  ArrowUpDown,
+  Clock,
+  Users,
+  CheckCircle2,
+  AlertTriangle,
+  BookOpen,
+  X,
+  Edit3,
+  Save,
+  AlertCircle,
 } from 'lucide-vue-next'
+
+import GlassBadge from '@/components/ui/GlassBadge.vue'
+import GlassButton from '@/components/ui/GlassButton.vue'
+import GlassPanel from '@/components/ui/GlassPanel.vue'
+import TableShell from '@/components/ui/TableShell.vue'
 
 const attendanceHistory = ref([
   { id: 1, date: '12/05/2026', className: 'SE1601 - Java', absences: 3, total: 30, time: '07:30', room: 'A201' },
@@ -74,14 +90,14 @@ const filteredHistory = computed(() => {
   return attendanceHistory.value.filter(item => {
     const matchSearch = item.className.toLowerCase().includes(historySearch.value.toLowerCase()) ||
                         item.room.toLowerCase().includes(historySearch.value.toLowerCase())
-    
+
     let matchDate = true
     if (historyDate.value) {
       const parts = historyDate.value.split('-')
       const formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`
       matchDate = item.date === formattedDate
     }
-    
+
     return matchSearch && matchDate
   })
 })
@@ -99,6 +115,30 @@ const toast = ref({
   message: '',
   type: 'success'
 })
+
+const historySummary = computed(() => {
+  const totalSessions = attendanceHistory.value.length
+  const totalStudents = attendanceHistory.value.reduce((sum, item) => sum + item.total, 0)
+  const totalAbsences = attendanceHistory.value.reduce((sum, item) => sum + item.absences, 0)
+  const attendanceRate = totalStudents
+    ? Math.round(((totalStudents - totalAbsences) / totalStudents) * 100)
+    : 0
+
+  return [
+    { label: 'Tổng buổi', value: totalSessions, tone: 'primary' },
+    { label: 'Đã xác nhận', value: totalSessions, tone: 'success' },
+    { label: 'Chưa xác nhận', value: 0, tone: 'warning' },
+    { label: 'Tỷ lệ CC', value: `${attendanceRate}%`, tone: 'success' },
+    { label: 'Lượt vắng', value: totalAbsences, tone: 'danger' },
+    { label: 'Đi muộn', value: countAllByStatus('Late'), tone: 'warning' },
+  ]
+})
+
+function countAllByStatus(status) {
+  return Object.values(sessionStudentsMock.value)
+    .flat()
+    .filter((student) => student.status === status).length
+}
 
 function triggerToast(msg, type = 'success') {
   toast.value.message = msg
@@ -133,7 +173,7 @@ const sessionStats = computed(() => {
   const present = activeStudents.value.filter(s => s.status === 'Present').length
   const late = activeStudents.value.filter(s => s.status === 'Late').length
   const absent = activeStudents.value.filter(s => s.status === 'Absent').length
-  
+
   return { total, present, late, absent }
 })
 
@@ -155,456 +195,953 @@ function saveAttendanceChanges() {
       attendanceHistory.value[idx].absences = absencesCount
       attendanceHistory.value[idx].total = activeStudents.value.length
     }
-    
+
     sessionStudentsMock.value[selectedSession.value.id] = JSON.parse(JSON.stringify(activeStudents.value))
     isEditing.value = false
     triggerToast('Đã cập nhật lịch sử điểm danh thành công!', 'success')
   }
 }
+
+function studentStatusVariant(status) {
+  if (status === 'Present') return 'success'
+  if (status === 'Late') return 'warning'
+  return 'danger'
+}
+
+function studentStatusLabel(status) {
+  if (status === 'Present') return 'Có mặt'
+  if (status === 'Late') return 'Đi muộn'
+  return 'Vắng mặt'
+}
 </script>
 
 <template>
-  <div class="space-y-8 pb-10 text-slate-800 relative">
-    
-    <!-- Toast Component -->
+  <div class="attendance-history-page lg-page-enter">
     <Transition name="toast-slide">
-      <div v-if="toast.show" 
-           :class="['fixed top-4 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-300', 
-                    toast.type === 'success' ? 'bg-emerald-500/90 border-emerald-400 text-white' : 'bg-rose-500/90 border-rose-400 text-white']">
-        <CheckCircle2 v-if="toast.type === 'success'" :size="20" />
-        <AlertCircle v-else :size="20" />
-        <p class="text-sm font-bold tracking-wide">{{ toast.message }}</p>
+      <div v-if="toast.show" :class="['toast', toast.type === 'success' ? 'success' : 'danger']">
+        <CheckCircle2 v-if="toast.type === 'success'" :size="18" />
+        <AlertCircle v-else :size="18" />
+        <p>{{ toast.message }}</p>
       </div>
     </Transition>
 
-    <!-- ── Header ── -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
-      <!-- Decorative background -->
-      
-      
-      <div class="relative z-10 flex items-center gap-5">
-        <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-emerald-200">
-           <Calendar :size="32" />
+    <GlassPanel variant="flat" density="compact" class="page-header">
+      <div class="header-copy">
+        <div class="eyebrow">
+          <Calendar :size="15" />
+          Spring 2026 · Block 2
         </div>
         <div>
-          <h1 class="text-xl md:text-xl font-black text-slate-900 tracking-tight">Lịch sử điểm danh</h1>
-          <p class="text-sm font-medium text-slate-500 mt-1">Xem lại nhật ký điểm danh của các buổi học đã diễn ra.</p>
+          <h1>Lịch sử điểm danh</h1>
+          <p>Xem lại nhật ký điểm danh, tỷ lệ chuyên cần và chi tiết từng buổi học.</p>
         </div>
       </div>
-      <div class="relative z-10 flex gap-3">
-         <button class="flex items-center gap-2 rounded-2xl bg-white px-5 py-3 border border-slate-200 shadow-sm hover:bg-slate-50 hover:text-emerald-600 transition-colors font-bold text-sm text-slate-700 active:scale-95">
-            <Download :size="18" /> Xuất báo cáo
-         </button>
+
+      <GlassButton variant="primary" size="sm">
+        <template #leading>
+          <Download :size="16" />
+        </template>
+        Xuất báo cáo
+      </GlassButton>
+    </GlassPanel>
+
+    <GlassPanel variant="flat" density="compact" class="context-panel">
+      <div class="summary-strip">
+        <div v-for="item in historySummary" :key="item.label" :class="['summary-pill', item.tone]">
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
+        </div>
       </div>
-    </div>
 
-    <!-- Quick Stats & Filters -->
-    <div class="flex flex-col xl:flex-row gap-4">
-       <!-- Stats -->
-       <div class="grid grid-cols-2 md:grid-cols-4 xl:w-1/2 gap-4">
-          <div class="rounded-[24px] bg-white border border-slate-100 p-5 shadow-sm">
-             <div class="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 mb-3">
-                <BookOpen :size="20" />
-             </div>
-             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Tổng số buổi</p>
-             <p class="text-xl font-black text-slate-800">24</p>
-          </div>
-          <div class="rounded-[24px] bg-white border border-slate-100 p-5 shadow-sm">
-             <div class="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 mb-3">
-                <CheckCircle2 :size="20" />
-             </div>
-             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Đi học đúng</p>
-             <p class="text-xl font-black text-slate-800">92%</p>
-          </div>
-          <div class="rounded-[24px] bg-white border border-slate-100 p-5 shadow-sm col-span-2 flex flex-col justify-center">
-             <div class="flex items-center gap-3 mb-2">
-                  <div class="h-10 w-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600">
-                     <AlertTriangle :size="20" />
-                  </div>
-                  <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Cần lưu ý</p>
-             </div>
-             <p class="text-sm font-bold text-slate-800 mt-1">Lớp SS1402 có tỷ lệ vắng cao (15%)</p>
-          </div>
-       </div>
+      <div class="filters">
+        <label class="input-shell">
+          <Search :size="16" />
+          <input v-model="historySearch" type="text" placeholder="Tìm lớp học, mã phòng..." />
+        </label>
+        <label class="input-shell date-shell">
+          <Calendar :size="16" />
+          <input v-model="historyDate" type="date" />
+        </label>
+      </div>
+    </GlassPanel>
 
-       <!-- Filters -->
-       <div class="flex-1 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm flex flex-col justify-center">
-          <p class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><Filter :size="16" class="text-blue-500" /> Bộ lọc dữ liệu</p>
-          <div class="flex flex-col sm:flex-row gap-4">
-            <div class="relative flex-1">
-              <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input v-model="historySearch" type="text" placeholder="Tìm kiếm lớp học, mã phòng..." class="w-full rounded-[16px] border border-slate-200 bg-slate-50 pl-11 pr-4 py-3.5 text-sm font-medium outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-colors text-slate-800" />
-            </div>
-            <div class="relative w-full sm:w-48 shrink-0">
-              <Calendar :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <input v-model="historyDate" type="date" class="w-full rounded-[16px] border border-slate-200 bg-slate-50 pl-11 pr-4 py-3.5 text-sm font-medium outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-colors text-slate-800 cursor-pointer" />
-            </div>
-          </div>
-       </div>
-    </div>
+    <GlassPanel variant="flat" density="compact" class="history-panel">
+      <div class="panel-title">
+        <div>
+          <h2>
+            <BookOpen :size="17" />
+            Bảng lịch sử buổi học
+          </h2>
+          <p>Hiển thị {{ filteredHistory.length }} bản ghi theo bộ lọc hiện tại.</p>
+        </div>
+        <GlassBadge variant="success">Đã xác nhận</GlassBadge>
+      </div>
 
-    <!-- History Table -->
-    <div class="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden animate-fade-in-up">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
+      <TableShell v-if="filteredHistory.length" density="compact">
+        <table>
           <thead>
-            <tr class="bg-slate-50/50 border-b border-slate-100">
-              <th class="px-5 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">
-                 <div class="flex items-center gap-2 hover:text-blue-600 cursor-pointer transition-colors w-max">Ngày học <ArrowUpDown :size="14" /></div>
+            <tr>
+              <th>
+                <span class="sortable-label">
+                  Ngày
+                  <ArrowUpDown :size="12" />
+                </span>
               </th>
-              <th class="px-4 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Lớp học</th>
-              <th class="px-4 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Thời gian</th>
-              <th class="px-4 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 text-center">Tình trạng</th>
-              <th class="px-5 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Chi tiết</th>
+              <th>Lớp / Môn</th>
+              <th>Ca học / Phòng</th>
+              <th>Tổng SV</th>
+              <th>Có mặt</th>
+              <th>Vắng</th>
+              <th>Đi muộn</th>
+              <th>Có phép</th>
+              <th>Trạng thái</th>
+              <th class="text-right">Hành động</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
-            <tr v-for="item in filteredHistory" :key="item.id" class="group hover:bg-slate-50/50 transition-colors">
-              <td class="px-5 py-5">
-                <div class="flex items-center gap-4">
-                   <div class="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors shadow-sm">
-                      <Calendar :size="20" />
-                   </div>
-                   <div>
-                      <p class="text-sm font-bold text-slate-900">{{ item.date }}</p>
-                      <p class="text-xs font-semibold text-slate-400 mt-0.5">Học kỳ Fall</p>
-                   </div>
+          <tbody>
+            <tr v-for="item in filteredHistory" :key="item.id">
+              <td>
+                <div class="date-cell">
+                  <span class="date-icon">
+                    <Calendar :size="16" />
+                  </span>
+                  <span>
+                    <strong>{{ item.date }}</strong>
+                    <small>Học kỳ Fall</small>
+                  </span>
                 </div>
               </td>
-              <td class="px-4 py-5">
-                <p class="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition-colors">{{ item.className }}</p>
-                <div class="flex items-center gap-1.5 mt-1">
-                   <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500 uppercase">Phòng</span>
-                   <span class="text-xs font-bold text-slate-600">{{ item.room }}</span>
+              <td>
+                <div class="class-cell">
+                  <strong>{{ item.className }}</strong>
+                  <small>Phòng {{ item.room }}</small>
                 </div>
               </td>
-              <td class="px-4 py-5">
-                <div class="flex items-center gap-2 text-sm text-slate-600 font-bold bg-slate-50 px-3 py-1.5 rounded-xl w-max border border-slate-100">
-                   <Clock :size="14" class="text-blue-500" /> {{ item.time }}
-                </div>
+              <td>
+                <span class="time-cell">
+                  <Clock :size="13" />
+                  {{ item.time }} · {{ item.room }}
+                </span>
               </td>
-              <td class="px-4 py-5 text-center">
-                 <div v-if="item.absences === 0" class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 border border-emerald-100 text-emerald-700">
-                    <CheckCircle2 :size="14" />
-                    <span class="text-xs font-bold">Đầy đủ ({{item.total}})</span>
-                 </div>
-                 <div v-else class="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1.5 border border-rose-100 text-rose-700">
-                    <Users :size="14" />
-                    <span class="text-xs font-bold">Vắng {{ item.absences }}/{{item.total}}</span>
-                 </div>
+              <td class="number-cell">{{ item.total }}</td>
+              <td class="number-cell success">{{ item.total - item.absences }}</td>
+              <td class="number-cell danger">{{ item.absences }}</td>
+              <td class="number-cell warning">0</td>
+              <td class="number-cell info">0</td>
+              <td>
+                <GlassBadge :variant="item.absences === 0 ? 'success' : 'warning'">
+                  {{ item.absences === 0 ? 'Đã xác nhận' : 'Có vắng' }}
+                </GlassBadge>
               </td>
-              <td class="px-5 py-5 text-right">
-                <button @click="openSessionDetails(item)" class="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-colors shadow-sm group-hover:shadow-md">
-                   <ChevronRight :size="20" />
-                </button>
-              </td>
-            </tr>
-            <tr v-if="filteredHistory.length === 0">
-              <td colspan="5" class="text-center py-10">
-                <div class="flex flex-col items-center justify-center text-slate-350">
-                  <Calendar :size="48" class="text-slate-200 mb-2" />
-                  <p class="text-sm font-bold">Không tìm thấy lịch sử điểm danh</p>
-                  <p class="text-xs">Vui lòng thử lại với từ khóa hoặc bộ lọc khác.</p>
+              <td>
+                <div class="row-actions">
+                  <GlassButton variant="ghost" size="sm">
+                    <template #leading>
+                      <Download :size="13" />
+                    </template>
+                    Xuất
+                  </GlassButton>
+                  <GlassButton variant="secondary" size="sm" @click="openSessionDetails(item)">
+                    Chi tiết
+                    <template #trailing>
+                      <ChevronRight :size="13" />
+                    </template>
+                  </GlassButton>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
-      </div>
-      
-      <!-- Footer -->
-      <div class="bg-slate-50/80 px-5 py-5 border-t border-slate-100 flex items-center justify-between">
-         <div class="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
-            <Users :size="14" class="text-slate-400" /> Hiển thị {{ filteredHistory.length }} bản ghi
-         </div>
-         <div class="flex items-center gap-1">
-            <div class="h-1 w-8 bg-blue-500 rounded-full"></div>
-            <div class="h-1 w-2 bg-blue-200 rounded-full"></div>
-            <div class="h-1 w-2 bg-blue-200 rounded-full"></div>
-         </div>
-      </div>
-    </div>
+      </TableShell>
 
-    <!-- Attendance Details Dialog Modal -->
+      <div v-else class="empty-block">
+        <Calendar :size="32" />
+        <h3>Không tìm thấy lịch sử điểm danh</h3>
+        <p>Vui lòng thử lại với từ khóa hoặc bộ lọc khác.</p>
+      </div>
+    </GlassPanel>
+
     <Teleport to="body">
-      <div v-if="isDetailModalOpen" class="fixed inset-0 z-[999] flex items-center justify-center p-4">
-        <!-- Backdrop with blur -->
-        <div @click="isDetailModalOpen = false" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300"></div>
+      <div v-if="isDetailModalOpen" class="modal-root">
+        <button
+          type="button"
+          class="modal-backdrop"
+          aria-label="Đóng chi tiết điểm danh"
+          @click="isDetailModalOpen = false"
+        />
 
-        <!-- Modal Card -->
-        <div class="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[85vh] overflow-hidden transform transition-all duration-300 scale-100 animate-modal-in">
-          
-          <!-- Modal Header -->
-          <div class="p-4 md:p-8 border-b border-slate-100 flex justify-between items-center relative overflow-hidden shrink-0">
-            <div class="absolute -right-16 -top-16 h-36 w-36 bg-gradient-to-tr from-emerald-50 to-emerald-100/30 rounded-full blur-2xl pointer-events-none" />
-            
-            <div class="relative z-10 flex items-center gap-4">
-              <div class="h-10 w-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100/50">
-                 <Calendar :size="24" />
-              </div>
-              <div v-if="selectedSession">
-                 <h3 class="text-xl md:text-xl font-black text-slate-850">Chi Tiết Điểm Danh</h3>
-                 <p class="text-xs font-semibold text-slate-400 mt-0.5">
-                   Lớp: <span class="text-slate-700 font-bold">{{ selectedSession.className }}</span> • 
-                   Ngày: <span class="text-slate-700 font-bold">{{ selectedSession.date }}</span> • 
-                   Giờ: <span class="text-slate-700 font-bold">{{ selectedSession.time }}</span> • 
-                   Phòng: <span class="text-slate-700 font-bold">{{ selectedSession.room }}</span>
-                 </p>
-              </div>
+        <GlassPanel variant="flat" density="none" class="detail-modal">
+          <div class="modal-header">
+            <div class="modal-title">
+              <span class="modal-icon">
+                <Calendar :size="20" />
+              </span>
+              <span v-if="selectedSession">
+                <h3>Chi tiết điểm danh</h3>
+                <p>
+                  {{ selectedSession.className }} · {{ selectedSession.date }} ·
+                  {{ selectedSession.time }} · Phòng {{ selectedSession.room }}
+                </p>
+              </span>
             </div>
-            <button @click="isDetailModalOpen = false" class="h-10 w-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-450 hover:bg-rose-50 hover:text-rose-500 hover:rotate-90 transition-all duration-300 relative z-10">
-               <X :size="18" />
+            <button type="button" class="icon-button" @click="isDetailModalOpen = false">
+              <X :size="18" />
             </button>
           </div>
 
-          <!-- Modal Stats Row -->
-          <div class="px-4 py-4 md:px-5 border-b border-slate-50 bg-slate-50/40 grid grid-cols-4 gap-4 shrink-0">
-            <div class="rounded-xl bg-white border border-slate-100 p-3 text-center shadow-sm">
-              <p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Tổng số</p>
-              <p class="text-base font-black text-slate-700 mt-0.5">{{ sessionStats.total }} SV</p>
+          <div class="modal-summary">
+            <div class="summary-pill primary">
+              <span>Tổng số</span>
+              <strong>{{ sessionStats.total }}</strong>
             </div>
-            <div class="rounded-xl bg-emerald-50/50 border border-emerald-100 p-3 text-center shadow-sm">
-              <p class="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Có mặt</p>
-              <p class="text-base font-black text-emerald-700 mt-0.5">{{ sessionStats.present }} SV</p>
+            <div class="summary-pill success">
+              <span>Có mặt</span>
+              <strong>{{ sessionStats.present }}</strong>
             </div>
-            <div class="rounded-xl bg-amber-50/50 border border-amber-100 p-3 text-center shadow-sm">
-              <p class="text-[9px] font-black text-amber-600 uppercase tracking-wider">Đi muộn</p>
-              <p class="text-base font-black text-amber-700 mt-0.5">{{ sessionStats.late }} SV</p>
+            <div class="summary-pill warning">
+              <span>Đi muộn</span>
+              <strong>{{ sessionStats.late }}</strong>
             </div>
-            <div class="rounded-xl bg-rose-50/50 border border-rose-100 p-3 text-center shadow-sm">
-              <p class="text-[9px] font-black text-rose-600 uppercase tracking-wider">Vắng mặt</p>
-              <p class="text-base font-black text-rose-700 mt-0.5">{{ sessionStats.absent }} SV</p>
+            <div class="summary-pill danger">
+              <span>Vắng</span>
+              <strong>{{ sessionStats.absent }}</strong>
             </div>
           </div>
 
-          <!-- Modal Body Toolbar -->
-          <div class="px-4 py-4 md:px-5 border-b border-slate-50 bg-white flex flex-col sm:flex-row gap-3 justify-between items-center shrink-0">
-            <!-- Search student inside session -->
-            <div class="relative w-full sm:w-64">
-              <Search :size="14" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                v-model="activeSearchQuery"
-                type="text" 
-                placeholder="Tìm sinh viên, MSSV..." 
-                class="w-full rounded-xl border border-slate-200 bg-slate-50/60 pl-9 pr-4 py-2.5 text-xs font-semibold outline-none focus:border-emerald-450 focus:bg-white transition-all text-slate-800" 
-              />
-            </div>
-            
-            <!-- Quick Filter Status -->
-            <div class="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
-              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mr-1">Lọc:</span>
-              <button 
-                @click="activeFilterStatus = ''"
-                :class="['px-3 py-1.5 rounded-lg text-xs font-bold transition-all', !activeFilterStatus ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-50 border border-slate-100 text-slate-500 hover:bg-slate-100']"
-              >
+          <div class="modal-toolbar">
+            <label class="input-shell">
+              <Search :size="15" />
+              <input v-model="activeSearchQuery" type="text" placeholder="Tìm sinh viên, MSSV..." />
+            </label>
+
+            <div class="filter-chips">
+              <span>Lọc:</span>
+              <button type="button" :class="['chip', !activeFilterStatus ? 'active' : '']" @click="activeFilterStatus = ''">
                 Tất cả
               </button>
-              <button 
-                @click="activeFilterStatus = 'Present'"
-                :class="['px-3 py-1.5 rounded-lg text-xs font-bold transition-all', activeFilterStatus === 'Present' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-50 border border-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700']"
-              >
+              <button type="button" :class="['chip success', activeFilterStatus === 'Present' ? 'active' : '']" @click="activeFilterStatus = 'Present'">
                 Có mặt
               </button>
-              <button 
-                @click="activeFilterStatus = 'Late'"
-                :class="['px-3 py-1.5 rounded-lg text-xs font-bold transition-all', activeFilterStatus === 'Late' ? 'bg-amber-600 text-white shadow-sm' : 'bg-slate-50 border border-slate-100 text-slate-500 hover:bg-amber-50 hover:text-amber-700']"
-              >
+              <button type="button" :class="['chip warning', activeFilterStatus === 'Late' ? 'active' : '']" @click="activeFilterStatus = 'Late'">
                 Muộn
               </button>
-              <button 
-                @click="activeFilterStatus = 'Absent'"
-                :class="['px-3 py-1.5 rounded-lg text-xs font-bold transition-all', activeFilterStatus === 'Absent' ? 'bg-rose-600 text-white shadow-sm' : 'bg-slate-50 border border-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-700']"
-              >
+              <button type="button" :class="['chip danger', activeFilterStatus === 'Absent' ? 'active' : '']" @click="activeFilterStatus = 'Absent'">
                 Vắng
               </button>
             </div>
           </div>
 
-          <!-- Modal Body Student List (Scrollable) -->
-          <div class="overflow-y-auto p-4 md:p-8 bg-slate-50/20 flex-1">
-            <div class="rounded-2xl border border-slate-100 bg-white overflow-hidden shadow-sm">
-              <table class="w-full text-left border-collapse">
+          <div class="modal-body">
+            <TableShell v-if="filteredStudents.length" density="compact" sticky-header>
+              <table>
                 <thead>
-                  <tr class="bg-slate-50/40 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-450">
-                    <th class="px-4 py-4">Sinh viên</th>
-                    <th class="px-4 py-4">Mã số SV</th>
-                    <th class="px-4 py-4">Giờ điểm danh</th>
-                    <th class="px-4 py-4 text-center">Trạng thái</th>
-                    <th class="px-4 py-4">Ghi chú</th>
+                  <tr>
+                    <th>Sinh viên</th>
+                    <th>MSSV</th>
+                    <th>Giờ điểm danh</th>
+                    <th>Trạng thái</th>
+                    <th>Ghi chú</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-50 text-xs">
-                  <tr v-for="(sv, idx) in filteredStudents" :key="sv.id" class="hover:bg-slate-50/30 transition-colors">
-                    <td class="px-4 py-4">
-                      <div class="flex items-center gap-3">
-                        <div class="h-9 w-9 rounded-xl bg-slate-50 font-black text-slate-550 flex items-center justify-center border border-slate-100 shrink-0 uppercase shadow-inner">
-                          {{ sv.name.split(' ').pop()[0] }}
-                        </div>
-                        <span class="font-bold text-slate-800">{{ sv.name }}</span>
+                <tbody>
+                  <tr v-for="(sv, idx) in filteredStudents" :key="sv.id">
+                    <td>
+                      <div class="student-cell">
+                        <span class="student-avatar">{{ sv.name.split(' ').pop()[0] }}</span>
+                        <strong>{{ sv.name }}</strong>
                       </div>
                     </td>
-                    <td class="px-4 py-4 font-bold text-slate-500 uppercase tracking-wide">
-                      {{ sv.id }}
+                    <td class="student-code">{{ sv.id }}</td>
+                    <td>
+                      <span class="time-cell">
+                        <Clock :size="12" />
+                        {{ sv.time }}
+                      </span>
                     </td>
-                    <td class="px-4 py-4">
-                      <div class="flex items-center gap-1 text-slate-600 font-semibold">
-                        <Clock :size="12" class="text-slate-400" />
-                        <span>{{ sv.time }}</span>
-                      </div>
-                    </td>
-                    
-                    <!-- Status Badge (Toggleable in edit mode) -->
-                    <td class="px-4 py-4 text-center">
-                      <div v-if="!isEditing" class="inline-block">
-                        <span v-if="sv.status === 'Present'" class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 border border-emerald-100">
-                          Có mặt
-                        </span>
-                        <span v-else-if="sv.status === 'Late'" class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 border border-amber-100">
-                          Đi muộn
-                        </span>
-                        <span v-else class="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-[10px] font-bold text-rose-700 border border-rose-100">
-                          Vắng mặt
-                        </span>
-                      </div>
-                      
-                      <!-- Editable Button Group -->
-                      <div v-else class="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm w-max mx-auto">
-                        <button 
+                    <td>
+                      <GlassBadge v-if="!isEditing" :variant="studentStatusVariant(sv.status)">
+                        {{ studentStatusLabel(sv.status) }}
+                      </GlassBadge>
+                      <div v-else class="status-actions">
+                        <button
+                          type="button"
+                          :class="['status-button success', sv.status === 'Present' ? 'active' : '']"
                           @click="changeStatus(idx, 'Present')"
-                          :class="['px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors', sv.status === 'Present' ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50']"
                         >
                           Có
                         </button>
-                        <button 
+                        <button
+                          type="button"
+                          :class="['status-button warning', sv.status === 'Late' ? 'active' : '']"
                           @click="changeStatus(idx, 'Late')"
-                          :class="['px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors', sv.status === 'Late' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50']"
                         >
                           Muộn
                         </button>
-                        <button 
+                        <button
+                          type="button"
+                          :class="['status-button danger', sv.status === 'Absent' ? 'active' : '']"
                           @click="changeStatus(idx, 'Absent')"
-                          :class="['px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors', sv.status === 'Absent' ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50']"
                         >
                           Vắng
                         </button>
                       </div>
                     </td>
-
-                    <!-- Note column -->
-                    <td class="px-4 py-4">
-                      <div v-if="!isEditing" class="text-slate-500 italic max-w-[180px] truncate" :title="sv.note">
-                        {{ sv.note || '--' }}
-                      </div>
-                      <input 
-                        v-else
-                        v-model="sv.note"
-                        type="text"
-                        placeholder="Nhập lý do..."
-                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs outline-none focus:border-emerald-450 bg-slate-50/50 focus:bg-white transition-colors text-slate-800"
-                      />
-                    </td>
-                  </tr>
-                  
-                  <tr v-if="filteredStudents.length === 0">
-                    <td colspan="5" class="text-center py-8">
-                      <div class="flex flex-col items-center justify-center text-slate-350">
-                        <Users :size="32" class="text-slate-200 mb-1" />
-                        <p class="text-xs font-bold">Không tìm thấy sinh viên nào</p>
-                      </div>
+                    <td>
+                      <span v-if="!isEditing" class="note-text" :title="sv.note">{{ sv.note || '--' }}</span>
+                      <input v-else v-model="sv.note" type="text" placeholder="Nhập lý do..." class="note-input" />
                     </td>
                   </tr>
                 </tbody>
               </table>
+            </TableShell>
+
+            <div v-else class="empty-block compact">
+              <Users :size="28" />
+              <h3>Không tìm thấy sinh viên</h3>
             </div>
           </div>
 
-          <!-- Modal Footer -->
-          <div class="p-4 border-t border-slate-100 flex justify-between items-center bg-white shrink-0">
-            <!-- Left secondary action -->
-            <button 
-              type="button"
-              class="rounded-xl border border-slate-250 bg-white px-5 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-1.5 active:scale-95 shadow-sm"
-            >
-              <Download :size="16" /> Xuất file buổi này
-            </button>
-            
-            <!-- Right main actions -->
-            <div class="flex gap-2">
-              <button 
-                v-if="!isEditing"
-                @click="isEditing = true"
-                class="rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-600 px-4 py-3 text-xs font-bold text-white shadow-md shadow-emerald-100 hover:shadow-lg hover:shadow-emerald-200 hover:-translate-y-0.5 transition-all flex items-center gap-1.5 active:scale-95"
-              >
-                <Edit3 :size="16" /> Chỉnh sửa điểm danh
-              </button>
-              
+          <div class="modal-footer">
+            <GlassButton variant="secondary" size="sm">
+              <template #leading>
+                <Download :size="15" />
+              </template>
+              Xuất file buổi này
+            </GlassButton>
+
+            <div class="modal-actions">
+              <GlassButton v-if="!isEditing" variant="primary" size="sm" @click="isEditing = true">
+                <template #leading>
+                  <Edit3 :size="15" />
+                </template>
+                Chỉnh sửa
+              </GlassButton>
+
               <template v-else>
-                <button 
-                  @click="isEditing = false"
-                  class="rounded-xl border border-slate-200 px-5 py-3 text-xs font-bold text-slate-500 hover:bg-slate-50 transition-all active:scale-95 shadow-sm"
-                >
-                  Hủy
-                </button>
-                <button 
-                  @click="saveAttendanceChanges"
-                  class="rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-600 px-4 py-3 text-xs font-bold text-white shadow-md shadow-emerald-100 hover:shadow-lg hover:shadow-emerald-200 hover:-translate-y-0.5 transition-all flex items-center gap-1.5 active:scale-95"
-                >
-                  <Save :size="16" /> Lưu thay đổi
-                </button>
+                <GlassButton variant="secondary" size="sm" @click="isEditing = false">Hủy</GlassButton>
+                <GlassButton variant="primary" size="sm" @click="saveAttendanceChanges">
+                  <template #leading>
+                    <Save :size="15" />
+                  </template>
+                  Lưu thay đổi
+                </GlassButton>
               </template>
             </div>
           </div>
-
-        </div>
+        </GlassPanel>
       </div>
     </Teleport>
-
   </div>
 </template>
 
 <style scoped>
-/* Modal slide/fade animations */
+.attendance-history-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding-bottom: 2.5rem;
+  color: var(--text-body);
+}
+
+.toast {
+  position: fixed;
+  top: 1rem;
+  right: 1.5rem;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: min(24rem, calc(100vw - 2rem));
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  background: var(--surface-modal);
+  padding: 0.8rem 1rem;
+  color: var(--text-heading);
+  box-shadow: var(--lg-shadow-md);
+}
+
+.toast.success {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.toast.danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.toast p {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.page-header,
+.context-panel,
+.panel-title,
+.modal-header,
+.modal-toolbar,
+.modal-footer,
+.modal-title,
+.summary-strip,
+.filters,
+.row-actions,
+.date-cell,
+.time-cell,
+.student-cell,
+.status-actions,
+.filter-chips,
+.modal-actions {
+  display: flex;
+  align-items: center;
+}
+
+.page-header,
+.context-panel,
+.panel-title,
+.modal-header,
+.modal-toolbar,
+.modal-footer {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  background: var(--surface-input);
+  color: var(--text-link);
+  padding: 0.25rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.header-copy h1,
+.panel-title h2,
+.modal-title h3,
+.empty-block h3 {
+  margin: 0;
+  color: var(--text-heading);
+  font-weight: 900;
+}
+
+.header-copy h1 {
+  font-size: 1.45rem;
+  line-height: 1.15;
+}
+
+.panel-title h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1rem;
+}
+
+.modal-title h3,
+.empty-block h3 {
+  font-size: 1rem;
+}
+
+.header-copy p,
+.panel-title p,
+.summary-pill span,
+.date-cell small,
+.class-cell small,
+.student-code,
+.note-text,
+.empty-block p {
+  color: var(--text-muted);
+}
+
+.header-copy p,
+.panel-title p,
+.modal-title p,
+.empty-block p {
+  margin: 0.25rem 0 0;
+  font-size: 0.84rem;
+}
+
+.context-panel {
+  align-items: center;
+}
+
+.summary-strip,
+.filters,
+.row-actions,
+.status-actions,
+.filter-chips,
+.modal-actions {
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.summary-pill {
+  display: grid;
+  min-width: 5rem;
+  gap: 0.05rem;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0.45rem 0.6rem;
+}
+
+.summary-pill strong {
+  color: var(--text-heading);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.summary-pill span {
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.summary-pill.primary,
+.summary-pill.info {
+  background: var(--accent-primary-soft);
+}
+
+.summary-pill.success {
+  background: var(--color-success-bg);
+}
+
+.summary-pill.warning {
+  background: var(--color-warning-bg);
+}
+
+.summary-pill.danger {
+  background: var(--color-danger-bg);
+}
+
+.input-shell {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  width: min(20rem, 100%);
+  gap: 0.45rem;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0 0.7rem;
+  color: var(--text-placeholder);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.date-shell {
+  width: min(13rem, 100%);
+}
+
+.input-shell:focus-within,
+.note-input:focus {
+  border-color: var(--border-input-focus);
+  background: var(--surface-input-focus);
+  box-shadow: 0 0 0 3px var(--border-focus-ring);
+}
+
+.input-shell input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-heading);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.input-shell input::placeholder,
+.note-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.history-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.panel-title {
+  border-bottom: 1px solid var(--border-card);
+  padding-bottom: 0.75rem;
+}
+
+.sortable-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-link);
+  white-space: nowrap;
+}
+
+.date-cell {
+  min-width: 9rem;
+  gap: 0.65rem;
+}
+
+.date-icon,
+.modal-icon,
+.student-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+}
+
+.date-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  color: var(--text-link);
+}
+
+.date-cell strong,
+.class-cell strong,
+.student-cell strong {
+  display: block;
+  color: var(--text-heading);
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.date-cell small,
+.class-cell small {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.time-cell {
+  gap: 0.35rem;
+  min-width: 6.5rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.number-cell {
+  color: var(--text-heading);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.number-cell.success {
+  color: var(--color-success-text);
+}
+
+.number-cell.danger {
+  color: var(--color-danger-text);
+}
+
+.number-cell.warning {
+  color: var(--color-warning-text);
+}
+
+.number-cell.info {
+  color: var(--text-link);
+}
+
+.row-actions {
+  justify-content: flex-end;
+  min-width: 9rem;
+}
+
+.empty-block {
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  background: var(--surface-input);
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-placeholder);
+}
+
+.empty-block.compact {
+  padding: 1.5rem;
+}
+
+.modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: var(--surface-modal);
+  cursor: pointer;
+}
+
+.detail-modal {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: min(64rem, 100%);
+  max-height: 88vh;
+  flex-direction: column;
+  animation: modal-in 0.22s ease-out both;
+}
+
+.modal-header,
+.modal-toolbar,
+.modal-footer,
+.modal-summary {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-card);
+  background: var(--surface-card);
+}
+
+.modal-footer {
+  border-top: 1px solid var(--border-card);
+  border-bottom: 0;
+}
+
+.modal-title {
+  gap: 0.7rem;
+}
+
+.modal-title p {
+  color: var(--text-muted);
+}
+
+.modal-icon {
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: var(--radius-lg);
+  color: var(--text-link);
+}
+
+.icon-button {
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  color: var(--text-label);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.icon-button:hover {
+  border-color: var(--border-input-focus);
+  background: var(--surface-input-focus);
+  color: var(--text-link);
+}
+
+.modal-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.modal-toolbar {
+  align-items: center;
+}
+
+.filter-chips span {
+  color: var(--text-label);
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.chip,
+.status-button {
+  min-height: 1.85rem;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  background: var(--surface-input);
+  color: var(--text-label);
+  padding: 0 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 850;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.chip:hover,
+.status-button:hover,
+.chip.active,
+.status-button.active {
+  border-color: var(--border-input-focus);
+  background: var(--accent-primary-soft);
+  color: var(--text-link);
+}
+
+.chip.success.active,
+.status-button.success.active {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.chip.warning.active,
+.status-button.warning.active {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.chip.danger.active,
+.status-button.danger.active {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem;
+  background: var(--surface-input);
+}
+
+.student-cell {
+  min-width: 13rem;
+  gap: 0.65rem;
+}
+
+.student-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  color: var(--text-link);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.student-code {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.note-text {
+  display: inline-block;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.note-input {
+  width: 100%;
+  min-height: 2rem;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  background: var(--surface-input);
+  color: var(--text-heading);
+  padding: 0 0.65rem;
+  outline: none;
+  font-size: 0.78rem;
+  font-weight: 650;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.toast-slide-enter-active,
+.toast-slide-leave-active {
+  transition: all 0.25s ease;
+}
+
+.toast-slide-enter-from {
+  transform: translateY(-0.75rem);
+  opacity: 0;
+}
+
+.toast-slide-leave-to {
+  transform: translateY(0.75rem);
+  opacity: 0;
+}
+
 @keyframes modal-in {
   from {
     opacity: 0;
-    transform: scale(0.96) translateY(15px);
+    transform: translateY(0.75rem) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
-.animate-modal-in {
-  animation: modal-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+@media (max-width: 1024px) {
+  .page-header,
+  .context-panel,
+  .panel-title,
+  .modal-toolbar,
+  .modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .summary-strip,
+  .filters,
+  .row-actions,
+  .modal-actions {
+    justify-content: flex-start;
+  }
+
+  .modal-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-/* Toast animations */
-.toast-slide-enter-active,
-.toast-slide-leave-active {
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.toast-slide-enter-from {
-  transform: translateY(-20px) scale(0.9);
-  opacity: 0;
-}
-.toast-slide-leave-to {
-  transform: translateY(20px) scale(0.9);
-  opacity: 0;
-}
+@media (max-width: 640px) {
+  .summary-strip,
+  .filters,
+  .filter-chips,
+  .modal-actions,
+  .row-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
 
-.text-slate-850 {
-  color: #1e293b;
-}
-.text-slate-550 {
-  color: #64748b;
-}
-.text-slate-450 {
-  color: #94a3b8;
-}
-.text-slate-350 {
-  color: #cbd5e1;
-}
-.focus\:border-emerald-450:focus {
-  border-color: #10b981;
+  .summary-pill,
+  .input-shell {
+    width: 100%;
+  }
+
+  .modal-root {
+    align-items: stretch;
+    padding: 0.5rem;
+  }
+
+  .detail-modal {
+    max-height: calc(100vh - 1rem);
+  }
 }
 </style>

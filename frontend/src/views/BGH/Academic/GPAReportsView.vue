@@ -24,9 +24,9 @@ const gpaStats = ref([
 ])
 
 const getGpaColor = (gpa) => {
-  if (gpa >= 3.2) return 'text-emerald-600'
-  if (gpa >= 2.5) return 'text-blue-600'
-  return 'text-rose-600'
+  if (gpa >= 3.2) return 'text-[var(--color-success-text)]'
+  if (gpa >= 2.5) return 'text-[var(--color-info-text)]'
+  return 'text-[var(--color-danger-text)]'
 }
 </script>
 
@@ -37,10 +37,10 @@ const getGpaColor = (gpa) => {
   >
     <template #actions>
       <div class="flex items-center gap-3">
-         <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2 bg-white/50 border-slate-200">
+         <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
             <FileText :size="18" /> PDF Report
          </button>
-         <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2 bg-white border-slate-200 shadow-sm">
+         <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
             <Download :size="18" /> Excel Data
          </button>
       </div>
@@ -49,23 +49,23 @@ const getGpaColor = (gpa) => {
     <div class="space-y-4">
       
       <!-- ── Filters ── -->
-      <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
+      <div class="surface-card border border-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-4 flex-1">
            <div class="relative max-w-sm w-full">
-              <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder" />
               <input 
                 type="text" 
                 placeholder="Tìm khoa, ngành hoặc lớp..." 
-                class="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-4 focus:ring-blue-500/10"
+                class="w-full surface-input border border-input rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-4 focus:ring-[var(--border-focus-ring)]"
               >
            </div>
-           <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold bg-white/50 border-slate-200">
+           <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold">
               Kỳ Spring 2026
            </button>
         </div>
         <div class="flex items-center gap-2">
-           <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Sắp xếp theo</span>
-           <select class="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none">
+           <span class="text-[10px] font-black text-muted uppercase tracking-widest mr-2">Sắp xếp theo</span>
+           <select class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none">
               <option>GPA Trung bình (Cao - Thấp)</option>
               <option>Số lượng SV cảnh báo</option>
            </select>
@@ -74,31 +74,31 @@ const getGpaColor = (gpa) => {
 
       <!-- ── KPI Mini Grid ── -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-         <div class="lg-card-glass p-4 bg-gradient-to-br from-indigo-50 to-blue-50 border-blue-100 flex items-center gap-5">
-            <div class="h-10 w-10 rounded-2xl bg-white flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
+         <div class="surface-card border border-card rounded-2xl p-4 flex items-center gap-5">
+            <div class="h-10 w-10 rounded-2xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] shadow-sm border border-[var(--color-info-text)]/20">
                <Target :size="24" />
             </div>
             <div>
-               <p class="text-[10px] font-black text-indigo-600 uppercase tracking-widest">GPA Mục tiêu kỳ</p>
-               <h3 class="text-xl font-black text-slate-800 leading-tight">3.20</h3>
+               <p class="text-[10px] font-black text-[var(--color-info-text)] uppercase tracking-widest">GPA Mục tiêu kỳ</p>
+               <h3 class="text-xl font-black text-heading leading-tight">3.20</h3>
             </div>
          </div>
-         <div class="lg-card-glass p-4 bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100 flex items-center gap-5">
-            <div class="h-10 w-10 rounded-2xl bg-white flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-100">
+         <div class="surface-card border border-card rounded-2xl p-4 flex items-center gap-5">
+            <div class="h-10 w-10 rounded-2xl bg-[var(--color-success-bg)] flex items-center justify-center text-[var(--color-success-text)] shadow-sm border border-[var(--color-success-text)]/20">
                <TrendingUp :size="24" />
             </div>
             <div>
-               <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Tỷ lệ GPA >= 3.2</p>
-               <h3 class="text-xl font-black text-slate-800 leading-tight">42.5%</h3>
+               <p class="text-[10px] font-black text-[var(--color-success-text)] uppercase tracking-widest">Tỷ lệ GPA >= 3.2</p>
+               <h3 class="text-xl font-black text-heading leading-tight">42.5%</h3>
             </div>
          </div>
-         <div class="lg-card-glass p-4 bg-gradient-to-br from-rose-50 to-amber-50 border-rose-100 flex items-center gap-5">
-            <div class="h-10 w-10 rounded-2xl bg-white flex items-center justify-center text-rose-600 shadow-sm border border-rose-100">
+         <div class="surface-card border border-card rounded-2xl p-4 flex items-center gap-5">
+            <div class="h-10 w-10 rounded-2xl bg-[var(--color-warning-bg)] flex items-center justify-center text-[var(--color-warning-text)] shadow-sm border border-[var(--color-warning-text)]/20">
                <Award :size="24" />
             </div>
             <div>
-               <p class="text-[10px] font-black text-rose-600 uppercase tracking-widest">Thủ khoa kỳ (GPA)</p>
-               <h3 class="text-xl font-black text-slate-800 leading-tight">4.00</h3>
+               <p class="text-[10px] font-black text-[var(--color-warning-text)] uppercase tracking-widest">Thủ khoa kỳ (GPA)</p>
+               <h3 class="text-xl font-black text-heading leading-tight">4.00</h3>
             </div>
          </div>
       </div>
@@ -107,25 +107,25 @@ const getGpaColor = (gpa) => {
       <div class="lg-table-shell overflow-hidden">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-slate-50/50">
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Khoa / Lớp / Cơ sở</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">GPA Trung bình</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Min / Max GPA</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Dưới ngưỡng (2.0)</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
+            <tr class="surface-solid">
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Khoa / Lớp / Cơ sở</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">GPA Trung bình</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Min / Max GPA</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Dưới ngưỡng (2.0)</th>
+              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
-            <tr v-for="stat in gpaStats" :key="stat.id" class="group hover:bg-white/50 transition-colors">
+          <tbody class="divide-y divide-default">
+            <tr v-for="stat in gpaStats" :key="stat.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="h-9 w-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                  <div class="h-9 w-9 rounded-xl surface-solid flex items-center justify-center text-placeholder group-hover:text-link transition-all">
                     <Building2 v-if="stat.group.includes('Khoa')" :size="18" />
                     <Users v-else :size="18" />
                   </div>
                   <div>
-                    <p class="text-sm font-black text-slate-800 leading-tight">{{ stat.group }}</p>
-                    <p class="text-[10px] font-bold text-slate-400 mt-1 flex items-center gap-1">
+                    <p class="text-sm font-black text-heading leading-tight">{{ stat.group }}</p>
+                    <p class="text-[10px] font-bold text-muted mt-1 flex items-center gap-1">
                        <MapPin :size="10" /> {{ stat.campus }}
                     </p>
                   </div>
@@ -134,29 +134,29 @@ const getGpaColor = (gpa) => {
               <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
                    <h3 :class="['text-lg font-black', getGpaColor(stat.avgGpa)]">{{ stat.avgGpa.toFixed(2) }}</h3>
-                   <ArrowUpRight :size="14" class="text-slate-300" />
+                   <ArrowUpRight :size="14" class="text-placeholder" />
                 </div>
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-4">
                    <div class="text-center">
-                      <p class="text-[9px] font-black text-slate-400 uppercase">Min</p>
-                      <p class="text-xs font-bold text-slate-700">{{ stat.minGpa.toFixed(2) }}</p>
+                      <p class="text-[9px] font-black text-muted uppercase">Min</p>
+                      <p class="text-xs font-bold text-heading">{{ stat.minGpa.toFixed(2) }}</p>
                    </div>
-                   <div class="h-6 w-px bg-slate-100"></div>
+                   <div class="h-6 w-px bg-[var(--border-default)]"></div>
                    <div class="text-center">
-                      <p class="text-[9px] font-black text-emerald-400 uppercase">Max</p>
-                      <p class="text-xs font-black text-emerald-600">{{ stat.maxGpa.toFixed(2) }}</p>
+                      <p class="text-[9px] font-black text-[var(--color-success-text)] uppercase">Max</p>
+                      <p class="text-xs font-black text-[var(--color-success-text)]">{{ stat.maxGpa.toFixed(2) }}</p>
                    </div>
                 </div>
               </td>
               <td class="px-4 py-4">
-                <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border w-fit shadow-sm', stat.warningCount > 10 ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-slate-50 text-slate-500 border-slate-100']">
+                <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border w-fit shadow-sm', stat.warningCount > 10 ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger-text)]/20' : 'surface-solid text-muted border-default']">
                   {{ stat.warningCount }} Sinh viên
                 </div>
               </td>
               <td class="px-4 py-4 text-right">
-                <button class="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-all">
+                <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-link rounded-lg text-placeholder transition-all">
                   <ChevronRight :size="18" />
                 </button>
               </td>

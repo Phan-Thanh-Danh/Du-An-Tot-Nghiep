@@ -20,7 +20,6 @@ import {
 } from '@/utils/learningAccess.js'
 
 const activeTab = ref('video')
-const sideTab = ref('outline')
 const selectedLessonId = ref(mockCurrentLesson.id)
 const expandedChapters = ref({ [mockCurrentLesson.chapterId]: true })
 const quizAnswers = ref({})
@@ -307,24 +306,27 @@ function lessonTypeLabel(lesson) {
 <template>
   <div class="course-player-page">
     <header class="course-header">
+      <div class="course-header-actions">
+        <router-link to="/student/courses" class="ghost-action">
+          <component :is="resolveIcon('ArrowLeft')" :size="14" />
+          Tất cả khóa học
+        </router-link>
+        <router-link to="/student/assignments" class="secondary-action">
+          <component :is="resolveIcon('ClipboardList')" :size="14" />
+          Bài tập
+        </router-link>
+      </div>
+
       <div class="course-header-main">
         <div class="course-eyebrow">
           <component :is="resolveIcon('BookOpenCheck')" :size="14" />
           {{ mockCourse.code }} · {{ mockCourse.semester }}
         </div>
         <h1>{{ mockCourse.title }}</h1>
-        <p>{{ mockCourse.teacher }} · {{ mockCourse.credits }} tín chỉ</p>
-      </div>
-
-      <div class="course-header-actions">
-        <router-link to="/student/courses" class="ghost-action">
-          <component :is="resolveIcon('ArrowLeft')" :size="14" />
-          Tất cả khóa học
-        </router-link>
-        <router-link to="/student/assignments" class="primary-action">
-          <component :is="resolveIcon('ClipboardList')" :size="14" />
-          Bài tập
-        </router-link>
+        <p>
+          <component :is="resolveIcon('UserRound')" :size="14" />
+          {{ mockCourse.teacher }} · {{ mockCourse.credits }} tín chỉ
+        </p>
       </div>
 
       <div class="course-mini-stats" aria-label="Tổng quan khóa học">
@@ -440,7 +442,7 @@ function lessonTypeLabel(lesson) {
               </div>
 
               <article v-for="comment in mockComments" :key="comment.id" class="comment-card">
-                <div :class="['avatar gradient bg-gradient-to-br', comment.avatarColor]">{{ comment.initials }}</div>
+                <div class="avatar comment-avatar">{{ comment.initials }}</div>
                 <div class="comment-body">
                   <div class="comment-author">
                     <strong>{{ comment.author }}</strong>
@@ -500,13 +502,7 @@ function lessonTypeLabel(lesson) {
       </section>
 
       <aside class="course-side">
-        <div class="side-tabs" aria-label="Công cụ học tập">
-          <button :class="{ active: sideTab === 'outline' }" type="button" @click="sideTab = 'outline'">Lộ trình</button>
-          <button :class="{ active: sideTab === 'ai' }" type="button" @click="sideTab = 'ai'">AI</button>
-          <button :class="{ active: sideTab === 'notes' }" type="button" @click="sideTab = 'notes'">Ghi chú</button>
-        </div>
-
-        <section v-if="sideTab === 'outline'" class="outline-panel">
+        <section class="outline-panel">
           <div class="side-heading">
             <h3>Course outline</h3>
             <span>{{ flatLessons.length }} bài</span>
@@ -551,7 +547,7 @@ function lessonTypeLabel(lesson) {
           </div>
         </section>
 
-        <section v-else-if="sideTab === 'ai'" class="side-card ai-card">
+        <section class="side-card ai-card">
           <div class="side-heading">
             <h3>AI tóm tắt bài học</h3>
             <component :is="resolveIcon('Sparkles')" :size="16" />
@@ -565,7 +561,7 @@ function lessonTypeLabel(lesson) {
           </button>
         </section>
 
-        <section v-else class="side-card notes-card">
+        <section class="side-card notes-card">
           <div class="side-heading">
             <h3>Ghi chú học tập</h3>
             <component :is="resolveIcon('PenLine')" :size="16" />
@@ -617,22 +613,21 @@ function lessonTypeLabel(lesson) {
 <style scoped>
 .course-player-page {
   display: grid;
-  gap: 0.9rem;
+  gap: var(--section-gap);
   padding-bottom: 1rem;
 }
 
 .course-header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.85rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.75rem 1rem;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--border-card) 72%, transparent);
-  border-radius: 22px;
-  background:
-    radial-gradient(circle at 88% 0%, rgba(8, 145, 178, 0.32), transparent 34%),
-    linear-gradient(135deg, #1d4ed8, #2563eb 52%, #0891b2);
-  color: #ffffff;
-  padding: 1rem;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-xl);
+  background: var(--surface-card);
+  color: var(--text-heading);
+  padding: var(--card-padding-md);
   box-shadow: var(--lg-shadow-sm);
 }
 
@@ -646,7 +641,7 @@ function lessonTypeLabel(lesson) {
 }
 
 .course-eyebrow {
-  color: rgba(219, 234, 254, 0.9);
+  color: var(--text-link);
   font-size: 0.72rem;
   font-weight: 850;
   text-transform: uppercase;
@@ -661,27 +656,31 @@ function lessonTypeLabel(lesson) {
 }
 
 .course-header h1 {
-  margin-top: 0.3rem;
-  font-size: 1.22rem;
+  margin-top: 0.25rem;
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
   font-weight: 900;
   line-height: 1.15;
 }
 
 .course-header p {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   margin: 0.35rem 0 0;
-  color: rgba(239, 246, 255, 0.82);
+  color: var(--text-label);
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 750;
 }
 
 .course-header-actions {
   display: flex;
   align-items: flex-start;
+  flex-wrap: wrap;
   gap: 0.45rem;
 }
 
 .course-mini-stats {
-  grid-column: 1 / -1;
+  grid-column: 2;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.45rem;
@@ -690,29 +689,28 @@ function lessonTypeLabel(lesson) {
 .mini-stat {
   display: grid;
   gap: 0.1rem;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.12);
-  padding: 0.48rem 0.65rem;
-  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0.45rem 0.6rem;
 }
 
 .mini-stat span {
-  color: rgba(219, 234, 254, 0.78);
+  color: var(--text-muted);
   font-size: 0.66rem;
   font-weight: 800;
 }
 
 .mini-stat strong {
-  color: #ffffff;
-  font-size: 0.95rem;
+  color: var(--text-heading);
+  font-size: 0.92rem;
   font-weight: 900;
 }
 
 .learning-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(20rem, 360px);
-  gap: 0.9rem;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 1rem;
   align-items: start;
 }
 
@@ -730,7 +728,7 @@ function lessonTypeLabel(lesson) {
   border: 1px solid var(--border-card);
   background: var(--surface-card);
   box-shadow: var(--lg-shadow-sm);
-  backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(calc(var(--glass-blur) - 4px)) saturate(130%);
 }
 
 .lesson-panel,
@@ -750,8 +748,8 @@ function lessonTypeLabel(lesson) {
   justify-content: space-between;
   gap: 0.8rem;
   border-bottom: 1px solid var(--border-card);
-  background: color-mix(in srgb, var(--surface-card-strong) 86%, transparent);
-  padding: 0.9rem 1rem 0.75rem;
+  background: var(--surface-card);
+  padding: 0.85rem 0.9rem 0.7rem;
 }
 
 .lesson-title-block {
@@ -772,7 +770,7 @@ function lessonTypeLabel(lesson) {
 .lesson-heading h2 {
   margin-top: 0.5rem;
   color: var(--text-heading);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 900;
   line-height: 1.2;
 }
@@ -825,7 +823,7 @@ function lessonTypeLabel(lesson) {
 }
 
 .lesson-content {
-  padding: 0.8rem;
+  padding: 0.75rem;
 }
 
 .document-viewer,
@@ -957,7 +955,7 @@ textarea::placeholder {
   flex-shrink: 0;
   border-radius: 999px;
   background: linear-gradient(135deg, var(--lg-primary), var(--lg-cyan));
-  color: #ffffff;
+  color: var(--text-inverse);
   font-size: 0.7rem;
   font-weight: 900;
 }
@@ -1001,7 +999,7 @@ textarea::placeholder {
 .lesson-body {
   display: grid;
   gap: 0.75rem;
-  padding: 0.9rem 1rem;
+  padding: 0.85rem 0.9rem;
 }
 
 .section-kicker {
@@ -1041,7 +1039,7 @@ textarea::placeholder {
   border: 1px solid var(--border-card);
   border-radius: 18px;
   background: var(--surface-card);
-  padding: 0.65rem;
+  padding: 0.6rem;
 }
 
 .next-lock-copy {
@@ -1051,9 +1049,15 @@ textarea::placeholder {
 
 .course-side {
   position: sticky;
-  top: 1rem;
-  overflow: hidden;
-  border-radius: 20px;
+  top: 0.75rem;
+  display: grid;
+  gap: 0.75rem;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .side-tabs {
@@ -1062,9 +1066,11 @@ textarea::placeholder {
 
 .outline-panel,
 .side-card {
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
+  overflow: hidden;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-xl);
+  background: var(--surface-card);
+  box-shadow: var(--lg-shadow-sm);
 }
 
 .side-heading {
@@ -1072,7 +1078,7 @@ textarea::placeholder {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.85rem 0.9rem 0.65rem;
+  padding: 0.75rem 0.8rem 0.55rem;
 }
 
 .side-heading h3 {
@@ -1089,15 +1095,15 @@ textarea::placeholder {
 }
 
 .chapter-list {
-  max-height: min(65vh, 42rem);
+  max-height: min(61vh, 38rem);
   overflow: auto;
-  padding: 0 0.55rem 0.65rem;
+  padding: 0 0.5rem 0.6rem;
 }
 
 .chapter-block {
   overflow: hidden;
   border: 1px solid var(--border-card);
-  border-radius: 15px;
+  border-radius: var(--radius-lg);
   background: var(--surface-input);
 }
 
@@ -1115,7 +1121,7 @@ textarea::placeholder {
   background: transparent;
   color: var(--text-heading);
   cursor: pointer;
-  padding: 0.65rem 0.7rem;
+  padding: 0.6rem 0.65rem;
   text-align: left;
 }
 
@@ -1143,7 +1149,7 @@ textarea::placeholder {
   display: grid;
   gap: 0.35rem;
   border-top: 1px solid var(--border-card);
-  padding: 0.45rem;
+  padding: 0.4rem;
 }
 
 .outline-lesson {
@@ -1152,11 +1158,11 @@ textarea::placeholder {
   gap: 0.45rem;
   width: 100%;
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-label);
   cursor: pointer;
-  padding: 0.5rem;
+  padding: 0.45rem;
   text-align: left;
 }
 
@@ -1225,7 +1231,7 @@ textarea::placeholder {
 }
 
 .side-card {
-  padding: 0 0.9rem 0.9rem;
+  padding: 0 0.8rem 0.8rem;
 }
 
 .ai-card ul {
@@ -1279,17 +1285,11 @@ textarea::placeholder {
 }
 
 .access-official { color: var(--color-success-text); background: var(--color-success-bg); }
-.access-early { color: #7c3aed; background: rgba(237, 233, 254, 0.82); }
-.access-early-done { color: #6d28d9; background: rgba(237, 233, 254, 0.72); }
+.access-early { color: var(--accent-violet); background: var(--accent-violet-soft); }
+.access-early-done { color: var(--accent-violet); background: var(--accent-violet-soft); }
 .access-locked { color: var(--color-warning-text); background: var(--color-warning-bg); }
 .access-future { color: var(--text-placeholder); background: var(--surface-input); }
 .access-completed { color: var(--text-link); background: color-mix(in srgb, var(--color-info-bg) 72%, transparent); }
-
-:global(.dark) .access-early,
-:global(.dark) .access-early-done {
-  color: #d8b4fe;
-  background: rgba(88, 28, 135, 0.36);
-}
 
 .ghost-action,
 .primary-action,
@@ -1309,22 +1309,22 @@ textarea::placeholder {
 }
 
 .ghost-action {
-  border: 1px solid rgba(255, 255, 255, 0.26);
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  color: var(--text-label);
 }
 
 .primary-action {
   border: 0;
-  background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary));
-  color: #ffffff;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+  box-shadow: var(--lg-shadow-sm);
 }
 
 .course-header .primary-action {
-  background: #ffffff;
-  color: #1d4ed8;
-  box-shadow: none;
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+  box-shadow: var(--lg-shadow-sm);
 }
 
 .secondary-action {
@@ -1420,13 +1420,8 @@ textarea::placeholder {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 16px;
-  color: #7c3aed;
-  background: rgba(237, 233, 254, 0.78);
-}
-
-:global(.dark) .course-modal-icon {
-  color: #d8b4fe;
-  background: rgba(88, 28, 135, 0.32);
+  color: var(--accent-violet);
+  background: var(--accent-violet-soft);
 }
 
 .course-early-modal h2 {
@@ -1492,9 +1487,9 @@ textarea::placeholder {
 
 .course-primary-button {
   border: 0;
-  background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary));
-  color: #ffffff;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+  box-shadow: var(--lg-shadow-sm);
 }
 
 @media (max-width: 1180px) {
@@ -1514,6 +1509,10 @@ textarea::placeholder {
 @media (max-width: 760px) {
   .course-header {
     grid-template-columns: 1fr;
+  }
+
+  .course-mini-stats {
+    grid-column: 1;
   }
 
   .course-header-actions,

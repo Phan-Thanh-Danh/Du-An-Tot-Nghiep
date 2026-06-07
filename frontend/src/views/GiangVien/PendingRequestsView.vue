@@ -1,11 +1,21 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { usePopupStore } from '@/stores/popup'
-import { 
-  FileText, User, Search, CheckCircle, XCircle, 
-  Clock, Filter, MoreVertical, Eye, ArrowLeft,
-  ChevronRight, AlertCircle, FileQuestion, Mail
+import {
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  FileQuestion,
+  FileText,
+  Mail,
+  Search,
+  User,
+  XCircle,
 } from 'lucide-vue-next'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import GlassBadge from '@/components/ui/GlassBadge.vue'
+import GlassButton from '@/components/ui/GlassButton.vue'
+import GlassPanel from '@/components/ui/GlassPanel.vue'
 
 const popupStore = usePopupStore()
 
@@ -17,6 +27,13 @@ const requests = ref([
 
 const selectedReq = ref(null)
 
+const requestStats = computed(() => [
+  { label: 'Tổng yêu cầu', value: requests.value.length, variant: 'neutral' },
+  { label: 'Đang chờ', value: requests.value.filter(req => req.status === 'Pending').length, variant: 'warning' },
+  { label: 'Hôm nay', value: 2, variant: 'info' },
+  { label: 'Cần phản hồi', value: requests.value.length, variant: 'primary' },
+])
+
 function selectRequest(req) {
   selectedReq.value = req
 }
@@ -26,169 +43,618 @@ function processRequest(action) {
   selectedReq.value = null
 }
 
-const getTagColor = (color) => {
+const getTagVariant = (color) => {
   const colors = {
-    blue: 'bg-blue-100 text-blue-700 border-blue-200',
-    cyan: 'bg-cyan-100 text-cyan-700 border-cyan-200',
-    emerald: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    blue: 'primary',
+    cyan: 'info',
+    emerald: 'success',
   }
-  return colors[color] || 'bg-slate-100 text-slate-700 border-slate-200'
-}
-
-const getIconBg = (color) => {
-  const bgs = {
-    blue: 'bg-gradient-to-br from-blue-100 to-blue-100 text-blue-600',
-    cyan: 'bg-gradient-to-br from-cyan-100 to-cyan-100 text-cyan-600',
-    emerald: 'bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-600',
-  }
-  return bgs[color] || 'bg-slate-100 text-slate-500'
+  return colors[color] || 'neutral'
 }
 </script>
 
 <template>
-  <div class="space-y-8 pb-12 animate-fade-in">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-[24px] shadow-sm border border-slate-100/60 backdrop-blur-xl relative overflow-hidden">
-      <!-- Decorative background glow -->
-      <div class="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-      <div class="flex items-center gap-5 relative z-10">
-        <div class="p-3 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 shadow-inner">
-          <FileText :size="24" stroke-width="2" />
-        </div>
-        <div>
-          <h1 class="text-xl font-black text-slate-800 tracking-tight">Đơn cần xử lý</h1>
-          <p class="text-sm text-slate-500 mt-1">Phê duyệt hoặc từ chối các đơn từ, yêu cầu của sinh viên.</p>
+  <div class="pending-requests-page">
+    <GlassPanel variant="soft" density="compact" class="page-header" :clip="false">
+      <div class="header-main">
+        <span class="header-icon">
+          <FileText :size="20" />
+        </span>
+        <div class="min-w-0">
+          <div class="eyebrow">Request inbox</div>
+          <h1 class="page-title">Yêu cầu đang chờ</h1>
+          <p class="page-subtitle">
+            Theo dõi các đơn từ mới, xem chi tiết và phản hồi theo quy trình học vụ.
+          </p>
         </div>
       </div>
 
-      <div class="flex items-center gap-3 relative z-10">
-         <span class="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-orange-500/20">
-           <AlertCircle :size="14" />
-           {{ requests.length }} đơn đang chờ
-         </span>
+      <div class="header-actions">
+        <GlassBadge variant="warning" size="md">
+          <AlertCircle :size="13" />
+          {{ requests.length }} đơn đang chờ
+        </GlassBadge>
       </div>
-    </div>
+    </GlassPanel>
 
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
-      <!-- List Column -->
-      <div class="xl:col-span-2">
-         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full">
-            <div class="p-4 md:p-8 border-b border-slate-100/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/30">
-               <div>
-                 <h2 class="text-xl font-bold text-slate-800">Yêu cầu mới nhất</h2>
-               </div>
-               <div class="relative w-full sm:w-64">
-                  <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="text" placeholder="Tìm kiếm đơn từ..." class="w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all shadow-sm" />
-               </div>
-            </div>
-
-            <div class="divide-y divide-slate-100/80 flex-1 bg-white">
-               <div v-for="req in requests" :key="req.id" 
-                    @click="selectRequest(req)"
-                    :class="['p-4 cursor-pointer transition-all duration-300 group hover:bg-slate-50/50 relative overflow-hidden', selectedReq?.id === req.id ? 'bg-blue-50/30' : '']">
-                  
-                  <!-- Active Indicator -->
-                  <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-600 rounded-r-full transition-transform duration-300 origin-left" :class="selectedReq?.id === req.id ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100 opacity-50'"></div>
-                  
-                  <div class="flex items-start gap-4">
-                    <div class="h-10 w-10 rounded-2xl flex items-center justify-center shadow-inner shrink-0 group-hover:scale-105 transition-transform" :class="getIconBg(req.color)">
-                      <FileQuestion :size="20" />
-                    </div>
-                    
-                    <div class="flex-1 min-w-0">
-                      <div class="flex items-center justify-between mb-1">
-                        <div class="flex items-center gap-2">
-                           <h3 class="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate">{{ req.type }}</h3>
-                           <span class="px-2 py-0.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider hidden sm:inline-block" :class="getTagColor(req.color)">{{ req.tag }}</span>
-                        </div>
-                        <span class="text-xs font-bold text-slate-400 flex items-center gap-1 shrink-0"><Clock :size="12" /> {{ req.time }}</span>
-                      </div>
-                      <p class="text-xs text-slate-500 font-medium truncate mb-2">Sinh viên: <span class="text-slate-700">{{ req.student }}</span></p>
-                      <p class="text-sm text-slate-600 line-clamp-2 leading-relaxed">"{{ req.content }}"</p>
-                    </div>
-                    
-                    <div class="shrink-0 self-center opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 hidden sm:block">
-                      <div class="h-8 w-8 rounded-full bg-white shadow-sm border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-blue-600 group-hover:border-blue-200">
-                        <ChevronRight :size="16" />
-                      </div>
-                    </div>
-                  </div>
-               </div>
-            </div>
-         </div>
+    <GlassPanel variant="surface" density="compact" class="context-bar" :clip="false">
+      <div class="mini-stats">
+        <div v-for="item in requestStats" :key="item.label" class="mini-stat">
+          <span class="stat-label">{{ item.label }}</span>
+          <div class="stat-value-line">
+            <strong>{{ item.value }}</strong>
+            <GlassBadge :variant="item.variant" size="sm">{{ item.label }}</GlassBadge>
+          </div>
+        </div>
       </div>
 
-      <!-- Detail/Action Column -->
-      <div class="xl:col-span-1">
-         <div v-if="selectedReq" class="rounded-2xl bg-white shadow-xl shadow-slate-200/50 p-5 sticky top-4 border border-slate-100 overflow-hidden relative animate-in fade-in slide-in-from-right-4 duration-500">
-            <!-- Background glow -->
-            <div class="absolute top-0 right-0 w-32 h-32 blur-3xl opacity-30 rounded-full -z-10" :class="selectedReq.color === 'blue' ? 'bg-blue-400' : selectedReq.color === 'cyan' ? 'bg-cyan-400' : 'bg-emerald-400'"></div>
-            
-            <div class="flex flex-col items-center text-center mb-8 relative z-10">
-               <div class="h-20 w-20 rounded-[24px] flex items-center justify-center mb-5 shadow-inner" :class="getIconBg(selectedReq.color)">
-                  <FileText :size="36" stroke-width="1.5" />
-               </div>
-               <span class="px-2.5 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-wider mb-3" :class="getTagColor(selectedReq.color)">{{ selectedReq.tag }}</span>
-               <h3 class="text-xl font-black text-slate-800">{{ selectedReq.type }}</h3>
-               <div class="flex items-center gap-2 mt-2 text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                  <User :size="14" />
-                  <span class="text-xs font-bold">{{ selectedReq.student }}</span>
-               </div>
-            </div>
+      <label class="search-field">
+        <Search :size="15" />
+        <input type="text" placeholder="Tìm kiếm đơn từ..." />
+      </label>
+    </GlassPanel>
 
-            <div class="space-y-4 relative z-10">
-               <div class="p-5 rounded-2xl bg-slate-50/80 border border-slate-100/80 relative">
-                  <Mail :size="16" class="absolute top-5 right-5 text-slate-300" />
-                  <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Nội dung chi tiết</label>
-                  <p class="text-sm text-slate-700 leading-relaxed italic border-l-2 border-blue-200 pl-3">"{{ selectedReq.content }}"</p>
-               </div>
-
-               <div class="flex flex-col gap-3 pt-4 border-t border-slate-100">
-                  <button @click="processRequest('Chấp nhận')" class="group relative w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 p-[1px] overflow-hidden active:scale-95 transition-transform">
-                     <div class="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"></div>
-                     <div class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 py-3.5 px-4 rounded-[15px] flex items-center justify-center gap-2">
-                       <CheckCircle :size="18" class="text-emerald-50" />
-                       <span class="text-sm font-bold text-white tracking-wide">PHÊ DUYỆT ĐƠN</span>
-                     </div>
-                  </button>
-                  
-                  <button @click="processRequest('Từ chối')" class="w-full rounded-2xl bg-white border border-rose-200 py-3.5 text-sm font-bold text-rose-500 hover:bg-rose-50 hover:border-rose-300 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm">
-                     <XCircle :size="18" /> TỪ CHỐI
-                  </button>
-                  
-                  <button @click="selectedReq = null" class="w-full py-2.5 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors mt-1">Đóng cửa sổ</button>
-               </div>
+    <div class="requests-workspace">
+      <GlassPanel variant="surface" density="none" class="request-list-panel">
+        <template #header>
+          <div class="panel-heading">
+            <div>
+              <h2>Yêu cầu mới nhất</h2>
+              <p>{{ requests.length }} yêu cầu cần theo dõi</p>
             </div>
-         </div>
+            <GlassBadge variant="warning" size="sm">Pending</GlassBadge>
+          </div>
+        </template>
 
-         <div v-else class="h-full min-h-[400px] rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-12 text-center flex flex-col items-center justify-center animate-in fade-in duration-500">
-            <div class="h-24 w-24 rounded-[28px] bg-white flex items-center justify-center text-slate-300 mb-4 shadow-sm border border-slate-100">
-               <FileQuestion :size="48" stroke-width="1.5" />
+        <div v-if="requests.length" class="request-list">
+          <button
+            v-for="req in requests"
+            :key="req.id"
+            type="button"
+            :class="['request-row', selectedReq?.id === req.id && 'is-selected']"
+            @click="selectRequest(req)"
+          >
+            <span class="request-icon">
+              <FileQuestion :size="17" />
+            </span>
+            <span class="request-content">
+              <span class="request-topline">
+                <strong>{{ req.type }}</strong>
+                <span class="time-chip">
+                  <Clock :size="12" />
+                  {{ req.time }}
+                </span>
+              </span>
+              <span class="student-line">
+                <User :size="12" />
+                Sinh viên: <b>{{ req.student }}</b>
+              </span>
+              <span class="request-text">"{{ req.content }}"</span>
+              <span class="row-meta">
+                <GlassBadge :variant="getTagVariant(req.color)" size="sm">{{ req.tag }}</GlassBadge>
+                <GlassBadge variant="warning" size="sm">Đang chờ</GlassBadge>
+              </span>
+            </span>
+          </button>
+        </div>
+
+        <EmptyState
+          v-else
+          title="Không có yêu cầu đang chờ"
+          description="Các đơn từ cần xử lý sẽ xuất hiện tại đây."
+        >
+          <template #icon>
+            <FileQuestion :size="22" />
+          </template>
+        </EmptyState>
+      </GlassPanel>
+
+      <GlassPanel v-if="selectedReq" variant="readable" density="compact" class="detail-panel">
+        <template #header>
+          <div class="panel-heading">
+            <div>
+              <h2>Chi tiết yêu cầu</h2>
+              <p>Mã yêu cầu #GV-REQ-{{ selectedReq.id }}</p>
             </div>
-            <h3 class="text-lg font-bold text-slate-500">Chưa chọn đơn nào</h3>
-            <p class="text-sm text-slate-400 mt-2 max-w-[200px]">Vui lòng chọn một đơn từ danh sách bên trái để xem chi tiết và xử lý.</p>
-         </div>
-      </div>
+            <GlassBadge :variant="getTagVariant(selectedReq.color)" size="sm">
+              {{ selectedReq.tag }}
+            </GlassBadge>
+          </div>
+        </template>
+
+        <div class="detail-summary">
+          <span class="detail-icon">
+            <FileText :size="22" />
+          </span>
+          <div>
+            <h3>{{ selectedReq.type }}</h3>
+            <p>
+              <User :size="13" />
+              {{ selectedReq.student }}
+            </p>
+          </div>
+        </div>
+
+        <div class="content-box">
+          <Mail :size="15" />
+          <div>
+            <span>Nội dung chi tiết</span>
+            <p>"{{ selectedReq.content }}"</p>
+          </div>
+        </div>
+
+        <div class="timeline">
+          <div class="timeline-item">
+            <span />
+            <div>
+              <strong>Đã gửi yêu cầu</strong>
+              <p>{{ selectedReq.time }} · Sinh viên gửi đơn lên hệ thống</p>
+            </div>
+          </div>
+          <div class="timeline-item is-current">
+            <span />
+            <div>
+              <strong>Đang chờ phản hồi</strong>
+              <p>Giảng viên xem nội dung và cập nhật hướng xử lý.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-actions">
+          <GlassButton variant="success" size="sm" block @click="processRequest('Chấp nhận')">
+            <template #leading>
+              <CheckCircle :size="14" />
+            </template>
+            Phê duyệt đơn
+          </GlassButton>
+          <GlassButton variant="danger" size="sm" block @click="processRequest('Từ chối')">
+            <template #leading>
+              <XCircle :size="14" />
+            </template>
+            Từ chối
+          </GlassButton>
+          <GlassButton variant="ghost" size="sm" block @click="selectedReq = null">Đóng cửa sổ</GlassButton>
+        </div>
+      </GlassPanel>
+
+      <GlassPanel v-else variant="surface" density="compact" class="detail-panel empty-detail">
+        <div class="empty-detail-inner">
+          <span class="detail-icon">
+            <FileQuestion :size="24" />
+          </span>
+          <h2>Chưa chọn đơn nào</h2>
+          <p>Chọn một đơn từ danh sách để xem chi tiết, timeline và thao tác xử lý.</p>
+        </div>
+      </GlassPanel>
     </div>
   </div>
 </template>
 
 <style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+.pending-requests-page {
+  display: grid;
+  gap: 1rem;
+  padding-bottom: 2rem;
+  color: var(--text-body);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+.page-header,
+.context-bar,
+.header-main,
+.header-actions,
+.panel-heading,
+.stat-value-line,
+.request-row,
+.request-topline,
+.student-line,
+.row-meta,
+.detail-summary,
+.detail-summary p,
+.content-box,
+.timeline-item {
+  display: flex;
+  align-items: center;
+}
+
+.page-header,
+.context-bar,
+.panel-heading {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header-main {
+  gap: 0.875rem;
+}
+
+.header-icon,
+.request-icon,
+.detail-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  color: var(--text-link);
+}
+
+.header-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-lg);
+}
+
+.eyebrow,
+.page-subtitle,
+.panel-heading p,
+.stat-label,
+.time-chip,
+.student-line,
+.timeline-item p,
+.empty-detail-inner p {
+  color: var(--text-muted);
+}
+
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page-title {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
+  font-weight: 900;
+}
+
+.page-subtitle {
+  margin: 0.25rem 0 0;
+  max-width: 42rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.header-actions {
+  justify-content: flex-end;
+}
+
+.context-bar {
+  align-items: stretch;
+}
+
+.mini-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(7rem, 1fr));
+  gap: 0.625rem;
+  flex: 1;
+}
+
+.mini-stat {
+  min-width: 0;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  padding: 0.625rem 0.75rem;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.stat-value-line {
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.375rem;
+}
+
+.stat-value-line strong {
+  color: var(--text-heading);
+  font-size: 1.125rem;
+  font-weight: 900;
+}
+
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: min(18rem, 100%);
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-input);
+  background: var(--surface-input);
+  color: var(--text-muted);
+  padding: 0 0.75rem;
+}
+
+.search-field input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.search-field input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.search-field:focus-within {
+  border-color: var(--border-input-focus);
+  box-shadow: 0 0 0 3px var(--border-focus-ring);
+}
+
+.requests-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(20rem, 0.65fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.panel-heading h2 {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: 0.9375rem;
+  font-weight: 900;
+}
+
+.panel-heading p {
+  margin: 0.125rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.request-list {
+  display: grid;
+  gap: 0.625rem;
+  padding: 0.75rem;
+}
+
+.request-row {
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  color: var(--text-body);
+  cursor: pointer;
+  padding: 0.75rem;
+  text-align: left;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.request-row:hover,
+.request-row.is-selected {
+  border-color: var(--border-input-focus);
+  background: var(--surface-input);
+}
+
+.request-row.is-selected {
+  transform: translateY(-1px);
+}
+
+.request-icon,
+.detail-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+}
+
+.request-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.request-topline {
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.request-topline strong,
+.detail-summary h3,
+.empty-detail-inner h2 {
+  color: var(--text-heading);
+  font-weight: 900;
+}
+
+.request-topline strong {
+  overflow: hidden;
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.time-chip,
+.student-line {
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.student-line {
+  margin-top: 0.25rem;
+}
+
+.student-line b {
+  color: var(--text-body);
+}
+
+.request-text {
+  display: -webkit-box;
+  margin-top: 0.375rem;
+  overflow: hidden;
+  color: var(--text-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.row-meta {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.625rem;
+}
+
+.detail-panel {
+  position: sticky;
+  top: 1rem;
+  min-width: 0;
+}
+
+.detail-summary {
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.detail-summary h3,
+.empty-detail-inner h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.detail-summary p {
+  gap: 0.375rem;
+  margin: 0.25rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.content-box {
+  align-items: flex-start;
+  gap: 0.625rem;
+  margin-top: 1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-card);
+  background: var(--surface-card);
+  padding: 0.875rem;
+}
+
+.content-box span {
+  color: var(--text-label);
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.content-box p {
+  margin: 0.375rem 0 0;
+  color: var(--text-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.timeline {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.timeline-item {
+  align-items: flex-start;
+  gap: 0.625rem;
+}
+
+.timeline-item > span {
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-top: 0.25rem;
+  border-radius: 999px;
+  background: var(--border-default);
+}
+
+.timeline-item.is-current > span {
+  background: var(--color-warning-text);
+}
+
+.timeline-item strong {
+  color: var(--text-heading);
+  font-size: 0.8125rem;
+  font-weight: 900;
+}
+
+.timeline-item p {
+  margin: 0.125rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.detail-actions {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-card);
+}
+
+.empty-detail-inner {
+  display: grid;
+  min-height: 20rem;
+  place-items: center;
+  align-content: center;
+  gap: 0.625rem;
+  text-align: center;
+}
+
+.empty-detail-inner p {
+  margin: 0;
+  max-width: 16rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+@media (max-width: 1024px) {
+  .page-header,
+  .context-bar {
+    align-items: flex-start;
+    flex-direction: column;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .mini-stats {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .search-field {
+    width: 100%;
+  }
+
+  .requests-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-panel {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .mini-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .request-topline {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
   }
 }
 </style>

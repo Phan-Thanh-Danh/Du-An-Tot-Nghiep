@@ -29,9 +29,9 @@ const history = ref([
 
 const getResultBadge = (result) => {
   switch (result) {
-    case 'approved': return 'bg-emerald-50 text-emerald-600 border-emerald-100'
-    case 'rejected': return 'bg-rose-50 text-rose-600 border-rose-100'
-    default: return 'bg-slate-50 text-slate-500 border-slate-100'
+    case 'approved': return 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success-text)]/20'
+    case 'rejected': return 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger-text)]/20'
+    default: return 'surface-solid text-muted border-default'
   }
 }
 
@@ -196,7 +196,7 @@ function closeContextMenu() {
     <div class="space-y-4">
       
       <!-- ── Toolbar ── -->
-      <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
+      <div class="surface-card border border-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-4 flex-1 flex-wrap">
            <div class="relative max-w-sm w-full flex-1 min-w-[240px]">
               <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder" />
@@ -209,7 +209,7 @@ function closeContextMenu() {
                >
            </div>
           <div class="flex items-center gap-2">
-            <button class="lg-button-primary px-4 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20" @click="doSearch">
+            <button class="lg-button-primary px-4 py-2.5 text-sm font-bold" @click="doSearch">
               <Search :size="16" /> Tìm
             </button>
             <button v-if="searchTriggered" class="lg-button-secondary px-3 py-2.5 text-sm font-bold" @click="clearSearch" title="Xóa tìm kiếm">
@@ -239,7 +239,7 @@ function closeContextMenu() {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="h in filteredHistory" :key="h.id" class="group hover:bg-white/10 transition-colors">
+            <tr v-for="h in filteredHistory" :key="h.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-4">
                 <span class="text-xs font-black text-label uppercase tracking-tighter">{{ h.id }}</span>
               </td>
@@ -255,7 +255,7 @@ function closeContextMenu() {
                       <CheckCircle2 v-if="h.result === 'approved'" :size="14" />
                       <XCircle v-else :size="14" />
                    </div>
-                    <span :class="['text-[10px] font-black uppercase tracking-widest', h.result === 'approved' ? 'text-success' : 'text-danger']">
+                    <span :class="['text-[10px] font-black uppercase tracking-widest', h.result === 'approved' ? 'text-[var(--color-success-text)]' : 'text-[var(--color-danger-text)]']">
                       {{ h.result === 'approved' ? 'Phê duyệt' : 'Từ chối' }}
                    </span>
                 </div>
@@ -285,7 +285,7 @@ function closeContextMenu() {
                       leave-from-class="opacity-100 scale-100"
                       leave-to-class="opacity-0 scale-95"
                     >
-                      <div v-if="contextTarget?.id === h.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-xl shadow-slate-900/10" @click.stop>
+                      <div v-if="contextTarget?.id === h.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
                         <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openDetailModal(h); closeContextMenu()">
                           <Eye :size="14" /> Xem chi tiết
                         </button>
@@ -321,7 +321,7 @@ function closeContextMenu() {
     >
       <div v-if="showDatePicker" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="closeDatePicker">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-sm lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-sm surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
               <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
@@ -349,7 +349,7 @@ function closeContextMenu() {
             </button>
             <div class="flex items-center gap-3 ml-auto">
               <button class="lg-button-secondary px-5 py-2.5 text-sm font-bold" @click="closeDatePicker">Hủy</button>
-              <button class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20" @click="applyDateFilter">Áp dụng</button>
+              <button class="lg-button-primary px-5 py-2.5 text-sm font-bold" @click="applyDateFilter">Áp dụng</button>
             </div>
           </div>
         </div>
@@ -369,7 +369,7 @@ function closeContextMenu() {
     >
       <div v-if="showExportModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="showExportModal = false">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-sm lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-sm surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <h3 class="text-base font-black text-heading">Xuất báo cáo</h3>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="showExportModal = false">
@@ -401,7 +401,7 @@ function closeContextMenu() {
           </div>
           <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
             <button class="lg-button-secondary px-5 py-2.5 text-sm font-bold" @click="showExportModal = false">Hủy</button>
-            <button class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20 min-w-[120px] flex items-center justify-center gap-2" @click="doExport" :disabled="exporting">
+            <button class="lg-button-primary px-5 py-2.5 text-sm font-bold min-w-[120px] flex items-center justify-center gap-2" @click="doExport" :disabled="exporting">
               <Loader2 v-if="exporting" :size="16" class="animate-spin" />
               <Download v-else :size="16" />
               {{ exporting ? 'Đang xuất...' : exportDone ? 'Đã xuất ✓' : 'Xuất ngay' }}
@@ -424,7 +424,7 @@ function closeContextMenu() {
     >
       <div v-if="showDetailModal && detailTarget" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="closeDetailModal">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-lg lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-lg surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
               <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">

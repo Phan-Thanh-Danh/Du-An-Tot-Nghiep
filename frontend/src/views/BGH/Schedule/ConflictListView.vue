@@ -9,7 +9,6 @@ import {
   MapPin, 
   Clock, 
   ArrowRight,
-  MoreVertical,
   ShieldAlert,
   Zap
 } from 'lucide-vue-next'
@@ -25,10 +24,10 @@ const conflicts = ref([
 
 const getSeverityClass = (severity) => {
   switch (severity) {
-    case 'critical': return 'bg-rose-50 text-rose-600 border-rose-100'
-    case 'major': return 'bg-amber-50 text-amber-600 border-amber-100'
-    case 'minor': return 'bg-blue-50 text-blue-600 border-blue-100'
-    default: return 'bg-slate-50 text-slate-500 border-slate-100'
+    case 'critical': return 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger-text)]/20'
+    case 'major': return 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--color-warning-text)]/20'
+    case 'minor': return 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-info-text)]/20'
+    default: return 'surface-solid text-muted border-default'
   }
 }
 </script>
@@ -42,47 +41,47 @@ const getSeverityClass = (severity) => {
       
       <!-- ── Stats Grid ── -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="lg-card-glass p-4 border-rose-100 bg-rose-50/10 flex items-center gap-5">
-           <div class="h-10 w-10 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600 shadow-sm border border-rose-200">
+        <div class="surface-card border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)] rounded-2xl p-4 flex items-center gap-5">
+           <div class="h-10 w-10 rounded-2xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-danger-text)] shadow-sm border border-[var(--color-danger-text)]/20">
               <ShieldAlert :size="24" />
            </div>
            <div>
-              <p class="text-[10px] font-black text-rose-600 uppercase tracking-widest">Nghiêm trọng</p>
-              <h3 class="text-xl font-black text-rose-900 leading-tight">02</h3>
+              <p class="text-[10px] font-black text-[var(--color-danger-text)] uppercase tracking-widest">Nghiêm trọng</p>
+              <h3 class="text-xl font-black text-heading leading-tight">02</h3>
            </div>
         </div>
-        <div class="lg-card-glass p-4 border-amber-100 bg-amber-50/10 flex items-center gap-5">
-           <div class="h-10 w-10 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600 shadow-sm border border-amber-200">
+        <div class="surface-card border border-[var(--color-warning-text)]/20 bg-[var(--color-warning-bg)] rounded-2xl p-4 flex items-center gap-5">
+           <div class="h-10 w-10 rounded-2xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-warning-text)] shadow-sm border border-[var(--color-warning-text)]/20">
               <AlertTriangle :size="24" />
            </div>
            <div>
-              <p class="text-[10px] font-black text-amber-600 uppercase tracking-widest">Trung bình</p>
-              <h3 class="text-xl font-black text-amber-900 leading-tight">01</h3>
+              <p class="text-[10px] font-black text-[var(--color-warning-text)] uppercase tracking-widest">Trung bình</p>
+              <h3 class="text-xl font-black text-heading leading-tight">01</h3>
            </div>
         </div>
-        <div class="lg-card-glass p-4 border-blue-100 bg-blue-50/10 flex items-center gap-5">
-           <div class="h-10 w-10 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 shadow-sm border border-blue-200">
+        <div class="surface-card border border-[var(--color-info-text)]/20 bg-[var(--color-info-bg)] rounded-2xl p-4 flex items-center gap-5">
+           <div class="h-10 w-10 rounded-2xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-info-text)] shadow-sm border border-[var(--color-info-text)]/20">
               <Zap :size="24" />
            </div>
            <div>
-              <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest">Lỗi nhẹ</p>
-              <h3 class="text-xl font-black text-blue-900 leading-tight">01</h3>
+              <p class="text-[10px] font-black text-[var(--color-info-text)] uppercase tracking-widest">Lỗi nhẹ</p>
+              <h3 class="text-xl font-black text-heading leading-tight">01</h3>
            </div>
         </div>
       </div>
 
       <!-- ── Toolbar ── -->
-      <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-4 flex-1">
+      <div class="surface-card border border-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-3 flex-1">
            <div class="relative max-w-sm w-full">
-              <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input type="text" placeholder="Tìm theo đối tượng, loại xung đột..." class="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-4 focus:ring-blue-500/10">
+              <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
+              <input type="text" placeholder="Tìm theo đối tượng, loại xung đột..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-[var(--border-input-focus)]">
            </div>
            <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
               <Filter :size="18" /> Lọc mức độ
            </button>
         </div>
-        <button class="lg-button-primary bg-slate-800 py-2.5 px-5 text-sm font-black shadow-lg shadow-slate-200 flex items-center gap-2">
+        <button class="lg-button-primary py-2.5 px-5 text-sm font-black flex items-center gap-2">
            <Bell :size="18" /> Yêu cầu GV xử lý tất cả
         </button>
       </div>
@@ -91,44 +90,44 @@ const getSeverityClass = (severity) => {
       <div class="lg-table-shell overflow-hidden">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-slate-50/50">
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Loại xung đột</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Chi tiết & Đối tượng</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thời gian</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Mức độ</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
+            <tr class="surface-solid">
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Loại xung đột</th>
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Chi tiết & Đối tượng</th>
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Thời gian</th>
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Mức độ</th>
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
-            <tr v-for="cf in conflicts" :key="cf.id" class="group hover:bg-white/50 transition-colors">
-              <td class="px-4 py-4">
-                 <p class="text-sm font-black text-slate-800 leading-tight">{{ cf.type }}</p>
-                 <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{{ cf.id }}</p>
+          <tbody class="divide-y divide-default">
+            <tr v-for="cf in conflicts" :key="cf.id" class="group hover:bg-[var(--surface-input)] transition-colors">
+              <td class="px-4 py-3">
+                 <p class="text-sm font-black text-heading leading-tight">{{ cf.type }}</p>
+                 <p class="text-[10px] font-bold text-muted mt-1 uppercase tracking-tighter">{{ cf.id }}</p>
               </td>
-              <td class="px-4 py-4 max-w-xs">
-                 <p class="text-xs text-slate-600 leading-relaxed font-medium mb-2">{{ cf.description }}</p>
-                 <div class="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase">
+              <td class="px-4 py-3 max-w-xs">
+                 <p class="text-xs text-body leading-relaxed font-medium mb-2">{{ cf.description }}</p>
+                 <div class="flex items-center gap-2 text-[10px] font-black text-link uppercase">
                     <User v-if="cf.type.includes('giảng viên')" :size="12" />
                     <MapPin v-else :size="12" />
                     {{ cf.affected }}
                  </div>
               </td>
-              <td class="px-4 py-4">
-                 <div class="flex items-center gap-1.5 text-xs font-bold text-slate-500">
-                    <Clock :size="14" class="text-slate-300" /> {{ cf.time }}
+              <td class="px-4 py-3">
+                 <div class="flex items-center gap-1.5 text-xs font-bold text-label">
+                    <Clock :size="14" class="text-placeholder" /> {{ cf.time }}
                  </div>
               </td>
-              <td class="px-4 py-4">
+              <td class="px-4 py-3">
                 <span :class="['px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border', getSeverityClass(cf.severity)]">
                   {{ cf.severity }}
                 </span>
               </td>
-              <td class="px-4 py-4 text-right">
+              <td class="px-4 py-3 text-right">
                 <div class="flex items-center justify-end gap-1">
-                  <button class="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-all" title="Gửi thông báo nhắc nhở">
+                  <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-muted transition-all" title="Gửi thông báo nhắc nhở">
                     <Bell :size="18" />
                   </button>
-                  <button class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-all">
+                  <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-muted transition-all">
                     <ArrowRight :size="18" />
                   </button>
                 </div>

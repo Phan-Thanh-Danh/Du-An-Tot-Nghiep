@@ -3,16 +3,12 @@ import { ref } from 'vue'
 import { 
   ArrowLeft, 
   Star, 
-  TrendingUp, 
-  BarChart, 
   Download, 
   ShieldAlert, 
   User, 
   BookOpen, 
-  Clock, 
   MessageCircle,
-  Award,
-  ChevronRight
+  Award
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 
@@ -49,7 +45,7 @@ const teacher = ref({
          <router-link to="/bgh/evaluations/ranking" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
             <ArrowLeft :size="18" /> Quay lại
          </router-link>
-         <button class="lg-button-primary bg-indigo-600 py-2.5 px-5 text-sm font-black shadow-lg shadow-indigo-200 flex items-center gap-2">
+         <button class="lg-button-primary py-2.5 px-5 text-sm font-black flex items-center gap-2">
             <Download :size="18" /> XUẤT BÁO CÁO PDF
          </button>
       </div>
@@ -59,33 +55,33 @@ const teacher = ref({
       
       <!-- ── Left: Criteria Breakdown ── -->
       <div class="xl:col-span-2 space-y-4">
-        <div class="lg-card-glass p-5 relative overflow-hidden">
+        <div class="surface-card border border-card rounded-2xl p-5 relative overflow-hidden">
            <!-- Rating Badge Overlay -->
            <div class="absolute top-8 right-8 text-right">
-              <div class="inline-flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-2xl border border-emerald-100 shadow-sm">
-                 <Star :size="20" class="fill-emerald-500" />
+              <div class="inline-flex items-center gap-2 bg-[var(--color-success-bg)] text-[var(--color-success-text)] px-4 py-2 rounded-2xl border border-[var(--color-success-text)]/20 shadow-sm">
+                 <Star :size="20" class="fill-[var(--color-success-text)]" />
                  <span class="text-xl font-black">{{ teacher.avgRating }}</span>
               </div>
-              <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-2">Xếp loại: Xuất sắc</p>
+              <p class="text-[10px] font-black text-[var(--color-success-text)] uppercase tracking-widest mt-2">Xếp loại: Xuất sắc</p>
            </div>
 
-           <h4 class="text-sm font-black text-slate-800 uppercase tracking-wide mb-10">Đánh giá theo tiêu chí</h4>
+           <h4 class="text-sm font-black text-heading uppercase tracking-wide mb-10">Đánh giá theo tiêu chí</h4>
            
            <div class="space-y-8">
               <div v-for="item in teacher.criteria" :key="item.label">
                  <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-black text-slate-600 uppercase tracking-tighter">{{ item.label }}</span>
+                    <span class="text-xs font-black text-label uppercase tracking-tighter">{{ item.label }}</span>
                     <div class="flex items-center gap-2">
-                       <span class="text-sm font-black text-slate-800">{{ item.score.toFixed(2) }}</span>
+                       <span class="text-sm font-black text-heading">{{ item.score.toFixed(2) }}</span>
                        <div class="flex gap-0.5">
-                          <Star v-for="i in 5" :key="i" :size="10" :class="i <= Math.round(item.score) ? 'text-amber-500 fill-amber-500' : 'text-slate-200'" />
+                          <Star v-for="i in 5" :key="i" :size="10" :class="i <= Math.round(item.score) ? 'text-[var(--color-warning-text)] fill-[var(--color-warning-text)]' : 'text-placeholder'" />
                        </div>
                     </div>
                  </div>
-                 <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                 <div class="h-2 w-full bg-[var(--surface-input)] rounded-full overflow-hidden">
                     <div 
                       :style="{ width: `${(item.score / 5) * 100}%` }" 
-                      class="h-full bg-gradient-to-r from-blue-600 to-indigo-500 rounded-full shadow-sm"
+                      class="h-full bg-[var(--lg-primary)] rounded-full shadow-sm"
                     ></div>
                  </div>
               </div>
@@ -93,23 +89,23 @@ const teacher = ref({
         </div>
 
         <!-- Semester History Chart Mock -->
-        <div class="lg-card-glass p-8">
-           <h4 class="text-sm font-black text-slate-800 uppercase tracking-wide mb-8">Biến động điểm qua các học kỳ</h4>
+        <div class="surface-card border border-card rounded-2xl p-8">
+           <h4 class="text-sm font-black text-heading uppercase tracking-wide mb-8">Biến động điểm qua các học kỳ</h4>
            <div class="h-48 flex items-end justify-between px-10 relative">
               <div class="absolute inset-0 flex flex-col justify-between py-2 pointer-events-none opacity-5">
-                 <div v-for="i in 4" :key="i" class="h-px w-full bg-slate-800"></div>
+                 <div v-for="i in 4" :key="i" class="h-px w-full bg-[var(--border-default)]"></div>
               </div>
               
               <div v-for="term in teacher.semesterHistory" :key="term.term" class="flex flex-col items-center gap-4 group">
                  <div 
                    :style="{ height: `${(term.score / 5) * 120}px` }" 
-                   class="w-16 bg-blue-100 rounded-2xl group-hover:bg-blue-600 transition-all border border-blue-200 relative"
+                   class="w-16 bg-[var(--color-info-bg)] rounded-2xl group-hover:bg-[var(--lg-primary)] transition-all border border-[var(--color-info-text)]/20 relative"
                  >
-                    <div class="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-black text-slate-800 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div class="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-black text-heading opacity-0 group-hover:opacity-100 transition-opacity">
                        {{ term.score }}
                     </div>
                  </div>
-                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ term.term }}</span>
+                 <span class="text-[10px] font-black text-muted uppercase tracking-widest">{{ term.term }}</span>
               </div>
            </div>
         </div>
@@ -119,58 +115,58 @@ const teacher = ref({
       <div class="space-y-4">
         
         <!-- Teacher Profile Card -->
-        <div class="lg-card-glass p-5 text-center bg-slate-50/50">
-           <div class="h-24 w-24 rounded-2xl bg-white border border-slate-100 p-1 mx-auto mb-4 shadow-xl">
-              <div class="h-full w-full rounded-[28px] bg-slate-50 flex items-center justify-center text-slate-300">
+        <div class="surface-card border border-card rounded-2xl p-5 text-center">
+           <div class="h-24 w-24 rounded-2xl surface-card border border-card p-1 mx-auto mb-4 shadow-sm">
+              <div class="h-full w-full rounded-2xl surface-solid flex items-center justify-center text-placeholder">
                  <User :size="48" />
               </div>
            </div>
-           <h3 class="text-xl font-black text-slate-800">{{ teacher.name }}</h3>
-           <p class="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mt-1">{{ teacher.code }}</p>
+           <h3 class="text-xl font-black text-heading">{{ teacher.name }}</h3>
+           <p class="text-[10px] font-black text-link uppercase tracking-[0.2em] mt-1">{{ teacher.code }}</p>
            
-           <div class="mt-8 pt-8 border-t border-slate-100 space-y-4 text-left">
+           <div class="mt-8 pt-8 border-t border-default space-y-4 text-left">
               <div class="flex items-center gap-3">
-                 <BookOpen :size="16" class="text-slate-400" />
+                 <BookOpen :size="16" class="text-muted" />
                  <div>
-                    <p class="text-[9px] font-black text-slate-400 uppercase">Khoa phụ trách</p>
-                    <p class="text-xs font-bold text-slate-700">{{ teacher.dept }}</p>
+                    <p class="text-[9px] font-black text-muted uppercase">Khoa phụ trách</p>
+                    <p class="text-xs font-bold text-label">{{ teacher.dept }}</p>
                  </div>
               </div>
               <div class="flex items-center gap-3">
-                 <Award :size="16" class="text-amber-500" />
+                 <Award :size="16" class="text-[var(--color-warning-text)]" />
                  <div>
-                    <p class="text-[9px] font-black text-slate-400 uppercase">Thành tích nổi bật</p>
-                    <p class="text-xs font-bold text-slate-700">Top 3 giảng viên yêu thích nhất kỳ</p>
+                    <p class="text-[9px] font-black text-muted uppercase">Thành tích nổi bật</p>
+                    <p class="text-xs font-bold text-label">Top 3 giảng viên yêu thích nhất kỳ</p>
                  </div>
               </div>
            </div>
         </div>
 
         <!-- AI Narrative Summary -->
-        <div class="lg-card-glass p-5 bg-indigo-50/20 border-indigo-100">
+        <div class="surface-card border border-[var(--color-info-text)]/20 bg-[var(--color-info-bg)] rounded-2xl p-5">
            <div class="flex items-center gap-3 mb-4">
-              <div class="h-10 w-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
+              <div class="h-10 w-10 rounded-2xl bg-[var(--surface-card)] text-[var(--color-info-text)] flex items-center justify-center shadow-sm border border-[var(--color-info-text)]/20">
                  <MessageCircle :size="20" />
               </div>
-              <h4 class="text-sm font-black text-indigo-900 uppercase tracking-wide">Tổng hợp ý kiến AI</h4>
+              <h4 class="text-sm font-black text-heading uppercase tracking-wide">Tổng hợp ý kiến AI</h4>
            </div>
-           <p class="text-xs text-indigo-700/80 leading-relaxed font-medium italic">
+           <p class="text-xs text-[var(--color-info-text)] leading-relaxed font-medium italic">
              "Giảng viên có kiến thức chuyên môn cực kỳ vững chắc. Sinh viên đánh giá cao sự nhiệt tình hỗ trợ ngoài giờ lên lớp. Một số nhận xét nhỏ đề xuất giảng viên có thể chia sẻ thêm nhiều ví dụ thực tế từ doanh nghiệp."
            </p>
            <div class="mt-6 flex flex-wrap gap-2">
-              <span class="px-2 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-widest">Nhiệt tình</span>
-              <span class="px-2 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-widest">Chuyên môn cao</span>
-              <span class="px-2 py-1 rounded-lg bg-blue-100 text-blue-700 text-[9px] font-black uppercase tracking-widest">Supportive</span>
+              <span class="px-2 py-1 rounded-lg bg-[var(--color-success-bg)] text-[var(--color-success-text)] text-[9px] font-black uppercase tracking-widest border border-[var(--color-success-text)]/20">Nhiệt tình</span>
+              <span class="px-2 py-1 rounded-lg bg-[var(--color-success-bg)] text-[var(--color-success-text)] text-[9px] font-black uppercase tracking-widest border border-[var(--color-success-text)]/20">Chuyên môn cao</span>
+              <span class="px-2 py-1 rounded-lg bg-[var(--color-info-bg)] text-[var(--color-info-text)] text-[9px] font-black uppercase tracking-widest border border-[var(--color-info-text)]/20">Supportive</span>
            </div>
         </div>
 
         <!-- Critical Alerts Area -->
-        <div v-if="teacher.avgRating < 3.5" class="lg-card-glass p-4 border-rose-100 bg-rose-50/20">
-           <div class="flex items-start gap-4 text-rose-600">
+        <div v-if="teacher.avgRating < 3.5" class="surface-card border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)] rounded-2xl p-4">
+           <div class="flex items-start gap-4 text-[var(--color-danger-text)]">
               <ShieldAlert :size="24" class="shrink-0 mt-0.5" />
               <div>
-                 <h4 class="text-sm font-black text-rose-900 uppercase tracking-wide">Cảnh báo chất lượng</h4>
-                 <p class="text-xs text-rose-700 mt-1 font-medium">Giảng viên có điểm đánh giá giảm mạnh so với kỳ trước. BGH cần lên lịch trao đổi chuyên môn.</p>
+                 <h4 class="text-sm font-black text-heading uppercase tracking-wide">Cảnh báo chất lượng</h4>
+                 <p class="text-xs text-[var(--color-danger-text)] mt-1 font-medium">Giảng viên có điểm đánh giá giảm mạnh so với kỳ trước. BGH cần lên lịch trao đổi chuyên môn.</p>
               </div>
            </div>
         </div>

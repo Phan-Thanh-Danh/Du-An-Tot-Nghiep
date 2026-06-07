@@ -664,7 +664,7 @@ function canApplyEarlyResult(item) {
   border: 1px solid var(--border-card);
   background: var(--surface-card);
   box-shadow: var(--lg-shadow-sm);
-  backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(calc(var(--glass-blur) - 4px)) saturate(130%);
 }
 
 .curriculum-hero {
@@ -674,9 +674,7 @@ function canApplyEarlyResult(item) {
   overflow: hidden;
   border-radius: 24px;
   padding: 1rem;
-  background:
-    radial-gradient(circle at 12% 0%, rgba(37, 99, 235, 0.14), transparent 30%),
-    linear-gradient(135deg, var(--surface-card-strong), var(--surface-card));
+  background: var(--surface-card);
 }
 
 .hero-copy {
@@ -754,7 +752,7 @@ function canApplyEarlyResult(item) {
 
 .program-progress strong {
   color: var(--text-heading);
-  font-size: 2rem;
+  font-size: 1.7rem;
   font-weight: 950;
   line-height: 1;
 }
@@ -781,7 +779,7 @@ function canApplyEarlyResult(item) {
 .mini-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--lg-primary), var(--lg-cyan));
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-cyan));
 }
 
 .summary-grid {
@@ -1033,8 +1031,8 @@ function canApplyEarlyResult(item) {
   gap: 0.35rem;
   min-height: 2rem;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary));
-  color: #ffffff;
+  background: var(--accent-primary);
+  color: var(--text-inverse);
   font-size: 0.74rem;
   font-weight: 850;
   text-decoration: none;
@@ -1184,24 +1182,17 @@ function canApplyEarlyResult(item) {
 
 .status-completed { color: var(--color-success-text); background: var(--color-success-bg); }
 .status-current { color: var(--color-info-text); background: var(--color-info-bg); }
-.status-early { color: #7c3aed; background: rgba(237, 233, 254, 0.82); }
-.status-early-done { color: #6d28d9; background: rgba(237, 233, 254, 0.72); }
+.status-early,
+.status-early-done { color: var(--accent-violet); background: var(--accent-violet-soft); }
 .status-locked { color: var(--text-placeholder); background: var(--surface-input); }
 .status-changed { color: var(--color-warning-text); background: var(--color-warning-bg); }
 
 .version-current { color: var(--color-info-text); background: var(--color-info-bg); }
-.version-old { color: #6d28d9; background: rgba(237, 233, 254, 0.72); }
+.version-old { color: var(--accent-violet); background: var(--accent-violet-soft); }
 .version-replaced { color: var(--color-warning-text); background: var(--color-warning-bg); }
 .version-equivalent { color: var(--color-success-text); background: var(--color-success-bg); }
 .version-partial { color: var(--color-warning-text); background: var(--color-warning-bg); }
 .version-history { color: var(--text-placeholder); background: var(--surface-input); }
-
-:global(.dark) .status-early,
-:global(.dark) .status-early-done,
-:global(.dark) .version-old {
-  color: #d8b4fe;
-  background: rgba(88, 28, 135, 0.36);
-}
 
 .subject-progress {
   display: grid;

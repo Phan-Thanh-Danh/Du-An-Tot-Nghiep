@@ -48,9 +48,9 @@ const request = ref({
 
 const getStepStatusClass = (status) => {
   switch (status) {
-    case 'completed': return 'bg-emerald-500 text-white'
-    case 'current': return 'bg-blue-600 text-white ring-4 ring-blue-100'
-    case 'pending': return 'bg-slate-200 text-slate-400'
+    case 'completed': return 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border border-[var(--color-success-text)]/20'
+    case 'current': return 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border border-[var(--color-info-text)]/25 ring-4 ring-[var(--color-info-bg)]'
+    case 'pending': return 'surface-solid text-muted border border-default'
     default: return ''
   }
 }
@@ -67,14 +67,14 @@ const getStepStatusClass = (status) => {
       </router-link>
     </template>
 
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
       
       <!-- ── Left: Request Content ── -->
       <div class="xl:col-span-2 space-y-4">
         
         <!-- Main Card -->
-        <div class="lg-card-glass p-8">
-           <div class="flex items-start justify-between mb-8">
+        <div class="surface-card border border-card rounded-2xl p-6">
+           <div class="flex items-start justify-between mb-6">
               <div class="flex items-center gap-4">
                   <div class="h-10 w-10 rounded-2xl surface-solid flex items-center justify-center text-body shadow-sm border-default">
                      <FileText :size="24" />
@@ -88,16 +88,16 @@ const getStepStatusClass = (status) => {
            </div>
 
            <div class="prose prose-slate max-w-none">
-               <p class="text-sm text-body leading-relaxed font-medium surface-solid p-4 rounded-3xl border-default">
+               <p class="text-sm text-body leading-relaxed font-medium surface-solid p-4 rounded-2xl border-default">
                 {{ request.content }}
               </p>
            </div>
 
            <!-- Evidence Files -->
-           <div class="mt-8">
+           <div class="mt-6">
                <h4 class="text-xs font-black text-label uppercase tracking-widest mb-4">Minh chứng đính kèm</h4>
                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div v-for="file in request.files" :key="file.name" class="flex items-center justify-between p-4 lg-list-item rounded-2xl border-default group hover:border-blue-200 transition-all cursor-pointer">
+                  <div v-for="file in request.files" :key="file.name" class="flex items-center justify-between p-4 lg-list-item rounded-2xl border-default group hover:border-[var(--border-input-focus)] transition-all cursor-pointer">
                      <div class="flex items-center gap-3">
                         <div class="h-10 w-10 rounded-xl surface-solid flex items-center justify-center text-placeholder transition-colors">
                            <FileText :size="20" />
@@ -114,7 +114,7 @@ const getStepStatusClass = (status) => {
         </div>
 
         <!-- Comments Section -->
-        <div class="lg-card-glass p-8">
+        <div class="surface-card border border-card rounded-2xl p-6">
             <h4 class="text-xs font-black text-label uppercase tracking-widest mb-4 flex items-center gap-2">
                <MessageSquare :size="16" /> Thảo luận xử lý
             </h4>
@@ -135,7 +135,7 @@ const getStepStatusClass = (status) => {
               <div class="mt-8 relative">
                   <textarea 
                     placeholder="Nhập ghi chú hoặc hướng dẫn xử lý..."
-                    class="w-full surface-input border-default rounded-[24px] p-5 text-xs font-medium outline-none h-32 resize-none"
+                    class="w-full surface-input border border-input rounded-2xl p-4 text-xs font-medium outline-none h-28 resize-none"
                   ></textarea>
                   <button class="absolute bottom-4 right-4 lg-button-primary p-3 rounded-2xl hover:scale-105 transition-all">
                     <Send :size="18" />
@@ -150,10 +150,10 @@ const getStepStatusClass = (status) => {
       <div class="space-y-4">
         
         <!-- Workflow Stepper -->
-        <div class="lg-card-glass p-5 overflow-hidden relative">
-            <h4 class="text-xs font-black text-label uppercase tracking-widest mb-8">Quy trình phê duyệt</h4>
+        <div class="surface-card border border-card rounded-2xl p-5 overflow-hidden relative">
+            <h4 class="text-xs font-black text-label uppercase tracking-widest mb-6">Quy trình phê duyệt</h4>
             
-            <div class="relative space-y-10">
+            <div class="relative space-y-8">
                <!-- Vertical Line -->
                <div class="absolute left-[17px] top-2 bottom-2 w-0.5 border-default"></div>
 
@@ -172,12 +172,12 @@ const getStepStatusClass = (status) => {
         </div>
 
         <!-- Student Info Card -->
-        <div class="lg-card-glass p-4 surface-solid">
+        <div class="surface-card border border-card rounded-2xl p-4">
             <h4 class="text-xs font-black text-label uppercase tracking-widest mb-4">Thông tin sinh viên</h4>
             <div class="space-y-4">
                <div class="flex items-center gap-4">
-                  <div class="h-11 w-11 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 p-0.5">
-                     <div class="h-full w-full rounded-full bg-white flex items-center justify-center text-indigo-600 font-black text-xs">NN</div>
+                  <div class="h-11 w-11 rounded-full bg-[var(--color-info-bg)] text-[var(--color-info-text)] border border-[var(--color-info-text)]/20 flex items-center justify-center font-black text-xs">
+                     NN
                   </div>
                   <div>
                      <p class="text-sm font-black text-heading">{{ request.student }}</p>

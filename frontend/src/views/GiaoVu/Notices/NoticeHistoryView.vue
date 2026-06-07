@@ -27,10 +27,10 @@ const notices = ref([
 
 const getStatusBadge = (status) => {
   switch (status) {
-    case 'sent': return 'bg-emerald-50 text-emerald-600 border-emerald-100'
-    case 'failed': return 'bg-rose-50 text-rose-600 border-rose-100'
-    case 'scheduled': return 'bg-blue-50 text-blue-600 border-blue-100'
-    default: return 'bg-slate-50 text-slate-500 border-slate-100'
+    case 'sent': return 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success-text)]/20'
+    case 'failed': return 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger-text)]/20'
+    case 'scheduled': return 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-info-text)]/20'
+    default: return 'surface-solid text-muted border-default'
   }
 }
 
@@ -52,7 +52,7 @@ const getChannelIcon = (ch) => {
     <div class="space-y-4">
       
       <!-- ── Filters ── -->
-      <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
+      <div class="surface-card border border-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
         <div class="flex-1 min-w-[300px] relative">
           <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder" />
           <input 
@@ -67,33 +67,36 @@ const getChannelIcon = (ch) => {
       </div>
 
       <!-- ── History Grid ── -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="space-y-3">
         <div 
           v-for="nt in notices" 
           :key="nt.id"
-           class="lg-card-glass p-4 group hover:shadow-xl transition-all border-default"
+           class="surface-card border border-card rounded-2xl p-4 group hover:border-[var(--border-input-focus)] transition-all"
         >
-           <div class="flex items-start justify-between mb-5">
-              <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm', getStatusBadge(nt.status)]">
-                 {{ nt.status }}
+           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-[10px] font-black text-placeholder uppercase tracking-widest">{{ nt.id }}</span>
+                <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm', getStatusBadge(nt.status)]">
+                   {{ nt.status }}
+                </div>
               </div>
-               <button class="text-placeholder hover:text-heading"><MoreVertical :size="18" /></button>
-           </div>
 
-            <h3 class="text-base font-black text-heading leading-snug group-hover:text-link transition-colors">
-              {{ nt.title }}
-           </h3>
-           
-           <div class="mt-4 flex flex-col gap-3">
-               <div class="flex items-center gap-2 text-xs font-bold text-label">
-                  <Users :size="14" /> {{ nt.target }}
-               </div>
-               <div class="flex items-center gap-2 text-xs font-bold text-label">
-                 <Clock :size="14" /> {{ nt.date }} • {{ nt.author }}
-              </div>
-           </div>
+              <h3 class="text-base font-black text-heading leading-snug group-hover:text-link transition-colors">
+                {{ nt.title }}
+             </h3>
 
-            <div class="mt-6 pt-5 border-t border-default flex items-center justify-between">
+             <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4">
+                 <div class="flex items-center gap-2 text-xs font-bold text-label">
+                    <Users :size="14" /> {{ nt.target }}
+                 </div>
+                 <div class="flex items-center gap-2 text-xs font-bold text-label">
+                   <Clock :size="14" /> {{ nt.date }} • {{ nt.author }}
+                </div>
+             </div>
+            </div>
+
+            <div class="flex items-center justify-between gap-4 lg:min-w-[320px]">
               <div class="flex items-center gap-2">
                  <div 
                    v-for="ch in nt.channels" 
@@ -107,13 +110,15 @@ const getChannelIcon = (ch) => {
               </div>
               
               <div class="flex items-center gap-2">
-                  <button v-if="nt.status === 'failed'" class="p-2 lg-button-ghost text-danger rounded-lg transition-colors" title="Thử lại">
+                  <button v-if="nt.status === 'failed'" class="p-2 lg-button-ghost text-[var(--color-danger-text)] rounded-lg transition-colors" title="Thử lại">
                     <RotateCcw :size="16" />
                  </button>
                   <button class="p-2 lg-button-ghost text-link rounded-lg transition-colors flex items-center gap-1 text-xs font-black uppercase tracking-widest">
                     Detail <ChevronRight :size="14" />
                  </button>
+                  <button class="p-2 lg-button-ghost text-placeholder hover:text-heading rounded-lg transition-colors"><MoreVertical :size="18" /></button>
               </div>
+           </div>
            </div>
         </div>
       </div>

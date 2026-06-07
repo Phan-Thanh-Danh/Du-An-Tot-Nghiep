@@ -232,8 +232,8 @@ onBeforeUnmount(() => {
 .video-shell {
   overflow: hidden;
   border: 1px solid var(--border-card);
-  border-radius: 18px;
-  background: #111827;
+  border-radius: var(--radius-xl);
+  background: var(--surface-app);
   box-shadow: var(--lg-shadow-sm);
 }
 
@@ -250,7 +250,8 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   gap: 0.85rem;
-  color: rgba(255, 255, 255, 0.86);
+  color: var(--text-inverse);
+  background: linear-gradient(135deg, #0f172a, #111827);
   padding: 1rem;
   text-align: left;
 }
@@ -261,9 +262,9 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 3rem;
   height: 3rem;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-inverse);
 }
 
 .video-placeholder strong,
@@ -278,7 +279,7 @@ onBeforeUnmount(() => {
 
 .video-placeholder span {
   margin-top: 0.2rem;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.68);
   font-size: 0.78rem;
   font-weight: 650;
 }
@@ -347,7 +348,7 @@ onBeforeUnmount(() => {
 .progress-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--lg-primary), var(--lg-cyan));
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-cyan));
   transition: width 180ms ease;
 }
 

@@ -230,7 +230,7 @@ const metrics = computed(() => {
             <div class="flex gap-1.5 flex-wrap">
               <button v-for="opt in statusOptions" :key="opt.value"
                 @click="filterStatus = opt.value"
-                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterStatus === opt.value ? 'bg-[var(--lg-primary)] text-white shadow-md' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
+                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterStatus === opt.value ? 'bg-[var(--lg-primary)] text-white shadow-sm' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
               >{{ opt.label }}</button>
             </div>
           </div>
@@ -257,7 +257,7 @@ const metrics = computed(() => {
           </thead>
           <tbody class="divide-y divide-default">
             <tr v-for="sec in filteredSections" :key="sec.id"
-              :class="['group hover:bg-white/10 transition-colors cursor-pointer', selectedSection?.id === sec.id ? 'bg-[var(--color-info-bg)]' : '']"
+              :class="['group hover:bg-[var(--surface-input)] transition-colors cursor-pointer', selectedSection?.id === sec.id ? 'bg-[var(--color-info-bg)]' : '']"
               @click="selectSection(sec)"
             >
               <td class="px-4 py-4">
@@ -430,7 +430,7 @@ const metrics = computed(() => {
               <button 
                 @click="handleAdjust"
                 :disabled="isProcessing || newCapacity < selectedSection.enrolled"
-                class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20 disabled:opacity-50"
+                class="lg-button-primary px-5 py-2.5 text-sm font-bold disabled:opacity-50"
               >
                 <Save :size="16" />
                 {{ isProcessing ? 'Đang xử lý...' : 'Áp dụng thay đổi' }}
@@ -452,7 +452,7 @@ const metrics = computed(() => {
     >
       <div v-if="showQuickModal && quickTarget" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="closeQuickModal">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-md lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
               <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
@@ -485,7 +485,7 @@ const metrics = computed(() => {
           <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
             <button class="lg-button-secondary px-5 py-2.5 text-sm font-bold" @click="closeQuickModal">Hủy</button>
             <button 
-              class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20 flex items-center gap-2"
+              class="lg-button-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2"
               :disabled="quickValue < quickTarget.enrolled"
               :class="{ 'opacity-50 cursor-not-allowed': quickValue < quickTarget.enrolled }"
               @click="saveQuick"

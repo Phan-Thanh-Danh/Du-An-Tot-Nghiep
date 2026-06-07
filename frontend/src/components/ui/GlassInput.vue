@@ -19,6 +19,11 @@ const props = defineProps({
   autocomplete: String,
   inputmode: String,
   required: Boolean,
+  size: {
+    type: String,
+    default: 'md',
+    validator: (value) => ['sm', 'md', 'lg'].includes(value),
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -26,17 +31,24 @@ const emit = defineEmits(['update:modelValue'])
 const generatedId = useId()
 const inputId = computed(() => props.id || `glass-input-${generatedId}`)
 const errorId = computed(() => `${inputId.value}-error`)
+
+const sizeClass = computed(() => ({
+  sm: 'glass-input-sm',
+  md: 'glass-input-md',
+  lg: 'glass-input-lg',
+}[props.size]))
 </script>
 
 <template>
-  <div class="block space-y-2">
+  <div class="block space-y-1.5">
     <label v-if="label" :for="inputId" class="lg-label">
       {{ label }}
     </label>
     <div
       :class="[
-        'lg-input flex min-h-10 items-center gap-2 px-3',
-        error ? 'border-red-300 bg-red-50/70 shadow-[0_0_0_4px_rgba(220,38,38,0.10)]' : '',
+        'lg-input flex items-center gap-2',
+        sizeClass,
+        error ? 'lg-input-error glass-input-error' : '',
         disabled ? 'cursor-not-allowed opacity-60' : '',
       ]"
     >
@@ -53,7 +65,7 @@ const errorId = computed(() => `${inputId.value}-error`)
         :required="required"
         :aria-invalid="error ? 'true' : undefined"
         :aria-describedby="error ? errorId : undefined"
-        class="min-w-0 flex-1 bg-transparent text-sm text-heading outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 disabled:cursor-not-allowed"
+        class="glass-input-control min-w-0 flex-1 bg-transparent text-heading outline-none placeholder:text-placeholder disabled:cursor-not-allowed"
         @input="emit('update:modelValue', $event.target.value)"
       />
       <slot name="suffix" />
@@ -63,3 +75,39 @@ const errorId = computed(() => `${inputId.value}-error`)
     </p>
   </div>
 </template>
+
+<style scoped>
+.glass-input-sm {
+  min-height: var(--control-height-sm);
+  padding: 0 0.625rem;
+}
+
+.glass-input-md {
+  min-height: var(--control-height-md);
+  padding: 0 0.75rem;
+}
+
+.glass-input-lg {
+  min-height: var(--control-height-lg);
+  padding: 0 0.875rem;
+}
+
+.glass-input-control {
+  font-size: 0.84375rem;
+}
+
+.glass-input-sm .glass-input-control {
+  font-size: 0.8125rem;
+}
+
+.glass-input-lg .glass-input-control {
+  font-size: 0.875rem;
+}
+
+.glass-input-error {
+  background: var(--color-danger-bg);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-danger-text) 14%, transparent),
+    var(--lg-shadow-sm);
+}
+</style>

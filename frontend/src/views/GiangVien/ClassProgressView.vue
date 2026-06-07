@@ -1,10 +1,26 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { 
-  ArrowLeft, Search, User, Mail, Activity, Target, 
-  BookOpen, Clock, ChevronRight, MoreVertical,
-  CheckCircle2, AlertCircle, TrendingUp, Users, BookMarked, Filter
+import { computed, onMounted, ref } from 'vue'
+import {
+  Activity,
+  AlertCircle,
+  ArrowLeft,
+  BookMarked,
+  BookOpen,
+  Clock,
+  Filter,
+  Mail,
+  Search,
+  Target,
+  User,
+  Users,
+  CheckCircle2,
+  X,
 } from 'lucide-vue-next'
+
+import GlassBadge from '@/components/ui/GlassBadge.vue'
+import GlassButton from '@/components/ui/GlassButton.vue'
+import GlassPanel from '@/components/ui/GlassPanel.vue'
+import TableShell from '@/components/ui/TableShell.vue'
 
 const students = ref([
   { id: 'SV16001', name: 'Nguyễn Văn A', email: 'anv@student.edu.vn', progress: 85, gpa: 8.2, absent: 1, status: 'good' },
@@ -28,18 +44,40 @@ const chartData = [
   { range: '80-100%', value: 25, height: 100 }
 ]
 
-const getStatusColor = (status) => {
-  return 'from-blue-400 to-cyan-400'
+const summaryStats = computed(() => {
+  const completed = students.value.filter((student) => student.progress >= 90).length
+  const studying = students.value.filter((student) => student.progress >= 60 && student.progress < 90).length
+  const delayed = students.value.filter((student) => student.status === 'warning').length
+  const risk = students.value.filter((student) => student.status === 'danger').length
+
+  return [
+    { label: 'Sĩ số', value: activeStudents, tone: 'primary' },
+    { label: 'Tiến độ TB', value: `${overallProgress}%`, tone: 'success' },
+    { label: 'Hoàn thành', value: completed, tone: 'success' },
+    { label: 'Đang học', value: studying, tone: 'info' },
+    { label: 'Chậm tiến độ', value: delayed, tone: 'warning' },
+    { label: 'Nguy cơ', value: risk, tone: 'danger' },
+  ]
+})
+
+const getStatusText = (status) => {
+  const texts = {
+    excellent: 'Hoàn thành tốt',
+    good: 'Đang học',
+    warning: 'Chậm tiến độ',
+    danger: 'Nguy cơ'
+  }
+  return texts[status] || 'Đang học'
 }
 
-const getStatusBadge = (status) => {
-  const badges = {
-    excellent: 'bg-emerald-50 text-emerald-600 border-emerald-100/50 shadow-sm',
-    good: 'bg-blue-50 text-blue-600 border-blue-100/50 shadow-sm',
-    warning: 'bg-amber-50 text-amber-600 border-amber-100/50 shadow-sm',
-    danger: 'bg-rose-50 text-rose-600 border-rose-100/50 shadow-sm'
+const getStatusVariant = (status) => {
+  const variants = {
+    excellent: 'success',
+    good: 'primary',
+    warning: 'warning',
+    danger: 'danger'
   }
-  return badges[status] || badges.good
+  return variants[status] || 'primary'
 }
 
 const animateProgress = ref(false)
@@ -71,419 +109,961 @@ const closeDrawer = () => {
 </script>
 
 <template>
-  <div class="space-y-8 pb-12 animate-fade-in">
-    <!-- ── Header ── -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
-      <!-- Decorative background -->
-      
-      
-      <div class="relative z-10 flex items-center gap-5">
-        <router-link to="/teacher/class-progress" class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-200 hover:scale-105 transition-transform duration-300">
-           <ArrowLeft :size="28" stroke-width="2.5" />
+  <div class="class-progress-page lg-page-enter">
+    <GlassPanel variant="flat" density="compact" class="page-header">
+      <div class="header-main">
+        <router-link to="/teacher/class-progress" class="back-link" aria-label="Quay lại danh sách lớp">
+          <ArrowLeft :size="18" />
         </router-link>
+
+        <div class="header-copy">
+          <div class="context-tags">
+            <GlassBadge variant="primary">SE1601</GlassBadge>
+            <GlassBadge variant="success">Đang diễn ra</GlassBadge>
+            <GlassBadge variant="neutral">Spring 2026 · Block 2</GlassBadge>
+          </div>
+          <h1>Tiến độ lớp học</h1>
+          <p>Theo dõi tiến độ học, bài hoàn thành và sinh viên có nguy cơ chậm tiến độ.</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <GlassButton variant="secondary" size="sm">
+          <template #leading>
+            <BookMarked :size="16" />
+          </template>
+          Giáo trình
+        </GlassButton>
+        <GlassButton variant="primary" size="sm">
+          <template #leading>
+            <Mail :size="16" />
+          </template>
+          Gửi nhắc nhở
+        </GlassButton>
+      </div>
+    </GlassPanel>
+
+    <GlassPanel variant="flat" density="compact" class="context-panel">
+      <div class="summary-strip">
+        <div v-for="item in summaryStats" :key="item.label" :class="['summary-pill', item.tone]">
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
+        </div>
+      </div>
+
+      <div class="filters">
+        <label class="select-shell">
+          <Target :size="16" />
+          <select>
+            <option>Tất cả trạng thái</option>
+            <option>Hoàn thành tốt</option>
+            <option>Đang học</option>
+            <option>Chậm tiến độ</option>
+            <option>Nguy cơ</option>
+          </select>
+        </label>
+        <label class="input-shell">
+          <Search :size="16" />
+          <input type="text" placeholder="Tìm sinh viên, MSSV..." />
+        </label>
+      </div>
+    </GlassPanel>
+
+    <div class="progress-grid">
+      <GlassPanel variant="flat" density="compact" class="overall-panel">
+        <div class="panel-title">
+          <div>
+            <h2>
+              <Activity :size="17" />
+              Tiến độ chung
+            </h2>
+            <p>{{ completedLessons }}/{{ totalLessons }} bài học đã hoàn thành.</p>
+          </div>
+          <GlassBadge variant="primary">{{ overallProgress }}%</GlassBadge>
+        </div>
+
+        <div class="overall-meter">
+          <div class="meter-value">{{ overallProgress }}%</div>
+          <div class="progress-track large" aria-hidden="true">
+            <span :style="{ width: animateProgress ? `${overallProgress}%` : '0%' }" />
+          </div>
+          <div class="meter-meta">
+            <span>Đã học: {{ completedLessons }}</span>
+            <span>Còn lại: {{ totalLessons - completedLessons }}</span>
+          </div>
+        </div>
+      </GlassPanel>
+
+      <GlassPanel variant="flat" density="compact" class="chart-panel">
+        <div class="panel-title">
+          <div>
+            <h2>
+              <Target :size="17" />
+              Phân bố tiến độ
+            </h2>
+            <p>Mức độ hoàn thành bài học của sinh viên trong lớp.</p>
+          </div>
+        </div>
+
+        <div class="bar-chart" aria-label="Phân bố tiến độ sinh viên">
+          <div v-for="(item, i) in chartData" :key="i" class="bar-item">
+            <strong>{{ item.value }}</strong>
+            <div class="bar-track">
+              <span :style="{ height: animateProgress ? `${item.height}%` : '0%' }" />
+            </div>
+            <small>{{ item.range }}</small>
+          </div>
+        </div>
+      </GlassPanel>
+    </div>
+
+    <GlassPanel variant="flat" density="compact" class="students-panel">
+      <div class="panel-title">
         <div>
-          <div class="flex items-center gap-3 mb-1.5">
-            <span class="px-3 py-1 rounded-xl bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest border border-blue-100/50">SE1601</span>
-            <span class="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-100/50 text-[10px] font-black uppercase tracking-widest">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              Đang diễn ra
-            </span>
-          </div>
-          <h1 class="text-xl md:text-xl font-black text-slate-900 tracking-tight">Chi tiết & Tiến độ</h1>
+          <h2>
+            <Users :size="17" />
+            Danh sách sinh viên
+          </h2>
+          <p>Quản lý và theo dõi chi tiết từng sinh viên trong lớp.</p>
         </div>
-      </div>
-      
-      <div class="relative z-10 flex items-center gap-3">
-        <button class="flex items-center gap-2 rounded-2xl bg-white px-5 py-3 border border-slate-200 shadow-sm hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors font-bold text-sm text-slate-700">
-           <BookMarked :size="18" /> Giáo trình
-        </button>
-        <button class="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 px-4 py-3 text-sm font-bold text-white shadow-md shadow-blue-200 hover:shadow-lg transition-all hover:-translate-y-0.5 active:translate-y-0">
-           <Mail :size="18" /> Gửi thông báo
-        </button>
-      </div>
-    </div>
-
-    <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform duration-500"></div>
-        <div class="flex items-center gap-4 mb-4">
-          <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-inner">
-            <Users :size="24" stroke-width="2.5" />
-          </div>
-          <div>
-            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Sĩ số lớp</p>
-            <h4 class="text-xl font-black text-slate-800">{{ activeStudents }}</h4>
-          </div>
-        </div>
-        <p class="text-xs text-slate-500 flex items-center gap-1"><span class="text-emerald-500 font-medium">100%</span> sinh viên đang học</p>
-      </div>
-      
-      <div class="bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-cyan-50 to-cyan-100/50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform duration-500"></div>
-        <div class="flex items-center gap-4 mb-4">
-          <div class="w-12 h-12 rounded-2xl bg-cyan-100 text-cyan-600 flex items-center justify-center shadow-inner">
-            <BookOpen :size="24" stroke-width="2.5" />
-          </div>
-          <div>
-            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Bài giảng</p>
-            <h4 class="text-xl font-black text-slate-800">{{ completedLessons }}<span class="text-sm text-slate-400 font-medium">/{{ totalLessons }}</span></h4>
-          </div>
-        </div>
-        <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
-          <div class="h-full bg-cyan-500 rounded-full" :style="{ width: (completedLessons/totalLessons*100) + '%' }"></div>
-        </div>
+        <GlassButton variant="secondary" size="sm">
+          <template #leading>
+            <Filter :size="15" />
+          </template>
+          Bộ lọc
+        </GlassButton>
       </div>
 
-      <div class="bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform duration-500"></div>
-        <div class="flex items-center gap-4 mb-4">
-          <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-inner">
-            <TrendingUp :size="24" stroke-width="2.5" />
-          </div>
-          <div>
-            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Điểm TB Lớp</p>
-            <h4 class="text-xl font-black text-slate-800">7.8</h4>
-          </div>
-        </div>
-        <p class="text-xs text-slate-500 flex items-center gap-1"><span class="text-emerald-500 font-medium">+0.4</span> so với tháng trước</p>
-      </div>
-
-      <div class="bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-rose-50 to-rose-100/50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform duration-500"></div>
-        <div class="flex items-center gap-4 mb-4">
-          <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-inner">
-            <AlertCircle :size="24" stroke-width="2.5" />
-          </div>
-          <div>
-            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Cảnh báo</p>
-            <h4 class="text-xl font-black text-slate-800">2</h4>
-          </div>
-        </div>
-        <p class="text-xs text-slate-500">Sinh viên có nguy cơ</p>
-      </div>
-    </div>
-
-    <!-- Main Charts Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <!-- Overall Progress Card -->
-      <div class="relative bg-gradient-to-br from-blue-600 to-cyan-500 rounded-2xl p-5 text-white shadow-xl shadow-blue-500/20 overflow-hidden group">
-        <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
-        <div class="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
-        
-        <div class="relative z-10 flex flex-col h-full justify-between">
-          <div>
-            <div class="flex justify-between items-center mb-8">
-               <div class="flex items-center gap-3">
-                 <div class="p-2.5 bg-white/20 rounded-2xl backdrop-blur-md border border-white/20 shadow-inner">
-                   <Activity :size="24" class="text-white" />
-                 </div>
-                 <h3 class="font-bold text-white text-lg">Tiến độ chung</h3>
-               </div>
-            </div>
-            
-            <div class="flex flex-col items-center justify-center my-8">
-              <div class="relative w-48 h-48 flex items-center justify-center">
-                <!-- Circular Progress SVG -->
-                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" class="text-white/20" stroke-width="8"></circle>
-                  <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" class="text-white drop-shadow-lg transition-all duration-1500 ease-out" stroke-width="8" stroke-linecap="round" :stroke-dasharray="2 * Math.PI * 45" :stroke-dashoffset="animateProgress ? 2 * Math.PI * 45 * (1 - overallProgress / 100) : 2 * Math.PI * 45"></circle>
-                </svg>
-                <div class="absolute flex flex-col items-center justify-center text-center">
-                  <span class="text-5xl font-black text-white drop-shadow-md">{{ overallProgress }}%</span>
-                  <span class="text-[11px] font-bold uppercase tracking-widest text-cyan-100 mt-1">Hoàn thành</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 flex items-center justify-between mt-auto shadow-inner">
-            <div class="text-center flex-1">
-              <p class="text-[10px] text-cyan-100 font-black uppercase tracking-widest mb-1">Đã học</p>
-              <p class="text-xl font-black">{{ completedLessons }}</p>
-            </div>
-            <div class="w-px h-10 bg-white/20"></div>
-            <div class="text-center flex-1">
-              <p class="text-[10px] text-cyan-100 font-black uppercase tracking-widest mb-1">Còn lại</p>
-              <p class="text-xl font-black">{{ totalLessons - completedLessons }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Chart Card -->
-      <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm lg:col-span-2 flex flex-col relative overflow-hidden group">
-        <div class="flex justify-between items-start mb-8">
-           <div>
-             <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-               <Target :size="20" class="text-blue-500" />
-               Phân bố tiến độ sinh viên
-             </h3>
-             <p class="text-sm text-slate-500 mt-1">Biểu đồ thể hiện mức độ hoàn thành bài học của lớp</p>
-           </div>
-           <div class="p-2 bg-slate-50 rounded-lg text-slate-400">
-             <MoreVertical :size="20" />
-           </div>
-        </div>
-        
-        <div class="flex-1 flex items-end justify-between gap-4 mt-auto">
-           <div v-for="(item, i) in chartData" :key="i" class="flex-1 flex flex-col items-center group/bar cursor-pointer">
-              <!-- Tooltip -->
-              <div class="opacity-0 group-hover/bar:opacity-100 transition-opacity duration-200 mb-3 bg-slate-800 text-white text-xs font-bold py-1.5 px-3 rounded-lg relative whitespace-nowrap shadow-lg translate-y-2 group-hover/bar:translate-y-0">
-                {{ item.value }} Sinh viên
-                <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
-              </div>
-              
-              <!-- Bar -->
-              <div class="w-full relative flex items-end justify-center rounded-t-xl overflow-hidden bg-slate-100 h-48 transition-all duration-300 group-hover/bar:bg-blue-50">
-                <div class="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-xl transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(99,102,241,0.2)]" 
-                     :style="{ height: animateProgress ? item.height + '%' : '0%' }">
-                   <!-- Highlight on hover -->
-                   <div class="absolute inset-0 bg-white/20 opacity-0 group-hover/bar:opacity-100 transition-opacity"></div>
-                </div>
-              </div>
-              
-              <!-- Label -->
-              <div class="mt-4 text-xs font-bold text-slate-400 group-hover/bar:text-blue-600 transition-colors">
-                {{ item.range }}
-              </div>
-           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Students Table Section -->
-    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-      <div class="p-4 md:p-8 border-b border-slate-100/80 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/30">
-        <div>
-          <h2 class="text-xl font-bold text-slate-800">Danh sách sinh viên</h2>
-          <p class="text-sm text-slate-500 mt-1">Quản lý và theo dõi chi tiết từng sinh viên trong lớp</p>
-        </div>
-        <div class="flex items-center gap-3">
-          <div class="relative w-full md:w-72">
-            <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input type="text" placeholder="Tìm kiếm sinh viên, mã SV..." class="w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all shadow-sm" />
-          </div>
-          <button class="p-3 rounded-2xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 transition-colors shadow-sm">
-             <Filter :size="20" />
-          </button>
-        </div>
-      </div>
-      
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
+      <TableShell density="compact">
+        <table>
           <thead>
-            <tr class="bg-slate-50/80 text-[11px] font-bold uppercase tracking-widest text-slate-500">
-              <th class="px-5 py-5 border-b border-slate-100">Sinh viên</th>
-              <th class="px-4 py-5 border-b border-slate-100">Liên hệ</th>
-              <th class="px-4 py-5 border-b border-slate-100">Tiến độ</th>
-              <th class="px-4 py-5 border-b border-slate-100">Điểm TB</th>
-              <th class="px-4 py-5 border-b border-slate-100">Trạng thái</th>
-              <th class="px-5 py-5 border-b border-slate-100 text-right">Thao tác</th>
+            <tr>
+              <th>Sinh viên</th>
+              <th>MSSV</th>
+              <th>Liên hệ</th>
+              <th>Tiến độ tổng</th>
+              <th>Bài học</th>
+              <th>Quiz / Bài tập</th>
+              <th>Lần học gần nhất</th>
+              <th>Trạng thái</th>
+              <th class="text-right">Hành động</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100/80 bg-white">
-            <tr v-for="sv in students" :key="sv.id" class="group hover:bg-slate-50/50 transition-colors duration-200 cursor-pointer">
-              <td class="px-5 py-5">
-                <div class="flex items-center gap-4">
-                  <div class="relative">
-                    <div class="h-11 w-11 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 font-bold text-sm shadow-sm group-hover:bg-blue-100 group-hover:text-blue-600 group-hover:border-blue-200 transition-colors">
-                      {{ sv.name.split(' ').pop()[0] }}
-                    </div>
-                    <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white" :class="sv.absent > 3 ? 'bg-rose-500' : 'bg-emerald-500'"></div>
-                  </div>
-                  <div>
-                    <p class="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{{ sv.name }}</p>
-                    <p class="text-[11px] text-slate-400 font-medium mt-0.5">{{ sv.id }}</p>
-                  </div>
+          <tbody>
+            <tr v-for="sv in students" :key="sv.id">
+              <td>
+                <div class="student-cell">
+                  <span class="student-avatar">{{ sv.name.split(' ').pop()[0] }}</span>
+                  <span>
+                    <strong>{{ sv.name }}</strong>
+                    <small>{{ sv.absent }} buổi vắng</small>
+                  </span>
                 </div>
               </td>
-              <td class="px-4 py-5">
-                <div class="flex items-center gap-2 text-sm text-slate-500 group-hover:text-slate-700 transition-colors">
-                  <Mail :size="14" class="text-slate-400" />
+              <td class="student-code">{{ sv.id }}</td>
+              <td>
+                <span class="email-cell">
+                  <Mail :size="13" />
                   {{ sv.email }}
-                </div>
+                </span>
               </td>
-              <td class="px-4 py-5 w-48">
-                <div class="flex items-center gap-3">
-                  <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                    <div class="h-full rounded-full bg-gradient-to-r transition-all duration-1000 ease-out" 
-                         :class="getStatusColor(sv.status)"
-                         :style="{ width: animateProgress ? sv.progress + '%' : '0%' }"></div>
+              <td>
+                <div class="progress-cell">
+                  <div class="progress-track" aria-hidden="true">
+                    <span :style="{ width: animateProgress ? `${sv.progress}%` : '0%' }" />
                   </div>
-                  <span class="text-xs font-bold text-slate-700 w-8">{{ sv.progress }}%</span>
+                  <strong>{{ sv.progress }}%</strong>
                 </div>
               </td>
-              <td class="px-4 py-5">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-black" :class="sv.gpa < 5 ? 'text-rose-500' : 'text-slate-800'">{{ sv.gpa }}</span>
-                  <TrendingUp v-if="sv.gpa >= 8" :size="14" class="text-emerald-500" />
-                  <AlertCircle v-else-if="sv.gpa < 5" :size="14" class="text-rose-500" />
-                </div>
+              <td class="number-cell">{{ Math.round((sv.progress / 100) * totalLessons) }}/{{ totalLessons }}</td>
+              <td class="number-cell">{{ sv.gpa >= 8 ? 'Tốt' : sv.gpa < 6 ? 'Cần hỗ trợ' : 'Đạt' }}</td>
+              <td>
+                <span class="last-active">
+                  <Clock :size="13" />
+                  1 ngày trước
+                </span>
               </td>
-              <td class="px-4 py-5">
-                <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider" :class="getStatusBadge(sv.status)">
-                  <CheckCircle2 v-if="sv.status === 'excellent' || sv.status === 'good'" :size="12" />
-                  <AlertCircle v-else :size="12" />
-                  {{ sv.status === 'excellent' ? 'Xuất sắc' : sv.status === 'good' ? 'Khá tốt' : sv.status === 'warning' ? 'Cảnh báo' : 'Nguy hiểm' }}
-                </div>
+              <td>
+                <GlassBadge :variant="getStatusVariant(sv.status)">
+                  <CheckCircle2 v-if="sv.status === 'excellent' || sv.status === 'good'" :size="11" />
+                  <AlertCircle v-else :size="11" />
+                  {{ getStatusText(sv.status) }}
+                </GlassBadge>
               </td>
-              <td class="px-5 py-5">
-                <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-x-4 group-hover:translate-x-0">
-                  <button @click="openStudentDetails(sv.id, 'profile')" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-blue-100" title="Hồ sơ">
-                    <User :size="16" />
-                  </button>
-                  <button @click="openStudentDetails(sv.id, 'assignments')" class="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-emerald-100" title="Bài nộp">
-                    <BookOpen :size="16" />
-                  </button>
-                  <button @click="openStudentDetails(sv.id, 'activity')" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-blue-100" title="Chi tiết điểm">
-                    <Activity :size="16" />
-                  </button>
+              <td>
+                <div class="row-actions">
+                  <GlassButton variant="ghost" size="sm" @click="openStudentDetails(sv.id, 'profile')">
+                    <template #leading>
+                      <User :size="13" />
+                    </template>
+                    Hồ sơ
+                  </GlassButton>
+                  <GlassButton variant="ghost" size="sm" @click="openStudentDetails(sv.id, 'assignments')">
+                    Bài nộp
+                  </GlassButton>
+                  <GlassButton variant="secondary" size="sm" @click="openStudentDetails(sv.id, 'activity')">
+                    Chi tiết
+                  </GlassButton>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
-      </div>
-      <div class="p-4 border-t border-slate-100/80 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
+      </TableShell>
+
+      <div class="table-footer">
         <span>Hiển thị 1-{{ students.length }} trong số {{ activeStudents }} sinh viên</span>
-        <div class="flex gap-1">
-          <button class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50">Trước</button>
-          <button class="px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-600 font-bold">1</button>
-          <button class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50">2</button>
-          <button class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50">3</button>
-          <button class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50">Sau</button>
+        <div class="pagination">
+          <button type="button">Trước</button>
+          <button type="button" class="active">1</button>
+          <button type="button">2</button>
+          <button type="button">3</button>
+          <button type="button">Sau</button>
         </div>
       </div>
-    </div>
+    </GlassPanel>
 
-    <!-- Student Slide-over Drawer -->
     <Teleport to="body">
-      <div v-if="isDrawerOpen || selectedStudent" class="fixed inset-0 z-[999] overflow-hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
-        <div class="absolute inset-0 overflow-hidden">
-          <div 
-            class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300"
-            :class="isDrawerOpen ? 'opacity-100' : 'opacity-0'"
-            @click="closeDrawer"
-          ></div>
+      <div
+        v-if="isDrawerOpen || selectedStudent"
+        class="drawer-root"
+        aria-labelledby="slide-over-title"
+        role="dialog"
+        aria-modal="true"
+      >
+        <button
+          type="button"
+          class="drawer-backdrop"
+          :class="isDrawerOpen ? 'open' : ''"
+          aria-label="Đóng chi tiết sinh viên"
+          @click="closeDrawer"
+        />
 
-          <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
-            <div 
-              class="pointer-events-auto w-screen max-w-md transform transition duration-300 ease-in-out"
-              :class="isDrawerOpen ? 'translate-x-0' : 'translate-x-full'"
-            >
-              <div class="flex h-full flex-col overflow-y-auto bg-white shadow-2xl rounded-l-[32px] border-l border-slate-100 relative">
-                 
-                 <template v-if="selectedStudent">
-                   <!-- Drawer Header -->
-                   <div class="p-5 pb-6 border-b border-slate-100 bg-slate-50/50 relative overflow-hidden">
-                      <div class="absolute -top-10 -right-10 w-32 h-32 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-100 to-transparent rounded-full pointer-events-none"></div>
-                      
-                      <div class="flex justify-between items-start mb-4 relative z-10">
-                         <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xl font-bold shadow-md shadow-blue-200">
-                            {{ selectedStudent.name.split(' ').pop()[0] }}
-                         </div>
-                         <button @click="closeDrawer" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
-                           <ArrowLeft :size="20" class="rotate-180" />
-                         </button>
-                      </div>
-                      <div class="relative z-10">
-                         <h2 class="text-xl font-black text-slate-800">{{ selectedStudent.name }}</h2>
-                         <p class="text-sm font-medium text-slate-500 mt-1">{{ selectedStudent.id }} • {{ selectedStudent.email }}</p>
-                      </div>
-                      
-                      <!-- Tabs -->
-                      <div class="flex items-center gap-4 mt-8 border-b border-slate-200">
-                         <button @click="activeTab = 'profile'" :class="['pb-3 text-sm font-bold border-b-2 transition-all', activeTab === 'profile' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600']">Hồ sơ</button>
-                         <button @click="activeTab = 'assignments'" :class="['pb-3 text-sm font-bold border-b-2 transition-all', activeTab === 'assignments' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600']">Bài tập</button>
-                         <button @click="activeTab = 'activity'" :class="['pb-3 text-sm font-bold border-b-2 transition-all', activeTab === 'activity' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600']">Hoạt động</button>
-                      </div>
-                   </div>
+        <aside class="drawer-shell" :class="isDrawerOpen ? 'open' : ''">
+          <template v-if="selectedStudent">
+            <div class="drawer-header">
+              <div class="student-profile">
+                <span class="drawer-avatar">{{ selectedStudent.name.split(' ').pop()[0] }}</span>
+                <div>
+                  <h2>{{ selectedStudent.name }}</h2>
+                  <p>{{ selectedStudent.id }} · {{ selectedStudent.email }}</p>
+                </div>
+              </div>
+              <button type="button" class="close-button" @click="closeDrawer">
+                <X :size="18" />
+              </button>
+            </div>
 
-                   <!-- Drawer Content -->
-                   <div class="p-5 flex-1 bg-white">
-                      
-                      <!-- Profile Tab -->
-                      <div v-if="activeTab === 'profile'" class="space-y-8 animate-fade-in">
-                         <div class="grid grid-cols-2 gap-4">
-                            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                               <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Điểm TB (GPA)</p>
-                               <p class="text-xl font-black text-slate-800">{{ selectedStudent.gpa }}</p>
-                            </div>
-                            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                               <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Vắng mặt</p>
-                               <p class="text-xl font-black text-rose-500">{{ selectedStudent.absent }} <span class="text-sm text-slate-500 font-medium">buổi</span></p>
-                            </div>
-                         </div>
-                         
-                         <div>
-                            <h4 class="text-sm font-bold text-slate-800 mb-4">Mức độ hoàn thành</h4>
-                            <div class="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                               <div class="h-full bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full" :style="{ width: selectedStudent.progress + '%' }"></div>
-                            </div>
-                            <div class="flex justify-between items-center mt-2">
-                               <span class="text-xs text-slate-500">Tiến độ khóa học</span>
-                               <span class="text-xs font-bold text-slate-700">{{ selectedStudent.progress }}%</span>
-                            </div>
-                         </div>
-                      </div>
+            <div class="drawer-tabs">
+              <button
+                type="button"
+                :class="activeTab === 'profile' ? 'active' : ''"
+                @click="activeTab = 'profile'"
+              >
+                Hồ sơ
+              </button>
+              <button
+                type="button"
+                :class="activeTab === 'assignments' ? 'active' : ''"
+                @click="activeTab = 'assignments'"
+              >
+                Bài tập
+              </button>
+              <button
+                type="button"
+                :class="activeTab === 'activity' ? 'active' : ''"
+                @click="activeTab = 'activity'"
+              >
+                Hoạt động
+              </button>
+            </div>
 
-                      <!-- Assignments Tab -->
-                      <div v-if="activeTab === 'assignments'" class="space-y-4 animate-fade-in">
-                         <div v-for="i in 3" :key="i" class="p-4 rounded-2xl border border-slate-100 flex items-center justify-between group hover:border-blue-200 transition-colors cursor-pointer">
-                            <div class="flex items-center gap-3">
-                               <div class="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                                  <BookOpen :size="16" />
-                               </div>
-                               <div>
-                                  <p class="text-sm font-bold text-slate-800">Lab {{ i }}: Thực hành Java</p>
-                                  <p class="text-xs text-slate-500 mt-0.5">Nộp lúc 10:45 AM, Hôm qua</p>
-                               </div>
-                            </div>
-                            <div class="text-right">
-                               <span class="text-sm font-black text-emerald-600">9.{{ 5 - i }}</span>
-                            </div>
-                         </div>
-                      </div>
+            <div class="drawer-body">
+              <div v-if="activeTab === 'profile'" class="drawer-stack">
+                <div class="profile-grid">
+                  <div class="profile-stat">
+                    <span>Điểm TB</span>
+                    <strong>{{ selectedStudent.gpa }}</strong>
+                  </div>
+                  <div class="profile-stat danger">
+                    <span>Vắng mặt</span>
+                    <strong>{{ selectedStudent.absent }} buổi</strong>
+                  </div>
+                </div>
 
-                      <!-- Activity Tab -->
-                      <div v-if="activeTab === 'activity'" class="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent animate-fade-in">
-                         <div v-for="(act, idx) in ['Xem video bài giảng Chương 2', 'Bình luận trên diễn đàn lớp', 'Hoàn thành Quiz 1']" :key="idx" class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                            <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-slate-100 text-slate-500 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm z-10">
-                               <Activity :size="14" class="text-blue-500" />
-                            </div>
-                            <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm">
-                               <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">{{ idx + 1 }} ngày trước</p>
-                               <h4 class="text-sm font-bold text-slate-800">{{ act }}</h4>
-                            </div>
-                         </div>
-                      </div>
+                <div class="detail-section">
+                  <h3>Mức độ hoàn thành</h3>
+                  <div class="progress-track large" aria-hidden="true">
+                    <span :style="{ width: `${selectedStudent.progress}%` }" />
+                  </div>
+                  <div class="meter-meta">
+                    <span>Tiến độ khóa học</span>
+                    <strong>{{ selectedStudent.progress }}%</strong>
+                  </div>
+                </div>
+              </div>
 
-                   </div>
-                 </template>
+              <div v-if="activeTab === 'assignments'" class="drawer-stack">
+                <article v-for="i in 3" :key="i" class="assignment-row">
+                  <span class="row-icon">
+                    <BookOpen :size="16" />
+                  </span>
+                  <div>
+                    <h3>Lab {{ i }}: Thực hành Java</h3>
+                    <p>Nộp lúc 10:45 AM, Hôm qua</p>
+                  </div>
+                  <strong>9.{{ 5 - i }}</strong>
+                </article>
+              </div>
 
+              <div v-if="activeTab === 'activity'" class="drawer-stack">
+                <article
+                  v-for="(act, idx) in ['Xem video bài giảng Chương 2', 'Bình luận trên diễn đàn lớp', 'Hoàn thành Quiz 1']"
+                  :key="idx"
+                  class="activity-row"
+                >
+                  <span class="row-icon">
+                    <Activity :size="15" />
+                  </span>
+                  <div>
+                    <p>{{ idx + 1 }} ngày trước</p>
+                    <h3>{{ act }}</h3>
+                  </div>
+                </article>
               </div>
             </div>
-          </div>
-        </div>
+          </template>
+        </aside>
       </div>
     </Teleport>
   </div>
 </template>
 
 <style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+.class-progress-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding-bottom: 2.5rem;
+  color: var(--text-body);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+.page-header,
+.header-main,
+.header-actions,
+.context-panel,
+.summary-strip,
+.filters,
+.panel-title,
+.student-cell,
+.progress-cell,
+.row-actions,
+.email-cell,
+.last-active,
+.table-footer,
+.pagination,
+.student-profile,
+.drawer-tabs,
+.assignment-row,
+.activity-row,
+.meter-meta {
+  display: flex;
+  align-items: center;
+}
+
+.page-header,
+.context-panel,
+.panel-title,
+.table-footer {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header-main {
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.back-link,
+.close-button,
+.student-avatar,
+.drawer-avatar,
+.row-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+}
+
+.back-link,
+.close-button {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+  color: var(--text-label);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.back-link:hover,
+.close-button:hover {
+  border-color: var(--border-input-focus);
+  background: var(--surface-input-focus);
+  color: var(--text-link);
+}
+
+.context-tags,
+.header-actions,
+.summary-strip,
+.filters,
+.row-actions,
+.pagination {
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.context-tags {
+  margin-bottom: 0.45rem;
+}
+
+.header-copy h1,
+.panel-title h2,
+.student-cell strong,
+.drawer-header h2,
+.detail-section h3,
+.assignment-row h3,
+.activity-row h3 {
+  margin: 0;
+  color: var(--text-heading);
+  font-weight: 900;
+}
+
+.header-copy h1 {
+  font-size: 1.45rem;
+  line-height: 1.15;
+}
+
+.panel-title h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1rem;
+}
+
+.header-copy p,
+.panel-title p,
+.summary-pill span,
+.student-cell small,
+.student-code,
+.email-cell,
+.last-active,
+.table-footer,
+.drawer-header p,
+.assignment-row p,
+.activity-row p,
+.profile-stat span {
+  color: var(--text-muted);
+}
+
+.header-copy p,
+.panel-title p,
+.drawer-header p {
+  margin: 0.25rem 0 0;
+  font-size: 0.84rem;
+}
+
+.context-panel {
+  align-items: center;
+}
+
+.summary-pill {
+  display: grid;
+  min-width: 5rem;
+  gap: 0.05rem;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0.45rem 0.6rem;
+}
+
+.summary-pill strong {
+  color: var(--text-heading);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.summary-pill span {
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.summary-pill.primary,
+.summary-pill.info {
+  background: var(--accent-primary-soft);
+}
+
+.summary-pill.success {
+  background: var(--color-success-bg);
+}
+
+.summary-pill.warning {
+  background: var(--color-warning-bg);
+}
+
+.summary-pill.danger {
+  background: var(--color-danger-bg);
+}
+
+.input-shell,
+.select-shell {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  gap: 0.45rem;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0 0.7rem;
+  color: var(--text-placeholder);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.input-shell {
+  width: min(20rem, 100%);
+}
+
+.select-shell {
+  width: min(13rem, 100%);
+}
+
+.input-shell:focus-within,
+.select-shell:focus-within {
+  border-color: var(--border-input-focus);
+  background: var(--surface-input-focus);
+  box-shadow: 0 0 0 3px var(--border-focus-ring);
+}
+
+.input-shell input,
+.select-shell select {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-heading);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.select-shell select {
+  appearance: none;
+  cursor: pointer;
+}
+
+.progress-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 0.875rem;
+}
+
+.overall-panel,
+.chart-panel,
+.students-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.panel-title {
+  border-bottom: 1px solid var(--border-card);
+  padding-bottom: 0.75rem;
+}
+
+.overall-meter {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.meter-value {
+  color: var(--text-heading);
+  font-size: 2rem;
+  font-weight: 900;
+}
+
+.progress-track {
+  width: 6rem;
+  height: 0.45rem;
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  background: var(--surface-input);
+  overflow: hidden;
+}
+
+.progress-track.large {
+  width: 100%;
+  height: 0.55rem;
+}
+
+.progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-primary);
+  transition: width 0.8s ease, height 0.8s ease;
+}
+
+.meter-meta {
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.bar-chart {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(3.5rem, 1fr));
+  gap: 0.75rem;
+  min-height: 12rem;
+  align-items: end;
+}
+
+.bar-item {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: center;
+}
+
+.bar-item strong {
+  color: var(--text-heading);
+  font-size: 0.82rem;
+}
+
+.bar-item small {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.bar-track {
+  display: flex;
+  align-items: end;
+  width: 100%;
+  height: 8rem;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  overflow: hidden;
+}
+
+.bar-track span {
+  display: block;
+  width: 100%;
+  background: var(--accent-primary);
+  transition: height 0.8s ease;
+}
+
+.student-cell {
+  min-width: 13rem;
+  gap: 0.65rem;
+}
+
+.student-avatar,
+.drawer-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  color: var(--text-link);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.drawer-avatar {
+  width: 2.4rem;
+  height: 2.4rem;
+}
+
+.student-cell strong {
+  display: block;
+  font-size: 0.86rem;
+}
+
+.student-cell small {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.student-code,
+.number-cell {
+  color: var(--text-heading);
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.email-cell,
+.last-active {
+  gap: 0.35rem;
+  min-width: 9rem;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.progress-cell {
+  min-width: 9rem;
+  gap: 0.55rem;
+}
+
+.progress-cell strong {
+  color: var(--text-heading);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.row-actions {
+  justify-content: flex-end;
+  min-width: 12rem;
+}
+
+.table-footer {
+  align-items: center;
+  border-top: 1px solid var(--border-card);
+  padding-top: 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.pagination button {
+  min-height: 2rem;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  background: var(--surface-input);
+  color: var(--text-label);
+  padding: 0 0.75rem;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.pagination button.active,
+.pagination button:hover {
+  border-color: var(--border-input-focus);
+  background: var(--accent-primary-soft);
+  color: var(--text-link);
+}
+
+.drawer-root {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  overflow: hidden;
+}
+
+.drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: var(--surface-modal);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.drawer-backdrop.open {
+  opacity: 1;
+}
+
+.drawer-shell {
+  position: fixed;
+  inset-block: 0;
+  right: 0;
+  display: flex;
+  width: min(30rem, 100%);
+  flex-direction: column;
+  border-left: 1px solid var(--border-card);
+  background: var(--surface-modal);
+  box-shadow: var(--lg-shadow-lg);
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+
+.drawer-shell.open {
+  transform: translateX(0);
+}
+
+.drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border-card);
+  background: var(--surface-card);
+  padding: 1rem;
+}
+
+.student-profile {
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.drawer-tabs {
+  gap: 0.35rem;
+  border-bottom: 1px solid var(--border-card);
+  background: var(--surface-card);
+  padding: 0.5rem 1rem;
+}
+
+.drawer-tabs button {
+  min-height: 2rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-label);
+  padding: 0 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.drawer-tabs button.active,
+.drawer-tabs button:hover {
+  border-color: var(--border-card);
+  background: var(--accent-primary-soft);
+  color: var(--text-link);
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.drawer-stack {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.profile-stat,
+.assignment-row,
+.activity-row,
+.detail-section {
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  background: var(--surface-input);
+  padding: 0.8rem;
+}
+
+.profile-stat span {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.profile-stat strong {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--text-heading);
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.profile-stat.danger strong {
+  color: var(--color-danger-text);
+}
+
+.detail-section {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.assignment-row,
+.activity-row {
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.row-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  color: var(--text-link);
+}
+
+.assignment-row div,
+.activity-row div {
+  flex: 1;
+  min-width: 0;
+}
+
+.assignment-row h3,
+.activity-row h3 {
+  font-size: 0.86rem;
+}
+
+.assignment-row p,
+.activity-row p {
+  margin: 0.15rem 0 0;
+  font-size: 0.74rem;
+}
+
+.assignment-row strong {
+  color: var(--color-success-text);
+  font-weight: 900;
+}
+
+@media (max-width: 1024px) {
+  .page-header,
+  .context-panel,
+  .panel-title,
+  .table-footer {
+    flex-direction: column;
+    align-items: stretch;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .progress-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filters,
+  .header-actions,
+  .row-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .summary-strip,
+  .filters,
+  .pagination,
+  .row-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .summary-pill,
+  .input-shell,
+  .select-shell {
+    width: 100%;
+  }
+
+  .bar-chart {
+    grid-template-columns: repeat(5, minmax(2.75rem, 1fr));
+    gap: 0.4rem;
   }
 }
 </style>

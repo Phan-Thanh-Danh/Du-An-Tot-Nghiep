@@ -2,13 +2,13 @@
   <div class="space-y-4 pb-10">
     
     <!-- ── Welcome Hero ── -->
-    <div class="rounded-[24px] lg-glass-card p-5">
+    <div class="rounded-2xl surface-card border border-card p-5">
       <div class="flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="max-w-xl text-center md:text-left">
-          <h1 class="text-lg md:text-2xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white">
-            Chào buổi sáng, <span class="lg-text-gradient">Trần Thị Giáo Vụ!</span>
+          <h1 class="text-lg md:text-2xl font-extrabold leading-tight tracking-tight text-heading">
+            Tổng quan giáo vụ
           </h1>
-          <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+          <p class="mt-2 text-sm text-muted">
             Hệ thống ghi nhận 3 lịch học xung đột và 28 đơn từ đang chờ xử lý.
           </p>
           <div class="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
@@ -23,8 +23,8 @@
           </div>
         </div>
         <div class="hidden lg:block">
-          <div class="flex h-20 w-20 items-center justify-center rounded-2xl bg-teal-100/60 dark:bg-teal-500/20 border border-teal-200/50 dark:border-teal-500/20">
-            <ShieldCheck :size="36" class="text-teal-600/60 dark:text-teal-400/60" />
+          <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-info-bg)] border border-[var(--color-info-text)]/20">
+            <ShieldCheck :size="30" class="text-[var(--color-info-text)]" />
           </div>
         </div>
       </div>
@@ -33,20 +33,20 @@
     <!-- ── Stats Grid ── -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div v-for="item in stats" :key="item.id" 
-           class="group lg-glass-card-hover p-4">
+           class="group surface-card border border-card rounded-2xl p-4">
         <div class="flex items-center justify-between">
-          <div :class="['flex h-10 w-10 items-center justify-center rounded-2xl transition-transform group-hover:scale-110', item.bgColor, item.iconColor]">
+          <div :class="['flex h-10 w-10 items-center justify-center rounded-2xl transition-colors', item.bgColor, item.iconColor]">
             <component :is="item.icon" :size="24" stroke-width="2.2" />
           </div>
-          <div :class="['flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold', item.isWarning ? 'bg-red-100/80 dark:bg-red-500/20 text-red-600 dark:text-red-400' : 'bg-teal-100/80 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400']">
+          <div :class="['flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold', item.isWarning ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]' : 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]']">
             {{ item.trend }}
             <ArrowUpRight v-if="!item.isWarning" :size="12" />
             <AlertCircle v-else :size="12" />
           </div>
         </div>
         <div class="mt-5">
-          <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ item.label }}</p>
-          <p class="mt-1 text-xl font-black text-slate-800 dark:text-white">{{ item.value }}</p>
+          <p class="text-sm font-medium text-muted">{{ item.label }}</p>
+          <p class="mt-1 text-xl font-black text-heading">{{ item.value }}</p>
         </div>
       </div>
     </div>
@@ -58,26 +58,26 @@
       <div class="xl:col-span-2 space-y-4">
         
         <!-- Schedule Tasks -->
-        <div class="lg-glass-card overflow-hidden">
-          <div class="flex items-center justify-between border-b border-white/40 dark:border-white/10 px-4 py-4">
+        <div class="surface-card border border-card rounded-2xl overflow-hidden">
+          <div class="flex items-center justify-between border-b border-default px-4 py-4">
             <div>
-              <h2 class="text-lg font-bold text-slate-800 dark:text-white">Thời khóa biểu cần xử lý</h2>
-              <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Các vấn đề phát sinh trong việc xếp lịch</p>
+              <h2 class="text-lg font-bold text-heading">Thời khóa biểu cần xử lý</h2>
+              <p class="text-xs text-muted mt-0.5">Các vấn đề phát sinh trong việc xếp lịch</p>
             </div>
-            <router-link to="/staff/schedule" class="text-xs font-bold text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300">Xem tất cả</router-link>
+            <router-link to="/staff/schedule" class="text-xs font-bold text-link hover:underline">Xem tất cả</router-link>
           </div>
           <div class="p-3 space-y-3">
             <div v-for="item in scheduleTasks" :key="item.id" 
-                 class="group flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-2xl p-4 transition-all lg-glass-card-hover">
-              <div :class="['flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl font-bold', item.alert ? 'bg-red-100/80 dark:bg-red-500/20 text-red-500 dark:text-red-400' : 'bg-teal-100/80 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400']">
+                 class="group flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-2xl p-4 transition-all surface-solid border border-default">
+              <div :class="['flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl font-bold', item.alert ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]' : 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]']">
                  <component :is="item.alert ? AlertCircle : Clock" :size="20" />
               </div>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
-                  <h3 class="text-base font-bold text-slate-800 dark:text-white truncate">{{ item.title }}</h3>
-                  <span v-if="item.alert" class="rounded-full bg-red-100/80 dark:bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">Khẩn cấp</span>
+                  <h3 class="text-base font-bold text-heading truncate">{{ item.title }}</h3>
+                  <span v-if="item.alert" class="rounded-full bg-[var(--color-danger-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-danger-text)] uppercase tracking-wider">Khẩn cấp</span>
                 </div>
-                <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ item.desc }}</p>
+                <p class="mt-0.5 text-xs text-muted">{{ item.desc }}</p>
               </div>
               <div class="flex items-center gap-2 mt-2 sm:mt-0">
                 <router-link :to="item.link" class="lg-button-primary h-9 rounded-lg px-4 text-[10px] font-bold">Xử lý ngay</router-link>
@@ -87,42 +87,42 @@
         </div>
 
         <!-- Class Sections Summary -->
-        <div class="lg-glass-card overflow-hidden">
-          <div class="flex items-center justify-between border-b border-white/40 dark:border-white/10 px-4 py-4">
-            <h2 class="text-lg font-bold text-slate-800 dark:text-white">Tình trạng lớp học phần</h2>
+        <div class="surface-card border border-card rounded-2xl overflow-hidden">
+          <div class="flex items-center justify-between border-b border-default px-4 py-4">
+            <h2 class="text-lg font-bold text-heading">Tình trạng lớp học phần</h2>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 divide-x divide-white/30 dark:divide-white/10">
+          <div class="grid grid-cols-1 md:grid-cols-2 md:divide-x divide-default">
              <div class="p-4">
                 <div class="flex items-center justify-between mb-3">
-                   <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300">Lớp sắp đầy (&gt;90%)</h3>
-                   <span class="rounded-full bg-amber-100/80 dark:bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">8 Lớp</span>
+                   <h3 class="text-xs font-bold text-heading">Lớp sắp đầy (&gt;90%)</h3>
+                   <span class="rounded-full bg-[var(--color-warning-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-warning-text)]">8 Lớp</span>
                 </div>
                 <div class="space-y-3">
                    <div v-for="i in 3" :key="i" class="flex items-center justify-between">
                       <div class="flex items-center gap-2">
-                         <div class="h-1.5 w-1.5 rounded-full bg-amber-400"></div>
-                         <span class="text-xs text-slate-600 dark:text-slate-400">CS101 - Lớp L0{{i}}</span>
+                         <div class="h-1.5 w-1.5 rounded-full bg-[var(--color-warning-text)]"></div>
+                         <span class="text-xs text-body">CS101 - Lớp L0{{i}}</span>
                       </div>
-                      <span class="text-xs font-bold text-slate-800 dark:text-white">48/50</span>
+                      <span class="text-xs font-bold text-heading">48/50</span>
                    </div>
                 </div>
-                <button class="mt-4 text-xs font-bold text-teal-600 dark:text-teal-400">Mở thêm sức chứa →</button>
+                <button class="mt-4 text-xs font-bold text-link">Mở thêm sức chứa →</button>
              </div>
              <div class="p-4">
                 <div class="flex items-center justify-between mb-3">
-                   <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300">Waitlist cần duyệt</h3>
-                   <span class="rounded-full bg-blue-100/80 dark:bg-blue-500/20 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-400">45 SV</span>
+                   <h3 class="text-xs font-bold text-heading">Waitlist cần duyệt</h3>
+                   <span class="rounded-full bg-[var(--color-info-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-info-text)]">45 SV</span>
                 </div>
                 <div class="space-y-3">
                    <div v-for="i in 3" :key="i" class="flex items-center justify-between">
                       <div class="flex items-center gap-2">
-                         <div class="h-1.5 w-1.5 rounded-full bg-blue-400"></div>
-                         <span class="text-xs text-slate-600 dark:text-slate-400">ENG102 - Lớp L0{{i}}</span>
+                         <div class="h-1.5 w-1.5 rounded-full bg-[var(--color-info-text)]"></div>
+                         <span class="text-xs text-body">ENG102 - Lớp L0{{i}}</span>
                       </div>
-                      <span class="text-xs font-bold text-slate-800 dark:text-white">{{ 10 + i }} SV chờ</span>
+                      <span class="text-xs font-bold text-heading">{{ 10 + i }} SV chờ</span>
                    </div>
                 </div>
-                <button class="mt-4 text-xs font-bold text-teal-600 dark:text-teal-400">Xử lý danh sách chờ →</button>
+                <button class="mt-4 text-xs font-bold text-link">Xử lý danh sách chờ →</button>
              </div>
           </div>
         </div>
@@ -133,23 +133,23 @@
       <div class="space-y-4">
         
         <!-- Urgent Requests -->
-        <div class="lg-glass-card p-4">
+        <div class="surface-card border border-card rounded-2xl p-4">
            <div class="mb-3 flex items-center justify-between">
-             <h3 class="text-base font-bold text-slate-800 dark:text-white">Đơn từ khẩn</h3>
-             <span class="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">3</span>
+             <h3 class="text-base font-bold text-heading">Đơn từ khẩn</h3>
+             <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-danger-bg)] text-[9px] font-bold text-[var(--color-danger-text)]">3</span>
            </div>
            <div class="space-y-3">
              <div v-for="req in urgentRequests" :key="req.id" 
-                  class="flex items-start gap-3 rounded-xl p-3 transition-all lg-glass-card-hover">
-               <div class="mt-0.5 h-8 w-8 shrink-0 rounded-lg bg-red-100/80 dark:bg-red-500/20 flex items-center justify-center text-red-500 dark:text-red-400">
+                  class="flex items-start gap-3 rounded-xl p-3 transition-all surface-solid border border-default">
+               <div class="mt-0.5 h-8 w-8 shrink-0 rounded-lg bg-[var(--color-danger-bg)] flex items-center justify-center text-[var(--color-danger-text)]">
                   <FileStack :size="16" />
                </div>
                <div class="flex-1 min-w-0">
                  <div class="flex justify-between items-start">
-                    <p class="text-xs font-bold text-slate-800 dark:text-white leading-tight">{{ req.type }}</p>
-                    <span class="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase">{{ req.time }}</span>
+                    <p class="text-xs font-bold text-heading leading-tight">{{ req.type }}</p>
+                    <span class="text-[9px] font-bold text-[var(--color-danger-text)] uppercase">{{ req.time }}</span>
                  </div>
-                 <p class="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400 truncate">{{ req.studentName }}</p>
+                 <p class="mt-0.5 text-[10px] text-muted truncate">{{ req.studentName }}</p>
                </div>
              </div>
            </div>
@@ -157,42 +157,42 @@
         </div>
 
         <!-- Strategy Summary / Mini Chart -->
-        <div class="lg-glass-card-hover p-4">
-            <h3 class="text-base font-bold text-slate-800 dark:text-white">Thống kê Học kỳ</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Đã hoàn thành xếp lịch cho 85% các khoa.</p>
+        <div class="surface-card border border-card rounded-2xl p-4">
+            <h3 class="text-base font-bold text-heading">Thống kê Học kỳ</h3>
+            <p class="text-xs text-muted mt-1">Đã hoàn thành xếp lịch cho 85% các khoa.</p>
             
             <div class="mt-4 flex items-end gap-2 h-20">
               <div v-for="h in [60, 40, 80, 50, 70, 95, 65]" :key="h" 
-                   class="flex-1 bg-teal-400/30 dark:bg-teal-500/25 rounded-t-lg transition-all hover:bg-teal-400/50 dark:hover:bg-teal-500/40 cursor-help" 
+                   class="flex-1 bg-[var(--color-info-bg)] rounded-t-lg transition-all hover:bg-[var(--surface-input)] cursor-help"
                    :style="{ height: h + '%' }" />
             </div>
             
             <div class="mt-4 grid grid-cols-2 gap-3">
-               <div class="rounded-xl bg-white/40 dark:bg-white/5 p-2.5 backdrop-blur-xl border border-white/50 dark:border-white/10">
-                  <p class="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Lớp học phần</p>
-                  <p class="text-base font-black mt-0.5 text-slate-800 dark:text-white">1,240</p>
+               <div class="rounded-xl surface-solid p-2.5 border border-default">
+                  <p class="text-[9px] uppercase font-bold text-muted tracking-wider">Lớp học phần</p>
+                  <p class="text-base font-black mt-0.5 text-heading">1,240</p>
                </div>
-               <div class="rounded-xl bg-white/40 dark:bg-white/5 p-2.5 backdrop-blur-xl border border-white/50 dark:border-white/10">
-                  <p class="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Phòng trống</p>
-                  <p class="text-base font-black mt-0.5 text-slate-800 dark:text-white">12%</p>
+               <div class="rounded-xl surface-solid p-2.5 border border-default">
+                  <p class="text-[9px] uppercase font-bold text-muted tracking-wider">Phòng trống</p>
+                  <p class="text-base font-black mt-0.5 text-heading">12%</p>
                </div>
             </div>
         </div>
 
         <!-- Announcements -->
-        <div class="lg-glass-card p-4">
+        <div class="surface-card border border-card rounded-2xl p-4">
           <div class="mb-3 flex items-center justify-between">
-            <h3 class="text-base font-bold text-slate-800 dark:text-white">Thông báo</h3>
-            <Bell :size="14" class="text-slate-400 dark:text-slate-500" />
+            <h3 class="text-base font-bold text-heading">Thông báo</h3>
+            <Bell :size="14" class="text-muted" />
           </div>
           <div class="space-y-3">
-            <div class="flex gap-2 p-2 rounded-xl lg-glass-card-hover">
-              <div class="h-8 w-8 rounded-full bg-blue-100/80 dark:bg-blue-500/20 flex items-center justify-center text-blue-500 dark:text-blue-400 shrink-0">
+            <div class="flex gap-2 p-2 rounded-xl surface-solid border border-default">
+              <div class="h-8 w-8 rounded-full bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] shrink-0">
                 <Bell :size="14" />
               </div>
               <div>
-                <p class="text-xs font-bold text-slate-700 dark:text-slate-300">Mở đăng ký kỳ Thu 2026</p>
-                <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Hệ thống đã sẵn sàng cho đợt đăng ký tới.</p>
+                <p class="text-xs font-bold text-heading">Mở đăng ký kỳ Thu 2026</p>
+                <p class="text-[10px] text-muted mt-0.5">Hệ thống đã sẵn sàng cho đợt đăng ký tới.</p>
               </div>
             </div>
           </div>
@@ -214,10 +214,10 @@ import {
 
 // KPI Stats
 const stats = [
-  { id: 1, label: 'Lịch học hôm nay', value: '142', trend: '+12', bgColor: 'bg-blue-50', iconColor: 'text-blue-600', icon: Calendar },
-  { id: 2, label: 'Xung đột lịch', value: '3', trend: 'Cần xử lý', isWarning: true, bgColor: 'bg-red-50', iconColor: 'text-red-600', icon: AlertTriangle },
-  { id: 3, label: 'Lớp đang mở', value: '86', trend: '8 lớp đầy', isWarning: true, bgColor: 'bg-amber-50', iconColor: 'text-amber-600', icon: Layers },
-  { id: 4, label: 'Đơn từ chờ duyệt', value: '28', trend: '3 quá hạn', isWarning: true, bgColor: 'bg-teal-50', iconColor: 'text-teal-600', icon: FileStack },
+  { id: 1, label: 'Lịch học hôm nay', value: '142', trend: '+12', bgColor: 'bg-[var(--color-info-bg)]', iconColor: 'text-[var(--color-info-text)]', icon: Calendar },
+  { id: 2, label: 'Xung đột lịch', value: '3', trend: 'Cần xử lý', isWarning: true, bgColor: 'bg-[var(--color-danger-bg)]', iconColor: 'text-[var(--color-danger-text)]', icon: AlertTriangle },
+  { id: 3, label: 'Lớp đang mở', value: '86', trend: '8 lớp đầy', isWarning: true, bgColor: 'bg-[var(--color-warning-bg)]', iconColor: 'text-[var(--color-warning-text)]', icon: Layers },
+  { id: 4, label: 'Đơn từ chờ duyệt', value: '28', trend: '3 quá hạn', isWarning: true, bgColor: 'bg-[var(--color-info-bg)]', iconColor: 'text-[var(--color-info-text)]', icon: FileStack },
 ]
 
 const scheduleTasks = [

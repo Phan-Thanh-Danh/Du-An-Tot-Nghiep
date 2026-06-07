@@ -160,7 +160,7 @@ const getStatusLabel = (status) => {
             'p-5 rounded-3xl border transition-all cursor-pointer group',
             activeWorkflow.id === wf.id 
               ? 'lg-glass-strong border-default' 
-              : 'lg-card-glass hover:border-blue-200'
+              : 'lg-card-glass hover:border-[var(--border-input-focus)]'
           ]"
         >
            <div class="flex items-start justify-between">
@@ -188,7 +188,7 @@ const getStatusLabel = (status) => {
       <div class="lg:col-span-2 space-y-4">
         
         <!-- Header Info -->
-        <div class="lg-card-glass p-5 flex items-center justify-between">
+        <div class="surface-card border border-card rounded-2xl p-5 flex items-center justify-between">
            <div class="flex items-center gap-5">
                <div class="h-10 w-10 rounded-2xl surface-solid flex items-center justify-center text-body border-default">
                  <Settings2 :size="28" />
@@ -212,62 +212,62 @@ const getStatusLabel = (status) => {
         </div>
 
         <!-- Builder Visualizer -->
-         <div class="lg-card-glass p-10 surface-solid relative overflow-visible">
+         <div class="surface-card border border-card rounded-2xl p-8 relative overflow-visible">
            
            <div class="flex flex-col items-center gap-12">
               
                <!-- Step 1 -->
                 <div class="flex items-center w-full max-w-sm">
-                   <div class="h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-black shadow-md shrink-0">1</div>
-                   <div class="flex-1 -ml-3 p-4 lg-glass-soft border-default shadow-sm group hover:border-blue-300 transition-all">
+                   <div class="h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-black shadow-sm shrink-0 border border-default">1</div>
+                   <div class="flex-1 -ml-3 p-4 surface-card border border-card rounded-2xl shadow-sm group hover:border-[var(--border-input-focus)] transition-all">
                       <h5 class="text-sm font-black text-heading uppercase tracking-wide">Tiếp nhận & Kiểm tra</h5>
                      <div class="mt-4 flex items-center justify-between">
                          <div class="flex items-center gap-2 text-[11px] font-bold text-label">
                             <Shield :size="14" class="text-link" /> Vai trò: Giáo vụ khoa
                          </div>
-                         <span class="text-[10px] font-black text-warning uppercase tracking-widest bg-warning/10 px-2 py-1 rounded-lg">SLA: 24h</span>
+                         <span class="text-[10px] font-black text-[var(--color-warning-text)] uppercase tracking-widest bg-[var(--color-warning-bg)] px-2 py-1 rounded-lg">SLA: 24h</span>
                      </div>
                   </div>
                </div>
 
                <div class="h-10 w-0.5 border-default flex items-center justify-center">
-                  <div class="h-2 w-2 rounded-full bg-link animate-bounce"></div>
+                  <div class="h-2 w-2 rounded-full bg-[var(--lg-primary)] animate-bounce"></div>
                </div>
 
                 <!-- Step 2 -->
                  <div class="flex items-center w-full max-w-sm">
-                   <div class="h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-black shadow-md shrink-0">2</div>
-                   <div class="flex-1 -ml-3 p-4 lg-glass-soft rounded-3xl border border-blue-200 shadow-md group">
+                   <div class="h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-black shadow-sm shrink-0 border border-default">2</div>
+                   <div class="flex-1 -ml-3 p-4 surface-card rounded-2xl border border-card shadow-sm group">
                       <div class="flex items-center justify-between mb-4">
                          <h5 class="text-sm font-black text-heading uppercase tracking-wide">Phê duyệt chính</h5>
-                         <Zap :size="18" class="text-warning fill-warning" title="Auto-Execute Available" />
+                         <Zap :size="18" class="text-[var(--color-warning-text)] fill-[var(--color-warning-text)]" title="Auto-Execute Available" />
                      </div>
                      <div class="flex items-center justify-between">
                          <div class="flex items-center gap-2 text-[11px] font-bold text-label">
                             <Shield :size="14" class="text-body" /> Trưởng phòng Giáo vụ
                          </div>
-                         <span class="text-[10px] font-black text-warning uppercase tracking-widest bg-warning/10 px-2 py-1 rounded-lg">SLA: 48h</span>
+                         <span class="text-[10px] font-black text-[var(--color-warning-text)] uppercase tracking-widest bg-[var(--color-warning-bg)] px-2 py-1 rounded-lg">SLA: 48h</span>
                      </div>
                   </div>
                </div>
 
                <div class="h-10 w-0.5 border-default flex items-center justify-center">
-                  <div class="h-2 w-2 rounded-full bg-link"></div>
+                  <div class="h-2 w-2 rounded-full bg-[var(--lg-primary)]"></div>
               </div>
 
                <!-- Execution Step -->
                 <div class="flex items-center w-full max-w-sm">
-                   <div class="h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-black shadow-md shrink-0">
+                   <div class="h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-black shadow-sm shrink-0 border border-default">
                      <CheckCircle2 :size="18" />
                   </div>
                    <div class="flex-1 -ml-3 p-5 surface-solid rounded-3xl border-2 border-dashed border-default">
                      <div class="flex items-center gap-3">
-                        <div class="h-10 w-10 rounded-xl lg-glass-soft flex items-center justify-center text-success shadow-sm">
+                        <div class="h-10 w-10 rounded-xl bg-[var(--color-success-bg)] flex items-center justify-center text-[var(--color-success-text)] shadow-sm">
                            <FileJson :size="20" />
                         </div>
                         <div>
                             <h5 class="text-xs font-black text-heading uppercase tracking-widest">Thực thi tự động</h5>
-                            <p class="text-[10px] font-bold text-success mt-1 uppercase tracking-tighter">Update DB + Send PDF Email</p>
+                            <p class="text-[10px] font-bold text-[var(--color-success-text)] mt-1 uppercase tracking-tighter">Update DB + Send PDF Email</p>
                         </div>
                      </div>
                   </div>
@@ -283,7 +283,7 @@ const getStatusLabel = (status) => {
                </button>
              </div>
              <div class="relative" @click.stop>
-               <button class="h-10 w-10 surface-solid rounded-2xl text-heading shadow-xl flex items-center justify-center hover:scale-110 transition-all" @click="toggleFloatingMenu">
+               <button class="h-10 w-10 surface-solid rounded-2xl text-heading shadow-sm flex items-center justify-center hover:bg-[var(--surface-input)] transition-all" @click="toggleFloatingMenu">
                  <MoreVertical :size="24" />
               </button>
               <Transition
@@ -294,7 +294,7 @@ const getStatusLabel = (status) => {
                 leave-from-class="opacity-100 scale-100"
                 leave-to-class="opacity-0 scale-95"
               >
-                <div v-if="showFloatingMenu" class="absolute right-0 bottom-full mb-2 z-50 w-44 lg-glass-strong rounded-xl p-1 shadow-xl shadow-slate-900/10" @click.stop>
+                <div v-if="showFloatingMenu" class="absolute right-0 bottom-full mb-2 z-50 w-44 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
                   <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openEditModal(); showFloatingMenu = false">
                     <Pen :size="14" /> Chỉnh sửa
                   </button>
@@ -308,7 +308,7 @@ const getStatusLabel = (status) => {
         </div>
 
         <!-- Workflow Rules Summary -->
-        <div class="lg-card-glass p-4 border-default bg-danger/5">
+        <div class="surface-card border border-card rounded-2xl p-4">
             <div class="flex items-start gap-4">
                <div class="h-10 w-10 rounded-2xl surface-solid flex items-center justify-center text-body shrink-0">
                   <Shield :size="20" />
@@ -339,7 +339,7 @@ const getStatusLabel = (status) => {
     >
       <div v-if="showAddModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="closeAddModal">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-md lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
               <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
@@ -372,7 +372,7 @@ const getStatusLabel = (status) => {
           </div>
           <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
             <button class="lg-button-secondary px-5 py-2.5 text-sm font-bold" @click="closeAddModal">Hủy</button>
-            <button class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20 flex items-center gap-2" @click="submitAdd" :disabled="!addForm.name.trim() || adding" :class="{ 'opacity-50 cursor-not-allowed': !addForm.name.trim() || adding }">
+            <button class="lg-button-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2" @click="submitAdd" :disabled="!addForm.name.trim() || adding" :class="{ 'opacity-50 cursor-not-allowed': !addForm.name.trim() || adding }">
               <Loader2 v-if="adding" :size="16" class="animate-spin" />
               <Save v-else :size="16" /> Tạo mới
             </button>
@@ -394,7 +394,7 @@ const getStatusLabel = (status) => {
     >
       <div v-if="showEditModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="closeEditModal">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-md lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
               <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
@@ -426,7 +426,7 @@ const getStatusLabel = (status) => {
           </div>
           <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
             <button class="lg-button-secondary px-5 py-2.5 text-sm font-bold" @click="closeEditModal">Hủy</button>
-            <button class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20 flex items-center gap-2" @click="submitEdit" :disabled="!editForm.name.trim() || saving" :class="{ 'opacity-50 cursor-not-allowed': !editForm.name.trim() || saving }">
+            <button class="lg-button-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2" @click="submitEdit" :disabled="!editForm.name.trim() || saving" :class="{ 'opacity-50 cursor-not-allowed': !editForm.name.trim() || saving }">
               <Loader2 v-if="saving" :size="16" class="animate-spin" />
               <Save v-else :size="16" /> Lưu thay đổi
             </button>
@@ -448,7 +448,7 @@ const getStatusLabel = (status) => {
     >
       <div v-if="showDeleteModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="closeDeleteModal">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-md lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
               <div class="h-8 w-8 rounded-lg bg-[var(--color-danger-bg)] text-[var(--lg-danger)] flex items-center justify-center">
@@ -468,7 +468,7 @@ const getStatusLabel = (status) => {
           </div>
           <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
             <button class="lg-button-secondary px-5 py-2.5 text-sm font-bold" @click="closeDeleteModal">Quay lại</button>
-            <button class="px-5 py-2.5 text-sm font-bold text-white bg-[var(--lg-danger)] hover:opacity-90 rounded-[18px] shadow-lg shadow-[var(--lg-danger)]/20 transition-all flex items-center gap-2" @click="confirmDelete">
+            <button class="px-5 py-2.5 text-sm font-bold text-white bg-[var(--lg-danger)] hover:opacity-90 rounded-2xl transition-all flex items-center gap-2" @click="confirmDelete">
               <Trash2 :size="16" /> Xác nhận xóa
             </button>
           </div>

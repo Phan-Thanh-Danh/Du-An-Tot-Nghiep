@@ -75,11 +75,18 @@ const currentPageMeta = computed(() => {
     Layout: [Sidebar] | [Topbar + Content]
     ═══════════════════════════════════════════════════════
   -->
-  <div class="lg-app-bg flex h-screen w-full overflow-hidden font-sans">
-    <div class="pointer-events-none absolute inset-0 -z-0 overflow-hidden">
-      <div class="lg-orb -left-28 top-16 h-80 w-80 bg-cyan-300/30 will-change-transform" />
-      <div class="lg-orb right-[-8rem] top-[-5rem] h-96 w-96 bg-violet-300/24 [animation-delay:-6s] will-change-transform" />
-      <div class="lg-orb bottom-[-9rem] left-1/3 h-96 w-96 bg-blue-300/20 [animation-delay:-12s] will-change-transform" />
+  <div
+    class="lg-app-bg flex h-screen w-full overflow-hidden font-sans"
+    :style="{
+      '--sidebar-accent': '#2563eb',
+      '--active-start': '#1d4ed8',
+      '--active-mid': '#2563eb',
+      '--active-end': '#0891b2',
+    }"
+  >
+    <div class="lg-shell-orbs">
+      <div class="lg-shell-orb lg-shell-orb-primary" />
+      <div class="lg-shell-orb lg-shell-orb-secondary" />
     </div>
 
     <!-- ═══════════ MOBILE OVERLAY ═══════════ -->
@@ -93,7 +100,7 @@ const currentPageMeta = computed(() => {
     >
       <div
         v-if="mobileSidebarOpen"
-        class="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden"
+        class="lg-mobile-scrim fixed inset-0 z-40 lg:hidden"
         @click="closeMobileSidebar"
       />
     </Transition>
@@ -136,7 +143,7 @@ const currentPageMeta = computed(() => {
 
       <!-- ═══════════ CONTENT AREA ═══════════ -->
       <main class="flex-1 overflow-y-auto">
-        <div class="mx-auto w-full max-w-[1500px] px-3 py-3 sm:px-4">
+        <div class="lg-shell-content mx-auto">
           <PageContainer
             :title="currentPageMeta.title"
             :subtitle="currentPageMeta.subtitle"
@@ -155,9 +162,9 @@ const currentPageMeta = computed(() => {
                   <template #default>
                     <component :is="Component" v-if="Component" />
                     <!-- Empty state -->
-                    <div v-else class="flex flex-col items-center justify-center py-16 text-center">
-                      <div class="surface-input border-card flex h-14 w-14 items-center justify-center rounded-2xl border">
-                        <GraduationCap class="h-8 w-8 text-blue-300" />
+                    <div v-else class="lg-shell-empty">
+                      <div class="surface-input border-card flex h-12 w-12 items-center justify-center rounded-[var(--radius-lg)] border">
+                        <GraduationCap class="h-7 w-7 text-link" />
                       </div>
                       <h3 class="mt-4 text-base font-semibold text-heading">Trang đang phát triển</h3>
                       <p class="mt-1.5 max-w-xs text-sm text-body">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng.</p>
@@ -166,19 +173,9 @@ const currentPageMeta = computed(() => {
                   </template>
                   <template #fallback>
                     <!-- Fallback skeleton loading -->
-                    <div class="flex h-[60vh] w-full flex-col items-center justify-center space-y-6">
-                      <div class="relative flex items-center justify-center">
-                        <div class="absolute h-16 w-16 animate-ping rounded-full bg-blue-400/20"></div>
-                        <div class="h-10 w-10 animate-spin rounded-full border-4 border-default border-t-[var(--lg-primary)] shadow-sm"></div>
-                      </div>
-                      <div class="flex flex-col items-center space-y-2">
-                        <p class="text-sm font-semibold tracking-wide text-label">Đang nạp dữ liệu...</p>
-                        <div class="flex space-x-1">
-                          <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500" style="animation-delay: -0.3s"></div>
-                          <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500" style="animation-delay: -0.15s"></div>
-                          <div class="h-2 w-2 animate-bounce rounded-full bg-blue-500"></div>
-                        </div>
-                      </div>
+                    <div class="lg-shell-loading gap-3">
+                      <div class="lg-shell-loading-spinner" />
+                      <p class="text-sm font-semibold text-label">Đang nạp dữ liệu...</p>
                     </div>
                   </template>
                 </Suspense>

@@ -51,7 +51,7 @@ function performCheck() {
     <div class="max-w-4xl mx-auto space-y-8">
       
       <!-- ── Input Form ── -->
-      <div class="lg-glass-strong p-5 rounded-2xl border-default shadow-xl">
+      <div class="lg-glass-soft p-5 rounded-2xl border-default shadow-sm">
         <h3 class="text-lg font-black text-heading mb-4 flex items-center gap-2">
           <Search :size="20" class="text-[var(--lg-primary)]" /> THÔNG TIN KIỂM TRA
         </h3>
@@ -113,7 +113,7 @@ function performCheck() {
         enter-to-class="opacity-100 translate-y-0"
       >
         <div v-if="checkResult" class="space-y-4">
-          <div :class="['p-4 rounded-[28px] border flex items-start gap-4 shadow-sm', checkResult.hasConflict ? 'bg-[var(--color-danger-bg)] border-[var(--color-danger-bg)]' : 'bg-[var(--color-success-bg)] border-[var(--color-success-bg)]']">
+          <div :class="['p-4 rounded-2xl border flex items-start gap-4 shadow-sm', checkResult.hasConflict ? 'bg-[var(--color-danger-bg)] border-[var(--color-danger-bg)]' : 'bg-[var(--color-success-bg)] border-[var(--color-success-bg)]']">
             <div :class="['h-10 w-10 rounded-2xl flex items-center justify-center shrink-0', checkResult.hasConflict ? 'bg-[var(--lg-danger)] text-white shadow-lg shadow-[var(--lg-danger)]/20' : 'bg-[var(--lg-success)] text-white shadow-lg shadow-[var(--lg-success)]/20']">
               <ShieldAlert v-if="checkResult.hasConflict" :size="24" />
               <CheckCircle v-else :size="24" />

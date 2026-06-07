@@ -174,7 +174,7 @@ function closeDetailModal() {
                 <button class="lg-button-secondary px-4 py-2 text-xs font-bold text-[var(--lg-success)] hover:bg-[var(--color-success-bg)]" @click.stop="openReopenModal(cls, 'pending')">
                   <CheckCircle2 :size="16" /> Mở lại lớp
                 </button>
-                <button class="px-5 py-2.5 text-xs font-bold text-white bg-[var(--lg-danger)] hover:opacity-90 rounded-[18px] shadow-lg shadow-[var(--lg-danger)]/20 transition-all flex items-center gap-2" @click.stop="openCancelModal(cls)">
+                <button class="px-5 py-2.5 text-xs font-bold text-white bg-[var(--lg-danger)] hover:opacity-90 rounded-2xl transition-all flex items-center gap-2" @click.stop="openCancelModal(cls)">
                   <XCircle :size="16" /> Xác nhận hủy
                 </button>
                 <div class="relative">
@@ -189,7 +189,7 @@ function closeDetailModal() {
                     leave-from-class="opacity-100 scale-100"
                     leave-to-class="opacity-0 scale-95"
                   >
-                    <div v-if="contextTarget?.id === cls.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-xl shadow-slate-900/10" @click.stop>
+                    <div v-if="contextTarget?.id === cls.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
                       <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-success-bg)] hover:text-[var(--lg-success)] transition-all" @click="openReopenModal(cls, 'pending'); closeContextMenu()">
                         <CheckCircle2 :size="14" /> Mở lại lớp
                       </button>
@@ -235,7 +235,7 @@ function closeDetailModal() {
               </tr>
             </thead>
             <tbody class="divide-y divide-default">
-              <tr v-for="cls in cancelledClasses" :key="cls.id" class="group hover:bg-white/10 transition-colors">
+              <tr v-for="cls in cancelledClasses" :key="cls.id" class="group hover:bg-[var(--surface-input)] transition-colors">
                 <td class="px-4 py-4">
                    <p class="text-sm font-black text-heading">{{ cls.subject }}</p>
                    <p class="text-[10px] font-bold text-placeholder mt-1">{{ cls.id }} · {{ cls.teacher }}</p>
@@ -271,7 +271,7 @@ function closeDetailModal() {
                          leave-from-class="opacity-100 scale-100"
                          leave-to-class="opacity-0 scale-95"
                        >
-                         <div v-if="contextTarget?.id === cls.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-xl shadow-slate-900/10" @click.stop>
+                         <div v-if="contextTarget?.id === cls.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
                            <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-success-bg)] hover:text-[var(--lg-success)] transition-all" @click="openReopenModal(cls, 'cancelled'); closeContextMenu()">
                              <RotateCcw :size="14" /> Mở lại lớp
                            </button>
@@ -318,7 +318,7 @@ function closeDetailModal() {
     >
       <div v-if="showCancelModal && cancelTarget" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="closeCancelModal">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-md lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
               <div class="h-8 w-8 rounded-lg bg-[var(--color-danger-bg)] text-[var(--lg-danger)] flex items-center justify-center">
@@ -331,7 +331,7 @@ function closeDetailModal() {
             </button>
           </div>
           <div class="surface-solid p-4 rounded-2xl flex items-center gap-3 mb-4">
-            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+            <div class="h-10 w-10 rounded-full bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] text-xs font-black flex items-center justify-center flex-shrink-0 border border-default">
               {{ cancelTarget.id.slice(-2) }}
             </div>
             <div>
@@ -354,7 +354,7 @@ function closeDetailModal() {
           </div>
           <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
             <button class="lg-button-secondary px-5 py-2.5 text-sm font-bold" @click="closeCancelModal">Quay lại</button>
-            <button class="px-5 py-2.5 text-sm font-bold text-white bg-[var(--lg-danger)] hover:opacity-90 rounded-[18px] shadow-lg shadow-[var(--lg-danger)]/20 transition-all flex items-center gap-2" @click="confirmCancel" :disabled="cancelling">
+            <button class="px-5 py-2.5 text-sm font-bold text-white bg-[var(--lg-danger)] hover:opacity-90 rounded-2xl transition-all flex items-center gap-2" @click="confirmCancel" :disabled="cancelling">
               <Loader2 v-if="cancelling" :size="16" class="animate-spin" />
               <XCircle v-else :size="16" />
               {{ cancelling ? 'Đang xử lý...' : 'Xác nhận hủy' }}
@@ -374,7 +374,7 @@ function closeDetailModal() {
     >
       <div v-if="showReopenModal && reopenTarget" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="closeReopenModal">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-md lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
               <div class="h-8 w-8 rounded-lg bg-[var(--color-success-bg)] text-[var(--lg-success)] flex items-center justify-center">
@@ -387,7 +387,7 @@ function closeDetailModal() {
             </button>
           </div>
           <div class="surface-solid p-4 rounded-2xl flex items-center gap-3 mb-4">
-            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+            <div class="h-10 w-10 rounded-full bg-[var(--color-success-bg)] text-[var(--color-success-text)] text-xs font-black flex items-center justify-center flex-shrink-0 border border-default">
               {{ reopenTarget.id.slice(-2) }}
             </div>
             <div>
@@ -406,7 +406,7 @@ function closeDetailModal() {
           </div>
           <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
             <button class="lg-button-secondary px-5 py-2.5 text-sm font-bold" @click="closeReopenModal">Quay lại</button>
-            <button class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-2 bg-[var(--lg-success)] hover:bg-emerald-600" @click="confirmReopen" :disabled="reopening">
+            <button class="lg-button-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2 bg-[var(--lg-success)] hover:opacity-90" @click="confirmReopen" :disabled="reopening">
               <Loader2 v-if="reopening" :size="16" class="animate-spin" />
               <CheckCircle2 v-else :size="16" />
               {{ reopening ? 'Đang xử lý...' : 'Xác nhận mở lại' }}
@@ -426,7 +426,7 @@ function closeDetailModal() {
     >
       <div v-if="showDetailModal && detailTarget" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="closeDetailModal">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-2xl lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-2xl surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
               <div class="h-10 w-10 rounded-xl bg-[var(--color-info-bg)] text-link flex items-center justify-center">
@@ -520,7 +520,7 @@ function closeDetailModal() {
 
           <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
             <button class="lg-button-secondary px-5 py-2.5 text-sm font-bold" @click="closeDetailModal">Đóng</button>
-            <button v-if="detailTarget.status !== 'cancelled'" class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-2 bg-[var(--lg-success)] hover:bg-emerald-600" @click="closeDetailModal(); openReopenModal(detailTarget, 'pending')">
+            <button v-if="detailTarget.status !== 'cancelled'" class="lg-button-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2 bg-[var(--lg-success)] hover:opacity-90" @click="closeDetailModal(); openReopenModal(detailTarget, 'pending')">
               <CheckCircle2 :size="16" /> Mở lại lớp
             </button>
           </div>

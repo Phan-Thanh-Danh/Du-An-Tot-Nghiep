@@ -65,14 +65,14 @@ function preloadRoute() {
     @focus="preloadRoute"
     @click="handleClick"
     :class="[
-      'lg-sidebar-item group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]',
+      'lg-sidebar-item group relative flex min-h-8 w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-1.5 text-[13px] font-medium transition-all duration-200 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]',
       depth === 0
-        ? 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100'
-        : 'pl-3 text-[12px] text-slate-500 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-300',
+        ? 'text-label hover:text-heading'
+        : 'pl-3 text-[12px] text-muted hover:text-label',
       isActive
         ? depth === 0
           ? 'lg-sidebar-item-active font-semibold'
-          : 'border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-700/60 text-[var(--sidebar-accent-dark)] font-semibold shadow-sm'
+          : 'border-card bg-[var(--surface-card-hover)] text-[var(--sidebar-accent)] font-semibold shadow-sm'
         : '',
     ]"
   >
@@ -91,7 +91,7 @@ function preloadRoute() {
         'flex-shrink-0 transition-colors duration-300',
         isActive
           ? depth === 0 ? 'text-white' : 'text-[var(--sidebar-accent)]'
-          : 'text-slate-400 dark:text-slate-500 group-hover:text-[var(--sidebar-accent)]',
+          : 'text-muted group-hover:text-[var(--sidebar-accent)]',
       ]"
     />
 
@@ -110,7 +110,7 @@ function preloadRoute() {
     >
       <LucideIcons.Star
         :size="10"
-        :class="isFavorite ? 'fill-amber-400 text-amber-400' : 'text-slate-400 dark:text-slate-500'"
+        :class="isFavorite ? 'fill-amber-400 text-amber-400' : 'text-muted'"
       />
     </button>
 
@@ -126,10 +126,10 @@ function preloadRoute() {
     :title="collapsed ? item.label : ''"
     role="menuitem"
     :class="[
-      'lg-sidebar-item group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]',
+      'lg-sidebar-item group relative flex min-h-8 w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-1.5 text-[13px] font-medium transition-all duration-200 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]',
       depth === 0
-        ? 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100'
-        : 'pl-3 text-[12px] text-slate-500 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-300',
+        ? 'text-label hover:text-heading'
+        : 'pl-3 text-[12px] text-muted hover:text-label',
     ]"
   >
     <!-- Icon -->
@@ -137,7 +137,7 @@ function preloadRoute() {
       :is="IconComponent"
       :size="depth === 0 ? 16 : 13"
       stroke-width="1.8"
-      class="flex-shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-[var(--sidebar-accent)]"
+      class="flex-shrink-0 text-muted group-hover:text-[var(--sidebar-accent)]"
     />
 
     <!-- Label -->

@@ -1,8 +1,8 @@
 <template>
   <div class="h-[calc(100vh-120px)] flex flex-col gap-4 pb-2 animate-fade-in relative">
     
-    <!-- ── TOP BAR: CCTV System Info (Premium Dark Header) ── -->
-    <div class="relative overflow-hidden rounded-[28px] bg-slate-900 p-4 text-white shadow-xl flex flex-wrap items-center justify-between gap-4 flex-shrink-0 border border-slate-800">
+    <!-- ── TOP BAR: CCTV System Info ── -->
+    <div class="relative overflow-hidden rounded-2xl p-4 text-white shadow-xl flex flex-wrap items-center justify-between gap-4 flex-shrink-0" style="background:var(--surface-sidebar);">
       <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-blue-500/20 blur-2xl pointer-events-none" />
       <div class="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-rose-500/20 blur-2xl pointer-events-none" />
       
@@ -16,7 +16,7 @@
         <div>
            <h1 class="text-xl md:text-xl font-black text-white uppercase tracking-tight">Hệ Thống Giám Sát Camera Lớp Học</h1>
            <div class="flex flex-wrap items-center gap-4 mt-2">
-              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-slate-300">
+              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-white/60">
                 <School :size="14" class="text-blue-400" /> Tổng số phòng: {{ systemStats.total }}
               </div>
               <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-400">
@@ -25,8 +25,8 @@
               <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs font-bold text-amber-400">
                 <div class="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></div> Đang thi: {{ systemStats.testing }}
               </div>
-              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-500/10 border border-slate-500/20 text-xs font-bold text-slate-400">
-                <div class="h-2 w-2 rounded-full bg-slate-400 shadow-[0_0_8px_rgba(148,163,184,0.8)]"></div> Phòng trống: {{ systemStats.idle }}
+              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-transparent border border-white/10 text-xs font-bold text-white/50">
+                <div class="h-2 w-2 rounded-full bg-white/50"></div> Phòng trống: {{ systemStats.idle }}
               </div>
               <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-xs font-bold text-rose-400">
                 <div class="h-2 w-2 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]"></div> Mất kết nối: {{ systemStats.disconnected }}
@@ -38,7 +38,7 @@
       <div class="relative z-10 flex items-center gap-4 bg-black/40 border border-white/10 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl">
          <Clock :size="24" class="text-blue-400 animate-pulse" />
          <div class="flex flex-col items-end">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Thời gian thực tế</span>
+            <span class="text-[10px] font-bold text-white/50 uppercase tracking-widest">Thời gian thực tế</span>
             <span class="text-xl font-black font-mono leading-none text-white tracking-wider drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">{{ currentTime }}</span>
          </div>
       </div>
@@ -48,33 +48,33 @@
       <div
         v-for="session in examSessions"
         :key="session.id"
-        class="exam-session-card rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur"
+        class="rounded-2xl border border-card surface-card p-4 shadow-sm"
       >
         <div class="flex items-start justify-between gap-3">
           <div>
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ session.classSectionCode }}</p>
-            <h2 class="mt-1 text-sm font-black text-slate-900">{{ session.title }}</h2>
-            <p class="mt-1 text-xs font-bold text-slate-500">{{ session.subject }}</p>
+            <p class="text-[10px] font-black uppercase tracking-widest text-muted">{{ session.classSectionCode }}</p>
+            <h2 class="mt-1 text-sm font-black text-heading">{{ session.title }}</h2>
+            <p class="mt-1 text-xs font-bold text-muted">{{ session.subject }}</p>
           </div>
-          <span :class="['rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest', getSessionTone(session.status)]">
+          <GlassBadge :variant="sessionBadgeVariant(session.status)">
             {{ getSessionStatusLabel(session.status) }}
-          </span>
+          </GlassBadge>
         </div>
         <div class="mt-3 grid grid-cols-3 gap-2 text-center">
-          <div class="rounded-xl bg-slate-50 px-2 py-2">
-            <p class="text-[9px] font-black uppercase text-slate-400">Đang làm</p>
-            <p class="text-sm font-black text-slate-800">{{ session.activeStudents }}</p>
+          <div class="rounded-xl bg-[var(--surface-input)] px-2 py-2">
+            <p class="text-[9px] font-black uppercase text-muted">Đang làm</p>
+            <p class="text-sm font-black text-heading">{{ session.activeStudents }}</p>
           </div>
-          <div class="rounded-xl bg-amber-50 px-2 py-2">
-            <p class="text-[9px] font-black uppercase text-amber-500">Cảnh báo</p>
-            <p class="text-sm font-black text-amber-700">{{ session.focusWarnings }}</p>
+          <div class="rounded-xl bg-[var(--color-warning-bg)] px-2 py-2">
+            <p class="text-[9px] font-black uppercase" style="color:var(--color-warning-text)">Cảnh báo</p>
+            <p class="text-sm font-black" style="color:var(--color-warning-text)">{{ session.focusWarnings }}</p>
           </div>
-          <div class="rounded-xl bg-blue-50 px-2 py-2">
-            <p class="text-[9px] font-black uppercase text-blue-500">Tổng</p>
-            <p class="text-sm font-black text-blue-700">{{ session.totalStudents }}</p>
+          <div class="rounded-xl bg-[var(--color-info-bg)] px-2 py-2">
+            <p class="text-[9px] font-black uppercase" style="color:var(--color-info-text)">Tổng</p>
+            <p class="text-sm font-black" style="color:var(--color-info-text)">{{ session.totalStudents }}</p>
           </div>
         </div>
-        <p class="mt-3 text-[10px] font-bold leading-relaxed text-slate-400">
+        <p class="mt-3 text-[10px] font-bold leading-relaxed text-muted">
           Canh thi ở Phase 7 chỉ theo dõi ca thi, số sinh viên và cảnh báo focus/tab mock. Không triển khai proctoring phức tạp.
         </p>
       </div>
@@ -352,6 +352,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import GlassBadge from '@/components/ui/GlassBadge.vue'
 import { usePopupStore } from '@/stores/popup'
 import { 
   Monitor, WifiOff, AlertTriangle, RefreshCw, 
@@ -421,10 +422,10 @@ function getSessionStatusLabel(status) {
   return 'Chưa bắt đầu'
 }
 
-function getSessionTone(status) {
-  if (status === 'running') return 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-  if (status === 'ended') return 'bg-slate-100 text-slate-600 border border-slate-200'
-  return 'bg-cyan-50 text-cyan-700 border border-cyan-100'
+function sessionBadgeVariant(status) {
+  if (status === 'running') return 'success'
+  if (status === 'ended') return 'neutral'
+  return 'primary'
 }
 
 const classrooms = ref([
@@ -649,26 +650,12 @@ function takeSnapshot() {
 </script>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.5);
-  border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar-dark::-webkit-scrollbar {
-  width: 6px;
-}
-.custom-scrollbar-dark::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.15);
-  border-radius: 10px;
-}
-.custom-scrollbar-dark::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.25);
-}
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.5); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar-dark::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar-dark::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+.custom-scrollbar-dark::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
 
 @keyframes fade-in-up {
   from { opacity: 0; transform: translateY(15px); }
@@ -687,38 +674,6 @@ function takeSnapshot() {
   animation: pulse-soft 2s infinite ease-in-out;
 }
 
-:global(.dark) .exam-session-card {
-  background: var(--surface-card-strong);
-  border-color: var(--border-card);
-}
-
-:global(.dark) .exam-session-card h2 {
-  color: var(--text-heading);
-}
-
-:global(.dark) .exam-session-card p {
-  color: var(--text-label);
-}
-
-:global(.dark) .exam-session-card .bg-slate-50,
-:global(.dark) .exam-session-card .bg-amber-50,
-:global(.dark) .exam-session-card .bg-blue-50 {
-  background: var(--surface-input);
-}
-
-:global(.dark) .exam-session-card .text-slate-800,
-:global(.dark) .exam-session-card .text-amber-700,
-:global(.dark) .exam-session-card .text-blue-700 {
-  color: var(--text-heading);
-}
-
-:global(.dark) .exam-session-card .text-slate-400,
-:global(.dark) .exam-session-card .text-slate-500,
-:global(.dark) .exam-session-card .text-amber-500,
-:global(.dark) .exam-session-card .text-blue-500 {
-  color: var(--text-label);
-}
-
 @keyframes bounce-slow {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }
@@ -727,7 +682,6 @@ function takeSnapshot() {
   animation: bounce-slow 3s infinite ease-in-out;
 }
 
-/* Modal Transition */
 .fade-scale-enter-active,
 .fade-scale-leave-active {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);

@@ -293,10 +293,10 @@ function closeMenu()    { menuOpenId.value = null }
         <div
           v-for="room in filteredRooms"
           :key="room.id"
-          class="lg-card lg-glass group p-5 transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer"
+          class="lg-card surface-card group p-4 transition-all hover:-translate-y-0.5 hover:shadow-sm cursor-pointer"
         >
           <!-- Top glow accent -->
-          <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--lg-cyan)] to-[var(--lg-primary)] opacity-0 group-hover:opacity-100 transition-opacity rounded-t-[28px]"></div>
+          <div class="absolute top-0 left-0 right-0 h-0.5 bg-[var(--border-input-focus)] opacity-0 group-hover:opacity-100 transition-opacity rounded-t-2xl"></div>
 
           <!-- Status dot + context menu -->
           <div class="flex items-center justify-between mb-4">
@@ -314,7 +314,7 @@ function closeMenu()    { menuOpenId.value = null }
               <Transition name="fade-up">
                 <div
                   v-if="menuOpenId === room.id"
-                  class="absolute right-0 top-8 z-[100] surface-solid border border-default rounded-2xl shadow-xl w-44 py-1 overflow-hidden"
+                  class="absolute right-0 top-8 z-[100] surface-solid border border-default rounded-2xl shadow-sm w-44 py-1 overflow-hidden"
                   @click.stop
                 >
                   <button class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors">
@@ -416,16 +416,16 @@ function closeMenu()    { menuOpenId.value = null }
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
 
         <!-- Modal Panel -->
-        <div class="relative w-full max-w-lg surface-modal rounded-[28px] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto border border-default">
+        <div class="relative w-full max-w-lg surface-modal rounded-2xl shadow-sm overflow-hidden max-h-[90vh] overflow-y-auto border border-default">
           <!-- Header gradient -->
-          <div class="bg-gradient-to-r from-[var(--lg-cyan)] to-[var(--lg-primary)] p-6 pb-5">
+          <div class="modal-header p-5">
             <div class="flex items-center justify-between">
               <div>
-                <h2 class="text-xl font-black text-white">Thêm phòng mới</h2>
-                <p class="text-sm text-white/80 mt-0.5">Điền thông tin phòng học mới</p>
+                <h2 class="text-xl font-black text-heading">Thêm phòng mới</h2>
+                <p class="text-sm text-label mt-0.5">Điền thông tin phòng học mới</p>
               </div>
               <button
-                class="h-9 w-9 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-all"
+                class="h-9 w-9 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
                 @click="closeAddModal"
               >
                 <X :size="18" />
@@ -577,6 +577,11 @@ function closeMenu()    { menuOpenId.value = null }
 </template>
 
 <style scoped>
+.modal-header {
+  border-bottom: 1px solid var(--border-card);
+  background: var(--surface-input);
+}
+
 /* Slide-down filter panel */
 .slide-down-enter-active,
 .slide-down-leave-active {

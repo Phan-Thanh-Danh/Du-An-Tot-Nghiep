@@ -8,11 +8,11 @@ defineProps({
 </script>
 
 <template>
-  <div class="space-y-3" aria-hidden="true">
+  <div class="space-y-2.5" aria-hidden="true">
     <div
       v-for="line in lines"
       :key="line"
-      class="lg-skeleton h-4"
+      class="lg-skeleton h-3.5"
       :class="line === lines ? 'w-2/3' : 'w-full'"
     />
   </div>

@@ -1,8 +1,11 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { usePopupStore } from '@/stores/popup'
-import { Lock, ArrowLeft, ShieldCheck, KeyRound, AlertCircle } from 'lucide-vue-next'
+import { AlertCircle, ArrowLeft, CheckCircle2, KeyRound, Lock, ShieldCheck } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import GlassBadge from '@/components/ui/GlassBadge.vue'
+import GlassButton from '@/components/ui/GlassButton.vue'
+import GlassPanel from '@/components/ui/GlassPanel.vue'
 
 const router = useRouter()
 const popupStore = usePopupStore()
@@ -10,8 +13,15 @@ const popupStore = usePopupStore()
 const passwords = ref({
   current: '',
   new: '',
-  confirm: ''
+  confirm: '',
 })
+
+const passwordRules = computed(() => [
+  { label: 'Ít nhất 8 ký tự', done: passwords.value.new.length >= 8 },
+  { label: 'Chứa ít nhất một chữ hoa', done: /[A-Z]/.test(passwords.value.new) },
+  { label: 'Chứa ít nhất một số', done: /\d/.test(passwords.value.new) },
+  { label: 'Không trùng mật khẩu cũ', done: passwords.value.new && passwords.value.new !== passwords.value.current },
+])
 
 function handlePasswordChange() {
   popupStore.success('Đã đổi mật khẩu', 'Mật khẩu của bạn đã được cập nhật.')
@@ -20,102 +30,332 @@ function handlePasswordChange() {
 </script>
 
 <template>
-  <div class="space-y-8 pb-10 text-slate-800 animate-fade-in max-w-5xl mx-auto">
-    <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
-      <!-- Decorative background -->
-      
-      
-      <div class="relative z-10 flex items-center gap-5">
-        <router-link to="/teacher/profile" class="h-10 w-10 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 flex items-center justify-center text-slate-500 shadow-sm border border-slate-200 hover:scale-105 hover:text-blue-600 hover:border-blue-200 transition-all duration-300">
-           <ArrowLeft :size="28" stroke-width="2.5" />
+  <div class="change-password-page">
+    <GlassPanel variant="soft" density="compact" class="page-header" :clip="false">
+      <div class="header-main">
+        <router-link to="/teacher/profile" class="back-link" aria-label="Quay lại hồ sơ">
+          <ArrowLeft :size="18" />
         </router-link>
-        <div>
-          <h1 class="text-xl md:text-xl font-black text-slate-900 tracking-tight">Đổi mật khẩu</h1>
-          <p class="text-sm font-medium text-slate-500 mt-1">Cập nhật mật khẩu để bảo vệ tài khoản của bạn.</p>
+        <div class="min-w-0">
+          <div class="eyebrow">Account security</div>
+          <h1 class="page-title">Đổi mật khẩu</h1>
+          <p class="page-subtitle">Cập nhật mật khẩu để bảo vệ tài khoản giảng viên của bạn.</p>
         </div>
       </div>
-    </div>
+    </GlassPanel>
 
-    <!-- Main Content -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      
-      <!-- Security Information -->
-      <div class="lg:col-span-1 space-y-4">
-         <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm relative overflow-hidden group">
-            <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-50 to-transparent rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform duration-500"></div>
-            <div class="h-10 w-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 shadow-inner border border-blue-100">
-               <ShieldCheck :size="28" stroke-width="2" />
+    <div class="password-layout">
+      <GlassPanel variant="surface" density="compact" class="security-panel">
+        <template #header>
+          <div class="panel-heading">
+            <div>
+              <h2>Yêu cầu mật khẩu</h2>
+              <p>Các điều kiện sẽ chuyển trạng thái khi bạn nhập mật khẩu mới.</p>
             </div>
-            <h3 class="text-lg font-black text-slate-800 mb-4">Yêu cầu mật khẩu</h3>
-            <ul class="space-y-4 text-sm font-medium text-slate-500">
-               <li class="flex items-center gap-3">
-                  <div class="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)]"></div> Ít nhất 8 ký tự
-               </li>
-               <li class="flex items-center gap-3">
-                  <div class="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.6)]"></div> Chứa ít nhất một chữ hoa
-               </li>
-               <li class="flex items-center gap-3">
-                  <div class="w-2 h-2 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.6)]"></div> Chứa ít nhất một số
-               </li>
-               <li class="flex items-center gap-3">
-                  <div class="w-2 h-2 rounded-full bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.6)]"></div> Không trùng mật khẩu cũ
-               </li>
-            </ul>
-         </div>
-      </div>
+            <ShieldCheck :size="18" />
+          </div>
+        </template>
 
-      <!-- Change Password Form -->
-      <div class="lg:col-span-2 bg-white rounded-2xl p-5 md:p-10 border border-slate-100 shadow-sm relative overflow-hidden">
-         <div class="space-y-4 relative z-10">
-            <div class="space-y-2">
-               <label class="text-[11px] font-black text-slate-500 uppercase tracking-widest pl-1">Mật khẩu hiện tại</label>
-               <div class="relative">
-                 <KeyRound :size="18" class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                 <input type="password" v-model="passwords.current" placeholder="Nhập mật khẩu hiện tại" class="w-full rounded-[20px] border border-slate-200 bg-slate-50/50 pl-12 pr-5 py-4 text-sm font-medium text-slate-800 outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all shadow-sm" />
-               </div>
-            </div>
-            
-            <hr class="border-slate-100 my-8" />
-            
-            <div class="space-y-2">
-               <label class="text-[11px] font-black text-slate-500 uppercase tracking-widest pl-1">Mật khẩu mới</label>
-               <div class="relative">
-                 <Lock :size="18" class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                 <input type="password" v-model="passwords.new" placeholder="Nhập mật khẩu mới" class="w-full rounded-[20px] border border-slate-200 bg-slate-50/50 pl-12 pr-5 py-4 text-sm font-medium text-slate-800 outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all shadow-sm" />
-               </div>
-            </div>
-            
-            <div class="space-y-2">
-               <label class="text-[11px] font-black text-slate-500 uppercase tracking-widest pl-1">Xác nhận mật khẩu mới</label>
-               <div class="relative">
-                 <Lock :size="18" class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                 <input type="password" v-model="passwords.confirm" placeholder="Nhập lại mật khẩu mới" class="w-full rounded-[20px] border border-slate-200 bg-slate-50/50 pl-12 pr-5 py-4 text-sm font-medium text-slate-800 outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all shadow-sm" />
-               </div>
-            </div>
+        <div class="rule-list">
+          <div v-for="rule in passwordRules" :key="rule.label" class="rule-row">
+            <span :class="['rule-dot', rule.done && 'is-done']">
+              <CheckCircle2 v-if="rule.done" :size="12" />
+            </span>
+            <span>{{ rule.label }}</span>
+            <GlassBadge :variant="rule.done ? 'success' : 'neutral'" size="sm">
+              {{ rule.done ? 'Đạt' : 'Chưa đạt' }}
+            </GlassBadge>
+          </div>
+        </div>
 
-            <div class="pt-8 flex flex-col sm:flex-row gap-4 items-center justify-between">
-               <div class="flex items-center gap-2 text-amber-600 text-[10px] font-black uppercase tracking-widest bg-amber-50 px-4 py-2.5 rounded-xl border border-amber-100/50">
-                  <AlertCircle :size="16" />
-                  Bạn sẽ bị đăng xuất sau khi đổi
-               </div>
-               <div class="flex gap-3 w-full sm:w-auto">
-                 <router-link to="/teacher/profile" class="flex-1 sm:flex-none text-center rounded-[20px] bg-white border border-slate-200 px-5 py-3.5 text-sm font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors shadow-sm">Hủy</router-link>
-                 <button @click="handlePasswordChange" class="flex-1 sm:flex-none rounded-[20px] bg-gradient-to-br from-blue-500 to-cyan-500 px-5 py-3.5 text-sm font-bold text-white shadow-md shadow-blue-200 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all">Cập nhật mật khẩu</button>
-               </div>
+        <div class="security-note">
+          <AlertCircle :size="15" />
+          <span>Bạn sẽ được chuyển về hồ sơ sau khi đổi mật khẩu thành công.</span>
+        </div>
+      </GlassPanel>
+
+      <GlassPanel variant="readable" density="compact" class="form-panel">
+        <template #header>
+          <div class="panel-heading">
+            <div>
+              <h2>Thông tin mật khẩu</h2>
+              <p>Nhập mật khẩu hiện tại và xác nhận mật khẩu mới.</p>
             </div>
-         </div>
-      </div>
+            <GlassBadge variant="warning" size="sm">Bảo mật</GlassBadge>
+          </div>
+        </template>
+
+        <div class="password-form">
+          <label class="field">
+            <span>Mật khẩu hiện tại</span>
+            <div class="input-wrap">
+              <KeyRound :size="16" />
+              <input v-model="passwords.current" type="password" placeholder="Nhập mật khẩu hiện tại" />
+            </div>
+          </label>
+
+          <label class="field">
+            <span>Mật khẩu mới</span>
+            <div class="input-wrap">
+              <Lock :size="16" />
+              <input v-model="passwords.new" type="password" placeholder="Nhập mật khẩu mới" />
+            </div>
+          </label>
+
+          <label class="field">
+            <span>Xác nhận mật khẩu mới</span>
+            <div class="input-wrap">
+              <Lock :size="16" />
+              <input v-model="passwords.confirm" type="password" placeholder="Nhập lại mật khẩu mới" />
+            </div>
+          </label>
+
+          <div class="match-note">
+            <AlertCircle :size="15" />
+            <span v-if="passwords.confirm && passwords.new !== passwords.confirm">
+              Mật khẩu xác nhận chưa khớp với mật khẩu mới.
+            </span>
+            <span v-else>
+              Kiểm tra kỹ mật khẩu mới trước khi cập nhật.
+            </span>
+          </div>
+
+          <div class="form-actions">
+            <router-link to="/teacher/profile" class="cancel-link">Hủy</router-link>
+            <GlassButton variant="primary" size="sm" @click="handlePasswordChange">
+              Cập nhật mật khẩu
+            </GlassButton>
+          </div>
+        </div>
+      </GlassPanel>
     </div>
   </div>
 </template>
 
 <style scoped>
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
+.change-password-page {
+  display: grid;
+  gap: 1rem;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding-bottom: 2rem;
+  color: var(--text-body);
 }
-.animate-fade-in {
-  animation: fade-in-up 0.4s ease-out forwards;
+
+.page-header,
+.header-main,
+.back-link,
+.panel-heading,
+.rule-row,
+.security-note,
+.input-wrap,
+.match-note,
+.form-actions,
+.cancel-link {
+  display: flex;
+  align-items: center;
+}
+
+.page-header,
+.panel-heading,
+.form-actions {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header-main {
+  gap: 0.875rem;
+}
+
+.back-link {
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  color: var(--text-link);
+  text-decoration: none;
+}
+
+.eyebrow,
+.page-subtitle,
+.panel-heading p,
+.rule-row,
+.security-note,
+.match-note {
+  color: var(--text-muted);
+}
+
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page-title {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
+  font-weight: 900;
+}
+
+.page-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.password-layout {
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.34fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.panel-heading h2 {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: 0.9375rem;
+  font-weight: 900;
+}
+
+.panel-heading p {
+  margin: 0.125rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.rule-list,
+.password-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.rule-row {
+  gap: 0.625rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.rule-row > span:nth-child(2) {
+  flex: 1;
+}
+
+.rule-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-card);
+  background: var(--surface-card);
+}
+
+.rule-dot.is-done {
+  color: var(--color-success-text);
+}
+
+.security-note,
+.match-note {
+  gap: 0.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-card);
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  padding: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.field span {
+  color: var(--text-label);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.input-wrap {
+  gap: 0.625rem;
+  min-height: 2.75rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-input);
+  background: var(--surface-input);
+  color: var(--text-muted);
+  padding: 0 0.875rem;
+}
+
+.input-wrap input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-body);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.input-wrap input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.input-wrap:focus-within {
+  border-color: var(--border-input-focus);
+  box-shadow: 0 0 0 3px var(--border-focus-ring);
+}
+
+.form-actions {
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--border-card);
+}
+
+.cancel-link {
+  justify-content: center;
+  min-height: var(--control-height-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-card);
+  background: var(--surface-card);
+  color: var(--text-body);
+  padding: 0 0.875rem;
+  font-size: 0.78125rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.cancel-link:hover {
+  color: var(--text-link);
+}
+
+@media (max-width: 900px) {
+  .page-header {
+    align-items: flex-start;
+  }
+
+  .password-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .form-actions,
+  .cancel-link,
+  .form-actions :deep(.glass-button) {
+    width: 100%;
+  }
 }
 </style>

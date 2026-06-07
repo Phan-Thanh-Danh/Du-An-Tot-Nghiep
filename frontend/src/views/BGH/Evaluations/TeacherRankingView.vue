@@ -10,7 +10,6 @@ import {
   Star, 
   ChevronRight, 
   ShieldCheck, 
-  MessageCircle,
   Building2
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
@@ -34,9 +33,9 @@ const getTrendIcon = (trend) => {
 
 const getTrendColor = (trend) => {
   switch (trend) {
-    case 'up': return 'text-emerald-500'
-    case 'down': return 'text-rose-500'
-    default: return 'text-slate-300'
+    case 'up': return 'text-[var(--color-success-text)]'
+    case 'down': return 'text-[var(--color-danger-text)]'
+    default: return 'text-muted'
   }
 }
 </script>
@@ -49,27 +48,27 @@ const getTrendColor = (trend) => {
     <div class="space-y-4">
       
       <!-- ── Ranking Logic Info ── -->
-      <div class="lg-card-glass p-5 border-blue-100 bg-blue-50/10 flex items-center gap-4">
-         <div class="h-10 w-10 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+      <div class="surface-card border border-[var(--color-info-text)]/20 bg-[var(--color-info-bg)] rounded-2xl p-5 flex items-center gap-4">
+         <div class="h-10 w-10 rounded-2xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-info-text)] shrink-0 border border-[var(--color-info-text)]/20">
             <ShieldCheck :size="20" />
          </div>
-         <p class="text-xs text-blue-700 font-medium leading-relaxed">
+         <p class="text-xs text-[var(--color-info-text)] font-medium leading-relaxed">
            <strong>Quy tắc xếp hạng:</strong> Chỉ hiển thị kết quả cho các giảng viên có từ <strong>5 lượt đánh giá</strong> trở lên để đảm bảo tính khách quan. Danh tính sinh viên đánh giá luôn được ẩn danh đối với tất cả các cấp quản lý.
          </p>
       </div>
 
       <!-- ── Toolbar ── -->
-      <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-4 flex-1">
+      <div class="surface-card border border-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-3 flex-1">
            <div class="relative max-w-sm w-full">
-              <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input type="text" placeholder="Tìm tên giảng viên hoặc khoa..." class="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-4 focus:ring-blue-500/10">
+              <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
+              <input type="text" placeholder="Tìm tên giảng viên hoặc khoa..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-[var(--border-input-focus)]">
            </div>
            <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
               <Filter :size="18" /> Tất cả các Khoa
            </button>
         </div>
-        <select class="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none">
+        <select class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none">
            <option>Kỳ Spring 2026</option>
            <option>Kỳ Fall 2025</option>
         </select>
@@ -79,63 +78,63 @@ const getTrendColor = (trend) => {
       <div class="lg-table-shell overflow-hidden">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-slate-50/50">
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 w-16 text-center">Hạng</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Giảng viên & Khoa</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Điểm Rating</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Phản hồi (Sentiment)</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Xu hướng</th>
-              <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
+            <tr class="surface-solid">
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default w-16 text-center">Hạng</th>
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Giảng viên & Khoa</th>
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Điểm Rating</th>
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Phản hồi (Sentiment)</th>
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Xu hướng</th>
+              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
-            <tr v-for="(gv, index) in rankings" :key="gv.id" class="group hover:bg-white/50 transition-colors">
-              <td class="px-4 py-4 text-center">
+          <tbody class="divide-y divide-default">
+            <tr v-for="(gv, index) in rankings" :key="gv.id" class="group hover:bg-[var(--surface-input)] transition-colors">
+              <td class="px-4 py-3 text-center">
                  <div v-if="index < 3" class="flex justify-center">
-                    <div :class="['h-8 w-8 rounded-full flex items-center justify-center shadow-sm', index === 0 ? 'bg-amber-100 text-amber-600' : index === 1 ? 'bg-slate-100 text-slate-500' : 'bg-orange-50 text-orange-600']">
+                    <div :class="['h-8 w-8 rounded-full flex items-center justify-center shadow-sm border', index === 0 ? 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--color-warning-text)]/20' : index === 1 ? 'surface-solid text-muted border-default' : 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-info-text)]/20']">
                        <Trophy :size="16" />
                     </div>
                  </div>
-                 <span v-else class="text-sm font-black text-slate-400">#{{ index + 1 }}</span>
+                 <span v-else class="text-sm font-black text-muted">#{{ index + 1 }}</span>
               </td>
-              <td class="px-4 py-4">
+              <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
-                  <div class="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-[10px] text-slate-400">GV</div>
+                  <div class="h-10 w-10 rounded-full surface-solid border border-default flex items-center justify-center font-black text-[10px] text-muted">GV</div>
                   <div>
-                    <p class="text-sm font-black text-slate-800 leading-tight group-hover:text-blue-600 transition-colors">{{ gv.name }}</p>
-                    <p class="text-[10px] font-bold text-slate-400 mt-1 flex items-center gap-1 uppercase tracking-tighter">
+                    <p class="text-sm font-black text-heading leading-tight group-hover:text-link transition-colors">{{ gv.name }}</p>
+                    <p class="text-[10px] font-bold text-muted mt-1 flex items-center gap-1 uppercase tracking-tighter">
                        <Building2 :size="12" /> {{ gv.dept }}
                     </p>
                   </div>
                 </div>
               </td>
-              <td class="px-4 py-4">
+              <td class="px-4 py-3">
                  <div class="flex items-center gap-1.5">
-                    <Star :size="14" class="text-amber-500 fill-amber-500" />
-                    <span class="text-sm font-black text-slate-800">{{ gv.avgScore.toFixed(2) }}</span>
-                    <span class="text-[10px] font-bold text-slate-400 ml-1">({{ gv.evals }} lượt)</span>
+                    <Star :size="14" class="text-[var(--color-warning-text)] fill-[var(--color-warning-text)]" />
+                    <span class="text-sm font-black text-heading">{{ gv.avgScore.toFixed(2) }}</span>
+                    <span class="text-[10px] font-bold text-muted ml-1">({{ gv.evals }} lượt)</span>
                  </div>
               </td>
-              <td class="px-4 py-4">
+              <td class="px-4 py-3">
                  <div class="flex flex-col gap-1 w-32">
                     <div class="flex justify-between text-[9px] font-black uppercase tracking-widest">
-                       <span class="text-emerald-600">{{ gv.positive }}% Pos</span>
-                       <span class="text-rose-500">{{ gv.negative }}% Neg</span>
+                       <span class="text-[var(--color-success-text)]">{{ gv.positive }}% Pos</span>
+                       <span class="text-[var(--color-danger-text)]">{{ gv.negative }}% Neg</span>
                     </div>
-                    <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
-                       <div :style="{ width: `${gv.positive}%` }" class="bg-emerald-500 h-full"></div>
-                       <div :style="{ width: `${gv.negative}%` }" class="bg-rose-500 h-full"></div>
+                    <div class="h-1.5 w-full bg-[var(--surface-input)] rounded-full overflow-hidden flex">
+                       <div :style="{ width: `${gv.positive}%` }" class="bg-[var(--color-success-text)] h-full"></div>
+                       <div :style="{ width: `${gv.negative}%` }" class="bg-[var(--color-danger-text)] h-full"></div>
                     </div>
                  </div>
               </td>
-              <td class="px-4 py-4">
+              <td class="px-4 py-3">
                  <div :class="['flex items-center gap-1.5', getTrendColor(gv.trend)]">
                     <component :is="getTrendIcon(gv.trend)" :size="16" />
                     <span class="text-[10px] font-black uppercase tracking-widest">{{ gv.trend }}</span>
                  </div>
               </td>
-              <td class="px-4 py-4 text-right">
-                <button class="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-all">
+              <td class="px-4 py-3 text-right">
+                <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-muted transition-all">
                   <ChevronRight :size="18" />
                 </button>
               </td>

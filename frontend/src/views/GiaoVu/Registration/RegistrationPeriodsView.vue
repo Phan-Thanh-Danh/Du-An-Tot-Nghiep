@@ -47,7 +47,7 @@ const filteredPeriods = computed(() => {
 const STATUS_MAP = {
   open:   { label: 'Đang mở',  dot: 'bg-[var(--lg-success)]', badge: 'lg-badge lg-badge-success' },
   draft:  { label: 'Bản nháp', dot: 'bg-[var(--lg-warning)]', badge: 'lg-badge lg-badge-warning' },
-  closed: { label: 'Đã đóng',  dot: 'bg-slate-400',           badge: 'lg-badge border-slate-200 bg-slate-100 text-slate-600' },
+  closed: { label: 'Đã đóng',  dot: 'bg-[var(--text-placeholder)]', badge: 'lg-badge surface-solid text-muted border-default' },
 }
 const getStatusInfo = s => STATUS_MAP[s] || STATUS_MAP.closed
 
@@ -170,7 +170,7 @@ const stats = computed(() => {
     subtitle="Quản lý thời gian, số tín chỉ tối đa và quy trình đăng ký cho sinh viên."
   >
     <template #actions>
-      <button class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20" @click="openCreate">
+      <button class="lg-button-primary px-5 py-2.5 text-sm font-bold" @click="openCreate">
         <Plus :size="18" /> Tạo đợt mới
       </button>
     </template>
@@ -234,7 +234,7 @@ const stats = computed(() => {
             </tr>
           </thead>
           <tbody class="divide-y divide-[var(--border-default)]">
-            <tr v-for="period in filteredPeriods" :key="period.id" class="group hover:bg-white/10 transition-colors">
+            <tr v-for="period in filteredPeriods" :key="period.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-4">
                 <p class="text-sm font-black text-heading leading-tight">{{ period.name }}</p>
                 <p class="text-[11px] font-bold text-[var(--lg-primary)] mt-1 uppercase tracking-tighter">{{ period.semester }}</p>
@@ -278,7 +278,7 @@ const stats = computed(() => {
                     @click="closeMenu"
                   >
                     <div
-                      class="absolute right-[48px] mt-2 w-48 surface-modal rounded-2xl shadow-2xl border border-default overflow-hidden py-1"
+                      class="absolute right-[48px] mt-2 w-48 surface-modal rounded-2xl shadow-sm border border-default overflow-hidden py-1"
                       :style="{ top: $el?.getBoundingClientRect?.() ? 'auto' : '0px', left: 'auto' }"
                       @click.stop
                     >
@@ -377,20 +377,20 @@ const stats = computed(() => {
       >
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
 
-        <div class="relative w-full max-w-lg surface-modal rounded-[28px] shadow-2xl overflow-hidden border border-default">
-          <div class="p-6 pb-5" style="background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary) 52%, var(--lg-cyan))">
+        <div class="relative w-full max-w-lg surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
+          <div class="modal-header p-6 pb-5">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center">
-                  <Plus :size="20" class="text-white" />
+                <div class="h-10 w-10 rounded-2xl surface-input border border-default flex items-center justify-center text-link">
+                  <Plus :size="20" />
                 </div>
                 <div>
-                  <h2 class="text-lg font-black text-white">Tạo đợt đăng ký mới</h2>
-                  <p class="text-xs text-white/70 mt-0.5">Thiết lập thông tin đợt đăng ký môn học</p>
+                  <h2 class="text-lg font-black text-heading">Tạo đợt đăng ký mới</h2>
+                  <p class="text-xs text-muted mt-0.5">Thiết lập thông tin đợt đăng ký môn học</p>
                 </div>
               </div>
               <button
-                class="h-8 w-8 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-all"
+                class="h-8 w-8 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-muted transition-all"
                 @click="closeCreate"
               >
                 <X :size="16" />
@@ -505,20 +505,20 @@ const stats = computed(() => {
       >
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
 
-        <div class="relative w-full max-w-lg surface-modal rounded-[28px] shadow-2xl overflow-hidden border border-default">
-          <div class="p-6 pb-5" style="background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary) 52%, var(--lg-cyan))">
+        <div class="relative w-full max-w-lg surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
+          <div class="modal-header p-6 pb-5">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center">
-                  <Edit3 :size="20" class="text-white" />
+                <div class="h-10 w-10 rounded-2xl surface-input border border-default flex items-center justify-center text-link">
+                  <Edit3 :size="20" />
                 </div>
                 <div>
-                  <h2 class="text-lg font-black text-white">Chỉnh sửa đợt đăng ký</h2>
-                  <p class="text-xs text-white/70 mt-0.5">{{ editTarget.name }}</p>
+                  <h2 class="text-lg font-black text-heading">Chỉnh sửa đợt đăng ký</h2>
+                  <p class="text-xs text-muted mt-0.5">{{ editTarget.name }}</p>
                 </div>
               </div>
               <button
-                class="h-8 w-8 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-all"
+                class="h-8 w-8 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-muted transition-all"
                 @click="closeEdit"
               >
                 <X :size="16" />
@@ -626,7 +626,7 @@ const stats = computed(() => {
       >
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
 
-        <div class="relative w-full max-w-md surface-modal rounded-[28px] shadow-2xl overflow-hidden border border-default">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
           <div class="p-6 text-center">
             <div class="h-16 w-16 rounded-3xl bg-[var(--color-success-bg)] flex items-center justify-center text-[var(--color-success-text)] mx-auto mb-4">
               <CheckCircle2 :size="28" />
@@ -644,10 +644,10 @@ const stats = computed(() => {
             >Hủy</button>
             <button
               :class="[
-                'px-6 py-2.5 rounded-[18px] text-sm font-bold text-white transition-all flex items-center gap-2',
+                'px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all flex items-center gap-2',
                 isOpening
                   ? 'bg-[var(--lg-success)] opacity-60 cursor-not-allowed'
-                  : 'bg-[var(--lg-success)] hover:opacity-90 shadow-lg shadow-[var(--lg-success)]/20'
+                  : 'bg-[var(--lg-success)] hover:opacity-90'
               ]"
               :disabled="isOpening"
               @click="confirmOpen"
@@ -664,6 +664,11 @@ const stats = computed(() => {
 </template>
 
 <style scoped>
+.modal-header {
+  background: var(--surface-input);
+  border-bottom: 1px solid var(--border-card);
+}
+
 .modal-enter-active,
 .modal-leave-active {
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);

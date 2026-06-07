@@ -6,7 +6,8 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'primary',
-    validator: (value) => ['primary', 'secondary', 'ghost', 'danger'].includes(value),
+    validator: (value) =>
+      ['primary', 'secondary', 'ghost', 'subtle', 'danger', 'success'].includes(value),
   },
   size: {
     type: String,
@@ -29,14 +30,18 @@ const variantClass = computed(() => ({
   primary: 'lg-button-primary font-semibold',
   secondary: 'lg-button-secondary font-semibold',
   ghost: 'lg-button-ghost font-semibold',
-  danger: 'lg-btn-danger font-semibold',
+  subtle: 'lg-button-subtle font-semibold',
+  danger: 'lg-button-danger font-semibold',
+  success: 'lg-button-success font-semibold',
 }[props.variant]))
 
 const sizeClass = computed(() => ({
-  sm: 'min-h-8 rounded-xl px-2.5 py-1 text-xs',
-  md: 'min-h-9 rounded-xl px-3.5 py-2 text-sm',
-  lg: 'min-h-10 rounded-2xl px-4 py-2.5 text-sm',
+  sm: 'glass-button-sm',
+  md: 'glass-button-md',
+  lg: 'glass-button-lg',
 }[props.size]))
+
+const loaderSize = computed(() => (props.size === 'sm' ? 14 : 16))
 </script>
 
 <template>
@@ -46,6 +51,7 @@ const sizeClass = computed(() => ({
     :aria-busy="loading ? 'true' : undefined"
     :class="[
       'items-center justify-center gap-2 transition-all duration-200 ease-out active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60',
+      'glass-button',
       block ? 'flex w-full' : 'inline-flex',
       variantClass,
       sizeClass,
@@ -53,7 +59,7 @@ const sizeClass = computed(() => ({
     ]"
     @click="emit('click', $event)"
   >
-    <LoaderCircle v-if="loading" :size="17" class="animate-spin" aria-hidden="true" />
+    <LoaderCircle v-if="loading" :size="loaderSize" class="animate-spin" aria-hidden="true" />
     <slot name="leading" />
     <span>
       <slot />
@@ -61,3 +67,31 @@ const sizeClass = computed(() => ({
     <slot name="trailing" />
   </button>
 </template>
+
+<style scoped>
+.glass-button {
+  min-width: max-content;
+  line-height: 1;
+}
+
+.glass-button-sm {
+  min-height: var(--control-height-sm);
+  padding: 0 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.78125rem;
+}
+
+.glass-button-md {
+  min-height: var(--control-height-md);
+  padding: 0 0.875rem;
+  border-radius: var(--radius-md);
+  font-size: 0.84375rem;
+}
+
+.glass-button-lg {
+  min-height: var(--control-height-lg);
+  padding: 0 1rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+}
+</style>

@@ -300,7 +300,7 @@ const getStatusLabel = (status) => {
         <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold" @click="openExportModal">
           <Download :size="18" /> Export
         </button>
-        <button class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20" @click="openEnrollModal">
+        <button class="lg-button-primary px-5 py-2.5 text-sm font-bold" @click="openEnrollModal">
           <UserPlus :size="18" /> Ghép HS thủ công
         </button>
       </div>
@@ -321,7 +321,7 @@ const getStatusLabel = (status) => {
               @keyup.enter="doSearch"
             >
           </div>
-          <button class="lg-button-primary px-4 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20" @click="doSearch">
+          <button class="lg-button-primary px-4 py-2.5 text-sm font-bold" @click="doSearch">
             <Search :size="16" /> Tìm
           </button>
           <button v-if="searchTriggered" class="lg-button-secondary px-3 py-2.5 text-sm font-bold" @click="clearSearch" title="Xóa tìm kiếm">
@@ -351,7 +351,7 @@ const getStatusLabel = (status) => {
             <div class="flex gap-1.5 flex-wrap">
               <button v-for="s in ['all','enrolled','waitlist','dropped']" :key="s"
                 @click="filterStatus = s"
-                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterStatus === s ? 'bg-[var(--lg-primary)] text-white shadow-md' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
+                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterStatus === s ? 'bg-[var(--lg-primary)] text-white shadow-sm' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
               >{{ { all: 'Tất cả', enrolled: 'Đã ĐK', waitlist: 'Chờ', dropped: 'Đã hủy' }[s] }}</button>
             </div>
           </div>
@@ -360,7 +360,7 @@ const getStatusLabel = (status) => {
             <div class="flex gap-1.5 flex-wrap">
               <button v-for="t in ['all','new','retake']" :key="t"
                 @click="filterType = t"
-                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterType === t ? 'bg-[var(--lg-primary)] text-white shadow-md' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
+                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterType === t ? 'bg-[var(--lg-primary)] text-white shadow-sm' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
               >{{ { all: 'Tất cả', new: 'Mới', retake: 'Học lại' }[t] }}</button>
             </div>
           </div>
@@ -369,7 +369,7 @@ const getStatusLabel = (status) => {
             <div class="flex gap-1.5 flex-wrap">
               <button v-for="p in ['all','pass','fail']" :key="p"
                 @click="filterPrereq = p"
-                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterPrereq === p ? 'bg-[var(--lg-primary)] text-white shadow-md' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
+                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterPrereq === p ? 'bg-[var(--lg-primary)] text-white shadow-sm' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
               >{{ { all: 'Tất cả', pass: 'Hợp lệ', fail: 'Thiếu ĐK' }[p] }}</button>
             </div>
           </div>
@@ -394,7 +394,7 @@ const getStatusLabel = (status) => {
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
-            <tr v-for="en in filteredEnrollments" :key="en.id" class="group hover:bg-white/10 transition-colors">
+            <tr v-for="en in filteredEnrollments" :key="en.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-4">
                 <p class="text-sm font-black text-heading">{{ en.student }}</p>
                 <p class="text-[11px] font-bold text-placeholder mt-0.5">{{ en.studentCode }}</p>
@@ -439,7 +439,7 @@ const getStatusLabel = (status) => {
                       leave-from-class="opacity-100 scale-100"
                       leave-to-class="opacity-0 scale-95"
                     >
-                      <div v-if="contextTarget?.id === en.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-xl shadow-slate-900/10" @click.stop>
+                      <div v-if="contextTarget?.id === en.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
                         <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openTransferModal(en); closeContextMenu()">
                           <ArrowLeftRight :size="14" /> Chuyển lớp
                         </button>
@@ -481,7 +481,7 @@ const getStatusLabel = (status) => {
     >
       <div v-if="showExportModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="showExportModal = false">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-sm lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-sm surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <h3 class="text-base font-black text-heading">Xuất danh sách</h3>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="showExportModal = false">
@@ -513,7 +513,7 @@ const getStatusLabel = (status) => {
           </div>
           <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
             <button class="lg-button-secondary px-5 py-2.5 text-sm font-bold" @click="showExportModal = false">Hủy</button>
-            <button class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20 min-w-[120px] flex items-center justify-center gap-2" @click="doExport" :disabled="exporting">
+            <button class="lg-button-primary px-5 py-2.5 text-sm font-bold min-w-[120px] flex items-center justify-center gap-2" @click="doExport" :disabled="exporting">
               <Loader2 v-if="exporting" :size="16" class="animate-spin" />
               <Download v-else :size="16" />
               {{ exporting ? 'Đang xuất...' : exportDone ? 'Đã xuất ✓' : 'Xuất ngay' }}
@@ -536,7 +536,7 @@ const getStatusLabel = (status) => {
     >
       <div v-if="showEnrollModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="showEnrollModal = false">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-md lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <!-- Success state -->
           <div v-if="enrollSuccess" class="flex flex-col items-center py-8 text-center">
             <div class="h-16 w-16 rounded-full bg-[var(--color-success-bg)] text-[var(--lg-success)] flex items-center justify-center mb-4">
@@ -590,7 +590,7 @@ const getStatusLabel = (status) => {
             </div>
             <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
               <button class="lg-button-secondary px-5 py-2.5 text-sm font-bold" @click="showEnrollModal = false">Hủy</button>
-              <button class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20 flex items-center gap-2" @click="submitEnrollment">
+              <button class="lg-button-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2" @click="submitEnrollment">
                 <Save :size="16" /> Ghép
               </button>
             </div>
@@ -612,7 +612,7 @@ const getStatusLabel = (status) => {
     >
       <div v-if="showDropModal && dropTarget" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="closeDropModal">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-md lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
               <div class="h-8 w-8 rounded-lg bg-[var(--color-danger-bg)] text-[var(--lg-danger)] flex items-center justify-center">
@@ -625,7 +625,7 @@ const getStatusLabel = (status) => {
             </button>
           </div>
           <div class="surface-solid p-4 rounded-2xl flex items-center gap-3 mb-4">
-            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+            <div class="h-10 w-10 rounded-full bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] text-xs font-black flex items-center justify-center flex-shrink-0 border border-default">
               {{ dropTarget.studentCode.slice(-2) }}
             </div>
             <div>
@@ -667,7 +667,7 @@ const getStatusLabel = (status) => {
     >
       <div v-if="showTransferModal && transferTarget" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="closeTransferModal">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div class="relative w-full max-w-md lg-glass-strong rounded-[28px] p-6 shadow-2xl">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
               <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
@@ -680,7 +680,7 @@ const getStatusLabel = (status) => {
             </button>
           </div>
           <div class="surface-solid p-4 rounded-2xl flex items-center gap-3 mb-5">
-            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+            <div class="h-10 w-10 rounded-full bg-[var(--color-info-bg)] text-[var(--color-info-text)] text-xs font-black flex items-center justify-center flex-shrink-0 border border-default">
               {{ transferTarget.studentCode.slice(-2) }}
             </div>
             <div>
@@ -709,7 +709,7 @@ const getStatusLabel = (status) => {
           </div>
           <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
             <button class="lg-button-secondary px-5 py-2.5 text-sm font-bold" @click="closeTransferModal">Hủy</button>
-            <button class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-blue-500/20 flex items-center gap-2" :disabled="!transferSection" :class="{ 'opacity-50 cursor-not-allowed': !transferSection }" @click="confirmTransfer">
+            <button class="lg-button-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2" :disabled="!transferSection" :class="{ 'opacity-50 cursor-not-allowed': !transferSection }" @click="confirmTransfer">
               <ArrowLeftRight :size="16" /> Chuyển
             </button>
           </div>

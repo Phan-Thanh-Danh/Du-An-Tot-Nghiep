@@ -101,9 +101,9 @@ const totalPages = computed(() => {
 
 const getStatusBadge = (status) => {
   switch (status) {
-    case 'assigned': return 'bg-green-100 text-green-700'
-    case 'unassigned': return 'bg-red-100 text-red-700'
-    default: return 'bg-slate-100 text-slate-700'
+    case 'assigned': return 'lg-badge lg-badge-success'
+    case 'unassigned': return 'lg-badge lg-badge-warning'
+    default: return 'lg-badge'
   }
 }
 
@@ -157,7 +157,7 @@ function goToPage(page) {
     subtitle="Quản lý gán giảng viên cho các lớp học phần trong học kỳ."
   >
     <template #actions>
-      <button @click="showAddModal = true" class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-[var(--lg-primary)]/20 hover:shadow-xl transition-all">
+      <button @click="showAddModal = true" class="lg-button-primary px-5 py-2.5 text-sm font-bold transition-all">
         <Plus :size="18" /> Thêm phân công
       </button>
     </template>
@@ -230,7 +230,7 @@ function goToPage(page) {
             </tr>
           </thead>
           <tbody class="divide-y border-default">
-            <tr v-for="item in paginatedAssignments" :key="item.id" class="group hover:bg-white/10 transition-colors">
+            <tr v-for="item in paginatedAssignments" :key="item.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-4">
                 <span class="text-xs font-black text-heading">{{ item.id }}</span>
               </td>
@@ -269,7 +269,7 @@ function goToPage(page) {
                   <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-placeholder transition-all" title="Đổi giảng viên">
                     <ArrowLeftRight :size="16" />
                   </button>
-                  <button class="p-2 hover:bg-white/10 rounded-lg text-placeholder transition-all">
+                  <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-placeholder transition-all">
                     <MoreHorizontal :size="16" />
                   </button>
                 </div>
@@ -283,13 +283,13 @@ function goToPage(page) {
       <div class="flex items-center justify-between px-4">
          <p class="text-xs font-medium text-label">Hiển thị {{ paginatedAssignments.length }} / {{ filteredAssignments.length }} bản ghi</p>
          <div class="flex items-center gap-1">
-            <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" class="h-8 w-8 rounded-lg flex items-center justify-center text-label hover:bg-white/10 disabled:opacity-50 transition-all">
+            <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" class="h-8 w-8 rounded-lg flex items-center justify-center text-label hover:bg-[var(--surface-input)] disabled:opacity-50 transition-all">
               <ChevronLeft :size="16" />
             </button>
-            <button v-for="p in totalPages" :key="p" @click="goToPage(p)" :class="['h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all', p === currentPage ? 'bg-[var(--lg-primary)] text-white shadow-md' : 'hover:bg-white/10 text-label']">
+            <button v-for="p in totalPages" :key="p" @click="goToPage(p)" :class="['h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all', p === currentPage ? 'bg-[var(--lg-primary)] text-white shadow-sm' : 'hover:bg-[var(--surface-input)] text-label']">
               {{ p }}
             </button>
-            <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages" class="h-8 w-8 rounded-lg flex items-center justify-center text-label hover:bg-white/10 disabled:opacity-50 transition-all">
+            <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages" class="h-8 w-8 rounded-lg flex items-center justify-center text-label hover:bg-[var(--surface-input)] disabled:opacity-50 transition-all">
               <ChevronRight :size="16" />
             </button>
          </div>
@@ -299,7 +299,7 @@ function goToPage(page) {
 
   <!-- ── Filter Panel ── -->
   <div v-if="showFilterPanel" class="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" @click="showFilterPanel = false"></div>
-  <div v-if="showFilterPanel" class="fixed top-24 right-6 z-50 surface-modal rounded-[20px] shadow-2xl border-default p-4 w-72 space-y-4">
+  <div v-if="showFilterPanel" class="fixed top-24 right-6 z-50 surface-modal rounded-2xl shadow-sm border border-default p-4 w-72 space-y-4">
     <div>
       <h3 class="text-sm font-bold text-heading mb-3">Trạng thái</h3>
       <div class="space-y-2">
@@ -352,11 +352,11 @@ function goToPage(page) {
 
   <!-- ── Modal Add Assignment ── -->
   <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-    <div class="surface-modal rounded-[24px] shadow-2xl max-w-md w-full p-4 border-default">
+    <div class="surface-modal rounded-2xl shadow-sm max-w-md w-full p-4 border border-default">
       <!-- Header -->
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-bold text-heading">Thêm phân công</h2>
-        <button @click="showAddModal = false" class="p-1.5 hover:bg-white/10 rounded-lg text-placeholder hover:text-label transition-colors">
+        <button @click="showAddModal = false" class="p-1.5 hover:bg-[var(--surface-input)] rounded-lg text-placeholder hover:text-label transition-colors">
           <X :size="20" />
         </button>
       </div>

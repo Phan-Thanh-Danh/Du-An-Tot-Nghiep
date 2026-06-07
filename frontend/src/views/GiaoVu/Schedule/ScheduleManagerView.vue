@@ -187,7 +187,7 @@ function handleExportPDF() {
           <Download :size="16" /> Excel
         </button>
         <button @click="showCreateModal = true"
-          class="lg-button-primary px-4 py-2 text-sm font-bold shadow-lg shadow-[var(--lg-primary)]/20 hover:shadow-xl transition-all">
+          class="lg-button-primary px-4 py-2 text-sm font-bold transition-all">
           <Plus :size="18" /> Tạo lịch mới
         </button>
       </div>
@@ -220,14 +220,14 @@ function handleExportPDF() {
         <!-- Month navigation -->
         <div class="flex items-center gap-2">
           <button @click="prevMonth"
-            class="p-1.5 hover:bg-white/10 rounded-lg text-label transition-colors">
+            class="p-1.5 hover:bg-[var(--surface-input)] rounded-lg text-label transition-colors">
             <ChevronLeft :size="18" />
           </button>
           <span class="text-sm font-bold text-heading min-w-[170px] text-center select-none">
             {{ monthLabel }}
           </span>
           <button @click="nextMonth"
-            class="p-1.5 hover:bg-white/10 rounded-lg text-label transition-colors">
+            class="p-1.5 hover:bg-[var(--surface-input)] rounded-lg text-label transition-colors">
             <ChevronRight :size="18" />
           </button>
           <button @click="goToToday"
@@ -300,11 +300,11 @@ function handleExportPDF() {
       <div v-if="showCreateModal"
         class="fixed inset-0 z-[9998] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
         @click.self="showCreateModal = false">
-        <div class="relative z-[9999] lg-glass-strong rounded-[24px] shadow-2xl max-w-md w-full p-5 border-default">
+        <div class="relative z-[9999] surface-modal rounded-2xl shadow-sm max-w-md w-full p-5 border border-default">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-bold text-heading">Tạo lịch mới</h2>
             <button type="button" @click="showCreateModal = false"
-              class="p-1.5 hover:bg-white/10 rounded-lg text-placeholder hover:text-label transition-colors">
+              class="p-1.5 hover:bg-[var(--surface-input)] rounded-lg text-placeholder hover:text-label transition-colors">
               <X :size="18" />
             </button>
           </div>
@@ -379,11 +379,11 @@ function handleExportPDF() {
       <div v-if="showEditModal && eventToEdit"
         class="fixed inset-0 z-[9998] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
         @click.self="showEditModal = false">
-        <div class="relative z-[9999] lg-glass-strong rounded-[24px] shadow-2xl max-w-md w-full p-5 border-default">
+        <div class="relative z-[9999] surface-modal rounded-2xl shadow-sm max-w-md w-full p-5 border border-default">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-bold text-heading">Chỉnh sửa lịch</h2>
             <button type="button" @click="showEditModal = false"
-              class="p-1.5 hover:bg-white/10 rounded-lg text-placeholder hover:text-label transition-colors">
+              class="p-1.5 hover:bg-[var(--surface-input)] rounded-lg text-placeholder hover:text-label transition-colors">
               <X :size="18" />
             </button>
           </div>

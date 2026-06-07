@@ -204,15 +204,15 @@ async function confirmSendNotif() {
 // ── Helpers ──────────────────────────────────────────────────
 function getDayClass(day) {
   const map = {
-    'Thứ 2': 'bg-blue-50 text-blue-600 border-blue-100',
-    'Thứ 3': 'bg-emerald-50 text-emerald-600 border-emerald-100',
-    'Thứ 4': 'bg-violet-50 text-violet-600 border-violet-100',
-    'Thứ 5': 'bg-amber-50 text-amber-600 border-amber-100',
-    'Thứ 6': 'bg-rose-50 text-rose-600 border-rose-100',
-    'Thứ 7': 'bg-cyan-50 text-cyan-600 border-cyan-100',
-    'Chủ nhật': 'bg-pink-50 text-pink-600 border-pink-100',
+    'Thứ 2': 'day-chip day-primary',
+    'Thứ 3': 'day-chip day-success',
+    'Thứ 4': 'day-chip day-info',
+    'Thứ 5': 'day-chip day-warning',
+    'Thứ 6': 'day-chip day-danger',
+    'Thứ 7': 'day-chip day-info',
+    'Chủ nhật': 'day-chip day-neutral',
   }
-  return map[day] || 'bg-slate-50 text-slate-600 border-slate-100'
+  return map[day] || 'day-chip day-neutral'
 }
 
 function getInitial(name) {
@@ -328,7 +328,7 @@ import dayjs from 'dayjs'
             </tr>
           </thead>
           <tbody class="divide-y border-default">
-            <tr v-for="item in filteredSchedules" :key="item.id" class="group hover:bg-white/10 transition-colors">
+            <tr v-for="item in filteredSchedules" :key="item.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-4">
                 <span :class="['inline-block px-2 py-0.5 rounded-lg text-[10px] font-black border mb-1', getDayClass(item.day)]">
                   {{ item.day }}
@@ -358,7 +358,7 @@ import dayjs from 'dayjs'
                   <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-placeholder transition-all" title="Lịch học bù" @click="openMakeup(item)">
                     <RefreshCw :size="16" />
                   </button>
-                  <button class="p-2 hover:bg-white/10 rounded-lg text-placeholder transition-all" title="Lịch sử thay đổi" @click="openHistory(item)">
+                  <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-placeholder transition-all" title="Lịch sử thay đổi" @click="openHistory(item)">
                     <History :size="16" />
                   </button>
                 </div>
@@ -412,20 +412,20 @@ import dayjs from 'dayjs'
       >
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
 
-        <div class="relative w-full max-w-md surface-modal rounded-[28px] shadow-2xl overflow-hidden border border-default">
-          <div class="p-6 pb-5" style="background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary) 52%, var(--lg-cyan))">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
+          <div class="modal-header p-5">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center">
-                  <XCircle :size="20" class="text-white" />
+                <div class="h-10 w-10 rounded-2xl surface-input flex items-center justify-center">
+                  <XCircle :size="20" class="text-link" />
                 </div>
                 <div>
-                  <h2 class="text-lg font-black text-white">Hủy buổi học</h2>
-                  <p class="text-xs text-white/70 mt-0.5">Thao tác này sẽ gửi thông báo đến GV & SV</p>
+                  <h2 class="text-lg font-black text-heading">Hủy buổi học</h2>
+                  <p class="text-xs text-label mt-0.5">Thao tác này sẽ gửi thông báo đến GV & SV</p>
                 </div>
               </div>
               <button
-                class="h-8 w-8 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-all"
+                class="h-8 w-8 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
                 @click="closeCancel"
               >
                 <X :size="16" />
@@ -499,20 +499,20 @@ import dayjs from 'dayjs'
       >
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
 
-        <div class="relative w-full max-w-md surface-modal rounded-[28px] shadow-2xl overflow-hidden border border-default">
-          <div class="p-6 pb-5" style="background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary) 52%, var(--lg-cyan))">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
+          <div class="modal-header p-5">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center">
-                  <RefreshCw :size="20" class="text-white" />
+                <div class="h-10 w-10 rounded-2xl surface-input flex items-center justify-center">
+                  <RefreshCw :size="20" class="text-link" />
                 </div>
                 <div>
-                  <h2 class="text-lg font-black text-white">Tạo lịch học bù</h2>
-                  <p class="text-xs text-white/70 mt-0.5">Lên lịch học bù cho buổi đã hủy</p>
+                  <h2 class="text-lg font-black text-heading">Tạo lịch học bù</h2>
+                  <p class="text-xs text-label mt-0.5">Lên lịch học bù cho buổi đã hủy</p>
                 </div>
               </div>
               <button
-                class="h-8 w-8 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-all"
+                class="h-8 w-8 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
                 @click="closeMakeup"
               >
                 <X :size="16" />
@@ -596,20 +596,20 @@ import dayjs from 'dayjs'
       >
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
 
-        <div class="relative w-full max-w-lg surface-modal rounded-[28px] shadow-2xl overflow-hidden max-h-[80vh] overflow-y-auto border border-default">
-          <div class="p-6 pb-5" style="background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary) 52%, var(--lg-cyan))">
+        <div class="relative w-full max-w-lg surface-modal rounded-2xl shadow-sm overflow-hidden max-h-[80vh] overflow-y-auto border border-default">
+          <div class="modal-header p-5">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center">
-                  <History :size="20" class="text-white" />
+                <div class="h-10 w-10 rounded-2xl surface-input flex items-center justify-center">
+                  <History :size="20" class="text-link" />
                 </div>
                 <div>
-                  <h2 class="text-lg font-black text-white">Lịch sử thay đổi</h2>
-                  <p class="text-xs text-white/70 mt-0.5">{{ historyTarget.subject }} · {{ historyTarget.class }}</p>
+                  <h2 class="text-lg font-black text-heading">Lịch sử thay đổi</h2>
+                  <p class="text-xs text-label mt-0.5">{{ historyTarget.subject }} · {{ historyTarget.class }}</p>
                 </div>
               </div>
               <button
-                class="h-8 w-8 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-all"
+                class="h-8 w-8 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
                 @click="closeHistory"
               >
                 <X :size="16" />
@@ -673,20 +673,20 @@ import dayjs from 'dayjs'
       >
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
 
-        <div class="relative w-full max-w-md surface-modal rounded-[28px] shadow-2xl overflow-hidden border border-default">
-          <div class="p-6 pb-5" style="background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary) 52%, var(--lg-cyan))">
+        <div class="relative w-full max-w-md surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
+          <div class="modal-header p-5">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center">
-                  <Bell :size="20" class="text-white" />
+                <div class="h-10 w-10 rounded-2xl surface-input flex items-center justify-center">
+                  <Bell :size="20" class="text-link" />
                 </div>
                 <div>
-                  <h2 class="text-lg font-black text-white">Gửi thông báo</h2>
-                  <p class="text-xs text-white/70 mt-0.5">Thông báo đến toàn bộ GV & SV liên quan</p>
+                  <h2 class="text-lg font-black text-heading">Gửi thông báo</h2>
+                  <p class="text-xs text-label mt-0.5">Thông báo đến toàn bộ GV & SV liên quan</p>
                 </div>
               </div>
               <button
-                class="h-8 w-8 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-all"
+                class="h-8 w-8 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
                 @click="closeNotif"
               >
                 <X :size="16" />
@@ -752,6 +752,41 @@ import dayjs from 'dayjs'
 </template>
 
 <style scoped>
+.modal-header {
+  border-bottom: 1px solid var(--border-card);
+  background: var(--surface-input);
+}
+
+.day-chip {
+  background: var(--surface-input);
+}
+
+.day-primary {
+  border-color: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+.day-success {
+  border-color: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.day-warning {
+  border-color: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.day-danger {
+  border-color: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.day-info,
+.day-neutral {
+  border-color: var(--border-card);
+  color: var(--text-body);
+}
+
 .slide-down-enter-active,
 .slide-down-leave-active {
   transition: all 0.25s ease;
