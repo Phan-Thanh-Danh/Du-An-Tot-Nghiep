@@ -13,6 +13,10 @@ public class BaiHoc
     public string? TomTatAi { get; set; }
     public int ThuTu { get; set; }
     public bool DaAn { get; set; }
+    public string? TrangThai { get; set; } // nhap, da_xuat_ban
+    public DateTime NgayTao { get; set; }
+    public DateTime? NgayCapNhat { get; set; }
 
     public Chuong? Chuong { get; set; }
+    public ICollection<BaiHocNoiDung> BaiHocNoiDungs { get; set; } = new List<BaiHocNoiDung>();
 }

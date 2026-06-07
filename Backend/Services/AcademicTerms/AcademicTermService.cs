@@ -343,7 +343,7 @@ public class AcademicTermService : IAcademicTermService
         await AddBlockerIfExistsAsync(blockers, nameof(LopHocPhan), () => _context.LopHocPhans.AnyAsync(x => x.MaHocKy == termId, cancellationToken));
         await AddBlockerIfExistsAsync(blockers, nameof(GiaiDoanDangKy), () => _context.GiaiDoanDangKys.AnyAsync(x => x.MaHocKy == termId, cancellationToken));
         await AddBlockerIfExistsAsync(blockers, nameof(DiemSo), () => _context.DiemSos.AnyAsync(x => x.MaHocKy == termId, cancellationToken));
-        await AddBlockerIfExistsAsync(blockers, nameof(ThoiKhoaBieu), () => _context.ThoiKhoaBieus.AnyAsync(x => x.MaLopHocPhan.HasValue && x.LopHocPhan != null && x.LopHocPhan.MaHocKy == termId, cancellationToken));
+        await AddBlockerIfExistsAsync(blockers, nameof(ThoiKhoaBieu), () => _context.ThoiKhoaBieus.AnyAsync(x => x.KhoaHoc != null && x.KhoaHoc.MaHocKy == termId, cancellationToken));
         await AddBlockerIfExistsAsync(blockers, nameof(HoaDon), () => _context.HoaDons.AnyAsync(x => x.MaHocKy == termId, cancellationToken));
 
         return blockers;

@@ -49,10 +49,13 @@ public static class Data
         var users = await SeedDemoUsersAsync(context, rootCampus, hcmCampus);
         var administrativeClasses = await SeedAdministrativeClassesAsync(context, hcmCampus, programs, users);
         await SeedTeachingCoursesAsync(context, hcmCampus, subjects, terms, users, administrativeClasses);
+        var shifts = await SeedClassShiftsAsync(context);
         await SeedParentLinkAsync(context, users);
         await SeedFacilitiesAsync(context, hcmCampus);
+        await SeedScheduleTemplatesAsync(context, hcmCampus, subjects, terms, administrativeClasses, shifts);
         await SeedCourseSyllabusesAsync(context, hcmCampus, programs, specializations, programSubjects, subjects);
         await SeedProgramTuitionConfigsAsync(context, hcmCampus, programs, terms);
+        await SeedTuitionReceivingAccountAsync(context, hcmCampus);
 
         await context.SaveChangesAsync();
     }
@@ -71,6 +74,10 @@ public static class Data
             new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.CampusAdmin), "Quản trị cơ sở"),
             new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.SubCampusAdmin), "Quản trị cơ sở con"),
             new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.Chairman), "Chủ tịch hệ thống"),
+            new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.HoiDongQuanLyNoiDung), "Hội đồng quản lý nội dung"),
+            new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.FinanceAdmin), "Admin tài chính"),
+            new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.CampusAccountant), "Kế toán cơ sở"),
+            new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.CampusChiefAccountant), "Kế toán trưởng cơ sở"),
         };
 
         var nextRoleId = ((await context.VaiTros.MaxAsync(x => (int?)x.MaVaiTro)) ?? 0) + 1;
@@ -812,6 +819,7 @@ public static class Data
             new DemoUserSeed("student.tkdh01@lms.local", "Trần Thị Sinh Viên Thiết Kế", AuthRoles.ToDatabaseCode(AuthRoles.Student), hcmCampus.MaDonVi, 2026),
             new DemoUserSeed("student.mkt01@lms.local", "Lê Văn Sinh Viên Marketing", AuthRoles.ToDatabaseCode(AuthRoles.Student), hcmCampus.MaDonVi, 2026),
             new DemoUserSeed("parent01@lms.local", "Phụ Huynh Demo", AuthRoles.ToDatabaseCode(AuthRoles.Parent), hcmCampus.MaDonVi),
+            new DemoUserSeed("hoidong.quanly.noidung@lms.local", "Hội Đồng Quản Lý Nội Dung", AuthRoles.ToDatabaseCode(AuthRoles.HoiDongQuanLyNoiDung), hcmCampus.MaDonVi),
         };
 
         var roles = await context.VaiTros.ToDictionaryAsync(
@@ -1083,6 +1091,12 @@ public static class Data
                 "SD1903",
                 "Bản phân công giảng dạy môn Cơ sở dữ liệu cho lớp SD1903 trong HK3_2026."),
             new TeachingCourseSeed(
+                "COM102",
+                "teacher.database.d@lms.local",
+                "HK3_2026",
+                "SD1906",
+                "Bản phân công giảng dạy môn Cơ sở dữ liệu cho lớp SD1906 trong HK3_2026."),
+            new TeachingCourseSeed(
                 "MKT101",
                 "teacher.marketing.e@lms.local",
                 "HK3_2026",
@@ -1138,6 +1152,45 @@ public static class Data
         await context.SaveChangesAsync();
     }
 
+    private static async Task<Dictionary<string, CaHoc>> SeedClassShiftsAsync(ApplicationDbContext context)
+    {
+        var shiftPlans = new[]
+        {
+            new ShiftSeed("Ca 1", "sang", new TimeOnly(7, 30), new TimeOnly(9, 0), 1),
+            new ShiftSeed("Ca 2", "sang", new TimeOnly(9, 5), new TimeOnly(12, 0), 2),
+            new ShiftSeed("Ca 3", "chieu", new TimeOnly(13, 0), new TimeOnly(14, 30), 3),
+            new ShiftSeed("Ca 4", "chieu", new TimeOnly(14, 35), new TimeOnly(16, 5), 4),
+            new ShiftSeed("Ca 5", "chieu", new TimeOnly(16, 10), new TimeOnly(17, 40), 5),
+        };
+
+        var result = new Dictionary<string, CaHoc>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var plan in shiftPlans)
+        {
+            var shift = await context.CaHocs.FirstOrDefaultAsync(x => x.TenCa == plan.Name);
+
+            if (shift is null)
+            {
+                shift = new CaHoc
+                {
+                    TenCa = plan.Name,
+                };
+
+                context.CaHocs.Add(shift);
+            }
+
+            shift.Buoi = plan.Session;
+            shift.GioBatDau = plan.StartTime;
+            shift.GioKetThuc = plan.EndTime;
+            shift.ThuTu = plan.DisplayOrder;
+            shift.ConHoatDong = true;
+            result[plan.Name] = shift;
+        }
+
+        await context.SaveChangesAsync();
+        return result;
+    }
+
     private static async Task SeedParentLinkAsync(
         ApplicationDbContext context,
         IReadOnlyDictionary<string, NguoiDung> users)
@@ -1176,6 +1229,7 @@ public static class Data
         var buildingA = await UpsertBuildingAsync(context, campus, "A", "Tòa A", 3);
         var buildingB = await UpsertBuildingAsync(context, campus, "B", "Tòa B", 2);
         var buildingC = await UpsertBuildingAsync(context, campus, "C", "Tòa C", 1);
+        var buildingP = await UpsertBuildingAsync(context, campus, "P", "Tòa P", 3);
 
         var floors = new Dictionary<string, Tang>(StringComparer.OrdinalIgnoreCase)
         {
@@ -1185,6 +1239,9 @@ public static class Data
             ["B1"] = await UpsertFloorAsync(context, buildingB, 1),
             ["B2"] = await UpsertFloorAsync(context, buildingB, 2),
             ["C1"] = await UpsertFloorAsync(context, buildingC, 1),
+            ["P1"] = await UpsertFloorAsync(context, buildingP, 1),
+            ["P2"] = await UpsertFloorAsync(context, buildingP, 2),
+            ["P3"] = await UpsertFloorAsync(context, buildingP, 3),
         };
 
         var roomPlans = new[]
@@ -1197,6 +1254,8 @@ public static class Data
             new RoomSeed("B101", "Phòng B101", buildingB, floors["B1"], 45, "ly_thuyet", "Phòng lý thuyết 45 chỗ."),
             new RoomSeed("B201", "Phòng B201", buildingB, floors["B2"], 35, "ly_thuyet", "Phòng lý thuyết 35 chỗ."),
             new RoomSeed("C101", "Studio thiết kế C101", buildingC, floors["C1"], 25, "thuc_hanh", "Studio thiết kế đồ họa."),
+            new RoomSeed("P301", "Phòng P301", buildingP, floors["P3"], 40, "ly_thuyet", "Phòng lý thuyết phục vụ lịch học demo."),
+            new RoomSeed("P302", "Phòng P302", buildingP, floors["P3"], 40, "ly_thuyet", "Phòng lý thuyết phục vụ lịch học demo."),
         };
 
         foreach (var plan in roomPlans)
@@ -1223,6 +1282,65 @@ public static class Data
             room.LoaiPhong = plan.Type;
             room.TrangThaiPhong = RoomActiveStatus;
             room.GhiChu = plan.Note;
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedScheduleTemplatesAsync(
+        ApplicationDbContext context,
+        DonVi campus,
+        IReadOnlyDictionary<string, DanhMucMonHoc> subjects,
+        IReadOnlyList<HocKy> terms,
+        IReadOnlyDictionary<string, LopHanhChinh> administrativeClasses,
+        IReadOnlyDictionary<string, CaHoc> shifts)
+    {
+        var termsByCode = terms.ToDictionary(x => x.MaCodeHocKy, StringComparer.OrdinalIgnoreCase);
+        var schedulePlans = new[]
+        {
+            new ScheduleTemplateSeed("COM103", "HK3_2026", "SD1904", 2, "Ca 1", "P301"),
+            new ScheduleTemplateSeed("COM103", "HK3_2026", "SD1905", 2, "Ca 2", "P302"),
+            new ScheduleTemplateSeed("COM102", "HK3_2026", "SD1906", 4, "Ca 4", "B201"),
+        };
+
+        foreach (var plan in schedulePlans)
+        {
+            var subject = subjects[plan.SubjectCode];
+            var term = termsByCode[plan.TermCode];
+            var administrativeClass = administrativeClasses[plan.ClassCode];
+            var shift = shifts[plan.ShiftName];
+            var room = await context.PhongHocs.FirstAsync(x =>
+                x.MaDonVi == campus.MaDonVi &&
+                x.MaCodePhong == plan.RoomCode);
+            var course = await context.KhoaHocs.FirstAsync(x =>
+                x.MaDonVi == campus.MaDonVi &&
+                x.MaMonHoc == subject.MaMonHoc &&
+                x.MaHocKy == term.MaHocKy &&
+                x.MaLop == administrativeClass.MaLop);
+
+            var schedule = await context.ThoiKhoaBieus.FirstOrDefaultAsync(x =>
+                x.MaKhoaHoc == course.MaKhoaHoc &&
+                x.ThuTrongTuan == plan.DayOfWeek &&
+                x.MaCaHoc == shift.MaCaHoc);
+
+            if (schedule is null)
+            {
+                schedule = new ThoiKhoaBieu
+                {
+                    MaKhoaHoc = course.MaKhoaHoc,
+                    ThuTrongTuan = plan.DayOfWeek,
+                    MaCaHoc = shift.MaCaHoc,
+                    NgayTao = DateTime.UtcNow,
+                };
+
+                context.ThoiKhoaBieus.Add(schedule);
+            }
+
+            schedule.MaPhong = room.MaPhong;
+            schedule.NgayBatDau = term.NgayBatDau;
+            schedule.NgayKetThuc = term.NgayKetThuc;
+            schedule.TrangThai = PublishedStatus;
+            schedule.NgayCapNhat = DateTime.UtcNow;
         }
 
         await context.SaveChangesAsync();
@@ -1411,6 +1529,50 @@ public static class Data
         await context.SaveChangesAsync();
     }
 
+    private static async Task SeedTuitionReceivingAccountAsync(
+        ApplicationDbContext context,
+        DonVi campus)
+    {
+        const string bankCode = "MB";
+        const string demoAccountNumber = "123456789";
+
+        var account = await context.TaiKhoanNhanTiens.FirstOrDefaultAsync(x =>
+            x.MaDonVi == campus.MaDonVi &&
+            x.MaNganHang == bankCode &&
+            x.SoTaiKhoan == demoAccountNumber);
+
+        if (account is null)
+        {
+            account = new TaiKhoanNhanTien
+            {
+                MaDonVi = campus.MaDonVi,
+                MaNganHang = bankCode,
+                SoTaiKhoan = demoAccountNumber,
+                NgayTao = DateTime.UtcNow,
+            };
+
+            context.TaiKhoanNhanTiens.Add(account);
+        }
+
+        var hasOtherDefaultAccount = await context.TaiKhoanNhanTiens.AnyAsync(x =>
+            x.MaDonVi == campus.MaDonVi &&
+            x.MaTaiKhoanNhanTien != account.MaTaiKhoanNhanTien &&
+            x.LaMacDinh &&
+            x.ConHoatDong);
+
+        account.TenNganHang = "MB Bank";
+        account.TenChuTaiKhoan = "TRUONG CAO DANG DEMO";
+        account.ChiNhanh = "HCM";
+        account.NhaCungCapThanhToan = "payos";
+        account.TrangThaiDuyet = "da_duyet";
+        account.ConHoatDong = true;
+        account.LaMacDinh = !hasOtherDefaultAccount;
+        account.NgayDuyet ??= DateTime.UtcNow;
+        account.NgayCapNhat = DateTime.UtcNow;
+
+        await context.SaveChangesAsync();
+    }
+
     private sealed record RoleSeed(string Code, string Name);
 
     private sealed record CampusSeed(string Name, string[]? AliasList = null)
@@ -1492,6 +1654,21 @@ public static class Data
         string TermCode,
         string ClassCode,
         string Description);
+
+    private sealed record ShiftSeed(
+        string Name,
+        string Session,
+        TimeOnly StartTime,
+        TimeOnly EndTime,
+        int DisplayOrder);
+
+    private sealed record ScheduleTemplateSeed(
+        string SubjectCode,
+        string TermCode,
+        string ClassCode,
+        int DayOfWeek,
+        string ShiftName,
+        string RoomCode);
 
     private sealed record RoomSeed(
         string Code,

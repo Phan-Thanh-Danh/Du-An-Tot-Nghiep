@@ -23,8 +23,9 @@ Vai trò database như `hoc_sinh`, `giao_vien`, `quan_tri` được map sang rol
 - `LopHocPhan`: lớp học phần.
 - `PhongHoc`: phòng học.
 - `ThietBiPhong`: thiết bị phòng học.
-- `ThoiKhoaBieu`: lịch học.
-- `BuoiHoc`: buổi học cụ thể.
+- `CaHoc`: danh mục ca học cố định, gồm tên ca, buổi, giờ bắt đầu/kết thúc, thứ tự hiển thị và trạng thái hoạt động.
+- `ThoiKhoaBieu`: lịch học cố định hằng tuần của một `KhoaHoc`, gồm thứ trong tuần, `CaHoc` và phòng học. Trong MVP không nhập giờ tự do hoặc nhập rời lớp/môn/giảng viên trực tiếp ở thời khóa biểu.
+- `BuoiHoc`: buổi học cụ thể theo ngày, lưu snapshot khóa học, ca thực tế, phòng thực tế, giảng viên chính và giảng viên dạy thay nếu có để xử lý đổi phòng, dời ca, dạy thay hoặc hủy một buổi.
 - `DatPhong`: đặt phòng.
 
 Các bảng học vụ thường có `MaDonVi`, cần chú ý phân quyền theo campus scope.
@@ -42,6 +43,8 @@ Các bảng học vụ thường có `MaDonVi`, cần chú ý phân quyền theo
 API cho nhóm này hiện là dự kiến, chưa thấy controller.
 
 Luồng dữ liệu cho chi tiết khóa học: lấy `KhoaHoc` theo id để biết môn, giảng viên, lớp hành chính và học kỳ; từ `KhoaHoc.MaMonHoc` truy ra `DanhMucMonHoc`, rồi lấy `Chuong -> BaiHoc` làm nội dung học tập chuẩn của môn. Trong MVP không copy nội dung chuẩn theo từng `KhoaHoc`.
+
+Luồng dữ liệu lịch học MVP: `ThoiKhoaBieu` lấy lớp/môn/giảng viên/học kỳ/cơ sở từ `KhoaHoc`, chọn ca từ `CaHoc` và phòng từ `PhongHoc`. Sau khi xuất bản lịch cố định, hệ thống dự kiến sinh `BuoiHoc` từng ngày; mọi phát sinh một buổi như dạy thay, đổi phòng, dời ca hoặc hủy buổi được cập nhật trên `BuoiHoc`, không sửa sai lịch cố định toàn kỳ.
 
 ## Nhóm Bảng Bài Tập/Bài Nộp
 

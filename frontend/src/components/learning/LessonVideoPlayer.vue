@@ -81,22 +81,31 @@ function onTimeUpdate() {
 }
 
 function onSeeking() {
-  if (!videoRef.value || allowSeek.value || isRestoringSeek.value) return
+  if (!videoRef.value || isRestoringSeek.value) return
+  
+  if (!allowSeek.value) {
+    isRestoringSeek.value = true
+    videoRef.value.currentTime = currentTimeSeconds.value
+    seekGuardMessage.value = 'Giảng viên đã khóa tính năng kéo tua trên thanh thời gian.'
+    window.setTimeout(() => {
+      isRestoringSeek.value = false
+    }, 50)
+    return
+  }
+
   const requestedTime = videoRef.value.currentTime || 0
-
-  if (requestedTime <= maxWatchedSeconds.value + SEEK_TOLERANCE_SECONDS) return
-
-  isRestoringSeek.value = true
-  videoRef.value.currentTime = maxWatchedSeconds.value
-  seekGuardMessage.value = 'Bạn chưa thể tua đến phần này.'
-
-  window.setTimeout(() => {
-    isRestoringSeek.value = false
-  }, 0)
+  if (requestedTime > maxWatchedSeconds.value + SEEK_TOLERANCE_SECONDS) {
+    isRestoringSeek.value = true
+    videoRef.value.currentTime = maxWatchedSeconds.value
+    seekGuardMessage.value = 'Bạn chưa thể tua đến phần chưa xem.'
+    window.setTimeout(() => {
+      isRestoringSeek.value = false
+    }, 50)
+  }
 }
 
 function pauseVideo(reason) {
-  if (!pauseOnBlur.value || !videoRef.value || videoRef.value.paused) return
+  if (!videoRef.value || videoRef.value.paused) return
   videoRef.value.pause()
   focusPauseMessage.value = reason
   persistProgress(true)

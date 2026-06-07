@@ -13,6 +13,7 @@ using Backend.Services.CampusSpecializations;
 using Backend.Services.Cohorts;
 using Backend.Services.Courses;
 using Backend.Services.CourseSyllabuses;
+using Backend.Services.Curriculum;
 using Backend.Services.Floors;
 using Backend.Services.Finance.ProgramTuitionConfigs;
 using Backend.Services.Majors;
@@ -21,6 +22,7 @@ using Backend.Services.Rbac;
 using Backend.Services.Rooms;
 using Backend.Services.Security;
 using Backend.Services.Specializations;
+using Backend.Services.Storage;
 using Backend.Services.Subjects;
 using Backend.Services.TrainingProgramSubjects;
 using Backend.Services.TrainingPrograms;
@@ -93,6 +95,13 @@ builder.Services.AddScoped<IBuildingService, BuildingService>();
 builder.Services.AddScoped<IFloorService, FloorService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<IProgramTuitionConfigService, ProgramTuitionConfigService>();
+builder.Services.AddScoped<ICurriculumService, CurriculumService>();
+
+var r2Settings = builder.Configuration.GetSection("R2Storage").Get<R2StorageSettings>()
+    ?? new R2StorageSettings();
+builder.Services.AddSingleton(r2Settings);
+builder.Services.AddSingleton<IR2StorageService, R2StorageService>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", policy =>
@@ -130,7 +139,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin", "SuperAdmin"));
     options.AddPolicy("AdminUserManagement", policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin"));
     options.AddPolicy("RbacManagement", policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin"));
-    options.AddPolicy("AcademicOperations", policy => policy.RequireRole("Admin", "SuperAdmin", "AcademicStaff", "CampusAdmin", "Chairman"));
+    options.AddPolicy("AcademicOperations", policy => policy.RequireRole("Admin", "SuperAdmin", "AcademicStaff", "CampusAdmin", "Chairman", "HoiDongQuanLyNoiDung"));
     options.AddPolicy("Reports", policy => policy.RequireRole("Admin", "SuperAdmin", "Principal", "CampusAdmin"));
 });
 

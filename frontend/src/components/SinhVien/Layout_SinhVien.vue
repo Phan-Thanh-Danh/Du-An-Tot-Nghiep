@@ -160,7 +160,7 @@ const currentPageMeta = computed(() => {
 
       <!-- ═══════════ CONTENT AREA ═══════════ -->
       <main class="flex-1 overflow-y-auto">
-        <div class="lg-shell-content mx-auto">
+        <div class="lg-shell-content mx-auto">815fc00136a2e7c2d618133a18e0374f
           <!-- Tất cả page đều render qua PageContainer + RouterView -->
           <PageContainer
             :title="currentPageMeta.title"
@@ -218,6 +218,7 @@ const currentPageMeta = computed(() => {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-size: 14px;
 }
 
 /* Smooth scroll */

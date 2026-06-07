@@ -1,28 +1,24 @@
 namespace Backend.Models;
 
+// Trong MVP, KhoaHoc là sự kết hợp giữa Lớp hành chính, Môn học, Giảng viên, Học kỳ và Cơ sở.
+// Thời khóa biểu là lịch cố định hằng tuần của một KhoaHoc, gồm Thứ trong tuần, Ca học và Phòng học.
+// Hệ thống không nhập giờ học tự do trong TKB mà chọn từ danh mục CaHoc.
+// Sau khi xuất bản TKB, hệ thống sinh các BuoiHoc cụ thể theo từng ngày để phục vụ xem lịch và điểm danh.
+// Các phát sinh như dạy thay, đổi phòng, dời ca hoặc hủy buổi được xử lý trên từng BuoiHoc, không làm sai lịch cố định toàn kỳ.
 public class ThoiKhoaBieu
 {
     public int MaTkb { get; set; }
-    public int MaDonVi { get; set; }
-    public int MaGiaoVien { get; set; }
-    public int? MaGiaoVienDayThay { get; set; }
-    public int MaMonHoc { get; set; }
+    public int MaKhoaHoc { get; set; }
     public int MaPhong { get; set; }
-    public int MaLop { get; set; }
-    public int? MaLopHocPhan { get; set; }
+    public int MaCaHoc { get; set; }
     public int ThuTrongTuan { get; set; }
-    public TimeOnly GioBatDau { get; set; }
-    public TimeOnly GioKetThuc { get; set; }
-    public string? DuongDanHop { get; set; }
+    public DateOnly? NgayBatDau { get; set; }
+    public DateOnly? NgayKetThuc { get; set; }
     public string TrangThai { get; set; } = string.Empty;
-    public int? BuChoBuoi { get; set; }
+    public DateTime NgayTao { get; set; }
+    public DateTime? NgayCapNhat { get; set; }
 
-    public DonVi? DonVi { get; set; }
-    public NguoiDung? GiaoVien { get; set; }
-    public NguoiDung? GiaoVienDayThay { get; set; }
-    public DanhMucMonHoc? MonHoc { get; set; }
+    public KhoaHoc? KhoaHoc { get; set; }
     public PhongHoc? Phong { get; set; }
-    public LopHanhChinh? Lop { get; set; }
-    public LopHocPhan? LopHocPhan { get; set; }
-    public ThoiKhoaBieu? BuChoBuoiNavigation { get; set; }
+    public CaHoc? CaHoc { get; set; }
 }

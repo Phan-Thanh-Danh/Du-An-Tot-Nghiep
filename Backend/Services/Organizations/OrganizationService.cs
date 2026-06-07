@@ -318,7 +318,7 @@ public class OrganizationService : IOrganizationService
         await AddBlockerIfExistsAsync(blockers, nameof(NhatKyKiemToan), () => _context.NhatKyKiemToans.AnyAsync(x => x.MaDonVi == organizationId));
         await AddBlockerIfExistsAsync(blockers, nameof(NhatKyThongBao), () => _context.NhatKyThongBaos.AnyAsync(x => x.MaDonVi == organizationId));
         await AddBlockerIfExistsAsync(blockers, nameof(PhongHoc), () => _context.PhongHocs.AnyAsync(x => x.MaDonVi == organizationId));
-        await AddBlockerIfExistsAsync(blockers, nameof(ThoiKhoaBieu), () => _context.ThoiKhoaBieus.AnyAsync(x => x.MaDonVi == organizationId));
+        await AddBlockerIfExistsAsync(blockers, nameof(ThoiKhoaBieu), () => _context.ThoiKhoaBieus.AnyAsync(x => x.KhoaHoc != null && x.KhoaHoc.MaDonVi == organizationId));
         await AddBlockerIfExistsAsync(blockers, nameof(ThongBao), () => _context.ThongBaos.AnyAsync(x => x.MaDonVi == organizationId));
         await AddBlockerIfExistsAsync(blockers, nameof(ThongBaoHenGio), () => _context.ThongBaoHenGios.AnyAsync(x => x.MaDonVi == organizationId));
         await AddBlockerIfExistsAsync(blockers, nameof(XuatBaoCao), () => _context.XuatBaoCaos.AnyAsync(x => x.MaDonVi == organizationId));
