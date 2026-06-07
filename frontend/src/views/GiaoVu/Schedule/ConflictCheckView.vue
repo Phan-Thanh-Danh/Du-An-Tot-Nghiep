@@ -52,13 +52,13 @@ function performCheck() {
       
       <!-- ── Input Form ── -->
       <div class="lg-glass-soft p-5 rounded-2xl border-default shadow-sm">
-        <h3 class="text-lg font-black text-heading mb-4 flex items-center gap-2">
+        <h3 class="text-lg font-semibold text-heading mb-4 flex items-center gap-2">
           <Search :size="20" class="text-[var(--lg-primary)]" /> THÔNG TIN KIỂM TRA
         </h3>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-1.5">
-            <label class="text-[10px] font-black text-placeholder uppercase tracking-widest ml-1">Giảng viên</label>
+            <label class="text-[10px] font-semibold text-placeholder uppercase tracking-widest ml-1">Giảng viên</label>
             <div class="relative">
               <User :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-placeholder" />
               <input v-model="form.teacherId" type="text" placeholder="Nhập tên hoặc mã GV..." class="w-full lg-input pl-10 pr-4 py-2.5 text-sm font-medium">
@@ -66,7 +66,7 @@ function performCheck() {
           </div>
 
           <div class="space-y-1.5">
-            <label class="text-[10px] font-black text-placeholder uppercase tracking-widest ml-1">Phòng học</label>
+            <label class="text-[10px] font-semibold text-placeholder uppercase tracking-widest ml-1">Phòng học</label>
             <div class="relative">
               <Building :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-placeholder" />
               <input v-model="form.roomId" type="text" placeholder="Nhập tên phòng..." class="w-full lg-input pl-10 pr-4 py-2.5 text-sm font-medium">
@@ -74,7 +74,7 @@ function performCheck() {
           </div>
 
           <div class="space-y-1.5">
-            <label class="text-[10px] font-black text-placeholder uppercase tracking-widest ml-1">Ngày trong tuần</label>
+            <label class="text-[10px] font-semibold text-placeholder uppercase tracking-widest ml-1">Ngày trong tuần</label>
             <select v-model="form.day" class="w-full lg-input px-4 py-2.5 text-sm font-medium appearance-none">
               <option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option>
               <option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option>
@@ -83,11 +83,11 @@ function performCheck() {
 
           <div class="grid grid-cols-2 gap-4">
              <div class="space-y-1.5">
-               <label class="text-[10px] font-black text-placeholder uppercase tracking-widest ml-1">Bắt đầu</label>
+               <label class="text-[10px] font-semibold text-placeholder uppercase tracking-widest ml-1">Bắt đầu</label>
                <input v-model="form.startTime" type="time" class="w-full lg-input px-4 py-2.5 text-sm font-medium">
              </div>
              <div class="space-y-1.5">
-               <label class="text-[10px] font-black text-placeholder uppercase tracking-widest ml-1">Kết thúc</label>
+               <label class="text-[10px] font-semibold text-placeholder uppercase tracking-widest ml-1">Kết thúc</label>
                <input v-model="form.endTime" type="time" class="w-full lg-input px-4 py-2.5 text-sm font-medium">
              </div>
           </div>
@@ -119,7 +119,7 @@ function performCheck() {
               <CheckCircle v-else :size="24" />
             </div>
             <div class="flex-1">
-              <h4 :class="['text-lg font-black', checkResult.hasConflict ? 'text-[var(--lg-danger)]' : 'text-[var(--lg-success)]']">
+              <h4 :class="['text-lg font-semibold', checkResult.hasConflict ? 'text-[var(--lg-danger)]' : 'text-[var(--lg-success)]']">
                 {{ checkResult.hasConflict ? 'Phát hiện xung đột!' : 'Hợp lệ' }}
               </h4>
               <p :class="['text-sm font-medium mt-1', checkResult.hasConflict ? 'text-[var(--color-danger-text)]' : 'text-[var(--color-success-text)]']">
@@ -148,7 +148,7 @@ function performCheck() {
         <div class="flex gap-3">
           <Info :size="20" class="text-[var(--color-info-text)] shrink-0 mt-0.5" />
           <div>
-            <h5 class="text-sm font-black text-[var(--color-info-text)]">Mẹo kiểm tra nhanh</h5>
+            <h5 class="text-sm font-semibold text-[var(--color-info-text)]">Mẹo kiểm tra nhanh</h5>
             <p class="text-xs text-[var(--color-info-text)] mt-1 leading-relaxed">
               Bạn có thể kiểm tra một tiêu chí duy nhất (ví dụ: chỉ phòng) bằng cách để trống các trường khác. Hệ thống sẽ tự động quét toàn bộ cơ sở dữ liệu đã công bố và các bản nháp đang chờ duyệt.
             </p>

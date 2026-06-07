@@ -160,7 +160,7 @@ const currentPageMeta = computed(() => {
 
       <!-- ═══════════ CONTENT AREA ═══════════ -->
       <main class="flex-1 overflow-y-auto">
-        <div class="lg-shell-content mx-auto">815fc00136a2e7c2d618133a18e0374f
+        <div class="lg-shell-content mx-auto">
           <!-- Tất cả page đều render qua PageContainer + RouterView -->
           <PageContainer
             :title="currentPageMeta.title"

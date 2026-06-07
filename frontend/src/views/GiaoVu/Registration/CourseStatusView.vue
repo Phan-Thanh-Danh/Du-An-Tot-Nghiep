@@ -140,10 +140,10 @@ function closeDetailModal() {
       
       <section class="space-y-4">
         <div class="flex items-center justify-between px-2">
-          <h3 class="text-lg font-black text-heading flex items-center gap-2">
+          <h3 class="text-lg font-semibold text-heading flex items-center gap-2">
             <AlertCircle :size="22" class="text-[var(--lg-danger)]" /> LỚP CHỜ HỦY (DƯỚI MIN ENROLL)
           </h3>
-          <span class="px-2 py-0.5 rounded-lg bg-[var(--color-danger-bg)] text-[var(--lg-danger)] text-[10px] font-black uppercase tracking-widest">{{ pendingClasses.length }} Lớp</span>
+          <span class="px-2 py-0.5 rounded-lg bg-[var(--color-danger-bg)] text-[var(--lg-danger)] text-[10px] font-semibold uppercase tracking-widest">{{ pendingClasses.length }} Lớp</span>
         </div>
 
         <div class="grid grid-cols-1 gap-4">
@@ -153,9 +153,9 @@ function closeDetailModal() {
                 <Users :size="28" />
               </div>
               <div>
-                <h4 class="text-base font-black text-heading">{{ cls.subject }}</h4>
+                <h4 class="text-base font-semibold text-heading">{{ cls.subject }}</h4>
                 <div class="mt-1 flex items-center gap-3">
-                  <span class="text-[10px] font-black text-link uppercase">{{ cls.id }}</span>
+                  <span class="text-[10px] font-semibold text-link uppercase">{{ cls.id }}</span>
                   <span class="h-1 w-1 rounded-full bg-[var(--border-default)]"></span>
                   <span class="text-xs font-bold text-label">{{ cls.teacher }}</span>
                   <span class="h-1 w-1 rounded-full bg-[var(--border-default)]"></span>
@@ -166,8 +166,8 @@ function closeDetailModal() {
 
             <div class="flex flex-wrap items-center gap-4">
               <div class="px-4 border-x border-default">
-                <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Sĩ số hiện tại</p>
-                <p class="text-lg font-black text-[var(--lg-danger)]">{{ cls.enrolled }} <span class="text-placeholder font-medium">/ {{ cls.minEnroll }}</span></p>
+                <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Sĩ số hiện tại</p>
+                <p class="text-lg font-semibold text-[var(--lg-danger)]">{{ cls.enrolled }} <span class="text-placeholder font-medium">/ {{ cls.minEnroll }}</span></p>
               </div>
 
               <div class="flex items-center gap-2">
@@ -190,13 +190,13 @@ function closeDetailModal() {
                     leave-to-class="opacity-0 scale-95"
                   >
                     <div v-if="contextTarget?.id === cls.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
-                      <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-success-bg)] hover:text-[var(--lg-success)] transition-all" @click="openReopenModal(cls, 'pending'); closeContextMenu()">
+                      <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-success-bg)] hover:text-[var(--lg-success)] transition-all" @click="openReopenModal(cls, 'pending'); closeContextMenu()">
                         <CheckCircle2 :size="14" /> Mở lại lớp
                       </button>
-                      <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-danger-bg)] hover:text-[var(--lg-danger)] transition-all" @click="openCancelModal(cls); closeContextMenu()">
+                      <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-danger-bg)] hover:text-[var(--lg-danger)] transition-all" @click="openCancelModal(cls); closeContextMenu()">
                         <XCircle :size="14" /> Xác nhận hủy
                       </button>
-                      <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openDetailModal(cls)">
+                      <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openDetailModal(cls)">
                         <Eye :size="14" /> Xem chi tiết
                       </button>
                     </div>
@@ -210,7 +210,7 @@ function closeDetailModal() {
             <div class="h-14 w-14 rounded-2xl bg-[var(--color-success-bg)] flex items-center justify-center mb-3">
               <CheckCircle2 :size="28" class="text-[var(--lg-success)]" />
             </div>
-            <p class="text-sm font-black text-heading">Không có lớp chờ hủy</p>
+            <p class="text-sm font-semibold text-heading">Không có lớp chờ hủy</p>
             <p class="text-xs font-medium text-placeholder mt-1">Tất cả lớp đều đạt sĩ số tối thiểu.</p>
           </div>
         </div>
@@ -218,7 +218,7 @@ function closeDetailModal() {
 
       <section class="space-y-4 pt-4">
         <div class="flex items-center justify-between px-2">
-          <h3 class="text-lg font-black text-label flex items-center gap-2">
+          <h3 class="text-lg font-semibold text-label flex items-center gap-2">
             <RefreshCw :size="20" /> LỊCH SỬ LỚP ĐÃ HỦY
           </h3>
         </div>
@@ -227,17 +227,17 @@ function closeDetailModal() {
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="surface-solid">
-                <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Lớp học phần</th>
-                <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Sĩ số lúc hủy</th>
-                <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Ngày hủy</th>
-                <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thông báo</th>
-                <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
+                <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Lớp học phần</th>
+                <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Sĩ số lúc hủy</th>
+                <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Ngày hủy</th>
+                <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thông báo</th>
+                <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-default">
               <tr v-for="cls in cancelledClasses" :key="cls.id" class="group hover:bg-[var(--surface-input)] transition-colors">
                 <td class="px-4 py-4">
-                   <p class="text-sm font-black text-heading">{{ cls.subject }}</p>
+                   <p class="text-sm font-semibold text-heading">{{ cls.subject }}</p>
                    <p class="text-[10px] font-bold text-placeholder mt-1">{{ cls.id }} · {{ cls.teacher }}</p>
                 </td>
                 <td class="px-4 py-4">
@@ -248,7 +248,7 @@ function closeDetailModal() {
                 </td>
                 <td class="px-4 py-4">
                    <div class="flex items-center gap-1.5 text-[var(--lg-success)]">
-                      <Mail :size="14" /> <span class="text-[10px] font-black uppercase tracking-widest">Đã gửi SV</span>
+                      <Mail :size="14" /> <span class="text-[10px] font-semibold uppercase tracking-widest">Đã gửi SV</span>
                    </div>
                 </td>
                 <td class="px-4 py-4 relative">
@@ -272,10 +272,10 @@ function closeDetailModal() {
                          leave-to-class="opacity-0 scale-95"
                        >
                          <div v-if="contextTarget?.id === cls.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
-                           <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-success-bg)] hover:text-[var(--lg-success)] transition-all" @click="openReopenModal(cls, 'cancelled'); closeContextMenu()">
+                           <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-success-bg)] hover:text-[var(--lg-success)] transition-all" @click="openReopenModal(cls, 'cancelled'); closeContextMenu()">
                              <RotateCcw :size="14" /> Mở lại lớp
                            </button>
-                             <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openDetailModal(cls)">
+                             <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openDetailModal(cls)">
                               <Eye :size="14" /> Xem chi tiết
                             </button>
                          </div>
@@ -298,7 +298,7 @@ function closeDetailModal() {
              <MessageSquare :size="20" />
           </div>
           <div>
-            <h4 class="text-sm font-black text-heading">Lưu ý khi hủy lớp</h4>
+            <h4 class="text-sm font-semibold text-heading">Lưu ý khi hủy lớp</h4>
             <p class="text-xs text-label mt-2 leading-relaxed">
               Khi xác nhận hủy lớp, hệ thống sẽ tự động hoàn trả tín chỉ cho sinh viên, giải phóng phòng học và gửi thông báo qua Email/App. Đối với các sinh viên đã thanh toán học phí cho môn này, hệ thống sẽ tự động tạo <strong>Credit Note</strong> (phiếu khấu trừ) cho đợt đóng tiền tiếp theo.
             </p>
@@ -324,20 +324,20 @@ function closeDetailModal() {
               <div class="h-8 w-8 rounded-lg bg-[var(--color-danger-bg)] text-[var(--lg-danger)] flex items-center justify-center">
                 <XCircle :size="18" />
               </div>
-              <h3 class="text-base font-black text-heading">Xác nhận hủy lớp</h3>
+              <h3 class="text-base font-semibold text-heading">Xác nhận hủy lớp</h3>
             </div>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeCancelModal">
               <X :size="18" />
             </button>
           </div>
           <div class="surface-solid p-4 rounded-2xl flex items-center gap-3 mb-4">
-            <div class="h-10 w-10 rounded-full bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] text-xs font-black flex items-center justify-center flex-shrink-0 border border-default">
+            <div class="h-10 w-10 rounded-full bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] text-xs font-semibold flex items-center justify-center flex-shrink-0 border border-default">
               {{ cancelTarget.id.slice(-2) }}
             </div>
             <div>
-              <p class="text-sm font-black text-heading">{{ cancelTarget.subject }}</p>
+              <p class="text-sm font-semibold text-heading">{{ cancelTarget.subject }}</p>
               <div class="flex items-center gap-2 mt-0.5">
-                <span class="text-[10px] font-black text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ cancelTarget.id }}</span>
+                <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ cancelTarget.id }}</span>
                 <span class="text-[11px] font-bold text-placeholder">{{ cancelTarget.teacher }}</span>
               </div>
             </div>
@@ -349,7 +349,7 @@ function closeDetailModal() {
             </p>
           </div>
           <div>
-            <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Lý do hủy (không bắt buộc)</label>
+            <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Lý do hủy (không bắt buộc)</label>
             <textarea v-model="cancelReason" rows="2" placeholder="Nhập lý do hủy lớp..." class="w-full lg-input px-4 py-2.5 text-sm resize-none"></textarea>
           </div>
           <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
@@ -380,20 +380,20 @@ function closeDetailModal() {
               <div class="h-8 w-8 rounded-lg bg-[var(--color-success-bg)] text-[var(--lg-success)] flex items-center justify-center">
                 <RotateCcw :size="18" />
               </div>
-              <h3 class="text-base font-black text-heading">Mở lại lớp</h3>
+              <h3 class="text-base font-semibold text-heading">Mở lại lớp</h3>
             </div>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeReopenModal">
               <X :size="18" />
             </button>
           </div>
           <div class="surface-solid p-4 rounded-2xl flex items-center gap-3 mb-4">
-            <div class="h-10 w-10 rounded-full bg-[var(--color-success-bg)] text-[var(--color-success-text)] text-xs font-black flex items-center justify-center flex-shrink-0 border border-default">
+            <div class="h-10 w-10 rounded-full bg-[var(--color-success-bg)] text-[var(--color-success-text)] text-xs font-semibold flex items-center justify-center flex-shrink-0 border border-default">
               {{ reopenTarget.id.slice(-2) }}
             </div>
             <div>
-              <p class="text-sm font-black text-heading">{{ reopenTarget.subject }}</p>
+              <p class="text-sm font-semibold text-heading">{{ reopenTarget.subject }}</p>
               <div class="flex items-center gap-2 mt-0.5">
-                <span class="text-[10px] font-black text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ reopenTarget.id }}</span>
+                <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ reopenTarget.id }}</span>
                 <span class="text-[11px] font-bold text-placeholder">{{ reopenTarget.teacher }}</span>
               </div>
             </div>
@@ -433,9 +433,9 @@ function closeDetailModal() {
                 <Eye :size="20" />
               </div>
               <div>
-                <h3 class="text-base font-black text-heading">{{ detailTarget.subject }}</h3>
+                <h3 class="text-base font-semibold text-heading">{{ detailTarget.subject }}</h3>
                 <div class="flex items-center gap-2 mt-0.5">
-                  <span class="text-[10px] font-black text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ detailTarget.id }}</span>
+                  <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ detailTarget.id }}</span>
                   <span class="text-[11px] font-bold text-placeholder">{{ detailTarget.teacher }}</span>
                 </div>
               </div>
@@ -447,27 +447,27 @@ function closeDetailModal() {
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="surface-solid rounded-2xl p-4 text-center">
-              <p class="text-[9px] font-black text-placeholder uppercase tracking-widest mb-1">Trạng thái</p>
-              <span :class="['px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border inline-block',
+              <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest mb-1">Trạng thái</p>
+              <span :class="['px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest border inline-block',
                 detailTarget.status === 'cancelled' ? 'surface-solid text-placeholder border-default' : 'lg-badge-danger']">
                 {{ detailTarget.status === 'cancelled' ? 'Đã hủy' : 'Chờ hủy' }}
               </span>
             </div>
             <div class="surface-solid rounded-2xl p-4 text-center">
-              <p class="text-[9px] font-black text-placeholder uppercase tracking-widest mb-1">Sĩ số</p>
-              <p class="text-xl font-black text-heading">{{ detailTarget.enrolled }}</p>
-              <p class="text-[10px] font-bold text-label">SV đã đăng ký</p>
+              <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest mb-1">Sĩ số</p>
+              <p class="text-xl font-semibold text-heading">{{ detailTarget.enrolled }}</p>
+              <p class="text-[10px] font-semibold text-label">SV đã đăng ký</p>
             </div>
             <div class="surface-solid rounded-2xl p-4 text-center">
-              <p class="text-[9px] font-black text-placeholder uppercase tracking-widest mb-1">Min Enroll</p>
-              <p class="text-xl font-black text-heading">{{ detailTarget.minEnroll }}</p>
-              <p class="text-[10px] font-bold text-label">Sĩ số tối thiểu</p>
+              <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest mb-1">Min Enroll</p>
+              <p class="text-xl font-semibold text-heading">{{ detailTarget.minEnroll }}</p>
+              <p class="text-[10px] font-semibold text-label">Sĩ số tối thiểu</p>
             </div>
           </div>
 
           <div class="border-t border-default pt-5 space-y-4">
             <div v-if="detailTarget.status === 'cancelled'">
-              <h4 class="text-xs font-black text-label uppercase tracking-widest mb-3">Thông tin hủy</h4>
+              <h4 class="text-xs font-semibold text-label uppercase tracking-widest mb-3">Thông tin hủy</h4>
               <div class="surface-solid rounded-2xl p-4 flex items-center gap-4">
                 <div class="h-10 w-10 rounded-xl bg-[var(--color-danger-bg)] text-[var(--lg-danger)] flex items-center justify-center">
                   <XCircle :size="20" />
@@ -479,7 +479,7 @@ function closeDetailModal() {
               </div>
             </div>
             <div v-else>
-              <h4 class="text-xs font-black text-label uppercase tracking-widest mb-3">Lý do chờ hủy</h4>
+              <h4 class="text-xs font-semibold text-label uppercase tracking-widest mb-3">Lý do chờ hủy</h4>
               <div class="surface-solid rounded-2xl p-4 flex items-center gap-4">
                 <div class="h-10 w-10 rounded-xl bg-[var(--color-warning-bg)] text-[var(--lg-warning)] flex items-center justify-center">
                   <AlertCircle :size="20" />
@@ -492,7 +492,7 @@ function closeDetailModal() {
             </div>
 
             <div class="surface-solid rounded-2xl p-4 space-y-3">
-              <h4 class="text-[10px] font-black text-placeholder uppercase tracking-widest">Thông tin lớp</h4>
+              <h4 class="text-[10px] font-semibold text-placeholder uppercase tracking-widest">Thông tin lớp</h4>
               <div class="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span class="text-[10px] font-bold text-placeholder uppercase tracking-widest block mb-1">Mã lớp</span>

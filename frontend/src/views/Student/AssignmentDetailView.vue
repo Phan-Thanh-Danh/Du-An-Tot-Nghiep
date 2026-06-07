@@ -119,7 +119,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
             <component :is="icon('ClipboardList')" :size="13" />
             {{ mockAssignment.courseCode }} · {{ mockAssignment.class }}
           </div>
-          <h1 class="text-heading text-lg font-bold leading-tight">{{ mockAssignment.title }}</h1>
+          <h1 class="text-heading text-lg font-semibold leading-tight">{{ mockAssignment.title }}</h1>
           <p class="mt-0.5 text-muted text-sm">{{ mockAssignment.teacher }} · Hạn nộp: {{ mockAssignment.deadlineDisplay }}</p>
         </div>
         <div class="flex flex-wrap items-center gap-2 shrink-0">
@@ -153,7 +153,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
           </div>
           <span class="text-label text-xs font-semibold">Deadline</span>
         </div>
-        <p class="text-sm font-bold text-heading">{{ mockAssignment.deadlineDisplay }}</p>
+        <p class="text-sm font-semibold text-heading">{{ mockAssignment.deadlineDisplay }}</p>
         <p class="text-xs mt-0.5 font-medium" :style="{ color: deadlinePassed ? 'var(--color-danger-text)' : deadlineUrgent ? 'var(--color-warning-text)' : 'var(--text-muted)' }">{{ deadlineText }}</p>
       </GlassPanel>
       <GlassPanel variant="flat" density="compact">
@@ -163,7 +163,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
           </div>
           <span class="text-label text-xs font-semibold">Lượt nộp</span>
         </div>
-        <p class="text-lg font-bold text-heading">{{ rules.currentAttempt }}<span class="text-sm text-muted">/{{ rules.maxAttempts }}</span></p>
+        <p class="text-lg font-semibold text-heading">{{ rules.currentAttempt }}<span class="text-sm text-muted">/{{ rules.maxAttempts }}</span></p>
         <p class="text-xs text-muted mt-0.5">Còn {{ attemptsLeft }} lượt</p>
       </GlassPanel>
       <GlassPanel variant="flat" density="compact">
@@ -173,7 +173,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
           </div>
           <span class="text-label text-xs font-semibold">Điểm số</span>
         </div>
-        <p v-if="mockFeedback.graded" class="text-lg font-bold" style="color:var(--color-success-text)">{{ mockFeedback.score }}<span class="text-sm text-muted">/{{ mockFeedback.maxScore }}</span></p>
+        <p v-if="mockFeedback.graded" class="text-lg font-semibold" style="color:var(--color-success-text)">{{ mockFeedback.score }}<span class="text-sm text-muted">/{{ mockFeedback.maxScore }}</span></p>
         <p v-else class="text-sm font-semibold text-muted">Chờ chấm</p>
       </GlassPanel>
     </div>
@@ -189,7 +189,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
           <template #header>
             <div class="flex items-center gap-2">
               <component :is="icon('BookOpen')" :size="15" style="color:var(--accent-primary)" />
-              <h2 class="text-sm font-bold text-heading">Yêu cầu bài tập</h2>
+              <h2 class="text-sm font-semibold text-heading">Yêu cầu bài tập</h2>
             </div>
           </template>
           <p class="text-sm leading-7 text-body whitespace-pre-line">{{ mockAssignment.description }}</p>
@@ -214,7 +214,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <component :is="icon('Upload')" :size="15" style="color:var(--accent-primary)" />
-                <h2 class="text-sm font-bold text-heading">Nộp bài</h2>
+                <h2 class="text-sm font-semibold text-heading">Nộp bài</h2>
               </div>
               <GlassBadge v-if="attemptsLeft === 0" variant="danger" size="sm">Hết lượt nộp</GlassBadge>
               <GlassBadge v-else variant="primary" size="sm">Có thể nộp · Còn {{ attemptsLeft }} lượt</GlassBadge>
@@ -260,7 +260,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
           <template #header>
             <div class="flex items-center gap-2">
               <component :is="icon('History')" :size="15" class="text-muted" />
-              <h2 class="text-sm font-bold text-heading">Lịch sử nộp bài</h2>
+              <h2 class="text-sm font-semibold text-heading">Lịch sử nộp bài</h2>
             </div>
           </template>
           <div class="divide-y divide-border-card">
@@ -270,7 +270,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
               <div class="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <div class="flex items-center gap-1.5 mb-1 flex-wrap">
-                    <span class="text-sm font-bold text-heading">Lần {{ s.attempt }}</span>
+                    <span class="text-sm font-semibold text-heading">Lần {{ s.attempt }}</span>
                     <GlassBadge v-if="s.isLatest" variant="primary" size="sm">Mới nhất</GlassBadge>
                     <GlassBadge :variant="statusBadgeVariant(s.status)" size="sm">{{ s.statusLabel }}</GlassBadge>
                     <span class="text-[11px] font-semibold" :style="{ color: s.onTime ? 'var(--color-success-text)' : 'var(--color-warning-text)' }">{{ s.timeLabel }}</span>
@@ -304,9 +304,9 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
         }">
           <div class="flex items-center gap-2 mb-2">
             <component :is="icon('AlarmClock')" :size="15" :style="{ color: deadlinePassed ? 'var(--color-danger-text)' : deadlineUrgent ? 'var(--color-warning-text)' : 'var(--color-success-text)' }" />
-            <span class="text-sm font-bold" :style="{ color: deadlinePassed ? 'var(--color-danger-text)' : deadlineUrgent ? 'var(--color-warning-text)' : 'var(--color-success-text)' }">Nhắc nhở deadline</span>
+            <span class="text-sm font-semibold" :style="{ color: deadlinePassed ? 'var(--color-danger-text)' : deadlineUrgent ? 'var(--color-warning-text)' : 'var(--color-success-text)' }">Nhắc nhở deadline</span>
           </div>
-          <p class="text-base font-bold" :style="{ color: deadlinePassed ? 'var(--color-danger-text)' : deadlineUrgent ? 'var(--color-warning-text)' : 'var(--color-success-text)' }">{{ deadlineText }}</p>
+          <p class="text-base font-semibold" :style="{ color: deadlinePassed ? 'var(--color-danger-text)' : deadlineUrgent ? 'var(--color-warning-text)' : 'var(--color-success-text)' }">{{ deadlineText }}</p>
           <p class="text-xs mt-1 text-muted">Hạn nộp: {{ mockAssignment.deadlineDisplay }}</p>
         </GlassPanel>
 
@@ -315,7 +315,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
           <template #header>
             <div class="flex items-center gap-2">
               <component :is="icon('ShieldCheck')" :size="15" style="color:var(--accent-primary)" />
-              <h3 class="text-sm font-bold text-heading">Điều kiện nộp bài</h3>
+              <h3 class="text-sm font-semibold text-heading">Điều kiện nộp bài</h3>
             </div>
           </template>
           <div class="space-y-3">
@@ -327,11 +327,11 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
             </div>
             <div class="flex items-center justify-between text-sm">
               <span class="text-muted">Dung lượng tối đa</span>
-              <span class="font-bold text-heading">{{ rules.maxSizeMB }} MB</span>
+              <span class="font-semibold text-heading">{{ rules.maxSizeMB }} MB</span>
             </div>
             <div class="flex items-center justify-between text-sm">
               <span class="text-muted">Số lần nộp</span>
-              <span class="font-bold text-heading">{{ rules.currentAttempt }}/{{ rules.maxAttempts }}</span>
+              <span class="font-semibold text-heading">{{ rules.currentAttempt }}/{{ rules.maxAttempts }}</span>
             </div>
             <p class="text-xs text-muted leading-5 pt-3 border-t border-card">{{ rules.note }}</p>
           </div>
@@ -342,13 +342,13 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
           <template #header>
             <div class="flex items-center gap-2">
               <component :is="icon('ScanSearch')" :size="15" style="color:var(--color-warning-text)" />
-              <h3 class="text-sm font-bold text-heading">Kiểm tra đạo văn</h3>
+              <h3 class="text-sm font-semibold text-heading">Kiểm tra đạo văn</h3>
             </div>
           </template>
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <GlassBadge :variant="ps.variant" size="sm">{{ ps.label }}</GlassBadge>
-              <span class="text-lg font-bold text-heading">{{ mockPlagiarismResult.percentage }}%</span>
+              <span class="text-lg font-semibold text-heading">{{ mockPlagiarismResult.percentage }}%</span>
             </div>
             <div class="h-1.5 overflow-hidden rounded-full bg-surface-input">
               <div class="h-full rounded-full" :style="{ background: ps.bar, width: mockPlagiarismResult.percentage + '%' }" />
@@ -363,14 +363,14 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
           <template #header>
             <div class="flex items-center gap-2">
               <component :is="icon('MessageSquare')" :size="15" style="color:var(--color-success-text)" />
-              <h3 class="text-sm font-bold text-heading">Kết quả & Phản hồi</h3>
+              <h3 class="text-sm font-semibold text-heading">Kết quả & Phản hồi</h3>
             </div>
           </template>
           <div v-if="mockFeedback.graded" class="space-y-3">
             <div class="flex items-center gap-3 rounded-xl p-3 border border-card" style="background:var(--color-success-bg)">
               <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white font-bold text-base" style="background:var(--lg-success)">{{ mockFeedback.score }}</div>
               <div>
-                <p class="text-sm font-bold text-heading">Điểm: {{ mockFeedback.score }}/{{ mockFeedback.maxScore }}</p>
+                <p class="text-sm font-semibold text-heading">Điểm: {{ mockFeedback.score }}/{{ mockFeedback.maxScore }}</p>
                 <p class="text-xs text-muted">Chấm ngày {{ mockFeedback.gradedAt }} bởi {{ mockFeedback.gradedBy }}</p>
               </div>
             </div>
@@ -378,7 +378,7 @@ const ps = plagStyle[mockPlagiarismResult.status] || plagStyle.unchecked
               <p class="text-xs font-semibold text-muted">Tiêu chí chấm điểm</p>
               <div v-for="r in mockFeedback.rubric" :key="r.label" class="flex items-center justify-between text-xs">
                 <span class="text-body">{{ r.label }}</span>
-                <span class="font-bold" :style="{ color: r.score === r.max ? 'var(--color-success-text)' : 'var(--color-warning-text)' }">{{ r.score }}/{{ r.max }}</span>
+                <span class="font-semibold" :style="{ color: r.score === r.max ? 'var(--color-success-text)' : 'var(--color-warning-text)' }">{{ r.score }}/{{ r.max }}</span>
               </div>
             </div>
             <div class="rounded-lg border border-card bg-surface-input p-3">

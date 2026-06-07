@@ -23,9 +23,9 @@ const dashboard = studentDashboardMock
 
 <template>
   <div class="lg-page-enter space-y-4 pb-5">
-    <!-- Row 1: Hero Today Summary + Today Focus AI -->
+    <!-- Row 1: Hero + Focus AI -->
     <div class="grid gap-4 xl:grid-cols-12">
-      <section class="xl:col-span-7 flex flex-col">
+      <section class="xl:col-span-8 flex flex-col">
         <WelcomeHero
           :student="dashboard.student"
           :summary="dashboard.focusSummary"
@@ -33,17 +33,12 @@ const dashboard = studentDashboardMock
           class="h-full"
         />
       </section>
-      <section class="xl:col-span-5 flex flex-col">
+      <section class="xl:col-span-4 flex flex-col">
         <FocusAiCard class="h-full" />
       </section>
     </div>
 
-    <!-- Row 2: KPI grid (Compact cards) -->
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <KpiCard v-for="item in dashboard.kpis" :key="item.id" :item="item" class="h-full" />
-    </div>
-
-    <!-- Row 3: Primary Content (Courses + Assignments) -->
+    <!-- Row 2: Primary Content — Course Progress + Deadlines -->
     <div class="grid gap-4 xl:grid-cols-12">
       <section class="xl:col-span-7 flex flex-col">
         <CourseProgressPanel :courses="dashboard.courses" class="h-full" />
@@ -53,7 +48,7 @@ const dashboard = studentDashboardMock
       </section>
     </div>
 
-    <!-- Row 4: Secondary Content (Schedule + Grades + Notifications) -->
+    <!-- Row 3: Secondary Content — Schedule + Grades + Notifications -->
     <div class="grid gap-4 xl:grid-cols-12">
       <section class="xl:col-span-4 flex flex-col">
         <TodaySchedulePanel :schedule="dashboard.schedule" class="h-full" />
@@ -64,6 +59,11 @@ const dashboard = studentDashboardMock
       <section class="xl:col-span-4 flex flex-col">
         <NotificationsPanel :notifications="dashboard.notifications" class="h-full" />
       </section>
+    </div>
+
+    <!-- Row 4: KPI grid (Compact cards — moved below primary content) -->
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <KpiCard v-for="item in dashboard.kpis" :key="item.id" :item="item" class="h-full" />
     </div>
 
     <!-- Row 5: Health & Utilities (Attendance + Tuition) -->

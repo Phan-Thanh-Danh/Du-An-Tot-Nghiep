@@ -168,8 +168,8 @@ function closeMenu()    { menuOpenId.value = null }
         ]" :key="stat.label"
           :class="['rounded-2xl p-4 border border-default', stat.bg, stat.border]"
         >
-          <p class="text-[11px] font-black uppercase tracking-widest text-placeholder">{{ stat.label }}</p>
-          <p :class="['text-2xl font-black mt-1', stat.color]">{{ stat.value }}</p>
+          <p class="text-[11px] font-semibold uppercase tracking-widest text-placeholder">{{ stat.label }}</p>
+          <p :class="['text-2xl font-semibold mt-1', stat.color]">{{ stat.value }}</p>
         </div>
       </div>
 
@@ -229,7 +229,7 @@ function closeMenu()    { menuOpenId.value = null }
             Bộ lọc
             <span
               v-if="activeFilterCount > 0"
-              class="inline-flex items-center justify-center h-4 w-4 rounded-full bg-[var(--lg-success)] text-white text-[10px] font-black"
+              class="inline-flex items-center justify-center h-4 w-4 rounded-full bg-[var(--lg-success)] text-white text-[10px] font-semibold"
             >{{ activeFilterCount }}</span>
           </button>
 
@@ -244,7 +244,7 @@ function closeMenu()    { menuOpenId.value = null }
         <Transition name="slide-down">
           <div v-if="showFilterPanel" class="pt-3 border-t border-default flex flex-wrap gap-4">
             <div>
-              <p class="text-[10px] font-black uppercase tracking-widest text-placeholder mb-2">Trạng thái</p>
+              <p class="text-[10px] font-semibold uppercase tracking-widest text-placeholder mb-2">Trạng thái</p>
               <div class="flex gap-2 flex-wrap">
                 <button
                   v-for="s in ['all', ...STATUSES]" :key="s"
@@ -261,7 +261,7 @@ function closeMenu()    { menuOpenId.value = null }
               </div>
             </div>
             <div>
-              <p class="text-[10px] font-black uppercase tracking-widest text-placeholder mb-2">Lầu</p>
+              <p class="text-[10px] font-semibold uppercase tracking-widest text-placeholder mb-2">Lầu</p>
               <div class="flex gap-2 flex-wrap">
                 <button
                   v-for="f in ['all', ...FLOORS]" :key="f"
@@ -284,7 +284,7 @@ function closeMenu()    { menuOpenId.value = null }
       <!-- ── Result count ──────────────────────────────── -->
       <div class="flex items-center justify-between px-1">
         <p class="text-sm text-label font-semibold">
-          Hiển thị <span class="font-black text-heading">{{ filteredRooms.length }}</span> / {{ rooms.length }} phòng
+          Hiển thị <span class="font-semibold text-heading">{{ filteredRooms.length }}</span> / {{ rooms.length }} phòng
         </p>
       </div>
 
@@ -302,7 +302,7 @@ function closeMenu()    { menuOpenId.value = null }
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
               <span :class="['h-2 w-2 rounded-full', getStatusInfo(room.status).dot, getStatusInfo(room.status).pulse ? 'animate-pulse' : '']"></span>
-              <span class="text-[10px] font-black uppercase tracking-widest text-placeholder">{{ getStatusInfo(room.status).label }}</span>
+              <span class="text-[10px] font-semibold uppercase tracking-widest text-placeholder">{{ getStatusInfo(room.status).label }}</span>
             </div>
             <div class="relative">
               <button
@@ -341,8 +341,8 @@ function closeMenu()    { menuOpenId.value = null }
               <component :is="getRoomIcon(room.type)" :size="22" />
             </div>
             <div>
-              <h3 class="text-base font-black text-heading leading-tight group-hover:text-[var(--lg-primary)] transition-colors">{{ room.name }}</h3>
-              <p class="text-[10px] font-bold text-label uppercase tracking-widest flex items-center gap-1 mt-0.5">
+              <h3 class="text-base font-semibold text-heading leading-tight group-hover:text-[var(--lg-primary)] transition-colors">{{ room.name }}</h3>
+              <p class="text-[10px] font-semibold text-label uppercase tracking-widest flex items-center gap-1 mt-0.5">
                 <MapPin :size="10" /> {{ room.campus }} · Lầu {{ room.floor }}
               </p>
             </div>
@@ -351,26 +351,26 @@ function closeMenu()    { menuOpenId.value = null }
           <!-- Stats -->
           <div class="mt-4 grid grid-cols-2 gap-3">
             <div class="surface-input rounded-xl p-3 border border-default">
-              <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Sức chứa</p>
+              <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Sức chứa</p>
               <div class="flex items-center gap-1.5 mt-1">
                 <Users :size="13" class="text-[var(--lg-primary)]" />
-                <span class="text-sm font-black text-heading">{{ room.capacity }} SV</span>
+                <span class="text-sm font-semibold text-heading">{{ room.capacity }} SV</span>
               </div>
             </div>
             <div class="surface-input rounded-xl p-3 border border-default">
-              <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Loại phòng</p>
-              <p class="text-sm font-black text-heading mt-1">{{ room.type }}</p>
+              <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Loại phòng</p>
+              <p class="text-sm font-semibold text-heading mt-1">{{ room.type }}</p>
             </div>
           </div>
 
           <!-- Devices -->
           <div class="mt-4">
-            <p class="text-[9px] font-black text-placeholder uppercase tracking-widest mb-2">Thiết bị</p>
+            <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest mb-2">Thiết bị</p>
             <div class="flex flex-wrap gap-1.5">
               <span
                 v-for="device in room.devices"
                 :key="device"
-                class="px-2 py-0.5 rounded-lg surface-solid border border-default text-[10px] font-bold text-label shadow-sm"
+                class="px-2 py-0.5 rounded-lg surface-solid border border-default text-[10px] font-semibold text-label shadow-sm"
               >{{ device }}</span>
               <span v-if="room.devices.length === 0" class="text-[10px] text-placeholder italic">Chưa có thiết bị</span>
             </div>
@@ -394,7 +394,7 @@ function closeMenu()    { menuOpenId.value = null }
           <div class="h-16 w-16 rounded-3xl surface-input border border-default flex items-center justify-center mb-4">
             <Search :size="28" class="text-placeholder" />
           </div>
-          <p class="text-base font-black text-heading">Không tìm thấy phòng nào</p>
+          <p class="text-base font-semibold text-heading">Không tìm thấy phòng nào</p>
           <p class="text-sm text-label mt-1">Thử thay đổi từ khóa hoặc điều chỉnh bộ lọc.</p>
           <button class="mt-4 text-sm font-bold text-[var(--lg-primary)] hover:underline" @click="clearFilters(); searchQuery = ''">Xóa tất cả bộ lọc</button>
         </div>
@@ -421,7 +421,7 @@ function closeMenu()    { menuOpenId.value = null }
           <div class="modal-header p-5">
             <div class="flex items-center justify-between">
               <div>
-                <h2 class="text-xl font-black text-heading">Thêm phòng mới</h2>
+                <h2 class="text-xl font-semibold text-heading">Thêm phòng mới</h2>
                 <p class="text-sm text-label mt-0.5">Điền thông tin phòng học mới</p>
               </div>
               <button
@@ -438,7 +438,7 @@ function closeMenu()    { menuOpenId.value = null }
 
             <!-- Tên phòng -->
             <div>
-              <label class="block text-xs font-black text-label uppercase tracking-widest mb-1.5" for="modal-room-name">
+              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5" for="modal-room-name">
                 Tên phòng <span class="text-[var(--lg-danger)]">*</span>
               </label>
               <input
@@ -459,7 +459,7 @@ function closeMenu()    { menuOpenId.value = null }
             <!-- Cơ sở + Lầu -->
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-black text-label uppercase tracking-widest mb-1.5" for="modal-campus">Cơ sở</label>
+                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5" for="modal-campus">Cơ sở</label>
                 <select
                   id="modal-campus"
                   v-model="newRoom.campus"
@@ -469,7 +469,7 @@ function closeMenu()    { menuOpenId.value = null }
                 </select>
               </div>
               <div>
-                <label class="block text-xs font-black text-label uppercase tracking-widest mb-1.5" for="modal-floor">Lầu</label>
+                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5" for="modal-floor">Lầu</label>
                 <select
                   id="modal-floor"
                   v-model="newRoom.floor"
@@ -483,7 +483,7 @@ function closeMenu()    { menuOpenId.value = null }
             <!-- Sức chứa + Loại phòng -->
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-black text-label uppercase tracking-widest mb-1.5" for="modal-capacity">
+                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5" for="modal-capacity">
                   Sức chứa (SV) <span class="text-[var(--lg-danger)]">*</span>
                 </label>
                 <input
@@ -502,7 +502,7 @@ function closeMenu()    { menuOpenId.value = null }
                 <p v-if="addErrors.capacity" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ addErrors.capacity }}</p>
               </div>
               <div>
-                <label class="block text-xs font-black text-label uppercase tracking-widest mb-1.5" for="modal-type">Loại phòng</label>
+                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5" for="modal-type">Loại phòng</label>
                 <select
                   id="modal-type"
                   v-model="newRoom.type"
@@ -515,7 +515,7 @@ function closeMenu()    { menuOpenId.value = null }
 
             <!-- Trạng thái -->
             <div>
-              <label class="block text-xs font-black text-label uppercase tracking-widest mb-2">Trạng thái</label>
+              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-2">Trạng thái</label>
               <div class="flex gap-2 flex-wrap">
                 <button
                   v-for="s in STATUSES"
@@ -536,7 +536,7 @@ function closeMenu()    { menuOpenId.value = null }
 
             <!-- Thiết bị -->
             <div>
-              <label class="block text-xs font-black text-label uppercase tracking-widest mb-2">Thiết bị có sẵn</label>
+              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-2">Thiết bị có sẵn</label>
               <div class="flex flex-wrap gap-2">
                 <button
                   v-for="d in deviceOptions"

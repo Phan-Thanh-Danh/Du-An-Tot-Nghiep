@@ -49,18 +49,18 @@ const getRiskBadge = (risk) => {
                   <Brain :size="30" class="text-[var(--color-info-text)]" />
                </div>
                <div>
-                  <h3 class="text-lg font-black tracking-tight text-heading">AI Academic Forecast</h3>
+                  <h3 class="text-lg font-semibold tracking-tight text-heading">AI Academic Forecast</h3>
                   <p class="text-sm text-[var(--color-info-text)] mt-1 font-medium max-w-md">Hệ thống đã phân tích dữ liệu của 1,240 sinh viên và phát hiện 42 trường hợp có nguy cơ rớt môn cao trong kỳ này.</p>
                </div>
             </div>
             <div class="flex flex-wrap justify-center gap-3">
                <div class="px-4 py-3 surface-card rounded-2xl border border-[var(--color-info-text)]/20 text-center">
-                  <p class="text-[10px] font-black uppercase tracking-widest text-muted">Độ chính xác</p>
-                  <p class="text-lg font-black text-heading">94.2%</p>
+                  <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">Độ chính xác</p>
+                  <p class="text-lg font-semibold text-heading">94.2%</p>
                </div>
                <div class="px-4 py-3 surface-card rounded-2xl border border-[var(--color-info-text)]/20 text-center">
-                  <p class="text-[10px] font-black uppercase tracking-widest text-muted">Cần can thiệp</p>
-                  <p class="text-lg font-black text-heading">18 SV</p>
+                  <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">Cần can thiệp</p>
+                  <p class="text-lg font-semibold text-heading">18 SV</p>
                </div>
             </div>
          </div>
@@ -77,7 +77,7 @@ const getRiskBadge = (risk) => {
               <Filter :size="18" /> Mức độ rủi ro
            </button>
         </div>
-        <button class="lg-button-primary py-2.5 px-4 text-sm font-black flex items-center gap-2">
+        <button class="lg-button-primary py-2.5 px-4 text-sm font-semibold flex items-center gap-2">
            <Bell :size="18" /> Gửi cảnh báo cho Giảng viên
         </button>
       </div>
@@ -95,24 +95,24 @@ const getRiskBadge = (risk) => {
                      <User :size="28" />
                   </div>
                   <div>
-                     <h4 class="text-lg font-black text-heading leading-tight group-hover:text-link transition-colors">{{ st.name }}</h4>
+                     <h4 class="text-lg font-semibold text-heading leading-tight group-hover:text-link transition-colors">{{ st.name }}</h4>
                      <p class="text-[11px] font-bold text-muted uppercase tracking-widest mt-1">{{ st.code }} • Lớp {{ st.class }}</p>
                   </div>
                </div>
-               <div :class="['px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm', getRiskBadge(st.risk)]">
+               <div :class="['px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest border shadow-sm', getRiskBadge(st.risk)]">
                   {{ st.risk }}
                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4 mb-8">
                <div class="p-4 surface-solid rounded-2xl border border-default">
-                  <p class="text-[9px] font-black text-muted uppercase tracking-widest mb-1.5">Môn học hiện tại</p>
+                  <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1.5">Môn học hiện tại</p>
                   <p class="text-xs font-bold text-label">{{ st.subject }}</p>
                </div>
                <div class="p-4 surface-solid rounded-2xl border border-default">
-                  <p class="text-[9px] font-black text-muted uppercase tracking-widest mb-1.5">Điểm / Chuyên cần</p>
+                  <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1.5">Điểm / Chuyên cần</p>
                   <div class="flex items-center justify-between">
-                     <span class="text-sm font-black text-[var(--color-danger-text)]">{{ st.grade }}</span>
+                     <span class="text-sm font-semibold text-[var(--color-danger-text)]">{{ st.grade }}</span>
                      <span class="text-[10px] font-bold text-muted">{{ st.attendance }}% vắng</span>
                   </div>
                </div>
@@ -121,7 +121,7 @@ const getRiskBadge = (risk) => {
             <div class="flex items-start gap-3 p-4 bg-[var(--color-danger-bg)] rounded-2xl border border-[var(--color-danger-text)]/20 mb-4">
                <Zap :size="16" class="text-[var(--color-danger-text)] shrink-0 mt-0.5" />
                <div>
-                  <p class="text-[10px] font-black text-[var(--color-danger-text)] uppercase tracking-widest">Dự đoán của AI</p>
+                  <p class="text-[10px] font-semibold text-[var(--color-danger-text)] uppercase tracking-widest">Dự đoán của AI</p>
                   <p class="text-[11px] text-body font-medium leading-relaxed mt-1">{{ st.reason }}</p>
                </div>
             </div>
@@ -131,7 +131,7 @@ const getRiskBadge = (risk) => {
                   <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-muted" title="Xem lịch sử"><History :size="18" /></button>
                   <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-muted" title="Gửi thông báo"><Bell :size="18" /></button>
                </div>
-               <button class="text-xs font-black text-link uppercase tracking-widest flex items-center gap-1 hover:underline">
+               <button class="text-xs font-semibold text-link uppercase tracking-widest flex items-center gap-1 hover:underline">
                   Xem chi tiết hồ sơ <ChevronRight :size="14" />
                </button>
             </div>

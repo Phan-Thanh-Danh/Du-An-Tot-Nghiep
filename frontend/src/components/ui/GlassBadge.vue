@@ -53,11 +53,13 @@ const sizes = {
   min-height: 1.375rem;
   padding: 0 0.5rem;
   font-size: 0.6875rem;
+  font-weight: 500;
 }
 
 .glass-badge-md {
   min-height: 1.5rem;
   padding: 0 0.625rem;
   font-size: 0.75rem;
+  font-weight: 500;
 }
 </style>

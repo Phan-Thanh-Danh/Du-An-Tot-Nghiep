@@ -387,7 +387,7 @@ function canApplyEarlyResult(item) {
     <!-- Banner Thông báo Học trước & Bảo lưu kết quả -->
     <div v-if="showEarlyLearningNotification" class="early-notification-banner glass-card">
       <div class="banner-icon">
-        <Rocket :size="22" class="text-blue-600 animate-bounce" />
+        <Rocket :size="22" class="text-[var(--text-link)] animate-bounce" />
       </div>
       <div class="banner-body">
         <h3>Nhắc nhở học trước & Bảo lưu kết quả</h3>
@@ -716,7 +716,7 @@ function canApplyEarlyResult(item) {
                       Kỳ {{ semester.semesterIndex }} - {{ block.blockName }}
                     </div>
                   </td>
-                  <td class="code-cell font-mono font-bold text-link">{{ item.subjectCode }}</td>
+                  <td class="code-cell font-mono font-semibold text-link">{{ item.subjectCode }}</td>
                   <td class="name-cell font-semibold text-heading">{{ item.subjectName }}</td>
                   <td class="credits-cell">{{ item.credits }} tín chỉ</td>
                   <td class="status-cell">
@@ -1458,14 +1458,9 @@ function canApplyEarlyResult(item) {
   gap: 1.25rem;
   padding: 1.25rem;
   border-radius: 20px;
-  border: 1px solid rgba(37, 99, 235, 0.2);
-  background: linear-gradient(135deg, rgba(239, 246, 255, 0.8), rgba(255, 255, 255, 0.6));
-  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.05);
-}
-
-:global(.dark) .early-notification-banner {
-  border-color: rgba(96, 165, 250, 0.25);
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.5));
+  border: 1px solid var(--accent-primary-soft);
+  background: linear-gradient(135deg, var(--color-info-bg), var(--surface-card));
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--text-link) 5%, transparent);
 }
 
 .banner-icon {
@@ -1475,13 +1470,8 @@ function canApplyEarlyResult(item) {
   width: 2.75rem;
   height: 2.75rem;
   border-radius: 14px;
-  background: rgba(37, 99, 235, 0.1);
-  color: #2563eb;
-}
-
-:global(.dark) .banner-icon {
-  background: rgba(96, 165, 250, 0.12);
-  color: #60a5fa;
+  background: var(--accent-primary-soft);
+  color: var(--text-link);
 }
 
 .banner-body {
@@ -1517,16 +1507,11 @@ function canApplyEarlyResult(item) {
   flex-shrink: 0;
   font-size: 0.625rem;
   font-weight: 900;
-  background: rgba(124, 58, 237, 0.1);
-  color: #7c3aed;
+  background: var(--accent-violet-soft);
+  color: var(--accent-violet);
   padding: 0.1rem 0.4rem;
   border-radius: 6px;
   text-transform: uppercase;
-}
-
-:global(.dark) .supplement-badge {
-  background: rgba(139, 92, 246, 0.16);
-  color: #a78bfa;
 }
 
 .banner-close-btn {

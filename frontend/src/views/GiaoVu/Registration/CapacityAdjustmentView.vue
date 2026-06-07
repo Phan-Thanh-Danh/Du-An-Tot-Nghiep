@@ -162,8 +162,8 @@ const metrics = computed(() => {
             <Layers :size="20" />
           </div>
           <div>
-            <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Tổng lớp</p>
-            <p class="text-xl font-black text-heading">{{ metrics.total }}</p>
+            <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Tổng lớp</p>
+            <p class="text-xl font-semibold text-heading">{{ metrics.total }}</p>
           </div>
         </div>
         <div class="lg-card-glass p-4 flex items-center gap-3">
@@ -171,8 +171,8 @@ const metrics = computed(() => {
             <Users :size="20" />
           </div>
           <div>
-            <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Tổng sức chứa</p>
-            <p class="text-xl font-black text-heading">{{ metrics.totalCapacity }}</p>
+            <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Tổng sức chứa</p>
+            <p class="text-xl font-semibold text-heading">{{ metrics.totalCapacity }}</p>
           </div>
         </div>
         <div class="lg-card-glass p-4 flex items-center gap-3">
@@ -180,8 +180,8 @@ const metrics = computed(() => {
             <UserCheck :size="20" />
           </div>
           <div>
-            <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Đã đăng ký</p>
-            <p class="text-xl font-black text-heading">{{ metrics.enrolled.toLocaleString() }}</p>
+            <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Đã đăng ký</p>
+            <p class="text-xl font-semibold text-heading">{{ metrics.enrolled.toLocaleString() }}</p>
           </div>
         </div>
         <div class="lg-card-glass p-4 flex items-center gap-3">
@@ -189,8 +189,8 @@ const metrics = computed(() => {
             <TrendingUp :size="20" />
           </div>
           <div>
-            <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Đang Waitlist</p>
-            <p class="text-xl font-black text-heading">{{ metrics.waitlisted }}</p>
+            <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Đang Waitlist</p>
+            <p class="text-xl font-semibold text-heading">{{ metrics.waitlisted }}</p>
           </div>
         </div>
       </div>
@@ -211,7 +211,7 @@ const metrics = computed(() => {
         <div class="flex items-center gap-3">
           <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold relative" @click.stop="showFilters = !showFilters">
             <Filter :size="18" /> Bộ lọc
-            <span v-if="activeFilterCount > 0" class="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[var(--lg-primary)] text-white text-[9px] font-black flex items-center justify-center">{{ activeFilterCount }}</span>
+            <span v-if="activeFilterCount > 0" class="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[var(--lg-primary)] text-white text-[9px] font-semibold flex items-center justify-center">{{ activeFilterCount }}</span>
           </button>
         </div>
       </div>
@@ -226,7 +226,7 @@ const metrics = computed(() => {
       >
         <div v-if="showFilters" class="lg-glass-strong p-5 rounded-[20px] space-y-3">
           <div class="flex flex-wrap items-center gap-3">
-            <span class="text-[10px] font-black text-label uppercase tracking-widest min-w-[70px]">Trạng thái:</span>
+            <span class="text-[10px] font-semibold text-label uppercase tracking-widest min-w-[70px]">Trạng thái:</span>
             <div class="flex gap-1.5 flex-wrap">
               <button v-for="opt in statusOptions" :key="opt.value"
                 @click="filterStatus = opt.value"
@@ -246,13 +246,13 @@ const metrics = computed(() => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Lớp HP</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Môn học</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Sức chứa</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Đã ĐK</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Chờ</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Trạng thái</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Lớp HP</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Môn học</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Sức chứa</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Đã ĐK</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Chờ</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Trạng thái</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
@@ -261,15 +261,15 @@ const metrics = computed(() => {
               @click="selectSection(sec)"
             >
               <td class="px-4 py-4">
-                <span class="text-[10px] font-black text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ sec.id }}</span>
+                <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ sec.id }}</span>
               </td>
               <td class="px-4 py-4">
-                <p class="text-sm font-black text-heading">{{ sec.subject }}</p>
+                <p class="text-sm font-semibold text-heading">{{ sec.subject }}</p>
                 <p class="text-[11px] font-bold text-placeholder mt-0.5">{{ sec.teacher }}</p>
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
-                  <span class="text-sm font-black text-heading">{{ sec.capacity }}</span>
+                  <span class="text-sm font-semibold text-heading">{{ sec.capacity }}</span>
                   <span class="text-[10px] font-medium text-placeholder">SV</span>
                 </div>
               </td>
@@ -285,11 +285,11 @@ const metrics = computed(() => {
                 </div>
               </td>
               <td class="px-4 py-4">
-                <span v-if="sec.waitlist > 0" class="text-xs font-black text-[var(--lg-warning)]">{{ sec.waitlist }}</span>
+                <span v-if="sec.waitlist > 0" class="text-xs font-semibold text-[var(--lg-warning)]">{{ sec.waitlist }}</span>
                 <span v-else class="text-xs font-medium text-placeholder">0</span>
               </td>
               <td class="px-4 py-4">
-                <span :class="['px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border', getStatusBadge(sec.status)]">
+                <span :class="['px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest border', getStatusBadge(sec.status)]">
                   {{ getStatusLabel(sec.status) }}
                 </span>
               </td>
@@ -310,7 +310,7 @@ const metrics = computed(() => {
           <div class="h-16 w-16 rounded-2xl surface-solid flex items-center justify-center mb-4">
             <BookOpen :size="28" class="text-placeholder" />
           </div>
-          <p class="text-sm font-black text-heading">Không có lớp học phần nào</p>
+          <p class="text-sm font-semibold text-heading">Không có lớp học phần nào</p>
           <p class="text-xs font-medium text-placeholder mt-1">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
         </div>
       </div>
@@ -330,9 +330,9 @@ const metrics = computed(() => {
                 <Layers :size="20" />
               </div>
               <div>
-                <h3 class="text-base font-black text-heading">{{ selectedSection.subject }}</h3>
+                <h3 class="text-base font-semibold text-heading">{{ selectedSection.subject }}</h3>
                 <div class="flex items-center gap-2 mt-0.5">
-                  <span class="text-[10px] font-black text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ selectedSection.id }}</span>
+                  <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ selectedSection.id }}</span>
                   <span class="text-[11px] font-bold text-placeholder">{{ selectedSection.teacher }}</span>
                   <span class="w-1 h-1 rounded-full bg-placeholder" />
                   <span class="text-[11px] font-bold text-placeholder">{{ selectedSection.room }}</span>
@@ -346,18 +346,18 @@ const metrics = computed(() => {
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="surface-solid rounded-2xl p-4 text-center">
-              <p class="text-[10px] font-black text-placeholder uppercase tracking-widest mb-2">Sức chứa hiện tại</p>
-              <p class="text-2xl font-black text-heading">{{ selectedSection.capacity }}</p>
+              <p class="text-[10px] font-semibold text-placeholder uppercase tracking-widest mb-2">Sức chứa hiện tại</p>
+              <p class="text-2xl font-semibold text-heading">{{ selectedSection.capacity }}</p>
               <p class="text-[11px] font-bold text-label mt-1">SV</p>
             </div>
             <div class="surface-solid rounded-2xl p-4 text-center">
-              <p class="text-[10px] font-black text-placeholder uppercase tracking-widest mb-2">Đã đăng ký</p>
-              <p class="text-2xl font-black text-heading">{{ selectedSection.enrolled }}</p>
+              <p class="text-[10px] font-semibold text-placeholder uppercase tracking-widest mb-2">Đã đăng ký</p>
+              <p class="text-2xl font-semibold text-heading">{{ selectedSection.enrolled }}</p>
               <p class="text-[11px] font-bold text-label mt-1">SV</p>
             </div>
             <div class="surface-solid rounded-2xl p-4 text-center border border-[var(--color-warning-bg)]/30">
-              <p class="text-[10px] font-black text-placeholder uppercase tracking-widest mb-2">Đang đợi (Waitlist)</p>
-              <p class="text-2xl font-black text-[var(--lg-warning)]">{{ selectedSection.waitlist }}</p>
+              <p class="text-[10px] font-semibold text-placeholder uppercase tracking-widest mb-2">Đang đợi (Waitlist)</p>
+              <p class="text-2xl font-semibold text-[var(--lg-warning)]">{{ selectedSection.waitlist }}</p>
               <p class="text-[11px] font-bold text-[var(--lg-warning)] mt-1">SV trong hàng chờ</p>
             </div>
           </div>
@@ -366,13 +366,13 @@ const metrics = computed(() => {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div class="space-y-4">
                 <div class="space-y-2">
-                  <label class="text-[10px] font-black text-placeholder uppercase tracking-widest ml-1">Sức chứa mới</label>
+                  <label class="text-[10px] font-semibold text-placeholder uppercase tracking-widest ml-1">Sức chứa mới</label>
                   <div class="flex items-center gap-4">
                     <input 
                       v-model="newCapacity" 
                       type="number" 
                       :min="selectedSection.enrolled"
-                      class="flex-1 lg-input px-4 py-3 text-lg font-black text-heading transition-all"
+                      class="flex-1 lg-input px-4 py-3 text-lg font-semibold text-heading transition-all"
                     >
                     <div class="flex flex-col gap-1">
                       <button @click="newCapacity++" class="p-1 hover:bg-[var(--surface-solid)] rounded-lg text-placeholder"><TrendingUp :size="16" /></button>
@@ -384,7 +384,7 @@ const metrics = computed(() => {
                   </p>
                 </div>
                 <div class="space-y-2">
-                  <label class="text-[10px] font-black text-placeholder uppercase tracking-widest ml-1">Lý do điều chỉnh</label>
+                  <label class="text-[10px] font-semibold text-placeholder uppercase tracking-widest ml-1">Lý do điều chỉnh</label>
                   <textarea 
                     v-model="reason" 
                     placeholder="Nhập lý do (Ví dụ: Theo nhu cầu SV, Đổi phòng lớn hơn...)"
@@ -393,28 +393,28 @@ const metrics = computed(() => {
                 </div>
               </div>
               <div class="surface-solid rounded-[24px] p-4 border border-default space-y-4">
-                <h4 class="text-xs font-black text-label uppercase tracking-widest">Xem trước ảnh hưởng</h4>
+                <h4 class="text-xs font-semibold text-label uppercase tracking-widest">Xem trước ảnh hưởng</h4>
                 <div class="space-y-4">
                   <div class="flex items-center justify-between p-3 surface-card rounded-xl border border-default">
                     <div class="flex items-center gap-3">
                       <Building :size="18" class="text-placeholder" />
                       <span class="text-xs font-bold text-label">Giới hạn phòng học</span>
                     </div>
-                    <span class="text-xs font-black text-heading">{{ selectedSection.roomCapacity }} SV</span>
+                    <span class="text-xs font-semibold text-heading">{{ selectedSection.roomCapacity }} SV</span>
                   </div>
                   <div class="flex items-center justify-between p-3 surface-card rounded-xl border border-default">
                     <div class="flex items-center gap-3">
                       <TrendingUp :size="18" class="text-[var(--lg-success)]" />
                       <span class="text-xs font-bold text-label">Đẩy từ Waitlist</span>
                     </div>
-                    <span class="text-xs font-black text-[var(--lg-success)]">{{ waitlistImpact > 0 ? '+' + waitlistImpact : 0 }} SV</span>
+                    <span class="text-xs font-semibold text-[var(--lg-success)]">{{ waitlistImpact > 0 ? '+' + waitlistImpact : 0 }} SV</span>
                   </div>
                   <div class="flex items-center justify-between p-3 surface-card rounded-xl border border-default">
                     <div class="flex items-center gap-3">
                       <Users :size="18" class="text-link" />
                       <span class="text-xs font-bold text-label">Chênh lệch</span>
                     </div>
-                    <span class="text-xs font-black" :class="newCapacity >= selectedSection.capacity ? 'text-[var(--lg-success)]' : 'text-[var(--lg-danger)]'">
+                    <span class="text-xs font-semibold" :class="newCapacity >= selectedSection.capacity ? 'text-[var(--lg-success)]' : 'text-[var(--lg-danger)]'">
                       {{ newCapacity >= selectedSection.capacity ? '+' : '' }}{{ newCapacity - selectedSection.capacity }}
                     </span>
                   </div>
@@ -458,7 +458,7 @@ const metrics = computed(() => {
               <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
                 <Edit3 :size="18" />
               </div>
-              <h3 class="text-base font-black text-heading">Điều chỉnh sức chứa</h3>
+              <h3 class="text-base font-semibold text-heading">Điều chỉnh sức chứa</h3>
             </div>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeQuickModal">
               <X :size="18" />
@@ -466,14 +466,14 @@ const metrics = computed(() => {
           </div>
           <div class="space-y-4">
             <div class="surface-solid p-4 rounded-2xl">
-              <p class="text-sm font-black text-heading">{{ quickTarget.subject }}</p>
+              <p class="text-sm font-semibold text-heading">{{ quickTarget.subject }}</p>
               <div class="flex items-center gap-2 mt-1">
-                <span class="text-[10px] font-black text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ quickTarget.id }}</span>
+                <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ quickTarget.id }}</span>
                 <span class="text-[11px] font-bold text-placeholder">{{ quickTarget.teacher }}</span>
               </div>
             </div>
             <div>
-              <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Sức chứa hiện tại: <span class="text-heading">{{ quickTarget.capacity }}</span></label>
+              <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Sức chứa hiện tại: <span class="text-heading">{{ quickTarget.capacity }}</span></label>
               <input v-model.number="quickValue" type="number" :min="quickTarget.enrolled" class="w-full lg-input px-4 py-2.5 text-sm" />
               <p v-if="quickValue < quickTarget.enrolled" class="text-[11px] font-bold text-[var(--lg-danger)] mt-1">Sức chứa không thể nhỏ hơn số đã đăng ký ({{ quickTarget.enrolled }})</p>
               <div v-if="quickValue > quickTarget.capacity && quickTarget.waitlist > 0" class="mt-2 flex items-center gap-2 text-[11px] font-medium text-label">

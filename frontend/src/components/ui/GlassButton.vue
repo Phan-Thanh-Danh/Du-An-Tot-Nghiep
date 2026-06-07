@@ -27,12 +27,12 @@ const props = defineProps({
 const emit = defineEmits(['click'])
 
 const variantClass = computed(() => ({
-  primary: 'lg-button-primary font-semibold',
-  secondary: 'lg-button-secondary font-semibold',
-  ghost: 'lg-button-ghost font-semibold',
-  subtle: 'lg-button-subtle font-semibold',
-  danger: 'lg-button-danger font-semibold',
-  success: 'lg-button-success font-semibold',
+  primary: 'lg-button-primary',
+  secondary: 'lg-button-secondary',
+  ghost: 'lg-button-ghost',
+  subtle: 'lg-button-subtle',
+  danger: 'lg-button-danger',
+  success: 'lg-button-success',
 }[props.variant]))
 
 const sizeClass = computed(() => ({

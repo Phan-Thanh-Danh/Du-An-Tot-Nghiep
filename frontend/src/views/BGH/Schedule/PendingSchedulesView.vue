@@ -54,12 +54,12 @@ const pendingSets = ref([
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Khoa / Bộ phận</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Học kỳ & CS</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Quy mô</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Xung đột</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Người gửi</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default text-right">Thao tác</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Khoa / Bộ phận</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Học kỳ & CS</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Quy mô</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Xung đột</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Người gửi</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
@@ -69,29 +69,29 @@ const pendingSets = ref([
                   <div class="h-9 w-9 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] border border-[var(--color-info-text)]/20">
                     <Building2 :size="18" />
                   </div>
-                  <p class="text-sm font-black text-heading leading-tight">{{ set.dept }}</p>
+                  <p class="text-sm font-semibold text-heading leading-tight">{{ set.dept }}</p>
                 </div>
               </td>
               <td class="px-4 py-3">
                 <div>
-                  <p class="text-xs font-black text-label leading-tight">{{ set.semester }}</p>
+                  <p class="text-xs font-semibold text-label leading-tight">{{ set.semester }}</p>
                   <p class="text-[10px] font-bold text-muted mt-0.5">{{ set.campus }}</p>
                 </div>
               </td>
               <td class="px-4 py-3">
                 <div class="flex flex-col gap-1">
-                   <span class="text-[10px] font-black text-muted uppercase tracking-tighter">Lớp: {{ set.classes }}</span>
-                   <span class="text-[10px] font-black text-muted uppercase tracking-tighter">Lịch: {{ set.slots }}</span>
+                   <span class="text-[10px] font-semibold text-muted uppercase tracking-tighter">Lớp: {{ set.classes }}</span>
+                   <span class="text-[10px] font-semibold text-muted uppercase tracking-tighter">Lịch: {{ set.slots }}</span>
                 </div>
               </td>
               <td class="px-4 py-3">
                 <div v-if="set.conflicts === 0" class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-success-text)]/20 bg-[var(--color-success-bg)] px-2 py-1 text-[var(--color-success-text)]">
                    <CheckCircle2 :size="14" />
-                   <span class="text-[10px] font-black uppercase tracking-widest">Sẵn sàng</span>
+                   <span class="text-[10px] font-semibold uppercase tracking-widest">Sẵn sàng</span>
                 </div>
                 <div v-else class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)] px-2 py-1 text-[var(--color-danger-text)]">
                    <AlertTriangle :size="14" />
-                   <span class="text-[10px] font-black uppercase tracking-widest">{{ set.conflicts }} lỗi nghiêm trọng</span>
+                   <span class="text-[10px] font-semibold uppercase tracking-widest">{{ set.conflicts }} lỗi nghiêm trọng</span>
                 </div>
               </td>
               <td class="px-4 py-3">
@@ -125,7 +125,7 @@ const pendingSets = ref([
                <Clock :size="20" />
             </div>
             <div>
-               <h4 class="text-sm font-black text-heading uppercase tracking-wide">Chính sách phê duyệt TKB</h4>
+               <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Chính sách phê duyệt TKB</h4>
                <p class="text-xs text-[var(--color-info-text)] mt-1 leading-relaxed">
                  Hệ thống chỉ cho phép <strong>Duyệt & Publish</strong> bộ TKB khi số lượng xung đột nghiêm trọng (trùng phòng, trùng giảng viên) bằng 0. Nếu bộ TKB còn tồn tại xung đột, BGH vui lòng gửi yêu cầu Giáo vụ chỉnh sửa (Reject with comment).
                </p>

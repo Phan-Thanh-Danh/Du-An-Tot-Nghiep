@@ -231,21 +231,21 @@ function closeContextMenu() {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-               <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">Mã đơn</th>
-               <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">Sinh viên & Loại đơn</th>
-               <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">Kết quả</th>
-               <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">Người xử lý</th>
-               <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">Thao tác</th>
+               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-default">Mã đơn</th>
+               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-default">Sinh viên & Loại đơn</th>
+               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-default">Kết quả</th>
+               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-default">Người xử lý</th>
+               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-default">Thao tác</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="h in filteredHistory" :key="h.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-4">
-                <span class="text-xs font-black text-label uppercase tracking-tighter">{{ h.id }}</span>
+                <span class="text-xs font-semibold text-label uppercase tracking-tighter">{{ h.id }}</span>
               </td>
               <td class="px-4 py-4">
                 <div>
-                  <p class="text-sm font-black text-heading leading-tight">{{ h.type }}</p>
+                  <p class="text-sm font-semibold text-heading leading-tight">{{ h.type }}</p>
                   <p class="text-[11px] font-bold text-label mt-0.5">{{ h.student }} • {{ h.date }}</p>
                 </div>
               </td>
@@ -255,7 +255,7 @@ function closeContextMenu() {
                       <CheckCircle2 v-if="h.result === 'approved'" :size="14" />
                       <XCircle v-else :size="14" />
                    </div>
-                    <span :class="['text-[10px] font-black uppercase tracking-widest', h.result === 'approved' ? 'text-[var(--color-success-text)]' : 'text-[var(--color-danger-text)]']">
+                    <span :class="['text-[10px] font-semibold uppercase tracking-widest', h.result === 'approved' ? 'text-[var(--color-success-text)]' : 'text-[var(--color-danger-text)]']">
                       {{ h.result === 'approved' ? 'Phê duyệt' : 'Từ chối' }}
                    </span>
                 </div>
@@ -286,7 +286,7 @@ function closeContextMenu() {
                       leave-to-class="opacity-0 scale-95"
                     >
                       <div v-if="contextTarget?.id === h.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
-                        <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openDetailModal(h); closeContextMenu()">
+                        <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openDetailModal(h); closeContextMenu()">
                           <Eye :size="14" /> Xem chi tiết
                         </button>
                       </div>
@@ -301,7 +301,7 @@ function closeContextMenu() {
           <div class="h-16 w-16 rounded-2xl surface-solid flex items-center justify-center mb-4">
             <FileCheck :size="28" class="text-placeholder" />
           </div>
-          <p class="text-sm font-black text-heading">Không có đơn từ nào</p>
+          <p class="text-sm font-semibold text-heading">Không có đơn từ nào</p>
           <p class="text-xs font-medium text-placeholder mt-1">Thử thay đổi từ khóa tìm kiếm hoặc thời gian</p>
         </div>
       </div>
@@ -327,7 +327,7 @@ function closeContextMenu() {
               <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
                 <Calendar :size="18" />
               </div>
-              <h3 class="text-base font-black text-heading">Chọn thời gian</h3>
+              <h3 class="text-base font-semibold text-heading">Chọn thời gian</h3>
             </div>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeDatePicker">
               <X :size="18" />
@@ -335,11 +335,11 @@ function closeContextMenu() {
           </div>
           <div class="space-y-4">
             <div>
-              <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Từ ngày</label>
+              <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Từ ngày</label>
                <input type="date" v-model="startDate" :min="today" :max="endDate || undefined" class="w-full lg-input px-4 py-2.5 text-sm" />
             </div>
             <div>
-              <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Đến ngày</label>
+              <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Đến ngày</label>
               <input type="date" v-model="endDate" :min="startDate || today" class="w-full lg-input px-4 py-2.5 text-sm" />
             </div>
           </div>
@@ -371,7 +371,7 @@ function closeContextMenu() {
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
         <div class="relative w-full max-w-sm surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
-            <h3 class="text-base font-black text-heading">Xuất báo cáo</h3>
+            <h3 class="text-base font-semibold text-heading">Xuất báo cáo</h3>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="showExportModal = false">
               <X :size="18" />
             </button>
@@ -430,7 +430,7 @@ function closeContextMenu() {
               <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
                 <Eye :size="18" />
               </div>
-              <h3 class="text-base font-black text-heading">Chi tiết đơn từ</h3>
+              <h3 class="text-base font-semibold text-heading">Chi tiết đơn từ</h3>
             </div>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeDetailModal">
               <X :size="18" />
@@ -440,38 +440,38 @@ function closeContextMenu() {
           <div class="space-y-4">
             <div class="surface-solid p-4 rounded-2xl">
               <div class="flex items-center justify-between mb-3">
-                <span class="text-[10px] font-black text-placeholder uppercase tracking-widest">Mã đơn</span>
-                <span class="text-xs font-black text-label">{{ detailTarget.id }}</span>
+                <span class="text-[10px] font-semibold text-placeholder uppercase tracking-widest">Mã đơn</span>
+                <span class="text-xs font-semibold text-label">{{ detailTarget.id }}</span>
               </div>
               <div class="flex items-center justify-between mb-3">
-                <span class="text-[10px] font-black text-placeholder uppercase tracking-widest">Sinh viên</span>
-                <span class="text-sm font-black text-heading">{{ detailTarget.student }}</span>
+                <span class="text-[10px] font-semibold text-placeholder uppercase tracking-widest">Sinh viên</span>
+                <span class="text-sm font-semibold text-heading">{{ detailTarget.student }}</span>
               </div>
               <div class="flex items-center justify-between mb-3">
-                <span class="text-[10px] font-black text-placeholder uppercase tracking-widest">Loại đơn</span>
+                <span class="text-[10px] font-semibold text-placeholder uppercase tracking-widest">Loại đơn</span>
                 <span class="text-sm font-bold text-label">{{ detailTarget.type }}</span>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-[10px] font-black text-placeholder uppercase tracking-widest">Ngày xử lý</span>
+                <span class="text-[10px] font-semibold text-placeholder uppercase tracking-widest">Ngày xử lý</span>
                 <span class="text-xs font-bold text-label">{{ detailTarget.date }}</span>
               </div>
             </div>
 
             <div class="surface-solid p-4 rounded-2xl space-y-3">
               <div>
-                <span class="text-[10px] font-black text-placeholder uppercase tracking-widest block mb-1">Kết quả</span>
+                <span class="text-[10px] font-semibold text-placeholder uppercase tracking-widest block mb-1">Kết quả</span>
                 <div class="flex items-center gap-2">
                   <div :class="['h-8 w-8 rounded-full flex items-center justify-center border', getResultBadge(detailTarget.result)]">
                     <CheckCircle2 v-if="detailTarget.result === 'approved'" :size="18" />
                     <XCircle v-else :size="18" />
                   </div>
-                  <span :class="['text-sm font-black', detailTarget.result === 'approved' ? 'text-[var(--lg-success)]' : 'text-[var(--lg-danger)]']">
+                  <span :class="['text-sm font-semibold', detailTarget.result === 'approved' ? 'text-[var(--lg-success)]' : 'text-[var(--lg-danger)]']">
                     {{ detailTarget.result === 'approved' ? 'Phê duyệt' : 'Từ chối' }}
                   </span>
                 </div>
               </div>
               <div>
-                <span class="text-[10px] font-black text-placeholder uppercase tracking-widest block mb-1">Người xử lý</span>
+                <span class="text-[10px] font-semibold text-placeholder uppercase tracking-widest block mb-1">Người xử lý</span>
                 <div class="flex items-center gap-2">
                   <div class="h-7 w-7 rounded-lg surface-solid flex items-center justify-center text-placeholder">
                     <ArrowUpRight :size="14" />
@@ -482,7 +482,7 @@ function closeContextMenu() {
             </div>
 
             <div class="surface-solid p-4 rounded-2xl">
-              <span class="text-[10px] font-black text-placeholder uppercase tracking-widest block mb-2">Ghi chú</span>
+              <span class="text-[10px] font-semibold text-placeholder uppercase tracking-widest block mb-2">Ghi chú</span>
               <p class="text-sm font-medium text-label leading-relaxed">{{ detailTarget.note }}</p>
             </div>
           </div>

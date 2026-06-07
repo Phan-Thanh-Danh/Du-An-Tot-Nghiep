@@ -50,11 +50,11 @@ const changes = ref([
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Thông tin lớp học</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Sự thay đổi</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Ngày bù / Kết quả</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Lý do & Xử lý</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default text-right">Thao tác</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Thông tin lớp học</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Sự thay đổi</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Ngày bù / Kết quả</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Lý do & Xử lý</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
@@ -65,7 +65,7 @@ const changes = ref([
                     <AlertCircle :size="18" />
                   </div>
                   <div>
-                    <p class="text-sm font-black text-heading leading-tight">{{ chg.subject }}</p>
+                    <p class="text-sm font-semibold text-heading leading-tight">{{ chg.subject }}</p>
                     <p class="text-[11px] font-bold text-muted mt-0.5">{{ chg.class }} • {{ chg.originalDate }}</p>
                   </div>
                 </div>
@@ -73,20 +73,20 @@ const changes = ref([
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
                    <div class="text-center">
-                      <p class="text-[10px] font-black text-muted uppercase mb-0.5">Gốc</p>
+                      <p class="text-[10px] font-semibold text-muted uppercase mb-0.5">Gốc</p>
                       <p class="text-xs font-bold text-label">{{ chg.originalTeacher }}</p>
                    </div>
                    <ArrowLeftRight :size="14" class="text-link" />
                    <div class="text-center">
-                      <p class="text-[10px] font-black text-link uppercase mb-0.5">Thay thế</p>
-                      <p class="text-xs font-black text-link">{{ chg.replacementTeacher }}</p>
+                      <p class="text-[10px] font-semibold text-link uppercase mb-0.5">Thay thế</p>
+                      <p class="text-xs font-semibold text-link">{{ chg.replacementTeacher }}</p>
                    </div>
                 </div>
               </td>
               <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
                    <Clock :size="14" class="text-placeholder" />
-                   <span :class="['text-xs font-black uppercase tracking-tighter', chg.makeupDate === 'Bị hủy' ? 'text-[var(--color-danger-text)]' : 'text-label']">
+                   <span :class="['text-xs font-semibold uppercase tracking-tighter', chg.makeupDate === 'Bị hủy' ? 'text-[var(--color-danger-text)]' : 'text-label']">
                       {{ chg.makeupDate }}
                    </span>
                 </div>
@@ -119,7 +119,7 @@ const changes = ref([
                <CheckCircle2 :size="20" />
             </div>
             <div>
-               <h4 class="text-sm font-black text-heading uppercase tracking-wide">Quy trình ghi nhận thay đổi</h4>
+               <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Quy trình ghi nhận thay đổi</h4>
                <p class="text-xs text-[var(--color-warning-text)] mt-1 leading-relaxed">
                  Mọi thay đổi sau khi TKB đã công bố (Publish) đều phải được thực hiện qua đơn xin nghỉ/dạy bù từ Giảng viên và được Giáo vụ phê duyệt. BGH có thể xem lại lịch sử (Audit Log) để đối soát khi cần thiết.
                </p>

@@ -60,7 +60,7 @@ function logout() {
       </div>
       <Transition name="fade-slide">
         <div v-if="!collapsed" class="overflow-hidden">
-          <p class="text-[13px] font-bold leading-tight text-heading">EduLMS</p>
+          <p class="text-[13px] font-semibold leading-tight text-heading">EduLMS</p>
           <p class="text-[10px] leading-tight text-muted">Giảng viên</p>
         </div>
       </Transition>
@@ -117,10 +117,10 @@ function logout() {
         </div>
         <Transition name="fade-slide">
           <div v-if="!collapsed" class="overflow-hidden min-w-0">
-            <p class="truncate text-[12px] font-semibold leading-tight text-heading">
-              {{ authStore.displayName || mockTeacher.name }}
+            <p class="truncate text-[12px] font-medium leading-tight text-heading">
+              {{ authStore.displayName || 'Giảng Viên Demo' }}
             </p>
-            <p class="truncate text-[10px] font-semibold leading-tight text-muted">
+            <p class="truncate text-[10px] font-medium leading-tight text-muted">
               {{ authStore.user?.email || mockTeacher.teacherId }}
             </p>
           </div>

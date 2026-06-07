@@ -79,12 +79,12 @@ const getTrendColor = (trend) => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default w-16 text-center">Hạng</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Giảng viên & Khoa</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Điểm Rating</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Phản hồi (Sentiment)</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Xu hướng</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default text-right">Thao tác</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default w-16 text-center">Hạng</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Giảng viên & Khoa</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Điểm Rating</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Phản hồi (Sentiment)</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Xu hướng</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
@@ -95,13 +95,13 @@ const getTrendColor = (trend) => {
                        <Trophy :size="16" />
                     </div>
                  </div>
-                 <span v-else class="text-sm font-black text-muted">#{{ index + 1 }}</span>
+                 <span v-else class="text-sm font-semibold text-muted">#{{ index + 1 }}</span>
               </td>
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
-                  <div class="h-10 w-10 rounded-full surface-solid border border-default flex items-center justify-center font-black text-[10px] text-muted">GV</div>
+                  <div class="h-10 w-10 rounded-full surface-solid border border-default flex items-center justify-center font-semibold text-[10px] text-muted">GV</div>
                   <div>
-                    <p class="text-sm font-black text-heading leading-tight group-hover:text-link transition-colors">{{ gv.name }}</p>
+                    <p class="text-sm font-semibold text-heading leading-tight group-hover:text-link transition-colors">{{ gv.name }}</p>
                     <p class="text-[10px] font-bold text-muted mt-1 flex items-center gap-1 uppercase tracking-tighter">
                        <Building2 :size="12" /> {{ gv.dept }}
                     </p>
@@ -111,13 +111,13 @@ const getTrendColor = (trend) => {
               <td class="px-4 py-3">
                  <div class="flex items-center gap-1.5">
                     <Star :size="14" class="text-[var(--color-warning-text)] fill-[var(--color-warning-text)]" />
-                    <span class="text-sm font-black text-heading">{{ gv.avgScore.toFixed(2) }}</span>
+                    <span class="text-sm font-semibold text-heading">{{ gv.avgScore.toFixed(2) }}</span>
                     <span class="text-[10px] font-bold text-muted ml-1">({{ gv.evals }} lượt)</span>
                  </div>
               </td>
               <td class="px-4 py-3">
                  <div class="flex flex-col gap-1 w-32">
-                    <div class="flex justify-between text-[9px] font-black uppercase tracking-widest">
+                    <div class="flex justify-between text-[9px] font-semibold uppercase tracking-widest">
                        <span class="text-[var(--color-success-text)]">{{ gv.positive }}% Pos</span>
                        <span class="text-[var(--color-danger-text)]">{{ gv.negative }}% Neg</span>
                     </div>
@@ -130,7 +130,7 @@ const getTrendColor = (trend) => {
               <td class="px-4 py-3">
                  <div :class="['flex items-center gap-1.5', getTrendColor(gv.trend)]">
                     <component :is="getTrendIcon(gv.trend)" :size="16" />
-                    <span class="text-[10px] font-black uppercase tracking-widest">{{ gv.trend }}</span>
+                    <span class="text-[10px] font-semibold uppercase tracking-widest">{{ gv.trend }}</span>
                  </div>
               </td>
               <td class="px-4 py-3 text-right">

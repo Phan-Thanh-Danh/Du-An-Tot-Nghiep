@@ -170,8 +170,8 @@ function goToPage(page) {
             <UserPlus :size="24" />
           </div>
           <div>
-            <p class="text-[10px] font-black text-placeholder uppercase tracking-widest">Tổng phân công</p>
-            <p class="text-xl font-black text-heading">124</p>
+            <p class="text-[10px] font-semibold text-placeholder uppercase tracking-widest">Tổng phân công</p>
+            <p class="text-xl font-semibold text-heading">124</p>
           </div>
         </div>
         <div class="lg-card-glass p-4 flex items-center gap-4">
@@ -179,8 +179,8 @@ function goToPage(page) {
             <UserMinus :size="24" />
           </div>
           <div>
-            <p class="text-[10px] font-black text-placeholder uppercase tracking-widest">Chưa gán GV</p>
-            <p class="text-xl font-black text-heading">12</p>
+            <p class="text-[10px] font-semibold text-placeholder uppercase tracking-widest">Chưa gán GV</p>
+            <p class="text-xl font-semibold text-heading">12</p>
           </div>
         </div>
         <div class="lg-card-glass p-4 flex items-center gap-4">
@@ -188,8 +188,8 @@ function goToPage(page) {
             <UserCheck :size="24" />
           </div>
           <div>
-            <p class="text-[10px] font-black text-placeholder uppercase tracking-widest">Hoàn tất</p>
-            <p class="text-xl font-black text-heading">90%</p>
+            <p class="text-[10px] font-semibold text-placeholder uppercase tracking-widest">Hoàn tất</p>
+            <p class="text-xl font-semibold text-heading">90%</p>
           </div>
         </div>
       </div>
@@ -221,26 +221,26 @@ function goToPage(page) {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-[var(--surface-input)]">
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Mã PC</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Lớp & Môn</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Giảng viên</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Tiết/Tuần</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Trạng thái</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Mã PC</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Lớp & Môn</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Giảng viên</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Tiết/Tuần</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Trạng thái</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y border-default">
             <tr v-for="item in paginatedAssignments" :key="item.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-4">
-                <span class="text-xs font-black text-heading">{{ item.id }}</span>
+                <span class="text-xs font-semibold text-heading">{{ item.id }}</span>
               </td>
               <td class="px-4 py-4">
-                <p class="text-sm font-black text-heading leading-tight">{{ item.subject }}</p>
+                <p class="text-sm font-semibold text-heading leading-tight">{{ item.subject }}</p>
                 <p class="text-[11px] font-bold text-[var(--lg-primary)] mt-1 uppercase">{{ item.class }}</p>
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="h-8 w-8 rounded-full bg-[var(--surface-input)] flex items-center justify-center text-[10px] font-black text-label">
+                  <div class="h-8 w-8 rounded-full bg-[var(--surface-input)] flex items-center justify-center text-[10px] font-semibold text-label">
                     {{ item.teacher !== 'Chưa phân công' ? item.teacher.split(' ').pop().charAt(0) : '?' }}
                   </div>
                   <div>

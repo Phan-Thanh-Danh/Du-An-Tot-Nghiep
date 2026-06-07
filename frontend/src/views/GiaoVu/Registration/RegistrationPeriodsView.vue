@@ -189,8 +189,8 @@ const stats = computed(() => {
           :key="stat.label"
           :class="['rounded-2xl p-4 border border-default', stat.bg]"
         >
-          <p class="text-[11px] font-black uppercase tracking-widest text-placeholder">{{ stat.label }}</p>
-          <p :class="['text-2xl font-black mt-1', stat.color]">{{ stat.value }}</p>
+          <p class="text-[11px] font-semibold uppercase tracking-widest text-placeholder">{{ stat.label }}</p>
+          <p :class="['text-2xl font-semibold mt-1', stat.color]">{{ stat.value }}</p>
         </div>
       </div>
 
@@ -217,7 +217,7 @@ const stats = computed(() => {
       <!-- ── Result count ── -->
       <div class="flex items-center justify-between px-1">
         <p class="text-sm text-label font-semibold">
-          Hiển thị <span class="font-black text-heading">{{ filteredPeriods.length }}</span> / {{ periods.length }} đợt
+          Hiển thị <span class="font-semibold text-heading">{{ filteredPeriods.length }}</span> / {{ periods.length }} đợt
         </p>
       </div>
 
@@ -226,17 +226,17 @@ const stats = computed(() => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Đợt đăng ký</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thời gian</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Max Credits</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Trạng thái</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Đợt đăng ký</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thời gian</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Max Credits</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Trạng thái</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-[var(--border-default)]">
             <tr v-for="period in filteredPeriods" :key="period.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-4">
-                <p class="text-sm font-black text-heading leading-tight">{{ period.name }}</p>
+                <p class="text-sm font-semibold text-heading leading-tight">{{ period.name }}</p>
                 <p class="text-[11px] font-bold text-[var(--lg-primary)] mt-1 uppercase tracking-tighter">{{ period.semester }}</p>
               </td>
               <td class="px-4 py-4">
@@ -250,10 +250,10 @@ const stats = computed(() => {
                 </div>
               </td>
               <td class="px-4 py-4">
-                <span class="text-sm font-black text-heading">{{ period.maxCredits }} TC</span>
+                <span class="text-sm font-semibold text-heading">{{ period.maxCredits }} TC</span>
               </td>
               <td class="px-4 py-4">
-                <span :class="['px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest', getStatusInfo(period.status).badge]">
+                <span :class="['px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest', getStatusInfo(period.status).badge]">
                   {{ getStatusInfo(period.status).label }}
                 </span>
               </td>
@@ -318,7 +318,7 @@ const stats = computed(() => {
           <div class="h-14 w-14 rounded-3xl surface-input border border-default flex items-center justify-center mb-4">
             <FileText :size="24" class="text-placeholder" />
           </div>
-          <p class="text-base font-black text-heading">Không tìm thấy đợt nào</p>
+          <p class="text-base font-semibold text-heading">Không tìm thấy đợt nào</p>
           <p class="text-sm text-label mt-1">Thử thay đổi từ khóa tìm kiếm.</p>
           <button v-if="searchQuery" class="mt-3 text-sm font-bold text-[var(--lg-primary)] hover:underline" @click="searchQuery = ''">Xóa tìm kiếm</button>
         </div>
@@ -332,7 +332,7 @@ const stats = computed(() => {
                <ShieldCheck :size="20" />
             </div>
             <div>
-              <h4 class="text-sm font-black text-heading">Quy tắc đăng ký</h4>
+              <h4 class="text-sm font-semibold text-heading">Quy tắc đăng ký</h4>
               <ul class="mt-2 space-y-2">
                 <li class="text-xs text-label flex items-start gap-2">
                   <div class="h-1 w-1 rounded-full bg-[var(--lg-primary)] mt-1.5 shrink-0"></div>
@@ -353,7 +353,7 @@ const stats = computed(() => {
                <Settings :size="20" />
             </div>
             <div>
-              <h4 class="text-sm font-black text-heading">Chốt danh sách</h4>
+              <h4 class="text-sm font-semibold text-heading">Chốt danh sách</h4>
               <p class="text-xs text-label mt-2 leading-relaxed">
                 Khi đợt đăng ký kết thúc, hệ thống sẽ tự động chốt danh sách và chuyển các lớp có sĩ số thấp sang trạng thái <strong class="text-heading">PENDING CANCEL</strong> để Giáo vụ xử lý.
               </p>
@@ -385,7 +385,7 @@ const stats = computed(() => {
                   <Plus :size="20" />
                 </div>
                 <div>
-                  <h2 class="text-lg font-black text-heading">Tạo đợt đăng ký mới</h2>
+                  <h2 class="text-lg font-semibold text-heading">Tạo đợt đăng ký mới</h2>
                   <p class="text-xs text-muted mt-0.5">Thiết lập thông tin đợt đăng ký môn học</p>
                 </div>
               </div>
@@ -400,7 +400,7 @@ const stats = computed(() => {
 
           <div class="p-6 space-y-5">
             <div>
-              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">
                 Tên đợt <span class="text-[var(--lg-danger)]">*</span>
               </label>
               <input
@@ -412,7 +412,7 @@ const stats = computed(() => {
             </div>
 
             <div>
-              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Học kỳ</label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Học kỳ</label>
               <select
                 v-model="createForm.semester"
                 class="lg-input w-full px-4 py-2.5 text-sm font-bold"
@@ -425,7 +425,7 @@ const stats = computed(() => {
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">
+                <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">
                   Ngày mở <span class="text-[var(--lg-danger)]">*</span>
                 </label>
                 <input
@@ -436,7 +436,7 @@ const stats = computed(() => {
                 />
               </div>
               <div>
-                <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">
+                <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">
                   Ngày đóng <span class="text-[var(--lg-danger)]">*</span>
                 </label>
                 <input
@@ -449,7 +449,7 @@ const stats = computed(() => {
             </div>
 
             <div>
-              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Hạn hủy môn</label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Hạn hủy môn</label>
                 <input
                   v-model="createForm.withdrawDeadline"
                   type="date"
@@ -459,7 +459,7 @@ const stats = computed(() => {
             </div>
 
             <div>
-              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Max Credits</label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Max Credits</label>
               <input
                 v-model="createForm.maxCredits"
                 type="number"
@@ -513,7 +513,7 @@ const stats = computed(() => {
                   <Edit3 :size="20" />
                 </div>
                 <div>
-                  <h2 class="text-lg font-black text-heading">Chỉnh sửa đợt đăng ký</h2>
+                  <h2 class="text-lg font-semibold text-heading">Chỉnh sửa đợt đăng ký</h2>
                   <p class="text-xs text-muted mt-0.5">{{ editTarget.name }}</p>
                 </div>
               </div>
@@ -528,7 +528,7 @@ const stats = computed(() => {
 
           <div class="p-6 space-y-5">
             <div>
-              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Tên đợt <span class="text-[var(--lg-danger)]">*</span></label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Tên đợt <span class="text-[var(--lg-danger)]">*</span></label>
               <input
                 v-model="editForm.name"
                 type="text"
@@ -537,7 +537,7 @@ const stats = computed(() => {
             </div>
 
             <div>
-              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Học kỳ</label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Học kỳ</label>
               <select
                 v-model="editForm.semester"
                 class="lg-input w-full px-4 py-2.5 text-sm font-bold"
@@ -550,7 +550,7 @@ const stats = computed(() => {
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Ngày mở <span class="text-[var(--lg-danger)]">*</span></label>
+                <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Ngày mở <span class="text-[var(--lg-danger)]">*</span></label>
                 <input
                   v-model="editForm.openDate"
                   type="date"
@@ -559,7 +559,7 @@ const stats = computed(() => {
                 />
               </div>
               <div>
-                <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Ngày đóng <span class="text-[var(--lg-danger)]">*</span></label>
+                <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Ngày đóng <span class="text-[var(--lg-danger)]">*</span></label>
                 <input
                   v-model="editForm.closeDate"
                   type="date"
@@ -570,7 +570,7 @@ const stats = computed(() => {
             </div>
 
             <div>
-              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Hạn hủy môn</label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Hạn hủy môn</label>
               <input
                 v-model="editForm.withdrawDeadline"
                 type="date"
@@ -580,7 +580,7 @@ const stats = computed(() => {
             </div>
 
             <div>
-              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Max Credits</label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Max Credits</label>
               <input
                 v-model="editForm.maxCredits"
                 type="number"
@@ -631,7 +631,7 @@ const stats = computed(() => {
             <div class="h-16 w-16 rounded-3xl bg-[var(--color-success-bg)] flex items-center justify-center text-[var(--color-success-text)] mx-auto mb-4">
               <CheckCircle2 :size="28" />
             </div>
-            <h3 class="text-xl font-black text-heading">Mở đợt đăng ký?</h3>
+            <h3 class="text-xl font-semibold text-heading">Mở đợt đăng ký?</h3>
             <p class="text-sm text-label mt-2 leading-relaxed">
               Bạn sắp mở đợt <strong class="text-heading">{{ openTarget.name }}</strong>.
               Sinh viên sẽ có thể đăng ký môn học ngay khi đợt được mở.

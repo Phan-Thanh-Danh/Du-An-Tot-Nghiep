@@ -53,12 +53,12 @@ const distribution = [
               <div :class="['h-10 w-10 rounded-2xl flex items-center justify-center shadow-sm border border-default', kpi.bgColor, kpi.color]">
                  <component :is="kpi.icon" :size="24" />
               </div>
-              <span :class="['text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg', kpi.trend.includes('+') ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]' : 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]']">
+              <span :class="['text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-lg', kpi.trend.includes('+') ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]' : 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]']">
                  {{ kpi.trend }}
               </span>
            </div>
-           <p class="text-xs font-black text-muted uppercase tracking-widest">{{ kpi.label }}</p>
-           <h3 class="text-xl font-black text-heading mt-1">{{ kpi.value }}</h3>
+           <p class="text-xs font-semibold text-muted uppercase tracking-widest">{{ kpi.label }}</p>
+           <h3 class="text-xl font-semibold text-heading mt-1">{{ kpi.value }}</h3>
         </div>
       </div>
 
@@ -68,12 +68,12 @@ const distribution = [
         <div class="lg:col-span-2 surface-card border border-card rounded-2xl p-5 overflow-hidden relative">
            <div class="flex items-center justify-between mb-10">
               <div>
-                 <h4 class="text-sm font-black text-heading uppercase tracking-wide">Xu hướng GPA theo học kỳ</h4>
+                 <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Xu hướng GPA theo học kỳ</h4>
                  <p class="text-xs text-muted mt-1 font-bold">Dữ liệu so sánh 5 học kỳ gần nhất</p>
               </div>
               <div class="flex items-center surface-solid rounded-xl p-1 border border-default">
-                 <button class="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest surface-card text-link rounded-lg shadow-sm">Toàn trường</button>
-                 <button class="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted hover:text-label transition-colors">Theo ngành</button>
+                 <button class="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest surface-card text-link rounded-lg shadow-sm">Toàn trường</button>
+                 <button class="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted hover:text-label transition-colors">Theo ngành</button>
               </div>
            </div>
 
@@ -90,7 +90,7 @@ const distribution = [
                    :style="{ height: `${h}%` }" 
                    class="w-full bg-[var(--lg-primary)] rounded-t-2xl transition-all duration-500 group-hover:opacity-80"
                  ></div>
-                 <p class="text-center text-[10px] font-black text-muted uppercase mt-4">Kỳ {{ 2021 + i }}</p>
+                 <p class="text-center text-[10px] font-semibold text-muted uppercase mt-4">Kỳ {{ 2021 + i }}</p>
                  <!-- Tooltip -->
                  <div class="absolute -top-10 left-1/2 -translate-x-1/2 surface-modal text-heading text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity border border-default">
                     GPA: {{ (2.5 + (h/40)).toFixed(2) }}
@@ -101,12 +101,12 @@ const distribution = [
 
         <!-- ── Distribution List ── -->
         <div class="surface-card border border-card rounded-2xl p-6">
-           <h4 class="text-sm font-black text-heading uppercase tracking-wide mb-8">Phân phối điểm số</h4>
+           <h4 class="text-sm font-semibold text-heading uppercase tracking-wide mb-8">Phân phối điểm số</h4>
            <div class="space-y-4">
               <div v-for="item in distribution" :key="item.range">
                  <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-black text-label uppercase tracking-tighter">{{ item.range }}</span>
-                    <span class="text-xs font-black text-heading">{{ item.count }} SV ({{ item.percent }}%)</span>
+                    <span class="text-xs font-semibold text-label uppercase tracking-tighter">{{ item.range }}</span>
+                    <span class="text-xs font-semibold text-heading">{{ item.count }} SV ({{ item.percent }}%)</span>
                  </div>
                  <div class="h-2 w-full bg-[var(--surface-input)] rounded-full overflow-hidden">
                     <div 
@@ -135,11 +135,11 @@ const distribution = [
                   <TrendingUp :size="20" />
                </div>
                <div>
-                  <h4 class="text-sm font-black text-heading uppercase tracking-wide">Cảnh báo xu hướng rớt môn</h4>
+                  <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Cảnh báo xu hướng rớt môn</h4>
                   <p class="text-xs text-[var(--color-warning-text)] mt-1 leading-relaxed font-medium">
                     Tỷ lệ rớt môn (Fail) có dấu hiệu tăng <strong>2.4%</strong> so với kỳ trước, tập trung ở các môn cơ sở ngành như Cấu trúc dữ liệu và Toán rời rạc.
                   </p>
-                  <button class="mt-4 text-[10px] font-black text-[var(--color-warning-text)] uppercase tracking-widest flex items-center gap-1 hover:underline">
+                  <button class="mt-4 text-[10px] font-semibold text-[var(--color-warning-text)] uppercase tracking-widest flex items-center gap-1 hover:underline">
                      Xem chi tiết <ChevronRight :size="12" />
                   </button>
                </div>
@@ -151,11 +151,11 @@ const distribution = [
                   <BarChart3 :size="20" />
                </div>
                <div>
-                  <h4 class="text-sm font-black text-heading uppercase tracking-wide">Tối ưu hóa GPA</h4>
+                  <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Tối ưu hóa GPA</h4>
                   <p class="text-xs text-[var(--color-info-text)] mt-1 leading-relaxed font-medium">
                     Nhóm sinh viên năm 3 có sự bứt phá về GPA với mức tăng trung bình <strong>0.3</strong> điểm nhờ vào việc áp dụng các lớp học thực hành mới.
                   </p>
-                  <button class="mt-4 text-[10px] font-black text-[var(--color-info-text)] uppercase tracking-widest flex items-center gap-1 hover:underline">
+                  <button class="mt-4 text-[10px] font-semibold text-[var(--color-info-text)] uppercase tracking-widest flex items-center gap-1 hover:underline">
                      Phân tích dữ liệu <ChevronRight :size="12" />
                   </button>
                </div>

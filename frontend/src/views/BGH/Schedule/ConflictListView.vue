@@ -46,8 +46,8 @@ const getSeverityClass = (severity) => {
               <ShieldAlert :size="24" />
            </div>
            <div>
-              <p class="text-[10px] font-black text-[var(--color-danger-text)] uppercase tracking-widest">Nghiêm trọng</p>
-              <h3 class="text-xl font-black text-heading leading-tight">02</h3>
+              <p class="text-[10px] font-semibold text-[var(--color-danger-text)] uppercase tracking-widest">Nghiêm trọng</p>
+              <h3 class="text-xl font-semibold text-heading leading-tight">02</h3>
            </div>
         </div>
         <div class="surface-card border border-[var(--color-warning-text)]/20 bg-[var(--color-warning-bg)] rounded-2xl p-4 flex items-center gap-5">
@@ -55,8 +55,8 @@ const getSeverityClass = (severity) => {
               <AlertTriangle :size="24" />
            </div>
            <div>
-              <p class="text-[10px] font-black text-[var(--color-warning-text)] uppercase tracking-widest">Trung bình</p>
-              <h3 class="text-xl font-black text-heading leading-tight">01</h3>
+              <p class="text-[10px] font-semibold text-[var(--color-warning-text)] uppercase tracking-widest">Trung bình</p>
+              <h3 class="text-xl font-semibold text-heading leading-tight">01</h3>
            </div>
         </div>
         <div class="surface-card border border-[var(--color-info-text)]/20 bg-[var(--color-info-bg)] rounded-2xl p-4 flex items-center gap-5">
@@ -64,8 +64,8 @@ const getSeverityClass = (severity) => {
               <Zap :size="24" />
            </div>
            <div>
-              <p class="text-[10px] font-black text-[var(--color-info-text)] uppercase tracking-widest">Lỗi nhẹ</p>
-              <h3 class="text-xl font-black text-heading leading-tight">01</h3>
+              <p class="text-[10px] font-semibold text-[var(--color-info-text)] uppercase tracking-widest">Lỗi nhẹ</p>
+              <h3 class="text-xl font-semibold text-heading leading-tight">01</h3>
            </div>
         </div>
       </div>
@@ -81,7 +81,7 @@ const getSeverityClass = (severity) => {
               <Filter :size="18" /> Lọc mức độ
            </button>
         </div>
-        <button class="lg-button-primary py-2.5 px-5 text-sm font-black flex items-center gap-2">
+        <button class="lg-button-primary py-2.5 px-5 text-sm font-semibold flex items-center gap-2">
            <Bell :size="18" /> Yêu cầu GV xử lý tất cả
         </button>
       </div>
@@ -91,22 +91,22 @@ const getSeverityClass = (severity) => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Loại xung đột</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Chi tiết & Đối tượng</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Thời gian</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Mức độ</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default text-right">Thao tác</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Loại xung đột</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Chi tiết & Đối tượng</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Thời gian</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Mức độ</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
             <tr v-for="cf in conflicts" :key="cf.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-3">
-                 <p class="text-sm font-black text-heading leading-tight">{{ cf.type }}</p>
+                 <p class="text-sm font-semibold text-heading leading-tight">{{ cf.type }}</p>
                  <p class="text-[10px] font-bold text-muted mt-1 uppercase tracking-tighter">{{ cf.id }}</p>
               </td>
               <td class="px-4 py-3 max-w-xs">
                  <p class="text-xs text-body leading-relaxed font-medium mb-2">{{ cf.description }}</p>
-                 <div class="flex items-center gap-2 text-[10px] font-black text-link uppercase">
+                 <div class="flex items-center gap-2 text-[10px] font-semibold text-link uppercase">
                     <User v-if="cf.type.includes('giảng viên')" :size="12" />
                     <MapPin v-else :size="12" />
                     {{ cf.affected }}
@@ -118,7 +118,7 @@ const getSeverityClass = (severity) => {
                  </div>
               </td>
               <td class="px-4 py-3">
-                <span :class="['px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border', getSeverityClass(cf.severity)]">
+                <span :class="['px-2 py-0.5 rounded-lg text-[9px] font-semibold uppercase tracking-widest border', getSeverityClass(cf.severity)]">
                   {{ cf.severity }}
                 </span>
               </td>

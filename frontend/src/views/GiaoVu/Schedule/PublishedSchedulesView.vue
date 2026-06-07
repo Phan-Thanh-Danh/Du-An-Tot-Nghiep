@@ -260,7 +260,7 @@ import dayjs from 'dayjs'
             Bộ lọc nâng cao
             <span
               v-if="activeFilterCount > 0"
-              class="inline-flex items-center justify-center h-4 w-4 rounded-full bg-[var(--lg-success)] text-white text-[10px] font-black"
+              class="inline-flex items-center justify-center h-4 w-4 rounded-full bg-[var(--lg-success)] text-white text-[10px] font-semibold"
             >{{ activeFilterCount }}</span>
           </button>
 
@@ -275,7 +275,7 @@ import dayjs from 'dayjs'
         <Transition name="slide-down">
           <div v-if="showFilterPanel" class="pt-3 border-t border-default flex flex-wrap gap-4">
             <div>
-              <p class="text-[10px] font-black uppercase tracking-widest text-placeholder mb-2">Thứ</p>
+              <p class="text-[10px] font-semibold uppercase tracking-widest text-placeholder mb-2">Thứ</p>
               <div class="flex gap-2 flex-wrap">
                 <button
                   v-for="d in ['all', ...DAYS]" :key="d"
@@ -290,7 +290,7 @@ import dayjs from 'dayjs'
               </div>
             </div>
             <div>
-              <p class="text-[10px] font-black uppercase tracking-widest text-placeholder mb-2">Giảng viên</p>
+              <p class="text-[10px] font-semibold uppercase tracking-widest text-placeholder mb-2">Giảng viên</p>
               <div class="flex gap-2 flex-wrap">
                 <button
                   v-for="t in ['all', ...TEACHERS]" :key="t"
@@ -311,7 +311,7 @@ import dayjs from 'dayjs'
       <!-- ── Result count ── -->
       <div class="flex items-center justify-between px-1">
         <p class="text-sm text-label font-semibold">
-          Hiển thị <span class="font-black text-heading">{{ filteredSchedules.length }}</span> / {{ publishedSchedules.length }} buổi học
+          Hiển thị <span class="font-semibold text-heading">{{ filteredSchedules.length }}</span> / {{ publishedSchedules.length }} buổi học
         </p>
       </div>
 
@@ -320,35 +320,35 @@ import dayjs from 'dayjs'
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-[var(--surface-input)]">
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thời gian</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Môn & Lớp</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Giảng viên</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Phòng</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thời gian</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Môn & Lớp</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Giảng viên</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Phòng</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y border-default">
             <tr v-for="item in filteredSchedules" :key="item.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-4">
-                <span :class="['inline-block px-2 py-0.5 rounded-lg text-[10px] font-black border mb-1', getDayClass(item.day)]">
+                <span :class="['inline-block px-2 py-0.5 rounded-lg text-[10px] font-semibold border mb-1', getDayClass(item.day)]">
                   {{ item.day }}
                 </span>
                 <p class="text-xs font-bold text-[var(--lg-primary)]">{{ item.time }}</p>
               </td>
               <td class="px-4 py-4">
-                <p class="text-sm font-black text-heading leading-tight">{{ item.subject }}</p>
+                <p class="text-sm font-semibold text-heading leading-tight">{{ item.subject }}</p>
                 <p class="text-[11px] font-bold text-placeholder mt-0.5 uppercase tracking-tighter">{{ item.class }}</p>
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="h-8 w-8 rounded-full bg-[var(--color-info-bg)] flex items-center justify-center text-[10px] font-black text-[var(--color-info-text)] border border-[var(--color-info-bg)]">
+                  <div class="h-8 w-8 rounded-full bg-[var(--color-info-bg)] flex items-center justify-center text-[10px] font-semibold text-[var(--color-info-text)] border border-[var(--color-info-bg)]">
                     {{ getInitial(item.teacher) }}
                   </div>
                   <span class="text-sm font-bold text-label">{{ item.teacher }}</span>
                 </div>
               </td>
               <td class="px-4 py-4">
-                <span class="text-sm font-black text-heading">{{ item.room }}</span>
+                <span class="text-sm font-semibold text-heading">{{ item.room }}</span>
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-1">
@@ -375,7 +375,7 @@ import dayjs from 'dayjs'
           <div class="h-14 w-14 rounded-3xl surface-input border border-default flex items-center justify-center mb-4">
             <FileText :size="24" class="text-placeholder" />
           </div>
-          <p class="text-base font-black text-heading">Không tìm thấy buổi học nào</p>
+          <p class="text-base font-semibold text-heading">Không tìm thấy buổi học nào</p>
           <p class="text-sm text-label mt-1">Thử thay đổi từ khóa hoặc điều chỉnh bộ lọc.</p>
           <button class="mt-3 text-sm font-bold text-[var(--lg-primary)] hover:underline" @click="clearFilters">Xóa tất cả bộ lọc</button>
         </div>
@@ -393,7 +393,7 @@ import dayjs from 'dayjs'
             Lần cuối cập nhật: 10:30 Hôm nay
           </div>
         </div>
-        <button class="lg-button-secondary px-4 py-2.5 text-xs font-black uppercase tracking-widest flex items-center gap-2" @click="openNotif">
+        <button class="lg-button-secondary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest flex items-center gap-2" @click="openNotif">
           <Bell :size="14" /> Gửi thông báo toàn bộ
         </button>
       </div>
@@ -420,7 +420,7 @@ import dayjs from 'dayjs'
                   <XCircle :size="20" class="text-link" />
                 </div>
                 <div>
-                  <h2 class="text-lg font-black text-heading">Hủy buổi học</h2>
+                  <h2 class="text-lg font-semibold text-heading">Hủy buổi học</h2>
                   <p class="text-xs text-label mt-0.5">Thao tác này sẽ gửi thông báo đến GV & SV</p>
                 </div>
               </div>
@@ -438,14 +438,14 @@ import dayjs from 'dayjs'
               <div class="flex items-center gap-3 mb-3">
                 <BookOpen :size="16" class="text-placeholder" />
                 <div>
-                  <p class="text-sm font-black text-heading">{{ cancelTarget.subject }}</p>
+                  <p class="text-sm font-semibold text-heading">{{ cancelTarget.subject }}</p>
                   <p class="text-xs text-label">{{ cancelTarget.class }} · {{ cancelTarget.day }}, {{ cancelTarget.time }} · {{ cancelTarget.room }}</p>
                 </div>
               </div>
             </div>
 
             <div>
-              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Lý do hủy <span class="text-[var(--lg-danger)]">*</span></label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Lý do hủy <span class="text-[var(--lg-danger)]">*</span></label>
               <textarea
                 v-model="cancelReason"
                 rows="3"
@@ -507,7 +507,7 @@ import dayjs from 'dayjs'
                   <RefreshCw :size="20" class="text-link" />
                 </div>
                 <div>
-                  <h2 class="text-lg font-black text-heading">Tạo lịch học bù</h2>
+                  <h2 class="text-lg font-semibold text-heading">Tạo lịch học bù</h2>
                   <p class="text-xs text-label mt-0.5">Lên lịch học bù cho buổi đã hủy</p>
                 </div>
               </div>
@@ -525,14 +525,14 @@ import dayjs from 'dayjs'
               <div class="flex items-center gap-3">
                 <BookOpen :size="16" class="text-placeholder" />
                 <div>
-                  <p class="text-sm font-black text-heading">{{ makeupTarget.subject }}</p>
+                  <p class="text-sm font-semibold text-heading">{{ makeupTarget.subject }}</p>
                   <p class="text-xs text-label">{{ makeupTarget.class }} · GV: {{ makeupTarget.teacher }}</p>
                 </div>
               </div>
             </div>
 
             <div>
-              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Ngày học bù <span class="text-[var(--lg-danger)]">*</span></label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Ngày học bù <span class="text-[var(--lg-danger)]">*</span></label>
               <input
                 v-model="makeupDate"
                 type="date"
@@ -541,7 +541,7 @@ import dayjs from 'dayjs'
             </div>
 
             <div>
-              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Giờ học bù <span class="text-[var(--lg-danger)]">*</span></label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Giờ học bù <span class="text-[var(--lg-danger)]">*</span></label>
               <input
                 v-model="makeupTime"
                 type="text"
@@ -551,7 +551,7 @@ import dayjs from 'dayjs'
             </div>
 
             <div>
-              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Phòng học</label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Phòng học</label>
               <input
                 v-model="makeupRoom"
                 type="text"
@@ -604,7 +604,7 @@ import dayjs from 'dayjs'
                   <History :size="20" class="text-link" />
                 </div>
                 <div>
-                  <h2 class="text-lg font-black text-heading">Lịch sử thay đổi</h2>
+                  <h2 class="text-lg font-semibold text-heading">Lịch sử thay đổi</h2>
                   <p class="text-xs text-label mt-0.5">{{ historyTarget.subject }} · {{ historyTarget.class }}</p>
                 </div>
               </div>
@@ -632,7 +632,7 @@ import dayjs from 'dayjs'
                 <!-- Content -->
                 <div class="flex-1 -mt-0.5">
                   <div class="flex items-center justify-between">
-                    <p class="text-sm font-black text-heading">{{ log.action }}</p>
+                    <p class="text-sm font-semibold text-heading">{{ log.action }}</p>
                     <p class="text-[10px] font-bold text-placeholder">{{ log.at }}</p>
                   </div>
                   <p class="text-xs font-medium text-label mt-0.5">{{ log.detail }}</p>
@@ -645,7 +645,7 @@ import dayjs from 'dayjs'
               <div class="h-12 w-12 rounded-2xl surface-input border border-default flex items-center justify-center mx-auto mb-3">
                 <Info :size="20" class="text-placeholder" />
               </div>
-              <p class="text-sm font-black text-heading">Chưa có lịch sử thay đổi</p>
+              <p class="text-sm font-semibold text-heading">Chưa có lịch sử thay đổi</p>
               <p class="text-xs text-label mt-1">Buổi học này chưa có thay đổi nào được ghi nhận.</p>
             </div>
           </div>
@@ -681,7 +681,7 @@ import dayjs from 'dayjs'
                   <Bell :size="20" class="text-link" />
                 </div>
                 <div>
-                  <h2 class="text-lg font-black text-heading">Gửi thông báo</h2>
+                  <h2 class="text-lg font-semibold text-heading">Gửi thông báo</h2>
                   <p class="text-xs text-label mt-0.5">Thông báo đến toàn bộ GV & SV liên quan</p>
                 </div>
               </div>
@@ -696,7 +696,7 @@ import dayjs from 'dayjs'
 
           <div class="p-6 space-y-5">
             <div>
-              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Tiêu đề</label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Tiêu đề</label>
               <input
                 v-model="notifTitle"
                 type="text"
@@ -705,7 +705,7 @@ import dayjs from 'dayjs'
             </div>
 
             <div>
-              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Nội dung <span class="text-[var(--lg-danger)]">*</span></label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Nội dung <span class="text-[var(--lg-danger)]">*</span></label>
               <textarea
                 v-model="notifContent"
                 rows="4"
@@ -720,7 +720,7 @@ import dayjs from 'dayjs'
                   <Send :size="18" />
                 </div>
                 <div>
-                  <p class="text-sm font-black text-heading">{{ totalPublished }} buổi học</p>
+                  <p class="text-sm font-semibold text-heading">{{ totalPublished }} buổi học</p>
                   <p class="text-xs text-label mt-0.5">Sẽ gửi thông báo đến tất cả giảng viên và sinh viên có liên quan.</p>
                 </div>
               </div>

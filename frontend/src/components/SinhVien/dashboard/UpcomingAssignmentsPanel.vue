@@ -11,20 +11,20 @@ defineProps({
 })
 
 const priorityClass = {
-  high: 'bg-red-500',
-  medium: 'bg-amber-500',
-  low: 'bg-emerald-500',
+  high: 'bg-[var(--color-danger-text)]',
+  medium: 'bg-[var(--color-warning-text)]',
+  low: 'bg-[var(--color-success-text)]',
 }
 </script>
 
 <template>
-  <GlassPanel density="none" class="rounded-[28px]">
-    <div class="flex items-center justify-between gap-3 border-b border-white/45 dark:border-white/10 px-4 py-3.5">
+  <GlassPanel variant="strong" density="none" class="rounded-2xl">
+    <div class="flex items-center justify-between gap-3 border-b border-card px-4 py-3.5">
       <div>
-        <h2 class="text-base font-bold text-slate-950 dark:text-slate-100">Bài tập sắp hạn</h2>
-        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Deadline gần nhất</p>
+        <h2 class="text-base font-semibold text-heading">Bài tập sắp hạn</h2>
+        <p class="text-xs font-medium text-body">Deadline gần nhất</p>
       </div>
-      <ClipboardList :size="18" class="text-blue-600 dark:text-blue-400" />
+      <ClipboardList :size="18" class="text-link" />
     </div>
 
     <div class="space-y-2 p-4">
@@ -37,22 +37,22 @@ const priorityClass = {
         <span :class="['mt-2 h-2 w-2 flex-shrink-0 rounded-full shadow-sm', priorityClass[assignment.priority]]" />
         <div class="min-w-0 flex-1">
           <div class="flex items-start justify-between gap-2">
-            <h3 class="min-w-0 flex-1 truncate text-[13px] font-bold leading-tight text-slate-950 dark:text-slate-100">{{ assignment.title }}</h3>
+            <h3 class="min-w-0 flex-1 truncate text-[13px] font-semibold leading-tight text-heading">{{ assignment.title }}</h3>
             <GlassBadge :variant="assignment.variant" size="sm">{{ assignment.status }}</GlassBadge>
           </div>
           <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ assignment.course }}</p>
+            <p class="text-xs font-medium text-body">{{ assignment.course }}</p>
             <p class="inline-flex items-center gap-1.5 text-xs font-semibold" :class="[
-              assignment.variant === 'danger' ? 'text-red-700 dark:text-red-400' :
-              assignment.variant === 'success' ? 'text-emerald-700 dark:text-emerald-400' :
-              'text-amber-700 dark:text-amber-400'
+              assignment.variant === 'danger' ? 'text-[var(--color-danger-text)]' :
+              assignment.variant === 'success' ? 'text-[var(--color-success-text)]' :
+              'text-[var(--color-warning-text)]'
             ]">
               <AlertCircle :size="11" />
               {{ assignment.deadline }}
             </p>
           </div>
         </div>
-        <ArrowRight :size="12" class="mt-1 text-slate-300 dark:text-slate-600 transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+        <ArrowRight :size="12" class="mt-1 text-placeholder transition-colors group-hover:text-link" />
       </router-link>
     </div>
   </GlassPanel>

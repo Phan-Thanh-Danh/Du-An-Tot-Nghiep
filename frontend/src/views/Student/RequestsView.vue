@@ -200,7 +200,7 @@ const formatDate = (date) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', 
                   <component :is="statusConfig[activeRequest.status].icon" :size="14" />
                   {{ statusConfig[activeRequest.status].label }}
                 </span>
-                <h2 class="text-xl font-bold text-heading">{{ activeRequest.type }}</h2>
+                <h2 class="text-xl font-semibold text-heading">{{ activeRequest.type }}</h2>
                 <div class="text-sm text-muted mt-1">Mã đơn: {{ activeRequest.id }} • Nộp lúc: {{ formatDate(activeRequest.createdAt) }}</div>
               </div>
             </div>
@@ -229,7 +229,7 @@ const formatDate = (date) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', 
             <div class="info-section mt-6">
               <h3 class="section-title">Kết quả xử lý</h3>
               <div class="response-box" :class="`resp-${activeRequest.status}`">
-                <div class="flex items-center gap-2 font-bold mb-2">
+                <div class="flex items-center gap-2 font-semibold mb-2">
                   <Info :size="16"/>
                   Người tiếp nhận: {{ activeRequest.processor }}
                 </div>
@@ -280,12 +280,12 @@ const formatDate = (date) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', 
               </div>
 
               <div class="form-group mb-4" v-if="['Xin nghỉ học / Vắng thi', 'Phúc khảo điểm', 'Rút môn học'].includes(newReq.type)">
-                <label>Môn học liên quan <span class="text-red-500">*</span></label>
+                <label>Môn học liên quan <span class="text-[var(--color-danger-text)]">*</span></label>
                 <input v-model="newReq.subject" type="text" class="input-glass" placeholder="Nhập tên môn học..." />
               </div>
 
               <div class="form-group mb-4">
-                <label>Nội dung / Lý do chi tiết <span class="text-red-500">*</span></label>
+                <label>Nội dung / Lý do chi tiết <span class="text-[var(--color-danger-text)]">*</span></label>
                 <textarea v-model="newReq.reason" class="input-glass" rows="4" placeholder="Trình bày rõ lý do của bạn..."></textarea>
               </div>
 
@@ -336,7 +336,7 @@ const formatDate = (date) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', 
   width: 380px;
   background: var(--surface-card); border: 1px solid var(--border-card);
   border-radius: 20px; display: flex; flex-direction: column;
-  box-shadow: 0 4px 20px rgba(15,23,42,.05); backdrop-filter: saturate(160%) blur(16px);
+  box-shadow: var(--lg-shadow-sm); backdrop-filter: saturate(160%) blur(16px);
   overflow: hidden;
 }
 
@@ -349,7 +349,7 @@ const formatDate = (date) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', 
 .custom-select { position: relative; z-index: 11; flex: 1; }
 .select-trigger { display: flex; align-items: center; justify-content: space-between; padding: .6rem .75rem; border-radius: 10px; border: 1px solid var(--border-input); background: var(--surface-input); font-size: .8125rem; font-weight: 600; color: var(--text-label); cursor: pointer; transition: all .2s; user-select: none; }
 .select-trigger:hover { border-color: var(--border-input-focus); color: var(--text-link); }
-.select-menu { position: absolute; top: calc(100% + .5rem); left: 0; width: 100%; min-width: 140px; background: var(--surface-dropdown); backdrop-filter: saturate(180%) blur(24px); border: 1px solid var(--border-card); border-radius: 16px; padding: .4rem; box-shadow: 0 10px 30px rgba(15,23,42,.12); display: flex; flex-direction: column; gap: .2rem; overflow: hidden; }
+.select-menu { position: absolute; top: calc(100% + .5rem); left: 0; width: 100%; min-width: 140px; background: var(--surface-dropdown); backdrop-filter: saturate(180%) blur(24px); border: 1px solid var(--border-card); border-radius: 16px; padding: .4rem; box-shadow: var(--lg-shadow-md); display: flex; flex-direction: column; gap: .2rem; overflow: hidden; }
 .select-option { padding: .6rem .75rem; border-radius: 10px; font-size: .8125rem; font-weight: 500; color: var(--text-body); cursor: pointer; transition: all .15s; }
 .select-option:hover { background: var(--surface-input); color: var(--text-link); padding-left: 1rem; }
 .select-option.selected { background: var(--color-info-bg); color: var(--color-info-text); font-weight: 700; }
@@ -357,7 +357,7 @@ const formatDate = (date) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', 
 .list-cards { flex: 1; overflow-y: auto; padding: .75rem; display: flex; flex-direction: column; gap: .5rem; }
 .list-card { background: var(--surface-solid); border: 1px solid var(--border-default); border-radius: 12px; padding: 1rem; cursor: pointer; transition: all .2s; }
 .list-card:hover { border-color: var(--border-input-focus); }
-.list-card.active-card { background: var(--surface-card); border-color: var(--border-input-focus); box-shadow: 0 4px 12px rgba(37,99,235,.1); }
+.list-card.active-card { background: var(--surface-card); border-color: var(--border-input-focus); box-shadow: 0 4px 12px var(--accent-primary-soft); }
 
 .lc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
 .lc-id { font-size: .75rem; font-weight: 700; color: var(--text-muted); background: var(--surface-input); padding: .2rem .5rem; border-radius: 6px; }
@@ -370,7 +370,7 @@ const formatDate = (date) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', 
 .detail-panel {
   flex: 1; background: var(--surface-card); border: 1px solid var(--border-card);
   border-radius: 20px; display: flex; flex-direction: column;
-  box-shadow: 0 4px 20px rgba(15,23,42,.05); backdrop-filter: saturate(160%) blur(16px);
+  box-shadow: var(--lg-shadow-sm); backdrop-filter: saturate(160%) blur(16px);
   overflow: hidden;
 }
 
@@ -394,7 +394,7 @@ const formatDate = (date) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', 
 
 /* Timeline Sidebar */
 .timeline { position: relative; padding-left: 8px; margin-top: .5rem; }
-.timeline::before { content: ''; position: absolute; left: 11px; top: 0; bottom: 0; width: 2px; background: rgba(148,163,184,.2); }
+.timeline::before { content: ''; position: absolute; left: 11px; top: 0; bottom: 0; width: 2px; background: var(--border-default); }
 .tl-item { position: relative; margin-bottom: 1.25rem; }
 .tl-dot { position: absolute; left: 0; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--text-link); border: 2px solid var(--surface-card); box-sizing: content-box; }
 .tl-content { padding-left: 1.5rem; }
@@ -411,20 +411,20 @@ const formatDate = (date) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', 
 
 /* Buttons */
 .btn-primary, .btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; padding: .6rem 1.2rem; border-radius: 10px; font-size: .8125rem; font-weight: 700; cursor: pointer; border: none; transition: all .15s; outline: none; }
-.btn-primary { background: #2563eb; color: #fff; box-shadow: 0 4px 14px rgba(37,99,235,.25); }
-.btn-primary:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); }
+.btn-primary { background: var(--text-link); color: var(--text-inverse); box-shadow: 0 4px 14px color-mix(in srgb, var(--text-link) 25%, transparent); }
+.btn-primary:hover:not(:disabled) { background: var(--lg-primary-dark); transform: translateY(-1px); }
 .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
 .btn-secondary { background: var(--surface-input); color: var(--text-label); border: 1px solid var(--border-input); }
 .btn-secondary:hover { border-color: var(--border-input-focus); color: var(--text-heading); }
 
 /* Modals */
-.modal-overlay { position: fixed; inset: 0; z-index: 9998; background: rgba(15,23,42,.4); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 1rem; }
-.modal-content { position: relative; z-index: 9999; background: var(--surface-modal); backdrop-filter: saturate(180%) blur(24px); width: 100%; border-radius: 24px; box-shadow: 0 24px 80px rgba(2,6,23,.32); overflow: hidden; border: 1px solid var(--border-card); }
+.modal-overlay { position: fixed; inset: 0; z-index: 9998; background: color-mix(in srgb, var(--text-heading) 40%, transparent); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.modal-content { position: relative; z-index: 9999; background: var(--surface-modal); backdrop-filter: saturate(180%) blur(24px); width: 100%; border-radius: 24px; box-shadow: 0 24px 80px color-mix(in srgb, var(--text-heading) 32%, transparent); overflow: hidden; border: 1px solid var(--border-card); }
 .modal-content.lg { max-width: 600px; }
 .modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center; }
 .modal-header h3 { margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--text-heading); }
-.close-btn-sm { background: transparent; border: none; color: #94a3b8; cursor: pointer; display: flex; transition: color .15s; }
-.close-btn-sm:hover { color: #ef4444; }
+.close-btn-sm { background: transparent; border: none; color: var(--text-placeholder); cursor: pointer; display: flex; transition: color .15s; }
+.close-btn-sm:hover { color: var(--color-danger-text); }
 .modal-body { padding: 1.5rem; display: flex; flex-direction: column; }
 .modal-footer { padding: 1.25rem 1.5rem; border-top: 1px solid var(--border-default); display: flex; justify-content: flex-end; gap: .75rem; background: var(--surface-solid); }
 

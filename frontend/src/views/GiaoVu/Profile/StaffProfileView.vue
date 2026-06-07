@@ -58,27 +58,27 @@ const loginHistory = ref([
               </div>
            </div>
 
-            <h3 class="text-lg font-black text-heading leading-tight">{{ profile.name }}</h3>
-            <p class="text-[10px] font-black text-link uppercase tracking-[0.2em] mt-1">{{ profile.code }}</p>
+            <h3 class="text-lg font-semibold text-heading leading-tight">{{ profile.name }}</h3>
+            <p class="text-[10px] font-semibold text-link uppercase tracking-[0.2em] mt-1">{{ profile.code }}</p>
 
            <div class="mt-5 flex flex-col gap-3">
                <div class="flex items-center gap-2 p-3 surface-solid rounded-xl border-default">
                   <ShieldCheck :size="14" class="text-body" />
                   <div class="text-left">
-                     <p class="text-[8px] font-black text-label uppercase tracking-widest">Chức danh</p>
+                     <p class="text-[8px] font-semibold text-label uppercase tracking-widest">Chức danh</p>
                      <p class="text-[11px] font-bold text-heading">{{ profile.role }}</p>
                   </div>
                </div>
                <div class="flex items-center gap-2 p-3 surface-solid rounded-xl border-default">
                   <MapPin :size="14" class="text-body" />
                   <div class="text-left">
-                     <p class="text-[8px] font-black text-label uppercase tracking-widest">Cơ sở làm việc</p>
+                     <p class="text-[8px] font-semibold text-label uppercase tracking-widest">Cơ sở làm việc</p>
                      <p class="text-[11px] font-bold text-heading">{{ profile.campus }}</p>
                  </div>
               </div>
            </div>
 
-           <button class="w-full mt-5 lg-button-primary py-3 text-xs font-black flex items-center justify-center gap-2">
+           <button class="w-full mt-5 lg-button-primary py-3 text-xs font-semibold flex items-center justify-center gap-2">
               <Edit3 :size="14" /> CHỈNH SỬA HỒ SƠ
            </button>
         </div>
@@ -87,12 +87,12 @@ const loginHistory = ref([
         <div class="surface-card border border-card rounded-2xl p-3">
            <div class="grid grid-cols-2 gap-3">
                <div class="p-3 surface-solid rounded-xl border border-default shadow-sm">
-                  <p class="text-[8px] font-black text-label uppercase tracking-widest">Ngày tham gia</p>
-                  <p class="text-xs font-black text-heading mt-0.5">{{ profile.joinDate }}</p>
+                  <p class="text-[8px] font-semibold text-label uppercase tracking-widest">Ngày tham gia</p>
+                  <p class="text-xs font-semibold text-heading mt-0.5">{{ profile.joinDate }}</p>
                </div>
                <div class="p-3 surface-solid rounded-xl border border-default shadow-sm">
-                  <p class="text-[8px] font-black text-label uppercase tracking-widest">Trạng thái</p>
-                  <p class="text-xs font-black text-[var(--color-success-text)] mt-0.5 flex items-center gap-1.5">
+                  <p class="text-[8px] font-semibold text-label uppercase tracking-widest">Trạng thái</p>
+                  <p class="text-xs font-semibold text-[var(--color-success-text)] mt-0.5 flex items-center gap-1.5">
                      <span class="h-1.5 w-1.5 rounded-full bg-[var(--color-success-text)]"></span> Active
                  </p>
               </div>
@@ -106,7 +106,7 @@ const loginHistory = ref([
          <!-- Contact & Security Section -->
          <div class="surface-card border border-card rounded-2xl overflow-hidden">
              <div class="p-4 border-b border-default flex items-center justify-between">
-                <h4 class="text-xs font-black text-heading uppercase tracking-wide">Thông tin liên hệ & Bảo mật</h4>
+                <h4 class="text-xs font-semibold text-heading uppercase tracking-wide">Thông tin liên hệ & Bảo mật</h4>
                 <ShieldAlert :size="16" class="text-[var(--color-warning-text)]" />
             </div>
 
@@ -119,7 +119,7 @@ const loginHistory = ref([
                             <Mail :size="16" />
                          </div>
                          <div>
-                            <p class="text-[9px] font-black text-label uppercase tracking-widest mb-0.5">Email học vụ</p>
+                            <p class="text-[9px] font-semibold text-label uppercase tracking-widest mb-0.5">Email học vụ</p>
                             <p class="text-xs font-bold text-heading">{{ profile.email }}</p>
                          </div>
                       </div>
@@ -128,7 +128,7 @@ const loginHistory = ref([
                             <Phone :size="16" />
                          </div>
                          <div>
-                            <p class="text-[9px] font-black text-label uppercase tracking-widest mb-0.5">Số điện thoại</p>
+                            <p class="text-[9px] font-semibold text-label uppercase tracking-widest mb-0.5">Số điện thoại</p>
                             <p class="text-xs font-bold text-heading">{{ profile.phone }}</p>
                         </div>
                      </div>
@@ -139,16 +139,16 @@ const loginHistory = ref([
                          <div class="h-8 w-8 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-link shadow-sm">
                             <KeyRound :size="16" />
                          </div>
-                         <button class="text-[9px] font-black text-link uppercase tracking-widest lg-button-ghost px-2 py-1 rounded-lg shadow-sm transition-all">Thay đổi</button>
+                         <button class="text-[9px] font-semibold text-link uppercase tracking-widest lg-button-ghost px-2 py-1 rounded-lg shadow-sm transition-all">Thay đổi</button>
                       </div>
-                      <h5 class="text-xs font-black text-heading mb-0.5">Mật khẩu tài khoản</h5>
+                      <h5 class="text-xs font-semibold text-heading mb-0.5">Mật khẩu tài khoản</h5>
                       <p class="text-[10px] text-body leading-relaxed font-medium">Nên thay đổi mật khẩu định kỳ 6 tháng một lần.</p>
                   </div>
                </div>
 
                <!-- Login History -->
                <div>
-                   <h4 class="text-[10px] font-black text-label uppercase tracking-widest mb-3 flex items-center gap-2">
+                   <h4 class="text-[10px] font-semibold text-label uppercase tracking-widest mb-3 flex items-center gap-2">
                       <Clock :size="14" /> Lịch sử đăng nhập
                    </h4>
                    <div class="space-y-2">
@@ -159,11 +159,11 @@ const loginHistory = ref([
                                <ChevronRight v-else :size="12" />
                             </div>
                             <div>
-                               <p class="text-[11px] font-black text-heading">{{ log.device }}</p>
+                               <p class="text-[11px] font-semibold text-heading">{{ log.device }}</p>
                                <p class="text-[9px] font-bold text-label mt-0.5">IP: {{ log.ip }} • {{ log.time }}</p>
                             </div>
                          </div>
-                         <span v-if="log.status === 'current'" class="text-[8px] font-black text-[var(--color-success-text)] uppercase tracking-widest bg-[var(--color-success-bg)] px-1.5 py-0.5 rounded-lg border border-[var(--color-success-text)]/20">Hiện tại</span>
+                         <span v-if="log.status === 'current'" class="text-[8px] font-semibold text-[var(--color-success-text)] uppercase tracking-widest bg-[var(--color-success-bg)] px-1.5 py-0.5 rounded-lg border border-[var(--color-success-text)]/20">Hiện tại</span>
                      </div>
                   </div>
                </div>
@@ -178,11 +178,11 @@ const loginHistory = ref([
                      <LogOut :size="16" />
                   </div>
                   <div>
-                     <h4 class="text-xs font-black text-heading">Đăng xuất tài khoản</h4>
+                     <h4 class="text-xs font-semibold text-heading">Đăng xuất tài khoản</h4>
                      <p class="text-[10px] text-[var(--color-danger-text)] mt-0.5 font-medium">Kết thúc phiên làm việc hiện tại.</p>
                   </div>
                </div>
-               <button class="px-3 py-2 lg-btn-danger rounded-xl text-[10px] font-black transition-all">ĐĂNG XUẤT</button>
+               <button class="px-3 py-2 lg-btn-danger rounded-xl text-[10px] font-semibold transition-all">ĐĂNG XUẤT</button>
            </div>
         </div>
 

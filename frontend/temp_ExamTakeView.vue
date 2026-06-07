@@ -299,11 +299,17 @@ function submitExam() {
 }
 
 .glass-card {
-  background: var(--surface-card);
-  border: 1px solid var(--border-card);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 20px;
   backdrop-filter: saturate(160%) blur(16px);
-  box-shadow: var(--lg-shadow-sm);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+}
+
+:global(.dark) .glass-card {
+  background: rgba(20, 30, 48, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 12px 40px rgba(2, 6, 23, 0.4);
 }
 
 /* Header Strip */
@@ -332,11 +338,16 @@ function submitExam() {
   display: inline-block;
   font-size: 0.65rem;
   font-weight: 900;
-  background: var(--accent-primary-soft);
-  color: var(--text-link);
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
   padding: 0.2rem 0.5rem;
   border-radius: 6px;
   text-transform: uppercase;
+}
+
+:global(.dark) .badge-exam {
+  background: rgba(96, 165, 250, 0.16);
+  color: #60a5fa;
 }
 
 .exam-timer-block {
@@ -344,23 +355,23 @@ function submitExam() {
   align-items: center;
   gap: 0.75rem;
   padding: 0.65rem 1rem;
-  background: var(--accent-primary-soft);
-  border: 1px solid color-mix(in srgb, var(--text-link) 15%, transparent);
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.15);
   border-radius: 14px;
 }
 
 .exam-timer-block.warning {
-  background: var(--color-danger-bg);
-  border-color: color-mix(in srgb, var(--color-danger-text) 20%, transparent);
-  color: var(--color-danger-text);
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.2);
+  color: #dc2626;
 }
 
 .timer-icon {
-  color: var(--text-link);
+  color: #2563eb;
 }
 
 .exam-timer-block.warning .timer-icon {
-  color: var(--color-danger-text);
+  color: #dc2626;
   animation: pulse 1s infinite alternate;
 }
 
@@ -439,9 +450,9 @@ function submitExam() {
 }
 
 .flag-btn.active {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
-  border-color: color-mix(in srgb, var(--color-warning-text) 25%, transparent);
+  background: rgba(217, 119, 6, 0.12);
+  color: #d97706;
+  border-color: rgba(217, 119, 6, 0.25);
 }
 
 .question-content {
@@ -482,9 +493,15 @@ function submitExam() {
 }
 
 .choice-card.selected {
-  background: var(--accent-primary-soft);
-  border-color: var(--text-link);
-  color: var(--text-link);
+  background: rgba(37, 99, 235, 0.08);
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+:global(.dark) .choice-card.selected {
+  background: rgba(96, 165, 250, 0.12);
+  border-color: #60a5fa;
+  color: #60a5fa;
 }
 
 .choice-prefix {
@@ -502,9 +519,15 @@ function submitExam() {
 }
 
 .choice-card.selected .choice-prefix {
-  background: var(--text-link);
-  color: var(--text-inverse);
-  border-color: var(--text-link);
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+:global(.dark) .choice-card.selected .choice-prefix {
+  background: #60a5fa;
+  color: #0f172a;
+  border-color: #60a5fa;
 }
 
 .choice-prefix-square {
@@ -522,9 +545,9 @@ function submitExam() {
 }
 
 .choice-card.selected .choice-prefix-square {
-  background: var(--text-link);
-  color: var(--text-inverse);
-  border-color: var(--text-link);
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
 }
 
 .choice-text {
@@ -624,7 +647,7 @@ function submitExam() {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--lg-primary), var(--lg-cyan));
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
   border-radius: inherit;
   transition: width 0.3s ease;
 }
@@ -655,19 +678,25 @@ function submitExam() {
 }
 
 .grid-question-btn.active {
-  border-color: var(--text-link);
-  background: var(--accent-primary-soft);
-  color: var(--text-link);
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
 }
 
 .grid-question-btn.answered {
-  background: var(--text-link);
-  color: var(--text-inverse);
-  border-color: var(--text-link);
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+:global(.dark) .grid-question-btn.answered {
+  background: #60a5fa;
+  color: #0f172a;
+  border-color: #60a5fa;
 }
 
 .grid-question-btn.flagged {
-  border-color: var(--color-warning-text);
+  border-color: #d97706;
 }
 
 .flag-dot {
@@ -676,7 +705,7 @@ function submitExam() {
   right: 3px;
   width: 5px;
   height: 5px;
-  background: var(--color-warning-text);
+  background: #d97706;
   border-radius: 50%;
 }
 
@@ -695,18 +724,18 @@ function submitExam() {
   min-height: 2.75rem;
   border: 0;
   border-radius: 14px;
-  background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-primary));
-  color: var(--text-inverse);
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  color: #ffffff;
   font-weight: 850;
   font-size: 0.85rem;
   cursor: pointer;
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--text-link) 25%, transparent);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn-submit-exam:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 28px color-mix(in srgb, var(--text-link) 35%, transparent);
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.35);
 }
 
 .submit-info-text {
@@ -720,10 +749,10 @@ function submitExam() {
 .confirm-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: var(--z-modal);
+  z-index: 100;
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--text-heading) 50%, transparent);
+  background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(8px);
   padding: 1rem;
 }
@@ -748,8 +777,8 @@ function submitExam() {
   height: 3.25rem;
   margin: 0 auto 1rem;
   border-radius: 16px;
-  background: var(--accent-primary-soft);
-  color: var(--text-link);
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
 }
 
 .confirm-modal h2 {
@@ -794,12 +823,12 @@ function submitExam() {
 
 .btn-confirm {
   border: 0;
-  background: var(--text-link);
-  color: var(--text-inverse);
+  background: #2563eb;
+  color: #ffffff;
 }
 
 .btn-confirm:hover {
-  background: var(--lg-primary-dark);
+  background: #1d4ed8;
 }
 
 @media (max-width: 768px) {
@@ -808,3 +837,4 @@ function submitExam() {
   }
 }
 </style>
+

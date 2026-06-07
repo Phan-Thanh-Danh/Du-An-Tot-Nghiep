@@ -2,10 +2,10 @@
   <div class="space-y-4 pb-10">
     
     <!-- ── Welcome Hero ── -->
-    <div class="rounded-2xl surface-card border border-card p-5">
+    <div class="rounded-2xl surface-card border border-card p-4">
       <div class="flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="max-w-xl text-center md:text-left">
-          <h1 class="text-lg md:text-2xl font-extrabold leading-tight tracking-tight text-heading">
+          <h1 class="text-lg md:text-2xl font-semibold leading-tight tracking-tight text-heading">
             Tổng quan Ban giám hiệu
           </h1>
           <p class="mt-2 text-muted text-sm">
@@ -21,8 +21,8 @@
           </div>
         </div>
         <div class="hidden lg:block">
-          <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-info-bg)] border border-[var(--color-info-text)]/20">
-            <GraduationCap :size="28" class="text-[var(--color-info-text)]" />
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-info-bg)]/70 border border-[var(--color-info-text)]/20">
+            <GraduationCap :size="22" class="text-[var(--color-info-text)]/70" />
           </div>
         </div>
       </div>
@@ -44,7 +44,7 @@
         </div>
         <div class="mt-5">
           <p class="text-sm font-medium text-muted">{{ item.label }}</p>
-          <p class="mt-1 text-xl font-black text-heading">{{ item.value }}</p>
+          <p class="mt-1 text-xl font-semibold text-heading">{{ item.value }}</p>
         </div>
       </div>
     </div>
@@ -73,7 +73,7 @@
                  <p class="text-xs text-muted">{{ teacher.department }}</p>
                </div>
                <div class="text-right">
-                 <div class="flex items-center justify-end gap-1 text-sm font-black text-heading">
+                 <div class="flex items-center justify-end gap-1 text-sm font-semibold text-heading">
                     <Star class="w-3.5 h-3.5 text-[var(--color-warning-text)]" fill="currentColor" /> {{ teacher.rating }}
                  </div>
                  <p class="text-[10px] text-muted">{{ teacher.reviews }} lượt</p>

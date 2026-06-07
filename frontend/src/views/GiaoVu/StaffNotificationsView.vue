@@ -131,7 +131,7 @@ onMounted(loadNotifications)
         <div class="h-16 w-16 rounded-2xl surface-solid flex items-center justify-center mb-4">
           <Bell :size="28" class="text-placeholder" />
         </div>
-        <p class="text-sm font-black text-heading">Không có thông báo nào</p>
+        <p class="text-sm font-semibold text-heading">Không có thông báo nào</p>
         <p class="text-xs font-medium text-placeholder mt-1">Bạn sẽ nhận được thông báo khi có cập nhật mới.</p>
       </div>
 

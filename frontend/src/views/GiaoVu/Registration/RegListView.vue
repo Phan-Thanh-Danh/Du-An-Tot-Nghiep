@@ -331,7 +331,7 @@ const getStatusLabel = (status) => {
         <div class="flex items-center gap-3">
           <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold relative" @click.stop="showFilters = !showFilters">
             <Filter :size="18" /> Lọc nâng cao
-            <span v-if="activeFilterCount > 0" class="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[var(--lg-primary)] text-white text-[9px] font-black flex items-center justify-center">{{ activeFilterCount }}</span>
+            <span v-if="activeFilterCount > 0" class="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[var(--lg-primary)] text-white text-[9px] font-semibold flex items-center justify-center">{{ activeFilterCount }}</span>
           </button>
         </div>
       </div>
@@ -347,7 +347,7 @@ const getStatusLabel = (status) => {
       >
         <div v-if="showFilters" class="lg-glass-strong p-5 rounded-[20px] space-y-3">
           <div class="flex flex-wrap items-center gap-3">
-            <span class="text-[10px] font-black text-label uppercase tracking-widest min-w-[70px]">Trạng thái:</span>
+            <span class="text-[10px] font-semibold text-label uppercase tracking-widest min-w-[70px]">Trạng thái:</span>
             <div class="flex gap-1.5 flex-wrap">
               <button v-for="s in ['all','enrolled','waitlist','dropped']" :key="s"
                 @click="filterStatus = s"
@@ -356,7 +356,7 @@ const getStatusLabel = (status) => {
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-3">
-            <span class="text-[10px] font-black text-label uppercase tracking-widest min-w-[70px]">Loại ĐK:</span>
+            <span class="text-[10px] font-semibold text-label uppercase tracking-widest min-w-[70px]">Loại ĐK:</span>
             <div class="flex gap-1.5 flex-wrap">
               <button v-for="t in ['all','new','retake']" :key="t"
                 @click="filterType = t"
@@ -365,7 +365,7 @@ const getStatusLabel = (status) => {
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-3">
-            <span class="text-[10px] font-black text-label uppercase tracking-widest min-w-[70px]">Điều kiện:</span>
+            <span class="text-[10px] font-semibold text-label uppercase tracking-widest min-w-[70px]">Điều kiện:</span>
             <div class="flex gap-1.5 flex-wrap">
               <button v-for="p in ['all','pass','fail']" :key="p"
                 @click="filterPrereq = p"
@@ -386,36 +386,36 @@ const getStatusLabel = (status) => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Sinh viên</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Lớp & Môn</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Prereq</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Trạng thái</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Sinh viên</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Lớp & Môn</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Prereq</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Trạng thái</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
             <tr v-for="en in filteredEnrollments" :key="en.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-4">
-                <p class="text-sm font-black text-heading">{{ en.student }}</p>
+                <p class="text-sm font-semibold text-heading">{{ en.student }}</p>
                 <p class="text-[11px] font-bold text-placeholder mt-0.5">{{ en.studentCode }}</p>
               </td>
               <td class="px-4 py-4">
-                <p class="text-sm font-black text-heading leading-tight">{{ en.subject }}</p>
+                <p class="text-sm font-semibold text-heading leading-tight">{{ en.subject }}</p>
                 <div class="flex items-center gap-2 mt-1">
-                  <span class="text-[10px] font-black text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ en.section }}</span>
+                  <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ en.section }}</span>
                   <span v-if="en.type === 'retake'" class="text-[9px] font-bold text-[var(--lg-warning)] border border-default px-1.5 py-0.5 rounded uppercase tracking-tighter">Học lại</span>
                 </div>
               </td>
               <td class="px-4 py-4">
                  <div v-if="en.prereq === 'pass'" class="text-[var(--lg-success)] flex items-center gap-1.5">
-                    <CheckCircle2 :size="16" /> <span class="text-[10px] font-black uppercase tracking-widest">Hợp lệ</span>
+                    <CheckCircle2 :size="16" /> <span class="text-[10px] font-semibold uppercase tracking-widest">Hợp lệ</span>
                  </div>
                  <div v-else class="text-[var(--lg-danger)] flex items-center gap-1.5">
-                    <XCircle :size="16" /> <span class="text-[10px] font-black uppercase tracking-widest">Thiếu ĐK</span>
+                    <XCircle :size="16" /> <span class="text-[10px] font-semibold uppercase tracking-widest">Thiếu ĐK</span>
                  </div>
               </td>
               <td class="px-4 py-4">
-                <span :class="['px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border', getStatusBadge(en.status)]">
+                <span :class="['px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest border', getStatusBadge(en.status)]">
                   {{ getStatusLabel(en.status) }}
                 </span>
               </td>
@@ -440,13 +440,13 @@ const getStatusLabel = (status) => {
                       leave-to-class="opacity-0 scale-95"
                     >
                       <div v-if="contextTarget?.id === en.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
-                        <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openTransferModal(en); closeContextMenu()">
+                        <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openTransferModal(en); closeContextMenu()">
                           <ArrowLeftRight :size="14" /> Chuyển lớp
                         </button>
-                        <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all">
+                        <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all">
                           <Eye :size="14" /> Xem chi tiết
                         </button>
-                        <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-danger-bg)] hover:text-[var(--lg-danger)] transition-all" @click="openDropModal(en); closeContextMenu()">
+                        <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-danger-bg)] hover:text-[var(--lg-danger)] transition-all" @click="openDropModal(en); closeContextMenu()">
                           <Trash2 :size="14" /> Hủy đăng ký
                         </button>
                       </div>
@@ -461,7 +461,7 @@ const getStatusLabel = (status) => {
           <div class="h-16 w-16 rounded-2xl surface-solid flex items-center justify-center mb-4">
             <BookOpen :size="28" class="text-placeholder" />
           </div>
-          <p class="text-sm font-black text-heading">Không có đăng ký nào</p>
+          <p class="text-sm font-semibold text-heading">Không có đăng ký nào</p>
           <p class="text-xs font-medium text-placeholder mt-1">Thử thay đổi từ khóa tìm kiếm</p>
         </div>
       </div>
@@ -483,7 +483,7 @@ const getStatusLabel = (status) => {
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
         <div class="relative w-full max-w-sm surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
-            <h3 class="text-base font-black text-heading">Xuất danh sách</h3>
+            <h3 class="text-base font-semibold text-heading">Xuất danh sách</h3>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="showExportModal = false">
               <X :size="18" />
             </button>
@@ -542,7 +542,7 @@ const getStatusLabel = (status) => {
             <div class="h-16 w-16 rounded-full bg-[var(--color-success-bg)] text-[var(--lg-success)] flex items-center justify-center mb-4">
               <Check :size="32" />
             </div>
-            <h3 class="text-base font-black text-heading">Ghép thủ công thành công!</h3>
+            <h3 class="text-base font-semibold text-heading">Ghép thủ công thành công!</h3>
             <p class="text-[12px] font-medium text-label mt-1">{{ enrollForm.student }} đã được thêm vào {{ enrollForm.section }}</p>
           </div>
           <!-- Form -->
@@ -552,7 +552,7 @@ const getStatusLabel = (status) => {
                 <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
                   <UserPlus :size="18" />
                 </div>
-                <h3 class="text-base font-black text-heading">Ghép HS thủ công</h3>
+                <h3 class="text-base font-semibold text-heading">Ghép HS thủ công</h3>
               </div>
               <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="showEnrollModal = false">
                 <X :size="18" />
@@ -560,21 +560,21 @@ const getStatusLabel = (status) => {
             </div>
             <div class="space-y-4">
               <div>
-                <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Họ tên sinh viên</label>
+                <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Họ tên sinh viên</label>
                 <div class="relative">
                   <User :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-placeholder" />
                   <input v-model="enrollForm.student" type="text" placeholder="VD: Nguyễn Văn A" class="w-full lg-input pl-10 pr-4 py-2.5 text-sm" />
                 </div>
               </div>
               <div>
-                <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Mã số sinh viên</label>
+                <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Mã số sinh viên</label>
                 <div class="relative">
                   <Hash :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-placeholder" />
                   <input v-model="enrollForm.studentCode" type="text" placeholder="VD: SV001" class="w-full lg-input pl-10 pr-4 py-2.5 text-sm" />
                 </div>
               </div>
               <div>
-                <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Lớp học phần</label>
+                <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Lớp học phần</label>
                 <div class="relative">
                   <BookOpen :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-placeholder" />
                   <select v-model="enrollForm.section" class="w-full lg-input pl-10 pr-4 py-2.5 text-sm appearance-none cursor-pointer">
@@ -618,22 +618,22 @@ const getStatusLabel = (status) => {
               <div class="h-8 w-8 rounded-lg bg-[var(--color-danger-bg)] text-[var(--lg-danger)] flex items-center justify-center">
                 <Trash2 :size="18" />
               </div>
-              <h3 class="text-base font-black text-heading">Hủy đăng ký</h3>
+              <h3 class="text-base font-semibold text-heading">Hủy đăng ký</h3>
             </div>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeDropModal">
               <X :size="18" />
             </button>
           </div>
           <div class="surface-solid p-4 rounded-2xl flex items-center gap-3 mb-4">
-            <div class="h-10 w-10 rounded-full bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] text-xs font-black flex items-center justify-center flex-shrink-0 border border-default">
+            <div class="h-10 w-10 rounded-full bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] text-xs font-semibold flex items-center justify-center flex-shrink-0 border border-default">
               {{ dropTarget.studentCode.slice(-2) }}
             </div>
             <div>
-              <p class="text-sm font-black text-heading">{{ dropTarget.student }}</p>
+              <p class="text-sm font-semibold text-heading">{{ dropTarget.student }}</p>
               <div class="flex items-center gap-2 mt-0.5">
                 <span class="text-[11px] font-bold text-placeholder">{{ dropTarget.studentCode }}</span>
                 <span class="w-1 h-1 rounded-full bg-placeholder" />
-                <span class="text-[10px] font-black text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ dropTarget.section }}</span>
+                <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ dropTarget.section }}</span>
               </div>
             </div>
           </div>
@@ -641,7 +641,7 @@ const getStatusLabel = (status) => {
             <p class="text-[11px] font-bold text-[var(--lg-danger)]">Sinh viên sẽ bị hủy đăng ký khỏi lớp <strong>{{ dropTarget.subject }}</strong>. Thao tác này có thể được thực hiện lại nếu cần.</p>
           </div>
           <div>
-            <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Lý do hủy (không bắt buộc)</label>
+            <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Lý do hủy (không bắt buộc)</label>
             <textarea v-model="dropReason" rows="2" placeholder="Nhập lý do hủy đăng ký..." class="w-full lg-input px-4 py-2.5 text-sm resize-none"></textarea>
           </div>
           <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
@@ -673,27 +673,27 @@ const getStatusLabel = (status) => {
               <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
                 <ArrowLeftRight :size="18" />
               </div>
-              <h3 class="text-base font-black text-heading">Chuyển lớp</h3>
+              <h3 class="text-base font-semibold text-heading">Chuyển lớp</h3>
             </div>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeTransferModal">
               <X :size="18" />
             </button>
           </div>
           <div class="surface-solid p-4 rounded-2xl flex items-center gap-3 mb-5">
-            <div class="h-10 w-10 rounded-full bg-[var(--color-info-bg)] text-[var(--color-info-text)] text-xs font-black flex items-center justify-center flex-shrink-0 border border-default">
+            <div class="h-10 w-10 rounded-full bg-[var(--color-info-bg)] text-[var(--color-info-text)] text-xs font-semibold flex items-center justify-center flex-shrink-0 border border-default">
               {{ transferTarget.studentCode.slice(-2) }}
             </div>
             <div>
-              <p class="text-sm font-black text-heading">{{ transferTarget.student }}</p>
+              <p class="text-sm font-semibold text-heading">{{ transferTarget.student }}</p>
               <div class="flex items-center gap-2 mt-0.5">
                 <span class="text-[11px] font-bold text-placeholder">{{ transferTarget.studentCode }}</span>
                 <span class="w-1 h-1 rounded-full bg-placeholder" />
-                <span class="text-[10px] font-black text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ transferTarget.section }}</span>
+                <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ transferTarget.section }}</span>
               </div>
             </div>
           </div>
           <div>
-            <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Chuyển đến lớp</label>
+            <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Chuyển đến lớp</label>
             <select v-model="transferSection" class="w-full lg-input px-4 py-2.5 text-sm appearance-none cursor-pointer">
               <option value="" disabled>Chọn lớp mới...</option>
               <option v-for="sec in sections.filter(s => s !== transferTarget.section)" :key="sec" :value="sec">{{ sec }} - {{ subjectMap[sec] }}</option>

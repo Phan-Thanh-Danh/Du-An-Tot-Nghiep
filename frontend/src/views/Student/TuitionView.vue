@@ -232,7 +232,7 @@ const downloadPDF = (id) => {
           </thead>
           <tbody>
             <tr v-for="tx in mockTransactions" :key="tx.id">
-              <td class="font-bold transaction-id">{{ tx.txId }}</td>
+              <td class="font-semibold transaction-id">{{ tx.txId }}</td>
               <td>{{ formatDateTime(tx.date) }}</td>
               <td>
                 <div class="flex items-center gap-1.5">
@@ -267,7 +267,7 @@ const downloadPDF = (id) => {
               <div class="summary-box">
                 <div class="flex justify-between text-sm mb-1">
                   <span class="modal-muted">Mã hóa đơn:</span>
-                  <span class="font-bold">{{ selectedInvoice?.id }}</span>
+                  <span class="font-semibold">{{ selectedInvoice?.id }}</span>
                 </div>
                 <div class="flex justify-between text-sm mb-3">
                   <span class="modal-muted">Nội dung:</span>
@@ -286,7 +286,7 @@ const downloadPDF = (id) => {
                     <input type="radio" v-model="paymentMethod" value="vnpay" name="paymentMethod" />
                     <CreditCard :size="20" />
                     <div class="flex-1">
-                      <div class="font-bold">VNPay</div>
+                      <div class="font-semibold">VNPay</div>
                       <div class="method-caption">Thẻ ATM / Thẻ tín dụng</div>
                     </div>
                   </label>
@@ -295,7 +295,7 @@ const downloadPDF = (id) => {
                     <input type="radio" v-model="paymentMethod" value="momo" name="paymentMethod" />
                     <Smartphone :size="20" />
                     <div class="flex-1">
-                      <div class="font-bold">Ví MoMo</div>
+                      <div class="font-semibold">Ví MoMo</div>
                       <div class="method-caption">Quét mã QR</div>
                     </div>
                   </label>
@@ -304,7 +304,7 @@ const downloadPDF = (id) => {
                     <input type="radio" v-model="paymentMethod" value="bank" name="paymentMethod" />
                     <Building2 :size="20" />
                     <div class="flex-1">
-                      <div class="font-bold">Chuyển khoản Ngân hàng</div>
+                      <div class="font-semibold">Chuyển khoản Ngân hàng</div>
                       <div class="method-caption">Chuyển khoản theo số tài khoản</div>
                     </div>
                   </label>

@@ -284,8 +284,8 @@ async function confirmNewSchedule() {
           :key="stat.label"
           :class="['rounded-2xl p-4 border border-default', stat.bg]"
         >
-          <p class="text-[11px] font-black uppercase tracking-widest text-placeholder">{{ stat.label }}</p>
-          <p :class="['text-2xl font-black mt-1', stat.color]">{{ stat.value }}</p>
+          <p class="text-[11px] font-semibold uppercase tracking-widest text-placeholder">{{ stat.label }}</p>
+          <p :class="['text-2xl font-semibold mt-1', stat.color]">{{ stat.value }}</p>
         </div>
       </div>
 
@@ -341,7 +341,7 @@ async function confirmNewSchedule() {
             Bộ lọc
             <span
               v-if="activeFilterCount > 0"
-              class="inline-flex items-center justify-center h-4 w-4 rounded-full bg-[var(--lg-success)] text-white text-[10px] font-black"
+              class="inline-flex items-center justify-center h-4 w-4 rounded-full bg-[var(--lg-success)] text-white text-[10px] font-semibold"
             >{{ activeFilterCount }}</span>
           </button>
 
@@ -356,7 +356,7 @@ async function confirmNewSchedule() {
         <Transition name="slide-down">
           <div v-if="showFilterPanel" class="pt-3 border-t border-default flex flex-wrap gap-4">
             <div>
-              <p class="text-[10px] font-black uppercase tracking-widest text-placeholder mb-2">Trạng thái</p>
+              <p class="text-[10px] font-semibold uppercase tracking-widest text-placeholder mb-2">Trạng thái</p>
               <div class="flex gap-2 flex-wrap">
                 <button
                   v-for="s in ['all', 'pending', 'returned']" :key="s"
@@ -377,7 +377,7 @@ async function confirmNewSchedule() {
       <!-- ── Result count ──────────────────────────────── -->
       <div class="flex items-center justify-between px-1">
         <p class="text-sm text-label font-semibold">
-          Hiển thị <span class="font-black text-heading">{{ filteredSchedules.length }}</span> / {{ pendingSchedules.length }} bản TKB
+          Hiển thị <span class="font-semibold text-heading">{{ filteredSchedules.length }}</span> / {{ pendingSchedules.length }} bản TKB
         </p>
       </div>
 
@@ -418,8 +418,8 @@ async function confirmNewSchedule() {
 
               <div>
                 <div class="flex items-center gap-3 flex-wrap">
-                  <h3 class="text-lg font-black text-heading">TKB {{ item.semester }}</h3>
-                  <span :class="['px-2.5 py-1 text-[10px] font-black uppercase tracking-widest', getStatusInfo(item.status).badge]">
+                  <h3 class="text-lg font-semibold text-heading">TKB {{ item.semester }}</h3>
+                  <span :class="['px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest', getStatusInfo(item.status).badge]">
                     {{ getStatusInfo(item.status).label }}
                   </span>
                 </div>
@@ -442,18 +442,18 @@ async function confirmNewSchedule() {
               <!-- Summary numbers -->
               <div class="flex items-center gap-6 px-5 py-3 surface-input rounded-2xl border border-default">
                 <div class="text-center">
-                  <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Số lớp</p>
-                  <p class="text-xl font-black text-heading mt-0.5">{{ item.classCount }}</p>
+                  <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Số lớp</p>
+                  <p class="text-xl font-semibold text-heading mt-0.5">{{ item.classCount }}</p>
                 </div>
                 <div class="w-px h-8 bg-[var(--border-default)]"></div>
                 <div class="text-center">
-                  <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Số tiết</p>
-                  <p class="text-xl font-black text-heading mt-0.5">{{ item.scheduleCount }}</p>
+                  <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Số tiết</p>
+                  <p class="text-xl font-semibold text-heading mt-0.5">{{ item.scheduleCount }}</p>
                 </div>
                 <div v-if="item.conflictCount > 0" class="w-px h-8 bg-[var(--border-default)]"></div>
                 <div v-if="item.conflictCount > 0" class="text-center">
-                  <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Xung đột</p>
-                  <p class="text-xl font-black text-[var(--lg-danger)] mt-0.5">{{ item.conflictCount }}</p>
+                  <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Xung đột</p>
+                  <p class="text-xl font-semibold text-[var(--lg-danger)] mt-0.5">{{ item.conflictCount }}</p>
                 </div>
               </div>
 
@@ -494,7 +494,7 @@ async function confirmNewSchedule() {
             <div v-if="item.status === 'returned' && item.note" class="mt-4 p-4 rounded-2xl bg-[var(--color-danger-bg)] border border-default flex items-start gap-3">
               <AlertTriangle :size="18" class="text-[var(--color-danger-text)] shrink-0 mt-0.5" />
               <div>
-                <p class="text-xs font-black text-[var(--color-danger-text)] uppercase tracking-widest">Lý do trả lại</p>
+                <p class="text-xs font-semibold text-[var(--color-danger-text)] uppercase tracking-widest">Lý do trả lại</p>
                 <p class="text-sm font-medium text-body mt-1 leading-relaxed">{{ item.note }}</p>
               </div>
             </div>
@@ -510,7 +510,7 @@ async function confirmNewSchedule() {
           <div class="h-16 w-16 rounded-3xl surface-input border border-default flex items-center justify-center mb-4">
             <FileText :size="28" class="text-placeholder" />
           </div>
-          <p class="text-base font-black text-heading">Không tìm thấy bản TKB nào</p>
+          <p class="text-base font-semibold text-heading">Không tìm thấy bản TKB nào</p>
           <p class="text-sm text-label mt-1">Thử thay đổi từ khóa hoặc điều chỉnh bộ lọc.</p>
           <button class="mt-4 text-sm font-bold text-[var(--lg-primary)] hover:underline" @click="clearFilters(); searchQuery = ''">Xóa tất cả bộ lọc</button>
         </div>
@@ -522,7 +522,7 @@ async function confirmNewSchedule() {
           <Info :size="22" />
         </div>
         <div>
-          <h4 class="text-sm font-black text-heading">Thông tin quy trình</h4>
+          <h4 class="text-sm font-semibold text-heading">Thông tin quy trình</h4>
           <p class="text-xs text-label mt-1 leading-relaxed">
             Sau khi bạn gửi duyệt, Ban giám hiệu sẽ nhận được thông báo. Bạn không thể chỉnh sửa trực tiếp lịch học khi đang trong trạng thái chờ duyệt.
             Nếu cần chỉnh sửa khẩn cấp, vui lòng sử dụng nút <strong class="text-heading">"Thu hồi"</strong> để chuyển lịch về trạng thái Draft.
@@ -550,7 +550,7 @@ async function confirmNewSchedule() {
           <div class="modal-header p-5">
             <div class="flex items-center justify-between">
               <div>
-                <h2 class="text-xl font-black text-heading">Chi tiết TKB {{ selectedSchedule.semester }}</h2>
+                <h2 class="text-xl font-semibold text-heading">Chi tiết TKB {{ selectedSchedule.semester }}</h2>
                 <p class="text-sm text-label mt-0.5">Lầu {{ selectedSchedule.floor }} · Gửi bởi {{ selectedSchedule.requester }}</p>
               </div>
               <button
@@ -565,16 +565,16 @@ async function confirmNewSchedule() {
           <!-- Summary stats -->
           <div class="px-6 pt-5 grid grid-cols-3 gap-3">
             <div class="surface-input rounded-xl p-3 border border-default text-center">
-              <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Số lớp</p>
-              <p class="text-2xl font-black text-heading mt-1">{{ selectedSchedule.classCount }}</p>
+              <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Số lớp</p>
+              <p class="text-2xl font-semibold text-heading mt-1">{{ selectedSchedule.classCount }}</p>
             </div>
             <div class="surface-input rounded-xl p-3 border border-default text-center">
-              <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Số tiết</p>
-              <p class="text-2xl font-black text-heading mt-1">{{ selectedSchedule.scheduleCount }}</p>
+              <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Số tiết</p>
+              <p class="text-2xl font-semibold text-heading mt-1">{{ selectedSchedule.scheduleCount }}</p>
             </div>
             <div class="surface-input rounded-xl p-3 border border-default text-center">
-              <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Xung đột</p>
-              <p :class="['text-2xl font-black mt-1', selectedSchedule.conflictCount > 0 ? 'text-[var(--lg-danger)]' : 'text-[var(--lg-success)]']">
+              <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Xung đột</p>
+              <p :class="['text-2xl font-semibold mt-1', selectedSchedule.conflictCount > 0 ? 'text-[var(--lg-danger)]' : 'text-[var(--lg-success)]']">
                 {{ selectedSchedule.conflictCount }}
               </p>
             </div>
@@ -582,7 +582,7 @@ async function confirmNewSchedule() {
 
           <!-- Classes list -->
           <div class="px-6 pt-5 pb-2">
-            <p class="text-xs font-black text-label uppercase tracking-widest mb-3">Danh sách lớp học</p>
+            <p class="text-xs font-semibold text-label uppercase tracking-widest mb-3">Danh sách lớp học</p>
 
             <div v-if="selectedSchedule.classes.length === 0" class="py-8 text-center">
               <p class="text-sm text-placeholder italic">Không có dữ liệu chi tiết.</p>
@@ -600,7 +600,7 @@ async function confirmNewSchedule() {
                   </div>
                   <div>
                     <div class="flex items-center gap-2">
-                      <p class="text-sm font-black text-heading">{{ cls.subject }}</p>
+                      <p class="text-sm font-semibold text-heading">{{ cls.subject }}</p>
                       <span class="text-[10px] font-bold text-placeholder uppercase tracking-widest">{{ cls.code }}</span>
                     </div>
                     <div class="flex flex-wrap items-center gap-x-4 gap-y-0.5 mt-1">
@@ -665,7 +665,7 @@ async function confirmNewSchedule() {
             <div class="h-16 w-16 rounded-3xl bg-[var(--color-danger-bg)] flex items-center justify-center text-[var(--color-danger-text)] mx-auto mb-4">
               <Undo2 :size="28" />
             </div>
-            <h3 class="text-xl font-black text-heading">Thu hồi TKB?</h3>
+            <h3 class="text-xl font-semibold text-heading">Thu hồi TKB?</h3>
             <p class="text-sm text-label mt-2 leading-relaxed">
               Bạn sắp thu hồi <strong class="text-heading">TKB {{ withdrawTarget.semester }}</strong> (Lầu {{ withdrawTarget.floor }}).
               TKB sẽ được chuyển về trạng thái <strong class="text-heading">Draft</strong> để bạn chỉnh sửa.
@@ -721,7 +721,7 @@ async function confirmNewSchedule() {
                   <Send :size="20" class="text-link" />
                 </div>
                 <div>
-                  <h2 class="text-lg font-black text-heading">Gửi duyệt TKB mới</h2>
+                  <h2 class="text-lg font-semibold text-heading">Gửi duyệt TKB mới</h2>
                   <p class="text-xs text-label mt-0.5">Tạo bộ TKB gửi lên Ban giám hiệu</p>
                 </div>
               </div>
@@ -738,7 +738,7 @@ async function confirmNewSchedule() {
           <div class="p-6 space-y-5">
             <!-- Semester -->
             <div>
-              <label class="text-[11px] font-black text-label uppercase tracking-widest mb-1.5 block">Học kỳ</label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Học kỳ</label>
               <select
                 v-model="newScheduleSemester"
                 class="lg-input w-full px-4 py-2.5 text-sm font-bold"
@@ -763,7 +763,7 @@ async function confirmNewSchedule() {
                   <Layers :size="18" />
                 </div>
                 <div>
-                  <p class="text-sm font-black text-heading">{{ draftEvents }} lịch học bản nháp</p>
+                  <p class="text-sm font-semibold text-heading">{{ draftEvents }} lịch học bản nháp</p>
                   <p class="text-xs text-label mt-0.5">
                     Sẽ được gửi lên BGH để phê duyệt
                   </p>
@@ -772,7 +772,7 @@ async function confirmNewSchedule() {
               <div v-if="draftEvents === 0" class="mt-3 flex items-start gap-2 p-3 rounded-xl bg-[var(--color-warning-bg)]">
                 <AlertTriangle :size="14" class="text-[var(--color-warning-text)] shrink-0 mt-0.5" />
                 <p class="text-xs font-medium text-[var(--color-warning-text)]">
-                  Không có lịch học bản nháp nào để gửi duyệt. Vui lòng tạo lịch trước trong phần <strong class="font-black">Quản lý TKB</strong>.
+                  Không có lịch học bản nháp nào để gửi duyệt. Vui lòng tạo lịch trước trong phần <strong class="font-semibold">Quản lý TKB</strong>.
                 </p>
               </div>
             </div>

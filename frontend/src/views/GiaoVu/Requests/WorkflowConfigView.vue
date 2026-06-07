@@ -146,8 +146,8 @@ const getStatusLabel = (status) => {
       <!-- ── Left: Workflow List ── -->
       <div class="space-y-4">
         <div class="flex items-center justify-between mb-2">
-            <h4 class="text-xs font-black text-label uppercase tracking-widest">Loại đơn & Workflow</h4>
-            <button class="text-[11px] font-black text-link uppercase tracking-widest flex items-center gap-1 hover:underline" @click="openAddModal">
+            <h4 class="text-xs font-semibold text-label uppercase tracking-widest">Loại đơn & Workflow</h4>
+            <button class="text-[11px] font-semibold text-link uppercase tracking-widest flex items-center gap-1 hover:underline" @click="openAddModal">
               <Plus :size="12" /> Thêm mới
            </button>
         </div>
@@ -165,14 +165,14 @@ const getStatusLabel = (status) => {
         >
            <div class="flex items-start justify-between">
               <div>
-                  <p :class="['text-sm font-black leading-tight', activeWorkflow.id === wf.id ? 'text-heading' : 'text-heading']">
+                  <p :class="['text-sm font-semibold leading-tight', activeWorkflow.id === wf.id ? 'text-heading' : 'text-heading']">
                     {{ wf.name }}
                  </p>
                  <div class="flex items-center gap-3 mt-2">
-                     <span :class="['text-[10px] font-black uppercase tracking-tighter flex items-center gap-1', activeWorkflow.id === wf.id ? 'text-label' : 'text-placeholder']">
+                     <span :class="['text-[10px] font-semibold uppercase tracking-tighter flex items-center gap-1', activeWorkflow.id === wf.id ? 'text-label' : 'text-placeholder']">
                         <Layers :size="12" /> {{ wf.steps }} bước
                      </span>
-                     <span :class="['text-[10px] font-black uppercase tracking-tighter flex items-center gap-1', activeWorkflow.id === wf.id ? 'text-label' : 'text-placeholder']">
+                     <span :class="['text-[10px] font-semibold uppercase tracking-tighter flex items-center gap-1', activeWorkflow.id === wf.id ? 'text-label' : 'text-placeholder']">
                        <Clock :size="12" /> SLA {{ wf.sla }}
                     </span>
                  </div>
@@ -195,8 +195,8 @@ const getStatusLabel = (status) => {
               </div>
               <div>
                  <div class="flex items-center gap-3">
-                     <h3 class="text-xl font-black text-heading">{{ activeWorkflow.name }}</h3>
-                     <span v-if="activeWorkflow" :class="['px-2 py-0.5 text-[10px] font-black uppercase tracking-widest border rounded-full', getStatusBadge(activeWorkflow.status)]">{{ getStatusLabel(activeWorkflow.status) }}</span>
+                     <h3 class="text-xl font-semibold text-heading">{{ activeWorkflow.name }}</h3>
+                     <span v-if="activeWorkflow" :class="['px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest border rounded-full', getStatusBadge(activeWorkflow.status)]">{{ getStatusLabel(activeWorkflow.status) }}</span>
                  </div>
                   <p class="text-xs font-bold text-label mt-1 uppercase tracking-tighter">{{ activeWorkflow.id }} • Phiên bản v2.1.0</p>
               </div>
@@ -218,14 +218,14 @@ const getStatusLabel = (status) => {
               
                <!-- Step 1 -->
                 <div class="flex items-center w-full max-w-sm">
-                   <div class="h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-black shadow-sm shrink-0 border border-default">1</div>
+                   <div class="h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-semibold shadow-sm shrink-0 border border-default">1</div>
                    <div class="flex-1 -ml-3 p-4 surface-card border border-card rounded-2xl shadow-sm group hover:border-[var(--border-input-focus)] transition-all">
-                      <h5 class="text-sm font-black text-heading uppercase tracking-wide">Tiếp nhận & Kiểm tra</h5>
+                      <h5 class="text-sm font-semibold text-heading uppercase tracking-wide">Tiếp nhận & Kiểm tra</h5>
                      <div class="mt-4 flex items-center justify-between">
                          <div class="flex items-center gap-2 text-[11px] font-bold text-label">
                             <Shield :size="14" class="text-link" /> Vai trò: Giáo vụ khoa
                          </div>
-                         <span class="text-[10px] font-black text-[var(--color-warning-text)] uppercase tracking-widest bg-[var(--color-warning-bg)] px-2 py-1 rounded-lg">SLA: 24h</span>
+                         <span class="text-[10px] font-semibold text-[var(--color-warning-text)] uppercase tracking-widest bg-[var(--color-warning-bg)] px-2 py-1 rounded-lg">SLA: 24h</span>
                      </div>
                   </div>
                </div>
@@ -236,17 +236,17 @@ const getStatusLabel = (status) => {
 
                 <!-- Step 2 -->
                  <div class="flex items-center w-full max-w-sm">
-                   <div class="h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-black shadow-sm shrink-0 border border-default">2</div>
+                   <div class="h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-semibold shadow-sm shrink-0 border border-default">2</div>
                    <div class="flex-1 -ml-3 p-4 surface-card rounded-2xl border border-card shadow-sm group">
                       <div class="flex items-center justify-between mb-4">
-                         <h5 class="text-sm font-black text-heading uppercase tracking-wide">Phê duyệt chính</h5>
+                         <h5 class="text-sm font-semibold text-heading uppercase tracking-wide">Phê duyệt chính</h5>
                          <Zap :size="18" class="text-[var(--color-warning-text)] fill-[var(--color-warning-text)]" title="Auto-Execute Available" />
                      </div>
                      <div class="flex items-center justify-between">
                          <div class="flex items-center gap-2 text-[11px] font-bold text-label">
                             <Shield :size="14" class="text-body" /> Trưởng phòng Giáo vụ
                          </div>
-                         <span class="text-[10px] font-black text-[var(--color-warning-text)] uppercase tracking-widest bg-[var(--color-warning-bg)] px-2 py-1 rounded-lg">SLA: 48h</span>
+                         <span class="text-[10px] font-semibold text-[var(--color-warning-text)] uppercase tracking-widest bg-[var(--color-warning-bg)] px-2 py-1 rounded-lg">SLA: 48h</span>
                      </div>
                   </div>
                </div>
@@ -257,7 +257,7 @@ const getStatusLabel = (status) => {
 
                <!-- Execution Step -->
                 <div class="flex items-center w-full max-w-sm">
-                   <div class="h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-black shadow-sm shrink-0 border border-default">
+                   <div class="h-8 w-8 rounded-full surface-solid text-heading flex items-center justify-center text-xs font-semibold shadow-sm shrink-0 border border-default">
                      <CheckCircle2 :size="18" />
                   </div>
                    <div class="flex-1 -ml-3 p-5 surface-solid rounded-3xl border-2 border-dashed border-default">
@@ -266,7 +266,7 @@ const getStatusLabel = (status) => {
                            <FileJson :size="20" />
                         </div>
                         <div>
-                            <h5 class="text-xs font-black text-heading uppercase tracking-widest">Thực thi tự động</h5>
+                            <h5 class="text-xs font-semibold text-heading uppercase tracking-widest">Thực thi tự động</h5>
                             <p class="text-[10px] font-bold text-[var(--color-success-text)] mt-1 uppercase tracking-tighter">Update DB + Send PDF Email</p>
                         </div>
                      </div>
@@ -295,10 +295,10 @@ const getStatusLabel = (status) => {
                 leave-to-class="opacity-0 scale-95"
               >
                 <div v-if="showFloatingMenu" class="absolute right-0 bottom-full mb-2 z-50 w-44 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
-                  <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openEditModal(); showFloatingMenu = false">
+                  <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openEditModal(); showFloatingMenu = false">
                     <Pen :size="14" /> Chỉnh sửa
                   </button>
-                  <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-danger-bg)] hover:text-[var(--lg-danger)] transition-all" @click="openDeleteModal(); showFloatingMenu = false">
+                  <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-danger-bg)] hover:text-[var(--lg-danger)] transition-all" @click="openDeleteModal(); showFloatingMenu = false">
                     <Trash2 :size="14" /> Xóa
                   </button>
                 </div>
@@ -314,7 +314,7 @@ const getStatusLabel = (status) => {
                   <Shield :size="20" />
                </div>
                <div class="flex-1">
-                  <h4 class="text-sm font-black text-heading uppercase tracking-wide">Quy tắc bảo mật Workflow</h4>
+                  <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Quy tắc bảo mật Workflow</h4>
                   <p class="text-xs text-body mt-1 leading-relaxed">
                    Các workflow đã phát sinh đơn từ thực tế sẽ <strong>không được phép xóa</strong>. Bạn chỉ có thể đóng (archive) hoặc tạo phiên bản mới để thay đổi cấu trình mà không ảnh hưởng đến dữ liệu lịch sử.
                  </p>
@@ -345,7 +345,7 @@ const getStatusLabel = (status) => {
               <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
                 <Plus :size="18" />
               </div>
-              <h3 class="text-base font-black text-heading">Thêm workflow mới</h3>
+              <h3 class="text-base font-semibold text-heading">Thêm workflow mới</h3>
             </div>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeAddModal">
               <X :size="18" />
@@ -353,11 +353,11 @@ const getStatusLabel = (status) => {
           </div>
           <div class="space-y-4">
             <div>
-              <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Tên workflow</label>
+              <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Tên workflow</label>
               <input v-model="addForm.name" type="text" placeholder="VD: Xử lý đơn nghỉ học" class="w-full lg-input px-4 py-2.5 text-sm" />
             </div>
             <div>
-              <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">SLA tổng</label>
+              <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">SLA tổng</label>
               <select v-model="addForm.sla" class="w-full lg-input px-4 py-2.5 text-sm appearance-none cursor-pointer">
                 <option value="24h">24h</option>
                 <option value="48h">48h</option>
@@ -366,7 +366,7 @@ const getStatusLabel = (status) => {
               </select>
             </div>
             <div>
-              <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Số bước</label>
+              <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Số bước</label>
               <input v-model.number="addForm.steps" type="number" min="1" max="10" class="w-full lg-input px-4 py-2.5 text-sm" />
             </div>
           </div>
@@ -400,7 +400,7 @@ const getStatusLabel = (status) => {
               <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
                 <Pen :size="18" />
               </div>
-              <h3 class="text-base font-black text-heading">Chỉnh sửa workflow</h3>
+              <h3 class="text-base font-semibold text-heading">Chỉnh sửa workflow</h3>
             </div>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeEditModal">
               <X :size="18" />
@@ -408,11 +408,11 @@ const getStatusLabel = (status) => {
           </div>
           <div class="space-y-4">
             <div>
-              <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Tên workflow</label>
+              <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Tên workflow</label>
               <input v-model="editForm.name" type="text" class="w-full lg-input px-4 py-2.5 text-sm" />
             </div>
             <div>
-              <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">SLA tổng</label>
+              <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">SLA tổng</label>
               <select v-model="editForm.sla" class="w-full lg-input px-4 py-2.5 text-sm appearance-none cursor-pointer">
                 <option value="24h">24h</option>
                 <option value="48h">48h</option>
@@ -454,7 +454,7 @@ const getStatusLabel = (status) => {
               <div class="h-8 w-8 rounded-lg bg-[var(--color-danger-bg)] text-[var(--lg-danger)] flex items-center justify-center">
                 <AlertCircle :size="18" />
               </div>
-              <h3 class="text-base font-black text-heading">Xóa workflow</h3>
+              <h3 class="text-base font-semibold text-heading">Xóa workflow</h3>
             </div>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeDeleteModal">
               <X :size="18" />

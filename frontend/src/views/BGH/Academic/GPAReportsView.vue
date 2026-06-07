@@ -64,7 +64,7 @@ const getGpaColor = (gpa) => {
            </button>
         </div>
         <div class="flex items-center gap-2">
-           <span class="text-[10px] font-black text-muted uppercase tracking-widest mr-2">Sắp xếp theo</span>
+           <span class="text-[10px] font-semibold text-muted uppercase tracking-widest mr-2">Sắp xếp theo</span>
            <select class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none">
               <option>GPA Trung bình (Cao - Thấp)</option>
               <option>Số lượng SV cảnh báo</option>
@@ -79,8 +79,8 @@ const getGpaColor = (gpa) => {
                <Target :size="24" />
             </div>
             <div>
-               <p class="text-[10px] font-black text-[var(--color-info-text)] uppercase tracking-widest">GPA Mục tiêu kỳ</p>
-               <h3 class="text-xl font-black text-heading leading-tight">3.20</h3>
+               <p class="text-[10px] font-semibold text-[var(--color-info-text)] uppercase tracking-widest">GPA Mục tiêu kỳ</p>
+               <h3 class="text-xl font-semibold text-heading leading-tight">3.20</h3>
             </div>
          </div>
          <div class="surface-card border border-card rounded-2xl p-4 flex items-center gap-5">
@@ -88,8 +88,8 @@ const getGpaColor = (gpa) => {
                <TrendingUp :size="24" />
             </div>
             <div>
-               <p class="text-[10px] font-black text-[var(--color-success-text)] uppercase tracking-widest">Tỷ lệ GPA >= 3.2</p>
-               <h3 class="text-xl font-black text-heading leading-tight">42.5%</h3>
+               <p class="text-[10px] font-semibold text-[var(--color-success-text)] uppercase tracking-widest">Tỷ lệ GPA >= 3.2</p>
+               <h3 class="text-xl font-semibold text-heading leading-tight">42.5%</h3>
             </div>
          </div>
          <div class="surface-card border border-card rounded-2xl p-4 flex items-center gap-5">
@@ -97,8 +97,8 @@ const getGpaColor = (gpa) => {
                <Award :size="24" />
             </div>
             <div>
-               <p class="text-[10px] font-black text-[var(--color-warning-text)] uppercase tracking-widest">Thủ khoa kỳ (GPA)</p>
-               <h3 class="text-xl font-black text-heading leading-tight">4.00</h3>
+               <p class="text-[10px] font-semibold text-[var(--color-warning-text)] uppercase tracking-widest">Thủ khoa kỳ (GPA)</p>
+               <h3 class="text-xl font-semibold text-heading leading-tight">4.00</h3>
             </div>
          </div>
       </div>
@@ -108,11 +108,11 @@ const getGpaColor = (gpa) => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Khoa / Lớp / Cơ sở</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">GPA Trung bình</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Min / Max GPA</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Dưới ngưỡng (2.0)</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default text-right">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Khoa / Lớp / Cơ sở</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">GPA Trung bình</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Min / Max GPA</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Dưới ngưỡng (2.0)</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
@@ -124,7 +124,7 @@ const getGpaColor = (gpa) => {
                     <Users v-else :size="18" />
                   </div>
                   <div>
-                    <p class="text-sm font-black text-heading leading-tight">{{ stat.group }}</p>
+                    <p class="text-sm font-semibold text-heading leading-tight">{{ stat.group }}</p>
                     <p class="text-[10px] font-bold text-muted mt-1 flex items-center gap-1">
                        <MapPin :size="10" /> {{ stat.campus }}
                     </p>
@@ -133,25 +133,25 @@ const getGpaColor = (gpa) => {
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
-                   <h3 :class="['text-lg font-black', getGpaColor(stat.avgGpa)]">{{ stat.avgGpa.toFixed(2) }}</h3>
+                   <h3 :class="['text-lg font-semibold', getGpaColor(stat.avgGpa)]">{{ stat.avgGpa.toFixed(2) }}</h3>
                    <ArrowUpRight :size="14" class="text-placeholder" />
                 </div>
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-4">
                    <div class="text-center">
-                      <p class="text-[9px] font-black text-muted uppercase">Min</p>
+                      <p class="text-[9px] font-semibold text-muted uppercase">Min</p>
                       <p class="text-xs font-bold text-heading">{{ stat.minGpa.toFixed(2) }}</p>
                    </div>
                    <div class="h-6 w-px bg-[var(--border-default)]"></div>
                    <div class="text-center">
-                      <p class="text-[9px] font-black text-[var(--color-success-text)] uppercase">Max</p>
-                      <p class="text-xs font-black text-[var(--color-success-text)]">{{ stat.maxGpa.toFixed(2) }}</p>
+                      <p class="text-[9px] font-semibold text-[var(--color-success-text)] uppercase">Max</p>
+                      <p class="text-xs font-semibold text-[var(--color-success-text)]">{{ stat.maxGpa.toFixed(2) }}</p>
                    </div>
                 </div>
               </td>
               <td class="px-4 py-4">
-                <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border w-fit shadow-sm', stat.warningCount > 10 ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger-text)]/20' : 'surface-solid text-muted border-default']">
+                <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest border w-fit shadow-sm', stat.warningCount > 10 ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger-text)]/20' : 'surface-solid text-muted border-default']">
                   {{ stat.warningCount }} Sinh viên
                 </div>
               </td>

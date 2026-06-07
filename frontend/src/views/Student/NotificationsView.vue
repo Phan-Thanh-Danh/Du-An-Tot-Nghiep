@@ -46,14 +46,14 @@ const getIcon = (name) => {
 }
 
 const getBgColor = (color, isRead) => {
-  if (isRead) return 'bg-slate-100 text-slate-500' // Dim when read
+  if (isRead) return 'notif-icon--dim' // Dim when read
   const map = {
-    red: 'bg-red-100 text-red-600',
-    green: 'bg-green-100 text-green-600',
-    blue: 'bg-blue-100 text-blue-600',
-    yellow: 'bg-amber-100 text-amber-600',
+    red: 'notif-icon--danger',
+    green: 'notif-icon--success',
+    blue: 'notif-icon--info',
+    yellow: 'notif-icon--warning',
   }
-  return map[color] || 'bg-blue-100 text-blue-600'
+  return map[color] || 'notif-icon--info'
 }
 
 </script>
@@ -67,7 +67,7 @@ const getBgColor = (color, isRead) => {
       <div class="nc-header">
         <div class="nc-title-area">
           <div class="icon-circle">
-            <BellRing :size="24" class="text-blue-600"/>
+            <BellRing :size="24" class="icon-bell"/>
             <span v-if="unreadCount > 0" class="badge-count">{{ unreadCount }}</span>
           </div>
           <div>
@@ -102,7 +102,7 @@ const getBgColor = (color, isRead) => {
       <!-- List -->
       <div class="nc-list">
         <div v-if="filteredNotifications.length === 0" class="empty-state">
-          <Inbox :size="48" class="text-slate-300 mx-auto mb-4"/>
+          <Inbox :size="48" class="icon-empty mx-auto mb-4"/>
           <h3>Không có thông báo nào</h3>
           <p>Bạn đã xem hết tất cả thông báo trong mục này.</p>
         </div>
@@ -154,15 +154,15 @@ const getBgColor = (color, isRead) => {
   padding: 1.5rem;
   max-width: 900px;
   margin: 0 auto;
-  color: #0f172a;
+  color: var(--text-heading);
 }
 
 .glass-container {
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--surface-card-strong);
   backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--border-card);
   border-radius: 24px;
-  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.05);
+  box-shadow: var(--lg-shadow-sm);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -175,7 +175,7 @@ const getBgColor = (color, isRead) => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .nc-title-area {
@@ -188,7 +188,7 @@ const getBgColor = (color, isRead) => {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: rgba(37, 99, 235, 0.1);
+  background: var(--accent-primary-soft);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -199,8 +199,8 @@ const getBgColor = (color, isRead) => {
   position: absolute;
   top: -2px;
   right: -2px;
-  background: #ef4444;
-  color: #fff;
+  background: var(--color-danger-text);
+  color: var(--text-inverse);
   font-size: 0.7rem;
   font-weight: 800;
   width: 22px;
@@ -209,7 +209,7 @@ const getBgColor = (color, isRead) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #fff;
+  border: 2px solid var(--surface-card-strong);
 }
 
 .nc-title-area h2 {
@@ -221,7 +221,7 @@ const getBgColor = (color, isRead) => {
 
 .nc-title-area p {
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -230,15 +230,15 @@ const getBgColor = (color, isRead) => {
   display: flex;
   gap: 1.5rem;
   padding: 0 2rem;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-  background: rgba(248, 250, 252, 0.5);
+  border-bottom: 1px solid var(--border-default);
+  background: var(--surface-solid);
 }
 
 .filter-tab {
   padding: 1rem 0;
   font-size: 0.9rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-muted);
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
@@ -250,17 +250,17 @@ const getBgColor = (color, isRead) => {
 }
 
 .filter-tab:hover {
-  color: #0f172a;
+  color: var(--text-heading);
 }
 
 .filter-tab.active {
-  color: #2563eb;
-  border-bottom-color: #2563eb;
+  color: var(--text-link);
+  border-bottom-color: var(--text-link);
 }
 
 .tab-badge {
-  background: #ef4444;
-  color: #fff;
+  background: var(--color-danger-text);
+  color: var(--text-inverse);
   font-size: 0.65rem;
   font-weight: 800;
   padding: 0.15rem 0.4rem;
@@ -270,7 +270,7 @@ const getBgColor = (color, isRead) => {
 /* List */
 .nc-list {
   flex: 1;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--surface-card);
   display: flex;
   flex-direction: column;
 }
@@ -279,21 +279,21 @@ const getBgColor = (color, isRead) => {
   display: flex;
   gap: 1rem;
   padding: 1.25rem 2rem;
-  border-bottom: 1px dashed rgba(148, 163, 184, 0.2);
+  border-bottom: 1px dashed var(--border-default);
   cursor: pointer;
   transition: background 0.15s;
   align-items: flex-start;
 }
 
 .notif-item:hover {
-  background: rgba(248, 250, 252, 0.8);
+  background: var(--surface-solid);
 }
 
 .notif-item.is-unread {
-  background: rgba(37, 99, 235, 0.03);
+  background: color-mix(in srgb, var(--accent-primary-soft) 30%, transparent);
 }
 .notif-item.is-unread:hover {
-  background: rgba(37, 99, 235, 0.06);
+  background: var(--accent-primary-soft);
 }
 
 .unread-dot-wrapper {
@@ -305,9 +305,9 @@ const getBgColor = (color, isRead) => {
 .unread-dot {
   width: 8px;
   height: 8px;
-  background: #ef4444;
+  background: var(--color-danger-text);
   border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger-text) 20%, transparent);
 }
 
 .notif-icon {
@@ -328,16 +328,16 @@ const getBgColor = (color, isRead) => {
   font-size: 1rem;
   font-weight: 700;
   margin: 0 0 0.25rem;
-  color: #0f172a;
+  color: var(--text-heading);
 }
 .notif-item:not(.is-unread) .notif-content h4 {
   font-weight: 600;
-  color: #475569;
+  color: var(--text-body);
 }
 
 .notif-content p {
   font-size: 0.875rem;
-  color: #475569;
+  color: var(--text-body);
   margin: 0 0 0.4rem;
   line-height: 1.4;
 }
@@ -348,7 +348,7 @@ const getBgColor = (color, isRead) => {
   gap: 0.3rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-placeholder);
 }
 
 .notif-action {
@@ -363,7 +363,7 @@ const getBgColor = (color, isRead) => {
   border-radius: 8px;
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: var(--text-placeholder);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -371,8 +371,8 @@ const getBgColor = (color, isRead) => {
   transition: all 0.2s;
 }
 .btn-icon:hover {
-  background: #e2e8f0;
-  color: #2563eb;
+  background: var(--surface-input);
+  color: var(--text-link);
 }
 
 .btn-outline {
@@ -384,16 +384,16 @@ const getBgColor = (color, isRead) => {
   font-size: 0.8125rem;
   font-weight: 700;
   cursor: pointer;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  background: rgba(255, 255, 255, 0.8);
-  color: #475569;
+  border: 1px solid var(--border-input);
+  background: var(--surface-card);
+  color: var(--text-body);
   transition: all 0.15s;
 }
 
 .btn-outline:hover:not(:disabled) {
-  border-color: #2563eb;
-  color: #2563eb;
-  background: #fff;
+  border-color: var(--text-link);
+  color: var(--text-link);
+  background: var(--surface-card-strong);
 }
 
 .btn-outline:disabled {
@@ -404,14 +404,14 @@ const getBgColor = (color, isRead) => {
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .empty-state h3 {
   font-size: 1.1rem;
   font-weight: 800;
   margin: 0 0 0.5rem;
-  color: #0f172a;
+  color: var(--text-heading);
 }
 .empty-state p {
   font-size: 0.875rem;

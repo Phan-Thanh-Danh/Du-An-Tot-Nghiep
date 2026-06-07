@@ -37,14 +37,14 @@ const activeTab = ref('Class')
                <FileSearch :size="24" />
             </div>
             <div>
-               <h3 class="text-xl font-black text-heading">Trình tạo báo cáo</h3>
+               <h3 class="text-xl font-semibold text-heading">Trình tạo báo cáo</h3>
                <p class="text-xs text-muted mt-0.5 font-bold uppercase tracking-widest">Tùy chỉnh các thông số để xuất dữ liệu</p>
             </div>
          </div>
 
          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="space-y-2">
-               <label class="text-[10px] font-black text-muted uppercase tracking-widest ml-1">Loại báo cáo</label>
+               <label class="text-[10px] font-semibold text-muted uppercase tracking-widest ml-1">Loại báo cáo</label>
                <div class="relative">
                   <select class="w-full surface-input border border-input rounded-2xl px-5 py-3.5 text-sm font-bold outline-none appearance-none cursor-pointer">
                      <option>Báo cáo theo Lớp</option>
@@ -55,7 +55,7 @@ const activeTab = ref('Class')
                </div>
             </div>
             <div class="space-y-2">
-               <label class="text-[10px] font-black text-muted uppercase tracking-widest ml-1">Học kỳ</label>
+               <label class="text-[10px] font-semibold text-muted uppercase tracking-widest ml-1">Học kỳ</label>
                <div class="relative">
                   <select class="w-full surface-input border border-input rounded-2xl px-5 py-3.5 text-sm font-bold outline-none appearance-none cursor-pointer">
                      <option>Spring 2026</option>
@@ -65,7 +65,7 @@ const activeTab = ref('Class')
                </div>
             </div>
             <div class="space-y-2">
-               <label class="text-[10px] font-black text-muted uppercase tracking-widest ml-1">Cơ sở (Campus)</label>
+               <label class="text-[10px] font-semibold text-muted uppercase tracking-widest ml-1">Cơ sở (Campus)</label>
                <div class="relative">
                   <select class="w-full surface-input border border-input rounded-2xl px-5 py-3.5 text-sm font-bold outline-none appearance-none cursor-pointer">
                      <option>Tất cả cơ sở</option>
@@ -76,7 +76,7 @@ const activeTab = ref('Class')
                </div>
             </div>
             <div class="flex items-end">
-               <button class="w-full lg-button-primary py-3.5 text-sm font-black flex items-center justify-center gap-2">
+               <button class="w-full lg-button-primary py-3.5 text-sm font-semibold flex items-center justify-center gap-2">
                   <BarChart :size="18" /> TẠO BÁO CÁO
                </button>
             </div>
@@ -91,7 +91,7 @@ const activeTab = ref('Class')
                  v-for="tab in ['Class', 'Subject', 'Campus']" 
                  :key="tab"
                  @click="activeTab = tab"
-                 :class="['pb-4 text-xs font-black uppercase tracking-widest relative transition-all', activeTab === tab ? 'text-link' : 'text-muted hover:text-heading']"
+                 :class="['pb-4 text-xs font-semibold uppercase tracking-widest relative transition-all', activeTab === tab ? 'text-link' : 'text-muted hover:text-heading']"
                >
                   Báo cáo {{ tab }}
                   <div v-if="activeTab === tab" class="absolute bottom-0 left-0 right-0 h-1 bg-[var(--lg-primary)] rounded-full"></div>
@@ -115,18 +115,18 @@ const activeTab = ref('Class')
                      <FileSearch v-if="rpt.status === 'ready'" :size="20" />
                      <Clock v-else :size="20" />
                   </div>
-                  <span :class="['text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border', rpt.status === 'ready' ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success-text)]/20' : 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--color-warning-text)]/20']">
+                  <span :class="['text-[9px] font-semibold uppercase tracking-widest px-2 py-1 rounded-lg border', rpt.status === 'ready' ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success-text)]/20' : 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--color-warning-text)]/20']">
                      {{ rpt.status }}
                   </span>
                </div>
                
-               <h4 class="text-sm font-black text-heading leading-snug group-hover:text-link transition-colors">{{ rpt.name }}</h4>
+               <h4 class="text-sm font-semibold text-heading leading-snug group-hover:text-link transition-colors">{{ rpt.name }}</h4>
                <p class="text-[10px] font-bold text-muted mt-2 uppercase tracking-widest">{{ rpt.type }} • {{ rpt.date }}</p>
                
                <div class="mt-6 pt-5 border-t border-default flex items-center justify-between">
                   <div class="flex gap-2">
-                     <button class="text-[10px] font-black text-muted hover:text-link uppercase">View</button>
-                     <button class="text-[10px] font-black text-muted hover:text-link uppercase">Export</button>
+                     <button class="text-[10px] font-semibold text-muted hover:text-link uppercase">View</button>
+                     <button class="text-[10px] font-semibold text-muted hover:text-link uppercase">Export</button>
                   </div>
                   <button class="text-placeholder hover:text-link"><ExternalLink :size="16" /></button>
                </div>

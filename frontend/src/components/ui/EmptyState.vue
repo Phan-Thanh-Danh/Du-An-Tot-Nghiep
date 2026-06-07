@@ -23,7 +23,7 @@ defineProps({
         </slot>
       </span>
     </div>
-    <h3 class="mt-3 text-sm font-bold text-heading">{{ title }}</h3>
+    <h3 class="mt-3 text-sm font-semibold text-heading">{{ title }}</h3>
     <p class="mx-auto mt-1.5 max-w-md text-sm leading-6 text-body">{{ description }}</p>
     <div v-if="$slots.default" class="mt-3">
       <slot />

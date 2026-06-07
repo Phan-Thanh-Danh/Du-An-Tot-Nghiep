@@ -66,14 +66,14 @@ const loginHistory = ref([
               </div>
               <!-- Role Badge Overlay -->
               <div class="absolute -bottom-1 -right-1 surface-card border border-card p-0.5 rounded-xl shadow-sm">
-                 <div class="bg-[var(--color-info-bg)] text-[var(--color-info-text)] px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-[var(--color-info-text)]/20">Principal</div>
+                 <div class="bg-[var(--color-info-bg)] text-[var(--color-info-text)] px-2 py-0.5 rounded-lg text-[9px] font-semibold uppercase tracking-tighter border border-[var(--color-info-text)]/20">Principal</div>
               </div>
            </div>
 
-           <h3 class="text-lg font-black text-heading leading-tight mb-1">{{ profile.name }}</h3>
+           <h3 class="text-lg font-semibold text-heading leading-tight mb-1">{{ profile.name }}</h3>
            <div class="inline-flex items-center gap-1.5 bg-[var(--color-info-bg)] px-2 py-1 rounded-full mb-3 border border-[var(--color-info-text)]/20">
               <ShieldCheck :size="12" class="text-[var(--color-info-text)]" />
-              <p class="text-[9px] font-black text-[var(--color-info-text)] uppercase tracking-[0.1em]">{{ profile.staffId }}</p>
+              <p class="text-[9px] font-semibold text-[var(--color-info-text)] uppercase tracking-[0.1em]">{{ profile.staffId }}</p>
            </div>
 
            <p class="text-xs text-body leading-relaxed font-medium mb-5 italic">
@@ -86,7 +86,7 @@ const loginHistory = ref([
                     <MapPin :size="16" />
                  </div>
                  <div class="text-left">
-                    <p class="text-[8px] font-black text-label uppercase tracking-widest">Văn phòng</p>
+                    <p class="text-[8px] font-semibold text-label uppercase tracking-widest">Văn phòng</p>
                     <p class="text-[11px] font-bold text-heading">{{ profile.campus }}</p>
                  </div>
               </div>
@@ -95,20 +95,20 @@ const loginHistory = ref([
                     <ShieldCheck :size="16" />
                  </div>
                  <div class="text-left">
-                    <p class="text-[8px] font-black text-label uppercase tracking-widest">Đơn vị quản lý</p>
+                    <p class="text-[8px] font-semibold text-label uppercase tracking-widest">Đơn vị quản lý</p>
                     <p class="text-[11px] font-bold text-heading">{{ profile.department }}</p>
                  </div>
               </div>
            </div>
 
-           <button class="w-full mt-6 lg-button-primary py-3 text-[10px] font-black tracking-widest uppercase flex items-center justify-center gap-2">
+           <button class="w-full mt-6 lg-button-primary py-3 text-[10px] font-semibold tracking-widest uppercase flex items-center justify-center gap-2">
               <Edit3 :size="16" /> Cập nhật thông tin
            </button>
         </div>
 
         <!-- Quick Stats Widget -->
         <div class="surface-card border border-card rounded-2xl p-3">
-           <h4 class="text-[9px] font-black text-label uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+           <h4 class="text-[9px] font-semibold text-label uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
               <BarChart3 :size="14" /> Chỉ số tổng quan
            </h4>
            <div class="grid grid-cols-2 gap-3">
@@ -117,7 +117,7 @@ const loginHistory = ref([
                     <component :is="stat.icon" :size="16" />
                  </div>
                  <p class="text-[9px] font-bold text-label uppercase tracking-tighter">{{ stat.label }}</p>
-                 <p class="text-base font-black text-heading">{{ stat.value }}</p>
+                 <p class="text-base font-semibold text-heading">{{ stat.value }}</p>
               </div>
            </div>
         </div>
@@ -130,7 +130,7 @@ const loginHistory = ref([
          <div class="surface-card border border-card rounded-2xl overflow-hidden">
             <div class="p-4 border-b border-default flex items-center justify-between">
                <div>
-                  <h4 class="text-xs font-black text-heading uppercase tracking-wide">Bảo mật & Liên hệ</h4>
+                  <h4 class="text-xs font-semibold text-heading uppercase tracking-wide">Bảo mật & Liên hệ</h4>
                   <p class="text-[10px] text-muted font-medium mt-0.5">Thông tin liên lạc và thiết lập bảo mật.</p>
                </div>
                <div class="h-8 w-8 rounded-xl bg-[var(--color-warning-bg)] flex items-center justify-center text-[var(--color-warning-text)] border border-[var(--color-warning-text)]/20">
@@ -147,7 +147,7 @@ const loginHistory = ref([
                            <Mail :size="18" />
                         </div>
                         <div>
-                           <p class="text-[9px] font-black text-label uppercase tracking-widest mb-0.5">Email công vụ</p>
+                           <p class="text-[9px] font-semibold text-label uppercase tracking-widest mb-0.5">Email công vụ</p>
                            <p class="text-sm font-bold text-heading">{{ profile.email }}</p>
                         </div>
                      </div>
@@ -156,7 +156,7 @@ const loginHistory = ref([
                            <Phone :size="18" />
                         </div>
                         <div>
-                           <p class="text-[9px] font-black text-label uppercase tracking-widest mb-0.5">Đường dây nóng</p>
+                           <p class="text-[9px] font-semibold text-label uppercase tracking-widest mb-0.5">Đường dây nóng</p>
                            <p class="text-sm font-bold text-heading">{{ profile.phone }}</p>
                         </div>
                      </div>
@@ -168,9 +168,9 @@ const loginHistory = ref([
                         <div class="h-8 w-8 rounded-xl bg-[var(--color-info-bg)] text-[var(--color-info-text)] flex items-center justify-center border border-[var(--color-info-text)]/20">
                            <KeyRound :size="18" />
                         </div>
-                        <button class="text-[9px] font-black uppercase tracking-widest text-link lg-button-secondary px-3 py-1.5 rounded-lg active:scale-95">Đổi mật khẩu</button>
+                        <button class="text-[9px] font-semibold uppercase tracking-widest text-link lg-button-secondary px-3 py-1.5 rounded-lg active:scale-95">Đổi mật khẩu</button>
                      </div>
-                     <h5 class="text-sm font-black text-heading mb-1">Bảo mật tài khoản</h5>
+                     <h5 class="text-sm font-semibold text-heading mb-1">Bảo mật tài khoản</h5>
                      <p class="text-[10px] text-body leading-relaxed font-medium">Mã hóa 256-bit. Lần đổi gần nhất: 3 tháng trước.</p>
                   </div>
                </div>
@@ -178,10 +178,10 @@ const loginHistory = ref([
                <!-- Login History -->
                <div>
                   <div class="flex items-center justify-between mb-3">
-                     <h4 class="text-[10px] font-black text-label uppercase tracking-[0.2em] flex items-center gap-2">
+                     <h4 class="text-[10px] font-semibold text-label uppercase tracking-[0.2em] flex items-center gap-2">
                         <Clock :size="14" /> Hoạt động đăng nhập
                      </h4>
-                     <button class="text-[9px] font-black text-link uppercase">Xem tất cả</button>
+                     <button class="text-[9px] font-semibold text-link uppercase">Xem tất cả</button>
                   </div>
                   
                   <div class="space-y-2">
@@ -192,7 +192,7 @@ const loginHistory = ref([
                               <ChevronRight v-else :size="16" />
                            </div>
                            <div>
-                              <p class="text-xs font-black text-heading">{{ log.device }}</p>
+                              <p class="text-xs font-semibold text-heading">{{ log.device }}</p>
                               <p class="text-[10px] font-bold text-muted mt-0.5 flex items-center gap-2">
                                  <span>{{ log.ip }}</span>
                                  <span class="h-1 w-1 rounded-full bg-[var(--text-placeholder)]"></span>
@@ -202,7 +202,7 @@ const loginHistory = ref([
                         </div>
                         <div v-if="log.status === 'current'" class="flex items-center gap-1.5 bg-[var(--color-success-bg)] text-[var(--color-success-text)] px-2 py-1 rounded-lg border border-[var(--color-success-text)]/20">
                            <div class="h-1.5 w-1.5 rounded-full bg-[var(--color-success-text)] animate-pulse"></div>
-                           <span class="text-[8px] font-black uppercase tracking-widest">Đang hoạt động</span>
+                           <span class="text-[8px] font-semibold uppercase tracking-widest">Đang hoạt động</span>
                         </div>
                      </div>
                   </div>
@@ -217,7 +217,7 @@ const loginHistory = ref([
                   <Globe :size="18" />
                </div>
                <div class="flex-1">
-                  <h4 class="text-xs font-black text-heading">Cài đặt ngôn ngữ</h4>
+                  <h4 class="text-xs font-semibold text-heading">Cài đặt ngôn ngữ</h4>
                   <p class="text-[9px] text-muted font-bold uppercase tracking-widest mt-0.5">Tiếng Việt (Mặc định)</p>
                </div>
                <ChevronRight :size="16" class="text-placeholder" />
@@ -229,7 +229,7 @@ const loginHistory = ref([
                      <LogOut :size="18" />
                   </div>
                   <div>
-                     <h4 class="text-xs font-black text-heading">Đăng xuất</h4>
+                     <h4 class="text-xs font-semibold text-heading">Đăng xuất</h4>
                      <p class="text-[10px] text-[var(--color-danger-text)] font-medium">Kết thúc phiên làm việc</p>
                   </div>
                </div>

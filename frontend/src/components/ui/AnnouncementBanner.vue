@@ -12,10 +12,10 @@ const iconMap = {
 }
 
 const colorMap = {
-  info: 'border-blue-200/50 dark:border-blue-500/20 bg-blue-50/80 dark:bg-blue-600/15 text-blue-700 dark:text-blue-300',
-  warning: 'border-amber-200/50 dark:border-amber-500/20 bg-amber-50/80 dark:bg-amber-600/15 text-amber-700 dark:text-amber-300',
-  success: 'border-emerald-200/50 dark:border-emerald-500/20 bg-emerald-50/80 dark:bg-emerald-600/15 text-emerald-700 dark:text-emerald-300',
-  error: 'border-red-200/50 dark:border-red-500/20 bg-red-50/80 dark:bg-red-600/15 text-red-700 dark:text-red-300',
+  info: 'border-[color-mix(in srgb,var(--color-info-text) 20%,transparent)] bg-[var(--color-info-bg)] text-[var(--color-info-text)]',
+  warning: 'border-[color-mix(in srgb,var(--color-warning-text) 20%,transparent)] bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]',
+  success: 'border-[color-mix(in srgb,var(--color-success-text) 20%,transparent)] bg-[var(--color-success-bg)] text-[var(--color-success-text)]',
+  error: 'border-[color-mix(in srgb,var(--color-danger-text) 20%,transparent)] bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]',
 }
 </script>
 

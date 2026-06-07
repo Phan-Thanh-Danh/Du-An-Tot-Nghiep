@@ -440,7 +440,7 @@ function lessonTypeLabel(lesson) {
               >
                 <div class="flex items-center justify-between mb-2">
                   <p class="font-medium text-heading">Câu {{ index + 1 }}: {{ q.question }}</p>
-                  <span v-if="isQuestionLocked(index)" class="text-xs text-amber-500 font-bold flex items-center gap-1">
+                  <span v-if="isQuestionLocked(index)" class="text-xs text-[var(--color-warning-text)] font-semibold flex items-center gap-1">
                     <component :is="resolveIcon('Lock')" :size="12" /> Làm câu trước đó
                   </span>
                 </div>
@@ -467,7 +467,7 @@ function lessonTypeLabel(lesson) {
                 <component :is="resolveIcon('Send')" :size="15" />
                 Nộp bài Quiz
               </button>
-              <p v-if="quizSubmitted" class="text-xs text-green-500 font-semibold text-center mt-3">
+              <p v-if="quizSubmitted" class="text-xs text-[var(--color-success-text)] font-semibold text-center mt-3">
                 Chúc mừng! Bạn đã hoàn thành bài Quiz. Tiến độ bài học đã được cập nhật thành 100%.
               </p>
             </div>
@@ -690,8 +690,7 @@ function lessonTypeLabel(lesson) {
 .course-eyebrow {
   color: var(--text-link);
   font-size: 0.72rem;
-  font-weight: 850;
-  text-transform: uppercase;
+  font-weight: 700;
 }
 
 .course-header h1,
@@ -705,8 +704,8 @@ function lessonTypeLabel(lesson) {
 .course-header h1 {
   margin-top: 0.25rem;
   font-size: clamp(1.25rem, 2vw, 1.5rem);
-  font-weight: 900;
-  line-height: 1.15;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .course-header p {
@@ -716,7 +715,7 @@ function lessonTypeLabel(lesson) {
   margin: 0.35rem 0 0;
   color: var(--text-label);
   font-size: 0.82rem;
-  font-weight: 750;
+  font-weight: 600;
 }
 
 .course-header-actions {
@@ -745,13 +744,13 @@ function lessonTypeLabel(lesson) {
 .mini-stat span {
   color: var(--text-muted);
   font-size: 0.66rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .mini-stat strong {
   color: var(--text-heading);
   font-size: 0.92rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .learning-shell {
@@ -818,8 +817,8 @@ function lessonTypeLabel(lesson) {
   margin-top: 0.5rem;
   color: var(--text-heading);
   font-size: 1.05rem;
-  font-weight: 900;
-  line-height: 1.2;
+  font-weight: 700;
+  line-height: 1.25;
 }
 
 .lesson-meta-row {
@@ -827,7 +826,7 @@ function lessonTypeLabel(lesson) {
   margin-top: 0.45rem;
   color: var(--text-label);
   font-size: 0.75rem;
-  font-weight: 750;
+  font-weight: 600;
 }
 
 .lesson-meta-row span {
@@ -859,7 +858,7 @@ function lessonTypeLabel(lesson) {
   cursor: pointer;
   padding: 0 0.7rem;
   font-size: 0.76rem;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .lesson-tabs button.active,
@@ -962,7 +961,7 @@ function lessonTypeLabel(lesson) {
   background: var(--surface-input);
   color: var(--text-link);
   font-size: 0.68rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .comment-composer,
@@ -1052,15 +1051,14 @@ textarea::placeholder {
 .section-kicker {
   color: var(--text-link);
   font-size: 0.68rem;
-  font-weight: 900;
-  text-transform: uppercase;
+  font-weight: 700;
 }
 
 .lesson-body h3 {
   margin-top: 0.3rem;
   color: var(--text-heading);
   font-size: 1rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .completion-callout,
@@ -1131,7 +1129,7 @@ textarea::placeholder {
 .side-heading h3 {
   color: var(--text-heading);
   font-size: 0.92rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .side-heading span,
@@ -1180,15 +1178,14 @@ textarea::placeholder {
 .chapter-header strong {
   color: var(--text-link);
   font-size: 0.68rem;
-  font-weight: 900;
-  text-transform: uppercase;
+  font-weight: 700;
 }
 
 .chapter-header span {
   margin-top: 0.15rem;
   color: var(--text-heading);
   font-size: 0.8rem;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1.3;
 }
 
@@ -1244,7 +1241,7 @@ textarea::placeholder {
   overflow: hidden;
   color: var(--text-heading);
   font-size: 0.77rem;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1.28;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1256,7 +1253,7 @@ textarea::placeholder {
   margin-top: 0.15rem;
   color: var(--text-placeholder);
   font-size: 0.66rem;
-  font-weight: 750;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1445,7 +1442,7 @@ textarea::placeholder {
   z-index: 50;
   display: grid;
   place-items: center;
-  background: rgba(15, 23, 42, 0.44);
+  background: color-mix(in srgb, var(--text-heading) 44%, transparent);
   padding: 1rem;
   backdrop-filter: blur(8px);
 }

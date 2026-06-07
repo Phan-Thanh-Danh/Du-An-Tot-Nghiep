@@ -5,7 +5,7 @@
     <div class="rounded-2xl surface-card border border-card p-5 shadow-lg">
       <div class="flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="max-w-xl text-center md:text-left">
-          <h1 class="text-lg font-extrabold leading-tight tracking-tight text-heading">
+          <h1 class="text-lg font-semibold leading-tight tracking-tight text-heading">
             Chào buổi sáng, <span class="text-link">TS. Nguyễn Minh Khoa!</span>
           </h1>
           <p class="mt-1 text-muted text-sm">
@@ -44,7 +44,7 @@
         </div>
         <div class="mt-4">
           <p class="text-sm font-medium text-label">{{ item.label }}</p>
-          <p class="mt-0.5 text-xl font-black text-heading">{{ item.value }}</p>
+          <p class="mt-0.5 text-xl font-semibold text-heading">{{ item.value }}</p>
         </div>
       </div>
     </div>
@@ -69,7 +69,7 @@
                  class="group flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-xl border border-card p-3 transition-all hover:border-[var(--accent-primary)]/30 hover:bg-[var(--accent-primary)]/5">
               <div class="flex h-9 w-9 flex-shrink-0 flex-col items-center justify-center rounded-lg bg-[var(--accent-primary)]/10 text-link font-bold border border-[var(--accent-primary)]/20">
                 <span class="text-[8px] font-bold uppercase tracking-tighter leading-tight">{{ item.time.split(' ')[0] }}</span>
-                <span class="text-[8px] font-black leading-tight">AM</span>
+                <span class="text-[8px] font-semibold leading-tight">AM</span>
               </div>
               <div class="flex-1 min-w-0">
                 <h3 class="text-sm font-bold text-heading truncate group-hover:text-link transition-colors">{{ item.subject }}</h3>
@@ -180,11 +180,11 @@
           <div class="mt-4 grid grid-cols-2 gap-2">
             <div class="rounded-lg bg-white/10 p-2 backdrop-blur-sm border border-white/10">
               <p class="text-[9px] uppercase font-bold opacity-80 tracking-wider">Lớp đang dạy</p>
-              <p class="text-base font-black mt-0.5">8</p>
+              <p class="text-base font-semibold mt-0.5">8</p>
             </div>
             <div class="rounded-lg bg-white/10 p-2 backdrop-blur-sm border border-white/10">
               <p class="text-[9px] uppercase font-bold opacity-80 tracking-wider">Hiệu suất</p>
-              <p class="text-base font-black mt-0.5">82%</p>
+              <p class="text-base font-semibold mt-0.5">82%</p>
             </div>
           </div>
         </div>
@@ -223,10 +223,10 @@ import {
 } from 'lucide-vue-next'
 
 const stats = [
-  { id: 1, label: 'Tổng sinh viên', value: '452', trend: '+12%', isNegative: false, bgColor: 'bg-blue-50', iconColor: 'text-blue-600', icon: Users },
-  { id: 2, label: 'Lớp đang dạy', value: '8', trend: 'Học kỳ 2', isNegative: false, bgColor: 'bg-blue-50', iconColor: 'text-blue-600', icon: BookOpen },
-  { id: 3, label: 'Bài chờ chấm', value: '24', trend: '6 bài gấp', isNegative: true, bgColor: 'bg-orange-50', iconColor: 'text-orange-600', icon: ClipboardCheck },
-  { id: 4, label: 'Hiệu suất lớp', value: '82%', trend: '+5%', isNegative: false, bgColor: 'bg-green-50', iconColor: 'text-green-600', icon: TrendingUp },
+  { id: 1, label: 'Tổng sinh viên', value: '452', trend: '+12%', isNegative: false, bgColor: 'bg-[var(--accent-primary-soft)]', iconColor: 'text-[var(--text-link)]', icon: Users },
+  { id: 2, label: 'Lớp đang dạy', value: '8', trend: 'Học kỳ 2', isNegative: false, bgColor: 'bg-[var(--accent-primary-soft)]', iconColor: 'text-[var(--text-link)]', icon: BookOpen },
+  { id: 3, label: 'Bài chờ chấm', value: '24', trend: '6 bài gấp', isNegative: true, bgColor: 'bg-[var(--accent-primary-soft)]', iconColor: 'text-[var(--text-link)]', icon: ClipboardCheck },
+  { id: 4, label: 'Hiệu suất lớp', value: '82%', trend: '+5%', isNegative: false, bgColor: 'bg-[var(--accent-primary-soft)]', iconColor: 'text-[var(--text-link)]', icon: TrendingUp },
 ]
 
 const teachingSchedule = [
@@ -254,6 +254,3 @@ const gradingStats = [
   { label: 'HQTCSDL - SQL', value: '4 bài', colorClass: 'bg-red-400' },
 ]
 </script>
-
-<style scoped>
-</style>

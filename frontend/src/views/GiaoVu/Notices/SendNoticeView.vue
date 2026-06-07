@@ -54,7 +54,7 @@ function removeSection(index) {
           <div class="space-y-4">
              <!-- Title -->
              <div>
-                <label class="text-[11px] font-black text-label uppercase tracking-widest mb-2 block">Tiêu đề thông báo</label>
+                <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-2 block">Tiêu đề thông báo</label>
                 <input 
                   v-model="title"
                   type="text" 
@@ -65,11 +65,11 @@ function removeSection(index) {
 
              <!-- Content -->
              <div>
-                 <label class="text-[11px] font-black text-label uppercase tracking-widest mb-2 block">Nội dung chi tiết</label>
+                 <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-2 block">Nội dung chi tiết</label>
                  <div class="border border-card rounded-2xl overflow-hidden surface-card transition-all">
                     <!-- Toolbar Mock -->
                     <div class="px-4 py-2 surface-solid border-b border-default flex items-center gap-2">
-                       <button class="p-1.5 lg-button-ghost rounded-lg text-xs font-black">B</button>
+                       <button class="p-1.5 lg-button-ghost rounded-lg text-xs font-semibold">B</button>
                        <button class="p-1.5 lg-button-ghost rounded-lg text-xs italic font-serif">I</button>
                        <button class="p-1.5 lg-button-ghost rounded-lg text-xs underline">U</button>
                        <div class="w-px h-4 border-default mx-1"></div>
@@ -87,7 +87,7 @@ function removeSection(index) {
 
         <!-- Targeting Context -->
         <div class="surface-card border border-card rounded-2xl p-5">
-            <h4 class="text-xs font-black text-heading uppercase tracking-widest mb-4 flex items-center gap-2">
+            <h4 class="text-xs font-semibold text-heading uppercase tracking-widest mb-4 flex items-center gap-2">
                <Users :size="16" /> Đối tượng nhận thông báo
             </h4>
             
@@ -109,7 +109,7 @@ function removeSection(index) {
 
             <!-- Specific Targets Tags -->
             <div class="space-y-4">
-               <p class="text-[10px] font-black text-label uppercase tracking-widest">Danh sách đã chọn</p>
+               <p class="text-[10px] font-semibold text-label uppercase tracking-widest">Danh sách đã chọn</p>
                <div class="flex flex-wrap gap-2">
                   <div v-for="(sec, idx) in selectedSections" :key="sec" class="flex items-center gap-2 px-3 py-1.5 lg-badge-info rounded-xl text-xs font-bold shadow-sm">
                      {{ sec }}
@@ -128,7 +128,7 @@ function removeSection(index) {
         
         <!-- Channels -->
         <div class="surface-card border border-card rounded-2xl p-5">
-            <h4 class="text-xs font-black text-label uppercase tracking-widest mb-4">Kênh phân phối</h4>
+            <h4 class="text-xs font-semibold text-label uppercase tracking-widest mb-4">Kênh phân phối</h4>
             <div class="space-y-3">
                <div v-for="ch in channels" :key="ch.id" class="flex items-center justify-between p-4 surface-solid rounded-2xl border border-default group">
                   <div class="flex items-center gap-3">
@@ -146,7 +146,7 @@ function removeSection(index) {
 
         <!-- Schedule -->
         <div class="surface-card border border-card rounded-2xl p-5">
-            <h4 class="text-xs font-black text-label uppercase tracking-widest mb-4">Thời gian gửi</h4>
+            <h4 class="text-xs font-semibold text-label uppercase tracking-widest mb-4">Thời gian gửi</h4>
             <div class="flex flex-col gap-4">
                <label class="flex items-center gap-3 cursor-pointer group">
                   <div class="relative flex items-center">
@@ -177,7 +177,7 @@ function removeSection(index) {
 
         <!-- Main Actions -->
         <div class="space-y-3">
-           <button class="w-full lg-button-primary py-4 text-sm font-black flex items-center justify-center gap-2">
+           <button class="w-full lg-button-primary py-4 text-sm font-semibold flex items-center justify-center gap-2">
               <Send :size="20" /> GỬI THÔNG BÁO
            </button>
             <button class="w-full lg-button-secondary py-3 text-sm font-bold flex items-center justify-center gap-2">

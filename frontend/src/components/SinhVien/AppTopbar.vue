@@ -193,15 +193,15 @@ const isStudent = computed(() => authStore.hasRole('Student'))
     >
       <Search :size="14" />
       <span class="hidden sm:inline">Tìm kiếm</span>
-      <kbd class="border-card surface-card ml-1 hidden rounded-md border px-1.5 py-0.5 text-[9px] font-bold text-muted xl:inline-block">⌘K</kbd>
+      <kbd class="border-card surface-card ml-1 hidden rounded-md border px-1.5 py-0.5 text-[9px] font-semibold text-muted xl:inline-block">⌘K</kbd>
     </button>
 
     <!-- Quick Create -->
     <QuickCreate />
 
     <!-- Focus Mode button -->
-    <button
-      class="lg-button-secondary hidden h-8 px-2.5 text-[10px] font-bold text-label xl:inline-flex"
+      <button
+        class="lg-button-secondary hidden h-8 px-2.5 text-[10px] font-semibold text-label xl:inline-flex"
       aria-label="Bật chế độ tập trung"
     >
       <Target :size="12" />
@@ -248,8 +248,8 @@ const isStudent = computed(() => authStore.hasRole('Student'))
           @click.stop
         >
           <div class="border-card flex items-center justify-between border-b px-3 py-2.5">
-            <h3 class="text-sm font-bold text-heading">Thông báo</h3>
-            <span v-if="unreadCount" class="rounded-full bg-[var(--accent-primary-soft)] px-2 py-0.5 text-[10px] font-bold text-link">
+            <h3 class="text-sm font-semibold text-heading">Thông báo</h3>
+            <span v-if="unreadCount" class="rounded-full bg-[var(--accent-primary-soft)] px-2 py-0.5 text-[10px] font-semibold text-link">
               {{ unreadCount }} mới
             </span>
           </div>
@@ -266,7 +266,7 @@ const isStudent = computed(() => authStore.hasRole('Student'))
                 <component :is="getIcon(notif.icon)" :size="14" />
               </div>
               <div class="min-w-0 flex-1">
-                <p class="text-xs font-semibold leading-tight text-heading">{{ notif.title }}</p>
+                <p class="text-xs font-medium leading-tight text-heading">{{ notif.title }}</p>
                 <p class="mt-0.5 line-clamp-2 text-[11px] font-medium leading-snug text-body">{{ notif.description }}</p>
                 <p class="mt-1.5 text-[10px] font-semibold text-muted">{{ notif.time }}</p>
               </div>
@@ -296,7 +296,7 @@ const isStudent = computed(() => authStore.hasRole('Student'))
           <span v-else>{{ authStore.initials || mockUser.initials }}</span>
         </div>
         <div class="hidden pr-1.5 text-left sm:block">
-          <p class="text-[12px] font-bold leading-tight text-heading">{{ authStore.displayName || mockUser.name }}</p>
+          <p class="text-[12px] font-semibold leading-tight text-heading">{{ authStore.displayName || mockUser.name }}</p>
           <p class="text-[10px] font-medium capitalize text-muted">{{ (authStore.role || 'Sinh viên').toLowerCase() }}</p>
         </div>
       </button>
@@ -317,7 +317,7 @@ const isStudent = computed(() => authStore.hasRole('Student'))
           @click.stop
         >
           <div class="border-card surface-card border-b px-3 py-3">
-            <p class="text-[13px] font-bold text-heading">{{ authStore.displayName || mockUser.name }}</p>
+            <p class="text-[13px] font-semibold text-heading">{{ authStore.displayName || mockUser.name }}</p>
             <p class="mt-0.5 truncate text-[11px] font-medium text-muted">{{ authStore.user?.email || mockUser.email }}</p>
             <span class="mt-2 inline-flex items-center gap-1.5 rounded-full border border-card bg-[var(--accent-primary-soft)] px-2.5 py-1 text-[10px] font-semibold text-link shadow-sm">
               <LucideIcons.GraduationCap :size="11" />
@@ -328,7 +328,7 @@ const isStudent = computed(() => authStore.hasRole('Student'))
           <div class="p-1 space-y-0.5">
             <router-link
               :to="profileLink"
-              class="flex items-center gap-2.5 rounded-[var(--radius-md)] px-3 py-2 text-[12px] font-bold text-label transition-all hover:bg-[var(--surface-card-hover)] hover:text-link"
+              class="flex items-center gap-2.5 rounded-[var(--radius-md)] px-3 py-2 text-[12px] font-semibold text-label transition-all hover:bg-[var(--surface-card-hover)] hover:text-link"
               role="menuitem"
               @click="closeAll"
             >
@@ -338,7 +338,7 @@ const isStudent = computed(() => authStore.hasRole('Student'))
             <router-link
               v-if="isStudent"
               to="/student/tuition"
-              class="flex items-center gap-2.5 rounded-[var(--radius-md)] px-3 py-2 text-[12px] font-bold text-label transition-all hover:bg-[var(--surface-card-hover)] hover:text-link"
+              class="flex items-center gap-2.5 rounded-[var(--radius-md)] px-3 py-2 text-[12px] font-semibold text-label transition-all hover:bg-[var(--surface-card-hover)] hover:text-link"
               role="menuitem"
               @click="closeAll"
             >
@@ -349,7 +349,7 @@ const isStudent = computed(() => authStore.hasRole('Student'))
 
           <div class="border-card border-t p-1">
             <button
-              class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-red-600 dark:text-red-400 transition-all hover:bg-red-50 dark:hover:bg-red-600/20 hover:text-red-700 dark:hover:text-red-300"
+              class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-semibold text-red-600 dark:text-red-400 transition-all hover:bg-red-50 dark:hover:bg-red-600/20 hover:text-red-700 dark:hover:text-red-300"
               role="menuitem"
               @click="logout"
             >

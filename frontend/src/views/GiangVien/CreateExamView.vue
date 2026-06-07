@@ -288,7 +288,7 @@ function saveToLocalStorage(status) {
             <ArrowLeft :size="17" />
           </router-link>
           <div>
-            <h1 class="text-lg font-extrabold text-heading tracking-tight">Tạo đề thi mới</h1>
+            <h1 class="text-lg font-semibold text-heading tracking-tight">Tạo đề thi mới</h1>
             <p class="text-xs font-semibold text-muted mt-0.5">Cấu hình &amp; tạo đề thi tương tác</p>
           </div>
         </div>
@@ -316,7 +316,7 @@ function saveToLocalStorage(status) {
               <div class="flex h-8 w-8 items-center justify-center rounded-lg" style="background:var(--accent-primary-soft);color:var(--accent-primary)">
                 <BookOpen :size="15" />
               </div>
-              <h2 class="text-sm font-bold text-heading">1. Thông tin đề thi</h2>
+              <h2 class="text-sm font-semibold text-heading">1. Thông tin đề thi</h2>
             </div>
           </template>
           <div class="space-y-3.5">
@@ -382,19 +382,19 @@ function saveToLocalStorage(status) {
                   <Database :size="15" />
                 </div>
                 <div>
-                  <h2 class="text-sm font-bold text-heading">2. Câu hỏi trong đề thi</h2>
+                  <h2 class="text-sm font-semibold text-heading">2. Câu hỏi trong đề thi</h2>
                   <p class="text-xs text-muted mt-0.5">Xây dựng danh sách câu hỏi trắc nghiệm hoặc tự luận.</p>
                 </div>
               </div>
               <div v-if="selectedQuestions.length > 0" class="flex items-center gap-3 text-xs">
                 <div class="text-right">
                   <p class="text-[10px] font-semibold text-muted uppercase tracking-wider">Số câu</p>
-                  <p class="text-sm font-bold text-heading">{{ selectedQuestions.length }} câu</p>
+                  <p class="text-sm font-semibold text-heading">{{ selectedQuestions.length }} câu</p>
                 </div>
                 <div class="h-8 w-px bg-border-card"></div>
                 <div class="text-right">
                   <p class="text-[10px] font-semibold text-muted uppercase tracking-wider">Tổng điểm</p>
-                  <p class="text-sm font-bold text-link">{{ totalScore.toFixed(2) }} đ</p>
+                  <p class="text-sm font-semibold text-body">{{ totalScore.toFixed(2) }} đ</p>
                 </div>
               </div>
             </div>
@@ -410,7 +410,7 @@ function saveToLocalStorage(status) {
                     {{ index + 1 }}
                   </span>
                   <div class="space-y-2 flex-1 min-w-0">
-                    <p class="text-sm font-bold text-heading leading-snug">{{ q.text }}</p>
+                    <p class="text-sm font-semibold text-heading leading-snug">{{ q.text }}</p>
                     <div v-if="q.options && q.options.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                       <div v-for="(opt, oIdx) in q.options" :key="oIdx"
                         class="flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs"
@@ -448,7 +448,7 @@ function saveToLocalStorage(status) {
               <div class="flex h-9 w-9 items-center justify-center rounded-lg border border-card bg-surface-elevated" style="color:var(--accent-primary)">
                 <Database :size="17" />
               </div>
-              <h4 class="text-xs font-bold text-heading">Chọn từ Thư viện câu hỏi</h4>
+              <h4 class="text-xs font-semibold text-heading">Chọn từ Thư viện câu hỏi</h4>
               <p class="text-[10px] text-muted leading-relaxed">Tìm kiếm và sử dụng câu hỏi có sẵn từ ngân hàng đề.</p>
             </div>
             <div @click="openQuestionCreator"
@@ -456,7 +456,7 @@ function saveToLocalStorage(status) {
               <div class="flex h-9 w-9 items-center justify-center rounded-lg border border-card bg-surface-elevated" style="color:var(--accent-primary)">
                 <Plus :size="17" />
               </div>
-              <h4 class="text-xs font-bold text-heading">Tự soạn câu hỏi mới</h4>
+              <h4 class="text-xs font-semibold text-heading">Tự soạn câu hỏi mới</h4>
               <p class="text-[10px] text-muted leading-relaxed">Tạo câu hỏi trắc nghiệm hoặc tự luận tùy chỉnh tại đây.</p>
             </div>
           </div>
@@ -474,7 +474,7 @@ function saveToLocalStorage(status) {
               <div class="flex h-8 w-8 items-center justify-center rounded-lg" style="background:var(--surface-input);color:var(--text-label)">
                 <Settings :size="15" />
               </div>
-              <h2 class="text-sm font-bold text-heading">Cấu hình đề thi</h2>
+              <h2 class="text-sm font-semibold text-heading">Cấu hình đề thi</h2>
             </div>
           </template>
           <div class="space-y-4">
@@ -516,7 +516,7 @@ function saveToLocalStorage(status) {
               <div class="flex h-8 w-8 items-center justify-center rounded-lg" style="background:var(--color-warning-bg);color:var(--color-warning-text)">
                 <ShieldCheck :size="15" />
               </div>
-              <h2 class="text-sm font-bold text-heading">Điều kiện mở đề</h2>
+              <h2 class="text-sm font-semibold text-heading">Điều kiện mở đề</h2>
             </div>
           </template>
           <div class="space-y-3.5">
@@ -573,14 +573,14 @@ function saveToLocalStorage(status) {
     <Teleport to="body">
       <Transition name="modal-fade">
         <div v-if="showBankModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" @click.self="showBankModal = false">
-          <div class="relative flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-card bg-surface-modal shadow-2xl animate-modal-in">
+          <div class="relative flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-card bg-surface-modal shadow-[var(--lg-shadow-md)] animate-modal-in">
             <div class="flex items-center justify-between border-b border-card px-4 py-3">
               <div class="flex items-center gap-3">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg" style="background:var(--color-info-bg);color:var(--color-info-text)">
                   <Database :size="17" />
                 </div>
                 <div>
-                  <h3 class="text-sm font-bold text-heading">Thư viện câu hỏi</h3>
+                  <h3 class="text-sm font-semibold text-heading">Thư viện câu hỏi</h3>
                   <p class="text-xs text-muted mt-0.5">Chọn từ Ngân hàng đề thi môn học hiện có.</p>
                 </div>
               </div>
@@ -634,7 +634,7 @@ function saveToLocalStorage(status) {
               </div>
               <div v-if="filteredBankQuestions.length === 0" class="flex flex-col items-center py-10 text-center">
                 <Database :size="32" class="text-placeholder mb-2" />
-                <p class="text-xs font-bold text-muted">Không tìm thấy câu hỏi phù hợp</p>
+                <p class="text-xs font-semibold text-muted">Không tìm thấy câu hỏi phù hợp</p>
                 <p class="text-[10px] text-placeholder">Tất cả câu hỏi trong bộ lọc đã được thêm vào đề thi hoặc không khớp từ khóa.</p>
               </div>
             </div>
@@ -654,14 +654,14 @@ function saveToLocalStorage(status) {
     <Teleport to="body">
       <Transition name="modal-fade">
         <div v-if="showCreatorModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" @click.self="showCreatorModal = false">
-          <div class="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-card bg-surface-modal shadow-2xl animate-modal-in">
+          <div class="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-card bg-surface-modal shadow-[var(--lg-shadow-md)] animate-modal-in">
             <div class="flex items-center justify-between border-b border-card px-4 py-3">
               <div class="flex items-center gap-3">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg" style="background:var(--color-info-bg);color:var(--color-info-text)">
                   <Plus :size="17" />
                 </div>
                 <div>
-                  <h3 class="text-sm font-bold text-heading">Soạn câu hỏi mới</h3>
+                  <h3 class="text-sm font-semibold text-heading">Soạn câu hỏi mới</h3>
                   <p class="text-xs text-muted mt-0.5">Soạn nội dung và cấu hình phương án chi tiết.</p>
                 </div>
               </div>
@@ -712,7 +712,7 @@ function saveToLocalStorage(status) {
                     <Check v-if="newQuestion.correctAnswer === idx" :size="12" style="color:#fff" />
                   </button>
                   <div class="relative flex-1">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted uppercase">{{ String.fromCharCode(65 + idx) }}</span>
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted uppercase">{{ String.fromCharCode(65 + idx) }}</span>
                     <input v-model="newQuestion.options[idx]" type="text" :placeholder="`Phương án ${String.fromCharCode(65 + idx)}...`"
                       class="w-full rounded-lg border bg-surface-elevated pl-8 pr-3 py-2.5 text-sm text-heading outline-none placeholder:text-placeholder focus:border-link transition-colors"
                       :style="creatorErrors[`option_${idx}`] ? { borderColor: 'var(--color-danger-text)' } : { borderColor: 'var(--border-input)' }" />

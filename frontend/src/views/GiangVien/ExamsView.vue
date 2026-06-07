@@ -174,7 +174,7 @@ function formatTime(value) {
            <FileSignature :size="32" />
         </div>
         <div>
-          <h1 class="text-xl md:text-xl font-black text-heading tracking-tight">Quản lý Đề thi</h1>
+          <h1 class="text-xl md:text-xl font-semibold text-heading tracking-tight">Quản lý Đề thi</h1>
           <p class="text-sm font-medium text-muted mt-1">Thiết kế và cấu hình các bộ đề thi trắc nghiệm & tự luận.</p>
         </div>
       </div>
@@ -188,7 +188,7 @@ function formatTime(value) {
     <!-- Toolbar -->
     <div class="flex items-center justify-between gap-4">
        <div class="flex items-center gap-2">
-          <h2 class="text-lg font-black text-heading">Danh sách đề thi</h2>
+          <h2 class="text-lg font-semibold text-heading">Danh sách đề thi</h2>
           <GlassBadge variant="primary">{{ filteredExams.length }}</GlassBadge>
        </div>
        <div class="relative w-64">
@@ -212,11 +212,11 @@ function formatTime(value) {
         </div>
         
         <div class="flex-1">
-           <div class="inline-block rounded-lg bg-[var(--surface-input)] px-2 py-1 text-[10px] font-black text-muted uppercase tracking-widest mb-3">
+           <div class="inline-block rounded-lg bg-[var(--surface-input)] px-2 py-1 text-[10px] font-semibold text-muted uppercase tracking-widest mb-3">
               {{ exam.type }}
            </div>
-           <h3 class="text-xl font-black text-heading leading-tight group-hover:text-link transition-colors line-clamp-2 min-h-[56px]">{{ exam.name }}</h3>
-           <p class="mt-2 text-xs font-bold text-muted">{{ exam.subjectName }} · {{ exam.classSectionCode }}</p>
+           <h3 class="text-xl font-semibold text-heading leading-tight group-hover:text-link transition-colors line-clamp-2 min-h-[56px]">{{ exam.name }}</h3>
+           <p class="mt-2 text-xs font-semibold text-muted">{{ exam.subjectName }} · {{ exam.classSectionCode }}</p>
            
            <div class="mt-6 flex flex-col gap-3">
               <div class="flex items-center gap-3">
@@ -224,22 +224,22 @@ function formatTime(value) {
                     <Calendar :size="14" />
                  </div>
                  <div>
-                    <p class="text-[10px] font-black uppercase tracking-widest text-muted">Thời gian mở đề</p>
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">Thời gian mở đề</p>
                     <p class="text-sm font-bold text-heading">{{ formatTime(exam.openAt) }} - {{ formatTime(exam.closeAt) }}</p>
                  </div>
               </div>
               <div class="grid grid-cols-3 gap-2 text-center">
                 <div class="rounded-xl bg-[var(--surface-input)] border border-card px-2 py-2">
-                  <p class="text-[9px] font-black uppercase tracking-widest text-muted">Được làm</p>
-                  <p class="text-sm font-black text-heading">{{ exam.allowedStudents }}</p>
+                  <p class="text-[9px] font-semibold uppercase tracking-widest text-muted">Được làm</p>
+                  <p class="text-sm font-semibold text-heading">{{ exam.allowedStudents }}</p>
                 </div>
                 <div class="rounded-xl bg-[var(--color-success-bg)] border border-[var(--color-success-bg)] px-2 py-2">
-                  <p class="text-[9px] font-black uppercase tracking-widest text-[var(--color-success-text)]">Đã làm</p>
-                  <p class="text-sm font-black" style="color:var(--color-success-text)">{{ exam.completedStudents }}</p>
+                  <p class="text-[9px] font-semibold uppercase tracking-widest text-[var(--color-success-text)]">Đã làm</p>
+                  <p class="text-sm font-semibold" style="color:var(--color-success-text)">{{ exam.completedStudents }}</p>
                 </div>
                 <div class="rounded-xl bg-[var(--color-warning-bg)] border border-[var(--color-warning-bg)] px-2 py-2">
-                  <p class="text-[9px] font-black uppercase tracking-widest text-[var(--color-warning-text)]">Chưa</p>
-                  <p class="text-sm font-black" style="color:var(--color-warning-text)">{{ exam.pendingStudents }}</p>
+                  <p class="text-[9px] font-semibold uppercase tracking-widest text-[var(--color-warning-text)]">Chưa</p>
+                  <p class="text-sm font-semibold" style="color:var(--color-warning-text)">{{ exam.pendingStudents }}</p>
                 </div>
               </div>
               <div class="flex items-center gap-4 mt-2 pt-4 border-t border-card">
@@ -278,10 +278,10 @@ function formatTime(value) {
     <Transition name="modal-fade">
       <div v-if="isConfigModalOpen" class="fixed inset-0 z-[999] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-[var(--overlay-bg)] backdrop-blur-sm" @click="isConfigModalOpen = false"></div>
-        <div class="relative surface-card rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-modal-in">
+        <div class="relative surface-card rounded-2xl shadow-[var(--lg-shadow-md)] w-full max-w-2xl overflow-hidden animate-modal-in">
           <div class="p-4 border-b border-card bg-[var(--surface-input)] flex items-center justify-between">
             <div>
-               <h3 class="text-lg font-bold text-heading">Cấu hình Đề thi</h3>
+               <h3 class="text-lg font-semibold text-heading">Cấu hình Đề thi</h3>
                <p class="text-sm text-muted mt-1">Quyền vào đề được kiểm soát bằng lớp học phần, lịch mở đề và số lần làm.</p>
             </div>
             <div class="h-10 w-10 rounded-xl bg-[var(--accent-primary)]/10 flex items-center justify-center text-link shadow-sm">
@@ -291,45 +291,41 @@ function formatTime(value) {
 
            <div class="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
              <div class="space-y-4">
-               <h4 class="text-sm font-bold text-heading uppercase tracking-wider flex items-center gap-2"><FileEdit :size="16" style="color:var(--accent-primary)" /> Thông tin cơ bản</h4>
+               <h4 class="text-sm font-semibold text-heading uppercase tracking-wider flex items-center gap-2"><FileEdit :size="16" style="color:var(--accent-primary)" /> Thông tin cơ bản</h4>
                <div>
-                 <label class="block text-sm font-bold text-body mb-1.5">Tên đề thi</label>
+                 <label class="block text-sm font-semibold text-body mb-1.5">Tên đề thi</label>
                  <input v-model="configuringExam.name" type="text" class="w-full rounded-xl border border-input bg-surface-input px-4 py-2.5 text-sm outline-none focus:border-[var(--accent-primary)] transition-colors" />
                </div>
                <div class="grid grid-cols-2 gap-4">
                  <div>
-                   <label class="block text-sm font-bold text-body mb-1.5">Môn học</label>
+                   <label class="block text-sm font-semibold text-body mb-1.5">Môn học</label>
                    <input v-model="configuringExam.subjectName" type="text" class="w-full rounded-xl border border-input bg-surface-input px-4 py-2.5 text-sm outline-none focus:border-[var(--accent-primary)] transition-colors" />
                  </div>
                  <div>
-                   <label class="block text-sm font-bold text-body mb-1.5">Lớp học phần áp dụng</label>
-                   <input v-model="configuringExam.classSectionCode" type="text" class="w-full rounded-xl border border-input bg-surface-input px-4 py-2.5 text-sm outline-none focus:border-[var(--accent-primary)] transition-colors" />
-                 </div>
-                 <div>
-                   <label class="block text-sm font-bold text-body mb-1.5">Thời gian làm bài</label>
-                   <input v-model="configuringExam.duration" type="text" class="w-full rounded-xl border border-input bg-surface-input px-4 py-2.5 text-sm outline-none focus:border-[var(--accent-primary)] transition-colors" />
-                 </div>
-                 <div>
-                   <label class="block text-sm font-bold text-body mb-1.5">Ngày diễn ra</label>
+<label class="block text-sm font-semibold text-body mb-1.5">Lớp học phần áp dụng</label>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-semibold text-body mb-1.5">Thời gian làm bài</label>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-semibold text-body mb-1.5">Ngày diễn ra</label>
                    <input v-model="configuringExam.date" type="text" class="w-full rounded-xl border border-input bg-surface-input px-4 py-2.5 text-sm outline-none focus:border-[var(--accent-primary)] transition-colors" />
                  </div>
                </div>
              </div>
 
              <div class="space-y-4 pt-4 border-t border-card">
-                <h4 class="text-sm font-bold text-heading uppercase tracking-wider flex items-center gap-2"><Settings :size="16" style="color:var(--color-warning-text)" /> Điều kiện mở đề</h4>
+                <h4 class="text-sm font-semibold text-heading uppercase tracking-wider flex items-center gap-2"><Settings :size="16" style="color:var(--color-warning-text)" /> Điều kiện mở đề</h4>
 
                 <div class="grid grid-cols-2 gap-4">
                   <div>
-                    <label class="block text-sm font-bold text-body mb-1.5">Thời gian mở</label>
-                    <input v-model="configuringExam.openAt" type="datetime-local" class="w-full rounded-xl border border-input bg-surface-input px-4 py-2.5 text-sm outline-none focus:border-[var(--accent-primary)] transition-colors" />
+<label class="block text-sm font-semibold text-body mb-1.5">Thời gian mở</label>
                   </div>
                   <div>
-                    <label class="block text-sm font-bold text-body mb-1.5">Thời gian đóng</label>
-                    <input v-model="configuringExam.closeAt" type="datetime-local" class="w-full rounded-xl border border-input bg-surface-input px-4 py-2.5 text-sm outline-none focus:border-[var(--accent-primary)] transition-colors" />
+                    <label class="block text-sm font-semibold text-body mb-1.5">Thời gian đóng</label>
                   </div>
                   <div>
-                    <label class="block text-sm font-bold text-body mb-1.5">Số lần làm bài tối đa</label>
+                    <label class="block text-sm font-semibold text-body mb-1.5">Số lần làm bài tối đa</label>
                     <select v-model="configuringExam.maxAttempts" class="w-full rounded-xl border border-input bg-surface-input px-4 py-2.5 text-sm outline-none focus:border-[var(--accent-primary)] transition-colors">
                       <option :value="1">1 lần</option>
                       <option :value="2">2 lần</option>
@@ -338,7 +334,7 @@ function formatTime(value) {
                     </select>
                   </div>
                   <div>
-                    <label class="block text-sm font-bold text-body mb-1.5">Trạng thái</label>
+                    <label class="block text-sm font-semibold text-body mb-1.5">Trạng thái</label>
                     <select v-model="configuringExam.status" class="w-full rounded-xl border border-input bg-surface-input px-4 py-2.5 text-sm outline-none focus:border-[var(--accent-primary)] transition-colors">
                       <option :value="EXAM_STATUS.DRAFT">Nháp</option>
                       <option :value="EXAM_STATUS.SCHEDULED">Đã lên lịch</option>
@@ -351,22 +347,22 @@ function formatTime(value) {
 
                <div class="grid grid-cols-3 gap-3">
                   <div>
-                    <label class="block text-sm font-bold text-body mb-1.5">SV được phép</label>
-                    <input v-model.number="configuringExam.allowedStudents" type="number" min="0" class="w-full rounded-xl border border-input bg-surface-input px-4 py-2.5 text-sm outline-none focus:border-[var(--accent-primary)] transition-colors" />
+<label class="block text-sm font-semibold text-body mb-1.5">SV được phép</label>
+                     <input v-model.number="configuringExam.allowedStudents" type="number" min="0" class="w-full rounded-xl border border-input bg-surface-input px-4 py-2.5 text-sm outline-none focus:border-[var(--accent-primary)] transition-colors" />
                   </div>
                   <div>
-                    <label class="block text-sm font-bold text-body mb-1.5">Đã làm</label>
-                    <input v-model.number="configuringExam.completedStudents" type="number" min="0" class="w-full rounded-xl border border-input bg-surface-input px-4 py-2.5 text-sm outline-none focus:border-[var(--accent-primary)] transition-colors" />
+                    <label class="block text-sm font-semibold text-body mb-1.5">Đã làm</label>
+                     <input v-model.number="configuringExam.completedStudents" type="number" min="0" class="w-full rounded-xl border border-input bg-surface-input px-4 py-2.5 text-sm outline-none focus:border-[var(--accent-primary)] transition-colors" />
                   </div>
                   <div>
-                    <label class="block text-sm font-bold text-body mb-1.5">Chưa làm</label>
+                    <label class="block text-sm font-semibold text-body mb-1.5">Chưa làm</label>
                     <input v-model.number="configuringExam.pendingStudents" type="number" min="0" class="w-full rounded-xl border border-input bg-surface-input px-4 py-2.5 text-sm outline-none focus:border-[var(--accent-primary)] transition-colors" />
                </div>
                 </div>
 
                 <div class="flex items-center justify-between p-4 rounded-xl border border-card bg-[var(--surface-input)] mt-2">
                   <div>
-                     <p class="text-sm font-bold text-heading">Cho phép làm/học trước</p>
+                     <p class="text-sm font-semibold text-heading">Cho phép làm/học trước</p>
                      <p class="text-xs font-medium text-muted mt-0.5">Sinh viên thuộc lớp được phép thấy cảnh báo trước khi làm trước lộ trình.</p>
                   </div>
                   <label class="relative inline-flex items-center cursor-pointer">

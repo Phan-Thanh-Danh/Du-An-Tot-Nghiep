@@ -13,11 +13,11 @@ defineProps({
 </script>
 
 <template>
-  <GlassPanel variant="soft" density="none" class="rounded-[28px]">
-    <div class="flex items-center justify-between gap-3 border-b border-white/45 dark:border-white/10 px-4 py-3.5">
+  <GlassPanel variant="strong" density="none" class="rounded-2xl">
+    <div class="flex items-center justify-between gap-3 border-b border-card px-4 py-3.5">
       <div>
-        <h2 class="text-base font-bold text-slate-950 dark:text-slate-100">Tiến độ khóa học</h2>
-        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Cập nhật 15/05/2026</p>
+        <h2 class="text-base font-semibold text-heading">Tiến độ khóa học</h2>
+        <p class="text-xs font-medium text-body">Cập nhật 15/05/2026</p>
       </div>
       <router-link to="/student/courses" class="lg-button-ghost px-2.5 py-1.5 text-xs font-semibold">
         Tất cả
@@ -32,14 +32,14 @@ defineProps({
         class="lg-list-item flex min-h-[82px] items-center p-3.5"
       >
         <div class="flex w-full items-start gap-4">
-          <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-600/20 text-blue-700 dark:text-blue-300 shadow-sm border border-blue-100 dark:border-blue-500/30">
+          <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--color-info-bg)] text-link shadow-sm border border-[color-mix(in srgb,var(--text-link) 20%,transparent)]">
             <BookOpen :size="17" />
           </div>
           <div class="min-w-0 flex-1">
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0">
-                <h3 class="truncate text-[14px] font-bold text-slate-950 dark:text-slate-100 leading-tight">{{ course.name }}</h3>
-                <p class="mt-0.5 truncate text-xs font-medium text-slate-500 dark:text-slate-400">
+                <h3 class="truncate text-[14px] font-semibold text-heading leading-tight">{{ course.name }}</h3>
+                <p class="mt-0.5 truncate text-xs font-medium text-body">
                   {{ course.code }} · {{ course.lecturer }}
                 </p>
               </div>
@@ -50,12 +50,12 @@ defineProps({
               <ProgressBar :value="course.progress" class="h-2 shadow-sm" />
             </div>
             <div class="mt-2 flex items-center justify-between gap-2 text-xs font-medium">
-              <span class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
-                <CheckCircle2 :size="12" class="text-emerald-600 dark:text-emerald-400" />
+              <span class="inline-flex items-center gap-1.5 text-body">
+                <CheckCircle2 :size="12" class="text-[var(--color-success-text)]" />
                 {{ course.completed }}/{{ course.total }} bài học
               </span>
-              <router-link to="/student/courses" class="font-semibold text-blue-700 dark:text-blue-400 transition-colors hover:text-blue-800 dark:hover:text-blue-300">
-                Vào học →
+              <router-link to="/student/courses" class="rounded-lg px-2.5 py-1 text-[12px] font-semibold text-link bg-[var(--color-info-bg)] hover:bg-[var(--text-link)] hover:text-white transition-colors">
+                Vào học
               </router-link>
             </div>
           </div>

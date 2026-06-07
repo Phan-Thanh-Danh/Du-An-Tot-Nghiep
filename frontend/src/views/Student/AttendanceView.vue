@@ -168,7 +168,7 @@ const submitExcuse = () => {
         <div class="flex items-center gap-1.5 text-xs font-bold text-link uppercase tracking-wider mb-1">
           <UserCheck :size="14" /> Quản lý học vụ
         </div>
-        <h1 class="text-xl font-extrabold text-heading tracking-tight">Điểm danh</h1>
+        <h1 class="text-xl font-semibold text-heading tracking-tight">Điểm danh</h1>
         <p class="text-sm text-muted mt-0.5">Theo dõi lịch sử chuyên cần, nộp đơn giải trình và nhận cảnh báo từ AI.</p>
       </div>
     </div>
@@ -178,7 +178,7 @@ const submitExcuse = () => {
       <Sparkles v-if="getAiRisk.risk === 'low'" :size="20" class="shrink-0 mt-0.5" />
       <AlertTriangle v-else :size="20" class="shrink-0 mt-0.5" />
       <div>
-        <h3 class="text-sm font-bold" :style="{ color: 'inherit' }">{{ getAiRisk.title }}</h3>
+        <h3 class="text-sm font-semibold" :style="{ color: 'inherit' }">{{ getAiRisk.title }}</h3>
         <p class="text-xs mt-0.5" :style="{ color: 'inherit', opacity: 0.85 }">{{ getAiRisk.message }}</p>
       </div>
     </div>
@@ -203,7 +203,7 @@ const submitExcuse = () => {
           <component :is="m.icon" :size="18" />
         </div>
         <div>
-          <div class="text-lg font-extrabold text-heading leading-none">{{ m.value }}<span class="text-xs font-semibold text-muted ml-1">{{ m.unit }}</span></div>
+          <div class="text-lg font-semibold text-heading leading-none">{{ m.value }}<span class="text-xs font-semibold text-muted ml-1">{{ m.unit }}</span></div>
           <div class="text-xs font-semibold text-label mt-1">{{ m.label }}</div>
         </div>
       </div>
@@ -271,7 +271,7 @@ const submitExcuse = () => {
                     <component :is="statusConfig[selectedSession.status]?.icon" :size="13" />
                     {{ statusConfig[selectedSession.status]?.label }}
                   </GlassBadge>
-                  <h2 class="text-base font-extrabold text-heading mt-2">{{ selectedSession.subject }}</h2>
+                  <h2 class="text-base font-semibold text-heading mt-2">{{ selectedSession.subject }}</h2>
                 </div>
                 <button class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-card bg-surface-input text-muted" @click="closeDrawer"><X :size="18"/></button>
               </div>
@@ -290,7 +290,7 @@ const submitExcuse = () => {
                 </div>
                 <div v-if="['Absent', 'Late', 'Unconfirmed'].includes(selectedSession.status)" class="rounded-lg border border-card p-4 text-center" style="background:var(--accent-primary-soft);border-color:color-mix(in srgb, var(--accent-primary) 30%, transparent)">
                   <FileSignature :size="22" style="color:var(--accent-primary)" class="mx-auto mb-2" />
-                  <h4 class="text-sm font-bold" style="color:var(--accent-primary)">Cần giải trình?</h4>
+                  <h4 class="text-sm font-semibold" style="color:var(--accent-primary)">Cần giải trình?</h4>
                   <p class="text-xs mt-1" style="color:var(--accent-primary);opacity:0.8">Nếu bạn có lý do chính đáng, hãy nộp minh chứng để được xem xét chuyển trạng thái thành "Có phép".</p>
                   <GlassButton variant="primary" size="sm" class="mt-3 w-full justify-center" @click="openExcuseModal(selectedSession)">
                     Nộp đơn giải trình
@@ -309,7 +309,7 @@ const submitExcuse = () => {
         <div v-if="modalOpen" class="attendance-overlay modal fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4" @click.self="closeModal">
           <div class="attendance-modal relative w-full max-w-md overflow-hidden rounded-2xl border border-card bg-surface-modal">
             <div class="flex items-center justify-between border-b border-card px-4 py-3.5">
-              <h3 class="text-sm font-bold text-heading">Giải trình vắng mặt</h3>
+              <h3 class="text-sm font-semibold text-heading">Giải trình vắng mặt</h3>
               <button class="flex h-7 w-7 items-center justify-center rounded-lg border border-card bg-surface-input text-muted" @click="closeModal"><X :size="16"/></button>
             </div>
             <div class="space-y-4 p-4">

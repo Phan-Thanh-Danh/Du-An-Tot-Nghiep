@@ -221,7 +221,7 @@ function closeTransferModal() {
         <div class="flex items-center gap-3">
           <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold relative" @click.stop="showFilters = !showFilters">
             <Filter :size="18" /> Lọc lớp
-            <span v-if="activeFilterCount > 0" class="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[var(--lg-primary)] text-white text-[9px] font-black flex items-center justify-center">{{ activeFilterCount }}</span>
+            <span v-if="activeFilterCount > 0" class="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[var(--lg-primary)] text-white text-[9px] font-semibold flex items-center justify-center">{{ activeFilterCount }}</span>
           </button>
         </div>
       </div>
@@ -236,7 +236,7 @@ function closeTransferModal() {
       >
         <div v-if="showFilters" class="lg-glass-strong p-5 rounded-[20px] space-y-3">
           <div class="flex flex-wrap items-center gap-3">
-            <span class="text-[10px] font-black text-label uppercase tracking-widest min-w-[70px]">Lớp HP:</span>
+            <span class="text-[10px] font-semibold text-label uppercase tracking-widest min-w-[70px]">Lớp HP:</span>
             <div class="flex gap-1.5 flex-wrap">
               <button v-for="s in ['all', ...sections]" :key="s"
                 @click="filterSection = s"
@@ -256,34 +256,34 @@ function closeTransferModal() {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">STT</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Sinh viên</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Lớp & Môn</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thời gian vào</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Trạng thái</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">STT</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Sinh viên</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Lớp & Môn</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thời gian vào</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Trạng thái</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
             <tr v-for="item in filteredWaitlist" :key="item.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-4">
-                <span class="text-sm font-black text-placeholder">#{{ item.position }}</span>
+                <span class="text-sm font-semibold text-placeholder">#{{ item.position }}</span>
               </td>
               <td class="px-4 py-4">
-                <p class="text-sm font-black text-heading">{{ item.student }}</p>
+                <p class="text-sm font-semibold text-heading">{{ item.student }}</p>
                 <p class="text-[11px] font-bold text-placeholder mt-0.5">{{ item.studentCode }}</p>
               </td>
               <td class="px-4 py-4">
-                <p class="text-sm font-black text-heading leading-tight">{{ item.subject }}</p>
+                <p class="text-sm font-semibold text-heading leading-tight">{{ item.subject }}</p>
                 <div class="flex items-center gap-2 mt-1">
-                  <span class="text-[10px] font-black text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ item.section }}</span>
+                  <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ item.section }}</span>
                 </div>
               </td>
               <td class="px-4 py-4">
                 <span class="text-xs font-medium text-label">{{ item.time }}</span>
               </td>
               <td class="px-4 py-4">
-                <span :class="['px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border', getStatusBadge(item.status)]">
+                <span :class="['px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest border', getStatusBadge(item.status)]">
                   {{ getStatusLabel(item.status) }}
                 </span>
               </td>
@@ -311,13 +311,13 @@ function closeTransferModal() {
                       leave-to-class="opacity-0 scale-95"
                     >
                       <div v-if="contextTarget?.id === item.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
-                        <button v-if="item.status === 'waiting'" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-success-bg)] hover:text-[var(--lg-success)] transition-all" @click="openConfirmModal(item); closeContextMenu()">
+                        <button v-if="item.status === 'waiting'" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-success-bg)] hover:text-[var(--lg-success)] transition-all" @click="openConfirmModal(item); closeContextMenu()">
                           <UserCheck :size="14" /> Xác nhận vào lớp
                         </button>
-                        <button v-if="item.status === 'waiting'" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openTransferModal(item); closeContextMenu()">
+                        <button v-if="item.status === 'waiting'" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openTransferModal(item); closeContextMenu()">
                           <ArrowLeftRight :size="14" /> Chuyển lớp khác
                         </button>
-                        <button v-if="item.status === 'waiting'" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-danger-bg)] hover:text-[var(--lg-danger)] transition-all" @click="openRemoveModal(item); closeContextMenu()">
+                        <button v-if="item.status === 'waiting'" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-danger-bg)] hover:text-[var(--lg-danger)] transition-all" @click="openRemoveModal(item); closeContextMenu()">
                           <UserX :size="14" /> Loại khỏi hàng chờ
                         </button>
                       </div>
@@ -332,7 +332,7 @@ function closeTransferModal() {
           <div class="h-16 w-16 rounded-2xl surface-solid flex items-center justify-center mb-4">
             <BookOpen :size="28" class="text-placeholder" />
           </div>
-          <p class="text-sm font-black text-heading">Không có sinh viên nào trong hàng chờ</p>
+          <p class="text-sm font-semibold text-heading">Không có sinh viên nào trong hàng chờ</p>
           <p class="text-xs font-medium text-placeholder mt-1">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
         </div>
       </div>
@@ -343,7 +343,7 @@ function closeTransferModal() {
              <Bell :size="20" />
           </div>
           <div>
-            <h4 class="text-sm font-black text-heading">Quy trình tự động</h4>
+            <h4 class="text-sm font-semibold text-heading">Quy trình tự động</h4>
             <p class="text-xs text-label mt-2 leading-relaxed">
               Hệ thống xử lý hàng chờ theo nguyên tắc <strong>FIFO (First In First Out)</strong>. Khi một sinh viên hủy môn hoặc Giáo vụ tăng sức chứa lớp, hệ thống sẽ tự động gửi thông báo cho sinh viên đầu hàng chờ. Sinh viên có <strong>24 giờ</strong> để xác nhận đăng ký trước khi lượt bị chuyển cho người tiếp theo.
             </p>
@@ -368,7 +368,7 @@ function closeTransferModal() {
             <div class="h-16 w-16 rounded-full bg-[var(--color-success-bg)] text-[var(--lg-success)] flex items-center justify-center mb-4">
               <Check :size="32" />
             </div>
-            <h3 class="text-base font-black text-heading">Xác nhận thành công!</h3>
+            <h3 class="text-base font-semibold text-heading">Xác nhận thành công!</h3>
             <p class="text-[12px] font-medium text-label mt-1">{{ confirmTarget.student }} đã được thêm vào lớp {{ confirmTarget.section }}</p>
           </div>
           <template v-else>
@@ -377,22 +377,22 @@ function closeTransferModal() {
                 <div class="h-8 w-8 rounded-lg bg-[var(--color-success-bg)] text-[var(--lg-success)] flex items-center justify-center">
                   <UserCheck :size="18" />
                 </div>
-                <h3 class="text-base font-black text-heading">Xác nhận vào lớp</h3>
+                <h3 class="text-base font-semibold text-heading">Xác nhận vào lớp</h3>
               </div>
               <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeConfirmModal">
                 <X :size="18" />
               </button>
             </div>
             <div class="surface-solid p-4 rounded-2xl flex items-center gap-3 mb-4">
-              <div class="h-10 w-10 rounded-full bg-[var(--color-success-bg)] text-[var(--color-success-text)] text-xs font-black flex items-center justify-center flex-shrink-0 border border-default">
+              <div class="h-10 w-10 rounded-full bg-[var(--color-success-bg)] text-[var(--color-success-text)] text-xs font-semibold flex items-center justify-center flex-shrink-0 border border-default">
                 {{ confirmTarget.studentCode.slice(-2) }}
               </div>
               <div>
-                <p class="text-sm font-black text-heading">{{ confirmTarget.student }}</p>
+                <p class="text-sm font-semibold text-heading">{{ confirmTarget.student }}</p>
                 <div class="flex items-center gap-2 mt-0.5">
                   <span class="text-[11px] font-bold text-placeholder">{{ confirmTarget.studentCode }}</span>
                   <span class="w-1 h-1 rounded-full bg-placeholder" />
-                  <span class="text-[10px] font-black text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ confirmTarget.section }}</span>
+                  <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ confirmTarget.section }}</span>
                 </div>
               </div>
             </div>
@@ -428,22 +428,22 @@ function closeTransferModal() {
               <div class="h-8 w-8 rounded-lg bg-[var(--color-danger-bg)] text-[var(--lg-danger)] flex items-center justify-center">
                 <UserX :size="18" />
               </div>
-              <h3 class="text-base font-black text-heading">Loại khỏi hàng chờ</h3>
+              <h3 class="text-base font-semibold text-heading">Loại khỏi hàng chờ</h3>
             </div>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeRemoveModal">
               <X :size="18" />
             </button>
           </div>
           <div class="surface-solid p-4 rounded-2xl flex items-center gap-3 mb-4">
-            <div class="h-10 w-10 rounded-full bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] text-xs font-black flex items-center justify-center flex-shrink-0 border border-default">
+            <div class="h-10 w-10 rounded-full bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] text-xs font-semibold flex items-center justify-center flex-shrink-0 border border-default">
               {{ removeTarget.studentCode.slice(-2) }}
             </div>
             <div>
-              <p class="text-sm font-black text-heading">{{ removeTarget.student }}</p>
+              <p class="text-sm font-semibold text-heading">{{ removeTarget.student }}</p>
               <div class="flex items-center gap-2 mt-0.5">
                 <span class="text-[11px] font-bold text-placeholder">{{ removeTarget.studentCode }}</span>
                 <span class="w-1 h-1 rounded-full bg-placeholder" />
-                <span class="text-[10px] font-black text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ removeTarget.section }}</span>
+                <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ removeTarget.section }}</span>
               </div>
             </div>
           </div>
@@ -451,7 +451,7 @@ function closeTransferModal() {
             <p class="text-[11px] font-bold text-[var(--lg-danger)]">Sinh viên <strong>{{ removeTarget.student }}</strong> sẽ bị loại khỏi hàng chờ của lớp <strong>{{ removeTarget.subject }}</strong>.</p>
           </div>
           <div>
-            <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Lý do loại (không bắt buộc)</label>
+            <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Lý do loại (không bắt buộc)</label>
             <textarea v-model="removeReason" rows="2" placeholder="Nhập lý do loại khỏi hàng chờ..." class="w-full lg-input px-4 py-2.5 text-sm resize-none"></textarea>
           </div>
           <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
@@ -480,27 +480,27 @@ function closeTransferModal() {
               <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
                 <ArrowLeftRight :size="18" />
               </div>
-              <h3 class="text-base font-black text-heading">Chuyển lớp hàng chờ</h3>
+              <h3 class="text-base font-semibold text-heading">Chuyển lớp hàng chờ</h3>
             </div>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeTransferModal">
               <X :size="18" />
             </button>
           </div>
           <div class="surface-solid p-4 rounded-2xl flex items-center gap-3 mb-5">
-            <div class="h-10 w-10 rounded-full bg-[var(--color-info-bg)] text-[var(--color-info-text)] text-xs font-black flex items-center justify-center flex-shrink-0 border border-default">
+            <div class="h-10 w-10 rounded-full bg-[var(--color-info-bg)] text-[var(--color-info-text)] text-xs font-semibold flex items-center justify-center flex-shrink-0 border border-default">
               {{ transferTarget.studentCode.slice(-2) }}
             </div>
             <div>
-              <p class="text-sm font-black text-heading">{{ transferTarget.student }}</p>
+              <p class="text-sm font-semibold text-heading">{{ transferTarget.student }}</p>
               <div class="flex items-center gap-2 mt-0.5">
                 <span class="text-[11px] font-bold text-placeholder">{{ transferTarget.studentCode }}</span>
                 <span class="w-1 h-1 rounded-full bg-placeholder" />
-                <span class="text-[10px] font-black text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ transferTarget.section }}</span>
+                <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ transferTarget.section }}</span>
               </div>
             </div>
           </div>
           <div>
-            <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Chuyển đến lớp</label>
+            <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Chuyển đến lớp</label>
             <select v-model="transferSection" class="w-full lg-input px-4 py-2.5 text-sm appearance-none cursor-pointer">
               <option value="" disabled>Chọn lớp mới...</option>
               <option v-for="sec in sections.filter(s => s !== transferTarget.section)" :key="sec" :value="sec">{{ sec }} - {{ subjectMap[sec] }}</option>

@@ -242,8 +242,8 @@ const metrics = computed(() => {
             <Layers :size="20" />
           </div>
           <div>
-             <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Tổng số lớp</p>
-             <p class="text-xl font-black text-heading">{{ metrics.total }}</p>
+             <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Tổng số lớp</p>
+             <p class="text-xl font-semibold text-heading">{{ metrics.total }}</p>
           </div>
         </div>
         <div class="lg-card-glass p-4 flex items-center gap-3">
@@ -251,8 +251,8 @@ const metrics = computed(() => {
             <UserCheck :size="20" />
           </div>
           <div>
-             <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Đã đăng ký</p>
-             <p class="text-xl font-black text-heading">{{ metrics.registered.toLocaleString() }}</p>
+             <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Đã đăng ký</p>
+             <p class="text-xl font-semibold text-heading">{{ metrics.registered.toLocaleString() }}</p>
           </div>
         </div>
         <div class="lg-card-glass p-4 flex items-center gap-3">
@@ -260,8 +260,8 @@ const metrics = computed(() => {
             <TrendingUp :size="20" />
           </div>
           <div>
-             <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Đang Waitlist</p>
-             <p class="text-xl font-black text-heading">{{ metrics.waitlisted }}</p>
+             <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Đang Waitlist</p>
+             <p class="text-xl font-semibold text-heading">{{ metrics.waitlisted }}</p>
           </div>
         </div>
         <div class="lg-card-glass p-4 flex items-center gap-3">
@@ -269,8 +269,8 @@ const metrics = computed(() => {
             <AlertCircle :size="20" />
           </div>
           <div>
-             <p class="text-[9px] font-black text-placeholder uppercase tracking-widest">Cần xử lý</p>
-             <p class="text-xl font-black text-heading">{{ metrics.needsAction }}</p>
+             <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Cần xử lý</p>
+             <p class="text-xl font-semibold text-heading">{{ metrics.needsAction }}</p>
           </div>
         </div>
       </div>
@@ -292,7 +292,7 @@ const metrics = computed(() => {
         <div class="flex items-center gap-3">
           <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold relative" @click.stop="showFilters = !showFilters">
             <Filter :size="18" /> Bộ lọc
-            <span v-if="activeFiltersCount > 0" class="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[var(--lg-primary)] text-white text-[9px] font-black flex items-center justify-center">{{ activeFiltersCount }}</span>
+            <span v-if="activeFiltersCount > 0" class="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[var(--lg-primary)] text-white text-[9px] font-semibold flex items-center justify-center">{{ activeFiltersCount }}</span>
           </button>
         </div>
       </div>
@@ -308,7 +308,7 @@ const metrics = computed(() => {
       >
         <div v-if="showFilters" class="lg-glass-strong p-4 rounded-[20px] flex flex-wrap items-center gap-4">
           <div class="flex items-center gap-2">
-            <span class="text-[10px] font-black text-label uppercase tracking-widest">Trạng thái:</span>
+            <span class="text-[10px] font-semibold text-label uppercase tracking-widest">Trạng thái:</span>
             <div class="flex gap-1.5">
               <button
                 v-for="opt in statusOptions"
@@ -334,21 +334,21 @@ const metrics = computed(() => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Mã LHP</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Môn & Giảng viên</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Lịch học</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Đăng ký / Sức chứa</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Trạng thái</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Mã LHP</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Môn & Giảng viên</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Lịch học</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Đăng ký / Sức chứa</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Trạng thái</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
             <tr v-for="sec in filteredSections" :key="sec.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-4">
-                <span class="text-xs font-black text-heading">{{ sec.id }}</span>
+                <span class="text-xs font-semibold text-heading">{{ sec.id }}</span>
               </td>
               <td class="px-4 py-4">
-                <p class="text-sm font-black text-heading leading-tight">{{ sec.subject }}</p>
+                <p class="text-sm font-semibold text-heading leading-tight">{{ sec.subject }}</p>
                 <p class="text-[11px] font-bold text-placeholder mt-1 uppercase tracking-tighter">{{ sec.teacher }}</p>
               </td>
               <td class="px-4 py-4">
@@ -358,7 +358,7 @@ const metrics = computed(() => {
               <td class="px-4 py-4">
                 <div class="space-y-1.5">
                   <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-black text-label">{{ sec.enrolled }} / {{ sec.capacity }}</span>
+                    <span class="text-[11px] font-semibold text-label">{{ sec.enrolled }} / {{ sec.capacity }}</span>
                     <span v-if="sec.waitlist > 0" class="text-[10px] font-bold text-[var(--lg-warning)]">+{{ sec.waitlist }} waitlist</span>
                   </div>
                   <div class="h-1.5 w-32 bg-[var(--border-default)] rounded-full overflow-hidden">
@@ -370,7 +370,7 @@ const metrics = computed(() => {
                 </div>
               </td>
               <td class="px-4 py-4">
-                <span :class="['px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border', getStatusBadge(sec.status)]">
+                <span :class="['px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest border', getStatusBadge(sec.status)]">
                   {{ getStatusLabel(sec.status) }}
                 </span>
               </td>
@@ -395,13 +395,13 @@ const metrics = computed(() => {
                       leave-to-class="opacity-0 scale-95"
                     >
                       <div v-if="contextTarget?.id === sec.id" class="absolute right-0 top-full mt-1 z-50 w-44 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
-                        <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openCapacityModal(sec); closeContextMenu()">
+                        <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openCapacityModal(sec); closeContextMenu()">
                           <Edit3 :size="14" /> Sửa sức chứa
                         </button>
-                        <button v-if="sec.status === 'cancelled'" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-success-bg)] hover:text-[var(--lg-success)] transition-all" @click="sec.status = 'open'; closeContextMenu()">
+                        <button v-if="sec.status === 'cancelled'" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-success-bg)] hover:text-[var(--lg-success)] transition-all" @click="sec.status = 'open'; closeContextMenu()">
                           <Eye :size="14" /> Mở lại lớp
                         </button>
-                        <button v-if="sec.status !== 'cancelled'" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-danger-bg)] hover:text-[var(--lg-danger)] transition-all" @click="openCancelModal(sec); closeContextMenu()">
+                        <button v-if="sec.status !== 'cancelled'" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-danger-bg)] hover:text-[var(--lg-danger)] transition-all" @click="openCancelModal(sec); closeContextMenu()">
                           <Power :size="14" /> Hủy lớp
                         </button>
                       </div>
@@ -416,7 +416,7 @@ const metrics = computed(() => {
           <div class="h-16 w-16 rounded-2xl surface-solid flex items-center justify-center mb-4">
             <BookOpen :size="28" class="text-placeholder" />
           </div>
-          <p class="text-sm font-black text-heading">Không tìm thấy lớp nào</p>
+          <p class="text-sm font-semibold text-heading">Không tìm thấy lớp nào</p>
           <p class="text-xs font-medium text-placeholder mt-1">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
         </div>
       </div>
@@ -438,38 +438,38 @@ const metrics = computed(() => {
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
         <div class="relative w-full max-w-lg surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
-            <h3 class="text-base font-black text-heading">Tạo lớp học phần mới</h3>
+            <h3 class="text-base font-semibold text-heading">Tạo lớp học phần mới</h3>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="showCreateModal = false">
               <X :size="18" />
             </button>
           </div>
           <div class="space-y-4">
             <div>
-              <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Môn học</label>
+              <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Môn học</label>
               <input v-model="createForm.subject" type="text" placeholder="VD: Lập trình Python" class="w-full lg-input px-4 py-2.5 text-sm" />
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Giảng viên</label>
+                <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Giảng viên</label>
                 <input v-model="createForm.teacher" type="text" placeholder="Họ tên GV" class="w-full lg-input px-4 py-2.5 text-sm" />
               </div>
               <div>
-                <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Phòng học</label>
+                <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Phòng học</label>
                 <input v-model="createForm.room" type="text" placeholder="VD: A101" class="w-full lg-input px-4 py-2.5 text-sm" />
               </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Sức chứa</label>
+                <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Sức chứa</label>
                 <input v-model.number="createForm.capacity" type="number" min="1" class="w-full lg-input px-4 py-2.5 text-sm" />
               </div>
               <div>
-                <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Sĩ số tối thiểu</label>
+                <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Sĩ số tối thiểu</label>
                 <input v-model.number="createForm.minEnroll" type="number" min="1" class="w-full lg-input px-4 py-2.5 text-sm" />
               </div>
             </div>
             <div>
-              <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Lịch học</label>
+              <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Lịch học</label>
               <div class="space-y-2.5">
                 <div class="flex flex-wrap gap-1.5">
                   <button
@@ -536,18 +536,18 @@ const metrics = computed(() => {
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
         <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
-            <h3 class="text-base font-black text-heading">Điều chỉnh sức chứa</h3>
+            <h3 class="text-base font-semibold text-heading">Điều chỉnh sức chứa</h3>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="showCapacityModal = false">
               <X :size="18" />
             </button>
           </div>
           <div class="space-y-4">
             <div class="surface-solid p-4 rounded-2xl">
-              <p class="text-sm font-black text-heading">{{ capacityTarget.subject }}</p>
+              <p class="text-sm font-semibold text-heading">{{ capacityTarget.subject }}</p>
               <p class="text-[11px] font-bold text-placeholder mt-0.5">{{ capacityTarget.id }} · {{ capacityTarget.teacher }}</p>
             </div>
             <div>
-              <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Sức chứa hiện tại: <span class="text-heading">{{ capacityTarget.capacity }}</span></label>
+              <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Sức chứa hiện tại: <span class="text-heading">{{ capacityTarget.capacity }}</span></label>
               <input v-model.number="capacityEditValue" type="number" :min="capacityTarget.enrolled" class="w-full lg-input px-4 py-2.5 text-sm" />
               <p v-if="capacityEditValue < capacityTarget.enrolled" class="text-[11px] font-bold text-[var(--lg-danger)] mt-1">Sức chứa không thể nhỏ hơn số đã đăng ký ({{ capacityTarget.enrolled }})</p>
             </div>
@@ -582,7 +582,7 @@ const metrics = computed(() => {
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
         <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
-            <h3 class="text-base font-black text-heading">Xác nhận hủy lớp</h3>
+            <h3 class="text-base font-semibold text-heading">Xác nhận hủy lớp</h3>
             <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="showCancelModal = false">
               <X :size="18" />
             </button>
@@ -593,7 +593,7 @@ const metrics = computed(() => {
                 <AlertCircle :size="20" />
               </div>
               <div>
-                <p class="text-sm font-black text-heading">{{ cancelTarget.subject }}</p>
+                <p class="text-sm font-semibold text-heading">{{ cancelTarget.subject }}</p>
                 <p class="text-[11px] font-bold text-placeholder">{{ cancelTarget.id }} · {{ cancelTarget.teacher }} · {{ cancelTarget.enrolled }} SV</p>
               </div>
             </div>
@@ -601,7 +601,7 @@ const metrics = computed(() => {
               <p class="text-[11px] font-bold text-[var(--lg-warning)]">Hành động này sẽ hủy lớp và thông báo đến {{ cancelTarget.enrolled }} sinh viên đã đăng ký.</p>
             </div>
             <div>
-              <label class="text-[10px] font-black text-label uppercase tracking-widest mb-1.5 block">Lý do hủy</label>
+              <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Lý do hủy</label>
               <textarea v-model="cancelReason" rows="2" placeholder="Nhập lý do hủy lớp..." class="w-full lg-input px-4 py-2.5 text-sm resize-none"></textarea>
             </div>
           </div>

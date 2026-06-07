@@ -80,22 +80,22 @@ const schedules = ref([
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Lớp & Môn học</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Giảng viên</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Thời gian & Phòng</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default">Hình thức</th>
-              <th class="px-4 py-3 text-[10px] font-black text-muted uppercase tracking-widest border-b border-default text-right">Thao tác</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Lớp & Môn học</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Giảng viên</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Thời gian & Phòng</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Hình thức</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
             <tr v-for="sch in schedules" :key="sch.id" class="group hover:bg-[var(--surface-input)] transition-colors">
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
-                  <div :class="['h-9 w-9 rounded-xl flex items-center justify-center font-black text-[10px] uppercase shadow-sm border', sch.type === 'online' ? 'bg-[var(--color-info-bg)] text-link border-[var(--color-info-text)]/20' : 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-info-text)]/20']">
+                  <div :class="['h-9 w-9 rounded-xl flex items-center justify-center font-semibold text-[10px] uppercase shadow-sm border', sch.type === 'online' ? 'bg-[var(--color-info-bg)] text-link border-[var(--color-info-text)]/20' : 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-info-text)]/20']">
                     {{ sch.class.slice(0, 2) }}
                   </div>
                   <div>
-                    <p class="text-sm font-black text-heading leading-tight">{{ sch.subject }}</p>
+                    <p class="text-sm font-semibold text-heading leading-tight">{{ sch.subject }}</p>
                     <p class="text-[11px] font-bold text-muted mt-0.5">{{ sch.class }}</p>
                   </div>
                 </div>
@@ -119,10 +119,10 @@ const schedules = ref([
                 </div>
               </td>
               <td class="px-4 py-3">
-                <span :class="['px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border', sch.type === 'online' ? 'bg-[var(--color-info-bg)] text-link border-[var(--color-info-text)]/20' : 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success-text)]/20']">
+                <span :class="['px-2 py-0.5 rounded-lg text-[9px] font-semibold uppercase tracking-widest border', sch.type === 'online' ? 'bg-[var(--color-info-bg)] text-link border-[var(--color-info-text)]/20' : 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success-text)]/20']">
                   {{ sch.type }}
                 </span>
-                <div v-if="sch.type === 'online'" class="mt-1 flex items-center gap-1 text-[9px] font-black text-link uppercase cursor-pointer hover:underline">
+                <div v-if="sch.type === 'online'" class="mt-1 flex items-center gap-1 text-[9px] font-semibold text-link uppercase cursor-pointer hover:underline">
                    <ExternalLink :size="10" /> Join Link
                 </div>
               </td>

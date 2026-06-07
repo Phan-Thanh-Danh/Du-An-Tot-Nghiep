@@ -76,13 +76,13 @@ const getChannelIcon = (ch) => {
            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2 mb-2">
-                <span class="text-[10px] font-black text-placeholder uppercase tracking-widest">{{ nt.id }}</span>
-                <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm', getStatusBadge(nt.status)]">
+                <span class="text-[10px] font-semibold text-placeholder uppercase tracking-widest">{{ nt.id }}</span>
+                <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest border shadow-sm', getStatusBadge(nt.status)]">
                    {{ nt.status }}
                 </div>
               </div>
 
-              <h3 class="text-base font-black text-heading leading-snug group-hover:text-link transition-colors">
+              <h3 class="text-base font-semibold text-heading leading-snug group-hover:text-link transition-colors">
                 {{ nt.title }}
              </h3>
 
@@ -106,14 +106,14 @@ const getChannelIcon = (ch) => {
                  >
                     <component :is="getChannelIcon(ch)" :size="14" />
                  </div>
-                  <span class="text-[10px] font-black text-placeholder uppercase tracking-widest ml-1">{{ nt.recipients }} recipients</span>
+                  <span class="text-[10px] font-semibold text-placeholder uppercase tracking-widest ml-1">{{ nt.recipients }} recipients</span>
               </div>
               
               <div class="flex items-center gap-2">
                   <button v-if="nt.status === 'failed'" class="p-2 lg-button-ghost text-[var(--color-danger-text)] rounded-lg transition-colors" title="Thử lại">
                     <RotateCcw :size="16" />
                  </button>
-                  <button class="p-2 lg-button-ghost text-link rounded-lg transition-colors flex items-center gap-1 text-xs font-black uppercase tracking-widest">
+                  <button class="p-2 lg-button-ghost text-link rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold uppercase tracking-widest">
                     Detail <ChevronRight :size="14" />
                  </button>
                   <button class="p-2 lg-button-ghost text-placeholder hover:text-heading rounded-lg transition-colors"><MoreVertical :size="18" /></button>
@@ -128,7 +128,7 @@ const getChannelIcon = (ch) => {
          <div class="h-20 w-20 surface-solid rounded-3xl flex items-center justify-center text-placeholder mx-auto mb-4">
             <Bell :size="40" />
          </div>
-         <h3 class="text-xl font-black text-heading tracking-tight">Chưa có thông báo nào được gửi</h3>
+         <h3 class="text-xl font-semibold text-heading tracking-tight">Chưa có thông báo nào được gửi</h3>
          <p class="text-sm text-label mt-2 max-w-xs mx-auto">Hãy bắt đầu bằng việc tạo một thông báo học vụ mới cho sinh viên hoặc giảng viên.</p>
       </div>
 

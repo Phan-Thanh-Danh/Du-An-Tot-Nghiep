@@ -60,7 +60,7 @@ function logout() {
       </div>
       <Transition name="fade-slide">
         <div v-if="!collapsed" class="overflow-hidden">
-          <p class="text-[13px] font-bold leading-tight text-heading">EduLMS</p>
+          <p class="text-[13px] font-semibold leading-tight text-heading">EduLMS</p>
           <p class="text-[10px] leading-tight text-muted">Ban Giám Hiệu</p>
         </div>
       </Transition>
@@ -118,7 +118,7 @@ function logout() {
         </div>
         <Transition name="fade-slide">
           <div v-if="!collapsed" class="overflow-hidden min-w-0">
-            <p class="truncate text-[12px] font-semibold leading-tight text-heading">
+            <p class="truncate text-[12px] font-medium leading-tight text-heading">
               {{ authStore.displayName || mockBGH.name }}
             </p>
             <p class="truncate text-[10px] leading-tight text-muted">

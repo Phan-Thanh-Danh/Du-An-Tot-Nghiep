@@ -35,7 +35,7 @@ defineProps({
 .table-shell :deep(th) {
   color: var(--text-label);
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0;
 }
 

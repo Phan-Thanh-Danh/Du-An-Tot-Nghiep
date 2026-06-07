@@ -143,7 +143,7 @@ function closeContextMenu() {
         <div class="flex items-center gap-3">
           <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold relative" @click.stop="showFilters = !showFilters">
             <Filter :size="18" /> Lọc nâng cao
-            <span v-if="activeFilterCount > 0" class="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[var(--lg-primary)] text-white text-[9px] font-black flex items-center justify-center">{{ activeFilterCount }}</span>
+            <span v-if="activeFilterCount > 0" class="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[var(--lg-primary)] text-white text-[9px] font-semibold flex items-center justify-center">{{ activeFilterCount }}</span>
           </button>
         </div>
       </div>
@@ -159,7 +159,7 @@ function closeContextMenu() {
       >
         <div v-if="showFilters" class="surface-card border border-card p-4 rounded-2xl space-y-3">
           <div class="flex flex-wrap items-center gap-3">
-            <span class="text-[10px] font-black text-label uppercase tracking-widest min-w-[70px]">Trạng thái:</span>
+            <span class="text-[10px] font-semibold text-label uppercase tracking-widest min-w-[70px]">Trạng thái:</span>
             <div class="flex gap-1.5 flex-wrap">
               <button v-for="s in ['all','submitted','under_review']" :key="s"
                 @click="filterStatus = s"
@@ -168,7 +168,7 @@ function closeContextMenu() {
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-3">
-            <span class="text-[10px] font-black text-label uppercase tracking-widest min-w-[70px]">Ưu tiên:</span>
+            <span class="text-[10px] font-semibold text-label uppercase tracking-widest min-w-[70px]">Ưu tiên:</span>
             <div class="flex gap-1.5 flex-wrap">
               <button v-for="p in ['all','high','medium','low']" :key="p"
                 @click="filterPriority = p"
@@ -189,12 +189,12 @@ function closeContextMenu() {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default w-10">#</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">Sinh viên & Loại đơn</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">Người xử lý</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">SLA còn lại</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">Trạng thái</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-default">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-default w-10">#</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-default">Sinh viên & Loại đơn</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-default">Người xử lý</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-default">SLA còn lại</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-default">Trạng thái</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-default">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -208,7 +208,7 @@ function closeContextMenu() {
                     <FileText :size="18" />
                   </div>
                   <div>
-                    <p class="text-sm font-black text-heading leading-tight">{{ req.type }}</p>
+                    <p class="text-sm font-semibold text-heading leading-tight">{{ req.type }}</p>
                     <p class="text-[11px] font-bold text-label mt-0.5">{{ req.student }} • {{ req.id }}</p>
                   </div>
                 </div>
@@ -224,13 +224,13 @@ function closeContextMenu() {
               <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
                   <Timer :size="14" :class="req.sla === 'QUÁ HẠN' ? 'text-[var(--color-danger-text)]' : 'text-placeholder'" />
-                  <span :class="['text-xs font-black uppercase tracking-tighter', req.sla === 'QUÁ HẠN' ? 'text-[var(--color-danger-text)]' : 'text-label']">
+                  <span :class="['text-xs font-semibold uppercase tracking-tighter', req.sla === 'QUÁ HẠN' ? 'text-[var(--color-danger-text)]' : 'text-label']">
                     {{ req.sla }}
                   </span>
                 </div>
               </td>
               <td class="px-4 py-4">
-                <span :class="['px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border', getStatusBadge(req.status)]">
+                <span :class="['px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest border', getStatusBadge(req.status)]">
                   {{ getStatusLabel(req.status) }}
                 </span>
               </td>
@@ -252,7 +252,7 @@ function closeContextMenu() {
                       leave-to-class="opacity-0 scale-95"
                     >
                       <div v-if="contextTarget?.id === req.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
-                        <router-link :to="`/staff/requests/${req.id}`" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="closeContextMenu()">
+                        <router-link :to="`/staff/requests/${req.id}`" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="closeContextMenu()">
                           <Eye :size="14" /> Xem chi tiết
                         </router-link>
                       </div>
@@ -267,7 +267,7 @@ function closeContextMenu() {
           <div class="h-16 w-16 rounded-2xl surface-solid flex items-center justify-center mb-4">
             <FileText :size="28" class="text-placeholder" />
           </div>
-          <p class="text-sm font-black text-heading">Không có đơn từ nào</p>
+          <p class="text-sm font-semibold text-heading">Không có đơn từ nào</p>
           <p class="text-xs font-medium text-placeholder mt-1">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
         </div>
       </div>
@@ -279,7 +279,7 @@ function closeContextMenu() {
              <AlertCircle :size="20" />
           </div>
           <div>
-            <h4 class="text-sm font-black text-heading uppercase tracking-wide">Quy tắc xử lý đơn (SLA)</h4>
+            <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Quy tắc xử lý đơn (SLA)</h4>
             <p class="text-xs text-body mt-1.5 leading-relaxed">
               Tất cả các đơn từ đều có thời hạn xử lý (SLA) quy định theo từng loại. Các đơn <strong>QUÁ HẠN</strong> sẽ được hệ thống tự động đẩy lên mức ưu tiên cao nhất và thông báo cho Trưởng phòng Giáo vụ.
             </p>

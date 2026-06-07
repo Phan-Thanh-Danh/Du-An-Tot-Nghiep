@@ -2,44 +2,42 @@
   <div class="h-[calc(100vh-120px)] flex flex-col gap-4 pb-2 animate-fade-in relative">
     
     <!-- ── TOP BAR: CCTV System Info ── -->
-    <div class="relative overflow-hidden rounded-2xl p-4 text-white shadow-xl flex flex-wrap items-center justify-between gap-4 flex-shrink-0" style="background:var(--surface-sidebar);">
-      <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-blue-500/20 blur-2xl pointer-events-none" />
-      <div class="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-rose-500/20 blur-2xl pointer-events-none" />
-      
-      <div class="relative z-10 flex items-center gap-5">
-        <div class="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 border border-white/10 shadow-inner backdrop-blur-md">
-           <Video class="text-blue-400" :size="28" />
-           <span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 animate-pulse">
+    <div class="surface-card border border-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 flex-shrink-0 shadow-sm">
+      <div class="flex items-center gap-5">
+        <div class="relative flex h-10 w-10 items-center justify-center rounded-2xl surface-input border border-card shadow-sm">
+           <Video class="text-link" :size="28" />
+           <span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-success-text)] animate-pulse">
              <div class="h-2 w-2 rounded-full bg-white"></div>
            </span>
         </div>
         <div>
-           <h1 class="text-xl md:text-xl font-black text-white uppercase tracking-tight">Hệ Thống Giám Sát Camera Lớp Học</h1>
+           <h1 class="text-xl md:text-xl font-semibold text-heading tracking-tight">Giám sát lớp học</h1>
+           <p class="text-xs text-muted mt-0.5">Theo dõi ca thi và cảnh báo tập trung</p>
            <div class="flex flex-wrap items-center gap-4 mt-2">
-              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-white/60">
-                <School :size="14" class="text-blue-400" /> Tổng số phòng: {{ systemStats.total }}
+              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full surface-input border border-card text-xs font-bold text-muted">
+                <School :size="14" class="text-link" /> Tổng số phòng: {{ systemStats.total }}
               </div>
-              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-400">
-                <div class="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></div> Đang học: {{ systemStats.active }}
+              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-success-bg)] border border-[color-mix(in srgb,var(--color-success-text)_20%,transparent)] text-xs font-bold text-[var(--color-success-text)]">
+                <div class="h-2 w-2 rounded-full bg-[var(--color-success-text)]"></div> Đang học: {{ systemStats.active }}
               </div>
-              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs font-bold text-amber-400">
-                <div class="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></div> Đang thi: {{ systemStats.testing }}
+              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-warning-bg)] border border-[color-mix(in srgb,var(--color-warning-text)_20%,transparent)] text-xs font-bold text-[var(--color-warning-text)]">
+                <div class="h-2 w-2 rounded-full bg-[var(--color-warning-text)]"></div> Đang thi: {{ systemStats.testing }}
               </div>
-              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-transparent border border-white/10 text-xs font-bold text-white/50">
-                <div class="h-2 w-2 rounded-full bg-white/50"></div> Phòng trống: {{ systemStats.idle }}
+              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full surface-input border border-card text-xs font-bold text-placeholder">
+                <div class="h-2 w-2 rounded-full bg-[var(--text-placeholder)]"></div> Phòng trống: {{ systemStats.idle }}
               </div>
-              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-xs font-bold text-rose-400">
-                <div class="h-2 w-2 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]"></div> Mất kết nối: {{ systemStats.disconnected }}
+              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-danger-bg)] border border-[color-mix(in srgb,var(--color-danger-text)_20%,transparent)] text-xs font-bold text-[var(--color-danger-text)]">
+                <div class="h-2 w-2 rounded-full bg-[var(--color-danger-text)]"></div> Mất kết nối: {{ systemStats.disconnected }}
               </div>
            </div>
         </div>
       </div>
       
-      <div class="relative z-10 flex items-center gap-4 bg-black/40 border border-white/10 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl">
-         <Clock :size="24" class="text-blue-400 animate-pulse" />
+      <div class="flex items-center gap-4 surface-card border border-card px-4 py-3 rounded-2xl shadow-sm">
+         <Clock :size="24" class="text-link" />
          <div class="flex flex-col items-end">
-            <span class="text-[10px] font-bold text-white/50 uppercase tracking-widest">Thời gian thực tế</span>
-            <span class="text-xl font-black font-mono leading-none text-white tracking-wider drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">{{ currentTime }}</span>
+            <span class="text-[10px] font-medium text-muted uppercase tracking-widest">Thời gian thực tế</span>
+            <span class="text-xl font-semibold font-mono leading-none text-heading tracking-wider">{{ currentTime }}</span>
          </div>
       </div>
     </div>
@@ -52,29 +50,29 @@
       >
         <div class="flex items-start justify-between gap-3">
           <div>
-            <p class="text-[10px] font-black uppercase tracking-widest text-muted">{{ session.classSectionCode }}</p>
-            <h2 class="mt-1 text-sm font-black text-heading">{{ session.title }}</h2>
-            <p class="mt-1 text-xs font-bold text-muted">{{ session.subject }}</p>
+            <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">{{ session.classSectionCode }}</p>
+            <h2 class="mt-1 text-sm font-semibold text-heading">{{ session.title }}</h2>
+            <p class="mt-1 text-xs font-medium text-muted">{{ session.subject }}</p>
           </div>
           <GlassBadge :variant="sessionBadgeVariant(session.status)">
             {{ getSessionStatusLabel(session.status) }}
           </GlassBadge>
         </div>
         <div class="mt-3 grid grid-cols-3 gap-2 text-center">
-          <div class="rounded-xl bg-[var(--surface-input)] px-2 py-2">
-            <p class="text-[9px] font-black uppercase text-muted">Đang làm</p>
-            <p class="text-sm font-black text-heading">{{ session.activeStudents }}</p>
+           <div class="rounded-xl bg-[var(--surface-input)] px-2 py-2">
+             <p class="text-[9px] font-medium uppercase text-muted">Đang làm</p>
+            <p class="text-sm font-semibold text-heading">{{ session.activeStudents }}</p>
           </div>
-          <div class="rounded-xl bg-[var(--color-warning-bg)] px-2 py-2">
-            <p class="text-[9px] font-black uppercase" style="color:var(--color-warning-text)">Cảnh báo</p>
-            <p class="text-sm font-black" style="color:var(--color-warning-text)">{{ session.focusWarnings }}</p>
+           <div class="rounded-xl bg-[var(--color-warning-bg)] px-2 py-2">
+             <p class="text-[9px] font-medium uppercase" style="color:var(--color-warning-text)">Cảnh báo</p>
+            <p class="text-sm font-semibold" style="color:var(--color-warning-text)">{{ session.focusWarnings }}</p>
           </div>
-          <div class="rounded-xl bg-[var(--color-info-bg)] px-2 py-2">
-            <p class="text-[9px] font-black uppercase" style="color:var(--color-info-text)">Tổng</p>
-            <p class="text-sm font-black" style="color:var(--color-info-text)">{{ session.totalStudents }}</p>
+           <div class="rounded-xl bg-[var(--color-info-bg)] px-2 py-2">
+             <p class="text-[9px] font-medium uppercase" style="color:var(--color-info-text)">Tổng</p>
+            <p class="text-sm font-semibold" style="color:var(--color-info-text)">{{ session.totalStudents }}</p>
           </div>
         </div>
-        <p class="mt-3 text-[10px] font-bold leading-relaxed text-muted">
+        <p class="mt-3 text-[10px] font-medium leading-relaxed text-muted">
           Canh thi ở Phase 7 chỉ theo dõi ca thi, số sinh viên và cảnh báo focus/tab mock. Không triển khai proctoring phức tạp.
         </p>
       </div>
@@ -95,7 +93,7 @@
             <!-- If disconnected, render static lines and warning -->
             <div v-if="room.status === 'Disconnected'" class="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center z-10">
                <WifiOff :size="36" class="text-rose-500 mb-2 animate-bounce-slow" />
-               <span class="text-xs font-black text-rose-500 uppercase tracking-widest bg-black/50 px-3 py-1 rounded-full border border-rose-500/20">NO SIGNAL</span>
+                <span class="text-xs font-medium text-rose-500 uppercase tracking-wider bg-black/50 px-3 py-1 rounded-full border border-rose-500/20">No Signal</span>
                <!-- Static noise screen effect -->
                <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0)_50%,rgba(0,0,0,0.15)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
             </div>
@@ -103,7 +101,7 @@
             <!-- If idle, render school building placeholder -->
             <div v-else-if="room.status === 'Idle'" class="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center z-10">
                <School :size="40" class="text-slate-600 mb-2" />
-               <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">PHÒNG TRỐNG</span>
+               <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Phòng trống</span>
             </div>
 
             <!-- If active/testing, render real camera image feed -->
@@ -134,7 +132,7 @@
           <div class="absolute top-0 left-0 right-0 p-3.5 flex items-start justify-between bg-gradient-to-b from-black/90 via-black/60 to-transparent z-20">
              <div>
                 <div class="flex items-center gap-2">
-                   <p class="text-sm font-black text-white drop-shadow-md">{{ room.roomName }}</p>
+                   <p class="text-sm font-semibold text-white drop-shadow-md">{{ room.roomName }}</p>
                    <span class="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] font-bold text-slate-300 border border-slate-700">{{ room.type }}</span>
                 </div>
                 <p v-if="room.status !== 'Idle'" class="text-[10px] text-slate-300 font-medium truncate max-w-[200px] mt-0.5">
@@ -151,7 +149,7 @@
           </div>
 
           <!-- Warnings Badge (Bottom Left) -->
-          <div v-if="room.warnings.length > 0 && room.status !== 'Disconnected'" class="absolute bottom-3 left-3 z-20 flex items-center gap-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg px-2.5 py-1 text-[10px] font-bold shadow-[0_0_8px_rgba(245,158,11,0.2)] animate-pulse-soft">
+          <div v-if="room.warnings.length > 0 && room.status !== 'Disconnected'" class="absolute bottom-3 left-3 z-20 flex items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold animate-pulse-soft" style="background:var(--color-warning-bg);color:var(--color-warning-text);border:1px solid color-mix(in srgb, var(--color-warning-text) 20%, transparent)">
              <AlertTriangle :size="12" />
              {{ room.warnings.length }} Cảnh báo AI
           </div>
@@ -177,7 +175,7 @@
                       <ArrowLeft :size="20" />
                    </button>
                    <div>
-                      <h2 class="text-xl font-black text-white flex items-center gap-3">
+                      <h2 class="text-xl font-semibold text-white flex items-center gap-3">
                          {{ zoomedClassroom.roomName }}
                          <span class="px-2 py-0.5 rounded bg-slate-800 text-xs font-bold text-slate-300 border border-slate-700">{{ zoomedClassroom.type }}</span>
                          <div :class="['h-3 w-3 rounded-full shadow-[0_0_10px_currentColor]', getStatusColor(zoomedClassroom.status)]"></div>
@@ -195,7 +193,7 @@
                 <div class="flex items-center gap-3">
                    <div v-if="zoomedClassroom.warnings.length > 0 && zoomedClassroom.status !== 'Disconnected'" class="flex items-center gap-2 bg-amber-500/20 text-amber-400 px-4 py-2 rounded-full border border-amber-500/30">
                       <AlertTriangle :size="16" />
-                      <span class="text-xs font-bold uppercase tracking-widest">{{ zoomedClassroom.warnings.length }} Cảnh báo AI</span>
+                      <span class="text-xs font-semibold uppercase tracking-widest">{{ zoomedClassroom.warnings.length }} Cảnh báo AI</span>
                    </div>
                    <div class="bg-slate-800 border border-slate-700 text-slate-300 px-4 py-2 rounded-full text-xs font-bold font-mono">
                       Sĩ số: {{ zoomedClassroom.studentsCount }}
@@ -210,7 +208,7 @@
                    <button v-for="angle in ['CAM-01', 'CAM-02', 'PC-GV']" :key="angle"
                            @click="activeAngle = angle"
                            :class="[
-                             'px-3 py-1.5 rounded-lg text-xs font-bold transition-all',
+                             'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
                              activeAngle === angle 
                                ? 'bg-blue-600 text-white shadow' 
                                : 'text-slate-400 hover:text-white'
@@ -226,7 +224,7 @@
                    <div v-if="zoomedClassroom.status === 'Disconnected'" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-10">
                       <div class="flex flex-col items-center animate-pulse">
                          <WifiOff :size="64" class="text-rose-500 mb-4" />
-                         <span class="text-xl font-black text-rose-500 uppercase tracking-widest">Mất kết nối camera</span>
+                         <span class="text-xl font-semibold text-rose-500 uppercase tracking-widest">Mất kết nối camera</span>
                          <p class="text-slate-500 text-xs font-mono mt-2">NO VIDEO SIGNAL RECEIVED FROM CHANNEL {{ activeAngle }}</p>
                       </div>
                       <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0)_50%,rgba(0,0,0,0.15)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
@@ -297,15 +295,18 @@
                 <div class="flex items-center justify-between mb-4">
                    <div class="flex items-center gap-2">
                       <Terminal :size="18" class="text-blue-400" />
-                      <span class="font-black text-sm text-slate-300 uppercase tracking-widest text-[11px]">Nhật ký giám sát AI & Thiết bị</span>
+                      <span class="font-semibold text-sm text-slate-300 uppercase tracking-widest text-[11px]">Nhật ký giám sát AI & Thiết bị</span>
                    </div>
                    <button class="text-slate-500 hover:text-white transition-colors" title="Làm mới"><RefreshCw :size="14" /></button>
                 </div>
                 <div class="flex-1 overflow-y-auto space-y-3 custom-scrollbar-dark pr-2">
                    <div v-for="(log, i) in currentLogs" :key="i" class="flex gap-3 text-xs font-mono">
                       <span class="text-slate-500 shrink-0">[{{ log.time }}]</span>
-                      <span :class="log.type === 'error' ? 'text-rose-400 font-bold' : log.type === 'warning' ? 'text-amber-400' : 'text-emerald-400'">
-                        {{ log.type === 'error' ? '❌' : log.type === 'warning' ? '⚠️' : '▶' }} {{ log.msg }}
+<span :class="['inline-flex items-center gap-1.5', log.type === 'error' ? 'text-rose-400 font-semibold' : log.type === 'warning' ? 'text-amber-400' : 'text-emerald-400']">
+                        <XCircle v-if="log.type === 'error'" :size="12" class="shrink-0" />
+                        <AlertTriangle v-else-if="log.type === 'warning'" :size="12" class="shrink-0" />
+                        <ArrowRight v-else :size="12" class="shrink-0" />
+                        {{ log.msg }}
                       </span>
                    </div>
                    <div class="animate-pulse text-emerald-500/50">_</div>
@@ -314,33 +315,33 @@
 
              <!-- Actions -->
              <div class="p-4 space-y-4">
-                <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Hành động của Giám thị / Giáo vụ</h3>
+                <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Hành động của Giám thị / Giáo vụ</h3>
                 
-                <button @click="contactLecturer"
-                        class="w-full flex items-center justify-center gap-3 rounded-[16px] bg-amber-500/10 text-amber-400 p-4 font-bold border border-amber-500/20 hover:bg-amber-500 hover:text-black transition-all">
-                   <ShieldAlert :size="20" /> Liên hệ Giảng viên
-                </button>
+                 <button @click="contactLecturer"
+                         class="w-full flex items-center justify-center gap-3 rounded-[16px] p-4 font-semibold border transition-all" style="background:var(--color-warning-bg);color:var(--color-warning-text);border-color:color-mix(in srgb, var(--color-warning-text) 20%, transparent)">
+                    <ShieldAlert :size="20" /> Liên hệ Giảng viên
+                 </button>
 
-                <!-- Speaker Broadcast Announcement -->
-                <div class="relative">
-                   <input type="text" 
-                          v-model="broadcastText" 
-                          @keyup.enter="sendBroadcast"
-                          placeholder="Phát âm thanh thông báo đến phòng..." 
-                          class="w-full rounded-[16px] border border-slate-700 bg-black/50 pl-5 pr-12 py-4 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500 focus:bg-slate-800 transition-all" />
-                   <button @click="sendBroadcast" class="absolute right-2 top-2 bottom-2 rounded-[12px] bg-blue-600 px-4 text-white hover:bg-blue-500 transition-colors">
-                      <Volume2 :size="16" />
-                   </button>
-                </div>
+                 <!-- Speaker Broadcast Announcement -->
+                 <div class="relative">
+                    <input type="text"
+                           v-model="broadcastText"
+                           @keyup.enter="sendBroadcast"
+                           placeholder="Phát âm thanh thông báo đến phòng..."
+                           class="w-full rounded-[16px] border border-card surface-input pl-5 pr-12 py-4 text-sm text-body placeholder:text-placeholder outline-none focus:border-link transition-all" />
+                    <button @click="sendBroadcast" class="absolute right-2 top-2 bottom-2 rounded-[12px] px-4 transition-colors" style="background:var(--text-link);color:var(--text-inverse)">
+                       <Volume2 :size="16" />
+                    </button>
+                 </div>
 
-                <div class="pt-2 flex gap-3">
-                   <button @click="reportIncident" class="flex-1 flex items-center justify-center gap-2 rounded-[16px] bg-slate-800 p-4 text-slate-300 font-bold hover:bg-slate-700 transition-all border border-slate-700 text-xs">
-                      <XCircle :size="16" class="text-rose-500" /> Báo sự cố thiết bị
-                   </button>
-                   <button @click="takeSnapshot" class="flex-1 flex items-center justify-center gap-2 rounded-[16px] bg-blue-500/10 p-4 text-blue-400 font-bold hover:bg-blue-600 hover:text-white transition-all border border-blue-500/20 text-xs">
-                      <Camera :size="16" /> Chụp màn hình
-                   </button>
-                </div>
+                 <div class="pt-2 flex gap-3">
+                    <button @click="reportIncident" class="flex-1 flex items-center justify-center gap-2 rounded-[16px] p-4 font-semibold border text-xs transition-all" style="background:rgba(0,0,0,0.2);color:var(--text-label);border-color:var(--border-card)">
+                       <XCircle :size="16" class="text-[var(--color-danger-text)]" /> Báo sự cố thiết bị
+                    </button>
+                    <button @click="takeSnapshot" class="flex-1 flex items-center justify-center gap-2 rounded-[16px] p-4 font-semibold border text-xs transition-all" style="background:var(--accent-primary-soft);color:var(--text-link);border-color:color-mix(in srgb, var(--text-link) 20%, transparent)">
+                       <Camera :size="16" /> Chụp màn hình
+                    </button>
+                 </div>
              </div>
           </div>
           
@@ -584,11 +585,11 @@ const currentLogs = computed(() => {
 
 function getStatusColor(status) {
   switch (status) {
-    case 'Active': return 'text-emerald-500 bg-emerald-500'
-    case 'Testing': return 'text-amber-500 bg-amber-500'
-    case 'Idle': return 'text-slate-500 bg-slate-500'
-    case 'Disconnected': return 'text-rose-500 bg-rose-500'
-    default: return 'text-slate-500 bg-slate-500'
+    case 'Active': return 'text-[var(--color-success-text)] bg-[var(--color-success-text)]'
+    case 'Testing': return 'text-[var(--color-warning-text)] bg-[var(--color-warning-text)]'
+    case 'Idle': return 'text-[var(--text-placeholder)] bg-[var(--text-placeholder)]'
+    case 'Disconnected': return 'text-[var(--color-danger-text)] bg-[var(--color-danger-text)]'
+    default: return 'text-[var(--text-placeholder)] bg-[var(--text-placeholder)]'
   }
 }
 
@@ -651,7 +652,7 @@ function takeSnapshot() {
 
 <style scoped>
 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.5); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 10px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar-dark::-webkit-scrollbar { width: 6px; }
 .custom-scrollbar-dark::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }

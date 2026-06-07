@@ -143,7 +143,7 @@ watch(() => props.collapsed, () => {
           ]"
         />
 
-        <span v-if="!collapsed" class="flex-1 text-left text-[12px] font-bold leading-tight">
+        <span v-if="!collapsed" class="flex-1 text-left text-[12px] font-semibold leading-tight">
           {{ group.label }}
         </span>
 

@@ -163,7 +163,7 @@ const currentPageMeta = computed(() => {
                       <div class="surface-input border-card flex h-12 w-12 items-center justify-center rounded-[var(--radius-lg)] border">
                          <ShieldCheck class="h-7 w-7 text-heading" />
                       </div>
-                      <h3 class="mt-4 text-base font-black text-heading">Trang đang phát triển</h3>
+                      <h3 class="mt-4 text-base font-semibold text-heading">Trang đang phát triển</h3>
                       <p class="mt-2 text-sm font-medium text-placeholder max-w-sm">Trang này hiện đang được xây dựng hoặc đường dẫn không tồn tại. Vui lòng quay lại sau.</p>
                       <router-link to="/staff/dashboard" class="mt-5 lg-button-primary inline-flex items-center gap-2 px-4 py-2 text-sm">← Về Dashboard</router-link>
                     </div>

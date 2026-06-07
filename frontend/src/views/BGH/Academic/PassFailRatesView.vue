@@ -65,7 +65,7 @@ const getFailRateColor = (rate) => {
                <TrendingDown :size="24" />
             </div>
             <div>
-               <h4 class="text-sm font-black text-heading uppercase tracking-wide">Môn học tỷ lệ rớt cao nhất</h4>
+               <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Môn học tỷ lệ rớt cao nhất</h4>
                <p class="text-xs text-[var(--color-danger-text)] mt-1 font-bold">Cấu trúc dữ liệu (32% Fail)</p>
             </div>
          </div>
@@ -74,7 +74,7 @@ const getFailRateColor = (rate) => {
                <ArrowUpRight :size="24" />
             </div>
             <div>
-               <h4 class="text-sm font-black text-heading uppercase tracking-wide">Tỷ lệ Pass trung bình toàn trường</h4>
+               <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Tỷ lệ Pass trung bình toàn trường</h4>
                <p class="text-xs text-[var(--color-success-text)] mt-1 font-bold">88.4% (Tăng 1.2% so với kỳ trước)</p>
             </div>
          </div>
@@ -85,12 +85,12 @@ const getFailRateColor = (rate) => {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Môn học & Lớp</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Giảng viên</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Sĩ số / Pass / Fail</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Tỷ lệ rớt</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default">Nguyên nhân chính</th>
-              <th class="px-4 py-4 text-[10px] font-black text-placeholder uppercase tracking-widest border-b border-default text-right">Thao tác</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Môn học & Lớp</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Giảng viên</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Sĩ số / Pass / Fail</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Tỷ lệ rớt</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Nguyên nhân chính</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
@@ -101,7 +101,7 @@ const getFailRateColor = (rate) => {
                     <BookOpen :size="18" />
                   </div>
                   <div>
-                    <p class="text-sm font-black text-heading leading-tight">{{ stat.subject }}</p>
+                    <p class="text-sm font-semibold text-heading leading-tight">{{ stat.subject }}</p>
                     <p class="text-[11px] font-bold text-muted mt-0.5">{{ stat.class }}</p>
                   </div>
                 </div>
@@ -116,16 +116,16 @@ const getFailRateColor = (rate) => {
                 <div class="flex flex-col gap-1">
                    <div class="flex items-center gap-2">
                       <Users :size="12" class="text-placeholder" />
-                      <span class="text-[10px] font-black text-muted">{{ stat.total }} SV</span>
+                      <span class="text-[10px] font-semibold text-muted">{{ stat.total }} SV</span>
                    </div>
                    <div class="flex items-center gap-3">
-                      <span class="text-[10px] font-black text-[var(--color-success-text)]">{{ stat.pass }} Pass</span>
-                      <span class="text-[10px] font-black text-[var(--color-danger-text)]">{{ stat.fail }} Fail</span>
+                      <span class="text-[10px] font-semibold text-[var(--color-success-text)]">{{ stat.pass }} Pass</span>
+                      <span class="text-[10px] font-semibold text-[var(--color-danger-text)]">{{ stat.fail }} Fail</span>
                    </div>
                 </div>
               </td>
               <td class="px-4 py-4">
-                <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border w-fit shadow-sm', getFailRateColor(stat.failRate)]">
+                <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest border w-fit shadow-sm', getFailRateColor(stat.failRate)]">
                   {{ stat.failRate }}%
                 </div>
               </td>
@@ -144,14 +144,14 @@ const getFailRateColor = (rate) => {
 
       <!-- ── Failure Causes Summary ── -->
       <div class="surface-card border border-card rounded-2xl p-6">
-         <h4 class="text-xs font-black text-muted uppercase tracking-widest mb-4 flex items-center gap-2">
+         <h4 class="text-xs font-semibold text-muted uppercase tracking-widest mb-4 flex items-center gap-2">
             <Info :size="16" /> Phân tích nguyên nhân rớt môn chính
          </h4>
          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div v-for="(val, label) in { 'Điểm thi thấp': 45, 'Vắng quá 20%': 25, 'Thiếu bài tập Lab': 20, 'Khác': 10 }" :key="label" class="p-4 surface-solid rounded-2xl border border-default">
-               <p class="text-[9px] font-black text-muted uppercase tracking-widest mb-1">{{ label }}</p>
+               <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1">{{ label }}</p>
                <div class="flex items-end gap-2">
-                  <h3 class="text-xl font-black text-heading">{{ val }}%</h3>
+                  <h3 class="text-xl font-semibold text-heading">{{ val }}%</h3>
                   <div class="h-1.5 flex-1 bg-[var(--surface-input)] rounded-full mb-1.5 overflow-hidden">
                      <div :style="{ width: `${val}%` }" class="h-full bg-[var(--lg-primary)] rounded-full"></div>
                   </div>
