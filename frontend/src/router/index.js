@@ -329,31 +329,31 @@ const router = createRouter({
         {
           path: 'training/semesters',
           name: 'super-admin-training-semesters',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/SemestersView.vue'),
           meta: { title: 'Cấu hình học kỳ' },
         },
         {
           path: 'training/programs',
           name: 'super-admin-training-programs',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/ProgramsView.vue'),
           meta: { title: 'Cấu trúc chương trình' },
         },
         {
           path: 'training/subjects',
           name: 'super-admin-training-subjects',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/SubjectsView.vue'),
           meta: { title: 'Quản lý môn học' },
         },
         {
           path: 'training/courses',
           name: 'super-admin-training-courses',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/CoursesView.vue'),
           meta: { title: 'Quản lý khóa học' },
         },
         {
           path: 'training/exam-periods',
           name: 'super-admin-training-exam-periods',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/ExamPeriodsView.vue'),
           meta: { title: 'Mở/Đóng giai đoạn thi' },
         },
         {
@@ -371,19 +371,19 @@ const router = createRouter({
         {
           path: 'operations/attendance-policy',
           name: 'super-admin-operations-attendance-policy',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/AttendancePolicyView.vue'),
           meta: { title: 'Quỹ vắng & Chuyên cần' },
         },
         {
           path: 'operations/registration-periods',
           name: 'super-admin-operations-registration-periods',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/RegistrationPeriodsView.vue'),
           meta: { title: 'Mở/Đóng đăng ký môn' },
         },
         {
           path: 'operations/pass-fail-rules',
           name: 'super-admin-operations-pass-fail-rules',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/PassFailRulesView.vue'),
           meta: { title: 'Điều kiện Pass/Fail' },
         },
         // 5. Tài chính và Học phí
