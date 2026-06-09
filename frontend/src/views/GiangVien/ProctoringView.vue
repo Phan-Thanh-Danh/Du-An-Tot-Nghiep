@@ -1,501 +1,802 @@
 <template>
-  <div class="h-[calc(100vh-120px)] flex flex-col gap-4 pb-2 animate-fade-in relative">
-    
-    <!-- ── TOP BAR: CCTV System Info ── -->
-    <div class="surface-card border border-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 flex-shrink-0 shadow-sm">
-      <div class="flex items-center gap-5">
-        <div class="relative flex h-10 w-10 items-center justify-center rounded-2xl surface-input border border-card shadow-sm">
-           <Video class="text-link" :size="28" />
-           <span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-success-text)] animate-pulse">
-             <div class="h-2 w-2 rounded-full bg-white"></div>
-           </span>
+  <div class="proctor-page">
+    <section class="proctor-header surface-card border-card">
+      <div class="header-main">
+        <div class="header-icon">
+          <Monitor :size="24" />
         </div>
         <div>
-           <h1 class="text-xl md:text-xl font-semibold text-heading tracking-tight">Giám sát lớp học</h1>
-           <p class="text-xs text-muted mt-0.5">Theo dõi ca thi và cảnh báo tập trung</p>
-           <div class="flex flex-wrap items-center gap-4 mt-2">
-              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full surface-input border border-card text-xs font-bold text-muted">
-                <School :size="14" class="text-link" /> Tổng số phòng: {{ systemStats.total }}
-              </div>
-              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-success-bg)] border border-[color-mix(in srgb,var(--color-success-text)_20%,transparent)] text-xs font-bold text-[var(--color-success-text)]">
-                <div class="h-2 w-2 rounded-full bg-[var(--color-success-text)]"></div> Đang học: {{ systemStats.active }}
-              </div>
-              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-warning-bg)] border border-[color-mix(in srgb,var(--color-warning-text)_20%,transparent)] text-xs font-bold text-[var(--color-warning-text)]">
-                <div class="h-2 w-2 rounded-full bg-[var(--color-warning-text)]"></div> Đang thi: {{ systemStats.testing }}
-              </div>
-              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full surface-input border border-card text-xs font-bold text-placeholder">
-                <div class="h-2 w-2 rounded-full bg-[var(--text-placeholder)]"></div> Phòng trống: {{ systemStats.idle }}
-              </div>
-              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-danger-bg)] border border-[color-mix(in srgb,var(--color-danger-text)_20%,transparent)] text-xs font-bold text-[var(--color-danger-text)]">
-                <div class="h-2 w-2 rounded-full bg-[var(--color-danger-text)]"></div> Mất kết nối: {{ systemStats.disconnected }}
-              </div>
-           </div>
+          <p class="header-eyebrow">M4 Controlled Exam Environment</p>
+          <h1>{{ pageTitle }}</h1>
+          <p>{{ pageSubtitle }}</p>
         </div>
       </div>
-      
-      <div class="flex items-center gap-4 surface-card border border-card px-4 py-3 rounded-2xl shadow-sm">
-         <Clock :size="24" class="text-link" />
-         <div class="flex flex-col items-end">
-            <span class="text-[10px] font-medium text-muted uppercase tracking-widest">Thời gian thực tế</span>
-            <span class="text-xl font-semibold font-mono leading-none text-heading tracking-wider">{{ currentTime }}</span>
-         </div>
-      </div>
-    </div>
 
-    <div class="rounded-2xl border border-card surface-card p-4 shadow-sm flex-shrink-0">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">M4 Controlled Exam Environment</p>
-          <h2 class="mt-1 text-sm font-semibold text-heading">Cảnh báo realtime</h2>
-        </div>
+      <div class="header-actions">
         <button
+          v-if="viewState === 'attendance' || viewState === 'dashboard'"
           type="button"
-          class="rounded-xl border border-card surface-input px-3 py-2 text-xs font-semibold text-label"
-          @click="loadLiveViolations"
+          class="ghost-action"
+          @click="goBack"
         >
-          Làm mới
+          <LogOut :size="16" />
+          {{ viewState === 'dashboard' ? 'Quay lại điểm danh' : 'Quay lại danh sách ca' }}
         </button>
-      </div>
 
-      <div v-if="latestLiveViolations.length" class="mt-3 grid grid-cols-1 lg:grid-cols-5 gap-2">
-        <div
-          v-for="violation in latestLiveViolations"
-          :key="violation.id"
-          class="live-violation-card"
-          :class="{ urgent: violation.severity === 'high' || violation.severity === 'critical' }"
+        <button
+          v-if="viewState === 'dashboard'"
+          type="button"
+          class="ghost-action"
+          :class="{ active: soundEnabled }"
+          @click="soundEnabled = !soundEnabled"
         >
-          <div class="flex items-start justify-between gap-2">
-            <div>
-              <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">{{ formatViolationTime(violation.timestamp) }}</p>
-              <h3 class="mt-1 text-xs font-semibold text-heading">{{ violationTypeLabel(violation.type) }}</h3>
-            </div>
-            <span :class="['severity-chip', severityChipClass(violation.severity)]">{{ violation.severity }}</span>
-          </div>
-          <p class="mt-2 text-[11px] font-medium leading-relaxed text-muted">{{ violation.message }}</p>
-          <p class="mt-2 text-[10px] font-semibold text-label">{{ violation.studentId }} · {{ violation.studentName }}</p>
-          <div class="mt-3 flex gap-2">
-            <button type="button" class="live-action-btn" @click="remindViolation(violation)">Nhắc nhở</button>
-            <button type="button" class="live-action-btn secondary" @click="markViolationHandled(violation)">Đánh dấu xử lý</button>
-          </div>
-        </div>
-      </div>
+          <Bell v-if="soundEnabled" :size="16" />
+          <BellOff v-else :size="16" />
+          {{ soundEnabled ? 'Âm cảnh báo bật' : 'Âm cảnh báo tắt' }}
+        </button>
 
-      <div v-else class="mt-3 rounded-2xl border border-card surface-input px-4 py-3 text-xs font-semibold text-muted">
-        Chưa có violation runtime từ phòng thi mock.
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 flex-shrink-0">
-      <div
-        v-for="session in examSessions"
-        :key="session.id"
-        class="rounded-2xl border border-card surface-card p-4 shadow-sm"
-      >
-        <div class="flex items-start justify-between gap-3">
+        <div class="time-chip">
+          <Clock :size="18" />
           <div>
-            <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">{{ session.classSectionCode }}</p>
-            <h2 class="mt-1 text-sm font-semibold text-heading">{{ session.title }}</h2>
-            <p class="mt-1 text-xs font-medium text-muted">{{ session.subject }}</p>
-          </div>
-          <GlassBadge :variant="sessionBadgeVariant(session.status)">
-            {{ getSessionStatusLabel(session.status) }}
-          </GlassBadge>
-        </div>
-        <div class="mt-3 grid grid-cols-3 gap-2 text-center">
-           <div class="rounded-xl bg-[var(--surface-input)] px-2 py-2">
-             <p class="text-[9px] font-medium uppercase text-muted">Đang làm</p>
-            <p class="text-sm font-semibold text-heading">{{ session.activeStudents }}</p>
-          </div>
-           <div class="rounded-xl bg-[var(--color-warning-bg)] px-2 py-2">
-             <p class="text-[9px] font-medium uppercase" style="color:var(--color-warning-text)">Cảnh báo</p>
-            <p class="text-sm font-semibold" style="color:var(--color-warning-text)">{{ session.focusWarnings }}</p>
-          </div>
-           <div class="rounded-xl bg-[var(--color-info-bg)] px-2 py-2">
-             <p class="text-[9px] font-medium uppercase" style="color:var(--color-info-text)">Tổng</p>
-            <p class="text-sm font-semibold" style="color:var(--color-info-text)">{{ session.totalStudents }}</p>
-          </div>
-        </div>
-        <p class="mt-3 text-[10px] font-medium leading-relaxed text-muted">
-          Canh thi ở Phase 7 chỉ theo dõi ca thi, số sinh viên và cảnh báo focus/tab mock. Không triển khai proctoring phức tạp.
-        </p>
-      </div>
-    </div>
-
-    <!-- ── CCTV GRID ── -->
-    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 pb-6">
-        <div v-for="(room, idx) in classrooms" :key="room.id" 
-             class="group relative rounded-2xl bg-black border border-slate-800 overflow-hidden aspect-video shadow-lg cursor-pointer hover:ring-2 hover:ring-blue-500 hover:shadow-blue-500/20 transition-all flex flex-col justify-center items-center"
-             @click="openZoom(idx)">
-          
-          <!-- Simulated Camera Feed based on Room Status -->
-          <div class="absolute inset-0 w-full h-full pointer-events-none group-hover:scale-[1.02] transition-transform duration-700">
-            <!-- Grid lines background -->
-            <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:16px_16px] opacity-25"></div>
-            
-            <!-- If disconnected, render static lines and warning -->
-            <div v-if="room.status === 'Disconnected'" class="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center z-10">
-               <WifiOff :size="36" class="text-rose-500 mb-2 animate-bounce-slow" />
-                <span class="text-xs font-medium text-rose-500 uppercase tracking-wider bg-black/50 px-3 py-1 rounded-full border border-rose-500/20">No Signal</span>
-               <!-- Static noise screen effect -->
-               <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0)_50%,rgba(0,0,0,0.15)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
-            </div>
-
-            <!-- If idle, render school building placeholder -->
-            <div v-else-if="room.status === 'Idle'" class="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center z-10">
-               <School :size="40" class="text-slate-600 mb-2" />
-               <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Phòng trống</span>
-            </div>
-
-            <!-- If active/testing, render real camera image feed -->
-            <div v-else class="w-full h-full relative">
-               <img :src="room.status === 'Testing' ? cctvExamImg : cctvActiveImg" 
-                    alt="Classroom Camera Feed" 
-                    class="w-full h-full object-cover opacity-60 filter brightness-90 contrast-125 saturate-50" />
-               
-               <!-- Camera vignette and scanline overlays to make it look realistic -->
-               <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.6)_100%)] pointer-events-none"></div>
-               <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0)_50%,rgba(0,0,0,0.12)_50%)] bg-[length:100%_6px] opacity-40 pointer-events-none"></div>
-
-               <!-- Live HUD -->
-               <div class="absolute top-11 left-3 right-3 flex justify-between text-[9px] font-mono text-emerald-400 bg-black/50 px-2 py-0.5 rounded border border-white/5">
-                  <span class="flex items-center gap-1.5">
-                     <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                     LIVE • CAM_01
-                  </span>
-                  <span>1080P @ 30FPS</span>
-               </div>
-            </div>
-
-            <!-- Standard scanline overlay -->
-            <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0)_50%,rgba(0,0,0,0.06)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
-          </div>
-
-          <!-- Overlay Info (Top) -->
-          <div class="absolute top-0 left-0 right-0 p-3.5 flex items-start justify-between bg-gradient-to-b from-black/90 via-black/60 to-transparent z-20">
-             <div>
-                <div class="flex items-center gap-2">
-                   <p class="text-sm font-semibold text-white drop-shadow-md">{{ room.roomName }}</p>
-                   <span class="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] font-bold text-slate-300 border border-slate-700">{{ room.type }}</span>
-                </div>
-                <p v-if="room.status !== 'Idle'" class="text-[10px] text-slate-300 font-medium truncate max-w-[200px] mt-0.5">
-                   Lớp: {{ room.className }} • {{ room.subject }}
-                </p>
-                <p v-else class="text-[10px] text-slate-400 italic mt-0.5">Không có lịch học</p>
-             </div>
-             <div class="flex items-center gap-1.5">
-                <span v-if="room.status !== 'Idle' && room.status !== 'Disconnected'" class="text-[10px] font-mono font-bold bg-black/60 border border-slate-700 text-slate-300 px-2 py-0.5 rounded-full">
-                  {{ room.studentsCount }} SV
-                </span>
-                <div :class="['h-2 w-2 rounded-full shadow-[0_0_5px_currentColor]', getStatusColor(room.status)]" :title="getStatusLabel(room.status)"></div>
-             </div>
-          </div>
-
-          <!-- Warnings Badge (Bottom Left) -->
-          <div v-if="room.warnings.length > 0 && room.status !== 'Disconnected'" class="absolute bottom-3 left-3 z-20 flex items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold animate-pulse-soft" style="background:var(--color-warning-bg);color:var(--color-warning-text);border:1px solid color-mix(in srgb, var(--color-warning-text) 20%, transparent)">
-             <AlertTriangle :size="12" />
-             {{ room.warnings.length }} Cảnh báo AI
-          </div>
-          
-          <div class="absolute bottom-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur border border-white/10 text-white rounded-lg p-2 shadow-xl">
-             <Maximize2 :size="14" />
+            <span>Thời gian thực</span>
+            <strong>{{ currentTime }}</strong>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- ── ZOOM MODAL (FULL SCREEN OVERLAY) ── -->
+    <template v-if="viewState === 'sessions'">
+      <section class="stats-grid">
+        <div class="stat-card surface-card border-card">
+          <span>Tổng ca</span>
+          <strong>{{ sessionStats.total }}</strong>
+        </div>
+        <div class="stat-card surface-card border-card">
+          <span>Đang điểm danh</span>
+          <strong>{{ sessionStats.attendance }}</strong>
+        </div>
+        <div class="stat-card surface-card border-card">
+          <span>Đang canh thi</span>
+          <strong>{{ sessionStats.monitoring }}</strong>
+        </div>
+        <div class="stat-card surface-card border-card">
+          <span>Đã kết thúc</span>
+          <strong>{{ sessionStats.ended }}</strong>
+        </div>
+      </section>
+
+      <section class="session-grid">
+        <article
+          v-for="session in assignedExamSessions"
+          :key="session.id"
+          class="session-card surface-card border-card"
+        >
+          <div class="session-card-top">
+            <div>
+              <p class="session-code">{{ session.subjectCode }} · {{ session.classCode }}</p>
+              <h2>{{ session.examTitle }}</h2>
+              <p>{{ formatSessionTime(session) }} · {{ session.room }}</p>
+            </div>
+            <GlassBadge :variant="sessionBadgeVariant(session.status)">
+              {{ sessionStatusLabel(session.status) }}
+            </GlassBadge>
+          </div>
+
+          <div class="session-metrics">
+            <div>
+              <span>Tổng thí sinh</span>
+              <strong>{{ session.totalStudents }}</strong>
+            </div>
+            <div>
+              <span>Đã điểm danh</span>
+              <strong>{{ attendanceCountForSession(session.id) }}</strong>
+            </div>
+            <div>
+              <span>Đang thi</span>
+              <strong>{{ activeCountForSession(session.id) }}</strong>
+            </div>
+            <div>
+              <span>Đã nộp</span>
+              <strong>{{ submittedCountForSession(session.id) }}</strong>
+            </div>
+            <div>
+              <span>Vi phạm</span>
+              <strong>{{ violationCountForSession(session.id) }}</strong>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="primary-action"
+            :class="{ muted: session.status === 'ended' }"
+            @click="openSession(session)"
+          >
+            <PlayCircle v-if="session.status !== 'ended'" :size="16" />
+            <FileCheck2 v-else :size="16" />
+            {{ sessionActionLabel(session) }}
+          </button>
+        </article>
+      </section>
+    </template>
+
+    <template v-else-if="viewState === 'attendance' && currentSession">
+      <section class="attendance-shell surface-card border-card">
+        <div class="section-toolbar">
+          <div>
+            <p class="section-eyebrow">{{ currentSession.subjectCode }} · {{ currentSession.classCode }}</p>
+            <h2>Điểm danh thí sinh dự thi</h2>
+            <p>{{ currentSession.examTitle }} · {{ formatSessionTime(currentSession) }} · {{ currentSession.room }}</p>
+          </div>
+          <button
+            type="button"
+            class="primary-action"
+            :disabled="attendanceStats.present === 0"
+            @click="startMonitoring"
+          >
+            <LayoutGrid :size="16" />
+            Bắt đầu canh thi
+          </button>
+        </div>
+
+        <div class="stats-grid compact">
+          <div class="stat-card surface-input border-card">
+            <span>Tổng</span>
+            <strong>{{ attendanceStats.total }}</strong>
+          </div>
+          <div class="stat-card surface-input border-card">
+            <span>Có mặt</span>
+            <strong>{{ attendanceStats.present }}</strong>
+          </div>
+          <div class="stat-card surface-input border-card">
+            <span>Vắng mặt</span>
+            <strong>{{ attendanceStats.absent }}</strong>
+          </div>
+          <div class="stat-card surface-input border-card">
+            <span>Rủi ro pre-flight</span>
+            <strong>{{ attendanceStats.risk }}</strong>
+          </div>
+        </div>
+
+        <div class="student-table">
+          <div class="student-row table-head">
+            <span>MSSV</span>
+            <span>Họ tên</span>
+            <span>Điểm danh</span>
+            <span>Pre-flight</span>
+            <span>Stream</span>
+            <span>Hành động</span>
+          </div>
+          <div
+            v-for="student in currentStudents"
+            :key="student.id"
+            class="student-row"
+          >
+            <strong>{{ student.studentCode }}</strong>
+            <span>{{ student.name }}</span>
+            <GlassBadge :variant="attendanceBadgeVariant(student.attendanceStatus)">
+              {{ attendanceLabel(student.attendanceStatus) }}
+            </GlassBadge>
+            <span :class="['status-text', student.preflightStatus]">
+              {{ preflightLabel(student.preflightStatus) }}
+            </span>
+            <span>{{ streamLabel(student.streamStatus) }}</span>
+            <div class="row-actions">
+              <button type="button" @click="setAttendance(student, 'present')">Có mặt</button>
+              <button type="button" @click="setAttendance(student, 'absent')">Vắng mặt</button>
+              <button type="button" @click="setAttendance(student, 'exempted')">Miễn thi</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </template>
+
+    <template v-else-if="viewState === 'dashboard' && currentSession">
+      <section class="dashboard-toolbar surface-card border-card">
+        <div>
+          <p class="section-eyebrow">{{ currentSession.subjectCode }} · {{ currentSession.classCode }}</p>
+          <h2>Dashboard giám thị</h2>
+          <p>Theo dõi thí sinh, trạng thái stream và vi phạm trong ca thi.</p>
+        </div>
+        <div class="dashboard-counters">
+          <div>
+            <span>Đang thi</span>
+            <strong>{{ activeMonitoringStudents.length }}</strong>
+          </div>
+          <div>
+            <span>Cảnh báo</span>
+            <strong>{{ currentRealtimeViolations.length }}</strong>
+          </div>
+          <div>
+            <span>Đã nộp</span>
+            <strong>{{ closedStudents.filter((student) => student.examStatus === 'submitted').length }}</strong>
+          </div>
+        </div>
+        <button type="button" class="danger-action" @click="finishSession">
+          <SquareX :size="16" />
+          Kết thúc ca canh thi
+        </button>
+      </section>
+
+      <section class="alert-strip surface-card border-card">
+        <div class="alert-strip-head">
+          <div>
+            <p class="section-eyebrow">Cảnh báo realtime</p>
+            <h3>Violation từ phòng thi</h3>
+          </div>
+          <button type="button" class="ghost-action" @click="loadLiveViolations">
+            <RefreshCw :size="15" />
+            Làm mới
+          </button>
+        </div>
+        <div v-if="currentRealtimeViolations.length" class="alert-list">
+          <div
+            v-for="violation in currentRealtimeViolations.slice(0, 4)"
+            :key="violation.id"
+            class="alert-item"
+            :class="{ critical: violation.severity === 'critical' || violation.severity === 'high' }"
+          >
+            <AlertTriangle :size="14" />
+            <div>
+              <strong>{{ violationLabel(violation.type) }}</strong>
+              <span>{{ violation.studentId }} · {{ formatViolationTime(violation.timestamp) }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-else class="empty-alert">
+          Chưa có vi phạm nào trong ca thi.
+        </div>
+      </section>
+
+      <section class="screen-grid">
+        <article
+          v-for="student in activeMonitoringStudents"
+          :key="student.id"
+          class="screen-card surface-card border-card"
+          :class="{ 'has-alert': hasUnhandledViolation(student) }"
+          @click="openStudentModal(student)"
+        >
+          <MockScreen :student="student" :violations="studentViolationCount(student)" />
+          <div class="screen-card-body">
+            <div>
+              <p class="student-code">{{ student.studentCode }}</p>
+              <h3>{{ student.name }}</h3>
+            </div>
+            <GlassBadge v-if="hasUnhandledViolation(student)" variant="danger">Cảnh báo</GlassBadge>
+          </div>
+          <div class="screen-meta">
+            <span>Stream: <strong>{{ streamLabel(student.streamStatus) }}</strong></span>
+            <span>Bài thi: <strong>{{ examStatusLabel(student.examStatus) }}</strong></span>
+            <span>Vi phạm: <strong>{{ studentViolationCount(student) }}</strong></span>
+            <span>Gần nhất: <strong>{{ latestViolationLabel(student) }}</strong></span>
+          </div>
+          <div class="screen-actions" @click.stop>
+            <button type="button" @click="openStudentModal(student)">Phóng to</button>
+            <button type="button" @click="sendReminder(student)">Nhắc nhở</button>
+            <button type="button" @click="suspendStudent(student)">Đình chỉ</button>
+            <button type="button" @click="markStudentHandled(student)">Đã xử lý</button>
+          </div>
+        </article>
+      </section>
+
+      <section v-if="closedStudents.length" class="closed-section surface-card border-card">
+        <div class="section-toolbar compact-toolbar">
+          <div>
+            <p class="section-eyebrow">Đã rời grid đang thi</p>
+            <h3>Đã nộp bài / Đã đình chỉ</h3>
+          </div>
+        </div>
+        <div class="closed-grid">
+          <article
+            v-for="student in closedStudents"
+            :key="student.id"
+            class="closed-card"
+            @click="openStudentModal(student)"
+          >
+            <MockScreen :student="student" :violations="studentViolationCount(student)" compact />
+            <div>
+              <strong>{{ student.studentCode }}</strong>
+              <span>{{ student.name }}</span>
+              <GlassBadge :variant="student.examStatus === 'suspended' ? 'danger' : 'success'">
+                {{ examStatusLabel(student.examStatus) }}
+              </GlassBadge>
+            </div>
+          </article>
+        </div>
+      </section>
+    </template>
+
     <Teleport to="body">
-      <Transition name="fade-scale">
-        <div v-if="isZoomOpen" class="fixed inset-0 z-[100] flex bg-slate-950/95 backdrop-blur-xl">
-          
-          <!-- Left: Big Camera View -->
-          <div class="flex-1 flex flex-col p-4 relative">
-             <!-- Modal Header -->
-             <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-4">
-                   <button @click="closeZoom" class="h-10 w-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10">
-                      <ArrowLeft :size="20" />
-                   </button>
-                   <div>
-                      <h2 class="text-xl font-semibold text-white flex items-center gap-3">
-                         {{ zoomedClassroom.roomName }}
-                         <span class="px-2 py-0.5 rounded bg-slate-800 text-xs font-bold text-slate-300 border border-slate-700">{{ zoomedClassroom.type }}</span>
-                         <div :class="['h-3 w-3 rounded-full shadow-[0_0_10px_currentColor]', getStatusColor(zoomedClassroom.status)]"></div>
-                      </h2>
-                      <p class="text-sm text-slate-400 mt-1">
-                         <span v-if="zoomedClassroom.status !== 'Idle'">
-                           Lớp: <strong class="text-white">{{ zoomedClassroom.className }}</strong> • Môn học: <strong class="text-white">{{ zoomedClassroom.subject }}</strong> • GV: <strong class="text-white">{{ zoomedClassroom.lecturer }}</strong>
-                         </span>
-                         <span v-else class="italic text-slate-500">Phòng học hiện đang trống và thiết bị đang ở trạng thái nghỉ.</span>
-                      </p>
-                   </div>
-                </div>
-                
-                <!-- Status & Alerts Badge -->
-                <div class="flex items-center gap-3">
-                   <div v-if="zoomedClassroom.warnings.length > 0 && zoomedClassroom.status !== 'Disconnected'" class="flex items-center gap-2 bg-amber-500/20 text-amber-400 px-4 py-2 rounded-full border border-amber-500/30">
-                      <AlertTriangle :size="16" />
-                      <span class="text-xs font-semibold uppercase tracking-widest">{{ zoomedClassroom.warnings.length }} Cảnh báo AI</span>
-                   </div>
-                   <div class="bg-slate-800 border border-slate-700 text-slate-300 px-4 py-2 rounded-full text-xs font-bold font-mono">
-                      Sĩ số: {{ zoomedClassroom.studentsCount }}
-                   </div>
-                </div>
-             </div>
-
-             <!-- Big Camera Feed -->
-             <div class="flex-1 bg-black rounded-2xl border border-slate-800 shadow-2xl relative overflow-hidden flex flex-col group">
-                <!-- Camera Switcher Tabs -->
-                <div class="absolute top-4 left-4 z-20 flex gap-2 bg-black/60 backdrop-blur border border-white/10 p-1 rounded-xl">
-                   <button v-for="angle in ['CAM-01', 'CAM-02', 'PC-GV']" :key="angle"
-                           @click="activeAngle = angle"
-                           :class="[
-                             'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                             activeAngle === angle 
-                               ? 'bg-blue-600 text-white shadow' 
-                               : 'text-slate-400 hover:text-white'
-                           ]">
-                      {{ angle === 'CAM-01' ? 'Góc trước (CAM-01)' : angle === 'CAM-02' ? 'Góc sau (CAM-02)' : 'Màn hình GV' }}
-                   </button>
-                </div>
-
-                <!-- Simulation Feed Render -->
-                <div class="flex-1 flex items-center justify-center relative">
-                   
-                   <!-- If Disconnected -->
-                   <div v-if="zoomedClassroom.status === 'Disconnected'" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-10">
-                      <div class="flex flex-col items-center animate-pulse">
-                         <WifiOff :size="64" class="text-rose-500 mb-4" />
-                         <span class="text-xl font-semibold text-rose-500 uppercase tracking-widest">Mất kết nối camera</span>
-                         <p class="text-slate-500 text-xs font-mono mt-2">NO VIDEO SIGNAL RECEIVED FROM CHANNEL {{ activeAngle }}</p>
-                      </div>
-                      <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0)_50%,rgba(0,0,0,0.15)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
-                   </div>
-
-                   <!-- If Idle -->
-                   <div v-else-if="zoomedClassroom.status === 'Idle'" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-10">
-                      <School :size="80" class="text-slate-700 mb-4" />
-                      <span class="text-lg font-bold text-slate-500 uppercase tracking-wider">PHÒNG TRỐNG - THIẾT BỊ TẠM NGHỈ</span>
-                      <p class="text-slate-600 text-xs font-mono mt-2">STANDBY MODE ACTIVE • PRESS BROADCAST TO ACTIVATE OVERRIDE</p>
-                   </div>
-
-                   <!-- Camera Visual Simulation -->
-                   <div v-else class="w-full h-full relative flex items-center justify-center">
-                       <!-- Render real camera image for CAM-01 and CAM-02 -->
-                       <img v-if="activeAngle === 'CAM-01'" 
-                            :src="zoomedClassroom.status === 'Testing' ? cctvExamImg : cctvActiveImg" 
-                            class="w-full h-full object-cover opacity-70 filter brightness-90 contrast-125 saturate-50" />
-                       
-                       <img v-else-if="activeAngle === 'CAM-02'" 
-                            :src="zoomedClassroom.status === 'Testing' ? cctvExamImg : cctvActiveImg" 
-                            class="w-full h-full object-cover opacity-70 filter brightness-90 contrast-125 saturate-50 scale-x-[-1]" /> <!-- flipped horizontally to simulate back angle -->
-                       
-                       <!-- For Lecturer PC Screen, we keep the monitor layout because it represents a screen output, not a physical CCTV angle. That is very professional! -->
-                       <div v-else class="w-[80%] max-w-lg aspect-video bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col justify-between z-10 shadow-2xl relative">
-                          <div class="border-b border-slate-800 pb-2 flex justify-between items-center">
-                             <span class="text-[9px] font-mono text-slate-400">Giảng Viên PC: 192.168.4.120</span>
-                             <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-                          </div>
-                          <div class="flex-1 flex flex-col justify-center items-center gap-2">
-                             <Monitor :size="40" class="text-blue-500" />
-                             <span class="text-[10px] font-mono text-slate-300">Đang truyền tải slide bài học</span>
-                          </div>
-                          <div class="text-[8px] font-mono text-slate-500 text-right">LMS Teacher App v2.4</div>
-                       </div>
-
-                       <!-- Camera vignette and scanline overlays to make it look realistic -->
-                       <div v-if="activeAngle !== 'PC-GV'" class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.6)_100%)] pointer-events-none"></div>
-                       <div v-if="activeAngle !== 'PC-GV'" class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0)_50%,rgba(0,0,0,0.12)_50%)] bg-[length:100%_6px] opacity-40 pointer-events-none"></div>
-                   </div>
-
-                   <!-- Standard HUD Overlay Info -->
-                   <div class="absolute bottom-6 right-6 flex gap-2 z-20">
-                      <div class="px-4 py-2 bg-black/75 backdrop-blur rounded-xl text-white font-mono text-xs border border-white/10 flex items-center gap-2">
-                        <span class="h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse"></span>
-                        REC • {{ activeAngle }}
-                      </div>
-                      <div class="px-4 py-2 bg-black/75 backdrop-blur rounded-xl text-white font-mono text-xs border border-white/10">
-                        1080P @ 30FPS
-                      </div>
-                   </div>
-
-                   <!-- Navigation Controls -->
-                   <button @click.stop="prevClassroom" class="absolute left-6 h-10 w-10 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur border border-white/10 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:scale-110 z-20">
-                      <ChevronLeft :size="32" />
-                   </button>
-                   <button @click.stop="nextClassroom" class="absolute right-6 h-10 w-10 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur border border-white/10 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:scale-110 z-20">
-                      <ChevronRight :size="32" />
-                   </button>
-                </div>
-             </div>
+      <div v-if="selectedStudent" class="student-modal-backdrop" @click.self="selectedStudent = null">
+        <section class="student-modal surface-card border-card">
+          <button type="button" class="modal-close" @click="selectedStudent = null">
+            <X :size="18" />
+          </button>
+          <div class="modal-screen">
+            <MockScreen :student="selectedStudent" :violations="studentViolationCount(selectedStudent)" large />
           </div>
+          <aside class="modal-panel">
+            <p class="section-eyebrow">Chi tiết thí sinh</p>
+            <h2>{{ selectedStudent.name }}</h2>
+            <p>{{ selectedStudent.studentCode }} · {{ currentSession?.classCode }}</p>
 
-          <!-- Right: Details & Actions Sidebar -->
-          <div class="w-[400px] border-l border-slate-800 bg-slate-900 flex flex-col shadow-2xl relative">
-             <!-- Logs -->
-             <div class="flex-1 flex flex-col p-4 overflow-hidden border-b border-slate-800">
-                <div class="flex items-center justify-between mb-4">
-                   <div class="flex items-center gap-2">
-                      <Terminal :size="18" class="text-blue-400" />
-                      <span class="font-semibold text-sm text-slate-300 uppercase tracking-widest text-[11px]">Nhật ký giám sát AI & Thiết bị</span>
-                   </div>
-                   <button class="text-slate-500 hover:text-white transition-colors" title="Làm mới"><RefreshCw :size="14" /></button>
+            <div class="modal-facts">
+              <span>Stream <strong>{{ streamLabel(selectedStudent.streamStatus) }}</strong></span>
+              <span>Bài thi <strong>{{ examStatusLabel(selectedStudent.examStatus) }}</strong></span>
+              <span>Vi phạm <strong>{{ studentViolationCount(selectedStudent) }}</strong></span>
+              <span>Gần nhất <strong>{{ latestViolationLabel(selectedStudent) }}</strong></span>
+            </div>
+
+            <div class="timeline">
+              <h3>Violation timeline</h3>
+              <div v-if="violationsForStudent(selectedStudent).length" class="timeline-list">
+                <div
+                  v-for="item in violationsForStudent(selectedStudent)"
+                  :key="item.id"
+                  class="timeline-item"
+                  :class="{ handled: item.handled }"
+                >
+                  <strong>{{ violationLabel(item.type) }}</strong>
+                  <span>{{ item.message || 'Ghi nhận vi phạm' }}</span>
+                  <small>{{ formatViolationTime(item.timestamp) }}</small>
                 </div>
-                <div class="flex-1 overflow-y-auto space-y-3 custom-scrollbar-dark pr-2">
-                   <div v-for="(log, i) in currentLogs" :key="i" class="flex gap-3 text-xs font-mono">
-                      <span class="text-slate-500 shrink-0">[{{ log.time }}]</span>
-<span :class="['inline-flex items-center gap-1.5', log.type === 'error' ? 'text-rose-400 font-semibold' : log.type === 'warning' ? 'text-amber-400' : 'text-emerald-400']">
-                        <XCircle v-if="log.type === 'error'" :size="12" class="shrink-0" />
-                        <AlertTriangle v-else-if="log.type === 'warning'" :size="12" class="shrink-0" />
-                        <ArrowRight v-else :size="12" class="shrink-0" />
-                        {{ log.msg }}
-                      </span>
-                   </div>
-                   <div class="animate-pulse text-emerald-500/50">_</div>
-                </div>
-             </div>
+              </div>
+              <p v-else class="empty-alert">Chưa có vi phạm.</p>
+            </div>
 
-             <!-- Actions -->
-             <div class="p-4 space-y-4">
-                <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Hành động của Giám thị / Giáo vụ</h3>
-                
-                 <button @click="contactLecturer"
-                         class="w-full flex items-center justify-center gap-3 rounded-[16px] p-4 font-semibold border transition-all" style="background:var(--color-warning-bg);color:var(--color-warning-text);border-color:color-mix(in srgb, var(--color-warning-text) 20%, transparent)">
-                    <ShieldAlert :size="20" /> Liên hệ Giảng viên
-                 </button>
-
-                 <!-- Speaker Broadcast Announcement -->
-                 <div class="relative">
-                    <input type="text"
-                           v-model="broadcastText"
-                           @keyup.enter="sendBroadcast"
-                           placeholder="Phát âm thanh thông báo đến phòng..."
-                           class="w-full rounded-[16px] border border-card surface-input pl-5 pr-12 py-4 text-sm text-body placeholder:text-placeholder outline-none focus:border-link transition-all" />
-                    <button @click="sendBroadcast" class="absolute right-2 top-2 bottom-2 rounded-[12px] px-4 transition-colors" style="background:var(--text-link);color:var(--text-inverse)">
-                       <Volume2 :size="16" />
-                    </button>
-                 </div>
-
-                 <div class="pt-2 flex gap-3">
-                    <button @click="reportIncident" class="flex-1 flex items-center justify-center gap-2 rounded-[16px] p-4 font-semibold border text-xs transition-all" style="background:rgba(0,0,0,0.2);color:var(--text-label);border-color:var(--border-card)">
-                       <XCircle :size="16" class="text-[var(--color-danger-text)]" /> Báo sự cố thiết bị
-                    </button>
-                    <button @click="takeSnapshot" class="flex-1 flex items-center justify-center gap-2 rounded-[16px] p-4 font-semibold border text-xs transition-all" style="background:var(--accent-primary-soft);color:var(--text-link);border-color:color-mix(in srgb, var(--text-link) 20%, transparent)">
-                       <Camera :size="16" /> Chụp màn hình
-                    </button>
-                 </div>
-             </div>
-          </div>
-          
-        </div>
-      </Transition>
+            <div class="modal-actions">
+              <button type="button" @click="sendReminder(selectedStudent)">Nhắc nhở</button>
+              <button type="button" class="danger" @click="suspendStudent(selectedStudent)">Đình chỉ</button>
+              <button type="button" @click="markStudentHandled(selectedStudent)">Đánh dấu xử lý</button>
+            </div>
+          </aside>
+        </section>
+      </div>
     </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { computed, defineComponent, h, onMounted, onUnmounted, ref } from 'vue'
+import {
+  AlertTriangle,
+  Bell,
+  BellOff,
+  Clock,
+  FileCheck2,
+  LayoutGrid,
+  LogOut,
+  Monitor,
+  PlayCircle,
+  RefreshCw,
+  SquareX,
+  X,
+} from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import { usePopupStore } from '@/stores/popup'
 import { PROCTORING_LIVE_VIOLATIONS_KEY } from '@/utils/examSecurity'
-import { 
-  Monitor, WifiOff, AlertTriangle, RefreshCw, 
-  Clock, ShieldAlert, XCircle, 
-  ChevronRight, ChevronLeft, Terminal,
-  Maximize2, ArrowLeft, Video, School, Volume2, Camera
-} from 'lucide-vue-next'
-
-import cctvActiveImg from '@/assets/cctv_active.png'
-import cctvExamImg from '@/assets/cctv_exam.png'
 
 const popupStore = usePopupStore()
-
+const viewState = ref('sessions')
 const currentTime = ref('')
-let timer = null
-let liveViolationTimer = null
+const selectedSessionId = ref('')
+const selectedStudent = ref(null)
+const soundEnabled = ref(true)
 const liveViolations = ref([])
+let clockTimer = null
+let violationTimer = null
+
+const violationLabelMap = {
+  TAB_SWITCH: 'Rời tab',
+  FULLSCREEN_EXIT: 'Thoát toàn màn hình',
+  CLIPBOARD_ATTEMPT: 'Copy/Paste',
+  CONTEXT_MENU: 'Chuột phải',
+  DEVTOOLS_OPENED: 'Developer Tools',
+  FORBIDDEN_EXTENSION_RUNTIME: 'Extension bị cấm',
+  KEYBOARD_SHORTCUT_ATTEMPT: 'Phím tắt bị cấm',
+  SCREEN_STREAM_STOPPED: 'Mất stream màn hình',
+}
+
+const assignedExamSessions = ref([
+  {
+    id: 'session-web201-b1',
+    examTitle: 'Thi giữa kỳ Lập trình Web',
+    subjectCode: 'WEB201',
+    classCode: 'SD1904-B1',
+    room: 'Phòng máy 401',
+    startTime: '2026-06-09T08:00:00',
+    endTime: '2026-06-09T09:00:00',
+    totalStudents: 42,
+    status: 'attendance',
+  },
+  {
+    id: 'session-fin301-final',
+    examTitle: 'Thi cuối kỳ Tài chính doanh nghiệp',
+    subjectCode: 'FIN301',
+    classCode: 'QTKD-K29B',
+    room: 'Lab thi B203',
+    startTime: '2026-06-09T13:30:00',
+    endTime: '2026-06-09T15:30:00',
+    totalStudents: 35,
+    status: 'scheduled',
+  },
+  {
+    id: 'session-ctdl101-quiz',
+    examTitle: 'Quiz 2 Cấu trúc dữ liệu',
+    subjectCode: 'CTDL101',
+    classCode: 'SD1904-B1',
+    room: 'Online supervised',
+    startTime: '2026-06-09T09:00:00',
+    endTime: '2026-06-09T09:45:00',
+    totalStudents: 40,
+    status: 'ended',
+  },
+])
+
+const sessionStudents = ref({
+  'session-web201-b1': [
+    createStudent('sv001', 'PS12345', 'Nguyễn Văn A', 'pass'),
+    createStudent('sv002', 'PS12346', 'Trần Thị B', 'risk'),
+    createStudent('sv003', 'PS12347', 'Lê Hoàng C', 'pass'),
+    createStudent('sv004', 'PS12348', 'Phạm Minh D', 'not_checked'),
+    createStudent('sv005', 'PS12349', 'Hoàng Minh E', 'pass'),
+    createStudent('sv006', 'PS12350', 'Vũ Gia Hân', 'risk'),
+  ],
+  'session-fin301-final': [
+    createStudent('sv101', 'PS22345', 'Đỗ Quốc Anh', 'pass'),
+    createStudent('sv102', 'PS22346', 'Nguyễn Thảo Vy', 'not_checked'),
+    createStudent('sv103', 'PS22347', 'Trần Minh Tâm', 'risk'),
+    createStudent('sv104', 'PS22348', 'Bùi Gia Bảo', 'pass'),
+  ],
+  'session-ctdl101-quiz': [
+    createStudent('sv201', 'PS32345', 'Mai Hoàng Nam', 'pass'),
+    createStudent('sv202', 'PS32346', 'Lâm Khánh Linh', 'pass'),
+  ],
+})
+
+function createStudent(id, studentCode, name, preflightStatus) {
+  return {
+    id,
+    studentCode,
+    name,
+    attendanceStatus: 'absent',
+    preflightStatus,
+    streamStatus: 'waiting',
+    examStatus: 'not_started',
+    logs: [],
+  }
+}
+
+const MockScreen = defineComponent({
+  name: 'MockScreen',
+  props: {
+    student: { type: Object, required: true },
+    violations: { type: Number, default: 0 },
+    compact: { type: Boolean, default: false },
+    large: { type: Boolean, default: false },
+  },
+  setup(props) {
+    return () =>
+      h(
+        'div',
+        {
+          class: [
+            'mock-screen',
+            props.compact && 'compact',
+            props.large && 'large',
+            props.student.streamStatus === 'lost' && 'lost',
+          ],
+        },
+        [
+          h('div', { class: 'screen-watermark' }, props.student.studentCode),
+          h('div', { class: 'mock-window' }, [
+            h('div', { class: 'mock-window-bar' }, [
+              h('span'),
+              h('span'),
+              h('span'),
+              h('strong', 'Live screen mock'),
+            ]),
+            h('div', { class: 'mock-exam-ui' }, [
+              h('div', { class: 'mock-question' }),
+              h('div', { class: 'mock-line wide' }),
+              h('div', { class: 'mock-line' }),
+              h('div', { class: 'mock-options' }, [h('span'), h('span'), h('span'), h('span')]),
+            ]),
+          ]),
+          props.violations > 0 ? h('div', { class: 'mock-alert' }, 'Cảnh báo') : null,
+          props.student.streamStatus === 'lost'
+            ? h('div', { class: 'screen-overlay' }, 'Mất tín hiệu màn hình')
+            : null,
+          props.student.examStatus === 'submitted'
+            ? h('div', { class: 'screen-overlay success' }, 'Đã nộp bài')
+            : null,
+          props.student.examStatus === 'suspended'
+            ? h('div', { class: 'screen-overlay danger' }, 'Đã đình chỉ')
+            : null,
+        ],
+      )
+  },
+})
+
+const currentSession = computed(() => {
+  return assignedExamSessions.value.find((session) => session.id === selectedSessionId.value) || null
+})
+
+const currentStudents = computed(() => {
+  return currentSession.value ? sessionStudents.value[currentSession.value.id] || [] : []
+})
+
+const presentStudents = computed(() => {
+  return currentStudents.value.filter((student) => student.attendanceStatus === 'present')
+})
+
+const activeMonitoringStudents = computed(() => {
+  return presentStudents.value.filter((student) => !['submitted', 'suspended'].includes(student.examStatus))
+})
+
+const closedStudents = computed(() => {
+  return presentStudents.value.filter((student) => ['submitted', 'suspended'].includes(student.examStatus))
+})
+
+const attendanceStats = computed(() => {
+  const total = currentStudents.value.length
+  const present = currentStudents.value.filter((student) => student.attendanceStatus === 'present').length
+  const exempted = currentStudents.value.filter((student) => student.attendanceStatus === 'exempted').length
+  const risk = currentStudents.value.filter((student) => student.preflightStatus === 'risk').length
+  return {
+    total,
+    present,
+    absent: total - present - exempted,
+    risk,
+  }
+})
+
+const sessionStats = computed(() => {
+  return {
+    total: assignedExamSessions.value.length,
+    attendance: assignedExamSessions.value.filter((session) => session.status === 'attendance').length,
+    monitoring: assignedExamSessions.value.filter((session) => session.status === 'monitoring').length,
+    ended: assignedExamSessions.value.filter((session) => session.status === 'ended').length,
+  }
+})
+
+const pageTitle = computed(() => {
+  if (viewState.value === 'attendance') return 'Điểm danh thí sinh dự thi'
+  if (viewState.value === 'dashboard') return 'Dashboard giám thị'
+  return 'Ca canh thi được phân công'
+})
+
+const pageSubtitle = computed(() => {
+  if (viewState.value === 'dashboard') return 'Theo dõi thí sinh, trạng thái stream và vi phạm trong ca thi.'
+  if (viewState.value === 'attendance') return 'Xác nhận thí sinh có mặt trước khi đưa vào grid giám sát.'
+  return 'Chọn ca thi/lớp thi để điểm danh và mở màn hình giám thị realtime.'
+})
+
+const currentRealtimeViolations = computed(() => {
+  const codes = new Set(currentStudents.value.map((student) => student.studentCode))
+  return liveViolations.value
+    .filter((violation) => codes.has(violation.studentId || violation.studentCode))
+    .filter((violation) => !violation.handled)
+})
 
 onMounted(() => {
   updateTime()
   loadLiveViolations()
-  timer = setInterval(updateTime, 1000)
-  liveViolationTimer = setInterval(loadLiveViolations, 3000)
+  clockTimer = window.setInterval(updateTime, 1000)
+  violationTimer = window.setInterval(loadLiveViolations, 3000)
 })
 
 onUnmounted(() => {
-  if (timer) clearInterval(timer)
-  if (liveViolationTimer) clearInterval(liveViolationTimer)
+  if (clockTimer) clearInterval(clockTimer)
+  if (violationTimer) clearInterval(violationTimer)
 })
 
 function updateTime() {
-  const now = new Date()
-  currentTime.value = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  currentTime.value = new Date().toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
 }
-
-const examSessions = [
-  {
-    id: 'session-web201-midterm',
-    title: 'Thi giữa kỳ Lập trình Web',
-    subject: 'WEB201 · Frontend với Vue',
-    classSectionCode: 'WEB201-SD1904-B1',
-    status: 'running',
-    activeStudents: 31,
-    totalStudents: 42,
-    focusWarnings: 3,
-  },
-  {
-    id: 'session-java101-final',
-    title: 'Thi kết thúc môn Java Basic',
-    subject: 'JAVA101 · Java Basic',
-    classSectionCode: 'JAVA101-SD1905-B2',
-    status: 'scheduled',
-    activeStudents: 0,
-    totalStudents: 38,
-    focusWarnings: 0,
-  },
-  {
-    id: 'session-ctdl101-quiz',
-    title: 'Quiz 2: Cấu trúc dữ liệu',
-    subject: 'CTDL101 · Cây & Đồ thị',
-    classSectionCode: 'CTDL101-SD1904-B1',
-    status: 'ended',
-    activeStudents: 0,
-    totalStudents: 42,
-    focusWarnings: 2,
-  },
-]
-
-const latestLiveViolations = computed(() => liveViolations.value.slice(0, 5))
 
 function loadLiveViolations() {
   try {
     const raw = localStorage.getItem(PROCTORING_LIVE_VIOLATIONS_KEY)
     const parsed = raw ? JSON.parse(raw) : []
-    liveViolations.value = Array.isArray(parsed) ? parsed.slice(0, 100) : []
+    liveViolations.value = Array.isArray(parsed) && parsed.length ? parsed : createDemoViolations()
   } catch {
-    liveViolations.value = []
+    liveViolations.value = createDemoViolations()
   }
 }
 
-function violationTypeLabel(type) {
-  const labels = {
-    TAB_SWITCH: 'Rời tab',
-    FULLSCREEN_EXIT: 'Thoát toàn màn hình',
-    CLIPBOARD_ATTEMPT: 'Copy/Paste',
-    CONTEXT_MENU: 'Chuột phải',
-    DEVTOOLS_OPENED: 'Developer Tools',
-    FORBIDDEN_EXTENSION_RUNTIME: 'Extension bị cấm',
-    SCREEN_STREAM_STOPPED: 'Mất chia sẻ màn hình',
-  }
-
-  return labels[type] || type || 'Cảnh báo'
+function createDemoViolations() {
+  return [
+    {
+      id: 'demo-tab-ps12345',
+      studentId: 'PS12345',
+      studentName: 'Nguyễn Văn A',
+      type: 'TAB_SWITCH',
+      severity: 'high',
+      message: 'Học sinh rời khỏi tab thi',
+      timestamp: new Date().toISOString(),
+      handled: false,
+    },
+    {
+      id: 'demo-devtools-ps12346',
+      studentId: 'PS12346',
+      studentName: 'Trần Thị B',
+      type: 'DEVTOOLS_OPENED',
+      severity: 'critical',
+      message: 'Phát hiện dấu hiệu mở Developer Tools',
+      timestamp: new Date(Date.now() - 90000).toISOString(),
+      handled: false,
+    },
+  ]
 }
 
-function severityChipClass(severity) {
-  if (severity === 'critical' || severity === 'high') return 'danger'
-  if (severity === 'medium') return 'warning'
-  return 'info'
+function formatSessionTime(session) {
+  const start = new Date(session.startTime)
+  const end = new Date(session.endTime)
+  return `${start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`
+}
+
+function sessionStatusLabel(status) {
+  if (status === 'scheduled') return 'Sắp diễn ra'
+  if (status === 'attendance') return 'Đang điểm danh'
+  if (status === 'monitoring') return 'Đang canh thi'
+  return 'Đã kết thúc'
+}
+
+function sessionBadgeVariant(status) {
+  if (status === 'monitoring') return 'success'
+  if (status === 'attendance') return 'warning'
+  if (status === 'ended') return 'neutral'
+  return 'primary'
+}
+
+function sessionActionLabel(session) {
+  if (session.status === 'ended') return 'Xem biên bản'
+  if (session.status === 'monitoring') return 'Mở dashboard giám thị'
+  return 'Vào điểm danh'
+}
+
+function openSession(session) {
+  selectedSessionId.value = session.id
+  if (session.status === 'monitoring') {
+    viewState.value = 'dashboard'
+  } else {
+    viewState.value = 'attendance'
+    if (session.status === 'scheduled') session.status = 'attendance'
+  }
+}
+
+function goBack() {
+  if (viewState.value === 'dashboard') {
+    viewState.value = 'attendance'
+    return
+  }
+
+  selectedSessionId.value = ''
+  selectedStudent.value = null
+  viewState.value = 'sessions'
+}
+
+function setAttendance(student, status) {
+  student.attendanceStatus = status
+  if (status !== 'present') {
+    student.streamStatus = 'waiting'
+    student.examStatus = 'not_started'
+  }
+}
+
+function startMonitoring() {
+  if (!currentSession.value || attendanceStats.value.present === 0) {
+    popupStore.warning('Chưa thể bắt đầu', 'Cần điểm danh ít nhất 1 thí sinh có mặt.')
+    return
+  }
+
+  currentSession.value.status = 'monitoring'
+  presentStudents.value.forEach((student, index) => {
+    if (!['submitted', 'suspended'].includes(student.examStatus)) {
+      student.examStatus = index === presentStudents.value.length - 1 && presentStudents.value.length >= 3
+        ? 'submitted'
+        : 'in_progress'
+    }
+    student.streamStatus = student.examStatus === 'submitted' ? 'stopped' : index === 1 ? 'reconnecting' : 'streaming'
+  })
+  viewState.value = 'dashboard'
+  popupStore.success('Đã bắt đầu canh thi', `${presentStudents.value.length} thí sinh có mặt được đưa vào grid giám sát.`)
+}
+
+function finishSession() {
+  if (!currentSession.value) return
+  const confirmed = window.confirm('Kết thúc ca canh thi này?')
+  if (!confirmed) return
+
+  currentSession.value.status = 'ended'
+  presentStudents.value.forEach((student) => {
+    if (student.examStatus === 'in_progress') student.examStatus = 'submitted'
+    if (student.streamStatus === 'streaming' || student.streamStatus === 'reconnecting') student.streamStatus = 'stopped'
+  })
+  selectedStudent.value = null
+  viewState.value = 'sessions'
+  popupStore.success('Đã kết thúc ca', 'Biên bản mock đã được cập nhật.')
+}
+
+function attendanceCountForSession(sessionId) {
+  return (sessionStudents.value[sessionId] || []).filter((student) => student.attendanceStatus === 'present').length
+}
+
+function activeCountForSession(sessionId) {
+  return (sessionStudents.value[sessionId] || []).filter((student) => student.examStatus === 'in_progress').length
+}
+
+function submittedCountForSession(sessionId) {
+  return (sessionStudents.value[sessionId] || []).filter((student) => student.examStatus === 'submitted').length
+}
+
+function violationCountForSession(sessionId) {
+  const codes = new Set((sessionStudents.value[sessionId] || []).map((student) => student.studentCode))
+  return liveViolations.value.filter((violation) => codes.has(violation.studentId || violation.studentCode) && !violation.handled).length
+}
+
+function violationsForStudent(student) {
+  if (!student) return []
+  return liveViolations.value.filter((violation) => (violation.studentId || violation.studentCode) === student.studentCode)
+}
+
+function studentViolationCount(student) {
+  return violationsForStudent(student).filter((violation) => !violation.handled).length
+}
+
+function latestViolationForStudent(student) {
+  return violationsForStudent(student).filter((violation) => !violation.handled)[0] || null
+}
+
+function latestViolationLabel(student) {
+  const latest = latestViolationForStudent(student)
+  return latest ? violationLabel(latest.type) : 'Không có'
+}
+
+function hasUnhandledViolation(student) {
+  const latest = latestViolationForStudent(student)
+  return Boolean(latest && ['high', 'critical'].includes(latest.severity)) || studentViolationCount(student) > 0
+}
+
+function violationLabel(type) {
+  return violationLabelMap[type] || type || 'Cảnh báo'
+}
+
+function streamLabel(status) {
+  if (status === 'streaming') return 'Đang truyền'
+  if (status === 'lost') return 'Mất tín hiệu'
+  if (status === 'reconnecting') return 'Đang kết nối lại'
+  if (status === 'stopped') return 'Đã dừng'
+  return 'Chưa kết nối'
+}
+
+function examStatusLabel(status) {
+  if (status === 'in_progress') return 'Đang làm'
+  if (status === 'submitted') return 'Đã nộp bài'
+  if (status === 'suspended') return 'Bị đình chỉ'
+  return 'Chưa bắt đầu'
+}
+
+function attendanceLabel(status) {
+  if (status === 'present') return 'Có mặt'
+  if (status === 'exempted') return 'Miễn thi'
+  return 'Vắng mặt'
+}
+
+function attendanceBadgeVariant(status) {
+  if (status === 'present') return 'success'
+  if (status === 'exempted') return 'neutral'
+  return 'warning'
+}
+
+function preflightLabel(status) {
+  if (status === 'pass') return 'Đạt'
+  if (status === 'risk') return 'Rủi ro'
+  return 'Chưa kiểm tra'
 }
 
 function formatViolationTime(value) {
@@ -507,349 +808,738 @@ function formatViolationTime(value) {
   })
 }
 
-function remindViolation(violation) {
-  popupStore.warning('Nhắc nhở sinh viên', `Đã gửi nhắc nhở mock đến ${violation.studentName}.`)
+function openStudentModal(student) {
+  selectedStudent.value = student
 }
 
-function markViolationHandled(violation) {
-  liveViolations.value = liveViolations.value.filter((item) => item.id !== violation.id)
-  localStorage.setItem(PROCTORING_LIVE_VIOLATIONS_KEY, JSON.stringify(liveViolations.value))
-  popupStore.success('Đã xử lý', `Đã đánh dấu xử lý cảnh báo ${violationTypeLabel(violation.type)}.`)
+function sendReminder(student) {
+  const message = window.prompt('Nội dung nhắc nhở', 'Vui lòng quay lại bài thi và tuân thủ quy định.')
+  if (!message) return
+
+  student.logs.unshift({
+    type: 'PROCTOR_MESSAGE',
+    message,
+    timestamp: new Date().toISOString(),
+  })
+  popupStore.info('Đã gửi nhắc nhở', `${student.studentCode} · ${message}`)
 }
 
-function getSessionStatusLabel(status) {
-  if (status === 'running') return 'Đang diễn ra'
-  if (status === 'ended') return 'Đã kết thúc'
-  return 'Chưa bắt đầu'
+function suspendStudent(student) {
+  const confirmed = window.confirm(`Đình chỉ thí sinh ${student.studentCode}?`)
+  if (!confirmed) return
+
+  student.examStatus = 'suspended'
+  student.streamStatus = 'stopped'
+  student.logs.unshift({
+    type: 'SUSPENDED',
+    message: 'Giám thị đình chỉ thí sinh',
+    timestamp: new Date().toISOString(),
+  })
+  popupStore.warning('Đã đình chỉ', `${student.studentCode} đã được chuyển sang trạng thái bị đình chỉ.`)
 }
 
-function sessionBadgeVariant(status) {
-  if (status === 'running') return 'success'
-  if (status === 'ended') return 'neutral'
-  return 'primary'
-}
-
-const classrooms = ref([
-  { 
-    id: 'PM401', 
-    roomName: 'Phòng Máy 401', 
-    className: 'D19_PM01', 
-    subject: 'Lập trình Web (Thi học kỳ)', 
-    lecturer: 'ThS. Nguyễn Minh Khoa', 
-    studentsCount: '38/40', 
-    status: 'Testing', 
-    violations: 0, 
-    warnings: [],
-    type: 'Phòng Máy'
-  },
-  { 
-    id: 'H201', 
-    roomName: 'Phòng Học H201', 
-    className: 'D20_KH02', 
-    subject: 'Mạng máy tính (Lý thuyết)', 
-    lecturer: 'TS. Lê Hoàng C', 
-    studentsCount: '35/35', 
-    status: 'Active', 
-    violations: 1, 
-    warnings: ['Phát hiện tiếng ồn vượt mức (65dB)'],
-    type: 'Phòng Lý thuyết'
-  },
-  { 
-    id: 'PM402', 
-    roomName: 'Phòng Máy 402', 
-    className: 'D19_PM02', 
-    subject: 'Phát triển ứng dụng di động (Thi)', 
-    lecturer: 'ThS. Phạm Minh D', 
-    studentsCount: '28/30', 
-    status: 'Testing', 
-    violations: 2, 
-    warnings: ['Không phát hiện giảng viên đứng lớp', 'Màn hình máy chiếu phụ mất kết nối'],
-    type: 'Phòng Máy'
-  },
-  { 
-    id: 'H305', 
-    roomName: 'Phòng Học H305', 
-    className: 'Chưa có lớp học', 
-    subject: 'Trống', 
-    lecturer: 'Không có', 
-    studentsCount: '0/0', 
-    status: 'Idle', 
-    violations: 0, 
-    warnings: [],
-    type: 'Phòng Lý thuyết'
-  },
-  { 
-    id: 'PM303', 
-    roomName: 'Phòng Máy 303', 
-    className: 'D21_PM03', 
-    subject: 'Cơ sở dữ liệu (Thực hành)', 
-    lecturer: 'ThS. Hoàng Văn E', 
-    studentsCount: '42/45', 
-    status: 'Disconnected', 
-    violations: 1, 
-    warnings: ['Mất tín hiệu camera chính (Cam-01)'],
-    type: 'Phòng Máy'
-  },
-  { 
-    id: 'H102', 
-    roomName: 'Phòng Học H102', 
-    className: 'D20_PM04', 
-    subject: 'Cấu trúc dữ liệu và giải thuật', 
-    lecturer: 'ThS. Đặng Mai G', 
-    studentsCount: '39/40', 
-    status: 'Active', 
-    violations: 0, 
-    warnings: [],
-    type: 'Phòng Lý thuyết'
-  },
-  { 
-    id: 'PM405', 
-    roomName: 'Phòng Máy 405', 
-    className: 'D19_KH03', 
-    subject: 'An toàn thông tin', 
-    lecturer: 'ThS. Võ Minh H', 
-    studentsCount: '24/25', 
-    status: 'Active', 
-    violations: 0, 
-    warnings: [],
-    type: 'Phòng Máy'
-  },
-  { 
-    id: 'H401', 
-    roomName: 'Phòng Học H401', 
-    className: 'Chưa có lớp học', 
-    subject: 'Trống', 
-    lecturer: 'Không có', 
-    studentsCount: '0/0', 
-    status: 'Idle', 
-    violations: 0, 
-    warnings: [],
-    type: 'Phòng Lý thuyết'
-  }
-])
-
-const isZoomOpen = ref(false)
-const zoomedIndex = ref(0)
-const activeAngle = ref('CAM-01')
-const broadcastText = ref('')
-
-const zoomedClassroom = computed(() => {
-  return classrooms.value[zoomedIndex.value] || classrooms.value[0]
-})
-
-const systemStats = computed(() => {
-  const total = classrooms.value.length
-  const testing = classrooms.value.filter(c => c.status === 'Testing').length
-  const active = classrooms.value.filter(c => c.status === 'Active').length
-  const idle = classrooms.value.filter(c => c.status === 'Idle').length
-  const disconnected = classrooms.value.filter(c => c.status === 'Disconnected').length
-  const warnings = classrooms.value.filter(c => c.violations > 0 || c.warnings.length > 0).length
-  return { total, testing, active, idle, disconnected, warnings }
-})
-
-const getLogsForClassroom = (classroom) => {
-  if (!classroom) return []
-  const logsList = [
-    { time: '12:30:15', msg: `Hệ thống kết nối camera tại ${classroom.roomName} thành công.`, type: 'info' }
-  ]
-  
-  if (classroom.status === 'Disconnected') {
-    logsList.push({ time: '12:35:44', msg: 'Cảnh báo: Mất tín hiệu truyền tải video từ Camera chính.', type: 'error' })
-    logsList.push({ time: '12:40:00', msg: 'Yêu cầu kiểm tra kỹ thuật tự động được kích hoạt.', type: 'warning' })
-  } else if (classroom.status === 'Idle') {
-    logsList.push({ time: '12:31:00', msg: 'Không ghi nhận lịch học/thi trong ca học hiện tại.', type: 'info' })
-    logsList.push({ time: '12:32:00', msg: 'Thiết bị camera chuyển sang chế độ Standby tiết kiệm điện.', type: 'info' })
-  } else {
-    logsList.push({ time: '12:35:10', msg: `Giảng viên ${classroom.lecturer} đã đăng nhập máy trạm giảng dạy.`, type: 'info' })
-    logsList.push({ time: '12:40:30', msg: `Nhận diện số lượng sinh viên tại chỗ: ${classroom.studentsCount}`, type: 'info' })
-    
-    if (classroom.status === 'Testing') {
-      logsList.push({ time: '13:00:00', msg: `Kích hoạt chế độ giám sát phòng thi nghiêm ngặt.`, type: 'info' })
-    }
-    
-    if (classroom.warnings.length > 0) {
-      classroom.warnings.forEach((w, idx) => {
-        logsList.push({ time: `13:${15 + idx * 5}:22`, msg: `CẢNH BÁO AI: ${w}`, type: 'warning' })
-      })
-    } else {
-      logsList.push({ time: '13:20:00', msg: 'Hành vi phòng học ổn định. Không phát hiện bất thường.', type: 'info' })
-    }
-  }
-  
-  return logsList
-}
-
-const currentLogs = computed(() => {
-  return getLogsForClassroom(zoomedClassroom.value)
-})
-
-function getStatusColor(status) {
-  switch (status) {
-    case 'Active': return 'text-[var(--color-success-text)] bg-[var(--color-success-text)]'
-    case 'Testing': return 'text-[var(--color-warning-text)] bg-[var(--color-warning-text)]'
-    case 'Idle': return 'text-[var(--text-placeholder)] bg-[var(--text-placeholder)]'
-    case 'Disconnected': return 'text-[var(--color-danger-text)] bg-[var(--color-danger-text)]'
-    default: return 'text-[var(--text-placeholder)] bg-[var(--text-placeholder)]'
-  }
-}
-
-function getStatusLabel(status) {
-  switch (status) {
-    case 'Active': return 'Đang học'
-    case 'Testing': return 'Đang thi'
-    case 'Idle': return 'Phòng trống'
-    case 'Disconnected': return 'Mất kết nối'
-    default: return 'Không xác định'
-  }
-}
-
-function openZoom(index) {
-  zoomedIndex.value = index
-  activeAngle.value = 'CAM-01'
-  isZoomOpen.value = true
-  document.body.style.overflow = 'hidden'
-}
-
-function closeZoom() {
-  isZoomOpen.value = false
-  document.body.style.overflow = ''
-}
-
-function nextClassroom() {
-  if (zoomedIndex.value < classrooms.value.length - 1) {
-    zoomedIndex.value++
-  } else {
-    zoomedIndex.value = 0
-  }
-}
-
-function prevClassroom() {
-  if (zoomedIndex.value > 0) {
-    zoomedIndex.value--
-  } else {
-    zoomedIndex.value = classrooms.value.length - 1
-  }
-}
-
-function contactLecturer() {
-  popupStore.info('Hỗ trợ giảng viên', `Đã gửi thông báo đến giảng viên ${zoomedClassroom.value.lecturer} tại ${zoomedClassroom.value.roomName}!`)
-}
-
-function sendBroadcast() {
-  if (!broadcastText.value.trim()) return
-  popupStore.info('Phát thông báo', `Đã phát thông báo giọng nói AI đến loa ${zoomedClassroom.value.roomName}.`)
-  broadcastText.value = ''
-}
-
-function reportIncident() {
-  popupStore.warning('Yêu cầu kỹ thuật', `Đã tạo phiếu yêu cầu hỗ trợ camera tại ${zoomedClassroom.value.roomName}.`)
-}
-
-function takeSnapshot() {
-  popupStore.success('Chụp ảnh màn hình', `Đã chụp ảnh từ camera ${activeAngle.value} của phòng ${zoomedClassroom.value.roomName}.`)
+function markStudentHandled(student) {
+  violationsForStudent(student).forEach((violation) => {
+    violation.handled = true
+  })
+  student.logs.unshift({
+    type: 'VIOLATION_HANDLED',
+    message: 'Giám thị đánh dấu xử lý cảnh báo',
+    timestamp: new Date().toISOString(),
+  })
+  popupStore.success('Đã xử lý', `Cảnh báo của ${student.studentCode} đã được đánh dấu xử lý.`)
 }
 </script>
 
 <style scoped>
-.live-violation-card {
+.proctor-page {
+  display: flex;
+  min-height: calc(100vh - 132px);
+  flex-direction: column;
+  gap: 1rem;
+  color: var(--text-body);
+}
+
+.border-card {
   border: 1px solid var(--border-card);
-  border-radius: 14px;
-  background: var(--surface-solid);
-  padding: 0.75rem;
+}
+
+.proctor-header,
+.dashboard-toolbar,
+.attendance-shell,
+.alert-strip,
+.closed-section {
+  border-radius: 18px;
   box-shadow: var(--lg-shadow-sm);
 }
 
-.live-violation-card.urgent {
-  border-color: color-mix(in srgb, var(--color-danger-text) 28%, transparent);
-  background: var(--color-danger-bg);
+.proctor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
 }
 
-.severity-chip {
+.header-main,
+.header-actions,
+.section-toolbar,
+.alert-strip-head,
+.screen-card-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header-icon {
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--accent-primary-soft);
+  color: var(--text-link);
+}
+
+.header-eyebrow,
+.section-eyebrow,
+.session-code {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.proctor-header h1,
+.dashboard-toolbar h2,
+.attendance-shell h2,
+.session-card h2,
+.modal-panel h2 {
+  margin: 0.1rem 0;
+  color: var(--text-heading);
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+
+.proctor-header p,
+.dashboard-toolbar p,
+.attendance-shell p,
+.session-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.time-chip,
+.ghost-action,
+.primary-action,
+.danger-action {
   display: inline-flex;
   align-items: center;
-  min-height: 1.35rem;
-  border-radius: 999px;
-  padding: 0 0.45rem;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 850;
+}
+
+.time-chip {
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  padding: 0.65rem 0.8rem;
+}
+
+.time-chip span {
+  display: block;
+  color: var(--text-muted);
   font-size: 0.58rem;
+  text-transform: uppercase;
+}
+
+.time-chip strong {
+  display: block;
+  color: var(--text-heading);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.ghost-action,
+.primary-action,
+.danger-action {
+  min-height: 2.4rem;
+  border: 1px solid var(--border-card);
+  padding: 0 0.8rem;
+  cursor: pointer;
+}
+
+.ghost-action {
+  background: var(--surface-input);
+  color: var(--text-label);
+}
+
+.ghost-action.active {
+  color: var(--text-link);
+}
+
+.primary-action {
+  border: 0;
+  background: var(--text-link);
+  color: var(--text-inverse);
+}
+
+.primary-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.primary-action.muted {
+  background: var(--surface-input);
+  color: var(--text-label);
+}
+
+.danger-action {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.stats-grid.compact {
+  margin-top: 1rem;
+}
+
+.stat-card {
+  min-height: 4.2rem;
+  border-radius: 16px;
+  padding: 0.8rem 1rem;
+}
+
+.stat-card span,
+.session-metrics span,
+.dashboard-counters span,
+.screen-meta span {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.stat-card strong {
+  display: block;
+  color: var(--text-heading);
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.session-grid,
+.screen-grid,
+.closed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.session-card,
+.screen-card {
+  border-radius: 18px;
+  padding: 1rem;
+  box-shadow: var(--lg-shadow-sm);
+}
+
+.session-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.session-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin: 1rem 0;
+}
+
+.session-metrics div,
+.dashboard-counters div,
+.modal-facts span {
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--surface-input);
+  padding: 0.55rem;
+}
+
+.session-metrics strong,
+.dashboard-counters strong,
+.screen-meta strong,
+.modal-facts strong {
+  display: block;
+  color: var(--text-heading);
+  font-weight: 900;
+}
+
+.attendance-shell,
+.dashboard-toolbar,
+.alert-strip,
+.closed-section {
+  padding: 1rem;
+}
+
+.student-table {
+  margin-top: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+}
+
+.student-row {
+  display: grid;
+  grid-template-columns: 0.8fr 1.3fr 0.8fr 0.9fr 0.9fr 1.55fr;
+  align-items: center;
+  gap: 0.75rem;
+  border-top: 1px solid var(--border-default);
+  padding: 0.75rem;
+  color: var(--text-label);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.student-row:first-child {
+  border-top: 0;
+}
+
+.table-head {
+  background: var(--surface-input);
+  color: var(--text-muted);
+  font-size: 0.68rem;
   font-weight: 900;
   text-transform: uppercase;
 }
 
-.severity-chip.danger {
-  color: var(--color-danger-text);
-  background: color-mix(in srgb, var(--color-danger-bg) 72%, var(--surface-card));
-  border: 1px solid color-mix(in srgb, var(--color-danger-text) 24%, transparent);
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
-.severity-chip.warning {
-  color: var(--color-warning-text);
-  background: var(--color-warning-bg);
-  border: 1px solid color-mix(in srgb, var(--color-warning-text) 24%, transparent);
-}
-
-.severity-chip.info {
-  color: var(--color-info-text);
-  background: var(--color-info-bg);
-  border: 1px solid color-mix(in srgb, var(--color-info-text) 24%, transparent);
-}
-
-.live-action-btn {
-  flex: 1;
-  min-height: 1.9rem;
-  border: 0;
+.row-actions button,
+.screen-actions button,
+.modal-actions button {
+  min-height: 2rem;
+  border: 1px solid var(--border-card);
   border-radius: 10px;
-  background: var(--text-link);
-  color: var(--text-inverse);
+  background: var(--surface-input);
+  color: var(--text-label);
   font-size: 0.68rem;
   font-weight: 850;
   cursor: pointer;
 }
 
-.live-action-btn.secondary {
+.row-actions button {
+  padding: 0 0.55rem;
+}
+
+.status-text.pass {
+  color: var(--color-success-text);
+}
+
+.status-text.risk {
+  color: var(--color-danger-text);
+}
+
+.dashboard-toolbar {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dashboard-counters {
+  display: grid;
+  grid-template-columns: repeat(3, 7rem);
+  gap: 0.5rem;
+}
+
+.alert-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.alert-item,
+.empty-alert {
   border: 1px solid var(--border-default);
-  background: var(--surface-card);
+  border-radius: 12px;
+  background: var(--surface-input);
+  padding: 0.65rem;
   color: var(--text-label);
+  font-size: 0.72rem;
+  font-weight: 750;
 }
 
-.custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 10px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar-dark::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar-dark::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
-.custom-scrollbar-dark::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
-
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-in {
-  animation: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: opacity, transform;
+.alert-item {
+  display: flex;
+  gap: 0.55rem;
 }
 
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.03); }
-}
-.animate-pulse-soft {
-  animation: pulse-soft 2s infinite ease-in-out;
+.alert-item.critical {
+  border-color: color-mix(in srgb, var(--color-danger-text) 32%, transparent);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
 }
 
-@keyframes bounce-slow {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-.animate-bounce-slow {
-  animation: bounce-slow 3s infinite ease-in-out;
+.alert-item strong,
+.alert-item span {
+  display: block;
 }
 
-.fade-scale-enter-active,
-.fade-scale-leave-active {
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+.screen-card {
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
-.fade-scale-enter-from,
-.fade-scale-leave-to {
-  opacity: 0;
-  transform: scale(0.96) translateY(20px);
+
+.screen-card:hover {
+  transform: translateY(-2px);
+}
+
+.screen-card.has-alert {
+  border-color: color-mix(in srgb, var(--color-danger-text) 56%, var(--border-card));
+  animation: alert-blink 1.8s ease-in-out infinite;
+}
+
+.screen-card-body {
+  margin-top: 0.8rem;
+}
+
+.student-code {
+  color: var(--text-link);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.screen-card h3 {
+  margin: 0.1rem 0 0;
+  color: var(--text-heading);
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.screen-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.screen-actions,
+.modal-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+}
+
+.closed-card {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  border: 1px solid var(--border-card);
+  border-radius: 14px;
+  background: var(--surface-input);
+  padding: 0.75rem;
+  cursor: pointer;
+}
+
+.closed-card strong,
+.closed-card span {
+  display: block;
+}
+
+.closed-card strong {
+  color: var(--text-heading);
+}
+
+.closed-card span {
+  margin-bottom: 0.45rem;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.mock-screen {
+  position: relative;
+  min-height: 12rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--text-link) 18%, transparent);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--text-link) 18%, transparent), transparent 34%),
+    linear-gradient(145deg, #08111f, #101827 52%, #07101d);
+}
+
+.mock-screen.compact {
+  min-height: 5rem;
+}
+
+.mock-screen.large {
+  min-height: 28rem;
+}
+
+.screen-watermark {
+  position: absolute;
+  inset: auto 0 1rem 0;
+  color: rgba(255,255,255,0.12);
+  font-size: 2rem;
+  font-weight: 950;
+  text-align: center;
+  transform: rotate(-16deg);
+  pointer-events: none;
+}
+
+.mock-window {
+  position: absolute;
+  inset: 1rem;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  background: rgba(5, 13, 26, 0.86);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.mock-window-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.32rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 0.55rem;
+}
+
+.mock-window-bar span {
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.2);
+}
+
+.mock-window-bar strong {
+  margin-left: auto;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.62rem;
+}
+
+.mock-exam-ui {
+  padding: 1rem;
+}
+
+.mock-question,
+.mock-line,
+.mock-options span {
+  border-radius: 999px;
+  background: rgba(255,255,255,0.13);
+}
+
+.mock-question {
+  width: 48%;
+  height: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.mock-line {
+  width: 66%;
+  height: 0.55rem;
+  margin-bottom: 0.55rem;
+}
+
+.mock-line.wide {
+  width: 86%;
+}
+
+.mock-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.mock-options span {
+  height: 1.6rem;
+}
+
+.mock-alert,
+.screen-overlay {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.mock-alert {
+  top: 0.8rem;
+  right: 0.8rem;
+  min-height: 1.6rem;
+  padding: 0 0.65rem;
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.screen-overlay {
+  inset: 0;
+  border-radius: 0;
+  background: rgba(5, 10, 20, 0.78);
+  color: white;
+  font-size: 1rem;
+}
+
+.screen-overlay.success {
+  color: var(--color-success-text);
+}
+
+.screen-overlay.danger {
+  color: var(--color-danger-text);
+}
+
+.student-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: rgba(3, 7, 18, 0.72);
+  padding: 1.5rem;
+}
+
+.student-modal {
+  position: relative;
+  display: grid;
+  width: min(1180px, 96vw);
+  max-height: 92vh;
+  grid-template-columns: 1fr 340px;
+  gap: 1rem;
+  overflow: auto;
+  border-radius: 20px;
+  padding: 1rem;
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
+  z-index: 1;
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  place-items: center;
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  background: var(--surface-input);
+  color: var(--text-label);
+  cursor: pointer;
+}
+
+.modal-panel {
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  background: var(--surface-input);
+  padding: 1rem;
+}
+
+.modal-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.timeline h3 {
+  margin: 0 0 0.55rem;
+  color: var(--text-heading);
+  font-size: 0.86rem;
+}
+
+.timeline-list {
+  display: flex;
+  max-height: 15rem;
+  flex-direction: column;
+  gap: 0.45rem;
+  overflow-y: auto;
+}
+
+.timeline-item {
+  border: 1px solid color-mix(in srgb, var(--color-danger-text) 25%, transparent);
+  border-radius: 12px;
+  background: var(--color-danger-bg);
+  padding: 0.65rem;
+  color: var(--color-danger-text);
+  font-size: 0.72rem;
+}
+
+.timeline-item.handled {
+  border-color: var(--border-default);
+  background: var(--surface-card);
+  color: var(--text-muted);
+}
+
+.timeline-item strong,
+.timeline-item span,
+.timeline-item small {
+  display: block;
+}
+
+.modal-actions {
+  grid-template-columns: 1fr;
+}
+
+.modal-actions .danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+@keyframes alert-blink {
+  0%, 100% {
+    box-shadow: 0 0 0 color-mix(in srgb, var(--color-danger-text) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger-text) 16%, transparent);
+  }
+}
+
+@media (max-width: 980px) {
+  .proctor-header,
+  .header-main,
+  .header-actions,
+  .section-toolbar,
+  .alert-strip-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .stats-grid,
+  .dashboard-toolbar,
+  .student-modal {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-counters,
+  .session-metrics,
+  .screen-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-row {
+    grid-template-columns: 1fr;
+  }
+
+  .table-head {
+    display: none;
+  }
 }
 </style>

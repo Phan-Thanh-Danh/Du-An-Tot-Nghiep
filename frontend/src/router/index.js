@@ -33,6 +33,12 @@ const router = createRouter({
       component: () => import('../views/LoginView.vue'),
       meta: { public: true },
     },
+    {
+      path: '/student/exams/:examId/take',
+      name: 'student-exam-take',
+      component: () => import('../views/Student/ExamTakeView.vue'),
+      meta: { requiresAuth: true, role: 'student', title: 'Làm bài thi', fullscreen: true },
+    },
 
     // ── Student Layout (App Shell) ─────────────────────────
     {
@@ -88,12 +94,6 @@ const router = createRouter({
           name: 'student-exam-detail',
           component: () => import('../views/Student/ExamDetailView.vue'),
           meta: { title: 'Chi tiết bài thi' },
-        },
-        {
-          path: 'exams/:examId/take',
-          name: 'student-exam-take',
-          component: () => import('../views/Student/ExamTakeView.vue'),
-          meta: { title: 'Làm bài thi' },
         },
         {
           path: 'exams/:examResultId',
