@@ -1,63 +1,85 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   ArrowLeft, FileCheck, Clock, ListChecks, ShieldAlert, Globe, Maximize,
   MonitorCheck, Wifi, Puzzle, Server, Bot, CheckCircle2, AlertTriangle,
-  XCircle, Loader2, PlayCircle, ChevronRight, Info, Lock, Users, BookOpen
+  XCircle, Loader2, PlayCircle, ChevronRight, Info, Lock, BookOpen
 } from 'lucide-vue-next'
-import { mockExams, mockExamDetail, mockPreflightChecks, mockPreflightChecksHighRisk } from '@/data/exam.mock.js'
+import { mockExams, mockExamDetail } from '@/data/exam.mock.js'
+import { runPreflightSecurityChecks } from '@/utils/examSecurity'
 
 const router = useRouter()
 const route = useRoute()
 
 // State: 'detail' | 'preflight'
 const screen = ref('detail')
-const useHighRisk = ref(false)
 const checksRunning = ref(false)
 const checksComplete = ref(false)
+const checks = ref([])
+const preflightResult = ref(null)
+const blockedReasons = ref([])
 
 const exam = computed(() => {
   const id = route.params.examId
   return mockExams.find(e => e.id === id) || mockExamDetail
 })
 
-const checks = computed(() => useHighRisk.value ? mockPreflightChecksHighRisk : mockPreflightChecks)
-
-const riskScore = computed(() => {
-  if (!checksComplete.value) return 0
-  if (useHighRisk.value) return 82
-  return 24
-})
-
-const riskLevel = computed(() => {
-  if (riskScore.value >= 70) return 'danger'
-  if (riskScore.value >= 40) return 'warning'
-  return 'safe'
-})
-
-const canEnter = computed(() => checksComplete.value && riskScore.value < 70)
+const examId = computed(() => String(route.params.examId || exam.value.id || mockExamDetail.id))
+const riskScore = computed(() => preflightResult.value?.riskScore || 0)
+const riskLevel = computed(() => preflightResult.value?.riskLevel || 'safe')
+const canEnter = computed(() => Boolean(checksComplete.value && preflightResult.value?.canEnter))
 
 const checkStatuses = ref({})
 
 const iconMap = { Globe, Maximize, MonitorCheck, Wifi, Puzzle, Server, Bot }
 
 async function runPreflight() {
+  if (checksRunning.value) return
+
   checksRunning.value = true
   checksComplete.value = false
   checkStatuses.value = {}
-  const items = checks.value
+  blockedReasons.value = []
+  preflightResult.value = null
+
+  const result = await runPreflightSecurityChecks()
+  checks.value = result.checks
+  preflightResult.value = result
+
+  const items = result.checks
   for (let i = 0; i < items.length; i++) {
     checkStatuses.value[items[i].id] = 'checking'
-    await new Promise(r => setTimeout(r, 400 + Math.random() * 300))
+    await new Promise(r => setTimeout(r, 260 + Math.random() * 180))
     checkStatuses.value[items[i].id] = items[i].status
   }
+
+  blockedReasons.value = result.blockedReasons || []
   checksRunning.value = false
   checksComplete.value = true
 }
 
+function openPreflight() {
+  screen.value = 'preflight'
+}
+
+watch(screen, (value) => {
+  if (value === 'preflight' && !checksRunning.value && !checksComplete.value) {
+    runPreflight()
+  }
+})
+
 function goTake() {
-  router.push(`/student/exams/${route.params.examId}/take`)
+  if (!canEnter.value) return
+
+  sessionStorage.setItem(`exam_preflight_passed_${examId.value}`, JSON.stringify({
+    passed: true,
+    passedAt: Date.now(),
+    riskScore: riskScore.value,
+    checks: checks.value,
+  }))
+
+  router.push(`/student/exams/${examId.value}/take`)
 }
 
 function formatDate(iso) {
@@ -162,7 +184,7 @@ function formatDate(iso) {
 
         <!-- CTA -->
         <div class="detail-actions">
-          <button class="btn-primary-lg" @click="screen = 'preflight'">
+          <button class="btn-primary-lg" @click="openPreflight">
             <PlayCircle :size="18" />
             Bắt đầu kiểm tra môi trường
           </button>
@@ -184,17 +206,8 @@ function formatDate(iso) {
             <li class="security-item"><Puzzle :size="14" /> Quét tiện ích bị cấm</li>
           </ul>
           <div class="sidebar-note">
-            Tất cả các biện pháp trên là mô phỏng giao diện. Hệ thống thật sẽ có giám sát đầy đủ.
+            Trình duyệt không thể phát hiện hoặc chặn mọi hình thức gian lận. Các kiểm tra hiện tại là lớp phòng vệ frontend cho MVP/demo.
           </div>
-        </div>
-
-        <!-- Demo toggle -->
-        <div class="demo-card glass-card">
-          <div class="sidebar-title"><Info :size="14" /> Demo: Thay đổi kịch bản</div>
-          <label class="toggle-row">
-            <input type="checkbox" v-model="useHighRisk" class="toggle-input" />
-            <span class="toggle-label">Mô phỏng risk score cao (bị chặn)</span>
-          </label>
         </div>
       </div>
     </div>
@@ -214,7 +227,7 @@ function formatDate(iso) {
             @click="runPreflight"
           >
             <PlayCircle :size="15" />
-            {{ checksComplete ? 'Kiểm tra lại' : 'Bắt đầu kiểm tra' }}
+            {{ checksComplete ? 'Kiểm tra lại' : 'Đang chờ kiểm tra' }}
           </button>
           <div v-else class="checking-badge">
             <Loader2 :size="15" class="spin" /> Đang kiểm tra...
@@ -228,6 +241,31 @@ function formatDate(iso) {
         <div>
           <strong>Không thể vào thi</strong>
           <span> – Vui lòng khắc phục các vấn đề bên dưới trước khi tiếp tục.</span>
+        </div>
+      </div>
+
+      <div v-if="checksComplete && riskLevel !== 'danger'" class="risk-banner" :class="riskLevel">
+        <CheckCircle2 v-if="riskLevel === 'safe'" :size="18" />
+        <AlertTriangle v-else :size="18" />
+        <div>
+          <strong>{{ riskLevel === 'safe' ? 'Môi trường đạt yêu cầu' : 'Có cảnh báo cần chú ý' }}</strong>
+          <span>
+            – {{ riskLevel === 'safe' ? 'Bạn có thể vào phòng thi.' : 'Bạn vẫn có thể vào thi nhưng nên khắc phục trước khi bắt đầu.' }}
+          </span>
+        </div>
+      </div>
+
+      <div v-if="checksComplete && blockedReasons.length" class="blocked-guidance glass-card">
+        <h3>Lý do cần xử lý</h3>
+        <ul>
+          <li v-for="reason in blockedReasons" :key="reason">{{ reason }}</li>
+        </ul>
+        <div class="guidance-grid">
+          <span>Tắt extension dịch/AI/viết.</span>
+          <span>Không dùng Remote Desktop/TeamViewer/AnyDesk.</span>
+          <span>Không dùng máy ảo.</span>
+          <span>Mở Chrome/Edge bằng Guest Profile hoặc profile sạch.</span>
+          <span>Sau đó nhấn Kiểm tra lại.</span>
         </div>
       </div>
 
@@ -246,7 +284,7 @@ function formatDate(iso) {
             <div class="check-label">{{ check.label }}</div>
             <div class="check-desc">{{ check.description }}</div>
             <div v-if="checkStatuses[check.id] && checkStatuses[check.id] !== 'checking'" class="check-detail">
-              {{ check.detail }}
+              {{ check.reason || check.detail }}
             </div>
           </div>
           <div class="check-status-icon">
@@ -258,6 +296,11 @@ function formatDate(iso) {
         </div>
       </div>
 
+      <div v-if="!checksRunning && !checksComplete" class="empty-preflight glass-card">
+        <ShieldAlert :size="18" />
+        <span>Hệ thống sẽ tự động quét môi trường trước khi vào phòng thi.</span>
+      </div>
+
       <!-- Risk Score & Action -->
       <div v-if="checksComplete" class="preflight-result glass-card">
         <div class="risk-score-section">
@@ -266,9 +309,9 @@ function formatDate(iso) {
             {{ riskScore }}<span class="risk-max">/100</span>
           </div>
           <div class="risk-desc" :class="`risk-desc--${riskLevel}`">
-            <span v-if="riskLevel==='safe'">✅ An toàn – Có thể vào thi</span>
-            <span v-else-if="riskLevel==='warning'">⚠️ Cần chú ý – Khuyến nghị khắc phục trước khi thi</span>
-            <span v-else>🚫 Rủi ro cao – Không thể vào thi</span>
+            <span v-if="riskLevel==='safe'">An toàn – Có thể vào thi</span>
+            <span v-else-if="riskLevel==='warning'">Cần chú ý – Khuyến nghị khắc phục trước khi thi</span>
+            <span v-else>Rủi ro cao – Không thể vào thi</span>
           </div>
         </div>
         <button
@@ -360,6 +403,14 @@ function formatDate(iso) {
 
 .risk-banner { display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1.25rem; border-radius: 14px; font-size: 0.875rem; animation: glass-fade-up 0.28s ease both; }
 .risk-banner.danger { background: var(--color-danger-bg); border: 1px solid color-mix(in srgb, var(--color-danger-text) 25%, transparent); color: var(--color-danger-text); }
+.risk-banner.safe { background: var(--color-success-bg); border: 1px solid color-mix(in srgb, var(--color-success-text) 25%, transparent); color: var(--color-success-text); }
+.risk-banner.warning { background: var(--color-warning-bg); border: 1px solid color-mix(in srgb, var(--color-warning-text) 25%, transparent); color: var(--color-warning-text); }
+
+.blocked-guidance { padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.blocked-guidance h3 { margin: 0; font-size: 0.9rem; font-weight: 850; color: var(--text-heading); }
+.blocked-guidance ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.35rem; color: var(--color-danger-text); font-size: 0.8125rem; font-weight: 650; }
+.guidance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.5rem; }
+.guidance-grid span { display: flex; align-items: center; min-height: 2.1rem; padding: 0.45rem 0.65rem; border-radius: 10px; background: var(--surface-solid); border: 1px solid var(--border-default); color: var(--text-label); font-size: 0.75rem; font-weight: 700; }
 
 .checks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0.875rem; }
 .check-card { padding: 1rem 1.25rem; display: flex; align-items: flex-start; gap: 0.875rem; transition: transform 0.2s; }
@@ -376,6 +427,8 @@ function formatDate(iso) {
 .check--fail .check-detail { color: var(--color-danger-text); background: var(--color-danger-bg); }
 .check--warning .check-detail { color: var(--color-warning-text); background: var(--color-warning-bg); }
 .check-status-icon { flex-shrink: 0; }
+
+.empty-preflight { padding: 1rem 1.25rem; display: flex; align-items: center; gap: 0.625rem; color: var(--text-muted); font-size: 0.85rem; font-weight: 650; }
 
 .preflight-result { padding: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .risk-score-section { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }

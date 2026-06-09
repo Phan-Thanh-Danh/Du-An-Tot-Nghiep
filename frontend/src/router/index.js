@@ -553,32 +553,30 @@ const router = createRouter({
 })
 
 // ── Navigation Guard ────────────────────────────────────────
-router.beforeEach((to, from, next) => {
+router.beforeEach((to) => {
   const authStore = useAuthStore()
   authStore.ensureFreshSession()
 
   // Chuyển hướng nếu truy cập trang public khi đã login
   if (to.meta.public && authStore.isAuthenticated) {
-    if (authStore.hasRole('SuperAdmin')) return next('/super-admin/dashboard')
-    if (authStore.hasRole('Teacher')) return next('/teacher/dashboard')
-    if (authStore.hasRole('AcademicStaff')) return next('/staff/dashboard')
-    return next('/student/dashboard')
+    if (authStore.hasRole('SuperAdmin')) return '/super-admin/dashboard'
+    if (authStore.hasRole('Teacher')) return '/teacher/dashboard'
+    if (authStore.hasRole('AcademicStaff')) return '/staff/dashboard'
+    return '/student/dashboard'
   }
 
   // Yêu cầu login
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    return next({
+    return {
       path: '/login',
       query: { redirect: to.fullPath },
-    })
+    }
   }
 
   // Kiểm tra quyền (Role)
   if (to.meta.role && !authStore.hasRole(to.meta.role)) {
-    return next({ name: 'not-found' })
+    return { name: 'not-found' }
   }
-
-  next()
 })
 
 export default router

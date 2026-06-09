@@ -42,6 +42,49 @@
       </div>
     </div>
 
+    <div class="rounded-2xl border border-card surface-card p-4 shadow-sm flex-shrink-0">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">M4 Controlled Exam Environment</p>
+          <h2 class="mt-1 text-sm font-semibold text-heading">Cảnh báo realtime</h2>
+        </div>
+        <button
+          type="button"
+          class="rounded-xl border border-card surface-input px-3 py-2 text-xs font-semibold text-label"
+          @click="loadLiveViolations"
+        >
+          Làm mới
+        </button>
+      </div>
+
+      <div v-if="latestLiveViolations.length" class="mt-3 grid grid-cols-1 lg:grid-cols-5 gap-2">
+        <div
+          v-for="violation in latestLiveViolations"
+          :key="violation.id"
+          class="live-violation-card"
+          :class="{ urgent: violation.severity === 'high' || violation.severity === 'critical' }"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">{{ formatViolationTime(violation.timestamp) }}</p>
+              <h3 class="mt-1 text-xs font-semibold text-heading">{{ violationTypeLabel(violation.type) }}</h3>
+            </div>
+            <span :class="['severity-chip', severityChipClass(violation.severity)]">{{ violation.severity }}</span>
+          </div>
+          <p class="mt-2 text-[11px] font-medium leading-relaxed text-muted">{{ violation.message }}</p>
+          <p class="mt-2 text-[10px] font-semibold text-label">{{ violation.studentId }} · {{ violation.studentName }}</p>
+          <div class="mt-3 flex gap-2">
+            <button type="button" class="live-action-btn" @click="remindViolation(violation)">Nhắc nhở</button>
+            <button type="button" class="live-action-btn secondary" @click="markViolationHandled(violation)">Đánh dấu xử lý</button>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="mt-3 rounded-2xl border border-card surface-input px-4 py-3 text-xs font-semibold text-muted">
+        Chưa có violation runtime từ phòng thi mock.
+      </div>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 flex-shrink-0">
       <div
         v-for="session in examSessions"
@@ -355,6 +398,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import { usePopupStore } from '@/stores/popup'
+import { PROCTORING_LIVE_VIOLATIONS_KEY } from '@/utils/examSecurity'
 import { 
   Monitor, WifiOff, AlertTriangle, RefreshCw, 
   Clock, ShieldAlert, XCircle, 
@@ -369,14 +413,19 @@ const popupStore = usePopupStore()
 
 const currentTime = ref('')
 let timer = null
+let liveViolationTimer = null
+const liveViolations = ref([])
 
 onMounted(() => {
   updateTime()
+  loadLiveViolations()
   timer = setInterval(updateTime, 1000)
+  liveViolationTimer = setInterval(loadLiveViolations, 3000)
 })
 
 onUnmounted(() => {
   if (timer) clearInterval(timer)
+  if (liveViolationTimer) clearInterval(liveViolationTimer)
 })
 
 function updateTime() {
@@ -416,6 +465,57 @@ const examSessions = [
     focusWarnings: 2,
   },
 ]
+
+const latestLiveViolations = computed(() => liveViolations.value.slice(0, 5))
+
+function loadLiveViolations() {
+  try {
+    const raw = localStorage.getItem(PROCTORING_LIVE_VIOLATIONS_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    liveViolations.value = Array.isArray(parsed) ? parsed.slice(0, 100) : []
+  } catch {
+    liveViolations.value = []
+  }
+}
+
+function violationTypeLabel(type) {
+  const labels = {
+    TAB_SWITCH: 'Rời tab',
+    FULLSCREEN_EXIT: 'Thoát toàn màn hình',
+    CLIPBOARD_ATTEMPT: 'Copy/Paste',
+    CONTEXT_MENU: 'Chuột phải',
+    DEVTOOLS_OPENED: 'Developer Tools',
+    FORBIDDEN_EXTENSION_RUNTIME: 'Extension bị cấm',
+    SCREEN_STREAM_STOPPED: 'Mất chia sẻ màn hình',
+  }
+
+  return labels[type] || type || 'Cảnh báo'
+}
+
+function severityChipClass(severity) {
+  if (severity === 'critical' || severity === 'high') return 'danger'
+  if (severity === 'medium') return 'warning'
+  return 'info'
+}
+
+function formatViolationTime(value) {
+  if (!value) return '--:--:--'
+  return new Date(value).toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
+
+function remindViolation(violation) {
+  popupStore.warning('Nhắc nhở sinh viên', `Đã gửi nhắc nhở mock đến ${violation.studentName}.`)
+}
+
+function markViolationHandled(violation) {
+  liveViolations.value = liveViolations.value.filter((item) => item.id !== violation.id)
+  localStorage.setItem(PROCTORING_LIVE_VIOLATIONS_KEY, JSON.stringify(liveViolations.value))
+  popupStore.success('Đã xử lý', `Đã đánh dấu xử lý cảnh báo ${violationTypeLabel(violation.type)}.`)
+}
 
 function getSessionStatusLabel(status) {
   if (status === 'running') return 'Đang diễn ra'
@@ -651,6 +751,66 @@ function takeSnapshot() {
 </script>
 
 <style scoped>
+.live-violation-card {
+  border: 1px solid var(--border-card);
+  border-radius: 14px;
+  background: var(--surface-solid);
+  padding: 0.75rem;
+  box-shadow: var(--lg-shadow-sm);
+}
+
+.live-violation-card.urgent {
+  border-color: color-mix(in srgb, var(--color-danger-text) 28%, transparent);
+  background: var(--color-danger-bg);
+}
+
+.severity-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.35rem;
+  border-radius: 999px;
+  padding: 0 0.45rem;
+  font-size: 0.58rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.severity-chip.danger {
+  color: var(--color-danger-text);
+  background: color-mix(in srgb, var(--color-danger-bg) 72%, var(--surface-card));
+  border: 1px solid color-mix(in srgb, var(--color-danger-text) 24%, transparent);
+}
+
+.severity-chip.warning {
+  color: var(--color-warning-text);
+  background: var(--color-warning-bg);
+  border: 1px solid color-mix(in srgb, var(--color-warning-text) 24%, transparent);
+}
+
+.severity-chip.info {
+  color: var(--color-info-text);
+  background: var(--color-info-bg);
+  border: 1px solid color-mix(in srgb, var(--color-info-text) 24%, transparent);
+}
+
+.live-action-btn {
+  flex: 1;
+  min-height: 1.9rem;
+  border: 0;
+  border-radius: 10px;
+  background: var(--text-link);
+  color: var(--text-inverse);
+  font-size: 0.68rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.live-action-btn.secondary {
+  border: 1px solid var(--border-default);
+  background: var(--surface-card);
+  color: var(--text-label);
+}
+
 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 10px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }

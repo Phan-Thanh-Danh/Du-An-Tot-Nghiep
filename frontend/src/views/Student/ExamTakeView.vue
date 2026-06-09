@@ -1,37 +1,101 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  Clock, ShieldAlert, AlertTriangle, CheckCircle, Flag,
-  ChevronLeft, ChevronRight, Send, HelpCircle, Save,
-  Eye, CornerDownRight
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  ClipboardX,
+  Flag,
+  HelpCircle,
+  Lock,
+  Maximize,
+  MonitorCheck,
+  PlayCircle,
+  Save,
+  Send,
+  ShieldAlert,
+  Terminal,
+  XCircle,
 } from 'lucide-vue-next'
 import { mockExams, mockQuestions } from '@/data/exam.mock.js'
+import {
+  clearExamRuntimeStorage,
+  createViolation,
+  detectForbiddenExtensions,
+  loadViolationLog,
+  saveViolationLog,
+} from '@/utils/examSecurity'
 
 const route = useRoute()
 const router = useRouter()
 
+const STUDENT_ID = 'PS12345'
+const STUDENT_NAME = 'Nguyễn Văn A'
+const PREFLIGHT_MAX_AGE_MS = 2 * 60 * 60 * 1000
+
 const examId = String(route.params.examId || 'exam-ctdl-002')
 const exam = computed(() => {
-  return mockExams.find(e => e.id === examId) || {
+  return mockExams.find((item) => item.id === examId) || {
     id: examId,
     title: 'Bài thi trắc nghiệm',
     subject: 'Môn học mẫu',
     subjectCode: 'MOCK101',
+    classCode: 'MOCK-K28A',
     durationMinutes: 45,
-    totalQuestions: 12
+    totalQuestions: mockQuestions.length,
   }
 })
 
-// Trạng thái làm bài
-const currentQuestionIndex = ref(0)
-const answers = ref({}) // qId -> choiceId
-const flagged = ref({}) // qId -> boolean
-const showConfirmSubmit = ref(false)
+const answersKey = `exam_answers_${examId}`
+const flagsKey = `exam_flags_${examId}`
+const timeKey = `exam_time_left_${examId}`
+const lastSavedKey = `exam_last_saved_at_${examId}`
+const submittedKey = `exam_submitted_${examId}`
 
-// Đồng hồ đếm ngược (giả lập phút và giây)
-const timeLeftSeconds = ref(exam.value.durationMinutes * 60)
+const preflightReady = ref(false)
+const examStarted = ref(false)
+const isFullscreen = ref(false)
+const monitoringStatus = ref('idle') // idle | starting | active | interrupted | stopped
+const screenStream = ref(null)
+const startError = ref('')
+const showConfirmSubmit = ref(false)
+const restoredDraft = ref(false)
+const lastSavedAt = ref('')
+const currentQuestionIndex = ref(0)
+const answers = ref({})
+const flagged = ref({})
+const violations = ref([])
+const warnings = ref([])
+const timeLeftSeconds = ref(Number(exam.value.durationMinutes || 45) * 60)
+const fullscreenExitCount = ref(0)
+const tabSwitchCount = ref(0)
+const currentTimestamp = ref('')
+
 let timerInterval = null
+let autosaveInterval = null
+let runtimeScanInterval = null
+let watermarkInterval = null
+let devtoolsFallbackInterval = null
+let devtoolsDetectorModule = null
+let devtoolsListener = null
+let streamRecoveryTimer = null
+let screenTrack = null
+let submitLocked = false
+let lastBlurViolationAt = 0
+const lastViolationByType = new Map()
+
+const currentQuestion = computed(() => mockQuestions[currentQuestionIndex.value] || mockQuestions[0])
+
+const answeredCount = computed(() => mockQuestions.filter((question) => isAnswered(question)).length)
+const flaggedCount = computed(() => Object.values(flagged.value).filter(Boolean).length)
+const unansweredCount = computed(() => Math.max(mockQuestions.length - answeredCount.value, 0))
+const progressPercent = computed(() => Math.round((answeredCount.value / mockQuestions.length) * 100))
+const recentViolations = computed(() => violations.value.slice(0, 3))
+const criticalViolationCount = computed(() =>
+  violations.value.filter((item) => item.severity === 'critical' || item.severity === 'high').length,
+)
 
 const formattedTimeLeft = computed(() => {
   const mins = Math.floor(timeLeftSeconds.value / 60)
@@ -39,29 +103,181 @@ const formattedTimeLeft = computed(() => {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
 })
 
-const progressPercent = computed(() => {
-  const answeredCount = Object.keys(answers.value).length
-  return Math.round((answeredCount / mockQuestions.length) * 100)
+const monitoringStatusLabel = computed(() => {
+  if (monitoringStatus.value === 'active') return 'Đang giám sát'
+  if (monitoringStatus.value === 'starting') return 'Đang khởi động'
+  if (monitoringStatus.value === 'interrupted') return 'Gián đoạn'
+  if (monitoringStatus.value === 'stopped') return 'Đã dừng'
+  return 'Chưa bắt đầu'
 })
 
-onMounted(() => {
-  // Bắt đầu đếm ngược
-  timerInterval = setInterval(() => {
-    if (timeLeftSeconds.value > 0) {
-      timeLeftSeconds.value--
-    } else {
-      clearInterval(timerInterval)
-      autoSubmit()
-    }
-  }, 1000)
+const watermarkText = computed(() => {
+  return `${STUDENT_ID} • ${STUDENT_NAME} • ${currentTimestamp.value}`
 })
 
-onUnmounted(() => {
-  if (timerInterval) clearInterval(timerInterval)
-})
+function readJson(key, fallback) {
+  try {
+    const value = localStorage.getItem(key)
+    return value ? JSON.parse(value) : fallback
+  } catch {
+    return fallback
+  }
+}
 
-// Điều hướng câu hỏi
-const currentQuestion = computed(() => mockQuestions[currentQuestionIndex.value])
+function isAnswered(question) {
+  const value = answers.value[question.id]
+  if (Array.isArray(value)) return value.length > 0
+  return value !== undefined && value !== null && String(value).trim() !== ''
+}
+
+function formatTime(value) {
+  if (!value) return '—'
+  return new Date(value).toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
+
+function updateWatermarkTimestamp() {
+  currentTimestamp.value = new Date().toLocaleString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+function validatePreflightToken() {
+  try {
+    const raw = sessionStorage.getItem(`exam_preflight_passed_${examId}`)
+    if (!raw) return false
+    const payload = JSON.parse(raw)
+    return payload?.passed === true && Date.now() - Number(payload.passedAt || 0) <= PREFLIGHT_MAX_AGE_MS
+  } catch {
+    return false
+  }
+}
+
+function restoreDraft() {
+  if (localStorage.getItem(submittedKey) === 'true') {
+    clearExamRuntimeStorage(examId)
+    return
+  }
+
+  const restoredAnswers = readJson(answersKey, null)
+  const restoredFlags = readJson(flagsKey, null)
+  const restoredTime = Number(localStorage.getItem(timeKey) || 0)
+  const restoredViolations = loadViolationLog(examId)
+  const restoredSavedAt = localStorage.getItem(lastSavedKey) || ''
+
+  if (restoredAnswers && typeof restoredAnswers === 'object') {
+    answers.value = restoredAnswers
+    restoredDraft.value = true
+  }
+
+  if (restoredFlags && typeof restoredFlags === 'object') {
+    flagged.value = restoredFlags
+    restoredDraft.value = true
+  }
+
+  if (restoredTime > 0) {
+    timeLeftSeconds.value = restoredTime
+    restoredDraft.value = true
+  }
+
+  if (Array.isArray(restoredViolations)) {
+    violations.value = restoredViolations
+  }
+
+  if (restoredSavedAt) {
+    lastSavedAt.value = restoredSavedAt
+  }
+}
+
+function saveDraft() {
+  if (submitLocked) return
+
+  const savedAt = new Date().toISOString()
+  localStorage.setItem(answersKey, JSON.stringify(answers.value))
+  localStorage.setItem(flagsKey, JSON.stringify(flagged.value))
+  localStorage.setItem(timeKey, String(timeLeftSeconds.value))
+  localStorage.setItem(lastSavedKey, savedAt)
+  saveViolationLog(examId, violations.value)
+  lastSavedAt.value = savedAt
+}
+
+function pushWarning(message, severity = 'high', action = '') {
+  warnings.value.unshift({
+    id: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`,
+    message,
+    severity,
+    action,
+    timestamp: new Date().toISOString(),
+  })
+  warnings.value = warnings.value.slice(0, 5)
+}
+
+function addViolation(type, severity, message, details = {}, options = {}) {
+  const now = Date.now()
+  const dedupeMs = options.dedupeMs ?? 0
+  const lastAt = lastViolationByType.get(type) || 0
+
+  if (dedupeMs > 0 && now - lastAt < dedupeMs) {
+    return null
+  }
+
+  lastViolationByType.set(type, now)
+
+  const violation = createViolation({
+    examId,
+    studentId: STUDENT_ID,
+    studentName: STUDENT_NAME,
+    type,
+    severity,
+    message,
+    details,
+  })
+
+  violations.value = [violation, ...violations.value]
+  saveViolationLog(examId, violations.value)
+  return violation
+}
+
+function selectChoice(questionId, choiceId) {
+  answers.value = {
+    ...answers.value,
+    [questionId]: choiceId,
+  }
+}
+
+function toggleMultiChoice(questionId, choiceId) {
+  const currentArr = Array.isArray(answers.value[questionId]) ? answers.value[questionId] : []
+  const nextArr = currentArr.includes(choiceId)
+    ? currentArr.filter((item) => item !== choiceId)
+    : [...currentArr, choiceId]
+
+  answers.value = {
+    ...answers.value,
+    [questionId]: nextArr,
+  }
+}
+
+function updateTextAnswer(questionId, value) {
+  answers.value = {
+    ...answers.value,
+    [questionId]: value,
+  }
+}
+
+function toggleFlag(questionId) {
+  flagged.value = {
+    ...flagged.value,
+    [questionId]: !flagged.value[questionId],
+  }
+}
 
 function nextQuestion() {
   if (currentQuestionIndex.value < mockQuestions.length - 1) {
@@ -75,56 +291,443 @@ function prevQuestion() {
   }
 }
 
-function selectChoice(questionId, choiceId) {
-  answers.value[questionId] = choiceId
+async function startExamEnvironment() {
+  if (monitoringStatus.value === 'starting') return
+
+  startError.value = ''
+  monitoringStatus.value = 'starting'
+
+  try {
+    if (!document.documentElement.requestFullscreen) {
+      throw new Error('Trình duyệt không hỗ trợ chế độ toàn màn hình.')
+    }
+
+    await document.documentElement.requestFullscreen()
+    isFullscreen.value = true
+  } catch (error) {
+    monitoringStatus.value = 'idle'
+    startError.value = error?.message || 'Không thể chuyển sang chế độ toàn màn hình.'
+    return
+  }
+
+  try {
+    await requestScreenShare()
+    examStarted.value = true
+    monitoringStatus.value = 'active'
+    startTimer()
+    startRuntimeMonitoring()
+    saveDraft()
+  } catch (error) {
+    monitoringStatus.value = 'idle'
+    startError.value = error?.message || 'Bạn cần chia sẻ màn hình để bắt đầu bài thi.'
+    if (document.fullscreenElement) {
+      await document.exitFullscreen().catch(() => {})
+    }
+  }
 }
 
-function toggleFlag(questionId) {
-  flagged.value[questionId] = !flagged.value[questionId]
+async function requestScreenShare() {
+  if (!navigator.mediaDevices?.getDisplayMedia) {
+    throw new Error('Trình duyệt không hỗ trợ chia sẻ màn hình.')
+  }
+
+  const stream = await navigator.mediaDevices.getDisplayMedia({
+    video: { frameRate: 5 },
+    audio: false,
+  })
+
+  attachScreenStream(stream)
 }
 
-function autoSubmit() {
-  submitExam()
+function attachScreenStream(stream) {
+  cleanupScreenStream(false)
+  screenStream.value = stream
+  screenTrack = stream.getVideoTracks()[0] || null
+
+  if (screenTrack) {
+    screenTrack.addEventListener('ended', handleScreenTrackEnded)
+  }
+
+  if (streamRecoveryTimer) {
+    clearTimeout(streamRecoveryTimer)
+    streamRecoveryTimer = null
+  }
+
+  monitoringStatus.value = 'active'
 }
 
-function submitExam() {
+function cleanupScreenStream(markStopped = true) {
+  if (screenTrack) {
+    screenTrack.removeEventListener('ended', handleScreenTrackEnded)
+    screenTrack = null
+  }
+
+  if (screenStream.value) {
+    screenStream.value.getTracks().forEach((track) => track.stop())
+    screenStream.value = null
+  }
+
+  if (markStopped && !submitLocked) {
+    monitoringStatus.value = 'stopped'
+  }
+}
+
+function handleScreenTrackEnded() {
+  if (!examStarted.value || submitLocked) return
+
+  monitoringStatus.value = 'interrupted'
+  addViolation('SCREEN_STREAM_STOPPED', 'critical', 'Luồng chia sẻ màn hình bị ngắt')
+  pushWarning('Luồng chia sẻ màn hình bị ngắt. Vui lòng bật lại trong vòng 10 giây.', 'critical', 'screen')
+
+  if (streamRecoveryTimer) clearTimeout(streamRecoveryTimer)
+  streamRecoveryTimer = window.setTimeout(() => {
+    if (monitoringStatus.value !== 'active') {
+      pushWarning('Luồng chia sẻ màn hình vẫn chưa được bật lại. Giám thị có thể đình chỉ bài thi.', 'critical', 'screen')
+    }
+  }, 10000)
+}
+
+async function restartScreenShare() {
+  try {
+    startError.value = ''
+    monitoringStatus.value = 'starting'
+    await requestScreenShare()
+    pushWarning('Chia sẻ màn hình đã được bật lại.', 'low')
+  } catch (error) {
+    monitoringStatus.value = 'interrupted'
+    startError.value = error?.message || 'Không thể bật lại chia sẻ màn hình.'
+  }
+}
+
+async function resumeFullscreen() {
+  try {
+    await document.documentElement.requestFullscreen()
+    isFullscreen.value = true
+  } catch {
+    pushWarning('Không thể bật lại toàn màn hình. Vui lòng thử lại.', 'high', 'fullscreen')
+  }
+}
+
+function startTimer() {
+  if (timerInterval) clearInterval(timerInterval)
+
+  timerInterval = window.setInterval(() => {
+    if (!examStarted.value) return
+
+    if (timeLeftSeconds.value > 0) {
+      timeLeftSeconds.value--
+    } else {
+      clearInterval(timerInterval)
+      timerInterval = null
+      submitExam('timeout')
+    }
+  }, 1000)
+}
+
+function startRuntimeMonitoring() {
+  if (!autosaveInterval) {
+    autosaveInterval = window.setInterval(saveDraft, 30000)
+  }
+
+  if (!runtimeScanInterval) {
+    runtimeScanInterval = window.setInterval(scanForbiddenExtensionsRuntime, 15000)
+  }
+
+  scanForbiddenExtensionsRuntime()
+  startDevtoolsDetection()
+}
+
+function scanForbiddenExtensionsRuntime() {
+  if (!examStarted.value || submitLocked) return
+
+  const result = detectForbiddenExtensions()
+  if (result.status === 'fail') {
+    addViolation(
+      'FORBIDDEN_EXTENSION_RUNTIME',
+      'critical',
+      'Phát hiện extension bị cấm trong lúc thi',
+      result.details,
+      { dedupeMs: 15000 },
+    )
+    pushWarning('Phát hiện extension bị cấm trong lúc thi.', 'critical')
+  }
+}
+
+async function startDevtoolsDetection() {
+  if (devtoolsDetectorModule || devtoolsFallbackInterval) return
+
+  try {
+    devtoolsDetectorModule = await import('devtools-detector')
+    devtoolsListener = (isOpen, detail) => {
+      if (!isOpen || !examStarted.value || submitLocked) return
+
+      addViolation(
+        'DEVTOOLS_OPENED',
+        'critical',
+        'Phát hiện dấu hiệu mở Developer Tools',
+        detail || {},
+        { dedupeMs: 10000 },
+      )
+      pushWarning('Phát hiện dấu hiệu mở Developer Tools.', 'critical')
+    }
+    devtoolsDetectorModule.addListener(devtoolsListener)
+    devtoolsDetectorModule.setDetectDelay?.(1000)
+    devtoolsDetectorModule.launch()
+  } catch {
+    devtoolsFallbackInterval = window.setInterval(() => {
+      if (!examStarted.value || submitLocked) return
+
+      const threshold = 160
+      const widthDiff = window.outerWidth - window.innerWidth
+      const heightDiff = window.outerHeight - window.innerHeight
+      const suspected = widthDiff > threshold || heightDiff > threshold
+
+      if (suspected) {
+        addViolation(
+          'DEVTOOLS_OPENED',
+          'critical',
+          'Phát hiện dấu hiệu mở Developer Tools',
+          { widthDiff, heightDiff, detector: 'fallback' },
+          { dedupeMs: 10000 },
+        )
+        pushWarning('Phát hiện dấu hiệu mở Developer Tools.', 'critical')
+      }
+    }, 1500)
+  }
+}
+
+function handleFullscreenChange() {
+  isFullscreen.value = Boolean(document.fullscreenElement)
+
+  if (!examStarted.value || submitLocked) return
+
+  if (!document.fullscreenElement) {
+    fullscreenExitCount.value++
+    addViolation('FULLSCREEN_EXIT', 'high', 'Học sinh thoát chế độ toàn màn hình', {
+      count: fullscreenExitCount.value,
+    })
+    pushWarning('Bạn đã thoát toàn màn hình. Hành vi này đã được ghi nhận.', 'critical', 'fullscreen')
+
+    if (fullscreenExitCount.value >= 3) {
+      pushWarning('Bạn đã thoát toàn màn hình nhiều lần. Giám thị có thể đình chỉ bài thi.', 'critical', 'fullscreen')
+    }
+  }
+}
+
+function handleVisibilityChange() {
+  if (!examStarted.value || submitLocked) return
+
+  if (document.hidden) {
+    tabSwitchCount.value++
+    addViolation('TAB_SWITCH', 'high', 'Học sinh rời khỏi tab thi', {
+      count: tabSwitchCount.value,
+      source: 'visibilitychange',
+    })
+  } else if (tabSwitchCount.value > 0) {
+    pushWarning('Bạn đã rời khỏi tab thi. Hành vi này đã được ghi nhận.', 'high')
+  }
+}
+
+function handleWindowBlur() {
+  if (!examStarted.value || submitLocked || document.hidden) return
+
+  const now = Date.now()
+  if (now - lastBlurViolationAt < 5000) return
+  lastBlurViolationAt = now
+  tabSwitchCount.value++
+  addViolation('TAB_SWITCH', 'high', 'Học sinh rời khỏi cửa sổ thi', {
+    count: tabSwitchCount.value,
+    source: 'window.blur',
+  })
+}
+
+function blockClipboard(event) {
+  if (!examStarted.value || submitLocked) return
+
+  event.preventDefault()
+  addViolation('CLIPBOARD_ATTEMPT', 'medium', 'Thao tác sao chép/dán bị chặn trong bài thi', {
+    eventType: event.type,
+  })
+  pushWarning('Thao tác sao chép/dán bị chặn trong bài thi.', 'medium')
+}
+
+function blockContextMenu(event) {
+  if (!examStarted.value || submitLocked) return
+
+  event.preventDefault()
+  addViolation('CONTEXT_MENU', 'low', 'Thao tác chuột phải bị chặn', {
+    eventType: event.type,
+  })
+}
+
+function buildSubmitPayload(reason) {
+  return {
+    examId,
+    studentId: STUDENT_ID,
+    studentName: STUDENT_NAME,
+    answers: answers.value,
+    flagged: flagged.value,
+    violations: violations.value,
+    submittedAt: new Date().toISOString(),
+    timeLeftSeconds: timeLeftSeconds.value,
+    submitReason: reason,
+  }
+}
+
+async function submitExam(reason = 'manual') {
+  if (submitLocked) return
+
+  submitLocked = true
   showConfirmSubmit.value = false
-  // Chuyển hướng sang trang kết quả giả lập
+  saveDraft()
+
+  const payload = buildSubmitPayload(reason)
+  sessionStorage.setItem('last_exam_submit_payload', JSON.stringify(payload))
+  console.log('Mock exam submit payload:', payload)
+
+  if (timerInterval) clearInterval(timerInterval)
+  if (autosaveInterval) clearInterval(autosaveInterval)
+  if (runtimeScanInterval) clearInterval(runtimeScanInterval)
+  cleanupScreenStream(false)
+  monitoringStatus.value = 'stopped'
+  localStorage.setItem(submittedKey, 'true')
+  clearExamRuntimeStorage(examId)
+
+  if (document.fullscreenElement) {
+    await document.exitFullscreen().catch(() => {})
+  }
+
   router.push(`/student/exams/result-${examId}`)
 }
+
+function stopDevtoolsDetection() {
+  if (devtoolsFallbackInterval) {
+    clearInterval(devtoolsFallbackInterval)
+    devtoolsFallbackInterval = null
+  }
+
+  try {
+    if (devtoolsDetectorModule && devtoolsListener) {
+      devtoolsDetectorModule.removeListener(devtoolsListener)
+      devtoolsDetectorModule.stop?.()
+    }
+  } catch {
+    // Best-effort cleanup only.
+  }
+}
+
+function addGlobalListeners() {
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  window.addEventListener('blur', handleWindowBlur)
+  document.addEventListener('copy', blockClipboard)
+  document.addEventListener('paste', blockClipboard)
+  document.addEventListener('cut', blockClipboard)
+  document.addEventListener('contextmenu', blockContextMenu)
+}
+
+function removeGlobalListeners() {
+  document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  window.removeEventListener('blur', handleWindowBlur)
+  document.removeEventListener('copy', blockClipboard)
+  document.removeEventListener('paste', blockClipboard)
+  document.removeEventListener('cut', blockClipboard)
+  document.removeEventListener('contextmenu', blockContextMenu)
+}
+
+onMounted(() => {
+  if (!validatePreflightToken()) {
+    router.replace(`/student/exams/detail/${examId}`)
+    return
+  }
+
+  preflightReady.value = true
+  restoreDraft()
+  updateWatermarkTimestamp()
+  watermarkInterval = window.setInterval(updateWatermarkTimestamp, 1000)
+  addGlobalListeners()
+})
+
+onUnmounted(() => {
+  if (timerInterval) clearInterval(timerInterval)
+  if (autosaveInterval) clearInterval(autosaveInterval)
+  if (runtimeScanInterval) clearInterval(runtimeScanInterval)
+  if (watermarkInterval) clearInterval(watermarkInterval)
+  if (streamRecoveryTimer) clearTimeout(streamRecoveryTimer)
+  stopDevtoolsDetection()
+  removeGlobalListeners()
+  cleanupScreenStream(false)
+})
 </script>
 
 <template>
-  <div class="exam-take-page">
-    <!-- Header bài thi -->
+  <div v-if="!preflightReady" class="exam-take-page">
+    <div class="glass-card loading-card">
+      <Lock :size="18" />
+      <span>Đang kiểm tra quyền vào phòng thi...</span>
+    </div>
+  </div>
+
+  <div v-else class="exam-take-page">
+    <div class="watermark-layer" aria-hidden="true">
+      <span v-for="item in 42" :key="item">{{ watermarkText }}</span>
+    </div>
+
     <header class="exam-header-strip glass-card">
       <div class="exam-title-meta">
-        <div class="badge-exam">PHÒNG THI MÃ SỐ #{{ examId }}</div>
+        <div class="badge-exam">PHÒNG THI TRỰC TUYẾN #{{ examId }}</div>
         <h1>{{ exam.title }}</h1>
-        <p>{{ exam.subjectCode }} · {{ exam.subject }}</p>
+        <p>{{ exam.subjectCode }} · {{ exam.subject }} · {{ exam.classCode || 'CNTT-K28A' }}</p>
       </div>
 
-      <div class="exam-timer-block" :class="{ 'warning': timeLeftSeconds < 300 }">
-        <Clock :size="20" class="timer-icon" />
-        <div class="timer-values">
-          <span class="timer-label">THỜI GIAN CÒN LẠI</span>
-          <span class="timer-countdown">{{ formattedTimeLeft }}</span>
+      <div class="header-status-group">
+        <div class="monitoring-pill" :class="`status-${monitoringStatus}`">
+          <MonitorCheck :size="16" />
+          <span>Chia sẻ màn hình: {{ monitoringStatus === 'active' ? 'Đang hoạt động' : monitoringStatusLabel }}</span>
+        </div>
+        <div class="exam-timer-block" :class="{ warning: timeLeftSeconds < 300 }">
+          <Clock :size="20" class="timer-icon" />
+          <div class="timer-values">
+            <span class="timer-label">THỜI GIAN CÒN LẠI</span>
+            <span class="timer-countdown">{{ formattedTimeLeft }}</span>
+          </div>
         </div>
       </div>
     </header>
 
-    <!-- Thân giao diện chia 2 cột -->
-    <div class="exam-take-layout">
-      <!-- Cột chính: Nội dung câu hỏi -->
+    <div v-if="restoredDraft" class="warning-banner info">
+      <Save :size="16" />
+      <span>Đã khôi phục bài làm tạm thời.</span>
+    </div>
+
+    <div v-if="startError" class="warning-banner critical">
+      <XCircle :size="16" />
+      <span>{{ startError }}</span>
+    </div>
+
+    <div v-for="warning in warnings" :key="warning.id" class="warning-banner" :class="warning.severity">
+      <AlertTriangle :size="16" />
+      <span>{{ warning.message }}</span>
+      <button v-if="warning.action === 'fullscreen'" type="button" @click="resumeFullscreen">
+        Bật lại toàn màn hình
+      </button>
+      <button v-else-if="warning.action === 'screen'" type="button" @click="restartScreenShare">
+        Bật lại chia sẻ màn hình
+      </button>
+    </div>
+
+    <div class="exam-take-layout" :class="{ 'is-locked': !examStarted }">
       <main class="question-main-panel glass-card">
         <header class="question-header">
           <span class="question-index">Câu hỏi {{ currentQuestionIndex + 1 }} / {{ mockQuestions.length }}</span>
           <span class="question-points">[{{ currentQuestion.points }} điểm]</span>
-          
-          <button 
-            type="button" 
-            class="flag-btn" 
-            :class="{ 'active': flagged[currentQuestion.id] }"
+
+          <button
+            type="button"
+            class="flag-btn"
+            :class="{ active: flagged[currentQuestion.id] }"
+            :disabled="!examStarted"
             @click="toggleFlag(currentQuestion.id)"
           >
             <Flag :size="14" />
@@ -132,21 +735,19 @@ function submitExam() {
           </button>
         </header>
 
-        <!-- Đề bài -->
         <div class="question-content">
           <p class="question-text">{{ currentQuestion.content }}</p>
         </div>
 
-        <!-- Các lựa chọn đáp án -->
         <div class="choices-container">
-          <!-- Trắc nghiệm chọn 1 -->
           <div v-if="currentQuestion.type === 'single_choice'" class="choices-grid">
             <button
               v-for="choice in currentQuestion.choices"
               :key="choice.id"
               type="button"
               class="choice-card"
-              :class="{ 'selected': answers[currentQuestion.id] === choice.id }"
+              :class="{ selected: answers[currentQuestion.id] === choice.id }"
+              :disabled="!examStarted"
               @click="selectChoice(currentQuestion.id, choice.id)"
             >
               <span class="choice-prefix">{{ choice.label }}</span>
@@ -154,45 +755,38 @@ function submitExam() {
             </button>
           </div>
 
-          <!-- Trắc nghiệm chọn nhiều -->
           <div v-else-if="currentQuestion.type === 'multiple_choice'" class="choices-grid">
             <button
               v-for="choice in currentQuestion.choices"
               :key="choice.id"
               type="button"
               class="choice-card"
-              :class="{ 'selected': (answers[currentQuestion.id] || []).includes(choice.id) }"
-              @click="() => {
-                const currentArr = answers[currentQuestion.id] || [];
-                if (currentArr.includes(choice.id)) {
-                  answers[currentQuestion.id] = currentArr.filter(id => id !== choice.id);
-                } else {
-                  answers[currentQuestion.id] = [...currentArr, choice.id];
-                }
-              }"
+              :class="{ selected: (answers[currentQuestion.id] || []).includes(choice.id) }"
+              :disabled="!examStarted"
+              @click="toggleMultiChoice(currentQuestion.id, choice.id)"
             >
               <span class="choice-prefix-square">{{ choice.label }}</span>
               <span class="choice-text">{{ choice.text }}</span>
             </button>
           </div>
 
-          <!-- Trả lời ngắn / Tự luận -->
           <div v-else class="text-answer-container">
-            <label class="block text-sm font-semibold text-text-label mb-2">Nhập câu trả lời của bạn:</label>
+            <label class="text-answer-label">Nhập câu trả lời của bạn:</label>
             <textarea
-              v-model="answers[currentQuestion.id]"
-              rows="6"
+              :value="answers[currentQuestion.id] || ''"
+              rows="7"
               class="text-answer-input"
               placeholder="Viết câu trả lời tại đây..."
-            ></textarea>
+              :disabled="!examStarted"
+              @input="updateTextAnswer(currentQuestion.id, $event.target.value)"
+            />
           </div>
         </div>
 
-        <!-- Thanh điều hướng chân trang câu hỏi -->
         <footer class="question-actions">
-          <button 
-            type="button" 
-            class="nav-btn" 
+          <button
+            type="button"
+            class="nav-btn"
             :disabled="currentQuestionIndex === 0"
             @click="prevQuestion"
           >
@@ -200,9 +794,9 @@ function submitExam() {
             Câu trước
           </button>
 
-          <button 
-            type="button" 
-            class="nav-btn" 
+          <button
+            type="button"
+            class="nav-btn"
             :disabled="currentQuestionIndex === mockQuestions.length - 1"
             @click="nextQuestion"
           >
@@ -212,14 +806,12 @@ function submitExam() {
         </footer>
       </main>
 
-      <!-- Cột phụ: Bảng điều hướng câu hỏi & Nộp bài -->
       <aside class="exam-status-sidebar">
-        <!-- Tiến độ làm bài -->
         <div class="sidebar-block glass-card">
           <h3>Tiến độ bài làm</h3>
           <div class="progress-bar-container">
             <div class="progress-info">
-              <span>Đã làm: {{ Object.keys(answers).length }} / {{ mockQuestions.length }} câu</span>
+              <span>Đã làm: {{ answeredCount }} / {{ mockQuestions.length }} câu</span>
               <strong>{{ progressPercent }}%</strong>
             </div>
             <div class="progress-track">
@@ -228,7 +820,32 @@ function submitExam() {
           </div>
         </div>
 
-        <!-- Bảng câu hỏi -->
+        <div class="sidebar-block glass-card">
+          <h3>Giám sát bài thi</h3>
+          <div class="monitor-list">
+            <div class="monitor-row">
+              <span>Trạng thái</span>
+              <strong>{{ monitoringStatusLabel }}</strong>
+            </div>
+            <div class="monitor-row">
+              <span>Toàn màn hình</span>
+              <strong>{{ isFullscreen ? 'Đang bật' : 'Chưa bật' }}</strong>
+            </div>
+            <div class="monitor-row">
+              <span>Vi phạm đã ghi nhận</span>
+              <strong>{{ violations.length }}</strong>
+            </div>
+            <div class="monitor-row">
+              <span>Cảnh báo nghiêm trọng</span>
+              <strong>{{ criticalViolationCount }}</strong>
+            </div>
+            <div class="monitor-row">
+              <span>Lưu tạm</span>
+              <strong>{{ lastSavedAt ? `Đã lưu lúc ${formatTime(lastSavedAt)}` : 'Chưa lưu' }}</strong>
+            </div>
+          </div>
+        </div>
+
         <div class="sidebar-block glass-card flex-1">
           <h3>Danh sách câu hỏi</h3>
           <div class="question-grid">
@@ -238,50 +855,95 @@ function submitExam() {
               type="button"
               class="grid-question-btn"
               :class="{
-                'active': idx === currentQuestionIndex,
-                'answered': answers[q.id] !== undefined && answers[q.id] !== '',
-                'flagged': flagged[q.id]
+                active: idx === currentQuestionIndex,
+                answered: isAnswered(q),
+                flagged: flagged[q.id],
               }"
               @click="currentQuestionIndex = idx"
             >
               {{ idx + 1 }}
-              <span v-if="flagged[q.id]" class="flag-dot"></span>
+              <span v-if="flagged[q.id]" class="flag-dot" />
             </button>
           </div>
         </div>
 
-        <!-- Nút nộp bài -->
+        <div class="sidebar-block glass-card">
+          <h3>3 log gần nhất</h3>
+          <div v-if="recentViolations.length" class="violation-mini-list">
+            <div
+              v-for="item in recentViolations"
+              :key="item.id"
+              class="violation-mini"
+              :class="`severity-${item.severity}`"
+            >
+              <Terminal :size="13" />
+              <div>
+                <strong>{{ item.type }}</strong>
+                <span>{{ item.message }}</span>
+              </div>
+            </div>
+          </div>
+          <p v-else class="empty-log">Chưa có vi phạm.</p>
+        </div>
+
         <div class="sidebar-submit-block">
-          <button 
-            type="button" 
+          <button
+            type="button"
             class="btn-submit-exam"
+            :disabled="!examStarted"
             @click="showConfirmSubmit = true"
           >
             <Send :size="16" />
             Nộp bài thi
           </button>
           <p class="submit-info-text">
-            * Không yêu cầu nhập mật khẩu đề thi.
+            Sau khi nộp bài, bạn không thể chỉnh sửa đáp án.
           </p>
         </div>
       </aside>
     </div>
 
-    <!-- Modal xác nhận nộp bài -->
+    <div v-if="!examStarted" class="start-overlay">
+      <div class="start-card glass-card">
+        <div class="start-icon">
+          <ShieldAlert :size="30" />
+        </div>
+        <h2>Sẵn sàng bắt đầu bài thi</h2>
+        <p>
+          Khi bắt đầu, hệ thống sẽ chuyển sang toàn màn hình, yêu cầu chia sẻ màn hình và ghi nhận các hành vi bất thường.
+        </p>
+        <div class="start-checks">
+          <span><Maximize :size="14" /> Toàn màn hình bắt buộc</span>
+          <span><MonitorCheck :size="14" /> Chia sẻ màn hình bắt buộc</span>
+          <span><ClipboardX :size="14" /> Chặn copy/paste/cut</span>
+        </div>
+        <button type="button" class="btn-start" :disabled="monitoringStatus === 'starting'" @click="startExamEnvironment">
+          <PlayCircle :size="18" />
+          {{ monitoringStatus === 'starting' ? 'Đang khởi động...' : 'Bắt đầu môi trường thi' }}
+        </button>
+        <p class="start-note">
+          Browser không thể chặn tuyệt đối Print Screen hoặc Snipping Tool. Watermark được dùng để răn đe và truy vết nếu đề thi bị lộ.
+        </p>
+      </div>
+    </div>
+
     <div v-if="showConfirmSubmit" class="confirm-modal-backdrop" @click.self="showConfirmSubmit = false">
       <div class="confirm-modal glass-card">
         <div class="modal-icon">
           <HelpCircle :size="28" />
         </div>
         <h2>Xác nhận nộp bài thi?</h2>
-        <p>Bạn đã trả lời được {{ Object.keys(answers).length }} / {{ mockQuestions.length }} câu hỏi.</p>
-        <p class="text-xs text-text-label mt-2">
-          Sau khi nộp bài, bạn sẽ không thể chỉnh sửa đáp án của mình.
-        </p>
+        <div class="submit-summary">
+          <span>Đã làm: <strong>{{ answeredCount }}</strong></span>
+          <span>Chưa làm: <strong>{{ unansweredCount }}</strong></span>
+          <span>Đánh dấu: <strong>{{ flaggedCount }}</strong></span>
+          <span>Vi phạm: <strong>{{ violations.length }}</strong></span>
+        </div>
+        <p>Sau khi nộp bài, bạn không thể chỉnh sửa đáp án.</p>
 
         <div class="modal-actions">
           <button type="button" class="btn-cancel" @click="showConfirmSubmit = false">Quay lại làm bài</button>
-          <button type="button" class="btn-confirm" @click="submitExam">Nộp bài ngay</button>
+          <button type="button" class="btn-confirm" @click="submitExam('manual')">Nộp bài ngay</button>
         </div>
       </div>
     </div>
@@ -290,12 +952,14 @@ function submitExam() {
 
 <style scoped>
 .exam-take-page {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   max-width: 1200px;
   margin: 0 auto;
   padding-bottom: 2rem;
+  color: var(--text-body);
 }
 
 .glass-card {
@@ -306,8 +970,42 @@ function submitExam() {
   box-shadow: var(--lg-shadow-sm);
 }
 
-/* Header Strip */
+.loading-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 1rem 1.25rem;
+  color: var(--text-label);
+  font-weight: 700;
+}
+
+.watermark-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(160px, 1fr));
+  gap: 2.5rem 1.5rem;
+  padding: 2rem;
+  opacity: 0.105;
+  overflow: hidden;
+}
+
+.watermark-layer span {
+  align-self: center;
+  justify-self: center;
+  color: var(--text-heading);
+  font-size: 0.72rem;
+  font-weight: 900;
+  transform: rotate(-24deg);
+  white-space: nowrap;
+  user-select: none;
+}
+
 .exam-header-strip {
+  position: relative;
+  z-index: 20;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -337,6 +1035,40 @@ function submitExam() {
   padding: 0.2rem 0.5rem;
   border-radius: 6px;
   text-transform: uppercase;
+}
+
+.header-status-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.monitoring-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.45rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-default);
+  background: var(--surface-solid);
+  color: var(--text-label);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.monitoring-pill.status-active {
+  color: var(--color-success-text);
+  background: var(--color-success-bg);
+  border-color: color-mix(in srgb, var(--color-success-text) 24%, transparent);
+}
+
+.monitoring-pill.status-interrupted {
+  color: var(--color-danger-text);
+  background: var(--color-danger-bg);
+  border-color: color-mix(in srgb, var(--color-danger-text) 24%, transparent);
 }
 
 .exam-timer-block {
@@ -387,19 +1119,73 @@ function submitExam() {
   font-variant-numeric: tabular-nums;
 }
 
-/* Layout */
+.warning-banner {
+  position: relative;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-default);
+  background: var(--surface-card-strong);
+  color: var(--text-label);
+  font-size: 0.8125rem;
+  font-weight: 750;
+}
+
+.warning-banner.info,
+.warning-banner.low {
+  color: var(--color-info-text);
+  background: var(--color-info-bg);
+  border-color: color-mix(in srgb, var(--color-info-text) 24%, transparent);
+}
+
+.warning-banner.medium {
+  color: var(--color-warning-text);
+  background: var(--color-warning-bg);
+  border-color: color-mix(in srgb, var(--color-warning-text) 24%, transparent);
+}
+
+.warning-banner.high,
+.warning-banner.critical {
+  color: var(--color-danger-text);
+  background: var(--color-danger-bg);
+  border-color: color-mix(in srgb, var(--color-danger-text) 28%, transparent);
+}
+
+.warning-banner button {
+  margin-left: auto;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: currentColor;
+  border-radius: 10px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
 .exam-take-layout {
+  position: relative;
+  z-index: 20;
   display: grid;
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: minmax(0, 1fr) 300px;
   gap: 1rem;
   align-items: start;
+}
+
+.exam-take-layout.is-locked {
+  filter: saturate(0.75);
 }
 
 .question-main-panel {
   display: flex;
   flex-direction: column;
-  min-height: 25rem;
+  min-height: 30rem;
   padding: 1.5rem;
+  user-select: none;
 }
 
 .question-header {
@@ -444,6 +1230,14 @@ function submitExam() {
   border-color: color-mix(in srgb, var(--color-warning-text) 25%, transparent);
 }
 
+.flag-btn:disabled,
+.choice-card:disabled,
+.btn-submit-exam:disabled,
+.btn-start:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .question-content {
   margin-bottom: 1.5rem;
 }
@@ -455,7 +1249,6 @@ function submitExam() {
   white-space: pre-line;
 }
 
-/* Choices Grid */
 .choices-grid {
   display: grid;
   gap: 0.65rem;
@@ -476,7 +1269,7 @@ function submitExam() {
   transition: all 0.15s ease;
 }
 
-.choice-card:hover {
+.choice-card:hover:not(:disabled) {
   background: var(--surface-card-strong);
   border-color: var(--border-input-focus);
 }
@@ -487,40 +1280,30 @@ function submitExam() {
   color: var(--text-link);
 }
 
-.choice-prefix {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.65rem;
-  height: 1.65rem;
-  border-radius: 50%;
-  border: 1px solid var(--border-card);
-  background: var(--surface-card-strong);
-  font-weight: 900;
-  font-size: 0.75rem;
-  color: var(--text-label);
-}
-
-.choice-card.selected .choice-prefix {
-  background: var(--text-link);
-  color: var(--text-inverse);
-  border-color: var(--text-link);
-}
-
+.choice-prefix,
 .choice-prefix-square {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 1.65rem;
   height: 1.65rem;
-  border-radius: 6px;
   border: 1px solid var(--border-card);
   background: var(--surface-card-strong);
   font-weight: 900;
   font-size: 0.75rem;
   color: var(--text-label);
+  flex-shrink: 0;
 }
 
+.choice-prefix {
+  border-radius: 50%;
+}
+
+.choice-prefix-square {
+  border-radius: 6px;
+}
+
+.choice-card.selected .choice-prefix,
 .choice-card.selected .choice-prefix-square {
   background: var(--text-link);
   color: var(--text-inverse);
@@ -532,7 +1315,14 @@ function submitExam() {
   font-weight: 650;
 }
 
-/* Text Answer Input */
+.text-answer-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-label);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
 .text-answer-input {
   width: 100%;
   padding: 0.75rem;
@@ -543,6 +1333,8 @@ function submitExam() {
   font-family: inherit;
   font-size: 0.875rem;
   outline: none;
+  resize: vertical;
+  user-select: text;
 }
 
 .text-answer-input:focus {
@@ -581,7 +1373,6 @@ function submitExam() {
   cursor: not-allowed;
 }
 
-/* Sidebar */
 .exam-status-sidebar {
   display: flex;
   flex-direction: column;
@@ -595,24 +1386,38 @@ function submitExam() {
 
 .sidebar-block h3 {
   margin: 0 0 0.8rem;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 900;
   color: var(--text-heading);
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
 
-.progress-info {
+.progress-info,
+.monitor-row {
   display: flex;
   justify-content: space-between;
+  gap: 0.75rem;
   font-size: 0.72rem;
   font-weight: 800;
   color: var(--text-label);
   margin-bottom: 0.4rem;
 }
 
-.progress-info strong {
+.monitor-row {
+  margin-bottom: 0;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.monitor-row:last-child {
+  border-bottom: 0;
+}
+
+.progress-info strong,
+.monitor-row strong {
   color: var(--text-heading);
+  text-align: right;
 }
 
 .progress-track {
@@ -680,6 +1485,51 @@ function submitExam() {
   border-radius: 50%;
 }
 
+.violation-mini-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.violation-mini {
+  display: flex;
+  gap: 0.45rem;
+  padding: 0.55rem;
+  border-radius: 12px;
+  background: var(--surface-solid);
+  border: 1px solid var(--border-default);
+}
+
+.violation-mini.severity-high,
+.violation-mini.severity-critical {
+  background: var(--color-danger-bg);
+  border-color: color-mix(in srgb, var(--color-danger-text) 22%, transparent);
+  color: var(--color-danger-text);
+}
+
+.violation-mini strong,
+.violation-mini span {
+  display: block;
+}
+
+.violation-mini strong {
+  font-size: 0.65rem;
+  font-weight: 900;
+}
+
+.violation-mini span {
+  margin-top: 0.1rem;
+  font-size: 0.68rem;
+  font-weight: 650;
+}
+
+.empty-log {
+  margin: 0;
+  color: var(--text-placeholder);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
 .sidebar-submit-block {
   display: flex;
   flex-direction: column;
@@ -704,7 +1554,7 @@ function submitExam() {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.btn-submit-exam:hover {
+.btn-submit-exam:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 10px 28px color-mix(in srgb, var(--text-link) 35%, transparent);
 }
@@ -716,7 +1566,91 @@ function submitExam() {
   text-align: center;
 }
 
-/* Modal */
+.start-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--surface-page) 72%, transparent);
+  backdrop-filter: blur(10px);
+  padding: 1rem;
+}
+
+.start-card {
+  width: min(34rem, 100%);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.start-icon {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto 1rem;
+  border-radius: 18px;
+  background: var(--accent-primary-soft);
+  color: var(--text-link);
+}
+
+.start-card h2 {
+  margin: 0 0 0.5rem;
+  color: var(--text-heading);
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.start-card p {
+  margin: 0;
+  color: var(--text-body);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.start-checks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin: 1.25rem 0;
+}
+
+.start-checks span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.5rem;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--surface-solid);
+  color: var(--text-label);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.btn-start {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 3rem;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--lg-primary-dark), var(--lg-cyan));
+  color: var(--text-inverse);
+  font-size: 0.92rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.start-note {
+  margin-top: 1rem !important;
+  color: var(--text-muted) !important;
+  font-size: 0.75rem !important;
+}
+
 .confirm-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -729,7 +1663,7 @@ function submitExam() {
 }
 
 .confirm-modal {
-  width: min(28rem, 100%);
+  width: min(30rem, 100%);
   padding: 1.5rem;
   text-align: center;
   animation: modal-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -753,16 +1687,39 @@ function submitExam() {
 }
 
 .confirm-modal h2 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.75rem;
   font-size: 1.15rem;
   font-weight: 900;
   color: var(--text-heading);
 }
 
 .confirm-modal p {
-  margin: 0.25rem 0;
+  margin: 0.75rem 0 0;
   font-size: 0.825rem;
   color: var(--text-body);
+}
+
+.submit-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.submit-summary span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0.45rem;
+  border-radius: 12px;
+  background: var(--surface-solid);
+  color: var(--text-label);
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.submit-summary strong {
+  color: var(--text-heading);
+  font-size: 1rem;
 }
 
 .modal-actions {
@@ -802,8 +1759,28 @@ function submitExam() {
   background: var(--lg-primary-dark);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
+  .exam-header-strip {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .header-status-group {
+    justify-content: flex-start;
+  }
+
   .exam-take-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .watermark-layer {
+    grid-template-columns: repeat(3, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .start-checks,
+  .submit-summary {
     grid-template-columns: 1fr;
   }
 }
