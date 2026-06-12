@@ -9,6 +9,7 @@ using Backend.Services.AcademicTerms;
 using Backend.Services.Audit;
 using Backend.Services.Auth;
 using Backend.Services.Buildings;
+using Backend.Services.BuoiHoc;
 using Backend.Services.CaHoc;
 using Backend.Services.CampusSpecializations;
 using Backend.Services.Cohorts;
@@ -101,6 +102,7 @@ builder.Services.AddScoped<IProgramTuitionConfigService, ProgramTuitionConfigSer
 builder.Services.AddScoped<ICurriculumService, CurriculumService>();
 builder.Services.AddScoped<IThoiKhoaBieuService, ThoiKhoaBieuService>();
 builder.Services.AddScoped<IScheduleConflictService, ScheduleConflictService>();
+builder.Services.AddScoped<IBuoiHocService, BuoiHocService>();
 
 var r2Settings = builder.Configuration.GetSection("R2Storage").Get<R2StorageSettings>()
     ?? new R2StorageSettings();

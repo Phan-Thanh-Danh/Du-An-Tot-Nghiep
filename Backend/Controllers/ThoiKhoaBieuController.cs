@@ -1,5 +1,7 @@
 using Backend.DTOs.Common;
+using Backend.DTOs.BuoiHoc;
 using Backend.DTOs.ThoiKhoaBieu;
+using Backend.Services.BuoiHoc;
 using Backend.Services.ThoiKhoaBieu;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,13 +15,16 @@ public class ThoiKhoaBieuController : ControllerBase
 {
     private readonly IThoiKhoaBieuService _thoiKhoaBieuService;
     private readonly IScheduleConflictService _scheduleConflictService;
+    private readonly IBuoiHocService _buoiHocService;
 
     public ThoiKhoaBieuController(
         IThoiKhoaBieuService thoiKhoaBieuService,
-        IScheduleConflictService scheduleConflictService)
+        IScheduleConflictService scheduleConflictService,
+        IBuoiHocService buoiHocService)
     {
         _thoiKhoaBieuService = thoiKhoaBieuService;
         _scheduleConflictService = scheduleConflictService;
+        _buoiHocService = buoiHocService;
     }
 
     [HttpGet]
@@ -94,6 +99,15 @@ public class ThoiKhoaBieuController : ControllerBase
     {
         var schedule = await _thoiKhoaBieuService.CancelAsync(id, cancellationToken);
         return Ok(ApiResponseDto<ThoiKhoaBieuDetailDto>.Ok(schedule, "Hủy thời khóa biểu thành công"));
+    }
+
+    [HttpPost("{id:int}/generate-sessions")]
+    public async Task<ActionResult<ApiResponseDto<GenerateSessionsResultDto>>> GenerateSessions(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _buoiHocService.GenerateSessionsAsync(id, cancellationToken);
+        return Ok(ApiResponseDto<GenerateSessionsResultDto>.Ok(result, "Sinh buổi học thành công"));
     }
 
     private ConflictObjectResult ToConflictResponse(ScheduleConflictException exception)
