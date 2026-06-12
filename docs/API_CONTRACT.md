@@ -277,11 +277,12 @@ Ghi chú: `CaHoc` là danh mục ca học cố định dùng bởi `ThoiKhoaBieu
 |---|---|---|---|
 | GET | `/api/thoi-khoa-bieu` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Danh sách thời khóa biểu có phân trang, lọc theo khóa học, học kỳ, lớp, giáo viên, phòng, ca học, thứ, trạng thái và khoảng ngày. Scope dữ liệu theo `KhoaHoc.MaDonVi`. |
 | GET | `/api/thoi-khoa-bieu/{id}` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Chi tiết thời khóa biểu gồm thông tin khóa học, học kỳ, lớp, môn, giáo viên, ca học và phòng học. |
+| POST | `/api/thoi-khoa-bieu/check-xung-dot` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Kiểm tra xung đột theo `MaHocKy + ThuTrongTuan + MaCaHoc`, gồm trùng giáo viên, lớp hành chính và phòng học. Request hợp lệ luôn trả `200`, kể cả khi có xung đột. |
 | POST | `/api/thoi-khoa-bieu` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Tạo thời khóa biểu từ `MaKhoaHoc + ThuTrongTuan + MaCaHoc + MaPhong`, mặc định `TrangThai = nhap` nếu bỏ trống. Không nhập trực tiếp lớp, môn hoặc giáo viên. |
 | PUT | `/api/thoi-khoa-bieu/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Cập nhật thời khóa biểu chưa bị hủy; không cho duplicate `MaKhoaHoc + ThuTrongTuan + MaCaHoc` với bản ghi chưa `da_huy`. |
 | PATCH | `/api/thoi-khoa-bieu/{id}/cancel` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Hủy thời khóa biểu bằng `TrangThai = da_huy`, không xóa vật lý. |
 
-Ghi chú: P0-2 chỉ triển khai CRUD thời khóa biểu basic. Chưa sinh `BuoiHoc`, chưa kiểm tra xung đột nâng cao giáo viên/lớp/phòng, chưa làm điểm danh hoặc frontend. Unique index `UQ_ThoiKhoaBieu_KhoaHoc_Thu_Ca` chỉ áp dụng cho bản ghi có `TrangThai <> N'da_huy'`, nên có thể tạo lại lịch cùng khóa học/thứ/ca sau khi bản ghi cũ đã hủy.
+Ghi chú: P0-3 kiểm tra xung đột lịch ở mức `MaHocKy + ThuTrongTuan + MaCaHoc`, bỏ qua bản ghi `da_huy` và bỏ qua chính bản ghi hiện tại khi update bằng `excludeMaTkb`. Chưa sinh `BuoiHoc`, chưa làm điểm danh hoặc frontend. Unique index `UQ_ThoiKhoaBieu_KhoaHoc_Thu_Ca` chỉ áp dụng cho bản ghi có `TrangThai <> N'da_huy'`, nên có thể tạo lại lịch cùng khóa học/thứ/ca sau khi bản ghi cũ đã hủy.
 
 ## Course Syllabuses APIs
 
