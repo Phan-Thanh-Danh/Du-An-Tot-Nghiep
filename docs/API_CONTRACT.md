@@ -252,6 +252,21 @@ Ghi chú: `MonHocTrongChuongTrinh` chỉ khai báo danh sách môn trong khung c
 
 Ghi chú: cấu trúc phòng học hiện theo mô hình `DonVi -> ToaNha -> Tang -> PhongHoc`. Migration `AddFacilityBuildingFloorRoomStructure` thêm bảng `ToaNha`, `Tang`, cột `MaToaNha`, `MaTang`, `GhiChu` cho `PhongHoc` và backfill phòng học cũ vào `Tòa nhà mặc định / Tầng 1`.
 
+## CaHoc APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/ca-hoc` | Admin/SuperAdmin/AcademicStaff/CampusAdmin/Chairman/HoiDongQuanLyNoiDung | Danh sách ca học có phân trang, tìm kiếm theo tên ca/buổi và lọc trạng thái hoạt động. |
+| GET | `/api/ca-hoc/active` | Admin/SuperAdmin/AcademicStaff/CampusAdmin/Chairman/HoiDongQuanLyNoiDung | Danh sách ca học đang hoạt động để frontend dùng dropdown khi tạo/sửa thời khóa biểu. |
+| GET | `/api/ca-hoc/{id}` | Admin/SuperAdmin/AcademicStaff/CampusAdmin/Chairman/HoiDongQuanLyNoiDung | Chi tiết ca học. |
+| POST | `/api/ca-hoc` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Tạo ca học; validate tên ca không trùng, buổi chỉ nhận `sang`, `chieu`, `toi`, giờ hợp lệ và thứ tự lớn hơn 0. |
+| PUT | `/api/ca-hoc/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Cập nhật ca học; không cho sửa giờ bắt đầu/kết thúc nếu ca đã được dùng trong `ThoiKhoaBieu` hoặc `BuoiHoc`. |
+| PATCH | `/api/ca-hoc/{id}/toggle-active` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Đảo trạng thái `ConHoatDong`, không hard delete ca học. |
+
+Ghi chú: `CaHoc` là danh mục ca học cố định dùng bởi `ThoiKhoaBieu` và `BuoiHoc`. Task P0-1 chưa triển khai CRUD thời khóa biểu, sinh buổi học hoặc điểm danh.
+
 ## Course Syllabuses APIs
 
 ### Đã có

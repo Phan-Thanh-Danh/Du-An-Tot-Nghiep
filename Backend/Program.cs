@@ -9,6 +9,7 @@ using Backend.Services.AcademicTerms;
 using Backend.Services.Audit;
 using Backend.Services.Auth;
 using Backend.Services.Buildings;
+using Backend.Services.CaHoc;
 using Backend.Services.CampusSpecializations;
 using Backend.Services.Cohorts;
 using Backend.Services.Courses;
@@ -94,6 +95,7 @@ builder.Services.AddScoped<ITrainingProgramTermService, TrainingProgramTermServi
 builder.Services.AddScoped<IBuildingService, BuildingService>();
 builder.Services.AddScoped<IFloorService, FloorService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<ICaHocService, CaHocService>();
 builder.Services.AddScoped<IProgramTuitionConfigService, ProgramTuitionConfigService>();
 builder.Services.AddScoped<ICurriculumService, CurriculumService>();
 
