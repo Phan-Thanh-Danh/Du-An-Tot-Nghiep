@@ -8,6 +8,8 @@ using Backend.Exceptions;
 using Backend.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 
+using CaHocEntity = Backend.Models.CaHoc;
+
 namespace Backend.Services.CaHoc;
 
 public class CaHocService : ICaHocService
@@ -55,18 +57,17 @@ public class CaHocService : ICaHocService
         }
 
         var totalItems = await query.CountAsync(cancellationToken);
-        var items = await query
+        var shifts = await query
             .OrderBy(x => x.ThuTu)
             .ThenBy(x => x.GioBatDau)
             .ThenBy(x => x.MaCaHoc)
             .Skip((parameters.PageIndex - 1) * parameters.PageSize)
             .Take(parameters.PageSize)
-            .Select(x => ToDto(x))
             .ToListAsync(cancellationToken);
 
         return new PagedResultDto<CaHocDto>
         {
-            Items = items,
+            Items = shifts.Select(ToDto).ToList(),
             PageIndex = parameters.PageIndex,
             PageSize = parameters.PageSize,
             TotalItems = totalItems
@@ -75,14 +76,15 @@ public class CaHocService : ICaHocService
 
     public async Task<IReadOnlyList<CaHocDto>> GetActiveAsync(CancellationToken cancellationToken = default)
     {
-        return await _context.CaHocs
+        var shifts = await _context.CaHocs
             .AsNoTracking()
             .Where(x => x.ConHoatDong)
             .OrderBy(x => x.ThuTu)
             .ThenBy(x => x.GioBatDau)
             .ThenBy(x => x.MaCaHoc)
-            .Select(x => ToDto(x))
             .ToListAsync(cancellationToken);
+
+        return shifts.Select(ToDto).ToList();
     }
 
     public async Task<CaHocDto> GetByIdAsync(int shiftId, CancellationToken cancellationToken = default)
@@ -114,7 +116,7 @@ public class CaHocService : ICaHocService
         ValidateDisplayOrder(request.ThuTu);
         await EnsureUniqueShiftNameAsync(shiftName, null, cancellationToken);
 
-        var shift = new Models.CaHoc
+        var shift = new CaHocEntity
         {
             TenCa = shiftName,
             Buoi = session,
@@ -212,7 +214,7 @@ public class CaHocService : ICaHocService
         return ToDto(shift);
     }
 
-    private async Task<Models.CaHoc> GetManagedShiftAsync(int shiftId, CancellationToken cancellationToken)
+    private async Task<CaHocEntity> GetManagedShiftAsync(int shiftId, CancellationToken cancellationToken)
     {
         var shift = await _context.CaHocs.FirstOrDefaultAsync(x => x.MaCaHoc == shiftId, cancellationToken);
         if (shift is null)
@@ -322,7 +324,7 @@ public class CaHocService : ICaHocService
 
     private async Task WriteAuditAsync(
         string action,
-        Models.CaHoc shift,
+        CaHocEntity shift,
         object? oldValue,
         object? newValue,
         CurrentUserContext currentUser,
@@ -341,7 +343,7 @@ public class CaHocService : ICaHocService
             cancellationToken);
     }
 
-    private static object ToAuditSnapshot(Models.CaHoc shift)
+    private static object ToAuditSnapshot(CaHocEntity shift)
     {
         return new
         {
@@ -355,7 +357,7 @@ public class CaHocService : ICaHocService
         };
     }
 
-    private static CaHocDto ToDto(Models.CaHoc shift)
+    private static CaHocDto ToDto(CaHocEntity shift)
     {
         return new CaHocDto
         {
