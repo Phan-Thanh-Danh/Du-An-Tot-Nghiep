@@ -260,24 +260,26 @@ public static class Data
 
         foreach (var plan in specializationPlans)
         {
+            var major = majors[plan.MajorCode];
             var specialization = await context.ChuyenNganhs.FirstOrDefaultAsync(x =>
-                x.MaCodeChuyenNganh == plan.Code);
+                x.MaNganh == major.MaNganh &&
+                x.TenChuyenNganh == plan.Name);
 
             if (specialization is null)
             {
                 specialization = new ChuyenNganh
                 {
-                    MaCodeChuyenNganh = plan.Code,
+                    MaNganh = major.MaNganh,
                     NgayTao = DateTime.UtcNow,
                 };
 
                 context.ChuyenNganhs.Add(specialization);
             }
 
-            specialization.MaNganh = majors[plan.MajorCode].MaNganh;
+            specialization.MaNganh = major.MaNganh;
             specialization.TenChuyenNganh = plan.Name;
             specialization.MoTa =
-                $"Chuyên ngành {plan.Name} thuộc ngành {majors[plan.MajorCode].TenNganh}.";
+                $"Chuyên ngành {plan.Name} thuộc ngành {major.TenNganh}.";
             specialization.ConHoatDong = true;
             specialization.NgayCapNhat = DateTime.UtcNow;
             result[plan.Code] = specialization;

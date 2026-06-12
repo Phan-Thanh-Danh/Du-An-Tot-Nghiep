@@ -240,7 +240,6 @@ public class CohortService : ICohortService
                 MaCodeNganh = specialization.Major.MaCodeNganh,
                 TenNganh = specialization.Major.TenNganh,
                 MaChuyenNganh = specialization.Specialization.MaChuyenNganh,
-                MaCodeChuyenNganh = specialization.Specialization.MaCodeChuyenNganh,
                 TenChuyenNganh = specialization.Specialization.TenChuyenNganh,
                 DaCoChuongTrinh = currentProgram is not null,
                 ChuongTrinhHienTai = currentProgram is null ? null : ToSetupProgramDto(currentProgram),

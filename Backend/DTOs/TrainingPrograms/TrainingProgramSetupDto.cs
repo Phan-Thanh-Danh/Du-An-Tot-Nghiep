@@ -19,7 +19,6 @@ public class TrainingProgramSetupItemDto
     public string MaCodeNganh { get; set; } = string.Empty;
     public string TenNganh { get; set; } = string.Empty;
     public int MaChuyenNganh { get; set; }
-    public string MaCodeChuyenNganh { get; set; } = string.Empty;
     public string TenChuyenNganh { get; set; } = string.Empty;
     public bool DaCoChuongTrinh { get; set; }
     public TrainingProgramSetupProgramDto? ChuongTrinhHienTai { get; set; }

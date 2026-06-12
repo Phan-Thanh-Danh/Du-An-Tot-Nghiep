@@ -154,11 +154,13 @@ Ghi chú thuật ngữ: `DonVi` là tên bảng/entity kỹ thuật trong backen
 |---|---|---|---|
 | GET | `/api/master-data/specializations` | SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách chuyên ngành chuẩn toàn hệ thống có phân trang, tìm kiếm, lọc ngành và trạng thái hoạt động. |
 | GET | `/api/master-data/specializations/{id}` | SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Chi tiết chuyên ngành chuẩn. |
-| POST | `/api/master-data/specializations` | SuperAdmin | Tạo chuyên ngành chuẩn thuộc một ngành đào tạo đang hoạt động, mã chuyên ngành là duy nhất toàn hệ thống và được chuẩn hóa uppercase. |
-| PUT | `/api/master-data/specializations/{id}` | SuperAdmin | Cập nhật chuyên ngành chuẩn, ngành cha và trạng thái hoạt động. |
+| POST | `/api/master-data/specializations` | SuperAdmin | Tạo chuyên ngành chuẩn thuộc một ngành đào tạo đang hoạt động; tên chuyên ngành là duy nhất trong ngành đào tạo. |
+| PUT | `/api/master-data/specializations/{id}` | SuperAdmin | Cập nhật chuyên ngành chuẩn, ngành cha và trạng thái hoạt động; không dùng mã code riêng cho chuyên ngành. |
 | DELETE | `/api/master-data/specializations/{id}` | SuperAdmin | Khóa mềm chuyên ngành chuẩn bằng `ConHoatDong = false`, không xóa vật lý. |
 | PATCH | `/api/master-data/specializations/{id}/activate` | SuperAdmin | Mở khóa chuyên ngành chuẩn bằng `ConHoatDong = true`. |
 | PATCH | `/api/master-data/specializations/{id}/deactivate` | SuperAdmin | Khóa chuyên ngành chuẩn bằng `ConHoatDong = false`. |
+
+Ghi chú: `ChuyenNganh` không có mã code riêng; khi response cần mã ngành để hiển thị, backend lấy `MaCodeNganh` bằng join sang `NganhDaoTao`.
 
 ## Campus Specializations APIs
 

@@ -55,7 +55,7 @@ public class CourseSyllabusService : ICourseSyllabusService
                 x.Syllabus.TenSyllabus.ToLower().Contains(keyword) ||
                 x.Subject.MaCodeMonHoc.ToLower().Contains(keyword) ||
                 x.Subject.TenMonHoc.ToLower().Contains(keyword) ||
-                x.Specialization.MaCodeChuyenNganh.ToLower().Contains(keyword) ||
+                x.Major.MaCodeNganh.ToLower().Contains(keyword) ||
                 x.Specialization.TenChuyenNganh.ToLower().Contains(keyword) ||
                 x.Major.TenNganh.ToLower().Contains(keyword) ||
                 (x.Organization != null && x.Organization.TenDonVi.ToLower().Contains(keyword)));
@@ -608,9 +608,9 @@ public class CourseSyllabusService : ICourseSyllabusService
             TenMonHoc = subject.TenMonHoc,
             SoTinChi = subject.SoTinChi,
             MaChuyenNganh = syllabus.MaChuyenNganh,
-            MaCodeChuyenNganh = specialization.MaCodeChuyenNganh,
             TenChuyenNganh = specialization.TenChuyenNganh,
             MaNganh = specialization.MaNganh,
+            MaCodeNganh = major.MaCodeNganh,
             TenNganh = major.TenNganh,
             MaDonVi = syllabus.MaDonVi,
             TenDonVi = organization?.TenDonVi,

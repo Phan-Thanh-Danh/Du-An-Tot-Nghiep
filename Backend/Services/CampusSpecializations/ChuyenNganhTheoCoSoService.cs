@@ -61,7 +61,7 @@ public class ChuyenNganhTheoCoSoService : IChuyenNganhTheoCoSoService
         {
             var keyword = parameters.Keyword.Trim().ToLowerInvariant();
             query = query.Where(x =>
-                x.Specialization.MaCodeChuyenNganh.ToLower().Contains(keyword) ||
+                x.Major.MaCodeNganh.ToLower().Contains(keyword) ||
                 x.Specialization.TenChuyenNganh.ToLower().Contains(keyword) ||
                 x.Major.TenNganh.ToLower().Contains(keyword) ||
                 x.Organization.TenDonVi.ToLower().Contains(keyword));
@@ -578,9 +578,9 @@ public class ChuyenNganhTheoCoSoService : IChuyenNganhTheoCoSoService
         {
             MaChuyenNganhCoSo = campusSpecialization.MaChuyenNganhCoSo,
             MaChuyenNganh = campusSpecialization.MaChuyenNganh,
-            MaCodeChuyenNganh = specialization.MaCodeChuyenNganh,
             TenChuyenNganh = specialization.TenChuyenNganh,
             MaNganh = specialization.MaNganh,
+            MaCodeNganh = major.MaCodeNganh,
             TenNganh = major.TenNganh,
             MaDonVi = campusSpecialization.MaDonVi,
             TenDonVi = organization.TenDonVi,

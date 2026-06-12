@@ -30,6 +30,12 @@ Vai trò database như `hoc_sinh`, `giao_vien`, `quan_tri` được map sang rol
 
 Các bảng học vụ thường có `MaDonVi`, cần chú ý phân quyền theo campus scope.
 
+## Nhóm Bảng Danh Mục Đào Tạo
+
+- `NganhDaoTao`: danh mục ngành đào tạo, có `MaCodeNganh` dùng làm mã hiển thị/nghiệp vụ của ngành.
+- `ChuyenNganh`: danh mục chuyên ngành thuộc `NganhDaoTao`; không lưu mã code riêng của chuyên ngành, khi cần hiển thị mã ngành thì join qua `MaNganh` sang `NganhDaoTao`.
+- `ChuyenNganhTheoCoSo`: chuyên ngành được mở tại từng cơ sở, dùng `MaChuyenNganh` và `MaDonVi` để quản lý phạm vi/campus scope.
+
 ## Nhóm Bảng Khóa Học/Bài Học
 
 - `DanhMucMonHoc`: danh mục môn học.

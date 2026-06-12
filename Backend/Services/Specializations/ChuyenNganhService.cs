@@ -30,7 +30,7 @@ public class ChuyenNganhService : IChuyenNganhService
         {
             var keyword = parameters.Keyword.Trim().ToLowerInvariant();
             query = query.Where(x =>
-                x.Specialization.MaCodeChuyenNganh.ToLower().Contains(keyword) ||
+                x.Major.MaCodeNganh.ToLower().Contains(keyword) ||
                 x.Specialization.TenChuyenNganh.ToLower().Contains(keyword) ||
                 x.Major.TenNganh.ToLower().Contains(keyword));
         }
@@ -48,7 +48,7 @@ public class ChuyenNganhService : IChuyenNganhService
         var totalItems = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderBy(x => x.Major.TenNganh)
-            .ThenBy(x => x.Specialization.MaCodeChuyenNganh)
+            .ThenBy(x => x.Specialization.TenChuyenNganh)
             .Skip((parameters.PageIndex - 1) * parameters.PageSize)
             .Take(parameters.PageSize)
             .Select(x => ToDto(x.Specialization, x.Major))
@@ -83,14 +83,12 @@ public class ChuyenNganhService : IChuyenNganhService
         EnsureSuperAdmin();
 
         var major = await ValidateMajorAsync(request.MaNganh, cancellationToken);
-        var specializationCode = NormalizeCode(request.MaCodeChuyenNganh, "Mã chuyên ngành");
         var specializationName = NormalizeRequiredText(request.TenChuyenNganh, "Tên chuyên ngành");
-        await ValidateSpecializationCodeAsync(specializationCode, null, cancellationToken);
+        await ValidateSpecializationNameAsync(major.MaNganh, specializationName, null, cancellationToken);
 
         var specialization = new ChuyenNganh
         {
             MaNganh = major.MaNganh,
-            MaCodeChuyenNganh = specializationCode,
             TenChuyenNganh = specializationName,
             MoTa = NormalizeOptionalText(request.MoTa),
             ConHoatDong = true
@@ -111,12 +109,10 @@ public class ChuyenNganhService : IChuyenNganhService
 
         var specialization = await GetManagedSpecializationAsync(specializationId, cancellationToken);
         var major = await ValidateMajorAsync(request.MaNganh, cancellationToken);
-        var specializationCode = NormalizeCode(request.MaCodeChuyenNganh, "Mã chuyên ngành");
         var specializationName = NormalizeRequiredText(request.TenChuyenNganh, "Tên chuyên ngành");
-        await ValidateSpecializationCodeAsync(specializationCode, specializationId, cancellationToken);
+        await ValidateSpecializationNameAsync(major.MaNganh, specializationName, specializationId, cancellationToken);
 
         specialization.MaNganh = major.MaNganh;
-        specialization.MaCodeChuyenNganh = specializationCode;
         specialization.TenChuyenNganh = specializationName;
         specialization.MoTa = NormalizeOptionalText(request.MoTa);
         specialization.ConHoatDong = request.ConHoatDong;
@@ -206,21 +202,23 @@ public class ChuyenNganhService : IChuyenNganhService
         return major;
     }
 
-    private async Task ValidateSpecializationCodeAsync(
-        string specializationCode,
+    private async Task ValidateSpecializationNameAsync(
+        int majorId,
+        string specializationName,
         int? excludedSpecializationId,
         CancellationToken cancellationToken)
     {
         var exists = await _context.ChuyenNganhs
             .AsNoTracking()
             .AnyAsync(x =>
-                x.MaCodeChuyenNganh == specializationCode &&
+                x.MaNganh == majorId &&
+                x.TenChuyenNganh == specializationName &&
                 (!excludedSpecializationId.HasValue || x.MaChuyenNganh != excludedSpecializationId.Value),
                 cancellationToken);
 
         if (exists)
         {
-            throw new ApiException(StatusCodes.Status409Conflict, "Mã chuyên ngành đã tồn tại.");
+            throw new ApiException(StatusCodes.Status409Conflict, "Tên chuyên ngành đã tồn tại trong ngành đào tạo này.");
         }
     }
 
@@ -242,11 +240,6 @@ public class ChuyenNganhService : IChuyenNganhService
         {
             throw new ApiException(StatusCodes.Status403Forbidden, "Chỉ SuperAdmin được quản lý chuyên ngành chuẩn.");
         }
-    }
-
-    private static string NormalizeCode(string value, string fieldName)
-    {
-        return NormalizeRequiredText(value, fieldName).ToUpperInvariant();
     }
 
     private static string NormalizeRequiredText(string value, string fieldName)
@@ -273,7 +266,6 @@ public class ChuyenNganhService : IChuyenNganhService
             MaNganh = specialization.MaNganh,
             MaCodeNganh = major.MaCodeNganh,
             TenNganh = major.TenNganh,
-            MaCodeChuyenNganh = specialization.MaCodeChuyenNganh,
             TenChuyenNganh = specialization.TenChuyenNganh,
             MoTa = specialization.MoTa,
             ConHoatDong = specialization.ConHoatDong,

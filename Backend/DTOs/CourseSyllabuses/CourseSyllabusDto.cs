@@ -8,9 +8,9 @@ public class CourseSyllabusDto
     public string TenMonHoc { get; set; } = string.Empty;
     public int SoTinChi { get; set; }
     public int MaChuyenNganh { get; set; }
-    public string MaCodeChuyenNganh { get; set; } = string.Empty;
     public string TenChuyenNganh { get; set; } = string.Empty;
     public int MaNganh { get; set; }
+    public string MaCodeNganh { get; set; } = string.Empty;
     public string TenNganh { get; set; } = string.Empty;
     public int? MaDonVi { get; set; }
     public string? TenDonVi { get; set; }
