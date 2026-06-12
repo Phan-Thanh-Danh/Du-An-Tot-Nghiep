@@ -267,6 +267,20 @@ Ghi chú: cấu trúc phòng học hiện theo mô hình `DonVi -> ToaNha -> Tan
 
 Ghi chú: `CaHoc` là danh mục ca học cố định dùng bởi `ThoiKhoaBieu` và `BuoiHoc`. Task P0-1 chưa triển khai CRUD thời khóa biểu, sinh buổi học hoặc điểm danh.
 
+## ThoiKhoaBieu APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/thoi-khoa-bieu` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Danh sách thời khóa biểu có phân trang, lọc theo khóa học, học kỳ, lớp, giáo viên, phòng, ca học, thứ, trạng thái và khoảng ngày. Scope dữ liệu theo `KhoaHoc.MaDonVi`. |
+| GET | `/api/thoi-khoa-bieu/{id}` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Chi tiết thời khóa biểu gồm thông tin khóa học, học kỳ, lớp, môn, giáo viên, ca học và phòng học. |
+| POST | `/api/thoi-khoa-bieu` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Tạo thời khóa biểu từ `MaKhoaHoc + ThuTrongTuan + MaCaHoc + MaPhong`, mặc định `TrangThai = nhap` nếu bỏ trống. Không nhập trực tiếp lớp, môn hoặc giáo viên. |
+| PUT | `/api/thoi-khoa-bieu/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Cập nhật thời khóa biểu chưa bị hủy; không cho duplicate `MaKhoaHoc + ThuTrongTuan + MaCaHoc` với bản ghi chưa `da_huy`. |
+| PATCH | `/api/thoi-khoa-bieu/{id}/cancel` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Hủy thời khóa biểu bằng `TrangThai = da_huy`, không xóa vật lý. |
+
+Ghi chú: P0-2 chỉ triển khai CRUD thời khóa biểu basic. Chưa sinh `BuoiHoc`, chưa kiểm tra xung đột nâng cao giáo viên/lớp/phòng, chưa làm điểm danh hoặc frontend. Unique index `UQ_ThoiKhoaBieu_KhoaHoc_Thu_Ca` chỉ áp dụng cho bản ghi có `TrangThai <> N'da_huy'`, nên có thể tạo lại lịch cùng khóa học/thứ/ca sau khi bản ghi cũ đã hủy.
+
 ## Course Syllabuses APIs
 
 ### Đã có
