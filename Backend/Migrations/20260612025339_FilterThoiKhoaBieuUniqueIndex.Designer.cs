@@ -4,6 +4,7 @@ using Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260612025339_FilterThoiKhoaBieuUniqueIndex")]
+    partial class FilterThoiKhoaBieuUniqueIndex
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1531,6 +1534,12 @@ namespace Backend.Migrations
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
+                    b.Property<string>("MaCodeChuyenNganh")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("ma_code_chuyen_nganh");
+
                     b.Property<int>("MaNganh")
                         .HasColumnType("int")
                         .HasColumnName("ma_nganh");
@@ -1558,9 +1567,11 @@ namespace Backend.Migrations
                     b.HasKey("MaChuyenNganh")
                         .HasName("PK_ChuyenNganh");
 
-                    b.HasIndex("MaNganh", "TenChuyenNganh")
+                    b.HasIndex("MaCodeChuyenNganh")
                         .IsUnique()
-                        .HasDatabaseName("UQ_ChuyenNganh_nganh_ten");
+                        .HasDatabaseName("UQ_ChuyenNganh_1");
+
+                    b.HasIndex("MaNganh");
 
                     b.ToTable("ChuyenNganh", "dbo");
                 });

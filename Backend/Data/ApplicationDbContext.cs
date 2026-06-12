@@ -3321,6 +3321,7 @@ public class ApplicationDbContext : DbContext
                 .HasColumnType("datetime2");
             entity.HasIndex(e => new { e.MaKhoaHoc, e.ThuTrongTuan, e.MaCaHoc })
                 .IsUnique()
+                .HasFilter("[trang_thai] <> N'da_huy'")
                 .HasDatabaseName("UQ_ThoiKhoaBieu_KhoaHoc_Thu_Ca");
             entity.ToTable(t => t.HasCheckConstraint(
                 "CK_ThoiKhoaBieu_thu_trong_tuan",
