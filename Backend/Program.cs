@@ -100,6 +100,7 @@ builder.Services.AddScoped<ICaHocService, CaHocService>();
 builder.Services.AddScoped<IProgramTuitionConfigService, ProgramTuitionConfigService>();
 builder.Services.AddScoped<ICurriculumService, CurriculumService>();
 builder.Services.AddScoped<IThoiKhoaBieuService, ThoiKhoaBieuService>();
+builder.Services.AddScoped<IScheduleConflictService, ScheduleConflictService>();
 
 var r2Settings = builder.Configuration.GetSection("R2Storage").Get<R2StorageSettings>()
     ?? new R2StorageSettings();

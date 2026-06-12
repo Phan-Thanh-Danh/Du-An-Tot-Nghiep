@@ -12,10 +12,14 @@ namespace Backend.Controllers;
 public class ThoiKhoaBieuController : ControllerBase
 {
     private readonly IThoiKhoaBieuService _thoiKhoaBieuService;
+    private readonly IScheduleConflictService _scheduleConflictService;
 
-    public ThoiKhoaBieuController(IThoiKhoaBieuService thoiKhoaBieuService)
+    public ThoiKhoaBieuController(
+        IThoiKhoaBieuService thoiKhoaBieuService,
+        IScheduleConflictService scheduleConflictService)
     {
         _thoiKhoaBieuService = thoiKhoaBieuService;
+        _scheduleConflictService = scheduleConflictService;
     }
 
     [HttpGet]
@@ -36,16 +40,34 @@ public class ThoiKhoaBieuController : ControllerBase
         return Ok(ApiResponseDto<ThoiKhoaBieuDetailDto>.Ok(schedule));
     }
 
+    [HttpPost("check-xung-dot")]
+    public async Task<ActionResult<ApiResponseDto<ScheduleConflictResultDto>>> CheckConflicts(
+        CheckScheduleConflictRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _scheduleConflictService.CheckConflictsAsync(request, cancellationToken);
+        return Ok(ApiResponseDto<ScheduleConflictResultDto>.Ok(
+            result,
+            "Kiểm tra xung đột thời khóa biểu thành công"));
+    }
+
     [HttpPost]
     public async Task<ActionResult<ApiResponseDto<ThoiKhoaBieuDetailDto>>> Create(
         CreateThoiKhoaBieuRequest request,
         CancellationToken cancellationToken)
     {
-        var schedule = await _thoiKhoaBieuService.CreateAsync(request, cancellationToken);
-        return CreatedAtAction(
-            nameof(GetById),
-            new { id = schedule.MaTkb },
-            ApiResponseDto<ThoiKhoaBieuDetailDto>.Ok(schedule, "Tạo thời khóa biểu thành công"));
+        try
+        {
+            var schedule = await _thoiKhoaBieuService.CreateAsync(request, cancellationToken);
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = schedule.MaTkb },
+                ApiResponseDto<ThoiKhoaBieuDetailDto>.Ok(schedule, "Tạo thời khóa biểu thành công"));
+        }
+        catch (ScheduleConflictException exception)
+        {
+            return ToConflictResponse(exception);
+        }
     }
 
     [HttpPut("{id:int}")]
@@ -54,8 +76,15 @@ public class ThoiKhoaBieuController : ControllerBase
         UpdateThoiKhoaBieuRequest request,
         CancellationToken cancellationToken)
     {
-        var schedule = await _thoiKhoaBieuService.UpdateAsync(id, request, cancellationToken);
-        return Ok(ApiResponseDto<ThoiKhoaBieuDetailDto>.Ok(schedule, "Cập nhật thời khóa biểu thành công"));
+        try
+        {
+            var schedule = await _thoiKhoaBieuService.UpdateAsync(id, request, cancellationToken);
+            return Ok(ApiResponseDto<ThoiKhoaBieuDetailDto>.Ok(schedule, "Cập nhật thời khóa biểu thành công"));
+        }
+        catch (ScheduleConflictException exception)
+        {
+            return ToConflictResponse(exception);
+        }
     }
 
     [HttpPatch("{id:int}/cancel")]
@@ -65,5 +94,19 @@ public class ThoiKhoaBieuController : ControllerBase
     {
         var schedule = await _thoiKhoaBieuService.CancelAsync(id, cancellationToken);
         return Ok(ApiResponseDto<ThoiKhoaBieuDetailDto>.Ok(schedule, "Hủy thời khóa biểu thành công"));
+    }
+
+    private ConflictObjectResult ToConflictResponse(ScheduleConflictException exception)
+    {
+        return Conflict(new ApiResponseDto<ScheduleConflictResultDto>
+        {
+            Success = false,
+            Message = "Thời khóa biểu bị xung đột.",
+            Data = exception.Result,
+            Errors = exception.Result.Conflicts
+                .Select(x => x.Message)
+                .Distinct()
+                .ToList()
+        });
     }
 }

@@ -29,15 +29,18 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
     private readonly ApplicationDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuditLogService _auditLogService;
+    private readonly IScheduleConflictService _scheduleConflictService;
 
     public ThoiKhoaBieuService(
         ApplicationDbContext context,
         IHttpContextAccessor httpContextAccessor,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        IScheduleConflictService scheduleConflictService)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _auditLogService = auditLogService;
+        _scheduleConflictService = scheduleConflictService;
     }
 
     public async Task<PagedResultDto<ThoiKhoaBieuDto>> GetAsync(
@@ -156,6 +159,15 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
         ValidateDayOfWeek(request.ThuTrongTuan);
         ValidateDateRange(request.NgayBatDau, request.NgayKetThuc);
         await ValidateScheduleDatesInTermAsync(course, request.NgayBatDau, request.NgayKetThuc, cancellationToken);
+        await _scheduleConflictService.EnsureNoConflictAsync(
+            new CheckScheduleConflictRequest
+            {
+                MaKhoaHoc = course.MaKhoaHoc,
+                ThuTrongTuan = request.ThuTrongTuan,
+                MaCaHoc = shift.MaCaHoc,
+                MaPhong = room.MaPhong
+            },
+            cancellationToken);
         await ValidateDuplicateAsync(
             course.MaKhoaHoc,
             request.ThuTrongTuan,
@@ -214,6 +226,16 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
         ValidateDayOfWeek(request.ThuTrongTuan);
         ValidateDateRange(request.NgayBatDau, request.NgayKetThuc);
         await ValidateScheduleDatesInTermAsync(course, request.NgayBatDau, request.NgayKetThuc, cancellationToken);
+        await _scheduleConflictService.EnsureNoConflictAsync(
+            new CheckScheduleConflictRequest
+            {
+                MaKhoaHoc = course.MaKhoaHoc,
+                ThuTrongTuan = request.ThuTrongTuan,
+                MaCaHoc = shift.MaCaHoc,
+                MaPhong = room.MaPhong,
+                ExcludeMaTkb = scheduleId
+            },
+            cancellationToken);
         await ValidateDuplicateAsync(
             course.MaKhoaHoc,
             request.ThuTrongTuan,
