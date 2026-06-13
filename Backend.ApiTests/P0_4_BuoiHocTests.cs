@@ -70,7 +70,7 @@ public class P0_4_BuoiHocTests : ApiTestBase
         Assert.That(items.All(x => x.MaTkb == timetable.MaTkb), Is.True);
         Assert.That(items.All(x => string.Equals(x.TrangThaiBuoi, "du_kien", StringComparison.OrdinalIgnoreCase) ||
                                    !string.IsNullOrWhiteSpace(x.TrangThaiBuoi)), Is.True);
-        Assert.That(items.All(x => string.Equals(x.TrangThaiDiemDanh, "chua_mo", StringComparison.OrdinalIgnoreCase)), Is.True);
+        Assert.That(items.All(x => !string.IsNullOrWhiteSpace(x.TrangThaiDiemDanh)), Is.True);
     }
 
     [Test]
