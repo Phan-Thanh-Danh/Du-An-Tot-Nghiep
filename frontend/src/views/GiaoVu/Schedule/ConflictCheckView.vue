@@ -144,7 +144,7 @@ function performCheck() {
       </Transition>
 
       <!-- ── Information Info ── -->
-      <div class="lg-glass-strong p-4 rounded-[24px] bg-[var(--color-info-bg)]/50 border-[var(--color-info-bg)]">
+      <div class="lg-glass-strong p-4 rounded-2xl bg-[var(--color-info-bg)]/50 border-[var(--color-info-bg)]">
         <div class="flex gap-3">
           <Info :size="20" class="text-[var(--color-info-text)] shrink-0 mt-0.5" />
           <div>

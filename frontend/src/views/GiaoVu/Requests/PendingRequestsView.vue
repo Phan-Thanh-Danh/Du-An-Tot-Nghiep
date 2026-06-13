@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { 
   Search, 
   Filter, 
@@ -15,17 +15,33 @@ import {
   Flag,
   Timer,
   X,
-  Eye
+  Eye,
+  Loader2
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 
+const loading = ref(true)
+const apiError = ref('')
+const showFilters = ref(false)
+
 // ── Mock Data ────────────────────────────────────────────────
-const requests = ref([
-  { id: 'DON-001', student: 'Nguyễn Văn A', type: 'Chuyển lớp', title: 'Xin chuyển từ L01 sang L02', date: '12/05/2026', reviewer: 'Phạm Minh D', sla: '2h 15m', status: 'under_review', priority: 'high' },
-  { id: 'DON-002', student: 'Lê Thị B', type: 'Nghỉ học tạm thời', title: 'Xin bảo lưu kết quả học tập', date: '11/05/2026', reviewer: 'Chưa phân công', sla: '12h 40m', status: 'submitted', priority: 'medium' },
-  { id: 'DON-003', student: 'Trần Văn C', type: 'Cấp giấy xác nhận', title: 'Xin giấy xác nhận SV làm thẻ ngân hàng', date: '13/05/2026', reviewer: 'Nguyễn Bích L', sla: '45m', status: 'under_review', priority: 'low' },
-  { id: 'DON-004', student: 'Hoàng Thị D', type: 'Thi lại', title: 'Đơn xin thi lại môn Java', date: '10/05/2026', reviewer: 'Trần Văn K', sla: 'QUÁ HẠN', status: 'under_review', priority: 'high' },
-])
+const requests = ref([])
+
+function initData() {
+  loading.value = true
+  apiError.value = ''
+  setTimeout(() => {
+    requests.value = [
+      { id: 'DON-001', student: 'Nguyễn Văn A', type: 'Chuyển lớp', title: 'Xin chuyển từ L01 sang L02', date: '12/05/2026', reviewer: 'Phạm Minh D', sla: '2h 15m', status: 'under_review', priority: 'high' },
+      { id: 'DON-002', student: 'Lê Thị B', type: 'Nghỉ học tạm thời', title: 'Xin bảo lưu kết quả học tập', date: '11/05/2026', reviewer: 'Chưa phân công', sla: '12h 40m', status: 'submitted', priority: 'medium' },
+      { id: 'DON-003', student: 'Trần Văn C', type: 'Cấp giấy xác nhận', title: 'Xin giấy xác nhận SV làm thẻ ngân hàng', date: '13/05/2026', reviewer: 'Nguyễn Bích L', sla: '45m', status: 'under_review', priority: 'low' },
+      { id: 'DON-004', student: 'Hoàng Thị D', type: 'Thi lại', title: 'Đơn xin thi lại môn Java', date: '10/05/2026', reviewer: 'Trần Văn K', sla: 'QUÁ HẠN', status: 'under_review', priority: 'high' },
+    ]
+    loading.value = false
+  }, 300)
+}
+
+onMounted(() => { initData() })
 
 const getStatusBadge = (status) => {
   switch (status) {
@@ -55,7 +71,6 @@ const getPriorityColor = (priority) => {
 // ── Search ───────────────────────────────────────────────────
 const searchQuery = ref('')
 const searchTriggered = ref('')
-const showFilters = ref(false)
 
 const filterStatus = ref('all')
 const filterPriority = ref('all')
@@ -116,9 +131,23 @@ function closeContextMenu() {
 <template>
   <PageContainer 
     title="Đơn từ cần xử lý" 
-    subtitle="Quản lý và phê duyệt các yêu cầu hành chính học vụ từ sinh viên."
+    subtitle="Danh sách đơn từ sinh viên chờ xử lý."
   >
     <div class="space-y-4" @click="closeContextMenu">
+
+      <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-3">
+        <Loader2 class="animate-spin text-muted" :size="28" />
+        <p class="text-sm text-muted">Đang tải dữ liệu...</p>
+      </div>
+
+      <div v-else-if="apiError" class="surface-card border border-card rounded-2xl p-6 flex flex-col items-center justify-center gap-3">
+        <AlertCircle :size="32" class="text-[var(--color-danger-text)]" />
+        <p class="text-sm font-bold text-heading">Không thể tải dữ liệu</p>
+        <p class="text-xs text-muted">{{ apiError }}</p>
+        <button @click="initData" class="lg-button-primary px-4 py-2 text-xs font-bold rounded-xl mt-2">Thử lại</button>
+      </div>
+
+      <template v-if="!loading && !apiError">
       
       <!-- ── Toolbar ── -->
       <div class="surface-card border border-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
@@ -287,6 +316,7 @@ function closeContextMenu() {
         </div>
       </div>
 
+    </template>
     </div>
   </PageContainer>
 </template>

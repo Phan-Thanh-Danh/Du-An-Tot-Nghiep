@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { 
   Settings2, 
   Plus, 
@@ -21,6 +21,10 @@ import {
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { usePopupStore } from '@/stores/popup'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+const canEdit = computed(() => authStore.hasRole(['SuperAdmin', 'Admin']))
 
 const popupStore = usePopupStore()
 
@@ -139,7 +143,7 @@ const getStatusLabel = (status) => {
 <template>
   <PageContainer 
     title="Cấu hình quy trình duyệt" 
-    subtitle="Thiết lập các bước phê duyệt, vai trò và thời gian xử lý cho từng loại đơn từ."
+    subtitle="Danh sách các quy trình duyệt đơn từ trong hệ thống."
   >
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8" @click="showFloatingMenu = false">
       
@@ -147,9 +151,9 @@ const getStatusLabel = (status) => {
       <div class="space-y-4">
         <div class="flex items-center justify-between mb-2">
             <h4 class="text-xs font-semibold text-label uppercase tracking-widest">Loại đơn & Workflow</h4>
-            <button class="text-[11px] font-semibold text-link uppercase tracking-widest flex items-center gap-1 hover:underline" @click="openAddModal">
-              <Plus :size="12" /> Thêm mới
-           </button>
+            <button v-if="canEdit" class="text-[11px] font-semibold text-link flex items-center gap-1 hover:underline" @click="openAddModal">
+               <Plus :size="12" /> Thêm mới
+            </button>
         </div>
         
         <div 
@@ -201,14 +205,14 @@ const getStatusLabel = (status) => {
                   <p class="text-xs font-bold text-label mt-1 uppercase tracking-tighter">{{ activeWorkflow.id }} • Phiên bản v2.1.0</p>
               </div>
            </div>
-           <div class="flex items-center gap-2">
-             <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2" @click="openEditModal">
-                <Pen :size="16" /> Sửa
-             </button>
-             <button class="lg-button-secondary px-3 py-2.5 text-sm font-bold text-[var(--lg-danger)] hover:bg-[var(--color-danger-bg)]" @click="openDeleteModal" title="Xóa workflow">
-                <Trash2 :size="16" />
-             </button>
-           </div>
+            <div v-if="canEdit" class="flex items-center gap-2">
+              <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2" @click="openEditModal">
+                 <Pen :size="16" /> Sửa
+              </button>
+              <button class="lg-button-secondary px-3 py-2.5 text-sm font-bold text-[var(--lg-danger)] hover:bg-[var(--color-danger-bg)]" @click="openDeleteModal" title="Xóa workflow">
+                 <Trash2 :size="16" />
+              </button>
+            </div>
         </div>
 
         <!-- Builder Visualizer -->
@@ -278,7 +282,7 @@ const getStatusLabel = (status) => {
            <!-- Floating Tools -->
            <div class="absolute bottom-6 right-6 flex flex-col gap-3">
              <div class="relative">
-               <button class="h-10 w-10 lg-card-glass rounded-2xl border-default text-placeholder hover:text-link shadow-sm flex items-center justify-center transition-all" @click="openAddModal" title="Thêm workflow mới">
+               <button v-if="canEdit" class="h-10 w-10 lg-card-glass rounded-2xl border-default text-placeholder hover:text-link shadow-sm flex items-center justify-center transition-all" @click="openAddModal" title="Thêm workflow mới">
                   <Plus :size="24" />
                </button>
              </div>
@@ -295,10 +299,10 @@ const getStatusLabel = (status) => {
                 leave-to-class="opacity-0 scale-95"
               >
                 <div v-if="showFloatingMenu" class="absolute right-0 bottom-full mb-2 z-50 w-44 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
-                  <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openEditModal(); showFloatingMenu = false">
+                  <button v-if="canEdit" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openEditModal(); showFloatingMenu = false">
                     <Pen :size="14" /> Chỉnh sửa
                   </button>
-                  <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-danger-bg)] hover:text-[var(--lg-danger)] transition-all" @click="openDeleteModal(); showFloatingMenu = false">
+                  <button v-if="canEdit" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-danger-bg)] hover:text-[var(--lg-danger)] transition-all" @click="openDeleteModal(); showFloatingMenu = false">
                     <Trash2 :size="14" /> Xóa
                   </button>
                 </div>

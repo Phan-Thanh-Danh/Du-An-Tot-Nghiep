@@ -290,7 +290,7 @@ async function confirmNewSchedule() {
       </div>
 
       <!-- ── Search & Filter Bar ───────────────────────── -->
-      <div class="lg-glass-strong p-4 rounded-[24px] space-y-3">
+      <div class="lg-glass-strong p-4 rounded-2xl space-y-3">
         <div class="flex flex-wrap items-center gap-3">
           <!-- Search -->
           <div class="flex-1 min-w-[260px] relative">
@@ -517,7 +517,7 @@ async function confirmNewSchedule() {
       </TransitionGroup>
 
       <!-- ── Workflow Note ─────────────────────────────── -->
-      <div class="lg-glass-soft p-5 rounded-[24px] flex gap-4">
+      <div class="lg-glass-soft p-5 rounded-2xl flex gap-4">
         <div class="h-11 w-11 rounded-2xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] shrink-0">
           <Info :size="22" />
         </div>

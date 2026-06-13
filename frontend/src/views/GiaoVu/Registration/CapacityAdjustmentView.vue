@@ -195,7 +195,7 @@ const metrics = computed(() => {
         </div>
       </div>
 
-      <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
+      <div class="lg-glass-strong p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
         <div class="flex-1 min-w-[280px] relative">
           <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder" />
           <input 
@@ -242,7 +242,7 @@ const metrics = computed(() => {
         </div>
       </Transition>
 
-      <div class="lg-table-shell overflow-hidden rounded-[24px]">
+      <div class="lg-table-shell overflow-hidden rounded-2xl">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
@@ -323,7 +323,7 @@ const metrics = computed(() => {
         leave-from-class="opacity-100 translate-y-0"
         leave-to-class="opacity-0 translate-y-4"
       >
-        <div v-if="showSectionDetail && selectedSection" class="lg-card-glass p-6 rounded-[24px]">
+        <div v-if="showSectionDetail && selectedSection" class="lg-card-glass p-6 rounded-2xl">
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
               <div class="h-10 w-10 rounded-xl bg-[var(--color-info-bg)] text-link flex items-center justify-center">
@@ -392,7 +392,7 @@ const metrics = computed(() => {
                   ></textarea>
                 </div>
               </div>
-              <div class="surface-solid rounded-[24px] p-4 border border-default space-y-4">
+              <div class="surface-solid rounded-2xl p-4 border border-default space-y-4">
                 <h4 class="text-xs font-semibold text-label uppercase tracking-widest">Xem trước ảnh hưởng</h4>
                 <div class="space-y-4">
                   <div class="flex items-center justify-between p-3 surface-card rounded-xl border border-default">

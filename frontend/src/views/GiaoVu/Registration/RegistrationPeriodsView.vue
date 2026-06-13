@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import dayjs from 'dayjs'
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 
@@ -21,15 +21,30 @@ import {
   SlidersHorizontal,
   FileText,
   Info,
+  Loader2,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 
+const loading = ref(true)
+const apiError = ref('')
+
 // ── Mock Data ────────────────────────────────────────────────
-const periods = ref([
-  { id: 1, name: 'Đợt 1 - Học kỳ Spring 2026', semester: 'Spring 2026', openDate: '2026-01-15', closeDate: '2026-01-25', withdrawDeadline: '2026-02-10', maxCredits: 24, status: 'open', studentCount: 156, classCount: 12 },
-  { id: 2, name: 'Đợt bổ sung - Học kỳ Spring 2026', semester: 'Spring 2026', openDate: '2026-02-01', closeDate: '2026-02-05', withdrawDeadline: '2026-02-15', maxCredits: 12, status: 'draft', studentCount: 0, classCount: 0 },
-  { id: 3, name: 'Học kỳ Fall 2025', semester: 'Fall 2025', openDate: '2025-08-10', closeDate: '2025-08-25', withdrawDeadline: '2025-09-10', maxCredits: 24, status: 'closed', studentCount: 342, classCount: 28 },
-])
+const periods = ref([])
+
+function initData() {
+  loading.value = true
+  apiError.value = ''
+  setTimeout(() => {
+    periods.value = [
+      { id: 1, name: 'Đợt 1 - Học kỳ Spring 2026', semester: 'Spring 2026', openDate: '2026-01-15', closeDate: '2026-01-25', withdrawDeadline: '2026-02-10', maxCredits: 24, status: 'open', studentCount: 156, classCount: 12 },
+      { id: 2, name: 'Đợt bổ sung - Học kỳ Spring 2026', semester: 'Spring 2026', openDate: '2026-02-01', closeDate: '2026-02-05', withdrawDeadline: '2026-02-15', maxCredits: 12, status: 'draft', studentCount: 0, classCount: 0 },
+      { id: 3, name: 'Học kỳ Fall 2025', semester: 'Fall 2025', openDate: '2025-08-10', closeDate: '2025-08-25', withdrawDeadline: '2025-09-10', maxCredits: 24, status: 'closed', studentCount: 342, classCount: 28 },
+    ]
+    loading.value = false
+  }, 300)
+}
+
+onMounted(() => { initData() })
 
 // ── Search ───────────────────────────────────────────────────
 const searchQuery = ref('')
@@ -170,10 +185,24 @@ const stats = computed(() => {
     subtitle="Quản lý thời gian, số tín chỉ tối đa và quy trình đăng ký cho sinh viên."
   >
     <template #actions>
-      <button class="lg-button-primary px-5 py-2.5 text-sm font-bold" @click="openCreate">
+      <button v-if="!loading" class="lg-button-primary px-5 py-2.5 text-sm font-bold" @click="openCreate">
         <Plus :size="18" /> Tạo đợt mới
       </button>
     </template>
+
+    <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-3">
+      <Loader2 class="animate-spin text-muted" :size="28" />
+      <p class="text-sm text-muted">Đang tải dữ liệu...</p>
+    </div>
+
+    <div v-else-if="apiError" class="surface-card border border-card rounded-2xl p-6 flex flex-col items-center justify-center gap-3">
+      <AlertCircle :size="32" class="text-[var(--color-danger-text)]" />
+      <p class="text-sm font-bold text-heading">Không thể tải dữ liệu</p>
+      <p class="text-xs text-muted">{{ apiError }}</p>
+      <button @click="initData" class="lg-button-primary px-4 py-2 text-xs font-bold rounded-xl mt-2">Thử lại</button>
+    </div>
+
+    <template v-else>
 
     <div class="space-y-4">
 
@@ -195,7 +224,7 @@ const stats = computed(() => {
       </div>
 
       <!-- ── Search & Filter ── -->
-      <div class="lg-glass-strong p-4 rounded-[24px]">
+      <div class="lg-glass-strong p-4 rounded-2xl">
         <div class="flex-1 min-w-[280px] relative">
           <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder pointer-events-none" />
           <input
@@ -326,7 +355,7 @@ const stats = computed(() => {
 
       <!-- ── Important Rules ── -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="lg-glass-soft p-5 rounded-[24px] border border-default">
+        <div class="lg-glass-soft p-5 rounded-2xl border border-default">
           <div class="flex gap-4">
             <div class="h-10 w-10 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] shrink-0">
                <ShieldCheck :size="20" />
@@ -347,7 +376,7 @@ const stats = computed(() => {
           </div>
         </div>
 
-        <div class="lg-glass-soft p-5 rounded-[24px] border border-default">
+        <div class="lg-glass-soft p-5 rounded-2xl border border-default">
           <div class="flex gap-4">
             <div class="h-10 w-10 rounded-xl bg-[var(--color-warning-bg)] flex items-center justify-center text-[var(--color-warning-text)] shrink-0">
                <Settings :size="20" />
@@ -363,6 +392,7 @@ const stats = computed(() => {
       </div>
 
     </div>
+  </template>
   </PageContainer>
 
   <!-- ════════════════════════════════════════════════════════════

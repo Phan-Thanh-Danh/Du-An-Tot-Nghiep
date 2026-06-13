@@ -253,28 +253,23 @@ const router = createRouter({
           component: () => import('../views/BGH/Dashboard.vue'),
           meta: { title: 'Dashboard Chiến Lược' },
         },
-        // TKB
-        { path: 'schedule/pending', name: 'bgh-schedule-pending', component: () => import('../views/BGH/Schedule/PendingSchedulesView.vue') },
-        { path: 'schedule/approved', name: 'bgh-schedule-approved', component: () => import('../views/BGH/Schedule/PublishedSchedulesView.vue') },
-        { path: 'schedule/conflicts', name: 'bgh-schedule-conflicts', component: () => import('../views/BGH/Schedule/ConflictListView.vue') },
-        { path: 'schedule/changes', name: 'bgh-schedule-changes', component: () => import('../views/BGH/Schedule/ScheduleChangesView.vue') },
-        // Academic
-        { path: 'academic/overview', name: 'bgh-academic-overview', component: () => import('../views/BGH/Academic/AcademicOverviewView.vue') },
-        { path: 'academic/pass-fail', name: 'bgh-academic-pass-fail', component: () => import('../views/BGH/Academic/PassFailRatesView.vue') },
-        { path: 'academic/gpa', name: 'bgh-academic-gpa', component: () => import('../views/BGH/Academic/GPAReportsView.vue') },
-        { path: 'academic/at-risk', name: 'bgh-academic-at-risk', component: () => import('../views/BGH/Academic/AtRiskStudentsView.vue') },
-        { path: 'academic/reports', name: 'bgh-academic-reports', component: () => import('../views/BGH/Academic/AcademicReportsView.vue') },
-        // Evaluations
-        { path: 'evaluations/overview', name: 'bgh-evaluations-overview', component: () => import('../views/BGH/Evaluations/EvalOverviewView.vue') },
-        { path: 'evaluations/ranking', name: 'bgh-evaluations-ranking', component: () => import('../views/BGH/Evaluations/TeacherRankingView.vue') },
-        { path: 'evaluations/details', name: 'bgh-evaluations-details', component: () => import('../views/BGH/Evaluations/TeacherEvalDetailsView.vue') },
-        { path: 'evaluations/ai-feedback', name: 'bgh-evaluations-ai-feedback', component: () => import('../views/BGH/Evaluations/AIFeedbackAnalysisView.vue') },
-        // Strategic
-        { path: 'strategic/dashboard', name: 'bgh-strategic-dashboard', component: () => import('../views/BGH/PlaceholderView.vue') },
-        { path: 'strategic/semesters', name: 'bgh-strategic-semesters', component: () => import('../views/BGH/PlaceholderView.vue') },
-        { path: 'strategic/campuses', name: 'bgh-strategic-campuses', component: () => import('../views/BGH/PlaceholderView.vue') },
+        // Cơ cấu tổ chức
+        { path: 'organizations', name: 'bgh-organizations', component: () => import('../views/BGH/OrganizationsView.vue') },
+        { path: 'users', name: 'bgh-users', component: () => import('../views/BGH/UsersView.vue') },
+        { path: 'roles', name: 'bgh-roles', component: () => import('../views/BGH/RolesView.vue') },
+        // Đào tạo
+        { path: 'academic-programs', name: 'bgh-academic-programs', component: () => import('../views/BGH/ProgramsView.vue') },
+        { path: 'curriculum', name: 'bgh-curriculum', component: () => import('../views/BGH/CurriculumView.vue') },
+        { path: 'academic-terms', name: 'bgh-academic-terms', component: () => import('../views/BGH/AcademicTermsView.vue') },
+        // Phê duyệt & Đánh giá
+        { path: 'schedule/pending', name: 'bgh-schedule-pending', component: () => import('../views/BGH/SchedulePendingView.vue') },
+        { path: 'evaluations', name: 'bgh-evaluations', component: () => import('../views/BGH/EvaluationsView.vue') },
+        // Cơ sở vật chất
+        { path: 'facilities', name: 'bgh-facilities', component: () => import('../views/BGH/FacilitiesView.vue') },
+        // Hệ thống
+        { path: 'audit-logs', name: 'bgh-audit-logs', component: () => import('../views/BGH/AuditLogsView.vue') },
         // Profile
-        { path: 'profile', name: 'bgh-profile', component: () => import('../views/BGH/Profile/ProfileView.vue') },
+        { path: 'profile', name: 'bgh-profile', component: () => import('../views/BGH/ProfileView.vue') },
       ],
     },
 

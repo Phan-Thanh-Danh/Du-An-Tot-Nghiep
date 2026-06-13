@@ -51,10 +51,17 @@ const route = useRoute()
 
 const pageTitleMap = {
   '/bgh/dashboard': { title: 'Dashboard chiến lược', subtitle: 'Tổng quan hệ thống đào tạo, chất lượng và thống kê' },
-  '/bgh/schedule/pending': { title: 'TKB chờ duyệt', subtitle: 'Phê duyệt thời khóa biểu trước khi công bố' },
-  '/bgh/academic/overview': { title: 'Tổng quan học tập', subtitle: 'Báo cáo điểm số, sinh viên và cảnh báo học vụ' },
-  '/bgh/evaluations/overview': { title: 'Đánh giá giảng viên', subtitle: 'Theo dõi phản hồi và chất lượng giảng dạy' },
-  '/bgh/strategic/dashboard': { title: 'Báo cáo chiến lược', subtitle: 'Báo cáo chuyên sâu theo học kỳ và cơ sở' },
+  '/bgh/organizations': { title: 'Quản lý Đơn vị', subtitle: 'Cơ cấu tổ chức các khoa, phòng ban' },
+  '/bgh/users': { title: 'Quản lý Người dùng', subtitle: 'Danh sách tài khoản sinh viên, giảng viên và nhân sự' },
+  '/bgh/roles': { title: 'Vai trò & Phân quyền', subtitle: 'Cấu hình quyền hạn truy cập hệ thống' },
+  '/bgh/academic-programs': { title: 'Ngành & Chuyên ngành', subtitle: 'Quản lý các chuyên ngành đào tạo' },
+  '/bgh/curriculum': { title: 'Khung chương trình', subtitle: 'Phê duyệt và theo dõi khung chương trình' },
+  '/bgh/academic-terms': { title: 'Học kỳ & Khóa', subtitle: 'Quản lý các học kỳ và khóa học' },
+  '/bgh/schedule/pending': { title: 'Duyệt Thời khóa biểu', subtitle: 'Phê duyệt thời khóa biểu trước khi công bố' },
+  '/bgh/evaluations': { title: 'Đánh giá Giảng viên', subtitle: 'Kết quả khảo sát và đánh giá giảng dạy' },
+  '/bgh/facilities': { title: 'Cơ sở vật chất', subtitle: 'Quản lý Tòa nhà, Tầng và Phòng học' },
+  '/bgh/audit-logs': { title: 'Nhật ký kiểm toán', subtitle: 'Theo dõi lịch sử thay đổi trên hệ thống' },
+  '/bgh/profile': { title: 'Hồ sơ cá nhân', subtitle: 'Thông tin cá nhân và cài đặt' },
 }
 
 const currentPageMeta = computed(() => {
