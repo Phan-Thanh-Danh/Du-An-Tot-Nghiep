@@ -489,14 +489,20 @@ Chưa thấy controller exams/quiz trong repo hiện tại.
 
 ### Đã có
 
-Chưa thấy controller attendance trong repo hiện tại.
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/teacher/attendance/today` | Teacher | Danh sách buổi học hôm nay của giáo viên hiện tại, tính theo `MaGiaoVien` hoặc `MaGiaoVienDayThay`. Nếu không có buổi hôm nay thì trả danh sách rỗng. |
+| POST | `/api/buoi-hoc/{id}/attendance/start` | Teacher phụ trách buổi học | Mở điểm danh cho buổi học chưa hủy; tạo các dòng `DiemDanh` còn thiếu cho sinh viên active trong `KhoaHoc.MaLop`, mặc định `TrangThai = vang`, `HeSoVang = 1`; set `TrangThaiDiemDanh = dang_diem_danh`, hạn gửi = thời điểm mở + 15 phút. |
+| GET | `/api/buoi-hoc/{id}/attendance` | Teacher phụ trách hoặc Admin/SuperAdmin/CampusAdmin/AcademicStaff trong campus scope | Chi tiết điểm danh của một buổi học, gồm thông tin buổi học/khóa/lớp/môn/ca/phòng/giáo viên và danh sách sinh viên. |
+| PATCH | `/api/buoi-hoc/{id}/attendance/{maSinhVien}` | Teacher phụ trách buổi học | Cập nhật điểm danh một sinh viên khi `TrangThaiDiemDanh = dang_diem_danh` và chưa quá hạn 15 phút. Body gồm `trangThai` nhận `co_mat`, `vang`, `di_muon`, `co_phep`. |
+| PUT | `/api/buoi-hoc/{id}/attendance/bulk` | Teacher phụ trách buổi học | Cập nhật điểm danh nhiều sinh viên trong một request; validate toàn bộ trước khi lưu, không update nửa vời. |
+| POST | `/api/buoi-hoc/{id}/attendance/submit` | Teacher phụ trách buổi học | Gửi điểm danh khi đang mở và chưa quá hạn; set `TrangThaiDiemDanh = da_gui`, `DiemDanhDaGuiLuc = now`, `DiemDanhHanChinhSuaLuc = now + 10 phút`. MVP không cho sửa sau submit. |
+| GET | `/api/student/attendance` | Student | Sinh viên xem điểm danh của chính mình, có filter `ngayTu`, `ngayDen`, `maKhoaHoc`, `trangThai`, `pageIndex`, `pageSize`. |
+
+Ghi chú P0-6: Nguồn sinh viên MVP lấy từ `BuoiHoc -> KhoaHoc.MaLop -> NguoiDung.MaLop`, không dùng `DangKyHocPhan`. Không làm QR/GPS/FaceID, export Excel, realtime SignalR hoặc unlock request/admin approval. Rule 15 phút được enforce khi update/bulk/submit dựa trên `DiemDanhBatDauLuc + 15 phút`, không có background job auto-submit/auto-lock.
 
 ### Dự kiến/cần bổ sung
 
-- `GET /api/attendance`
-- `GET /api/students/me/attendance`
-- `POST /api/sessions/{sessionId}/attendance`
-- `PUT /api/attendance/{id}`
 - `POST /api/attendance-unlock-requests`
 - `PUT /api/attendance-unlock-requests/{id}/approve`
 
