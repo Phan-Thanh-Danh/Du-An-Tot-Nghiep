@@ -7,6 +7,7 @@ using Backend.Services.AdminUsers;
 using Backend.Services.AdministrativeClasses;
 using Backend.Services.AcademicTerms;
 using Backend.Services.Attendance;
+using Backend.Services.AttendanceUnlock;
 using Backend.Services.Audit;
 using Backend.Services.Auth;
 using Backend.Services.Buildings;
@@ -105,6 +106,7 @@ builder.Services.AddScoped<IThoiKhoaBieuService, ThoiKhoaBieuService>();
 builder.Services.AddScoped<IScheduleConflictService, ScheduleConflictService>();
 builder.Services.AddScoped<IBuoiHocService, BuoiHocService>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
+builder.Services.AddScoped<IAttendanceUnlockService, AttendanceUnlockService>();
 
 var r2Settings = builder.Configuration.GetSection("R2Storage").Get<R2StorageSettings>()
     ?? new R2StorageSettings();

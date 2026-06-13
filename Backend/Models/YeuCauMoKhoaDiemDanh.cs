@@ -9,6 +9,9 @@ public class YeuCauMoKhoaDiemDanh
     public string TrangThai { get; set; } = string.Empty;
     public int? NguoiDuyet { get; set; }
     public DateTime? MoKhoaDenLuc { get; set; }
+    public string? GhiChu { get; set; }
+    public string? LyDoTuChoi { get; set; }
+    public DateTime? ThoiGianXuLy { get; set; }
     public DateTime NgayTao { get; set; }
 
     public BuoiHoc? BuoiHoc { get; set; }
