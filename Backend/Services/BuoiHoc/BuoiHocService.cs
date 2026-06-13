@@ -19,7 +19,16 @@ public class BuoiHocService : IBuoiHocService
     private const string ArchivedCourseStatus = "luu_tru";
     private const string ActiveRoomStatus = "hoat_dong";
     private const string PlannedSessionStatus = "du_kien";
+    private const string CompletedSessionStatus = "da_dien_ra";
+    private const string CanceledSessionStatus = "da_huy";
+    private const string ChangedScheduleStatus = "doi_lich";
+    private const string SubstituteTeacherStatus = "day_thay";
     private const string AttendanceNotOpenedStatus = "chua_mo";
+    private const string AttendanceLockedStatus = "da_khoa";
+    private const string ChangeTeacherType = "doi_giang_vien";
+    private const string ChangeRoomType = "doi_phong";
+    private const string ChangeShiftType = "doi_ca";
+    private const string CancelSessionType = "huy_buoi";
 
     private static readonly HashSet<string> ValidSessionStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -235,6 +244,185 @@ public class BuoiHocService : IBuoiHocService
             cancellationToken);
 
         return result;
+    }
+
+    public async Task<BuoiHocDetailDto> ChangeTeacherAsync(
+        int sessionId,
+        ChangeSessionTeacherRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageSessions(currentUser);
+
+        var reason = NormalizeReason(request.LyDoThayDoi);
+        var (session, course) = await GetManagedSessionAsync(sessionId, currentUser, cancellationToken);
+        ValidateSessionCanBeChanged(session);
+
+        if (request.MaGiaoVienDayThay == session.MaGiaoVien)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Giáo viên dạy thay không được trùng với giáo viên chính.");
+        }
+
+        var substituteTeacher = await ValidateTeacherAsync(
+            request.MaGiaoVienDayThay,
+            course.MaDonVi,
+            cancellationToken);
+
+        await EnsureNoSessionConflictAsync(
+            session,
+            course,
+            session.MaCaHoc,
+            substituteTeacher.MaNguoiDung,
+            session.MaPhong,
+            checkTeacher: true,
+            checkClass: false,
+            checkRoom: false,
+            cancellationToken);
+
+        var oldSnapshot = await GetAuditSnapshotAsync(session.MaBuoiHoc, cancellationToken);
+
+        session.MaGiaoVienDayThay = substituteTeacher.MaNguoiDung;
+        session.TrangThaiBuoi = SubstituteTeacherStatus;
+        session.LoaiThayDoi = ChangeTeacherType;
+        session.LyDoThayDoi = reason;
+        session.NgayCapNhat = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await WriteAuditAsync(
+            "CHANGE_BUOI_HOC_TEACHER",
+            session.MaBuoiHoc,
+            course.MaDonVi,
+            oldSnapshot,
+            await GetAuditSnapshotAsync(session.MaBuoiHoc, cancellationToken),
+            currentUser,
+            "Đổi giáo viên dạy thay cho buổi học.",
+            cancellationToken);
+
+        return await GetByIdAsync(session.MaBuoiHoc, cancellationToken);
+    }
+
+    public async Task<BuoiHocDetailDto> ChangeRoomAsync(
+        int sessionId,
+        ChangeSessionRoomRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageSessions(currentUser);
+
+        var reason = NormalizeReason(request.LyDoThayDoi);
+        var (session, course) = await GetManagedSessionAsync(sessionId, currentUser, cancellationToken);
+        ValidateSessionCanBeChanged(session);
+        var room = await ValidateRoomAsync(request.MaPhong, course.MaDonVi, currentUser, cancellationToken);
+
+        await EnsureNoSessionConflictAsync(
+            session,
+            course,
+            session.MaCaHoc,
+            session.MaGiaoVienDayThay ?? session.MaGiaoVien,
+            room.MaPhong,
+            checkTeacher: false,
+            checkClass: false,
+            checkRoom: true,
+            cancellationToken);
+
+        var oldSnapshot = await GetAuditSnapshotAsync(session.MaBuoiHoc, cancellationToken);
+
+        session.MaPhong = room.MaPhong;
+        session.TrangThaiBuoi = ChangedScheduleStatus;
+        session.LoaiThayDoi = ChangeRoomType;
+        session.LyDoThayDoi = reason;
+        session.NgayCapNhat = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await WriteAuditAsync(
+            "CHANGE_BUOI_HOC_ROOM",
+            session.MaBuoiHoc,
+            course.MaDonVi,
+            oldSnapshot,
+            await GetAuditSnapshotAsync(session.MaBuoiHoc, cancellationToken),
+            currentUser,
+            "Đổi phòng cho buổi học.",
+            cancellationToken);
+
+        return await GetByIdAsync(session.MaBuoiHoc, cancellationToken);
+    }
+
+    public async Task<BuoiHocDetailDto> ChangeShiftAsync(
+        int sessionId,
+        ChangeSessionShiftRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageSessions(currentUser);
+
+        var reason = NormalizeReason(request.LyDoThayDoi);
+        var (session, course) = await GetManagedSessionAsync(sessionId, currentUser, cancellationToken);
+        ValidateSessionCanBeChanged(session);
+        var shift = await ValidateShiftAsync(request.MaCaHoc, cancellationToken);
+
+        await EnsureNoSessionConflictAsync(
+            session,
+            course,
+            shift.MaCaHoc,
+            session.MaGiaoVienDayThay ?? session.MaGiaoVien,
+            session.MaPhong,
+            checkTeacher: true,
+            checkClass: true,
+            checkRoom: true,
+            cancellationToken);
+
+        var oldSnapshot = await GetAuditSnapshotAsync(session.MaBuoiHoc, cancellationToken);
+
+        session.MaCaHoc = shift.MaCaHoc;
+        session.TrangThaiBuoi = ChangedScheduleStatus;
+        session.LoaiThayDoi = ChangeShiftType;
+        session.LyDoThayDoi = reason;
+        session.NgayCapNhat = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await WriteAuditAsync(
+            "CHANGE_BUOI_HOC_SHIFT",
+            session.MaBuoiHoc,
+            course.MaDonVi,
+            oldSnapshot,
+            await GetAuditSnapshotAsync(session.MaBuoiHoc, cancellationToken),
+            currentUser,
+            "Đổi ca cho buổi học.",
+            cancellationToken);
+
+        return await GetByIdAsync(session.MaBuoiHoc, cancellationToken);
+    }
+
+    public async Task<BuoiHocDetailDto> CancelAsync(
+        int sessionId,
+        CancelSessionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageSessions(currentUser);
+
+        var reason = NormalizeReason(request.LyDoThayDoi);
+        var (session, course) = await GetManagedSessionAsync(sessionId, currentUser, cancellationToken);
+        ValidateSessionCanBeChanged(session);
+        var oldSnapshot = await GetAuditSnapshotAsync(session.MaBuoiHoc, cancellationToken);
+
+        session.TrangThaiBuoi = CanceledSessionStatus;
+        session.LoaiThayDoi = CancelSessionType;
+        session.LyDoThayDoi = reason;
+        session.NgayCapNhat = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await WriteAuditAsync(
+            "CANCEL_BUOI_HOC",
+            session.MaBuoiHoc,
+            course.MaDonVi,
+            oldSnapshot,
+            await GetAuditSnapshotAsync(session.MaBuoiHoc, cancellationToken),
+            currentUser,
+            "Hủy buổi học.",
+            cancellationToken);
+
+        return await GetByIdAsync(session.MaBuoiHoc, cancellationToken);
     }
 
     private IQueryable<SessionQueryResult> CreateSessionQuery()
@@ -456,6 +644,224 @@ public class BuoiHocService : IBuoiHocService
         {
             throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền sinh buổi học.");
         }
+    }
+
+    private static void EnsureCanManageSessions(CurrentUserContext currentUser)
+    {
+        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.AcademicStaff))
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền điều chỉnh buổi học.");
+        }
+    }
+
+    private static string NormalizeReason(string reason)
+    {
+        var normalizedReason = reason.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedReason))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Lý do thay đổi không được để trống.");
+        }
+
+        return normalizedReason;
+    }
+
+    private async Task<(Models.BuoiHoc Session, KhoaHoc Course)> GetManagedSessionAsync(
+        int sessionId,
+        CurrentUserContext currentUser,
+        CancellationToken cancellationToken)
+    {
+        var session = await _context.BuoiHocs
+            .FirstOrDefaultAsync(x => x.MaBuoiHoc == sessionId, cancellationToken);
+
+        if (session is null)
+        {
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy buổi học.");
+        }
+
+        var course = await _context.KhoaHocs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.MaKhoaHoc == session.MaKhoaHoc, cancellationToken);
+
+        if (course is null)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Khóa học của buổi học không tồn tại.");
+        }
+
+        if (!await CanAccessOrganizationAsync(currentUser, course.MaDonVi, cancellationToken))
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền điều chỉnh buổi học thuộc cơ sở này.");
+        }
+
+        return (session, course);
+    }
+
+    private static void ValidateSessionCanBeChanged(Models.BuoiHoc session)
+    {
+        if (session.TrangThaiBuoi == CanceledSessionStatus)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Buổi học đã hủy, không thể điều chỉnh.");
+        }
+
+        if (session.TrangThaiBuoi == CompletedSessionStatus)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Buổi học đã diễn ra, không thể điều chỉnh.");
+        }
+
+        if (session.TrangThaiDiemDanh == AttendanceLockedStatus || session.DiemDanhKhoaLuc.HasValue || session.KhoaLuc.HasValue)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Buổi học đã khóa điểm danh hoặc đã khóa lịch, không thể điều chỉnh.");
+        }
+    }
+
+    private async Task EnsureNoSessionConflictAsync(
+        Models.BuoiHoc session,
+        KhoaHoc course,
+        int targetShiftId,
+        int targetTeacherId,
+        int targetRoomId,
+        bool checkTeacher,
+        bool checkClass,
+        bool checkRoom,
+        CancellationToken cancellationToken)
+    {
+        var existingSessions = await CreateSessionQuery()
+            .Where(x =>
+                x.Session.MaBuoiHoc != session.MaBuoiHoc &&
+                x.Session.TrangThaiBuoi != CanceledSessionStatus &&
+                x.Session.NgayHoc == session.NgayHoc &&
+                x.Session.MaCaHoc == targetShiftId)
+            .ToListAsync(cancellationToken);
+
+        var conflicts = new List<SessionConflictDto>();
+
+        foreach (var existing in existingSessions)
+        {
+            if (checkTeacher)
+            {
+                var effectiveTeacherId = existing.Session.MaGiaoVienDayThay ?? existing.Session.MaGiaoVien;
+                if (effectiveTeacherId == targetTeacherId)
+                {
+                    conflicts.Add(ToConflictDto(
+                        "teacher",
+                        "Giáo viên đã có buổi học cùng ngày và ca.",
+                        existing));
+                }
+            }
+
+            if (checkClass && existing.Course.MaLop == course.MaLop)
+            {
+                conflicts.Add(ToConflictDto(
+                    "class",
+                    "Lớp hành chính đã có buổi học cùng ngày và ca.",
+                    existing));
+            }
+
+            if (checkRoom && existing.Session.MaPhong == targetRoomId)
+            {
+                conflicts.Add(ToConflictDto(
+                    "room",
+                    "Phòng học đã được sử dụng cùng ngày và ca.",
+                    existing));
+            }
+        }
+
+        if (conflicts.Count > 0)
+        {
+            throw new SessionConflictException(new SessionConflictResultDto
+            {
+                Conflicts = conflicts
+            });
+        }
+    }
+
+    private static SessionConflictDto ToConflictDto(
+        string type,
+        string message,
+        SessionQueryResult result)
+    {
+        var effectiveTeacherId = result.Session.MaGiaoVienDayThay ?? result.Session.MaGiaoVien;
+        var effectiveTeacherName = result.SubstituteTeacher?.HoTen ?? result.Teacher.HoTen;
+
+        return new SessionConflictDto
+        {
+            Type = type,
+            Message = message,
+            MaBuoiHoc = result.Session.MaBuoiHoc,
+            MaKhoaHoc = result.Session.MaKhoaHoc,
+            TenKhoaHoc = result.Course.TieuDe,
+            NgayHoc = result.Session.NgayHoc,
+            MaCaHoc = result.Session.MaCaHoc,
+            TenCa = result.Shift.TenCa,
+            MaPhong = result.Session.MaPhong,
+            TenPhong = result.Room.TenPhong,
+            MaGiaoVien = result.Session.MaGiaoVien,
+            TenGiaoVien = result.Teacher.HoTen,
+            MaGiaoVienDayThay = result.Session.MaGiaoVienDayThay,
+            TenGiaoVienDayThay = result.SubstituteTeacher?.HoTen,
+            EffectiveTeacherId = effectiveTeacherId,
+            EffectiveTeacherName = effectiveTeacherName,
+            MaLop = result.Course.MaLop,
+            TenLop = result.Class.TenLop
+        };
+    }
+
+    private async Task<object?> GetAuditSnapshotAsync(
+        int sessionId,
+        CancellationToken cancellationToken)
+    {
+        var result = await CreateSessionQuery()
+            .FirstOrDefaultAsync(x => x.Session.MaBuoiHoc == sessionId, cancellationToken);
+
+        if (result is null)
+        {
+            return null;
+        }
+
+        return new
+        {
+            result.Session.MaBuoiHoc,
+            result.Session.MaTkb,
+            result.Session.MaKhoaHoc,
+            result.Course.TieuDe,
+            result.Session.NgayHoc,
+            result.Session.MaCaHoc,
+            result.Shift.TenCa,
+            result.Session.MaPhong,
+            result.Room.TenPhong,
+            result.Session.MaGiaoVien,
+            TenGiaoVien = result.Teacher.HoTen,
+            result.Session.MaGiaoVienDayThay,
+            TenGiaoVienDayThay = result.SubstituteTeacher?.HoTen,
+            result.Session.TrangThaiBuoi,
+            result.Session.TrangThaiDiemDanh,
+            result.Session.LoaiThayDoi,
+            result.Session.LyDoThayDoi,
+            result.Session.KhoaLuc,
+            result.Session.DiemDanhKhoaLuc,
+            result.Session.NgayCapNhat
+        };
+    }
+
+    private Task WriteAuditAsync(
+        string action,
+        int sessionId,
+        int organizationId,
+        object? oldValue,
+        object? newValue,
+        CurrentUserContext currentUser,
+        string description,
+        CancellationToken cancellationToken)
+    {
+        return _auditLogService.LogAsync(
+            "BuoiHoc",
+            sessionId.ToString(CultureInfo.InvariantCulture),
+            action,
+            oldValue,
+            newValue,
+            currentUser.UserId,
+            organizationId,
+            description,
+            cancellationToken);
     }
 
     private async Task<HashSet<int>> GetAllowedOrganizationIdsAsync(

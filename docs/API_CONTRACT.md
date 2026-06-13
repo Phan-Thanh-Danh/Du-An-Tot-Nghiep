@@ -293,8 +293,12 @@ Ghi chú: P0-3 kiểm tra xung đột lịch ở mức `MaHocKy + ThuTrongTuan +
 |---|---|---|---|
 | GET | `/api/buoi-hoc` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Danh sách buổi học có phân trang, lọc theo thời khóa biểu, khóa học, giáo viên, phòng, ca học, trạng thái buổi và khoảng ngày. Scope dữ liệu theo `KhoaHoc.MaDonVi`. |
 | GET | `/api/buoi-hoc/{id}` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Chi tiết buổi học gồm thông tin khóa học, học kỳ, lớp, môn, ngày học, ca học, phòng, giáo viên, giáo viên dạy thay và trạng thái điểm danh. |
+| PUT | `/api/buoi-hoc/{id}/change-teacher` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Đổi giáo viên dạy thay cho buổi học chưa hủy, chưa diễn ra và chưa khóa điểm danh. Request gồm `maGiaoVienDayThay`, `lyDoThayDoi`. |
+| PUT | `/api/buoi-hoc/{id}/change-room` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Đổi phòng học cho buổi học chưa hủy, chưa diễn ra và chưa khóa điểm danh. Request gồm `maPhong`, `lyDoThayDoi`. |
+| PUT | `/api/buoi-hoc/{id}/change-shift` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Đổi ca học cho buổi học chưa hủy, chưa diễn ra và chưa khóa điểm danh. Request gồm `maCaHoc`, `lyDoThayDoi`. |
+| PATCH | `/api/buoi-hoc/{id}/cancel` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Hủy buổi học bằng `TrangThaiBuoi = da_huy`, không xóa vật lý. Request gồm `lyDoThayDoi`. |
 
-Ghi chú: `BuoiHoc` là buổi học thật theo ngày cụ thể, sinh từ `ThoiKhoaBieu + NgayHoc`. P0-4 chỉ hỗ trợ generate/list/detail; chưa hỗ trợ hủy buổi, đổi lịch, dạy thay, đổi phòng, đổi ca hoặc điểm danh.
+Ghi chú: `BuoiHoc` là buổi học thật theo ngày cụ thể, sinh từ `ThoiKhoaBieu + NgayHoc`. P0-5 hỗ trợ điều chỉnh phát sinh từng buổi học nhưng không sửa `ThoiKhoaBieu`, không generate lại lịch, không làm điểm danh và không xóa vật lý. Khi đổi giáo viên/phòng/ca, hệ thống kiểm tra xung đột theo `NgayHoc + MaCaHoc`: trùng giáo viên hiệu lực (`MaGiaoVienDayThay ?? MaGiaoVien`), trùng lớp hành chính hoặc trùng phòng tùy nghiệp vụ. Nếu có xung đột, API trả `409 Conflict` kèm `data.conflicts`.
 
 ## Course Syllabuses APIs
 
