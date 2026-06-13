@@ -929,10 +929,6 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("ma_chuyen_nganh");
             entity.Property(e => e.MaNganh)
                 .HasColumnName("ma_nganh");
-            entity.Property(e => e.MaCodeChuyenNganh)
-                .HasColumnName("ma_code_chuyen_nganh")
-                .HasMaxLength(50)
-                .IsRequired();
             entity.Property(e => e.TenChuyenNganh)
                 .HasColumnName("ten_chuyen_nganh")
                 .HasMaxLength(255)
@@ -950,7 +946,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.NgayCapNhat)
                 .HasColumnName("ngay_cap_nhat")
                 .HasColumnType("datetime2");
-            entity.HasIndex(e => e.MaCodeChuyenNganh).IsUnique().HasDatabaseName("UQ_ChuyenNganh_1");
+            entity.HasIndex(e => new { e.MaNganh, e.TenChuyenNganh }).IsUnique().HasDatabaseName("UQ_ChuyenNganh_nganh_ten");
             entity.HasOne(e => e.NganhDaoTao)
                 .WithMany(e => e.ChuyenNganhs)
                 .HasForeignKey(e => e.MaNganh)
@@ -3325,6 +3321,7 @@ public class ApplicationDbContext : DbContext
                 .HasColumnType("datetime2");
             entity.HasIndex(e => new { e.MaKhoaHoc, e.ThuTrongTuan, e.MaCaHoc })
                 .IsUnique()
+                .HasFilter("[trang_thai] <> N'da_huy'")
                 .HasDatabaseName("UQ_ThoiKhoaBieu_KhoaHoc_Thu_Ca");
             entity.ToTable(t => t.HasCheckConstraint(
                 "CK_ThoiKhoaBieu_thu_trong_tuan",

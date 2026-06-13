@@ -33,6 +33,12 @@ const router = createRouter({
       component: () => import('../views/LoginView.vue'),
       meta: { public: true },
     },
+    {
+      path: '/student/exams/:examId/take',
+      name: 'student-exam-take',
+      component: () => import('../views/Student/ExamTakeView.vue'),
+      meta: { requiresAuth: true, role: 'student', title: 'Làm bài thi', fullscreen: true },
+    },
 
     // ── Student Layout (App Shell) ─────────────────────────
     {
@@ -88,12 +94,6 @@ const router = createRouter({
           name: 'student-exam-detail',
           component: () => import('../views/Student/ExamDetailView.vue'),
           meta: { title: 'Chi tiết bài thi' },
-        },
-        {
-          path: 'exams/:examId/take',
-          name: 'student-exam-take',
-          component: () => import('../views/Student/ExamTakeView.vue'),
-          meta: { title: 'Làm bài thi' },
         },
         {
           path: 'exams/:examResultId',
@@ -324,31 +324,31 @@ const router = createRouter({
         {
           path: 'training/semesters',
           name: 'super-admin-training-semesters',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/SemestersView.vue'),
           meta: { title: 'Cấu hình học kỳ' },
         },
         {
           path: 'training/programs',
           name: 'super-admin-training-programs',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/ProgramsView.vue'),
           meta: { title: 'Cấu trúc chương trình' },
         },
         {
           path: 'training/subjects',
           name: 'super-admin-training-subjects',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/SubjectsView.vue'),
           meta: { title: 'Quản lý môn học' },
         },
         {
           path: 'training/courses',
           name: 'super-admin-training-courses',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/CoursesView.vue'),
           meta: { title: 'Quản lý khóa học' },
         },
         {
           path: 'training/exam-periods',
           name: 'super-admin-training-exam-periods',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/ExamPeriodsView.vue'),
           meta: { title: 'Mở/Đóng giai đoạn thi' },
         },
         {
@@ -366,19 +366,19 @@ const router = createRouter({
         {
           path: 'operations/attendance-policy',
           name: 'super-admin-operations-attendance-policy',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/AttendancePolicyView.vue'),
           meta: { title: 'Quỹ vắng & Chuyên cần' },
         },
         {
           path: 'operations/registration-periods',
           name: 'super-admin-operations-registration-periods',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/RegistrationPeriodsView.vue'),
           meta: { title: 'Mở/Đóng đăng ký môn' },
         },
         {
           path: 'operations/pass-fail-rules',
           name: 'super-admin-operations-pass-fail-rules',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/PassFailRulesView.vue'),
           meta: { title: 'Điều kiện Pass/Fail' },
         },
         // 5. Tài chính và Học phí
@@ -410,80 +410,80 @@ const router = createRouter({
         {
           path: 'support/tickets',
           name: 'super-admin-support-tickets',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/SupportTicketsView.vue'),
           meta: { title: 'Ticket hỗ trợ' },
         },
         {
           path: 'support/faq',
           name: 'super-admin-support-faq',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/FAQManagementView.vue'),
           meta: { title: 'Quản lý FAQ' },
         },
         {
           path: 'approvals/requests',
           name: 'super-admin-approvals-requests',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/ApprovalsRequestsView.vue'),
           meta: { title: 'Đơn cần duyệt' },
         },
         {
           path: 'approvals/history',
           name: 'super-admin-approvals-history',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/ApprovalsHistoryView.vue'),
           meta: { title: 'Lịch sử duyệt đơn' },
         },
         {
           path: 'evaluations/config',
           name: 'super-admin-evaluations-config',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/EvaluationsConfigView.vue'),
           meta: { title: 'Cấu hình đánh giá GV' },
         },
         {
           path: 'evaluations/results',
           name: 'super-admin-evaluations-results',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/EvaluationsResultsView.vue'),
           meta: { title: 'Kết quả đánh giá GV' },
         },
         {
           path: 'awards',
           name: 'super-admin-awards',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/AwardsView.vue'),
           meta: { title: 'Khen thưởng' },
         },
         {
           path: 'discipline',
           name: 'super-admin-discipline',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/DisciplineView.vue'),
           meta: { title: 'Kỷ luật' },
         },
         // 7. Báo cáo và Phân tích (Analytics)
         {
           path: 'reports/education-overview',
           name: 'super-admin-reports-education-overview',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/EducationOverviewView.vue'),
           meta: { title: 'Tổng quan đào tạo' },
         },
         {
           path: 'reports/learning',
           name: 'super-admin-reports-learning',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/LearningReportView.vue'),
           meta: { title: 'Báo cáo học tập' },
         },
         {
           path: 'reports/attendance',
           name: 'super-admin-reports-attendance',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/AttendanceReportView.vue'),
           meta: { title: 'Báo cáo chuyên cần' },
         },
         {
           path: 'reports/campus-comparison',
           name: 'super-admin-reports-campus-comparison',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/CampusComparisonView.vue'),
           meta: { title: 'So sánh cơ sở' },
         },
         {
           path: 'reports/export',
           name: 'super-admin-reports-export',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/DataExportView.vue'),
           meta: { title: 'Export dữ liệu' },
         },
         // 8. Trung tâm Thông báo (Notification Hub)
@@ -548,32 +548,30 @@ const router = createRouter({
 })
 
 // ── Navigation Guard ────────────────────────────────────────
-router.beforeEach((to, from, next) => {
+router.beforeEach((to) => {
   const authStore = useAuthStore()
   authStore.ensureFreshSession()
 
   // Chuyển hướng nếu truy cập trang public khi đã login
   if (to.meta.public && authStore.isAuthenticated) {
-    if (authStore.hasRole('SuperAdmin')) return next('/super-admin/dashboard')
-    if (authStore.hasRole('Teacher')) return next('/teacher/dashboard')
-    if (authStore.hasRole('AcademicStaff')) return next('/staff/dashboard')
-    return next('/student/dashboard')
+    if (authStore.hasRole('SuperAdmin')) return '/super-admin/dashboard'
+    if (authStore.hasRole('Teacher')) return '/teacher/dashboard'
+    if (authStore.hasRole('AcademicStaff')) return '/staff/dashboard'
+    return '/student/dashboard'
   }
 
   // Yêu cầu login
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    return next({
+    return {
       path: '/login',
       query: { redirect: to.fullPath },
-    })
+    }
   }
 
   // Kiểm tra quyền (Role)
   if (to.meta.role && !authStore.hasRole(to.meta.role)) {
-    return next({ name: 'not-found' })
+    return { name: 'not-found' }
   }
-
-  next()
 })
 
 export default router

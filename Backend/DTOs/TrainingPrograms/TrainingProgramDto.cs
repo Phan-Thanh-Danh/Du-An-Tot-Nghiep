@@ -4,9 +4,9 @@ public class TrainingProgramDto
 {
     public int MaChuongTrinh { get; set; }
     public int MaChuyenNganh { get; set; }
-    public string MaCodeChuyenNganh { get; set; } = string.Empty;
     public string TenChuyenNganh { get; set; } = string.Empty;
     public int MaNganh { get; set; }
+    public string MaCodeNganh { get; set; } = string.Empty;
     public string TenNganh { get; set; } = string.Empty;
     public int MaKhoaTuyenSinh { get; set; }
     public string MaCodeKhoa { get; set; } = string.Empty;

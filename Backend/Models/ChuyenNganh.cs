@@ -4,7 +4,6 @@ public class ChuyenNganh
 {
     public int MaChuyenNganh { get; set; }
     public int MaNganh { get; set; }
-    public string MaCodeChuyenNganh { get; set; } = string.Empty;
     public string TenChuyenNganh { get; set; } = string.Empty;
     public string? MoTa { get; set; }
     public bool ConHoatDong { get; set; }

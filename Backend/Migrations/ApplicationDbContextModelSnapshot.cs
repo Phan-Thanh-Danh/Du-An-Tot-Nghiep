@@ -1531,12 +1531,6 @@ namespace Backend.Migrations
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
-                    b.Property<string>("MaCodeChuyenNganh")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("ma_code_chuyen_nganh");
-
                     b.Property<int>("MaNganh")
                         .HasColumnType("int")
                         .HasColumnName("ma_nganh");
@@ -1564,11 +1558,9 @@ namespace Backend.Migrations
                     b.HasKey("MaChuyenNganh")
                         .HasName("PK_ChuyenNganh");
 
-                    b.HasIndex("MaCodeChuyenNganh")
+                    b.HasIndex("MaNganh", "TenChuyenNganh")
                         .IsUnique()
-                        .HasDatabaseName("UQ_ChuyenNganh_1");
-
-                    b.HasIndex("MaNganh");
+                        .HasDatabaseName("UQ_ChuyenNganh_nganh_ten");
 
                     b.ToTable("ChuyenNganh", "dbo");
                 });
@@ -4413,7 +4405,8 @@ namespace Backend.Migrations
 
                     b.HasIndex("MaKhoaHoc", "ThuTrongTuan", "MaCaHoc")
                         .IsUnique()
-                        .HasDatabaseName("UQ_ThoiKhoaBieu_KhoaHoc_Thu_Ca");
+                        .HasDatabaseName("UQ_ThoiKhoaBieu_KhoaHoc_Thu_Ca")
+                        .HasFilter("[trang_thai] <> N'da_huy'");
 
                     b.ToTable("ThoiKhoaBieu", "dbo", t =>
                         {

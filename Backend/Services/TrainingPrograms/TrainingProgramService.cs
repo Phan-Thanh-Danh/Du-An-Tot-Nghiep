@@ -1075,9 +1075,9 @@ public class TrainingProgramService : ITrainingProgramService
         {
             MaChuongTrinh = program.MaChuongTrinh,
             MaChuyenNganh = program.MaChuyenNganh,
-            MaCodeChuyenNganh = specialization?.MaCodeChuyenNganh ?? string.Empty,
             TenChuyenNganh = specialization?.TenChuyenNganh ?? string.Empty,
             MaNganh = specialization?.MaNganh ?? 0,
+            MaCodeNganh = major?.MaCodeNganh ?? string.Empty,
             TenNganh = major?.TenNganh ?? string.Empty,
             MaKhoaTuyenSinh = program.MaKhoaTuyenSinh,
             MaCodeKhoa = cohort?.MaCodeKhoa ?? string.Empty,
