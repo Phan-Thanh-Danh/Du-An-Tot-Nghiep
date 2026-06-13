@@ -3749,6 +3749,15 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.MoKhoaDenLuc)
                 .HasColumnName("mo_khoa_den_luc")
                 .HasColumnType("datetime2");
+            entity.Property(e => e.GhiChu)
+                .HasColumnName("ghi_chu")
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.LyDoTuChoi)
+                .HasColumnName("ly_do_tu_choi")
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.ThoiGianXuLy)
+                .HasColumnName("thoi_gian_xu_ly")
+                .HasColumnType("datetime2");
             entity.Property(e => e.NgayTao)
                 .HasColumnName("ngay_tao")
                 .HasColumnType("datetime2")

@@ -498,13 +498,18 @@ Chưa thấy controller exams/quiz trong repo hiện tại.
 | PUT | `/api/buoi-hoc/{id}/attendance/bulk` | Teacher phụ trách buổi học | Cập nhật điểm danh nhiều sinh viên trong một request; validate toàn bộ trước khi lưu, không update nửa vời. |
 | POST | `/api/buoi-hoc/{id}/attendance/submit` | Teacher phụ trách buổi học | Gửi điểm danh khi đang mở và chưa quá hạn; set `TrangThaiDiemDanh = da_gui`, `DiemDanhDaGuiLuc = now`, `DiemDanhHanChinhSuaLuc = now + 10 phút`. MVP không cho sửa sau submit. |
 | GET | `/api/student/attendance` | Student | Sinh viên xem điểm danh của chính mình, có filter `ngayTu`, `ngayDen`, `maKhoaHoc`, `trangThai`, `pageIndex`, `pageSize`. |
+| POST | `/api/buoi-hoc/{id}/attendance/unlock-requests` | Teacher phụ trách buổi học | Giáo viên tạo yêu cầu mở khóa điểm danh cho buổi đã gửi/đã khóa. Không cho tạo nếu buổi đã hủy hoặc đã có yêu cầu `cho_duyet`. |
+| GET | `/api/teacher/attendance/unlock-requests` | Teacher | Giáo viên xem yêu cầu do mình tạo hoặc thuộc buổi mình phụ trách. Filter `maBuoiHoc`, `maKhoaHoc`, `trangThai`, `pageIndex`, `pageSize`. |
+| GET | `/api/admin/attendance/unlock-requests` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Danh sách yêu cầu mở khóa điểm danh theo campus scope `KhoaHoc.MaDonVi`. Filter `maBuoiHoc`, `maKhoaHoc`, `trangThai`, `pageIndex`, `pageSize`. |
+| GET | `/api/admin/attendance/unlock-requests/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Chi tiết yêu cầu mở khóa điểm danh trong campus scope. |
+| POST | `/api/admin/attendance/unlock-requests/{id}/approve` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Duyệt yêu cầu `cho_duyet`, set `TrangThai = da_duyet`, mở lại buổi học bằng `TrangThaiDiemDanh = dang_diem_danh`, hạn chỉnh sửa/gửi = now + 10 phút. |
+| POST | `/api/admin/attendance/unlock-requests/{id}/reject` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Từ chối yêu cầu `cho_duyet`, lưu lý do từ chối và không mở lại buổi học. |
 
-Ghi chú P0-6: Nguồn sinh viên MVP lấy từ `BuoiHoc -> KhoaHoc.MaLop -> NguoiDung.MaLop`, không dùng `DangKyHocPhan`. Không làm QR/GPS/FaceID, export Excel, realtime SignalR hoặc unlock request/admin approval. Rule 15 phút được enforce khi update/bulk/submit dựa trên `DiemDanhBatDauLuc + 15 phút`, không có background job auto-submit/auto-lock.
+Ghi chú P0-6/P0-7: Nguồn sinh viên MVP lấy từ `BuoiHoc -> KhoaHoc.MaLop -> NguoiDung.MaLop`, không dùng `DangKyHocPhan`. Không làm QR/GPS/FaceID, export Excel, realtime SignalR, notification hoặc email. Rule 15 phút được enforce khi update/bulk/submit dựa trên `DiemDanhHanGuiLuc`, không có background job auto-submit/auto-lock. P0-7 dùng `YeuCauMoKhoaDiemDanh` để giáo viên xin mở lại điểm danh; khi admin/học vụ duyệt, buổi học được mở lại trong 10 phút để giáo viên chỉnh sửa và submit lại.
 
 ### Dự kiến/cần bổ sung
 
-- `POST /api/attendance-unlock-requests`
-- `PUT /api/attendance-unlock-requests/{id}/approve`
+- Báo cáo/tổng hợp điểm danh nâng cao.
 
 ## Grades APIs
 
