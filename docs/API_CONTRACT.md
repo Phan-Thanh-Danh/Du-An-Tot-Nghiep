@@ -320,6 +320,15 @@ Ghi chú: `DanhMucMonHoc` là môn học gốc. Trong MVP, chương/bài học/b
 
 ## Finance APIs
 
+### Finance Schema/Options - Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/finance/schema/options` | SuperAdmin/FinanceAdmin/CampusChiefAccountant/CampusAccountant | Trả danh sách loại/trạng thái hóa đơn, loại/trạng thái giao dịch, provider thanh toán MVP (`vietqr`, `payos`), trạng thái duyệt tài khoản nhận tiền, loại/trạng thái hoàn phí và công thức tiền backend đang dùng. |
+| GET | `/api/finance/schema/statuses` | SuperAdmin/FinanceAdmin/CampusChiefAccountant/CampusAccountant | Trả riêng các nhóm trạng thái tài chính để FE hiển thị/lọc dữ liệu, không cho FE tự cập nhật trạng thái hóa đơn. |
+
+Ghi chú: Endpoint schema chỉ expose constants/công thức nghiệp vụ, không trả secret provider và không tạo giao dịch thanh toán.
+
 ### Cấu Hình Học Phí Chương Trình - Đã có
 
 | Method | Endpoint | Auth | Ghi chú |
@@ -337,7 +346,7 @@ Ghi chú: Module này chỉ quản lý cấu hình học phí chương trình đ
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
-| GET | `/api/student/tuition/invoices` | Student | Sinh viên xem danh sách hóa đơn học phí của chính mình. Response có `soTienPhaiDong = soTien - giamTru` và `conPhaiDong = soTienPhaiDong - daThanhToan`. |
+| GET | `/api/student/tuition/invoices` | Student | Sinh viên xem danh sách hóa đơn học phí của chính mình. Response có `soTienPhaiDong = MAX(0, soTien - giamTru)` và `conPhaiDong = MAX(0, soTienPhaiDong - daThanhToan)`. |
 | GET | `/api/student/tuition/transactions` | Student | Sinh viên xem lịch sử giao dịch học phí theo các hóa đơn của chính mình. |
 | POST | `/api/student/tuition/invoices/{invoiceId}/payments` | Student | Tạo giao dịch thanh toán cho hóa đơn của sinh viên hiện tại. Body `{ "provider": "payos" }` trả `checkoutUrl`; body `{ "provider": "vietqr" }` trả `qrUrl`. Frontend không tự cập nhật trạng thái hóa đơn. |
 | GET | `/api/student/tuition/payments/{transactionId}` | Student | Sinh viên kiểm tra trạng thái giao dịch thanh toán của chính mình. |

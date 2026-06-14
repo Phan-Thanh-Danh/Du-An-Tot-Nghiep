@@ -6,13 +6,14 @@ using Backend.DTOs.Finance.ProgramTuitionConfigs;
 using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.Audit;
+using Backend.Services.Finance;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.Finance.ProgramTuitionConfigs;
 
 public class ProgramTuitionConfigService : IProgramTuitionConfigService
 {
-    private const string FixedPerTermCalculationType = "co_dinh_theo_hoc_ky";
+    private const string FixedPerTermCalculationType = FinanceConstants.TuitionCalculationTypes.FixedPerTerm;
 
     private readonly ApplicationDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -1159,7 +1160,7 @@ public class ProgramTuitionConfigService : IProgramTuitionConfigService
 
     private static decimal CalculateTotal(decimal tuitionAmount, decimal materialAmount)
     {
-        return tuitionAmount + materialAmount;
+        return InvoiceFinanceHelper.CalculateProgramTuitionTotal(tuitionAmount, materialAmount);
     }
 
     private static string? NormalizeOptionalText(string? value)

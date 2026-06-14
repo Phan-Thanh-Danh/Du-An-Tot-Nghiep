@@ -3,25 +3,18 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Backend.Constants;
 using Backend.Data;
 using Backend.DTOs.Finance.TuitionPayments;
 using Backend.Exceptions;
 using Backend.Models;
+using Backend.Services.Finance;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.Finance.TuitionPayments;
 
 public class TuitionPaymentService : ITuitionPaymentService
 {
-    private const string TuitionInvoiceType = "hoc_phi";
-    private const string PaymentTransactionType = "thanh_toan_hoc_phi";
-    private const string PendingStatus = "cho_thanh_toan";
-    private const string SuccessStatus = "thanh_cong";
-    private const string FailedStatus = "that_bai";
-    private const string WrongAmountStatus = "sai_so_tien";
-    private const string PayOsProvider = "payos";
-    private const string VietQrProvider = "vietqr";
-    private const string ApprovedReceivingAccountStatus = "da_duyet";
     private const string VietQrTemplateId = "Z0oL3W9";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
@@ -53,7 +46,7 @@ public class TuitionPaymentService : ITuitionPaymentService
                 on invoice.MaHocKy equals term.MaHocKy into termJoin
             from term in termJoin.DefaultIfEmpty()
             where invoice.MaHocSinh == currentUserId
-                && invoice.LoaiHoaDon == TuitionInvoiceType
+                && invoice.LoaiHoaDon == FinanceConstants.InvoiceTypes.Tuition
             orderby invoice.HanThanhToan descending, invoice.MaHoaDon descending
             select new
             {
@@ -64,8 +57,8 @@ public class TuitionPaymentService : ITuitionPaymentService
 
         return invoices.Select(item =>
         {
-            var totalDue = CalculateTotalDue(item.Invoice);
-            var remaining = CalculateRemaining(item.Invoice);
+            var totalDue = InvoiceFinanceHelper.CalculateAmountDue(item.Invoice);
+            var remaining = InvoiceFinanceHelper.CalculateRemainingAmount(item.Invoice);
 
             return new StudentTuitionInvoiceDto
             {
@@ -92,7 +85,7 @@ public class TuitionPaymentService : ITuitionPaymentService
             join invoice in _context.HoaDons.AsNoTracking()
                 on transaction.MaHoaDon equals invoice.MaHoaDon
             where invoice.MaHocSinh == currentUserId
-                && invoice.LoaiHoaDon == TuitionInvoiceType
+                && invoice.LoaiHoaDon == FinanceConstants.InvoiceTypes.Tuition
             orderby transaction.NgayTao descending, transaction.MaGiaoDich descending
             select new StudentTuitionTransactionDto
             {
@@ -122,7 +115,7 @@ public class TuitionPaymentService : ITuitionPaymentService
             .FirstOrDefaultAsync(x =>
                 x.MaHoaDon == invoiceId &&
                 x.MaHocSinh == currentUserId &&
-                x.LoaiHoaDon == TuitionInvoiceType,
+                x.LoaiHoaDon == FinanceConstants.InvoiceTypes.Tuition,
                 cancellationToken);
 
         if (invoice is null)
@@ -130,12 +123,12 @@ public class TuitionPaymentService : ITuitionPaymentService
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy hóa đơn học phí.");
         }
 
-        if (invoice.TrangThai == "da_huy")
+        if (invoice.TrangThai == FinanceConstants.InvoiceStatuses.Canceled)
         {
             throw new ApiException(StatusCodes.Status400BadRequest, "Hóa đơn đã hủy, không thể thanh toán.");
         }
 
-        var remaining = CalculateRemaining(invoice);
+        var remaining = InvoiceFinanceHelper.CalculateRemainingAmount(invoice);
         if (remaining <= 0)
         {
             throw new ApiException(StatusCodes.Status400BadRequest, "Hóa đơn đã được thanh toán đủ.");
@@ -153,7 +146,7 @@ public class TuitionPaymentService : ITuitionPaymentService
 
         return normalizedProvider switch
         {
-            VietQrProvider => await CreateVietQrPaymentAsync(
+            FinanceConstants.PaymentProviders.VietQr => await CreateVietQrPaymentAsync(
                 invoice,
                 receivingAccount,
                 currentUserId,
@@ -161,7 +154,7 @@ public class TuitionPaymentService : ITuitionPaymentService
                 internalReference,
                 transferContent,
                 cancellationToken),
-            PayOsProvider => await CreatePayOsPaymentAsync(
+            FinanceConstants.PaymentProviders.PayOs => await CreatePayOsPaymentAsync(
                 invoice,
                 receivingAccount,
                 currentUserId,
@@ -184,7 +177,7 @@ public class TuitionPaymentService : ITuitionPaymentService
                 on payment.MaHoaDon equals invoice.MaHoaDon
             where payment.MaGiaoDich == transactionId
                 && invoice.MaHocSinh == currentUserId
-                && invoice.LoaiHoaDon == TuitionInvoiceType
+                && invoice.LoaiHoaDon == FinanceConstants.InvoiceTypes.Tuition
             select payment)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -242,7 +235,7 @@ public class TuitionPaymentService : ITuitionPaymentService
             };
         }
 
-        if (transaction.TrangThai == SuccessStatus)
+        if (transaction.TrangThai == FinanceConstants.TransactionStatuses.Success)
         {
             await dbTransaction.CommitAsync(cancellationToken);
             return new PayOsWebhookResultDto
@@ -259,7 +252,7 @@ public class TuitionPaymentService : ITuitionPaymentService
 
         if (!isSuccessfulPayment)
         {
-            transaction.TrangThai = FailedStatus;
+            transaction.TrangThai = FinanceConstants.TransactionStatuses.Failed;
             await _context.SaveChangesAsync(cancellationToken);
             await dbTransaction.CommitAsync(cancellationToken);
 
@@ -273,7 +266,7 @@ public class TuitionPaymentService : ITuitionPaymentService
 
         if (amount != transaction.SoTien)
         {
-            transaction.TrangThai = WrongAmountStatus;
+            transaction.TrangThai = FinanceConstants.TransactionStatuses.WrongAmount;
             await _context.SaveChangesAsync(cancellationToken);
             await dbTransaction.CommitAsync(cancellationToken);
 
@@ -290,10 +283,12 @@ public class TuitionPaymentService : ITuitionPaymentService
             throw new ApiException(StatusCodes.Status400BadRequest, "Giao dịch PayOS không gắn với hóa đơn hợp lệ.");
         }
 
-        transaction.TrangThai = SuccessStatus;
+        transaction.TrangThai = FinanceConstants.TransactionStatuses.Success;
         transaction.NgayThanhToan = now;
         transaction.HoaDon.DaThanhToan += transaction.SoTien;
-        transaction.HoaDon.TrangThai = CalculateInvoiceStatus(transaction.HoaDon, now);
+        transaction.HoaDon.TrangThai = InvoiceFinanceHelper.RecalculateInvoiceStatus(
+            transaction.HoaDon,
+            DateOnly.FromDateTime(now));
         transaction.HoaDon.NgayCapNhat = now;
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -331,14 +326,14 @@ public class TuitionPaymentService : ITuitionPaymentService
             MaTaiKhoanNhanTien = receivingAccount.MaTaiKhoanNhanTien,
             MaThamChieuNoiBo = internalReference,
             SoTien = amount,
-            LoaiGiaoDich = PaymentTransactionType,
-            TrangThai = PendingStatus,
-            NhaCungCapThanhToan = VietQrProvider,
+            LoaiGiaoDich = FinanceConstants.TransactionTypes.TuitionPayment,
+            TrangThai = FinanceConstants.TransactionStatuses.PendingPayment,
+            NhaCungCapThanhToan = FinanceConstants.PaymentProviders.VietQr,
             NoiDungChuyenKhoan = transferContent,
             QrUrl = qrUrl,
             RequestPayloadJson = JsonSerializer.Serialize(new
             {
-                provider = VietQrProvider,
+                provider = FinanceConstants.PaymentProviders.VietQr,
                 bankCode = receivingAccount.MaNganHang,
                 accountNo = receivingAccount.SoTaiKhoan,
                 accountName = receivingAccount.TenChuTaiKhoan,
@@ -374,9 +369,9 @@ public class TuitionPaymentService : ITuitionPaymentService
             MaTaiKhoanNhanTien = receivingAccount.MaTaiKhoanNhanTien,
             MaThamChieuNoiBo = internalReference,
             SoTien = amount,
-            LoaiGiaoDich = PaymentTransactionType,
-            TrangThai = PendingStatus,
-            NhaCungCapThanhToan = PayOsProvider,
+            LoaiGiaoDich = FinanceConstants.TransactionTypes.TuitionPayment,
+            TrangThai = FinanceConstants.TransactionStatuses.PendingPayment,
+            NhaCungCapThanhToan = FinanceConstants.PaymentProviders.PayOs,
             NoiDungChuyenKhoan = transferContent,
             NgayTao = now,
             NgayCapNhat = now,
@@ -410,7 +405,7 @@ public class TuitionPaymentService : ITuitionPaymentService
         }
         catch (PayOsProviderException exception)
         {
-            transaction.TrangThai = FailedStatus;
+            transaction.TrangThai = FinanceConstants.TransactionStatuses.Failed;
             transaction.ResponsePayloadJson = exception.ResponsePayloadJson;
             transaction.NgayCapNhat = DateTime.UtcNow;
             await _context.SaveChangesAsync(cancellationToken);
@@ -432,8 +427,8 @@ public class TuitionPaymentService : ITuitionPaymentService
             .Where(x =>
                 x.MaHoaDon == invoiceId &&
                 x.NhaCungCapThanhToan == provider &&
-                x.LoaiGiaoDich == PaymentTransactionType &&
-                x.TrangThai == PendingStatus &&
+                x.LoaiGiaoDich == FinanceConstants.TransactionTypes.TuitionPayment &&
+                x.TrangThai == FinanceConstants.TransactionStatuses.PendingPayment &&
                 x.SoTien == amount)
             .OrderByDescending(x => x.NgayTao)
             .FirstOrDefaultAsync(cancellationToken);
@@ -443,12 +438,12 @@ public class TuitionPaymentService : ITuitionPaymentService
             return null;
         }
 
-        if (provider == PayOsProvider && !string.IsNullOrWhiteSpace(payment.CheckoutUrl))
+        if (provider == FinanceConstants.PaymentProviders.PayOs && !string.IsNullOrWhiteSpace(payment.CheckoutUrl))
         {
             return payment;
         }
 
-        if (provider == VietQrProvider && !string.IsNullOrWhiteSpace(payment.QrUrl))
+        if (provider == FinanceConstants.PaymentProviders.VietQr && !string.IsNullOrWhiteSpace(payment.QrUrl))
         {
             return payment;
         }
@@ -466,7 +461,7 @@ public class TuitionPaymentService : ITuitionPaymentService
             .FirstOrDefaultAsync(x =>
                 x.MaDonVi == organizationId &&
                 x.NhaCungCapThanhToan == provider &&
-                x.TrangThaiDuyet == ApprovedReceivingAccountStatus &&
+                x.TrangThaiDuyet == FinanceConstants.PaymentAccountApprovalStatuses.Approved &&
                 x.LaMacDinh &&
                 x.ConHoatDong,
                 cancellationToken);
@@ -506,7 +501,7 @@ public class TuitionPaymentService : ITuitionPaymentService
     {
         var query = _context.GiaoDichs
             .Include(x => x.HoaDon)
-            .Where(x => x.NhaCungCapThanhToan == PayOsProvider);
+            .Where(x => x.NhaCungCapThanhToan == FinanceConstants.PaymentProviders.PayOs);
 
         if (orderCode.HasValue)
         {
@@ -554,38 +549,10 @@ public class TuitionPaymentService : ITuitionPaymentService
 
         return normalized switch
         {
-            PayOsProvider => PayOsProvider,
-            VietQrProvider => VietQrProvider,
+            FinanceConstants.PaymentProviders.PayOs => FinanceConstants.PaymentProviders.PayOs,
+            FinanceConstants.PaymentProviders.VietQr => FinanceConstants.PaymentProviders.VietQr,
             _ => throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ hỗ trợ thanh toán PayOS hoặc VietQR.")
         };
-    }
-
-    private static decimal CalculateTotalDue(HoaDon invoice)
-    {
-        return invoice.SoTien - invoice.GiamTru;
-    }
-
-    private static decimal CalculateRemaining(HoaDon invoice)
-    {
-        return CalculateTotalDue(invoice) - invoice.DaThanhToan;
-    }
-
-    private static string CalculateInvoiceStatus(HoaDon invoice, DateTime now)
-    {
-        var totalDue = CalculateTotalDue(invoice);
-        if (invoice.DaThanhToan >= totalDue)
-        {
-            return "da_thanh_toan";
-        }
-
-        if (invoice.DaThanhToan > 0 && invoice.DaThanhToan < totalDue)
-        {
-            return "thanh_toan_mot_phan";
-        }
-
-        return DateOnly.FromDateTime(now) > invoice.HanThanhToan
-            ? "qua_han"
-            : "chua_thanh_toan";
     }
 
     private static JsonDocument ParseWebhookJson(string rawBody)

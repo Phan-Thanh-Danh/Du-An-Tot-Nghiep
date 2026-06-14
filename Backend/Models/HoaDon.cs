@@ -21,16 +21,20 @@ public class HoaDon
 
     public string? UrlHoaDonPdf { get; set; }
     public string? GhiChu { get; set; }
+    public string? LyDoHuy { get; set; }
 
     public DateTime NgayTao { get; set; }
     public DateTime? NgayCapNhat { get; set; }
+    public DateTime? NgayHuy { get; set; }
 
     public int? NguoiTao { get; set; }
     public int? NguoiCapNhat { get; set; }
+    public int? NguoiHuy { get; set; }
 
     public DonVi? DonVi { get; set; }
     public NguoiDung? HocSinh { get; set; }
     public HocKy? HocKy { get; set; }
     public NguoiDung? NguoiTaoNavigation { get; set; }
     public NguoiDung? NguoiCapNhatNavigation { get; set; }
+    public NguoiDung? NguoiHuyNavigation { get; set; }
 }
