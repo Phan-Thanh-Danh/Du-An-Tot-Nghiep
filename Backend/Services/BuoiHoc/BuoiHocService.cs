@@ -4,9 +4,11 @@ using Backend.Data;
 using Backend.DTOs.Auth;
 using Backend.DTOs.BuoiHoc;
 using Backend.DTOs.Common;
+using Backend.DTOs.Notifications;
 using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.Audit;
+using Backend.Services.Notifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.BuoiHoc;
@@ -42,15 +44,21 @@ public class BuoiHocService : IBuoiHocService
     private readonly ApplicationDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuditLogService _auditLogService;
+    private readonly INotificationService _notificationService;
+    private readonly ILogger<BuoiHocService> _logger;
 
     public BuoiHocService(
         ApplicationDbContext context,
         IHttpContextAccessor httpContextAccessor,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        INotificationService notificationService,
+        ILogger<BuoiHocService> logger)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _auditLogService = auditLogService;
+        _notificationService = notificationService;
+        _logger = logger;
     }
 
     public async Task<PagedResultDto<BuoiHocDto>> GetAsync(
@@ -298,6 +306,16 @@ public class BuoiHocService : IBuoiHocService
             "Đổi giáo viên dạy thay cho buổi học.",
             cancellationToken);
 
+        await TrySendSessionChangedNotificationAsync(
+            session,
+            course,
+            currentUser.UserId,
+            "Thay đổi giáo viên buổi học",
+            $"Buổi học {course.TieuDe} ngày {session.NgayHoc:yyyy-MM-dd} đã có giáo viên dạy thay.",
+            "important",
+            [substituteTeacher.MaNguoiDung],
+            cancellationToken);
+
         return await GetByIdAsync(session.MaBuoiHoc, cancellationToken);
     }
 
@@ -342,6 +360,16 @@ public class BuoiHocService : IBuoiHocService
             await GetAuditSnapshotAsync(session.MaBuoiHoc, cancellationToken),
             currentUser,
             "Đổi phòng cho buổi học.",
+            cancellationToken);
+
+        await TrySendSessionChangedNotificationAsync(
+            session,
+            course,
+            currentUser.UserId,
+            "Thay đổi phòng học",
+            $"Buổi học {course.TieuDe} ngày {session.NgayHoc:yyyy-MM-dd} đã đổi phòng.",
+            "warning",
+            [session.MaGiaoVienDayThay ?? session.MaGiaoVien],
             cancellationToken);
 
         return await GetByIdAsync(session.MaBuoiHoc, cancellationToken);
@@ -390,6 +418,16 @@ public class BuoiHocService : IBuoiHocService
             "Đổi ca cho buổi học.",
             cancellationToken);
 
+        await TrySendSessionChangedNotificationAsync(
+            session,
+            course,
+            currentUser.UserId,
+            "Thay đổi ca học",
+            $"Buổi học {course.TieuDe} ngày {session.NgayHoc:yyyy-MM-dd} đã đổi ca học.",
+            "warning",
+            [session.MaGiaoVienDayThay ?? session.MaGiaoVien],
+            cancellationToken);
+
         return await GetByIdAsync(session.MaBuoiHoc, cancellationToken);
     }
 
@@ -422,7 +460,79 @@ public class BuoiHocService : IBuoiHocService
             "Hủy buổi học.",
             cancellationToken);
 
+        await TrySendSessionNotificationAsync(
+            session,
+            course,
+            currentUser.UserId,
+            "Buổi học đã bị hủy",
+            $"Buổi học {course.TieuDe} ngày {session.NgayHoc:yyyy-MM-dd} đã bị hủy.",
+            "session_cancelled",
+            "important",
+            [session.MaGiaoVienDayThay ?? session.MaGiaoVien],
+            cancellationToken);
+
         return await GetByIdAsync(session.MaBuoiHoc, cancellationToken);
+    }
+
+    private Task TrySendSessionChangedNotificationAsync(
+        Models.BuoiHoc session,
+        KhoaHoc course,
+        int actorUserId,
+        string title,
+        string content,
+        string level,
+        IReadOnlyCollection<int> additionalUserIds,
+        CancellationToken cancellationToken)
+    {
+        return TrySendSessionNotificationAsync(
+            session,
+            course,
+            actorUserId,
+            title,
+            content,
+            "schedule_changed",
+            level,
+            additionalUserIds,
+            cancellationToken);
+    }
+
+    private async Task TrySendSessionNotificationAsync(
+        Models.BuoiHoc session,
+        KhoaHoc course,
+        int actorUserId,
+        string title,
+        string content,
+        string notificationType,
+        string level,
+        IReadOnlyCollection<int> additionalUserIds,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _notificationService.SendToCourseAsync(
+                new SystemNotificationRequest
+                {
+                    TieuDe = title,
+                    TomTat = content,
+                    NoiDungText = content,
+                    LoaiThongBao = notificationType,
+                    MucDo = level,
+                    DoiTuongLienKet = "buoi_hoc",
+                    MaDoiTuongLienKet = session.MaBuoiHoc,
+                    MaDonVi = course.MaDonVi,
+                    NguoiTao = actorUserId
+                },
+                course.MaKhoaHoc,
+                additionalUserIds,
+                cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Không thể gửi thông báo tự động cho buổi học {SessionId}.",
+                session.MaBuoiHoc);
+        }
     }
 
     private IQueryable<SessionQueryResult> CreateSessionQuery()

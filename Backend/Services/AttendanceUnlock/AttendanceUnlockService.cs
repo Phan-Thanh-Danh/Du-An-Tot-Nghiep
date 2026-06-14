@@ -4,9 +4,11 @@ using Backend.Data;
 using Backend.DTOs.AttendanceUnlock;
 using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
+using Backend.DTOs.Notifications;
 using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.Audit;
+using Backend.Services.Notifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.AttendanceUnlock;
@@ -33,15 +35,21 @@ public class AttendanceUnlockService : IAttendanceUnlockService
     private readonly ApplicationDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuditLogService _auditLogService;
+    private readonly INotificationService _notificationService;
+    private readonly ILogger<AttendanceUnlockService> _logger;
 
     public AttendanceUnlockService(
         ApplicationDbContext context,
         IHttpContextAccessor httpContextAccessor,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        INotificationService notificationService,
+        ILogger<AttendanceUnlockService> logger)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _auditLogService = auditLogService;
+        _notificationService = notificationService;
+        _logger = logger;
     }
 
     public async Task<AttendanceUnlockRequestDto> CreateAsync(
@@ -245,6 +253,16 @@ public class AttendanceUnlockService : IAttendanceUnlockService
             "Duyệt yêu cầu mở khóa điểm danh.",
             cancellationToken);
 
+        await TrySendUnlockNotificationAsync(
+            unlockRequest,
+            course,
+            currentUser.UserId,
+            "Yêu cầu mở khóa điểm danh đã được duyệt",
+            $"Yêu cầu mở khóa điểm danh cho buổi học #{session.MaBuoiHoc} đã được duyệt. Bạn có 10 phút để chỉnh sửa và gửi lại.",
+            "attendance_unlock_approved",
+            "info",
+            cancellationToken);
+
         return await GetRequestDtoAsync(unlockRequest.MaYcMoKhoa, cancellationToken);
     }
 
@@ -309,7 +327,54 @@ public class AttendanceUnlockService : IAttendanceUnlockService
             "Từ chối yêu cầu mở khóa điểm danh.",
             cancellationToken);
 
+        await TrySendUnlockNotificationAsync(
+            unlockRequest,
+            course,
+            currentUser.UserId,
+            "Yêu cầu mở khóa điểm danh bị từ chối",
+            $"Yêu cầu mở khóa điểm danh cho buổi học #{session.MaBuoiHoc} đã bị từ chối.",
+            "attendance_unlock_rejected",
+            "warning",
+            cancellationToken);
+
         return await GetRequestDtoAsync(unlockRequest.MaYcMoKhoa, cancellationToken);
+    }
+
+    private async Task TrySendUnlockNotificationAsync(
+        YeuCauMoKhoaDiemDanh request,
+        KhoaHoc course,
+        int actorUserId,
+        string title,
+        string content,
+        string notificationType,
+        string level,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _notificationService.SendToUsersAsync(
+                new SystemNotificationRequest
+                {
+                    TieuDe = title,
+                    TomTat = content,
+                    NoiDungText = content,
+                    LoaiThongBao = notificationType,
+                    MucDo = level,
+                    DoiTuongLienKet = "yeu_cau_mo_khoa_diem_danh",
+                    MaDoiTuongLienKet = request.MaYcMoKhoa,
+                    MaDonVi = course.MaDonVi,
+                    NguoiTao = actorUserId
+                },
+                [request.NguoiYeuCau],
+                cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Không thể gửi thông báo tự động cho yêu cầu mở khóa điểm danh {RequestId}.",
+                request.MaYcMoKhoa);
+        }
     }
 
     private IQueryable<UnlockRequestQueryResult> CreateRequestQuery()

@@ -21,6 +21,7 @@ using Backend.Services.Curriculum;
 using Backend.Services.Floors;
 using Backend.Services.Finance.ProgramTuitionConfigs;
 using Backend.Services.Majors;
+using Backend.Services.Notifications;
 using Backend.Services.Organizations;
 using Backend.Services.Rbac;
 using Backend.Services.Rooms;
@@ -107,6 +108,7 @@ builder.Services.AddScoped<IScheduleConflictService, ScheduleConflictService>();
 builder.Services.AddScoped<IBuoiHocService, BuoiHocService>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 builder.Services.AddScoped<IAttendanceUnlockService, AttendanceUnlockService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 var r2Settings = builder.Configuration.GetSection("R2Storage").Get<R2StorageSettings>()
     ?? new R2StorageSettings();
