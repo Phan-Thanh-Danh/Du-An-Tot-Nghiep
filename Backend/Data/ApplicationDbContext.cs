@@ -3355,6 +3355,9 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(e => e.MaThongBao).HasName("PK_ThongBao");
             entity.Property(e => e.MaThongBao)
                 .HasColumnName("ma_thong_bao");
+            entity.Property(e => e.MaNhomThongBao)
+                .HasColumnName("ma_nhom_thong_bao")
+                .HasDefaultValueSql("NEWID()");
             entity.Property(e => e.MaNguoiNhan)
                 .HasColumnName("ma_nguoi_nhan");
             entity.Property(e => e.MaDonVi)
@@ -3366,23 +3369,64 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.TieuDe)
                 .HasColumnName("tieu_de")
                 .HasMaxLength(500);
+            entity.Property(e => e.TomTat)
+                .HasColumnName("tom_tat")
+                .HasMaxLength(1000);
             entity.Property(e => e.NoiDung)
                 .HasColumnName("noi_dung")
                 .HasColumnType("nvarchar(max)")
                 .IsRequired();
+            entity.Property(e => e.NoiDungJson)
+                .HasColumnName("noi_dung_json")
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.NoiDungText)
+                .HasColumnName("noi_dung_text")
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.MucDo)
+                .HasColumnName("muc_do")
+                .HasMaxLength(30)
+                .IsRequired()
+                .HasDefaultValue("info");
+            entity.Property(e => e.DoiTuongLienKet)
+                .HasColumnName("doi_tuong_lien_ket")
+                .HasMaxLength(100);
+            entity.Property(e => e.MaDoiTuongLienKet)
+                .HasColumnName("ma_doi_tuong_lien_ket");
+            entity.Property(e => e.NguoiTao)
+                .HasColumnName("nguoi_tao");
+            entity.Property(e => e.TrangThai)
+                .HasColumnName("trang_thai")
+                .HasMaxLength(30)
+                .IsRequired()
+                .HasDefaultValue("da_gui");
             entity.Property(e => e.DaDoc)
                 .HasColumnName("da_doc")
                 .HasDefaultValue(false);
+            entity.Property(e => e.DocLuc)
+                .HasColumnName("doc_luc")
+                .HasColumnType("datetime2");
             entity.Property(e => e.NgayTao)
                 .HasColumnName("ngay_tao")
                 .HasColumnType("datetime2")
                 .HasDefaultValueSql("SYSUTCDATETIME()");
             entity.HasIndex(e => new { e.MaNguoiNhan, e.DaDoc }).HasDatabaseName("IX_ThongBao_NguoiNhan_DaDoc");
+            entity.HasIndex(e => e.MaDonVi).HasDatabaseName("IX_ThongBao_ma_don_vi");
+            entity.HasIndex(e => new { e.MaNguoiNhan, e.DaDoc, e.NgayTao }).HasDatabaseName("IX_ThongBao_NguoiNhan_DaDoc_NgayTao");
+            entity.HasIndex(e => e.MaNhomThongBao).HasDatabaseName("IX_ThongBao_MaNhomThongBao");
+            entity.HasIndex(e => new { e.MaDonVi, e.NgayTao }).HasDatabaseName("IX_ThongBao_DonVi_NgayTao");
+            entity.ToTable(t => t.HasCheckConstraint("CK_ThongBao_muc_do", "[muc_do] IN (N'info', N'warning', N'important')"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_ThongBao_trang_thai", "[trang_thai] IN (N'nhap', N'da_gui', N'da_huy')"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_ThongBao_noi_dung_json_ISJSON", "[noi_dung_json] IS NULL OR ISJSON([noi_dung_json]) = 1"));
             entity.HasOne(e => e.NguoiNhan)
                 .WithMany()
                 .HasForeignKey(e => e.MaNguoiNhan)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_ThongBao_ma_nguoi_nhan__NguoiDung");
+            entity.HasOne(e => e.NguoiTaoNavigation)
+                .WithMany()
+                .HasForeignKey(e => e.NguoiTao)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_ThongBao_nguoi_tao__NguoiDung");
             entity.HasOne(e => e.DonVi)
                 .WithMany()
                 .HasForeignKey(e => e.MaDonVi)

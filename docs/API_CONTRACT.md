@@ -530,14 +530,35 @@ Chưa thấy controller grades trong repo hiện tại.
 
 ### Đã có
 
-Chưa thấy controller notification trong repo hiện tại.
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/notifications` | JWT | User xem danh sách thông báo của chính mình, có phân trang và filter `daDoc`, `loaiThongBao`, `mucDo`, `ngayTu`, `ngayDen`. |
+| GET | `/api/notifications/{id}` | JWT | User xem chi tiết một thông báo của chính mình. Nội dung Editor.js được trả qua `noiDungJson`; backend không render HTML. |
+| GET | `/api/notifications/unread-count` | JWT | Lấy số thông báo chưa đọc của user hiện tại. |
+| PATCH | `/api/notifications/{id}/read` | JWT | Đánh dấu một thông báo của user hiện tại là đã đọc, set `daDoc = true`, `docLuc = now`. |
+| PATCH | `/api/notifications/read-all` | JWT | Đánh dấu tất cả thông báo chưa đọc của user hiện tại là đã đọc. |
+| POST | `/api/admin/notifications` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Tạo thông báo thủ công. `targetType` nhận `users`, `class`, `course`, `campus`; campus scope được kiểm tra theo `MaDonVi`. |
+| GET | `/api/admin/notifications` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Danh sách thông báo quản trị, group theo `maNhomThongBao`, có `recipientCount`, `readCount`, `unreadCount`. |
+| GET | `/api/admin/notifications/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Chi tiết group thông báo dựa trên `maNhomThongBao` của row `{id}` trong phạm vi campus scope. |
+
+Request tạo manual notification:
+
+```json
+{
+  "tieuDe": "Thông báo nghỉ học",
+  "tomTat": "Lớp SD1904 nghỉ học ngày mai.",
+  "noiDungJson": "{\"time\":1710000000000,\"blocks\":[]}",
+  "noiDungText": "Lớp SD1904 nghỉ học ngày mai.",
+  "mucDo": "important",
+  "targetType": "class",
+  "targetIds": [1]
+}
+```
+
+Ghi chú P0-8: Bảng `ThongBao` hiện được dùng theo mô hình mỗi dòng là một người nhận; các dòng cùng một lần gửi dùng chung `maNhomThongBao`. `loaiThongBao` ở API map vào cột DB `loai_su_kien`. Editor.js output được lưu nguyên vào `noi_dung_json` và được validate JSON; `noi_dung_text`/`tom_tat` dùng cho preview/search. P0-8 không làm SignalR realtime, email, mobile push hoặc scheduler. Auto notification đã gắn vào các phát sinh buổi học P0-5 và duyệt/từ chối mở khóa điểm danh P0-7.
 
 ### Dự kiến/cần bổ sung
 
-- `GET /api/notifications`
-- `GET /api/notifications/{id}`
-- `POST /api/notifications`
-- `PATCH /api/notifications/{id}/read`
 - `GET /api/notification-preferences`
 - `PUT /api/notification-preferences`
 
