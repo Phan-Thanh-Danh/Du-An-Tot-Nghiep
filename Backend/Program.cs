@@ -21,6 +21,7 @@ using Backend.Services.CourseSyllabuses;
 using Backend.Services.Curriculum;
 using Backend.Services.Floors;
 using Backend.Services.Finance.ProgramTuitionConfigs;
+using Backend.Services.Finance.TuitionPayments;
 using Backend.Services.Majors;
 using Backend.Services.Notifications;
 using Backend.Services.Organizations;
@@ -73,6 +74,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
+builder.Services.Configure<PayOSOptions>(builder.Configuration.GetSection("PayOS"));
 builder.Services.AddSingleton<JwtHelper>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -103,6 +105,9 @@ builder.Services.AddScoped<IFloorService, FloorService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<ICaHocService, CaHocService>();
 builder.Services.AddScoped<IProgramTuitionConfigService, ProgramTuitionConfigService>();
+builder.Services.AddScoped<IVietQrService, VietQrService>();
+builder.Services.AddHttpClient<IPayOsService, PayOsService>();
+builder.Services.AddScoped<ITuitionPaymentService, TuitionPaymentService>();
 builder.Services.AddScoped<ICurriculumService, CurriculumService>();
 builder.Services.AddScoped<IThoiKhoaBieuService, ThoiKhoaBieuService>();
 builder.Services.AddScoped<IScheduleConflictService, ScheduleConflictService>();

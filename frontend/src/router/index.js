@@ -39,6 +39,18 @@ const router = createRouter({
       component: () => import('../views/Student/ExamTakeView.vue'),
       meta: { requiresAuth: true, role: 'student', title: 'Làm bài thi', fullscreen: true },
     },
+    {
+      path: '/payment/success',
+      name: 'payment-success',
+      component: () => import('../views/Payment/PaymentSuccessView.vue'),
+      meta: { title: 'Thanh toán đang xác nhận' },
+    },
+    {
+      path: '/payment/cancel',
+      name: 'payment-cancel',
+      component: () => import('../views/Payment/PaymentCancelView.vue'),
+      meta: { title: 'Đã hủy thanh toán' },
+    },
 
     // ── Student Layout (App Shell) ─────────────────────────
     {

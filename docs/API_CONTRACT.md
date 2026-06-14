@@ -331,7 +331,19 @@ Ghi chú: `DanhMucMonHoc` là môn học gốc. Trong MVP, chương/bài học/b
 | PUT | `/api/finance/program-tuition-configs/{id}` | SuperAdmin | Cập nhật cấu hình học phí; backend tự tính `tongTienDuKien = soTienHocPhi + tienHocLieu`. Chỉ cho sửa học kỳ chưa diễn ra. |
 | PATCH | `/api/finance/program-tuition-configs/{id}/deactivate` | SuperAdmin | Vô hiệu hóa mềm cấu hình bằng `ConHoatDong = false`; không hard delete trong MVP. Chỉ cho deactivate học kỳ chưa diễn ra. |
 
-Ghi chú: Module này chỉ quản lý cấu hình học phí chương trình đào tạo, chưa sinh hóa đơn, chưa tích hợp VNPay/MoMo, chưa xử lý học bổng/miễn giảm phức tạp và không có logic dự bị tiếng Anh. Cấu hình active không được trùng theo `MaDonVi + MaChuongTrinhDaoTao + MaHocKy`. API áp dụng template cấu hình riêng vào chương trình là roadmap, chưa có controller/entity template trong MVP.
+Ghi chú: Module này chỉ quản lý cấu hình học phí chương trình đào tạo, chưa sinh hóa đơn, chưa xử lý học bổng/miễn giảm phức tạp và không có logic dự bị tiếng Anh. Cấu hình active không được trùng theo `MaDonVi + MaChuongTrinhDaoTao + MaHocKy`. API áp dụng template cấu hình riêng vào chương trình là roadmap, chưa có controller/entity template trong MVP.
+
+### Hóa Đơn Và Thanh Toán Học Phí Sinh Viên - Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/student/tuition/invoices` | Student | Sinh viên xem danh sách hóa đơn học phí của chính mình. Response có `soTienPhaiDong = soTien - giamTru` và `conPhaiDong = soTienPhaiDong - daThanhToan`. |
+| GET | `/api/student/tuition/transactions` | Student | Sinh viên xem lịch sử giao dịch học phí theo các hóa đơn của chính mình. |
+| POST | `/api/student/tuition/invoices/{invoiceId}/payments` | Student | Tạo giao dịch thanh toán cho hóa đơn của sinh viên hiện tại. Body `{ "provider": "payos" }` trả `checkoutUrl`; body `{ "provider": "vietqr" }` trả `qrUrl`. Frontend không tự cập nhật trạng thái hóa đơn. |
+| GET | `/api/student/tuition/payments/{transactionId}` | Student | Sinh viên kiểm tra trạng thái giao dịch thanh toán của chính mình. |
+| POST | `/api/finance/payments/webhooks/payos` | Public webhook | Webhook PayOS, verify chữ ký HMAC-SHA256 bằng `PayOS:ChecksumKey`, cập nhật `GiaoDich` và cộng `HoaDon.DaThanhToan` khi giao dịch hợp lệ. Endpoint idempotent với giao dịch đã `thanh_cong`. |
+
+Ghi chú: PayOS tự động xác nhận qua webhook. VietQR chỉ tạo ảnh QR/link chuyển khoản, giao dịch giữ trạng thái `cho_thanh_toan` để kế toán đối soát và xác nhận thủ công. Backend lấy tài khoản nhận tiền từ `TaiKhoanNhanTien` theo `MaDonVi`, provider, `TrangThaiDuyet = da_duyet`, `LaMacDinh = true`, `ConHoatDong = true`.
 
 ## Organizations APIs
 
