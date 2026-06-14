@@ -7,6 +7,7 @@ using Backend.Services.AdminUsers;
 using Backend.Services.AdministrativeClasses;
 using Backend.Services.AcademicTerms;
 using Backend.Services.Attendance;
+using Backend.Services.AttendanceAutomation;
 using Backend.Services.AttendanceUnlock;
 using Backend.Services.Audit;
 using Backend.Services.Auth;
@@ -107,6 +108,9 @@ builder.Services.AddScoped<IThoiKhoaBieuService, ThoiKhoaBieuService>();
 builder.Services.AddScoped<IScheduleConflictService, ScheduleConflictService>();
 builder.Services.AddScoped<IBuoiHocService, BuoiHocService>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
+builder.Services.Configure<AttendanceAutomationOptions>(builder.Configuration.GetSection("AttendanceAutomation"));
+builder.Services.AddScoped<IAttendanceAutomationService, AttendanceAutomationService>();
+builder.Services.AddHostedService<AttendanceAutomationHostedService>();
 builder.Services.AddScoped<IAttendanceUnlockService, AttendanceUnlockService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
