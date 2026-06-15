@@ -5,8 +5,10 @@ public static class FinanceConstants
     public static class TuitionCalculationTypes
     {
         public const string FixedPerTerm = "co_dinh_theo_hoc_ky";
+        public const string PerCredit = "theo_tin_chi";
+        public const string PerSubject = "theo_mon_hoc";
 
-        public static readonly string[] All = [FixedPerTerm];
+        public static readonly string[] All = [FixedPerTerm, PerCredit, PerSubject];
     }
 
     public static class InvoiceTypes
@@ -132,5 +134,11 @@ public static class FinanceConstants
             AuthRoles.FinanceAdmin + "," +
             AuthRoles.CampusChiefAccountant + "," +
             AuthRoles.CampusAccountant;
+
+        public const string TuitionConfigReaders = SchemaReaders;
+
+        public const string TuitionConfigManagers =
+            AuthRoles.SuperAdmin + "," +
+            AuthRoles.FinanceAdmin;
     }
 }

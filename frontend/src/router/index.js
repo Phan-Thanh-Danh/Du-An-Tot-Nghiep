@@ -16,6 +16,7 @@ const router = createRouter({
       redirect: () => {
         const authStore = useAuthStore()
         if (authStore.hasRole('SuperAdmin')) return '/super-admin/dashboard'
+        if (authStore.hasRole(['FinanceAdmin', 'CampusChiefAccountant', 'CampusAccountant'])) return '/super-admin/finance/tuition-config'
         if (authStore.hasRole('Principal')) return '/bgh/dashboard'
         if (authStore.hasRole('Teacher')) return '/teacher/dashboard'
         if (authStore.hasRole('AcademicStaff')) return '/staff/dashboard'
@@ -397,8 +398,11 @@ const router = createRouter({
         {
           path: 'finance/tuition-config',
           name: 'super-admin-finance-tuition-config',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
-          meta: { title: 'Cấu hình học phí' },
+          component: () => import('../views/SuperAdmin/Finance/TuitionConfigView.vue'),
+          meta: {
+            title: 'Cấu hình học phí',
+            role: ['SuperAdmin', 'FinanceAdmin', 'CampusChiefAccountant', 'CampusAccountant'],
+          },
         },
         {
           path: 'finance/student-debts',
@@ -567,6 +571,7 @@ router.beforeEach((to) => {
   // Chuyển hướng nếu truy cập trang public khi đã login
   if (to.meta.public && authStore.isAuthenticated) {
     if (authStore.hasRole('SuperAdmin')) return '/super-admin/dashboard'
+    if (authStore.hasRole(['FinanceAdmin', 'CampusChiefAccountant', 'CampusAccountant'])) return '/super-admin/finance/tuition-config'
     if (authStore.hasRole('Teacher')) return '/teacher/dashboard'
     if (authStore.hasRole('AcademicStaff')) return '/staff/dashboard'
     return '/student/dashboard'

@@ -70,51 +70,52 @@ public class AttendanceService : IAttendanceService
         EnsureTeacherCanManageAttendance(currentUser, session);
         EnsureSessionCanStartAttendance(session);
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-
-        var oldSnapshot = await GetAuditSnapshotAsync(session.MaBuoiHoc, cancellationToken);
-        var studentIds = await GetActiveStudentIdsAsync(queryResult.Course, cancellationToken);
-        if (studentIds.Count == 0)
+        object? oldSnapshot = null;
+        await _context.ExecuteInTransactionAsync(async () =>
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Lớp chưa có sinh viên hoạt động để điểm danh.");
-        }
-
-        var existingStudentIds = await _context.DiemDanhs
-            .Where(x => x.MaBuoiHoc == session.MaBuoiHoc)
-            .Select(x => x.MaHocSinh)
-            .ToHashSetAsync(cancellationToken);
-
-        var missingAttendances = studentIds
-            .Where(studentId => !existingStudentIds.Contains(studentId))
-            .Select(studentId => new DiemDanh
+            oldSnapshot = await GetAuditSnapshotAsync(session.MaBuoiHoc, cancellationToken);
+            var studentIds = await GetActiveStudentIdsAsync(queryResult.Course, cancellationToken);
+            if (studentIds.Count == 0)
             {
-                MaDonVi = queryResult.Course.MaDonVi,
-                MaBuoiHoc = session.MaBuoiHoc,
-                MaHocSinh = studentId,
-                TrangThai = DefaultAttendanceStatus,
-                NguoiGhiNhan = currentUser.UserId,
-                GhiNhanLuc = now,
-                HeSoVang = 1,
-                KhoaLuc = null,
-                MaYcMoKhoa = null
-            })
-            .ToList();
+                throw new ApiException(StatusCodes.Status400BadRequest, "Lớp chưa có sinh viên hoạt động để điểm danh.");
+            }
 
-        if (missingAttendances.Count > 0)
-        {
-            await _context.DiemDanhs.AddRangeAsync(missingAttendances, cancellationToken);
-        }
+            var existingStudentIds = await _context.DiemDanhs
+                .Where(x => x.MaBuoiHoc == session.MaBuoiHoc)
+                .Select(x => x.MaHocSinh)
+                .ToHashSetAsync(cancellationToken);
 
-        if (session.TrangThaiDiemDanh == AttendanceNotOpenedStatus)
-        {
-            session.TrangThaiDiemDanh = AttendanceInProgressStatus;
-            session.DiemDanhBatDauLuc = now;
-            session.DiemDanhHanGuiLuc = now.AddMinutes(15);
-            session.NgayCapNhat = now;
-        }
+            var missingAttendances = studentIds
+                .Where(studentId => !existingStudentIds.Contains(studentId))
+                .Select(studentId => new DiemDanh
+                {
+                    MaDonVi = queryResult.Course.MaDonVi,
+                    MaBuoiHoc = session.MaBuoiHoc,
+                    MaHocSinh = studentId,
+                    TrangThai = DefaultAttendanceStatus,
+                    NguoiGhiNhan = currentUser.UserId,
+                    GhiNhanLuc = now,
+                    HeSoVang = 1,
+                    KhoaLuc = null,
+                    MaYcMoKhoa = null
+                })
+                .ToList();
 
-        await _context.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+            if (missingAttendances.Count > 0)
+            {
+                await _context.DiemDanhs.AddRangeAsync(missingAttendances, cancellationToken);
+            }
+
+            if (session.TrangThaiDiemDanh == AttendanceNotOpenedStatus)
+            {
+                session.TrangThaiDiemDanh = AttendanceInProgressStatus;
+                session.DiemDanhBatDauLuc = now;
+                session.DiemDanhHanGuiLuc = now.AddMinutes(15);
+                session.NgayCapNhat = now;
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+        }, cancellationToken);
 
         await WriteAuditAsync(
             "START_ATTENDANCE",
@@ -202,21 +203,23 @@ public class AttendanceService : IAttendanceService
                 $"Sinh viên không thuộc danh sách điểm danh của buổi học: {string.Join(", ", missingStudentIds)}.");
         }
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-        var oldSnapshot = attendances.Select(ToAttendanceAuditSnapshot).ToList();
-        var itemByStudent = items.ToDictionary(x => x.MaSinhVien);
-
-        foreach (var attendance in attendances)
+        List<object> oldSnapshot = [];
+        await _context.ExecuteInTransactionAsync(async () =>
         {
-            var status = itemByStudent[attendance.MaHocSinh].TrangThai;
-            attendance.TrangThai = status;
-            attendance.HeSoVang = GetAbsenceWeight(status);
-            attendance.NguoiGhiNhan = currentUser.UserId;
-            attendance.GhiNhanLuc = now;
-        }
+            oldSnapshot = attendances.Select(ToAttendanceAuditSnapshot).ToList();
+            var itemByStudent = items.ToDictionary(x => x.MaSinhVien);
 
-        await _context.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+            foreach (var attendance in attendances)
+            {
+                var status = itemByStudent[attendance.MaHocSinh].TrangThai;
+                attendance.TrangThai = status;
+                attendance.HeSoVang = GetAbsenceWeight(status);
+                attendance.NguoiGhiNhan = currentUser.UserId;
+                attendance.GhiNhanLuc = now;
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+        }, cancellationToken);
 
         await WriteAuditAsync(
             "BULK_UPDATE_ATTENDANCE",

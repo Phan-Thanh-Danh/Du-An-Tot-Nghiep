@@ -9,6 +9,9 @@ public interface IProgramTuitionConfigService
         ProgramTuitionConfigQueryParameters parameters,
         CancellationToken cancellationToken = default);
 
+    Task<ProgramTuitionConfigOptionsDto> GetOptionsAsync(
+        CancellationToken cancellationToken = default);
+
     Task<ProgramTuitionConfigDetailDto> GetByIdAsync(
         int id,
         CancellationToken cancellationToken = default);

@@ -1,11 +1,12 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 import { usePopupStore } from '@/stores/popup'
 import {
   createTuitionPayment,
   getStudentTuitionInvoices,
   getStudentTuitionTransactions,
+  getTuitionPaymentStatus,
 } from '@/services/tuitionService'
 import {
   CreditCard, Wallet, Receipt, DollarSign,
@@ -50,9 +51,11 @@ const activeTab = ref('invoices') // 'invoices' or 'history'
 const modalOpen = ref(false)
 useBodyScrollLock(modalOpen)
 const selectedInvoice = ref(null)
-const paymentMethod = ref('payos')
 const isProcessing = ref(false)
 const paymentResult = ref(null)
+const paymentConfirmed = ref(false)
+const paymentPollTimer = ref(null)
+let paymentPollAttempts = 0
 
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(val || 0))
 const formatNumber = (val) => new Intl.NumberFormat('vi-VN').format(Number(val || 0))
@@ -67,6 +70,19 @@ const formatDateTime = (date) => {
 
 const invoices = computed(() => rawInvoices.value.map(mapInvoice))
 const transactions = computed(() => rawTransactions.value.map(mapTransaction))
+const paymentQrImageUrl = computed(() => {
+  const provider = String(read(paymentResult.value, 'provider', 'Provider') || '').toLowerCase()
+  if (provider === 'payos' && paymentResult.value?.qrPayload) {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(paymentResult.value.qrPayload)}`
+  }
+
+  if (paymentResult.value?.qrUrl) return paymentResult.value.qrUrl
+  if (paymentResult.value?.qrPayload) {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(paymentResult.value.qrPayload)}`
+  }
+
+  return ''
+})
 const metrics = computed(() => {
   const totals = rawInvoices.value.reduce((acc, invoice) => {
     acc.soTienPhaiDong += toNumber(read(invoice, 'soTienPhaiDong', 'SoTienPhaiDong'))
@@ -88,6 +104,10 @@ onMounted(() => {
   loadTuitionData()
 })
 
+onBeforeUnmount(() => {
+  stopPaymentPolling()
+})
+
 const openPaymentModal = (invoice) => {
   if (invoice.status === 'Processing') return // Prevent double payment
   if (invoice.conPhaiDong <= 0) {
@@ -96,44 +116,42 @@ const openPaymentModal = (invoice) => {
   }
 
   selectedInvoice.value = invoice
-  paymentMethod.value = 'payos'
   paymentResult.value = null
+  paymentConfirmed.value = false
+  stopPaymentPolling()
   modalOpen.value = true
+  createPayOsQrPayment()
 }
 
 const closePaymentModal = () => {
   if (isProcessing.value) return
+  resetPaymentModal()
+}
+
+const resetPaymentModal = () => {
+  stopPaymentPolling()
   modalOpen.value = false
   selectedInvoice.value = null
   paymentResult.value = null
+  paymentConfirmed.value = false
 }
 
-const confirmPayment = async () => {
+const createPayOsQrPayment = async () => {
   if (!selectedInvoice.value) return
 
   isProcessing.value = true
 
   try {
-    const result = await createTuitionPayment(selectedInvoice.value.maHoaDon, paymentMethod.value)
+    const result = await createTuitionPayment(selectedInvoice.value.maHoaDon, 'payos')
     paymentResult.value = result
 
-    if (paymentMethod.value === 'payos') {
-      if (!result?.checkoutUrl) {
-        throw new Error('PayOS không trả về đường dẫn thanh toán.')
-      }
-
-      window.location.href = result.checkoutUrl
-      return
+    if (!result?.qrUrl && !result?.qrPayload && !result?.checkoutUrl) {
+      throw new Error('PayOS không trả về dữ liệu thanh toán.')
     }
 
-    if (paymentMethod.value === 'vietqr') {
-      if (!result?.qrUrl) {
-        throw new Error('Backend không trả về ảnh VietQR.')
-      }
-
-      popupStore.success('Đã tạo mã VietQR', 'Vui lòng chuyển khoản đúng số tiền và nội dung.')
-      await loadTransactions()
-    }
+    popupStore.success('Đã tạo mã QR PayOS', 'Vui lòng chuyển khoản đúng số tiền và nội dung.')
+    startPaymentPolling(read(result, 'maGiaoDich', 'MaGiaoDich'))
+    await loadTransactions()
   } catch (error) {
     popupStore.error('Không tạo được thanh toán', error?.message || 'Vui lòng thử lại sau.')
   } finally {
@@ -165,6 +183,75 @@ async function loadInvoices() {
 
 async function loadTransactions() {
   rawTransactions.value = await getStudentTuitionTransactions()
+}
+
+function startPaymentPolling(transactionId) {
+  stopPaymentPolling()
+  paymentPollAttempts = 0
+
+  if (!transactionId) return
+
+  schedulePaymentPoll(transactionId, 2500)
+}
+
+function schedulePaymentPoll(transactionId, delay = 3000) {
+  paymentPollTimer.value = window.setTimeout(() => {
+    pollPaymentStatus(transactionId)
+  }, delay)
+}
+
+function stopPaymentPolling() {
+  if (paymentPollTimer.value) {
+    window.clearTimeout(paymentPollTimer.value)
+    paymentPollTimer.value = null
+  }
+}
+
+async function pollPaymentStatus(transactionId) {
+  if (!modalOpen.value || paymentConfirmed.value) return
+
+  paymentPollAttempts += 1
+
+  try {
+    const status = await getTuitionPaymentStatus(transactionId)
+    paymentResult.value = {
+      ...(paymentResult.value || {}),
+      ...(status || {}),
+    }
+
+    const mappedStatus = mapStatus(read(status, 'trangThai', 'TrangThai'))
+
+    if (mappedStatus === 'Success') {
+      await handleConfirmedPayment()
+      return
+    }
+
+    if (['Failed', 'Overdue', 'Cancelled'].includes(mappedStatus)) {
+      stopPaymentPolling()
+      await loadTuitionData()
+      popupStore.error('Thanh toán chưa thành công', 'Giao dịch không hoàn tất. Vui lòng thử lại hoặc liên hệ kế toán.')
+      return
+    }
+  } catch {
+    // Giữ modal mở và thử lại; PayOS/webhook local có thể trễ vài giây.
+  }
+
+  if (paymentPollAttempts < 60) {
+    schedulePaymentPoll(transactionId)
+  }
+}
+
+async function handleConfirmedPayment() {
+  stopPaymentPolling()
+  paymentConfirmed.value = true
+  popupStore.success('Đã nhận thanh toán', 'Hóa đơn học phí đã được backend xác nhận.')
+  await loadTuitionData()
+
+  window.setTimeout(() => {
+    if (paymentConfirmed.value) {
+      resetPaymentModal()
+    }
+  }, 1500)
 }
 
 function mapInvoice(invoice) {
@@ -223,11 +310,6 @@ function providerLabel(provider) {
   if (provider === 'payos') return 'PayOS'
   if (provider === 'vietqr') return 'VietQR'
   return provider || 'Khác'
-}
-
-function setPaymentMethod(provider) {
-  paymentMethod.value = provider
-  paymentResult.value = null
 }
 
 function read(source, camelKey, pascalKey) {
@@ -441,31 +523,26 @@ function parseDate(value) {
                 </div>
               </div>
 
-              <div class="payment-methods">
-                <label class="font-semibold text-sm mb-2 block">Chọn phương thức thanh toán</label>
-                <div class="method-options">
-                  <label class="method-radio" :class="paymentMethod === 'payos' && 'selected'">
-                    <input type="radio" :checked="paymentMethod === 'payos'" name="paymentMethod" @change="setPaymentMethod('payos')" />
-                    <CreditCard :size="20" />
-                    <div class="flex-1">
-                      <div class="font-semibold">PayOS</div>
-                      <div class="method-caption">Thanh toán tự động qua PayOS</div>
-                    </div>
-                  </label>
-                  
-                  <label class="method-radio" :class="paymentMethod === 'vietqr' && 'selected'">
-                    <input type="radio" :checked="paymentMethod === 'vietqr'" name="paymentMethod" @change="setPaymentMethod('vietqr')" />
-                    <Building2 :size="20" />
-                    <div class="flex-1">
-                      <div class="font-semibold">VietQR</div>
-                      <div class="method-caption">Chuyển khoản VietQR</div>
-                    </div>
-                  </label>
+              <div class="payos-flow-note">
+                <CreditCard :size="18" />
+                <div>
+                  <strong>Thanh toán tự động qua PayOS</strong>
+                  <p>PayOS tạo mã VietQR cho hóa đơn này. LMS sẽ tự đồng bộ trạng thái khi ngân hàng xác nhận giao dịch.</p>
                 </div>
               </div>
 
-              <div v-if="paymentResult?.qrUrl && paymentMethod === 'vietqr'" class="qr-result">
-                <img :src="paymentResult.qrUrl" alt="VietQR thanh toán học phí" class="qr-image" />
+              <div v-if="isProcessing && !paymentResult" class="payment-loading">
+                <Clock :size="18" class="animate-spin" />
+                <span>Đang tạo mã QR thanh toán...</span>
+              </div>
+
+              <div v-if="paymentQrImageUrl" class="qr-result" :class="{ confirmed: paymentConfirmed }">
+                <div class="qr-image-wrap">
+                  <img :src="paymentQrImageUrl" alt="QR thanh toán học phí qua PayOS" class="qr-image" />
+                  <div v-if="paymentConfirmed" class="qr-confirmed-overlay">
+                    <CheckCircle2 :size="34" />
+                  </div>
+                </div>
                 <div class="qr-detail">
                   <span>Số tiền</span>
                   <strong>{{ formatCurrency(paymentResult.amount) }}</strong>
@@ -474,26 +551,27 @@ function parseDate(value) {
                   <span>Nội dung chuyển khoản</span>
                   <strong>{{ paymentResult.noiDungChuyenKhoan }}</strong>
                 </div>
-                <p>Sau khi chuyển khoản, kế toán sẽ đối soát và xác nhận thanh toán.</p>
+                <p v-if="paymentConfirmed" class="qr-success-note">Thanh toán đã được xác nhận. Modal sẽ tự đóng sau vài giây.</p>
+                <p v-else>Sau khi chuyển khoản, LMS sẽ kiểm tra PayOS và cập nhật hóa đơn khi giao dịch thành công.</p>
+              </div>
+
+              <div v-else-if="paymentResult?.checkoutUrl" class="checkout-fallback">
+                <AlertCircle :size="18" />
+                <span>PayOS chưa trả dữ liệu QR trực tiếp. Bạn có thể mở trang thanh toán PayOS để tiếp tục.</span>
+                <a class="btn-primary" :href="paymentResult.checkoutUrl" target="_blank" rel="noopener">
+                  Mở PayOS <ArrowRight :size="15" />
+                </a>
               </div>
 
               <div class="security-badge">
                 <ShieldCheck :size="16" />
-                <span>Giao dịch được mã hóa và bảo mật bởi chữ ký số HMAC.</span>
+                <span>Giao dịch được xác thực bởi PayOS và chữ ký số HMAC.</span>
               </div>
             </div>
 
             <div class="modal-footer">
               <button class="btn-secondary" @click="closePaymentModal" :disabled="isProcessing">
-                {{ paymentResult?.qrUrl ? 'Đóng' : 'Hủy' }}
-              </button>
-              <button v-if="!(paymentResult?.qrUrl && paymentMethod === 'vietqr')" class="btn-primary" @click="confirmPayment" :disabled="isProcessing">
-                <span v-if="isProcessing" class="flex items-center gap-2">
-                  <Clock class="animate-spin" :size="16" /> Đang xử lý...
-                </span>
-                <span v-else class="flex items-center gap-2">
-                  Xác nhận Thanh toán <ArrowRight :size="16" />
-                </span>
+                Đóng
               </button>
             </div>
           </div>
@@ -612,18 +690,23 @@ function parseDate(value) {
 .modal-total-row { border-top: 1px solid var(--border-card); color: var(--text-label); }
 .modal-total { color: var(--text-link); font-size: 1.2rem; font-weight: 900; }
 
-.method-options { display: flex; flex-direction: column; gap: .5rem; }
-.method-radio { display: flex; align-items: center; gap: 1rem; padding: .85rem; border: 1px solid var(--border-input); border-radius: 12px; cursor: pointer; transition: all .2s; background: var(--surface-input); }
-.method-radio:hover { border-color: var(--border-input-focus); }
-.method-radio.selected { border-color: var(--border-input-focus); background: var(--accent-primary-soft); color: var(--text-link); box-shadow: var(--lg-shadow-sm); }
-.method-radio input { display: none; }
-.method-caption { color: var(--text-placeholder); font-size: .75rem; }
+.payos-flow-note { display: flex; align-items: flex-start; gap: .75rem; padding: .85rem; border: 1px solid var(--border-card); border-radius: 12px; background: var(--surface-input); color: var(--text-label); }
+.payos-flow-note svg { color: var(--text-link); flex: none; margin-top: .1rem; }
+.payos-flow-note strong { display: block; color: var(--text-heading); font-size: .85rem; }
+.payos-flow-note p { margin: .2rem 0 0; color: var(--text-body); font-size: .78rem; line-height: 1.45; }
+.payment-loading { display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 10rem; border: 1px dashed var(--border-card); border-radius: 14px; background: var(--surface-input); color: var(--text-label); font-size: .85rem; font-weight: 750; }
 
 .qr-result { display: flex; flex-direction: column; align-items: center; gap: .75rem; padding: .85rem; border: 1px solid var(--border-card); border-radius: 14px; background: var(--surface-input); text-align: center; }
+.qr-result.confirmed { border-color: color-mix(in srgb, var(--color-success-text) 36%, var(--border-card)); background: var(--color-success-bg); }
+.qr-image-wrap { position: relative; width: min(14rem, 100%); aspect-ratio: 1; }
 .qr-image { width: min(14rem, 100%); aspect-ratio: 1; object-fit: contain; border-radius: 12px; border: 1px solid var(--border-card); background: var(--surface-card); }
+.qr-confirmed-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: color-mix(in srgb, var(--surface-card) 72%, transparent); color: var(--color-success-text); }
 .qr-detail { width: 100%; display: flex; justify-content: space-between; gap: .75rem; color: var(--text-label); font-size: .8rem; text-align: left; }
 .qr-detail strong { color: var(--text-heading); overflow-wrap: anywhere; text-align: right; }
 .qr-result p { margin: 0; color: var(--text-body); font-size: .78rem; line-height: 1.45; }
+.qr-success-note { color: var(--color-success-text) !important; font-weight: 800; }
+.checkout-fallback { display: flex; flex-direction: column; align-items: center; gap: .75rem; padding: .85rem; border: 1px solid var(--border-card); border-radius: 14px; background: var(--surface-input); text-align: center; color: var(--text-label); font-size: .82rem; }
+.checkout-fallback svg { color: var(--color-warning-text); }
 
 .security-badge { display: flex; align-items: center; gap: .5rem; font-size: .75rem; color: var(--color-success-text); background: var(--color-success-bg); padding: .5rem; border-radius: 8px; justify-content: center; }
 

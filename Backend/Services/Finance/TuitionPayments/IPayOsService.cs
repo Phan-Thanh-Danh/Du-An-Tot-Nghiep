@@ -8,6 +8,10 @@ public interface IPayOsService
         PayOsCreatePaymentLinkRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<PayOsPaymentLinkStatusResult> GetPaymentLinkAsync(
+        long orderCode,
+        CancellationToken cancellationToken = default);
+
     bool VerifyWebhookSignature(JsonElement data, string signature);
 }
 
@@ -24,7 +28,23 @@ public class PayOsCreatePaymentLinkResult
     public string CheckoutUrl { get; set; } = string.Empty;
     public string? QrPayload { get; set; }
     public string? PaymentLinkId { get; set; }
+    public string? BankCode { get; set; }
+    public string? AccountNumber { get; set; }
+    public string? AccountName { get; set; }
+    public long Amount { get; set; }
+    public string? Description { get; set; }
     public string RequestPayloadJson { get; set; } = string.Empty;
+    public string ResponsePayloadJson { get; set; } = string.Empty;
+}
+
+public class PayOsPaymentLinkStatusResult
+{
+    public long OrderCode { get; set; }
+    public decimal Amount { get; set; }
+    public decimal AmountPaid { get; set; }
+    public decimal AmountRemaining { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime? PaidAt { get; set; }
     public string ResponsePayloadJson { get; set; } = string.Empty;
 }
 

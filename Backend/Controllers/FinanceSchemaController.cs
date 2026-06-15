@@ -107,7 +107,9 @@ public class FinanceSchemaController : ControllerBase
 
     private static readonly FinanceSchemaOptionDto[] TuitionCalculationTypes =
     [
-        new(FinanceConstants.TuitionCalculationTypes.FixedPerTerm, "Cố định theo học kỳ")
+        new(FinanceConstants.TuitionCalculationTypes.FixedPerTerm, "Cố định theo học kỳ"),
+        new(FinanceConstants.TuitionCalculationTypes.PerCredit, "Theo tín chỉ"),
+        new(FinanceConstants.TuitionCalculationTypes.PerSubject, "Theo môn học")
     ];
 
     private static readonly FinanceSchemaOptionDto[] RefundTypes =

@@ -12,14 +12,6 @@ namespace Backend.Controllers;
 [Authorize]
 public class ProgramTuitionConfigsController : ControllerBase
 {
-    private const string ReaderRoles =
-        AuthRoles.SuperAdmin + "," +
-        AuthRoles.Admin + "," +
-        AuthRoles.CampusAdmin + "," +
-        AuthRoles.AcademicStaff;
-
-    private const string ManagerRoles = AuthRoles.SuperAdmin;
-
     private readonly IProgramTuitionConfigService _service;
 
     public ProgramTuitionConfigsController(IProgramTuitionConfigService service)
@@ -28,7 +20,7 @@ public class ProgramTuitionConfigsController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = ReaderRoles)]
+    [Authorize(Roles = FinanceConstants.FinanceAuthorizationRoles.TuitionConfigReaders)]
     public async Task<ActionResult<ApiResponseDto<PagedResultDto<ProgramTuitionConfigListItemDto>>>> Get(
         [FromQuery] ProgramTuitionConfigQueryParameters parameters,
         CancellationToken cancellationToken)
@@ -39,8 +31,19 @@ public class ProgramTuitionConfigsController : ControllerBase
             "Lấy danh sách cấu hình học phí chương trình thành công"));
     }
 
+    [HttpGet("options")]
+    [Authorize(Roles = FinanceConstants.FinanceAuthorizationRoles.TuitionConfigReaders)]
+    public async Task<ActionResult<ApiResponseDto<ProgramTuitionConfigOptionsDto>>> GetOptions(
+        CancellationToken cancellationToken)
+    {
+        var options = await _service.GetOptionsAsync(cancellationToken);
+        return Ok(ApiResponseDto<ProgramTuitionConfigOptionsDto>.Ok(
+            options,
+            "Lấy dữ liệu chọn cấu hình học phí chương trình thành công"));
+    }
+
     [HttpGet("{id:int}")]
-    [Authorize(Roles = ReaderRoles)]
+    [Authorize(Roles = FinanceConstants.FinanceAuthorizationRoles.TuitionConfigReaders)]
     public async Task<ActionResult<ApiResponseDto<ProgramTuitionConfigDetailDto>>> GetById(
         int id,
         CancellationToken cancellationToken)
@@ -52,7 +55,7 @@ public class ProgramTuitionConfigsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = ManagerRoles)]
+    [Authorize(Roles = FinanceConstants.FinanceAuthorizationRoles.TuitionConfigManagers)]
     public async Task<ActionResult<ApiResponseDto<ProgramTuitionConfigDetailDto>>> Create(
         CreateProgramTuitionConfigRequest request,
         CancellationToken cancellationToken)
@@ -67,7 +70,7 @@ public class ProgramTuitionConfigsController : ControllerBase
     }
 
     [HttpPost("bulk")]
-    [Authorize(Roles = ManagerRoles)]
+    [Authorize(Roles = FinanceConstants.FinanceAuthorizationRoles.TuitionConfigManagers)]
     public async Task<ActionResult<ApiResponseDto<BulkProgramTuitionConfigResultDto>>> BulkCreate(
         BulkCreateProgramTuitionConfigRequest request,
         CancellationToken cancellationToken)
@@ -79,7 +82,7 @@ public class ProgramTuitionConfigsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = ManagerRoles)]
+    [Authorize(Roles = FinanceConstants.FinanceAuthorizationRoles.TuitionConfigManagers)]
     public async Task<ActionResult<ApiResponseDto<ProgramTuitionConfigDetailDto>>> Update(
         int id,
         UpdateProgramTuitionConfigRequest request,
@@ -92,7 +95,7 @@ public class ProgramTuitionConfigsController : ControllerBase
     }
 
     [HttpPatch("{id:int}/deactivate")]
-    [Authorize(Roles = ManagerRoles)]
+    [Authorize(Roles = FinanceConstants.FinanceAuthorizationRoles.TuitionConfigManagers)]
     public async Task<ActionResult<ApiResponseDto<ProgramTuitionConfigDetailDto>>> Deactivate(
         int id,
         CancellationToken cancellationToken)

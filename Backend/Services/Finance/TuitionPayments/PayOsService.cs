@@ -113,7 +113,71 @@ public class PayOsService : IPayOsService
             CheckoutUrl = checkoutUrl,
             QrPayload = GetString(data, "qrCode"),
             PaymentLinkId = GetString(data, "paymentLinkId"),
+            BankCode = GetString(data, "bin"),
+            AccountNumber = GetString(data, "accountNumber"),
+            AccountName = GetString(data, "accountName"),
+            Amount = GetLong(data, "amount") ?? amount,
+            Description = GetString(data, "description"),
             RequestPayloadJson = requestPayloadJson,
+            ResponsePayloadJson = responsePayloadJson
+        };
+    }
+
+    public async Task<PayOsPaymentLinkStatusResult> GetPaymentLinkAsync(
+        long orderCode,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateSettings();
+
+        var endpoint = $"{_options.BaseUrl.TrimEnd('/')}/v2/payment-requests/{orderCode.ToString(CultureInfo.InvariantCulture)}";
+
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Get, endpoint);
+        httpRequest.Headers.Add("x-client-id", _options.ClientId);
+        httpRequest.Headers.Add("x-api-key", _options.ApiKey);
+
+        string responsePayloadJson;
+        HttpResponseMessage response;
+
+        try
+        {
+            response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+            responsePayloadJson = await response.Content.ReadAsStringAsync(cancellationToken);
+        }
+        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
+        {
+            throw new PayOsProviderException("Không thể kết nối PayOS để kiểm tra trạng thái thanh toán.", innerException: exception);
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new PayOsProviderException("PayOS từ chối yêu cầu kiểm tra trạng thái thanh toán.", responsePayloadJson);
+        }
+
+        using var document = ParseJson(responsePayloadJson);
+        var root = document.RootElement;
+        var code = GetString(root, "code");
+        var desc = GetString(root, "desc");
+
+        if (!string.Equals(code, "00", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new PayOsProviderException(
+                string.IsNullOrWhiteSpace(desc) ? "PayOS không trả về trạng thái thanh toán hợp lệ." : desc,
+                responsePayloadJson);
+        }
+
+        if (!root.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object)
+        {
+            throw new PayOsProviderException("PayOS trả về dữ liệu trạng thái không hợp lệ.", responsePayloadJson);
+        }
+
+        return new PayOsPaymentLinkStatusResult
+        {
+            OrderCode = GetLong(data, "orderCode") ?? orderCode,
+            Amount = GetDecimal(data, "amount"),
+            AmountPaid = GetDecimal(data, "amountPaid"),
+            AmountRemaining = GetDecimal(data, "amountRemaining"),
+            Status = GetString(data, "status"),
+            PaidAt = ExtractPaymentDate(data),
             ResponsePayloadJson = responsePayloadJson
         };
     }
@@ -253,5 +317,108 @@ public class PayOsService : IPayOsService
         return element.TryGetProperty(propertyName, out var value) && value.ValueKind != JsonValueKind.Null
             ? value.ToString()
             : string.Empty;
+    }
+
+    private static long? GetLong(JsonElement element, string propertyName)
+    {
+        if (!element.TryGetProperty(propertyName, out var value))
+        {
+            return null;
+        }
+
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var number))
+        {
+            return number;
+        }
+
+        return long.TryParse(value.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : null;
+    }
+
+    private static decimal GetDecimal(JsonElement element, string propertyName)
+    {
+        if (!element.TryGetProperty(propertyName, out var value))
+        {
+            return 0m;
+        }
+
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetDecimal(out var number))
+        {
+            return number;
+        }
+
+        return decimal.TryParse(value.ToString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : 0m;
+    }
+
+    private static DateTime? ExtractPaymentDate(JsonElement data)
+    {
+        var paidAt = GetDateTime(data, "paidAt")
+            ?? GetDateTime(data, "updatedAt");
+
+        if (data.TryGetProperty("transactions", out var transactions))
+        {
+            paidAt = ExtractDateFromTransactions(transactions) ?? paidAt;
+        }
+
+        return paidAt;
+    }
+
+    private static DateTime? ExtractDateFromTransactions(JsonElement transactions)
+    {
+        if (transactions.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var transaction in transactions.EnumerateArray())
+            {
+                var paidAt = GetDateTime(transaction, "transactionDateTime")
+                    ?? GetDateTime(transaction, "createdAt")
+                    ?? GetDateTime(transaction, "paidAt");
+
+                if (paidAt.HasValue)
+                {
+                    return paidAt;
+                }
+            }
+        }
+
+        if (transactions.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in transactions.EnumerateObject())
+            {
+                var paidAt = GetDateTime(property.Value, "transactionDateTime")
+                    ?? GetDateTime(property.Value, "createdAt")
+                    ?? GetDateTime(property.Value, "paidAt");
+
+                if (paidAt.HasValue)
+                {
+                    return paidAt;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static DateTime? GetDateTime(JsonElement element, string propertyName)
+    {
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        if (!element.TryGetProperty(propertyName, out var value) || value.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        return DateTime.TryParse(
+            value.ToString(),
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AssumeLocal,
+            out var parsed)
+            ? parsed
+            : null;
     }
 }

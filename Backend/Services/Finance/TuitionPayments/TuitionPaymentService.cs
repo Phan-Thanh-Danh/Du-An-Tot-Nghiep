@@ -15,7 +15,7 @@ namespace Backend.Services.Finance.TuitionPayments;
 
 public class TuitionPaymentService : ITuitionPaymentService
 {
-    private const string VietQrTemplateId = "Z0oL3W9";
+    private const string VietQrTemplateId = "ZdyCQ5H";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -25,21 +25,26 @@ public class TuitionPaymentService : ITuitionPaymentService
     private readonly ApplicationDbContext _context;
     private readonly IVietQrService _vietQrService;
     private readonly IPayOsService _payOsService;
+    private readonly ILogger<TuitionPaymentService> _logger;
 
     public TuitionPaymentService(
         ApplicationDbContext context,
         IVietQrService vietQrService,
-        IPayOsService payOsService)
+        IPayOsService payOsService,
+        ILogger<TuitionPaymentService> logger)
     {
         _context = context;
         _vietQrService = vietQrService;
         _payOsService = payOsService;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<StudentTuitionInvoiceDto>> GetStudentInvoicesAsync(
         int currentUserId,
         CancellationToken cancellationToken = default)
     {
+        await TrySyncPendingPayOsPaymentsForStudentAsync(currentUserId, cancellationToken);
+
         var invoices = await (
             from invoice in _context.HoaDons.AsNoTracking()
             join term in _context.HocKys.AsNoTracking()
@@ -80,6 +85,8 @@ public class TuitionPaymentService : ITuitionPaymentService
         int currentUserId,
         CancellationToken cancellationToken = default)
     {
+        await TrySyncPendingPayOsPaymentsForStudentAsync(currentUserId, cancellationToken);
+
         var transactions = await (
             from transaction in _context.GiaoDichs.AsNoTracking()
             join invoice in _context.HoaDons.AsNoTracking()
@@ -134,33 +141,30 @@ public class TuitionPaymentService : ITuitionPaymentService
             throw new ApiException(StatusCodes.Status400BadRequest, "Hóa đơn đã được thanh toán đủ.");
         }
 
-        var reusablePayment = await GetReusablePendingPaymentAsync(invoice.MaHoaDon, normalizedProvider, remaining, cancellationToken);
+        var reusablePayment = await GetReusablePendingPaymentAsync(
+            invoice.MaHoaDon,
+            invoice.MaDonVi,
+            normalizedProvider,
+            remaining,
+            cancellationToken);
         if (reusablePayment is not null)
         {
             return ToPaymentResponse(reusablePayment);
         }
 
-        var receivingAccount = await GetReceivingAccountAsync(invoice.MaDonVi, normalizedProvider, cancellationToken);
-        var internalReference = await CreateUniqueInternalReferenceAsync(cancellationToken);
-        var transferContent = $"LMS {internalReference}";
-
         return normalizedProvider switch
         {
             FinanceConstants.PaymentProviders.VietQr => await CreateVietQrPaymentAsync(
                 invoice,
-                receivingAccount,
+                await GetReceivingAccountAsync(invoice.MaDonVi, normalizedProvider, cancellationToken),
                 currentUserId,
                 remaining,
-                internalReference,
-                transferContent,
+                await CreateUniqueInternalReferenceAsync(cancellationToken),
                 cancellationToken),
             FinanceConstants.PaymentProviders.PayOs => await CreatePayOsPaymentAsync(
                 invoice,
-                receivingAccount,
                 currentUserId,
                 remaining,
-                internalReference,
-                transferContent,
                 cancellationToken),
             _ => throw new ApiException(StatusCodes.Status400BadRequest, "Nhà cung cấp thanh toán không hợp lệ.")
         };
@@ -171,6 +175,27 @@ public class TuitionPaymentService : ITuitionPaymentService
         int currentUserId,
         CancellationToken cancellationToken = default)
     {
+        var existingPayment = await (
+            from payment in _context.GiaoDichs.AsNoTracking()
+            join invoice in _context.HoaDons.AsNoTracking()
+                on payment.MaHoaDon equals invoice.MaHoaDon
+            where payment.MaGiaoDich == transactionId
+                && invoice.MaHocSinh == currentUserId
+                && invoice.LoaiHoaDon == FinanceConstants.InvoiceTypes.Tuition
+            select new
+            {
+                payment.MaGiaoDich,
+                payment.NhaCungCapThanhToan
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (existingPayment is null)
+        {
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy giao dịch thanh toán.");
+        }
+
+        await TrySyncPayOsPaymentAsync(existingPayment.MaGiaoDich, cancellationToken);
+
         var transaction = await (
             from payment in _context.GiaoDichs.AsNoTracking()
             join invoice in _context.HoaDons.AsNoTracking()
@@ -209,23 +234,48 @@ public class TuitionPaymentService : ITuitionPaymentService
         var signature = GetString(root, "signature");
         if (!_payOsService.VerifyWebhookSignature(data, signature))
         {
+            _logger.LogWarning(
+                "PayOS webhook rejected because signature is invalid. Signature={Signature}, Body={RawBody}",
+                signature,
+                rawBody);
             throw new ApiException(StatusCodes.Status400BadRequest, "Chữ ký webhook PayOS không hợp lệ.");
         }
 
         var orderCode = GetLong(data, "orderCode");
         var amount = GetDecimal(data, "amount");
         var transferDescription = GetString(data, "description");
+        var paymentLinkId = GetString(data, "paymentLinkId");
+        var reference = GetString(data, "reference");
         var isSuccessfulPayment = GetBoolean(root, "success")
             && string.Equals(GetString(root, "code"), "00", StringComparison.OrdinalIgnoreCase)
             && string.Equals(GetString(data, "code"), "00", StringComparison.OrdinalIgnoreCase);
+
+        _logger.LogInformation(
+            "PayOS webhook received. OrderCode={OrderCode}, PaymentLinkId={PaymentLinkId}, Reference={Reference}, Amount={Amount}, Success={Success}",
+            orderCode,
+            paymentLinkId,
+            reference,
+            amount,
+            isSuccessfulPayment);
 
         await using var dbTransaction = await _context.Database.BeginTransactionAsync(
             IsolationLevel.Serializable,
             cancellationToken);
 
-        var transaction = await FindPayOsTransactionAsync(orderCode, transferDescription, cancellationToken);
+        var transaction = await FindPayOsTransactionAsync(
+            orderCode,
+            paymentLinkId,
+            reference,
+            transferDescription,
+            cancellationToken);
         if (transaction is null)
         {
+            _logger.LogWarning(
+                "PayOS webhook transaction not found. OrderCode={OrderCode}, PaymentLinkId={PaymentLinkId}, Reference={Reference}, Description={Description}",
+                orderCode,
+                paymentLinkId,
+                reference,
+                transferDescription);
             await dbTransaction.CommitAsync(cancellationToken);
             return new PayOsWebhookResultDto
             {
@@ -237,6 +287,10 @@ public class TuitionPaymentService : ITuitionPaymentService
 
         if (transaction.TrangThai == FinanceConstants.TransactionStatuses.Success)
         {
+            _logger.LogInformation(
+                "PayOS webhook ignored because transaction already succeeded. MaGiaoDich={MaGiaoDich}, OrderCode={OrderCode}",
+                transaction.MaGiaoDich,
+                orderCode);
             await dbTransaction.CommitAsync(cancellationToken);
             return new PayOsWebhookResultDto
             {
@@ -248,10 +302,16 @@ public class TuitionPaymentService : ITuitionPaymentService
 
         var now = DateTime.Now;
         transaction.CallbackPayloadJson = rawBody;
+        transaction.MaThamChieuCong = FirstNonEmpty(paymentLinkId, reference, transaction.MaThamChieuCong);
         transaction.NgayCapNhat = now;
 
         if (!isSuccessfulPayment)
         {
+            _logger.LogWarning(
+                "PayOS webhook reports unsuccessful payment. MaGiaoDich={MaGiaoDich}, OldStatus={OldStatus}, OrderCode={OrderCode}",
+                transaction.MaGiaoDich,
+                transaction.TrangThai,
+                orderCode);
             transaction.TrangThai = FinanceConstants.TransactionStatuses.Failed;
             await _context.SaveChangesAsync(cancellationToken);
             await dbTransaction.CommitAsync(cancellationToken);
@@ -266,6 +326,11 @@ public class TuitionPaymentService : ITuitionPaymentService
 
         if (amount != transaction.SoTien)
         {
+            _logger.LogWarning(
+                "PayOS webhook amount mismatch. MaGiaoDich={MaGiaoDich}, Expected={ExpectedAmount}, Actual={ActualAmount}",
+                transaction.MaGiaoDich,
+                transaction.SoTien,
+                amount);
             transaction.TrangThai = FinanceConstants.TransactionStatuses.WrongAmount;
             await _context.SaveChangesAsync(cancellationToken);
             await dbTransaction.CommitAsync(cancellationToken);
@@ -283,16 +348,24 @@ public class TuitionPaymentService : ITuitionPaymentService
             throw new ApiException(StatusCodes.Status400BadRequest, "Giao dịch PayOS không gắn với hóa đơn hợp lệ.");
         }
 
-        transaction.TrangThai = FinanceConstants.TransactionStatuses.Success;
-        transaction.NgayThanhToan = now;
-        transaction.HoaDon.DaThanhToan += transaction.SoTien;
-        transaction.HoaDon.TrangThai = InvoiceFinanceHelper.RecalculateInvoiceStatus(
-            transaction.HoaDon,
-            DateOnly.FromDateTime(now));
-        transaction.HoaDon.NgayCapNhat = now;
+        var oldPaymentStatus = transaction.TrangThai;
+        var oldInvoicePaid = transaction.HoaDon.DaThanhToan;
+        var oldInvoiceStatus = transaction.HoaDon.TrangThai;
+        MarkPaymentSuccess(transaction, now);
 
         await _context.SaveChangesAsync(cancellationToken);
         await dbTransaction.CommitAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "PayOS webhook processed. MaGiaoDich={MaGiaoDich}, PaymentStatus={OldPaymentStatus}->{NewPaymentStatus}, HoaDon={MaHoaDon}, Paid={OldPaid}->{NewPaid}, InvoiceStatus={OldInvoiceStatus}->{NewInvoiceStatus}",
+            transaction.MaGiaoDich,
+            oldPaymentStatus,
+            transaction.TrangThai,
+            transaction.MaHoaDon,
+            oldInvoicePaid,
+            transaction.HoaDon.DaThanhToan,
+            oldInvoiceStatus,
+            transaction.HoaDon.TrangThai);
 
         return new PayOsWebhookResultDto
         {
@@ -302,15 +375,187 @@ public class TuitionPaymentService : ITuitionPaymentService
         };
     }
 
+    private async Task TrySyncPendingPayOsPaymentsForStudentAsync(
+        int currentUserId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var pendingPaymentIds = await (
+                from payment in _context.GiaoDichs.AsNoTracking()
+                join invoice in _context.HoaDons.AsNoTracking()
+                    on payment.MaHoaDon equals invoice.MaHoaDon
+                where invoice.MaHocSinh == currentUserId
+                    && invoice.LoaiHoaDon == FinanceConstants.InvoiceTypes.Tuition
+                    && payment.NhaCungCapThanhToan == FinanceConstants.PaymentProviders.PayOs
+                    && (payment.TrangThai == FinanceConstants.TransactionStatuses.PendingPayment
+                        || payment.TrangThai == FinanceConstants.TransactionStatuses.Processing)
+                orderby payment.NgayTao descending, payment.MaGiaoDich descending
+                select payment.MaGiaoDich)
+                .Take(10)
+                .ToListAsync(cancellationToken);
+
+            foreach (var paymentId in pendingPaymentIds)
+            {
+                await TrySyncPayOsPaymentAsync(paymentId, cancellationToken);
+            }
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logger.LogWarning(
+                exception,
+                "Không thể đồng bộ giao dịch PayOS đang chờ cho sinh viên {CurrentUserId}. Tiếp tục trả dữ liệu hóa đơn hiện có.",
+                currentUserId);
+        }
+    }
+
+    private async Task TrySyncPayOsPaymentAsync(
+        int transactionId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await SyncPayOsPaymentAsync(transactionId, cancellationToken);
+        }
+        catch (PayOsProviderException)
+        {
+            // Nếu PayOS tạm thời không phản hồi, trả trạng thái hiện tại để FE tiếp tục poll.
+        }
+    }
+
+    private async Task SyncPayOsPaymentAsync(
+        int transactionId,
+        CancellationToken cancellationToken)
+    {
+        var paymentSnapshot = await _context.GiaoDichs
+            .AsNoTracking()
+            .Where(x =>
+                x.MaGiaoDich == transactionId &&
+                x.NhaCungCapThanhToan == FinanceConstants.PaymentProviders.PayOs)
+            .Select(x => new
+            {
+                x.MaGiaoDich,
+                x.MaThamChieuCong,
+                x.TrangThai
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (paymentSnapshot is null ||
+            paymentSnapshot.TrangThai == FinanceConstants.TransactionStatuses.Success)
+        {
+            return;
+        }
+
+        var orderCode = ResolvePayOsOrderCode(paymentSnapshot.MaThamChieuCong, paymentSnapshot.MaGiaoDich);
+        var payOsStatus = await _payOsService.GetPaymentLinkAsync(orderCode, cancellationToken);
+
+        await using var dbTransaction = await _context.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable,
+            cancellationToken);
+
+        var transaction = await _context.GiaoDichs
+            .Include(x => x.HoaDon)
+            .FirstOrDefaultAsync(x =>
+                x.MaGiaoDich == transactionId &&
+                x.NhaCungCapThanhToan == FinanceConstants.PaymentProviders.PayOs,
+                cancellationToken);
+
+        if (transaction is null ||
+            transaction.TrangThai == FinanceConstants.TransactionStatuses.Success)
+        {
+            await dbTransaction.CommitAsync(cancellationToken);
+            return;
+        }
+
+        var now = DateTime.Now;
+        transaction.CallbackPayloadJson = payOsStatus.ResponsePayloadJson;
+        transaction.NgayCapNhat = now;
+
+        if (IsPayOsPaid(payOsStatus))
+        {
+            var paidAmount = payOsStatus.AmountPaid > 0 ? payOsStatus.AmountPaid : payOsStatus.Amount;
+            if (paidAmount != transaction.SoTien)
+            {
+                transaction.TrangThai = FinanceConstants.TransactionStatuses.WrongAmount;
+                await _context.SaveChangesAsync(cancellationToken);
+                await dbTransaction.CommitAsync(cancellationToken);
+                return;
+            }
+
+            MarkPaymentSuccess(transaction, payOsStatus.PaidAt ?? now);
+            await _context.SaveChangesAsync(cancellationToken);
+            await dbTransaction.CommitAsync(cancellationToken);
+            return;
+        }
+
+        if (IsPayOsCanceled(payOsStatus.Status))
+        {
+            transaction.TrangThai = FinanceConstants.TransactionStatuses.Canceled;
+        }
+        else if (IsPayOsExpired(payOsStatus.Status))
+        {
+            transaction.TrangThai = FinanceConstants.TransactionStatuses.Expired;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await dbTransaction.CommitAsync(cancellationToken);
+    }
+
+    private static long ResolvePayOsOrderCode(string? publicReference, int transactionId)
+    {
+        return long.TryParse(publicReference, NumberStyles.Integer, CultureInfo.InvariantCulture, out var orderCode)
+            ? orderCode
+            : transactionId;
+    }
+
+    private static bool IsPayOsPaid(PayOsPaymentLinkStatusResult status)
+    {
+        return string.Equals(status.Status, "PAID", StringComparison.OrdinalIgnoreCase)
+            || (status.Amount > 0 && status.AmountPaid >= status.Amount)
+            || (status.AmountPaid > 0 && status.AmountRemaining <= 0);
+    }
+
+    private static bool IsPayOsCanceled(string status)
+    {
+        return string.Equals(status, "CANCELLED", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(status, "CANCELED", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsPayOsExpired(string status)
+    {
+        return string.Equals(status, "EXPIRED", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void MarkPaymentSuccess(GiaoDich transaction, DateTime paidAt)
+    {
+        if (transaction.TrangThai == FinanceConstants.TransactionStatuses.Success)
+        {
+            return;
+        }
+
+        if (transaction.HoaDon is null)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Giao dịch PayOS không gắn với hóa đơn hợp lệ.");
+        }
+
+        transaction.TrangThai = FinanceConstants.TransactionStatuses.Success;
+        transaction.NgayThanhToan = paidAt;
+        transaction.HoaDon.DaThanhToan += transaction.SoTien;
+        transaction.HoaDon.TrangThai = InvoiceFinanceHelper.RecalculateInvoiceStatus(
+            transaction.HoaDon,
+            DateOnly.FromDateTime(paidAt));
+        transaction.HoaDon.NgayCapNhat = paidAt;
+    }
+
     private async Task<CreateTuitionPaymentResponse> CreateVietQrPaymentAsync(
         HoaDon invoice,
         TaiKhoanNhanTien receivingAccount,
         int currentUserId,
         decimal amount,
         string internalReference,
-        string transferContent,
         CancellationToken cancellationToken)
     {
+        var transferContent = $"LMS {internalReference}";
         var qrUrl = _vietQrService.CreateQrUrl(
             receivingAccount.MaNganHang,
             receivingAccount.SoTaiKhoan,
@@ -355,24 +600,18 @@ public class TuitionPaymentService : ITuitionPaymentService
 
     private async Task<CreateTuitionPaymentResponse> CreatePayOsPaymentAsync(
         HoaDon invoice,
-        TaiKhoanNhanTien receivingAccount,
         int currentUserId,
         decimal amount,
-        string internalReference,
-        string transferContent,
         CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
         var transaction = new GiaoDich
         {
             MaHoaDon = invoice.MaHoaDon,
-            MaTaiKhoanNhanTien = receivingAccount.MaTaiKhoanNhanTien,
-            MaThamChieuNoiBo = internalReference,
             SoTien = amount,
             LoaiGiaoDich = FinanceConstants.TransactionTypes.TuitionPayment,
             TrangThai = FinanceConstants.TransactionStatuses.PendingPayment,
             NhaCungCapThanhToan = FinanceConstants.PaymentProviders.PayOs,
-            NoiDungChuyenKhoan = transferContent,
             NgayTao = now,
             NgayCapNhat = now,
             MaNguoiThucHien = currentUserId
@@ -381,14 +620,21 @@ public class TuitionPaymentService : ITuitionPaymentService
         _context.GiaoDichs.Add(transaction);
         await _context.SaveChangesAsync(cancellationToken);
 
-        transaction.MaThamChieuCong = transaction.MaGiaoDich.ToString(CultureInfo.InvariantCulture);
+        var orderCode = transaction.MaGiaoDich;
+        var orderCodeText = orderCode.ToString(CultureInfo.InvariantCulture);
+        var transferContent = $"LMS {orderCodeText}";
+
+        transaction.MaThamChieuNoiBo = orderCodeText;
+        transaction.NoiDungChuyenKhoan = transferContent;
+        transaction.NgayCapNhat = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
 
         try
         {
             var payOsResult = await _payOsService.CreatePaymentLinkAsync(
                 new PayOsCreatePaymentLinkRequest
                 {
-                    OrderCode = transaction.MaGiaoDich,
+                    OrderCode = orderCode,
                     Amount = amount,
                     Description = transferContent,
                     ItemName = $"Học phí {invoice.MaHoaDonCode}"
@@ -397,6 +643,8 @@ public class TuitionPaymentService : ITuitionPaymentService
 
             transaction.CheckoutUrl = payOsResult.CheckoutUrl;
             transaction.QrPayload = payOsResult.QrPayload;
+            transaction.QrUrl = null;
+            transaction.MaThamChieuCong = FirstNonEmpty(payOsResult.PaymentLinkId, orderCodeText);
             transaction.ResponsePayloadJson = payOsResult.ResponsePayloadJson;
             transaction.RequestPayloadJson = payOsResult.RequestPayloadJson;
             transaction.NgayCapNhat = DateTime.UtcNow;
@@ -418,12 +666,12 @@ public class TuitionPaymentService : ITuitionPaymentService
 
     private async Task<GiaoDich?> GetReusablePendingPaymentAsync(
         int invoiceId,
+        int organizationId,
         string provider,
         decimal amount,
         CancellationToken cancellationToken)
     {
         var payment = await _context.GiaoDichs
-            .AsNoTracking()
             .Where(x =>
                 x.MaHoaDon == invoiceId &&
                 x.NhaCungCapThanhToan == provider &&
@@ -438,7 +686,10 @@ public class TuitionPaymentService : ITuitionPaymentService
             return null;
         }
 
-        if (provider == FinanceConstants.PaymentProviders.PayOs && !string.IsNullOrWhiteSpace(payment.CheckoutUrl))
+        if (provider == FinanceConstants.PaymentProviders.PayOs
+            && !string.IsNullOrWhiteSpace(payment.CheckoutUrl)
+            && !string.IsNullOrWhiteSpace(payment.QrPayload)
+            && IsPositiveLong(payment.MaThamChieuNoiBo))
         {
             return payment;
         }
@@ -496,6 +747,8 @@ public class TuitionPaymentService : ITuitionPaymentService
 
     private async Task<GiaoDich?> FindPayOsTransactionAsync(
         long? orderCode,
+        string paymentLinkId,
+        string reference,
         string transferDescription,
         CancellationToken cancellationToken)
     {
@@ -507,11 +760,28 @@ public class TuitionPaymentService : ITuitionPaymentService
         {
             var orderCodeText = orderCode.Value.ToString(CultureInfo.InvariantCulture);
             var byOrderCode = await query
-                .FirstOrDefaultAsync(x => x.MaThamChieuCong == orderCodeText, cancellationToken);
+                .FirstOrDefaultAsync(
+                    x => x.MaThamChieuNoiBo == orderCodeText
+                        || x.MaThamChieuCong == orderCodeText
+                        || x.MaGiaoDich == orderCode.Value,
+                    cancellationToken);
 
             if (byOrderCode is not null)
             {
                 return byOrderCode;
+            }
+        }
+
+        var publicReference = FirstNonEmpty(paymentLinkId, reference);
+        if (!string.IsNullOrWhiteSpace(publicReference))
+        {
+            var byPublicReference = await query.FirstOrDefaultAsync(
+                x => x.MaThamChieuCong == publicReference,
+                cancellationToken);
+
+            if (byPublicReference is not null)
+            {
+                return byPublicReference;
             }
         }
 
@@ -522,21 +792,24 @@ public class TuitionPaymentService : ITuitionPaymentService
         }
 
         return await query.FirstOrDefaultAsync(
-            x => x.MaThamChieuNoiBo == internalReference,
+            x => x.MaThamChieuNoiBo == internalReference
+                || x.MaThamChieuCong == internalReference,
             cancellationToken);
     }
 
     private static CreateTuitionPaymentResponse ToPaymentResponse(GiaoDich transaction)
     {
+        var provider = transaction.NhaCungCapThanhToan ?? string.Empty;
+
         return new CreateTuitionPaymentResponse
         {
             MaGiaoDich = transaction.MaGiaoDich,
             MaHoaDon = transaction.MaHoaDon,
-            Provider = transaction.NhaCungCapThanhToan ?? string.Empty,
+            Provider = provider,
             Amount = transaction.SoTien,
             MaThamChieuNoiBo = transaction.MaThamChieuNoiBo ?? string.Empty,
             NoiDungChuyenKhoan = transaction.NoiDungChuyenKhoan ?? string.Empty,
-            QrUrl = transaction.QrUrl,
+            QrUrl = provider == FinanceConstants.PaymentProviders.PayOs ? null : transaction.QrUrl,
             CheckoutUrl = transaction.CheckoutUrl,
             QrPayload = transaction.QrPayload,
             TrangThai = transaction.TrangThai
@@ -578,6 +851,17 @@ public class TuitionPaymentService : ITuitionPaymentService
         return normalized.StartsWith("LMS ", StringComparison.OrdinalIgnoreCase)
             ? normalized[4..].Trim()
             : normalized;
+    }
+
+    private static string? FirstNonEmpty(params string?[] values)
+    {
+        return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+    }
+
+    private static bool IsPositiveLong(string? value)
+    {
+        return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+            && parsed > 0;
     }
 
     private static string GetString(JsonElement element, string propertyName)

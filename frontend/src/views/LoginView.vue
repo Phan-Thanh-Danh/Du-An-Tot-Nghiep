@@ -31,6 +31,25 @@ const fieldErrors = reactive({
   password: '',
 })
 
+const QUICK_LOGIN_ACCOUNTS = {
+  student: {
+    email: 'student.cntt01@lms.local',
+    password: 'Admin@123',
+  },
+  teacher: {
+    email: 'teacher.cntt@lms.local',
+    password: 'Admin@123',
+  },
+  staff: {
+    email: 'giaovu.hcm@lms.local',
+    password: 'Admin@123',
+  },
+  admin: {
+    email: 'superadmin@lms.local',
+    password: 'Admin@123',
+  },
+}
+
 const canSubmit = computed(() => form.email.trim() && form.password && !authStore.loading)
 
 function clearFieldError(field) {
@@ -69,21 +88,10 @@ async function submitLogin() {
       { remember: rememberLogin.value },
     )
 
-    let targetPath = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
-
-    if (
-      targetPath === '/' ||
-      targetPath.startsWith('/student') ||
-      targetPath.startsWith('/teacher') ||
-      targetPath.startsWith('/staff') ||
-      targetPath.startsWith('/bgh')
-    ) {
-      if (authStore.hasRole('Principal')) targetPath = '/bgh/dashboard'
-      else if (authStore.hasRole('Teacher')) targetPath = '/teacher/dashboard'
-      else if (authStore.hasRole('AcademicStaff')) targetPath = '/staff/dashboard'
-      else targetPath = '/student/dashboard'
-    }
-
+    const redirectPath = typeof route.query.redirect === 'string' ? route.query.redirect : ''
+    const targetPath = canUseRedirect(redirectPath)
+      ? redirectPath
+      : getDefaultPathForCurrentRole()
     router.replace(targetPath)
   } catch (error) {
     errorMessage.value =
@@ -94,9 +102,36 @@ async function submitLogin() {
   }
 }
 
-function quickLogin(roleName) {
-  form.email = roleName
-  form.password = 'mock_password_no_need'
+function getDefaultPathForCurrentRole() {
+  if (authStore.hasRole('SuperAdmin')) return '/super-admin/dashboard'
+  if (authStore.hasRole(['FinanceAdmin', 'CampusChiefAccountant', 'CampusAccountant'])) {
+    return '/super-admin/finance/tuition-config'
+  }
+  if (authStore.hasRole('Principal')) return '/bgh/dashboard'
+  if (authStore.hasRole('Teacher')) return '/teacher/dashboard'
+  if (authStore.hasRole('AcademicStaff')) return '/staff/dashboard'
+  return '/student/dashboard'
+}
+
+function canUseRedirect(path) {
+  if (!path || path === '/') return false
+
+  if (authStore.hasRole('SuperAdmin')) return path.startsWith('/super-admin')
+  if (authStore.hasRole(['FinanceAdmin', 'CampusChiefAccountant', 'CampusAccountant'])) {
+    return path.startsWith('/super-admin/finance')
+  }
+  if (authStore.hasRole('Principal')) return path.startsWith('/bgh')
+  if (authStore.hasRole('Teacher')) return path.startsWith('/teacher')
+  if (authStore.hasRole('AcademicStaff')) return path.startsWith('/staff')
+  return path.startsWith('/student')
+}
+
+function quickLogin(roleKey) {
+  const account = QUICK_LOGIN_ACCOUNTS[roleKey]
+  if (!account) return
+
+  form.email = account.email
+  form.password = account.password
   submitLogin()
 }
 </script>
@@ -267,7 +302,8 @@ function quickLogin(roleName) {
           <div class="grid grid-cols-2 gap-2 mb-4">
             <button
               type="button"
-              class="quick-login-btn flex flex-col items-center justify-center p-2.5 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm"
+              class="quick-login-btn flex flex-col items-center justify-center p-2.5 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="authStore.loading"
               @click="quickLogin('student')"
             >
               <GraduationCap class="h-5 w-5 text-blue-700 mb-1" />
@@ -276,7 +312,8 @@ function quickLogin(roleName) {
             </button>
             <button
               type="button"
-              class="quick-login-btn flex flex-col items-center justify-center p-2.5 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm"
+              class="quick-login-btn flex flex-col items-center justify-center p-2.5 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="authStore.loading"
               @click="quickLogin('teacher')"
             >
               <svg class="h-5 w-5 text-emerald-700 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -287,7 +324,8 @@ function quickLogin(roleName) {
             </button>
             <button
               type="button"
-              class="quick-login-btn flex flex-col items-center justify-center p-2.5 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm"
+              class="quick-login-btn flex flex-col items-center justify-center p-2.5 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="authStore.loading"
               @click="quickLogin('staff')"
             >
               <svg class="h-5 w-5 text-teal-700 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -298,7 +336,8 @@ function quickLogin(roleName) {
             </button>
             <button
               type="button"
-              class="quick-login-btn flex flex-col items-center justify-center p-2.5 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm"
+              class="quick-login-btn flex flex-col items-center justify-center p-2.5 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="authStore.loading"
               @click="quickLogin('admin')"
             >
               <svg class="h-5 w-5 text-indigo-700 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">

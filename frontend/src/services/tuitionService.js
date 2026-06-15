@@ -12,7 +12,7 @@ export async function getStudentTuitionTransactions() {
   return unwrap(await apiRequest('/api/student/tuition/transactions', { method: 'GET' }))
 }
 
-export async function createTuitionPayment(invoiceId, provider) {
+export async function createTuitionPayment(invoiceId, provider = 'payos') {
   return unwrap(
     await apiRequest(`/api/student/tuition/invoices/${invoiceId}/payments`, {
       method: 'POST',
