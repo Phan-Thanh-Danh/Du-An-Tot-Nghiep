@@ -36,6 +36,11 @@ export default defineConfig({
               priority: 20,
             },
             {
+              test: /[\\/]node_modules[\\/](?:html2pdf\.js|html2canvas|jspdf|dompurify|canvg|core-js|raf|rgbcolor|svg-pathdata|stackblur-canvas|performance-now|fflate|fast-png|iobuffer|pako|css-line-break|text-segmentation|utrie|base64-arraybuffer|@babel[\\/]runtime)[\\/]/,
+              name: 'vendor-pdf',
+              priority: 20,
+            },
+            {
               test: /[\\/]node_modules[\\/]/,
               name: 'vendor',
               priority: 10,

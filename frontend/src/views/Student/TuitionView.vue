@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
+import { useAuthStore } from '@/stores/auth'
 import { usePopupStore } from '@/stores/popup'
 import {
   createTuitionPayment,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-vue-next'
 
 const popupStore = usePopupStore()
+const authStore = useAuthStore()
 
 const statusConfig = {
   Unpaid: { label: 'Chưa thanh toán', cls: 'badge-red', icon: AlertCircle },
@@ -55,6 +57,7 @@ const isProcessing = ref(false)
 const paymentResult = ref(null)
 const paymentConfirmed = ref(false)
 const paymentPollTimer = ref(null)
+const downloadingInvoiceId = ref('')
 let paymentPollAttempts = 0
 
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(val || 0))
@@ -159,8 +162,50 @@ const createPayOsQrPayment = async () => {
   }
 }
 
-const downloadPDF = (id) => {
-  popupStore.info('Đang tải', `Đang tải hóa đơn ${id}...`)
+const downloadPDF = async (invoice) => {
+  if (!invoice || downloadingInvoiceId.value) return
+
+  downloadingInvoiceId.value = invoice.id
+  let renderHost = null
+
+  try {
+    renderHost = createInvoicePdfRenderHost(invoice)
+    document.body.appendChild(renderHost)
+    await waitForNextPaint()
+
+    const invoicePage = renderHost.querySelector('.invoice-page')
+    if (!invoicePage) {
+      throw new Error('Không tìm thấy mẫu hóa đơn để xuất PDF.')
+    }
+
+    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf'),
+    ])
+
+    const filename = `${sanitizeFilename(invoice.id || 'hoa-don-hoc-phi')}.pdf`
+
+    const canvas = await html2canvas(renderHost, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+    })
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.95)
+    const pdf = new jsPDF('p', 'pt', 'a4')
+    const pdfW = pdf.internal.pageSize.getWidth()
+    const pdfH = pdf.internal.pageSize.getHeight()
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH)
+    pdf.save(filename)
+
+    popupStore.success('Đã tải hóa đơn', `File ${filename} đã được tạo.`)
+  } catch (error) {
+    popupStore.error('Không tải được PDF', error?.message || 'Vui lòng thử lại sau.')
+  } finally {
+    renderHost?.remove()
+    downloadingInvoiceId.value = ''
+  }
 }
 
 async function loadTuitionData() {
@@ -275,6 +320,9 @@ function mapInvoice(invoice) {
     id: read(invoice, 'maHoaDonCode', 'MaHoaDonCode'),
     semester: read(invoice, 'hocKy', 'HocKy'),
     total: conPhaiDong,
+    soTien,
+    giamTru,
+    daThanhToan,
     soTienPhaiDong,
     conPhaiDong,
     dueDate: read(invoice, 'hanThanhToan', 'HanThanhToan'),
@@ -282,6 +330,266 @@ function mapInvoice(invoice) {
     rawStatus,
     items,
   }
+}
+
+function createInvoicePdfRenderHost(invoice) {
+  const parsedDocument = new DOMParser().parseFromString(buildInvoicePdfHtml(invoice), 'text/html')
+  const invoicePage = parsedDocument.body.querySelector('.invoice-page')
+  if (!invoicePage) {
+    throw new Error('Không tìm thấy mẫu hóa đơn để xuất PDF.')
+  }
+
+  const styleText = Array.from(parsedDocument.head.querySelectorAll('style'))
+    .map((style) => style.textContent || '')
+    .join('\n')
+
+  const uuid = `pdf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const renderHost = document.createElement('div')
+  renderHost.className = uuid
+  renderHost.setAttribute('aria-hidden', 'true')
+  Object.assign(renderHost.style, {
+    position: 'fixed',
+    left: '0',
+    top: '0',
+    width: '794px',
+    minHeight: '1123px',
+    overflow: 'hidden',
+    pointerEvents: 'none',
+    zIndex: '-1',
+    background: '#eef2f7',
+  })
+
+  const styleElement = document.createElement('style')
+  styleElement.textContent = scopeInvoicePdfStyles(styleText, uuid)
+  renderHost.appendChild(styleElement)
+  renderHost.appendChild(document.importNode(invoicePage, true))
+
+  return renderHost
+}
+
+function scopeInvoicePdfStyles(cssText, uuid) {
+  return cssText
+    .replace(/@page[^{]*\{[^}]*\}/g, '')
+    .replace(/@media print\s*\{[\s\S]*?\}\s*$/g, '')
+    .replace(/(^|})\s*([^@{}][^{]+)\{/g, (...groups) => {
+      const closeBrace = groups[1]
+      const selectorText = groups[2]
+      const scopedSelectors = selectorText
+        .split(',')
+        .map((selector) => {
+          const trimmed = selector.trim()
+          if (!trimmed) return trimmed
+          if (trimmed === 'body') return `.${uuid}`
+          if (trimmed === '*') return `.${uuid} *`
+          return `.${uuid} ${trimmed}`
+        })
+        .join(', ')
+
+      return `${closeBrace}\n${scopedSelectors} {`
+    })
+}
+
+function waitForNextPaint() {
+  return new Promise((resolve) => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        window.setTimeout(resolve, 200)
+      })
+    })
+  })
+}
+
+function sanitizeFilename(value) {
+  return String(value || 'hoa-don-hoc-phi')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    || 'hoa-don-hoc-phi'
+}
+
+function buildInvoicePdfHtml(invoice) {
+  const user = authStore.user || {}
+  const statusLabel = getStatusConfig(invoice.status).label
+  const exportedAt = new Date()
+  const amountDueText = `${formatNumber(invoice.conPhaiDong)} đ`
+  const studentCode = user.userId ? `SV${String(user.userId).padStart(3, '0')}` : 'Chưa cập nhật'
+  const campus = user.campusId ? `Cơ sở ${user.campusId}` : 'Chưa cập nhật'
+  const summaryText = invoice.conPhaiDong <= 0
+    ? 'Hóa đơn đã được ghi nhận thanh toán trên hệ thống. Sinh viên không còn khoản tiền phải đóng cho học kỳ này.'
+    : 'Hóa đơn còn số tiền phải thanh toán. Vui lòng thực hiện thanh toán đúng hạn để hệ thống ghi nhận công nợ.'
+
+  return `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hóa đơn học phí - ${escapeHtml(invoice.id)}</title>
+  <style>
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background: #eef2f7; color: #0f172a; font-size: 14px; }
+    .invoice-page { width: 794px; min-height: 1123px; margin: 0 auto; background: #ffffff; padding: 36px 42px; }
+    .invoice-header { display: table; width: 100%; padding-bottom: 22px; border-bottom: 2px solid #e2e8f0; }
+    .brand { display: table-cell; vertical-align: top; width: 60%; }
+    .brand-logo { display: inline-block; width: 54px; height: 54px; border-radius: 14px; background: #2563eb; color: #ffffff; text-align: center; line-height: 54px; font-weight: 800; font-size: 18px; vertical-align: top; margin-right: 12px; }
+    .brand-text { display: inline-block; vertical-align: top; }
+    .brand-text h1 { margin: 0; font-size: 22px; color: #0f172a; text-transform: uppercase; }
+    .brand-text p { margin: 6px 0 0; color: #64748b; line-height: 1.5; font-size: 13px; }
+    .invoice-meta { display: table-cell; vertical-align: top; width: 40%; text-align: right; }
+    .status-badge-pdf { display: inline-block; padding: 7px 14px; border-radius: 999px; background: #dcfce7; color: #15803d; font-weight: 700; font-size: 13px; margin-bottom: 10px; }
+    .invoice-code { color: #334155; font-weight: 700; font-size: 13px; }
+    .invoice-title { display: table; width: 100%; margin: 30px 0 24px; }
+    .invoice-title-left { display: table-cell; vertical-align: bottom; width: 65%; }
+    .invoice-title-left h2 { margin: 0; font-size: 28px; color: #111827; }
+    .invoice-title-left p { margin: 8px 0 0; color: #475569; font-size: 15px; font-weight: 600; }
+    .amount-due { display: table-cell; vertical-align: bottom; width: 35%; text-align: right; }
+    .amount-due span { display: block; color: #64748b; font-size: 13px; margin-bottom: 6px; }
+    .amount-due strong { font-size: 30px; color: #2563eb; font-weight: 900; }
+    .info-grid { display: table; width: 100%; border-spacing: 14px 0; margin-left: -14px; margin-bottom: 28px; }
+    .info-card { display: table-cell; width: 50%; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; background: #f8fafc; vertical-align: top; }
+    .info-card h3 { margin: 0 0 12px; font-size: 15px; color: #0f172a; }
+    .info-row { display: table; width: 100%; padding: 7px 0; border-bottom: 1px dashed #dbe3ef; }
+    .info-row:last-child { border-bottom: none; }
+    .info-row span { display: table-cell; color: #64748b; }
+    .info-row strong { display: table-cell; text-align: right; color: #111827; font-weight: 700; }
+    .fee-section { margin-top: 28px; }
+    .section-heading { display: table; width: 100%; margin-bottom: 10px; }
+    .section-heading h3 { display: table-cell; margin: 0; font-size: 17px; color: #0f172a; font-weight: 800; }
+    .section-heading span { display: table-cell; text-align: right; font-size: 12px; color: #64748b; vertical-align: middle; }
+    .fee-card { border: 1px solid #dbe3ef; border-radius: 16px; overflow: hidden; background: #ffffff; }
+    .fee-table { width: 100%; border-collapse: collapse; }
+    .fee-table thead { background: #eef5ff; }
+    .fee-table th { padding: 14px 16px; text-align: left; font-size: 12px; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 1px solid #d6e4f5; }
+    .fee-table td { padding: 15px 16px; border-bottom: 1px solid #edf2f7; vertical-align: top; }
+    .text-right { text-align: right; }
+    .fee-name { font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+    .fee-desc { font-size: 12px; color: #64748b; }
+    .amount { font-size: 14px; font-weight: 800; color: #111827; white-space: nowrap; }
+    .minus { color: #0f766e; }
+    .note { font-size: 13px; color: #475569; }
+    .summary-area { display: table; width: 100%; background: #f8fafc; padding: 20px 22px; border-top: 1px solid #e2e8f0; }
+    .summary-note { display: table-cell; width: 52%; vertical-align: middle; padding-right: 24px; }
+    .summary-note-title { font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 6px; }
+    .summary-note-text { font-size: 13px; line-height: 1.6; color: #64748b; }
+    .summary-total { display: table-cell; width: 48%; vertical-align: top; background: #ffffff; border: 1px solid #dbe3ef; border-radius: 14px; overflow: hidden; }
+    .summary-line { display: table; width: 100%; border-bottom: 1px solid #edf2f7; }
+    .summary-line span, .summary-line strong { display: table-cell; padding: 12px 16px; font-size: 13px; }
+    .summary-line span { color: #475569; }
+    .summary-line strong { text-align: right; color: #0f172a; font-weight: 800; white-space: nowrap; }
+    .summary-line.final { background: #eff6ff; border-bottom: none; }
+    .summary-line.final span { font-size: 15px; font-weight: 800; color: #0f172a; }
+    .summary-line.final strong { font-size: 21px; font-weight: 900; color: #2563eb; }
+    .payment-note { margin-top: 26px; padding: 16px 18px; border-radius: 14px; border: 1px solid #bfdbfe; background: #f8fbff; color: #334155; line-height: 1.6; font-size: 13px; }
+    .payment-note strong { color: #1d4ed8; }
+    .footer { margin-top: 42px; padding-top: 18px; border-top: 1px solid #e2e8f0; display: table; width: 100%; color: #64748b; font-size: 12px; line-height: 1.5; }
+    .footer-left { display: table-cell; width: 60%; vertical-align: bottom; }
+    .signature { display: table-cell; width: 40%; text-align: center; color: #334155; vertical-align: bottom; }
+    .signature-space { height: 52px; }
+    .signature-line { border-top: 1px solid #94a3b8; padding-top: 8px; font-weight: 700; }
+    .watermark { margin-top: 24px; text-align: center; color: #94a3b8; font-size: 11px; }
+    @media print { body { background: #ffffff; } .invoice-page { margin: 0; } }
+  </style>
+</head>
+<body>
+  <div class="invoice-page">
+    <div class="invoice-header">
+      <div class="brand">
+        <div class="brand-logo">LMS</div>
+        <div class="brand-text">
+          <h1>Trung tâm đào tạo AET</h1>
+          <p>Hệ thống quản lý học tập LMS<br />Email: support@aet.edu.vn | Hotline: 1900 0000</p>
+        </div>
+      </div>
+      <div class="invoice-meta">
+        <div class="status-badge-pdf">${escapeHtml(statusLabel)}</div>
+        <div class="invoice-code">Mã hóa đơn: ${escapeHtml(invoice.id)}</div>
+      </div>
+    </div>
+    <div class="invoice-title">
+      <div class="invoice-title-left">
+        <h2>Hóa đơn học phí</h2>
+        <p>${escapeHtml(invoice.semester)}</p>
+      </div>
+      <div class="amount-due">
+        <span>Còn phải thanh toán</span>
+        <strong>${escapeHtml(amountDueText)}</strong>
+      </div>
+    </div>
+    <div class="info-grid">
+      <div class="info-card">
+        <h3>Thông tin sinh viên</h3>
+        ${infoRow('Mã sinh viên', studentCode)}
+        ${infoRow('Họ và tên', user.fullName || authStore.displayName || 'Chưa cập nhật')}
+        ${infoRow('Lớp', user.className || user.lop || 'Chưa cập nhật')}
+        ${infoRow('Cơ sở', campus)}
+      </div>
+      <div class="info-card">
+        <h3>Thông tin hóa đơn</h3>
+        ${infoRow('Ngày tạo', formatDate(exportedAt))}
+        ${infoRow('Hạn thanh toán', formatDate(invoice.dueDate))}
+        ${infoRow('Phương thức', 'Chuyển khoản')}
+        ${infoRow('Trạng thái', statusLabel)}
+      </div>
+    </div>
+    <section class="fee-section">
+      <div class="section-heading"><h3>Chi tiết khoản thu</h3><span>Đơn vị tiền tệ: VNĐ</span></div>
+      <div class="fee-card">
+        <table class="fee-table">
+          <thead><tr><th style="width: 45%;">Nội dung</th><th style="width: 25%;" class="text-right">Số tiền</th><th style="width: 30%;" class="text-right">Ghi chú</th></tr></thead>
+          <tbody>
+            ${feeRow('Học phí học kỳ', 'Khoản học phí chính của học kỳ', invoice.soTien, 'Khoản phải thu')}
+            ${feeRow('Giảm trừ', 'Học bổng hoặc chính sách miễn giảm', -invoice.giamTru, 'Học bổng / miễn giảm')}
+            ${feeRow('Đã thanh toán', 'Số tiền sinh viên đã thanh toán', -invoice.daThanhToan, 'Chuyển khoản')}
+          </tbody>
+        </table>
+        <div class="summary-area">
+          <div class="summary-note"><div class="summary-note-title">Tổng kết thanh toán</div><div class="summary-note-text">${escapeHtml(summaryText)}</div></div>
+          <div class="summary-total">
+            ${summaryLine('Tổng học phí', invoice.soTien)}
+            ${summaryLine('Tổng giảm trừ', -invoice.giamTru)}
+            ${summaryLine('Đã thanh toán', -invoice.daThanhToan)}
+            <div class="summary-line final"><span>Còn phải đóng</span><strong>${escapeHtml(amountDueText)}</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <div class="payment-note"><strong>Ghi chú:</strong> Hóa đơn này được tạo tự động từ hệ thống LMS. Trường hợp sinh viên đã thanh toán nhưng trạng thái chưa được cập nhật, vui lòng liên hệ phòng tài chính để được kiểm tra giao dịch.</div>
+    <div class="footer">
+      <div class="footer-left"><strong>Thông tin liên hệ</strong><br />Phòng tài chính - Trung tâm đào tạo AET<br />Địa chỉ: Biên Hòa, Đồng Nai<br />Thời gian xuất hóa đơn: ${escapeHtml(formatDateTime(exportedAt))}</div>
+      <div class="signature">Người lập phiếu<div class="signature-space"></div><div class="signature-line">Hệ thống LMS</div></div>
+    </div>
+    <div class="watermark">Đây là hóa đơn điện tử được xuất từ hệ thống LMS. Không cần chữ ký tay.</div>
+  </div>
+</body>
+</html>`
+}
+
+function infoRow(label, value) {
+  return `<div class="info-row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`
+}
+
+function feeRow(name, desc, amount, note) {
+  const isMinus = amount < 0
+  return `<tr><td><div class="fee-name">${escapeHtml(name)}</div><div class="fee-desc">${escapeHtml(desc)}</div></td><td class="text-right amount ${isMinus ? 'minus' : ''}">${escapeHtml(formatSignedAmount(amount))}</td><td class="text-right note">${escapeHtml(note)}</td></tr>`
+}
+
+function summaryLine(label, amount) {
+  return `<div class="summary-line"><span>${escapeHtml(label)}</span><strong>${escapeHtml(formatSignedAmount(amount))}</strong></div>`
+}
+
+function formatSignedAmount(amount) {
+  const value = toNumber(amount)
+  const prefix = value < 0 ? '-' : ''
+  return `${prefix}${formatNumber(Math.abs(value))} đ`
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
 }
 
 function mapTransaction(transaction) {
@@ -435,8 +743,14 @@ function parseDate(value) {
         </div>
 
         <div class="invoice-footer">
-          <button v-if="inv.status === 'Paid'" class="btn-secondary" @click="downloadPDF(inv.id)">
-            <Download :size="15"/> Tải PDF Hóa đơn
+          <button
+            v-if="inv.status !== 'Cancelled'"
+            class="btn-secondary"
+            :disabled="downloadingInvoiceId === inv.id"
+            @click="downloadPDF(inv)"
+          >
+            <Download :size="15" :class="{ 'animate-pulse': downloadingInvoiceId === inv.id }"/>
+            {{ downloadingInvoiceId === inv.id ? 'Đang tạo PDF...' : 'Tải PDF Hóa đơn' }}
           </button>
           
           <div class="flex-1"></div>

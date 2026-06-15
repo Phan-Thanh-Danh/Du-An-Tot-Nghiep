@@ -258,121 +258,118 @@ public class TuitionPaymentService : ITuitionPaymentService
             amount,
             isSuccessfulPayment);
 
-        await using var dbTransaction = await _context.Database.BeginTransactionAsync(
+        return await _context.ExecuteInTransactionAsync(
             IsolationLevel.Serializable,
+            async () =>
+            {
+                var transaction = await FindPayOsTransactionAsync(
+                    orderCode,
+                    paymentLinkId,
+                    reference,
+                    transferDescription,
+                    cancellationToken);
+                if (transaction is null)
+                {
+                    _logger.LogWarning(
+                        "PayOS webhook transaction not found. OrderCode={OrderCode}, PaymentLinkId={PaymentLinkId}, Reference={Reference}, Description={Description}",
+                        orderCode,
+                        paymentLinkId,
+                        reference,
+                        transferDescription);
+                    return new PayOsWebhookResultDto
+                    {
+                        Processed = false,
+                        TrangThai = "khong_tim_thay",
+                        Message = "Không tìm thấy giao dịch PayOS tương ứng."
+                    };
+                }
+
+                if (transaction.TrangThai == FinanceConstants.TransactionStatuses.Success)
+                {
+                    _logger.LogInformation(
+                        "PayOS webhook ignored because transaction already succeeded. MaGiaoDich={MaGiaoDich}, OrderCode={OrderCode}",
+                        transaction.MaGiaoDich,
+                        orderCode);
+                    return new PayOsWebhookResultDto
+                    {
+                        Processed = true,
+                        TrangThai = transaction.TrangThai,
+                        Message = "Giao dịch đã thành công trước đó."
+                    };
+                }
+
+                var now = DateTime.Now;
+                transaction.CallbackPayloadJson = rawBody;
+                transaction.MaThamChieuCong = FirstNonEmpty(paymentLinkId, reference, transaction.MaThamChieuCong);
+                transaction.NgayCapNhat = now;
+
+                if (!isSuccessfulPayment)
+                {
+                    _logger.LogWarning(
+                        "PayOS webhook reports unsuccessful payment. MaGiaoDich={MaGiaoDich}, OldStatus={OldStatus}, OrderCode={OrderCode}",
+                        transaction.MaGiaoDich,
+                        transaction.TrangThai,
+                        orderCode);
+                    transaction.TrangThai = FinanceConstants.TransactionStatuses.Failed;
+                    await _context.SaveChangesAsync(cancellationToken);
+
+                    return new PayOsWebhookResultDto
+                    {
+                        Processed = true,
+                        TrangThai = transaction.TrangThai,
+                        Message = "Webhook PayOS báo giao dịch không thành công."
+                    };
+                }
+
+                if (amount != transaction.SoTien)
+                {
+                    _logger.LogWarning(
+                        "PayOS webhook amount mismatch. MaGiaoDich={MaGiaoDich}, Expected={ExpectedAmount}, Actual={ActualAmount}",
+                        transaction.MaGiaoDich,
+                        transaction.SoTien,
+                        amount);
+                    transaction.TrangThai = FinanceConstants.TransactionStatuses.WrongAmount;
+                    await _context.SaveChangesAsync(cancellationToken);
+
+                    return new PayOsWebhookResultDto
+                    {
+                        Processed = true,
+                        TrangThai = transaction.TrangThai,
+                        Message = "Số tiền PayOS báo về không khớp giao dịch."
+                    };
+                }
+
+                if (transaction.HoaDon is null)
+                {
+                    throw new ApiException(StatusCodes.Status400BadRequest, "Giao dịch PayOS không gắn với hóa đơn hợp lệ.");
+                }
+
+                var oldPaymentStatus = transaction.TrangThai;
+                var oldInvoicePaid = transaction.HoaDon.DaThanhToan;
+                var oldInvoiceStatus = transaction.HoaDon.TrangThai;
+                MarkPaymentSuccess(transaction, now);
+
+                await _context.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation(
+                    "PayOS webhook processed. MaGiaoDich={MaGiaoDich}, PaymentStatus={OldPaymentStatus}->{NewPaymentStatus}, HoaDon={MaHoaDon}, Paid={OldPaid}->{NewPaid}, InvoiceStatus={OldInvoiceStatus}->{NewInvoiceStatus}",
+                    transaction.MaGiaoDich,
+                    oldPaymentStatus,
+                    transaction.TrangThai,
+                    transaction.MaHoaDon,
+                    oldInvoicePaid,
+                    transaction.HoaDon.DaThanhToan,
+                    oldInvoiceStatus,
+                    transaction.HoaDon.TrangThai);
+
+                return new PayOsWebhookResultDto
+                {
+                    Processed = true,
+                    TrangThai = transaction.TrangThai,
+                    Message = "Đã cập nhật thanh toán PayOS thành công."
+                };
+            },
             cancellationToken);
-
-        var transaction = await FindPayOsTransactionAsync(
-            orderCode,
-            paymentLinkId,
-            reference,
-            transferDescription,
-            cancellationToken);
-        if (transaction is null)
-        {
-            _logger.LogWarning(
-                "PayOS webhook transaction not found. OrderCode={OrderCode}, PaymentLinkId={PaymentLinkId}, Reference={Reference}, Description={Description}",
-                orderCode,
-                paymentLinkId,
-                reference,
-                transferDescription);
-            await dbTransaction.CommitAsync(cancellationToken);
-            return new PayOsWebhookResultDto
-            {
-                Processed = false,
-                TrangThai = "khong_tim_thay",
-                Message = "Không tìm thấy giao dịch PayOS tương ứng."
-            };
-        }
-
-        if (transaction.TrangThai == FinanceConstants.TransactionStatuses.Success)
-        {
-            _logger.LogInformation(
-                "PayOS webhook ignored because transaction already succeeded. MaGiaoDich={MaGiaoDich}, OrderCode={OrderCode}",
-                transaction.MaGiaoDich,
-                orderCode);
-            await dbTransaction.CommitAsync(cancellationToken);
-            return new PayOsWebhookResultDto
-            {
-                Processed = true,
-                TrangThai = transaction.TrangThai,
-                Message = "Giao dịch đã thành công trước đó."
-            };
-        }
-
-        var now = DateTime.Now;
-        transaction.CallbackPayloadJson = rawBody;
-        transaction.MaThamChieuCong = FirstNonEmpty(paymentLinkId, reference, transaction.MaThamChieuCong);
-        transaction.NgayCapNhat = now;
-
-        if (!isSuccessfulPayment)
-        {
-            _logger.LogWarning(
-                "PayOS webhook reports unsuccessful payment. MaGiaoDich={MaGiaoDich}, OldStatus={OldStatus}, OrderCode={OrderCode}",
-                transaction.MaGiaoDich,
-                transaction.TrangThai,
-                orderCode);
-            transaction.TrangThai = FinanceConstants.TransactionStatuses.Failed;
-            await _context.SaveChangesAsync(cancellationToken);
-            await dbTransaction.CommitAsync(cancellationToken);
-
-            return new PayOsWebhookResultDto
-            {
-                Processed = true,
-                TrangThai = transaction.TrangThai,
-                Message = "Webhook PayOS báo giao dịch không thành công."
-            };
-        }
-
-        if (amount != transaction.SoTien)
-        {
-            _logger.LogWarning(
-                "PayOS webhook amount mismatch. MaGiaoDich={MaGiaoDich}, Expected={ExpectedAmount}, Actual={ActualAmount}",
-                transaction.MaGiaoDich,
-                transaction.SoTien,
-                amount);
-            transaction.TrangThai = FinanceConstants.TransactionStatuses.WrongAmount;
-            await _context.SaveChangesAsync(cancellationToken);
-            await dbTransaction.CommitAsync(cancellationToken);
-
-            return new PayOsWebhookResultDto
-            {
-                Processed = true,
-                TrangThai = transaction.TrangThai,
-                Message = "Số tiền PayOS báo về không khớp giao dịch."
-            };
-        }
-
-        if (transaction.HoaDon is null)
-        {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Giao dịch PayOS không gắn với hóa đơn hợp lệ.");
-        }
-
-        var oldPaymentStatus = transaction.TrangThai;
-        var oldInvoicePaid = transaction.HoaDon.DaThanhToan;
-        var oldInvoiceStatus = transaction.HoaDon.TrangThai;
-        MarkPaymentSuccess(transaction, now);
-
-        await _context.SaveChangesAsync(cancellationToken);
-        await dbTransaction.CommitAsync(cancellationToken);
-
-        _logger.LogInformation(
-            "PayOS webhook processed. MaGiaoDich={MaGiaoDich}, PaymentStatus={OldPaymentStatus}->{NewPaymentStatus}, HoaDon={MaHoaDon}, Paid={OldPaid}->{NewPaid}, InvoiceStatus={OldInvoiceStatus}->{NewInvoiceStatus}",
-            transaction.MaGiaoDich,
-            oldPaymentStatus,
-            transaction.TrangThai,
-            transaction.MaHoaDon,
-            oldInvoicePaid,
-            transaction.HoaDon.DaThanhToan,
-            oldInvoiceStatus,
-            transaction.HoaDon.TrangThai);
-
-        return new PayOsWebhookResultDto
-        {
-            Processed = true,
-            TrangThai = transaction.TrangThai,
-            Message = "Đã cập nhật thanh toán PayOS thành công."
-        };
     }
 
     private async Task TrySyncPendingPayOsPaymentsForStudentAsync(
@@ -449,56 +446,54 @@ public class TuitionPaymentService : ITuitionPaymentService
         var orderCode = ResolvePayOsOrderCode(paymentSnapshot.MaThamChieuCong, paymentSnapshot.MaGiaoDich);
         var payOsStatus = await _payOsService.GetPaymentLinkAsync(orderCode, cancellationToken);
 
-        await using var dbTransaction = await _context.Database.BeginTransactionAsync(
+        await _context.ExecuteInTransactionAsync(
             IsolationLevel.Serializable,
-            cancellationToken);
-
-        var transaction = await _context.GiaoDichs
-            .Include(x => x.HoaDon)
-            .FirstOrDefaultAsync(x =>
-                x.MaGiaoDich == transactionId &&
-                x.NhaCungCapThanhToan == FinanceConstants.PaymentProviders.PayOs,
-                cancellationToken);
-
-        if (transaction is null ||
-            transaction.TrangThai == FinanceConstants.TransactionStatuses.Success)
-        {
-            await dbTransaction.CommitAsync(cancellationToken);
-            return;
-        }
-
-        var now = DateTime.Now;
-        transaction.CallbackPayloadJson = payOsStatus.ResponsePayloadJson;
-        transaction.NgayCapNhat = now;
-
-        if (IsPayOsPaid(payOsStatus))
-        {
-            var paidAmount = payOsStatus.AmountPaid > 0 ? payOsStatus.AmountPaid : payOsStatus.Amount;
-            if (paidAmount != transaction.SoTien)
+            async () =>
             {
-                transaction.TrangThai = FinanceConstants.TransactionStatuses.WrongAmount;
+                var transaction = await _context.GiaoDichs
+                    .Include(x => x.HoaDon)
+                    .FirstOrDefaultAsync(x =>
+                        x.MaGiaoDich == transactionId &&
+                        x.NhaCungCapThanhToan == FinanceConstants.PaymentProviders.PayOs,
+                        cancellationToken);
+
+                if (transaction is null ||
+                    transaction.TrangThai == FinanceConstants.TransactionStatuses.Success)
+                {
+                    return;
+                }
+
+                var now = DateTime.Now;
+                transaction.CallbackPayloadJson = payOsStatus.ResponsePayloadJson;
+                transaction.NgayCapNhat = now;
+
+                if (IsPayOsPaid(payOsStatus))
+                {
+                    var paidAmount = payOsStatus.AmountPaid > 0 ? payOsStatus.AmountPaid : payOsStatus.Amount;
+                    if (paidAmount != transaction.SoTien)
+                    {
+                        transaction.TrangThai = FinanceConstants.TransactionStatuses.WrongAmount;
+                        await _context.SaveChangesAsync(cancellationToken);
+                        return;
+                    }
+
+                    MarkPaymentSuccess(transaction, payOsStatus.PaidAt ?? now);
+                    await _context.SaveChangesAsync(cancellationToken);
+                    return;
+                }
+
+                if (IsPayOsCanceled(payOsStatus.Status))
+                {
+                    transaction.TrangThai = FinanceConstants.TransactionStatuses.Canceled;
+                }
+                else if (IsPayOsExpired(payOsStatus.Status))
+                {
+                    transaction.TrangThai = FinanceConstants.TransactionStatuses.Expired;
+                }
+
                 await _context.SaveChangesAsync(cancellationToken);
-                await dbTransaction.CommitAsync(cancellationToken);
-                return;
-            }
-
-            MarkPaymentSuccess(transaction, payOsStatus.PaidAt ?? now);
-            await _context.SaveChangesAsync(cancellationToken);
-            await dbTransaction.CommitAsync(cancellationToken);
-            return;
-        }
-
-        if (IsPayOsCanceled(payOsStatus.Status))
-        {
-            transaction.TrangThai = FinanceConstants.TransactionStatuses.Canceled;
-        }
-        else if (IsPayOsExpired(payOsStatus.Status))
-        {
-            transaction.TrangThai = FinanceConstants.TransactionStatuses.Expired;
-        }
-
-        await _context.SaveChangesAsync(cancellationToken);
-        await dbTransaction.CommitAsync(cancellationToken);
+            },
+            cancellationToken);
     }
 
     private static long ResolvePayOsOrderCode(string? publicReference, int transactionId)

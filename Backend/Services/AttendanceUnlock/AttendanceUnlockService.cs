@@ -224,24 +224,26 @@ public class AttendanceUnlockService : IAttendanceUnlockService
             throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ được duyệt yêu cầu đang chờ duyệt.");
         }
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-        var oldSnapshot = ToUnlockAuditSnapshot(unlockRequest, session);
+        object? oldSnapshot = null;
+        await _context.ExecuteInTransactionAsync(async () =>
+        {
+            oldSnapshot = ToUnlockAuditSnapshot(unlockRequest, session);
 
-        unlockRequest.TrangThai = ApprovedStatus;
-        unlockRequest.NguoiDuyet = currentUser.UserId;
-        unlockRequest.MoKhoaDenLuc = now.AddMinutes(10);
-        unlockRequest.GhiChu = NormalizeOptional(request.GhiChu);
-        unlockRequest.ThoiGianXuLy = now;
+            unlockRequest.TrangThai = ApprovedStatus;
+            unlockRequest.NguoiDuyet = currentUser.UserId;
+            unlockRequest.MoKhoaDenLuc = now.AddMinutes(10);
+            unlockRequest.GhiChu = NormalizeOptional(request.GhiChu);
+            unlockRequest.ThoiGianXuLy = now;
 
-        session.TrangThaiDiemDanh = AttendanceInProgressStatus;
-        session.DiemDanhHanGuiLuc = now.AddMinutes(10);
-        session.DiemDanhHanChinhSuaLuc = now.AddMinutes(10);
-        session.DiemDanhKhoaLuc = null;
-        session.KhoaLuc = null;
-        session.NgayCapNhat = now;
+            session.TrangThaiDiemDanh = AttendanceInProgressStatus;
+            session.DiemDanhHanGuiLuc = now.AddMinutes(10);
+            session.DiemDanhHanChinhSuaLuc = now.AddMinutes(10);
+            session.DiemDanhKhoaLuc = null;
+            session.KhoaLuc = null;
+            session.NgayCapNhat = now;
 
-        await _context.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+        }, cancellationToken);
 
         await WriteAuditAsync(
             "APPROVE_ATTENDANCE_UNLOCK_REQUEST",
