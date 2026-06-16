@@ -195,7 +195,7 @@ const downloadPDF = async (invoice) => {
     const imgData = canvas.toDataURL('image/jpeg', 0.95)
     const pdf = new jsPDF('p', 'pt', 'a4')
     const pdfW = pdf.internal.pageSize.getWidth()
-    const pdfH = pdf.internal.pageSize.getHeight()
+    const pdfH = (canvas.height * pdfW) / canvas.width
     pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH)
     pdf.save(filename)
 
@@ -424,17 +424,17 @@ function buildInvoicePdfHtml(invoice) {
 <head>
   <meta charset="UTF-8" />
   <title>Hóa đơn học phí - ${escapeHtml(invoice.id)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800;900&display=swap" rel="stylesheet">
   <style>
     @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
-    body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background: #eef2f7; color: #0f172a; font-size: 14px; }
-    .invoice-page { width: 794px; min-height: 1123px; margin: 0 auto; background: #ffffff; padding: 36px 42px; }
+    .invoice-page { width: 794px; min-height: 1123px; margin: 0 auto; background: #ffffff; padding: 36px 42px; font-family: 'Roboto', Arial, sans-serif; color: #0f172a; font-size: 14px; line-height: 1.5; }
     .invoice-header { display: table; width: 100%; padding-bottom: 22px; border-bottom: 2px solid #e2e8f0; }
     .brand { display: table-cell; vertical-align: top; width: 60%; }
-    .brand-logo { display: inline-block; width: 54px; height: 54px; border-radius: 14px; background: #2563eb; color: #ffffff; text-align: center; line-height: 54px; font-weight: 800; font-size: 18px; vertical-align: top; margin-right: 12px; }
-    .brand-text { display: inline-block; vertical-align: top; }
-    .brand-text h1 { margin: 0; font-size: 22px; color: #0f172a; text-transform: uppercase; }
-    .brand-text p { margin: 6px 0 0; color: #64748b; line-height: 1.5; font-size: 13px; }
+    .brand-logo { display: inline-block; width: 54px; height: 54px; border-radius: 14px; background: #2563eb; color: #ffffff; text-align: center; line-height: 54px; font-weight: 800; font-size: 18px; vertical-align: middle; margin-right: 12px; }
+    .brand-text { display: inline-block; vertical-align: middle; }
+    .brand-text h1 { margin: 0; font-size: 22px; color: #0f172a; text-transform: uppercase; line-height: 1.2; }
+    .brand-text p { margin: 4px 0 0; color: #64748b; line-height: 1.5; font-size: 13px; }
     .invoice-meta { display: table-cell; vertical-align: top; width: 40%; text-align: right; }
     .status-badge-pdf { display: inline-block; padding: 7px 14px; border-radius: 999px; background: #dcfce7; color: #15803d; font-weight: 700; font-size: 13px; margin-bottom: 10px; }
     .invoice-code { color: #334155; font-weight: 700; font-size: 13px; }
@@ -834,14 +834,6 @@ function parseDate(value) {
                 <div class="modal-total-row flex justify-between items-center pt-3">
                   <span class="font-semibold">Cần thanh toán:</span>
                   <span class="modal-total">{{ selectedInvoice ? formatCurrency(selectedInvoice.total) : '0' }}</span>
-                </div>
-              </div>
-
-              <div class="payos-flow-note">
-                <CreditCard :size="18" />
-                <div>
-                  <strong>Thanh toán tự động qua PayOS</strong>
-                  <p>PayOS tạo mã VietQR cho hóa đơn này. LMS sẽ tự đồng bộ trạng thái khi ngân hàng xác nhận giao dịch.</p>
                 </div>
               </div>
 
