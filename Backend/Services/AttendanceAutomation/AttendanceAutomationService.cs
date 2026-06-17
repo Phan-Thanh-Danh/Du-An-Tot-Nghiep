@@ -128,16 +128,19 @@ public class AttendanceAutomationService : IAttendanceAutomationService
                 return BuildItem(session, action, "skipped", "Buổi học không còn thỏa điều kiện auto submit.", processedAt);
             }
 
-            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            var oldSnapshot = ToSessionSnapshot(session);
+            object? oldSnapshot = null;
 
-            session.TrangThaiDiemDanh = AttendanceSubmittedStatus;
-            session.DiemDanhDaGuiLuc ??= processedAt;
-            session.DiemDanhHanChinhSuaLuc = processedAt.AddMinutes(GetLockAfterSubmitMinutes());
-            session.NgayCapNhat = processedAt;
+            await _context.ExecuteInTransactionAsync(async () =>
+            {
+                oldSnapshot = ToSessionSnapshot(session);
 
-            await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+                session.TrangThaiDiemDanh = AttendanceSubmittedStatus;
+                session.DiemDanhDaGuiLuc ??= processedAt;
+                session.DiemDanhHanChinhSuaLuc = processedAt.AddMinutes(GetLockAfterSubmitMinutes());
+                session.NgayCapNhat = processedAt;
+
+                await _context.SaveChangesAsync(cancellationToken);
+            }, cancellationToken);
 
             await WriteAuditAsync(
                 "AUTO_SUBMIT_ATTENDANCE",
@@ -185,31 +188,35 @@ public class AttendanceAutomationService : IAttendanceAutomationService
                 return BuildItem(session, action, "skipped", "Buổi học không còn thỏa điều kiện auto lock.", processedAt);
             }
 
-            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            var oldSnapshot = ToSessionSnapshot(session);
-
-            session.TrangThaiDiemDanh = AttendanceLockedStatus;
-            session.DiemDanhKhoaLuc = processedAt;
-            session.NgayCapNhat = processedAt;
-
-            var attendances = await _context.DiemDanhs
-                .Where(x => x.MaBuoiHoc == session.MaBuoiHoc && x.KhoaLuc == null)
-                .ToListAsync(cancellationToken);
-
-            foreach (var attendance in attendances)
+            object? oldSnapshot = null;
+            var lockedAttendanceCount = 0;
+            await _context.ExecuteInTransactionAsync(async () =>
             {
-                attendance.KhoaLuc = processedAt;
-            }
+                oldSnapshot = ToSessionSnapshot(session);
 
-            await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+                session.TrangThaiDiemDanh = AttendanceLockedStatus;
+                session.DiemDanhKhoaLuc = processedAt;
+                session.NgayCapNhat = processedAt;
+
+                var attendances = await _context.DiemDanhs
+                    .Where(x => x.MaBuoiHoc == session.MaBuoiHoc && x.KhoaLuc == null)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var attendance in attendances)
+                {
+                    attendance.KhoaLuc = processedAt;
+                }
+
+                lockedAttendanceCount = attendances.Count;
+                await _context.SaveChangesAsync(cancellationToken);
+            }, cancellationToken);
 
             await WriteAuditAsync(
                 "AUTO_LOCK_ATTENDANCE",
                 session,
                 course.MaDonVi,
                 oldSnapshot,
-                ToSessionSnapshot(session, attendances.Count),
+                ToSessionSnapshot(session, lockedAttendanceCount),
                 "Tự động khóa điểm danh sau hạn chỉnh sửa.",
                 cancellationToken);
 
