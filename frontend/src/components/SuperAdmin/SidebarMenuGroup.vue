@@ -161,7 +161,7 @@ watch(() => props.collapsed, () => {
         class="grid transition-all duration-300 ease-in-out overflow-hidden"
         :class="isOpen ? 'grid-rows-[1fr] opacity-100 mt-1 visible' : 'grid-rows-[0fr] opacity-0 mt-0 invisible'"
       >
-        <div class="min-h-0 ml-3 space-y-0.5 border-l border-slate-200 dark:border-white/10 pl-2">
+        <div class="min-h-0 ml-3 w-[calc(100%-0.75rem)] space-y-0.5 border-l border-slate-200 dark:border-white/10 pl-2">
           <SidebarMenuItem
             v-for="child in group.children"
             :key="child.id"

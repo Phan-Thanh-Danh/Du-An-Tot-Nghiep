@@ -161,7 +161,7 @@ watch(() => props.collapsed, () => {
         class="grid transition-all duration-300 ease-in-out overflow-hidden"
         :class="isOpen ? 'grid-rows-[1fr] opacity-100 mt-1 visible' : 'grid-rows-[0fr] opacity-0 mt-0 invisible'"
       >
-        <div class="border-card ml-3 min-h-0 space-y-0.5 border-l pl-2">
+        <div class="border-card ml-3 w-[calc(100%-0.75rem)] min-h-0 space-y-0.5 border-l pl-2">
           <SidebarMenuItem
             v-for="child in group.children"
             :key="child.id"
@@ -183,7 +183,7 @@ watch(() => props.collapsed, () => {
           @mouseenter="showFlyout"
           @mouseleave="hideFlyout"
         >
-          <div class="lg-glass-strong min-w-[216px] rounded-[var(--radius-xl)] border border-card p-1.5 shadow-[var(--lg-shadow-md)]">
+          <div class="lg-glass-strong min-w-[240px] rounded-[var(--radius-xl)] border border-card p-1.5 shadow-[var(--lg-shadow-md)]">
             <div class="border-card surface-card mb-1 rounded-t-[var(--radius-lg)] border-b px-3 py-2">
               <div class="flex items-center gap-2">
                 <div class="h-5 w-5 flex items-center justify-center rounded-lg" :style="{ background: 'color-mix(in srgb, var(--sidebar-accent) 20%, transparent)', color: 'var(--sidebar-accent)' }">
