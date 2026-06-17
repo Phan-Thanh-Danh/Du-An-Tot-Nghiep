@@ -21,9 +21,7 @@
       <div v-for="prog in filteredPrograms" :key="prog.maChuongTrinh" class="surface-card border border-card rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div class="flex items-start gap-4">
-            <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-400 flex items-center justify-center text-white font-bold text-sm shrink-0">
-              {{ prog.maCodeChuongTrinh }}
-            </div>
+            <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-800 to-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0">{{ prog.maCodeChuongTrinh }}</div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <h3 class="text-base font-bold text-heading truncate">{{ prog.tenChuongTrinh }}</h3>

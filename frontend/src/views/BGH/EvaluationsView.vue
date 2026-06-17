@@ -56,7 +56,7 @@
               </td>
               <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
-                  <div class="h-8 w-8 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-400 flex items-center justify-center text-white text-xs font-bold">{{ gv.initials }}</div>
+                  <div class="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-800 to-blue-600 flex items-center justify-center text-white text-xs font-bold">{{ gv.initials }}</div>
                   <div>
                     <p class="font-bold text-heading">{{ gv.hoTen }}</p>
                     <p class="text-[10px] text-muted">{{ gv.maCodeGv }}</p>
@@ -118,7 +118,7 @@
           </div>
           <div class="flex items-center gap-2">
             <div class="flex-1 h-2 rounded-full bg-default overflow-hidden">
-              <div class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400" :style="{ width: (dept.diemTb / 5 * 100) + '%' }" />
+              <div class="h-full rounded-full bg-gradient-to-r from-blue-800 to-blue-600" :style="{ width: (dept.diemTb / 5 * 100) + '%' }" />
             </div>
             <span class="text-sm font-bold text-heading shrink-0">{{ dept.diemTb.toFixed(1) }}</span>
           </div>
@@ -137,7 +137,7 @@
       <div class="space-y-3">
         <div v-for="comment in comments" :key="comment.id" class="p-3 rounded-xl border border-default hover:border-[var(--border-input-focus)] transition-all">
           <div class="flex items-start gap-3">
-            <div class="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-400 flex items-center justify-center text-white text-xs font-bold shrink-0">{{ comment.initials }}</div>
+            <div class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-800 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">{{ comment.initials }}</div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
                 <span class="text-sm font-bold text-heading">{{ comment.giangVien }}</span>

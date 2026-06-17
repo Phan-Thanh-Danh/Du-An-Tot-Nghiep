@@ -4,9 +4,7 @@
       <div class="p-6 lg:p-8">
         <div class="flex flex-col lg:flex-row items-center lg:items-start gap-6">
           <div class="relative flex-shrink-0">
-            <div class="h-20 w-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-400 flex items-center justify-center text-2xl font-bold text-white shadow-lg">
-              {{ profile.initials }}
-            </div>
+            <div class="h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-800 to-blue-600 flex items-center justify-center text-2xl font-bold text-white shadow-lg">{{ profile.initials }}</div>
             <div class="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-[var(--surface-card)] bg-[var(--color-success-text)]" />
           </div>
           <div class="flex-1 text-center lg:text-left">

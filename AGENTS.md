@@ -84,12 +84,12 @@ Mỗi role (Student/Teacher, GiaoVu, BGH) custom sidebar qua CSS variables:
 
 | Variable | Student/Teacher | GiaoVu | BGH |
 |---|---|---|---|
-| `--sidebar-accent` | blue-600 (#2563eb) | teal-600 (#0d9488) | indigo-500 (#6366f1) |
-| `--sidebar-accent-dark` | blue-400 (#60a5fa) | teal-300 (#5eead4) | indigo-300 (#a5b4fc) |
-| `--sidebar-indicator` | blue-600 | teal-500 (#14b8a6) | indigo-400 (#818cf8) |
-| `--active-start` | blue-700 (#1d4ed8) | teal-700 (#0f766e) | indigo-700 (#4338ca) |
-| `--active-mid` | blue-600 (#2563eb) | teal-600 (#0d9488) | indigo-500 (#6366f1) |
-| `--active-end` | cyan-600 (#0891b2) | teal-500 (#14b8a6) | indigo-400 (#818cf8) |
+| `--sidebar-accent` | blue-600 (#2563eb) | teal-600 (#0d9488) | blue-800 (#1e40af) |
+| `--sidebar-accent-dark` | blue-400 (#60a5fa) | teal-300 (#5eead4) | blue-400 (#60a5fa) |
+| `--sidebar-indicator` | blue-600 | teal-500 (#14b8a6) | blue-800 (#1e40af) |
+| `--active-start` | blue-700 (#1d4ed8) | teal-700 (#0f766e) | blue-900 (#1e3a8a) |
+| `--active-mid` | blue-600 (#2563eb) | teal-600 (#0d9488) | blue-800 (#1e40af) |
+| `--active-end` | cyan-600 (#0891b2) | teal-500 (#14b8a6) | blue-600 (#2563eb) |
 
 ### Glassmorphism Pattern
 

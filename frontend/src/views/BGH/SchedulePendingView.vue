@@ -18,9 +18,7 @@
         <div v-for="item in filteredSchedules" :key="item.id" class="surface-card border border-card rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
           <div class="flex items-start justify-between gap-4">
             <div class="flex items-start gap-3 flex-1 min-w-0">
-              <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-400 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                {{ item.initials }}
-              </div>
+              <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0">{{ item.initials }}</div>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
                   <h3 class="text-base font-bold text-heading">{{ item.tenHocKy }}</h3>

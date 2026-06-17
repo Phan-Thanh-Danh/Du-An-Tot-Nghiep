@@ -77,10 +77,10 @@ const currentPageMeta = computed(() => {
   <div
     class="lg-app-bg relative flex h-screen w-full overflow-hidden font-sans"
     :style="{
-      '--sidebar-accent': '#6366f1',
-      '--active-start': '#4338ca',
-      '--active-mid': '#6366f1',
-      '--active-end': '#818cf8',
+      '--sidebar-accent': '#1e40af',
+      '--active-start': '#1e3a8a',
+      '--active-mid': '#1e40af',
+      '--active-end': '#2563eb',
     }"
   >
     <div class="lg-shell-orbs">

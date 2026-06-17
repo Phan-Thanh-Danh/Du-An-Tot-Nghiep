@@ -16,9 +16,7 @@
     <div v-for="building in filteredBuildings" :key="building.maToaNha" class="surface-card border border-card rounded-2xl overflow-hidden shadow-sm">
       <div @click="toggleBuilding(building.maToaNha)" class="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-[var(--surface-input)]/30 transition-colors">
         <div class="flex items-center gap-3">
-          <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-400 flex items-center justify-center text-white">
-            <Building2 :size="20" />
-          </div>
+          <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-600 flex items-center justify-center text-white"><Building2 :size="20" /></div>
           <div>
             <h3 class="text-base font-bold text-heading">{{ building.tenToaNha }}</h3>
             <p class="text-xs text-muted">{{ building.maCodeToaNha }} · {{ building.diaChi || building.tenDonVi }} · {{ building.soTang }} tầng</p>

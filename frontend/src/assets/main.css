@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@theme {
+  --color-inverse: #ffffff;
+}
+
 :root {
   color-scheme: light;
 }
