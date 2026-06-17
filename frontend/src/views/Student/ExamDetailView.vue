@@ -6,7 +6,7 @@ import {
   MonitorCheck, Wifi, Puzzle, Server, Bot, CheckCircle2, AlertTriangle,
   XCircle, Loader2, PlayCircle, ChevronRight, Info, Lock, BookOpen
 } from 'lucide-vue-next'
-import { mockExams, mockExamDetail } from '@/data/exam.mock.js'
+import { mockExams, mockExamDetail } from '@/data/studentData.mock.js'
 import { runPreflightSecurityChecks } from '@/utils/examSecurity'
 
 const router = useRouter()

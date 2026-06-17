@@ -4,7 +4,7 @@ import * as L from 'lucide-vue-next'
 import {
   mockAssignment, mockSubmissionRules, mockAttachments,
   mockSubmissions, mockPlagiarismResult, mockFeedback,
-} from '@/data/assignmentDetail.mock.js'
+} from '@/data/studentData.mock.js'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
@@ -80,17 +80,6 @@ const statusBadgeVariant = (s) => ({
   checking: 'warning',
 }[s] || 'neutral')
 
-const statusPillStyle = (s) => {
-  const map = {
-    submitted: { bg: 'var(--accent-primary-soft)', color: 'var(--accent-primary)' },
-    graded: { bg: 'var(--color-success-bg)', color: 'var(--color-success-text)' },
-    pending: { bg: 'var(--color-info-bg)', color: 'var(--color-info-text)' },
-    late: { bg: 'var(--color-warning-bg)', color: 'var(--color-warning-text)' },
-    overdue: { bg: 'var(--color-danger-bg)', color: 'var(--color-danger-text)' },
-    checking: { bg: 'var(--color-warning-bg)', color: 'var(--color-warning-text)' },
-  }
-  return map[s] || { bg: 'var(--surface-input)', color: 'var(--text-muted)' }
-}
 
 const plagStyle = {
   safe: { bar: 'var(--color-success-bg)', variant: 'success', label: 'An toàn' },

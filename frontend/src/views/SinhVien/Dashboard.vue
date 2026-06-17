@@ -3,7 +3,7 @@ import { defineAsyncComponent } from 'vue'
 import FocusAiCard from '@/components/SinhVien/dashboard/FocusAiCard.vue'
 import KpiCard from '@/components/SinhVien/dashboard/KpiCard.vue'
 import WelcomeHero from '@/components/SinhVien/dashboard/WelcomeHero.vue'
-import { studentDashboardMock } from '@/data/studentDashboard.mock'
+import { studentDashboardMock } from '@/data/studentData.mock.js'
 
 // Lazy load below-the-fold components to prioritize initial render and prevent jank
 const CourseProgressPanel = defineAsyncComponent(() => import('@/components/SinhVien/dashboard/CourseProgressPanel.vue'))

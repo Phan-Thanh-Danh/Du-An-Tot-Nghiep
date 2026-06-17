@@ -10,7 +10,7 @@ import {
   mockQuizQuestions,
   mockComments,
   mockAISummary,
-} from '@/data/courseDetail.mock.js'
+} from '@/data/studentData.mock.js'
 import {
   canStartLearning,
   getLockedReason,
