@@ -15,6 +15,15 @@ public class PhienThiHocSinh
     public decimal? DiemCuoiCung { get; set; }
     public decimal? DiemTuLuanAiGoiY { get; set; }
 
+    // Exam module extensions
+    public int? MaCaThi { get; set; }
+    public string? TrangThaiKyTen { get; set; }
+    public DateTime? ThoiDiemKy { get; set; }
+    public int? NguoiXacNhanKyTen { get; set; }
+    public string? TrangThaiCongBo { get; set; }
+
     public DeKiemTra? DeKiemTra { get; set; }
     public NguoiDung? HocSinh { get; set; }
+    public CaThi? CaThi { get; set; }
+    public NguoiDung? NguoiXacNhan { get; set; }
 }

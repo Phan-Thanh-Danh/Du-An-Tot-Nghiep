@@ -56,6 +56,7 @@ public static class Data
         await SeedCourseSyllabusesAsync(context, hcmCampus, programs, specializations, programSubjects, subjects);
         await SeedProgramTuitionConfigsAsync(context, hcmCampus, programs, terms);
         await SeedTuitionReceivingAccountAsync(context, hcmCampus);
+        await SeedDeKiemTraAsync(context, subjects, terms);
 
         await context.SaveChangesAsync();
     }
@@ -1573,6 +1574,45 @@ public static class Data
         account.NgayCapNhat = DateTime.UtcNow;
 
         await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedDeKiemTraAsync(
+        ApplicationDbContext context,
+        IReadOnlyDictionary<string, DanhMucMonHoc> subjects,
+        IReadOnlyList<HocKy> terms)
+    {
+        var subjectCode = "COM103";
+        if (!subjects.TryGetValue(subjectCode, out var subject))
+        {
+            return;
+        }
+
+        var term = terms.FirstOrDefault(t => t.MaCodeHocKy == "HK3_2026");
+        if (term == null)
+        {
+            return;
+        }
+
+        var exists = await context.DeKiemTras.AnyAsync(x => x.TieuDe == "Đề thi mẫu Lập trình C#");
+        if (!exists)
+        {
+            var deKiemTra = new DeKiemTra
+            {
+                MaMonHoc = subject.MaMonHoc,
+                MaHocKy = term.MaHocKy,
+                TieuDe = "Đề thi mẫu Lập trình C#",
+                ThoiGianPhut = 60,
+                CauHinhDeThi = "{\"questions\":[{\"id\":1,\"content\":\"Câu hỏi 1 trắc nghiệm\",\"type\":\"mcq\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":\"A\"}]}",
+                TrangThai = "da_len_lich",
+                LoaiDeThi = "ket_hop",
+                HinhThucThi = "online_tap_trung",
+                TyLeTracNghiem = 70.0m,
+                TyLeTuLuan = 30.0m,
+                NgayTao = DateTime.UtcNow
+            };
+            context.DeKiemTras.Add(deKiemTra);
+            await context.SaveChangesAsync();
+        }
     }
 
     private sealed record RoleSeed(string Code, string Name);

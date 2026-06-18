@@ -27,6 +27,8 @@ using Backend.Services.Storage;
 using Backend.Services.Subjects;
 using Backend.Services.TrainingProgramSubjects;
 using Backend.Services.TrainingPrograms;
+using Backend.Services.Exam;
+using Backend.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -98,6 +100,9 @@ builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<ICaHocService, CaHocService>();
 builder.Services.AddScoped<IProgramTuitionConfigService, ProgramTuitionConfigService>();
 builder.Services.AddScoped<ICurriculumService, CurriculumService>();
+builder.Services.AddScoped<IExamService, ExamService>();
+
+builder.Services.AddSignalR();
 
 var r2Settings = builder.Configuration.GetSection("R2Storage").Get<R2StorageSettings>()
     ?? new R2StorageSettings();
@@ -111,7 +116,8 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -184,6 +190,7 @@ app.UseMiddleware<RequestAuditMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ExamMonitoringHub>("/hubs/exam-monitoring");
 
 app.Run();
 
