@@ -11,7 +11,6 @@ import AppTopbar from '../SinhVien/AppTopbar.vue'
 import PageContainer from '../SinhVien/PageContainer.vue'
 import AiAssistant from '@/components/ui/AiAssistant.vue'
 import AnnouncementBanner from '@/components/ui/AnnouncementBanner.vue'
-import { GraduationCap } from 'lucide-vue-next'
 
 // ── Sidebar state ──────────────────────────────────────────
 const sidebarCollapsed = ref(false)
@@ -148,7 +147,7 @@ const currentPageMeta = computed(() => {
             :title="currentPageMeta.title"
             :subtitle="currentPageMeta.subtitle"
           >
-            <router-view v-slot="{ Component }">
+            <router-view v-slot="{ Component, route }">
               <Transition
                 enter-active-class="transition-all duration-300 ease-out will-change-transform will-change-opacity"
                 enter-from-class="opacity-0 translate-y-3"
@@ -158,27 +157,7 @@ const currentPageMeta = computed(() => {
                 leave-to-class="opacity-0"
                 mode="out-in"
               >
-                <Suspense timeout="0">
-                  <template #default>
-                    <component :is="Component" v-if="Component" />
-                    <!-- Empty state -->
-                    <div v-else class="lg-shell-empty">
-                      <div class="surface-input border-card flex h-12 w-12 items-center justify-center rounded-[var(--radius-lg)] border">
-                        <GraduationCap class="h-7 w-7 text-link" />
-                      </div>
-                      <h3 class="mt-4 text-base font-semibold text-heading">Trang đang phát triển</h3>
-                      <p class="mt-1.5 max-w-xs text-sm text-body">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng.</p>
-                      <router-link to="/teacher/dashboard" class="lg-button-primary mt-5 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium">← Về Dashboard</router-link>
-                    </div>
-                  </template>
-                  <template #fallback>
-                    <!-- Fallback skeleton loading -->
-                    <div class="lg-shell-loading gap-3">
-                      <div class="lg-shell-loading-spinner" />
-                      <p class="text-sm font-semibold text-label">Đang nạp dữ liệu...</p>
-                    </div>
-                  </template>
-                </Suspense>
+                <component :is="Component" :key="route.path" />
               </Transition>
             </router-view>
           </PageContainer>

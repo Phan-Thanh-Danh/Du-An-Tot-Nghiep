@@ -10,7 +10,7 @@
       <AlertCircle :size="32" class="text-[var(--color-danger-text)]" />
       <p class="text-sm font-bold text-heading">Không thể tải dữ liệu</p>
       <p class="text-xs text-muted">{{ apiError }}</p>
-      <button @click="initData" class="lg-button-primary px-4 py-2 text-xs font-bold rounded-xl mt-2">Thử lại</button>
+      <button @click="loadDashboard" class="lg-button-primary px-4 py-2 text-xs font-bold rounded-xl mt-2">Thử lại</button>
     </div>
 
     <template v-else>
@@ -23,7 +23,7 @@
               Tổng quan giáo vụ
             </h1>
             <p class="mt-2 text-muted text-sm">
-              3 xung đột lịch &bull; 28 đơn chờ xử lý
+              {{ data.stats?.conflicts ?? 0 }} xung đột lịch &bull; {{ data.stats?.pendingRequests ?? 0 }} đơn chờ xử lý
             </p>
             <div class="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
               <router-link to="/staff/conflicts" class="lg-button-primary rounded-lg px-3 py-2 text-xs font-bold transition-all active:scale-95 inline-flex items-center gap-1.5">
@@ -109,7 +109,7 @@
               <div class="p-4">
                 <div class="flex items-center justify-between mb-3">
                   <h3 class="text-xs font-bold text-heading">Lớp sắp đầy (&gt;90%)</h3>
-                  <span class="rounded-full bg-[var(--color-warning-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-warning-text)]">8 lớp</span>
+                  <span class="rounded-full bg-[var(--color-warning-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-warning-text)]">{{ data.stats?.fullClasses ?? 0 }} lớp</span>
                 </div>
                 <div class="space-y-3">
                   <div v-for="cls in nearFullClasses" :key="cls.name" class="flex items-center justify-between">
@@ -125,7 +125,7 @@
               <div class="p-4">
                 <div class="flex items-center justify-between mb-3">
                   <h3 class="text-xs font-bold text-heading">Waitlist cần duyệt</h3>
-                  <span class="rounded-full bg-[var(--color-info-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-info-text)]">45 SV</span>
+                  <span class="rounded-full bg-[var(--color-info-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-info-text)]">{{ data.stats?.waitlistStudents ?? 0 }} SV</span>
                 </div>
                 <div class="space-y-3">
                   <div v-for="cls in waitlistClasses" :key="cls.name" class="flex items-center justify-between">
@@ -150,7 +150,7 @@
           <div class="rounded-2xl border border-card surface-card shadow-sm p-4">
             <div class="mb-3 flex items-center justify-between">
               <h3 class="text-base font-bold text-heading">Đơn từ khẩn</h3>
-              <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-danger-bg)] text-[10px] font-bold text-[var(--color-danger-text)]">3</span>
+              <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-danger-bg)] text-[10px] font-bold text-[var(--color-danger-text)]">{{ urgentRequests.length }}</span>
             </div>
             <div class="space-y-3">
               <div v-for="req in urgentRequests" :key="req.id" 
@@ -167,13 +167,13 @@
                 </div>
               </div>
             </div>
-            <button class="mt-4 w-full lg-button-primary h-9 rounded-lg text-[11px] font-bold">Xử lý toàn bộ đơn</button>
+            <button @click="processAllRequests" :disabled="processingAll" class="mt-4 w-full lg-button-primary h-9 rounded-lg text-[11px] font-bold">{{ processingAll ? 'Đang xử lý...' : 'Xử lý toàn bộ đơn' }}</button>
           </div>
 
           <!-- Semester Overview -->
           <div class="rounded-2xl border border-card surface-card shadow-sm p-4">
             <h3 class="text-base font-bold text-heading">Thống kê Học kỳ</h3>
-            <p class="text-xs text-muted mt-1">Đã hoàn thành xếp lịch cho 85% các khoa.</p>
+            <p class="text-xs text-muted mt-1">Đã hoàn thành xếp lịch cho {{ data.semesterStats?.completed ?? 85 }}% các khoa.</p>
             
             <div class="mt-4 flex items-end gap-2 h-20">
               <div v-for="(h, i) in [60, 40, 80, 50, 70, 95, 65]" :key="i" 
@@ -184,11 +184,11 @@
             <div class="mt-4 grid grid-cols-2 gap-3">
               <div class="rounded-xl surface-solid p-3 border border-default">
                 <p class="text-[10px] uppercase font-bold text-muted tracking-wider">Lớp học phần</p>
-                <p class="text-base font-semibold mt-0.5 text-heading">1.240</p>
+                <p class="text-base font-semibold mt-0.5 text-heading">{{ (data.semesterStats?.totalClasses ?? 1240).toLocaleString() }}</p>
               </div>
               <div class="rounded-xl surface-solid p-3 border border-default">
                 <p class="text-[10px] uppercase font-bold text-muted tracking-wider">Phòng trống</p>
-                <p class="text-base font-semibold mt-0.5 text-heading">12%</p>
+                <p class="text-base font-semibold mt-0.5 text-heading">{{ data.semesterStats?.emptyRooms ?? 12 }}%</p>
               </div>
             </div>
           </div>
@@ -225,57 +225,30 @@ import {
   Layers, FileStack, Calendar, Clock, AlertCircle, 
   ArrowUpRight, ShieldCheck, Bell, AlertTriangle, Loader2
 } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
+import { computed } from 'vue'
+import { useStaffDashboard } from '@/composables/useStaffDashboard'
 
-const loading = ref(true)
-const apiError = ref('')
+const {
+  loading, error: apiError, data,
+  processingAll, loadDashboard, processAllRequests,
+} = useStaffDashboard()
 
-const stats = ref([])
-const scheduleTasks = ref([])
-const urgentRequests = ref([])
-const nearFullClasses = ref([])
-const waitlistClasses = ref([])
-const announcements = ref([])
+const stats = computed(() => {
+  const s = data.value.stats
+  if (!s) return []
+  return [
+    { id: 1, label: 'Lịch học hôm nay', value: String(s.todaySchedules ?? 0), trend: '+12', bgColor: 'bg-[var(--color-info-bg)]', iconColor: 'text-[var(--color-info-text)]', icon: Calendar },
+    { id: 2, label: 'Xung đột lịch', value: String(s.conflicts ?? 0), trend: 'Cần xử lý', isWarning: true, bgColor: 'bg-[var(--color-danger-bg)]', iconColor: 'text-[var(--color-danger-text)]', icon: AlertTriangle },
+    { id: 3, label: 'Lớp đang mở', value: String(s.activeClasses ?? 0), trend: (s.fullClasses ?? 0) + ' lớp đầy', isWarning: true, bgColor: 'bg-[var(--color-warning-bg)]', iconColor: 'text-[var(--color-warning-text)]', icon: Layers },
+    { id: 4, label: 'Đơn từ chờ duyệt', value: String(s.pendingRequests ?? 0), trend: '3 quá hạn', isWarning: true, bgColor: 'bg-[var(--color-info-bg)]', iconColor: 'text-[var(--color-info-text)]', icon: FileStack },
+  ]
+})
 
-function initData() {
-  loading.value = true
-  apiError.value = ''
-  setTimeout(() => {
-    stats.value = [
-      { id: 1, label: 'Lịch học hôm nay', value: '142', trend: '+12', bgColor: 'bg-[var(--color-info-bg)]', iconColor: 'text-[var(--color-info-text)]', icon: Calendar },
-      { id: 2, label: 'Xung đột lịch', value: '3', trend: 'Cần xử lý', isWarning: true, bgColor: 'bg-[var(--color-danger-bg)]', iconColor: 'text-[var(--color-danger-text)]', icon: AlertTriangle },
-      { id: 3, label: 'Lớp đang mở', value: '86', trend: '8 lớp đầy', isWarning: true, bgColor: 'bg-[var(--color-warning-bg)]', iconColor: 'text-[var(--color-warning-text)]', icon: Layers },
-      { id: 4, label: 'Đơn từ chờ duyệt', value: '28', trend: '3 quá hạn', isWarning: true, bgColor: 'bg-[var(--color-info-bg)]', iconColor: 'text-[var(--color-info-text)]', icon: FileStack },
-    ]
-    scheduleTasks.value = [
-      { id: 1, title: '2 Lịch trùng phòng học', desc: 'Phòng A201 (Tiết 1-3) đang có 2 lớp xếp chồng.', alert: true, link: '/staff/conflicts' },
-      { id: 2, title: 'TKB Khoa CNTT đang chờ duyệt', desc: 'Đã submit ngày hôm qua, chưa có phản hồi từ BGH.', alert: false, link: '/staff/schedule' },
-      { id: 3, title: 'Giảng viên nghỉ đột xuất', desc: 'TS. Nguyễn Văn A xin nghỉ chiều nay. Cần dạy thay.', alert: true, link: '/staff/assignments' },
-    ]
-    urgentRequests.value = [
-      { id: 101, type: 'Xin chuyển lớp', studentName: 'Trần Bình', studentId: 'SE150212', time: '-2 NGÀY' },
-      { id: 102, type: 'Xin thi lại', studentName: 'Lê Hoàng', studentId: 'SS140023', time: '-1 NGÀY' },
-      { id: 103, type: 'Xin giấy xác nhận', studentName: 'Phạm Thu', studentId: 'SA160199', time: 'TRỄ 4H' },
-    ]
-    nearFullClasses.value = [
-      { name: 'CT101 - Nhóm 1', enrolled: 47, capacity: 50 },
-      { name: 'ITA201 - Nhóm 3', enrolled: 49, capacity: 50 },
-      { name: 'MAT101 - Nhóm 2', enrolled: 46, capacity: 50 },
-    ]
-    waitlistClasses.value = [
-      { name: 'ENG102 - Nhóm 1', count: 12 },
-      { name: 'PHY101 - Nhóm 2', count: 8 },
-      { name: 'CS102 - Nhóm 1', count: 15 },
-    ]
-    announcements.value = [
-      { title: 'Mở đăng ký kỳ Thu 2026', desc: 'Hệ thống đã sẵn sàng cho đợt đăng ký tới.', bg: 'bg-[var(--color-info-bg)]', iconColor: 'text-[var(--color-info-text)]' },
-      { title: 'Giảng viên cần nộp điểm', desc: 'Còn 12 lớp chưa nộp điểm giữa kỳ.', bg: 'bg-[var(--color-warning-bg)]', iconColor: 'text-[var(--color-warning-text)]' },
-    ]
-    loading.value = false
-  }, 400)
-}
-
-onMounted(() => { initData() })
+const scheduleTasks = computed(() => data.value.scheduleTasks)
+const urgentRequests = computed(() => data.value.urgentRequests)
+const nearFullClasses = computed(() => data.value.nearFullClasses)
+const waitlistClasses = computed(() => data.value.waitlistClasses)
+const announcements = computed(() => data.value.announcements)
 </script>
 
 <style scoped>

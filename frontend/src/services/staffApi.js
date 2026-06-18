@@ -23,6 +23,20 @@ const mockDashboard = {
     { id: 102, type: 'Xin thi lại', studentName: 'Lê Hoàng', studentId: 'SS140023', time: '-1 NGÀY' },
     { id: 103, type: 'Xin giấy xác nhận SV', studentName: 'Phạm Thu', studentId: 'SA160199', time: 'TRỄ 4H' },
   ],
+  nearFullClasses: [
+    { name: 'CT101 - Nhóm 1', enrolled: 47, capacity: 50 },
+    { name: 'ITA201 - Nhóm 3', enrolled: 49, capacity: 50 },
+    { name: 'MAT101 - Nhóm 2', enrolled: 46, capacity: 50 },
+  ],
+  waitlistClasses: [
+    { name: 'ENG102 - Nhóm 1', count: 12 },
+    { name: 'PHY101 - Nhóm 2', count: 8 },
+    { name: 'CS102 - Nhóm 1', count: 15 },
+  ],
+  announcements: [
+    { title: 'Mở đăng ký kỳ Thu 2026', desc: 'Hệ thống đã sẵn sàng cho đợt đăng ký tới.', bg: 'bg-[var(--color-info-bg)]', iconColor: 'text-[var(--color-info-text)]' },
+    { title: 'Giảng viên cần nộp điểm', desc: 'Còn 12 lớp chưa nộp điểm giữa kỳ.', bg: 'bg-[var(--color-warning-bg)]', iconColor: 'text-[var(--color-warning-text)]' },
+  ],
   semesterStats: { completed: 85, totalClasses: 1240, emptyRooms: 12 },
 }
 
