@@ -18,7 +18,6 @@ public static class Data
     private const string ClassSectionOpenStatus = "mo";
     private const string RoomActiveStatus = "hoat_dong";
     private const string RequiredSubjectType = "bat_buoc";
-    private const string TuitionCalculationType = "co_dinh_theo_hoc_ky";
     private const string ProgramVersion = "2026.1";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -1519,7 +1518,7 @@ public static class Data
                 config.NamHocTrongChuongTrinh = yearInProgram;
                 config.HocKyTrongNam = termInYear;
                 config.SoThuTuHocKy = index + 1;
-                config.LoaiCachTinhHocPhi = TuitionCalculationType;
+                config.LoaiCachTinhHocPhi = FinanceConstants.TuitionCalculationTypes.FixedPerTerm;
                 config.SoTienHocPhi = tuitionAmount;
                 config.TienHocLieu = plan.MaterialAmount;
                 config.TongTienDuKien = tuitionAmount + plan.MaterialAmount;
@@ -1566,8 +1565,8 @@ public static class Data
         account.TenNganHang = "MB Bank";
         account.TenChuTaiKhoan = "TRUONG CAO DANG DEMO";
         account.ChiNhanh = "HCM";
-        account.NhaCungCapThanhToan = "payos";
-        account.TrangThaiDuyet = "da_duyet";
+        account.NhaCungCapThanhToan = FinanceConstants.PaymentProviders.PayOs;
+        account.TrangThaiDuyet = FinanceConstants.PaymentAccountApprovalStatuses.Approved;
         account.ConHoatDong = true;
         account.LaMacDinh = !hasOtherDefaultAccount;
         account.NgayDuyet ??= DateTime.UtcNow;

@@ -273,49 +273,49 @@ public class TrainingProgramService : ITrainingProgramService
             LyDoTuChoi = null
         };
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-
-        _context.ChuongTrinhDaoTaos.Add(program);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        var sourceSubjects = await _context.MonHocTrongChuongTrinhs
-            .AsNoTracking()
-            .Where(x => x.MaChuongTrinh == sourceProgram.MaChuongTrinh && x.ConHoatDong)
-            .OrderBy(x => x.HocKyDuKien)
-            .ThenBy(x => x.ThuTu)
-            .ThenBy(x => x.MaChuongTrinhMonHoc)
-            .ToListAsync(cancellationToken);
-
-        var distinctSubjects = sourceSubjects
-            .GroupBy(x => x.MaMonHoc)
-            .Select(g => g.First())
-            .ToList();
-
-        foreach (var sourceSubject in distinctSubjects)
+        await _context.ExecuteInTransactionAsync(async () =>
         {
-            _context.MonHocTrongChuongTrinhs.Add(new MonHocTrongChuongTrinh
+            _context.ChuongTrinhDaoTaos.Add(program);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            var sourceSubjects = await _context.MonHocTrongChuongTrinhs
+                .AsNoTracking()
+                .Where(x => x.MaChuongTrinh == sourceProgram.MaChuongTrinh && x.ConHoatDong)
+                .OrderBy(x => x.HocKyDuKien)
+                .ThenBy(x => x.ThuTu)
+                .ThenBy(x => x.MaChuongTrinhMonHoc)
+                .ToListAsync(cancellationToken);
+
+            var distinctSubjects = sourceSubjects
+                .GroupBy(x => x.MaMonHoc)
+                .Select(g => g.First())
+                .ToList();
+
+            foreach (var sourceSubject in distinctSubjects)
             {
-                MaChuongTrinh = program.MaChuongTrinh,
-                MaMonHoc = sourceSubject.MaMonHoc,
-                HocKyDuKien = sourceSubject.HocKyDuKien,
-                SoTinChi = sourceSubject.SoTinChi,
-                LoaiMonHoc = sourceSubject.LoaiMonHoc,
-                BatBuoc = sourceSubject.BatBuoc,
-                ThuTu = sourceSubject.ThuTu,
-                GhiChu = sourceSubject.GhiChu,
-                ConHoatDong = true,
-                NgayTao = DateTime.UtcNow
-            });
-        }
+                _context.MonHocTrongChuongTrinhs.Add(new MonHocTrongChuongTrinh
+                {
+                    MaChuongTrinh = program.MaChuongTrinh,
+                    MaMonHoc = sourceSubject.MaMonHoc,
+                    HocKyDuKien = sourceSubject.HocKyDuKien,
+                    SoTinChi = sourceSubject.SoTinChi,
+                    LoaiMonHoc = sourceSubject.LoaiMonHoc,
+                    BatBuoc = sourceSubject.BatBuoc,
+                    ThuTu = sourceSubject.ThuTu,
+                    GhiChu = sourceSubject.GhiChu,
+                    ConHoatDong = true,
+                    NgayTao = DateTime.UtcNow
+                });
+            }
 
-        var sourceOldToNewIdMap = await CloneCourseSyllabusesAsync(
-            sourceProgram.MaChuongTrinh,
-            program.MaChuongTrinh,
-            distinctSubjects,
-            cancellationToken);
+            await CloneCourseSyllabusesAsync(
+                sourceProgram.MaChuongTrinh,
+                program.MaChuongTrinh,
+                distinctSubjects,
+                cancellationToken);
 
-        await _context.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+        }, cancellationToken);
 
         return await GetByIdAsync(program.MaChuongTrinh, cancellationToken);
     }

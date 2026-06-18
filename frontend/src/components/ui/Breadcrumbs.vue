@@ -57,11 +57,30 @@ const labelMap = {
   strategic: 'Chiến lược',
   semesters: 'Học kỳ',
   campuses: 'Cơ sở',
+  // BGH routes
+  bgh: 'Ban Giám Hiệu',
+  organizations: 'Đơn vị',
+  users: 'Người dùng',
+  roles: 'Vai trò',
+  'academic-programs': 'Chương trình',
+  curriculum: 'Khung chương trình',
+  'academic-terms': 'Học kỳ',
+  'audit-logs': 'Kiểm toán',
+  facilities: 'Cơ sở vật chất',
 }
 
 const crumbs = computed(() => {
+  const meta = route.meta
+  if (meta?.section && meta?.title) {
+    const result = [{ label: 'Trang chủ', path: '/' }]
+    if (meta.section !== 'Dashboard') {
+      result.push({ label: meta.section, path: '' })
+    }
+    result.push({ label: meta.title, path: route.path })
+    return result
+  }
   const parts = route.path.split('/').filter(Boolean)
-  const result = []
+  const result = [{ label: 'Trang chủ', path: '/' }]
   let current = ''
   for (const part of parts) {
     current += '/' + part
@@ -73,22 +92,19 @@ const crumbs = computed(() => {
 </script>
 
 <template>
-  <nav aria-label="Breadcrumb" class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
-    <router-link to="/" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-      Trang chủ
-    </router-link>
-    <template v-for="(crumb, i) in crumbs" :key="crumb.path">
-      <svg viewBox="0 0 24 24" class="h-3 w-3 flex-shrink-0 fill-current">
+  <nav aria-label="Breadcrumb" class="flex items-center gap-1.5 text-[11px] font-semibold text-muted">
+    <template v-for="(crumb, i) in crumbs" :key="i">
+      <svg v-if="i > 0" viewBox="0 0 24 24" class="h-3 w-3 flex-shrink-0 fill-current">
         <path d="M9 18l6-6-6-6" />
       </svg>
       <router-link
-        v-if="i < crumbs.length - 1"
+        v-if="i < crumbs.length - 1 && crumb.path"
         :to="crumb.path"
-        class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate max-w-[120px]"
+        class="text-link hover:text-heading transition-colors truncate max-w-[120px]"
       >
         {{ crumb.label }}
       </router-link>
-      <span v-else class="truncate max-w-[160px] text-slate-600 dark:text-slate-300">
+      <span v-else class="truncate max-w-[160px] text-heading">
         {{ crumb.label }}
       </span>
     </template>

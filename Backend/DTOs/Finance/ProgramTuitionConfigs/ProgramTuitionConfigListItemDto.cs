@@ -9,6 +9,7 @@ public class ProgramTuitionConfigListItemDto
     public int MaChuongTrinhDaoTao { get; set; }
     public string MaCodeChuongTrinh { get; set; } = string.Empty;
     public string TenChuongTrinh { get; set; } = string.Empty;
+    public string TenChuongTrinhDaoTao => TenChuongTrinh;
     public int MaHocKy { get; set; }
     public string MaCodeHocKy { get; set; } = string.Empty;
     public string TenHocKy { get; set; } = string.Empty;

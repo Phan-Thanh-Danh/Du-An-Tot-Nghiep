@@ -52,9 +52,17 @@ function getNotifRoute() {
 function getRoleRoutes() {
   if (authStore.hasRole('Principal')) return [
     { id: 'bgh-dashboard', label: 'Dashboard chiến lược', icon: 'LayoutDashboard', route: '/bgh/dashboard', category: 'BGH' },
-    { id: 'bgh-schedule', label: 'Lịch chờ duyệt', icon: 'CalendarCheck', route: '/bgh/schedule/pending', category: 'BGH' },
-    { id: 'bgh-academic', label: 'Tổng quan học vụ', icon: 'BarChart3', route: '/bgh/academic/overview', category: 'BGH' },
-    { id: 'bgh-evaluations', label: 'Đánh giá giảng viên', icon: 'Star', route: '/bgh/evaluations/overview', category: 'BGH' },
+    { id: 'bgh-schedule', label: 'Duyệt thời khóa biểu', icon: 'CalendarCheck', route: '/bgh/schedule/pending', category: 'BGH' },
+    { id: 'bgh-evaluations', label: 'Đánh giá giảng viên', icon: 'Star', route: '/bgh/evaluations', category: 'BGH' },
+    { id: 'bgh-programs', label: 'Ngành & Chuyên ngành', icon: 'BookOpen', route: '/bgh/academic-programs', category: 'BGH' },
+    { id: 'bgh-curriculum', label: 'Khung chương trình', icon: 'Library', route: '/bgh/curriculum', category: 'BGH' },
+    { id: 'bgh-terms', label: 'Học kỳ & Khóa', icon: 'CalendarDays', route: '/bgh/academic-terms', category: 'BGH' },
+    { id: 'bgh-organizations', label: 'Quản lý Đơn vị', icon: 'Building2', route: '/bgh/organizations', category: 'BGH' },
+    { id: 'bgh-users', label: 'Quản lý Người dùng', icon: 'Users', route: '/bgh/users', category: 'BGH' },
+    { id: 'bgh-roles', label: 'Vai trò & Phân quyền', icon: 'ShieldCheck', route: '/bgh/roles', category: 'BGH' },
+    { id: 'bgh-facilities', label: 'Cơ sở vật chất', icon: 'MapPin', route: '/bgh/facilities', category: 'BGH' },
+    { id: 'bgh-audit', label: 'Nhật ký kiểm toán', icon: 'History', route: '/bgh/audit-logs', category: 'BGH' },
+    { id: 'bgh-profile', label: 'Hồ sơ cá nhân', icon: 'UserCircle', route: '/bgh/profile', category: 'BGH' },
   ]
   if (authStore.hasRole('Teacher')) return [
     { id: 'teacher-dashboard', label: 'Tổng quan giảng dạy', icon: 'LayoutDashboard', route: '/teacher/dashboard', category: 'Giảng viên' },

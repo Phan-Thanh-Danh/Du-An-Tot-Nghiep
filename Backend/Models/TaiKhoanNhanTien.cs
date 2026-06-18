@@ -14,6 +14,7 @@ public class TaiKhoanNhanTien
 
     public string NhaCungCapThanhToan { get; set; } = "payos";
     public string TrangThaiDuyet { get; set; } = "nhap";
+    public string? CauHinhProviderJson { get; set; }
 
     public bool LaMacDinh { get; set; }
     public bool ConHoatDong { get; set; }

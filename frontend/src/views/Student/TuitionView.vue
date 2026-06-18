@@ -1,92 +1,103 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 import { usePopupStore } from '@/stores/popup'
+import {
+  createTuitionPayment,
+  getStudentTuitionInvoices,
+  getStudentTuitionTransactions,
+} from '@/services/tuitionService'
 import {
   CreditCard, Wallet, Receipt, DollarSign,
   AlertCircle, CheckCircle2, XCircle, Clock,
   Sparkles, Download, ArrowRight, ShieldCheck,
-  Building2, Smartphone, FileText
+  Building2, RefreshCw
 } from 'lucide-vue-next'
 
 const popupStore = usePopupStore()
-
-// Mock Data
-const metrics = [
-  { label: 'Tổng công nợ', value: '18,500,000', unit: 'đ', icon: Receipt, tone: 'slate', hint: 'Kỳ Spring 2026' },
-  { label: 'Giảm trừ (Học bổng)', value: '3,700,000', unit: 'đ', icon: Sparkles, tone: 'violet', hint: 'Áp dụng tự động (20%)' },
-  { label: 'Đã thanh toán', value: '5,000,000', unit: 'đ', icon: CheckCircle2, tone: 'green', hint: 'Thanh toán đợt 1' },
-  { label: 'Dư nợ còn lại', value: '9,800,000', unit: 'đ', icon: Wallet, tone: 'amber', hint: 'Cần thanh toán' },
-]
-
-const mockInvoices = ref([
-  { 
-    id: 'INV-2026-SP-01', 
-    semester: 'Kỳ Spring 2026 (Đợt 2)', 
-    total: 9800000, 
-    dueDate: new Date(2026, 5, 10), // June 10
-    status: 'Unpaid',
-    items: [
-      { name: 'Học phí 15 tín chỉ', amount: 12000000 },
-      { name: 'Phí bảo hiểm Y tế', amount: 800000 },
-      { name: 'Trừ Học bổng GPA (20%)', amount: -3000000 }
-    ]
-  },
-  { 
-    id: 'INV-2026-SP-00', 
-    semester: 'Kỳ Spring 2026 (Đợt 1)', 
-    total: 5000000, 
-    dueDate: new Date(2026, 1, 15),
-    status: 'Paid',
-    items: [
-      { name: 'Học phí tạm ứng', amount: 5000000 }
-    ]
-  },
-  { 
-    id: 'INV-2025-FA-01', 
-    semester: 'Kỳ Fall 2025', 
-    total: 14500000, 
-    dueDate: new Date(2025, 9, 20),
-    status: 'Paid',
-    items: [
-      { name: 'Học phí 18 tín chỉ', amount: 14500000 }
-    ]
-  }
-])
-
-const mockTransactions = [
-  { id: 1, txId: 'TX-VNP-993821', date: new Date(2026, 1, 12, 10, 30), amount: 5000000, method: 'VNPay', status: 'Success' },
-  { id: 2, txId: 'TX-MOM-112233', date: new Date(2025, 9, 15, 14, 20), amount: 14500000, method: 'MoMo', status: 'Success' },
-  { id: 3, txId: 'TX-BNK-884422', date: new Date(2025, 9, 15, 14, 15), amount: 14500000, method: 'Bank Transfer', status: 'Failed' }
-]
 
 const statusConfig = {
   Unpaid: { label: 'Chưa thanh toán', cls: 'badge-red', icon: AlertCircle },
   Partial: { label: 'Thanh toán một phần', cls: 'badge-amber', icon: Clock },
   Paid: { label: 'Đã thanh toán', cls: 'badge-green', icon: CheckCircle2 },
   Overdue: { label: 'Quá hạn', cls: 'badge-slate', icon: XCircle },
+  Cancelled: { label: 'Đã hủy', cls: 'badge-slate', icon: XCircle },
   Processing: { label: 'Đang xử lý', cls: 'badge-blue', icon: Clock },
   Failed: { label: 'Thất bại', cls: 'badge-red', icon: XCircle },
   Success: { label: 'Thành công', cls: 'badge-green', icon: CheckCircle2 }
 }
 
-const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val)
-const formatDate = (date) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
-const formatDateTime = (date) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date)
+const backendStatusMap = {
+  chua_thanh_toan: 'Unpaid',
+  thanh_toan_mot_phan: 'Partial',
+  da_thanh_toan: 'Paid',
+  qua_han: 'Overdue',
+  da_huy: 'Cancelled',
+  cho_thanh_toan: 'Processing',
+  dang_xu_ly: 'Processing',
+  cho_xu_ly_thu_cong: 'Processing',
+  thanh_cong: 'Success',
+  that_bai: 'Failed',
+  sai_so_tien: 'Failed',
+  het_han: 'Overdue',
+}
 
-// State
+const rawInvoices = ref([])
+const rawTransactions = ref([])
+const isLoadingData = ref(false)
+const loadError = ref('')
 const activeTab = ref('invoices') // 'invoices' or 'history'
 const modalOpen = ref(false)
 useBodyScrollLock(modalOpen)
 const selectedInvoice = ref(null)
-const paymentMethod = ref('vnpay')
+const paymentMethod = ref('payos')
 const isProcessing = ref(false)
+const paymentResult = ref(null)
 
-// Actions
+const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(val || 0))
+const formatNumber = (val) => new Intl.NumberFormat('vi-VN').format(Number(val || 0))
+const formatDate = (date) => {
+  const parsed = parseDate(date)
+  return parsed ? new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(parsed) : 'Chưa cập nhật'
+}
+const formatDateTime = (date) => {
+  const parsed = parseDate(date)
+  return parsed ? new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(parsed) : 'Chưa cập nhật'
+}
+
+const invoices = computed(() => rawInvoices.value.map(mapInvoice))
+const transactions = computed(() => rawTransactions.value.map(mapTransaction))
+const metrics = computed(() => {
+  const totals = rawInvoices.value.reduce((acc, invoice) => {
+    acc.soTienPhaiDong += toNumber(read(invoice, 'soTienPhaiDong', 'SoTienPhaiDong'))
+    acc.giamTru += toNumber(read(invoice, 'giamTru', 'GiamTru'))
+    acc.daThanhToan += toNumber(read(invoice, 'daThanhToan', 'DaThanhToan'))
+    acc.conPhaiDong += toNumber(read(invoice, 'conPhaiDong', 'ConPhaiDong'))
+    return acc
+  }, { soTienPhaiDong: 0, giamTru: 0, daThanhToan: 0, conPhaiDong: 0 })
+
+  return [
+    { label: 'Tổng công nợ', value: formatNumber(totals.soTienPhaiDong), unit: 'đ', icon: Receipt, tone: 'slate', hint: 'Từ hóa đơn học phí' },
+    { label: 'Giảm trừ', value: formatNumber(totals.giamTru), unit: 'đ', icon: Sparkles, tone: 'violet', hint: 'Học bổng/miễn giảm' },
+    { label: 'Đã thanh toán', value: formatNumber(totals.daThanhToan), unit: 'đ', icon: CheckCircle2, tone: 'green', hint: 'Đã được xác nhận' },
+    { label: 'Dư nợ còn lại', value: formatNumber(totals.conPhaiDong), unit: 'đ', icon: Wallet, tone: 'amber', hint: 'Cần thanh toán' },
+  ]
+})
+
+onMounted(() => {
+  loadTuitionData()
+})
+
 const openPaymentModal = (invoice) => {
   if (invoice.status === 'Processing') return // Prevent double payment
+  if (invoice.conPhaiDong <= 0) {
+    popupStore.info('Hóa đơn đã đủ', 'Hóa đơn này không còn số tiền cần thanh toán.')
+    return
+  }
+
   selectedInvoice.value = invoice
-  paymentMethod.value = 'vnpay'
+  paymentMethod.value = 'payos'
+  paymentResult.value = null
   modalOpen.value = true
 }
 
@@ -94,26 +105,147 @@ const closePaymentModal = () => {
   if (isProcessing.value) return
   modalOpen.value = false
   selectedInvoice.value = null
+  paymentResult.value = null
 }
 
-const confirmPayment = () => {
-  isProcessing.value = true
-  
-  // Set status to Processing locally to simulate lock
-  const idx = mockInvoices.value.findIndex(inv => inv.id === selectedInvoice.value.id)
-  if (idx !== -1) mockInvoices.value[idx].status = 'Processing'
+const confirmPayment = async () => {
+  if (!selectedInvoice.value) return
 
-  setTimeout(() => {
+  isProcessing.value = true
+
+  try {
+    const result = await createTuitionPayment(selectedInvoice.value.maHoaDon, paymentMethod.value)
+    paymentResult.value = result
+
+    if (paymentMethod.value === 'payos') {
+      if (!result?.checkoutUrl) {
+        throw new Error('PayOS không trả về đường dẫn thanh toán.')
+      }
+
+      window.location.href = result.checkoutUrl
+      return
+    }
+
+    if (paymentMethod.value === 'vietqr') {
+      if (!result?.qrUrl) {
+        throw new Error('Backend không trả về ảnh VietQR.')
+      }
+
+      popupStore.success('Đã tạo mã VietQR', 'Vui lòng chuyển khoản đúng số tiền và nội dung.')
+      await loadTransactions()
+    }
+  } catch (error) {
+    popupStore.error('Không tạo được thanh toán', error?.message || 'Vui lòng thử lại sau.')
+  } finally {
     isProcessing.value = false
-    // Simulate redirection or success
-    if (idx !== -1) mockInvoices.value[idx].status = 'Paid'
-    closePaymentModal()
-    popupStore.success('Thanh toán thành công', 'Giao dịch của bạn đã được ghi nhận.')
-  }, 2000)
+  }
 }
 
 const downloadPDF = (id) => {
   popupStore.info('Đang tải', `Đang tải hóa đơn ${id}...`)
+}
+
+async function loadTuitionData() {
+  isLoadingData.value = true
+  loadError.value = ''
+
+  try {
+    await Promise.all([loadInvoices(), loadTransactions()])
+  } catch (error) {
+    loadError.value = error?.message || 'Không thể tải dữ liệu học phí.'
+    popupStore.error('Không tải được học phí', loadError.value)
+  } finally {
+    isLoadingData.value = false
+  }
+}
+
+async function loadInvoices() {
+  rawInvoices.value = await getStudentTuitionInvoices()
+}
+
+async function loadTransactions() {
+  rawTransactions.value = await getStudentTuitionTransactions()
+}
+
+function mapInvoice(invoice) {
+  const soTien = toNumber(read(invoice, 'soTien', 'SoTien'))
+  const giamTru = toNumber(read(invoice, 'giamTru', 'GiamTru'))
+  const daThanhToan = toNumber(read(invoice, 'daThanhToan', 'DaThanhToan'))
+  const soTienPhaiDong = toNumber(read(invoice, 'soTienPhaiDong', 'SoTienPhaiDong'))
+  const conPhaiDong = toNumber(read(invoice, 'conPhaiDong', 'ConPhaiDong'))
+  const rawStatus = read(invoice, 'trangThai', 'TrangThai')
+
+  const items = [
+    { name: 'Học phí học kỳ', amount: soTien },
+  ]
+
+  if (giamTru > 0) items.push({ name: 'Giảm trừ', amount: -giamTru })
+  if (daThanhToan > 0) items.push({ name: 'Đã thanh toán', amount: -daThanhToan })
+  items.push({ name: 'Còn phải đóng', amount: conPhaiDong })
+
+  return {
+    maHoaDon: read(invoice, 'maHoaDon', 'MaHoaDon'),
+    id: read(invoice, 'maHoaDonCode', 'MaHoaDonCode'),
+    semester: read(invoice, 'hocKy', 'HocKy'),
+    total: conPhaiDong,
+    soTienPhaiDong,
+    conPhaiDong,
+    dueDate: read(invoice, 'hanThanhToan', 'HanThanhToan'),
+    status: mapStatus(rawStatus),
+    rawStatus,
+    items,
+  }
+}
+
+function mapTransaction(transaction) {
+  const provider = String(read(transaction, 'nhaCungCapThanhToan', 'NhaCungCapThanhToan') || '').toLowerCase()
+
+  return {
+    id: read(transaction, 'maGiaoDich', 'MaGiaoDich'),
+    txId: read(transaction, 'maThamChieuNoiBo', 'MaThamChieuNoiBo') || `GD-${read(transaction, 'maGiaoDich', 'MaGiaoDich')}`,
+    date: read(transaction, 'ngayTao', 'NgayTao'),
+    amount: toNumber(read(transaction, 'soTien', 'SoTien')),
+    method: providerLabel(provider),
+    methodIcon: provider === 'payos' ? CreditCard : Building2,
+    status: mapStatus(read(transaction, 'trangThai', 'TrangThai')),
+  }
+}
+
+function mapStatus(status) {
+  return backendStatusMap[String(status || '').trim().toLowerCase()] || 'Processing'
+}
+
+function getStatusConfig(status) {
+  return statusConfig[status] || statusConfig.Processing
+}
+
+function providerLabel(provider) {
+  if (provider === 'payos') return 'PayOS'
+  if (provider === 'vietqr') return 'VietQR'
+  return provider || 'Khác'
+}
+
+function setPaymentMethod(provider) {
+  paymentMethod.value = provider
+  paymentResult.value = null
+}
+
+function read(source, camelKey, pascalKey) {
+  return source?.[camelKey] ?? source?.[pascalKey]
+}
+
+function toNumber(value) {
+  const number = Number(value || 0)
+  return Number.isFinite(number) ? number : 0
+}
+
+function parseDate(value) {
+  if (!value) return null
+  const date = value instanceof Date
+    ? value
+    : new Date(String(value).length === 10 ? `${value}T00:00:00` : value)
+
+  return Number.isNaN(date.getTime()) ? null : date
 }
 </script>
 
@@ -126,17 +258,23 @@ const downloadPDF = (id) => {
         <h1 class="page-title">Học phí & Thanh toán</h1>
         <p class="page-sub">Quản lý hóa đơn, công nợ và thực hiện thanh toán trực tuyến an toàn.</p>
       </div>
-      <router-link to="/student/requests" class="btn-outline">
-        Yêu cầu hoàn phí / Bảo lưu
-      </router-link>
+      <div class="header-actions">
+        <button class="btn-outline" :disabled="isLoadingData" @click="loadTuitionData">
+          <RefreshCw :size="15" :class="isLoadingData ? 'animate-spin' : ''" />
+          Tải lại
+        </button>
+        <router-link to="/student/requests" class="btn-outline">
+          Yêu cầu hoàn phí / Bảo lưu
+        </router-link>
+      </div>
     </div>
 
     <!-- AI Banner -->
     <div class="ai-banner banner-violet">
       <div class="banner-icon"><Sparkles :size="24" /></div>
       <div class="banner-content">
-        <h3>AI Phân tích: Giảm trừ học bổng tự động</h3>
-        <p>Chúc mừng! Dựa trên kết quả GPA 3.8 từ kỳ trước, hệ thống đã tự động tính toán và áp dụng mức giảm trừ học bổng 20% (tương đương 3,700,000đ) vào hóa đơn kỳ này.</p>
+        <h3>Công nợ học phí theo học kỳ</h3>
+        <p>Hóa đơn, giảm trừ và số tiền còn phải đóng được lấy trực tiếp từ hệ thống tài chính. Trạng thái thanh toán chỉ được cập nhật sau khi backend xác nhận giao dịch.</p>
       </div>
     </div>
 
@@ -164,20 +302,34 @@ const downloadPDF = (id) => {
 
     <!-- Tab Content: Invoices -->
     <div v-if="activeTab === 'invoices'" class="content-section">
-      <div v-for="inv in mockInvoices" :key="inv.id" class="invoice-card" :class="`card-${inv.status}`">
+      <div v-if="isLoadingData" class="state-box">
+        <Clock :size="18" class="animate-spin" />
+        <span>Đang tải hóa đơn học phí...</span>
+      </div>
+      <div v-else-if="loadError" class="state-box state-error">
+        <AlertCircle :size="18" />
+        <span>{{ loadError }}</span>
+      </div>
+      <div v-else-if="invoices.length === 0" class="state-box">
+        <Receipt :size="18" />
+        <span>Chưa có hóa đơn học phí.</span>
+      </div>
+
+      <template v-else>
+      <div v-for="inv in invoices" :key="inv.id" class="invoice-card" :class="`card-${inv.status}`">
         <div class="invoice-header">
           <div>
             <div class="flex items-center gap-2 mb-1">
               <span class="invoice-id">{{ inv.id }}</span>
-              <span class="status-badge" :class="statusConfig[inv.status].cls">
-                <component :is="statusConfig[inv.status].icon" :size="12" />
-                {{ statusConfig[inv.status].label }}
+              <span class="status-badge" :class="getStatusConfig(inv.status).cls">
+                <component :is="getStatusConfig(inv.status).icon" :size="12" />
+                {{ getStatusConfig(inv.status).label }}
               </span>
             </div>
             <h3 class="invoice-semester">{{ inv.semester }}</h3>
           </div>
           <div class="invoice-amount-block">
-            <span class="amount-lbl">Tổng thanh toán:</span>
+            <span class="amount-lbl">Còn phải thanh toán:</span>
             <span class="amount-val">{{ formatCurrency(inv.total) }}</span>
           </div>
         </div>
@@ -215,11 +367,21 @@ const downloadPDF = (id) => {
           </button>
         </div>
       </div>
+      </template>
     </div>
 
     <!-- Tab Content: Transaction History -->
     <div v-else class="content-section">
-      <div class="table-container">
+      <div v-if="isLoadingData" class="state-box">
+        <Clock :size="18" class="animate-spin" />
+        <span>Đang tải lịch sử giao dịch...</span>
+      </div>
+      <div v-else-if="transactions.length === 0" class="state-box">
+        <Clock :size="18" />
+        <span>Chưa có giao dịch học phí.</span>
+      </div>
+
+      <div v-else class="table-container">
         <table class="data-table">
           <thead>
             <tr>
@@ -231,20 +393,20 @@ const downloadPDF = (id) => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="tx in mockTransactions" :key="tx.id">
+            <tr v-for="tx in transactions" :key="tx.id">
               <td class="font-semibold transaction-id">{{ tx.txId }}</td>
               <td>{{ formatDateTime(tx.date) }}</td>
               <td>
                 <div class="flex items-center gap-1.5">
-                  <component :is="tx.method === 'VNPay' ? CreditCard : tx.method === 'MoMo' ? Smartphone : Building2" :size="14" class="method-icon" />
+                  <component :is="tx.methodIcon" :size="14" class="method-icon" />
                   {{ tx.method }}
                 </div>
               </td>
               <td class="font-semibold">{{ formatCurrency(tx.amount) }}</td>
               <td>
-                <span class="status-badge" :class="statusConfig[tx.status].cls">
-                  <component :is="statusConfig[tx.status].icon" :size="12" />
-                  {{ statusConfig[tx.status].label }}
+                <span class="status-badge" :class="getStatusConfig(tx.status).cls">
+                  <component :is="getStatusConfig(tx.status).icon" :size="12" />
+                  {{ getStatusConfig(tx.status).label }}
                 </span>
               </td>
             </tr>
@@ -282,33 +444,37 @@ const downloadPDF = (id) => {
               <div class="payment-methods">
                 <label class="font-semibold text-sm mb-2 block">Chọn phương thức thanh toán</label>
                 <div class="method-options">
-                  <label class="method-radio" :class="paymentMethod === 'vnpay' && 'selected'">
-                    <input type="radio" v-model="paymentMethod" value="vnpay" name="paymentMethod" />
+                  <label class="method-radio" :class="paymentMethod === 'payos' && 'selected'">
+                    <input type="radio" :checked="paymentMethod === 'payos'" name="paymentMethod" @change="setPaymentMethod('payos')" />
                     <CreditCard :size="20" />
                     <div class="flex-1">
-                      <div class="font-semibold">VNPay</div>
-                      <div class="method-caption">Thẻ ATM / Thẻ tín dụng</div>
+                      <div class="font-semibold">PayOS</div>
+                      <div class="method-caption">Thanh toán tự động qua PayOS</div>
                     </div>
                   </label>
                   
-                  <label class="method-radio" :class="paymentMethod === 'momo' && 'selected'">
-                    <input type="radio" v-model="paymentMethod" value="momo" name="paymentMethod" />
-                    <Smartphone :size="20" />
-                    <div class="flex-1">
-                      <div class="font-semibold">Ví MoMo</div>
-                      <div class="method-caption">Quét mã QR</div>
-                    </div>
-                  </label>
-
-                  <label class="method-radio" :class="paymentMethod === 'bank' && 'selected'">
-                    <input type="radio" v-model="paymentMethod" value="bank" name="paymentMethod" />
+                  <label class="method-radio" :class="paymentMethod === 'vietqr' && 'selected'">
+                    <input type="radio" :checked="paymentMethod === 'vietqr'" name="paymentMethod" @change="setPaymentMethod('vietqr')" />
                     <Building2 :size="20" />
                     <div class="flex-1">
-                      <div class="font-semibold">Chuyển khoản Ngân hàng</div>
-                      <div class="method-caption">Chuyển khoản theo số tài khoản</div>
+                      <div class="font-semibold">VietQR</div>
+                      <div class="method-caption">Chuyển khoản VietQR</div>
                     </div>
                   </label>
                 </div>
+              </div>
+
+              <div v-if="paymentResult?.qrUrl && paymentMethod === 'vietqr'" class="qr-result">
+                <img :src="paymentResult.qrUrl" alt="VietQR thanh toán học phí" class="qr-image" />
+                <div class="qr-detail">
+                  <span>Số tiền</span>
+                  <strong>{{ formatCurrency(paymentResult.amount) }}</strong>
+                </div>
+                <div class="qr-detail">
+                  <span>Nội dung chuyển khoản</span>
+                  <strong>{{ paymentResult.noiDungChuyenKhoan }}</strong>
+                </div>
+                <p>Sau khi chuyển khoản, kế toán sẽ đối soát và xác nhận thanh toán.</p>
               </div>
 
               <div class="security-badge">
@@ -318,10 +484,12 @@ const downloadPDF = (id) => {
             </div>
 
             <div class="modal-footer">
-              <button class="btn-secondary" @click="closePaymentModal" :disabled="isProcessing">Hủy</button>
-              <button class="btn-primary" @click="confirmPayment" :disabled="isProcessing">
+              <button class="btn-secondary" @click="closePaymentModal" :disabled="isProcessing">
+                {{ paymentResult?.qrUrl ? 'Đóng' : 'Hủy' }}
+              </button>
+              <button v-if="!(paymentResult?.qrUrl && paymentMethod === 'vietqr')" class="btn-primary" @click="confirmPayment" :disabled="isProcessing">
                 <span v-if="isProcessing" class="flex items-center gap-2">
-                  <Clock class="animate-spin" :size="16" /> Đang chuyển hướng...
+                  <Clock class="animate-spin" :size="16" /> Đang xử lý...
                 </span>
                 <span v-else class="flex items-center gap-2">
                   Xác nhận Thanh toán <ArrowRight :size="16" />
@@ -345,6 +513,7 @@ const downloadPDF = (id) => {
 }
 
 .page-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+.header-actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
 .eyebrow { display: inline-flex; align-items: center; gap: .35rem; width: fit-content; border: 1px solid var(--border-card); border-radius: 999px; background: var(--surface-input); color: var(--text-link); padding: .25rem .6rem; font-size: .7rem; font-weight: 850; text-transform: uppercase; }
 .page-title { color: var(--text-heading); font-size: 1.35rem; font-weight: 900; margin: .45rem 0 .2rem; line-height: 1.15; }
 .page-sub { font-size: .82rem; color: var(--text-body); margin: 0; }
@@ -375,6 +544,8 @@ const downloadPDF = (id) => {
 .tab-btn.active { color: var(--text-link); background: var(--accent-primary-soft); }
 
 .content-section { display: flex; flex-direction: column; gap: .85rem; }
+.state-box { min-height: 8rem; display: flex; align-items: center; justify-content: center; gap: .5rem; border: 1px dashed var(--border-card); border-radius: 14px; background: var(--surface-input); color: var(--text-label); font-size: .85rem; font-weight: 750; }
+.state-error { color: var(--color-danger-text); background: var(--color-danger-bg); }
 
 /* Invoices */
 .invoice-card { background: var(--surface-card); border: 1px solid var(--border-card); border-radius: 18px; overflow: hidden; box-shadow: var(--lg-shadow-sm); transition: transform .2s, border-color .2s; }
@@ -382,6 +553,7 @@ const downloadPDF = (id) => {
 .card-Unpaid { border-color: color-mix(in srgb, var(--color-danger-text) 24%, var(--border-card)); }
 .card-Paid { border-color: color-mix(in srgb, var(--color-success-text) 24%, var(--border-card)); }
 .card-Processing { border-color: color-mix(in srgb, var(--text-link) 24%, var(--border-card)); }
+.card-Cancelled { opacity: .78; }
 
 .invoice-header { display: flex; justify-content: space-between; align-items: flex-start; padding: .9rem; border-bottom: 1px solid var(--border-card); flex-wrap: wrap; gap: 1rem; }
 .invoice-id { font-size: .75rem; font-weight: 850; color: var(--text-label); background: var(--surface-input); padding: .2rem .5rem; border-radius: 6px; }
@@ -446,6 +618,12 @@ const downloadPDF = (id) => {
 .method-radio.selected { border-color: var(--border-input-focus); background: var(--accent-primary-soft); color: var(--text-link); box-shadow: var(--lg-shadow-sm); }
 .method-radio input { display: none; }
 .method-caption { color: var(--text-placeholder); font-size: .75rem; }
+
+.qr-result { display: flex; flex-direction: column; align-items: center; gap: .75rem; padding: .85rem; border: 1px solid var(--border-card); border-radius: 14px; background: var(--surface-input); text-align: center; }
+.qr-image { width: min(14rem, 100%); aspect-ratio: 1; object-fit: contain; border-radius: 12px; border: 1px solid var(--border-card); background: var(--surface-card); }
+.qr-detail { width: 100%; display: flex; justify-content: space-between; gap: .75rem; color: var(--text-label); font-size: .8rem; text-align: left; }
+.qr-detail strong { color: var(--text-heading); overflow-wrap: anywhere; text-align: right; }
+.qr-result p { margin: 0; color: var(--text-body); font-size: .78rem; line-height: 1.45; }
 
 .security-badge { display: flex; align-items: center; gap: .5rem; font-size: .75rem; color: var(--color-success-text); background: var(--color-success-bg); padding: .5rem; border-radius: 8px; justify-content: center; }
 

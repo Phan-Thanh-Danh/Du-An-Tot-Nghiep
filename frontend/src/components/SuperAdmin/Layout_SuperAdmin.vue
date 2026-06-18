@@ -206,7 +206,7 @@ const currentPageMeta = computed(() => {
             :title="currentPageMeta.title"
             :subtitle="currentPageMeta.subtitle"
           >
-            <router-view v-slot="{ Component }">
+            <router-view v-slot="{ Component, route }">
               <Transition
                 enter-active-class="transition-all duration-300 ease-out will-change-transform will-change-opacity"
                 enter-from-class="opacity-0 translate-y-3"
@@ -216,39 +216,7 @@ const currentPageMeta = computed(() => {
                 leave-to-class="opacity-0"
                 mode="out-in"
               >
-                <Suspense timeout="0">
-                  <template #default>
-                    <component :is="Component" v-if="Component" />
-                    <!-- Empty state -->
-                    <div v-else class="flex flex-col items-center justify-center py-24 text-center">
-                      <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-50 dark:bg-violet-600/20">
-                        <svg class="h-8 w-8 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                        </svg>
-                      </div>
-                      <h3 class="mt-4 text-base font-semibold text-slate-700 dark:text-slate-300">Trang đang phát triển</h3>
-                      <p class="mt-1.5 text-sm text-slate-400 max-w-xs">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng.</p>
-                      <router-link to="/super-admin/dashboard" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 transition-colors">← Về Dashboard</router-link>
-                    </div>
-                  </template>
-                  <template #fallback>
-                    <!-- Fallback skeleton loading - violet theme -->
-                    <div class="flex h-[60vh] w-full flex-col items-center justify-center space-y-6">
-                      <div class="relative flex items-center justify-center">
-                        <div class="absolute h-16 w-16 animate-ping rounded-full bg-violet-400/20"></div>
-                        <div class="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 dark:border-slate-700 border-t-violet-600 shadow-sm"></div>
-                      </div>
-                      <div class="flex flex-col items-center space-y-2">
-                        <p class="text-sm font-semibold tracking-wide text-slate-600 dark:text-slate-400">Đang nạp dữ liệu...</p>
-                        <div class="flex space-x-1">
-                          <div class="h-2 w-2 animate-bounce rounded-full bg-violet-500" style="animation-delay: -0.3s"></div>
-                          <div class="h-2 w-2 animate-bounce rounded-full bg-violet-500" style="animation-delay: -0.15s"></div>
-                          <div class="h-2 w-2 animate-bounce rounded-full bg-violet-500"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </template>
-                </Suspense>
+                <component :is="Component" :key="route.path" />
               </Transition>
             </router-view>
           </PageContainer>

@@ -5,9 +5,9 @@
     <div class="rounded-2xl surface-card border border-card p-4">
       <div class="flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="max-w-xl text-center md:text-left">
-          <h1 class="text-lg md:text-2xl font-semibold leading-tight tracking-tight text-heading">
+          <h2 class="text-lg md:text-2xl font-semibold leading-tight tracking-tight text-heading">
             Tổng quan Ban giám hiệu
-          </h1>
+          </h2>
           <p class="mt-2 text-muted text-sm">
             GPA trung bình tăng 0.12, tỷ lệ Pass đạt 92.5%. Có 2 bản thảo TKB đang chờ phê duyệt.
           </p>

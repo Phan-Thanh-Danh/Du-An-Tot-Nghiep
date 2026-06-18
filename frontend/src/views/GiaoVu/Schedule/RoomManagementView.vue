@@ -15,6 +15,9 @@ import {
   Tv,
   Pencil,
   Trash2,
+  AlertCircle,
+  Calendar,
+  Clock,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 
@@ -135,6 +138,80 @@ async function submitAddRoom() {
   closeAddModal()
 }
 
+// ── Edit Room Modal ──────────────────────────────────────────
+const showEditModal = ref(false)
+const editingRoom = ref(null)
+const editErrors = reactive({})
+
+function openEditModal(room) {
+  editingRoom.value = { ...room, devices: [...room.devices] }
+  Object.keys(editErrors).forEach(k => delete editErrors[k])
+  showEditModal.value = true
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+  editingRoom.value = null
+}
+
+function validateEdit() {
+  Object.keys(editErrors).forEach(k => delete editErrors[k])
+  if (!editingRoom.value.name.trim()) editErrors.name = 'Tên phòng không được để trống'
+  if (!editingRoom.value.capacity || isNaN(editingRoom.value.capacity) || +editingRoom.value.capacity <= 0)
+    editErrors.capacity = 'Sức chứa phải là số dương'
+  return Object.keys(editErrors).length === 0
+}
+
+function toggleEditDevice(d) {
+  const idx = editingRoom.value.devices.indexOf(d)
+  if (idx === -1) editingRoom.value.devices.push(d)
+  else editingRoom.value.devices.splice(idx, 1)
+}
+
+function submitEditRoom() {
+  if (!validateEdit()) return
+  const idx = rooms.value.findIndex(r => r.id === editingRoom.value.id)
+  if (idx !== -1) {
+    rooms.value[idx] = { ...editingRoom.value, capacity: +editingRoom.value.capacity }
+  }
+  closeEditModal()
+}
+
+// ── Delete confirmation ──────────────────────────────────────
+const confirmDelete = ref(null)
+
+function requestDelete(room) {
+  confirmDelete.value = room
+}
+
+function executeDelete() {
+  if (!confirmDelete.value) return
+  const idx = rooms.value.findIndex(r => r.id === confirmDelete.value.id)
+  if (idx !== -1) rooms.value[idx].status = 'inactive'
+  confirmDelete.value = null
+}
+
+// ── Mark maintenance ─────────────────────────────────────────
+function markMaintenance(room) {
+  const idx = rooms.value.findIndex(r => r.id === room.id)
+  if (idx !== -1) rooms.value[idx].status = 'maintenance'
+  menuOpenId.value = null
+}
+
+// ── Usage History Modal ──────────────────────────────────────
+const showHistoryModal = ref(false)
+const historyRoom = ref(null)
+
+function openHistoryModal(room) {
+  historyRoom.value = room
+  showHistoryModal.value = true
+}
+
+function closeHistoryModal() {
+  showHistoryModal.value = false
+  historyRoom.value = null
+}
+
 // ── Context menu ─────────────────────────────────────────────
 const menuOpenId = ref(null)
 function toggleMenu(id) { menuOpenId.value = menuOpenId.value === id ? null : id }
@@ -174,7 +251,7 @@ function closeMenu()    { menuOpenId.value = null }
       </div>
 
       <!-- ── Search & Filter Bar ───────────────────────── -->
-      <div class="lg-glass-strong p-4 rounded-[24px] space-y-3">
+      <div class="lg-glass-strong p-4 rounded-2xl space-y-3">
         <div class="flex flex-wrap items-center gap-3">
           <!-- Search -->
           <div class="flex-1 min-w-[240px] relative">
@@ -317,17 +394,30 @@ function closeMenu()    { menuOpenId.value = null }
                   class="absolute right-0 top-8 z-[100] surface-solid border border-default rounded-2xl shadow-sm w-44 py-1 overflow-hidden"
                   @click.stop
                 >
-                  <button class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors">
+                  <button
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors"
+                    @click="openEditModal(room); menuOpenId = null"
+                  >
                     <Pencil :size="14" class="text-[var(--lg-success)]" /> Chỉnh sửa
                   </button>
-                  <button class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors">
+                  <button
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors"
+                    @click="openHistoryModal(room); menuOpenId = null"
+                  >
                     <History :size="14" class="text-[var(--lg-info)]" /> Lịch sử dùng
                   </button>
-                  <button class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors">
+                  <button
+                    v-if="room.status !== 'maintenance'"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors"
+                    @click="markMaintenance(room)"
+                  >
                     <Hammer :size="14" class="text-[var(--lg-warning)]" /> Đánh dấu bảo trì
                   </button>
                   <div class="border-t border-default my-1"></div>
-                  <button class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-[var(--lg-danger)] hover:bg-[var(--color-danger-bg)] transition-colors">
+                  <button
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-[var(--lg-danger)] hover:bg-[var(--color-danger-bg)] transition-colors"
+                    @click="requestDelete(room); menuOpenId = null"
+                  >
                     <Trash2 :size="14" /> Xóa phòng
                   </button>
                 </div>
@@ -569,6 +659,267 @@ function closeMenu()    { menuOpenId.value = null }
               <Plus v-else :size="16" />
               {{ isSubmitting ? 'Đang lưu...' : 'Thêm phòng' }}
             </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+  <!-- ════════════════════════════════════════════════════════════
+       Edit Room Modal
+  ════════════════════════════════════════════════════════════ -->
+  <Teleport to="body">
+    <Transition name="modal">
+      <div
+        v-if="showEditModal && editingRoom"
+        class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        @click.self="closeEditModal"
+      >
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+
+        <div class="relative w-full max-w-lg surface-modal rounded-2xl shadow-sm overflow-hidden max-h-[90vh] overflow-y-auto border border-default">
+          <div class="modal-header p-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-semibold text-heading">Chỉnh sửa phòng</h2>
+                <p class="text-sm text-label mt-0.5">Cập nhật thông tin phòng học</p>
+              </div>
+              <button
+                class="h-9 w-9 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
+                @click="closeEditModal"
+              >
+                <X :size="18" />
+              </button>
+            </div>
+          </div>
+
+          <div class="p-6 space-y-5">
+            <!-- Tên phòng -->
+            <div>
+              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5" for="edit-room-name">
+                Tên phòng <span class="text-[var(--lg-danger)]">*</span>
+              </label>
+              <input
+                id="edit-room-name"
+                v-model="editingRoom.name"
+                type="text"
+                placeholder="VD: Phòng 305, Lab 3..."
+                :class="[
+                  'w-full lg-input px-4 py-2.5 text-sm font-medium transition-all',
+                  editErrors.name ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : ''
+                ]"
+              />
+              <p v-if="editErrors.name" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ editErrors.name }}</p>
+            </div>
+
+            <!-- Cơ sở + Lầu -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Cơ sở</label>
+                <select v-model="editingRoom.campus" class="w-full lg-input px-4 py-2.5 text-sm font-bold">
+                  <option v-for="c in CAMPUSES" :key="c" :value="c">{{ c }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Lầu</label>
+                <select v-model="editingRoom.floor" class="w-full lg-input px-4 py-2.5 text-sm font-bold">
+                  <option v-for="f in FLOORS" :key="f" :value="f">Lầu {{ f }}</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Sức chứa + Loại phòng -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5" for="edit-capacity">
+                  Sức chứa (SV) <span class="text-[var(--lg-danger)]">*</span>
+                </label>
+                <input
+                  id="edit-capacity"
+                  v-model="editingRoom.capacity"
+                  type="number"
+                  min="1"
+                  placeholder="VD: 40"
+                  :class="[
+                    'w-full lg-input px-4 py-2.5 text-sm font-medium transition-all',
+                    editErrors.capacity ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : ''
+                  ]"
+                />
+                <p v-if="editErrors.capacity" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ editErrors.capacity }}</p>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Loại phòng</label>
+                <select v-model="editingRoom.type" class="w-full lg-input px-4 py-2.5 text-sm font-bold">
+                  <option v-for="t in TYPES" :key="t" :value="t">{{ t }}</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Trạng thái -->
+            <div>
+              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-2">Trạng thái</label>
+              <div class="flex gap-2 flex-wrap">
+                <button
+                  v-for="s in STATUSES" :key="s"
+                  :class="[
+                    'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all',
+                    editingRoom.status === s ? 'lg-button-primary' : 'lg-button-secondary text-body'
+                  ]"
+                  @click="editingRoom.status = s"
+                >
+                  <span v-if="editingRoom.status !== s" :class="['h-2 w-2 rounded-full', getStatusInfo(s).dot]"></span>
+                  {{ getStatusInfo(s).label }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Thiết bị -->
+            <div>
+              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-2">Thiết bị có sẵn</label>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="d in deviceOptions" :key="d"
+                  :class="[
+                    'px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
+                    editingRoom.devices.includes(d) ? 'lg-button-primary' : 'lg-button-secondary text-body'
+                  ]"
+                  @click="toggleEditDevice(d)"
+                >{{ d }}</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-6 pb-6 pt-2 border-t border-default flex items-center justify-end gap-3 mt-4">
+            <button class="lg-button-secondary px-5 py-2.5" @click="closeEditModal">Hủy</button>
+            <button
+              class="lg-button-primary px-6 py-2.5 flex items-center gap-2"
+              @click="submitEditRoom"
+            >
+              <Pencil :size="16" /> Cập nhật
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Delete Confirmation Modal
+  ════════════════════════════════════════════════════════════ -->
+  <Teleport to="body">
+    <Transition name="modal">
+      <div
+        v-if="confirmDelete"
+        class="fixed inset-0 z-[200] flex items-center justify-center p-4"
+        @click.self="confirmDelete = null"
+      >
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-sm surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
+          <div class="p-6">
+            <div class="h-12 w-12 rounded-2xl bg-[var(--color-danger-bg)] flex items-center justify-center mb-4 mx-auto">
+              <AlertCircle :size="24" class="text-[var(--lg-danger)]" />
+            </div>
+            <h3 class="text-lg font-semibold text-heading text-center">Xóa phòng học</h3>
+            <p class="text-sm text-label text-center mt-2">
+              Bạn có chắc muốn xóa
+              <span class="font-semibold text-heading">{{ confirmDelete.name }}</span>
+              ({{ confirmDelete.id }})? Phòng sẽ được chuyển sang trạng thái ngừng hoạt động.
+            </p>
+          </div>
+          <div class="px-6 pb-6 pt-2 border-t border-default flex items-center justify-end gap-3">
+            <button class="lg-button-secondary px-5 py-2.5" @click="confirmDelete = null">Hủy</button>
+            <button
+              class="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl bg-[var(--lg-danger)] text-white hover:opacity-90 transition-all"
+              @click="executeDelete"
+            >
+              <Trash2 :size="16" /> Xác nhận xóa
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Usage History Modal
+  ════════════════════════════════════════════════════════════ -->
+  <Teleport to="body">
+    <Transition name="modal">
+      <div
+        v-if="showHistoryModal && historyRoom"
+        class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        @click.self="closeHistoryModal"
+      >
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-lg surface-modal rounded-2xl shadow-sm overflow-hidden max-h-[90vh] overflow-y-auto border border-default">
+          <div class="modal-header p-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-semibold text-heading">Lịch sử sử dụng</h2>
+                <p class="text-sm text-label mt-0.5">{{ historyRoom.name }} ({{ historyRoom.id }})</p>
+              </div>
+              <button
+                class="h-9 w-9 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
+                @click="closeHistoryModal"
+              >
+                <X :size="18" />
+              </button>
+            </div>
+          </div>
+
+          <div class="p-6 space-y-4">
+            <div class="flex items-center gap-3 p-4 rounded-xl surface-input border border-default">
+              <div class="flex-1 grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Tổng lượt dùng</p>
+                  <p class="text-lg font-semibold text-heading mt-1">24</p>
+                </div>
+                <div>
+                  <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Giờ sử dụng</p>
+                  <p class="text-lg font-semibold text-heading mt-1">168h</p>
+                </div>
+                <div>
+                  <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Tỉ lệ SD</p>
+                  <p class="text-lg font-semibold text-heading mt-1">78%</p>
+                </div>
+              </div>
+            </div>
+
+            <div v-for="item in [
+              { date: '08/06/2026', time: '07:00 - 09:30', subject: 'Lập trình Web', teacher: 'TS. Nguyễn Văn A', status: 'completed' },
+              { date: '08/06/2026', time: '09:45 - 12:15', subject: 'Cơ sở dữ liệu', teacher: 'ThS. Trần Thị B', status: 'completed' },
+              { date: '07/06/2026', time: '13:00 - 15:30', subject: 'CTDL & GT', teacher: 'TS. Lê Văn C', status: 'completed' },
+              { date: '07/06/2026', time: '15:45 - 18:15', subject: 'Mạng máy tính', teacher: 'ThS. Phạm Thị D', status: 'cancelled' },
+              { date: '06/06/2026', time: '07:00 - 09:30', subject: 'Lập trình Web', teacher: 'TS. Nguyễn Văn A', status: 'completed' },
+            ]" :key="item.date + item.time" class="flex items-start gap-3 p-3 rounded-xl surface-input border border-default hover:bg-[var(--surface-input-focus)] transition-colors">
+              <div class="h-9 w-9 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] shrink-0">
+                <Calendar :size="16" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <p class="text-sm font-semibold text-heading">{{ item.subject }}</p>
+                  <span
+                    :class="[
+                      'text-[9px] font-bold uppercase px-2 py-0.5 rounded-lg',
+                      item.status === 'completed'
+                        ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]'
+                        : 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]'
+                    ]"
+                  >{{ item.status === 'completed' ? 'Đã học' : 'Đã hủy' }}</span>
+                </div>
+                <p class="text-xs text-label mt-0.5 flex items-center gap-2">
+                  <Clock :size="11" /> {{ item.date }} · {{ item.time }}
+                </p>
+                <p class="text-xs text-label">{{ item.teacher }}</p>
+              </div>
+            </div>
+
+            <div v-if="false" class="text-center py-10">
+              <p class="text-sm text-label">Chưa có lịch sử sử dụng cho phòng này.</p>
+            </div>
+          </div>
+
+          <div class="px-6 pb-6 pt-2 border-t border-default flex items-center justify-end">
+            <button class="lg-button-secondary px-5 py-2.5" @click="closeHistoryModal">Đóng</button>
           </div>
         </div>
       </div>

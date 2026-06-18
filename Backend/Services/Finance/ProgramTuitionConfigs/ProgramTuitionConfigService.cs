@@ -6,13 +6,14 @@ using Backend.DTOs.Finance.ProgramTuitionConfigs;
 using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.Audit;
+using Backend.Services.Finance;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.Finance.ProgramTuitionConfigs;
 
 public class ProgramTuitionConfigService : IProgramTuitionConfigService
 {
-    private const string FixedPerTermCalculationType = "co_dinh_theo_hoc_ky";
+    private const string FixedPerTermCalculationType = FinanceConstants.TuitionCalculationTypes.FixedPerTerm;
 
     private readonly ApplicationDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -100,6 +101,12 @@ public class ProgramTuitionConfigService : IProgramTuitionConfigService
             queryBase = queryBase.Where(x => x.Config.SoThuTuHocKy == parameters.SoThuTuHocKy.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(parameters.LoaiCachTinhHocPhi))
+        {
+            var calculationType = NormalizeCalculationType(parameters.LoaiCachTinhHocPhi);
+            queryBase = queryBase.Where(x => x.Config.LoaiCachTinhHocPhi == calculationType);
+        }
+
         if (parameters.ConHoatDong.HasValue)
         {
             queryBase = queryBase.Where(x => x.Config.ConHoatDong == parameters.ConHoatDong.Value);
@@ -171,6 +178,64 @@ public class ProgramTuitionConfigService : IProgramTuitionConfigService
             PageIndex = parameters.PageNumber,
             PageSize = parameters.PageSize,
             TotalItems = totalItems
+        };
+    }
+
+    public async Task<ProgramTuitionConfigOptionsDto> GetOptionsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        var allowedOrganizationIds = await GetAllowedOrganizationIdsAsync(currentUser, cancellationToken);
+        var allowedOrganizationIdList = allowedOrganizationIds.ToList();
+
+        var organizations = await _context.DonVis
+            .AsNoTracking()
+            .Where(x =>
+                x.ConHoatDong &&
+                x.CapDonVi != "root" &&
+                allowedOrganizationIdList.Contains(x.MaDonVi))
+            .OrderBy(x => x.TenDonVi)
+            .Select(x => new ProgramTuitionConfigOptionDto(
+                x.MaDonVi,
+                x.TenDonVi,
+                null,
+                x.MaDonViCha))
+            .ToListAsync(cancellationToken);
+
+        var programs = await _context.ChuongTrinhDaoTaos
+            .AsNoTracking()
+            .Where(x => x.ConHoatDong)
+            .OrderBy(x => x.TenChuongTrinh)
+            .Select(x => new ProgramTuitionConfigOptionDto(
+                x.MaChuongTrinh,
+                x.TenChuongTrinh,
+                x.MaCodeChuongTrinh,
+                null))
+            .ToListAsync(cancellationToken);
+
+        var terms = await _context.HocKys
+            .AsNoTracking()
+            .Where(x => allowedOrganizationIdList.Contains(x.MaDonVi))
+            .OrderByDescending(x => x.NgayBatDau)
+            .ThenBy(x => x.TenHocKy)
+            .Select(x => new ProgramTuitionConfigOptionDto(
+                x.MaHocKy,
+                x.TenHocKy,
+                x.MaCodeHocKy,
+                x.MaDonVi))
+            .ToListAsync(cancellationToken);
+
+        return new ProgramTuitionConfigOptionsDto
+        {
+            Organizations = organizations,
+            TrainingPrograms = programs,
+            AcademicTerms = terms,
+            CalculationTypes =
+            [
+                new(FinanceConstants.TuitionCalculationTypes.FixedPerTerm, "Cố định theo học kỳ"),
+                new(FinanceConstants.TuitionCalculationTypes.PerCredit, "Theo tín chỉ"),
+                new(FinanceConstants.TuitionCalculationTypes.PerSubject, "Theo môn học")
+            ]
         };
     }
 
@@ -259,7 +324,7 @@ public class ProgramTuitionConfigService : IProgramTuitionConfigService
         CreateProgramTuitionConfigRequest request,
         CancellationToken cancellationToken = default)
     {
-        var currentUser = EnsureSuperAdmin();
+        var currentUser = EnsureFinanceManager();
 
         var calculationType = NormalizeCalculationType(request.LoaiCachTinhHocPhi);
         ValidateAmounts(request.SoTienHocPhi, request.TienHocLieu);
@@ -319,7 +384,12 @@ public class ProgramTuitionConfigService : IProgramTuitionConfigService
         BulkCreateProgramTuitionConfigRequest request,
         CancellationToken cancellationToken = default)
     {
-        var currentUser = EnsureSuperAdmin();
+        var currentUser = EnsureFinanceManager();
+
+        if (request.Items?.Count > 0)
+        {
+            return await BulkCreateFromItemsAsync(request.Items, currentUser, cancellationToken);
+        }
 
         var calculationType = NormalizeCalculationType(request.LoaiCachTinhHocPhi);
         var totalTerms = ValidateBulkRequestShape(request);
@@ -407,6 +477,23 @@ public class ProgramTuitionConfigService : IProgramTuitionConfigService
                     today);
 
                 if (!editability.CanEdit)
+                {
+                    skippedCount++;
+                    continue;
+                }
+
+                if (await HasGeneratedTuitionInvoicesAsync(existingConfig, cancellationToken) &&
+                    IsProtectedConfigChange(
+                        existingConfig,
+                        request.MaDonVi,
+                        request.MaChuongTrinhDaoTao,
+                        item.MaHocKy,
+                        item.NamHocTrongChuongTrinh,
+                        item.HocKyTrongNam,
+                        item.SoThuTuHocKy,
+                        calculationType,
+                        item.SoTienHocPhi,
+                        item.TienHocLieu))
                 {
                     skippedCount++;
                     continue;
@@ -528,15 +615,116 @@ public class ProgramTuitionConfigService : IProgramTuitionConfigService
         };
     }
 
+    private async Task<BulkProgramTuitionConfigResultDto> BulkCreateFromItemsAsync(
+        IReadOnlyList<CreateProgramTuitionConfigRequest> items,
+        CurrentUserContext currentUser,
+        CancellationToken cancellationToken)
+    {
+        if (items.Count == 0)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Danh sách cấu hình học phí không được rỗng.");
+        }
+
+        var duplicated = items
+            .GroupBy(x => new { x.MaDonVi, x.MaChuongTrinhDaoTao, x.MaHocKy })
+            .FirstOrDefault(x => x.Count() > 1);
+
+        if (duplicated is not null)
+        {
+            throw new ApiException(
+                StatusCodes.Status400BadRequest,
+                $"Không được trùng cấu hình cơ sở {duplicated.Key.MaDonVi}, chương trình {duplicated.Key.MaChuongTrinhDaoTao}, học kỳ {duplicated.Key.MaHocKy} trong cùng request.");
+        }
+
+        var now = DateTime.UtcNow;
+        var configs = new List<CauHinhHocPhiChuongTrinh>();
+
+        foreach (var item in items)
+        {
+            var calculationType = NormalizeCalculationType(item.LoaiCachTinhHocPhi);
+            ValidateAmounts(item.SoTienHocPhi, item.TienHocLieu);
+            ValidateProgramTermPosition(
+                item.NamHocTrongChuongTrinh,
+                item.HocKyTrongNam,
+                item.SoThuTuHocKy);
+
+            await ValidateConfigurationScopeAsync(
+                item.MaDonVi,
+                item.MaChuongTrinhDaoTao,
+                item.MaHocKy,
+                item.SoThuTuHocKy,
+                cancellationToken);
+
+            await ValidateActiveDuplicateAsync(
+                item.MaDonVi,
+                item.MaChuongTrinhDaoTao,
+                item.MaHocKy,
+                null,
+                cancellationToken);
+
+            var config = new CauHinhHocPhiChuongTrinh
+            {
+                MaDonVi = item.MaDonVi,
+                MaChuongTrinhDaoTao = item.MaChuongTrinhDaoTao,
+                MaHocKy = item.MaHocKy,
+                NamHocTrongChuongTrinh = item.NamHocTrongChuongTrinh,
+                HocKyTrongNam = item.HocKyTrongNam,
+                SoThuTuHocKy = item.SoThuTuHocKy,
+                LoaiCachTinhHocPhi = calculationType,
+                SoTienHocPhi = item.SoTienHocPhi,
+                TienHocLieu = item.TienHocLieu,
+                TongTienDuKien = CalculateTotal(item.SoTienHocPhi, item.TienHocLieu),
+                ConHoatDong = true,
+                GhiChu = NormalizeOptionalText(item.GhiChu),
+                NgayTao = now
+            };
+
+            _context.CauHinhHocPhiChuongTrinhs.Add(config);
+            configs.Add(config);
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        foreach (var config in configs)
+        {
+            await _auditLogService.LogAsync(
+                "ProgramTuitionConfig",
+                config.MaCauHinhHocPhi.ToString(),
+                "CREATE",
+                null,
+                await CreateAuditSnapshotAsync(config, cancellationToken),
+                currentUser.UserId,
+                config.MaDonVi,
+                "Tạo cấu hình học phí chương trình đào tạo trong thao tác hàng loạt.",
+                cancellationToken);
+        }
+
+        var resultItems = new List<ProgramTuitionConfigDetailDto>();
+        foreach (var config in configs.OrderBy(x => x.SoThuTuHocKy))
+        {
+            resultItems.Add(await GetByIdAsync(config.MaCauHinhHocPhi, cancellationToken));
+        }
+
+        return new BulkProgramTuitionConfigResultDto
+        {
+            TongSoDongYeuCau = items.Count,
+            SoDongTaoMoi = configs.Count,
+            SoDongThayTheCapNhat = 0,
+            SoDongBoQua = 0,
+            Items = resultItems
+        };
+    }
+
     public async Task<ProgramTuitionConfigDetailDto> UpdateAsync(
         int id,
         UpdateProgramTuitionConfigRequest request,
         CancellationToken cancellationToken = default)
     {
-        var currentUser = EnsureSuperAdmin();
+        var currentUser = EnsureFinanceManager();
 
         var config = await GetManagedConfigAsync(id, cancellationToken);
         await EnsureConfigCanBeChangedAsync(config, cancellationToken);
+        await EnsureFinancialFieldsCanBeUpdatedAsync(config, request, cancellationToken);
         var oldValue = await CreateAuditSnapshotAsync(config, cancellationToken);
         var calculationType = NormalizeCalculationType(request.LoaiCachTinhHocPhi);
         ValidateAmounts(request.SoTienHocPhi, request.TienHocLieu);
@@ -597,7 +785,7 @@ public class ProgramTuitionConfigService : IProgramTuitionConfigService
         int id,
         CancellationToken cancellationToken = default)
     {
-        var currentUser = EnsureSuperAdmin();
+        var currentUser = EnsureFinanceManager();
 
         var config = await GetManagedConfigAsync(id, cancellationToken);
         await EnsureConfigCanBeChangedAsync(config, cancellationToken);
@@ -658,6 +846,78 @@ public class ProgramTuitionConfigService : IProgramTuitionConfigService
         {
             throw new ApiException(StatusCodes.Status409Conflict, editability.Reason!);
         }
+    }
+
+    private async Task EnsureFinancialFieldsCanBeUpdatedAsync(
+        CauHinhHocPhiChuongTrinh config,
+        UpdateProgramTuitionConfigRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!await HasGeneratedTuitionInvoicesAsync(config, cancellationToken))
+        {
+            return;
+        }
+
+        var calculationType = NormalizeCalculationType(request.LoaiCachTinhHocPhi);
+        if (!IsProtectedConfigChange(
+                config,
+                request.MaDonVi,
+                request.MaChuongTrinhDaoTao,
+                request.MaHocKy,
+                request.NamHocTrongChuongTrinh,
+                request.HocKyTrongNam,
+                request.SoThuTuHocKy,
+                calculationType,
+                request.SoTienHocPhi,
+                request.TienHocLieu))
+        {
+            return;
+        }
+
+        throw new ApiException(
+            StatusCodes.Status409Conflict,
+            "Cấu hình học phí đã được dùng để phát sinh hóa đơn, không thể sửa cơ sở, chương trình, học kỳ hoặc số tiền. Vui lòng tạo cấu hình mới cho kỳ tiếp theo.");
+    }
+
+    private async Task<bool> HasGeneratedTuitionInvoicesAsync(
+        CauHinhHocPhiChuongTrinh config,
+        CancellationToken cancellationToken)
+    {
+        return await (
+            from invoice in _context.HoaDons.AsNoTracking()
+            join student in _context.NguoiDungs.AsNoTracking()
+                on invoice.MaHocSinh equals student.MaNguoiDung
+            join classEntity in _context.LopHanhChinhs.AsNoTracking()
+                on student.MaLop equals (int?)classEntity.MaLop
+            where invoice.MaDonVi == config.MaDonVi
+                && invoice.MaHocKy == config.MaHocKy
+                && invoice.LoaiHoaDon == FinanceConstants.InvoiceTypes.Tuition
+                && classEntity.MaChuongTrinh == config.MaChuongTrinhDaoTao
+            select invoice.MaHoaDon)
+            .AnyAsync(cancellationToken);
+    }
+
+    private static bool IsProtectedConfigChange(
+        CauHinhHocPhiChuongTrinh config,
+        int organizationId,
+        int trainingProgramId,
+        int termId,
+        int yearInProgram,
+        int termInYear,
+        int programTermOrder,
+        string calculationType,
+        decimal tuitionAmount,
+        decimal materialAmount)
+    {
+        return config.MaDonVi != organizationId ||
+            config.MaChuongTrinhDaoTao != trainingProgramId ||
+            config.MaHocKy != termId ||
+            config.NamHocTrongChuongTrinh != yearInProgram ||
+            config.HocKyTrongNam != termInYear ||
+            config.SoThuTuHocKy != programTermOrder ||
+            config.LoaiCachTinhHocPhi != calculationType ||
+            config.SoTienHocPhi != tuitionAmount ||
+            config.TienHocLieu != materialAmount;
     }
 
     private async Task<IReadOnlyList<ProgramTuitionConfigDetailDto>> GetDetailsByProgramAsync(
@@ -921,12 +1181,12 @@ public class ProgramTuitionConfigService : IProgramTuitionConfigService
         return currentUser;
     }
 
-    private CurrentUserContext EnsureSuperAdmin()
+    private CurrentUserContext EnsureFinanceManager()
     {
         var currentUser = GetCurrentUser();
-        if (currentUser.Role != AuthRoles.SuperAdmin)
+        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.FinanceAdmin))
         {
-            throw new ApiException(StatusCodes.Status403Forbidden, "Chỉ SuperAdmin được quản lý cấu hình học phí chương trình.");
+            throw new ApiException(StatusCodes.Status403Forbidden, "Chỉ admin tài chính được quản lý cấu hình học phí chương trình.");
         }
 
         return currentUser;
@@ -936,7 +1196,7 @@ public class ProgramTuitionConfigService : IProgramTuitionConfigService
         CurrentUserContext currentUser,
         CancellationToken cancellationToken)
     {
-        if (currentUser.Role == AuthRoles.SuperAdmin)
+        if (currentUser.Role is AuthRoles.SuperAdmin or AuthRoles.FinanceAdmin)
         {
             return await _context.DonVis
                 .AsNoTracking()
@@ -944,7 +1204,7 @@ public class ProgramTuitionConfigService : IProgramTuitionConfigService
                 .ToHashSetAsync(cancellationToken);
         }
 
-        if (currentUser.Role == AuthRoles.CampusAdmin)
+        if (currentUser.Role == AuthRoles.CampusChiefAccountant)
         {
             var organizations = await _context.DonVis
                 .AsNoTracking()
@@ -990,14 +1250,17 @@ public class ProgramTuitionConfigService : IProgramTuitionConfigService
             ? FixedPerTermCalculationType
             : value.Trim();
 
-        if (calculationType != FixedPerTermCalculationType)
+        var supportedType = FinanceConstants.TuitionCalculationTypes.All
+            .FirstOrDefault(x => x.Equals(calculationType, StringComparison.OrdinalIgnoreCase));
+
+        if (supportedType is null)
         {
             throw new ApiException(
                 StatusCodes.Status400BadRequest,
-                "MVP hiện chỉ hỗ trợ cách tính học phí co_dinh_theo_hoc_ky.");
+                "Loại cách tính học phí chỉ được là co_dinh_theo_hoc_ky, theo_tin_chi hoặc theo_mon_hoc.");
         }
 
-        return calculationType;
+        return supportedType;
     }
 
     private static void ValidateAmounts(decimal tuitionAmount, decimal materialAmount)
@@ -1159,7 +1422,7 @@ public class ProgramTuitionConfigService : IProgramTuitionConfigService
 
     private static decimal CalculateTotal(decimal tuitionAmount, decimal materialAmount)
     {
-        return tuitionAmount + materialAmount;
+        return InvoiceFinanceHelper.CalculateProgramTuitionTotal(tuitionAmount, materialAmount);
     }
 
     private static string? NormalizeOptionalText(string? value)

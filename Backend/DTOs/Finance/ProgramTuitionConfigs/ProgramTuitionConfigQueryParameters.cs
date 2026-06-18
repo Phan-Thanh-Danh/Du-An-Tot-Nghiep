@@ -11,6 +11,7 @@ public class ProgramTuitionConfigQueryParameters
     public int? NamHocTrongChuongTrinh { get; set; }
     public int? HocKyTrongNam { get; set; }
     public int? SoThuTuHocKy { get; set; }
+    public string? LoaiCachTinhHocPhi { get; set; }
     public bool? ConHoatDong { get; set; }
 
     [Range(1, int.MaxValue, ErrorMessage = "pageNumber phải lớn hơn 0.")]

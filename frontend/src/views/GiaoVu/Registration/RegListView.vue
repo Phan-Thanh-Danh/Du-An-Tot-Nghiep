@@ -309,7 +309,7 @@ const getStatusLabel = (status) => {
     <div class="space-y-4" @click="closeContextMenu">
       
       <!-- ── Toolbar ── -->
-      <div class="lg-glass-strong p-4 rounded-[24px] flex flex-wrap items-center justify-between gap-4">
+      <div class="lg-glass-strong p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
         <div class="flex-1 min-w-[280px] relative flex items-center gap-2">
           <div class="relative flex-1">
             <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder" />
@@ -382,7 +382,7 @@ const getStatusLabel = (status) => {
       </Transition>
 
       <!-- ── Enrollment Table ── -->
-      <div class="lg-table-shell overflow-hidden rounded-[24px]">
+      <div class="lg-table-shell overflow-hidden rounded-2xl">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">

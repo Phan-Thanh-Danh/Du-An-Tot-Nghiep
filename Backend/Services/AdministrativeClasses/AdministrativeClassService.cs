@@ -200,9 +200,7 @@ public class AdministrativeClassService : IAdministrativeClassService
             }
         }
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-
-        try
+        await _context.ExecuteInTransactionAsync(async () =>
         {
             foreach (var classEntity in classes)
             {
@@ -210,13 +208,7 @@ public class AdministrativeClassService : IAdministrativeClassService
             }
 
             await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-        }
-        catch
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
+        }, cancellationToken);
 
         var classIds = classes.Select(x => x.MaLop).ToList();
         var entities = await _context.LopHanhChinhs

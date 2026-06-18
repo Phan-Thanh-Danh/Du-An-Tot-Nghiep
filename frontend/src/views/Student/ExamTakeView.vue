@@ -19,7 +19,7 @@ import {
   Terminal,
   XCircle,
 } from 'lucide-vue-next'
-import { mockExams, mockQuestions } from '@/data/exam.mock.js'
+import { mockExams, mockQuestions } from '@/data/studentData.mock.js'
 import {
   clearExamRuntimeStorage,
   createViolation,

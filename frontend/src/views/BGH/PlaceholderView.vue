@@ -17,7 +17,7 @@
         <p class="text-body max-w-md mb-8">
           Module dành cho Ban giám hiệu đang được hoàn thiện. Vui lòng quay lại trong các phiên bản cập nhật tới.
         </p>
-        <router-link to="/bgh/dashboard" class="lg-button-primary" style="background: linear-gradient(135deg, #4f46e5, #6366f1 52%, #8b5cf6);">
+        <router-link to="/bgh/dashboard" class="lg-button-primary" style="background: linear-gradient(135deg, #1e3a8a, #1e40af 52%, #2563eb);">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m15 18-6-6 6-6"/>
           </svg>

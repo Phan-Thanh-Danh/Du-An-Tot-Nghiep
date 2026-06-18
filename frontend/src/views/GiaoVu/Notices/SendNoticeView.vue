@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { usePopupStore } from '@/stores/popup'
 import { 
   Send, 
   Save, 
@@ -11,9 +12,12 @@ import {
   Info,
   CheckCircle2,
   X,
-  Plus
+  Plus,
+  Search
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+
+const popupStore = usePopupStore()
 
 // ── State ────────────────────────────────────────────────────
 const title = ref('')
@@ -36,8 +40,84 @@ const channels = ref([
 
 const selectedSections = ref(['SE1601 - Java Programming', 'SE1602 - Data Structures'])
 
+// ── Add Section Modal ────────────────────────────────────────
+const showAddModal = ref(false)
+const sectionSearch = ref('')
+const availableSections = ref([
+  'SE1601 - Java Programming',
+  'SE1602 - Data Structures',
+  'SE1603 - Web Development',
+  'SE1604 - Mobile App Development',
+  'SE1605 - Artificial Intelligence',
+  'SE1606 - Database Systems',
+  'SE1607 - Software Engineering',
+  'SE1608 - Computer Networks',
+])
+
+const filteredSections = computed(() =>
+  availableSections.value.filter(
+    s => s.toLowerCase().includes(sectionSearch.value.toLowerCase()) && !selectedSections.value.includes(s),
+  ),
+)
+
+function toggleSection(section) {
+  const idx = selectedSections.value.indexOf(section)
+  if (idx >= 0) {
+    selectedSections.value.splice(idx, 1)
+  } else {
+    selectedSections.value.push(section)
+  }
+  sectionSearch.value = ''
+}
+
 function removeSection(index) {
   selectedSections.value.splice(index, 1)
+}
+
+function sendNotice() {
+  if (!title.value.trim()) {
+    popupStore.warning('Thiếu thông tin', 'Vui lòng nhập tiêu đề thông báo.')
+    return
+  }
+  if (!content.value.trim()) {
+    popupStore.warning('Thiếu thông tin', 'Vui lòng nhập nội dung thông báo.')
+    return
+  }
+  const selectedTargets = targets.value.filter(t => t.selected)
+  if (!selectedTargets.length) {
+    popupStore.warning('Thiếu thông tin', 'Vui lòng chọn ít nhất một đối tượng nhận.')
+    return
+  }
+  const selectedChannels = channels.value.filter(c => c.selected)
+  if (!selectedChannels.length) {
+    popupStore.warning('Thiếu thông tin', 'Vui lòng chọn ít nhất một kênh gửi.')
+    return
+  }
+  popupStore.success(
+    'Đã gửi thông báo',
+    sendMode.value === 'now'
+      ? 'Thông báo đang được gửi đến các đối tượng đã chọn.'
+      : `Thông báo đã được lên lịch gửi vào ${new Date(scheduleTime.value).toLocaleString('vi-VN')}.`,
+  )
+}
+
+function saveDraft() {
+  if (!title.value.trim()) {
+    popupStore.warning('Thiếu thông tin', 'Vui lòng nhập tiêu đề để lưu nháp.')
+    return
+  }
+  const draft = {
+    title: title.value,
+    content: content.value,
+    sendMode: sendMode.value,
+    scheduleTime: scheduleTime.value,
+    targets: targets.value.map(t => ({ id: t.id, selected: t.selected })),
+    channels: channels.value.map(c => ({ id: c.id, selected: c.selected })),
+    selectedSections: [...selectedSections.value],
+    savedAt: new Date().toISOString(),
+  }
+  localStorage.setItem('lms_notice_draft', JSON.stringify(draft))
+  popupStore.success('Đã lưu nháp', 'Thông báo đã được lưu vào bản nháp.')
 }
 </script>
 
@@ -115,9 +195,9 @@ function removeSection(index) {
                      {{ sec }}
                      <button @click="removeSection(idx)" class="hover:bg-[var(--surface-input)] rounded-full p-0.5"><X :size="12" /></button>
                   </div>
-                  <button class="px-3 py-1.5 border-2 border-dashed border-default text-placeholder rounded-xl text-xs font-bold hover:border-[var(--border-input-focus)] hover:text-link transition-all">
-                    + Thêm lớp/SV
-                 </button>
+                   <button @click="showAddModal = true" class="px-3 py-1.5 border-2 border-dashed border-default text-placeholder rounded-xl text-xs font-bold hover:border-[var(--border-input-focus)] hover:text-link transition-all">
+                     + Thêm lớp/SV
+                  </button>
               </div>
            </div>
         </div>
@@ -167,9 +247,10 @@ function removeSection(index) {
                  <div class="relative">
                      <Clock :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
                      <input 
-                       type="datetime-local" 
-                       class="w-full lg-input rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold"
-                     >
+                        v-model="scheduleTime"
+                        type="datetime-local" 
+                        class="w-full lg-input rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold"
+                      >
                  </div>
               </div>
            </div>
@@ -177,12 +258,12 @@ function removeSection(index) {
 
         <!-- Main Actions -->
         <div class="space-y-3">
-           <button class="w-full lg-button-primary py-4 text-sm font-semibold flex items-center justify-center gap-2">
-              <Send :size="20" /> GỬI THÔNG BÁO
-           </button>
-            <button class="w-full lg-button-secondary py-3 text-sm font-bold flex items-center justify-center gap-2">
-              <Save :size="18" /> LƯU BẢN NHÁP
-           </button>
+           <button @click="sendNotice" class="w-full lg-button-primary py-4 text-sm font-semibold flex items-center justify-center gap-2">
+               <Send :size="20" /> GỬI THÔNG BÁO
+            </button>
+             <button @click="saveDraft" class="w-full lg-button-secondary py-3 text-sm font-bold flex items-center justify-center gap-2">
+               <Save :size="18" /> LƯU BẢN NHÁP
+            </button>
         </div>
 
         <!-- Help Info -->
@@ -197,4 +278,51 @@ function removeSection(index) {
 
     </div>
   </PageContainer>
+
+  <!-- ── Add Section Modal ── -->
+  <Teleport to="body">
+    <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center" @click.self="showAddModal = false">
+      <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+      <div class="relative surface-card border border-card rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between mb-5">
+          <h4 class="text-sm font-semibold text-heading uppercase tracking-widest">Thêm lớp học phần / Sinh viên</h4>
+          <button @click="showAddModal = false" class="p-1.5 hover:surface-solid rounded-lg transition-all">
+            <X :size="16" class="text-placeholder" />
+          </button>
+        </div>
+
+        <div class="relative mb-4">
+          <Search :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-placeholder" />
+          <input
+            v-model="sectionSearch"
+            type="text"
+            placeholder="Tìm kiếm lớp học phần..."
+            class="w-full lg-input rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium outline-none"
+          />
+        </div>
+
+        <ul class="space-y-1 max-h-64 overflow-y-auto">
+          <li
+            v-for="section in filteredSections"
+            :key="section"
+            @click="toggleSection(section)"
+            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl cursor-pointer transition-all hover:surface-solid text-sm font-bold text-heading"
+          >
+            <div :class="['h-4 w-4 rounded border-2 flex items-center justify-center transition-all', selectedSections.includes(section) ? 'bg-[var(--lg-primary)] border-[var(--lg-primary)]' : 'border-default']">
+              <CheckCircle2 v-if="selectedSections.includes(section)" :size="10" class="text-white" />
+            </div>
+            {{ section }}
+          </li>
+          <li v-if="!filteredSections.length" class="text-center py-6 text-xs text-placeholder font-medium">
+            Không tìm thấy lớp học phần nào.
+          </li>
+        </ul>
+
+        <div class="mt-5 flex justify-end gap-3">
+          <button @click="showAddModal = false" class="lg-button-ghost px-5 py-2 text-xs font-bold rounded-xl">Đóng</button>
+          <button @click="showAddModal = false" class="lg-button-primary px-5 py-2 text-xs font-bold rounded-xl">Xác nhận</button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>

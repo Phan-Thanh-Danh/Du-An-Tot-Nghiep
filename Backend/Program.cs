@@ -6,9 +6,13 @@ using Backend.Services;
 using Backend.Services.AdminUsers;
 using Backend.Services.AdministrativeClasses;
 using Backend.Services.AcademicTerms;
+using Backend.Services.Attendance;
+using Backend.Services.AttendanceAutomation;
+using Backend.Services.AttendanceUnlock;
 using Backend.Services.Audit;
 using Backend.Services.Auth;
 using Backend.Services.Buildings;
+using Backend.Services.BuoiHoc;
 using Backend.Services.CaHoc;
 using Backend.Services.CampusSpecializations;
 using Backend.Services.Cohorts;
@@ -17,7 +21,9 @@ using Backend.Services.CourseSyllabuses;
 using Backend.Services.Curriculum;
 using Backend.Services.Floors;
 using Backend.Services.Finance.ProgramTuitionConfigs;
+using Backend.Services.Finance.TuitionPayments;
 using Backend.Services.Majors;
+using Backend.Services.Notifications;
 using Backend.Services.Organizations;
 using Backend.Services.Rbac;
 using Backend.Services.Rooms;
@@ -25,6 +31,7 @@ using Backend.Services.Security;
 using Backend.Services.Specializations;
 using Backend.Services.Storage;
 using Backend.Services.Subjects;
+using Backend.Services.ThoiKhoaBieu;
 using Backend.Services.TrainingProgramSubjects;
 using Backend.Services.TrainingPrograms;
 using Backend.Services.Exam;
@@ -66,9 +73,15 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlOptions => sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorNumbersToAdd: null)));
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
+builder.Services.Configure<PayOSOptions>(builder.Configuration.GetSection("PayOS"));
 builder.Services.AddSingleton<JwtHelper>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -99,8 +112,20 @@ builder.Services.AddScoped<IFloorService, FloorService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<ICaHocService, CaHocService>();
 builder.Services.AddScoped<IProgramTuitionConfigService, ProgramTuitionConfigService>();
+builder.Services.AddScoped<IVietQrService, VietQrService>();
+builder.Services.AddHttpClient<IPayOsService, PayOsService>();
+builder.Services.AddScoped<ITuitionPaymentService, TuitionPaymentService>();
 builder.Services.AddScoped<ICurriculumService, CurriculumService>();
 builder.Services.AddScoped<IExamService, ExamService>();
+builder.Services.AddScoped<IThoiKhoaBieuService, ThoiKhoaBieuService>();
+builder.Services.AddScoped<IScheduleConflictService, ScheduleConflictService>();
+builder.Services.AddScoped<IBuoiHocService, BuoiHocService>();
+builder.Services.AddScoped<IAttendanceService, AttendanceService>();
+builder.Services.Configure<AttendanceAutomationOptions>(builder.Configuration.GetSection("AttendanceAutomation"));
+builder.Services.AddScoped<IAttendanceAutomationService, AttendanceAutomationService>();
+builder.Services.AddHostedService<AttendanceAutomationHostedService>();
+builder.Services.AddScoped<IAttendanceUnlockService, AttendanceUnlockService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 builder.Services.AddSignalR();
 

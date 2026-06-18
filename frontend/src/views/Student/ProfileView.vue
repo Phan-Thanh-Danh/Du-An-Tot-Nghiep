@@ -2,43 +2,20 @@
 import { ref, computed } from 'vue'
 import { usePopupStore } from '@/stores/popup'
 import {
-  User, ShieldCheck, Award, Link as LinkIcon, 
+  User, Users, ShieldCheck, Award, Link as LinkIcon, 
   MapPin, Phone, Mail, GraduationCap, Building,
   Key, Save, Download, Trash2, Plus, AlertCircle,
-  ToggleLeft, ToggleRight, CheckCircle2, QrCode
+  ToggleLeft, ToggleRight, CheckCircle2
 } from 'lucide-vue-next'
+import { mockProfile, mockAwards, mockDisciplines, mockParents } from '@/data/studentData.mock.js'
 
 const popupStore = usePopupStore()
 
 // Mock Data
-const profile = ref({
-  studentId: 'SV2026001',
-  fullName: 'Nguyễn Văn An',
-  email: 'an.nv.sv@student.edu.vn',
-  phone: '0901234567',
-  address: '123 Nguyễn Hữu Cảnh, P.22, Bình Thạnh, TP.HCM',
-  className: 'SE1601',
-  major: 'Kỹ thuật Phần mềm',
-  campus: 'Cơ sở TP.Hồ Chí Minh',
-  status: 'Active', // 'Active', 'First login', 'Locked'
-  role: 'Student'
-})
-
-const awards = ref([
-  { id: 'AW-01', title: 'Sinh viên Giỏi Học kỳ Fall 2025', type: 'Học thuật', gpa: '3.6', date: '15/01/2026' },
-  { id: 'AW-02', title: 'Giải Ba Cuộc thi Hackathon 2025', type: 'Thi đấu', gpa: 'N/A', date: '20/11/2025' }
-])
-
-const disciplines = ref([
-  // Empty for good student
-])
-
-const parents = ref([
-  { 
-    id: 'PR-01', name: 'Nguyễn Văn Bình (Bố)', email: 'binh.nv@gmail.com', status: 'Connected',
-    permissions: { grades: true, attendance: true, finance: false, schedule: true }
-  }
-])
+const profile = ref({ ...mockProfile })
+const awards = ref([...mockAwards])
+const disciplines = ref([...mockDisciplines])
+const parents = ref(mockParents.map(p => ({ ...p, permissions: { ...p.permissions } })))
 
 // State
 const activeTab = ref('profile')
@@ -201,9 +178,13 @@ if (isFirstLogin.value) {
             </div>
             <div class="form-group readonly">
               <label>Lớp Sinh hoạt</label>
-              <div class="read-value"><GraduationCap :size="15"/> {{ profile.className }} - {{ profile.major }}</div>
+              <div class="read-value"><Users :size="15"/> {{ profile.className }}</div>
             </div>
-            <div class="form-group readonly col-span-2">
+            <div class="form-group readonly">
+              <label>Chuyên ngành</label>
+              <div class="read-value"><GraduationCap :size="15"/> {{ profile.major }}</div>
+            </div>
+            <div class="form-group readonly">
               <label>Cơ sở học tập (Campus)</label>
               <div class="read-value"><Building :size="15"/> {{ profile.campus }}</div>
             </div>

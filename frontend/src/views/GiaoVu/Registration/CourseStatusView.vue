@@ -223,7 +223,7 @@ function closeDetailModal() {
           </h3>
         </div>
 
-        <div class="lg-table-shell overflow-hidden rounded-[24px]">
+        <div class="lg-table-shell overflow-hidden rounded-2xl">
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="surface-solid">

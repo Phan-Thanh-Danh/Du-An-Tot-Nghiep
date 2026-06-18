@@ -4,6 +4,8 @@ namespace Backend.DTOs.Finance.ProgramTuitionConfigs;
 
 public class BulkCreateProgramTuitionConfigRequest
 {
+    public List<CreateProgramTuitionConfigRequest> Items { get; set; } = [];
+
     [Range(1, int.MaxValue, ErrorMessage = "Mã đơn vị không hợp lệ.")]
     public int MaDonVi { get; set; }
 

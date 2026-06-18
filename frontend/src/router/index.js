@@ -39,6 +39,18 @@ const router = createRouter({
       component: () => import('../views/Student/ExamTakeView.vue'),
       meta: { requiresAuth: true, role: 'student', title: 'Làm bài thi', fullscreen: true },
     },
+    {
+      path: '/payment/success',
+      name: 'payment-success',
+      component: () => import('../views/Payment/PaymentSuccessView.vue'),
+      meta: { title: 'Thanh toán đang xác nhận' },
+    },
+    {
+      path: '/payment/cancel',
+      name: 'payment-cancel',
+      component: () => import('../views/Payment/PaymentCancelView.vue'),
+      meta: { title: 'Đã hủy thanh toán' },
+    },
 
     // ── Student Layout (App Shell) ─────────────────────────
     {
@@ -200,6 +212,7 @@ const router = createRouter({
         { path: 'requests', name: 'teacher-requests', component: () => import('../views/GiangVien/PendingRequestsView.vue') },
         { path: 'requests-history', name: 'teacher-requests-history', component: () => import('../views/GiangVien/RequestsHistoryView.vue') },
         { path: 'profile', name: 'teacher-profile', component: () => import('../views/GiangVien/ProfileView.vue') },
+        { path: 'notifications', name: 'teacher-notifications', component: () => import('../views/SuperAdmin/PlaceholderView.vue'), meta: { title: 'Thông báo', subtitle: 'Trung tâm thông báo', section: 'Cá nhân' } },
         { path: 'change-password', name: 'teacher-change-password', component: () => import('../views/GiangVien/ChangePasswordView.vue') },
       ],
     },
@@ -251,30 +264,39 @@ const router = createRouter({
           path: 'dashboard',
           name: 'bgh-dashboard',
           component: () => import('../views/BGH/Dashboard.vue'),
-          meta: { title: 'Dashboard Chiến Lược' },
+          meta: { title: 'Dashboard chiến lược', subtitle: 'Tổng quan hệ thống đào tạo, chất lượng và thống kê', section: 'Dashboard' },
         },
-        // TKB
-        { path: 'schedule/pending', name: 'bgh-schedule-pending', component: () => import('../views/BGH/Schedule/PendingSchedulesView.vue') },
-        { path: 'schedule/approved', name: 'bgh-schedule-approved', component: () => import('../views/BGH/Schedule/PublishedSchedulesView.vue') },
-        { path: 'schedule/conflicts', name: 'bgh-schedule-conflicts', component: () => import('../views/BGH/Schedule/ConflictListView.vue') },
-        { path: 'schedule/changes', name: 'bgh-schedule-changes', component: () => import('../views/BGH/Schedule/ScheduleChangesView.vue') },
-        // Academic
-        { path: 'academic/overview', name: 'bgh-academic-overview', component: () => import('../views/BGH/Academic/AcademicOverviewView.vue') },
-        { path: 'academic/pass-fail', name: 'bgh-academic-pass-fail', component: () => import('../views/BGH/Academic/PassFailRatesView.vue') },
-        { path: 'academic/gpa', name: 'bgh-academic-gpa', component: () => import('../views/BGH/Academic/GPAReportsView.vue') },
-        { path: 'academic/at-risk', name: 'bgh-academic-at-risk', component: () => import('../views/BGH/Academic/AtRiskStudentsView.vue') },
-        { path: 'academic/reports', name: 'bgh-academic-reports', component: () => import('../views/BGH/Academic/AcademicReportsView.vue') },
-        // Evaluations
-        { path: 'evaluations/overview', name: 'bgh-evaluations-overview', component: () => import('../views/BGH/Evaluations/EvalOverviewView.vue') },
-        { path: 'evaluations/ranking', name: 'bgh-evaluations-ranking', component: () => import('../views/BGH/Evaluations/TeacherRankingView.vue') },
-        { path: 'evaluations/details', name: 'bgh-evaluations-details', component: () => import('../views/BGH/Evaluations/TeacherEvalDetailsView.vue') },
-        { path: 'evaluations/ai-feedback', name: 'bgh-evaluations-ai-feedback', component: () => import('../views/BGH/Evaluations/AIFeedbackAnalysisView.vue') },
-        // Strategic
-        { path: 'strategic/dashboard', name: 'bgh-strategic-dashboard', component: () => import('../views/BGH/PlaceholderView.vue') },
-        { path: 'strategic/semesters', name: 'bgh-strategic-semesters', component: () => import('../views/BGH/PlaceholderView.vue') },
-        { path: 'strategic/campuses', name: 'bgh-strategic-campuses', component: () => import('../views/BGH/PlaceholderView.vue') },
-        // Profile
-        { path: 'profile', name: 'bgh-profile', component: () => import('../views/BGH/Profile/ProfileView.vue') },
+        // Cơ cấu tổ chức
+        { path: 'organizations', name: 'bgh-organizations', component: () => import('../views/BGH/OrganizationsView.vue'), meta: { title: 'Quản lý Đơn vị', subtitle: 'Cơ cấu tổ chức các khoa, phòng ban', section: 'Cơ cấu tổ chức' } },
+        { path: 'users', name: 'bgh-users', component: () => import('../views/BGH/UsersView.vue'), meta: { title: 'Quản lý Người dùng', subtitle: 'Danh sách tài khoản sinh viên, giảng viên và nhân sự', section: 'Cơ cấu tổ chức' } },
+        { path: 'roles', name: 'bgh-roles', component: () => import('../views/BGH/RolesView.vue'), meta: { title: 'Vai trò & Phân quyền', subtitle: 'Cấu hình quyền hạn truy cập hệ thống', section: 'Cơ cấu tổ chức' } },
+        // Đào tạo & Chương trình
+        { path: 'academic-programs', name: 'bgh-academic-programs', component: () => import('../views/BGH/ProgramsView.vue'), meta: { title: 'Ngành & Chuyên ngành', subtitle: 'Quản lý các chuyên ngành đào tạo', section: 'Đào tạo & Chương trình' } },
+        { path: 'curriculum', name: 'bgh-curriculum', component: () => import('../views/BGH/CurriculumView.vue'), meta: { title: 'Khung chương trình', subtitle: 'Phê duyệt và theo dõi khung chương trình', section: 'Đào tạo & Chương trình' } },
+        { path: 'academic-terms', name: 'bgh-academic-terms', component: () => import('../views/BGH/AcademicTermsView.vue'), meta: { title: 'Học kỳ & Khóa', subtitle: 'Quản lý các học kỳ và khóa học', section: 'Đào tạo & Chương trình' } },
+        // Đào tạo — Báo cáo học tập
+        { path: 'academic/overview', name: 'bgh-academic-overview', component: () => import('../views/BGH/Academic/AcademicOverviewView.vue'), meta: { title: 'Tổng quan kết quả học tập', subtitle: 'Báo cáo phân tích chất lượng học tập trên toàn hệ thống', section: 'Đào tạo & Chương trình' } },
+        { path: 'academic/gpa', name: 'bgh-academic-gpa', component: () => import('../views/BGH/Academic/GPAReportsView.vue'), meta: { title: 'Báo cáo GPA hệ thống', subtitle: 'Phân tích điểm trung bình tích lũy theo khoa và lớp', section: 'Đào tạo & Chương trình' } },
+        { path: 'academic/at-risk', name: 'bgh-academic-at-risk', component: () => import('../views/BGH/Academic/AtRiskStudentsView.vue'), meta: { title: 'Sinh viên có nguy cơ rớt môn', subtitle: 'Cảnh báo sớm AI dựa trên điểm số và chuyên cần', section: 'Đào tạo & Chương trình' } },
+        { path: 'academic/reports', name: 'bgh-academic-reports', component: () => import('../views/BGH/Academic/AcademicReportsView.vue'), meta: { title: 'Báo cáo học tập chi tiết', subtitle: 'Công cụ phân tích và kết xuất báo cáo đa chiều', section: 'Đào tạo & Chương trình' } },
+        { path: 'academic/pass-fail', name: 'bgh-academic-pass-fail', component: () => import('../views/BGH/Academic/PassFailRatesView.vue'), meta: { title: 'Tỷ lệ Pass/Fail môn học', subtitle: 'Theo dõi và phân tích tỷ lệ qua môn, rớt môn', section: 'Đào tạo & Chương trình' } },
+        // Phê duyệt & Đánh giá
+        { path: 'schedule/pending', name: 'bgh-schedule-pending', component: () => import('../views/BGH/SchedulePendingView.vue'), meta: { title: 'Duyệt Thời khóa biểu', subtitle: 'Phê duyệt thời khóa biểu trước khi công bố', section: 'Phê duyệt & Đánh giá' } },
+        { path: 'schedule/conflicts', name: 'bgh-schedule-conflicts', component: () => import('../views/BGH/Schedule/ConflictListView.vue'), meta: { title: 'Xung đột lịch học', subtitle: 'Giám sát các lỗi sắp xếp tài nguyên giảng dạy', section: 'Phê duyệt & Đánh giá' } },
+        { path: 'schedule/published', name: 'bgh-schedule-published', component: () => import('../views/BGH/Schedule/PublishedSchedulesView.vue'), meta: { title: 'Thời khóa biểu đã duyệt', subtitle: 'Xem các bộ TKB đã công bố chính thức', section: 'Phê duyệt & Đánh giá' } },
+        { path: 'schedule/changes', name: 'bgh-schedule-changes', component: () => import('../views/BGH/Schedule/ScheduleChangesView.vue'), meta: { title: 'Thay đổi & Dạy bù', subtitle: 'Theo dõi biến động lịch học sau công bố', section: 'Phê duyệt & Đánh giá' } },
+        { path: 'evaluations', name: 'bgh-evaluations', component: () => import('../views/BGH/EvaluationsView.vue'), meta: { title: 'Đánh giá Giảng viên', subtitle: 'Kết quả khảo sát và đánh giá giảng dạy', section: 'Phê duyệt & Đánh giá' } },
+        { path: 'evaluations/ranking', name: 'bgh-evaluations-ranking', component: () => import('../views/BGH/Evaluations/TeacherRankingView.vue'), meta: { title: 'Xếp hạng giảng viên', subtitle: 'Bảng xếp hạng chất lượng dựa trên điểm đánh giá', section: 'Phê duyệt & Đánh giá' } },
+        { path: 'evaluations/detail/:teacherId', name: 'bgh-evaluations-detail', component: () => import('../views/BGH/Evaluations/TeacherEvalDetailsView.vue'), meta: { title: 'Chi tiết đánh giá', subtitle: 'Báo cáo phân tích chuyên sâu chất lượng giảng dạy', section: 'Phê duyệt & Đánh giá' } },
+        { path: 'evaluations/overview', name: 'bgh-evaluations-overview', component: () => import('../views/BGH/Evaluations/EvalOverviewView.vue'), meta: { title: 'Tổng quan đánh giá', subtitle: 'Báo cáo phân tích chất lượng giảng dạy từ phản hồi sinh viên', section: 'Phê duyệt & Đánh giá' } },
+        { path: 'evaluations/ai-analysis', name: 'bgh-evaluations-ai-analysis', component: () => import('../views/BGH/Evaluations/AIFeedbackAnalysisView.vue'), meta: { title: 'Phân tích Feedback AI', subtitle: 'AI phân tích cảm xúc và trích xuất chủ đề từ nhận xét sinh viên', section: 'Phê duyệt & Đánh giá' } },
+        // Cơ sở vật chất
+        { path: 'facilities', name: 'bgh-facilities', component: () => import('../views/BGH/FacilitiesView.vue'), meta: { title: 'Cơ sở vật chất', subtitle: 'Quản lý Tòa nhà, Tầng và Phòng học', section: 'Cơ sở vật chất' } },
+        // Giám sát hệ thống
+        { path: 'audit-logs', name: 'bgh-audit-logs', component: () => import('../views/BGH/AuditLogsView.vue'), meta: { title: 'Nhật ký kiểm toán', subtitle: 'Theo dõi lịch sử thay đổi trên hệ thống', section: 'Giám sát hệ thống' } },
+        // Cá nhân
+        { path: 'profile', name: 'bgh-profile', component: () => import('../views/BGH/ProfileView.vue'), meta: { title: 'Hồ sơ cá nhân', subtitle: 'Thông tin cá nhân và cài đặt tài khoản', section: 'Cá nhân' } },
+        { path: 'notifications', name: 'bgh-notifications', component: () => import('../views/BGH/PlaceholderView.vue'), meta: { title: 'Thông báo', subtitle: 'Trung tâm thông báo', section: 'Cá nhân' } },
       ],
     },
 

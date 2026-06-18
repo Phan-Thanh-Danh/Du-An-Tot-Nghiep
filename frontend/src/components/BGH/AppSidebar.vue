@@ -31,23 +31,23 @@ function logout() {
   <aside
     :class="[
       'lg-sidebar relative flex h-full flex-col transition-all duration-300 ease-in-out select-none',
-      collapsed ? 'w-[68px]' : 'w-[216px]',
+      collapsed ? 'w-[68px]' : 'w-[260px]',
     ]"
     :style="{
-      '--sidebar-glow-1': 'rgba(99, 102, 241, 0.10)',
-      '--sidebar-glow-2': 'rgba(139, 92, 246, 0.07)',
-      '--sidebar-glow-dark-1': 'rgba(99, 102, 241, 0.07)',
-      '--sidebar-glow-dark-2': 'rgba(139, 92, 246, 0.05)',
-      '--sidebar-accent': '#6366f1',
-      '--sidebar-accent-dark': '#a5b4fc',
-      '--sidebar-indicator': '#818cf8',
-      '--sidebar-focus-ring': 'rgba(99, 102, 241, 0.2)',
+      '--sidebar-glow-1': 'rgba(30, 64, 175, 0.10)',
+      '--sidebar-glow-2': 'rgba(37, 99, 235, 0.07)',
+      '--sidebar-glow-dark-1': 'rgba(30, 64, 175, 0.07)',
+      '--sidebar-glow-dark-2': 'rgba(37, 99, 235, 0.05)',
+      '--sidebar-accent': '#1e40af',
+      '--sidebar-accent-dark': '#60a5fa',
+      '--sidebar-indicator': '#1e40af',
+      '--sidebar-focus-ring': 'rgba(30, 64, 175, 0.2)',
       '--active-glow': 'rgba(255, 255, 255, 0.22)',
-      '--active-start': '#4338ca',
-      '--active-mid': '#6366f1',
-      '--active-end': '#818cf8',
-      '--active-shadow-1': 'rgba(67, 56, 202, 0.20)',
-      '--active-shadow-2': 'rgba(99, 102, 241, 0.14)',
+      '--active-start': '#1e3a8a',
+      '--active-mid': '#1e40af',
+      '--active-end': '#2563eb',
+      '--active-shadow-1': 'rgba(30, 64, 175, 0.20)',
+      '--active-shadow-2': 'rgba(37, 99, 235, 0.14)',
     }"
   >
     <!-- ──────────── LOGO / BRAND ──────────── -->

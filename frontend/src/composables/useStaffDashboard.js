@@ -12,6 +12,9 @@ export function useStaffDashboard() {
     stats: null,
     scheduleTasks: [],
     urgentRequests: [],
+    nearFullClasses: [],
+    waitlistClasses: [],
+    announcements: [],
     semesterStats: null,
     notifications: [],
   })
@@ -30,6 +33,9 @@ export function useStaffDashboard() {
         stats: result.stats || result,
         scheduleTasks: result.scheduleTasks || [],
         urgentRequests: result.urgentRequests || [],
+        nearFullClasses: result.nearFullClasses || [],
+        waitlistClasses: result.waitlistClasses || [],
+        announcements: result.announcements || [],
         semesterStats: result.semesterStats || null,
         notifications: result.notifications || [],
       }

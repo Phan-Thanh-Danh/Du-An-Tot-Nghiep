@@ -11,55 +11,70 @@ export const bghMenuGroups = [
     children: [],
   },
 
-  // ── THỜI KHÓA BIỂU ─────────────────────────────────────────
+  // ── CƠ CẤU TỔ CHỨC ─────────────────────────────────────────
   {
-    id: 'thoi-khoa-bieu',
-    label: 'Thời khóa biểu',
-    icon: 'Calendar',
+    id: 'co-cau-to-chuc',
+    label: 'Cơ cấu tổ chức',
+    icon: 'Network',
     children: [
-      { id: 'schedule-pending', label: 'TKB chờ duyệt', icon: 'Clock', route: '/bgh/schedule/pending' },
-      { id: 'schedule-approved', label: 'TKB đã duyệt', icon: 'CheckCircle', route: '/bgh/schedule/approved' },
-      { id: 'conflict-check', label: 'Xung đột lịch', icon: 'AlertTriangle', route: '/bgh/schedule/conflicts' },
-      { id: 'schedule-changes', label: 'Lịch thay đổi / dạy bù', icon: 'RefreshCw', route: '/bgh/schedule/changes' },
+      { id: 'organizations', label: 'Quản lý Đơn vị', icon: 'Building2', route: '/bgh/organizations' },
+      { id: 'users', label: 'Quản lý Người dùng', icon: 'Users', route: '/bgh/users' },
+      { id: 'roles', label: 'Vai trò & Phân quyền', icon: 'ShieldCheck', route: '/bgh/roles' },
     ],
   },
 
-  // ── HỌC TẬP & ĐIỂM SỐ ─────────────────────────────────────
+  // ── ĐÀO TẠO & CHƯƠNG TRÌNH ────────────────────────────────
   {
-    id: 'hoc-tap-diem-so',
-    label: 'Học tập & Điểm số',
-    icon: 'BarChart2',
+    id: 'dao-tao-chuong-trinh',
+    label: 'Đào tạo & Chương trình',
+    icon: 'GraduationCap',
     children: [
-      { id: 'academic-overview', label: 'Tổng quan kết quả', icon: 'PieChart', route: '/bgh/academic/overview' },
-      { id: 'pass-fail-rate', label: 'Tỷ lệ Pass / Fail', icon: 'TrendingUp', route: '/bgh/academic/pass-fail' },
-      { id: 'gpa-report', label: 'Báo cáo GPA', icon: 'Award', route: '/bgh/academic/gpa' },
-      { id: 'at-risk-students', label: 'SV nguy cơ rớt môn', icon: 'UserMinus', route: '/bgh/academic/at-risk' },
-      { id: 'detailed-reports', label: 'Báo cáo chi tiết', icon: 'FileText', route: '/bgh/academic/reports' },
+      { id: 'academic-programs', label: 'Ngành & Chuyên ngành', icon: 'BookOpen', route: '/bgh/academic-programs' },
+      { id: 'curriculum', label: 'Khung chương trình', icon: 'Library', route: '/bgh/curriculum' },
+      { id: 'academic-terms', label: 'Học kỳ & Khóa', icon: 'CalendarDays', route: '/bgh/academic-terms' },
+      // Báo cáo học tập
+      { id: 'academic-overview', label: 'Tổng quan kết quả học tập', icon: 'BarChart3', route: '/bgh/academic/overview' },
+      { id: 'academic-gpa', label: 'Báo cáo GPA', icon: 'Award', route: '/bgh/academic/gpa' },
+      { id: 'academic-at-risk', label: 'SV nguy cơ rớt môn', icon: 'AlertTriangle', route: '/bgh/academic/at-risk' },
+      { id: 'academic-reports', label: 'Báo cáo chi tiết', icon: 'FileText', route: '/bgh/academic/reports' },
+      { id: 'academic-pass-fail', label: 'Tỷ lệ Pass/Fail', icon: 'TrendingUp', route: '/bgh/academic/pass-fail' },
     ],
   },
 
-  // ── ĐÁNH GIÁ GIẢNG VIÊN ───────────────────────────────────
+  // ── PHÊ DUYỆT & ĐÁNH GIÁ ──────────────────────────────────
   {
-    id: 'danh-gia-giang-vien',
-    label: 'Đánh giá giảng viên',
-    icon: 'Star',
+    id: 'phe-duyet-danh-gia',
+    label: 'Phê duyệt & Đánh giá',
+    icon: 'ClipboardCheck',
     children: [
-      { id: 'eval-overview', label: 'Tổng quan đánh giá', icon: 'Activity', route: '/bgh/evaluations/overview' },
-      { id: 'eval-ranking', label: 'Ranking giảng viên', icon: 'ListOrdered', route: '/bgh/evaluations/ranking' },
-      { id: 'eval-details', label: 'Chi tiết đánh giá', icon: 'UserCheck', route: '/bgh/evaluations/details' },
-      { id: 'eval-ai-feedback', label: 'Phân tích feedback AI', icon: 'Sparkles', route: '/bgh/evaluations/ai-feedback' },
+      { id: 'schedule-pending', label: 'Duyệt Thời khóa biểu', icon: 'CalendarClock', route: '/bgh/schedule/pending' },
+      { id: 'schedule-conflicts', label: 'Xung đột lịch học', icon: 'AlertTriangle', route: '/bgh/schedule/conflicts' },
+      { id: 'schedule-published', label: 'TKB đã duyệt', icon: 'CalendarCheck', route: '/bgh/schedule/published' },
+      { id: 'schedule-changes', label: 'Thay đổi & Dạy bù', icon: 'ArrowLeftRight', route: '/bgh/schedule/changes' },
+      { id: 'evaluations', label: 'Đánh giá Giảng viên', icon: 'Star', route: '/bgh/evaluations' },
+      { id: 'evaluations-ranking', label: 'Xếp hạng giảng viên', icon: 'Trophy', route: '/bgh/evaluations/ranking' },
+      { id: 'evaluations-overview', label: 'Tổng quan đánh giá', icon: 'PieChart', route: '/bgh/evaluations/overview' },
+      { id: 'evaluations-ai-analysis', label: 'Phân tích Feedback AI', icon: 'Brain', route: '/bgh/evaluations/ai-analysis' },
     ],
   },
 
-  // ── BÁO CÁO CHIẾN LƯỢC ────────────────────────────────────
+  // ── CƠ SỞ VẬT CHẤT ─────────────────────────────────────────
   {
-    id: 'bao-cao-chien-luoc',
-    label: 'Báo cáo chiến lược',
-    icon: 'LineChart',
+    id: 'co-so-vat-chat',
+    label: 'Cơ sở vật chất',
+    icon: 'MapPin',
     children: [
-      { id: 'strategic-dashboard', label: 'Dashboard chất lượng', icon: 'Target', route: '/bgh/strategic/dashboard' },
-      { id: 'compare-semesters', label: 'So sánh theo học kỳ', icon: 'GitCompare', route: '/bgh/strategic/semesters' },
-      { id: 'compare-campuses', label: 'So sánh theo cơ sở', icon: 'Map', route: '/bgh/strategic/campuses' },
+      { id: 'facilities', label: 'Tòa nhà & Phòng học', icon: 'DoorOpen', route: '/bgh/facilities' },
+    ],
+  },
+
+  // ── GIÁM SÁT HỆ THỐNG ─────────────────────────────────────
+  {
+    id: 'giam-sat-he-thong',
+    label: 'Giám sát hệ thống',
+    icon: 'Activity',
+    children: [
+      { id: 'audit-logs', label: 'Nhật ký kiểm toán', icon: 'History', route: '/bgh/audit-logs' },
     ],
   },
 

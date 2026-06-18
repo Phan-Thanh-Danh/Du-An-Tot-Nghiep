@@ -269,6 +269,37 @@ Ghi chú: cấu trúc phòng học hiện theo mô hình `DonVi -> ToaNha -> Tan
 
 Ghi chú: `CaHoc` là danh mục ca học cố định dùng bởi `ThoiKhoaBieu` và `BuoiHoc`. Task P0-1 chưa triển khai CRUD thời khóa biểu, sinh buổi học hoặc điểm danh.
 
+## ThoiKhoaBieu APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/thoi-khoa-bieu` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Danh sách thời khóa biểu có phân trang, lọc theo khóa học, học kỳ, lớp, giáo viên, phòng, ca học, thứ, trạng thái và khoảng ngày. Scope dữ liệu theo `KhoaHoc.MaDonVi`. |
+| GET | `/api/thoi-khoa-bieu/{id}` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Chi tiết thời khóa biểu gồm thông tin khóa học, học kỳ, lớp, môn, giáo viên, ca học và phòng học. |
+| POST | `/api/thoi-khoa-bieu/check-xung-dot` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Kiểm tra xung đột theo `MaHocKy + ThuTrongTuan + MaCaHoc`, gồm trùng giáo viên, lớp hành chính và phòng học. Request hợp lệ luôn trả `200`, kể cả khi có xung đột. |
+| POST | `/api/thoi-khoa-bieu` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Tạo thời khóa biểu từ `MaKhoaHoc + ThuTrongTuan + MaCaHoc + MaPhong`, mặc định `TrangThai = nhap` nếu bỏ trống. Không nhập trực tiếp lớp, môn hoặc giáo viên. |
+| PUT | `/api/thoi-khoa-bieu/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Cập nhật thời khóa biểu chưa bị hủy; không cho duplicate `MaKhoaHoc + ThuTrongTuan + MaCaHoc` với bản ghi chưa `da_huy`. |
+| PATCH | `/api/thoi-khoa-bieu/{id}/cancel` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Hủy thời khóa biểu bằng `TrangThai = da_huy`, không xóa vật lý. |
+| POST | `/api/thoi-khoa-bieu/{id}/generate-sessions` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Sinh `BuoiHoc` từ thời khóa biểu đã `da_xuat_ban`; chỉ tạo các ngày trùng `ThuTrongTuan`, bỏ qua buổi đã tồn tại theo `MaTkb + NgayHoc`. |
+
+Ghi chú: P0-3 kiểm tra xung đột lịch ở mức `MaHocKy + ThuTrongTuan + MaCaHoc`, bỏ qua bản ghi `da_huy` và bỏ qua chính bản ghi hiện tại khi update bằng `excludeMaTkb`. P0-4 sinh `BuoiHoc` từ TKB đã xuất bản nhưng chưa làm điểm danh, đổi lịch, dạy thay, đổi phòng, đổi ca hoặc frontend. Unique index `UQ_ThoiKhoaBieu_KhoaHoc_Thu_Ca` chỉ áp dụng cho bản ghi có `TrangThai <> N'da_huy'`, nên có thể tạo lại lịch cùng khóa học/thứ/ca sau khi bản ghi cũ đã hủy.
+
+## BuoiHoc APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/buoi-hoc` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Danh sách buổi học có phân trang, lọc theo thời khóa biểu, khóa học, giáo viên, phòng, ca học, trạng thái buổi và khoảng ngày. Scope dữ liệu theo `KhoaHoc.MaDonVi`. |
+| GET | `/api/buoi-hoc/{id}` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Chi tiết buổi học gồm thông tin khóa học, học kỳ, lớp, môn, ngày học, ca học, phòng, giáo viên, giáo viên dạy thay và trạng thái điểm danh. |
+| PUT | `/api/buoi-hoc/{id}/change-teacher` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Đổi giáo viên dạy thay cho buổi học chưa hủy, chưa diễn ra và chưa khóa điểm danh. Request gồm `maGiaoVienDayThay`, `lyDoThayDoi`. |
+| PUT | `/api/buoi-hoc/{id}/change-room` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Đổi phòng học cho buổi học chưa hủy, chưa diễn ra và chưa khóa điểm danh. Request gồm `maPhong`, `lyDoThayDoi`. |
+| PUT | `/api/buoi-hoc/{id}/change-shift` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Đổi ca học cho buổi học chưa hủy, chưa diễn ra và chưa khóa điểm danh. Request gồm `maCaHoc`, `lyDoThayDoi`. |
+| PATCH | `/api/buoi-hoc/{id}/cancel` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Hủy buổi học bằng `TrangThaiBuoi = da_huy`, không xóa vật lý. Request gồm `lyDoThayDoi`. |
+
+Ghi chú: `BuoiHoc` là buổi học thật theo ngày cụ thể, sinh từ `ThoiKhoaBieu + NgayHoc`. P0-5 hỗ trợ điều chỉnh phát sinh từng buổi học nhưng không sửa `ThoiKhoaBieu`, không generate lại lịch, không làm điểm danh và không xóa vật lý. Khi đổi giáo viên/phòng/ca, hệ thống kiểm tra xung đột theo `NgayHoc + MaCaHoc`: trùng giáo viên hiệu lực (`MaGiaoVienDayThay ?? MaGiaoVien`), trùng lớp hành chính hoặc trùng phòng tùy nghiệp vụ. Nếu có xung đột, API trả `409 Conflict` kèm `data.conflicts`.
+
 ## Course Syllabuses APIs
 
 ### Đã có
@@ -289,18 +320,40 @@ Ghi chú: `DanhMucMonHoc` là môn học gốc. Trong MVP, chương/bài học/b
 
 ## Finance APIs
 
+### Finance Schema/Options - Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/finance/schema/options` | SuperAdmin/FinanceAdmin/CampusChiefAccountant/CampusAccountant | Trả danh sách loại/trạng thái hóa đơn, loại/trạng thái giao dịch, provider thanh toán MVP (`vietqr`, `payos`), trạng thái duyệt tài khoản nhận tiền, loại/trạng thái hoàn phí và công thức tiền backend đang dùng. |
+| GET | `/api/finance/schema/statuses` | SuperAdmin/FinanceAdmin/CampusChiefAccountant/CampusAccountant | Trả riêng các nhóm trạng thái tài chính để FE hiển thị/lọc dữ liệu, không cho FE tự cập nhật trạng thái hóa đơn. |
+
+Ghi chú: Endpoint schema chỉ expose constants/công thức nghiệp vụ, không trả secret provider và không tạo giao dịch thanh toán.
+
 ### Cấu Hình Học Phí Chương Trình - Đã có
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
-| GET | `/api/finance/program-tuition-configs` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Danh sách cấu hình học phí chương trình có phân trang; lọc theo `keyword`, `maDonVi`, `maChuongTrinhDaoTao`, `maHocKy`, `namHocTrongChuongTrinh`, `hocKyTrongNam`, `soThuTuHocKy`, `conHoatDong`. Response có `coDuocSua`, `lyDoKhongDuocSua` theo ngày học kỳ. |
-| GET | `/api/finance/program-tuition-configs/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Chi tiết cấu hình học phí gồm cơ sở, chương trình đào tạo, học kỳ, học phí chính khóa, phí học liệu, tổng dự kiến và trạng thái có được sửa. |
-| POST | `/api/finance/program-tuition-configs` | SuperAdmin | Tạo cấu hình học phí cố định theo `MaDonVi + MaChuongTrinhDaoTao + MaHocKy`; MVP chỉ hỗ trợ `loaiCachTinhHocPhi = co_dinh_theo_hoc_ky`. |
-| POST | `/api/finance/program-tuition-configs/bulk` | SuperAdmin | Tạo/cập nhật hàng loạt cấu hình cho toàn bộ chương trình, ví dụ 3 năm x 3 học kỳ = 9 dòng. Nếu chương trình đã có cấu hình active thì cần `confirmReplace = true`; backend chỉ thay thế kỳ chưa diễn ra, giữ nguyên kỳ đang diễn ra/đã kết thúc. |
-| PUT | `/api/finance/program-tuition-configs/{id}` | SuperAdmin | Cập nhật cấu hình học phí; backend tự tính `tongTienDuKien = soTienHocPhi + tienHocLieu`. Chỉ cho sửa học kỳ chưa diễn ra. |
-| PATCH | `/api/finance/program-tuition-configs/{id}/deactivate` | SuperAdmin | Vô hiệu hóa mềm cấu hình bằng `ConHoatDong = false`; không hard delete trong MVP. Chỉ cho deactivate học kỳ chưa diễn ra. |
+| GET | `/api/finance/program-tuition-configs` | SuperAdmin/FinanceAdmin/CampusChiefAccountant/CampusAccountant | Danh sách cấu hình học phí chương trình có phân trang; lọc theo `keyword`, `maDonVi`, `maChuongTrinhDaoTao`, `maHocKy`, `namHocTrongChuongTrinh`, `hocKyTrongNam`, `soThuTuHocKy`, `loaiCachTinhHocPhi`, `conHoatDong`. FinanceAdmin/SuperAdmin xem toàn hệ thống; kế toán cơ sở xem trong phạm vi campus. Response có `coDuocSua`, `lyDoKhongDuocSua` theo ngày học kỳ. |
+| GET | `/api/finance/program-tuition-configs/options` | SuperAdmin/FinanceAdmin/CampusChiefAccountant/CampusAccountant | Trả danh sách cơ sở trong scope, chương trình đào tạo active, học kỳ trong scope và loại cách tính để FE render bộ lọc/form. |
+| GET | `/api/finance/program-tuition-configs/{id}` | SuperAdmin/FinanceAdmin/CampusChiefAccountant/CampusAccountant | Chi tiết cấu hình học phí gồm cơ sở, chương trình đào tạo, học kỳ, học phí chính khóa, phí học liệu, tổng dự kiến và trạng thái có được sửa. |
+| POST | `/api/finance/program-tuition-configs` | SuperAdmin/FinanceAdmin | Tạo cấu hình học phí theo `MaDonVi + MaChuongTrinhDaoTao + MaHocKy`; backend chỉ nhận `loaiCachTinhHocPhi` thuộc `co_dinh_theo_hoc_ky`, `theo_tin_chi`, `theo_mon_hoc` và tự tính `tongTienDuKien`. |
+| POST | `/api/finance/program-tuition-configs/bulk` | SuperAdmin/FinanceAdmin | Tạo hàng loạt bằng `items: CreateProgramTuitionConfigRequest[]`; vẫn giữ kiểu request template cũ (`configs`, `confirmReplace`) để tương thích. Nếu thay thế cấu hình đã có hóa đơn học phí thì dòng đó bị bỏ qua. |
+| PUT | `/api/finance/program-tuition-configs/{id}` | SuperAdmin/FinanceAdmin | Cập nhật cấu hình học phí; backend tự tính `tongTienDuKien = soTienHocPhi + tienHocLieu`. Nếu cấu hình đã dùng để phát sinh hóa đơn học phí thì không cho sửa cơ sở, chương trình, học kỳ, vị trí kỳ, cách tính hoặc số tiền; chỉ nên cập nhật ghi chú/trạng thái theo rule. |
+| PATCH | `/api/finance/program-tuition-configs/{id}/deactivate` | SuperAdmin/FinanceAdmin | Vô hiệu hóa mềm cấu hình bằng `ConHoatDong = false`; không hard delete. |
 
-Ghi chú: Module này chỉ quản lý cấu hình học phí chương trình đào tạo, chưa sinh hóa đơn, chưa tích hợp VNPay/MoMo, chưa xử lý học bổng/miễn giảm phức tạp và không có logic dự bị tiếng Anh. Cấu hình active không được trùng theo `MaDonVi + MaChuongTrinhDaoTao + MaHocKy`. API áp dụng template cấu hình riêng vào chương trình là roadmap, chưa có controller/entity template trong MVP.
+Ghi chú: Module này chỉ quản lý cấu hình học phí chương trình đào tạo, chưa sinh hóa đơn, chưa xử lý học bổng/miễn giảm phức tạp và không có logic dự bị tiếng Anh. Cấu hình active không được trùng theo `MaDonVi + MaChuongTrinhDaoTao + MaHocKy`; các trường tiền không được âm và `TongTienDuKien` luôn do backend tính bằng `SoTienHocPhi + TienHocLieu`.
+
+### Hóa Đơn Và Thanh Toán Học Phí Sinh Viên - Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/student/tuition/invoices` | Student | Sinh viên xem danh sách hóa đơn học phí của chính mình. Response có `soTienPhaiDong = MAX(0, soTien - giamTru)` và `conPhaiDong = MAX(0, soTienPhaiDong - daThanhToan)`. |
+| GET | `/api/student/tuition/transactions` | Student | Sinh viên xem lịch sử giao dịch học phí theo các hóa đơn của chính mình. |
+| POST | `/api/student/tuition/invoices/{invoiceId}/payments` | Student | Tạo giao dịch thanh toán cho hóa đơn của sinh viên hiện tại. Luồng FE học sinh dùng body `{ "provider": "payos" }`; backend gọi PayOS, lưu `checkoutUrl`, `qrPayload`, `paymentLinkId`/public reference và chờ webhook hoặc polling PayOS xác nhận. Frontend không tự cập nhật trạng thái hóa đơn. |
+| GET | `/api/student/tuition/payments/{transactionId}` | Student | Sinh viên kiểm tra trạng thái giao dịch thanh toán của chính mình. Nếu giao dịch PayOS còn đang chờ, backend gọi PayOS `GET /v2/payment-requests/{id}` để đồng bộ `GiaoDich/HoaDon` trước khi trả response. |
+| POST | `/api/finance/payments/webhooks/payos` | Public webhook | Webhook PayOS, verify chữ ký HMAC-SHA256 bằng `PayOS:ChecksumKey`, cập nhật `GiaoDich` và cộng `HoaDon.DaThanhToan` khi giao dịch hợp lệ. Endpoint idempotent với giao dịch đã `thanh_cong`. |
+
+Ghi chú: PayOS là luồng thanh toán chính cho học sinh: PayOS tạo QR/link, nhận kết quả ngân hàng và gọi webhook để backend cập nhật `HoaDon`/`GiaoDich`. FE học sinh phải hiển thị QR từ `qrPayload`/payment information PayOS trả về hoặc mở `checkoutUrl`; không dùng QR VietQR thủ công cho provider `payos` vì PayOS có thể không match giao dịch và không gửi webhook. Polling là cơ chế dự phòng khi webhook chưa gọi được về môi trường local. VietQR thủ công chỉ dùng khi cần tạo QR chuyển khoản không có tự động xác nhận, giao dịch giữ trạng thái `cho_thanh_toan` để kế toán đối soát.
 
 ## Organizations APIs
 
@@ -458,16 +511,28 @@ Chưa thấy controller exams/quiz trong repo hiện tại.
 
 ### Đã có
 
-Chưa thấy controller attendance trong repo hiện tại.
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/teacher/attendance/today` | Teacher | Danh sách buổi học hôm nay của giáo viên hiện tại, tính theo `MaGiaoVien` hoặc `MaGiaoVienDayThay`. Nếu không có buổi hôm nay thì trả danh sách rỗng. |
+| POST | `/api/buoi-hoc/{id}/attendance/start` | Teacher phụ trách buổi học | Mở điểm danh cho buổi học chưa hủy; tạo các dòng `DiemDanh` còn thiếu cho sinh viên active trong `KhoaHoc.MaLop`, mặc định `TrangThai = vang`, `HeSoVang = 1`; set `TrangThaiDiemDanh = dang_diem_danh`, hạn gửi = thời điểm mở + 15 phút. |
+| GET | `/api/buoi-hoc/{id}/attendance` | Teacher phụ trách hoặc Admin/SuperAdmin/CampusAdmin/AcademicStaff trong campus scope | Chi tiết điểm danh của một buổi học, gồm thông tin buổi học/khóa/lớp/môn/ca/phòng/giáo viên và danh sách sinh viên. |
+| PATCH | `/api/buoi-hoc/{id}/attendance/{maSinhVien}` | Teacher phụ trách buổi học | Cập nhật điểm danh một sinh viên khi `TrangThaiDiemDanh = dang_diem_danh` và chưa quá hạn 15 phút. Body gồm `trangThai` nhận `co_mat`, `vang`, `di_muon`, `co_phep`. |
+| PUT | `/api/buoi-hoc/{id}/attendance/bulk` | Teacher phụ trách buổi học | Cập nhật điểm danh nhiều sinh viên trong một request; validate toàn bộ trước khi lưu, không update nửa vời. |
+| POST | `/api/buoi-hoc/{id}/attendance/submit` | Teacher phụ trách buổi học | Gửi điểm danh khi đang mở và chưa quá hạn; set `TrangThaiDiemDanh = da_gui`, `DiemDanhDaGuiLuc = now`, `DiemDanhHanChinhSuaLuc = now + 10 phút`. MVP không cho sửa sau submit. |
+| GET | `/api/student/attendance` | Student | Sinh viên xem điểm danh của chính mình, có filter `ngayTu`, `ngayDen`, `maKhoaHoc`, `trangThai`, `pageIndex`, `pageSize`. |
+| POST | `/api/buoi-hoc/{id}/attendance/unlock-requests` | Teacher phụ trách buổi học | Giáo viên tạo yêu cầu mở khóa điểm danh cho buổi đã gửi/đã khóa. Không cho tạo nếu buổi đã hủy hoặc đã có yêu cầu `cho_duyet`. |
+| GET | `/api/teacher/attendance/unlock-requests` | Teacher | Giáo viên xem yêu cầu do mình tạo hoặc thuộc buổi mình phụ trách. Filter `maBuoiHoc`, `maKhoaHoc`, `trangThai`, `pageIndex`, `pageSize`. |
+| GET | `/api/admin/attendance/unlock-requests` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Danh sách yêu cầu mở khóa điểm danh theo campus scope `KhoaHoc.MaDonVi`. Filter `maBuoiHoc`, `maKhoaHoc`, `trangThai`, `pageIndex`, `pageSize`. |
+| GET | `/api/admin/attendance/unlock-requests/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Chi tiết yêu cầu mở khóa điểm danh trong campus scope. |
+| POST | `/api/admin/attendance/unlock-requests/{id}/approve` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Duyệt yêu cầu `cho_duyet`, set `TrangThai = da_duyet`, mở lại buổi học bằng `TrangThaiDiemDanh = dang_diem_danh`, hạn chỉnh sửa/gửi = now + 10 phút. |
+| POST | `/api/admin/attendance/unlock-requests/{id}/reject` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Từ chối yêu cầu `cho_duyet`, lưu lý do từ chối và không mở lại buổi học. |
+| POST | `/api/admin/attendance-automation/run-once` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Chạy thủ công job tự động xử lý điểm danh quá hạn. Auto submit các buổi `dang_diem_danh` có `DiemDanhHanGuiLuc <= now`; auto lock các buổi `da_gui` có `DiemDanhHanChinhSuaLuc <= now`; bỏ qua buổi `da_huy`, `chua_mo`, `da_khoa`. |
+
+Ghi chú P0-6/P0-7/P0-9: Nguồn sinh viên MVP lấy từ `BuoiHoc -> KhoaHoc.MaLop -> NguoiDung.MaLop`, không dùng `DangKyHocPhan`. Không làm QR/GPS/FaceID, export Excel, realtime SignalR, email hoặc mobile push. Rule 15 phút được enforce khi update/bulk/submit dựa trên `DiemDanhHanGuiLuc`; P0-9 bổ sung hosted service chạy nền mặc định mỗi 60 giây và endpoint run-once để auto submit/auto lock theo deadline này. P0-7 dùng `YeuCauMoKhoaDiemDanh` để giáo viên xin mở lại điểm danh; khi admin/học vụ duyệt, buổi học được mở lại trong 10 phút, sau đó P0-9 tiếp tục auto submit theo `DiemDanhHanGuiLuc`. Auto lock set `BuoiHoc.TrangThaiDiemDanh = da_khoa`, `BuoiHoc.DiemDanhKhoaLuc = now` và `DiemDanh.KhoaLuc = now`, không set `BuoiHoc.KhoaLuc`.
 
 ### Dự kiến/cần bổ sung
 
-- `GET /api/attendance`
-- `GET /api/students/me/attendance`
-- `POST /api/sessions/{sessionId}/attendance`
-- `PUT /api/attendance/{id}`
-- `POST /api/attendance-unlock-requests`
-- `PUT /api/attendance-unlock-requests/{id}/approve`
+- Báo cáo/tổng hợp điểm danh nâng cao.
 
 ## Grades APIs
 
@@ -488,14 +553,35 @@ Chưa thấy controller grades trong repo hiện tại.
 
 ### Đã có
 
-Chưa thấy controller notification trong repo hiện tại.
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/notifications` | JWT | User xem danh sách thông báo của chính mình, có phân trang và filter `daDoc`, `loaiThongBao`, `mucDo`, `ngayTu`, `ngayDen`. |
+| GET | `/api/notifications/{id}` | JWT | User xem chi tiết một thông báo của chính mình. Nội dung Editor.js được trả qua `noiDungJson`; backend không render HTML. |
+| GET | `/api/notifications/unread-count` | JWT | Lấy số thông báo chưa đọc của user hiện tại. |
+| PATCH | `/api/notifications/{id}/read` | JWT | Đánh dấu một thông báo của user hiện tại là đã đọc, set `daDoc = true`, `docLuc = now`. |
+| PATCH | `/api/notifications/read-all` | JWT | Đánh dấu tất cả thông báo chưa đọc của user hiện tại là đã đọc. |
+| POST | `/api/admin/notifications` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Tạo thông báo thủ công. `targetType` nhận `users`, `class`, `course`, `campus`; campus scope được kiểm tra theo `MaDonVi`. |
+| GET | `/api/admin/notifications` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Danh sách thông báo quản trị, group theo `maNhomThongBao`, có `recipientCount`, `readCount`, `unreadCount`. |
+| GET | `/api/admin/notifications/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Chi tiết group thông báo dựa trên `maNhomThongBao` của row `{id}` trong phạm vi campus scope. |
+
+Request tạo manual notification:
+
+```json
+{
+  "tieuDe": "Thông báo nghỉ học",
+  "tomTat": "Lớp SD1904 nghỉ học ngày mai.",
+  "noiDungJson": "{\"time\":1710000000000,\"blocks\":[]}",
+  "noiDungText": "Lớp SD1904 nghỉ học ngày mai.",
+  "mucDo": "important",
+  "targetType": "class",
+  "targetIds": [1]
+}
+```
+
+Ghi chú P0-8: Bảng `ThongBao` hiện được dùng theo mô hình mỗi dòng là một người nhận; các dòng cùng một lần gửi dùng chung `maNhomThongBao`. `loaiThongBao` ở API map vào cột DB `loai_su_kien`. Editor.js output được lưu nguyên vào `noi_dung_json` và được validate JSON; `noi_dung_text`/`tom_tat` dùng cho preview/search. P0-8 không làm SignalR realtime, email, mobile push hoặc scheduler. Auto notification đã gắn vào các phát sinh buổi học P0-5 và duyệt/từ chối mở khóa điểm danh P0-7.
 
 ### Dự kiến/cần bổ sung
 
-- `GET /api/notifications`
-- `GET /api/notifications/{id}`
-- `POST /api/notifications`
-- `PATCH /api/notifications/{id}/read`
 - `GET /api/notification-preferences`
 - `PUT /api/notification-preferences`
 

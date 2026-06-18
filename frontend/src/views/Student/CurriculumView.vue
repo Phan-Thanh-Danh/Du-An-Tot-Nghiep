@@ -18,229 +18,16 @@ import {
   Sparkles,
   Trophy,
 } from 'lucide-vue-next'
+import { mockStudentCurriculum, mockCurriculumVersionData } from '@/data/studentData.mock.js'
 
 const viewMode = ref('card')
 const showEarlyLearningNotification = ref(true)
 
-// Mock local chờ API thật: dự kiến GET /api/student/curriculum
-const studentCurriculum = {
-  studentName: 'Sinh Viên Demo',
-  majorName: 'Phát triển phần mềm',
-  facultyName: 'Công nghệ thông tin',
-  programCode: 'SD-FPT-2026',
-  programVersion: 'Version 2026',
-  currentSemesterIndex: 2,
-  currentBlockIndex: 1,
-  totalCredits: 48,
-  completedCredits: 18,
-  totalSubjects: 16,
-  completedSubjects: 6,
-  semesters: [
-    {
-      semesterIndex: 1,
-      semesterName: 'Kỳ 1',
-      blocks: [
-        {
-          blockIndex: 1,
-          blockName: 'Block 1',
-          subjects: [
-            subject('web101', 'WEB101', 'Nhập môn lập trình web', 3, 'completed', 100, 8.5, false),
-            subject('sdlc101', 'SDLC101', 'Nhập môn quy trình phần mềm', 3, 'completed', 100, 8.2, false),
-          ],
-        },
-        {
-          blockIndex: 2,
-          blockName: 'Block 2',
-          subjects: [
-            subject('net102', 'NET102', 'Lập trình C# nâng cấp', 3, 'completed', 70, null, false, {
-              versionStatus: 'partial_equivalent',
-              replacedSubjectCode: 'NET101',
-              previousVersionName: 'Version 2025',
-              earlyScoreFromOldVersion: 8.5,
-              requiresSupplement: true,
-              supplementPercent: 30,
-              versionNote: 'Bạn đã học NET101 ở Version 2025. Version 2026 thay bằng NET102 và cần học bổ sung 30% nội dung mới.',
-            }),
-            subject('dbi101', 'DBI101', 'Cơ sở dữ liệu', 3, 'completed', 100, 8.0, false),
-          ],
-        },
-      ],
-    },
-    {
-      semesterIndex: 2,
-      semesterName: 'Kỳ 2',
-      blocks: [
-        {
-          blockIndex: 1,
-          blockName: 'Block 1',
-          subjects: [
-            subject('web201', 'WEB201', 'Frontend với Vue', 3, 'current', 72, null, false, { quizScore: 8.1 }),
-            subject('api201', 'API201', 'ASP.NET Core API', 3, 'current', 58, null, false, { quizScore: 7.6 }),
-          ],
-        },
-        {
-          blockIndex: 2,
-          blockName: 'Block 2',
-          subjects: [
-            subject('prj301', 'PRJ301', 'Dự án mẫu', 3, 'early_available', 0, null, true),
-            subject('test101', 'TEST101', 'Kiểm thử phần mềm', 3, 'early_completed', 0, null, true, {
-              earlyProgressPercent: 64,
-              earlyScore: 8.4,
-              earlyCompletedAt: '22/05/2026',
-            }),
-          ],
-        },
-      ],
-    },
-    {
-      semesterIndex: 3,
-      semesterName: 'Kỳ 3',
-      blocks: [
-        {
-          blockIndex: 1,
-          blockName: 'Block 1',
-          subjects: [
-            subject('mobile301', 'MOB301', 'Phát triển ứng dụng di động', 3, 'early_available', 0, null, true),
-            subject('cloud301', 'CLD301', 'Triển khai Cloud căn bản', 3, 'future_locked', 0, null, false),
-          ],
-        },
-        {
-          blockIndex: 2,
-          blockName: 'Block 2',
-          subjects: [
-            subject('devops301', 'DOP301', 'DevOps cho nhóm phần mềm', 3, 'early_available', 0, null, true),
-            subject('cap401', 'CAP401', 'Capstone định hướng', 3, 'future_locked', 0, null, false),
-          ],
-        },
-      ],
-    },
-    {
-      semesterIndex: 4,
-      semesterName: 'Kỳ 4',
-      blocks: [
-        {
-          blockIndex: 1,
-          blockName: 'Block 1',
-          subjects: [
-            subject('ai401', 'AI401', 'Ứng dụng AI trong sản phẩm phần mềm', 3, 'changed_program', 0, null, false, {
-              versionStatus: 'history_only',
-              note: 'Môn này thuộc phiên bản cũ, chờ đối chiếu chương trình.',
-            }),
-            subject('ux401', 'UX401', 'UX cho sản phẩm số', 3, 'future_locked', 0, null, false),
-          ],
-        },
-        {
-          blockIndex: 2,
-          blockName: 'Block 2',
-          subjects: [
-            subject('intern401', 'INT401', 'Thực tập doanh nghiệp', 6, 'future_locked', 0, null, false),
-            subject('grad401', 'GRD401', 'Đồ án tốt nghiệp', 6, 'future_locked', 0, null, false),
-          ],
-        },
-      ],
-    },
-  ],
-}
-
-function subject(id, subjectCode, subjectName, credits, status, progressPercent, score, allowEarlyLearning, extra = {}) {
-  return {
-    id,
-    subjectCode,
-    subjectName,
-    credits,
-    status,
-    progressPercent,
-    score,
-    allowEarlyLearning,
-    earlyProgressPercent: null,
-    earlyScore: null,
-    quizScore: null,
-    officialScore: score,
-    versionStatus: 'current_program',
-    ...extra,
-  }
-}
+const studentCurriculum = mockStudentCurriculum
+const curriculumVersionData = mockCurriculumVersionData
 
 const activeFilter = ref('all')
 const selectedVersionId = ref('sd-2026')
-
-const curriculumVersionData = {
-  currentProgram: {
-    programId: 'sd-2026',
-    programCode: 'SD-FPT-2026',
-    majorName: 'Phát triển phần mềm',
-    versionName: 'Version 2026',
-    effectiveFromYear: 2026,
-    studentCohort: 2026,
-  },
-  availableVersions: [
-    {
-      programId: 'sd-2026',
-      versionName: 'Version 2026',
-      isCurrent: true,
-      hasEarlyLearningHistory: false,
-    },
-    {
-      programId: 'sd-2025',
-      versionName: 'Version 2025',
-      isCurrent: false,
-      hasEarlyLearningHistory: true,
-    },
-  ],
-  versionChanges: {
-    replacedSubjects: 2,
-    changedSubjects: 1,
-    addedSubjects: 1,
-    historyOnlySubjects: 1,
-  },
-  earlyLearningHistory: [
-    {
-      id: 'early-net101-2025',
-      oldProgramVersion: 'Version 2025',
-      oldSubjectCode: 'NET101',
-      oldSubjectName: 'Lập trình C# cơ bản',
-      newSubjectCode: 'NET102',
-      newSubjectName: 'Lập trình C# nâng cấp',
-      relationType: 'partial_equivalent',
-      progressPercent: 100,
-      quizScore: 8.5,
-      learnedAt: '12/03/2026',
-      applyStatus: 'requires_supplement',
-      supplementPercent: 30,
-      note: 'Nội dung version mới thay đổi khoảng 30%, cần học bổ sung.',
-    },
-    {
-      id: 'early-test101-2026',
-      oldProgramVersion: 'Version 2026',
-      oldSubjectCode: 'TEST101',
-      oldSubjectName: 'Kiểm thử phần mềm',
-      newSubjectCode: 'TEST101',
-      newSubjectName: 'Kiểm thử phần mềm',
-      relationType: 'equivalent',
-      progressPercent: 64,
-      quizScore: 8.4,
-      learnedAt: '22/05/2026',
-      applyStatus: 'applied',
-      supplementPercent: 0,
-      note: 'Điểm học trước đã được giữ để xét áp dụng khi học chính thức.',
-    },
-    {
-      id: 'early-ai-old-2025',
-      oldProgramVersion: 'Version 2025',
-      oldSubjectCode: 'AI301',
-      oldSubjectName: 'AI nhập môn',
-      newSubjectCode: 'AI401',
-      newSubjectName: 'Ứng dụng AI trong sản phẩm phần mềm',
-      relationType: 'history_only',
-      progressPercent: 45,
-      quizScore: 7.2,
-      learnedAt: '04/04/2026',
-      applyStatus: 'history_only',
-      supplementPercent: null,
-      note: 'Kết quả này chỉ lưu làm lịch sử tự học và không tính vào điểm chính thức.',
-    },
-  ],
-}
 
 const statusConfig = {
   completed: { label: 'Đã hoàn thành', className: 'status-completed', icon: CheckCircle2 },
@@ -587,7 +374,11 @@ function canApplyEarlyResult(item) {
     </section>
 
     <section v-if="filteredSemesters.length && viewMode === 'card'" class="semester-timeline" aria-label="Lộ trình học tập">
-      <article v-for="semester in filteredSemesters" :key="semester.semesterIndex" class="semester-card">
+      <article
+        v-for="semester in filteredSemesters"
+        :key="semester.semesterIndex"
+        :class="['semester-card', { 'current-semester': semester.semesterIndex === studentCurriculum.currentSemesterIndex }]"
+      >
         <header class="semester-header">
           <div>
             <span>Kỳ {{ semester.semesterIndex }}</span>
@@ -597,6 +388,7 @@ function canApplyEarlyResult(item) {
             class="semester-state"
             :class="{ active: semester.semesterIndex === studentCurriculum.currentSemesterIndex }"
           >
+            <span v-if="semester.semesterIndex === studentCurriculum.currentSemesterIndex" class="pulse-dot" />
             {{ semester.semesterIndex === studentCurriculum.currentSemesterIndex ? 'Kỳ hiện tại' : 'Lộ trình' }}
           </span>
         </header>
@@ -841,12 +633,18 @@ function canApplyEarlyResult(item) {
 .hero-copy p,
 .section-heading p,
 .early-card p,
-.subject-main p,
 .subject-note {
   margin: 0;
   color: var(--text-label);
   font-size: 0.82rem;
   line-height: 1.45;
+}
+
+.subject-main p {
+  margin: 0;
+  color: var(--text-label);
+  font-size: 0.72rem;
+  line-height: 1.4;
 }
 
 .hero-note {
@@ -1133,16 +931,16 @@ function canApplyEarlyResult(item) {
 
 .subject-code {
   color: var(--text-link);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 950;
 }
 
 .early-card h3,
 .subject-card h3 {
-  margin-top: 0.15rem;
-  font-size: 0.86rem;
-  font-weight: 880;
-  line-height: 1.3;
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1.25;
 }
 
 .early-cta,
@@ -1150,13 +948,13 @@ function canApplyEarlyResult(item) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
-  min-height: 2rem;
-  border-radius: 12px;
+  gap: 0.25rem;
+  min-height: 1.6rem;
+  border-radius: 8px;
   background: var(--accent-primary);
   color: var(--text-inverse);
-  font-size: 0.74rem;
-  font-weight: 850;
+  font-size: 0.68rem;
+  font-weight: 800;
   text-decoration: none;
 }
 
@@ -1196,6 +994,16 @@ function canApplyEarlyResult(item) {
   overflow: hidden;
 }
 
+.semester-card.current-semester {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1.5px var(--accent-primary), 0 8px 30px color-mix(in srgb, var(--accent-primary) 12%, transparent), var(--lg-shadow-sm);
+}
+
+.semester-card.current-semester .semester-header {
+  border-bottom-color: color-mix(in srgb, var(--accent-primary) 30%, var(--border-card));
+  background: color-mix(in srgb, var(--accent-primary) 4%, transparent);
+}
+
 .semester-header {
   display: flex;
   align-items: center;
@@ -1213,12 +1021,46 @@ function canApplyEarlyResult(item) {
 
 .semester-state {
   display: inline-flex;
+  align-items: center;
   border-radius: 999px;
   background: var(--surface-input);
   color: var(--text-placeholder);
   padding: 0.25rem 0.65rem;
   font-size: 0.7rem;
   font-weight: 850;
+}
+
+.pulse-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background-color: var(--color-success-text);
+  border-radius: 50%;
+  margin-right: 6px;
+  position: relative;
+}
+
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: var(--color-success-text);
+  animation: dot-pulse 1.8s infinite ease-in-out;
+}
+
+@keyframes dot-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
 }
 
 .semester-state.active {
@@ -1228,7 +1070,7 @@ function canApplyEarlyResult(item) {
 
 .block-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 0.75rem;
   padding: 0.85rem;
 }
@@ -1259,23 +1101,24 @@ function canApplyEarlyResult(item) {
 
 .subject-list {
   display: grid;
-  gap: 0.55rem;
-  padding: 0.65rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0.5rem;
 }
 
 .subject-card {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.35rem;
   border: 1px solid var(--border-card);
-  border-radius: 15px;
+  border-radius: 10px;
   background: var(--surface-card);
-  padding: 0.7rem;
+  padding: 0.45rem 0.55rem;
 }
 
 .subject-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
 .status-badge,
@@ -1283,11 +1126,11 @@ function canApplyEarlyResult(item) {
 .score-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  min-height: 1.45rem;
+  gap: 0.25rem;
+  min-height: 1.3rem;
   border-radius: 999px;
-  padding: 0.2rem 0.5rem;
-  font-size: 0.66rem;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.62rem;
   font-weight: 850;
   line-height: 1;
 }
@@ -1417,12 +1260,19 @@ function canApplyEarlyResult(item) {
   .history-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .subject-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 920px) {
-  .curriculum-hero,
-  .block-grid {
+  .curriculum-hero {
     grid-template-columns: 1fr;
+  }
+
+  .subject-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .section-heading {
@@ -1441,7 +1291,8 @@ function canApplyEarlyResult(item) {
   .summary-grid,
   .early-grid,
   .change-grid,
-  .history-list {
+  .history-list,
+  .subject-list {
     grid-template-columns: 1fr;
   }
 
