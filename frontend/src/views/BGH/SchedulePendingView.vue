@@ -1,20 +1,17 @@
 ﻿<template>
-  <div class="space-y-4 pb-10 h-[calc(100vh-8rem)] flex flex-col">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <div>
-        <h2 class="sr-only text-xl font-bold text-heading">Duyệt Thời khóa biểu</h2>
-        <p class="text-xs text-muted mt-1">Phê duyệt thời khóa biểu trước khi công bố</p>
-      </div>
-      <div class="flex gap-2">
-        <select v-model="campusFilter" class="px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
-          <option value="">Tất cả cơ sở</option>
-          <option v-for="c in campuses" :key="c" :value="c">{{ c }}</option>
-        </select>
-      </div>
-    </div>
+  <PageContainer 
+    title="Duyệt Thời khóa biểu" 
+    subtitle="Phê duyệt thời khóa biểu trước khi công bố"
+  >
+    <template #actions>
+      <select v-model="campusFilter" class="px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
+        <option value="">Tất cả cơ sở</option>
+        <option v-for="c in campuses" :key="c" :value="c">{{ c }}</option>
+      </select>
+    </template>
 
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 flex-1">
-      <div class="xl:col-span-2 space-y-4 overflow-y-auto">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <div class="xl:col-span-2 space-y-4">
         <div v-for="item in filteredSchedules" :key="item.id" class="surface-card border border-card rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
           <div class="flex items-start justify-between gap-4">
             <div class="flex items-start gap-3 flex-1 min-w-0">
@@ -113,27 +110,28 @@
       </div>
     </div>
 
-    <div v-if="actionModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" @click.self="actionModal = false">
-      <div class="w-full max-w-md surface-card rounded-2xl shadow-2xl border border-default overflow-hidden">
-        <div class="p-4 border-b border-default flex justify-between items-center">
-          <h3 class="text-lg font-bold text-heading">{{ actionType === 'approve' ? 'Xác nhận duyệt' : 'Từ chối' }} TKB</h3>
-          <button @click="actionModal = false" class="p-1 hover:bg-[var(--surface-input)] rounded-lg text-muted">
-            <X :size="20" />
-          </button>
+  </PageContainer>
+
+  <div v-if="actionModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" @click.self="actionModal = false">
+    <div class="w-full max-w-md surface-card rounded-2xl shadow-2xl border border-default overflow-hidden">
+      <div class="p-4 border-b border-default flex justify-between items-center">
+        <h3 class="text-lg font-bold text-heading">{{ actionType === 'approve' ? 'Xác nhận duyệt' : 'Từ chối' }} TKB</h3>
+        <button @click="actionModal = false" class="p-1 hover:bg-[var(--surface-input)] rounded-lg text-muted">
+          <X :size="20" />
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <p class="text-sm text-body">{{ actionType === 'approve' ? 'Bạn có chắc muốn duyệt thời khóa biểu' : 'Nhập lý do từ chối thời khóa biểu' }} <strong class="text-heading">{{ actionTarget?.tenHocKy }}</strong>?</p>
+        <div v-if="actionType === 'reject'" class="space-y-1">
+          <label class="block text-xs font-bold text-heading">Lý do từ chối <span class="text-[var(--color-danger-text)]">*</span></label>
+          <textarea v-model="rejectReason" rows="3" placeholder="Nhập lý do từ chối..." class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)] resize-none"></textarea>
         </div>
-        <div class="p-6 space-y-4">
-          <p class="text-sm text-body">{{ actionType === 'approve' ? 'Bạn có chắc muốn duyệt thời khóa biểu' : 'Nhập lý do từ chối thời khóa biểu' }} <strong class="text-heading">{{ actionTarget?.tenHocKy }}</strong>?</p>
-          <div v-if="actionType === 'reject'" class="space-y-1">
-            <label class="block text-xs font-bold text-heading">Lý do từ chối <span class="text-[var(--color-danger-text)]">*</span></label>
-            <textarea v-model="rejectReason" rows="3" placeholder="Nhập lý do từ chối..." class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)] resize-none"></textarea>
-          </div>
-        </div>
-        <div class="p-4 border-t border-default flex justify-end gap-3">
-          <button @click="actionModal = false" class="px-4 py-2 border border-input rounded-lg text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors">Hủy</button>
-          <button @click="confirmAction" :class="actionType === 'approve' ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] hover:brightness-90' : 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] hover:brightness-90'" class="px-4 py-2 text-sm font-bold rounded-lg transition-all">
-            {{ actionType === 'approve' ? 'Xác nhận duyệt' : 'Từ chối' }}
-          </button>
-        </div>
+      </div>
+      <div class="p-4 border-t border-default flex justify-end gap-3">
+        <button @click="actionModal = false" class="px-4 py-2 border border-input rounded-lg text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors">Hủy</button>
+        <button @click="confirmAction" :class="actionType === 'approve' ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] hover:brightness-90' : 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] hover:brightness-90'" class="px-4 py-2 text-sm font-bold rounded-lg transition-all">
+          {{ actionType === 'approve' ? 'Xác nhận duyệt' : 'Từ chối' }}
+        </button>
       </div>
     </div>
   </div>
@@ -145,6 +143,7 @@ import {
   BookOpen, Users, Clock, CheckCircle2, XCircle,
   AlertTriangle, CalendarCheck, BarChart3, X
 } from 'lucide-vue-next'
+import PageContainer from '@/components/SinhVien/PageContainer.vue'
 
 const campusFilter = ref('')
 const actionModal = ref(false)

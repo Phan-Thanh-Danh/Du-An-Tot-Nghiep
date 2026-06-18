@@ -1,21 +1,18 @@
 ﻿<template>
-  <div class="space-y-4 pb-10">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <div>
-        <h2 class="sr-only text-xl font-bold text-heading">Đánh giá Giảng viên</h2>
-        <p class="text-xs text-muted mt-1">Kết quả khảo sát và đánh giá chất lượng giảng dạy</p>
-      </div>
-      <div class="flex gap-2">
-        <select v-model="semesterFilter" class="px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
-          <option v-for="s in semesters" :key="s" :value="s">{{ s }}</option>
-        </select>
-        <select v-model="campusFilter" class="px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
-          <option value="">Tất cả cơ sở</option>
-          <option>FPT Polytechnic Hồ Chí Minh</option>
-          <option>FPT Polytechnic Đà Nẵng</option>
-        </select>
-      </div>
-    </div>
+  <PageContainer 
+    title="Đánh giá Giảng viên" 
+    subtitle="Kết quả khảo sát và đánh giá chất lượng giảng dạy"
+  >
+    <template #actions>
+      <select v-model="semesterFilter" class="px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
+        <option v-for="s in semesters" :key="s" :value="s">{{ s }}</option>
+      </select>
+      <select v-model="campusFilter" class="px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
+        <option value="">Tất cả cơ sở</option>
+        <option>FPT Polytechnic Hồ Chí Minh</option>
+        <option>FPT Polytechnic Đà Nẵng</option>
+      </select>
+    </template>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div v-for="stat in stats" :key="stat.id" class="surface-card border border-card rounded-2xl p-4 shadow-sm">
@@ -154,12 +151,13 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageContainer>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { Star, TrendingUp, TrendingDown, ThumbsUp, MessageSquare, Users, Award } from 'lucide-vue-next'
+import PageContainer from '@/components/SinhVien/PageContainer.vue'
 
 const semesterFilter = ref('Spring 2026')
 const campusFilter = ref('')

@@ -46,7 +46,7 @@
     <div class="flex-1 surface-card border border-card rounded-2xl shadow-sm flex flex-col overflow-hidden">
       <div class="flex-1 overflow-auto">
         <table class="w-full text-left text-sm text-body whitespace-nowrap">
-          <thead class="sticky top-0 bg-[var(--surface-card)] border-b border-default z-10">
+          <thead class="sticky top-0 bg-[var(--surface-card)] border-b border-default z-10 backdrop-blur-[12px]">
             <tr>
               <th class="px-4 py-3 font-bold text-heading">ID</th>
               <th class="px-4 py-3 font-bold text-heading">Đơn vị</th>
