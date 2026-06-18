@@ -14,8 +14,9 @@ const menuRef = ref(null)
 
 const actions = computed(() => {
   if (authStore.hasRole('Principal')) return [
-    { id: 'bgh-notice', label: 'Gửi thông báo', icon: 'Megaphone', route: '/bgh/notices/send' },
-    { id: 'bgh-report', label: 'Tạo báo cáo', icon: 'FileBarChart', route: '/bgh/academic/reports' },
+    { id: 'bgh-schedule', label: 'Duyệt thời khóa biểu', icon: 'CalendarCheck', route: '/bgh/schedule/pending' },
+    { id: 'bgh-evaluations', label: 'Đánh giá giảng viên', icon: 'Star', route: '/bgh/evaluations' },
+    { id: 'bgh-curriculum', label: 'Khung chương trình', icon: 'Library', route: '/bgh/curriculum' },
   ]
   if (authStore.hasRole('Teacher')) return [
     { id: 'teacher-assignment', label: 'Tạo bài tập', icon: 'FilePlus', route: '/teacher/assignments' },

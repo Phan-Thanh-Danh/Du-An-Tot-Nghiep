@@ -2,7 +2,7 @@
   <div class="space-y-4 pb-10">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
-        <h1 class="text-xl font-bold text-heading">Ngành & Chuyên ngành</h1>
+        <h2 class="sr-only text-xl font-bold text-heading">Ngành & Chuyên ngành</h2>
         <p class="text-xs text-muted mt-1">Chương trình đào tạo theo chuyên ngành và khóa tuyển sinh</p>
       </div>
       <div class="flex gap-2">

@@ -4,7 +4,7 @@
     <!-- ── Header & Actions ── -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
-        <h1 class="text-xl font-bold text-heading">Vai Trò & Phân Quyền</h1>
+        <h2 class="sr-only text-xl font-bold text-heading">Vai Trò & Phân Quyền</h2>
         <p class="text-xs text-muted mt-1">Quản lý danh mục các vai trò truy cập trong hệ thống</p>
       </div>
       <button 

@@ -57,6 +57,16 @@ const labelMap = {
   strategic: 'Chiến lược',
   semesters: 'Học kỳ',
   campuses: 'Cơ sở',
+  // BGH routes
+  bgh: 'Ban Giám Hiệu',
+  organizations: 'Đơn vị',
+  users: 'Người dùng',
+  roles: 'Vai trò',
+  'academic-programs': 'Chương trình',
+  curriculum: 'Khung chương trình',
+  'academic-terms': 'Học kỳ',
+  'audit-logs': 'Kiểm toán',
+  facilities: 'Cơ sở vật chất',
 }
 
 const crumbs = computed(() => {
@@ -73,8 +83,8 @@ const crumbs = computed(() => {
 </script>
 
 <template>
-  <nav aria-label="Breadcrumb" class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
-    <router-link to="/" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+  <nav aria-label="Breadcrumb" class="flex items-center gap-1.5 text-[11px] font-semibold text-muted">
+    <router-link to="/" class="text-link hover:text-heading transition-colors">
       Trang chủ
     </router-link>
     <template v-for="(crumb, i) in crumbs" :key="crumb.path">
@@ -84,11 +94,11 @@ const crumbs = computed(() => {
       <router-link
         v-if="i < crumbs.length - 1"
         :to="crumb.path"
-        class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate max-w-[120px]"
+        class="text-link hover:text-heading transition-colors truncate max-w-[120px]"
       >
         {{ crumb.label }}
       </router-link>
-      <span v-else class="truncate max-w-[160px] text-slate-600 dark:text-slate-300">
+      <span v-else class="truncate max-w-[160px] text-heading">
         {{ crumb.label }}
       </span>
     </template>

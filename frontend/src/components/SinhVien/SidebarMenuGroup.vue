@@ -143,7 +143,7 @@ watch(() => props.collapsed, () => {
           ]"
         />
 
-        <span v-if="!collapsed" class="flex-1 text-left text-[12px] font-semibold leading-tight">
+        <span v-if="!collapsed" class="flex-1 truncate text-left text-[12px] font-semibold leading-tight">
           {{ group.label }}
         </span>
 
@@ -189,7 +189,7 @@ watch(() => props.collapsed, () => {
                 <div class="h-5 w-5 flex items-center justify-center rounded-lg" :style="{ background: 'color-mix(in srgb, var(--sidebar-accent) 20%, transparent)', color: 'var(--sidebar-accent)' }">
                   <component :is="GroupIcon" :size="12" />
                 </div>
-                <p class="text-[12px] font-bold text-heading">{{ group.label }}</p>
+                <p class="truncate text-[12px] font-bold text-heading">{{ group.label }}</p>
               </div>
             </div>
 

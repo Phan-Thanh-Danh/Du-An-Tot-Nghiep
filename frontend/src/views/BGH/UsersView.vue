@@ -2,7 +2,7 @@
   <div class="space-y-4 pb-10 h-[calc(100vh-8rem)] flex flex-col">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
-        <h1 class="text-xl font-bold text-heading">Quản lý Người Dùng</h1>
+        <h2 class="sr-only text-xl font-bold text-heading">Quản lý Người Dùng</h2>
         <p class="text-xs text-muted mt-1">Danh sách tất cả tài khoản trong hệ thống</p>
       </div>
       <button @click="openCreateModal" class="flex items-center gap-2 px-4 py-2 bg-[var(--lg-primary)] hover:bg-[var(--lg-primary-dark)] text-white text-sm font-bold rounded-xl transition-all shadow-sm">

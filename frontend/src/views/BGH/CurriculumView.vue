@@ -2,7 +2,7 @@
   <div class="space-y-4 pb-10">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
-        <h1 class="text-xl font-bold text-heading">Khung chương trình</h1>
+        <h2 class="sr-only text-xl font-bold text-heading">Khung chương trình</h2>
         <p class="text-xs text-muted mt-1">Chi tiết môn học theo từng học kỳ trong chương trình đào tạo</p>
       </div>
       <select v-model="selectedProgram" class="px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)] min-w-[240px]">

@@ -11,7 +11,6 @@ import AppTopbar from '../SinhVien/AppTopbar.vue'
 import PageContainer from '../SinhVien/PageContainer.vue'
 import AiAssistant from '@/components/ui/AiAssistant.vue'
 import AnnouncementBanner from '@/components/ui/AnnouncementBanner.vue'
-import { GraduationCap } from 'lucide-vue-next'
 
 // ── Sidebar state ──────────────────────────────────────────
 const sidebarCollapsed = ref(false)
@@ -49,26 +48,9 @@ function closeMobileSidebar() {
 
 const route = useRoute()
 
-const pageTitleMap = {
-  '/bgh/dashboard': { title: 'Dashboard chiến lược', subtitle: 'Tổng quan hệ thống đào tạo, chất lượng và thống kê' },
-  '/bgh/organizations': { title: 'Quản lý Đơn vị', subtitle: 'Cơ cấu tổ chức các khoa, phòng ban' },
-  '/bgh/users': { title: 'Quản lý Người dùng', subtitle: 'Danh sách tài khoản sinh viên, giảng viên và nhân sự' },
-  '/bgh/roles': { title: 'Vai trò & Phân quyền', subtitle: 'Cấu hình quyền hạn truy cập hệ thống' },
-  '/bgh/academic-programs': { title: 'Ngành & Chuyên ngành', subtitle: 'Quản lý các chuyên ngành đào tạo' },
-  '/bgh/curriculum': { title: 'Khung chương trình', subtitle: 'Phê duyệt và theo dõi khung chương trình' },
-  '/bgh/academic-terms': { title: 'Học kỳ & Khóa', subtitle: 'Quản lý các học kỳ và khóa học' },
-  '/bgh/schedule/pending': { title: 'Duyệt Thời khóa biểu', subtitle: 'Phê duyệt thời khóa biểu trước khi công bố' },
-  '/bgh/evaluations': { title: 'Đánh giá Giảng viên', subtitle: 'Kết quả khảo sát và đánh giá giảng dạy' },
-  '/bgh/facilities': { title: 'Cơ sở vật chất', subtitle: 'Quản lý Tòa nhà, Tầng và Phòng học' },
-  '/bgh/audit-logs': { title: 'Nhật ký kiểm toán', subtitle: 'Theo dõi lịch sử thay đổi trên hệ thống' },
-  '/bgh/profile': { title: 'Hồ sơ cá nhân', subtitle: 'Thông tin cá nhân và cài đặt' },
-}
-
 const currentPageMeta = computed(() => {
-  if (pageTitleMap[route.path]) return pageTitleMap[route.path]
-  for (const [key, val] of Object.entries(pageTitleMap)) {
-    if (route.path.startsWith(key + '/')) return val
-  }
+  const meta = route.meta
+  if (meta?.title) return { title: meta.title, subtitle: meta.subtitle || '' }
   return { title: 'Ban giám hiệu', subtitle: 'Hệ thống quản lý LMS' }
 })
 </script>
@@ -105,7 +87,7 @@ const currentPageMeta = computed(() => {
     </Transition>
 
     <!-- SIDEBAR -->
-    <div class="hidden lg:flex flex-shrink-0 h-full relative z-10">
+    <div class="relative z-20 hidden h-full flex-shrink-0 lg:flex">
       <AppSidebar
         :collapsed="sidebarCollapsed"
         @toggle="toggleSidebar"
@@ -132,36 +114,41 @@ const currentPageMeta = computed(() => {
       </div>
     </Transition>
 
-      <!-- MAIN AREA -->
-      <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden pt-16">
-        <AppTopbar @toggle-sidebar="toggleSidebar" />
+    <!-- MAIN AREA -->
+    <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden pt-16">
+      <AppTopbar @toggle-sidebar="toggleSidebar" />
 
-        <AnnouncementBanner />
+      <AnnouncementBanner />
 
-        <main class="flex-1 overflow-y-auto">
+      <main class="flex-1 overflow-y-auto">
         <div class="lg-shell-content mx-auto">
           <PageContainer
             :title="currentPageMeta.title"
             :subtitle="currentPageMeta.subtitle"
           >
-            <router-view v-slot="{ Component }">
-              <Transition
-                enter-active-class="transition-all duration-200 ease-out"
-                enter-from-class="opacity-0 translate-y-2"
-                enter-to-class="opacity-100 translate-y-0"
-                mode="out-in"
-              >
-                <component :is="Component" v-if="Component" />
-                <div v-else class="lg-shell-empty">
-                  <div class="surface-input border-card flex h-12 w-12 items-center justify-center rounded-[var(--radius-lg)] border">
-                     <GraduationCap class="h-7 w-7 text-link" />
-                  </div>
-                  <h3 class="mt-4 text-base font-semibold text-heading">Trang đang phát triển</h3>
-                  <p class="mt-1.5 max-w-xs text-sm text-body">Trang <strong>{{ currentPageMeta.title }}</strong> đang được xây dựng bởi bộ phận kỹ thuật.</p>
-                  <router-link to="/bgh/dashboard" class="lg-button-primary mt-5 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium">← Về Dashboard</router-link>
+            <Suspense :timeout="0">
+              <template #default>
+                <router-view v-slot="{ Component, route }">
+                  <Transition
+                    enter-active-class="transition-all duration-200 ease-out will-change-transform will-change-opacity"
+                    enter-from-class="opacity-0 translate-y-2"
+                    enter-to-class="opacity-100 translate-y-0"
+                    leave-active-class="transition-opacity duration-75 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                    mode="out-in"
+                  >
+                    <component :is="Component" :key="route.path" />
+                  </Transition>
+                </router-view>
+              </template>
+              <template #fallback>
+                <div class="flex flex-col items-center justify-center py-20">
+                  <div class="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border-default)] border-t-[var(--accent-primary)]" />
+                  <p class="mt-4 text-sm font-medium text-body">Đang tải dữ liệu...</p>
                 </div>
-              </Transition>
-            </router-view>
+              </template>
+            </Suspense>
           </PageContainer>
         </div>
       </main>

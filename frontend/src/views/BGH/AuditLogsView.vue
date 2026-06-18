@@ -2,7 +2,7 @@
   <div class="space-y-4 pb-10 h-[calc(100vh-8rem)] flex flex-col">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
-        <h1 class="text-xl font-bold text-heading">Nhật ký kiểm toán</h1>
+        <h2 class="sr-only text-xl font-bold text-heading">Nhật ký kiểm toán</h2>
         <p class="text-xs text-muted mt-1">Theo dõi lịch sử thay đổi và thao tác trên hệ thống</p>
       </div>
     </div>
@@ -34,11 +34,11 @@
       </div>
       <div class="w-full sm:w-36">
         <label class="block text-xs font-bold text-heading mb-1.5">Từ ngày</label>
-        <input v-model="filters.fromDate" type="date" class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]" />
+        <input v-model="filters.fromDate" type="date" :max="filters.toDate || undefined" class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]" />
       </div>
       <div class="w-full sm:w-36">
         <label class="block text-xs font-bold text-heading mb-1.5">Đến ngày</label>
-        <input v-model="filters.toDate" type="date" class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]" />
+        <input v-model="filters.toDate" type="date" :min="filters.fromDate || undefined" class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]" />
       </div>
       <button @click="applyFilter" class="px-4 py-2 bg-[var(--surface-input)] border border-input hover:bg-[var(--surface-input-hover)] text-heading text-sm font-bold rounded-lg transition-colors h-10">Lọc</button>
     </div>
@@ -141,7 +141,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { History, Eye, X, Plus, Lock, Unlock, LogIn, Edit3, Trash2, Search } from 'lucide-vue-next'
 
 const pageSize = 15
@@ -157,6 +157,12 @@ const filters = reactive({
   hanhDong: '',
   fromDate: '',
   toDate: '',
+})
+
+watch(() => filters.fromDate, (val) => {
+  if (val && filters.toDate && val > filters.toDate) {
+    filters.toDate = ''
+  }
 })
 
 const auditLogs = [

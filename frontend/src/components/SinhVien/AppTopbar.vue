@@ -47,9 +47,11 @@ const pageTitleMap = {
 }
 
 const currentMeta = computed(() => {
+  const meta = route.meta
+  if (meta?.title) return { title: meta.title, subtitle: meta.subtitle || '' }
   if (pageTitleMap[route.path]) return pageTitleMap[route.path]
-  for (const [path, meta] of Object.entries(pageTitleMap)) {
-    if (route.path.startsWith(`${path}/`)) return meta
+  for (const [path, m] of Object.entries(pageTitleMap)) {
+    if (route.path.startsWith(`${path}/`)) return m
   }
   return { title: 'Trang học sinh', subtitle: 'Không gian học tập cá nhân' }
 })
@@ -163,6 +165,13 @@ const profileLink = computed(() => {
 })
 
 const isStudent = computed(() => authStore.hasRole('Student'))
+
+const notifAllLink = computed(() => {
+  if (authStore.hasRole('Principal')) return '/bgh/notifications'
+  if (authStore.hasRole('Teacher')) return '/teacher/notifications'
+  if (authStore.hasRole('AcademicStaff')) return '/staff/notifications'
+  return '/student/notifications'
+})
 </script>
 
 <template>
@@ -199,9 +208,10 @@ const isStudent = computed(() => authStore.hasRole('Student'))
     <!-- Quick Create -->
     <QuickCreate />
 
-    <!-- Focus Mode button -->
-      <button
-        class="lg-button-secondary hidden h-8 px-2.5 text-[10px] font-semibold text-label xl:inline-flex"
+    <!-- Focus Mode button (Student only) -->
+    <button
+      v-if="isStudent"
+      class="lg-button-secondary hidden h-8 px-2.5 text-[10px] font-semibold text-label xl:inline-flex"
       aria-label="Bật chế độ tập trung"
     >
       <Target :size="12" />
@@ -273,7 +283,7 @@ const isStudent = computed(() => authStore.hasRole('Student'))
             </div>
           </div>
           <div class="border-card surface-card border-t px-3 py-2 text-center">
-            <button class="text-[11px] font-bold text-link hover:text-heading" @click="router.push('/student/notifications'); closeAll()">Xem tất cả thông báo</button>
+            <button class="text-[11px] font-bold text-link hover:text-heading" @click="router.push(notifAllLink); closeAll()">Xem tất cả thông báo</button>
           </div>
         </div>
       </Transition>
