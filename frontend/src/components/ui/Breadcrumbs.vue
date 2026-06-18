@@ -70,8 +70,17 @@ const labelMap = {
 }
 
 const crumbs = computed(() => {
+  const meta = route.meta
+  if (meta?.section && meta?.title) {
+    const result = [{ label: 'Trang chủ', path: '/' }]
+    if (meta.section !== 'Dashboard') {
+      result.push({ label: meta.section, path: '' })
+    }
+    result.push({ label: meta.title, path: route.path })
+    return result
+  }
   const parts = route.path.split('/').filter(Boolean)
-  const result = []
+  const result = [{ label: 'Trang chủ', path: '/' }]
   let current = ''
   for (const part of parts) {
     current += '/' + part
@@ -84,15 +93,12 @@ const crumbs = computed(() => {
 
 <template>
   <nav aria-label="Breadcrumb" class="flex items-center gap-1.5 text-[11px] font-semibold text-muted">
-    <router-link to="/" class="text-link hover:text-heading transition-colors">
-      Trang chủ
-    </router-link>
-    <template v-for="(crumb, i) in crumbs" :key="crumb.path">
-      <svg viewBox="0 0 24 24" class="h-3 w-3 flex-shrink-0 fill-current">
+    <template v-for="(crumb, i) in crumbs" :key="i">
+      <svg v-if="i > 0" viewBox="0 0 24 24" class="h-3 w-3 flex-shrink-0 fill-current">
         <path d="M9 18l6-6-6-6" />
       </svg>
       <router-link
-        v-if="i < crumbs.length - 1"
+        v-if="i < crumbs.length - 1 && crumb.path"
         :to="crumb.path"
         class="text-link hover:text-heading transition-colors truncate max-w-[120px]"
       >

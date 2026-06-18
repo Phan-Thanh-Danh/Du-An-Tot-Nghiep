@@ -4,7 +4,7 @@
  * ─────────────────────────────────────────────────────────
  * App Shell chính cho giao diện Hiệu trưởng / Ban giám hiệu (BGH).
  */
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import AppSidebar from './AppSidebar.vue'
 import AppTopbar from '../SinhVien/AppTopbar.vue'
@@ -52,6 +52,16 @@ const currentPageMeta = computed(() => {
   const meta = route.meta
   if (meta?.title) return { title: meta.title, subtitle: meta.subtitle || '' }
   return { title: 'Ban giám hiệu', subtitle: 'Hệ thống quản lý LMS' }
+})
+
+// ── Auto-close mobile sidebar on route change ──────────────
+watch(() => route.path, () => {
+  closeMobileSidebar()
+})
+
+// ── Body scroll lock when mobile drawer is open ────────────
+watch(mobileSidebarOpen, (open) => {
+  document.body.style.overflow = open ? 'hidden' : ''
 })
 </script>
 
