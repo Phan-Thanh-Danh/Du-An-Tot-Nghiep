@@ -19,6 +19,7 @@ const router = createRouter({
         if (authStore.hasRole('Principal')) return '/bgh/dashboard'
         if (authStore.hasRole('Teacher')) return '/teacher/dashboard'
         if (authStore.hasRole('AcademicStaff')) return '/staff/dashboard'
+        if (authStore.hasRole('Parent')) return '/parent/dashboard'
         return '/student/dashboard'
       },
     },
@@ -538,6 +539,111 @@ const router = createRouter({
       ],
     },
 
+    // ── Parent Layout (Phụ huynh) ─────────────────────────
+    {
+      path: '/parent',
+      component: () => import('../components/PhuHuynh/Layout_PhuHuynh.vue'),
+      meta: { requiresAuth: true, role: 'Parent' },
+      children: [
+        { path: '', redirect: '/parent/dashboard' },
+        {
+          path: 'dashboard',
+          name: 'parent-dashboard',
+          component: () => import('../views/PhuHuynh/Dashboard.vue'),
+          meta: { title: 'Dashboard Phụ huynh', subtitle: 'Tổng quan học tập và tài chính của con' },
+        },
+        // Con của tôi
+        {
+          path: 'children/list',
+          name: 'parent-children-list',
+          component: () => import('../views/PhuHuynh/Children/ListView.vue'),
+          meta: { title: 'Danh sách học sinh', subtitle: 'Danh sách các con đang theo học' },
+        },
+        {
+          path: 'children/overview',
+          name: 'parent-children-overview',
+          component: () => import('../views/PhuHuynh/Children/OverviewView.vue'),
+          meta: { title: 'Tổng quan học tập', subtitle: 'Kết quả học tập chi tiết của con' },
+        },
+        // Học tập
+        {
+          path: 'learning/grades',
+          name: 'parent-learning-grades',
+          component: () => import('../views/PhuHuynh/Learning/GradesView.vue'),
+          meta: { title: 'Bảng điểm của con', subtitle: 'Điểm số chi tiết các môn học' },
+        },
+        {
+          path: 'learning/attendance',
+          name: 'parent-learning-attendance',
+          component: () => import('../views/PhuHuynh/Learning/AttendanceView.vue'),
+          meta: { title: 'Tình hình điểm danh', subtitle: 'Lịch sử chuyên cần lớp học' },
+        },
+        {
+          path: 'learning/schedule',
+          name: 'parent-learning-schedule',
+          component: () => import('../views/PhuHuynh/Learning/ScheduleView.vue'),
+          meta: { title: 'Thời khóa biểu của con', subtitle: 'Lịch học và lịch thi hàng tuần' },
+        },
+        {
+          path: 'learning/alerts',
+          name: 'parent-learning-alerts',
+          component: () => import('../views/PhuHuynh/Learning/AlertsView.vue'),
+          meta: { title: 'Cảnh báo học tập', subtitle: 'Cảnh báo vắng mặt hoặc điểm số kém' },
+        },
+        // Tài chính
+        {
+          path: 'finance/tuition',
+          name: 'parent-finance-tuition',
+          component: () => import('../views/PhuHuynh/Finance/TuitionView.vue'),
+          meta: { title: 'Công nợ học phí', subtitle: 'Thông tin học phí và công nợ hiện tại' },
+        },
+        {
+          path: 'finance/payment',
+          name: 'parent-finance-payment',
+          component: () => import('../views/PhuHuynh/Finance/PaymentView.vue'),
+          meta: { title: 'Thanh toán học phí', subtitle: 'Cổng thanh toán học phí trực tuyến' },
+        },
+        {
+          path: 'finance/transactions',
+          name: 'parent-finance-transactions',
+          component: () => import('../views/PhuHuynh/Finance/TransactionsView.vue'),
+          meta: { title: 'Lịch sử giao dịch', subtitle: 'Nhật ký các đợt thanh toán trước đây' },
+        },
+        {
+          path: 'finance/invoices',
+          name: 'parent-finance-invoices',
+          component: () => import('../views/PhuHuynh/Finance/InvoicesView.vue'),
+          meta: { title: 'Hóa đơn', subtitle: 'Quản lý hóa đơn và chứng từ thanh toán' },
+        },
+        // Thông báo
+        {
+          path: 'notifications/system',
+          name: 'parent-notifications-system',
+          component: () => import('../views/PhuHuynh/Notifications/SystemView.vue'),
+          meta: { title: 'Cảnh báo hệ thống', subtitle: 'Các cảnh báo tự động từ hệ thống LMS' },
+        },
+        {
+          path: 'notifications/history',
+          name: 'parent-notifications-history',
+          component: () => import('../views/PhuHuynh/Notifications/HistoryView.vue'),
+          meta: { title: 'Lịch sử thông báo', subtitle: 'Các tin tức, thông báo gửi đến phụ huynh' },
+        },
+        // Cá nhân
+        {
+          path: 'profile/info',
+          name: 'parent-profile-info',
+          component: () => import('../views/PhuHuynh/Profile/InfoView.vue'),
+          meta: { title: 'Hồ sơ phụ huynh', subtitle: 'Thông tin cá nhân liên lạc' },
+        },
+        {
+          path: 'profile/access-rights',
+          name: 'parent-profile-access-rights',
+          component: () => import('../views/PhuHuynh/Profile/AccessRightsView.vue'),
+          meta: { title: 'Quyền truy cập được cấp', subtitle: 'Các quyền giám sát thông tin học tập' },
+        },
+      ],
+    },
+
     // ── 404 ───────────────────────────────────────────────
     {
       path: '/:pathMatch(.*)*',
@@ -562,6 +668,7 @@ router.beforeEach((to) => {
     if (authStore.hasRole('SuperAdmin')) return '/super-admin/dashboard'
     if (authStore.hasRole('Teacher')) return '/teacher/dashboard'
     if (authStore.hasRole('AcademicStaff')) return '/staff/dashboard'
+    if (authStore.hasRole('Parent')) return '/parent/dashboard'
     return '/student/dashboard'
   }
 

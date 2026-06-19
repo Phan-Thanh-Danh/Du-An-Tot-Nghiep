@@ -2,27 +2,28 @@
   <div class="space-y-4 pb-10">
     
     <!-- ── Welcome Hero ── -->
-    <div class="rounded-2xl surface-card border border-card p-4">
-      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="lg-glass-strong rounded-[24px] p-6 lg:p-8">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
         <div class="max-w-xl text-center md:text-left">
-          <h1 class="text-lg md:text-2xl font-semibold leading-tight tracking-tight text-heading">
+          <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-heading">
             Tổng quan Ban giám hiệu
           </h1>
-          <p class="mt-2 text-muted text-sm">
-            GPA trung bình tăng 0.12, tỷ lệ Pass đạt 92.5%. Có 2 bản thảo TKB đang chờ phê duyệt.
+          <p class="mt-2 text-muted text-sm leading-relaxed">
+            GPA trung bình <strong class="text-[var(--color-success-text)]">tăng 0.12</strong>, tỷ lệ Pass đạt <strong class="text-[var(--color-success-text)]">92.5%</strong>. Có 2 bản thảo TKB đang chờ phê duyệt.
           </p>
-          <div class="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
-            <router-link to="/bgh/schedule/pending" class="lg-button-primary rounded-lg px-3 py-2 text-xs font-bold transition-all active:scale-95">
+          <div class="mt-6 flex flex-wrap justify-center md:justify-start gap-3">
+            <router-link to="/bgh/schedule/pending" class="lg-btn-primary px-5 py-2.5 text-sm font-bold shadow-[var(--lg-shadow-md)] hover:-translate-y-0.5 transition-all">
               Duyệt TKB ngay
             </router-link>
-            <router-link to="/bgh/academic/reports" class="lg-button-secondary rounded-lg px-3 py-2 text-xs font-bold transition-all">
+            <router-link to="/bgh/academic/reports" class="lg-btn-secondary px-5 py-2.5 text-sm font-bold hover:-translate-y-0.5 transition-all">
               Báo cáo GPA
             </router-link>
           </div>
         </div>
-        <div class="hidden lg:block">
-          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-info-bg)]/70 border border-[var(--color-info-text)]/20">
-            <GraduationCap :size="22" class="text-[var(--color-info-text)]/70" />
+        <div class="hidden lg:block relative group">
+          <div class="absolute -inset-1 rounded-3xl bg-[var(--color-info-text)] opacity-10 blur-xl group-hover:opacity-20 transition-opacity"></div>
+          <div class="relative flex h-24 w-24 items-center justify-center rounded-[24px] lg-glass border border-[var(--color-info-text)]/20 shadow-xl">
+            <GraduationCap :size="42" class="text-[var(--color-info-text)]" />
           </div>
         </div>
       </div>
@@ -31,70 +32,70 @@
     <!-- ── Macro KPIs Grid ── -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div v-for="item in stats" :key="item.id" 
-           class="group relative overflow-hidden rounded-2xl border border-card surface-card p-4 shadow-sm transition-all">
+           class="group lg-glass-soft rounded-[20px] p-5 transition-all duration-300 hover:shadow-[var(--lg-shadow-lg)] hover:-translate-y-1">
         <div class="flex items-center justify-between">
-          <div :class="['flex h-10 w-10 items-center justify-center rounded-2xl transition-transform group-hover:scale-110', item.bgColor, item.iconColor]">
-            <component :is="item.icon" :size="24" stroke-width="2.2" />
+          <div :class="['flex h-12 w-12 items-center justify-center rounded-xl transition-transform group-hover:scale-110 shadow-sm border border-white/20 dark:border-white/5', item.bgColor, item.iconColor]">
+            <component :is="item.icon" :size="24" stroke-width="2" />
           </div>
-          <div :class="['flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold', item.isNegative ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]' : 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]']">
+          <div :class="['flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm', item.isNegative ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]' : 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]']">
             {{ item.trend }}
-            <ArrowUpRight v-if="!item.isNegative" :size="12" />
-            <AlertCircle v-else :size="12" />
+            <ArrowUpRight v-if="!item.isNegative" :size="12" stroke-width="2.5" />
+            <AlertCircle v-else :size="12" stroke-width="2.5" />
           </div>
         </div>
         <div class="mt-5">
-          <p class="text-sm font-medium text-muted">{{ item.label }}</p>
-          <p class="mt-1 text-xl font-semibold text-heading">{{ item.value }}</p>
+          <p class="text-sm font-semibold text-muted tracking-tight">{{ item.label }}</p>
+          <p class="mt-1 text-2xl font-bold text-heading tracking-tight">{{ item.value }}</p>
         </div>
       </div>
     </div>
 
     <!-- ── Main Layout ── -->
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
       
       <!-- Left: Academic Performance & Teacher Evaluations -->
-      <div class="xl:col-span-2 space-y-4">
+      <div class="xl:col-span-2 space-y-5">
         
         <!-- Teacher Evaluations Ranking -->
-        <div class="rounded-2xl border border-card surface-card shadow-sm overflow-hidden">
-          <div class="flex items-center justify-between border-b border-default px-4 py-4">
+        <div class="lg-glass rounded-[24px] overflow-hidden">
+          <div class="flex items-center justify-between border-b border-card px-5 py-4 bg-[var(--surface-table-header)]/40">
             <div>
-              <h2 class="text-lg font-bold text-heading">Ranking Giảng viên</h2>
+              <h2 class="text-base font-bold text-heading">Ranking Giảng viên</h2>
               <p class="text-xs text-muted mt-0.5">Top giảng viên có điểm đánh giá cao nhất</p>
             </div>
-            <router-link to="/bgh/evaluations/ranking" class="text-xs font-bold text-link hover:underline">Tất cả xếp hạng</router-link>
+            <router-link to="/bgh/evaluations/ranking" class="text-xs font-bold text-link hover:underline decoration-2 underline-offset-2">Tất cả xếp hạng</router-link>
           </div>
-          <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
              <div v-for="teacher in topTeachers" :key="teacher.id" 
-                  class="group flex items-center gap-4 rounded-2xl border border-default p-4 transition-all hover:border-[var(--border-input-focus)]">
-               <div class="h-10 w-10 rounded-2xl bg-[var(--color-info-bg)] text-[var(--color-info-text)] flex items-center justify-center font-bold shadow-sm">{{ teacher.initials }}</div>
+                  class="group flex items-center gap-4 rounded-[16px] lg-solid-soft p-4 transition-all hover:shadow-[var(--lg-shadow-sm)] hover:-translate-y-0.5 border border-default cursor-pointer">
+               <div class="h-11 w-11 rounded-[12px] bg-[var(--color-info-bg)] text-[var(--color-info-text)] flex items-center justify-center font-bold shadow-inner text-sm">{{ teacher.initials }}</div>
                <div class="flex-1 min-w-0">
-                 <h3 class="font-bold text-heading truncate">{{ teacher.name }}</h3>
-                 <p class="text-xs text-muted">{{ teacher.department }}</p>
+                 <h3 class="font-bold text-heading truncate group-hover:text-link transition-colors">{{ teacher.name }}</h3>
+                 <p class="text-xs text-muted mt-0.5">{{ teacher.department }}</p>
                </div>
                <div class="text-right">
-                 <div class="flex items-center justify-end gap-1 text-sm font-semibold text-heading">
-                    <Star class="w-3.5 h-3.5 text-[var(--color-warning-text)]" fill="currentColor" /> {{ teacher.rating }}
+                 <div class="flex items-center justify-end gap-1.5 text-sm font-bold text-heading">
+                    <Star class="w-4 h-4 text-[var(--color-warning-text)]" fill="currentColor" /> {{ teacher.rating }}
                  </div>
-                 <p class="text-[10px] text-muted">{{ teacher.reviews }} lượt</p>
+                 <p class="text-[10px] text-muted mt-0.5">{{ teacher.reviews }} lượt</p>
                </div>
              </div>
           </div>
         </div>
 
         <!-- Trend Chart -->
-        <div class="rounded-2xl border border-card surface-card shadow-sm overflow-hidden p-4">
-           <div class="flex items-center justify-between mb-4">
+        <div class="lg-glass rounded-[24px] p-5">
+           <div class="flex items-center justify-between mb-5">
               <h2 class="text-base font-bold text-heading">Tỷ lệ Pass / Fail</h2>
-              <select class="rounded-lg border border-input surface-input px-3 py-1.5 text-[10px] font-bold outline-none">
+              <select class="lg-input rounded-xl px-3 py-1.5 text-[11px] font-bold w-40">
                  <option>Kỳ Spring 2026</option>
                  <option>Kỳ Fall 2025</option>
               </select>
            </div>
-           <div class="flex items-end justify-between h-32 gap-4 border-b border-default pb-2">
-              <div v-for="(h, i) in [45, 65, 80, 55, 90, 75, 88]" :key="i" class="flex-1 flex flex-col items-center gap-2">
-                 <div class="w-full bg-[var(--lg-primary)] rounded-t-xl transition-all hover:opacity-80" :style="{ height: h + '%' }" />
-                 <span class="text-[10px] font-bold text-muted">{{ ['CNTT', 'KT', 'NN', 'DL', 'TK', 'YT', 'GD'][i] }}</span>
+           <div class="flex items-end justify-between h-36 gap-3 border-b border-card pb-3">
+              <div v-for="(h, i) in [45, 65, 80, 55, 90, 75, 88]" :key="i" class="flex-1 flex flex-col items-center gap-2 group">
+                 <div class="w-full bg-gradient-to-t from-[var(--lg-primary-dark)] to-[var(--lg-primary)] rounded-t-xl transition-all group-hover:opacity-80 group-hover:scale-y-105 cursor-help" :style="{ height: h + '%' }" />
+                 <span class="text-[11px] font-bold text-muted group-hover:text-heading transition-colors">{{ ['CNTT', 'KT', 'NN', 'DL', 'TK', 'YT', 'GD'][i] }}</span>
               </div>
            </div>
         </div>
@@ -102,60 +103,60 @@
       </div>
 
       <!-- Right: Pending Approvals & Risk Alerts -->
-      <div class="space-y-4">
+      <div class="space-y-5">
         
         <!-- Pending TKB Approvals -->
-        <div class="rounded-2xl border border-card surface-card shadow-sm p-4">
-           <div class="mb-3 flex items-center justify-between">
+        <div class="lg-glass rounded-[24px] p-5">
+           <div class="mb-4 flex items-center justify-between">
               <h3 class="text-base font-bold text-heading">TKB Chờ Duyệt</h3>
-              <span class="rounded-full bg-[var(--color-info-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-info-text)]">2 Mới</span>
+              <span class="rounded-full bg-[var(--color-info-bg)] px-2.5 py-1 text-[10px] font-bold text-[var(--color-info-text)] shadow-sm">2 Mới</span>
            </div>
            <div class="space-y-3">
              <div v-for="i in 2" :key="i" 
-                  class="p-3 rounded-xl border border-default surface-solid transition-all hover:bg-[var(--surface-input)] cursor-pointer">
+                  class="group p-4 rounded-[16px] lg-solid-soft transition-all hover:shadow-[var(--lg-shadow-sm)] hover:-translate-y-0.5 cursor-pointer border border-default">
                <div class="flex justify-between items-start">
-                  <p class="text-xs font-bold text-heading leading-tight">Khoa {{ i === 1 ? 'CNTT' : 'Kinh Tế' }} - Spring</p>
+                  <p class="text-sm font-bold text-heading leading-tight group-hover:text-link transition-colors">Khoa {{ i === 1 ? 'CNTT' : 'Kinh Tế' }} - Spring</p>
                   <span class="text-[9px] font-bold text-link">NEW</span>
                </div>
-               <p class="mt-0.5 text-[10px] text-muted">{{ i === 1 ? '142' : '86' }} lớp • {{ i === 1 ? '3' : '0' }} xung đột</p>
-               <button class="mt-2 w-full text-center text-[10px] font-bold text-link">Xem ngay →</button>
+               <p class="mt-1.5 text-[11px] font-medium text-muted">{{ i === 1 ? '142' : '86' }} lớp • {{ i === 1 ? '3' : '0' }} xung đột</p>
+               <button class="mt-3 w-full lg-btn-subtle h-9 rounded-[10px] text-[11px] font-bold">Xem chi tiết</button>
              </div>
            </div>
         </div>
 
         <!-- AI Risk Alerts -->
-        <div class="rounded-2xl border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)] p-4 overflow-hidden relative">
+        <div class="rounded-[24px] border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)]/50 p-5 overflow-hidden relative backdrop-blur-card shadow-[var(--lg-shadow-md)]">
           <div class="flex items-center gap-2">
-             <h3 class="text-base font-bold text-heading">Cảnh báo rủi ro</h3>
+             <h3 class="text-base font-bold text-[var(--color-danger-text)]">Cảnh báo rủi ro</h3>
           </div>
-          <p class="text-xs text-body mt-1">AI phát hiện 124 sinh viên có rủi ro rớt môn cao do vắng học.</p>
+          <p class="text-xs text-body mt-1.5 font-medium leading-relaxed">AI phát hiện 124 sinh viên có rủi ro rớt môn cao do vắng học.</p>
           
-          <div class="mt-4 space-y-3">
-             <div v-for="sv in riskStudents" :key="sv.id" class="flex items-center justify-between border-b border-[var(--color-danger-text)]/20 pb-2">
+          <div class="mt-5 space-y-3">
+             <div v-for="sv in riskStudents" :key="sv.id" class="flex items-center justify-between border-b border-[var(--color-danger-text)]/10 pb-3 last:border-0 last:pb-0">
                 <div>
-                   <p class="text-xs font-bold text-heading">{{ sv.name }}</p>
-                   <p class="text-[9px] text-muted">{{ sv.class }}</p>
+                   <p class="text-[13px] font-bold text-heading">{{ sv.name }}</p>
+                   <p class="text-[10px] font-medium text-muted mt-0.5">{{ sv.class }}</p>
                 </div>
-                <span class="text-[9px] font-bold bg-[var(--surface-card)] text-[var(--color-danger-text)] px-2 py-0.5 rounded-full">{{ sv.reason }}</span>
+                <span class="text-[10px] font-bold bg-white dark:bg-slate-900 shadow-sm text-[var(--color-danger-text)] px-2.5 py-1 rounded-full border border-[var(--color-danger-text)]/20">{{ sv.reason }}</span>
              </div>
           </div>
-          <button class="mt-4 w-full text-center text-[10px] font-bold text-[var(--color-danger-text)] hover:underline">Xem toàn bộ báo cáo rủi ro</button>
+          <button class="mt-4 w-full text-center text-[11px] font-bold text-[var(--color-danger-text)] hover:underline decoration-2 underline-offset-2">Xem toàn bộ báo cáo rủi ro</button>
         </div>
 
         <!-- Strategy Announcements -->
-        <div class="rounded-2xl border border-card surface-card shadow-sm p-4">
-          <div class="mb-3 flex items-center justify-between">
+        <div class="lg-glass-soft rounded-[24px] p-5">
+          <div class="mb-4 flex items-center justify-between">
             <h3 class="text-base font-bold text-heading">Thông báo</h3>
             <Bell :size="16" class="text-muted" />
           </div>
           <div class="space-y-3">
-            <div class="flex gap-2">
-              <div class="h-8 w-8 rounded-full bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] shrink-0">
-                <ShieldCheck :size="14" />
+            <div class="flex gap-3 p-3 rounded-[16px] lg-solid-soft transition-colors hover:bg-[var(--surface-card-hover)] cursor-pointer">
+              <div class="h-9 w-9 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] shrink-0 shadow-sm border border-[var(--color-info-text)]/10">
+                <ShieldCheck :size="16" stroke-width="2.5" />
               </div>
               <div>
-                <p class="text-xs font-bold text-heading">Audit kết quả đào tạo 2025</p>
-                <p class="text-[10px] text-muted mt-0.5">Phòng Thanh tra sẽ thực hiện kiểm tra vào tuần tới.</p>
+                <p class="text-[13px] font-bold text-heading leading-tight">Audit kết quả đào tạo 2025</p>
+                <p class="text-[11px] font-medium text-muted mt-1 leading-relaxed">Phòng Thanh tra sẽ thực hiện kiểm tra vào tuần tới.</p>
               </div>
             </div>
           </div>

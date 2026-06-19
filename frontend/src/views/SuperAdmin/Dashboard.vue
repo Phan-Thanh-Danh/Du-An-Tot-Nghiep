@@ -77,24 +77,23 @@ function getIcon(name) {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-6 pb-6">
     <!-- Welcome Banner -->
-    <div class="relative overflow-hidden rounded-2xl border border-violet-100/60 dark:border-violet-500/20 bg-gradient-to-br from-violet-600 via-violet-500 to-purple-600 p-6 text-white shadow-lg shadow-violet-500/20">
-      <div class="pointer-events-none absolute inset-0 overflow-hidden">
-        <div class="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-        <div class="absolute -bottom-8 left-1/3 h-32 w-32 rounded-full bg-purple-300/20 blur-2xl" />
-      </div>
-      <div class="relative flex items-center justify-between">
-        <div>
-          <div class="mb-1 flex items-center gap-2">
-            <span class="rounded-full bg-white/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest">Super Admin Portal</span>
+    <div class="lg-glass-strong rounded-[24px] p-6 lg:p-8">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="max-w-xl text-center md:text-left">
+          <div class="mb-2 inline-flex items-center gap-2">
+            <span class="rounded-full bg-[var(--lg-primary)]/10 text-[var(--lg-primary)] border border-[var(--lg-primary)]/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest shadow-sm">Super Admin Portal</span>
           </div>
-          <h2 class="text-2xl font-bold">Chào mừng trở lại! 👋</h2>
-          <p class="mt-1 text-sm text-violet-100">Hệ thống đang hoạt động bình thường · {{ new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}</p>
+          <h2 class="text-2xl md:text-3xl font-bold tracking-tight text-heading">Chào mừng trở lại! 👋</h2>
+          <p class="mt-2 text-sm text-muted leading-relaxed">Hệ thống đang hoạt động bình thường · {{ new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}</p>
         </div>
-        <div class="hidden lg:flex items-center gap-2">
-          <div class="flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold backdrop-blur-sm">
-            <Activity :size="14" />
+        <div class="hidden lg:flex items-center gap-3">
+          <div class="flex items-center gap-2 rounded-[16px] lg-solid-soft px-4 py-2.5 text-sm font-bold text-heading shadow-sm border border-default">
+            <div class="relative flex h-2.5 w-2.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-success-text)] opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--color-success-text)]"></span>
+            </div>
             Hệ thống ổn định
           </div>
         </div>
@@ -106,49 +105,49 @@ function getIcon(name) {
       <div
         v-for="stat in systemStats"
         :key="stat.id"
-        class="lg-glass-soft rounded-2xl border border-white/60 dark:border-white/10 p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+        class="group lg-glass-soft rounded-[20px] p-5 shadow-[var(--lg-shadow-sm)] transition-all duration-300 hover:shadow-[var(--lg-shadow-lg)] hover:-translate-y-1"
       >
         <div class="flex items-start justify-between">
           <div>
-            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">{{ stat.label }}</p>
-            <p class="mt-1.5 text-2xl font-bold text-slate-900 dark:text-slate-100">{{ stat.value }}</p>
+            <p class="text-sm font-semibold text-muted tracking-tight">{{ stat.label }}</p>
+            <p class="mt-1.5 text-3xl font-extrabold text-heading tracking-tight">{{ stat.value }}</p>
           </div>
-          <div :class="['flex h-10 w-10 items-center justify-center rounded-xl ring-1', colorMap[stat.color]?.bg, colorMap[stat.color]?.ring]">
-            <component :is="getIcon(stat.icon)" :size="18" :class="colorMap[stat.color]?.text" />
+          <div :class="['flex h-12 w-12 items-center justify-center rounded-xl shadow-sm border border-white/20 dark:border-white/5 transition-transform group-hover:scale-110', colorMap[stat.color]?.bg, colorMap[stat.color]?.text]">
+            <component :is="getIcon(stat.icon)" :size="24" stroke-width="2" />
           </div>
         </div>
-        <div class="mt-3 flex items-center gap-1.5">
-          <span :class="['flex items-center gap-0.5 text-[11px] font-bold', stat.trend === 'up' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400']">
-            <component :is="stat.trend === 'up' ? TrendingUp : TrendingDown" :size="11" />
+        <div class="mt-4 flex items-center gap-2">
+          <span :class="['flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold shadow-sm border border-white/10 dark:border-white/5', stat.trend === 'up' ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]' : 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]']">
+            <component :is="stat.trend === 'up' ? TrendingUp : TrendingDown" :size="12" stroke-width="2.5" />
             {{ stat.change }}
           </span>
-          <span class="text-[10px] text-slate-400 dark:text-slate-500">{{ stat.sub }}</span>
+          <span class="text-[11px] font-medium text-muted truncate">{{ stat.sub }}</span>
         </div>
       </div>
     </div>
 
     <!-- Content Grid: Activity + Quick Actions -->
-    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
 
       <!-- Recent Activity (chiếm 2 cột) -->
-      <div class="lg:col-span-2 lg-glass-soft rounded-2xl border border-white/60 dark:border-white/10 p-4 shadow-sm">
-        <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100">Hoạt động gần đây</h3>
-          <router-link to="/super-admin/audit/logs" class="text-[11px] font-bold text-violet-600 dark:text-violet-400 hover:underline">Xem tất cả</router-link>
+      <div class="lg:col-span-2 lg-glass rounded-[24px] p-6 shadow-[var(--lg-shadow-sm)]">
+        <div class="mb-5 flex items-center justify-between border-b border-card pb-4">
+          <h3 class="text-base font-bold text-heading">Hoạt động gần đây</h3>
+          <router-link to="/super-admin/audit/logs" class="text-xs font-bold text-link hover:underline decoration-2 underline-offset-2">Xem tất cả</router-link>
         </div>
         <div class="space-y-3">
           <div
             v-for="activity in recentActivities"
             :key="activity.id"
-            class="flex items-start gap-3 rounded-xl p-2.5 transition-colors hover:bg-white/60 dark:hover:bg-white/5"
+            class="group flex items-start gap-4 rounded-[16px] lg-solid-soft p-4 transition-all hover:shadow-[var(--lg-shadow-sm)] hover:-translate-y-0.5 border border-default cursor-pointer"
           >
-            <div :class="['flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full', colorMap[activity.color]?.bg]">
-              <component :is="getIcon(activity.icon)" :size="14" :class="colorMap[activity.color]?.text" />
+            <div :class="['flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] shadow-sm border border-white/20 dark:border-white/5', colorMap[activity.color]?.bg, colorMap[activity.color]?.text]">
+              <component :is="getIcon(activity.icon)" :size="18" stroke-width="2.5" />
             </div>
-            <div class="min-w-0 flex-1">
-              <p class="text-[12px] font-semibold text-slate-800 dark:text-slate-200 leading-snug">{{ activity.text }}</p>
-              <p class="mt-0.5 flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500">
-                <Clock :size="9" />
+            <div class="min-w-0 flex-1 pt-0.5">
+              <p class="text-sm font-bold text-heading leading-snug group-hover:text-link transition-colors">{{ activity.text }}</p>
+              <p class="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-muted">
+                <Clock :size="12" />
                 {{ activity.time }}
               </p>
             </div>
@@ -157,9 +156,9 @@ function getIcon(name) {
       </div>
 
       <!-- Quick Actions -->
-      <div class="lg-glass-soft rounded-2xl border border-white/60 dark:border-white/10 p-4 shadow-sm">
-        <h3 class="mb-4 text-sm font-bold text-slate-800 dark:text-slate-100">Thao tác nhanh</h3>
-        <div class="space-y-2">
+      <div class="lg-glass rounded-[24px] p-6 shadow-[var(--lg-shadow-sm)] flex flex-col">
+        <h3 class="mb-5 text-base font-bold text-heading border-b border-card pb-4">Thao tác nhanh</h3>
+        <div class="space-y-3 flex-1">
           <router-link
             v-for="action in [
               { label: 'Import tài khoản', icon: 'FileSpreadsheet', to: '/super-admin/users/import', color: 'violet' },
@@ -170,20 +169,25 @@ function getIcon(name) {
             ]"
             :key="action.label"
             :to="action.to"
-            class="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-[12px] font-semibold text-slate-700 dark:text-slate-300 transition-all hover:border-violet-100 dark:hover:border-violet-500/20 hover:bg-violet-50/60 dark:hover:bg-violet-600/10 hover:text-violet-700 dark:hover:text-violet-300"
+            class="group flex items-center gap-3 rounded-[16px] border border-default lg-solid-soft px-4 py-3 text-sm font-bold text-heading shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-[var(--lg-shadow-sm)] hover:border-violet-200 dark:hover:border-violet-900/50 hover:bg-[var(--surface-card-hover)]"
           >
-            <component :is="getIcon(action.icon)" :size="14" class="flex-shrink-0 text-slate-400 dark:text-slate-500" />
-            {{ action.label }}
+            <div :class="['flex h-8 w-8 items-center justify-center rounded-[10px] shadow-inner', colorMap[action.color]?.bg, colorMap[action.color]?.text]">
+              <component :is="getIcon(action.icon)" :size="16" class="flex-shrink-0" stroke-width="2.5" />
+            </div>
+            <span class="group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">{{ action.label }}</span>
           </router-link>
         </div>
 
         <!-- System status -->
-        <div class="mt-4 rounded-xl border border-emerald-100 dark:border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-600/10 p-3">
-          <div class="flex items-center gap-2">
-            <div class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)] animate-pulse" />
-            <p class="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">Hệ thống hoạt động bình thường</p>
+        <div class="mt-5 rounded-[16px] border border-[var(--color-success-text)]/20 bg-[var(--color-success-bg)]/50 p-4 shadow-sm backdrop-blur-md">
+          <div class="flex items-center gap-2.5">
+            <div class="relative flex h-2.5 w-2.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-success-text)] opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--color-success-text)]"></span>
+            </div>
+            <p class="text-[12px] font-bold text-[var(--color-success-text)]">Hệ thống hoạt động bình thường</p>
           </div>
-          <p class="mt-1 text-[10px] text-emerald-600/70 dark:text-emerald-400/60">Tất cả dịch vụ đang chạy ổn định</p>
+          <p class="mt-1.5 text-[11px] font-medium text-[var(--color-success-text)]/80">Tất cả dịch vụ đang chạy ổn định</p>
         </div>
       </div>
 
