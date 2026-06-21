@@ -35,6 +35,7 @@ using Backend.Services.ThoiKhoaBieu;
 using Backend.Services.TrainingProgramSubjects;
 using Backend.Services.TrainingPrograms;
 using Backend.Services.Exam;
+using Backend.Services.QuestionBank;
 using Backend.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
@@ -126,6 +127,7 @@ builder.Services.AddScoped<IAttendanceAutomationService, AttendanceAutomationSer
 builder.Services.AddHostedService<AttendanceAutomationHostedService>();
 builder.Services.AddScoped<IAttendanceUnlockService, AttendanceUnlockService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IQuestionBankService, QuestionBankService>();
 
 builder.Services.AddSignalR();
 

@@ -1,21 +1,18 @@
-namespace Backend.Models;
+namespace Backend.DTOs.QuestionBank;
 
-public class CauHoi
+public class QuestionDto
 {
     public int MaCauHoi { get; set; }
     public int? MaMonHoc { get; set; }
-    public int? NguoiTao { get; set; }
+    public string? TenMonHoc { get; set; }
     public string LoaiCauHoi { get; set; } = string.Empty;
     public string NoiDung { get; set; } = string.Empty;
     public string? KieuLuaChon { get; set; }
-    public string? LuaChon { get; set; }
-    public string? DapAnDung { get; set; }
+    public List<QuestionChoiceDto>? LuaChon { get; set; }
+    public List<string>? DapAnDung { get; set; }
     public string? GiaiThichDapAn { get; set; }
     public string DoKho { get; set; } = string.Empty;
-    public bool ConHoatDong { get; set; } = true;
-    public DateTime NgayTao { get; set; } = DateTime.UtcNow;
+    public bool ConHoatDong { get; set; }
+    public DateTime NgayTao { get; set; }
     public DateTime? NgayCapNhat { get; set; }
-
-    public DanhMucMonHoc? MonHoc { get; set; }
-    public NguoiDung? NguoiTaoNavigation { get; set; }
 }

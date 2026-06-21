@@ -46,13 +46,39 @@ public static class Data
         await SeedProgramTermsAsync(context, programs.Values, terms);
         var programSubjects = await SeedProgramSubjectsAsync(context, programs, subjects);
         var users = await SeedDemoUsersAsync(context, rootCampus, hcmCampus);
-        var administrativeClasses = await SeedAdministrativeClassesAsync(context, hcmCampus, programs, users);
-        await SeedTeachingCoursesAsync(context, hcmCampus, subjects, terms, users, administrativeClasses);
+        var administrativeClasses = await SeedAdministrativeClassesAsync(
+            context,
+            hcmCampus,
+            programs,
+            users
+        );
+        await SeedTeachingCoursesAsync(
+            context,
+            hcmCampus,
+            subjects,
+            terms,
+            users,
+            administrativeClasses
+        );
         var shifts = await SeedClassShiftsAsync(context);
         await SeedParentLinkAsync(context, users);
         await SeedFacilitiesAsync(context, hcmCampus);
-        await SeedScheduleTemplatesAsync(context, hcmCampus, subjects, terms, administrativeClasses, shifts);
-        await SeedCourseSyllabusesAsync(context, hcmCampus, programs, specializations, programSubjects, subjects);
+        await SeedScheduleTemplatesAsync(
+            context,
+            hcmCampus,
+            subjects,
+            terms,
+            administrativeClasses,
+            shifts
+        );
+        await SeedCourseSyllabusesAsync(
+            context,
+            hcmCampus,
+            programs,
+            specializations,
+            programSubjects,
+            subjects
+        );
         await SeedProgramTuitionConfigsAsync(context, hcmCampus, programs, terms);
         await SeedTuitionReceivingAccountAsync(context, hcmCampus);
         await SeedDeKiemTraAsync(context, subjects, terms);
@@ -74,26 +100,27 @@ public static class Data
             new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.CampusAdmin), "Quản trị cơ sở"),
             new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.SubCampusAdmin), "Quản trị cơ sở con"),
             new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.Chairman), "Chủ tịch hệ thống"),
-            new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.HoiDongQuanLyNoiDung), "Hội đồng quản lý nội dung"),
+            new RoleSeed(
+                AuthRoles.ToDatabaseCode(AuthRoles.HoiDongQuanLyNoiDung),
+                "Hội đồng quản lý nội dung"
+            ),
             new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.FinanceAdmin), "Admin tài chính"),
             new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.CampusAccountant), "Kế toán cơ sở"),
-            new RoleSeed(AuthRoles.ToDatabaseCode(AuthRoles.CampusChiefAccountant), "Kế toán trưởng cơ sở"),
+            new RoleSeed(
+                AuthRoles.ToDatabaseCode(AuthRoles.CampusChiefAccountant),
+                "Kế toán trưởng cơ sở"
+            ),
         };
 
         var nextRoleId = ((await context.VaiTros.MaxAsync(x => (int?)x.MaVaiTro)) ?? 0) + 1;
 
         foreach (var plan in rolePlans)
         {
-            var role = await context.VaiTros.FirstOrDefaultAsync(x =>
-                x.MaCodeVaiTro == plan.Code);
+            var role = await context.VaiTros.FirstOrDefaultAsync(x => x.MaCodeVaiTro == plan.Code);
 
             if (role is null)
             {
-                role = new VaiTro
-                {
-                    MaVaiTro = nextRoleId++,
-                    MaCodeVaiTro = plan.Code,
-                };
+                role = new VaiTro { MaVaiTro = nextRoleId++, MaCodeVaiTro = plan.Code };
 
                 context.VaiTros.Add(role);
             }
@@ -106,7 +133,8 @@ public static class Data
 
     private static async Task<DonVi> GetOrCreateRootCampusAsync(ApplicationDbContext context)
     {
-        var root = await context.DonVis.FirstOrDefaultAsync(x => x.CapDonVi == RootLevel)
+        var root =
+            await context.DonVis.FirstOrDefaultAsync(x => x.CapDonVi == RootLevel)
             ?? await context.DonVis.FirstOrDefaultAsync(x => x.TenDonVi == RootCampusName);
 
         if (root is null)
@@ -134,7 +162,8 @@ public static class Data
 
     private static async Task<Dictionary<string, DonVi>> SeedCampusesAsync(
         ApplicationDbContext context,
-        DonVi rootCampus)
+        DonVi rootCampus
+    )
     {
         var campusPlans = new[]
         {
@@ -167,13 +196,16 @@ public static class Data
     private static async Task<DonVi> GetOrCreateCampusAsync(
         ApplicationDbContext context,
         DonVi rootCampus,
-        CampusSeed plan)
+        CampusSeed plan
+    )
     {
         var campus = await context.DonVis.FirstOrDefaultAsync(x => x.TenDonVi == plan.Name);
 
         if (campus is null && plan.Aliases.Length > 0)
         {
-            campus = await context.DonVis.FirstOrDefaultAsync(x => plan.Aliases.Contains(x.TenDonVi));
+            campus = await context.DonVis.FirstOrDefaultAsync(x =>
+                plan.Aliases.Contains(x.TenDonVi)
+            );
         }
 
         if (campus is null)
@@ -201,7 +233,8 @@ public static class Data
     }
 
     private static async Task<Dictionary<string, NganhDaoTao>> SeedMajorsAsync(
-        ApplicationDbContext context)
+        ApplicationDbContext context
+    )
     {
         var majorPlans = new[]
         {
@@ -215,15 +248,12 @@ public static class Data
         foreach (var plan in majorPlans)
         {
             var major = await context.NganhDaoTaos.FirstOrDefaultAsync(x =>
-                x.MaCodeNganh == plan.Code);
+                x.MaCodeNganh == plan.Code
+            );
 
             if (major is null)
             {
-                major = new NganhDaoTao
-                {
-                    MaCodeNganh = plan.Code,
-                    NgayTao = DateTime.UtcNow,
-                };
+                major = new NganhDaoTao { MaCodeNganh = plan.Code, NgayTao = DateTime.UtcNow };
 
                 context.NganhDaoTaos.Add(major);
             }
@@ -241,7 +271,8 @@ public static class Data
 
     private static async Task<Dictionary<string, ChuyenNganh>> SeedSpecializationsAsync(
         ApplicationDbContext context,
-        IReadOnlyDictionary<string, NganhDaoTao> majors)
+        IReadOnlyDictionary<string, NganhDaoTao> majors
+    )
     {
         var specializationPlans = new[]
         {
@@ -262,8 +293,8 @@ public static class Data
         {
             var major = majors[plan.MajorCode];
             var specialization = await context.ChuyenNganhs.FirstOrDefaultAsync(x =>
-                x.MaNganh == major.MaNganh &&
-                x.TenChuyenNganh == plan.Name);
+                x.MaNganh == major.MaNganh && x.TenChuyenNganh == plan.Name
+            );
 
             if (specialization is null)
             {
@@ -278,8 +309,7 @@ public static class Data
 
             specialization.MaNganh = major.MaNganh;
             specialization.TenChuyenNganh = plan.Name;
-            specialization.MoTa =
-                $"Chuyên ngành {plan.Name} thuộc ngành {major.TenNganh}.";
+            specialization.MoTa = $"Chuyên ngành {plan.Name} thuộc ngành {major.TenNganh}.";
             specialization.ConHoatDong = true;
             specialization.NgayCapNhat = DateTime.UtcNow;
             result[plan.Code] = specialization;
@@ -292,13 +322,14 @@ public static class Data
     private static async Task SeedCampusSpecializationsAsync(
         ApplicationDbContext context,
         DonVi campus,
-        IEnumerable<ChuyenNganh> specializations)
+        IEnumerable<ChuyenNganh> specializations
+    )
     {
         foreach (var specialization in specializations)
         {
             var campusSpecialization = await context.ChuyenNganhTheoCoSos.FirstOrDefaultAsync(x =>
-                x.MaDonVi == campus.MaDonVi &&
-                x.MaChuyenNganh == specialization.MaChuyenNganh);
+                x.MaDonVi == campus.MaDonVi && x.MaChuyenNganh == specialization.MaChuyenNganh
+            );
 
             if (campusSpecialization is null)
             {
@@ -315,7 +346,8 @@ public static class Data
             campusSpecialization.TrangThai = ApprovedStatus;
             campusSpecialization.NamBatDau = 2026;
             campusSpecialization.ChiTieuDuKien = 120;
-            campusSpecialization.GhiChu = $"Mở chuyên ngành {specialization.TenChuyenNganh} tại {campus.TenDonVi}.";
+            campusSpecialization.GhiChu =
+                $"Mở chuyên ngành {specialization.TenChuyenNganh} tại {campus.TenDonVi}.";
             campusSpecialization.ConHoatDong = true;
             campusSpecialization.NgayCapNhat = DateTime.UtcNow;
         }
@@ -329,11 +361,7 @@ public static class Data
 
         if (cohort is null)
         {
-            cohort = new KhoaTuyenSinh
-            {
-                MaCodeKhoa = "K2026",
-                NgayTao = DateTime.UtcNow,
-            };
+            cohort = new KhoaTuyenSinh { MaCodeKhoa = "K2026", NgayTao = DateTime.UtcNow };
 
             context.KhoaTuyenSinhs.Add(cohort);
         }
@@ -351,19 +379,83 @@ public static class Data
 
     private static async Task<IReadOnlyList<HocKy>> SeedAcademicTermsAsync(
         ApplicationDbContext context,
-        DonVi campus)
+        DonVi campus
+    )
     {
         var termPlans = new[]
         {
-            new AcademicTermSeed("HK1_2026", "Học kỳ 1 năm 2026", "2026", 1, new DateOnly(2026, 1, 1), new DateOnly(2026, 4, 30)),
-            new AcademicTermSeed("HK2_2026", "Học kỳ 2 năm 2026", "2026", 2, new DateOnly(2026, 5, 1), new DateOnly(2026, 8, 31)),
-            new AcademicTermSeed("HK3_2026", "Học kỳ 3 năm 2026", "2026", 3, new DateOnly(2026, 9, 1), new DateOnly(2026, 12, 31)),
-            new AcademicTermSeed("HK1_2027", "Học kỳ 1 năm 2027", "2027", 1, new DateOnly(2027, 1, 1), new DateOnly(2027, 4, 30)),
-            new AcademicTermSeed("HK2_2027", "Học kỳ 2 năm 2027", "2027", 2, new DateOnly(2027, 5, 1), new DateOnly(2027, 8, 31)),
-            new AcademicTermSeed("HK3_2027", "Học kỳ 3 năm 2027", "2027", 3, new DateOnly(2027, 9, 1), new DateOnly(2027, 12, 31)),
-            new AcademicTermSeed("HK1_2028", "Học kỳ 1 năm 2028", "2028", 1, new DateOnly(2028, 1, 1), new DateOnly(2028, 4, 30)),
-            new AcademicTermSeed("HK2_2028", "Học kỳ 2 năm 2028", "2028", 2, new DateOnly(2028, 5, 1), new DateOnly(2028, 8, 31)),
-            new AcademicTermSeed("HK3_2028", "Học kỳ 3 năm 2028", "2028", 3, new DateOnly(2028, 9, 1), new DateOnly(2028, 12, 31)),
+            new AcademicTermSeed(
+                "HK1_2026",
+                "Học kỳ 1 năm 2026",
+                "2026",
+                1,
+                new DateOnly(2026, 1, 1),
+                new DateOnly(2026, 4, 30)
+            ),
+            new AcademicTermSeed(
+                "HK2_2026",
+                "Học kỳ 2 năm 2026",
+                "2026",
+                2,
+                new DateOnly(2026, 5, 1),
+                new DateOnly(2026, 8, 31)
+            ),
+            new AcademicTermSeed(
+                "HK3_2026",
+                "Học kỳ 3 năm 2026",
+                "2026",
+                3,
+                new DateOnly(2026, 9, 1),
+                new DateOnly(2026, 12, 31)
+            ),
+            new AcademicTermSeed(
+                "HK1_2027",
+                "Học kỳ 1 năm 2027",
+                "2027",
+                1,
+                new DateOnly(2027, 1, 1),
+                new DateOnly(2027, 4, 30)
+            ),
+            new AcademicTermSeed(
+                "HK2_2027",
+                "Học kỳ 2 năm 2027",
+                "2027",
+                2,
+                new DateOnly(2027, 5, 1),
+                new DateOnly(2027, 8, 31)
+            ),
+            new AcademicTermSeed(
+                "HK3_2027",
+                "Học kỳ 3 năm 2027",
+                "2027",
+                3,
+                new DateOnly(2027, 9, 1),
+                new DateOnly(2027, 12, 31)
+            ),
+            new AcademicTermSeed(
+                "HK1_2028",
+                "Học kỳ 1 năm 2028",
+                "2028",
+                1,
+                new DateOnly(2028, 1, 1),
+                new DateOnly(2028, 4, 30)
+            ),
+            new AcademicTermSeed(
+                "HK2_2028",
+                "Học kỳ 2 năm 2028",
+                "2028",
+                2,
+                new DateOnly(2028, 5, 1),
+                new DateOnly(2028, 8, 31)
+            ),
+            new AcademicTermSeed(
+                "HK3_2028",
+                "Học kỳ 3 năm 2028",
+                "2028",
+                3,
+                new DateOnly(2028, 9, 1),
+                new DateOnly(2028, 12, 31)
+            ),
         };
 
         var terms = new List<HocKy>();
@@ -371,24 +463,21 @@ public static class Data
         foreach (var plan in termPlans)
         {
             var term = await context.HocKys.FirstOrDefaultAsync(x =>
-                x.MaDonVi == campus.MaDonVi &&
-                x.MaCodeHocKy == plan.Code);
+                x.MaDonVi == campus.MaDonVi && x.MaCodeHocKy == plan.Code
+            );
 
             if (term is null)
             {
                 term = await context.HocKys.FirstOrDefaultAsync(x =>
-                    x.MaDonVi == campus.MaDonVi &&
-                    x.NamHoc == plan.Year &&
-                    x.ThuTuTrongNam == plan.TermOrderInYear);
+                    x.MaDonVi == campus.MaDonVi
+                    && x.NamHoc == plan.Year
+                    && x.ThuTuTrongNam == plan.TermOrderInYear
+                );
             }
 
             if (term is null)
             {
-                term = new HocKy
-                {
-                    MaDonVi = campus.MaDonVi,
-                    MaCodeHocKy = plan.Code,
-                };
+                term = new HocKy { MaDonVi = campus.MaDonVi, MaCodeHocKy = plan.Code };
 
                 context.HocKys.Add(term);
             }
@@ -411,7 +500,8 @@ public static class Data
     }
 
     private static async Task<Dictionary<string, DanhMucMonHoc>> SeedSubjectsAsync(
-        ApplicationDbContext context)
+        ApplicationDbContext context
+    )
     {
         var subjectPlans = new[]
         {
@@ -457,14 +547,12 @@ public static class Data
         foreach (var plan in subjectPlans)
         {
             var subject = await context.DanhMucMonHocs.FirstOrDefaultAsync(x =>
-                x.MaCodeMonHoc == plan.Code);
+                x.MaCodeMonHoc == plan.Code
+            );
 
             if (subject is null)
             {
-                subject = new DanhMucMonHoc
-                {
-                    MaCodeMonHoc = plan.Code,
-                };
+                subject = new DanhMucMonHoc { MaCodeMonHoc = plan.Code };
 
                 context.DanhMucMonHocs.Add(subject);
             }
@@ -481,9 +569,12 @@ public static class Data
 
     private static async Task SeedLearningContentAsync(
         ApplicationDbContext context,
-        IReadOnlyDictionary<string, DanhMucMonHoc> subjects)
+        IReadOnlyDictionary<string, DanhMucMonHoc> subjects
+    )
     {
-        var chapterPlansBySubject = new Dictionary<string, StandardChapterSeed[]>(StringComparer.OrdinalIgnoreCase)
+        var chapterPlansBySubject = new Dictionary<string, StandardChapterSeed[]>(
+            StringComparer.OrdinalIgnoreCase
+        )
         {
             ["COM103"] =
             [
@@ -491,16 +582,46 @@ public static class Data
                     1,
                     "Tổng quan C# và .NET",
                     [
-                        new(1, "Cài đặt môi trường .NET SDK và IDE", "video", "/demo/lessons/com103/setup-dotnet.mp4", 900, null),
-                        new(2, "Cấu trúc chương trình C# đầu tiên", "pdf", "/demo/lessons/com103/chuong-trinh-dau-tien.pdf", null, null),
-                    ]),
+                        new(
+                            1,
+                            "Cài đặt môi trường .NET SDK và IDE",
+                            "video",
+                            "/demo/lessons/com103/setup-dotnet.mp4",
+                            900,
+                            null
+                        ),
+                        new(
+                            2,
+                            "Cấu trúc chương trình C# đầu tiên",
+                            "pdf",
+                            "/demo/lessons/com103/chuong-trinh-dau-tien.pdf",
+                            null,
+                            null
+                        ),
+                    ]
+                ),
                 new(
                     2,
                     "Cú pháp nền tảng",
                     [
-                        new(1, "Biến, kiểu dữ liệu và toán tử", "video", "/demo/lessons/com103/bien-kieu-du-lieu.mp4", 780, null),
-                        new(2, "Câu lệnh điều kiện và vòng lặp", "van_ban", null, null, "Thực hành if/else, switch, for, while và foreach trong ứng dụng console."),
-                    ]),
+                        new(
+                            1,
+                            "Biến, kiểu dữ liệu và toán tử",
+                            "video",
+                            "/demo/lessons/com103/bien-kieu-du-lieu.mp4",
+                            780,
+                            null
+                        ),
+                        new(
+                            2,
+                            "Câu lệnh điều kiện và vòng lặp",
+                            "van_ban",
+                            null,
+                            null,
+                            "Thực hành if/else, switch, for, while và foreach trong ứng dụng console."
+                        ),
+                    ]
+                ),
             ],
         };
 
@@ -511,15 +632,12 @@ public static class Data
             foreach (var chapterPlan in chapterPlans)
             {
                 var chapter = await context.Chuongs.FirstOrDefaultAsync(x =>
-                    x.MaMonHoc == subject.MaMonHoc &&
-                    x.ThuTu == chapterPlan.Order);
+                    x.MaMonHoc == subject.MaMonHoc && x.ThuTu == chapterPlan.Order
+                );
 
                 if (chapter is null)
                 {
-                    chapter = new Chuong
-                    {
-                        MaMonHoc = subject.MaMonHoc,
-                    };
+                    chapter = new Chuong { MaMonHoc = subject.MaMonHoc };
 
                     context.Chuongs.Add(chapter);
                 }
@@ -533,15 +651,12 @@ public static class Data
                 foreach (var lessonPlan in chapterPlan.Lessons)
                 {
                     var lesson = await context.BaiHocs.FirstOrDefaultAsync(x =>
-                        x.MaChuong == chapter.MaChuong &&
-                        x.ThuTu == lessonPlan.Order);
+                        x.MaChuong == chapter.MaChuong && x.ThuTu == lessonPlan.Order
+                    );
 
                     if (lesson is null)
                     {
-                        lesson = new BaiHoc
-                        {
-                            MaChuong = chapter.MaChuong,
-                        };
+                        lesson = new BaiHoc { MaChuong = chapter.MaChuong };
 
                         context.BaiHocs.Add(lesson);
                     }
@@ -569,22 +684,20 @@ public static class Data
                 3,
                 [".pdf", ".docx", ".zip"],
                 "Chấm theo tính đúng chức năng, cấu trúc code, xử lý lỗi nhập liệu và báo cáo ngắn.",
-                PublishedStatus),
+                PublishedStatus
+            ),
         };
 
         foreach (var plan in assignmentPlans)
         {
             var subject = subjects[plan.SubjectCode];
             var assignment = await context.BaiTaps.FirstOrDefaultAsync(x =>
-                x.MaMonHoc == subject.MaMonHoc &&
-                x.TieuDe == plan.Title);
+                x.MaMonHoc == subject.MaMonHoc && x.TieuDe == plan.Title
+            );
 
             if (assignment is null)
             {
-                assignment = new BaiTap
-                {
-                    MaMonHoc = subject.MaMonHoc,
-                };
+                assignment = new BaiTap { MaMonHoc = subject.MaMonHoc };
 
                 context.BaiTaps.Add(assignment);
             }
@@ -604,7 +717,8 @@ public static class Data
     private static async Task<Dictionary<string, ChuongTrinhDaoTao>> SeedTrainingProgramsAsync(
         ApplicationDbContext context,
         KhoaTuyenSinh cohort,
-        IReadOnlyDictionary<string, ChuyenNganh> specializations)
+        IReadOnlyDictionary<string, ChuyenNganh> specializations
+    )
     {
         var programPlans = new[]
         {
@@ -613,19 +727,22 @@ public static class Data
                 "Chương trình Công nghệ thông tin K2026",
                 "CNTT_PTPM",
                 122,
-                "Chương trình đào tạo K2026 cho ngành Công nghệ thông tin."),
+                "Chương trình đào tạo K2026 cho ngành Công nghệ thông tin."
+            ),
             new TrainingProgramSeed(
                 "CT_TKDH_K2026",
                 "Chương trình Thiết kế đồ họa K2026",
                 "TKDH_UIUX",
                 118,
-                "Chương trình đào tạo K2026 cho ngành Thiết kế đồ họa."),
+                "Chương trình đào tạo K2026 cho ngành Thiết kế đồ họa."
+            ),
             new TrainingProgramSeed(
                 "CT_MKT_K2026",
                 "Chương trình Marketing K2026",
                 "MKT_DIGITAL",
                 116,
-                "Chương trình đào tạo K2026 cho ngành Marketing."),
+                "Chương trình đào tạo K2026 cho ngành Marketing."
+            ),
         };
 
         var result = new Dictionary<string, ChuongTrinhDaoTao>(StringComparer.OrdinalIgnoreCase);
@@ -633,14 +750,16 @@ public static class Data
         foreach (var plan in programPlans)
         {
             var program = await context.ChuongTrinhDaoTaos.FirstOrDefaultAsync(x =>
-                x.MaCodeChuongTrinh == plan.Code);
+                x.MaCodeChuongTrinh == plan.Code
+            );
 
             if (program is null)
             {
                 program = await context.ChuongTrinhDaoTaos.FirstOrDefaultAsync(x =>
-                    x.MaChuyenNganh == specializations[plan.SpecializationCode].MaChuyenNganh &&
-                    x.MaKhoaTuyenSinh == cohort.MaKhoaTuyenSinh &&
-                    x.Version == ProgramVersion);
+                    x.MaChuyenNganh == specializations[plan.SpecializationCode].MaChuyenNganh
+                    && x.MaKhoaTuyenSinh == cohort.MaKhoaTuyenSinh
+                    && x.Version == ProgramVersion
+                );
             }
 
             if (program is null)
@@ -682,7 +801,8 @@ public static class Data
     private static async Task SeedProgramTermsAsync(
         ApplicationDbContext context,
         IEnumerable<ChuongTrinhDaoTao> programs,
-        IReadOnlyList<HocKy> terms)
+        IReadOnlyList<HocKy> terms
+    )
     {
         foreach (var program in programs)
         {
@@ -691,22 +811,19 @@ public static class Data
                 var term = terms[index];
                 var programTermOrder = index + 1;
                 var mapping = await context.ChuongTrinhHocKys.FirstOrDefaultAsync(x =>
-                    x.MaChuongTrinh == program.MaChuongTrinh &&
-                    x.ThuTuHocKy == programTermOrder);
+                    x.MaChuongTrinh == program.MaChuongTrinh && x.ThuTuHocKy == programTermOrder
+                );
 
                 if (mapping is null)
                 {
                     mapping = await context.ChuongTrinhHocKys.FirstOrDefaultAsync(x =>
-                        x.MaChuongTrinh == program.MaChuongTrinh &&
-                        x.MaHocKy == term.MaHocKy);
+                        x.MaChuongTrinh == program.MaChuongTrinh && x.MaHocKy == term.MaHocKy
+                    );
                 }
 
                 if (mapping is null)
                 {
-                    mapping = new ChuongTrinhHocKy
-                    {
-                        MaChuongTrinh = program.MaChuongTrinh,
-                    };
+                    mapping = new ChuongTrinhHocKy { MaChuongTrinh = program.MaChuongTrinh };
 
                     context.ChuongTrinhHocKys.Add(mapping);
                 }
@@ -722,40 +839,72 @@ public static class Data
     private static async Task<Dictionary<string, MonHocTrongChuongTrinh>> SeedProgramSubjectsAsync(
         ApplicationDbContext context,
         IReadOnlyDictionary<string, ChuongTrinhDaoTao> programs,
-        IReadOnlyDictionary<string, DanhMucMonHoc> subjects)
+        IReadOnlyDictionary<string, DanhMucMonHoc> subjects
+    )
     {
-        var planByProgram = new Dictionary<string, ProgramSubjectSeed[]>(StringComparer.OrdinalIgnoreCase)
+        var planByProgram = new Dictionary<string, ProgramSubjectSeed[]>(
+            StringComparer.OrdinalIgnoreCase
+        )
         {
             ["CT_CNTT_K2026"] =
             [
-                new(1, "GEN101"), new(1, "GEN102"), new(1, "COM101"),
-                new(2, "COM102"), new(2, "WEB101"), new(2, "GEN104"),
-                new(3, "COM103"), new(3, "WEB102"), new(3, "DBI101"),
-                new(4, "API101"), new(4, "FE101"),
-                new(5, "BE101"), new(5, "PRO101"),
-                new(6, "GEN103"), new(6, "GEN105"),
+                new(1, "GEN101"),
+                new(1, "GEN102"),
+                new(1, "COM101"),
+                new(2, "COM102"),
+                new(2, "WEB101"),
+                new(2, "GEN104"),
+                new(3, "COM103"),
+                new(3, "WEB102"),
+                new(3, "DBI101"),
+                new(4, "API101"),
+                new(4, "FE101"),
+                new(5, "BE101"),
+                new(5, "PRO101"),
+                new(6, "GEN103"),
+                new(6, "GEN105"),
             ],
             ["CT_TKDH_K2026"] =
             [
-                new(1, "GEN101"), new(1, "DES101"), new(1, "DES102"),
-                new(2, "DES103"), new(2, "DES105"), new(2, "GEN104"),
-                new(3, "DES104"), new(3, "DES106"), new(3, "DES107"),
-                new(4, "DES108"), new(4, "DES109"),
-                new(5, "DES110"), new(5, "GEN102"),
-                new(6, "GEN103"), new(6, "GEN105"),
+                new(1, "GEN101"),
+                new(1, "DES101"),
+                new(1, "DES102"),
+                new(2, "DES103"),
+                new(2, "DES105"),
+                new(2, "GEN104"),
+                new(3, "DES104"),
+                new(3, "DES106"),
+                new(3, "DES107"),
+                new(4, "DES108"),
+                new(4, "DES109"),
+                new(5, "DES110"),
+                new(5, "GEN102"),
+                new(6, "GEN103"),
+                new(6, "GEN105"),
             ],
             ["CT_MKT_K2026"] =
             [
-                new(1, "GEN101"), new(1, "MKT101"), new(1, "MKT102"),
-                new(2, "MKT103"), new(2, "MKT104"), new(2, "GEN104"),
-                new(3, "MKT105"), new(3, "MKT106"), new(3, "MKT109"),
-                new(4, "MKT107"), new(4, "MKT108"),
-                new(5, "MKT110"), new(5, "GEN102"),
-                new(6, "GEN103"), new(6, "GEN105"),
+                new(1, "GEN101"),
+                new(1, "MKT101"),
+                new(1, "MKT102"),
+                new(2, "MKT103"),
+                new(2, "MKT104"),
+                new(2, "GEN104"),
+                new(3, "MKT105"),
+                new(3, "MKT106"),
+                new(3, "MKT109"),
+                new(4, "MKT107"),
+                new(4, "MKT108"),
+                new(5, "MKT110"),
+                new(5, "GEN102"),
+                new(6, "GEN103"),
+                new(6, "GEN105"),
             ],
         };
 
-        var result = new Dictionary<string, MonHocTrongChuongTrinh>(StringComparer.OrdinalIgnoreCase);
+        var result = new Dictionary<string, MonHocTrongChuongTrinh>(
+            StringComparer.OrdinalIgnoreCase
+        );
 
         foreach (var (programCode, subjectPlans) in planByProgram)
         {
@@ -766,8 +915,8 @@ public static class Data
             {
                 var subject = subjects[plan.SubjectCode];
                 var programSubject = await context.MonHocTrongChuongTrinhs.FirstOrDefaultAsync(x =>
-                    x.MaChuongTrinh == program.MaChuongTrinh &&
-                    x.MaMonHoc == subject.MaMonHoc);
+                    x.MaChuongTrinh == program.MaChuongTrinh && x.MaMonHoc == subject.MaMonHoc
+                );
 
                 if (programSubject is null)
                 {
@@ -786,7 +935,8 @@ public static class Data
                 programSubject.LoaiMonHoc = RequiredSubjectType;
                 programSubject.BatBuoc = true;
                 programSubject.ThuTu = order++;
-                programSubject.GhiChu = $"Môn {subject.MaCodeMonHoc} trong {program.TenChuongTrinh}.";
+                programSubject.GhiChu =
+                    $"Môn {subject.MaCodeMonHoc} trong {program.TenChuongTrinh}.";
                 programSubject.ConHoatDong = true;
                 programSubject.NgayCapNhat = DateTime.UtcNow;
                 result[$"{programCode}:{plan.SubjectCode}"] = programSubject;
@@ -800,33 +950,128 @@ public static class Data
     private static async Task<Dictionary<string, NguoiDung>> SeedDemoUsersAsync(
         ApplicationDbContext context,
         DonVi rootCampus,
-        DonVi hcmCampus)
+        DonVi hcmCampus
+    )
     {
         var userPlans = new[]
         {
-            new DemoUserSeed("superadmin@lms.local", "Super Admin", AuthRoles.ToDatabaseCode(AuthRoles.SuperAdmin), rootCampus.MaDonVi),
-            new DemoUserSeed("admin@lms.local", "Admin Hệ Thống", AuthRoles.ToDatabaseCode(AuthRoles.Admin), rootCampus.MaDonVi),
-            new DemoUserSeed("campusadmin.hcm@lms.local", "Admin Cơ Sở Hồ Chí Minh", AuthRoles.ToDatabaseCode(AuthRoles.CampusAdmin), hcmCampus.MaDonVi),
-            new DemoUserSeed("giaovu.hcm@lms.local", "Giáo Vụ Hồ Chí Minh", AuthRoles.ToDatabaseCode(AuthRoles.AcademicStaff), hcmCampus.MaDonVi),
-            new DemoUserSeed("principal@lms.local", "Ban Giám Hiệu", AuthRoles.ToDatabaseCode(AuthRoles.Principal), hcmCampus.MaDonVi),
-            new DemoUserSeed("teacher.cntt@lms.local", "Nguyễn Văn Lập Trình", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
-            new DemoUserSeed("teacher.tkdh@lms.local", "Trần Thị Thiết Kế", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
-            new DemoUserSeed("teacher.mkt@lms.local", "Lê Văn Marketing", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
-            new DemoUserSeed("teacher.csharp.a@lms.local", "Nguyễn Văn An", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
-            new DemoUserSeed("teacher.csharp.b@lms.local", "Trần Thị Bình", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
-            new DemoUserSeed("teacher.database.c@lms.local", "Phạm Minh Cường", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
-            new DemoUserSeed("teacher.database.d@lms.local", "Đỗ Thị Dung", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
-            new DemoUserSeed("teacher.marketing.e@lms.local", "Lê Thị Em", AuthRoles.ToDatabaseCode(AuthRoles.Teacher), hcmCampus.MaDonVi),
-            new DemoUserSeed("student.cntt01@lms.local", "Nguyễn Văn Sinh Viên CNTT", AuthRoles.ToDatabaseCode(AuthRoles.Student), hcmCampus.MaDonVi, 2026),
-            new DemoUserSeed("student.tkdh01@lms.local", "Trần Thị Sinh Viên Thiết Kế", AuthRoles.ToDatabaseCode(AuthRoles.Student), hcmCampus.MaDonVi, 2026),
-            new DemoUserSeed("student.mkt01@lms.local", "Lê Văn Sinh Viên Marketing", AuthRoles.ToDatabaseCode(AuthRoles.Student), hcmCampus.MaDonVi, 2026),
-            new DemoUserSeed("parent01@lms.local", "Phụ Huynh Demo", AuthRoles.ToDatabaseCode(AuthRoles.Parent), hcmCampus.MaDonVi),
-            new DemoUserSeed("hoidong.quanly.noidung@lms.local", "Hội Đồng Quản Lý Nội Dung", AuthRoles.ToDatabaseCode(AuthRoles.HoiDongQuanLyNoiDung), hcmCampus.MaDonVi),
+            new DemoUserSeed(
+                "superadmin@lms.local",
+                "Super Admin",
+                AuthRoles.ToDatabaseCode(AuthRoles.SuperAdmin),
+                rootCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "admin@lms.local",
+                "Admin Hệ Thống",
+                AuthRoles.ToDatabaseCode(AuthRoles.Admin),
+                rootCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "campusadmin.hcm@lms.local",
+                "Admin Cơ Sở Hồ Chí Minh",
+                AuthRoles.ToDatabaseCode(AuthRoles.CampusAdmin),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "giaovu.hcm@lms.local",
+                "Giáo Vụ Hồ Chí Minh",
+                AuthRoles.ToDatabaseCode(AuthRoles.AcademicStaff),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "principal@lms.local",
+                "Ban Giám Hiệu",
+                AuthRoles.ToDatabaseCode(AuthRoles.Principal),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "teacher.cntt@lms.local",
+                "Nguyễn Văn Lập Trình",
+                AuthRoles.ToDatabaseCode(AuthRoles.Teacher),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "teacher.tkdh@lms.local",
+                "Trần Thị Thiết Kế",
+                AuthRoles.ToDatabaseCode(AuthRoles.Teacher),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "teacher.mkt@lms.local",
+                "Lê Văn Marketing",
+                AuthRoles.ToDatabaseCode(AuthRoles.Teacher),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "teacher.csharp.a@lms.local",
+                "Nguyễn Văn An",
+                AuthRoles.ToDatabaseCode(AuthRoles.Teacher),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "teacher.csharp.b@lms.local",
+                "Trần Thị Bình",
+                AuthRoles.ToDatabaseCode(AuthRoles.Teacher),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "teacher.database.c@lms.local",
+                "Phạm Minh Cường",
+                AuthRoles.ToDatabaseCode(AuthRoles.Teacher),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "teacher.database.d@lms.local",
+                "Đỗ Thị Dung",
+                AuthRoles.ToDatabaseCode(AuthRoles.Teacher),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "teacher.marketing.e@lms.local",
+                "Lê Thị Em",
+                AuthRoles.ToDatabaseCode(AuthRoles.Teacher),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "student.cntt01@lms.local",
+                "Nguyễn Văn Sinh Viên CNTT",
+                AuthRoles.ToDatabaseCode(AuthRoles.Student),
+                hcmCampus.MaDonVi,
+                2026
+            ),
+            new DemoUserSeed(
+                "student.tkdh01@lms.local",
+                "Trần Thị Sinh Viên Thiết Kế",
+                AuthRoles.ToDatabaseCode(AuthRoles.Student),
+                hcmCampus.MaDonVi,
+                2026
+            ),
+            new DemoUserSeed(
+                "student.mkt01@lms.local",
+                "Lê Văn Sinh Viên Marketing",
+                AuthRoles.ToDatabaseCode(AuthRoles.Student),
+                hcmCampus.MaDonVi,
+                2026
+            ),
+            new DemoUserSeed(
+                "parent01@lms.local",
+                "Phụ Huynh Demo",
+                AuthRoles.ToDatabaseCode(AuthRoles.Parent),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "hoidong.quanly.noidung@lms.local",
+                "Hội Đồng Quản Lý Nội Dung",
+                AuthRoles.ToDatabaseCode(AuthRoles.HoiDongQuanLyNoiDung),
+                hcmCampus.MaDonVi
+            ),
         };
 
         var roles = await context.VaiTros.ToDictionaryAsync(
             x => x.MaCodeVaiTro,
-            StringComparer.OrdinalIgnoreCase);
+            StringComparer.OrdinalIgnoreCase
+        );
         var result = new Dictionary<string, NguoiDung>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var plan in userPlans)
@@ -835,11 +1080,7 @@ public static class Data
 
             if (user is null)
             {
-                user = new NguoiDung
-                {
-                    Email = plan.Email,
-                    NgayTao = DateTime.UtcNow,
-                };
+                user = new NguoiDung { Email = plan.Email, NgayTao = DateTime.UtcNow };
 
                 context.NguoiDungs.Add(user);
             }
@@ -866,17 +1107,19 @@ public static class Data
 
             var user = result[plan.Email];
             var hasAssignment = await context.PhanQuyenNguoiDungs.AnyAsync(x =>
-                x.MaNguoiDung == user.MaNguoiDung &&
-                x.MaVaiTro == role.MaVaiTro);
+                x.MaNguoiDung == user.MaNguoiDung && x.MaVaiTro == role.MaVaiTro
+            );
 
             if (!hasAssignment)
             {
-                context.PhanQuyenNguoiDungs.Add(new PhanQuyenNguoiDung
-                {
-                    MaNguoiDung = user.MaNguoiDung,
-                    MaVaiTro = role.MaVaiTro,
-                    NgayGan = DateTime.UtcNow,
-                });
+                context.PhanQuyenNguoiDungs.Add(
+                    new PhanQuyenNguoiDung
+                    {
+                        MaNguoiDung = user.MaNguoiDung,
+                        MaVaiTro = role.MaVaiTro,
+                        NgayGan = DateTime.UtcNow,
+                    }
+                );
             }
         }
 
@@ -888,7 +1131,8 @@ public static class Data
         ApplicationDbContext context,
         DonVi campus,
         IReadOnlyDictionary<string, ChuongTrinhDaoTao> programs,
-        IReadOnlyDictionary<string, NguoiDung> users)
+        IReadOnlyDictionary<string, NguoiDung> users
+    )
     {
         var classPlans = new[]
         {
@@ -897,55 +1141,64 @@ public static class Data
                 "SD1901 - Công nghệ thông tin K2026",
                 "CT_CNTT_K2026",
                 "teacher.csharp.a@lms.local",
-                "student.cntt01@lms.local"),
+                "student.cntt01@lms.local"
+            ),
             new AdministrativeClassSeed(
                 "SD1902",
                 "SD1902 - Công nghệ thông tin K2026",
                 "CT_CNTT_K2026",
                 "teacher.csharp.a@lms.local",
-                null),
+                null
+            ),
             new AdministrativeClassSeed(
                 "SD1903",
                 "SD1903 - Công nghệ thông tin K2026",
                 "CT_CNTT_K2026",
                 "teacher.csharp.a@lms.local",
-                null),
+                null
+            ),
             new AdministrativeClassSeed(
                 "SD1904",
                 "SD1904 - Công nghệ thông tin K2026",
                 "CT_CNTT_K2026",
                 "teacher.csharp.b@lms.local",
-                null),
+                null
+            ),
             new AdministrativeClassSeed(
                 "SD1905",
                 "SD1905 - Công nghệ thông tin K2026",
                 "CT_CNTT_K2026",
                 "teacher.csharp.b@lms.local",
-                null),
+                null
+            ),
             new AdministrativeClassSeed(
                 "SD1906",
                 "SD1906 - Công nghệ thông tin K2026",
                 "CT_CNTT_K2026",
                 "teacher.database.c@lms.local",
-                null),
+                null
+            ),
             new AdministrativeClassSeed(
                 "TKDH1901",
                 "TKDH1901 - Thiết kế đồ họa K2026",
                 "CT_TKDH_K2026",
                 "teacher.tkdh@lms.local",
-                "student.tkdh01@lms.local"),
+                "student.tkdh01@lms.local"
+            ),
             new AdministrativeClassSeed(
                 "MKT1901",
                 "MKT1901 - Marketing K2026",
                 "CT_MKT_K2026",
                 "teacher.marketing.e@lms.local",
-                "student.mkt01@lms.local"),
+                "student.mkt01@lms.local"
+            ),
             new AdministrativeClassSeed(
                 "MKT1902",
                 "MKT1902 - Marketing K2026",
                 "CT_MKT_K2026",
                 "teacher.marketing.e@lms.local",
-                null),
+                null
+            ),
         };
 
         var result = new Dictionary<string, LopHanhChinh>(StringComparer.OrdinalIgnoreCase);
@@ -953,14 +1206,12 @@ public static class Data
         foreach (var plan in classPlans)
         {
             var administrativeClass = await context.LopHanhChinhs.FirstOrDefaultAsync(x =>
-                x.MaCodeLop == plan.Code);
+                x.MaCodeLop == plan.Code
+            );
 
             if (administrativeClass is null)
             {
-                administrativeClass = new LopHanhChinh
-                {
-                    MaCodeLop = plan.Code,
-                };
+                administrativeClass = new LopHanhChinh { MaCodeLop = plan.Code };
 
                 context.LopHanhChinhs.Add(administrativeClass);
             }
@@ -991,7 +1242,8 @@ public static class Data
         ApplicationDbContext context,
         DonVi campus,
         IReadOnlyDictionary<string, DanhMucMonHoc> subjects,
-        IReadOnlyList<HocKy> terms)
+        IReadOnlyList<HocKy> terms
+    )
     {
         var termsByCode = terms.ToDictionary(x => x.MaCodeHocKy, StringComparer.OrdinalIgnoreCase);
         var sectionPlans = new[]
@@ -1006,14 +1258,12 @@ public static class Data
             var subject = subjects[plan.SubjectCode];
             var term = termsByCode[plan.TermCode];
             var section = await context.LopHocPhans.FirstOrDefaultAsync(x =>
-                x.MaCodeLopHocPhan == plan.Code);
+                x.MaCodeLopHocPhan == plan.Code
+            );
 
             if (section is null)
             {
-                section = new LopHocPhan
-                {
-                    MaCodeLopHocPhan = plan.Code,
-                };
+                section = new LopHocPhan { MaCodeLopHocPhan = plan.Code };
 
                 context.LopHocPhans.Add(section);
             }
@@ -1039,7 +1289,8 @@ public static class Data
         IReadOnlyDictionary<string, DanhMucMonHoc> subjects,
         IReadOnlyList<HocKy> terms,
         IReadOnlyDictionary<string, NguoiDung> users,
-        IReadOnlyDictionary<string, LopHanhChinh> administrativeClasses)
+        IReadOnlyDictionary<string, LopHanhChinh> administrativeClasses
+    )
     {
         var termsByCode = terms.ToDictionary(x => x.MaCodeHocKy, StringComparer.OrdinalIgnoreCase);
         var coursePlans = new[]
@@ -1049,67 +1300,78 @@ public static class Data
                 "teacher.csharp.a@lms.local",
                 "HK3_2026",
                 "SD1901",
-                "Bản phân công giảng dạy môn Lập trình C# cho lớp SD1901 trong HK3_2026."),
+                "Bản phân công giảng dạy môn Lập trình C# cho lớp SD1901 trong HK3_2026."
+            ),
             new TeachingCourseSeed(
                 "COM103",
                 "teacher.csharp.a@lms.local",
                 "HK3_2026",
                 "SD1902",
-                "Bản phân công giảng dạy môn Lập trình C# cho lớp SD1902 trong HK3_2026."),
+                "Bản phân công giảng dạy môn Lập trình C# cho lớp SD1902 trong HK3_2026."
+            ),
             new TeachingCourseSeed(
                 "COM103",
                 "teacher.csharp.a@lms.local",
                 "HK3_2026",
                 "SD1903",
-                "Bản phân công giảng dạy môn Lập trình C# cho lớp SD1903 trong HK3_2026."),
+                "Bản phân công giảng dạy môn Lập trình C# cho lớp SD1903 trong HK3_2026."
+            ),
             new TeachingCourseSeed(
                 "COM103",
                 "teacher.csharp.b@lms.local",
                 "HK3_2026",
                 "SD1904",
-                "Bản phân công giảng dạy môn Lập trình C# cho lớp SD1904 trong HK3_2026."),
+                "Bản phân công giảng dạy môn Lập trình C# cho lớp SD1904 trong HK3_2026."
+            ),
             new TeachingCourseSeed(
                 "COM103",
                 "teacher.csharp.b@lms.local",
                 "HK3_2026",
                 "SD1905",
-                "Bản phân công giảng dạy môn Lập trình C# cho lớp SD1905 trong HK3_2026."),
+                "Bản phân công giảng dạy môn Lập trình C# cho lớp SD1905 trong HK3_2026."
+            ),
             new TeachingCourseSeed(
                 "COM102",
                 "teacher.database.c@lms.local",
                 "HK3_2026",
                 "SD1901",
-                "Bản phân công giảng dạy môn Cơ sở dữ liệu cho lớp SD1901 trong HK3_2026."),
+                "Bản phân công giảng dạy môn Cơ sở dữ liệu cho lớp SD1901 trong HK3_2026."
+            ),
             new TeachingCourseSeed(
                 "COM102",
                 "teacher.database.c@lms.local",
                 "HK3_2026",
                 "SD1902",
-                "Bản phân công giảng dạy môn Cơ sở dữ liệu cho lớp SD1902 trong HK3_2026."),
+                "Bản phân công giảng dạy môn Cơ sở dữ liệu cho lớp SD1902 trong HK3_2026."
+            ),
             new TeachingCourseSeed(
                 "COM102",
                 "teacher.database.d@lms.local",
                 "HK3_2026",
                 "SD1903",
-                "Bản phân công giảng dạy môn Cơ sở dữ liệu cho lớp SD1903 trong HK3_2026."),
+                "Bản phân công giảng dạy môn Cơ sở dữ liệu cho lớp SD1903 trong HK3_2026."
+            ),
             new TeachingCourseSeed(
                 "COM102",
                 "teacher.database.d@lms.local",
                 "HK3_2026",
                 "SD1906",
-                "Bản phân công giảng dạy môn Cơ sở dữ liệu cho lớp SD1906 trong HK3_2026."),
+                "Bản phân công giảng dạy môn Cơ sở dữ liệu cho lớp SD1906 trong HK3_2026."
+            ),
             new TeachingCourseSeed(
                 "MKT101",
                 "teacher.marketing.e@lms.local",
                 "HK3_2026",
                 "MKT1901",
-                "Bản phân công giảng dạy môn Marketing căn bản cho lớp MKT1901 trong HK3_2026."),
+                "Bản phân công giảng dạy môn Marketing căn bản cho lớp MKT1901 trong HK3_2026."
+            ),
             new TeachingCourseSeed(
                 "MKT101",
                 "teacher.marketing.e@lms.local",
                 "HK3_2026",
                 "MKT1902",
-                "Bản phân công giảng dạy môn Marketing căn bản cho lớp MKT1902 trong HK3_2026."),
+                "Bản phân công giảng dạy môn Marketing căn bản cho lớp MKT1902 trong HK3_2026."
+            ),
         };
 
         foreach (var plan in coursePlans)
@@ -1120,10 +1382,11 @@ public static class Data
             var administrativeClass = administrativeClasses[plan.ClassCode];
 
             var course = await context.KhoaHocs.FirstOrDefaultAsync(x =>
-                x.MaDonVi == campus.MaDonVi &&
-                x.MaMonHoc == subject.MaMonHoc &&
-                x.MaHocKy == term.MaHocKy &&
-                x.MaLop == administrativeClass.MaLop);
+                x.MaDonVi == campus.MaDonVi
+                && x.MaMonHoc == subject.MaMonHoc
+                && x.MaHocKy == term.MaHocKy
+                && x.MaLop == administrativeClass.MaLop
+            );
 
             if (course is null)
             {
@@ -1145,16 +1408,20 @@ public static class Data
             course.MaHocKy = term.MaHocKy;
             course.MaLop = administrativeClass.MaLop;
             course.MaLopHocPhan = null;
-            course.TieuDe = $"{subject.TenMonHoc} - {administrativeClass.MaCodeLop} - {term.TenHocKy} - {teacher.HoTen}";
+            course.TieuDe =
+                $"{subject.TenMonHoc} - {administrativeClass.MaCodeLop} - {term.TenHocKy} - {teacher.HoTen}";
             course.MoTa = plan.Description;
             course.TrangThai = PublishedStatus;
-            course.UrlAnhBia = $"/demo/courses/{subject.MaCodeMonHoc.ToLowerInvariant()}-{administrativeClass.MaCodeLop.ToLowerInvariant()}-cover.jpg";
+            course.UrlAnhBia =
+                $"/demo/courses/{subject.MaCodeMonHoc.ToLowerInvariant()}-{administrativeClass.MaCodeLop.ToLowerInvariant()}-cover.jpg";
         }
 
         await context.SaveChangesAsync();
     }
 
-    private static async Task<Dictionary<string, CaHoc>> SeedClassShiftsAsync(ApplicationDbContext context)
+    private static async Task<Dictionary<string, CaHoc>> SeedClassShiftsAsync(
+        ApplicationDbContext context
+    )
     {
         var shiftPlans = new[]
         {
@@ -1173,10 +1440,7 @@ public static class Data
 
             if (shift is null)
             {
-                shift = new CaHoc
-                {
-                    TenCa = plan.Name,
-                };
+                shift = new CaHoc { TenCa = plan.Name };
 
                 context.CaHocs.Add(shift);
             }
@@ -1195,13 +1459,14 @@ public static class Data
 
     private static async Task SeedParentLinkAsync(
         ApplicationDbContext context,
-        IReadOnlyDictionary<string, NguoiDung> users)
+        IReadOnlyDictionary<string, NguoiDung> users
+    )
     {
         var parent = users["parent01@lms.local"];
         var student = users["student.cntt01@lms.local"];
         var link = await context.LienKetPhuHuynhs.FirstOrDefaultAsync(x =>
-            x.MaPhuHuynh == parent.MaNguoiDung &&
-            x.MaHocSinh == student.MaNguoiDung);
+            x.MaPhuHuynh == parent.MaNguoiDung && x.MaHocSinh == student.MaNguoiDung
+        );
 
         if (link is null)
         {
@@ -1214,12 +1479,15 @@ public static class Data
             context.LienKetPhuHuynhs.Add(link);
         }
 
-        link.QuyenXem = JsonSerializer.Serialize(new
-        {
-            grades = true,
-            attendance = true,
-            tuition = true,
-        }, JsonOptions);
+        link.QuyenXem = JsonSerializer.Serialize(
+            new
+            {
+                grades = true,
+                attendance = true,
+                tuition = true,
+            },
+            JsonOptions
+        );
         link.TrangThai = UserStatuses.DbActive;
         link.LienKetLuc ??= DateTime.UtcNow;
 
@@ -1248,31 +1516,107 @@ public static class Data
 
         var roomPlans = new[]
         {
-            new RoomSeed("A101", "Phòng A101", buildingA, floors["A1"], 40, "ly_thuyet", "Phòng lý thuyết 40 chỗ."),
-            new RoomSeed("A102", "Phòng A102", buildingA, floors["A1"], 35, "ly_thuyet", "Phòng lý thuyết 35 chỗ."),
-            new RoomSeed("A201", "Phòng Lab A201", buildingA, floors["A2"], 30, "lab", "Phòng lab thực hành phần mềm."),
-            new RoomSeed("A202", "Phòng Lab A202", buildingA, floors["A2"], 30, "lab", "Phòng lab thực hành phần mềm."),
-            new RoomSeed("A301", "Hội trường A301", buildingA, floors["A3"], 50, "hoi_truong", "Hội trường demo bảo vệ đồ án."),
-            new RoomSeed("B101", "Phòng B101", buildingB, floors["B1"], 45, "ly_thuyet", "Phòng lý thuyết 45 chỗ."),
-            new RoomSeed("B201", "Phòng B201", buildingB, floors["B2"], 35, "ly_thuyet", "Phòng lý thuyết 35 chỗ."),
-            new RoomSeed("C101", "Studio thiết kế C101", buildingC, floors["C1"], 25, "thuc_hanh", "Studio thiết kế đồ họa."),
-            new RoomSeed("P301", "Phòng P301", buildingP, floors["P3"], 40, "ly_thuyet", "Phòng lý thuyết phục vụ lịch học demo."),
-            new RoomSeed("P302", "Phòng P302", buildingP, floors["P3"], 40, "ly_thuyet", "Phòng lý thuyết phục vụ lịch học demo."),
+            new RoomSeed(
+                "A101",
+                "Phòng A101",
+                buildingA,
+                floors["A1"],
+                40,
+                "ly_thuyet",
+                "Phòng lý thuyết 40 chỗ."
+            ),
+            new RoomSeed(
+                "A102",
+                "Phòng A102",
+                buildingA,
+                floors["A1"],
+                35,
+                "ly_thuyet",
+                "Phòng lý thuyết 35 chỗ."
+            ),
+            new RoomSeed(
+                "A201",
+                "Phòng Lab A201",
+                buildingA,
+                floors["A2"],
+                30,
+                "lab",
+                "Phòng lab thực hành phần mềm."
+            ),
+            new RoomSeed(
+                "A202",
+                "Phòng Lab A202",
+                buildingA,
+                floors["A2"],
+                30,
+                "lab",
+                "Phòng lab thực hành phần mềm."
+            ),
+            new RoomSeed(
+                "A301",
+                "Hội trường A301",
+                buildingA,
+                floors["A3"],
+                50,
+                "hoi_truong",
+                "Hội trường demo bảo vệ đồ án."
+            ),
+            new RoomSeed(
+                "B101",
+                "Phòng B101",
+                buildingB,
+                floors["B1"],
+                45,
+                "ly_thuyet",
+                "Phòng lý thuyết 45 chỗ."
+            ),
+            new RoomSeed(
+                "B201",
+                "Phòng B201",
+                buildingB,
+                floors["B2"],
+                35,
+                "ly_thuyet",
+                "Phòng lý thuyết 35 chỗ."
+            ),
+            new RoomSeed(
+                "C101",
+                "Studio thiết kế C101",
+                buildingC,
+                floors["C1"],
+                25,
+                "thuc_hanh",
+                "Studio thiết kế đồ họa."
+            ),
+            new RoomSeed(
+                "P301",
+                "Phòng P301",
+                buildingP,
+                floors["P3"],
+                40,
+                "ly_thuyet",
+                "Phòng lý thuyết phục vụ lịch học demo."
+            ),
+            new RoomSeed(
+                "P302",
+                "Phòng P302",
+                buildingP,
+                floors["P3"],
+                40,
+                "ly_thuyet",
+                "Phòng lý thuyết phục vụ lịch học demo."
+            ),
         };
 
         foreach (var plan in roomPlans)
         {
             var room = await context.PhongHocs.FirstOrDefaultAsync(x =>
-                x.MaDonVi == campus.MaDonVi &&
-                x.MaCodePhong == plan.Code);
+                x.MaDonVi == campus.MaDonVi && x.MaCodePhong == plan.Code
+            );
 
             if (room is null)
             {
-                room = new PhongHoc
-                {
-                    MaDonVi = campus.MaDonVi,
-                    MaCodePhong = plan.Code,
-                };
+                room = new PhongHoc { MaDonVi = campus.MaDonVi, MaCodePhong = plan.Code };
 
                 context.PhongHocs.Add(room);
             }
@@ -1295,7 +1639,8 @@ public static class Data
         IReadOnlyDictionary<string, DanhMucMonHoc> subjects,
         IReadOnlyList<HocKy> terms,
         IReadOnlyDictionary<string, LopHanhChinh> administrativeClasses,
-        IReadOnlyDictionary<string, CaHoc> shifts)
+        IReadOnlyDictionary<string, CaHoc> shifts
+    )
     {
         var termsByCode = terms.ToDictionary(x => x.MaCodeHocKy, StringComparer.OrdinalIgnoreCase);
         var schedulePlans = new[]
@@ -1312,18 +1657,20 @@ public static class Data
             var administrativeClass = administrativeClasses[plan.ClassCode];
             var shift = shifts[plan.ShiftName];
             var room = await context.PhongHocs.FirstAsync(x =>
-                x.MaDonVi == campus.MaDonVi &&
-                x.MaCodePhong == plan.RoomCode);
+                x.MaDonVi == campus.MaDonVi && x.MaCodePhong == plan.RoomCode
+            );
             var course = await context.KhoaHocs.FirstAsync(x =>
-                x.MaDonVi == campus.MaDonVi &&
-                x.MaMonHoc == subject.MaMonHoc &&
-                x.MaHocKy == term.MaHocKy &&
-                x.MaLop == administrativeClass.MaLop);
+                x.MaDonVi == campus.MaDonVi
+                && x.MaMonHoc == subject.MaMonHoc
+                && x.MaHocKy == term.MaHocKy
+                && x.MaLop == administrativeClass.MaLop
+            );
 
             var schedule = await context.ThoiKhoaBieus.FirstOrDefaultAsync(x =>
-                x.MaKhoaHoc == course.MaKhoaHoc &&
-                x.ThuTrongTuan == plan.DayOfWeek &&
-                x.MaCaHoc == shift.MaCaHoc);
+                x.MaKhoaHoc == course.MaKhoaHoc
+                && x.ThuTrongTuan == plan.DayOfWeek
+                && x.MaCaHoc == shift.MaCaHoc
+            );
 
             if (schedule is null)
             {
@@ -1353,11 +1700,12 @@ public static class Data
         DonVi campus,
         string code,
         string name,
-        int floorCount)
+        int floorCount
+    )
     {
         var building = await context.ToaNhas.FirstOrDefaultAsync(x =>
-            x.MaDonVi == campus.MaDonVi &&
-            x.MaCodeToaNha == code);
+            x.MaDonVi == campus.MaDonVi && x.MaCodeToaNha == code
+        );
 
         if (building is null)
         {
@@ -1384,19 +1732,16 @@ public static class Data
     private static async Task<Tang> UpsertFloorAsync(
         ApplicationDbContext context,
         ToaNha building,
-        int floorNumber)
+        int floorNumber
+    )
     {
         var floor = await context.Tangs.FirstOrDefaultAsync(x =>
-            x.MaToaNha == building.MaToaNha &&
-            x.ThuTuTang == floorNumber);
+            x.MaToaNha == building.MaToaNha && x.ThuTuTang == floorNumber
+        );
 
         if (floor is null)
         {
-            floor = new Tang
-            {
-                MaToaNha = building.MaToaNha,
-                ThuTuTang = floorNumber,
-            };
+            floor = new Tang { MaToaNha = building.MaToaNha, ThuTuTang = floorNumber };
 
             context.Tangs.Add(floor);
         }
@@ -1415,7 +1760,8 @@ public static class Data
         IReadOnlyDictionary<string, ChuongTrinhDaoTao> programs,
         IReadOnlyDictionary<string, ChuyenNganh> specializations,
         IReadOnlyDictionary<string, MonHocTrongChuongTrinh> programSubjects,
-        IReadOnlyDictionary<string, DanhMucMonHoc> subjects)
+        IReadOnlyDictionary<string, DanhMucMonHoc> subjects
+    )
     {
         var syllabusPlans = new[]
         {
@@ -1423,7 +1769,12 @@ public static class Data
             new SyllabusSeed("CT_CNTT_K2026", "CNTT_PTPM", "WEB101", "Đề cương Thiết kế Web"),
             new SyllabusSeed("CT_TKDH_K2026", "TKDH_UIUX", "DES101", "Đề cương Nguyên lý thị giác"),
             new SyllabusSeed("CT_TKDH_K2026", "TKDH_UIUX", "DES106", "Đề cương UI/UX Design"),
-            new SyllabusSeed("CT_MKT_K2026", "MKT_DIGITAL", "MKT101", "Đề cương Nguyên lý Marketing"),
+            new SyllabusSeed(
+                "CT_MKT_K2026",
+                "MKT_DIGITAL",
+                "MKT101",
+                "Đề cương Nguyên lý Marketing"
+            ),
             new SyllabusSeed("CT_MKT_K2026", "MKT_DIGITAL", "MKT103", "Đề cương Digital Marketing"),
         };
 
@@ -1431,13 +1782,17 @@ public static class Data
         {
             var subject = subjects[plan.SubjectCode];
             var specialization = specializations[plan.SpecializationCode];
-            programSubjects.TryGetValue($"{plan.ProgramCode}:{plan.SubjectCode}", out var programSubject);
+            programSubjects.TryGetValue(
+                $"{plan.ProgramCode}:{plan.SubjectCode}",
+                out var programSubject
+            );
 
             var syllabus = await context.CourseSyllabuses.FirstOrDefaultAsync(x =>
-                x.MaMonHoc == subject.MaMonHoc &&
-                x.MaChuyenNganh == specialization.MaChuyenNganh &&
-                x.MaDonVi == campus.MaDonVi &&
-                x.Version == ProgramVersion);
+                x.MaMonHoc == subject.MaMonHoc
+                && x.MaChuyenNganh == specialization.MaChuyenNganh
+                && x.MaDonVi == campus.MaDonVi
+                && x.Version == ProgramVersion
+            );
 
             if (syllabus is null)
             {
@@ -1469,7 +1824,8 @@ public static class Data
         ApplicationDbContext context,
         DonVi campus,
         IReadOnlyDictionary<string, ChuongTrinhDaoTao> programs,
-        IReadOnlyList<HocKy> terms)
+        IReadOnlyList<HocKy> terms
+    )
     {
         var tuitionPlans = new[]
         {
@@ -1489,17 +1845,19 @@ public static class Data
                 var termInYear = (index % 3) + 1;
                 var tuitionAmount = plan.YearlyTuitionAmounts[yearInProgram - 1];
                 var config = await context.CauHinhHocPhiChuongTrinhs.FirstOrDefaultAsync(x =>
-                    x.MaDonVi == campus.MaDonVi &&
-                    x.MaChuongTrinhDaoTao == program.MaChuongTrinh &&
-                    x.MaHocKy == term.MaHocKy &&
-                    x.ConHoatDong);
+                    x.MaDonVi == campus.MaDonVi
+                    && x.MaChuongTrinhDaoTao == program.MaChuongTrinh
+                    && x.MaHocKy == term.MaHocKy
+                    && x.ConHoatDong
+                );
 
                 if (config is null)
                 {
                     config = await context.CauHinhHocPhiChuongTrinhs.FirstOrDefaultAsync(x =>
-                        x.MaDonVi == campus.MaDonVi &&
-                        x.MaChuongTrinhDaoTao == program.MaChuongTrinh &&
-                        x.MaHocKy == term.MaHocKy);
+                        x.MaDonVi == campus.MaDonVi
+                        && x.MaChuongTrinhDaoTao == program.MaChuongTrinh
+                        && x.MaHocKy == term.MaHocKy
+                    );
                 }
 
                 if (config is null)
@@ -1523,7 +1881,8 @@ public static class Data
                 config.TienHocLieu = plan.MaterialAmount;
                 config.TongTienDuKien = tuitionAmount + plan.MaterialAmount;
                 config.ConHoatDong = true;
-                config.GhiChu = $"{program.TenChuongTrinh} - năm {yearInProgram} kỳ {termInYear} tại {campus.TenDonVi}.";
+                config.GhiChu =
+                    $"{program.TenChuongTrinh} - năm {yearInProgram} kỳ {termInYear} tại {campus.TenDonVi}.";
                 config.NgayCapNhat = DateTime.UtcNow;
             }
         }
@@ -1533,15 +1892,17 @@ public static class Data
 
     private static async Task SeedTuitionReceivingAccountAsync(
         ApplicationDbContext context,
-        DonVi campus)
+        DonVi campus
+    )
     {
         const string bankCode = "MB";
         const string demoAccountNumber = "123456789";
 
         var account = await context.TaiKhoanNhanTiens.FirstOrDefaultAsync(x =>
-            x.MaDonVi == campus.MaDonVi &&
-            x.MaNganHang == bankCode &&
-            x.SoTaiKhoan == demoAccountNumber);
+            x.MaDonVi == campus.MaDonVi
+            && x.MaNganHang == bankCode
+            && x.SoTaiKhoan == demoAccountNumber
+        );
 
         if (account is null)
         {
@@ -1557,10 +1918,11 @@ public static class Data
         }
 
         var hasOtherDefaultAccount = await context.TaiKhoanNhanTiens.AnyAsync(x =>
-            x.MaDonVi == campus.MaDonVi &&
-            x.MaTaiKhoanNhanTien != account.MaTaiKhoanNhanTien &&
-            x.LaMacDinh &&
-            x.ConHoatDong);
+            x.MaDonVi == campus.MaDonVi
+            && x.MaTaiKhoanNhanTien != account.MaTaiKhoanNhanTien
+            && x.LaMacDinh
+            && x.ConHoatDong
+        );
 
         account.TenNganHang = "MB Bank";
         account.TenChuTaiKhoan = "TRUONG CAO DANG DEMO";
@@ -1578,7 +1940,8 @@ public static class Data
     private static async Task SeedDeKiemTraAsync(
         ApplicationDbContext context,
         IReadOnlyDictionary<string, DanhMucMonHoc> subjects,
-        IReadOnlyList<HocKy> terms)
+        IReadOnlyList<HocKy> terms
+    )
     {
         var subjectCode = "COM103";
         if (!subjects.TryGetValue(subjectCode, out var subject))
@@ -1601,13 +1964,14 @@ public static class Data
                 MaHocKy = term.MaHocKy,
                 TieuDe = "Đề thi mẫu Lập trình C#",
                 ThoiGianPhut = 60,
-                CauHinhDeThi = "{\"questions\":[{\"id\":1,\"content\":\"Câu hỏi 1 trắc nghiệm\",\"type\":\"mcq\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":\"A\"}]}",
+                CauHinhDeThi =
+                    "{\"questions\":[{\"id\":1,\"content\":\"Câu hỏi 1 trắc nghiệm\",\"type\":\"mcq\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":\"A\"}]}",
                 TrangThai = "da_len_lich",
                 LoaiDeThi = "ket_hop",
                 HinhThucThi = "online_tap_trung",
                 TyLeTracNghiem = 70.0m,
                 TyLeTuLuan = 30.0m,
-                NgayTao = DateTime.UtcNow
+                NgayTao = DateTime.UtcNow,
             };
             context.DeKiemTras.Add(deKiemTra);
             await context.SaveChangesAsync();
@@ -1631,14 +1995,12 @@ public static class Data
         string Year,
         int TermOrderInYear,
         DateOnly StartDate,
-        DateOnly EndDate);
+        DateOnly EndDate
+    );
 
     private sealed record SubjectSeed(string Code, string Name, int Credits);
 
-    private sealed record StandardChapterSeed(
-        int Order,
-        string Title,
-        LessonSeed[] Lessons);
+    private sealed record StandardChapterSeed(int Order, string Title, LessonSeed[] Lessons);
 
     private sealed record LessonSeed(
         int Order,
@@ -1646,7 +2008,8 @@ public static class Data
         string LessonType,
         string? FileUrl,
         int? DurationSeconds,
-        string? TextContent);
+        string? TextContent
+    );
 
     private sealed record StandardAssignmentSeed(
         string SubjectCode,
@@ -1656,14 +2019,16 @@ public static class Data
         int MaxSubmissions,
         string[] AllowedFormats,
         string GradingGuide,
-        string Status);
+        string Status
+    );
 
     private sealed record TrainingProgramSeed(
         string Code,
         string Name,
         string SpecializationCode,
         int RequiredCredits,
-        string Description);
+        string Description
+    );
 
     private sealed record ProgramSubjectSeed(int ExpectedTerm, string SubjectCode);
 
@@ -1672,14 +2037,16 @@ public static class Data
         string FullName,
         string RoleCode,
         int CampusId,
-        int? EnrollmentYear = null);
+        int? EnrollmentYear = null
+    );
 
     private sealed record AdministrativeClassSeed(
         string Code,
         string Name,
         string ProgramCode,
         string TeacherEmail,
-        string? StudentEmail);
+        string? StudentEmail
+    );
 
     private sealed record CourseSectionSeed(
         string Code,
@@ -1687,21 +2054,24 @@ public static class Data
         string TermCode,
         int Capacity,
         int MinimumEnrollment,
-        int AbsenceQuota);
+        int AbsenceQuota
+    );
 
     private sealed record TeachingCourseSeed(
         string SubjectCode,
         string TeacherEmail,
         string TermCode,
         string ClassCode,
-        string Description);
+        string Description
+    );
 
     private sealed record ShiftSeed(
         string Name,
         string Session,
         TimeOnly StartTime,
         TimeOnly EndTime,
-        int DisplayOrder);
+        int DisplayOrder
+    );
 
     private sealed record ScheduleTemplateSeed(
         string SubjectCode,
@@ -1709,7 +2079,8 @@ public static class Data
         string ClassCode,
         int DayOfWeek,
         string ShiftName,
-        string RoomCode);
+        string RoomCode
+    );
 
     private sealed record RoomSeed(
         string Code,
@@ -1718,16 +2089,19 @@ public static class Data
         Tang Floor,
         int Capacity,
         string Type,
-        string Note);
+        string Note
+    );
 
     private sealed record SyllabusSeed(
         string ProgramCode,
         string SpecializationCode,
         string SubjectCode,
-        string Name);
+        string Name
+    );
 
     private sealed record TuitionSeed(
         string ProgramCode,
         decimal[] YearlyTuitionAmounts,
-        decimal MaterialAmount);
+        decimal MaterialAmount
+    );
 }

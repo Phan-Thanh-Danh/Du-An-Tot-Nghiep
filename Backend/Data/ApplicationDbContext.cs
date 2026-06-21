@@ -843,20 +843,39 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("noi_dung")
                 .HasColumnType("nvarchar(max)")
                 .IsRequired();
+            entity.Property(e => e.KieuLuaChon)
+                .HasColumnName("kieu_lua_chon")
+                .HasMaxLength(20);
             entity.Property(e => e.LuaChon)
                 .HasColumnName("lua_chon")
                 .HasColumnType("nvarchar(max)");
             entity.Property(e => e.DapAnDung)
                 .HasColumnName("dap_an_dung")
                 .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.GiaiThichDapAn)
+                .HasColumnName("giai_thich_dap_an")
+                .HasColumnType("nvarchar(max)");
             entity.Property(e => e.DoKho)
                 .HasColumnName("do_kho")
                 .HasMaxLength(10)
                 .IsRequired();
+            entity.Property(e => e.ConHoatDong)
+                .HasColumnName("con_hoat_dong")
+                .HasDefaultValue(true);
+            entity.Property(e => e.NgayTao)
+                .HasColumnName("ngay_tao")
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.NgayCapNhat)
+                .HasColumnName("ngay_cap_nhat")
+                .HasColumnType("datetime2");
+
             entity.ToTable(t => t.HasCheckConstraint("CK_CauHoi_loai_cau_hoi_1", "[loai_cau_hoi] IN (N'trac_nghiem', N'tu_luan')"));
             entity.ToTable(t => t.HasCheckConstraint("CK_CauHoi_do_kho_2", "[do_kho] IN (N'de', N'trung_binh', N'kho')"));
             entity.ToTable(t => t.HasCheckConstraint("CK_CauHoi_dap_an_dung_ISJSON", "[dap_an_dung] IS NULL OR ISJSON([dap_an_dung]) = 1"));
             entity.ToTable(t => t.HasCheckConstraint("CK_CauHoi_lua_chon_ISJSON", "[lua_chon] IS NULL OR ISJSON([lua_chon]) = 1"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_CauHoi_kieu_lua_chon", "[kieu_lua_chon] IS NULL OR [kieu_lua_chon] IN (N'chon_mot', N'chon_nhieu')"));
+
             entity.HasOne(e => e.MonHoc)
                 .WithMany()
                 .HasForeignKey(e => e.MaMonHoc)
