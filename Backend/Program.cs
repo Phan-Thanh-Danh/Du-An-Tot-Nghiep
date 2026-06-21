@@ -1,11 +1,12 @@
 using System.Text.Json;
 using Backend.Data;
 using Backend.Helpers;
+using Backend.Hubs;
 using Backend.Middlewares;
 using Backend.Services;
-using Backend.Services.AdminUsers;
-using Backend.Services.AdministrativeClasses;
 using Backend.Services.AcademicTerms;
+using Backend.Services.AdministrativeClasses;
+using Backend.Services.AdminUsers;
 using Backend.Services.Attendance;
 using Backend.Services.AttendanceAutomation;
 using Backend.Services.AttendanceUnlock;
@@ -19,12 +20,15 @@ using Backend.Services.Cohorts;
 using Backend.Services.Courses;
 using Backend.Services.CourseSyllabuses;
 using Backend.Services.Curriculum;
-using Backend.Services.Floors;
+using Backend.Services.Exam;
 using Backend.Services.Finance.ProgramTuitionConfigs;
 using Backend.Services.Finance.TuitionPayments;
+using Backend.Services.Floors;
 using Backend.Services.Majors;
 using Backend.Services.Notifications;
 using Backend.Services.Organizations;
+using Backend.Services.QuestionBank;
+using Backend.Services.QuizManagement;
 using Backend.Services.Rbac;
 using Backend.Services.Rooms;
 using Backend.Services.Security;
@@ -32,20 +36,16 @@ using Backend.Services.Specializations;
 using Backend.Services.Storage;
 using Backend.Services.Subjects;
 using Backend.Services.ThoiKhoaBieu;
-using Backend.Services.TrainingProgramSubjects;
 using Backend.Services.TrainingPrograms;
-using Backend.Services.Exam;
-using Backend.Services.QuestionBank;
-using Backend.Hubs;
+using Backend.Services.TrainingProgramSubjects;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
-var allowedOrigins = builder.Configuration
-    .GetSection("Cors:AllowedOrigins")
-    .Get<string[]>()
+var allowedOrigins =
+    builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? ["http://localhost:5173", "http://localhost:5174"];
 
 builder.Services.AddControllers();
@@ -53,11 +53,15 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
     {
-        var errors = context.ModelState
-            .Where(x => x.Value?.Errors.Count > 0)
-            .SelectMany(x => x.Value!.Errors.Select(error => string.IsNullOrWhiteSpace(error.ErrorMessage)
-                ? $"Trường {x.Key} không hợp lệ."
-                : error.ErrorMessage))
+        var errors = context
+            .ModelState.Where(x => x.Value?.Errors.Count > 0)
+            .SelectMany(x =>
+                x.Value!.Errors.Select(error =>
+                    string.IsNullOrWhiteSpace(error.ErrorMessage)
+                        ? $"Trường {x.Key} không hợp lệ."
+                        : error.ErrorMessage
+                )
+            )
             .ToList();
         var response = new
         {
@@ -65,7 +69,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
             message = "Dữ liệu không hợp lệ.",
             errors,
             traceId = context.HttpContext.TraceIdentifier,
-            statusCode = StatusCodes.Status400BadRequest
+            statusCode = StatusCodes.Status400BadRequest,
         };
 
         return new BadRequestObjectResult(response);
@@ -76,10 +80,14 @@ builder.Services.AddOpenApi();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions => sqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(10),
-            errorNumbersToAdd: null)));
+        sqlOptions =>
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(10),
+                errorNumbersToAdd: null
+            )
+    )
+);
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
 builder.Services.Configure<PayOSOptions>(builder.Configuration.GetSection("PayOS"));
@@ -118,11 +126,14 @@ builder.Services.AddHttpClient<IPayOsService, PayOsService>();
 builder.Services.AddScoped<ITuitionPaymentService, TuitionPaymentService>();
 builder.Services.AddScoped<ICurriculumService, CurriculumService>();
 builder.Services.AddScoped<IExamService, ExamService>();
+builder.Services.AddScoped<IQuizManagementService, QuizManagementService>();
 builder.Services.AddScoped<IThoiKhoaBieuService, ThoiKhoaBieuService>();
 builder.Services.AddScoped<IScheduleConflictService, ScheduleConflictService>();
 builder.Services.AddScoped<IBuoiHocService, BuoiHocService>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
-builder.Services.Configure<AttendanceAutomationOptions>(builder.Configuration.GetSection("AttendanceAutomation"));
+builder.Services.Configure<AttendanceAutomationOptions>(
+    builder.Configuration.GetSection("AttendanceAutomation")
+);
 builder.Services.AddScoped<IAttendanceAutomationService, AttendanceAutomationService>();
 builder.Services.AddHostedService<AttendanceAutomationHostedService>();
 builder.Services.AddScoped<IAttendanceUnlockService, AttendanceUnlockService>();
@@ -131,25 +142,25 @@ builder.Services.AddScoped<IQuestionBankService, QuestionBankService>();
 
 builder.Services.AddSignalR();
 
-var r2Settings = builder.Configuration.GetSection("R2Storage").Get<R2StorageSettings>()
+var r2Settings =
+    builder.Configuration.GetSection("R2Storage").Get<R2StorageSettings>()
     ?? new R2StorageSettings();
 builder.Services.AddSingleton(r2Settings);
 builder.Services.AddSingleton<IR2StorageService, R2StorageService>();
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("FrontendDev", policy =>
-    {
-        policy
-            .WithOrigins(allowedOrigins)
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
+    options.AddPolicy(
+        "FrontendDev",
+        policy =>
+        {
+            policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        }
+    );
 });
 
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder
+    .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         var jwtHelper = new JwtHelper(builder.Configuration);
@@ -160,22 +171,50 @@ builder.Services
             OnChallenge = async context =>
             {
                 context.HandleResponse();
-                await WriteJsonAsync(context.HttpContext, StatusCodes.Status401Unauthorized, "Vui lòng đăng nhập để tiếp tục.");
+                await WriteJsonAsync(
+                    context.HttpContext,
+                    StatusCodes.Status401Unauthorized,
+                    "Vui lòng đăng nhập để tiếp tục."
+                );
             },
             OnForbidden = async context =>
             {
-                await WriteJsonAsync(context.HttpContext, StatusCodes.Status403Forbidden, "Bạn không có quyền truy cập tài nguyên này.");
-            }
+                await WriteJsonAsync(
+                    context.HttpContext,
+                    StatusCodes.Status403Forbidden,
+                    "Bạn không có quyền truy cập tài nguyên này."
+                );
+            },
         };
     });
 
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin", "SuperAdmin"));
-    options.AddPolicy("AdminUserManagement", policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin"));
-    options.AddPolicy("RbacManagement", policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin"));
-    options.AddPolicy("AcademicOperations", policy => policy.RequireRole("Admin", "SuperAdmin", "AcademicStaff", "CampusAdmin", "Chairman", "HoiDongQuanLyNoiDung"));
-    options.AddPolicy("Reports", policy => policy.RequireRole("Admin", "SuperAdmin", "Principal", "CampusAdmin"));
+    options.AddPolicy(
+        "AdminUserManagement",
+        policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin")
+    );
+    options.AddPolicy(
+        "RbacManagement",
+        policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin")
+    );
+    options.AddPolicy(
+        "AcademicOperations",
+        policy =>
+            policy.RequireRole(
+                "Admin",
+                "SuperAdmin",
+                "AcademicStaff",
+                "CampusAdmin",
+                "Chairman",
+                "HoiDongQuanLyNoiDung"
+            )
+    );
+    options.AddPolicy(
+        "Reports",
+        policy => policy.RequireRole("Admin", "SuperAdmin", "Principal", "CampusAdmin")
+    );
 });
 
 var app = builder.Build();
@@ -197,7 +236,9 @@ using (var scope = app.Services.CreateScope())
     {
         try
         {
-            await context.Database.ExecuteSqlRawAsync("ALTER DATABASE SCOPED CONFIGURATION SET IDENTITY_CACHE = OFF;");
+            await context.Database.ExecuteSqlRawAsync(
+                "ALTER DATABASE SCOPED CONFIGURATION SET IDENTITY_CACHE = OFF;"
+            );
         }
         catch (Exception ex)
         {
@@ -231,12 +272,16 @@ static async Task WriteJsonAsync(HttpContext context, int statusCode, string mes
     context.Response.StatusCode = statusCode;
     context.Response.ContentType = "application/json";
 
-    await context.Response.WriteAsync(JsonSerializer.Serialize(new
-    {
-        success = false,
-        message,
-        errors = new[] { message },
-        traceId = context.TraceIdentifier,
-        statusCode
-    }));
+    await context.Response.WriteAsync(
+        JsonSerializer.Serialize(
+            new
+            {
+                success = false,
+                message,
+                errors = new[] { message },
+                traceId = context.TraceIdentifier,
+                statusCode,
+            }
+        )
+    );
 }

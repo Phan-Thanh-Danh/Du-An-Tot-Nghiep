@@ -1529,9 +1529,39 @@ public class ApplicationDbContext : DbContext
                 .HasMaxLength(20)
                 .IsRequired()
                 .HasDefaultValue("nhap");
+                
+            // Exam module extensions mapping
+            entity.Property(e => e.LoaiDeThi)
+                .HasColumnName("loai_de_thi")
+                .HasMaxLength(50);
+            entity.Property(e => e.HinhThucThi)
+                .HasColumnName("hinh_thuc_thi")
+                .HasMaxLength(50);
+            entity.Property(e => e.TyLeTracNghiem)
+                .HasColumnName("ty_le_trac_nghiem")
+                .HasColumnType("decimal(5,2)");
+            entity.Property(e => e.TyLeTuLuan)
+                .HasColumnName("ty_le_tu_luan")
+                .HasColumnType("decimal(5,2)");
+            entity.Property(e => e.MaNguoiSoan)
+                .HasColumnName("ma_nguoi_soan");
+            entity.Property(e => e.MaNguoiDuyet)
+                .HasColumnName("ma_nguoi_duyet");
+            entity.Property(e => e.TrangThaiDuyet)
+                .HasColumnName("trang_thai_duyet")
+                .HasMaxLength(20);
+            entity.Property(e => e.NgayTao)
+                .HasColumnName("ngay_tao")
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.NgayCapNhat)
+                .HasColumnName("ngay_cap_nhat")
+                .HasColumnType("datetime2");
+
             entity.ToTable(t => t.HasCheckConstraint("CK_DeKiemTra_thoi_gian_phut_1", "[thoi_gian_phut] BETWEEN 1 AND 240"));
             entity.ToTable(t => t.HasCheckConstraint("CK_DeKiemTra_trang_thai_2", "[trang_thai] IN (N'nhap', N'da_len_lich', N'dang_mo', N'da_dong', N'da_cong_bo')"));
             entity.ToTable(t => t.HasCheckConstraint("CK_DeKiemTra_cau_hinh_de_thi_ISJSON", "[cau_hinh_de_thi] IS NULL OR ISJSON([cau_hinh_de_thi]) = 1"));
+            
             entity.HasOne(e => e.MonHoc)
                 .WithMany()
                 .HasForeignKey(e => e.MaMonHoc)
@@ -1542,6 +1572,16 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaHocKy)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_DeKiemTra_ma_hoc_ky__HocKy");
+            entity.HasOne(e => e.NguoiSoan)
+                .WithMany()
+                .HasForeignKey(e => e.MaNguoiSoan)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_DeKiemTra_ma_nguoi_soan__NguoiDung");
+            entity.HasOne(e => e.NguoiDuyet)
+                .WithMany()
+                .HasForeignKey(e => e.MaNguoiDuyet)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_DeKiemTra_ma_nguoi_duyet__NguoiDung");
         });
 
         modelBuilder.Entity<DiemDanh>(entity =>

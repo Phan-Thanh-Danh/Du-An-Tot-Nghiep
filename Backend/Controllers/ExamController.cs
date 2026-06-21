@@ -385,7 +385,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpGet("de-kiem-tra")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin},{AuthRoles.HoiDongQuanLyNoiDung}")]
     public async Task<ActionResult<ApiResponseDto<IReadOnlyList<DeKiemTraDto>>>> GetDeKiemTras(CancellationToken ct)
     {
         var result = await _examService.GetDeKiemTrasAsync(ct);
