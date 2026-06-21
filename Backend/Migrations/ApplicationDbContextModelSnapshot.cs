@@ -193,6 +193,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_bai_hoc");
 
+                    b.Property<int?>("MaDeKiemTra")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_de_kiem_tra");
+
                     b.Property<DateTime?>("NgayCapNhat")
                         .IsConcurrencyToken()
                         .HasColumnType("datetime2")
@@ -242,6 +246,8 @@ namespace Backend.Migrations
                         .HasName("PK_BaiHocNoiDung");
 
                     b.HasIndex("MaBaiHoc");
+
+                    b.HasIndex("MaDeKiemTra");
 
                     b.ToTable("BaiHocNoiDung", "dbo", t =>
                         {
@@ -5961,7 +5967,15 @@ namespace Backend.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_BaiHocNoiDung_ma_bai_hoc__BaiHoc");
 
+                    b.HasOne("Backend.Models.DeKiemTra", "DeKiemTra")
+                        .WithMany()
+                        .HasForeignKey("MaDeKiemTra")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_BaiHocNoiDung_ma_de_kiem_tra__DeKiemTra");
+
                     b.Navigation("BaiHoc");
+
+                    b.Navigation("DeKiemTra");
                 });
 
             modelBuilder.Entity("Backend.Models.BaiNop", b =>

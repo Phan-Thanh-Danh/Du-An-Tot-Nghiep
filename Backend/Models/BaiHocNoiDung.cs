@@ -16,5 +16,8 @@ public class BaiHocNoiDung
     public DateTime NgayTao { get; set; }
     public DateTime? NgayCapNhat { get; set; }
 
+    public int? MaDeKiemTra { get; set; }
+
     public BaiHoc? BaiHoc { get; set; }
+    public DeKiemTra? DeKiemTra { get; set; }
 }

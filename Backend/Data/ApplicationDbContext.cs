@@ -3992,6 +3992,8 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("ngay_cap_nhat")
                 .HasColumnType("datetime2")
                 .IsConcurrencyToken();
+            entity.Property(e => e.MaDeKiemTra)
+                .HasColumnName("ma_de_kiem_tra");
             entity.ToTable(t => t.HasCheckConstraint("CK_BaiHocNoiDung_loai_noi_dung", "[loai_noi_dung] IN (N'video', N'slide_html', N'tai_lieu', N'quiz', N'van_ban')"));
             entity.ToTable(t => t.HasCheckConstraint("CK_BaiHocNoiDung_trang_thai", "[trang_thai] IS NULL OR [trang_thai] IN (N'nhap', N'da_xuat_ban')"));
             entity.ToTable(t => t.HasCheckConstraint("CK_BaiHocNoiDung_thoi_luong_giay", "[thoi_luong_giay] IS NULL OR [thoi_luong_giay] >= 0"));
@@ -4001,6 +4003,11 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaBaiHoc)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_BaiHocNoiDung_ma_bai_hoc__BaiHoc");
+            entity.HasOne(e => e.DeKiemTra)
+                .WithMany()
+                .HasForeignKey(e => e.MaDeKiemTra)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_BaiHocNoiDung_ma_de_kiem_tra__DeKiemTra");
         });
 
         // =============================================

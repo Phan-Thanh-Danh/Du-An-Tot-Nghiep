@@ -82,6 +82,7 @@ public class BaiHocNoiDungDto
     public string? StorageKey { get; set; }
     public long? KichThuocByte { get; set; }
     public int? ThoiLuongGiay { get; set; }
+    public int? MaDeKiemTra { get; set; }
     public string? TrangThai { get; set; }
     public int ThuTu { get; set; }
     public DateTime NgayTao { get; set; }
@@ -98,6 +99,7 @@ public class BaiHocNoiDungCreateDto
     public string? StorageKey { get; set; }
     public long? KichThuocByte { get; set; }
     public int? ThoiLuongGiay { get; set; }
+    public int? MaDeKiemTra { get; set; }
     public int? ThuTu { get; set; }
 }
 
@@ -109,6 +111,7 @@ public class BaiHocNoiDungUpdateDto
     public string? StorageKey { get; set; }
     public long? KichThuocByte { get; set; }
     public int? ThoiLuongGiay { get; set; }
+    public int? MaDeKiemTra { get; set; }
     public string? TrangThai { get; set; }
     public DateTime? NgayCapNhat { get; set; } // for concurrency check
 }
