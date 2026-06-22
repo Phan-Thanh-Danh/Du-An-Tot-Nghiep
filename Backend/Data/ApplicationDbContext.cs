@@ -3161,11 +3161,30 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.DiemTuLuanAiGoiY)
                 .HasColumnName("diem_tu_luan_ai_goi_y")
                 .HasColumnType("decimal(5,2)");
-            entity.HasIndex(e => new { e.MaDeKiemTra, e.MaHocSinh }).IsUnique().HasDatabaseName("UQ_PhienThiHocSinh_1");
+            entity.Property(e => e.LanThu)
+                .HasColumnName("lan_thu")
+                .HasDefaultValue(1);
+            entity.Property(e => e.HanNopLuc)
+                .HasColumnName("han_nop_luc")
+                .HasColumnType("datetime2");
+            entity.Property(e => e.SoCauDung)
+                .HasColumnName("so_cau_dung");
+            entity.Property(e => e.KetQuaDat)
+                .HasColumnName("ket_qua_dat");
+            entity.Property(e => e.DeThiSnapshotJson)
+                .HasColumnName("de_thi_snapshot_json")
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.NgayCapNhat)
+                .HasColumnName("ngay_cap_nhat")
+                .HasColumnType("datetime2");
+            entity.HasIndex(e => new { e.MaDeKiemTra, e.MaHocSinh, e.LanThu }).IsUnique().HasDatabaseName("UQ_PhienThiHocSinh_De_HocSinh_LanThu");
             entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_trang_thai_luong_1", "[trang_thai_luong] IN (N'dang_hoat_dong', N'bi_gian_doan', N'da_dung')"));
             entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_cau_tra_loi_json_ISJSON", "[cau_tra_loi_json] IS NULL OR ISJSON([cau_tra_loi_json]) = 1"));
             entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_nhat_ky_vi_pham_ISJSON", "[nhat_ky_vi_pham] IS NULL OR ISJSON([nhat_ky_vi_pham]) = 1"));
             entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_sao_luu_cuc_bo_ISJSON", "[sao_luu_cuc_bo] IS NULL OR ISJSON([sao_luu_cuc_bo]) = 1"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_de_thi_snapshot_json_ISJSON", "[de_thi_snapshot_json] IS NULL OR ISJSON([de_thi_snapshot_json]) = 1"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_lan_thu", "[lan_thu] > 0"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_so_cau_dung", "[so_cau_dung] IS NULL OR [so_cau_dung] >= 0"));
             entity.HasOne(e => e.DeKiemTra)
                 .WithMany()
                 .HasForeignKey(e => e.MaDeKiemTra)
@@ -4122,7 +4141,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.NgayCapNhat)
                 .HasColumnName("ngay_cap_nhat")
                 .HasColumnType("datetime2");
-            entity.ToTable(t => t.HasCheckConstraint("CK_DeKiemTra_loai_de_thi", "[loai_de_thi] IS NULL OR [loai_de_thi] IN (N'trac_nghiem', N'tu_luan', N'ket_hop')"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_DeKiemTra_loai_de_thi", "[loai_de_thi] IS NULL OR [loai_de_thi] IN (N'trac_nghiem', N'tu_luan', N'ket_hop', N'quiz_bai_hoc')"));
             entity.ToTable(t => t.HasCheckConstraint("CK_DeKiemTra_hinh_thuc_thi", "[hinh_thuc_thi] IS NULL OR [hinh_thuc_thi] IN (N'online_tap_trung', N'online_tu_do', N'van_dap')"));
             entity.ToTable(t => t.HasCheckConstraint("CK_DeKiemTra_trang_thai_duyet", "[trang_thai_duyet] IS NULL OR [trang_thai_duyet] IN (N'nhap', N'cho_duyet', N'da_duyet', N'tu_choi')"));
             entity.ToTable(t => t.HasCheckConstraint("CK_DeKiemTra_ty_le_trac_nghiem", "[ty_le_trac_nghiem] IS NULL OR [ty_le_trac_nghiem] BETWEEN 0 AND 100"));
@@ -4189,6 +4208,22 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.DiemTuLuanAiGoiY)
                 .HasColumnName("diem_tu_luan_ai_goi_y")
                 .HasColumnType("decimal(5,2)");
+            entity.Property(e => e.LanThu)
+                .HasColumnName("lan_thu")
+                .HasDefaultValue(1);
+            entity.Property(e => e.HanNopLuc)
+                .HasColumnName("han_nop_luc")
+                .HasColumnType("datetime2");
+            entity.Property(e => e.SoCauDung)
+                .HasColumnName("so_cau_dung");
+            entity.Property(e => e.KetQuaDat)
+                .HasColumnName("ket_qua_dat");
+            entity.Property(e => e.DeThiSnapshotJson)
+                .HasColumnName("de_thi_snapshot_json")
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.NgayCapNhat)
+                .HasColumnName("ngay_cap_nhat")
+                .HasColumnType("datetime2");
             entity.Property(e => e.MaCaThi)
                 .HasColumnName("ma_ca_thi");
             entity.Property(e => e.TrangThaiKyTen)
@@ -4206,12 +4241,18 @@ public class ApplicationDbContext : DbContext
                 .IsUnique()
                 .HasFilter("[ma_ca_thi] IS NOT NULL")
                 .HasDatabaseName("UQ_PhienThiHocSinh_CaThi_HocSinh");
+            entity.HasIndex(e => new { e.MaDeKiemTra, e.MaHocSinh, e.LanThu })
+                .IsUnique()
+                .HasDatabaseName("UQ_PhienThiHocSinh_De_HocSinh_LanThu");
             entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_cau_tra_loi_json_ISJSON", "[cau_tra_loi_json] IS NULL OR ISJSON([cau_tra_loi_json]) = 1"));
             entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_nhat_ky_vi_pham_ISJSON", "[nhat_ky_vi_pham] IS NULL OR ISJSON([nhat_ky_vi_pham]) = 1"));
             entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_sao_luu_cuc_bo_ISJSON", "[sao_luu_cuc_bo] IS NULL OR ISJSON([sao_luu_cuc_bo]) = 1"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_de_thi_snapshot_json_ISJSON", "[de_thi_snapshot_json] IS NULL OR ISJSON([de_thi_snapshot_json]) = 1"));
             entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_diem_tu_dong", "[diem_tu_dong] IS NULL OR [diem_tu_dong] BETWEEN 0 AND 10"));
             entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_diem_cuoi_cung", "[diem_cuoi_cung] IS NULL OR [diem_cuoi_cung] BETWEEN 0 AND 10"));
             entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_diem_tu_luan_ai_goi_y", "[diem_tu_luan_ai_goi_y] IS NULL OR [diem_tu_luan_ai_goi_y] BETWEEN 0 AND 10"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_lan_thu", "[lan_thu] > 0"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_so_cau_dung", "[so_cau_dung] IS NULL OR [so_cau_dung] >= 0"));
             entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_trang_thai_ky_ten", "[trang_thai_ky_ten] IS NULL OR [trang_thai_ky_ten] IN (N'chua_ky', N'da_ky', N'quen_ky', N'su_co')"));
             entity.ToTable(t => t.HasCheckConstraint("CK_PhienThiHocSinh_trang_thai_cong_bo", "[trang_thai_cong_bo] IS NULL OR [trang_thai_cong_bo] IN (N'chua_co_diem', N'da_cham_xong', N'da_doc_diem', N'da_cong_bo')"));
             entity.HasOne(e => e.DeKiemTra)

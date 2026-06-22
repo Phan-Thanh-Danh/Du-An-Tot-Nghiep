@@ -85,6 +85,10 @@ public class PhienThiDto
     public decimal? DiemTuDong { get; set; }
     public decimal? DiemCuoiCung { get; set; }
     public decimal? DiemTuLuanAiGoiY { get; set; }
+    public int LanThu { get; set; }
+    public DateTime? HanNopLuc { get; set; }
+    public int? SoCauDung { get; set; }
+    public bool? KetQuaDat { get; set; }
     public int? MaCaThi { get; set; }
     public string? TrangThaiKyTen { get; set; }
     public DateTime? ThoiDiemKy { get; set; }

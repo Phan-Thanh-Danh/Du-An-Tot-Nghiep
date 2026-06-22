@@ -3,6 +3,7 @@ using Backend.DTOs.Common;
 using Backend.DTOs.Exam;
 using Backend.Exceptions;
 using Backend.Models;
+using Backend.Services.QuizGrading;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.Exam;
@@ -10,10 +11,12 @@ namespace Backend.Services.Exam;
 public class ExamService : IExamService
 {
     private readonly ApplicationDbContext _db;
+    private readonly IQuizGradingService _gradingService;
 
-    public ExamService(ApplicationDbContext db)
+    public ExamService(ApplicationDbContext db, IQuizGradingService gradingService)
     {
         _db = db;
+        _gradingService = gradingService;
     }
 
     // ===== KyThi =====
@@ -839,6 +842,8 @@ public class ExamService : IExamService
             MaHocSinh = maHocSinh,
             MaCaThi = request.MaCaThi,
             BatDauLuc = DateTime.UtcNow,
+            HanNopLuc = caThi.ThoiGianKetThuc,
+            LanThu = 1,
             TrangThaiLuong = "dang_hoat_dong",
             TrangThaiKyTen = "chua_ky",
             TrangThaiCongBo = "chua_co_diem"
@@ -900,13 +905,23 @@ public class ExamService : IExamService
 
         foreach (var p in phienThis)
         {
-            // Mock auto-grading: parse answers and score MCQ
-            if (p.DiemTuDong == null)
+            var questions = await _db.CauHoiDeKiemTras
+                .Include(x => x.CauHoi)
+                .Where(x => x.MaDeKiemTra == p.MaDeKiemTra)
+                .OrderBy(x => x.ThuTu)
+                .ToListAsync(ct);
+
+            var answers = _gradingService.ParseAnswersJson(p.CauTraLoiJson);
+            var grading = _gradingService.GradeObjectiveQuestions(questions, answers, false);
+
+            p.DiemTuDong = grading.DiemTracNghiem;
+            p.SoCauDung = grading.SoCauDung;
+            if (!grading.CoCauTuLuan)
             {
-                // Simple mock: random score between 3 and 9 for demo
-                p.DiemTuDong = Math.Round((decimal)(new Random().NextDouble() * 6 + 3), 2);
+                p.DiemCuoiCung = grading.DiemTracNghiem;
             }
-            p.TrangThaiCongBo = "da_cham_xong";
+            p.TrangThaiCongBo = grading.CoCauTuLuan ? "chua_co_diem" : "da_cham_xong";
+            p.NgayCapNhat = DateTime.UtcNow;
         }
 
         await _db.SaveChangesAsync(ct);
@@ -924,13 +939,7 @@ public class ExamService : IExamService
 
         phienThi.DiemCuoiCung = request.DiemCuoiCung;
         phienThi.TrangThaiCongBo = "da_cham_xong";
-
-        // Mock AI grading suggestion
-        if (phienThi.DiemTuLuanAiGoiY == null)
-        {
-            phienThi.DiemTuLuanAiGoiY = Math.Round(request.DiemCuoiCung * 0.9m + 0.5m, 2);
-            if (phienThi.DiemTuLuanAiGoiY > 10) phienThi.DiemTuLuanAiGoiY = 10;
-        }
+        phienThi.NgayCapNhat = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
 
@@ -1050,6 +1059,10 @@ public class ExamService : IExamService
             DiemTuDong = p.DiemTuDong,
             DiemCuoiCung = p.DiemCuoiCung,
             DiemTuLuanAiGoiY = p.DiemTuLuanAiGoiY,
+            LanThu = p.LanThu,
+            HanNopLuc = p.HanNopLuc,
+            SoCauDung = p.SoCauDung,
+            KetQuaDat = p.KetQuaDat,
             MaCaThi = p.MaCaThi,
             TrangThaiKyTen = p.TrangThaiKyTen,
             ThoiDiemKy = p.ThoiDiemKy,

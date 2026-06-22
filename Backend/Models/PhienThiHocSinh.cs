@@ -14,6 +14,12 @@ public class PhienThiHocSinh
     public decimal? DiemTuDong { get; set; }
     public decimal? DiemCuoiCung { get; set; }
     public decimal? DiemTuLuanAiGoiY { get; set; }
+    public int LanThu { get; set; } = 1;
+    public DateTime? HanNopLuc { get; set; }
+    public int? SoCauDung { get; set; }
+    public bool? KetQuaDat { get; set; }
+    public string? DeThiSnapshotJson { get; set; }
+    public DateTime? NgayCapNhat { get; set; }
 
     // Exam module extensions
     public int? MaCaThi { get; set; }

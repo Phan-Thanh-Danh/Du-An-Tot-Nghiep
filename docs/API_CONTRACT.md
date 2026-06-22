@@ -494,18 +494,50 @@ Chưa thấy controller submission trong repo hiện tại.
 
 ### Đã có
 
-Chưa thấy controller exams/quiz trong repo hiện tại.
+Quản lý đề/quiz dành cho `HoiDongQuanLyNoiDung`:
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/exam/de-kiem-tra/search` | HoiDongQuanLyNoiDung | Danh sách đề/quiz có phân trang và lọc theo môn, học kỳ, trạng thái, loại đề, hình thức thi. Backend đồng bộ trạng thái mở/đóng theo cấu hình trước khi trả dữ liệu. |
+| GET | `/api/exam/de-kiem-tra/{id}` | HoiDongQuanLyNoiDung | Chi tiết đề/quiz gồm cấu hình điểm, lượt làm, thời gian mở/đóng và danh sách câu hỏi. |
+| POST | `/api/exam/de-kiem-tra` | HoiDongQuanLyNoiDung | Tạo đề/quiz ở trạng thái `nhap`; cấu hình quiz nằm trong `cauHinh`. |
+| PUT | `/api/exam/de-kiem-tra/{id}` | HoiDongQuanLyNoiDung | Cập nhật đề/quiz khi còn `nhap`. |
+| DELETE | `/api/exam/de-kiem-tra/{id}` | HoiDongQuanLyNoiDung | Xóa đề/quiz nháp chưa được sử dụng. |
+| GET | `/api/exam/de-kiem-tra/{id}/cau-hoi` | HoiDongQuanLyNoiDung | Danh sách câu hỏi trong đề/quiz. |
+| POST | `/api/exam/de-kiem-tra/{id}/cau-hoi` | HoiDongQuanLyNoiDung | Gán thêm câu hỏi cho đề/quiz nháp. |
+| PUT | `/api/exam/de-kiem-tra/{id}/cau-hoi` | HoiDongQuanLyNoiDung | Thay thế toàn bộ câu hỏi của đề/quiz nháp. |
+| PUT | `/api/exam/de-kiem-tra/{id}/cau-hoi/{maCauHoi}` | HoiDongQuanLyNoiDung | Cập nhật điểm/thứ tự câu hỏi khi đề/quiz chưa được sử dụng. |
+| DELETE | `/api/exam/de-kiem-tra/{id}/cau-hoi/{maCauHoi}` | HoiDongQuanLyNoiDung | Gỡ câu hỏi khỏi đề/quiz chưa được sử dụng. |
+| PUT | `/api/exam/de-kiem-tra/{id}/cau-hoi/reorder` | HoiDongQuanLyNoiDung | Sắp xếp lại câu hỏi, thứ tự phải liên tục từ 1 đến N. |
+| POST | `/api/exam/de-kiem-tra/{id}/publish` | HoiDongQuanLyNoiDung | Validate cấu hình, tổng điểm, câu hỏi rồi chuyển sang `da_len_lich` hoặc `dang_mo`. |
+| POST | `/api/exam/de-kiem-tra/{id}/unpublish` | HoiDongQuanLyNoiDung | Chuyển về `nhap` nếu chưa được sử dụng. |
+| POST | `/api/exam/de-kiem-tra/{id}/open` | HoiDongQuanLyNoiDung | Mở quiz thủ công, set `trang_thai = dang_mo`. |
+| POST | `/api/exam/de-kiem-tra/{id}/close` | HoiDongQuanLyNoiDung | Đóng quiz thủ công, set `trang_thai = da_dong`. |
+
+Luồng làm quiz bài học dành cho `Student`:
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/quiz-attempts/{quizId}/availability` | Student | Kiểm tra quiz có thể làm không, số lượt đã làm, giới hạn lượt, giờ mở/đóng và kết quả hiện tại. Chỉ áp dụng quiz được gắn trong `BaiHocNoiDung` với `LoaiNoiDung = quiz`. |
+| POST | `/api/quiz-attempts/{quizId}/start` | Student | Tạo hoặc trả lại lượt làm đang hoạt động; enforce `SoLanLamToiDa`, `KhongGioiHanSoLan`, `MoLuc`, `DongLuc`, deadline theo thời lượng quiz. |
+| PUT | `/api/quiz-attempts/sessions/{attemptId}/autosave` | Student | Lưu tạm câu trả lời JSON typed; không chấm điểm. |
+| POST | `/api/quiz-attempts/sessions/{attemptId}/submit` | Student | Nộp bài và chấm trắc nghiệm thật theo `DapAnDung`; kết quả/đáp án đúng chỉ trả nếu cấu hình cho phép. |
+| GET | `/api/quiz-attempts/{quizId}/history` | Student | Lịch sử các lượt làm và kết quả cuối theo cấu hình `CachTinhDiemCuoi`. |
+
+Luồng thi chính thức vẫn dùng `CaThi`:
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| POST | `/api/exam/taking/start` | Student | Bắt đầu phiên thi theo `MaCaThi`; không dùng giới hạn lượt quiz bài học. |
+| POST | `/api/exam/taking/autosave` | Student | Lưu tạm câu trả lời phiên thi chính thức. |
+| POST | `/api/exam/taking/submit` | Student | Nộp bài thi chính thức. |
+| POST | `/api/exam/grading/auto/{maCaThi}` | Teacher/CampusAdmin/AcademicStaff/Admin/SuperAdmin | Chấm tự động phần trắc nghiệm theo đáp án thật, không dùng điểm ngẫu nhiên. |
+| POST | `/api/exam/grading/essay` | Teacher/CampusAdmin/AcademicStaff/Admin/SuperAdmin | Nhập điểm cuối cùng cho bài có tự luận. |
 
 ### Dự kiến/cần bổ sung
 
-- `GET /api/exams`
-- `GET /api/exams/{id}`
-- `POST /api/exams`
-- `PUT /api/exams/{id}`
-- `GET /api/exams/{id}/questions`
-- `POST /api/exams/{id}/start`
-- `POST /api/exam-sessions/{sessionId}/submit`
-- `GET /api/exam-sessions/{sessionId}/result`
+- API cấu hình quiz theo từng `KhoaHoc` nếu cần lịch mở/đóng khác nhau giữa các lớp.
+- API chấm tự luận chi tiết theo từng câu nếu cần rubric thay vì nhập `DiemCuoiCung` trực tiếp.
 
 ## Attendance APIs
 

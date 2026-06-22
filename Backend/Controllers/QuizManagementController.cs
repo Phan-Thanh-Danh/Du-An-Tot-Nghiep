@@ -129,4 +129,20 @@ public class QuizManagementController : ControllerBase
         await _quizService.UnpublishQuizAsync(id, userId, ct);
         return Ok(ApiResponseDto.Ok("Chuyển Đề kiểm tra về trạng thái nháp thành công"));
     }
+
+    [HttpPost("{id:int}/open")]
+    public async Task<ActionResult<ApiResponseDto>> OpenQuiz(int id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        await _quizService.OpenQuizAsync(id, userId, ct);
+        return Ok(ApiResponseDto.Ok("Mở quiz thành công"));
+    }
+
+    [HttpPost("{id:int}/close")]
+    public async Task<ActionResult<ApiResponseDto>> CloseQuiz(int id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        await _quizService.CloseQuizAsync(id, userId, ct);
+        return Ok(ApiResponseDto.Ok("Đóng quiz thành công"));
+    }
 }

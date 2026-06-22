@@ -4,6 +4,7 @@ using Backend.DTOs.QuizManagement;
 using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.Audit;
+using Backend.Services.QuizRuntime;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
@@ -13,11 +14,13 @@ public class QuizManagementService : IQuizManagementService
 {
     private readonly ApplicationDbContext _db;
     private readonly IAuditLogService _auditLogService;
+    private readonly IQuizAvailabilityService _availabilityService;
 
-    public QuizManagementService(ApplicationDbContext db, IAuditLogService auditLogService)
+    public QuizManagementService(ApplicationDbContext db, IAuditLogService auditLogService, IQuizAvailabilityService availabilityService)
     {
         _db = db;
         _auditLogService = auditLogService;
+        _availabilityService = availabilityService;
     }
 
     private async Task<bool> IsQuizInUseAsync(int quizId, CancellationToken ct)
@@ -33,6 +36,8 @@ public class QuizManagementService : IQuizManagementService
 
     public async Task<PagedResultDto<QuizDto>> GetQuizzesAsync(QuizFilterDto filter, CancellationToken ct)
     {
+        await _availabilityService.SynchronizeScheduledQuizzesAsync(DateTime.UtcNow, ct);
+
         var query = _db.DeKiemTras
             .Include(x => x.MonHoc)
             .Include(x => x.HocKy)
@@ -113,6 +118,8 @@ public class QuizManagementService : IQuizManagementService
 
     public async Task<QuizDetailDto> GetQuizByIdAsync(int id, CancellationToken ct)
     {
+        await _availabilityService.SynchronizeQuizStatusAsync(id, DateTime.UtcNow, ct);
+
         var entity = await _db.DeKiemTras
             .Include(x => x.MonHoc)
             .FirstOrDefaultAsync(x => x.MaDeKiemTra == id, ct);
@@ -148,7 +155,7 @@ public class QuizManagementService : IQuizManagementService
             CauHinh = config,
             TongDiemCauHoi = questions.Sum(x => x.DiemSo),
             TongSoCauHoi = questions.Count,
-            SoCauTracNghiem = questions.Count(x => x.CauHoi?.LoaiCauHoi == "trac_nghiem_1_dap_an" || x.CauHoi?.LoaiCauHoi == "trac_nghiem_nhieu_dap_an"),
+            SoCauTracNghiem = questions.Count(x => x.CauHoi?.LoaiCauHoi == "trac_nghiem"),
             SoCauTuLuan = questions.Count(x => x.CauHoi?.LoaiCauHoi == "tu_luan"),
             DanhSachCauHoi = questions.Select(x => new QuizQuestionDto
             {
@@ -606,6 +613,9 @@ public class QuizManagementService : IQuizManagementService
         if (quiz.TrangThai != "nhap") throw new ApiException(409, "Chỉ có thể xuất bản đề ở trạng thái nháp");
 
         var config = QuizConfigurationDto.Parse(quiz.CauHinhDeThi);
+        config.Validate();
+        if (config.DongLuc.HasValue && config.DongLuc.Value <= DateTime.UtcNow)
+            throw new ApiException(409, "Không thể xuất bản quiz đã quá thời gian đóng");
         
         var questions = await _db.CauHoiDeKiemTras.Include(x => x.CauHoi).Where(x => x.MaDeKiemTra == id).ToListAsync(ct);
         if (!questions.Any()) throw new ApiException(409, "Đề kiểm tra chưa có câu hỏi nào");
@@ -623,12 +633,16 @@ public class QuizManagementService : IQuizManagementService
         if (config.DiemDat > config.TongDiem)
             throw new ApiException(409, "Điểm đạt không được lớn hơn tổng điểm");
 
+        if (config.CachTinhDat == "theo_so_cau_dung" && config.SoCauDungToiThieu > questions.Count)
+            throw new ApiException(409, "Số câu đúng tối thiểu không được lớn hơn số câu hỏi");
+
         var providedOrders = questions.Where(x => x.ThuTu.HasValue).Select(x => x.ThuTu!.Value).OrderBy(x => x).ToList();
         var expectedOrders = Enumerable.Range(1, questions.Count).ToList();
         if (providedOrders.Count != questions.Count || !expectedOrders.SequenceEqual(providedOrders))
             throw new ApiException(409, "Thứ tự câu hỏi không hợp lệ hoặc không liên tục từ 1 đến N");
 
-        quiz.TrangThai = "da_xuat_ban";
+        var oldStatus = quiz.TrangThai;
+        quiz.TrangThai = DetermineInitialPublishedStatus(config, DateTime.UtcNow);
         quiz.NgayCapNhat = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
@@ -637,8 +651,8 @@ public class QuizManagementService : IQuizManagementService
             "DeKiemTra", 
             id.ToString(), 
             "PUBLISH_QUIZ", 
-            "nhap", 
-            "da_xuat_ban", 
+            oldStatus, 
+            quiz.TrangThai, 
             userId, 
             null, 
             "Xuất bản đề kiểm tra", 
@@ -669,5 +683,63 @@ public class QuizManagementService : IQuizManagementService
             null, 
             "Chuyển đề kiểm tra về trạng thái nháp", 
             ct);
+    }
+
+    public async Task OpenQuizAsync(int id, int userId, CancellationToken ct)
+    {
+        var quiz = await _db.DeKiemTras.FirstOrDefaultAsync(x => x.MaDeKiemTra == id, ct);
+        if (quiz == null) throw new ApiException(404, "Không tìm thấy Đề kiểm tra");
+        if (quiz.TrangThai != "da_len_lich" && quiz.TrangThai != "da_dong")
+            throw new ApiException(409, "Chỉ có thể mở quiz ở trạng thái đã lên lịch hoặc đã đóng");
+
+        var oldStatus = quiz.TrangThai;
+        quiz.TrangThai = "dang_mo";
+        quiz.NgayCapNhat = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        await _auditLogService.LogAsync(
+            "DeKiemTra",
+            id.ToString(),
+            "OPEN_QUIZ",
+            oldStatus,
+            quiz.TrangThai,
+            userId,
+            null,
+            "Mở quiz thủ công",
+            ct);
+    }
+
+    public async Task CloseQuizAsync(int id, int userId, CancellationToken ct)
+    {
+        var quiz = await _db.DeKiemTras.FirstOrDefaultAsync(x => x.MaDeKiemTra == id, ct);
+        if (quiz == null) throw new ApiException(404, "Không tìm thấy Đề kiểm tra");
+        if (quiz.TrangThai != "dang_mo" && quiz.TrangThai != "da_len_lich")
+            throw new ApiException(409, "Chỉ có thể đóng quiz ở trạng thái đang mở hoặc đã lên lịch");
+
+        var oldStatus = quiz.TrangThai;
+        quiz.TrangThai = "da_dong";
+        quiz.NgayCapNhat = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        await _auditLogService.LogAsync(
+            "DeKiemTra",
+            id.ToString(),
+            "CLOSE_QUIZ",
+            oldStatus,
+            quiz.TrangThai,
+            userId,
+            null,
+            "Đóng quiz thủ công",
+            ct);
+    }
+
+    private static string DetermineInitialPublishedStatus(QuizConfigurationDto config, DateTime utcNow)
+    {
+        if (config.MoLuc.HasValue && config.MoLuc.Value > utcNow)
+        {
+            return "da_len_lich";
+        }
+
+        return "dang_mo";
     }
 }
