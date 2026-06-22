@@ -80,6 +80,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<ToaNha> ToaNhas => Set<ToaNha>();
     public DbSet<Tang> Tangs => Set<Tang>();
     public DbSet<TienDoBaiHoc> TienDoBaiHocs => Set<TienDoBaiHoc>();
+    public DbSet<TienDoNoiDungHocTap> TienDoNoiDungHocTaps => Set<TienDoNoiDungHocTap>();
+    public DbSet<PhienHocNoiDung> PhienHocNoiDungs => Set<PhienHocNoiDung>();
     public DbSet<TinNhanHoTro> TinNhanHoTros => Set<TinNhanHoTro>();
     public DbSet<TokenLamMoi> TokenLamMois => Set<TokenLamMoi>();
     public DbSet<TuyChonThongBao> TuyChonThongBaos => Set<TuyChonThongBao>();
@@ -104,6 +106,8 @@ public class ApplicationDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.ConfigureLearningProgressModels();
 
         modelBuilder.Entity<AnhChupPhanTich>(entity =>
         {
@@ -4709,3 +4713,4 @@ public class ApplicationDbContext : DbContext
 
     }
 }
+

@@ -9,6 +9,7 @@ using Backend.Models;
 using Backend.Services.Audit;
 using Backend.Services.QuizGrading;
 using Backend.Services.QuizRuntime;
+using Backend.Services.LearningProgress;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.QuizAttempts;
@@ -24,17 +25,20 @@ public class QuizAttemptService : IQuizAttemptService
     private readonly IQuizAvailabilityService _availabilityService;
     private readonly IQuizGradingService _gradingService;
     private readonly IAuditLogService _auditLogService;
+    private readonly ILearningProgressSyncService _progressSyncService;
 
     public QuizAttemptService(
         ApplicationDbContext db,
         IQuizAvailabilityService availabilityService,
         IQuizGradingService gradingService,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        ILearningProgressSyncService progressSyncService)
     {
         _db = db;
         _availabilityService = availabilityService;
         _gradingService = gradingService;
         _auditLogService = auditLogService;
+        _progressSyncService = progressSyncService;
     }
 
     public Task<QuizAvailabilityDto> GetAvailabilityAsync(int quizId, int studentId, CancellationToken ct)
@@ -276,6 +280,14 @@ public class QuizAttemptService : IQuizAttemptService
         attempt.KetQuaDat = ResolvePass(config, finalScore, grading.SoCauDung);
         attempt.TrangThaiCongBo = grading.CoCauTuLuan ? "chua_co_diem" : "da_cham_xong";
         attempt.NgayCapNhat = DateTime.UtcNow;
+
+        // Sync to learning progress if this quiz is part of a lesson content
+        var content = await _db.BaiHocNoiDungs
+            .FirstOrDefaultAsync(x => x.MaDeKiemTra == attempt.MaDeKiemTra && x.LoaiNoiDung == "trac_nghiem", ct);
+        if (content != null)
+        {
+            await _progressSyncService.SyncQuizProgressAsync(attempt.MaHocSinh, content.MaNoiDung, attempt);
+        }
     }
 
     private async Task<QuizAttemptResultDto> BuildResultAsync(

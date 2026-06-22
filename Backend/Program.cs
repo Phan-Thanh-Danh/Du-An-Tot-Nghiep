@@ -26,6 +26,35 @@ using Backend.Services.Finance.TuitionPayments;
 using Backend.Services.Floors;
 using Backend.Services.Majors;
 using Backend.Services.Notifications;
+using System.Text.Json;
+using Backend.Data;
+using Backend.Helpers;
+using Backend.Hubs;
+using Backend.Middlewares;
+using Backend.Services;
+using Backend.Services.AcademicTerms;
+using Backend.Services.AdministrativeClasses;
+using Backend.Services.AdminUsers;
+using Backend.Services.Attendance;
+using Backend.Services.AttendanceAutomation;
+using Backend.Services.AttendanceUnlock;
+using Backend.Services.Audit;
+using Backend.Services.Auth;
+using Backend.Services.Buildings;
+using Backend.Services.BuoiHoc;
+using Backend.Services.CaHoc;
+using Backend.Services.CampusSpecializations;
+using Backend.Services.Cohorts;
+using Backend.Services.Courses;
+using Backend.Services.CourseSyllabuses;
+using Backend.Services.Curriculum;
+using Backend.Services.Exam;
+using Backend.Services.Finance.ProgramTuitionConfigs;
+using Backend.Services.Finance.TuitionPayments;
+using Backend.Services.Floors;
+using Backend.Services.LearningProgress;
+using Backend.Services.Majors;
+using Backend.Services.Notifications;
 using Backend.Services.Organizations;
 using Backend.Services.QuestionBank;
 using Backend.Services.QuizAttempts;
@@ -146,6 +175,14 @@ builder.Services.AddHostedService<QuizStatusAutomationHostedService>();
 builder.Services.AddScoped<IAttendanceUnlockService, AttendanceUnlockService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IQuestionBankService, QuestionBankService>();
+
+builder.Services.Configure<LearningProgressOptions>(
+    builder.Configuration.GetSection(LearningProgressOptions.SectionName)
+);
+builder.Services.AddScoped<IStudentContentAccessService, StudentContentAccessService>();
+builder.Services.AddScoped<ILearningProgressCalculator, LearningProgressCalculator>();
+builder.Services.AddScoped<ILearningProgressSyncService, LearningProgressSyncService>();
+builder.Services.AddScoped<ILearningProgressService, LearningProgressService>();
 
 builder.Services.AddSignalR();
 
