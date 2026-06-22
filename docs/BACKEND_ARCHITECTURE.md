@@ -110,8 +110,50 @@ Policy hiện có:
 - `AdminOnly`: `Admin`, `SuperAdmin`.
 - `AcademicOperations`: `Admin`, `SuperAdmin`, `AcademicStaff`, `CampusAdmin`.
 - `Reports`: `Admin`, `SuperAdmin`, `Principal`, `CampusAdmin`.
+- `ApplicationStudent`: `Student`.
+- `ApplicationOperations`: `SuperAdmin`, `Admin`, `CampusAdmin`, `SubCampusAdmin`, `AcademicStaff`.
+- `ApplicationSensitiveDecision`: `SuperAdmin`, `Admin`, `CampusAdmin`, `Principal`.
+- `ApplicationSystemAdmin`: `SuperAdmin`, `Admin`.
 
 Endpoint có role riêng nên dùng `[Authorize(Roles = ...)]` với `AuthRoles`.
+
+## Applications / Đơn Từ Foundation
+
+P0-DT1 chuẩn hóa nền cho module đơn từ, chưa triển khai workflow tạo nháp/nộp/phân công/duyệt/upload.
+
+Schema foundation:
+
+- `DonTu`: giữ cột legacy và bổ sung `MaDonVi`, `MaMauDon`, `TieuDe`, `TrangThaiXuLyNghiepVu`, `NguoiXuLyCuoi`, `NoiDungYeuCauBoSung`, `KetQuaXuLyJson`, các mốc thời gian xử lý và `RowVersion`.
+- `MauDonTu`: mẫu đơn versioned, JSON config có check `ISJSON`, unique `LoaiDon + PhienBan`, filtered unique cho một active template mỗi loại.
+- `TepDinhKemDonTu`: metadata minh chứng, lưu `StorageKey` thay vì public URL, soft delete, FK `NoAction`.
+- `NhatKyDuyetDon`: log trạng thái mở rộng, tách `GhiChuCongKhai` và `GhiChuNoiBo`, hỗ trợ `NguonThucHien = user/system`.
+
+State machine dùng `ApplicationStateMachine`:
+
+- Hợp lệ: `nhap -> da_nop/da_huy`, `da_nop -> dang_xem_xet/da_huy`, `dang_xem_xet -> yeu_cau_bo_sung/da_duyet/tu_choi`, `yeu_cau_bo_sung -> dang_xem_xet/da_huy`.
+- Terminal: `da_duyet`, `tu_choi`, `da_huy`.
+- Không nhận trạng thái tùy ý từ frontend.
+
+Campus/security rule cho service workflow sau này:
+
+- Student chỉ truy cập đơn có `MaHocSinh = CurrentUser.UserId`.
+- SuperAdmin/Admin xem toàn hệ thống.
+- CampusAdmin xem campus và campus con.
+- SubCampusAdmin/AcademicStaff/Principal xem campus hiện tại.
+- Không tin frontend truyền `MaHocSinh`, `MaDonVi`, `TrangThai`, `NguoiDuyetHienTai`.
+- `CampusScopeMiddleware` chỉ đọc route/query/header, nên không đủ cho các endpoint đơn từ không truyền `maDonVi`; service phải tự scope bằng `CurrentUserContext`.
+
+Template validation:
+
+- `ApplicationTemplateValidator` parse bằng `JsonDocument`, giới hạn size/depth, yêu cầu `root.fields`.
+- Field `key` không rỗng/không trùng; `type` và `relatedEntity` thuộc whitelist.
+- Không cho cấu hình chứa script/html/sql/query động.
+
+Storage evidence:
+
+- P0-DT1 chỉ tạo schema, chưa upload.
+- Allowlist foundation cho phase upload sau: PDF, JPEG, PNG, WEBP.
+- Không dùng nguyên `StorageController` hiện tại cho minh chứng Student vì controller đó phục vụ nội dung học tập chung và allow ZIP/SVG/public URL.
 
 ## Error Handling
 
