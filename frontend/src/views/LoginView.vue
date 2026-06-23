@@ -10,6 +10,7 @@ import {
   Mail,
   MessageCircleQuestion,
   ShieldCheck,
+  Users,
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import GlassButton from '@/components/ui/GlassButton.vue'
@@ -76,11 +77,13 @@ async function submitLogin() {
       targetPath.startsWith('/student') ||
       targetPath.startsWith('/teacher') ||
       targetPath.startsWith('/staff') ||
-      targetPath.startsWith('/bgh')
+      targetPath.startsWith('/bgh') ||
+      targetPath.startsWith('/parent')
     ) {
       if (authStore.hasRole('Principal')) targetPath = '/bgh/dashboard'
       else if (authStore.hasRole('Teacher')) targetPath = '/teacher/dashboard'
       else if (authStore.hasRole('AcademicStaff')) targetPath = '/staff/dashboard'
+      else if (authStore.hasRole('Parent')) targetPath = '/parent/dashboard'
       else targetPath = '/student/dashboard'
     }
 
@@ -305,6 +308,15 @@ function quickLogin(roleName) {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
               <span class="text-xs font-bold text-slate-800">Super Admin</span>
+              <span class="text-[9px] text-slate-500">1-Click Login</span>
+            </button>
+            <button
+              type="button"
+              class="quick-login-btn col-span-2 flex flex-col items-center justify-center p-2.5 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm"
+              @click="quickLogin('parent')"
+            >
+              <Users class="h-5 w-5 text-orange-600 mb-1" />
+              <span class="text-xs font-bold text-slate-800">Phụ huynh</span>
               <span class="text-[9px] text-slate-500">1-Click Login</span>
             </button>
           </div>

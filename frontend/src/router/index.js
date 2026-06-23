@@ -19,6 +19,7 @@ const router = createRouter({
         if (authStore.hasRole('Principal')) return '/bgh/dashboard'
         if (authStore.hasRole('Teacher')) return '/teacher/dashboard'
         if (authStore.hasRole('AcademicStaff')) return '/staff/dashboard'
+        if (authStore.hasRole('Parent')) return '/parent/dashboard'
         return '/student/dashboard'
       },
     },
@@ -172,6 +173,106 @@ const router = createRouter({
           name: 'student-notifications',
           component: () => import('../views/Student/NotificationsView.vue'),
           meta: { title: 'Thông báo' },
+        },
+      ],
+    },
+
+    // ── Parent Layout (Phụ huynh) ─────────────────────────
+    {
+      path: '/parent',
+      component: () => import('../components/PhuHuynh/ParentLayout.vue'),
+      meta: { requiresAuth: true, role: 'Parent' },
+      children: [
+        { path: '', redirect: '/parent/dashboard' },
+        {
+          path: 'dashboard',
+          name: 'parent-dashboard',
+          component: () => import('../views/PhuHuynh/DashboardWrapper.vue'),
+          meta: { title: 'Dashboard Phụ huynh' },
+        },
+        {
+          path: 'children/list',
+          name: 'parent-children-list',
+          component: () => import('../views/PhuHuynh/Children/ListView.vue'),
+          meta: { title: 'Danh sách học sinh' },
+        },
+        {
+          path: 'children/overview',
+          name: 'parent-children-overview',
+          component: () => import('../views/PhuHuynh/Children/OverviewView.vue'),
+          meta: { title: 'Tổng quan học tập' },
+        },
+        {
+          path: 'learning/grades',
+          name: 'parent-grades',
+          component: () => import('../views/PhuHuynh/Learning/GradesView.vue'),
+          meta: { title: 'Kết quả học tập' },
+        },
+        {
+          path: 'learning/schedule',
+          name: 'parent-schedule',
+          component: () => import('../views/PhuHuynh/Learning/ScheduleView.vue'),
+          meta: { title: 'Thời khóa biểu' },
+        },
+        {
+          path: 'learning/attendance',
+          name: 'parent-attendance',
+          component: () => import('../views/PhuHuynh/Learning/AttendanceView.vue'),
+          meta: { title: 'Điểm danh' },
+        },
+        {
+          path: 'learning/alerts',
+          name: 'parent-alerts',
+          component: () => import('../views/PhuHuynh/Learning/AlertsView.vue'),
+          meta: { title: 'Cảnh báo' },
+        },
+        {
+          path: 'finance/tuition',
+          name: 'parent-tuition',
+          component: () => import('../views/PhuHuynh/Finance/TuitionView.vue'),
+          meta: { title: 'Học phí' },
+        },
+        {
+          path: 'finance/payment',
+          name: 'parent-payment',
+          component: () => import('../views/PhuHuynh/Finance/PaymentView.vue'),
+          meta: { title: 'Thanh toán' },
+        },
+        {
+          path: 'finance/transactions',
+          name: 'parent-transactions',
+          component: () => import('../views/PhuHuynh/Finance/TransactionsView.vue'),
+          meta: { title: 'Lịch sử giao dịch' },
+        },
+        {
+          path: 'finance/invoices',
+          name: 'parent-invoices',
+          component: () => import('../views/PhuHuynh/Finance/InvoicesView.vue'),
+          meta: { title: 'Hóa đơn' },
+        },
+        {
+          path: 'notifications/system',
+          name: 'parent-notifications',
+          component: () => import('../views/PhuHuynh/Notifications/SystemView.vue'),
+          meta: { title: 'Thông báo hệ thống' },
+        },
+        {
+          path: 'notifications/history',
+          name: 'parent-notifications-history',
+          component: () => import('../views/PhuHuynh/Notifications/HistoryView.vue'),
+          meta: { title: 'Lịch sử thông báo' },
+        },
+        {
+          path: 'profile/info',
+          name: 'parent-profile-info',
+          component: () => import('../views/PhuHuynh/Profile/InfoView.vue'),
+          meta: { title: 'Hồ sơ cá nhân' },
+        },
+        {
+          path: 'profile/access-rights',
+          name: 'parent-profile-access-rights',
+          component: () => import('../views/PhuHuynh/PlaceholderView.vue'),
+          meta: { title: 'Quyền truy cập' },
         },
       ],
     },
@@ -584,6 +685,7 @@ router.beforeEach((to) => {
     if (authStore.hasRole('SuperAdmin')) return '/super-admin/dashboard'
     if (authStore.hasRole('Teacher')) return '/teacher/dashboard'
     if (authStore.hasRole('AcademicStaff')) return '/staff/dashboard'
+    if (authStore.hasRole('Parent')) return '/parent/dashboard'
     return '/student/dashboard'
   }
 
