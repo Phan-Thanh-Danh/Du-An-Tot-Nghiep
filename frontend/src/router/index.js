@@ -517,13 +517,13 @@ const router = createRouter({
         {
           path: 'notifications/templates',
           name: 'super-admin-notifications-templates',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/NotificationTemplatesView.vue'),
           meta: { title: 'Template thông báo' },
         },
         {
           path: 'notifications/send',
           name: 'super-admin-notifications-send',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/SendNotificationView.vue'),
           meta: { title: 'Gửi thông báo toàn hệ thống' },
         },
         {
@@ -536,25 +536,25 @@ const router = createRouter({
         {
           path: 'audit/logs',
           name: 'super-admin-audit-logs',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/AuditLogsView.vue'),
           meta: { title: 'Audit Log' },
         },
         {
           path: 'security/alerts',
           name: 'super-admin-security-alerts',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/SecurityAlertsView.vue'),
           meta: { title: 'Security Alert' },
         },
         {
           path: 'system/modules',
           name: 'super-admin-system-modules',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/SystemModulesView.vue'),
           meta: { title: 'Bật/Tắt module' },
         },
         {
           path: 'system/ai-automation',
           name: 'super-admin-system-ai-automation',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/AiAutomationView.vue'),
           meta: { title: 'Cấu hình AI & Automation' },
         },
       ],

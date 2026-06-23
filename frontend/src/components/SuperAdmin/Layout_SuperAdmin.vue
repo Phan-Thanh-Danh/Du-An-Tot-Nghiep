@@ -198,7 +198,7 @@ const currentPageMeta = computed(() => {
       <AppTopbar @toggle-sidebar="toggleSidebar" />
 
       <!-- ═══════════ CONTENT AREA ═══════════ -->
-      <main class="flex-1 overflow-y-auto">
+      <main class="flex-1 overflow-y-auto min-w-0 w-full">
         <div class="mx-auto w-full max-w-[1500px] px-3 py-4 sm:px-4">
 
           <!-- Tất cả page đều render qua PageContainer + RouterView -->
