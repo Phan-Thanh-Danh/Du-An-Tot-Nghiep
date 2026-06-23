@@ -310,11 +310,11 @@ function navigateTo(path) {
 
     </div>
 
-    <!-- ── SECOND ROW: TODAY SCHEDULE & ACADEMIC PROGRESS CHART ── -->
+    <!-- ── SECOND ROW: TODAY SCHEDULE, ACADEMIC PROGRESS & ALERTS ── -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
       
-      <!-- Cột lịch học chi tiết (2/3 chiều rộng trên desktop) -->
-      <div class="lg-glass flex flex-col p-6 lg:col-span-2 rounded-[24px]">
+      <!-- Cột lịch học chi tiết (1/3 chiều rộng trên desktop) -->
+      <div class="lg-glass flex flex-col p-6 rounded-[24px]">
         <div class="flex items-center justify-between border-b border-card pb-5 mb-5">
           <h3 class="text-base font-bold text-heading flex items-center gap-2">
             <Clock :size="18" class="text-orange-600" />
@@ -378,94 +378,42 @@ function navigateTo(path) {
         </div>
       </div>
 
-      <!-- Biểu đồ tiến trình học tập (1/3 chiều rộng trên desktop) -->
-      <div class="lg-glass flex flex-col p-6 rounded-[24px]">
-        <div class="border-b border-card pb-5 mb-5">
+      <!-- Tin tức / Thông báo từ nhà trường -->
+      <div class="lg-glass p-6 flex flex-col rounded-[24px]">
+        <div class="flex items-center justify-between border-b border-card pb-5 mb-5">
           <h3 class="text-base font-bold text-heading flex items-center gap-2">
-            <Award :size="18" class="text-orange-600" />
-            Biểu đồ tiến độ GPA của con
+            <MessageSquare :size="18" class="text-orange-600" />
+            Thông tin từ trường đại học / cao đẳng
           </h3>
+          <button @click="navigateTo('/parent/notifications/history')" class="text-xs font-bold text-orange-600 hover:text-orange-700 hover:underline decoration-2 underline-offset-2">Xem tất cả</button>
         </div>
 
-        <div class="flex-1 flex flex-col justify-between">
-          <!-- Custom SVG Line Chart -->
-          <div class="relative w-full h-44 flex items-end justify-between px-2 pt-4">
-            <!-- Grid Lines -->
-            <div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-10">
-              <div class="w-full border-t border-slate-400"></div>
-              <div class="w-full border-t border-slate-400"></div>
-              <div class="w-full border-t border-slate-400"></div>
-              <div class="w-full border-t border-slate-400"></div>
-            </div>
-
-            <!-- Visual Line and Nodes via SVG -->
-            <svg class="absolute inset-0 w-full h-full drop-shadow-md" viewBox="0 0 100 40" preserveAspectRatio="none">
-              <!-- Path Line -->
-              <path
-                :d="`M 10,${40 - (currentChild.gradesProgress[0].gpa * 3.5)}
-                     L 35,${40 - (currentChild.gradesProgress[1].gpa * 3.5)}
-                     L 65,${40 - (currentChild.gradesProgress[2].gpa * 3.5)}
-                     L 90,${40 - (currentChild.gradesProgress[3].gpa * 3.5)}`"
-                fill="none"
-                stroke="#ea580c"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <!-- Gradient Area -->
-              <path
-                :d="`M 10,40
-                     L 10,${40 - (currentChild.gradesProgress[0].gpa * 3.5)}
-                     L 35,${40 - (currentChild.gradesProgress[1].gpa * 3.5)}
-                     L 65,${40 - (currentChild.gradesProgress[2].gpa * 3.5)}
-                     L 90,${40 - (currentChild.gradesProgress[3].gpa * 3.5)}
-                     L 90,40 Z`"
-                fill="url(#orange-gradient)"
-                opacity="0.2"
-              />
-              <defs>
-                <linearGradient id="orange-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="#ea580c" />
-                  <stop offset="100%" stop-color="#ea580c" stop-opacity="0" />
-                </linearGradient>
-              </defs>
-
-              <!-- Circle Dots -->
-              <circle :cx="10" :cy="40 - (currentChild.gradesProgress[0].gpa * 3.5)" r="1.5" fill="#ea580c" />
-              <circle :cx="35" :cy="40 - (currentChild.gradesProgress[1].gpa * 3.5)" r="1.5" fill="#ea580c" />
-              <circle :cx="65" :cy="40 - (currentChild.gradesProgress[2].gpa * 3.5)" r="1.5" fill="#ea580c" />
-              <circle :cx="90" :cy="40 - (currentChild.gradesProgress[3].gpa * 3.5)" r="2.5" fill="#ea580c" stroke="white" stroke-width="0.5" />
-            </svg>
-
-            <!-- Chart Value Labels -->
-            <div
-              v-for="(point, idx) in currentChild.gradesProgress"
-              :key="idx"
-              class="relative z-10 flex flex-col items-center justify-end h-full w-1/4 group"
-            >
-              <span class="text-[11px] font-bold text-orange-600 bg-white/95 dark:bg-slate-900/95 px-1.5 py-0.5 rounded-md border border-card shadow-[var(--lg-shadow-sm)] mb-1.5 group-hover:-translate-y-1 transition-transform">
-                {{ point.gpa }}
-              </span>
-              <span class="text-[9px] font-bold text-muted text-center w-full truncate px-1 mt-auto">
-                {{ point.semester.split(' - ')[1] || point.semester }}
+        <div class="flex-1 space-y-3">
+          <div
+            v-for="notif in systemNotifications"
+            :key="notif.id"
+            class="group flex gap-4 relative p-4 rounded-[16px] lg-solid-soft transition-all hover:bg-[var(--surface-card-hover)] cursor-pointer border border-default"
+          >
+            <div class="flex-shrink-0 mt-1">
+              <span class="relative flex h-2.5 w-2.5">
+                <span v-if="notif.isNew" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5" :class="notif.isNew ? 'bg-orange-600' : 'bg-slate-300 dark:bg-slate-700'"></span>
               </span>
             </div>
-          </div>
-          
-          <div class="mt-6 p-4 rounded-xl lg-solid-soft flex items-start gap-3 border border-default">
-            <Sparkles :size="20" class="text-orange-600 flex-shrink-0 mt-0.5" />
-            <p class="text-xs font-medium text-body leading-relaxed">
-              Điểm số trung bình tích lũy GPA hiện tại đạt mức <strong class="text-orange-600 font-bold">{{ currentChild.gpa }} / 10</strong>. Con em tiếp tục duy trì mức học lực khá giỏi và tiến bộ đều đặn.
-            </p>
+            <div class="flex-1 min-w-0">
+              <h4 class="text-sm font-bold text-heading flex items-center gap-2 leading-snug group-hover:text-orange-600 transition-colors">
+                {{ notif.title }}
+                <span v-if="notif.isNew" class="px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400 text-[9px] font-bold rounded-md shadow-sm">Mới</span>
+              </h4>
+              <p class="text-xs font-medium text-body mt-1.5 leading-relaxed line-clamp-2">
+                {{ notif.content }}
+              </p>
+              <span class="text-[10px] font-bold text-muted mt-2 block">{{ notif.time }}</span>
+            </div>
           </div>
         </div>
       </div>
 
-    </div>
-
-    <!-- ── THIRD ROW: DANGER ALERTS & SYSTEM NOTIFICATIONS ── -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-      
       <!-- Box Cảnh báo từ giáo viên / hệ thống -->
       <div class="lg-glass p-6 flex flex-col rounded-[24px]">
         <div class="flex items-center justify-between border-b border-card pb-5 mb-5">
@@ -500,38 +448,96 @@ function navigateTo(path) {
         </div>
       </div>
 
-      <!-- Tin tức / Thông báo từ nhà trường -->
-      <div class="lg-glass p-6 flex flex-col rounded-[24px]">
-        <div class="flex items-center justify-between border-b border-card pb-5 mb-5">
+    </div>
+
+    <!-- ── THIRD ROW: SYSTEM NOTIFICATIONS ── -->
+    <div class="grid grid-cols-1 gap-4 lg:gap-6">
+      
+      <!-- Biểu đồ tiến trình học tập -->
+      <div class="lg-glass flex flex-col p-6 rounded-[24px]">
+        <div class="border-b border-card pb-5 mb-5">
           <h3 class="text-base font-bold text-heading flex items-center gap-2">
-            <MessageSquare :size="18" class="text-orange-600" />
-            Thông tin từ trường đại học / cao đẳng
+            <Award :size="18" class="text-orange-600" />
+            Biểu đồ tiến độ GPA của con
           </h3>
-          <button @click="navigateTo('/parent/notifications/history')" class="text-xs font-bold text-orange-600 hover:text-orange-700 hover:underline decoration-2 underline-offset-2">Xem tất cả</button>
         </div>
 
-        <div class="flex-1 space-y-3">
-          <div
-            v-for="notif in systemNotifications"
-            :key="notif.id"
-            class="group flex gap-4 relative p-4 rounded-[16px] lg-solid-soft transition-all hover:bg-[var(--surface-card-hover)] cursor-pointer border border-default"
-          >
-            <div class="flex-shrink-0 mt-1">
-              <span class="relative flex h-2.5 w-2.5">
-                <span v-if="notif.isNew" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2.5 w-2.5" :class="notif.isNew ? 'bg-orange-600' : 'bg-slate-300 dark:bg-slate-700'"></span>
+        <div class="flex-1 flex flex-col justify-between">
+          <!-- Custom SVG Line Chart -->
+          <div class="relative w-full h-44 flex items-end justify-between px-2 pt-4">
+            <!-- Grid Lines -->
+            <div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-10">
+              <div class="w-full border-t border-slate-400"></div>
+              <div class="w-full border-t border-slate-400"></div>
+              <div class="w-full border-t border-slate-400"></div>
+              <div class="w-full border-t border-slate-400"></div>
+            </div>
+
+            <!-- Visual Line and Nodes via SVG -->
+            <svg class="absolute inset-0 w-full h-full drop-shadow-md" viewBox="0 0 100 40" preserveAspectRatio="none">
+              <!-- Path Line -->
+              <path
+                :d="`M 12.5,${40 - (currentChild.gradesProgress[0].gpa * 3.5)}
+                     L 37.5,${40 - (currentChild.gradesProgress[1].gpa * 3.5)}
+                     L 62.5,${40 - (currentChild.gradesProgress[2].gpa * 3.5)}
+                     L 87.5,${40 - (currentChild.gradesProgress[3].gpa * 3.5)}`"
+                fill="none"
+                stroke="#fb923c"
+                stroke-width="2"
+                vector-effect="non-scaling-stroke"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <!-- Gradient Area -->
+              <path
+                :d="`M 12.5,40
+                     L 12.5,${40 - (currentChild.gradesProgress[0].gpa * 3.5)}
+                     L 37.5,${40 - (currentChild.gradesProgress[1].gpa * 3.5)}
+                     L 62.5,${40 - (currentChild.gradesProgress[2].gpa * 3.5)}
+                     L 87.5,${40 - (currentChild.gradesProgress[3].gpa * 3.5)}
+                     L 87.5,40 Z`"
+                fill="url(#orange-gradient)"
+                opacity="0.2"
+              />
+              <defs>
+                <linearGradient id="orange-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#fb923c" />
+                  <stop offset="100%" stop-color="#fb923c" stop-opacity="0" />
+                </linearGradient>
+              </defs>
+            </svg>
+
+            <!-- HTML Dots to prevent stretching -->
+            <div class="absolute inset-0 pointer-events-none">
+              <div
+                v-for="(point, idx) in currentChild.gradesProgress"
+                :key="'dot-'+idx"
+                class="absolute rounded-full bg-[#fb923c] border-[2px] border-white dark:border-slate-900 shadow-sm transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300"
+                :class="idx === 3 ? 'w-3.5 h-3.5 ring-2 ring-orange-400/30' : 'w-2.5 h-2.5'"
+                :style="`left: ${12.5 + idx * 25}%; top: ${ (40 - point.gpa * 3.5) / 40 * 100 }%`"
+              ></div>
+            </div>
+
+            <!-- Chart Value Labels -->
+            <div
+              v-for="(point, idx) in currentChild.gradesProgress"
+              :key="idx"
+              class="relative z-10 flex flex-col items-center justify-end h-full w-1/4 group"
+            >
+              <span class="text-[11px] font-bold text-orange-500 bg-white/95 dark:bg-slate-900/95 px-1.5 py-0.5 rounded-md border border-card shadow-[var(--lg-shadow-sm)] mb-1.5 group-hover:-translate-y-1 transition-transform">
+                {{ point.gpa }}
+              </span>
+              <span class="text-[9px] font-bold text-muted text-center w-full truncate px-1 mt-auto">
+                {{ point.semester.split(' - ')[1] || point.semester }}
               </span>
             </div>
-            <div class="flex-1 min-w-0">
-              <h4 class="text-sm font-bold text-heading flex items-center gap-2 leading-snug group-hover:text-orange-600 transition-colors">
-                {{ notif.title }}
-                <span v-if="notif.isNew" class="px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400 text-[9px] font-bold rounded-md shadow-sm">Mới</span>
-              </h4>
-              <p class="text-xs font-medium text-body mt-1.5 leading-relaxed line-clamp-2">
-                {{ notif.content }}
-              </p>
-              <span class="text-[10px] font-bold text-muted mt-2 block">{{ notif.time }}</span>
-            </div>
+          </div>
+          
+          <div class="mt-6 p-4 rounded-xl lg-solid-soft flex items-start gap-3 border border-default">
+            <Sparkles :size="20" class="text-orange-500 flex-shrink-0 mt-0.5" />
+            <p class="text-xs font-medium text-body leading-relaxed">
+              Điểm số trung bình tích lũy GPA hiện tại đạt mức <strong class="text-orange-500 font-bold">{{ currentChild.gpa }} / 10</strong>. Con em tiếp tục duy trì mức học lực khá giỏi và tiến bộ đều đặn.
+            </p>
           </div>
         </div>
       </div>
