@@ -5,6 +5,7 @@ public class DonTu
     public int MaDonTu { get; set; }
     public int MaDonVi { get; set; }
     public int MaHocSinh { get; set; }
+    // Nullable by design for legacy rows; DT2 creation flow will assign the active template.
     public int? MaMauDon { get; set; }
     public string LoaiDon { get; set; } = string.Empty;
     public string TieuDe { get; set; } = string.Empty;

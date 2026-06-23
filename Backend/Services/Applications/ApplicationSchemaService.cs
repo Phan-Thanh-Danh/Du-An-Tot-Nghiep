@@ -117,6 +117,11 @@ public class ApplicationSchemaService : IApplicationSchemaService
 
     private static string NormalizeType(string loaiDon)
     {
+        if (string.IsNullOrWhiteSpace(loaiDon))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Loại đơn không hợp lệ.");
+        }
+
         var trimmed = loaiDon.Trim();
         var canonical = ApplicationTypes.All.FirstOrDefault(type =>
             type.Equals(trimmed, StringComparison.OrdinalIgnoreCase));

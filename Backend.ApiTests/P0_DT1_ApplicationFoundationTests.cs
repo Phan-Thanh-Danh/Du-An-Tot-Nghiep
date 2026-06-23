@@ -71,10 +71,14 @@ public class P0_DT1_ApplicationFoundationApiTests : ApiTestBase
     public async Task GetTemplate_MissingInactiveType_ShouldReturnNotFound_WhenNoActiveTemplate()
     {
         await using var context = CreateDbContext();
-        var template = await context.MauDonTus.FirstOrDefaultAsync(x => x.LoaiDon == ApplicationTypes.Other);
+        var template = await context.MauDonTus
+            .Where(x => x.LoaiDon == ApplicationTypes.Other && x.DangHoatDong)
+            .OrderByDescending(x => x.PhienBan)
+            .FirstOrDefaultAsync();
+
         if (template is null)
         {
-            Assert.Inconclusive("Chưa có template khac để kiểm tra inactive template.");
+            Assert.Inconclusive("Chưa có active template khac để kiểm tra inactive template.");
             return;
         }
 
@@ -160,60 +164,12 @@ public class P0_DT1_ApplicationFoundationApiTests : ApiTestBase
 
     private static ApplicationDbContext CreateDbContext()
     {
-        var connectionString = GetConnectionString();
+        var connectionString = P0Dt1TestDatabase.GetConnectionString();
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseSqlServer(connectionString)
             .Options;
 
         return new ApplicationDbContext(options);
-    }
-
-    private static string GetConnectionString()
-    {
-        var environmentConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
-        if (!string.IsNullOrWhiteSpace(environmentConnectionString))
-        {
-            return environmentConnectionString;
-        }
-
-        var root = FindRepoRoot();
-        var configPath = Path.Combine(root, "Backend", "appsettings.Development.json");
-        if (!File.Exists(configPath))
-        {
-            configPath = Path.Combine(root, "Backend", "appsettings.json");
-        }
-
-        var json = File.ReadAllText(configPath, Encoding.UTF8);
-        using var document = System.Text.Json.JsonDocument.Parse(json);
-        var connectionString = document.RootElement
-            .GetProperty("ConnectionStrings")
-            .GetProperty("DefaultConnection")
-            .GetString();
-
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            Assert.Fail("Không tìm thấy ConnectionStrings:DefaultConnection để test P0-DT1.");
-        }
-
-        return connectionString!;
-    }
-
-    private static string FindRepoRoot()
-    {
-        var directory = TestContext.CurrentContext.TestDirectory;
-        while (!string.IsNullOrWhiteSpace(directory))
-        {
-            if (Directory.Exists(Path.Combine(directory, "Backend")) &&
-                Directory.Exists(Path.Combine(directory, "Backend.ApiTests")))
-            {
-                return directory;
-            }
-
-            directory = Directory.GetParent(directory)?.FullName;
-        }
-
-        Assert.Fail("Không tìm thấy repo root từ thư mục test output.");
-        throw new InvalidOperationException("Unreachable after Assert.Fail.");
     }
 }
 
@@ -434,6 +390,36 @@ public class P0_DT1_ApplicationFoundationUnitTests
     }
 
     [Test]
+    public async Task ApplicationSchemaService_NullBlankType_ShouldReturnBadRequest()
+    {
+        await using var context = P0Dt1TestDatabase.CreateDbContext();
+        var service = new ApplicationSchemaService(context, new ApplicationStateMachine());
+
+        foreach (var value in new string?[] { null, string.Empty, "   " })
+        {
+            var exception = Assert.ThrowsAsync<ApiException>(() =>
+                service.GetActiveTemplateByTypeAsync(value!, CancellationToken.None));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception!.StatusCode, Is.EqualTo(400));
+                Assert.That(exception.Message, Is.EqualTo("Loại đơn không hợp lệ."));
+            });
+        }
+    }
+
+    [Test]
+    public async Task ApplicationSchemaService_UppercaseType_ShouldReturnCanonicalType()
+    {
+        await using var context = P0Dt1TestDatabase.CreateDbContext();
+        var service = new ApplicationSchemaService(context, new ApplicationStateMachine());
+
+        var template = await service.GetActiveTemplateByTypeAsync(" NGHI_PHEP ", CancellationToken.None);
+
+        Assert.That(template.LoaiDon, Is.EqualTo(ApplicationTypes.Leave));
+    }
+
+    [Test]
     public void EfModel_DonTuRowVersion_ShouldBeMapped()
     {
         using var context = CreateMetadataContext();
@@ -474,10 +460,70 @@ public class P0_DT1_ApplicationFoundationUnitTests
 
     private static ApplicationDbContext CreateMetadataContext()
     {
+        return P0Dt1TestDatabase.CreateDbContext();
+    }
+}
+
+internal static class P0Dt1TestDatabase
+{
+    public static ApplicationDbContext CreateDbContext()
+    {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=LMS_Metadata_Only;Trusted_Connection=True;")
+            .UseSqlServer(GetConnectionString())
             .Options;
 
         return new ApplicationDbContext(options);
+    }
+
+    public static string GetConnectionString()
+    {
+        var environmentConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        if (!string.IsNullOrWhiteSpace(environmentConnectionString))
+        {
+            return environmentConnectionString;
+        }
+
+        var root = FindRepoRoot();
+        foreach (var configFile in new[] { "appsettings.Development.json", "appsettings.json" })
+        {
+            var configPath = Path.Combine(root, "Backend", configFile);
+            if (!File.Exists(configPath))
+            {
+                continue;
+            }
+
+            var json = File.ReadAllText(configPath, Encoding.UTF8);
+            using var document = JsonDocument.Parse(json);
+            var connectionString = document.RootElement
+                .GetProperty("ConnectionStrings")
+                .GetProperty("DefaultConnection")
+                .GetString();
+
+            if (!string.IsNullOrWhiteSpace(connectionString))
+            {
+                return connectionString;
+            }
+        }
+
+        Assert.Fail("Không tìm thấy ConnectionStrings:DefaultConnection để test P0-DT1.");
+        throw new InvalidOperationException("Unreachable after Assert.Fail.");
+    }
+
+    private static string FindRepoRoot()
+    {
+        var directory = TestContext.CurrentContext.TestDirectory;
+        while (!string.IsNullOrWhiteSpace(directory))
+        {
+            if (Directory.Exists(Path.Combine(directory, "Backend")) &&
+                Directory.Exists(Path.Combine(directory, "Backend.ApiTests")))
+            {
+                return directory;
+            }
+
+            directory = Directory.GetParent(directory)?.FullName;
+        }
+
+        Assert.Fail("Không tìm thấy repo root từ thư mục test output.");
+        throw new InvalidOperationException("Unreachable after Assert.Fail.");
     }
 }
