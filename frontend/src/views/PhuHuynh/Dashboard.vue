@@ -153,22 +153,7 @@ function navigateTo(path) {
       </div>
     </div>
 
-    <!-- Cảnh báo nợ học phí quá hạn ở Dashboard -->
-    <div
-      v-if="currentChild.isOverdue"
-      class="p-4 rounded-xl border border-red-200 dark:border-red-950/20 bg-red-50/50 dark:bg-red-950/10 flex gap-3 animate-pulse cursor-pointer"
-      @click="navigateTo('/parent/finance/tuition')"
-    >
-      <AlertTriangle :size="20" class="text-red-500 flex-shrink-0 mt-0.5" />
-      <div class="text-xs text-body space-y-1">
-        <p class="font-extrabold text-red-600 dark:text-red-400">CẢNH BÁO QUÁ HẠN THANH TOÁN HỌC PHÍ</p>
-        <p class="text-slate-600 dark:text-slate-400 leading-relaxed font-semibold">
-          Học phí của con đang bị trễ hạn (Hạn chót: <strong>{{ currentChild.deadlineTuition }}</strong>). 
-          Số tiền còn nợ: <strong class="text-red-600 dark:text-red-400">{{ formatCurrency(currentChild.tuitionDebt) }}</strong>.
-          Vui lòng bấm vào đây để thanh toán trực tuyến ngay.
-        </p>
-      </div>
-    </div>
+
 
     <!-- ── KEY CARDS GRID (5 MAIN METRICS) ── -->
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
@@ -477,10 +462,10 @@ function navigateTo(path) {
             <svg class="absolute inset-0 w-full h-full drop-shadow-md" viewBox="0 0 100 40" preserveAspectRatio="none">
               <!-- Path Line -->
               <path
-                :d="`M 12.5,${40 - (currentChild.gradesProgress[0].gpa * 3.5)}
-                     L 37.5,${40 - (currentChild.gradesProgress[1].gpa * 3.5)}
-                     L 62.5,${40 - (currentChild.gradesProgress[2].gpa * 3.5)}
-                     L 87.5,${40 - (currentChild.gradesProgress[3].gpa * 3.5)}`"
+                :d="`M 2,${40 - (currentChild.gradesProgress[0].gpa * 3.5)}
+                     L 34,${40 - (currentChild.gradesProgress[1].gpa * 3.5)}
+                     L 66,${40 - (currentChild.gradesProgress[2].gpa * 3.5)}
+                     L 98,${40 - (currentChild.gradesProgress[3].gpa * 3.5)}`"
                 fill="none"
                 stroke="#fb923c"
                 stroke-width="2"
@@ -490,12 +475,12 @@ function navigateTo(path) {
               />
               <!-- Gradient Area -->
               <path
-                :d="`M 12.5,40
-                     L 12.5,${40 - (currentChild.gradesProgress[0].gpa * 3.5)}
-                     L 37.5,${40 - (currentChild.gradesProgress[1].gpa * 3.5)}
-                     L 62.5,${40 - (currentChild.gradesProgress[2].gpa * 3.5)}
-                     L 87.5,${40 - (currentChild.gradesProgress[3].gpa * 3.5)}
-                     L 87.5,40 Z`"
+                :d="`M 2,40
+                     L 2,${40 - (currentChild.gradesProgress[0].gpa * 3.5)}
+                     L 34,${40 - (currentChild.gradesProgress[1].gpa * 3.5)}
+                     L 66,${40 - (currentChild.gradesProgress[2].gpa * 3.5)}
+                     L 98,${40 - (currentChild.gradesProgress[3].gpa * 3.5)}
+                     L 98,40 Z`"
                 fill="url(#orange-gradient)"
                 opacity="0.2"
               />
@@ -514,22 +499,25 @@ function navigateTo(path) {
                 :key="'dot-'+idx"
                 class="absolute rounded-full bg-[#fb923c] border-[2px] border-white dark:border-slate-900 shadow-sm transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300"
                 :class="idx === 3 ? 'w-3.5 h-3.5 ring-2 ring-orange-400/30' : 'w-2.5 h-2.5'"
-                :style="`left: ${12.5 + idx * 25}%; top: ${ (40 - point.gpa * 3.5) / 40 * 100 }%`"
+                :style="`left: ${2 + idx * 32}%; top: ${ (40 - point.gpa * 3.5) / 40 * 100 }%`"
               ></div>
             </div>
 
             <!-- Chart Value Labels -->
-            <div
-              v-for="(point, idx) in currentChild.gradesProgress"
-              :key="idx"
-              class="relative z-10 flex flex-col items-center justify-end h-full w-1/4 group"
-            >
-              <span class="text-[11px] font-bold text-orange-500 bg-white/95 dark:bg-slate-900/95 px-1.5 py-0.5 rounded-md border border-card shadow-[var(--lg-shadow-sm)] mb-1.5 group-hover:-translate-y-1 transition-transform">
-                {{ point.gpa }}
-              </span>
-              <span class="text-[9px] font-bold text-muted text-center w-full truncate px-1 mt-auto">
-                {{ point.semester.split(' - ')[1] || point.semester }}
-              </span>
+            <div class="absolute inset-0 pointer-events-none top-4 bottom-0">
+              <div
+                v-for="(point, idx) in currentChild.gradesProgress"
+                :key="'label-'+idx"
+                class="absolute z-10 flex flex-col items-center h-full group pointer-events-auto w-24 transform -translate-x-1/2"
+                :style="`left: ${2 + idx * 32}%`"
+              >
+                <span class="text-[11px] font-bold text-orange-500 bg-white/95 dark:bg-slate-900/95 px-1.5 py-0.5 rounded-md border border-card shadow-[var(--lg-shadow-sm)] mb-1.5 group-hover:-translate-y-1 transition-transform">
+                  {{ point.gpa }}
+                </span>
+                <span class="text-[9px] font-bold text-muted text-center w-full truncate px-1 mt-auto">
+                  {{ point.semester.split(' - ')[1] || point.semester }}
+                </span>
+              </div>
             </div>
           </div>
           

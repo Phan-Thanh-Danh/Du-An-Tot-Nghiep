@@ -180,7 +180,7 @@ const router = createRouter({
     // ── Parent Layout (Phụ huynh) ─────────────────────────
     {
       path: '/parent',
-      component: () => import('../components/PhuHuynh/ParentLayout.vue'),
+      component: () => import('../components/PhuHuynh/Layout_PhuHuynh.vue'),
       meta: { requiresAuth: true, role: 'Parent' },
       children: [
         { path: '', redirect: '/parent/dashboard' },

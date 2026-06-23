@@ -264,7 +264,7 @@ function goBack() {
               
               <p class="flex items-center gap-1.5">
                 <component :is="item.room.includes('Online') ? Video : MapPin" :size="12" class="text-muted" />
-                <span :class="item.room.includes('Online') ? 'text-blue-600 dark:text-blue-400 underline cursor-pointer' : ''">
+                <span :class="item.room.includes('Online') ? 'text-orange-600 dark:text-orange-400 font-semibold' : ''">
                   {{ item.room }}
                 </span>
               </p>
@@ -277,16 +277,7 @@ function goBack() {
           </div>
         </div>
 
-        <!-- Online link button -->
-        <div v-if="item.link" class="pt-3 border-t border-card mt-3">
-          <a
-            :href="item.link"
-            target="_blank"
-            class="w-full py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 transition"
-          >
-            <Video :size="11" /> Vào học Online
-          </a>
-        </div>
+
       </div>
     </div>
 
@@ -369,7 +360,9 @@ function goBack() {
                 
                 <p class="flex items-center gap-1.5">
                   <component :is="item.room.includes('Online') ? Video : MapPin" :size="12" class="text-muted" />
-                  <span>{{ item.room }}</span>
+                  <span :class="item.room.includes('Online') ? 'text-orange-600 dark:text-orange-400 font-semibold' : ''">
+                    {{ item.room }}
+                  </span>
                 </p>
 
                 <p class="flex items-center gap-1.5">
@@ -378,16 +371,7 @@ function goBack() {
                 </p>
               </div>
 
-              <!-- Online link button inside detail card -->
-              <div v-if="item.link" class="pt-2">
-                <a
-                  :href="item.link"
-                  target="_blank"
-                  class="w-full py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 transition"
-                >
-                  <Video :size="11" /> Vào học Online
-                </a>
-              </div>
+
             </div>
           </div>
         </div>

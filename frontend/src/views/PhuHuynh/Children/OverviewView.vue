@@ -184,105 +184,6 @@ function goBack() {
       </div>
     </div>
 
-    <!-- ── CHI TIẾT KẾT QUẢ & CẢNH BÁO ── -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      
-      <!-- Cột tiến độ môn học (2/3 width) -->
-      <div class="lg-card-glass p-5 lg:col-span-2 space-y-4">
-        <h4 class="text-sm font-bold text-heading flex items-center gap-2 border-b border-card pb-3">
-          <BookOpen :size="16" class="text-orange-600" />
-          Tiến trình môn học học kỳ hiện tại
-        </h4>
-
-        <div class="space-y-4">
-          <div
-            v-for="course in currentChild.coursesList"
-            :key="course.id"
-            class="p-4 rounded-xl border border-card hover:bg-[var(--surface-card-hover)] transition"
-          >
-            <div class="flex items-center justify-between gap-2 mb-2">
-              <div>
-                <span class="text-[10px] font-bold text-orange-600 bg-orange-50 dark:bg-orange-950/20 px-2 py-0.5 rounded mr-2">{{ course.code }}</span>
-                <span class="text-xs font-bold text-heading">{{ course.name }}</span>
-              </div>
-              <span class="text-xs font-bold text-heading">Điểm TB: {{ course.gpa }}</span>
-            </div>
-
-            <!-- Thanh tiến trình học tập -->
-            <div>
-              <div class="flex justify-between items-center text-[10px] text-muted mb-1 font-semibold">
-                <span>Tiến độ chương trình học</span>
-                <span>{{ course.progress }}%</span>
-              </div>
-              <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
-                <div
-                  class="bg-orange-600 h-2 rounded-full transition-all duration-500"
-                  :style="{ width: `${course.progress}%` }"
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Cột chuyên cần & Cảnh báo học tập (1/3 width) -->
-      <div class="space-y-6">
-        
-        <!-- Chuyên cần chi tiết -->
-        <div class="lg-card-glass p-5">
-          <h4 class="text-sm font-bold text-heading flex items-center gap-2 border-b border-card pb-3 mb-4">
-            <CalendarCheck :size="16" class="text-orange-600" />
-            Chi tiết chuyên cần
-          </h4>
-
-          <div class="space-y-3">
-            <div class="flex justify-between items-center text-xs">
-              <span class="text-body font-semibold">Tổng số buổi vắng:</span>
-              <span class="font-extrabold text-orange-600">{{ currentChild.absences }} buổi</span>
-            </div>
-            <div class="border-t border-card my-2"></div>
-            <div class="grid grid-cols-2 gap-2 text-center text-xs">
-              <div class="p-2 surface-card border border-card rounded-lg">
-                <span class="text-[10px] text-muted block">Vắng có phép</span>
-                <span class="font-bold text-heading text-sm">{{ currentChild.excusedAbsences }}</span>
-              </div>
-              <div class="p-2 surface-card border border-card rounded-lg">
-                <span class="text-[10px] text-muted block">Vắng không phép</span>
-                <span class="font-bold text-red-500 text-sm">{{ currentChild.unexcusedAbsences }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Cảnh báo học tập -->
-        <div class="lg-card-glass p-5">
-          <h4 class="text-sm font-bold text-heading flex items-center gap-2 border-b border-card pb-3 mb-4">
-            <AlertTriangle :size="16" class="text-red-500" />
-            Cảnh báo rèn luyện học tập
-          </h4>
-
-          <div v-if="currentChild.warnings.length === 0" class="text-center py-6 text-muted text-xs">
-            Hiện không có cảnh báo nào dành cho học sinh này.
-          </div>
-          <div v-else class="space-y-3">
-            <div
-              v-for="warn in currentChild.warnings"
-              :key="warn.id"
-              class="p-2.5 rounded-lg border text-xs"
-              :class="warn.type === 'danger' ? 'border-red-200 bg-red-50/50 dark:border-red-950/20 dark:bg-red-950/5 text-red-700 dark:text-red-400' : 'border-amber-200 bg-amber-50/50 dark:border-amber-950/20 dark:bg-amber-950/5 text-amber-700 dark:text-amber-400'"
-            >
-              <div class="flex items-center justify-between mb-1 font-bold">
-                <span>{{ warn.subject }}</span>
-                <span class="text-[10px] text-muted font-normal">{{ warn.date }}</span>
-              </div>
-              <p class="leading-relaxed">{{ warn.reason }}</p>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
     <!-- ── DANH SÁCH BÀI TẬP VÀ ĐIỂM THI GẦN NHẤT ── -->
     <div class="lg-card-glass p-5">
       <h4 class="text-sm font-bold text-heading flex items-center gap-2 border-b border-card pb-3 mb-4">
@@ -328,6 +229,105 @@ function goBack() {
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- ── CHI TIẾT KẾT QUẢ & CẢNH BÁO ── -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Cột tiến độ môn học (2/3 width) -->
+      <div class="lg-card-glass p-5 lg:col-span-2 space-y-4">
+        <h4 class="text-sm font-bold text-heading flex items-center gap-2 border-b border-card pb-3">
+          <BookOpen :size="16" class="text-orange-600" />
+          Tiến trình môn học học kỳ hiện tại
+        </h4>
+
+        <div class="space-y-4">
+          <div
+            v-for="course in currentChild.coursesList"
+            :key="course.id"
+            class="p-4 rounded-xl border border-card hover:bg-[var(--surface-card-hover)] transition"
+          >
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <div>
+                <span class="text-[10px] font-bold text-orange-600 bg-orange-50 dark:bg-orange-950/20 px-2 py-0.5 rounded mr-2">{{ course.code }}</span>
+                <span class="text-xs font-bold text-heading">{{ course.name }}</span>
+              </div>
+              <span class="text-xs font-bold text-heading">Điểm TB: {{ course.gpa }}</span>
+            </div>
+
+            <!-- Thanh tiến trình học tập -->
+            <div>
+              <div class="flex justify-between items-center text-[10px] text-muted mb-1 font-semibold">
+                <span>Tiến độ chương trình học</span>
+                <span>{{ course.progress }}%</span>
+              </div>
+              <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
+                <div
+                  class="bg-orange-600 h-2 rounded-full transition-all duration-500"
+                  :style="{ width: `${course.progress}%` }"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cột chuyên cần & Cảnh báo học tập (1/3 width) -->
+      <div class="space-y-6">
+        
+        <!-- Cảnh báo học tập -->
+        <div class="lg-card-glass p-5">
+          <h4 class="text-sm font-bold text-heading flex items-center gap-2 border-b border-card pb-3 mb-4">
+            <AlertTriangle :size="16" class="text-red-500" />
+            Cảnh báo rèn luyện học tập
+          </h4>
+
+          <div v-if="currentChild.warnings.length === 0" class="text-center py-6 text-muted text-xs">
+            Hiện không có cảnh báo nào dành cho học sinh này.
+          </div>
+          <div v-else class="space-y-3">
+            <div
+              v-for="warn in currentChild.warnings"
+              :key="warn.id"
+              class="p-2.5 rounded-lg border text-xs"
+              :class="warn.type === 'danger' ? 'border-red-200 bg-red-50/50 dark:border-red-950/20 dark:bg-red-950/5 text-red-700 dark:text-red-400' : 'border-amber-200 bg-amber-50/50 dark:border-amber-950/20 dark:bg-amber-950/5 text-amber-700 dark:text-amber-400'"
+            >
+              <div class="flex items-center justify-between mb-1 font-bold">
+                <span>{{ warn.subject }}</span>
+                <span class="text-[10px] text-muted font-normal">{{ warn.date }}</span>
+              </div>
+              <p class="leading-relaxed">{{ warn.reason }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chuyên cần chi tiết -->
+        <div class="lg-card-glass p-5">
+          <h4 class="text-sm font-bold text-heading flex items-center gap-2 border-b border-card pb-3 mb-4">
+            <CalendarCheck :size="16" class="text-orange-600" />
+            Chi tiết chuyên cần
+          </h4>
+
+          <div class="space-y-3">
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-body font-semibold">Tổng số buổi vắng:</span>
+              <span class="font-extrabold text-orange-600">{{ currentChild.absences }} buổi</span>
+            </div>
+            <div class="border-t border-card my-2"></div>
+            <div class="grid grid-cols-2 gap-2 text-center text-xs">
+              <div class="p-2 surface-card border border-card rounded-lg">
+                <span class="text-[10px] text-muted block">Vắng có phép</span>
+                <span class="font-bold text-heading text-sm">{{ currentChild.excusedAbsences }}</span>
+              </div>
+              <div class="p-2 surface-card border border-card rounded-lg">
+                <span class="text-[10px] text-muted block">Vắng không phép</span>
+                <span class="font-bold text-red-500 text-sm">{{ currentChild.unexcusedAbsences }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 

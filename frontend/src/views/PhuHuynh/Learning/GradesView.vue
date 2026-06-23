@@ -72,25 +72,30 @@ const subjectsInSemester = computed(() => {
   return allGrades.filter(g => g.isPublished).map(g => ({ code: g.code, name: g.name }))
 })
 
-// Biểu đồ xu hướng điểm số bằng SVG
+// Biểu đồ xu hướng điểm số bằng SVG (Responsive Dashboard Style)
 const trendPoints = computed(() => {
   const trend = currentChild.value.gpaTrend || []
   if (trend.length === 0) return []
-  const width = 450
-  const height = 150
-  const padding = 30
   
   const minGpa = 4.0 // Giới hạn dưới của đồ thị
   const maxGpa = 10.0 // Giới hạn trên của đồ thị
 
   return trend.map((point, index) => {
-    const x = padding + (index * (width - 2 * padding)) / (trend.length - 1)
-    const y = height - padding - ((point.gpa - minGpa) * (height - 2 * padding)) / (maxGpa - minGpa)
+    // 5% to 95% để có khoảng trống 2 bên
+    const pctX = 5 + (index * 90) / (Math.max(trend.length - 1, 1))
+    const pctY = ((maxGpa - point.gpa) / (maxGpa - minGpa)) * 100
+    
+    // Tọa độ cho viewBox 0 0 100 40
+    const svgX = pctX
+    const svgY = (pctY / 100) * 40
+
     return {
-      x,
-      y,
       gpa: point.gpa,
-      month: point.month
+      month: point.month,
+      pctX,
+      pctY,
+      svgX,
+      svgY
     }
   })
 })
@@ -98,20 +103,17 @@ const trendPoints = computed(() => {
 const trendPath = computed(() => {
   const points = trendPoints.value
   if (points.length === 0) return ''
-  return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+  return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.svgX},${p.svgY}`).join(' ')
 })
 
 const trendAreaPath = computed(() => {
   const points = trendPoints.value
   if (points.length === 0) return ''
-  // const width = 450
-  const height = 150
-  const padding = 30
-  const startX = points[0].x
-  const endX = points[points.length - 1].x
-  const bottomY = height - padding
+  const startX = points[0].svgX
+  const endX = points[points.length - 1].svgX
+  const bottomY = 40
 
-  return `${trendPath.value} L ${endX} ${bottomY} L ${startX} ${bottomY} Z`
+  return `${trendPath.value} L ${endX},${bottomY} L ${startX},${bottomY} Z`
 })
 
 // Hàm in PDF (sử dụng in trình duyệt)
@@ -206,6 +208,82 @@ function goBack() {
       </div>
     </div>
 
+    <!-- ── THÔNG BÁO QUY TẮC PHÊ DUYỆT ĐIỂM (RULE BANNER) ── -->
+    <div class="p-4 rounded-xl border border-orange-200 dark:border-orange-950/20 bg-orange-50/40 dark:bg-orange-950/5 flex gap-3 print:hidden">
+      <AlertCircle :size="18" class="text-orange-600 flex-shrink-0 mt-0.5" />
+      <div class="text-xs text-body space-y-1">
+        <p class="font-bold text-heading">Quy tắc công bố điểm:</p>
+        <p class="text-body leading-relaxed">
+          Hệ thống chỉ hiển thị điểm số của các môn học mà giảng viên đã phê duyệt công bố chính thức. Điểm số của các bài làm đang trong quá trình chấm hoặc chưa được phê duyệt công bố sẽ tạm thời ẩn khỏi giao diện của phụ huynh để đảm bảo tính chuẩn xác.
+        </p>
+        <p v-if="unpublishedCount > 0" class="text-orange-700 dark:text-orange-400 font-semibold mt-1">
+          💡 Hiện tại trong học kỳ này có <strong>{{ unpublishedCount }} môn học</strong> chưa được công bố chính thức (ví dụ: {{ currentChild.grades[selectedSemester]?.find(g => !g.isPublished)?.name }}).
+        </p>
+      </div>
+    </div>
+
+    <!-- ── CHI TIẾT BẢNG ĐIỂM ── -->
+    <div class="lg-card-glass p-5 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-card">
+        <h3 class="text-xs font-bold text-heading uppercase tracking-wide">
+          Bảng điểm chi tiết: {{ selectedSemester }}
+        </h3>
+        <span class="text-[10px] text-muted hidden print:block">
+          Học sinh: {{ currentChild.name }} ({{ currentChild.studentId }})
+        </span>
+      </div>
+
+      <div v-if="filteredGrades.length === 0" class="text-center py-12 text-muted text-xs">
+        Không tìm thấy môn học nào phù hợp với bộ lọc hoặc chưa có môn học nào được công bố điểm.
+      </div>
+      <div v-else class="overflow-x-auto">
+        <table class="w-full text-xs text-left border-collapse min-w-[700px]">
+          <thead>
+            <tr class="border-b border-card text-muted uppercase font-bold text-[10px]">
+              <th class="py-3 px-3">Mã môn</th>
+              <th class="py-3 px-3">Tên môn học</th>
+              <th class="py-3 px-3 text-center">Chuyên cần (10%)</th>
+              <th class="py-3 px-3 text-center">Quiz/Lab (20%)</th>
+              <th class="py-3 px-3 text-center">Giữa kỳ (30%)</th>
+              <th class="py-3 px-3 text-center">Cuối kỳ (40%)</th>
+              <th class="py-3 px-3 text-center font-extrabold">Điểm TB</th>
+              <th class="py-3 px-3 text-right">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[var(--border-card)]">
+            <tr
+              v-for="grade in filteredGrades"
+              :key="grade.code"
+              class="hover:bg-[var(--surface-table-row-hover)] transition"
+            >
+              <td class="py-3 px-3 font-semibold text-orange-600 dark:text-orange-400">{{ grade.code }}</td>
+              <td class="py-3 px-3 font-medium text-heading">{{ grade.name }}</td>
+              <td class="py-3 px-3 text-center font-semibold text-body">{{ grade.attendance !== null ? grade.attendance : '-' }}</td>
+              <td class="py-3 px-3 text-center font-semibold text-body">{{ grade.quiz !== null ? grade.quiz : '-' }}</td>
+              <td class="py-3 px-3 text-center font-semibold text-body">{{ grade.midterm !== null ? grade.midterm : '-' }}</td>
+              <td class="py-3 px-3 text-center font-semibold text-body">{{ grade.final !== null ? grade.final : '-' }}</td>
+              <td class="py-3 px-3 text-center font-extrabold text-heading bg-[var(--surface-table-row-hover)] text-sm">
+                 {{ grade.average !== null ? grade.average : '-' }}
+              </td>
+              <td class="py-3 px-3 text-right">
+                <span
+                  class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold"
+                  :class="
+                    grade.status === 'Passed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' :
+                    grade.status === 'Failed' ? 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400' :
+                    'bg-[var(--surface-input)] text-label border border-[var(--border-card)]'
+                  "
+                >
+                  <component :is="grade.status === 'Passed' ? CheckCircle : XCircle" :size="11" />
+                  {{ grade.status === 'Passed' ? 'Đạt (Passed)' : grade.status === 'Failed' ? 'Học lại (Failed)' : 'Đang học' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- ── DỮ LIỆU TỔNG QUAN & XU HƯỚNG ── -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
@@ -272,67 +350,44 @@ function goBack() {
           </span>
         </div>
 
-        <!-- SVG Line Chart -->
-        <div class="w-full overflow-hidden flex justify-center py-2">
-          <svg viewBox="0 0 450 150" class="w-full max-w-[480px] h-[130px] overflow-visible">
-            <!-- Grids -->
-            <line x1="30" y1="30" x2="420" y2="30" stroke="var(--border-default)" stroke-dasharray="3,3" stroke-width="0.5" />
-            <line x1="30" y1="65" x2="420" y2="65" stroke="var(--border-default)" stroke-dasharray="3,3" stroke-width="0.5" />
-            <line x1="30" y1="100" x2="420" y2="100" stroke="var(--border-default)" stroke-dasharray="3,3" stroke-width="0.5" />
-            <line x1="30" y1="120" x2="420" y2="120" stroke="var(--border-default)" stroke-width="1" />
+        <!-- SVG Line Chart (Responsive Style) -->
+        <div class="relative w-full h-44 flex items-end justify-between px-2 pt-4 mt-6 mb-8">
+          <!-- Grid Lines (HTML) -->
+          <div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20 z-0">
+            <div class="w-full border-t border-slate-400"></div>
+            <div class="w-full border-t border-slate-400"></div>
+            <div class="w-full border-t border-slate-400"></div>
+            <div class="w-full border-t border-slate-400 opacity-0"></div> <!-- Dòng cuối ẩn đi để nhường chỗ text -->
+          </div>
 
-            <!-- Y Axis Labels -->
-            <text x="12" y="34" class="fill-muted text-[8px] font-bold">10.0</text>
-            <text x="12" y="69" class="fill-muted text-[8px] font-bold">7.0</text>
-            <text x="12" y="104" class="fill-muted text-[8px] font-bold">4.0</text>
+          <!-- Y Axis Labels -->
+          <div class="absolute inset-y-0 left-0 flex flex-col justify-between text-[10px] font-bold text-muted -ml-1 py-1 z-0">
+            <span class="-mt-2.5">10.0</span>
+            <span>7.0</span>
+            <span class="mb-[-8px]">4.0</span>
+            <span class="opacity-0">0</span>
+          </div>
 
-            <!-- Filled Path (Area below line) -->
+          <!-- Visual Line and Nodes via SVG -->
+          <svg class="absolute inset-0 w-full h-full drop-shadow-md z-10" viewBox="0 0 100 40" preserveAspectRatio="none">
+            <!-- Gradient Area -->
             <path
               v-if="trendPoints.length > 0"
               :d="trendAreaPath"
               fill="url(#grad)"
-              opacity="0.15"
+              opacity="0.2"
             />
-
             <!-- Line Path -->
             <path
               v-if="trendPoints.length > 0"
               :d="trendPath"
               fill="none"
               stroke="#ea580c"
-              stroke-width="2.5"
+              stroke-width="1.5"
+              vector-effect="non-scaling-stroke"
               stroke-linecap="round"
               stroke-linejoin="round"
             />
-
-            <!-- Data Dots -->
-            <g v-for="(p, i) in trendPoints" :key="i">
-              <circle
-                :cx="p.x"
-                :cy="p.y"
-                r="4.5"
-                fill="#ffffff"
-                stroke="#ea580c"
-                stroke-width="2"
-              />
-              <text
-                :x="p.x"
-                :y="p.y - 8"
-                text-anchor="middle"
-                class="fill-heading text-[8px] font-extrabold"
-              >
-                {{ p.gpa }}
-              </text>
-              <text
-                :x="p.x"
-                :y="136"
-                text-anchor="middle"
-                class="fill-muted text-[8px] font-semibold"
-              >
-                {{ p.month }}
-              </text>
-            </g>
-
             <defs>
               <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stop-color="#ea580c" />
@@ -340,83 +395,35 @@ function goBack() {
               </linearGradient>
             </defs>
           </svg>
-        </div>
-      </div>
-    </div>
 
-    <!-- ── THÔNG BÁO QUY TẮC PHÊ DUYỆT ĐIỂM (RULE BANNER) ── -->
-    <div class="p-4 rounded-xl border border-orange-200 dark:border-orange-950/20 bg-orange-50/40 dark:bg-orange-950/5 flex gap-3 print:hidden">
-      <AlertCircle :size="18" class="text-orange-600 flex-shrink-0 mt-0.5" />
-      <div class="text-xs text-body space-y-1">
-        <p class="font-bold text-heading">Quy tắc công bố điểm:</p>
-        <p class="text-body leading-relaxed">
-          Hệ thống chỉ hiển thị điểm số của các môn học mà giảng viên đã phê duyệt công bố chính thức. Điểm số của các bài làm đang trong quá trình chấm hoặc chưa được phê duyệt công bố sẽ tạm thời ẩn khỏi giao diện của phụ huynh để đảm bảo tính chuẩn xác.
-        </p>
-        <p v-if="unpublishedCount > 0" class="text-orange-700 dark:text-orange-400 font-semibold mt-1">
-          💡 Hiện tại trong học kỳ này có <strong>{{ unpublishedCount }} môn học</strong> chưa được công bố chính thức (ví dụ: {{ currentChild.grades[selectedSemester]?.find(g => !g.isPublished)?.name }}).
-        </p>
-      </div>
-    </div>
+          <!-- HTML Dots to prevent stretching -->
+          <div class="absolute inset-0 pointer-events-none z-20">
+            <div
+              v-for="(point, idx) in trendPoints"
+              :key="'dot-'+idx"
+              class="absolute rounded-full bg-[#ea580c] border-[2px] border-white dark:border-slate-900 shadow-sm transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 w-3 h-3"
+              :style="`left: ${point.pctX}%; top: ${point.pctY}%`"
+            ></div>
+          </div>
 
-    <!-- ── CHI TIẾT BẢNG ĐIỂM ── -->
-    <div class="lg-card-glass p-5 space-y-4">
-      <div class="flex items-center justify-between pb-3 border-b border-card">
-        <h3 class="text-xs font-bold text-heading uppercase tracking-wide">
-          Bảng điểm chi tiết: {{ selectedSemester }}
-        </h3>
-        <span class="text-[10px] text-muted hidden print:block">
-          Học sinh: {{ currentChild.name }} ({{ currentChild.studentId }})
-        </span>
-      </div>
-
-      <div v-if="filteredGrades.length === 0" class="text-center py-12 text-muted text-xs">
-        Không tìm thấy môn học nào phù hợp với bộ lọc hoặc chưa có môn học nào được công bố điểm.
-      </div>
-      <div v-else class="overflow-x-auto">
-        <table class="w-full text-xs text-left border-collapse min-w-[700px]">
-          <thead>
-            <tr class="border-b border-card text-muted uppercase font-bold text-[10px]">
-              <th class="py-3 px-3">Mã môn</th>
-              <th class="py-3 px-3">Tên môn học</th>
-              <th class="py-3 px-3 text-center">Chuyên cần (10%)</th>
-              <th class="py-3 px-3 text-center">Quiz/Lab (20%)</th>
-              <th class="py-3 px-3 text-center">Giữa kỳ (30%)</th>
-              <th class="py-3 px-3 text-center">Cuối kỳ (40%)</th>
-              <th class="py-3 px-3 text-center font-extrabold">Điểm TB</th>
-              <th class="py-3 px-3 text-right">Trạng thái</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-[var(--border-card)]">
-            <tr
-              v-for="grade in filteredGrades"
-              :key="grade.code"
-              class="hover:bg-[var(--surface-table-row-hover)] transition"
+          <!-- Chart Value Labels -->
+          <div class="absolute inset-0 pointer-events-none z-30">
+            <div
+              v-for="(point, idx) in trendPoints"
+              :key="'label-'+idx"
+              class="absolute flex flex-col items-center group pointer-events-auto w-24 transform -translate-x-1/2 h-full"
+              :style="`left: ${point.pctX}%`"
             >
-              <td class="py-3 px-3 font-semibold text-orange-600 dark:text-orange-400">{{ grade.code }}</td>
-              <td class="py-3 px-3 font-medium text-heading">{{ grade.name }}</td>
-              <td class="py-3 px-3 text-center font-semibold text-body">{{ grade.attendance !== null ? grade.attendance : '-' }}</td>
-              <td class="py-3 px-3 text-center font-semibold text-body">{{ grade.quiz !== null ? grade.quiz : '-' }}</td>
-              <td class="py-3 px-3 text-center font-semibold text-body">{{ grade.midterm !== null ? grade.midterm : '-' }}</td>
-              <td class="py-3 px-3 text-center font-semibold text-body">{{ grade.final !== null ? grade.final : '-' }}</td>
-              <td class="py-3 px-3 text-center font-extrabold text-heading bg-[var(--surface-table-row-hover)] text-sm">
-                {{ grade.average !== null ? grade.average : '-' }}
-              </td>
-              <td class="py-3 px-3 text-right">
-                <span
-                  class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold"
-                  :class="
-                    grade.status === 'Passed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' :
-                    grade.status === 'Failed' ? 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400' :
-                    'bg-[var(--surface-input)] text-label border border-[var(--border-card)]'
-                  "
-                >
-                  <component :is="grade.status === 'Passed' ? CheckCircle : XCircle" :size="11" />
-                  {{ grade.status === 'Passed' ? 'Đạt (Passed)' : grade.status === 'Failed' ? 'Học lại (Failed)' : 'Đang học' }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              <span class="text-[10px] font-bold text-heading bg-white/95 dark:bg-slate-900/95 px-1.5 py-0.5 rounded border border-card shadow-[var(--lg-shadow-sm)] absolute"
+                    :style="`top: calc(${point.pctY}% - 22px)`">
+                {{ point.gpa }}
+              </span>
+              <span class="text-[9px] font-bold text-muted text-center w-full truncate absolute bottom-[-24px]">
+                {{ point.month }}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
