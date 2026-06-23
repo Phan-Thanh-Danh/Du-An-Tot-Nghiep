@@ -46,13 +46,29 @@ public class ApplicationTemplateValidator : IApplicationTemplateValidator
 
         EnsureNoForbiddenTokens(configurationJson);
 
-        using var document = JsonDocument.Parse(configurationJson, new JsonDocumentOptions
+        JsonDocument document;
+        try
         {
-            MaxDepth = 16,
-            AllowTrailingCommas = false,
-            CommentHandling = JsonCommentHandling.Disallow
-        });
+            document = JsonDocument.Parse(configurationJson, new JsonDocumentOptions
+            {
+                MaxDepth = 16,
+                AllowTrailingCommas = false,
+                CommentHandling = JsonCommentHandling.Disallow
+            });
+        }
+        catch (JsonException)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Cấu hình mẫu đơn không phải JSON hợp lệ.");
+        }
 
+        using (document)
+        {
+            ValidateDocument(document);
+        }
+    }
+
+    private static void ValidateDocument(JsonDocument document)
+    {
         var root = document.RootElement;
         if (root.ValueKind != JsonValueKind.Object ||
             !root.TryGetProperty("fields", out var fields) ||
@@ -61,9 +77,9 @@ public class ApplicationTemplateValidator : IApplicationTemplateValidator
             throw new ApiException(StatusCodes.Status400BadRequest, "Cấu hình mẫu đơn phải có root.fields dạng mảng.");
         }
 
-        if (fields.GetArrayLength() > MaxFields)
+        if (fields.GetArrayLength() is < 1 or > MaxFields)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Cấu hình mẫu đơn có quá nhiều field.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Cấu hình mẫu đơn phải có 1-50 field.");
         }
 
         var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -93,19 +109,40 @@ public class ApplicationTemplateValidator : IApplicationTemplateValidator
             throw new ApiException(StatusCodes.Status400BadRequest, $"Field type '{type}' không hợp lệ.");
         }
 
-        if (field.TryGetProperty("relatedEntity", out var relatedEntity) &&
-            relatedEntity.ValueKind != JsonValueKind.Null)
+        if (type.Equals(ApplicationFieldTypes.RelatedEntity, StringComparison.OrdinalIgnoreCase))
         {
+            if (!field.TryGetProperty("relatedEntity", out var relatedEntity) ||
+                relatedEntity.ValueKind == JsonValueKind.Null)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "Field type related_entity phải có relatedEntity.");
+            }
+
             var value = GetStringValue(relatedEntity, "relatedEntity", 80);
             if (!ApplicationRelatedEntities.All.Contains(value))
             {
                 throw new ApiException(StatusCodes.Status400BadRequest, $"Related entity '{value}' không hợp lệ.");
             }
+        }
+        else if (field.TryGetProperty("relatedEntity", out var relatedEntity) &&
+                 relatedEntity.ValueKind != JsonValueKind.Null)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "relatedEntity chỉ được dùng với field type related_entity.");
+        }
 
-            if (!type.Equals(ApplicationFieldTypes.RelatedEntity, StringComparison.OrdinalIgnoreCase))
+        if (type.Equals(ApplicationFieldTypes.Select, StringComparison.OrdinalIgnoreCase) ||
+            type.Equals(ApplicationFieldTypes.Multiselect, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!field.TryGetProperty("options", out var options) ||
+                options.ValueKind == JsonValueKind.Null)
             {
-                throw new ApiException(StatusCodes.Status400BadRequest, "relatedEntity chỉ được dùng với field type related_entity.");
+                throw new ApiException(StatusCodes.Status400BadRequest, "Field select/multiselect phải có options.");
             }
+
+            ValidateOptions(options);
+        }
+        else if (field.TryGetProperty("options", out var options) && options.ValueKind != JsonValueKind.Null)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "options chỉ được dùng cho select/multiselect.");
         }
 
         if (field.TryGetProperty("maxLength", out var maxLength) &&
@@ -115,16 +152,8 @@ public class ApplicationTemplateValidator : IApplicationTemplateValidator
             throw new ApiException(StatusCodes.Status400BadRequest, "maxLength của field không hợp lệ.");
         }
 
-        if (field.TryGetProperty("options", out var options) && options.ValueKind != JsonValueKind.Null)
-        {
-            if (!type.Equals(ApplicationFieldTypes.Select, StringComparison.OrdinalIgnoreCase) &&
-                !type.Equals(ApplicationFieldTypes.Multiselect, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new ApiException(StatusCodes.Status400BadRequest, "options chỉ được dùng cho select/multiselect.");
-            }
-
-            ValidateOptions(options);
-        }
+        ValidateOptionalBoolean(field, "required");
+        ValidateOptionalBoolean(field, "evidenceRequired");
     }
 
     private static void ValidateOptions(JsonElement options)
@@ -134,6 +163,7 @@ public class ApplicationTemplateValidator : IApplicationTemplateValidator
             throw new ApiException(StatusCodes.Status400BadRequest, "options phải là mảng có 1-50 phần tử.");
         }
 
+        var values = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var option in options.EnumerateArray())
         {
             if (option.ValueKind != JsonValueKind.Object)
@@ -141,8 +171,26 @@ public class ApplicationTemplateValidator : IApplicationTemplateValidator
                 throw new ApiException(StatusCodes.Status400BadRequest, "Mỗi option phải là object.");
             }
 
-            _ = GetRequiredString(option, "value", 100);
+            var value = GetRequiredString(option, "value", 100);
             _ = GetRequiredString(option, "label", 200);
+            if (!values.Add(value))
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, $"Option value '{value}' bị trùng.");
+            }
+        }
+    }
+
+    private static void ValidateOptionalBoolean(JsonElement element, string propertyName)
+    {
+        if (!element.TryGetProperty(propertyName, out var property) ||
+            property.ValueKind == JsonValueKind.Null)
+        {
+            return;
+        }
+
+        if (property.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, $"Field '{propertyName}' phải là boolean.");
         }
     }
 

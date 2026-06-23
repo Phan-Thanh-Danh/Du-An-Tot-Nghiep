@@ -44,7 +44,7 @@ namespace Backend.Migrations
                 IF EXISTS (SELECT 1 FROM [dbo].[DonTu] WHERE [nhat_ky_tu_dong] IS NOT NULL AND ISJSON([nhat_ky_tu_dong]) <> 1)
                     THROW 51004, N'P0-DT1 migration blocked: DonTu has invalid nhat_ky_tu_dong JSON.', 1;
 
-                IF EXISTS (SELECT 1 FROM [dbo].[NhatKyDuyetDon] WHERE [hanh_dong] NOT IN (N'tao_nhap', N'cap_nhat', N'nop', N'nop_lai', N'phan_cong', N'phan_cong_lai', N'tiep_nhan', N'yeu_cau_bo_sung', N'bo_sung', N'phe_duyet', N'tu_choi', N'phan_cong', N'leo_thang', N'huy', N'xu_ly_nghiep_vu'))
+                IF EXISTS (SELECT 1 FROM [dbo].[NhatKyDuyetDon] WHERE [hanh_dong] NOT IN (N'tao_nhap', N'cap_nhat', N'nop', N'nop_lai', N'phan_cong', N'phan_cong_lai', N'tiep_nhan', N'yeu_cau_bo_sung', N'bo_sung', N'phe_duyet', N'tu_choi', N'leo_thang', N'huy', N'xu_ly_nghiep_vu'))
                     THROW 51005, N'P0-DT1 migration blocked: NhatKyDuyetDon has unsupported hanh_dong.', 1;
                 """);
 

@@ -117,13 +117,16 @@ public class ApplicationSchemaService : IApplicationSchemaService
 
     private static string NormalizeType(string loaiDon)
     {
-        var normalized = loaiDon.Trim();
-        if (!ApplicationTypes.All.Contains(normalized))
+        var trimmed = loaiDon.Trim();
+        var canonical = ApplicationTypes.All.FirstOrDefault(type =>
+            type.Equals(trimmed, StringComparison.OrdinalIgnoreCase));
+
+        if (canonical is null)
         {
             throw new ApiException(StatusCodes.Status400BadRequest, "Loại đơn không hợp lệ.");
         }
 
-        return normalized;
+        return canonical;
     }
 
     private static ApplicationTemplateDto ToDto(MauDonTu template)

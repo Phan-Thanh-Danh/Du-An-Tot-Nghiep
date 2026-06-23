@@ -285,6 +285,114 @@ public class P0_DT1_ApplicationFoundationUnitTests
     }
 
     [Test]
+    public void TemplateValidator_MalformedJson_ShouldReturnApiException()
+    {
+        var validator = new ApplicationTemplateValidator();
+        var exception = Assert.Throws<ApiException>(() => validator.Validate("""{"fields":["""));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.StatusCode, Is.EqualTo(400));
+            Assert.That(exception.Message, Is.EqualTo("Cấu hình mẫu đơn không phải JSON hợp lệ."));
+        });
+    }
+
+    [Test]
+    public void TemplateValidator_EmptyFields_ShouldFail()
+    {
+        var validator = new ApplicationTemplateValidator();
+        var json = """{"fields":[]}""";
+
+        Assert.Throws<ApiException>(() => validator.Validate(json));
+    }
+
+    [Test]
+    public void TemplateValidator_RelatedEntityWithoutRelatedEntity_ShouldFail()
+    {
+        var validator = new ApplicationTemplateValidator();
+        var json = """{"fields":[{"key":"hoc_ky","label":"Học kỳ","type":"related_entity"}]}""";
+
+        Assert.Throws<ApiException>(() => validator.Validate(json));
+    }
+
+    [Test]
+    public void TemplateValidator_SelectWithoutOptions_ShouldFail()
+    {
+        var validator = new ApplicationTemplateValidator();
+        var json = """{"fields":[{"key":"loai","label":"Loại","type":"select"}]}""";
+
+        Assert.Throws<ApiException>(() => validator.Validate(json));
+    }
+
+    [Test]
+    public void TemplateValidator_MultiselectWithoutOptions_ShouldFail()
+    {
+        var validator = new ApplicationTemplateValidator();
+        var json = """{"fields":[{"key":"loai","label":"Loại","type":"multiselect"}]}""";
+
+        Assert.Throws<ApiException>(() => validator.Validate(json));
+    }
+
+    [Test]
+    public void TemplateValidator_DuplicateOptionValue_ShouldFail()
+    {
+        var validator = new ApplicationTemplateValidator();
+        var json = """
+            {"fields":[
+              {"key":"loai","label":"Loại","type":"select","options":[
+                {"value":"A","label":"A"},
+                {"value":"a","label":"A duplicate"}
+              ]}
+            ]}
+            """;
+
+        Assert.Throws<ApiException>(() => validator.Validate(json));
+    }
+
+    [Test]
+    public void TemplateValidator_RequiredStringInsteadOfBoolean_ShouldFail()
+    {
+        var validator = new ApplicationTemplateValidator();
+        var json = """{"fields":[{"key":"ly_do","label":"Lý do","type":"textarea","required":"true"}]}""";
+
+        Assert.Throws<ApiException>(() => validator.Validate(json));
+    }
+
+    [Test]
+    public void TemplateValidator_EvidenceRequiredNumberInsteadOfBoolean_ShouldFail()
+    {
+        var validator = new ApplicationTemplateValidator();
+        var json = """{"fields":[{"key":"ly_do","label":"Lý do","type":"textarea","evidenceRequired":1}]}""";
+
+        Assert.Throws<ApiException>(() => validator.Validate(json));
+    }
+
+    [Test]
+    public void TemplateValidator_ValidRelatedEntity_ShouldPass()
+    {
+        var validator = new ApplicationTemplateValidator();
+        var json = """{"fields":[{"key":"hoc_ky","label":"Học kỳ","type":"related_entity","relatedEntity":"hoc_ky"}]}""";
+
+        Assert.DoesNotThrow(() => validator.Validate(json));
+    }
+
+    [Test]
+    public void TemplateValidator_ValidSelectOptions_ShouldPass()
+    {
+        var validator = new ApplicationTemplateValidator();
+        var json = """
+            {"fields":[
+              {"key":"loai","label":"Loại","type":"select","required":true,"options":[
+                {"value":"a","label":"A"},
+                {"value":"b","label":"B"}
+              ]}
+            ]}
+            """;
+
+        Assert.DoesNotThrow(() => validator.Validate(json));
+    }
+
+    [Test]
     public void TemplateValidator_DuplicateKey_ShouldFail()
     {
         var validator = new ApplicationTemplateValidator();
