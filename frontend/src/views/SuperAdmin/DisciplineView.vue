@@ -269,7 +269,7 @@ const getSeverityBadge = (sev) => {
         <h2 class="text-xl font-extrabold text-heading mb-5 flex items-center gap-2.5"><AlertOctagon class="w-6 h-6 text-rose-500" /> Tạo Quyết Định Kỷ Luật</h2>
 
         <div class="lg-alert lg-alert-warning mb-4">
-          <div class="flex gap-2"><AlertTriangle class="w-5 h-5 flex-shrink-0 mt-0.5" /><div class="text-xs font-bold leading-relaxed">Quyết định kỷ luật sẽ được lưu ở trạng thái <strong>"Chờ duyệt"</strong> để Hội đồng xem xét trước khi ban hành chính thức.</div></div>
+          <div class="flex gap-2"><AlertTriangle class="w-5 h-5 flex-shrink-0 mt-0.5 text-current opacity-90" /><div class="text-xs font-bold leading-relaxed text-current">Quyết định kỷ luật sẽ được lưu ở trạng thái <strong>"Chờ duyệt"</strong> để Hội đồng xem xét trước khi ban hành chính thức.</div></div>
         </div>
 
         <div class="space-y-4">
@@ -330,7 +330,7 @@ const getSeverityBadge = (sev) => {
           </div>
           <div class="pt-3 border-t border-default/50"><span class="text-muted block mb-1">Mô tả vi phạm</span><p class="text-body leading-relaxed">{{ selectedDiscipline.description }}</p></div>
           <div class="lg-alert" :class="selectedDiscipline.severity === 'suspension' || selectedDiscipline.severity === 'expulsion' ? 'lg-alert-error' : 'lg-alert-warning'">
-            <div class="flex gap-2"><ShieldAlert class="w-5 h-5 flex-shrink-0 mt-0.5" /><div class="text-xs font-bold leading-relaxed"><strong>Hình thức xử lý:</strong> {{ selectedDiscipline.penalty }}</div></div>
+            <div class="flex gap-2"><ShieldAlert class="w-5 h-5 flex-shrink-0 mt-0.5 text-current opacity-90" /><div class="text-xs font-bold leading-relaxed text-current"><strong>Hình thức xử lý:</strong> {{ selectedDiscipline.penalty }}</div></div>
           </div>
         </div>
         <div class="flex justify-end pt-4 border-t border-default mt-5"><button @click="isDetailOpen = false" class="lg-btn-secondary px-4 py-2 text-sm font-bold">Đóng</button></div>

@@ -124,7 +124,7 @@ watch(() => props.collapsed, () => {
         :class="[
           isGroupActive
             ? 'lg-sidebar-item-active font-semibold shadow-sm'
-            : 'text-slate-600 dark:text-slate-400 hover:text-[var(--sidebar-accent)] dark:hover:text-[var(--sidebar-accent-dark)] hover:bg-violet-50/50 dark:hover:bg-violet-600/10',
+            : 'text-label hover:text-[var(--sidebar-accent)] dark:hover:text-[var(--sidebar-accent-dark)] hover:bg-[var(--accent-primary-soft)]',
           collapsed ? 'justify-center' : '',
         ]"
         :aria-expanded="hasChildren ? isOpen || (collapsed && flyoutVisible) : undefined"
@@ -139,7 +139,7 @@ watch(() => props.collapsed, () => {
           :stroke-width="isGroupActive ? 2.5 : 1.8"
           :class="[
             'flex-shrink-0 transition-colors',
-            isGroupActive ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-[var(--sidebar-accent)] dark:group-hover:text-[var(--sidebar-accent-dark)]',
+            isGroupActive ? 'text-white' : 'text-muted group-hover:text-[var(--sidebar-accent)] dark:group-hover:text-[var(--sidebar-accent-dark)]',
           ]"
         />
 
@@ -150,7 +150,7 @@ watch(() => props.collapsed, () => {
         <LucideIcons.ChevronDown
           v-if="!collapsed"
           :size="14"
-          :class="['flex-shrink-0 transition-transform duration-300 text-slate-400 dark:text-slate-500', isOpen ? 'rotate-180' : '']"
+          :class="['flex-shrink-0 transition-transform duration-300 text-muted', isOpen ? 'rotate-180' : '']"
         />
       </button>
 
@@ -161,7 +161,7 @@ watch(() => props.collapsed, () => {
         class="grid transition-all duration-300 ease-in-out overflow-hidden"
         :class="isOpen ? 'grid-rows-[1fr] opacity-100 mt-1 visible' : 'grid-rows-[0fr] opacity-0 mt-0 invisible'"
       >
-        <div class="min-h-0 ml-3 w-[calc(100%-0.75rem)] space-y-0.5 border-l border-slate-200 dark:border-white/10 pl-2">
+        <div class="min-h-0 ml-3 w-[calc(100%-0.75rem)] space-y-0.5 border-l border-default pl-2">
           <SidebarMenuItem
             v-for="child in group.children"
             :key="child.id"
@@ -183,13 +183,13 @@ watch(() => props.collapsed, () => {
           @mouseenter="showFlyout"
           @mouseleave="hideFlyout"
         >
-          <div class="lg-glass-strong min-w-[220px] rounded-2xl border border-white/60 dark:border-white/10 p-1.5 shadow-[0_24px_70px_rgba(15,23,42,0.22)] dark:shadow-[0_24px_70px_rgba(2,6,23,0.4)] backdrop-blur-2xl">
-            <div class="mb-1 px-3 py-2 border-b border-slate-100/50 dark:border-white/10 bg-white/40 dark:bg-slate-700/30 rounded-t-xl">
+          <div class="lg-glass-strong min-w-[220px] rounded-2xl border border-card p-1.5 shadow-[0_24px_70px_rgba(15,23,42,0.22)] dark:shadow-[0_24px_70px_rgba(2,6,23,0.4)] backdrop-blur-2xl">
+            <div class="mb-1 px-3 py-2 border-b border-default surface-card rounded-t-xl">
               <div class="flex items-center gap-2">
                 <div class="h-5 w-5 flex items-center justify-center rounded-lg" :style="{ background: 'color-mix(in srgb, var(--sidebar-accent) 20%, transparent)', color: 'var(--sidebar-accent)' }">
                   <component :is="GroupIcon" :size="12" />
                 </div>
-                <p class="text-[12px] font-bold text-slate-900 dark:text-slate-100">{{ group.label }}</p>
+                <p class="text-[12px] font-bold text-heading">{{ group.label }}</p>
               </div>
             </div>
 

@@ -395,15 +395,15 @@ const getSummaryDiff = (log) => {
       <!-- Security Status & Roles Banner -->
       <div class="lg-alert lg-alert-info mb-6 flex items-start justify-between gap-4">
         <div class="flex items-start gap-2.5">
-          <Shield class="w-5.5 h-5.5 text-sky-500 flex-shrink-0 mt-0.5" />
+          <Shield class="w-5.5 h-5.5 text-current flex-shrink-0 mt-0.5 opacity-90" />
           <div>
-            <h4 class="font-extrabold text-sm text-sky-700 dark:text-sky-400">Thông tin Phân quyền Giám sát</h4>
-            <p class="text-xs leading-relaxed text-slate-700 dark:text-slate-300 mt-1">
+            <h4 class="font-extrabold text-sm text-current">Thông tin Phân quyền Giám sát</h4>
+            <p class="text-xs leading-relaxed text-current opacity-90 mt-1">
               Bạn đang đăng nhập với quyền **Super Admin (Full Access)**. Hệ thống hiển thị nhật ký toàn bộ hệ thống đa cơ sở (Campus Hà Nội, Campus TP. HCM, Campus Đà Nẵng). Mọi hành động xem vết và xuất file của bạn đều được ghi lại để phục vụ bảo mật kép.
             </p>
           </div>
         </div>
-        <span class="text-[10px] font-extrabold text-sky-600 dark:text-sky-400 bg-sky-500/10 px-2.5 py-1 rounded border border-sky-300/40 whitespace-nowrap">
+        <span class="lg-badge lg-badge-info text-[10px] font-extrabold whitespace-nowrap">
           Quyền: FULL_ACCESS
         </span>
       </div>

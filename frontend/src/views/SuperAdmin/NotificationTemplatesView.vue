@@ -559,17 +559,17 @@ const getEventDesc = (code) => {
       <!-- Fallback Alert Indicator (Báo động các kênh còn thiếu template) -->
       <div v-if="totalMissingTemplatesCount > 0" class="lg-alert lg-alert-warning mb-6">
         <div class="flex items-start gap-2.5">
-          <AlertTriangle class="w-5.5 h-5.5 flex-shrink-0 mt-0.5" />
+          <AlertTriangle class="w-5.5 h-5.5 flex-shrink-0 mt-0.5 text-current opacity-90" />
           <div class="space-y-1">
-            <h4 class="font-extrabold text-sm text-amber-700 dark:text-amber-400">Cơ chế Fallback đang kích hoạt cho các kênh sau:</h4>
-            <p class="text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+            <h4 class="font-extrabold text-sm text-current">Cơ chế Fallback đang kích hoạt cho các kênh sau:</h4>
+            <p class="text-xs leading-relaxed text-current opacity-90">
               Có {{ totalMissingTemplatesCount }} sự kiện chưa cấu hình đầy đủ kênh gửi. Hệ thống sẽ tự động dùng văn bản thô thuần túy (plain text) mặc định để dự phòng:
             </p>
             <div class="flex flex-wrap gap-2 mt-2">
               <span 
                 v-for="(item, idx) in missingTemplates" 
                 :key="idx"
-                class="px-2 py-1 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 text-[10px] font-bold"
+                class="lg-badge lg-badge-danger text-[10px] font-bold"
               >
                 {{ item.eventName }} &rarr; Kênh: {{ item.channel }}
               </span>

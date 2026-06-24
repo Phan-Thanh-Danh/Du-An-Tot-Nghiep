@@ -417,8 +417,8 @@ const getStepIcon = (status) => {
         <!-- Final Comment -->
         <div class="lg-alert" :class="selectedRecord.status === 'Đã duyệt' ? 'lg-alert-success' : 'lg-alert-error'">
           <div class="flex gap-2">
-            <component :is="selectedRecord.status === 'Đã duyệt' ? CheckCircle : XCircle" class="w-5 h-5 flex-shrink-0 mt-0.5" />
-            <div class="text-xs font-bold leading-relaxed">
+            <component :is="selectedRecord.status === 'Đã duyệt' ? CheckCircle : XCircle" class="w-5 h-5 flex-shrink-0 mt-0.5 text-current opacity-90" />
+            <div class="text-xs font-bold leading-relaxed text-current">
               <strong>Kết luận:</strong> {{ selectedRecord.finalComment }}
             </div>
           </div>

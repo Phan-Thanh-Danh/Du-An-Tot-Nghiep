@@ -216,7 +216,6 @@ const logout = () => {
     >
       <Search :size="14" />
       <span class="hidden sm:inline">Tìm kiếm</span>
-      <kbd class="border-card surface-card ml-1 hidden rounded-md border px-1.5 py-0.5 text-[9px] font-semibold text-muted xl:inline-block">⌘K</kbd>
     </button>
 
     <!-- Focus Mode button -->

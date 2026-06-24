@@ -734,18 +734,18 @@ const avgDeliveryRate = computed(() => {
               <div v-if="isBulkSend || showDeduplicationWarning" class="space-y-2">
                 <!-- Cảnh báo Bulk Send -->
                 <div v-if="isBulkSend" class="lg-alert lg-alert-info p-3 flex items-start gap-2.5">
-                  <Info class="w-5 h-5 flex-shrink-0 text-sky-500 mt-0.5" />
-                  <div class="text-xs">
-                    <span class="font-bold text-sky-700 dark:text-sky-400">Cơ chế Bulk Send kích hoạt:</span>
+                  <Info class="w-5 h-5 flex-shrink-0 text-current mt-0.5 opacity-90" />
+                  <div class="text-xs text-current opacity-90">
+                    <span class="font-bold">Cơ chế Bulk Send kích hoạt:</span>
                     Số lượng người nhận lớn hơn 500. Hệ thống sẽ tự động chia nhỏ chiến dịch này thành các đợt 100 tin/lần gửi để đảm bảo an toàn băng thông.
                   </div>
                 </div>
 
                 <!-- Cảnh báo trùng lặp -->
                 <div v-if="showDeduplicationWarning" class="lg-alert lg-alert-warning p-3 flex items-start gap-2.5">
-                  <AlertTriangle class="w-5 h-5 flex-shrink-0 text-amber-500 mt-0.5" />
-                  <div class="text-xs">
-                    <span class="font-bold text-amber-700 dark:text-amber-400">Cảnh báo chống trùng lặp (Deduplication):</span>
+                  <AlertTriangle class="w-5 h-5 flex-shrink-0 text-current mt-0.5 opacity-90" />
+                  <div class="text-xs text-current opacity-90">
+                    <span class="font-bold">Cảnh báo chống trùng lặp (Deduplication):</span>
                     Hệ thống ghi nhận có một thông báo tương tự đã được gửi đi trong vòng 5 phút qua. Vui lòng kiểm tra lại để tránh làm phiền người dùng.
                   </div>
                 </div>
