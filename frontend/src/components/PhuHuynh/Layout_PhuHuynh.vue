@@ -94,7 +94,7 @@ const currentPageMeta = computed(() => {
     ═══════════════════════════════════════════════════════
   -->
   <div
-    class="lg-app-bg flex h-screen w-full overflow-hidden font-sans"
+    class="lg-app-bg flex h-screen w-full overflow-hidden font-sans print:h-auto print:overflow-visible"
     :style="{
       '--sidebar-accent': '#ea580c',
       '--sidebar-accent-dark': '#f97316',
@@ -127,7 +127,7 @@ const currentPageMeta = computed(() => {
 
     <!-- ═══════════ SIDEBAR ═══════════ -->
     <!-- Desktop sidebar -->
-    <div class="relative z-20 hidden h-full flex-shrink-0 lg:flex">
+    <div class="relative z-20 hidden h-full flex-shrink-0 lg:flex print:hidden">
       <AppSidebar
         :collapsed="sidebarCollapsed"
         @toggle="toggleSidebar"
@@ -145,7 +145,7 @@ const currentPageMeta = computed(() => {
     >
       <div
         v-if="mobileSidebarOpen"
-        class="fixed inset-y-0 left-0 z-50 flex lg:hidden"
+        class="fixed inset-y-0 left-0 z-50 flex lg:hidden print:hidden"
       >
         <AppSidebar
           :collapsed="false"
@@ -155,15 +155,19 @@ const currentPageMeta = computed(() => {
     </Transition>
 
     <!-- ═══════════ MAIN AREA (Topbar + Content) ═══════════ -->
-    <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden pt-16">
+    <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden pt-16 print:overflow-visible print:pt-0">
       <!-- Topbar -->
-      <AppTopbar @toggle-sidebar="toggleSidebar" />
+      <div class="print:hidden">
+        <AppTopbar @toggle-sidebar="toggleSidebar" />
+      </div>
 
       <!-- Announcements appear just below the fixed topbar -->
-      <AnnouncementBanner />
+      <div class="print:hidden">
+        <AnnouncementBanner />
+      </div>
 
       <!-- ═══════════ CONTENT AREA ═══════════ -->
-      <main class="flex-1 overflow-y-auto">
+      <main class="flex-1 overflow-y-auto print:overflow-visible">
         <div class="lg-shell-content mx-auto">
           <!-- Tất cả page đều render qua PageContainer + RouterView -->
           <PageContainer
@@ -211,7 +215,9 @@ const currentPageMeta = computed(() => {
     </div>
 
   </div>
-  <AiAssistant />
+  <div class="print:hidden">
+    <AiAssistant />
+  </div>
 </template>
 
 <style>

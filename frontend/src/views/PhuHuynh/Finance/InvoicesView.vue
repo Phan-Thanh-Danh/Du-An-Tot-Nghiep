@@ -53,7 +53,14 @@ function printInvoice() {
 }
 
 function downloadInvoicePDF(invoiceId) {
-  popupStore.success('Tải xuống thành công', `Hóa đơn điện tử ${invoiceId} đã được xuất thành công dưới dạng PDF.`)
+  const invoice = currentChild.value.invoices.find(i => i.id === invoiceId)
+  if (invoice) {
+    selectedInvoice.value = invoice
+    setTimeout(() => {
+      window.print()
+      popupStore.success('Tải xuống thành công', `Vui lòng chọn 'Lưu dưới dạng PDF' để lưu hóa đơn ${invoiceId}.`)
+    }, 100)
+  }
 }
 
 function goBack() {
@@ -404,6 +411,20 @@ function goBack() {
     width: 100%;
     margin: 0;
     padding: 0;
+    color: #000 !important;
+  }
+  .print-container * {
+    color: #000 !important;
+    font-weight: 600 !important;
+  }
+  .print-container strong,
+  .print-container h1,
+  .print-container h2,
+  .print-container th {
+    font-weight: 900 !important;
+  }
+  .print-container .border-slate-300 {
+    border-color: #000 !important;
   }
 }
 </style>

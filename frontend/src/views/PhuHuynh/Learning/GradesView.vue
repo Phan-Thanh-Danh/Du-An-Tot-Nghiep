@@ -431,6 +431,9 @@ function goBack() {
 
 <style scoped>
 @media print {
+  @page {
+    margin: 0; /* Ẩn header (URL) và footer (Ngày giờ) mặc định của trình duyệt */
+  }
   /* Giữ thiết kế in sạch sẽ */
   .print-container {
     background: white !important;
@@ -441,7 +444,7 @@ function goBack() {
   }
   #grades-view-page {
     margin: 0;
-    padding: 20px;
+    padding: 30px; /* Bù lại lề giấy vì đã set page margin: 0 */
     background: white !important;
   }
   th, td {
