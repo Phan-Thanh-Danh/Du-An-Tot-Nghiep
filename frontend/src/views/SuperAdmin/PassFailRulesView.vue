@@ -1144,8 +1144,8 @@ const getProgramName = (code) => {
           <!-- Alert warning content -->
           <div class="lg-alert lg-alert-warning mb-4">
             <div class="flex gap-2">
-              <Info class="w-5 h-5 flex-shrink-0 mt-0.5" />
-              <div class="text-xs font-bold leading-relaxed">
+              <Info class="w-5 h-5 flex-shrink-0 mt-0.5 text-current opacity-90" />
+              <div class="text-xs font-bold leading-relaxed text-current">
                 Sau khi quy tắc này được áp dụng, Stored Procedure của hệ thống sẽ tự động tính toán lại điểm trung bình GPA và trạng thái đạt/trượt cho toàn bộ sinh viên đang theo học môn học này. Hành động này không thể hoàn tác.
               </div>
             </div>

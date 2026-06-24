@@ -568,8 +568,8 @@ const getCategoryColor = (id) => {
 
         <div class="lg-alert lg-alert-warning mb-4">
           <div class="flex gap-2">
-            <AlertTriangle class="w-5 h-5 flex-shrink-0 mt-0.5" />
-            <div class="text-xs font-bold leading-relaxed">
+            <AlertTriangle class="w-5 h-5 flex-shrink-0 mt-0.5 text-current opacity-90" />
+            <div class="text-xs font-bold leading-relaxed text-current">
               Bạn có chắc chắn muốn xóa FAQ "<strong>{{ deletingFaq?.question }}</strong>"? FAQ đã xuất bản sẽ bị gỡ khỏi trang công khai ngay lập tức.
             </div>
           </div>

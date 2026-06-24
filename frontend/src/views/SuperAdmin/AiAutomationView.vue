@@ -379,10 +379,10 @@ const testModelConnection = (model) => {
       <!-- Ràng buộc AI & Quyết định hệ thống Alert Banner -->
       <div class="lg-alert lg-alert-info mb-6 flex items-start justify-between gap-4">
         <div class="flex items-start gap-2.5">
-          <Brain class="w-5.5 h-5.5 text-sky-500 flex-shrink-0 mt-0.5" />
+          <Brain class="w-5.5 h-5.5 text-current flex-shrink-0 mt-0.5 opacity-90" />
           <div>
-            <h4 class="font-extrabold text-sm text-sky-700 dark:text-sky-400">Nguyên tắc Bảo mật & Quyết định nghiệp vụ (Human-in-the-Loop)</h4>
-            <p class="text-xs leading-relaxed text-slate-700 dark:text-slate-300 mt-1">
+            <h4 class="font-extrabold text-sm text-current">Nguyên tắc Bảo mật & Quyết định nghiệp vụ (Human-in-the-Loop)</h4>
+            <p class="text-xs leading-relaxed text-current opacity-90 mt-1">
               Hệ thống LMS quy định rõ: **Các mô hình AI chỉ đóng vai trò hỗ trợ phân tích và gợi ý đề xuất**. Mọi quyết định nghiệp vụ nhạy cảm (như phê duyệt điểm số sinh viên, khóa tài khoản người dùng có cảnh báo bảo mật) bắt buộc phải do Super Admin hoặc Nhân sự phụ trách xem xét và duyệt lại thủ công trên hệ thống.
             </p>
           </div>

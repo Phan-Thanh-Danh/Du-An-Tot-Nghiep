@@ -417,7 +417,7 @@ const router = createRouter({
         {
           path: 'profile',
           name: 'super-admin-profile',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/ProfileView.vue'),
           meta: { title: 'Hồ sơ cá nhân Admin' },
         },
         // 2. Quản lý Cơ sở (Organization Hierarchy)

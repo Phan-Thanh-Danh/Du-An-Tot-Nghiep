@@ -106,12 +106,12 @@ function getIcon(name) {
       <div
         v-for="stat in systemStats"
         :key="stat.id"
-        class="lg-glass-soft rounded-2xl border border-white/60 dark:border-white/10 p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+        class="lg-glass-soft rounded-2xl border border-card p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
       >
         <div class="flex items-start justify-between">
           <div>
-            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">{{ stat.label }}</p>
-            <p class="mt-1.5 text-2xl font-bold text-slate-900 dark:text-slate-100">{{ stat.value }}</p>
+            <p class="text-xs font-semibold text-muted">{{ stat.label }}</p>
+            <p class="mt-1.5 text-2xl font-bold text-heading">{{ stat.value }}</p>
           </div>
           <div :class="['flex h-10 w-10 items-center justify-center rounded-xl ring-1', colorMap[stat.color]?.bg, colorMap[stat.color]?.ring]">
             <component :is="getIcon(stat.icon)" :size="18" :class="colorMap[stat.color]?.text" />
@@ -122,7 +122,7 @@ function getIcon(name) {
             <component :is="stat.trend === 'up' ? TrendingUp : TrendingDown" :size="11" />
             {{ stat.change }}
           </span>
-          <span class="text-[10px] text-slate-400 dark:text-slate-500">{{ stat.sub }}</span>
+          <span class="text-[10px] text-placeholder">{{ stat.sub }}</span>
         </div>
       </div>
     </div>
@@ -131,23 +131,23 @@ function getIcon(name) {
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
 
       <!-- Recent Activity (chiếm 2 cột) -->
-      <div class="lg:col-span-2 lg-glass-soft rounded-2xl border border-white/60 dark:border-white/10 p-4 shadow-sm">
+      <div class="lg:col-span-2 lg-glass-soft rounded-2xl border border-card p-4 shadow-sm">
         <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100">Hoạt động gần đây</h3>
+          <h3 class="text-sm font-bold text-heading">Hoạt động gần đây</h3>
           <router-link to="/super-admin/audit/logs" class="text-[11px] font-bold text-violet-600 dark:text-violet-400 hover:underline">Xem tất cả</router-link>
         </div>
         <div class="space-y-3">
           <div
             v-for="activity in recentActivities"
             :key="activity.id"
-            class="flex items-start gap-3 rounded-xl p-2.5 transition-colors hover:bg-white/60 dark:hover:bg-white/5"
+            class="flex items-start gap-3 rounded-xl p-2.5 transition-colors hover:bg-[var(--surface-card-hover)]"
           >
             <div :class="['flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full', colorMap[activity.color]?.bg]">
               <component :is="getIcon(activity.icon)" :size="14" :class="colorMap[activity.color]?.text" />
             </div>
             <div class="min-w-0 flex-1">
-              <p class="text-[12px] font-semibold text-slate-800 dark:text-slate-200 leading-snug">{{ activity.text }}</p>
-              <p class="mt-0.5 flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500">
+              <p class="text-[12px] font-semibold text-body leading-snug">{{ activity.text }}</p>
+              <p class="mt-0.5 flex items-center gap-1 text-[10px] text-muted">
                 <Clock :size="9" />
                 {{ activity.time }}
               </p>
@@ -157,8 +157,8 @@ function getIcon(name) {
       </div>
 
       <!-- Quick Actions -->
-      <div class="lg-glass-soft rounded-2xl border border-white/60 dark:border-white/10 p-4 shadow-sm">
-        <h3 class="mb-4 text-sm font-bold text-slate-800 dark:text-slate-100">Thao tác nhanh</h3>
+      <div class="lg-glass-soft rounded-2xl border border-card p-4 shadow-sm">
+        <h3 class="mb-4 text-sm font-bold text-heading">Thao tác nhanh</h3>
         <div class="space-y-2">
           <router-link
             v-for="action in [
@@ -170,9 +170,9 @@ function getIcon(name) {
             ]"
             :key="action.label"
             :to="action.to"
-            class="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-[12px] font-semibold text-slate-700 dark:text-slate-300 transition-all hover:border-violet-100 dark:hover:border-violet-500/20 hover:bg-violet-50/60 dark:hover:bg-violet-600/10 hover:text-violet-700 dark:hover:text-violet-300"
+            class="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-[12px] font-semibold text-label transition-all hover:border-violet-100 dark:hover:border-violet-500/20 hover:bg-violet-50/60 dark:hover:bg-violet-600/10 hover:text-violet-700 dark:hover:text-violet-300"
           >
-            <component :is="getIcon(action.icon)" :size="14" class="flex-shrink-0 text-slate-400 dark:text-slate-500" />
+            <component :is="getIcon(action.icon)" :size="14" class="flex-shrink-0 text-placeholder" />
             {{ action.label }}
           </router-link>
         </div>
