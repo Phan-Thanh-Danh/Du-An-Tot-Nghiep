@@ -39,6 +39,8 @@ Backend/
 - `BuildingsController`: CRUD tòa nhà `/api/master-data/buildings` theo scope `MaDonVi`.
 - `FloorsController`: CRUD tầng/lầu `/api/master-data/floors` và danh sách tầng theo tòa nhà.
 - `RoomsController`: CRUD phòng học `/api/master-data/rooms` theo cấu trúc `DonVi -> ToaNha -> Tang -> PhongHoc`.
+- `ApplicationSchemaController`: schema/mẫu đơn read-only cho module đơn từ.
+- `StudentApplicationsController`: vòng đời đơn từ phía sinh viên `/api/student/applications`.
 
 Quy ước:
 - Controller chỉ nhận request, gọi service, trả DTO/result.
@@ -55,6 +57,9 @@ Quy ước:
 - `IBuildingService`/`BuildingService`: quản lý tòa nhà, validate đơn vị, mã tòa nhà và xóa mềm.
 - `IFloorService`/`FloorService`: quản lý tầng/lầu, validate tòa nhà, thứ tự tầng và xóa mềm.
 - `IRoomService`/`RoomService`: quản lý phòng học, validate đơn vị, tòa nhà, tầng, mã phòng, loại/trạng thái phòng và xóa mềm.
+- `IApplicationSchemaService`/`ApplicationSchemaService`: expose constants/template active của đơn từ.
+- `IStudentApplicationService`/`StudentApplicationService`: tạo nháp, danh sách/chi tiết của sinh viên, cập nhật, nộp, nộp lại và hủy đơn.
+- `ApplicationFormDataValidator`, `ApplicationReferenceValidator`, `ApplicationEvidenceValidator` và các `IApplicationSubmissionRule`: validate form động, entity liên quan, metadata minh chứng và rule theo loại đơn.
 
 Quy ước:
 - Service xử lý nghiệp vụ và gọi `ApplicationDbContext`.
@@ -117,9 +122,9 @@ Policy hiện có:
 
 Endpoint có role riêng nên dùng `[Authorize(Roles = ...)]` với `AuthRoles`.
 
-## Applications / Đơn Từ Foundation
+## Applications / Đơn Từ
 
-P0-DT1 chuẩn hóa nền cho module đơn từ, chưa triển khai workflow tạo nháp/nộp/phân công/duyệt/upload.
+P0-DT1 chuẩn hóa nền cho module đơn từ. P0-DT2 bổ sung core lifecycle phía sinh viên, gồm tạo nháp, cập nhật, nộp, nộp lại khi bị yêu cầu bổ sung và hủy đơn. Các luồng phân công/duyệt, upload/download minh chứng, notification và xử lý nghiệp vụ sau duyệt vẫn để phase sau.
 
 Schema foundation:
 
@@ -137,11 +142,21 @@ State machine dùng `ApplicationStateMachine`:
 Campus/security rule cho service workflow sau này:
 
 - Student chỉ truy cập đơn có `MaHocSinh = CurrentUser.UserId`.
+- Student endpoint re-query `NguoiDung`, chỉ chấp nhận role DB `hoc_sinh` và trạng thái `hoat_dong`; không tin claim/token cho dữ liệu hệ thống.
 - SuperAdmin/Admin xem toàn hệ thống.
 - CampusAdmin xem campus và campus con.
 - SubCampusAdmin/AcademicStaff/Principal xem campus hiện tại.
 - Không tin frontend truyền `MaHocSinh`, `MaDonVi`, `TrangThai`, `NguoiDuyetHienTai`.
 - `CampusScopeMiddleware` chỉ đọc route/query/header, nên không đủ cho các endpoint đơn từ không truyền `maDonVi`; service phải tự scope bằng `CurrentUserContext`.
+
+Student lifecycle P0-DT2:
+
+- `POST /api/student/applications` tạo `DonTu` trạng thái `nhap`, gắn active `MauDonTu`, `MaHocSinh`, `MaDonVi`, `NguoiTao`, `NgayTao` và log `tao_nhap`.
+- `PUT /api/student/applications/{id}` chỉ cho `nhap` hoặc `yeu_cau_bo_sung`, dùng `RowVersion` base64 để chống lost update; no-op không tạo log.
+- `POST /api/student/applications/{id}/submit` chuyển `nhap -> da_nop`, set `NgayNop`, `HanXuLyLuc` theo SLA template và log public `nop`.
+- `POST /api/student/applications/{id}/resubmit` chuyển `yeu_cau_bo_sung -> dang_xem_xet`, giữ `NgayNop` ban đầu, clear nội dung yêu cầu bổ sung và log public `nop_lai`.
+- `POST /api/student/applications/{id}/cancel` chỉ cho trạng thái còn hủy được, set `da_huy`, không hard delete.
+- Các thao tác ghi dùng transaction cho `DonTu` và `NhatKyDuyetDon`; stale `RowVersion` hoặc race condition trả `409`.
 
 Template validation:
 
@@ -151,7 +166,7 @@ Template validation:
 
 Storage evidence:
 
-- P0-DT1 chỉ tạo schema, chưa upload.
+- P0-DT1 chỉ tạo schema; P0-DT2 chỉ validate metadata minh chứng active đã có trong `TepDinhKemDonTu` hoặc legacy `UrlBangChung`, chưa upload/download file.
 - Allowlist foundation cho phase upload sau: PDF, JPEG, PNG, WEBP.
 - Không dùng nguyên `StorageController` hiện tại cho minh chứng Student vì controller đó phục vụ nội dung học tập chung và allow ZIP/SVG/public URL.
 
