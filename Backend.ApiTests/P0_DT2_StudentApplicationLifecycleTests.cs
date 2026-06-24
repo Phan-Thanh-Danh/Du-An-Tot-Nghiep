@@ -2,14 +2,15 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Globalization;
-using System.Text;
 using System.Text.Json;
+using System.Reflection;
 using Backend.Constants;
 using Backend.Data;
 using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.Applications;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
 
@@ -23,6 +24,12 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
     private const string OtherStudentEmail = "student.tkdh01@lms.local";
     private const string TeacherEmail = "teacher.csharp.a@lms.local";
     private const string TestPrefix = "NUnit P0-DT2";
+
+    [OneTimeSetUp]
+    public void ValidateP0Dt2Environment()
+    {
+        _ = GetConnectionString();
+    }
 
     [Test]
     public async Task Anonymous_List_ShouldReturn401()
@@ -362,6 +369,27 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
     }
 
     [Test]
+    public async Task CrossCheckScore_FromDifferentCampus_ShouldReturn400()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var differentCampusId = await GetDifferentCampusIdAsync(StudentEmail);
+        var score = await CreateStudentScoreAsync(StudentEmail, differentCampusId);
+        var created = await CreateDraftAndReadAsync(studentClient, ApplicationTypes.GradeAppeal, $"{TestPrefix} cross score campus", new
+        {
+            ma_hoc_ky = score.MaHocKy,
+            ma_mon_hoc = score.MaMonHoc,
+            ma_diem_so = score.MaDiemSo,
+            cot_diem = "qua_trinh",
+            ly_do = "NUnit cross campus score"
+        });
+        await AddAttachmentAsync(created.MaDonTu);
+
+        using var response = await studentClient.PostAsJsonAsync($"api/student/applications/{created.MaDonTu}/submit", new { rowVersion = created.RowVersion });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest), await DescribeResponseAsync(response));
+    }
+
+    [Test]
     public async Task Submit_RetakeWithoutMatchingScore_ShouldReturnBadRequest()
     {
         using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
@@ -691,23 +719,30 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
     [Test]
     public async Task ConcurrentSubmit_SameRowVersion_ShouldHaveOneSuccessOneConflict()
     {
-        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
-        var created = await CreateDraftAndReadAsync(studentClient, ApplicationTypes.Confirmation, $"{TestPrefix} concurrency", new
+        using var setupClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        using var firstClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        using var secondClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(setupClient, ApplicationTypes.Confirmation, $"{TestPrefix} concurrency", new
         {
             loai_xac_nhan = "dang_hoc",
             muc_dich_su_dung = "NUnit",
             so_ban = 1
         });
 
-        using var first = await studentClient.PostAsJsonAsync($"api/student/applications/{created.MaDonTu}/submit", new { rowVersion = created.RowVersion });
-        using var second = await studentClient.PostAsJsonAsync($"api/student/applications/{created.MaDonTu}/submit", new { rowVersion = created.RowVersion });
+        var firstTask = firstClient.PostAsJsonAsync($"api/student/applications/{created.MaDonTu}/submit", new { rowVersion = created.RowVersion });
+        var secondTask = secondClient.PostAsJsonAsync($"api/student/applications/{created.MaDonTu}/submit", new { rowVersion = created.RowVersion });
+        var responses = await Task.WhenAll(firstTask, secondTask);
+        using var first = responses[0];
+        using var second = responses[1];
+        var statuses = responses.Select(x => x.StatusCode).ToList();
         var firstDescription = await DescribeResponseAsync(first);
         var secondDescription = await DescribeResponseAsync(second);
 
         Assert.Multiple(() =>
         {
-            Assert.That(first.StatusCode, Is.EqualTo(HttpStatusCode.OK), firstDescription);
-            Assert.That(second.StatusCode, Is.EqualTo(HttpStatusCode.Conflict).Or.EqualTo(HttpStatusCode.BadRequest), secondDescription);
+            Assert.That(statuses.Count(x => x == HttpStatusCode.OK), Is.EqualTo(1), $"{firstDescription}\n{secondDescription}");
+            Assert.That(statuses.Count(x => x == HttpStatusCode.Conflict), Is.EqualTo(1), $"{firstDescription}\n{secondDescription}");
+            Assert.That(statuses, Does.Not.Contain(HttpStatusCode.BadRequest), $"{firstDescription}\n{secondDescription}");
         });
 
         var submitLogs = await CountLogsAsync(created.MaDonTu, ApplicationActions.Submit);
@@ -730,9 +765,12 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
         await AddAttachmentAsync(firstDraft.MaDonTu);
         await AddAttachmentAsync(secondDraft.MaDonTu);
 
-        using var first = await firstClient.PostAsJsonAsync($"api/student/applications/{firstDraft.MaDonTu}/submit", new { rowVersion = firstDraft.RowVersion });
-        using var second = await secondClient.PostAsJsonAsync($"api/student/applications/{secondDraft.MaDonTu}/submit", new { rowVersion = secondDraft.RowVersion });
-        var statuses = new[] { first.StatusCode, second.StatusCode };
+        var firstTask = firstClient.PostAsJsonAsync($"api/student/applications/{firstDraft.MaDonTu}/submit", new { rowVersion = firstDraft.RowVersion });
+        var secondTask = secondClient.PostAsJsonAsync($"api/student/applications/{secondDraft.MaDonTu}/submit", new { rowVersion = secondDraft.RowVersion });
+        var responses = await Task.WhenAll(firstTask, secondTask);
+        using var first = responses[0];
+        using var second = responses[1];
+        var statuses = responses.Select(x => x.StatusCode).ToList();
         var firstDescription = await DescribeResponseAsync(first);
         var secondDescription = await DescribeResponseAsync(second);
 
@@ -740,16 +778,12 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
         {
             Assert.That(statuses.Count(x => x == HttpStatusCode.OK), Is.EqualTo(1), $"{firstDescription}\n{secondDescription}");
             Assert.That(statuses.Count(x => x == HttpStatusCode.Conflict), Is.EqualTo(1), $"{firstDescription}\n{secondDescription}");
+            Assert.That(statuses, Does.Not.Contain(HttpStatusCode.BadRequest), $"{firstDescription}\n{secondDescription}");
         });
 
         await using var db = CreateDbContext();
-        var studentId = await GetStudentIdAsync(StudentEmail);
         var activeCount = await db.DonTus.AsNoTracking().CountAsync(x =>
-            x.MaHocSinh == studentId &&
-            x.LoaiDon == ApplicationTypes.TransferSchool &&
-            x.TieuDe != null &&
-            x.TieuDe.StartsWith(TestPrefix) &&
-            x.TieuDe.Contains("dup") &&
+            (x.MaDonTu == firstDraft.MaDonTu || x.MaDonTu == secondDraft.MaDonTu) &&
             (x.TrangThai == ApplicationStatuses.Submitted ||
              x.TrangThai == ApplicationStatuses.InReview ||
              x.TrangThai == ApplicationStatuses.NeedSupplement));
@@ -834,6 +868,62 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
             Assert.That(result.RowVersion, Is.EqualTo(created.RowVersion));
             Assert.That(after, Is.EqualTo(before));
         });
+    }
+
+    [Test]
+    public async Task Update_LegacyArrayJson_ShouldNotReturn500()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(studentClient, ApplicationTypes.Confirmation, $"{TestPrefix} legacy array json", new
+        {
+            loai_xac_nhan = "dang_hoc",
+            muc_dich_su_dung = "NUnit",
+            so_ban = 1
+        });
+        await SetLegacyFormJsonAsync(created.MaDonTu, "[]");
+        var refreshed = await GetApplicationAsync(studentClient, created.MaDonTu);
+
+        using var response = await studentClient.PutAsJsonAsync($"api/student/applications/{created.MaDonTu}", new
+        {
+            tieuDe = refreshed.TieuDe,
+            duLieuBieuMau = new
+            {
+                loai_xac_nhan = "dang_hoc",
+                muc_dich_su_dung = "NUnit fixed",
+                so_ban = 1
+            },
+            rowVersion = refreshed.RowVersion
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK), await DescribeResponseAsync(response));
+    }
+
+    [Test]
+    public async Task Update_LegacyDuplicateCaseInsensitiveKeys_ShouldNotReturn500()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(studentClient, ApplicationTypes.Confirmation, $"{TestPrefix} legacy duplicate keys", new
+        {
+            loai_xac_nhan = "dang_hoc",
+            muc_dich_su_dung = "NUnit",
+            so_ban = 1
+        });
+        await SetLegacyFormJsonAsync(created.MaDonTu, """{"ly_do":"A","LY_DO":"B"}""");
+        var refreshed = await GetApplicationAsync(studentClient, created.MaDonTu);
+
+        using var response = await studentClient.PutAsJsonAsync($"api/student/applications/{created.MaDonTu}", new
+        {
+            tieuDe = refreshed.TieuDe,
+            duLieuBieuMau = new
+            {
+                loai_xac_nhan = "dang_hoc",
+                muc_dich_su_dung = "NUnit fixed",
+                so_ban = 1
+            },
+            rowVersion = refreshed.RowVersion
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK), await DescribeResponseAsync(response));
     }
 
     [Test]
@@ -1050,6 +1140,81 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
     }
 
     [Test]
+    public void FormValidator_MalformedTemplate_ShouldReturnControlledApiException()
+    {
+        var validator = new ApplicationFormDataValidator();
+        var exception = Assert.Throws<ApiException>(() => validator.Validate(BuildTemplate("""{"fields":["""), "{}", ApplicationFormValidationMode.Draft));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+            Assert.That(exception.Message, Is.EqualTo("Cấu hình mẫu đơn không hợp lệ."));
+        });
+    }
+
+    [Test]
+    public void FormValidator_TemplateMissingFields_ShouldReturnControlledApiException()
+    {
+        var validator = new ApplicationFormDataValidator();
+        var exception = Assert.Throws<ApiException>(() => validator.Validate(BuildTemplate("""{}"""), "{}", ApplicationFormValidationMode.Draft));
+
+        Assert.That(exception!.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+    }
+
+    [Test]
+    public void FormValidator_TemplateMissingRequiredDefinition_ShouldReturnControlledApiException()
+    {
+        var validator = new ApplicationFormDataValidator();
+        var exception = Assert.Throws<ApiException>(() => validator.Validate(BuildTemplate("""{"fields":[{"key":"a","label":"A"}]}"""), "{}", ApplicationFormValidationMode.Draft));
+
+        Assert.That(exception!.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+    }
+
+    [Test]
+    public void TryGetInt_DecimalOutsideIntRange_ShouldReturnFalse()
+    {
+        Assert.That(InvokeTryGetInt(new Dictionary<string, object?> { ["value"] = (decimal)int.MaxValue + 1 }, "value", out _), Is.False);
+    }
+
+    [Test]
+    public void TryGetInt_IntegralDecimalWithinRange_ShouldReturnTrue()
+    {
+        var ok = InvokeTryGetInt(new Dictionary<string, object?> { ["value"] = 123m }, "value", out var value);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ok, Is.True);
+            Assert.That(value, Is.EqualTo(123));
+        });
+    }
+
+    [Test]
+    public void Submission_MissingRegisteredRule_ShouldFailClosed()
+    {
+        using var db = CreateDbContext();
+        var service = new StudentApplicationService(
+            db,
+            new HttpContextAccessor(),
+            new ApplicationTemplateValidator(),
+            new ApplicationFormDataValidator(),
+            new ApplicationReferenceValidator(db),
+            new ApplicationEvidenceValidator(db),
+            new ApplicationStateMachine(),
+            []);
+
+        var method = typeof(StudentApplicationService).GetMethod("GetSubmissionRule", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(service, [ApplicationTypes.Other]));
+        var apiException = exception!.InnerException as ApiException;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(apiException, Is.Not.Null);
+            Assert.That(apiException!.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+            Assert.That(apiException.Message, Is.EqualTo("Chưa cấu hình quy tắc nghiệp vụ cho loại đơn."));
+        });
+    }
+
+    [Test]
     public void SubmissionRuleRegistry_ShouldCoverAllApplicationTypes()
     {
         var ruleTypes = new[]
@@ -1135,12 +1300,12 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
         using var response = await Client.PostAsJsonAsync("api/auth/login", new
         {
             email,
-            password = "Admin@123"
+            password = GetP0Dt2TestPassword()
         });
 
         if (!response.IsSuccessStatusCode)
         {
-            Assert.Inconclusive($"Không login được account seed {email}. {await DescribeResponseAsync(response)}");
+            Assert.Fail($"Không login được account seed {email}. {await DescribeResponseAsync(response)}");
         }
 
         using var root = await GetRootAsync(response);
@@ -1322,7 +1487,7 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
         return subject.MaMonHoc;
     }
 
-    private static async Task<DiemSo> CreateStudentScoreAsync(string email)
+    private static async Task<DiemSo> CreateStudentScoreAsync(string email, int? scoreCampusOverride = null)
     {
         await using var db = CreateDbContext();
         var student = await db.NguoiDungs.AsNoTracking()
@@ -1344,7 +1509,7 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
         await db.SaveChangesAsync();
         var score = new DiemSo
         {
-            MaDonVi = student.MaDonVi,
+            MaDonVi = scoreCampusOverride ?? student.MaDonVi,
             MaHocSinh = student.MaNguoiDung,
             MaMonHoc = subject.MaMonHoc,
             MaHocKy = termId,
@@ -1358,6 +1523,15 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
         db.DiemSos.Add(score);
         await db.SaveChangesAsync();
         return score;
+    }
+
+    private static async Task SetLegacyFormJsonAsync(int applicationId, string json)
+    {
+        await using var db = CreateDbContext();
+        var application = await db.DonTus.FirstAsync(x => x.MaDonTu == applicationId);
+        application.DuLieuBieuMau = json;
+        application.NgayCapNhat = DateTime.UtcNow;
+        await db.SaveChangesAsync();
     }
 
     private static async Task AddActiveApplicationAsync(string email, string type, string formJson)
@@ -1579,6 +1753,16 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
         };
     }
 
+    private static bool InvokeTryGetInt(IReadOnlyDictionary<string, object?> values, string key, out int value)
+    {
+        var type = typeof(ApplicationFormDataValidator).Assembly.GetType("Backend.Services.Applications.ApplicationFormDataExtensions")!;
+        var method = type.GetMethod("TryGetInt", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)!;
+        object?[] parameters = [values, key, 0];
+        var ok = (bool)method.Invoke(null, parameters)!;
+        value = (int)parameters[2]!;
+        return ok;
+    }
+
     private static ApplicationDbContext CreateDbContext()
     {
         var connectionString = GetConnectionString();
@@ -1590,49 +1774,53 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
 
     private static string GetConnectionString()
     {
-        var fromEnvironment = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
-        if (!string.IsNullOrWhiteSpace(fromEnvironment))
+        var connectionString = Environment.GetEnvironmentVariable("P0_DT2_TEST_CONNECTION_STRING");
+        if (string.IsNullOrWhiteSpace(connectionString))
         {
-            return fromEnvironment;
+            Assert.Fail("Thiếu env var P0_DT2_TEST_CONNECTION_STRING cho P0-DT2 tests.");
         }
 
-        var root = FindRepoRoot();
-        foreach (var file in new[] { "appsettings.Development.json", "appsettings.json" })
+        SqlConnectionStringBuilder builder;
+        try
         {
-            var path = Path.Combine(root, "Backend", file);
-            if (!File.Exists(path))
-            {
-                continue;
-            }
-
-            using var document = JsonDocument.Parse(File.ReadAllText(path, Encoding.UTF8));
-            var value = document.RootElement.GetProperty("ConnectionStrings").GetProperty("DefaultConnection").GetString();
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                return value;
-            }
+            builder = new SqlConnectionStringBuilder(connectionString);
+        }
+        catch (ArgumentException exception)
+        {
+            Assert.Fail($"P0_DT2_TEST_CONNECTION_STRING không hợp lệ: {exception.Message}");
+            throw;
         }
 
-        Assert.Fail("Không tìm thấy connection string để chạy P0-DT2 tests.");
-        throw new InvalidOperationException();
+        if (string.IsNullOrWhiteSpace(builder.InitialCatalog) ||
+            !builder.InitialCatalog.StartsWith("LMS_DT2_", StringComparison.OrdinalIgnoreCase))
+        {
+            Assert.Fail("P0-DT2 tests chỉ được chạy trên database có tên bắt đầu bằng 'LMS_DT2_'.");
+        }
+
+        var backendConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        if (string.IsNullOrWhiteSpace(backendConnectionString))
+        {
+            Assert.Fail("Thiếu env var ConnectionStrings__DefaultConnection cho backend test server.");
+        }
+
+        var backendBuilder = new SqlConnectionStringBuilder(backendConnectionString);
+        if (!string.Equals(backendBuilder.InitialCatalog, builder.InitialCatalog, StringComparison.OrdinalIgnoreCase))
+        {
+            Assert.Fail("Backend test server phải dùng cùng isolated DT2 database với P0_DT2_TEST_CONNECTION_STRING.");
+        }
+
+        return connectionString!;
     }
 
-    private static string FindRepoRoot()
+    private static string GetP0Dt2TestPassword()
     {
-        var directory = TestContext.CurrentContext.TestDirectory;
-        while (!string.IsNullOrWhiteSpace(directory))
+        var password = Environment.GetEnvironmentVariable("P0_DT2_TEST_PASSWORD");
+        if (string.IsNullOrWhiteSpace(password))
         {
-            if (Directory.Exists(Path.Combine(directory, "Backend")) &&
-                Directory.Exists(Path.Combine(directory, "Backend.ApiTests")))
-            {
-                return directory;
-            }
-
-            directory = Directory.GetParent(directory)?.FullName;
+            Assert.Fail("Thiếu env var P0_DT2_TEST_PASSWORD cho P0-DT2 tests.");
         }
 
-        Assert.Fail("Không tìm thấy repo root.");
-        throw new InvalidOperationException();
+        return password!;
     }
 
     private sealed record ApplicationSnapshot(int MaDonTu, string TieuDe, string TrangThai, string RowVersion);

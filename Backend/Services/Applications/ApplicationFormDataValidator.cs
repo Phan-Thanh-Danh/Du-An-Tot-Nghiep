@@ -93,45 +93,52 @@ public class ApplicationFormDataValidator : IApplicationFormDataValidator
 
     private static IReadOnlyDictionary<string, ApplicationFieldDefinition> ReadTemplateFields(MauDonTu template)
     {
-        using var document = JsonDocument.Parse(template.CauHinhJson, new JsonDocumentOptions
+        try
         {
-            MaxDepth = MaxDepth,
-            AllowTrailingCommas = false,
-            CommentHandling = JsonCommentHandling.Disallow
-        });
-
-        var root = document.RootElement;
-        var fieldsElement = root.GetProperty("fields");
-        var fields = new Dictionary<string, ApplicationFieldDefinition>(StringComparer.OrdinalIgnoreCase);
-        foreach (var item in fieldsElement.EnumerateArray())
-        {
-            var key = GetRequiredString(item, "key");
-            var type = GetRequiredString(item, "type");
-            var options = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (item.TryGetProperty("options", out var optionsElement) &&
-                optionsElement.ValueKind == JsonValueKind.Array)
+            using var document = JsonDocument.Parse(template.CauHinhJson, new JsonDocumentOptions
             {
-                foreach (var option in optionsElement.EnumerateArray())
+                MaxDepth = MaxDepth,
+                AllowTrailingCommas = false,
+                CommentHandling = JsonCommentHandling.Disallow
+            });
+
+            var root = document.RootElement;
+            var fieldsElement = root.GetProperty("fields");
+            var fields = new Dictionary<string, ApplicationFieldDefinition>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in fieldsElement.EnumerateArray())
+            {
+                var key = GetRequiredString(item, "key");
+                var type = GetRequiredString(item, "type");
+                var options = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                if (item.TryGetProperty("options", out var optionsElement) &&
+                    optionsElement.ValueKind == JsonValueKind.Array)
                 {
-                    var value = GetRequiredString(option, "value");
-                    options[value] = value;
+                    foreach (var option in optionsElement.EnumerateArray())
+                    {
+                        var value = GetRequiredString(option, "value");
+                        options[value] = value;
+                    }
                 }
+
+                fields[key] = new ApplicationFieldDefinition
+                {
+                    Key = key,
+                    Label = GetRequiredString(item, "label"),
+                    Type = type,
+                    Required = GetOptionalBoolean(item, "required"),
+                    EvidenceRequired = GetOptionalBoolean(item, "evidenceRequired"),
+                    MaxLength = GetOptionalInt(item, "maxLength"),
+                    RelatedEntity = GetOptionalString(item, "relatedEntity"),
+                    Options = options
+                };
             }
 
-            fields[key] = new ApplicationFieldDefinition
-            {
-                Key = key,
-                Label = GetRequiredString(item, "label"),
-                Type = type,
-                Required = GetOptionalBoolean(item, "required"),
-                EvidenceRequired = GetOptionalBoolean(item, "evidenceRequired"),
-                MaxLength = GetOptionalInt(item, "maxLength"),
-                RelatedEntity = GetOptionalString(item, "relatedEntity"),
-                Options = options
-            };
+            return fields;
         }
-
-        return fields;
+        catch (Exception exception) when (exception is JsonException or InvalidOperationException or KeyNotFoundException or ArgumentException)
+        {
+            throw new ApiException(StatusCodes.Status500InternalServerError, "Cấu hình mẫu đơn không hợp lệ.");
+        }
     }
 
     private static JsonDocument ParseFormData(string? json)

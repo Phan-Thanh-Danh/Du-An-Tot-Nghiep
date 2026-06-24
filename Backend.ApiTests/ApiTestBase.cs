@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.Data.SqlClient;
 using NUnit.Framework;
 
 namespace Backend.ApiTests;
@@ -13,6 +14,8 @@ public abstract class ApiTestBase
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()
     {
+        ValidateP0Dt2BackendDatabaseIfConfigured();
+
         var baseUrl = Environment.GetEnvironmentVariable("LMS_BASE_URL");
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
@@ -28,7 +31,7 @@ public abstract class ApiTestBase
         using var loginResponse = await Client.PostAsJsonAsync("api/auth/login", new
         {
             email = "superadmin@lms.local",
-            password = "Admin@123"
+            password = GetTestPassword()
         });
 
         if (!loginResponse.IsSuccessStatusCode)
@@ -68,6 +71,65 @@ public abstract class ApiTestBase
         catch (JsonException exception)
         {
             Assert.Fail($"Response không phải JSON hợp lệ. Body={content}. Error={exception.Message}");
+            throw;
+        }
+    }
+
+    protected static string GetTestPassword()
+    {
+        var password = Environment.GetEnvironmentVariable("P0_DT2_TEST_PASSWORD") ??
+                       Environment.GetEnvironmentVariable("LMS_TEST_PASSWORD");
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            Assert.Fail("Thiếu env var P0_DT2_TEST_PASSWORD hoặc LMS_TEST_PASSWORD để chạy API tests.");
+        }
+
+        return password!;
+    }
+
+    private static void ValidateP0Dt2BackendDatabaseIfConfigured()
+    {
+        var p0Dt2ConnectionString = Environment.GetEnvironmentVariable("P0_DT2_TEST_CONNECTION_STRING");
+        if (string.IsNullOrWhiteSpace(p0Dt2ConnectionString))
+        {
+            return;
+        }
+
+        var p0Dt2Builder = CreateConnectionStringBuilder(
+            p0Dt2ConnectionString,
+            "P0_DT2_TEST_CONNECTION_STRING không hợp lệ");
+
+        if (string.IsNullOrWhiteSpace(p0Dt2Builder.InitialCatalog) ||
+            !p0Dt2Builder.InitialCatalog.StartsWith("LMS_DT2_", StringComparison.OrdinalIgnoreCase))
+        {
+            Assert.Fail("P0-DT2 tests chỉ được chạy trên database có tên bắt đầu bằng 'LMS_DT2_'.");
+        }
+
+        var backendConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        if (string.IsNullOrWhiteSpace(backendConnectionString))
+        {
+            Assert.Fail("Thiếu env var ConnectionStrings__DefaultConnection cho backend test server.");
+        }
+
+        var backendBuilder = CreateConnectionStringBuilder(
+            backendConnectionString!,
+            "ConnectionStrings__DefaultConnection không hợp lệ");
+
+        if (!string.Equals(backendBuilder.InitialCatalog, p0Dt2Builder.InitialCatalog, StringComparison.OrdinalIgnoreCase))
+        {
+            Assert.Fail("Backend test server phải dùng cùng isolated DT2 database với P0_DT2_TEST_CONNECTION_STRING.");
+        }
+    }
+
+    private static SqlConnectionStringBuilder CreateConnectionStringBuilder(string connectionString, string errorPrefix)
+    {
+        try
+        {
+            return new SqlConnectionStringBuilder(connectionString);
+        }
+        catch (ArgumentException exception)
+        {
+            Assert.Fail($"{errorPrefix}: {exception.Message}");
             throw;
         }
     }

@@ -184,7 +184,11 @@ public class ApplicationReferenceValidator : IApplicationReferenceValidator
         }
 
         var score = await _context.DiemSos.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.MaDiemSo == scoreId && x.MaHocSinh == student.MaNguoiDung, cancellationToken);
+            .FirstOrDefaultAsync(x =>
+                x.MaDiemSo == scoreId &&
+                x.MaHocSinh == student.MaNguoiDung &&
+                x.MaDonVi == student.MaDonVi,
+                cancellationToken);
         if (score is null)
         {
             throw new ApiException(StatusCodes.Status400BadRequest, "Dòng điểm không hợp lệ.");

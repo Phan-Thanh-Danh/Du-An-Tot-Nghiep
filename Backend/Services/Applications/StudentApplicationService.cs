@@ -370,21 +370,15 @@ public class StudentApplicationService : IStudentApplicationService
         ApplicationSubmissionRuleContext context,
         CancellationToken cancellationToken)
     {
-        if (_submissionRules.TryGetValue(context.Application.LoaiDon, out var rule))
-        {
-            await rule.ValidateAsync(context, cancellationToken);
-        }
+        var rule = GetSubmissionRule(context.Application.LoaiDon);
+        await rule.ValidateAsync(context, cancellationToken);
     }
 
     private async Task AcquireDuplicateBusinessLockAsync(
         ApplicationSubmissionRuleContext context,
         CancellationToken cancellationToken)
     {
-        if (!_submissionRules.TryGetValue(context.Application.LoaiDon, out var rule))
-        {
-            return;
-        }
-
+        var rule = GetSubmissionRule(context.Application.LoaiDon);
         var businessKey = rule.BuildDuplicateLockKey(context);
         if (string.IsNullOrWhiteSpace(businessKey))
         {
@@ -410,6 +404,18 @@ public class StudentApplicationService : IStudentApplicationService
         {
             throw new ApiException(StatusCodes.Status409Conflict, "Đơn cùng nghiệp vụ đang được xử lý đồng thời. Vui lòng thử lại.");
         }
+    }
+
+    private IApplicationSubmissionRule GetSubmissionRule(string applicationType)
+    {
+        if (_submissionRules.TryGetValue(applicationType, out var rule))
+        {
+            return rule;
+        }
+
+        throw new ApiException(
+            StatusCodes.Status500InternalServerError,
+            "Chưa cấu hình quy tắc nghiệp vụ cho loại đơn.");
     }
 
     private async Task<NguoiDung> GetCurrentStudentAsync(CancellationToken cancellationToken)
@@ -772,7 +778,7 @@ public class StudentApplicationService : IStudentApplicationService
                 .OrderBy(x => x)
                 .ToList();
         }
-        catch (JsonException)
+        catch (Exception exception) when (exception is JsonException or InvalidOperationException or ArgumentException)
         {
             return fallbackKeys;
         }
@@ -833,7 +839,7 @@ public class StudentApplicationService : IStudentApplicationService
         {
             throw ConcurrencyException();
         }
-        catch (SqlException exception) when (exception.Number is 1205 or 3960 or 3961 or 3962 or 3963)
+        catch (SqlException exception) when (exception.Number is -2 or 1205 or 1222 or 3960 or 3961 or 3962 or 3963)
         {
             throw ConcurrencyException();
         }

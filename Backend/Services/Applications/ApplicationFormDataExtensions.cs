@@ -12,8 +12,16 @@ internal static class ApplicationFormDataExtensions
                     value = integer;
                     return true;
                 case decimal number:
-                    value = (int)number;
-                    return decimal.Truncate(number) == number;
+                    if (decimal.Truncate(number) == number &&
+                        number >= int.MinValue &&
+                        number <= int.MaxValue)
+                    {
+                        value = (int)number;
+                        return true;
+                    }
+
+                    value = 0;
+                    return false;
             }
         }
 
