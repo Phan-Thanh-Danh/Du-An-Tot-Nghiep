@@ -43,7 +43,7 @@ public class ApplicationFormDataValidator : IApplicationFormDataValidator
         var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         var relatedEntities = new List<ApplicationRelatedEntityReference>();
         var normalizedFields = new List<(string Key, object? Value, ApplicationFieldDefinition Field)>();
-        var requiresEvidence = template.BatBuocMinhChung;
+        var requiresEvidence = template.BatBuocMinhChung || fields.Values.Any(x => x.EvidenceRequired);
 
         foreach (var field in fields.Values)
         {
@@ -72,11 +72,6 @@ public class ApplicationFormDataValidator : IApplicationFormDataValidator
                         RelatedEntity = field.RelatedEntity,
                         Id = id
                     });
-                }
-
-                if (field.EvidenceRequired)
-                {
-                    requiresEvidence = true;
                 }
             }
             else if (mode == ApplicationFormValidationMode.Submit && field.Required)

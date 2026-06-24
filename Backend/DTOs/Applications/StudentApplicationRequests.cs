@@ -12,7 +12,7 @@ public class CreateStudentApplicationRequest
 public class UpdateStudentApplicationRequest
 {
     public string? TieuDe { get; set; }
-    public JsonElement DuLieuBieuMau { get; set; }
+    public JsonElement? DuLieuBieuMau { get; set; }
     public string RowVersion { get; set; } = string.Empty;
 }
 

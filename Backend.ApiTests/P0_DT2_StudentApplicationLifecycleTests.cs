@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Backend.Constants;
@@ -198,6 +199,108 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
     }
 
     [Test]
+    public async Task LegacyDraft_UpdateNoOp_ShouldPersistAssignedTemplate()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(studentClient, ApplicationTypes.Confirmation, $"{TestPrefix} legacy update noop", new
+        {
+            loai_xac_nhan = "dang_hoc",
+            muc_dich_su_dung = "NUnit",
+            so_ban = 1
+        });
+        await ClearApplicationTemplateAsync(created.MaDonTu);
+        var legacy = await GetApplicationAsync(studentClient, created.MaDonTu);
+
+        var updated = await PutApplicationAndReadAsync(studentClient, created.MaDonTu, new
+        {
+            tieuDe = legacy.TieuDe,
+            duLieuBieuMau = new
+            {
+                loai_xac_nhan = "dang_hoc",
+                muc_dich_su_dung = "NUnit",
+                so_ban = 1
+            },
+            rowVersion = legacy.RowVersion
+        });
+
+        await using var db = CreateDbContext();
+        var entity = await db.DonTus.AsNoTracking().FirstAsync(x => x.MaDonTu == created.MaDonTu);
+        var hiddenLog = await db.NhatKyDuyetDons.AsNoTracking().AnyAsync(x =>
+            x.MaDonTu == created.MaDonTu &&
+            x.HanhDong == ApplicationActions.Update &&
+            !x.HienThiChoHocSinh &&
+            x.SnapshotJson != null &&
+            x.SnapshotJson.Contains("\"templateAssigned\":true"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(entity.MaMauDon, Is.Not.Null);
+            Assert.That(updated.RowVersion, Is.Not.EqualTo(legacy.RowVersion));
+            Assert.That(hiddenLog, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task Update_MissingDuLieuBieuMau_ShouldReturn400()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(studentClient, ApplicationTypes.Confirmation, $"{TestPrefix} update missing data", new
+        {
+            loai_xac_nhan = "dang_hoc",
+            muc_dich_su_dung = "NUnit",
+            so_ban = 1
+        });
+
+        using var response = await studentClient.PutAsJsonAsync($"api/student/applications/{created.MaDonTu}", new
+        {
+            tieuDe = created.TieuDe,
+            rowVersion = created.RowVersion
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest), await DescribeResponseAsync(response));
+    }
+
+    [Test]
+    public async Task Update_NullDuLieuBieuMau_ShouldReturn400()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(studentClient, ApplicationTypes.Confirmation, $"{TestPrefix} update null data", new
+        {
+            loai_xac_nhan = "dang_hoc",
+            muc_dich_su_dung = "NUnit",
+            so_ban = 1
+        });
+
+        using var response = await studentClient.PutAsJsonAsync($"api/student/applications/{created.MaDonTu}", new
+        {
+            tieuDe = created.TieuDe,
+            duLieuBieuMau = (object?)null,
+            rowVersion = created.RowVersion
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest), await DescribeResponseAsync(response));
+    }
+
+    [Test]
+    public async Task Update_ExplicitEmptyObject_ShouldBeAcceptedForDraft_WhenTemplateAllows()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(studentClient, ApplicationTypes.Other, $"{TestPrefix} update empty object", new
+        {
+            noi_dung = "NUnit"
+        });
+
+        var updated = await PutApplicationAndReadAsync(studentClient, created.MaDonTu, new
+        {
+            tieuDe = created.TieuDe,
+            duLieuBieuMau = new { },
+            rowVersion = created.RowVersion
+        });
+
+        Assert.That(updated.TrangThai, Is.EqualTo(ApplicationStatuses.Draft));
+    }
+
+    [Test]
     public async Task Submit_ValidConfirmation_ShouldSetSubmittedSlaAndPublicLog()
     {
         using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
@@ -276,6 +379,127 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
     }
 
     [Test]
+    public async Task RetakeDuplicate_Subject12_ShouldNotConflictWithSubject123()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var termId = await GetStudentTermIdAsync(StudentEmail);
+        var subject12 = await CreateSubjectAndScoreAsync(StudentEmail, 12, termId, null);
+        var subject123 = await CreateSubjectAndScoreAsync(StudentEmail, 123, termId, null);
+        await AddActiveApplicationAsync(StudentEmail, ApplicationTypes.RetakeExam, $$"""{"ma_hoc_ky":{{termId}},"ma_mon_hoc":{{subject123}},"ly_do":"NUnit 123"}""");
+        var created = await CreateDraftAndReadAsync(studentClient, ApplicationTypes.RetakeExam, $"{TestPrefix} retake 12 no substring conflict", new
+        {
+            ma_hoc_ky = termId,
+            ma_mon_hoc = subject12,
+            ly_do = "NUnit subject 12"
+        });
+
+        using var response = await studentClient.PostAsJsonAsync($"api/student/applications/{created.MaDonTu}/submit", new { rowVersion = created.RowVersion });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK), await DescribeResponseAsync(response));
+        await CancelDirectlyAsync(created.MaDonTu);
+    }
+
+    [Test]
+    public async Task RetakeDuplicate_ExactSubjectAndTerm_ShouldConflict()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var termId = await GetStudentTermIdAsync(StudentEmail);
+        var subjectId = await CreateSubjectAndScoreAsync(StudentEmail, null, termId, null);
+        await AddActiveApplicationAsync(StudentEmail, ApplicationTypes.RetakeExam, $$"""{"ma_hoc_ky":{{termId}},"ma_mon_hoc":{{subjectId}},"ly_do":"NUnit exact"}""");
+        var created = await CreateDraftAndReadAsync(studentClient, ApplicationTypes.RetakeExam, $"{TestPrefix} retake exact conflict", new
+        {
+            ma_hoc_ky = termId,
+            ma_mon_hoc = subjectId,
+            ly_do = "NUnit exact"
+        });
+
+        using var response = await studentClient.PostAsJsonAsync($"api/student/applications/{created.MaDonTu}/submit", new { rowVersion = created.RowVersion });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict), await DescribeResponseAsync(response));
+    }
+
+    [Test]
+    public async Task Retake_ScoreFromDifferentCampus_ShouldReturn400()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var termId = await GetStudentTermIdAsync(StudentEmail);
+        var differentCampusId = await GetDifferentCampusIdAsync(StudentEmail);
+        var subjectId = await CreateSubjectAndScoreAsync(StudentEmail, null, termId, differentCampusId);
+        var created = await CreateDraftAndReadAsync(studentClient, ApplicationTypes.RetakeExam, $"{TestPrefix} retake different campus score", new
+        {
+            ma_hoc_ky = termId,
+            ma_mon_hoc = subjectId,
+            ly_do = "NUnit different campus"
+        });
+
+        using var response = await studentClient.PostAsJsonAsync($"api/student/applications/{created.MaDonTu}/submit", new { rowVersion = created.RowVersion });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest), await DescribeResponseAsync(response));
+    }
+
+    [Test]
+    public async Task GradeAppealDuplicate_DifferentScoreColumn_ShouldNotConflict()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var score = await CreateStudentScoreAsync(StudentEmail);
+        await AddActiveApplicationAsync(StudentEmail, ApplicationTypes.GradeAppeal, $$"""{"ma_hoc_ky":{{score.MaHocKy}},"ma_mon_hoc":{{score.MaMonHoc}},"ma_diem_so":{{score.MaDiemSo}},"cot_diem":"qua_trinh","ly_do":"NUnit qua trinh"}""");
+        var created = await CreateDraftAndReadAsync(studentClient, ApplicationTypes.GradeAppeal, $"{TestPrefix} grade different column", new
+        {
+            ma_hoc_ky = score.MaHocKy,
+            ma_mon_hoc = score.MaMonHoc,
+            ma_diem_so = score.MaDiemSo,
+            cot_diem = "giua_ky",
+            ly_do = "NUnit giữa kỳ"
+        });
+        await AddAttachmentAsync(created.MaDonTu);
+
+        using var response = await studentClient.PostAsJsonAsync($"api/student/applications/{created.MaDonTu}/submit", new { rowVersion = created.RowVersion });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK), await DescribeResponseAsync(response));
+        await CancelDirectlyAsync(created.MaDonTu);
+    }
+
+    [Test]
+    public async Task GradeAppealDuplicate_ExactScoreAndColumn_ShouldConflict()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var score = await CreateStudentScoreAsync(StudentEmail);
+        await AddActiveApplicationAsync(StudentEmail, ApplicationTypes.GradeAppeal, $$"""{"ma_hoc_ky":{{score.MaHocKy}},"ma_mon_hoc":{{score.MaMonHoc}},"ma_diem_so":{{score.MaDiemSo}},"cot_diem":"qua_trinh","ly_do":"NUnit exact"}""");
+        var created = await CreateDraftAndReadAsync(studentClient, ApplicationTypes.GradeAppeal, $"{TestPrefix} grade exact conflict", new
+        {
+            ma_hoc_ky = score.MaHocKy,
+            ma_mon_hoc = score.MaMonHoc,
+            ma_diem_so = score.MaDiemSo,
+            cot_diem = "qua_trinh",
+            ly_do = "NUnit exact"
+        });
+        await AddAttachmentAsync(created.MaDonTu);
+
+        using var response = await studentClient.PostAsJsonAsync($"api/student/applications/{created.MaDonTu}/submit", new { rowVersion = created.RowVersion });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict), await DescribeResponseAsync(response));
+    }
+
+    [Test]
+    public async Task AcademicPause_FractionalMonths_ShouldReturn400()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var termId = await GetStudentTermIdAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(studentClient, ApplicationTypes.AcademicPause, $"{TestPrefix} pause fractional", new
+        {
+            ma_hoc_ky_bat_dau = termId,
+            thoi_luong_du_kien = 1.5m,
+            ly_do = "NUnit fractional",
+            cam_ket_lien_he = true
+        });
+        await AddAttachmentAsync(created.MaDonTu);
+
+        using var response = await studentClient.PostAsJsonAsync($"api/student/applications/{created.MaDonTu}/submit", new { rowVersion = created.RowVersion });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest), await DescribeResponseAsync(response));
+    }
+
+    [Test]
     public async Task Submit_EvidenceRequiredWithoutAttachment_ShouldReturnBadRequest()
     {
         using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
@@ -288,6 +512,23 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
         {
             rowVersion = created.RowVersion
         });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest), await DescribeResponseAsync(response));
+    }
+
+    [Test]
+    public async Task Submit_TemplateFieldEvidenceRequiredButAbsentEvidence_ShouldReturn400()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(studentClient, ApplicationTypes.Other, $"{TestPrefix} field evidence absent", new { });
+        await AssignCustomTemplateAsync(created.MaDonTu, ApplicationTypes.Other, """
+            {"fields":[
+              {"key":"ghi_chu","label":"Ghi chú","type":"textarea","required":false,"evidenceRequired":true}
+            ]}
+            """);
+        var refreshed = await GetApplicationAsync(studentClient, created.MaDonTu);
+
+        using var response = await studentClient.PostAsJsonAsync($"api/student/applications/{created.MaDonTu}/submit", new { rowVersion = refreshed.RowVersion });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest), await DescribeResponseAsync(response));
     }
@@ -757,6 +998,21 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
     }
 
     [Test]
+    public void FormValidator_OptionalEvidenceRequiredFieldAbsent_ShouldStillRequireEvidence()
+    {
+        var validator = new ApplicationFormDataValidator();
+        var template = BuildTemplate("""
+            {"fields":[
+              {"key":"ghi_chu","label":"Ghi chú","type":"textarea","required":false,"evidenceRequired":true}
+            ]}
+            """);
+
+        var result = validator.Validate(template, "{}", ApplicationFormValidationMode.Draft);
+
+        Assert.That(result.RequiresEvidence, Is.True);
+    }
+
+    [Test]
     public void FormValidator_DateSelectMultiselectAndRelatedEntity_ShouldValidateCanonicalValues()
     {
         var validator = new ApplicationFormDataValidator();
@@ -985,6 +1241,181 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
             .FirstAsync();
         await db.SaveChangesAsync();
         return (subject.MaMonHoc, termId);
+    }
+
+    private static async Task<int> GetStudentTermIdAsync(string email)
+    {
+        await using var db = CreateDbContext();
+        var campusId = await db.NguoiDungs.AsNoTracking()
+            .Where(x => x.Email == email)
+            .Select(x => x.MaDonVi)
+            .FirstAsync();
+        return await db.HocKys.AsNoTracking()
+            .Where(x => x.MaDonVi == campusId)
+            .Select(x => x.MaHocKy)
+            .FirstAsync();
+    }
+
+    private static async Task<int> GetDifferentCampusIdAsync(string email)
+    {
+        await using var db = CreateDbContext();
+        var campusId = await db.NguoiDungs.AsNoTracking()
+            .Where(x => x.Email == email)
+            .Select(x => x.MaDonVi)
+            .FirstAsync();
+        var existing = await db.DonVis.AsNoTracking()
+            .Where(x => x.MaDonVi != campusId && x.ConHoatDong)
+            .Select(x => (int?)x.MaDonVi)
+            .FirstOrDefaultAsync();
+        if (existing.HasValue)
+        {
+            return existing.Value;
+        }
+
+        var campus = new DonVi
+        {
+            TenDonVi = "NUnit P0-DT2 campus",
+            CapDonVi = "co_so",
+            ConHoatDong = true,
+            NgayTao = DateTime.UtcNow
+        };
+        db.DonVis.Add(campus);
+        await db.SaveChangesAsync();
+        return campus.MaDonVi;
+    }
+
+    private static async Task<int> CreateSubjectAndScoreAsync(
+        string email,
+        int? codeSuffix,
+        int termId,
+        int? scoreCampusOverride)
+    {
+        await using var db = CreateDbContext();
+        var student = await db.NguoiDungs.AsNoTracking()
+            .Where(x => x.Email == email)
+            .Select(x => new { x.MaNguoiDung, x.MaDonVi })
+            .FirstAsync();
+        var suffix = codeSuffix?.ToString(CultureInfo.InvariantCulture) ?? Guid.NewGuid().ToString("N")[..6];
+        var subject = new DanhMucMonHoc
+        {
+            MaCodeMonHoc = $"P0DT2S{suffix}{Guid.NewGuid():N}"[..20],
+            TenMonHoc = $"NUnit P0-DT2 subject {suffix}",
+            SoTinChi = 3,
+            ConHoatDong = true
+        };
+        db.DanhMucMonHocs.Add(subject);
+        await db.SaveChangesAsync();
+        db.DiemSos.Add(new DiemSo
+        {
+            MaDonVi = scoreCampusOverride ?? student.MaDonVi,
+            MaHocSinh = student.MaNguoiDung,
+            MaMonHoc = subject.MaMonHoc,
+            MaHocKy = termId,
+            DiemQuaTrinh = 5,
+            DiemGiuaKy = 5,
+            DiemCuoiKy = 5,
+            GpaMonHoc = 5,
+            TrangThai = "rot",
+            NamNhapHoc = 2024
+        });
+        await db.SaveChangesAsync();
+        return subject.MaMonHoc;
+    }
+
+    private static async Task<DiemSo> CreateStudentScoreAsync(string email)
+    {
+        await using var db = CreateDbContext();
+        var student = await db.NguoiDungs.AsNoTracking()
+            .Where(x => x.Email == email)
+            .Select(x => new { x.MaNguoiDung, x.MaDonVi })
+            .FirstAsync();
+        var subject = new DanhMucMonHoc
+        {
+            MaCodeMonHoc = $"P0DT2G{Guid.NewGuid():N}"[..20],
+            TenMonHoc = "NUnit P0-DT2 grade subject",
+            SoTinChi = 3,
+            ConHoatDong = true
+        };
+        db.DanhMucMonHocs.Add(subject);
+        var termId = await db.HocKys.AsNoTracking()
+            .Where(x => x.MaDonVi == student.MaDonVi)
+            .Select(x => x.MaHocKy)
+            .FirstAsync();
+        await db.SaveChangesAsync();
+        var score = new DiemSo
+        {
+            MaDonVi = student.MaDonVi,
+            MaHocSinh = student.MaNguoiDung,
+            MaMonHoc = subject.MaMonHoc,
+            MaHocKy = termId,
+            DiemQuaTrinh = 6,
+            DiemGiuaKy = 6,
+            DiemCuoiKy = 6,
+            GpaMonHoc = 6,
+            TrangThai = "dat",
+            NamNhapHoc = 2024
+        };
+        db.DiemSos.Add(score);
+        await db.SaveChangesAsync();
+        return score;
+    }
+
+    private static async Task AddActiveApplicationAsync(string email, string type, string formJson)
+    {
+        await using var db = CreateDbContext();
+        var student = await db.NguoiDungs.AsNoTracking()
+            .Where(x => x.Email == email)
+            .Select(x => new { x.MaNguoiDung, x.MaDonVi })
+            .FirstAsync();
+        var templateId = await db.MauDonTus.AsNoTracking()
+            .Where(x => x.LoaiDon == type && x.DangHoatDong)
+            .OrderByDescending(x => x.PhienBan)
+            .Select(x => x.MaMauDon)
+            .FirstAsync();
+        db.DonTus.Add(new DonTu
+        {
+            MaHocSinh = student.MaNguoiDung,
+            MaDonVi = student.MaDonVi,
+            MaMauDon = templateId,
+            LoaiDon = type,
+            TieuDe = $"{TestPrefix} active duplicate {Guid.NewGuid():N}",
+            DuLieuBieuMau = formJson,
+            TrangThai = ApplicationStatuses.Submitted,
+            TrangThaiXuLyNghiepVu = ApplicationProcessingStatuses.NotProcessed,
+            NgayTao = DateTime.UtcNow,
+            NgayCapNhat = DateTime.UtcNow,
+            NgayNop = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task AssignCustomTemplateAsync(int applicationId, string type, string configJson)
+    {
+        await using var db = CreateDbContext();
+        var maxVersion = await db.MauDonTus.AsNoTracking()
+            .Where(x => x.LoaiDon == type)
+            .MaxAsync(x => x.PhienBan);
+        var template = new MauDonTu
+        {
+            LoaiDon = type,
+            TenMau = "NUnit P0-DT2 custom template",
+            PhienBan = maxVersion + 1,
+            CauHinhJson = configJson,
+            DangHoatDong = false,
+            BatBuocMinhChung = false,
+            SoTepToiDa = 5,
+            DungLuongTepToiDaByte = 10L * 1024 * 1024,
+            TongDungLuongToiDaByte = 25L * 1024 * 1024,
+            SlaGio = 72,
+            NgayTao = DateTime.UtcNow
+        };
+        db.MauDonTus.Add(template);
+        await db.SaveChangesAsync();
+        var application = await db.DonTus.FirstAsync(x => x.MaDonTu == applicationId);
+        application.MaMauDon = template.MaMauDon;
+        application.DuLieuBieuMau = "{}";
+        application.NgayCapNhat = DateTime.UtcNow;
+        await db.SaveChangesAsync();
     }
 
     private async Task MarkNeedSupplementAsync(int applicationId)

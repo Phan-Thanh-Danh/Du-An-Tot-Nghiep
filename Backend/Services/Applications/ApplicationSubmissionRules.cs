@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using Backend.Constants;
 using Backend.Data;
 using Backend.Exceptions;
@@ -55,6 +56,55 @@ public abstract class ApplicationSubmissionRuleBase : IApplicationSubmissionRule
 
         return date;
     }
+
+    protected static bool TryGetJsonInt(string? json, string key, out int value)
+    {
+        value = default;
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            return document.RootElement.ValueKind == JsonValueKind.Object &&
+                document.RootElement.TryGetProperty(key, out var property) &&
+                property.ValueKind == JsonValueKind.Number &&
+                property.TryGetInt32(out value);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    protected static bool TryGetJsonString(string? json, string key, out string value)
+    {
+        value = string.Empty;
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            if (document.RootElement.ValueKind == JsonValueKind.Object &&
+                document.RootElement.TryGetProperty(key, out var property) &&
+                property.ValueKind == JsonValueKind.String)
+            {
+                value = property.GetString() ?? string.Empty;
+                return !string.IsNullOrWhiteSpace(value);
+            }
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+
+        return false;
+    }
 }
 
 public class LeaveApplicationSubmissionRule : ApplicationSubmissionRuleBase
@@ -102,6 +152,7 @@ public class RetakeExamApplicationSubmissionRule : ApplicationSubmissionRuleBase
 
         var hasScore = await Context.DiemSos.AsNoTracking().AnyAsync(x =>
             x.MaHocSinh == context.Student.MaNguoiDung &&
+            x.MaDonVi == context.Student.MaDonVi &&
             x.MaMonHoc == subjectId &&
             x.MaHocKy == termId,
             cancellationToken);
@@ -110,15 +161,20 @@ public class RetakeExamApplicationSubmissionRule : ApplicationSubmissionRuleBase
             throw new ApiException(StatusCodes.Status400BadRequest, "Sinh viên chưa có dữ liệu học môn này trong học kỳ đã chọn.");
         }
 
-        var duplicate = await Context.DonTus.AsNoTracking().AnyAsync(x =>
-            x.MaDonTu != context.Application.MaDonTu &&
-            x.MaHocSinh == context.Application.MaHocSinh &&
-            x.LoaiDon == ApplicationTypes.RetakeExam &&
-            ActiveSubmittedStatuses.Contains(x.TrangThai) &&
-            x.DuLieuBieuMau != null &&
-            x.DuLieuBieuMau.Contains($"\"ma_mon_hoc\":{subjectId}") &&
-            x.DuLieuBieuMau.Contains($"\"ma_hoc_ky\":{termId}"),
-            cancellationToken);
+        var candidates = await Context.DonTus.AsNoTracking()
+            .Where(x =>
+                x.MaDonTu != context.Application.MaDonTu &&
+                x.MaHocSinh == context.Application.MaHocSinh &&
+                x.LoaiDon == ApplicationTypes.RetakeExam &&
+                ActiveSubmittedStatuses.Contains(x.TrangThai) &&
+                x.DuLieuBieuMau != null)
+            .Select(x => new { x.MaDonTu, x.DuLieuBieuMau })
+            .ToListAsync(cancellationToken);
+        var duplicate = candidates.Any(x =>
+            TryGetJsonInt(x.DuLieuBieuMau, "ma_mon_hoc", out var existingSubjectId) &&
+            TryGetJsonInt(x.DuLieuBieuMau, "ma_hoc_ky", out var existingTermId) &&
+            existingSubjectId == subjectId &&
+            existingTermId == termId);
         if (duplicate)
         {
             throw new ApiException(StatusCodes.Status409Conflict, "Đã tồn tại đơn thi lại đang xử lý cho môn học và học kỳ này.");
@@ -173,15 +229,20 @@ public class GradeAppealApplicationSubmissionRule : ApplicationSubmissionRuleBas
             throw new ApiException(StatusCodes.Status400BadRequest, "Dòng điểm không khớp học kỳ.");
         }
 
-        var duplicate = await Context.DonTus.AsNoTracking().AnyAsync(x =>
-            x.MaDonTu != context.Application.MaDonTu &&
-            x.MaHocSinh == context.Application.MaHocSinh &&
-            x.LoaiDon == ApplicationTypes.GradeAppeal &&
-            ActiveSubmittedStatuses.Contains(x.TrangThai) &&
-            x.DuLieuBieuMau != null &&
-            x.DuLieuBieuMau.Contains($"\"ma_diem_so\":{scoreId}") &&
-            x.DuLieuBieuMau.Contains($"\"cot_diem\":\"{scoreColumn}\""),
-            cancellationToken);
+        var candidates = await Context.DonTus.AsNoTracking()
+            .Where(x =>
+                x.MaDonTu != context.Application.MaDonTu &&
+                x.MaHocSinh == context.Application.MaHocSinh &&
+                x.LoaiDon == ApplicationTypes.GradeAppeal &&
+                ActiveSubmittedStatuses.Contains(x.TrangThai) &&
+                x.DuLieuBieuMau != null)
+            .Select(x => new { x.MaDonTu, x.DuLieuBieuMau })
+            .ToListAsync(cancellationToken);
+        var duplicate = candidates.Any(x =>
+            TryGetJsonInt(x.DuLieuBieuMau, "ma_diem_so", out var existingScoreId) &&
+            TryGetJsonString(x.DuLieuBieuMau, "cot_diem", out var existingScoreColumn) &&
+            existingScoreId == scoreId &&
+            string.Equals(existingScoreColumn, scoreColumn, StringComparison.OrdinalIgnoreCase));
         if (duplicate)
         {
             throw new ApiException(StatusCodes.Status409Conflict, "Đã tồn tại đơn phúc tra đang xử lý cho dòng điểm này.");
@@ -203,7 +264,8 @@ public class AcademicPauseApplicationSubmissionRule : ApplicationSubmissionRuleB
     {
         if (!context.FormData.Values.TryGetDecimal("thoi_luong_du_kien", out var months) ||
             months < 1 ||
-            months > 24)
+            months > 24 ||
+            decimal.Truncate(months) != months)
         {
             throw new ApiException(StatusCodes.Status400BadRequest, "Thời lượng bảo lưu phải từ 1 đến 24 tháng.");
         }

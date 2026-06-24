@@ -179,10 +179,18 @@ public class StudentApplicationService : IStudentApplicationService
             throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ được cập nhật đơn nháp hoặc đơn đang yêu cầu bổ sung.");
         }
 
+        if (!request.DuLieuBieuMau.HasValue ||
+            request.DuLieuBieuMau.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Dữ liệu biểu mẫu là bắt buộc khi cập nhật đơn.");
+        }
+
+        var originalTemplateId = application.MaMauDon;
         var template = await ResolveTemplateForMutationAsync(application, cancellationToken);
+        var templateWasAssigned = originalTemplateId != template.MaMauDon;
         var formData = _formDataValidator.Validate(
             template,
-            JsonElementToJson(request.DuLieuBieuMau),
+            JsonElementToJson(request.DuLieuBieuMau.Value),
             ApplicationFormValidationMode.Draft);
 
         var newTitle = application.TieuDe;
@@ -192,7 +200,10 @@ public class StudentApplicationService : IStudentApplicationService
         }
 
         var changedKeys = GetChangedKeys(application.DuLieuBieuMau, formData.NormalizedJson, formData.ProvidedFieldKeys);
-        if (newTitle == application.TieuDe && formData.NormalizedJson == (application.DuLieuBieuMau ?? "{}") && application.MaMauDon == template.MaMauDon)
+        if (!templateWasAssigned &&
+            newTitle == application.TieuDe &&
+            formData.NormalizedJson == (application.DuLieuBieuMau ?? "{}") &&
+            application.MaMauDon == template.MaMauDon)
         {
             return await GetDetailForStudentAsync(application.MaDonTu, student.MaNguoiDung, cancellationToken);
         }
@@ -219,7 +230,7 @@ public class StudentApplicationService : IStudentApplicationService
                     application.TrangThai,
                     null,
                     false,
-                    new { changedFields = changedKeys }));
+                    new { templateAssigned = templateWasAssigned, changedFields = changedKeys }));
 
                 await _context.SaveChangesAsync(cancellationToken);
             }, cancellationToken);
