@@ -12,34 +12,7 @@ using Backend.Services.AttendanceAutomation;
 using Backend.Services.AttendanceUnlock;
 using Backend.Services.Audit;
 using Backend.Services.Auth;
-using Backend.Services.Buildings;
-using Backend.Services.BuoiHoc;
-using Backend.Services.CaHoc;
-using Backend.Services.CampusSpecializations;
-using Backend.Services.Cohorts;
-using Backend.Services.Courses;
-using Backend.Services.CourseSyllabuses;
-using Backend.Services.Curriculum;
-using Backend.Services.Exam;
-using Backend.Services.Finance.ProgramTuitionConfigs;
-using Backend.Services.Finance.TuitionPayments;
-using Backend.Services.Floors;
-using Backend.Services.Majors;
-using Backend.Services.Notifications;
-using System.Text.Json;
-using Backend.Data;
-using Backend.Helpers;
-using Backend.Hubs;
-using Backend.Middlewares;
-using Backend.Services;
-using Backend.Services.AcademicTerms;
-using Backend.Services.AdministrativeClasses;
-using Backend.Services.AdminUsers;
-using Backend.Services.Attendance;
-using Backend.Services.AttendanceAutomation;
-using Backend.Services.AttendanceUnlock;
-using Backend.Services.Audit;
-using Backend.Services.Auth;
+using Backend.Services.Applications;
 using Backend.Services.Buildings;
 using Backend.Services.BuoiHoc;
 using Backend.Services.CaHoc;
@@ -130,6 +103,9 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
+builder.Services.AddScoped<IApplicationStateMachine, ApplicationStateMachine>();
+builder.Services.AddScoped<IApplicationTemplateValidator, ApplicationTemplateValidator>();
+builder.Services.AddScoped<IApplicationSchemaService, ApplicationSchemaService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAdministrativeClassService, AdministrativeClassService>();
@@ -258,6 +234,22 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(
         "Reports",
         policy => policy.RequireRole("Admin", "SuperAdmin", "Principal", "CampusAdmin")
+    );
+    options.AddPolicy(
+        "ApplicationStudent",
+        policy => policy.RequireRole("Student")
+    );
+    options.AddPolicy(
+        "ApplicationOperations",
+        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin", "AcademicStaff")
+    );
+    options.AddPolicy(
+        "ApplicationSensitiveDecision",
+        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "Principal")
+    );
+    options.AddPolicy(
+        "ApplicationSystemAdmin",
+        policy => policy.RequireRole("SuperAdmin", "Admin")
     );
 });
 

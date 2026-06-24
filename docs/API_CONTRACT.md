@@ -617,6 +617,64 @@ Ghi chú P0-8: Bảng `ThongBao` hiện được dùng theo mô hình mỗi dòn
 - `GET /api/notification-preferences`
 - `PUT /api/notification-preferences`
 
+## Applications / Đơn Từ APIs
+
+### Đã có trong P0-DT1
+
+P0-DT1 chỉ làm foundation schema, constants, state machine, template validator và API read-only để FE đọc loại đơn/mẫu đơn. Chưa làm tạo nháp, nộp đơn, phân công, duyệt/từ chối, upload minh chứng, notification hoặc xử lý nghiệp vụ sau duyệt.
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/applications/schema/types` | JWT | Trả 11 loại đơn hợp lệ: `nghi_phep`, `thi_lai`, `chuyen_truong`, `cap_chung_chi`, `khac`, `phuc_tra_diem`, `bao_luu`, `chuyen_nganh`, `chuyen_co_so`, `xac_nhan`, `rut_hoc`. |
+| GET | `/api/applications/schema/statuses` | JWT | Trả trạng thái đơn, trạng thái terminal và danh sách trạng thái tiếp theo theo state machine. |
+| GET | `/api/applications/templates` | JWT | Trả danh sách mẫu đơn active version hiện tại. Không trả entity trực tiếp, không trả audit metadata. |
+| GET | `/api/applications/templates/{loaiDon}` | JWT | Trả mẫu đơn active theo loại. `loaiDon` không hợp lệ trả `400`; loại hợp lệ nhưng không có mẫu active trả `404`. |
+
+Response mẫu:
+
+```json
+{
+  "success": true,
+  "message": "Lấy mẫu đơn thành công.",
+  "data": {
+    "maMauDon": 1,
+    "loaiDon": "nghi_phep",
+    "tenLoaiDon": "Đơn nghỉ phép",
+    "tenMau": "Mẫu đơn nghỉ phép",
+    "phienBan": 1,
+    "cauHinhJson": "{\"fields\":[]}",
+    "batBuocMinhChung": false,
+    "soTepToiDa": 5,
+    "dungLuongTepToiDaByte": 10485760,
+    "tongDungLuongToiDaByte": 26214400,
+    "slaGio": 48
+  }
+}
+```
+
+Ghi chú P0-DT1:
+
+- `DonTu` đã có `MaDonVi`, `MaMauDon`, `TieuDe`, `TrangThaiXuLyNghiepVu`, `NguoiXuLyCuoi`, `NoiDungYeuCauBoSung`, `KetQuaXuLyJson`, `NgayCapNhat`, `NgayNop`, `NgayDuyet`, `HanXuLyLuc`, `RowVersion`.
+- `MauDonTu` quản lý template versioned; unique `LoaiDon + PhienBan`; chỉ một template active mỗi loại.
+- `TepDinhKemDonTu` chỉ là schema metadata cho minh chứng, lưu `StorageKey`, soft delete; P0-DT1 chưa có upload endpoint.
+- `NhatKyDuyetDon` mở rộng để ghi trạng thái cũ/mới, public/internal note, system actor và snapshot JSON.
+- Service workflow sau này không được tin FE truyền `MaHocSinh`, `MaDonVi`, `TrangThai`, `NguoiDuyetHienTai`.
+- `CampusScopeMiddleware` không đủ cho endpoint đơn từ không truyền `maDonVi`; service DT2/DT3 phải tự filter bằng `CurrentUserContext`.
+
+### Dự kiến/cần bổ sung
+
+- `GET /api/applications/my`
+- `GET /api/applications/my/{id}`
+- `POST /api/applications/drafts`
+- `PUT /api/applications/drafts/{id}`
+- `POST /api/applications/{id}/submit`
+- `POST /api/applications/{id}/cancel`
+- `GET /api/admin/applications`
+- `POST /api/admin/applications/{id}/assign`
+- `POST /api/admin/applications/{id}/approve`
+- `POST /api/admin/applications/{id}/reject`
+- Upload/download minh chứng theo quyền.
+
 ## Reports APIs
 
 ### Đã có
