@@ -619,9 +619,9 @@ Ghi chú P0-8: Bảng `ThongBao` hiện được dùng theo mô hình mỗi dòn
 
 ## Applications / Đơn Từ APIs
 
-### Đã có trong P0-DT1
+### Đã có trong P0-DT1/P0-DT2
 
-P0-DT1 chỉ làm foundation schema, constants, state machine, template validator và API read-only để FE đọc loại đơn/mẫu đơn. Chưa làm tạo nháp, nộp đơn, phân công, duyệt/từ chối, upload minh chứng, notification hoặc xử lý nghiệp vụ sau duyệt.
+P0-DT1 làm foundation schema, constants, state machine, template validator và API read-only để FE đọc loại đơn/mẫu đơn. P0-DT2 bổ sung vòng đời sinh viên: tạo nháp, xem đơn của chính mình, cập nhật nháp/yêu cầu bổ sung, nộp, nộp lại và hủy đơn. Chưa làm phân công, duyệt/từ chối, upload minh chứng, notification hoặc xử lý nghiệp vụ sau duyệt.
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
@@ -629,6 +629,13 @@ P0-DT1 chỉ làm foundation schema, constants, state machine, template validato
 | GET | `/api/applications/schema/statuses` | JWT | Trả trạng thái đơn, trạng thái terminal và danh sách trạng thái tiếp theo theo state machine. |
 | GET | `/api/applications/templates` | JWT | Trả danh sách mẫu đơn active version hiện tại. Không trả entity trực tiếp, không trả audit metadata. |
 | GET | `/api/applications/templates/{loaiDon}` | JWT | Trả mẫu đơn active theo loại. `loaiDon` không hợp lệ trả `400`; loại hợp lệ nhưng không có mẫu active trả `404`. |
+| POST | `/api/student/applications` | Student | Tạo đơn nháp từ template active của `loaiDon`. Backend tự gán `MaHocSinh`, `MaDonVi`, `MaMauDon`, `TrangThai = nhap`; không tin field hệ thống từ client. |
+| GET | `/api/student/applications` | Student | Sinh viên xem danh sách đơn của chính mình. Filter `loaiDon`, `trangThai`, `ngayTu`, `ngayDen`, `search`, `pageIndex`, `pageSize`. |
+| GET | `/api/student/applications/{id}` | Student | Sinh viên xem chi tiết đơn của chính mình, gồm dữ liệu form, template snapshot an toàn, minh chứng metadata an toàn và timeline public. Không trả `StorageKey`, `UrlBangChung`, ghi chú nội bộ hoặc snapshot nội bộ. |
+| PUT | `/api/student/applications/{id}` | Student | Cập nhật đơn ở trạng thái `nhap` hoặc `yeu_cau_bo_sung`. Body cần `rowVersion` base64 để chống lost update. |
+| POST | `/api/student/applications/{id}/submit` | Student | Nộp đơn nháp, validate required fields, related entity, rule theo loại đơn và metadata minh chứng; chuyển `nhap -> da_nop`. |
+| POST | `/api/student/applications/{id}/resubmit` | Student | Nộp lại đơn đang `yeu_cau_bo_sung`, giữ `NgayNop` ban đầu, clear nội dung yêu cầu bổ sung và chuyển về `dang_xem_xet`. |
+| POST | `/api/student/applications/{id}/cancel` | Student | Hủy đơn của chính mình khi trạng thái cho phép (`nhap`, `da_nop`, `yeu_cau_bo_sung`); không hard delete. |
 
 Response mẫu:
 
@@ -661,14 +668,19 @@ Ghi chú P0-DT1:
 - Service workflow sau này không được tin FE truyền `MaHocSinh`, `MaDonVi`, `TrangThai`, `NguoiDuyetHienTai`.
 - `CampusScopeMiddleware` không đủ cho endpoint đơn từ không truyền `maDonVi`; service DT2/DT3 phải tự filter bằng `CurrentUserContext`.
 
+Ghi chú P0-DT2:
+
+- Tất cả endpoint `/api/student/applications...` dùng policy `ApplicationStudent` và service re-query `NguoiDung` hiện tại, chỉ chấp nhận role DB `hoc_sinh` đang `hoat_dong`.
+- Ownership bắt buộc theo `DonTu.MaHocSinh = currentUser.UserId`; truy cập đơn người khác trả `404`.
+- Form data được validate theo `MauDonTu.CauHinhJson`: field unknown bị chặn; draft cho phép thiếu required; submit/resubmit bắt buộc required, kiểu dữ liệu, options và related entity hợp lệ.
+- Related entity không query động từ client. Backend chỉ kiểm tra các entity đã whitelist như học kỳ, môn học, điểm số, cơ sở, ngành, chuyên ngành, khóa học và buổi học theo quyền của sinh viên.
+- Một số loại đơn có rule riêng: nghỉ phép kiểm tra khoảng ngày, phúc tra điểm kiểm tra điểm số/cột điểm, bảo lưu/chuyển trường/rút học/chuyển ngành/chuyển cơ sở chống trùng đơn đang active, xác nhận giới hạn số bản.
+- Minh chứng P0-DT2 chỉ validate metadata đã có trong `TepDinhKemDonTu`; chưa có upload/download endpoint. Nếu template hoặc field yêu cầu minh chứng mà chưa có file active hoặc legacy `UrlBangChung`, submit trả `400`.
+- `rowVersion` là base64 concurrency token. Sai format trả `400`; stale/concurrent update trả `409`.
+- `NhatKyDuyetDon` ghi timeline công khai cho tạo/nộp/nộp lại/hủy và log nội bộ khi cập nhật; response student chỉ trả timeline public.
+
 ### Dự kiến/cần bổ sung
 
-- `GET /api/applications/my`
-- `GET /api/applications/my/{id}`
-- `POST /api/applications/drafts`
-- `PUT /api/applications/drafts/{id}`
-- `POST /api/applications/{id}/submit`
-- `POST /api/applications/{id}/cancel`
 - `GET /api/admin/applications`
 - `POST /api/admin/applications/{id}/assign`
 - `POST /api/admin/applications/{id}/approve`
