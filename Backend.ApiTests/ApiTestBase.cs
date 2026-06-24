@@ -15,6 +15,7 @@ public abstract class ApiTestBase
     public async Task OneTimeSetUpAsync()
     {
         ValidateP0Dt2BackendDatabaseIfConfigured();
+        ValidateP0Dt3BackendDatabaseIfConfigured();
 
         var baseUrl = Environment.GetEnvironmentVariable("LMS_BASE_URL");
         if (string.IsNullOrWhiteSpace(baseUrl))
@@ -78,10 +79,11 @@ public abstract class ApiTestBase
     protected static string GetTestPassword()
     {
         var password = Environment.GetEnvironmentVariable("P0_DT2_TEST_PASSWORD") ??
+                       Environment.GetEnvironmentVariable("P0_DT3_TEST_PASSWORD") ??
                        Environment.GetEnvironmentVariable("LMS_TEST_PASSWORD");
         if (string.IsNullOrWhiteSpace(password))
         {
-            Assert.Fail("Thiếu env var P0_DT2_TEST_PASSWORD hoặc LMS_TEST_PASSWORD để chạy API tests.");
+            Assert.Fail("Thiếu env var P0_DT2_TEST_PASSWORD, P0_DT3_TEST_PASSWORD hoặc LMS_TEST_PASSWORD để chạy API tests.");
         }
 
         return password!;
@@ -118,6 +120,40 @@ public abstract class ApiTestBase
         if (!string.Equals(backendBuilder.InitialCatalog, p0Dt2Builder.InitialCatalog, StringComparison.OrdinalIgnoreCase))
         {
             Assert.Fail("Backend test server phải dùng cùng isolated DT2 database với P0_DT2_TEST_CONNECTION_STRING.");
+        }
+    }
+
+    private static void ValidateP0Dt3BackendDatabaseIfConfigured()
+    {
+        var p0Dt3ConnectionString = Environment.GetEnvironmentVariable("P0_DT3_TEST_CONNECTION_STRING");
+        if (string.IsNullOrWhiteSpace(p0Dt3ConnectionString))
+        {
+            return;
+        }
+
+        var p0Dt3Builder = CreateConnectionStringBuilder(
+            p0Dt3ConnectionString,
+            "P0_DT3_TEST_CONNECTION_STRING không hợp lệ");
+
+        if (string.IsNullOrWhiteSpace(p0Dt3Builder.InitialCatalog) ||
+            !p0Dt3Builder.InitialCatalog.StartsWith("LMS_DT3_", StringComparison.OrdinalIgnoreCase))
+        {
+            Assert.Fail("P0-DT3 tests chỉ được chạy trên database có tên bắt đầu bằng 'LMS_DT3_'.");
+        }
+
+        var backendConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        if (string.IsNullOrWhiteSpace(backendConnectionString))
+        {
+            Assert.Fail("Thiếu env var ConnectionStrings__DefaultConnection cho backend test server.");
+        }
+
+        var backendBuilder = CreateConnectionStringBuilder(
+            backendConnectionString!,
+            "ConnectionStrings__DefaultConnection không hợp lệ");
+
+        if (!string.Equals(backendBuilder.InitialCatalog, p0Dt3Builder.InitialCatalog, StringComparison.OrdinalIgnoreCase))
+        {
+            Assert.Fail("Backend test server phải dùng cùng isolated DT3 database với P0_DT3_TEST_CONNECTION_STRING.");
         }
     }
 

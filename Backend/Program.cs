@@ -110,6 +110,11 @@ builder.Services.AddScoped<IApplicationFormDataValidator, ApplicationFormDataVal
 builder.Services.AddScoped<IApplicationReferenceValidator, ApplicationReferenceValidator>();
 builder.Services.AddScoped<IApplicationEvidenceValidator, ApplicationEvidenceValidator>();
 builder.Services.AddScoped<IStudentApplicationService, StudentApplicationService>();
+builder.Services.Configure<ApplicationEvidenceStorageOptions>(
+    builder.Configuration.GetSection(ApplicationEvidenceStorageOptions.SectionName)
+);
+builder.Services.AddScoped<IApplicationEvidenceFileInspector, ApplicationEvidenceFileInspector>();
+builder.Services.AddScoped<IApplicationEvidenceService, ApplicationEvidenceService>();
 builder.Services.AddScoped<IApplicationSubmissionRule, LeaveApplicationSubmissionRule>();
 builder.Services.AddScoped<IApplicationSubmissionRule, RetakeExamApplicationSubmissionRule>();
 builder.Services.AddScoped<IApplicationSubmissionRule, GradeAppealApplicationSubmissionRule>();
@@ -182,6 +187,31 @@ var r2Settings =
     ?? new R2StorageSettings();
 builder.Services.AddSingleton(r2Settings);
 builder.Services.AddSingleton<IR2StorageService, R2StorageService>();
+builder.Services.AddSingleton<IApplicationEvidenceObjectStore>(sp =>
+{
+    var environment = sp.GetRequiredService<IWebHostEnvironment>();
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ApplicationEvidenceStorageOptions>>();
+    var provider = string.IsNullOrWhiteSpace(options.Value.Provider)
+        ? "R2"
+        : options.Value.Provider.Trim();
+
+    if (provider.Equals("Local", StringComparison.OrdinalIgnoreCase))
+    {
+        if (environment.IsProduction())
+        {
+            throw new InvalidOperationException("Local application evidence storage is not allowed in Production.");
+        }
+
+        return new LocalApplicationEvidenceObjectStore(options, environment);
+    }
+
+    if (provider.Equals("R2", StringComparison.OrdinalIgnoreCase))
+    {
+        return new R2ApplicationEvidenceObjectStore(sp.GetRequiredService<R2StorageSettings>());
+    }
+
+    throw new InvalidOperationException("Application evidence storage provider must be R2 or Local.");
+});
 
 builder.Services.AddCors(options =>
 {
