@@ -271,7 +271,7 @@ const router = createRouter({
         {
           path: 'profile/access-rights',
           name: 'parent-profile-access-rights',
-          component: () => import('../views/PhuHuynh/PlaceholderView.vue'),
+          component: () => import('../views/PhuHuynh/Profile/AccessRightsView.vue'),
           meta: { title: 'Quyền truy cập' },
         },
       ],
