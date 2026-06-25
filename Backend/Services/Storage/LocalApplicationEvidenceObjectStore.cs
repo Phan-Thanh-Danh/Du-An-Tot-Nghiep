@@ -16,7 +16,11 @@ public class LocalApplicationEvidenceObjectStore : IApplicationEvidenceObjectSto
             throw new InvalidOperationException("Local application evidence storage is only allowed in Development or Testing.");
         }
 
-        _root = ValidateRoot(options.Value.LocalRoot);
+        _root = ValidateRoot(
+            options.Value.LocalRoot,
+            environment.ContentRootPath,
+            environment.WebRootPath,
+            requireTestPrefix: string.Equals(environment.EnvironmentName, "Testing", StringComparison.OrdinalIgnoreCase));
         Directory.CreateDirectory(_root);
     }
 
@@ -150,9 +154,18 @@ public class LocalApplicationEvidenceObjectStore : IApplicationEvidenceObjectSto
         return fullPath;
     }
 
-    private static string ValidateRoot(string root)
+    private static string ValidateRoot(
+        string root,
+        string? contentRootPath,
+        string? webRootPath,
+        bool requireTestPrefix)
     {
-        if (!ApplicationEvidenceStorageOptionsValidator.TryValidateLocalRoot(root, out var error))
+        if (!ApplicationEvidenceStorageOptionsValidator.TryValidateLocalRoot(
+                root,
+                contentRootPath,
+                webRootPath,
+                requireTestPrefix,
+                out var error))
         {
             throw new InvalidOperationException(error);
         }

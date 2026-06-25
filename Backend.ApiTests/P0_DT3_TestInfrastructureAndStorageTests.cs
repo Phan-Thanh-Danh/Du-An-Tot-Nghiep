@@ -123,6 +123,179 @@ public class P0_DT3_TestInfrastructureAndStorageTests
     }
 
     [Test]
+    public void OptionsValidator_DevelopmentLocalWithoutTestPrefix_ShouldPass()
+    {
+        using var paths = TestPathScope.Create();
+        var validator = new ApplicationEvidenceStorageOptionsValidator(
+            new TestEnvironment("Development", paths.ContentRoot, paths.WebRoot),
+            new R2StorageSettings());
+
+        var result = validator.Validate(null, new ApplicationEvidenceStorageOptions
+        {
+            Provider = "Local",
+            LocalRoot = paths.SafeDevelopmentRoot
+        });
+
+        Assert.That(result.Succeeded, Is.True);
+    }
+
+    [Test]
+    public void OptionsValidator_TestingLocalWithoutTestPrefix_ShouldFail()
+    {
+        using var paths = TestPathScope.Create();
+        var validator = new ApplicationEvidenceStorageOptionsValidator(
+            new TestEnvironment("Testing", paths.ContentRoot, paths.WebRoot),
+            new R2StorageSettings());
+
+        var result = validator.Validate(null, new ApplicationEvidenceStorageOptions
+        {
+            Provider = "Local",
+            LocalRoot = paths.SafeDevelopmentRoot
+        });
+
+        Assert.That(result.Failed, Is.True);
+    }
+
+    [Test]
+    public void OptionsValidator_TestingLocalWithTestPrefix_ShouldPass()
+    {
+        using var paths = TestPathScope.Create();
+        var validator = new ApplicationEvidenceStorageOptionsValidator(
+            new TestEnvironment("Testing", paths.ContentRoot, paths.WebRoot),
+            new R2StorageSettings());
+
+        var result = validator.Validate(null, new ApplicationEvidenceStorageOptions
+        {
+            Provider = "Local",
+            LocalRoot = paths.SafeTestingRoot
+        });
+
+        Assert.That(result.Succeeded, Is.True);
+    }
+
+    [Test]
+    public void OptionsValidator_LocalInUnknownEnvironment_ShouldFail()
+    {
+        using var paths = TestPathScope.Create();
+        var validator = new ApplicationEvidenceStorageOptionsValidator(
+            new TestEnvironment("Staging", paths.ContentRoot, paths.WebRoot),
+            new R2StorageSettings());
+
+        var result = validator.Validate(null, new ApplicationEvidenceStorageOptions
+        {
+            Provider = "Local",
+            LocalRoot = paths.SafeTestingRoot
+        });
+
+        Assert.That(result.Failed, Is.True);
+    }
+
+    [Test]
+    public void OptionsValidator_WebRootDescendant_ShouldFail()
+    {
+        using var paths = TestPathScope.Create();
+        var validator = new ApplicationEvidenceStorageOptionsValidator(
+            new TestEnvironment("Testing", paths.ContentRoot, paths.WebRoot),
+            new R2StorageSettings());
+
+        var result = validator.Validate(null, new ApplicationEvidenceStorageOptions
+        {
+            Provider = "Local",
+            LocalRoot = Path.Combine(paths.WebRoot, "LMS_TEST_Evidence")
+        });
+
+        Assert.That(result.Failed, Is.True);
+    }
+
+    [Test]
+    public void OptionsValidator_ContentRootDescendant_ShouldFail()
+    {
+        using var paths = TestPathScope.Create();
+        var validator = new ApplicationEvidenceStorageOptionsValidator(
+            new TestEnvironment("Testing", paths.ContentRoot, paths.WebRoot),
+            new R2StorageSettings());
+
+        var result = validator.Validate(null, new ApplicationEvidenceStorageOptions
+        {
+            Provider = "Local",
+            LocalRoot = Path.Combine(paths.ContentRoot, "private", "LMS_TEST_Evidence")
+        });
+
+        Assert.That(result.Failed, Is.True);
+    }
+
+    [Test]
+    public void OptionsValidator_PathPrefixSibling_ShouldNotBeTreatedAsChild()
+    {
+        using var paths = TestPathScope.Create();
+        var siblingRoot = paths.ContentRoot + "-sibling";
+        var localRoot = Path.Combine(siblingRoot, "LMS_TEST_Evidence");
+        Directory.CreateDirectory(localRoot);
+        var validator = new ApplicationEvidenceStorageOptionsValidator(
+            new TestEnvironment("Testing", paths.ContentRoot, paths.WebRoot),
+            new R2StorageSettings());
+
+        var result = validator.Validate(null, new ApplicationEvidenceStorageOptions
+        {
+            Provider = "Local",
+            LocalRoot = localRoot
+        });
+
+        Assert.That(result.Succeeded, Is.True);
+    }
+
+    [Test]
+    public void OptionsValidator_FileSystemRoot_ShouldFail()
+    {
+        using var paths = TestPathScope.Create();
+        var validator = new ApplicationEvidenceStorageOptionsValidator(
+            new TestEnvironment("Development", paths.ContentRoot, paths.WebRoot),
+            new R2StorageSettings());
+
+        var result = validator.Validate(null, new ApplicationEvidenceStorageOptions
+        {
+            Provider = "Local",
+            LocalRoot = Path.GetPathRoot(paths.ContentRoot) ?? paths.ContentRoot
+        });
+
+        Assert.That(result.Failed, Is.True);
+    }
+
+    [Test]
+    public void OptionsValidator_ExactHome_ShouldFail()
+    {
+        using var paths = TestPathScope.Create();
+        var validator = new ApplicationEvidenceStorageOptionsValidator(
+            new TestEnvironment("Development", paths.ContentRoot, paths.WebRoot),
+            new R2StorageSettings());
+
+        var result = validator.Validate(null, new ApplicationEvidenceStorageOptions
+        {
+            Provider = "Local",
+            LocalRoot = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+        });
+
+        Assert.That(result.Failed, Is.True);
+    }
+
+    [Test]
+    public void OptionsValidator_InvalidPath_ShouldReturnValidationFailure()
+    {
+        using var paths = TestPathScope.Create();
+        var validator = new ApplicationEvidenceStorageOptionsValidator(
+            new TestEnvironment("Development", paths.ContentRoot, paths.WebRoot),
+            new R2StorageSettings());
+
+        var result = validator.Validate(null, new ApplicationEvidenceStorageOptions
+        {
+            Provider = "Local",
+            LocalRoot = "invalid\0path"
+        });
+
+        Assert.That(result.Failed, Is.True);
+    }
+
+    [Test]
     public async Task LocalStore_ContentShorterThanDeclared_ShouldFailWithoutFinalFile()
     {
         var root = SafeStorageRoot();
@@ -238,11 +411,14 @@ public class P0_DT3_TestInfrastructureAndStorageTests
 
     private sealed class TestEnvironment : IWebHostEnvironment
     {
-        public TestEnvironment(string environmentName)
+        public TestEnvironment(
+            string environmentName,
+            string? contentRootPath = null,
+            string? webRootPath = null)
         {
             EnvironmentName = environmentName;
-            ContentRootPath = Environment.CurrentDirectory;
-            WebRootPath = Path.Combine(Environment.CurrentDirectory, "wwwroot");
+            ContentRootPath = contentRootPath ?? Environment.CurrentDirectory;
+            WebRootPath = webRootPath ?? Path.Combine(ContentRootPath, "wwwroot");
             ContentRootFileProvider = new NullFileProvider();
             WebRootFileProvider = new NullFileProvider();
         }
@@ -253,6 +429,49 @@ public class P0_DT3_TestInfrastructureAndStorageTests
         public string EnvironmentName { get; set; }
         public string WebRootPath { get; set; }
         public IFileProvider WebRootFileProvider { get; set; }
+    }
+
+    private sealed class TestPathScope : IDisposable
+    {
+        private TestPathScope(string root)
+        {
+            Root = root;
+            ContentRoot = Path.Combine(root, "RepoRoot");
+            WebRoot = Path.Combine(ContentRoot, "Backend", "wwwroot");
+            SafeDevelopmentRoot = Path.Combine(root, "EvidenceDev");
+            SafeTestingRoot = Path.Combine(root, "LMS_TEST_Evidence");
+
+            Directory.CreateDirectory(ContentRoot);
+            Directory.CreateDirectory(WebRoot);
+            Directory.CreateDirectory(SafeDevelopmentRoot);
+            Directory.CreateDirectory(SafeTestingRoot);
+        }
+
+        public string Root { get; }
+        public string ContentRoot { get; }
+        public string WebRoot { get; }
+        public string SafeDevelopmentRoot { get; }
+        public string SafeTestingRoot { get; }
+
+        public static TestPathScope Create()
+        {
+            return new TestPathScope(Path.Combine(Path.GetTempPath(), $"LMS_TEST_PathPolicy_{Guid.NewGuid():N}"));
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                if (Directory.Exists(Root))
+                {
+                    Directory.Delete(Root, recursive: true);
+                }
+            }
+            catch
+            {
+                // Test cleanup only.
+            }
+        }
     }
 
     private sealed class ThrowingOpenFormFile : IFormFile

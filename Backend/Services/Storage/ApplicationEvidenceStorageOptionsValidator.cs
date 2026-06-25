@@ -30,7 +30,17 @@ public class ApplicationEvidenceStorageOptionsValidator : IValidateOptions<Appli
                 return ValidateOptionsResult.Fail("Local application evidence storage is not allowed in Production.");
             }
 
-            return ValidateLocalRoot(options.LocalRoot);
+            if (_environment.IsEnvironment("Testing"))
+            {
+                return ValidateLocalRoot(options.LocalRoot, requireTestPrefix: true);
+            }
+
+            if (_environment.IsDevelopment())
+            {
+                return ValidateLocalRoot(options.LocalRoot, requireTestPrefix: false);
+            }
+
+            return ValidateOptionsResult.Fail("Local application evidence storage is only allowed in Development or Testing.");
         }
 
         if (provider.Equals("R2", StringComparison.OrdinalIgnoreCase))
@@ -69,9 +79,14 @@ public class ApplicationEvidenceStorageOptionsValidator : IValidateOptions<Appli
             : ValidateOptionsResult.Fail("Application evidence R2 storage configuration is incomplete.");
     }
 
-    private static ValidateOptionsResult ValidateLocalRoot(string? root)
+    private ValidateOptionsResult ValidateLocalRoot(string? root, bool requireTestPrefix)
     {
-        if (!TryValidateLocalRoot(root, out var error))
+        if (!TryValidateLocalRoot(
+                root,
+                _environment.ContentRootPath,
+                _environment.WebRootPath,
+                requireTestPrefix,
+                out var error))
         {
             return ValidateOptionsResult.Fail(error);
         }
@@ -81,6 +96,21 @@ public class ApplicationEvidenceStorageOptionsValidator : IValidateOptions<Appli
 
     public static bool TryValidateLocalRoot(string? root, out string error)
     {
+        return TryValidateLocalRoot(
+            root,
+            Directory.GetCurrentDirectory(),
+            Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"),
+            requireTestPrefix: true,
+            out error);
+    }
+
+    public static bool TryValidateLocalRoot(
+        string? root,
+        string? contentRootPath,
+        string? webRootPath,
+        bool requireTestPrefix,
+        out string error)
+    {
         error = string.Empty;
         if (string.IsNullOrWhiteSpace(root))
         {
@@ -88,23 +118,160 @@ public class ApplicationEvidenceStorageOptionsValidator : IValidateOptions<Appli
             return false;
         }
 
-        var fullRoot = Path.GetFullPath(root.Trim());
-        var pathRoot = Path.GetPathRoot(fullRoot);
-        var currentDirectory = Path.GetFullPath(Directory.GetCurrentDirectory());
-        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var trimmedRoot = fullRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-
-        if (string.Equals(trimmedRoot, pathRoot?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(trimmedRoot, currentDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(trimmedRoot, Path.Combine(currentDirectory, "Backend").TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(trimmedRoot, Path.Combine(currentDirectory, "Backend", "wwwroot").TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(trimmedRoot, home.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), StringComparison.OrdinalIgnoreCase) ||
-            !Path.GetFileName(fullRoot).Contains("LMS_TEST_", StringComparison.OrdinalIgnoreCase))
+        string fullRoot;
+        try
         {
-            error = "Application evidence local storage root must be a dedicated LMS_TEST_ directory.";
+            fullRoot = NormalizePath(root.Trim());
+        }
+        catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            error = "Application evidence local storage root is invalid.";
             return false;
         }
 
+        if (requireTestPrefix &&
+            !Path.GetFileName(fullRoot).Contains("LMS_TEST_", StringComparison.OrdinalIgnoreCase))
+        {
+            error = "Application evidence local storage root must be a dedicated LMS_TEST_ directory in Testing.";
+            return false;
+        }
+
+        if (IsFileSystemRoot(fullRoot))
+        {
+            error = "Application evidence local storage root must not be a filesystem root.";
+            return false;
+        }
+
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrWhiteSpace(home) && IsSamePath(fullRoot, home))
+        {
+            error = "Application evidence local storage root must not be the user home directory.";
+            return false;
+        }
+
+        var blockedRoots = GetBlockedRoots(contentRootPath, webRootPath);
+        foreach (var blockedRoot in blockedRoots)
+        {
+            if (IsSameOrChildPath(fullRoot, blockedRoot))
+            {
+                error = "Application evidence local storage root must be outside application content and public source directories.";
+                return false;
+            }
+        }
+
         return true;
+    }
+
+    private static IEnumerable<string> GetBlockedRoots(string? contentRootPath, string? webRootPath)
+    {
+        var candidates = new List<string?>();
+        candidates.Add(contentRootPath);
+        candidates.Add(webRootPath);
+
+        var currentDirectory = Directory.GetCurrentDirectory();
+        candidates.Add(currentDirectory);
+        candidates.Add(Path.Combine(currentDirectory, "Backend"));
+        candidates.Add(Path.Combine(currentDirectory, "Backend", "wwwroot"));
+
+        var repoRoot = FindRepositoryRoot(contentRootPath) ?? FindRepositoryRoot(currentDirectory);
+        if (!string.IsNullOrWhiteSpace(repoRoot))
+        {
+            candidates.Add(repoRoot);
+            candidates.Add(Path.Combine(repoRoot, "Backend"));
+            candidates.Add(Path.Combine(repoRoot, "Backend", "wwwroot"));
+        }
+
+        if (!string.IsNullOrWhiteSpace(contentRootPath) &&
+            string.Equals(Path.GetFileName(NormalizePath(contentRootPath)), "Backend", StringComparison.OrdinalIgnoreCase))
+        {
+            candidates.Add(contentRootPath);
+            candidates.Add(Path.Combine(NormalizePath(contentRootPath), "wwwroot"));
+            var parent = Directory.GetParent(NormalizePath(contentRootPath))?.FullName;
+            candidates.Add(parent);
+        }
+
+        return candidates
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(path => NormalizePath(path!))
+            .Distinct(GetPathComparer());
+    }
+
+    private static string? FindRepositoryRoot(string? startPath)
+    {
+        if (string.IsNullOrWhiteSpace(startPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            var directory = new DirectoryInfo(NormalizePath(startPath));
+            while (directory is not null)
+            {
+                if (Directory.Exists(Path.Combine(directory.FullName, ".git")))
+                {
+                    return directory.FullName;
+                }
+
+                directory = directory.Parent;
+            }
+        }
+        catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
+
+        return null;
+    }
+
+    private static bool IsFileSystemRoot(string path)
+    {
+        var root = Path.GetPathRoot(path);
+        return !string.IsNullOrWhiteSpace(root) && IsSamePath(path, root);
+    }
+
+    private static bool IsSamePath(string path, string parent)
+    {
+        return string.Equals(NormalizePath(path), NormalizePath(parent), GetPathComparison());
+    }
+
+    private static bool IsSameOrChildPath(string path, string parent)
+    {
+        var normalizedPath = NormalizePath(path);
+        var normalizedParent = NormalizePath(parent);
+        if (string.Equals(normalizedPath, normalizedParent, GetPathComparison()))
+        {
+            return true;
+        }
+
+        var parentWithSeparator = normalizedParent.EndsWith(Path.DirectorySeparatorChar)
+            ? normalizedParent
+            : normalizedParent + Path.DirectorySeparatorChar;
+
+        return normalizedPath.StartsWith(parentWithSeparator, GetPathComparison());
+    }
+
+    private static string NormalizePath(string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var root = Path.GetPathRoot(fullPath);
+        var trimmed = fullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return string.IsNullOrEmpty(trimmed) && !string.IsNullOrEmpty(root)
+            ? root
+            : trimmed;
+    }
+
+    private static StringComparison GetPathComparison()
+    {
+        return OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+    }
+
+    private static StringComparer GetPathComparer()
+    {
+        return OperatingSystem.IsWindows()
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
     }
 }
