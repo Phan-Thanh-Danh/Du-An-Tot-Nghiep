@@ -11,17 +11,15 @@ import {
 const metrics = [
   { label: 'Tín chỉ đã đăng ký', value: '15', max: '21', unit: 'TC', icon: BookOpen, tone: 'blue', hint: 'Tối đa 21 TC' },
   { label: 'Số lớp đã chọn', value: '5', unit: 'lớp', icon: CheckCircle2, tone: 'green', hint: 'Bao gồm lý thuyết & thực hành' },
-  { label: 'Đang ở hàng chờ', value: '1', unit: 'môn', icon: Clock, tone: 'amber', hint: 'Waitlist (vị trí #2)' },
 ]
 
 const subjects = ['Tất cả', 'Cấu trúc dữ liệu & Giải thuật', 'Toán rời rạc', 'Lập trình Web', 'Tiếng Anh 2']
-const statuses = ['Tất cả', 'Open', 'Full', 'Enrolled', 'Waitlist']
-
+const statuses = ['Tất cả', 'Open', 'Full', 'Enrolled']
 const mockClasses = ref([
   { id: 101, code: 'CS301-A', subject: 'Cấu trúc dữ liệu & Giải thuật', credits: 3, teacher: 'TS. Nguyễn Minh Khoa', schedule: 'T2, 07:30 - 09:30 | P.302', slots: 40, maxSlots: 40, status: 'Full', aiTag: 'hot', prereq: 'Lập trình cơ bản' },
   { id: 102, code: 'CS301-B', subject: 'Cấu trúc dữ liệu & Giải thuật', credits: 3, teacher: 'ThS. Trần Thu Hà', schedule: 'T3, 13:30 - 15:30 | P.105', slots: 35, maxSlots: 40, status: 'Open', aiTag: 'optimal', prereq: 'Lập trình cơ bản' },
   { id: 103, code: 'MA201-A', subject: 'Toán rời rạc', credits: 3, teacher: 'TS. Lê Minh', schedule: 'T4, 07:30 - 09:30 | P.102', slots: 40, maxSlots: 40, status: 'Enrolled', aiTag: '' },
-  { id: 104, code: 'CS402-C', subject: 'Lập trình Web', credits: 4, teacher: 'KS. Lê Văn Tâm', schedule: 'T5, 08:00 - 11:00 | Lab 04', slots: 30, maxSlots: 30, status: 'Waitlist', aiTag: 'hot', waitlistPos: 2 },
+  { id: 104, code: 'CS402-C', subject: 'Lập trình Web', credits: 4, teacher: 'KS. Lê Văn Tâm', schedule: 'T5, 08:00 - 11:00 | Lab 04', slots: 30, maxSlots: 30, status: 'Full', aiTag: 'hot' },
   { id: 105, code: 'ENG102-A', subject: 'Tiếng Anh 2', credits: 2, teacher: 'ThS. Nguyễn Lan', schedule: 'T6, 13:30 - 15:30 | P.205', slots: 15, maxSlots: 35, status: 'Open', aiTag: '' }
 ])
 
@@ -29,13 +27,12 @@ const statusConfig = {
   Open: { label: 'Đang mở', cls: 'badge-blue', icon: CheckCircle2 },
   Full: { label: 'Đã đầy', cls: 'badge-red', icon: Users },
   Enrolled: { label: 'Đã đăng ký', cls: 'badge-green', icon: CheckCircle2 },
-  Waitlist: { label: 'Hàng chờ', cls: 'badge-amber', icon: Clock },
   Dropped: { label: 'Đã hủy', cls: 'badge-slate', icon: XCircle }
 }
 
 const aiBanner = {
   title: 'AI Gợi ý Lộ trình Tối ưu',
-  message: 'Thuật toán đề xuất bạn nên chọn lớp CS301-B để tối ưu thời khóa biểu, tránh khoảng trống lịch vào chiều thứ 3. Lớp CS402-C đang có nguy cơ quá tải (hot), hãy giữ vị trí Waitlist.'
+  message: 'Thuật toán đề xuất bạn nên chọn lớp CS301-B để tối ưu thời khóa biểu, tránh khoảng trống lịch vào chiều thứ 3. Lớp CS402-C đang có nguy cơ quá tải (hot).'
 }
 
 // State
@@ -44,7 +41,7 @@ const filterStatus = ref('Tất cả')
 const searchQuery = ref('')
 
 // Modals
-const modalMode = ref('') // 'enroll', 'waitlist', 'withdraw', 'swap'
+const modalMode = ref('') // 'enroll', 'withdraw', 'swap'
 const isModalOpen = computed(() => !!modalMode.value)
 useBodyScrollLock(isModalOpen)
 const activeClass = ref(null)
@@ -101,9 +98,6 @@ const handleAction = () => {
     if (modalMode.value === 'enroll') {
       const idx = mockClasses.value.findIndex(c => c.id === activeClass.value.id)
       if (idx !== -1) mockClasses.value[idx].status = 'Enrolled'
-    } else if (modalMode.value === 'waitlist') {
-      const idx = mockClasses.value.findIndex(c => c.id === activeClass.value.id)
-      if (idx !== -1) mockClasses.value[idx].status = 'Waitlist'
     } else if (modalMode.value === 'withdraw') {
       const idx = mockClasses.value.findIndex(c => c.id === activeClass.value.id)
       if (idx !== -1) {
@@ -208,23 +202,17 @@ const handleAction = () => {
             </div>
           </div>
           
-          <div v-if="cls.status === 'Waitlist'" class="waitlist-info">
-            <AlertTriangle :size="14" />
-            Bạn đang ở vị trí số #{{ cls.waitlistPos }} trong hàng chờ.
-          </div>
-        </div>
-
         <!-- Card Footer Actions -->
         <div class="card-footer">
           <button v-if="cls.status === 'Open'" class="btn-primary flex-1" @click="openModal('enroll', cls)">
             <UserPlus :size="15"/> Đăng ký
           </button>
           
-          <button v-if="cls.status === 'Full'" class="btn-amber flex-1" @click="openModal('waitlist', cls)">
-            <Clock :size="15"/> Vào Waitlist
+          <button v-if="cls.status === 'Full'" class="btn-slate flex-1" disabled>
+            <Users :size="15"/> Đã đầy
           </button>
 
-          <template v-if="['Enrolled', 'Waitlist'].includes(cls.status)">
+          <template v-if="['Enrolled'].includes(cls.status)">
             <button class="btn-outline flex-1" @click="openModal('withdraw', cls)">
               <MinusCircle :size="15"/> Hủy đăng ký
             </button>
@@ -278,26 +266,6 @@ const handleAction = () => {
               </div>
             </template>
 
-            <!-- WAITLIST MODAL -->
-            <template v-else-if="modalMode === 'waitlist'">
-              <div class="modal-header">
-                <h3>Vào hàng chờ (Waitlist)</h3>
-                <button class="close-btn-sm" @click="closeModal"><XCircle :size="20"/></button>
-              </div>
-              <div class="modal-body">
-                <p>Lớp <strong>{{ activeClass.code }}</strong> hiện đã đủ sĩ số.</p>
-                <div class="warning-box amber">
-                  <AlertTriangle :size="20" class="shrink-0" />
-                  <p>Khi chọn vào Waitlist, hệ thống sẽ tự động xếp bạn vào lớp theo nguyên tắc FIFO nếu có sinh viên khác hủy môn. Bạn sẽ nhận được thông báo qua Email khi được đẩy vào danh sách chính thức.</p>
-                </div>
-              </div>
-              <div class="modal-footer">
-                <button class="btn-secondary" @click="closeModal">Hủy</button>
-                <button class="btn-amber" :disabled="confirmLoading" @click="handleAction">
-                  {{ confirmLoading ? 'Đang xử lý...' : 'Tham gia Waitlist' }}
-                </button>
-              </div>
-            </template>
 
             <!-- WITHDRAW MODAL -->
             <template v-else-if="modalMode === 'withdraw'">

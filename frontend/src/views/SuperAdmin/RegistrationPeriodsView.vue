@@ -93,31 +93,6 @@ const lowEnrollmentClasses = ref([
   { classCode: 'SWD392_SE1703', subjectName: 'Thiết kế & Kiến trúc phần mềm', currentSize: 14, minSize: 15 }
 ])
 
-// Mock dữ liệu hàng đợi Waitlist cho các lớp học phần
-const waitlists = ref({
-  'PRN211_SE1701': {
-    maxSize: 30,
-    currentSize: 30,
-    students: [
-      { id: 'HE170001', name: 'Nguyễn Văn An', joinedAt: '2026-01-05 08:30:15' },
-      { id: 'HE170002', name: 'Trần Thị Bình', joinedAt: '2026-01-05 09:12:44' },
-      { id: 'HE170003', name: 'Lê Văn Cường', joinedAt: '2026-01-05 10:05:22' }
-    ]
-  },
-  'SWE201c_IA1701': {
-    maxSize: 30,
-    currentSize: 30,
-    students: [
-      { id: 'HE170102', name: 'Hoàng Minh Em', joinedAt: '2026-01-06 14:20:10' }
-    ]
-  },
-  'SWD392_SE1703': {
-    maxSize: 30,
-    currentSize: 30,
-    students: []
-  }
-})
-
 // Nhật ký hoạt động điều phối (Audit Logs)
 const auditLogs = ref([
   {
@@ -156,9 +131,6 @@ const selectedStatus = ref('all')
 const totalPeriodsCount = computed(() => registrationPeriods.value.length)
 const activePeriodsCount = computed(() => registrationPeriods.value.filter(p => p.status === 'Open').length)
 const lowEnrollmentClassesCount = computed(() => lowEnrollmentClasses.value.length)
-const totalWaitlistCount = computed(() => {
-  return Object.values(waitlists.value).reduce((sum, item) => sum + item.students.length, 0)
-})
 
 // --- Lọc danh sách đợt đăng ký ---
 const filteredPeriods = computed(() => {
@@ -394,61 +366,6 @@ const handleConfirmStatus = () => {
   isStatusModalOpen.value = false
 }
 
-// --- State Waitlist Drawer (Quản lý hàng đợi) ---
-const isWaitlistDrawerOpen = ref(false)
-const selectedClassCode = ref('')
-const waitlistData = computed(() => {
-  return waitlists.value[selectedClassCode.value] || { maxSize: 30, currentSize: 30, students: [] }
-})
-
-const openWaitlistDrawer = (classCode) => {
-  selectedClassCode.value = classCode
-  isWaitlistDrawerOpen.value = true
-}
-
-// Tăng sức chứa lớp học phần (Nghiệp vụ giải phóng Waitlist)
-const handleIncreaseSize = () => {
-  if (!selectedClassCode.value) return
-  const data = waitlists.value[selectedClassCode.value]
-  if (data) {
-    const oldMax = data.maxSize
-    data.maxSize += 5
-
-    // Ghi Audit Log
-    const timeString = new Date().toLocaleString('vi-VN')
-    auditLogs.value.unshift({
-      id: auditLogs.value.length + 1,
-      time: timeString,
-      actor: 'Super Admin (admin@fpt.edu.vn)',
-      action: 'Điều chỉnh sức chứa',
-      details: `Tăng sức chứa tối đa của lớp ${selectedClassCode.value} từ ${oldMax} lên ${data.maxSize}`,
-      reason: 'Giải quyết tắc nghẽn hàng đợi đăng ký lớp chuyên ngành'
-    })
-  }
-}
-
-// Ghép sinh viên thủ công từ Waitlist vào lớp chính thức
-const handleApproveWaitlistStudent = (student) => {
-  if (!selectedClassCode.value) return
-  const data = waitlists.value[selectedClassCode.value]
-  if (data) {
-    // Xóa sinh viên khỏi hàng đợi
-    data.students = data.students.filter(s => s.id !== student.id)
-    // Tăng sĩ số lớp chính thức lên 1
-    data.currentSize += 1
-
-    // Ghi Audit Log
-    const timeString = new Date().toLocaleString('vi-VN')
-    auditLogs.value.unshift({
-      id: auditLogs.value.length + 1,
-      time: timeString,
-      actor: 'Super Admin (admin@fpt.edu.vn)',
-      action: 'Ghép học sinh thủ công',
-      details: `Chấp thuận ghép sinh viên ${student.name} (${student.id}) từ danh sách chờ vào lớp chính thức ${selectedClassCode.value}`,
-      reason: 'Điều phối nhân lực đào tạo phê duyệt bổ sung'
-    })
-  }
-}
 </script>
 
 <template>
@@ -467,9 +384,7 @@ const handleApproveWaitlistStudent = (student) => {
             <Calendar class="w-8 h-8 text-primary" />
             Mở/Đóng Đăng Ký Môn
           </h1>
-          <p class="text-sm text-muted mt-1">
-            Điều phối và cấu hình các đợt đăng ký môn học, hạn mức tín chỉ, hạn hủy môn, quét sĩ số tối thiểu và giải phóng Waitlist.
-          </p>
+            Điều phối và cấu hình các đợt đăng ký môn học, hạn mức tín chỉ, hạn hủy môn, quét sĩ số tối thiểu.
         </div>
 
         <button
@@ -704,7 +619,7 @@ const handleApproveWaitlistStudent = (student) => {
         </table>
       </div>
 
-      <!-- Khung Cảnh báo & Waitlist (Quản trị Sĩ số / Hàng chờ) -->
+      <!-- Khung Cảnh báo (Quản trị Sĩ số) -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <!-- Cảnh báo lớp sĩ số thấp (< 15 SV) -->
         <div class="lg-glass-soft lg-card lg-density-normal lg:col-span-2">
@@ -742,38 +657,7 @@ const handleApproveWaitlistStudent = (student) => {
           </div>
         </div>
 
-        <!-- Quản lý hàng đợi (Waitlist) nhanh -->
-        <div class="lg-glass-soft lg-card lg-density-normal">
-          <div class="flex items-center gap-2 border-b border-default pb-3 mb-4">
-            <Users class="w-5 h-5 text-primary" />
-            <div>
-              <h3 class="font-extrabold text-heading text-sm">Hàng đợi đăng ký (Waitlist)</h3>
-              <p class="text-xs text-muted mt-0.5">Xử lý tắc nghẽn lớp chuyên ngành chuyên sâu</p>
-            </div>
-          </div>
 
-          <div class="space-y-3">
-            <div 
-              v-for="(wl, key) in waitlists" 
-              :key="key"
-              class="p-3 rounded-xl border border-default bg-surface-card flex items-center justify-between text-xs"
-            >
-              <div>
-                <div class="font-bold text-heading">{{ key }}</div>
-                <div class="text-muted mt-0.5">Hàng chờ: <strong class="text-primary">{{ wl.students.length }} SV</strong></div>
-                <div class="text-[10px] text-muted">Sức chứa: {{ wl.currentSize }}/{{ wl.maxSize }}</div>
-              </div>
-
-              <!-- Button quản lý hàng đợi -->
-              <button 
-                @click="openWaitlistDrawer(key)"
-                class="lg-btn-secondary text-[11px] px-2.5 py-1.5"
-              >
-                Quản lý
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- Audit Logs Panel -->

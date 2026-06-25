@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   Search,
   Filter,
@@ -7,13 +8,17 @@ import {
   UserPlus,
   ArrowLeftRight,
   Calendar,
-  MoreHorizontal,
   ChevronDown,
   UserCheck,
   UserMinus,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Users,
+  MapPin,
+  Pencil,
+  Trash2,
+  Lightbulb
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 
@@ -22,6 +27,18 @@ const searchQuery = ref('')
 const showAddModal = ref(false)
 const showFilterPanel = ref(false)
 const currentPage = ref(1)
+
+// Modals State
+const showEditModal = ref(false)
+const showChangeTeacherModal = ref(false)
+const showDeleteModal = ref(false)
+
+const editAssignmentForm = ref({})
+const changeTeacherForm = ref({ id: '', teacher: '' })
+const itemToDelete = ref(null)
+
+const isSuggested = ref(false)
+const suggestedTeacherName = ref('')
 
 // ── Filter State ────────────────────────────────────────────
 const filters = ref({
@@ -41,11 +58,11 @@ const newAssignmentForm = ref({
 
 // ── Mock Data ────────────────────────────────────────────────
 const assignments = ref([
-  { id: 'PC001', subject: 'Lập trình Java', class: 'SE1601', teacher: 'TS. Nguyễn Minh Khoa', sessions: 3, status: 'assigned', dept: 'CNTT' },
-  { id: 'PC002', subject: 'Cấu trúc dữ liệu', class: 'SE1602', teacher: 'ThS. Trần Thị Lan', sessions: 2, status: 'assigned', dept: 'CNTT' },
-  { id: 'PC003', subject: 'Lập trình Web', class: 'SE1603', teacher: 'Chưa phân công', sessions: 3, status: 'unassigned', dept: 'CNTT' },
-  { id: 'PC004', subject: 'Hệ quản trị CSDL', class: 'SE1604', teacher: 'ThS. Lê Văn Dũng', sessions: 3, status: 'assigned', dept: 'CNTT' },
-  { id: 'PC005', subject: 'An toàn thông tin', class: 'SE1605', teacher: 'TS. Phạm Minh Tuấn', sessions: 2, status: 'assigned', dept: 'ATTT' },
+  { id: 'PC001', subject: 'Lập trình Java', class: 'SE1601', teacher: 'TS. Nguyễn Minh Khoa', sessions: 3, status: 'assigned', dept: 'CNTT', schedule: 'T2 (Ca 1-2), T4 (Ca 3)', room: 'Lab 102', students: 30 },
+  { id: 'PC002', subject: 'Cấu trúc dữ liệu', class: 'SE1602', teacher: 'ThS. Trần Thị Lan', sessions: 2, status: 'assigned', dept: 'CNTT', schedule: 'T3 (Ca 4-5)', room: 'P.305', students: 35 },
+  { id: 'PC003', subject: 'Lập trình Web', class: 'SE1603', teacher: 'Chưa phân công', sessions: 3, status: 'unassigned', dept: 'CNTT', schedule: 'T5 (Ca 1-3)', room: 'Lab 201', students: 28 },
+  { id: 'PC004', subject: 'Hệ quản trị CSDL', class: 'SE1604', teacher: 'ThS. Lê Văn Dũng', sessions: 3, status: 'assigned', dept: 'CNTT', schedule: 'T6 (Ca 4-6)', room: 'Lab 304', students: 32 },
+  { id: 'PC005', subject: 'An toàn thông tin', class: 'SE1605', teacher: 'TS. Phạm Minh Tuấn', sessions: 2, status: 'assigned', dept: 'ATTT', schedule: 'T7 (Ca 1-2)', room: 'P.402', students: 25 },
 ])
 
 const lecturers = [
@@ -108,6 +125,78 @@ const getStatusBadge = (status) => {
 }
 
 // ── Functions ────────────────────────────────────────────────
+function openEditModal(item) {
+  editAssignmentForm.value = { ...item }
+  showEditModal.value = true
+}
+
+function handleEditAssignment() {
+  if (!editAssignmentForm.value.subject || !editAssignmentForm.value.class) {
+    alert('Vui lòng điền đầy đủ thông tin')
+    return
+  }
+
+  const index = assignments.value.findIndex(a => a.id === editAssignmentForm.value.id)
+  if (index !== -1) {
+    assignments.value[index] = { ...editAssignmentForm.value }
+    // Cập nhật trạng thái và phòng ban nếu giảng viên thay đổi
+    if (editAssignmentForm.value.teacher && editAssignmentForm.value.teacher !== 'Chưa phân công') {
+      assignments.value[index].status = 'assigned'
+      assignments.value[index].dept = lecturers.find(l => l.name === editAssignmentForm.value.teacher)?.dept || assignments.value[index].dept
+    } else {
+      assignments.value[index].status = 'unassigned'
+      assignments.value[index].teacher = 'Chưa phân công'
+    }
+  }
+  showEditModal.value = false
+  alert('Cập nhật phân công thành công!')
+}
+
+function openChangeTeacherModal(item) {
+  changeTeacherForm.value = { id: item.id, teacher: item.teacher === 'Chưa phân công' ? '' : item.teacher }
+  showChangeTeacherModal.value = true
+}
+
+function handleChangeTeacher() {
+  const index = assignments.value.findIndex(a => a.id === changeTeacherForm.value.id)
+  if (index !== -1) {
+    const newTeacher = changeTeacherForm.value.teacher || 'Chưa phân công'
+    assignments.value[index].teacher = newTeacher
+    
+    if (newTeacher !== 'Chưa phân công') {
+      assignments.value[index].status = 'assigned'
+      assignments.value[index].dept = lecturers.find(l => l.name === newTeacher)?.dept || assignments.value[index].dept
+    } else {
+      assignments.value[index].status = 'unassigned'
+    }
+  }
+  closeChangeTeacherModal()
+}
+
+function closeChangeTeacherModal() {
+  showChangeTeacherModal.value = false
+  isSuggested.value = false
+  suggestedTeacherName.value = ''
+}
+
+function confirmDelete(item) {
+  itemToDelete.value = item
+  showDeleteModal.value = true
+}
+
+function handleDelete() {
+  if (itemToDelete.value) {
+    assignments.value = assignments.value.filter(a => a.id !== itemToDelete.value.id)
+    itemToDelete.value = null
+    showDeleteModal.value = false
+    
+    // Adjust pagination if last item on page is deleted
+    if (paginatedAssignments.value.length === 0 && currentPage.value > 1) {
+      currentPage.value--
+    }
+  }
+}
+
 function handleAddAssignment() {
   if (!newAssignmentForm.value.subject || !newAssignmentForm.value.class || !newAssignmentForm.value.teacher) {
     alert('Vui lòng điền đầy đủ thông tin')
@@ -149,6 +238,36 @@ function goToPage(page) {
     currentPage.value = page
   }
 }
+
+onMounted(() => {
+  const route = useRoute()
+  const router = useRouter()
+  if (route.query.action === 'change-teacher' && route.query.assignmentId) {
+    const item = assignments.value.find(a => a.id === route.query.assignmentId)
+    if (item) {
+      if (route.query.autoApply === 'true') {
+        const newTeacher = route.query.suggestedTeacher || ''
+        if (newTeacher) {
+          const index = assignments.value.findIndex(a => a.id === route.query.assignmentId)
+          if (index !== -1) {
+            assignments.value[index].teacher = newTeacher
+            assignments.value[index].status = 'assigned'
+            assignments.value[index].dept = lecturers.find(l => l.name === newTeacher)?.dept || assignments.value[index].dept
+          }
+        }
+        router.replace('/staff/conflicts')
+        return
+      }
+      changeTeacherForm.value = {
+        id: item.id,
+        teacher: route.query.suggestedTeacher || ''
+      }
+      isSuggested.value = true
+      suggestedTeacherName.value = route.query.suggestedTeacher || ''
+      showChangeTeacherModal.value = true
+    }
+  }
+})
 </script>
 
 <template>
@@ -224,7 +343,7 @@ function goToPage(page) {
               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Mã PC</th>
               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Lớp & Môn</th>
               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Giảng viên</th>
-              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Tiết/Tuần</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Ca</th>
               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Trạng thái</th>
               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
             </tr>
@@ -236,7 +355,15 @@ function goToPage(page) {
               </td>
               <td class="px-4 py-4">
                 <p class="text-sm font-semibold text-heading leading-tight">{{ item.subject }}</p>
-                <p class="text-[11px] font-bold text-[var(--lg-primary)] mt-1 uppercase">{{ item.class }}</p>
+                <div class="flex items-center gap-2 mt-1.5">
+                   <span class="text-[10px] font-bold text-[var(--lg-primary)] uppercase bg-[var(--lg-primary)]/10 px-1.5 py-0.5 rounded">{{ item.class }}</span>
+                   <span class="text-[10px] text-muted flex items-center gap-1"><Users :size="10"/> {{ item.students }} SV</span>
+                </div>
+                <div class="text-[10px] text-muted mt-1.5 flex items-center gap-1.5">
+                   <span class="flex items-center gap-1"><Calendar :size="10" /> {{ item.schedule }}</span>
+                   <span class="text-placeholder">•</span>
+                   <span class="flex items-center gap-1"><MapPin :size="10"/> {{ item.room }}</span>
+                </div>
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
@@ -256,7 +383,7 @@ function goToPage(page) {
                   <span class="h-2 w-16 bg-[var(--surface-input)] rounded-full overflow-hidden inline-flex">
                     <span :style="{ width: (item.sessions / 4) * 100 + '%' }" class="bg-[var(--lg-primary)] h-full"></span>
                   </span>
-                  <span class="text-xs font-bold text-label">{{ item.sessions }} tiết</span>
+                  <span class="text-xs font-bold text-label">{{ item.sessions }} ca</span>
                 </div>
               </td>
               <td class="px-4 py-4">
@@ -265,12 +392,15 @@ function goToPage(page) {
                 </span>
               </td>
               <td class="px-4 py-4">
-                <div class="flex items-center gap-2">
-                  <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-placeholder transition-all" title="Đổi giảng viên">
-                    <ArrowLeftRight :size="16" />
+                <div class="flex items-center gap-1.5">
+                  <button @click="openChangeTeacherModal(item)" class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-placeholder transition-all" title="Đổi giảng viên">
+                    <ArrowLeftRight :size="15" />
                   </button>
-                  <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-placeholder transition-all">
-                    <MoreHorizontal :size="16" />
+                  <button @click="openEditModal(item)" class="p-2 hover:bg-[var(--color-warning-bg)] hover:text-[var(--color-warning-text)] rounded-lg text-placeholder transition-all" title="Chỉnh sửa">
+                    <Pencil :size="15" />
+                  </button>
+                  <button @click="confirmDelete(item)" class="p-2 hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)] rounded-lg text-placeholder transition-all" title="Xóa phân công">
+                    <Trash2 :size="15" />
                   </button>
                 </div>
               </td>
@@ -399,9 +529,9 @@ function goToPage(page) {
           </select>
         </div>
 
-        <!-- Tiết/Tuần -->
+        <!-- Ca -->
         <div>
-          <label class="block text-sm font-bold text-label mb-2">Tiết/Tuần</label>
+          <label class="block text-sm font-bold text-label mb-2">Ca</label>
           <input
             v-model.number="newAssignmentForm.sessions"
             type="number"
@@ -440,6 +570,166 @@ function goToPage(page) {
           </button>
         </div>
       </form>
+    </div>
+  </div>
+  <!-- ── Modals ── -->
+
+  <!-- Edit Assignment Modal -->
+  <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div class="flex items-center justify-between p-4 border-b border-[var(--border-default)]">
+        <h3 class="text-lg font-bold text-heading">Chỉnh sửa phân công</h3>
+        <button @click="showEditModal = false" class="p-2 text-placeholder hover:text-heading hover:bg-[var(--surface-input)] rounded-xl transition-all">
+          <X :size="20" />
+        </button>
+      </div>
+      
+      <form @submit.prevent="handleEditAssignment" class="p-4 space-y-4">
+        <!-- Môn học -->
+        <div>
+          <label class="block text-sm font-bold text-label mb-2">Môn học</label>
+          <input
+            v-model="editAssignmentForm.subject"
+            type="text"
+            placeholder="Nhập tên môn học"
+            class="w-full lg-input px-4 py-2.5"
+          />
+        </div>
+
+        <!-- Lớp -->
+        <div>
+          <label class="block text-sm font-bold text-label mb-2">Lớp</label>
+          <input
+            v-model="editAssignmentForm.class"
+            type="text"
+            placeholder="Nhập mã lớp (vd: SE1601)"
+            class="w-full lg-input px-4 py-2.5"
+          />
+        </div>
+
+        <!-- Giảng viên -->
+        <div>
+          <label class="block text-sm font-bold text-label mb-2">Giảng viên</label>
+          <select
+            v-model="editAssignmentForm.teacher"
+            class="w-full lg-input px-4 py-2.5"
+          >
+            <option value="Chưa phân công">-- Chưa phân công --</option>
+            <option v-for="lecturer in lecturers" :key="lecturer.id" :value="lecturer.name">
+              {{ lecturer.name }} ({{ lecturer.load }})
+            </option>
+          </select>
+        </div>
+
+        <!-- Ca -->
+        <div>
+          <label class="block text-sm font-bold text-label mb-2">Ca</label>
+          <input
+            v-model.number="editAssignmentForm.sessions"
+            type="number"
+            min="1"
+            max="10"
+            class="w-full lg-input px-4 py-2.5"
+          />
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-3 pt-4 border-t border-[var(--border-default)]">
+          <button
+            type="button"
+            @click="showEditModal = false"
+            class="flex-1 lg-button-secondary px-4 py-2.5 font-bold"
+          >
+            Hủy
+          </button>
+          <button
+            type="submit"
+            class="flex-1 lg-button-primary px-4 py-2.5 font-bold shadow-lg shadow-[var(--lg-primary)]/20"
+          >
+            Cập nhật
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Change Teacher Modal -->
+  <div v-if="showChangeTeacherModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+      <div class="flex items-center justify-between p-4 border-b border-[var(--border-default)]">
+        <h3 class="text-lg font-bold text-heading">Đổi giảng viên</h3>
+        <button @click="closeChangeTeacherModal" class="p-2 text-placeholder hover:text-heading hover:bg-[var(--surface-input)] rounded-xl transition-all">
+          <X :size="20" />
+        </button>
+      </div>
+
+      <!-- Banner gợi ý -->
+      <div v-if="isSuggested" class="mx-4 mt-4 p-3 bg-[var(--color-info-bg)] border border-[var(--color-info-text)]/20 rounded-xl flex items-start gap-2.5">
+        <Lightbulb :size="16" class="text-[var(--color-info-text)] shrink-0 mt-0.5" />
+        <p class="text-xs font-medium text-[var(--color-info-text)]">
+          Hệ thống kiểm tra xung đột đề xuất đổi sang giảng viên <strong>{{ suggestedTeacherName }}</strong>.
+        </p>
+      </div>
+      
+      <form @submit.prevent="handleChangeTeacher" class="p-4 space-y-4">
+        <div>
+          <label class="block text-sm font-bold text-label mb-2">Chọn giảng viên mới</label>
+          <select
+            v-model="changeTeacherForm.teacher"
+            class="w-full lg-input px-4 py-2.5"
+          >
+            <option value="">-- Hủy phân công --</option>
+            <option v-for="lecturer in lecturers" :key="lecturer.id" :value="lecturer.name">
+              {{ lecturer.name }} ({{ lecturer.load }})
+            </option>
+          </select>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button
+            type="button"
+            @click="closeChangeTeacherModal"
+            class="flex-1 lg-button-secondary px-4 py-2.5 font-bold"
+          >
+            Hủy
+          </button>
+          <button
+            type="submit"
+            class="flex-1 px-4 py-2.5 font-bold rounded-xl text-white bg-[var(--lg-primary)] hover:opacity-90 transition-opacity"
+          >
+            Lưu thay đổi
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-[var(--surface-card)] border border-[var(--color-danger-bg)] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+      <div class="p-6 text-center">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] mb-4">
+          <Trash2 :size="24" />
+        </div>
+        <h3 class="text-lg font-bold text-heading mb-2">Xóa phân công?</h3>
+        <p class="text-sm text-placeholder mb-6">
+          Bạn có chắc chắn muốn xóa phân công môn <strong class="text-heading">{{ itemToDelete?.subject }}</strong> lớp <strong class="text-heading">{{ itemToDelete?.class }}</strong> không? Hành động này không thể hoàn tác.
+        </p>
+        <div class="flex gap-3">
+          <button
+            @click="showDeleteModal = false"
+            class="flex-1 lg-button-secondary px-4 py-2.5 font-bold"
+          >
+            Hủy
+          </button>
+          <button
+            @click="handleDelete"
+            class="flex-1 px-4 py-2.5 font-bold rounded-xl text-white bg-[var(--lg-danger)] hover:opacity-90 transition-opacity"
+          >
+            Xóa ngay
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
