@@ -619,9 +619,9 @@ Ghi chú P0-8: Bảng `ThongBao` hiện được dùng theo mô hình mỗi dòn
 
 ## Applications / Đơn Từ APIs
 
-### Đã có trong P0-DT1/P0-DT2
+### Đã có trong P0-DT1/P0-DT2/P0-DT3
 
-P0-DT1 làm foundation schema, constants, state machine, template validator và API read-only để FE đọc loại đơn/mẫu đơn. P0-DT2 bổ sung vòng đời sinh viên: tạo nháp, xem đơn của chính mình, cập nhật nháp/yêu cầu bổ sung, nộp, nộp lại và hủy đơn. Chưa làm phân công, duyệt/từ chối, upload minh chứng, notification hoặc xử lý nghiệp vụ sau duyệt.
+P0-DT1 làm foundation schema, constants, state machine, template validator và API read-only để FE đọc loại đơn/mẫu đơn. P0-DT2 bổ sung vòng đời sinh viên: tạo nháp, xem đơn của chính mình, cập nhật nháp/yêu cầu bổ sung, nộp, nộp lại và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. Chưa làm phân công, duyệt/từ chối, notification hoặc xử lý nghiệp vụ sau duyệt.
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
@@ -636,6 +636,9 @@ P0-DT1 làm foundation schema, constants, state machine, template validator và 
 | POST | `/api/student/applications/{id}/submit` | Student | Nộp đơn nháp, validate required fields, related entity, rule theo loại đơn và metadata minh chứng; chuyển `nhap -> da_nop`. |
 | POST | `/api/student/applications/{id}/resubmit` | Student | Nộp lại đơn đang `yeu_cau_bo_sung`, giữ `NgayNop` ban đầu, clear nội dung yêu cầu bổ sung và chuyển về `dang_xem_xet`. |
 | POST | `/api/student/applications/{id}/cancel` | Student | Hủy đơn của chính mình khi trạng thái cho phép (`nhap`, `da_nop`, `yeu_cau_bo_sung`); không hard delete. |
+| POST | `/api/student/applications/{id}/attachments` | Student | Upload một hoặc nhiều file minh chứng dạng multipart field `files` và `rowVersion`. Chỉ cho đơn của chính sinh viên ở trạng thái `nhap` hoặc `yeu_cau_bo_sung`. Thành công trả `201`, danh sách metadata an toàn, `rowVersion` mới, số file active và tổng dung lượng. |
+| GET | `/api/student/applications/{id}/attachments/{attachmentId}/download` | Student | Download binary file minh chứng của chính sinh viên nếu metadata chưa soft delete và object còn tồn tại. Trả `Content-Disposition: attachment`, content type canonical trong DB, `X-Content-Type-Options: nosniff`, `Cache-Control: private, no-store`. |
+| DELETE | `/api/student/applications/{id}/attachments/{attachmentId}` | Student | Soft delete metadata minh chứng của chính sinh viên bằng body `{ "rowVersion": "..." }`. Chỉ cho đơn `nhap` hoặc `yeu_cau_bo_sung`; physical delete best-effort sau khi DB commit. |
 
 Response mẫu:
 
@@ -675,9 +678,20 @@ Ghi chú P0-DT2:
 - Form data được validate theo `MauDonTu.CauHinhJson`: field unknown bị chặn; draft cho phép thiếu required; submit/resubmit bắt buộc required, kiểu dữ liệu, options và related entity hợp lệ.
 - Related entity không query động từ client. Backend chỉ kiểm tra các entity đã whitelist như học kỳ, môn học, điểm số, cơ sở, ngành, chuyên ngành, khóa học và buổi học theo quyền của sinh viên.
 - Một số loại đơn có rule riêng: nghỉ phép kiểm tra khoảng ngày, phúc tra điểm kiểm tra điểm số/cột điểm, bảo lưu/chuyển trường/rút học/chuyển ngành/chuyển cơ sở chống trùng đơn đang active, xác nhận giới hạn số bản.
-- Minh chứng P0-DT2 chỉ validate metadata đã có trong `TepDinhKemDonTu`; chưa có upload/download endpoint. Nếu template hoặc field yêu cầu minh chứng mà chưa có file active hoặc legacy `UrlBangChung`, submit trả `400`.
+- Minh chứng P0-DT2 validate metadata đã có trong `TepDinhKemDonTu` hoặc legacy `UrlBangChung`. Nếu template hoặc field yêu cầu minh chứng mà chưa có file active hoặc legacy `UrlBangChung`, submit trả `400`.
 - `rowVersion` là base64 concurrency token. Sai format trả `400`; stale/concurrent update trả `409`.
 - `NhatKyDuyetDon` ghi timeline công khai cho tạo/nộp/nộp lại/hủy và log nội bộ khi cập nhật; response student chỉ trả timeline public.
+
+Ghi chú P0-DT3:
+
+- Upload/delete luôn dùng DB-authoritative ownership `DonTu.MaHocSinh = CurrentUser.UserId`; đơn không tồn tại, không thuộc sinh viên hoặc attachment đã bị xóa đều trả `404`.
+- Upload/delete dùng `rowVersion`; stale/concurrent mutation trả `409`. Mỗi mutation lock theo `sp_getapplock` resource `ApplicationEvidence:{applicationId}` trong transaction `Serializable`.
+- Upload chỉ nhận PDF/JPEG/PNG/WEBP, kiểm tra extension, declared `Content-Type`, magic bytes, kích thước, SHA-256 hash. Không nhận DOCX/SVG/ZIP/HTML/EXE.
+- Hard cap toàn hệ thống: tối đa 5 file, 10MB/file, 25MB/tổng. Effective cap là giá trị nhỏ hơn giữa hard cap và `MauDonTu` active/assigned.
+- Duplicate hash trong cùng request hoặc với file active hiện có trả `409`.
+- Response student chỉ trả metadata an toàn (`maTep`, `tenFileGoc`, `contentType`, `kichThuocByte`, `ngayTao`). Không trả `StorageKey`, `TenFileLuu`, hash hoặc URL public.
+- Local object store chỉ dùng Development/Testing với storage root isolated. Production dùng private R2 object store, không public URL.
+- Upload object trước DB transaction; nếu DB mutation lỗi thì cleanup object đã upload. Delete revoke quyền truy cập bằng soft delete DB trước, physical delete best-effort sau commit.
 
 ### Dự kiến/cần bổ sung
 
@@ -685,7 +699,6 @@ Ghi chú P0-DT2:
 - `POST /api/admin/applications/{id}/assign`
 - `POST /api/admin/applications/{id}/approve`
 - `POST /api/admin/applications/{id}/reject`
-- Upload/download minh chứng theo quyền.
 
 ## Reports APIs
 

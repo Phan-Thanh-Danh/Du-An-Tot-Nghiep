@@ -14,7 +14,7 @@ public abstract class ApiTestBase
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()
     {
-        ValidateP0Dt2BackendDatabaseIfConfigured();
+        ValidateSharedBackendDatabase();
 
         var baseUrl = Environment.GetEnvironmentVariable("LMS_BASE_URL");
         if (string.IsNullOrWhiteSpace(baseUrl))
@@ -31,7 +31,7 @@ public abstract class ApiTestBase
         using var loginResponse = await Client.PostAsJsonAsync("api/auth/login", new
         {
             email = "superadmin@lms.local",
-            password = GetTestPassword()
+            password = GetSharedTestPassword()
         });
 
         if (!loginResponse.IsSuccessStatusCode)
@@ -75,35 +75,45 @@ public abstract class ApiTestBase
         }
     }
 
-    protected static string GetTestPassword()
+    protected static string GetSharedTestPassword()
     {
-        var password = Environment.GetEnvironmentVariable("P0_DT2_TEST_PASSWORD") ??
-                       Environment.GetEnvironmentVariable("LMS_TEST_PASSWORD");
+        var password = Environment.GetEnvironmentVariable("LMS_TEST_PASSWORD");
         if (string.IsNullOrWhiteSpace(password))
         {
-            Assert.Fail("Thiếu env var P0_DT2_TEST_PASSWORD hoặc LMS_TEST_PASSWORD để chạy API tests.");
+            Assert.Fail("Thiếu env var LMS_TEST_PASSWORD để chạy API tests.");
         }
 
         return password!;
     }
 
-    private static void ValidateP0Dt2BackendDatabaseIfConfigured()
+    protected static string GetSharedTestConnectionString()
     {
-        var p0Dt2ConnectionString = Environment.GetEnvironmentVariable("P0_DT2_TEST_CONNECTION_STRING");
-        if (string.IsNullOrWhiteSpace(p0Dt2ConnectionString))
+        var connectionString = Environment.GetEnvironmentVariable("LMS_TEST_CONNECTION_STRING");
+        if (string.IsNullOrWhiteSpace(connectionString))
         {
-            return;
+            Assert.Fail("Thiếu env var LMS_TEST_CONNECTION_STRING cho API tests.");
         }
 
-        var p0Dt2Builder = CreateConnectionStringBuilder(
-            p0Dt2ConnectionString,
-            "P0_DT2_TEST_CONNECTION_STRING không hợp lệ");
+        var builder = CreateConnectionStringBuilder(
+            connectionString!,
+            "LMS_TEST_CONNECTION_STRING không hợp lệ");
 
-        if (string.IsNullOrWhiteSpace(p0Dt2Builder.InitialCatalog) ||
-            !p0Dt2Builder.InitialCatalog.StartsWith("LMS_DT2_", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(builder.InitialCatalog) ||
+            !builder.InitialCatalog.StartsWith("LMS_TEST_", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(builder.InitialCatalog, "LMS", StringComparison.OrdinalIgnoreCase))
         {
-            Assert.Fail("P0-DT2 tests chỉ được chạy trên database có tên bắt đầu bằng 'LMS_DT2_'.");
+            Assert.Fail("API tests chỉ được chạy trên database isolated có tên bắt đầu bằng 'LMS_TEST_' và không được là database LMS chính.");
         }
+
+        return connectionString!;
+    }
+
+    protected static void ValidateSharedBackendDatabase()
+    {
+        var testConnectionString = GetSharedTestConnectionString();
+        var testBuilder = CreateConnectionStringBuilder(
+            testConnectionString,
+            "LMS_TEST_CONNECTION_STRING không hợp lệ");
 
         var backendConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
         if (string.IsNullOrWhiteSpace(backendConnectionString))
@@ -115,13 +125,54 @@ public abstract class ApiTestBase
             backendConnectionString!,
             "ConnectionStrings__DefaultConnection không hợp lệ");
 
-        if (!string.Equals(backendBuilder.InitialCatalog, p0Dt2Builder.InitialCatalog, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(backendBuilder.DataSource, testBuilder.DataSource, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(backendBuilder.InitialCatalog, testBuilder.InitialCatalog, StringComparison.OrdinalIgnoreCase))
         {
-            Assert.Fail("Backend test server phải dùng cùng isolated DT2 database với P0_DT2_TEST_CONNECTION_STRING.");
+            Assert.Fail("Backend test server phải dùng cùng SQL Server instance và cùng isolated database với LMS_TEST_CONNECTION_STRING.");
         }
     }
 
-    private static SqlConnectionStringBuilder CreateConnectionStringBuilder(string connectionString, string errorPrefix)
+    protected static string GetSharedTestStorageRoot()
+    {
+        var root = Environment.GetEnvironmentVariable("LMS_TEST_STORAGE_ROOT");
+        if (string.IsNullOrWhiteSpace(root))
+        {
+            Assert.Fail("Thiếu env var LMS_TEST_STORAGE_ROOT cho API tests cần local storage.");
+        }
+
+        var fullPath = Path.GetFullPath(root!);
+        var leaf = new DirectoryInfo(fullPath).Name;
+        if (!leaf.Contains("LMS_TEST_", StringComparison.OrdinalIgnoreCase))
+        {
+            Assert.Fail("Storage root của API tests phải là thư mục isolated có tên chứa 'LMS_TEST_'.");
+        }
+
+        Directory.CreateDirectory(fullPath);
+        return fullPath;
+    }
+
+    protected static void ValidateSharedStorageRoot()
+    {
+        var fullPath = GetSharedTestStorageRoot();
+        var configuredProvider = Environment.GetEnvironmentVariable("ApplicationEvidenceStorage__Provider");
+        var configuredRoot = Environment.GetEnvironmentVariable("ApplicationEvidenceStorage__LocalRoot");
+        if (!string.Equals(configuredProvider, "Local", StringComparison.OrdinalIgnoreCase))
+        {
+            Assert.Fail("API tests yêu cầu ApplicationEvidenceStorage__Provider=Local khi kiểm thử minh chứng.");
+        }
+
+        if (string.IsNullOrWhiteSpace(configuredRoot))
+        {
+            Assert.Fail("Thiếu env var ApplicationEvidenceStorage__LocalRoot cho API tests cần local storage.");
+        }
+
+        if (!string.Equals(Path.GetFullPath(configuredRoot!), fullPath, StringComparison.OrdinalIgnoreCase))
+        {
+            Assert.Fail("ApplicationEvidenceStorage__LocalRoot phải trỏ cùng LMS_TEST_STORAGE_ROOT.");
+        }
+    }
+
+    protected static SqlConnectionStringBuilder CreateConnectionStringBuilder(string connectionString, string errorPrefix)
     {
         try
         {
