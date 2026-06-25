@@ -119,6 +119,9 @@ Policy hiện có:
 - `Reports`: `Admin`, `SuperAdmin`, `Principal`, `CampusAdmin`.
 - `ApplicationStudent`: `Student`.
 - `ApplicationOperations`: `SuperAdmin`, `Admin`, `CampusAdmin`, `SubCampusAdmin`, `AcademicStaff`.
+- `ApplicationQueueRead`: `SuperAdmin`, `Admin`, `CampusAdmin`, `SubCampusAdmin`, `AcademicStaff`, `Principal`.
+- `ApplicationReceive`: `SuperAdmin`, `Admin`, `CampusAdmin`, `SubCampusAdmin`, `AcademicStaff`.
+- `ApplicationAssignmentManage`: `SuperAdmin`, `Admin`, `CampusAdmin`, `SubCampusAdmin`.
 - `ApplicationSensitiveDecision`: `SuperAdmin`, `Admin`, `CampusAdmin`, `Principal`.
 - `ApplicationSystemAdmin`: `SuperAdmin`, `Admin`.
 
@@ -126,7 +129,7 @@ Endpoint có role riêng nên dùng `[Authorize(Roles = ...)]` với `AuthRoles`
 
 ## Applications / Đơn Từ
 
-P0-DT1 chuẩn hóa nền cho module đơn từ. P0-DT2 bổ sung core lifecycle phía sinh viên, gồm tạo nháp, cập nhật, nộp, nộp lại khi bị yêu cầu bổ sung và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. Các luồng phân công/duyệt, notification và xử lý nghiệp vụ sau duyệt vẫn để phase sau.
+P0-DT1 chuẩn hóa nền cho module đơn từ. P0-DT2 bổ sung core lifecycle phía sinh viên, gồm tạo nháp, cập nhật, nộp, nộp lại khi bị yêu cầu bổ sung và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. P0-DT4 bổ sung hàng đợi admin, tiếp nhận, phân công/phân công lại, SLA và admin download minh chứng. Các luồng duyệt/từ chối, notification và xử lý nghiệp vụ sau duyệt vẫn để phase sau.
 
 Schema foundation:
 
@@ -159,6 +162,20 @@ Student lifecycle P0-DT2:
 - `POST /api/student/applications/{id}/resubmit` chuyển `yeu_cau_bo_sung -> dang_xem_xet`, giữ `NgayNop` ban đầu, clear nội dung yêu cầu bổ sung và log public `nop_lai`.
 - `POST /api/student/applications/{id}/cancel` chỉ cho trạng thái còn hủy được, set `da_huy`, không hard delete.
 - Các thao tác ghi dùng transaction cho `DonTu` và `NhatKyDuyetDon`; stale `RowVersion` hoặc race condition trả `409`.
+
+Admin queue and assignment P0-DT4:
+
+- `AdminApplicationsController` chỉ bind route/query/body và trả `ApiResponseDto` hoặc file stream; business logic nằm trong service.
+- `ApplicationAdminQueueService` xử lý list, summary, detail, assignee lookup, filter, sort, pagination và SLA projection. Query dùng `AsNoTracking`, projection DTO trực tiếp và không load collection lớn.
+- `ApplicationCampusScopeService` re-query current user từ DB, xác nhận `hoat_dong`, role DB và campus DB. SuperAdmin/Admin unrestricted; CampusAdmin lấy current campus + descendants; SubCampusAdmin/AcademicStaff/Principal exact campus.
+- List filter ngoài scope trả `403`; detail/download ngoài scope trả `404`; assignee không hợp lệ hoặc ngoài scope trả `404`.
+- Queue mặc định chỉ gồm `da_nop` và `dang_xem_xet`; `yeu_cau_bo_sung`, `nhap` và terminal chỉ hiện khi filter rõ.
+- SLA dùng `DonTu.HanXuLyLuc` với `ApplicationQueue:SlaWarningBeforeHours` mặc định 24, validate 1..168. `yeu_cau_bo_sung` là `paused`; terminal/không deadline là `none`.
+- `ApplicationAssignmentService` xử lý receive/assign/reassign trong transaction `Serializable`, dùng `sp_getapplock` resource `ApplicationWorkflow:{applicationId}` và `RowVersion` base64 8 bytes.
+- Receive chỉ cho `da_nop` chưa có assignee, chuyển `dang_xem_xet`, gán `NguoiDuyetHienTai`, không đổi `NguoiXuLyCuoi`, `NgayNop`, `HanXuLyLuc`.
+- Assign/reassign chỉ cho `da_nop`, `dang_xem_xet`, `yeu_cau_bo_sung`; same-assignee là no-op nhưng vẫn validate `RowVersion`. Reassign cần lý do nội bộ 10..1000 ký tự.
+- Workflow history dùng `NhatKyDuyetDon`: `tiep_nhan`, `phan_cong`, `phan_cong_lai`. Snapshot chỉ chứa assignee IDs và flag lý do, không chứa form data, file key hoặc secret.
+- Admin evidence download dùng private evidence object store, enforce campus scope từ `DonTu`, chỉ trả file content với filename/content type sanitized. Response không trả `StorageKey`, `TenFileLuu`, `FileHash`, bucket hoặc local path.
 
 Template validation:
 

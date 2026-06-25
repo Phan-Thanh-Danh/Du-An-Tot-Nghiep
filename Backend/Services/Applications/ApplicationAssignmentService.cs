@@ -119,7 +119,7 @@ public class ApplicationAssignmentService : IApplicationAssignmentService
                 var fromAssigneeId = application.NguoiDuyetHienTai;
                 var oldStatus = application.TrangThai;
                 var action = fromAssigneeId.HasValue ? ApplicationActions.Reassign : ApplicationActions.Assign;
-                var reason = fromAssigneeId.HasValue ? NormalizeReassignReason(request.LyDo) : null;
+                var reason = fromAssigneeId.HasValue ? NormalizeReassignReason(request.LyDo ?? request.Reason) : null;
                 if (application.TrangThai == ApplicationStatuses.Submitted)
                 {
                     application.TrangThai = ApplicationStatuses.InReview;
@@ -134,7 +134,7 @@ public class ApplicationAssignmentService : IApplicationAssignmentService
                     action,
                     oldStatus,
                     application.TrangThai,
-                    fromAssigneeId.HasValue ? null : "Đơn đã được phân công xử lý.",
+                    fromAssigneeId.HasValue ? null : "Đơn đã được tiếp nhận để xử lý.",
                     !fromAssigneeId.HasValue,
                     reason,
                     new

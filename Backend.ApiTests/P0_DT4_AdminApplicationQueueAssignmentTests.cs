@@ -75,7 +75,7 @@ public class P0_DT4_AdminApplicationQueueAssignmentTests : ApiTestBase
     {
         var supplement = await CreateApplicationAsync(ApplicationStatuses.NeedSupplement);
 
-        using var response = await Client.GetAsync($"api/admin/applications?trangThai={ApplicationStatuses.NeedSupplement}&search={Uri.EscapeDataString(TestPrefix)}&pageIndex=1&pageSize=100");
+        using var response = await Client.GetAsync($"api/admin/applications?status={ApplicationStatuses.NeedSupplement}&type={ApplicationTypes.Confirmation}&assignmentState=all&slaStatus=all&search={Uri.EscapeDataString(TestPrefix)}&sortBy=submittedAt&sortDirection=asc&pageIndex=1&pageSize=100");
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK), await DescribeResponseAsync(response));
         using var root = await GetRootAsync(response);
@@ -254,7 +254,7 @@ public class P0_DT4_AdminApplicationQueueAssignmentTests : ApiTestBase
         {
             assigneeId = secondAssignee,
             rowVersion = application.RowVersion,
-            lyDo = "NUnit P0-DT4 đổi người xử lý do phân tải công việc."
+            reason = "NUnit P0-DT4 đổi người xử lý do phân tải công việc."
         });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK), await DescribeResponseAsync(response));

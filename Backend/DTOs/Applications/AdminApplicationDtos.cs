@@ -6,15 +6,24 @@ namespace Backend.DTOs.Applications;
 public class AdminApplicationQueryParameters
 {
     public int? MaDonVi { get; set; }
+    public int? CampusId { get; set; }
     public int? MaHocSinh { get; set; }
+    public int? StudentId { get; set; }
     public int? NguoiDuyetHienTai { get; set; }
+    public int? AssigneeId { get; set; }
     public string? LoaiDon { get; set; }
+    public string? Type { get; set; }
     public string? TrangThai { get; set; }
+    public string? Status { get; set; }
     public string? AssignmentState { get; set; }
     public string? SlaStatus { get; set; }
     public DateTime? TuNgayNop { get; set; }
+    public DateTime? SubmittedFrom { get; set; }
     public DateTime? DenNgayNop { get; set; }
+    public DateTime? SubmittedTo { get; set; }
     public string? Search { get; set; }
+    public string? SortBy { get; set; }
+    public string? SortDirection { get; set; }
     public int PageIndex { get; set; } = 1;
     public int PageSize { get; set; } = 20;
 }
@@ -22,6 +31,7 @@ public class AdminApplicationQueryParameters
 public class AdminApplicationAssigneeQueryParameters
 {
     public int? MaDonVi { get; set; }
+    public int? CampusId { get; set; }
     public string? Search { get; set; }
     public int PageIndex { get; set; } = 1;
     public int PageSize { get; set; } = 20;
@@ -37,6 +47,7 @@ public class AdminApplicationAssignRequest
     public int AssigneeId { get; set; }
     public string RowVersion { get; set; } = string.Empty;
     public string? LyDo { get; set; }
+    public string? Reason { get; set; }
 }
 
 public class AdminApplicationQueueItemDto
@@ -55,6 +66,7 @@ public class AdminApplicationQueueItemDto
     public DateTime? NgayNop { get; set; }
     public DateTime? HanXuLyLuc { get; set; }
     public AdminApplicationSlaDto Sla { get; set; } = new();
+    public int AttachmentCount { get; set; }
     public string RowVersion { get; set; } = string.Empty;
 }
 
@@ -127,11 +139,15 @@ public class AdminApplicationTimelineDto
 
 public class AdminApplicationQueueSummaryDto
 {
+    public int Active { get; set; }
     public int TotalActive { get; set; }
     public int Submitted { get; set; }
     public int InReview { get; set; }
     public int NeedSupplement { get; set; }
+    public int WaitingForSupplement { get; set; }
     public int Unassigned { get; set; }
+    public int Assigned { get; set; }
+    public int AssignedToMe { get; set; }
     public int Overdue { get; set; }
     public int DueSoon { get; set; }
 }
@@ -140,6 +156,11 @@ public class AdminApplicationAssigneeDto : AdminApplicationPersonDto
 {
     public int MaDonVi { get; set; }
     public string TenDonVi { get; set; } = string.Empty;
+    public int UserId => MaNguoiDung;
+    public string FullName => HoTen;
+    public string Role => VaiTro;
+    public int CampusId => MaDonVi;
+    public string CampusName => TenDonVi;
 }
 
 public class AdminApplicationQueueResponseDto : PagedResultDto<AdminApplicationQueueItemDto>

@@ -52,14 +52,14 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         CancellationToken cancellationToken = default)
     {
         var actor = await _scopeService.GetCurrentActorAsync(cancellationToken);
-        NormalizeQuery(parameters);
-        await _scopeService.EnsureCampusFilterAllowedAsync(actor, parameters.MaDonVi, cancellationToken);
+        var normalized = NormalizeQuery(parameters, actor);
+        await _scopeService.EnsureCampusFilterAllowedAsync(actor, normalized.CampusId, cancellationToken);
 
-        var query = BuildFilteredQuery(parameters, actor);
+        var query = BuildFilteredQuery(normalized, actor);
         var totalItems = await query.CountAsync(cancellationToken);
-        var rows = await ApplyDefaultOrdering(query)
-            .Skip((parameters.PageIndex - 1) * parameters.PageSize)
-            .Take(parameters.PageSize)
+        var rows = await ApplyOrdering(query, normalized)
+            .Skip((normalized.PageIndex - 1) * normalized.PageSize)
+            .Take(normalized.PageSize)
             .Select(x => new ApplicationProjection
             {
                 MaDonTu = x.MaDonTu,
@@ -82,15 +82,16 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
                 CampusName = x.DonVi != null ? x.DonVi.TenDonVi : string.Empty,
                 AssigneeName = x.NguoiDuyetHienTaiNavigation != null ? x.NguoiDuyetHienTaiNavigation.HoTen : null,
                 AssigneeEmail = x.NguoiDuyetHienTaiNavigation != null ? x.NguoiDuyetHienTaiNavigation.Email : null,
-                AssigneeRole = x.NguoiDuyetHienTaiNavigation != null ? x.NguoiDuyetHienTaiNavigation.VaiTroChinh : null
+                AssigneeRole = x.NguoiDuyetHienTaiNavigation != null ? x.NguoiDuyetHienTaiNavigation.VaiTroChinh : null,
+                AttachmentCount = _context.TepDinhKemDonTus.Count(attachment => attachment.MaDonTu == x.MaDonTu && !attachment.DaXoa)
             })
             .ToListAsync(cancellationToken);
 
         return new AdminApplicationQueueResponseDto
         {
             Items = rows.Select(row => ToQueueItemDto(row)).ToList(),
-            PageIndex = parameters.PageIndex,
-            PageSize = parameters.PageSize,
+            PageIndex = normalized.PageIndex,
+            PageSize = normalized.PageSize,
             TotalItems = totalItems
         };
     }
@@ -100,21 +101,25 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         CancellationToken cancellationToken = default)
     {
         var actor = await _scopeService.GetCurrentActorAsync(cancellationToken);
-        NormalizeQuery(parameters, allowPaging: false);
-        await _scopeService.EnsureCampusFilterAllowedAsync(actor, parameters.MaDonVi, cancellationToken);
+        var normalized = NormalizeQuery(parameters, actor, allowPaging: false);
+        await _scopeService.EnsureCampusFilterAllowedAsync(actor, normalized.CampusId, cancellationToken);
 
-        var query = BuildFilteredQuery(parameters, actor);
+        var query = BuildFilteredQuery(normalized, actor);
         var rows = await query
             .Select(x => new { x.TrangThai, x.NguoiDuyetHienTai, x.HanXuLyLuc })
             .ToListAsync(cancellationToken);
         var now = DateTime.UtcNow;
         return new AdminApplicationQueueSummaryDto
         {
+            Active = rows.Count,
             TotalActive = rows.Count,
             Submitted = rows.Count(x => x.TrangThai == ApplicationStatuses.Submitted),
             InReview = rows.Count(x => x.TrangThai == ApplicationStatuses.InReview),
             NeedSupplement = rows.Count(x => x.TrangThai == ApplicationStatuses.NeedSupplement),
+            WaitingForSupplement = rows.Count(x => x.TrangThai == ApplicationStatuses.NeedSupplement),
             Unassigned = rows.Count(x => x.NguoiDuyetHienTai is null),
+            Assigned = rows.Count(x => x.NguoiDuyetHienTai is not null),
+            AssignedToMe = rows.Count(x => x.NguoiDuyetHienTai == actor.User.MaNguoiDung),
             Overdue = rows.Count(x => GetSlaStatus(x.TrangThai, x.HanXuLyLuc, now) == "overdue"),
             DueSoon = rows.Count(x => GetSlaStatus(x.TrangThai, x.HanXuLyLuc, now) == "due_soon")
         };
@@ -215,21 +220,21 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         CancellationToken cancellationToken = default)
     {
         var actor = await _scopeService.GetCurrentActorAsync(cancellationToken);
-        NormalizeAssigneeQuery(parameters);
-        await _scopeService.EnsureCampusFilterAllowedAsync(actor, parameters.MaDonVi, cancellationToken);
+        var normalized = NormalizeAssigneeQuery(parameters);
+        await _scopeService.EnsureCampusFilterAllowedAsync(actor, normalized.CampusId, cancellationToken);
 
         var query = _scopeService.ApplyUserScope(_context.NguoiDungs.AsNoTracking(), actor)
             .Where(x => x.TrangThai == UserStatuses.DbActive)
             .Where(x => AssignableRoles.Select(AuthRoles.ToDatabaseCode).Contains(x.VaiTroChinh));
 
-        if (parameters.MaDonVi.HasValue)
+        if (normalized.CampusId.HasValue)
         {
-            query = query.Where(x => x.MaDonVi == parameters.MaDonVi.Value);
+            query = query.Where(x => x.MaDonVi == normalized.CampusId.Value);
         }
 
-        if (!string.IsNullOrWhiteSpace(parameters.Search))
+        if (!string.IsNullOrWhiteSpace(normalized.Search))
         {
-            var search = parameters.Search.Trim();
+            var search = normalized.Search;
             query = query.Where(x => x.HoTen.Contains(search) || x.Email.Contains(search));
         }
 
@@ -237,8 +242,8 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         var items = await query
             .OrderBy(x => x.HoTen)
             .ThenBy(x => x.Email)
-            .Skip((parameters.PageIndex - 1) * parameters.PageSize)
-            .Take(parameters.PageSize)
+            .Skip((normalized.PageIndex - 1) * normalized.PageSize)
+            .Take(normalized.PageSize)
             .Select(x => new AdminApplicationAssigneeDto
             {
                 MaNguoiDung = x.MaNguoiDung,
@@ -253,79 +258,87 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         return new AdminApplicationAssigneeResponseDto
         {
             Items = items,
-            PageIndex = parameters.PageIndex,
-            PageSize = parameters.PageSize,
+            PageIndex = normalized.PageIndex,
+            PageSize = normalized.PageSize,
             TotalItems = totalItems
         };
     }
 
     private IQueryable<DonTu> BuildFilteredQuery(
-        AdminApplicationQueryParameters parameters,
+        NormalizedQueueQuery parameters,
         ApplicationActorContext actor)
     {
         var query = _scopeService.ApplyApplicationScope(_context.DonTus.AsNoTracking(), actor);
-        if (string.IsNullOrWhiteSpace(parameters.TrangThai))
+        if (string.IsNullOrWhiteSpace(parameters.Status))
         {
             query = query.Where(x => DefaultQueueStatuses.Contains(x.TrangThai));
         }
         else
         {
-            var status = NormalizeStatus(parameters.TrangThai);
-            query = query.Where(x => x.TrangThai == status);
+            query = query.Where(x => x.TrangThai == parameters.Status);
         }
 
-        if (parameters.MaDonVi.HasValue)
+        if (parameters.CampusId.HasValue)
         {
-            query = query.Where(x => x.MaDonVi == parameters.MaDonVi.Value);
+            query = query.Where(x => x.MaDonVi == parameters.CampusId.Value);
         }
 
-        if (parameters.MaHocSinh.HasValue)
+        if (parameters.StudentId.HasValue)
         {
-            query = query.Where(x => x.MaHocSinh == parameters.MaHocSinh.Value);
+            query = query.Where(x => x.MaHocSinh == parameters.StudentId.Value);
         }
 
-        if (parameters.NguoiDuyetHienTai.HasValue)
+        if (parameters.AssigneeId.HasValue)
         {
-            query = query.Where(x => x.NguoiDuyetHienTai == parameters.NguoiDuyetHienTai.Value);
+            query = query.Where(x => x.NguoiDuyetHienTai == parameters.AssigneeId.Value);
         }
 
-        if (!string.IsNullOrWhiteSpace(parameters.LoaiDon))
+        if (!string.IsNullOrWhiteSpace(parameters.Type))
         {
-            var type = NormalizeType(parameters.LoaiDon);
-            query = query.Where(x => x.LoaiDon == type);
+            query = query.Where(x => x.LoaiDon == parameters.Type);
         }
 
-        if (parameters.TuNgayNop.HasValue)
+        if (parameters.SubmittedFrom.HasValue)
         {
-            query = query.Where(x => x.NgayNop >= parameters.TuNgayNop.Value);
+            query = query.Where(x => x.NgayNop >= parameters.SubmittedFrom.Value);
         }
 
-        if (parameters.DenNgayNop.HasValue)
+        if (parameters.SubmittedTo.HasValue)
         {
-            query = query.Where(x => x.NgayNop <= parameters.DenNgayNop.Value);
+            query = query.Where(x => x.NgayNop <= parameters.SubmittedTo.Value);
         }
 
-        if (!string.IsNullOrWhiteSpace(parameters.AssignmentState))
+        if (!string.IsNullOrWhiteSpace(parameters.AssignmentState) && parameters.AssignmentState != "all")
         {
-            var assignmentState = parameters.AssignmentState.Trim().ToLowerInvariant();
-            query = assignmentState switch
+            query = parameters.AssignmentState switch
             {
                 "unassigned" => query.Where(x => x.NguoiDuyetHienTai == null),
                 "assigned" => query.Where(x => x.NguoiDuyetHienTai != null),
+                "mine" => query.Where(x => x.NguoiDuyetHienTai == actor.User.MaNguoiDung),
                 _ => throw new ApiException(StatusCodes.Status400BadRequest, "Trạng thái phân công không hợp lệ.")
             };
         }
 
         if (!string.IsNullOrWhiteSpace(parameters.Search))
         {
-            var search = parameters.Search.Trim();
-            query = query.Where(x => x.TieuDe.Contains(search) ||
+            var search = parameters.Search;
+            if (int.TryParse(search, out var applicationId))
+            {
+                query = query.Where(x => x.MaDonTu == applicationId ||
+                                         x.TieuDe.Contains(search) ||
+                                         x.HocSinh!.HoTen.Contains(search) ||
+                                         x.HocSinh.Email.Contains(search));
+            }
+            else
+            {
+                query = query.Where(x => x.TieuDe.Contains(search) ||
                                      x.LoaiDon.Contains(search) ||
                                      x.HocSinh!.HoTen.Contains(search) ||
                                      x.HocSinh.Email.Contains(search));
+            }
         }
 
-        if (!string.IsNullOrWhiteSpace(parameters.SlaStatus))
+        if (!string.IsNullOrWhiteSpace(parameters.SlaStatus) && parameters.SlaStatus != "all")
         {
             query = ApplySlaStatusFilter(query, parameters.SlaStatus);
         }
@@ -333,17 +346,44 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         return query;
     }
 
-    private IQueryable<DonTu> ApplyDefaultOrdering(IQueryable<DonTu> query)
+    private IQueryable<DonTu> ApplyOrdering(IQueryable<DonTu> query, NormalizedQueueQuery parameters)
     {
+        if (parameters.SortBy != "sla")
+        {
+            var descending = parameters.SortDirection == "desc";
+            return parameters.SortBy switch
+            {
+                "submittedAt" => descending
+                    ? query.OrderByDescending(x => x.NgayNop).ThenBy(x => x.MaDonTu)
+                    : query.OrderBy(x => x.NgayNop).ThenBy(x => x.MaDonTu),
+                "updatedAt" => descending
+                    ? query.OrderByDescending(x => x.NgayCapNhat).ThenBy(x => x.MaDonTu)
+                    : query.OrderBy(x => x.NgayCapNhat).ThenBy(x => x.MaDonTu),
+                "studentName" => descending
+                    ? query.OrderByDescending(x => x.HocSinh!.HoTen).ThenBy(x => x.MaDonTu)
+                    : query.OrderBy(x => x.HocSinh!.HoTen).ThenBy(x => x.MaDonTu),
+                _ => throw new ApiException(StatusCodes.Status400BadRequest, "Trường sắp xếp không hợp lệ.")
+            };
+        }
+
         var now = DateTime.UtcNow;
         var dueSoonDeadline = now.AddHours(_options.SlaWarningBeforeHours);
-        return query
+        var ordered = query
             .OrderByDescending(x => ActiveQueueStatuses.Contains(x.TrangThai) && x.HanXuLyLuc.HasValue && x.HanXuLyLuc.Value < now)
             .ThenByDescending(x => ActiveQueueStatuses.Contains(x.TrangThai) && x.HanXuLyLuc.HasValue && x.HanXuLyLuc.Value >= now && x.HanXuLyLuc.Value <= dueSoonDeadline)
             .ThenByDescending(x => x.NguoiDuyetHienTai == null)
             .ThenBy(x => x.HanXuLyLuc)
             .ThenBy(x => x.NgayNop)
             .ThenBy(x => x.MaDonTu);
+        return parameters.SortDirection == "desc"
+            ? query
+                .OrderBy(x => ActiveQueueStatuses.Contains(x.TrangThai) && x.HanXuLyLuc.HasValue && x.HanXuLyLuc.Value < now)
+                .ThenBy(x => ActiveQueueStatuses.Contains(x.TrangThai) && x.HanXuLyLuc.HasValue && x.HanXuLyLuc.Value >= now && x.HanXuLyLuc.Value <= dueSoonDeadline)
+                .ThenBy(x => x.NguoiDuyetHienTai == null)
+                .ThenByDescending(x => x.HanXuLyLuc)
+                .ThenByDescending(x => x.NgayNop)
+                .ThenBy(x => x.MaDonTu)
+            : ordered;
     }
 
     private IQueryable<DonTu> ApplySlaStatusFilter(IQueryable<DonTu> query, string slaStatus)
@@ -408,6 +448,7 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
             NgayNop = row.NgayNop,
             HanXuLyLuc = row.HanXuLyLuc,
             Sla = BuildSla(row.TrangThai, row.HanXuLyLuc),
+            AttachmentCount = row.AttachmentCount,
             RowVersion = Convert.ToBase64String(row.RowVersion)
         };
     }
@@ -517,7 +558,10 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         }
     }
 
-    private static void NormalizeQuery(AdminApplicationQueryParameters parameters, bool allowPaging = true)
+    private static NormalizedQueueQuery NormalizeQuery(
+        AdminApplicationQueryParameters parameters,
+        ApplicationActorContext actor,
+        bool allowPaging = true)
     {
         if (allowPaging)
         {
@@ -532,18 +576,76 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
             }
         }
 
-        if (parameters.TuNgayNop.HasValue && parameters.DenNgayNop.HasValue && parameters.TuNgayNop > parameters.DenNgayNop)
+        var submittedFrom = parameters.SubmittedFrom ?? parameters.TuNgayNop;
+        var submittedTo = parameters.SubmittedTo ?? parameters.DenNgayNop;
+        if (submittedFrom.HasValue && submittedTo.HasValue && submittedFrom > submittedTo)
         {
             throw new ApiException(StatusCodes.Status400BadRequest, "Từ ngày nộp phải nhỏ hơn hoặc bằng đến ngày nộp.");
         }
 
-        if (!string.IsNullOrWhiteSpace(parameters.Search) && parameters.Search.Trim().Length > 100)
+        var search = parameters.Search?.Trim();
+        if (!string.IsNullOrWhiteSpace(search) && search.Length > 100)
         {
             throw new ApiException(StatusCodes.Status400BadRequest, "Từ khóa tìm kiếm vượt quá độ dài cho phép.");
         }
+
+        var assignmentState = string.IsNullOrWhiteSpace(parameters.AssignmentState)
+            ? "all"
+            : parameters.AssignmentState.Trim().ToLowerInvariant();
+        if (assignmentState is not ("all" or "unassigned" or "assigned" or "mine"))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Trạng thái phân công không hợp lệ.");
+        }
+
+        var slaStatus = string.IsNullOrWhiteSpace(parameters.SlaStatus)
+            ? "all"
+            : parameters.SlaStatus.Trim().ToLowerInvariant();
+        if (slaStatus is not ("all" or "none" or "on_track" or "due_soon" or "overdue" or "paused"))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Trạng thái SLA không hợp lệ.");
+        }
+
+        var sortBy = string.IsNullOrWhiteSpace(parameters.SortBy)
+            ? "sla"
+            : parameters.SortBy.Trim();
+        if (sortBy is not ("sla" or "submittedAt" or "updatedAt" or "studentName"))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Trường sắp xếp không hợp lệ.");
+        }
+
+        var sortDirection = string.IsNullOrWhiteSpace(parameters.SortDirection)
+            ? "asc"
+            : parameters.SortDirection.Trim().ToLowerInvariant();
+        if (sortDirection is not ("asc" or "desc"))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chiều sắp xếp không hợp lệ.");
+        }
+
+        return new NormalizedQueueQuery
+        {
+            CampusId = parameters.CampusId ?? parameters.MaDonVi,
+            StudentId = parameters.StudentId ?? parameters.MaHocSinh,
+            AssigneeId = parameters.AssigneeId ?? parameters.NguoiDuyetHienTai,
+            Type = string.IsNullOrWhiteSpace(parameters.Type ?? parameters.LoaiDon)
+                ? null
+                : NormalizeType((parameters.Type ?? parameters.LoaiDon)!),
+            Status = string.IsNullOrWhiteSpace(parameters.Status ?? parameters.TrangThai)
+                ? null
+                : NormalizeStatus((parameters.Status ?? parameters.TrangThai)!),
+            AssignmentState = assignmentState,
+            SlaStatus = slaStatus,
+            SubmittedFrom = submittedFrom,
+            SubmittedTo = submittedTo,
+            Search = string.IsNullOrWhiteSpace(search) ? null : search,
+            SortBy = sortBy,
+            SortDirection = sortDirection,
+            PageIndex = parameters.PageIndex,
+            PageSize = parameters.PageSize,
+            ActorId = actor.User.MaNguoiDung
+        };
     }
 
-    private static void NormalizeAssigneeQuery(AdminApplicationAssigneeQueryParameters parameters)
+    private static NormalizedAssigneeQuery NormalizeAssigneeQuery(AdminApplicationAssigneeQueryParameters parameters)
     {
         if (parameters.PageIndex < 1)
         {
@@ -555,10 +657,19 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
             throw new ApiException(StatusCodes.Status400BadRequest, "PageSize phải từ 1 đến 100.");
         }
 
-        if (!string.IsNullOrWhiteSpace(parameters.Search) && parameters.Search.Trim().Length > 100)
+        var search = parameters.Search?.Trim();
+        if (!string.IsNullOrWhiteSpace(search) && search.Length > 100)
         {
             throw new ApiException(StatusCodes.Status400BadRequest, "Từ khóa tìm kiếm vượt quá độ dài cho phép.");
         }
+
+        return new NormalizedAssigneeQuery
+        {
+            CampusId = parameters.CampusId ?? parameters.MaDonVi,
+            Search = string.IsNullOrWhiteSpace(search) ? null : search,
+            PageIndex = parameters.PageIndex,
+            PageSize = parameters.PageSize
+        };
     }
 
     private static string NormalizeType(string type)
@@ -628,5 +739,33 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         public string? LastProcessorName { get; set; }
         public string? LastProcessorEmail { get; set; }
         public string? LastProcessorRole { get; set; }
+        public int AttachmentCount { get; set; }
+    }
+
+    private sealed class NormalizedQueueQuery
+    {
+        public int? CampusId { get; set; }
+        public int? StudentId { get; set; }
+        public int? AssigneeId { get; set; }
+        public string? Type { get; set; }
+        public string? Status { get; set; }
+        public string AssignmentState { get; set; } = "all";
+        public string SlaStatus { get; set; } = "all";
+        public DateTime? SubmittedFrom { get; set; }
+        public DateTime? SubmittedTo { get; set; }
+        public string? Search { get; set; }
+        public string SortBy { get; set; } = "sla";
+        public string SortDirection { get; set; } = "asc";
+        public int PageIndex { get; set; }
+        public int PageSize { get; set; }
+        public int ActorId { get; set; }
+    }
+
+    private sealed class NormalizedAssigneeQuery
+    {
+        public int? CampusId { get; set; }
+        public string? Search { get; set; }
+        public int PageIndex { get; set; }
+        public int PageSize { get; set; }
     }
 }
