@@ -7,8 +7,8 @@
 import { ref, computed } from 'vue'
 import {
   LineChart, AlertTriangle, Users, BookOpen, Filter, RotateCcw,
-  Search, TrendingUp, TrendingDown, ArrowUp, ArrowDown, Brain,
-  GraduationCap, Eye, ChevronDown, ChevronUp, Info, Shield
+  Search, ArrowUp, ArrowDown, Brain,
+  GraduationCap, ChevronDown, ChevronUp, Info
 } from 'lucide-vue-next'
 
 // --- Filters ---
@@ -160,7 +160,7 @@ const getRiskBadge = (risk) => {
                 <td class="px-3 py-2.5">
                   <div class="flex items-center gap-2">
                     <div class="flex-1 h-2.5 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden">
-                      <div class="h-full rounded-full bg-emerald-500 transition-all duration-500" :style="{ width: c.passRate + '%' }"></div>
+                      <div :key="filterSemester + '-' + filterCampus + '-' + filterDepartment + '-' + c.passRate" class="h-full rounded-full bg-emerald-500 transition-all duration-500 animate-progress" :style="{ width: c.passRate + '%' }"></div>
                     </div>
                     <span class="text-xs font-semibold text-emerald-600 w-[42px] text-right">{{ c.passRate }}%</span>
                   </div>
@@ -210,7 +210,7 @@ const getRiskBadge = (risk) => {
                 <td class="px-3 py-2.5 text-right">
                   <div class="flex items-center justify-end gap-2">
                     <div class="w-16 h-1.5 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden">
-                      <div class="h-full rounded-full transition-all duration-500" :class="s.probability >= 70 ? 'bg-rose-500' : s.probability >= 50 ? 'bg-amber-500' : 'bg-sky-500'" :style="{ width: s.probability + '%' }"></div>
+                      <div :key="filterSemester + '-' + filterCampus + '-' + filterDepartment + '-' + s.probability" class="h-full rounded-full transition-all duration-500 animate-progress" :class="s.probability >= 70 ? 'bg-rose-500' : s.probability >= 50 ? 'bg-amber-500' : 'bg-sky-500'" :style="{ width: s.probability + '%' }"></div>
                     </div>
                     <span class="text-xs font-semibold text-heading">{{ s.probability }}%</span>
                   </div>
@@ -261,7 +261,7 @@ const getRiskBadge = (risk) => {
                 <td class="px-3 py-2.5">
                   <div class="flex items-center gap-2">
                     <div class="flex-1 h-2 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden">
-                      <div class="h-full rounded-full transition-all" :class="s.failRate > 20 ? 'bg-rose-500' : s.failRate > 10 ? 'bg-amber-500' : 'bg-emerald-500'" :style="{ width: Math.min(s.failRate * 2, 100) + '%' }"></div>
+                      <div :key="filterSemester + '-' + filterCampus + '-' + filterDepartment + '-' + searchQuery + '-' + s.failRate" class="h-full rounded-full transition-all animate-progress" :class="s.failRate > 20 ? 'bg-rose-500' : s.failRate > 10 ? 'bg-amber-500' : 'bg-emerald-500'" :style="{ width: Math.min(s.failRate * 2, 100) + '%' }"></div>
                     </div>
                     <span class="text-xs font-semibold w-[38px] text-right" :class="s.failRate > 20 ? 'text-rose-500' : s.failRate > 10 ? 'text-amber-500' : 'text-emerald-500'">{{ s.failRate }}%</span>
                   </div>
@@ -280,3 +280,12 @@ const getRiskBadge = (risk) => {
     </div>
   </div>
 </template>
+
+<style scoped>
+@keyframes growProgress {
+  from { width: 0; }
+}
+.animate-progress {
+  animation: growProgress 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+</style>

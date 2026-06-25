@@ -6,9 +6,9 @@
  */
 import { ref, computed } from 'vue'
 import {
-  GitCompare, Award, Filter, RotateCcw, Trophy,
+  GitCompare, Filter, RotateCcw, Trophy,
   Users, GraduationCap, CalendarCheck2, DollarSign, Star,
-  CheckCircle, ArrowUp, ArrowDown, X, Check
+  CheckCircle, X, Check
 } from 'lucide-vue-next'
 
 // --- Filters ---
@@ -201,7 +201,8 @@ const resetFilters = () => {
               <span class="text-xs text-label w-[70px] shrink-0 truncate">{{ c.name }}</span>
               <div class="flex-1 h-6 rounded-lg bg-black/5 dark:bg-white/5 overflow-hidden relative">
                 <div
-                  class="h-full rounded-lg transition-all duration-700 ease-out flex items-center pl-2"
+                  :key="filterSemester + '-' + c.id + '-' + c[m.key]"
+                  class="h-full rounded-lg transition-all duration-700 ease-out flex items-center pl-2 animate-progress"
                   :class="c.color"
                   :style="{ width: getBarWidth(c[m.key], m.key) + '%' }"
                 >
@@ -254,3 +255,12 @@ const resetFilters = () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+@keyframes growProgress {
+  from { width: 0; }
+}
+.animate-progress {
+  animation: growProgress 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+</style>

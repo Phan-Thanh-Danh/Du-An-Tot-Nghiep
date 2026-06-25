@@ -106,18 +106,6 @@ export const superAdminMenuGroups = [
         route: '/super-admin/training/exam-periods',
       },
       {
-        id: 'schedules',
-        label: 'Thời khóa biểu',
-        icon: 'CalendarDays',
-        route: '/super-admin/operations/schedules',
-      },
-      {
-        id: 'schedules-approval',
-        label: 'Duyệt/Publish TKB',
-        icon: 'CalendarCheck',
-        route: '/super-admin/operations/schedules/approval',
-      },
-      {
         id: 'attendance-policy',
         label: 'Quỹ vắng & Chuyên cần',
         icon: 'UserCheck',

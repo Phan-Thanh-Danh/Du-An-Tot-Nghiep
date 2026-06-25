@@ -48,9 +48,19 @@ pnpm-debug.log*
 
 # Postman testing files
 lms_task1_postman_collection.json
+*_postman_collection.json
+lms_task4_exam_postman_collection.json
 
 # Tasks and notes
 Task1.md
 task1.md
+
+# Documentation and Resource folders
+Tài Liệu/
+*.docx
+
+# Exclude local changes for package files from push
+frontend/package.json
+frontend/package-lock.json
 
 

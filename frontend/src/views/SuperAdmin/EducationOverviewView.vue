@@ -7,8 +7,8 @@
 import { ref, computed } from 'vue'
 import {
   Users, GraduationCap, BookOpen, TrendingUp, TrendingDown,
-  Award, BarChart3, PieChart, Filter, RotateCcw, ArrowUp,
-  ArrowDown, Minus, CheckCircle, XCircle, Activity, School
+  Award, BarChart3, Filter, RotateCcw, ArrowUp,
+  ArrowDown, CheckCircle, XCircle, Activity
 } from 'lucide-vue-next'
 
 // --- Mock Data ---
@@ -124,7 +124,8 @@ const resetFilters = () => {
               <span class="text-xs text-label w-[90px] shrink-0 font-medium">{{ g.grade }}</span>
               <div class="flex-1 h-7 rounded-lg bg-black/5 dark:bg-white/5 overflow-hidden relative">
                 <div
-                  class="h-full rounded-lg transition-all duration-700 ease-out flex items-center pl-3"
+                  :key="filterSemester + '-' + filterCampus + '-' + g.pct"
+                  class="h-full rounded-lg transition-all duration-700 ease-out flex items-center pl-3 animate-progress"
                   :class="g.color"
                   :style="{ width: g.pct + '%' }"
                 >
@@ -201,7 +202,7 @@ const resetFilters = () => {
                   <td class="px-3 py-2.5">
                     <div class="flex items-center gap-2">
                       <div class="flex-1 h-2 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden">
-                        <div class="h-full rounded-full bg-rose-500 transition-all duration-500" :style="{ width: s.failRate + '%' }"></div>
+                        <div :key="filterSemester + '-' + filterCampus + '-' + s.failRate" class="h-full rounded-full bg-rose-500 transition-all duration-500 animate-progress" :style="{ width: s.failRate + '%' }"></div>
                       </div>
                       <span class="text-xs font-semibold text-rose-500 w-[42px] text-right">{{ s.failRate }}%</span>
                     </div>
@@ -235,7 +236,7 @@ const resetFilters = () => {
                   <td class="px-3 py-2.5">
                     <div class="flex items-center gap-2">
                       <div class="flex-1 h-2 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden">
-                        <div class="h-full rounded-full bg-emerald-500 transition-all duration-500" :style="{ width: s.passRate + '%' }"></div>
+                        <div :key="filterSemester + '-' + filterCampus + '-' + s.passRate" class="h-full rounded-full bg-emerald-500 transition-all duration-500 animate-progress" :style="{ width: s.passRate + '%' }"></div>
                       </div>
                       <span class="text-xs font-semibold text-emerald-500 w-[42px] text-right">{{ s.passRate }}%</span>
                     </div>
@@ -256,3 +257,12 @@ const resetFilters = () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+@keyframes growProgress {
+  from { width: 0; }
+}
+.animate-progress {
+  animation: growProgress 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+</style>
