@@ -49,6 +49,16 @@ public class P0_DT3_TestInfrastructureAndStorageTests
     }
 
     [Test]
+    public void SharedDbGuard_BackendServerMismatch_ShouldFail()
+    {
+        using var env = new EnvScope(
+            ("LMS_TEST_CONNECTION_STRING", BuildConnectionString("LMS_TEST_A", "DELL\\SQLEXPRESS02")),
+            ("ConnectionStrings__DefaultConnection", BuildConnectionString("LMS_TEST_A", "localhost\\SQLEXPRESS02")));
+
+        Assert.Throws<AssertionException>(() => Harness.ValidateDb());
+    }
+
+    [Test]
     public void SharedDbGuard_ValidLmsTestDatabase_ShouldPass()
     {
         using var env = new EnvScope(
@@ -356,9 +366,9 @@ public class P0_DT3_TestInfrastructureAndStorageTests
         });
     }
 
-    private static string BuildConnectionString(string databaseName)
+    private static string BuildConnectionString(string databaseName, string server = @"DELL\SQLEXPRESS02")
     {
-        return $"Server=DELL\\\\SQLEXPRESS02;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+        return $"Server={server};Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
     }
 
     private static R2StorageSettings ValidR2Settings()

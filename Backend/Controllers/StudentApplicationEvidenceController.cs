@@ -4,6 +4,7 @@ using Backend.Constants;
 using Backend.Services.Applications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Backend.Controllers;
 
@@ -53,7 +54,7 @@ public class StudentApplicationEvidenceController : ControllerBase
         int attachmentId,
         CancellationToken cancellationToken,
         [FromHeader(Name = "If-Match")] string? ifMatch = null,
-        [FromBody] DeleteApplicationEvidenceRequest? request = null)
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] DeleteApplicationEvidenceRequest? request = null)
     {
         var rowVersion = NormalizeIfMatch(ifMatch) ?? request?.RowVersion ?? string.Empty;
         var result = await _evidenceService.DeleteAsync(

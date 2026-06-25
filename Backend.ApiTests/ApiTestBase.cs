@@ -125,9 +125,10 @@ public abstract class ApiTestBase
             backendConnectionString!,
             "ConnectionStrings__DefaultConnection không hợp lệ");
 
-        if (!string.Equals(backendBuilder.InitialCatalog, testBuilder.InitialCatalog, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(backendBuilder.DataSource, testBuilder.DataSource, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(backendBuilder.InitialCatalog, testBuilder.InitialCatalog, StringComparison.OrdinalIgnoreCase))
         {
-            Assert.Fail("Backend test server phải dùng cùng isolated database với LMS_TEST_CONNECTION_STRING.");
+            Assert.Fail("Backend test server phải dùng cùng SQL Server instance và cùng isolated database với LMS_TEST_CONNECTION_STRING.");
         }
     }
 

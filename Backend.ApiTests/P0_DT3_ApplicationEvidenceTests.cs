@@ -893,12 +893,15 @@ public class P0_DT3_ApplicationEvidenceTests : ApiTestBase
 
     private static async Task<int> CountStoredObjectsForApplicationAsync(int applicationId)
     {
-        await using var db = CreateDbContext();
-        var keys = await db.TepDinhKemDonTus.AsNoTracking()
-            .Where(x => x.MaDonTu == applicationId && !x.DaXoa)
-            .Select(x => x.StorageKey)
-            .ToListAsync();
-        return keys.Count(key => File.Exists(StoragePath(key)));
+        var evidenceRoot = Path.Combine(GetSharedTestStorageRoot(), "applications", "evidence");
+        if (!Directory.Exists(evidenceRoot))
+        {
+            return await Task.FromResult(0);
+        }
+
+        return await Task.FromResult(
+            Directory.EnumerateDirectories(evidenceRoot, applicationId.ToString(), SearchOption.AllDirectories)
+                .Sum(directory => Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories).Count()));
     }
 
     private static string StoragePath(string storageKey)
