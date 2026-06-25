@@ -59,6 +59,8 @@ Quy ước:
 - `IRoomService`/`RoomService`: quản lý phòng học, validate đơn vị, tòa nhà, tầng, mã phòng, loại/trạng thái phòng và xóa mềm.
 - `IApplicationSchemaService`/`ApplicationSchemaService`: expose constants/template active của đơn từ.
 - `IStudentApplicationService`/`StudentApplicationService`: tạo nháp, danh sách/chi tiết của sinh viên, cập nhật, nộp, nộp lại và hủy đơn.
+- `IApplicationEvidenceService`/`ApplicationEvidenceService`: upload, download và soft delete minh chứng đơn từ của sinh viên.
+- `IApplicationEvidenceObjectStore`: abstraction lưu file minh chứng; Local chỉ dùng Development/Testing, R2 dùng private object storage.
 - `ApplicationFormDataValidator`, `ApplicationReferenceValidator`, `ApplicationEvidenceValidator` và các `IApplicationSubmissionRule`: validate form động, entity liên quan, metadata minh chứng và rule theo loại đơn.
 
 Quy ước:
@@ -124,7 +126,7 @@ Endpoint có role riêng nên dùng `[Authorize(Roles = ...)]` với `AuthRoles`
 
 ## Applications / Đơn Từ
 
-P0-DT1 chuẩn hóa nền cho module đơn từ. P0-DT2 bổ sung core lifecycle phía sinh viên, gồm tạo nháp, cập nhật, nộp, nộp lại khi bị yêu cầu bổ sung và hủy đơn. Các luồng phân công/duyệt, upload/download minh chứng, notification và xử lý nghiệp vụ sau duyệt vẫn để phase sau.
+P0-DT1 chuẩn hóa nền cho module đơn từ. P0-DT2 bổ sung core lifecycle phía sinh viên, gồm tạo nháp, cập nhật, nộp, nộp lại khi bị yêu cầu bổ sung và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. Các luồng phân công/duyệt, notification và xử lý nghiệp vụ sau duyệt vẫn để phase sau.
 
 Schema foundation:
 
@@ -166,8 +168,15 @@ Template validation:
 
 Storage evidence:
 
-- P0-DT1 chỉ tạo schema; P0-DT2 chỉ validate metadata minh chứng active đã có trong `TepDinhKemDonTu` hoặc legacy `UrlBangChung`, chưa upload/download file.
-- Allowlist foundation cho phase upload sau: PDF, JPEG, PNG, WEBP.
+- P0-DT1 chỉ tạo schema; P0-DT2 validate metadata minh chứng active đã có trong `TepDinhKemDonTu` hoặc legacy `UrlBangChung`.
+- P0-DT3 thêm endpoint student upload/download/delete minh chứng qua `StudentApplicationEvidenceController`.
+- Allowlist upload: PDF, JPEG, PNG, WEBP. Backend kiểm tra extension, declared content type, magic bytes, kích thước và SHA-256 hash.
+- Hard cap: 5 file, 10MB/file, 25MB/tổng; effective cap lấy min giữa hard cap và cấu hình template đang gắn với đơn.
+- Upload/delete chỉ cho trạng thái `nhap` hoặc `yeu_cau_bo_sung`; download cho mọi trạng thái nếu sinh viên sở hữu đơn, metadata chưa xóa và object tồn tại.
+- Upload/delete dùng `RowVersion`, transaction `Serializable` và `sp_getapplock` resource `ApplicationEvidence:{applicationId}` để chống race condition.
+- File upload được ghi object store trước DB transaction; nếu DB mutation thất bại thì service cleanup object đã upload. Delete soft-delete metadata trước để revoke API access, sau đó physical delete best-effort.
+- Response/API không trả `StorageKey`, file hash, tên file lưu hoặc public URL. Download set `Content-Disposition: attachment`, `X-Content-Type-Options: nosniff` và `Cache-Control: private, no-store`.
+- Local object store bị chặn trong Production và yêu cầu root isolated khi test/dev. Production dùng R2 private object store.
 - Không dùng nguyên `StorageController` hiện tại cho minh chứng Student vì controller đó phục vụ nội dung học tập chung và allow ZIP/SVG/public URL.
 
 ## Error Handling

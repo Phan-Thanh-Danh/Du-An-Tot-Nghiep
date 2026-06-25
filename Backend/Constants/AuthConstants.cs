@@ -115,6 +115,11 @@ public static class UserStatuses
     }
 }
 
+public static class AuthPolicies
+{
+    public const string ApplicationStudent = "ApplicationStudent";
+}
+
 public static class CustomClaimTypes
 {
     public const string UserId = "UserId";
