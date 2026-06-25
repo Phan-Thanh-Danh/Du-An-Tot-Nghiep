@@ -118,6 +118,11 @@ public static class UserStatuses
 public static class AuthPolicies
 {
     public const string ApplicationStudent = "ApplicationStudent";
+    public const string ApplicationQueueRead = "ApplicationQueueRead";
+    public const string ApplicationReceive = "ApplicationReceive";
+    public const string ApplicationAssignmentManage = "ApplicationAssignmentManage";
+    public const string ApplicationSensitiveDecision = "ApplicationSensitiveDecision";
+    public const string ApplicationSystemAdmin = "ApplicationSystemAdmin";
 }
 
 public static class CustomClaimTypes
