@@ -112,6 +112,14 @@ builder.Services.AddScoped<IApplicationFormDataValidator, ApplicationFormDataVal
 builder.Services.AddScoped<IApplicationReferenceValidator, ApplicationReferenceValidator>();
 builder.Services.AddScoped<IApplicationEvidenceValidator, ApplicationEvidenceValidator>();
 builder.Services.AddScoped<IStudentApplicationService, StudentApplicationService>();
+builder.Services.AddScoped<IApplicationCampusScopeService, ApplicationCampusScopeService>();
+builder.Services.AddScoped<IApplicationAdminQueueService, ApplicationAdminQueueService>();
+builder.Services.AddScoped<IApplicationAssignmentService, ApplicationAssignmentService>();
+builder.Services.AddScoped<IApplicationAdminEvidenceService, ApplicationAdminEvidenceService>();
+builder.Services.AddOptions<ApplicationQueueOptions>()
+    .Bind(builder.Configuration.GetSection(ApplicationQueueOptions.SectionName))
+    .Validate(options => options.SlaWarningBeforeHours is >= 1 and <= 168, "ApplicationQueue:SlaWarningBeforeHours must be from 1 to 168.")
+    .ValidateOnStart();
 builder.Services.AddOptions<ApplicationEvidenceStorageOptions>()
     .Bind(builder.Configuration.GetSection(ApplicationEvidenceStorageOptions.SectionName))
     .ValidateOnStart();
@@ -290,11 +298,23 @@ builder.Services.AddAuthorization(options =>
         policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin", "AcademicStaff")
     );
     options.AddPolicy(
-        "ApplicationSensitiveDecision",
+        AuthPolicies.ApplicationQueueRead,
+        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin", "AcademicStaff", "Principal")
+    );
+    options.AddPolicy(
+        AuthPolicies.ApplicationReceive,
+        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin", "AcademicStaff")
+    );
+    options.AddPolicy(
+        AuthPolicies.ApplicationAssignmentManage,
+        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin")
+    );
+    options.AddPolicy(
+        AuthPolicies.ApplicationSensitiveDecision,
         policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "Principal")
     );
     options.AddPolicy(
-        "ApplicationSystemAdmin",
+        AuthPolicies.ApplicationSystemAdmin,
         policy => policy.RequireRole("SuperAdmin", "Admin")
     );
 });
