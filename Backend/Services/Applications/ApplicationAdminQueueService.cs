@@ -24,6 +24,12 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         ApplicationStatuses.NeedSupplement
     ];
 
+    private static readonly string[] RunningSlaStatuses =
+    [
+        ApplicationStatuses.Submitted,
+        ApplicationStatuses.InReview
+    ];
+
     private static readonly string[] AssignableRoles =
     [
         AuthRoles.SuperAdmin,
@@ -104,24 +110,28 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         var normalized = NormalizeQuery(parameters, actor, allowPaging: false);
         await _scopeService.EnsureCampusFilterAllowedAsync(actor, normalized.CampusId, cancellationToken);
 
-        var query = BuildFilteredQuery(normalized, actor);
-        var rows = await query
-            .Select(x => new { x.TrangThai, x.NguoiDuyetHienTai, x.HanXuLyLuc })
-            .ToListAsync(cancellationToken);
         var now = DateTime.UtcNow;
+        var dueSoonDeadline = now.AddHours(_options.SlaWarningBeforeHours);
+        var query = BuildSummaryQuery(normalized, actor);
+
         return new AdminApplicationQueueSummaryDto
         {
-            Active = rows.Count,
-            TotalActive = rows.Count,
-            Submitted = rows.Count(x => x.TrangThai == ApplicationStatuses.Submitted),
-            InReview = rows.Count(x => x.TrangThai == ApplicationStatuses.InReview),
-            NeedSupplement = rows.Count(x => x.TrangThai == ApplicationStatuses.NeedSupplement),
-            WaitingForSupplement = rows.Count(x => x.TrangThai == ApplicationStatuses.NeedSupplement),
-            Unassigned = rows.Count(x => x.NguoiDuyetHienTai is null),
-            Assigned = rows.Count(x => x.NguoiDuyetHienTai is not null),
-            AssignedToMe = rows.Count(x => x.NguoiDuyetHienTai == actor.User.MaNguoiDung),
-            Overdue = rows.Count(x => GetSlaStatus(x.TrangThai, x.HanXuLyLuc, now) == "overdue"),
-            DueSoon = rows.Count(x => GetSlaStatus(x.TrangThai, x.HanXuLyLuc, now) == "due_soon")
+            Active = await query.CountAsync(cancellationToken),
+            TotalActive = await query.CountAsync(cancellationToken),
+            Submitted = await query.CountAsync(x => x.TrangThai == ApplicationStatuses.Submitted, cancellationToken),
+            InReview = await query.CountAsync(x => x.TrangThai == ApplicationStatuses.InReview, cancellationToken),
+            NeedSupplement = await query.CountAsync(x => x.TrangThai == ApplicationStatuses.NeedSupplement, cancellationToken),
+            WaitingForSupplement = await query.CountAsync(x => x.TrangThai == ApplicationStatuses.NeedSupplement, cancellationToken),
+            Unassigned = await query.CountAsync(x => x.NguoiDuyetHienTai == null, cancellationToken),
+            Assigned = await query.CountAsync(x => x.NguoiDuyetHienTai != null, cancellationToken),
+            AssignedToMe = await query.CountAsync(x => x.NguoiDuyetHienTai == actor.User.MaNguoiDung, cancellationToken),
+            Overdue = await query.CountAsync(x => RunningSlaStatuses.Contains(x.TrangThai) &&
+                                                  x.HanXuLyLuc.HasValue &&
+                                                  x.HanXuLyLuc.Value < now, cancellationToken),
+            DueSoon = await query.CountAsync(x => RunningSlaStatuses.Contains(x.TrangThai) &&
+                                                  x.HanXuLyLuc.HasValue &&
+                                                  x.HanXuLyLuc.Value >= now &&
+                                                  x.HanXuLyLuc.Value <= dueSoonDeadline, cancellationToken)
         };
     }
 
@@ -346,6 +356,83 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         return query;
     }
 
+    private IQueryable<DonTu> BuildSummaryQuery(
+        NormalizedQueueQuery parameters,
+        ApplicationActorContext actor)
+    {
+        var query = _scopeService.ApplyApplicationScope(_context.DonTus.AsNoTracking(), actor);
+        query = string.IsNullOrWhiteSpace(parameters.Status)
+            ? query.Where(x => ActiveQueueStatuses.Contains(x.TrangThai))
+            : query.Where(x => x.TrangThai == parameters.Status);
+
+        if (parameters.CampusId.HasValue)
+        {
+            query = query.Where(x => x.MaDonVi == parameters.CampusId.Value);
+        }
+
+        if (parameters.StudentId.HasValue)
+        {
+            query = query.Where(x => x.MaHocSinh == parameters.StudentId.Value);
+        }
+
+        if (parameters.AssigneeId.HasValue)
+        {
+            query = query.Where(x => x.NguoiDuyetHienTai == parameters.AssigneeId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.Type))
+        {
+            query = query.Where(x => x.LoaiDon == parameters.Type);
+        }
+
+        if (parameters.SubmittedFrom.HasValue)
+        {
+            query = query.Where(x => x.NgayNop >= parameters.SubmittedFrom.Value);
+        }
+
+        if (parameters.SubmittedTo.HasValue)
+        {
+            query = query.Where(x => x.NgayNop <= parameters.SubmittedTo.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.AssignmentState) && parameters.AssignmentState != "all")
+        {
+            query = parameters.AssignmentState switch
+            {
+                "unassigned" => query.Where(x => x.NguoiDuyetHienTai == null),
+                "assigned" => query.Where(x => x.NguoiDuyetHienTai != null),
+                "mine" => query.Where(x => x.NguoiDuyetHienTai == actor.User.MaNguoiDung),
+                _ => throw new ApiException(StatusCodes.Status400BadRequest, "Trạng thái phân công không hợp lệ.")
+            };
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.Search))
+        {
+            var search = parameters.Search;
+            if (int.TryParse(search, out var applicationId))
+            {
+                query = query.Where(x => x.MaDonTu == applicationId ||
+                                         x.TieuDe.Contains(search) ||
+                                         x.HocSinh!.HoTen.Contains(search) ||
+                                         x.HocSinh.Email.Contains(search));
+            }
+            else
+            {
+                query = query.Where(x => x.TieuDe.Contains(search) ||
+                                         x.LoaiDon.Contains(search) ||
+                                         x.HocSinh!.HoTen.Contains(search) ||
+                                         x.HocSinh.Email.Contains(search));
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.SlaStatus) && parameters.SlaStatus != "all")
+        {
+            query = ApplySlaStatusFilter(query, parameters.SlaStatus);
+        }
+
+        return query;
+    }
+
     private IQueryable<DonTu> ApplyOrdering(IQueryable<DonTu> query, NormalizedQueueQuery parameters)
     {
         if (parameters.SortBy != "sla")
@@ -369,16 +456,16 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         var now = DateTime.UtcNow;
         var dueSoonDeadline = now.AddHours(_options.SlaWarningBeforeHours);
         var ordered = query
-            .OrderByDescending(x => ActiveQueueStatuses.Contains(x.TrangThai) && x.HanXuLyLuc.HasValue && x.HanXuLyLuc.Value < now)
-            .ThenByDescending(x => ActiveQueueStatuses.Contains(x.TrangThai) && x.HanXuLyLuc.HasValue && x.HanXuLyLuc.Value >= now && x.HanXuLyLuc.Value <= dueSoonDeadline)
+            .OrderByDescending(x => RunningSlaStatuses.Contains(x.TrangThai) && x.HanXuLyLuc.HasValue && x.HanXuLyLuc.Value < now)
+            .ThenByDescending(x => RunningSlaStatuses.Contains(x.TrangThai) && x.HanXuLyLuc.HasValue && x.HanXuLyLuc.Value >= now && x.HanXuLyLuc.Value <= dueSoonDeadline)
             .ThenByDescending(x => x.NguoiDuyetHienTai == null)
             .ThenBy(x => x.HanXuLyLuc)
             .ThenBy(x => x.NgayNop)
             .ThenBy(x => x.MaDonTu);
         return parameters.SortDirection == "desc"
             ? query
-                .OrderBy(x => ActiveQueueStatuses.Contains(x.TrangThai) && x.HanXuLyLuc.HasValue && x.HanXuLyLuc.Value < now)
-                .ThenBy(x => ActiveQueueStatuses.Contains(x.TrangThai) && x.HanXuLyLuc.HasValue && x.HanXuLyLuc.Value >= now && x.HanXuLyLuc.Value <= dueSoonDeadline)
+                .OrderBy(x => RunningSlaStatuses.Contains(x.TrangThai) && x.HanXuLyLuc.HasValue && x.HanXuLyLuc.Value < now)
+                .ThenBy(x => RunningSlaStatuses.Contains(x.TrangThai) && x.HanXuLyLuc.HasValue && x.HanXuLyLuc.Value >= now && x.HanXuLyLuc.Value <= dueSoonDeadline)
                 .ThenBy(x => x.NguoiDuyetHienTai == null)
                 .ThenByDescending(x => x.HanXuLyLuc)
                 .ThenByDescending(x => x.NgayNop)
@@ -395,17 +482,14 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         {
             "none" => query.Where(x => !ActiveQueueStatuses.Contains(x.TrangThai) || !x.HanXuLyLuc.HasValue),
             "paused" => query.Where(x => x.TrangThai == ApplicationStatuses.NeedSupplement),
-            "overdue" => query.Where(x => x.TrangThai != ApplicationStatuses.NeedSupplement &&
-                                          ActiveQueueStatuses.Contains(x.TrangThai) &&
+            "overdue" => query.Where(x => RunningSlaStatuses.Contains(x.TrangThai) &&
                                           x.HanXuLyLuc.HasValue &&
                                           x.HanXuLyLuc.Value < now),
-            "due_soon" => query.Where(x => x.TrangThai != ApplicationStatuses.NeedSupplement &&
-                                           ActiveQueueStatuses.Contains(x.TrangThai) &&
+            "due_soon" => query.Where(x => RunningSlaStatuses.Contains(x.TrangThai) &&
                                            x.HanXuLyLuc.HasValue &&
                                            x.HanXuLyLuc.Value >= now &&
                                            x.HanXuLyLuc.Value <= dueSoonDeadline),
-            "on_track" => query.Where(x => x.TrangThai != ApplicationStatuses.NeedSupplement &&
-                                           ActiveQueueStatuses.Contains(x.TrangThai) &&
+            "on_track" => query.Where(x => RunningSlaStatuses.Contains(x.TrangThai) &&
                                            x.HanXuLyLuc.HasValue &&
                                            x.HanXuLyLuc.Value > dueSoonDeadline),
             _ => throw new ApiException(StatusCodes.Status400BadRequest, "Trạng thái SLA không hợp lệ.")

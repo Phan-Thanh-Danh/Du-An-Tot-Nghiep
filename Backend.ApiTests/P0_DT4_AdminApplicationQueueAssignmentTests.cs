@@ -99,6 +99,8 @@ public class P0_DT4_AdminApplicationQueueAssignmentTests : ApiTestBase
         Assert.Multiple(() =>
         {
             Assert.That(GetInt32(data, "totalActive"), Is.GreaterThanOrEqualTo(3));
+            Assert.That(GetInt32(data, "needSupplement"), Is.GreaterThanOrEqualTo(1));
+            Assert.That(GetInt32(data, "waitingForSupplement"), Is.GreaterThanOrEqualTo(1));
             Assert.That(GetInt32(data, "overdue"), Is.GreaterThanOrEqualTo(1));
             Assert.That(GetInt32(data, "dueSoon"), Is.GreaterThanOrEqualTo(1));
             Assert.That(GetInt32(data, "unassigned"), Is.GreaterThanOrEqualTo(1));
@@ -387,6 +389,25 @@ public class P0_DT4_AdminApplicationQueueAssignmentTests : ApiTestBase
             });
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound), await DescribeResponseAsync(response));
         });
+    }
+
+    [Test]
+    public async Task Assign_GlobalActorAssigneeFromDifferentApplicationCampus_ShouldReturn404()
+    {
+        var applicationCampusId = await CreateDifferentCampusAsync();
+        var application = await CreateApplicationForEmailAsync(
+            StudentEmail,
+            ApplicationStatuses.Submitted,
+            campusOverride: applicationCampusId);
+        var baseCampusAssignee = await CreateAssignableUserAsync();
+
+        using var response = await Client.PostAsJsonAsync($"api/admin/applications/{application.MaDonTu}/assign", new
+        {
+            assigneeId = baseCampusAssignee,
+            rowVersion = application.RowVersion
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound), await DescribeResponseAsync(response));
     }
 
     [Test]

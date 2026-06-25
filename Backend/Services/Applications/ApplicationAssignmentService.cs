@@ -108,6 +108,11 @@ public class ApplicationAssignmentService : IApplicationAssignmentService
             {
                 await AcquireWorkflowLockAsync(applicationId, cancellationToken);
                 var application = await GetApplicationInScopeTrackedAsync(applicationId, actor, cancellationToken);
+                if (target.MaDonVi != application.MaDonVi)
+                {
+                    throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy người xử lý phù hợp.");
+                }
+
                 EnsureRowVersion(application.RowVersion, rowVersion);
                 EnsureAssignableStatus(application.TrangThai);
 
