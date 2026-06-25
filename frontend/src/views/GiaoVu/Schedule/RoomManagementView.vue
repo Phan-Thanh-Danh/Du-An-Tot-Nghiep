@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   Search,
   Plus,
@@ -18,99 +19,161 @@ import {
   AlertCircle,
   Calendar,
   Clock,
+  Lightbulb,
+  DoorOpen,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import { roomApi } from '@/services/roomApi'
+import { buildingApi } from '@/services/buildingApi'
+import { floorApi } from '@/services/floorApi'
 
-// ── Mock Data ────────────────────────────────────────────────
-const rooms = ref([
-  { id: 'PH001', name: 'Phòng 302', campus: 'Cơ sở chính', floor: '3', capacity: 45, type: 'Lý thuyết', devices: ['Projector', 'Điều hòa'], status: 'active' },
-  { id: 'PH002', name: 'Lab 2', campus: 'Cơ sở chính', floor: '2', capacity: 30, type: 'Thực hành', devices: ['Máy tính', 'Server', 'Projector'], status: 'active' },
-  { id: 'PH003', name: 'Phòng 105', campus: 'Cơ sở phụ', floor: '1', capacity: 60, type: 'Hội trường', devices: ['Âm thanh', 'Projector'], status: 'maintenance' },
-  { id: 'PH004', name: 'Phòng 401', campus: 'Cơ sở chính', floor: '4', capacity: 40, type: 'Lý thuyết', devices: ['Bảng trắng', 'Điều hòa'], status: 'active' },
-  { id: 'PH005', name: 'Studio 1', campus: 'Cơ sở chính', floor: '1', capacity: 15, type: 'Chuyên dụng', devices: ['Camera', 'Màn xanh'], status: 'inactive' },
-  { id: 'PH006', name: 'Phòng 210', campus: 'Cơ sở phụ', floor: '2', capacity: 50, type: 'Lý thuyết', devices: ['Projector', 'Wifi', 'Điều hòa'], status: 'active' },
-])
+const loading = ref(true)
+const error = ref(null)
+const rooms = ref([])
+const buildings = ref([])
+const floors = ref([])
 
 // ── Search & Filter ──────────────────────────────────────────
 const searchQuery = ref('')
 const filterType    = ref('all')
 const filterStatus  = ref('all')
-const filterCampus  = ref('all')
-const filterFloor   = ref('all')
+const filterBuildingId = ref('all')
+const filterFloorId = ref('all')
 const showFilterPanel = ref(false)
 
-const TYPES   = ['Lý thuyết', 'Thực hành', 'Hội trường', 'Chuyên dụng']
-const STATUSES = ['active', 'maintenance', 'inactive']
-const CAMPUSES = ['Cơ sở chính', 'Cơ sở phụ']
-const FLOORS   = ['1', '2', '3', '4', '5']
+const ROOM_TYPES = ['ly_thuyet', 'thuc_hanh', 'phong_thi_nghiem', 'lab', 'hoi_truong', 'truc_tuyen', 'khac']
+const STATUSES = ['hoat_dong', 'bao_tri', 'ngung_hoat_dong']
+
+const ROOM_TYPE_LABEL = {
+  ly_thuyet: 'Lý thuyết',
+  thuc_hanh: 'Thực hành',
+  phong_thi_nghiem: 'Phòng thí nghiệm',
+  lab: 'Lab',
+  hoi_truong: 'Hội trường',
+  truc_tuyen: 'Trực tuyến',
+  khac: 'Khác',
+}
+
+async function fetchBuildings() {
+  try {
+    const res = await buildingApi.list({ PageSize: 200 })
+    buildings.value = Array.isArray(res) ? res : (res?.items || res?.data || [])
+  } catch {
+    buildings.value = []
+  }
+}
+
+async function fetchFloors(buildingId) {
+  try {
+    const params = buildingId && buildingId !== 'all' ? { MaToaNha: buildingId } : { PageSize: 500 }
+    const res = await floorApi.list(params)
+    floors.value = Array.isArray(res) ? res : (res?.items || res?.data || [])
+  } catch {
+    floors.value = []
+  }
+}
+
+watch(filterBuildingId, (val) => {
+  filterFloorId.value = 'all'
+  fetchFloors(val)
+})
+
+const floorsForBuilding = computed(() => {
+  return filterBuildingId.value === 'all'
+    ? floors.value
+    : floors.value.filter(f => f.maToaNha === Number(filterBuildingId.value))
+})
+
+onMounted(async () => {
+  const route = useRoute()
+  await fetchBuildings()
+  if (route.query.buildingId) {
+    filterBuildingId.value = String(route.query.buildingId)
+    await fetchFloors(route.query.buildingId)
+    if (route.query.floorId) filterFloorId.value = String(route.query.floorId)
+  } else {
+    await fetchFloors()
+  }
+  await fetchRooms()
+  handleConflictSuggestion()
+})
+
+async function fetchRooms() {
+  loading.value = true
+  error.value = null
+  try {
+    const params = {}
+    if (filterBuildingId.value !== 'all') params.BuildingId = filterBuildingId.value
+    if (filterFloorId.value !== 'all') params.FloorId = filterFloorId.value
+    const res = await roomApi.list({ ...params, PageSize: 500 })
+    rooms.value = Array.isArray(res) ? res : (res?.items || res?.data || [])
+  } catch (e) {
+    error.value = e.message || 'Không thể tải danh sách phòng'
+  } finally {
+    loading.value = false
+  }
+}
 
 const filteredRooms = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
   return rooms.value.filter(r => {
-    const q = searchQuery.value.toLowerCase().trim()
-    const matchSearch = !q || r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q)
-    const matchType   = filterType.value   === 'all' || r.type   === filterType.value
-    const matchStatus = filterStatus.value === 'all' || r.status === filterStatus.value
-    const matchCampus = filterCampus.value === 'all' || r.campus === filterCampus.value
-    const matchFloor  = filterFloor.value  === 'all' || r.floor  === filterFloor.value
-    return matchSearch && matchType && matchStatus && matchCampus && matchFloor
+    const matchSearch = !q || r.tenPhong?.toLowerCase().includes(q) || r.maCodePhong?.toLowerCase().includes(q)
+    const matchType   = filterType.value   === 'all' || r.loaiPhong === filterType.value
+    const matchStatus = filterStatus.value === 'all' || r.trangThaiPhong === filterStatus.value
+    return matchSearch && matchType && matchStatus
   })
 })
 
 const activeFilterCount = computed(() => {
   let count = 0
-  if (filterType.value   !== 'all') count++
-  if (filterStatus.value !== 'all') count++
-  if (filterCampus.value !== 'all') count++
-  if (filterFloor.value  !== 'all') count++
+  if (filterType.value        !== 'all') count++
+  if (filterStatus.value      !== 'all') count++
+  if (filterBuildingId.value  !== 'all') count++
+  if (filterFloorId.value     !== 'all') count++
   return count
 })
 
 function clearFilters() {
   filterType.value   = 'all'
   filterStatus.value = 'all'
-  filterCampus.value = 'all'
-  filterFloor.value  = 'all'
+  filterBuildingId.value = 'all'
+  filterFloorId.value = 'all'
+  searchQuery.value = ''
+  fetchRooms()
 }
 
 // ── Status helpers ───────────────────────────────────────────
 const STATUS_MAP = {
-  active:      { label: 'Đang hoạt động', dot: 'bg-[var(--lg-success)]', badge: 'lg-badge lg-badge-success', pulse: true },
-  maintenance: { label: 'Bảo trì',        dot: 'bg-[var(--lg-warning)]', badge: 'lg-badge lg-badge-warning', pulse: false },
-  inactive:    { label: 'Ngừng hoạt động',dot: 'bg-[var(--lg-danger)]',  badge: 'lg-badge border-[var(--color-danger-bg)] bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]', pulse: false },
+  hoat_dong:      { label: 'Đang hoạt động', dot: 'bg-[var(--lg-success)]', badge: 'lg-badge lg-badge-success', pulse: true },
+  bao_tri:        { label: 'Bảo trì',        dot: 'bg-[var(--lg-warning)]', badge: 'lg-badge lg-badge-warning', pulse: false },
+  ngung_hoat_dong: { label: 'Ngừng hoạt động',dot: 'bg-[var(--lg-danger)]',  badge: 'lg-badge border-[var(--color-danger-bg)] bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]', pulse: false },
 }
-const getStatusInfo = s => STATUS_MAP[s] || STATUS_MAP.inactive
+const getStatusInfo = s => STATUS_MAP[s] || STATUS_MAP.ngung_hoat_dong
 
-const TYPE_ICON_MAP = { 'Thực hành': Monitor, 'Hội trường': Tv }
-const getRoomIcon = t => TYPE_ICON_MAP[t] || Building
+const TYPE_ICON_MAP = { thuc_hanh: Monitor, hoi_truong: Tv, phong_thi_nghiem: Monitor, lab: Monitor }
+const getRoomIcon = t => TYPE_ICON_MAP[t] || DoorOpen
 
 // ── Add Room Modal ───────────────────────────────────────────
 const showAddModal  = ref(false)
 const isSubmitting  = ref(false)
 const addErrors     = reactive({})
 
-const deviceOptions = ['Projector', 'Màn hình', 'Điều hòa', 'Wifi', 'Máy tính', 'Server', 'Âm thanh', 'Camera', 'Màn xanh', 'Bảng trắng']
-
 const defaultForm = () => ({
-  name:     '',
-  campus:   'Cơ sở chính',
-  floor:    '1',
-  capacity: '',
-  type:     'Lý thuyết',
-  devices:  [],
-  status:   'active',
+  maDonVi: 1,
+  maToaNha: null,
+  maTang: null,
+  maCodePhong: '',
+  tenPhong: '',
+  sucChua: '',
+  loaiPhong: 'ly_thuyet',
+  trangThaiPhong: 'hoat_dong',
+  ghiChu: '',
 })
 
 const newRoom = reactive(defaultForm())
 
-function toggleDevice(d) {
-  const idx = newRoom.devices.indexOf(d)
-  if (idx === -1) newRoom.devices.push(d)
-  else newRoom.devices.splice(idx, 1)
-}
-
 function openAddModal() {
   Object.assign(newRoom, defaultForm())
-  newRoom.devices = []
   Object.keys(addErrors).forEach(k => delete addErrors[k])
   showAddModal.value = true
 }
@@ -121,21 +184,34 @@ function closeAddModal() {
 
 function validateRoom() {
   Object.keys(addErrors).forEach(k => delete addErrors[k])
-  if (!newRoom.name.trim()) addErrors.name = 'Tên phòng không được để trống'
-  if (!newRoom.capacity || isNaN(newRoom.capacity) || +newRoom.capacity <= 0)
-    addErrors.capacity = 'Sức chứa phải là số dương'
+  if (!newRoom.maCodePhong.trim()) addErrors.maCodePhong = 'Mã phòng không được để trống'
+  if (!newRoom.tenPhong.trim()) addErrors.tenPhong = 'Tên phòng không được để trống'
+  if (!newRoom.sucChua || isNaN(newRoom.sucChua) || +newRoom.sucChua <= 0)
+    addErrors.sucChua = 'Sức chứa phải là số dương'
   return Object.keys(addErrors).length === 0
 }
 
 async function submitAddRoom() {
   if (!validateRoom()) return
   isSubmitting.value = true
-  // Simulate API delay
-  await new Promise(r => setTimeout(r, 700))
-  const id = 'PH' + String(rooms.value.length + 1).padStart(3, '0')
-  rooms.value.push({ id, ...newRoom, capacity: +newRoom.capacity, devices: [...newRoom.devices] })
-  isSubmitting.value = false
-  closeAddModal()
+  try {
+    await roomApi.create({
+      maDonVi: newRoom.maDonVi,
+      maToaNha: Number(newRoom.maToaNha),
+      maTang: Number(newRoom.maTang),
+      maCodePhong: newRoom.maCodePhong,
+      tenPhong: newRoom.tenPhong,
+      sucChua: Number(newRoom.sucChua),
+      loaiPhong: newRoom.loaiPhong,
+      ghiChu: newRoom.ghiChu || null,
+    })
+    closeAddModal()
+    await fetchRooms()
+  } catch (e) {
+    addErrors._api = e.message || 'Lỗi khi tạo phòng'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 // ── Edit Room Modal ──────────────────────────────────────────
@@ -143,8 +219,22 @@ const showEditModal = ref(false)
 const editingRoom = ref(null)
 const editErrors = reactive({})
 
+const addFloorOptions = computed(() => {
+  if (!newRoom.maToaNha) return []
+  return floors.value.filter(f => f.maToaNha === Number(newRoom.maToaNha))
+})
+
+const editFloorOptions = computed(() => {
+  if (!editingRoom.value?.maToaNha) return []
+  return floors.value.filter(f => f.maToaNha === Number(editingRoom.value.maToaNha))
+})
+
 function openEditModal(room) {
-  editingRoom.value = { ...room, devices: [...room.devices] }
+  editingRoom.value = {
+    ...room,
+    maToaNha: room.maToaNha,
+    maTang: room.maTang,
+  }
   Object.keys(editErrors).forEach(k => delete editErrors[k])
   showEditModal.value = true
 }
@@ -156,25 +246,34 @@ function closeEditModal() {
 
 function validateEdit() {
   Object.keys(editErrors).forEach(k => delete editErrors[k])
-  if (!editingRoom.value.name.trim()) editErrors.name = 'Tên phòng không được để trống'
-  if (!editingRoom.value.capacity || isNaN(editingRoom.value.capacity) || +editingRoom.value.capacity <= 0)
-    editErrors.capacity = 'Sức chứa phải là số dương'
+  if (!editingRoom.value.tenPhong.trim()) editErrors.tenPhong = 'Tên phòng không được để trống'
+  if (!editingRoom.value.sucChua || isNaN(editingRoom.value.sucChua) || +editingRoom.value.sucChua <= 0)
+    editErrors.sucChua = 'Sức chứa phải là số dương'
   return Object.keys(editErrors).length === 0
 }
 
-function toggleEditDevice(d) {
-  const idx = editingRoom.value.devices.indexOf(d)
-  if (idx === -1) editingRoom.value.devices.push(d)
-  else editingRoom.value.devices.splice(idx, 1)
-}
-
-function submitEditRoom() {
+async function submitEditRoom() {
   if (!validateEdit()) return
-  const idx = rooms.value.findIndex(r => r.id === editingRoom.value.id)
-  if (idx !== -1) {
-    rooms.value[idx] = { ...editingRoom.value, capacity: +editingRoom.value.capacity }
+  isSubmitting.value = true
+  try {
+    await roomApi.update(editingRoom.value.maPhong, {
+      maDonVi: editingRoom.value.maDonVi,
+      maToaNha: Number(editingRoom.value.maToaNha),
+      maTang: Number(editingRoom.value.maTang),
+      maCodePhong: editingRoom.value.maCodePhong,
+      tenPhong: editingRoom.value.tenPhong,
+      sucChua: Number(editingRoom.value.sucChua),
+      loaiPhong: editingRoom.value.loaiPhong,
+      trangThaiPhong: editingRoom.value.trangThaiPhong,
+      ghiChu: editingRoom.value.ghiChu || null,
+    })
+    closeEditModal()
+    await fetchRooms()
+  } catch (e) {
+    editErrors._api = e.message || 'Lỗi khi cập nhật phòng'
+  } finally {
+    isSubmitting.value = false
   }
-  closeEditModal()
 }
 
 // ── Delete confirmation ──────────────────────────────────────
@@ -184,18 +283,38 @@ function requestDelete(room) {
   confirmDelete.value = room
 }
 
-function executeDelete() {
+async function executeDelete() {
   if (!confirmDelete.value) return
-  const idx = rooms.value.findIndex(r => r.id === confirmDelete.value.id)
-  if (idx !== -1) rooms.value[idx].status = 'inactive'
-  confirmDelete.value = null
+  try {
+    await roomApi.delete(confirmDelete.value.maPhong)
+    confirmDelete.value = null
+    await fetchRooms()
+  } catch (e) {
+    error.value = e.message || 'Không thể xóa phòng'
+    confirmDelete.value = null
+  }
 }
 
 // ── Mark maintenance ─────────────────────────────────────────
-function markMaintenance(room) {
-  const idx = rooms.value.findIndex(r => r.id === room.id)
-  if (idx !== -1) rooms.value[idx].status = 'maintenance'
-  menuOpenId.value = null
+async function markMaintenance(room) {
+  try {
+    await roomApi.update(room.maPhong, {
+      maDonVi: room.maDonVi,
+      maToaNha: room.maToaNha,
+      maTang: room.maTang,
+      maCodePhong: room.maCodePhong,
+      tenPhong: room.tenPhong,
+      sucChua: room.sucChua,
+      loaiPhong: room.loaiPhong,
+      trangThaiPhong: 'bao_tri',
+      ghiChu: room.ghiChu,
+    })
+    await fetchRooms()
+  } catch {
+    // silent
+  } finally {
+    menuOpenId.value = null
+  }
 }
 
 // ── Usage History Modal ──────────────────────────────────────
@@ -216,6 +335,70 @@ function closeHistoryModal() {
 const menuOpenId = ref(null)
 function toggleMenu(id) { menuOpenId.value = menuOpenId.value === id ? null : id }
 function closeMenu()    { menuOpenId.value = null }
+
+// ── Conflict Suggestion Handling ─────────────────────────────
+const highlightedRoomId = ref('')
+const suggestedInfo = ref(null)
+const route = useRoute()
+const router = useRouter()
+
+function findRoomById(id) {
+  const nid = Number(id)
+  return rooms.value.find(r => r.maPhong === nid || r.maCodePhong === id)
+}
+
+function handleConflictSuggestion() {
+  if (route.query.action === 'change-room' && route.query.roomId) {
+    if (route.query.autoApply === 'true' && route.query.suggestedRoom) {
+      const oldRoom = findRoomById(route.query.roomId)
+      if (oldRoom) {
+        oldRoom.tenPhong = route.query.suggestedRoom
+      }
+      router.replace('/staff/conflicts')
+      return
+    }
+    highlightedRoomId.value = route.query.roomId
+    const oldRoom = findRoomById(route.query.roomId)
+    if (oldRoom) {
+      suggestedInfo.value = {
+        oldRoomId: oldRoom.maPhong,
+        oldRoomName: oldRoom.tenPhong,
+        suggestedRoom: route.query.suggestedRoom || ''
+      }
+    }
+  }
+}
+
+function applySuggestedRoom() {
+  if (suggestedInfo.value) {
+    const oldRoom = findRoomById(String(suggestedInfo.value.oldRoomId))
+    if (oldRoom) {
+      oldRoom.tenPhong = suggestedInfo.value.suggestedRoom
+      alert(`Đã áp dụng đổi phòng thành công! Phòng ${suggestedInfo.value.oldRoomId} đã đổi tên thành ${suggestedInfo.value.suggestedRoom}.`)
+    }
+    clearSuggestion()
+  }
+}
+
+function clearSuggestion() {
+  suggestedInfo.value = null
+  highlightedRoomId.value = ''
+}
+
+// ── Helper for building/floor names ─────────────────────────
+function getBuildingName(id) {
+  const b = buildings.value.find(x => x.maToaNha === Number(id))
+  return b ? b.tenToaNha : ''
+}
+
+function getFloorName(id) {
+  const f = floors.value.find(x => x.maTang === Number(id))
+  return f ? f.tenTang : ''
+}
+
+function applyFilterAndReload() {
+  fetchRooms()
+}
 </script>
 
 <template>
@@ -235,13 +418,36 @@ function closeMenu()    { menuOpenId.value = null }
 
     <div class="space-y-4" @click="closeMenu">
 
+      <!-- Banner gợi ý giải quyết xung đột phòng học -->
+      <div v-if="suggestedInfo" class="lg-glass-strong p-4 rounded-2xl border border-[var(--border-input-focus)] bg-[var(--color-info-bg)]/25 flex items-center justify-between gap-4 transition-all">
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-xl bg-[var(--surface-input)] flex items-center justify-center text-[var(--lg-primary)] border border-default">
+            <Lightbulb :size="20" />
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-heading">Đề xuất đổi phòng học</h4>
+            <p class="text-xs text-label mt-0.5">
+              Phòng <strong class="text-heading">{{ suggestedInfo.oldRoomName }}</strong> đang bị trùng lịch dạy. Đề xuất đổi sang phòng <strong class="text-heading">{{ suggestedInfo.suggestedRoom }}</strong>.
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button @click="applySuggestedRoom" class="lg-button-primary px-4 py-2 text-xs font-bold shadow-md shadow-[var(--lg-primary)]/10">
+            Áp dụng đổi
+          </button>
+          <button @click="clearSuggestion" class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-placeholder transition-colors">
+            <X :size="16" />
+          </button>
+        </div>
+      </div>
+
       <!-- ── Stats Row ─────────────────────────────────── -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div v-for="stat in [
-          { label: 'Tổng phòng',      value: rooms.length,                                          color: 'text-[var(--color-info-text)]',    bg: 'bg-[var(--color-info-bg)]',    border: 'border-[var(--color-info-bg)]' },
-          { label: 'Đang hoạt động',  value: rooms.filter(r=>r.status==='active').length,            color: 'text-[var(--color-success-text)]', bg: 'bg-[var(--color-success-bg)]', border: 'border-[var(--color-success-bg)]' },
-          { label: 'Đang bảo trì',    value: rooms.filter(r=>r.status==='maintenance').length,       color: 'text-[var(--color-warning-text)]', bg: 'bg-[var(--color-warning-bg)]', border: 'border-[var(--color-warning-bg)]' },
-          { label: 'Ngừng hoạt động', value: rooms.filter(r=>r.status==='inactive').length,          color: 'text-[var(--color-danger-text)]',  bg: 'bg-[var(--color-danger-bg)]',  border: 'border-[var(--color-danger-bg)]' },
+          { label: 'Tổng phòng',      value: rooms.length,                                                   color: 'text-[var(--color-info-text)]',    bg: 'bg-[var(--color-info-bg)]',    border: 'border-[var(--color-info-bg)]' },
+          { label: 'Đang hoạt động',  value: rooms.filter(r=>r.trangThaiPhong==='hoat_dong').length,          color: 'text-[var(--color-success-text)]', bg: 'bg-[var(--color-success-bg)]', border: 'border-[var(--color-success-bg)]' },
+          { label: 'Đang bảo trì',    value: rooms.filter(r=>r.trangThaiPhong==='bao_tri').length,            color: 'text-[var(--color-warning-text)]', bg: 'bg-[var(--color-warning-bg)]', border: 'border-[var(--color-warning-bg)]' },
+          { label: 'Ngừng hoạt động', value: rooms.filter(r=>r.trangThaiPhong==='ngung_hoat_dong').length,    color: 'text-[var(--color-danger-text)]',  bg: 'bg-[var(--color-danger-bg)]',  border: 'border-[var(--color-danger-bg)]' },
         ]" :key="stat.label"
           :class="['rounded-2xl p-4 border border-default', stat.bg, stat.border]"
         >
@@ -279,16 +485,31 @@ function closeMenu()    { menuOpenId.value = null }
             class="lg-input px-3 py-2.5 text-sm font-bold"
           >
             <option value="all">Tất cả loại</option>
-            <option v-for="t in TYPES" :key="t" :value="t">{{ t }}</option>
+            <option v-for="t in ROOM_TYPES" :key="t" :value="t">{{ ROOM_TYPE_LABEL[t] || t }}</option>
           </select>
 
           <select
-            id="select-filter-campus"
-            v-model="filterCampus"
-            class="lg-input px-3 py-2.5 text-sm font-bold"
+            id="select-filter-building"
+            v-model="filterBuildingId"
+            class="lg-input px-3 py-2.5 text-sm font-bold min-w-[140px]"
+            @change="applyFilterAndReload"
           >
-            <option value="all">Tất cả cơ sở</option>
-            <option v-for="c in CAMPUSES" :key="c" :value="c">{{ c }}</option>
+            <option value="all">Tất cả tòa nhà</option>
+            <option v-for="b in buildings" :key="b.maToaNha" :value="String(b.maToaNha)">
+              {{ b.tenToaNha }}
+            </option>
+          </select>
+
+          <select
+            id="select-filter-floor"
+            v-model="filterFloorId"
+            class="lg-input px-3 py-2.5 text-sm font-bold min-w-[120px]"
+            @change="applyFilterAndReload"
+          >
+            <option value="all">Tất cả lầu</option>
+            <option v-for="f in floorsForBuilding" :key="f.maTang" :value="String(f.maTang)">
+              {{ f.tenTang }}
+            </option>
           </select>
 
           <!-- Advanced filter toggle -->
@@ -313,7 +534,7 @@ function closeMenu()    { menuOpenId.value = null }
           <button
             v-if="activeFilterCount > 0 || searchQuery"
             class="text-xs font-bold text-placeholder hover:text-[var(--lg-danger)] transition-colors"
-            @click="clearFilters(); searchQuery = ''"
+            @click="clearFilters()"
           >Xóa bộ lọc</button>
         </div>
 
@@ -337,29 +558,22 @@ function closeMenu()    { menuOpenId.value = null }
                 </button>
               </div>
             </div>
-            <div>
-              <p class="text-[10px] font-semibold uppercase tracking-widest text-placeholder mb-2">Lầu</p>
-              <div class="flex gap-2 flex-wrap">
-                <button
-                  v-for="f in ['all', ...FLOORS]" :key="f"
-                  :class="[
-                    'px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
-                    filterFloor === f
-                      ? 'lg-button-primary'
-                      : 'lg-button-secondary text-body'
-                  ]"
-                  @click="filterFloor = f"
-                >
-                  {{ f === 'all' ? 'Tất cả lầu' : 'Lầu ' + f }}
-                </button>
-              </div>
-            </div>
           </div>
         </Transition>
       </div>
 
-      <!-- ── Result count ──────────────────────────────── -->
-      <div class="flex items-center justify-between px-1">
+      <!-- ── Loading / Error / Result ─────────────────────────── -->
+      <div v-if="loading" class="flex items-center justify-center py-16">
+        <div class="h-8 w-8 border-2 border-[var(--lg-primary)] border-t-transparent rounded-full animate-spin"></div>
+        <span class="ml-3 text-sm text-label">Đang tải...</span>
+      </div>
+
+      <div v-else-if="error" class="lg-glass-strong p-6 rounded-2xl text-center">
+        <p class="text-sm text-[var(--lg-danger)] font-semibold">{{ error }}</p>
+        <button class="mt-3 text-sm font-bold text-[var(--lg-primary)] hover:underline" @click="fetchRooms">Thử lại</button>
+      </div>
+
+      <div v-else class="flex items-center justify-between px-1">
         <p class="text-sm text-label font-semibold">
           Hiển thị <span class="font-semibold text-heading">{{ filteredRooms.length }}</span> / {{ rooms.length }} phòng
         </p>
@@ -369,8 +583,11 @@ function closeMenu()    { menuOpenId.value = null }
       <TransitionGroup name="room-list" tag="div" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <div
           v-for="room in filteredRooms"
-          :key="room.id"
-          class="lg-card surface-card group p-4 transition-all hover:-translate-y-0.5 hover:shadow-sm cursor-pointer"
+          :key="room.maPhong"
+          :class="[
+            'lg-card surface-card group p-4 transition-all hover:-translate-y-0.5 hover:shadow-sm cursor-pointer relative',
+            highlightedRoomId === String(room.maPhong) ? '!border-[var(--lg-primary)] ring-2 ring-[var(--lg-primary)]/20 shadow-md' : 'border-default'
+          ]"
         >
           <!-- Top glow accent -->
           <div class="absolute top-0 left-0 right-0 h-0.5 bg-[var(--border-input-focus)] opacity-0 group-hover:opacity-100 transition-opacity rounded-t-2xl"></div>
@@ -378,19 +595,19 @@ function closeMenu()    { menuOpenId.value = null }
           <!-- Status dot + context menu -->
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
-              <span :class="['h-2 w-2 rounded-full', getStatusInfo(room.status).dot, getStatusInfo(room.status).pulse ? 'animate-pulse' : '']"></span>
-              <span class="text-[10px] font-semibold uppercase tracking-widest text-placeholder">{{ getStatusInfo(room.status).label }}</span>
+              <span :class="['h-2 w-2 rounded-full', getStatusInfo(room.trangThaiPhong).dot, getStatusInfo(room.trangThaiPhong).pulse ? 'animate-pulse' : '']"></span>
+              <span class="text-[10px] font-semibold uppercase tracking-widest text-placeholder">{{ getStatusInfo(room.trangThaiPhong).label }}</span>
             </div>
             <div class="relative">
               <button
                 class="p-1.5 hover:bg-[var(--surface-input-focus)] rounded-lg text-placeholder transition-all"
-                @click.stop="toggleMenu(room.id)"
+                @click.stop="toggleMenu(room.maPhong)"
               >
                 <MoreVertical :size="16" />
               </button>
               <Transition name="fade-up">
                 <div
-                  v-if="menuOpenId === room.id"
+                  v-if="menuOpenId === room.maPhong"
                   class="absolute right-0 top-8 z-[100] surface-solid border border-default rounded-2xl shadow-sm w-44 py-1 overflow-hidden"
                   @click.stop
                 >
@@ -407,7 +624,7 @@ function closeMenu()    { menuOpenId.value = null }
                     <History :size="14" class="text-[var(--lg-info)]" /> Lịch sử dùng
                   </button>
                   <button
-                    v-if="room.status !== 'maintenance'"
+                    v-if="room.trangThaiPhong !== 'bao_tri'"
                     class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors"
                     @click="markMaintenance(room)"
                   >
@@ -428,12 +645,12 @@ function closeMenu()    { menuOpenId.value = null }
           <!-- Room icon + name -->
           <div class="flex items-center gap-3">
             <div class="h-12 w-12 rounded-2xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] border border-[var(--color-info-bg)] shrink-0">
-              <component :is="getRoomIcon(room.type)" :size="22" />
+              <component :is="getRoomIcon(room.loaiPhong)" :size="22" />
             </div>
             <div>
-              <h3 class="text-base font-semibold text-heading leading-tight group-hover:text-[var(--lg-primary)] transition-colors">{{ room.name }}</h3>
+              <h3 class="text-base font-semibold text-heading leading-tight group-hover:text-[var(--lg-primary)] transition-colors">{{ room.tenPhong }}</h3>
               <p class="text-[10px] font-semibold text-label uppercase tracking-widest flex items-center gap-1 mt-0.5">
-                <MapPin :size="10" /> {{ room.campus }} · Lầu {{ room.floor }}
+                <MapPin :size="10" /> {{ getBuildingName(room.maToaNha) }} · {{ getFloorName(room.maTang) }}
               </p>
             </div>
           </div>
@@ -444,34 +661,27 @@ function closeMenu()    { menuOpenId.value = null }
               <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Sức chứa</p>
               <div class="flex items-center gap-1.5 mt-1">
                 <Users :size="13" class="text-[var(--lg-primary)]" />
-                <span class="text-sm font-semibold text-heading">{{ room.capacity }} SV</span>
+                <span class="text-sm font-semibold text-heading">{{ room.sucChua }} SV</span>
               </div>
             </div>
             <div class="surface-input rounded-xl p-3 border border-default">
               <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Loại phòng</p>
-              <p class="text-sm font-semibold text-heading mt-1">{{ room.type }}</p>
+              <p class="text-sm font-semibold text-heading mt-1">{{ ROOM_TYPE_LABEL[room.loaiPhong] || room.loaiPhong }}</p>
             </div>
           </div>
 
-          <!-- Devices -->
-          <div class="mt-4">
-            <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest mb-2">Thiết bị</p>
-            <div class="flex flex-wrap gap-1.5">
-              <span
-                v-for="device in room.devices"
-                :key="device"
-                class="px-2 py-0.5 rounded-lg surface-solid border border-default text-[10px] font-semibold text-label shadow-sm"
-              >{{ device }}</span>
-              <span v-if="room.devices.length === 0" class="text-[10px] text-placeholder italic">Chưa có thiết bị</span>
-            </div>
+          <!-- Location info -->
+          <div class="mt-4 surface-input rounded-xl p-3 border border-default">
+            <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest mb-1">Vị trí</p>
+            <p class="text-xs font-semibold text-heading">{{ getBuildingName(room.maToaNha) }} - {{ getFloorName(room.maTang) }}</p>
           </div>
 
           <!-- Footer -->
           <div class="mt-4 pt-4 border-t border-default flex items-center justify-between">
-            <span :class="['px-2.5 py-1 text-[10px]', getStatusInfo(room.status).badge]">
-              {{ getStatusInfo(room.status).label }}
+            <span :class="['px-2.5 py-1 text-[10px]', getStatusInfo(room.trangThaiPhong).badge]">
+              {{ getStatusInfo(room.trangThaiPhong).label }}
             </span>
-            <p class="text-[10px] font-bold text-placeholder uppercase tracking-wide">{{ room.id }}</p>
+            <p class="text-[10px] font-bold text-placeholder uppercase tracking-wide">{{ room.maCodePhong }}</p>
           </div>
         </div>
 
@@ -486,7 +696,7 @@ function closeMenu()    { menuOpenId.value = null }
           </div>
           <p class="text-base font-semibold text-heading">Không tìm thấy phòng nào</p>
           <p class="text-sm text-label mt-1">Thử thay đổi từ khóa hoặc điều chỉnh bộ lọc.</p>
-          <button class="mt-4 text-sm font-bold text-[var(--lg-primary)] hover:underline" @click="clearFilters(); searchQuery = ''">Xóa tất cả bộ lọc</button>
+          <button class="mt-4 text-sm font-bold text-[var(--lg-primary)] hover:underline" @click="clearFilters()">Xóa tất cả bộ lọc</button>
         </div>
       </TransitionGroup>
     </div>
@@ -525,47 +735,42 @@ function closeMenu()    { menuOpenId.value = null }
 
           <!-- Form body -->
           <div class="p-6 space-y-5">
+            <p v-if="addErrors._api" class="text-sm text-[var(--lg-danger)] font-semibold">{{ addErrors._api }}</p>
+
+            <!-- Mã phòng -->
+            <div>
+              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">
+                Mã phòng <span class="text-[var(--lg-danger)]">*</span>
+              </label>
+              <input v-model="newRoom.maCodePhong" type="text" placeholder="VD: PH001"
+                :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', addErrors.maCodePhong ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : '']" />
+              <p v-if="addErrors.maCodePhong" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ addErrors.maCodePhong }}</p>
+            </div>
 
             <!-- Tên phòng -->
             <div>
-              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5" for="modal-room-name">
+              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">
                 Tên phòng <span class="text-[var(--lg-danger)]">*</span>
               </label>
-              <input
-                id="modal-room-name"
-                v-model="newRoom.name"
-                type="text"
-                placeholder="VD: Phòng 305, Lab 3..."
-                :class="[
-                  'w-full lg-input px-4 py-2.5 text-sm font-medium transition-all',
-                  addErrors.name
-                    ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]'
-                    : ''
-                ]"
-              />
-              <p v-if="addErrors.name" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ addErrors.name }}</p>
+              <input v-model="newRoom.tenPhong" type="text" placeholder="VD: Phòng 305, Lab 3..."
+                :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', addErrors.tenPhong ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : '']" />
+              <p v-if="addErrors.tenPhong" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ addErrors.tenPhong }}</p>
             </div>
 
-            <!-- Cơ sở + Lầu -->
+            <!-- Tòa nhà + Lầu -->
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5" for="modal-campus">Cơ sở</label>
-                <select
-                  id="modal-campus"
-                  v-model="newRoom.campus"
-                  class="w-full lg-input px-4 py-2.5 text-sm font-bold"
-                >
-                  <option v-for="c in CAMPUSES" :key="c" :value="c">{{ c }}</option>
+                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Tòa nhà</label>
+                <select v-model="newRoom.maToaNha" class="w-full lg-input px-4 py-2.5 text-sm font-bold">
+                  <option :value="null" disabled>Chọn tòa nhà</option>
+                  <option v-for="b in buildings" :key="b.maToaNha" :value="b.maToaNha">{{ b.tenToaNha }}</option>
                 </select>
               </div>
               <div>
-                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5" for="modal-floor">Lầu</label>
-                <select
-                  id="modal-floor"
-                  v-model="newRoom.floor"
-                  class="w-full lg-input px-4 py-2.5 text-sm font-bold"
-                >
-                  <option v-for="f in FLOORS" :key="f" :value="f">Lầu {{ f }}</option>
+                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Lầu</label>
+                <select v-model="newRoom.maTang" class="w-full lg-input px-4 py-2.5 text-sm font-bold">
+                  <option :value="null" disabled>Chọn lầu</option>
+                  <option v-for="f in addFloorOptions" :key="f.maTang" :value="f.maTang">{{ f.tenTang }}</option>
                 </select>
               </div>
             </div>
@@ -573,32 +778,17 @@ function closeMenu()    { menuOpenId.value = null }
             <!-- Sức chứa + Loại phòng -->
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5" for="modal-capacity">
+                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">
                   Sức chứa (SV) <span class="text-[var(--lg-danger)]">*</span>
                 </label>
-                <input
-                  id="modal-capacity"
-                  v-model="newRoom.capacity"
-                  type="number"
-                  min="1"
-                  placeholder="VD: 40"
-                  :class="[
-                    'w-full lg-input px-4 py-2.5 text-sm font-medium transition-all',
-                    addErrors.capacity
-                      ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]'
-                      : ''
-                  ]"
-                />
-                <p v-if="addErrors.capacity" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ addErrors.capacity }}</p>
+                <input v-model="newRoom.sucChua" type="number" min="1" placeholder="VD: 40"
+                  :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', addErrors.sucChua ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : '']" />
+                <p v-if="addErrors.sucChua" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ addErrors.sucChua }}</p>
               </div>
               <div>
-                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5" for="modal-type">Loại phòng</label>
-                <select
-                  id="modal-type"
-                  v-model="newRoom.type"
-                  class="w-full lg-input px-4 py-2.5 text-sm font-bold"
-                >
-                  <option v-for="t in TYPES" :key="t" :value="t">{{ t }}</option>
+                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Loại phòng</label>
+                <select v-model="newRoom.loaiPhong" class="w-full lg-input px-4 py-2.5 text-sm font-bold">
+                  <option v-for="t in ROOM_TYPES" :key="t" :value="t">{{ ROOM_TYPE_LABEL[t] || t }}</option>
                 </select>
               </div>
             </div>
@@ -607,54 +797,29 @@ function closeMenu()    { menuOpenId.value = null }
             <div>
               <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-2">Trạng thái</label>
               <div class="flex gap-2 flex-wrap">
-                <button
-                  v-for="s in STATUSES"
-                  :key="s"
-                  :class="[
-                    'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all',
-                    newRoom.status === s
-                      ? 'lg-button-primary'
-                      : 'lg-button-secondary text-body'
-                  ]"
-                  @click="newRoom.status = s"
-                >
-                  <span v-if="newRoom.status !== s" :class="['h-2 w-2 rounded-full', getStatusInfo(s).dot]"></span>
+                <button v-for="s in STATUSES" :key="s"
+                  :class="['flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all',
+                    newRoom.trangThaiPhong === s ? 'lg-button-primary' : 'lg-button-secondary text-body']"
+                  @click="newRoom.trangThaiPhong = s">
+                  <span v-if="newRoom.trangThaiPhong !== s" :class="['h-2 w-2 rounded-full', getStatusInfo(s).dot]"></span>
                   {{ getStatusInfo(s).label }}
                 </button>
               </div>
             </div>
 
-            <!-- Thiết bị -->
+            <!-- Ghi chú -->
             <div>
-              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-2">Thiết bị có sẵn</label>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  v-for="d in deviceOptions"
-                  :key="d"
-                  :class="[
-                    'px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
-                    newRoom.devices.includes(d)
-                      ? 'lg-button-primary'
-                      : 'lg-button-secondary text-body'
-                  ]"
-                  @click="toggleDevice(d)"
-                >{{ d }}</button>
-              </div>
+              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Ghi chú</label>
+              <textarea v-model="newRoom.ghiChu" placeholder="(tùy chọn)" rows="2" class="w-full lg-input px-4 py-2.5 text-sm font-medium resize-none"></textarea>
             </div>
           </div>
 
           <!-- Footer actions -->
           <div class="px-6 pb-6 pt-2 border-t border-default flex items-center justify-end gap-3 mt-4">
-            <button
-              class="lg-button-secondary px-5 py-2.5"
-              @click="closeAddModal"
-            >Hủy</button>
-            <button
-              id="btn-submit-add-room"
+            <button class="lg-button-secondary px-5 py-2.5" @click="closeAddModal">Hủy</button>
+            <button id="btn-submit-add-room"
               :class="['lg-button-primary px-6 py-2.5', isSubmitting ? 'opacity-70 cursor-not-allowed' : '']"
-              :disabled="isSubmitting"
-              @click="submitAddRoom"
-            >
+              :disabled="isSubmitting" @click="submitAddRoom">
               <span v-if="isSubmitting" class="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
               <Plus v-else :size="16" />
               {{ isSubmitting ? 'Đang lưu...' : 'Thêm phòng' }}
@@ -693,36 +858,36 @@ function closeMenu()    { menuOpenId.value = null }
           </div>
 
           <div class="p-6 space-y-5">
-            <!-- Tên phòng -->
+            <p v-if="editErrors._api" class="text-sm text-[var(--lg-danger)] font-semibold">{{ editErrors._api }}</p>
+
+            <!-- Mã phòng -->
             <div>
-              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5" for="edit-room-name">
-                Tên phòng <span class="text-[var(--lg-danger)]">*</span>
-              </label>
-              <input
-                id="edit-room-name"
-                v-model="editingRoom.name"
-                type="text"
-                placeholder="VD: Phòng 305, Lab 3..."
-                :class="[
-                  'w-full lg-input px-4 py-2.5 text-sm font-medium transition-all',
-                  editErrors.name ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : ''
-                ]"
-              />
-              <p v-if="editErrors.name" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ editErrors.name }}</p>
+              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Mã phòng</label>
+              <input :value="editingRoom.maCodePhong" type="text" disabled class="w-full lg-input px-4 py-2.5 text-sm font-medium opacity-60" />
             </div>
 
-            <!-- Cơ sở + Lầu -->
+            <!-- Tên phòng -->
+            <div>
+              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">
+                Tên phòng <span class="text-[var(--lg-danger)]">*</span>
+              </label>
+              <input v-model="editingRoom.tenPhong" type="text" placeholder="VD: Phòng 305, Lab 3..."
+                :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', editErrors.tenPhong ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : '']" />
+              <p v-if="editErrors.tenPhong" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ editErrors.tenPhong }}</p>
+            </div>
+
+            <!-- Tòa nhà + Lầu -->
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Cơ sở</label>
-                <select v-model="editingRoom.campus" class="w-full lg-input px-4 py-2.5 text-sm font-bold">
-                  <option v-for="c in CAMPUSES" :key="c" :value="c">{{ c }}</option>
+                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Tòa nhà</label>
+                <select v-model="editingRoom.maToaNha" class="w-full lg-input px-4 py-2.5 text-sm font-bold">
+                  <option v-for="b in buildings" :key="b.maToaNha" :value="b.maToaNha">{{ b.tenToaNha }}</option>
                 </select>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Lầu</label>
-                <select v-model="editingRoom.floor" class="w-full lg-input px-4 py-2.5 text-sm font-bold">
-                  <option v-for="f in FLOORS" :key="f" :value="f">Lầu {{ f }}</option>
+                <select v-model="editingRoom.maTang" class="w-full lg-input px-4 py-2.5 text-sm font-bold">
+                  <option v-for="f in editFloorOptions" :key="f.maTang" :value="f.maTang">{{ f.tenTang }}</option>
                 </select>
               </div>
             </div>
@@ -730,26 +895,17 @@ function closeMenu()    { menuOpenId.value = null }
             <!-- Sức chứa + Loại phòng -->
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5" for="edit-capacity">
+                <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">
                   Sức chứa (SV) <span class="text-[var(--lg-danger)]">*</span>
                 </label>
-                <input
-                  id="edit-capacity"
-                  v-model="editingRoom.capacity"
-                  type="number"
-                  min="1"
-                  placeholder="VD: 40"
-                  :class="[
-                    'w-full lg-input px-4 py-2.5 text-sm font-medium transition-all',
-                    editErrors.capacity ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : ''
-                  ]"
-                />
-                <p v-if="editErrors.capacity" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ editErrors.capacity }}</p>
+                <input v-model="editingRoom.sucChua" type="number" min="1" placeholder="VD: 40"
+                  :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', editErrors.sucChua ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : '']" />
+                <p v-if="editErrors.sucChua" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ editErrors.sucChua }}</p>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Loại phòng</label>
-                <select v-model="editingRoom.type" class="w-full lg-input px-4 py-2.5 text-sm font-bold">
-                  <option v-for="t in TYPES" :key="t" :value="t">{{ t }}</option>
+                <select v-model="editingRoom.loaiPhong" class="w-full lg-input px-4 py-2.5 text-sm font-bold">
+                  <option v-for="t in ROOM_TYPES" :key="t" :value="t">{{ ROOM_TYPE_LABEL[t] || t }}</option>
                 </select>
               </div>
             </div>
@@ -758,33 +914,20 @@ function closeMenu()    { menuOpenId.value = null }
             <div>
               <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-2">Trạng thái</label>
               <div class="flex gap-2 flex-wrap">
-                <button
-                  v-for="s in STATUSES" :key="s"
-                  :class="[
-                    'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all',
-                    editingRoom.status === s ? 'lg-button-primary' : 'lg-button-secondary text-body'
-                  ]"
-                  @click="editingRoom.status = s"
-                >
-                  <span v-if="editingRoom.status !== s" :class="['h-2 w-2 rounded-full', getStatusInfo(s).dot]"></span>
+                <button v-for="s in STATUSES" :key="s"
+                  :class="['flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all',
+                    editingRoom.trangThaiPhong === s ? 'lg-button-primary' : 'lg-button-secondary text-body']"
+                  @click="editingRoom.trangThaiPhong = s">
+                  <span v-if="editingRoom.trangThaiPhong !== s" :class="['h-2 w-2 rounded-full', getStatusInfo(s).dot]"></span>
                   {{ getStatusInfo(s).label }}
                 </button>
               </div>
             </div>
 
-            <!-- Thiết bị -->
+            <!-- Ghi chú -->
             <div>
-              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-2">Thiết bị có sẵn</label>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  v-for="d in deviceOptions" :key="d"
-                  :class="[
-                    'px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
-                    editingRoom.devices.includes(d) ? 'lg-button-primary' : 'lg-button-secondary text-body'
-                  ]"
-                  @click="toggleEditDevice(d)"
-                >{{ d }}</button>
-              </div>
+              <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Ghi chú</label>
+              <textarea v-model="editingRoom.ghiChu" placeholder="(tùy chọn)" rows="2" class="w-full lg-input px-4 py-2.5 text-sm font-medium resize-none"></textarea>
             </div>
           </div>
 
@@ -821,8 +964,8 @@ function closeMenu()    { menuOpenId.value = null }
             <h3 class="text-lg font-semibold text-heading text-center">Xóa phòng học</h3>
             <p class="text-sm text-label text-center mt-2">
               Bạn có chắc muốn xóa
-              <span class="font-semibold text-heading">{{ confirmDelete.name }}</span>
-              ({{ confirmDelete.id }})? Phòng sẽ được chuyển sang trạng thái ngừng hoạt động.
+              <span class="font-semibold text-heading">{{ confirmDelete.tenPhong }}</span>
+              ({{ confirmDelete.maCodePhong }})? Phòng sẽ được chuyển sang trạng thái ngừng hoạt động.
             </p>
           </div>
           <div class="px-6 pb-6 pt-2 border-t border-default flex items-center justify-end gap-3">
@@ -855,7 +998,7 @@ function closeMenu()    { menuOpenId.value = null }
             <div class="flex items-center justify-between">
               <div>
                 <h2 class="text-xl font-semibold text-heading">Lịch sử sử dụng</h2>
-                <p class="text-sm text-label mt-0.5">{{ historyRoom.name }} ({{ historyRoom.id }})</p>
+                <p class="text-sm text-label mt-0.5">{{ historyRoom.tenPhong }} ({{ historyRoom.maCodePhong }})</p>
               </div>
               <button
                 class="h-9 w-9 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"

@@ -19,10 +19,21 @@ export const giaoVuMenuGroups = [
     children: [
       { id: 'schedule-mgmt', label: 'Quản lý TKB', icon: 'Settings', route: '/staff/schedule' },
       { id: 'lecturer-assignment', label: 'Phân công giảng viên', icon: 'UserPlus', route: '/staff/assignments' },
-      { id: 'room-mgmt', label: 'Phòng học', icon: 'MapPin', route: '/staff/rooms' },
       { id: 'conflict-check', label: 'Kiểm tra xung đột', icon: 'AlertTriangle', route: '/staff/conflicts' },
       { id: 'schedule-pending', label: 'Lịch chờ duyệt', icon: 'Clock', route: '/staff/schedule/pending' },
       { id: 'schedule-published', label: 'Lịch đã publish', icon: 'CheckSquare', route: '/staff/schedule/published' },
+    ],
+  },
+
+  // ── CƠ SỞ VẬT CHẤT ────────────────────────────────────────
+  {
+    id: 'co-so-vat-chat',
+    label: 'Cơ sở vật chất',
+    icon: 'Building',
+    children: [
+      { id: 'building-mgmt', label: 'Tòa nhà', icon: 'Building', route: '/staff/buildings' },
+      { id: 'floor-mgmt', label: 'Lầu', icon: 'Layers', route: '/staff/floors' },
+      { id: 'room-mgmt', label: 'Phòng học', icon: 'MapPin', route: '/staff/rooms' },
     ],
   },
 
@@ -33,9 +44,7 @@ export const giaoVuMenuGroups = [
     icon: 'FormInput',
     children: [
       { id: 'reg-periods', label: 'Đợt đăng ký', icon: 'Clock', route: '/staff/registrations' },
-      { id: 'section-classes', label: 'Lớp học phần', icon: 'Layers', route: '/staff/sections' },
-      { id: 'reg-list', label: 'Danh sách đăng ký', icon: 'List', route: '/staff/registration-list' },
-      { id: 'waitlist', label: 'Waitlist', icon: 'UserMinus', route: '/staff/waitlist' },
+
       { id: 'capacity-adjust', label: 'Điều chỉnh sức chứa', icon: 'Maximize', route: '/staff/capacity' },
       { id: 'course-toggle', label: 'Hủy / mở lớp', icon: 'Power', route: '/staff/course-status' },
     ],
