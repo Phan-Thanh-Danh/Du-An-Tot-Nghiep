@@ -1,5 +1,6 @@
 using Backend.DTOs.Applications;
 using Backend.DTOs.Common;
+using Backend.Constants;
 using Backend.Services.Applications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +9,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/student/applications/{applicationId:int}/attachments")]
-[Authorize(Policy = "ApplicationStudent")]
+[Authorize(Policy = AuthPolicies.ApplicationStudent)]
 public class StudentApplicationEvidenceController : ControllerBase
 {
     private readonly IApplicationEvidenceService _evidenceService;
@@ -50,10 +51,29 @@ public class StudentApplicationEvidenceController : ControllerBase
     public async Task<ActionResult<ApiResponseDto<ApplicationEvidenceDeleteResponseDto>>> Delete(
         int applicationId,
         int attachmentId,
-        [FromBody] DeleteApplicationEvidenceRequest request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        [FromHeader(Name = "If-Match")] string? ifMatch = null,
+        [FromBody] DeleteApplicationEvidenceRequest? request = null)
     {
-        var result = await _evidenceService.DeleteAsync(applicationId, attachmentId, request, cancellationToken);
+        var rowVersion = NormalizeIfMatch(ifMatch) ?? request?.RowVersion ?? string.Empty;
+        var result = await _evidenceService.DeleteAsync(
+            applicationId,
+            attachmentId,
+            new DeleteApplicationEvidenceRequest { RowVersion = rowVersion },
+            cancellationToken);
         return Ok(ApiResponseDto<ApplicationEvidenceDeleteResponseDto>.Ok(result, "Xóa minh chứng thành công."));
+    }
+
+    private static string? NormalizeIfMatch(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var trimmed = value.Trim();
+        return trimmed.Length >= 2 && trimmed.StartsWith('"') && trimmed.EndsWith('"')
+            ? trimmed[1..^1]
+            : trimmed;
     }
 }

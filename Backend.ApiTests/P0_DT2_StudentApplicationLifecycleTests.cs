@@ -28,7 +28,7 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
     [OneTimeSetUp]
     public void ValidateP0Dt2Environment()
     {
-        _ = GetConnectionString();
+        ValidateSharedBackendDatabase();
     }
 
     [Test]
@@ -1300,7 +1300,7 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
         using var response = await Client.PostAsJsonAsync("api/auth/login", new
         {
             email,
-            password = GetP0Dt2TestPassword()
+            password = GetSharedTestPassword()
         });
 
         if (!response.IsSuccessStatusCode)
@@ -1765,62 +1765,11 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
 
     private static ApplicationDbContext CreateDbContext()
     {
-        var connectionString = GetConnectionString();
+        var connectionString = GetSharedTestConnectionString();
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseSqlServer(connectionString)
             .Options;
         return new ApplicationDbContext(options);
-    }
-
-    private static string GetConnectionString()
-    {
-        var connectionString = Environment.GetEnvironmentVariable("P0_DT2_TEST_CONNECTION_STRING");
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            Assert.Fail("Thiếu env var P0_DT2_TEST_CONNECTION_STRING cho P0-DT2 tests.");
-        }
-
-        SqlConnectionStringBuilder builder;
-        try
-        {
-            builder = new SqlConnectionStringBuilder(connectionString);
-        }
-        catch (ArgumentException exception)
-        {
-            Assert.Fail($"P0_DT2_TEST_CONNECTION_STRING không hợp lệ: {exception.Message}");
-            throw;
-        }
-
-        if (string.IsNullOrWhiteSpace(builder.InitialCatalog) ||
-            !builder.InitialCatalog.StartsWith("LMS_DT2_", StringComparison.OrdinalIgnoreCase))
-        {
-            Assert.Fail("P0-DT2 tests chỉ được chạy trên database có tên bắt đầu bằng 'LMS_DT2_'.");
-        }
-
-        var backendConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
-        if (string.IsNullOrWhiteSpace(backendConnectionString))
-        {
-            Assert.Fail("Thiếu env var ConnectionStrings__DefaultConnection cho backend test server.");
-        }
-
-        var backendBuilder = new SqlConnectionStringBuilder(backendConnectionString);
-        if (!string.Equals(backendBuilder.InitialCatalog, builder.InitialCatalog, StringComparison.OrdinalIgnoreCase))
-        {
-            Assert.Fail("Backend test server phải dùng cùng isolated DT2 database với P0_DT2_TEST_CONNECTION_STRING.");
-        }
-
-        return connectionString!;
-    }
-
-    private static string GetP0Dt2TestPassword()
-    {
-        var password = Environment.GetEnvironmentVariable("P0_DT2_TEST_PASSWORD");
-        if (string.IsNullOrWhiteSpace(password))
-        {
-            Assert.Fail("Thiếu env var P0_DT2_TEST_PASSWORD cho P0-DT2 tests.");
-        }
-
-        return password!;
     }
 
     private sealed record ApplicationSnapshot(int MaDonTu, string TieuDe, string TrangThai, string RowVersion);

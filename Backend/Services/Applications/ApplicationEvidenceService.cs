@@ -63,12 +63,13 @@ public class ApplicationEvidenceService : IApplicationEvidenceService
         ValidateAggregateLimits(activeAttachments, inspectedFiles.Items, limits);
         ValidateDuplicateHashes(activeAttachments, inspectedFiles.Items);
 
-        var uploadedKeys = new List<string>();
+        var attemptedKeys = new List<string>();
         try
         {
             foreach (var file in inspectedFiles.Items)
             {
                 file.StorageKey = BuildStorageKey(application.MaDonVi, application.MaDonTu, file.StorageFileName);
+                attemptedKeys.Add(file.StorageKey);
                 file.Content.Position = 0;
                 await _objectStore.StoreAsync(
                     file.StorageKey,
@@ -76,7 +77,6 @@ public class ApplicationEvidenceService : IApplicationEvidenceService
                     file.ContentType,
                     file.Length,
                     cancellationToken);
-                uploadedKeys.Add(file.StorageKey);
             }
 
             return await ExecuteConcurrencyAwareAsync(async () =>
@@ -137,9 +137,15 @@ public class ApplicationEvidenceService : IApplicationEvidenceService
                 }, cancellationToken);
             });
         }
+        catch (ApplicationEvidenceStorageException exception)
+        {
+            await CleanupUploadedObjectsAsync(attemptedKeys);
+            _logger.LogWarning(exception, "Application evidence object store failed during upload.");
+            throw new ApiException(StatusCodes.Status503ServiceUnavailable, "Không thể truy cập kho lưu trữ minh chứng.");
+        }
         catch
         {
-            await CleanupUploadedObjectsAsync(uploadedKeys);
+            await CleanupUploadedObjectsAsync(attemptedKeys);
             throw;
         }
     }
@@ -171,8 +177,8 @@ public class ApplicationEvidenceService : IApplicationEvidenceService
             {
                 Content = read.Content,
                 ContentLength = read.ContentLength,
-                ContentType = attachment.ContentType,
-                FileName = attachment.TenFileGoc
+                ContentType = NormalizeStoredContentType(attachment.ContentType),
+                FileName = SanitizeStoredFileName(attachment.TenFileGoc)
             };
         }
         catch (ApplicationEvidenceObjectNotFoundException)
@@ -245,7 +251,7 @@ public class ApplicationEvidenceService : IApplicationEvidenceService
         {
             try
             {
-                await _objectStore.DeleteAsync(storageKey, cancellationToken);
+                await _objectStore.DeleteAsync(storageKey, CancellationToken.None);
             }
             catch (ApplicationEvidenceObjectNotFoundException)
             {
@@ -551,11 +557,53 @@ public class ApplicationEvidenceService : IApplicationEvidenceService
             {
                 await _objectStore.DeleteAsync(storageKey, CancellationToken.None);
             }
+            catch (ApplicationEvidenceObjectNotFoundException)
+            {
+                // Object may not have been created before the storage client reported failure.
+            }
             catch (Exception exception)
             {
                 _logger.LogWarning(exception, "Failed to cleanup uploaded application evidence object after failed DB commit.");
             }
         }
+    }
+
+    private static string NormalizeStoredContentType(string? contentType)
+    {
+        return ApplicationEvidenceConstants.AllowedContentTypes.Contains(contentType ?? string.Empty)
+            ? contentType!
+            : "application/octet-stream";
+    }
+
+    private static string SanitizeStoredFileName(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return "minh-chung";
+        }
+
+        var fileName = raw.Trim().Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            return "minh-chung";
+        }
+
+        var sanitized = new string(fileName.Where(character => !char.IsControl(character)).ToArray()).Trim();
+        if (string.IsNullOrWhiteSpace(sanitized) || sanitized is "." or "..")
+        {
+            return "minh-chung";
+        }
+
+        sanitized = sanitized.Replace("/", string.Empty).Replace("\\", string.Empty);
+        if (sanitized.Length <= 255)
+        {
+            return sanitized;
+        }
+
+        var extension = Path.GetExtension(sanitized);
+        var baseName = Path.GetFileNameWithoutExtension(sanitized);
+        var maxBaseLength = Math.Max(1, 255 - extension.Length);
+        return baseName[..Math.Min(baseName.Length, maxBaseLength)] + extension;
     }
 
     private sealed class InspectedFileCollection : IDisposable

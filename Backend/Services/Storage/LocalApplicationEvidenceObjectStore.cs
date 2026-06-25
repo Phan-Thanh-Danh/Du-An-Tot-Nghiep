@@ -38,6 +38,7 @@ public class LocalApplicationEvidenceObjectStore : IApplicationEvidenceObjectSto
         var tempPath = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
+            long written = 0;
             await using (var output = new FileStream(
                 tempPath,
                 FileMode.CreateNew,
@@ -46,12 +47,24 @@ public class LocalApplicationEvidenceObjectStore : IApplicationEvidenceObjectSto
                 81920,
                 FileOptions.Asynchronous | FileOptions.SequentialScan))
             {
-                await content.CopyToAsync(output, cancellationToken);
+                var buffer = new byte[81920];
+                int read;
+                while ((read = await content.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken)) > 0)
+                {
+                    await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                    written = checked(written + read);
+                }
+            }
+
+            if (written != contentLength)
+            {
+                SafeDelete(tempPath);
+                throw new ApplicationEvidenceStorageException("Application evidence object length mismatch.");
             }
 
             File.Move(tempPath, path, overwrite: false);
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or OverflowException)
         {
             SafeDelete(tempPath);
             throw new ApplicationEvidenceStorageException("Cannot store application evidence object.", exception);
@@ -139,27 +152,12 @@ public class LocalApplicationEvidenceObjectStore : IApplicationEvidenceObjectSto
 
     private static string ValidateRoot(string root)
     {
-        if (string.IsNullOrWhiteSpace(root))
+        if (!ApplicationEvidenceStorageOptionsValidator.TryValidateLocalRoot(root, out var error))
         {
-            throw new InvalidOperationException("Application evidence local storage root is required.");
+            throw new InvalidOperationException(error);
         }
 
-        var fullRoot = Path.GetFullPath(root.Trim());
-        var pathRoot = Path.GetPathRoot(fullRoot);
-        var currentDirectory = Path.GetFullPath(Directory.GetCurrentDirectory());
-        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
-        if (string.Equals(fullRoot.TrimEnd(Path.DirectorySeparatorChar), pathRoot?.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(fullRoot.TrimEnd(Path.DirectorySeparatorChar), currentDirectory.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(fullRoot.TrimEnd(Path.DirectorySeparatorChar), Path.Combine(currentDirectory, "Backend").TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(fullRoot.TrimEnd(Path.DirectorySeparatorChar), Path.Combine(currentDirectory, "Backend", "wwwroot").TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(fullRoot.TrimEnd(Path.DirectorySeparatorChar), home.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase) ||
-            !Path.GetFileName(fullRoot).Contains("LMS_DT3_", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("Application evidence local storage root must be a dedicated LMS_DT3_ test/development directory.");
-        }
-
-        return fullRoot.TrimEnd(Path.DirectorySeparatorChar);
+        return Path.GetFullPath(root.Trim()).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
     }
 
     private static void SafeDelete(string path)

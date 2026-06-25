@@ -7,9 +7,15 @@ using System.Text.Json;
 using Backend.Constants;
 using Backend.Data;
 using Backend.DTOs.Applications;
+using Backend.DTOs.Auth;
+using Backend.Exceptions;
 using Backend.Models;
+using Backend.Services.Applications;
+using Backend.Services.Storage;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
 namespace Backend.ApiTests;
@@ -26,9 +32,9 @@ public class P0_DT3_ApplicationEvidenceTests : ApiTestBase
     [OneTimeSetUp]
     public void ValidateP0Dt3Environment()
     {
-        _ = GetConnectionString();
-        _ = GetP0Dt3TestPassword();
-        _ = GetStorageRoot();
+        ValidateSharedBackendDatabase();
+        _ = GetSharedTestPassword();
+        ValidateSharedStorageRoot();
     }
 
     [Test]
@@ -270,10 +276,11 @@ public class P0_DT3_ApplicationEvidenceTests : ApiTestBase
         var submitted = await CreateDraftAndReadAsync(studentClient, $"{TestPrefix} submitted upload");
         var cancelled = await CreateDraftAndReadAsync(studentClient, $"{TestPrefix} cancelled upload");
         await SubmitApplicationAsync(studentClient, submitted.MaDonTu, submitted.RowVersion);
+        var submittedFresh = await GetApplicationAsync(studentClient, submitted.MaDonTu);
         await SetStatusAsync(cancelled.MaDonTu, ApplicationStatuses.Cancelled);
         var cancelledFresh = await GetApplicationAsync(studentClient, cancelled.MaDonTu);
 
-        using var submittedResponse = await UploadAsync(studentClient, submitted.MaDonTu, submitted.RowVersion,
+        using var submittedResponse = await UploadAsync(studentClient, submitted.MaDonTu, submittedFresh.RowVersion,
             [PdfFile("submitted.pdf")]);
         using var cancelledResponse = await UploadAsync(studentClient, cancelled.MaDonTu, cancelledFresh.RowVersion,
             [PdfFile("cancelled.pdf")]);
@@ -282,7 +289,7 @@ public class P0_DT3_ApplicationEvidenceTests : ApiTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(submittedResponse.StatusCode, Is.EqualTo(HttpStatusCode.Conflict).Or.EqualTo(HttpStatusCode.BadRequest), submittedDescription);
+            Assert.That(submittedResponse.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest), submittedDescription);
             Assert.That(cancelledResponse.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest), cancelledDescription);
         });
     }
@@ -356,6 +363,61 @@ public class P0_DT3_ApplicationEvidenceTests : ApiTestBase
         {
             Assert.That(deletedResponse.StatusCode, Is.EqualTo(HttpStatusCode.NotFound), deletedDescription);
             Assert.That(missingResponse.StatusCode, Is.EqualTo(HttpStatusCode.NotFound), missingDescription);
+        });
+    }
+
+    [Test]
+    public async Task Download_LegacyFilenameWithCrLf_ShouldNotInjectHeader()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(studentClient, $"{TestPrefix} legacy crlf filename");
+        var upload = await UploadOneAndReadAsync(studentClient, created.MaDonTu, created.RowVersion, PdfFile("safe.pdf"));
+        await MutateAttachmentMetadataAsync(upload.Attachment.MaTep, "evil\r\nX-Injected: yes.pdf", "application/pdf");
+
+        using var response = await studentClient.GetAsync($"api/student/applications/{created.MaDonTu}/attachments/{upload.Attachment.MaTep}/download");
+        var disposition = response.Content.Headers.ContentDisposition?.ToString() ?? string.Empty;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(disposition, Does.Not.Contain("\r"));
+            Assert.That(disposition, Does.Not.Contain("\n"));
+        });
+    }
+
+    [Test]
+    public async Task Download_LegacyPathFilename_ShouldUseBasename()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(studentClient, $"{TestPrefix} legacy path filename");
+        var upload = await UploadOneAndReadAsync(studentClient, created.MaDonTu, created.RowVersion, PdfFile("safe-path.pdf"));
+        await MutateAttachmentMetadataAsync(upload.Attachment.MaTep, @"C:\fakepath\folder\document.pdf", "application/pdf");
+
+        using var response = await studentClient.GetAsync($"api/student/applications/{created.MaDonTu}/attachments/{upload.Attachment.MaTep}/download");
+        var disposition = response.Content.Headers.ContentDisposition?.ToString() ?? string.Empty;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(disposition, Does.Contain("document.pdf"));
+            Assert.That(disposition, Does.Not.Contain("fakepath"));
+        });
+    }
+
+    [Test]
+    public async Task Download_UnsupportedStoredContentType_ShouldNotReflectRawValue()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(studentClient, $"{TestPrefix} legacy content type");
+        var upload = await UploadOneAndReadAsync(studentClient, created.MaDonTu, created.RowVersion, PdfFile("safe-content-type.pdf"));
+        await MutateAttachmentMetadataAsync(upload.Attachment.MaTep, "safe-content-type.pdf", "text/html");
+
+        using var response = await studentClient.GetAsync($"api/student/applications/{created.MaDonTu}/attachments/{upload.Attachment.MaTep}/download");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/octet-stream"));
         });
     }
 
@@ -456,6 +518,149 @@ public class P0_DT3_ApplicationEvidenceTests : ApiTestBase
         }
     }
 
+    [Test]
+    public async Task Upload_StorageUnavailable_ShouldReturn503AndCreateNoMetadataOrWorkflowLog()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(studentClient, $"{TestPrefix} storage unavailable");
+        var store = new FaultingEvidenceObjectStore
+        {
+            StoreFailure = new ApplicationEvidenceStorageException("internal bucket/path detail")
+        };
+        await using var serviceContext = CreateDbContext();
+        var service = await CreateEvidenceServiceAsync(serviceContext, store);
+
+        var exception = Assert.ThrowsAsync<ApiException>(async () =>
+            await service.UploadAsync(created.MaDonTu, [ToFormFile(PdfFile("storage-unavailable.pdf"))], created.RowVersion));
+        var activeAttachments = await CountActiveAttachmentsAsync(created.MaDonTu);
+        var hiddenLogs = await CountHiddenUpdateLogsAsync(created.MaDonTu);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+            Assert.That(exception.Message, Does.Not.Contain("bucket"));
+            Assert.That(exception.Message, Does.Not.Contain("path"));
+            Assert.That(activeAttachments, Is.EqualTo(0));
+            Assert.That(hiddenLogs, Is.EqualTo(0));
+            Assert.That(store.DeletedKeys, Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task MultiFile_SecondUploadFails_ShouldCleanupFirstAndSecondAttemptedKeys()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(studentClient, $"{TestPrefix} partial storage failure");
+        var store = new FaultingEvidenceObjectStore { ThrowOnStoreCall = 2 };
+        await using var serviceContext = CreateDbContext();
+        var service = await CreateEvidenceServiceAsync(serviceContext, store);
+
+        var exception = Assert.ThrowsAsync<ApiException>(async () =>
+            await service.UploadAsync(
+                created.MaDonTu,
+                [ToFormFile(new TestFile("one.pdf", "application/pdf", PdfBytes("one"))), ToFormFile(new TestFile("two.pdf", "application/pdf", PdfBytes("two")))],
+                created.RowVersion));
+        var activeAttachments = await CountActiveAttachmentsAsync(created.MaDonTu);
+        var hiddenLogs = await CountHiddenUpdateLogsAsync(created.MaDonTu);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+            Assert.That(store.StoredKeys, Has.Count.EqualTo(2));
+            Assert.That(store.DeletedKeys, Is.EquivalentTo(store.StoredKeys));
+            Assert.That(activeAttachments, Is.EqualTo(0));
+            Assert.That(hiddenLogs, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public async Task DatabaseConflictAfterStorageSuccess_ShouldCleanupAllObjects()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(studentClient, $"{TestPrefix} db conflict cleanup");
+        var store = new FaultingEvidenceObjectStore
+        {
+            AfterStoreAsync = async () => await TouchApplicationAsync(created.MaDonTu)
+        };
+        await using var serviceContext = CreateDbContext();
+        var service = await CreateEvidenceServiceAsync(serviceContext, store);
+
+        var exception = Assert.ThrowsAsync<ApiException>(async () =>
+            await service.UploadAsync(created.MaDonTu, [ToFormFile(PdfFile("db-conflict.pdf"))], created.RowVersion));
+        var activeAttachments = await CountActiveAttachmentsAsync(created.MaDonTu);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+            Assert.That(store.DeletedKeys, Is.EquivalentTo(store.StoredKeys));
+            Assert.That(activeAttachments, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public async Task CleanupFailure_ShouldPreserveOriginal409Or503()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var conflict = await CreateDraftAndReadAsync(studentClient, $"{TestPrefix} cleanup conflict");
+        var unavailable = await CreateDraftAndReadAsync(studentClient, $"{TestPrefix} cleanup unavailable");
+
+        var conflictStore = new FaultingEvidenceObjectStore
+        {
+            DeleteFailure = new ApplicationEvidenceStorageException("cleanup failed"),
+            AfterStoreAsync = async () => await TouchApplicationAsync(conflict.MaDonTu)
+        };
+        await using (var serviceContext = CreateDbContext())
+        {
+            var service = await CreateEvidenceServiceAsync(serviceContext, conflictStore);
+            var exception = Assert.ThrowsAsync<ApiException>(async () =>
+                await service.UploadAsync(conflict.MaDonTu, [ToFormFile(PdfFile("cleanup-conflict.pdf"))], conflict.RowVersion));
+            Assert.That(exception!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+        }
+
+        var unavailableStore = new FaultingEvidenceObjectStore
+        {
+            DeleteFailure = new ApplicationEvidenceStorageException("cleanup failed"),
+            StoreFailure = new ApplicationEvidenceStorageException("storage unavailable")
+        };
+        await using (var serviceContext = CreateDbContext())
+        {
+            var service = await CreateEvidenceServiceAsync(serviceContext, unavailableStore);
+            var exception = Assert.ThrowsAsync<ApiException>(async () =>
+                await service.UploadAsync(unavailable.MaDonTu, [ToFormFile(PdfFile("cleanup-unavailable.pdf"))], unavailable.RowVersion));
+            Assert.That(exception!.StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+        }
+    }
+
+    [Test]
+    public async Task Delete_PhysicalFailure_ShouldReturn200AndDownload404()
+    {
+        using var studentClient = await CreateAuthenticatedClientAsync(StudentEmail);
+        var created = await CreateDraftAndReadAsync(studentClient, $"{TestPrefix} delete physical failure");
+        var upload = await UploadOneAndReadAsync(studentClient, created.MaDonTu, created.RowVersion, PdfFile("physical-failure.pdf"));
+        var store = new FaultingEvidenceObjectStore
+        {
+            DeleteFailure = new ApplicationEvidenceStorageException("storage delete unavailable")
+        };
+        await using var serviceContext = CreateDbContext();
+        var service = await CreateEvidenceServiceAsync(serviceContext, store);
+
+        var result = await service.DeleteAsync(
+            created.MaDonTu,
+            upload.Attachment.MaTep,
+            new DeleteApplicationEvidenceRequest { RowVersion = upload.RowVersion });
+        var attachment = await GetAttachmentAsync(upload.Attachment.MaTep);
+        var downloadException = Assert.ThrowsAsync<ApiException>(async () =>
+            await service.DownloadAsync(created.MaDonTu, upload.Attachment.MaTep));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.MaTep, Is.EqualTo(upload.Attachment.MaTep));
+            Assert.That(result.ActiveFileCount, Is.EqualTo(0));
+            Assert.That(attachment.DaXoa, Is.True);
+            Assert.That(downloadException!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        });
+    }
+
     private static async Task<ApplicationDbContext> CreateDbContextAsync()
     {
         var db = CreateDbContext();
@@ -466,97 +671,9 @@ public class P0_DT3_ApplicationEvidenceTests : ApiTestBase
     private static ApplicationDbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer(GetConnectionString())
+            .UseSqlServer(GetSharedTestConnectionString())
             .Options;
         return new ApplicationDbContext(options);
-    }
-
-    private static string GetConnectionString()
-    {
-        var connectionString = Environment.GetEnvironmentVariable("P0_DT3_TEST_CONNECTION_STRING");
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            Assert.Fail("Thiếu env var P0_DT3_TEST_CONNECTION_STRING cho P0-DT3 tests.");
-        }
-
-        SqlConnectionStringBuilder builder;
-        try
-        {
-            builder = new SqlConnectionStringBuilder(connectionString);
-        }
-        catch (ArgumentException exception)
-        {
-            Assert.Fail($"P0_DT3_TEST_CONNECTION_STRING không hợp lệ: {exception.Message}");
-            throw;
-        }
-
-        if (string.IsNullOrWhiteSpace(builder.InitialCatalog) ||
-            !builder.InitialCatalog.StartsWith("LMS_DT3_", StringComparison.OrdinalIgnoreCase))
-        {
-            Assert.Fail("P0-DT3 tests chỉ được chạy trên database có tên bắt đầu bằng 'LMS_DT3_'.");
-        }
-
-        var backendConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
-        if (string.IsNullOrWhiteSpace(backendConnectionString))
-        {
-            Assert.Fail("Thiếu env var ConnectionStrings__DefaultConnection cho backend test server.");
-        }
-
-        var backendBuilder = new SqlConnectionStringBuilder(backendConnectionString);
-        if (!string.Equals(backendBuilder.InitialCatalog, builder.InitialCatalog, StringComparison.OrdinalIgnoreCase))
-        {
-            Assert.Fail("Backend test server phải dùng cùng isolated DT3 database với P0_DT3_TEST_CONNECTION_STRING.");
-        }
-
-        return connectionString!;
-    }
-
-    private static string GetP0Dt3TestPassword()
-    {
-        var password = Environment.GetEnvironmentVariable("P0_DT3_TEST_PASSWORD");
-        if (string.IsNullOrWhiteSpace(password))
-        {
-            Assert.Fail("Thiếu env var P0_DT3_TEST_PASSWORD cho P0-DT3 tests.");
-        }
-
-        return password!;
-    }
-
-    private static string GetStorageRoot()
-    {
-        var root = Environment.GetEnvironmentVariable("P0_DT3_TEST_STORAGE_ROOT");
-        if (string.IsNullOrWhiteSpace(root))
-        {
-            Assert.Fail("Thiếu env var P0_DT3_TEST_STORAGE_ROOT cho P0-DT3 tests.");
-        }
-
-        var fullPath = Path.GetFullPath(root!);
-        var leaf = new DirectoryInfo(fullPath).Name;
-        if (!leaf.Contains("LMS_DT3_", StringComparison.OrdinalIgnoreCase))
-        {
-            Assert.Fail("P0-DT3 storage root phải là thư mục isolated có tên chứa 'LMS_DT3_'.");
-        }
-
-        Directory.CreateDirectory(fullPath);
-
-        var configuredProvider = Environment.GetEnvironmentVariable("ApplicationEvidenceStorage__Provider");
-        var configuredRoot = Environment.GetEnvironmentVariable("ApplicationEvidenceStorage__LocalRoot");
-        if (string.IsNullOrWhiteSpace(configuredRoot))
-        {
-            Assert.Fail("Thiếu env var ApplicationEvidenceStorage__LocalRoot cho P0-DT3 tests.");
-        }
-
-        if (!string.Equals(configuredProvider, "Local", StringComparison.OrdinalIgnoreCase))
-        {
-            Assert.Fail("P0-DT3 tests yêu cầu ApplicationEvidenceStorage__Provider=Local.");
-        }
-
-        if (!string.Equals(Path.GetFullPath(configuredRoot!), fullPath, StringComparison.OrdinalIgnoreCase))
-        {
-            Assert.Fail("ApplicationEvidenceStorage__LocalRoot phải trỏ cùng P0_DT3_TEST_STORAGE_ROOT.");
-        }
-
-        return fullPath;
     }
 
     private async Task<HttpClient> CreateAuthenticatedClientAsync(string email)
@@ -565,7 +682,7 @@ public class P0_DT3_ApplicationEvidenceTests : ApiTestBase
         using var loginResponse = await client.PostAsJsonAsync("api/auth/login", new
         {
             email,
-            password = GetP0Dt3TestPassword()
+            password = GetSharedTestPassword()
         });
 
         if (!loginResponse.IsSuccessStatusCode)
@@ -722,6 +839,14 @@ public class P0_DT3_ApplicationEvidenceTests : ApiTestBase
         await db.SaveChangesAsync();
     }
 
+    private static async Task TouchApplicationAsync(int applicationId)
+    {
+        await using var db = CreateDbContext();
+        var application = await db.DonTus.FirstAsync(x => x.MaDonTu == applicationId);
+        application.NgayCapNhat = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+    }
+
     private static async Task ClearApplicationTemplateAsync(int applicationId)
     {
         await using var db = CreateDbContext();
@@ -737,11 +862,33 @@ public class P0_DT3_ApplicationEvidenceTests : ApiTestBase
         return await db.TepDinhKemDonTus.AsNoTracking().SingleAsync(x => x.MaTep == attachmentId);
     }
 
+    private static async Task MutateAttachmentMetadataAsync(
+        int attachmentId,
+        string fileName,
+        string contentType)
+    {
+        await using var db = CreateDbContext();
+        var attachment = await db.TepDinhKemDonTus.SingleAsync(x => x.MaTep == attachmentId);
+        attachment.TenFileGoc = fileName;
+        attachment.ContentType = contentType;
+        await db.SaveChangesAsync();
+    }
+
     private static async Task<int> CountActiveAttachmentsAsync(int applicationId)
     {
         await using var db = CreateDbContext();
         return await db.TepDinhKemDonTus.AsNoTracking()
             .CountAsync(x => x.MaDonTu == applicationId && !x.DaXoa);
+    }
+
+    private static async Task<int> CountHiddenUpdateLogsAsync(int applicationId)
+    {
+        await using var db = CreateDbContext();
+        return await db.NhatKyDuyetDons.AsNoTracking()
+            .CountAsync(x =>
+                x.MaDonTu == applicationId &&
+                x.HanhDong == ApplicationActions.Update &&
+                !x.HienThiChoHocSinh);
     }
 
     private static async Task<int> CountStoredObjectsForApplicationAsync(int applicationId)
@@ -756,7 +903,45 @@ public class P0_DT3_ApplicationEvidenceTests : ApiTestBase
 
     private static string StoragePath(string storageKey)
     {
-        return Path.Combine(GetStorageRoot(), storageKey.Replace('/', Path.DirectorySeparatorChar));
+        return Path.Combine(GetSharedTestStorageRoot(), storageKey.Replace('/', Path.DirectorySeparatorChar));
+    }
+
+    private static async Task<ApplicationEvidenceService> CreateEvidenceServiceAsync(
+        ApplicationDbContext db,
+        IApplicationEvidenceObjectStore store)
+    {
+        var student = await db.NguoiDungs.AsNoTracking()
+            .Where(x => x.Email == StudentEmail)
+            .Select(x => new { x.MaNguoiDung, x.Email, x.MaDonVi })
+            .FirstAsync();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Items["CurrentUser"] = new CurrentUserContext
+        {
+            UserId = student.MaNguoiDung,
+            Email = student.Email,
+            Role = AuthRoles.Student,
+            CampusId = student.MaDonVi,
+            Status = UserStatuses.Active
+        };
+
+        return new ApplicationEvidenceService(
+            db,
+            new StaticHttpContextAccessor(httpContext),
+            new ApplicationTemplateValidator(),
+            new ApplicationEvidenceFileInspector(),
+            store,
+            NullLogger<ApplicationEvidenceService>.Instance);
+    }
+
+    private static IFormFile ToFormFile(TestFile file)
+    {
+        var stream = new MemoryStream(file.Bytes);
+        var formFile = new FormFile(stream, 0, file.Bytes.Length, "files", file.FileName)
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = file.ContentType
+        };
+        return formFile;
     }
 
     private static string Sha256Hex(byte[] bytes)
@@ -826,4 +1011,59 @@ public class P0_DT3_ApplicationEvidenceTests : ApiTestBase
         string TrangThai,
         string RowVersion,
         IReadOnlyList<int> AttachmentIds);
+
+    private sealed class StaticHttpContextAccessor(HttpContext httpContext) : IHttpContextAccessor
+    {
+        public HttpContext? HttpContext { get; set; } = httpContext;
+    }
+
+    private sealed class FaultingEvidenceObjectStore : IApplicationEvidenceObjectStore
+    {
+        private int _storeCalls;
+
+        public ApplicationEvidenceStorageException? StoreFailure { get; set; }
+        public ApplicationEvidenceStorageException? DeleteFailure { get; set; }
+        public int? ThrowOnStoreCall { get; set; }
+        public Func<Task>? AfterStoreAsync { get; set; }
+        public List<string> StoredKeys { get; } = [];
+        public List<string> DeletedKeys { get; } = [];
+
+        public async Task StoreAsync(
+            string storageKey,
+            Stream content,
+            string contentType,
+            long contentLength,
+            CancellationToken cancellationToken = default)
+        {
+            _storeCalls++;
+            StoredKeys.Add(storageKey);
+            if (AfterStoreAsync is not null)
+            {
+                await AfterStoreAsync();
+            }
+
+            if (StoreFailure is not null || ThrowOnStoreCall == _storeCalls)
+            {
+                throw StoreFailure ?? new ApplicationEvidenceStorageException("simulated storage failure");
+            }
+        }
+
+        public Task<ApplicationEvidenceObjectReadResult> OpenReadAsync(
+            string storageKey,
+            CancellationToken cancellationToken = default)
+        {
+            throw new ApplicationEvidenceStorageException("simulated read failure");
+        }
+
+        public Task DeleteAsync(string storageKey, CancellationToken cancellationToken = default)
+        {
+            DeletedKeys.Add(storageKey);
+            if (DeleteFailure is not null)
+            {
+                throw DeleteFailure;
+            }
+
+            return Task.CompletedTask;
+        }
+    }
 }

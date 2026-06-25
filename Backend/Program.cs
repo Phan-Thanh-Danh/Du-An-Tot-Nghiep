@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Backend.Constants;
 using Backend.Data;
 using Backend.Helpers;
 using Backend.Hubs;
@@ -46,6 +47,7 @@ using Backend.Services.TrainingProgramSubjects;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -110,9 +112,10 @@ builder.Services.AddScoped<IApplicationFormDataValidator, ApplicationFormDataVal
 builder.Services.AddScoped<IApplicationReferenceValidator, ApplicationReferenceValidator>();
 builder.Services.AddScoped<IApplicationEvidenceValidator, ApplicationEvidenceValidator>();
 builder.Services.AddScoped<IStudentApplicationService, StudentApplicationService>();
-builder.Services.Configure<ApplicationEvidenceStorageOptions>(
-    builder.Configuration.GetSection(ApplicationEvidenceStorageOptions.SectionName)
-);
+builder.Services.AddOptions<ApplicationEvidenceStorageOptions>()
+    .Bind(builder.Configuration.GetSection(ApplicationEvidenceStorageOptions.SectionName))
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<ApplicationEvidenceStorageOptions>, ApplicationEvidenceStorageOptionsValidator>();
 builder.Services.AddScoped<IApplicationEvidenceFileInspector, ApplicationEvidenceFileInspector>();
 builder.Services.AddScoped<IApplicationEvidenceService, ApplicationEvidenceService>();
 builder.Services.AddScoped<IApplicationSubmissionRule, LeaveApplicationSubmissionRule>();
@@ -190,10 +193,8 @@ builder.Services.AddSingleton<IR2StorageService, R2StorageService>();
 builder.Services.AddSingleton<IApplicationEvidenceObjectStore>(sp =>
 {
     var environment = sp.GetRequiredService<IWebHostEnvironment>();
-    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ApplicationEvidenceStorageOptions>>();
-    var provider = string.IsNullOrWhiteSpace(options.Value.Provider)
-        ? "R2"
-        : options.Value.Provider.Trim();
+    var options = sp.GetRequiredService<IOptions<ApplicationEvidenceStorageOptions>>();
+    var provider = options.Value.Provider.Trim();
 
     if (provider.Equals("Local", StringComparison.OrdinalIgnoreCase))
     {
@@ -281,7 +282,7 @@ builder.Services.AddAuthorization(options =>
         policy => policy.RequireRole("Admin", "SuperAdmin", "Principal", "CampusAdmin")
     );
     options.AddPolicy(
-        "ApplicationStudent",
+        AuthPolicies.ApplicationStudent,
         policy => policy.RequireRole("Student")
     );
     options.AddPolicy(

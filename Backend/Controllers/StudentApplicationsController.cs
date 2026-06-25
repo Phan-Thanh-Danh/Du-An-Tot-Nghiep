@@ -1,3 +1,4 @@
+using Backend.Constants;
 using Backend.DTOs.Applications;
 using Backend.DTOs.Common;
 using Backend.Services.Applications;
@@ -8,7 +9,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/student/applications")]
-[Authorize(Policy = "ApplicationStudent")]
+[Authorize(Policy = AuthPolicies.ApplicationStudent)]
 public class StudentApplicationsController : ControllerBase
 {
     private readonly IStudentApplicationService _studentApplicationService;

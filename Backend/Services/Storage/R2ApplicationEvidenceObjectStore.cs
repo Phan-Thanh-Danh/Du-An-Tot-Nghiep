@@ -38,6 +38,7 @@ public class R2ApplicationEvidenceObjectStore : IApplicationEvidenceObjectStore
                 ContentType = contentType,
                 DisablePayloadSigning = true
             };
+            request.Headers.ContentLength = contentLength;
 
             var response = await _s3Client.PutObjectAsync(request, cancellationToken);
             if ((int)response.HttpStatusCode < 200 || (int)response.HttpStatusCode >= 300)
@@ -64,7 +65,7 @@ public class R2ApplicationEvidenceObjectStore : IApplicationEvidenceObjectStore
             var response = await _s3Client.GetObjectAsync(_settings.BucketName, storageKey, cancellationToken);
             return new ApplicationEvidenceObjectReadResult
             {
-                Content = response.ResponseStream,
+                Content = new OwnedS3ResponseStream(response),
                 ContentLength = response.ContentLength,
                 ContentType = response.Headers.ContentType
             };
@@ -92,6 +93,77 @@ public class R2ApplicationEvidenceObjectStore : IApplicationEvidenceObjectStore
         catch (Exception exception)
         {
             throw new ApplicationEvidenceStorageException("Cannot delete application evidence object.", exception);
+        }
+    }
+
+    private sealed class OwnedS3ResponseStream : Stream
+    {
+        private readonly GetObjectResponse _response;
+        private readonly Stream _inner;
+
+        public OwnedS3ResponseStream(GetObjectResponse response)
+        {
+            _response = response;
+            _inner = response.ResponseStream;
+        }
+
+        public override bool CanRead => _inner.CanRead;
+        public override bool CanSeek => _inner.CanSeek;
+        public override bool CanWrite => false;
+        public override long Length => _inner.Length;
+
+        public override long Position
+        {
+            get => _inner.Position;
+            set => _inner.Position = value;
+        }
+
+        public override void Flush()
+        {
+            _inner.Flush();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            return _inner.Read(buffer, offset, count);
+        }
+
+        public override async ValueTask<int> ReadAsync(
+            Memory<byte> buffer,
+            CancellationToken cancellationToken = default)
+        {
+            return await _inner.ReadAsync(buffer, cancellationToken);
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            return _inner.Seek(offset, origin);
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            throw new NotSupportedException();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _response.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        public override async ValueTask DisposeAsync()
+        {
+            _response.Dispose();
+            await base.DisposeAsync();
         }
     }
 }

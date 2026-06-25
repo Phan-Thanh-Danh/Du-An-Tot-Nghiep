@@ -29,15 +29,7 @@ public class ApplicationEvidenceFileInspector : IApplicationEvidenceFileInspecto
         IReadOnlyList<IFormFile> files,
         CancellationToken cancellationToken = default)
     {
-        if (files.Count == 0)
-        {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Không có file minh chứng nào được gửi lên.");
-        }
-
-        if (files.Count > ApplicationEvidenceConstants.MaxFiles)
-        {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Số lượng tệp minh chứng vượt quá giới hạn.");
-        }
+        ValidateDeclaredLengths(files);
 
         var inspected = new List<InspectedApplicationEvidenceFile>(files.Count);
         try
@@ -65,6 +57,52 @@ public class ApplicationEvidenceFileInspector : IApplicationEvidenceFileInspecto
             }
 
             throw;
+        }
+    }
+
+    private static void ValidateDeclaredLengths(IReadOnlyList<IFormFile> files)
+    {
+        if (files.Count == 0)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Không có file minh chứng nào được gửi lên.");
+        }
+
+        if (files.Count > ApplicationEvidenceConstants.MaxFiles)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Số lượng tệp minh chứng vượt quá giới hạn.");
+        }
+
+        long totalLength = 0;
+        try
+        {
+            foreach (var file in files)
+            {
+                if (file is null)
+                {
+                    throw new ApiException(StatusCodes.Status400BadRequest, "File minh chứng không hợp lệ.");
+                }
+
+                if (file.Length <= 0)
+                {
+                    throw new ApiException(StatusCodes.Status400BadRequest, "File minh chứng không được rỗng.");
+                }
+
+                if (file.Length > ApplicationEvidenceConstants.MaxFileSizeBytes)
+                {
+                    throw new ApiException(StatusCodes.Status400BadRequest, "Dung lượng một tệp minh chứng vượt quá giới hạn.");
+                }
+
+                totalLength = checked(totalLength + file.Length);
+            }
+
+            if (totalLength > ApplicationEvidenceConstants.MaxTotalSizeBytes)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "Tổng dung lượng minh chứng vượt quá giới hạn.");
+            }
+        }
+        catch (OverflowException)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Tổng dung lượng minh chứng vượt quá giới hạn.");
         }
     }
 
@@ -104,37 +142,50 @@ public class ApplicationEvidenceFileInspector : IApplicationEvidenceFileInspecto
             throw new ApiException(StatusCodes.Status400BadRequest, "Phần mở rộng file không khớp định dạng khai báo.");
         }
 
-        var memory = new MemoryStream((int)file.Length);
-        await using (var stream = file.OpenReadStream())
+        MemoryStream? memory = null;
+        try
         {
-            await stream.CopyToAsync(memory, cancellationToken);
-        }
+            memory = new MemoryStream((int)file.Length);
+            await using (var stream = file.OpenReadStream())
+            {
+                await stream.CopyToAsync(memory, cancellationToken);
+            }
 
-        if (memory.Length != file.Length)
-        {
-            memory.Dispose();
-            throw new ApiException(StatusCodes.Status400BadRequest, "Không thể đọc đầy đủ file minh chứng.");
-        }
+            if (memory.Length != file.Length)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "Không thể đọc đầy đủ file minh chứng.");
+            }
 
-        var bytes = memory.ToArray();
-        if (!declaredType.MatchesSignature(bytes))
-        {
-            memory.Dispose();
-            throw new ApiException(StatusCodes.Status400BadRequest, "Nội dung file không khớp định dạng khai báo.");
-        }
+            if (!memory.TryGetBuffer(out var segment))
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "Không thể đọc file minh chứng.");
+            }
 
-        var hash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
-        memory.Position = 0;
-        return new InspectedApplicationEvidenceFile
+            var bytes = segment.AsSpan(0, checked((int)memory.Length));
+            if (!declaredType.MatchesSignature(bytes))
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "Nội dung file không khớp định dạng khai báo.");
+            }
+
+            var hash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+            memory.Position = 0;
+            var result = new InspectedApplicationEvidenceFile
+            {
+                OriginalFileName = fileName,
+                CanonicalExtension = extension,
+                StorageFileName = Guid.NewGuid().ToString("N") + extension,
+                ContentType = declaredType.ContentType,
+                Length = memory.Length,
+                Sha256Hex = hash,
+                Content = memory
+            };
+            memory = null;
+            return result;
+        }
+        finally
         {
-            OriginalFileName = fileName,
-            CanonicalExtension = extension,
-            StorageFileName = Guid.NewGuid().ToString("N") + extension,
-            ContentType = declaredType.ContentType,
-            Length = memory.Length,
-            Sha256Hex = hash,
-            Content = memory
-        };
+            memory?.Dispose();
+        }
     }
 
     private static string NormalizeFileName(string? raw)
@@ -184,8 +235,10 @@ public class ApplicationEvidenceFileInspector : IApplicationEvidenceFileInspecto
         return safe;
     }
 
+    private delegate bool SignatureMatcher(ReadOnlySpan<byte> bytes);
+
     private sealed record EvidenceFileType(
         string ContentType,
         IReadOnlySet<string> Extensions,
-        Func<byte[], bool> MatchesSignature);
+        SignatureMatcher MatchesSignature);
 }
