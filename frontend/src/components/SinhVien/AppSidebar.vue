@@ -31,7 +31,7 @@ function logout() {
   <aside
     :class="[
       'lg-sidebar relative flex h-full flex-col transition-all duration-300 ease-in-out select-none',
-      collapsed ? 'w-[68px]' : 'w-[240px]',
+      collapsed ? 'w-[68px]' : 'w-[280px]',
     ]"
     :style="{
       '--sidebar-glow-1': 'rgba(37, 99, 235, 0.10)',

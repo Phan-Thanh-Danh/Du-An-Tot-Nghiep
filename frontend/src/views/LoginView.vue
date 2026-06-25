@@ -78,9 +78,11 @@ async function submitLogin() {
       targetPath.startsWith('/teacher') ||
       targetPath.startsWith('/staff') ||
       targetPath.startsWith('/bgh') ||
-      targetPath.startsWith('/parent')
+      targetPath.startsWith('/parent') ||
+      targetPath.startsWith('/super-admin')
     ) {
-      if (authStore.hasRole('Principal')) targetPath = '/bgh/dashboard'
+      if (authStore.hasRole('SuperAdmin')) targetPath = '/super-admin/dashboard'
+      else if (authStore.hasRole('Principal')) targetPath = '/bgh/dashboard'
       else if (authStore.hasRole('Teacher')) targetPath = '/teacher/dashboard'
       else if (authStore.hasRole('AcademicStaff')) targetPath = '/staff/dashboard'
       else if (authStore.hasRole('Parent')) targetPath = '/parent/dashboard'

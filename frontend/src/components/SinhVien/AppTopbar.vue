@@ -207,16 +207,6 @@ const notifAllLink = computed(() => {
     <!-- Quick Create -->
     <QuickCreate />
 
-    <!-- Focus Mode button (Student only) -->
-    <button
-      v-if="isStudent"
-      class="lg-button-secondary hidden h-8 px-2.5 text-[10px] font-semibold text-label xl:inline-flex"
-      aria-label="Bật chế độ tập trung"
-    >
-      <Target :size="12" />
-      Tập trung
-    </button>
-
     <MiniCalendar />
     <ThemeToggle />
 

@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   Building2,
   MapPin,
@@ -213,11 +214,16 @@ const startEdit = () => {
   form.value = { ...selectedOrg.value, parentId: 1 } // Giả lập parentId cho form edit
 }
 
+const isCancelModalOpen = ref(false)
+
 const cancelForm = () => {
-  if (confirm('Bạn có chắc chắn muốn hủy? Các thay đổi chưa lưu sẽ bị mất.')) {
-    isEditing.value = false
-    isCreating.value = false
-  }
+  isCancelModalOpen.value = true
+}
+
+const confirmCancel = () => {
+  isEditing.value = false
+  isCreating.value = false
+  isCancelModalOpen.value = false
 }
 
 const submitForm = () => {
@@ -290,6 +296,22 @@ const getTypeIcon = (type) => {
   if (type === 'Campus') return Building2
   return MapPin
 }
+
+const systemAdmins = ref([
+  { id: 1, name: 'Nguyễn Văn Admin', email: 'admin.hn@fpt.edu.vn', role: 'Campus Admin' },
+  { id: 2, name: 'Lê HCM Admin', email: 'admin.hcm@fpt.edu.vn', role: 'Campus Admin' },
+  { id: 3, name: 'Trần Detech', email: 'detech.hn@fpt.edu.vn', role: 'Sub-Campus Admin' },
+  { id: 4, name: 'Phạm Thị Giáo Vụ', email: 'staff.hn@fpt.edu.vn', role: 'AcademicStaff' },
+  { id: 5, name: 'Hoàng Văn Hiệu Trưởng', email: 'principal.hn@fpt.edu.vn', role: 'Principal' },
+  { id: 6, name: 'Nguyễn Thị Admin 2', email: 'admin2.hn@fpt.edu.vn', role: 'Campus Admin' },
+])
+
+const route = useRoute()
+onMounted(() => {
+  if (route.query.action === 'create') {
+    startCreate(null)
+  }
+})
 </script>
 
 <template>
@@ -633,10 +655,23 @@ const getTypeIcon = (type) => {
         <p class="text-sm text-body mb-5">Chỉ định quyền quản trị chuyên biệt cho một tài khoản tại cơ sở: <strong class="text-heading">{{ selectedOrg.name }}</strong></p>
         
         <div class="form-group mb-5">
-          <label class="block text-xs font-bold text-label mb-1">Tài khoản User (Tìm theo tên hoặc email)</label>
+          <label class="block text-xs font-bold text-label mb-1">Chọn tài khoản Admin từ hệ thống</label>
           <div class="relative">
-            <UserCheck :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
-            <input v-model="roleForm.name" type="text" class="glass-input w-full pl-9" placeholder="Nhập tên tài khoản (VD: admin_hn...)" />
+            <select 
+              v-model="roleForm.name" 
+              class="glass-select w-full bg-white text-xs" 
+              style="padding-left: 2.5rem;"
+            >
+              <option value="" disabled>-- Chọn tài khoản Admin --</option>
+              <option v-for="admin in systemAdmins" :key="admin.email" :value="admin.name">
+                {{ admin.name }} ({{ admin.email }})
+              </option>
+            </select>
+            <UserCheck 
+              :size="16" 
+              class="absolute left-3 text-placeholder pointer-events-none" 
+              style="top: 50%; transform: translateY(-50%);" 
+            />
           </div>
         </div>
         
@@ -672,6 +707,21 @@ const getTypeIcon = (type) => {
         <div class="flex gap-3 pt-4 border-t border-slate-100">
           <button @click="isAssignRoleModalOpen = false" class="glass-btn secondary flex-1 justify-center">Hủy thao tác</button>
           <button @click="confirmAssignRole" class="glass-btn primary flex-1 justify-center" :disabled="!roleForm.name" :class="{'opacity-50 cursor-not-allowed': !roleForm.name}">Gán quyền (Ghi Log)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Xác Nhận Hủy -->
+    <div v-if="isCancelModalOpen" class="modal-overlay">
+      <div class="modal-content glass-panel p-6 rounded-2xl max-w-sm w-full">
+        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-rose-100 text-rose-600 mb-4 mx-auto">
+          <AlertTriangle :size="24" />
+        </div>
+        <h3 class="text-lg font-bold text-center text-heading mb-2">Xác nhận hủy</h3>
+        <p class="text-sm text-center text-label mb-6">Bạn có chắc chắn muốn hủy? Các thay đổi chưa lưu sẽ bị mất.</p>
+        <div class="flex gap-3">
+          <button @click="isCancelModalOpen = false" class="glass-btn secondary flex-1 justify-center">Quay lại</button>
+          <button @click="confirmCancel" class="glass-btn danger flex-1 justify-center">Đồng ý hủy</button>
         </div>
       </div>
     </div>

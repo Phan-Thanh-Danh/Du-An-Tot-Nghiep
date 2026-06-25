@@ -53,7 +53,7 @@ const trendClass = 'text-muted bg-[var(--surface-input)] border-[var(--border-ca
           <div :class="['flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] transition-transform duration-300 group-hover:scale-105', toneClass]">
             <component :is="IconComponent" :size="18" stroke-width="2" />
           </div>
-          <span class="flex h-6 w-6 items-center justify-center rounded-full border border-card bg-[var(--surface-card)] text-link shadow-sm transition-all duration-300 group-hover:bg-[var(--text-link)] group-hover:text-white group-hover:border-[var(--text-link)]" aria-hidden="true">
+          <span class="kpi-arrow-wrapper flex h-6 w-6 items-center justify-center rounded-full border border-card bg-[var(--surface-card)] shadow-sm transition-all duration-300" aria-hidden="true">
             <ArrowUpRight :size="12" stroke-width="2.5" />
           </span>
         </div>
@@ -75,3 +75,14 @@ const trendClass = 'text-muted bg-[var(--surface-input)] border-[var(--border-ca
     </GlassPanel>
   </router-link>
 </template>
+
+<style scoped>
+.kpi-arrow-wrapper {
+  color: var(--text-link);
+}
+.group:hover .kpi-arrow-wrapper {
+  background-color: var(--text-link) !important;
+  border-color: var(--text-link) !important;
+  color: #ffffff !important;
+}
+</style>

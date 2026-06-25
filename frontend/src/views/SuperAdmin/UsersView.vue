@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   Search,
   Filter,
@@ -183,6 +184,14 @@ const formatDate = (dateStr) => {
   if (!dateStr) return '--'
   return new Date(dateStr).toLocaleDateString('vi-VN')
 }
+
+const route = useRoute()
+onMounted(() => {
+  if (route.query.action === 'import') {
+    createImportMode.value = 'import'
+    isCreateDrawerOpen.value = true
+  }
+})
 </script>
 
 <template>

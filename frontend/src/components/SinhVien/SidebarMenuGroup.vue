@@ -24,6 +24,7 @@ const isGroupActive = computed(() => {
 
 const isOpen = ref(isGroupActive.value)
 const flyoutVisible = ref(false)
+const isPinned = ref(false)
 const buttonRef = ref(null)
 const flyoutStyle = ref({ display: 'none' })
 
@@ -48,6 +49,9 @@ let hoverTimeout = null;
 function showFlyout() {
   if (props.collapsed && hasChildren.value) {
     if (hoverTimeout) clearTimeout(hoverTimeout)
+    window.dispatchEvent(new CustomEvent('close-all-sidebar-flyouts', {
+      detail: { exceptGroupId: props.group.id }
+    }))
     flyoutVisible.value = true
     updatePosition()
   }
@@ -56,9 +60,17 @@ function showFlyout() {
 function hideFlyout() {
   if (props.collapsed) {
     hoverTimeout = setTimeout(() => {
-      flyoutVisible.value = false
-    }, 10)
+      if (!isPinned.value) {
+        flyoutVisible.value = false
+      }
+    }, 150)
   }
+}
+
+function closeFlyout() {
+  flyoutVisible.value = false
+  isPinned.value = false
+  if (hoverTimeout) clearTimeout(hoverTimeout)
 }
 
 function handleToggle() {
@@ -68,8 +80,14 @@ function handleToggle() {
     }
   } else {
     if (hasChildren.value) {
-      flyoutVisible.value = !flyoutVisible.value
-      updatePosition()
+      isPinned.value = !isPinned.value
+      flyoutVisible.value = isPinned.value
+      if (flyoutVisible.value) {
+        window.dispatchEvent(new CustomEvent('close-all-sidebar-flyouts', {
+          detail: { exceptGroupId: props.group.id }
+        }))
+        updatePosition()
+      }
     }
   }
 }
@@ -78,29 +96,37 @@ function handleClickOutside(event) {
   if (flyoutVisible.value) {
     const flyoutEl = document.getElementById(`flyout-${props.group.id}`)
     if (flyoutEl && !flyoutEl.contains(event.target) && !buttonRef.value?.contains(event.target)) {
-      flyoutVisible.value = false
+      closeFlyout()
       updatePosition()
     }
+  }
+}
+
+function handleCloseAllFlyouts(event) {
+  if (event.detail?.exceptGroupId !== props.group.id) {
+    closeFlyout()
   }
 }
 
 onMounted(() => {
   document.addEventListener('mousedown', handleClickOutside)
   window.addEventListener('resize', updatePosition)
+  window.addEventListener('close-all-sidebar-flyouts', handleCloseAllFlyouts)
 })
 
 onUnmounted(() => {
   document.removeEventListener('mousedown', handleClickOutside)
   window.removeEventListener('resize', updatePosition)
+  window.removeEventListener('close-all-sidebar-flyouts', handleCloseAllFlyouts)
 })
 
 watch(() => route.path, () => {
-  flyoutVisible.value = false
+  closeFlyout()
   updatePosition()
 })
 
 watch(() => props.collapsed, () => {
-  flyoutVisible.value = false
+  closeFlyout()
   updatePosition()
 })
 </script>
@@ -200,7 +226,7 @@ watch(() => props.collapsed, () => {
                 :item="child"
                 :collapsed="false"
                 :depth="0"
-                @click="hideFlyout"
+                @click="closeFlyout"
               />
             </div>
           </div>

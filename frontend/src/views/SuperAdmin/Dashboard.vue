@@ -162,8 +162,8 @@ function getIcon(name) {
         <div class="space-y-2">
           <router-link
             v-for="action in [
-              { label: 'Import tài khoản', icon: 'FileSpreadsheet', to: '/super-admin/users/import', color: 'violet' },
-              { label: 'Thiết lập cơ sở mới', icon: 'PlusCircle', to: '/super-admin/organizations/form', color: 'blue' },
+              { label: 'Import tài khoản', icon: 'FileSpreadsheet', to: '/super-admin/users?action=import', color: 'violet' },
+              { label: 'Thiết lập cơ sở mới', icon: 'PlusCircle', to: '/super-admin/organizations?action=create', color: 'blue' },
               { label: 'Cấu hình học kỳ', icon: 'CalendarRange', to: '/super-admin/training/semesters', color: 'emerald' },
               { label: 'Xem Audit Logs', icon: 'ScrollText', to: '/super-admin/audit/logs', color: 'amber' },
               { label: 'Cấu hình AI & Job', icon: 'Cpu', to: '/super-admin/system/ai-automation', color: 'red' },
