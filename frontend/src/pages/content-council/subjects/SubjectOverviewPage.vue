@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { mockSubjectDetails } from '@/mocks/contentCouncilSubjectDetails'
+import { useRouter, useRoute } from 'vue-router'
+import { useSubjectStore } from '@/stores/content-council/subjectStore'
 import SubjectDetailHeader from '@/components/content-council/subjects/SubjectDetailHeader.vue'
 import SubjectDetailTabs from '@/components/content-council/subjects/SubjectDetailTabs.vue'
 import CurriculumOverviewAccordion from '@/components/content-council/subjects/CurriculumOverviewAccordion.vue'
@@ -17,11 +17,13 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const route = useRoute()
 const isLoading = ref(true)
 
-const subject = computed(() => {
-  return mockSubjectDetails.find(s => s.id === props.subjectId) || null
-})
+const subjectStore = useSubjectStore()
+subjectStore.init()
+
+const subject = computed(() => subjectStore.getSubjectDetail(props.subjectId))
 
 onMounted(() => {
   // Simulate network request

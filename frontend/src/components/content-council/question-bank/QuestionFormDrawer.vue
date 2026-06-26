@@ -93,7 +93,7 @@ watch(() => props.isOpen, (val) => {
         cloned.code = '' // Will be generated
         cloned.status = 'active'
         cloned.usageCount = 0
-        cloned.content = cloned.content // maybe add "(Bản sao)" later
+        // cloned.content = cloned.content // maybe add "(Bản sao)" later
       }
       formData.value = cloned
     }
@@ -190,7 +190,7 @@ const validateAndSave = () => {
     ></div>
 
     <div 
-      class="fixed inset-y-0 right-0 z-50 w-full sm:w-[640px] md:w-[800px] lg:w-[1000px] xl:w-[1100px] bg-slate-50 shadow-2xl flex flex-col transform transition-transform duration-300"
+      class="fixed inset-y-0 right-0 z-50 w-full sm:w-[640px] md:w-[800px] lg:w-[1000px] xl:w-[1200px] 2xl:w-[1400px] bg-slate-50 shadow-2xl flex flex-col transform transition-transform duration-300"
       :class="isOpen ? 'translate-x-0' : 'translate-x-full'"
     >
       <!-- Header -->
@@ -213,9 +213,9 @@ const validateAndSave = () => {
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <!-- Cột 1: Thông tin phân loại -->
-          <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-5 h-max">
+          <div class="lg:col-span-4 bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-5 h-max">
             <h4 class="font-bold text-slate-800 text-lg mb-2">Phân loại & Thuộc tính</h4>
             
             <div>
@@ -228,7 +228,7 @@ const validateAndSave = () => {
               />
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">Loại câu hỏi <span class="text-red-500">*</span></label>
                 <LmsSelect 
@@ -279,7 +279,7 @@ const validateAndSave = () => {
           </div>
 
           <!-- Cột 2: Nội dung câu hỏi -->
-          <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-6">
+          <div class="lg:col-span-8 bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-6 h-max">
             <h4 class="font-bold text-slate-800 text-lg">Nội dung câu hỏi</h4>
             
             <div>

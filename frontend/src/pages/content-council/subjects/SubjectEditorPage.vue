@@ -11,7 +11,7 @@ import ContentFormDrawer from '@/components/content-council/editor/ContentFormDr
 import ContentDeleteDialog from '@/components/content-council/editor/ContentDeleteDialog.vue'
 
 import { useCurriculumEditor } from '@/composables/content-council/useCurriculumEditor'
-import { mockSubjectDetails } from '@/mocks/contentCouncilSubjectDetails'
+import { useSubjectStore } from '@/stores/content-council/subjectStore'
 
 const props = defineProps({
   subjectId: {
@@ -23,9 +23,9 @@ const props = defineProps({
 const router = useRouter()
 const route = useRoute()
 
-const subject = computed(() => {
-  return mockSubjectDetails.find(s => s.id === props.subjectId) || null
-})
+const store = useSubjectStore()
+store.init()
+const subject = computed(() => store.getSubjectDetail(props.subjectId) || null)
 
 // Initialize editor state
 const editor = useCurriculumEditor(props.subjectId)

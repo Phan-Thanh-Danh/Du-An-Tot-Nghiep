@@ -1,24 +1,15 @@
 import { ref, computed } from 'vue'
-import type { EditorChapter, EditorLesson, EditorContentBlock } from '@/types/content-council/curriculumEditor'
-import { mockSubjectDetails } from '@/mocks/contentCouncilSubjectDetails'
+import { useSubjectStore } from '@/stores/content-council/subjectStore'
+import { EditorChapter, EditorLesson, EditorContentBlock } from '@/types/content-council/curriculum'
+import { ContentBlockType } from '@/types/content-council/common'
 
-// Simple Toast mock since project toast is not explicitly defined in requirements
-// In a real app we would use the app's notification system
 export const useCurriculumEditor = (subjectId: number) => {
-  const originalSubject = mockSubjectDetails.find(s => s.id === subjectId)
+  const store = useSubjectStore()
   
-  const chapters = ref<EditorChapter[]>([])
-  
-  // Clone mock data to local state
-  if (originalSubject) {
-    chapters.value = JSON.parse(JSON.stringify(originalSubject.chapters))
-    // Ensure all lessons have a contents array
-    chapters.value.forEach(c => {
-      c.lessons.forEach(l => {
-        if (!l.contents) l.contents = []
-      })
-    })
-  }
+  // Ensure store is initialized
+  store.init()
+
+  const chapters = computed(() => store.getChapters(subjectId))
 
   const selectedChapterId = ref<number | null>(null)
   const selectedLessonId = ref<number | null>(null)
@@ -32,7 +23,7 @@ export const useCurriculumEditor = (subjectId: number) => {
   const editingChapter = ref<EditorChapter | null>(null)
   const editingLesson = ref<EditorLesson | null>(null)
   const editingContent = ref<EditorContentBlock | null>(null)
-  const selectedContentType = ref<string>('video')
+  const selectedContentType = ref<ContentBlockType>('video')
   
   const deleteTarget = ref<{ type: 'chapter' | 'lesson' | 'content', id: number, parentId?: number } | null>(null)
 
@@ -40,7 +31,7 @@ export const useCurriculumEditor = (subjectId: number) => {
   const selectedLesson = computed(() => {
     if (!selectedLessonId.value) return null
     for (const c of chapters.value) {
-      const lesson = c.lessons.find(l => l.id === selectedLessonId.value)
+      const lesson = c.lessons?.find(l => l.id === selectedLessonId.value)
       if (lesson) return lesson
     }
     return null
@@ -48,7 +39,7 @@ export const useCurriculumEditor = (subjectId: number) => {
 
   const selectedChapter = computed(() => {
     if (!selectedChapterId.value && !selectedLesson.value) return null
-    const cid = selectedChapterId.value || chapters.value.find(c => c.lessons.some(l => l.id === selectedLessonId.value))?.id
+    const cid = selectedChapterId.value || chapters.value.find(c => c.lessons?.some(l => l.id === selectedLessonId.value))?.id
     return chapters.value.find(c => c.id === cid) || null
   })
 
@@ -65,139 +56,175 @@ export const useCurriculumEditor = (subjectId: number) => {
   const selectLesson = (id: number) => {
     selectedLessonId.value = id
     // Ensure parent chapter is expanded
-    const parentChap = chapters.value.find(c => c.lessons.some(l => l.id === id))
+    const parentChap = chapters.value.find(c => c.lessons?.some(l => l.id === id))
     if (parentChap && !expandedChapterIds.value.includes(parentChap.id)) {
       expandedChapterIds.value.push(parentChap.id)
     }
   }
 
-  // --- Chapter Operations ---
-  const saveChapter = (chapterData: Partial<EditorChapter>) => {
-    const targetId = editingChapter.value?.id || chapterData.id
-    if (targetId) {
-      // Update
-      const idx = chapters.value.findIndex(c => c.id === targetId)
-      if (idx > -1) {
-        chapters.value[idx] = { ...chapters.value[idx], ...chapterData } as EditorChapter
-      }
+  // --- CRUD Operations delegating to store ---
+
+  const saveChapter = (chapter: any) => {
+    if (editingChapter.value) {
+      store.updateChapter(subjectId, editingChapter.value.id, chapter)
     } else {
-      // Create
-      const newChap: EditorChapter = {
+      const newChap = {
+        ...chapter,
         id: Date.now(),
-        subjectId,
-        title: chapterData.title || '',
-        order: chapterData.order || chapters.value.length + 1,
-        hidden: chapterData.hidden || false,
+        order: chapters.value.length + 1,
         lessons: []
       }
-      chapters.value.push(newChap)
-      chapters.value.sort((a, b) => a.order - b.order)
-      if (!expandedChapterIds.value.includes(newChap.id)) expandedChapterIds.value.push(newChap.id)
+      store.addChapter(subjectId, newChap)
     }
     isChapterModalOpen.value = false
     editingChapter.value = null
   }
 
-  // --- Lesson Operations ---
-  const saveLesson = (lessonData: Partial<EditorLesson>) => {
-    const targetId = editingLesson.value?.id || lessonData.id
-    if (!selectedChapter.value && !targetId) return // need chapter to create
-    
-    if (targetId) {
-      // Update
-      for (const c of chapters.value) {
-        const idx = c.lessons.findIndex(l => l.id === targetId)
-        if (idx > -1) {
-          c.lessons[idx] = { ...c.lessons[idx], ...lessonData } as EditorLesson
-          c.lessons.sort((a, b) => a.order - b.order)
-          break
-        }
-      }
-    } else if (selectedChapter.value) {
-      // Create
-      const chapterId = selectedChapter.value.id
-      const newLesson: EditorLesson = {
+  const saveLesson = (lesson: any) => {
+    const chapId = selectedChapterId.value || selectedChapter.value?.id
+    if (!chapId) return
+
+    if (editingLesson.value) {
+      store.updateLesson(subjectId, chapId, editingLesson.value.id, lesson)
+    } else {
+      const chapter = chapters.value.find(c => c.id === chapId)
+      const newLesson = {
+        ...lesson,
         id: Date.now(),
-        chapterId,
-        title: lessonData.title || '',
-        order: lessonData.order || selectedChapter.value.lessons.length + 1,
-        type: lessonData.type || 'video',
-        status: lessonData.status || 'draft',
+        chapterId: chapId,
+        order: (chapter?.lessons?.length || 0) + 1,
         contents: []
       }
-      const c = chapters.value.find(c => c.id === chapterId)
-      if (c) {
-        c.lessons.push(newLesson)
-        c.lessons.sort((a, b) => a.order - b.order)
-      }
+      store.addLesson(subjectId, chapId, newLesson)
       selectLesson(newLesson.id)
+      expandedChapterIds.value.push(chapId)
     }
     isLessonModalOpen.value = false
     editingLesson.value = null
   }
 
-  // --- Content Operations ---
-  const saveContent = (contentData: Partial<EditorContentBlock>) => {
-    if (!selectedLesson.value) return
-    const lesson = selectedLesson.value
-    
-    const targetId = editingContent.value?.id || contentData.id
-    if (targetId) {
-      // Update
-      const idx = lesson.contents.findIndex(c => c.id === targetId)
-      if (idx > -1) {
-        lesson.contents[idx] = { ...lesson.contents[idx], ...contentData } as EditorContentBlock
-        lesson.contents.sort((a, b) => a.order - b.order)
-      }
+  const saveContent = (content: any) => {
+    const chapId = selectedChapter.value?.id
+    const lessonId = selectedLessonId.value
+    if (!chapId || !lessonId) return
+
+    if (editingContent.value) {
+      store.updateContent(subjectId, chapId, lessonId, editingContent.value.id, content)
     } else {
-      // Create
-      const newContent: EditorContentBlock = {
-        ...contentData,
+      const lesson = selectedLesson.value
+      const newContent = {
+        ...content,
         id: Date.now(),
-        lessonId: lesson.id,
-        type: contentData.type || 'video',
-        title: contentData.title || '',
-        order: contentData.order || lesson.contents.length + 1,
-        status: contentData.status || 'draft'
-      } as EditorContentBlock
-      
-      lesson.contents.push(newContent)
-      lesson.contents.sort((a, b) => a.order - b.order)
+        lessonId: lessonId,
+        order: (lesson?.contents?.length || 0) + 1,
+      }
+      store.addContent(subjectId, chapId, lessonId, newContent)
     }
     isContentDrawerOpen.value = false
     editingContent.value = null
   }
 
-  const deleteItem = () => {
+  const confirmDelete = () => {
     if (!deleteTarget.value) return
     const { type, id, parentId } = deleteTarget.value
-    
+
     if (type === 'chapter') {
-      const idx = chapters.value.findIndex(c => c.id === id)
-      if (idx > -1) chapters.value.splice(idx, 1)
+      store.deleteChapter(subjectId, id)
       if (selectedChapterId.value === id) selectedChapterId.value = null
     } else if (type === 'lesson') {
-      for (const c of chapters.value) {
-        const idx = c.lessons.findIndex(l => l.id === id)
-        if (idx > -1) {
-          c.lessons.splice(idx, 1)
-          break
-        }
-      }
+      const chapId = parentId || chapters.value.find(c => c.lessons?.some(l => l.id === id))?.id
+      if (chapId) store.deleteLesson(subjectId, chapId, id)
       if (selectedLessonId.value === id) selectedLessonId.value = null
-    } else if (type === 'content' && parentId) {
-      for (const c of chapters.value) {
-        const lesson = c.lessons.find(l => l.id === parentId)
+    } else if (type === 'content') {
+      const chapId = selectedChapter.value?.id
+      const lessonId = parentId || selectedLessonId.value
+      if (chapId && lessonId) store.deleteContent(subjectId, chapId, lessonId, id)
+    }
+
+    isDeleteDialogOpen.value = false
+    deleteTarget.value = null
+  }
+
+  // --- Handlers ---
+  const openAddChapter = () => {
+    editingChapter.value = null
+    isChapterModalOpen.value = true
+  }
+
+  const openEditChapter = (chapter: EditorChapter) => {
+    editingChapter.value = { ...chapter }
+    isChapterModalOpen.value = true
+  }
+
+  const openAddLesson = (chapterId: number) => {
+    selectedChapterId.value = chapterId
+    editingLesson.value = null
+    isLessonModalOpen.value = true
+  }
+
+  const openEditLesson = (lesson: EditorLesson) => {
+    editingLesson.value = { ...lesson }
+    isLessonModalOpen.value = true
+  }
+
+  const openAddContent = (type: ContentBlockType) => {
+    selectedContentType.value = type
+    editingContent.value = null
+    isContentDrawerOpen.value = true
+  }
+
+  const openEditContent = (content: EditorContentBlock) => {
+    selectedContentType.value = content.type
+    editingContent.value = { ...content }
+    isContentDrawerOpen.value = true
+  }
+
+  const requestDelete = (type: 'chapter' | 'lesson' | 'content', id: number, parentId?: number) => {
+    deleteTarget.value = { type, id, parentId }
+    isDeleteDialogOpen.value = true
+  }
+
+  const reorderChapters = (newChapters: EditorChapter[]) => {
+    store.reorderChapters(subjectId, newChapters)
+  }
+
+  const reorderLessons = (chapterId: number, newLessons: EditorLesson[]) => {
+    const detail = store.getSubjectDetail(subjectId)
+    if (detail?.chapters) {
+      const chapter = detail.chapters.find(c => c.id === chapterId)
+      if (chapter) {
+        chapter.lessons = newLessons.map((l, i) => ({ ...l, order: i + 1 }))
+        store.syncSummary(subjectId) // call sync just in case
+      }
+    }
+  }
+
+  const reorderContents = (lessonId: number, newContents: EditorContentBlock[]) => {
+    const detail = store.getSubjectDetail(subjectId)
+    if (detail?.chapters) {
+      const chapter = detail.chapters.find(c => c.lessons?.some(l => l.id === lessonId))
+      if (chapter?.lessons) {
+        const lesson = chapter.lessons.find(l => l.id === lessonId)
         if (lesson) {
-          const idx = lesson.contents.findIndex(ct => ct.id === id)
-          if (idx > -1) lesson.contents.splice(idx, 1)
-          break
+          lesson.contents = newContents.map((c, i) => ({ ...c, order: i + 1 }))
         }
       }
     }
+  }
+
+  // Duplicate
+  const duplicateContent = (content: EditorContentBlock) => {
+    const chapId = selectedChapter.value?.id
+    const lessonId = selectedLessonId.value
+    if (!chapId || !lessonId) return
+
+    const lesson = selectedLesson.value
+    const cloned = JSON.parse(JSON.stringify(content))
+    cloned.id = Date.now()
+    cloned.title = `${cloned.title} (Bản sao)`
+    cloned.order = (lesson?.contents?.length || 0) + 1
     
-    isDeleteDialogOpen.value = false
-    deleteTarget.value = null
+    store.addContent(subjectId, chapId, lessonId, cloned)
   }
 
   return {
@@ -213,14 +240,28 @@ export const useCurriculumEditor = (subjectId: number) => {
     editingLesson,
     editingContent,
     selectedContentType,
-    deleteTarget,
     selectedLesson,
     selectedChapter,
+    deleteTarget,
+
     toggleChapter,
     selectLesson,
     saveChapter,
     saveLesson,
     saveContent,
-    deleteItem
+    confirmDelete,
+
+    openAddChapter,
+    openEditChapter,
+    openAddLesson,
+    openEditLesson,
+    openAddContent,
+    openEditContent,
+    requestDelete,
+
+    reorderChapters,
+    reorderLessons,
+    reorderContents,
+    duplicateContent
   }
 }

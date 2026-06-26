@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { QuestionBankItem } from '@/types/content-council/questionBank'
-import { initialMockQuestions } from '@/mocks/contentCouncilQuestions'
+import { useQuestionStore } from '@/stores/content-council/questionStore'
 import { Download, Upload, Plus } from 'lucide-vue-next'
 
 import QuestionFilterBar from '@/components/content-council/question-bank/QuestionFilterBar.vue'
@@ -16,7 +16,7 @@ const router = useRouter()
 const route = useRoute()
 
 // --- State ---
-const allQuestions = ref<QuestionBankItem[]>([])
+const questionStore = useQuestionStore()
 const selectedIds = ref<number[]>([])
 
 const filters = ref({
@@ -46,9 +46,6 @@ const toastTimeout = ref<any>(null)
 
 // --- Initialization ---
 onMounted(() => {
-  // Clone mock data to local state
-  allQuestions.value = JSON.parse(JSON.stringify(initialMockQuestions))
-  
   // Parse URL queries
   const q = route.query
   if (q.keyword) filters.value.keyword = String(q.keyword)
@@ -63,7 +60,7 @@ onMounted(() => {
 
 // --- Computed ---
 const filteredQuestions = computed(() => {
-  let result = [...allQuestions.value]
+  let result = [...questionStore.questions]
   
   const kw = filters.value.keyword.toLowerCase().trim()
   if (kw) {
@@ -185,15 +182,12 @@ const handleDeleteRequest = (q: QuestionBankItem) => {
 
 const handleToggleStatus = (q: QuestionBankItem) => {
   if (!confirm(`Bạn có chắc muốn ${q.status === 'active' ? 'Vô hiệu hóa' : 'Kích hoạt'} câu hỏi này?`)) return
-  const index = allQuestions.value.findIndex(item => item.id === q.id)
-  if (index > -1) {
-    allQuestions.value[index].status = q.status === 'active' ? 'inactive' : 'active'
-    showToast(`Đã ${q.status === 'active' ? 'Vô hiệu hóa' : 'Kích hoạt'} câu hỏi thành công.`)
-  }
+  questionStore.toggleStatus(q.id)
+  showToast(`Đã ${q.status === 'active' ? 'Vô hiệu hóa' : 'Kích hoạt'} câu hỏi thành công.`)
 }
 
 const executeDelete = (q: QuestionBankItem) => {
-  allQuestions.value = allQuestions.value.filter(item => item.id !== q.id)
+  questionStore.deleteQuestion(q.id)
   selectedIds.value = selectedIds.value.filter(id => id !== q.id)
   isDeleteOpen.value = false
   isDetailOpen.value = false
@@ -202,31 +196,21 @@ const executeDelete = (q: QuestionBankItem) => {
 
 const executeSave = (formData: any) => {
   if (formMode.value === 'create' || formMode.value === 'duplicate') {
-    const newId = Math.max(...allQuestions.value.map(q => q.id), 0) + 1
-    const newCode = `Q-${formData.subjectCode}-MOCK-${Math.floor(Math.random() * 1000)}`
-    
-    allQuestions.value.unshift({
+    const newQuestion = {
       ...formData,
-      id: newId,
-      code: newCode,
+      id: Math.max(...questionStore.questions.map(q => q.id), 0) + 1,
+      code: `Q-${formData.subjectCode}-MOCK-${Math.floor(Math.random() * 1000)}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       usageCount: 0
-    })
+    }
+    questionStore.addQuestion(newQuestion)
     showToast(formMode.value === 'create' ? 'Đã tạo câu hỏi thành công.' : 'Đã nhân bản câu hỏi thành công.')
   } else if (formMode.value === 'edit') {
-    const index = allQuestions.value.findIndex(q => q.id === formData.id)
-    if (index > -1) {
-      allQuestions.value[index] = {
-        ...formData,
-        updatedAt: new Date().toISOString()
-      }
-      showToast('Đã cập nhật câu hỏi thành công.')
-      // Update detail view if open
-      if (isDetailOpen.value && activeQuestion.value?.id === formData.id) {
-        activeQuestion.value = allQuestions.value[index]
-      }
-    }
+    questionStore.updateQuestion(formData.id, {
+      ...formData,
+      updatedAt: new Date().toISOString()
+    })
   }
   isFormOpen.value = false
 }

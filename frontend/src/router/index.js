@@ -684,6 +684,30 @@ const router = createRouter({
           meta: { title: 'Ngân hàng câu hỏi' }
         },
         {
+          path: 'quizzes',
+          name: 'content-council-quizzes',
+          component: () => import('../pages/content-council/quizzes/QuizListPage.vue'),
+          meta: { title: 'Quiz / Đề kiểm tra' }
+        },
+        {
+          path: 'quizzes/new',
+          name: 'content-council-quiz-create',
+          component: () => import('../pages/content-council/quizzes/QuizFormPage.vue'),
+          meta: { title: 'Tạo Quiz', requiresAuth: true, roles: ['HoiDongQuanLyNoiDung'] }
+        },
+        {
+          path: 'quizzes/:quizId/edit',
+          name: 'content-council-quiz-edit',
+          component: () => import('../pages/content-council/quizzes/QuizFormPage.vue'),
+          meta: { title: 'Chỉnh sửa Quiz', requiresAuth: true, roles: ['HoiDongQuanLyNoiDung'] }
+        },
+        {
+          path: 'quizzes/:quizId/builder',
+          name: 'content-council-quiz-builder',
+          component: () => import('../pages/content-council/quizzes/QuizBuilderPage.vue'),
+          meta: { title: 'Xây dựng đề', requiresAuth: true, roles: ['HoiDongQuanLyNoiDung'] }
+        },
+        {
           path: 'subjects/:subjectId',
           component: () => import('../layouts/content-council/SubjectDetailLayout.vue'),
           children: [

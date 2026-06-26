@@ -51,9 +51,9 @@ const menuItems = [
     name: 'Quiz / Đề kiểm tra',
     icon: ClipboardCheck,
     route: 'content-council-quizzes',
-    path: '#',
-    disabled: true,
-    tooltip: 'Sẽ triển khai ở bước tiếp theo'
+    path: '/content-council/quizzes',
+    disabled: false,
+    tooltip: ''
   }
 ]
 

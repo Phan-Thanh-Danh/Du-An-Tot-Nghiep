@@ -1,16 +1,16 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { mockSubjects } from '@/mocks/contentCouncilSubjects'
+import { useSubjectStore } from '@/stores/content-council/subjectStore'
 import { ChevronRight } from 'lucide-vue-next'
 
 const route = useRoute()
 const subjectId = computed(() => Number(route.params.subjectId))
 
-const subject = computed(() => {
-  return mockSubjects.find(s => s.id === subjectId.value) || null
-})
+const store = useSubjectStore()
+store.init()
 
+const subject = computed(() => store.getSubjectById(subjectId.value) || null)
 </script>
 
 <template>

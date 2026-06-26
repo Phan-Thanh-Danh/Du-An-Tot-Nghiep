@@ -1,23 +1,12 @@
-export interface ContentCouncilSubject {
-  id: number
-  code: string
-  name: string
-  shortDescription: string
-  status: 'empty' | 'draft' | 'completed'
-  chapterCount: number
-  lessonCount: number
-  contentCount: number
-  quizCount: number
-  updatedAt: string
-}
+import { ContentCouncilSubject } from '@/types/content-council/subject'
 
 export const mockSubjects: ContentCouncilSubject[] = [
   {
     id: 1,
     code: 'COM101',
     name: 'Nhập môn Công nghệ thông tin',
-    shortDescription: 'Cung cấp kiến thức nền tảng về máy tính, mạng và tư duy lập trình.',
-    status: 'draft',
+    thumbnailUrl: 'https://placehold.co/600x400/2563eb/ffffff?text=COM101',
+    status: 'active',
     chapterCount: 4,
     lessonCount: 18,
     contentCount: 35,
@@ -28,8 +17,8 @@ export const mockSubjects: ContentCouncilSubject[] = [
     id: 2,
     code: 'WEB201',
     name: 'Lập trình Web',
-    shortDescription: 'HTML, CSS, JavaScript cơ bản và cách xây dựng giao diện web tương tác.',
-    status: 'completed',
+    thumbnailUrl: 'https://placehold.co/600x400/10b981/ffffff?text=WEB201',
+    status: 'active',
     chapterCount: 6,
     lessonCount: 24,
     contentCount: 50,
@@ -40,8 +29,8 @@ export const mockSubjects: ContentCouncilSubject[] = [
     id: 3,
     code: 'MOB101',
     name: 'Lập trình Mobile',
-    shortDescription: 'Phát triển ứng dụng di động đa nền tảng với React Native hoặc Flutter.',
-    status: 'empty',
+    thumbnailUrl: 'https://placehold.co/600x400/f59e0b/ffffff?text=MOB101',
+    status: 'inactive',
     chapterCount: 0,
     lessonCount: 0,
     contentCount: 0,
@@ -52,8 +41,8 @@ export const mockSubjects: ContentCouncilSubject[] = [
     id: 4,
     code: 'DBI202',
     name: 'Cơ sở dữ liệu',
-    shortDescription: 'Thiết kế, truy vấn và quản lý dữ liệu với SQL Server.',
-    status: 'draft',
+    thumbnailUrl: 'https://placehold.co/600x400/8b5cf6/ffffff?text=DBI202',
+    status: 'active',
     chapterCount: 5,
     lessonCount: 15,
     contentCount: 20,
@@ -64,8 +53,8 @@ export const mockSubjects: ContentCouncilSubject[] = [
     id: 5,
     code: 'NET102',
     name: 'Mạng máy tính',
-    shortDescription: 'Tìm hiểu về mô hình OSI, TCP/IP và cấu hình mạng cơ bản.',
-    status: 'completed',
+    thumbnailUrl: 'https://placehold.co/600x400/ef4444/ffffff?text=NET102',
+    status: 'archived',
     chapterCount: 7,
     lessonCount: 21,
     contentCount: 42,
@@ -76,8 +65,8 @@ export const mockSubjects: ContentCouncilSubject[] = [
     id: 6,
     code: 'PRO192',
     name: 'Lập trình Java',
-    shortDescription: 'Lập trình hướng đối tượng cơ bản với ngôn ngữ Java.',
-    status: 'empty',
+    thumbnailUrl: 'https://placehold.co/600x400/06b6d4/ffffff?text=PRO192',
+    status: 'inactive',
     chapterCount: 0,
     lessonCount: 0,
     contentCount: 0,
@@ -88,8 +77,8 @@ export const mockSubjects: ContentCouncilSubject[] = [
     id: 7,
     code: 'SOF203',
     name: 'Kiểm thử phần mềm',
-    shortDescription: 'Các kỹ thuật, quy trình và công cụ kiểm thử phần mềm tự động hóa.',
-    status: 'draft',
+    thumbnailUrl: 'https://placehold.co/600x400/ec4899/ffffff?text=SOF203',
+    status: 'active',
     chapterCount: 4,
     lessonCount: 12,
     contentCount: 25,
@@ -100,8 +89,8 @@ export const mockSubjects: ContentCouncilSubject[] = [
     id: 8,
     code: 'SDN302',
     name: 'Phát triển ứng dụng',
-    shortDescription: 'Xây dựng ứng dụng doanh nghiệp đầy đủ tính năng.',
-    status: 'completed',
+    thumbnailUrl: 'https://placehold.co/600x400/14b8a6/ffffff?text=SDN302',
+    status: 'active',
     chapterCount: 8,
     lessonCount: 30,
     contentCount: 65,

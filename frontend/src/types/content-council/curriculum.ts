@@ -1,14 +1,4 @@
-export type ContentBlockType =
-  | 'video'
-  | 'slide_html'
-  | 'document'
-  | 'text'
-  | 'quiz'
-
-export type EditorContentStatus =
-  | 'draft'
-  | 'published'
-  | 'hidden'
+import { ContentBlockType, ContentStatus } from './common'
 
 export interface EditorContentBlock {
   id: number
@@ -16,7 +6,7 @@ export interface EditorContentBlock {
   type: ContentBlockType
   title: string
   order: number
-  status: EditorContentStatus
+  status: ContentStatus
   html?: string
   description?: string
   fileName?: string
@@ -42,7 +32,7 @@ export interface EditorLesson {
   title: string
   order: number
   type: string
-  status: 'draft' | 'published' | 'hidden' | 'empty'
+  status: ContentStatus | 'empty'
   contents: EditorContentBlock[]
 }
 

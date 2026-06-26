@@ -1,6 +1,7 @@
+import { DifficultyLevel } from './common'
+
 export type QuestionType = 'multiple_choice' | 'essay'
 export type SelectionType = 'single' | 'multiple'
-export type QuestionDifficulty = 'easy' | 'medium' | 'hard'
 export type QuestionStatus = 'active' | 'inactive'
 
 export interface QuestionChoice {
@@ -21,7 +22,7 @@ export interface QuestionBankItem {
   correctAnswerIds?: string[]
   answerExplanation?: string
   sampleAnswer?: string
-  difficulty: QuestionDifficulty
+  difficulty: DifficultyLevel
   status: QuestionStatus
   usageCount: number
   createdAt: string

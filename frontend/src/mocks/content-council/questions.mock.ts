@@ -1,11 +1,5 @@
 import { QuestionBankItem } from '@/types/content-council/questionBank'
 
-const subjects = [
-  { id: 1, code: 'WEB201', name: 'Lập trình Web cơ bản' },
-  { id: 2, code: 'COM101', name: 'Nhập môn CNTT' },
-  { id: 3, code: 'PRO192', name: 'Lập trình Java' },
-  { id: 4, code: 'DBI202', name: 'Hệ quản trị CSDL' }
-]
 
 const generateId = () => Math.random().toString(36).substr(2, 9)
 

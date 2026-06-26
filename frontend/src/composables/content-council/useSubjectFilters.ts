@@ -1,19 +1,21 @@
 import { ref, computed } from 'vue'
-import { mockSubjects, type ContentCouncilSubject } from '@/mocks/contentCouncilSubjects'
+import { useSubjectStore } from '@/stores/content-council/subjectStore'
 
 export function useSubjectFilters() {
-  const subjects = ref<ContentCouncilSubject[]>([])
+  const store = useSubjectStore()
+  
+  const subjects = computed(() => store.subjects)
   const isLoading = ref(true)
   const searchQuery = ref('')
-  const statusFilter = ref<'all' | 'empty' | 'draft' | 'completed'>('all')
+  const statusFilter = ref<'all' | 'active' | 'inactive' | 'archived'>('all')
   const sortOption = ref<'updatedAt' | 'nameAsc' | 'nameDesc' | 'codeAsc'>('updatedAt')
 
   const fetchSubjects = async () => {
     isLoading.value = true
     try {
-      // Giả lập API call
+      store.init()
+      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 800))
-      subjects.value = [...mockSubjects]
     } finally {
       isLoading.value = false
     }
