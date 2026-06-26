@@ -57,7 +57,10 @@ public static class ApplicationTimelineMetadataSanitizer
                 ChangedFields = ReadStringArray(root, "changedFields"),
                 AttachmentIds = ReadPositiveIntArray(root, "attachmentIds"),
                 AttachmentId = ReadPositiveIntOrNull(root, "attachmentId"),
-                FileCount = ReadFileCount(root)
+                FileCount = ReadFileCount(root),
+                Decision = ReadAllowedDecision(root),
+                PreviousAssigneeId = ReadPositiveIntOrNull(root, "previousAssigneeId"),
+                ProcessorId = ReadPositiveIntOrNull(root, "processorId")
             };
 
             return HasAnyValue(metadata) ? metadata : null;
@@ -216,6 +219,20 @@ public static class ApplicationTimelineMetadataSanitizer
         return SensitiveFieldTerms.Any(term => normalized.Contains(term, StringComparison.Ordinal));
     }
 
+    private static string? ReadAllowedDecision(JsonElement root)
+    {
+        if (!TryGetPropertyIgnoreCase(root, "decision", out var property) ||
+            property.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+
+        var value = property.GetString()?.Trim();
+        return value is "request_supplement" or "approve" or "reject"
+            ? value
+            : null;
+    }
+
     private static bool HasAnyValue(AdminApplicationTimelineMetadataDto metadata)
     {
         return metadata.Operation is not null ||
@@ -226,7 +243,10 @@ public static class ApplicationTimelineMetadataSanitizer
                metadata.ChangedFields.Count > 0 ||
                metadata.AttachmentIds.Count > 0 ||
                metadata.AttachmentId.HasValue ||
-               metadata.FileCount.HasValue;
+               metadata.FileCount.HasValue ||
+               metadata.Decision is not null ||
+               metadata.PreviousAssigneeId.HasValue ||
+               metadata.ProcessorId.HasValue;
     }
 
     private static bool TryGetPropertyIgnoreCase(JsonElement element, string propertyName, out JsonElement property)

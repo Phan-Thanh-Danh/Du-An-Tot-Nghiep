@@ -582,6 +582,8 @@ public class StudentApplicationService : IStudentApplicationService
             CanCancel = item.CanCancel,
             MaMauDon = application.MaMauDon,
             DuLieuBieuMau = ParseJsonElement(application.DuLieuBieuMau),
+            LyDoTuChoi = application.LyDoTuChoi,
+            NoiDungYeuCauBoSung = application.NoiDungYeuCauBoSung,
             Template = application.MauDon is null ? null : new StudentApplicationTemplateDto
             {
                 MaMauDon = application.MauDon.MaMauDon,
