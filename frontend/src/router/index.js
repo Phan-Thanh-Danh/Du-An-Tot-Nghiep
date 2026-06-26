@@ -20,7 +20,7 @@ const router = createRouter({
         if (authStore.hasRole('Teacher')) return '/teacher/dashboard'
         if (authStore.hasRole('AcademicStaff')) return '/staff/dashboard'
         if (authStore.hasRole('Parent')) return '/parent/dashboard'
-        if (authStore.hasRole('ContentBoard')) return '/content-board/dashboard'
+
         return '/student/dashboard'
       },
     },
@@ -402,34 +402,6 @@ const router = createRouter({
       ],
     },
 
-    // ── Content Board Layout (Hội đồng Quản lý Nội dung) ────
-    {
-      path: '/content-board',
-      component: () => import('../components/ContentBoard/Layout_ContentBoard.vue'),
-      meta: { requiresAuth: true, role: 'ContentBoard' },
-      children: [
-        { path: '', redirect: '/content-board/dashboard' },
-        {
-          path: 'dashboard',
-          name: 'content-board-dashboard',
-          component: () => import('../views/ContentBoard/Dashboard.vue'),
-          meta: { title: 'Dashboard', subtitle: 'Tổng quan nội dung đào tạo', section: 'Dashboard' },
-        },
-        {
-          path: 'subjects',
-          name: 'content-board-subjects',
-          component: () => import('../pages/content-council/SubjectListPage.vue'),
-          meta: { title: 'Quản lý Môn học', subtitle: 'Quản lý danh mục môn học, nội dung giảng dạy và cấu trúc chương trình đào tạo', section: 'Quản lý Nội dung' },
-        },
-        // Cá nhân
-        {
-          path: 'profile',
-          name: 'content-board-profile',
-          component: () => import('../views/ContentBoard/PlaceholderView.vue'),
-          meta: { title: 'Hồ sơ cá nhân', subtitle: 'Thông tin cá nhân và cài đặt tài khoản', section: 'Cá nhân' },
-        },
-      ],
-    },
 
     // ── Super Admin Layout ────────────────────────────────
     {
