@@ -201,7 +201,8 @@ const handleAction = () => {
               <div class="slot-fill" :class="getProgressColor(cls.slots, cls.maxSlots)" :style="{ width: `${(cls.slots / cls.maxSlots) * 100}%` }"></div>
             </div>
           </div>
-          
+        </div>
+        
         <!-- Card Footer Actions -->
         <div class="card-footer">
           <button v-if="cls.status === 'Open'" class="btn-primary flex-1" @click="openModal('enroll', cls)">
