@@ -1,6 +1,8 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { getStudentMajor, getExamMajorName, getExamsByMajor } from '@/services/mockDataService.js'
 import {
   AlertTriangle,
   BookOpen,
@@ -18,7 +20,7 @@ import {
   ShieldAlert,
   Timer,
 } from 'lucide-vue-next'
-import { mockExams } from '@/data/studentData.mock.js'
+import { mockExams as baseMockExams } from '@/data/studentData.mock.js'
 import {
   canStartLearning,
   canViewLearningResult,
@@ -30,6 +32,7 @@ import {
 import { getExamAccessState, getExamStatusLabel } from '@/utils/examAccess.js'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const searchQuery = ref('')
 const selectedSemester = ref('all')
@@ -44,7 +47,10 @@ const studentContext = {
 // FE-only mock enrichment while waiting for a real Student Exams API.
 // Keeps the existing mockExams IDs/routes intact and adds enough cards
 // to validate the compact responsive grid.
-const baseExamCatalog = mockExams
+const majorSpecificExams = getExamsByMajor(getStudentMajor()) || []
+const ownedIds = new Set(baseMockExams.map((e) => e.id))
+const freshMajorExams = majorSpecificExams.filter((e) => !ownedIds.has(e.id))
+const baseExamCatalog = [...baseMockExams, ...freshMajorExams]
 
 const accessOverrides = {
   'exam-toan-001': {
@@ -409,6 +415,16 @@ function accessStateLabel(exam) {
   if (state.canViewResult) return 'Chỉ xem kết quả'
   return state.reason || getExamStatusLabel(exam.status)
 }
+
+onMounted(() => {
+  if (authStore.user?.role === 'Student') {
+    const major = getStudentMajor()
+    const majorName = getExamMajorName(major)
+    if (majorName && majorOptions.value.includes(majorName)) {
+      selectedMajor.value = majorName
+    }
+  }
+})
 </script>
 
 <template>

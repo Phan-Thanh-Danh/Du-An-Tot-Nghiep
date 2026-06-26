@@ -198,7 +198,8 @@ const handleAction = () => {
               <span class="text-heading">{{ cls.slots }}/{{ cls.maxSlots }}</span>
             </div>
             <div class="slot-track">
-              <div class="slot-fill" :class="getProgressColor(cls.slots, cls.maxSlots)" :style="{ width: `${(cls.slots / cls.maxSlots) * 100}%` }"></div>
+                <div class="slot-fill" :class="getProgressColor(cls.slots, cls.maxSlots)" :style="{ width: `${(cls.slots / cls.maxSlots) * 100}%` }"></div>
+              </div>
             </div>
           </div>
           
