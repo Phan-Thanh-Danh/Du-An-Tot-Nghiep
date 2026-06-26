@@ -112,26 +112,42 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
 
         var now = DateTime.UtcNow;
         var dueSoonDeadline = now.AddHours(_options.SlaWarningBeforeHours);
-        var query = BuildSummaryQuery(normalized, actor);
+        var query = BuildSummaryQuery(normalized, actor)
+            .TagWith("P0-DT4.1 QueueSummaryAggregate");
+        var aggregate = await query
+            .GroupBy(_ => 1)
+            .Select(group => new
+            {
+                TotalActive = group.Count(),
+                Submitted = group.Count(x => x.TrangThai == ApplicationStatuses.Submitted),
+                InReview = group.Count(x => x.TrangThai == ApplicationStatuses.InReview),
+                NeedSupplement = group.Count(x => x.TrangThai == ApplicationStatuses.NeedSupplement),
+                Unassigned = group.Count(x => x.NguoiDuyetHienTai == null),
+                Assigned = group.Count(x => x.NguoiDuyetHienTai != null),
+                AssignedToMe = group.Count(x => x.NguoiDuyetHienTai == actor.User.MaNguoiDung),
+                Overdue = group.Count(x => RunningSlaStatuses.Contains(x.TrangThai) &&
+                                           x.HanXuLyLuc.HasValue &&
+                                           x.HanXuLyLuc.Value < now),
+                DueSoon = group.Count(x => RunningSlaStatuses.Contains(x.TrangThai) &&
+                                           x.HanXuLyLuc.HasValue &&
+                                           x.HanXuLyLuc.Value >= now &&
+                                           x.HanXuLyLuc.Value <= dueSoonDeadline)
+            })
+            .SingleOrDefaultAsync(cancellationToken);
 
         return new AdminApplicationQueueSummaryDto
         {
-            Active = await query.CountAsync(cancellationToken),
-            TotalActive = await query.CountAsync(cancellationToken),
-            Submitted = await query.CountAsync(x => x.TrangThai == ApplicationStatuses.Submitted, cancellationToken),
-            InReview = await query.CountAsync(x => x.TrangThai == ApplicationStatuses.InReview, cancellationToken),
-            NeedSupplement = await query.CountAsync(x => x.TrangThai == ApplicationStatuses.NeedSupplement, cancellationToken),
-            WaitingForSupplement = await query.CountAsync(x => x.TrangThai == ApplicationStatuses.NeedSupplement, cancellationToken),
-            Unassigned = await query.CountAsync(x => x.NguoiDuyetHienTai == null, cancellationToken),
-            Assigned = await query.CountAsync(x => x.NguoiDuyetHienTai != null, cancellationToken),
-            AssignedToMe = await query.CountAsync(x => x.NguoiDuyetHienTai == actor.User.MaNguoiDung, cancellationToken),
-            Overdue = await query.CountAsync(x => RunningSlaStatuses.Contains(x.TrangThai) &&
-                                                  x.HanXuLyLuc.HasValue &&
-                                                  x.HanXuLyLuc.Value < now, cancellationToken),
-            DueSoon = await query.CountAsync(x => RunningSlaStatuses.Contains(x.TrangThai) &&
-                                                  x.HanXuLyLuc.HasValue &&
-                                                  x.HanXuLyLuc.Value >= now &&
-                                                  x.HanXuLyLuc.Value <= dueSoonDeadline, cancellationToken)
+            Active = aggregate?.TotalActive ?? 0,
+            TotalActive = aggregate?.TotalActive ?? 0,
+            Submitted = aggregate?.Submitted ?? 0,
+            InReview = aggregate?.InReview ?? 0,
+            NeedSupplement = aggregate?.NeedSupplement ?? 0,
+            WaitingForSupplement = aggregate?.NeedSupplement ?? 0,
+            Unassigned = aggregate?.Unassigned ?? 0,
+            Assigned = aggregate?.Assigned ?? 0,
+            AssignedToMe = aggregate?.AssignedToMe ?? 0,
+            Overdue = aggregate?.Overdue ?? 0,
+            DueSoon = aggregate?.DueSoon ?? 0
         };
     }
 
@@ -193,22 +209,22 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
             })
             .ToListAsync(cancellationToken);
 
-        var timeline = await _context.NhatKyDuyetDons.AsNoTracking()
+        var timelineRows = await _context.NhatKyDuyetDons.AsNoTracking()
             .Where(x => x.MaDonTu == applicationId)
             .OrderBy(x => x.NgayTao)
             .ThenBy(x => x.MaNkDuyet)
-            .Select(x => new AdminApplicationTimelineDto
+            .Select(x => new
             {
-                MaNkDuyet = x.MaNkDuyet,
-                NguonThucHien = x.NguonThucHien,
-                HanhDong = x.HanhDong,
-                TrangThaiCu = x.TrangThaiCu,
-                TrangThaiMoi = x.TrangThaiMoi,
-                GhiChuCongKhai = x.GhiChuCongKhai,
-                GhiChuNoiBo = x.GhiChuNoiBo,
-                SnapshotJson = x.SnapshotJson,
-                HienThiChoHocSinh = x.HienThiChoHocSinh,
-                NgayTao = x.NgayTao,
+                x.MaNkDuyet,
+                x.NguonThucHien,
+                x.HanhDong,
+                x.TrangThaiCu,
+                x.TrangThaiMoi,
+                x.GhiChuCongKhai,
+                x.GhiChuNoiBo,
+                x.SnapshotJson,
+                x.HienThiChoHocSinh,
+                x.NgayTao,
                 NguoiThucHien = x.NguoiDuyet == null ? null : new AdminApplicationPersonDto
                 {
                     MaNguoiDung = x.NguoiDuyet.MaNguoiDung,
@@ -218,6 +234,22 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
                 }
             })
             .ToListAsync(cancellationToken);
+        var timeline = timelineRows
+            .Select(x => new AdminApplicationTimelineDto
+            {
+                MaNkDuyet = x.MaNkDuyet,
+                NguonThucHien = x.NguonThucHien,
+                HanhDong = x.HanhDong,
+                TrangThaiCu = x.TrangThaiCu,
+                TrangThaiMoi = x.TrangThaiMoi,
+                GhiChuCongKhai = x.GhiChuCongKhai,
+                GhiChuNoiBo = x.GhiChuNoiBo,
+                Metadata = ApplicationTimelineMetadataSanitizer.Sanitize(x.SnapshotJson),
+                HienThiChoHocSinh = x.HienThiChoHocSinh,
+                NgayTao = x.NgayTao,
+                NguoiThucHien = x.NguoiThucHien
+            })
+            .ToList();
 
         var detail = ToDetailDto(row, actor);
         detail.Attachments = attachments;

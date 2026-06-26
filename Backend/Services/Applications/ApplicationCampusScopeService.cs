@@ -9,6 +9,16 @@ namespace Backend.Services.Applications;
 
 public class ApplicationCampusScopeService : IApplicationCampusScopeService
 {
+    private static readonly string[] QueueReadRoles =
+    [
+        AuthRoles.SuperAdmin,
+        AuthRoles.Admin,
+        AuthRoles.CampusAdmin,
+        AuthRoles.SubCampusAdmin,
+        AuthRoles.AcademicStaff,
+        AuthRoles.Principal
+    ];
+
     private static readonly string[] AssignableRoles =
     [
         AuthRoles.SuperAdmin,
@@ -45,6 +55,11 @@ public class ApplicationCampusScopeService : IApplicationCampusScopeService
         }
 
         var role = AuthRoles.FromDatabaseCode(user.VaiTroChinh);
+        if (!QueueReadRoles.Contains(role))
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "Tài khoản không có quyền truy cập hàng đợi đơn từ.");
+        }
+
         var isGlobal = role is AuthRoles.SuperAdmin or AuthRoles.Admin;
         IReadOnlySet<int>? allowedCampusIds = null;
         if (!isGlobal)

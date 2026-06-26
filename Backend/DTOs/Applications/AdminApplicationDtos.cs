@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Backend.DTOs.Common;
 
 namespace Backend.DTOs.Applications;
@@ -131,10 +132,37 @@ public class AdminApplicationTimelineDto
     public string? TrangThaiMoi { get; set; }
     public string? GhiChuCongKhai { get; set; }
     public string? GhiChuNoiBo { get; set; }
-    public string? SnapshotJson { get; set; }
+    public AdminApplicationTimelineMetadataDto? Metadata { get; set; }
     public bool HienThiChoHocSinh { get; set; }
     public DateTime NgayTao { get; set; }
     public AdminApplicationPersonDto? NguoiThucHien { get; set; }
+}
+
+public class AdminApplicationTimelineMetadataDto
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Operation { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? FromAssigneeId { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? ToAssigneeId { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? ReasonProvided { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? TemplateAssigned { get; set; }
+
+    public IReadOnlyList<string> ChangedFields { get; set; } = [];
+    public IReadOnlyList<int> AttachmentIds { get; set; } = [];
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? AttachmentId { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? FileCount { get; set; }
 }
 
 public class AdminApplicationQueueSummaryDto

@@ -640,8 +640,8 @@ P0-DT1 làm foundation schema, constants, state machine, template validator và 
 | GET | `/api/student/applications/{id}/attachments/{attachmentId}/download` | Student | Download binary file minh chứng của chính sinh viên nếu metadata chưa soft delete và object còn tồn tại. Trả `Content-Disposition: attachment`, content type canonical trong DB, `X-Content-Type-Options: nosniff`, `Cache-Control: private, no-store`. |
 | DELETE | `/api/student/applications/{id}/attachments/{attachmentId}` | Student | Soft delete metadata minh chứng của chính sinh viên bằng body `{ "rowVersion": "..." }`. Chỉ cho đơn `nhap` hoặc `yeu_cau_bo_sung`; physical delete best-effort sau khi DB commit. |
 | GET | `/api/admin/applications` | ApplicationQueueRead | Hàng đợi admin có filter `maDonVi`, `maHocSinh`, `nguoiDuyetHienTai`, `loaiDon`, `trangThai`, `assignmentState`, `slaStatus`, `tuNgayNop`, `denNgayNop`, `search`, `pageIndex`, `pageSize`. Nếu không truyền `trangThai`, chỉ trả `da_nop`, `dang_xem_xet`. |
-| GET | `/api/admin/applications/queue-summary` | ApplicationQueueRead | Tổng quan queue trong scope hiện tại: active, submitted, in review, need supplement, unassigned, overdue, due soon. |
-| GET | `/api/admin/applications/{applicationId}` | ApplicationQueueRead | Admin xem chi tiết đơn trong campus scope, gồm form data safe, attachment metadata safe, timeline admin và allowed actions. Ngoài scope trả `404`. |
+| GET | `/api/admin/applications/queue-summary` | ApplicationQueueRead | Tổng quan queue trong scope hiện tại: active, submitted, in review, need supplement, unassigned, overdue, due soon. `active` là alias của `totalActive`; `waitingForSupplement` là alias của `needSupplement`. Backend tính summary bằng một conditional aggregate SQL query trong cùng scope/filter. |
+| GET | `/api/admin/applications/{applicationId}` | ApplicationQueueRead | Admin xem chi tiết đơn trong campus scope, gồm form data safe, attachment metadata safe, timeline admin và allowed actions. Timeline admin không trả raw `SnapshotJson`; chỉ trả `metadata` đã sanitize theo allowlist. Ngoài scope trả `404`. |
 | POST | `/api/admin/applications/{applicationId}/receive` | ApplicationReceive | Tiếp nhận đơn `da_nop` chưa có `NguoiDuyetHienTai`; body `{ "rowVersion": "..." }`; chuyển sang `dang_xem_xet`, gán current user, ghi log public `tiep_nhan`. |
 | POST | `/api/admin/applications/{applicationId}/assign` | ApplicationAssignmentManage | Phân công hoặc phân công lại; body `{ "assigneeId": 1, "rowVersion": "...", "lyDo": "..." }`. Reassign bắt buộc `lyDo` 10-1000 ký tự và ghi log internal. |
 | GET | `/api/admin/applications/assignees` | ApplicationAssignmentManage | Danh sách người có thể xử lý đơn trong scope hiện tại, filter `maDonVi`, `search`, `pageIndex`, `pageSize`. |
@@ -710,6 +710,9 @@ Ghi chú P0-DT4:
 - Receive chỉ cho `da_nop` và chưa có assignee. Assign cho `da_nop`, `dang_xem_xet`, `yeu_cau_bo_sung`; không cho `nhap`, `da_duyet`, `tu_choi`, `da_huy`.
 - Same-assignee assign là no-op nhưng vẫn validate rowVersion; stale trả `409`, fresh trả detail hiện tại và không ghi log.
 - Admin detail/download không trả `StorageKey`, `TenFileLuu`, `FileHash`, password/hash người dùng hoặc URL public.
+- Admin timeline không trả `SnapshotJson` nội bộ. `metadata` chỉ gồm các field allowlist: `operation`, `fromAssigneeId`, `toAssigneeId`, `reasonProvided`, `templateAssigned`, `changedFields`, `attachmentIds`, `attachmentId`, `fileCount`. Snapshot rỗng, malformed hoặc root không phải object trả `metadata = null`; key lạ hoặc key nhạy cảm như storage key, hash, token, secret, connection string bị bỏ qua.
+- Queue summary giữ alias backward-compatible nhưng không chạy count riêng cho alias. SLA `overdue`/`dueSoon` chỉ tính cho `da_nop` và `dang_xem_xet`; `yeu_cau_bo_sung` là paused nên không góp vào hai bucket đó.
+- Verification P0-DT4.1 dùng TRX làm nguồn kết quả test chính. GitHub Actions hiện có workflow backend build-only: restore và build Release, không chạy integration test vì các API test cần SQL Server isolated và local object storage.
 
 ### Dự kiến/cần bổ sung
 

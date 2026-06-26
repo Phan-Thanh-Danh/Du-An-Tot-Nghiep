@@ -166,7 +166,7 @@ Student lifecycle P0-DT2:
 Admin queue and assignment P0-DT4:
 
 - `AdminApplicationsController` chỉ bind route/query/body và trả `ApiResponseDto` hoặc file stream; business logic nằm trong service.
-- `ApplicationAdminQueueService` xử lý list, summary, detail, assignee lookup, filter, sort, pagination và SLA projection. Query dùng `AsNoTracking`, projection DTO trực tiếp và không load collection lớn.
+- `ApplicationAdminQueueService` xử lý list, summary, detail, assignee lookup, filter, sort, pagination và SLA projection. Query dùng `AsNoTracking`, projection DTO trực tiếp và không load collection lớn. Queue summary dùng một conditional aggregate SQL query cho các bucket và giữ alias `Active = TotalActive`, `WaitingForSupplement = NeedSupplement`.
 - `ApplicationCampusScopeService` re-query current user từ DB, xác nhận `hoat_dong`, role DB và campus DB. SuperAdmin/Admin unrestricted; CampusAdmin lấy current campus + descendants; SubCampusAdmin/AcademicStaff/Principal exact campus.
 - List filter ngoài scope trả `403`; detail/download ngoài scope trả `404`; assignee không hợp lệ hoặc ngoài scope trả `404`.
 - Queue mặc định chỉ gồm `da_nop` và `dang_xem_xet`; `yeu_cau_bo_sung`, `nhap` và terminal chỉ hiện khi filter rõ.
@@ -175,7 +175,14 @@ Admin queue and assignment P0-DT4:
 - Receive chỉ cho `da_nop` chưa có assignee, chuyển `dang_xem_xet`, gán `NguoiDuyetHienTai`, không đổi `NguoiXuLyCuoi`, `NgayNop`, `HanXuLyLuc`.
 - Assign/reassign chỉ cho `da_nop`, `dang_xem_xet`, `yeu_cau_bo_sung`; same-assignee là no-op nhưng vẫn validate `RowVersion`. Reassign cần lý do nội bộ 10..1000 ký tự.
 - Workflow history dùng `NhatKyDuyetDon`: `tiep_nhan`, `phan_cong`, `phan_cong_lai`. Snapshot chỉ chứa assignee IDs và flag lý do, không chứa form data, file key hoặc secret.
+- Admin detail không expose raw `SnapshotJson`. `ApplicationTimelineMetadataSanitizer` parse snapshot theo allowlist typed metadata (`operation`, assignee IDs, reason/template flags, changed fields, attachment IDs/file count); malformed JSON, root không phải object, key lạ hoặc key nhạy cảm bị chuyển thành `null` hoặc bỏ qua thay vì phản chiếu raw payload.
 - Admin evidence download dùng private evidence object store, enforce campus scope từ `DonTu`, chỉ trả file content với filename/content type sanitized. Response không trả `StorageKey`, `TenFileLuu`, `FileHash`, bucket hoặc local path.
+
+P0-DT4.1 hardening:
+
+- Không thay đổi schema hoặc migration; chỉ sửa read model, query, test và tài liệu.
+- Summary aggregate được gắn tag `P0-DT4.1 QueueSummaryAggregate` để test bằng `DbCommandInterceptor` xác minh đúng một aggregate command.
+- Test verification dùng TRX làm source of truth cho P0-DT4/P0-DT2/P0-DT3/full suite. Repository có GitHub Actions backend build-only (`dotnet restore`, `dotnet build --configuration Release`) vì API integration test cần SQL Server database isolated dạng `LMS_TEST_*` và local evidence storage.
 
 Template validation:
 
