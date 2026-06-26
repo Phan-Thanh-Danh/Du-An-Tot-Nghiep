@@ -619,9 +619,9 @@ Ghi chú P0-8: Bảng `ThongBao` hiện được dùng theo mô hình mỗi dòn
 
 ## Applications / Đơn Từ APIs
 
-### Đã có trong P0-DT1/P0-DT2/P0-DT3
+### Đã có trong P0-DT1/P0-DT2/P0-DT3/P0-DT4
 
-P0-DT1 làm foundation schema, constants, state machine, template validator và API read-only để FE đọc loại đơn/mẫu đơn. P0-DT2 bổ sung vòng đời sinh viên: tạo nháp, xem đơn của chính mình, cập nhật nháp/yêu cầu bổ sung, nộp, nộp lại và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. Chưa làm phân công, duyệt/từ chối, notification hoặc xử lý nghiệp vụ sau duyệt.
+P0-DT1 làm foundation schema, constants, state machine, template validator và API read-only để FE đọc loại đơn/mẫu đơn. P0-DT2 bổ sung vòng đời sinh viên: tạo nháp, xem đơn của chính mình, cập nhật nháp/yêu cầu bổ sung, nộp, nộp lại và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. P0-DT4 bổ sung hàng đợi admin, SLA, tiếp nhận, phân công/phân công lại và admin download minh chứng. Chưa làm duyệt/từ chối, notification hoặc xử lý nghiệp vụ sau duyệt.
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
@@ -639,6 +639,13 @@ P0-DT1 làm foundation schema, constants, state machine, template validator và 
 | POST | `/api/student/applications/{id}/attachments` | Student | Upload một hoặc nhiều file minh chứng dạng multipart field `files` và `rowVersion`. Chỉ cho đơn của chính sinh viên ở trạng thái `nhap` hoặc `yeu_cau_bo_sung`. Thành công trả `201`, danh sách metadata an toàn, `rowVersion` mới, số file active và tổng dung lượng. |
 | GET | `/api/student/applications/{id}/attachments/{attachmentId}/download` | Student | Download binary file minh chứng của chính sinh viên nếu metadata chưa soft delete và object còn tồn tại. Trả `Content-Disposition: attachment`, content type canonical trong DB, `X-Content-Type-Options: nosniff`, `Cache-Control: private, no-store`. |
 | DELETE | `/api/student/applications/{id}/attachments/{attachmentId}` | Student | Soft delete metadata minh chứng của chính sinh viên bằng body `{ "rowVersion": "..." }`. Chỉ cho đơn `nhap` hoặc `yeu_cau_bo_sung`; physical delete best-effort sau khi DB commit. |
+| GET | `/api/admin/applications` | ApplicationQueueRead | Hàng đợi admin có filter `maDonVi`, `maHocSinh`, `nguoiDuyetHienTai`, `loaiDon`, `trangThai`, `assignmentState`, `slaStatus`, `tuNgayNop`, `denNgayNop`, `search`, `pageIndex`, `pageSize`. Nếu không truyền `trangThai`, chỉ trả `da_nop`, `dang_xem_xet`. |
+| GET | `/api/admin/applications/queue-summary` | ApplicationQueueRead | Tổng quan queue trong scope hiện tại: active, submitted, in review, need supplement, unassigned, overdue, due soon. `active` là alias của `totalActive`; `waitingForSupplement` là alias của `needSupplement`. Backend tính summary bằng một conditional aggregate SQL query trong cùng scope/filter. |
+| GET | `/api/admin/applications/{applicationId}` | ApplicationQueueRead | Admin xem chi tiết đơn trong campus scope, gồm form data safe, attachment metadata safe, timeline admin và allowed actions. Timeline admin không trả raw `SnapshotJson`; chỉ trả `metadata` đã sanitize theo allowlist. Ngoài scope trả `404`. |
+| POST | `/api/admin/applications/{applicationId}/receive` | ApplicationReceive | Tiếp nhận đơn `da_nop` chưa có `NguoiDuyetHienTai`; body `{ "rowVersion": "..." }`; chuyển sang `dang_xem_xet`, gán current user, ghi log public `tiep_nhan`. |
+| POST | `/api/admin/applications/{applicationId}/assign` | ApplicationAssignmentManage | Phân công hoặc phân công lại; body `{ "assigneeId": 1, "rowVersion": "...", "lyDo": "..." }`. Reassign bắt buộc `lyDo` 10-1000 ký tự và ghi log internal. |
+| GET | `/api/admin/applications/assignees` | ApplicationAssignmentManage | Danh sách người có thể xử lý đơn trong scope hiện tại, filter `maDonVi`, `search`, `pageIndex`, `pageSize`. |
+| GET | `/api/admin/applications/{applicationId}/attachments/{attachmentId}/download` | ApplicationQueueRead | Admin download minh chứng trong scope hiện tại. Metadata đã soft delete, ngoài scope hoặc object không tồn tại trả `404`; storage lỗi trả `503`. |
 
 Response mẫu:
 
@@ -693,10 +700,22 @@ Ghi chú P0-DT3:
 - Local object store chỉ dùng Development/Testing với storage root isolated. Production dùng private R2 object store, không public URL.
 - Upload object trước DB transaction; nếu DB mutation lỗi thì cleanup object đã upload. Delete revoke quyền truy cập bằng soft delete DB trước, physical delete best-effort sau commit.
 
+Ghi chú P0-DT4:
+
+- Policy mới: `ApplicationQueueRead` cho SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff/Principal; `ApplicationReceive` cho SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff; `ApplicationAssignmentManage` cho SuperAdmin/Admin/CampusAdmin/SubCampusAdmin.
+- Service admin re-query current user từ DB qua `CurrentUserContext`, chỉ chấp nhận user `hoat_dong`; không tin role/campus claim đơn thuần.
+- Scope: SuperAdmin/Admin global; CampusAdmin gồm cơ sở và cơ sở con; SubCampusAdmin/AcademicStaff/Principal exact campus. Filter ngoài scope trả `403`; detail/download ngoài scope trả `404`.
+- SLA status: `paused` khi `yeu_cau_bo_sung`; `overdue`, `due_soon`, `on_track` cho trạng thái active dựa trên `HanXuLyLuc`; terminal hoặc thiếu deadline là `none`. `ApplicationQueue:SlaWarningBeforeHours` mặc định 24, hợp lệ 1-168.
+- Receive/assign/reassign dùng transaction `Serializable`, `sp_getapplock` resource `ApplicationWorkflow:{applicationId}`, rowVersion base64 8 byte. Stale/race/deadlock/timeout trả `409`.
+- Receive chỉ cho `da_nop` và chưa có assignee. Assign cho `da_nop`, `dang_xem_xet`, `yeu_cau_bo_sung`; không cho `nhap`, `da_duyet`, `tu_choi`, `da_huy`.
+- Same-assignee assign là no-op nhưng vẫn validate rowVersion; stale trả `409`, fresh trả detail hiện tại và không ghi log.
+- Admin detail/download không trả `StorageKey`, `TenFileLuu`, `FileHash`, password/hash người dùng hoặc URL public.
+- Admin timeline không trả `SnapshotJson` nội bộ. `metadata` chỉ gồm các field allowlist: `operation`, `fromAssigneeId`, `toAssigneeId`, `reasonProvided`, `templateAssigned`, `changedFields`, `attachmentIds`, `attachmentId`, `fileCount`. Snapshot rỗng, malformed hoặc root không phải object trả `metadata = null`; key lạ hoặc key nhạy cảm như storage key, hash, token, secret, connection string bị bỏ qua.
+- Queue summary giữ alias backward-compatible nhưng không chạy count riêng cho alias. SLA `overdue`/`dueSoon` chỉ tính cho `da_nop` và `dang_xem_xet`; `yeu_cau_bo_sung` là paused nên không góp vào hai bucket đó.
+- Verification P0-DT4.1 dùng TRX làm nguồn kết quả test chính. GitHub Actions hiện có workflow backend build-only: restore và build Release, không chạy integration test vì các API test cần SQL Server isolated và local object storage.
+
 ### Dự kiến/cần bổ sung
 
-- `GET /api/admin/applications`
-- `POST /api/admin/applications/{id}/assign`
 - `POST /api/admin/applications/{id}/approve`
 - `POST /api/admin/applications/{id}/reject`
 
