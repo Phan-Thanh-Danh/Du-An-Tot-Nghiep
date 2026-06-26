@@ -137,6 +137,11 @@ export const useAuthStore = defineStore('auth', () => {
           userId: 555, email: 'parent@mock.local', fullName: 'Phụ huynh Demo',
           role: 'Parent', campusId: 1, status: 'Active'
         }
+      } else if (email === 'content') {
+        mockUser = {
+          userId: 444, email: 'content@mock.local', fullName: 'Hội đồng Nội dung Demo',
+          role: 'HoiDongQuanLyNoiDung', campusId: 1, status: 'Active'
+        }
       }
 
       const mockResponse = {

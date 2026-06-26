@@ -20,6 +20,7 @@ const router = createRouter({
         if (authStore.hasRole('Teacher')) return '/teacher/dashboard'
         if (authStore.hasRole('AcademicStaff')) return '/staff/dashboard'
         if (authStore.hasRole('Parent')) return '/parent/dashboard'
+        if (authStore.hasRole('HoiDongQuanLyNoiDung')) return '/content-council/subjects'
 
         return '/student/dashboard'
       },
@@ -663,6 +664,58 @@ const router = createRouter({
       ],
     },
 
+    // ── Content Council Layout ────────────────────────────────────────────
+    {
+      path: '/content-council',
+      component: () => import('../layouts/content-council/ContentCouncilLayout.vue'),
+      meta: { requiresAuth: true, role: 'HoiDongQuanLyNoiDung' },
+      children: [
+        { path: '', redirect: '/content-council/subjects' },
+        {
+          path: 'subjects',
+          name: 'content-council-subjects',
+          component: () => import('../pages/content-council/subjects/SubjectListPage.vue'),
+          meta: { title: 'Nội dung môn học' },
+        },
+        {
+          path: 'question-bank',
+          name: 'content-council-question-bank',
+          component: () => import('../pages/content-council/question-bank/QuestionBankPage.vue'),
+          meta: { title: 'Ngân hàng câu hỏi' }
+        },
+        {
+          path: 'subjects/:subjectId',
+          component: () => import('../layouts/content-council/SubjectDetailLayout.vue'),
+          children: [
+            {
+              path: '',
+              redirect: to => ({ name: 'content-council-subject-overview', params: { subjectId: to.params.subjectId } })
+            },
+            {
+              path: 'overview',
+              name: 'content-council-subject-overview',
+              component: () => import('../pages/content-council/subjects/SubjectOverviewPage.vue'),
+              meta: { title: 'Tổng quan môn học' }
+            },
+            {
+              path: 'editor',
+              name: 'content-council-subject-editor',
+              component: () => import('../pages/content-council/subjects/SubjectEditorPage.vue'),
+              meta: { title: 'Trình soạn nội dung' }
+            }
+          ]
+        }
+      ]
+    },
+
+    // ── Content Council Preview ───────────────────────────────────────────
+    {
+      path: '/content-council/subjects/:subjectId/preview',
+      name: 'content-council-subject-preview',
+      component: () => import('../pages/content-council/subjects/SubjectPreviewPage.vue'),
+      meta: { title: 'Xem như học sinh', requiresAuth: true, role: 'HoiDongQuanLyNoiDung', previewMode: true }
+    },
+
     // ── 404 ───────────────────────────────────────────────
     {
       path: '/:pathMatch(.*)*',
@@ -688,6 +741,7 @@ router.beforeEach((to) => {
     if (authStore.hasRole('Teacher')) return '/teacher/dashboard'
     if (authStore.hasRole('AcademicStaff')) return '/staff/dashboard'
     if (authStore.hasRole('Parent')) return '/parent/dashboard'
+    if (authStore.hasRole('HoiDongQuanLyNoiDung')) return '/content-council/subjects'
     return '/student/dashboard'
   }
 
