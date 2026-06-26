@@ -579,6 +579,35 @@ public class P0_DT4_AdminApplicationQueueAssignmentTests : ApiTestBase
     }
 
     [Test]
+    public async Task Detail_Timeline_ChangedFields_ShouldDropSensitiveNames()
+    {
+        var application = await CreateApplicationAsync(ApplicationStatuses.Submitted);
+        await AddTimelineLogAsync(application.MaDonTu, ApplicationActions.Assign,
+            "{\"changedFields\":[\"password\",\"connectionString\",\"storage_key\",\"fileHash\",\"token\",\"safeField\"]}");
+
+        var metadata = FindMetadata(await GetTimelineAsync(application.MaDonTu), ApplicationActions.Assign);
+        var changedFields = GetRequiredProperty(metadata, "changedFields").EnumerateArray().Select(x => x.GetString()).ToList();
+
+        Assert.That(changedFields, Is.EqualTo(new[] { "safeField" }));
+    }
+
+    [Test]
+    public void TimelineMetadataSanitizer_ArrayScan_ShouldCapInspectedItems()
+    {
+        var invalidStrings = string.Join(",", Enumerable.Repeat("1", 100));
+        var invalidInts = string.Join(",", Enumerable.Repeat("\"bad\"", 100));
+
+        var stringMetadata = ApplicationTimelineMetadataSanitizer.Sanitize($"{{\"changedFields\":[{invalidStrings},\"safeField\"]}}");
+        var intMetadata = ApplicationTimelineMetadataSanitizer.Sanitize($"{{\"attachmentIds\":[{invalidInts},1]}}");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(stringMetadata, Is.Null);
+            Assert.That(intMetadata, Is.Null);
+        });
+    }
+
+    [Test]
     public async Task Detail_Timeline_AttachmentIds_ShouldBePositiveDistinctAndBounded()
     {
         var application = await CreateApplicationAsync(ApplicationStatuses.Submitted);

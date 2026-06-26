@@ -15,6 +15,22 @@ public static class ApplicationTimelineMetadataSanitizer
         "delete_evidence"
     ];
 
+    private static readonly string[] SensitiveFieldTerms =
+    [
+        "password",
+        "connectionstring",
+        "storagekey",
+        "filehash",
+        "tenfileluu",
+        "localpath",
+        "bucket",
+        "token",
+        "secret",
+        "formdata",
+        "fieldvalues",
+        "raw"
+    ];
+
     public static AdminApplicationTimelineMetadataDto? Sanitize(string? snapshotJson)
     {
         if (string.IsNullOrWhiteSpace(snapshotJson))
@@ -117,15 +133,21 @@ public static class ApplicationTimelineMetadataSanitizer
 
         var result = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var inspected = 0;
         foreach (var item in property.EnumerateArray())
         {
+            if (inspected++ == MaxListItems)
+            {
+                break;
+            }
+
             if (item.ValueKind != JsonValueKind.String)
             {
                 continue;
             }
 
             var value = item.GetString()?.Trim();
-            if (string.IsNullOrWhiteSpace(value))
+            if (string.IsNullOrWhiteSpace(value) || IsSensitiveMetadataField(value))
             {
                 continue;
             }
@@ -159,8 +181,14 @@ public static class ApplicationTimelineMetadataSanitizer
 
         var result = new List<int>();
         var seen = new HashSet<int>();
+        var inspected = 0;
         foreach (var item in property.EnumerateArray())
         {
+            if (inspected++ == MaxListItems)
+            {
+                break;
+            }
+
             if (item.ValueKind == JsonValueKind.Number &&
                 item.TryGetInt32(out var value) &&
                 value > 0 &&
@@ -176,6 +204,16 @@ public static class ApplicationTimelineMetadataSanitizer
         }
 
         return result;
+    }
+
+    private static bool IsSensitiveMetadataField(string value)
+    {
+        var normalized = value.Replace("_", string.Empty, StringComparison.Ordinal)
+            .Replace("-", string.Empty, StringComparison.Ordinal)
+            .Replace(" ", string.Empty, StringComparison.Ordinal)
+            .ToLowerInvariant();
+
+        return SensitiveFieldTerms.Any(term => normalized.Contains(term, StringComparison.Ordinal));
     }
 
     private static bool HasAnyValue(AdminApplicationTimelineMetadataDto metadata)
