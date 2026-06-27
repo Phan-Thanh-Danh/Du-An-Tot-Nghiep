@@ -43,6 +43,27 @@ public class AdminApplicationReceiveRequest
     public string RowVersion { get; set; } = string.Empty;
 }
 
+public class AdminApplicationRequestSupplementRequest
+{
+    public string Request { get; set; } = string.Empty;
+    public string? InternalNote { get; set; }
+    public string RowVersion { get; set; } = string.Empty;
+}
+
+public class AdminApplicationApproveRequest
+{
+    public string? PublicNote { get; set; }
+    public string? InternalNote { get; set; }
+    public string RowVersion { get; set; } = string.Empty;
+}
+
+public class AdminApplicationRejectRequest
+{
+    public string Reason { get; set; } = string.Empty;
+    public string? InternalNote { get; set; }
+    public string RowVersion { get; set; } = string.Empty;
+}
+
 public class AdminApplicationAssignRequest
 {
     public int AssigneeId { get; set; }
@@ -111,6 +132,9 @@ public class AdminApplicationAllowedActionsDto
     public bool CanReceive { get; set; }
     public bool CanAssign { get; set; }
     public bool CanReassign { get; set; }
+    public bool CanRequestSupplement { get; set; }
+    public bool CanApprove { get; set; }
+    public bool CanReject { get; set; }
     public bool CanDownloadEvidence { get; set; }
 }
 
@@ -163,6 +187,15 @@ public class AdminApplicationTimelineMetadataDto
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? FileCount { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Decision { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? PreviousAssigneeId { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? ProcessorId { get; set; }
 }
 
 public class AdminApplicationQueueSummaryDto

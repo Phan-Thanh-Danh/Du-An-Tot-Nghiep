@@ -15,15 +15,18 @@ public class AdminApplicationsController : ControllerBase
     private readonly IApplicationAdminQueueService _queueService;
     private readonly IApplicationAssignmentService _assignmentService;
     private readonly IApplicationAdminEvidenceService _evidenceService;
+    private readonly IApplicationDecisionService _decisionService;
 
     public AdminApplicationsController(
         IApplicationAdminQueueService queueService,
         IApplicationAssignmentService assignmentService,
-        IApplicationAdminEvidenceService evidenceService)
+        IApplicationAdminEvidenceService evidenceService,
+        IApplicationDecisionService decisionService)
     {
         _queueService = queueService;
         _assignmentService = assignmentService;
         _evidenceService = evidenceService;
+        _decisionService = decisionService;
     }
 
     [HttpGet]
@@ -83,6 +86,39 @@ public class AdminApplicationsController : ControllerBase
     {
         var result = await _assignmentService.AssignAsync(applicationId, request, cancellationToken);
         return Ok(ApiResponseDto<AdminApplicationDetailDto>.Ok(result, "Phân công đơn từ thành công."));
+    }
+
+    [HttpPost("{applicationId:int}/request-supplement")]
+    [Authorize(Policy = AuthPolicies.ApplicationReviewOperate)]
+    public async Task<ActionResult<ApiResponseDto<AdminApplicationDetailDto>>> RequestSupplement(
+        int applicationId,
+        AdminApplicationRequestSupplementRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _decisionService.RequestSupplementAsync(applicationId, request, cancellationToken);
+        return Ok(ApiResponseDto<AdminApplicationDetailDto>.Ok(result, "Yêu cầu bổ sung hồ sơ thành công."));
+    }
+
+    [HttpPost("{applicationId:int}/approve")]
+    [Authorize(Policy = AuthPolicies.ApplicationSensitiveDecision)]
+    public async Task<ActionResult<ApiResponseDto<AdminApplicationDetailDto>>> Approve(
+        int applicationId,
+        AdminApplicationApproveRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _decisionService.ApproveAsync(applicationId, request, cancellationToken);
+        return Ok(ApiResponseDto<AdminApplicationDetailDto>.Ok(result, "Phê duyệt đơn từ thành công."));
+    }
+
+    [HttpPost("{applicationId:int}/reject")]
+    [Authorize(Policy = AuthPolicies.ApplicationSensitiveDecision)]
+    public async Task<ActionResult<ApiResponseDto<AdminApplicationDetailDto>>> Reject(
+        int applicationId,
+        AdminApplicationRejectRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _decisionService.RejectAsync(applicationId, request, cancellationToken);
+        return Ok(ApiResponseDto<AdminApplicationDetailDto>.Ok(result, "Từ chối đơn từ thành công."));
     }
 
     [HttpGet("{applicationId:int}/attachments/{attachmentId:int}/download")]

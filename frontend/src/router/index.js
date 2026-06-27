@@ -1,5 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { getHomeRouteByRole } from '@/utils/roleRoutes'
+import { getPortalByRole, isValidPortal } from '@/data/authPortals'
+import {
+  getRequiredRoleFromMatchedRoutes,
+  routeRequiresAuthentication,
+} from '@/utils/authRedirect'
 
 // ─────────────────────────────────────────────────────────
 // Router config cho hệ thống LMS
@@ -12,18 +18,9 @@ const router = createRouter({
     // ── Public ────────────────────────────────────────────
     {
       path: '/',
-      name: 'home',
-      redirect: () => {
-        const authStore = useAuthStore()
-        if (authStore.hasRole('SuperAdmin')) return '/super-admin/dashboard'
-        if (authStore.hasRole('Principal')) return '/bgh/dashboard'
-        if (authStore.hasRole('Teacher')) return '/teacher/dashboard'
-        if (authStore.hasRole('AcademicStaff')) return '/staff/dashboard'
-        if (authStore.hasRole('Parent')) return '/parent/dashboard'
-        if (authStore.hasRole('HoiDongQuanLyNoiDung')) return '/content-council/subjects'
-
-        return '/student/dashboard'
-      },
+      name: 'portal-landing',
+      component: () => import('../views/Auth/PortalLandingView.vue'),
+      meta: { public: true, title: 'Cổng truy cập EduLMS' },
     },
     {
       path: '/about',
@@ -31,16 +28,34 @@ const router = createRouter({
       component: () => import('../views/AboutView.vue'),
     },
     {
+      path: '/login/:portal',
+      name: 'role-login',
+      component: () => import('../views/Auth/RoleLoginView.vue'),
+      meta: { public: true, title: 'Đăng nhập EduLMS' },
+    },
+    {
       path: '/login',
-      name: 'login',
-      component: () => import('../views/LoginView.vue'),
-      meta: { public: true },
+      redirect: (to) => {
+        const portalSlug = typeof to.query.portal === 'string' ? to.query.portal : ''
+        if (!isValidPortal(portalSlug)) {
+          return { name: 'portal-landing' }
+        }
+        const query = {}
+        if (typeof to.query.redirect === 'string') {
+          query.redirect = to.query.redirect
+        }
+        return {
+          name: 'role-login',
+          params: { portal: portalSlug },
+          query,
+        }
+      },
     },
     {
       path: '/student/exams/:examId/take',
       name: 'student-exam-take',
       component: () => import('../views/Student/ExamTakeView.vue'),
-      meta: { requiresAuth: true, role: 'student', title: 'Làm bài thi', fullscreen: true },
+      meta: { requiresAuth: true, role: 'Student', title: 'Làm bài thi', fullscreen: true },
     },
     {
       path: '/payment/success',
@@ -59,7 +74,7 @@ const router = createRouter({
     {
       path: '/student',
       component: () => import('../components/SinhVien/Layout_SinhVien.vue'),
-      meta: { requiresAuth: true, role: 'student' },
+      meta: { requiresAuth: true, role: 'Student' },
       children: [
         { path: '', redirect: '/student/dashboard' },
         {
@@ -761,20 +776,30 @@ router.beforeEach((to) => {
 
   // Chuyển hướng nếu truy cập trang public khi đã login
   if (to.meta.public && authStore.isAuthenticated) {
-    if (authStore.hasRole('SuperAdmin')) return '/super-admin/dashboard'
-    if (authStore.hasRole('Teacher')) return '/teacher/dashboard'
-    if (authStore.hasRole('AcademicStaff')) return '/staff/dashboard'
-    if (authStore.hasRole('Parent')) return '/parent/dashboard'
-    if (authStore.hasRole('HoiDongQuanLyNoiDung')) return '/content-council/subjects'
-    return '/student/dashboard'
+    const homeRoute = getHomeRouteByRole(authStore.role)
+
+    if (homeRoute) {
+      return homeRoute
+    }
+
+    authStore.logout()
+    return '/'
   }
 
   // Yêu cầu login
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    return {
-      path: '/login',
-      query: { redirect: to.fullPath },
+  if (!authStore.isAuthenticated && routeRequiresAuthentication(to.matched)) {
+    const requiredRole = getRequiredRoleFromMatchedRoutes(to.matched)
+    const portal = getPortalByRole(requiredRole)
+
+    if (portal?.enabled) {
+      return {
+        name: 'role-login',
+        params: { portal: portal.slug },
+        query: { redirect: to.fullPath },
+      }
     }
+
+    return { name: 'portal-landing' }
   }
 
   // Kiểm tra quyền (Role)

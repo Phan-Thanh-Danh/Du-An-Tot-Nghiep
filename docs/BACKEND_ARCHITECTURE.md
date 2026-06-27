@@ -122,6 +122,7 @@ Policy hiện có:
 - `ApplicationQueueRead`: `SuperAdmin`, `Admin`, `CampusAdmin`, `SubCampusAdmin`, `AcademicStaff`, `Principal`.
 - `ApplicationReceive`: `SuperAdmin`, `Admin`, `CampusAdmin`, `SubCampusAdmin`, `AcademicStaff`.
 - `ApplicationAssignmentManage`: `SuperAdmin`, `Admin`, `CampusAdmin`, `SubCampusAdmin`.
+- `ApplicationReviewOperate`: `SuperAdmin`, `Admin`, `CampusAdmin`, `SubCampusAdmin`, `AcademicStaff`.
 - `ApplicationSensitiveDecision`: `SuperAdmin`, `Admin`, `CampusAdmin`, `Principal`.
 - `ApplicationSystemAdmin`: `SuperAdmin`, `Admin`.
 
@@ -129,7 +130,7 @@ Endpoint có role riêng nên dùng `[Authorize(Roles = ...)]` với `AuthRoles`
 
 ## Applications / Đơn Từ
 
-P0-DT1 chuẩn hóa nền cho module đơn từ. P0-DT2 bổ sung core lifecycle phía sinh viên, gồm tạo nháp, cập nhật, nộp, nộp lại khi bị yêu cầu bổ sung và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. P0-DT4 bổ sung hàng đợi admin, tiếp nhận, phân công/phân công lại, SLA và admin download minh chứng. Các luồng duyệt/từ chối, notification và xử lý nghiệp vụ sau duyệt vẫn để phase sau.
+P0-DT1 chuẩn hóa nền cho module đơn từ. P0-DT2 bổ sung core lifecycle phía sinh viên, gồm tạo nháp, cập nhật, nộp, nộp lại khi bị yêu cầu bổ sung và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. P0-DT4 bổ sung hàng đợi admin, tiếp nhận, phân công/phân công lại, SLA và admin download minh chứng. P0-DT5 bổ sung yêu cầu bổ sung, duyệt và từ chối. Notification và xử lý nghiệp vụ sau duyệt vẫn để phase sau.
 
 Schema foundation:
 
@@ -183,6 +184,21 @@ P0-DT4.1 hardening:
 - Không thay đổi schema hoặc migration; chỉ sửa read model, query, test và tài liệu.
 - Summary aggregate được gắn tag `P0-DT4.1 QueueSummaryAggregate` để test bằng `DbCommandInterceptor` xác minh đúng một aggregate command.
 - Test verification dùng TRX làm source of truth cho P0-DT4/P0-DT2/P0-DT3/full suite. Repository có GitHub Actions backend build-only (`dotnet restore`, `dotnet build --configuration Release`) vì API integration test cần SQL Server database isolated dạng `LMS_TEST_*` và local evidence storage.
+
+Admin review and decision P0-DT5:
+
+- `ApplicationDecisionService` xử lý `request-supplement`, `approve`, `reject`; controller chỉ bind request và trả `ApiResponseDto<AdminApplicationDetailDto>`.
+- `ApplicationDecisionPermissionEvaluator` là nguồn duy nhất cho rule quyền của decision service và `AdminApplicationAllowedActionsDto`. Allowed actions gồm `CanRequestSupplement`, `CanApprove`, `CanReject` bên cạnh receive/assign/download.
+- Role matrix: SuperAdmin/Admin/CampusAdmin có đủ ba action; SubCampusAdmin chỉ request supplement; AcademicStaff chỉ request supplement khi đơn đang giao cho chính mình; Principal chỉ approve/reject trong exact campus; Teacher/Student/Parent không có quyền.
+- Mọi action DT5 yêu cầu `DonTu.NguoiDuyetHienTai != null`; đơn chưa tiếp nhận/phân công trả `409`. Campus ngoài scope trả `404`. Role/campus/status actor luôn re-query từ DB qua `ApplicationCampusScopeService`.
+- Transition duy nhất: `dang_xem_xet -> yeu_cau_bo_sung`, `dang_xem_xet -> da_duyet`, `dang_xem_xet -> tu_choi`. Terminal state không đổi và đi qua `ApplicationStateMachine.EnsureTransitionAllowed`.
+- Tất cả mutation dùng transaction `Serializable`, `sp_getapplock` resource `ApplicationWorkflow:{applicationId}`, RowVersion base64 8 byte và `SaveChangesAsync` một lần. Stale rowversion, deadlock, SQL timeout, lock timeout hoặc concurrency exception được map về `409`.
+- Request supplement giữ assignee/deadline, set `NoiDungYeuCauBoSung`, clear `LyDoTuChoi`, set `TrangThaiXuLyNghiepVu = chua_xu_ly`; SLA hiển thị `paused` và resubmit của sinh viên reset deadline theo template.
+- Approve chạy `ApplicationApprovalPreconditionValidator` sau khi đã giữ workflow lock: validate exact template đang gắn với đơn, legacy template safe resolution, template JSON, form JSON, related references, submission rule và evidence requirement. Approve set `NgayDuyet`, `NguoiXuLyCuoi`, clear current assignee/reject/supplement và set `TrangThaiXuLyNghiepVu = cho_xu_ly`; không thực thi side effect nghiệp vụ.
+- Reject lưu `LyDoTuChoi`, clear current assignee/supplement, không set `NgayDuyet`, set `TrangThaiXuLyNghiepVu = chua_xu_ly`.
+- Mỗi decision thêm đúng một `NhatKyDuyetDon` public cho student và một `NhatKyKiemToan` trong cùng transaction. Audit old/new value chỉ chứa status, assignee, last processor và business processing status; không lưu full form, notes, file key/hash hoặc secret.
+- Timeline snapshot decision chỉ chứa metadata tối thiểu (`decision`, `previousAssigneeId`, `processorId`) và được sanitize trước khi trả admin detail. Student detail chỉ thấy public note, `LyDoTuChoi`, `NoiDungYeuCauBoSung`; không thấy internal note, audit hoặc raw snapshot.
+- Known limitations P0-DT5: không escalation, không notification, không post-approval execution, không workflow nhiều cấp, không bulk decision và không frontend.
 
 Template validation:
 

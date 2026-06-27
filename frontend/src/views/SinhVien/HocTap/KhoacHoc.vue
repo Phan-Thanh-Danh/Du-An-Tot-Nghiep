@@ -13,65 +13,12 @@ import {
   Users,
 } from 'lucide-vue-next'
 import LmsBadge from '@/components/LmsBadge.vue'
+import { getStudentMajor, getCoursesByMajor } from '@/services/mockDataService.js'
 
-// Mock local cho trang danh sách khóa học sinh viên, chờ API thật.
-const courses = ref([
-  {
-    id: 'CTDL101',
-    name: 'Cấu trúc dữ liệu và Giải thuật',
-    instructor: 'TS. Nguyễn Minh Khoa',
-    credits: 3,
-    progress: 72,
-    totalSessions: 15,
-    completedSessions: 11,
-    status: 'learning',
-    lastAccessed: '2 giờ trước',
-  },
-  {
-    id: 'TRR201',
-    name: 'Toán rời rạc',
-    instructor: 'ThS. Trần Thu Hà',
-    credits: 3,
-    progress: 45,
-    totalSessions: 15,
-    completedSessions: 7,
-    status: 'learning',
-    lastAccessed: 'Hôm qua',
-  },
-  {
-    id: 'LTW301',
-    name: 'Lập trình Web (Vue & Nodejs)',
-    instructor: 'KS. Lê Văn Tâm',
-    credits: 4,
-    progress: 90,
-    totalSessions: 20,
-    completedSessions: 18,
-    status: 'learning',
-    lastAccessed: 'Hôm nay, 08:30',
-  },
-  {
-    id: 'HQTCSDL401',
-    name: 'Hệ quản trị Cơ sở dữ liệu',
-    instructor: 'PGS. TS Lê Thị Bình',
-    credits: 3,
-    progress: 100,
-    totalSessions: 15,
-    completedSessions: 15,
-    status: 'completed',
-    lastAccessed: 'Tuần trước',
-  },
-  {
-    id: 'MMT501',
-    name: 'Mạng máy tính cơ bản',
-    instructor: 'ThS. Phạm Hữu Vinh',
-    credits: 3,
-    progress: 0,
-    totalSessions: 15,
-    completedSessions: 0,
-    status: 'upcoming',
-    lastAccessed: 'Chưa bắt đầu',
-  },
-])
+const courses = computed(() => {
+  const major = getStudentMajor()
+  return getCoursesByMajor(major)
+})
 
 const viewMode = ref('grid')
 const searchQuery = ref('')

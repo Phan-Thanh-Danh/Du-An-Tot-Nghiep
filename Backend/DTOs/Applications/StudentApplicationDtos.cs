@@ -25,6 +25,8 @@ public class StudentApplicationDetailDto : StudentApplicationListItemDto
 {
     public int? MaMauDon { get; set; }
     public JsonElement DuLieuBieuMau { get; set; }
+    public string? LyDoTuChoi { get; set; }
+    public string? NoiDungYeuCauBoSung { get; set; }
     public StudentApplicationTemplateDto? Template { get; set; }
     public IReadOnlyList<StudentApplicationAttachmentDto> Attachments { get; set; } = [];
     public IReadOnlyList<StudentApplicationTimelineDto> Timeline { get; set; } = [];

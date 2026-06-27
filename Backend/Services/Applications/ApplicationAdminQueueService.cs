@@ -41,15 +41,18 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
 
     private readonly ApplicationDbContext _context;
     private readonly IApplicationCampusScopeService _scopeService;
+    private readonly IApplicationDecisionPermissionEvaluator _permissionEvaluator;
     private readonly ApplicationQueueOptions _options;
 
     public ApplicationAdminQueueService(
         ApplicationDbContext context,
         IApplicationCampusScopeService scopeService,
+        IApplicationDecisionPermissionEvaluator permissionEvaluator,
         IOptions<ApplicationQueueOptions> options)
     {
         _context = context;
         _scopeService = scopeService;
+        _permissionEvaluator = permissionEvaluator;
         _options = options.Value;
     }
 
@@ -606,25 +609,13 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
                     VaiTro = AuthRoles.FromDatabaseCode(row.LastProcessorRole ?? string.Empty)
                 }
                 : null,
-            AllowedActions = BuildAllowedActions(row, actor)
-        };
-    }
-
-    private AdminApplicationAllowedActionsDto BuildAllowedActions(
-        ApplicationProjection row,
-        ApplicationActorContext actor)
-    {
-        var canReceive = actor.Role is AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.SubCampusAdmin or AuthRoles.AcademicStaff &&
-                         row.TrangThai == ApplicationStatuses.Submitted &&
-                         row.NguoiDuyetHienTai is null;
-        var canAssign = actor.Role is AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.SubCampusAdmin &&
-                        row.TrangThai is ApplicationStatuses.Submitted or ApplicationStatuses.InReview or ApplicationStatuses.NeedSupplement;
-        return new AdminApplicationAllowedActionsDto
-        {
-            CanReceive = canReceive,
-            CanAssign = canAssign && row.NguoiDuyetHienTai is null,
-            CanReassign = canAssign && row.NguoiDuyetHienTai is not null,
-            CanDownloadEvidence = true
+            AllowedActions = _permissionEvaluator.BuildAllowedActions(new DonTu
+            {
+                MaDonTu = row.MaDonTu,
+                MaDonVi = row.MaDonVi,
+                TrangThai = row.TrangThai,
+                NguoiDuyetHienTai = row.NguoiDuyetHienTai
+            }, actor)
         };
     }
 

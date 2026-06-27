@@ -103,7 +103,46 @@ export const useAuthStore = defineStore('auth', () => {
 
     // ── MOCK LOGIN CHO QUÁ TRÌNH PHÁT TRIỂN ──
     const email = credentials.email.trim().toLowerCase()
-    
+    // Specific demo accounts with full profile
+    const specificAccounts = {
+      'sv_it@demo': {
+        userId: 999, email: 'sv_it@demo', fullName: 'Nguyễn Văn An',
+        role: 'Student', campusId: 1, status: 'Active',
+        major: 'IT', majorName: 'Công nghệ thông tin', maLop: 1, maChuyenNganh: 1,
+      },
+      'sv_kt@demo': {
+        userId: 1000, email: 'sv_kt@demo', fullName: 'Trần Thị Bình',
+        role: 'Student', campusId: 1, status: 'Active',
+        major: 'KE_TOAN', majorName: 'Kế toán', maLop: 2, maChuyenNganh: 2,
+      },
+      'sv_qtkd@demo': {
+        userId: 1001, email: 'sv_qtkd@demo', fullName: 'Lê Văn Cường',
+        role: 'Student', campusId: 1, status: 'Active',
+        major: 'QTKD', majorName: 'Quản trị kinh doanh', maLop: 3, maChuyenNganh: 3,
+      },
+      'gv_kythuat@demo': {
+        userId: 888, email: 'gv_kythuat@demo', fullName: 'TS. Nguyễn Minh Khoa',
+        role: 'Teacher', campusId: 1, status: 'Active',
+      },
+      'admin@demo': {
+        userId: 1, email: 'admin@demo', fullName: 'Super Admin',
+        role: 'SuperAdmin', campusId: null, status: 'Active',
+      },
+    }
+
+    if (specificAccounts[email]) {
+      const mockResponse = {
+        accessToken: `mock_token_${email}_${Date.now()}`,
+        user: specificAccounts[email],
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        requiresPasswordChange: false,
+      }
+      persistSession(mockResponse, Boolean(options.remember))
+      loading.value = false
+      return mockResponse
+    }
+
+    // Generic mock login for quick dev access
     if (email === 'student' || email === 'teacher' || email === 'staff' || email === 'bgh' || email === 'admin' || email === 'parent' || email === 'content') {
       let mockUser = {}
       
