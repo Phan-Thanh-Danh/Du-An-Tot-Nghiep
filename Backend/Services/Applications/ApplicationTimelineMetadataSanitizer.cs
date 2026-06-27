@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Backend.Constants;
 using Backend.DTOs.Applications;
 
 namespace Backend.Services.Applications;
@@ -12,7 +13,15 @@ public static class ApplicationTimelineMetadataSanitizer
     private static readonly string[] AllowedOperations =
     [
         "upload_evidence",
-        "delete_evidence"
+        "delete_evidence",
+        "auto_process",
+        "manual_processing_result"
+    ];
+
+    private static readonly string[] AllowedHandlers =
+    [
+        "confirmation_request",
+        "manual_required_fallback"
     ];
 
     private static readonly string[] SensitiveFieldTerms =
@@ -60,7 +69,11 @@ public static class ApplicationTimelineMetadataSanitizer
                 FileCount = ReadFileCount(root),
                 Decision = ReadAllowedDecision(root),
                 PreviousAssigneeId = ReadPositiveIntOrNull(root, "previousAssigneeId"),
-                ProcessorId = ReadPositiveIntOrNull(root, "processorId")
+                ProcessorId = ReadPositiveIntOrNull(root, "processorId"),
+                Handler = ReadAllowedHandler(root),
+                ProcessingStatusFrom = ReadAllowedProcessingStatus(root, "processingStatusFrom"),
+                ProcessingStatusTo = ReadAllowedProcessingStatus(root, "processingStatusTo"),
+                Outcome = ReadAllowedProcessingStatus(root, "outcome")
             };
 
             return HasAnyValue(metadata) ? metadata : null;
@@ -233,6 +246,30 @@ public static class ApplicationTimelineMetadataSanitizer
             : null;
     }
 
+    private static string? ReadAllowedHandler(JsonElement root)
+    {
+        if (!TryGetPropertyIgnoreCase(root, "handler", out var property) ||
+            property.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+
+        var value = property.GetString()?.Trim();
+        return AllowedHandlers.FirstOrDefault(x => x.Equals(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string? ReadAllowedProcessingStatus(JsonElement root, string propertyName)
+    {
+        if (!TryGetPropertyIgnoreCase(root, propertyName, out var property) ||
+            property.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+
+        var value = property.GetString()?.Trim();
+        return ApplicationProcessingStatuses.All.FirstOrDefault(x => x.Equals(value, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static bool HasAnyValue(AdminApplicationTimelineMetadataDto metadata)
     {
         return metadata.Operation is not null ||
@@ -246,7 +283,11 @@ public static class ApplicationTimelineMetadataSanitizer
                metadata.FileCount.HasValue ||
                metadata.Decision is not null ||
                metadata.PreviousAssigneeId.HasValue ||
-               metadata.ProcessorId.HasValue;
+               metadata.ProcessorId.HasValue ||
+               metadata.Handler is not null ||
+               metadata.ProcessingStatusFrom is not null ||
+               metadata.ProcessingStatusTo is not null ||
+               metadata.Outcome is not null;
     }
 
     private static bool TryGetPropertyIgnoreCase(JsonElement element, string propertyName, out JsonElement property)

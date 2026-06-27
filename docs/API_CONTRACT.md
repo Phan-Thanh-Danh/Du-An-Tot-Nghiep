@@ -619,9 +619,9 @@ Ghi chú P0-8: Bảng `ThongBao` hiện được dùng theo mô hình mỗi dòn
 
 ## Applications / Đơn Từ APIs
 
-### Đã có trong P0-DT1/P0-DT2/P0-DT3/P0-DT4
+### Đã có trong P0-DT1/P0-DT2/P0-DT3/P0-DT4/P0-DT5/P0-DT6
 
-P0-DT1 làm foundation schema, constants, state machine, template validator và API read-only để FE đọc loại đơn/mẫu đơn. P0-DT2 bổ sung vòng đời sinh viên: tạo nháp, xem đơn của chính mình, cập nhật nháp/yêu cầu bổ sung, nộp, nộp lại và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. P0-DT4 bổ sung hàng đợi admin, SLA, tiếp nhận, phân công/phân công lại và admin download minh chứng. P0-DT5 bổ sung yêu cầu bổ sung, duyệt và từ chối đơn. Chưa làm notification hoặc xử lý nghiệp vụ sau duyệt.
+P0-DT1 làm foundation schema, constants, state machine, template validator và API read-only để FE đọc loại đơn/mẫu đơn. P0-DT2 bổ sung vòng đời sinh viên: tạo nháp, xem đơn của chính mình, cập nhật nháp/yêu cầu bổ sung, nộp, nộp lại và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. P0-DT4 bổ sung hàng đợi admin, SLA, tiếp nhận, phân công/phân công lại và admin download minh chứng. P0-DT5 bổ sung yêu cầu bổ sung, duyệt và từ chối đơn. P0-DT6 bổ sung nền xử lý nghiệp vụ sau duyệt, chỉ auto ghi nhận đơn `xac_nhan`; các loại khác chuyển `can_xu_ly_thu_cong` hoặc ghi nhận kết quả thủ công. Chưa làm notification hoặc side-effect nghiệp vụ thật.
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
@@ -630,8 +630,8 @@ P0-DT1 làm foundation schema, constants, state machine, template validator và 
 | GET | `/api/applications/templates` | JWT | Trả danh sách mẫu đơn active version hiện tại. Không trả entity trực tiếp, không trả audit metadata. |
 | GET | `/api/applications/templates/{loaiDon}` | JWT | Trả mẫu đơn active theo loại. `loaiDon` không hợp lệ trả `400`; loại hợp lệ nhưng không có mẫu active trả `404`. |
 | POST | `/api/student/applications` | Student | Tạo đơn nháp từ template active của `loaiDon`. Backend tự gán `MaHocSinh`, `MaDonVi`, `MaMauDon`, `TrangThai = nhap`; không tin field hệ thống từ client. |
-| GET | `/api/student/applications` | Student | Sinh viên xem danh sách đơn của chính mình. Filter `loaiDon`, `trangThai`, `ngayTu`, `ngayDen`, `search`, `pageIndex`, `pageSize`. |
-| GET | `/api/student/applications/{id}` | Student | Sinh viên xem chi tiết đơn của chính mình, gồm dữ liệu form, template snapshot an toàn, minh chứng metadata an toàn, `lyDoTuChoi`, `noiDungYeuCauBoSung` và timeline public. Không trả `StorageKey`, `UrlBangChung`, ghi chú nội bộ hoặc snapshot nội bộ. |
+| GET | `/api/student/applications` | Student | Sinh viên xem danh sách đơn của chính mình. Filter `loaiDon`, `trangThai`, `ngayTu`, `ngayDen`, `search`, `pageIndex`, `pageSize`. Response có `trangThaiXuLyNghiepVu`, `tenTrangThaiXuLyNghiepVu`; không trả JSON xử lý nội bộ. |
+| GET | `/api/student/applications/{id}` | Student | Sinh viên xem chi tiết đơn của chính mình, gồm dữ liệu form, template snapshot an toàn, minh chứng metadata an toàn, `lyDoTuChoi`, `noiDungYeuCauBoSung`, trạng thái xử lý nghiệp vụ và timeline public. Không trả `StorageKey`, `UrlBangChung`, ghi chú nội bộ, `KetQuaXuLyJson`, `NhatKyTuDong` hoặc snapshot nội bộ. |
 | PUT | `/api/student/applications/{id}` | Student | Cập nhật đơn ở trạng thái `nhap` hoặc `yeu_cau_bo_sung`. Body cần `rowVersion` base64 để chống lost update. |
 | POST | `/api/student/applications/{id}/submit` | Student | Nộp đơn nháp, validate required fields, related entity, rule theo loại đơn và metadata minh chứng; chuyển `nhap -> da_nop`. |
 | POST | `/api/student/applications/{id}/resubmit` | Student | Nộp lại đơn đang `yeu_cau_bo_sung`, giữ `NgayNop` ban đầu, clear nội dung yêu cầu bổ sung và chuyển về `dang_xem_xet`. |
@@ -639,7 +639,7 @@ P0-DT1 làm foundation schema, constants, state machine, template validator và 
 | POST | `/api/student/applications/{id}/attachments` | Student | Upload một hoặc nhiều file minh chứng dạng multipart field `files` và `rowVersion`. Chỉ cho đơn của chính sinh viên ở trạng thái `nhap` hoặc `yeu_cau_bo_sung`. Thành công trả `201`, danh sách metadata an toàn, `rowVersion` mới, số file active và tổng dung lượng. |
 | GET | `/api/student/applications/{id}/attachments/{attachmentId}/download` | Student | Download binary file minh chứng của chính sinh viên nếu metadata chưa soft delete và object còn tồn tại. Trả `Content-Disposition: attachment`, content type canonical trong DB, `X-Content-Type-Options: nosniff`, `Cache-Control: private, no-store`. |
 | DELETE | `/api/student/applications/{id}/attachments/{attachmentId}` | Student | Soft delete metadata minh chứng của chính sinh viên bằng body `{ "rowVersion": "..." }`. Chỉ cho đơn `nhap` hoặc `yeu_cau_bo_sung`; physical delete best-effort sau khi DB commit. |
-| GET | `/api/admin/applications` | ApplicationQueueRead | Hàng đợi admin có filter `maDonVi`, `maHocSinh`, `nguoiDuyetHienTai`, `loaiDon`, `trangThai`, `assignmentState`, `slaStatus`, `tuNgayNop`, `denNgayNop`, `search`, `pageIndex`, `pageSize`. Nếu không truyền `trangThai`, chỉ trả `da_nop`, `dang_xem_xet`. |
+| GET | `/api/admin/applications` | ApplicationQueueRead | Hàng đợi admin có filter `maDonVi`, `maHocSinh`, `nguoiDuyetHienTai`, `loaiDon`, `trangThai`, `trangThaiXuLyNghiepVu`/`processingStatus`, `assignmentState`, `slaStatus`, `tuNgayNop`, `denNgayNop`, `search`, `pageIndex`, `pageSize`. Nếu không truyền `trangThai`, chỉ trả `da_nop`, `dang_xem_xet`. |
 | GET | `/api/admin/applications/queue-summary` | ApplicationQueueRead | Tổng quan queue trong scope hiện tại: active, submitted, in review, need supplement, unassigned, overdue, due soon. `active` là alias của `totalActive`; `waitingForSupplement` là alias của `needSupplement`. Backend tính summary bằng một conditional aggregate SQL query trong cùng scope/filter. |
 | GET | `/api/admin/applications/{applicationId}` | ApplicationQueueRead | Admin xem chi tiết đơn trong campus scope, gồm form data safe, attachment metadata safe, timeline admin và allowed actions. Timeline admin không trả raw `SnapshotJson`; chỉ trả `metadata` đã sanitize theo allowlist. Ngoài scope trả `404`. |
 | POST | `/api/admin/applications/{applicationId}/receive` | ApplicationReceive | Tiếp nhận đơn `da_nop` chưa có `NguoiDuyetHienTai`; body `{ "rowVersion": "..." }`; chuyển sang `dang_xem_xet`, gán current user, ghi log public `tiep_nhan`. |
@@ -647,6 +647,8 @@ P0-DT1 làm foundation schema, constants, state machine, template validator và 
 | POST | `/api/admin/applications/{applicationId}/request-supplement` | ApplicationReviewOperate | Yêu cầu bổ sung hồ sơ. Body `{ "request": "...", "internalNote": "...", "rowVersion": "..." }`; `request` required/trim 10-2000 ký tự, `internalNote` optional tối đa 2000. Chỉ `dang_xem_xet -> yeu_cau_bo_sung`, giữ assignee/deadline, ghi timeline public và audit cùng transaction. |
 | POST | `/api/admin/applications/{applicationId}/approve` | ApplicationSensitiveDecision | Duyệt đơn. Body `{ "publicNote": "...", "internalNote": "...", "rowVersion": "..." }`; `publicNote` optional tối đa 1000, default `Đơn đã được phê duyệt.`. Chỉ `dang_xem_xet -> da_duyet`, revalidate template/form/reference/rule/evidence trước khi duyệt, clear assignee, set `TrangThaiXuLyNghiepVu = cho_xu_ly`, ghi timeline/audit atomically. |
 | POST | `/api/admin/applications/{applicationId}/reject` | ApplicationSensitiveDecision | Từ chối đơn. Body `{ "reason": "...", "internalNote": "...", "rowVersion": "..." }`; `reason` required/trim 10-2000 ký tự, `internalNote` optional tối đa 2000. Chỉ `dang_xem_xet -> tu_choi`, lưu `LyDoTuChoi`, clear assignee/supplement, không set `NgayDuyet`, ghi timeline/audit atomically. |
+| POST | `/api/admin/applications/{applicationId}/process` | ApplicationProcessingOperate | Chạy xử lý nghiệp vụ sau duyệt tự động. Body `{ "rowVersion": "..." }`. Chỉ áp dụng đơn `da_duyet` có `TrangThaiXuLyNghiepVu = cho_xu_ly` hoặc `xu_ly_that_bai`; `chua_xu_ly` trả `409`, đơn chưa duyệt trả `400`. `xac_nhan` được auto `da_ghi_nhan`; loại chưa có handler chuyển `can_xu_ly_thu_cong`. Trạng thái terminal hoặc manual-required là no-op idempotent, không ghi log/audit mới. |
+| POST | `/api/admin/applications/{applicationId}/record-processing-result` | ApplicationProcessingOperate | Ghi nhận kết quả xử lý thủ công. Body `{ "outcome": "da_ghi_nhan|xu_ly_thanh_cong|xu_ly_that_bai", "publicNote": "...", "internalNote": "...", "result": {}, "rowVersion": "..." }`. Chỉ cho trạng thái hiện tại `cho_xu_ly`, `can_xu_ly_thu_cong`, `xu_ly_that_bai`; terminal `da_ghi_nhan`/`xu_ly_thanh_cong` trả `409`. `result` phải là object/null an toàn, tối đa 16KB, depth 5, 50 properties, array tối đa 100 item, cấm key nhạy cảm. |
 | GET | `/api/admin/applications/assignees` | ApplicationAssignmentManage | Danh sách người có thể xử lý đơn trong scope hiện tại, filter `maDonVi`, `search`, `pageIndex`, `pageSize`. |
 | GET | `/api/admin/applications/{applicationId}/attachments/{attachmentId}/download` | ApplicationQueueRead | Admin download minh chứng trong scope hiện tại. Metadata đã soft delete, ngoài scope hoặc object không tồn tại trả `404`; storage lỗi trả `503`. |
 
@@ -727,7 +729,16 @@ Ghi chú P0-DT5:
 - Approve revalidate exact template đã gắn trong đơn; legacy `MaMauDon = null` chỉ resolve active template cùng loại nếu còn an toàn. Validate lại template JSON, form JSON, related references, rule theo loại đơn và minh chứng trước khi đổi trạng thái.
 - Timeline decision hiển thị cho student nhưng chỉ trả public note. Admin detail vẫn trả internal note trong timeline admin; raw `SnapshotJson` không expose. Metadata decision chỉ gồm `decision`, `previousAssigneeId`, `processorId`.
 - Audit decision được insert trực tiếp vào `NhatKyKiemToan` trong cùng transaction với update `DonTu` và insert timeline; old/new value chỉ chứa status, assignee, last processor và business processing status.
-- Known limitations: chưa có escalation, notification, xử lý nghiệp vụ sau duyệt, workflow nhiều cấp, bulk decision hoặc frontend.
+- Known limitations: chưa có escalation, notification, workflow nhiều cấp, bulk decision hoặc frontend.
+
+Ghi chú P0-DT6:
+
+- Policy mới `ApplicationProcessingOperate` cho SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff. Principal, Teacher, Student, Parent không được xử lý nghiệp vụ sau duyệt.
+- Service dùng transaction `Serializable`, `sp_getapplock` resource `ApplicationWorkflow:{applicationId}`, `RowVersion` base64 8 byte và map stale/race/deadlock/timeout về `409`.
+- Auto handler hiện chỉ có `xac_nhan` và chỉ ghi nhận metadata xử lý trong `KetQuaXuLyJson`, `NhatKyTuDong`; không cấp chứng chỉ, không đổi điểm, không đổi điểm danh, không chuyển cơ sở/ngành/lớp và không tạo side-effect nghiệp vụ thật.
+- Loại đơn chưa có handler tự động được chuyển `can_xu_ly_thu_cong` để admin/học vụ ghi nhận kết quả thủ công qua endpoint riêng.
+- Mỗi mutation thực sự thêm một timeline `xu_ly_nghiep_vu` public cho student và một audit `xu_ly_nghiep_vu`. No-op idempotent không tạo timeline/audit mới.
+- Admin timeline metadata DT6 chỉ expose allowlist `operation`, `handler`, `processingStatusFrom`, `processingStatusTo`, `outcome`, `processorId`; không expose raw result JSON, form values hoặc dữ liệu nhạy cảm.
 
 ## Reports APIs
 

@@ -42,17 +42,20 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
     private readonly ApplicationDbContext _context;
     private readonly IApplicationCampusScopeService _scopeService;
     private readonly IApplicationDecisionPermissionEvaluator _permissionEvaluator;
+    private readonly IApplicationProcessingPermissionEvaluator _processingPermissionEvaluator;
     private readonly ApplicationQueueOptions _options;
 
     public ApplicationAdminQueueService(
         ApplicationDbContext context,
         IApplicationCampusScopeService scopeService,
         IApplicationDecisionPermissionEvaluator permissionEvaluator,
+        IApplicationProcessingPermissionEvaluator processingPermissionEvaluator,
         IOptions<ApplicationQueueOptions> options)
     {
         _context = context;
         _scopeService = scopeService;
         _permissionEvaluator = permissionEvaluator;
+        _processingPermissionEvaluator = processingPermissionEvaluator;
         _options = options.Value;
     }
 
@@ -343,6 +346,11 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
             query = query.Where(x => x.LoaiDon == parameters.Type);
         }
 
+        if (!string.IsNullOrWhiteSpace(parameters.ProcessingStatus))
+        {
+            query = query.Where(x => x.TrangThaiXuLyNghiepVu == parameters.ProcessingStatus);
+        }
+
         if (parameters.SubmittedFrom.HasValue)
         {
             query = query.Where(x => x.NgayNop >= parameters.SubmittedFrom.Value);
@@ -418,6 +426,11 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         if (!string.IsNullOrWhiteSpace(parameters.Type))
         {
             query = query.Where(x => x.LoaiDon == parameters.Type);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.ProcessingStatus))
+        {
+            query = query.Where(x => x.TrangThaiXuLyNghiepVu == parameters.ProcessingStatus);
         }
 
         if (parameters.SubmittedFrom.HasValue)
@@ -541,6 +554,8 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
             TieuDe = row.TieuDe,
             TrangThai = row.TrangThai,
             TenTrangThai = GetStatusLabel(row.TrangThai),
+            TrangThaiXuLyNghiepVu = row.TrangThaiXuLyNghiepVu,
+            TenTrangThaiXuLyNghiepVu = GetProcessingStatusLabel(row.TrangThaiXuLyNghiepVu),
             HocSinh = new AdminApplicationPersonDto
             {
                 MaNguoiDung = row.MaHocSinh,
@@ -576,7 +591,7 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
     {
         var item = ToQueueItemDto(row);
         var (form, valid) = ParseFormJson(row.DuLieuBieuMau);
-        return new AdminApplicationDetailDto
+        var detail = new AdminApplicationDetailDto
         {
             MaDonTu = item.MaDonTu,
             LoaiDon = item.LoaiDon,
@@ -584,6 +599,8 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
             TieuDe = item.TieuDe,
             TrangThai = item.TrangThai,
             TenTrangThai = item.TenTrangThai,
+            TrangThaiXuLyNghiepVu = item.TrangThaiXuLyNghiepVu,
+            TenTrangThaiXuLyNghiepVu = item.TenTrangThaiXuLyNghiepVu,
             HocSinh = item.HocSinh,
             DonVi = item.DonVi,
             NguoiDuyetHienTai = item.NguoiDuyetHienTai,
@@ -595,7 +612,6 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
             RowVersion = item.RowVersion,
             MaMauDon = row.MaMauDon,
             PhienBanMau = row.TemplateVersion,
-            TrangThaiXuLyNghiepVu = row.TrangThaiXuLyNghiepVu,
             DuLieuBieuMau = form,
             DuLieuBieuMauHopLe = valid,
             NoiDungYeuCauBoSung = row.NoiDungYeuCauBoSung,
@@ -614,9 +630,18 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
                 MaDonTu = row.MaDonTu,
                 MaDonVi = row.MaDonVi,
                 TrangThai = row.TrangThai,
+                TrangThaiXuLyNghiepVu = row.TrangThaiXuLyNghiepVu,
                 NguoiDuyetHienTai = row.NguoiDuyetHienTai
             }, actor)
         };
+        _processingPermissionEvaluator.ApplyAllowedActions(detail.AllowedActions, new DonTu
+        {
+            MaDonTu = row.MaDonTu,
+            MaDonVi = row.MaDonVi,
+            TrangThai = row.TrangThai,
+            TrangThaiXuLyNghiepVu = row.TrangThaiXuLyNghiepVu
+        }, actor);
+        return detail;
     }
 
     private AdminApplicationSlaDto BuildSla(string status, DateTime? deadline)
@@ -739,6 +764,7 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
             Status = string.IsNullOrWhiteSpace(parameters.Status ?? parameters.TrangThai)
                 ? null
                 : NormalizeStatus((parameters.Status ?? parameters.TrangThai)!),
+            ProcessingStatus = NormalizeProcessingStatusAlias(parameters.ProcessingStatus, parameters.TrangThaiXuLyNghiepVu),
             AssignmentState = assignmentState,
             SlaStatus = slaStatus,
             SubmittedFrom = submittedFrom,
@@ -801,6 +827,32 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         return canonical;
     }
 
+    private static string? NormalizeProcessingStatusAlias(string? processingStatus, string? vietnameseProcessingStatus)
+    {
+        var first = string.IsNullOrWhiteSpace(processingStatus) ? null : processingStatus.Trim();
+        var second = string.IsNullOrWhiteSpace(vietnameseProcessingStatus) ? null : vietnameseProcessingStatus.Trim();
+        if (first is not null &&
+            second is not null &&
+            !first.Equals(second, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Trạng thái xử lý nghiệp vụ không thống nhất.");
+        }
+
+        var value = first ?? second;
+        if (value is null)
+        {
+            return null;
+        }
+
+        var canonical = ApplicationProcessingStatuses.All.FirstOrDefault(x => x.Equals(value, StringComparison.OrdinalIgnoreCase));
+        if (canonical is null)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Trạng thái xử lý nghiệp vụ không hợp lệ.");
+        }
+
+        return canonical;
+    }
+
     private static string GetStatusLabel(string status)
     {
         return status switch
@@ -812,6 +864,20 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
             ApplicationStatuses.Approved => "Đã duyệt",
             ApplicationStatuses.Rejected => "Từ chối",
             ApplicationStatuses.Cancelled => "Đã hủy",
+            _ => status
+        };
+    }
+
+    private static string GetProcessingStatusLabel(string status)
+    {
+        return status switch
+        {
+            ApplicationProcessingStatuses.NotProcessed => "Chưa xử lý",
+            ApplicationProcessingStatuses.Pending => "Chờ xử lý",
+            ApplicationProcessingStatuses.Recorded => "Đã ghi nhận",
+            ApplicationProcessingStatuses.Succeeded => "Xử lý thành công",
+            ApplicationProcessingStatuses.Failed => "Xử lý thất bại",
+            ApplicationProcessingStatuses.ManualRequired => "Cần xử lý thủ công",
             _ => status
         };
     }
@@ -856,6 +922,7 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         public int? AssigneeId { get; set; }
         public string? Type { get; set; }
         public string? Status { get; set; }
+        public string? ProcessingStatus { get; set; }
         public string AssignmentState { get; set; } = "all";
         public string SlaStatus { get; set; } = "all";
         public DateTime? SubmittedFrom { get; set; }

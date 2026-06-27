@@ -124,13 +124,14 @@ Policy hiện có:
 - `ApplicationAssignmentManage`: `SuperAdmin`, `Admin`, `CampusAdmin`, `SubCampusAdmin`.
 - `ApplicationReviewOperate`: `SuperAdmin`, `Admin`, `CampusAdmin`, `SubCampusAdmin`, `AcademicStaff`.
 - `ApplicationSensitiveDecision`: `SuperAdmin`, `Admin`, `CampusAdmin`, `Principal`.
+- `ApplicationProcessingOperate`: `SuperAdmin`, `Admin`, `CampusAdmin`, `SubCampusAdmin`, `AcademicStaff`.
 - `ApplicationSystemAdmin`: `SuperAdmin`, `Admin`.
 
 Endpoint có role riêng nên dùng `[Authorize(Roles = ...)]` với `AuthRoles`.
 
 ## Applications / Đơn Từ
 
-P0-DT1 chuẩn hóa nền cho module đơn từ. P0-DT2 bổ sung core lifecycle phía sinh viên, gồm tạo nháp, cập nhật, nộp, nộp lại khi bị yêu cầu bổ sung và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. P0-DT4 bổ sung hàng đợi admin, tiếp nhận, phân công/phân công lại, SLA và admin download minh chứng. P0-DT5 bổ sung yêu cầu bổ sung, duyệt và từ chối. Notification và xử lý nghiệp vụ sau duyệt vẫn để phase sau.
+P0-DT1 chuẩn hóa nền cho module đơn từ. P0-DT2 bổ sung core lifecycle phía sinh viên, gồm tạo nháp, cập nhật, nộp, nộp lại khi bị yêu cầu bổ sung và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. P0-DT4 bổ sung hàng đợi admin, tiếp nhận, phân công/phân công lại, SLA và admin download minh chứng. P0-DT5 bổ sung yêu cầu bổ sung, duyệt và từ chối. P0-DT6 bổ sung nền xử lý nghiệp vụ sau duyệt, chỉ auto ghi nhận đơn xác nhận và cho phép ghi nhận kết quả thủ công; notification và side-effect nghiệp vụ thật vẫn để phase sau.
 
 Schema foundation:
 
@@ -176,7 +177,7 @@ Admin queue and assignment P0-DT4:
 - Receive chỉ cho `da_nop` chưa có assignee, chuyển `dang_xem_xet`, gán `NguoiDuyetHienTai`, không đổi `NguoiXuLyCuoi`, `NgayNop`, `HanXuLyLuc`.
 - Assign/reassign chỉ cho `da_nop`, `dang_xem_xet`, `yeu_cau_bo_sung`; same-assignee là no-op nhưng vẫn validate `RowVersion`. Reassign cần lý do nội bộ 10..1000 ký tự.
 - Workflow history dùng `NhatKyDuyetDon`: `tiep_nhan`, `phan_cong`, `phan_cong_lai`. Snapshot chỉ chứa assignee IDs và flag lý do, không chứa form data, file key hoặc secret.
-- Admin detail không expose raw `SnapshotJson`. `ApplicationTimelineMetadataSanitizer` parse snapshot theo allowlist typed metadata (`operation`, assignee IDs, reason/template flags, changed fields, attachment IDs/file count); malformed JSON, root không phải object, key lạ hoặc key nhạy cảm bị chuyển thành `null` hoặc bỏ qua thay vì phản chiếu raw payload.
+- Admin detail không expose raw `SnapshotJson`. `ApplicationTimelineMetadataSanitizer` parse snapshot theo allowlist typed metadata (`operation`, assignee IDs, reason/template flags, changed fields, attachment IDs/file count, decision metadata và processing metadata); malformed JSON, root không phải object, key lạ hoặc key nhạy cảm bị chuyển thành `null` hoặc bỏ qua thay vì phản chiếu raw payload.
 - Admin evidence download dùng private evidence object store, enforce campus scope từ `DonTu`, chỉ trả file content với filename/content type sanitized. Response không trả `StorageKey`, `TenFileLuu`, `FileHash`, bucket hoặc local path.
 
 P0-DT4.1 hardening:
@@ -198,7 +199,21 @@ Admin review and decision P0-DT5:
 - Reject lưu `LyDoTuChoi`, clear current assignee/supplement, không set `NgayDuyet`, set `TrangThaiXuLyNghiepVu = chua_xu_ly`.
 - Mỗi decision thêm đúng một `NhatKyDuyetDon` public cho student và một `NhatKyKiemToan` trong cùng transaction. Audit old/new value chỉ chứa status, assignee, last processor và business processing status; không lưu full form, notes, file key/hash hoặc secret.
 - Timeline snapshot decision chỉ chứa metadata tối thiểu (`decision`, `previousAssigneeId`, `processorId`) và được sanitize trước khi trả admin detail. Student detail chỉ thấy public note, `LyDoTuChoi`, `NoiDungYeuCauBoSung`; không thấy internal note, audit hoặc raw snapshot.
-- Known limitations P0-DT5: không escalation, không notification, không post-approval execution, không workflow nhiều cấp, không bulk decision và không frontend.
+Post-approval processing P0-DT6:
+
+- `ApplicationPostApprovalProcessingService` xử lý `process` và `record-processing-result`; controller chỉ bind request và trả `ApiResponseDto<AdminApplicationDetailDto>`.
+- `ApplicationProcessingPermissionEvaluator` là nguồn rule quyền xử lý sau duyệt và cập nhật `AdminApplicationAllowedActionsDto` với `CanProcessAutomatically`, `CanRecordProcessingResult`.
+- Role matrix: SuperAdmin/Admin/CampusAdmin/SubCampusAdmin/AcademicStaff được thao tác trong campus scope; Principal/Teacher/Student/Parent không có quyền.
+- `ApplicationProcessingStateMachine` quản lý transition nghiệp vụ: `cho_xu_ly -> da_ghi_nhan/xu_ly_thanh_cong/xu_ly_that_bai/can_xu_ly_thu_cong`, `can_xu_ly_thu_cong -> da_ghi_nhan/xu_ly_thanh_cong/xu_ly_that_bai`, `xu_ly_that_bai -> da_ghi_nhan/xu_ly_thanh_cong/can_xu_ly_thu_cong`. Terminal là `da_ghi_nhan`, `xu_ly_thanh_cong`.
+- Auto handler hiện chỉ có `ConfirmationApplicationPostApprovalHandler` cho `xac_nhan`: parse form an toàn, ghi envelope vào `KetQuaXuLyJson`, cập nhật `NhatKyTuDong` latest attempt và set `TrangThaiXuLyNghiepVu = da_ghi_nhan`. Handler không tạo chứng chỉ, không gọi service điểm/điểm danh/tài khoản/cơ sở/ngành/lớp.
+- Loại đơn chưa có handler tự động chuyển `can_xu_ly_thu_cong` với handler fallback `manual_required_fallback`.
+- Ghi nhận kết quả thủ công dùng `ApplicationProcessingResultSanitizer`: result object/null, tối đa 16KB, depth 5, 50 properties, array 100 item, cấm key nhạy cảm như password/token/secret/storage key/file hash/local path/bucket/connection string và cấm script-like text.
+- Mọi mutation DT6 dùng transaction `Serializable`, `sp_getapplock` resource `ApplicationWorkflow:{applicationId}`, validate `RowVersion` base64 8 byte và `SaveChangesAsync` một lần. Stale rowversion, deadlock, SQL timeout, lock timeout hoặc concurrency exception được map về `409`.
+- `/process` idempotent no-op cho `da_ghi_nhan`, `xu_ly_thanh_cong`, `can_xu_ly_thu_cong` nếu RowVersion đúng; no-op không tạo timeline/audit mới. `chua_xu_ly` trả `409`; đơn chưa `da_duyet` trả `400`.
+- Mỗi mutation thực sự thêm một `NhatKyDuyetDon` public `xu_ly_nghiep_vu` và một `NhatKyKiemToan` `xu_ly_nghiep_vu` trong cùng transaction. Audit old/new value chỉ chứa trạng thái, trạng thái xử lý nghiệp vụ, processor cuối và flag có kết quả xử lý.
+- Student list/detail chỉ expose `TrangThaiXuLyNghiepVu`, `TenTrangThaiXuLyNghiepVu`; không expose `KetQuaXuLyJson`, `NhatKyTuDong`, internal note hoặc raw snapshot.
+
+- Known limitations P0-DT6: không escalation, không notification, không workflow nhiều cấp, không bulk decision, không frontend và chưa có side-effect nghiệp vụ thật cho các loại đơn ngoài `xac_nhan`.
 
 Template validation:
 
