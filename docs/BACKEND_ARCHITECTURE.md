@@ -60,6 +60,7 @@ Quy ước:
 - `IApplicationSchemaService`/`ApplicationSchemaService`: expose constants/template active của đơn từ.
 - `IStudentApplicationService`/`StudentApplicationService`: tạo nháp, danh sách/chi tiết của sinh viên, cập nhật, nộp, nộp lại và hủy đơn.
 - `IApplicationEvidenceService`/`ApplicationEvidenceService`: upload, download và soft delete minh chứng đơn từ của sinh viên.
+- `IApplicationReportService`/`ApplicationReportService`: báo cáo tổng quan đơn từ cho admin/học vụ bằng SQL aggregate trong campus scope.
 - `IApplicationEvidenceObjectStore`: abstraction lưu file minh chứng; Local chỉ dùng Development/Testing, R2 dùng private object storage.
 - `ApplicationFormDataValidator`, `ApplicationReferenceValidator`, `ApplicationEvidenceValidator` và các `IApplicationSubmissionRule`: validate form động, entity liên quan, metadata minh chứng và rule theo loại đơn.
 
@@ -131,7 +132,7 @@ Endpoint có role riêng nên dùng `[Authorize(Roles = ...)]` với `AuthRoles`
 
 ## Applications / Đơn Từ
 
-P0-DT1 chuẩn hóa nền cho module đơn từ. P0-DT2 bổ sung core lifecycle phía sinh viên, gồm tạo nháp, cập nhật, nộp, nộp lại khi bị yêu cầu bổ sung và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. P0-DT4 bổ sung hàng đợi admin, tiếp nhận, phân công/phân công lại, SLA và admin download minh chứng. P0-DT5 bổ sung yêu cầu bổ sung, duyệt và từ chối. P0-DT6 bổ sung nền xử lý nghiệp vụ sau duyệt, chỉ auto ghi nhận đơn xác nhận và cho phép ghi nhận kết quả thủ công; notification và side-effect nghiệp vụ thật vẫn để phase sau.
+P0-DT1 chuẩn hóa nền cho module đơn từ. P0-DT2 bổ sung core lifecycle phía sinh viên, gồm tạo nháp, cập nhật, nộp, nộp lại khi bị yêu cầu bổ sung và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. P0-DT4 bổ sung hàng đợi admin, tiếp nhận, phân công/phân công lại, SLA và admin download minh chứng. P0-DT5 bổ sung yêu cầu bổ sung, duyệt và từ chối. P0-DT6 bổ sung nền xử lý nghiệp vụ sau duyệt, chỉ auto ghi nhận đơn xác nhận và cho phép ghi nhận kết quả thủ công. P0-DT7 bổ sung reporting overview, chuẩn hóa metadata upload/xóa minh chứng, hỗ trợ legacy metadata và audit tối giản cho evidence; notification và side-effect nghiệp vụ thật vẫn để phase sau.
 
 Schema foundation:
 
@@ -215,6 +216,19 @@ Post-approval processing P0-DT6:
 
 - Known limitations P0-DT6: không escalation, không notification, không workflow nhiều cấp, không bulk decision, không frontend và chưa có side-effect nghiệp vụ thật cho các loại đơn ngoài `xac_nhan`.
 
+Reporting and audit closure P0-DT7:
+
+- `GET /api/admin/applications/reports/overview` nằm trong `AdminApplicationsController`, dùng `ApplicationQueueRead` và `ApplicationReportService`.
+- Report service luôn re-query actor qua `ApplicationCampusScopeService`; SuperAdmin/Admin global, CampusAdmin gồm descendants, SubCampusAdmin/AcademicStaff/Principal exact campus. Campus filter ngoài scope trả `403`.
+- Filter hỗ trợ alias Việt/Anh: `maDonVi`/`campusId`, `loaiDon`/`type`, `trangThai`/`status`, `trangThaiXuLyNghiepVu`/`processingStatus`, `nguoiDuyetHienTai`/`assigneeId`, `nguoiXuLyCuoi`/`processorId`, `tuNgayNop`/`submittedFrom`, `denNgayNop`/`submittedTo`. Alias khác giá trị trả `400`; ID phải > 0; enum được canonicalize case-insensitive.
+- Summary metrics gồm tổng đơn, pending review, waiting supplement, overdue, due soon, approved/rejected/cancelled và các trạng thái xử lý nghiệp vụ. `overdue`/`dueSoon` chỉ tính `da_nop`, `dang_xem_xet` có deadline, không tính supplement/terminal/draft.
+- Breakdown status/processing/type luôn trả đủ bucket nghiệp vụ kể cả count 0; campus breakdown chỉ trả campus có dữ liệu trong scope và order theo tên/id.
+- Approval/rejection rate dùng denominator `approved + rejected`, làm tròn 2 chữ số; nếu denominator 0 thì rate 0. Average review hours dùng `NgayNop` tới latest timeline `phe_duyet`/`tu_choi`, fallback `NgayDuyet`, loại record thiếu hoặc đảo thời gian.
+- Query strategy: `AsNoTracking`, conditional aggregate cho summary tag `P0-DT7 ReportSummary`, group query theo status/processing/type/campus và aggregate review duration bằng `EF.Functions.DateDiffMinute`. Không parse form/result JSON, không `AsEnumerable` trước aggregate, không N+1 campus.
+- Evidence future timeline metadata dùng `{ operation: "upload_evidence", fileCount }` và `{ operation: "delete_evidence", attachmentId }`; `ApplicationTimelineMetadataSanitizer` vẫn map legacy `{ attachmentAction: "upload", count }` và `{ attachmentAction: "delete", maTep }` sang metadata typed. Future format được ưu tiên nếu có cả hai.
+- Upload/delete evidence thêm `NhatKyKiemToan` trong cùng DB transaction với attachment metadata, `DonTu.NgayCapNhat` và hidden timeline. Audit old/new chỉ chứa `activeFileCount`, `totalSizeBytes`; `MoTa` phân biệt upload/delete; không chứa filename, `StorageKey`, `TenFileLuu`, `FileHash`, path, bucket, bytes hoặc full entity.
+- Known limitations P0-DT7: không notification integration, không export Excel/PDF, không dashboard chart, không trend analytics, không business-hour SLA, không post-approval duration analytics, không advanced audit search và không frontend.
+
 Template validation:
 
 - `ApplicationTemplateValidator` parse bằng `JsonDocument`, giới hạn size/depth, yêu cầu `root.fields`.
@@ -231,6 +245,7 @@ Storage evidence:
 - Upload/delete dùng `RowVersion`, transaction `Serializable` và `sp_getapplock` resource `ApplicationEvidence:{applicationId}` để chống race condition.
 - File upload được ghi object store trước DB transaction; nếu DB mutation thất bại thì service cleanup object đã upload. Delete soft-delete metadata trước để revoke API access, sau đó physical delete best-effort.
 - Response/API không trả `StorageKey`, file hash, tên file lưu hoặc public URL. Download set `Content-Disposition: attachment`, `X-Content-Type-Options: nosniff` và `Cache-Control: private, no-store`.
+- Timeline evidence upload/delete là hidden với student, nhưng admin detail thấy metadata typed đã sanitize. Audit evidence chỉ giữ số file active/tổng dung lượng trước-sau để phục vụ closure mà không lộ metadata lưu trữ.
 - Local object store bị chặn trong Production và yêu cầu root isolated khi test/dev. Production dùng R2 private object store.
 - Không dùng nguyên `StorageController` hiện tại cho minh chứng Student vì controller đó phục vụ nội dung học tập chung và allow ZIP/SVG/public URL.
 

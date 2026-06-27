@@ -56,17 +56,19 @@ public static class ApplicationTimelineMetadataSanitizer
             }
 
             var root = document.RootElement;
+            var operation = ReadAllowedOperation(root);
+            var legacyOperation = operation is null ? ReadLegacyEvidenceOperation(root) : null;
             var metadata = new AdminApplicationTimelineMetadataDto
             {
-                Operation = ReadAllowedOperation(root),
+                Operation = operation ?? legacyOperation,
                 FromAssigneeId = ReadPositiveIntOrNull(root, "fromAssigneeId"),
                 ToAssigneeId = ReadPositiveIntOrNull(root, "toAssigneeId"),
                 ReasonProvided = ReadBooleanOrNull(root, "reasonProvided"),
                 TemplateAssigned = ReadBooleanOrNull(root, "templateAssigned"),
                 ChangedFields = ReadStringArray(root, "changedFields"),
                 AttachmentIds = ReadPositiveIntArray(root, "attachmentIds"),
-                AttachmentId = ReadPositiveIntOrNull(root, "attachmentId"),
-                FileCount = ReadFileCount(root),
+                AttachmentId = ReadPositiveIntOrNull(root, "attachmentId") ?? ReadLegacyAttachmentId(root, legacyOperation),
+                FileCount = ReadFileCount(root) ?? ReadLegacyFileCount(root, legacyOperation),
                 Decision = ReadAllowedDecision(root),
                 PreviousAssigneeId = ReadPositiveIntOrNull(root, "previousAssigneeId"),
                 ProcessorId = ReadPositiveIntOrNull(root, "processorId"),
@@ -96,6 +98,22 @@ public static class ApplicationTimelineMetadataSanitizer
         return AllowedOperations.FirstOrDefault(x => x.Equals(value, StringComparison.OrdinalIgnoreCase));
     }
 
+    private static string? ReadLegacyEvidenceOperation(JsonElement root)
+    {
+        if (!TryGetPropertyIgnoreCase(root, "attachmentAction", out var property) ||
+            property.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+
+        return property.GetString()?.Trim().ToLowerInvariant() switch
+        {
+            "upload" => "upload_evidence",
+            "delete" => "delete_evidence",
+            _ => null
+        };
+    }
+
     private static int? ReadPositiveIntOrNull(JsonElement root, string propertyName)
     {
         if (!TryGetPropertyIgnoreCase(root, propertyName, out var property))
@@ -120,6 +138,36 @@ public static class ApplicationTimelineMetadataSanitizer
         return property.ValueKind == JsonValueKind.Number &&
                property.TryGetInt32(out var value) &&
                value is >= 0 and <= MaxFileCount
+            ? value
+            : null;
+    }
+
+    private static int? ReadLegacyFileCount(JsonElement root, string? legacyOperation)
+    {
+        if (legacyOperation != "upload_evidence" ||
+            !TryGetPropertyIgnoreCase(root, "count", out var property))
+        {
+            return null;
+        }
+
+        return property.ValueKind == JsonValueKind.Number &&
+               property.TryGetInt32(out var value) &&
+               value is >= 0 and <= MaxFileCount
+            ? value
+            : null;
+    }
+
+    private static int? ReadLegacyAttachmentId(JsonElement root, string? legacyOperation)
+    {
+        if (legacyOperation != "delete_evidence" ||
+            !TryGetPropertyIgnoreCase(root, "maTep", out var property))
+        {
+            return null;
+        }
+
+        return property.ValueKind == JsonValueKind.Number &&
+               property.TryGetInt32(out var value) &&
+               value > 0
             ? value
             : null;
     }

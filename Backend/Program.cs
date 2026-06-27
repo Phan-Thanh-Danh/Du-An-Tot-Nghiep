@@ -114,6 +114,7 @@ builder.Services.AddScoped<IApplicationEvidenceValidator, ApplicationEvidenceVal
 builder.Services.AddScoped<IStudentApplicationService, StudentApplicationService>();
 builder.Services.AddScoped<IApplicationCampusScopeService, ApplicationCampusScopeService>();
 builder.Services.AddScoped<IApplicationAdminQueueService, ApplicationAdminQueueService>();
+builder.Services.AddScoped<IApplicationReportService, ApplicationReportService>();
 builder.Services.AddScoped<IApplicationAssignmentService, ApplicationAssignmentService>();
 builder.Services.AddScoped<IApplicationAdminEvidenceService, ApplicationAdminEvidenceService>();
 builder.Services.AddScoped<IApplicationDecisionPermissionEvaluator, ApplicationDecisionPermissionEvaluator>();

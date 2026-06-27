@@ -621,7 +621,7 @@ Ghi chú P0-8: Bảng `ThongBao` hiện được dùng theo mô hình mỗi dòn
 
 ### Đã có trong P0-DT1/P0-DT2/P0-DT3/P0-DT4/P0-DT5/P0-DT6
 
-P0-DT1 làm foundation schema, constants, state machine, template validator và API read-only để FE đọc loại đơn/mẫu đơn. P0-DT2 bổ sung vòng đời sinh viên: tạo nháp, xem đơn của chính mình, cập nhật nháp/yêu cầu bổ sung, nộp, nộp lại và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. P0-DT4 bổ sung hàng đợi admin, SLA, tiếp nhận, phân công/phân công lại và admin download minh chứng. P0-DT5 bổ sung yêu cầu bổ sung, duyệt và từ chối đơn. P0-DT6 bổ sung nền xử lý nghiệp vụ sau duyệt, chỉ auto ghi nhận đơn `xac_nhan`; các loại khác chuyển `can_xu_ly_thu_cong` hoặc ghi nhận kết quả thủ công. Chưa làm notification hoặc side-effect nghiệp vụ thật.
+P0-DT1 làm foundation schema, constants, state machine, template validator và API read-only để FE đọc loại đơn/mẫu đơn. P0-DT2 bổ sung vòng đời sinh viên: tạo nháp, xem đơn của chính mình, cập nhật nháp/yêu cầu bổ sung, nộp, nộp lại và hủy đơn. P0-DT3 bổ sung upload/download/delete minh chứng an toàn cho sinh viên. P0-DT4 bổ sung hàng đợi admin, SLA, tiếp nhận, phân công/phân công lại và admin download minh chứng. P0-DT5 bổ sung yêu cầu bổ sung, duyệt và từ chối đơn. P0-DT6 bổ sung nền xử lý nghiệp vụ sau duyệt, chỉ auto ghi nhận đơn `xac_nhan`; các loại khác chuyển `can_xu_ly_thu_cong` hoặc ghi nhận kết quả thủ công. P0-DT7 bổ sung báo cáo tổng quan quản trị và đóng audit/metadata cho upload/xóa minh chứng. Chưa làm notification hoặc side-effect nghiệp vụ thật.
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
@@ -641,6 +641,7 @@ P0-DT1 làm foundation schema, constants, state machine, template validator và 
 | DELETE | `/api/student/applications/{id}/attachments/{attachmentId}` | Student | Soft delete metadata minh chứng của chính sinh viên bằng body `{ "rowVersion": "..." }`. Chỉ cho đơn `nhap` hoặc `yeu_cau_bo_sung`; physical delete best-effort sau khi DB commit. |
 | GET | `/api/admin/applications` | ApplicationQueueRead | Hàng đợi admin có filter `maDonVi`, `maHocSinh`, `nguoiDuyetHienTai`, `loaiDon`, `trangThai`, `trangThaiXuLyNghiepVu`/`processingStatus`, `assignmentState`, `slaStatus`, `tuNgayNop`, `denNgayNop`, `search`, `pageIndex`, `pageSize`. Nếu không truyền `trangThai`, chỉ trả `da_nop`, `dang_xem_xet`. |
 | GET | `/api/admin/applications/queue-summary` | ApplicationQueueRead | Tổng quan queue trong scope hiện tại: active, submitted, in review, need supplement, unassigned, overdue, due soon. `active` là alias của `totalActive`; `waitingForSupplement` là alias của `needSupplement`. Backend tính summary bằng một conditional aggregate SQL query trong cùng scope/filter. |
+| GET | `/api/admin/applications/reports/overview` | ApplicationQueueRead | Báo cáo tổng quan đơn từ trong campus scope hiện tại. Filter: `maDonVi`/`campusId`, `loaiDon`/`type`, `trangThai`/`status`, `trangThaiXuLyNghiepVu`/`processingStatus`, `nguoiDuyetHienTai`/`assigneeId`, `nguoiXuLyCuoi`/`processorId`, `tuNgayNop`/`submittedFrom`, `denNgayNop`/`submittedTo`. Alias cùng giá trị được chấp nhận, khác giá trị trả `400`; campus ngoài scope trả `403`. |
 | GET | `/api/admin/applications/{applicationId}` | ApplicationQueueRead | Admin xem chi tiết đơn trong campus scope, gồm form data safe, attachment metadata safe, timeline admin và allowed actions. Timeline admin không trả raw `SnapshotJson`; chỉ trả `metadata` đã sanitize theo allowlist. Ngoài scope trả `404`. |
 | POST | `/api/admin/applications/{applicationId}/receive` | ApplicationReceive | Tiếp nhận đơn `da_nop` chưa có `NguoiDuyetHienTai`; body `{ "rowVersion": "..." }`; chuyển sang `dang_xem_xet`, gán current user, ghi log public `tiep_nhan`. |
 | POST | `/api/admin/applications/{applicationId}/assign` | ApplicationAssignmentManage | Phân công hoặc phân công lại; body `{ "assigneeId": 1, "rowVersion": "...", "lyDo": "..." }`. Reassign bắt buộc `lyDo` 10-1000 ký tự và ghi log internal. |
@@ -740,11 +741,25 @@ Ghi chú P0-DT6:
 - Mỗi mutation thực sự thêm một timeline `xu_ly_nghiep_vu` public cho student và một audit `xu_ly_nghiep_vu`. No-op idempotent không tạo timeline/audit mới.
 - Admin timeline metadata DT6 chỉ expose allowlist `operation`, `handler`, `processingStatusFrom`, `processingStatusTo`, `outcome`, `processorId`; không expose raw result JSON, form values hoặc dữ liệu nhạy cảm.
 
+Ghi chú P0-DT7:
+
+- Report overview dùng cùng policy `ApplicationQueueRead` và `ApplicationCampusScopeService`; service re-query actor từ DB, user bị khóa/inactive/đổi role sẽ bị từ chối. SuperAdmin/Admin xem toàn hệ thống; CampusAdmin xem campus hiện tại và descendants; SubCampusAdmin/AcademicStaff/Principal exact campus.
+- `summary.totalApplications` là tổng `DonTu` sau scope/filter. `pendingReview` chỉ gồm `da_nop`, `dang_xem_xet`; `waitingForSupplement` là `yeu_cau_bo_sung`; `approved`, `rejected`, `cancelled` theo trạng thái đơn; processing buckets theo `TrangThaiXuLyNghiepVu`.
+- `overdue` và `dueSoon` chỉ tính `da_nop`, `dang_xem_xet` có `HanXuLyLuc`; không tính `yeu_cau_bo_sung`, terminal hoặc draft. `dueSoon` dùng `ApplicationQueue:SlaWarningBeforeHours`.
+- `approvalRate` và `rejectionRate` dùng denominator `approved + rejected`; nếu không có quyết định thì cả hai bằng 0. `averageReviewHours` tính từ `NgayNop` tới timeline quyết định mới nhất (`phe_duyet`/`tu_choi`), fallback `NgayDuyet`; thiếu timestamp hợp lệ trả `null`.
+- Status breakdown luôn trả đủ `nhap`, `da_nop`, `dang_xem_xet`, `yeu_cau_bo_sung`, `da_duyet`, `tu_choi`, `da_huy`. Processing breakdown luôn trả đủ `chua_xu_ly`, `cho_xu_ly`, `da_ghi_nhan`, `xu_ly_thanh_cong`, `xu_ly_that_bai`, `can_xu_ly_thu_cong`. Type breakdown luôn trả đủ 11 loại đơn active trong hệ thống, cộng bucket legacy nếu DB có.
+- Query report dùng SQL aggregate/grouping với tags `P0-DT7 ReportSummary`, `P0-DT7 ReportByType`, `P0-DT7 ReportByCampus`, `P0-DT7 ReportReviewDuration`; không parse JSON, không load toàn bộ đơn về RAM và không N+1 campus.
+- Future timeline snapshot cho upload minh chứng: `{ "operation": "upload_evidence", "fileCount": n }`; delete: `{ "operation": "delete_evidence", "attachmentId": id }`. Legacy snapshot `{ "attachmentAction": "upload", "count": n }` và `{ "attachmentAction": "delete", "maTep": id }` vẫn được sanitizer map sang metadata typed, không expose raw/sensitive keys.
+- Upload/delete minh chứng ghi thêm `NhatKyKiemToan` tối giản trong cùng DB transaction với metadata/timeline. Audit old/new chỉ gồm `activeFileCount` và `totalSizeBytes`, `HanhDong = cap_nhat`, `LoaiDoiTuong = DonTu`, không chứa filename, storage key, file hash, path, MIME bytes hoặc full attachment.
+- Known limitations DT7: chưa notification integration, export, charts, trend analytics, business-hour SLA, post-approval duration analytics, advanced audit search hoặc frontend.
+
 ## Reports APIs
 
 ### Đã có
 
-Chưa thấy controller reports trong repo hiện tại.
+| Method | Endpoint | Quyền | Mô tả |
+|---|---|---|---|
+| GET | `/api/admin/applications/reports/overview` | ApplicationQueueRead | Báo cáo tổng quan module đơn từ theo campus scope/filter, trả summary, status/processing/type/campus breakdown, approval/rejection rates và average review hours. |
 
 ### Dự kiến/cần bổ sung
 

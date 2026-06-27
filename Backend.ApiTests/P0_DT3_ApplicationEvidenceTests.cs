@@ -102,7 +102,7 @@ public class P0_DT3_ApplicationEvidenceTests : ApiTestBase
             Assert.That(attachment.DaXoa, Is.False);
             Assert.That(File.Exists(StoragePath(attachment.StorageKey)), Is.True);
             Assert.That(log.HienThiChoHocSinh, Is.False);
-            Assert.That(log.SnapshotJson, Does.Contain("attachmentAction"));
+            Assert.That(log.SnapshotJson, Does.Contain("upload_evidence"));
             Assert.That(lowerDetail, Does.Not.Contain("storagekey"));
             Assert.That(lowerDetail, Does.Not.Contain("filehash"));
             Assert.That(lowerDetail, Does.Not.Contain("tenfileluu"));
