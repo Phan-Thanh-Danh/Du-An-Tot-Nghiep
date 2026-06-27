@@ -11,6 +11,7 @@ import SidebarMenuGroup from './SidebarMenuGroup.vue'
 import SidebarRecentFavorites from '@/components/ui/SidebarRecentFavorites.vue'
 import { sinhVienMenuGroups, mockUser } from './data/menuData.js'
 import { useAuthStore } from '@/stores/auth'
+import { mockProfile } from '@/data/studentData.mock.js'
 
 defineProps({
   collapsed: { type: Boolean, default: false },
@@ -112,16 +113,16 @@ function logout() {
     >
       <div :class="['lg-nav flex items-center gap-2 rounded-xl p-2', collapsed ? '' : 'w-full']">
         <div class="lg-sidebar-avatar relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ring-1 ring-[var(--border-card)]">
-          <span>{{ authStore.initials || mockUser.initials }}</span>
+          <span>{{ authStore.initials || (mockProfile.fullName ? mockProfile.fullName.split(' ').pop() : '') || mockUser.initials }}</span>
           <span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--surface-sidebar)] bg-[var(--sidebar-indicator)]" />
         </div>
         <Transition name="fade-slide">
           <div v-if="!collapsed" class="overflow-hidden min-w-0">
             <p class="truncate text-[12px] font-medium leading-tight text-heading">
-              {{ authStore.displayName || 'Sinh Viên Demo' }}
+              {{ authStore.displayName || mockProfile.fullName || 'Sinh Viên Demo' }}
             </p>
             <p class="truncate text-[10px] font-medium leading-tight text-muted">
-              {{ mockUser.class }}
+              {{ mockProfile.className || mockUser.class }}
             </p>
           </div>
         </Transition>

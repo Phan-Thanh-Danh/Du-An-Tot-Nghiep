@@ -27,7 +27,7 @@ const studentCurriculum = mockStudentCurriculum
 const curriculumVersionData = mockCurriculumVersionData
 
 const activeFilter = ref('all')
-const selectedVersionId = ref('sd-2026')
+const selectedVersionId = ref(curriculumVersionData.availableVersions?.[0]?.programId || 'sd-2026')
 
 const statusConfig = {
   completed: { label: 'Đã hoàn thành', className: 'status-completed', icon: CheckCircle2 },
@@ -77,19 +77,40 @@ const allSubjects = computed(() =>
   )
 )
 
-const filteredSemesters = computed(() =>
-  studentCurriculum.semesters
+const filteredSemesters = computed(() => {
+  const isOldVersion = selectedVersionId.value && selectedVersionId.value.endsWith('-old')
+
+  return studentCurriculum.semesters
     .map((semester) => ({
       ...semester,
       blocks: semester.blocks
         .map((block) => ({
           ...block,
-          subjects: block.subjects.filter((item) => activeFilter.value === 'all' || item.status === activeFilter.value),
+          subjects: block.subjects
+            .filter((item) => activeFilter.value === 'all' || item.status === activeFilter.value)
+            .map((item) => {
+              if (isOldVersion) {
+                const historyItem = curriculumVersionData.earlyLearningHistory.find(
+                  (h) => h.newSubjectCode === item.subjectCode
+                )
+                if (historyItem) {
+                  return {
+                    ...item,
+                    subjectCode: historyItem.oldSubjectCode,
+                    subjectName: historyItem.oldSubjectName,
+                    newSubjectCode: historyItem.newSubjectCode,
+                    newSubjectName: historyItem.newSubjectName,
+                    versionStatus: 'current_program', // Hide equivalence notice since we are displaying the old version natively
+                  }
+                }
+              }
+              return item
+            }),
         }))
         .filter((block) => block.subjects.length),
     }))
     .filter((semester) => semester.blocks.length)
-)
+})
 
 const progressPercent = computed(() =>
   Math.round((studentCurriculum.completedCredits / studentCurriculum.totalCredits) * 100)
@@ -118,11 +139,6 @@ const versionChangeCards = computed(() => [
   { label: 'Chỉ lưu lịch sử', value: curriculumVersionData.versionChanges.historyOnlySubjects, icon: History },
 ])
 
-const visibleEarlyHistory = computed(() => {
-  if (selectedVersionId.value === 'sd-2026') return curriculumVersionData.earlyLearningHistory
-  return curriculumVersionData.earlyLearningHistory.filter((item) => item.oldProgramVersion === 'Version 2025')
-})
-
 function actionLabel(item) {
   if (item.status === 'current') return 'Vào học'
   if (item.status === 'completed' || item.status === 'early_completed') return 'Xem kết quả'
@@ -141,6 +157,8 @@ function versionLabel(status) {
 function canApplyEarlyResult(item) {
   return ['equivalent', 'partial_equivalent'].includes(item.versionStatus)
 }
+
+const isOldVersion = computed(() => selectedVersionId.value && selectedVersionId.value.endsWith('-old'))
 </script>
 
 <template>
@@ -270,7 +288,7 @@ function canApplyEarlyResult(item) {
             <h3>{{ item.subjectName }}</h3>
             <p>{{ item.semesterName }} · {{ item.blockName }} · {{ item.credits }} tín chỉ</p>
           </div>
-          <router-link class="early-cta" to="/student/courses/CTDL101">
+          <router-link class="early-cta" :to="'/student/courses/' + item.subjectCode">
             Bắt đầu học trước
             <ArrowRight :size="13" />
           </router-link>
@@ -278,62 +296,6 @@ function canApplyEarlyResult(item) {
       </div>
     </section>
 
-    <section class="history-section">
-      <div class="section-heading">
-        <div>
-          <span class="eyebrow small">
-            <History :size="13" />
-            Version cũ
-          </span>
-          <h2>Tự học trước & lịch sử version cũ</h2>
-        </div>
-        <p>Kết quả học trước được giữ lại, kể cả khi môn hoặc chương trình đã đổi version.</p>
-      </div>
-
-      <div class="history-list">
-        <article v-for="item in visibleEarlyHistory" :key="item.id" class="history-card">
-          <div class="history-main">
-            <span class="subject-code">{{ item.oldSubjectCode }}</span>
-            <h3>{{ item.oldSubjectName }}</h3>
-            <p>Học trước ở {{ item.oldProgramVersion }} · {{ item.learnedAt }}</p>
-          </div>
-
-          <div class="history-transfer">
-            <span>{{ item.oldSubjectCode }}</span>
-            <ArrowRight :size="14" />
-            <strong>{{ item.newSubjectCode }}</strong>
-          </div>
-
-          <div class="subject-meta">
-            <span class="score-chip">Progress {{ item.progressPercent }}%</span>
-            <span class="score-chip">Quiz {{ item.quizScore }}/10</span>
-            <span class="version-badge" :class="applyStatusConfig[item.applyStatus]?.className">
-              {{ applyStatusConfig[item.applyStatus]?.label }}
-            </span>
-          </div>
-
-          <p
-            class="equivalence-notice"
-            :class="{
-              partial: item.applyStatus === 'requires_supplement',
-              history: item.applyStatus === 'history_only',
-            }"
-          >
-            <GitCompare :size="14" />
-            <span v-if="item.applyStatus === 'applied'">
-              Điểm học trước ở version cũ đã được áp dụng cho môn tương đương trong chương trình hiện tại.
-            </span>
-            <span v-else-if="item.applyStatus === 'requires_supplement'">
-              Bạn đã học {{ item.oldSubjectCode }} ở {{ item.oldProgramVersion }}. Trong Version 2026, môn này được thay bằng {{ item.newSubjectCode }}.
-              Kết quả cũ được giữ lại và có thể được xét áp dụng một phần. Cần học bổ sung {{ item.supplementPercent }}%.
-            </span>
-            <span v-else>
-              Kết quả này chỉ được lưu trong lịch sử tự học và không tính vào điểm chính thức.
-            </span>
-          </p>
-        </article>
-      </div>
-    </section>
 
     <section class="filter-strip" aria-label="Bộ lọc trạng thái">
       <div class="filter-chips">
@@ -381,7 +343,6 @@ function canApplyEarlyResult(item) {
       >
         <header class="semester-header">
           <div>
-            <span>Kỳ {{ semester.semesterIndex }}</span>
             <h2>{{ semester.semesterName }}</h2>
           </div>
           <span
@@ -400,78 +361,120 @@ function canApplyEarlyResult(item) {
                 <span>{{ block.blockName }}</span>
                 <strong>{{ block.subjects.length }} môn</strong>
               </div>
-              <Clock :size="15" />
+              <div class="block-header-right">
+                <span 
+                  v-if="semester.semesterIndex === studentCurriculum.currentSemesterIndex && block.blockIndex === studentCurriculum.currentBlockIndex" 
+                  class="block-current-badge"
+                >
+                  <span class="pulse-dot" />
+                  Block hiện tại
+                </span>
+                <Clock :size="15" />
+              </div>
             </div>
 
             <div class="subject-list">
-              <article v-for="item in block.subjects" :key="item.id" class="subject-card">
-                <div class="subject-main">
-                  <span class="subject-code">{{ item.subjectCode }}</span>
-                  <h3>{{ item.subjectName }}</h3>
-                  <p>{{ semester.semesterName }} · {{ block.blockName }} · {{ item.credits }} tín chỉ</p>
-                </div>
-
-                <div class="subject-meta">
-                  <span class="status-badge" :class="statusConfig[item.status]?.className">
-                    <component :is="statusConfig[item.status]?.icon" :size="12" />
-                    {{ statusConfig[item.status]?.label }}
-                  </span>
-                  <span class="version-badge" :class="versionStatusConfig[item.versionStatus]?.className">
-                    {{ versionLabel(item.versionStatus) }}
-                  </span>
-                  <span v-if="item.quizScore" class="score-chip">Quiz {{ item.quizScore }}/10</span>
-                  <span v-if="item.score" class="score-chip">Điểm {{ item.score }}/10</span>
-                  <span v-if="item.earlyScore" class="score-chip">Học trước {{ item.earlyScore }}/10</span>
-                  <span v-if="item.earlyScoreFromOldVersion" class="score-chip">Version cũ {{ item.earlyScoreFromOldVersion }}/10</span>
-                </div>
-
-                <div class="subject-progress">
-                  <div class="progress-copy">
-                    <span>Tiến độ</span>
-                    <strong>{{ item.earlyProgressPercent ?? item.progressPercent }}%</strong>
+              <article 
+                v-for="item in block.subjects" 
+                :key="item.id" 
+                :class="['subject-card', { 'old-version-card': isOldVersion }]"
+              >
+                <!-- CARD PHIÊN BẢN CŨ (CHỈ XEM THAY ĐỔI) -->
+                <template v-if="isOldVersion">
+                  <div class="subject-main">
+                    <span class="subject-code old">{{ item.subjectCode }}</span>
+                    <h3>{{ item.subjectName }}</h3>
+                    <p>{{ semester.semesterName }} · {{ block.blockName }} · {{ item.credits }} tín chỉ</p>
                   </div>
-                  <div class="mini-track">
-                    <div class="mini-fill" :style="{ width: `${item.earlyProgressPercent ?? item.progressPercent}%` }" />
+                  
+                  <div class="compare-transition">
+                    <div class="compare-flow">
+                      <div class="flow-node">
+                        <span class="node-label">Version cũ</span>
+                        <strong class="font-mono text-heading">{{ item.subjectCode }}</strong>
+                      </div>
+                      <ArrowRight :size="14" class="flow-arrow text-link" />
+                      <div class="flow-node highlight">
+                        <span class="node-label">Chương trình mới</span>
+                        <strong class="font-mono text-link">{{ item.newSubjectCode || item.subjectCode }}</strong>
+                      </div>
+                    </div>
+                    <p class="compare-text">
+                      Môn học này tương đương với <strong>{{ item.newSubjectName || item.subjectName }}</strong> ({{ item.newSubjectCode || item.subjectCode }}) trong chương trình mới.
+                    </p>
                   </div>
-                </div>
+                </template>
 
-                <p v-if="item.status === 'early_available'" class="subject-note">
-                  Bạn có thể học trước môn này. Kết quả sẽ được lưu khi backend hỗ trợ.
-                </p>
-                <p v-else-if="item.status === 'early_completed'" class="subject-note">
-                  Đã học trước {{ item.earlyCompletedAt }} · tiến độ {{ item.earlyProgressPercent }}%.
-                </p>
-                <p v-else-if="item.status === 'future_locked'" class="subject-note muted">
-                  Mở ở {{ semester.semesterName }} - {{ block.blockName }}.
-                </p>
-                <p v-else-if="item.status === 'changed_program'" class="subject-note muted">
-                  {{ item.note }}
-                </p>
-                <p
-                  v-if="item.versionStatus && item.versionStatus !== 'current_program'"
-                  class="equivalence-notice compact"
-                  :class="{ partial: item.versionStatus === 'partial_equivalent', history: item.versionStatus === 'history_only' }"
-                >
-                  <GitCompare :size="13" />
-                  <span v-if="item.versionStatus === 'partial_equivalent'">
-                    Môn này đã thay đổi ở chương trình mới. Kết quả {{ item.replacedSubjectCode }} được giữ lại;
-                    {{ canApplyEarlyResult(item) ? 'có thể xét áp dụng điểm cũ' : 'chỉ lưu lịch sử' }}.
-                  </span>
-                  <span v-else-if="item.versionStatus === 'history_only'">Chỉ lưu làm lịch sử tự học.</span>
-                  <span v-else>{{ versionLabel(item.versionStatus) }}.</span>
-                </p>
+                <!-- CARD PHIÊN BẢN MỚI (XEM BÌNH THƯỜNG) -->
+                <template v-else>
+                  <div class="subject-main">
+                    <span class="subject-code">{{ item.subjectCode }}</span>
+                    <h3>{{ item.subjectName }}</h3>
+                    <p>{{ semester.semesterName }} · {{ block.blockName }} · {{ item.credits }} tín chỉ</p>
+                  </div>
 
-                <router-link
-                  v-if="!isActionDisabled(item)"
-                  class="subject-action"
-                  to="/student/courses/CTDL101"
-                >
-                  {{ actionLabel(item) }}
-                  <ArrowRight :size="13" />
-                </router-link>
-                <button v-else class="subject-action disabled" type="button" disabled>
-                  {{ actionLabel(item) }}
-                </button>
+                  <div class="subject-meta">
+                    <span class="status-badge" :class="statusConfig[item.status]?.className">
+                      <component :is="statusConfig[item.status]?.icon" :size="12" />
+                      {{ statusConfig[item.status]?.label }}
+                    </span>
+                    <span class="version-badge" :class="versionStatusConfig[item.versionStatus]?.className">
+                      {{ versionLabel(item.versionStatus) }}
+                    </span>
+                    <span v-if="item.quizScore" class="score-chip">Quiz {{ item.quizScore }}/10</span>
+                    <span v-if="item.score" class="score-chip">Điểm {{ item.score }}/10</span>
+                    <span v-if="item.earlyScore" class="score-chip">Học trước {{ item.earlyScore }}/10</span>
+                    <span v-if="item.earlyScoreFromOldVersion" class="score-chip">Version cũ {{ item.earlyScoreFromOldVersion }}/10</span>
+                  </div>
+
+                  <div class="subject-progress">
+                    <div class="progress-copy">
+                      <span>Tiến độ</span>
+                      <strong>{{ item.earlyProgressPercent ?? item.progressPercent }}%</strong>
+                    </div>
+                    <div class="mini-track">
+                      <div class="mini-fill" :style="{ width: `${item.earlyProgressPercent ?? item.progressPercent}%` }" />
+                    </div>
+                  </div>
+
+                  <p v-if="item.status === 'early_available'" class="subject-note">
+                    Bạn có thể học trước môn này. Kết quả sẽ được lưu khi backend hỗ trợ.
+                  </p>
+                  <p v-else-if="item.status === 'early_completed'" class="subject-note">
+                    Đã học trước {{ item.earlyCompletedAt }} · tiến độ {{ item.earlyProgressPercent }}%.
+                  </p>
+                  <p v-else-if="item.status === 'future_locked'" class="subject-note muted">
+                    Mở ở {{ semester.semesterName }} - {{ block.blockName }}.
+                  </p>
+                  <p v-else-if="item.status === 'changed_program'" class="subject-note muted">
+                    {{ item.note }}
+                  </p>
+                  <p
+                    v-if="item.versionStatus && item.versionStatus !== 'current_program'"
+                    class="equivalence-notice compact"
+                    :class="{ partial: item.versionStatus === 'partial_equivalent', history: item.versionStatus === 'history_only' }"
+                  >
+                    <GitCompare :size="13" />
+                    <span v-if="item.versionStatus === 'partial_equivalent'">
+                      Môn này đã thay đổi ở chương trình mới. Kết quả {{ item.replacedSubjectCode }} được giữ lại;
+                      {{ canApplyEarlyResult(item) ? 'có thể xét áp dụng điểm cũ' : 'chỉ lưu lịch sử' }}.
+                    </span>
+                    <span v-else-if="item.versionStatus === 'history_only'">Chỉ lưu làm lịch sử tự học.</span>
+                    <span v-else>{{ versionLabel(item.versionStatus) }}.</span>
+                  </p>
+
+                  <router-link
+                    v-if="!isActionDisabled(item)"
+                    class="subject-action"
+                    :to="'/student/courses/' + item.subjectCode"
+                  >
+                    {{ actionLabel(item) }}
+                    <ArrowRight :size="13" />
+                  </router-link>
+                  <button v-else class="subject-action disabled" type="button" disabled>
+                    {{ actionLabel(item) }}
+                  </button>
+                </template>
               </article>
             </div>
           </section>
@@ -484,7 +487,15 @@ function canApplyEarlyResult(item) {
       <div class="table-container">
         <table class="curriculum-table">
           <thead>
-            <tr>
+            <tr v-if="isOldVersion">
+              <th>Học kỳ & Block</th>
+              <th>Mã môn cũ</th>
+              <th>Tên môn học cũ</th>
+              <th>Số tín chỉ</th>
+              <th class="text-link">Mã môn mới tương đương</th>
+              <th>Tên môn mới tương đương</th>
+            </tr>
+            <tr v-else>
               <th>Học kỳ & Block</th>
               <th>Mã môn</th>
               <th>Tên môn học</th>
@@ -508,43 +519,54 @@ function canApplyEarlyResult(item) {
                       Kỳ {{ semester.semesterIndex }} - {{ block.blockName }}
                     </div>
                   </td>
-                  <td class="code-cell font-mono font-semibold text-link">{{ item.subjectCode }}</td>
-                  <td class="name-cell font-semibold text-heading">{{ item.subjectName }}</td>
-                  <td class="credits-cell">{{ item.credits }} tín chỉ</td>
-                  <td class="status-cell">
-                    <span class="status-badge" :class="statusConfig[item.status]?.className">
-                      <component :is="statusConfig[item.status]?.icon" :size="12" />
-                      {{ statusConfig[item.status]?.label }}
-                    </span>
-                  </td>
-                  <td class="score-cell">
-                    <div class="score-container">
-                      <span v-if="item.score" class="score-text">Chính thức: {{ item.score }}</span>
-                      <span v-else-if="item.earlyScore" class="early-score-text">Học trước: {{ item.earlyScore }}</span>
-                      <span v-else-if="item.earlyScoreFromOldVersion" class="early-score-text text-purple-600">Bảo lưu: {{ item.earlyScoreFromOldVersion }}</span>
-                      <span v-else class="text-placeholder">--</span>
-                    </div>
-                  </td>
-                  <td class="progress-cell">
-                    <div class="table-progress-bar">
-                      <span class="progress-num">{{ item.earlyProgressPercent ?? item.progressPercent }}%</span>
-                      <div class="track">
-                        <div class="fill" :style="{ width: `${item.earlyProgressPercent ?? item.progressPercent}%` }" />
+                  
+                  <template v-if="isOldVersion">
+                    <td class="code-cell font-mono font-semibold text-placeholder">{{ item.subjectCode }}</td>
+                    <td class="name-cell font-semibold text-placeholder">{{ item.subjectName }}</td>
+                    <td class="credits-cell">{{ item.credits }} tín chỉ</td>
+                    <td class="code-cell font-mono font-bold text-link">{{ item.newSubjectCode || item.subjectCode }}</td>
+                    <td class="name-cell font-bold text-heading">{{ item.newSubjectName || item.subjectName }}</td>
+                  </template>
+                  
+                  <template v-else>
+                    <td class="code-cell font-mono font-semibold text-link">{{ item.subjectCode }}</td>
+                    <td class="name-cell font-semibold text-heading">{{ item.subjectName }}</td>
+                    <td class="credits-cell">{{ item.credits }} tín chỉ</td>
+                    <td class="status-cell">
+                      <span class="status-badge" :class="statusConfig[item.status]?.className">
+                        <component :is="statusConfig[item.status]?.icon" :size="12" />
+                        {{ statusConfig[item.status]?.label }}
+                      </span>
+                    </td>
+                    <td class="score-cell">
+                      <div class="score-container">
+                        <span v-if="item.score" class="score-text">Chính thức: {{ item.score }}</span>
+                        <span v-else-if="item.earlyScore" class="early-score-text">Học trước: {{ item.earlyScore }}</span>
+                        <span v-else-if="item.earlyScoreFromOldVersion" class="early-score-text text-purple-600">Bảo lưu: {{ item.earlyScoreFromOldVersion }}</span>
+                        <span v-else class="text-placeholder">--</span>
                       </div>
-                    </div>
-                  </td>
-                  <td class="action-cell">
-                    <router-link
-                      v-if="!isActionDisabled(item)"
-                      class="table-action-btn"
-                      to="/student/courses/CTDL101"
-                    >
-                      {{ actionLabel(item) }}
-                    </router-link>
-                    <button v-else class="table-action-btn disabled" type="button" disabled>
-                      {{ actionLabel(item) }}
-                    </button>
-                  </td>
+                    </td>
+                    <td class="progress-cell">
+                      <div class="table-progress-bar">
+                        <span class="progress-num">{{ item.earlyProgressPercent ?? item.progressPercent }}%</span>
+                        <div class="track">
+                          <div class="fill" :style="{ width: `${item.earlyProgressPercent ?? item.progressPercent}%` }" />
+                        </div>
+                      </div>
+                    </td>
+                    <td class="action-cell">
+                      <router-link
+                        v-if="!isActionDisabled(item)"
+                        class="table-action-btn"
+                        :to="'/student/courses/' + item.subjectCode"
+                      >
+                        {{ actionLabel(item) }}
+                      </router-link>
+                      <button v-else class="table-action-btn disabled" type="button" disabled>
+                        {{ actionLabel(item) }}
+                      </button>
+                    </td>
+                  </template>
                 </tr>
               </template>
             </template>
@@ -1561,5 +1583,90 @@ function canApplyEarlyResult(item) {
   .semester-block-cell {
     display: none;
   }
+}
+
+/* Styling for old version comparison view */
+.old-version-card {
+  border-style: dashed !important;
+  border-color: var(--border-input-focus) !important;
+  background: var(--surface-sidebar) !important;
+  opacity: 0.95;
+}
+
+.subject-code.old {
+  color: var(--text-placeholder);
+  background: var(--surface-input);
+}
+
+.compare-transition {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  background: var(--surface-input);
+  border: 1px solid var(--border-card);
+}
+
+.compare-flow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.flow-node {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-card);
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-card);
+  min-width: 5.5rem;
+}
+
+.flow-node.highlight {
+  border-color: var(--border-input-focus);
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.08);
+}
+
+.node-label {
+  font-size: 0.6rem;
+  color: var(--text-placeholder);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.flow-arrow {
+  flex-shrink: 0;
+  animation: pulse-arrow 2s infinite ease-in-out;
+}
+
+.compare-text {
+  font-size: 0.72rem;
+  color: var(--text-label);
+  line-height: 1.4;
+  margin: 0;
+}
+
+@keyframes pulse-arrow {
+  0%, 100% { transform: translateX(0); opacity: 0.6; }
+  50% { transform: translateX(3px); opacity: 1; }
+}
+
+.block-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.block-current-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  padding: 0.18rem 0.55rem;
+  font-size: 0.62rem;
+  font-weight: 850;
+  line-height: 1;
 }
 </style>

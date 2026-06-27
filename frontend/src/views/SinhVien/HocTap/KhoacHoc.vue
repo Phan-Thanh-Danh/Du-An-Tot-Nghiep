@@ -13,11 +13,32 @@ import {
   Users,
 } from 'lucide-vue-next'
 import LmsBadge from '@/components/LmsBadge.vue'
-import { getStudentMajor, getCoursesByMajor } from '@/services/mockDataService.js'
+
+import { studentDashboardMock } from '@/data/studentData.mock.js'
 
 const courses = computed(() => {
-  const major = getStudentMajor()
-  return getCoursesByMajor(major)
+  if (!studentDashboardMock.courses) return []
+  return studentDashboardMock.courses.map((course) => {
+    let status = 'learning'
+    const progress = course.progress || 0
+    if (progress === 100 || course.status === 'Hoàn thành' || course.status === 'completed') {
+      status = 'completed'
+    } else if (progress === 0 || course.status === 'Chưa bắt đầu' || course.status === 'Sắp tới' || course.status === 'upcoming') {
+      status = 'upcoming'
+    }
+
+    return {
+      id: course.code || course.id.toUpperCase(),
+      name: course.name,
+      instructor: course.lecturer || 'Giảng viên phụ trách',
+      credits: course.credits || 3,
+      progress: progress,
+      totalSessions: course.total || 15,
+      completedSessions: course.completed || 0,
+      status: status,
+      lastAccessed: course.status || 'Chưa bắt đầu',
+    }
+  })
 })
 
 const viewMode = ref('grid')

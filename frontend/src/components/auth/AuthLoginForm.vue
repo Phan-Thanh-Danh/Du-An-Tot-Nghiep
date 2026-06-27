@@ -7,8 +7,11 @@ import {
   Box,
   Eye,
   EyeOff,
+  GraduationCap,
   LoaderCircle,
   Lock,
+  Palette,
+  TrendingUp,
   User,
 } from 'lucide-vue-next'
 import { SHOW_DEMO_ACCOUNTS } from '@/data/authPortals'
@@ -218,8 +221,35 @@ defineExpose({
       <div class="flex-grow border-t border-[#c5c5d3]/30"></div>
     </div>
 
+    <div v-if="hasDemo && portal?.slug === 'student'" class="space-y-2 w-full">
+      <button
+        type="button"
+        class="w-full py-2.5 px-4 rounded-lg border border-dashed border-blue-200 hover:border-blue-500 text-[13px] font-semibold text-blue-800 hover:bg-blue-50/50 transition-colors flex items-center justify-center gap-2"
+        @click="quickLogin('student')"
+      >
+        <GraduationCap class="w-4 h-4 text-blue-600" aria-hidden="true" />
+        <span>Sinh viên CNTT (Nguyễn Văn An)</span>
+      </button>
+      <button
+        type="button"
+        class="w-full py-2.5 px-4 rounded-lg border border-dashed border-emerald-200 hover:border-emerald-500 text-[13px] font-semibold text-emerald-800 hover:bg-emerald-50/50 transition-colors flex items-center justify-center gap-2"
+        @click="quickLogin('student_gd')"
+      >
+        <Palette class="w-4 h-4 text-emerald-600" aria-hidden="true" />
+        <span>Sinh viên TK Đồ họa (Nguyễn Thiết Kế)</span>
+      </button>
+      <button
+        type="button"
+        class="w-full py-2.5 px-4 rounded-lg border border-dashed border-orange-200 hover:border-orange-500 text-[13px] font-semibold text-orange-800 hover:bg-orange-50/50 transition-colors flex items-center justify-center gap-2"
+        @click="quickLogin('student_mkt')"
+      >
+        <TrendingUp class="w-4 h-4 text-orange-600" aria-hidden="true" />
+        <span>Sinh viên Marketing (Trần Thị Marketing)</span>
+      </button>
+    </div>
+
     <button
-      v-if="hasDemo"
+      v-else-if="hasDemo"
       type="button"
       class="w-full py-3 px-4 rounded-lg border border-dashed border-[#00236f]/20 text-[13px] font-semibold text-[#00236f] hover:bg-[#00236f]/5 transition-colors flex items-center justify-center gap-2"
       @click="quickLogin(portal.demoUsername)"

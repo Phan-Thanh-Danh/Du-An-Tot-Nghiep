@@ -1,19 +1,84 @@
 <script setup>
+import { computed } from 'vue'
+import { mockSubjects, mockGradeSummary } from '@/data/studentData.mock.js'
 import StudentModulePage from '@/components/SinhVien/StudentModulePage.vue'
 
-const metrics = [
-  { label: 'GPA tích lũy', value: '3.42', unit: '/4.0', icon: 'TrendingUp', tone: 'blue', progress: 86, hint: 'Xếp loại Giỏi' },
-  { label: 'Môn đã đạt', value: '24', unit: 'môn', icon: 'CheckCircle2', tone: 'green', progress: 76, hint: 'Không có môn rớt trong demo' },
-  { label: 'Tín chỉ', value: '86', unit: '/120', icon: 'BadgeCheck', tone: 'teal', progress: 72, hint: 'Theo chương trình dự kiến' },
-  { label: 'Cần rà soát', value: '1', unit: 'điểm', icon: 'AlertTriangle', tone: 'amber', progress: 18, hint: 'Có thể gửi yêu cầu sửa điểm' },
-]
+const metrics = computed(() => {
+  const summary = mockGradeSummary || {}
+  const earned = summary.totalCreditsEarned || 0
+  const required = summary.totalCreditsRequired || 120
+  const classification = summary.classification || 'Khá'
+  
+  return [
+    { 
+      label: 'GPA tích lũy', 
+      value: summary.cumulativeGPA !== undefined ? String(summary.cumulativeGPA) : '3.2', 
+      unit: '/4.0', 
+      icon: 'TrendingUp', 
+      tone: 'blue', 
+      progress: Math.round(((summary.cumulativeGPA || 3.2) / 4.0) * 100), 
+      hint: `Xếp loại ${classification}` 
+    },
+    { 
+      label: 'Môn đã đạt', 
+      value: String(summary.totalSubjectsPassed || 0), 
+      unit: 'môn', 
+      icon: 'CheckCircle2', 
+      tone: 'green', 
+      progress: mockSubjects.length ? Math.round(((summary.totalSubjectsPassed || 0) / mockSubjects.length) * 100) : 0, 
+      hint: summary.totalSubjectsFailed ? `Bị rớt ${summary.totalSubjectsFailed} môn` : 'Không có môn rớt' 
+    },
+    { 
+      label: 'Tín chỉ', 
+      value: String(earned), 
+      unit: `/${required}`, 
+      icon: 'BadgeCheck', 
+      tone: 'teal', 
+      progress: Math.round((earned / required) * 100), 
+      hint: 'Theo tiến độ học tập' 
+    },
+    { 
+      label: 'Cần rà soát', 
+      value: String(summary.riskAlertCount || 0), 
+      unit: 'điểm', 
+      icon: 'AlertTriangle', 
+      tone: 'amber', 
+      progress: summary.riskAlertCount ? 100 : 0, 
+      hint: summary.riskAlertCount ? 'Có điểm cần phản hồi gấp' : 'Điểm số ổn định' 
+    },
+  ]
+})
 
-const rows = [
-  { title: 'Cấu trúc dữ liệu & Giải thuật', description: 'Điểm quá trình 8.0, giữa kỳ 8.5, cuối kỳ dự kiến.', badge: 'Đang học', tone: 'blue', icon: 'BookOpen', meta: ['CTDL101', '3 tín chỉ', 'Kỳ 2'], value: '8.2', valueHint: 'Tạm tính' },
-  { title: 'Lập trình Web', description: 'Đã công bố điểm giữa kỳ và bài tập lớn trong FE demo.', badge: 'Tốt', tone: 'green', icon: 'Code2', meta: ['LTW301', '4 tín chỉ', 'Có bài tập lớn'], value: '9.0', valueHint: 'Đã công bố' },
-  { title: 'Toán rời rạc', description: 'Chờ điểm giữa kỳ từ giảng viên phụ trách.', badge: 'Chờ điểm', tone: 'amber', icon: 'Sigma', meta: ['TRR201', '3 tín chỉ', 'Thi giữa kỳ'], value: 'cần bổ sung', valueHint: 'API grades' },
-  { title: 'Hệ quản trị CSDL', description: 'Môn học đã hoàn thành, chưa có yêu cầu sửa điểm.', badge: 'Hoàn thành', tone: 'teal', icon: 'Database', meta: ['HQTCSDL401', '3 tín chỉ'], value: '8.6', valueHint: 'Đạt' },
-]
+const rows = computed(() => {
+  return mockSubjects.map((item) => {
+    let tone = 'blue'
+    if (item.status === 'pass') tone = 'green'
+    else if (item.status === 'fail') tone = 'red'
+    else if (item.gpa === null || item.gpa === undefined) tone = 'amber'
+
+    let icon = 'BookOpen'
+    const codeUpper = item.code.toUpperCase()
+    if (codeUpper.startsWith('GD')) icon = 'Palette'
+    else if (codeUpper.startsWith('MR') || codeUpper.startsWith('MKT')) icon = 'TrendingUp'
+    else if (codeUpper.startsWith('WEB') || codeUpper.startsWith('LTW') || codeUpper.startsWith('NET') || codeUpper.startsWith('SDLC')) icon = 'Code2'
+    else if (codeUpper.startsWith('DB') || codeUpper.startsWith('HQT')) icon = 'Database'
+
+    const process = item.processScore !== null && item.processScore !== undefined ? String(item.processScore) : 'chưa có'
+    const midterm = item.midtermScore !== null && item.midtermScore !== undefined ? String(item.midtermScore) : 'chưa có'
+    const final = item.finalScore !== null && item.finalScore !== undefined ? String(item.finalScore) : 'chưa có'
+
+    return {
+      title: item.name,
+      description: `Điểm quá trình: ${process}, giữa kỳ: ${midterm}, cuối kỳ: ${final}. Ghi chú: ${item.note || 'Không có ghi chú.'}`,
+      badge: item.statusLabel || (item.status === 'pass' ? 'Đạt' : 'Chưa đạt'),
+      tone: tone,
+      icon: icon,
+      meta: [item.code, `${item.credits} tín chỉ`, item.semester || 'Kỳ này'],
+      value: item.gpa !== null && item.gpa !== undefined ? String(item.gpa) : 'chưa có',
+      valueHint: item.letterGrade || 'Đang tính',
+    }
+  })
+})
 
 const timeline = [
   { title: 'Bảng điểm ưu tiên solid', description: 'Dữ liệu điểm không dùng surface quá trong suốt để giữ readability.', time: 'Design rule', tone: 'blue' },

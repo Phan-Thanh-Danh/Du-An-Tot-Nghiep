@@ -10,30 +10,154 @@ import {
 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
-import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 
 const popupStore = usePopupStore()
 
-const subjects = ['Tất cả', 'Cấu trúc dữ liệu & Giải thuật', 'Toán rời rạc', 'Lập trình Web']
+import { studentDashboardMock } from '@/data/studentData.mock.js'
+
+const subjects = computed(() => {
+  const coursesList = studentDashboardMock.courses || []
+  return ['Tất cả', ...coursesList.map(c => c.name)]
+})
+
 const filters = {
   status: ['Tất cả', 'Present', 'Absent', 'Late', 'Excused', 'Unconfirmed']
 }
 
-const mockAttendanceData = [
-  { id: 1, date: new Date(2026, 4, 15, 7, 30), subject: 'Cấu trúc dữ liệu & Giải thuật', teacher: 'TS. Nguyễn Minh Khoa', status: 'Present', notes: 'Đúng giờ' },
-  { id: 2, date: new Date(2026, 4, 17, 13, 30), subject: 'Toán rời rạc', teacher: 'ThS. Trần Thu Hà', status: 'Absent', notes: 'Không phép' },
-  { id: 3, date: new Date(2026, 4, 20, 8, 0), subject: 'Lập trình Web', teacher: 'KS. Lê Văn Tâm', status: 'Late', notes: 'Đi trễ 15 phút' },
-  { id: 4, date: new Date(2026, 4, 22, 7, 30), subject: 'Cấu trúc dữ liệu & Giải thuật', teacher: 'TS. Nguyễn Minh Khoa', status: 'Excused', notes: 'Có đơn xin phép bệnh' },
-  { id: 5, date: new Date(2026, 4, 24, 13, 30), subject: 'Toán rời rạc', teacher: 'ThS. Trần Thu Hà', status: 'Unconfirmed', notes: 'Giảng viên chưa chốt' }
-]
+const mockAttendanceData = computed(() => {
+  const coursesList = studentDashboardMock.courses || []
+  if (coursesList.length === 0) return []
+  
+  const data = []
+  let idCounter = 1
+  
+  coursesList.forEach((course, courseIndex) => {
+    const courseName = course.name
+    const teacherName = course.lecturer || 'Giảng viên phụ trách'
+    
+    // Buổi 1: Có mặt
+    data.push({
+      id: idCounter++,
+      date: new Date(2026, 4, 10 + courseIndex * 2, 7, 30),
+      subject: courseName,
+      teacher: teacherName,
+      status: 'Present',
+      notes: 'Đúng giờ'
+    })
+    
+    // Buổi 2: Có mặt/Vắng/Phép/Muộn tùy môn học
+    let status = 'Present'
+    let notes = 'Đúng giờ'
+    if (courseIndex === 0) {
+      status = 'Late'
+      notes = 'Đi muộn 10 phút'
+    } else if (courseIndex === 1) {
+      status = 'Excused'
+      notes = 'Có đơn xin phép bệnh'
+    }
+    
+    data.push({
+      id: idCounter++,
+      date: new Date(2026, 4, 12 + courseIndex * 2, 13, 30),
+      subject: courseName,
+      teacher: teacherName,
+      status: status,
+      notes: notes
+    })
+    
+    // Buổi 3: Xử lý vắng đặc biệt để tạo dữ liệu sinh động
+    const isIT = studentDashboardMock.student?.className?.includes('SE')
+    if (isIT && course.code === 'TRR201') {
+      data.push({
+        id: idCounter++,
+        date: new Date(2026, 4, 15, 13, 30),
+        subject: courseName,
+        teacher: teacherName,
+        status: 'Absent',
+        notes: 'Không phép'
+      })
+      data.push({
+        id: idCounter++,
+        date: new Date(2026, 4, 18, 13, 30),
+        subject: courseName,
+        teacher: teacherName,
+        status: 'Absent',
+        notes: 'Không phép'
+      })
+      data.push({
+        id: idCounter++,
+        date: new Date(2026, 4, 21, 13, 30),
+        subject: courseName,
+        teacher: teacherName,
+        status: 'Unconfirmed',
+        notes: 'Chờ giảng viên chốt'
+      })
+    } else if (!isIT && courseIndex === 0) {
+      data.push({
+        id: idCounter++,
+        date: new Date(2026, 4, 15, 13, 30),
+        subject: courseName,
+        teacher: teacherName,
+        status: 'Absent',
+        notes: 'Vắng không phép'
+      })
+      data.push({
+        id: idCounter++,
+        date: new Date(2026, 4, 18, 13, 30),
+        subject: courseName,
+        teacher: teacherName,
+        status: 'Unconfirmed',
+        notes: 'Chờ giảng viên chốt'
+      })
+    }
+  })
+  
+  return data.sort((a, b) => b.date - a.date)
+})
 
-const quotas = [
-  { subject: 'Cấu trúc dữ liệu & Giải thuật', absent: 2, max: 6 },
-  { subject: 'Toán rời rạc', absent: 4, max: 5 },
-  { subject: 'Lập trình Web', absent: 0, max: 7 }
-]
+const quotas = computed(() => {
+  const coursesList = studentDashboardMock.courses || []
+  const isIT = studentDashboardMock.student?.className?.includes('SE')
+  
+  return coursesList.map((course, idx) => {
+    let absent = 0
+    let max = 6
+    
+    if (isIT) {
+      if (course.code === 'CTDL101') { absent = 2; max = 6; }
+      else if (course.code === 'TRR201') { absent = 4; max = 5; }
+      else if (course.code === 'LTW301') { absent = 0; max = 7; }
+    } else {
+      if (idx === 0) { absent = 1; max = 6; }
+      else { absent = 0; max = 6; }
+    }
+    
+    return {
+      subject: course.name,
+      absent: absent,
+      max: max
+    }
+  })
+})
 
+const metrics = computed(() => {
+  const list = mockAttendanceData.value
+  const presentCount = list.filter(item => item.status === 'Present').length
+  const absentCount = list.filter(item => item.status === 'Absent').length
+  const lateCount = list.filter(item => item.status === 'Late').length
+  const unconfirmedCount = list.filter(item => item.status === 'Unconfirmed').length
+  
+  const totalChecked = presentCount + absentCount + lateCount + unconfirmedCount
+  const rate = totalChecked ? Math.round(((presentCount + lateCount) / totalChecked) * 100) : 100
+  
+  return [
+    { label: 'Tỷ lệ có mặt', value: String(rate), unit: '%', icon: UserCheck, tone: 'success', hint: rate >= 80 ? 'Trên mức an toàn' : 'Nguy cơ cấm thi' },
+    { label: 'Tổng vắng', value: String(absentCount), unit: 'buổi', icon: UserX, tone: 'danger', hint: 'Cần lưu ý quỹ vắng' },
+    { label: 'Đi muộn', value: String(lateCount), unit: 'lần', icon: Clock, tone: 'warning', hint: 'Cần chú ý đi học đúng giờ' },
+    { label: 'Chưa xác nhận', value: String(unconfirmedCount), unit: 'buổi', icon: AlertCircle, tone: 'info', hint: 'Đang chờ giảng viên cập nhật' },
+  ]
+})
 const statusVariant = {
   Present: 'success',
   Absent: 'danger',
@@ -50,13 +174,6 @@ const statusConfig = {
   Unconfirmed: { label: 'Chưa xác nhận', icon: Info }
 }
 
-const metrics = [
-  { label: 'Tỷ lệ có mặt', value: '85', unit: '%', icon: UserCheck, tone: 'success', hint: 'Trên mức an toàn' },
-  { label: 'Tổng vắng', value: '2', unit: 'buổi', icon: UserX, tone: 'danger', hint: '1 không phép, 1 có phép' },
-  { label: 'Đi muộn', value: '1', unit: 'lần', icon: Clock, tone: 'warning', hint: 'Cần chú ý đi học đúng giờ' },
-  { label: 'Chưa xác nhận', value: '1', unit: 'buổi', icon: AlertCircle, tone: 'info', hint: 'Đang chờ giảng viên cập nhật' },
-]
-
 const selectedSubject = ref('Tất cả')
 const selectedStatus = ref('Tất cả')
 const drawerOpen = ref(false)
@@ -71,7 +188,7 @@ const excuseForm = ref({
 })
 
 const filteredData = computed(() => {
-  return mockAttendanceData.filter(item => {
+  return mockAttendanceData.value.filter(item => {
     const matchSubject = selectedSubject.value === 'Tất cả' || item.subject === selectedSubject.value
     const matchStatus = selectedStatus.value === 'Tất cả' || item.status === selectedStatus.value
     return matchSubject && matchStatus
@@ -79,7 +196,7 @@ const filteredData = computed(() => {
 })
 
 const getAiRisk = computed(() => {
-  const highRisk = quotas.find(q => (q.absent / q.max) >= 0.8)
+  const highRisk = quotas.value.find(q => (q.absent / q.max) >= 0.8)
   if (highRisk) {
     return {
       risk: 'high',
@@ -87,7 +204,7 @@ const getAiRisk = computed(() => {
       message: `Môn ${highRisk.subject} đã vắng ${highRisk.absent}/${highRisk.max} buổi. Nếu vắng thêm ${highRisk.max - highRisk.absent} buổi nữa sẽ bị cấm thi. Hãy chú ý đi học đầy đủ!`
     }
   }
-  const mediumRisk = quotas.find(q => (q.absent / q.max) >= 0.6)
+  const mediumRisk = quotas.value.find(q => (q.absent / q.max) >= 0.6)
   if (mediumRisk) {
     return {
       risk: 'medium',

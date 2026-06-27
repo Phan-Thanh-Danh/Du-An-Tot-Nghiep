@@ -1,6 +1,8 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { authApi } from '@/services/apiClient'
+import { syncActiveStudentData } from '@/data/studentData.mock.js'
+
 
 const ACCESS_TOKEN_KEY = 'lms_access_token'
 const AUTH_USER_KEY = 'lms_auth_user'
@@ -95,6 +97,13 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = ''
 
     clearStoredSession()
+
+    // Đồng bộ lại dữ liệu sinh viên mock về mặc định
+    try {
+      syncActiveStudentData()
+    } catch (e) {
+      console.error('Failed to sync student mock data on logout:', e)
+    }
   }
 
   async function login(credentials, options = {}) {
@@ -103,52 +112,23 @@ export const useAuthStore = defineStore('auth', () => {
 
     // ── MOCK LOGIN CHO QUÁ TRÌNH PHÁT TRIỂN ──
     const email = credentials.email.trim().toLowerCase()
-    // Specific demo accounts with full profile
-    const specificAccounts = {
-      'sv_it@demo': {
-        userId: 999, email: 'sv_it@demo', fullName: 'Nguyễn Văn An',
-        role: 'Student', campusId: 1, status: 'Active',
-        major: 'IT', majorName: 'Công nghệ thông tin', maLop: 1, maChuyenNganh: 1,
-      },
-      'sv_kt@demo': {
-        userId: 1000, email: 'sv_kt@demo', fullName: 'Trần Thị Bình',
-        role: 'Student', campusId: 1, status: 'Active',
-        major: 'KE_TOAN', majorName: 'Kế toán', maLop: 2, maChuyenNganh: 2,
-      },
-      'sv_qtkd@demo': {
-        userId: 1001, email: 'sv_qtkd@demo', fullName: 'Lê Văn Cường',
-        role: 'Student', campusId: 1, status: 'Active',
-        major: 'QTKD', majorName: 'Quản trị kinh doanh', maLop: 3, maChuyenNganh: 3,
-      },
-      'gv_kythuat@demo': {
-        userId: 888, email: 'gv_kythuat@demo', fullName: 'TS. Nguyễn Minh Khoa',
-        role: 'Teacher', campusId: 1, status: 'Active',
-      },
-      'admin@demo': {
-        userId: 1, email: 'admin@demo', fullName: 'Super Admin',
-        role: 'SuperAdmin', campusId: null, status: 'Active',
-      },
-    }
-
-    if (specificAccounts[email]) {
-      const mockResponse = {
-        accessToken: `mock_token_${email}_${Date.now()}`,
-        user: specificAccounts[email],
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        requiresPasswordChange: false,
-      }
-      persistSession(mockResponse, Boolean(options.remember))
-      loading.value = false
-      return mockResponse
-    }
-
-    // Generic mock login for quick dev access
-    if (email === 'student' || email === 'teacher' || email === 'staff' || email === 'bgh' || email === 'admin' || email === 'parent' || email === 'content') {
+    
+    if (email === 'student' || email === 'student_gd' || email === 'student_mkt' || email === 'teacher' || email === 'staff' || email === 'bgh' || email === 'admin' || email === 'parent') {
       let mockUser = {}
       
       if (email === 'student') {
         mockUser = {
           userId: 999, email: 'student@mock.local', fullName: 'Sinh Viên Demo',
+          role: 'Student', campusId: 1, status: 'Active'
+        }
+      } else if (email === 'student_gd') {
+        mockUser = {
+          userId: 991, email: 'student_gd@mock.local', fullName: 'Nguyễn Thiết Kế',
+          role: 'Student', campusId: 1, status: 'Active'
+        }
+      } else if (email === 'student_mkt') {
+        mockUser = {
+          userId: 992, email: 'student_mkt@mock.local', fullName: 'Trần Thị Marketing',
           role: 'Student', campusId: 1, status: 'Active'
         }
       } else if (email === 'teacher') {
@@ -176,11 +156,6 @@ export const useAuthStore = defineStore('auth', () => {
           userId: 555, email: 'parent@mock.local', fullName: 'Phụ huynh Demo',
           role: 'Parent', campusId: 1, status: 'Active'
         }
-      } else if (email === 'content') {
-        mockUser = {
-          userId: 444, email: 'content@mock.local', fullName: 'Hội đồng Nội dung Demo',
-          role: 'HoiDongQuanLyNoiDung', campusId: 1, status: 'Active'
-        }
       }
 
       const mockResponse = {
@@ -191,6 +166,14 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       persistSession(mockResponse, Boolean(options.remember))
+      
+      // Đồng bộ dữ liệu sinh viên mock
+      try {
+        syncActiveStudentData()
+      } catch (e) {
+        console.error('Failed to sync student mock data:', e)
+      }
+
       loading.value = false
       return mockResponse
     }
@@ -198,6 +181,14 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authApi.login(credentials)
       persistSession(response, Boolean(options.remember))
+      
+      // Đồng bộ dữ liệu sinh viên mock
+      try {
+        syncActiveStudentData()
+      } catch (e) {
+        console.error('Failed to sync student mock data:', e)
+      }
+
       return response
     } catch (err) {
       clearSession()

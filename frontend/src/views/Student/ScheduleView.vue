@@ -4,7 +4,7 @@ import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 import {
   CalendarDays, Clock, MapPin, User, Video, X,
   ChevronLeft, ChevronRight, ExternalLink, Bell,
-  AlertTriangle, RefreshCw, CheckCircle2, Filter
+  AlertTriangle, RefreshCw
 } from 'lucide-vue-next'
 
 const viewMode = ref('week')
@@ -15,15 +15,89 @@ const drawerOpen = ref(false)
 useBodyScrollLock(drawerOpen)
 const searchSubject = ref('')
 
-const mockSessions = [
-  { id: 1, subject: 'Cấu trúc dữ liệu & Giải thuật', code: 'CS301', teacher: 'TS. Nguyễn Minh Khoa', room: 'P.302', date: new Date(2026,4,26,7,30), endDate: new Date(2026,4,26,9,30), status: 'published', type: 'offline', color: 'blue' },
-  { id: 2, subject: 'Toán rời rạc', code: 'MA201', teacher: 'ThS. Trần Thu Hà', room: 'P.105', date: new Date(2026,4,26,13,30), endDate: new Date(2026,4,26,15,30), status: 'published', type: 'offline', color: 'teal' },
-  { id: 3, subject: 'Lập trình Web', code: 'CS402', teacher: 'KS. Lê Văn Tâm', room: 'Online', date: new Date(2026,4,27,8,0), endDate: new Date(2026,4,27,11,0), status: 'online', type: 'online', meetLink: 'https://meet.google.com/abc-defg-hij', color: 'violet' },
-  { id: 4, subject: 'Kiến trúc máy tính', code: 'CS205', teacher: 'PGS. Phạm Thị Lan', room: 'P.201', date: new Date(2026,4,27,13,0), endDate: new Date(2026,4,27,15,0), status: 'cancelled', type: 'offline', cancelReason: 'Giảng viên bận công tác', color: 'red' },
-  { id: 5, subject: 'Mạng máy tính', code: 'CS301', teacher: 'TS. Hoàng Đức Minh', room: 'P.401', date: new Date(2026,4,28,7,30), endDate: new Date(2026,4,28,9,30), status: 'makeup', type: 'offline', color: 'amber' },
-  { id: 6, subject: 'Cấu trúc dữ liệu & Giải thuật', code: 'CS301', teacher: 'TS. Nguyễn Minh Khoa', room: 'P.302', date: new Date(2026,4,29,7,30), endDate: new Date(2026,4,29,9,30), status: 'published', type: 'offline', color: 'blue' },
-  { id: 7, subject: 'Lập trình Web', code: 'CS402', teacher: 'KS. Lê Văn Tâm', room: 'Online', date: new Date(2026,4,30,8,0), endDate: new Date(2026,4,30,11,0), status: 'online', type: 'online', meetLink: 'https://zoom.us/j/12345678', color: 'violet' },
-]
+import { studentDashboardMock } from '@/data/studentData.mock.js'
+
+const mockSessions = computed(() => {
+  const coursesList = studentDashboardMock.courses || []
+  if (coursesList.length === 0) return []
+  
+  const sessions = []
+  let idCounter = 1
+  
+  const todayVal = new Date()
+  const dayOfWeek = todayVal.getDay()
+  const monday = new Date(todayVal)
+  monday.setDate(todayVal.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
+  
+  const isIT = studentDashboardMock.student?.className?.includes('SE')
+  
+  coursesList.forEach((course, index) => {
+    const teacherName = course.lecturer || 'Giảng viên phụ trách'
+    const color = index === 0 ? 'blue' : index === 1 ? 'teal' : index === 2 ? 'violet' : 'amber'
+    
+    // Buổi 1
+    const dayOffset1 = index * 2
+    if (dayOffset1 < 7) {
+      const date1 = new Date(monday)
+      date1.setDate(monday.getDate() + dayOffset1)
+      date1.setHours(7, 30, 0, 0)
+      const endDate1 = new Date(date1)
+      endDate1.setHours(9, 30)
+      
+      sessions.push({
+        id: idCounter++,
+        subject: course.name,
+        code: course.code || course.id.toUpperCase(),
+        teacher: teacherName,
+        room: `P.${302 + index * 5}`,
+        date: date1,
+        endDate: endDate1,
+        status: 'published',
+        type: 'offline',
+        color: color
+      })
+    }
+    
+    // Buổi 2
+    const dayOffset2 = index * 2 + 3
+    if (dayOffset2 < 7) {
+      const date2 = new Date(monday)
+      date2.setDate(monday.getDate() + dayOffset2)
+      date2.setHours(13, 30, 0, 0)
+      const endDate2 = new Date(date2)
+      endDate2.setHours(15, 30)
+      
+      let status = 'published'
+      let type = 'offline'
+      let meetLink = ''
+      if (index === 1) {
+        status = 'online'
+        type = 'online'
+        meetLink = 'https://meet.google.com/abc-defg-hij'
+      } else if (index === 2 && isIT) {
+        status = 'cancelled'
+        type = 'offline'
+      }
+      
+      sessions.push({
+        id: idCounter++,
+        subject: course.name,
+        code: course.code || course.id.toUpperCase(),
+        teacher: teacherName,
+        room: type === 'online' ? 'Online' : `P.${305 + index * 5}`,
+        date: date2,
+        endDate: endDate2,
+        status: status,
+        type: type,
+        meetLink: meetLink,
+        cancelReason: status === 'cancelled' ? 'Giảng viên bận công tác' : undefined,
+        color: color
+      })
+    }
+  })
+  
+  return sessions
+})
 
 const statusConfig = {
   published: { label: 'Published', cls: 'badge-published' },
@@ -62,11 +136,11 @@ function openDrawer(ev){
 }
 function closeDrawer(){ drawerOpen.value = false }
 
-const uniqueSubjects = computed(() => [...new Set(mockSessions.map(s=>s.subject))])
+const uniqueSubjects = computed(() => [...new Set(mockSessions.value.map(s=>s.subject))])
 
 const filteredSessions = computed(() => {
-  if(!searchSubject.value) return mockSessions
-  return mockSessions.filter(s=>s.subject===searchSubject.value)
+  if(!searchSubject.value) return mockSessions.value
+  return mockSessions.value.filter(s=>s.subject===searchSubject.value)
 })
 
 const weekDays = computed(() => {
