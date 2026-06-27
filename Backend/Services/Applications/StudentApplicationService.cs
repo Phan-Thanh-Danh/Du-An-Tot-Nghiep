@@ -548,6 +548,8 @@ public class StudentApplicationService : IStudentApplicationService
             TieuDe = application.TieuDe,
             TrangThai = application.TrangThai,
             TenTrangThai = GetStatusLabel(application.TrangThai),
+            TrangThaiXuLyNghiepVu = application.TrangThaiXuLyNghiepVu,
+            TenTrangThaiXuLyNghiepVu = GetProcessingStatusLabel(application.TrangThaiXuLyNghiepVu),
             PhienBanMau = application.MauDon?.PhienBan,
             NgayTao = application.NgayTao,
             NgayCapNhat = application.NgayCapNhat,
@@ -571,6 +573,8 @@ public class StudentApplicationService : IStudentApplicationService
             TieuDe = item.TieuDe,
             TrangThai = item.TrangThai,
             TenTrangThai = item.TenTrangThai,
+            TrangThaiXuLyNghiepVu = item.TrangThaiXuLyNghiepVu,
+            TenTrangThaiXuLyNghiepVu = item.TenTrangThaiXuLyNghiepVu,
             PhienBanMau = item.PhienBanMau,
             NgayTao = item.NgayTao,
             NgayCapNhat = item.NgayCapNhat,
@@ -683,6 +687,20 @@ public class StudentApplicationService : IStudentApplicationService
         }
 
         return canonical;
+    }
+
+    private static string GetProcessingStatusLabel(string status)
+    {
+        return status switch
+        {
+            ApplicationProcessingStatuses.NotProcessed => "Chưa xử lý",
+            ApplicationProcessingStatuses.Pending => "Chờ xử lý",
+            ApplicationProcessingStatuses.Recorded => "Đã ghi nhận",
+            ApplicationProcessingStatuses.Succeeded => "Xử lý thành công",
+            ApplicationProcessingStatuses.Failed => "Xử lý thất bại",
+            ApplicationProcessingStatuses.ManualRequired => "Cần xử lý thủ công",
+            _ => status
+        };
     }
 
     private static string NormalizeTitleOrGenerate(string? title, string type)

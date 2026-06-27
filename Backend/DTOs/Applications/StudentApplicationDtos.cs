@@ -10,6 +10,8 @@ public class StudentApplicationListItemDto
     public string TieuDe { get; set; } = string.Empty;
     public string TrangThai { get; set; } = string.Empty;
     public string TenTrangThai { get; set; } = string.Empty;
+    public string TrangThaiXuLyNghiepVu { get; set; } = string.Empty;
+    public string TenTrangThaiXuLyNghiepVu { get; set; } = string.Empty;
     public int? PhienBanMau { get; set; }
     public DateTime NgayTao { get; set; }
     public DateTime NgayCapNhat { get; set; }

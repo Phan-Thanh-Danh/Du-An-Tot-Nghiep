@@ -16,6 +16,8 @@ public class AdminApplicationQueryParameters
     public string? Type { get; set; }
     public string? TrangThai { get; set; }
     public string? Status { get; set; }
+    public string? TrangThaiXuLyNghiepVu { get; set; }
+    public string? ProcessingStatus { get; set; }
     public string? AssignmentState { get; set; }
     public string? SlaStatus { get; set; }
     public DateTime? TuNgayNop { get; set; }
@@ -80,6 +82,8 @@ public class AdminApplicationQueueItemDto
     public string TieuDe { get; set; } = string.Empty;
     public string TrangThai { get; set; } = string.Empty;
     public string TenTrangThai { get; set; } = string.Empty;
+    public string TrangThaiXuLyNghiepVu { get; set; } = string.Empty;
+    public string TenTrangThaiXuLyNghiepVu { get; set; } = string.Empty;
     public AdminApplicationPersonDto HocSinh { get; set; } = new();
     public AdminApplicationCampusDto DonVi { get; set; } = new();
     public AdminApplicationPersonDto? NguoiDuyetHienTai { get; set; }
@@ -96,7 +100,6 @@ public class AdminApplicationDetailDto : AdminApplicationQueueItemDto
 {
     public int? MaMauDon { get; set; }
     public int? PhienBanMau { get; set; }
-    public string TrangThaiXuLyNghiepVu { get; set; } = string.Empty;
     public JsonElement DuLieuBieuMau { get; set; }
     public bool DuLieuBieuMauHopLe { get; set; }
     public string? NoiDungYeuCauBoSung { get; set; }
@@ -135,6 +138,8 @@ public class AdminApplicationAllowedActionsDto
     public bool CanRequestSupplement { get; set; }
     public bool CanApprove { get; set; }
     public bool CanReject { get; set; }
+    public bool CanProcessAutomatically { get; set; }
+    public bool CanRecordProcessingResult { get; set; }
     public bool CanDownloadEvidence { get; set; }
 }
 
@@ -196,6 +201,18 @@ public class AdminApplicationTimelineMetadataDto
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? ProcessorId { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Handler { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ProcessingStatusFrom { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ProcessingStatusTo { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Outcome { get; set; }
 }
 
 public class AdminApplicationQueueSummaryDto

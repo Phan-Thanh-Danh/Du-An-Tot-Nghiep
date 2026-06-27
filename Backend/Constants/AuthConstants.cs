@@ -123,6 +123,7 @@ public static class AuthPolicies
     public const string ApplicationAssignmentManage = "ApplicationAssignmentManage";
     public const string ApplicationReviewOperate = "ApplicationReviewOperate";
     public const string ApplicationSensitiveDecision = "ApplicationSensitiveDecision";
+    public const string ApplicationProcessingOperate = "ApplicationProcessingOperate";
     public const string ApplicationSystemAdmin = "ApplicationSystemAdmin";
 }
 

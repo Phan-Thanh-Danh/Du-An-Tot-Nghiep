@@ -329,6 +329,7 @@ public class P0_DT4_AdminApplicationQueueAssignmentTests : ApiTestBase
             db,
             scopeService,
             new ApplicationDecisionPermissionEvaluator(),
+            new ApplicationProcessingPermissionEvaluator(),
             Options.Create(new ApplicationQueueOptions { SlaWarningBeforeHours = 24 }));
 
         var summary = await service.GetQueueSummaryAsync(new AdminApplicationQueryParameters

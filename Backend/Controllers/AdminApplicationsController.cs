@@ -16,17 +16,20 @@ public class AdminApplicationsController : ControllerBase
     private readonly IApplicationAssignmentService _assignmentService;
     private readonly IApplicationAdminEvidenceService _evidenceService;
     private readonly IApplicationDecisionService _decisionService;
+    private readonly IApplicationPostApprovalProcessingService _processingService;
 
     public AdminApplicationsController(
         IApplicationAdminQueueService queueService,
         IApplicationAssignmentService assignmentService,
         IApplicationAdminEvidenceService evidenceService,
-        IApplicationDecisionService decisionService)
+        IApplicationDecisionService decisionService,
+        IApplicationPostApprovalProcessingService processingService)
     {
         _queueService = queueService;
         _assignmentService = assignmentService;
         _evidenceService = evidenceService;
         _decisionService = decisionService;
+        _processingService = processingService;
     }
 
     [HttpGet]
@@ -119,6 +122,28 @@ public class AdminApplicationsController : ControllerBase
     {
         var result = await _decisionService.RejectAsync(applicationId, request, cancellationToken);
         return Ok(ApiResponseDto<AdminApplicationDetailDto>.Ok(result, "Từ chối đơn từ thành công."));
+    }
+
+    [HttpPost("{applicationId:int}/process")]
+    [Authorize(Policy = AuthPolicies.ApplicationProcessingOperate)]
+    public async Task<ActionResult<ApiResponseDto<AdminApplicationDetailDto>>> Process(
+        int applicationId,
+        AdminApplicationProcessRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _processingService.ProcessAsync(applicationId, request, cancellationToken);
+        return Ok(ApiResponseDto<AdminApplicationDetailDto>.Ok(result, "Xử lý nghiệp vụ sau duyệt thành công."));
+    }
+
+    [HttpPost("{applicationId:int}/record-processing-result")]
+    [Authorize(Policy = AuthPolicies.ApplicationProcessingOperate)]
+    public async Task<ActionResult<ApiResponseDto<AdminApplicationDetailDto>>> RecordProcessingResult(
+        int applicationId,
+        AdminApplicationRecordProcessingResultRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _processingService.RecordProcessingResultAsync(applicationId, request, cancellationToken);
+        return Ok(ApiResponseDto<AdminApplicationDetailDto>.Ok(result, "Ghi nhận kết quả xử lý nghiệp vụ thành công."));
     }
 
     [HttpGet("{applicationId:int}/attachments/{attachmentId:int}/download")]

@@ -119,6 +119,11 @@ builder.Services.AddScoped<IApplicationAdminEvidenceService, ApplicationAdminEvi
 builder.Services.AddScoped<IApplicationDecisionPermissionEvaluator, ApplicationDecisionPermissionEvaluator>();
 builder.Services.AddScoped<IApplicationApprovalPreconditionValidator, ApplicationApprovalPreconditionValidator>();
 builder.Services.AddScoped<IApplicationDecisionService, ApplicationDecisionService>();
+builder.Services.AddScoped<IApplicationProcessingStateMachine, ApplicationProcessingStateMachine>();
+builder.Services.AddScoped<IApplicationProcessingPermissionEvaluator, ApplicationProcessingPermissionEvaluator>();
+builder.Services.AddScoped<IApplicationProcessingResultSanitizer, ApplicationProcessingResultSanitizer>();
+builder.Services.AddScoped<IApplicationPostApprovalHandler, ConfirmationApplicationPostApprovalHandler>();
+builder.Services.AddScoped<IApplicationPostApprovalProcessingService, ApplicationPostApprovalProcessingService>();
 builder.Services.AddOptions<ApplicationQueueOptions>()
     .Bind(builder.Configuration.GetSection(ApplicationQueueOptions.SectionName))
     .Validate(options => options.SlaWarningBeforeHours is >= 1 and <= 168, "ApplicationQueue:SlaWarningBeforeHours must be from 1 to 168.")
@@ -319,6 +324,10 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(
         AuthPolicies.ApplicationSensitiveDecision,
         policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "Principal")
+    );
+    options.AddPolicy(
+        AuthPolicies.ApplicationProcessingOperate,
+        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin", "AcademicStaff")
     );
     options.AddPolicy(
         AuthPolicies.ApplicationSystemAdmin,
