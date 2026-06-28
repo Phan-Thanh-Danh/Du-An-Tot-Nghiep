@@ -355,6 +355,21 @@ Ghi chú: Module này chỉ quản lý cấu hình học phí chương trình đ
 
 Ghi chú: PayOS là luồng thanh toán chính cho học sinh: PayOS tạo QR/link, nhận kết quả ngân hàng và gọi webhook để backend cập nhật `HoaDon`/`GiaoDich`. FE học sinh phải hiển thị QR từ `qrPayload`/payment information PayOS trả về hoặc mở `checkoutUrl`; không dùng QR VietQR thủ công cho provider `payos` vì PayOS có thể không match giao dịch và không gửi webhook. Polling là cơ chế dự phòng khi webhook chưa gọi được về môi trường local. VietQR thủ công chỉ dùng khi cần tạo QR chuyển khoản không có tự động xác nhận, giao dịch giữ trạng thái `cho_thanh_toan` để kế toán đối soát.
 
+## Reward / Discipline APIs
+
+### Schema/Options - Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/reward-discipline/schema/options` | JWT | Trả danh mục trạng thái/loại dùng cho nền tảng khen thưởng - kỷ luật RD1: đợt khen thưởng Top 100 học kỳ, mẫu bằng khen, trạng thái khen thưởng, mức độ/hình thức/trạng thái kỷ luật. Endpoint chỉ đọc, chưa tạo workflow xét duyệt hoặc xử lý nghiệp vụ. |
+
+### Dự kiến/cần bổ sung
+
+- CRUD đợt khen thưởng.
+- CRUD mẫu bằng khen.
+- Xét Top 100 học kỳ và sinh PDF bằng khen.
+- CRUD hồ sơ kỷ luật, phê duyệt/gỡ hiệu lực.
+
 ## Organizations APIs
 
 ### Đã có
