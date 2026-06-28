@@ -122,4 +122,70 @@ public class AdminRewardCampaignsController : ControllerBase
             new PagedResultDto<ExcludedRewardCandidateDto> { Items = excluded.ToList(), TotalItems = totalCount, PageIndex = query.PageIndex, PageSize = query.PageSize },
             "Lấy danh sách ứng viên bị loại thành công."));
     }
+
+    [HttpGet("{id:int}/approval-summary")]
+    public async Task<ActionResult<ApiResponseDto<RewardApprovalSummaryDto>>> GetApprovalSummary(int id)
+    {
+        var result = await _rewardEvaluationService.GetApprovalSummaryAsync(id);
+        return Ok(ApiResponseDto<RewardApprovalSummaryDto>.Ok(
+            result,
+            "Lấy tổng quan duyệt khen thưởng thành công."));
+    }
+
+    [HttpPatch("{id:int}/candidates/{candidateId:int}")]
+    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    public async Task<ActionResult<ApiResponseDto<RewardCandidateDto>>> AdjustCandidate(
+        int id,
+        int candidateId,
+        AdjustCandidateRequest request)
+    {
+        var result = await _rewardEvaluationService.AdjustCandidateAsync(id, candidateId, request);
+        return Ok(ApiResponseDto<RewardCandidateDto>.Ok(
+            result,
+            "Điều chỉnh ứng viên khen thưởng thành công."));
+    }
+
+    [HttpPost("{id:int}/candidates/manual-add")]
+    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    public async Task<ActionResult<ApiResponseDto<RewardCandidateDto>>> ManualAddCandidate(
+        int id,
+        ManualAddCandidateRequest request)
+    {
+        var result = await _rewardEvaluationService.ManualAddCandidateAsync(id, request);
+        return Ok(ApiResponseDto<RewardCandidateDto>.Ok(
+            result,
+            "Thêm ứng viên thủ công thành công."));
+    }
+
+    [HttpPost("{id:int}/candidates/reorder")]
+    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    public async Task<ActionResult<ApiResponseDto<RewardApprovalSummaryDto>>> ReorderCandidates(
+        int id,
+        ReorderCandidatesRequest request)
+    {
+        var result = await _rewardEvaluationService.ReorderCandidatesAsync(id, request);
+        return Ok(ApiResponseDto<RewardApprovalSummaryDto>.Ok(
+            result,
+            "Sắp xếp lại ứng viên khen thưởng thành công."));
+    }
+
+    [HttpPost("{id:int}/submit-for-approval")]
+    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    public async Task<ActionResult<ApiResponseDto<RewardApprovalSummaryDto>>> SubmitForApproval(int id)
+    {
+        var result = await _rewardEvaluationService.SubmitForApprovalAsync(id);
+        return Ok(ApiResponseDto<RewardApprovalSummaryDto>.Ok(
+            result,
+            "Trình duyệt đợt khen thưởng thành công."));
+    }
+
+    [HttpPost("{id:int}/approve")]
+    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    public async Task<ActionResult<ApiResponseDto<ApproveRewardCampaignResultDto>>> Approve(int id)
+    {
+        var result = await _rewardEvaluationService.ApproveCampaignAsync(id);
+        return Ok(ApiResponseDto<ApproveRewardCampaignResultDto>.Ok(
+            result,
+            "Duyệt đợt khen thưởng và tạo quyết định khen thưởng thành công."));
+    }
 }

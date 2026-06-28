@@ -372,6 +372,12 @@ Ghi chú: PayOS là luồng thanh toán chính cho học sinh: PayOS tạo QR/li
 | GET | `/api/admin/reward-campaigns/{id}` | SuperAdmin/Admin/CampusAdmin | Xem chi tiết đợt khen thưởng trong scope, gồm học kỳ, đơn vị, mẫu bằng khen, tiêu chí JSON, người tạo/duyệt và mốc thời gian. |
 | PUT | `/api/admin/reward-campaigns/{id}` | SuperAdmin | Cập nhật đợt khen thưởng khi trạng thái còn `nhap`; cho sửa học kỳ/cơ sở/tên đợt/số lượng/tiêu chí JSON/mẫu bằng khen/ghi chú nếu không vi phạm duplicate active. |
 | PATCH | `/api/admin/reward-campaigns/{id}/cancel` | SuperAdmin | Hủy mềm đợt khen thưởng bằng `trangThai = da_huy`, bắt buộc lý do. Không cho hủy đợt đã `da_cong_bo`; không hard delete. |
+| GET | `/api/admin/reward-campaigns/{id}/approval-summary` | SuperAdmin/Admin/CampusAdmin | Tổng quan duyệt Top 100: tổng ứng viên, số được chọn, bị loại, dự phòng, đã tạo khen thưởng, cảnh báo vượt số lượng hoặc đã tạo quyết định. SuperAdmin xem toàn bộ; Admin/CampusAdmin theo scope như danh sách đợt. |
+| PATCH | `/api/admin/reward-campaigns/{id}/candidates/{candidateId}` | SuperAdmin | Điều chỉnh ứng viên trước khi duyệt: `trangThai`, `xepHang`, `diemXet`, `ghiChuDieuChinh`, `lyDoDieuChinh`. Chỉ cho đợt `dang_xet`/`cho_duyet`; không cho sau `da_duyet`, `da_cong_bo`, `da_huy`. |
+| POST | `/api/admin/reward-campaigns/{id}/candidates/manual-add` | SuperAdmin | Thêm thủ công học sinh/sinh viên đang hoạt động vào danh sách với trạng thái `them_thu_cong`; validate cùng cơ sở, chưa có ứng viên/quyết định khen thưởng trong đợt và không có kỷ luật đang hiệu lực. |
+| POST | `/api/admin/reward-campaigns/{id}/candidates/reorder` | SuperAdmin | Sắp xếp lại thứ hạng các ứng viên được chọn (`duoc_de_xuat`, `them_thu_cong`), không cho rank trùng hoặc rank <= 0. |
+| POST | `/api/admin/reward-campaigns/{id}/submit-for-approval` | SuperAdmin | Chuyển đợt `dang_xet -> cho_duyet` sau khi validate có ít nhất một ứng viên được chọn, không vượt `soLuongToiDa`, không trùng học sinh/sinh viên. Không tạo `KhenThuong`. |
+| POST | `/api/admin/reward-campaigns/{id}/approve` | SuperAdmin | Duyệt danh sách Top 100 từ `dang_xet` hoặc `cho_duyet`, tạo record `KhenThuong` chính thức cho ứng viên `duoc_de_xuat`/`them_thu_cong`, đánh dấu ứng viên `da_duyet_kt`, set đợt `da_duyet`. Idempotency bảo vệ bằng kiểm tra đã có `KhenThuong` trong đợt; gọi lại trả `409`. RD4 chưa sinh PDF nên `urlPdfBangKhen = null`; legacy `UrlChungTu` được lưu chuỗi rỗng để tương thích constraint NOT NULL cũ. |
 
 Ví dụ tạo đợt Top 100:
 
@@ -390,7 +396,7 @@ Ví dụ tạo đợt Top 100:
 }
 ```
 
-RD2 chỉ quản lý metadata đợt Top 100. Chưa xét danh sách sinh viên, chưa sinh PDF bằng khen, chưa tạo record `KhenThuong` và chưa xử lý workflow kỷ luật.
+RD4 đã có luồng duyệt/điều chỉnh Top 100 và tạo record `KhenThuong` chính thức. RD4 chưa sinh PDF bằng khen, chưa công bố, chưa gửi thông báo, chưa xử lý kỷ luật.
 
 ### Dự kiến/cần bổ sung
 

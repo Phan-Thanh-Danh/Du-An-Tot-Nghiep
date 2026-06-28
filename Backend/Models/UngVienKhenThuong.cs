@@ -21,6 +21,9 @@ public class UngVienKhenThuong
     public string? HoTenSnapshot { get; set; }
     public string? MssvSnapshot { get; set; }
     public string? TenHocKySnapshot { get; set; }
+    public string? GhiChuDieuChinh { get; set; }
+    public int? NguoiDieuChinh { get; set; }
+    public DateTime? NgayDieuChinh { get; set; }
     
     public int? NguoiTao { get; set; }
     public DateTime NgayTao { get; set; }
@@ -31,4 +34,5 @@ public class UngVienKhenThuong
     public DonVi? DonVi { get; set; }
     public HocKy? HocKy { get; set; }
     public NguoiDung? NguoiTaoNavigation { get; set; }
+    public NguoiDung? NguoiDieuChinhNavigation { get; set; }
 }

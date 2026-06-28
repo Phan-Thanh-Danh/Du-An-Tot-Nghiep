@@ -34,6 +34,10 @@ public class RewardCandidateDto
     public decimal? GpaHocKy { get; set; }
     
     public string TrangThai { get; set; } = string.Empty;
+    public string? LyDoLoai { get; set; }
+    public string? GhiChuDieuChinh { get; set; }
+    public int? NguoiDieuChinh { get; set; }
+    public DateTime? NgayDieuChinh { get; set; }
     public DateTime NgayTao { get; set; }
 }
 
@@ -61,4 +65,60 @@ public class ExcludedRewardCandidateQueryParameters
     public string? Keyword { get; set; }
     public int PageIndex { get; set; } = 1;
     public int PageSize { get; set; } = 20;
+}
+
+public class RewardApprovalSummaryDto
+{
+    public int MaDotKhenThuong { get; set; }
+    public string TenDot { get; set; } = string.Empty;
+    public int MaHocKy { get; set; }
+    public string? TenHocKy { get; set; }
+    public int? MaDonVi { get; set; }
+    public string? TenDonVi { get; set; }
+    public string TrangThai { get; set; } = string.Empty;
+    public int SoLuongToiDa { get; set; }
+    public int TotalCandidates { get; set; }
+    public int SelectedCount { get; set; }
+    public int ExcludedCount { get; set; }
+    public int ReserveCount { get; set; }
+    public int ApprovedCandidateCount { get; set; }
+    public int RewardsCreatedCount { get; set; }
+    public bool CanAdjust { get; set; }
+    public bool CanApprove { get; set; }
+    public IReadOnlyList<string> Warnings { get; set; } = [];
+}
+
+public class AdjustCandidateRequest
+{
+    public string? TrangThai { get; set; }
+    public int? XepHang { get; set; }
+    public decimal? DiemXet { get; set; }
+    public string? GhiChuDieuChinh { get; set; }
+    public string? LyDoDieuChinh { get; set; }
+}
+
+public class ManualAddCandidateRequest
+{
+    public int MaHocSinh { get; set; }
+    public decimal? DiemXet { get; set; }
+    public int? XepHang { get; set; }
+    public string? LyDoThemBatBuoc { get; set; }
+}
+
+public class ReorderCandidatesRequest
+{
+    public IReadOnlyList<ReorderCandidateItemDto> Items { get; set; } = [];
+}
+
+public class ReorderCandidateItemDto
+{
+    public int CandidateId { get; set; }
+    public int XepHang { get; set; }
+}
+
+public class ApproveRewardCampaignResultDto
+{
+    public int CampaignId { get; set; }
+    public int RewardsCreatedCount { get; set; }
+    public string Status { get; set; } = string.Empty;
 }
