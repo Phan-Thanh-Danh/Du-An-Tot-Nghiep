@@ -63,4 +63,8 @@ Tài Liệu/
 frontend/package.json
 frontend/package-lock.json
 
+# Test artifacts
+*.trx
+TestResults/
+
 
