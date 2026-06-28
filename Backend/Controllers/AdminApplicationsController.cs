@@ -17,19 +17,22 @@ public class AdminApplicationsController : ControllerBase
     private readonly IApplicationAdminEvidenceService _evidenceService;
     private readonly IApplicationDecisionService _decisionService;
     private readonly IApplicationPostApprovalProcessingService _processingService;
+    private readonly IApplicationReportService _reportService;
 
     public AdminApplicationsController(
         IApplicationAdminQueueService queueService,
         IApplicationAssignmentService assignmentService,
         IApplicationAdminEvidenceService evidenceService,
         IApplicationDecisionService decisionService,
-        IApplicationPostApprovalProcessingService processingService)
+        IApplicationPostApprovalProcessingService processingService,
+        IApplicationReportService reportService)
     {
         _queueService = queueService;
         _assignmentService = assignmentService;
         _evidenceService = evidenceService;
         _decisionService = decisionService;
         _processingService = processingService;
+        _reportService = reportService;
     }
 
     [HttpGet]
@@ -48,6 +51,15 @@ public class AdminApplicationsController : ControllerBase
     {
         var result = await _queueService.GetQueueSummaryAsync(parameters, cancellationToken);
         return Ok(ApiResponseDto<AdminApplicationQueueSummaryDto>.Ok(result, "Lấy tổng quan hàng đợi đơn từ thành công."));
+    }
+
+    [HttpGet("reports/overview")]
+    public async Task<ActionResult<ApiResponseDto<ApplicationReportOverviewDto>>> GetReportOverview(
+        [FromQuery] ApplicationReportQueryParameters parameters,
+        CancellationToken cancellationToken)
+    {
+        var result = await _reportService.GetOverviewAsync(parameters, cancellationToken);
+        return Ok(ApiResponseDto<ApplicationReportOverviewDto>.Ok(result, "Lấy báo cáo tổng quan đơn từ thành công."));
     }
 
     [HttpGet("assignees")]

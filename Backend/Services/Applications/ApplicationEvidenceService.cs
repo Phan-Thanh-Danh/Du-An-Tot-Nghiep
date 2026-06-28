@@ -93,6 +93,7 @@ public class ApplicationEvidenceService : IApplicationEvidenceService
                     var currentAttachments = await GetActiveAttachmentsAsync(applicationId, cancellationToken);
                     ValidateAggregateLimits(currentAttachments, inspectedFiles.Items, trackedLimits);
                     ValidateDuplicateHashes(currentAttachments, inspectedFiles.Items);
+                    var oldAuditSnapshot = BuildEvidenceAuditSnapshot(currentAttachments);
 
                     var now = DateTime.UtcNow;
                     var added = inspectedFiles.Items.Select(file => new TepDinhKemDonTu
@@ -118,10 +119,18 @@ public class ApplicationEvidenceService : IApplicationEvidenceService
                         student.MaNguoiDung,
                         new
                         {
-                            attachmentAction = "upload",
-                            count = added.Count,
-                            totalBytes = added.Sum(x => x.KichThuocByte)
+                            operation = "upload_evidence",
+                            fileCount = added.Count
                         }));
+                    AddEvidenceAudit(
+                        trackedApplication,
+                        student.MaNguoiDung,
+                        "P0-DT7 application evidence upload",
+                        oldAuditSnapshot,
+                        BuildEvidenceAuditSnapshot(
+                            currentAttachments.Count + added.Count,
+                            currentAttachments.Sum(x => x.KichThuocByte) + added.Sum(x => x.KichThuocByte)),
+                        now);
 
                     await _context.SaveChangesAsync(cancellationToken);
                     var uploadedDtos = added.Select(ToAttachmentDto).ToList();
@@ -223,6 +232,9 @@ public class ApplicationEvidenceService : IApplicationEvidenceService
                     throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy tệp minh chứng.");
                 }
 
+                var currentAttachments = await GetActiveAttachmentsAsync(applicationId, cancellationToken);
+                var oldAuditSnapshot = BuildEvidenceAuditSnapshot(currentAttachments);
+                var remainingAttachments = currentAttachments.Where(x => x.MaTep != attachment.MaTep).ToList();
                 storageKey = attachment.StorageKey;
                 var now = DateTime.UtcNow;
                 attachment.DaXoa = true;
@@ -233,16 +245,26 @@ public class ApplicationEvidenceService : IApplicationEvidenceService
                 _context.NhatKyDuyetDons.Add(CreateHiddenLog(
                     application,
                     student.MaNguoiDung,
-                    new { attachmentAction = "delete", maTep = attachment.MaTep }));
+                    new
+                    {
+                        operation = "delete_evidence",
+                        attachmentId = attachment.MaTep
+                    }));
+                AddEvidenceAudit(
+                    application,
+                    student.MaNguoiDung,
+                    "P0-DT7 application evidence delete",
+                    oldAuditSnapshot,
+                    BuildEvidenceAuditSnapshot(remainingAttachments),
+                    now);
 
                 await _context.SaveChangesAsync(cancellationToken);
-                var active = await GetActiveAttachmentsAsync(applicationId, cancellationToken);
                 return new ApplicationEvidenceDeleteResponseDto
                 {
                     MaTep = attachment.MaTep,
                     RowVersion = Convert.ToBase64String(application.RowVersion),
-                    ActiveFileCount = active.Count,
-                    TotalSizeBytes = active.Sum(x => x.KichThuocByte)
+                    ActiveFileCount = remainingAttachments.Count,
+                    TotalSizeBytes = remainingAttachments.Sum(x => x.KichThuocByte)
                 };
             }, cancellationToken);
         });
@@ -546,6 +568,48 @@ public class ApplicationEvidenceService : IApplicationEvidenceService
             SnapshotJson = JsonSerializer.Serialize(snapshot),
             HienThiChoHocSinh = false,
             NgayTao = DateTime.UtcNow
+        };
+    }
+
+    private void AddEvidenceAudit(
+        DonTu application,
+        int userId,
+        string description,
+        object oldValue,
+        object newValue,
+        DateTime now)
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        _context.NhatKyKiemToans.Add(new NhatKyKiemToan
+        {
+            MaDonVi = application.MaDonVi,
+            LoaiDoiTuong = nameof(DonTu),
+            MaDoiTuong = application.MaDonTu.ToString(),
+            HanhDong = ApplicationActions.Update,
+            GiaTriCu = JsonSerializer.Serialize(oldValue),
+            GiaTriMoi = JsonSerializer.Serialize(newValue),
+            NguoiThayDoi = userId,
+            ThoiDiemThayDoi = now,
+            DiaChiIp = httpContext?.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = httpContext?.Request.Headers.UserAgent.ToString(),
+            TraceId = httpContext?.TraceIdentifier,
+            MoTa = description
+        });
+    }
+
+    private static object BuildEvidenceAuditSnapshot(IReadOnlyCollection<TepDinhKemDonTu> attachments)
+    {
+        return BuildEvidenceAuditSnapshot(
+            attachments.Count,
+            attachments.Sum(x => x.KichThuocByte));
+    }
+
+    private static object BuildEvidenceAuditSnapshot(int activeFileCount, long totalSizeBytes)
+    {
+        return new
+        {
+            activeFileCount,
+            totalSizeBytes
         };
     }
 
