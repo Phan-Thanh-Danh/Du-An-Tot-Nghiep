@@ -630,7 +630,7 @@ Recipient scopes P0-NT-Core:
 
 Ghi chú P0-NT-Core: `ThongBao` là nội dung chung; `ThongBaoNguoiNhan` giữ trạng thái từng người nhận (`daDoc`, `docLuc`, `daAn`, `anLuc`). Migration `AddNotificationRecipientState` giữ các cột legacy `ma_nguoi_nhan`, `da_doc`, `doc_luc`, `ma_nhom_thong_bao` trên `ThongBao` để tương thích dữ liệu/API P0-8, nhưng logic mới đọc/ghi trạng thái qua `ThongBaoNguoiNhan`. Migration backfill bảo thủ: mỗi row `ThongBao` cũ được giữ nguyên và tạo một row recipient tương ứng, không tự gom nhóm theo `ma_nhom_thong_bao` để tránh merge sai nội dung. Editor.js JSON phải là object hợp lệ, `blocks` nếu có phải là array, reject `data:image`/base64, và backend extract `noiDungText`/summary nếu client không gửi.
 
-Known limitations P0-NT-Core: chưa làm notification templates Task 10, học phí con nợ nâng cao Task 11, scheduled/background notification, email/push/SMS thật, tích hợp Đơn từ DT8, tích hợp Khen thưởng/Kỷ luật, và frontend.
+Known limitations P0-NT-Core: chưa làm notification templates Task 10, học phí con nợ nâng cao Task 11, scheduled/background notification, email/push/SMS thật, tích hợp Khen thưởng/Kỷ luật, và frontend.
 
 ### Dự kiến/cần bổ sung
 
@@ -771,7 +771,17 @@ Ghi chú P0-DT7:
 - Query report dùng SQL aggregate/grouping với tags `P0-DT7 ReportSummary`, `P0-DT7 ReportByType`, `P0-DT7 ReportByCampus`, `P0-DT7 ReportReviewDuration`; không parse JSON, không load toàn bộ đơn về RAM và không N+1 campus.
 - Future timeline snapshot cho upload minh chứng: `{ "operation": "upload_evidence", "fileCount": n }`; delete: `{ "operation": "delete_evidence", "attachmentId": id }`. Legacy snapshot `{ "attachmentAction": "upload", "count": n }` và `{ "attachmentAction": "delete", "maTep": id }` vẫn được sanitizer map sang metadata typed, không expose raw/sensitive keys.
 - Upload/delete minh chứng ghi thêm `NhatKyKiemToan` tối giản trong cùng DB transaction với metadata/timeline. Audit old/new chỉ gồm `activeFileCount` và `totalSizeBytes`, `HanhDong = cap_nhat`, `LoaiDoiTuong = DonTu`, không chứa filename, storage key, file hash, path, MIME bytes hoặc full attachment.
-- Known limitations DT7: chưa notification integration, export, charts, trend analytics, business-hour SLA, post-approval duration analytics, advanced audit search hoặc frontend.
+- Known limitations DT7: chưa export, charts, trend analytics, business-hour SLA, post-approval duration analytics, advanced audit search hoặc frontend.
+
+Ghi chú P0-DT8:
+
+- Không có API Đơn từ mới. Các endpoint hiện có tạo notification như side effect sau khi mutation chính đã lưu thành công.
+- Event gửi cho học sinh: `submit`, `receive/assign`, `request-supplement`, `approve`, `reject`, `cancel`, `process` recorded/succeeded/failed/manual-required.
+- Notification dùng `LoaiThongBao = system`, `LoaiDoiTuongLienKet = DonTu`, `MaDoiTuongLienKet = applicationId`, `DuongDan = /student/applications/{id}`. Học sinh đọc qua `/api/notifications/me` và detail/read/hide APIs hiện có.
+- Lỗi gửi notification không rollback quyết định đơn, timeline hoặc audit nghiệp vụ chính; backend log warning và tiếp tục trả kết quả mutation thành công.
+- Payload notification chỉ chứa public status/message. Không đưa `internalNote`, `GhiChuNoiBo`, `SnapshotJson`, `KetQuaXuLyJson`, `NhatKyTuDong`, raw form data, storage key hoặc file hash vào thông báo học sinh.
+- Dedup nhẹ theo student + linked `DonTu` + title event để tránh gửi trùng cùng transition.
+- Known limitations DT8: chưa email/push/SMS, chưa gửi phụ huynh, chưa notification reminder/SLA, chưa notification template riêng và chưa frontend integration.
 
 ## Reports APIs
 

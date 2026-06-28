@@ -32,6 +32,7 @@ public class ApplicationPostApprovalProcessingService : IApplicationPostApproval
     private readonly IApplicationProcessingResultSanitizer _resultSanitizer;
     private readonly IApplicationAdminQueueService _queueService;
     private readonly IReadOnlyList<IApplicationPostApprovalHandler> _handlers;
+    private readonly IApplicationNotificationService _applicationNotificationService;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public ApplicationPostApprovalProcessingService(
@@ -42,6 +43,7 @@ public class ApplicationPostApprovalProcessingService : IApplicationPostApproval
         IApplicationProcessingResultSanitizer resultSanitizer,
         IApplicationAdminQueueService queueService,
         IEnumerable<IApplicationPostApprovalHandler> handlers,
+        IApplicationNotificationService applicationNotificationService,
         IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
@@ -51,6 +53,7 @@ public class ApplicationPostApprovalProcessingService : IApplicationPostApproval
         _resultSanitizer = resultSanitizer;
         _queueService = queueService;
         _handlers = handlers.ToList();
+        _applicationNotificationService = applicationNotificationService;
         _httpContextAccessor = httpContextAccessor;
     }
 
@@ -62,6 +65,9 @@ public class ApplicationPostApprovalProcessingService : IApplicationPostApproval
         var actor = await _scopeService.GetCurrentActorAsync(cancellationToken);
         _permissionEvaluator.EnsureCanOperate(actor);
         var rowVersion = DecodeRowVersion(request.RowVersion);
+        DonTu? changedApplication = null;
+        string? outcomeStatus = null;
+        string? outcomePublicNote = null;
 
         await ExecuteConcurrencyAwareAsync(async () =>
         {
@@ -131,8 +137,16 @@ public class ApplicationPostApprovalProcessingService : IApplicationPostApproval
                     now);
                 AddAudit(application, actor, "P0-DT6 auto process", oldSnapshot, BuildAuditSnapshot(application), now);
                 await _context.SaveChangesAsync(cancellationToken);
+                changedApplication = application;
+                outcomeStatus = outcome.Outcome;
+                outcomePublicNote = outcome.PublicNote;
             }, cancellationToken);
         });
+
+        if (changedApplication is not null && outcomeStatus is not null)
+        {
+            await NotifyProcessingOutcomeAsync(changedApplication, outcomeStatus, outcomePublicNote, cancellationToken);
+        }
 
         return await _queueService.GetDetailAsync(applicationId, cancellationToken);
     }
@@ -149,6 +163,7 @@ public class ApplicationPostApprovalProcessingService : IApplicationPostApproval
         var publicNote = NormalizeRequiredText(request.PublicNote, "Ghi chú công khai", PublicNoteMinLength, PublicNoteMaxLength);
         var internalNote = NormalizeOptionalText(request.InternalNote, InternalNoteMaxLength, "Ghi chú nội bộ");
         var result = _resultSanitizer.Sanitize(request.Result);
+        DonTu? changedApplication = null;
 
         await ExecuteConcurrencyAwareAsync(async () =>
         {
@@ -198,10 +213,39 @@ public class ApplicationPostApprovalProcessingService : IApplicationPostApproval
                     now);
                 AddAudit(application, actor, "P0-DT6 manual processing result", oldSnapshot, BuildAuditSnapshot(application), now);
                 await _context.SaveChangesAsync(cancellationToken);
+                changedApplication = application;
             }, cancellationToken);
         });
 
+        if (changedApplication is not null)
+        {
+            await NotifyProcessingOutcomeAsync(changedApplication, outcome, publicNote, cancellationToken);
+        }
+
         return await _queueService.GetDetailAsync(applicationId, cancellationToken);
+    }
+
+    private async Task NotifyProcessingOutcomeAsync(
+        DonTu application,
+        string outcome,
+        string? publicNote,
+        CancellationToken cancellationToken)
+    {
+        switch (outcome)
+        {
+            case ApplicationProcessingStatuses.Recorded:
+                await _applicationNotificationService.NotifyProcessingRecordedAsync(application, cancellationToken);
+                break;
+            case ApplicationProcessingStatuses.Succeeded:
+                await _applicationNotificationService.NotifyProcessingSucceededAsync(application, cancellationToken);
+                break;
+            case ApplicationProcessingStatuses.Failed:
+                await _applicationNotificationService.NotifyProcessingFailedAsync(application, publicNote, cancellationToken);
+                break;
+            case ApplicationProcessingStatuses.ManualRequired:
+                await _applicationNotificationService.NotifyManualProcessingRequiredAsync(application, cancellationToken);
+                break;
+        }
     }
 
     private async Task<ApplicationPostApprovalOutcome> ResolveAutomaticOutcomeAsync(

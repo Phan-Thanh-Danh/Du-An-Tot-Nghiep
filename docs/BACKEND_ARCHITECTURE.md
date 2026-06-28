@@ -214,7 +214,7 @@ Post-approval processing P0-DT6:
 - Mỗi mutation thực sự thêm một `NhatKyDuyetDon` public `xu_ly_nghiep_vu` và một `NhatKyKiemToan` `xu_ly_nghiep_vu` trong cùng transaction. Audit old/new value chỉ chứa trạng thái, trạng thái xử lý nghiệp vụ, processor cuối và flag có kết quả xử lý.
 - Student list/detail chỉ expose `TrangThaiXuLyNghiepVu`, `TenTrangThaiXuLyNghiepVu`; không expose `KetQuaXuLyJson`, `NhatKyTuDong`, internal note hoặc raw snapshot.
 
-- Known limitations P0-DT6: không escalation, không notification, không workflow nhiều cấp, không bulk decision, không frontend và chưa có side-effect nghiệp vụ thật cho các loại đơn ngoài `xac_nhan`.
+- Known limitations P0-DT6: không escalation, không workflow nhiều cấp, không bulk decision, không frontend và chưa có side-effect nghiệp vụ thật cho các loại đơn ngoài `xac_nhan`. Notification trạng thái đơn được tích hợp riêng ở P0-DT8.
 
 Reporting and audit closure P0-DT7:
 
@@ -227,7 +227,17 @@ Reporting and audit closure P0-DT7:
 - Query strategy: `AsNoTracking`, conditional aggregate cho summary tag `P0-DT7 ReportSummary`, group query theo status/processing/type/campus và aggregate review duration bằng `EF.Functions.DateDiffMinute`. Không parse form/result JSON, không `AsEnumerable` trước aggregate, không N+1 campus.
 - Evidence future timeline metadata dùng `{ operation: "upload_evidence", fileCount }` và `{ operation: "delete_evidence", attachmentId }`; `ApplicationTimelineMetadataSanitizer` vẫn map legacy `{ attachmentAction: "upload", count }` và `{ attachmentAction: "delete", maTep }` sang metadata typed. Future format được ưu tiên nếu có cả hai.
 - Upload/delete evidence thêm `NhatKyKiemToan` trong cùng DB transaction với attachment metadata, `DonTu.NgayCapNhat` và hidden timeline. Audit old/new chỉ chứa `activeFileCount`, `totalSizeBytes`; `MoTa` phân biệt upload/delete; không chứa filename, `StorageKey`, `TenFileLuu`, `FileHash`, path, bucket, bytes hoặc full entity.
-- Known limitations P0-DT7: không notification integration, không export Excel/PDF, không dashboard chart, không trend analytics, không business-hour SLA, không post-approval duration analytics, không advanced audit search và không frontend.
+- Known limitations P0-DT7: không export Excel/PDF, không dashboard chart, không trend analytics, không business-hour SLA, không post-approval duration analytics, không advanced audit search và không frontend.
+
+Application notification integration P0-DT8:
+
+- `IApplicationNotificationService`/`ApplicationNotificationService` là side-effect layer nội bộ giữa module Đơn từ và `NotificationService`. Controller không tự build payload notification.
+- Các event đã gửi thông báo cho học sinh: nộp đơn, tiếp nhận/phân công xử lý, yêu cầu bổ sung, duyệt, từ chối, hủy, xử lý nghiệp vụ đã ghi nhận/thành công/thất bại/cần xử lý thủ công.
+- Notification dùng `ThongBao.LoaiThongBao = system`, `LoaiDoiTuongLienKet = DonTu`, `MaDoiTuongLienKet = MaDonTu`, `DuongDan = /student/applications/{id}` và Editor.js JSON hợp lệ có metadata tối thiểu `eventType`, `maDonTu`, `loaiDon`, `trangThaiMoi`, `tieuDe`.
+- Dedup nhẹ theo student + linked `DonTu` + title event để không gửi trùng cùng một transition trong các flow idempotent/service retry.
+- Notification là kết quả phụ: lỗi từ Notification Center bị catch/log warning trong `ApplicationNotificationService` và không rollback trạng thái đơn, timeline hoặc audit nghiệp vụ chính.
+- Payload student không chứa `GhiChuNoiBo`, raw `SnapshotJson`, `KetQuaXuLyJson`, `NhatKyTuDong`, raw form data, storage key, file hash hoặc stack trace.
+- Known limitations P0-DT8: chưa gửi email/push/SMS, chưa gửi phụ huynh/admin assignee, chưa reminder/SLA notification, chưa template notification riêng cho Đơn từ và chưa frontend integration.
 
 Template validation:
 
@@ -285,6 +295,8 @@ P0-NT-Core tách notification thành hai lớp:
 - `ThongBaoNguoiNhan`: trạng thái từng người nhận, gồm `DaDoc`, `DocLuc`, `DaAn`, `AnLuc`, `NhanLuc`.
 
 `NotificationService` là facade chính cho API user/admin và các module backend khác. Các method legacy `CreateSystemNotificationAsync`, `SendToUsersAsync`, `SendToClassAsync`, `SendToCourseAsync`, `SendToCampusAsync` vẫn được giữ để P0-5/P0-7/P0-9 tiếp tục compile/runtime. Admin create dùng transaction có execution strategy, resolve recipient server-side và rollback nếu insert recipient/log lỗi.
+
+P0-DT8 dùng facade này để gửi notification trạng thái đơn từ cho học sinh. `SystemNotificationRequest.DuongDan` được map vào `ThongBao.DuongDan` để inbox có link về chi tiết đơn.
 
 Authorization:
 

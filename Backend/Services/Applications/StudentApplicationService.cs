@@ -32,6 +32,7 @@ public class StudentApplicationService : IStudentApplicationService
     private readonly IApplicationReferenceValidator _referenceValidator;
     private readonly IApplicationEvidenceValidator _evidenceValidator;
     private readonly IApplicationStateMachine _stateMachine;
+    private readonly IApplicationNotificationService _applicationNotificationService;
     private readonly IReadOnlyDictionary<string, IApplicationSubmissionRule> _submissionRules;
 
     public StudentApplicationService(
@@ -42,6 +43,7 @@ public class StudentApplicationService : IStudentApplicationService
         IApplicationReferenceValidator referenceValidator,
         IApplicationEvidenceValidator evidenceValidator,
         IApplicationStateMachine stateMachine,
+        IApplicationNotificationService applicationNotificationService,
         IEnumerable<IApplicationSubmissionRule> submissionRules)
     {
         _context = context;
@@ -51,6 +53,7 @@ public class StudentApplicationService : IStudentApplicationService
         _referenceValidator = referenceValidator;
         _evidenceValidator = evidenceValidator;
         _stateMachine = stateMachine;
+        _applicationNotificationService = applicationNotificationService;
         _submissionRules = submissionRules.ToDictionary(x => x.SupportedType, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -295,6 +298,7 @@ public class StudentApplicationService : IStudentApplicationService
             }, cancellationToken);
         });
 
+        await _applicationNotificationService.NotifyCancelledAsync(application, cancellationToken);
         return await GetDetailForStudentAsync(application.MaDonTu, student.MaNguoiDung, cancellationToken);
     }
 
@@ -363,6 +367,7 @@ public class StudentApplicationService : IStudentApplicationService
             }, cancellationToken);
         });
 
+        await _applicationNotificationService.NotifySubmittedAsync(application, cancellationToken);
         return await GetDetailForStudentAsync(application.MaDonTu, student.MaNguoiDung, cancellationToken);
     }
 

@@ -10,6 +10,7 @@ public class SystemNotificationRequest
     public string MucDo { get; set; } = "info";
     public string? DoiTuongLienKet { get; set; }
     public int? MaDoiTuongLienKet { get; set; }
+    public string? DuongDan { get; set; }
     public int MaDonVi { get; set; }
     public int? NguoiTao { get; set; }
 }

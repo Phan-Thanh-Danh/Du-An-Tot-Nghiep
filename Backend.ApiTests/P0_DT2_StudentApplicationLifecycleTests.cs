@@ -1200,6 +1200,7 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
             new ApplicationReferenceValidator(db),
             new ApplicationEvidenceValidator(db),
             new ApplicationStateMachine(),
+            new NoOpApplicationNotificationService(),
             []);
 
         var method = typeof(StudentApplicationService).GetMethod("GetSubmissionRule", BindingFlags.Instance | BindingFlags.NonPublic)!;
@@ -1773,4 +1774,18 @@ public class P0_DT2_StudentApplicationLifecycleTests : ApiTestBase
     }
 
     private sealed record ApplicationSnapshot(int MaDonTu, string TieuDe, string TrangThai, string RowVersion);
+
+    private sealed class NoOpApplicationNotificationService : IApplicationNotificationService
+    {
+        public Task NotifySubmittedAsync(DonTu application, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task NotifyAssignedAsync(DonTu application, int? assigneeId, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task NotifySupplementRequestedAsync(DonTu application, string? publicMessage, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task NotifyApprovedAsync(DonTu application, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task NotifyRejectedAsync(DonTu application, string? publicReason, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task NotifyCancelledAsync(DonTu application, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task NotifyProcessingSucceededAsync(DonTu application, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task NotifyProcessingFailedAsync(DonTu application, string? publicMessage, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task NotifyManualProcessingRequiredAsync(DonTu application, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task NotifyProcessingRecordedAsync(DonTu application, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
 }

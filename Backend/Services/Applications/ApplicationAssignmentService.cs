@@ -26,15 +26,18 @@ public class ApplicationAssignmentService : IApplicationAssignmentService
     private readonly ApplicationDbContext _context;
     private readonly IApplicationCampusScopeService _scopeService;
     private readonly IApplicationAdminQueueService _queueService;
+    private readonly IApplicationNotificationService _applicationNotificationService;
 
     public ApplicationAssignmentService(
         ApplicationDbContext context,
         IApplicationCampusScopeService scopeService,
-        IApplicationAdminQueueService queueService)
+        IApplicationAdminQueueService queueService,
+        IApplicationNotificationService applicationNotificationService)
     {
         _context = context;
         _scopeService = scopeService;
         _queueService = queueService;
+        _applicationNotificationService = applicationNotificationService;
     }
 
     public async Task<AdminApplicationDetailDto> ReceiveAsync(
@@ -45,6 +48,7 @@ public class ApplicationAssignmentService : IApplicationAssignmentService
         var actor = await _scopeService.GetCurrentActorAsync(cancellationToken);
         EnsureCanReceive(actor);
         var rowVersion = DecodeRowVersion(request.RowVersion);
+        DonTu? changedApplication = null;
 
         await ExecuteConcurrencyAwareAsync(async () =>
         {
@@ -85,8 +89,14 @@ public class ApplicationAssignmentService : IApplicationAssignmentService
                     }));
 
                 await _context.SaveChangesAsync(cancellationToken);
+                changedApplication = application;
             }, cancellationToken);
         });
+
+        if (changedApplication is not null)
+        {
+            await _applicationNotificationService.NotifyAssignedAsync(changedApplication, actor.User.MaNguoiDung, cancellationToken);
+        }
 
         return await _queueService.GetDetailAsync(applicationId, cancellationToken);
     }
@@ -102,6 +112,7 @@ public class ApplicationAssignmentService : IApplicationAssignmentService
         var target = await _scopeService.GetAssignableUserAsync(actor, request.AssigneeId, cancellationToken);
 
         var changed = false;
+        DonTu? changedApplication = null;
         await ExecuteConcurrencyAwareAsync(async () =>
         {
             await _context.ExecuteInTransactionAsync(IsolationLevel.Serializable, async () =>
@@ -151,10 +162,15 @@ public class ApplicationAssignmentService : IApplicationAssignmentService
 
                 changed = true;
                 await _context.SaveChangesAsync(cancellationToken);
+                changedApplication = application;
             }, cancellationToken);
         });
 
-        _ = changed;
+        if (changed && changedApplication is not null)
+        {
+            await _applicationNotificationService.NotifyAssignedAsync(changedApplication, target.MaNguoiDung, cancellationToken);
+        }
+
         return await _queueService.GetDetailAsync(applicationId, cancellationToken);
     }
 
