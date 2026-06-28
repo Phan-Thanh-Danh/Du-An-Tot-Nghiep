@@ -146,11 +146,21 @@ public static class RewardDisciplineConstants
         public const string Recommended = "duoc_de_xuat";
         public const string Excluded = "bi_loai";
         public const string Reserve = "du_phong";
+        public const string ManuallyAdded = "them_thu_cong";
+        public const string ApprovedForReward = "da_duyet_kt";
         public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             Recommended,
             Excluded,
-            Reserve
+            Reserve,
+            ManuallyAdded,
+            ApprovedForReward
+        };
+
+        public static readonly IReadOnlySet<string> Selected = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            Recommended,
+            ManuallyAdded
         };
     }
 
@@ -163,5 +173,14 @@ public static class RewardDisciplineConstants
         public const string ActiveDiscipline = "ACTIVE_DISCIPLINE";
         public const string UnpaidTuition = "UNPAID_TUITION";
         public const string Other = "OTHER";
+    }
+
+    public static class RewardAuditActions
+    {
+        public const string AdjustRewardCandidate = "ADJUST_REWARD_CANDIDATE";
+        public const string ManualAddRewardCandidate = "MANUAL_ADD_REWARD_CANDIDATE";
+        public const string ReorderRewardCandidates = "REORDER_REWARD_CANDIDATES";
+        public const string SubmitRewardCampaignForApproval = "SUBMIT_REWARD_CAMPAIGN_FOR_APPROVAL";
+        public const string ApproveRewardCampaign = "APPROVE_REWARD_CAMPAIGN";
     }
 }

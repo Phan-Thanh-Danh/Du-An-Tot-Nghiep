@@ -116,12 +116,13 @@ API/report/AI hiện là dự kiến, chưa thấy controller.
 - `GiaoDich`: giao dịch thanh toán.
 - `YeuCauHoanPhi`: yêu cầu hoàn phí.
 - `DotKhenThuong`: đợt xét khen thưởng, RD1 hỗ trợ foundation cho loại `TOP_100_HOC_KY`, scope theo học kỳ/cơ sở, trạng thái nháp/xét/chờ duyệt/duyệt/công bố/hủy và cấu hình tiêu chí JSON.
+- `UngVienKhenThuong`: danh sách ứng viên Top 100 theo đợt/học kỳ/cơ sở. RD4 bổ sung `ghi_chu_dieu_chinh`, `nguoi_dieu_chinh`, `ngay_dieu_chinh` để lưu vết điều chỉnh thủ công trước duyệt; unique `ma_dot_khen_thuong + ma_hoc_sinh` chống trùng ứng viên trong một đợt.
 - `MauBangKhen`: mẫu bằng khen, lưu file nền, kích thước, hướng giấy và cấu hình render JSON. RD1 chỉ lưu metadata, chưa sinh PDF.
 - `KhenThuong`, `CauHinhKhenThuong`: khen thưởng. `KhenThuong` giữ cột legacy (`gpa_dat_duoc`, `url_chung_tu`, `da_huy`) và bổ sung foundation RD1 như `ma_don_vi`, liên kết đợt/mẫu bằng khen, trạng thái lifecycle, điểm xét, xếp hạng, snapshot hiển thị và URL PDF.
 - `HoSoKyLuat`: hồ sơ kỷ luật. RD1 giữ cột legacy và bổ sung học kỳ, mức độ vi phạm, hình thức xử lý, trạng thái lifecycle, ngày vi phạm/hiệu lực, chứng từ JSON, thông tin duyệt/gỡ hiệu lực và liên kết nghiệp vụ tùy chọn.
 - `YeuCauDoiLich`: yêu cầu đổi lịch.
 
-RD1 chỉ là nền tảng dữ liệu và schema/options API. RD2 dùng lại bảng `DotKhenThuong` để CRUD metadata đợt `TOP_100_HOC_KY`; duplicate active được bảo vệ bởi filtered unique index `ma_hoc_ky + ma_don_vi + loai_dot` với `trang_thai <> da_huy`, service cũng validate trước khi ghi. RD2 chưa có workflow xét danh sách sinh viên, tự động xét Top 100, sinh PDF bằng khen, hoặc phê duyệt/gỡ hiệu lực kỷ luật. Migration `AddRewardDisciplineFoundation` backfill `KhenThuong.ma_don_vi` từ `NguoiDung.ma_don_vi` của học sinh và fail-fast nếu dữ liệu legacy không thể suy ra cơ sở.
+RD1 chỉ là nền tảng dữ liệu và schema/options API. RD2 dùng lại bảng `DotKhenThuong` để CRUD metadata đợt `TOP_100_HOC_KY`; duplicate active được bảo vệ bởi filtered unique index `ma_hoc_ky + ma_don_vi + loai_dot` với `trang_thai <> da_huy`, service cũng validate trước khi ghi. RD3 tạo danh sách `UngVienKhenThuong` nhưng chưa tạo `KhenThuong`. RD4 thêm migration `AddRewardCandidateApprovalFields` cho metadata điều chỉnh ứng viên, sau đó approve tạo `KhenThuong` chính thức từ ứng viên `duoc_de_xuat`/`them_thu_cong`, set ứng viên `da_duyet_kt` và set đợt `da_duyet`. RD4 chưa sinh PDF bằng khen, chưa công bố và chưa workflow kỷ luật. Migration `AddRewardDisciplineFoundation` backfill `KhenThuong.ma_don_vi` từ `NguoiDung.ma_don_vi` của học sinh và fail-fast nếu dữ liệu legacy không thể suy ra cơ sở.
 
 Các module này có model/database nhưng API hiện là dự kiến.
 

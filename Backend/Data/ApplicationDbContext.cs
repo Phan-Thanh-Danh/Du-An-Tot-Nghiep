@@ -177,6 +177,9 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.HoTenSnapshot).HasColumnName("ho_ten_snapshot").HasMaxLength(255);
             entity.Property(e => e.MssvSnapshot).HasColumnName("mssv_snapshot").HasMaxLength(100);
             entity.Property(e => e.TenHocKySnapshot).HasColumnName("ten_hoc_ky_snapshot").HasMaxLength(255);
+            entity.Property(e => e.GhiChuDieuChinh).HasColumnName("ghi_chu_dieu_chinh").HasColumnType("nvarchar(max)");
+            entity.Property(e => e.NguoiDieuChinh).HasColumnName("nguoi_dieu_chinh");
+            entity.Property(e => e.NgayDieuChinh).HasColumnName("ngay_dieu_chinh").HasColumnType("datetime2");
             entity.Property(e => e.NguoiTao).HasColumnName("nguoi_tao");
             entity.Property(e => e.NgayTao).HasColumnName("ngay_tao").HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
             entity.Property(e => e.NgayCapNhat).HasColumnName("ngay_cap_nhat").HasColumnType("datetime2");
@@ -220,6 +223,12 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.NguoiTao)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_UngVienKhenThuong_nguoi_tao__NguoiDung");
+
+            entity.HasOne(e => e.NguoiDieuChinhNavigation)
+                .WithMany()
+                .HasForeignKey(e => e.NguoiDieuChinh)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_UngVienKhenThuong_nguoi_dieu_chinh__NguoiDung");
         });
 
         modelBuilder.Entity<BaiHoc>(entity =>
