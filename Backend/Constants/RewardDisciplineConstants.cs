@@ -140,4 +140,28 @@ public static class RewardDisciplineConstants
             Other
         };
     }
+
+    public static class RewardCandidateStatuses
+    {
+        public const string Recommended = "duoc_de_xuat";
+        public const string Excluded = "bi_loai";
+        public const string Reserve = "du_phong";
+        public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            Recommended,
+            Excluded,
+            Reserve
+        };
+    }
+
+    public static class CandidateExclusionReasons
+    {
+        public const string InactiveStudent = "INACTIVE_STUDENT";
+        public const string OutOfScope = "OUT_OF_SCOPE";
+        public const string MissingGrades = "MISSING_GRADES";
+        public const string LowGpa = "LOW_GPA";
+        public const string ActiveDiscipline = "ACTIVE_DISCIPLINE";
+        public const string UnpaidTuition = "UNPAID_TUITION";
+        public const string Other = "OTHER";
+    }
 }

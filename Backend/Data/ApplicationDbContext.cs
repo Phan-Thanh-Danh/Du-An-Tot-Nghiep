@@ -107,6 +107,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<NhatKyViPhamThi> NhatKyViPhamThis => Set<NhatKyViPhamThi>();
     public DbSet<XuLyViPhamThi> XuLyViPhamThis => Set<XuLyViPhamThi>();
     public DbSet<BienBanThi> BienBanThis => Set<BienBanThi>();
+    public DbSet<UngVienKhenThuong> UngVienKhenThuongs => Set<UngVienKhenThuong>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -153,6 +154,72 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaHocKy)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_AnhChupPhanTich_ma_hoc_ky__HocKy");
+        });
+
+        modelBuilder.Entity<UngVienKhenThuong>(entity =>
+        {
+            entity.ToTable("UngVienKhenThuong", "dbo");
+            entity.HasKey(e => e.MaUngVienKhenThuong).HasName("PK_UngVienKhenThuong");
+            
+            entity.Property(e => e.MaUngVienKhenThuong).HasColumnName("ma_ung_vien_khen_thuong");
+            entity.Property(e => e.MaDotKhenThuong).HasColumnName("ma_dot_khen_thuong");
+            entity.Property(e => e.MaHocSinh).HasColumnName("ma_hoc_sinh");
+            entity.Property(e => e.MaDonVi).HasColumnName("ma_don_vi");
+            entity.Property(e => e.MaHocKy).HasColumnName("ma_hoc_ky");
+            entity.Property(e => e.XepHang).HasColumnName("xep_hang");
+            entity.Property(e => e.DiemXet).HasColumnName("diem_xet").HasColumnType("decimal(18,2)");
+            entity.Property(e => e.GpaHocKy).HasColumnName("gpa_hoc_ky").HasColumnType("decimal(18,2)");
+            entity.Property(e => e.TongTinChi).HasColumnName("tong_tin_chi");
+            entity.Property(e => e.TrangThai).HasColumnName("trang_thai").HasMaxLength(50).IsRequired();
+            entity.Property(e => e.LyDoLoai).HasColumnName("ly_do_loai").HasColumnType("nvarchar(max)");
+            entity.Property(e => e.LyDoLoaiJson).HasColumnName("ly_do_loai_json").HasColumnType("nvarchar(max)");
+            entity.Property(e => e.TieuChiSnapshotJson).HasColumnName("tieu_chi_snapshot_json").HasColumnType("nvarchar(max)");
+            entity.Property(e => e.HoTenSnapshot).HasColumnName("ho_ten_snapshot").HasMaxLength(255);
+            entity.Property(e => e.MssvSnapshot).HasColumnName("mssv_snapshot").HasMaxLength(100);
+            entity.Property(e => e.TenHocKySnapshot).HasColumnName("ten_hoc_ky_snapshot").HasMaxLength(255);
+            entity.Property(e => e.NguoiTao).HasColumnName("nguoi_tao");
+            entity.Property(e => e.NgayTao).HasColumnName("ngay_tao").HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.NgayCapNhat).HasColumnName("ngay_cap_nhat").HasColumnType("datetime2");
+
+            entity.HasIndex(e => new { e.MaDotKhenThuong, e.TrangThai, e.XepHang }).HasDatabaseName("IX_UngVienKhenThuong_CampaignRank");
+            entity.HasIndex(e => new { e.MaDotKhenThuong, e.MaHocSinh }).IsUnique().HasDatabaseName("UQ_UngVienKhenThuong_CampaignStudent");
+            entity.HasIndex(e => new { e.MaHocSinh, e.MaHocKy }).HasDatabaseName("IX_UngVienKhenThuong_StudentTerm");
+            entity.HasIndex(e => new { e.MaDonVi, e.TrangThai }).HasDatabaseName("IX_UngVienKhenThuong_OrgStatus");
+
+            entity.ToTable(t => t.HasCheckConstraint("CK_UngVienKhenThuong_diem_xet", "[diem_xet] >= 0"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_UngVienKhenThuong_xep_hang", "[xep_hang] IS NULL OR [xep_hang] > 0"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_UngVienKhenThuong_ly_do_loai_json_ISJSON", "[ly_do_loai_json] IS NULL OR ISJSON([ly_do_loai_json]) = 1"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_UngVienKhenThuong_tieu_chi_snapshot_json_ISJSON", "[tieu_chi_snapshot_json] IS NULL OR ISJSON([tieu_chi_snapshot_json]) = 1"));
+
+            entity.HasOne(e => e.DotKhenThuong)
+                .WithMany()
+                .HasForeignKey(e => e.MaDotKhenThuong)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_UngVienKhenThuong_ma_dot_khen_thuong__DotKhenThuong");
+
+            entity.HasOne(e => e.HocSinh)
+                .WithMany()
+                .HasForeignKey(e => e.MaHocSinh)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_UngVienKhenThuong_ma_hoc_sinh__NguoiDung");
+
+            entity.HasOne(e => e.DonVi)
+                .WithMany()
+                .HasForeignKey(e => e.MaDonVi)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_UngVienKhenThuong_ma_don_vi__DonVi");
+
+            entity.HasOne(e => e.HocKy)
+                .WithMany()
+                .HasForeignKey(e => e.MaHocKy)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_UngVienKhenThuong_ma_hoc_ky__HocKy");
+
+            entity.HasOne(e => e.NguoiTaoNavigation)
+                .WithMany()
+                .HasForeignKey(e => e.NguoiTao)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_UngVienKhenThuong_nguoi_tao__NguoiDung");
         });
 
         modelBuilder.Entity<BaiHoc>(entity =>

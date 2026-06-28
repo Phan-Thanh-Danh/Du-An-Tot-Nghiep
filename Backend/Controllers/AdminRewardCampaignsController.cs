@@ -13,10 +13,12 @@ namespace Backend.Controllers;
 public class AdminRewardCampaignsController : ControllerBase
 {
     private readonly IRewardCampaignService _rewardCampaignService;
+    private readonly IRewardEvaluationService _rewardEvaluationService;
 
-    public AdminRewardCampaignsController(IRewardCampaignService rewardCampaignService)
+    public AdminRewardCampaignsController(IRewardCampaignService rewardCampaignService, IRewardEvaluationService rewardEvaluationService)
     {
         _rewardCampaignService = rewardCampaignService;
+        _rewardEvaluationService = rewardEvaluationService;
     }
 
     [HttpGet]
@@ -80,5 +82,44 @@ public class AdminRewardCampaignsController : ControllerBase
         return Ok(ApiResponseDto<RewardCampaignDetailDto>.Ok(
             result,
             "Hủy đợt khen thưởng thành công."));
+    }
+
+    [HttpPost("{id:int}/evaluate")]
+    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    public async Task<ActionResult<ApiResponseDto<RewardEvaluationResultDto>>> Evaluate(
+        int id,
+        EvaluateRewardCampaignRequest request)
+    {
+        var result = await _rewardEvaluationService.EvaluateCampaignAsync(id, request);
+        return Ok(ApiResponseDto<RewardEvaluationResultDto>.Ok(
+            result,
+            result.IsDryRun ? "Tính toán thử thành công (Dry Run)." : "Xét duyệt đợt khen thưởng thành công."));
+    }
+
+    [HttpGet("{id:int}/candidates")]
+    public async Task<ActionResult<ApiResponseDto<PagedResultDto<RewardCandidateDto>>>> GetCandidates(
+        int id,
+        [FromQuery] RewardCandidateQueryParameters query)
+    {
+        // current user ID would typically come from context, for scope
+        int currentUserId = 0; 
+        var (candidates, totalCount) = await _rewardEvaluationService.GetCandidatesAsync(id, query, currentUserId);
+        
+        return Ok(ApiResponseDto<PagedResultDto<RewardCandidateDto>>.Ok(
+            new PagedResultDto<RewardCandidateDto> { Items = candidates.ToList(), TotalItems = totalCount, PageIndex = query.PageIndex, PageSize = query.PageSize },
+            "Lấy danh sách ứng viên thành công."));
+    }
+
+    [HttpGet("{id:int}/excluded-candidates")]
+    public async Task<ActionResult<ApiResponseDto<PagedResultDto<ExcludedRewardCandidateDto>>>> GetExcludedCandidates(
+        int id,
+        [FromQuery] ExcludedRewardCandidateQueryParameters query)
+    {
+        int currentUserId = 0; 
+        var (excluded, totalCount) = await _rewardEvaluationService.GetExcludedCandidatesAsync(id, query, currentUserId);
+        
+        return Ok(ApiResponseDto<PagedResultDto<ExcludedRewardCandidateDto>>.Ok(
+            new PagedResultDto<ExcludedRewardCandidateDto> { Items = excluded.ToList(), TotalItems = totalCount, PageIndex = query.PageIndex, PageSize = query.PageSize },
+            "Lấy danh sách ứng viên bị loại thành công."));
     }
 }
