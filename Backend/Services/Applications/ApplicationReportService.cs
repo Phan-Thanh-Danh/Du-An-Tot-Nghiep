@@ -146,7 +146,10 @@ public class ApplicationReportService : IApplicationReportService
 
         if (parameters.SubmittedTo.HasValue)
         {
-            query = query.Where(x => x.NgayNop.HasValue && x.NgayNop.Value <= parameters.SubmittedTo.Value);
+            var submittedToEndOfDay = parameters.SubmittedTo.Value.TimeOfDay == TimeSpan.Zero
+                ? parameters.SubmittedTo.Value.Date.AddDays(1)
+                : parameters.SubmittedTo.Value.AddDays(1);
+            query = query.Where(x => x.NgayNop.HasValue && x.NgayNop.Value < submittedToEndOfDay);
         }
 
         return query;

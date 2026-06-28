@@ -279,7 +279,11 @@ public class P0_DT7_ApplicationReportingAuditTests : ApiTestBase
 
         await service.GetOverviewAsync(new ApplicationReportQueryParameters { CampusId = campusId });
 
-        Assert.That(interceptor.TaggedCommandCount, Is.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(interceptor.TotalReaderCommandCount, Is.EqualTo(1));
+            Assert.That(interceptor.TaggedCommandCount, Is.EqualTo(1));
+        });
     }
 
     [Test]
@@ -686,6 +690,7 @@ public class P0_DT7_ApplicationReportingAuditTests : ApiTestBase
         }
 
         public int TaggedCommandCount { get; private set; }
+        public int TotalReaderCommandCount { get; private set; }
 
         public override InterceptionResult<DbDataReader> ReaderExecuting(
             DbCommand command,
@@ -708,6 +713,7 @@ public class P0_DT7_ApplicationReportingAuditTests : ApiTestBase
 
         private void CountIfTagged(DbCommand command)
         {
+            TotalReaderCommandCount++;
             if (command.CommandText.Contains(_tag, StringComparison.Ordinal))
             {
                 TaggedCommandCount++;
