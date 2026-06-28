@@ -21,6 +21,14 @@ public interface INotificationService
 
     Task<UnreadCountDto> MarkAllAsReadAsync(CancellationToken cancellationToken = default);
 
+    Task HideAsync(
+        int notificationId,
+        CancellationToken cancellationToken = default);
+
+    Task<NotificationRecipientPreviewResultDto> PreviewRecipientsAsync(
+        PreviewNotificationRecipientsRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<AdminNotificationDto> CreateManualNotificationAsync(
         CreateManualNotificationRequest request,
         CancellationToken cancellationToken = default);
@@ -30,6 +38,19 @@ public interface INotificationService
         CancellationToken cancellationToken = default);
 
     Task<AdminNotificationDto> GetAdminNotificationDetailAsync(
+        int notificationId,
+        CancellationToken cancellationToken = default);
+
+    Task<PagedResultDto<AdminNotificationRecipientDto>> GetAdminNotificationRecipientsAsync(
+        int notificationId,
+        AdminNotificationRecipientQueryParameters parameters,
+        CancellationToken cancellationToken = default);
+
+    Task<NotificationStatisticsDto> GetAdminNotificationStatisticsAsync(
+        int notificationId,
+        CancellationToken cancellationToken = default);
+
+    Task<AdminNotificationDto> CancelNotificationAsync(
         int notificationId,
         CancellationToken cancellationToken = default);
 

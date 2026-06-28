@@ -587,30 +587,50 @@ Chưa thấy controller grades trong repo hiện tại.
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
-| GET | `/api/notifications` | JWT | User xem danh sách thông báo của chính mình, có phân trang và filter `daDoc`, `loaiThongBao`, `mucDo`, `ngayTu`, `ngayDen`. |
+| GET | `/api/notifications` | JWT | Alias backward-compatible của `/api/notifications/me`. |
+| GET | `/api/notifications/me` | JWT | User xem danh sách thông báo của chính mình. Query từ `ThongBaoNguoiNhan` join `ThongBao`, chỉ trả `MaNguoiNhan = current user` và `daAn = false`. Filter `daDoc`/`isRead`, `loaiThongBao`, `mucDo`, `keyword`, `ngayTu`/`fromDate`, `ngayDen`/`toDate`. |
 | GET | `/api/notifications/{id}` | JWT | User xem chi tiết một thông báo của chính mình. Nội dung Editor.js được trả qua `noiDungJson`; backend không render HTML. |
-| GET | `/api/notifications/unread-count` | JWT | Lấy số thông báo chưa đọc của user hiện tại. |
-| PATCH | `/api/notifications/{id}/read` | JWT | Đánh dấu một thông báo của user hiện tại là đã đọc, set `daDoc = true`, `docLuc = now`. |
-| PATCH | `/api/notifications/read-all` | JWT | Đánh dấu tất cả thông báo chưa đọc của user hiện tại là đã đọc. |
-| POST | `/api/admin/notifications` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Tạo thông báo thủ công. `targetType` nhận `users`, `class`, `course`, `campus`; campus scope được kiểm tra theo `MaDonVi`. |
-| GET | `/api/admin/notifications` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Danh sách thông báo quản trị, group theo `maNhomThongBao`, có `recipientCount`, `readCount`, `unreadCount`. |
-| GET | `/api/admin/notifications/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Chi tiết group thông báo dựa trên `maNhomThongBao` của row `{id}` trong phạm vi campus scope. |
+| GET | `/api/notifications/unread-count` | JWT | Alias backward-compatible của `/api/notifications/me/unread-count`. |
+| GET | `/api/notifications/me/unread-count` | JWT | Lấy số thông báo chưa đọc của user hiện tại từ `ThongBaoNguoiNhan`. |
+| PATCH | `/api/notifications/{id}/read` | JWT | Đánh dấu một thông báo của user hiện tại là đã đọc, set `ThongBaoNguoiNhan.daDoc = true`, `docLuc = now`. Idempotent. |
+| PATCH | `/api/notifications/read-all` | JWT | Đánh dấu tất cả thông báo chưa đọc và chưa ẩn của user hiện tại là đã đọc. Không đổi `docLuc` của bản đã đọc trước đó. |
+| DELETE | `/api/notifications/{id}` | JWT | Ẩn thông báo của user hiện tại bằng `ThongBaoNguoiNhan.daAn = true`, không hard delete. |
+| POST | `/api/admin/notifications/preview-recipients` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Backend resolve danh sách người nhận cuối cùng theo `phamViGui`/`targetType`, trả count và tối đa 100 người đầu tiên để preview. |
+| POST | `/api/admin/notifications` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Tạo và gửi thông báo thủ công trong transaction. Tạo 1 row `ThongBao` nội dung chung và nhiều row `ThongBaoNguoiNhan`. Không tạo thông báo nếu resolve ra 0 người nhận. |
+| GET | `/api/admin/notifications` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Lịch sử gửi thông báo trong campus scope. Filter `maDonVi`/`campusId`, `loaiThongBao`, `mucDo`, `trangThai`, `nguoiTao`, `keyword`, `ngayTu`/`fromDate`, `ngayDen`/`toDate`. Trả `recipientCount`, `readCount`, `unreadCount`, `hiddenCount`. |
+| GET | `/api/admin/notifications/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Chi tiết thông báo chung và thống kê trong scope hiện tại. |
+| GET | `/api/admin/notifications/{id}/recipients` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Danh sách người nhận có phân trang; filter `daDoc`, `daAn`, `keyword`. |
+| GET | `/api/admin/notifications/{id}/statistics` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Thống kê `tongNguoiNhan`, `tongDaDoc`, `tongChuaDoc`, `tongDaAn`. |
+| PATCH | `/api/admin/notifications/{id}/cancel` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Hủy thông báo khi chưa gửi (`nhap`/scheduled future). Thông báo đã `da_gui` không được hủy trong P0-NT-Core. |
 
 Request tạo manual notification:
 
 ```json
 {
   "tieuDe": "Thông báo nghỉ học",
-  "tomTat": "Lớp SD1904 nghỉ học ngày mai.",
+  "tomTatNoiDung": "Lớp SD1904 nghỉ học ngày mai.",
   "noiDungJson": "{\"time\":1710000000000,\"blocks\":[]}",
   "noiDungText": "Lớp SD1904 nghỉ học ngày mai.",
   "mucDo": "important",
+  "loaiThongBao": "manual",
+  "phamViGui": "lop_hanh_chinh",
   "targetType": "class",
   "targetIds": [1]
 }
 ```
 
-Ghi chú P0-8: Bảng `ThongBao` hiện được dùng theo mô hình mỗi dòng là một người nhận; các dòng cùng một lần gửi dùng chung `maNhomThongBao`. `loaiThongBao` ở API map vào cột DB `loai_su_kien`. Editor.js output được lưu nguyên vào `noi_dung_json` và được validate JSON; `noi_dung_text`/`tom_tat` dùng cho preview/search. P0-8 không làm SignalR realtime, email, mobile push hoặc scheduler. Auto notification đã gắn vào các phát sinh buổi học P0-5 và duyệt/từ chối mở khóa điểm danh P0-7.
+Recipient scopes P0-NT-Core:
+
+- `toan_he_thong`: chỉ SuperAdmin; resolve toàn bộ user active.
+- `don_vi`/legacy `campus`: resolve user active trong đơn vị được phép.
+- `lop_hanh_chinh`/legacy `class`: lớp phải trong scope; resolve học sinh active của lớp.
+- `khoa_hoc`/legacy `course`: khóa học trong scope; resolve học sinh lớp của khóa học và giáo viên phụ trách.
+- `vai_tro`: resolve user active theo role trong scope.
+- `nguoi_dung`/legacy `users`: validate từng user active trong scope.
+
+Ghi chú P0-NT-Core: `ThongBao` là nội dung chung; `ThongBaoNguoiNhan` giữ trạng thái từng người nhận (`daDoc`, `docLuc`, `daAn`, `anLuc`). Migration `AddNotificationRecipientState` giữ các cột legacy `ma_nguoi_nhan`, `da_doc`, `doc_luc`, `ma_nhom_thong_bao` trên `ThongBao` để tương thích dữ liệu/API P0-8, nhưng logic mới đọc/ghi trạng thái qua `ThongBaoNguoiNhan`. Migration backfill bảo thủ: mỗi row `ThongBao` cũ được giữ nguyên và tạo một row recipient tương ứng, không tự gom nhóm theo `ma_nhom_thong_bao` để tránh merge sai nội dung. Editor.js JSON phải là object hợp lệ, `blocks` nếu có phải là array, reject `data:image`/base64, và backend extract `noiDungText`/summary nếu client không gửi.
+
+Known limitations P0-NT-Core: chưa làm notification templates Task 10, học phí con nợ nâng cao Task 11, scheduled/background notification, email/push/SMS thật, tích hợp Đơn từ DT8, tích hợp Khen thưởng/Kỷ luật, và frontend.
 
 ### Dự kiến/cần bổ sung
 

@@ -19,6 +19,7 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpGet]
+    [HttpGet("me")]
     public async Task<ActionResult<ApiResponseDto<PagedResultDto<NotificationDto>>>> Get(
         [FromQuery] NotificationQueryParameters parameters,
         CancellationToken cancellationToken)
@@ -37,6 +38,7 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpGet("unread-count")]
+    [HttpGet("me/unread-count")]
     public async Task<ActionResult<ApiResponseDto<UnreadCountDto>>> GetUnreadCount(CancellationToken cancellationToken)
     {
         var result = await _notificationService.GetMyUnreadCountAsync(cancellationToken);
@@ -57,5 +59,14 @@ public class NotificationsController : ControllerBase
     {
         var result = await _notificationService.MarkAllAsReadAsync(cancellationToken);
         return Ok(ApiResponseDto<UnreadCountDto>.Ok(result, "Đánh dấu tất cả thông báo đã đọc thành công."));
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult<ApiResponseDto>> Hide(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        await _notificationService.HideAsync(id, cancellationToken);
+        return Ok(ApiResponseDto.Ok("Ẩn thông báo thành công."));
     }
 }
