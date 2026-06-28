@@ -25,6 +25,7 @@ public class ApplicationDecisionService : IApplicationDecisionService
     private readonly IApplicationDecisionPermissionEvaluator _permissionEvaluator;
     private readonly IApplicationApprovalPreconditionValidator _approvalPreconditionValidator;
     private readonly IApplicationAdminQueueService _queueService;
+    private readonly IApplicationNotificationService _applicationNotificationService;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public ApplicationDecisionService(
@@ -34,6 +35,7 @@ public class ApplicationDecisionService : IApplicationDecisionService
         IApplicationDecisionPermissionEvaluator permissionEvaluator,
         IApplicationApprovalPreconditionValidator approvalPreconditionValidator,
         IApplicationAdminQueueService queueService,
+        IApplicationNotificationService applicationNotificationService,
         IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
@@ -42,6 +44,7 @@ public class ApplicationDecisionService : IApplicationDecisionService
         _permissionEvaluator = permissionEvaluator;
         _approvalPreconditionValidator = approvalPreconditionValidator;
         _queueService = queueService;
+        _applicationNotificationService = applicationNotificationService;
         _httpContextAccessor = httpContextAccessor;
     }
 
@@ -54,6 +57,7 @@ public class ApplicationDecisionService : IApplicationDecisionService
         var rowVersion = DecodeRowVersion(request.RowVersion);
         var publicRequest = NormalizeRequiredText(request.Request, "Nội dung yêu cầu bổ sung", RequiredNoteMinLength, RequiredNoteMaxLength);
         var internalNote = NormalizeOptionalText(request.InternalNote, InternalNoteMaxLength, "Ghi chú nội bộ");
+        DonTu? changedApplication = null;
 
         await ExecuteConcurrencyAwareAsync(async () =>
         {
@@ -84,8 +88,14 @@ public class ApplicationDecisionService : IApplicationDecisionService
                 }, now);
                 AddAudit(application, actor, ApplicationActions.RequestSupplement, oldSnapshot, BuildAuditSnapshot(application), now);
                 await _context.SaveChangesAsync(cancellationToken);
+                changedApplication = application;
             }, cancellationToken);
         });
+
+        if (changedApplication is not null)
+        {
+            await _applicationNotificationService.NotifySupplementRequestedAsync(changedApplication, publicRequest, cancellationToken);
+        }
 
         return await _queueService.GetDetailAsync(applicationId, cancellationToken);
     }
@@ -99,6 +109,7 @@ public class ApplicationDecisionService : IApplicationDecisionService
         var rowVersion = DecodeRowVersion(request.RowVersion);
         var publicNote = NormalizeApprovalNote(request.PublicNote);
         var internalNote = NormalizeOptionalText(request.InternalNote, InternalNoteMaxLength, "Ghi chú nội bộ");
+        DonTu? changedApplication = null;
 
         await ExecuteConcurrencyAwareAsync(async () =>
         {
@@ -132,8 +143,14 @@ public class ApplicationDecisionService : IApplicationDecisionService
                 }, now);
                 AddAudit(application, actor, ApplicationActions.Approve, oldSnapshot, BuildAuditSnapshot(application), now);
                 await _context.SaveChangesAsync(cancellationToken);
+                changedApplication = application;
             }, cancellationToken);
         });
+
+        if (changedApplication is not null)
+        {
+            await _applicationNotificationService.NotifyApprovedAsync(changedApplication, cancellationToken);
+        }
 
         return await _queueService.GetDetailAsync(applicationId, cancellationToken);
     }
@@ -147,6 +164,7 @@ public class ApplicationDecisionService : IApplicationDecisionService
         var rowVersion = DecodeRowVersion(request.RowVersion);
         var reason = NormalizeRequiredText(request.Reason, "Lý do từ chối", RequiredNoteMinLength, RequiredNoteMaxLength);
         var internalNote = NormalizeOptionalText(request.InternalNote, InternalNoteMaxLength, "Ghi chú nội bộ");
+        DonTu? changedApplication = null;
 
         await ExecuteConcurrencyAwareAsync(async () =>
         {
@@ -179,8 +197,14 @@ public class ApplicationDecisionService : IApplicationDecisionService
                 }, now);
                 AddAudit(application, actor, ApplicationActions.Reject, oldSnapshot, BuildAuditSnapshot(application), now);
                 await _context.SaveChangesAsync(cancellationToken);
+                changedApplication = application;
             }, cancellationToken);
         });
+
+        if (changedApplication is not null)
+        {
+            await _applicationNotificationService.NotifyRejectedAsync(changedApplication, reason, cancellationToken);
+        }
 
         return await _queueService.GetDetailAsync(applicationId, cancellationToken);
     }

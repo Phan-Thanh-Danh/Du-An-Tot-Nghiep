@@ -1054,7 +1054,7 @@ public class NotificationService : INotificationService
             PhamViGui: NotificationConstants.Scopes.User,
             LoaiDoiTuongLienKet: NormalizeOptional(request.DoiTuongLienKet),
             MaDoiTuongLienKet: request.MaDoiTuongLienKet,
-            DuongDan: null,
+            DuongDan: NormalizeOptional(request.DuongDan),
             MaDonVi: request.MaDonVi,
             NguoiTao: request.NguoiTao,
             RecipientRequest: new PreviewNotificationRecipientsRequest { PhamViGui = NotificationConstants.Scopes.User });

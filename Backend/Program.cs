@@ -111,6 +111,7 @@ builder.Services.AddScoped<IApplicationSchemaService, ApplicationSchemaService>(
 builder.Services.AddScoped<IApplicationFormDataValidator, ApplicationFormDataValidator>();
 builder.Services.AddScoped<IApplicationReferenceValidator, ApplicationReferenceValidator>();
 builder.Services.AddScoped<IApplicationEvidenceValidator, ApplicationEvidenceValidator>();
+builder.Services.AddScoped<IApplicationNotificationService, ApplicationNotificationService>();
 builder.Services.AddScoped<IStudentApplicationService, StudentApplicationService>();
 builder.Services.AddScoped<IApplicationCampusScopeService, ApplicationCampusScopeService>();
 builder.Services.AddScoped<IApplicationAdminQueueService, ApplicationAdminQueueService>();
