@@ -37,6 +37,7 @@ using Backend.Services.QuizManagement;
 using Backend.Services.QuizRuntime;
 using Backend.Services.Rbac;
 using Backend.Services.Rooms;
+using Backend.Services.RewardDiscipline;
 using Backend.Services.Security;
 using Backend.Services.Specializations;
 using Backend.Services.Storage;
@@ -192,6 +193,7 @@ builder.Services.AddHostedService<QuizStatusAutomationHostedService>();
 builder.Services.AddScoped<IAttendanceUnlockService, AttendanceUnlockService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IQuestionBankService, QuestionBankService>();
+builder.Services.AddScoped<IRewardCampaignService, RewardCampaignService>();
 
 builder.Services.Configure<LearningProgressOptions>(
     builder.Configuration.GetSection(LearningProgressOptions.SectionName)

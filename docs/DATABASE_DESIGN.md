@@ -121,7 +121,7 @@ API/report/AI hiện là dự kiến, chưa thấy controller.
 - `HoSoKyLuat`: hồ sơ kỷ luật. RD1 giữ cột legacy và bổ sung học kỳ, mức độ vi phạm, hình thức xử lý, trạng thái lifecycle, ngày vi phạm/hiệu lực, chứng từ JSON, thông tin duyệt/gỡ hiệu lực và liên kết nghiệp vụ tùy chọn.
 - `YeuCauDoiLich`: yêu cầu đổi lịch.
 
-RD1 chỉ là nền tảng dữ liệu và schema/options API; chưa có workflow xét duyệt khen thưởng, tự động xét Top 100, sinh PDF bằng khen, hoặc phê duyệt/gỡ hiệu lực kỷ luật. Migration `AddRewardDisciplineFoundation` backfill `KhenThuong.ma_don_vi` từ `NguoiDung.ma_don_vi` của học sinh và fail-fast nếu dữ liệu legacy không thể suy ra cơ sở.
+RD1 chỉ là nền tảng dữ liệu và schema/options API. RD2 dùng lại bảng `DotKhenThuong` để CRUD metadata đợt `TOP_100_HOC_KY`; duplicate active được bảo vệ bởi filtered unique index `ma_hoc_ky + ma_don_vi + loai_dot` với `trang_thai <> da_huy`, service cũng validate trước khi ghi. RD2 chưa có workflow xét danh sách sinh viên, tự động xét Top 100, sinh PDF bằng khen, hoặc phê duyệt/gỡ hiệu lực kỷ luật. Migration `AddRewardDisciplineFoundation` backfill `KhenThuong.ma_don_vi` từ `NguoiDung.ma_don_vi` của học sinh và fail-fast nếu dữ liệu legacy không thể suy ra cơ sở.
 
 Các module này có model/database nhưng API hiện là dự kiến.
 

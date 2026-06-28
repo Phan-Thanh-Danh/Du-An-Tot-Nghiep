@@ -363,9 +363,37 @@ Ghi chú: PayOS là luồng thanh toán chính cho học sinh: PayOS tạo QR/li
 |---|---|---|---|
 | GET | `/api/reward-discipline/schema/options` | JWT | Trả danh mục trạng thái/loại dùng cho nền tảng khen thưởng - kỷ luật RD1: đợt khen thưởng Top 100 học kỳ, mẫu bằng khen, trạng thái khen thưởng, mức độ/hình thức/trạng thái kỷ luật. Endpoint chỉ đọc, chưa tạo workflow xét duyệt hoặc xử lý nghiệp vụ. |
 
+### Đợt Khen Thưởng Top 100 - Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/admin/reward-campaigns` | SuperAdmin/Admin/CampusAdmin | Danh sách đợt khen thưởng có phân trang, tìm kiếm và lọc theo `maHocKy`, `maDonVi`, `loaiDot`, `trangThai`, `keyword`, `pageIndex`, `pageSize`. SuperAdmin xem toàn bộ gồm đợt global `maDonVi = null`; Admin/CampusAdmin chỉ xem đợt thuộc cơ sở trong scope, không xem đợt global. |
+| POST | `/api/admin/reward-campaigns/top100` | SuperAdmin | Tạo đợt Top 100 học kỳ. Backend cố định `loaiDot = TOP_100_HOC_KY`, trạng thái tạo mới là `nhap`, mặc định `soLuongToiDa = 100` nếu bỏ trống. Validate học kỳ, cơ sở active, mẫu bằng khen active đúng loại, `tieuChiXetJson` là JSON object và chống trùng active theo `maHocKy + maDonVi + loaiDot`. |
+| GET | `/api/admin/reward-campaigns/{id}` | SuperAdmin/Admin/CampusAdmin | Xem chi tiết đợt khen thưởng trong scope, gồm học kỳ, đơn vị, mẫu bằng khen, tiêu chí JSON, người tạo/duyệt và mốc thời gian. |
+| PUT | `/api/admin/reward-campaigns/{id}` | SuperAdmin | Cập nhật đợt khen thưởng khi trạng thái còn `nhap`; cho sửa học kỳ/cơ sở/tên đợt/số lượng/tiêu chí JSON/mẫu bằng khen/ghi chú nếu không vi phạm duplicate active. |
+| PATCH | `/api/admin/reward-campaigns/{id}/cancel` | SuperAdmin | Hủy mềm đợt khen thưởng bằng `trangThai = da_huy`, bắt buộc lý do. Không cho hủy đợt đã `da_cong_bo`; không hard delete. |
+
+Ví dụ tạo đợt Top 100:
+
+```json
+{
+  "maHocKy": 1,
+  "maDonVi": 2,
+  "tenDot": "Top 100 học kỳ Spring 2026",
+  "soLuongToiDa": 100,
+  "tieuChiXetJson": {
+    "minGpa": 8.5,
+    "rankBy": "gpa"
+  },
+  "maMauBangKhen": 1,
+  "ghiChu": "Đợt xét thử nghiệm"
+}
+```
+
+RD2 chỉ quản lý metadata đợt Top 100. Chưa xét danh sách sinh viên, chưa sinh PDF bằng khen, chưa tạo record `KhenThuong` và chưa xử lý workflow kỷ luật.
+
 ### Dự kiến/cần bổ sung
 
-- CRUD đợt khen thưởng.
 - CRUD mẫu bằng khen.
 - Xét Top 100 học kỳ và sinh PDF bằng khen.
 - CRUD hồ sơ kỷ luật, phê duyệt/gỡ hiệu lực.
