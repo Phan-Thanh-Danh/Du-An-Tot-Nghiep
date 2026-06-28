@@ -41,6 +41,7 @@ Backend/
 - `RoomsController`: CRUD phòng học `/api/master-data/rooms` theo cấu trúc `DonVi -> ToaNha -> Tang -> PhongHoc`.
 - `ApplicationSchemaController`: schema/mẫu đơn read-only cho module đơn từ.
 - `StudentApplicationsController`: vòng đời đơn từ phía sinh viên `/api/student/applications`.
+- `RewardDisciplineController`: schema/options read-only cho nền tảng khen thưởng - kỷ luật `/api/reward-discipline/schema/options`.
 
 Quy ước:
 - Controller chỉ nhận request, gọi service, trả DTO/result.
@@ -63,6 +64,7 @@ Quy ước:
 - `IApplicationReportService`/`ApplicationReportService`: báo cáo tổng quan đơn từ cho admin/học vụ bằng SQL aggregate trong campus scope.
 - `IApplicationEvidenceObjectStore`: abstraction lưu file minh chứng; Local chỉ dùng Development/Testing, R2 dùng private object storage.
 - `ApplicationFormDataValidator`, `ApplicationReferenceValidator`, `ApplicationEvidenceValidator` và các `IApplicationSubmissionRule`: validate form động, entity liên quan, metadata minh chứng và rule theo loại đơn.
+- RD1 khen thưởng - kỷ luật hiện mới có constants/schema endpoint và EF foundation (`DotKhenThuong`, `MauBangKhen`, mở rộng `KhenThuong`, `HoSoKyLuat`); workflow xét duyệt, sinh bằng khen và xử lý kỷ luật sẽ tách service riêng ở task sau.
 
 Quy ước:
 - Service xử lý nghiệp vụ và gọi `ApplicationDbContext`.

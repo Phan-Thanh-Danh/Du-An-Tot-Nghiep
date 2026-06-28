@@ -115,9 +115,13 @@ API/report/AI hiện là dự kiến, chưa thấy controller.
 - `HoaDon`: hóa đơn học phí.
 - `GiaoDich`: giao dịch thanh toán.
 - `YeuCauHoanPhi`: yêu cầu hoàn phí.
-- `HoSoKyLuat`: hồ sơ kỷ luật.
-- `KhenThuong`, `CauHinhKhenThuong`: khen thưởng.
+- `DotKhenThuong`: đợt xét khen thưởng, RD1 hỗ trợ foundation cho loại `TOP_100_HOC_KY`, scope theo học kỳ/cơ sở, trạng thái nháp/xét/chờ duyệt/duyệt/công bố/hủy và cấu hình tiêu chí JSON.
+- `MauBangKhen`: mẫu bằng khen, lưu file nền, kích thước, hướng giấy và cấu hình render JSON. RD1 chỉ lưu metadata, chưa sinh PDF.
+- `KhenThuong`, `CauHinhKhenThuong`: khen thưởng. `KhenThuong` giữ cột legacy (`gpa_dat_duoc`, `url_chung_tu`, `da_huy`) và bổ sung foundation RD1 như `ma_don_vi`, liên kết đợt/mẫu bằng khen, trạng thái lifecycle, điểm xét, xếp hạng, snapshot hiển thị và URL PDF.
+- `HoSoKyLuat`: hồ sơ kỷ luật. RD1 giữ cột legacy và bổ sung học kỳ, mức độ vi phạm, hình thức xử lý, trạng thái lifecycle, ngày vi phạm/hiệu lực, chứng từ JSON, thông tin duyệt/gỡ hiệu lực và liên kết nghiệp vụ tùy chọn.
 - `YeuCauDoiLich`: yêu cầu đổi lịch.
+
+RD1 chỉ là nền tảng dữ liệu và schema/options API; chưa có workflow xét duyệt khen thưởng, tự động xét Top 100, sinh PDF bằng khen, hoặc phê duyệt/gỡ hiệu lực kỷ luật. Migration `AddRewardDisciplineFoundation` backfill `KhenThuong.ma_don_vi` từ `NguoiDung.ma_don_vi` của học sinh và fail-fast nếu dữ liệu legacy không thể suy ra cơ sở.
 
 Các module này có model/database nhưng API hiện là dự kiến.
 
