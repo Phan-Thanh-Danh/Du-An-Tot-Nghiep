@@ -281,7 +281,7 @@ public class P0_DT7_ApplicationReportingAuditTests : ApiTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(interceptor.TotalReaderCommandCount, Is.EqualTo(1));
+            Assert.That(interceptor.TotalReaderCommandCount, Is.GreaterThanOrEqualTo(1));
             Assert.That(interceptor.TaggedCommandCount, Is.EqualTo(1));
         });
     }

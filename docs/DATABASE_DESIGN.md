@@ -83,7 +83,8 @@ API cho nhóm này hiện là dự kiến, chưa thấy controller.
 
 ## Nhóm Bảng Thông Báo/Hỗ Trợ
 
-- `ThongBao`: thông báo.
+- `ThongBao`: nội dung thông báo chung. P0-NT-Core giữ legacy columns `ma_nguoi_nhan`, `da_doc`, `doc_luc`, `ma_nhom_thong_bao` để tương thích dữ liệu cũ, nhưng logic mới không dùng các cột này cho trạng thái đọc.
+- `ThongBaoNguoiNhan`: trạng thái từng người nhận của một thông báo (`da_doc`, `doc_luc`, `da_an`, `an_luc`, `nhan_luc`). Có unique index `ma_thong_bao + ma_nguoi_nhan` và index phục vụ inbox `ma_nguoi_nhan + da_doc + da_an + nhan_luc`.
 - `ThongBaoHenGio`: thông báo lên lịch.
 - `MauThongBao`: mẫu thông báo.
 - `NhatKyThongBao`: log gửi thông báo.
@@ -93,7 +94,7 @@ API cho nhóm này hiện là dự kiến, chưa thấy controller.
 - `CauHoiThuongGap`: FAQ.
 - `DonTu`, `NhatKyDuyetDon`: đơn từ và quy trình duyệt.
 
-API cho nhóm này hiện là dự kiến, chưa thấy controller.
+Notification Center backend MVP đã có API user/admin. Migration `AddNotificationRecipientState` backfill bảo thủ dữ liệu P0-8: mỗi row `ThongBao` cũ được giữ nguyên và tạo một row `ThongBaoNguoiNhan` tương ứng, không gom nhóm theo `ma_nhom_thong_bao` nếu không chắc nội dung giống nhau.
 
 ## Nhóm Bảng Báo Cáo/AI/Audit
 

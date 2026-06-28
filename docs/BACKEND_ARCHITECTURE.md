@@ -277,6 +277,25 @@ Hiện validation chủ yếu nằm trong service và data annotations/ApiBehavi
 
 `AuthService` đã ghi audit cho login/password. Các module nhạy cảm như điểm, tài chính, quyền, tổ chức nên ghi audit khi triển khai.
 
+## Notification Center Core
+
+P0-NT-Core tách notification thành hai lớp:
+
+- `ThongBao`: nội dung chung của một lần gửi, gồm loại, mức độ, phạm vi, Editor.js JSON/text, đối tượng liên kết, trạng thái gửi và audit metadata.
+- `ThongBaoNguoiNhan`: trạng thái từng người nhận, gồm `DaDoc`, `DocLuc`, `DaAn`, `AnLuc`, `NhanLuc`.
+
+`NotificationService` là facade chính cho API user/admin và các module backend khác. Các method legacy `CreateSystemNotificationAsync`, `SendToUsersAsync`, `SendToClassAsync`, `SendToCourseAsync`, `SendToCampusAsync` vẫn được giữ để P0-5/P0-7/P0-9 tiếp tục compile/runtime. Admin create dùng transaction có execution strategy, resolve recipient server-side và rollback nếu insert recipient/log lỗi.
+
+Authorization:
+
+- SuperAdmin quản lý toàn hệ thống.
+- Admin/CampusAdmin/AcademicStaff chỉ quản lý notification trong campus scope hiện tại; CampusAdmin bao gồm descendants.
+- User thường chỉ xem/đọc/ẩn notification của chính mình.
+
+Editor.js validation ở mức MVP: JSON phải là object, `blocks` nếu có phải là array, không nhận `data:image`/base64 trong JSON, extract text từ paragraph/header/list/quote/table và sinh summary khi thiếu.
+
+Audit/logging: admin create/cancel ghi `NhatKyKiemToan`; mỗi recipient gửi ghi `NhatKyThongBao` kênh `thong_bao_day`. Không ghi full content JSON lớn vào audit.
+
 ## Testing Recommendation
 
 Ưu tiên:
