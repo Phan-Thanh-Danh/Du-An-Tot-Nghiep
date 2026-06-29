@@ -2309,6 +2309,9 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.LyDoTuChoi)
                 .HasColumnName("ly_do_tu_choi")
                 .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.GhiChuDuyet)
+                .HasColumnName("ghi_chu_duyet")
+                .HasMaxLength(2000);
             entity.Property(e => e.ChungTuJson)
                 .HasColumnName("chung_tu_json")
                 .HasColumnType("nvarchar(max)");
@@ -2322,6 +2325,11 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("nguoi_go_ky_luat");
             entity.Property(e => e.NgayGoKyLuat)
                 .HasColumnName("ngay_go_ky_luat")
+                .HasColumnType("datetime2");
+            entity.Property(e => e.NguoiApDung)
+                .HasColumnName("nguoi_ap_dung");
+            entity.Property(e => e.NgayApDung)
+                .HasColumnName("ngay_ap_dung")
                 .HasColumnType("datetime2");
             entity.Property(e => e.NgayCapNhat)
                 .HasColumnName("ngay_cap_nhat")
@@ -2389,6 +2397,11 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.NguoiHuy)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_HoSoKyLuat_nguoi_huy__NguoiDung");
+            entity.HasOne(e => e.NguoiApDungNavigation)
+                .WithMany()
+                .HasForeignKey(e => e.NguoiApDung)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_HoSoKyLuat_nguoi_ap_dung__NguoiDung");
         });
 
         modelBuilder.Entity<HoaDon>(entity =>

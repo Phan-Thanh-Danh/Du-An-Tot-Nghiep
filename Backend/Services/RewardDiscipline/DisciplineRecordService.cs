@@ -230,7 +230,13 @@ public class DisciplineRecordService : IDisciplineRecordService
             NguoiHuy = hoso.NguoiHuy,
             NgayHuy = hoso.NgayHuy,
             NgayHieuLuc = hoso.NgayHieuLuc,
-            NgayHetHieuLuc = hoso.NgayHetHieuLuc
+            NgayHetHieuLuc = hoso.NgayHetHieuLuc,
+            NguoiDuyet = hoso.NguoiDuyet,
+            NgayDuyet = hoso.NgayDuyet,
+            LyDoTuChoi = hoso.LyDoTuChoi,
+            GhiChuDuyet = hoso.GhiChuDuyet,
+            NguoiApDung = hoso.NguoiApDung,
+            NgayApDung = hoso.NgayApDung
         };
     }
 
@@ -484,6 +490,267 @@ public class DisciplineRecordService : IDisciplineRecordService
             "HoSoKyLuat",
             hoso.MaKyLuat,
             RewardDisciplineConstants.DisciplineAuditActions.CancelDisciplineRecord,
+            userId,
+            new { status = oldStatus },
+            new 
+            {
+                status = hoso.TrangThai,
+                reason = request.Reason
+            },
+            cancellationToken
+        );
+
+        return new DisciplineRecordResultDto
+        {
+            MaHoSoKyLuat = hoso.MaKyLuat,
+            TrangThai = hoso.TrangThai
+        };
+    }
+
+    public async Task<PagedResultDto<DisciplineRecordListItemDto>> GetPendingDisciplineRecordsAsync(
+        DisciplineRecordQueryParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        parameters.TrangThai = RewardDisciplineConstants.DisciplineStatuses.PendingApproval;
+        return await GetDisciplineRecordsAsync(parameters, cancellationToken);
+    }
+
+    public async Task<DisciplineRecordResultDto> ApproveDisciplineRecordAsync(
+        int recordId,
+        DisciplineApprovalRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = GetCurrentUser();
+        var isSuperAdmin = IsSuperAdmin(user);
+        var campusId = GetUserCampusId(user);
+        var userId = GetUserId(user);
+
+        var hoso = await _context.HoSoKyLuats
+            .FirstOrDefaultAsync(h => h.MaKyLuat == recordId, cancellationToken);
+
+        if (hoso == null)
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy hồ sơ kỷ luật.");
+
+        if (!isSuperAdmin)
+        {
+            if (hoso.MaDonVi != campusId)
+                throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền duyệt hồ sơ ở cơ sở khác.");
+        }
+
+        if (hoso.TrangThai != RewardDisciplineConstants.DisciplineStatuses.PendingApproval)
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ được duyệt hồ sơ ở trạng thái chờ duyệt.");
+
+        if (request.EffectiveTo.HasValue && request.EffectiveFrom.HasValue && request.EffectiveTo.Value <= request.EffectiveFrom.Value)
+            throw new ApiException(StatusCodes.Status400BadRequest, "Ngày kết thúc hiệu lực phải lớn hơn ngày bắt đầu.");
+
+        var oldStatus = hoso.TrangThai;
+        hoso.TrangThai = RewardDisciplineConstants.DisciplineStatuses.Approved;
+        
+        hoso.NguoiDuyet = userId;
+        hoso.NgayDuyet = DateTime.UtcNow;
+        hoso.GhiChuDuyet = request.DecisionNote;
+        
+        if (request.EffectiveFrom.HasValue)
+            hoso.NgayHieuLuc = DateOnly.FromDateTime(request.EffectiveFrom.Value);
+        else
+            hoso.NgayHieuLuc = DateOnly.FromDateTime(DateTime.UtcNow);
+            
+        if (request.EffectiveTo.HasValue)
+            hoso.NgayHetHieuLuc = DateOnly.FromDateTime(request.EffectiveTo.Value);
+            
+        if (!string.IsNullOrEmpty(request.InternalNote))
+            hoso.GhiChuNoiBo = request.InternalNote;
+
+        hoso.NgayCapNhat = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.AddAsync(
+            hoso.MaDonVi,
+            "HoSoKyLuat",
+            hoso.MaKyLuat,
+            RewardDisciplineConstants.DisciplineAuditActions.ApproveDisciplineRecord,
+            userId,
+            new { status = oldStatus },
+            new 
+            {
+                status = hoso.TrangThai,
+                decisionNote = request.DecisionNote,
+                effectiveFrom = hoso.NgayHieuLuc,
+                effectiveTo = hoso.NgayHetHieuLuc
+            },
+            cancellationToken
+        );
+
+        return new DisciplineRecordResultDto
+        {
+            MaHoSoKyLuat = hoso.MaKyLuat,
+            TrangThai = hoso.TrangThai
+        };
+    }
+
+    public async Task<DisciplineRecordResultDto> RejectDisciplineRecordAsync(
+        int recordId,
+        DisciplineRejectRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = GetCurrentUser();
+        var isSuperAdmin = IsSuperAdmin(user);
+        var campusId = GetUserCampusId(user);
+        var userId = GetUserId(user);
+
+        var hoso = await _context.HoSoKyLuats
+            .FirstOrDefaultAsync(h => h.MaKyLuat == recordId, cancellationToken);
+
+        if (hoso == null)
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy hồ sơ kỷ luật.");
+
+        if (!isSuperAdmin && hoso.MaDonVi != campusId)
+            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền từ chối hồ sơ ở cơ sở khác.");
+
+        if (hoso.TrangThai != RewardDisciplineConstants.DisciplineStatuses.PendingApproval)
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ được từ chối hồ sơ ở trạng thái chờ duyệt.");
+
+        var oldStatus = hoso.TrangThai;
+        hoso.TrangThai = RewardDisciplineConstants.DisciplineStatuses.Rejected;
+        
+        hoso.NguoiDuyet = userId;
+        hoso.NgayDuyet = DateTime.UtcNow;
+        hoso.LyDoTuChoi = request.Reason;
+        
+        if (!string.IsNullOrEmpty(request.InternalNote))
+            hoso.GhiChuNoiBo = request.InternalNote;
+
+        hoso.NgayCapNhat = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.AddAsync(
+            hoso.MaDonVi,
+            "HoSoKyLuat",
+            hoso.MaKyLuat,
+            RewardDisciplineConstants.DisciplineAuditActions.RejectDisciplineRecord,
+            userId,
+            new { status = oldStatus },
+            new 
+            {
+                status = hoso.TrangThai,
+                reason = request.Reason
+            },
+            cancellationToken
+        );
+
+        return new DisciplineRecordResultDto
+        {
+            MaHoSoKyLuat = hoso.MaKyLuat,
+            TrangThai = hoso.TrangThai
+        };
+    }
+
+    public async Task<DisciplineRecordResultDto> ActivateDisciplineRecordAsync(
+        int recordId,
+        DisciplineActivateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = GetCurrentUser();
+        var isSuperAdmin = IsSuperAdmin(user);
+        var campusId = GetUserCampusId(user);
+        var userId = GetUserId(user);
+
+        var hoso = await _context.HoSoKyLuats
+            .FirstOrDefaultAsync(h => h.MaKyLuat == recordId, cancellationToken);
+
+        if (hoso == null)
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy hồ sơ kỷ luật.");
+
+        if (!isSuperAdmin && hoso.MaDonVi != campusId)
+            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền áp dụng hồ sơ ở cơ sở khác.");
+
+        if (hoso.TrangThai != RewardDisciplineConstants.DisciplineStatuses.Approved)
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ được áp dụng hồ sơ ở trạng thái đã duyệt.");
+
+        if (request.EffectiveTo.HasValue && request.EffectiveFrom.HasValue && request.EffectiveTo.Value <= request.EffectiveFrom.Value)
+            throw new ApiException(StatusCodes.Status400BadRequest, "Ngày kết thúc hiệu lực phải lớn hơn ngày bắt đầu.");
+
+        var oldStatus = hoso.TrangThai;
+        hoso.TrangThai = RewardDisciplineConstants.DisciplineStatuses.Active;
+        
+        hoso.NguoiApDung = userId;
+        hoso.NgayApDung = DateTime.UtcNow;
+        
+        if (request.EffectiveFrom.HasValue)
+            hoso.NgayHieuLuc = DateOnly.FromDateTime(request.EffectiveFrom.Value);
+            
+        if (request.EffectiveTo.HasValue)
+            hoso.NgayHetHieuLuc = DateOnly.FromDateTime(request.EffectiveTo.Value);
+            
+        if (!string.IsNullOrEmpty(request.Note))
+            hoso.GhiChuNoiBo = request.Note;
+
+        hoso.NgayCapNhat = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.AddAsync(
+            hoso.MaDonVi,
+            "HoSoKyLuat",
+            hoso.MaKyLuat,
+            RewardDisciplineConstants.DisciplineAuditActions.ActivateDisciplineRecord,
+            userId,
+            new { status = oldStatus },
+            new 
+            {
+                status = hoso.TrangThai,
+                effectiveFrom = hoso.NgayHieuLuc,
+                effectiveTo = hoso.NgayHetHieuLuc
+            },
+            cancellationToken
+        );
+
+        return new DisciplineRecordResultDto
+        {
+            MaHoSoKyLuat = hoso.MaKyLuat,
+            TrangThai = hoso.TrangThai
+        };
+    }
+
+    public async Task<DisciplineRecordResultDto> ExpireDisciplineRecordAsync(
+        int recordId,
+        DisciplineExpireRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = GetCurrentUser();
+        var isSuperAdmin = IsSuperAdmin(user);
+        var campusId = GetUserCampusId(user);
+        var userId = GetUserId(user);
+
+        var hoso = await _context.HoSoKyLuats
+            .FirstOrDefaultAsync(h => h.MaKyLuat == recordId, cancellationToken);
+
+        if (hoso == null)
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy hồ sơ kỷ luật.");
+
+        if (!isSuperAdmin)
+            throw new ApiException(StatusCodes.Status403Forbidden, "Chỉ SuperAdmin mới có quyền kết thúc hồ sơ (tự nhiên).");
+
+        if (hoso.TrangThai != RewardDisciplineConstants.DisciplineStatuses.Active)
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ được kết thúc hồ sơ đang có hiệu lực.");
+
+        var oldStatus = hoso.TrangThai;
+        hoso.TrangThai = RewardDisciplineConstants.DisciplineStatuses.Expired;
+        
+        if (!string.IsNullOrEmpty(request.Reason))
+            hoso.GhiChuNoiBo = request.Reason;
+
+        hoso.NgayCapNhat = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.AddAsync(
+            hoso.MaDonVi,
+            "HoSoKyLuat",
+            hoso.MaKyLuat,
+            RewardDisciplineConstants.DisciplineAuditActions.ExpireDisciplineRecord,
             userId,
             new { status = oldStatus },
             new 
