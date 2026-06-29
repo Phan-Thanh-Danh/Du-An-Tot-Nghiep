@@ -2778,6 +2778,12 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.GhiChuHuy)
                 .HasColumnName("ghi_chu_huy")
                 .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.NgayCap)
+                .HasColumnName("ngay_cap")
+                .HasColumnType("datetime2");
+            entity.Property(e => e.GhiChuVongDoi)
+                .HasColumnName("ghi_chu_vong_doi")
+                .HasMaxLength(2000);
 
             entity.HasIndex(e => new { e.MaHocSinh, e.MaHocKy, e.LoaiKhenThuong })
                 .HasDatabaseName("IX_KhenThuong_hoc_sinh_hoc_ky_loai");

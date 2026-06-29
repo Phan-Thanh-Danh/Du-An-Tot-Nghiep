@@ -31,6 +31,8 @@ public class KhenThuong
     public int? NguoiHuy { get; set; }
     public DateTime? NgayHuy { get; set; }
     public string? GhiChuHuy { get; set; }
+    public DateTime? NgayCap { get; set; }
+    public string? GhiChuVongDoi { get; set; }
 
     public DonVi? DonVi { get; set; }
     public NguoiDung? HocSinh { get; set; }
