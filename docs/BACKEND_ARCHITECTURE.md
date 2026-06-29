@@ -330,3 +330,5 @@ cd Backend
 dotnet restore
 dotnet build
 ```
+## DL1 - Discipline Record Service
+- IDisciplineRecordService / DisciplineRecordService: Xử lý logic tạo, cập nhật, gửi duyệt và hủy hồ sơ kỷ luật nháp. Bao gồm kiểm tra quyền truy cập scope, validate EvidenceJson và ghi Audit Log.

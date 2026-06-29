@@ -132,3 +132,13 @@ Các module này có model/database nhưng API hiện là dự kiến.
 - Không giả định mọi bảng đã có API.
 - Với dữ liệu theo cơ sở, kiểm tra `MaDonVi` và role/campus scope.
 - JSON column đã có check constraint `ISJSON` ở nhiều bảng; cần serialize/validate đúng khi dùng.
+## HoSoKyLuat
+Thêm các cột phục vụ DL1:
+- 	ieu_de: nvarchar(255)
+- can_cu_xu_ly: nvarchar(2000)
+- ghi_chu_noi_bo: nvarchar(2000)
+- ly_do_huy: nvarchar(1000)
+- 
+guoi_huy: FK NguoiDung
+- 
+gay_huy: datetime2

@@ -203,6 +203,7 @@ builder.Services.AddScoped<ICertificatePdfStorageService, LocalCertificatePdfSto
 builder.Services.AddScoped<ICertificateGenerationService, CertificateGenerationService>();
 builder.Services.AddScoped<IStudentRewardService, StudentRewardService>();
 builder.Services.AddScoped<IRewardLifecycleService, RewardLifecycleService>();
+builder.Services.AddScoped<IDisciplineRecordService, DisciplineRecordService>();
 
 builder.Services.Configure<LearningProgressOptions>(
     builder.Configuration.GetSection(LearningProgressOptions.SectionName)
