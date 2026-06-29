@@ -97,4 +97,46 @@ public static class NotificationConstants
             Cancelled
         };
     }
+
+    public static class NotificationTemplateAuditActions
+    {
+        public const string Create = "CREATE_NOTIFICATION_TEMPLATE";
+        public const string Update = "UPDATE_NOTIFICATION_TEMPLATE";
+        public const string Activate = "ACTIVATE_NOTIFICATION_TEMPLATE";
+        public const string Deactivate = "DEACTIVATE_NOTIFICATION_TEMPLATE";
+        public const string DeleteOrDisable = "DELETE_OR_DISABLE_NOTIFICATION_TEMPLATE";
+        public const string Preview = "PREVIEW_NOTIFICATION_TEMPLATE";
+    }
+
+    public static class NotificationPriorities
+    {
+        public const string Low = "low";
+        public const string Normal = "normal";
+        public const string High = "high";
+        public const string Urgent = "urgent";
+
+        public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            Low,
+            Normal,
+            High,
+            Urgent
+        };
+    }
+
+    public static class NotificationChannels
+    {
+        public const string InApp = "in_app";
+        public const string Email = "email";
+        public const string Sms = "sms";
+        public const string ThongBaoDay = "thong_bao_day";
+
+        public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            InApp,
+            Email,
+            Sms,
+            ThongBaoDay
+        };
+    }
 }

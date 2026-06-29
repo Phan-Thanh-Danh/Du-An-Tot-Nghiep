@@ -3271,8 +3271,42 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("mau_noi_dung")
                 .HasColumnType("nvarchar(max)")
                 .IsRequired();
+
+            // New NT-TEMPLATE fields
+            entity.Property(e => e.MaDonVi).HasColumnName("ma_don_vi");
+            entity.Property(e => e.TenMau).HasColumnName("ten_mau").HasMaxLength(200);
+            entity.Property(e => e.MaMau).HasColumnName("ma_mau").HasMaxLength(100);
+            entity.Property(e => e.LoaiThongBao).HasColumnName("loai_thong_bao").HasMaxLength(100);
+            entity.Property(e => e.MucDoUuTien).HasColumnName("muc_do_uu_tien").HasMaxLength(50);
+            entity.Property(e => e.DoiTuongMacDinh).HasColumnName("doi_tuong_mac_dinh").HasMaxLength(100);
+            entity.Property(e => e.BienChoPhepJson).HasColumnName("bien_cho_phep_json").HasColumnType("nvarchar(max)");
+            entity.Property(e => e.DangHoatDong).HasColumnName("dang_hoat_dong").HasDefaultValue(true);
+            entity.Property(e => e.LaHeThong).HasColumnName("la_he_thong").HasDefaultValue(false);
+            entity.Property(e => e.NgayTao).HasColumnName("ngay_tao").HasColumnType("datetime2").HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.NguoiTao).HasColumnName("nguoi_tao");
+            entity.Property(e => e.NgayCapNhat).HasColumnName("ngay_cap_nhat").HasColumnType("datetime2");
+            entity.Property(e => e.NguoiCapNhat).HasColumnName("nguoi_cap_nhat");
+
             entity.HasIndex(e => new { e.LoaiSuKien, e.KenhGui }).IsUnique().HasDatabaseName("UQ_MauThongBao_1");
-            entity.ToTable(t => t.HasCheckConstraint("CK_MauThongBao_kenh_gui_1", "[kenh_gui] IN (N'email', N'thong_bao_day', N'sms')"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_MauThongBao_kenh_gui_1", "[kenh_gui] IN (N'email', N'thong_bao_day', N'sms', N'in_app')"));
+
+            entity.HasIndex(e => e.MaMau).HasDatabaseName("IX_MauThongBao_MaMau");
+            entity.HasIndex(e => e.LoaiThongBao).HasDatabaseName("IX_MauThongBao_LoaiThongBao");
+            entity.HasIndex(e => e.MaDonVi).HasDatabaseName("IX_MauThongBao_MaDonVi");
+            entity.HasIndex(e => e.DangHoatDong).HasDatabaseName("IX_MauThongBao_DangHoatDong");
+
+            entity.HasOne(d => d.DonVi)
+                .WithMany()
+                .HasForeignKey(d => d.MaDonVi)
+                .HasConstraintName("FK_MauThongBao_DonVi");
+            entity.HasOne(d => d.NguoiTaoNavigation)
+                .WithMany()
+                .HasForeignKey(d => d.NguoiTao)
+                .HasConstraintName("FK_MauThongBao_NguoiTao");
+            entity.HasOne(d => d.NguoiCapNhatNavigation)
+                .WithMany()
+                .HasForeignKey(d => d.NguoiCapNhat)
+                .HasConstraintName("FK_MauThongBao_NguoiCapNhat");
         });
 
         modelBuilder.Entity<MonHocTrongChuongTrinh>(entity =>

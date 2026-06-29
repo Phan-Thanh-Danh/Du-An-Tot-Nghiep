@@ -38,6 +38,7 @@ using Backend.Services.QuizRuntime;
 using Backend.Services.Rbac;
 using Backend.Services.Rooms;
 using Backend.Services.RewardDiscipline;
+using Backend.Services.Notification;
 using Backend.Services.Security;
 using Backend.Services.Specializations;
 using Backend.Services.Storage;
@@ -207,6 +208,8 @@ builder.Services.AddScoped<IDisciplineRecordService, DisciplineRecordService>();
 builder.Services.AddScoped<IDisciplineAppealService, DisciplineAppealService>();
 builder.Services.AddScoped<IRewardDisciplineNotificationService, RewardDisciplineNotificationService>();
 builder.Services.AddScoped<IRewardDisciplineReportService, RewardDisciplineReportService>();
+builder.Services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
+
 
 builder.Services.Configure<LearningProgressOptions>(
     builder.Configuration.GetSection(LearningProgressOptions.SectionName)
