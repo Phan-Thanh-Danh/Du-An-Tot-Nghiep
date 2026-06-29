@@ -209,6 +209,7 @@ builder.Services.AddScoped<IDisciplineAppealService, DisciplineAppealService>();
 builder.Services.AddScoped<IRewardDisciplineNotificationService, RewardDisciplineNotificationService>();
 builder.Services.AddScoped<IRewardDisciplineReportService, RewardDisciplineReportService>();
 builder.Services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
+builder.Services.AddScoped<ISpecializedNotificationService, SpecializedNotificationService>();
 
 
 builder.Services.Configure<LearningProgressOptions>(

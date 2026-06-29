@@ -965,7 +965,8 @@ Submit discipline record to change state from Draft to PendingApproval.
 Cancel a discipline record.
 
 **Request Body**
-- eason (string, required)
+- 
+eason (string, required)
 
 
 ### POST /api/admin/discipline-records/{id}/remove-effect
@@ -1100,3 +1101,11 @@ Known limitations:
 - Chưa có frontend dashboard/chart.
 - `totalDownloadedByStudents` trong certificate report hiện trả `null` vì schema chưa lưu lượt tải bằng khen.
 - Chưa group theo khoa/ngành/lớp vì dữ liệu reward/discipline hiện lưu trực tiếp theo học sinh/cơ sở/học kỳ; cần thiết kế riêng nếu muốn drill-down sâu hơn.
+
+### NT-SPECIAL - Specialized Notifications (DL/RD)
+- `GET /api/admin/specialized-notifications/categories`
+- `POST /api/admin/specialized-notifications/preview-recipients`
+- `POST /api/admin/specialized-notifications/tuition`
+- `POST /api/admin/specialized-notifications/academic`
+- `POST /api/admin/specialized-notifications/urgent`
+- `POST /api/admin/specialized-notifications/maintenance`

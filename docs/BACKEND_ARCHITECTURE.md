@@ -359,3 +359,6 @@ Implementation notes:
 - Scope dùng `IApplicationCampusScopeService`: SuperAdmin/Admin global, CampusAdmin campus + descendants.
 - Không tạo notification, không export Excel/PDF và không tạo snapshot table trong phase này.
 - Known limitations: chưa có lượt tải bằng khen nên `totalDownloadedByStudents = null`; chưa drill-down khoa/ngành/lớp vì schema reward/discipline hiện chưa lưu trực tiếp các chiều này.
+
+### Specialized Notifications (NT-SPECIAL)
+- **SpecializedNotificationService**: Handles specialized notification targeting (tuition, academic, urgent, maintenance, all_students, campus, class, major, admins, custom_students). Includes idempotency mechanism using `ThongBao.DoiTuongLienKet` and `LoaiSuKien`.
