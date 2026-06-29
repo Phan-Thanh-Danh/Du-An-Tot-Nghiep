@@ -11,13 +11,15 @@ const emit = defineEmits(['approve', 'reject', 'request-supplement'])
 
 const note = ref('')
 const isProcessing = ref(false)
+const formError = ref('')
 
 const canDecide = computed(() => ['DANG_XEM_XET', 'DA_NOP'].includes(props.application.trangThai))
 
 const handleAction = (type) => {
+  formError.value = ''
   if (type === 'reject' || type === 'supplement') {
     if (!note.value.trim()) {
-      alert('Vui lòng nhập lý do/ghi chú')
+      formError.value = 'Vui lòng nhập lý do hoặc ghi chú phản hồi.'
       return
     }
   }
@@ -50,10 +52,13 @@ const handleAction = (type) => {
           class="w-full px-3 py-2 bg-[var(--surface-input)] border border-[var(--border-input)] rounded-lg focus:border-[var(--lg-primary)] outline-none text-[var(--text-body)] resize-none"
           placeholder="Nhập ghi chú cho sinh viên..."
         ></textarea>
+        <p v-if="formError" class="mt-1 text-xs font-semibold text-[var(--color-danger-text)]">
+          {{ formError }}
+        </p>
       </div>
 
       <div class="grid grid-cols-2 gap-2">
-        <GlassButton variant="warning" class="col-span-2" :loading="isProcessing" @click="handleAction('supplement')">
+        <GlassButton variant="secondary" class="col-span-2" :loading="isProcessing" @click="handleAction('supplement')">
           <template #leading><AlertCircle class="w-4 h-4" /></template> Yêu cầu bổ sung
         </GlassButton>
         <GlassButton variant="danger" :loading="isProcessing" @click="handleAction('reject')">

@@ -1,326 +1,309 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
+import { computed, ref } from 'vue'
+import dayjs from 'dayjs'
 import {
-  CalendarDays, Clock, MapPin, User, Video, X,
-  ChevronLeft, ChevronRight, ExternalLink, Bell,
-  AlertTriangle, RefreshCw
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  MapPin,
+  Search,
+  User,
+  X,
 } from 'lucide-vue-next'
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
+import GlassBadge from '@/components/ui/GlassBadge.vue'
+import GlassButton from '@/components/ui/GlassButton.vue'
+import GlassInput from '@/components/ui/GlassInput.vue'
+import GlassPanel from '@/components/ui/GlassPanel.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
+import { getStudentScheduleSessions } from '@/mocks/scheduleAttendanceMockData'
+import { formatDate, formatTimeRange } from '@/utils/dateFormat'
+import { getStatusMeta, getStatusOptions } from '@/utils/statusLabels'
 
-const viewMode = ref('week')
-const today = new Date()
-const currentDate = ref(new Date(today))
-const selectedEvent = ref(null)
-const drawerOpen = ref(false)
-useBodyScrollLock(drawerOpen)
-const searchSubject = ref('')
+const loading = ref(false)
+const anchorDate = ref(dayjs().toDate())
+const selectedSubject = ref('all')
+const selectedStatus = ref('all')
+const searchTerm = ref('')
+const selectedSession = ref(null)
+const detailOpen = ref(false)
 
-import { studentDashboardMock } from '@/data/studentData.mock.js'
+useBodyScrollLock(detailOpen)
 
-const mockSessions = computed(() => {
-  const coursesList = studentDashboardMock.courses || []
-  if (coursesList.length === 0) return []
-  
-  const sessions = []
-  let idCounter = 1
-  
-  const todayVal = new Date()
-  const dayOfWeek = todayVal.getDay()
-  const monday = new Date(todayVal)
-  monday.setDate(todayVal.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
-  
-  const isIT = studentDashboardMock.student?.className?.includes('SE')
-  
-  coursesList.forEach((course, index) => {
-    const teacherName = course.lecturer || 'Giảng viên phụ trách'
-    const color = index === 0 ? 'blue' : index === 1 ? 'teal' : index === 2 ? 'violet' : 'amber'
-    
-    // Buổi 1
-    const dayOffset1 = index * 2
-    if (dayOffset1 < 7) {
-      const date1 = new Date(monday)
-      date1.setDate(monday.getDate() + dayOffset1)
-      date1.setHours(7, 30, 0, 0)
-      const endDate1 = new Date(date1)
-      endDate1.setHours(9, 30)
-      
-      sessions.push({
-        id: idCounter++,
-        subject: course.name,
-        code: course.code || course.id.toUpperCase(),
-        teacher: teacherName,
-        room: `P.${302 + index * 5}`,
-        date: date1,
-        endDate: endDate1,
-        status: 'published',
-        type: 'offline',
-        color: color
-      })
-    }
-    
-    // Buổi 2
-    const dayOffset2 = index * 2 + 3
-    if (dayOffset2 < 7) {
-      const date2 = new Date(monday)
-      date2.setDate(monday.getDate() + dayOffset2)
-      date2.setHours(13, 30, 0, 0)
-      const endDate2 = new Date(date2)
-      endDate2.setHours(15, 30)
-      
-      let status = 'published'
-      let type = 'offline'
-      let meetLink = ''
-      if (index === 1) {
-        status = 'online'
-        type = 'online'
-        meetLink = 'https://meet.google.com/abc-defg-hij'
-      } else if (index === 2 && isIT) {
-        status = 'cancelled'
-        type = 'offline'
-      }
-      
-      sessions.push({
-        id: idCounter++,
-        subject: course.name,
-        code: course.code || course.id.toUpperCase(),
-        teacher: teacherName,
-        room: type === 'online' ? 'Online' : `P.${305 + index * 5}`,
-        date: date2,
-        endDate: endDate2,
-        status: status,
-        type: type,
-        meetLink: meetLink,
-        cancelReason: status === 'cancelled' ? 'Giảng viên bận công tác' : undefined,
-        color: color
-      })
-    }
-  })
-  
-  return sessions
+const allSessions = computed(() => getStudentScheduleSessions(anchorDate.value))
+const weekStart = computed(() => {
+  const current = dayjs(anchorDate.value)
+  return current.startOf('day').subtract(current.day() === 0 ? 6 : current.day() - 1, 'day')
 })
-
-const statusConfig = {
-  published: { label: 'Published', cls: 'badge-published' },
-  cancelled:  { label: 'Cancelled', cls: 'badge-cancelled' },
-  makeup:     { label: 'Makeup', cls: 'badge-makeup' },
-  online:     { label: 'Online', cls: 'badge-online' },
-}
-
-function fmt(d){ return d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}) }
-
-function goToday(){ currentDate.value = new Date(today) }
-
-function prevPeriod(){
-  const d = new Date(currentDate.value)
-  if (viewMode.value === 'week') {
-    d.setDate(d.getDate() - 7)
-  } else {
-    d.setMonth(d.getMonth() - 1)
-  }
-  currentDate.value = d
-}
-
-function nextPeriod(){
-  const d = new Date(currentDate.value)
-  if (viewMode.value === 'week') {
-    d.setDate(d.getDate() + 7)
-  } else {
-    d.setMonth(d.getMonth() + 1)
-  }
-  currentDate.value = d
-}
-
-function openDrawer(ev){
-  selectedEvent.value = ev
-  drawerOpen.value = true
-}
-function closeDrawer(){ drawerOpen.value = false }
-
-const uniqueSubjects = computed(() => [...new Set(mockSessions.value.map(s=>s.subject))])
+const weekDays = computed(() => Array.from({ length: 7 }, (_, index) => weekStart.value.add(index, 'day')))
+const weekLabel = computed(() => `${formatDate(weekDays.value[0])} - ${formatDate(weekDays.value[6])}`)
+const subjects = computed(() => [...new Set(allSessions.value.map((session) => session.subject))])
+const statusOptions = computed(() => getStatusOptions('session'))
 
 const filteredSessions = computed(() => {
-  if(!searchSubject.value) return mockSessions.value
-  return mockSessions.value.filter(s=>s.subject===searchSubject.value)
-})
+  const keyword = searchTerm.value.trim().toLowerCase()
 
-const weekDays = computed(() => {
-  const d = new Date(currentDate.value)
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day===0?-6:1)
-  d.setDate(diff)
-  return Array.from({length:7},(_,i)=>{
-    const dd = new Date(d)
-    dd.setDate(d.getDate()+i)
-    return dd
+  return allSessions.value.filter((session) => {
+    const matchesSubject = selectedSubject.value === 'all' || session.subject === selectedSubject.value
+    const matchesStatus = selectedStatus.value === 'all' || session.status === selectedStatus.value
+    const searchable = `${session.subject} ${session.room} ${session.teacher} ${session.courseCode}`.toLowerCase()
+    const matchesSearch = !keyword || searchable.includes(keyword)
+    return matchesSubject && matchesStatus && matchesSearch
   })
 })
 
-function sessionsForDay(day){
-  return filteredSessions.value.filter(s=>{
-    const sd = s.date
-    return sd.getFullYear()===day.getFullYear() && sd.getMonth()===day.getMonth() && sd.getDate()===day.getDate()
-  })
+const todaySessions = computed(() =>
+  filteredSessions.value
+    .filter((session) => dayjs(session.startAt).isSame(dayjs(), 'day') && session.status !== 'huy')
+    .sort((left, right) => dayjs(left.startAt).valueOf() - dayjs(right.startAt).valueOf()),
+)
+
+const nextSession = computed(() =>
+  filteredSessions.value
+    .filter((session) => dayjs(session.startAt).isAfter(dayjs()) && session.status !== 'huy')
+    .sort((left, right) => dayjs(left.startAt).valueOf() - dayjs(right.startAt).valueOf())[0],
+)
+
+const changedCount = computed(() =>
+  filteredSessions.value.filter((session) => ['doi_phong', 'doi_ca', 'day_thay', 'huy'].includes(session.status)).length,
+)
+
+const visibleSessionCount = computed(() => filteredSessions.value.length)
+
+function sessionsForDay(day) {
+  return filteredSessions.value
+    .filter((session) => dayjs(session.startAt).isSame(day, 'day'))
+    .sort((left, right) => dayjs(left.startAt).valueOf() - dayjs(right.startAt).valueOf())
 }
 
-function isToday(d){
-  return d.getFullYear()===today.getFullYear() && d.getMonth()===today.getMonth() && d.getDate()===today.getDate()
+function goPreviousWeek() {
+  anchorDate.value = dayjs(anchorDate.value).subtract(7, 'day').toDate()
 }
 
-const weekLabel = computed(()=>{
-  const ds = weekDays.value
-  const s = ds[0].toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})
-  const e = ds[6].toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'})
-  return `${s} – ${e}`
-})
+function goNextWeek() {
+  anchorDate.value = dayjs(anchorDate.value).add(7, 'day').toDate()
+}
 
-const monthDays = computed(()=>{
-  const d = new Date(currentDate.value)
-  const year = d.getFullYear(), month = d.getMonth()
-  const first = new Date(year,month,1)
-  const last = new Date(year,month+1,0)
-  const days = []
-  let startDow = first.getDay(); if(startDow===0)startDow=7
-  for(let i=1;i<startDow;i++) days.push(null)
-  for(let i=1;i<=last.getDate();i++) days.push(new Date(year,month,i))
-  return days
-})
+function goToday() {
+  anchorDate.value = dayjs().toDate()
+}
 
-const monthLabel = computed(()=>currentDate.value.toLocaleDateString('vi-VN',{month:'long',year:'numeric'}))
+function openDetail(session) {
+  selectedSession.value = session
+  detailOpen.value = true
+}
 
-const metrics = computed(()=>{
-  const total = filteredSessions.value.length
-  const online = filteredSessions.value.filter(s=>s.status==='online').length
-  const cancelled = filteredSessions.value.filter(s=>s.status==='cancelled').length
-  const makeup = filteredSessions.value.filter(s=>s.status==='makeup').length
-  return [
-    {label:'Tổng buổi học',value:total,unit:'buổi',color:'blue'},
-    {label:'Học online',value:online,unit:'buổi',color:'violet'},
-    {label:'Đã huỷ',value:cancelled,unit:'buổi',color:'red'},
-    {label:'Học bù',value:makeup,unit:'buổi',color:'amber'},
-  ]
-})
+function closeDetail() {
+  detailOpen.value = false
+}
+
+function statusMeta(status) {
+  return getStatusMeta('session', status)
+}
 </script>
 
 <template>
-  <div class="schedule-page">
-    <!-- Header -->
-    <div class="page-header">
-      <div>
-        <div class="eyebrow"><CalendarDays :size="15"/>Lịch học</div>
-        <h1 class="page-title">Thời khóa biểu</h1>
-        <p class="page-sub">Lịch học cá nhân theo tuần / tháng. Chỉ hiển thị lịch đã được phê duyệt.</p>
-      </div>
-      <div class="header-actions">
-        <select v-model="searchSubject" class="filter-select">
-          <option value="">Tất cả môn học</option>
-          <option v-for="s in uniqueSubjects" :key="s" :value="s">{{ s }}</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Metrics -->
-    <div class="metrics-row">
-      <div v-for="m in metrics" :key="m.label" class="metric-card" :class="`metric-${m.color}`">
-        <div class="metric-val">{{ m.value }}<span class="metric-unit">{{ m.unit }}</span></div>
-        <div class="metric-lbl">{{ m.label }}</div>
-      </div>
-    </div>
-
-    <!-- Calendar Controls -->
-    <div class="cal-controls">
-      <div class="view-toggle">
-        <button :class="['toggle-btn',viewMode==='week'&&'active']" @click="viewMode='week'">Tuần</button>
-        <button :class="['toggle-btn',viewMode==='month'&&'active']" @click="viewMode='month'">Tháng</button>
-      </div>
-      <div class="nav-group">
-        <button class="nav-btn" @click="prevPeriod"><ChevronLeft :size="18"/></button>
-        <span class="period-label">{{ viewMode==='week'?weekLabel:monthLabel }}</span>
-        <button class="nav-btn" @click="nextPeriod"><ChevronRight :size="18"/></button>
-      </div>
-      <button class="today-btn" @click="goToday">Today</button>
-    </div>
-
-    <!-- Week View -->
-    <div v-if="viewMode==='week'" class="week-grid">
-      <div v-for="day in weekDays" :key="day.toISOString()" class="day-col">
-        <div class="day-header" :class="isToday(day)&&'day-today'">
-          <span class="day-name">{{ day.toLocaleDateString('vi-VN',{weekday:'short'}) }}</span>
-          <span class="day-num">{{ day.getDate() }}</span>
+  <div class="lg-page-enter mx-auto max-w-7xl space-y-5">
+    <div class="summary-grid">
+      <GlassPanel variant="soft" density="comfortable" class="summary-card">
+        <div class="flex min-w-0 items-start gap-3">
+          <div class="summary-icon">
+            <CalendarDays :size="20" aria-hidden="true" />
+          </div>
+          <div class="min-w-0">
+            <p class="ui-label text-label">Hôm nay</p>
+            <h2 class="ui-section-title text-heading">{{ todaySessions.length }} buổi học</h2>
+            <p class="clamp-2 ui-body text-muted">
+              {{ todaySessions[0]?.subject || 'Không có buổi học trong hôm nay.' }}
+            </p>
+          </div>
         </div>
-        <div class="day-events">
-          <div v-for="ev in sessionsForDay(day)" :key="ev.id"
-            class="event-card" :class="[`ev-${ev.color}`,ev.status==='cancelled'&&'ev-cancelled']"
-            @click="openDrawer(ev)">
-            <div class="ev-time">{{ fmt(ev.date) }} – {{ fmt(ev.endDate) }}</div>
-            <div class="ev-name">{{ ev.subject }}</div>
-            <div class="ev-meta">
-              <MapPin :size="11"/>{{ ev.room }}
+      </GlassPanel>
+
+      <GlassPanel variant="soft" density="comfortable" class="summary-card">
+        <div class="min-w-0">
+          <p class="ui-label text-label">Buổi tiếp theo</p>
+          <h2 class="clamp-1 ui-section-title text-heading">
+            {{ nextSession?.subject || 'Chưa có lịch sắp tới' }}
+          </h2>
+          <p class="clamp-2 ui-body text-muted">
+            <span v-if="nextSession">
+              {{ formatDate(nextSession.startAt) }} ·
+              {{ formatTimeRange(nextSession.shift.start, nextSession.shift.end) }} ·
+              {{ nextSession.room }}
+            </span>
+            <span v-else>Lịch tuần này chưa có buổi học sắp tới.</span>
+          </p>
+        </div>
+      </GlassPanel>
+
+      <GlassPanel variant="soft" density="comfortable" class="summary-card">
+        <div class="min-w-0">
+          <p class="ui-label text-label">Thay đổi trong tuần</p>
+          <h2 class="ui-section-title text-heading">{{ changedCount }} thông báo</h2>
+          <p class="clamp-2 ui-body text-muted">
+            Theo dõi đổi phòng, đổi ca, dạy thay hoặc hủy buổi học.
+          </p>
+        </div>
+      </GlassPanel>
+    </div>
+
+    <GlassPanel variant="readable" density="comfortable">
+      <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div class="min-w-0">
+          <p class="ui-label text-label">Tuần đang xem</p>
+          <h2 class="ui-section-title text-heading">{{ weekLabel }}</h2>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 xl:justify-end">
+          <GlassButton variant="secondary" size="sm" aria-label="Tuần trước" @click="goPreviousWeek">
+            <template #leading><ChevronLeft :size="15" /></template>
+            Tuần trước
+          </GlassButton>
+          <GlassButton variant="primary" size="sm" @click="goToday">Hôm nay</GlassButton>
+          <GlassButton variant="secondary" size="sm" aria-label="Tuần sau" @click="goNextWeek">
+            Tuần sau
+            <template #trailing><ChevronRight :size="15" /></template>
+          </GlassButton>
+        </div>
+      </div>
+
+      <div class="filter-grid mt-4">
+        <GlassInput v-model="searchTerm" placeholder="Tìm theo môn, phòng, giảng viên">
+          <template #prefix><Search :size="15" class="text-muted" aria-hidden="true" /></template>
+        </GlassInput>
+
+        <label class="control-field">
+          <span class="lg-label">Môn học</span>
+          <select v-model="selectedSubject" class="lg-control w-full">
+            <option value="all">Tất cả môn học</option>
+            <option v-for="subject in subjects" :key="subject" :value="subject">
+              {{ subject }}
+            </option>
+          </select>
+        </label>
+
+        <label class="control-field">
+          <span class="lg-label">Trạng thái / thay đổi</span>
+          <select v-model="selectedStatus" class="lg-control w-full">
+            <option value="all">Tất cả trạng thái</option>
+            <option v-for="status in statusOptions" :key="status.value" :value="status.value">
+              {{ status.label }}
+            </option>
+          </select>
+        </label>
+      </div>
+    </GlassPanel>
+
+    <GlassPanel v-if="loading" variant="readable" density="comfortable">
+      <LoadingSkeleton :lines="8" />
+    </GlassPanel>
+
+    <EmptyState
+      v-else-if="visibleSessionCount === 0"
+      title="Không có lịch học phù hợp"
+      description="Thử đổi bộ lọc môn học, trạng thái hoặc quay về tuần hiện tại."
+    />
+
+    <div v-else class="schedule-grid">
+      <GlassPanel
+        v-for="day in weekDays"
+        :key="day.format('YYYY-MM-DD')"
+        variant="surface"
+        density="compact"
+        class="day-column h-full"
+      >
+        <div :class="['day-header', day.isSame(dayjs(), 'day') ? 'is-today' : '']">
+          <span class="ui-label text-label">{{ day.format('dddd') }}</span>
+          <strong class="text-heading">{{ day.format('DD/MM') }}</strong>
+        </div>
+
+        <div class="day-body">
+          <button
+            v-for="session in sessionsForDay(day)"
+            :key="session.id"
+            type="button"
+            class="session-card"
+            @click="openDetail(session)"
+          >
+            <div class="flex min-w-0 items-start justify-between gap-2">
+              <div class="min-w-0">
+                <p class="session-time">
+                  {{ session.shift.label }} · {{ formatTimeRange(session.shift.start, session.shift.end) }}
+                </p>
+                <h3 class="session-title">{{ session.subject }}</h3>
+              </div>
+              <GlassBadge :variant="statusMeta(session.status).variant" class="shrink-0">
+                {{ statusMeta(session.status).label }}
+              </GlassBadge>
             </div>
-            <span class="ev-badge" :class="statusConfig[ev.status]?.cls">{{ statusConfig[ev.status]?.label }}</span>
-          </div>
-          <div v-if="sessionsForDay(day).length===0" class="no-event">–</div>
+            <div class="session-meta">
+              <span class="inline-flex min-w-0 items-center gap-1.5">
+                <MapPin :size="13" aria-hidden="true" />{{ session.room }}
+              </span>
+              <span class="inline-flex min-w-0 items-center gap-1.5">
+                <User :size="13" aria-hidden="true" />
+                {{ session.substituteTeacher || session.teacher }}
+              </span>
+            </div>
+          </button>
+
+          <p v-if="sessionsForDay(day).length === 0" class="empty-day">
+            Không có buổi học
+          </p>
         </div>
-      </div>
+      </GlassPanel>
     </div>
 
-    <!-- Month View -->
-    <div v-else class="month-grid">
-      <div v-for="d in ['T2','T3','T4','T5','T6','T7','CN']" :key="d" class="month-dow">{{ d }}</div>
-      <div v-for="(day,i) in monthDays" :key="i" class="month-cell" :class="day&&isToday(day)&&'cell-today'">
-        <template v-if="day">
-          <div class="month-day-num">{{ day.getDate() }}</div>
-          <div v-for="ev in sessionsForDay(day)" :key="ev.id"
-            class="month-ev" :class="`ev-dot-${ev.color}`"
-            @click="openDrawer(ev)">
-            {{ ev.subject.split(' ')[0] }}
-          </div>
-        </template>
-      </div>
-    </div>
-
-    <!-- Event Detail Modal -->
     <Teleport to="body">
-      <Transition name="modal">
-        <div v-if="drawerOpen" class="modal-overlay" @click.self="closeDrawer">
-          <div v-if="selectedEvent" class="modal-content lg">
-            <div class="modal-header">
+      <Transition name="drawer">
+        <div v-if="detailOpen" class="detail-overlay" @click.self="closeDetail">
+          <GlassPanel
+            v-if="selectedSession"
+            variant="readable"
+            density="comfortable"
+            class="detail-panel"
+          >
+            <div class="flex items-start justify-between gap-3">
               <div>
-                <span class="ev-badge lg" :class="statusConfig[selectedEvent.status]?.cls">{{ statusConfig[selectedEvent.status]?.label }}</span>
-                <h2 class="modal-title">{{ selectedEvent.subject }}</h2>
-                <p class="modal-code">{{ selectedEvent.code }}</p>
+                <GlassBadge :variant="statusMeta(selectedSession.status).variant" size="md">
+                  {{ statusMeta(selectedSession.status).label }}
+                </GlassBadge>
+                <h2 class="mt-3 text-lg font-semibold text-heading">{{ selectedSession.subject }}</h2>
+                <p class="text-sm text-muted">{{ selectedSession.courseCode }} · {{ selectedSession.className }}</p>
               </div>
-              <button class="close-btn" @click="closeDrawer"><X :size="20"/></button>
+              <button
+                type="button"
+                class="lg-icon-button flex h-9 w-9 items-center justify-center"
+                aria-label="Đóng chi tiết buổi học"
+                @click="closeDetail"
+              >
+                <X :size="17" aria-hidden="true" />
+              </button>
             </div>
 
-            <div class="modal-body">
-              <div class="info-row"><Clock :size="16" class="info-icon"/><span>{{ fmt(selectedEvent.date) }} – {{ fmt(selectedEvent.endDate) }}</span></div>
-              <div class="info-row"><MapPin :size="16" class="info-icon"/><span>{{ selectedEvent.room }}</span></div>
-              <div class="info-row"><User :size="16" class="info-icon"/><span>{{ selectedEvent.teacher }}</span></div>
-              <div v-if="selectedEvent.type==='online'" class="info-row">
-                <Video :size="16" class="info-icon text-violet"/>
-                <a :href="selectedEvent.meetLink" target="_blank" class="meet-link">
-                  <ExternalLink :size="13"/>Tham gia buổi học online
-                </a>
+            <div class="mt-5 space-y-3">
+              <div class="detail-row">
+                <Clock :size="16" aria-hidden="true" />
+                <span>{{ formatDate(selectedSession.startAt) }} · {{ formatTimeRange(selectedSession.shift.start, selectedSession.shift.end) }}</span>
               </div>
-              <div v-if="selectedEvent.status==='cancelled'" class="cancel-notice">
-                <AlertTriangle :size="15"/>
-                {{ selectedEvent.cancelReason || 'Buổi học bị huỷ.' }}
+              <div class="detail-row">
+                <MapPin :size="16" aria-hidden="true" />
+                <span>{{ selectedSession.room }}</span>
               </div>
-              <div v-if="selectedEvent.status==='makeup'" class="makeup-notice">
-                <RefreshCw :size="15"/>Đây là buổi học bù.
+              <div class="detail-row">
+                <User :size="16" aria-hidden="true" />
+                <span>{{ selectedSession.substituteTeacher || selectedSession.teacher }}</span>
               </div>
-              <div v-if="selectedEvent.type==='online'" class="online-notice">
-                <Bell :size="15"/>Sẽ nhận thông báo 30 phút trước khi buổi học bắt đầu.
-              </div>
-            </div>
 
-            <div class="modal-footer">
-              <button class="btn-secondary" @click="closeDrawer">Đóng</button>
-              <a v-if="selectedEvent.type==='online'" :href="selectedEvent.meetLink" target="_blank" class="btn-primary">
-                <Video :size="15"/>Mở link học
-              </a>
+              <GlassPanel v-if="selectedSession.reason" variant="soft" density="compact">
+                <p class="ui-label text-label">Lý do thay đổi</p>
+                <p class="mt-1 text-sm text-body">{{ selectedSession.reason }}</p>
+              </GlassPanel>
             </div>
-          </div>
+          </GlassPanel>
         </div>
       </Transition>
     </Teleport>
@@ -328,579 +311,252 @@ const metrics = computed(()=>{
 </template>
 
 <style scoped>
-.schedule-page {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  width: 100%;
-}
-
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  width: fit-content;
-  border: 1px solid var(--border-card);
-  border-radius: 999px;
-  background: var(--surface-input);
-  color: var(--text-link);
-  padding: 0.25rem 0.6rem;
-  font-size: 0.7rem;
-  font-weight: 850;
-  text-transform: uppercase;
-}
-
-.page-title {
-  margin: 0.45rem 0 0.2rem;
-  color: var(--text-heading);
-  font-size: 1.35rem;
-  font-weight: 900;
-  line-height: 1.15;
-}
-
-.page-sub {
-  margin: 0;
-  color: var(--text-body);
-  font-size: 0.82rem;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.filter-select {
-  min-height: 2.35rem;
-  border: 1px solid var(--border-input);
-  border-radius: 12px;
-  background: var(--surface-input);
-  color: var(--text-label);
-  cursor: pointer;
-  outline: none;
-  padding: 0 0.8rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.filter-select:focus {
-  border-color: var(--border-input-focus);
-  box-shadow: 0 0 0 3px var(--border-focus-ring);
-}
-
-.metrics-row {
+.summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
   gap: 0.75rem;
+  align-items: stretch;
 }
 
-.metric-card,
-.cal-controls,
-.day-col,
-.month-grid {
-  border: 1px solid var(--border-card);
-  background: var(--surface-card);
-  box-shadow: var(--lg-shadow-sm);
+.summary-card {
+  min-height: 8.25rem;
 }
 
-.metric-card {
-  border-radius: 16px;
-  padding: 0.8rem;
-}
-
-.metric-val {
-  color: var(--text-heading);
-  font-size: 1.1rem;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.metric-unit {
-  margin-left: 0.25rem;
-  color: var(--text-placeholder);
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.metric-lbl {
-  margin-top: 0.25rem;
-  color: var(--text-label);
-  font-size: 0.72rem;
-  font-weight: 800;
-}
-
-.metric-blue { box-shadow: inset 3px 0 0 var(--accent-primary), var(--lg-shadow-sm); }
-.metric-violet { box-shadow: inset 3px 0 0 var(--accent-violet), var(--lg-shadow-sm); }
-.metric-red { box-shadow: inset 3px 0 0 var(--color-danger-text), var(--lg-shadow-sm); }
-.metric-amber { box-shadow: inset 3px 0 0 var(--color-warning-text), var(--lg-shadow-sm); }
-
-.cal-controls {
+.summary-icon {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  border-radius: 18px;
-  padding: 0.65rem;
-  backdrop-filter: blur(calc(var(--glass-blur) - 4px)) saturate(130%);
-}
-
-.view-toggle {
-  display: flex;
-  gap: 0.2rem;
-  border: 1px solid var(--border-card);
-  border-radius: 12px;
-  background: var(--surface-input);
-  padding: 0.2rem;
-}
-
-.toggle-btn,
-.nav-btn,
-.today-btn,
-.btn-secondary,
-.btn-primary {
-  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 850;
-  transition: transform 160ms ease, border-color 160ms ease, color 160ms ease, background 160ms ease;
+  flex-shrink: 0;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
 }
 
-.toggle-btn {
-  min-height: 1.95rem;
-  border: 0;
-  background: transparent;
-  color: var(--text-placeholder);
-  padding: 0 0.75rem;
+.filter-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: end;
 }
 
-.toggle-btn.active {
-  background: var(--surface-card-strong);
-  color: var(--text-link);
-  box-shadow: var(--lg-shadow-sm);
+.filter-grid :deep(.lg-input),
+.filter-grid .lg-control {
+  min-height: var(--control-height-lg);
 }
 
-.nav-group {
+.control-field {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.375rem;
 }
 
-.nav-btn {
-  width: 2.2rem;
-  height: 2.2rem;
-  border: 1px solid var(--border-input);
-  background: var(--surface-input);
-  color: var(--text-label);
-}
-
-.nav-btn:hover {
-  border-color: var(--border-input-focus);
-  color: var(--text-link);
-}
-
-.period-label {
-  min-width: 12rem;
-  color: var(--text-heading);
-  font-size: 0.86rem;
-  font-weight: 850;
-  text-align: center;
-}
-
-.today-btn,
-.btn-primary {
-  min-height: 2.2rem;
-  border: 0;
-  background: var(--accent-primary);
-  color: var(--text-inverse);
-  padding: 0 0.9rem;
-  text-decoration: none;
-}
-
-.today-btn:hover,
-.btn-primary:hover {
-  transform: translateY(-1px);
-}
-
-.week-grid {
+.schedule-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.65rem;
+  grid-auto-rows: 1fr;
+  gap: 0.75rem;
+  align-items: stretch;
 }
 
-.day-col {
-  min-height: 13rem;
-  overflow: hidden;
-  border-radius: 16px;
+.day-column {
+  display: flex;
+  min-height: 24rem;
+  flex-direction: column;
 }
 
 .day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3.25rem;
   border-bottom: 1px solid var(--border-card);
-  background: var(--surface-input);
-  padding: 0.55rem;
-  text-align: center;
+  padding-bottom: 0.625rem;
 }
 
-.day-header.day-today {
-  background: var(--accent-primary-soft);
-}
-
-.day-name {
-  display: block;
-  color: var(--text-placeholder);
-  font-size: 0.65rem;
-  font-weight: 850;
-  text-transform: uppercase;
-}
-
-.day-num {
-  display: block;
-  margin-top: 0.1rem;
-  color: var(--text-heading);
-  font-size: 1rem;
-  font-weight: 900;
-}
-
-.day-today .day-num {
+.day-header.is-today strong {
   color: var(--text-link);
 }
 
-.day-events {
+.day-body {
   display: flex;
+  min-height: 0;
+  flex: 1;
   flex-direction: column;
-  gap: 0.38rem;
-  padding: 0.45rem;
+  gap: 0.5rem;
+  overflow-y: auto;
+  padding-top: 0.75rem;
 }
 
-.no-event {
-  color: var(--text-placeholder);
-  font-size: 0.7rem;
-  padding: 0.9rem;
-  text-align: center;
-}
-
-.event-card {
+.session-card {
+  display: flex;
+  height: 10.75rem;
+  min-height: 9.75rem;
+  width: 100%;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
   border: 1px solid var(--border-card);
-  border-radius: 10px;
-  background: var(--surface-input);
-  cursor: pointer;
-  padding: 0.5rem;
-  transition: transform 160ms ease, box-shadow 160ms ease;
-}
-
-.event-card:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--lg-shadow-sm);
-}
-
-.ev-blue { border-left: 3px solid var(--accent-primary); }
-.ev-teal { border-left: 3px solid var(--accent-cyan); }
-.ev-violet { border-left: 3px solid var(--accent-violet); }
-.ev-amber { border-left: 3px solid var(--color-warning-text); }
-.ev-red { border-left: 3px solid var(--color-danger-text); }
-.ev-cancelled { opacity: 0.72; }
-
-.ev-time {
-  color: var(--text-placeholder);
-  font-size: 0.64rem;
-  font-weight: 750;
-}
-
-.ev-name {
-  margin: 0.15rem 0;
-  color: var(--text-heading);
-  font-size: 0.74rem;
-  font-weight: 850;
-  line-height: 1.3;
-}
-
-.ev-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  color: var(--text-label);
-  font-size: 0.65rem;
-}
-
-.ev-badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  margin-top: 0.25rem;
-  padding: 0.16rem 0.48rem;
-  font-size: 0.6rem;
-  font-weight: 850;
-}
-
-.ev-badge.lg {
-  margin-bottom: 0.5rem;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.74rem;
-}
-
-.badge-published { background: var(--color-success-bg); color: var(--color-success-text); }
-.badge-cancelled { background: var(--color-danger-bg); color: var(--color-danger-text); }
-.badge-makeup { background: var(--color-warning-bg); color: var(--color-warning-text); }
-.badge-online { background: var(--accent-violet-soft); color: var(--accent-violet); }
-
-.month-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 1px;
-  overflow: hidden;
-  border-radius: 16px;
-}
-
-.month-dow {
-  background: var(--surface-input);
-  color: var(--text-placeholder);
-  padding: 0.5rem;
-  font-size: 0.68rem;
-  font-weight: 850;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.month-cell {
-  display: flex;
-  min-height: 6.25rem;
-  flex-direction: column;
-  gap: 0.25rem;
+  border-radius: var(--radius-lg);
   background: var(--surface-card);
-  padding: 0.5rem;
+  padding: 0.75rem;
+  color: var(--text-body);
+  box-shadow: var(--lg-shadow-sm);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
 }
 
-.month-cell:hover {
-  background: var(--surface-input);
+.session-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-default);
+  background: var(--surface-card-hover);
 }
 
-.cell-today {
-  background: var(--accent-primary-soft) !important;
+.session-time {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
-.month-day-num {
-  color: var(--text-label);
-  font-size: 0.78rem;
-  font-weight: 850;
-}
-
-.cell-today .month-day-num {
-  color: var(--text-link);
-}
-
-.month-ev {
+.session-title {
+  display: -webkit-box;
+  margin-top: 0.25rem;
   overflow: hidden;
-  border-radius: 7px;
-  padding: 0.16rem 0.4rem;
-  font-size: 0.65rem;
-  font-weight: 760;
+  color: var(--text-heading);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.session-meta {
+  display: grid;
+  min-height: 2.25rem;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-align: left;
+}
+
+.session-meta span {
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  cursor: pointer;
 }
 
-.ev-dot-blue { background: var(--accent-primary-soft); color: var(--text-link); }
-.ev-dot-teal { background: var(--accent-cyan-soft); color: var(--accent-cyan); }
-.ev-dot-violet { background: var(--accent-violet-soft); color: var(--accent-violet); }
-.ev-dot-amber { background: var(--color-warning-bg); color: var(--color-warning-text); }
-.ev-dot-red { background: var(--color-danger-bg); color: var(--color-danger-text); }
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9998;
+.empty-day {
   display: flex;
+  min-height: 9.75rem;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--lg-bg-mid) 58%, transparent);
-  padding: 1rem;
-  backdrop-filter: blur(6px);
+  border: 1px dashed var(--border-card);
+  border-radius: var(--radius-lg);
+  padding: 0.875rem;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  text-align: center;
 }
 
-.modal-content {
-  position: relative;
-  z-index: 9999;
-  display: flex;
-  width: 100%;
-  max-height: 90vh;
-  flex-direction: column;
+.clamp-1,
+.clamp-2 {
+  display: -webkit-box;
   overflow: hidden;
-  border: 1px solid var(--border-card);
-  border-radius: 22px;
-  background: var(--surface-modal);
+  -webkit-box-orient: vertical;
+}
+
+.clamp-1 {
+  -webkit-line-clamp: 1;
+}
+
+.clamp-2 {
+  -webkit-line-clamp: 2;
+}
+
+.detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  justify-content: flex-end;
+  background: color-mix(in srgb, var(--surface-app) 55%, transparent);
+  padding: 1rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.detail-panel {
+  width: min(100%, 28rem);
+  height: 100%;
+  overflow-y: auto;
   box-shadow: var(--lg-shadow-lg);
 }
 
-.modal-content.lg {
-  max-width: 34rem;
-}
-
-.modal-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--border-card);
-  padding: 1rem;
-}
-
-.modal-title {
-  margin: 0.25rem 0 0.1rem;
-  color: var(--text-heading);
-  font-size: 1rem;
-  font-weight: 900;
-  line-height: 1.3;
-}
-
-.modal-code {
-  margin: 0;
-  color: var(--text-placeholder);
-  font-size: 0.78rem;
-}
-
-.close-btn {
+.detail-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 2.25rem;
-  height: 2.25rem;
-  border: 1px solid var(--border-input);
-  border-radius: 10px;
+  gap: 0.625rem;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
   background: var(--surface-input);
-  color: var(--text-label);
-  cursor: pointer;
+  padding: 0.75rem;
+  color: var(--text-body);
+  font-size: 0.875rem;
 }
 
-.close-btn:hover {
-  border-color: var(--color-danger-text);
-  color: var(--color-danger-text);
-}
-
-.modal-body {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 0.85rem;
-  overflow-y: auto;
-  padding: 1rem;
-}
-
-.info-row {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  color: var(--text-label);
-  font-size: 0.85rem;
-}
-
-.info-icon {
+.detail-row svg {
+  color: var(--text-muted);
   flex-shrink: 0;
-  color: var(--text-placeholder);
 }
 
-.text-violet,
-.meet-link {
-  color: var(--accent-violet);
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: opacity 180ms ease;
 }
 
-.meet-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.cancel-notice,
-.makeup-notice,
-.online-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  border-radius: 12px;
-  padding: 0.75rem 0.85rem;
-  font-size: 0.8rem;
-  font-weight: 750;
-}
-
-.cancel-notice { background: var(--color-danger-bg); color: var(--color-danger-text); border: 1px solid color-mix(in srgb, var(--color-danger-text) 18%, transparent); }
-.makeup-notice { background: var(--color-warning-bg); color: var(--color-warning-text); border: 1px solid color-mix(in srgb, var(--color-warning-text) 18%, transparent); }
-.online-notice { background: var(--accent-violet-soft); color: var(--accent-violet); border: 1px solid color-mix(in srgb, var(--accent-violet) 18%, transparent); }
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.65rem;
-  flex-shrink: 0;
-  border-top: 1px solid var(--border-card);
-  padding: 1rem;
-}
-
-.btn-secondary,
-.btn-primary {
-  min-height: 2.25rem;
-  border: 0;
-  padding: 0 0.9rem;
-}
-
-.btn-secondary {
-  border: 1px solid var(--border-input);
-  background: var(--surface-input);
-  color: var(--text-label);
-}
-
-.btn-secondary:hover {
-  border-color: var(--border-input-focus);
-  color: var(--text-link);
-}
-
-.modal-enter-active,
-.modal-leave-active {
-  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.modal-enter-from,
-.modal-leave-to {
+.drawer-enter-from,
+.drawer-leave-to {
   opacity: 0;
-  transform: scale(0.97);
 }
 
-@media(max-width: 900px) {
-  .metrics-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 1180px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
   }
 
-  .week-grid {
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@media(max-width: 640px) {
-  .metrics-row,
-  .week-grid {
+@media (max-width: 720px) {
+  .schedule-grid {
     grid-template-columns: 1fr;
   }
 
-  .period-label {
-    min-width: auto;
+  .day-column {
+    min-height: auto;
   }
 
-  .nav-group {
-    order: 3;
+  .detail-overlay {
+    padding: 0;
+  }
+
+  .detail-panel {
     width: 100%;
+    border-radius: 0;
   }
 }
 </style>
