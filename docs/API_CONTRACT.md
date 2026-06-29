@@ -1129,3 +1129,44 @@ Known limitations:
 - `POST /api/admin/notification-templates/{id}/activate` - Activate template
 - `POST /api/admin/notification-templates/{id}/deactivate` - Deactivate template
 - `POST /api/admin/notification-templates/preview` - Preview template content
+
+## Schedule & Attendance (TKB & Điểm Danh)
+
+### Ca Học
+- `GET /api/ca-hoc` - Get list of shifts
+- `GET /api/ca-hoc/active` - Get active shifts
+- `GET /api/ca-hoc/{id}` - Get shift details
+- `POST /api/ca-hoc` - Create shift
+- `PUT /api/ca-hoc/{id}` - Update shift
+- `PATCH /api/ca-hoc/{id}/toggle-active` - Toggle active state
+
+### Thời Khóa Biểu
+- `GET /api/thoi-khoa-bieu` - Get schedules
+- `GET /api/thoi-khoa-bieu/{id}` - Get schedule details
+- `POST /api/thoi-khoa-bieu` - Create schedule
+- `PUT /api/thoi-khoa-bieu/{id}` - Update schedule
+- `PATCH /api/thoi-khoa-bieu/{id}/cancel` - Cancel schedule
+- `POST /api/thoi-khoa-bieu/check-xung-dot` - Check conflict
+- `POST /api/thoi-khoa-bieu/{id}/generate-sessions` - Generate BuoiHoc sessions
+
+### Buổi Học
+- `GET /api/buoi-hoc` - Get sessions
+- `GET /api/buoi-hoc/{id}` - Get session details
+- `PUT /api/buoi-hoc/{id}/change-teacher` - Change substitute teacher
+- `PUT /api/buoi-hoc/{id}/change-room` - Change room
+- `PUT /api/buoi-hoc/{id}/change-shift` - Change shift
+- `PATCH /api/buoi-hoc/{id}/cancel` - Cancel session
+
+### Attendance (Điểm Danh)
+- `GET /api/teacher/attendance/today` - Get today's attendance for teacher
+- `POST /api/buoi-hoc/{id}/attendance/start` - Start attendance
+- `GET /api/buoi-hoc/{id}/attendance` - Get attendance for a session
+- `PATCH /api/buoi-hoc/{id}/attendance/students/{hsId}` - Mark student attendance
+- `PUT /api/buoi-hoc/{id}/attendance/bulk-update` - Bulk update attendance
+- `POST /api/buoi-hoc/{id}/attendance/submit` - Submit/lock attendance
+- `POST /api/buoi-hoc/{id}/attendance/unlock-requests` - Request attendance unlock
+- `GET /api/teacher/attendance/unlock-requests` - Get teacher's unlock requests
+- `GET /api/admin/attendance/unlock-requests` - Get admin unlock requests
+- `GET /api/admin/attendance/unlock-requests/{id}` - Get unlock request details
+- `POST /api/admin/attendance/unlock-requests/{id}/approve` - Approve unlock request
+- `POST /api/admin/attendance/unlock-requests/{id}/reject` - Reject unlock request
