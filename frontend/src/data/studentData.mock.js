@@ -15,7 +15,7 @@ function getActiveEmail() {
       const user = JSON.parse(userStr)
       return user.email || ''
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
   return 'student@mock.local'
