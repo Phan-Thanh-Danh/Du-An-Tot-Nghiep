@@ -370,6 +370,12 @@ const router = createRouter({
         { path: 'conflicts', name: 'staff-conflicts', component: () => import('../views/GiaoVu/Schedule/ConflictCheckView.vue') },
         { path: 'schedule/pending', name: 'staff-schedule-pending', component: () => import('../views/GiaoVu/Schedule/PendingSchedulesView.vue') },
         { path: 'schedule/published', name: 'staff-schedule-published', component: () => import('../views/GiaoVu/Schedule/StaffPublishedSchedulesView.vue') },
+        
+        // Đơn từ (Requests)
+        { path: 'requests', name: 'staff-requests', component: () => import('../views/GiaoVu/Requests/PendingRequestsView.vue') },
+        { path: 'requests-history', name: 'staff-requests-history', component: () => import('../views/GiaoVu/Requests/RequestHistoryView.vue') },
+        { path: 'workflow', name: 'staff-workflow', component: () => import('../views/GiaoVu/Requests/WorkflowConfigView.vue') },
+
         {
           path: 'notices/send',
           name: 'staff-notices-send',
