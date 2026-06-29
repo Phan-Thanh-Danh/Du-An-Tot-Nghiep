@@ -13,6 +13,7 @@ namespace Backend.Services.RewardDiscipline;
 
 public class DisciplineRecordService : IDisciplineRecordService
 {
+    private readonly IRewardDisciplineNotificationService _notificationService;
     private readonly ApplicationDbContext _context;
     private readonly IAuditLogService _auditLogService;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -20,12 +21,14 @@ public class DisciplineRecordService : IDisciplineRecordService
     public DisciplineRecordService(
         ApplicationDbContext context,
         IAuditLogService auditLogService,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        IRewardDisciplineNotificationService notificationService)
     {
         _context = context;
         _auditLogService = auditLogService;
         _httpContextAccessor = httpContextAccessor;
-    }
+    
+        _notificationService = notificationService;}
 
     private ClaimsPrincipal GetCurrentUser()
     {

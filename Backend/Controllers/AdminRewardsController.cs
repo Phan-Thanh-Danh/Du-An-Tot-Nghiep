@@ -12,10 +12,12 @@ namespace Backend.Controllers;
 [Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin}")]
 public class AdminRewardsController : ControllerBase
 {
+    private readonly IRewardDisciplineNotificationService _notificationService;
     private readonly IRewardLifecycleService _service;
 
     public AdminRewardsController(IRewardLifecycleService service)
     {
+        _notificationService = HttpContext.RequestServices.GetRequiredService<IRewardDisciplineNotificationService>();
         _service = service;
     }
 
@@ -86,4 +88,17 @@ public class AdminRewardsController : ControllerBase
         
         return Ok(result);
     }
+
+    [HttpPost("{rewardId}/notifications/resend")]
+    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    public async Task<IActionResult> ResendNotificationAsync(int rewardId, [FromBody] ResendNotificationRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Length < 10)
+            return BadRequest(new { Success = false, Message = "Lý do phải có ít nhất 10 ký tự." });
+            
+        await _notificationService.ResendRewardNotificationAsync(rewardId, request.Reason, cancellationToken);
+        return Ok(new { Success = true, Message = "Đã gửi lại thông báo thành công." });
+    }
 }
+
+public class ResendNotificationRequest { public string Reason { get; set; } = string.Empty; }

@@ -15,6 +15,7 @@ namespace Backend.Services.RewardDiscipline;
 
 public class CertificateGenerationService : ICertificateGenerationService
 {
+    private readonly IRewardDisciplineNotificationService _notificationService;
     private const string CampaignEntity = "DotKhenThuong";
     private const string RewardEntity = "KhenThuong";
 
@@ -45,13 +46,15 @@ public class CertificateGenerationService : ICertificateGenerationService
         ApplicationDbContext context,
         ICertificatePdfStorageService storage,
         IAuditLogService auditLogService,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        IRewardDisciplineNotificationService notificationService)
     {
         _context = context;
         _storage = storage;
         _auditLogService = auditLogService;
         _httpContextAccessor = httpContextAccessor;
-    }
+    
+        _notificationService = notificationService;}
 
     public async Task<GenerateRewardCertificatesResultDto> GenerateAsync(
         int campaignId,

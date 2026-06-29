@@ -12,6 +12,7 @@ namespace Backend.Services.RewardDiscipline;
 
 public class RewardLifecycleService : IRewardLifecycleService
 {
+    private readonly IRewardDisciplineNotificationService _notificationService;
     private readonly ApplicationDbContext _context;
     private readonly IAuditLogService _auditLogService;
     private readonly ICertificateGenerationService _certService;
@@ -21,13 +22,15 @@ public class RewardLifecycleService : IRewardLifecycleService
         ApplicationDbContext context,
         IAuditLogService auditLogService,
         ICertificateGenerationService certService,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        IRewardDisciplineNotificationService notificationService)
     {
         _context = context;
         _auditLogService = auditLogService;
         _certService = certService;
         _httpContextAccessor = httpContextAccessor;
-    }
+    
+        _notificationService = notificationService;}
 
     private ClaimsPrincipal GetCurrentUser()
     {
