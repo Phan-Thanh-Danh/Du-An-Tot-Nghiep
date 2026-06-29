@@ -912,3 +912,57 @@ Chưa thấy controller AI trong repo hiện tại.
 - Thêm controller mới thì cập nhật file này trong cùng PR/task.
 - Nếu endpoint chỉ là ý tưởng, để ở mục `Dự kiến/cần bổ sung`.
 - Không sửa frontend gọi endpoint dự kiến nếu backend chưa có mock/server contract rõ ràng.
+## DL1 - Discipline Record Creation
+
+### GET /api/admin/discipline-records
+Get list of discipline records with filters.
+
+**Request Query**
+- maDonVi (int?)
+- maHocKy (int?)
+- maHocSinh (int?)
+- mucDoKyLuat (string?)
+- hinhThucXuLy (string?)
+- 	rangThai (string?)
+- keyword (string?)
+- 	uNgay (date?)
+- denNgay (date?)
+- pageIndex (int, default 1)
+- pageSize (int, default 20)
+
+**Response**
+- Items: Array of list item DTOs.
+- TotalCount
+- PageIndex
+- PageSize
+
+### GET /api/admin/discipline-records/{id}
+Get detail of discipline record.
+
+### POST /api/admin/discipline-records
+Create new discipline record.
+
+**Request Body**
+- maHocSinh (int, required)
+- maHocKy (int?)
+- 	ieuDe (string, required)
+- moTaViPham (string, required)
+- 
+gayViPham (date, required)
+- mucDoKyLuat (string, required)
+- hinhThucXuLy (string, required)
+- canCuXuLy (string?)
+- ghiChuNoiBo (string?)
+- evidenceJson (object?)
+
+### PUT /api/admin/discipline-records/{id}
+Update discipline record (only allowed if in Draft or PendingApproval state).
+
+### POST /api/admin/discipline-records/{id}/submit
+Submit discipline record to change state from Draft to PendingApproval.
+
+### POST /api/admin/discipline-records/{id}/cancel
+Cancel a discipline record.
+
+**Request Body**
+- eason (string, required)

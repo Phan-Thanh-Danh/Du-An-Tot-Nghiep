@@ -190,4 +190,12 @@ public static class RewardDisciplineConstants
         public const string MarkRewardIssued = "MARK_REWARD_ISSUED";
         public const string RegenerateSingleRewardCertificate = "REGENERATE_SINGLE_REWARD_CERTIFICATE";
     }
+
+    public static class DisciplineAuditActions
+    {
+        public const string CreateDisciplineRecord = "CREATE_DISCIPLINE_RECORD";
+        public const string UpdateDisciplineRecord = "UPDATE_DISCIPLINE_RECORD";
+        public const string SubmitDisciplineRecord = "SUBMIT_DISCIPLINE_RECORD";
+        public const string CancelDisciplineRecord = "CANCEL_DISCIPLINE_RECORD";
+    }
 }

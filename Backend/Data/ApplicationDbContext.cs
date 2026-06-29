@@ -2245,6 +2245,10 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("ma_don_vi");
             entity.Property(e => e.MaHocKy)
                 .HasColumnName("ma_hoc_ky");
+            entity.Property(e => e.TieuDe)
+                .HasColumnName("tieu_de")
+                .HasMaxLength(255)
+                .IsRequired();
             entity.Property(e => e.LoaiKyLuat)
                 .HasColumnName("loai_ky_luat")
                 .HasMaxLength(50)
@@ -2268,6 +2272,19 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("mo_ta")
                 .HasColumnType("nvarchar(max)")
                 .IsRequired();
+            entity.Property(e => e.CanCuXuLy)
+                .HasColumnName("can_cu_xu_ly")
+                .HasMaxLength(2000);
+            entity.Property(e => e.GhiChuNoiBo)
+                .HasColumnName("ghi_chu_noi_bo")
+                .HasMaxLength(2000);
+            entity.Property(e => e.LyDoHuy)
+                .HasColumnName("ly_do_huy")
+                .HasMaxLength(1000);
+            entity.Property(e => e.NguoiHuy)
+                .HasColumnName("nguoi_huy");
+            entity.Property(e => e.NgayHuy)
+                .HasColumnName("ngay_huy");
             entity.Property(e => e.NgayViPham)
                 .HasColumnName("ngay_vi_pham")
                 .HasColumnType("date")
@@ -2367,6 +2384,11 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.NguoiGoKyLuat)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_HoSoKyLuat_nguoi_go_ky_luat__NguoiDung");
+            entity.HasOne(e => e.NguoiHuyNavigation)
+                .WithMany()
+                .HasForeignKey(e => e.NguoiHuy)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_HoSoKyLuat_nguoi_huy__NguoiDung");
         });
 
         modelBuilder.Entity<HoaDon>(entity =>

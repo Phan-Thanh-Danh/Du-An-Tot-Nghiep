@@ -6,12 +6,18 @@ public class HoSoKyLuat
     public int MaHocSinh { get; set; }
     public int MaDonVi { get; set; }
     public int? MaHocKy { get; set; }
+    public string TieuDe { get; set; } = string.Empty;
     public string LoaiKyLuat { get; set; } = string.Empty;
     public string MucDoViPham { get; set; } = string.Empty;
     public string HinhThucXuLy { get; set; } = string.Empty;
     public string TrangThai { get; set; } = string.Empty;
     public string MoTa { get; set; } = string.Empty;
     public DateOnly NgayViPham { get; set; }
+    public string? CanCuXuLy { get; set; }
+    public string? GhiChuNoiBo { get; set; }
+    public string? LyDoHuy { get; set; }
+    public int? NguoiHuy { get; set; }
+    public DateTime? NgayHuy { get; set; }
     public DateOnly? NgayHieuLuc { get; set; }
     public DateOnly? NgayHetHieuLuc { get; set; }
     public int NguoiTao { get; set; }
@@ -34,4 +40,5 @@ public class HoSoKyLuat
     public NguoiDung? NguoiTaoNavigation { get; set; }
     public NguoiDung? NguoiDuyetNavigation { get; set; }
     public NguoiDung? NguoiGoKyLuatNavigation { get; set; }
+    public NguoiDung? NguoiHuyNavigation { get; set; }
 }
