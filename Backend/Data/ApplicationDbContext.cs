@@ -109,6 +109,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<BienBanThi> BienBanThis => Set<BienBanThi>();
     public DbSet<UngVienKhenThuong> UngVienKhenThuongs => Set<UngVienKhenThuong>();
 
+    public DbSet<KhieuNaiKyLuat> KhieuNaiKyLuats => Set<KhieuNaiKyLuat>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -5493,6 +5494,86 @@ public class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_BienBanThi_ma_nguoi_lap__NguoiDung");
         });
 
+
+        // KhieuNaiKyLuat
+        modelBuilder.Entity<KhieuNaiKyLuat>(entity =>
+        {
+            entity.ToTable("KhieuNaiKyLuat", "dbo");
+            entity.HasKey(e => e.MaKhieuNaiKyLuat).HasName("PK_KhieuNaiKyLuat");
+            
+            entity.Property(e => e.MaKhieuNaiKyLuat).HasColumnName("ma_khieu_nai_ky_luat");
+            entity.Property(e => e.MaHoSoKyLuat).HasColumnName("ma_ho_so_ky_luat");
+            entity.Property(e => e.MaHocSinh).HasColumnName("ma_hoc_sinh");
+            entity.Property(e => e.MaDonVi).HasColumnName("ma_don_vi");
+            
+            entity.Property(e => e.LyDoKhieuNai)
+                .HasColumnName("ly_do_khieu_nai")
+                .HasMaxLength(2000)
+                .IsRequired();
+                
+            entity.Property(e => e.ChungTuJson)
+                .HasColumnName("chung_tu_json")
+                .HasColumnType("nvarchar(max)");
+                
+            entity.Property(e => e.TrangThai)
+                .HasColumnName("trang_thai")
+                .HasMaxLength(50)
+                .IsRequired();
+                
+            entity.Property(e => e.LyDoXuLy)
+                .HasColumnName("ly_do_xu_ly")
+                .HasMaxLength(1000);
+                
+            entity.Property(e => e.GhiChuXuLy)
+                .HasColumnName("ghi_chu_xu_ly")
+                .HasMaxLength(2000);
+                
+            entity.Property(e => e.NguoiXuLy).HasColumnName("nguoi_xu_ly");
+            
+            entity.Property(e => e.NgayXuLy)
+                .HasColumnName("ngay_xu_ly")
+                .HasColumnType("datetime2");
+                
+            entity.Property(e => e.NgayTao)
+                .HasColumnName("ngay_tao")
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+                
+            entity.Property(e => e.NgayCapNhat)
+                .HasColumnName("ngay_cap_nhat")
+                .HasColumnType("datetime2");
+
+            entity.HasIndex(e => e.MaHoSoKyLuat).HasDatabaseName("IX_KhieuNaiKyLuat_MaHoSoKyLuat");
+            entity.HasIndex(e => e.MaHocSinh).HasDatabaseName("IX_KhieuNaiKyLuat_MaHocSinh");
+            entity.HasIndex(e => e.TrangThai).HasDatabaseName("IX_KhieuNaiKyLuat_TrangThai");
+            entity.HasIndex(e => e.MaDonVi).HasDatabaseName("IX_KhieuNaiKyLuat_MaDonVi");
+
+            entity.ToTable(t => t.HasCheckConstraint("CK_KhieuNaiKyLuat_chung_tu_json_ISJSON", "[chung_tu_json] IS NULL OR ISJSON([chung_tu_json]) = 1"));
+
+            entity.HasOne(e => e.HoSoKyLuat)
+                .WithMany(h => h.KhieuNaiKyLuats)
+                .HasForeignKey(e => e.MaHoSoKyLuat)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_KhieuNaiKyLuat_ma_ho_so_ky_luat__HoSoKyLuat");
+
+            entity.HasOne(e => e.HocSinh)
+                .WithMany()
+                .HasForeignKey(e => e.MaHocSinh)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_KhieuNaiKyLuat_ma_hoc_sinh__NguoiDung");
+
+            entity.HasOne(e => e.NguoiXuLyNavigation)
+                .WithMany()
+                .HasForeignKey(e => e.NguoiXuLy)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_KhieuNaiKyLuat_nguoi_xu_ly__NguoiDung");
+                
+            entity.HasOne(e => e.DonVi)
+                .WithMany()
+                .HasForeignKey(e => e.MaDonVi)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_KhieuNaiKyLuat_ma_don_vi__DonVi");
+        });
     }
 }
 

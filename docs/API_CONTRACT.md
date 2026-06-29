@@ -966,3 +966,56 @@ Cancel a discipline record.
 
 **Request Body**
 - eason (string, required)
+
+
+### POST /api/admin/discipline-records/{id}/remove-effect
+Gỡ hiệu lực của một hồ sơ kỷ luật đang có hiệu lực.
+- Request Body: `{ "reason": "string", "removalNote": "string" }`
+- Response: `DisciplineRecordResultDto`
+- Role: SuperAdmin, CampusAdmin, SubCampusAdmin
+
+### POST /api/admin/discipline-records/{id}/void-approved
+Hủy một hồ sơ kỷ luật đã duyệt nhưng chưa có hiệu lực (hoặc đã duyệt nhưng không kích hoạt).
+- Request Body: `{ "reason": "string", "internalNote": "string" }`
+- Response: `DisciplineRecordResultDto`
+- Role: SuperAdmin, CampusAdmin, SubCampusAdmin
+
+### GET /api/admin/discipline-appeals
+Lấy danh sách các khiếu nại kỷ luật (có phân trang).
+- Query: `PageIndex`, `PageSize`, `MaDonVi`, `TrangThai`, `Keyword`
+- Response: `PagedResultDto<DisciplineAppealListItemDto>`
+- Role: SuperAdmin, GiaoVu
+
+### GET /api/admin/discipline-appeals/{id}
+Xem chi tiết một khiếu nại kỷ luật.
+- Response: `DisciplineAppealDetailDto`
+- Role: SuperAdmin, GiaoVu
+
+### POST /api/admin/discipline-appeals/{id}/resolve
+Xử lý (chấp nhận/từ chối) một khiếu nại.
+- Request Body: `{ "decision": "chap_nhan/tu_choi", "reason": "string", "resolutionNote": "string", "removeEffect": bool }`
+- Response: `DisciplineAppealDetailDto`
+- Role: SuperAdmin, GiaoVu
+
+### GET /api/student/discipline-records
+Lấy danh sách hồ sơ kỷ luật của chính học sinh (có phân trang).
+- Query: `PageIndex`, `PageSize`, `MaHocKy`, `TrangThai`
+- Response: `PagedResultDto<StudentDisciplineRecordListItemDto>`
+- Role: Student
+
+### GET /api/student/discipline-records/{id}
+Xem chi tiết một hồ sơ kỷ luật của chính học sinh.
+- Response: `StudentDisciplineRecordDetailDto`
+- Role: Student
+
+### POST /api/student/discipline-records/{id}/appeals
+Tạo một khiếu nại đối với một hồ sơ kỷ luật.
+- Request Body: `{ "reason": "string", "evidenceJson": any }`
+- Response: `DisciplineAppealListItemDto`
+- Role: Student
+
+### GET /api/student/discipline-records/appeals/{appealId}
+Xem chi tiết một khiếu nại của chính học sinh.
+- Response: `DisciplineAppealDetailDto`
+- Role: Student
+

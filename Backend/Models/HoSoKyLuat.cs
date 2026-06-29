@@ -45,4 +45,6 @@ public class HoSoKyLuat
     public NguoiDung? NguoiGoKyLuatNavigation { get; set; }
     public NguoiDung? NguoiHuyNavigation { get; set; }
     public NguoiDung? NguoiApDungNavigation { get; set; }
+    
+    public ICollection<KhieuNaiKyLuat> KhieuNaiKyLuats { get; set; } = new List<KhieuNaiKyLuat>();
 }

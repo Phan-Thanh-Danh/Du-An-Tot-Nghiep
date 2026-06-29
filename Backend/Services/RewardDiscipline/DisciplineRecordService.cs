@@ -205,8 +205,7 @@ public class DisciplineRecordService : IDisciplineRecordService
             catch { }
         }
 
-        return new DisciplineRecordDetailDto
-        {
+        return new DisciplineRecordDetailDto {
             MaHoSoKyLuat = hoso.MaKyLuat,
             MaHocSinh = hoso.MaHocSinh,
             HoTenHocSinh = hoso.HocSinh != null ? hoso.HocSinh.HoTen : "",
@@ -765,6 +764,236 @@ public class DisciplineRecordService : IDisciplineRecordService
         {
             MaHoSoKyLuat = hoso.MaKyLuat,
             TrangThai = hoso.TrangThai
+        };
+    }
+
+    public async Task<DisciplineRecordResultDto> RemoveDisciplineEffectAsync(
+        int recordId,
+        RemoveDisciplineEffectRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = GetCurrentUser();
+        var isSuperAdmin = IsSuperAdmin(user);
+        var campusId = GetUserCampusId(user);
+        var userId = GetUserId(user);
+
+        var hoso = await _context.HoSoKyLuats
+            .FirstOrDefaultAsync(h => h.MaKyLuat == recordId, cancellationToken);
+
+        if (hoso == null)
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy hồ sơ kỷ luật.");
+
+        if (!isSuperAdmin && hoso.MaDonVi != campusId)
+            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền gỡ hiệu lực hồ sơ ở cơ sở khác.");
+
+        if (hoso.TrangThai != RewardDisciplineConstants.DisciplineStatuses.Active)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ được gỡ hiệu lực hồ sơ đang có hiệu lực.");
+        }
+
+        var oldStatus = hoso.TrangThai;
+        hoso.TrangThai = RewardDisciplineConstants.DisciplineStatuses.Removed;
+        hoso.DaGoKyLuat = true;
+        hoso.NgayGoKyLuat = DateTime.UtcNow;
+        hoso.NguoiGoKyLuat = userId;
+        hoso.LyDoGoKyLuat = request.Reason;
+        hoso.NgayCapNhat = DateTime.UtcNow;
+        if (request.EffectiveEndAt.HasValue)
+        {
+            hoso.NgayHetHieuLuc = DateOnly.FromDateTime(request.EffectiveEndAt.Value);
+        }
+        else
+        {
+            hoso.NgayHetHieuLuc = DateOnly.FromDateTime(DateTime.UtcNow);
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.AddAsync(
+            hoso.MaDonVi,
+            "HoSoKyLuat",
+            hoso.MaKyLuat,
+            RewardDisciplineConstants.DisciplineAuditActions.RemoveDisciplineEffect,
+            userId,
+            new { status = oldStatus },
+            new 
+            {
+                status = hoso.TrangThai,
+                reason = request.Reason
+            },
+            cancellationToken
+        );
+
+        return new DisciplineRecordResultDto
+        {
+            MaHoSoKyLuat = hoso.MaKyLuat,
+            TrangThai = hoso.TrangThai
+        };
+    }
+
+    public async Task<DisciplineRecordResultDto> VoidApprovedDisciplineRecordAsync(
+        int recordId,
+        VoidApprovedDisciplineRecordRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = GetCurrentUser();
+        var isSuperAdmin = IsSuperAdmin(user);
+        var campusId = GetUserCampusId(user);
+        var userId = GetUserId(user);
+
+        var hoso = await _context.HoSoKyLuats
+            .FirstOrDefaultAsync(h => h.MaKyLuat == recordId, cancellationToken);
+
+        if (hoso == null)
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy hồ sơ kỷ luật.");
+
+        if (!isSuperAdmin && hoso.MaDonVi != campusId)
+            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền hủy hồ sơ ở cơ sở khác.");
+
+        if (hoso.TrangThai != RewardDisciplineConstants.DisciplineStatuses.Approved &&
+            hoso.TrangThai != RewardDisciplineConstants.DisciplineStatuses.Active &&
+            hoso.TrangThai != RewardDisciplineConstants.DisciplineStatuses.Expired &&
+            hoso.TrangThai != RewardDisciplineConstants.DisciplineStatuses.Removed)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ được hủy sau duyệt các hồ sơ đã được duyệt hoặc có hiệu lực.");
+        }
+
+        var oldStatus = hoso.TrangThai;
+        hoso.TrangThai = RewardDisciplineConstants.DisciplineStatuses.Cancelled;
+        hoso.LyDoHuy = request.Reason;
+        hoso.NguoiHuy = userId;
+        hoso.NgayHuy = DateTime.UtcNow;
+        hoso.NgayCapNhat = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.AddAsync(
+            hoso.MaDonVi,
+            "HoSoKyLuat",
+            hoso.MaKyLuat,
+            RewardDisciplineConstants.DisciplineAuditActions.VoidApprovedDisciplineRecord,
+            userId,
+            new { status = oldStatus },
+            new 
+            {
+                status = hoso.TrangThai,
+                reason = request.Reason
+            },
+            cancellationToken
+        );
+
+        return new DisciplineRecordResultDto
+        {
+            MaHoSoKyLuat = hoso.MaKyLuat,
+            TrangThai = hoso.TrangThai
+        };
+    }
+
+    public async Task<PagedResultDto<StudentDisciplineRecordListItemDto>> GetStudentDisciplineRecordsAsync(
+        StudentDisciplineRecordQueryParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var user = GetCurrentUser();
+        var studentId = GetUserId(user);
+
+        var query = _context.HoSoKyLuats
+            .Include(h => h.HocKy)
+            .Where(h => h.MaHocSinh == studentId)
+            .AsQueryable();
+
+        // Only show records that are relevant to students:
+        // Approved, Effective, Expired, EffectRemoved, Voided
+        var visibleStatuses = new List<string> 
+        {
+            RewardDisciplineConstants.DisciplineStatuses.Approved,
+            RewardDisciplineConstants.DisciplineStatuses.Active,
+            RewardDisciplineConstants.DisciplineStatuses.Expired,
+            RewardDisciplineConstants.DisciplineStatuses.Removed,
+            RewardDisciplineConstants.DisciplineStatuses.Cancelled
+        };
+
+        query = query.Where(h => visibleStatuses.Contains(h.TrangThai));
+
+        if (parameters.MaHocKy.HasValue)
+            query = query.Where(h => h.MaHocKy == parameters.MaHocKy.Value);
+
+        if (!string.IsNullOrEmpty(parameters.TrangThai))
+            query = query.Where(h => h.TrangThai == parameters.TrangThai);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(h => h.NgayViPham)
+            .ThenByDescending(h => h.NgayTao)
+            .Skip((parameters.PageIndex - 1) * parameters.PageSize)
+            .Take(parameters.PageSize)
+            .Select(h => new StudentDisciplineRecordListItemDto {
+                MaHoSoKyLuat = h.MaKyLuat,
+                MaHocKy = h.MaHocKy,
+                TenHocKy = h.HocKy != null ? h.HocKy.TenHocKy : string.Empty,
+                TieuDe = h.TieuDe,
+                MucDoKyLuat = h.MucDoViPham,
+                HinhThucXuLy = h.HinhThucXuLy,
+                TrangThai = h.TrangThai,
+                NgayViPham = h.NgayViPham,
+                NgayDuyet = h.NgayDuyet,
+                NgayBatDauHieuLuc = h.NgayHieuLuc,
+                NgayKetThucHieuLuc = h.NgayHetHieuLuc,
+                CoTheKhieuNai = (h.TrangThai == RewardDisciplineConstants.DisciplineStatuses.Active || h.TrangThai == RewardDisciplineConstants.DisciplineStatuses.Approved)
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResultDto<StudentDisciplineRecordListItemDto>
+        {
+            Items = items,
+            TotalItems = totalCount,
+            PageIndex = parameters.PageIndex,
+            PageSize = parameters.PageSize
+        };
+    }
+
+    public async Task<StudentDisciplineRecordDetailDto> GetStudentDisciplineRecordDetailAsync(
+        int recordId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = GetCurrentUser();
+        var studentId = GetUserId(user);
+
+        var hoso = await _context.HoSoKyLuats
+            .Include(h => h.HocKy)
+            .FirstOrDefaultAsync(h => h.MaKyLuat == recordId && h.MaHocSinh == studentId, cancellationToken);
+
+        if (hoso == null)
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy hồ sơ kỷ luật.");
+
+        var visibleStatuses = new List<string> 
+        {
+            RewardDisciplineConstants.DisciplineStatuses.Approved,
+            RewardDisciplineConstants.DisciplineStatuses.Active,
+            RewardDisciplineConstants.DisciplineStatuses.Expired,
+            RewardDisciplineConstants.DisciplineStatuses.Removed,
+            RewardDisciplineConstants.DisciplineStatuses.Cancelled
+        };
+
+        if (!visibleStatuses.Contains(hoso.TrangThai))
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy hồ sơ kỷ luật.");
+
+        return new StudentDisciplineRecordDetailDto
+        {
+            MaHoSoKyLuat = hoso.MaKyLuat,
+            MaHocKy = hoso.MaHocKy,
+            TenHocKy = hoso.HocKy != null ? hoso.HocKy.TenHocKy : string.Empty,
+            TieuDe = hoso.TieuDe,
+            MucDoKyLuat = hoso.MucDoViPham,
+            HinhThucXuLy = hoso.HinhThucXuLy,
+            TrangThai = hoso.TrangThai,
+            NgayViPham = hoso.NgayViPham,
+            NgayDuyet = hoso.NgayDuyet,
+            NgayBatDauHieuLuc = hoso.NgayHieuLuc,
+            NgayKetThucHieuLuc = hoso.NgayHetHieuLuc,
+            CoTheKhieuNai = (hoso.TrangThai == RewardDisciplineConstants.DisciplineStatuses.Active || hoso.TrangThai == RewardDisciplineConstants.DisciplineStatuses.Approved),
+            MoTaViPham = hoso.MoTa,
+            CanCuXuLy = hoso.CanCuXuLy
         };
     }
 }

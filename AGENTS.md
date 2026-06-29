@@ -117,6 +117,16 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `DELETE /api/organizations/{id}/hard-delete`
   - `GET /api/organizations/{id}/subtree`
   - `GET /api/admin/accounts` là endpoint mẫu.
+
+  - `POST /api/admin/discipline-records/{id}/remove-effect` (DL3)
+  - `POST /api/admin/discipline-records/{id}/void-approved` (DL3)
+  - `GET /api/admin/discipline-appeals` (DL3)
+  - `GET /api/admin/discipline-appeals/{id}` (DL3)
+  - `POST /api/admin/discipline-appeals/{id}/resolve` (DL3)
+  - `GET /api/student/discipline-records` (DL3)
+  - `GET /api/student/discipline-records/{id}` (DL3)
+  - `POST /api/student/discipline-records/{id}/appeals` (DL3)
+  - `GET /api/student/discipline-records/appeals/{appealId}` (DL3)
 - Endpoint chưa có controller phải ghi `dự kiến`.
 - Không tự đổi request/response DTO mà không cập nhật contract.
 

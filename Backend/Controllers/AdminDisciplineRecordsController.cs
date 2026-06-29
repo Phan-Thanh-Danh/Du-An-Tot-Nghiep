@@ -123,4 +123,24 @@ public class AdminDisciplineRecordsController : ControllerBase
         var result = await _service.ExpireDisciplineRecordAsync(id, request, cancellationToken);
         return Ok(result);
     }
+
+    [HttpPost("{id}/remove-effect")]
+    public async Task<ActionResult<DisciplineRecordResultDto>> RemoveEffect(
+        int id,
+        [FromBody] RemoveDisciplineEffectRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _service.RemoveDisciplineEffectAsync(id, request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id}/void-approved")]
+    public async Task<ActionResult<DisciplineRecordResultDto>> VoidApproved(
+        int id,
+        [FromBody] VoidApprovedDisciplineRecordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _service.VoidApprovedDisciplineRecordAsync(id, request, cancellationToken);
+        return Ok(result);
+    }
 }

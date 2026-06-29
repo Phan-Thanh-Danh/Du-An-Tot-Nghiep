@@ -1,3 +1,4 @@
+using Backend.DTOs.Common;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 
@@ -170,4 +171,56 @@ public class DisciplineExpireRequest
 {
     [StringLength(1000)]
     public string? Reason { get; set; }
+}
+
+public class RemoveDisciplineEffectRequest
+{
+    [Required]
+    [StringLength(1000, MinimumLength = 10)]
+    public string Reason { get; set; } = string.Empty;
+
+    [MaxLength(2000)]
+    public string? RemovalNote { get; set; }
+
+    public DateTime? EffectiveEndAt { get; set; }
+}
+
+public class VoidApprovedDisciplineRecordRequest
+{
+    [Required]
+    [StringLength(1000, MinimumLength = 10)]
+    public string Reason { get; set; } = string.Empty;
+
+    [MaxLength(2000)]
+    public string? InternalNote { get; set; }
+}
+
+public class StudentDisciplineRecordQueryParameters
+{
+    public int PageIndex { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+    public int? MaHocKy { get; set; }
+    public string? TrangThai { get; set; }
+}
+
+public class StudentDisciplineRecordListItemDto
+{
+    public int MaHoSoKyLuat { get; set; }
+    public int? MaHocKy { get; set; }
+    public string TenHocKy { get; set; } = string.Empty;
+    public string TieuDe { get; set; } = string.Empty;
+    public string MucDoKyLuat { get; set; } = string.Empty;
+    public string HinhThucXuLy { get; set; } = string.Empty;
+    public string TrangThai { get; set; } = string.Empty;
+    public DateOnly NgayViPham { get; set; }
+    public DateTime? NgayDuyet { get; set; }
+    public DateOnly? NgayBatDauHieuLuc { get; set; }
+    public DateOnly? NgayKetThucHieuLuc { get; set; }
+    public bool CoTheKhieuNai { get; set; }
+}
+
+public class StudentDisciplineRecordDetailDto : StudentDisciplineRecordListItemDto
+{
+    public string MoTaViPham { get; set; } = string.Empty;
+    public string? CanCuXuLy { get; set; }
 }
