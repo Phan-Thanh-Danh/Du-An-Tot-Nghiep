@@ -14,11 +14,16 @@ public class AdminRewardCampaignsController : ControllerBase
 {
     private readonly IRewardCampaignService _rewardCampaignService;
     private readonly IRewardEvaluationService _rewardEvaluationService;
+    private readonly ICertificateGenerationService _certificateGenerationService;
 
-    public AdminRewardCampaignsController(IRewardCampaignService rewardCampaignService, IRewardEvaluationService rewardEvaluationService)
+    public AdminRewardCampaignsController(
+        IRewardCampaignService rewardCampaignService,
+        IRewardEvaluationService rewardEvaluationService,
+        ICertificateGenerationService certificateGenerationService)
     {
         _rewardCampaignService = rewardCampaignService;
         _rewardEvaluationService = rewardEvaluationService;
+        _certificateGenerationService = certificateGenerationService;
     }
 
     [HttpGet]
@@ -187,5 +192,43 @@ public class AdminRewardCampaignsController : ControllerBase
         return Ok(ApiResponseDto<ApproveRewardCampaignResultDto>.Ok(
             result,
             "Duyệt đợt khen thưởng và tạo quyết định khen thưởng thành công."));
+    }
+
+    [HttpPost("{id:int}/certificates/generate")]
+    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    public async Task<ActionResult<ApiResponseDto<GenerateRewardCertificatesResultDto>>> GenerateCertificates(
+        int id,
+        GenerateRewardCertificatesRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _certificateGenerationService.GenerateAsync(id, request, cancellationToken);
+        return Ok(ApiResponseDto<GenerateRewardCertificatesResultDto>.Ok(
+            result,
+            "Sinh PDF bằng khen thành công."));
+    }
+
+    [HttpPost("{id:int}/certificates/regenerate")]
+    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    public async Task<ActionResult<ApiResponseDto<GenerateRewardCertificatesResultDto>>> RegenerateCertificates(
+        int id,
+        RegenerateRewardCertificatesRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _certificateGenerationService.RegenerateAsync(id, request, cancellationToken);
+        return Ok(ApiResponseDto<GenerateRewardCertificatesResultDto>.Ok(
+            result,
+            "Sinh lại PDF bằng khen thành công."));
+    }
+
+    [HttpGet("{id:int}/certificates")]
+    public async Task<ActionResult<ApiResponseDto<PagedResultDto<RewardCertificateListItemDto>>>> GetCertificates(
+        int id,
+        [FromQuery] RewardCertificateQueryParameters parameters,
+        CancellationToken cancellationToken)
+    {
+        var result = await _certificateGenerationService.GetCertificatesAsync(id, parameters, cancellationToken);
+        return Ok(ApiResponseDto<PagedResultDto<RewardCertificateListItemDto>>.Ok(
+            result,
+            "Lấy danh sách PDF bằng khen thành công."));
     }
 }

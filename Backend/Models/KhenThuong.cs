@@ -15,6 +15,9 @@ public class KhenThuong
     public int? XepHang { get; set; }
     public string UrlChungTu { get; set; } = string.Empty;
     public string? UrlPdfBangKhen { get; set; }
+    public DateTime? NgaySinhPdf { get; set; }
+    public string? LoiSinhPdf { get; set; }
+    public int SoLanSinhPdf { get; set; }
     public string? HoTenSnapshot { get; set; }
     public string? MssvSnapshot { get; set; }
     public string? TenHocKySnapshot { get; set; }
