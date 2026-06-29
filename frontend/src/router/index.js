@@ -323,6 +323,7 @@ const router = createRouter({
         { path: 'exam-results', name: 'teacher-exam-results', component: () => import('../views/GiangVien/ExamResultsView.vue') },
         { path: 'proctoring', name: 'teacher-proctoring', component: () => import('../views/GiangVien/ProctoringView.vue') },
         { path: 'attendance', name: 'teacher-attendance-today', component: () => import('../views/GiangVien/AttendanceTodayView.vue') },
+        { path: 'attendance/:id', name: 'TeacherAttendanceDetail', component: () => import('../views/GiangVien/AttendanceDetailView.vue') },
         { path: 'attendance-history', name: 'teacher-attendance-history', component: () => import('../views/GiangVien/AttendanceHistoryView.vue') },
         { path: 'grading-input', name: 'teacher-grading-input', component: () => import('../views/GiangVien/ClassGradesView.vue') },
         { path: 'student-questions', name: 'teacher-student-questions', component: () => import('../views/GiangVien/StudentQuestionsView.vue') },

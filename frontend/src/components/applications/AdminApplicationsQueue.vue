@@ -1,9 +1,10 @@
 <script setup>
+import MockBanner from '@/components/ui/MockBanner.vue'
 import { ref, onMounted } from 'vue'
 import AdminApplicationFilters from './AdminApplicationFilters.vue'
 import AdminApplicationTable from './AdminApplicationTable.vue'
 import AdminApplicationDetail from './AdminApplicationDetail.vue'
-import { applicationsApi } from '@/services/applicationsApi'
+import { applicationsApi } from '@/mocks/applicationsMockService'
 
 const applications = ref([])
 const loading = ref(false)
@@ -30,6 +31,7 @@ onMounted(() => fetchApps())
 
 <template>
   <div class="h-full bg-[var(--surface-page)]">
+    <MockBanner />
     <div v-if="!selectedApp" class="p-6 h-full flex flex-col">
       <div class="mb-6">
         <h1 class="text-2xl font-bold text-[var(--text-heading)]">Hàng đợi đơn từ</h1>

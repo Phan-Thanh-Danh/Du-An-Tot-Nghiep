@@ -1,8 +1,9 @@
 <script setup>
+import MockBanner from '@/components/ui/MockBanner.vue'
 import { ref, onMounted } from 'vue'
 import ApplicationList from './ApplicationList.vue'
 import ApplicationDetailPanel from './ApplicationDetailPanel.vue'
-import { applicationsApi } from '@/services/applicationsApi'
+import { applicationsApi } from '@/mocks/applicationsMockService'
 
 const mode = ref('list') // list, detail, create, edit
 const applications = ref([])
@@ -41,6 +42,7 @@ onMounted(() => {
 
 <template>
   <div class="h-full bg-[var(--surface-page)]">
+    <MockBanner />
     <!-- List Mode -->
     <div v-if="mode === 'list'" class="p-6 h-full flex flex-col">
       <div class="mb-6 flex justify-between items-end">

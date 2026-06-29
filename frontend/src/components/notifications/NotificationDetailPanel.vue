@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import NotificationPriorityBadge from './NotificationPriorityBadge.vue'
-import { Calendar, User, CheckCircle, EyeOff, Tag } from 'lucide-vue-next'
+import { Calendar, User, CheckCircle, EyeOff, Tag, Mail } from 'lucide-vue-next'
 import dayjs from 'dayjs'
 
 const props = defineProps({
