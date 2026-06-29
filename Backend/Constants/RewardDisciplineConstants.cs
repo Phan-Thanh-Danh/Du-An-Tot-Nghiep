@@ -197,5 +197,9 @@ public static class RewardDisciplineConstants
         public const string UpdateDisciplineRecord = "UPDATE_DISCIPLINE_RECORD";
         public const string SubmitDisciplineRecord = "SUBMIT_DISCIPLINE_RECORD";
         public const string CancelDisciplineRecord = "CANCEL_DISCIPLINE_RECORD";
+        public const string ApproveDisciplineRecord = "APPROVE_DISCIPLINE_RECORD";
+        public const string RejectDisciplineRecord = "REJECT_DISCIPLINE_RECORD";
+        public const string ActivateDisciplineRecord = "ACTIVATE_DISCIPLINE_RECORD";
+        public const string ExpireDisciplineRecord = "EXPIRE_DISCIPLINE_RECORD";
     }
 }

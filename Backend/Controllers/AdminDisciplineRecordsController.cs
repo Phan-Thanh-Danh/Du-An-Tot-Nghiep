@@ -74,4 +74,53 @@ public class AdminDisciplineRecordsController : ControllerBase
         var result = await _service.CancelDisciplineRecordAsync(id, request, cancellationToken);
         return Ok(result);
     }
+
+    [HttpGet("pending-approval")]
+    public async Task<ActionResult<PagedResultDto<DisciplineRecordListItemDto>>> GetPendingRecords(
+        [FromQuery] DisciplineRecordQueryParameters parameters,
+        CancellationToken cancellationToken)
+    {
+        var result = await _service.GetPendingDisciplineRecordsAsync(parameters, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id}/approve")]
+    public async Task<ActionResult<DisciplineRecordResultDto>> ApproveRecord(
+        int id,
+        [FromBody] DisciplineApprovalRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _service.ApproveDisciplineRecordAsync(id, request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id}/reject")]
+    public async Task<ActionResult<DisciplineRecordResultDto>> RejectRecord(
+        int id,
+        [FromBody] DisciplineRejectRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _service.RejectDisciplineRecordAsync(id, request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id}/activate")]
+    public async Task<ActionResult<DisciplineRecordResultDto>> ActivateRecord(
+        int id,
+        [FromBody] DisciplineActivateRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _service.ActivateDisciplineRecordAsync(id, request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id}/expire")]
+    public async Task<ActionResult<DisciplineRecordResultDto>> ExpireRecord(
+        int id,
+        [FromBody] DisciplineExpireRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _service.ExpireDisciplineRecordAsync(id, request, cancellationToken);
+        return Ok(result);
+    }
 }

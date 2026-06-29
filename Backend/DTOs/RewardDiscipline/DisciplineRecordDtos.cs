@@ -48,6 +48,12 @@ public class DisciplineRecordDetailDto : DisciplineRecordListItemDto
     public DateTime? NgayHuy { get; set; }
     public DateOnly? NgayHieuLuc { get; set; }
     public DateOnly? NgayHetHieuLuc { get; set; }
+    public int? NguoiDuyet { get; set; }
+    public DateTime? NgayDuyet { get; set; }
+    public string? LyDoTuChoi { get; set; }
+    public string? GhiChuDuyet { get; set; }
+    public int? NguoiApDung { get; set; }
+    public DateTime? NgayApDung { get; set; }
 }
 
 public class CreateDisciplineRecordRequest
@@ -122,4 +128,46 @@ public class DisciplineRecordResultDto
 {
     public int MaHoSoKyLuat { get; set; }
     public string TrangThai { get; set; } = string.Empty;
+}
+
+public class DisciplineApprovalRequest
+{
+    [StringLength(1000)]
+    public string? DecisionNote { get; set; }
+
+    public DateTime? EffectiveFrom { get; set; }
+
+    public DateTime? EffectiveTo { get; set; }
+
+    [StringLength(1000)]
+    public string? PublicNote { get; set; }
+
+    [StringLength(2000)]
+    public string? InternalNote { get; set; }
+}
+
+public class DisciplineRejectRequest
+{
+    [Required]
+    [StringLength(1000, MinimumLength = 10)]
+    public string Reason { get; set; } = string.Empty;
+
+    [StringLength(2000)]
+    public string? InternalNote { get; set; }
+}
+
+public class DisciplineActivateRequest
+{
+    public DateTime? EffectiveFrom { get; set; }
+
+    public DateTime? EffectiveTo { get; set; }
+
+    [StringLength(1000)]
+    public string? Note { get; set; }
+}
+
+public class DisciplineExpireRequest
+{
+    [StringLength(1000)]
+    public string? Reason { get; set; }
 }

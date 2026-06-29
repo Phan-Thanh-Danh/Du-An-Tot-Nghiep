@@ -25,7 +25,10 @@ public class HoSoKyLuat
     public int? NguoiDuyet { get; set; }
     public DateTime? NgayDuyet { get; set; }
     public string? LyDoTuChoi { get; set; }
+    public string? GhiChuDuyet { get; set; }
     public string? ChungTuJson { get; set; }
+    public int? NguoiApDung { get; set; }
+    public DateTime? NgayApDung { get; set; }
     public bool DaGoKyLuat { get; set; }
     public string? LyDoGoKyLuat { get; set; }
     public int? NguoiGoKyLuat { get; set; }
@@ -41,4 +44,5 @@ public class HoSoKyLuat
     public NguoiDung? NguoiDuyetNavigation { get; set; }
     public NguoiDung? NguoiGoKyLuatNavigation { get; set; }
     public NguoiDung? NguoiHuyNavigation { get; set; }
+    public NguoiDung? NguoiApDungNavigation { get; set; }
 }

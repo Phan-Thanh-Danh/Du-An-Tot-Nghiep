@@ -30,4 +30,28 @@ public interface IDisciplineRecordService
         int recordId,
         CancelDisciplineRecordRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<PagedResultDto<DisciplineRecordListItemDto>> GetPendingDisciplineRecordsAsync(
+        DisciplineRecordQueryParameters parameters,
+        CancellationToken cancellationToken = default);
+
+    Task<DisciplineRecordResultDto> ApproveDisciplineRecordAsync(
+        int recordId,
+        DisciplineApprovalRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<DisciplineRecordResultDto> RejectDisciplineRecordAsync(
+        int recordId,
+        DisciplineRejectRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<DisciplineRecordResultDto> ActivateDisciplineRecordAsync(
+        int recordId,
+        DisciplineActivateRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<DisciplineRecordResultDto> ExpireDisciplineRecordAsync(
+        int recordId,
+        DisciplineExpireRequest request,
+        CancellationToken cancellationToken = default);
 }
