@@ -575,7 +575,12 @@ const router = createRouter({
           path: 'approvals/history',
           name: 'super-admin-approvals-history',
           component: () => import('../views/SuperAdmin/ApprovalsHistoryView.vue'),
-          meta: { title: 'Lịch sử duyệt đơn' },
+        },
+        {
+          path: 'approvals/reports',
+          name: 'super-admin-approvals-reports',
+          component: () => import('../views/SuperAdmin/ApplicationReportsView.vue'),
+          meta: { title: 'Báo cáo đơn từ' },
         },
         {
           path: 'evaluations/config',
