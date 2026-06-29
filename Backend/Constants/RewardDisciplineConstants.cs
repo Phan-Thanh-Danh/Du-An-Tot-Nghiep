@@ -188,7 +188,9 @@ public static class RewardDisciplineConstants
         public const string CancelReward = "CANCEL_REWARD";
         public const string RestoreReward = "RESTORE_REWARD";
         public const string MarkRewardIssued = "MARK_REWARD_ISSUED";
-        public const string RegenerateSingleRewardCertificate = "REGENERATE_SINGLE_REWARD_CERTIFICATE";
+                public const string RegenerateSingleRewardCertificate = "REGENERATE_SINGLE_REWARD_CERTIFICATE";
+        public const string SendRewardNotification = "SEND_REWARD_NOTIFICATION";
+        public const string ResendRewardNotification = "RESEND_REWARD_NOTIFICATION";
     }
 
     public static class DisciplineAuditActions
@@ -205,7 +207,34 @@ public static class RewardDisciplineConstants
         public const string VoidApprovedDisciplineRecord = "VOID_APPROVED_DISCIPLINE_RECORD";
         public const string CreateDisciplineAppeal = "CREATE_DISCIPLINE_APPEAL";
         public const string ResolveDisciplineAppeal = "RESOLVE_DISCIPLINE_APPEAL";
-        public const string RemoveDisciplineEffectByAppeal = "REMOVE_DISCIPLINE_EFFECT_BY_APPEAL";
+                public const string RemoveDisciplineEffectByAppeal = "REMOVE_DISCIPLINE_EFFECT_BY_APPEAL";
+        public const string SendDisciplineNotification = "SEND_DISCIPLINE_NOTIFICATION";
+        public const string ResendDisciplineNotification = "RESEND_DISCIPLINE_NOTIFICATION";
+    }
+
+        public static class NotificationEvents
+    {
+        public const string RewardApproved = "REWARD_APPROVED";
+        public const string RewardCertificateReady = "REWARD_CERTIFICATE_READY";
+        public const string RewardIssued = "REWARD_ISSUED";
+        public const string RewardCanceled = "REWARD_CANCELED";
+        public const string RewardRestored = "REWARD_RESTORED";
+
+        public const string DisciplineApproved = "DISCIPLINE_APPROVED";
+        public const string DisciplineActivated = "DISCIPLINE_ACTIVATED";
+        public const string DisciplineExpired = "DISCIPLINE_EXPIRED";
+        public const string DisciplineEffectRemoved = "DISCIPLINE_EFFECT_REMOVED";
+        public const string DisciplineVoided = "DISCIPLINE_VOIDED";
+        public const string DisciplineAppealSubmitted = "DISCIPLINE_APPEAL_SUBMITTED";
+        public const string DisciplineAppealResolved = "DISCIPLINE_APPEAL_RESOLVED";
+    }
+
+    public static class NotificationRefTypes
+    {
+        public const string Reward = "reward";
+        public const string RewardCampaign = "reward_campaign";
+        public const string DisciplineRecord = "discipline_record";
+        public const string DisciplineAppeal = "discipline_appeal";
     }
 
     public static class DisciplineAppealStatuses

@@ -1019,3 +1019,41 @@ Xem chi tiết một khiếu nại của chính học sinh.
 - Response: `DisciplineAppealDetailDto`
 - Role: Student
 
+
+## Reward and Discipline Notifications
+
+### Resend Reward Notification
+`POST /api/admin/rewards/{id}/notifications/resend`
+- **Role**: `SuperAdmin`
+- **Description**: Manually resends the notification for a reward.
+- **Request Body**:
+```json
+{
+  "reason": "String (min 10 chars)"
+}
+```
+- **Response**: `200 OK`
+
+### Resend Discipline Record Notification
+`POST /api/admin/discipline-records/{id}/notifications/resend`
+- **Role**: `SuperAdmin`
+- **Description**: Manually resends the notification for a discipline record.
+- **Request Body**:
+```json
+{
+  "reason": "String (min 10 chars)"
+}
+```
+- **Response**: `200 OK`
+
+### Resend Discipline Appeal Notification
+`POST /api/admin/discipline-appeals/{id}/notifications/resend`
+- **Role**: `SuperAdmin`
+- **Description**: Manually resends the notification for a discipline appeal.
+- **Request Body**:
+```json
+{
+  "reason": "String (min 10 chars)"
+}
+```
+- **Response**: `200 OK`

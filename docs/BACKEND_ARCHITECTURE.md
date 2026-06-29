@@ -332,3 +332,8 @@ dotnet build
 ```
 ## DL1 - Discipline Record Service
 - IDisciplineRecordService / DisciplineRecordService: Xử lý logic tạo, cập nhật, gửi duyệt và hủy hồ sơ kỷ luật nháp. Bao gồm kiểm tra quyền truy cập scope, validate EvidenceJson và ghi Audit Log.
+
+## Reward and Discipline Notifications
+- `IRewardDisciplineNotificationService` serves as a facade to trigger system notifications using `INotificationService` without exposing core logic.
+- Idempotency guarantees are built into `RewardDisciplineNotificationService` by verifying `LoaiDoiTuongLienKet`, `MaDoiTuongLienKet`, and `LoaiSuKien` within `ThongBao`.
+- Notifications are seamlessly integrated into `RewardLifecycleService`, `CertificateGenerationService`, `DisciplineRecordService`, and `DisciplineAppealService`.

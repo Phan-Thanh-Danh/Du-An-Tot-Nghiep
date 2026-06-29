@@ -12,10 +12,12 @@ namespace Backend.Controllers;
 [Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.AcademicStaff}")]
 public class AdminDisciplineAppealsController : ControllerBase
 {
+    private readonly IRewardDisciplineNotificationService _notificationService;
     private readonly IDisciplineAppealService _service;
 
     public AdminDisciplineAppealsController(IDisciplineAppealService service)
     {
+        _notificationService = HttpContext.RequestServices.GetRequiredService<IRewardDisciplineNotificationService>();
         _service = service;
     }
 
@@ -45,5 +47,16 @@ public class AdminDisciplineAppealsController : ControllerBase
     {
         var result = await _service.ResolveDisciplineAppealAsync(id, request, cancellationToken);
         return Ok(result);
+    }
+
+    [HttpPost("{appealId}/notifications/resend")]
+    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    public async Task<IActionResult> ResendNotificationAsync(int appealId, [FromBody] ResendNotificationRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Length < 10)
+            return BadRequest(new { Success = false, Message = "Lý do phải có ít nhất 10 ký tự." });
+            
+        await _notificationService.ResendDisciplineAppealNotificationAsync(appealId, request.Reason, cancellationToken);
+        return Ok(new { Success = true, Message = "Đã gửi lại thông báo thành công." });
     }
 }
