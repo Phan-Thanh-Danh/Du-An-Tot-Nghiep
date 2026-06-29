@@ -169,3 +169,7 @@ Chỉ chạy format khi cần và tránh format toàn bộ repo ngoài phạm vi
 - Khi bổ sung tính năng, cập nhật `docs/API_CONTRACT.md` ngay sau khi thêm controller.
 - Không copy nguyên source từ LMS open-source khác; chỉ tham khảo ý tưởng ở mức kiến trúc/nghiệp vụ.
 - Ưu tiên demo luồng chạy ổn định hơn là mở quá nhiều màn hình chưa nối dữ liệu.
+
+
+- **DL3 - Discipline removal and appeal workflow**: Hoàn thành xử lý nghiệp vụ gỡ hiệu lực, hủy sau duyệt, học sinh xem kỷ luật, khiếu nại và admin xử lý khiếu nại.
+

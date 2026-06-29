@@ -204,6 +204,7 @@ builder.Services.AddScoped<ICertificateGenerationService, CertificateGenerationS
 builder.Services.AddScoped<IStudentRewardService, StudentRewardService>();
 builder.Services.AddScoped<IRewardLifecycleService, RewardLifecycleService>();
 builder.Services.AddScoped<IDisciplineRecordService, DisciplineRecordService>();
+builder.Services.AddScoped<IDisciplineAppealService, DisciplineAppealService>();
 
 builder.Services.Configure<LearningProgressOptions>(
     builder.Configuration.GetSection(LearningProgressOptions.SectionName)

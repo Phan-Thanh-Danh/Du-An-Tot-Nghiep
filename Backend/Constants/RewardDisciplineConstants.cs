@@ -201,5 +201,25 @@ public static class RewardDisciplineConstants
         public const string RejectDisciplineRecord = "REJECT_DISCIPLINE_RECORD";
         public const string ActivateDisciplineRecord = "ACTIVATE_DISCIPLINE_RECORD";
         public const string ExpireDisciplineRecord = "EXPIRE_DISCIPLINE_RECORD";
+        public const string RemoveDisciplineEffect = "REMOVE_DISCIPLINE_EFFECT";
+        public const string VoidApprovedDisciplineRecord = "VOID_APPROVED_DISCIPLINE_RECORD";
+        public const string CreateDisciplineAppeal = "CREATE_DISCIPLINE_APPEAL";
+        public const string ResolveDisciplineAppeal = "RESOLVE_DISCIPLINE_APPEAL";
+        public const string RemoveDisciplineEffectByAppeal = "REMOVE_DISCIPLINE_EFFECT_BY_APPEAL";
+    }
+
+    public static class DisciplineAppealStatuses
+    {
+        public const string Pending = "cho_xu_ly";
+        public const string Accepted = "chap_nhan";
+        public const string Rejected = "tu_choi";
+        public const string Cancelled = "da_huy";
+        public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            Pending,
+            Accepted,
+            Rejected,
+            Cancelled
+        };
     }
 }
