@@ -1,455 +1,420 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
-import { usePopupStore } from '@/stores/popup'
 import {
-  Plus, Search, Filter, Download, ChevronLeft, ChevronRight,
-  CheckCircle2, AlertCircle, X, Printer, Trash2, CalendarRange,
+  CalendarRange, Search, Plus, CheckCircle, AlertTriangle, BookOpen, X,
 } from 'lucide-vue-next'
-import * as XLSX from 'xlsx'
-import PageContainer from '@/components/SinhVien/PageContainer.vue'
-import MonthView from '@/components/Schedule/MonthView.vue'
-import { useSchedule } from '@/composables/useSchedule'
+import GlassPanel from '@/components/ui/GlassPanel.vue'
+import GlassBadge from '@/components/ui/GlassBadge.vue'
+import GlassButton from '@/components/ui/GlassButton.vue'
+import TableShell from '@/components/ui/TableShell.vue'
+import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import {
+  staffScheduleRows, caHocCatalog, thuTrongTuanOptions,
+} from '@/mocks/scheduleAttendanceMockData'
+import { getStatusLabel, getStatusVariant } from '@/utils/statusLabels'
+import { usePopupStore } from '@/stores/popup'
 
-const {
-  monthLabel, nextMonth, prevMonth, goToToday,
-  createEvent, updateEvent, deleteEvent,
-  filterEventsByLecturer, filterEventsByQuery, exportToExcel,
-  totalEvents, publishedEvents, pendingEvents, draftEvents,
-} = useSchedule()
+const popupStore = usePopupStore()
 
-const popup = usePopupStore()
-
-const semester = ref('Spring 2026')
-const campus = ref('Cơ sở chính')
-const showCreateModal = ref(false)
-const showEditModal = ref(false)
+// ── State ──────────────────────────────────────────────────────
+const rows = ref(staffScheduleRows.map(r => ({ ...r })))
+const showPanel = ref(false)
+const panelMode = ref('create') // create | edit
+const editingRow = ref(null)
+const confirmAction = ref(null)
 const searchQuery = ref('')
-const eventToEdit = ref(null)
+const filterHocKy = ref('')
+const filterTrangThai = ref('')
+const selectedRow = ref(null)
+const conflictPreview = ref([])
 
-useBodyScrollLock(showCreateModal)
-useBodyScrollLock(showEditModal)
+const hocKyOptions = ['Spring 2026', 'Summer 2026', 'Fall 2025']
 
-const newScheduleForm = ref({
-  title: '', subject: '', teacher: '', room: '',
-  day: 'Thứ 2', startTime: '07:30', endTime: '08:30', status: 'draft', type: 'class',
+const emptyForm = () => ({
+  maTkb: '',
+  hocKy: { ma: 'SP2026', ten: 'Spring 2026' },
+  lop: { ma: '', ten: '' },
+  monHoc: { ma: '', ten: '' },
+  giaoVien: { ma: '', ten: '' },
+  thuTrongTuan: 2,
+  caHoc: caHocCatalog[0],
+  phongHoc: { ma: '', ten: '' },
+  ngayBatDau: '2026-01-06',
+  ngayKetThuc: '2026-05-30',
+  ghiChu: '',
+  trangThai: 'nhap',
 })
 
-const editForm = ref({
-  title: '', teacher: '', room: '', start: '', end: '', status: 'draft', type: 'class',
-})
+const form = ref(emptyForm())
 
-const lecturers = [
-  { id: 1, name: 'Tất cả giảng viên' },
-  { id: 2, name: 'TS. Nguyễn Văn A' },
-  { id: 3, name: 'ThS. Trần Thị B' },
-  { id: 4, name: 'TS. Lê Văn C' },
-  { id: 5, name: 'ThS. Phạm Minh Tuấn' },
-]
-const selectedLecturer = ref(lecturers[0])
-
-const filteredSchedules = computed(() => {
-  const result = filterEventsByLecturer(selectedLecturer.value.name)
-  return filterEventsByQuery(searchQuery.value, result)
-})
-
-const timeSlots = [
-  '07:00', '07:30', '08:00', '08:30', '09:00', '09:30',
-  '10:00', '10:30', '11:00', '11:30',
-  '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-  '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
-  '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00',
-]
-
-// ── Create ──────────────────────────────────────────────
-function resetForm() {
-  newScheduleForm.value = {
-    title: '', subject: '', teacher: '', room: '',
-    day: 'Thứ 2', startTime: '07:30', endTime: '08:30', status: 'draft', type: 'class',
+// ── Computed ───────────────────────────────────────────────────
+const filteredRows = computed(() => {
+  let list = rows.value
+  if (filterHocKy.value) list = list.filter(r => r.hocKy.ten === filterHocKy.value)
+  if (filterTrangThai.value) list = list.filter(r => r.trangThai === filterTrangThai.value)
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    list = list.filter(r =>
+      r.maTkb.toLowerCase().includes(q) ||
+      r.monHoc.ten.toLowerCase().includes(q) ||
+      r.giaoVien.ten.toLowerCase().includes(q) ||
+      r.lop.ma.toLowerCase().includes(q)
+    )
   }
+  return list
+})
+
+const summaryCards = computed(() => [
+  { label: 'Lịch nháp', value: rows.value.filter(r => r.trangThai === 'nhap').length, border: 'border-[var(--border-default)]' },
+  { label: 'Đã xuất bản', value: rows.value.filter(r => r.trangThai === 'da_xuat_ban').length, border: 'border-emerald-500' },
+  { label: 'Buổi học tuần này', value: rows.value.filter(r => r.trangThai === 'da_xuat_ban').length * 3, border: 'border-blue-500' },
+  { label: 'Xung đột cần xử lý', value: 1, border: 'border-amber-500' },
+])
+
+const thuLabel = (thu) => {
+  const found = thuTrongTuanOptions.find(t => t.value === thu)
+  return found ? found.label : `Thứ ${thu}`
 }
 
-function handleCreateSchedule() {
-  if (!newScheduleForm.value.subject && !newScheduleForm.value.title) {
-    popup.warning('Thiếu thông tin', 'Vui lòng nhập tên môn học.')
-    return
-  }
-  const title = newScheduleForm.value.subject || newScheduleForm.value.title
-  const now = new Date()
-  const dateStr = now.toISOString().split('T')[0]
+// ── Panel ──────────────────────────────────────────────────────
+function openCreate() {
+  form.value = emptyForm()
+  panelMode.value = 'create'
+  editingRow.value = null
+  conflictPreview.value = []
+  showPanel.value = true
+}
 
-  createEvent({
-    title,
-    teacher: newScheduleForm.value.teacher,
-    room: newScheduleForm.value.room,
-    start: `${dateStr}T${newScheduleForm.value.startTime}:00`,
-    end: `${dateStr}T${newScheduleForm.value.endTime}:00`,
-    status: newScheduleForm.value.status,
-    type: newScheduleForm.value.type,
+function openEdit(row) {
+  form.value = { ...row, caHoc: { ...row.caHoc }, hocKy: { ...row.hocKy }, lop: { ...row.lop }, monHoc: { ...row.monHoc }, giaoVien: { ...row.giaoVien }, phongHoc: { ...row.phongHoc } }
+  panelMode.value = 'edit'
+  editingRow.value = row
+  conflictPreview.value = []
+  showPanel.value = true
+}
+
+function closePanel() { showPanel.value = false }
+
+// ── Conflict check ─────────────────────────────────────────────
+function checkConflicts() {
+  conflictPreview.value = []
+  const { thuTrongTuan, caHoc, giaoVien, lop, phongHoc } = form.value
+  if (!thuTrongTuan || !caHoc) return
+
+  const existing = rows.value.filter(r => {
+    if (editingRow.value && r.id === editingRow.value.id) return false
+    return r.thuTrongTuan === thuTrongTuan && r.caHoc?.id === caHoc.id && r.trangThai !== 'da_huy'
   })
 
-  resetForm()
-  showCreateModal.value = false
-  popup.success('Tạo lịch thành công', `Đã thêm "${title}" vào thời khóa biểu.`)
-}
-
-// ── Edit ────────────────────────────────────────────────
-function openEditModal(event) {
-  eventToEdit.value = event
-  editForm.value = {
-    id: event.id, title: event.title, teacher: event.teacher,
-    room: event.room, start: event.start, end: event.end,
-    status: event.status, type: event.type || 'class', color: event.color,
-  }
-  showEditModal.value = true
-}
-
-function handleEditSchedule() {
-  if (!eventToEdit.value) return
-  updateEvent(eventToEdit.value.id, {
-    title: editForm.value.title,
-    teacher: editForm.value.teacher,
-    room: editForm.value.room,
-    status: editForm.value.status,
-    type: editForm.value.type,
+  existing.forEach(r => {
+    if (giaoVien.ma && r.giaoVien.ma === giaoVien.ma) {
+      conflictPreview.value.push({ loai: 'Giảng viên', mo_ta: `${giaoVien.ten} đã có lịch ${r.maTkb} · ${thuLabel(r.thuTrongTuan)} ${r.caHoc.tenCa}`, de_xuat: 'Đổi sang ca khác hoặc chọn giảng viên khác' })
+    }
+    if (lop.ma && r.lop.ma === lop.ma) {
+      conflictPreview.value.push({ loai: 'Lớp học', mo_ta: `Lớp ${lop.ma} đã có lịch ${r.maTkb} · ${thuLabel(r.thuTrongTuan)} ${r.caHoc.tenCa}`, de_xuat: 'Đổi sang thứ hoặc ca khác' })
+    }
+    if (phongHoc.ma && r.phongHoc.ma === phongHoc.ma) {
+      conflictPreview.value.push({ loai: 'Phòng học', mo_ta: `Phòng ${phongHoc.ten} đã được dùng bởi ${r.maTkb} · ${thuLabel(r.thuTrongTuan)} ${r.caHoc.tenCa}`, de_xuat: 'Đổi sang phòng khác còn trống' })
+    }
   })
-  showEditModal.value = false
-  eventToEdit.value = null
-  popup.success('Cập nhật thành công', 'Thông tin lịch đã được cập nhật.')
+
+  if (conflictPreview.value.length === 0) {
+    popupStore.success('Không có xung đột', 'Lịch này không xung đột với bất kỳ lịch hiện tại nào.')
+  }
 }
 
-// ── Delete ──────────────────────────────────────────────
-function handleDeleteEvent() {
-  if (!eventToEdit.value) return
-  deleteEvent(eventToEdit.value.id)
-  showEditModal.value = false
-  eventToEdit.value = null
-  popup.success('Đã xóa lịch', 'Lịch đã được xóa khỏi thời khóa biểu.')
-}
-
-// ── Export ──────────────────────────────────────────────
-function handleExportExcel() {
-  const data = exportToExcel(filteredSchedules.value, semester.value)
-  const worksheet = XLSX.utils.json_to_sheet(data)
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Thời khóa biểu')
-  const columnWidths = [30, 25, 12, 22, 22, 14]
-  worksheet['!cols'] = columnWidths.map(w => ({ wch: w }))
-  const now = new Date()
-  const filename = `TKB_${semester.value.replace(/\s/g, '_')}_${now.toISOString().split('T')[0]}.xlsx`
-  XLSX.writeFile(workbook, filename)
-  popup.success('Xuất Excel thành công', `File "${filename}" đã được tải xuống.`)
-}
-
-function handleExportPDF() {
-  const printWindow = window.open('', '_blank')
-  if (!printWindow) {
-    popup.warning('Trình duyệt chặn cửa sổ popup', 'Vui lòng cho phép popup để xuất PDF.')
+// ── Save ───────────────────────────────────────────────────────
+function saveDraft() {
+  if (!form.value.monHoc.ten || !form.value.lop.ma) {
+    popupStore.warning('Thiếu thông tin', 'Vui lòng nhập đầy đủ Lớp và Môn học.')
     return
   }
-  const eventsHtml = filteredSchedules.value.map(e => {
-    const statusMap = { published: 'Đã công bố', pending: 'Chờ duyệt', draft: 'Bản nháp' }
-    return `<tr>
-      <td style="padding:8px;border:1px solid #ddd">${e.title}</td>
-      <td style="padding:8px;border:1px solid #ddd">${e.teacher}</td>
-      <td style="padding:8px;border:1px solid #ddd">${e.room}</td>
-      <td style="padding:8px;border:1px solid #ddd">${e.start}</td>
-      <td style="padding:8px;border:1px solid #ddd">${e.end}</td>
-      <td style="padding:8px;border:1px solid #ddd">${statusMap[e.status] || e.status}</td>
-    </tr>`
-  }).join('')
+  form.value.trangThai = 'nhap'
+  if (panelMode.value === 'create') {
+    const newId = `TKB-${String(rows.value.length + 1).padStart(3, '0')}`
+    rows.value.push({ ...form.value, id: newId, maTkb: newId })
+  } else {
+    const idx = rows.value.findIndex(r => r.id === editingRow.value.id)
+    if (idx !== -1) rows.value[idx] = { ...form.value, id: editingRow.value.id }
+  }
+  showPanel.value = false
+  popupStore.success('Đã lưu', 'Lịch đã được lưu dưới dạng bản nháp.')
+}
 
-  printWindow.document.write(`<!DOCTYPE html>
-<html><head><title>Thời khóa biểu - ${semester.value}</title>
-<style>body{font-family:'Segoe UI',sans-serif;padding:40px;color:#1e293b}h1{font-size:24px;margin-bottom:4px}h2{font-size:14px;color:#64748b;font-weight:normal;margin-bottom:24px}table{width:100%;border-collapse:collapse}th{background:#0f766e;color:white;padding:10px 8px;text-align:left;font-size:13px}td{font-size:12px;padding:8px;border:1px solid #ddd}.footer{margin-top:24px;font-size:11px;color:#94a3b8}</style></head>
-<body><h1>Thời khóa biểu</h1><h2>Học kỳ: ${semester.value} | Cơ sở: ${campus.value}</h2>
-<table><thead><tr><th>Môn học</th><th>Giảng viên</th><th>Phòng</th><th>Bắt đầu</th><th>Kết thúc</th><th>Trạng thái</th></tr></thead><tbody>${eventsHtml}</tbody></table>
-<div class="footer">Xuất ngày: ${new Date().toLocaleDateString('vi-VN')} | Hệ thống LMS</div></body></html>`)
-  printWindow.document.close()
-  printWindow.focus()
-  setTimeout(() => printWindow.print(), 500)
+function confirmPublish() {
+  if (conflictPreview.value.length > 0) {
+    popupStore.warning('Có xung đột', 'Vui lòng giải quyết xung đột trước khi xuất bản.')
+    return
+  }
+  confirmAction.value = {
+    title: 'Xuất bản lịch học?',
+    message: `Lịch "${form.value.monHoc.ten}" cho lớp ${form.value.lop.ma} sẽ được công bố đến sinh viên và giảng viên.`,
+    label: 'Xuất bản',
+    variant: 'primary',
+    run: () => {
+      form.value.trangThai = 'da_xuat_ban'
+      saveDraft()
+      confirmAction.value = null
+      popupStore.success('Đã xuất bản', 'Lịch học đã được công bố.')
+    }
+  }
+}
+
+function confirmDelete(row) {
+  confirmAction.value = {
+    title: 'Xóa lịch học?',
+    message: `Lịch ${row.maTkb} · ${row.monHoc.ten} (${row.lop.ma}) sẽ bị xóa vĩnh viễn.`,
+    label: 'Xóa',
+    variant: 'danger',
+    run: () => {
+      const idx = rows.value.findIndex(r => r.id === row.id)
+      if (idx !== -1) rows.value.splice(idx, 1)
+      confirmAction.value = null
+      if (selectedRow.value?.id === row.id) selectedRow.value = null
+      popupStore.success('Đã xóa', 'Lịch học đã được xóa.')
+    }
+  }
+}
+
+function confirmGenerateSessions(row) {
+  const weeks = Math.round((new Date(row.ngayKetThuc) - new Date(row.ngayBatDau)) / (7 * 86400000))
+  confirmAction.value = {
+    title: 'Sinh buổi học?',
+    message: `Sẽ sinh khoảng ${weeks} buổi học cho lịch ${row.maTkb} (${row.ngayBatDau} → ${row.ngayKetThuc}).`,
+    label: 'Sinh buổi học',
+    variant: 'primary',
+    run: () => {
+      confirmAction.value = null
+      popupStore.success('Thành công', `Đã tạo ${weeks} buổi học cho ${row.maTkb}.`)
+    }
+  }
 }
 </script>
 
 <template>
-  <PageContainer
-    title="Quản lý thời khóa biểu"
-    subtitle="Xếp lịch học và quản lý thời khóa biểu cho học kỳ hiện tại."
-  >
-    <template #actions>
-      <div class="flex items-center gap-2">
-        <button @click="handleExportPDF"
-          class="lg-button-secondary px-3 py-2 text-sm font-bold">
-          <Printer :size="16" /> PDF
-        </button>
-        <button @click="handleExportExcel"
-          class="lg-button-secondary px-3 py-2 text-sm font-bold">
-          <Download :size="16" /> Excel
-        </button>
-        <button @click="showCreateModal = true"
-          class="lg-button-primary px-4 py-2 text-sm font-bold transition-all">
-          <Plus :size="18" /> Tạo lịch mới
-        </button>
+  <div class="staff-schedule max-w-7xl mx-auto space-y-5">
+    <!-- Header -->
+    <GlassPanel variant="flat" density="compact">
+      <div class="flex items-center gap-3 mb-1">
+        <CalendarRange class="text-(--lg-primary)" :size="24" />
+        <h1 class="text-2xl font-bold text-(--text-heading)">Quản lý Thời khóa biểu</h1>
       </div>
-    </template>
+      <p class="text-(--text-body)">Lập lịch học theo học kỳ, kiểm tra xung đột và xuất bản cho sinh viên.</p>
+    </GlassPanel>
 
-    <div class="space-y-3">
-      <!-- Stats bar -->
-      <div class="lg-glass-soft px-4 py-2.5 rounded-2xl flex items-center gap-4 flex-wrap border-default">
-        <div class="flex items-center gap-1.5 text-xs font-bold text-label">
-          <div class="w-2 h-2 rounded-full bg-(--lg-primary)" />
-          <span>Đã công bố: <strong class="text-heading">{{ publishedEvents }}</strong></span>
-        </div>
-        <div class="flex items-center gap-1.5 text-xs font-bold text-label">
-          <div class="w-2 h-2 rounded-full bg-(--lg-warning)" />
-          <span>Chờ duyệt: <strong class="text-heading">{{ pendingEvents }}</strong></span>
-        </div>
-        <div class="flex items-center gap-1.5 text-xs font-bold text-label">
-          <div class="w-2 h-2 rounded-full bg-(--border-default)" />
-          <span>Bản nháp: <strong class="text-heading">{{ draftEvents }}</strong></span>
-        </div>
-        <div class="w-px h-4 bg-(--border-default)" />
-        <div class="flex items-center gap-1.5 text-xs font-bold text-label">
-          <CalendarRange :size="13" />
-          <span>Tổng số: <strong class="text-heading">{{ totalEvents }}</strong></span>
-        </div>
-      </div>
-
-      <!-- Toolbar -->
-      <div class="lg-glass-strong p-3 rounded-2xl flex items-center justify-between gap-3 flex-wrap border-default">
-        <!-- Month navigation -->
-        <div class="flex items-center gap-2">
-          <button @click="prevMonth"
-            class="p-1.5 hover:bg-(--surface-input) rounded-lg text-label transition-colors">
-            <ChevronLeft :size="18" />
-          </button>
-          <span class="text-sm font-bold text-heading min-w-[170px] text-center select-none">
-            {{ monthLabel }}
-          </span>
-          <button @click="nextMonth"
-            class="p-1.5 hover:bg-(--surface-input) rounded-lg text-label transition-colors">
-            <ChevronRight :size="18" />
-          </button>
-          <button @click="goToToday"
-            class="ml-1 lg-button-secondary px-3 py-1.5 text-xs font-bold">
-            Hôm nay
-          </button>
-        </div>
-
-        <!-- Filters -->
-        <div class="flex items-center gap-2">
-          <div class="relative">
-            <Search :size="13" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-placeholder" />
-            <input v-model="searchQuery" type="text" placeholder="Tìm kiếm..."
-              class="lg-input pl-8 pr-2.5 py-1.5 text-xs font-bold w-32" />
-          </div>
-          <select v-model="semester"
-            class="lg-input px-2.5 py-1.5 text-xs font-bold">
-            <option>Spring 2026</option>
-            <option>Fall 2025</option>
-          </select>
-          <select v-model="selectedLecturer"
-            class="lg-input px-2.5 py-1.5 text-xs font-bold">
-            <option v-for="l in lecturers" :key="l.id" :value="l">{{ l.name }}</option>
-          </select>
-          <button
-            class="lg-icon-button p-1.5">
-            <Filter :size="16" />
-          </button>
-        </div>
-      </div>
-
-      <!-- Month Calendar -->
-      <MonthView @edit="openEditModal" />
-
-      <!-- Legend -->
-      <div class="flex flex-wrap items-center justify-between gap-3 px-1">
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-1.5">
-            <span class="h-2.5 w-2.5 rounded-full bg-(--lg-success)" />
-            <span class="text-[11px] font-bold text-label">Đã công bố</span>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <span class="h-2.5 w-2.5 rounded-full bg-(--lg-warning)" />
-            <span class="text-[11px] font-bold text-label">Chờ duyệt</span>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <span class="h-2.5 w-2.5 rounded-full bg-(--border-default)" />
-            <span class="text-[11px] font-bold text-label">Bản nháp</span>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-3 text-[11px] font-bold text-placeholder">
-          <div class="flex items-center gap-1.5">
-            <AlertCircle :size="13" class="text-(--lg-warning)" />
-            <span>Kiểm tra xung đột</span>
-          </div>
-          <div class="h-3 w-px bg-(--border-default)" />
-          <div class="flex items-center gap-1.5">
-            <CheckCircle2 :size="13" class="text-(--lg-success)" />
-            <span>Dữ liệu đã đồng bộ</span>
-          </div>
-        </div>
-      </div>
+    <!-- Summary cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <GlassPanel
+        v-for="card in summaryCards" :key="card.label"
+        variant="flat" density="compact"
+        class="flex flex-col justify-center min-h-[88px]"
+        :class="`border-l-4 ${card.border}`"
+      >
+        <p class="text-sm font-medium text-(--text-muted) mb-1">{{ card.label }}</p>
+        <strong class="text-2xl text-(--text-heading)">{{ card.value }}</strong>
+      </GlassPanel>
     </div>
-  </PageContainer>
 
-  <!-- Create Modal -->
-  <Teleport to="body">
-    <Transition name="modal">
-      <div v-if="showCreateModal"
-        class="fixed inset-0 z-[9998] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
-        @click.self="showCreateModal = false">
-        <div class="relative z-[9999] surface-modal rounded-2xl shadow-sm max-w-md w-full p-5 border border-default">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold text-heading">Tạo lịch mới</h2>
-            <button type="button" @click="showCreateModal = false"
-              class="p-1.5 hover:bg-(--surface-input) rounded-lg text-placeholder hover:text-label transition-colors">
-              <X :size="18" />
-            </button>
+    <!-- Main area -->
+    <GlassPanel variant="flat" class="p-0 overflow-hidden">
+      <!-- Toolbar -->
+      <div class="p-4 border-b border-(--border-default) flex flex-wrap gap-3 items-center">
+        <label class="flex items-center gap-2 bg-(--surface-input) px-3 h-10 rounded-lg border border-(--border-input) flex-1 min-w-[200px] focus-within:ring-2 focus-within:ring-(--border-focus) transition-shadow">
+          <Search :size="16" class="text-(--text-muted) shrink-0" />
+          <input v-model="searchQuery" type="text" placeholder="Tìm mã TKB, môn, lớp, GV..." class="bg-transparent border-none outline-none w-full text-sm text-(--text-body)" />
+        </label>
+        <select v-model="filterHocKy" class="h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus) min-w-[140px]">
+          <option value="">Tất cả học kỳ</option>
+          <option v-for="hk in hocKyOptions" :key="hk">{{ hk }}</option>
+        </select>
+        <select v-model="filterTrangThai" class="h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus) min-w-[140px]">
+          <option value="">Tất cả trạng thái</option>
+          <option value="nhap">Bản nháp</option>
+          <option value="da_xuat_ban">Đã xuất bản</option>
+          <option value="da_huy">Đã hủy</option>
+        </select>
+        <GlassButton variant="primary" class="h-10 shrink-0" @click="openCreate">
+          <Plus :size="16" class="mr-1" />Tạo lịch
+        </GlassButton>
+      </div>
+
+      <!-- Split layout -->
+      <div class="grid grid-cols-1" :class="showPanel ? 'lg:grid-cols-5' : ''">
+        <!-- Table -->
+        <div :class="showPanel ? 'lg:col-span-3' : ''" class="overflow-x-auto border-r border-(--border-default)">
+          <TableShell v-if="filteredRows.length > 0">
+            <table>
+              <thead>
+                <tr>
+                  <th class="whitespace-nowrap">Mã TKB</th>
+                  <th>Lớp</th>
+                  <th>Môn học</th>
+                  <th>Giảng viên</th>
+                  <th class="whitespace-nowrap">Thứ / Ca</th>
+                  <th>Phòng</th>
+                  <th>Trạng thái</th>
+                  <th class="text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="row in filteredRows" :key="row.id"
+                  class="cursor-pointer transition-colors"
+                  :class="selectedRow?.id === row.id ? 'bg-(--surface-hover)' : 'hover:bg-(--surface-hover)'"
+                  @click="selectedRow = row"
+                >
+                  <td class="font-mono text-sm text-(--text-muted) whitespace-nowrap">{{ row.maTkb }}</td>
+                  <td class="text-sm font-medium">{{ row.lop.ma }}</td>
+                  <td class="max-w-[180px]">
+                    <div class="text-sm font-medium line-clamp-1" :title="row.monHoc.ten">{{ row.monHoc.ten }}</div>
+                    <div class="text-xs text-(--text-muted)">{{ row.monHoc.ma }}</div>
+                  </td>
+                  <td class="text-sm line-clamp-1 max-w-[160px]" :title="row.giaoVien.ten">{{ row.giaoVien.ten }}</td>
+                  <td class="whitespace-nowrap text-sm">
+                    <div>{{ thuLabel(row.thuTrongTuan) }}</div>
+                    <div class="text-xs text-(--text-muted)">{{ row.caHoc?.tenCa }} · {{ row.caHoc?.gioBatDau }}–{{ row.caHoc?.gioKetThuc }}</div>
+                  </td>
+                  <td class="text-sm font-medium">{{ row.phongHoc?.ten }}</td>
+                  <td>
+                    <GlassBadge :variant="getStatusVariant('timetable', row.trangThai)" size="sm">
+                      {{ getStatusLabel('timetable', row.trangThai) }}
+                    </GlassBadge>
+                  </td>
+                  <td class="text-right">
+                    <div class="flex justify-end gap-1">
+                      <GlassButton variant="ghost" size="xs" @click.stop="openEdit(row)">Sửa</GlassButton>
+                      <GlassButton v-if="row.trangThai === 'da_xuat_ban'" variant="ghost" size="xs" @click.stop="confirmGenerateSessions(row)">Sinh buổi</GlassButton>
+                      <GlassButton variant="ghost" size="xs" class="text-red-500 hover:bg-red-500/10" @click.stop="confirmDelete(row)">Xóa</GlassButton>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </TableShell>
+          <div v-else class="p-8">
+            <EmptyState title="Không có lịch học" description="Chưa có lịch nào phù hợp với bộ lọc. Hãy tạo lịch mới." />
           </div>
-          <form @submit.prevent="handleCreateSchedule" class="space-y-3">
+        </div>
+
+        <!-- Side panel -->
+        <div v-if="showPanel" class="lg:col-span-2 bg-(--surface-card) flex flex-col max-h-[calc(100vh-200px)] overflow-y-auto">
+          <div class="p-4 border-b border-(--border-default) flex items-center justify-between shrink-0">
+            <h3 class="font-bold text-(--text-heading)">{{ panelMode === 'create' ? 'Tạo lịch mới' : 'Chỉnh sửa lịch' }}</h3>
+            <button @click="closePanel" class="text-(--text-muted) hover:text-(--text-heading) p-1 rounded"><X :size="18" /></button>
+          </div>
+
+          <div class="p-4 space-y-4 flex-1">
+            <!-- Học kỳ -->
+            <div>
+              <label class="block text-xs font-semibold text-(--text-muted) mb-1">Học kỳ *</label>
+              <select v-model="form.hocKy.ten" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
+                <option v-for="hk in hocKyOptions" :key="hk" :value="hk">{{ hk }}</option>
+              </select>
+            </div>
+
+            <!-- Lớp -->
+            <div>
+              <label class="block text-xs font-semibold text-(--text-muted) mb-1">Mã lớp *</label>
+              <input v-model="form.lop.ma" type="text" placeholder="VD: SE1601" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+            </div>
+
+            <!-- Môn học -->
+            <div>
+              <label class="block text-xs font-semibold text-(--text-muted) mb-1">Môn học *</label>
+              <input v-model="form.monHoc.ten" type="text" placeholder="Tên môn học" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-(--text-muted) mb-1">Mã môn</label>
+              <input v-model="form.monHoc.ma" type="text" placeholder="VD: PRO192" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+            </div>
+
+            <!-- Giảng viên -->
+            <div>
+              <label class="block text-xs font-semibold text-(--text-muted) mb-1">Giảng viên *</label>
+              <input v-model="form.giaoVien.ten" type="text" placeholder="Tên giảng viên" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+            </div>
+
+            <!-- Thứ -->
+            <div>
+              <label class="block text-xs font-semibold text-(--text-muted) mb-1">Thứ trong tuần *</label>
+              <select v-model="form.thuTrongTuan" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
+                <option v-for="thu in thuTrongTuanOptions" :key="thu.value" :value="thu.value">{{ thu.label }}</option>
+              </select>
+            </div>
+
+            <!-- Ca học -->
+            <div>
+              <label class="block text-xs font-semibold text-(--text-muted) mb-1">Ca học *</label>
+              <select v-model="form.caHoc" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
+                <option v-for="ca in caHocCatalog" :key="ca.id" :value="ca">{{ ca.tenCa }} · {{ ca.gioBatDau }}–{{ ca.gioKetThuc }}</option>
+              </select>
+            </div>
+
+            <!-- Phòng học -->
+            <div>
+              <label class="block text-xs font-semibold text-(--text-muted) mb-1">Phòng học *</label>
+              <input v-model="form.phongHoc.ten" type="text" placeholder="VD: P.302, Lab 2" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+            </div>
+
+            <!-- Ngày -->
             <div class="grid grid-cols-2 gap-3">
-              <div class="col-span-2">
-                <label class="block text-xs font-bold text-label mb-1">Môn học <span class="text-(--lg-danger)">*</span></label>
-                <input v-model="newScheduleForm.subject" type="text" placeholder="Nhập tên môn học"
-                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-(--lg-primary)/20 focus:border-input-focus transition-colors text-body" />
+              <div>
+                <label class="block text-xs font-semibold text-(--text-muted) mb-1">Ngày bắt đầu *</label>
+                <input v-model="form.ngayBatDau" type="date" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
               </div>
               <div>
-                <label class="block text-xs font-bold text-label mb-1">Giảng viên</label>
-                <select v-model="newScheduleForm.teacher"
-                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-(--lg-primary)/20 focus:border-input-focus transition-colors text-body">
-                  <option value="">-- Chọn --</option>
-                  <option v-for="l in lecturers.filter(x => x.id !== 1)" :key="l.id" :value="l.name">{{ l.name }}</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-label mb-1">Phòng</label>
-                <input v-model="newScheduleForm.room" type="text" placeholder="VD: P.302"
-                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-(--lg-primary)/20 focus:border-input-focus transition-colors text-body" />
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-label mb-1">Loại</label>
-                <select v-model="newScheduleForm.type"
-                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-(--lg-primary)/20 focus:border-input-focus transition-colors text-body">
-                  <option value="class">Lớp học</option>
-                  <option value="exam">Thi</option>
-                  <option value="meeting">Họp</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-label mb-1">Giờ bắt đầu</label>
-                <select v-model="newScheduleForm.startTime"
-                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-(--lg-primary)/20 focus:border-input-focus transition-colors text-body">
-                  <option v-for="t in timeSlots" :key="t" :value="t">{{ t }}</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-label mb-1">Giờ kết thúc</label>
-                <select v-model="newScheduleForm.endTime"
-                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-(--lg-primary)/20 focus:border-input-focus transition-colors text-body">
-                  <option v-for="t in timeSlots" :key="t" :value="t" :disabled="t <= newScheduleForm.startTime">{{ t }}</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-label mb-1">Trạng thái</label>
-                <select v-model="newScheduleForm.status"
-                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-(--lg-primary)/20 focus:border-input-focus transition-colors text-body">
-                  <option value="draft">Bản nháp</option>
-                  <option value="pending">Chờ duyệt</option>
-                  <option value="published">Đã công bố</option>
-                </select>
+                <label class="block text-xs font-semibold text-(--text-muted) mb-1">Ngày kết thúc *</label>
+                <input v-model="form.ngayKetThuc" type="date" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
               </div>
             </div>
-            <div class="flex gap-3 pt-3 mt-2 border-t border-default">
-              <button type="button" @click="showCreateModal = false"
-                class="flex-1 px-4 py-2 rounded-xl lg-button-secondary text-sm font-bold">Hủy</button>
-              <button type="submit"
-                class="flex-1 px-4 py-2 rounded-xl lg-button-primary text-sm font-bold shadow-lg shadow-(--lg-primary)/20">Tạo lịch</button>
+
+            <!-- Ghi chú -->
+            <div>
+              <label class="block text-xs font-semibold text-(--text-muted) mb-1">Ghi chú</label>
+              <textarea v-model="form.ghiChu" rows="2" class="w-full px-3 py-2 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus) resize-none" placeholder="Ghi chú thêm (không bắt buộc)"></textarea>
             </div>
-          </form>
+
+            <!-- Conflict preview -->
+            <div>
+              <GlassButton variant="secondary" class="w-full h-10 justify-center" @click="checkConflicts">
+                <AlertTriangle :size="16" class="mr-1" /> Kiểm tra xung đột
+              </GlassButton>
+              <div v-if="conflictPreview.length > 0" class="mt-3 space-y-2">
+                <div v-for="(c, i) in conflictPreview" :key="i" class="bg-(--color-warning-bg) border border-amber-300/40 rounded-lg p-3 text-sm">
+                  <div class="font-semibold text-(--color-warning-text) mb-1">⚠ Xung đột {{ c.loai }}</div>
+                  <div class="text-(--text-body) mb-1">{{ c.mo_ta }}</div>
+                  <div class="text-(--text-muted) text-xs italic">Đề xuất: {{ c.de_xuat }}</div>
+                </div>
+              </div>
+              <div v-else-if="conflictPreview.length === 0 && form.monHoc.ten" class="mt-2 text-xs text-(--text-muted) italic text-center">Nhấn để kiểm tra xung đột trước khi lưu.</div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="p-4 border-t border-(--border-default) shrink-0 bg-(--surface-modal)">
+            <div class="flex flex-col gap-2">
+              <GlassButton variant="secondary" class="w-full h-10 justify-center" @click="saveDraft">
+                <BookOpen :size="16" class="mr-1" /> Lưu nháp
+              </GlassButton>
+              <GlassButton variant="primary" class="w-full h-10 justify-center" @click="confirmPublish">
+                <CheckCircle :size="16" class="mr-1" /> Xuất bản lịch
+              </GlassButton>
+            </div>
+          </div>
         </div>
       </div>
-    </Transition>
-  </Teleport>
+    </GlassPanel>
 
-  <!-- Edit Modal -->
-  <Teleport to="body">
-    <Transition name="modal">
-      <div v-if="showEditModal && eventToEdit"
-        class="fixed inset-0 z-[9998] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
-        @click.self="showEditModal = false">
-        <div class="relative z-[9999] surface-modal rounded-2xl shadow-sm max-w-md w-full p-5 border border-default">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold text-heading">Chỉnh sửa lịch</h2>
-            <button type="button" @click="showEditModal = false"
-              class="p-1.5 hover:bg-(--surface-input) rounded-lg text-placeholder hover:text-label transition-colors">
-              <X :size="18" />
-            </button>
-          </div>
-          <form @submit.prevent="handleEditSchedule" class="space-y-3">
-            <div class="grid grid-cols-2 gap-3">
-              <div class="col-span-2">
-                <label class="block text-xs font-bold text-label mb-1">Môn học</label>
-                <input v-model="editForm.title" type="text"
-                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-(--lg-primary)/20 focus:border-input-focus transition-colors text-body" />
-              </div>
-              <div class="col-span-2">
-                <label class="block text-xs font-bold text-label mb-1">Giảng viên</label>
-                <select v-model="editForm.teacher"
-                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-(--lg-primary)/20 focus:border-input-focus transition-colors text-body">
-                  <option v-for="l in lecturers.filter(x => x.id !== 1)" :key="l.id" :value="l.name">{{ l.name }}</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-label mb-1">Phòng</label>
-                <input v-model="editForm.room" type="text"
-                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-(--lg-primary)/20 focus:border-input-focus transition-colors text-body" />
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-label mb-1">Loại</label>
-                <select v-model="editForm.type"
-                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-(--lg-primary)/20 focus:border-input-focus transition-colors text-body">
-                  <option value="class">Lớp học</option>
-                  <option value="exam">Thi</option>
-                  <option value="meeting">Họp</option>
-                </select>
-              </div>
-              <div class="col-span-2">
-                <label class="block text-xs font-bold text-label mb-1">Trạng thái</label>
-                <select v-model="editForm.status"
-                  class="w-full px-3 py-2 text-sm rounded-xl border border-input bg-surface-input outline-none focus:ring-2 focus:ring-(--lg-primary)/20 focus:border-input-focus transition-colors text-body">
-                  <option value="draft">Bản nháp</option>
-                  <option value="pending">Chờ duyệt</option>
-                  <option value="published">Đã công bố</option>
-                </select>
-              </div>
-            </div>
-            <div class="flex gap-2 pt-3 mt-2 border-t border-default">
-              <button type="button" @click="handleDeleteEvent"
-                class="px-3 py-2 rounded-xl border border-(--lg-danger)/20 text-(--lg-danger) text-sm font-bold hover:bg-(--color-danger-bg) transition-colors">
-                <Trash2 :size="14" /> Xóa
-              </button>
-              <button type="button" @click="showEditModal = false"
-                class="flex-1 px-4 py-2 rounded-xl lg-button-secondary text-sm font-bold">Hủy</button>
-              <button type="submit"
-                class="flex-1 px-4 py-2 rounded-xl lg-button-primary text-sm font-bold shadow-lg shadow-(--lg-primary)/20">Cập nhật</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+    <ConfirmActionDialog
+      v-if="confirmAction"
+      :show="true"
+      :title="confirmAction.title"
+      :message="confirmAction.message"
+      :confirmLabel="confirmAction.label"
+      :variant="confirmAction.variant"
+      @confirm="confirmAction.run"
+      @cancel="confirmAction = null"
+    />
+  </div>
 </template>
-
-<style scoped>
-.modal-enter-active,
-.modal-leave-active {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-  transform: scale(0.95);
-}
-</style>

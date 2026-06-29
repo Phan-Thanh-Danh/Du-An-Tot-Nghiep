@@ -1,422 +1,270 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { 
-  AlertTriangle, 
-  CheckCircle, 
-  Search, 
-  RefreshCw, 
-  Calendar, 
-  User, 
-  Building,
-  ArrowRight,
-  ShieldAlert,
-  Info,
-  Lightbulb,
-  Clock,
-  X,
-  MapPin,
-  BookOpen,
-  Users
-} from 'lucide-vue-next'
-import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import { ref, computed } from 'vue'
+import { AlertTriangle, Search, CheckCircle, User, Building, Users, ShieldAlert } from 'lucide-vue-next'
+import GlassPanel from '@/components/ui/GlassPanel.vue'
+import GlassBadge from '@/components/ui/GlassBadge.vue'
+import GlassButton from '@/components/ui/GlassButton.vue'
+import TableShell from '@/components/ui/TableShell.vue'
+import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import {
+  caHocCatalog, thuTrongTuanOptions, scheduleConflictRows,
+} from '@/mocks/scheduleAttendanceMockData'
+import { usePopupStore } from '@/stores/popup'
 
-const router = useRouter()
+const popupStore = usePopupStore()
 
-// ── Form State ──────────────────────────────────────────────
+// ── State ──────────────────────────────────────────────────────
 const isChecking = ref(false)
-const checkResult = ref(null)
-const activeDropdown = ref(null)
-const showDetail = ref(false)
-const detailData = ref(null)
-
-const teacherSchedule = {
-  name: 'Nguyễn Văn A',
-  day: 'Thứ 2',
-  slots: [
-    { start: '07:00', end: '08:30', subject: 'Lập trình Java', class: 'SE1601', room: 'P.302', conflict: false },
-    { start: '08:45', end: '10:15', subject: 'Lập trình Java', class: 'SE1601', room: 'P.302', conflict: true },
-    { start: '10:30', end: '12:00', subject: 'Cấu trúc dữ liệu', class: 'SE1602', room: 'Lab 1', conflict: false },
-    { start: '13:00', end: '14:30', subject: 'Hệ quản trị CSDL', class: 'SE1604', room: 'Lab 304', conflict: false },
-  ]
-}
-
-const roomSchedule = {
-  name: 'Lab 2',
-  day: 'Thứ 2',
-  slots: [
-    { start: '07:00', end: '08:30', subject: 'Đồ họa 2D', class: 'IT201', teacher: 'ThS. Trần Văn B', conflict: false },
-    { start: '08:45', end: '10:15', subject: 'Đồ họa 2D', class: 'IT201', teacher: 'ThS. Trần Văn B', conflict: false },
-    { start: '10:30', end: '12:00', subject: 'Mạng máy tính', class: 'IT202', teacher: 'TS. Lê Thị C', conflict: true },
-    { start: '13:00', end: '14:30', subject: 'An toàn thông tin', class: 'AT21', teacher: 'ThS. Phạm Văn D', conflict: false },
-  ]
-}
-
-const classSchedule = {
-  name: 'SE1601',
-  day: 'Thứ 2',
-  slots: [
-    { start: '07:00', end: '08:30', subject: 'Lập trình Java', room: 'P.302', teacher: 'Nguyễn Văn A', conflict: false },
-    { start: '08:45', end: '10:15', subject: 'Lập trình Java', room: 'P.302', teacher: 'Nguyễn Văn A', conflict: true },
-    { start: '10:30', end: '12:00', subject: 'Cấu trúc dữ liệu', room: 'Lab 1', teacher: 'Trần Thị B', conflict: false },
-    { start: '13:00', end: '14:30', subject: 'Hệ quản trị CSDL', room: 'Lab 304', teacher: 'Lê Văn C', conflict: false },
-  ]
-}
+const checkDone = ref(false)
+const conflicts = ref([...scheduleConflictRows])
+const selectedConflict = ref(null)
+const confirmAction = ref(null)
 
 const form = ref({
-  teacherId: '',
-  roomId: '',
-  classId: '',
-  day: 'Thứ 2',
-  startTime: '07:30',
-  endTime: '09:30'
+  hocKy: 'Spring 2026',
+  thu: 2,
+  caHocId: 'ca1',
+  giaoVienId: '',
+  lopId: '',
+  phongId: '',
 })
 
+// ── Summary ────────────────────────────────────────────────────
+const summaryCards = computed(() => [
+  { label: 'Tổng xung đột', value: conflicts.value.length, border: 'border-(--border-default)', icon: ShieldAlert },
+  { label: 'Trùng giảng viên', value: conflicts.value.filter(c => c.loai === 'giang_vien').length, border: 'border-red-500', icon: User },
+  { label: 'Trùng lớp học', value: conflicts.value.filter(c => c.loai === 'lop_hoc').length, border: 'border-amber-500', icon: Users },
+  { label: 'Trùng phòng học', value: conflicts.value.filter(c => c.loai === 'phong_hoc').length, border: 'border-blue-500', icon: Building },
+])
+
+const mucDoVariant = (mucDo) => {
+  if (mucDo === 'critical') return 'danger'
+  if (mucDo === 'major') return 'warning'
+  return 'info'
+}
+
+const mucDoLabel = (mucDo) => {
+  if (mucDo === 'critical') return 'Nghiêm trọng'
+  if (mucDo === 'major') return 'Trung bình'
+  return 'Nhẹ'
+}
+
+const loaiLabel = (loai) => {
+  if (loai === 'giang_vien') return 'Giảng viên'
+  if (loai === 'phong_hoc') return 'Phòng học'
+  if (loai === 'lop_hoc') return 'Lớp học'
+  return loai
+}
+
+// ── Check ──────────────────────────────────────────────────────
 function performCheck() {
   isChecking.value = true
-  activeDropdown.value = null
-  // Mock check logic
   setTimeout(() => {
     isChecking.value = false
-    checkResult.value = {
-      hasConflict: true,
-      conflicts: [
-        { 
-          type: 'teacher', 
-          message: 'Giảng viên Nguyễn Văn A đã có lịch dạy lớp SE1601 tại P.302 cùng thời điểm.', 
-          severity: 'high',
-          suggestion: 'Gợi ý: Đổi sang giảng viên ThS. Trần Thị Lan (đang trống lịch)',
-          actionRoute: {
-            name: 'staff-assignments',
-            query: {
-              action: 'change-teacher',
-              assignmentId: 'PC001',
-              suggestedTeacher: 'ThS. Trần Thị Lan',
-              autoApply: 'true'
-            }
-          }
-        },
-        { 
-          type: 'room', 
-          message: 'Phòng Lab 2 đang được sử dụng bởi lớp IT202.', 
-          severity: 'medium',
-          suggestion: 'Gợi ý: Đổi sang phòng Lab 3 (cùng sức chứa, đang trống)',
-          actionRoute: {
-            name: 'staff-rooms',
-            query: {
-              action: 'change-room',
-              roomId: '3',
-              suggestedRoom: 'Lab 3',
-              autoApply: 'true'
-            }
-          }
-        }
-      ]
+    checkDone.value = true
+    popupStore.info('Kết quả kiểm tra', `Tìm thấy ${conflicts.value.length} xung đột.`)
+  }, 800)
+}
+
+// ── Resolve actions ────────────────────────────────────────────
+function applyFix(conflict) {
+  confirmAction.value = {
+    title: 'Áp dụng đề xuất xử lý?',
+    message: conflict.deXuat,
+    label: 'Áp dụng',
+    variant: 'primary',
+    run: () => {
+      const idx = conflicts.value.findIndex(c => c.id === conflict.id)
+      if (idx !== -1) conflicts.value.splice(idx, 1)
+      if (selectedConflict.value?.id === conflict.id) selectedConflict.value = null
+      confirmAction.value = null
+      popupStore.success('Đã xử lý', 'Xung đột đã được đánh dấu giải quyết.')
     }
-  }, 1000)
-}
-
-function toggleDropdown(idx) {
-  if (activeDropdown.value === idx) {
-    activeDropdown.value = null
-  } else {
-    activeDropdown.value = idx
-  }
-}
-
-function closeDropdown() {
-  activeDropdown.value = null
-}
-
-function onDocumentClick(e) {
-  if (activeDropdown.value === null) return
-  const wrapper = e.target.closest('[data-dropdown-wrapper]')
-  if (!wrapper) {
-    activeDropdown.value = null
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('click', onDocumentClick)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', onDocumentClick)
-})
-
-function resolveConflict(conflict, action) {
-  activeDropdown.value = null
-  if (action === 'change' && conflict.actionRoute) {
-    removeConflict(conflict)
-    router.push(conflict.actionRoute)
-    return
-  }
-  if (action === 'view') {
-    activeDropdown.value = null
-    if (conflict.type === 'teacher') {
-      detailData.value = { type: 'teacher', ...teacherSchedule }
-    } else if (conflict.type === 'class') {
-      detailData.value = { type: 'class', ...classSchedule }
-    } else {
-      detailData.value = { type: 'room', ...roomSchedule }
-    }
-    showDetail.value = true
-    return
-  }
-  if (action === 'ignore') {
-    removeConflict(conflict)
-  }
-}
-
-function removeConflict(conflict) {
-  const idx = checkResult.value.conflicts.indexOf(conflict)
-  if (idx !== -1) {
-    checkResult.value.conflicts.splice(idx, 1)
-    if (checkResult.value.conflicts.length === 0) {
-      checkResult.value.hasConflict = false
-    }
-  }
-}
-
-function navigateToSuggestion(conflict) {
-  if (conflict.actionRoute) {
-    removeConflict(conflict)
-    router.push(conflict.actionRoute)
   }
 }
 </script>
 
 <template>
-  <PageContainer 
-    title="Kiểm tra xung đột" 
-    subtitle="Công cụ kiểm tra trùng lịch giảng viên, phòng học và lớp học trước khi xuất bản TKB."
-  >
-    <div class="max-w-4xl mx-auto space-y-8">
-      
-      <!-- ── Input Form ── -->
-      <div class="lg-glass-soft p-5 rounded-2xl border-default shadow-sm">
-        <h3 class="text-lg font-semibold text-heading mb-4 flex items-center gap-2">
-          <Search :size="20" class="text-(--lg-primary)" /> THÔNG TIN KIỂM TRA
-        </h3>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="space-y-1.5">
-            <label class="text-[10px] font-semibold text-placeholder uppercase tracking-widest ml-1">Giảng viên</label>
-            <div class="relative">
-              <User :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-placeholder" />
-              <input v-model="form.teacherId" type="text" placeholder="Nhập tên hoặc mã GV..." class="w-full lg-input pl-10 pr-4 py-2.5 text-sm font-medium">
-            </div>
-          </div>
-
-          <div class="space-y-1.5">
-            <label class="text-[10px] font-semibold text-placeholder uppercase tracking-widest ml-1">Phòng học</label>
-            <div class="relative">
-              <Building :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-placeholder" />
-              <input v-model="form.roomId" type="text" placeholder="Nhập tên phòng..." class="w-full lg-input pl-10 pr-4 py-2.5 text-sm font-medium">
-            </div>
-          </div>
-
-          <div class="space-y-1.5">
-            <label class="text-[10px] font-semibold text-placeholder uppercase tracking-widest ml-1">Ngày trong tuần</label>
-            <select v-model="form.day" class="w-full lg-input px-4 py-2.5 text-sm font-medium appearance-none">
-              <option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option>
-              <option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option>
-            </select>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-             <div class="space-y-1.5">
-               <label class="text-[10px] font-semibold text-placeholder uppercase tracking-widest ml-1">Bắt đầu</label>
-               <input v-model="form.startTime" type="time" class="w-full lg-input px-4 py-2.5 text-sm font-medium">
-             </div>
-             <div class="space-y-1.5">
-               <label class="text-[10px] font-semibold text-placeholder uppercase tracking-widest ml-1">Kết thúc</label>
-               <input v-model="form.endTime" type="time" class="w-full lg-input px-4 py-2.5 text-sm font-medium">
-             </div>
-          </div>
-        </div>
-
-        <div class="mt-8 flex items-center justify-end gap-4 border-t border-default pt-6">
-          <button class="px-4 py-2.5 text-sm font-bold text-label hover:text-heading transition-colors">Xóa form</button>
-          <button 
-            @click="performCheck"
-            :disabled="isChecking"
-            class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-(--lg-primary)/20 disabled:opacity-50"
-          >
-            <RefreshCw v-if="isChecking" :size="18" class="animate-spin" />
-            <span v-else>Kiểm tra xung đột</span>
-          </button>
-        </div>
+  <div class="conflict-check max-w-7xl mx-auto space-y-5">
+    <!-- Header -->
+    <GlassPanel variant="flat" density="compact">
+      <div class="flex items-center gap-3 mb-1">
+        <AlertTriangle class="text-amber-500" :size="24" />
+        <h1 class="text-2xl font-bold text-(--text-heading)">Kiểm tra xung đột lịch học</h1>
       </div>
+      <p class="text-(--text-body)">Phát hiện và xử lý xung đột giảng viên, lớp học, phòng học trước khi xuất bản thời khóa biểu.</p>
+    </GlassPanel>
 
-      <!-- ── Results ── -->
-      <Transition
-        enter-active-class="transition-all duration-300 ease-out"
-        enter-from-class="opacity-0 translate-y-4"
-        enter-to-class="opacity-100 translate-y-0"
+    <!-- Summary cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <GlassPanel
+        v-for="card in summaryCards" :key="card.label"
+        variant="flat" density="compact"
+        class="flex flex-col justify-center min-h-[88px]"
+        :class="`border-l-4 ${card.border}`"
       >
-        <div v-if="checkResult" class="space-y-4">
-          <div :class="['p-4 rounded-2xl border flex items-start gap-4 shadow-sm', checkResult.hasConflict ? 'bg-(--color-danger-bg) border-(--color-danger-bg)' : 'bg-(--color-success-bg) border-(--color-success-bg)']">
-            <div :class="['h-10 w-10 rounded-2xl flex items-center justify-center shrink-0', checkResult.hasConflict ? 'bg-(--lg-danger) text-white shadow-lg shadow-(--lg-danger)/20' : 'bg-(--lg-success) text-white shadow-lg shadow-(--lg-success)/20']">
-              <ShieldAlert v-if="checkResult.hasConflict" :size="24" />
-              <CheckCircle v-else :size="24" />
-            </div>
-            <div class="flex-1">
-              <h4 :class="['text-lg font-semibold', checkResult.hasConflict ? 'text-(--lg-danger)' : 'text-(--lg-success)']">
-                {{ checkResult.hasConflict ? 'Phát hiện xung đột!' : 'Hợp lệ' }}
-              </h4>
-              <p :class="['text-sm font-medium mt-1', checkResult.hasConflict ? 'text-(--color-danger-text)' : 'text-(--color-success-text)']">
-                {{ checkResult.hasConflict ? `Có ${checkResult.conflicts.length} xung đột được phát hiện cho các tiêu chí này.` : 'Không phát hiện bất kỳ xung đột nào. Bạn có thể xếp lịch này.' }}
-              </p>
-            </div>
-          </div>
+        <p class="text-sm font-medium text-(--text-muted) mb-1">{{ card.label }}</p>
+        <strong class="text-2xl text-(--text-heading)">{{ card.value }}</strong>
+      </GlassPanel>
+    </div>
 
-          <!-- Conflict List -->
-          <div v-if="checkResult.hasConflict" class="grid grid-cols-1 gap-3">
-              <div v-for="(conflict, idx) in checkResult.conflicts" :key="idx" class="lg-glass-strong p-4 rounded-2xl border-default flex items-start gap-4 group hover:border-(--lg-danger)/20 transition-colors">
-                 <div class="h-10 w-10 rounded-xl bg-(--surface-input) flex items-center justify-center text-(--lg-danger) border-default shrink-0">
-                   <AlertTriangle :size="20" />
-                 </div>
-                 <div class="flex-1 pt-0.5">
-                   <p class="text-sm font-bold text-heading">{{ conflict.message }}</p>
-                   <button v-if="conflict.suggestion" @click="navigateToSuggestion(conflict)" class="inline-flex items-center gap-1.5 mt-2 bg-(--color-info-bg)/50 border border-(--color-info-text)/20 text-(--color-info-text) text-xs font-semibold px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-(--color-info-bg) hover:shadow-sm transition-all group/suggest">
-                     <Lightbulb :size="14" /> {{ conflict.suggestion }}
-                     <ArrowRight :size="12" class="opacity-0 group-hover/suggest:opacity-100 transition-opacity" />
-                   </button>
-                 </div>
-                 <div data-dropdown-wrapper class="relative shrink-0">
-                    <button @click="toggleDropdown(idx)" class="p-2 hover:bg-(--color-danger-bg) hover:text-(--color-danger-text) rounded-lg text-placeholder transition-all relative z-10">
-                       <ArrowRight :size="18" :class="['transition-transform duration-200', activeDropdown === idx ? 'rotate-90 text-(--lg-danger)' : '']" />
-                    </button>
-                    
-                    <!-- Dropdown Menu -->
-                    <Transition
-                      enter-active-class="transition ease-out duration-100"
-                      enter-from-class="transform opacity-0 scale-95"
-                      enter-to-class="transform opacity-100 scale-100"
-                      leave-active-class="transition ease-in duration-75"
-                      leave-from-class="transform opacity-100 scale-100"
-                      leave-to-class="transform opacity-0 scale-95"
-                    >
-                      <div
-                        v-if="activeDropdown === idx"
-                        tabindex="-1"
-                        @keydown.escape="closeDropdown"
-                        class="absolute right-0 top-full mt-2 w-56 bg-(--surface-card) border border-(--border-default) rounded-xl shadow-xl z-[60] overflow-hidden"
-                      >
-                        <div class="p-1.5 flex flex-col gap-0.5">
-                          <button @click="resolveConflict(conflict, 'view')" class="w-full text-left px-3 py-2 text-sm font-medium text-heading hover:bg-(--surface-input) rounded-lg transition-colors">
-                            Xem chi tiết lịch
-                          </button>
-                          <button @click="resolveConflict(conflict, 'change')" class="w-full text-left px-3 py-2 text-sm font-medium text-heading hover:bg-(--surface-input) rounded-lg transition-colors">
-                            {{ conflict.type === 'teacher' ? 'Đổi giảng viên khác' : conflict.type === 'class' ? 'Đổi lớp học khác' : 'Đổi phòng học khác' }}
-                          </button>
-                          <div class="h-px bg-(--border-default) my-1"></div>
-                          <button @click="resolveConflict(conflict, 'ignore')" class="w-full text-left px-3 py-2 text-sm font-medium text-(--lg-danger) hover:bg-(--color-danger-bg) rounded-lg transition-colors">
-                            Bỏ qua cảnh báo
-                          </button>
-                        </div>
-                      </div>
-                    </Transition>
-                 </div>
+    <!-- Check form -->
+    <GlassPanel variant="flat" density="compact">
+      <h2 class="text-base font-bold text-(--text-heading) mb-4">Kiểm tra lịch mới</h2>
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+        <div>
+          <label class="block text-xs font-semibold text-(--text-muted) mb-1">Học kỳ</label>
+          <select v-model="form.hocKy" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
+            <option>Spring 2026</option><option>Summer 2026</option><option>Fall 2025</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-(--text-muted) mb-1">Thứ</label>
+          <select v-model="form.thu" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
+            <option v-for="t in thuTrongTuanOptions" :key="t.value" :value="t.value">{{ t.label }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-(--text-muted) mb-1">Ca học</label>
+          <select v-model="form.caHocId" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
+            <option v-for="ca in caHocCatalog" :key="ca.id" :value="ca.id">{{ ca.tenCa }} · {{ ca.gioBatDau }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-(--text-muted) mb-1">Mã giảng viên</label>
+          <input v-model="form.giaoVienId" type="text" placeholder="VD: GV001" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-(--text-muted) mb-1">Mã lớp</label>
+          <input v-model="form.lopId" type="text" placeholder="VD: SE1601" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-(--text-muted) mb-1">Mã phòng</label>
+          <input v-model="form.phongId" type="text" placeholder="VD: P302" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+        </div>
+      </div>
+      <div class="mt-4">
+        <GlassButton variant="primary" class="h-10" :loading="isChecking" @click="performCheck">
+          <Search :size="16" class="mr-1.5" />
+          {{ isChecking ? 'Đang kiểm tra...' : 'Kiểm tra xung đột' }}
+        </GlassButton>
+      </div>
+    </GlassPanel>
+
+    <!-- Results -->
+    <GlassPanel variant="flat" class="p-0 overflow-hidden">
+      <div class="p-4 border-b border-(--border-default)">
+        <h2 class="text-base font-bold text-(--text-heading)">Danh sách xung đột</h2>
+        <p class="text-sm text-(--text-muted) mt-0.5">{{ conflicts.length > 0 ? `Phát hiện ${conflicts.length} xung đột cần xử lý.` : checkDone ? 'Không có xung đột.' : 'Chưa chạy kiểm tra.' }}</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 min-h-[400px]">
+        <!-- Conflict list -->
+        <div class="lg:col-span-2 border-r border-(--border-default) overflow-x-auto">
+          <TableShell v-if="conflicts.length > 0">
+            <table>
+              <thead>
+                <tr>
+                  <th>Loại xung đột</th>
+                  <th>Đối tượng</th>
+                  <th>Lịch hiện tại</th>
+                  <th>Mức độ</th>
+                  <th class="text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="c in conflicts" :key="c.id"
+                  class="cursor-pointer transition-colors"
+                  :class="selectedConflict?.id === c.id ? 'bg-(--surface-hover)' : 'hover:bg-(--surface-hover)'"
+                  @click="selectedConflict = c"
+                >
+                  <td>
+                    <GlassBadge :variant="mucDoVariant(c.mucDo)" size="sm">{{ loaiLabel(c.loai) }}</GlassBadge>
+                  </td>
+                  <td class="text-sm font-medium max-w-[160px] truncate" :title="c.doiTuong">{{ c.doiTuong }}</td>
+                  <td class="text-xs text-(--text-muted) max-w-[180px] truncate" :title="c.lichHienTai">{{ c.lichHienTai }}</td>
+                  <td>
+                    <GlassBadge :variant="mucDoVariant(c.mucDo)" size="sm">{{ mucDoLabel(c.mucDo) }}</GlassBadge>
+                  </td>
+                  <td class="text-right">
+                    <GlassButton variant="ghost" size="xs" @click.stop="applyFix(c)">Xử lý</GlassButton>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </TableShell>
+          <div v-else class="p-8">
+            <EmptyState
+              :title="checkDone ? 'Không có xung đột' : 'Chưa kiểm tra'"
+              :description="checkDone ? 'Lịch học không có xung đột với dữ liệu hiện tại.' : 'Điền thông tin và nhấn Kiểm tra để xem kết quả.'"
+            />
+            <div v-if="checkDone" class="flex justify-center mt-4">
+              <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle :size="20" /> <span class="font-medium">Không có xung đột</span>
               </div>
+            </div>
           </div>
         </div>
-      </Transition>
 
-      <!-- ── Detail Modal ── -->
-      <Teleport to="body">
-        <Transition name="modal">
-          <div v-if="showDetail && detailData" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="showDetail = false">
-            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
-            <div class="relative w-full max-w-lg surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
-              <div class="modal-header p-5">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <h2 class="text-xl font-semibold text-heading flex items-center gap-2.5">
-                      <Calendar :size="20" class="text-(--lg-primary)" />
-                      Lịch {{ detailData.type === 'teacher' ? 'giảng viên' : detailData.type === 'class' ? 'lớp học' : 'phòng' }}
-                    </h2>
-                    <p class="text-sm text-label mt-1 flex items-center gap-2">
-                      <User v-if="detailData.type === 'teacher'" :size="14" />
-                      <Users v-else-if="detailData.type === 'class'" :size="14" />
-                      <MapPin v-else :size="14" />
-                      <strong class="text-heading">{{ detailData.name }}</strong>
-                      <span class="text-placeholder">•</span>
-                      {{ detailData.day }}
-                    </p>
-                  </div>
-                  <button @click="showDetail = false" class="h-9 w-9 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all">
-                    <X :size="18" />
-                  </button>
+        <!-- Detail panel -->
+        <div class="lg:col-span-1 bg-(--surface-card)">
+          <div v-if="!selectedConflict" class="h-full flex items-center justify-center p-6 text-center text-(--text-muted) text-sm">
+            Chọn một xung đột bên trái để xem chi tiết và đề xuất xử lý
+          </div>
+          <div v-else class="flex flex-col h-full">
+            <div class="p-5 border-b border-(--border-default)">
+              <div class="flex items-center gap-2 mb-3">
+                <GlassBadge :variant="mucDoVariant(selectedConflict.mucDo)">{{ loaiLabel(selectedConflict.loai) }}</GlassBadge>
+                <GlassBadge :variant="mucDoVariant(selectedConflict.mucDo)" size="sm">{{ mucDoLabel(selectedConflict.mucDo) }}</GlassBadge>
+              </div>
+              <h3 class="font-bold text-base text-(--text-heading)">{{ selectedConflict.doiTuong }}</h3>
+              <p class="text-sm text-(--text-muted) mt-1 font-mono">{{ selectedConflict.id }}</p>
+            </div>
+
+            <div class="p-5 flex-1 space-y-4 overflow-y-auto">
+              <div>
+                <div class="text-xs text-(--text-muted) font-semibold uppercase tracking-wide mb-2">Mô tả xung đột</div>
+                <p class="text-sm text-(--text-body) leading-relaxed">{{ selectedConflict.moTa }}</p>
+              </div>
+
+              <div class="grid grid-cols-1 gap-3">
+                <div class="bg-(--surface-input) p-3 rounded-lg border border-(--border-default)">
+                  <div class="text-xs text-(--text-muted) mb-1">Lịch hiện tại</div>
+                  <div class="text-sm font-medium text-(--text-heading)">{{ selectedConflict.lichHienTai }}</div>
+                </div>
+                <div class="bg-(--surface-input) p-3 rounded-lg border border-(--border-default)">
+                  <div class="text-xs text-(--text-muted) mb-1">Số tiết bị ảnh hưởng</div>
+                  <div class="text-sm font-bold text-(--text-heading)">{{ selectedConflict.soTietAnhHuong }} tiết</div>
                 </div>
               </div>
-              <div class="p-5 space-y-2">
-                <div class="grid grid-cols-[80px_1fr_60px] gap-2 text-[10px] font-semibold text-placeholder uppercase tracking-widest px-3 pb-2 border-b border-default">
-                  <span>Giờ</span>
-                  <span>Môn học / Lớp</span>
-                  <span class="text-right">{{ detailData.type === 'teacher' ? 'Phòng' : detailData.type === 'class' ? 'Phòng' : 'GV' }}</span>
-                </div>
-                <div v-for="(slot, i) in detailData.slots" :key="i"
-                  :class="[
-                    'grid grid-cols-[80px_1fr_60px] gap-2 items-center px-3 py-2.5 rounded-xl transition-colors',
-                    slot.conflict ? 'bg-(--color-danger-bg) border border-(--color-danger-text)/20' : 'hover:bg-(--surface-input)'
-                  ]"
-                >
-                  <div class="flex items-center gap-1.5 text-xs font-bold text-label">
-                    <Clock :size="12" class="text-placeholder" />
-                    {{ slot.start }} - {{ slot.end }}
-                  </div>
-                  <div>
-                    <p class="text-sm font-semibold text-heading leading-tight">{{ slot.subject }}</p>
-                    <p class="text-[10px] font-medium text-label mt-0.5">{{ detailData.type === 'teacher' ? slot.class : detailData.type === 'class' ? slot.teacher : slot.class + ' • ' + slot.subject }}</p>
-                  </div>
-                  <div class="text-right">
-                    <span class="text-xs font-semibold text-label">{{ detailData.type === 'teacher' || detailData.type === 'class' ? slot.room : (slot.teacher || '') }}</span>
-                    <div v-if="slot.conflict" class="text-[9px] font-bold text-(--lg-danger) uppercase tracking-wider mt-0.5">Xung đột</div>
-                  </div>
-                </div>
-              </div>
-              <div class="px-5 pb-5 pt-2 border-t border-default flex items-center justify-end">
-                <button @click="showDetail = false" class="lg-button-secondary px-5 py-2.5 text-sm font-bold">Đóng</button>
+
+              <div class="bg-(--color-warning-bg) border border-amber-300/40 rounded-lg p-3">
+                <div class="text-xs font-semibold text-(--color-warning-text) uppercase tracking-wide mb-1">Đề xuất xử lý</div>
+                <p class="text-sm text-(--text-body)">{{ selectedConflict.deXuat }}</p>
               </div>
             </div>
-          </div>
-        </Transition>
-      </Teleport>
 
-      <!-- ── Information Info ── -->
-      <div class="lg-glass-strong p-4 rounded-2xl bg-(--color-info-bg)/50 border-(--color-info-bg)">
-        <div class="flex gap-3">
-          <Info :size="20" class="text-(--color-info-text) shrink-0 mt-0.5" />
-          <div>
-            <h5 class="text-sm font-semibold text-(--color-info-text)">Mẹo kiểm tra nhanh</h5>
-            <p class="text-xs text-(--color-info-text) mt-1 leading-relaxed">
-              Bạn có thể kiểm tra một tiêu chí duy nhất (ví dụ: chỉ phòng) bằng cách để trống các trường khác. Hệ thống sẽ tự động quét toàn bộ cơ sở dữ liệu đã công bố và các bản nháp đang chờ duyệt.
-            </p>
+            <div class="p-4 border-t border-(--border-default) bg-(--surface-modal)">
+              <GlassButton variant="primary" class="w-full h-10 justify-center" @click="applyFix(selectedConflict)">
+                Áp dụng đề xuất xử lý
+              </GlassButton>
+            </div>
           </div>
         </div>
       </div>
+    </GlassPanel>
 
-    </div>
-  </PageContainer>
+    <ConfirmActionDialog
+      v-if="confirmAction"
+      :show="true"
+      :title="confirmAction.title"
+      :message="confirmAction.message"
+      :confirmLabel="confirmAction.label"
+      :variant="confirmAction.variant"
+      @confirm="confirmAction.run"
+      @cancel="confirmAction = null"
+    />
+  </div>
 </template>
-
-<style scoped>
-.modal-header {
-  border-bottom: 1px solid var(--border-card);
-  background: var(--surface-input);
-}
-.modal-enter-active,
-.modal-leave-active {
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-.modal-enter-from .relative.w-full,
-.modal-leave-to .relative.w-full {
-  transform: scale(0.9) translateY(20px);
-}
-</style>
