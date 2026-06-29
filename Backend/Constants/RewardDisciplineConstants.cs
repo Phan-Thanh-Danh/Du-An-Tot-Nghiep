@@ -185,5 +185,9 @@ public static class RewardDisciplineConstants
         public const string GenerateRewardCertificates = "GENERATE_REWARD_CERTIFICATES";
         public const string RegenerateRewardCertificates = "REGENERATE_REWARD_CERTIFICATES";
         public const string RewardCertificateGenerationFailed = "REWARD_CERTIFICATE_GENERATION_FAILED";
+        public const string CancelReward = "CANCEL_REWARD";
+        public const string RestoreReward = "RESTORE_REWARD";
+        public const string MarkRewardIssued = "MARK_REWARD_ISSUED";
+        public const string RegenerateSingleRewardCertificate = "REGENERATE_SINGLE_REWARD_CERTIFICATE";
     }
 }
