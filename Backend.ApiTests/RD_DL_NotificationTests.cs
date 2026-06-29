@@ -16,13 +16,12 @@ public class RD_DL_NotificationTests : ApiTestBase
 {
     private string GetDbConnectionString()
     {
-        return Environment.GetEnvironmentVariable("LMS_TEST_CONNECTION_STRING") 
-            ?? "Server=(localdb)\\mssqllocaldb;Database=LMS_Test;Trusted_Connection=True;MultipleActiveResultSets=true";
+        return GetSharedTestConnectionString();
     }
 
     private string GetTestPassword()
     {
-        return Environment.GetEnvironmentVariable("LMS_TEST_PASSWORD") ?? "T0P_S3cr3t_2024";
+        return GetSharedTestPassword();
     }
 
     private async Task<HttpClient> CreateClientAsync(string email)
@@ -37,28 +36,35 @@ public class RD_DL_NotificationTests : ApiTestBase
         loginResponse.EnsureSuccessStatusCode();
         var body = await loginResponse.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(body);
-        var token = json.RootElement.GetProperty("data").GetProperty("accessToken").GetString();
+        var token = json.RootElement.TryGetProperty("accessToken", out var accessToken)
+            ? accessToken.GetString()
+            : json.RootElement.GetProperty("data").GetProperty("accessToken").GetString();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         return client;
     }
 
-    private async Task<(int CampusId, int SuperAdminId, string SuperAdminEmail, int CampusAdminId, string CampusAdminEmail, int StudentId, string StudentEmail)> SeedDataAsync()
+    private async Task<(int CampusId, int TermId, int SuperAdminId, string SuperAdminEmail, int CampusAdminId, string CampusAdminEmail, int StudentId, string StudentEmail)> SeedDataAsync()
     {
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         optionsBuilder.UseSqlServer(GetDbConnectionString());
         await using var db = new ApplicationDbContext(optionsBuilder.Options);
 
-        var campus = await db.DonVis.FirstOrDefaultAsync();
+        var superAdminRole = AuthRoles.ToDatabaseCode(AuthRoles.SuperAdmin);
+        var campusAdminRole = AuthRoles.ToDatabaseCode(AuthRoles.CampusAdmin);
+        var adminRole = AuthRoles.ToDatabaseCode(AuthRoles.Admin);
+        var studentRole = AuthRoles.ToDatabaseCode(AuthRoles.Student);
 
-        var superAdmin = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == AuthRoles.SuperAdmin);
-        var campusAdmin = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == AuthRoles.CampusAdmin && u.MaDonVi == campus!.MaDonVi);
-        if (campusAdmin == null) campusAdmin = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == AuthRoles.Admin);
-        
-        var student = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == AuthRoles.Student && u.MaDonVi == campus!.MaDonVi);
+        var superAdmin = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == superAdminRole);
+        var student = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == studentRole);
+        var campus = await db.DonVis.FirstOrDefaultAsync(d => d.MaDonVi == student!.MaDonVi);
+        var term = await db.HocKys.FirstOrDefaultAsync();
+        var campusAdmin = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == campusAdminRole && u.MaDonVi == campus!.MaDonVi);
+        if (campusAdmin == null) campusAdmin = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == adminRole);
 
         return (
-            campus!.MaDonVi, 
+            campus!.MaDonVi,
+            term!.MaHocKy,
             superAdmin!.MaNguoiDung, superAdmin.Email,
             campusAdmin!.MaNguoiDung, campusAdmin.Email,
             student!.MaNguoiDung, student.Email
@@ -77,7 +83,9 @@ public class RD_DL_NotificationTests : ApiTestBase
         var reward = new KhenThuong
         {
             MaDonVi = seed.CampusId,
+            MaHocKy = seed.TermId,
             MaHocSinh = seed.StudentId,
+            LoaiKhenThuong = RewardDisciplineConstants.RewardTypes.Top100Semester,
             DanhHieuSnapshot = "Test",
             TrangThai = RewardDisciplineConstants.RewardStatuses.Issued,
             CapLuc = DateTime.UtcNow
@@ -105,7 +113,9 @@ public class RD_DL_NotificationTests : ApiTestBase
         var reward = new KhenThuong
         {
             MaDonVi = seed.CampusId,
+            MaHocKy = seed.TermId,
             MaHocSinh = seed.StudentId,
+            LoaiKhenThuong = RewardDisciplineConstants.RewardTypes.Top100Semester,
             DanhHieuSnapshot = "Test",
             TrangThai = RewardDisciplineConstants.RewardStatuses.Issued,
             CapLuc = DateTime.UtcNow
@@ -133,7 +143,9 @@ public class RD_DL_NotificationTests : ApiTestBase
         var reward = new KhenThuong
         {
             MaDonVi = seed.CampusId,
+            MaHocKy = seed.TermId,
             MaHocSinh = seed.StudentId,
+            LoaiKhenThuong = RewardDisciplineConstants.RewardTypes.Top100Semester,
             DanhHieuSnapshot = "Test Reward Title",
             TrangThai = RewardDisciplineConstants.RewardStatuses.Issued,
             CapLuc = DateTime.UtcNow
@@ -153,7 +165,7 @@ public class RD_DL_NotificationTests : ApiTestBase
             .FirstOrDefaultAsync(x => x.MaDoiTuongLienKet == reward.MaKhenThuong && x.LoaiDoiTuongLienKet == RewardDisciplineConstants.NotificationRefTypes.Reward);
             
         Assert.That(tb, Is.Not.Null);
-        Assert.That(tb!.LoaiThongBao, Is.EqualTo("reward_discipline"));
+        Assert.That(tb!.LoaiThongBao, Is.EqualTo(NotificationConstants.Types.RewardDiscipline));
         Assert.That(tb.NguoiNhans.Any(x => x.MaNguoiNhan == seed.StudentId), Is.True);
     }
 }

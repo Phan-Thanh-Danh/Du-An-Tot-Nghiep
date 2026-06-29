@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Backend.Constants;
 using Backend.Data;
+using Backend.Helpers;
 using Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
@@ -396,6 +397,7 @@ public class RD7_StudentRewardDownloadTests : ApiTestBase
             Email = $"rd7_student_{Guid.NewGuid():N}@lms.local",
             VaiTroChinh = AuthRoles.ToDatabaseCode(AuthRoles.Student),
             TrangThai = status,
+            MatKhauHash = PasswordHelper.HashPassword(GetSharedTestPassword()),
             NgayTao = DateTime.UtcNow
         };
         db.NguoiDungs.Add(student);

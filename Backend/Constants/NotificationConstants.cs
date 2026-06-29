@@ -16,7 +16,7 @@ public static class NotificationConstants
         public const string SessionCancelled = "session_cancelled";
         public const string AttendanceUnlockApproved = "attendance_unlock_approved";
         public const string AttendanceUnlockRejected = "attendance_unlock_rejected";
-        public const string RewardDiscipline = "reward_discipline";
+        public const string RewardDiscipline = Academic;
 
         public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {

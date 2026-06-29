@@ -15,10 +15,12 @@ public class AdminDisciplineAppealsController : ControllerBase
     private readonly IRewardDisciplineNotificationService _notificationService;
     private readonly IDisciplineAppealService _service;
 
-    public AdminDisciplineAppealsController(IDisciplineAppealService service)
+    public AdminDisciplineAppealsController(
+        IDisciplineAppealService service,
+        IRewardDisciplineNotificationService notificationService)
     {
-        _notificationService = HttpContext.RequestServices.GetRequiredService<IRewardDisciplineNotificationService>();
         _service = service;
+        _notificationService = notificationService;
     }
 
     [HttpGet]

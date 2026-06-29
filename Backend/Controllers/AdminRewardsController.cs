@@ -15,10 +15,12 @@ public class AdminRewardsController : ControllerBase
     private readonly IRewardDisciplineNotificationService _notificationService;
     private readonly IRewardLifecycleService _service;
 
-    public AdminRewardsController(IRewardLifecycleService service)
+    public AdminRewardsController(
+        IRewardLifecycleService service,
+        IRewardDisciplineNotificationService notificationService)
     {
-        _notificationService = HttpContext.RequestServices.GetRequiredService<IRewardDisciplineNotificationService>();
         _service = service;
+        _notificationService = notificationService;
     }
 
     [HttpGet]

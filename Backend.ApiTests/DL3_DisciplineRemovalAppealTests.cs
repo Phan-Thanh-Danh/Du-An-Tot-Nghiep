@@ -6,6 +6,8 @@ using Backend.Constants;
 using Backend.Data;
 using Backend.DTOs.Common;
 using Backend.DTOs.RewardDiscipline;
+using Backend.Helpers;
+using Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
 
@@ -17,13 +19,12 @@ public class DL3_DisciplineRemovalAppealTests : ApiTestBase
 {
     private string GetDbConnectionString()
     {
-        return Environment.GetEnvironmentVariable("LMS_TEST_CONNECTION_STRING") 
-            ?? "Server=(localdb)\\mssqllocaldb;Database=LMS_Test;Trusted_Connection=True;MultipleActiveResultSets=true";
+        return GetSharedTestConnectionString();
     }
 
     private string GetTestPassword()
     {
-        return Environment.GetEnvironmentVariable("LMS_TEST_PASSWORD") ?? "T0P_S3cr3t_2024";
+        return GetSharedTestPassword();
     }
 
     private async Task<HttpClient> CreateClientAsync(string email)
@@ -38,7 +39,9 @@ public class DL3_DisciplineRemovalAppealTests : ApiTestBase
         loginResponse.EnsureSuccessStatusCode();
         var body = await loginResponse.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(body);
-        var token = json.RootElement.GetProperty("data").GetProperty("accessToken").GetString();
+        var token = json.RootElement.TryGetProperty("accessToken", out var accessToken)
+            ? accessToken.GetString()
+            : json.RootElement.GetProperty("data").GetProperty("accessToken").GetString();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         return client;
@@ -53,13 +56,45 @@ public class DL3_DisciplineRemovalAppealTests : ApiTestBase
         var campus = await db.DonVis.FirstOrDefaultAsync();
         var term = await db.HocKys.FirstOrDefaultAsync();
 
-        var admin = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == AuthRoles.CampusAdmin && u.MaDonVi == campus!.MaDonVi);
-        if (admin == null) admin = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == AuthRoles.Admin);
+        var superAdminRole = AuthRoles.ToDatabaseCode(AuthRoles.SuperAdmin);
+        var studentRole = AuthRoles.ToDatabaseCode(AuthRoles.Student);
+        var adminSuffix = Guid.NewGuid().ToString("N");
+        var admin = new NguoiDung
+        {
+            MaDonVi = campus!.MaDonVi,
+            HoTen = $"DL3 SuperAdmin {adminSuffix}",
+            Email = $"dl3.superadmin.{adminSuffix}@lms.local",
+            VaiTroChinh = superAdminRole,
+            TrangThai = UserStatuses.DbActive,
+            MatKhauHash = PasswordHelper.HashPassword(GetTestPassword()),
+            NgayTao = DateTime.UtcNow
+        };
+        db.NguoiDungs.Add(admin);
+        await db.SaveChangesAsync();
         
-        var students = await db.NguoiDungs
-            .Where(u => u.VaiTroChinh == AuthRoles.Student && u.MaDonVi == campus!.MaDonVi)
-            .Take(2)
-            .ToListAsync();
+        Assert.That(campus, Is.Not.Null, "Thiếu đơn vị test cho DL3.");
+        Assert.That(term, Is.Not.Null, "Thiếu học kỳ test cho DL3.");
+        Assert.That(admin, Is.Not.Null, "Thiếu admin/campus admin test cho DL3.");
+
+        var students = new List<NguoiDung>();
+        for (var i = 0; i < 2; i++)
+        {
+            var suffix = Guid.NewGuid().ToString("N");
+            var student = new NguoiDung
+            {
+                MaDonVi = campus!.MaDonVi,
+                HoTen = $"DL3 Student {i + 1} {suffix}",
+                Email = $"dl3.student.{suffix}@lms.local",
+                VaiTroChinh = studentRole,
+                TrangThai = UserStatuses.DbActive,
+                MatKhauHash = PasswordHelper.HashPassword(GetTestPassword()),
+                NgayTao = DateTime.UtcNow
+            };
+            db.NguoiDungs.Add(student);
+            students.Add(student);
+        }
+
+        await db.SaveChangesAsync();
 
         return (
             CampusId: campus!.MaDonVi,
@@ -134,7 +169,7 @@ public class DL3_DisciplineRemovalAppealTests : ApiTestBase
         await _adminClient.PostAsJsonAsync($"/api/admin/discipline-records/{id}/submit", new { });
         await _adminClient.PostAsJsonAsync($"/api/admin/discipline-records/{id}/approve", new { decision = "duyet", reason = "ok" });
 
-        var voidReq = new { reason = "Test void", internalNote = "Voided for test" };
+        var voidReq = new { reason = "Test void with valid reason", internalNote = "Voided for test" };
         var voidRes = await _adminClient.PostAsJsonAsync($"/api/admin/discipline-records/{id}/void-approved", voidReq);
         
         Assert.That(voidRes.StatusCode, Is.EqualTo(HttpStatusCode.OK));
@@ -162,7 +197,7 @@ public class DL3_DisciplineRemovalAppealTests : ApiTestBase
         await _adminClient.PostAsJsonAsync($"/api/admin/discipline-records/{id}/approve", new { decision = "duyet", reason = "ok" });
         await _adminClient.PostAsJsonAsync($"/api/admin/discipline-records/{id}/activate", new { });
 
-        var appealReq = new { reason = "I am innocent" };
+        var appealReq = new { reason = "I am innocent and request a formal review" };
         var appealRes = await _studentClient.PostAsJsonAsync($"/api/student/discipline-records/{id}/appeals", appealReq);
         
         Assert.That(appealRes.StatusCode, Is.EqualTo(HttpStatusCode.OK));

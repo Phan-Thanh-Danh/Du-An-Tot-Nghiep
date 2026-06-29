@@ -40,7 +40,8 @@ public class DisciplineRecordService : IDisciplineRecordService
 
     private int? GetUserCampusId(ClaimsPrincipal user)
     {
-        var campusClaim = user.FindFirst("MaDonVi")?.Value;
+        var campusClaim = user.FindFirst(CustomClaimTypes.CampusId)?.Value
+            ?? user.FindFirst("MaDonVi")?.Value;
         if (int.TryParse(campusClaim, out var campusId))
             return campusId;
         return null;
