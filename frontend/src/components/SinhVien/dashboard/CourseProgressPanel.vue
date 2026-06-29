@@ -32,7 +32,7 @@ defineProps({
         class="lg-list-item flex min-h-[82px] items-center p-3.5"
       >
         <div class="flex w-full items-start gap-4">
-          <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--color-info-bg)] text-link shadow-sm border border-[color-mix(in srgb,var(--text-link) 20%,transparent)]">
+          <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-(--color-info-bg) text-link shadow-sm border border-[color-mix(in srgb,var(--text-link) 20%,transparent)]">
             <BookOpen :size="17" />
           </div>
           <div class="min-w-0 flex-1">
@@ -51,10 +51,10 @@ defineProps({
             </div>
             <div class="mt-2 flex items-center justify-between gap-2 text-xs font-medium">
               <span class="inline-flex items-center gap-1.5 text-body">
-                <CheckCircle2 :size="12" class="text-[var(--color-success-text)]" />
+                <CheckCircle2 :size="12" class="text-(--color-success-text)" />
                 {{ course.completed }}/{{ course.total }} bài học
               </span>
-              <router-link to="/student/courses" class="rounded-lg px-2.5 py-1 text-[12px] font-semibold text-link bg-[var(--color-info-bg)] hover:bg-[var(--text-link)] hover:text-white transition-colors">
+              <router-link to="/student/courses" class="rounded-lg px-2.5 py-1 text-[12px] font-semibold text-link bg-(--color-info-bg) hover:bg-(--text-link) hover:text-white transition-colors">
                 Vào học
               </router-link>
             </div>

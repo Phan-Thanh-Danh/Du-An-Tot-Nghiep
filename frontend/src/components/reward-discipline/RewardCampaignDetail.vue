@@ -32,15 +32,15 @@ onMounted(() => loadCandidates())
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-4">
-        <button @click="emit('back')" class="p-2 hover:bg-[var(--surface-hover)] rounded-full text-[var(--text-muted)]">
+        <button @click="emit('back')" class="p-2 hover:bg-(--surface-hover) rounded-full text-(--text-muted)">
           <ArrowLeft class="w-5 h-5" />
         </button>
         <div>
-          <h2 class="text-xl font-bold text-[var(--text-heading)] flex items-center gap-3">
+          <h2 class="text-xl font-bold text-(--text-heading) flex items-center gap-3">
             {{ campaign.tenDot }}
             <RewardStatusBadge :status="campaign.trangThai" />
           </h2>
-          <p class="text-sm text-[var(--text-muted)] mt-1">Học kỳ: {{ campaign.hocKy }} | Đơn vị: {{ campaign.donVi }}</p>
+          <p class="text-sm text-(--text-muted) mt-1">Học kỳ: {{ campaign.hocKy }} | Đơn vị: {{ campaign.donVi }}</p>
         </div>
       </div>
       <div>
@@ -50,28 +50,28 @@ onMounted(() => loadCandidates())
 
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
       <GlassPanel padding="normal" class="text-center">
-        <div class="text-sm text-[var(--text-muted)] mb-1">Tổng UV</div>
-        <div class="text-2xl font-bold text-[var(--lg-primary)]">{{ campaign.tongUngVien }}</div>
+        <div class="text-sm text-(--text-muted) mb-1">Tổng UV</div>
+        <div class="text-2xl font-bold text-(--lg-primary)">{{ campaign.tongUngVien }}</div>
       </GlassPanel>
       <GlassPanel padding="normal" class="text-center">
-        <div class="text-sm text-[var(--text-muted)] mb-1">Đã duyệt</div>
-        <div class="text-2xl font-bold text-[var(--color-success-text)]">{{ campaign.daDuyet }}</div>
+        <div class="text-sm text-(--text-muted) mb-1">Đã duyệt</div>
+        <div class="text-2xl font-bold text-(--color-success-text)">{{ campaign.daDuyet }}</div>
       </GlassPanel>
       <GlassPanel padding="normal" class="text-center">
-        <div class="text-sm text-[var(--text-muted)] mb-1">Bị loại</div>
-        <div class="text-2xl font-bold text-[var(--color-danger-text)]">{{ campaign.biLoai }}</div>
+        <div class="text-sm text-(--text-muted) mb-1">Bị loại</div>
+        <div class="text-2xl font-bold text-(--color-danger-text)">{{ campaign.biLoai }}</div>
       </GlassPanel>
       <GlassPanel padding="normal" class="text-center">
-        <div class="text-sm text-[var(--text-muted)] mb-1">Bằng khen đã sinh</div>
+        <div class="text-sm text-(--text-muted) mb-1">Bằng khen đã sinh</div>
         <div class="text-2xl font-bold text-amber-600">{{ campaign.certificateGenerated }}</div>
       </GlassPanel>
     </div>
 
     <div>
-      <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-4 flex items-center gap-2">
+      <h3 class="text-lg font-semibold text-(--text-heading) mb-4 flex items-center gap-2">
         <Users class="w-5 h-5" /> Danh sách ứng viên
       </h3>
-      <div v-if="loading" class="text-[var(--text-muted)] py-4">Đang tải dữ liệu...</div>
+      <div v-if="loading" class="text-(--text-muted) py-4">Đang tải dữ liệu...</div>
       <RewardCandidateTable v-else :candidates="candidates" />
     </div>
   </div>

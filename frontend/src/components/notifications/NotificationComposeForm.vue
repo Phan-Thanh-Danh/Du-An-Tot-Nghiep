@@ -74,19 +74,19 @@ const submitForm = () => {
 <template>
   <div class="notification-compose max-w-7xl mx-auto space-y-6">
     <div class="page-header mb-6">
-      <h1 class="text-2xl font-bold text-[var(--text-heading)]">Gửi thông báo</h1>
-      <p class="text-[var(--text-body)]">Soạn thảo và gửi thông báo hệ thống với chế độ xem trước.</p>
+      <h1 class="text-2xl font-bold text-(--text-heading)">Gửi thông báo</h1>
+      <p class="text-(--text-body)">Soạn thảo và gửi thông báo hệ thống với chế độ xem trước.</p>
     </div>
 
     <div class="compose-layout">
       <div class="compose-form space-y-5">
         <GlassPanel variant="flat">
-          <h2 class="text-lg font-semibold mb-4 text-[var(--text-heading)]">Nội dung</h2>
+          <h2 class="text-lg font-semibold mb-4 text-(--text-heading)">Nội dung</h2>
           <div class="space-y-4">
             <GlassInput v-model="form.title" label="Tiêu đề" placeholder="Nhập tiêu đề thông báo" required />
             <GlassInput v-model="form.excerpt" label="Mô tả ngắn (Hiển thị ở inbox)" placeholder="Tóm tắt ngắn gọn 1-2 câu" />
             <label class="block">
-              <span class="block text-sm font-medium text-[var(--text-label)] mb-1">Nội dung chi tiết *</span>
+              <span class="block text-sm font-medium text-(--text-label) mb-1">Nội dung chi tiết *</span>
               <textarea
                 v-model="form.body"
                 class="lg-control w-full min-h-[150px] resize-y"
@@ -95,13 +95,13 @@ const submitForm = () => {
             </label>
             <div class="grid grid-cols-2 gap-4">
               <label class="block">
-                <span class="block text-sm font-medium text-[var(--text-label)] mb-1">Danh mục</span>
+                <span class="block text-sm font-medium text-(--text-label) mb-1">Danh mục</span>
                 <select v-model="form.category" class="lg-control w-full">
                   <option v-for="c in categories" :key="c.value" :value="c.value">{{ c.label }}</option>
                 </select>
               </label>
               <label class="block">
-                <span class="block text-sm font-medium text-[var(--text-label)] mb-1">Độ ưu tiên</span>
+                <span class="block text-sm font-medium text-(--text-label) mb-1">Độ ưu tiên</span>
                 <select v-model="form.priority" class="lg-control w-full">
                   <option v-for="p in priorities" :key="p.value" :value="p.value">{{ p.label }}</option>
                 </select>
@@ -111,16 +111,16 @@ const submitForm = () => {
         </GlassPanel>
 
         <GlassPanel variant="flat">
-          <h2 class="text-lg font-semibold mb-4 text-[var(--text-heading)]">Phạm vi gửi</h2>
+          <h2 class="text-lg font-semibold mb-4 text-(--text-heading)">Phạm vi gửi</h2>
           <div class="space-y-4">
             <label class="block">
-              <span class="block text-sm font-medium text-[var(--text-label)] mb-1">Nhóm người nhận</span>
+              <span class="block text-sm font-medium text-(--text-label) mb-1">Nhóm người nhận</span>
               <select v-model="form.scope" class="lg-control w-full">
                 <option v-for="s in scopes" :key="s.value" :value="s.value">{{ s.label }}</option>
               </select>
             </label>
-            <div class="p-4 bg-[var(--surface-modal)] rounded-lg flex items-center justify-between">
-              <span class="flex items-center gap-2 text-[var(--text-heading)]">
+            <div class="p-4 bg-(--surface-modal) rounded-lg flex items-center justify-between">
+              <span class="flex items-center gap-2 text-(--text-heading)">
                 <Users :size="18" /> Số người nhận dự kiến
               </span>
               <strong class="text-lg">{{ recipientCount.toLocaleString() }}</strong>
@@ -139,22 +139,22 @@ const submitForm = () => {
 
       <div class="preview-panel">
         <GlassPanel variant="readable" class="sticky top-6">
-          <h2 class="text-lg font-semibold mb-4 text-[var(--text-heading)] flex items-center gap-2">
+          <h2 class="text-lg font-semibold mb-4 text-(--text-heading) flex items-center gap-2">
             <Eye :size="18" /> Xem trước (Preview)
           </h2>
-          <div class="preview-card border border-[var(--border-default)] rounded-xl p-5 space-y-4 bg-[var(--surface-card)]">
+          <div class="preview-card border border-(--border-default) rounded-xl p-5 space-y-4 bg-(--surface-card)">
             <div class="flex gap-2">
               <GlassBadge v-if="form.priority === 'KHAN_CAP'" variant="danger" size="sm">Khẩn cấp</GlassBadge>
               <GlassBadge variant="info" size="sm">{{ categories.find(c => c.value === form.category)?.label }}</GlassBadge>
             </div>
-            <h3 class="text-xl font-bold text-[var(--text-heading)] leading-tight">
+            <h3 class="text-xl font-bold text-(--text-heading) leading-tight">
               {{ form.title || 'Tiêu đề thông báo' }}
             </h3>
-            <p class="text-[var(--text-muted)] text-sm">Người gửi: Ban Giám Hiệu • Vừa xong</p>
-            <div class="text-[var(--text-body)] text-sm border-l-4 border-[var(--border-focus)] pl-3 italic">
+            <p class="text-(--text-muted) text-sm">Người gửi: Ban Giám Hiệu • Vừa xong</p>
+            <div class="text-(--text-body) text-sm border-l-4 border-(--border-focus) pl-3 italic">
               {{ form.excerpt || 'Mô tả ngắn hiển thị ở inbox' }}
             </div>
-            <div class="text-[var(--text-body)] text-base whitespace-pre-wrap">
+            <div class="text-(--text-body) text-base whitespace-pre-wrap">
               {{ form.body || 'Nội dung chi tiết...' }}
             </div>
           </div>

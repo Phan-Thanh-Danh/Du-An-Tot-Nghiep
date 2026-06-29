@@ -869,7 +869,7 @@ watch(
               >
                 <div class="flex items-center justify-between mb-2">
                   <p class="font-medium text-heading">Câu {{ index + 1 }}: {{ q.question }}</p>
-                  <span v-if="isQuestionLocked(index)" class="text-xs text-[var(--color-warning-text)] font-semibold flex items-center gap-1">
+                  <span v-if="isQuestionLocked(index)" class="text-xs text-(--color-warning-text) font-semibold flex items-center gap-1">
                     <component :is="resolveIcon('Lock')" :size="12" /> Làm câu trước đó
                   </span>
                 </div>
@@ -896,7 +896,7 @@ watch(
                 <component :is="resolveIcon('Send')" :size="15" />
                 Nộp bài Quiz
               </button>
-              <p v-if="quizSubmitted" class="text-xs text-[var(--color-success-text)] font-semibold text-center mt-3">
+              <p v-if="quizSubmitted" class="text-xs text-(--color-success-text) font-semibold text-center mt-3">
                 Chúc mừng! Bạn đã hoàn thành bài Quiz. Tiến độ bài học đã được cập nhật thành 100%.
               </p>
             </div>

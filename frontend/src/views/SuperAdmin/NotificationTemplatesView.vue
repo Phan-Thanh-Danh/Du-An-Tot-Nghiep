@@ -38,30 +38,30 @@ const toggleStatus = (tpl) => {
   <div class="templates-view max-w-7xl mx-auto space-y-6">
     <GlassPanel variant="flat" density="compact" class="flex justify-between items-center">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)]">Mẫu thông báo (Templates)</h1>
-        <p class="text-[var(--text-body)]">Quản lý các mẫu thông báo gửi tự động từ hệ thống.</p>
+        <h1 class="text-2xl font-bold text-(--text-heading)">Mẫu thông báo (Templates)</h1>
+        <p class="text-(--text-body)">Quản lý các mẫu thông báo gửi tự động từ hệ thống.</p>
       </div>
       <GlassButton variant="primary">Tạo mẫu mới</GlassButton>
     </GlassPanel>
 
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
       <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[80px]">
-        <p class="text-sm text-[var(--text-muted)]">Tổng mẫu</p>
-        <strong class="text-2xl text-[var(--text-heading)]">{{ templates.length }}</strong>
+        <p class="text-sm text-(--text-muted)">Tổng mẫu</p>
+        <strong class="text-2xl text-(--text-heading)">{{ templates.length }}</strong>
       </GlassPanel>
       <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[80px]">
-        <p class="text-sm text-[var(--text-muted)]">Đang hoạt động</p>
-        <strong class="text-2xl text-[var(--text-heading)]">{{ templates.filter(t => t.status === 'active').length }}</strong>
+        <p class="text-sm text-(--text-muted)">Đang hoạt động</p>
+        <strong class="text-2xl text-(--text-heading)">{{ templates.filter(t => t.status === 'active').length }}</strong>
       </GlassPanel>
       <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[80px]">
-        <p class="text-sm text-[var(--text-muted)]">Tạm dừng</p>
-        <strong class="text-2xl text-[var(--text-heading)]">{{ templates.filter(t => t.status === 'paused').length }}</strong>
+        <p class="text-sm text-(--text-muted)">Tạm dừng</p>
+        <strong class="text-2xl text-(--text-heading)">{{ templates.filter(t => t.status === 'paused').length }}</strong>
       </GlassPanel>
     </div>
 
     <GlassPanel variant="flat" class="p-0 overflow-hidden">
-      <div class="p-4 border-b border-[var(--border-default)] flex gap-4">
-        <label class="flex items-center gap-2 bg-[var(--surface-input)] px-3 py-2 rounded border border-[var(--border-input)] flex-1">
+      <div class="p-4 border-b border-(--border-default) flex gap-4">
+        <label class="flex items-center gap-2 bg-(--surface-input) px-3 py-2 rounded border border-(--border-input) flex-1">
           <Search :size="16" />
           <input type="text" placeholder="Tìm kiếm mẫu..." class="bg-transparent border-none outline-none w-full" />
         </label>
@@ -95,7 +95,7 @@ const toggleStatus = (tpl) => {
                   {{ tpl.status === 'active' ? 'Đang hoạt động' : 'Tạm dừng' }}
                 </GlassBadge>
               </td>
-              <td class="text-[var(--text-muted)] text-sm">{{ tpl.vars }}</td>
+              <td class="text-(--text-muted) text-sm">{{ tpl.vars }}</td>
               <td>
                 <div class="flex gap-2">
                   <GlassButton variant="ghost" size="sm" @click="toggleStatus(tpl)">

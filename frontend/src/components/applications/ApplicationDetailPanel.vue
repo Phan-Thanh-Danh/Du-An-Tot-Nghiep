@@ -38,16 +38,16 @@ const getSupplementNote = computed(() => {
 <template>
   <div class="h-full flex flex-col space-y-4">
     <!-- Header -->
-    <div class="flex items-center gap-4 border-b border-[var(--border-card)] pb-4">
-      <button @click="emit('back')" class="p-2 hover:bg-[var(--surface-hover)] rounded-full transition-colors text-[var(--text-muted)] hover:text-[var(--text-heading)]">
+    <div class="flex items-center gap-4 border-b border-(--border-card) pb-4">
+      <button @click="emit('back')" class="p-2 hover:bg-(--surface-hover) rounded-full transition-colors text-(--text-muted) hover:text-(--text-heading)">
         <ArrowLeft class="w-5 h-5" />
       </button>
       <div class="flex-1">
-        <h2 class="text-xl font-bold text-[var(--text-heading)] flex items-center gap-3">
+        <h2 class="text-xl font-bold text-(--text-heading) flex items-center gap-3">
           {{ application.tieuDe }}
           <ApplicationStatusBadge :status="application.trangThai" />
         </h2>
-        <p class="text-sm text-[var(--text-muted)] mt-1 flex gap-4">
+        <p class="text-sm text-(--text-muted) mt-1 flex gap-4">
           <span>Mã đơn: {{ application.maDon }}</span>
           <span>Loại: {{ application.tenLoaiDon || '---' }}</span>
         </p>
@@ -59,11 +59,11 @@ const getSupplementNote = computed(() => {
     </div>
 
     <!-- Alert for YEU_CAU_BO_SUNG -->
-    <div v-if="isSupplementRequired" class="p-4 bg-[var(--color-warning-bg)] border border-[var(--color-warning-border)] rounded-xl flex gap-3">
-      <AlertTriangle class="w-5 h-5 text-[var(--color-warning-text)] shrink-0 mt-0.5" />
+    <div v-if="isSupplementRequired" class="p-4 bg-(--color-warning-bg) border border-(--color-warning-border) rounded-xl flex gap-3">
+      <AlertTriangle class="w-5 h-5 text-(--color-warning-text) shrink-0 mt-0.5" />
       <div>
-        <h4 class="font-semibold text-[var(--color-warning-text)]">Yêu cầu bổ sung thông tin</h4>
-        <p class="text-sm mt-1 text-[var(--text-body)]">{{ getSupplementNote }}</p>
+        <h4 class="font-semibold text-(--color-warning-text)">Yêu cầu bổ sung thông tin</h4>
+        <p class="text-sm mt-1 text-(--text-body)">{{ getSupplementNote }}</p>
         <GlassButton variant="warning" size="sm" class="mt-3" @click="emit('edit')">Bổ sung ngay</GlassButton>
       </div>
     </div>
@@ -73,7 +73,7 @@ const getSupplementNote = computed(() => {
       <!-- Main Content -->
       <div class="lg:col-span-2 space-y-6 overflow-y-auto custom-scrollbar pr-2">
         <GlassPanel padding="normal">
-          <h3 class="font-semibold text-[var(--text-heading)] flex items-center gap-2 mb-4 border-b border-[var(--border-card)] pb-2">
+          <h3 class="font-semibold text-(--text-heading) flex items-center gap-2 mb-4 border-b border-(--border-card) pb-2">
             <FileText class="w-4 h-4" /> Nội dung đơn
           </h3>
           <ApplicationFormRenderer 
@@ -84,7 +84,7 @@ const getSupplementNote = computed(() => {
         </GlassPanel>
 
         <GlassPanel padding="normal">
-          <h3 class="font-semibold text-[var(--text-heading)] mb-4 border-b border-[var(--border-card)] pb-2">Minh chứng đính kèm</h3>
+          <h3 class="font-semibold text-(--text-heading) mb-4 border-b border-(--border-card) pb-2">Minh chứng đính kèm</h3>
           <ApplicationEvidenceUploader 
             :files="application.minhChung" 
             disabled 
@@ -95,7 +95,7 @@ const getSupplementNote = computed(() => {
       <!-- Sidebar -->
       <div class="space-y-6 overflow-y-auto custom-scrollbar pr-2">
         <GlassPanel padding="normal">
-          <h3 class="font-semibold text-[var(--text-heading)] mb-4 border-b border-[var(--border-card)] pb-2 flex items-center gap-2">
+          <h3 class="font-semibold text-(--text-heading) mb-4 border-b border-(--border-card) pb-2 flex items-center gap-2">
             <Clock class="w-4 h-4" /> Lịch sử xử lý
           </h3>
           <ApplicationTimeline :events="application.lichSu" />

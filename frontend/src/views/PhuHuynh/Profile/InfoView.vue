@@ -30,7 +30,7 @@ function handleEdit() {
 <template>
   <div class="space-y-6 pb-6">
     <!-- Header Banner & Avatar -->
-    <div class="relative rounded-t-[32px] rounded-b-[24px] bg-gradient-to-br from-orange-600 via-orange-500 to-amber-500 p-6 sm:p-8 overflow-hidden shadow-[var(--lg-shadow-md)]">
+    <div class="relative rounded-t-[32px] rounded-b-[24px] bg-gradient-to-br from-orange-600 via-orange-500 to-amber-500 p-6 sm:p-8 overflow-hidden shadow-(--lg-shadow-md)">
       <!-- Background pattern -->
       <div class="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
       
@@ -70,28 +70,28 @@ function handleEdit() {
           <h2 class="text-lg font-bold text-heading">Thông tin cá nhân</h2>
         </div>
         <div class="space-y-4">
-          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-[var(--surface-input)] transition-colors">
+          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-(--surface-input) transition-colors">
             <User :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Họ và tên</p>
               <p class="text-sm font-bold text-heading">{{ parentProfile.name }}</p>
             </div>
           </div>
-          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-[var(--surface-input)] transition-colors">
+          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-(--surface-input) transition-colors">
             <Calendar :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Ngày sinh</p>
               <p class="text-sm font-bold text-heading">{{ parentProfile.dob }}</p>
             </div>
           </div>
-          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-[var(--surface-input)] transition-colors">
+          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-(--surface-input) transition-colors">
             <CreditCard :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Số CCCD / CMND</p>
               <p class="text-sm font-bold text-heading">{{ parentProfile.cccd }}</p>
             </div>
           </div>
-          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-[var(--surface-input)] transition-colors">
+          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-(--surface-input) transition-colors">
             <Building :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Cơ sở đăng ký</p>
@@ -110,28 +110,28 @@ function handleEdit() {
           <h2 class="text-lg font-bold text-heading">Thông tin liên hệ</h2>
         </div>
         <div class="space-y-4">
-          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-[var(--surface-input)] transition-colors">
+          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-(--surface-input) transition-colors">
             <Phone :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Số điện thoại</p>
               <p class="text-sm font-bold text-heading">{{ parentProfile.phone }}</p>
             </div>
           </div>
-          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-[var(--surface-input)] transition-colors">
+          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-(--surface-input) transition-colors">
             <Mail :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Địa chỉ Email</p>
               <p class="text-sm font-bold text-heading">{{ parentProfile.email }}</p>
             </div>
           </div>
-          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-[var(--surface-input)] transition-colors">
+          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-(--surface-input) transition-colors">
             <MapPin :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Địa chỉ thường trú</p>
               <p class="text-sm font-bold text-heading leading-snug">{{ parentProfile.permanentAddress }}</p>
             </div>
           </div>
-          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-[var(--surface-input)] transition-colors">
+          <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-(--surface-input) transition-colors">
             <MapPin :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Nơi ở hiện tại</p>

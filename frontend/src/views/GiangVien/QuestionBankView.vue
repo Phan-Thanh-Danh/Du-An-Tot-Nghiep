@@ -70,7 +70,7 @@ function deleteQuestion() {
     <div class="lg-glass-soft rounded-2xl p-5 relative overflow-hidden">
       <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex items-center gap-5">
-          <div class="h-10 w-10 rounded-2xl bg-[var(--accent-primary)] flex items-center justify-center text-inverse shadow-md">
+          <div class="h-10 w-10 rounded-2xl bg-(--accent-primary) flex items-center justify-center text-inverse shadow-md">
              <BookOpen :size="20" />
           </div>
           <div>
@@ -93,28 +93,28 @@ function deleteQuestion() {
        <!-- Stats -->
        <div class="grid grid-cols-2 md:grid-cols-4 xl:w-1/2 gap-4">
           <div class="lg-glass-soft rounded-2xl p-5 col-span-2 sm:col-span-1">
-             <div class="h-10 w-10 rounded-xl bg-[var(--accent-primary)]/10 flex items-center justify-center text-link mb-3">
+             <div class="h-10 w-10 rounded-xl bg-(--accent-primary)/10 flex items-center justify-center text-link mb-3">
                 <Database :size="20" />
              </div>
              <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Tổng câu hỏi</p>
              <p class="text-xl font-semibold text-heading">1,240</p>
           </div>
           <div class="lg-glass-soft rounded-2xl p-5">
-             <div class="h-10 w-10 rounded-xl bg-[var(--color-success-bg)] flex items-center justify-center text-[var(--color-success-text)] mb-3">
+             <div class="h-10 w-10 rounded-xl bg-(--color-success-bg) flex items-center justify-center text-(--color-success-text) mb-3">
                 <Target :size="20" />
              </div>
              <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Mức Dễ</p>
              <p class="text-xl font-semibold text-heading">450</p>
           </div>
           <div class="lg-glass-soft rounded-2xl p-5">
-             <div class="h-10 w-10 rounded-xl bg-[var(--color-warning-bg)] flex items-center justify-center text-[var(--color-warning-text)] mb-3">
+             <div class="h-10 w-10 rounded-xl bg-(--color-warning-bg) flex items-center justify-center text-(--color-warning-text) mb-3">
                 <Target :size="20" />
              </div>
              <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Mức Trung bình</p>
              <p class="text-xl font-semibold text-heading">620</p>
           </div>
           <div class="lg-glass-soft rounded-2xl p-5">
-             <div class="h-10 w-10 rounded-xl bg-[var(--color-danger-bg)] flex items-center justify-center text-[var(--color-danger-text)] mb-3">
+             <div class="h-10 w-10 rounded-xl bg-(--color-danger-bg) flex items-center justify-center text-(--color-danger-text) mb-3">
                 <Target :size="20" />
              </div>
              <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Mức Khó</p>
@@ -154,8 +154,8 @@ function deleteQuestion() {
             <th class="px-5 py-5 text-[11px] font-semibold uppercase tracking-widest text-muted text-right">Thao tác</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-[var(--border-table)]">
-          <tr v-for="q in questions" :key="q.id" class="group hover:bg-[var(--surface-table-row-hover)] transition-colors">
+        <tbody class="divide-y divide-(--border-table)">
+          <tr v-for="q in questions" :key="q.id" class="group hover:bg-(--surface-table-row-hover) transition-colors">
             <td class="px-5 py-4">
                <div class="max-w-lg">
                   <p class="text-sm font-semibold text-heading leading-relaxed group-hover:text-link transition-colors">{{ q.content }}</p>
@@ -184,10 +184,10 @@ function deleteQuestion() {
             </td>
             <td class="px-5 py-4 text-right">
               <div class="flex items-center justify-end gap-2">
-                 <button @click="openEditModal(q)" class="lg-icon-button h-9 w-9 rounded-xl border border-card surface-card text-muted hover:text-link hover:border-link/30 hover:bg-[var(--accent-primary)]/10 transition-all" title="Chỉnh sửa">
+                 <button @click="openEditModal(q)" class="lg-icon-button h-9 w-9 rounded-xl border border-card surface-card text-muted hover:text-link hover:border-link/30 hover:bg-(--accent-primary)/10 transition-all" title="Chỉnh sửa">
                     <Edit2 :size="16" />
                  </button>
-                 <button @click="confirmDelete(q.id)" class="lg-icon-button h-9 w-9 rounded-xl border border-card surface-card text-muted hover:text-[var(--color-danger-text)] hover:border-[var(--color-danger-bg)] hover:bg-[var(--color-danger-bg)] transition-all" title="Xóa">
+                 <button @click="confirmDelete(q.id)" class="lg-icon-button h-9 w-9 rounded-xl border border-card surface-card text-muted hover:text-(--color-danger-text) hover:border-(--color-danger-bg) hover:bg-(--color-danger-bg) transition-all" title="Xóa">
                     <Trash2 :size="16" />
                  </button>
               </div>
@@ -202,9 +202,9 @@ function deleteQuestion() {
             <Database :size="14" class="text-muted" /> Đang hiển thị {{ questions.length }} câu hỏi
          </div>
          <div class="flex items-center gap-1">
-            <div class="h-1 w-8 bg-[var(--accent-primary)] rounded-full"></div>
-            <div class="h-1 w-2 bg-[var(--accent-primary)]/30 rounded-full"></div>
-            <div class="h-1 w-2 bg-[var(--accent-primary)]/30 rounded-full"></div>
+            <div class="h-1 w-8 bg-(--accent-primary) rounded-full"></div>
+            <div class="h-1 w-2 bg-(--accent-primary)/30 rounded-full"></div>
+            <div class="h-1 w-2 bg-(--accent-primary)/30 rounded-full"></div>
          </div>
       </div>
     </TableShell>
@@ -212,7 +212,7 @@ function deleteQuestion() {
     <!-- Edit Modal -->
     <Teleport to="body">
       <div v-if="isEditModalOpen" class="fixed inset-0 z-[999] flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-[var(--text-heading)]/40 backdrop-blur-sm" @click="isEditModalOpen = false"></div>
+        <div class="absolute inset-0 bg-(--text-heading)/40 backdrop-blur-sm" @click="isEditModalOpen = false"></div>
         <div class="relative surface-modal rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in-up">
           <div class="p-4 border-b border-card surface-table-header">
             <h3 class="text-xl font-semibold text-heading">Chỉnh sửa Câu hỏi</h3>
@@ -240,15 +240,15 @@ function deleteQuestion() {
             <div>
                <label class="block text-sm font-semibold text-label mb-1.5">Độ khó</label>
                <div class="flex gap-3">
-                  <button v-for="d in difficulties" :key="d" @click="editingQuestion.difficulty = d" :class="['flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors', editingQuestion.difficulty === d ? (d==='Dễ' ? 'bg-[var(--color-success-bg)] border-[var(--color-success-text)]/30 text-[var(--color-success-text)]' : d==='Trung bình' ? 'bg-[var(--color-warning-bg)] border-[var(--color-warning-text)]/30 text-[var(--color-warning-text)]' : 'bg-[var(--color-danger-bg)] border-[var(--color-danger-text)]/30 text-[var(--color-danger-text)]') : 'border-card surface-card text-muted hover:text-heading hover:bg-[var(--accent-primary)]/5']">
+                  <button v-for="d in difficulties" :key="d" @click="editingQuestion.difficulty = d" :class="['flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors', editingQuestion.difficulty === d ? (d==='Dễ' ? 'bg-(--color-success-bg) border-(--color-success-text)/30 text-(--color-success-text)' : d==='Trung bình' ? 'bg-(--color-warning-bg) border-(--color-warning-text)/30 text-(--color-warning-text)' : 'bg-(--color-danger-bg) border-(--color-danger-text)/30 text-(--color-danger-text)') : 'border-card surface-card text-muted hover:text-heading hover:bg-(--accent-primary)/5']">
                      {{ d }}
                   </button>
                </div>
             </div>
           </div>
           <div class="p-4 border-t border-card surface-table-header flex justify-end gap-3">
-<button @click="isEditModalOpen = false" class="px-5 py-2.5 rounded-xl font-semibold text-muted hover:text-heading hover:bg-[var(--accent-primary)]/5 transition-colors">Hủy</button>
-            <button @click="saveQuestion" class="px-5 py-2.5 rounded-xl font-semibold text-inverse bg-[var(--accent-primary)] hover:opacity-90 shadow-md transition-all hover:-translate-y-0.5">Lưu thay đổi</button>
+<button @click="isEditModalOpen = false" class="px-5 py-2.5 rounded-xl font-semibold text-muted hover:text-heading hover:bg-(--accent-primary)/5 transition-colors">Hủy</button>
+            <button @click="saveQuestion" class="px-5 py-2.5 rounded-xl font-semibold text-inverse bg-(--accent-primary) hover:opacity-90 shadow-md transition-all hover:-translate-y-0.5">Lưu thay đổi</button>
           </div>
         </div>
       </div>
@@ -257,16 +257,16 @@ function deleteQuestion() {
     <!-- Delete Confirm Modal -->
     <Teleport to="body">
       <div v-if="isDeleteModalOpen" class="fixed inset-0 z-[999] flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-[var(--text-heading)]/40 backdrop-blur-sm" @click="isDeleteModalOpen = false"></div>
+        <div class="absolute inset-0 bg-(--text-heading)/40 backdrop-blur-sm" @click="isDeleteModalOpen = false"></div>
         <div class="relative surface-modal rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in-up text-center p-8">
-          <div class="mx-auto w-16 h-16 rounded-full bg-[var(--color-danger-bg)] flex items-center justify-center text-[var(--color-danger-text)] mb-4">
+          <div class="mx-auto w-16 h-16 rounded-full bg-(--color-danger-bg) flex items-center justify-center text-(--color-danger-text) mb-4">
             <Trash2 :size="32" stroke-width="2.5" />
           </div>
           <h3 class="text-xl font-semibold text-heading mb-2">Xóa câu hỏi?</h3>
           <p class="text-muted text-sm mb-8 font-medium">Bạn có chắc chắn muốn xóa câu hỏi này khỏi thư viện? Hành động này không thể hoàn tác.</p>
           <div class="flex gap-3">
-<button @click="isDeleteModalOpen = false" class="flex-1 px-4 py-3 rounded-xl font-semibold text-body surface-card border border-card hover:bg-[var(--accent-primary)]/5 transition-colors">Hủy</button>
-            <button @click="deleteQuestion" class="flex-1 px-4 py-3 rounded-xl font-semibold text-inverse bg-[var(--color-danger-text)] hover:opacity-90 shadow-md transition-all hover:-translate-y-0.5">Xóa ngay</button>
+<button @click="isDeleteModalOpen = false" class="flex-1 px-4 py-3 rounded-xl font-semibold text-body surface-card border border-card hover:bg-(--accent-primary)/5 transition-colors">Hủy</button>
+            <button @click="deleteQuestion" class="flex-1 px-4 py-3 rounded-xl font-semibold text-inverse bg-(--color-danger-text) hover:opacity-90 shadow-md transition-all hover:-translate-y-0.5">Xóa ngay</button>
           </div>
         </div>
       </div>

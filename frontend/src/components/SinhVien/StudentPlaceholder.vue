@@ -33,11 +33,11 @@ const Icon = computed(() => LucideIcons[props.icon] || LucideIcons.Sparkles)
 <template>
   <div class="space-y-4">
     <LmsCard variant="glass-soft" class="relative">
-      <div class="pointer-events-none absolute -right-16 -top-24 h-44 w-44 rounded-full bg-[var(--page-gradient-a)] blur-3xl" />
+      <div class="pointer-events-none absolute -right-16 -top-24 h-44 w-44 rounded-full bg-(--page-gradient-a) blur-3xl" />
 
       <div class="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-start gap-4">
-          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-primary-soft)] text-[var(--text-link)] shadow-[var(--lg-shadow-sm)]">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-(--accent-primary-soft) text-(--text-link) shadow-(--lg-shadow-sm)">
             <component :is="Icon" :size="23" :stroke-width="2.1" />
           </div>
           <div>
@@ -51,7 +51,7 @@ const Icon = computed(() => LucideIcons[props.icon] || LucideIcons.Sparkles)
 
         <router-link
           to="/student/dashboard"
-          class="inline-flex items-center justify-center rounded-xl border border-card bg-[var(--surface-card)] px-5 py-3 text-sm font-semibold text-heading shadow-sm backdrop-blur-xl transition hover:bg-[var(--glass-bg-strong)] hover:shadow-md focus:outline-none focus:ring-4 focus:ring-[var(--text-link)]/20"
+          class="inline-flex items-center justify-center rounded-xl border border-card bg-(--surface-card) px-5 py-3 text-sm font-semibold text-heading shadow-sm backdrop-blur-xl transition hover:bg-(--glass-bg-strong) hover:shadow-md focus:outline-none focus:ring-4 focus:ring-(--text-link)/20"
         >
           Về Dashboard
         </router-link>

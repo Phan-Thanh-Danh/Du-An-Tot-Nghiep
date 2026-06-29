@@ -140,7 +140,7 @@ function getIcon(name) {
           <div
             v-for="activity in recentActivities"
             :key="activity.id"
-            class="flex items-start gap-3 rounded-xl p-2.5 transition-colors hover:bg-[var(--surface-card-hover)]"
+            class="flex items-start gap-3 rounded-xl p-2.5 transition-colors hover:bg-(--surface-card-hover)"
           >
             <div :class="['flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full', colorMap[activity.color]?.bg]">
               <component :is="getIcon(activity.icon)" :size="14" :class="colorMap[activity.color]?.text" />

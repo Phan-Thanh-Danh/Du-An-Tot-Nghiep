@@ -29,8 +29,8 @@ const history = ref([
 
 const getResultBadge = (result) => {
   switch (result) {
-    case 'approved': return 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success-text)]/20'
-    case 'rejected': return 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger-text)]/20'
+    case 'approved': return 'bg-(--color-success-bg) text-(--color-success-text) border-(--color-success-text)/20'
+    case 'rejected': return 'bg-(--color-danger-bg) text-(--color-danger-text) border-(--color-danger-text)/20'
     default: return 'surface-solid text-muted border-default'
   }
 }
@@ -217,7 +217,7 @@ function closeContextMenu() {
             </button>
             <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2 relative" @click="openDatePicker">
               <Calendar :size="18" /> Chọn thời gian
-              <span v-if="hasDateFilter" class="h-2 w-2 rounded-full bg-[var(--lg-primary)] absolute top-2 right-2" />
+              <span v-if="hasDateFilter" class="h-2 w-2 rounded-full bg-(--lg-primary) absolute top-2 right-2" />
             </button>
           </div>
         </div>
@@ -239,7 +239,7 @@ function closeContextMenu() {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="h in filteredHistory" :key="h.id" class="group hover:bg-[var(--surface-input)] transition-colors">
+            <tr v-for="h in filteredHistory" :key="h.id" class="group hover:bg-(--surface-input) transition-colors">
               <td class="px-4 py-4">
                 <span class="text-xs font-semibold text-label uppercase tracking-tighter">{{ h.id }}</span>
               </td>
@@ -255,7 +255,7 @@ function closeContextMenu() {
                       <CheckCircle2 v-if="h.result === 'approved'" :size="14" />
                       <XCircle v-else :size="14" />
                    </div>
-                    <span :class="['text-[10px] font-semibold uppercase tracking-widest', h.result === 'approved' ? 'text-[var(--color-success-text)]' : 'text-[var(--color-danger-text)]']">
+                    <span :class="['text-[10px] font-semibold uppercase tracking-widest', h.result === 'approved' ? 'text-(--color-success-text)' : 'text-(--color-danger-text)']">
                       {{ h.result === 'approved' ? 'Phê duyệt' : 'Từ chối' }}
                    </span>
                 </div>
@@ -286,7 +286,7 @@ function closeContextMenu() {
                       leave-to-class="opacity-0 scale-95"
                     >
                       <div v-if="contextTarget?.id === h.id" class="absolute right-0 top-full mt-1 z-50 w-48 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
-                        <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openDetailModal(h); closeContextMenu()">
+                        <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-(--color-info-bg) hover:text-link transition-all" @click="openDetailModal(h); closeContextMenu()">
                           <Eye :size="14" /> Xem chi tiết
                         </button>
                       </div>
@@ -324,12 +324,12 @@ function closeContextMenu() {
         <div class="relative w-full max-w-sm surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
-              <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
+              <div class="h-8 w-8 rounded-lg bg-(--color-info-bg) text-link flex items-center justify-center">
                 <Calendar :size="18" />
               </div>
               <h3 class="text-base font-semibold text-heading">Chọn thời gian</h3>
             </div>
-            <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeDatePicker">
+            <button class="p-1.5 rounded-lg hover:bg-(--surface-solid) text-placeholder transition-all" @click="closeDatePicker">
               <X :size="18" />
             </button>
           </div>
@@ -372,15 +372,15 @@ function closeContextMenu() {
         <div class="relative w-full max-w-sm surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <h3 class="text-base font-semibold text-heading">Xuất báo cáo</h3>
-            <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="showExportModal = false">
+            <button class="p-1.5 rounded-lg hover:bg-(--surface-solid) text-placeholder transition-all" @click="showExportModal = false">
               <X :size="18" />
             </button>
           </div>
           <div class="space-y-3">
             <p class="text-[12px] font-medium text-label mb-2">Chọn định dạng xuất:</p>
             <button @click="exportFormat = 'excel'"
-              :class="['w-full flex items-center gap-3 p-3 rounded-2xl border transition-all', exportFormat === 'excel' ? 'border-[var(--lg-primary)] bg-[var(--color-info-bg)]' : 'border-default surface-solid hover:bg-[var(--surface-input)]']">
-              <div class="h-9 w-9 rounded-xl bg-[var(--lg-primary)]/10 text-[var(--lg-primary)] flex items-center justify-center">
+              :class="['w-full flex items-center gap-3 p-3 rounded-2xl border transition-all', exportFormat === 'excel' ? 'border-(--lg-primary) bg-(--color-info-bg)' : 'border-default surface-solid hover:bg-(--surface-input)']">
+              <div class="h-9 w-9 rounded-xl bg-(--lg-primary)/10 text-(--lg-primary) flex items-center justify-center">
                 <FileSpreadsheet :size="20" />
               </div>
               <div class="text-left">
@@ -389,8 +389,8 @@ function closeContextMenu() {
               </div>
             </button>
             <button @click="exportFormat = 'csv'"
-              :class="['w-full flex items-center gap-3 p-3 rounded-2xl border transition-all', exportFormat === 'csv' ? 'border-[var(--lg-primary)] bg-[var(--color-info-bg)]' : 'border-default surface-solid hover:bg-[var(--surface-input)]']">
-              <div class="h-9 w-9 rounded-xl bg-[var(--lg-success)]/10 text-[var(--lg-success)] flex items-center justify-center">
+              :class="['w-full flex items-center gap-3 p-3 rounded-2xl border transition-all', exportFormat === 'csv' ? 'border-(--lg-primary) bg-(--color-info-bg)' : 'border-default surface-solid hover:bg-(--surface-input)']">
+              <div class="h-9 w-9 rounded-xl bg-(--lg-success)/10 text-(--lg-success) flex items-center justify-center">
                 <FileText :size="20" />
               </div>
               <div class="text-left">
@@ -427,12 +427,12 @@ function closeContextMenu() {
         <div class="relative w-full max-w-lg surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
-              <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
+              <div class="h-8 w-8 rounded-lg bg-(--color-info-bg) text-link flex items-center justify-center">
                 <Eye :size="18" />
               </div>
               <h3 class="text-base font-semibold text-heading">Chi tiết đơn từ</h3>
             </div>
-            <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeDetailModal">
+            <button class="p-1.5 rounded-lg hover:bg-(--surface-solid) text-placeholder transition-all" @click="closeDetailModal">
               <X :size="18" />
             </button>
           </div>
@@ -465,7 +465,7 @@ function closeContextMenu() {
                     <CheckCircle2 v-if="detailTarget.result === 'approved'" :size="18" />
                     <XCircle v-else :size="18" />
                   </div>
-                  <span :class="['text-sm font-semibold', detailTarget.result === 'approved' ? 'text-[var(--lg-success)]' : 'text-[var(--lg-danger)]']">
+                  <span :class="['text-sm font-semibold', detailTarget.result === 'approved' ? 'text-(--lg-success)' : 'text-(--lg-danger)']">
                     {{ detailTarget.result === 'approved' ? 'Phê duyệt' : 'Từ chối' }}
                   </span>
                 </div>

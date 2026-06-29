@@ -11,7 +11,7 @@ defineProps({
   <GlassPanel padding="none" class="overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-sm text-left">
-        <thead class="bg-[var(--surface-hover)] text-[var(--text-muted)] uppercase text-xs">
+        <thead class="bg-(--surface-hover) text-(--text-muted) uppercase text-xs">
           <tr>
             <th class="px-4 py-3">Người nhận</th>
             <th class="px-4 py-3">Mã NV/SV</th>
@@ -19,33 +19,33 @@ defineProps({
             <th class="px-4 py-3">Thời gian đọc</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-[var(--border-card)]">
+        <tbody class="divide-y divide-(--border-card)">
           <template v-if="loading">
             <tr v-for="i in 3" :key="i">
               <td class="px-4 py-3" colspan="4">
-                <div class="h-4 bg-[var(--surface-hover)] rounded animate-pulse w-full"></div>
+                <div class="h-4 bg-(--surface-hover) rounded animate-pulse w-full"></div>
               </td>
             </tr>
           </template>
           <tr v-else-if="recipients.length === 0">
-            <td class="px-4 py-6 text-center text-[var(--text-muted)]" colspan="4">
+            <td class="px-4 py-6 text-center text-(--text-muted)" colspan="4">
               Không có dữ liệu
             </td>
           </tr>
-          <tr v-else v-for="r in recipients" :key="r.id" class="hover:bg-[var(--surface-hover)]">
+          <tr v-else v-for="r in recipients" :key="r.id" class="hover:bg-(--surface-hover)">
             <td class="px-4 py-3">
-              <div class="font-medium text-[var(--text-body)]">{{ r.hoTenNguoiNhan }}</div>
+              <div class="font-medium text-(--text-body)">{{ r.hoTenNguoiNhan }}</div>
             </td>
             <td class="px-4 py-3">{{ r.maNguoiNhan }}</td>
             <td class="px-4 py-3">
-              <span v-if="r.trangThaiThucThi === 'THANH_CONG'" class="text-[var(--color-success-text)] flex items-center gap-1">
+              <span v-if="r.trangThaiThucThi === 'THANH_CONG'" class="text-(--color-success-text) flex items-center gap-1">
                 Thành công
               </span>
-              <span v-else class="text-[var(--color-danger-text)]">
+              <span v-else class="text-(--color-danger-text)">
                 Lỗi
               </span>
             </td>
-            <td class="px-4 py-3 text-[var(--text-muted)]">
+            <td class="px-4 py-3 text-(--text-muted)">
               {{ r.thoiGianDoc || 'Chưa đọc' }}
             </td>
           </tr>

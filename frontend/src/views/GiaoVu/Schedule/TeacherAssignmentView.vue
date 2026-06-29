@@ -285,7 +285,7 @@ onMounted(() => {
       <!-- ── Stats Header ── -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="lg-card-glass p-4 flex items-center gap-4">
-          <div class="h-10 w-10 rounded-2xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)]">
+          <div class="h-10 w-10 rounded-2xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text)">
             <UserPlus :size="24" />
           </div>
           <div>
@@ -294,7 +294,7 @@ onMounted(() => {
           </div>
         </div>
         <div class="lg-card-glass p-4 flex items-center gap-4">
-          <div class="h-10 w-10 rounded-2xl bg-[var(--color-warning-bg)] flex items-center justify-center text-[var(--color-warning-text)]">
+          <div class="h-10 w-10 rounded-2xl bg-(--color-warning-bg) flex items-center justify-center text-(--color-warning-text)">
             <UserMinus :size="24" />
           </div>
           <div>
@@ -303,7 +303,7 @@ onMounted(() => {
           </div>
         </div>
         <div class="lg-card-glass p-4 flex items-center gap-4">
-          <div class="h-10 w-10 rounded-2xl bg-[var(--color-success-bg)] flex items-center justify-center text-[var(--color-success-text)]">
+          <div class="h-10 w-10 rounded-2xl bg-(--color-success-bg) flex items-center justify-center text-(--color-success-text)">
             <UserCheck :size="24" />
           </div>
           <div>
@@ -328,7 +328,7 @@ onMounted(() => {
           <button @click="showFilterPanel = !showFilterPanel" class="lg-button-secondary px-4 py-2.5 text-sm font-bold transition-colors">
             <Filter :size="18" /> Bộ lọc
           </button>
-          <div class="h-8 w-px bg-[var(--border-default)]"></div>
+          <div class="h-8 w-px bg-(--border-default)"></div>
           <button class="lg-icon-button p-2.5">
             <Calendar :size="20" />
           </button>
@@ -339,7 +339,7 @@ onMounted(() => {
       <div class="lg-table-shell">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-[var(--surface-input)]">
+            <tr class="bg-(--surface-input)">
               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Mã PC</th>
               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Lớp & Môn</th>
               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Giảng viên</th>
@@ -349,14 +349,14 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody class="divide-y border-default">
-            <tr v-for="item in paginatedAssignments" :key="item.id" class="group hover:bg-[var(--surface-input)] transition-colors">
+            <tr v-for="item in paginatedAssignments" :key="item.id" class="group hover:bg-(--surface-input) transition-colors">
               <td class="px-4 py-4">
                 <span class="text-xs font-semibold text-heading">{{ item.id }}</span>
               </td>
               <td class="px-4 py-4">
                 <p class="text-sm font-semibold text-heading leading-tight">{{ item.subject }}</p>
                 <div class="flex items-center gap-2 mt-1.5">
-                   <span class="text-[10px] font-bold text-[var(--lg-primary)] uppercase bg-[var(--lg-primary)]/10 px-1.5 py-0.5 rounded">{{ item.class }}</span>
+                   <span class="text-[10px] font-bold text-(--lg-primary) uppercase bg-(--lg-primary)/10 px-1.5 py-0.5 rounded">{{ item.class }}</span>
                    <span class="text-[10px] text-muted flex items-center gap-1"><Users :size="10"/> {{ item.students }} SV</span>
                 </div>
                 <div class="text-[10px] text-muted mt-1.5 flex items-center gap-1.5">
@@ -367,11 +367,11 @@ onMounted(() => {
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="h-8 w-8 rounded-full bg-[var(--surface-input)] flex items-center justify-center text-[10px] font-semibold text-label">
+                  <div class="h-8 w-8 rounded-full bg-(--surface-input) flex items-center justify-center text-[10px] font-semibold text-label">
                     {{ item.teacher !== 'Chưa phân công' ? item.teacher.split(' ').pop().charAt(0) : '?' }}
                   </div>
                   <div>
-                    <p :class="['text-sm font-bold', item.teacher === 'Chưa phân công' ? 'text-[var(--lg-danger)] italic' : 'text-heading']">
+                    <p :class="['text-sm font-bold', item.teacher === 'Chưa phân công' ? 'text-(--lg-danger) italic' : 'text-heading']">
                       {{ item.teacher }}
                     </p>
                     <p v-if="item.teacher !== 'Chưa phân công'" class="text-[10px] font-medium text-placeholder">Tải dạy: 12/15</p>
@@ -380,8 +380,8 @@ onMounted(() => {
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
-                  <span class="h-2 w-16 bg-[var(--surface-input)] rounded-full overflow-hidden inline-flex">
-                    <span :style="{ width: (item.sessions / 4) * 100 + '%' }" class="bg-[var(--lg-primary)] h-full"></span>
+                  <span class="h-2 w-16 bg-(--surface-input) rounded-full overflow-hidden inline-flex">
+                    <span :style="{ width: (item.sessions / 4) * 100 + '%' }" class="bg-(--lg-primary) h-full"></span>
                   </span>
                   <span class="text-xs font-bold text-label">{{ item.sessions }} ca</span>
                 </div>
@@ -393,13 +393,13 @@ onMounted(() => {
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-1.5">
-                  <button @click="openChangeTeacherModal(item)" class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-placeholder transition-all" title="Đổi giảng viên">
+                  <button @click="openChangeTeacherModal(item)" class="p-2 hover:bg-(--color-info-bg) hover:text-(--color-info-text) rounded-lg text-placeholder transition-all" title="Đổi giảng viên">
                     <ArrowLeftRight :size="15" />
                   </button>
-                  <button @click="openEditModal(item)" class="p-2 hover:bg-[var(--color-warning-bg)] hover:text-[var(--color-warning-text)] rounded-lg text-placeholder transition-all" title="Chỉnh sửa">
+                  <button @click="openEditModal(item)" class="p-2 hover:bg-(--color-warning-bg) hover:text-(--color-warning-text) rounded-lg text-placeholder transition-all" title="Chỉnh sửa">
                     <Pencil :size="15" />
                   </button>
-                  <button @click="confirmDelete(item)" class="p-2 hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)] rounded-lg text-placeholder transition-all" title="Xóa phân công">
+                  <button @click="confirmDelete(item)" class="p-2 hover:bg-(--color-danger-bg) hover:text-(--color-danger-text) rounded-lg text-placeholder transition-all" title="Xóa phân công">
                     <Trash2 :size="15" />
                   </button>
                 </div>
@@ -413,13 +413,13 @@ onMounted(() => {
       <div class="flex items-center justify-between px-4">
          <p class="text-xs font-medium text-label">Hiển thị {{ paginatedAssignments.length }} / {{ filteredAssignments.length }} bản ghi</p>
          <div class="flex items-center gap-1">
-            <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" class="h-8 w-8 rounded-lg flex items-center justify-center text-label hover:bg-[var(--surface-input)] disabled:opacity-50 transition-all">
+            <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" class="h-8 w-8 rounded-lg flex items-center justify-center text-label hover:bg-(--surface-input) disabled:opacity-50 transition-all">
               <ChevronLeft :size="16" />
             </button>
-            <button v-for="p in totalPages" :key="p" @click="goToPage(p)" :class="['h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all', p === currentPage ? 'bg-[var(--lg-primary)] text-white shadow-sm' : 'hover:bg-[var(--surface-input)] text-label']">
+            <button v-for="p in totalPages" :key="p" @click="goToPage(p)" :class="['h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all', p === currentPage ? 'bg-(--lg-primary) text-white shadow-sm' : 'hover:bg-(--surface-input) text-label']">
               {{ p }}
             </button>
-            <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages" class="h-8 w-8 rounded-lg flex items-center justify-center text-label hover:bg-[var(--surface-input)] disabled:opacity-50 transition-all">
+            <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages" class="h-8 w-8 rounded-lg flex items-center justify-center text-label hover:bg-(--surface-input) disabled:opacity-50 transition-all">
               <ChevronRight :size="16" />
             </button>
          </div>
@@ -486,7 +486,7 @@ onMounted(() => {
       <!-- Header -->
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-bold text-heading">Thêm phân công</h2>
-        <button @click="showAddModal = false" class="p-1.5 hover:bg-[var(--surface-input)] rounded-lg text-placeholder hover:text-label transition-colors">
+        <button @click="showAddModal = false" class="p-1.5 hover:bg-(--surface-input) rounded-lg text-placeholder hover:text-label transition-colors">
           <X :size="20" />
         </button>
       </div>
@@ -564,7 +564,7 @@ onMounted(() => {
           </button>
           <button
             type="submit"
-            class="flex-1 lg-button-primary px-4 py-2.5 font-bold shadow-lg shadow-[var(--lg-primary)]/20"
+            class="flex-1 lg-button-primary px-4 py-2.5 font-bold shadow-lg shadow-(--lg-primary)/20"
           >
             Thêm
           </button>
@@ -576,10 +576,10 @@ onMounted(() => {
 
   <!-- Edit Assignment Modal -->
   <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-    <div class="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-      <div class="flex items-center justify-between p-4 border-b border-[var(--border-default)]">
+    <div class="bg-(--surface-card) border border-(--border-default) rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div class="flex items-center justify-between p-4 border-b border-(--border-default)">
         <h3 class="text-lg font-bold text-heading">Chỉnh sửa phân công</h3>
-        <button @click="showEditModal = false" class="p-2 text-placeholder hover:text-heading hover:bg-[var(--surface-input)] rounded-xl transition-all">
+        <button @click="showEditModal = false" class="p-2 text-placeholder hover:text-heading hover:bg-(--surface-input) rounded-xl transition-all">
           <X :size="20" />
         </button>
       </div>
@@ -634,7 +634,7 @@ onMounted(() => {
         </div>
 
         <!-- Actions -->
-        <div class="flex gap-3 pt-4 border-t border-[var(--border-default)]">
+        <div class="flex gap-3 pt-4 border-t border-(--border-default)">
           <button
             type="button"
             @click="showEditModal = false"
@@ -644,7 +644,7 @@ onMounted(() => {
           </button>
           <button
             type="submit"
-            class="flex-1 lg-button-primary px-4 py-2.5 font-bold shadow-lg shadow-[var(--lg-primary)]/20"
+            class="flex-1 lg-button-primary px-4 py-2.5 font-bold shadow-lg shadow-(--lg-primary)/20"
           >
             Cập nhật
           </button>
@@ -655,18 +655,18 @@ onMounted(() => {
 
   <!-- Change Teacher Modal -->
   <div v-if="showChangeTeacherModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-    <div class="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-      <div class="flex items-center justify-between p-4 border-b border-[var(--border-default)]">
+    <div class="bg-(--surface-card) border border-(--border-default) rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+      <div class="flex items-center justify-between p-4 border-b border-(--border-default)">
         <h3 class="text-lg font-bold text-heading">Đổi giảng viên</h3>
-        <button @click="closeChangeTeacherModal" class="p-2 text-placeholder hover:text-heading hover:bg-[var(--surface-input)] rounded-xl transition-all">
+        <button @click="closeChangeTeacherModal" class="p-2 text-placeholder hover:text-heading hover:bg-(--surface-input) rounded-xl transition-all">
           <X :size="20" />
         </button>
       </div>
 
       <!-- Banner gợi ý -->
-      <div v-if="isSuggested" class="mx-4 mt-4 p-3 bg-[var(--color-info-bg)] border border-[var(--color-info-text)]/20 rounded-xl flex items-start gap-2.5">
-        <Lightbulb :size="16" class="text-[var(--color-info-text)] shrink-0 mt-0.5" />
-        <p class="text-xs font-medium text-[var(--color-info-text)]">
+      <div v-if="isSuggested" class="mx-4 mt-4 p-3 bg-(--color-info-bg) border border-(--color-info-text)/20 rounded-xl flex items-start gap-2.5">
+        <Lightbulb :size="16" class="text-(--color-info-text) shrink-0 mt-0.5" />
+        <p class="text-xs font-medium text-(--color-info-text)">
           Hệ thống kiểm tra xung đột đề xuất đổi sang giảng viên <strong>{{ suggestedTeacherName }}</strong>.
         </p>
       </div>
@@ -695,7 +695,7 @@ onMounted(() => {
           </button>
           <button
             type="submit"
-            class="flex-1 px-4 py-2.5 font-bold rounded-xl text-white bg-[var(--lg-primary)] hover:opacity-90 transition-opacity"
+            class="flex-1 px-4 py-2.5 font-bold rounded-xl text-white bg-(--lg-primary) hover:opacity-90 transition-opacity"
           >
             Lưu thay đổi
           </button>
@@ -706,9 +706,9 @@ onMounted(() => {
 
   <!-- Delete Confirm Modal -->
   <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-    <div class="bg-[var(--surface-card)] border border-[var(--color-danger-bg)] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+    <div class="bg-(--surface-card) border border-(--color-danger-bg) rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
       <div class="p-6 text-center">
-        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] mb-4">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-(--color-danger-bg) text-(--color-danger-text) mb-4">
           <Trash2 :size="24" />
         </div>
         <h3 class="text-lg font-bold text-heading mb-2">Xóa phân công?</h3>
@@ -724,7 +724,7 @@ onMounted(() => {
           </button>
           <button
             @click="handleDelete"
-            class="flex-1 px-4 py-2.5 font-bold rounded-xl text-white bg-[var(--lg-danger)] hover:opacity-90 transition-opacity"
+            class="flex-1 px-4 py-2.5 font-bold rounded-xl text-white bg-(--lg-danger) hover:opacity-90 transition-opacity"
           >
             Xóa ngay
           </button>

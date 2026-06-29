@@ -23,7 +23,7 @@ const updateSearch = (e) => {
 
 <template>
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-    <div class="flex gap-2 p-1 bg-[var(--surface-card)] rounded-lg border border-[var(--border-card)]">
+    <div class="flex gap-2 p-1 bg-(--surface-card) rounded-lg border border-(--border-card)">
       <GlassButton
         size="sm"
         :variant="modelValue.filter === 'all' ? 'primary' : 'ghost'"
@@ -54,7 +54,7 @@ const updateSearch = (e) => {
         :value="modelValue.search"
         @input="updateSearch"
       />
-      <Search class="absolute right-3 top-2.5 w-4 h-4 text-[var(--text-muted)]" />
+      <Search class="absolute right-3 top-2.5 w-4 h-4 text-(--text-muted)" />
     </div>
   </div>
 </template>

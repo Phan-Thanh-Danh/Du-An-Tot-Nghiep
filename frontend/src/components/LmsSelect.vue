@@ -67,7 +67,7 @@ const selectId = computed(() => props.id || `lms-select-${Math.random().toString
       :id="selectId"
       class="lg-input flex items-center justify-between cursor-pointer select-none px-4 py-3 text-sm transition-all duration-200"
       :class="[
-        isOpen ? 'ring-2 ring-[var(--focus-ring)] border-[var(--focus-ring)]' : '',
+        isOpen ? 'ring-2 ring-(--focus-ring) border-(--focus-ring)' : '',
         disabled ? 'cursor-not-allowed opacity-60' : '',
         error ? 'error ring-2 ring-red-500/50 border-red-500' : ''
       ]"
@@ -76,11 +76,11 @@ const selectId = computed(() => props.id || `lms-select-${Math.random().toString
       @keydown.enter="toggleDropdown"
       @keydown.space.prevent="toggleDropdown"
     >
-      <span class="truncate flex-1 text-left" :class="selectedOption ? 'text-[var(--text-heading)]' : 'text-[var(--text-placeholder)]'">
+      <span class="truncate flex-1 text-left" :class="selectedOption ? 'text-(--text-heading)' : 'text-(--text-placeholder)'">
         {{ selectedOption ? selectedOption.label : placeholder }}
       </span>
       <ChevronDown 
-        class="w-4 h-4 text-[var(--text-muted)] transition-transform duration-200" 
+        class="w-4 h-4 text-(--text-muted) transition-transform duration-200" 
         :class="{ 'rotate-180': isOpen }" 
       />
     </div>
@@ -103,14 +103,14 @@ const selectId = computed(() => props.id || `lms-select-${Math.random().toString
             v-for="option in options" 
             :key="option.value"
             @click="selectOption(option)"
-            class="px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:bg-[var(--surface-table-row-hover)] transition-colors"
+            class="px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:bg-(--surface-table-row-hover) transition-colors"
             :class="{
-              'bg-[var(--surface-table-row-hover)] text-[var(--text-heading)] font-semibold': option.value === modelValue,
-              'text-[var(--text-body)]': option.value !== modelValue
+              'bg-(--surface-table-row-hover) text-(--text-heading) font-semibold': option.value === modelValue,
+              'text-(--text-body)': option.value !== modelValue
             }"
           >
             <span class="truncate flex-1 text-left">{{ option.label }}</span>
-            <Check v-if="option.value === modelValue" class="w-4 h-4 text-[var(--text-heading)] shrink-0 ml-2" />
+            <Check v-if="option.value === modelValue" class="w-4 h-4 text-(--text-heading) shrink-0 ml-2" />
           </li>
         </ul>
       </div>

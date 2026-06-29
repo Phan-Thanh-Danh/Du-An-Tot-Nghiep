@@ -48,8 +48,8 @@ const request = ref({
 
 const getStepStatusClass = (status) => {
   switch (status) {
-    case 'completed': return 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border border-[var(--color-success-text)]/20'
-    case 'current': return 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border border-[var(--color-info-text)]/25 ring-4 ring-[var(--color-info-bg)]'
+    case 'completed': return 'bg-(--color-success-bg) text-(--color-success-text) border border-(--color-success-text)/20'
+    case 'current': return 'bg-(--color-info-bg) text-(--color-info-text) border border-(--color-info-text)/25 ring-4 ring-(--color-info-bg)'
     case 'pending': return 'surface-solid text-muted border border-default'
     default: return ''
   }
@@ -97,7 +97,7 @@ const getStepStatusClass = (status) => {
            <div class="mt-6">
                <h4 class="text-xs font-semibold text-label uppercase tracking-widest mb-4">Minh chứng đính kèm</h4>
                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div v-for="file in request.files" :key="file.name" class="flex items-center justify-between p-4 lg-list-item rounded-2xl border-default group hover:border-[var(--border-input-focus)] transition-all cursor-pointer">
+                  <div v-for="file in request.files" :key="file.name" class="flex items-center justify-between p-4 lg-list-item rounded-2xl border-default group hover:border-(--border-input-focus) transition-all cursor-pointer">
                      <div class="flex items-center gap-3">
                         <div class="h-10 w-10 rounded-xl surface-solid flex items-center justify-center text-placeholder transition-colors">
                            <FileText :size="20" />
@@ -176,7 +176,7 @@ const getStepStatusClass = (status) => {
             <h4 class="text-xs font-semibold text-label uppercase tracking-widest mb-4">Thông tin sinh viên</h4>
             <div class="space-y-4">
                <div class="flex items-center gap-4">
-                  <div class="h-11 w-11 rounded-full bg-[var(--color-info-bg)] text-[var(--color-info-text)] border border-[var(--color-info-text)]/20 flex items-center justify-center font-semibold text-xs">
+                  <div class="h-11 w-11 rounded-full bg-(--color-info-bg) text-(--color-info-text) border border-(--color-info-text)/20 flex items-center justify-center font-semibold text-xs">
                      NN
                   </div>
                   <div>

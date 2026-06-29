@@ -26,7 +26,7 @@ const toggleUserMenu = () => {
 </script>
 
 <template>
-  <header class="lg-topbar absolute top-0 left-0 right-0 z-50 mx-2 mt-2 flex h-12 flex-shrink-0 items-center gap-2 overflow-visible rounded-[var(--radius-xl)] px-3 sm:mx-3 sm:mt-2 sm:gap-2.5">
+  <header class="lg-topbar absolute top-0 left-0 right-0 z-50 mx-2 mt-2 flex h-12 flex-shrink-0 items-center gap-2 overflow-visible rounded-(--radius-xl) px-3 sm:mx-3 sm:mt-2 sm:gap-2.5">
     
     <!-- Mobile toggle -->
     <button
@@ -56,18 +56,18 @@ const toggleUserMenu = () => {
         aria-label="Thông báo"
       >
         <Bell :size="15" />
-        <span class="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--color-danger-text)] text-[8px] font-bold text-inverse ring-2 ring-[var(--surface-topbar)]">1</span>
+        <span class="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-(--color-danger-text) text-[8px] font-bold text-inverse ring-2 ring-(--surface-topbar)">1</span>
       </button>
     </div>
 
     <!-- Profile menu -->
     <div class="relative">
       <button
-        class="surface-input flex items-center gap-2 rounded-[var(--radius-md)] border border-card p-1 transition-all duration-200 focus:outline-none ring-offset-2 focus:ring-2 focus:ring-[var(--focus-ring)] hover:bg-[var(--surface-input-focus)]"
+        class="surface-input flex items-center gap-2 rounded-(--radius-md) border border-card p-1 transition-all duration-200 focus:outline-none ring-offset-2 focus:ring-2 focus:ring-(--focus-ring) hover:bg-(--surface-input-focus)"
         aria-label="Mở hồ sơ"
         @click="toggleUserMenu"
       >
-        <div class="app-topbar-avatar flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-[10px] font-bold text-inverse shadow-sm ring-1 ring-[var(--border-card)]">
+        <div class="app-topbar-avatar flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-[10px] font-bold text-inverse shadow-sm ring-1 ring-(--border-card)">
           <span v-if="authStore.initials" class="font-medium text-sm">{{ authStore.initials }}</span>
           <User v-else class="w-4 h-4" />
         </div>

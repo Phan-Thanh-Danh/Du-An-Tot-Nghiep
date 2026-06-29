@@ -33,8 +33,8 @@ const getTrendIcon = (trend) => {
 
 const getTrendColor = (trend) => {
   switch (trend) {
-    case 'up': return 'text-[var(--color-success-text)]'
-    case 'down': return 'text-[var(--color-danger-text)]'
+    case 'up': return 'text-(--color-success-text)'
+    case 'down': return 'text-(--color-danger-text)'
     default: return 'text-muted'
   }
 }
@@ -48,11 +48,11 @@ const getTrendColor = (trend) => {
     <div class="space-y-4">
       
       <!-- ── Ranking Logic Info ── -->
-      <div class="surface-card border border-[var(--color-info-text)]/20 bg-[var(--color-info-bg)] rounded-2xl p-5 flex items-center gap-4">
-         <div class="h-10 w-10 rounded-2xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-info-text)] shrink-0 border border-[var(--color-info-text)]/20">
+      <div class="surface-card border border-(--color-info-text)/20 bg-(--color-info-bg) rounded-2xl p-5 flex items-center gap-4">
+         <div class="h-10 w-10 rounded-2xl bg-(--surface-card) flex items-center justify-center text-(--color-info-text) shrink-0 border border-(--color-info-text)/20">
             <ShieldCheck :size="20" />
          </div>
-         <p class="text-xs text-[var(--color-info-text)] font-medium leading-relaxed">
+         <p class="text-xs text-(--color-info-text) font-medium leading-relaxed">
            <strong>Quy tắc xếp hạng:</strong> Chỉ hiển thị kết quả cho các giảng viên có từ <strong>5 lượt đánh giá</strong> trở lên để đảm bảo tính khách quan. Danh tính sinh viên đánh giá luôn được ẩn danh đối với tất cả các cấp quản lý.
          </p>
       </div>
@@ -62,7 +62,7 @@ const getTrendColor = (trend) => {
         <div class="flex flex-wrap items-center gap-3 flex-1">
            <div class="relative max-w-sm w-full">
               <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
-              <input type="text" placeholder="Tìm tên giảng viên hoặc khoa..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-[var(--border-input-focus)]">
+              <input type="text" placeholder="Tìm tên giảng viên hoặc khoa..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-(--border-input-focus)">
            </div>
            <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
               <Filter :size="18" /> Tất cả các Khoa
@@ -88,10 +88,10 @@ const getTrendColor = (trend) => {
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
-            <tr v-for="(gv, index) in rankings" :key="gv.id" class="group hover:bg-[var(--surface-input)] transition-colors">
+            <tr v-for="(gv, index) in rankings" :key="gv.id" class="group hover:bg-(--surface-input) transition-colors">
               <td class="px-4 py-3 text-center">
                  <div v-if="index < 3" class="flex justify-center">
-                    <div :class="['h-8 w-8 rounded-full flex items-center justify-center shadow-sm border', index === 0 ? 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--color-warning-text)]/20' : index === 1 ? 'surface-solid text-muted border-default' : 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-info-text)]/20']">
+                    <div :class="['h-8 w-8 rounded-full flex items-center justify-center shadow-sm border', index === 0 ? 'bg-(--color-warning-bg) text-(--color-warning-text) border-(--color-warning-text)/20' : index === 1 ? 'surface-solid text-muted border-default' : 'bg-(--color-info-bg) text-(--color-info-text) border-(--color-info-text)/20']">
                        <Trophy :size="16" />
                     </div>
                  </div>
@@ -110,7 +110,7 @@ const getTrendColor = (trend) => {
               </td>
               <td class="px-4 py-3">
                  <div class="flex items-center gap-1.5">
-                    <Star :size="14" class="text-[var(--color-warning-text)] fill-[var(--color-warning-text)]" />
+                    <Star :size="14" class="text-(--color-warning-text) fill-(--color-warning-text)" />
                     <span class="text-sm font-semibold text-heading">{{ gv.avgScore.toFixed(2) }}</span>
                     <span class="text-[10px] font-bold text-muted ml-1">({{ gv.evals }} lượt)</span>
                  </div>
@@ -118,12 +118,12 @@ const getTrendColor = (trend) => {
               <td class="px-4 py-3">
                  <div class="flex flex-col gap-1 w-32">
                     <div class="flex justify-between text-[9px] font-semibold uppercase tracking-widest">
-                       <span class="text-[var(--color-success-text)]">{{ gv.positive }}% Pos</span>
-                       <span class="text-[var(--color-danger-text)]">{{ gv.negative }}% Neg</span>
+                       <span class="text-(--color-success-text)">{{ gv.positive }}% Pos</span>
+                       <span class="text-(--color-danger-text)">{{ gv.negative }}% Neg</span>
                     </div>
-                    <div class="h-1.5 w-full bg-[var(--surface-input)] rounded-full overflow-hidden flex">
-                       <div :style="{ width: `${gv.positive}%` }" class="bg-[var(--color-success-text)] h-full"></div>
-                       <div :style="{ width: `${gv.negative}%` }" class="bg-[var(--color-danger-text)] h-full"></div>
+                    <div class="h-1.5 w-full bg-(--surface-input) rounded-full overflow-hidden flex">
+                       <div :style="{ width: `${gv.positive}%` }" class="bg-(--color-success-text) h-full"></div>
+                       <div :style="{ width: `${gv.negative}%` }" class="bg-(--color-danger-text) h-full"></div>
                     </div>
                  </div>
               </td>
@@ -134,7 +134,7 @@ const getTrendColor = (trend) => {
                  </div>
               </td>
               <td class="px-4 py-3 text-right">
-                <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-muted transition-all">
+                <button class="p-2 hover:bg-(--color-info-bg) hover:text-(--color-info-text) rounded-lg text-muted transition-all">
                   <ChevronRight :size="18" />
                 </button>
               </td>

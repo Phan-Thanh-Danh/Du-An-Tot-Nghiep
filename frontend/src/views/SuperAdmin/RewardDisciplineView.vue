@@ -1,6 +1,6 @@
 <script setup>
-import AdminRewardDisciplineDashboard from '@/components/reward-discipline/AdminRewardDisciplineDashboard.vue'
+import AwardsView from './AwardsView.vue'
 </script>
 <template>
-  <AdminRewardDisciplineDashboard />
+<AwardsView />
 </template>

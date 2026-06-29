@@ -23,9 +23,9 @@ onMounted(() => fetchRewards())
 </script>
 
 <template>
-  <div class="p-6 h-full bg-[var(--surface-page)] overflow-y-auto custom-scrollbar">
+  <div class="p-6 h-full bg-(--surface-page) overflow-y-auto custom-scrollbar">
     <RewardDisciplineMockBanner />
-    <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-6">Khen thưởng & Thành tích</h1>
+    <h1 class="text-2xl font-bold text-(--text-heading) mb-6">Khen thưởng & Thành tích</h1>
     
     <div class="space-y-8 max-w-5xl">
       <StudentRewardHeroCard 

@@ -186,6 +186,18 @@ const router = createRouter({
           meta: { title: 'Hồ sơ cá nhân' },
         },
         {
+          path: 'rewards',
+          name: 'student-rewards',
+          component: () => import('../views/Student/RewardsView.vue'),
+          meta: { title: 'Khen thưởng' },
+        },
+        {
+          path: 'discipline',
+          name: 'student-discipline',
+          component: () => import('../views/Student/DisciplineView.vue'),
+          meta: { title: 'Kỷ luật' },
+        },
+        {
           path: 'notifications',
           name: 'student-notifications',
           component: () => import('../views/Student/NotificationsView.vue'),
@@ -330,7 +342,9 @@ const router = createRouter({
         { path: 'requests', name: 'teacher-requests', component: () => import('../views/GiangVien/PendingRequestsView.vue') },
         { path: 'requests-history', name: 'teacher-requests-history', component: () => import('../views/GiangVien/RequestsHistoryView.vue') },
         { path: 'profile', name: 'teacher-profile', component: () => import('../views/GiangVien/ProfileView.vue') },
-        { path: 'notifications', name: 'teacher-notifications', component: () => import('../views/Student/NotificationsView.vue'), meta: { title: 'Thông báo', subtitle: 'Trung tâm thông báo', section: 'Cá nhân' } },
+
+        {
+          path: 'notifications', name: 'teacher-notifications', component: () => import('../views/Student/NotificationsView.vue'), meta: { title: 'Thông báo', subtitle: 'Trung tâm thông báo', section: 'Cá nhân' } },
         { path: 'change-password', name: 'teacher-change-password', component: () => import('../views/GiangVien/ChangePasswordView.vue') },
       ],
     },
@@ -416,7 +430,9 @@ const router = createRouter({
         { path: 'audit-logs', name: 'bgh-audit-logs', component: () => import('../views/BGH/AuditLogsView.vue'), meta: { title: 'Nhật ký kiểm toán', subtitle: 'Theo dõi lịch sử thay đổi trên hệ thống', section: 'Giám sát hệ thống' } },
         // Cá nhân
         { path: 'profile', name: 'bgh-profile', component: () => import('../views/BGH/ProfileView.vue'), meta: { title: 'Hồ sơ cá nhân', subtitle: 'Thông tin cá nhân và cài đặt tài khoản', section: 'Cá nhân' } },
-        { path: 'notifications', name: 'bgh-notifications', component: () => import('../views/Student/NotificationsView.vue'), meta: { title: 'Thông báo', subtitle: 'Trung tâm thông báo', section: 'Cá nhân' } },
+
+        {
+          path: 'notifications', name: 'bgh-notifications', component: () => import('../views/Student/NotificationsView.vue'), meta: { title: 'Thông báo', subtitle: 'Trung tâm thông báo', section: 'Cá nhân' } },
       ],
     },
 

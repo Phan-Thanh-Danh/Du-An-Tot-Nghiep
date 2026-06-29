@@ -54,11 +54,11 @@ const schedules = ref([
               </button>
            </div>
            <div class="flex items-center gap-2">
-              <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-muted transition-colors">
+              <button class="p-2 hover:bg-(--surface-input) rounded-lg text-muted transition-colors">
                  <ChevronLeft :size="20" />
               </button>
               <span class="text-sm font-bold text-heading">12/05 - 18/05, 2026</span>
-              <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-muted transition-colors">
+              <button class="p-2 hover:bg-(--surface-input) rounded-lg text-muted transition-colors">
                  <ChevronRight :size="20" />
               </button>
            </div>
@@ -67,7 +67,7 @@ const schedules = ref([
         <div class="flex items-center gap-3">
            <div class="relative">
               <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
-              <input type="text" placeholder="Tìm lớp, môn..." class="surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-xs font-bold outline-none focus:border-[var(--border-input-focus)]">
+              <input type="text" placeholder="Tìm lớp, môn..." class="surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-xs font-bold outline-none focus:border-(--border-input-focus)">
            </div>
            <button class="lg-icon-button surface-input border border-input p-2 text-muted">
               <Filter :size="18" />
@@ -88,10 +88,10 @@ const schedules = ref([
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
-            <tr v-for="sch in schedules" :key="sch.id" class="group hover:bg-[var(--surface-input)] transition-colors">
+            <tr v-for="sch in schedules" :key="sch.id" class="group hover:bg-(--surface-input) transition-colors">
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
-                  <div :class="['h-9 w-9 rounded-xl flex items-center justify-center font-semibold text-[10px] uppercase shadow-sm border', sch.type === 'online' ? 'bg-[var(--color-info-bg)] text-link border-[var(--color-info-text)]/20' : 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-info-text)]/20']">
+                  <div :class="['h-9 w-9 rounded-xl flex items-center justify-center font-semibold text-[10px] uppercase shadow-sm border', sch.type === 'online' ? 'bg-(--color-info-bg) text-link border-(--color-info-text)/20' : 'bg-(--color-info-bg) text-(--color-info-text) border-(--color-info-text)/20']">
                     {{ sch.class.slice(0, 2) }}
                   </div>
                   <div>
@@ -119,7 +119,7 @@ const schedules = ref([
                 </div>
               </td>
               <td class="px-4 py-3">
-                <span :class="['px-2 py-0.5 rounded-lg text-[9px] font-semibold uppercase tracking-widest border', sch.type === 'online' ? 'bg-[var(--color-info-bg)] text-link border-[var(--color-info-text)]/20' : 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success-text)]/20']">
+                <span :class="['px-2 py-0.5 rounded-lg text-[9px] font-semibold uppercase tracking-widest border', sch.type === 'online' ? 'bg-(--color-info-bg) text-link border-(--color-info-text)/20' : 'bg-(--color-success-bg) text-(--color-success-text) border-(--color-success-text)/20']">
                   {{ sch.type }}
                 </span>
                 <div v-if="sch.type === 'online'" class="mt-1 flex items-center gap-1 text-[9px] font-semibold text-link uppercase cursor-pointer hover:underline">
@@ -128,10 +128,10 @@ const schedules = ref([
               </td>
               <td class="px-4 py-3 text-right">
                 <div class="flex items-center justify-end gap-1">
-                  <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-muted transition-all" title="Xem chi tiết">
+                  <button class="p-2 hover:bg-(--color-info-bg) hover:text-(--color-info-text) rounded-lg text-muted transition-all" title="Xem chi tiết">
                     <Eye :size="18" />
                   </button>
-                  <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-muted transition-all" title="Lịch sử duyệt">
+                  <button class="p-2 hover:bg-(--surface-input) rounded-lg text-muted transition-all" title="Lịch sử duyệt">
                     <History :size="18" />
                   </button>
                 </div>

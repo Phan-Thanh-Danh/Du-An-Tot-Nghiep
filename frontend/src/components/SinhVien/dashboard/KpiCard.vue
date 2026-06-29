@@ -26,26 +26,26 @@ const icons = {
 
 const IconComponent = computed(() => icons[props.item.id] || TrendingUp)
 
-const toneClass = 'bg-[var(--accent-primary-soft)] text-[var(--text-link)] shadow-[var(--lg-shadow-sm)]'
+const toneClass = 'bg-(--accent-primary-soft) text-(--text-link) shadow-(--lg-shadow-sm)'
 
 const valueColorClass = computed(
   () =>
     ({
-      blue: 'text-[var(--text-link)]',
-      amber: 'text-[var(--color-warning-text)]',
-      violet: 'text-[var(--accent-violet)]',
-      teal: 'text-[var(--color-success-text)]',
-    })[props.item.tone] || 'text-[var(--text-link)]',
+      blue: 'text-(--text-link)',
+      amber: 'text-(--color-warning-text)',
+      violet: 'text-(--accent-violet)',
+      teal: 'text-(--color-success-text)',
+    })[props.item.tone] || 'text-(--text-link)',
 )
 
-const tintClass = 'bg-[var(--accent-primary-soft)] dark:bg-[var(--accent-primary-soft)]'
+const tintClass = 'bg-(--accent-primary-soft) dark:bg-(--accent-primary-soft)'
 
-const trendClass = 'text-muted bg-[var(--surface-input)] border-[var(--border-card)]'
+const trendClass = 'text-muted bg-(--surface-input) border-(--border-card)'
 </script>
 
 <template>
-  <router-link :to="item.route" class="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-link)]/30">
-    <GlassPanel interactive variant="strong" density="none" class="relative h-full rounded-xl kpi-route-tile overflow-hidden border border-card shadow-[var(--lg-shadow-md)]">
+  <router-link :to="item.route" class="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--text-link)/30">
+    <GlassPanel interactive variant="strong" density="none" class="relative h-full rounded-xl kpi-route-tile overflow-hidden border border-card shadow-(--lg-shadow-md)">
       <div :class="['pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full blur-xl opacity-25', tintClass]" />
 
       <div class="flex h-full flex-col justify-between p-4">
@@ -53,7 +53,7 @@ const trendClass = 'text-muted bg-[var(--surface-input)] border-[var(--border-ca
           <div :class="['flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] transition-transform duration-300 group-hover:scale-105', toneClass]">
             <component :is="IconComponent" :size="18" stroke-width="2" />
           </div>
-          <span class="kpi-arrow-wrapper flex h-6 w-6 items-center justify-center rounded-full border border-card bg-[var(--surface-card)] shadow-sm transition-all duration-300" aria-hidden="true">
+          <span class="kpi-arrow-wrapper flex h-6 w-6 items-center justify-center rounded-full border border-card bg-(--surface-card) shadow-sm transition-all duration-300" aria-hidden="true">
             <ArrowUpRight :size="12" stroke-width="2.5" />
           </span>
         </div>

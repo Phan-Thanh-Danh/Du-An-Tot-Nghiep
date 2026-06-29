@@ -115,13 +115,13 @@ function goBack() {
         >
           <div
             v-if="dropdownOpen"
-            class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-card p-1 shadow-[var(--lg-shadow-md)]"
+            class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-card p-1 shadow-(--lg-shadow-md)"
           >
             <button
               v-for="child in childrenData"
               :key="child.id"
               type="button"
-              class="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-label transition hover:bg-[var(--surface-card-hover)]"
+              class="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-label transition hover:bg-(--surface-card-hover)"
               @click="selectChild(child.id)"
             >
               <span>{{ child.name }} ({{ child.class }})</span>
@@ -155,11 +155,11 @@ function goBack() {
               <th class="py-3 px-3 text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-[var(--border-card)]">
+          <tbody class="divide-y divide-(--border-card)">
             <tr
               v-for="inv in currentChild.invoices"
               :key="inv.id"
-              class="hover:bg-[var(--surface-table-row-hover)] transition"
+              class="hover:bg-(--surface-table-row-hover) transition"
             >
               <td class="py-3 px-3 font-semibold text-heading">{{ inv.id }}</td>
               <td class="py-3 px-3 text-muted">{{ inv.transactionCode }}</td>
@@ -369,7 +369,7 @@ function goBack() {
         <div class="flex justify-end gap-2 pt-3 border-t border-card mt-3">
           <button
             @click="isInvoiceModalOpen = false"
-            class="px-4 py-2 border border-card text-xs font-semibold rounded-xl text-label hover:bg-[var(--surface-card-hover)] transition"
+            class="px-4 py-2 border border-card text-xs font-semibold rounded-xl text-label hover:bg-(--surface-card-hover) transition"
           >
             Đóng lại
           </button>

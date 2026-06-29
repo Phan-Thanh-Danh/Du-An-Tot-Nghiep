@@ -144,7 +144,7 @@ function handleLogout() {
       <div class="space-y-4">
         <div class="surface-card border border-card rounded-2xl p-5 text-center">
            <div class="relative inline-block mb-4">
-              <div class="h-24 w-24 rounded-3xl bg-[var(--color-info-bg)] border border-[var(--color-info-text)]/20 p-0.5 transition-transform">
+              <div class="h-24 w-24 rounded-3xl bg-(--color-info-bg) border border-(--color-info-text)/20 p-0.5 transition-transform">
                  <div class="h-full w-full rounded-[22px] surface-card flex items-center justify-center overflow-hidden relative">
                      <User v-if="!profile.avatar" :size="40" class="text-placeholder" />
                     <img v-else :src="profile.avatar" class="h-full w-full object-cover" />
@@ -190,8 +190,8 @@ function handleLogout() {
                </div>
                <div class="p-3 surface-solid rounded-xl border border-default shadow-sm">
                    <p class="text-[10px] font-semibold text-label">Trạng thái</p>
-                  <p class="text-xs font-semibold text-[var(--color-success-text)] mt-0.5 flex items-center gap-1.5">
-                     <span class="h-1.5 w-1.5 rounded-full bg-[var(--color-success-text)]"></span> Active
+                  <p class="text-xs font-semibold text-(--color-success-text) mt-0.5 flex items-center gap-1.5">
+                     <span class="h-1.5 w-1.5 rounded-full bg-(--color-success-text)"></span> Active
                  </p>
               </div>
            </div>
@@ -205,7 +205,7 @@ function handleLogout() {
          <div class="surface-card border border-card rounded-2xl overflow-hidden">
              <div class="p-4 border-b border-default flex items-center justify-between">
                 <h4 class="text-xs font-semibold text-heading uppercase tracking-wide">Thông tin liên hệ & Bảo mật</h4>
-                <ShieldAlert :size="16" class="text-[var(--color-warning-text)]" />
+                <ShieldAlert :size="16" class="text-(--color-warning-text)" />
             </div>
 
             <div class="p-4 space-y-5">
@@ -241,7 +241,7 @@ function handleLogout() {
 
                   <div class="p-3 surface-solid rounded-2xl border border-default">
                       <div class="flex items-start justify-between mb-3">
-                         <div class="h-8 w-8 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-link shadow-sm">
+                         <div class="h-8 w-8 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-link shadow-sm">
                             <KeyRound :size="16" />
                          </div>
                            <button @click="openChangePwd" class="text-[10px] font-semibold text-link lg-button-ghost px-2 py-1 rounded-lg transition-all">Thay đổi</button>
@@ -257,9 +257,9 @@ function handleLogout() {
                        <Clock :size="14" /> Lịch sử đăng nhập
                    </h4>
                    <div class="space-y-2">
-                      <div v-for="log in loginHistory" :key="log.id" class="flex items-center justify-between p-3 surface-solid rounded-xl border border-default group hover:border-[var(--border-input-focus)] transition-all">
+                      <div v-for="log in loginHistory" :key="log.id" class="flex items-center justify-between p-3 surface-solid rounded-xl border border-default group hover:border-(--border-input-focus) transition-all">
                          <div class="flex items-center gap-3">
-                            <div :class="['h-6 w-6 rounded-full flex items-center justify-center', log.status === 'current' ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]' : 'surface-solid text-placeholder']">
+                            <div :class="['h-6 w-6 rounded-full flex items-center justify-center', log.status === 'current' ? 'bg-(--color-success-bg) text-(--color-success-text)' : 'surface-solid text-placeholder']">
                                <ShieldCheck v-if="log.status === 'current'" :size="12" />
                                <ChevronRight v-else :size="12" />
                             </div>
@@ -268,7 +268,7 @@ function handleLogout() {
                                 <p class="text-[10px] text-label">IP: {{ log.ip }} • {{ log.time }}</p>
                             </div>
                          </div>
-                          <span v-if="log.status === 'current'" class="text-[10px] font-semibold text-[var(--color-success-text)] bg-[var(--color-success-bg)] px-1.5 py-0.5 rounded-lg border border-[var(--color-success-text)]/20">Hiện tại</span>
+                          <span v-if="log.status === 'current'" class="text-[10px] font-semibold text-(--color-success-text) bg-(--color-success-bg) px-1.5 py-0.5 rounded-lg border border-(--color-success-text)/20">Hiện tại</span>
                      </div>
                   </div>
                </div>
@@ -276,15 +276,15 @@ function handleLogout() {
          </div>
 
         <!-- Danger Zone -->
-        <div class="surface-card border border-[var(--color-danger-text)]/20 rounded-2xl p-4 bg-[var(--color-danger-bg)]">
+        <div class="surface-card border border-(--color-danger-text)/20 rounded-2xl p-4 bg-(--color-danger-bg)">
             <div class="flex items-center justify-between">
                <div class="flex items-center gap-3">
-                  <div class="h-8 w-8 rounded-xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-danger-text)] shadow-sm">
+                  <div class="h-8 w-8 rounded-xl bg-(--surface-card) flex items-center justify-center text-(--color-danger-text) shadow-sm">
                      <LogOut :size="16" />
                   </div>
                   <div>
                      <h4 class="text-xs font-semibold text-heading">Đăng xuất tài khoản</h4>
-                      <p class="text-[10px] text-[var(--color-danger-text)] mt-0.5 font-medium">Thoát khỏi hệ thống</p>
+                      <p class="text-[10px] text-(--color-danger-text) mt-0.5 font-medium">Thoát khỏi hệ thống</p>
                   </div>
                </div>
                 <button @click="handleLogout" class="px-3 py-2 lg-btn-danger rounded-xl text-[10px] font-semibold transition-all">Đăng xuất</button>
@@ -303,7 +303,7 @@ function handleLogout() {
       <div class="relative surface-card border border-card rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in">
         <div class="flex items-center justify-between mb-5">
           <div class="flex items-center gap-2.5">
-            <div class="h-9 w-9 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-link shadow-sm">
+            <div class="h-9 w-9 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-link shadow-sm">
               <KeyRound :size="18" />
             </div>
             <div>
@@ -317,8 +317,8 @@ function handleLogout() {
         </div>
 
         <div v-if="changePwdSuccess" class="flex flex-col items-center justify-center py-6 gap-3">
-          <div class="h-14 w-14 rounded-full bg-[var(--color-success-bg)] flex items-center justify-center">
-            <CheckCircle2 :size="28" class="text-[var(--color-success-text)]" />
+          <div class="h-14 w-14 rounded-full bg-(--color-success-bg) flex items-center justify-center">
+            <CheckCircle2 :size="28" class="text-(--color-success-text)" />
           </div>
           <p class="text-sm font-bold text-heading">Đổi mật khẩu thành công!</p>
           <p class="text-[11px] text-body font-medium">Mật khẩu của bạn đã được cập nhật.</p>
@@ -328,7 +328,7 @@ function handleLogout() {
           <!-- Old Password -->
           <div class="space-y-1.5">
             <label class="text-[10px] font-bold text-label uppercase tracking-widest">Mật khẩu hiện tại</label>
-            <div class="flex items-center gap-2.5 h-10 px-3 rounded-xl border border-input surface-input text-body text-xs font-semibold focus-within:border-[var(--border-input-focus)] focus-within:shadow-[0_0_0_3px_var(--border-focus-ring)] transition-all">
+            <div class="flex items-center gap-2.5 h-10 px-3 rounded-xl border border-input surface-input text-body text-xs font-semibold focus-within:border-(--border-input-focus) focus-within:shadow-[0_0_0_3px_var(--border-focus-ring)] transition-all">
               <Lock :size="15" class="text-placeholder shrink-0" />
               <input v-model="changePwdForm.oldPassword" :type="showOldPwd ? 'text' : 'password'" placeholder="Nhập mật khẩu hiện tại" class="w-full bg-transparent outline-none text-heading placeholder:text-placeholder" />
               <button @click="showOldPwd = !showOldPwd" class="text-placeholder hover:text-heading shrink-0">
@@ -340,7 +340,7 @@ function handleLogout() {
           <!-- New Password -->
           <div class="space-y-1.5">
             <label class="text-[10px] font-bold text-label uppercase tracking-widest">Mật khẩu mới</label>
-            <div class="flex items-center gap-2.5 h-10 px-3 rounded-xl border border-input surface-input text-body text-xs font-semibold focus-within:border-[var(--border-input-focus)] focus-within:shadow-[0_0_0_3px_var(--border-focus-ring)] transition-all">
+            <div class="flex items-center gap-2.5 h-10 px-3 rounded-xl border border-input surface-input text-body text-xs font-semibold focus-within:border-(--border-input-focus) focus-within:shadow-[0_0_0_3px_var(--border-focus-ring)] transition-all">
               <Lock :size="15" class="text-placeholder shrink-0" />
               <input v-model="changePwdForm.newPassword" :type="showNewPwd ? 'text' : 'password'" placeholder="Nhập mật khẩu mới" class="w-full bg-transparent outline-none text-heading placeholder:text-placeholder" />
               <button @click="showNewPwd = !showNewPwd" class="text-placeholder hover:text-heading shrink-0">
@@ -352,7 +352,7 @@ function handleLogout() {
           <!-- Confirm Password -->
           <div class="space-y-1.5">
             <label class="text-[10px] font-bold text-label uppercase tracking-widest">Xác nhận mật khẩu mới</label>
-            <div class="flex items-center gap-2.5 h-10 px-3 rounded-xl border border-input surface-input text-body text-xs font-semibold focus-within:border-[var(--border-input-focus)] focus-within:shadow-[0_0_0_3px_var(--border-focus-ring)] transition-all">
+            <div class="flex items-center gap-2.5 h-10 px-3 rounded-xl border border-input surface-input text-body text-xs font-semibold focus-within:border-(--border-input-focus) focus-within:shadow-[0_0_0_3px_var(--border-focus-ring)] transition-all">
               <Lock :size="15" class="text-placeholder shrink-0" />
               <input v-model="changePwdForm.confirmPassword" :type="showConfirmPwd ? 'text' : 'password'" placeholder="Nhập lại mật khẩu mới" class="w-full bg-transparent outline-none text-heading placeholder:text-placeholder" />
               <button @click="showConfirmPwd = !showConfirmPwd" class="text-placeholder hover:text-heading shrink-0">
@@ -362,15 +362,15 @@ function handleLogout() {
           </div>
 
           <!-- Error -->
-          <div v-if="changePwdError" class="flex items-start gap-2 p-3 rounded-xl bg-[var(--color-danger-bg)] border border-[var(--color-danger-text)]/20">
-            <AlertCircle :size="14" class="text-[var(--color-danger-text)] shrink-0 mt-0.5" />
-            <p class="text-[11px] font-semibold text-[var(--color-danger-text)]">{{ changePwdError }}</p>
+          <div v-if="changePwdError" class="flex items-start gap-2 p-3 rounded-xl bg-(--color-danger-bg) border border-(--color-danger-text)/20">
+            <AlertCircle :size="14" class="text-(--color-danger-text) shrink-0 mt-0.5" />
+            <p class="text-[11px] font-semibold text-(--color-danger-text)">{{ changePwdError }}</p>
           </div>
 
           <!-- Password hint -->
-          <div class="flex items-start gap-2 p-3 rounded-xl bg-[var(--color-warning-bg)] border border-[var(--color-warning-text)]/20">
-            <AlertCircle :size="14" class="text-[var(--color-warning-text)] shrink-0 mt-0.5" />
-            <p class="text-[10px] font-semibold text-[var(--color-warning-text)]">Mật khẩu mới phải có ít nhất 8 ký tự.</p>
+          <div class="flex items-start gap-2 p-3 rounded-xl bg-(--color-warning-bg) border border-(--color-warning-text)/20">
+            <AlertCircle :size="14" class="text-(--color-warning-text) shrink-0 mt-0.5" />
+            <p class="text-[10px] font-semibold text-(--color-warning-text)">Mật khẩu mới phải có ít nhất 8 ký tự.</p>
           </div>
 
           <!-- Actions -->

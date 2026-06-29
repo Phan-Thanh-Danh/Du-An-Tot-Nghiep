@@ -6,7 +6,7 @@
         <p class="text-xs text-muted mt-1">Danh sách các học kỳ, khóa tuyển sinh trên toàn hệ thống</p>
       </div>
       <div class="flex gap-2">
-        <select v-model="yearFilter" @change="filterData" class="px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
+        <select v-model="yearFilter" @change="filterData" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả năm học</option>
           <option v-for="y in academicYears" :key="y" :value="y">{{ y }}</option>
         </select>
@@ -16,7 +16,7 @@
     <div class="surface-card border border-card rounded-2xl shadow-sm overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm text-body whitespace-nowrap">
-          <thead class="bg-[var(--surface-card)] border-b border-default">
+          <thead class="bg-(--surface-card) border-b border-default">
             <tr>
               <th class="px-4 py-3 font-bold text-heading">Mã học kỳ</th>
               <th class="px-4 py-3 font-bold text-heading">Tên học kỳ</th>
@@ -35,9 +35,9 @@
                 <p>Không có học kỳ nào.</p>
               </td>
             </tr>
-            <tr v-for="term in filteredTerms" :key="term.maHocKy" class="hover:bg-[var(--surface-input)]/50 transition-colors">
+            <tr v-for="term in filteredTerms" :key="term.maHocKy" class="hover:bg-(--surface-input)/50 transition-colors">
               <td class="px-4 py-3">
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-[var(--surface-input)] text-heading border border-default">{{ term.maCodeHocKy }}</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-(--surface-input) text-heading border border-default">{{ term.maCodeHocKy }}</span>
               </td>
               <td class="px-4 py-3 font-bold text-heading">{{ term.tenHocKy }}</td>
               <td class="px-4 py-3">{{ term.namHoc }}</td>
@@ -46,7 +46,7 @@
               <td class="px-4 py-3">Kỳ {{ term.thuTuTrongNam }}</td>
               <td class="px-4 py-3">{{ term.soTinChiToiDa || '—' }}</td>
               <td class="px-4 py-3">
-                <span :class="term.daKhoa ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]' : 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]'" class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                <span :class="term.daKhoa ? 'bg-(--color-danger-bg) text-(--color-danger-text)' : 'bg-(--color-success-bg) text-(--color-success-text)'" class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
                   <Lock v-if="term.daKhoa" :size="12" /><Unlock v-else :size="12" />
                   {{ term.daKhoa ? 'Đã khóa' : 'Đang mở' }}
                 </span>
@@ -60,9 +60,9 @@
     <div class="surface-card border border-card rounded-2xl p-6 shadow-sm">
       <h2 class="text-lg font-bold text-heading mb-4">Khóa tuyển sinh</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div v-for="cohort in cohorts" :key="cohort.maKhoaTuyenSinh" class="p-4 rounded-2xl border border-default hover:border-[var(--border-input-focus)] transition-all">
+        <div v-for="cohort in cohorts" :key="cohort.maKhoaTuyenSinh" class="p-4 rounded-2xl border border-default hover:border-(--border-input-focus) transition-all">
           <div class="flex items-center gap-3">
-            <div class="h-10 w-10 rounded-xl bg-[var(--color-info-bg)] text-[var(--color-info-text)] flex items-center justify-center font-bold">
+            <div class="h-10 w-10 rounded-xl bg-(--color-info-bg) text-(--color-info-text) flex items-center justify-center font-bold">
               {{ cohort.maCodeKhoa }}
             </div>
             <div>
@@ -72,7 +72,7 @@
           </div>
           <div class="mt-3 flex items-center justify-between text-xs">
             <span class="text-muted">{{ cohort.moTa || 'Không có mô tả' }}</span>
-            <span :class="cohort.conHoatDong ? 'text-[var(--color-success-text)]' : 'text-[var(--color-danger-text)]'" class="font-bold">
+            <span :class="cohort.conHoatDong ? 'text-(--color-success-text)' : 'text-(--color-danger-text)'" class="font-bold">
               {{ cohort.conHoatDong ? 'Đang hoạt động' : 'Ngừng' }}
             </span>
           </div>

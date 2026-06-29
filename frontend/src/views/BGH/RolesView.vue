@@ -10,7 +10,7 @@
       <button 
         v-if="canEdit"
         @click="openCreateModal"
-        class="flex items-center gap-2 px-4 py-2 bg-[var(--lg-primary)] hover:bg-[var(--lg-primary-dark)] text-white text-sm font-bold rounded-xl transition-all shadow-sm"
+        class="flex items-center gap-2 px-4 py-2 bg-(--lg-primary) hover:bg-(--lg-primary-dark) text-white text-sm font-bold rounded-xl transition-all shadow-sm"
       >
         <Plus :size="18" />
         <span>Thêm vai trò</span>
@@ -28,7 +28,7 @@
             v-model="searchQuery" 
             type="text" 
             placeholder="Tìm theo tên hoặc mã code..."
-            class="w-full pl-9 pr-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]"
+            class="w-full pl-9 pr-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)"
           />
         </div>
       </div>
@@ -38,7 +38,7 @@
     <div class="flex-1 surface-card border border-card rounded-2xl shadow-sm flex flex-col overflow-hidden">
       <div class="flex-1 overflow-auto">
         <table class="w-full text-left text-sm text-body whitespace-nowrap">
-          <thead class="sticky top-0 bg-[var(--surface-card)] border-b border-default z-10 backdrop-blur-[12px]">
+          <thead class="sticky top-0 bg-(--surface-card) border-b border-default z-10 backdrop-blur-[12px]">
             <tr>
               <th class="px-4 py-3 font-bold text-heading w-24">ID</th>
               <th class="px-4 py-3 font-bold text-heading">Mã Code</th>
@@ -62,21 +62,21 @@
               v-else 
               v-for="role in filteredRoles" 
               :key="role.maVaiTro"
-              class="hover:bg-[var(--surface-input)]/50 transition-colors"
+              class="hover:bg-(--surface-input)/50 transition-colors"
             >
               <td class="px-4 py-3 font-medium">{{ role.maVaiTro }}</td>
               <td class="px-4 py-3">
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-[var(--surface-input)] text-heading border border-default">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-(--surface-input) text-heading border border-default">
                   {{ role.maCodeVaiTro }}
                 </span>
               </td>
               <td class="px-4 py-3 font-bold text-heading">{{ role.tenVaiTro }}</td>
               <td v-if="canEdit" class="px-4 py-3 text-right">
                 <div class="flex items-center justify-end gap-2">
-                  <button @click="openEditModal(role)" class="p-1.5 text-muted hover:text-[var(--lg-primary)] hover:bg-[var(--lg-primary)]/10 rounded-lg transition-colors" title="Chỉnh sửa">
+                  <button @click="openEditModal(role)" class="p-1.5 text-muted hover:text-(--lg-primary) hover:bg-(--lg-primary)/10 rounded-lg transition-colors" title="Chỉnh sửa">
                     <Edit2 :size="16" />
                   </button>
-                  <button @click="handleDelete(role)" class="p-1.5 text-muted hover:text-[var(--color-danger-text)] hover:bg-[var(--color-danger-bg)] rounded-lg transition-colors" title="Xóa vai trò">
+                  <button @click="handleDelete(role)" class="p-1.5 text-muted hover:text-(--color-danger-text) hover:bg-(--color-danger-bg) rounded-lg transition-colors" title="Xóa vai trò">
                     <Trash2 :size="16" />
                   </button>
                 </div>
@@ -87,7 +87,7 @@
       </div>
 
       <!-- Pagination (Tĩnh vì số lượng roles thường ít) -->
-      <div class="p-4 border-t border-default bg-[var(--surface-card)] flex items-center justify-between text-sm">
+      <div class="p-4 border-t border-default bg-(--surface-card) flex items-center justify-between text-sm">
         <span class="text-muted">
           Tổng số: <span class="font-bold text-heading">{{ filteredRoles.length }}</span> vai trò
         </span>
@@ -99,45 +99,45 @@
       <div class="w-full max-w-md surface-card rounded-2xl shadow-2xl border border-default overflow-hidden flex flex-col max-h-full">
         <div class="p-4 border-b border-default flex justify-between items-center">
           <h3 class="text-lg font-bold text-heading">{{ modalMode === 'create' ? 'Thêm Vai Trò Mới' : 'Chỉnh Sửa Vai Trò' }}</h3>
-          <button @click="closeModal" class="p-1 hover:bg-[var(--surface-input)] rounded-lg text-muted">
+          <button @click="closeModal" class="p-1 hover:bg-(--surface-input) rounded-lg text-muted">
             <X :size="20" />
           </button>
         </div>
         
         <form @submit.prevent="submitForm" class="p-6 overflow-y-auto space-y-4">
-          <div v-if="apiError" class="p-3 bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] text-xs rounded-lg flex gap-2 items-start">
+          <div v-if="apiError" class="p-3 bg-(--color-danger-bg) text-(--color-danger-text) text-xs rounded-lg flex gap-2 items-start">
             <AlertTriangle :size="16" class="shrink-0 mt-0.5" />
             <span>{{ apiError }}</span>
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-heading mb-1.5">Mã Code Vai Trò <span class="text-[var(--color-danger-text)]">*</span></label>
+            <label class="block text-xs font-bold text-heading mb-1.5">Mã Code Vai Trò <span class="text-(--color-danger-text)">*</span></label>
             <input 
               v-model="formData.maCodeVaiTro" 
               type="text" 
               required 
               placeholder="VD: SuperAdmin, Student..."
-              class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm focus:border-[var(--lg-primary)] outline-none" 
+              class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none" 
             />
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-heading mb-1.5">Tên Vai Trò <span class="text-[var(--color-danger-text)]">*</span></label>
+            <label class="block text-xs font-bold text-heading mb-1.5">Tên Vai Trò <span class="text-(--color-danger-text)">*</span></label>
             <input 
               v-model="formData.tenVaiTro" 
               type="text" 
               required 
               placeholder="VD: Quản trị viên, Sinh viên..."
-              class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm focus:border-[var(--lg-primary)] outline-none" 
+              class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none" 
             />
           </div>
         </form>
 
-        <div class="p-4 border-t border-default bg-[var(--surface-card)] flex justify-end gap-3">
-          <button @click="closeModal" type="button" class="px-4 py-2 text-sm font-bold border border-input rounded-lg hover:bg-[var(--surface-input)] transition-colors">
+        <div class="p-4 border-t border-default bg-(--surface-card) flex justify-end gap-3">
+          <button @click="closeModal" type="button" class="px-4 py-2 text-sm font-bold border border-input rounded-lg hover:bg-(--surface-input) transition-colors">
             Hủy
           </button>
-          <button @click="submitForm" :disabled="saving" class="flex items-center justify-center gap-2 px-6 py-2 bg-[var(--lg-primary)] text-white text-sm font-bold rounded-lg hover:bg-[var(--lg-primary-dark)] transition-colors disabled:opacity-50 min-w-[100px]">
+          <button @click="submitForm" :disabled="saving" class="flex items-center justify-center gap-2 px-6 py-2 bg-(--lg-primary) text-white text-sm font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors disabled:opacity-50 min-w-[100px]">
             <Loader2 v-if="saving" :size="16" class="animate-spin" />
             <span v-else>Lưu lại</span>
           </button>

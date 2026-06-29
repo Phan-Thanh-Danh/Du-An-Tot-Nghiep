@@ -17,9 +17,9 @@ const roleOptions = ['Giáo vụ khoa', 'Trưởng phòng Giáo vụ', 'Ban Giá
 const roleColors = {
   'Giáo vụ khoa': 'text-link',
   'Trưởng phòng Giáo vụ': 'text-body',
-  'Ban Giám hiệu': 'text-[var(--lg-warning)]',
-  'Phòng Đào tạo': 'text-[var(--lg-info)]',
-  'Hệ thống': 'text-[var(--lg-success)]'
+  'Ban Giám hiệu': 'text-(--lg-warning)',
+  'Phòng Đào tạo': 'text-(--lg-info)',
+  'Hệ thống': 'text-(--lg-success)'
 }
 
 let nextWfId = 5, nextStepId = 10, nextBranchId = 20
@@ -341,9 +341,9 @@ function getBranchIcon(label) {
 }
 
 const branchColorClasses = {
-  success: { bg: 'bg-[var(--color-success-bg)]', text: 'text-[var(--color-success-text)]', border: 'border-[var(--color-success-text)]/30', dot: 'bg-[var(--lg-success)]' },
-  danger: { bg: 'bg-[var(--color-danger-bg)]', text: 'text-[var(--lg-danger)]', border: 'border-[var(--lg-danger)]/30', dot: 'bg-[var(--lg-danger)]' },
-  warning: { bg: 'bg-[var(--color-warning-bg)]', text: 'text-[var(--color-warning-text)]', border: 'border-[var(--color-warning-text)]/30', dot: 'bg-[var(--lg-warning)]' },
+  success: { bg: 'bg-(--color-success-bg)', text: 'text-(--color-success-text)', border: 'border-(--color-success-text)/30', dot: 'bg-(--lg-success)' },
+  danger: { bg: 'bg-(--color-danger-bg)', text: 'text-(--lg-danger)', border: 'border-(--lg-danger)/30', dot: 'bg-(--lg-danger)' },
+  warning: { bg: 'bg-(--color-warning-bg)', text: 'text-(--color-warning-text)', border: 'border-(--color-warning-text)/30', dot: 'bg-(--lg-warning)' },
 }
 
 // ── Version History ────────────────────────────────────────
@@ -428,7 +428,7 @@ function getStepNumber(stepId) {
             @click="filterStatus = opt.val"
             :class="[
               'flex-1 px-2 py-1.5 text-[10px] font-bold rounded-lg transition-all',
-              filterStatus === opt.val ? 'bg-[var(--surface-card)] text-heading shadow-sm' : 'text-placeholder hover:text-label'
+              filterStatus === opt.val ? 'bg-(--surface-card) text-heading shadow-sm' : 'text-placeholder hover:text-label'
             ]"
           >{{ opt.label }}</button>
         </div>
@@ -437,7 +437,7 @@ function getStepNumber(stepId) {
           @click="activeWorkflow = wf"
           :class="[
             'p-4 rounded-3xl border transition-all cursor-pointer group',
-            activeWorkflow?.id === wf.id ? 'lg-glass-strong border-default' : 'lg-card-glass hover:border-[var(--border-input-focus)]'
+            activeWorkflow?.id === wf.id ? 'lg-glass-strong border-default' : 'lg-card-glass hover:border-(--border-input-focus)'
           ]"
         >
           <div class="flex items-start justify-between">
@@ -453,10 +453,10 @@ function getStepNumber(stepId) {
               </div>
             </div>
             <div class="flex items-center gap-1 shrink-0 ml-2">
-              <button v-if="canEdit" @click.stop="duplicateWorkflow(wf)" class="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-[var(--surface-input)] text-placeholder hover:text-link transition-all" title="Sao chép">
+              <button v-if="canEdit" @click.stop="duplicateWorkflow(wf)" class="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-(--surface-input) text-placeholder hover:text-link transition-all" title="Sao chép">
                 <Copy :size="13" />
               </button>
-              <button v-if="canEdit" @click.stop="togglePublish(wf)" class="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-[var(--surface-input)] transition-all" :class="wf.status === 'active' ? 'text-[var(--lg-success)]' : 'text-placeholder'" :title="wf.status === 'active' ? 'Gỡ xuất bản' : 'Xuất bản'">
+              <button v-if="canEdit" @click.stop="togglePublish(wf)" class="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-(--surface-input) transition-all" :class="wf.status === 'active' ? 'text-(--lg-success)' : 'text-placeholder'" :title="wf.status === 'active' ? 'Gỡ xuất bản' : 'Xuất bản'">
                 <ToggleRight v-if="wf.status === 'active'" :size="13" />
                 <ToggleLeft v-else :size="13" />
               </button>
@@ -495,7 +495,7 @@ function getStepNumber(stepId) {
             <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2" @click="openEditModal">
               <Pen :size="16" /> Sửa
             </button>
-            <button class="lg-button-secondary px-3 py-2.5 text-sm font-bold text-[var(--lg-danger)] hover:bg-[var(--color-danger-bg)]" @click="openDeleteModal" title="Xóa workflow">
+            <button class="lg-button-secondary px-3 py-2.5 text-sm font-bold text-(--lg-danger) hover:bg-(--color-danger-bg)" @click="openDeleteModal" title="Xóa workflow">
               <Trash2 :size="16" />
             </button>
           </div>
@@ -511,31 +511,31 @@ function getStepNumber(stepId) {
                   <div :class="[
                     'h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold shadow-sm shrink-0 border z-10',
                     step.branches.length === 0
-                      ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success-text)]/30'
+                      ? 'bg-(--color-success-bg) text-(--color-success-text) border-(--color-success-text)/30'
                       : 'surface-solid text-heading border-default'
                   ]">
                     <CheckCircle2 v-if="step.branches.length === 0" :size="18" />
                     <span v-else>{{ idx + 1 }}</span>
                   </div>
-                  <div v-if="idx < activeWorkflow.steps.length - 1" class="w-0.5 flex-1 min-h-[40px] bg-[var(--border-default)] mt-2"></div>
+                  <div v-if="idx < activeWorkflow.steps.length - 1" class="w-0.5 flex-1 min-h-[40px] bg-(--border-default) mt-2"></div>
                 </div>
 
                 <!-- Right: step card + branches -->
                 <div class="flex-1 min-w-0">
-                  <div class="p-4 rounded-2xl border transition-all surface-card border-card hover:border-[var(--border-input-focus)] shadow-sm">
+                  <div class="p-4 rounded-2xl border transition-all surface-card border-card hover:border-(--border-input-focus) shadow-sm">
                     <div class="flex items-center justify-between mb-3">
                       <h5 class="text-sm font-semibold text-heading uppercase tracking-wide">{{ step.name }}</h5>
                       <div v-if="canEdit" class="flex items-center gap-1 shrink-0">
-                        <button @click="moveStep(step.id, -1)" :disabled="idx === 0" class="p-1 rounded-lg hover:bg-[var(--surface-input)] text-placeholder hover:text-heading disabled:opacity-30 transition-all" title="Lên trên">
+                        <button @click="moveStep(step.id, -1)" :disabled="idx === 0" class="p-1 rounded-lg hover:bg-(--surface-input) text-placeholder hover:text-heading disabled:opacity-30 transition-all" title="Lên trên">
                           <ArrowUp :size="14" />
                         </button>
-                        <button @click="moveStep(step.id, 1)" :disabled="idx >= activeWorkflow.steps.length - 1" class="p-1 rounded-lg hover:bg-[var(--surface-input)] text-placeholder hover:text-heading disabled:opacity-30 transition-all" title="Xuống dưới">
+                        <button @click="moveStep(step.id, 1)" :disabled="idx >= activeWorkflow.steps.length - 1" class="p-1 rounded-lg hover:bg-(--surface-input) text-placeholder hover:text-heading disabled:opacity-30 transition-all" title="Xuống dưới">
                           <ArrowDown :size="14" />
                         </button>
-                        <button @click="openEditStep(step)" class="p-1 rounded-lg hover:bg-[var(--color-info-bg)] text-placeholder hover:text-link transition-all" title="Sửa bước">
+                        <button @click="openEditStep(step)" class="p-1 rounded-lg hover:bg-(--color-info-bg) text-placeholder hover:text-link transition-all" title="Sửa bước">
                           <Edit2 :size="14" />
                         </button>
-                        <button @click="deleteStep(step.id)" class="p-1 rounded-lg hover:bg-[var(--color-danger-bg)] text-placeholder hover:text-[var(--lg-danger)] transition-all" title="Xóa bước">
+                        <button @click="deleteStep(step.id)" class="p-1 rounded-lg hover:bg-(--color-danger-bg) text-placeholder hover:text-(--lg-danger) transition-all" title="Xóa bước">
                           <Trash2 :size="14" />
                         </button>
                       </div>
@@ -550,10 +550,10 @@ function getStepNumber(stepId) {
                         <span v-else>{{ step.role }}</span>
                       </div>
                       <div class="flex items-center gap-2">
-                        <button @click="openEditStep(step)" class="text-[10px] font-semibold text-[var(--color-warning-text)] uppercase tracking-widest bg-[var(--color-warning-bg)] px-2 py-1 rounded-lg hover:opacity-80 transition-all">
+                        <button @click="openEditStep(step)" class="text-[10px] font-semibold text-(--color-warning-text) uppercase tracking-widest bg-(--color-warning-bg) px-2 py-1 rounded-lg hover:opacity-80 transition-all">
                           SLA: {{ step.sla }}
                         </button>
-                        <button @click="openNotifModal(step.id)" class="p-1.5 rounded-lg hover:bg-[var(--surface-input)] text-placeholder hover:text-[var(--color-info-text)] transition-all" title="Cấu hình thông báo">
+                        <button @click="openNotifModal(step.id)" class="p-1.5 rounded-lg hover:bg-(--surface-input) text-placeholder hover:text-(--color-info-text) transition-all" title="Cấu hình thông báo">
                           <Bell :size="13" />
                         </button>
                       </div>
@@ -578,7 +578,7 @@ function getStepNumber(stepId) {
                         </div>
                         <div v-if="canEdit" class="flex items-center gap-1 text-[10px]">
                           <input v-model="branch.label" @change.stop
-                            class="w-24 px-1.5 py-0.5 rounded border border-default bg-transparent text-[10px] font-bold focus:outline-none focus:border-[var(--border-input-focus)]"
+                            class="w-24 px-1.5 py-0.5 rounded border border-default bg-transparent text-[10px] font-bold focus:outline-none focus:border-(--border-input-focus)"
                             :class="branchColorClasses[getBranchColor(branch.label)].text" />
                         </div>
                         <div v-else :class="[
@@ -598,10 +598,10 @@ function getStepNumber(stepId) {
                           </span>
                         </div>
                         <div v-if="canEdit" class="flex items-center gap-0.5 opacity-0 group-hover/branch:opacity-100 transition-all">
-                          <button @click="openEditBranch(step.id, branch)" class="p-0.5 rounded hover:bg-[var(--surface-input)] text-placeholder hover:text-link" title="Sửa nhánh">
+                          <button @click="openEditBranch(step.id, branch)" class="p-0.5 rounded hover:bg-(--surface-input) text-placeholder hover:text-link" title="Sửa nhánh">
                             <Edit2 :size="11" />
                           </button>
-                          <button @click="deleteBranch(step.id, branch.id)" class="p-0.5 rounded hover:bg-[var(--color-danger-bg)] text-placeholder hover:text-[var(--lg-danger)]" title="Xóa nhánh">
+                          <button @click="deleteBranch(step.id, branch.id)" class="p-0.5 rounded hover:bg-(--color-danger-bg) text-placeholder hover:text-(--lg-danger)" title="Xóa nhánh">
                             <X :size="11" />
                           </button>
                         </div>
@@ -611,7 +611,7 @@ function getStepNumber(stepId) {
 
                   <!-- Auto-exec summary for end step -->
                   <div v-if="step.branches.length === 0" class="mt-3 ml-2 flex items-center gap-3">
-                    <div class="flex items-center gap-2 text-[10px] font-bold text-[var(--color-success-text)]">
+                    <div class="flex items-center gap-2 text-[10px] font-bold text-(--color-success-text)">
                       <FileJson :size="14" />
                       <span>Thực thi tự động</span>
                     </div>
@@ -621,7 +621,7 @@ function getStepNumber(stepId) {
 
               <!-- Connector -->
               <div v-if="idx < activeWorkflow.steps.length - 1" class="relative flex items-center justify-center h-8 my-1">
-                <div class="h-full w-0.5 bg-[var(--border-default)] absolute left-[26px]"></div>
+                <div class="h-full w-0.5 bg-(--border-default) absolute left-[26px]"></div>
               </div>
             </template>
           </div>
@@ -641,7 +641,7 @@ function getStepNumber(stepId) {
               </button>
             </div>
             <div class="relative" @click.stop>
-              <button class="h-10 w-10 surface-solid rounded-2xl text-heading shadow-sm flex items-center justify-center hover:bg-[var(--surface-input)] transition-all" @click="toggleFloatingMenu">
+              <button class="h-10 w-10 surface-solid rounded-2xl text-heading shadow-sm flex items-center justify-center hover:bg-(--surface-input) transition-all" @click="toggleFloatingMenu">
                 <MoreVertical :size="24" />
               </button>
               <Transition
@@ -653,10 +653,10 @@ function getStepNumber(stepId) {
                 leave-to-class="opacity-0 scale-95"
               >
                 <div v-if="showFloatingMenu" class="absolute right-0 bottom-full mb-2 z-50 w-44 lg-glass-strong rounded-xl p-1 shadow-sm" @click.stop>
-                  <button v-if="canEdit" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-info-bg)] hover:text-link transition-all" @click="openEditModal(); showFloatingMenu = false">
+                  <button v-if="canEdit" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-(--color-info-bg) hover:text-link transition-all" @click="openEditModal(); showFloatingMenu = false">
                     <Pen :size="14" /> Chỉnh sửa
                   </button>
-                  <button v-if="canEdit" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-[var(--color-danger-bg)] hover:text-[var(--lg-danger)] transition-all" @click="openDeleteModal(); showFloatingMenu = false">
+                  <button v-if="canEdit" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-label hover:bg-(--color-danger-bg) hover:text-(--lg-danger) transition-all" @click="openDeleteModal(); showFloatingMenu = false">
                     <Trash2 :size="14" /> Xóa
                   </button>
                 </div>
@@ -691,10 +691,10 @@ function getStepNumber(stepId) {
         <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
-              <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center"><Plus :size="18" /></div>
+              <div class="h-8 w-8 rounded-lg bg-(--color-info-bg) text-link flex items-center justify-center"><Plus :size="18" /></div>
               <h3 class="text-base font-semibold text-heading">Thêm workflow mới</h3>
             </div>
-            <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeAddModal"><X :size="18" /></button>
+            <button class="p-1.5 rounded-lg hover:bg-(--surface-solid) text-placeholder transition-all" @click="closeAddModal"><X :size="18" /></button>
           </div>
           <div class="space-y-4">
             <div>
@@ -731,10 +731,10 @@ function getStepNumber(stepId) {
         <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
-              <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center"><Pen :size="18" /></div>
+              <div class="h-8 w-8 rounded-lg bg-(--color-info-bg) text-link flex items-center justify-center"><Pen :size="18" /></div>
               <h3 class="text-base font-semibold text-heading">Chỉnh sửa workflow</h3>
             </div>
-            <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeEditModal"><X :size="18" /></button>
+            <button class="p-1.5 rounded-lg hover:bg-(--surface-solid) text-placeholder transition-all" @click="closeEditModal"><X :size="18" /></button>
           </div>
           <div class="space-y-4">
             <div>
@@ -770,18 +770,18 @@ function getStepNumber(stepId) {
         <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
-              <div class="h-8 w-8 rounded-lg bg-[var(--color-danger-bg)] text-[var(--lg-danger)] flex items-center justify-center"><AlertCircle :size="18" /></div>
+              <div class="h-8 w-8 rounded-lg bg-(--color-danger-bg) text-(--lg-danger) flex items-center justify-center"><AlertCircle :size="18" /></div>
               <h3 class="text-base font-semibold text-heading">Xóa workflow</h3>
             </div>
-            <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeDeleteModal"><X :size="18" /></button>
+            <button class="p-1.5 rounded-lg hover:bg-(--surface-solid) text-placeholder transition-all" @click="closeDeleteModal"><X :size="18" /></button>
           </div>
-          <div class="bg-[var(--color-danger-bg)] border border-[var(--lg-danger)]/30 rounded-2xl p-4 mb-4">
-            <p class="text-[13px] font-bold text-[var(--lg-danger)]">Bạn có chắc chắn muốn xóa workflow <strong>{{ activeWorkflow?.name }}</strong>?</p>
-            <p class="text-[11px] font-medium text-[var(--lg-danger)]/70 mt-2">Thao tác này không thể hoàn tác.</p>
+          <div class="bg-(--color-danger-bg) border border-(--lg-danger)/30 rounded-2xl p-4 mb-4">
+            <p class="text-[13px] font-bold text-(--lg-danger)">Bạn có chắc chắn muốn xóa workflow <strong>{{ activeWorkflow?.name }}</strong>?</p>
+            <p class="text-[11px] font-medium text-(--lg-danger)/70 mt-2">Thao tác này không thể hoàn tác.</p>
           </div>
           <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-default">
             <button class="lg-button-secondary px-5 py-2.5 text-sm font-bold" @click="closeDeleteModal">Quay lại</button>
-            <button class="px-5 py-2.5 text-sm font-bold text-white bg-[var(--lg-danger)] hover:opacity-90 rounded-2xl transition-all flex items-center gap-2" @click="confirmDelete"><Trash2 :size="16" /> Xác nhận xóa</button>
+            <button class="px-5 py-2.5 text-sm font-bold text-white bg-(--lg-danger) hover:opacity-90 rounded-2xl transition-all flex items-center gap-2" @click="confirmDelete"><Trash2 :size="16" /> Xác nhận xóa</button>
           </div>
         </div>
       </div>
@@ -795,10 +795,10 @@ function getStepNumber(stepId) {
         <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
-              <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center"><Layers :size="18" /></div>
+              <div class="h-8 w-8 rounded-lg bg-(--color-info-bg) text-link flex items-center justify-center"><Layers :size="18" /></div>
               <h3 class="text-base font-semibold text-heading">{{ editingStepId ? 'Sửa bước' : 'Thêm bước mới' }}</h3>
             </div>
-            <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeStepModal"><X :size="18" /></button>
+            <button class="p-1.5 rounded-lg hover:bg-(--surface-solid) text-placeholder transition-all" @click="closeStepModal"><X :size="18" /></button>
           </div>
           <div class="space-y-4">
             <div>
@@ -841,10 +841,10 @@ function getStepNumber(stepId) {
         <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
-              <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center"><GitBranch :size="18" /></div>
+              <div class="h-8 w-8 rounded-lg bg-(--color-info-bg) text-link flex items-center justify-center"><GitBranch :size="18" /></div>
               <h3 class="text-base font-semibold text-heading">{{ editingBranch ? 'Sửa nhánh rẽ' : 'Thêm nhánh rẽ' }}</h3>
             </div>
-            <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeBranchModal"><X :size="18" /></button>
+            <button class="p-1.5 rounded-lg hover:bg-(--surface-solid) text-placeholder transition-all" @click="closeBranchModal"><X :size="18" /></button>
           </div>
           <div class="space-y-4">
             <div>
@@ -889,17 +889,17 @@ function getStepNumber(stepId) {
         <div class="relative w-full max-w-lg surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
-              <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center"><History :size="18" /></div>
+              <div class="h-8 w-8 rounded-lg bg-(--color-info-bg) text-link flex items-center justify-center"><History :size="18" /></div>
               <div>
                 <h3 class="text-base font-semibold text-heading">Lịch sử phiên bản</h3>
                 <p class="text-[10px] text-label">{{ activeWorkflow?.name }}</p>
               </div>
             </div>
-            <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeVersionModal"><X :size="18" /></button>
+            <button class="p-1.5 rounded-lg hover:bg-(--surface-solid) text-placeholder transition-all" @click="closeVersionModal"><X :size="18" /></button>
           </div>
           <div class="space-y-3 max-h-[300px] overflow-y-auto">
             <div v-for="(v, i) in versionHistory" :key="v.version"
-              :class="['flex gap-4 p-4 rounded-2xl border', i === 0 ? 'border-[var(--border-input-focus)] bg-[var(--surface-input)]' : 'border-default']">
+              :class="['flex gap-4 p-4 rounded-2xl border', i === 0 ? 'border-(--border-input-focus) bg-(--surface-input)' : 'border-default']">
               <div class="h-9 w-9 rounded-xl surface-solid flex items-center justify-center text-[10px] font-bold text-heading shrink-0 border border-default">
                 {{ v.version }}
               </div>
@@ -928,20 +928,20 @@ function getStepNumber(stepId) {
         <div class="relative w-full max-w-lg surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
-              <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center"><Bell :size="18" /></div>
+              <div class="h-8 w-8 rounded-lg bg-(--color-info-bg) text-link flex items-center justify-center"><Bell :size="18" /></div>
               <div>
                 <h3 class="text-base font-semibold text-heading">Cấu hình thông báo</h3>
                 <p class="text-[10px] text-label">Bước {{ getStepNumber(notifStepId) }}: {{ activeWorkflow?.steps.find(s => s.id === notifStepId)?.name }}</p>
               </div>
             </div>
-            <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeNotifModal"><X :size="18" /></button>
+            <button class="p-1.5 rounded-lg hover:bg-(--surface-solid) text-placeholder transition-all" @click="closeNotifModal"><X :size="18" /></button>
           </div>
           <div class="space-y-5">
             <!-- Email -->
             <div class="p-4 rounded-2xl surface-solid border border-default">
               <label class="flex items-center justify-between cursor-pointer">
                 <div class="flex items-center gap-3">
-                  <div class="h-8 w-8 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-link">
+                  <div class="h-8 w-8 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-link">
                     <Bell :size="16" />
                   </div>
                   <div>
@@ -952,7 +952,7 @@ function getStepNumber(stepId) {
                 <div @click.stop>
                   <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" v-model="notifForm.email" class="sr-only peer" />
-                    <div class="w-9 h-5 rounded-full peer peer-checked:bg-[var(--lg-primary)] bg-[var(--surface-input)] border border-default after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                    <div class="w-9 h-5 rounded-full peer peer-checked:bg-(--lg-primary) bg-(--surface-input) border border-default after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
                   </label>
                 </div>
               </label>
@@ -967,7 +967,7 @@ function getStepNumber(stepId) {
             <div class="p-4 rounded-2xl surface-solid border border-default">
               <label class="flex items-center justify-between cursor-pointer">
                 <div class="flex items-center gap-3">
-                  <div class="h-8 w-8 rounded-xl bg-[var(--color-warning-bg)] flex items-center justify-center text-[var(--color-warning-text)]">
+                  <div class="h-8 w-8 rounded-xl bg-(--color-warning-bg) flex items-center justify-center text-(--color-warning-text)">
                     <Bell :size="16" />
                   </div>
                   <div>
@@ -978,7 +978,7 @@ function getStepNumber(stepId) {
                 <div @click.stop>
                   <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" v-model="notifForm.sms" class="sr-only peer" />
-                    <div class="w-9 h-5 rounded-full peer peer-checked:bg-[var(--lg-primary)] bg-[var(--surface-input)] border border-default after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                    <div class="w-9 h-5 rounded-full peer peer-checked:bg-(--lg-primary) bg-(--surface-input) border border-default after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
                   </label>
                 </div>
               </label>

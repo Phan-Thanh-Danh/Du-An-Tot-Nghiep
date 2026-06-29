@@ -42,7 +42,7 @@ const filterSemester = ref('Spring 2026')
           <option value="Spring 2026">Spring 2026</option>
           <option value="Fall 2025">Fall 2025</option>
         </select>
-        <button class="lg-icon-button h-10 w-10 rounded-xl border border-card surface-card text-muted hover:text-heading hover:bg-[var(--accent-primary)]/10 transition-all">
+        <button class="lg-icon-button h-10 w-10 rounded-xl border border-card surface-card text-muted hover:text-heading hover:bg-(--accent-primary)/10 transition-all">
           <Filter :size="18" />
         </button>
       </div>
@@ -52,7 +52,7 @@ const filterSemester = ref('Spring 2026')
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div v-for="cls in classes" :key="cls.id" class="lg-glass-soft lg-card-hover rounded-2xl p-4 flex flex-col">
         <div class="flex justify-between items-start mb-4">
-          <div class="h-10 w-10 rounded-2xl bg-[var(--accent-primary)]/10 flex items-center justify-center text-link border border-[var(--accent-primary)]/20">
+          <div class="h-10 w-10 rounded-2xl bg-(--accent-primary)/10 flex items-center justify-center text-link border border-(--accent-primary)/20">
             <GraduationCap :size="24" />
           </div>
           <button class="p-1.5 text-muted hover:text-heading"><MoreHorizontal :size="20" /></button>
@@ -82,7 +82,7 @@ const filterSemester = ref('Spring 2026')
            <router-link :to="'/teacher/classes/' + cls.code + '/details'" class="text-xs font-bold text-link hover:underline flex items-center gap-1">
              Xem chi tiết <ChevronRight :size="14" />
            </router-link>
-           <router-link :to="'/teacher/classes/' + cls.code + '/workspace'" class="rounded-xl bg-[var(--accent-primary)] px-4 py-2 text-xs font-bold text-inverse hover:opacity-90 transition-all flex items-center gap-2">
+           <router-link :to="'/teacher/classes/' + cls.code + '/workspace'" class="rounded-xl bg-(--accent-primary) px-4 py-2 text-xs font-bold text-inverse hover:opacity-90 transition-all flex items-center gap-2">
              <Eye :size="14" /> View class
            </router-link>
         </div>

@@ -34,7 +34,7 @@ const changes = ref([
         <div class="flex flex-wrap items-center gap-3 flex-1">
            <div class="relative max-w-sm w-full">
               <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
-              <input type="text" placeholder="Mã đơn, lớp hoặc tên giảng viên..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-[var(--border-input-focus)]">
+              <input type="text" placeholder="Mã đơn, lớp hoặc tên giảng viên..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-(--border-input-focus)">
            </div>
            <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
               <Filter :size="18" /> Loại thay đổi
@@ -58,10 +58,10 @@ const changes = ref([
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
-            <tr v-for="chg in changes" :key="chg.id" class="group hover:bg-[var(--surface-input)] transition-colors">
+            <tr v-for="chg in changes" :key="chg.id" class="group hover:bg-(--surface-input) transition-colors">
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
-                  <div class="h-9 w-9 rounded-xl bg-[var(--color-warning-bg)] flex items-center justify-center text-[var(--color-warning-text)] border border-[var(--color-warning-text)]/20">
+                  <div class="h-9 w-9 rounded-xl bg-(--color-warning-bg) flex items-center justify-center text-(--color-warning-text) border border-(--color-warning-text)/20">
                     <AlertCircle :size="18" />
                   </div>
                   <div>
@@ -86,7 +86,7 @@ const changes = ref([
               <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
                    <Clock :size="14" class="text-placeholder" />
-                   <span :class="['text-xs font-semibold uppercase tracking-tighter', chg.makeupDate === 'Bị hủy' ? 'text-[var(--color-danger-text)]' : 'text-label']">
+                   <span :class="['text-xs font-semibold uppercase tracking-tighter', chg.makeupDate === 'Bị hủy' ? 'text-(--color-danger-text)' : 'text-label']">
                       {{ chg.makeupDate }}
                    </span>
                 </div>
@@ -99,10 +99,10 @@ const changes = ref([
               </td>
               <td class="px-4 py-3 text-right">
                 <div class="flex items-center justify-end gap-1">
-                  <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-muted transition-all">
+                  <button class="p-2 hover:bg-(--color-info-bg) hover:text-(--color-info-text) rounded-lg text-muted transition-all">
                     <Eye :size="18" />
                   </button>
-                  <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-muted transition-all">
+                  <button class="p-2 hover:bg-(--surface-input) rounded-lg text-muted transition-all">
                     <History :size="18" />
                   </button>
                 </div>
@@ -113,14 +113,14 @@ const changes = ref([
       </div>
 
       <!-- ── Change Audit Hint ── -->
-      <div class="surface-card border border-[var(--color-warning-text)]/20 bg-[var(--color-warning-bg)] rounded-2xl p-5">
+      <div class="surface-card border border-(--color-warning-text)/20 bg-(--color-warning-bg) rounded-2xl p-5">
          <div class="flex items-start gap-4">
-            <div class="h-10 w-10 rounded-2xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-warning-text)] shrink-0 border border-[var(--color-warning-text)]/20">
+            <div class="h-10 w-10 rounded-2xl bg-(--surface-card) flex items-center justify-center text-(--color-warning-text) shrink-0 border border-(--color-warning-text)/20">
                <CheckCircle2 :size="20" />
             </div>
             <div>
                <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Quy trình ghi nhận thay đổi</h4>
-               <p class="text-xs text-[var(--color-warning-text)] mt-1 leading-relaxed">
+               <p class="text-xs text-(--color-warning-text) mt-1 leading-relaxed">
                  Mọi thay đổi sau khi TKB đã công bố (Publish) đều phải được thực hiện qua đơn xin nghỉ/dạy bù từ Giảng viên và được Giáo vụ phê duyệt. BGH có thể xem lại lịch sử (Audit Log) để đối soát khi cần thiết.
                </p>
             </div>

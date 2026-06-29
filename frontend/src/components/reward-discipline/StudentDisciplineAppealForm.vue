@@ -27,35 +27,35 @@ const handleSubmit = () => {
 <template>
   <div class="space-y-6 max-w-2xl mx-auto">
     <div class="flex items-center gap-4">
-      <button @click="emit('back')" class="p-2 hover:bg-[var(--surface-hover)] rounded-full text-[var(--text-muted)]">
+      <button @click="emit('back')" class="p-2 hover:bg-(--surface-hover) rounded-full text-(--text-muted)">
         <ArrowLeft class="w-5 h-5" />
       </button>
-      <h2 class="text-xl font-bold text-[var(--text-heading)]">Gửi khiếu nại kỷ luật</h2>
+      <h2 class="text-xl font-bold text-(--text-heading)">Gửi khiếu nại kỷ luật</h2>
     </div>
 
     <GlassPanel padding="normal" class="space-y-4">
-      <div class="p-3 bg-[var(--surface-hover)] rounded-lg text-sm border-l-4 border-l-[var(--color-warning-border)]">
+      <div class="p-3 bg-(--surface-hover) rounded-lg text-sm border-l-4 border-l-(--color-warning-border)">
         Đang khiếu nại quyết định: <strong>{{ record.tieuDe }}</strong>
       </div>
       
       <div>
-        <label class="block text-sm font-medium text-[var(--text-heading)] mb-1">Lý do khiếu nại / Kháng nghị</label>
+        <label class="block text-sm font-medium text-(--text-heading) mb-1">Lý do khiếu nại / Kháng nghị</label>
         <textarea 
           v-model="lyDo"
           rows="5"
-          class="w-full px-3 py-2 bg-[var(--surface-input)] border border-[var(--border-input)] rounded-lg focus:border-[var(--lg-primary)] outline-none text-[var(--text-body)] resize-none"
+          class="w-full px-3 py-2 bg-(--surface-input) border border-(--border-input) rounded-lg focus:border-(--lg-primary) outline-none text-(--text-body) resize-none"
           placeholder="Trình bày rõ lý do..."
         ></textarea>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-[var(--text-heading)] mb-1">Minh chứng đính kèm (Mock)</label>
-        <div class="border-2 border-dashed border-[var(--border-card)] rounded-lg p-6 text-center text-[var(--text-muted)]">
+        <label class="block text-sm font-medium text-(--text-heading) mb-1">Minh chứng đính kèm (Mock)</label>
+        <div class="border-2 border-dashed border-(--border-card) rounded-lg p-6 text-center text-(--text-muted)">
           [Chức năng Upload Mock]
         </div>
       </div>
 
-      <div class="flex justify-end gap-3 pt-4 border-t border-[var(--border-card)]">
+      <div class="flex justify-end gap-3 pt-4 border-t border-(--border-card)">
         <GlassButton variant="ghost" @click="emit('back')">Hủy</GlassButton>
         <GlassButton variant="primary" :loading="loading" @click="handleSubmit">
           <template #leading><Send class="w-4 h-4" /></template> Gửi khiếu nại

@@ -60,17 +60,17 @@ const handleSubmit = async (formPayload) => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col p-4 md:p-6 bg-[var(--surface-page)] min-h-[80vh]">
+  <div class="h-full flex flex-col p-4 md:p-6 bg-(--surface-page) min-h-[80vh]">
     <div class="mb-6">
-      <h1 class="text-2xl font-bold text-[var(--text-heading)]">Trung tâm thông báo Admin</h1>
-      <p class="text-[var(--text-muted)] mt-1">Gửi và quản lý thông báo toàn hệ thống hoặc theo cơ sở.</p>
+      <h1 class="text-2xl font-bold text-(--text-heading)">Trung tâm thông báo Admin</h1>
+      <p class="text-(--text-muted) mt-1">Gửi và quản lý thông báo toàn hệ thống hoặc theo cơ sở.</p>
     </div>
 
     <!-- Alerts -->
-    <div v-if="errorMessage" class="mb-4 p-3 rounded-lg bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border border-[var(--color-danger-border)]">
+    <div v-if="errorMessage" class="mb-4 p-3 rounded-lg bg-(--color-danger-bg) text-(--color-danger-text) border border-(--color-danger-border)">
       {{ errorMessage }}
     </div>
-    <div v-if="successMessage" class="mb-4 p-3 rounded-lg bg-[var(--color-success-bg)] text-[var(--color-success-text)] border border-[var(--color-success-border)]">
+    <div v-if="successMessage" class="mb-4 p-3 rounded-lg bg-(--color-success-bg) text-(--color-success-text) border border-(--color-success-border)">
       {{ successMessage }}
     </div>
 

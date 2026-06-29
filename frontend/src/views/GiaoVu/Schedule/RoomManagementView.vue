@@ -144,9 +144,9 @@ function clearFilters() {
 
 // ── Status helpers ───────────────────────────────────────────
 const STATUS_MAP = {
-  hoat_dong:      { label: 'Đang hoạt động', dot: 'bg-[var(--lg-success)]', badge: 'lg-badge lg-badge-success', pulse: true },
-  bao_tri:        { label: 'Bảo trì',        dot: 'bg-[var(--lg-warning)]', badge: 'lg-badge lg-badge-warning', pulse: false },
-  ngung_hoat_dong: { label: 'Ngừng hoạt động',dot: 'bg-[var(--lg-danger)]',  badge: 'lg-badge border-[var(--color-danger-bg)] bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]', pulse: false },
+  hoat_dong:      { label: 'Đang hoạt động', dot: 'bg-(--lg-success)', badge: 'lg-badge lg-badge-success', pulse: true },
+  bao_tri:        { label: 'Bảo trì',        dot: 'bg-(--lg-warning)', badge: 'lg-badge lg-badge-warning', pulse: false },
+  ngung_hoat_dong: { label: 'Ngừng hoạt động',dot: 'bg-(--lg-danger)',  badge: 'lg-badge border-(--color-danger-bg) bg-(--color-danger-bg) text-(--color-danger-text)', pulse: false },
 }
 const getStatusInfo = s => STATUS_MAP[s] || STATUS_MAP.ngung_hoat_dong
 
@@ -419,9 +419,9 @@ function applyFilterAndReload() {
     <div class="space-y-4" @click="closeMenu">
 
       <!-- Banner gợi ý giải quyết xung đột phòng học -->
-      <div v-if="suggestedInfo" class="lg-glass-strong p-4 rounded-2xl border border-[var(--border-input-focus)] bg-[var(--color-info-bg)]/25 flex items-center justify-between gap-4 transition-all">
+      <div v-if="suggestedInfo" class="lg-glass-strong p-4 rounded-2xl border border-(--border-input-focus) bg-(--color-info-bg)/25 flex items-center justify-between gap-4 transition-all">
         <div class="flex items-center gap-3">
-          <div class="h-10 w-10 rounded-xl bg-[var(--surface-input)] flex items-center justify-center text-[var(--lg-primary)] border border-default">
+          <div class="h-10 w-10 rounded-xl bg-(--surface-input) flex items-center justify-center text-(--lg-primary) border border-default">
             <Lightbulb :size="20" />
           </div>
           <div>
@@ -432,10 +432,10 @@ function applyFilterAndReload() {
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button @click="applySuggestedRoom" class="lg-button-primary px-4 py-2 text-xs font-bold shadow-md shadow-[var(--lg-primary)]/10">
+          <button @click="applySuggestedRoom" class="lg-button-primary px-4 py-2 text-xs font-bold shadow-md shadow-(--lg-primary)/10">
             Áp dụng đổi
           </button>
-          <button @click="clearSuggestion" class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-placeholder transition-colors">
+          <button @click="clearSuggestion" class="p-2 hover:bg-(--surface-input) rounded-lg text-placeholder transition-colors">
             <X :size="16" />
           </button>
         </div>
@@ -444,10 +444,10 @@ function applyFilterAndReload() {
       <!-- ── Stats Row ─────────────────────────────────── -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div v-for="stat in [
-          { label: 'Tổng phòng',      value: rooms.length,                                                   color: 'text-[var(--color-info-text)]',    bg: 'bg-[var(--color-info-bg)]',    border: 'border-[var(--color-info-bg)]' },
-          { label: 'Đang hoạt động',  value: rooms.filter(r=>r.trangThaiPhong==='hoat_dong').length,          color: 'text-[var(--color-success-text)]', bg: 'bg-[var(--color-success-bg)]', border: 'border-[var(--color-success-bg)]' },
-          { label: 'Đang bảo trì',    value: rooms.filter(r=>r.trangThaiPhong==='bao_tri').length,            color: 'text-[var(--color-warning-text)]', bg: 'bg-[var(--color-warning-bg)]', border: 'border-[var(--color-warning-bg)]' },
-          { label: 'Ngừng hoạt động', value: rooms.filter(r=>r.trangThaiPhong==='ngung_hoat_dong').length,    color: 'text-[var(--color-danger-text)]',  bg: 'bg-[var(--color-danger-bg)]',  border: 'border-[var(--color-danger-bg)]' },
+          { label: 'Tổng phòng',      value: rooms.length,                                                   color: 'text-(--color-info-text)',    bg: 'bg-(--color-info-bg)',    border: 'border-(--color-info-bg)' },
+          { label: 'Đang hoạt động',  value: rooms.filter(r=>r.trangThaiPhong==='hoat_dong').length,          color: 'text-(--color-success-text)', bg: 'bg-(--color-success-bg)', border: 'border-(--color-success-bg)' },
+          { label: 'Đang bảo trì',    value: rooms.filter(r=>r.trangThaiPhong==='bao_tri').length,            color: 'text-(--color-warning-text)', bg: 'bg-(--color-warning-bg)', border: 'border-(--color-warning-bg)' },
+          { label: 'Ngừng hoạt động', value: rooms.filter(r=>r.trangThaiPhong==='ngung_hoat_dong').length,    color: 'text-(--color-danger-text)',  bg: 'bg-(--color-danger-bg)',  border: 'border-(--color-danger-bg)' },
         ]" :key="stat.label"
           :class="['rounded-2xl p-4 border border-default', stat.bg, stat.border]"
         >
@@ -527,13 +527,13 @@ function applyFilterAndReload() {
             Bộ lọc
             <span
               v-if="activeFilterCount > 0"
-              class="inline-flex items-center justify-center h-4 w-4 rounded-full bg-[var(--lg-success)] text-white text-[10px] font-semibold"
+              class="inline-flex items-center justify-center h-4 w-4 rounded-full bg-(--lg-success) text-white text-[10px] font-semibold"
             >{{ activeFilterCount }}</span>
           </button>
 
           <button
             v-if="activeFilterCount > 0 || searchQuery"
-            class="text-xs font-bold text-placeholder hover:text-[var(--lg-danger)] transition-colors"
+            class="text-xs font-bold text-placeholder hover:text-(--lg-danger) transition-colors"
             @click="clearFilters()"
           >Xóa bộ lọc</button>
         </div>
@@ -564,13 +564,13 @@ function applyFilterAndReload() {
 
       <!-- ── Loading / Error / Result ─────────────────────────── -->
       <div v-if="loading" class="flex items-center justify-center py-16">
-        <div class="h-8 w-8 border-2 border-[var(--lg-primary)] border-t-transparent rounded-full animate-spin"></div>
+        <div class="h-8 w-8 border-2 border-(--lg-primary) border-t-transparent rounded-full animate-spin"></div>
         <span class="ml-3 text-sm text-label">Đang tải...</span>
       </div>
 
       <div v-else-if="error" class="lg-glass-strong p-6 rounded-2xl text-center">
-        <p class="text-sm text-[var(--lg-danger)] font-semibold">{{ error }}</p>
-        <button class="mt-3 text-sm font-bold text-[var(--lg-primary)] hover:underline" @click="fetchRooms">Thử lại</button>
+        <p class="text-sm text-(--lg-danger) font-semibold">{{ error }}</p>
+        <button class="mt-3 text-sm font-bold text-(--lg-primary) hover:underline" @click="fetchRooms">Thử lại</button>
       </div>
 
       <div v-else class="flex items-center justify-between px-1">
@@ -586,11 +586,11 @@ function applyFilterAndReload() {
           :key="room.maPhong"
           :class="[
             'lg-card surface-card group p-4 transition-all hover:-translate-y-0.5 hover:shadow-sm cursor-pointer relative',
-            highlightedRoomId === String(room.maPhong) ? '!border-[var(--lg-primary)] ring-2 ring-[var(--lg-primary)]/20 shadow-md' : 'border-default'
+            highlightedRoomId === String(room.maPhong) ? '!border-(--lg-primary) ring-2 ring-(--lg-primary)/20 shadow-md' : 'border-default'
           ]"
         >
           <!-- Top glow accent -->
-          <div class="absolute top-0 left-0 right-0 h-0.5 bg-[var(--border-input-focus)] opacity-0 group-hover:opacity-100 transition-opacity rounded-t-2xl"></div>
+          <div class="absolute top-0 left-0 right-0 h-0.5 bg-(--border-input-focus) opacity-0 group-hover:opacity-100 transition-opacity rounded-t-2xl"></div>
 
           <!-- Status dot + context menu -->
           <div class="flex items-center justify-between mb-4">
@@ -600,7 +600,7 @@ function applyFilterAndReload() {
             </div>
             <div class="relative">
               <button
-                class="p-1.5 hover:bg-[var(--surface-input-focus)] rounded-lg text-placeholder transition-all"
+                class="p-1.5 hover:bg-(--surface-input-focus) rounded-lg text-placeholder transition-all"
                 @click.stop="toggleMenu(room.maPhong)"
               >
                 <MoreVertical :size="16" />
@@ -612,27 +612,27 @@ function applyFilterAndReload() {
                   @click.stop
                 >
                   <button
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-(--surface-input) transition-colors"
                     @click="openEditModal(room); menuOpenId = null"
                   >
-                    <Pencil :size="14" class="text-[var(--lg-success)]" /> Chỉnh sửa
+                    <Pencil :size="14" class="text-(--lg-success)" /> Chỉnh sửa
                   </button>
                   <button
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-(--surface-input) transition-colors"
                     @click="openHistoryModal(room); menuOpenId = null"
                   >
-                    <History :size="14" class="text-[var(--lg-info)]" /> Lịch sử dùng
+                    <History :size="14" class="text-(--lg-info)" /> Lịch sử dùng
                   </button>
                   <button
                     v-if="room.trangThaiPhong !== 'bao_tri'"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-(--surface-input) transition-colors"
                     @click="markMaintenance(room)"
                   >
-                    <Hammer :size="14" class="text-[var(--lg-warning)]" /> Đánh dấu bảo trì
+                    <Hammer :size="14" class="text-(--lg-warning)" /> Đánh dấu bảo trì
                   </button>
                   <div class="border-t border-default my-1"></div>
                   <button
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-[var(--lg-danger)] hover:bg-[var(--color-danger-bg)] transition-colors"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-(--lg-danger) hover:bg-(--color-danger-bg) transition-colors"
                     @click="requestDelete(room); menuOpenId = null"
                   >
                     <Trash2 :size="14" /> Xóa phòng
@@ -644,11 +644,11 @@ function applyFilterAndReload() {
 
           <!-- Room icon + name -->
           <div class="flex items-center gap-3">
-            <div class="h-12 w-12 rounded-2xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] border border-[var(--color-info-bg)] shrink-0">
+            <div class="h-12 w-12 rounded-2xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) border border-(--color-info-bg) shrink-0">
               <component :is="getRoomIcon(room.loaiPhong)" :size="22" />
             </div>
             <div>
-              <h3 class="text-base font-semibold text-heading leading-tight group-hover:text-[var(--lg-primary)] transition-colors">{{ room.tenPhong }}</h3>
+              <h3 class="text-base font-semibold text-heading leading-tight group-hover:text-(--lg-primary) transition-colors">{{ room.tenPhong }}</h3>
               <p class="text-[10px] font-semibold text-label uppercase tracking-widest flex items-center gap-1 mt-0.5">
                 <MapPin :size="10" /> {{ getBuildingName(room.maToaNha) }} · {{ getFloorName(room.maTang) }}
               </p>
@@ -660,7 +660,7 @@ function applyFilterAndReload() {
             <div class="surface-input rounded-xl p-3 border border-default">
               <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Sức chứa</p>
               <div class="flex items-center gap-1.5 mt-1">
-                <Users :size="13" class="text-[var(--lg-primary)]" />
+                <Users :size="13" class="text-(--lg-primary)" />
                 <span class="text-sm font-semibold text-heading">{{ room.sucChua }} SV</span>
               </div>
             </div>
@@ -696,7 +696,7 @@ function applyFilterAndReload() {
           </div>
           <p class="text-base font-semibold text-heading">Không tìm thấy phòng nào</p>
           <p class="text-sm text-label mt-1">Thử thay đổi từ khóa hoặc điều chỉnh bộ lọc.</p>
-          <button class="mt-4 text-sm font-bold text-[var(--lg-primary)] hover:underline" @click="clearFilters()">Xóa tất cả bộ lọc</button>
+          <button class="mt-4 text-sm font-bold text-(--lg-primary) hover:underline" @click="clearFilters()">Xóa tất cả bộ lọc</button>
         </div>
       </TransitionGroup>
     </div>
@@ -725,7 +725,7 @@ function applyFilterAndReload() {
                 <p class="text-sm text-label mt-0.5">Điền thông tin phòng học mới</p>
               </div>
               <button
-                class="h-9 w-9 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
+                class="h-9 w-9 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all"
                 @click="closeAddModal"
               >
                 <X :size="18" />
@@ -735,26 +735,26 @@ function applyFilterAndReload() {
 
           <!-- Form body -->
           <div class="p-6 space-y-5">
-            <p v-if="addErrors._api" class="text-sm text-[var(--lg-danger)] font-semibold">{{ addErrors._api }}</p>
+            <p v-if="addErrors._api" class="text-sm text-(--lg-danger) font-semibold">{{ addErrors._api }}</p>
 
             <!-- Mã phòng -->
             <div>
               <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">
-                Mã phòng <span class="text-[var(--lg-danger)]">*</span>
+                Mã phòng <span class="text-(--lg-danger)">*</span>
               </label>
               <input v-model="newRoom.maCodePhong" type="text" placeholder="VD: PH001"
-                :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', addErrors.maCodePhong ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : '']" />
-              <p v-if="addErrors.maCodePhong" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ addErrors.maCodePhong }}</p>
+                :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', addErrors.maCodePhong ? 'border-(--lg-danger) bg-(--color-danger-bg)' : '']" />
+              <p v-if="addErrors.maCodePhong" class="mt-1 text-xs text-(--lg-danger) font-semibold">{{ addErrors.maCodePhong }}</p>
             </div>
 
             <!-- Tên phòng -->
             <div>
               <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">
-                Tên phòng <span class="text-[var(--lg-danger)]">*</span>
+                Tên phòng <span class="text-(--lg-danger)">*</span>
               </label>
               <input v-model="newRoom.tenPhong" type="text" placeholder="VD: Phòng 305, Lab 3..."
-                :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', addErrors.tenPhong ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : '']" />
-              <p v-if="addErrors.tenPhong" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ addErrors.tenPhong }}</p>
+                :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', addErrors.tenPhong ? 'border-(--lg-danger) bg-(--color-danger-bg)' : '']" />
+              <p v-if="addErrors.tenPhong" class="mt-1 text-xs text-(--lg-danger) font-semibold">{{ addErrors.tenPhong }}</p>
             </div>
 
             <!-- Tòa nhà + Lầu -->
@@ -779,11 +779,11 @@ function applyFilterAndReload() {
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">
-                  Sức chứa (SV) <span class="text-[var(--lg-danger)]">*</span>
+                  Sức chứa (SV) <span class="text-(--lg-danger)">*</span>
                 </label>
                 <input v-model="newRoom.sucChua" type="number" min="1" placeholder="VD: 40"
-                  :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', addErrors.sucChua ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : '']" />
-                <p v-if="addErrors.sucChua" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ addErrors.sucChua }}</p>
+                  :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', addErrors.sucChua ? 'border-(--lg-danger) bg-(--color-danger-bg)' : '']" />
+                <p v-if="addErrors.sucChua" class="mt-1 text-xs text-(--lg-danger) font-semibold">{{ addErrors.sucChua }}</p>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Loại phòng</label>
@@ -849,7 +849,7 @@ function applyFilterAndReload() {
                 <p class="text-sm text-label mt-0.5">Cập nhật thông tin phòng học</p>
               </div>
               <button
-                class="h-9 w-9 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
+                class="h-9 w-9 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all"
                 @click="closeEditModal"
               >
                 <X :size="18" />
@@ -858,7 +858,7 @@ function applyFilterAndReload() {
           </div>
 
           <div class="p-6 space-y-5">
-            <p v-if="editErrors._api" class="text-sm text-[var(--lg-danger)] font-semibold">{{ editErrors._api }}</p>
+            <p v-if="editErrors._api" class="text-sm text-(--lg-danger) font-semibold">{{ editErrors._api }}</p>
 
             <!-- Mã phòng -->
             <div>
@@ -869,11 +869,11 @@ function applyFilterAndReload() {
             <!-- Tên phòng -->
             <div>
               <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">
-                Tên phòng <span class="text-[var(--lg-danger)]">*</span>
+                Tên phòng <span class="text-(--lg-danger)">*</span>
               </label>
               <input v-model="editingRoom.tenPhong" type="text" placeholder="VD: Phòng 305, Lab 3..."
-                :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', editErrors.tenPhong ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : '']" />
-              <p v-if="editErrors.tenPhong" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ editErrors.tenPhong }}</p>
+                :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', editErrors.tenPhong ? 'border-(--lg-danger) bg-(--color-danger-bg)' : '']" />
+              <p v-if="editErrors.tenPhong" class="mt-1 text-xs text-(--lg-danger) font-semibold">{{ editErrors.tenPhong }}</p>
             </div>
 
             <!-- Tòa nhà + Lầu -->
@@ -896,11 +896,11 @@ function applyFilterAndReload() {
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">
-                  Sức chứa (SV) <span class="text-[var(--lg-danger)]">*</span>
+                  Sức chứa (SV) <span class="text-(--lg-danger)">*</span>
                 </label>
                 <input v-model="editingRoom.sucChua" type="number" min="1" placeholder="VD: 40"
-                  :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', editErrors.sucChua ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : '']" />
-                <p v-if="editErrors.sucChua" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ editErrors.sucChua }}</p>
+                  :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', editErrors.sucChua ? 'border-(--lg-danger) bg-(--color-danger-bg)' : '']" />
+                <p v-if="editErrors.sucChua" class="mt-1 text-xs text-(--lg-danger) font-semibold">{{ editErrors.sucChua }}</p>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Loại phòng</label>
@@ -958,8 +958,8 @@ function applyFilterAndReload() {
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
         <div class="relative w-full max-w-sm surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
           <div class="p-6">
-            <div class="h-12 w-12 rounded-2xl bg-[var(--color-danger-bg)] flex items-center justify-center mb-4 mx-auto">
-              <AlertCircle :size="24" class="text-[var(--lg-danger)]" />
+            <div class="h-12 w-12 rounded-2xl bg-(--color-danger-bg) flex items-center justify-center mb-4 mx-auto">
+              <AlertCircle :size="24" class="text-(--lg-danger)" />
             </div>
             <h3 class="text-lg font-semibold text-heading text-center">Xóa phòng học</h3>
             <p class="text-sm text-label text-center mt-2">
@@ -971,7 +971,7 @@ function applyFilterAndReload() {
           <div class="px-6 pb-6 pt-2 border-t border-default flex items-center justify-end gap-3">
             <button class="lg-button-secondary px-5 py-2.5" @click="confirmDelete = null">Hủy</button>
             <button
-              class="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl bg-[var(--lg-danger)] text-white hover:opacity-90 transition-all"
+              class="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl bg-(--lg-danger) text-white hover:opacity-90 transition-all"
               @click="executeDelete"
             >
               <Trash2 :size="16" /> Xác nhận xóa
@@ -1001,7 +1001,7 @@ function applyFilterAndReload() {
                 <p class="text-sm text-label mt-0.5">{{ historyRoom.tenPhong }} ({{ historyRoom.maCodePhong }})</p>
               </div>
               <button
-                class="h-9 w-9 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
+                class="h-9 w-9 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all"
                 @click="closeHistoryModal"
               >
                 <X :size="18" />
@@ -1033,8 +1033,8 @@ function applyFilterAndReload() {
               { date: '07/06/2026', time: '13:00 - 15:30', subject: 'CTDL & GT', teacher: 'TS. Lê Văn C', status: 'completed' },
               { date: '07/06/2026', time: '15:45 - 18:15', subject: 'Mạng máy tính', teacher: 'ThS. Phạm Thị D', status: 'cancelled' },
               { date: '06/06/2026', time: '07:00 - 09:30', subject: 'Lập trình Web', teacher: 'TS. Nguyễn Văn A', status: 'completed' },
-            ]" :key="item.date + item.time" class="flex items-start gap-3 p-3 rounded-xl surface-input border border-default hover:bg-[var(--surface-input-focus)] transition-colors">
-              <div class="h-9 w-9 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] shrink-0">
+            ]" :key="item.date + item.time" class="flex items-start gap-3 p-3 rounded-xl surface-input border border-default hover:bg-(--surface-input-focus) transition-colors">
+              <div class="h-9 w-9 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) shrink-0">
                 <Calendar :size="16" />
               </div>
               <div class="flex-1 min-w-0">
@@ -1044,8 +1044,8 @@ function applyFilterAndReload() {
                     :class="[
                       'text-[9px] font-bold uppercase px-2 py-0.5 rounded-lg',
                       item.status === 'completed'
-                        ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]'
-                        : 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]'
+                        ? 'bg-(--color-success-bg) text-(--color-success-text)'
+                        : 'bg-(--color-danger-bg) text-(--color-danger-text)'
                     ]"
                   >{{ item.status === 'completed' ? 'Đã học' : 'Đã hủy' }}</span>
                 </div>

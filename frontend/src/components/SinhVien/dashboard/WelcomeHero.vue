@@ -28,7 +28,7 @@ defineProps({
     <div class="relative grid min-h-[200px] gap-5 p-5 lg:grid-cols-[1.35fr_0.9fr] lg:items-center lg:p-6">
       <div class="flex flex-col justify-center space-y-4">
         <div class="flex flex-wrap items-center gap-2">
-           <div class="inline-flex items-center gap-1.5 rounded-full border border-card bg-[var(--surface-card)] px-2.5 py-1 text-[11px] font-semibold text-[var(--lg-secondary)] backdrop-blur-xl shadow-sm">
+           <div class="inline-flex items-center gap-1.5 rounded-full border border-card bg-(--surface-card) px-2.5 py-1 text-[11px] font-semibold text-(--lg-secondary) backdrop-blur-xl shadow-sm">
             <Sparkles :size="10" />
             {{ student.semester }}
           </div>
@@ -65,7 +65,7 @@ defineProps({
         <div class="space-y-3.5">
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-3">
-              <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--text-link)] text-white shadow-[var(--lg-shadow-md)]">
+              <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-(--text-link) text-white shadow-(--lg-shadow-md)">
                 <Trophy :size="18" />
               </div>
               <div>
@@ -73,7 +73,7 @@ defineProps({
                 <p class="mt-0.5 text-xl font-semibold leading-none text-heading">{{ weekProgress }}%</p>
               </div>
             </div>
-            <div class="rounded-full bg-[var(--color-info-bg)] px-2.5 py-1 text-xs font-semibold text-link">
+            <div class="rounded-full bg-(--color-info-bg) px-2.5 py-1 text-xs font-semibold text-link">
               {{ summary.completedThisWeek }} NV
             </div>
           </div>
@@ -81,11 +81,11 @@ defineProps({
           <ProgressBar :value="weekProgress" label="" class="h-1.5 shadow-inner" />
 
           <div class="grid grid-cols-2 gap-2">
-            <div class="rounded-2xl bg-[var(--surface-card)] p-2.5 border border-card shadow-sm">
+            <div class="rounded-2xl bg-(--surface-card) p-2.5 border border-card shadow-sm">
               <p class="text-xs font-medium text-body">Deadline</p>
-              <p class="mt-1 text-xs font-semibold text-[var(--color-warning-text)] truncate">{{ summary.nearestDeadline }}</p>
+              <p class="mt-1 text-xs font-semibold text-(--color-warning-text) truncate">{{ summary.nearestDeadline }}</p>
             </div>
-            <div class="rounded-2xl bg-[var(--surface-card)] p-2.5 border border-card shadow-sm">
+            <div class="rounded-2xl bg-(--surface-card) p-2.5 border border-card shadow-sm">
               <p class="text-xs font-medium text-body">GPA</p>
               <p class="mt-1 text-xs font-semibold text-link">{{ summary.gpa }}/10</p>
             </div>

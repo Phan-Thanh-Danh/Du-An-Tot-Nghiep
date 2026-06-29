@@ -35,24 +35,24 @@ const handleAction = (type) => {
 
 <template>
   <GlassPanel padding="normal" class="space-y-4">
-    <h3 class="font-semibold text-[var(--text-heading)] flex items-center gap-2">
+    <h3 class="font-semibold text-(--text-heading) flex items-center gap-2">
       <CheckCircle2 class="w-4 h-4" /> Quyết định
     </h3>
 
-    <div v-if="!canDecide" class="p-3 bg-[var(--surface-hover)] rounded-lg text-sm text-[var(--text-muted)] text-center italic">
+    <div v-if="!canDecide" class="p-3 bg-(--surface-hover) rounded-lg text-sm text-(--text-muted) text-center italic">
       Không thể thay đổi quyết định với trạng thái hiện tại.
     </div>
 
     <div v-else class="space-y-4">
       <div>
-        <label class="block text-sm font-medium text-[var(--text-heading)] mb-1">Ghi chú / Lý do phản hồi</label>
+        <label class="block text-sm font-medium text-(--text-heading) mb-1">Ghi chú / Lý do phản hồi</label>
         <textarea 
           v-model="note"
           rows="3"
-          class="w-full px-3 py-2 bg-[var(--surface-input)] border border-[var(--border-input)] rounded-lg focus:border-[var(--lg-primary)] outline-none text-[var(--text-body)] resize-none"
+          class="w-full px-3 py-2 bg-(--surface-input) border border-(--border-input) rounded-lg focus:border-(--lg-primary) outline-none text-(--text-body) resize-none"
           placeholder="Nhập ghi chú cho sinh viên..."
         ></textarea>
-        <p v-if="formError" class="mt-1 text-xs font-semibold text-[var(--color-danger-text)]">
+        <p v-if="formError" class="mt-1 text-xs font-semibold text-(--color-danger-text)">
           {{ formError }}
         </p>
       </div>
@@ -68,7 +68,7 @@ const handleAction = (type) => {
           <template #leading><CheckCircle2 class="w-4 h-4" /></template> Duyệt đơn
         </GlassButton>
       </div>
-      <p class="text-[10px] text-[var(--color-warning-text)] mt-1">Duyệt đơn có thể tự động chuyển trạng thái sang xử lý nghiệp vụ.</p>
+      <p class="text-[10px] text-(--color-warning-text) mt-1">Duyệt đơn có thể tự động chuyển trạng thái sang xử lý nghiệp vụ.</p>
     </div>
   </GlassPanel>
 </template>

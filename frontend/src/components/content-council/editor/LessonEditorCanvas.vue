@@ -24,7 +24,7 @@ const editor = inject<any>('curriculumEditor')
         <!-- Empty Content State -->
         <div v-if="editor.selectedLesson.value?.contents?.length === 0" class="mb-6 p-8 border-2 border-dashed border-slate-200 rounded-xl text-center">
           <h3 class="text-lg font-semibold text-slate-700 mb-2">Bài học này chưa có nội dung</h3>
-          <p class="text-[var(--text-muted)] mb-6">Thêm video, slide, tài liệu hoặc Quiz để bắt đầu xây dựng bài học.</p>
+          <p class="text-(--text-muted) mb-6">Thêm video, slide, tài liệu hoặc Quiz để bắt đầu xây dựng bài học.</p>
         </div>
 
         <!-- Content List -->

@@ -120,11 +120,11 @@ watch(() => props.collapsed, () => {
       <button
         ref="buttonRef"
         type="button"
-        class="lg-sidebar-item group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 transition-all duration-200 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]"
+        class="lg-sidebar-item group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 transition-all duration-200 focus:outline-none focus:ring-(--sidebar-focus-ring)"
         :class="[
           isGroupActive
             ? 'lg-sidebar-item-active font-semibold shadow-sm'
-            : 'text-label hover:text-[var(--sidebar-accent)] dark:hover:text-[var(--sidebar-accent-dark)] hover:bg-[var(--accent-primary-soft)]',
+            : 'text-label hover:text-(--sidebar-accent) dark:hover:text-(--sidebar-accent-dark) hover:bg-(--accent-primary-soft)',
           collapsed ? 'justify-center' : '',
         ]"
         :aria-expanded="hasChildren ? isOpen || (collapsed && flyoutVisible) : undefined"
@@ -139,7 +139,7 @@ watch(() => props.collapsed, () => {
           :stroke-width="isGroupActive ? 2.5 : 1.8"
           :class="[
             'flex-shrink-0 transition-colors',
-            isGroupActive ? 'text-white' : 'text-muted group-hover:text-[var(--sidebar-accent)] dark:group-hover:text-[var(--sidebar-accent-dark)]',
+            isGroupActive ? 'text-white' : 'text-muted group-hover:text-(--sidebar-accent) dark:group-hover:text-(--sidebar-accent-dark)',
           ]"
         />
 

@@ -4,7 +4,7 @@
     subtitle="Phê duyệt thời khóa biểu trước khi công bố"
   >
     <template #actions>
-      <select v-model="campusFilter" class="px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
+      <select v-model="campusFilter" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
         <option value="">Tất cả cơ sở</option>
         <option v-for="c in campuses" :key="c" :value="c">{{ c }}</option>
       </select>
@@ -32,10 +32,10 @@
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-              <button @click="approve(item)" class="flex items-center gap-1 px-3 py-1.5 bg-[var(--color-success-bg)] text-[var(--color-success-text)] rounded-lg text-xs font-bold hover:brightness-90 transition-all">
+              <button @click="approve(item)" class="flex items-center gap-1 px-3 py-1.5 bg-(--color-success-bg) text-(--color-success-text) rounded-lg text-xs font-bold hover:brightness-90 transition-all">
                 <CheckCircle2 :size="14" /> Duyệt
               </button>
-              <button @click="reject(item)" class="flex items-center gap-1 px-3 py-1.5 bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] rounded-lg text-xs font-bold hover:brightness-90 transition-all">
+              <button @click="reject(item)" class="flex items-center gap-1 px-3 py-1.5 bg-(--color-danger-bg) text-(--color-danger-text) rounded-lg text-xs font-bold hover:brightness-90 transition-all">
                 <XCircle :size="14" /> Từ chối
               </button>
             </div>
@@ -44,11 +44,11 @@
           <div class="mt-4 pt-3 border-t border-default">
             <div class="flex items-center justify-between mb-2">
               <span class="text-xs font-bold text-heading">Xung đột phát hiện</span>
-              <span v-if="item.xungDot > 0" class="text-xs text-[var(--color-danger-text)] bg-[var(--color-danger-bg)] px-2 py-0.5 rounded-full font-bold">{{ item.xungDot }} xung đột</span>
-              <span v-else class="text-xs text-[var(--color-success-text)] bg-[var(--color-success-bg)] px-2 py-0.5 rounded-full font-bold">Không có xung đột</span>
+              <span v-if="item.xungDot > 0" class="text-xs text-(--color-danger-text) bg-(--color-danger-bg) px-2 py-0.5 rounded-full font-bold">{{ item.xungDot }} xung đột</span>
+              <span v-else class="text-xs text-(--color-success-text) bg-(--color-success-bg) px-2 py-0.5 rounded-full font-bold">Không có xung đột</span>
             </div>
             <div v-if="item.conflicts && item.conflicts.length > 0" class="space-y-1.5">
-              <div v-for="(conf, i) in item.conflicts" :key="i" class="flex items-center gap-2 text-xs text-[var(--color-danger-text)] bg-[var(--color-danger-bg)]/30 p-2 rounded-lg">
+              <div v-for="(conf, i) in item.conflicts" :key="i" class="flex items-center gap-2 text-xs text-(--color-danger-text) bg-(--color-danger-bg)/30 p-2 rounded-lg">
                 <AlertTriangle :size="13" class="shrink-0" />
                 <span>{{ conf }}</span>
               </div>
@@ -66,7 +66,7 @@
       <div class="space-y-4">
         <div class="surface-card border border-card rounded-2xl p-5 shadow-sm">
           <h3 class="text-base font-bold text-heading mb-3 flex items-center gap-2">
-            <BarChart3 :size="18" class="text-[var(--lg-primary)]" />
+            <BarChart3 :size="18" class="text-(--lg-primary)" />
             Thống kê
           </h3>
           <div class="space-y-3">
@@ -76,11 +76,11 @@
             </div>
             <div class="flex justify-between text-sm">
               <span class="text-muted">Đã duyệt hôm nay</span>
-              <span class="font-bold text-[var(--color-success-text)]">3</span>
+              <span class="font-bold text-(--color-success-text)">3</span>
             </div>
             <div class="flex justify-between text-sm">
               <span class="text-muted">Từ chối hôm nay</span>
-              <span class="font-bold text-[var(--color-danger-text)]">1</span>
+              <span class="font-bold text-(--color-danger-text)">1</span>
             </div>
             <div class="flex justify-between text-sm pt-2 border-t border-default">
               <span class="text-muted">Tổng số lớp trong kỳ</span>
@@ -94,13 +94,13 @@
           <div class="space-y-3">
             <div v-for="log in approvalHistory" :key="log.time" class="flex gap-2 text-xs">
               <div class="flex flex-col items-center">
-                <div :class="log.action === 'approved' ? 'bg-[var(--color-success-text)]' : 'bg-[var(--color-danger-text)]'" class="h-2 w-2 rounded-full mt-1" />
+                <div :class="log.action === 'approved' ? 'bg-(--color-success-text)' : 'bg-(--color-danger-text)'" class="h-2 w-2 rounded-full mt-1" />
                 <div class="flex-1 w-px bg-default" />
               </div>
               <div>
                 <p class="font-bold text-heading">{{ log.tenHocKy }}</p>
                 <p class="text-muted">{{ log.time }} bởi {{ log.nguoiDuyet }}</p>
-                <span :class="log.action === 'approved' ? 'text-[var(--color-success-text)]' : 'text-[var(--color-danger-text)]'" class="font-bold">
+                <span :class="log.action === 'approved' ? 'text-(--color-success-text)' : 'text-(--color-danger-text)'" class="font-bold">
                   {{ log.action === 'approved' ? 'Đã duyệt' : 'Đã từ chối' }}
                 </span>
               </div>
@@ -116,20 +116,20 @@
     <div class="w-full max-w-md surface-card rounded-2xl shadow-2xl border border-default overflow-hidden">
       <div class="p-4 border-b border-default flex justify-between items-center">
         <h3 class="text-lg font-bold text-heading">{{ actionType === 'approve' ? 'Xác nhận duyệt' : 'Từ chối' }} TKB</h3>
-        <button @click="actionModal = false" class="p-1 hover:bg-[var(--surface-input)] rounded-lg text-muted">
+        <button @click="actionModal = false" class="p-1 hover:bg-(--surface-input) rounded-lg text-muted">
           <X :size="20" />
         </button>
       </div>
       <div class="p-6 space-y-4">
         <p class="text-sm text-body">{{ actionType === 'approve' ? 'Bạn có chắc muốn duyệt thời khóa biểu' : 'Nhập lý do từ chối thời khóa biểu' }} <strong class="text-heading">{{ actionTarget?.tenHocKy }}</strong>?</p>
         <div v-if="actionType === 'reject'" class="space-y-1">
-          <label class="block text-xs font-bold text-heading">Lý do từ chối <span class="text-[var(--color-danger-text)]">*</span></label>
-          <textarea v-model="rejectReason" rows="3" placeholder="Nhập lý do từ chối..." class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)] resize-none"></textarea>
+          <label class="block text-xs font-bold text-heading">Lý do từ chối <span class="text-(--color-danger-text)">*</span></label>
+          <textarea v-model="rejectReason" rows="3" placeholder="Nhập lý do từ chối..." class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary) resize-none"></textarea>
         </div>
       </div>
       <div class="p-4 border-t border-default flex justify-end gap-3">
-        <button @click="actionModal = false" class="px-4 py-2 border border-input rounded-lg text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors">Hủy</button>
-        <button @click="confirmAction" :class="actionType === 'approve' ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] hover:brightness-90' : 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] hover:brightness-90'" class="px-4 py-2 text-sm font-bold rounded-lg transition-all">
+        <button @click="actionModal = false" class="px-4 py-2 border border-input rounded-lg text-sm font-bold text-body hover:bg-(--surface-input) transition-colors">Hủy</button>
+        <button @click="confirmAction" :class="actionType === 'approve' ? 'bg-(--color-success-bg) text-(--color-success-text) hover:brightness-90' : 'bg-(--color-danger-bg) text-(--color-danger-text) hover:brightness-90'" class="px-4 py-2 text-sm font-bold rounded-lg transition-all">
           {{ actionType === 'approve' ? 'Xác nhận duyệt' : 'Từ chối' }}
         </button>
       </div>
@@ -198,9 +198,9 @@ const pendingCount = computed(() => filteredSchedules.value.length)
 
 function urgencyBadge(level) {
   switch (level) {
-    case 'cao': return 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]'
-    case 'trung_binh': return 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]'
-    default: return 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]'
+    case 'cao': return 'bg-(--color-danger-bg) text-(--color-danger-text)'
+    case 'trung_binh': return 'bg-(--color-warning-bg) text-(--color-warning-text)'
+    default: return 'bg-(--color-info-bg) text-(--color-info-text)'
   }
 }
 

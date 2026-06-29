@@ -1,11 +1,16 @@
-<script setup>
+import os
+
+filepath = r"c:\Users\lapto\OneDrive\Desktop\Du-An-Tot-Nghiep\frontend\src\views\SuperAdmin\DisciplineView.vue"
+
+content = """<script setup>
 import { ref, computed, onMounted } from 'vue'
-import { ShieldAlert, Search, Scale, FileText, UserX, CheckCircle } from 'lucide-vue-next'
+import { ShieldAlert, Search, Scale, FileText, UserX, Clock, CheckCircle } from 'lucide-vue-next'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { rewardDisciplineMockService } from '@/mocks/rewardDisciplineMockService'
 import { formatDate } from '@/utils/dateFormat'
 import { usePopupStore } from '@/stores/popup'
@@ -111,61 +116,61 @@ const resolveAppeal = () => {
   <div class="sa-discipline max-w-7xl mx-auto space-y-6">
     <GlassPanel variant="flat" density="compact">
       <div class="flex items-center gap-3 mb-2">
-        <ShieldAlert class="text-(--text-muted)" :size="24" />
-        <h1 class="text-2xl font-bold text-(--text-heading)">Quản lý Kỷ luật</h1>
+        <ShieldAlert class="text-[var(--text-muted)]" :size="24" />
+        <h1 class="text-2xl font-bold text-[var(--text-heading)]">Quản lý Kỷ luật</h1>
       </div>
-      <p class="text-(--text-body)">Theo dõi hồ sơ vi phạm, ra quyết định và xử lý khiếu nại sinh viên một cách bảo mật.</p>
+      <p class="text-[var(--text-body)]">Theo dõi hồ sơ vi phạm, ra quyết định và xử lý khiếu nại sinh viên một cách bảo mật.</p>
     </GlassPanel>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[90px] border-l-4 border-[var(--color-danger-bg, #ef4444)]">
-        <p class="text-sm font-medium text-(--text-muted) mb-1">Đang hiệu lực</p>
-        <strong class="text-2xl text-(--text-heading)">{{ records.filter(r => r.trangThai === 'active').length }}</strong>
+        <p class="text-sm font-medium text-[var(--text-muted)] mb-1">Đang hiệu lực</p>
+        <strong class="text-2xl text-[var(--text-heading)]">{{ records.filter(r => r.trangThai === 'active').length }}</strong>
       </GlassPanel>
       <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[90px] border-l-4 border-amber-500">
-        <p class="text-sm font-medium text-(--text-muted) mb-1">Chờ duyệt hồ sơ</p>
-        <strong class="text-2xl text-(--text-heading)">0</strong>
+        <p class="text-sm font-medium text-[var(--text-muted)] mb-1">Chờ duyệt hồ sơ</p>
+        <strong class="text-2xl text-[var(--text-heading)]">0</strong>
       </GlassPanel>
       <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[90px] border-l-4 border-blue-500">
-        <p class="text-sm font-medium text-(--text-muted) mb-1">Khiếu nại chờ xử lý</p>
-        <strong class="text-2xl text-(--text-heading)">{{ appeals.filter(a => a.trangThai === 'pending').length }}</strong>
+        <p class="text-sm font-medium text-[var(--text-muted)] mb-1">Khiếu nại chờ xử lý</p>
+        <strong class="text-2xl text-[var(--text-heading)]">{{ appeals.filter(a => a.trangThai === 'pending').length }}</strong>
       </GlassPanel>
-      <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[90px] border-l-4 border-(--border-default)">
-        <p class="text-sm font-medium text-(--text-muted) mb-1">Đã gỡ / Hết hiệu lực</p>
-        <strong class="text-2xl text-(--text-heading)">{{ records.filter(r => r.trangThai !== 'active').length }}</strong>
+      <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[90px] border-l-4 border-[var(--border-default)]">
+        <p class="text-sm font-medium text-[var(--text-muted)] mb-1">Đã gỡ / Hết hiệu lực</p>
+        <strong class="text-2xl text-[var(--text-heading)]">{{ records.filter(r => r.trangThai !== 'active').length }}</strong>
       </GlassPanel>
     </div>
 
     <GlassPanel variant="flat" class="p-0 overflow-hidden">
-      <div class="p-4 border-b border-(--border-default) flex flex-wrap gap-4 items-center">
-        <div class="flex bg-(--surface-modal) rounded-lg p-1 shrink-0 h-10 border border-(--border-default)">
+      <div class="p-4 border-b border-[var(--border-default)] flex flex-wrap gap-4 items-center">
+        <div class="flex bg-[var(--surface-modal)] rounded-lg p-1 shrink-0 h-10 border border-[var(--border-default)]">
           <button class="px-4 h-full rounded-md text-sm transition-colors flex items-center"
-                  :class="currentTab === 'records' ? 'bg-(--surface-card) shadow-sm font-medium text-(--text-heading)' : 'text-(--text-muted) hover:text-(--text-body)'"
+                  :class="currentTab === 'records' ? 'bg-[var(--surface-card)] shadow-sm font-medium text-[var(--text-heading)]' : 'text-[var(--text-muted)] hover:text-[var(--text-body)]'"
                   @click="currentTab = 'records'; selectedAppeal = null">Hồ sơ vi phạm</button>
           <button class="px-4 h-full rounded-md text-sm transition-colors flex items-center"
-                  :class="currentTab === 'appeals' ? 'bg-(--surface-card) shadow-sm font-medium text-(--text-heading)' : 'text-(--text-muted) hover:text-(--text-body)'"
+                  :class="currentTab === 'appeals' ? 'bg-[var(--surface-card)] shadow-sm font-medium text-[var(--text-heading)]' : 'text-[var(--text-muted)] hover:text-[var(--text-body)]'"
                   @click="currentTab = 'appeals'; selectedRecord = null">Đơn khiếu nại</button>
         </div>
         
-        <label class="flex items-center gap-2 bg-(--surface-input) px-3 h-10 rounded-lg border border-(--border-input) flex-1 min-w-[200px] focus-within:ring-2 focus-within:ring-(--border-focus) transition-shadow">
-          <Search :size="16" class="text-(--text-muted)" />
-          <input v-model="searchQuery" type="text" placeholder="Tìm theo sinh viên, tiêu đề..." class="bg-transparent border-none outline-none w-full text-sm text-(--text-body)" />
+        <label class="flex items-center gap-2 bg-[var(--surface-input)] px-3 h-10 rounded-lg border border-[var(--border-input)] flex-1 min-w-[200px] focus-within:ring-2 focus-within:ring-[var(--border-focus)] transition-shadow">
+          <Search :size="16" class="text-[var(--text-muted)]" />
+          <input v-model="searchQuery" type="text" placeholder="Tìm theo sinh viên, tiêu đề..." class="bg-transparent border-none outline-none w-full text-sm text-[var(--text-body)]" />
         </label>
         
-        <select v-if="currentTab === 'records'" v-model="filterStatus" class="h-10 px-3 py-0 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm focus:ring-2 focus:ring-(--border-focus) outline-none min-w-[130px]">
+        <select v-if="currentTab === 'records'" v-model="filterStatus" class="h-10 px-3 py-0 bg-[var(--surface-input)] border border-[var(--border-input)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--border-focus)] outline-none min-w-[130px]">
           <option value="all">Tất cả TT</option>
           <option value="active">Đang hiệu lực</option>
           <option value="expired">Đã gỡ/Hết hạn</option>
         </select>
         
-        <select v-if="currentTab === 'records'" v-model="filterSeverity" class="h-10 px-3 py-0 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm focus:ring-2 focus:ring-(--border-focus) outline-none min-w-[130px]">
+        <select v-if="currentTab === 'records'" v-model="filterSeverity" class="h-10 px-3 py-0 bg-[var(--surface-input)] border border-[var(--border-input)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--border-focus)] outline-none min-w-[130px]">
           <option value="all">Tất cả mức độ</option>
           <option value="Khiển trách">Khiển trách</option>
           <option value="Cảnh cáo">Cảnh cáo</option>
           <option value="Đình chỉ">Đình chỉ</option>
         </select>
         
-        <select v-if="currentTab === 'appeals'" v-model="filterStatus" class="h-10 px-3 py-0 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm focus:ring-2 focus:ring-(--border-focus) outline-none min-w-[130px]">
+        <select v-if="currentTab === 'appeals'" v-model="filterStatus" class="h-10 px-3 py-0 bg-[var(--surface-input)] border border-[var(--border-input)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--border-focus)] outline-none min-w-[130px]">
           <option value="all">Tất cả TT</option>
           <option value="pending">Chờ xử lý</option>
           <option value="resolved">Đã chấp nhận</option>
@@ -177,7 +182,7 @@ const resolveAppeal = () => {
 
       <div class="grid grid-cols-1 lg:grid-cols-3 min-h-[500px]">
         <!-- LIST -->
-        <div class="lg:col-span-2 border-r border-(--border-default) overflow-x-auto relative">
+        <div class="lg:col-span-2 border-r border-[var(--border-default)] overflow-x-auto relative">
           <!-- Records Table -->
           <TableShell v-if="currentTab === 'records'">
             <table>
@@ -191,18 +196,18 @@ const resolveAppeal = () => {
               </thead>
               <tbody>
                 <tr v-if="loading"><td colspan="4" class="text-center py-4">Đang tải...</td></tr>
-                <tr v-else-if="filteredRecords.length === 0"><td colspan="4" class="text-center py-4 text-(--text-muted)">Không có dữ liệu.</td></tr>
+                <tr v-else-if="filteredRecords.length === 0"><td colspan="4" class="text-center py-4 text-[var(--text-muted)]">Không có dữ liệu.</td></tr>
                 <tr v-for="r in filteredRecords" :key="r.id"
                     class="cursor-pointer transition-colors"
-                    :class="selectedRecord?.id === r.id ? 'bg-(--surface-hover)' : 'hover:bg-(--surface-hover)'"
+                    :class="selectedRecord?.id === r.id ? 'bg-[var(--surface-hover)]' : 'hover:bg-[var(--surface-hover)]'"
                     @click="selectedRecord = r">
                   <td>
                     <div class="font-medium text-sm">{{ r.studentName }}</div>
-                    <div class="text-xs text-(--text-muted)">{{ r.studentRollNumber }}</div>
+                    <div class="text-xs text-[var(--text-muted)]">{{ r.studentRollNumber }}</div>
                   </td>
                   <td>
                     <div class="text-sm font-medium line-clamp-1" :title="r.tieuDe">{{ r.tieuDe }}</div>
-                    <div class="text-xs text-(--text-muted)">{{ r.mucDoKyLuat }}</div>
+                    <div class="text-xs text-[var(--text-muted)]">{{ r.mucDoKyLuat }}</div>
                   </td>
                   <td class="text-sm">{{ r.hinhThucXuLy }}</td>
                   <td>
@@ -228,16 +233,16 @@ const resolveAppeal = () => {
               </thead>
               <tbody>
                 <tr v-if="loading"><td colspan="4" class="text-center py-4">Đang tải...</td></tr>
-                <tr v-else-if="filteredAppeals.length === 0"><td colspan="4" class="text-center py-4 text-(--text-muted)">Không có dữ liệu.</td></tr>
+                <tr v-else-if="filteredAppeals.length === 0"><td colspan="4" class="text-center py-4 text-[var(--text-muted)]">Không có dữ liệu.</td></tr>
                 <tr v-for="a in filteredAppeals" :key="a.id"
                     class="cursor-pointer transition-colors"
-                    :class="selectedAppeal?.id === a.id ? 'bg-(--surface-hover)' : 'hover:bg-(--surface-hover)'"
+                    :class="selectedAppeal?.id === a.id ? 'bg-[var(--surface-hover)]' : 'hover:bg-[var(--surface-hover)]'"
                     @click="selectedAppeal = a">
                   <td>
                     <div class="font-medium text-sm">{{ a.studentName }}</div>
-                    <div class="text-xs text-(--text-muted)">{{ a.studentRollNumber }}</div>
+                    <div class="text-xs text-[var(--text-muted)]">{{ a.studentRollNumber }}</div>
                   </td>
-                  <td class="text-sm font-mono text-(--text-muted)">{{ a.maHoSo }}</td>
+                  <td class="text-sm font-mono text-[var(--text-muted)]">{{ a.maHoSo }}</td>
                   <td class="text-sm">{{ formatDate(a.ngayKhieuNai) }}</td>
                   <td>
                     <GlassBadge v-if="a.trangThai === 'pending'" variant="warning" size="sm">Chờ xử lý</GlassBadge>
@@ -251,26 +256,26 @@ const resolveAppeal = () => {
         </div>
 
         <!-- DETAILS PANEL -->
-        <div class="lg:col-span-1 bg-(--surface-card)">
+        <div class="lg:col-span-1 bg-[var(--surface-card)]">
           <!-- Empty -->
           <div v-if="(currentTab === 'records' && !selectedRecord) || (currentTab === 'appeals' && !selectedAppeal)" 
-               class="h-full flex items-center justify-center p-6 text-center text-(--text-muted) text-sm">
+               class="h-full flex items-center justify-center p-6 text-center text-[var(--text-muted)] text-sm">
             Bấm vào danh sách bên trái để xem chi tiết
           </div>
 
           <!-- Record Details -->
           <div v-if="currentTab === 'records' && selectedRecord" class="flex flex-col h-full">
-            <div class="p-5 border-b border-(--border-default) relative overflow-hidden">
-              <div v-if="selectedRecord.trangThai === 'active'" class="absolute top-0 left-0 w-1 h-full bg-(--color-danger-bg)"></div>
-              <h3 class="font-bold text-lg text-(--text-heading) leading-tight mb-3">{{ selectedRecord.tieuDe }}</h3>
+            <div class="p-5 border-b border-[var(--border-default)] relative overflow-hidden">
+              <div v-if="selectedRecord.trangThai === 'active'" class="absolute top-0 left-0 w-1 h-full bg-[var(--color-danger-bg)]"></div>
+              <h3 class="font-bold text-lg text-[var(--text-heading)] leading-tight mb-3">{{ selectedRecord.tieuDe }}</h3>
               
-              <div class="flex items-center gap-3 bg-(--surface-modal) p-3 rounded-lg border border-(--border-default)">
-                <div class="w-10 h-10 rounded-full bg-(--surface-input) flex items-center justify-center text-(--text-muted) shrink-0">
+              <div class="flex items-center gap-3 bg-[var(--surface-modal)] p-3 rounded-lg border border-[var(--border-default)]">
+                <div class="w-10 h-10 rounded-full bg-[var(--surface-input)] flex items-center justify-center text-[var(--text-muted)] shrink-0">
                   <UserX :size="20"/>
                 </div>
                 <div>
-                  <div class="font-semibold text-sm text-(--text-heading)">{{ selectedRecord.studentName }}</div>
-                  <div class="text-xs text-(--text-muted)">{{ selectedRecord.studentRollNumber }} • {{ selectedRecord.studentClass || 'N/A' }}</div>
+                  <div class="font-semibold text-sm text-[var(--text-heading)]">{{ selectedRecord.studentName }}</div>
+                  <div class="text-xs text-[var(--text-muted)]">{{ selectedRecord.studentRollNumber }} • {{ selectedRecord.studentClass || 'N/A' }}</div>
                 </div>
               </div>
             </div>
@@ -278,19 +283,19 @@ const resolveAppeal = () => {
             <div class="p-5 flex-1 overflow-y-auto space-y-4">
               <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <div class="text-xs text-(--text-muted) mb-1">Mức độ</div>
-                  <div class="font-medium text-sm text-(--text-heading)">{{ selectedRecord.mucDoKyLuat }}</div>
+                  <div class="text-xs text-[var(--text-muted)] mb-1">Mức độ</div>
+                  <div class="font-medium text-sm text-[var(--text-heading)]">{{ selectedRecord.mucDoKyLuat }}</div>
                 </div>
                 <div>
-                  <div class="text-xs text-(--text-muted) mb-1">Hình thức xử lý</div>
-                  <div class="font-medium text-sm text-(--text-heading)">{{ selectedRecord.hinhThucXuLy }}</div>
+                  <div class="text-xs text-[var(--text-muted)] mb-1">Hình thức xử lý</div>
+                  <div class="font-medium text-sm text-[var(--text-heading)]">{{ selectedRecord.hinhThucXuLy }}</div>
                 </div>
                 <div>
-                  <div class="text-xs text-(--text-muted) mb-1">Ngày vi phạm</div>
-                  <div class="text-sm text-(--text-body)">{{ formatDate(selectedRecord.ngayViPham) }}</div>
+                  <div class="text-xs text-[var(--text-muted)] mb-1">Ngày vi phạm</div>
+                  <div class="text-sm text-[var(--text-body)]">{{ formatDate(selectedRecord.ngayViPham) }}</div>
                 </div>
                 <div>
-                  <div class="text-xs text-(--text-muted) mb-1">Trạng thái</div>
+                  <div class="text-xs text-[var(--text-muted)] mb-1">Trạng thái</div>
                   <GlassBadge :variant="selectedRecord.trangThai === 'active' ? 'danger' : 'neutral'" size="sm">
                     {{ selectedRecord.trangThai === 'active' ? 'Đang hiệu lực' : 'Hết hiệu lực' }}
                   </GlassBadge>
@@ -298,15 +303,15 @@ const resolveAppeal = () => {
               </div>
 
               <div>
-                <div class="text-xs font-semibold text-(--text-muted) mb-2 uppercase tracking-wide">Mô tả vi phạm</div>
-                <div class="bg-(--surface-input) p-3 rounded text-sm text-(--text-body) border border-(--border-default) font-mono leading-relaxed">
+                <div class="text-xs font-semibold text-[var(--text-muted)] mb-2 uppercase tracking-wide">Mô tả vi phạm</div>
+                <div class="bg-[var(--surface-input)] p-3 rounded text-sm text-[var(--text-body)] border border-[var(--border-default)] font-mono leading-relaxed">
                   {{ selectedRecord.moTaCongKhai || selectedRecord.moTaNoiBo || 'Không có mô tả chi tiết.' }}
                 </div>
               </div>
             </div>
 
-            <div class="p-5 mt-auto bg-(--surface-modal) border-t border-(--border-default)">
-              <GlassButton v-if="selectedRecord.trangThai === 'active'" variant="secondary" class="w-full justify-center !text-(--color-danger-bg) !border-(--color-danger-bg) hover:!bg-red-500/10" @click="removeEffect">
+            <div class="p-5 mt-auto bg-[var(--surface-modal)] border-t border-[var(--border-default)]">
+              <GlassButton v-if="selectedRecord.trangThai === 'active'" variant="secondary" class="w-full justify-center !text-[var(--color-danger-bg)] !border-[var(--color-danger-bg)] hover:!bg-red-500/10" @click="removeEffect">
                 Gỡ hiệu lực sớm
               </GlassButton>
               <GlassButton v-else variant="secondary" class="w-full justify-center opacity-70" disabled>
@@ -317,52 +322,52 @@ const resolveAppeal = () => {
 
           <!-- Appeal Details -->
           <div v-if="currentTab === 'appeals' && selectedAppeal" class="flex flex-col h-full">
-            <div class="p-5 border-b border-(--border-default)">
+            <div class="p-5 border-b border-[var(--border-default)]">
               <div class="flex items-center justify-between mb-3">
-                <h3 class="font-bold text-lg text-(--text-heading)">Đơn khiếu nại</h3>
+                <h3 class="font-bold text-lg text-[var(--text-heading)]">Đơn khiếu nại</h3>
                 <GlassBadge v-if="selectedAppeal.trangThai === 'pending'" variant="warning">Chờ xử lý</GlassBadge>
                 <GlassBadge v-else-if="selectedAppeal.trangThai === 'resolved'" variant="success">Chấp nhận</GlassBadge>
                 <GlassBadge v-else variant="danger">Từ chối</GlassBadge>
               </div>
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-(--surface-input) border border-(--border-default) flex items-center justify-center shrink-0">
-                  <Scale :size="18" class="text-(--lg-primary)" />
+                <div class="w-10 h-10 rounded-full bg-[var(--surface-input)] border border-[var(--border-default)] flex items-center justify-center shrink-0">
+                  <Scale :size="18" class="text-[var(--lg-primary)]" />
                 </div>
                 <div>
                   <div class="font-semibold text-sm">{{ selectedAppeal.studentName }}</div>
-                  <div class="text-xs text-(--text-muted)">{{ selectedAppeal.studentRollNumber }}</div>
+                  <div class="text-xs text-[var(--text-muted)]">{{ selectedAppeal.studentRollNumber }}</div>
                 </div>
               </div>
             </div>
 
             <div class="p-5 flex-1 overflow-y-auto space-y-5">
               <div>
-                <div class="text-xs text-(--text-muted) mb-1">Mã hồ sơ liên quan</div>
+                <div class="text-xs text-[var(--text-muted)] mb-1">Mã hồ sơ liên quan</div>
                 <div class="font-mono text-sm">{{ selectedAppeal.maHoSo }}</div>
               </div>
               
               <div>
-                <div class="text-xs text-(--text-muted) mb-1">Lý do khiếu nại</div>
-                <div class="bg-(--surface-input) p-3 rounded-lg border border-(--border-default) text-sm text-(--text-body) leading-relaxed italic">
+                <div class="text-xs text-[var(--text-muted)] mb-1">Lý do khiếu nại</div>
+                <div class="bg-[var(--surface-input)] p-3 rounded-lg border border-[var(--border-default)] text-sm text-[var(--text-body)] leading-relaxed italic">
                   "{{ selectedAppeal.lyDoKhieuNai }}"
                 </div>
               </div>
 
               <!-- Resolve Form -->
-              <div v-if="selectedAppeal.trangThai === 'pending'" class="mt-6 border-t border-dashed border-(--border-default) pt-4">
-                <h4 class="font-medium text-sm text-(--text-heading) mb-3">Quyết định xử lý</h4>
+              <div v-if="selectedAppeal.trangThai === 'pending'" class="mt-6 border-t border-dashed border-[var(--border-default)] pt-4">
+                <h4 class="font-medium text-sm text-[var(--text-heading)] mb-3">Quyết định xử lý</h4>
                 
-                <div class="flex gap-2 mb-3 bg-(--surface-input) p-1 rounded-md border border-(--border-default)">
+                <div class="flex gap-2 mb-3 bg-[var(--surface-input)] p-1 rounded-md border border-[var(--border-default)]">
                   <button class="flex-1 py-1.5 rounded text-sm transition-colors"
-                          :class="appealResolution.status === 'resolved' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-medium' : 'text-(--text-muted)'"
+                          :class="appealResolution.status === 'resolved' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-medium' : 'text-[var(--text-muted)]'"
                           @click="appealResolution.status = 'resolved'">Chấp nhận</button>
                   <button class="flex-1 py-1.5 rounded text-sm transition-colors"
-                          :class="appealResolution.status === 'rejected' ? 'bg-red-500/20 text-red-600 dark:text-red-400 font-medium' : 'text-(--text-muted)'"
+                          :class="appealResolution.status === 'rejected' ? 'bg-red-500/20 text-red-600 dark:text-red-400 font-medium' : 'text-[var(--text-muted)]'"
                           @click="appealResolution.status = 'rejected'">Từ chối</button>
                 </div>
                 
                 <textarea v-model="appealResolution.reason" 
-                          class="w-full bg-(--surface-input) border border-(--border-default) rounded-md p-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-(--border-focus) mb-3 min-h-[80px]" 
+                          class="w-full bg-[var(--surface-input)] border border-[var(--border-default)] rounded-md p-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--border-focus)] mb-3 min-h-[80px]" 
                           placeholder="Ghi chú lý do giải quyết..."></textarea>
                 
                 <GlassButton :variant="appealResolution.status === 'resolved' ? 'primary' : 'danger'" class="w-full justify-center" @click="resolveAppeal">
@@ -371,13 +376,13 @@ const resolveAppeal = () => {
               </div>
 
               <!-- Solved State -->
-              <div v-else class="mt-6 bg-(--surface-modal) rounded-lg p-4 border border-(--border-default)">
+              <div v-else class="mt-6 bg-[var(--surface-modal)] rounded-lg p-4 border border-[var(--border-default)]">
                 <div class="flex items-center gap-2 mb-2">
                   <CheckCircle v-if="selectedAppeal.trangThai === 'resolved'" :size="16" class="text-emerald-500"/>
                   <FileText v-else :size="16" class="text-red-500"/>
                   <strong class="text-sm">Ghi chú giải quyết</strong>
                 </div>
-                <div class="text-sm text-(--text-body)">{{ selectedAppeal.ghiChuGiaiQuyet || 'Không có ghi chú.' }}</div>
+                <div class="text-sm text-[var(--text-body)]">{{ selectedAppeal.ghiChuGiaiQuyet || 'Không có ghi chú.' }}</div>
               </div>
             </div>
           </div>
@@ -397,3 +402,7 @@ const resolveAppeal = () => {
     />
   </div>
 </template>
+"""
+
+with open(filepath, "w", encoding="utf-8") as f:
+    f.write(content)

@@ -14,13 +14,13 @@ const history = ref([
 <template>
   <div class="notice-history max-w-7xl mx-auto space-y-6">
     <GlassPanel variant="flat" density="compact">
-      <h1 class="text-2xl font-bold text-[var(--text-heading)]">Lịch sử thông báo giáo vụ</h1>
-      <p class="text-[var(--text-body)]">Xem lại các thông báo đã gửi cho sinh viên, giảng viên.</p>
+      <h1 class="text-2xl font-bold text-(--text-heading)">Lịch sử thông báo giáo vụ</h1>
+      <p class="text-(--text-body)">Xem lại các thông báo đã gửi cho sinh viên, giảng viên.</p>
     </GlassPanel>
 
     <GlassPanel variant="flat" class="p-0 overflow-hidden">
-      <div class="p-4 border-b border-[var(--border-default)]">
-        <label class="flex items-center gap-2 bg-[var(--surface-input)] px-3 py-2 rounded border border-[var(--border-input)] max-w-md">
+      <div class="p-4 border-b border-(--border-default)">
+        <label class="flex items-center gap-2 bg-(--surface-input) px-3 py-2 rounded border border-(--border-input) max-w-md">
           <Search :size="16" />
           <input type="text" placeholder="Tìm theo tiêu đề..." class="bg-transparent border-none outline-none w-full" />
         </label>

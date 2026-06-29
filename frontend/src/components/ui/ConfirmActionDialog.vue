@@ -71,7 +71,7 @@ watch(
   <Teleport to="body">
     <div
       v-if="modelValue"
-      class="confirm-dialog fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4"
+      class="confirm-dialog fixed inset-0 z-(--z-modal) flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="dialogTitleId"

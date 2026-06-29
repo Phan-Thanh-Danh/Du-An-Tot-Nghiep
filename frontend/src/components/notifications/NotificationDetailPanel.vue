@@ -30,11 +30,11 @@ const safeBodyParagraphs = computed(() => {
         </GlassBadge>
       </div>
 
-      <h2 class="text-2xl font-semibold text-[var(--text-heading)] leading-tight">
+      <h2 class="text-2xl font-semibold text-(--text-heading) leading-tight">
         {{ notification.title }}
       </h2>
 
-      <div class="meta-row flex flex-wrap gap-4 text-sm text-[var(--text-muted)] pb-4 border-b border-[var(--border-default)]">
+      <div class="meta-row flex flex-wrap gap-4 text-sm text-(--text-muted) pb-4 border-b border-(--border-default)">
         <span class="flex items-center gap-1.5">
           <User :size="16" />
           {{ notification.sender || 'Hệ thống LMS' }}
@@ -46,12 +46,12 @@ const safeBodyParagraphs = computed(() => {
       </div>
     </div>
 
-    <div class="detail-body flex-1 text-[var(--text-body)] text-base leading-relaxed space-y-4">
+    <div class="detail-body flex-1 text-(--text-body) text-base leading-relaxed space-y-4">
       <!-- Safe rendering without v-html -->
       <p v-for="(p, index) in safeBodyParagraphs" :key="index">{{ p }}</p>
     </div>
 
-    <div v-if="notification.relatedPath" class="detail-footer pt-6 mt-auto border-t border-[var(--border-default)]">
+    <div v-if="notification.relatedPath" class="detail-footer pt-6 mt-auto border-t border-(--border-default)">
       <GlassButton variant="primary" :to="notification.relatedPath">
         <template #leading><ExternalLink :size="16" /></template>
         Đi đến chức năng liên quan

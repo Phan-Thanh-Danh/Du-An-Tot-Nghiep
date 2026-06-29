@@ -136,9 +136,9 @@ const stats = computed(() => {
 
 // ── Status helpers ───────────────────────────────────────────
 const STATUS_MAP = {
-  pending:  { label: 'Chờ duyệt',   dot: 'bg-[var(--lg-warning)]',  badge: 'lg-badge lg-badge-warning' },
-  returned: { label: 'Bị trả lại',  dot: 'bg-[var(--lg-danger)]',   badge: 'lg-badge border-[var(--color-danger-bg)] bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]' },
-  approved: { label: 'Đã duyệt',    dot: 'bg-[var(--lg-success)]',  badge: 'lg-badge lg-badge-success' },
+  pending:  { label: 'Chờ duyệt',   dot: 'bg-(--lg-warning)',  badge: 'lg-badge lg-badge-warning' },
+  returned: { label: 'Bị trả lại',  dot: 'bg-(--lg-danger)',   badge: 'lg-badge border-(--color-danger-bg) bg-(--color-danger-bg) text-(--color-danger-text)' },
+  approved: { label: 'Đã duyệt',    dot: 'bg-(--lg-success)',  badge: 'lg-badge lg-badge-success' },
 }
 const getStatusInfo = s => STATUS_MAP[s] || STATUS_MAP.pending
 
@@ -276,10 +276,10 @@ async function confirmNewSchedule() {
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div
           v-for="stat in [
-            { label: 'Tổng đã gửi',    value: stats.total,        color: 'text-[var(--color-info-text)]',    bg: 'bg-[var(--color-info-bg)]' },
-            { label: 'Đang chờ duyệt', value: stats.pending,      color: 'text-[var(--color-warning-text)]', bg: 'bg-[var(--color-warning-bg)]' },
-            { label: 'Bị trả lại',     value: stats.returned,     color: 'text-[var(--color-danger-text)]',  bg: 'bg-[var(--color-danger-bg)]' },
-            { label: 'Tổng số lớp',    value: stats.totalClasses, color: 'text-[var(--color-success-text)]', bg: 'bg-[var(--color-success-bg)]' },
+            { label: 'Tổng đã gửi',    value: stats.total,        color: 'text-(--color-info-text)',    bg: 'bg-(--color-info-bg)' },
+            { label: 'Đang chờ duyệt', value: stats.pending,      color: 'text-(--color-warning-text)', bg: 'bg-(--color-warning-bg)' },
+            { label: 'Bị trả lại',     value: stats.returned,     color: 'text-(--color-danger-text)',  bg: 'bg-(--color-danger-bg)' },
+            { label: 'Tổng số lớp',    value: stats.totalClasses, color: 'text-(--color-success-text)', bg: 'bg-(--color-success-bg)' },
           ]"
           :key="stat.label"
           :class="['rounded-2xl p-4 border border-default', stat.bg]"
@@ -341,13 +341,13 @@ async function confirmNewSchedule() {
             Bộ lọc
             <span
               v-if="activeFilterCount > 0"
-              class="inline-flex items-center justify-center h-4 w-4 rounded-full bg-[var(--lg-success)] text-white text-[10px] font-semibold"
+              class="inline-flex items-center justify-center h-4 w-4 rounded-full bg-(--lg-success) text-white text-[10px] font-semibold"
             >{{ activeFilterCount }}</span>
           </button>
 
           <button
             v-if="activeFilterCount > 0 || searchQuery"
-            class="text-xs font-bold text-placeholder hover:text-[var(--lg-danger)] transition-colors"
+            class="text-xs font-bold text-placeholder hover:text-(--lg-danger) transition-colors"
             @click="clearFilters(); searchQuery = ''"
           >Xóa bộ lọc</button>
         </div>
@@ -388,7 +388,7 @@ async function confirmNewSchedule() {
           :key="item.id"
           :class="[
             'lg-card surface-card group p-4 transition-all hover:-translate-y-0.5 hover:shadow-sm cursor-default',
-            item.status === 'returned' ? 'ring-1 ring-[var(--lg-danger)]/20' : ''
+            item.status === 'returned' ? 'ring-1 ring-(--lg-danger)/20' : ''
           ]"
         >
           <!-- Top accent bar -->
@@ -396,8 +396,8 @@ async function confirmNewSchedule() {
             :class="[
               'absolute top-0 left-0 right-0 h-1 rounded-t-[28px]',
               item.status === 'pending'
-                ? 'bg-[var(--lg-warning)]'
-                : 'bg-[var(--lg-danger)]'
+                ? 'bg-(--lg-warning)'
+                : 'bg-(--lg-danger)'
             ]"
           ></div>
 
@@ -409,8 +409,8 @@ async function confirmNewSchedule() {
                 :class="[
                   'h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 border',
                   item.status === 'pending'
-                    ? 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--color-warning-bg)]'
-                    : 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger-bg)]'
+                    ? 'bg-(--color-warning-bg) text-(--color-warning-text) border-(--color-warning-bg)'
+                    : 'bg-(--color-danger-bg) text-(--color-danger-text) border-(--color-danger-bg)'
                 ]"
               >
                 <Calendar :size="26" />
@@ -430,7 +430,7 @@ async function confirmNewSchedule() {
                   <span class="flex items-center gap-1.5 text-xs font-bold text-label">
                     <User :size="13" class="text-placeholder" /> {{ item.requester }}
                   </span>
-                  <span class="flex items-center gap-1.5 text-xs font-bold text-[var(--lg-primary)]">
+                  <span class="flex items-center gap-1.5 text-xs font-bold text-(--lg-primary)">
                     <MapPin :size="13" /> Lầu {{ item.floor }}
                   </span>
                 </div>
@@ -445,15 +445,15 @@ async function confirmNewSchedule() {
                   <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Số lớp</p>
                   <p class="text-xl font-semibold text-heading mt-0.5">{{ item.classCount }}</p>
                 </div>
-                <div class="w-px h-8 bg-[var(--border-default)]"></div>
+                <div class="w-px h-8 bg-(--border-default)"></div>
                 <div class="text-center">
                   <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Số tiết</p>
                   <p class="text-xl font-semibold text-heading mt-0.5">{{ item.scheduleCount }}</p>
                 </div>
-                <div v-if="item.conflictCount > 0" class="w-px h-8 bg-[var(--border-default)]"></div>
+                <div v-if="item.conflictCount > 0" class="w-px h-8 bg-(--border-default)"></div>
                 <div v-if="item.conflictCount > 0" class="text-center">
                   <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Xung đột</p>
-                  <p class="text-xl font-semibold text-[var(--lg-danger)] mt-0.5">{{ item.conflictCount }}</p>
+                  <p class="text-xl font-semibold text-(--lg-danger) mt-0.5">{{ item.conflictCount }}</p>
                 </div>
               </div>
 
@@ -461,7 +461,7 @@ async function confirmNewSchedule() {
               <div class="flex items-center gap-2">
                 <template v-if="item.status === 'pending'">
                   <button
-                    class="lg-button-secondary px-4 py-2.5 text-sm font-bold text-body hover:text-[var(--lg-danger)]"
+                    class="lg-button-secondary px-4 py-2.5 text-sm font-bold text-body hover:text-(--lg-danger)"
                     @click="openWithdraw(item)"
                     title="Thu hồi về trạng thái Draft"
                   >
@@ -491,10 +491,10 @@ async function confirmNewSchedule() {
 
           <!-- Returned note -->
           <Transition name="slide-down">
-            <div v-if="item.status === 'returned' && item.note" class="mt-4 p-4 rounded-2xl bg-[var(--color-danger-bg)] border border-default flex items-start gap-3">
-              <AlertTriangle :size="18" class="text-[var(--color-danger-text)] shrink-0 mt-0.5" />
+            <div v-if="item.status === 'returned' && item.note" class="mt-4 p-4 rounded-2xl bg-(--color-danger-bg) border border-default flex items-start gap-3">
+              <AlertTriangle :size="18" class="text-(--color-danger-text) shrink-0 mt-0.5" />
               <div>
-                <p class="text-xs font-semibold text-[var(--color-danger-text)] uppercase tracking-widest">Lý do trả lại</p>
+                <p class="text-xs font-semibold text-(--color-danger-text) uppercase tracking-widest">Lý do trả lại</p>
                 <p class="text-sm font-medium text-body mt-1 leading-relaxed">{{ item.note }}</p>
               </div>
             </div>
@@ -512,13 +512,13 @@ async function confirmNewSchedule() {
           </div>
           <p class="text-base font-semibold text-heading">Không tìm thấy bản TKB nào</p>
           <p class="text-sm text-label mt-1">Thử thay đổi từ khóa hoặc điều chỉnh bộ lọc.</p>
-          <button class="mt-4 text-sm font-bold text-[var(--lg-primary)] hover:underline" @click="clearFilters(); searchQuery = ''">Xóa tất cả bộ lọc</button>
+          <button class="mt-4 text-sm font-bold text-(--lg-primary) hover:underline" @click="clearFilters(); searchQuery = ''">Xóa tất cả bộ lọc</button>
         </div>
       </TransitionGroup>
 
       <!-- ── Workflow Note ─────────────────────────────── -->
       <div class="lg-glass-soft p-5 rounded-2xl flex gap-4">
-        <div class="h-11 w-11 rounded-2xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] shrink-0">
+        <div class="h-11 w-11 rounded-2xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) shrink-0">
           <Info :size="22" />
         </div>
         <div>
@@ -554,7 +554,7 @@ async function confirmNewSchedule() {
                 <p class="text-sm text-label mt-0.5">Lầu {{ selectedSchedule.floor }} · Gửi bởi {{ selectedSchedule.requester }}</p>
               </div>
               <button
-                class="h-9 w-9 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
+                class="h-9 w-9 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all"
                 @click="closeDetail"
               >
                 <X :size="18" />
@@ -574,7 +574,7 @@ async function confirmNewSchedule() {
             </div>
             <div class="surface-input rounded-xl p-3 border border-default text-center">
               <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Xung đột</p>
-              <p :class="['text-2xl font-semibold mt-1', selectedSchedule.conflictCount > 0 ? 'text-[var(--lg-danger)]' : 'text-[var(--lg-success)]']">
+              <p :class="['text-2xl font-semibold mt-1', selectedSchedule.conflictCount > 0 ? 'text-(--lg-danger)' : 'text-(--lg-success)']">
                 {{ selectedSchedule.conflictCount }}
               </p>
             </div>
@@ -595,7 +595,7 @@ async function confirmNewSchedule() {
                 class="surface-input rounded-xl p-4 border border-default flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:shadow-sm transition-all"
               >
                 <div class="flex items-center gap-3">
-                  <div class="h-10 w-10 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] shrink-0">
+                  <div class="h-10 w-10 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) shrink-0">
                     <BookOpen :size="18" />
                   </div>
                   <div>
@@ -636,7 +636,7 @@ async function confirmNewSchedule() {
               >Đóng</button>
               <button
                 v-if="selectedSchedule.status === 'pending'"
-                class="lg-button-secondary px-4 py-2.5 text-sm font-bold text-body hover:text-[var(--lg-danger)]"
+                class="lg-button-secondary px-4 py-2.5 text-sm font-bold text-body hover:text-(--lg-danger)"
                 @click="closeDetail(); openWithdraw(selectedSchedule)"
               >
                 <Undo2 :size="16" /> Thu hồi
@@ -662,7 +662,7 @@ async function confirmNewSchedule() {
 
         <div class="relative w-full max-w-md surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
           <div class="p-6 text-center">
-            <div class="h-16 w-16 rounded-3xl bg-[var(--color-danger-bg)] flex items-center justify-center text-[var(--color-danger-text)] mx-auto mb-4">
+            <div class="h-16 w-16 rounded-3xl bg-(--color-danger-bg) flex items-center justify-center text-(--color-danger-text) mx-auto mb-4">
               <Undo2 :size="28" />
             </div>
             <h3 class="text-xl font-semibold text-heading">Thu hồi TKB?</h3>
@@ -684,8 +684,8 @@ async function confirmNewSchedule() {
               :class="[
                 'px-6 py-2.5 rounded-[18px] text-sm font-bold text-white transition-all flex items-center gap-2',
                 isWithdrawing
-                  ? 'bg-[var(--lg-danger)] opacity-60 cursor-not-allowed'
-                  : 'bg-[var(--lg-danger)] hover:opacity-90 shadow-lg shadow-[var(--lg-danger)]/20'
+                  ? 'bg-(--lg-danger) opacity-60 cursor-not-allowed'
+                  : 'bg-(--lg-danger) hover:opacity-90 shadow-lg shadow-(--lg-danger)/20'
               ]"
               :disabled="isWithdrawing"
               @click="confirmWithdraw"
@@ -726,7 +726,7 @@ async function confirmNewSchedule() {
                 </div>
               </div>
               <button
-                class="h-8 w-8 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
+                class="h-8 w-8 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all"
                 @click="closeNewSchedule"
               >
                 <X :size="16" />
@@ -759,7 +759,7 @@ async function confirmNewSchedule() {
             <!-- Draft schedules summary -->
             <div class="surface-input rounded-2xl p-4 border border-default">
               <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)]">
+                <div class="h-10 w-10 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text)">
                   <Layers :size="18" />
                 </div>
                 <div>
@@ -769,9 +769,9 @@ async function confirmNewSchedule() {
                   </p>
                 </div>
               </div>
-              <div v-if="draftEvents === 0" class="mt-3 flex items-start gap-2 p-3 rounded-xl bg-[var(--color-warning-bg)]">
-                <AlertTriangle :size="14" class="text-[var(--color-warning-text)] shrink-0 mt-0.5" />
-                <p class="text-xs font-medium text-[var(--color-warning-text)]">
+              <div v-if="draftEvents === 0" class="mt-3 flex items-start gap-2 p-3 rounded-xl bg-(--color-warning-bg)">
+                <AlertTriangle :size="14" class="text-(--color-warning-text) shrink-0 mt-0.5" />
+                <p class="text-xs font-medium text-(--color-warning-text)">
                   Không có lịch học bản nháp nào để gửi duyệt. Vui lòng tạo lịch trước trong phần <strong class="font-semibold">Quản lý TKB</strong>.
                 </p>
               </div>

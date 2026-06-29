@@ -24,9 +24,9 @@ const conflicts = ref([
 
 const getSeverityClass = (severity) => {
   switch (severity) {
-    case 'critical': return 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger-text)]/20'
-    case 'major': return 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--color-warning-text)]/20'
-    case 'minor': return 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-info-text)]/20'
+    case 'critical': return 'bg-(--color-danger-bg) text-(--color-danger-text) border-(--color-danger-text)/20'
+    case 'major': return 'bg-(--color-warning-bg) text-(--color-warning-text) border-(--color-warning-text)/20'
+    case 'minor': return 'bg-(--color-info-bg) text-(--color-info-text) border-(--color-info-text)/20'
     default: return 'surface-solid text-muted border-default'
   }
 }
@@ -41,30 +41,30 @@ const getSeverityClass = (severity) => {
       
       <!-- ── Stats Grid ── -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="surface-card border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)] rounded-2xl p-4 flex items-center gap-5">
-           <div class="h-10 w-10 rounded-2xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-danger-text)] shadow-sm border border-[var(--color-danger-text)]/20">
+        <div class="surface-card border border-(--color-danger-text)/20 bg-(--color-danger-bg) rounded-2xl p-4 flex items-center gap-5">
+           <div class="h-10 w-10 rounded-2xl bg-(--surface-card) flex items-center justify-center text-(--color-danger-text) shadow-sm border border-(--color-danger-text)/20">
               <ShieldAlert :size="24" />
            </div>
            <div>
-              <p class="text-[10px] font-semibold text-[var(--color-danger-text)] uppercase tracking-widest">Nghiêm trọng</p>
+              <p class="text-[10px] font-semibold text-(--color-danger-text) uppercase tracking-widest">Nghiêm trọng</p>
               <h3 class="text-xl font-semibold text-heading leading-tight">02</h3>
            </div>
         </div>
-        <div class="surface-card border border-[var(--color-warning-text)]/20 bg-[var(--color-warning-bg)] rounded-2xl p-4 flex items-center gap-5">
-           <div class="h-10 w-10 rounded-2xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-warning-text)] shadow-sm border border-[var(--color-warning-text)]/20">
+        <div class="surface-card border border-(--color-warning-text)/20 bg-(--color-warning-bg) rounded-2xl p-4 flex items-center gap-5">
+           <div class="h-10 w-10 rounded-2xl bg-(--surface-card) flex items-center justify-center text-(--color-warning-text) shadow-sm border border-(--color-warning-text)/20">
               <AlertTriangle :size="24" />
            </div>
            <div>
-              <p class="text-[10px] font-semibold text-[var(--color-warning-text)] uppercase tracking-widest">Trung bình</p>
+              <p class="text-[10px] font-semibold text-(--color-warning-text) uppercase tracking-widest">Trung bình</p>
               <h3 class="text-xl font-semibold text-heading leading-tight">01</h3>
            </div>
         </div>
-        <div class="surface-card border border-[var(--color-info-text)]/20 bg-[var(--color-info-bg)] rounded-2xl p-4 flex items-center gap-5">
-           <div class="h-10 w-10 rounded-2xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-info-text)] shadow-sm border border-[var(--color-info-text)]/20">
+        <div class="surface-card border border-(--color-info-text)/20 bg-(--color-info-bg) rounded-2xl p-4 flex items-center gap-5">
+           <div class="h-10 w-10 rounded-2xl bg-(--surface-card) flex items-center justify-center text-(--color-info-text) shadow-sm border border-(--color-info-text)/20">
               <Zap :size="24" />
            </div>
            <div>
-              <p class="text-[10px] font-semibold text-[var(--color-info-text)] uppercase tracking-widest">Lỗi nhẹ</p>
+              <p class="text-[10px] font-semibold text-(--color-info-text) uppercase tracking-widest">Lỗi nhẹ</p>
               <h3 class="text-xl font-semibold text-heading leading-tight">01</h3>
            </div>
         </div>
@@ -75,7 +75,7 @@ const getSeverityClass = (severity) => {
         <div class="flex flex-wrap items-center gap-3 flex-1">
            <div class="relative max-w-sm w-full">
               <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
-              <input type="text" placeholder="Tìm theo đối tượng, loại xung đột..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-[var(--border-input-focus)]">
+              <input type="text" placeholder="Tìm theo đối tượng, loại xung đột..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-(--border-input-focus)">
            </div>
            <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
               <Filter :size="18" /> Lọc mức độ
@@ -99,7 +99,7 @@ const getSeverityClass = (severity) => {
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
-            <tr v-for="cf in conflicts" :key="cf.id" class="group hover:bg-[var(--surface-input)] transition-colors">
+            <tr v-for="cf in conflicts" :key="cf.id" class="group hover:bg-(--surface-input) transition-colors">
               <td class="px-4 py-3">
                  <p class="text-sm font-semibold text-heading leading-tight">{{ cf.type }}</p>
                  <p class="text-[10px] font-bold text-muted mt-1 uppercase tracking-tighter">{{ cf.id }}</p>
@@ -124,10 +124,10 @@ const getSeverityClass = (severity) => {
               </td>
               <td class="px-4 py-3 text-right">
                 <div class="flex items-center justify-end gap-1">
-                  <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-muted transition-all" title="Gửi thông báo nhắc nhở">
+                  <button class="p-2 hover:bg-(--color-info-bg) hover:text-(--color-info-text) rounded-lg text-muted transition-all" title="Gửi thông báo nhắc nhở">
                     <Bell :size="18" />
                   </button>
-                  <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-muted transition-all">
+                  <button class="p-2 hover:bg-(--surface-input) rounded-lg text-muted transition-all">
                     <ArrowRight :size="18" />
                   </button>
                 </div>

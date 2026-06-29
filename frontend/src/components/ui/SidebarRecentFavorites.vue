@@ -28,13 +28,13 @@ function getIcon(name) {
         <div
           v-for="page in store.favoritePages"
           :key="page.path"
-          class="group flex w-full cursor-pointer items-center gap-2 rounded-[var(--radius-md)] px-2.5 py-1 text-left text-[11px] font-semibold text-label transition-all hover:bg-[var(--surface-card-hover)] hover:text-heading"
+          class="group flex w-full cursor-pointer items-center gap-2 rounded-(--radius-md) px-2.5 py-1 text-left text-[11px] font-semibold text-label transition-all hover:bg-(--surface-card-hover) hover:text-heading"
           @click="navigate(page.path)"
         >
           <component :is="getIcon(page.icon)" :size="14" class="flex-shrink-0 text-muted" />
           <span class="flex-1 truncate">{{ page.label }}</span>
           <button
-            class="flex h-5 w-5 items-center justify-center rounded-full opacity-0 transition-all hover:bg-[var(--color-warning-bg)] hover:text-[var(--color-warning-text)] group-hover:opacity-100"
+            class="flex h-5 w-5 items-center justify-center rounded-full opacity-0 transition-all hover:bg-(--color-warning-bg) hover:text-(--color-warning-text) group-hover:opacity-100"
             @click.stop="store.toggleFavorite(page.path)"
             title="Bỏ yêu thích"
           >
@@ -51,13 +51,13 @@ function getIcon(name) {
         <div
           v-for="page in store.recentPages.slice(0, 5)"
           :key="page.path"
-          class="group flex w-full cursor-pointer items-center gap-2 rounded-[var(--radius-md)] px-2.5 py-1 text-left text-[11px] font-semibold text-muted transition-all hover:bg-[var(--surface-card-hover)] hover:text-label"
+          class="group flex w-full cursor-pointer items-center gap-2 rounded-(--radius-md) px-2.5 py-1 text-left text-[11px] font-semibold text-muted transition-all hover:bg-(--surface-card-hover) hover:text-label"
           @click="navigate(page.path)"
         >
           <component :is="getIcon(page.icon)" :size="14" class="flex-shrink-0 text-muted" />
           <span class="flex-1 truncate">{{ page.label }}</span>
           <button
-            class="flex h-5 w-5 items-center justify-center rounded-full text-muted opacity-0 transition-all hover:bg-[var(--color-warning-bg)] hover:text-[var(--color-warning-text)] group-hover:opacity-100"
+            class="flex h-5 w-5 items-center justify-center rounded-full text-muted opacity-0 transition-all hover:bg-(--color-warning-bg) hover:text-(--color-warning-text) group-hover:opacity-100"
             @click.stop="store.toggleFavorite(page.path)"
             :title="store.isFavorite(page.path) ? 'Bỏ yêu thích' : 'Thêm yêu thích'"
           >

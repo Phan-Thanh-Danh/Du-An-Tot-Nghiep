@@ -1,12 +1,17 @@
-<script setup>
+import os
+
+filepath = r"c:\Users\lapto\OneDrive\Desktop\Du-An-Tot-Nghiep\frontend\src\views\SuperAdmin\AwardsView.vue"
+
+content = """<script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Award, Search, Users } from 'lucide-vue-next'
+import { Award, Search, FileX, Trophy, Users, CheckCircle, Clock } from 'lucide-vue-next'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import { rewardDisciplineMockService } from '@/mocks/rewardDisciplineMockService'
 import { usePopupStore } from '@/stores/popup'
 
@@ -98,37 +103,37 @@ const approveCampaign = () => {
     <GlassPanel variant="flat" density="compact">
       <div class="flex items-center gap-3 mb-2">
         <Award class="text-amber-500" :size="24" />
-        <h1 class="text-2xl font-bold text-(--text-heading)">Quản lý Khen Thưởng</h1>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)]">Quản lý Khen Thưởng</h1>
       </div>
-      <p class="text-(--text-body)">Quản lý các đợt khen thưởng, xét duyệt ứng viên và cấp phát chứng nhận.</p>
+      <p class="text-[var(--text-body)]">Quản lý các đợt khen thưởng, xét duyệt ứng viên và cấp phát chứng nhận.</p>
     </GlassPanel>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[90px] border-l-4 border-(--border-default)">
-        <p class="text-sm font-medium text-(--text-muted) mb-1">Tổng đợt khen thưởng</p>
-        <strong class="text-2xl text-(--text-heading)">{{ campaigns.length }}</strong>
+      <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[90px] border-l-4 border-[var(--border-default)]">
+        <p class="text-sm font-medium text-[var(--text-muted)] mb-1">Tổng đợt khen thưởng</p>
+        <strong class="text-2xl text-[var(--text-heading)]">{{ campaigns.length }}</strong>
       </GlassPanel>
       <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[90px] border-l-4 border-blue-500">
-        <p class="text-sm font-medium text-(--text-muted) mb-1">Chờ xét duyệt</p>
-        <strong class="text-2xl text-(--text-heading)">{{ campaigns.filter(c => c.trangThai === 'evaluating').length }}</strong>
+        <p class="text-sm font-medium text-[var(--text-muted)] mb-1">Chờ xét duyệt</p>
+        <strong class="text-2xl text-[var(--text-heading)]">{{ campaigns.filter(c => c.trangThai === 'evaluating').length }}</strong>
       </GlassPanel>
       <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[90px] border-l-4 border-emerald-500">
-        <p class="text-sm font-medium text-(--text-muted) mb-1">Đã chốt danh sách</p>
-        <strong class="text-2xl text-(--text-heading)">{{ campaigns.filter(c => c.trangThai === 'approved' || c.trangThai === 'completed').length }}</strong>
+        <p class="text-sm font-medium text-[var(--text-muted)] mb-1">Đã chốt danh sách</p>
+        <strong class="text-2xl text-[var(--text-heading)]">{{ campaigns.filter(c => c.trangThai === 'approved' || c.trangThai === 'completed').length }}</strong>
       </GlassPanel>
       <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[90px] border-l-4 border-amber-500">
-        <p class="text-sm font-medium text-(--text-muted) mb-1">Bằng khen lỗi</p>
-        <strong class="text-2xl text-(--text-heading)">0</strong>
+        <p class="text-sm font-medium text-[var(--text-muted)] mb-1">Bằng khen lỗi</p>
+        <strong class="text-2xl text-[var(--text-heading)]">0</strong>
       </GlassPanel>
     </div>
 
     <GlassPanel variant="flat" class="p-0 overflow-hidden">
-      <div class="p-4 border-b border-(--border-default) flex flex-wrap gap-4 items-center">
-        <label class="flex items-center gap-2 bg-(--surface-input) px-3 h-10 rounded-lg border border-(--border-input) flex-1 min-w-[200px] focus-within:ring-2 focus-within:ring-(--border-focus) transition-shadow">
-          <Search :size="16" class="text-(--text-muted)" />
-          <input v-model="searchQuery" type="text" placeholder="Tìm theo tên đợt, học kỳ..." class="bg-transparent border-none outline-none w-full text-sm text-(--text-body)" />
+      <div class="p-4 border-b border-[var(--border-default)] flex flex-wrap gap-4 items-center">
+        <label class="flex items-center gap-2 bg-[var(--surface-input)] px-3 h-10 rounded-lg border border-[var(--border-input)] flex-1 min-w-[200px] focus-within:ring-2 focus-within:ring-[var(--border-focus)] transition-shadow">
+          <Search :size="16" class="text-[var(--text-muted)]" />
+          <input v-model="searchQuery" type="text" placeholder="Tìm theo tên đợt, học kỳ..." class="bg-transparent border-none outline-none w-full text-sm text-[var(--text-body)]" />
         </label>
-        <select v-model="filter" class="h-10 px-3 py-0 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow min-w-[150px]">
+        <select v-model="filter" class="h-10 px-3 py-0 bg-[var(--surface-input)] border border-[var(--border-input)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--border-focus)] outline-none transition-shadow min-w-[150px]">
           <option value="all">Tất cả trạng thái</option>
           <option value="evaluating">Đang xét duyệt</option>
           <option value="approved">Đã duyệt (Chờ cấp bằng)</option>
@@ -138,7 +143,7 @@ const approveCampaign = () => {
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 min-h-[500px]">
-        <div class="lg:col-span-2 border-r border-(--border-default) overflow-x-auto relative">
+        <div class="lg:col-span-2 border-r border-[var(--border-default)] overflow-x-auto relative">
           <TableShell v-if="filteredCampaigns.length > 0">
             <table>
               <thead>
@@ -153,8 +158,8 @@ const approveCampaign = () => {
                 <tr v-for="cmp in filteredCampaigns" :key="cmp.id" 
                     @click="selectCampaign(cmp)"
                     class="cursor-pointer transition-colors"
-                    :class="selectedCampaign?.id === cmp.id ? 'bg-(--surface-hover)' : 'hover:bg-(--surface-hover)'">
-                  <td class="whitespace-nowrap font-mono text-sm text-(--text-muted)">{{ cmp.maDot }}</td>
+                    :class="selectedCampaign?.id === cmp.id ? 'bg-[var(--surface-hover)]' : 'hover:bg-[var(--surface-hover)]'">
+                  <td class="whitespace-nowrap font-mono text-sm text-[var(--text-muted)]">{{ cmp.maDot }}</td>
                   <td class="font-medium max-w-[200px] truncate" :title="cmp.tenDot">{{ cmp.tenDot }}</td>
                   <td class="text-sm">{{ cmp.hocKy }}</td>
                   <td>
@@ -171,49 +176,49 @@ const approveCampaign = () => {
           </div>
         </div>
 
-        <div class="lg:col-span-1 bg-(--surface-card)">
-          <div v-if="!selectedCampaign" class="h-full flex items-center justify-center p-6 text-center text-(--text-muted) text-sm">
+        <div class="lg:col-span-1 bg-[var(--surface-card)]">
+          <div v-if="!selectedCampaign" class="h-full flex items-center justify-center p-6 text-center text-[var(--text-muted)] text-sm">
             Chọn một đợt khen thưởng bên trái để xem chi tiết
           </div>
           <div v-else class="flex flex-col h-full">
-            <div class="p-5 border-b border-(--border-default)">
-              <h3 class="font-bold text-lg text-(--text-heading) leading-tight mb-2">{{ selectedCampaign.tenDot }}</h3>
+            <div class="p-5 border-b border-[var(--border-default)]">
+              <h3 class="font-bold text-lg text-[var(--text-heading)] leading-tight mb-2">{{ selectedCampaign.tenDot }}</h3>
               <div class="flex items-center gap-2 mb-4">
                 <GlassBadge v-if="selectedCampaign.trangThai === 'approved'" variant="warning" size="sm">Đã chốt danh sách</GlassBadge>
                 <GlassBadge v-else-if="selectedCampaign.trangThai === 'evaluating'" variant="info" size="sm">Đang xét duyệt</GlassBadge>
                 <GlassBadge v-else variant="success" size="sm">Hoàn tất bằng khen</GlassBadge>
-                <span class="text-xs text-(--text-muted) font-mono">{{ selectedCampaign.maDot }}</span>
+                <span class="text-xs text-[var(--text-muted)] font-mono">{{ selectedCampaign.maDot }}</span>
               </div>
               <div class="space-y-2 text-sm">
-                <div class="flex justify-between"><span class="text-(--text-muted)">Học kỳ</span><span class="font-medium text-(--text-body)">{{ selectedCampaign.hocKy }}</span></div>
-                <div class="flex justify-between"><span class="text-(--text-muted)">Đơn vị</span><span class="font-medium text-(--text-body)">{{ selectedCampaign.donVi || 'Toàn trường' }}</span></div>
+                <div class="flex justify-between"><span class="text-[var(--text-muted)]">Học kỳ</span><span class="font-medium text-[var(--text-body)]">{{ selectedCampaign.hocKy }}</span></div>
+                <div class="flex justify-between"><span class="text-[var(--text-muted)]">Đơn vị</span><span class="font-medium text-[var(--text-body)]">{{ selectedCampaign.donVi || 'Toàn trường' }}</span></div>
               </div>
             </div>
 
-            <div class="p-5 border-b border-(--border-default)">
-              <h4 class="font-semibold text-sm text-(--text-heading) mb-3 flex items-center gap-2"><Users :size="16"/> Số liệu ứng viên</h4>
+            <div class="p-5 border-b border-[var(--border-default)]">
+              <h4 class="font-semibold text-sm text-[var(--text-heading)] mb-3 flex items-center gap-2"><Users :size="16"/> Số liệu ứng viên</h4>
               <div class="grid grid-cols-2 gap-3 mb-4">
-                <div class="bg-(--surface-input) p-3 rounded-lg border border-(--border-default) text-center">
-                  <div class="text-2xl font-bold text-(--text-heading)">{{ selectedCampaign.tongUngVien }}</div>
-                  <div class="text-xs text-(--text-muted)">Tổng ứng viên</div>
+                <div class="bg-[var(--surface-input)] p-3 rounded-lg border border-[var(--border-default)] text-center">
+                  <div class="text-2xl font-bold text-[var(--text-heading)]">{{ selectedCampaign.tongUngVien }}</div>
+                  <div class="text-xs text-[var(--text-muted)]">Tổng ứng viên</div>
                 </div>
-                <div class="bg-(--surface-input) p-3 rounded-lg border border-(--border-default) text-center">
+                <div class="bg-[var(--surface-input)] p-3 rounded-lg border border-[var(--border-default)] text-center">
                   <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ selectedCampaign.daDuyet }}</div>
-                  <div class="text-xs text-(--text-muted)">Đã duyệt</div>
+                  <div class="text-xs text-[var(--text-muted)]">Đã duyệt</div>
                 </div>
               </div>
-              <div class="text-sm font-medium text-(--text-body) mb-2">Ứng viên nổi bật (Top 3)</div>
+              <div class="text-sm font-medium text-[var(--text-body)] mb-2">Ứng viên nổi bật (Top 3)</div>
               <div class="space-y-2">
-                <div v-for="c in candidates" :key="c.id" class="flex items-center justify-between bg-(--surface-modal) p-2 rounded border border-(--border-default) text-sm">
+                <div v-for="c in candidates" :key="c.id" class="flex items-center justify-between bg-[var(--surface-modal)] p-2 rounded border border-[var(--border-default)] text-sm">
                   <div class="flex items-center gap-2">
                     <span class="flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-bold text-[10px]">{{ c.rank }}</span>
                     <div>
-                      <div class="font-medium text-(--text-heading) line-clamp-1">{{ c.name }}</div>
-                      <div class="text-[10px] text-(--text-muted)">{{ c.rollNum }} • {{ c.class }}</div>
+                      <div class="font-medium text-[var(--text-heading)] line-clamp-1">{{ c.name }}</div>
+                      <div class="text-[10px] text-[var(--text-muted)]">{{ c.rollNum }} • {{ c.class }}</div>
                     </div>
                   </div>
                   <div class="text-right">
-                    <div class="font-bold text-(--lg-primary)">{{ c.gpa }}</div>
+                    <div class="font-bold text-[var(--lg-primary)]">{{ c.gpa }}</div>
                     <div class="text-[10px]" :class="c.status === 'approved' ? 'text-emerald-500' : 'text-blue-500'">{{ c.status === 'approved' ? 'Đã duyệt' : 'Đang xét' }}</div>
                   </div>
                 </div>
@@ -221,7 +226,7 @@ const approveCampaign = () => {
               <GlassButton variant="ghost" size="sm" class="w-full mt-3 text-sm justify-center">Xem toàn bộ danh sách</GlassButton>
             </div>
 
-            <div class="p-5 mt-auto bg-(--surface-modal)">
+            <div class="p-5 mt-auto bg-[var(--surface-modal)]">
               <div class="flex flex-col gap-2">
                 <GlassButton v-if="selectedCampaign.trangThai === 'evaluating'" variant="primary" class="w-full justify-center" @click="approveCampaign">
                   Chốt danh sách khen thưởng
@@ -254,3 +259,7 @@ const approveCampaign = () => {
     />
   </div>
 </template>
+"""
+
+with open(filepath, "w", encoding="utf-8") as f:
+    f.write(content)

@@ -94,7 +94,7 @@ function logout() {
       <button
         :title="collapsed ? 'Trợ giúp' : ''"
         :class="[
-          'lg-sidebar-item group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-sm text-label focus:outline-none focus:ring-[var(--sidebar-focus-ring)]',
+          'lg-sidebar-item group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-sm text-label focus:outline-none focus:ring-(--sidebar-focus-ring)',
           collapsed ? 'justify-center' : '',
         ]"
         aria-label="Trợ giúp"
@@ -124,7 +124,7 @@ function logout() {
     >
       <div :class="['lg-nav flex items-center gap-2 rounded-xl p-2', collapsed ? '' : 'w-full']">
         <!-- Avatar với màu violet cho Admin -->
-        <div class="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-purple-600 dark:from-violet-600/80 dark:to-purple-600/80 text-xs font-bold text-white shadow-lg shadow-violet-500/20 dark:shadow-violet-500/10 ring-2 ring-[var(--border-card)]">
+        <div class="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-purple-600 dark:from-violet-600/80 dark:to-purple-600/80 text-xs font-bold text-white shadow-lg shadow-violet-500/20 dark:shadow-violet-500/10 ring-2 ring-(--border-card)">
           <span>{{ authStore.initials || mockAdminUser.initials }}</span>
           <!-- Badge "SA" nhỏ biểu thị Super Admin -->
           <span class="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white dark:border-slate-800 bg-violet-600 text-[6px] font-black text-white">SA</span>
@@ -144,7 +144,7 @@ function logout() {
 
     <!-- ──────────── TOGGLE BUTTON ──────────── -->
     <button
-      class="absolute -right-3.5 top-[56px] z-[60] flex h-6 w-6 items-center justify-center rounded-full border border-card surface-elevated text-muted shadow-lg shadow-slate-900/10 dark:shadow-slate-900/40 backdrop-blur-xl transition-all hover:border-[var(--sidebar-accent)]/40 dark:hover:border-[var(--sidebar-accent-dark)]/30 hover:text-[var(--sidebar-accent)] dark:hover:text-[var(--sidebar-accent-dark)] focus:outline-none focus:ring-[var(--sidebar-focus-ring)]"
+      class="absolute -right-3.5 top-[56px] z-[60] flex h-6 w-6 items-center justify-center rounded-full border border-card surface-elevated text-muted shadow-lg shadow-slate-900/10 dark:shadow-slate-900/40 backdrop-blur-xl transition-all hover:border-(--sidebar-accent)/40 dark:hover:border-(--sidebar-accent-dark)/30 hover:text-(--sidebar-accent) dark:hover:text-(--sidebar-accent-dark) focus:outline-none focus:ring-(--sidebar-focus-ring)"
       :title="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       :aria-label="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       @click="emit('toggle')"

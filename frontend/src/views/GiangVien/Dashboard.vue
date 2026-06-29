@@ -12,10 +12,10 @@
             Hôm nay có 2 ca dạy và 24 bài đang chờ chấm.
           </p>
           <div class="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
-            <router-link to="/teacher/schedule" class="rounded-lg bg-[var(--accent-primary)] px-4 py-2 text-xs font-bold text-white shadow-lg hover:opacity-90 transition-all active:scale-95">
+            <router-link to="/teacher/schedule" class="rounded-lg bg-(--accent-primary) px-4 py-2 text-xs font-bold text-white shadow-lg hover:opacity-90 transition-all active:scale-95">
               Xem lịch dạy
             </router-link>
-            <router-link to="/teacher/grading" class="rounded-lg bg-[var(--accent-primary)]/10 px-4 py-2 text-xs font-bold text-link border border-[var(--accent-primary)]/30 hover:bg-[var(--accent-primary)]/20 transition-all">
+            <router-link to="/teacher/grading" class="rounded-lg bg-(--accent-primary)/10 px-4 py-2 text-xs font-bold text-link border border-(--accent-primary)/30 hover:bg-(--accent-primary)/20 transition-all">
               Chấm điểm ngay
             </router-link>
           </div>
@@ -36,7 +36,7 @@
           <div :class="['flex h-11 w-11 items-center justify-center rounded-xl transition-transform group-hover:scale-110', item.bgColor, item.iconColor]">
             <component :is="item.icon" :size="22" stroke-width="2.2" />
           </div>
-          <div :class="['flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold', item.isNegative ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]' : 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]']">
+          <div :class="['flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold', item.isNegative ? 'bg-(--color-danger-bg) text-(--color-danger-text)' : 'bg-(--color-success-bg) text-(--color-success-text)']">
             {{ item.trend }}
             <ArrowUpRight v-if="!item.isNegative" :size="11" />
             <AlertCircle v-else :size="11" />
@@ -66,8 +66,8 @@
           </div>
           <div class="p-3 space-y-2">
             <div v-for="item in teachingSchedule" :key="item.id"
-                 class="group flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-xl border border-card p-3 transition-all hover:border-[var(--accent-primary)]/30 hover:bg-[var(--accent-primary)]/5">
-              <div class="flex h-9 w-9 flex-shrink-0 flex-col items-center justify-center rounded-lg bg-[var(--accent-primary)]/10 text-link font-bold border border-[var(--accent-primary)]/20">
+                 class="group flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-xl border border-card p-3 transition-all hover:border-(--accent-primary)/30 hover:bg-(--accent-primary)/5">
+              <div class="flex h-9 w-9 flex-shrink-0 flex-col items-center justify-center rounded-lg bg-(--accent-primary)/10 text-link font-bold border border-(--accent-primary)/20">
                 <span class="text-[8px] font-bold uppercase tracking-tighter leading-tight">{{ item.time.split(' ')[0] }}</span>
                 <span class="text-[8px] font-semibold leading-tight">AM</span>
               </div>
@@ -75,7 +75,7 @@
                 <h3 class="text-sm font-bold text-heading truncate group-hover:text-link transition-colors">{{ item.subject }}</h3>
                 <div class="flex items-center gap-2 mt-0.5">
                   <span class="text-[11px] text-label font-medium">{{ item.code }}</span>
-                  <span class="h-1 w-1 rounded-full bg-[var(--border-default)]"></span>
+                  <span class="h-1 w-1 rounded-full bg-(--border-default)"></span>
                   <span class="text-[11px] text-label font-medium">{{ item.room }}</span>
                 </div>
               </div>
@@ -100,7 +100,7 @@
               <option>CTDL101_L01</option>
             </select>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 divide-x divide-[var(--border-card)]">
+          <div class="grid grid-cols-1 md:grid-cols-2 divide-x divide-(--border-card)">
             <div class="p-3">
               <div class="flex items-center justify-between mb-3">
                 <h3 class="text-xs font-bold text-body">Tỷ lệ nộp bài</h3>
@@ -150,7 +150,7 @@
           <div class="space-y-2">
             <div v-for="sub in recentSubmissions" :key="sub.id"
                  class="flex items-start gap-2 rounded-lg border border-card surface-card p-2.5 transition-all hover:shadow-md group">
-              <div class="mt-0.5 h-8 w-8 shrink-0 rounded-lg bg-[var(--accent-primary)]/10 flex items-center justify-center text-link">
+              <div class="mt-0.5 h-8 w-8 shrink-0 rounded-lg bg-(--accent-primary)/10 flex items-center justify-center text-link">
                 <User :size="14" />
               </div>
               <div class="flex-1 min-w-0">
@@ -163,7 +163,7 @@
               </div>
             </div>
           </div>
-          <button class="mt-3 w-full rounded-lg bg-[var(--accent-primary)]/10 py-2 text-[10px] font-bold text-link hover:bg-[var(--accent-primary)]/20 transition-colors">Xem tất cả bài nộp</button>
+          <button class="mt-3 w-full rounded-lg bg-(--accent-primary)/10 py-2 text-[10px] font-bold text-link hover:bg-(--accent-primary)/20 transition-colors">Xem tất cả bài nộp</button>
         </div>
 
         <!-- Teaching Stats -->
@@ -197,7 +197,7 @@
           </div>
           <div class="space-y-2">
             <div class="flex gap-2">
-              <div class="h-8 w-8 rounded-full bg-[var(--color-success-bg)] flex items-center justify-center text-[var(--color-success-text)] shrink-0">
+              <div class="h-8 w-8 rounded-full bg-(--color-success-bg) flex items-center justify-center text-(--color-success-text) shrink-0">
                 <Users :size="14" />
               </div>
               <div>
@@ -206,7 +206,7 @@
               </div>
             </div>
           </div>
-          <button class="mt-3 w-full rounded-lg bg-[var(--surface-input)] py-2 text-[10px] font-bold text-muted hover:opacity-80 transition-colors">Tất cả thông báo</button>
+          <button class="mt-3 w-full rounded-lg bg-(--surface-input) py-2 text-[10px] font-bold text-muted hover:opacity-80 transition-colors">Tất cả thông báo</button>
         </div>
 
       </div>
@@ -223,10 +223,10 @@ import {
 } from 'lucide-vue-next'
 
 const stats = [
-  { id: 1, label: 'Tổng sinh viên', value: '452', trend: '+12%', isNegative: false, bgColor: 'bg-[var(--accent-primary-soft)]', iconColor: 'text-[var(--text-link)]', icon: Users },
-  { id: 2, label: 'Lớp đang dạy', value: '8', trend: 'Học kỳ 2', isNegative: false, bgColor: 'bg-[var(--accent-primary-soft)]', iconColor: 'text-[var(--text-link)]', icon: BookOpen },
-  { id: 3, label: 'Bài chờ chấm', value: '24', trend: '6 bài gấp', isNegative: true, bgColor: 'bg-[var(--accent-primary-soft)]', iconColor: 'text-[var(--text-link)]', icon: ClipboardCheck },
-  { id: 4, label: 'Hiệu suất lớp', value: '82%', trend: '+5%', isNegative: false, bgColor: 'bg-[var(--accent-primary-soft)]', iconColor: 'text-[var(--text-link)]', icon: TrendingUp },
+  { id: 1, label: 'Tổng sinh viên', value: '452', trend: '+12%', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: Users },
+  { id: 2, label: 'Lớp đang dạy', value: '8', trend: 'Học kỳ 2', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: BookOpen },
+  { id: 3, label: 'Bài chờ chấm', value: '24', trend: '6 bài gấp', isNegative: true, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: ClipboardCheck },
+  { id: 4, label: 'Hiệu suất lớp', value: '82%', trend: '+5%', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: TrendingUp },
 ]
 
 const teachingSchedule = [

@@ -225,7 +225,7 @@ const logout = () => {
 
     <!-- Command palette trigger (Cmd+K) -->
     <button
-      class="hidden md:inline-flex h-8 items-center gap-1.5 rounded-xl border border-card surface-input px-2.5 text-[10px] font-semibold text-label shadow-sm backdrop-blur-xl hover:bg-[var(--surface-input-focus)] hover:text-heading transition-all focus:outline-none"
+      class="hidden md:inline-flex h-8 items-center gap-1.5 rounded-xl border border-card surface-input px-2.5 text-[10px] font-semibold text-label shadow-sm backdrop-blur-xl hover:bg-(--surface-input-focus) hover:text-heading transition-all focus:outline-none"
       aria-label="Mở command palette"
       @click="commandPaletteOpen = true"
     >
@@ -283,11 +283,11 @@ const logout = () => {
               {{ unreadCount }} mới
             </span>
           </div>
-          <div class="max-h-[320px] divide-y divide-[var(--border-card)] overflow-y-auto" role="none">
+          <div class="max-h-[320px] divide-y divide-(--border-card) overflow-y-auto" role="none">
             <div
               v-for="notif in mockAdminNotifications"
               :key="notif.id"
-              class="flex cursor-pointer gap-3 px-4 py-3 transition-all hover:bg-[var(--surface-card-hover)] active:scale-[0.98]"
+              class="flex cursor-pointer gap-3 px-4 py-3 transition-all hover:bg-(--surface-card-hover) active:scale-[0.98]"
               role="menuitem"
               tabindex="0"
               @click="() => { closeAll(); if(notif.link) router.push(notif.link); }"
@@ -314,14 +314,14 @@ const logout = () => {
       <button
         :class="[
           'flex items-center gap-2 rounded-xl border border-card surface-input p-1 transition-all duration-200 focus:outline-none ring-offset-2 focus:ring-2 focus:ring-violet-500/20',
-          userMenuOpen ? 'bg-[var(--surface-input-focus)] shadow-md' : 'hover:bg-[var(--surface-input-focus)]',
+          userMenuOpen ? 'bg-(--surface-input-focus) shadow-md' : 'hover:bg-(--surface-input-focus)',
         ]"
         aria-haspopup="menu"
         :aria-expanded="userMenuOpen"
         aria-label="Mở hồ sơ"
         @click.stop="toggleUserMenu"
       >
-        <div class="flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm ring-1 ring-[var(--border-card)] overflow-hidden bg-gradient-to-br from-violet-600 to-purple-600">
+        <div class="flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm ring-1 ring-(--border-card) overflow-hidden bg-gradient-to-br from-violet-600 to-purple-600">
           <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" class="h-full w-full object-cover" />
           <span v-else>{{ authStore.initials || mockAdminUser.initials }}</span>
         </div>
@@ -358,7 +358,7 @@ const logout = () => {
           <div class="p-1 space-y-0.5">
             <router-link
               to="/super-admin/profile"
-              class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-label transition-all hover:bg-[var(--surface-card-hover)] hover:text-violet-700 dark:hover:text-violet-300 hover:shadow-sm"
+              class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-label transition-all hover:bg-(--surface-card-hover) hover:text-violet-700 dark:hover:text-violet-300 hover:shadow-sm"
               role="menuitem"
               @click="closeAll"
             >
@@ -367,7 +367,7 @@ const logout = () => {
             </router-link>
             <router-link
               to="/super-admin/system/ai-automation"
-              class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-label transition-all hover:bg-[var(--surface-card-hover)] hover:text-violet-700 dark:hover:text-violet-300 hover:shadow-sm"
+              class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-label transition-all hover:bg-(--surface-card-hover) hover:text-violet-700 dark:hover:text-violet-300 hover:shadow-sm"
               role="menuitem"
               @click="closeAll"
             >
@@ -376,7 +376,7 @@ const logout = () => {
             </router-link>
             <router-link
               to="/super-admin/audit/logs"
-              class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-label transition-all hover:bg-[var(--surface-card-hover)] hover:text-violet-700 dark:hover:text-violet-300 hover:shadow-sm"
+              class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-label transition-all hover:bg-(--surface-card-hover) hover:text-violet-700 dark:hover:text-violet-300 hover:shadow-sm"
               role="menuitem"
               @click="closeAll"
             >

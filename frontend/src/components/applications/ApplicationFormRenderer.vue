@@ -20,13 +20,13 @@ const formData = computed({
 <template>
   <div class="space-y-4">
     <div v-for="field in schema" :key="field.id || field.key" class="space-y-1">
-      <label class="block text-sm font-medium text-[var(--text-heading)]">
+      <label class="block text-sm font-medium text-(--text-heading)">
         {{ field.label }}
-        <span v-if="field.required" class="text-[var(--color-danger-text)]">*</span>
+        <span v-if="field.required" class="text-(--color-danger-text)">*</span>
       </label>
       
       <!-- Fallback display if readonly -->
-      <div v-if="readonly" class="p-3 bg-[var(--surface-hover)] rounded-lg text-sm text-[var(--text-body)] min-h-[40px]">
+      <div v-if="readonly" class="p-3 bg-(--surface-hover) rounded-lg text-sm text-(--text-body) min-h-[40px]">
         {{ formData[field.key] || '---' }}
       </div>
       
@@ -37,7 +37,7 @@ const formData = computed({
           v-model="formData[field.key]"
           :type="field.type"
           :placeholder="field.placeholder"
-          :class="{'border-[var(--color-danger-border)]': errors[field.key]}"
+          :class="{'border-(--color-danger-border)': errors[field.key]}"
         />
         
         <!-- Textarea -->
@@ -46,16 +46,16 @@ const formData = computed({
           v-model="formData[field.key]"
           :placeholder="field.placeholder"
           rows="3"
-          class="w-full px-3 py-2 bg-[var(--surface-input)] border border-[var(--border-input)] rounded-lg focus:ring-2 focus:ring-[var(--lg-primary)] outline-none text-[var(--text-body)] transition-all resize-y"
-          :class="{'border-[var(--color-danger-border)]': errors[field.key]}"
+          class="w-full px-3 py-2 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--lg-primary) outline-none text-(--text-body) transition-all resize-y"
+          :class="{'border-(--color-danger-border)': errors[field.key]}"
         ></textarea>
         
         <!-- Select -->
         <select 
           v-else-if="field.type === 'select'"
           v-model="formData[field.key]"
-          class="w-full h-10 px-3 bg-[var(--surface-input)] border border-[var(--border-input)] rounded-lg focus:ring-2 focus:ring-[var(--lg-primary)] outline-none text-[var(--text-body)] transition-all"
-          :class="{'border-[var(--color-danger-border)]': errors[field.key]}"
+          class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--lg-primary) outline-none text-(--text-body) transition-all"
+          :class="{'border-(--color-danger-border)': errors[field.key]}"
         >
           <option value="" disabled>{{ field.placeholder || 'Chọn...' }}</option>
           <option v-for="opt in field.options" :key="opt.value" :value="opt.value">
@@ -68,19 +68,19 @@ const formData = computed({
           <input 
             type="checkbox" 
             v-model="formData[field.key]"
-            class="w-4 h-4 rounded text-[var(--lg-primary)] focus:ring-[var(--lg-primary)] bg-[var(--surface-input)] border-[var(--border-input)]"
+            class="w-4 h-4 rounded text-(--lg-primary) focus:ring-(--lg-primary) bg-(--surface-input) border-(--border-input)"
           />
-          <span class="text-sm text-[var(--text-body)]">{{ field.checkboxLabel || 'Xác nhận' }}</span>
+          <span class="text-sm text-(--text-body)">{{ field.checkboxLabel || 'Xác nhận' }}</span>
         </label>
         
         <!-- Fallback -->
-        <div v-else class="text-xs text-[var(--color-warning-text)] italic p-2 border border-dashed border-[var(--color-warning-border)] rounded">
+        <div v-else class="text-xs text-(--color-warning-text) italic p-2 border border-dashed border-(--color-warning-border) rounded">
           Trường '{{ field.type }}' chưa được frontend hỗ trợ
         </div>
       </template>
 
       <!-- Error message -->
-      <p v-if="errors[field.key]" class="text-xs text-[var(--color-danger-text)] mt-1">
+      <p v-if="errors[field.key]" class="text-xs text-(--color-danger-text) mt-1">
         {{ errors[field.key] }}
       </p>
     </div>

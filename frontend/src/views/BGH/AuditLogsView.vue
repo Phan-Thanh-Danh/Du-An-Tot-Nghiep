@@ -10,18 +10,18 @@
     <div class="surface-card border border-card rounded-2xl p-4 shadow-sm flex flex-wrap gap-4 items-end">
       <div class="flex-1 min-w-[200px]">
         <label class="block text-xs font-bold text-heading mb-1.5">Từ khóa</label>
-        <input v-model="filters.keyword" placeholder="Mô tả, người thay đổi..." class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]" />
+        <input v-model="filters.keyword" placeholder="Mô tả, người thay đổi..." class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)" />
       </div>
       <div class="w-full sm:w-44">
         <label class="block text-xs font-bold text-heading mb-1.5">Đối tượng</label>
-        <select v-model="filters.loaiDoiTuong" class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
+        <select v-model="filters.loaiDoiTuong" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả</option>
           <option v-for="t in entityTypes" :key="t" :value="t">{{ t }}</option>
         </select>
       </div>
       <div class="w-full sm-w-36">
         <label class="block text-xs font-bold text-heading mb-1.5">Hành động</label>
-        <select v-model="filters.hanhDong" class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
+        <select v-model="filters.hanhDong" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả</option>
           <option value="CREATE">Tạo mới</option>
           <option value="UPDATE">Cập nhật</option>
@@ -34,19 +34,19 @@
       </div>
       <div class="w-full sm:w-36">
         <label class="block text-xs font-bold text-heading mb-1.5">Từ ngày</label>
-        <input v-model="filters.fromDate" type="date" :max="filters.toDate || undefined" class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]" />
+        <input v-model="filters.fromDate" type="date" :max="filters.toDate || undefined" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)" />
       </div>
       <div class="w-full sm:w-36">
         <label class="block text-xs font-bold text-heading mb-1.5">Đến ngày</label>
-        <input v-model="filters.toDate" type="date" :min="filters.fromDate || undefined" class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]" />
+        <input v-model="filters.toDate" type="date" :min="filters.fromDate || undefined" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)" />
       </div>
-      <button @click="applyFilter" class="px-4 py-2 bg-[var(--surface-input)] border border-input hover:bg-[var(--surface-input-hover)] text-heading text-sm font-bold rounded-lg transition-colors h-10">Lọc</button>
+      <button @click="applyFilter" class="px-4 py-2 bg-(--surface-input) border border-input hover:bg-(--surface-input-hover) text-heading text-sm font-bold rounded-lg transition-colors h-10">Lọc</button>
     </div>
 
     <div class="flex-1 surface-card border border-card rounded-2xl shadow-sm flex flex-col overflow-hidden">
       <div class="flex-1 overflow-auto">
         <table class="w-full text-left text-sm text-body whitespace-nowrap">
-          <thead class="sticky top-0 bg-[var(--surface-card)] border-b border-default z-10 backdrop-blur-[12px]">
+          <thead class="sticky top-0 bg-(--surface-card) border-b border-default z-10 backdrop-blur-[12px]">
             <tr>
               <th class="px-4 py-3 font-bold text-heading">ID</th>
               <th class="px-4 py-3 font-bold text-heading">Đơn vị</th>
@@ -66,11 +66,11 @@
                 <p>Không tìm thấy nhật ký nào.</p>
               </td>
             </tr>
-            <tr v-for="log in paginatedLogs" :key="log.maKiemToan" class="hover:bg-[var(--surface-input)]/50 transition-colors">
+            <tr v-for="log in paginatedLogs" :key="log.maKiemToan" class="hover:bg-(--surface-input)/50 transition-colors">
               <td class="px-4 py-3 font-medium">{{ log.maKiemToan }}</td>
               <td class="px-4 py-3 text-xs">{{ log.tenDonVi }}</td>
               <td class="px-4 py-3">
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-[var(--surface-input)] text-heading border border-default">{{ log.loaiDoiTuong }}</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-(--surface-input) text-heading border border-default">{{ log.loaiDoiTuong }}</span>
               </td>
               <td class="px-4 py-3 text-muted">{{ log.maDoiTuong }}</td>
               <td class="px-4 py-3">
@@ -83,7 +83,7 @@
               <td class="px-4 py-3 text-xs text-muted">{{ log.thoiDiemThayDoi }}</td>
               <td class="px-4 py-3 text-[10px] text-muted font-mono">{{ log.diaChiIp || '—' }}</td>
               <td class="px-4 py-3 text-right">
-                <button @click="viewDetail(log)" class="p-1.5 text-muted hover:text-[var(--lg-primary)] hover:bg-[var(--lg-primary)]/10 rounded-lg transition-colors" title="Xem chi tiết">
+                <button @click="viewDetail(log)" class="p-1.5 text-muted hover:text-(--lg-primary) hover:bg-(--lg-primary)/10 rounded-lg transition-colors" title="Xem chi tiết">
                   <Eye :size="16" />
                 </button>
               </td>
@@ -92,14 +92,14 @@
         </table>
       </div>
 
-      <div class="p-4 border-t border-default bg-[var(--surface-card)] flex items-center justify-between text-sm">
+      <div class="p-4 border-t border-default bg-(--surface-card) flex items-center justify-between text-sm">
         <span class="text-muted">
           Hiển thị {{ displayedCount }} / {{ filteredLogs.length }} bản ghi
         </span>
         <div class="flex items-center gap-2">
-          <button @click="prevPage" :disabled="currentPage === 1" class="px-3 py-1.5 rounded-lg border border-default hover:bg-[var(--surface-input)] disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang trước</button>
+          <button @click="prevPage" :disabled="currentPage === 1" class="px-3 py-1.5 rounded-lg border border-default hover:bg-(--surface-input) disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang trước</button>
           <span class="px-2 font-bold text-heading">Trang {{ currentPage }} / {{ totalPages }}</span>
-          <button @click="nextPage" :disabled="currentPage >= totalPages" class="px-3 py-1.5 rounded-lg border border-default hover:bg-[var(--surface-input)] disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang sau</button>
+          <button @click="nextPage" :disabled="currentPage >= totalPages" class="px-3 py-1.5 rounded-lg border border-default hover:bg-(--surface-input) disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang sau</button>
         </div>
       </div>
     </div>
@@ -108,7 +108,7 @@
       <div class="w-full max-w-lg surface-card rounded-2xl shadow-2xl border border-default overflow-hidden">
         <div class="p-4 border-b border-default flex justify-between items-center">
           <h3 class="text-lg font-bold text-heading">Chi tiết nhật ký #{{ detailLog.maKiemToan }}</h3>
-          <button @click="detailModal = false" class="p-1 hover:bg-[var(--surface-input)] rounded-lg text-muted">
+          <button @click="detailModal = false" class="p-1 hover:bg-(--surface-input) rounded-lg text-muted">
             <X :size="20" />
           </button>
         </div>
@@ -125,15 +125,15 @@
           </div>
           <div class="pt-3 border-t border-default">
             <span class="text-muted">Mô tả:</span>
-            <p class="mt-1 text-body bg-[var(--surface-input)] p-3 rounded-lg text-sm">{{ detailLog.moTa }}</p>
+            <p class="mt-1 text-body bg-(--surface-input) p-3 rounded-lg text-sm">{{ detailLog.moTa }}</p>
           </div>
           <div v-if="detailLog.traceId" class="pt-2">
             <span class="text-muted">Trace ID:</span>
-            <p class="font-mono text-xs text-body bg-[var(--surface-input)] p-2 rounded-lg mt-1">{{ detailLog.traceId }}</p>
+            <p class="font-mono text-xs text-body bg-(--surface-input) p-2 rounded-lg mt-1">{{ detailLog.traceId }}</p>
           </div>
         </div>
         <div class="p-4 border-t border-default flex justify-end">
-          <button @click="detailModal = false" class="px-4 py-2 border border-input rounded-lg text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors">Đóng</button>
+          <button @click="detailModal = false" class="px-4 py-2 border border-input rounded-lg text-sm font-bold text-body hover:bg-(--surface-input) transition-colors">Đóng</button>
         </div>
       </div>
     </div>
@@ -225,14 +225,14 @@ function viewDetail(log) {
 
 function actionBadge(action) {
   switch (action) {
-    case 'CREATE': case 'HTTP_POST': return 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]'
-    case 'UPDATE': case 'HTTP_PUT': case 'HTTP_PATCH': return 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]'
-    case 'DELETE': case 'HTTP_DELETE': return 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]'
-    case 'LOCK': return 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]'
-    case 'UNLOCK': return 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]'
-    case 'LOGIN': return 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]'
-    case 'HTTP_GET': return 'bg-[var(--surface-input)] text-muted'
-    default: return 'bg-[var(--surface-input)] text-muted'
+    case 'CREATE': case 'HTTP_POST': return 'bg-(--color-success-bg) text-(--color-success-text)'
+    case 'UPDATE': case 'HTTP_PUT': case 'HTTP_PATCH': return 'bg-(--color-info-bg) text-(--color-info-text)'
+    case 'DELETE': case 'HTTP_DELETE': return 'bg-(--color-danger-bg) text-(--color-danger-text)'
+    case 'LOCK': return 'bg-(--color-warning-bg) text-(--color-warning-text)'
+    case 'UNLOCK': return 'bg-(--color-info-bg) text-(--color-info-text)'
+    case 'LOGIN': return 'bg-(--color-info-bg) text-(--color-info-text)'
+    case 'HTTP_GET': return 'bg-(--surface-input) text-muted'
+    default: return 'bg-(--surface-input) text-muted'
   }
 }
 

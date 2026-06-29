@@ -30,10 +30,10 @@ const profile = ref({
 })
 
 const stats = [
-  { label: 'Sinh viên quản lý', value: '12,450', icon: Users, color: 'text-[var(--color-info-text)]', bg: 'bg-[var(--color-info-bg)]' },
-  { label: 'Giảng viên', value: '458', icon: Award, color: 'text-link', bg: 'bg-[var(--color-info-bg)]' },
-  { label: 'GPA Trung bình', value: '3.24', icon: BarChart3, color: 'text-[var(--color-success-text)]', bg: 'bg-[var(--color-success-bg)]' },
-  { label: 'Cơ sở', value: '3', icon: Globe, color: 'text-[var(--color-warning-text)]', bg: 'bg-[var(--color-warning-bg)]' },
+  { label: 'Sinh viên quản lý', value: '12,450', icon: Users, color: 'text-(--color-info-text)', bg: 'bg-(--color-info-bg)' },
+  { label: 'Giảng viên', value: '458', icon: Award, color: 'text-link', bg: 'bg-(--color-info-bg)' },
+  { label: 'GPA Trung bình', value: '3.24', icon: BarChart3, color: 'text-(--color-success-text)', bg: 'bg-(--color-success-bg)' },
+  { label: 'Cơ sở', value: '3', icon: Globe, color: 'text-(--color-warning-text)', bg: 'bg-(--color-warning-bg)' },
 ]
 
 const loginHistory = ref([
@@ -54,7 +54,7 @@ const loginHistory = ref([
       <div class="space-y-4">
         <div class="surface-card border border-card rounded-2xl p-5 text-center">
            <div class="relative inline-block mb-5">
-              <div class="h-24 w-24 rounded-3xl bg-[var(--color-info-bg)] border border-[var(--color-info-text)]/20 p-0.5 transition-transform">
+              <div class="h-24 w-24 rounded-3xl bg-(--color-info-bg) border border-(--color-info-text)/20 p-0.5 transition-transform">
                  <div class="h-full w-full rounded-[22px] surface-card flex items-center justify-center overflow-hidden relative">
                     <User v-if="!profile.avatar" :size="40" class="text-placeholder" />
                     <img v-else :src="profile.avatar" class="h-full w-full object-cover" />
@@ -66,14 +66,14 @@ const loginHistory = ref([
               </div>
               <!-- Role Badge Overlay -->
               <div class="absolute -bottom-1 -right-1 surface-card border border-card p-0.5 rounded-xl shadow-sm">
-                 <div class="bg-[var(--color-info-bg)] text-[var(--color-info-text)] px-2 py-0.5 rounded-lg text-[9px] font-semibold uppercase tracking-tighter border border-[var(--color-info-text)]/20">Principal</div>
+                 <div class="bg-(--color-info-bg) text-(--color-info-text) px-2 py-0.5 rounded-lg text-[9px] font-semibold uppercase tracking-tighter border border-(--color-info-text)/20">Principal</div>
               </div>
            </div>
 
            <h3 class="text-lg font-semibold text-heading leading-tight mb-1">{{ profile.name }}</h3>
-           <div class="inline-flex items-center gap-1.5 bg-[var(--color-info-bg)] px-2 py-1 rounded-full mb-3 border border-[var(--color-info-text)]/20">
-              <ShieldCheck :size="12" class="text-[var(--color-info-text)]" />
-              <p class="text-[9px] font-semibold text-[var(--color-info-text)] uppercase tracking-[0.1em]">{{ profile.staffId }}</p>
+           <div class="inline-flex items-center gap-1.5 bg-(--color-info-bg) px-2 py-1 rounded-full mb-3 border border-(--color-info-text)/20">
+              <ShieldCheck :size="12" class="text-(--color-info-text)" />
+              <p class="text-[9px] font-semibold text-(--color-info-text) uppercase tracking-[0.1em]">{{ profile.staffId }}</p>
            </div>
 
            <p class="text-xs text-body leading-relaxed font-medium mb-5 italic">
@@ -82,7 +82,7 @@ const loginHistory = ref([
 
            <div class="space-y-3">
               <div class="flex items-center gap-3 p-3 surface-solid rounded-xl border border-default shadow-sm">
-                 <div class="h-8 w-8 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)]">
+                 <div class="h-8 w-8 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text)">
                     <MapPin :size="16" />
                  </div>
                  <div class="text-left">
@@ -91,7 +91,7 @@ const loginHistory = ref([
                  </div>
               </div>
               <div class="flex items-center gap-3 p-3 surface-solid rounded-xl border border-default shadow-sm">
-                 <div class="h-8 w-8 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-link">
+                 <div class="h-8 w-8 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-link">
                     <ShieldCheck :size="16" />
                  </div>
                  <div class="text-left">
@@ -133,7 +133,7 @@ const loginHistory = ref([
                   <h4 class="text-xs font-semibold text-heading uppercase tracking-wide">Bảo mật & Liên hệ</h4>
                   <p class="text-[10px] text-muted font-medium mt-0.5">Thông tin liên lạc và thiết lập bảo mật.</p>
                </div>
-               <div class="h-8 w-8 rounded-xl bg-[var(--color-warning-bg)] flex items-center justify-center text-[var(--color-warning-text)] border border-[var(--color-warning-text)]/20">
+               <div class="h-8 w-8 rounded-xl bg-(--color-warning-bg) flex items-center justify-center text-(--color-warning-text) border border-(--color-warning-text)/20">
                   <ShieldAlert :size="18" />
                </div>
             </div>
@@ -143,7 +143,7 @@ const loginHistory = ref([
                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div class="space-y-4">
                      <div class="flex items-center gap-3 group cursor-pointer">
-                        <div class="h-10 w-10 rounded-2xl surface-solid flex items-center justify-center text-placeholder group-hover:bg-[var(--color-info-bg)] group-hover:text-[var(--color-info-text)] transition-all duration-300">
+                        <div class="h-10 w-10 rounded-2xl surface-solid flex items-center justify-center text-placeholder group-hover:bg-(--color-info-bg) group-hover:text-(--color-info-text) transition-all duration-300">
                            <Mail :size="18" />
                         </div>
                         <div>
@@ -152,7 +152,7 @@ const loginHistory = ref([
                         </div>
                      </div>
                      <div class="flex items-center gap-3 group cursor-pointer">
-                        <div class="h-10 w-10 rounded-2xl surface-solid flex items-center justify-center text-placeholder group-hover:bg-[var(--color-success-bg)] group-hover:text-[var(--color-success-text)] transition-all duration-300">
+                        <div class="h-10 w-10 rounded-2xl surface-solid flex items-center justify-center text-placeholder group-hover:bg-(--color-success-bg) group-hover:text-(--color-success-text) transition-all duration-300">
                            <Phone :size="18" />
                         </div>
                         <div>
@@ -165,7 +165,7 @@ const loginHistory = ref([
                   <!-- Password Card -->
                   <div class="p-4 surface-solid rounded-2xl border border-default relative overflow-hidden group">
                      <div class="flex items-start justify-between mb-3">
-                        <div class="h-8 w-8 rounded-xl bg-[var(--color-info-bg)] text-[var(--color-info-text)] flex items-center justify-center border border-[var(--color-info-text)]/20">
+                        <div class="h-8 w-8 rounded-xl bg-(--color-info-bg) text-(--color-info-text) flex items-center justify-center border border-(--color-info-text)/20">
                            <KeyRound :size="18" />
                         </div>
                         <button class="text-[9px] font-semibold uppercase tracking-widest text-link lg-button-secondary px-3 py-1.5 rounded-lg active:scale-95">Đổi mật khẩu</button>
@@ -185,9 +185,9 @@ const loginHistory = ref([
                   </div>
                   
                   <div class="space-y-2">
-                     <div v-for="log in loginHistory" :key="log.id" class="flex items-center justify-between p-3 surface-solid rounded-xl border border-default group hover:border-[var(--border-input-focus)] transition-all duration-300">
+                     <div v-for="log in loginHistory" :key="log.id" class="flex items-center justify-between p-3 surface-solid rounded-xl border border-default group hover:border-(--border-input-focus) transition-all duration-300">
                         <div class="flex items-center gap-3">
-                           <div :class="['h-8 w-8 rounded-xl flex items-center justify-center', log.status === 'current' ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]' : 'surface-solid text-placeholder']">
+                           <div :class="['h-8 w-8 rounded-xl flex items-center justify-center', log.status === 'current' ? 'bg-(--color-success-bg) text-(--color-success-text)' : 'surface-solid text-placeholder']">
                               <ShieldCheck v-if="log.status === 'current'" :size="16" />
                               <ChevronRight v-else :size="16" />
                            </div>
@@ -195,13 +195,13 @@ const loginHistory = ref([
                               <p class="text-xs font-semibold text-heading">{{ log.device }}</p>
                               <p class="text-[10px] font-bold text-muted mt-0.5 flex items-center gap-2">
                                  <span>{{ log.ip }}</span>
-                                 <span class="h-1 w-1 rounded-full bg-[var(--text-placeholder)]"></span>
+                                 <span class="h-1 w-1 rounded-full bg-(--text-placeholder)"></span>
                                  <span>{{ log.time }}</span>
                               </p>
                            </div>
                         </div>
-                        <div v-if="log.status === 'current'" class="flex items-center gap-1.5 bg-[var(--color-success-bg)] text-[var(--color-success-text)] px-2 py-1 rounded-lg border border-[var(--color-success-text)]/20">
-                           <div class="h-1.5 w-1.5 rounded-full bg-[var(--color-success-text)] animate-pulse"></div>
+                        <div v-if="log.status === 'current'" class="flex items-center gap-1.5 bg-(--color-success-bg) text-(--color-success-text) px-2 py-1 rounded-lg border border-(--color-success-text)/20">
+                           <div class="h-1.5 w-1.5 rounded-full bg-(--color-success-text) animate-pulse"></div>
                            <span class="text-[8px] font-semibold uppercase tracking-widest">Đang hoạt động</span>
                         </div>
                      </div>
@@ -213,7 +213,7 @@ const loginHistory = ref([
         <!-- Footer Actions -->
          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="surface-card border border-card rounded-2xl p-3 flex items-center gap-3 cursor-pointer group">
-               <div class="h-10 w-10 rounded-2xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] transition-transform">
+               <div class="h-10 w-10 rounded-2xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) transition-transform">
                   <Globe :size="18" />
                </div>
                <div class="flex-1">
@@ -223,17 +223,17 @@ const loginHistory = ref([
                <ChevronRight :size="16" class="text-placeholder" />
             </div>
             
-            <div class="surface-card border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)] rounded-2xl p-3 flex items-center justify-between group">
+            <div class="surface-card border border-(--color-danger-text)/20 bg-(--color-danger-bg) rounded-2xl p-3 flex items-center justify-between group">
                <div class="flex items-center gap-3">
-                  <div class="h-10 w-10 rounded-2xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-danger-text)] transition-transform">
+                  <div class="h-10 w-10 rounded-2xl bg-(--surface-card) flex items-center justify-center text-(--color-danger-text) transition-transform">
                      <LogOut :size="18" />
                   </div>
                   <div>
                      <h4 class="text-xs font-semibold text-heading">Đăng xuất</h4>
-                     <p class="text-[10px] text-[var(--color-danger-text)] font-medium">Kết thúc phiên làm việc</p>
+                     <p class="text-[10px] text-(--color-danger-text) font-medium">Kết thúc phiên làm việc</p>
                   </div>
                </div>
-               <button class="h-8 w-8 rounded-xl bg-[var(--color-danger-text)] text-inverse flex items-center justify-center shadow-sm active:scale-95 transition-all">
+               <button class="h-8 w-8 rounded-xl bg-(--color-danger-text) text-inverse flex items-center justify-center shadow-sm active:scale-95 transition-all">
                   <LogOut :size="16" />
                </button>
             </div>

@@ -28,7 +28,7 @@ const emit = defineEmits(['select', 'mark-read', 'load-more', 'retry'])
 
 <template>
   <div class="h-full flex flex-col">
-    <div v-if="error" class="p-4 m-2 rounded-lg bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] text-sm flex items-center justify-between">
+    <div v-if="error" class="p-4 m-2 rounded-lg bg-(--color-danger-bg) text-(--color-danger-text) text-sm flex items-center justify-between">
       <span>{{ error }}</span>
       <GlassButton variant="ghost" size="sm" @click="emit('retry')">
         <RefreshCw class="w-4 h-4" />

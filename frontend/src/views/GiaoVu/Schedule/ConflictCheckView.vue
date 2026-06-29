@@ -196,7 +196,7 @@ function navigateToSuggestion(conflict) {
       <!-- ── Input Form ── -->
       <div class="lg-glass-soft p-5 rounded-2xl border-default shadow-sm">
         <h3 class="text-lg font-semibold text-heading mb-4 flex items-center gap-2">
-          <Search :size="20" class="text-[var(--lg-primary)]" /> THÔNG TIN KIỂM TRA
+          <Search :size="20" class="text-(--lg-primary)" /> THÔNG TIN KIỂM TRA
         </h3>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -241,7 +241,7 @@ function navigateToSuggestion(conflict) {
           <button 
             @click="performCheck"
             :disabled="isChecking"
-            class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-[var(--lg-primary)]/20 disabled:opacity-50"
+            class="lg-button-primary px-5 py-2.5 text-sm font-bold shadow-lg shadow-(--lg-primary)/20 disabled:opacity-50"
           >
             <RefreshCw v-if="isChecking" :size="18" class="animate-spin" />
             <span v-else>Kiểm tra xung đột</span>
@@ -256,16 +256,16 @@ function navigateToSuggestion(conflict) {
         enter-to-class="opacity-100 translate-y-0"
       >
         <div v-if="checkResult" class="space-y-4">
-          <div :class="['p-4 rounded-2xl border flex items-start gap-4 shadow-sm', checkResult.hasConflict ? 'bg-[var(--color-danger-bg)] border-[var(--color-danger-bg)]' : 'bg-[var(--color-success-bg)] border-[var(--color-success-bg)]']">
-            <div :class="['h-10 w-10 rounded-2xl flex items-center justify-center shrink-0', checkResult.hasConflict ? 'bg-[var(--lg-danger)] text-white shadow-lg shadow-[var(--lg-danger)]/20' : 'bg-[var(--lg-success)] text-white shadow-lg shadow-[var(--lg-success)]/20']">
+          <div :class="['p-4 rounded-2xl border flex items-start gap-4 shadow-sm', checkResult.hasConflict ? 'bg-(--color-danger-bg) border-(--color-danger-bg)' : 'bg-(--color-success-bg) border-(--color-success-bg)']">
+            <div :class="['h-10 w-10 rounded-2xl flex items-center justify-center shrink-0', checkResult.hasConflict ? 'bg-(--lg-danger) text-white shadow-lg shadow-(--lg-danger)/20' : 'bg-(--lg-success) text-white shadow-lg shadow-(--lg-success)/20']">
               <ShieldAlert v-if="checkResult.hasConflict" :size="24" />
               <CheckCircle v-else :size="24" />
             </div>
             <div class="flex-1">
-              <h4 :class="['text-lg font-semibold', checkResult.hasConflict ? 'text-[var(--lg-danger)]' : 'text-[var(--lg-success)]']">
+              <h4 :class="['text-lg font-semibold', checkResult.hasConflict ? 'text-(--lg-danger)' : 'text-(--lg-success)']">
                 {{ checkResult.hasConflict ? 'Phát hiện xung đột!' : 'Hợp lệ' }}
               </h4>
-              <p :class="['text-sm font-medium mt-1', checkResult.hasConflict ? 'text-[var(--color-danger-text)]' : 'text-[var(--color-success-text)]']">
+              <p :class="['text-sm font-medium mt-1', checkResult.hasConflict ? 'text-(--color-danger-text)' : 'text-(--color-success-text)']">
                 {{ checkResult.hasConflict ? `Có ${checkResult.conflicts.length} xung đột được phát hiện cho các tiêu chí này.` : 'Không phát hiện bất kỳ xung đột nào. Bạn có thể xếp lịch này.' }}
               </p>
             </div>
@@ -273,20 +273,20 @@ function navigateToSuggestion(conflict) {
 
           <!-- Conflict List -->
           <div v-if="checkResult.hasConflict" class="grid grid-cols-1 gap-3">
-              <div v-for="(conflict, idx) in checkResult.conflicts" :key="idx" class="lg-glass-strong p-4 rounded-2xl border-default flex items-start gap-4 group hover:border-[var(--lg-danger)]/20 transition-colors">
-                 <div class="h-10 w-10 rounded-xl bg-[var(--surface-input)] flex items-center justify-center text-[var(--lg-danger)] border-default shrink-0">
+              <div v-for="(conflict, idx) in checkResult.conflicts" :key="idx" class="lg-glass-strong p-4 rounded-2xl border-default flex items-start gap-4 group hover:border-(--lg-danger)/20 transition-colors">
+                 <div class="h-10 w-10 rounded-xl bg-(--surface-input) flex items-center justify-center text-(--lg-danger) border-default shrink-0">
                    <AlertTriangle :size="20" />
                  </div>
                  <div class="flex-1 pt-0.5">
                    <p class="text-sm font-bold text-heading">{{ conflict.message }}</p>
-                   <button v-if="conflict.suggestion" @click="navigateToSuggestion(conflict)" class="inline-flex items-center gap-1.5 mt-2 bg-[var(--color-info-bg)]/50 border border-[var(--color-info-text)]/20 text-[var(--color-info-text)] text-xs font-semibold px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-[var(--color-info-bg)] hover:shadow-sm transition-all group/suggest">
+                   <button v-if="conflict.suggestion" @click="navigateToSuggestion(conflict)" class="inline-flex items-center gap-1.5 mt-2 bg-(--color-info-bg)/50 border border-(--color-info-text)/20 text-(--color-info-text) text-xs font-semibold px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-(--color-info-bg) hover:shadow-sm transition-all group/suggest">
                      <Lightbulb :size="14" /> {{ conflict.suggestion }}
                      <ArrowRight :size="12" class="opacity-0 group-hover/suggest:opacity-100 transition-opacity" />
                    </button>
                  </div>
                  <div data-dropdown-wrapper class="relative shrink-0">
-                    <button @click="toggleDropdown(idx)" class="p-2 hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)] rounded-lg text-placeholder transition-all relative z-10">
-                       <ArrowRight :size="18" :class="['transition-transform duration-200', activeDropdown === idx ? 'rotate-90 text-[var(--lg-danger)]' : '']" />
+                    <button @click="toggleDropdown(idx)" class="p-2 hover:bg-(--color-danger-bg) hover:text-(--color-danger-text) rounded-lg text-placeholder transition-all relative z-10">
+                       <ArrowRight :size="18" :class="['transition-transform duration-200', activeDropdown === idx ? 'rotate-90 text-(--lg-danger)' : '']" />
                     </button>
                     
                     <!-- Dropdown Menu -->
@@ -302,17 +302,17 @@ function navigateToSuggestion(conflict) {
                         v-if="activeDropdown === idx"
                         tabindex="-1"
                         @keydown.escape="closeDropdown"
-                        class="absolute right-0 top-full mt-2 w-56 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl shadow-xl z-[60] overflow-hidden"
+                        class="absolute right-0 top-full mt-2 w-56 bg-(--surface-card) border border-(--border-default) rounded-xl shadow-xl z-[60] overflow-hidden"
                       >
                         <div class="p-1.5 flex flex-col gap-0.5">
-                          <button @click="resolveConflict(conflict, 'view')" class="w-full text-left px-3 py-2 text-sm font-medium text-heading hover:bg-[var(--surface-input)] rounded-lg transition-colors">
+                          <button @click="resolveConflict(conflict, 'view')" class="w-full text-left px-3 py-2 text-sm font-medium text-heading hover:bg-(--surface-input) rounded-lg transition-colors">
                             Xem chi tiết lịch
                           </button>
-                          <button @click="resolveConflict(conflict, 'change')" class="w-full text-left px-3 py-2 text-sm font-medium text-heading hover:bg-[var(--surface-input)] rounded-lg transition-colors">
+                          <button @click="resolveConflict(conflict, 'change')" class="w-full text-left px-3 py-2 text-sm font-medium text-heading hover:bg-(--surface-input) rounded-lg transition-colors">
                             {{ conflict.type === 'teacher' ? 'Đổi giảng viên khác' : conflict.type === 'class' ? 'Đổi lớp học khác' : 'Đổi phòng học khác' }}
                           </button>
-                          <div class="h-px bg-[var(--border-default)] my-1"></div>
-                          <button @click="resolveConflict(conflict, 'ignore')" class="w-full text-left px-3 py-2 text-sm font-medium text-[var(--lg-danger)] hover:bg-[var(--color-danger-bg)] rounded-lg transition-colors">
+                          <div class="h-px bg-(--border-default) my-1"></div>
+                          <button @click="resolveConflict(conflict, 'ignore')" class="w-full text-left px-3 py-2 text-sm font-medium text-(--lg-danger) hover:bg-(--color-danger-bg) rounded-lg transition-colors">
                             Bỏ qua cảnh báo
                           </button>
                         </div>
@@ -334,7 +334,7 @@ function navigateToSuggestion(conflict) {
                 <div class="flex items-center justify-between">
                   <div>
                     <h2 class="text-xl font-semibold text-heading flex items-center gap-2.5">
-                      <Calendar :size="20" class="text-[var(--lg-primary)]" />
+                      <Calendar :size="20" class="text-(--lg-primary)" />
                       Lịch {{ detailData.type === 'teacher' ? 'giảng viên' : detailData.type === 'class' ? 'lớp học' : 'phòng' }}
                     </h2>
                     <p class="text-sm text-label mt-1 flex items-center gap-2">
@@ -346,7 +346,7 @@ function navigateToSuggestion(conflict) {
                       {{ detailData.day }}
                     </p>
                   </div>
-                  <button @click="showDetail = false" class="h-9 w-9 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all">
+                  <button @click="showDetail = false" class="h-9 w-9 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all">
                     <X :size="18" />
                   </button>
                 </div>
@@ -360,7 +360,7 @@ function navigateToSuggestion(conflict) {
                 <div v-for="(slot, i) in detailData.slots" :key="i"
                   :class="[
                     'grid grid-cols-[80px_1fr_60px] gap-2 items-center px-3 py-2.5 rounded-xl transition-colors',
-                    slot.conflict ? 'bg-[var(--color-danger-bg)] border border-[var(--color-danger-text)]/20' : 'hover:bg-[var(--surface-input)]'
+                    slot.conflict ? 'bg-(--color-danger-bg) border border-(--color-danger-text)/20' : 'hover:bg-(--surface-input)'
                   ]"
                 >
                   <div class="flex items-center gap-1.5 text-xs font-bold text-label">
@@ -373,7 +373,7 @@ function navigateToSuggestion(conflict) {
                   </div>
                   <div class="text-right">
                     <span class="text-xs font-semibold text-label">{{ detailData.type === 'teacher' || detailData.type === 'class' ? slot.room : (slot.teacher || '') }}</span>
-                    <div v-if="slot.conflict" class="text-[9px] font-bold text-[var(--lg-danger)] uppercase tracking-wider mt-0.5">Xung đột</div>
+                    <div v-if="slot.conflict" class="text-[9px] font-bold text-(--lg-danger) uppercase tracking-wider mt-0.5">Xung đột</div>
                   </div>
                 </div>
               </div>
@@ -386,12 +386,12 @@ function navigateToSuggestion(conflict) {
       </Teleport>
 
       <!-- ── Information Info ── -->
-      <div class="lg-glass-strong p-4 rounded-2xl bg-[var(--color-info-bg)]/50 border-[var(--color-info-bg)]">
+      <div class="lg-glass-strong p-4 rounded-2xl bg-(--color-info-bg)/50 border-(--color-info-bg)">
         <div class="flex gap-3">
-          <Info :size="20" class="text-[var(--color-info-text)] shrink-0 mt-0.5" />
+          <Info :size="20" class="text-(--color-info-text) shrink-0 mt-0.5" />
           <div>
-            <h5 class="text-sm font-semibold text-[var(--color-info-text)]">Mẹo kiểm tra nhanh</h5>
-            <p class="text-xs text-[var(--color-info-text)] mt-1 leading-relaxed">
+            <h5 class="text-sm font-semibold text-(--color-info-text)">Mẹo kiểm tra nhanh</h5>
+            <p class="text-xs text-(--color-info-text) mt-1 leading-relaxed">
               Bạn có thể kiểm tra một tiêu chí duy nhất (ví dụ: chỉ phòng) bằng cách để trống các trường khác. Hệ thống sẽ tự động quét toàn bộ cơ sở dữ liệu đã công bố và các bản nháp đang chờ duyệt.
             </p>
           </div>
