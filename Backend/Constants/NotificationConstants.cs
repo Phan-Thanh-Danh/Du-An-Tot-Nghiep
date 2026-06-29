@@ -11,6 +11,7 @@ public static class NotificationConstants
         public const string Academic = "hoc_vu";
         public const string Urgent = "khan_cap";
         public const string System = "system";
+        public const string GeneralTargeted = "general_targeted";
         public const string Manual = "manual";
         public const string ScheduleChanged = "schedule_changed";
         public const string SessionCancelled = "session_cancelled";
@@ -32,7 +33,8 @@ public static class NotificationConstants
             SessionCancelled,
             AttendanceUnlockApproved,
             AttendanceUnlockRejected,
-            RewardDiscipline
+            RewardDiscipline,
+            GeneralTargeted
         };
     }
 
@@ -108,6 +110,15 @@ public static class NotificationConstants
         public const string Preview = "PREVIEW_NOTIFICATION_TEMPLATE";
     }
 
+    
+    public static class EventCodes
+    {
+        public const string TUITION_NOTICE = "TUITION_NOTICE";
+        public const string ACADEMIC_NOTICE = "ACADEMIC_NOTICE";
+        public const string URGENT_NOTICE = "URGENT_NOTICE";
+        public const string MAINTENANCE_NOTICE = "MAINTENANCE_NOTICE";
+    }
+
     public static class NotificationPriorities
     {
         public const string Low = "low";
@@ -122,6 +133,16 @@ public static class NotificationConstants
             High,
             Urgent
         };
+    }
+
+    
+    public static class SpecializedNotificationAuditActions
+    {
+        public const string SEND_TUITION_NOTIFICATION = "SEND_TUITION_NOTIFICATION";
+        public const string SEND_ACADEMIC_NOTIFICATION = "SEND_ACADEMIC_NOTIFICATION";
+        public const string SEND_URGENT_NOTIFICATION = "SEND_URGENT_NOTIFICATION";
+        public const string SEND_MAINTENANCE_NOTIFICATION = "SEND_MAINTENANCE_NOTIFICATION";
+        public const string PREVIEW_SPECIALIZED_NOTIFICATION_RECIPIENTS = "PREVIEW_SPECIALIZED_NOTIFICATION_RECIPIENTS";
     }
 
     public static class NotificationChannels
