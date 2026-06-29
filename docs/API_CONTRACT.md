@@ -398,10 +398,42 @@ Ví dụ tạo đợt Top 100:
 
 RD4 đã có luồng duyệt/điều chỉnh Top 100 và tạo record `KhenThuong` chính thức. RD4 chưa sinh PDF bằng khen, chưa công bố, chưa gửi thông báo, chưa xử lý kỷ luật.
 
+### Mẫu Bằng Khen - Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/admin/certificate-templates` | SuperAdmin | Danh sách mẫu bằng khen có phân trang, lọc `loaiMau`, `conHoatDong`, `keyword`. |
+| POST | `/api/admin/certificate-templates` | SuperAdmin | Tạo mẫu bằng khen Top 100. Validate `loaiMau`, `huongGiay`, `fileNenUrl`, kích thước và `cauHinhJson`. |
+| GET | `/api/admin/certificate-templates/{id}` | SuperAdmin | Xem chi tiết mẫu bằng khen, gồm cấu hình JSON render an toàn. |
+| PUT | `/api/admin/certificate-templates/{id}` | SuperAdmin | Cập nhật mẫu đang hoạt động. Mẫu đã vô hiệu hóa trả `409`. |
+| DELETE | `/api/admin/certificate-templates/{id}` | SuperAdmin | Vô hiệu hóa mẫu bằng `conHoatDong = false`, không hard delete kể cả khi đã được gắn với đợt/khen thưởng. |
+| POST | `/api/admin/certificate-templates/{id}/preview` | SuperAdmin | Trả payload preview an toàn từ dữ liệu mẫu hoặc `maKhenThuong`; không ghi DB, không sinh PDF. |
+
+`cauHinhJson` RD5 phải là object có `fields` array 1..50. Field chỉ nhận các key whitelist: `hoTen`, `mssv`, `tenHocKy`, `danhHieu`, `xepHang`, `diemXet`, `ngayCap`; mỗi field bắt buộc `key`, `x`, `y`, `fontSize`, `align`, `color`, `bold`. Backend không nhận HTML/CSS/script tùy ý và chặn `FileNenUrl` dạng base64. RD5 chưa upload file nền qua object storage riêng; `fileNenUrl` là URL/path an toàn đã có sẵn. Sinh PDF preview/batch và cập nhật `UrlPdfBangKhen` để RD6.
+
+Ví dụ tạo mẫu bằng khen:
+
+```json
+{
+  "tenMau": "Mẫu Top 100 học kỳ",
+  "loaiMau": "TOP_100_HOC_KY",
+  "fileNenUrl": "https://cdn.example.test/templates/top100.png",
+  "chieuRong": 3508,
+  "chieuCao": 2480,
+  "huongGiay": "A4_NGANG",
+  "cauHinhJson": {
+    "fields": [
+      { "key": "hoTen", "x": 100, "y": 240, "fontSize": 42, "align": "center", "color": "#111111", "bold": true },
+      { "key": "mssv", "x": 100, "y": 310, "fontSize": 20, "align": "center", "color": "#333333", "bold": false },
+      { "key": "ngayCap", "x": 100, "y": 620, "fontSize": 18, "align": "right", "color": "#333333", "bold": false }
+    ]
+  }
+}
+```
+
 ### Dự kiến/cần bổ sung
 
-- CRUD mẫu bằng khen.
-- Xét Top 100 học kỳ và sinh PDF bằng khen.
+- Sinh PDF bằng khen hàng loạt cho Top 100 và cập nhật `UrlPdfBangKhen`.
 - CRUD hồ sơ kỷ luật, phê duyệt/gỡ hiệu lực.
 
 ## Organizations APIs

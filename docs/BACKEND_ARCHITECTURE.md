@@ -43,6 +43,7 @@ Backend/
 - `StudentApplicationsController`: vòng đời đơn từ phía sinh viên `/api/student/applications`.
 - `RewardDisciplineController`: schema/options read-only cho nền tảng khen thưởng - kỷ luật `/api/reward-discipline/schema/options`.
 - `AdminRewardCampaignsController`: CRUD metadata đợt khen thưởng Top 100 học kỳ, xét ứng viên RD3 và duyệt/điều chỉnh Top 100 RD4 qua `/api/admin/reward-campaigns`.
+- `AdminCertificateTemplatesController`: quản lý mẫu bằng khen RD5 qua `/api/admin/certificate-templates`, chỉ SuperAdmin.
 
 Quy ước:
 - Controller chỉ nhận request, gọi service, trả DTO/result.
@@ -65,7 +66,7 @@ Quy ước:
 - `IApplicationReportService`/`ApplicationReportService`: báo cáo tổng quan đơn từ cho admin/học vụ bằng SQL aggregate trong campus scope.
 - `IApplicationEvidenceObjectStore`: abstraction lưu file minh chứng; Local chỉ dùng Development/Testing, R2 dùng private object storage.
 - `ApplicationFormDataValidator`, `ApplicationReferenceValidator`, `ApplicationEvidenceValidator` và các `IApplicationSubmissionRule`: validate form động, entity liên quan, metadata minh chứng và rule theo loại đơn.
-- RD1 khen thưởng - kỷ luật có constants/schema endpoint và EF foundation (`DotKhenThuong`, `MauBangKhen`, mở rộng `KhenThuong`, `HoSoKyLuat`). RD2 bổ sung `IRewardCampaignService`/`RewardCampaignService` để quản lý CRUD metadata đợt Top 100 học kỳ, validate học kỳ/cơ sở/mẫu bằng khen/JSON tiêu chí, chống trùng đợt active và ghi audit create/update/cancel. RD3 bổ sung `IRewardEvaluationService` để xét danh sách ứng viên Top 100, chưa tạo `KhenThuong`. RD4 mở rộng service này cho SuperAdmin điều chỉnh ứng viên, thêm thủ công, sắp xếp, trình duyệt và duyệt chính thức; approve chạy transaction, tạo `KhenThuong`, đánh dấu ứng viên `da_duyet_kt` và ghi audit tối giản. Sinh PDF bằng khen, công bố, notification và workflow kỷ luật vẫn tách task sau.
+- RD1 khen thưởng - kỷ luật có constants/schema endpoint và EF foundation (`DotKhenThuong`, `MauBangKhen`, mở rộng `KhenThuong`, `HoSoKyLuat`). RD2 bổ sung `IRewardCampaignService`/`RewardCampaignService` để quản lý CRUD metadata đợt Top 100 học kỳ, validate học kỳ/cơ sở/mẫu bằng khen/JSON tiêu chí, chống trùng đợt active và ghi audit create/update/cancel. RD3 bổ sung `IRewardEvaluationService` để xét danh sách ứng viên Top 100, chưa tạo `KhenThuong`. RD4 mở rộng service này cho SuperAdmin điều chỉnh ứng viên, thêm thủ công, sắp xếp, trình duyệt và duyệt chính thức; approve chạy transaction, tạo `KhenThuong`, đánh dấu ứng viên `da_duyet_kt` và ghi audit tối giản. RD5 bổ sung `ICertificateTemplateService` để CRUD/vô hiệu hóa/preview metadata mẫu bằng khen, validate JSON render bằng whitelist field, không nhận HTML/CSS tùy ý và không sinh PDF. Sinh PDF bằng khen hàng loạt, công bố, notification và workflow kỷ luật vẫn tách task sau.
 
 Quy ước:
 - Service xử lý nghiệp vụ và gọi `ApplicationDbContext`.
