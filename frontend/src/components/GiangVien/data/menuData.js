@@ -64,7 +64,7 @@ export const giangVienMenuGroups = [
     label: 'Điểm danh & Điểm',
     icon: 'Star',
     children: [
-      { id: 'attendance-today', label: 'Điểm danh hôm nay', icon: 'CheckCircle2', route: '/teacher/attendance' },
+      { id: 'attendance-today', label: 'Lịch dạy & Điểm danh', icon: 'CheckCircle2', route: '/teacher/attendance' },
       { id: 'attendance-history', label: 'Lịch sử điểm danh', icon: 'History', route: '/teacher/attendance-history' },
       { id: 'grading-input', label: 'Nhập điểm', icon: 'Edit3', route: '/teacher/grading-input' },
     ],
@@ -89,6 +89,7 @@ export const giangVienMenuGroups = [
     children: [
       { id: 'pending-requests', label: 'Đơn cần xử lý', icon: 'FileClock', route: '/teacher/requests' },
       { id: 'request-history', label: 'Lịch sử xử lý', icon: 'History', route: '/teacher/requests-history' },
+      { id: 'notifications', label: 'Trung tâm thông báo', icon: 'Bell', route: '/teacher/notifications' },
     ],
   },
 

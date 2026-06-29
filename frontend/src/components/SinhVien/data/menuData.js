@@ -57,6 +57,18 @@ export const sinhVienMenuGroups = [
         icon: 'BarChart2',
         route: '/student/grades',
       },
+      {
+        id: 'rewards',
+        label: 'Khen thưởng',
+        icon: 'Award',
+        route: '/student/rewards',
+      },
+      {
+        id: 'discipline',
+        label: 'Kỷ luật',
+        icon: 'AlertTriangle',
+        route: '/student/discipline',
+      },
     ],
   },
 
@@ -128,6 +140,12 @@ export const sinhVienMenuGroups = [
         label: 'Đơn từ',
         icon: 'FileText',
         route: '/student/requests',
+      },
+      {
+        id: 'notifications',
+        label: 'Trung tâm thông báo',
+        icon: 'Bell',
+        route: '/student/notifications',
       },
     ],
   },
