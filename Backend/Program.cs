@@ -196,6 +196,11 @@ builder.Services.AddScoped<IQuestionBankService, QuestionBankService>();
 builder.Services.AddScoped<IRewardCampaignService, RewardCampaignService>();
 builder.Services.AddScoped<IRewardEvaluationService, RewardEvaluationService>();
 builder.Services.AddScoped<ICertificateTemplateService, CertificateTemplateService>();
+builder.Services.Configure<CertificateStorageOptions>(
+    builder.Configuration.GetSection(CertificateStorageOptions.SectionName)
+);
+builder.Services.AddScoped<ICertificatePdfStorageService, LocalCertificatePdfStorageService>();
+builder.Services.AddScoped<ICertificateGenerationService, CertificateGenerationService>();
 
 builder.Services.Configure<LearningProgressOptions>(
     builder.Configuration.GetSection(LearningProgressOptions.SectionName)

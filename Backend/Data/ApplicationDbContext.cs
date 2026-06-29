@@ -2732,6 +2732,15 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.UrlPdfBangKhen)
                 .HasColumnName("url_pdf_bang_khen")
                 .HasMaxLength(1000);
+            entity.Property(e => e.NgaySinhPdf)
+                .HasColumnName("ngay_sinh_pdf")
+                .HasColumnType("datetime2");
+            entity.Property(e => e.LoiSinhPdf)
+                .HasColumnName("loi_sinh_pdf")
+                .HasMaxLength(2000);
+            entity.Property(e => e.SoLanSinhPdf)
+                .HasColumnName("so_lan_sinh_pdf")
+                .HasDefaultValue(0);
             entity.Property(e => e.HoTenSnapshot)
                 .HasColumnName("ho_ten_snapshot")
                 .HasMaxLength(200);
@@ -2788,6 +2797,9 @@ public class ApplicationDbContext : DbContext
             entity.ToTable(t => t.HasCheckConstraint(
                 "CK_KhenThuong_xep_hang",
                 "[xep_hang] IS NULL OR [xep_hang] > 0"));
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_KhenThuong_so_lan_sinh_pdf",
+                "[so_lan_sinh_pdf] >= 0"));
 
             entity.HasOne(e => e.DonVi)
                 .WithMany()

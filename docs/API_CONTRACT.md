@@ -378,6 +378,10 @@ Ghi chú: PayOS là luồng thanh toán chính cho học sinh: PayOS tạo QR/li
 | POST | `/api/admin/reward-campaigns/{id}/candidates/reorder` | SuperAdmin | Sắp xếp lại thứ hạng các ứng viên được chọn (`duoc_de_xuat`, `them_thu_cong`), không cho rank trùng hoặc rank <= 0. |
 | POST | `/api/admin/reward-campaigns/{id}/submit-for-approval` | SuperAdmin | Chuyển đợt `dang_xet -> cho_duyet` sau khi validate có ít nhất một ứng viên được chọn, không vượt `soLuongToiDa`, không trùng học sinh/sinh viên. Không tạo `KhenThuong`. |
 | POST | `/api/admin/reward-campaigns/{id}/approve` | SuperAdmin | Duyệt danh sách Top 100 từ `dang_xet` hoặc `cho_duyet`, tạo record `KhenThuong` chính thức cho ứng viên `duoc_de_xuat`/`them_thu_cong`, đánh dấu ứng viên `da_duyet_kt`, set đợt `da_duyet`. Idempotency bảo vệ bằng kiểm tra đã có `KhenThuong` trong đợt; gọi lại trả `409`. RD4 chưa sinh PDF nên `urlPdfBangKhen = null`; legacy `UrlChungTu` được lưu chuỗi rỗng để tương thích constraint NOT NULL cũ. |
+| POST | `/api/admin/reward-campaigns/{id}/certificates/generate` | SuperAdmin | RD6 sinh PDF bằng khen cho các `KhenThuong` thuộc đợt Top 100 đã `da_duyet`. Nếu không bật `forceRegenerate`, reward đã có PDF ở trạng thái `da_sinh_pdf` được skip. `onlyFailed = true` chỉ sinh reward thiếu PDF hoặc `loi_sinh_pdf`. Batch tiếp tục nếu một reward lỗi và trả summary `successCount/skippedCount/failedCount/items`. |
+| POST | `/api/admin/reward-campaigns/{id}/certificates/regenerate` | SuperAdmin | Sinh lại PDF bằng khen, bắt buộc `reason`. Có thể truyền `rewardIds` để giới hạn subset và `maMauBangKhen` để override mẫu active Top 100. Không xóa file PDF cũ; cập nhật `urlPdfBangKhen`, `ngaySinhPdf`, `soLanSinhPdf`, `loiSinhPdf`. |
+| GET | `/api/admin/reward-campaigns/{id}/certificates` | SuperAdmin/Admin/CampusAdmin | Danh sách PDF bằng khen của một đợt, có phân trang và lọc `trangThaiPdf`, `keyword`, `pageIndex`, `pageSize`. Admin/CampusAdmin theo scope đợt như các API campaign; không xem đợt global nếu không phải SuperAdmin. |
+| GET | `/api/admin/rewards/{rewardId}/certificate/download` | SuperAdmin/Admin/CampusAdmin | Tải PDF bằng khen đã sinh. Response là `application/pdf`, attachment, `X-Content-Type-Options: nosniff`, `Cache-Control: private, no-store`. Trả `404` nếu reward chưa có PDF hoặc file không tồn tại. |
 
 Ví dụ tạo đợt Top 100:
 
@@ -396,7 +400,7 @@ Ví dụ tạo đợt Top 100:
 }
 ```
 
-RD4 đã có luồng duyệt/điều chỉnh Top 100 và tạo record `KhenThuong` chính thức. RD4 chưa sinh PDF bằng khen, chưa công bố, chưa gửi thông báo, chưa xử lý kỷ luật.
+RD6 dùng storage cấu hình `CertificateStorage__Provider=Local`, `CertificateStorage__LocalRoot`, `CertificateStorage__PublicBasePath` để lưu file PDF ngoài `wwwroot`. Renderer RD6 là PDF text-only an toàn từ whitelist field RD5, không nhận HTML/CSS/script và không xóa file cũ khi regenerate. Công bố, notification và workflow kỷ luật vẫn tách task sau.
 
 ### Mẫu Bằng Khen - Đã có
 
@@ -409,7 +413,7 @@ RD4 đã có luồng duyệt/điều chỉnh Top 100 và tạo record `KhenThuon
 | DELETE | `/api/admin/certificate-templates/{id}` | SuperAdmin | Vô hiệu hóa mẫu bằng `conHoatDong = false`, không hard delete kể cả khi đã được gắn với đợt/khen thưởng. |
 | POST | `/api/admin/certificate-templates/{id}/preview` | SuperAdmin | Trả payload preview an toàn từ dữ liệu mẫu hoặc `maKhenThuong`; không ghi DB, không sinh PDF. |
 
-`cauHinhJson` RD5 phải là object có `fields` array 1..50. Field chỉ nhận các key whitelist: `hoTen`, `mssv`, `tenHocKy`, `danhHieu`, `xepHang`, `diemXet`, `ngayCap`; mỗi field bắt buộc `key`, `x`, `y`, `fontSize`, `align`, `color`, `bold`. Backend không nhận HTML/CSS/script tùy ý và chặn `FileNenUrl` dạng base64. RD5 chưa upload file nền qua object storage riêng; `fileNenUrl` là URL/path an toàn đã có sẵn. Sinh PDF preview/batch và cập nhật `UrlPdfBangKhen` để RD6.
+`cauHinhJson` RD5/RD6 phải là object có `fields` array 1..50. Field chỉ nhận các key whitelist: `hoTen`, `mssv`, `tenHocKy`, `danhHieu`, `xepHang`, `diemXet`, `ngayCap`; mỗi field bắt buộc `key`, `x`, `y`, `fontSize`, `align`, `color`, `bold`. Backend không nhận HTML/CSS/script tùy ý và chặn `FileNenUrl` dạng base64. RD5 chưa upload file nền qua object storage riêng; `fileNenUrl` là URL/path an toàn đã có sẵn. RD6 sinh PDF batch từ cấu hình này và cập nhật `UrlPdfBangKhen`.
 
 Ví dụ tạo mẫu bằng khen:
 
@@ -433,7 +437,7 @@ Ví dụ tạo mẫu bằng khen:
 
 ### Dự kiến/cần bổ sung
 
-- Sinh PDF bằng khen hàng loạt cho Top 100 và cập nhật `UrlPdfBangKhen`.
+- Công bố bằng khen, notification và luồng tải phía học sinh/sinh viên.
 - CRUD hồ sơ kỷ luật, phê duyệt/gỡ hiệu lực.
 
 ## Organizations APIs

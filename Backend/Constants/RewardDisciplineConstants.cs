@@ -182,5 +182,8 @@ public static class RewardDisciplineConstants
         public const string ReorderRewardCandidates = "REORDER_REWARD_CANDIDATES";
         public const string SubmitRewardCampaignForApproval = "SUBMIT_REWARD_CAMPAIGN_FOR_APPROVAL";
         public const string ApproveRewardCampaign = "APPROVE_REWARD_CAMPAIGN";
+        public const string GenerateRewardCertificates = "GENERATE_REWARD_CERTIFICATES";
+        public const string RegenerateRewardCertificates = "REGENERATE_REWARD_CERTIFICATES";
+        public const string RewardCertificateGenerationFailed = "REWARD_CERTIFICATE_GENERATION_FAILED";
     }
 }
