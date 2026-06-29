@@ -330,7 +330,7 @@ const router = createRouter({
         { path: 'requests', name: 'teacher-requests', component: () => import('../views/GiangVien/PendingRequestsView.vue') },
         { path: 'requests-history', name: 'teacher-requests-history', component: () => import('../views/GiangVien/RequestsHistoryView.vue') },
         { path: 'profile', name: 'teacher-profile', component: () => import('../views/GiangVien/ProfileView.vue') },
-        { path: 'notifications', name: 'teacher-notifications', component: () => import('../views/SuperAdmin/PlaceholderView.vue'), meta: { title: 'Thông báo', subtitle: 'Trung tâm thông báo', section: 'Cá nhân' } },
+        { path: 'notifications', name: 'teacher-notifications', component: () => import('../views/Student/NotificationsView.vue'), meta: { title: 'Thông báo', subtitle: 'Trung tâm thông báo', section: 'Cá nhân' } },
         { path: 'change-password', name: 'teacher-change-password', component: () => import('../views/GiangVien/ChangePasswordView.vue') },
       ],
     },
@@ -364,7 +364,7 @@ const router = createRouter({
         { path: 'requests/:id', name: 'staff-request-details', component: () => import('../views/GiaoVu/Requests/RequestDetailsView.vue') },
         { path: 'requests-history', name: 'staff-requests-history', component: () => import('../views/GiaoVu/Requests/RequestHistoryView.vue') },
         { path: 'workflow', name: 'staff-workflow', component: () => import('../views/GiaoVu/Requests/WorkflowConfigView.vue') },
-        { path: 'notifications', name: 'staff-notifications', component: () => import('../views/GiaoVu/StaffNotificationsView.vue'), meta: { title: 'Thông báo' } },
+        { path: 'notifications', name: 'staff-notifications', component: () => import('../views/Student/NotificationsView.vue'), meta: { title: 'Thông báo' } },
         { path: 'notices/send', name: 'staff-notices-send', component: () => import('../views/GiaoVu/Notices/SendNoticeView.vue') },
         { path: 'notices/history', name: 'staff-notices-history', component: () => import('../views/GiaoVu/Notices/NoticeHistoryView.vue') },
         { path: 'profile', name: 'staff-profile', component: () => import('../views/GiaoVu/Profile/StaffProfileView.vue') },
@@ -414,7 +414,7 @@ const router = createRouter({
         { path: 'audit-logs', name: 'bgh-audit-logs', component: () => import('../views/BGH/AuditLogsView.vue'), meta: { title: 'Nhật ký kiểm toán', subtitle: 'Theo dõi lịch sử thay đổi trên hệ thống', section: 'Giám sát hệ thống' } },
         // Cá nhân
         { path: 'profile', name: 'bgh-profile', component: () => import('../views/BGH/ProfileView.vue'), meta: { title: 'Hồ sơ cá nhân', subtitle: 'Thông tin cá nhân và cài đặt tài khoản', section: 'Cá nhân' } },
-        { path: 'notifications', name: 'bgh-notifications', component: () => import('../views/BGH/PlaceholderView.vue'), meta: { title: 'Thông báo', subtitle: 'Trung tâm thông báo', section: 'Cá nhân' } },
+        { path: 'notifications', name: 'bgh-notifications', component: () => import('../views/Student/NotificationsView.vue'), meta: { title: 'Thông báo', subtitle: 'Trung tâm thông báo', section: 'Cá nhân' } },
       ],
     },
 
