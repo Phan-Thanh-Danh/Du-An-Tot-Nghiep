@@ -3,12 +3,13 @@ using Backend.DTOs.Notifications;
 using Backend.Services.Notifications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Backend.Constants;
 
 namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/admin/notifications")]
-[Authorize]
+[Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin}")]
 public class AdminNotificationsController : ControllerBase
 {
     private readonly INotificationService _notificationService;
