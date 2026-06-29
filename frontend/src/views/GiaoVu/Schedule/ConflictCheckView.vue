@@ -1,27 +1,22 @@
 <script setup>
 import { ref, computed } from 'vue'
 import {
-  ShieldAlert, Search, User, Building, Users, CheckCircle2, Wrench,
+  ShieldAlert, Search, User, Building, Users, CheckCircle2, Wrench, X, AlertTriangle, Lightbulb
 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import {
-  caHocCatalog, thuTrongTuanOptions, scheduleConflictRows,
+  scheduleConflictRows
 } from '@/mocks/scheduleAttendanceMockData'
-import { usePopupStore } from '@/stores/popup'
-
-const popupStore = usePopupStore()
 
 const conflicts = ref(scheduleConflictRows.map(c => ({ ...c })))
 const selected = ref(null)
-const confirmAction = ref(null)
+const confirmAction = ref({ isOpen: false, title: '', message: '', label: '', variant: 'primary', run: null })
 const searchQuery = ref('')
 const filterLoai = ref('')
 const filterMucDo = ref('')
 
-// check form
-const form = ref({ hocKy: 'Spring 2026', thu: 2, caHocId: 'ca1', giaoVienId: '', lopId: '', phongId: '' })
 const isChecking = ref(false)
 
 // ── Computed ───────────────────────────────────────────────────
@@ -30,7 +25,7 @@ const stats = computed(() => ({
   giangVien: conflicts.value.filter(c => c.loai === 'giang_vien').length,
   phongHoc: conflicts.value.filter(c => c.loai === 'phong_hoc').length,
   lopHoc: conflicts.value.filter(c => c.loai === 'lop_hoc').length,
-  chuaXuLy: conflicts.value.filter(c => c.trangThaiXuLy === 'chua_xu_ly').length,
+  chuaXuLy: conflicts.value.filter(c => c.trangThaiXuLy === 'chua_xu_ly').length
 }))
 
 const filtered = computed(() => {
@@ -55,12 +50,12 @@ function performCheck() {
   isChecking.value = true
   setTimeout(() => {
     isChecking.value = false
-    popupStore.info('Kiểm tra xong', `Tìm thấy ${conflicts.value.length} xung đột trong lịch học hiện tại.`)
   }, 700)
 }
 
 function applyFix(c) {
   confirmAction.value = {
+    isOpen: true,
     title: 'Áp dụng đề xuất?',
     message: c.deXuat,
     label: 'Áp dụng',
@@ -69,251 +64,195 @@ function applyFix(c) {
       const idx = conflicts.value.findIndex(x => x.id === c.id)
       if (idx !== -1) conflicts.value.splice(idx, 1)
       if (selected.value?.id === c.id) selected.value = null
-      confirmAction.value = null
-      popupStore.success('Đã xử lý', 'Xung đột đã được đánh dấu giải quyết.')
+      confirmAction.value.isOpen = false
     }
   }
+}
+
+function runConfirm() {
+  if (confirmAction.value.run) confirmAction.value.run()
 }
 </script>
 
 <template>
-  <div class="conflict-view space-y-4 max-w-full">
-
+  <div class="h-full flex flex-col space-y-4">
     <!-- Header -->
-    <div class="flex items-start gap-3 justify-between flex-wrap">
+    <div class="flex items-start justify-between flex-wrap gap-4">
       <div>
         <div class="flex items-center gap-2">
-          <ShieldAlert class="text-amber-500" :size="22" />
-          <h1 class="text-xl font-bold text-(--text-heading)">Kiểm tra xung đột lịch học</h1>
+          <ShieldAlert class="text-amber-500" :size="24" />
+          <h1 class="text-xl font-bold text-(--text-heading)">Kiểm tra xung đột</h1>
         </div>
         <p class="text-sm text-(--text-muted) mt-0.5 ml-8">Phát hiện và xử lý xung đột giảng viên, lớp học, phòng học trước khi xuất bản.</p>
       </div>
-    </div>
-
-    <!-- Stat pills -->
-    <div class="flex flex-wrap gap-2">
-      <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-(--border-default) bg-(--surface-input) text-sm">
-        <span class="font-bold text-xl text-(--text-heading)">{{ stats.total }}</span>
-        <span class="text-(--text-muted)">Tổng xung đột</span>
-      </div>
-      <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-red-200 dark:border-red-800 bg-red-50/80 dark:bg-red-950/30 text-sm">
-        <span class="font-bold text-xl text-red-600 dark:text-red-400">{{ stats.chuaXuLy }}</span>
-        <span class="text-(--text-muted)">Chưa xử lý</span>
-      </div>
-      <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-(--border-default) bg-(--surface-input) text-sm">
-        <User :size="14" class="text-(--text-muted)" />
-        <span class="font-bold text-(--text-heading)">{{ stats.giangVien }}</span>
-        <span class="text-(--text-muted)">GV</span>
-      </div>
-      <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-(--border-default) bg-(--surface-input) text-sm">
-        <Building :size="14" class="text-(--text-muted)" />
-        <span class="font-bold text-(--text-heading)">{{ stats.phongHoc }}</span>
-        <span class="text-(--text-muted)">Phòng</span>
-      </div>
-      <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-(--border-default) bg-(--surface-input) text-sm">
-        <Users :size="14" class="text-(--text-muted)" />
-        <span class="font-bold text-(--text-heading)">{{ stats.lopHoc }}</span>
-        <span class="text-(--text-muted)">Lớp</span>
-      </div>
-    </div>
-
-    <!-- Check form card -->
-    <div class="surface-card border border-(--border-card) rounded-2xl p-4 shadow-sm">
-      <h2 class="text-sm font-bold text-(--text-heading) mb-3">Kiểm tra lịch trước khi thêm mới</h2>
-      <div class="flex flex-wrap gap-2 items-end">
-        <div>
-          <label class="block text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-1">Học kỳ</label>
-          <select v-model="form.hocKy" class="h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
-            <option>Spring 2026</option><option>Summer 2026</option><option>Fall 2025</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-1">Thứ</label>
-          <select v-model="form.thu" class="h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
-            <option v-for="t in thuTrongTuanOptions" :key="t.value" :value="t.value">{{ t.label }}</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-1">Ca học</label>
-          <select v-model="form.caHocId" class="h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
-            <option v-for="ca in caHocCatalog" :key="ca.id" :value="ca.id">{{ ca.tenCa }} · {{ ca.gioBatDau }}</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-1">Mã GV</label>
-          <input v-model="form.giaoVienId" type="text" placeholder="VD: GV001" class="h-9 w-28 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
-        </div>
-        <div>
-          <label class="block text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-1">Mã lớp</label>
-          <input v-model="form.lopId" type="text" placeholder="SE1601" class="h-9 w-28 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
-        </div>
-        <div>
-          <label class="block text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-1">Mã phòng</label>
-          <input v-model="form.phongId" type="text" placeholder="P302" class="h-9 w-28 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
-        </div>
-        <GlassButton variant="primary" class="h-9 mt-auto" :loading="isChecking" @click="performCheck">
-          <Search :size="15" class="mr-1" />
-          {{ isChecking ? 'Đang kiểm tra...' : 'Kiểm tra ngay' }}
+      <div class="flex gap-2">
+        <GlassButton variant="primary" @click="performCheck" :disabled="isChecking">
+          <Wrench v-if="!isChecking" :size="15" class="mr-1" />
+          <span v-if="isChecking" class="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin mr-2"></span>
+          {{ isChecking ? 'Đang kiểm tra...' : 'Kiểm tra toàn hệ thống' }}
         </GlassButton>
       </div>
     </div>
 
-    <!-- Main split area -->
-    <div class="flex gap-4 items-start">
-
-      <!-- Left: conflict list -->
-      <div class="flex-1 min-w-0 surface-card border border-(--border-card) rounded-2xl shadow-sm overflow-hidden">
-        <!-- Toolbar -->
-        <div class="p-3 border-b border-(--border-default) flex flex-wrap gap-2 items-center">
-          <label class="flex items-center gap-2 bg-(--surface-input) px-3 h-9 rounded-lg border border-(--border-input) flex-1 min-w-[180px] focus-within:ring-2 focus-within:ring-(--border-focus) transition-shadow">
-            <Search :size="14" class="text-(--text-muted) shrink-0" />
-            <input v-model="searchQuery" type="text" placeholder="Tìm đối tượng, mô tả..." class="bg-transparent border-none outline-none text-sm text-(--text-body) w-full" />
-          </label>
-          <select v-model="filterLoai" class="h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
-            <option value="">Tất cả loại</option>
-            <option value="giang_vien">Giảng viên</option>
-            <option value="lop_hoc">Lớp học</option>
-            <option value="phong_hoc">Phòng học</option>
-          </select>
-          <select v-model="filterMucDo" class="h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
-            <option value="">Tất cả mức độ</option>
-            <option value="critical">Nghiêm trọng</option>
-            <option value="major">Trung bình</option>
-            <option value="minor">Nhẹ</option>
-          </select>
-          <span class="text-xs text-(--text-muted) ml-auto">{{ filtered.length }} kết quả</span>
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 h-24">
+      <div class="surface-card border border-(--border-card) rounded-2xl p-4 flex items-center justify-between shadow-sm h-full">
+        <div>
+          <p class="text-xs font-bold text-(--text-muted) uppercase tracking-wide">Tổng xung đột</p>
+          <p class="text-2xl font-bold text-(--text-heading) mt-1">{{ stats.total }}</p>
         </div>
+        <div class="w-10 h-10 rounded-full flex items-center justify-center bg-(--color-danger-bg) text-(--color-danger-text)">
+          <ShieldAlert :size="20" />
+        </div>
+      </div>
+      <div class="surface-card border border-(--border-card) rounded-2xl p-4 flex items-center justify-between shadow-sm h-full">
+        <div>
+          <p class="text-xs font-bold text-(--text-muted) uppercase tracking-wide">Giảng viên</p>
+          <p class="text-2xl font-bold text-(--text-heading) mt-1">{{ stats.giangVien }}</p>
+        </div>
+        <div class="w-10 h-10 rounded-full flex items-center justify-center bg-(--accent-primary-soft) text-(--lg-primary)">
+          <User :size="20" />
+        </div>
+      </div>
+      <div class="surface-card border border-(--border-card) rounded-2xl p-4 flex items-center justify-between shadow-sm h-full">
+        <div>
+          <p class="text-xs font-bold text-(--text-muted) uppercase tracking-wide">Phòng học</p>
+          <p class="text-2xl font-bold text-(--text-heading) mt-1">{{ stats.phongHoc }}</p>
+        </div>
+        <div class="w-10 h-10 rounded-full flex items-center justify-center bg-(--color-success-bg) text-(--color-success-text)">
+          <Building :size="20" />
+        </div>
+      </div>
+      <div class="surface-card border border-(--border-card) rounded-2xl p-4 flex items-center justify-between shadow-sm h-full">
+        <div>
+          <p class="text-xs font-bold text-(--text-muted) uppercase tracking-wide">Lớp học</p>
+          <p class="text-2xl font-bold text-(--text-heading) mt-1">{{ stats.lopHoc }}</p>
+        </div>
+        <div class="w-10 h-10 rounded-full flex items-center justify-center bg-(--accent-violet-soft) text-(--accent-violet)">
+          <Users :size="20" />
+        </div>
+      </div>
+    </div>
 
-        <!-- Conflict rows -->
-        <div v-if="filtered.length > 0" class="divide-y divide-(--border-default)">
-          <div
-            v-for="c in filtered" :key="c.id"
-            class="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors"
-            :class="selected?.id === c.id ? 'bg-(--surface-hover)' : 'hover:bg-(--surface-hover)'"
-            @click="selected = c"
-          >
-            <!-- Type icon -->
-            <div
-              class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              :class="{
-                'bg-red-50 dark:bg-red-950/40 text-red-500': c.mucDo === 'critical',
-                'bg-amber-50 dark:bg-amber-950/30 text-amber-500': c.mucDo === 'major',
-                'bg-blue-50 dark:bg-blue-950/30 text-blue-500': c.mucDo === 'minor',
-              }"
-            >
-              <component :is="loaiIcon(c.loai)" :size="16" />
-            </div>
+    <!-- Main Content -->
+    <div class="flex gap-4 flex-1 min-h-0 flex-col lg:flex-row">
 
-            <!-- Info -->
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm font-semibold text-(--text-heading) truncate">{{ c.doiTuong }}</span>
-                <GlassBadge :variant="mucDoVariant(c.mucDo)" size="sm">{{ mucDoLabel(c.mucDo) }}</GlassBadge>
-              </div>
-              <p class="text-xs text-(--text-muted) truncate mt-0.5">{{ c.lichHienTai }}</p>
-            </div>
-
-            <!-- Status + action -->
-            <div class="flex items-center gap-2 shrink-0">
-              <GlassBadge :variant="xuLyVariant(c.trangThaiXuLy)" size="sm">{{ xuLyLabel(c.trangThaiXuLy) }}</GlassBadge>
-              <GlassButton variant="ghost" size="xs" @click.stop="applyFix(c)">
-                <Wrench :size="13" />
-              </GlassButton>
-            </div>
+      <!-- List -->
+      <div class="flex-1 surface-card border border-(--border-card) rounded-2xl shadow-sm flex flex-col min-w-0 overflow-hidden">
+        <div class="p-3 border-b border-(--border-default) flex items-center justify-between bg-(--surface-input)">
+          <div class="flex gap-2">
+            <select v-model="filterLoai" class="bg-(--surface-card) border border-(--border-card) rounded-lg px-2 py-1.5 text-xs text-(--text-body) outline-none focus:border-(--lg-primary)">
+              <option value="">Tất cả loại</option>
+              <option value="giang_vien">Giảng viên</option>
+              <option value="phong_hoc">Phòng học</option>
+              <option value="lop_hoc">Lớp học</option>
+            </select>
+            <select v-model="filterMucDo" class="bg-(--surface-card) border border-(--border-card) rounded-lg px-2 py-1.5 text-xs text-(--text-body) outline-none focus:border-(--lg-primary)">
+              <option value="">Mọi mức độ</option>
+              <option value="critical">Nghiêm trọng</option>
+              <option value="major">Trung bình</option>
+            </select>
+          </div>
+          <div class="relative">
+            <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 text-(--text-muted)" :size="14" />
+            <input v-model="searchQuery" type="text" placeholder="Tìm xung đột..." class="pl-8 pr-3 h-8 bg-(--surface-card) border border-(--border-input) rounded-lg text-xs text-(--text-body) outline-none focus:ring-2 focus:ring-(--border-focus) w-48" />
           </div>
         </div>
 
-        <!-- Empty -->
-        <div v-else class="p-12 text-center">
-          <CheckCircle2 :size="40" class="mx-auto text-emerald-400 mb-3" />
-          <p class="font-semibold text-(--text-heading)">Không có xung đột</p>
-          <p class="text-sm text-(--text-muted) mt-1">Lịch học không có xung đột với bộ lọc hiện tại.</p>
+        <div class="flex-1 overflow-auto p-4 space-y-3 bg-transparent">
+          <div v-for="c in filtered" :key="c.id"
+               @click="selected = c"
+               class="surface-card border rounded-xl p-4 cursor-pointer transition-all hover:shadow-md relative overflow-hidden"
+               :class="selected?.id === c.id ? 'border-(--lg-primary) ring-1 ring-(--lg-primary)' : 'border-(--border-card)'">
+
+               <div class="absolute left-0 top-0 bottom-0 w-1"
+                    :class="c.mucDo === 'critical' ? 'bg-red-500' : c.mucDo === 'major' ? 'bg-amber-500' : 'bg-blue-500'"></div>
+
+               <div class="pl-2 flex justify-between items-start">
+                  <div>
+                    <div class="flex items-center gap-2 mb-1">
+                      <component :is="loaiIcon(c.loai)" :size="14" class="text-(--text-muted)" />
+                      <span class="text-xs font-mono font-bold text-(--text-heading)">{{ loaiLabel(c.loai) }}</span>
+                      <GlassBadge :variant="mucDoVariant(c.mucDo)" size="xs">{{ mucDoLabel(c.mucDo) }}</GlassBadge>
+                    </div>
+                    <h3 class="font-bold text-(--text-heading) text-base mt-1">{{ c.doiTuong }}</h3>
+                    <p class="text-sm text-(--color-danger-text) font-medium mt-1">{{ c.moTa }}</p>
+                  </div>
+
+                  <div class="text-right flex flex-col items-end gap-2">
+                    <GlassBadge :variant="xuLyVariant(c.trangThaiXuLy)" size="xs">{{ xuLyLabel(c.trangThaiXuLy) }}</GlassBadge>
+                    <p class="text-xs font-medium text-(--text-muted) bg-(--surface-input) px-2 py-1 rounded">{{ c.thoiGian }}</p>
+                  </div>
+               </div>
+          </div>
+
+          <div v-if="filtered.length === 0" class="flex flex-col items-center justify-center p-8 text-(--text-muted)">
+            <CheckCircle2 :size="48" class="opacity-20 mb-3" />
+            <p>Không tìm thấy xung đột nào.</p>
+          </div>
         </div>
       </div>
 
-      <!-- Right: detail panel -->
-      <transition name="panel-slide">
-        <div
-          v-if="selected"
-          class="w-72 shrink-0 surface-card border border-(--border-card) rounded-2xl shadow-lg overflow-hidden"
-          style="position: sticky; top: 80px"
-        >
-          <!-- Header -->
-          <div
-            class="px-4 py-3 flex items-center gap-2 border-b border-(--border-default)"
-            :class="{
-              'bg-red-50/80 dark:bg-red-950/30': selected.mucDo === 'critical',
-              'bg-amber-50/80 dark:bg-amber-950/30': selected.mucDo === 'major',
-              'bg-blue-50/80 dark:bg-blue-950/30': selected.mucDo === 'minor',
-            }"
-          >
-            <component :is="loaiIcon(selected.loai)" :size="16" :class="{
-              'text-red-500': selected.mucDo === 'critical',
-              'text-amber-500': selected.mucDo === 'major',
-              'text-blue-500': selected.mucDo === 'minor',
-            }" />
-            <span class="text-xs font-bold uppercase tracking-wide text-(--text-heading) flex-1">{{ loaiLabel(selected.loai) }}</span>
-            <GlassBadge :variant="mucDoVariant(selected.mucDo)" size="sm">{{ mucDoLabel(selected.mucDo) }}</GlassBadge>
+      <!-- Detail Panel -->
+      <div v-if="selected" class="w-full lg:w-80 shrink-0 flex flex-col gap-3">
+        <div class="surface-card border border-(--border-card) rounded-2xl shadow-sm flex flex-col h-full overflow-hidden">
+          <div class="p-4 border-b border-(--border-default) flex justify-between items-center bg-(--surface-input)">
+            <h3 class="font-bold text-(--text-heading)">Gợi ý xử lý</h3>
+            <button class="text-(--text-muted) hover:text-(--text-heading)" @click="selected = null"><X :size="16" /></button>
           </div>
 
-          <!-- Content -->
-          <div class="p-4 space-y-3">
+          <div class="p-4 flex-1 overflow-auto space-y-5">
             <div>
-              <p class="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-0.5">Đối tượng</p>
-              <p class="text-base font-bold text-(--text-heading)">{{ selected.doiTuong }}</p>
-              <p class="text-xs font-mono text-(--text-muted)">{{ selected.id }}</p>
-            </div>
-
-            <div class="bg-(--surface-input) rounded-xl p-3 border border-(--border-default)">
-              <p class="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-1">Mô tả</p>
-              <p class="text-sm text-(--text-body) leading-relaxed">{{ selected.moTa }}</p>
-            </div>
-
-            <div class="bg-(--surface-input) rounded-xl p-3 border border-(--border-default)">
-              <p class="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-1">Lịch hiện tại</p>
-              <p class="text-sm text-(--text-body)">{{ selected.lichHienTai }}</p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2">
-              <div class="bg-(--surface-input) rounded-xl p-3 border border-(--border-default) text-center">
-                <p class="text-lg font-bold text-(--text-heading)">{{ selected.soTietAnhHuong }}</p>
-                <p class="text-[10px] text-(--text-muted)">Tiết bị ảnh hưởng</p>
-              </div>
-              <div class="bg-(--surface-input) rounded-xl p-3 border border-(--border-default) text-center flex flex-col items-center justify-center">
-                <GlassBadge :variant="xuLyVariant(selected.trangThaiXuLy)" class="justify-center text-xs">{{ xuLyLabel(selected.trangThaiXuLy) }}</GlassBadge>
-                <p class="text-[10px] text-(--text-muted) mt-1">Trạng thái</p>
+              <p class="text-xs text-(--text-muted) uppercase tracking-wider font-bold mb-1">Phân tích xung đột</p>
+              <div class="space-y-2 text-sm text-(--text-body)">
+                <div class="flex justify-between"><span class="text-(--text-muted)">Đối tượng:</span> <span class="font-medium text-right">{{ selected.doiTuong }}</span></div>
+                <div class="flex justify-between"><span class="text-(--text-muted)">Mức độ:</span>
+                  <GlassBadge :variant="mucDoVariant(selected.mucDo)" size="xs">{{ mucDoLabel(selected.mucDo) }}</GlassBadge>
+                </div>
+                <div class="flex justify-between"><span class="text-(--text-muted)">Thời gian:</span> <span class="font-medium">{{ selected.thoiGian }}</span></div>
               </div>
             </div>
 
-            <div class="bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
-              <p class="text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-1">Đề xuất xử lý</p>
-              <p class="text-sm text-(--text-body)">{{ selected.deXuat }}</p>
+            <div class="p-3 bg-(--color-danger-bg) border border-(--color-danger-border) rounded-xl">
+              <p class="text-xs font-bold text-(--color-danger-text) flex items-center gap-1 mb-1"><AlertTriangle :size="14"/> Mô tả lỗi</p>
+              <p class="text-sm text-(--color-danger-text) opacity-90">{{ selected.moTa }}</p>
+            </div>
+
+            <div v-if="selected.deXuat" class="p-3 bg-(--color-success-bg) border border-(--color-success-border) rounded-xl">
+              <p class="text-xs font-bold text-(--color-success-text) flex items-center gap-1 mb-1"><Lightbulb :size="14"/> Đề xuất từ hệ thống</p>
+              <p class="text-sm text-(--color-success-text) opacity-90 font-medium">{{ selected.deXuat }}</p>
+            </div>
+
+            <div v-if="!selected.deXuat" class="p-3 bg-(--surface-input) rounded-xl text-center">
+              <p class="text-sm text-(--text-muted)">Hệ thống không có đề xuất tự động. Cần xử lý thủ công.</p>
             </div>
           </div>
 
-          <div class="px-4 pb-4">
-            <GlassButton variant="primary" class="w-full h-9 justify-center text-sm" @click="applyFix(selected)">
-              <Wrench :size="14" class="mr-1" /> Áp dụng đề xuất
-            </GlassButton>
+          <div class="p-4 border-t border-(--border-default) space-y-2">
+            <GlassButton v-if="selected.deXuat" variant="primary" class="w-full justify-center" @click="applyFix(selected)">Áp dụng gợi ý</GlassButton>
+            <GlassButton variant="secondary" class="w-full justify-center text-link">Sửa lịch thủ công</GlassButton>
           </div>
         </div>
-      </transition>
+      </div>
+
+      <!-- Empty State -->
+      <div v-else class="w-full lg:w-80 shrink-0 hidden lg:flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-(--border-card) rounded-2xl">
+        <div class="w-12 h-12 rounded-full bg-(--surface-input) flex items-center justify-center text-(--text-muted) mb-3">
+          <Wrench :size="24" />
+        </div>
+        <p class="text-sm font-medium text-(--text-heading)">Chọn một xung đột</p>
+        <p class="text-xs text-(--text-muted) mt-1">Chọn một dòng bên trái để xem nguyên nhân và gợi ý xử lý tự động.</p>
+      </div>
+
     </div>
-
-    <ConfirmActionDialog
-      v-if="confirmAction"
-      :show="true"
-      :title="confirmAction.title"
-      :message="confirmAction.message"
-      :confirmLabel="confirmAction.label"
-      :variant="confirmAction.variant"
-      @confirm="confirmAction.run"
-      @cancel="confirmAction = null"
-    />
   </div>
-</template>
 
-<style scoped>
-.panel-slide-enter-active, .panel-slide-leave-active { transition: opacity .2s ease, transform .2s ease; }
-.panel-slide-enter-from, .panel-slide-leave-to { opacity: 0; transform: translateX(16px); }
-</style>
+  <ConfirmActionDialog
+    :is-open="confirmAction.isOpen"
+    :title="confirmAction.title"
+    :message="confirmAction.message"
+    :confirm-text="confirmAction.label"
+    @confirm="runConfirm"
+    @cancel="confirmAction.isOpen = false"
+  />
+</template>

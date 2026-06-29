@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
-import { Search, Bell, Menu, Target } from 'lucide-vue-next'
+import { Search, Bell, Menu } from 'lucide-vue-next'
 import * as LucideIcons from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
 import { mockUser, mockNotifications } from './data/menuData.js'
@@ -43,7 +43,7 @@ const pageTitleMap = {
   '/student/requests': { title: 'Đơn từ', subtitle: 'Yêu cầu học vụ đang xử lý' },
   '/student/evaluations': { title: 'Đánh giá', subtitle: 'Khảo sát chất lượng giảng dạy' },
   '/student/profile': { title: 'Cá nhân', subtitle: 'Hồ sơ và cài đặt tài khoản' },
-  '/student/notifications': { title: 'Thông báo', subtitle: 'Trung tâm tin tức và nhắc nhở' },
+  '/student/notifications': { title: 'Thông báo', subtitle: 'Trung tâm tin tức và nhắc nhở' }
 }
 
 const currentMeta = computed(() => {
@@ -53,6 +53,9 @@ const currentMeta = computed(() => {
   for (const [path, m] of Object.entries(pageTitleMap)) {
     if (route.path.startsWith(`${path}/`)) return m
   }
+  if (route.path.startsWith('/staff')) return { title: 'Hệ thống Giáo vụ', subtitle: 'Không gian làm việc' }
+  if (route.path.startsWith('/bgh')) return { title: 'Ban Giám hiệu', subtitle: 'Giám sát & Phê duyệt' }
+  if (route.path.startsWith('/teacher')) return { title: 'Trang giảng viên', subtitle: 'Không gian giảng dạy' }
   return { title: 'Trang học sinh', subtitle: 'Không gian học tập cá nhân' }
 })
 
@@ -141,7 +144,7 @@ function notifColorClass(color) {
     red: 'bg-(--color-danger-bg) text-(--color-danger-text)',
     green: 'bg-(--color-success-bg) text-(--color-success-text)',
     blue: 'bg-(--color-info-bg) text-(--color-info-text)',
-    yellow: 'bg-(--color-warning-bg) text-(--color-warning-text)',
+    yellow: 'bg-(--color-warning-bg) text-(--color-warning-text)'
   }
   return map[color] || 'surface-input text-label'
 }

@@ -185,7 +185,7 @@ const roleCodeToName = {
   'sieu_quan_tri': 'Siêu quản trị', 'quan_tri': 'Quản trị', 'quan_tri_co_so': 'Quản trị CS',
   'nhan_vien': 'Giáo vụ', 'hieu_truong': 'Ban Giám Hiệu', 'giao_vien': 'Giảng viên',
   'hoc_sinh': 'Sinh viên', 'chu_tich': 'Chủ tịch', 'admin_tai_chinh': 'Admin TC',
-  'ke_toan_co_so': 'Kế toán CS',
+  'ke_toan_co_so': 'Kế toán CS'
 }
 
 const mockUsers = [
@@ -255,7 +255,7 @@ function openEditModal(user) {
     soDienThoai: user.soDienThoai || '',
     matKhau: '',
     maCodeVaiTro: user.vaiTroChinh,
-    maDonVi: user.maDonVi,
+    maDonVi: user.maDonVi
   }
   showModal.value = true
 }
@@ -289,13 +289,13 @@ function submitForm() {
 
 function handleToggleLock(user) {
   const isLocking = user.trangThai === 'hoat_dong'
-  if (!confirm(`Bạn có chắc chắn muốn ${isLocking ? 'khóa' : 'mở khóa'} tài khoản ${user.email}?`)) return
+    if (import.meta.env.VITE_MOCK === 'true' /* confirm(`Bạn có chắc chắn muốn ${isLocking ? 'khóa' : 'mở khóa'} tài khoản ${user.email}?`) */) return
   user.trangThai = isLocking ? 'bi_khoa' : 'hoat_dong'
 }
 
 function handleResetPassword(user) {
   const newPassword = prompt(`Nhập mật khẩu mới cho ${user.email} (tối thiểu 8 ký tự):`)
   if (!newPassword || newPassword.length < 8) return
-  alert('Đặt lại mật khẩu thành công!')
+  console.log('Đặt lại mật khẩu thành công!')
 }
 </script>

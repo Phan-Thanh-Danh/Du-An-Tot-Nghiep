@@ -73,9 +73,9 @@ function cellItems(thu, caId) {
 
 // ── Card color by status ───────────────────────────────────────
 const cardColors = {
-  nhap: { bg: 'bg-(--surface-input)', border: 'border-(--border-default)', text: 'text-(--text-body)', dot: 'bg-slate-400', accent: 'border-l-slate-400' },
-  da_xuat_ban: { bg: 'bg-emerald-50/80 dark:bg-emerald-950/40', border: 'border-emerald-200 dark:border-emerald-800', text: 'text-emerald-800 dark:text-emerald-300', dot: 'bg-emerald-500', accent: 'border-l-emerald-500' },
-  da_huy: { bg: 'bg-red-50/80 dark:bg-red-950/30', border: 'border-red-200 dark:border-red-800', text: 'text-red-700 dark:text-red-400', dot: 'bg-red-400', accent: 'border-l-red-400' },
+  nhap: { bg: 'bg-(--surface-input)', border: 'border-(--border-default)', text: 'text-(--text-body)', dot: 'bg-(--text-muted)', accent: 'border-l-(--text-muted)' },
+  da_xuat_ban: { bg: 'bg-(--color-success-bg)', border: 'border-(--border-default)', text: 'text-(--color-success-text)', dot: 'bg-emerald-500', accent: 'border-l-emerald-500' },
+  da_huy: { bg: 'bg-(--color-danger-bg)', border: 'border-(--border-default)', text: 'text-(--color-danger-text)', dot: 'bg-red-400', accent: 'border-l-red-400' },
 }
 function getCardColor(status) {
   return cardColors[status] || cardColors.nhap
@@ -84,9 +84,9 @@ function getCardColor(status) {
 // ── Summary cards ───────────────────────────────────────────────
 const summaryCards = computed(() => [
   { label: 'Bản nháp', value: rows.value.filter(r => r.trangThai === 'nhap').length, color: 'text-(--text-muted)', bg: 'bg-(--surface-input)' },
-  { label: 'Đã xuất bản', value: rows.value.filter(r => r.trangThai === 'da_xuat_ban').length, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800' },
+  { label: 'Đã xuất bản', value: rows.value.filter(r => r.trangThai === 'da_xuat_ban').length, color: 'text-(--color-success-text)', bg: 'bg-(--color-success-bg) border-(--border-default)' },
   { label: 'Tổng lịch', value: rows.value.length, color: 'text-(--lg-primary)', bg: 'bg-(--surface-input)' },
-  { label: 'Xung đột', value: 1, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800' },
+  { label: 'Xung đột', value: 1, color: 'text-(--color-warning-text)', bg: 'bg-(--color-warning-bg) border-(--border-default)' },
 ])
 
 // ── Drag & Drop ────────────────────────────────────────────────
@@ -301,7 +301,7 @@ function thuLabel(thu) {
       </select>
       <!-- Legend -->
       <div class="flex items-center gap-3 ml-auto text-xs text-(--text-muted)">
-        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-400 inline-block"></span>Bản nháp</span>
+        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-(--text-muted) inline-block"></span>Bản nháp</span>
         <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>Đã xuất bản</span>
         <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-400 inline-block"></span>Đã hủy</span>
       </div>
@@ -467,7 +467,7 @@ function thuLabel(thu) {
               <CheckCircle :size="15" class="mr-1" /> Xuất bản lịch
             </GlassButton>
             <GlassButton
-              variant="secondary" class="w-full h-9 justify-center text-sm !text-red-500 !border-red-300 hover:!bg-red-50 dark:hover:!bg-red-900/20"
+              variant="secondary" class="w-full h-9 justify-center text-sm !text-(--color-danger-text) border-(--border-default) hover:!bg-(--color-danger-bg)"
               @click="deleteRow(selectedRow)"
             >
               Xóa lịch này
@@ -542,13 +542,13 @@ function thuLabel(thu) {
 
             <!-- Conflict check inline -->
             <button
-              class="w-full h-9 text-xs font-semibold border border-amber-300 text-amber-700 dark:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 flex items-center justify-center gap-1.5 transition-colors"
+              class="w-full h-9 text-xs font-semibold border border-(--border-default) text-(--color-warning-text) rounded-lg hover:bg-(--color-warning-bg) flex items-center justify-center gap-1.5 transition-colors"
               @click="checkConflicts"
             >
               <AlertTriangle :size="14" /> Kiểm tra xung đột
             </button>
             <div v-if="conflictPreview.length > 0" class="space-y-1.5">
-              <div v-for="(c, i) in conflictPreview" :key="i" class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-2 text-xs text-amber-700 dark:text-amber-300">
+              <div v-for="(c, i) in conflictPreview" :key="i" class="bg-(--color-warning-bg) border border-(--border-default) rounded-lg p-2 text-xs text-(--color-warning-text)">
                 <span class="font-semibold">[{{ c.loai }}]</span> {{ c.text }}
               </div>
             </div>

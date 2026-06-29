@@ -51,8 +51,8 @@ const stats = computed(() => ({
 
     <!-- Stat pills -->
     <div class="flex flex-wrap gap-2">
-      <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-200 dark:border-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/40 text-sm">
-        <span class="font-bold text-xl text-emerald-600 dark:text-emerald-400">{{ stats.total }}</span>
+      <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-(--border-default) bg-(--color-success-bg) text-sm">
+        <span class="font-bold text-xl text-(--color-success-text)">{{ stats.total }}</span>
         <span class="text-(--text-muted)">Bộ TKB</span>
       </div>
       <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-(--border-default) bg-(--surface-input) text-sm">
@@ -60,14 +60,14 @@ const stats = computed(() => ({
         <span class="font-bold text-(--text-heading)">{{ stats.lopTong }}</span>
         <span class="text-(--text-muted)">Lớp học</span>
       </div>
-      <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-amber-200 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/30 text-sm">
-        <ArrowLeftRight :size="13" class="text-amber-500" />
-        <span class="font-bold text-amber-600 dark:text-amber-400">{{ stats.thayDoi }}</span>
+      <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-(--border-default) bg-(--color-warning-bg) text-sm">
+        <ArrowLeftRight :size="13" class="text-(--color-warning-text)" />
+        <span class="font-bold text-(--color-warning-text)">{{ stats.thayDoi }}</span>
         <span class="text-(--text-muted)">Thay đổi</span>
       </div>
-      <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-red-200 dark:border-red-800 bg-red-50/80 dark:bg-red-950/30 text-sm">
-        <AlertTriangle :size="13" class="text-red-500" />
-        <span class="font-bold text-red-600 dark:text-red-400">{{ stats.huyChua }}</span>
+      <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-(--border-default) bg-(--color-danger-bg) text-sm">
+        <AlertTriangle :size="13" class="text-(--color-danger-text)" />
+        <span class="font-bold text-(--color-danger-text)">{{ stats.huyChua }}</span>
         <span class="text-(--text-muted)">Buổi hủy</span>
       </div>
     </div>
@@ -103,7 +103,7 @@ const stats = computed(() => ({
           @click="selected = s"
         >
           <div class="p-4 flex items-center gap-4 flex-wrap">
-            <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500 flex items-center justify-center shrink-0">
+            <div class="w-10 h-10 rounded-xl bg-(--color-success-bg) text-(--color-success-text) flex items-center justify-center shrink-0">
               <CheckCircle :size="20" />
             </div>
 
@@ -149,10 +149,10 @@ const stats = computed(() => ({
           class="w-72 shrink-0 surface-card border border-(--border-card) rounded-2xl shadow-lg overflow-hidden"
           style="position: sticky; top: 80px"
         >
-          <div class="p-4 border-b border-(--border-default) flex items-center justify-between bg-emerald-50/80 dark:bg-emerald-950/40">
+          <div class="p-4 border-b border-(--border-default) flex items-center justify-between bg-(--color-success-bg)">
             <div class="flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Đã công bố</span>
+              <span class="text-xs font-bold text-(--color-success-text) uppercase tracking-wide">Đã công bố</span>
             </div>
             <button @click="selected = null" class="p-1 rounded-lg hover:bg-(--surface-input) text-(--text-muted)">
               <X :size="15" />
@@ -191,9 +191,9 @@ const stats = computed(() => ({
               </div>
             </div>
 
-            <div v-if="selected.thayDoiPhatSinh === 0 && selected.buoiHuy === 0" class="flex items-center gap-2 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3">
-              <CheckCircle :size="15" class="text-emerald-500 shrink-0" />
-              <p class="text-xs text-emerald-700 dark:text-emerald-400 font-medium">Lịch đang vận hành ổn định, không có biến động.</p>
+            <div v-if="selected.thayDoiPhatSinh === 0 && selected.buoiHuy === 0" class="flex items-center gap-2 bg-(--color-success-bg) border border-(--border-default) rounded-xl p-3">
+              <CheckCircle :size="15" class="text-(--color-success-text) shrink-0" />
+              <p class="text-xs text-(--color-success-text) font-medium">Lịch đang vận hành ổn định, không có biến động.</p>
             </div>
           </div>
         </div>
@@ -208,9 +208,9 @@ const stats = computed(() => ({
       >
         <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
           :class="{
-            'bg-red-50 dark:bg-red-950/30 text-red-500': c.loaiThayDoi === 'huy_buoi',
-            'bg-amber-50 dark:bg-amber-950/30 text-amber-500': ['doi_phong','doi_ca'].includes(c.loaiThayDoi),
-            'bg-blue-50 dark:bg-blue-950/30 text-blue-500': c.loaiThayDoi === 'day_thay',
+            'bg-(--color-danger-bg) text-(--color-danger-text)': c.loaiThayDoi === 'huy_buoi',
+            'bg-(--color-warning-bg) text-(--color-warning-text)': ['doi_phong','doi_ca'].includes(c.loaiThayDoi),
+            'bg-(--accent-primary-soft) text-(--lg-primary)': c.loaiThayDoi === 'day_thay',
           }">
           <ArrowLeftRight :size="18" />
         </div>

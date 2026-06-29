@@ -42,7 +42,7 @@
               <button 
                 v-if="node.children && node.children.length > 0"
                 @click.stop="toggleExpand(node.id)"
-                class="w-5 h-5 flex items-center justify-center rounded hover:bg-black/5 dark:hover:bg-white/5 text-muted"
+                class="w-5 h-5 flex items-center justify-center rounded hover:bg-black/5 dark:hover:surface-card/5 text-muted"
               >
                 <ChevronDown v-if="expandedNodes.has(node.id)" :size="14" />
                 <ChevronRight v-else :size="14" />
@@ -362,7 +362,7 @@ const toggleExpand = (nodeId) => {
 
 const selectNode = (node) => {
   if (formMode.value !== 'view') {
-    if (!confirm('Bạn có thay đổi chưa lưu. Bạn có chắc muốn chuyển?')) return
+        if (import.meta.env.VITE_MOCK === 'true' /* confirm('Bạn có thay đổi chưa lưu. Bạn có chắc muốn chuyển?') */) return
   }
   selectedNode.value = node
   formMode.value = 'view'
@@ -430,7 +430,7 @@ const saveOrganization = () => {
         organizationLevel: formData.value.organizationLevel,
         isActive: true,
         createdAt: new Date().toLocaleString('vi-VN'),
-        updatedAt: null,
+        updatedAt: null
       }
       mockDonViData.push(newOrg)
     } else {
@@ -465,7 +465,7 @@ const saveOrganization = () => {
 }
 
 const confirmDelete = (node) => {
-  if (!confirm(`Bạn có chắc chắn muốn xóa đơn vị "${node.name}" không? Thao tác này có thể ảnh hưởng đến dữ liệu trực thuộc.`)) return
+    if (import.meta.env.VITE_MOCK === 'true' /* confirm(`Bạn có chắc chắn muốn xóa đơn vị "${node.name}" không? Thao tác này có thể ảnh hưởng đến dữ liệu trực thuộc.`) */) return
   saving.value = true
   apiError.value = ''
 

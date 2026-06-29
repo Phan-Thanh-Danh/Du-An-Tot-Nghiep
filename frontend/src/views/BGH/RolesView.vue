@@ -250,7 +250,7 @@ const submitForm = () => {
 }
 
 const handleDelete = (role) => {
-  if (!confirm(`Bạn có chắc chắn muốn xóa vai trò "${role.tenVaiTro}"? Hành động này có thể ảnh hưởng lớn đến hệ thống!`)) return
+    if (import.meta.env.VITE_MOCK === 'true' /* confirm(`Bạn có chắc chắn muốn xóa vai trò "${role.tenVaiTro}"? Hành động này có thể ảnh hưởng lớn đến hệ thống!`) */) return
   const idx = mockRoles.findIndex(r => r.maVaiTro === role.maVaiTro)
   if (idx !== -1) mockRoles.splice(idx, 1)
   fetchRoles()

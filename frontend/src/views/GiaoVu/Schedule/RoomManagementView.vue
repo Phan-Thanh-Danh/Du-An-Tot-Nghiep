@@ -10,7 +10,6 @@ import {
   Hammer,
   MoreVertical,
   History,
-  Building,
   X,
   SlidersHorizontal,
   Tv,
@@ -20,7 +19,7 @@ import {
   Calendar,
   Clock,
   Lightbulb,
-  DoorOpen,
+  DoorOpen
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { roomApi } from '@/services/roomApi'
@@ -51,7 +50,7 @@ const ROOM_TYPE_LABEL = {
   lab: 'Lab',
   hoi_truong: 'Hội trường',
   truc_tuyen: 'Trực tuyến',
-  khac: 'Khác',
+  khac: 'Khác'
 }
 
 async function fetchBuildings() {
@@ -146,7 +145,7 @@ function clearFilters() {
 const STATUS_MAP = {
   hoat_dong:      { label: 'Đang hoạt động', dot: 'bg-(--lg-success)', badge: 'lg-badge lg-badge-success', pulse: true },
   bao_tri:        { label: 'Bảo trì',        dot: 'bg-(--lg-warning)', badge: 'lg-badge lg-badge-warning', pulse: false },
-  ngung_hoat_dong: { label: 'Ngừng hoạt động',dot: 'bg-(--lg-danger)',  badge: 'lg-badge border-(--color-danger-bg) bg-(--color-danger-bg) text-(--color-danger-text)', pulse: false },
+  ngung_hoat_dong: { label: 'Ngừng hoạt động',dot: 'bg-(--lg-danger)',  badge: 'lg-badge border-(--color-danger-bg) bg-(--color-danger-bg) text-(--color-danger-text)', pulse: false }
 }
 const getStatusInfo = s => STATUS_MAP[s] || STATUS_MAP.ngung_hoat_dong
 
@@ -167,7 +166,7 @@ const defaultForm = () => ({
   sucChua: '',
   loaiPhong: 'ly_thuyet',
   trangThaiPhong: 'hoat_dong',
-  ghiChu: '',
+  ghiChu: ''
 })
 
 const newRoom = reactive(defaultForm())
@@ -203,7 +202,7 @@ async function submitAddRoom() {
       tenPhong: newRoom.tenPhong,
       sucChua: Number(newRoom.sucChua),
       loaiPhong: newRoom.loaiPhong,
-      ghiChu: newRoom.ghiChu || null,
+      ghiChu: newRoom.ghiChu || null
     })
     closeAddModal()
     await fetchRooms()
@@ -233,7 +232,7 @@ function openEditModal(room) {
   editingRoom.value = {
     ...room,
     maToaNha: room.maToaNha,
-    maTang: room.maTang,
+    maTang: room.maTang
   }
   Object.keys(editErrors).forEach(k => delete editErrors[k])
   showEditModal.value = true
@@ -265,7 +264,7 @@ async function submitEditRoom() {
       sucChua: Number(editingRoom.value.sucChua),
       loaiPhong: editingRoom.value.loaiPhong,
       trangThaiPhong: editingRoom.value.trangThaiPhong,
-      ghiChu: editingRoom.value.ghiChu || null,
+      ghiChu: editingRoom.value.ghiChu || null
     })
     closeEditModal()
     await fetchRooms()
@@ -307,7 +306,7 @@ async function markMaintenance(room) {
       sucChua: room.sucChua,
       loaiPhong: room.loaiPhong,
       trangThaiPhong: 'bao_tri',
-      ghiChu: room.ghiChu,
+      ghiChu: room.ghiChu
     })
     await fetchRooms()
   } catch {
@@ -374,7 +373,7 @@ function applySuggestedRoom() {
     const oldRoom = findRoomById(String(suggestedInfo.value.oldRoomId))
     if (oldRoom) {
       oldRoom.tenPhong = suggestedInfo.value.suggestedRoom
-      alert(`Đã áp dụng đổi phòng thành công! Phòng ${suggestedInfo.value.oldRoomId} đã đổi tên thành ${suggestedInfo.value.suggestedRoom}.`)
+      console.log(`Đã áp dụng đổi phòng thành công! Phòng ${suggestedInfo.value.oldRoomId} đã đổi tên thành ${suggestedInfo.value.suggestedRoom}.`)
     }
     clearSuggestion()
   }
