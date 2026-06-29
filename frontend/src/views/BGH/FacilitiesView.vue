@@ -6,7 +6,7 @@
         <p class="text-xs text-muted mt-1">Quản lý tòa nhà, tầng và phòng học trên toàn hệ thống</p>
       </div>
       <div class="flex gap-2">
-        <select v-model="campusFilter" class="px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
+        <select v-model="campusFilter" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả cơ sở</option>
           <option v-for="c in campuses" :key="c.maDonVi" :value="c.maDonVi">{{ c.tenDonVi }}</option>
         </select>
@@ -14,7 +14,7 @@
     </div>
 
     <div v-for="building in filteredBuildings" :key="building.maToaNha" class="surface-card border border-card rounded-2xl overflow-hidden shadow-sm">
-      <div @click="toggleBuilding(building.maToaNha)" class="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-[var(--surface-input)]/30 transition-colors">
+      <div @click="toggleBuilding(building.maToaNha)" class="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-(--surface-input)/30 transition-colors">
         <div class="flex items-center gap-3">
           <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-600 flex items-center justify-center text-white"><Building2 :size="20" /></div>
           <div>
@@ -23,8 +23,8 @@
           </div>
         </div>
         <div class="flex items-center gap-3">
-          <span :class="building.conHoatDong ? 'text-[var(--color-success-text)]' : 'text-[var(--color-danger-text)]'" class="text-xs font-bold flex items-center gap-1">
-            <span :class="building.conHoatDong ? 'bg-[var(--color-success-text)]' : 'bg-[var(--color-danger-text)]'" class="h-1.5 w-1.5 rounded-full inline-block" />
+          <span :class="building.conHoatDong ? 'text-(--color-success-text)' : 'text-(--color-danger-text)'" class="text-xs font-bold flex items-center gap-1">
+            <span :class="building.conHoatDong ? 'bg-(--color-success-text)' : 'bg-(--color-danger-text)'" class="h-1.5 w-1.5 rounded-full inline-block" />
             {{ building.conHoatDong ? 'Đang hoạt động' : 'Ngừng' }}
           </span>
           <ChevronDown v-if="expandedBuilding === building.maToaNha" :size="18" class="text-muted transition-transform" />
@@ -35,13 +35,13 @@
       <Transition enter-active-class="transition-all duration-300" enter-from-class="max-h-0 opacity-0" enter-to-class="max-h-[2000px] opacity-100" leave-active-class="transition-all duration-200" leave-from-class="max-h-[2000px] opacity-100" leave-to-class="max-h-0 opacity-0">
         <div v-if="expandedBuilding === building.maToaNha" class="border-t border-default overflow-hidden">
           <div v-for="floor in getFloors(building.maToaNha)" :key="floor.maTang" class="border-b border-default last:border-b-0">
-            <div @click="toggleFloor(floor.maTang)" class="px-5 py-3 flex items-center justify-between cursor-pointer hover:bg-[var(--surface-input)]/20 transition-colors ml-4">
+            <div @click="toggleFloor(floor.maTang)" class="px-5 py-3 flex items-center justify-between cursor-pointer hover:bg-(--surface-input)/20 transition-colors ml-4">
               <div class="flex items-center gap-2">
                 <ChevronDown v-if="expandedFloor === floor.maTang" :size="14" class="text-muted" />
                 <ChevronRight v-else :size="14" class="text-muted" />
                 <span class="text-sm font-semibold text-heading">{{ floor.tenTang }}</span>
                 <span class="text-xs text-muted">(Tầng {{ floor.thuTuTang }})</span>
-                <span v-if="!floor.conHoatDong" class="text-[10px] text-[var(--color-danger-text)] bg-[var(--color-danger-bg)] px-1.5 py-0.5 rounded">Ngừng</span>
+                <span v-if="!floor.conHoatDong" class="text-[10px] text-(--color-danger-text) bg-(--color-danger-bg) px-1.5 py-0.5 rounded">Ngừng</span>
               </div>
               <span class="text-xs text-muted">{{ getRooms(floor.maTang).length }} phòng</span>
             </div>
@@ -49,7 +49,7 @@
             <Transition enter-active-class="transition-all duration-200" enter-from-class="max-h-0 opacity-0" enter-to-class="max-h-[500px] opacity-100" leave-active-class="transition-all duration-200" leave-from-class="max-h-[500px] opacity-100" leave-to-class="max-h-0 opacity-0">
               <div v-if="expandedFloor === floor.maTang" class="overflow-hidden">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-4 pt-0 ml-8">
-                  <div v-for="room in getRooms(floor.maTang)" :key="room.maPhong" class="p-3 rounded-xl border border-default hover:border-[var(--border-input-focus)] hover:shadow-sm transition-all bg-[var(--surface-card)]">
+                  <div v-for="room in getRooms(floor.maTang)" :key="room.maPhong" class="p-3 rounded-xl border border-default hover:border-(--border-input-focus) hover:shadow-sm transition-all bg-(--surface-card)">
                     <div class="flex items-center justify-between mb-2">
                       <span class="text-xs font-bold text-heading">{{ room.maCodePhong }}</span>
                       <span :class="roomTypeBadge(room.loaiPhong)">{{ room.loaiPhongLabel }}</span>
@@ -155,18 +155,18 @@ function getRooms(floorId) {
 
 function roomTypeBadge(type) {
   switch (type) {
-    case 'ly_thuyet': return 'text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-info-bg)] text-[var(--color-info-text)] font-bold'
-    case 'thuc_hanh': return 'text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] font-bold'
-    case 'hoi_truong': return 'text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-success-bg)] text-[var(--color-success-text)] font-bold'
-    default: return 'text-[10px] px-1.5 py-0.5 rounded bg-[var(--surface-input)] text-muted'
+    case 'ly_thuyet': return 'text-[10px] px-1.5 py-0.5 rounded bg-(--color-info-bg) text-(--color-info-text) font-bold'
+    case 'thuc_hanh': return 'text-[10px] px-1.5 py-0.5 rounded bg-(--color-warning-bg) text-(--color-warning-text) font-bold'
+    case 'hoi_truong': return 'text-[10px] px-1.5 py-0.5 rounded bg-(--color-success-bg) text-(--color-success-text) font-bold'
+    default: return 'text-[10px] px-1.5 py-0.5 rounded bg-(--surface-input) text-muted'
   }
 }
 
 function roomStatusBadge(status) {
   switch (status) {
-    case 'dang_su_dung': return 'text-[10px] font-bold text-[var(--color-success-text)]'
-    case 'bao_tri': return 'text-[10px] font-bold text-[var(--color-warning-text)]'
-    case 'ngung_hoat_dong': return 'text-[10px] font-bold text-[var(--color-danger-text)]'
+    case 'dang_su_dung': return 'text-[10px] font-bold text-(--color-success-text)'
+    case 'bao_tri': return 'text-[10px] font-bold text-(--color-warning-text)'
+    case 'ngung_hoat_dong': return 'text-[10px] font-bold text-(--color-danger-text)'
     default: return 'text-[10px] font-bold text-muted'
   }
 }

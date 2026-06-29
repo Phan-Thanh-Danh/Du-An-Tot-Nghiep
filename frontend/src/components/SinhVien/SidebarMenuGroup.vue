@@ -146,11 +146,11 @@ watch(() => props.collapsed, () => {
       <button
         ref="buttonRef"
         type="button"
-        class="lg-sidebar-item group flex min-h-8 w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-1.5 transition-all duration-200 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]"
+        class="lg-sidebar-item group flex min-h-8 w-full items-center gap-2.5 rounded-(--radius-md) px-2.5 py-1.5 transition-all duration-200 focus:outline-none focus:ring-(--sidebar-focus-ring)"
         :class="[
           isGroupActive
             ? 'lg-sidebar-item-active font-semibold shadow-sm'
-            : 'text-label hover:bg-[var(--accent-primary-soft)] hover:text-[var(--sidebar-accent)]',
+            : 'text-label hover:bg-(--accent-primary-soft) hover:text-(--sidebar-accent)',
           collapsed ? 'justify-center' : '',
         ]"
         :aria-expanded="hasChildren ? isOpen || (collapsed && flyoutVisible) : undefined"
@@ -165,7 +165,7 @@ watch(() => props.collapsed, () => {
           :stroke-width="isGroupActive ? 2.5 : 1.8"
           :class="[
             'flex-shrink-0 transition-colors',
-            isGroupActive ? 'text-white' : 'text-muted group-hover:text-[var(--sidebar-accent)]',
+            isGroupActive ? 'text-white' : 'text-muted group-hover:text-(--sidebar-accent)',
           ]"
         />
 
@@ -209,8 +209,8 @@ watch(() => props.collapsed, () => {
           @mouseenter="showFlyout"
           @mouseleave="hideFlyout"
         >
-          <div class="lg-glass-strong min-w-[240px] rounded-[var(--radius-xl)] border border-card p-1.5 shadow-[var(--lg-shadow-md)]">
-            <div class="border-card surface-card mb-1 rounded-t-[var(--radius-lg)] border-b px-3 py-2">
+          <div class="lg-glass-strong min-w-[240px] rounded-(--radius-xl) border border-card p-1.5 shadow-(--lg-shadow-md)">
+            <div class="border-card surface-card mb-1 rounded-t-(--radius-lg) border-b px-3 py-2">
               <div class="flex items-center gap-2">
                 <div class="h-5 w-5 flex items-center justify-center rounded-lg" :style="{ background: 'color-mix(in srgb, var(--sidebar-accent) 20%, transparent)', color: 'var(--sidebar-accent)' }">
                   <component :is="GroupIcon" :size="12" />

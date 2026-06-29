@@ -30,7 +30,7 @@ defineProps({
         <span
           :class="[
           'h-2 w-2 flex-shrink-0 rounded-full transition-shadow duration-300',
-            notification.unread ? 'bg-[var(--text-link)] shadow-[0_0_8px_var(--text-link)]' : 'bg-[var(--text-placeholder)] opacity-50',
+            notification.unread ? 'bg-(--text-link) shadow-[0_0_8px_var(--text-link)]' : 'bg-(--text-placeholder) opacity-50',
           ]"
         />
         <div class="min-w-0 flex-1">
@@ -45,7 +45,7 @@ defineProps({
         </div>
       </button>
     </div>
-    <div class="border-t border-card bg-[var(--surface-card)] px-5 py-3">
+    <div class="border-t border-card bg-(--surface-card) px-5 py-3">
       <router-link to="/student/notifications" class="inline-flex items-center gap-1.5 text-xs font-semibold text-link transition-colors">
         Xem tất cả
       </router-link>

@@ -17,25 +17,25 @@ const getIcon = (type) => {
 </script>
 
 <template>
-  <div class="relative border-l border-[var(--border-card)] ml-4 space-y-6">
+  <div class="relative border-l border-(--border-card) ml-4 space-y-6">
     <div v-for="(event, idx) in events" :key="idx" class="relative pl-6">
-      <div class="absolute -left-[1.1rem] p-1 rounded-full flex items-center justify-center border-4 border-[var(--surface-page)] text-[var(--lg-primary)] bg-[var(--surface-hover)]">
+      <div class="absolute -left-[1.1rem] p-1 rounded-full flex items-center justify-center border-4 border-(--surface-page) text-(--lg-primary) bg-(--surface-hover)">
         <component :is="getIcon(event.loaiSuKien)" class="w-4 h-4" />
       </div>
       <div>
-        <div class="text-sm font-semibold text-[var(--text-heading)]">
+        <div class="text-sm font-semibold text-(--text-heading)">
           {{ event.tieuDe || event.loaiSuKien }}
         </div>
-        <div class="text-xs text-[var(--text-muted)] mt-1 flex items-center gap-2">
+        <div class="text-xs text-(--text-muted) mt-1 flex items-center gap-2">
           <span>{{ dayjs(event.thoiGian).format('DD/MM/YYYY HH:mm') }}</span>
         </div>
-        <div v-if="event.ghiChu" class="mt-2 p-3 bg-[var(--surface-hover)] rounded-lg text-sm text-[var(--text-body)]">
+        <div v-if="event.ghiChu" class="mt-2 p-3 bg-(--surface-hover) rounded-lg text-sm text-(--text-body)">
           {{ event.ghiChu }}
         </div>
       </div>
     </div>
     
-    <div v-if="events.length === 0" class="pl-6 text-sm text-[var(--text-muted)]">
+    <div v-if="events.length === 0" class="pl-6 text-sm text-(--text-muted)">
       Chưa có lịch sử.
     </div>
   </div>

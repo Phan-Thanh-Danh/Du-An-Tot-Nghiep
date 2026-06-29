@@ -112,9 +112,9 @@ onMounted(loadNotifications)
         </div>
         <div class="flex items-center gap-2 flex-wrap">
           <div class="flex gap-1">
-            <button @click="filterType = 'all'" :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterType === 'all' ? 'bg-[var(--lg-primary)] text-white' : 'surface-solid text-label']">Tất cả</button>
-            <button @click="filterType = 'unread'" :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterType === 'unread' ? 'bg-[var(--lg-primary)] text-white' : 'surface-solid text-label']">Chưa đọc</button>
-            <button @click="filterType = 'read'" :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterType === 'read' ? 'bg-[var(--lg-primary)] text-white' : 'surface-solid text-label']">Đã đọc</button>
+            <button @click="filterType = 'all'" :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterType === 'all' ? 'bg-(--lg-primary) text-white' : 'surface-solid text-label']">Tất cả</button>
+            <button @click="filterType = 'unread'" :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterType === 'unread' ? 'bg-(--lg-primary) text-white' : 'surface-solid text-label']">Chưa đọc</button>
+            <button @click="filterType = 'read'" :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterType === 'read' ? 'bg-(--lg-primary) text-white' : 'surface-solid text-label']">Đã đọc</button>
           </div>
           <button class="lg-button-secondary px-3 py-2.5 text-sm font-bold" @click="markAllRead" title="Đánh dấu tất cả đã đọc">
             <CheckCheck :size="16" />
@@ -124,7 +124,7 @@ onMounted(loadNotifications)
 
       <!-- List -->
       <div v-if="loading" class="flex items-center justify-center py-20">
-        <div class="h-10 w-10 animate-spin rounded-full border-4 border-default border-t-[var(--lg-primary)]" />
+        <div class="h-10 w-10 animate-spin rounded-full border-4 border-default border-t-(--lg-primary)" />
       </div>
 
       <div v-else-if="paginatedNotifications.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
@@ -137,22 +137,22 @@ onMounted(loadNotifications)
 
       <div v-else class="space-y-2">
         <div v-for="n in paginatedNotifications" :key="n.id"
-             class="surface-card border border-card p-4 rounded-2xl cursor-pointer transition-all hover:bg-[var(--surface-input)]"
-             :class="{ 'border-l-4 border-l-[var(--lg-primary)]': !n.read }"
+             class="surface-card border border-card p-4 rounded-2xl cursor-pointer transition-all hover:bg-(--surface-input)"
+             :class="{ 'border-l-4 border-l-(--lg-primary)': !n.read }"
              @click="viewDetail(n)">
           <div class="flex items-start gap-3">
-            <div :class="['h-9 w-9 rounded-xl flex items-center justify-center shrink-0', n.read ? 'surface-solid text-placeholder' : 'bg-[var(--color-info-bg)] text-link']">
+            <div :class="['h-9 w-9 rounded-xl flex items-center justify-center shrink-0', n.read ? 'surface-solid text-placeholder' : 'bg-(--color-info-bg) text-link']">
               <Bell :size="18" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between gap-2">
                 <h3 class="text-sm font-bold text-heading" :class="{ 'pr-2': !n.read }">
                   {{ n.title }}
-                  <span v-if="!n.read" class="inline-block w-2 h-2 rounded-full bg-[var(--lg-primary)] ml-1.5 align-middle" />
+                  <span v-if="!n.read" class="inline-block w-2 h-2 rounded-full bg-(--lg-primary) ml-1.5 align-middle" />
                 </h3>
                 <div class="flex items-center gap-1 shrink-0">
                   <span class="text-[10px] font-medium text-placeholder whitespace-nowrap">{{ timeAgo(n.time) }}</span>
-                  <button class="p-1.5 rounded-lg hover:bg-[var(--color-danger-bg)] hover:text-[var(--lg-danger)] text-placeholder transition-all" @click.stop="deleteNotification(n.id)" title="Xóa">
+                  <button class="p-1.5 rounded-lg hover:bg-(--color-danger-bg) hover:text-(--lg-danger) text-placeholder transition-all" @click.stop="deleteNotification(n.id)" title="Xóa">
                     <Trash2 :size="14" />
                   </button>
                 </div>
@@ -166,11 +166,11 @@ onMounted(loadNotifications)
         <div v-if="totalPages > 1" class="flex items-center justify-between pt-2">
           <span class="text-[11px] font-medium text-placeholder">{{ totalFiltered }} thông báo</span>
           <div class="flex items-center gap-1">
-            <button :disabled="currentPage <= 1" class="p-1.5 rounded-lg surface-solid text-label hover:bg-[var(--surface-input)] disabled:opacity-30 transition-all" @click="currentPage--">
+            <button :disabled="currentPage <= 1" class="p-1.5 rounded-lg surface-solid text-label hover:bg-(--surface-input) disabled:opacity-30 transition-all" @click="currentPage--">
               <ChevronLeft :size="16" />
             </button>
             <span class="text-[11px] font-bold text-label px-2">{{ currentPage }} / {{ totalPages }}</span>
-            <button :disabled="currentPage >= totalPages" class="p-1.5 rounded-lg surface-solid text-label hover:bg-[var(--surface-input)] disabled:opacity-30 transition-all" @click="currentPage++">
+            <button :disabled="currentPage >= totalPages" class="p-1.5 rounded-lg surface-solid text-label hover:bg-(--surface-input) disabled:opacity-30 transition-all" @click="currentPage++">
               <ChevronRight :size="16" />
             </button>
           </div>

@@ -13,7 +13,7 @@ defineProps({
     </div>
 
     <div v-if="$slots.actions" class="mb-3 flex justify-end">
-      <div class="surface-card border-card flex items-center gap-1.5 rounded-[var(--radius-lg)] border px-2 py-1.5 shadow-sm">
+      <div class="surface-card border-card flex items-center gap-1.5 rounded-(--radius-lg) border px-2 py-1.5 shadow-sm">
         <slot name="actions" />
       </div>
     </div>

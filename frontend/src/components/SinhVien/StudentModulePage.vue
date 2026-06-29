@@ -83,9 +83,9 @@ function badgeVariant(tone) {
 }
 
 function toneClass(tone, part) {
-  if (part === 'icon') return 'bg-[var(--accent-primary-soft)] text-[var(--text-link)] shadow-[var(--lg-shadow-sm)]'
-  if (part === 'bar') return 'bg-[var(--text-link)]'
-  if (part === 'dot') return 'bg-[var(--text-link)]'
+  if (part === 'icon') return 'bg-(--accent-primary-soft) text-(--text-link) shadow-(--lg-shadow-sm)'
+  if (part === 'bar') return 'bg-(--text-link)'
+  if (part === 'dot') return 'bg-(--text-link)'
   return ''
 }
 </script>
@@ -93,16 +93,16 @@ function toneClass(tone, part) {
 <template>
   <div class="lg-page-enter space-y-4">
     <LmsCard variant="glass-soft" class="relative">
-      <div class="pointer-events-none absolute -right-16 -top-24 h-48 w-48 rounded-full bg-[var(--page-gradient-a)] blur-3xl" />
+      <div class="pointer-events-none absolute -right-16 -top-24 h-48 w-48 rounded-full bg-(--page-gradient-a) blur-3xl" />
 
       <div class="relative grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
         <div class="flex min-w-0 gap-4">
-          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-primary-soft)] text-[var(--text-link)] shadow-[var(--lg-shadow-sm)]">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-(--accent-primary-soft) text-(--text-link) shadow-(--lg-shadow-sm)">
             <component :is="HeroIcon" :size="24" :stroke-width="2.15" />
           </div>
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="text-xs font-semibold text-[var(--color-success-text)]">{{ eyebrow }}</span>
+              <span class="text-xs font-semibold text-(--color-success-text)">{{ eyebrow }}</span>
               <LmsBadge variant="info" size="sm">{{ status }}</LmsBadge>
             </div>
             <h2 class="mt-2 text-2xl font-bold leading-tight text-slate-950">
@@ -122,8 +122,8 @@ function toneClass(tone, part) {
             :class="[
               'inline-flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 ease-out active:scale-[0.98] focus:outline-none focus:ring-4',
               action.primary
-                ? 'lg-button-primary focus:ring-[var(--text-link)]/25'
-                : 'lg-button-secondary focus:ring-[var(--text-link)]/20',
+                ? 'lg-button-primary focus:ring-(--text-link)/25'
+                : 'lg-button-secondary focus:ring-(--text-link)/20',
             ]"
           >
             {{ action.label }}
@@ -153,7 +153,7 @@ function toneClass(tone, part) {
           </div>
         </div>
         <div v-if="metric.progress !== undefined" class="mt-4">
-          <div class="h-2 overflow-hidden rounded-full bg-[var(--surface-input)]">
+          <div class="h-2 overflow-hidden rounded-full bg-(--surface-input)">
             <div
               :class="['h-full rounded-full transition-all duration-700', toneClass(metric.tone, 'bar')]"
               :style="{ width: `${metric.progress}%` }"
@@ -258,7 +258,7 @@ function toneClass(tone, part) {
 
         <LmsCard variant="glass-soft">
           <div class="flex gap-3">
-            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-primary-soft)] text-[var(--text-link)]">
+            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-(--accent-primary-soft) text-(--text-link)">
               <component :is="resolveIcon('Info')" :size="18" />
             </div>
             <div>

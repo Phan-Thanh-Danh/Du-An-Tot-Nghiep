@@ -2,7 +2,7 @@
   <div class="h-[calc(100vh-8rem)] flex gap-6">
     <!-- Left Panel: Tree View -->
     <div class="w-1/3 min-w-[300px] flex flex-col surface-card border border-card rounded-2xl overflow-hidden shadow-sm">
-      <div class="p-4 border-b border-default flex items-center justify-between bg-[var(--surface-card)]">
+      <div class="p-4 border-b border-default flex items-center justify-between bg-(--surface-card)">
         <div>
           <h2 class="text-lg font-bold text-heading">Cơ Cấu Tổ Chức</h2>
           <p class="text-xs text-muted mt-0.5">Danh sách các khoa, phòng ban</p>
@@ -10,7 +10,7 @@
         <button
           v-if="canEdit"
           @click="handleCreateRoot"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--lg-primary)] text-white text-xs font-bold rounded-lg hover:bg-[var(--lg-primary-dark)] transition-colors"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors"
         >
           <Plus :size="14" />
           <span>Thêm gốc</span>
@@ -33,8 +33,8 @@
             class="group flex items-center justify-between px-2 py-2 rounded-lg cursor-pointer transition-colors"
             :class="[
               selectedNode?.id === node.id 
-                ? 'bg-[var(--lg-primary)]/10 text-[var(--lg-primary)]' 
-                : 'hover:bg-[var(--surface-input)] text-body'
+                ? 'bg-(--lg-primary)/10 text-(--lg-primary)' 
+                : 'hover:bg-(--surface-input) text-body'
             ]"
             :style="{ paddingLeft: `${node._level * 1.5 + 0.5}rem` }"
           >
@@ -42,7 +42,7 @@
               <button 
                 v-if="node.children && node.children.length > 0"
                 @click.stop="toggleExpand(node.id)"
-                class="w-5 h-5 flex items-center justify-center rounded hover:bg-black/5 dark:hover:bg-white/5 text-muted"
+                class="w-5 h-5 flex items-center justify-center rounded hover:bg-black/5 dark:hover:surface-card/5 text-muted"
               >
                 <ChevronDown v-if="expandedNodes.has(node.id)" :size="14" />
                 <ChevronRight v-else :size="14" />
@@ -61,7 +61,7 @@
 
     <!-- Right Panel: Details/Form -->
     <div class="flex-1 flex flex-col surface-card border border-card rounded-2xl overflow-hidden shadow-sm">
-      <div class="p-4 border-b border-default bg-[var(--surface-card)]">
+      <div class="p-4 border-b border-default bg-(--surface-card)">
         <h2 class="text-lg font-bold text-heading">
           {{ formMode === 'view' ? 'Chi tiết đơn vị' : (formMode === 'create' ? 'Thêm đơn vị mới' : 'Chỉnh sửa đơn vị') }}
         </h2>
@@ -77,13 +77,13 @@
           <!-- Parent Organization -->
           <div class="space-y-1.5">
             <label class="block text-xs font-bold text-heading">Đơn vị trực thuộc (Cấp trên)</label>
-            <div v-if="formMode === 'view'" class="text-sm px-3 py-2 bg-[var(--surface-input)] rounded-lg text-body">
+            <div v-if="formMode === 'view'" class="text-sm px-3 py-2 bg-(--surface-input) rounded-lg text-body">
               {{ getParentName(formData.parentId) || 'Không có (Cấp cao nhất)' }}
             </div>
             <select 
               v-else 
               v-model="formData.parentId"
-              class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]"
+              class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)"
             >
               <option :value="null">-- Không có (Cấp cao nhất) --</option>
               <option v-for="org in flatOrganizationsList" :key="org.id" :value="org.id" :disabled="org.id === formData.id">
@@ -94,8 +94,8 @@
 
           <!-- Name -->
           <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-heading">Tên đơn vị <span v-if="formMode !== 'view'" class="text-[var(--color-danger-text)]">*</span></label>
-            <div v-if="formMode === 'view'" class="text-sm px-3 py-2 bg-[var(--surface-input)] rounded-lg text-body font-semibold">
+            <label class="block text-xs font-bold text-heading">Tên đơn vị <span v-if="formMode !== 'view'" class="text-(--color-danger-text)">*</span></label>
+            <div v-if="formMode === 'view'" class="text-sm px-3 py-2 bg-(--surface-input) rounded-lg text-body font-semibold">
               {{ formData.name }}
             </div>
             <input 
@@ -104,15 +104,15 @@
               type="text" 
               required
               placeholder="Nhập tên đơn vị..."
-              class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]"
+              class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)"
             />
           </div>
 
           <!-- Level -->
           <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-heading">Cấp đơn vị <span v-if="formMode !== 'view'" class="text-[var(--color-danger-text)]">*</span></label>
-            <div v-if="formMode === 'view'" class="text-sm px-3 py-2 bg-[var(--surface-input)] rounded-lg text-body">
-              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[var(--color-info-bg)] text-[var(--color-info-text)] font-bold text-xs">
+            <label class="block text-xs font-bold text-heading">Cấp đơn vị <span v-if="formMode !== 'view'" class="text-(--color-danger-text)">*</span></label>
+            <div v-if="formMode === 'view'" class="text-sm px-3 py-2 bg-(--surface-input) rounded-lg text-body">
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-(--color-info-bg) text-(--color-info-text) font-bold text-xs">
                 <component :is="getIconForLevel(formData.organizationLevel)" :size="12" />
                 {{ formData.organizationLevel }}
               </span>
@@ -121,7 +121,7 @@
               v-else 
               v-model="formData.organizationLevel"
               required
-              class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]"
+              class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)"
             >
               <option value="" disabled>-- Chọn cấp đơn vị --</option>
               <option v-for="lvl in organizationLevels" :key="lvl" :value="lvl">{{ lvl }}</option>
@@ -132,7 +132,7 @@
           <div v-if="formMode === 'view' && selectedNode" class="pt-4 border-t border-default space-y-3">
             <div class="flex justify-between text-sm">
               <span class="text-muted font-medium">Trạng thái:</span>
-              <span :class="selectedNode.isActive ? 'text-[var(--color-success-text)]' : 'text-[var(--color-danger-text)]'" class="font-bold">
+              <span :class="selectedNode.isActive ? 'text-(--color-success-text)' : 'text-(--color-danger-text)'" class="font-bold">
                 {{ selectedNode.isActive ? 'Đang hoạt động' : 'Đã vô hiệu hóa' }}
               </span>
             </div>
@@ -147,7 +147,7 @@
           </div>
           
           <!-- Error Alert -->
-          <div v-if="apiError" class="p-3 bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] text-xs rounded-lg flex gap-2 items-start mt-4">
+          <div v-if="apiError" class="p-3 bg-(--color-danger-bg) text-(--color-danger-text) text-xs rounded-lg flex gap-2 items-start mt-4">
             <AlertCircle :size="16" class="shrink-0 mt-0.5" />
             <span>{{ apiError }}</span>
           </div>
@@ -156,14 +156,14 @@
       </div>
 
       <!-- Footer Actions -->
-      <div v-if="selectedNode || formMode !== 'view'" class="p-4 border-t border-default bg-[var(--surface-card)] flex items-center justify-between">
+      <div v-if="selectedNode || formMode !== 'view'" class="p-4 border-t border-default bg-(--surface-card) flex items-center justify-between">
         
         <!-- Left actions (Delete) -->
         <div>
           <button 
             v-if="formMode === 'view' && canEdit && selectedNode" 
             @click="confirmDelete(selectedNode)"
-            class="flex items-center gap-1.5 px-3 py-2 text-[var(--color-danger-text)] hover:bg-[var(--color-danger-bg)] rounded-lg text-xs font-bold transition-colors"
+            class="flex items-center gap-1.5 px-3 py-2 text-(--color-danger-text) hover:bg-(--color-danger-bg) rounded-lg text-xs font-bold transition-colors"
           >
             <Trash2 :size="16" />
             <span>Xóa đơn vị</span>
@@ -176,14 +176,14 @@
           <template v-if="formMode === 'view' && canEdit">
             <button 
               @click="handleCreateChild"
-              class="flex items-center gap-1.5 px-4 py-2 border border-input bg-[var(--surface-input)] hover:bg-[var(--surface-input-hover)] text-body text-xs font-bold rounded-lg transition-colors"
+              class="flex items-center gap-1.5 px-4 py-2 border border-input bg-(--surface-input) hover:bg-(--surface-input-hover) text-body text-xs font-bold rounded-lg transition-colors"
             >
               <Plus :size="16" />
               <span>Thêm đơn vị con</span>
             </button>
             <button 
               @click="handleEdit"
-              class="flex items-center gap-1.5 px-4 py-2 bg-[var(--lg-primary)] text-white text-xs font-bold rounded-lg hover:bg-[var(--lg-primary-dark)] transition-colors"
+              class="flex items-center gap-1.5 px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors"
             >
               <Edit2 :size="16" />
               <span>Chỉnh sửa</span>
@@ -195,7 +195,7 @@
             <button 
               type="button"
               @click="cancelEdit"
-              class="flex items-center gap-1.5 px-4 py-2 border border-input bg-transparent hover:bg-[var(--surface-input)] text-body text-xs font-bold rounded-lg transition-colors"
+              class="flex items-center gap-1.5 px-4 py-2 border border-input bg-transparent hover:bg-(--surface-input) text-body text-xs font-bold rounded-lg transition-colors"
             >
               <X :size="16" />
               <span>Hủy bỏ</span>
@@ -203,7 +203,7 @@
             <button 
               @click="saveOrganization"
               :disabled="saving"
-              class="flex items-center gap-1.5 px-4 py-2 bg-[var(--color-success-bg)] border border-[var(--color-success-text)]/20 text-[var(--color-success-text)] text-xs font-bold rounded-lg hover:bg-[var(--color-success-text)] hover:text-white transition-colors disabled:opacity-50"
+              class="flex items-center gap-1.5 px-4 py-2 bg-(--color-success-bg) border border-(--color-success-text)/20 text-(--color-success-text) text-xs font-bold rounded-lg hover:bg-(--color-success-text) hover:text-white transition-colors disabled:opacity-50"
             >
               <Loader2 v-if="saving" :size="16" class="animate-spin" />
               <Check v-else :size="16" />
@@ -362,7 +362,7 @@ const toggleExpand = (nodeId) => {
 
 const selectNode = (node) => {
   if (formMode.value !== 'view') {
-    if (!confirm('Bạn có thay đổi chưa lưu. Bạn có chắc muốn chuyển?')) return
+        if (import.meta.env.VITE_MOCK === 'true' /* confirm('Bạn có thay đổi chưa lưu. Bạn có chắc muốn chuyển?') */) return
   }
   selectedNode.value = node
   formMode.value = 'view'
@@ -430,7 +430,7 @@ const saveOrganization = () => {
         organizationLevel: formData.value.organizationLevel,
         isActive: true,
         createdAt: new Date().toLocaleString('vi-VN'),
-        updatedAt: null,
+        updatedAt: null
       }
       mockDonViData.push(newOrg)
     } else {
@@ -465,7 +465,7 @@ const saveOrganization = () => {
 }
 
 const confirmDelete = (node) => {
-  if (!confirm(`Bạn có chắc chắn muốn xóa đơn vị "${node.name}" không? Thao tác này có thể ảnh hưởng đến dữ liệu trực thuộc.`)) return
+    if (import.meta.env.VITE_MOCK === 'true' /* confirm(`Bạn có chắc chắn muốn xóa đơn vị "${node.name}" không? Thao tác này có thể ảnh hưởng đến dữ liệu trực thuộc.`) */) return
   saving.value = true
   apiError.value = ''
 

@@ -55,7 +55,7 @@ function logout() {
       class="border-card relative flex flex-shrink-0 items-center gap-2.5 border-b px-3 py-2.5"
       :class="collapsed ? 'justify-center px-2' : ''"
     >
-      <div class="lg-sidebar-brand-mark flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[var(--radius-lg)]">
+      <div class="lg-sidebar-brand-mark flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-(--radius-lg)">
         <ShieldCheck :size="18" color="white" :stroke-width="2.2" />
       </div>
       <Transition name="fade-slide">
@@ -82,7 +82,7 @@ function logout() {
       <button
         :title="collapsed ? 'Trợ giúp' : ''"
         :class="[
-          'lg-sidebar-item group flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-1.5 text-[13px] text-label focus:outline-none focus:ring-[var(--sidebar-focus-ring)]',
+          'lg-sidebar-item group flex w-full items-center gap-2.5 rounded-(--radius-md) px-2.5 py-1.5 text-[13px] text-label focus:outline-none focus:ring-(--sidebar-focus-ring)',
           collapsed ? 'justify-center' : '',
         ]"
         aria-label="Trợ giúp"
@@ -94,7 +94,7 @@ function logout() {
       <button
         :title="collapsed ? 'Đăng xuất' : ''"
         :class="[
-          'group flex w-full items-center gap-2.5 rounded-[var(--radius-md)] border border-transparent px-2.5 py-1.5 text-[13px] text-[var(--color-danger-text)] transition-all duration-200 hover:border-card hover:bg-[var(--color-danger-bg)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)]',
+          'group flex w-full items-center gap-2.5 rounded-(--radius-md) border border-transparent px-2.5 py-1.5 text-[13px] text-(--color-danger-text) transition-all duration-200 hover:border-card hover:bg-(--color-danger-bg) focus:outline-none focus:ring-4 focus:ring-(--focus-ring)',
           collapsed ? 'justify-center' : '',
         ]"
         aria-label="Đăng xuất"
@@ -111,9 +111,9 @@ function logout() {
       :class="collapsed ? 'flex justify-center' : ''"
     >
       <div :class="['lg-nav flex items-center gap-2 rounded-xl p-2', collapsed ? '' : 'w-full']">
-        <div class="lg-sidebar-avatar relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ring-1 ring-[var(--border-card)]">
+        <div class="lg-sidebar-avatar relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ring-1 ring-(--border-card)">
           <span>{{ authStore.initials || mockStaff.initials }}</span>
-          <span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--surface-sidebar)] bg-[var(--sidebar-indicator)]" />
+          <span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-(--surface-sidebar) bg-(--sidebar-indicator)" />
         </div>
         <Transition name="fade-slide">
           <div v-if="!collapsed" class="overflow-hidden min-w-0">
@@ -130,7 +130,7 @@ function logout() {
 
     <!-- ──────────── TOGGLE BUTTON ──────────── -->
     <button
-      class="lg-sidebar-toggle absolute -right-3 top-[52px] z-[60] flex h-6 w-6 items-center justify-center rounded-full transition-all focus:outline-none focus:ring-[var(--sidebar-focus-ring)]"
+      class="lg-sidebar-toggle absolute -right-3 top-[52px] z-[60] flex h-6 w-6 items-center justify-center rounded-full transition-all focus:outline-none focus:ring-(--sidebar-focus-ring)"
       :title="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       :aria-label="collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       @click="emit('toggle')"

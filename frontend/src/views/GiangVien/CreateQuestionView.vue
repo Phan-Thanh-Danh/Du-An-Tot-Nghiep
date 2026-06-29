@@ -53,7 +53,7 @@ function saveQuestion() {
     <!-- ── Header ── -->
     <div class="flex items-center justify-between lg-glass-soft rounded-2xl p-4 sticky top-4 z-10">
       <div class="flex items-center gap-4">
-        <router-link to="/teacher/questions" class="h-10 w-10 rounded-2xl surface-card border border-card flex items-center justify-center text-muted hover:text-link hover:border-link/30 hover:bg-[var(--accent-primary)]/10 transition-all">
+        <router-link to="/teacher/questions" class="h-10 w-10 rounded-2xl surface-card border border-card flex items-center justify-center text-muted hover:text-link hover:border-link/30 hover:bg-(--accent-primary)/10 transition-all">
            <ArrowLeft :size="20" />
         </router-link>
         <div>
@@ -62,10 +62,10 @@ function saveQuestion() {
         </div>
       </div>
       <div class="flex items-center gap-3">
-         <button @click="router.push('/teacher/questions')" class="flex items-center gap-2 rounded-2xl surface-card border border-card px-4 py-3 hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)] hover:border-[var(--color-danger-text)]/30 transition-colors font-semibold text-sm text-body">
+         <button @click="router.push('/teacher/questions')" class="flex items-center gap-2 rounded-2xl surface-card border border-card px-4 py-3 hover:bg-(--color-danger-bg) hover:text-(--color-danger-text) hover:border-(--color-danger-text)/30 transition-colors font-semibold text-sm text-body">
             Hủy bỏ
          </button>
-         <button @click="saveQuestion" class="flex items-center gap-2 rounded-2xl bg-[var(--accent-primary)] px-4 py-3 text-sm font-semibold text-inverse shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all">
+         <button @click="saveQuestion" class="flex items-center gap-2 rounded-2xl bg-(--accent-primary) px-4 py-3 text-sm font-semibold text-inverse shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all">
             <Save :size="16" /> Lưu câu hỏi
          </button>
       </div>
@@ -78,7 +78,7 @@ function saveQuestion() {
       <div class="lg:col-span-2 space-y-8">
          <div class="lg-glass-soft rounded-2xl p-5 space-y-4">
             <div class="flex items-center gap-3 mb-2 pb-6 border-b border-card">
-               <div class="h-10 w-10 rounded-xl bg-[var(--accent-primary)]/10 text-link flex items-center justify-center">
+               <div class="h-10 w-10 rounded-xl bg-(--accent-primary)/10 text-link flex items-center justify-center">
                   <FileText :size="18" />
                </div>
                <h2 class="text-lg font-semibold text-heading">Nội dung câu hỏi</h2>
@@ -88,15 +88,15 @@ function saveQuestion() {
             <div class="flex gap-4">
                <label 
                   @click="form.type = 'Trắc nghiệm'"
-                  :class="['flex-1 flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all', form.type === 'Trắc nghiệm' ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10' : 'border-card hover:border-default hover:bg-[var(--accent-primary)]/5']">
-                  <div :class="['h-4 w-4 rounded-full border-2 mb-2', form.type === 'Trắc nghiệm' ? 'border-4 border-[var(--accent-primary)]' : 'border-muted']"></div>
-                  <span :class="['text-sm font-semibold', form.type === 'Trắc nghiệm' ? 'text-[var(--accent-primary)]' : 'text-body']">Trắc nghiệm</span>
+                  :class="['flex-1 flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all', form.type === 'Trắc nghiệm' ? 'border-(--accent-primary) bg-(--accent-primary)/10' : 'border-card hover:border-default hover:bg-(--accent-primary)/5']">
+                  <div :class="['h-4 w-4 rounded-full border-2 mb-2', form.type === 'Trắc nghiệm' ? 'border-4 border-(--accent-primary)' : 'border-muted']"></div>
+                  <span :class="['text-sm font-semibold', form.type === 'Trắc nghiệm' ? 'text-(--accent-primary)' : 'text-body']">Trắc nghiệm</span>
                </label>
                <label 
                   @click="form.type = 'Tự luận'"
-                  :class="['flex-1 flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all', form.type === 'Tự luận' ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10' : 'border-card hover:border-default hover:bg-[var(--accent-primary)]/5']">
-                  <div :class="['h-4 w-4 rounded-full border-2 mb-2', form.type === 'Tự luận' ? 'border-4 border-[var(--accent-primary)]' : 'border-muted']"></div>
-                  <span :class="['text-sm font-semibold', form.type === 'Tự luận' ? 'text-[var(--accent-primary)]' : 'text-body']">Tự luận</span>
+                  :class="['flex-1 flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all', form.type === 'Tự luận' ? 'border-(--accent-primary) bg-(--accent-primary)/10' : 'border-card hover:border-default hover:bg-(--accent-primary)/5']">
+                  <div :class="['h-4 w-4 rounded-full border-2 mb-2', form.type === 'Tự luận' ? 'border-4 border-(--accent-primary)' : 'border-muted']"></div>
+                  <span :class="['text-sm font-semibold', form.type === 'Tự luận' ? 'text-(--accent-primary)' : 'text-body']">Tự luận</span>
                </label>
             </div>
 
@@ -111,7 +111,7 @@ function saveQuestion() {
          <div v-if="form.type === 'Trắc nghiệm'" class="lg-glass-soft rounded-2xl p-5">
             <div class="flex items-center justify-between mb-4 pb-6 border-b border-card">
                <div class="flex items-center gap-3">
-                  <div class="h-10 w-10 rounded-xl bg-[var(--color-success-bg)] text-[var(--color-success-text)] flex items-center justify-center">
+                  <div class="h-10 w-10 rounded-xl bg-(--color-success-bg) text-(--color-success-text) flex items-center justify-center">
                      <CheckCircle2 :size="18" />
                   </div>
                   <h2 class="text-lg font-semibold text-heading">Các phương án đáp án</h2>
@@ -121,20 +121,20 @@ function saveQuestion() {
             <div class="space-y-4">
                <div v-for="(opt, index) in options" :key="opt.id" class="flex gap-3 items-center group">
                   <button @click="setCorrectAnswer(index)" 
-                          :class="['flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center transition-colors', opt.isCorrect ? 'border-[var(--color-success-text)] bg-[var(--color-success-text)] text-inverse' : 'border-default text-transparent hover:border-[var(--color-success-text)]/50 hover:bg-[var(--color-success-bg)]']">
+                          :class="['flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center transition-colors', opt.isCorrect ? 'border-(--color-success-text) bg-(--color-success-text) text-inverse' : 'border-default text-transparent hover:border-(--color-success-text)/50 hover:bg-(--color-success-bg)']">
                      <CheckCircle2 :size="14" />
                   </button>
                   <div class="flex-1 relative">
                      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted pointer-events-none">{{ String.fromCharCode(65 + index) }}.</span>
                      <input v-model="opt.text" type="text" placeholder="Nhập nội dung đáp án..." 
-                            :class="['lg-control w-full pl-10', opt.isCorrect ? 'border-[var(--color-success-text)]/50 focus:border-[var(--color-success-text)]' : '']" />
+                            :class="['lg-control w-full pl-10', opt.isCorrect ? 'border-(--color-success-text)/50 focus:border-(--color-success-text)' : '']" />
                   </div>
-                  <button @click="removeOption(index)" class="flex-shrink-0 h-10 w-10 rounded-xl surface-card border border-card flex items-center justify-center text-muted hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)] hover:border-[var(--color-danger-text)]/30 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100">
+                  <button @click="removeOption(index)" class="flex-shrink-0 h-10 w-10 rounded-xl surface-card border border-card flex items-center justify-center text-muted hover:bg-(--color-danger-bg) hover:text-(--color-danger-text) hover:border-(--color-danger-text)/30 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100">
                      <Trash2 :size="18" />
                   </button>
                </div>
                
-               <button @click="addOption" class="mt-4 w-full rounded-xl border-2 border-dashed border-card py-4 text-sm font-semibold text-muted hover:border-link/30 hover:bg-[var(--accent-primary)]/5 hover:text-link transition-colors flex items-center justify-center gap-2">
+               <button @click="addOption" class="mt-4 w-full rounded-xl border-2 border-dashed border-card py-4 text-sm font-semibold text-muted hover:border-link/30 hover:bg-(--accent-primary)/5 hover:text-link transition-colors flex items-center justify-center gap-2">
                   <Plus :size="18" /> Thêm lựa chọn
                </button>
             </div>
@@ -152,7 +152,7 @@ function saveQuestion() {
       <div class="lg:col-span-1 space-y-8">
          <div class="lg-glass-soft rounded-2xl p-5">
             <div class="flex items-center gap-3 mb-4 pb-6 border-b border-card">
-               <div class="h-10 w-10 rounded-xl bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] flex items-center justify-center">
+               <div class="h-10 w-10 rounded-xl bg-(--color-warning-bg) text-(--color-warning-text) flex items-center justify-center">
                   <Shield :size="18" />
                </div>
                <h2 class="text-lg font-semibold text-heading">Phân loại</h2>
@@ -180,7 +180,7 @@ function saveQuestion() {
             </div>
          </div>
          
-         <div class="lg-glass-soft rounded-2xl p-5 bg-[var(--accent-primary)]/5 border-[var(--accent-primary)]/20">
+         <div class="lg-glass-soft rounded-2xl p-5 bg-(--accent-primary)/5 border-(--accent-primary)/20">
             <div class="flex items-start gap-3">
                <HelpCircle :size="20" class="text-link shrink-0 mt-0.5" />
                <div>

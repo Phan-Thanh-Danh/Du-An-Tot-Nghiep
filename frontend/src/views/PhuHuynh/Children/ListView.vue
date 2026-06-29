@@ -104,7 +104,7 @@ function navigateToFinance() {
         class="lg-card-glass p-5 flex flex-col justify-between hover:border-orange-500/30 transition-all duration-300 relative group"
       >
         <!-- Background Glow -->
-        <div class="absolute inset-0 bg-gradient-to-tr from-orange-500/0 to-orange-500/[0.02] opacity-0 group-hover:opacity-100 transition-opacity rounded-[var(--radius-xl)] pointer-events-none" />
+        <div class="absolute inset-0 bg-gradient-to-tr from-orange-500/0 to-orange-500/[0.02] opacity-0 group-hover:opacity-100 transition-opacity rounded-(--radius-xl) pointer-events-none" />
 
         <div class="relative z-10">
           <!-- Thông tin cơ bản -->

@@ -34,8 +34,8 @@ const mockDashboard = {
     { name: 'CS102 - Nhóm 1', count: 15 },
   ],
   announcements: [
-    { title: 'Mở đăng ký kỳ Thu 2026', desc: 'Hệ thống đã sẵn sàng cho đợt đăng ký tới.', bg: 'bg-[var(--color-info-bg)]', iconColor: 'text-[var(--color-info-text)]' },
-    { title: 'Giảng viên cần nộp điểm', desc: 'Còn 12 lớp chưa nộp điểm giữa kỳ.', bg: 'bg-[var(--color-warning-bg)]', iconColor: 'text-[var(--color-warning-text)]' },
+    { title: 'Mở đăng ký kỳ Thu 2026', desc: 'Hệ thống đã sẵn sàng cho đợt đăng ký tới.', bg: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)' },
+    { title: 'Giảng viên cần nộp điểm', desc: 'Còn 12 lớp chưa nộp điểm giữa kỳ.', bg: 'bg-(--color-warning-bg)', iconColor: 'text-(--color-warning-text)' },
   ],
   semesterStats: { completed: 85, totalClasses: 1240, emptyRooms: 12 },
 }

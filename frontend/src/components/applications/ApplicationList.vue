@@ -37,10 +37,10 @@ const filteredList = computed(() => {
 
       <div class="flex gap-2">
         <div class="relative">
-          <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+          <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-(--text-muted)" />
           <input 
             v-model="search"
-            class="h-9 pl-9 pr-3 text-sm rounded-full bg-[var(--surface-input)] border border-[var(--border-input)] focus:border-[var(--lg-primary)] focus:ring-1 focus:ring-[var(--lg-primary)] outline-none text-[var(--text-body)] transition-all w-full sm:w-64"
+            class="h-9 pl-9 pr-3 text-sm rounded-full bg-(--surface-input) border border-(--border-input) focus:border-(--lg-primary) focus:ring-1 focus:ring-(--lg-primary) outline-none text-(--text-body) transition-all w-full sm:w-64"
             placeholder="Tìm kiếm..."
           />
         </div>
@@ -49,10 +49,10 @@ const filteredList = computed(() => {
     </div>
 
     <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      <div v-for="i in 8" :key="i" class="h-32 bg-[var(--surface-hover)] rounded-xl animate-pulse"></div>
+      <div v-for="i in 8" :key="i" class="h-32 bg-(--surface-hover) rounded-xl animate-pulse"></div>
     </div>
     
-    <div v-else-if="filteredList.length === 0" class="py-12 flex flex-col items-center justify-center text-[var(--text-muted)] bg-[var(--surface-card)] border border-[var(--border-card)] rounded-xl">
+    <div v-else-if="filteredList.length === 0" class="py-12 flex flex-col items-center justify-center text-(--text-muted) bg-(--surface-card) border border-(--border-card) rounded-xl">
       <FolderOpen class="w-12 h-12 mb-3 opacity-20" />
       <p>Không tìm thấy đơn từ nào.</p>
     </div>

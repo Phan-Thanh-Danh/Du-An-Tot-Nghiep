@@ -24,9 +24,9 @@ const courseStats = ref([
 ])
 
 const getFailRateColor = (rate) => {
-  if (rate >= 20) return 'text-[var(--color-danger-text)] bg-[var(--color-danger-bg)] border-[var(--color-danger-text)]/20'
-  if (rate >= 10) return 'text-[var(--color-warning-text)] bg-[var(--color-warning-bg)] border-[var(--color-warning-text)]/20'
-  return 'text-[var(--color-success-text)] bg-[var(--color-success-bg)] border-[var(--color-success-text)]/20'
+  if (rate >= 20) return 'text-(--color-danger-text) bg-(--color-danger-bg) border-(--color-danger-text)/20'
+  if (rate >= 10) return 'text-(--color-warning-text) bg-(--color-warning-bg) border-(--color-warning-text)/20'
+  return 'text-(--color-success-text) bg-(--color-success-bg) border-(--color-success-text)/20'
 }
 </script>
 
@@ -45,7 +45,7 @@ const getFailRateColor = (rate) => {
               <input 
                 type="text" 
                 placeholder="Tìm môn học, lớp hoặc giảng viên..." 
-                class="w-full surface-input border border-input rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-4 focus:ring-[var(--border-focus-ring)]"
+                class="w-full surface-input border border-input rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-4 focus:ring-(--border-focus-ring)"
               >
            </div>
            <select class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none">
@@ -60,22 +60,22 @@ const getFailRateColor = (rate) => {
 
       <!-- ── Stats Summary ── -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-         <div class="surface-card border border-[var(--color-danger-text)]/20 rounded-2xl p-4 bg-[var(--color-danger-bg)] flex items-center gap-5">
-            <div class="h-10 w-10 rounded-2xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-danger-text)] shadow-sm border border-[var(--color-danger-text)]/20">
+         <div class="surface-card border border-(--color-danger-text)/20 rounded-2xl p-4 bg-(--color-danger-bg) flex items-center gap-5">
+            <div class="h-10 w-10 rounded-2xl bg-(--surface-card) flex items-center justify-center text-(--color-danger-text) shadow-sm border border-(--color-danger-text)/20">
                <TrendingDown :size="24" />
             </div>
             <div>
                <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Môn học tỷ lệ rớt cao nhất</h4>
-               <p class="text-xs text-[var(--color-danger-text)] mt-1 font-bold">Cấu trúc dữ liệu (32% Fail)</p>
+               <p class="text-xs text-(--color-danger-text) mt-1 font-bold">Cấu trúc dữ liệu (32% Fail)</p>
             </div>
          </div>
-         <div class="surface-card border border-[var(--color-success-text)]/20 rounded-2xl p-4 bg-[var(--color-success-bg)] flex items-center gap-5">
-            <div class="h-10 w-10 rounded-2xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-success-text)] shadow-sm border border-[var(--color-success-text)]/20">
+         <div class="surface-card border border-(--color-success-text)/20 rounded-2xl p-4 bg-(--color-success-bg) flex items-center gap-5">
+            <div class="h-10 w-10 rounded-2xl bg-(--surface-card) flex items-center justify-center text-(--color-success-text) shadow-sm border border-(--color-success-text)/20">
                <ArrowUpRight :size="24" />
             </div>
             <div>
                <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Tỷ lệ Pass trung bình toàn trường</h4>
-               <p class="text-xs text-[var(--color-success-text)] mt-1 font-bold">88.4% (Tăng 1.2% so với kỳ trước)</p>
+               <p class="text-xs text-(--color-success-text) mt-1 font-bold">88.4% (Tăng 1.2% so với kỳ trước)</p>
             </div>
          </div>
       </div>
@@ -94,10 +94,10 @@ const getFailRateColor = (rate) => {
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
-            <tr v-for="stat in courseStats" :key="stat.id" class="group hover:bg-[var(--surface-input)] transition-colors">
+            <tr v-for="stat in courseStats" :key="stat.id" class="group hover:bg-(--surface-input) transition-colors">
               <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="h-9 w-9 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] border border-[var(--color-info-text)]/20">
+                  <div class="h-9 w-9 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) border border-(--color-info-text)/20">
                     <BookOpen :size="18" />
                   </div>
                   <div>
@@ -119,8 +119,8 @@ const getFailRateColor = (rate) => {
                       <span class="text-[10px] font-semibold text-muted">{{ stat.total }} SV</span>
                    </div>
                    <div class="flex items-center gap-3">
-                      <span class="text-[10px] font-semibold text-[var(--color-success-text)]">{{ stat.pass }} Pass</span>
-                      <span class="text-[10px] font-semibold text-[var(--color-danger-text)]">{{ stat.fail }} Fail</span>
+                      <span class="text-[10px] font-semibold text-(--color-success-text)">{{ stat.pass }} Pass</span>
+                      <span class="text-[10px] font-semibold text-(--color-danger-text)">{{ stat.fail }} Fail</span>
                    </div>
                 </div>
               </td>
@@ -133,7 +133,7 @@ const getFailRateColor = (rate) => {
                  <p class="text-[11px] text-muted font-medium leading-relaxed italic">{{ stat.reason }}</p>
               </td>
               <td class="px-4 py-4 text-right">
-                <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-link rounded-lg text-placeholder transition-all">
+                <button class="p-2 hover:bg-(--color-info-bg) hover:text-link rounded-lg text-placeholder transition-all">
                   <ChevronRight :size="18" />
                 </button>
               </td>
@@ -152,8 +152,8 @@ const getFailRateColor = (rate) => {
                <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1">{{ label }}</p>
                <div class="flex items-end gap-2">
                   <h3 class="text-xl font-semibold text-heading">{{ val }}%</h3>
-                  <div class="h-1.5 flex-1 bg-[var(--surface-input)] rounded-full mb-1.5 overflow-hidden">
-                     <div :style="{ width: `${val}%` }" class="h-full bg-[var(--lg-primary)] rounded-full"></div>
+                  <div class="h-1.5 flex-1 bg-(--surface-input) rounded-full mb-1.5 overflow-hidden">
+                     <div :style="{ width: `${val}%` }" class="h-full bg-(--lg-primary) rounded-full"></div>
                   </div>
                </div>
             </div>

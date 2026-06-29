@@ -24,7 +24,7 @@ const attendanceDegrees = computed(() =>
         <h2 class="text-base font-semibold text-heading">Chuyên cần & Cảnh báo</h2>
         <p class="text-xs font-medium text-body">Tình trạng học tập</p>
       </div>
-      <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-success-bg)] text-[var(--color-success-text)] border border-[color-mix(in srgb,var(--color-success-text) 20%,transparent)] shadow-sm">
+      <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-(--color-success-bg) text-(--color-success-text) border border-[color-mix(in srgb,var(--color-success-text) 20%,transparent)] shadow-sm">
         <UserCheck :size="18" />
       </div>
     </div>
@@ -34,7 +34,7 @@ const attendanceDegrees = computed(() =>
         class="relative flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-full p-2 shadow-inner"
         :style="{ background: `conic-gradient(var(--color-success-text) 0deg, var(--accent-cyan) ${attendanceDegrees}deg, var(--border-default) ${attendanceDegrees}deg, var(--border-default) 360deg)` }"
       >
-        <div class="flex h-full w-full items-center justify-center rounded-full bg-[var(--surface-card)] backdrop-blur-md shadow-sm">
+        <div class="flex h-full w-full items-center justify-center rounded-full bg-(--surface-card) backdrop-blur-md shadow-sm">
           <div class="text-center">
             <p class="text-2xl font-semibold tracking-tight text-heading leading-none">{{ attendance.rate }}%</p>
             <p class="mt-1 text-xs font-medium text-body">Tỉ lệ</p>
@@ -61,8 +61,8 @@ const attendanceDegrees = computed(() =>
       <ProgressBar :value="attendance.rate" variant="green" class="h-2 shadow-inner" />
     </div>
 
-    <div class="mt-4 flex gap-3 rounded-xl border border-[color-mix(in srgb,var(--color-warning-text) 20%,transparent)] bg-[var(--color-warning-bg)] p-3 text-[var(--color-warning-text)] shadow-sm backdrop-blur-md">
-      <AlertTriangle :size="18" class="mt-0.5 flex-shrink-0 text-[var(--color-warning-text)]" />
+    <div class="mt-4 flex gap-3 rounded-xl border border-[color-mix(in srgb,var(--color-warning-text) 20%,transparent)] bg-(--color-warning-bg) p-3 text-(--color-warning-text) shadow-sm backdrop-blur-md">
+      <AlertTriangle :size="18" class="mt-0.5 flex-shrink-0 text-(--color-warning-text)" />
       <p class="text-[13px] font-semibold leading-6">{{ attendance.warning }}</p>
     </div>
     </div>

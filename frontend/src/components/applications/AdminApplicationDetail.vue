@@ -28,16 +28,16 @@ const schemaPlaceholder = computed(() => {
 <template>
   <div class="h-full flex flex-col space-y-4">
     <!-- Header -->
-    <div class="flex items-center gap-4 border-b border-[var(--border-card)] pb-4">
-      <button @click="emit('back')" class="p-2 hover:bg-[var(--surface-hover)] rounded-full transition-colors text-[var(--text-muted)] hover:text-[var(--text-heading)]">
+    <div class="flex items-center gap-4 border-b border-(--border-card) pb-4">
+      <button @click="emit('back')" class="p-2 hover:bg-(--surface-hover) rounded-full transition-colors text-(--text-muted) hover:text-(--text-heading)">
         <ArrowLeft class="w-5 h-5" />
       </button>
       <div class="flex-1">
-        <h2 class="text-xl font-bold text-[var(--text-heading)] flex items-center gap-3">
+        <h2 class="text-xl font-bold text-(--text-heading) flex items-center gap-3">
           {{ application.tieuDe }}
           <ApplicationStatusBadge :status="application.trangThai" />
         </h2>
-        <p class="text-sm text-[var(--text-muted)] mt-1 flex gap-4">
+        <p class="text-sm text-(--text-muted) mt-1 flex gap-4">
           <span>Người nộp: {{ application.tenNguoiNop }} ({{ application.maNguoiNop }})</span>
           <span>Loại: {{ application.tenLoaiDon }}</span>
         </p>
@@ -49,19 +49,19 @@ const schemaPlaceholder = computed(() => {
       <!-- Main Content -->
       <div class="lg:col-span-2 space-y-6 overflow-y-auto custom-scrollbar pr-2 pb-6">
         <GlassPanel padding="normal">
-          <h3 class="font-semibold text-[var(--text-heading)] flex items-center gap-2 mb-4 border-b border-[var(--border-card)] pb-2">
+          <h3 class="font-semibold text-(--text-heading) flex items-center gap-2 mb-4 border-b border-(--border-card) pb-2">
             <FileText class="w-4 h-4" /> Nội dung đơn
           </h3>
           <ApplicationFormRenderer :schema="schemaPlaceholder" :model-value="parsedFormData" readonly />
         </GlassPanel>
 
         <GlassPanel padding="normal">
-          <h3 class="font-semibold text-[var(--text-heading)] mb-4 border-b border-[var(--border-card)] pb-2">Minh chứng đính kèm</h3>
+          <h3 class="font-semibold text-(--text-heading) mb-4 border-b border-(--border-card) pb-2">Minh chứng đính kèm</h3>
           <ApplicationEvidenceUploader :files="application.minhChung" disabled />
         </GlassPanel>
         
         <GlassPanel padding="normal">
-          <h3 class="font-semibold text-[var(--text-heading)] flex items-center gap-2 mb-4 border-b border-[var(--border-card)] pb-2">
+          <h3 class="font-semibold text-(--text-heading) flex items-center gap-2 mb-4 border-b border-(--border-card) pb-2">
             <Clock class="w-4 h-4" /> Timeline xử lý
           </h3>
           <ApplicationTimeline :events="application.lichSu" />

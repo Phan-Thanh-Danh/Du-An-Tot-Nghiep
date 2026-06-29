@@ -65,7 +65,7 @@ const accessCategories = [
 <template>
   <div class="space-y-6 pb-6">
     <!-- Header Banner -->
-    <div class="relative rounded-[24px] bg-gradient-to-br from-orange-600 to-amber-500 p-6 sm:p-8 overflow-hidden shadow-[var(--lg-shadow-md)] flex items-center justify-between">
+    <div class="relative rounded-[24px] bg-gradient-to-br from-orange-600 to-amber-500 p-6 sm:p-8 overflow-hidden shadow-(--lg-shadow-md) flex items-center justify-between">
       <div class="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
       
       <div class="relative z-10 text-white max-w-2xl">
@@ -111,7 +111,7 @@ const accessCategories = [
           <div
             v-for="(right, idx) in category.rights"
             :key="idx"
-            class="flex items-start gap-3 p-2 rounded-lg transition-colors hover:bg-[var(--surface-input)]"
+            class="flex items-start gap-3 p-2 rounded-lg transition-colors hover:bg-(--surface-input)"
           >
             <div class="mt-0.5 shrink-0">
               <CheckCircle2 v-if="right.granted" :size="16" class="text-emerald-500" />

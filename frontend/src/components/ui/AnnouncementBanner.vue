@@ -12,10 +12,10 @@ const iconMap = {
 }
 
 const colorMap = {
-  info: 'border-[color-mix(in srgb,var(--color-info-text) 20%,transparent)] bg-[var(--color-info-bg)] text-[var(--color-info-text)]',
-  warning: 'border-[color-mix(in srgb,var(--color-warning-text) 20%,transparent)] bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]',
-  success: 'border-[color-mix(in srgb,var(--color-success-text) 20%,transparent)] bg-[var(--color-success-bg)] text-[var(--color-success-text)]',
-  error: 'border-[color-mix(in srgb,var(--color-danger-text) 20%,transparent)] bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]',
+  info: 'border-[color-mix(in srgb,var(--color-info-text) 20%,transparent)] bg-(--color-info-bg) text-(--color-info-text)',
+  warning: 'border-[color-mix(in srgb,var(--color-warning-text) 20%,transparent)] bg-(--color-warning-bg) text-(--color-warning-text)',
+  success: 'border-[color-mix(in srgb,var(--color-success-text) 20%,transparent)] bg-(--color-success-bg) text-(--color-success-text)',
+  error: 'border-[color-mix(in srgb,var(--color-danger-text) 20%,transparent)] bg-(--color-danger-bg) text-(--color-danger-text)',
 }
 </script>
 

@@ -7,7 +7,7 @@
     </div>
 
     <div v-else-if="apiError" class="surface-card border border-card rounded-2xl p-6 flex flex-col items-center justify-center gap-3">
-      <AlertCircle :size="32" class="text-[var(--color-danger-text)]" />
+      <AlertCircle :size="32" class="text-(--color-danger-text)" />
       <p class="text-sm font-bold text-heading">Không thể tải dữ liệu</p>
       <p class="text-xs text-muted">{{ apiError }}</p>
       <button @click="loadDashboard" class="lg-button-primary px-4 py-2 text-xs font-bold rounded-xl mt-2">Thử lại</button>
@@ -37,8 +37,8 @@
             </div>
           </div>
           <div class="hidden lg:block">
-            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-info-bg)]/70 border border-[var(--color-info-text)]/20">
-              <ShieldCheck :size="22" class="text-[var(--color-info-text)]/70" />
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-(--color-info-bg)/70 border border-(--color-info-text)/20">
+              <ShieldCheck :size="22" class="text-(--color-info-text)/70" />
             </div>
           </div>
         </div>
@@ -52,7 +52,7 @@
             <div :class="['flex h-10 w-10 items-center justify-center rounded-2xl transition-transform group-hover:scale-110', item.bgColor, item.iconColor]">
               <component :is="item.icon" :size="24" stroke-width="2.2" />
             </div>
-            <div :class="['flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold', item.isWarning ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]' : 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]']">
+            <div :class="['flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold', item.isWarning ? 'bg-(--color-danger-bg) text-(--color-danger-text)' : 'bg-(--color-success-bg) text-(--color-success-text)']">
               {{ item.trend }}
               <ArrowUpRight v-if="!item.isWarning" :size="12" />
               <AlertCircle v-else :size="12" />
@@ -83,13 +83,13 @@
             <div class="p-3 space-y-3">
               <div v-for="(item, idx) in scheduleTasks" :key="item.id" 
                    class="group flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-2xl p-4 transition-all surface-solid border border-default">
-                <div :class="['flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl font-bold', item.alert ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]' : 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]']">
+                <div :class="['flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl font-bold', item.alert ? 'bg-(--color-danger-bg) text-(--color-danger-text)' : 'bg-(--color-info-bg) text-(--color-info-text)']">
                   <component :is="item.alert ? AlertCircle : Clock" :size="20" />
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
                     <h3 class="text-base font-bold text-heading truncate">{{ item.title }}</h3>
-                    <span v-if="item.alert" class="rounded-full bg-[var(--color-danger-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-danger-text)] uppercase tracking-wider">Khẩn cấp</span>
+                    <span v-if="item.alert" class="rounded-full bg-(--color-danger-bg) px-2 py-0.5 text-[10px] font-bold text-(--color-danger-text) uppercase tracking-wider">Khẩn cấp</span>
                   </div>
                   <p class="mt-0.5 text-xs text-muted">{{ item.desc }}</p>
                 </div>
@@ -109,12 +109,12 @@
               <div class="p-4">
                 <div class="flex items-center justify-between mb-3">
                   <h3 class="text-xs font-bold text-heading">Lớp sắp đầy (&gt;90%)</h3>
-                  <span class="rounded-full bg-[var(--color-warning-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-warning-text)]">{{ data.stats?.fullClasses ?? 0 }} lớp</span>
+                  <span class="rounded-full bg-(--color-warning-bg) px-2 py-0.5 text-[10px] font-bold text-(--color-warning-text)">{{ data.stats?.fullClasses ?? 0 }} lớp</span>
                 </div>
                 <div class="space-y-3">
                   <div v-for="cls in nearFullClasses" :key="cls.name" class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <div class="h-1.5 w-1.5 rounded-full bg-[var(--color-warning-text)]"></div>
+                      <div class="h-1.5 w-1.5 rounded-full bg-(--color-warning-text)"></div>
                       <span class="text-xs text-body">{{ cls.name }}</span>
                     </div>
                     <span class="text-xs font-bold text-heading">{{ cls.enrolled }}/{{ cls.capacity }}</span>
@@ -125,12 +125,12 @@
               <div class="p-4">
                 <div class="flex items-center justify-between mb-3">
                   <h3 class="text-xs font-bold text-heading">Waitlist cần duyệt</h3>
-                  <span class="rounded-full bg-[var(--color-info-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-info-text)]">{{ data.stats?.waitlistStudents ?? 0 }} SV</span>
+                  <span class="rounded-full bg-(--color-info-bg) px-2 py-0.5 text-[10px] font-bold text-(--color-info-text)">{{ data.stats?.waitlistStudents ?? 0 }} SV</span>
                 </div>
                 <div class="space-y-3">
                   <div v-for="cls in waitlistClasses" :key="cls.name" class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <div class="h-1.5 w-1.5 rounded-full bg-[var(--color-info-text)]"></div>
+                      <div class="h-1.5 w-1.5 rounded-full bg-(--color-info-text)"></div>
                       <span class="text-xs text-body">{{ cls.name }}</span>
                     </div>
                     <span class="text-xs font-bold text-heading">{{ cls.count }} SV chờ</span>
@@ -150,18 +150,18 @@
           <div class="rounded-2xl border border-card surface-card shadow-sm p-4">
             <div class="mb-3 flex items-center justify-between">
               <h3 class="text-base font-bold text-heading">Đơn từ khẩn</h3>
-              <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-danger-bg)] text-[10px] font-bold text-[var(--color-danger-text)]">{{ urgentRequests.length }}</span>
+              <span class="flex h-5 w-5 items-center justify-center rounded-full bg-(--color-danger-bg) text-[10px] font-bold text-(--color-danger-text)">{{ urgentRequests.length }}</span>
             </div>
             <div class="space-y-3">
               <div v-for="req in urgentRequests" :key="req.id" 
                    class="flex items-start gap-3 rounded-xl p-3 transition-all surface-solid border border-default">
-                <div class="mt-0.5 h-8 w-8 shrink-0 rounded-lg bg-[var(--color-danger-bg)] flex items-center justify-center text-[var(--color-danger-text)]">
+                <div class="mt-0.5 h-8 w-8 shrink-0 rounded-lg bg-(--color-danger-bg) flex items-center justify-center text-(--color-danger-text)">
                   <FileStack :size="16" />
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="flex justify-between items-start">
                     <p class="text-xs font-bold text-heading leading-tight">{{ req.type }}</p>
-                    <span class="text-[10px] font-bold text-[var(--color-danger-text)] uppercase">{{ req.time }}</span>
+                    <span class="text-[10px] font-bold text-(--color-danger-text) uppercase">{{ req.time }}</span>
                   </div>
                   <p class="mt-0.5 text-[11px] text-muted truncate">{{ req.studentName }}</p>
                 </div>
@@ -177,7 +177,7 @@
             
             <div class="mt-4 flex items-end gap-2 h-20">
               <div v-for="(h, i) in [60, 40, 80, 50, 70, 95, 65]" :key="i" 
-                   class="flex-1 bg-[var(--color-info-bg)] rounded-t-lg transition-all hover:bg-[var(--surface-input)] cursor-help"
+                   class="flex-1 bg-(--color-info-bg) rounded-t-lg transition-all hover:bg-(--surface-input) cursor-help"
                    :style="{ height: h + '%' }" />
             </div>
             
@@ -237,10 +237,10 @@ const stats = computed(() => {
   const s = data.value.stats
   if (!s) return []
   return [
-    { id: 1, label: 'Lịch học hôm nay', value: String(s.todaySchedules ?? 0), trend: '+12', bgColor: 'bg-[var(--color-info-bg)]', iconColor: 'text-[var(--color-info-text)]', icon: Calendar },
-    { id: 2, label: 'Xung đột lịch', value: String(s.conflicts ?? 0), trend: 'Cần xử lý', isWarning: true, bgColor: 'bg-[var(--color-danger-bg)]', iconColor: 'text-[var(--color-danger-text)]', icon: AlertTriangle },
-    { id: 3, label: 'Lớp đang mở', value: String(s.activeClasses ?? 0), trend: (s.fullClasses ?? 0) + ' lớp đầy', isWarning: true, bgColor: 'bg-[var(--color-warning-bg)]', iconColor: 'text-[var(--color-warning-text)]', icon: Layers },
-    { id: 4, label: 'Đơn từ chờ duyệt', value: String(s.pendingRequests ?? 0), trend: '3 quá hạn', isWarning: true, bgColor: 'bg-[var(--color-info-bg)]', iconColor: 'text-[var(--color-info-text)]', icon: FileStack },
+    { id: 1, label: 'Lịch học hôm nay', value: String(s.todaySchedules ?? 0), trend: '+12', bgColor: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)', icon: Calendar },
+    { id: 2, label: 'Xung đột lịch', value: String(s.conflicts ?? 0), trend: 'Cần xử lý', isWarning: true, bgColor: 'bg-(--color-danger-bg)', iconColor: 'text-(--color-danger-text)', icon: AlertTriangle },
+    { id: 3, label: 'Lớp đang mở', value: String(s.activeClasses ?? 0), trend: (s.fullClasses ?? 0) + ' lớp đầy', isWarning: true, bgColor: 'bg-(--color-warning-bg)', iconColor: 'text-(--color-warning-text)', icon: Layers },
+    { id: 4, label: 'Đơn từ chờ duyệt', value: String(s.pendingRequests ?? 0), trend: '3 quá hạn', isWarning: true, bgColor: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)', icon: FileStack },
   ]
 })
 

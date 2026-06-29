@@ -192,7 +192,7 @@ const isOldVersion = computed(() => selectedVersionId.value && selectedVersionId
     <!-- Banner Thông báo Học trước & Bảo lưu kết quả -->
     <div v-if="showEarlyLearningNotification" class="early-notification-banner glass-card">
       <div class="banner-icon">
-        <Rocket :size="22" class="text-[var(--text-link)] animate-bounce" />
+        <Rocket :size="22" class="text-(--text-link) animate-bounce" />
       </div>
       <div class="banner-body">
         <h3>Nhắc nhở học trước & Bảo lưu kết quả</h3>

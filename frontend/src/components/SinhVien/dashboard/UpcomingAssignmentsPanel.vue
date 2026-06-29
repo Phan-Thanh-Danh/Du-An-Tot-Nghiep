@@ -11,9 +11,9 @@ defineProps({
 })
 
 const priorityClass = {
-  high: 'bg-[var(--color-danger-text)]',
-  medium: 'bg-[var(--color-warning-text)]',
-  low: 'bg-[var(--color-success-text)]',
+  high: 'bg-(--color-danger-text)',
+  medium: 'bg-(--color-warning-text)',
+  low: 'bg-(--color-success-text)',
 }
 </script>
 
@@ -43,9 +43,9 @@ const priorityClass = {
           <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
             <p class="text-xs font-medium text-body">{{ assignment.course }}</p>
             <p class="inline-flex items-center gap-1.5 text-xs font-semibold" :class="[
-              assignment.variant === 'danger' ? 'text-[var(--color-danger-text)]' :
-              assignment.variant === 'success' ? 'text-[var(--color-success-text)]' :
-              'text-[var(--color-warning-text)]'
+              assignment.variant === 'danger' ? 'text-(--color-danger-text)' :
+              assignment.variant === 'success' ? 'text-(--color-success-text)' :
+              'text-(--color-warning-text)'
             ]">
               <AlertCircle :size="11" />
               {{ assignment.deadline }}

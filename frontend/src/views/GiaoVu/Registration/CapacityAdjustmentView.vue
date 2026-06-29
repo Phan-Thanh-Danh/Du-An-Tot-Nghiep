@@ -211,7 +211,7 @@ const metrics = computed(() => {
         <div class="flex items-center gap-3">
           <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold relative" @click.stop="showFilters = !showFilters">
             <Filter :size="18" /> Bộ lọc
-            <span v-if="activeFilterCount > 0" class="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[var(--lg-primary)] text-white text-[9px] font-semibold flex items-center justify-center">{{ activeFilterCount }}</span>
+            <span v-if="activeFilterCount > 0" class="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-(--lg-primary) text-white text-[9px] font-semibold flex items-center justify-center">{{ activeFilterCount }}</span>
           </button>
         </div>
       </div>
@@ -230,7 +230,7 @@ const metrics = computed(() => {
             <div class="flex gap-1.5 flex-wrap">
               <button v-for="opt in statusOptions" :key="opt.value"
                 @click="filterStatus = opt.value"
-                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterStatus === opt.value ? 'bg-[var(--lg-primary)] text-white shadow-sm' : 'surface-solid text-label hover:bg-[var(--surface-input)]']"
+                :class="['px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all', filterStatus === opt.value ? 'bg-(--lg-primary) text-white shadow-sm' : 'surface-solid text-label hover:bg-(--surface-input)']"
               >{{ opt.label }}</button>
             </div>
           </div>
@@ -257,11 +257,11 @@ const metrics = computed(() => {
           </thead>
           <tbody class="divide-y divide-default">
             <tr v-for="sec in filteredSections" :key="sec.id"
-              :class="['group hover:bg-[var(--surface-input)] transition-colors cursor-pointer', selectedSection?.id === sec.id ? 'bg-[var(--color-info-bg)]' : '']"
+              :class="['group hover:bg-(--surface-input) transition-colors cursor-pointer', selectedSection?.id === sec.id ? 'bg-(--color-info-bg)' : '']"
               @click="selectSection(sec)"
             >
               <td class="px-4 py-4">
-                <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ sec.id }}</span>
+                <span class="text-[10px] font-semibold text-link bg-(--color-info-bg) px-1.5 py-0.5 rounded">{{ sec.id }}</span>
               </td>
               <td class="px-4 py-4">
                 <p class="text-sm font-semibold text-heading">{{ sec.subject }}</p>
@@ -277,7 +277,7 @@ const metrics = computed(() => {
                 <div class="flex items-center gap-1.5">
                   <div class="h-2 w-16 rounded-full surface-solid overflow-hidden">
                     <div class="h-full rounded-full transition-all"
-                      :class="sec.enrolled >= sec.capacity ? 'bg-[var(--lg-warning)]' : 'bg-[var(--lg-primary)]'"
+                      :class="sec.enrolled >= sec.capacity ? 'bg-(--lg-warning)' : 'bg-(--lg-primary)'"
                       :style="{ width: Math.min((sec.enrolled / Math.max(sec.capacity, 1)) * 100, 100) + '%' }"
                     />
                   </div>
@@ -285,7 +285,7 @@ const metrics = computed(() => {
                 </div>
               </td>
               <td class="px-4 py-4">
-                <span v-if="sec.waitlist > 0" class="text-xs font-semibold text-[var(--lg-warning)]">{{ sec.waitlist }}</span>
+                <span v-if="sec.waitlist > 0" class="text-xs font-semibold text-(--lg-warning)">{{ sec.waitlist }}</span>
                 <span v-else class="text-xs font-medium text-placeholder">0</span>
               </td>
               <td class="px-4 py-4">
@@ -295,10 +295,10 @@ const metrics = computed(() => {
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-1" @click.stop>
-                  <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-link rounded-lg text-placeholder transition-all" title="Điều chỉnh sức chứa" @click="openQuickModal(sec)">
+                  <button class="p-2 hover:bg-(--color-info-bg) hover:text-link rounded-lg text-placeholder transition-all" title="Điều chỉnh sức chứa" @click="openQuickModal(sec)">
                     <Edit3 :size="16" />
                   </button>
-                  <button class="p-2 hover:bg-[var(--color-success-bg)] hover:text-[var(--lg-success)] rounded-lg text-placeholder transition-all" title="Xem chi tiết & điều chỉnh" @click="selectSection(sec)">
+                  <button class="p-2 hover:bg-(--color-success-bg) hover:text-(--lg-success) rounded-lg text-placeholder transition-all" title="Xem chi tiết & điều chỉnh" @click="selectSection(sec)">
                     <TrendingUp :size="16" />
                   </button>
                 </div>
@@ -326,20 +326,20 @@ const metrics = computed(() => {
         <div v-if="showSectionDetail && selectedSection" class="lg-card-glass p-6 rounded-2xl">
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
-              <div class="h-10 w-10 rounded-xl bg-[var(--color-info-bg)] text-link flex items-center justify-center">
+              <div class="h-10 w-10 rounded-xl bg-(--color-info-bg) text-link flex items-center justify-center">
                 <Layers :size="20" />
               </div>
               <div>
                 <h3 class="text-base font-semibold text-heading">{{ selectedSection.subject }}</h3>
                 <div class="flex items-center gap-2 mt-0.5">
-                  <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ selectedSection.id }}</span>
+                  <span class="text-[10px] font-semibold text-link bg-(--color-info-bg) px-1.5 py-0.5 rounded">{{ selectedSection.id }}</span>
                   <span class="text-[11px] font-bold text-placeholder">{{ selectedSection.teacher }}</span>
                   <span class="w-1 h-1 rounded-full bg-placeholder" />
                   <span class="text-[11px] font-bold text-placeholder">{{ selectedSection.room }}</span>
                 </div>
               </div>
             </div>
-            <button class="p-2 hover:bg-[var(--surface-solid)] rounded-lg text-placeholder transition-all" @click="closeDetail">
+            <button class="p-2 hover:bg-(--surface-solid) rounded-lg text-placeholder transition-all" @click="closeDetail">
               <X :size="18" />
             </button>
           </div>
@@ -355,10 +355,10 @@ const metrics = computed(() => {
               <p class="text-2xl font-semibold text-heading">{{ selectedSection.enrolled }}</p>
               <p class="text-[11px] font-bold text-label mt-1">SV</p>
             </div>
-            <div class="surface-solid rounded-2xl p-4 text-center border border-[var(--color-warning-bg)]/30">
+            <div class="surface-solid rounded-2xl p-4 text-center border border-(--color-warning-bg)/30">
               <p class="text-[10px] font-semibold text-placeholder uppercase tracking-widest mb-2">Đang đợi (Waitlist)</p>
-              <p class="text-2xl font-semibold text-[var(--lg-warning)]">{{ selectedSection.waitlist }}</p>
-              <p class="text-[11px] font-bold text-[var(--lg-warning)] mt-1">SV trong hàng chờ</p>
+              <p class="text-2xl font-semibold text-(--lg-warning)">{{ selectedSection.waitlist }}</p>
+              <p class="text-[11px] font-bold text-(--lg-warning) mt-1">SV trong hàng chờ</p>
             </div>
           </div>
 
@@ -375,11 +375,11 @@ const metrics = computed(() => {
                       class="flex-1 lg-input px-4 py-3 text-lg font-semibold text-heading transition-all"
                     >
                     <div class="flex flex-col gap-1">
-                      <button @click="newCapacity++" class="p-1 hover:bg-[var(--surface-solid)] rounded-lg text-placeholder"><TrendingUp :size="16" /></button>
-                      <button @click="newCapacity--" class="p-1 hover:bg-[var(--surface-solid)] rounded-lg text-placeholder"><TrendingDown :size="16" /></button>
+                      <button @click="newCapacity++" class="p-1 hover:bg-(--surface-solid) rounded-lg text-placeholder"><TrendingUp :size="16" /></button>
+                      <button @click="newCapacity--" class="p-1 hover:bg-(--surface-solid) rounded-lg text-placeholder"><TrendingDown :size="16" /></button>
                     </div>
                   </div>
-                  <p v-if="newCapacity < selectedSection.enrolled" class="text-[11px] font-bold text-[var(--lg-danger)] mt-1">
+                  <p v-if="newCapacity < selectedSection.enrolled" class="text-[11px] font-bold text-(--lg-danger) mt-1">
                     Sức chứa không thể nhỏ hơn số đã đăng ký ({{ selectedSection.enrolled }})
                   </p>
                 </div>
@@ -404,23 +404,23 @@ const metrics = computed(() => {
                   </div>
                   <div class="flex items-center justify-between p-3 surface-card rounded-xl border border-default">
                     <div class="flex items-center gap-3">
-                      <TrendingUp :size="18" class="text-[var(--lg-success)]" />
+                      <TrendingUp :size="18" class="text-(--lg-success)" />
                       <span class="text-xs font-bold text-label">Đẩy từ Waitlist</span>
                     </div>
-                    <span class="text-xs font-semibold text-[var(--lg-success)]">{{ waitlistImpact > 0 ? '+' + waitlistImpact : 0 }} SV</span>
+                    <span class="text-xs font-semibold text-(--lg-success)">{{ waitlistImpact > 0 ? '+' + waitlistImpact : 0 }} SV</span>
                   </div>
                   <div class="flex items-center justify-between p-3 surface-card rounded-xl border border-default">
                     <div class="flex items-center gap-3">
                       <Users :size="18" class="text-link" />
                       <span class="text-xs font-bold text-label">Chênh lệch</span>
                     </div>
-                    <span class="text-xs font-semibold" :class="newCapacity >= selectedSection.capacity ? 'text-[var(--lg-success)]' : 'text-[var(--lg-danger)]'">
+                    <span class="text-xs font-semibold" :class="newCapacity >= selectedSection.capacity ? 'text-(--lg-success)' : 'text-(--lg-danger)'">
                       {{ newCapacity >= selectedSection.capacity ? '+' : '' }}{{ newCapacity - selectedSection.capacity }}
                     </span>
                   </div>
-                  <div v-if="newCapacity > selectedSection.roomCapacity" class="p-4 bg-[var(--color-danger-bg)] rounded-xl border border-[var(--color-danger-bg)]/50 flex gap-3">
-                    <AlertTriangle :size="18" class="text-[var(--lg-danger)] shrink-0" />
-                    <p class="text-[11px] font-bold text-[var(--lg-danger)]">Sức chứa mới vượt quá giới hạn của phòng học hiện tại. Vui lòng đổi phòng sau khi cập nhật.</p>
+                  <div v-if="newCapacity > selectedSection.roomCapacity" class="p-4 bg-(--color-danger-bg) rounded-xl border border-(--color-danger-bg)/50 flex gap-3">
+                    <AlertTriangle :size="18" class="text-(--lg-danger) shrink-0" />
+                    <p class="text-[11px] font-bold text-(--lg-danger)">Sức chứa mới vượt quá giới hạn của phòng học hiện tại. Vui lòng đổi phòng sau khi cập nhật.</p>
                   </div>
                 </div>
               </div>
@@ -455,12 +455,12 @@ const metrics = computed(() => {
         <div class="relative w-full max-w-md surface-modal rounded-2xl p-6 shadow-sm border border-default">
           <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-2">
-              <div class="h-8 w-8 rounded-lg bg-[var(--color-info-bg)] text-link flex items-center justify-center">
+              <div class="h-8 w-8 rounded-lg bg-(--color-info-bg) text-link flex items-center justify-center">
                 <Edit3 :size="18" />
               </div>
               <h3 class="text-base font-semibold text-heading">Điều chỉnh sức chứa</h3>
             </div>
-            <button class="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] text-placeholder transition-all" @click="closeQuickModal">
+            <button class="p-1.5 rounded-lg hover:bg-(--surface-solid) text-placeholder transition-all" @click="closeQuickModal">
               <X :size="18" />
             </button>
           </div>
@@ -468,16 +468,16 @@ const metrics = computed(() => {
             <div class="surface-solid p-4 rounded-2xl">
               <p class="text-sm font-semibold text-heading">{{ quickTarget.subject }}</p>
               <div class="flex items-center gap-2 mt-1">
-                <span class="text-[10px] font-semibold text-link bg-[var(--color-info-bg)] px-1.5 py-0.5 rounded">{{ quickTarget.id }}</span>
+                <span class="text-[10px] font-semibold text-link bg-(--color-info-bg) px-1.5 py-0.5 rounded">{{ quickTarget.id }}</span>
                 <span class="text-[11px] font-bold text-placeholder">{{ quickTarget.teacher }}</span>
               </div>
             </div>
             <div>
               <label class="text-[10px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Sức chứa hiện tại: <span class="text-heading">{{ quickTarget.capacity }}</span></label>
               <input v-model.number="quickValue" type="number" :min="quickTarget.enrolled" class="w-full lg-input px-4 py-2.5 text-sm" />
-              <p v-if="quickValue < quickTarget.enrolled" class="text-[11px] font-bold text-[var(--lg-danger)] mt-1">Sức chứa không thể nhỏ hơn số đã đăng ký ({{ quickTarget.enrolled }})</p>
+              <p v-if="quickValue < quickTarget.enrolled" class="text-[11px] font-bold text-(--lg-danger) mt-1">Sức chứa không thể nhỏ hơn số đã đăng ký ({{ quickTarget.enrolled }})</p>
               <div v-if="quickValue > quickTarget.capacity && quickTarget.waitlist > 0" class="mt-2 flex items-center gap-2 text-[11px] font-medium text-label">
-                <TrendingUp :size="14" class="text-[var(--lg-success)]" />
+                <TrendingUp :size="14" class="text-(--lg-success)" />
                 <span>Sẽ đẩy <strong class="text-heading">{{ Math.min(quickValue - quickTarget.capacity, quickTarget.waitlist) }}</strong> SV từ waitlist</span>
               </div>
             </div>

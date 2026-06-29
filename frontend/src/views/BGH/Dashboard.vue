@@ -21,8 +21,8 @@
           </div>
         </div>
         <div class="hidden lg:block">
-          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-info-bg)]/70 border border-[var(--color-info-text)]/20">
-            <GraduationCap :size="22" class="text-[var(--color-info-text)]/70" />
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-(--color-info-bg)/70 border border-(--color-info-text)/20">
+            <GraduationCap :size="22" class="text-(--color-info-text)/70" />
           </div>
         </div>
       </div>
@@ -36,7 +36,7 @@
           <div :class="['flex h-10 w-10 items-center justify-center rounded-2xl transition-transform group-hover:scale-110', item.bgColor, item.iconColor]">
             <component :is="item.icon" :size="24" stroke-width="2.2" />
           </div>
-          <div :class="['flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold', item.isNegative ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]' : 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]']">
+          <div :class="['flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold', item.isNegative ? 'bg-(--color-danger-bg) text-(--color-danger-text)' : 'bg-(--color-success-bg) text-(--color-success-text)']">
             {{ item.trend }}
             <ArrowUpRight v-if="!item.isNegative" :size="12" />
             <AlertCircle v-else :size="12" />
@@ -66,15 +66,15 @@
           </div>
           <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
              <div v-for="teacher in topTeachers" :key="teacher.id" 
-                  class="group flex items-center gap-4 rounded-2xl border border-default p-4 transition-all hover:border-[var(--border-input-focus)]">
-               <div class="h-10 w-10 rounded-2xl bg-[var(--color-info-bg)] text-[var(--color-info-text)] flex items-center justify-center font-bold shadow-sm">{{ teacher.initials }}</div>
+                  class="group flex items-center gap-4 rounded-2xl border border-default p-4 transition-all hover:border-(--border-input-focus)">
+               <div class="h-10 w-10 rounded-2xl bg-(--color-info-bg) text-(--color-info-text) flex items-center justify-center font-bold shadow-sm">{{ teacher.initials }}</div>
                <div class="flex-1 min-w-0">
                  <h3 class="font-bold text-heading truncate">{{ teacher.name }}</h3>
                  <p class="text-xs text-muted">{{ teacher.department }}</p>
                </div>
                <div class="text-right">
                  <div class="flex items-center justify-end gap-1 text-sm font-semibold text-heading">
-                    <Star class="w-3.5 h-3.5 text-[var(--color-warning-text)]" fill="currentColor" /> {{ teacher.rating }}
+                    <Star class="w-3.5 h-3.5 text-(--color-warning-text)" fill="currentColor" /> {{ teacher.rating }}
                  </div>
                  <p class="text-[10px] text-muted">{{ teacher.reviews }} lượt</p>
                </div>
@@ -93,7 +93,7 @@
            </div>
            <div class="flex items-end justify-between h-32 gap-4 border-b border-default pb-2">
               <div v-for="(h, i) in [45, 65, 80, 55, 90, 75, 88]" :key="i" class="flex-1 flex flex-col items-center gap-2">
-                 <div class="w-full bg-[var(--lg-primary)] rounded-t-xl transition-all hover:opacity-80" :style="{ height: h + '%' }" />
+                 <div class="w-full bg-(--lg-primary) rounded-t-xl transition-all hover:opacity-80" :style="{ height: h + '%' }" />
                  <span class="text-[10px] font-bold text-muted">{{ ['CNTT', 'KT', 'NN', 'DL', 'TK', 'YT', 'GD'][i] }}</span>
               </div>
            </div>
@@ -108,11 +108,11 @@
         <div class="rounded-2xl border border-card surface-card shadow-sm p-4">
            <div class="mb-3 flex items-center justify-between">
               <h3 class="text-base font-bold text-heading">TKB Chờ Duyệt</h3>
-              <span class="rounded-full bg-[var(--color-info-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-info-text)]">2 Mới</span>
+              <span class="rounded-full bg-(--color-info-bg) px-2 py-0.5 text-[10px] font-bold text-(--color-info-text)">2 Mới</span>
            </div>
            <div class="space-y-3">
              <div v-for="i in 2" :key="i" 
-                  class="p-3 rounded-xl border border-default surface-solid transition-all hover:bg-[var(--surface-input)] cursor-pointer">
+                  class="p-3 rounded-xl border border-default surface-solid transition-all hover:bg-(--surface-input) cursor-pointer">
                <div class="flex justify-between items-start">
                   <p class="text-xs font-bold text-heading leading-tight">Khoa {{ i === 1 ? 'CNTT' : 'Kinh Tế' }} - Spring</p>
                   <span class="text-[9px] font-bold text-link">NEW</span>
@@ -124,22 +124,22 @@
         </div>
 
         <!-- AI Risk Alerts -->
-        <div class="rounded-2xl border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)] p-4 overflow-hidden relative">
+        <div class="rounded-2xl border border-(--color-danger-text)/20 bg-(--color-danger-bg) p-4 overflow-hidden relative">
           <div class="flex items-center gap-2">
              <h3 class="text-base font-bold text-heading">Cảnh báo rủi ro</h3>
           </div>
           <p class="text-xs text-body mt-1">AI phát hiện 124 sinh viên có rủi ro rớt môn cao do vắng học.</p>
           
           <div class="mt-4 space-y-3">
-             <div v-for="sv in riskStudents" :key="sv.id" class="flex items-center justify-between border-b border-[var(--color-danger-text)]/20 pb-2">
+             <div v-for="sv in riskStudents" :key="sv.id" class="flex items-center justify-between border-b border-(--color-danger-text)/20 pb-2">
                 <div>
                    <p class="text-xs font-bold text-heading">{{ sv.name }}</p>
                    <p class="text-[9px] text-muted">{{ sv.class }}</p>
                 </div>
-                <span class="text-[9px] font-bold bg-[var(--surface-card)] text-[var(--color-danger-text)] px-2 py-0.5 rounded-full">{{ sv.reason }}</span>
+                <span class="text-[9px] font-bold bg-(--surface-card) text-(--color-danger-text) px-2 py-0.5 rounded-full">{{ sv.reason }}</span>
              </div>
           </div>
-          <button class="mt-4 w-full text-center text-[10px] font-bold text-[var(--color-danger-text)] hover:underline">Xem toàn bộ báo cáo rủi ro</button>
+          <button class="mt-4 w-full text-center text-[10px] font-bold text-(--color-danger-text) hover:underline">Xem toàn bộ báo cáo rủi ro</button>
         </div>
 
         <!-- Strategy Announcements -->
@@ -150,7 +150,7 @@
           </div>
           <div class="space-y-3">
             <div class="flex gap-2">
-              <div class="h-8 w-8 rounded-full bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] shrink-0">
+              <div class="h-8 w-8 rounded-full bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) shrink-0">
                 <ShieldCheck :size="14" />
               </div>
               <div>
@@ -175,10 +175,10 @@ import {
 
 // KPI Stats
 const stats = [
-  { id: 1, label: 'GPA Trung Bình', value: '7.84', trend: '↑ 0.12', isNegative: false, bgColor: 'bg-[var(--color-info-bg)]', iconColor: 'text-[var(--color-info-text)]', icon: BarChart2 },
-  { id: 2, label: 'Tỷ lệ Pass', value: '92.5%', trend: 'Mục tiêu đạt', isNegative: false, bgColor: 'bg-[var(--color-success-bg)]', iconColor: 'text-[var(--color-success-text)]', icon: PieChart },
-  { id: 3, label: 'Đánh giá GV', value: '4.5/5', trend: '85% phản hồi', isNegative: false, bgColor: 'bg-[var(--color-warning-bg)]', iconColor: 'text-[var(--color-warning-text)]', icon: Star },
-  { id: 4, label: 'SV Nguy cơ rớt', value: '124', trend: 'Cảnh báo AI', isNegative: true, bgColor: 'bg-[var(--color-danger-bg)]', iconColor: 'text-[var(--color-danger-text)]', icon: UserMinus },
+  { id: 1, label: 'GPA Trung Bình', value: '7.84', trend: '↑ 0.12', isNegative: false, bgColor: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)', icon: BarChart2 },
+  { id: 2, label: 'Tỷ lệ Pass', value: '92.5%', trend: 'Mục tiêu đạt', isNegative: false, bgColor: 'bg-(--color-success-bg)', iconColor: 'text-(--color-success-text)', icon: PieChart },
+  { id: 3, label: 'Đánh giá GV', value: '4.5/5', trend: '85% phản hồi', isNegative: false, bgColor: 'bg-(--color-warning-bg)', iconColor: 'text-(--color-warning-text)', icon: Star },
+  { id: 4, label: 'SV Nguy cơ rớt', value: '124', trend: 'Cảnh báo AI', isNegative: true, bgColor: 'bg-(--color-danger-bg)', iconColor: 'text-(--color-danger-text)', icon: UserMinus },
 ]
 
 const topTeachers = [

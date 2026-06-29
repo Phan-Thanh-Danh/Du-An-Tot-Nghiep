@@ -63,20 +63,20 @@ function preloadRoute() {
     @focus="preloadRoute"
     @click="handleClick"
     :class="[
-      'lg-sidebar-item group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]',
+      'lg-sidebar-item group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-(--sidebar-focus-ring)',
       depth === 0
         ? 'text-label hover:text-heading'
         : 'pl-3 text-[12px] text-muted hover:text-body',
       isActive
         ? depth === 0
           ? 'lg-sidebar-item-active font-semibold'
-          : 'border-card surface-card text-[var(--sidebar-accent-dark)] font-semibold shadow-sm'
+          : 'border-card surface-card text-(--sidebar-accent-dark) font-semibold shadow-sm'
         : '',
     ]"
   >
     <!-- Active indicator line -->
     <span
-      class="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-[var(--sidebar-indicator)] transition-all duration-300 ease-out origin-center"
+      class="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-(--sidebar-indicator) transition-all duration-300 ease-out origin-center"
       :class="[isActive && depth === 0 ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-50']"
     />
 
@@ -88,8 +88,8 @@ function preloadRoute() {
       :class="[
         'flex-shrink-0 transition-colors duration-300',
         isActive
-          ? depth === 0 ? 'text-white' : 'text-[var(--sidebar-accent)]'
-          : 'text-muted group-hover:text-[var(--sidebar-accent)]',
+          ? depth === 0 ? 'text-white' : 'text-(--sidebar-accent)'
+          : 'text-muted group-hover:text-(--sidebar-accent)',
       ]"
     />
 
@@ -114,7 +114,7 @@ function preloadRoute() {
 
     <!-- Active dot for depth > 0 -->
     <div
-      class="h-1.5 w-1.5 rounded-full bg-[var(--sidebar-indicator)] shadow-[0_0_8px_var(--sidebar-focus-ring)] transition-all duration-300 ease-out"
+      class="h-1.5 w-1.5 rounded-full bg-(--sidebar-indicator) shadow-[0_0_8px_var(--sidebar-focus-ring)] transition-all duration-300 ease-out"
       :class="[isActive && depth > 0 && !collapsed ? 'opacity-100 scale-100' : 'opacity-0 scale-0']"
     />
   </router-link>
@@ -124,7 +124,7 @@ function preloadRoute() {
     :title="collapsed ? item.label : ''"
     role="menuitem"
     :class="[
-      'lg-sidebar-item group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-[var(--sidebar-focus-ring)]',
+      'lg-sidebar-item group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-(--sidebar-focus-ring)',
       depth === 0
         ? 'text-label hover:text-heading'
         : 'pl-3 text-[12px] text-muted hover:text-body',
@@ -134,7 +134,7 @@ function preloadRoute() {
       :is="IconComponent"
       :size="depth === 0 ? 16 : 13"
       stroke-width="1.8"
-      class="flex-shrink-0 text-muted group-hover:text-[var(--sidebar-accent)]"
+      class="flex-shrink-0 text-muted group-hover:text-(--sidebar-accent)"
     />
     <span v-if="!collapsed" class="flex-1 min-w-0 truncate leading-tight">
       {{ item.label }}

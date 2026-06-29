@@ -1,9 +1,6 @@
 <script setup>
-import AdminNotificationCenter from '@/components/notifications/AdminNotificationCenter.vue'
+import NotificationComposeForm from '@/components/notifications/NotificationComposeForm.vue'
 </script>
-
 <template>
-  <div class="h-full">
-    <AdminNotificationCenter />
-  </div>
+  <NotificationComposeForm />
 </template>

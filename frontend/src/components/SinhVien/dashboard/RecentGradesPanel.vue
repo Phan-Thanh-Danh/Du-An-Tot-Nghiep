@@ -53,7 +53,7 @@ function getTextStyle(scoreStr) {
     <!-- Header -->
     <div class="flex items-center justify-between gap-3 border-b border-card px-4 py-3.5">
       <div class="flex items-center gap-2.5">
-        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent-violet)_10%,transparent)] text-[var(--accent-violet)] shadow-sm">
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent-violet)_10%,transparent)] text-(--accent-violet) shadow-sm">
           <Award :size="18" class="animate-pulse" />
         </div>
         <div>
@@ -67,7 +67,7 @@ function getTextStyle(scoreStr) {
           </div>
         </div>
       </div>
-      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[color-mix(in_srgb,var(--accent-violet)_10%,transparent)] text-[var(--accent-violet)] border border-[color-mix(in_srgb,var(--accent-violet)_20%,transparent)]">
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[color-mix(in_srgb,var(--accent-violet)_10%,transparent)] text-(--accent-violet) border border-[color-mix(in_srgb,var(--accent-violet)_20%,transparent)]">
         Học kỳ mới
       </span>
     </div>
@@ -78,11 +78,11 @@ function getTextStyle(scoreStr) {
         v-for="grade in grades"
         :key="grade.id"
         to="/student/grades"
-        class="group flex items-center justify-between gap-4 p-3 rounded-xl border border-default hover:border-primary/30 bg-[var(--surface-card)] hover:bg-[color-mix(in_srgb,var(--sidebar-accent)_4%,var(--surface-card))] transition-all duration-300 shadow-sm hover:shadow-md"
+        class="group flex items-center justify-between gap-4 p-3 rounded-xl border border-default hover:border-primary/30 bg-(--surface-card) hover:bg-[color-mix(in_srgb,var(--sidebar-accent)_4%,var(--surface-card))] transition-all duration-300 shadow-sm hover:shadow-md"
       >
         <!-- Left: Icon & Info -->
         <div class="flex items-center gap-3 min-w-0">
-          <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--surface-input)] border border-default text-label group-hover:text-primary group-hover:border-primary/20 transition-all duration-300">
+          <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-(--surface-input) border border-default text-label group-hover:text-primary group-hover:border-primary/20 transition-all duration-300">
             <component :is="getIconComponent(grade.course)" class="h-4.5 w-4.5 transition-transform duration-300 group-hover:scale-110" />
           </div>
           
@@ -91,7 +91,7 @@ function getTextStyle(scoreStr) {
               {{ grade.course }}
             </h3>
             <div class="flex items-center gap-2 mt-1">
-              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--surface-input)] text-body border border-default">
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-(--surface-input) text-body border border-default">
                 {{ grade.type }}
               </span>
               <span v-if="grade.note" class="truncate text-[11px] text-placeholder italic">
@@ -102,7 +102,7 @@ function getTextStyle(scoreStr) {
         </div>
 
         <!-- Right: Progress Ring -->
-        <div class="relative flex items-center justify-center h-11 w-11 flex-shrink-0 bg-[var(--surface-input)] rounded-full p-0.5 border border-default shadow-inner">
+        <div class="relative flex items-center justify-center h-11 w-11 flex-shrink-0 bg-(--surface-input) rounded-full p-0.5 border border-default shadow-inner">
           <svg class="absolute inset-0 h-full w-full -rotate-90 transform" viewBox="0 0 36 36">
             <!-- Background circle -->
             <circle
@@ -111,7 +111,7 @@ function getTextStyle(scoreStr) {
               r="15.5"
               fill="none"
               stroke="currentColor"
-              class="text-[var(--border-default)] opacity-40"
+              class="text-(--border-default) opacity-40"
               stroke-width="2.5"
             />
             <!-- Progress circle -->
@@ -143,10 +143,10 @@ function getTextStyle(scoreStr) {
     </div>
 
     <!-- Footer -->
-    <div class="border-t border-card px-4 py-3 bg-[var(--surface-card)]">
+    <div class="border-t border-card px-4 py-3 bg-(--surface-card)">
       <router-link
         to="/student/grades"
-        class="flex items-center justify-center gap-2 rounded-xl border border-default bg-[var(--surface-input)] hover:bg-[var(--border-default)] px-4 py-2.5 text-xs font-bold text-heading transition-all duration-300 hover:gap-3"
+        class="flex items-center justify-center gap-2 rounded-xl border border-default bg-(--surface-input) hover:bg-(--border-default) px-4 py-2.5 text-xs font-bold text-heading transition-all duration-300 hover:gap-3"
       >
         <span>Xem toàn bộ bảng điểm chi tiết</span>
         <ArrowRight :size="13" class="text-link" />

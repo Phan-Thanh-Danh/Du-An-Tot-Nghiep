@@ -186,6 +186,18 @@ const router = createRouter({
           meta: { title: 'Hồ sơ cá nhân' },
         },
         {
+          path: 'rewards',
+          name: 'student-rewards',
+          component: () => import('../views/Student/RewardsView.vue'),
+          meta: { title: 'Khen thưởng' },
+        },
+        {
+          path: 'discipline',
+          name: 'student-discipline',
+          component: () => import('../views/Student/DisciplineView.vue'),
+          meta: { title: 'Kỷ luật' },
+        },
+        {
           path: 'notifications',
           name: 'student-notifications',
           component: () => import('../views/Student/NotificationsView.vue'),
@@ -316,7 +328,7 @@ const router = createRouter({
         { path: 'class-progress', name: 'teacher-class-progress', component: () => import('../views/GiangVien/ClassProgressView.vue') },
         { path: 'class-attendance', name: 'teacher-class-attendance', component: () => import('../views/GiangVien/ClassAttendanceView.vue') },
         { path: 'class-grades', name: 'teacher-class-grades', component: () => import('../views/GiangVien/ClassGradebookView.vue') },
-        { path: 'assignments', name: 'teacher-assignments', component: () => import('../views/GiangVien/AssignmentsListView.vue') },
+        { path: 'assignments', name: 'teacher-assignments', component: () => import('../views/GiangVien/AssignmentsListView.vue') , meta: { title: 'Phân công giảng viên' } },
         { path: 'exams', name: 'teacher-exams', component: () => import('../views/GiangVien/ExamsView.vue') },
         { path: 'exams/create', name: 'teacher-exams-create', component: () => import('../views/GiangVien/CreateExamView.vue') },
         { path: 'grading', name: 'teacher-grading', component: () => import('../views/GiangVien/GradingView.vue') },
@@ -327,10 +339,12 @@ const router = createRouter({
         { path: 'grading-input', name: 'teacher-grading-input', component: () => import('../views/GiangVien/ClassGradesView.vue') },
         { path: 'student-questions', name: 'teacher-student-questions', component: () => import('../views/GiangVien/StudentQuestionsView.vue') },
         { path: 'lesson-comments', name: 'teacher-lesson-comments', component: () => import('../views/GiangVien/LessonCommentsView.vue') },
-        { path: 'requests', name: 'teacher-requests', component: () => import('../views/GiangVien/PendingRequestsView.vue') },
-        { path: 'requests-history', name: 'teacher-requests-history', component: () => import('../views/GiangVien/RequestsHistoryView.vue') },
+        { path: 'requests', name: 'teacher-requests', component: () => import('../views/GiangVien/PendingRequestsView.vue') , meta: { title: 'Đơn cần xử lý' } },
+        { path: 'requests-history', name: 'teacher-requests-history', component: () => import('../views/GiangVien/RequestsHistoryView.vue') , meta: { title: 'Đơn đã xử lý' } },
         { path: 'profile', name: 'teacher-profile', component: () => import('../views/GiangVien/ProfileView.vue') },
-        { path: 'notifications', name: 'teacher-notifications', component: () => import('../views/Student/NotificationsView.vue'), meta: { title: 'Thông báo', subtitle: 'Trung tâm thông báo', section: 'Cá nhân' } },
+
+        {
+          path: 'notifications', name: 'teacher-notifications', component: () => import('../views/Student/NotificationsView.vue'), meta: { title: 'Thông báo', subtitle: 'Trung tâm thông báo', section: 'Cá nhân' } },
         { path: 'change-password', name: 'teacher-change-password', component: () => import('../views/GiangVien/ChangePasswordView.vue') },
       ],
     },
@@ -348,13 +362,20 @@ const router = createRouter({
           component: () => import('../views/GiaoVu/Dashboard.vue'),
           meta: { title: 'Tổng quan giáo vụ' },
         },
-        { path: 'schedule', name: 'staff-schedule', component: () => import('../views/GiaoVu/Schedule/ScheduleManagerView.vue') },
-        { path: 'assignments', name: 'staff-assignments', component: () => import('../views/GiaoVu/Schedule/TeacherAssignmentView.vue') },
-        { path: 'buildings', name: 'staff-buildings', component: () => import('../views/GiaoVu/Facilities/BuildingManagementView.vue') },
-        { path: 'floors', name: 'staff-floors', component: () => import('../views/GiaoVu/Facilities/FloorManagementView.vue') },
-        { path: 'rooms', name: 'staff-rooms', component: () => import('../views/GiaoVu/Schedule/RoomManagementView.vue') },
-        { path: 'conflicts', name: 'staff-conflicts', component: () => import('../views/GiaoVu/Schedule/ConflictCheckView.vue') },
-        { path: 'schedule/pending', name: 'staff-schedule-pending', component: () => import('../views/GiaoVu/Schedule/PendingSchedulesView.vue') },
+        { path: 'schedule', name: 'staff-schedule', component: () => import('../views/GiaoVu/Schedule/ScheduleManagerView.vue') , meta: { title: 'Quản lý thời khóa biểu' } },
+        { path: 'assignments', name: 'staff-assignments', component: () => import('../views/GiaoVu/Schedule/TeacherAssignmentView.vue') , meta: { title: 'Phân công giảng viên' } },
+        { path: 'buildings', name: 'staff-buildings', component: () => import('../views/GiaoVu/Facilities/BuildingManagementView.vue') , meta: { title: 'Quản lý tòa nhà' } },
+        { path: 'floors', name: 'staff-floors', component: () => import('../views/GiaoVu/Facilities/FloorManagementView.vue') , meta: { title: 'Quản lý lầu' } },
+        { path: 'rooms', name: 'staff-rooms', component: () => import('../views/GiaoVu/Schedule/RoomManagementView.vue') , meta: { title: 'Quản lý phòng học' } },
+        { path: 'conflicts', name: 'staff-conflicts', component: () => import('../views/GiaoVu/Schedule/ConflictCheckView.vue') , meta: { title: 'Kiểm tra xung đột' } },
+        { path: 'schedule/pending', name: 'staff-schedule-pending', component: () => import('../views/GiaoVu/Schedule/PendingSchedulesView.vue') , meta: { title: 'Lịch chờ duyệt' } },
+        { path: 'schedule/published', name: 'staff-schedule-published', component: () => import('../views/GiaoVu/Schedule/StaffPublishedSchedulesView.vue') , meta: { title: 'Lịch đã công bố' } },
+        
+        // Đơn từ (Requests)
+        { path: 'requests', name: 'staff-requests', component: () => import('../views/GiaoVu/Requests/PendingRequestsView.vue') , meta: { title: 'Đơn cần xử lý' } },
+        { path: 'requests-history', name: 'staff-requests-history', component: () => import('../views/GiaoVu/Requests/RequestHistoryView.vue') , meta: { title: 'Đơn đã xử lý' } },
+        { path: 'workflow', name: 'staff-workflow', component: () => import('../views/GiaoVu/Requests/WorkflowConfigView.vue') , meta: { title: 'Cấu hình quy trình' } },
+
         {
           path: 'notices/send',
           name: 'staff-notices-send',
@@ -416,7 +437,9 @@ const router = createRouter({
         { path: 'audit-logs', name: 'bgh-audit-logs', component: () => import('../views/BGH/AuditLogsView.vue'), meta: { title: 'Nhật ký kiểm toán', subtitle: 'Theo dõi lịch sử thay đổi trên hệ thống', section: 'Giám sát hệ thống' } },
         // Cá nhân
         { path: 'profile', name: 'bgh-profile', component: () => import('../views/BGH/ProfileView.vue'), meta: { title: 'Hồ sơ cá nhân', subtitle: 'Thông tin cá nhân và cài đặt tài khoản', section: 'Cá nhân' } },
-        { path: 'notifications', name: 'bgh-notifications', component: () => import('../views/Student/NotificationsView.vue'), meta: { title: 'Thông báo', subtitle: 'Trung tâm thông báo', section: 'Cá nhân' } },
+
+        {
+          path: 'notifications', name: 'bgh-notifications', component: () => import('../views/Student/NotificationsView.vue'), meta: { title: 'Thông báo', subtitle: 'Trung tâm thông báo', section: 'Cá nhân' } },
       ],
     },
 
