@@ -362,3 +362,5 @@ Implementation notes:
 
 ### Specialized Notifications (NT-SPECIAL)
 - **SpecializedNotificationService**: Handles specialized notification targeting (tuition, academic, urgent, maintenance, all_students, campus, class, major, admins, custom_students). Includes idempotency mechanism using `ThongBao.DoiTuongLienKet` and `LoaiSuKien`.
+
+- **DT-REPORT-PLUS**: Báo cáo thống kê nâng cao cho phân hệ Đơn từ. Hoàn tất.
