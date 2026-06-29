@@ -435,9 +435,17 @@ Ví dụ tạo mẫu bằng khen:
 }
 ```
 
+### Student Rewards - Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/student/rewards` | Student | Danh sách khen thưởng của chính học sinh đang đăng nhập, có phân trang và lọc (`maHocKy`, `loaiKhenThuong`, `trangThai`, `hasCertificate`, `keyword`). Chỉ hiển thị khen thưởng đã duyệt/cấp/có PDF. Các field nội bộ như `loiSinhPdf` bị ẩn. |
+| GET | `/api/student/rewards/{rewardId}` | Student | Chi tiết một khen thưởng của chính học sinh. Trả `404` nếu khen thưởng không tồn tại hoặc thuộc về học sinh khác (tránh data leakage). |
+| GET | `/api/student/rewards/{rewardId}/certificate/download` | Student | Tải PDF bằng khen của chính học sinh. Tương tự như admin, response trả về `application/pdf`, attachment, kèm `nosniff` và `no-store`. Không trả về `403` mà trả `404` nếu không tìm thấy file hoặc sai quyền sở hữu. Trả `409` nếu khen thưởng đã bị hủy. |
+
 ### Dự kiến/cần bổ sung
 
-- Công bố bằng khen, notification và luồng tải phía học sinh/sinh viên.
+- Công bố bằng khen, notification.
 - CRUD hồ sơ kỷ luật, phê duyệt/gỡ hiệu lực.
 
 ## Organizations APIs
