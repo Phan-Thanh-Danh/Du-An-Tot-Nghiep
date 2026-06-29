@@ -73,9 +73,9 @@ function cellItems(thu, caId) {
 
 // ── Card color by status ───────────────────────────────────────
 const cardColors = {
-  nhap: { bg: 'bg-slate-100 dark:bg-slate-700/60', border: 'border-slate-300 dark:border-slate-600', text: 'text-slate-700 dark:text-slate-200', dot: 'bg-slate-400' },
-  da_xuat_ban: { bg: 'bg-emerald-50 dark:bg-emerald-900/40', border: 'border-emerald-300 dark:border-emerald-700', text: 'text-emerald-800 dark:text-emerald-200', dot: 'bg-emerald-500' },
-  da_huy: { bg: 'bg-red-50 dark:bg-red-900/30', border: 'border-red-200 dark:border-red-800', text: 'text-red-700 dark:text-red-300', dot: 'bg-red-400' },
+  nhap: { bg: 'bg-(--surface-input)', border: 'border-(--border-default)', text: 'text-(--text-body)', dot: 'bg-slate-400', accent: 'border-l-slate-400' },
+  da_xuat_ban: { bg: 'bg-emerald-50/80 dark:bg-emerald-950/40', border: 'border-emerald-200 dark:border-emerald-800', text: 'text-emerald-800 dark:text-emerald-300', dot: 'bg-emerald-500', accent: 'border-l-emerald-500' },
+  da_huy: { bg: 'bg-red-50/80 dark:bg-red-950/30', border: 'border-red-200 dark:border-red-800', text: 'text-red-700 dark:text-red-400', dot: 'bg-red-400', accent: 'border-l-red-400' },
 }
 function getCardColor(status) {
   return cardColors[status] || cardColors.nhap
@@ -83,10 +83,10 @@ function getCardColor(status) {
 
 // ── Summary cards ───────────────────────────────────────────────
 const summaryCards = computed(() => [
-  { label: 'Bản nháp', value: rows.value.filter(r => r.trangThai === 'nhap').length, color: 'text-slate-600', bg: 'bg-slate-100 dark:bg-slate-800' },
-  { label: 'Đã xuất bản', value: rows.value.filter(r => r.trangThai === 'da_xuat_ban').length, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
+  { label: 'Bản nháp', value: rows.value.filter(r => r.trangThai === 'nhap').length, color: 'text-(--text-muted)', bg: 'bg-(--surface-input)' },
+  { label: 'Đã xuất bản', value: rows.value.filter(r => r.trangThai === 'da_xuat_ban').length, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800' },
   { label: 'Tổng lịch', value: rows.value.length, color: 'text-(--lg-primary)', bg: 'bg-(--surface-input)' },
-  { label: 'Xung đột', value: 1, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/30' },
+  { label: 'Xung đột', value: 1, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800' },
 ])
 
 // ── Drag & Drop ────────────────────────────────────────────────
