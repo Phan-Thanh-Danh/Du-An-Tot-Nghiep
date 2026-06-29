@@ -5,12 +5,13 @@ using Backend.Services.Applications;
 using Backend.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Backend.Constants;
 
 namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/admin/specialized-notifications")]
-[Authorize]
+[Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin}")]
 public class AdminSpecializedNotificationsController : ControllerBase
 {
     private readonly ISpecializedNotificationService _service;

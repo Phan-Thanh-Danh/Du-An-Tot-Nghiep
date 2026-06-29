@@ -5,12 +5,13 @@ using Backend.Services.Applications;
 using Backend.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Backend.Constants;
 
 namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/admin/notification-templates")]
-[Authorize]
+[Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin}")]
 public class AdminNotificationTemplatesController : ControllerBase
 {
     private readonly INotificationTemplateService _templateService;

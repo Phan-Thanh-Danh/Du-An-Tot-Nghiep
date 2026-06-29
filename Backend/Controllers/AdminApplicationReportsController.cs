@@ -9,7 +9,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/admin/applications/reports")]
-[Authorize]
+[Authorize(Policy = AuthPolicies.ApplicationQueueRead)]
 public class AdminApplicationReportsController : ControllerBase
 {
     private readonly IApplicationReportService _reportService;

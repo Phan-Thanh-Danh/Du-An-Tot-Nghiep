@@ -1118,3 +1118,14 @@ Known limitations:
 - `GET /api/admin/applications/reports/processing-time` (SuperAdmin, Admin, CampusAdmin, GiaoVu) - Lấy báo cáo thời gian xử lý
 - `GET /api/admin/applications/reports/by-assignee` (SuperAdmin, Admin, CampusAdmin, GiaoVu) - Lấy báo cáo theo người xử lý
 - `GET /api/admin/applications/reports/trends` (SuperAdmin, Admin, CampusAdmin, GiaoVu) - Lấy báo cáo xu hướng (theo ngày, tháng, học kỳ)
+
+## Notification Templates
+### Admin
+- `GET /api/admin/notification-templates` - Get list of templates
+- `GET /api/admin/notification-templates/{id}` - Get template details
+- `POST /api/admin/notification-templates` - Create new template
+- `PUT /api/admin/notification-templates/{id}` - Update template
+- `DELETE /api/admin/notification-templates/{id}` - Delete template
+- `POST /api/admin/notification-templates/{id}/activate` - Activate template
+- `POST /api/admin/notification-templates/{id}/deactivate` - Deactivate template
+- `POST /api/admin/notification-templates/preview` - Preview template content
