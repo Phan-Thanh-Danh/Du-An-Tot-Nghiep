@@ -3,8 +3,8 @@ import { ref } from 'vue'
 import NotificationComposeForm from './NotificationComposeForm.vue'
 import RecipientPreviewPanel from './RecipientPreviewPanel.vue'
 import { notificationsApi } from '@/services/notificationsApi'
-import GlassPanel from '@/components/ui/GlassPanel.vue'
-import GlassBadge from '@/components/ui/GlassBadge.vue'
+
+
 
 const previewData = ref(null)
 const loadingPreview = ref(false)
@@ -38,7 +38,7 @@ const handleSubmit = async (formPayload) => {
     errorMessage.value = 'Không thể gửi thông báo cho 0 người nhận'
     return
   }
-  
+
   if (!confirm('Bạn có chắc chắn muốn gửi thông báo này không? Thao tác này không thể hoàn tác hoàn toàn.')) {
     return
   }
@@ -76,14 +76,14 @@ const handleSubmit = async (formPayload) => {
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
       <div class="lg:col-span-2">
-        <NotificationComposeForm 
+        <NotificationComposeForm
           :loading="loadingSubmit"
           @preview="handlePreview"
           @submit="handleSubmit"
         />
       </div>
       <div class="lg:col-span-1 sticky top-6">
-        <RecipientPreviewPanel 
+        <RecipientPreviewPanel
           :previewData="previewData"
           :loading="loadingPreview"
         />

@@ -2,8 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { notificationsApi } from '@/services/notificationsApi'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
-import GlassButton from '@/components/ui/GlassButton.vue'
-import { FileText, Check } from 'lucide-vue-next'
+
+import { FileText } from 'lucide-vue-next'
 
 const emit = defineEmits(['select'])
 const templates = ref([])
@@ -31,8 +31,8 @@ onMounted(async () => {
       <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--lg-primary)]"></div>
     </div>
     <div v-else class="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-1">
-      <div 
-        v-for="tpl in templates" 
+      <div
+        v-for="tpl in templates"
         :key="tpl.maMauThongBao"
         class="p-2 border border-[var(--border-card)] rounded-lg hover:border-[var(--lg-primary)] cursor-pointer transition-colors bg-[var(--surface-card)]"
         @click="emit('select', tpl)"

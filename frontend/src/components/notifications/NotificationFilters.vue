@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassInput from '@/components/ui/GlassInput.vue'
 import { Search } from 'lucide-vue-next'
@@ -24,22 +24,22 @@ const updateSearch = (e) => {
 <template>
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
     <div class="flex gap-2 p-1 bg-[var(--surface-card)] rounded-lg border border-[var(--border-card)]">
-      <GlassButton 
-        size="sm" 
+      <GlassButton
+        size="sm"
         :variant="modelValue.filter === 'all' ? 'primary' : 'ghost'"
         @click="setFilter('all')"
       >
         Tất cả
       </GlassButton>
-      <GlassButton 
-        size="sm" 
+      <GlassButton
+        size="sm"
         :variant="modelValue.filter === 'unread' ? 'primary' : 'ghost'"
         @click="setFilter('unread')"
       >
         Chưa đọc
       </GlassButton>
-      <GlassButton 
-        size="sm" 
+      <GlassButton
+        size="sm"
         :variant="modelValue.filter === 'urgent' ? 'primary' : 'ghost'"
         @click="setFilter('urgent')"
       >
@@ -48,9 +48,9 @@ const updateSearch = (e) => {
     </div>
 
     <div class="relative w-full sm:w-64">
-      <GlassInput 
-        type="text" 
-        placeholder="Tìm kiếm thông báo..." 
+      <GlassInput
+        type="text"
+        placeholder="Tìm kiếm thông báo..."
         :value="modelValue.search"
         @input="updateSearch"
       />

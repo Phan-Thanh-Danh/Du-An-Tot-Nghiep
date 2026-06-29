@@ -5,6 +5,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import { BellRing, RefreshCw } from 'lucide-vue-next'
 
+// eslint-disable-next-line no-unused-vars
 const props = defineProps({
   notifications: {
     type: Array,
@@ -39,7 +40,7 @@ const emit = defineEmits(['select', 'mark-read', 'load-more', 'retry'])
     </div>
 
     <div v-else-if="notifications.length === 0" class="flex-1 flex items-center justify-center p-8">
-      <EmptyState 
+      <EmptyState
         :icon="BellRing"
         title="Không có thông báo"
         description="Bạn đã xem hết tất cả thông báo hiện có."
@@ -47,15 +48,15 @@ const emit = defineEmits(['select', 'mark-read', 'load-more', 'retry'])
     </div>
 
     <div v-else class="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
-      <NotificationCard 
-        v-for="notif in notifications" 
+      <NotificationCard
+        v-for="notif in notifications"
         :key="notif.id"
         :notification="notif"
         :isSelected="selectedId === notif.id"
         @click="emit('select', notif)"
         @mark-read="emit('mark-read', notif)"
       />
-      
+
       <div v-if="hasMore" class="pt-4 pb-2 flex justify-center">
         <GlassButton variant="subtle" size="sm" :loading="loading" @click="emit('load-more')">
           Tải thêm

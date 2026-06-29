@@ -20,11 +20,13 @@ defineProps({
           </tr>
         </thead>
         <tbody class="divide-y divide-[var(--border-card)]">
-          <tr v-if="loading" v-for="i in 3" :key="i">
-            <td class="px-4 py-3" colspan="4">
-              <div class="h-4 bg-[var(--surface-hover)] rounded animate-pulse w-full"></div>
-            </td>
-          </tr>
+          <template v-if="loading">
+            <tr v-for="i in 3" :key="i">
+              <td class="px-4 py-3" colspan="4">
+                <div class="h-4 bg-[var(--surface-hover)] rounded animate-pulse w-full"></div>
+              </td>
+            </tr>
+          </template>
           <tr v-else-if="recipients.length === 0">
             <td class="px-4 py-6 text-center text-[var(--text-muted)]" colspan="4">
               Không có dữ liệu

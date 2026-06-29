@@ -2,6 +2,9 @@ import dayjs from 'dayjs'
 import 'dayjs/locale/vi'
 
 dayjs.locale('vi')
+import relativeTime from 'dayjs/plugin/relativeTime'
+
+dayjs.extend(relativeTime)
 
 const EMPTY_DATE_LABEL = 'Chưa có dữ liệu'
 
@@ -67,3 +70,8 @@ export function isSameDay(left, right) {
 }
 
 export { parseDate }
+
+export function formatTimeAgo(value, fallback = EMPTY_DATE_LABEL) {
+  const parsed = parseDate(value)
+  return parsed ? parsed.fromNow() : fallback
+}
