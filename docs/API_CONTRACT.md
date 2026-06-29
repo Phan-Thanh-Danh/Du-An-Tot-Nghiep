@@ -1109,3 +1109,12 @@ Known limitations:
 - `POST /api/admin/specialized-notifications/academic`
 - `POST /api/admin/specialized-notifications/urgent`
 - `POST /api/admin/specialized-notifications/maintenance`
+
+### 8.8 Application Advanced Reports (DT-REPORT-PLUS)
+- `GET /api/admin/applications/reports/overview` (SuperAdmin, Admin, CampusAdmin, GiaoVu) - Lấy tổng quan đơn từ
+- `GET /api/admin/applications/reports/by-type` (SuperAdmin, Admin, CampusAdmin, GiaoVu) - Lấy báo cáo theo loại đơn
+- `GET /api/admin/applications/reports/pending` (SuperAdmin, Admin, CampusAdmin, GiaoVu) - Lấy báo cáo đơn đang chờ xử lý, có phân trang
+- `GET /api/admin/applications/reports/overdue` (SuperAdmin, Admin, CampusAdmin, GiaoVu) - Lấy báo cáo đơn quá hạn, có phân trang
+- `GET /api/admin/applications/reports/processing-time` (SuperAdmin, Admin, CampusAdmin, GiaoVu) - Lấy báo cáo thời gian xử lý
+- `GET /api/admin/applications/reports/by-assignee` (SuperAdmin, Admin, CampusAdmin, GiaoVu) - Lấy báo cáo theo người xử lý
+- `GET /api/admin/applications/reports/trends` (SuperAdmin, Admin, CampusAdmin, GiaoVu) - Lấy báo cáo xu hướng (theo ngày, tháng, học kỳ)

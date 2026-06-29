@@ -495,6 +495,376 @@ public class ApplicationReportService : IApplicationReportService
         public int ManualRequired { get; set; }
     }
 
+
+    public async Task<List<ApplicationByTypeReportDto>> GetByTypeAsync(
+        ApplicationReportQueryParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var actor = await _scopeService.GetCurrentActorAsync(cancellationToken);
+        var normalized = NormalizeQuery(parameters);
+        await _scopeService.EnsureCampusFilterAllowedAsync(actor, normalized.CampusId, cancellationToken);
+
+        var query = BuildFilteredQuery(normalized, actor);
+
+        var grouped = await query
+            .GroupBy(a => new { a.LoaiDon, a.MauDon!.TenMau })
+            .Select(g => new
+            {
+                Type = g.Key.LoaiDon,
+                TypeName = g.Key.TenMau,
+                Total = g.Count(),
+                Pending = g.Count(a => a.TrangThai == ApplicationStatuses.Submitted || a.TrangThai == ApplicationStatuses.InReview || a.TrangThai == ApplicationStatuses.NeedSupplement),
+                Processing = g.Count(a => a.TrangThai == ApplicationStatuses.Approved && a.TrangThaiXuLyNghiepVu == ApplicationProcessingStatuses.Pending),
+                Approved = g.Count(a => a.TrangThai == ApplicationStatuses.Approved),
+                Rejected = g.Count(a => a.TrangThai == ApplicationStatuses.Rejected),
+                Canceled = g.Count(a => a.TrangThai == ApplicationStatuses.Cancelled),
+                Overdue = g.Count(a => a.HanXuLyLuc.HasValue && a.HanXuLyLuc < DateTime.UtcNow && RunningSlaStatuses.Contains(a.TrangThai)),
+                TotalHours = g.Where(a => a.NgayDuyet.HasValue && a.NgayNop.HasValue).Sum(a => EF.Functions.DateDiffHour(a.NgayNop.Value, a.NgayDuyet.Value)),
+                CountWithHours = g.Count(a => a.NgayDuyet.HasValue && a.NgayNop.HasValue)
+            })
+            .ToListAsync(cancellationToken);
+
+        return grouped.Select(g => new ApplicationByTypeReportDto
+        {
+            ApplicationTypeId = g.Type,
+            ApplicationTypeName = g.TypeName ?? g.Type,
+            Total = g.Total,
+            Pending = g.Pending,
+            Processing = g.Processing,
+            Approved = g.Approved,
+            Rejected = g.Rejected,
+            Canceled = g.Canceled,
+            Overdue = g.Overdue,
+            AverageProcessingHours = g.CountWithHours > 0 ? (decimal)g.TotalHours / g.CountWithHours : null,
+            ApprovalRate = g.Total > 0 ? Math.Round((decimal)g.Approved / g.Total * 100, 2) : 0,
+            RejectionRate = g.Total > 0 ? Math.Round((decimal)g.Rejected / g.Total * 100, 2) : 0
+        }).OrderByDescending(x => x.Total).ToList();
+    }
+
+    public async Task<PendingApplicationReportDto> GetPendingAsync(
+        PendingApplicationReportQuery parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var actor = await _scopeService.GetCurrentActorAsync(cancellationToken);
+        var normalized = NormalizeQuery(parameters);
+        await _scopeService.EnsureCampusFilterAllowedAsync(actor, normalized.CampusId, cancellationToken);
+
+        var query = BuildFilteredQuery(normalized, actor);
+        
+        query = query.Where(a => 
+            a.TrangThai == ApplicationStatuses.Submitted || 
+            a.TrangThai == ApplicationStatuses.InReview || 
+            a.TrangThai == ApplicationStatuses.NeedSupplement ||
+            (a.TrangThai == ApplicationStatuses.Approved && a.TrangThaiXuLyNghiepVu == ApplicationProcessingStatuses.Pending) ||
+            (a.TrangThai == ApplicationStatuses.Approved && a.TrangThaiXuLyNghiepVu == ApplicationProcessingStatuses.Recorded));
+
+        var total = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderBy(a => a.NgayNop)
+            .Skip((parameters.PageIndex - 1) * parameters.PageSize)
+            .Take(parameters.PageSize)
+            .Select(a => new PendingApplicationReportItemDto
+            {
+                ApplicationId = a.MaDonTu,
+                ApplicationCode = a.MaDonTu.ToString(),
+                ApplicationType = a.LoaiDon,
+                StudentCode = a.HocSinh!.MaNguoiDung.ToString(),
+                StudentName = a.HocSinh.HoTen,
+                Status = a.TrangThai,
+                SubmittedAt = a.NgayNop,
+                ReceivedAt = a.NgayCapNhat,
+                AssignedToName = a.NguoiDuyetHienTaiNavigation != null ? a.NguoiDuyetHienTaiNavigation.HoTen : null,
+                CurrentStep = a.TrangThaiXuLyNghiepVu,
+                AgeHours = a.NgayNop.HasValue ? (decimal)EF.Functions.DateDiffHour(a.NgayNop.Value, DateTime.UtcNow) : 0,
+                CampusId = a.MaDonVi,
+                CampusName = a.DonVi != null ? a.DonVi.TenDonVi : null
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PendingApplicationReportDto
+        {
+            TotalCount = total,
+            PageIndex = parameters.PageIndex,
+            PageSize = parameters.PageSize,
+            Items = items
+        };
+    }
+
+    public async Task<OverdueApplicationReportDto> GetOverdueAsync(
+        OverdueApplicationReportQuery parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var actor = await _scopeService.GetCurrentActorAsync(cancellationToken);
+        var normalized = NormalizeQuery(parameters);
+        await _scopeService.EnsureCampusFilterAllowedAsync(actor, normalized.CampusId, cancellationToken);
+
+        var query = BuildFilteredQuery(normalized, actor);
+        
+        query = query.Where(a => RunningSlaStatuses.Contains(a.TrangThai));
+
+        var now = DateTime.UtcNow;
+        var defaultSlaHours = parameters.SlaHours ?? 48; // default to 48 hours if not set
+
+        // Overdue logic: if HanXuLyLuc has value, use it. Otherwise, use NgayNop + defaultSlaHours
+        var overdueQuery = query.Where(a => 
+            (a.HanXuLyLuc.HasValue && a.HanXuLyLuc < now) ||
+            (!a.HanXuLyLuc.HasValue && a.NgayNop.HasValue && EF.Functions.DateDiffHour(a.NgayNop.Value, now) > defaultSlaHours)
+        );
+
+        var total = await overdueQuery.CountAsync(cancellationToken);
+
+        var items = await overdueQuery
+            .OrderBy(a => a.HanXuLyLuc ?? a.NgayNop)
+            .Skip((parameters.PageIndex - 1) * parameters.PageSize)
+            .Take(parameters.PageSize)
+            .Select(a => new OverdueApplicationReportItemDto
+            {
+                ApplicationId = a.MaDonTu,
+                ApplicationCode = a.MaDonTu.ToString(),
+                ApplicationType = a.LoaiDon,
+                Status = a.TrangThai,
+                SubmittedAt = a.NgayNop,
+                AssignedToName = a.NguoiDuyetHienTaiNavigation != null ? a.NguoiDuyetHienTaiNavigation.HoTen : null,
+                AgeHours = a.NgayNop.HasValue ? (decimal)EF.Functions.DateDiffHour(a.NgayNop.Value, now) : 0,
+                OverdueHours = a.HanXuLyLuc.HasValue 
+                    ? (decimal)EF.Functions.DateDiffHour(a.HanXuLyLuc.Value, now)
+                    : (a.NgayNop.HasValue ? (decimal)EF.Functions.DateDiffHour(a.NgayNop.Value, now) - defaultSlaHours : 0)
+            })
+            .ToListAsync(cancellationToken);
+
+        return new OverdueApplicationReportDto
+        {
+            TotalOverdue = total,
+            DefaultSlaHours = defaultSlaHours,
+            PageIndex = parameters.PageIndex,
+            PageSize = parameters.PageSize,
+            Items = items
+        };
+    }
+
+    public async Task<ProcessingTimeReportDto> GetProcessingTimeAsync(
+        ApplicationReportQueryParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var actor = await _scopeService.GetCurrentActorAsync(cancellationToken);
+        var normalized = NormalizeQuery(parameters);
+        await _scopeService.EnsureCampusFilterAllowedAsync(actor, normalized.CampusId, cancellationToken);
+
+        var query = BuildFilteredQuery(normalized, actor);
+        
+        // Only completed (decided)
+        query = query.Where(a => a.NgayDuyet.HasValue && a.NgayNop.HasValue && 
+            (a.TrangThai == ApplicationStatuses.Approved || a.TrangThai == ApplicationStatuses.Rejected));
+
+        var stats = await query
+            .Select(a => EF.Functions.DateDiffHour(a.NgayNop!.Value, a.NgayDuyet!.Value))
+            .ToListAsync(cancellationToken);
+
+        var count = stats.Count;
+        decimal avg = count > 0 ? (decimal)stats.Average() : 0;
+        decimal min = count > 0 ? stats.Min() : 0;
+        decimal max = count > 0 ? stats.Max() : 0;
+        decimal? median = null;
+
+        if (count > 0)
+        {
+            var sorted = stats.OrderBy(x => x).ToList();
+            if (count % 2 == 0)
+            {
+                median = (sorted[(count / 2) - 1] + sorted[count / 2]) / 2.0m;
+            }
+            else
+            {
+                median = sorted[count / 2];
+            }
+        }
+
+        var byType = await query
+            .GroupBy(a => a.LoaiDon)
+            .Select(g => new ProcessingTimeGroupDto
+            {
+                GroupKey = g.Key,
+                GroupLabel = g.Key,
+                ApplicationCount = g.Count(),
+                AverageProcessingHours = (decimal)g.Average(a => EF.Functions.DateDiffHour(a.NgayNop!.Value, a.NgayDuyet!.Value))
+            })
+            .ToListAsync(cancellationToken);
+
+        var byAssignee = await query
+            .Where(a => a.NguoiXuLyCuoi != null)
+            .GroupBy(a => a.NguoiXuLyCuoiNavigation!.HoTen)
+            .Select(g => new ProcessingTimeGroupDto
+            {
+                GroupKey = g.Key,
+                GroupLabel = g.Key,
+                ApplicationCount = g.Count(),
+                AverageProcessingHours = (decimal)g.Average(a => EF.Functions.DateDiffHour(a.NgayNop!.Value, a.NgayDuyet!.Value))
+            })
+            .ToListAsync(cancellationToken);
+
+        var byCampus = await query
+            .GroupBy(a => new { a.MaDonVi, a.DonVi!.TenDonVi })
+            .Select(g => new ProcessingTimeGroupDto
+            {
+                GroupKey = g.Key.MaDonVi.ToString(),
+                GroupLabel = g.Key.TenDonVi,
+                ApplicationCount = g.Count(),
+                AverageProcessingHours = (decimal)g.Average(a => EF.Functions.DateDiffHour(a.NgayNop!.Value, a.NgayDuyet!.Value))
+            })
+            .ToListAsync(cancellationToken);
+
+        var byMonth = await query
+            .GroupBy(a => new { a.NgayDuyet!.Value.Year, a.NgayDuyet.Value.Month })
+            .Select(g => new ProcessingTimeGroupDto
+            {
+                GroupKey = $"{g.Key.Year}-{g.Key.Month:D2}",
+                GroupLabel = $"{g.Key.Year}-{g.Key.Month:D2}",
+                ApplicationCount = g.Count(),
+                AverageProcessingHours = (decimal)g.Average(a => EF.Functions.DateDiffHour(a.NgayNop!.Value, a.NgayDuyet!.Value))
+            })
+            .ToListAsync(cancellationToken);
+
+        return new ProcessingTimeReportDto
+        {
+            AverageProcessingHours = avg,
+            MedianProcessingHours = median,
+            MinProcessingHours = min,
+            MaxProcessingHours = max,
+            ByType = byType.OrderByDescending(x => x.ApplicationCount).ToList(),
+            ByAssignee = byAssignee.OrderByDescending(x => x.ApplicationCount).ToList(),
+            ByCampus = byCampus.OrderByDescending(x => x.ApplicationCount).ToList(),
+            ByMonth = byMonth.OrderBy(x => x.GroupKey).ToList()
+        };
+    }
+
+    public async Task<List<ApplicationByAssigneeReportDto>> GetByAssigneeAsync(
+        ApplicationReportQueryParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var actor = await _scopeService.GetCurrentActorAsync(cancellationToken);
+        var normalized = NormalizeQuery(parameters);
+        await _scopeService.EnsureCampusFilterAllowedAsync(actor, normalized.CampusId, cancellationToken);
+
+        var query = BuildFilteredQuery(normalized, actor);
+        
+        var grouped = await query
+            .Where(a => a.NguoiDuyetHienTai != null || a.NguoiXuLyCuoi != null)
+            .GroupBy(a => new { 
+                Id = a.NguoiDuyetHienTai ?? a.NguoiXuLyCuoi, 
+                Name = a.NguoiDuyetHienTaiNavigation != null ? a.NguoiDuyetHienTaiNavigation.HoTen : (a.NguoiXuLyCuoiNavigation != null ? a.NguoiXuLyCuoiNavigation.HoTen : "Unknown")
+            })
+            .Select(g => new
+            {
+                AssigneeId = g.Key.Id,
+                AssigneeName = g.Key.Name,
+                Total = g.Count(),
+                Pending = g.Count(a => a.TrangThai == ApplicationStatuses.Submitted || a.TrangThai == ApplicationStatuses.InReview || a.TrangThai == ApplicationStatuses.NeedSupplement),
+                Processing = g.Count(a => a.TrangThai == ApplicationStatuses.Approved && a.TrangThaiXuLyNghiepVu == ApplicationProcessingStatuses.Pending),
+                Completed = g.Count(a => a.TrangThai == ApplicationStatuses.Approved || a.TrangThai == ApplicationStatuses.Rejected),
+                Approved = g.Count(a => a.TrangThai == ApplicationStatuses.Approved),
+                Rejected = g.Count(a => a.TrangThai == ApplicationStatuses.Rejected),
+                Overdue = g.Count(a => a.HanXuLyLuc.HasValue && a.HanXuLyLuc < DateTime.UtcNow && RunningSlaStatuses.Contains(a.TrangThai)),
+                TotalHours = g.Where(a => a.NgayDuyet.HasValue && a.NgayNop.HasValue).Sum(a => EF.Functions.DateDiffHour(a.NgayNop.Value, a.NgayDuyet.Value)),
+                CountWithHours = g.Count(a => a.NgayDuyet.HasValue && a.NgayNop.HasValue)
+            })
+            .ToListAsync(cancellationToken);
+
+        return grouped.Select(g => new ApplicationByAssigneeReportDto
+        {
+            AssigneeId = g.AssigneeId,
+            AssigneeName = g.AssigneeName,
+            TotalAssigned = g.Total,
+            Pending = g.Pending,
+            Processing = g.Processing,
+            Completed = g.Completed,
+            Approved = g.Approved,
+            Rejected = g.Rejected,
+            Overdue = g.Overdue,
+            AverageProcessingHours = g.CountWithHours > 0 ? (decimal)g.TotalHours / g.CountWithHours : null
+        }).OrderByDescending(x => x.TotalAssigned).ToList();
+    }
+
+    public async Task<ApplicationTrendReportDto> GetTrendsAsync(
+        ApplicationTrendQuery parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var actor = await _scopeService.GetCurrentActorAsync(cancellationToken);
+        var normalized = NormalizeQuery(parameters);
+        await _scopeService.EnsureCampusFilterAllowedAsync(actor, normalized.CampusId, cancellationToken);
+
+        var query = BuildFilteredQuery(normalized, actor);
+
+        string metric = parameters.Metric?.ToLower() ?? "submitted";
+        string groupBy = parameters.GroupBy?.ToLower() ?? "month";
+
+        var validMetrics = new[] { "submitted", "approved", "rejected", "canceled", "overdue", "completed" };
+        if (!validMetrics.Contains(metric))
+        {
+            throw new ApiException(400, "Invalid metric.");
+        }
+
+        // Apply metric filters
+        if (metric == "submitted") query = query.Where(a => a.NgayNop.HasValue);
+        else if (metric == "approved") query = query.Where(a => a.TrangThai == ApplicationStatuses.Approved);
+        else if (metric == "rejected") query = query.Where(a => a.TrangThai == ApplicationStatuses.Rejected);
+        else if (metric == "canceled") query = query.Where(a => a.TrangThai == ApplicationStatuses.Cancelled);
+        else if (metric == "overdue") query = query.Where(a => RunningSlaStatuses.Contains(a.TrangThai) && a.HanXuLyLuc.HasValue && a.HanXuLyLuc < DateTime.UtcNow);
+        else if (metric == "completed") query = query.Where(a => a.TrangThai == ApplicationStatuses.Approved || a.TrangThai == ApplicationStatuses.Rejected);
+
+        // Fetch dates and group in memory to avoid complex SQL date grouping compatibility
+        var dates = await query.Select(a => new { a.NgayNop, a.NgayDuyet }).ToListAsync(cancellationToken);
+
+        var grouped = dates.Select(d => new
+        {
+            Date = (metric == "submitted" || metric == "overdue") ? d.NgayNop : (d.NgayDuyet ?? d.NgayNop)
+        }).Where(d => d.Date.HasValue).Select(d => d.Date!.Value);
+
+        List<ApplicationTrendPointDto> points = new();
+
+        if (groupBy == "day")
+        {
+            points = grouped.GroupBy(d => d.Date)
+                .Select(g => new ApplicationTrendPointDto
+                {
+                    Label = g.Key.ToString("yyyy-MM-dd"),
+                    From = g.Key,
+                    To = g.Key.AddDays(1).AddTicks(-1),
+                    Value = g.Count()
+                }).OrderBy(x => x.From).ToList();
+        }
+        else if (groupBy == "month")
+        {
+            points = grouped.GroupBy(d => new DateTime(d.Year, d.Month, 1))
+                .Select(g => new ApplicationTrendPointDto
+                {
+                    Label = g.Key.ToString("yyyy-MM"),
+                    From = g.Key,
+                    To = g.Key.AddMonths(1).AddTicks(-1),
+                    Value = g.Count()
+                }).OrderBy(x => x.From).ToList();
+        }
+        else if (groupBy == "semester")
+        {
+            // Group by quarters for simplicity as generic semester
+            points = grouped.GroupBy(d => new DateTime(d.Year, ((d.Month - 1) / 3) * 3 + 1, 1))
+                .Select(g => new ApplicationTrendPointDto
+                {
+                    Label = $"{g.Key.Year}-Q{((g.Key.Month - 1) / 3) + 1}",
+                    From = g.Key,
+                    To = g.Key.AddMonths(3).AddTicks(-1),
+                    Value = g.Count()
+                }).OrderBy(x => x.From).ToList();
+        }
+
+        return new ApplicationTrendReportDto
+        {
+            Metric = metric,
+            GroupBy = groupBy,
+            Points = points
+        };
+    }
+
     private sealed class NormalizedReportQuery
     {
         public int? CampusId { get; set; }
