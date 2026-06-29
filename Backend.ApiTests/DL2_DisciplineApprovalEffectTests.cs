@@ -6,6 +6,8 @@ using Backend.Constants;
 using Backend.Data;
 using Backend.DTOs.Common;
 using Backend.DTOs.RewardDiscipline;
+using Backend.Helpers;
+using Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
 
@@ -17,13 +19,12 @@ public class DL2_DisciplineApprovalEffectTests : ApiTestBase
 {
     private string GetDbConnectionString()
     {
-        return Environment.GetEnvironmentVariable("LMS_TEST_CONNECTION_STRING") 
-            ?? "Server=(localdb)\\mssqllocaldb;Database=LMS_Test;Trusted_Connection=True;MultipleActiveResultSets=true";
+        return GetSharedTestConnectionString();
     }
 
     private string GetTestPassword()
     {
-        return Environment.GetEnvironmentVariable("LMS_TEST_PASSWORD") ?? "T0P_S3cr3t_2024";
+        return GetSharedTestPassword();
     }
 
     private async Task<HttpClient> CreateClientAsync(string email)
@@ -38,7 +39,9 @@ public class DL2_DisciplineApprovalEffectTests : ApiTestBase
         loginResponse.EnsureSuccessStatusCode();
         var body = await loginResponse.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(body);
-        var token = json.RootElement.GetProperty("data").GetProperty("accessToken").GetString();
+        var token = json.RootElement.TryGetProperty("accessToken", out var accessToken)
+            ? accessToken.GetString()
+            : json.RootElement.GetProperty("data").GetProperty("accessToken").GetString();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         return client;
@@ -53,15 +56,30 @@ public class DL2_DisciplineApprovalEffectTests : ApiTestBase
         var campus = await db.DonVis.FirstOrDefaultAsync();
         var term = await db.HocKys.FirstOrDefaultAsync();
 
-        // Get an admin in this campus
-        var admin = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == AuthRoles.CampusAdmin && u.MaDonVi == campus!.MaDonVi);
-        if (admin == null) admin = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == AuthRoles.Admin);
-        
-        var superAdmin = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == AuthRoles.SuperAdmin);
-        if (superAdmin == null) superAdmin = admin; // fallback
+        var superAdminRole = AuthRoles.ToDatabaseCode(AuthRoles.SuperAdmin);
+        var studentRole = AuthRoles.ToDatabaseCode(AuthRoles.Student);
 
-        // Get a student in this campus
-        var student = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == "hoc_sinh" && u.MaDonVi == campus!.MaDonVi);
+        var adminSuffix = Guid.NewGuid().ToString("N");
+        var admin = new NguoiDung
+        {
+            MaDonVi = campus!.MaDonVi,
+            HoTen = $"DL2 SuperAdmin {adminSuffix}",
+            Email = $"dl2.superadmin.{adminSuffix}@lms.local",
+            VaiTroChinh = superAdminRole,
+            TrangThai = UserStatuses.DbActive,
+            MatKhauHash = PasswordHelper.HashPassword(GetTestPassword()),
+            NgayTao = DateTime.UtcNow
+        };
+        db.NguoiDungs.Add(admin);
+        await db.SaveChangesAsync();
+        
+        var superAdmin = admin;
+
+        Assert.That(campus, Is.Not.Null, "Thiếu đơn vị test cho DL2.");
+        Assert.That(term, Is.Not.Null, "Thiếu học kỳ test cho DL2.");
+        Assert.That(admin, Is.Not.Null, "Thiếu admin/campus admin test cho DL2.");
+        Assert.That(superAdmin, Is.Not.Null, "Thiếu super admin test cho DL2.");
+        var student = await CreateStudentAsync(db, campus!.MaDonVi);
 
         return (
             campus!.MaDonVi, 
@@ -70,6 +88,24 @@ public class DL2_DisciplineApprovalEffectTests : ApiTestBase
             student!.MaNguoiDung, student.Email, 
             term!.MaHocKy
         );
+    }
+
+    private async Task<NguoiDung> CreateStudentAsync(ApplicationDbContext db, int maDonVi)
+    {
+        var suffix = Guid.NewGuid().ToString("N");
+        var student = new NguoiDung
+        {
+            MaDonVi = maDonVi,
+            HoTen = $"DL2 Student {suffix}",
+            Email = $"dl2.student.{suffix}@lms.local",
+            VaiTroChinh = AuthRoles.ToDatabaseCode(AuthRoles.Student),
+            TrangThai = UserStatuses.DbActive,
+            MatKhauHash = PasswordHelper.HashPassword(GetTestPassword()),
+            NgayTao = DateTime.UtcNow
+        };
+        db.NguoiDungs.Add(student);
+        await db.SaveChangesAsync();
+        return student;
     }
 
     private async Task<int> CreateAndSubmitRecord(HttpClient client, int studentId, int termId)
@@ -85,8 +121,10 @@ public class DL2_DisciplineApprovalEffectTests : ApiTestBase
             HinhThucXuLy = RewardDisciplineConstants.DisciplineActions.Reminder
         };
         var res = await client.PostAsJsonAsync("/api/admin/discipline-records", req);
+        Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.Created), await DescribeResponseAsync(res));
         var data = await res.Content.ReadFromJsonAsync<DisciplineRecordResultDto>();
-        await client.PostAsync($"/api/admin/discipline-records/{data!.MaHoSoKyLuat}/submit", null);
+        var submitResponse = await client.PostAsync($"/api/admin/discipline-records/{data!.MaHoSoKyLuat}/submit", null);
+        Assert.That(submitResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK), await DescribeResponseAsync(submitResponse));
         return data.MaHoSoKyLuat;
     }
 

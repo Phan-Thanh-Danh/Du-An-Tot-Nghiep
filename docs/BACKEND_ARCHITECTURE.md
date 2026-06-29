@@ -68,6 +68,7 @@ Quy ước:
 - `IApplicationEvidenceObjectStore`: abstraction lưu file minh chứng; Local chỉ dùng Development/Testing, R2 dùng private object storage.
 - `ApplicationFormDataValidator`, `ApplicationReferenceValidator`, `ApplicationEvidenceValidator` và các `IApplicationSubmissionRule`: validate form động, entity liên quan, metadata minh chứng và rule theo loại đơn.
 - RD1 khen thưởng - kỷ luật có constants/schema endpoint và EF foundation (`DotKhenThuong`, `MauBangKhen`, mở rộng `KhenThuong`, `HoSoKyLuat`). RD2 bổ sung `IRewardCampaignService`/`RewardCampaignService` để quản lý CRUD metadata đợt Top 100 học kỳ, validate học kỳ/cơ sở/mẫu bằng khen/JSON tiêu chí, chống trùng đợt active và ghi audit create/update/cancel. RD3 bổ sung `IRewardEvaluationService` để xét danh sách ứng viên Top 100, chưa tạo `KhenThuong`. RD4 mở rộng service này cho SuperAdmin điều chỉnh ứng viên, thêm thủ công, sắp xếp, trình duyệt và duyệt chính thức; approve chạy transaction, tạo `KhenThuong`, đánh dấu ứng viên `da_duyet_kt` và ghi audit tối giản. RD5 bổ sung `ICertificateTemplateService` để CRUD/vô hiệu hóa/preview metadata mẫu bằng khen, validate JSON render bằng whitelist field, không nhận HTML/CSS tùy ý. RD6 bổ sung `ICertificateGenerationService` và `ICertificatePdfStorageService` để sinh/lưu/tải PDF bằng khen Top 100, cập nhật metadata PDF trên `KhenThuong`, batch continue-on-item-failure và audit generate/regenerate. RD7 bổ sung `IStudentRewardService` và `StudentRewardsController` để học sinh xem danh sách và tải bằng khen của chính mình, đảm bảo an toàn truy cập (trả `404` nếu không phải của mình) và ẩn các trường dữ liệu nội bộ. RD8 bổ sung `IRewardLifecycleService` quản lý vòng đời khen thưởng (hủy, khôi phục, đánh dấu đã cấp, tái sinh chứng chỉ), ghi nhận Audit Log đầy đủ. Công bố, notification và workflow kỷ luật vẫn tách task sau.
+- RD-DL-REPORT bổ sung `IRewardDisciplineReportService`/`RewardDisciplineReportService` và `AdminRewardDisciplineReportsController` để phục vụ dashboard backend cho khen thưởng/kỷ luật. Service re-query actor qua campus scope hiện có, lọc scope trước khi aggregate, dùng `AsNoTracking`, không expose mô tả vi phạm/minh chứng/ghi chú nội bộ/lý do khiếu nại chi tiết. Endpoint chỉ cho `SuperAdmin`, `Admin`, `CampusAdmin`; `CampusAdmin` bị giới hạn trong cơ sở và cơ sở con.
 
 Quy ước:
 - Service xử lý nghiệp vụ và gọi `ApplicationDbContext`.
@@ -337,3 +338,24 @@ dotnet build
 - `IRewardDisciplineNotificationService` serves as a facade to trigger system notifications using `INotificationService` without exposing core logic.
 - Idempotency guarantees are built into `RewardDisciplineNotificationService` by verifying `LoaiDoiTuongLienKet`, `MaDoiTuongLienKet`, and `LoaiSuKien` within `ThongBao`.
 - Notifications are seamlessly integrated into `RewardLifecycleService`, `CertificateGenerationService`, `DisciplineRecordService`, and `DisciplineAppealService`.
+
+## Reward and Discipline Reporting
+
+RD-DL-REPORT thêm các endpoint admin dưới `/api/admin/reward-discipline/reports`:
+
+- `overview`: tổng quan campaign, reward, certificate PDF, discipline record và appeal.
+- `rewards`: báo cáo reward theo trạng thái, loại, học kỳ, cơ sở và top rewarded students.
+- `discipline`: báo cáo hồ sơ kỷ luật theo trạng thái, mức độ, hình thức, học kỳ, cơ sở và sinh viên tái phạm.
+- `certificates`: báo cáo sinh PDF bằng khen, failure rate và lỗi gần đây đã sanitize.
+- `appeals`: báo cáo khiếu nại kỷ luật, SLA mặc định 72 giờ và thời gian xử lý trung bình.
+- `trends`: xu hướng theo ngày/tháng/học kỳ cho các metric whitelist.
+- `top-students`: chỉ báo nội bộ theo reward/discipline/balanced score.
+
+Implementation notes:
+
+- Controller chỉ bind query và trả `ApiResponseDto`.
+- Business logic nằm trong `RewardDisciplineReportService`.
+- Query dùng `AsNoTracking`, aggregate ở SQL khi có thể và không load full table trước khi lọc scope.
+- Scope dùng `IApplicationCampusScopeService`: SuperAdmin/Admin global, CampusAdmin campus + descendants.
+- Không tạo notification, không export Excel/PDF và không tạo snapshot table trong phase này.
+- Known limitations: chưa có lượt tải bằng khen nên `totalDownloadedByStudents = null`; chưa drill-down khoa/ngành/lớp vì schema reward/discipline hiện chưa lưu trực tiếp các chiều này.

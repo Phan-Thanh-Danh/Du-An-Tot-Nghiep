@@ -6,6 +6,8 @@ using Backend.Constants;
 using Backend.Data;
 using Backend.DTOs.Common;
 using Backend.DTOs.RewardDiscipline;
+using Backend.Helpers;
+using Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
 
@@ -17,13 +19,12 @@ public class DL1_DisciplineRecordCreationTests : ApiTestBase
 {
     private string GetDbConnectionString()
     {
-        return Environment.GetEnvironmentVariable("LMS_TEST_CONNECTION_STRING") 
-            ?? "Server=(localdb)\\mssqllocaldb;Database=LMS_Test;Trusted_Connection=True;MultipleActiveResultSets=true";
+        return GetSharedTestConnectionString();
     }
 
     private string GetTestPassword()
     {
-        return Environment.GetEnvironmentVariable("LMS_TEST_PASSWORD") ?? "T0P_S3cr3t_2024";
+        return GetSharedTestPassword();
     }
 
     private async Task<HttpClient> CreateClientAsync(string email)
@@ -38,7 +39,9 @@ public class DL1_DisciplineRecordCreationTests : ApiTestBase
         loginResponse.EnsureSuccessStatusCode();
         var body = await loginResponse.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(body);
-        var token = json.RootElement.GetProperty("data").GetProperty("accessToken").GetString();
+        var token = json.RootElement.TryGetProperty("accessToken", out var accessToken)
+            ? accessToken.GetString()
+            : json.RootElement.GetProperty("data").GetProperty("accessToken").GetString();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         return client;
@@ -53,18 +56,25 @@ public class DL1_DisciplineRecordCreationTests : ApiTestBase
         var campus = await db.DonVis.FirstOrDefaultAsync();
         var term = await db.HocKys.FirstOrDefaultAsync();
 
-        // Get an admin in this campus
-        var admin = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == AuthRoles.CampusAdmin && u.MaDonVi == campus!.MaDonVi);
-        if (admin == null) admin = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == AuthRoles.Admin);
-        
-        // Get a student in this campus
-        var student = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == "hoc_sinh" && u.MaDonVi == campus!.MaDonVi);
-        
-        // Get a student in another campus (or just create a fake one if only 1 campus exists, but usually tests have multiple)
-        var otherCampus = await db.DonVis.FirstOrDefaultAsync(d => d.MaDonVi != campus!.MaDonVi);
-        var otherStudent = otherCampus != null 
-            ? await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == "hoc_sinh" && u.MaDonVi == otherCampus.MaDonVi)
-            : student; // Fallback if only 1 campus
+        var campusAdminRole = AuthRoles.ToDatabaseCode(AuthRoles.CampusAdmin);
+
+        Assert.That(campus, Is.Not.Null, "Thiếu đơn vị test cho DL1.");
+        Assert.That(term, Is.Not.Null, "Thiếu học kỳ test cho DL1.");
+
+        var admin = await CreateUserAsync(db, campus!.MaDonVi, campusAdminRole, "dl1.campusadmin");
+        var student = await CreateStudentAsync(db, campus.MaDonVi, "dl1.student");
+
+        // Get a student in another campus (or just fall back if only 1 campus exists)
+        var otherCampus = await db.DonVis.FirstOrDefaultAsync(d => d.MaDonVi != campus.MaDonVi);
+        NguoiDung otherStudent;
+        if (otherCampus != null)
+        {
+            otherStudent = await CreateStudentAsync(db, otherCampus.MaDonVi, "dl1.otherstudent");
+        }
+        else
+        {
+            otherStudent = student;
+        }
 
         return (
             campus!.MaDonVi, 
@@ -73,6 +83,29 @@ public class DL1_DisciplineRecordCreationTests : ApiTestBase
             otherStudent!.MaNguoiDung, otherStudent.Email,
             term!.MaHocKy
         );
+    }
+
+    private async Task<NguoiDung> CreateStudentAsync(ApplicationDbContext db, int maDonVi, string prefix)
+    {
+        return await CreateUserAsync(db, maDonVi, AuthRoles.ToDatabaseCode(AuthRoles.Student), prefix);
+    }
+
+    private async Task<NguoiDung> CreateUserAsync(ApplicationDbContext db, int maDonVi, string role, string prefix)
+    {
+        var suffix = Guid.NewGuid().ToString("N");
+        var user = new NguoiDung
+        {
+            MaDonVi = maDonVi,
+            HoTen = $"{prefix} {suffix}",
+            Email = $"{prefix}.{suffix}@lms.local",
+            VaiTroChinh = role,
+            TrangThai = UserStatuses.DbActive,
+            MatKhauHash = PasswordHelper.HashPassword(GetTestPassword()),
+            NgayTao = DateTime.UtcNow
+        };
+        db.NguoiDungs.Add(user);
+        await db.SaveChangesAsync();
+        return user;
     }
 
     [Test]
@@ -130,7 +163,7 @@ public class DL1_DisciplineRecordCreationTests : ApiTestBase
             HinhThucXuLy = RewardDisciplineConstants.DisciplineActions.Reminder
         };
         var response = await client.PostAsJsonAsync("/api/admin/discipline-records", req);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden), await DescribeResponseAsync(response));
     }
 
     [Test]
@@ -216,7 +249,9 @@ public class DL1_DisciplineRecordCreationTests : ApiTestBase
             HinhThucXuLy = RewardDisciplineConstants.DisciplineActions.Reminder
         };
         var res = await client.PostAsJsonAsync("/api/admin/discipline-records", req);
+        Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.Created), await DescribeResponseAsync(res));
         var data = await res.Content.ReadFromJsonAsync<DisciplineRecordResultDto>();
+        Assert.That(data!.MaHoSoKyLuat, Is.GreaterThan(0));
         
         // Update
         var upd = new UpdateDisciplineRecordRequest
@@ -228,7 +263,7 @@ public class DL1_DisciplineRecordCreationTests : ApiTestBase
             HinhThucXuLy = RewardDisciplineConstants.DisciplineActions.Warning
         };
         var updRes = await client.PutAsJsonAsync($"/api/admin/discipline-records/{data!.MaHoSoKyLuat}", upd);
-        Assert.That(updRes.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(updRes.StatusCode, Is.EqualTo(HttpStatusCode.OK), await DescribeResponseAsync(updRes));
     }
 
     [Test]
@@ -247,10 +282,12 @@ public class DL1_DisciplineRecordCreationTests : ApiTestBase
             HinhThucXuLy = RewardDisciplineConstants.DisciplineActions.Reminder
         };
         var res = await client.PostAsJsonAsync("/api/admin/discipline-records", req);
+        Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.Created), await DescribeResponseAsync(res));
         var data = await res.Content.ReadFromJsonAsync<DisciplineRecordResultDto>();
+        Assert.That(data!.MaHoSoKyLuat, Is.GreaterThan(0));
 
         var subRes = await client.PostAsync($"/api/admin/discipline-records/{data!.MaHoSoKyLuat}/submit", null);
-        Assert.That(subRes.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(subRes.StatusCode, Is.EqualTo(HttpStatusCode.OK), await DescribeResponseAsync(subRes));
         
         var subData = await subRes.Content.ReadFromJsonAsync<DisciplineRecordResultDto>();
         Assert.That(subData!.TrangThai, Is.EqualTo(RewardDisciplineConstants.DisciplineStatuses.PendingApproval));
@@ -272,7 +309,9 @@ public class DL1_DisciplineRecordCreationTests : ApiTestBase
             HinhThucXuLy = RewardDisciplineConstants.DisciplineActions.Reminder
         };
         var res = await client.PostAsJsonAsync("/api/admin/discipline-records", req);
+        Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.Created), await DescribeResponseAsync(res));
         var data = await res.Content.ReadFromJsonAsync<DisciplineRecordResultDto>();
+        Assert.That(data!.MaHoSoKyLuat, Is.GreaterThan(0));
 
         // Missing reason
         var cancelReq = new CancelDisciplineRecordRequest { Reason = "" };
@@ -282,7 +321,7 @@ public class DL1_DisciplineRecordCreationTests : ApiTestBase
         // Valid cancel
         cancelReq.Reason = "Invalid record, cancelling it";
         var cancelRes = await client.PostAsJsonAsync($"/api/admin/discipline-records/{data.MaHoSoKyLuat}/cancel", cancelReq);
-        Assert.That(cancelRes.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(cancelRes.StatusCode, Is.EqualTo(HttpStatusCode.OK), await DescribeResponseAsync(cancelRes));
 
         var cancelData = await cancelRes.Content.ReadFromJsonAsync<DisciplineRecordResultDto>();
         Assert.That(cancelData!.TrangThai, Is.EqualTo(RewardDisciplineConstants.DisciplineStatuses.Cancelled));

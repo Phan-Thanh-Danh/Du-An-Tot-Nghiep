@@ -19,20 +19,39 @@ public class RD8_RewardLifecycleTests : ApiTestBase
     private async Task<(int CampaignId, int RewardId, int StudentId)> SeedDataAsync()
     {
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        optionsBuilder.UseSqlServer(Environment.GetEnvironmentVariable("LMS_TEST_CONNECTION_STRING") ?? "Server=(localdb)\\mssqllocaldb;Database=LMS_Test;Trusted_Connection=True;MultipleActiveResultSets=true");
+        optionsBuilder.UseSqlServer(GetSharedTestConnectionString());
         await using var db = new ApplicationDbContext(optionsBuilder.Options);
 
-        var campus = await db.DonVis.FirstOrDefaultAsync();
-        var student = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == AuthRoles.Student);
-        var term = await db.HocKys.FirstOrDefaultAsync();
+        var studentRole = AuthRoles.ToDatabaseCode(AuthRoles.Student);
+        var adminRole = AuthRoles.ToDatabaseCode(AuthRoles.Admin);
+        var superAdminRole = AuthRoles.ToDatabaseCode(AuthRoles.SuperAdmin);
+
+        var student = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == studentRole);
+        var campus = await db.DonVis.FirstOrDefaultAsync(d => d.MaDonVi == student!.MaDonVi);
+        var admin = await db.NguoiDungs.FirstOrDefaultAsync(u => u.VaiTroChinh == adminRole || u.VaiTroChinh == superAdminRole);
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var term = new HocKy
+        {
+            MaDonVi = campus!.MaDonVi,
+            MaCodeHocKy = $"RD8{suffix}",
+            TenHocKy = $"RD8 học kỳ {suffix}",
+            NamHoc = $"RD8-{suffix}",
+            ThuTuTrongNam = 1,
+            NgayBatDau = DateOnly.FromDateTime(DateTime.UtcNow.Date),
+            NgayKetThuc = DateOnly.FromDateTime(DateTime.UtcNow.Date.AddMonths(3)),
+            DaKhoa = false
+        };
+        db.HocKys.Add(term);
+        await db.SaveChangesAsync();
 
         var campaign = new DotKhenThuong
         {
-            MaDonVi = campus!.MaDonVi,
+            MaDonVi = campus.MaDonVi,
             TenDot = "Đợt test RD8",
             LoaiDot = RewardDisciplineConstants.RewardTypes.Top100Semester,
-            MaHocKy = term!.MaHocKy,
-            TrangThai = RewardDisciplineConstants.RewardCampaignStatuses.Approved
+            MaHocKy = term.MaHocKy,
+            TrangThai = RewardDisciplineConstants.RewardCampaignStatuses.Approved,
+            NguoiTao = admin!.MaNguoiDung
         };
         db.DotKhenThuongs.Add(campaign);
         await db.SaveChangesAsync();
@@ -59,7 +78,7 @@ public class RD8_RewardLifecycleTests : ApiTestBase
     private async Task<HttpClient> CreateStudentClientAsync(int studentUserId)
     {
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        optionsBuilder.UseSqlServer(Environment.GetEnvironmentVariable("LMS_TEST_CONNECTION_STRING") ?? "Server=(localdb)\\mssqllocaldb;Database=LMS_Test;Trusted_Connection=True;MultipleActiveResultSets=true");
+        optionsBuilder.UseSqlServer(GetSharedTestConnectionString());
         await using var db = new ApplicationDbContext(optionsBuilder.Options);
         
         var student = await db.NguoiDungs.FirstOrDefaultAsync(u => u.MaNguoiDung == studentUserId);
@@ -69,13 +88,15 @@ public class RD8_RewardLifecycleTests : ApiTestBase
         var loginResponse = await client.PostAsJsonAsync("api/auth/login", new
         {
             email = student!.Email,
-            password = Environment.GetEnvironmentVariable("LMS_TEST_PASSWORD") ?? "T0P_S3cr3t_2024"
+            password = GetSharedTestPassword()
         });
 
         loginResponse.EnsureSuccessStatusCode();
         var body = await loginResponse.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(body);
-        var token = json.RootElement.GetProperty("data").GetProperty("accessToken").GetString();
+        var token = json.RootElement.TryGetProperty("accessToken", out var accessToken)
+            ? accessToken.GetString()
+            : json.RootElement.GetProperty("data").GetProperty("accessToken").GetString();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         return client;
@@ -90,9 +111,9 @@ public class RD8_RewardLifecycleTests : ApiTestBase
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         
         var body = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<ApiResponseDto<PagedResultDto<AdminRewardListItemDto>>>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        var result = JsonSerializer.Deserialize<PagedResultDto<AdminRewardListItemDto>>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Data, Is.Not.Null);
+        Assert.That(result!.Items, Is.Not.Null);
     }
 
     [Test]
@@ -104,10 +125,9 @@ public class RD8_RewardLifecycleTests : ApiTestBase
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         
         var body = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<ApiResponseDto<AdminRewardDetailDto>>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        var result = JsonSerializer.Deserialize<AdminRewardDetailDto>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Data, Is.Not.Null);
-        Assert.That(result.Data!.MaKhenThuong, Is.EqualTo(seed.RewardId));
+        Assert.That(result!.MaKhenThuong, Is.EqualTo(seed.RewardId));
     }
 
     [Test]
@@ -121,9 +141,9 @@ public class RD8_RewardLifecycleTests : ApiTestBase
 
         var detailRes = await Client.GetAsync($"/api/admin/rewards/{seed.RewardId}");
         var body = await detailRes.Content.ReadAsStringAsync();
-        var detail = JsonSerializer.Deserialize<ApiResponseDto<AdminRewardDetailDto>>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        Assert.That(detail!.Data!.DaHuy, Is.True);
-        Assert.That(detail.Data.LyDoHuy, Is.EqualTo("Lý do hủy hợp lệ test"));
+        var detail = JsonSerializer.Deserialize<AdminRewardDetailDto>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.That(detail!.DaHuy, Is.True);
+        Assert.That(detail.LyDoHuy, Is.EqualTo("Lý do hủy hợp lệ test"));
     }
 
     [Test]
@@ -139,9 +159,9 @@ public class RD8_RewardLifecycleTests : ApiTestBase
 
         var detailRes = await Client.GetAsync($"/api/admin/rewards/{seed.RewardId}");
         var body = await detailRes.Content.ReadAsStringAsync();
-        var detail = JsonSerializer.Deserialize<ApiResponseDto<AdminRewardDetailDto>>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        Assert.That(detail!.Data!.DaHuy, Is.False);
-        Assert.That(detail.Data.LyDoHuy, Is.Null);
+        var detail = JsonSerializer.Deserialize<AdminRewardDetailDto>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.That(detail!.DaHuy, Is.False);
+        Assert.That(detail.LyDoHuy, Is.Null);
     }
 
     [Test]
@@ -155,8 +175,8 @@ public class RD8_RewardLifecycleTests : ApiTestBase
 
         var detailRes = await Client.GetAsync($"/api/admin/rewards/{seed.RewardId}");
         var body = await detailRes.Content.ReadAsStringAsync();
-        var detail = JsonSerializer.Deserialize<ApiResponseDto<AdminRewardDetailDto>>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        Assert.That(detail!.Data!.TrangThai, Is.EqualTo(RewardDisciplineConstants.RewardStatuses.Issued));
+        var detail = JsonSerializer.Deserialize<AdminRewardDetailDto>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.That(detail!.TrangThai, Is.EqualTo(RewardDisciplineConstants.RewardStatuses.Issued));
     }
 
     [Test]

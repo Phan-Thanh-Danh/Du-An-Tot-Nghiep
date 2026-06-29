@@ -47,7 +47,8 @@ public class DisciplineAppealService : IDisciplineAppealService
 
     private int GetUserCampusId(ClaimsPrincipal user)
     {
-        var campusIdClaim = user.FindFirst("MaDonVi")?.Value;
+        var campusIdClaim = user.FindFirst(CustomClaimTypes.CampusId)?.Value
+            ?? user.FindFirst("MaDonVi")?.Value;
         if (int.TryParse(campusIdClaim, out int campusId))
             return campusId;
         throw new ApiException(StatusCodes.Status403Forbidden, "Không xác định được cơ sở của người dùng.");
@@ -153,8 +154,8 @@ public class DisciplineAppealService : IDisciplineAppealService
         if (!string.IsNullOrEmpty(parameters.Keyword))
         {
             query = query.Where(k => 
-                k.HocSinh.HoTen.Contains(parameters.Keyword) ||
-                k.HocSinh.Email.Contains(parameters.Keyword) ||
+                (k.HocSinh != null && k.HocSinh.HoTen.Contains(parameters.Keyword)) ||
+                (k.HocSinh != null && k.HocSinh.Email.Contains(parameters.Keyword)) ||
                 k.LyDoKhieuNai.Contains(parameters.Keyword));
         }
 
@@ -169,8 +170,8 @@ public class DisciplineAppealService : IDisciplineAppealService
                 MaKhieuNaiKyLuat = k.MaKhieuNaiKyLuat,
                 MaHoSoKyLuat = k.MaHoSoKyLuat,
                 MaHocSinh = k.MaHocSinh,
-                TenHocSinh = k.HocSinh.HoTen,
-                Mssv = k.HocSinh.Email,
+                TenHocSinh = k.HocSinh != null ? k.HocSinh.HoTen : string.Empty,
+                Mssv = k.HocSinh != null ? k.HocSinh.Email : string.Empty,
                 TrangThai = k.TrangThai,
                 NgayTao = k.NgayTao,
                 NgayXuLy = k.NgayXuLy,
@@ -215,8 +216,8 @@ public class DisciplineAppealService : IDisciplineAppealService
             MaKhieuNaiKyLuat = k.MaKhieuNaiKyLuat,
             MaHoSoKyLuat = k.MaHoSoKyLuat,
             MaHocSinh = k.MaHocSinh,
-            TenHocSinh = k.HocSinh.HoTen,
-            Mssv = k.HocSinh.Email,
+            TenHocSinh = k.HocSinh != null ? k.HocSinh.HoTen : string.Empty,
+            Mssv = k.HocSinh != null ? k.HocSinh.Email : string.Empty,
             TrangThai = k.TrangThai,
             NgayTao = k.NgayTao,
             NgayXuLy = k.NgayXuLy,

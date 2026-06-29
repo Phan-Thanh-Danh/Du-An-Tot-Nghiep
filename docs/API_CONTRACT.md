@@ -1057,3 +1057,46 @@ Xem chi tiết một khiếu nại của chính học sinh.
 }
 ```
 - **Response**: `200 OK`
+
+## Reward and Discipline Reports
+
+### Đã có
+
+Base route: `/api/admin/reward-discipline/reports`
+
+Quyền:
+
+- `SuperAdmin`, `Admin`: xem toàn hệ thống.
+- `CampusAdmin`: chỉ xem dữ liệu thuộc cơ sở hiện tại và cơ sở con theo campus scope.
+- Role khác, gồm `Student`, không được gọi các endpoint báo cáo admin.
+
+Common query:
+
+- `maDonVi` optional; nếu ngoài scope trả `403`.
+- `maHocKy` optional.
+- `fromDate`, `toDate` optional; `fromDate > toDate` trả `400`.
+- `groupBy` optional tùy endpoint: `day`, `month`, `semester`, `campus`.
+- `pageIndex`, `pageSize` nhận vào cho contract dashboard; service normalize `pageSize` tối đa 100 khi dùng.
+
+Sensitive data policy:
+
+- Aggregate report không trả `MoTa`, `ChungTuJson`, `GhiChuNoiBo`, lý do khiếu nại chi tiết, storage key, file hash hoặc stack trace.
+- Recent failed certificate chỉ trả lỗi đã cắt ngắn/an toàn từ metadata PDF, không trả raw exception/stack trace.
+- `top-students` chỉ trả chỉ báo tổng hợp; `balanced score` là chỉ báo nội bộ, không dùng làm quyết định tự động.
+
+| Method | Endpoint | Query chính | Mô tả |
+|---|---|---|---|
+| GET | `/api/admin/reward-discipline/reports/overview` | common query | Tổng quan khen thưởng/kỷ luật: campaign, rewards, PDF, discipline records, appeals, breakdown theo trạng thái và latest events an toàn. |
+| GET | `/api/admin/reward-discipline/reports/rewards` | common query + `loaiDot`, `loaiKhenThuong`, `trangThai` | Báo cáo khen thưởng: campaign status, ứng viên, approved/issued/cancelled/restored rewards, breakdown theo loại/học kỳ/cơ sở/trạng thái và top rewarded students. |
+| GET | `/api/admin/reward-discipline/reports/discipline` | common query + `mucDoKyLuat`, `hinhThucXuLy`, `trangThai` | Báo cáo kỷ luật: active/approved/rejected/expired/removed/cancelled, breakdown theo mức độ/hình thức/trạng thái/học kỳ/cơ sở và repeat discipline students. |
+| GET | `/api/admin/reward-discipline/reports/certificates` | common query + `maDotKhenThuong`, `maMauBangKhen`, `trangThai` | Báo cáo sinh bằng khen/PDF: eligible, generated, failed, failure rate, breakdown theo template/campaign/status và recent failures an toàn. |
+| GET | `/api/admin/reward-discipline/reports/appeals` | common query + `trangThai` | Báo cáo khiếu nại kỷ luật: pending/accepted/rejected, SLA mặc định 72 giờ, average resolution time và breakdown theo trạng thái/mức độ/học kỳ/cơ sở. |
+| GET | `/api/admin/reward-discipline/reports/trends` | `metric`, `groupBy`, common query | Xu hướng theo `day`, `month`, `semester`. Metric: `rewards`, `issued_rewards`, `certificates_generated`, `discipline_records`, `active_discipline`, `discipline_appeals`. Với `groupBy=day`, date range tối đa 370 ngày nếu truyền đủ hai mốc. |
+| GET | `/api/admin/reward-discipline/reports/top-students` | `mode=reward/discipline/balanced`, `limit`, `maDonVi`, `maHocKy` | Sinh viên nổi bật/cần lưu ý trong scope; `limit` mặc định 10, tối đa 50. |
+
+Known limitations:
+
+- Chưa có export Excel/PDF báo cáo.
+- Chưa có frontend dashboard/chart.
+- `totalDownloadedByStudents` trong certificate report hiện trả `null` vì schema chưa lưu lượt tải bằng khen.
+- Chưa group theo khoa/ngành/lớp vì dữ liệu reward/discipline hiện lưu trực tiếp theo học sinh/cơ sở/học kỳ; cần thiết kế riêng nếu muốn drill-down sâu hơn.
