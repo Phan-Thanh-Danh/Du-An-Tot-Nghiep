@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import {
   BookOpen,
   CheckCircle2,
@@ -11,32 +11,61 @@ import {
   PlayCircle,
   Search,
   Users,
+  AlertCircle,
+  Loader2
 } from 'lucide-vue-next'
 import LmsBadge from '@/components/LmsBadge.vue'
 
 import { studentDashboardMock } from '@/data/studentData.mock.js'
+import { studentApi } from '@/services/studentApi'
+
+const rawCourses = ref([])
+const loading = ref(true)
+const error = ref(null)
+
+onMounted(async () => {
+  try {
+    loading.value = true
+    const res = await studentApi.getCourses()
+    const isSuccess = res.success === true || res.Success === true
+    if (isSuccess) {
+      rawCourses.value = res.data || res.Data || []
+    } else {
+      error.value = res.message || res.Message || 'Lỗi khi tải danh sách khóa học'
+    }
+  } catch (err) {
+    console.error('Failed to load courses', err)
+    error.value = 'Lỗi kết nối đến máy chủ.'
+    // Fallback to mock
+    rawCourses.value = studentDashboardMock.courses || []
+  } finally {
+    loading.value = false
+  }
+})
 
 const courses = computed(() => {
-  if (!studentDashboardMock.courses) return []
-  return studentDashboardMock.courses.map((course) => {
+  if (!rawCourses.value) return []
+  return rawCourses.value.map((course) => {
     let status = 'learning'
-    const progress = course.progress || 0
-    if (progress === 100 || course.status === 'Hoàn thành' || course.status === 'completed') {
+    const progress = course.progress || course.Progress || 0
+    const courseStatus = course.status || course.Status || ''
+    
+    if (progress === 100 || courseStatus === 'Hoàn thành' || courseStatus === 'completed') {
       status = 'completed'
-    } else if (progress === 0 || course.status === 'Chưa bắt đầu' || course.status === 'Sắp tới' || course.status === 'upcoming') {
+    } else if (progress === 0 || courseStatus === 'Chưa bắt đầu' || courseStatus === 'Sắp tới' || courseStatus === 'upcoming') {
       status = 'upcoming'
     }
 
     return {
-      id: course.code || course.id.toUpperCase(),
-      name: course.name,
-      instructor: course.lecturer || 'Giảng viên phụ trách',
-      credits: course.credits || 3,
+      id: course.code || course.Code || (course.id || course.Id || '').toUpperCase(),
+      name: course.name || course.Name,
+      instructor: course.lecturer || course.Lecturer || 'Giảng viên phụ trách',
+      credits: course.credits || course.Credits || 3,
       progress: progress,
-      totalSessions: course.total || 15,
-      completedSessions: course.completed || 0,
+      totalSessions: course.total || course.Total || 15,
+      completedSessions: course.completed || course.Completed || 0,
       status: status,
-      lastAccessed: course.status || 'Chưa bắt đầu',
+      lastAccessed: courseStatus || 'Chưa bắt đầu',
     }
   })
 })
@@ -101,6 +130,18 @@ const courseSummary = computed(() => [
 
 <template>
   <div class="courses-page">
+    <div v-if="loading" class="flex flex-col items-center justify-center py-20">
+      <Loader2 class="h-10 w-10 animate-spin text-blue-500 mb-4" />
+      <p class="text-slate-500">Đang tải dữ liệu khóa học...</p>
+    </div>
+
+    <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">
+      <AlertCircle class="h-12 w-12 text-red-500 mb-4" />
+      <h3 class="text-lg font-semibold text-slate-800">Không thể tải dữ liệu</h3>
+      <p class="text-slate-500 max-w-md">{{ error }}</p>
+    </div>
+
+    <template v-else>
     <section class="courses-header">
       <div class="title-block">
         <span class="eyebrow">
@@ -278,6 +319,7 @@ const courseSummary = computed(() => [
       <h2>Không tìm thấy khóa học</h2>
       <p>Thử đổi từ khóa hoặc bộ lọc trạng thái.</p>
     </section>
+    </template>
   </div>
 </template>
 
