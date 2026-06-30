@@ -11,7 +11,8 @@ import {
   LockKeyhole,
   RefreshCw,
   ArrowRight,
-  MessageCircleQuestion
+  MessageCircleQuestion,
+  BookOpenCheck
 } from 'lucide-vue-next'
 import { AUTH_PORTALS } from '@/data/authPortals'
 import LearningOrbit from '@/components/auth/LearningOrbit.vue'
@@ -77,6 +78,7 @@ const staffPortals = computed(() =>
 function getStaffIcon(slug) {
   if (slug === 'staff') return Briefcase
   if (slug === 'bgh') return Award
+  if (slug === 'content-council') return BookOpenCheck
   return Settings
 }
 </script>

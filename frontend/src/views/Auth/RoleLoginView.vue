@@ -62,7 +62,7 @@ function getRoleLabel(role) {
     Principal: 'Ban giám hiệu',
     Parent: 'Phụ huynh',
     SuperAdmin: 'Quản trị viên',
-    ContentBoard: 'Hội đồng nội dung',
+    HoiDongQuanLyNoiDung: 'Hội đồng nội dung',
   }
   return map[role] || role
 }

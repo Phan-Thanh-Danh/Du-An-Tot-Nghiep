@@ -119,9 +119,9 @@ export const AUTH_PORTALS = Object.freeze({
     enabled: true,
     demoUsername: 'bgh',
   },
-  'content-board': {
-    slug: 'content-board',
-    backendRole: 'ContentBoard',
+  'content-council': {
+    slug: 'content-council',
+    backendRole: 'HoiDongQuanLyNoiDung',
     label: 'Hội đồng nội dung',
     shortLabel: 'HĐND',
     eyebrow: 'Quản trị học thuật',
@@ -133,9 +133,9 @@ export const AUTH_PORTALS = Object.freeze({
     features: ['Học liệu', 'Ngân hàng câu hỏi', 'Duyệt nội dung'],
     audience: 'Dành cho hội đồng nội dung',
     group: 'staff',
-    homeRoute: '/content-board/dashboard',
-    enabled: false,
-    demoUsername: undefined,
+    homeRoute: '/content-council/subjects',
+    enabled: true,
+    demoUsername: 'content_council',
   },
   'super-admin': {
     slug: 'super-admin',

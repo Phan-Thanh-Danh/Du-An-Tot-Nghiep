@@ -4,7 +4,7 @@ export const ROLE_HOME_ROUTES = Object.freeze({
   AcademicStaff: '/staff/dashboard',
   Principal: '/bgh/dashboard',
   Parent: '/parent/dashboard',
-  ContentBoard: '/content-board/dashboard',
+  HoiDongQuanLyNoiDung: '/content-council/subjects',
   SuperAdmin: '/super-admin/dashboard',
 })
 
