@@ -69,7 +69,10 @@ onBeforeUnmount(() => {
 
 const studentPortal = computed(() => AUTH_PORTALS['student'])
 const teacherPortal = computed(() => AUTH_PORTALS['teacher'])
-const parentPortal = computed(() => AUTH_PORTALS['parent'])
+const parentPortal = computed(() => {
+  const portal = AUTH_PORTALS['parent']
+  return portal?.enabled ? portal : null
+})
 
 const staffPortals = computed(() =>
   Object.values(AUTH_PORTALS).filter((p) => p.group === 'staff' && p.enabled),
@@ -265,6 +268,7 @@ function getStaffIcon(slug) {
                 />
               </div>
               <div
+                v-if="parentPortal"
                 class="portal-card-reveal portal-reveal"
                 :style="{
                   '--reveal-delay': '360ms',

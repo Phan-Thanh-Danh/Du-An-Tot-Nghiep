@@ -24,11 +24,14 @@ public class JwtHelper
         var claims = new List<Claim>
         {
             new(CustomClaimTypes.UserId, user.MaNguoiDung.ToString()),
+            new(CustomClaimTypes.Username, user.Email),
             new(CustomClaimTypes.Email, user.Email),
+            new(CustomClaimTypes.FullName, user.HoTen),
             new(CustomClaimTypes.Role, role),
             new(CustomClaimTypes.CampusId, user.MaDonVi.ToString()),
             new(CustomClaimTypes.Status, status),
             new(ClaimTypes.NameIdentifier, user.MaNguoiDung.ToString()),
+            new(ClaimTypes.Name, user.HoTen),
             new(ClaimTypes.Email, user.Email),
             new(ClaimTypes.Role, role),
             new(JwtRegisteredClaimNames.Sub, user.MaNguoiDung.ToString()),
@@ -97,25 +100,31 @@ public class JwtHelper
 
     private SymmetricSecurityKey GetSecurityKey()
     {
-        var secret = GetRequiredSetting("JwtSettings:Secret");
+        var secret = GetRequiredSetting("JwtSettings:SecretKey", "JwtSettings:Secret");
         return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
     }
 
     private int GetExpiresInMinutes()
     {
-        return int.TryParse(_configuration["JwtSettings:ExpiresInMinutes"], out var minutes)
+        var configuredMinutes = _configuration["JwtSettings:ExpireMinutes"]
+            ?? _configuration["JwtSettings:ExpiresInMinutes"];
+
+        return int.TryParse(configuredMinutes, out var minutes)
             ? minutes
             : 60;
     }
 
-    private string GetRequiredSetting(string key)
+    private string GetRequiredSetting(params string[] keys)
     {
-        var value = _configuration[key];
-        if (string.IsNullOrWhiteSpace(value))
+        foreach (var key in keys)
         {
-            throw new InvalidOperationException($"Thiếu cấu hình bắt buộc: {key}");
+            var value = _configuration[key];
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
         }
 
-        return value;
+        throw new InvalidOperationException($"Thiếu cấu hình bắt buộc: {string.Join(" hoặc ", keys)}");
     }
 }

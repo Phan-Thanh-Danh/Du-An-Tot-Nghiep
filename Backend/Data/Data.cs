@@ -9,7 +9,7 @@ namespace Backend.Data;
 public static class Data
 {
     private const string RootCampusName = "LMS Root";
-    private const string DefaultPassword = "Admin@123";
+    private const string DefaultPassword = "123456";
     private const string RootLevel = "root";
     private const string CampusLevel = "co_so";
     private const string ApprovedStatus = "approved";
@@ -962,6 +962,12 @@ public static class Data
                 rootCampus.MaDonVi
             ),
             new DemoUserSeed(
+                "admin@edulms.local",
+                "Quản trị hệ thống",
+                AuthRoles.ToDatabaseCode(AuthRoles.Admin),
+                rootCampus.MaDonVi
+            ),
+            new DemoUserSeed(
                 "admin@lms.local",
                 "Admin Hệ Thống",
                 AuthRoles.ToDatabaseCode(AuthRoles.Admin),
@@ -980,7 +986,31 @@ public static class Data
                 hcmCampus.MaDonVi
             ),
             new DemoUserSeed(
+                "daotao@edulms.local",
+                "Phòng Đào Tạo",
+                AuthRoles.ToDatabaseCode(AuthRoles.AcademicStaff),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "khoa@edulms.local",
+                "Cán bộ Khoa",
+                AuthRoles.ToDatabaseCode(AuthRoles.AcademicStaff),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "bomon@edulms.local",
+                "Cán bộ Bộ môn",
+                AuthRoles.ToDatabaseCode(AuthRoles.AcademicStaff),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
                 "principal@lms.local",
+                "Ban Giám Hiệu",
+                AuthRoles.ToDatabaseCode(AuthRoles.Principal),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "bgh@edulms.local",
                 "Ban Giám Hiệu",
                 AuthRoles.ToDatabaseCode(AuthRoles.Principal),
                 hcmCampus.MaDonVi
@@ -988,6 +1018,12 @@ public static class Data
             new DemoUserSeed(
                 "teacher.cntt@lms.local",
                 "Nguyễn Văn Lập Trình",
+                AuthRoles.ToDatabaseCode(AuthRoles.Teacher),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "lecturer01@edulms.local",
+                "Trần Thị Giảng Viên",
                 AuthRoles.ToDatabaseCode(AuthRoles.Teacher),
                 hcmCampus.MaDonVi
             ),
@@ -1036,6 +1072,13 @@ public static class Data
             new DemoUserSeed(
                 "student.cntt01@lms.local",
                 "Nguyễn Văn Sinh Viên CNTT",
+                AuthRoles.ToDatabaseCode(AuthRoles.Student),
+                hcmCampus.MaDonVi,
+                2026
+            ),
+            new DemoUserSeed(
+                "student01@edulms.local",
+                "Nguyễn Văn An",
                 AuthRoles.ToDatabaseCode(AuthRoles.Student),
                 hcmCampus.MaDonVi,
                 2026

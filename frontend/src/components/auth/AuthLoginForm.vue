@@ -14,7 +14,7 @@ import {
   TrendingUp,
   User,
 } from 'lucide-vue-next'
-import { SHOW_DEMO_ACCOUNTS } from '@/data/authPortals'
+import { getDemoCredentials, SHOW_DEMO_ACCOUNTS } from '@/data/authPortals'
 
 const props = defineProps({
   portal: { type: Object, default: null },
@@ -71,8 +71,11 @@ function submitLogin() {
 }
 
 function quickLogin(demoEmail) {
-  form.email = demoEmail
-  form.password = 'mock_password_no_need'
+  if (props.loading) return
+
+  const demoCredentials = getDemoCredentials(demoEmail)
+  form.email = demoCredentials?.usernameOrEmail || demoEmail
+  form.password = demoCredentials?.password || ''
   submitLogin()
 }
 
@@ -224,6 +227,7 @@ defineExpose({
     <div v-if="hasDemo && portal?.slug === 'student'" class="space-y-2 w-full">
       <button
         type="button"
+        :disabled="loading"
         class="w-full py-2.5 px-4 rounded-lg border border-blue-300 hover:border-blue-500 text-[13px] font-semibold text-blue-800 bg-white/60 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow"
         @click="quickLogin('student')"
       >
@@ -232,6 +236,7 @@ defineExpose({
       </button>
       <button
         type="button"
+        :disabled="loading"
         class="w-full py-2.5 px-4 rounded-lg border border-emerald-300 hover:border-emerald-500 text-[13px] font-semibold text-emerald-800 bg-white/60 hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow"
         @click="quickLogin('student_gd')"
       >
@@ -240,6 +245,7 @@ defineExpose({
       </button>
       <button
         type="button"
+        :disabled="loading"
         class="w-full py-2.5 px-4 rounded-lg border border-orange-300 hover:border-orange-500 text-[13px] font-semibold text-orange-800 bg-white/60 hover:bg-orange-50 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow"
         @click="quickLogin('student_mkt')"
       >
@@ -251,6 +257,7 @@ defineExpose({
     <button
       v-else-if="hasDemo"
       type="button"
+      :disabled="loading"
       class="w-full py-3 px-4 rounded-lg border border-[#00236f]/30 text-[13px] font-semibold text-[#00236f] bg-white/60 hover:bg-[#00236f]/5 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow"
       @click="quickLogin(portal.demoUsername)"
     >

@@ -20,7 +20,7 @@ Ghi chú thuật ngữ: `DonVi` là tên bảng/entity kỹ thuật trong backen
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
-| POST | `/api/auth/login` | Public | Đăng nhập bằng email/password, trả access token, expiresAt, requiresPasswordChange, user. |
+| POST | `/api/auth/login` | Public | Đăng nhập bằng `usernameOrEmail`/password, trả `success`, `message`, access token, expiresAt, requiresPasswordChange, user. |
 | POST | `/api/auth/refresh-token` | Public | Xoay vòng refresh token và cấp access token mới. |
 | POST | `/api/auth/logout` | Public | Thu hồi refresh token hiện tại. |
 | POST | `/api/auth/revoke-token` | Admin/SuperAdmin/CampusAdmin | Thu hồi refresh token theo yêu cầu quản trị. |

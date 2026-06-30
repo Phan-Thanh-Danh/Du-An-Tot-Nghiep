@@ -51,7 +51,20 @@ const actualRoleLabel = ref('')
 const actualRoleDashboard = ref('')
 
 function normalizeRole(role) {
-  return String(role || '').trim().toLowerCase()
+  const normalized = String(role || '').trim().toLowerCase()
+  const aliases = {
+    lecturer: 'teacher',
+    trainingdepartment: 'academicstaff',
+    faculty: 'academicstaff',
+    academicdepartment: 'academicstaff',
+  }
+
+  return aliases[normalized] || normalized
+}
+
+function roleMatches(actualRole, expectedRoles) {
+  const roles = Array.isArray(expectedRoles) ? expectedRoles : [expectedRoles]
+  return roles.some((item) => normalizeRole(actualRole) === normalizeRole(item))
 }
 
 function getRoleLabel(role) {
@@ -59,8 +72,12 @@ function getRoleLabel(role) {
     Student: 'Sinh viên',
     Teacher: 'Giảng viên',
     AcademicStaff: 'Giáo vụ',
+    TrainingDepartment: 'Phòng đào tạo',
+    Faculty: 'Khoa',
+    AcademicDepartment: 'Bộ môn',
     Principal: 'Ban giám hiệu',
     Parent: 'Phụ huynh',
+    Admin: 'Quản trị viên',
     SuperAdmin: 'Quản trị viên',
     HoiDongQuanLyNoiDung: 'Hội đồng nội dung',
   }
@@ -82,8 +99,8 @@ async function handleSubmit(credentials) {
       return
     }
 
-    const expectedRole = portal.value?.backendRole || ''
-    if (expectedRole && normalizeRole(actualRole) !== normalizeRole(expectedRole)) {
+    const expectedRoles = portal.value?.allowedRoles || [portal.value?.backendRole || '']
+    if (expectedRoles.length && !roleMatches(actualRole, expectedRoles)) {
       actualRoleLabel.value = getRoleLabel(actualRole)
       const dashboard = getHomeRouteByRole(actualRole)
       actualRoleDashboard.value = dashboard || '/'
