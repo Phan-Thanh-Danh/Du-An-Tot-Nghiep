@@ -583,31 +583,72 @@ public static class Data
                     1,
                     "Ôn tập nền tảng lập trình",
                     [
-                        new(1, "Con trỏ và cấp phát động", "video", "/demo/lessons/ctdl101/contro.mp4", 1104, null),
-                        new(2, "Struct và Class cơ bản", "video", "/demo/lessons/ctdl101/struct.mp4", 1330, null),
-                        new(3, "Quiz ôn tập chương 1", "trac_nghiem", "/demo/lessons/ctdl101/quiz1.pdf", null, null)
+                        new(
+                            1,
+                            "Con trỏ và cấp phát động",
+                            "video",
+                            "/demo/lessons/ctdl101/contro.mp4",
+                            1104,
+                            null
+                        ),
+                        new(
+                            2,
+                            "Struct và Class cơ bản",
+                            "video",
+                            "/demo/lessons/ctdl101/struct.mp4",
+                            1330,
+                            null
+                        ),
+                        new(
+                            3,
+                            "Quiz ôn tập chương 1",
+                            "trac_nghiem",
+                            "/demo/lessons/ctdl101/quiz1.pdf",
+                            null,
+                            null
+                        ),
                     ]
                 ),
                 new(
                     2,
                     "Cấu trúc dữ liệu tuyến tính",
                     [
-                        new(1, "Danh sách liên kết đơn", "video", "/demo/lessons/ctdl101/dslk.mp4", 1590, null),
-                        new(2, "Stack và ứng dụng", "video", "/demo/lessons/ctdl101/stack.mp4", 1245, null),
-                        new(3, "Queue và vòng lặp", "video", "/demo/lessons/ctdl101/queue.mp4", 1440, null),
-                        new(4, "Bài tập thực hành", "van_ban", "/demo/lessons/ctdl101/bt1.pdf", null, null)
+                        new(
+                            1,
+                            "Danh sách liên kết đơn",
+                            "video",
+                            "/demo/lessons/ctdl101/dslk.mp4",
+                            1590,
+                            null
+                        ),
+                        new(
+                            2,
+                            "Stack và ứng dụng",
+                            "video",
+                            "/demo/lessons/ctdl101/stack.mp4",
+                            1245,
+                            null
+                        ),
+                        new(
+                            3,
+                            "Queue và vòng lặp",
+                            "video",
+                            "/demo/lessons/ctdl101/queue.mp4",
+                            1440,
+                            null
+                        ),
+                        new(
+                            4,
+                            "Bài tập thực hành",
+                            "van_ban",
+                            "/demo/lessons/ctdl101/bt1.pdf",
+                            null,
+                            null
+                        ),
                     ]
                 ),
-                new(
-                    3,
-                    "Cây nhị phân và đồ thị",
-                    []
-                ),
-                new(
-                    4,
-                    "Sắp xếp & Tìm kiếm",
-                    []
-                )
+                new(3, "Cây nhị phân và đồ thị", []),
+                new(4, "Sắp xếp & Tìm kiếm", []),
             ],
             ["COM103"] =
             [
