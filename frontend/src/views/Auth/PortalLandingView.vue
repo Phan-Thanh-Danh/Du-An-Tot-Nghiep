@@ -438,7 +438,8 @@ function getStaffIcon(slug) {
 }
 
 .portal-container {
-  width: min(calc(100% - 40px), 1280px);
+  width: 100%;
+  padding-inline: 48px;
   margin-inline: auto;
 }
 
@@ -585,18 +586,19 @@ function getStaffIcon(slug) {
 }
 
 .portal-two-col {
-  display: grid;
-  grid-template-columns: minmax(0, 45fr) minmax(0, 55fr);
-  gap: 60px;
+  display: flex;
+  justify-content: space-between;
+  gap: 80px;
   align-items: center;
   width: 100%;
 }
 
-/* ── Left: Hero ── */
 .hero-left {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  flex: 1;
+  max-width: 500px;
 }
 
 .eyebrow {
@@ -700,8 +702,8 @@ function getStaffIcon(slug) {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  flex: 1;
   max-width: 600px;
-  margin-left: auto;
   width: 100%;
 }
 
@@ -993,7 +995,7 @@ function getStaffIcon(slug) {
 
 @media (max-width: 1023px) {
   .portal-two-col {
-    grid-template-columns: 1fr;
+    flex-direction: column;
     gap: 40px;
   }
   .portal-main {

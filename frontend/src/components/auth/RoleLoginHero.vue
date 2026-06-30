@@ -128,7 +128,7 @@ const colors = computed(() => accentColors[props.portal.accent] || accentColors.
         <div
           v-for="feature in featureItems"
           :key="feature.label"
-          class="bg-white/60 backdrop-blur-md rounded-xl p-4 border border-white/50 shadow-sm flex flex-col items-start gap-1"
+          class="bg-[#ffffff] rounded-[16px] p-4 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col items-start gap-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300"
           :class="{ 'pb-3': feature.description }"
         >
           <div

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { 
   ArrowLeft, 
@@ -13,12 +13,48 @@ import {
   MessageSquare,
   ShieldCheck,
   Send,
-  MoreVertical
+  MoreVertical,
+  Printer,
+  FolderPlus,
+  Trash2
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import { usePopup } from '@/composables/usePopup'
 
+const popup = usePopup()
 const route = useRoute()
 const requestId = route.params.id || 'DON-001'
+
+// ── Dropdown Logic ───────────────────────────────────────────
+const isMenuOpen = ref(false)
+const menuRef = ref(null)
+
+const toggleMenu = () => {
+  isMenuOpen.value = !isMenuOpen.value
+}
+
+const closeMenu = (e) => {
+  if (menuRef.value && !menuRef.value.contains(e.target)) {
+    isMenuOpen.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeMenu)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeMenu)
+})
+
+const handleAction = (actionName) => {
+  isMenuOpen.value = false
+  if (actionName === 'delete') {
+    popup.error('Xóa đơn', 'Tính năng xóa đơn cần có quyền Admin. Bạn không thể thực hiện thao tác này.')
+  } else {
+    popup.success('Thành công', `Đã thực hiện: ${actionName}`)
+  }
+}
 
 // ── Mock Data ────────────────────────────────────────────────
 const request = ref({
@@ -84,7 +120,34 @@ const getStepStatusClass = (status) => {
                      <p class="text-sm font-bold text-label mt-1 uppercase tracking-tighter">{{ request.type }}</p>
                   </div>
                </div>
-               <button class="p-2 lg-button-ghost rounded-lg"><MoreVertical :size="20" /></button>
+               <div class="relative" ref="menuRef">
+                 <button @click="toggleMenu" class="p-2 lg-button-ghost rounded-lg transition-colors" :class="{ 'bg-[var(--surface-hover)]': isMenuOpen }">
+                   <MoreVertical :size="20" />
+                 </button>
+                 
+                 <!-- Dropdown Menu -->
+                 <transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0"
+                    enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-75 ease-in"
+                    leave-from-class="transform scale-100 opacity-100"
+                    leave-to-class="transform scale-95 opacity-0"
+                  >
+                   <div v-if="isMenuOpen" class="absolute right-0 mt-2 w-56 rounded-2xl border border-default surface-card shadow-lg p-2 z-50 lg-glass-soft">
+                     <button @click="handleAction('In phiếu thông tin')" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-heading hover:bg-[var(--surface-hover)] rounded-xl transition-colors">
+                       <Printer :size="16" class="text-muted" /> In phiếu thông tin
+                     </button>
+                     <button @click="handleAction('Yêu cầu bổ sung hồ sơ')" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-heading hover:bg-[var(--surface-hover)] rounded-xl transition-colors">
+                       <FolderPlus :size="16" class="text-muted" /> Yêu cầu bổ sung hồ sơ
+                     </button>
+                     <div class="h-px border-t border-default my-1.5 mx-1"></div>
+                     <button @click="handleAction('delete')" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-[var(--color-danger-text)] hover:bg-[var(--color-danger-bg)] rounded-xl transition-colors">
+                       <Trash2 :size="16" /> Xóa đơn này
+                     </button>
+                   </div>
+                 </transition>
+               </div>
            </div>
 
            <div class="prose prose-slate max-w-none">

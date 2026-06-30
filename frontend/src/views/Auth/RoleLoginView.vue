@@ -159,7 +159,7 @@ async function useDifferentAccount() {
     <main class="w-full max-w-[1140px] relative z-10 glass-panel rounded-[28px] overflow-hidden shadow-2xl shadow-[#00236f]/5 flex flex-col lg:flex-row min-h-[600px] h-[calc(100vh-80px)] max-h-[768px]">
       <RoleLoginHero :portal="portal" />
 
-      <div class="w-full lg:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white/40 overflow-y-auto">
+      <div class="w-full lg:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-[#f5f5f5] overflow-y-auto">
         <div class="flex lg:hidden items-center gap-2 text-[#00236f] mb-8">
           <GraduationCap class="w-8 h-8" aria-hidden="true" />
           <div class="flex flex-col">
