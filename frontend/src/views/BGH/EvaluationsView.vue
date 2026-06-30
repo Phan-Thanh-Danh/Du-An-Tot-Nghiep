@@ -4,10 +4,10 @@
     subtitle="Kết quả khảo sát và đánh giá chất lượng giảng dạy"
   >
     <template #actions>
-      <select v-model="semesterFilter" class="px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
+      <select v-model="semesterFilter" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
         <option v-for="s in semesters" :key="s" :value="s">{{ s }}</option>
       </select>
-      <select v-model="campusFilter" class="px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
+      <select v-model="campusFilter" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
         <option value="">Tất cả cơ sở</option>
         <option>FPT Polytechnic Hồ Chí Minh</option>
         <option>FPT Polytechnic Đà Nẵng</option>
@@ -33,7 +33,7 @@
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm text-body whitespace-nowrap">
-          <thead class="bg-[var(--surface-card)] border-b border-default">
+          <thead class="bg-(--surface-card) border-b border-default">
             <tr>
               <th class="px-4 py-3 font-bold text-heading w-12">#</th>
               <th class="px-4 py-3 font-bold text-heading">Giảng viên</th>
@@ -47,7 +47,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
-            <tr v-for="(gv, i) in filteredRankings" :key="gv.id" class="hover:bg-[var(--surface-input)]/50 transition-colors">
+            <tr v-for="(gv, i) in filteredRankings" :key="gv.id" class="hover:bg-(--surface-input)/50 transition-colors">
               <td class="px-4 py-3">
                 <span :class="i < 3 ? 'text-indigo-500 font-bold' : 'text-muted'" class="text-sm">{{ i + 1 }}</span>
               </td>
@@ -71,7 +71,7 @@
               <td class="px-4 py-3">
                 <div class="flex items-center gap-1.5">
                   <div class="w-16 h-1.5 rounded-full bg-default overflow-hidden">
-                    <div class="h-full rounded-full" :class="gv.chatLuong >= 4.5 ? 'bg-[var(--color-success-text)]' : gv.chatLuong >= 4.0 ? 'bg-[var(--color-info-text)]' : gv.chatLuong >= 3.5 ? 'bg-[var(--color-warning-text)]' : 'bg-[var(--color-danger-text)]'" :style="{ width: (gv.chatLuong / 5 * 100) + '%' }" />
+                    <div class="h-full rounded-full" :class="gv.chatLuong >= 4.5 ? 'bg-(--color-success-text)' : gv.chatLuong >= 4.0 ? 'bg-(--color-info-text)' : gv.chatLuong >= 3.5 ? 'bg-(--color-warning-text)' : 'bg-(--color-danger-text)'" :style="{ width: (gv.chatLuong / 5 * 100) + '%' }" />
                   </div>
                   <span class="text-xs font-bold text-heading">{{ gv.chatLuong.toFixed(1) }}</span>
                 </div>
@@ -79,7 +79,7 @@
               <td class="px-4 py-3">
                 <div class="flex items-center gap-1.5">
                   <div class="w-16 h-1.5 rounded-full bg-default overflow-hidden">
-                    <div class="h-full rounded-full bg-[var(--lg-primary)]" :style="{ width: (gv.phuongPhap / 5 * 100) + '%' }" />
+                    <div class="h-full rounded-full bg-(--lg-primary)" :style="{ width: (gv.phuongPhap / 5 * 100) + '%' }" />
                   </div>
                   <span class="text-xs font-bold text-heading">{{ gv.phuongPhap.toFixed(1) }}</span>
                 </div>
@@ -87,13 +87,13 @@
               <td class="px-4 py-3">
                 <div class="flex items-center gap-1.5">
                   <div class="w-16 h-1.5 rounded-full bg-default overflow-hidden">
-                    <div class="h-full rounded-full bg-[var(--color-success-text)]" :style="{ width: (gv.dungGio / 5 * 100) + '%' }" />
+                    <div class="h-full rounded-full bg-(--color-success-text)" :style="{ width: (gv.dungGio / 5 * 100) + '%' }" />
                   </div>
                   <span class="text-xs font-bold text-heading">{{ gv.dungGio.toFixed(1) }}</span>
                 </div>
               </td>
               <td class="px-4 py-3">
-                <div class="flex items-center gap-1 text-xs font-bold" :class="gv.xuHuong >= 0 ? 'text-[var(--color-success-text)]' : 'text-[var(--color-danger-text)]'">
+                <div class="flex items-center gap-1 text-xs font-bold" :class="gv.xuHuong >= 0 ? 'text-(--color-success-text)' : 'text-(--color-danger-text)'">
                   <TrendingUp v-if="gv.xuHuong >= 0" :size="14" />
                   <TrendingDown v-else :size="14" />
                   {{ gv.xuHuong >= 0 ? '+' : '' }}{{ gv.xuHuong.toFixed(2) }}
@@ -111,7 +111,7 @@
         <div v-for="dept in departmentStats" :key="dept.ten" class="p-4 rounded-2xl border border-default">
           <div class="flex items-center justify-between mb-2">
             <h3 class="text-sm font-bold text-heading">{{ dept.ten }}</h3>
-            <span class="text-xs font-bold text-[var(--lg-primary)]">{{ dept.soGv }} GV</span>
+            <span class="text-xs font-bold text-(--lg-primary)">{{ dept.soGv }} GV</span>
           </div>
           <div class="flex items-center gap-2">
             <div class="flex-1 h-2 rounded-full bg-default overflow-hidden">
@@ -121,7 +121,7 @@
           </div>
           <div class="mt-3 flex items-center justify-between text-[10px]">
             <span class="text-muted">SL khảo sát: {{ dept.soLuotKhaoSat }}</span>
-            <span :class="dept.xuHuong >= 0 ? 'text-[var(--color-success-text)]' : 'text-[var(--color-danger-text)]'" class="font-bold">
+            <span :class="dept.xuHuong >= 0 ? 'text-(--color-success-text)' : 'text-(--color-danger-text)'" class="font-bold">
               {{ dept.xuHuong >= 0 ? '↑' : '↓' }} {{ Math.abs(dept.xuHuong).toFixed(1) }}
             </span>
           </div>
@@ -132,7 +132,7 @@
     <div class="surface-card border border-card rounded-2xl p-5 shadow-sm">
       <h2 class="text-base font-bold text-heading mb-3">Bình luận nổi bật từ sinh viên</h2>
       <div class="space-y-3">
-        <div v-for="comment in comments" :key="comment.id" class="p-3 rounded-xl border border-default hover:border-[var(--border-input-focus)] transition-all">
+        <div v-for="comment in comments" :key="comment.id" class="p-3 rounded-xl border border-default hover:border-(--border-input-focus) transition-all">
           <div class="flex items-start gap-3">
             <div class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-800 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">{{ comment.initials }}</div>
             <div class="flex-1 min-w-0">
@@ -164,10 +164,10 @@ const campusFilter = ref('')
 const semesters = ['Spring 2026', 'Fall 2025', 'Summer 2025', 'Spring 2025']
 
 const stats = [
-  { id: 1, icon: ThumbsUp, value: '4.35 / 5', label: 'Điểm đánh giá trung bình', bg: 'bg-[var(--color-success-bg)]', iconColor: 'text-[var(--color-success-text)]' },
-  { id: 2, icon: Users, value: '1,245', label: 'Số lượt khảo sát trong kỳ', bg: 'bg-[var(--color-info-bg)]', iconColor: 'text-[var(--color-info-text)]' },
-  { id: 3, icon: Award, value: '12', label: 'GV đạt điểm ≥ 4.5', bg: 'bg-[var(--color-warning-bg)]', iconColor: 'text-[var(--color-warning-text)]' },
-  { id: 4, icon: MessageSquare, value: '89%', label: 'Tỷ lệ SV tham gia khảo sát', bg: 'bg-[var(--color-info-bg)]', iconColor: 'text-[var(--color-info-text)]' },
+  { id: 1, icon: ThumbsUp, value: '4.35 / 5', label: 'Điểm đánh giá trung bình', bg: 'bg-(--color-success-bg)', iconColor: 'text-(--color-success-text)' },
+  { id: 2, icon: Users, value: '1,245', label: 'Số lượt khảo sát trong kỳ', bg: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)' },
+  { id: 3, icon: Award, value: '12', label: 'GV đạt điểm ≥ 4.5', bg: 'bg-(--color-warning-bg)', iconColor: 'text-(--color-warning-text)' },
+  { id: 4, icon: MessageSquare, value: '89%', label: 'Tỷ lệ SV tham gia khảo sát', bg: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)' },
 ]
 
 const teacherRankings = [

@@ -36,7 +36,7 @@ const pendingSets = ref([
               <input 
                 type="text" 
                 placeholder="Tìm theo học kỳ, khoa..." 
-                class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-[var(--border-input-focus)]"
+                class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-(--border-input-focus)"
               >
            </div>
            <select class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none">
@@ -63,10 +63,10 @@ const pendingSets = ref([
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
-            <tr v-for="set in pendingSets" :key="set.id" class="group hover:bg-[var(--surface-input)] transition-colors">
+            <tr v-for="set in pendingSets" :key="set.id" class="group hover:bg-(--surface-input) transition-colors">
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
-                  <div class="h-9 w-9 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] border border-[var(--color-info-text)]/20">
+                  <div class="h-9 w-9 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) border border-(--color-info-text)/20">
                     <Building2 :size="18" />
                   </div>
                   <p class="text-sm font-semibold text-heading leading-tight">{{ set.dept }}</p>
@@ -85,11 +85,11 @@ const pendingSets = ref([
                 </div>
               </td>
               <td class="px-4 py-3">
-                <div v-if="set.conflicts === 0" class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-success-text)]/20 bg-[var(--color-success-bg)] px-2 py-1 text-[var(--color-success-text)]">
+                <div v-if="set.conflicts === 0" class="inline-flex items-center gap-1.5 rounded-lg border border-(--color-success-text)/20 bg-(--color-success-bg) px-2 py-1 text-(--color-success-text)">
                    <CheckCircle2 :size="14" />
                    <span class="text-[10px] font-semibold uppercase tracking-widest">Sẵn sàng</span>
                 </div>
-                <div v-else class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)] px-2 py-1 text-[var(--color-danger-text)]">
+                <div v-else class="inline-flex items-center gap-1.5 rounded-lg border border-(--color-danger-text)/20 bg-(--color-danger-bg) px-2 py-1 text-(--color-danger-text)">
                    <AlertTriangle :size="14" />
                    <span class="text-[10px] font-semibold uppercase tracking-widest">{{ set.conflicts }} lỗi nghiêm trọng</span>
                 </div>
@@ -102,13 +102,13 @@ const pendingSets = ref([
               </td>
               <td class="px-4 py-3 text-right">
                 <div class="flex items-center justify-end gap-1">
-                  <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-muted transition-all" title="Xem chi tiết TKB">
+                  <button class="p-2 hover:bg-(--color-info-bg) hover:text-(--color-info-text) rounded-lg text-muted transition-all" title="Xem chi tiết TKB">
                     <Eye :size="18" />
                   </button>
-                  <button class="p-2 hover:bg-[var(--color-success-bg)] hover:text-[var(--color-success-text)] rounded-lg text-muted transition-all" title="Phê duyệt">
+                  <button class="p-2 hover:bg-(--color-success-bg) hover:text-(--color-success-text) rounded-lg text-muted transition-all" title="Phê duyệt">
                     <CheckCircle2 :size="18" />
                   </button>
-                  <button class="p-2 hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)] rounded-lg text-muted transition-all" title="Từ chối">
+                  <button class="p-2 hover:bg-(--color-danger-bg) hover:text-(--color-danger-text) rounded-lg text-muted transition-all" title="Từ chối">
                     <XCircle :size="18" />
                   </button>
                 </div>
@@ -119,14 +119,14 @@ const pendingSets = ref([
       </div>
 
       <!-- ── Approval Policy ── -->
-      <div class="surface-card border border-[var(--color-info-text)]/20 bg-[var(--color-info-bg)] rounded-2xl p-4">
+      <div class="surface-card border border-(--color-info-text)/20 bg-(--color-info-bg) rounded-2xl p-4">
          <div class="flex items-start gap-4">
-            <div class="h-10 w-10 rounded-2xl bg-[var(--surface-card)] flex items-center justify-center text-[var(--color-info-text)] shrink-0 border border-[var(--color-info-text)]/20">
+            <div class="h-10 w-10 rounded-2xl bg-(--surface-card) flex items-center justify-center text-(--color-info-text) shrink-0 border border-(--color-info-text)/20">
                <Clock :size="20" />
             </div>
             <div>
                <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Chính sách phê duyệt TKB</h4>
-               <p class="text-xs text-[var(--color-info-text)] mt-1 leading-relaxed">
+               <p class="text-xs text-(--color-info-text) mt-1 leading-relaxed">
                  Hệ thống chỉ cho phép <strong>Duyệt & Publish</strong> bộ TKB khi số lượng xung đột nghiêm trọng (trùng phòng, trùng giảng viên) bằng 0. Nếu bộ TKB còn tồn tại xung đột, BGH vui lòng gửi yêu cầu Giáo vụ chỉnh sửa (Reject with comment).
                </p>
             </div>

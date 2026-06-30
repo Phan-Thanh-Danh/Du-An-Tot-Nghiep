@@ -5,7 +5,7 @@
         <h2 class="sr-only text-xl font-bold text-heading">Quản lý Người Dùng</h2>
         <p class="text-xs text-muted mt-1">Danh sách tất cả tài khoản trong hệ thống</p>
       </div>
-      <button @click="openCreateModal" class="flex items-center gap-2 px-4 py-2 bg-[var(--lg-primary)] hover:bg-[var(--lg-primary-dark)] text-white text-sm font-bold rounded-xl transition-all shadow-sm">
+      <button @click="openCreateModal" class="flex items-center gap-2 px-4 py-2 bg-(--lg-primary) hover:bg-(--lg-primary-dark) text-white text-sm font-bold rounded-xl transition-all shadow-sm">
         <Plus :size="18" /> <span>Thêm người dùng</span>
       </button>
     </div>
@@ -15,31 +15,31 @@
         <label class="block text-xs font-bold text-heading mb-1.5">Tìm kiếm</label>
         <div class="relative">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-muted" :size="16" />
-          <input v-model="keyword" @keyup.enter="handleFilter" type="text" placeholder="Tên, Email, SĐT..." class="w-full pl-9 pr-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]" />
+          <input v-model="keyword" @keyup.enter="handleFilter" type="text" placeholder="Tên, Email, SĐT..." class="w-full pl-9 pr-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)" />
         </div>
       </div>
       <div class="w-full sm:w-48">
         <label class="block text-xs font-bold text-heading mb-1.5">Vai trò</label>
-        <select v-model="roleFilter" @change="handleFilter" class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
+        <select v-model="roleFilter" @change="handleFilter" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả vai trò</option>
           <option v-for="r in rolesList" :key="r.maCodeVaiTro" :value="r.maCodeVaiTro">{{ r.tenVaiTro }}</option>
         </select>
       </div>
       <div class="w-full sm:w-40">
         <label class="block text-xs font-bold text-heading mb-1.5">Trạng thái</label>
-        <select v-model="statusFilter" @change="handleFilter" class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
+        <select v-model="statusFilter" @change="handleFilter" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả trạng thái</option>
           <option value="hoat_dong">Hoạt động</option>
           <option value="bi_khoa">Bị khóa</option>
         </select>
       </div>
-      <button @click="handleFilter" class="px-4 py-2 bg-[var(--surface-input)] border border-input hover:bg-[var(--surface-input-hover)] text-heading text-sm font-bold rounded-lg transition-colors h-10">Lọc dữ liệu</button>
+      <button @click="handleFilter" class="px-4 py-2 bg-(--surface-input) border border-input hover:bg-(--surface-input-hover) text-heading text-sm font-bold rounded-lg transition-colors h-10">Lọc dữ liệu</button>
     </div>
 
     <div class="flex-1 surface-card border border-card rounded-2xl shadow-sm flex flex-col overflow-hidden">
       <div class="flex-1 overflow-auto">
         <table class="w-full text-left text-sm text-body whitespace-nowrap">
-          <thead class="sticky top-0 bg-[var(--surface-card)] border-b border-default z-10 backdrop-blur-[12px]">
+          <thead class="sticky top-0 bg-(--surface-card) border-b border-default z-10 backdrop-blur-[12px]">
             <tr>
               <th class="px-4 py-3 font-bold text-heading">Mã / ID</th>
               <th class="px-4 py-3 font-bold text-heading">Họ tên</th>
@@ -54,16 +54,16 @@
             <tr v-if="filteredUsers.length === 0" class="bg-transparent">
               <td colspan="7" class="py-12 text-center text-muted"><p>Không tìm thấy người dùng nào.</p></td>
             </tr>
-            <tr v-for="user in pagedUsers" :key="user.maNguoiDung" class="hover:bg-[var(--surface-input)]/50 transition-colors">
+            <tr v-for="user in pagedUsers" :key="user.maNguoiDung" class="hover:bg-(--surface-input)/50 transition-colors">
               <td class="px-4 py-3 font-medium">{{ user.maNguoiDung }}</td>
               <td class="px-4 py-3 font-bold text-heading">{{ user.hoTen }}</td>
               <td class="px-4 py-3">{{ user.email }}</td>
               <td class="px-4 py-3">
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-[var(--surface-input)] text-heading border border-default">{{ user.tenVaiTro }}</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-(--surface-input) text-heading border border-default">{{ user.tenVaiTro }}</span>
               </td>
               <td class="px-4 py-3 text-xs">{{ user.tenDonVi || 'N/A' }}</td>
               <td class="px-4 py-3">
-                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider" :class="user.trangThai === 'hoat_dong' ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]' : 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]'">
+                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider" :class="user.trangThai === 'hoat_dong' ? 'bg-(--color-success-bg) text-(--color-success-text)' : 'bg-(--color-danger-bg) text-(--color-danger-text)'">
                   <CheckCircle2 v-if="user.trangThai === 'hoat_dong'" :size="12" />
                   <Lock v-else :size="12" />
                   {{ user.trangThai === 'hoat_dong' ? 'Hoạt động' : 'Bị khóa' }}
@@ -71,10 +71,10 @@
               </td>
               <td class="px-4 py-3 text-right">
                 <div class="flex items-center justify-end gap-2">
-                  <button @click="openEditModal(user)" class="p-1.5 text-muted hover:text-[var(--lg-primary)] hover:bg-[var(--lg-primary)]/10 rounded-lg transition-colors" title="Chỉnh sửa"><Edit2 :size="16" /></button>
-                  <button v-if="user.trangThai === 'hoat_dong'" @click="handleToggleLock(user)" class="p-1.5 text-muted hover:text-[var(--color-danger-text)] hover:bg-[var(--color-danger-bg)] rounded-lg transition-colors" title="Khóa tài khoản"><Lock :size="16" /></button>
-                  <button v-else @click="handleToggleLock(user)" class="p-1.5 text-[var(--color-danger-text)] hover:text-[var(--color-success-text)] hover:bg-[var(--color-success-bg)] rounded-lg transition-colors" title="Mở khóa tài khoản"><Unlock :size="16" /></button>
-                  <button @click="handleResetPassword(user)" class="p-1.5 text-muted hover:text-[var(--color-warning-text)] hover:bg-[var(--color-warning-bg)] rounded-lg transition-colors" title="Đặt lại mật khẩu"><Key :size="16" /></button>
+                  <button @click="openEditModal(user)" class="p-1.5 text-muted hover:text-(--lg-primary) hover:bg-(--lg-primary)/10 rounded-lg transition-colors" title="Chỉnh sửa"><Edit2 :size="16" /></button>
+                  <button v-if="user.trangThai === 'hoat_dong'" @click="handleToggleLock(user)" class="p-1.5 text-muted hover:text-(--color-danger-text) hover:bg-(--color-danger-bg) rounded-lg transition-colors" title="Khóa tài khoản"><Lock :size="16" /></button>
+                  <button v-else @click="handleToggleLock(user)" class="p-1.5 text-(--color-danger-text) hover:text-(--color-success-text) hover:bg-(--color-success-bg) rounded-lg transition-colors" title="Mở khóa tài khoản"><Unlock :size="16" /></button>
+                  <button @click="handleResetPassword(user)" class="p-1.5 text-muted hover:text-(--color-warning-text) hover:bg-(--color-warning-bg) rounded-lg transition-colors" title="Đặt lại mật khẩu"><Key :size="16" /></button>
                 </div>
               </td>
             </tr>
@@ -82,12 +82,12 @@
         </table>
       </div>
 
-      <div class="p-4 border-t border-default bg-[var(--surface-card)] flex items-center justify-between text-sm">
+      <div class="p-4 border-t border-default bg-(--surface-card) flex items-center justify-between text-sm">
         <span class="text-muted">Hiển thị {{ pagedUsers.length }} / {{ filteredUsers.length }} người dùng</span>
         <div class="flex items-center gap-2">
-          <button @click="prevPage" :disabled="currentPage === 1" class="px-3 py-1.5 rounded-lg border border-default hover:bg-[var(--surface-input)] disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang trước</button>
+          <button @click="prevPage" :disabled="currentPage === 1" class="px-3 py-1.5 rounded-lg border border-default hover:bg-(--surface-input) disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang trước</button>
           <span class="px-2 font-bold text-heading">Trang {{ currentPage }} / {{ totalPages }}</span>
-          <button @click="nextPage" :disabled="currentPage >= totalPages" class="px-3 py-1.5 rounded-lg border border-default hover:bg-[var(--surface-input)] disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang sau</button>
+          <button @click="nextPage" :disabled="currentPage >= totalPages" class="px-3 py-1.5 rounded-lg border border-default hover:bg-(--surface-input) disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang sau</button>
         </div>
       </div>
     </div>
@@ -96,46 +96,46 @@
       <div class="w-full max-w-lg surface-card rounded-2xl shadow-2xl border border-default overflow-hidden flex flex-col max-h-full">
         <div class="p-4 border-b border-default flex justify-between items-center">
           <h3 class="text-lg font-bold text-heading">{{ modalMode === 'create' ? 'Thêm Người Dùng Mới' : 'Chỉnh Sửa Người Dùng' }}</h3>
-          <button @click="closeModal" class="p-1 hover:bg-[var(--surface-input)] rounded-lg text-muted"><X :size="20" /></button>
+          <button @click="closeModal" class="p-1 hover:bg-(--surface-input) rounded-lg text-muted"><X :size="20" /></button>
         </div>
         <form @submit.prevent="submitForm" class="p-6 overflow-y-auto space-y-4">
-          <div v-if="apiError" class="p-3 bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] text-xs rounded-lg flex gap-2 items-start">
+          <div v-if="apiError" class="p-3 bg-(--color-danger-bg) text-(--color-danger-text) text-xs rounded-lg flex gap-2 items-start">
             <AlertTriangle :size="16" class="shrink-0 mt-0.5" /><span>{{ apiError }}</span>
           </div>
           <div>
-            <label class="block text-xs font-bold text-heading mb-1.5">Họ và tên <span class="text-[var(--color-danger-text)]">*</span></label>
-            <input v-model="formData.hoTen" type="text" required class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm focus:border-[var(--lg-primary)] outline-none" />
+            <label class="block text-xs font-bold text-heading mb-1.5">Họ và tên <span class="text-(--color-danger-text)">*</span></label>
+            <input v-model="formData.hoTen" type="text" required class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none" />
           </div>
           <div>
-            <label class="block text-xs font-bold text-heading mb-1.5">Email <span class="text-[var(--color-danger-text)]">*</span></label>
-            <input v-model="formData.email" type="email" required class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm focus:border-[var(--lg-primary)] outline-none" />
+            <label class="block text-xs font-bold text-heading mb-1.5">Email <span class="text-(--color-danger-text)">*</span></label>
+            <input v-model="formData.email" type="email" required class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none" />
           </div>
           <div>
             <label class="block text-xs font-bold text-heading mb-1.5">Số điện thoại</label>
-            <input v-model="formData.soDienThoai" type="text" class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm focus:border-[var(--lg-primary)] outline-none" />
+            <input v-model="formData.soDienThoai" type="text" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none" />
           </div>
           <div v-if="modalMode === 'create'">
-            <label class="block text-xs font-bold text-heading mb-1.5">Mật khẩu <span class="text-[var(--color-danger-text)]">*</span></label>
-            <input v-model="formData.matKhau" type="password" required minlength="8" class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm focus:border-[var(--lg-primary)] outline-none" />
+            <label class="block text-xs font-bold text-heading mb-1.5">Mật khẩu <span class="text-(--color-danger-text)">*</span></label>
+            <input v-model="formData.matKhau" type="password" required minlength="8" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none" />
           </div>
           <div>
-            <label class="block text-xs font-bold text-heading mb-1.5">Vai trò <span class="text-[var(--color-danger-text)]">*</span></label>
-            <select v-model="formData.maCodeVaiTro" required class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm focus:border-[var(--lg-primary)] outline-none">
+            <label class="block text-xs font-bold text-heading mb-1.5">Vai trò <span class="text-(--color-danger-text)">*</span></label>
+            <select v-model="formData.maCodeVaiTro" required class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none">
               <option value="" disabled>-- Chọn vai trò --</option>
               <option v-for="r in rolesList" :key="r.maCodeVaiTro" :value="r.maCodeVaiTro">{{ r.tenVaiTro }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-bold text-heading mb-1.5">Đơn vị <span class="text-[var(--color-danger-text)]">*</span></label>
-            <select v-model="formData.maDonVi" required class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm focus:border-[var(--lg-primary)] outline-none">
+            <label class="block text-xs font-bold text-heading mb-1.5">Đơn vị <span class="text-(--color-danger-text)">*</span></label>
+            <select v-model="formData.maDonVi" required class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none">
               <option value="" disabled>-- Chọn đơn vị --</option>
               <option v-for="org in orgsList" :key="org.maDonVi" :value="org.maDonVi">{{ org.tenDonVi }} ({{ org.capDonVi }})</option>
             </select>
           </div>
         </form>
-        <div class="p-4 border-t border-default bg-[var(--surface-card)] flex justify-end gap-3">
-          <button @click="closeModal" type="button" class="px-4 py-2 text-sm font-bold border border-input rounded-lg hover:bg-[var(--surface-input)] transition-colors">Hủy</button>
-          <button @click="submitForm" class="flex items-center justify-center gap-2 px-6 py-2 bg-[var(--lg-primary)] text-white text-sm font-bold rounded-lg hover:bg-[var(--lg-primary-dark)] transition-colors min-w-[100px]">Lưu lại</button>
+        <div class="p-4 border-t border-default bg-(--surface-card) flex justify-end gap-3">
+          <button @click="closeModal" type="button" class="px-4 py-2 text-sm font-bold border border-input rounded-lg hover:bg-(--surface-input) transition-colors">Hủy</button>
+          <button @click="submitForm" class="flex items-center justify-center gap-2 px-6 py-2 bg-(--lg-primary) text-white text-sm font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors min-w-[100px]">Lưu lại</button>
         </div>
       </div>
     </div>
@@ -185,7 +185,7 @@ const roleCodeToName = {
   'sieu_quan_tri': 'Siêu quản trị', 'quan_tri': 'Quản trị', 'quan_tri_co_so': 'Quản trị CS',
   'nhan_vien': 'Giáo vụ', 'hieu_truong': 'Ban Giám Hiệu', 'giao_vien': 'Giảng viên',
   'hoc_sinh': 'Sinh viên', 'chu_tich': 'Chủ tịch', 'admin_tai_chinh': 'Admin TC',
-  'ke_toan_co_so': 'Kế toán CS',
+  'ke_toan_co_so': 'Kế toán CS'
 }
 
 const mockUsers = [
@@ -255,7 +255,7 @@ function openEditModal(user) {
     soDienThoai: user.soDienThoai || '',
     matKhau: '',
     maCodeVaiTro: user.vaiTroChinh,
-    maDonVi: user.maDonVi,
+    maDonVi: user.maDonVi
   }
   showModal.value = true
 }
@@ -289,13 +289,13 @@ function submitForm() {
 
 function handleToggleLock(user) {
   const isLocking = user.trangThai === 'hoat_dong'
-  if (!confirm(`Bạn có chắc chắn muốn ${isLocking ? 'khóa' : 'mở khóa'} tài khoản ${user.email}?`)) return
+    if (import.meta.env.VITE_MOCK === 'true' /* confirm(`Bạn có chắc chắn muốn ${isLocking ? 'khóa' : 'mở khóa'} tài khoản ${user.email}?`) */) return
   user.trangThai = isLocking ? 'bi_khoa' : 'hoat_dong'
 }
 
 function handleResetPassword(user) {
   const newPassword = prompt(`Nhập mật khẩu mới cho ${user.email} (tối thiểu 8 ký tự):`)
   if (!newPassword || newPassword.length < 8) return
-  alert('Đặt lại mật khẩu thành công!')
+  console.log('Đặt lại mật khẩu thành công!')
 }
 </script>

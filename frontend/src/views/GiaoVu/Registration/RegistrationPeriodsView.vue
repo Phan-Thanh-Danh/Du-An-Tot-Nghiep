@@ -60,9 +60,9 @@ const filteredPeriods = computed(() => {
 
 // ── Status helpers ───────────────────────────────────────────
 const STATUS_MAP = {
-  open:   { label: 'Đang mở',  dot: 'bg-[var(--lg-success)]', badge: 'lg-badge lg-badge-success' },
-  draft:  { label: 'Bản nháp', dot: 'bg-[var(--lg-warning)]', badge: 'lg-badge lg-badge-warning' },
-  closed: { label: 'Đã đóng',  dot: 'bg-[var(--text-placeholder)]', badge: 'lg-badge surface-solid text-muted border-default' },
+  open:   { label: 'Đang mở',  dot: 'bg-(--lg-success)', badge: 'lg-badge lg-badge-success' },
+  draft:  { label: 'Bản nháp', dot: 'bg-(--lg-warning)', badge: 'lg-badge lg-badge-warning' },
+  closed: { label: 'Đã đóng',  dot: 'bg-(--text-placeholder)', badge: 'lg-badge surface-solid text-muted border-default' },
 }
 const getStatusInfo = s => STATUS_MAP[s] || STATUS_MAP.closed
 
@@ -196,7 +196,7 @@ const stats = computed(() => {
     </div>
 
     <div v-else-if="apiError" class="surface-card border border-card rounded-2xl p-6 flex flex-col items-center justify-center gap-3">
-      <AlertCircle :size="32" class="text-[var(--color-danger-text)]" />
+      <AlertCircle :size="32" class="text-(--color-danger-text)" />
       <p class="text-sm font-bold text-heading">Không thể tải dữ liệu</p>
       <p class="text-xs text-muted">{{ apiError }}</p>
       <button @click="initData" class="lg-button-primary px-4 py-2 text-xs font-bold rounded-xl mt-2">Thử lại</button>
@@ -210,9 +210,9 @@ const stats = computed(() => {
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div
           v-for="stat in [
-            { label: 'Tổng đợt',       value: stats.total, color: 'text-[var(--color-info-text)]', bg: 'bg-[var(--color-info-bg)]' },
-            { label: 'Đang mở',        value: stats.open,  color: 'text-[var(--color-success-text)]', bg: 'bg-[var(--color-success-bg)]' },
-            { label: 'Bản nháp',       value: stats.draft, color: 'text-[var(--color-warning-text)]', bg: 'bg-[var(--color-warning-bg)]' },
+            { label: 'Tổng đợt',       value: stats.total, color: 'text-(--color-info-text)', bg: 'bg-(--color-info-bg)' },
+            { label: 'Đang mở',        value: stats.open,  color: 'text-(--color-success-text)', bg: 'bg-(--color-success-bg)' },
+            { label: 'Bản nháp',       value: stats.draft, color: 'text-(--color-warning-text)', bg: 'bg-(--color-warning-bg)' },
             { label: 'Đã đóng',        value: stats.closed,color: 'text-label',           bg: 'surface-solid' },
           ]"
           :key="stat.label"
@@ -262,16 +262,16 @@ const stats = computed(() => {
               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-[var(--border-default)]">
-            <tr v-for="period in filteredPeriods" :key="period.id" class="group hover:bg-[var(--surface-input)] transition-colors">
+          <tbody class="divide-y divide-(--border-default)">
+            <tr v-for="period in filteredPeriods" :key="period.id" class="group hover:bg-(--surface-input) transition-colors">
               <td class="px-4 py-4">
                 <p class="text-sm font-semibold text-heading leading-tight">{{ period.name }}</p>
-                <p class="text-[11px] font-bold text-[var(--lg-primary)] mt-1 uppercase tracking-tighter">{{ period.semester }}</p>
+                <p class="text-[11px] font-bold text-(--lg-primary) mt-1 uppercase tracking-tighter">{{ period.semester }}</p>
               </td>
               <td class="px-4 py-4">
                 <div class="space-y-1">
                   <div class="flex items-center gap-2 text-xs font-bold text-label">
-                    <Clock :size="14" class="text-[var(--lg-success)]" /> {{ period.openDate }} <ArrowRight :size="12" class="text-placeholder" /> {{ period.closeDate }}
+                    <Clock :size="14" class="text-(--lg-success)" /> {{ period.openDate }} <ArrowRight :size="12" class="text-placeholder" /> {{ period.closeDate }}
                   </div>
                   <div class="flex items-center gap-2 text-[10px] font-medium text-placeholder">
                     <AlertCircle :size="12" /> Hủy môn: {{ period.withdrawDeadline }}
@@ -288,13 +288,13 @@ const stats = computed(() => {
               </td>
               <td class="px-4 py-4 relative">
                 <div class="flex items-center gap-1">
-                  <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--lg-primary)] rounded-lg text-placeholder transition-all" title="Chỉnh sửa" @click="openEdit(period)">
+                  <button class="p-2 hover:bg-(--color-info-bg) hover:text-(--lg-primary) rounded-lg text-placeholder transition-all" title="Chỉnh sửa" @click="openEdit(period)">
                     <Edit3 :size="16" />
                   </button>
-                  <button v-if="period.status === 'draft'" class="p-2 hover:bg-[var(--color-success-bg)] hover:text-[var(--lg-success)] rounded-lg text-placeholder transition-all" title="Mở đăng ký" @click="openOpenConfirm(period)">
+                  <button v-if="period.status === 'draft'" class="p-2 hover:bg-(--color-success-bg) hover:text-(--lg-success) rounded-lg text-placeholder transition-all" title="Mở đăng ký" @click="openOpenConfirm(period)">
                     <CheckCircle2 :size="16" />
                   </button>
-                  <button class="p-2 hover:bg-[var(--surface-solid)] rounded-lg text-placeholder transition-all relative" @click.stop="toggleMenu(period.id)">
+                  <button class="p-2 hover:bg-(--surface-solid) rounded-lg text-placeholder transition-all relative" @click.stop="toggleMenu(period.id)">
                     <MoreVertical :size="16" />
                   </button>
                 </div>
@@ -312,21 +312,21 @@ const stats = computed(() => {
                       @click.stop
                     >
                       <button
-                        class="w-full px-4 py-2.5 text-sm font-bold text-label hover:bg-[var(--color-info-bg)] flex items-center gap-3 transition-all text-left"
+                        class="w-full px-4 py-2.5 text-sm font-bold text-label hover:bg-(--color-info-bg) flex items-center gap-3 transition-all text-left"
                         @click="openEdit(period)"
                       >
                         <Edit3 :size="15" /> Chỉnh sửa
                       </button>
                       <button
                         v-if="period.status === 'open'"
-                        class="w-full px-4 py-2.5 text-sm font-bold text-label hover:bg-[var(--color-warning-bg)] flex items-center gap-3 transition-all text-left"
+                        class="w-full px-4 py-2.5 text-sm font-bold text-label hover:bg-(--color-warning-bg) flex items-center gap-3 transition-all text-left"
                         @click="handleClosePeriod(period)"
                       >
                         <X :size="15" /> Đóng đợt
                       </button>
                       <button
                         v-if="period.status === 'draft'"
-                        class="w-full px-4 py-2.5 text-sm font-bold text-[var(--lg-danger)] hover:bg-[var(--color-danger-bg)] flex items-center gap-3 transition-all text-left"
+                        class="w-full px-4 py-2.5 text-sm font-bold text-(--lg-danger) hover:bg-(--color-danger-bg) flex items-center gap-3 transition-all text-left"
                         @click="handleDeleteDraft(period)"
                       >
                         <X :size="15" /> Xóa bản nháp
@@ -349,7 +349,7 @@ const stats = computed(() => {
           </div>
           <p class="text-base font-semibold text-heading">Không tìm thấy đợt nào</p>
           <p class="text-sm text-label mt-1">Thử thay đổi từ khóa tìm kiếm.</p>
-          <button v-if="searchQuery" class="mt-3 text-sm font-bold text-[var(--lg-primary)] hover:underline" @click="searchQuery = ''">Xóa tìm kiếm</button>
+          <button v-if="searchQuery" class="mt-3 text-sm font-bold text-(--lg-primary) hover:underline" @click="searchQuery = ''">Xóa tìm kiếm</button>
         </div>
       </div>
 
@@ -357,18 +357,18 @@ const stats = computed(() => {
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="lg-glass-soft p-5 rounded-2xl border border-default">
           <div class="flex gap-4">
-            <div class="h-10 w-10 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] shrink-0">
+            <div class="h-10 w-10 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) shrink-0">
                <ShieldCheck :size="20" />
             </div>
             <div>
               <h4 class="text-sm font-semibold text-heading">Quy tắc đăng ký</h4>
               <ul class="mt-2 space-y-2">
                 <li class="text-xs text-label flex items-start gap-2">
-                  <div class="h-1 w-1 rounded-full bg-[var(--lg-primary)] mt-1.5 shrink-0"></div>
+                  <div class="h-1 w-1 rounded-full bg-(--lg-primary) mt-1.5 shrink-0"></div>
                   Sinh viên chỉ có thể đăng ký khi đợt ở trạng thái <strong class="text-heading">Đang mở</strong>.
                 </li>
                 <li class="text-xs text-label flex items-start gap-2">
-                  <div class="h-1 w-1 rounded-full bg-[var(--lg-primary)] mt-1.5 shrink-0"></div>
+                  <div class="h-1 w-1 rounded-full bg-(--lg-primary) mt-1.5 shrink-0"></div>
                   Hệ thống tự động kiểm tra tín chỉ tối đa đã cấu hình.
                 </li>
               </ul>
@@ -378,7 +378,7 @@ const stats = computed(() => {
 
         <div class="lg-glass-soft p-5 rounded-2xl border border-default">
           <div class="flex gap-4">
-            <div class="h-10 w-10 rounded-xl bg-[var(--color-warning-bg)] flex items-center justify-center text-[var(--color-warning-text)] shrink-0">
+            <div class="h-10 w-10 rounded-xl bg-(--color-warning-bg) flex items-center justify-center text-(--color-warning-text) shrink-0">
                <Settings :size="20" />
             </div>
             <div>
@@ -420,7 +420,7 @@ const stats = computed(() => {
                 </div>
               </div>
               <button
-                class="h-8 w-8 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-muted transition-all"
+                class="h-8 w-8 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-muted transition-all"
                 @click="closeCreate"
               >
                 <X :size="16" />
@@ -431,7 +431,7 @@ const stats = computed(() => {
           <div class="p-6 space-y-5">
             <div>
               <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">
-                Tên đợt <span class="text-[var(--lg-danger)]">*</span>
+                Tên đợt <span class="text-(--lg-danger)">*</span>
               </label>
               <input
                 v-model="createForm.name"
@@ -456,7 +456,7 @@ const stats = computed(() => {
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">
-                  Ngày mở <span class="text-[var(--lg-danger)]">*</span>
+                  Ngày mở <span class="text-(--lg-danger)">*</span>
                 </label>
                 <input
                   v-model="createForm.openDate"
@@ -467,7 +467,7 @@ const stats = computed(() => {
               </div>
               <div>
                 <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">
-                  Ngày đóng <span class="text-[var(--lg-danger)]">*</span>
+                  Ngày đóng <span class="text-(--lg-danger)">*</span>
                 </label>
                 <input
                   v-model="createForm.closeDate"
@@ -548,7 +548,7 @@ const stats = computed(() => {
                 </div>
               </div>
               <button
-                class="h-8 w-8 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-muted transition-all"
+                class="h-8 w-8 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-muted transition-all"
                 @click="closeEdit"
               >
                 <X :size="16" />
@@ -558,7 +558,7 @@ const stats = computed(() => {
 
           <div class="p-6 space-y-5">
             <div>
-              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Tên đợt <span class="text-[var(--lg-danger)]">*</span></label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Tên đợt <span class="text-(--lg-danger)">*</span></label>
               <input
                 v-model="editForm.name"
                 type="text"
@@ -580,7 +580,7 @@ const stats = computed(() => {
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Ngày mở <span class="text-[var(--lg-danger)]">*</span></label>
+                <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Ngày mở <span class="text-(--lg-danger)">*</span></label>
                 <input
                   v-model="editForm.openDate"
                   type="date"
@@ -589,7 +589,7 @@ const stats = computed(() => {
                 />
               </div>
               <div>
-                <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Ngày đóng <span class="text-[var(--lg-danger)]">*</span></label>
+                <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Ngày đóng <span class="text-(--lg-danger)">*</span></label>
                 <input
                   v-model="editForm.closeDate"
                   type="date"
@@ -658,7 +658,7 @@ const stats = computed(() => {
 
         <div class="relative w-full max-w-md surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
           <div class="p-6 text-center">
-            <div class="h-16 w-16 rounded-3xl bg-[var(--color-success-bg)] flex items-center justify-center text-[var(--color-success-text)] mx-auto mb-4">
+            <div class="h-16 w-16 rounded-3xl bg-(--color-success-bg) flex items-center justify-center text-(--color-success-text) mx-auto mb-4">
               <CheckCircle2 :size="28" />
             </div>
             <h3 class="text-xl font-semibold text-heading">Mở đợt đăng ký?</h3>
@@ -676,8 +676,8 @@ const stats = computed(() => {
               :class="[
                 'px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all flex items-center gap-2',
                 isOpening
-                  ? 'bg-[var(--lg-success)] opacity-60 cursor-not-allowed'
-                  : 'bg-[var(--lg-success)] hover:opacity-90'
+                  ? 'bg-(--lg-success) opacity-60 cursor-not-allowed'
+                  : 'bg-(--lg-success) hover:opacity-90'
               ]"
               :disabled="isOpening"
               @click="confirmOpen"

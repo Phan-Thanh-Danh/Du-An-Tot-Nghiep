@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <script setup>
  
 import { computed } from 'vue'
@@ -66,7 +67,7 @@ const labelMap = {
   curriculum: 'Khung chương trình',
   'academic-terms': 'Học kỳ',
   'audit-logs': 'Kiểm toán',
-  facilities: 'Cơ sở vật chất',
+  facilities: 'Cơ sở vật chất'
 }
 
 const crumbs = computed(() => {
@@ -84,7 +85,11 @@ const crumbs = computed(() => {
   let current = ''
   for (const part of parts) {
     current += '/' + part
-    const label = labelMap[part] || part.charAt(0).toUpperCase() + part.slice(1)
+    let label = labelMap[part] || part.charAt(0).toUpperCase() + part.slice(1)
+    if (route.path.startsWith('/staff') || route.path.startsWith('/bgh')) {
+      if (part === 'assignments') label = 'Phân công GV'
+      if (part === 'staff') label = 'Giáo vụ'
+    }
     result.push({ label, path: current })
   }
   return result

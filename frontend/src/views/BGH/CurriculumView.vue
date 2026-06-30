@@ -5,7 +5,7 @@
         <h2 class="sr-only text-xl font-bold text-heading">Khung chương trình</h2>
         <p class="text-xs text-muted mt-1">Chi tiết môn học theo từng học kỳ trong chương trình đào tạo</p>
       </div>
-      <select v-model="selectedProgram" class="px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)] min-w-[240px]">
+      <select v-model="selectedProgram" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary) min-w-[240px]">
         <option v-for="p in programs" :key="p.maChuongTrinh" :value="p.maChuongTrinh">{{ p.tenChuongTrinh }}</option>
       </select>
     </div>
@@ -23,16 +23,16 @@
     </div>
 
     <div v-for="semester in semesters" :key="semester.maChuongTrinhHocKy" class="surface-card border border-card rounded-2xl overflow-hidden shadow-sm">
-      <div class="px-5 py-3 bg-[var(--surface-input)]/30 border-b border-default flex items-center justify-between">
+      <div class="px-5 py-3 bg-(--surface-input)/30 border-b border-default flex items-center justify-between">
         <h3 class="text-sm font-bold text-heading flex items-center gap-2">
-          <span class="h-6 w-6 rounded-lg bg-[var(--lg-primary)] text-white flex items-center justify-center text-[11px] font-bold">{{ semester.thuTuHocKy }}</span>
+          <span class="h-6 w-6 rounded-lg bg-(--lg-primary) text-white flex items-center justify-center text-[11px] font-bold">{{ semester.thuTuHocKy }}</span>
           Học kỳ {{ semester.thuTuHocKy }}
         </h3>
         <span class="text-xs text-muted">{{ semester.subjects.length }} môn · {{ semester.totalCredits }} tín chỉ</span>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm text-body whitespace-nowrap">
-          <thead class="bg-[var(--surface-card)] border-b border-default">
+          <thead class="bg-(--surface-card) border-b border-default">
             <tr>
               <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Mã môn</th>
               <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Tên môn học</th>
@@ -44,24 +44,24 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
-            <tr v-for="sub in semester.subjects" :key="sub.maChuongTrinhMonHoc" class="hover:bg-[var(--surface-input)]/50 transition-colors">
+            <tr v-for="sub in semester.subjects" :key="sub.maChuongTrinhMonHoc" class="hover:bg-(--surface-input)/50 transition-colors">
               <td class="px-4 py-2.5">
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-[var(--surface-input)] text-heading border border-default">{{ sub.maCodeMonHoc }}</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-(--surface-input) text-heading border border-default">{{ sub.maCodeMonHoc }}</span>
               </td>
               <td class="px-4 py-2.5 font-semibold text-heading">{{ sub.tenMonHoc }}</td>
               <td class="px-4 py-2.5">
                 <span class="font-bold text-heading">{{ sub.soTinChi }}</span>
               </td>
               <td class="px-4 py-2.5">
-                <span class="text-xs px-2 py-0.5 rounded bg-[var(--surface-input)] text-muted border border-default">{{ sub.loaiMonHoc }}</span>
+                <span class="text-xs px-2 py-0.5 rounded bg-(--surface-input) text-muted border border-default">{{ sub.loaiMonHoc }}</span>
               </td>
               <td class="px-4 py-2.5">
-                <span v-if="sub.batBuoc" class="text-[var(--color-success-text)] bg-[var(--color-success-bg)] px-2 py-0.5 rounded text-xs font-bold">Bắt buộc</span>
-                <span v-else class="text-muted bg-[var(--surface-input)] px-2 py-0.5 rounded text-xs">Tự chọn</span>
+                <span v-if="sub.batBuoc" class="text-(--color-success-text) bg-(--color-success-bg) px-2 py-0.5 rounded text-xs font-bold">Bắt buộc</span>
+                <span v-else class="text-muted bg-(--surface-input) px-2 py-0.5 rounded text-xs">Tự chọn</span>
               </td>
               <td class="px-4 py-2.5 text-muted">{{ sub.thuTu }}</td>
               <td class="px-4 py-2.5">
-                <span :class="sub.conHoatDong ? 'text-[var(--color-success-text)]' : 'text-[var(--color-danger-text)]'" class="text-xs font-bold">
+                <span :class="sub.conHoatDong ? 'text-(--color-success-text)' : 'text-(--color-danger-text)'" class="text-xs font-bold">
                   {{ sub.conHoatDong ? 'Hoạt động' : 'Ngừng' }}
                 </span>
               </td>
@@ -164,9 +164,9 @@ const semesters = computed(() => {
 
 function statusBadge(status) {
   switch (status) {
-    case 'active': return 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]'
-    case 'approved': return 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]'
-    default: return 'bg-[var(--surface-input)] text-muted'
+    case 'active': return 'bg-(--color-success-bg) text-(--color-success-text)'
+    case 'approved': return 'bg-(--color-info-bg) text-(--color-info-text)'
+    default: return 'bg-(--surface-input) text-muted'
   }
 }
 

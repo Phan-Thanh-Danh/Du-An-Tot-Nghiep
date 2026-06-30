@@ -139,6 +139,18 @@ export const sinhVienMenuGroups = [
     icon: 'User',
     children: [
       {
+        id: 'rewards',
+        label: 'Thành tích',
+        icon: 'Award',
+        route: '/student/rewards',
+      },
+      {
+        id: 'discipline',
+        label: 'Kỷ luật',
+        icon: 'ShieldAlert',
+        route: '/student/discipline',
+      },
+      {
         id: 'evaluations',
         label: 'Đánh giá giảng viên',
         icon: 'Star',

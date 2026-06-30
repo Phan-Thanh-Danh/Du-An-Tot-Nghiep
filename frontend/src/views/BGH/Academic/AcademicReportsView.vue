@@ -33,7 +33,7 @@ const activeTab = ref('Class')
       <!-- ── Report Generator Controls ── -->
       <div class="surface-card border border-card rounded-2xl p-5">
          <div class="flex items-center gap-4 mb-8">
-            <div class="h-10 w-10 rounded-2xl bg-[var(--color-info-bg)] text-[var(--color-info-text)] flex items-center justify-center shadow-sm border border-[var(--color-info-text)]/20">
+            <div class="h-10 w-10 rounded-2xl bg-(--color-info-bg) text-(--color-info-text) flex items-center justify-center shadow-sm border border-(--color-info-text)/20">
                <FileSearch :size="24" />
             </div>
             <div>
@@ -94,12 +94,12 @@ const activeTab = ref('Class')
                  :class="['pb-4 text-xs font-semibold uppercase tracking-widest relative transition-all', activeTab === tab ? 'text-link' : 'text-muted hover:text-heading']"
                >
                   Báo cáo {{ tab }}
-                  <div v-if="activeTab === tab" class="absolute bottom-0 left-0 right-0 h-1 bg-[var(--lg-primary)] rounded-full"></div>
+                  <div v-if="activeTab === tab" class="absolute bottom-0 left-0 right-0 h-1 bg-(--lg-primary) rounded-full"></div>
                </button>
             </div>
             <div class="flex items-center gap-2">
-               <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-muted transition-colors"><Printer :size="18" /></button>
-               <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-muted transition-colors"><Share2 :size="18" /></button>
+               <button class="p-2 hover:bg-(--surface-input) rounded-lg text-muted transition-colors"><Printer :size="18" /></button>
+               <button class="p-2 hover:bg-(--surface-input) rounded-lg text-muted transition-colors"><Share2 :size="18" /></button>
             </div>
          </div>
 
@@ -108,14 +108,14 @@ const activeTab = ref('Class')
             <div 
               v-for="rpt in reports" 
               :key="rpt.id" 
-              class="surface-card border border-card rounded-2xl p-4 group hover:border-[var(--border-input-focus)] transition-all"
+              class="surface-card border border-card rounded-2xl p-4 group hover:border-(--border-input-focus) transition-all"
             >
                <div class="flex items-start justify-between mb-4">
-                  <div :class="['h-10 w-10 rounded-xl flex items-center justify-center shadow-sm border', rpt.status === 'generating' ? 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--color-warning-text)]/20 animate-pulse' : 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-info-text)]/20']">
+                  <div :class="['h-10 w-10 rounded-xl flex items-center justify-center shadow-sm border', rpt.status === 'generating' ? 'bg-(--color-warning-bg) text-(--color-warning-text) border-(--color-warning-text)/20 animate-pulse' : 'bg-(--color-info-bg) text-(--color-info-text) border-(--color-info-text)/20']">
                      <FileSearch v-if="rpt.status === 'ready'" :size="20" />
                      <Clock v-else :size="20" />
                   </div>
-                  <span :class="['text-[9px] font-semibold uppercase tracking-widest px-2 py-1 rounded-lg border', rpt.status === 'ready' ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success-text)]/20' : 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--color-warning-text)]/20']">
+                  <span :class="['text-[9px] font-semibold uppercase tracking-widest px-2 py-1 rounded-lg border', rpt.status === 'ready' ? 'bg-(--color-success-bg) text-(--color-success-text) border-(--color-success-text)/20' : 'bg-(--color-warning-bg) text-(--color-warning-text) border-(--color-warning-text)/20']">
                      {{ rpt.status }}
                   </span>
                </div>

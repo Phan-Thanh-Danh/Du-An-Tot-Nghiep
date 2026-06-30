@@ -120,13 +120,13 @@ function goBack() {
         >
           <div
             v-if="dropdownOpen"
-            class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-card p-1 shadow-[var(--lg-shadow-md)]"
+            class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-card p-1 shadow-(--lg-shadow-md)"
           >
             <button
               v-for="child in childrenData"
               :key="child.id"
               type="button"
-              class="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-label transition hover:bg-[var(--surface-card-hover)]"
+              class="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-label transition hover:bg-(--surface-card-hover)"
               @click="selectChild(child.id)"
             >
               <span>{{ child.name }} ({{ child.class }})</span>
@@ -257,7 +257,7 @@ function goBack() {
             
             <a
               href="tel:0901234567"
-              class="w-full py-2 surface-input border border-card hover:bg-[var(--surface-card-hover)] text-label text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition"
+              class="w-full py-2 surface-input border border-card hover:bg-(--surface-card-hover) text-label text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition"
             >
               <PhoneCall :size="13" /> Gọi điện trực tiếp
             </a>

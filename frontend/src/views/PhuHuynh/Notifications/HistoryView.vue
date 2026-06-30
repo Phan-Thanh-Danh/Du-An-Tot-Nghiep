@@ -192,13 +192,13 @@ function goBack() {
         >
           <div
             v-if="dropdownOpen"
-            class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-card p-1 shadow-[var(--lg-shadow-md)]"
+            class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-card p-1 shadow-(--lg-shadow-md)"
           >
             <button
               v-for="child in childrenData"
               :key="child.id"
               type="button"
-              class="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-label transition hover:bg-[var(--surface-card-hover)]"
+              class="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-label transition hover:bg-(--surface-card-hover)"
               @click="selectChild(child.id)"
             >
               <span>{{ child.name }} ({{ child.class }})</span>

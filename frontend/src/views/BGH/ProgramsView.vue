@@ -6,7 +6,7 @@
         <p class="text-xs text-muted mt-1">Chương trình đào tạo theo chuyên ngành và khóa tuyển sinh</p>
       </div>
       <div class="flex gap-2">
-        <select v-model="statusFilter" class="px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
+        <select v-model="statusFilter" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả trạng thái</option>
           <option value="active">Đang hoạt động</option>
           <option value="draft">Bản thảo</option>
@@ -40,7 +40,7 @@
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <button @click="toggleExpand(prog.maChuongTrinh)" class="flex items-center gap-1 px-3 py-1.5 border border-input rounded-lg text-xs font-bold text-body hover:bg-[var(--surface-input)] transition-colors">
+            <button @click="toggleExpand(prog.maChuongTrinh)" class="flex items-center gap-1 px-3 py-1.5 border border-input rounded-lg text-xs font-bold text-body hover:bg-(--surface-input) transition-colors">
               <ChevronDown v-if="expandedId === prog.maChuongTrinh" :size="14" />
               <ChevronRight v-else :size="14" />
               Chi tiết
@@ -107,12 +107,12 @@ const filteredPrograms = computed(() => {
 
 function statusBadge(status) {
   switch (status) {
-    case 'active': return 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]'
-    case 'draft': return 'bg-[var(--surface-input)] text-muted'
-    case 'pending_approval': return 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]'
-    case 'approved': return 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]'
-    case 'archived': return 'bg-[var(--color-danger-bg)]/50 text-muted'
-    default: return 'bg-[var(--surface-input)] text-muted'
+    case 'active': return 'bg-(--color-success-bg) text-(--color-success-text)'
+    case 'draft': return 'bg-(--surface-input) text-muted'
+    case 'pending_approval': return 'bg-(--color-warning-bg) text-(--color-warning-text)'
+    case 'approved': return 'bg-(--color-info-bg) text-(--color-info-text)'
+    case 'archived': return 'bg-(--color-danger-bg)/50 text-muted'
+    default: return 'bg-(--surface-input) text-muted'
   }
 }
 

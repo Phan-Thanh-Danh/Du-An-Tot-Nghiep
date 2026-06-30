@@ -154,7 +154,7 @@ watch(mobileSidebarOpen, (open) => {
               </template>
               <template #fallback>
                 <div class="flex flex-col items-center justify-center py-20">
-                  <div class="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border-default)] border-t-[var(--accent-primary)]" />
+                  <div class="h-8 w-8 animate-spin rounded-full border-2 border-(--border-default) border-t-(--accent-primary)" />
                   <p class="mt-4 text-sm font-medium text-body">Đang tải dữ liệu...</p>
                 </div>
               </template>

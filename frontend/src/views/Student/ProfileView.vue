@@ -220,7 +220,7 @@ if (isFirstLogin.value) {
           <h2 class="pane-title">Bảo mật tài khoản</h2>
           
           <div class="security-panel">
-            <div class="sp-icon"><Key :size="24" class="text-[var(--text-link)]"/></div>
+            <div class="sp-icon"><Key :size="24" class="text-(--text-link)"/></div>
             <div class="sp-content">
               <h3>Thay đổi mật khẩu</h3>
               <p>Mật khẩu cần có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số.</p>
@@ -251,10 +251,10 @@ if (isFirstLogin.value) {
           <h2 class="pane-title">Hồ sơ Khen thưởng & Kỷ luật</h2>
           
           <!-- Awards -->
-          <h3 class="pane-subtitle flex items-center gap-2 text-[var(--color-success-text)]"><Award :size="18"/> Bằng khen & Thành tích</h3>
+          <h3 class="pane-subtitle flex items-center gap-2 text-(--color-success-text)"><Award :size="18"/> Bằng khen & Thành tích</h3>
           <div class="cards-list mb-4">
             <div v-for="aw in awards" :key="aw.id" class="award-card">
-              <div class="ac-icon"><Award :size="24" class="text-[var(--color-warning-text)]"/></div>
+              <div class="ac-icon"><Award :size="24" class="text-(--color-warning-text)"/></div>
               <div class="ac-info">
                 <h4>{{ aw.title }}</h4>
                 <div class="ac-meta">
@@ -273,13 +273,13 @@ if (isFirstLogin.value) {
           </div>
 
           <!-- Disciplines -->
-          <h3 class="pane-subtitle flex items-center gap-2 text-[var(--color-danger-text)]"><AlertCircle :size="18"/> Hồ sơ Kỷ luật</h3>
+          <h3 class="pane-subtitle flex items-center gap-2 text-(--color-danger-text)"><AlertCircle :size="18"/> Hồ sơ Kỷ luật</h3>
           <div class="cards-list">
             <div v-for="dc in disciplines" :key="dc.id" class="discipline-card">
               <!-- Render disciplines if any -->
             </div>
             <div v-if="disciplines.length === 0" class="empty-state success">
-              <CheckCircle2 :size="20" class="text-[var(--color-success-text)] mb-2 mx-auto"/>
+              <CheckCircle2 :size="20" class="text-(--color-success-text) mb-2 mx-auto"/>
               Hồ sơ trong sạch. Không có ghi nhận kỷ luật nào.
             </div>
           </div>
@@ -288,7 +288,7 @@ if (isFirstLogin.value) {
         <!-- Tab 4: Parents -->
         <div v-show="activeTab === 'parents'" class="tab-pane">
           <h2 class="pane-title">Quản lý Liên kết Phụ huynh</h2>
-          <p class="text-sm text-[var(--text-muted)] mb-4">Bạn có thể cấp quyền truy cập để gia đình/người giám hộ theo dõi tiến độ học tập. Tối đa 3 tài khoản liên kết.</p>
+          <p class="text-sm text-(--text-muted) mb-4">Bạn có thể cấp quyền truy cập để gia đình/người giám hộ theo dõi tiến độ học tập. Tối đa 3 tài khoản liên kết.</p>
 
           <div class="parents-list mb-8">
             <div v-for="(parent, idx) in parents" :key="parent.id" class="parent-card">
@@ -304,7 +304,7 @@ if (isFirstLogin.value) {
                   <span class="status-badge-sm" :class="parent.status === 'Connected' ? 'badge-sm-success' : 'badge-sm-inactive'">
                     {{ parent.status === 'Connected' ? 'Đã liên kết' : 'Chờ xác nhận' }}
                   </span>
-                  <button class="btn-icon text-[var(--color-danger-text)] hover:bg-[var(--color-danger-bg)]" title="Thu hồi & Hủy liên kết" @click="removeParent(idx)">
+                  <button class="btn-icon text-(--color-danger-text) hover:bg-(--color-danger-bg)" title="Thu hồi & Hủy liên kết" @click="removeParent(idx)">
                     <Trash2 :size="16"/>
                   </button>
                 </div>
@@ -317,25 +317,25 @@ if (isFirstLogin.value) {
                   <div class="perm-item">
                     <span>Điểm thi & Học tập</span>
                     <button class="toggle-btn" :class="{'active': parent.permissions.grades}" @click="togglePermission(parent, 'grades')">
-                      <component :is="parent.permissions.grades ? ToggleRight : ToggleLeft" :size="24" :class="parent.permissions.grades ? 'text-[var(--text-link)]' : 'text-[var(--text-placeholder)]'"/>
+                      <component :is="parent.permissions.grades ? ToggleRight : ToggleLeft" :size="24" :class="parent.permissions.grades ? 'text-(--text-link)' : 'text-(--text-placeholder)'"/>
                     </button>
                   </div>
                   <div class="perm-item">
                     <span>Điểm danh & Chuyên cần</span>
                     <button class="toggle-btn" :class="{'active': parent.permissions.attendance}" @click="togglePermission(parent, 'attendance')">
-                      <component :is="parent.permissions.attendance ? ToggleRight : ToggleLeft" :size="24" :class="parent.permissions.attendance ? 'text-[var(--text-link)]' : 'text-[var(--text-placeholder)]'"/>
+                      <component :is="parent.permissions.attendance ? ToggleRight : ToggleLeft" :size="24" :class="parent.permissions.attendance ? 'text-(--text-link)' : 'text-(--text-placeholder)'"/>
                     </button>
                   </div>
                   <div class="perm-item">
                     <span>Công nợ & Học phí</span>
                     <button class="toggle-btn" :class="{'active': parent.permissions.finance}" @click="togglePermission(parent, 'finance')">
-                      <component :is="parent.permissions.finance ? ToggleRight : ToggleLeft" :size="24" :class="parent.permissions.finance ? 'text-[var(--text-link)]' : 'text-[var(--text-placeholder)]'"/>
+                      <component :is="parent.permissions.finance ? ToggleRight : ToggleLeft" :size="24" :class="parent.permissions.finance ? 'text-(--text-link)' : 'text-(--text-placeholder)'"/>
                     </button>
                   </div>
                   <div class="perm-item">
                     <span>Thời khóa biểu</span>
                     <button class="toggle-btn" :class="{'active': parent.permissions.schedule}" @click="togglePermission(parent, 'schedule')">
-                      <component :is="parent.permissions.schedule ? ToggleRight : ToggleLeft" :size="24" :class="parent.permissions.schedule ? 'text-[var(--text-link)]' : 'text-[var(--text-placeholder)]'"/>
+                      <component :is="parent.permissions.schedule ? ToggleRight : ToggleLeft" :size="24" :class="parent.permissions.schedule ? 'text-(--text-link)' : 'text-(--text-placeholder)'"/>
                     </button>
                   </div>
                 </div>

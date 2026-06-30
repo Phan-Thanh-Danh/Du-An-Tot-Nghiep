@@ -573,7 +573,7 @@ function saveToLocalStorage(status) {
     <Teleport to="body">
       <Transition name="modal-fade">
         <div v-if="showBankModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" @click.self="showBankModal = false">
-          <div class="relative flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-card bg-surface-modal shadow-[var(--lg-shadow-md)] animate-modal-in">
+          <div class="relative flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-card bg-surface-modal shadow-(--lg-shadow-md) animate-modal-in">
             <div class="flex items-center justify-between border-b border-card px-4 py-3">
               <div class="flex items-center gap-3">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg" style="background:var(--color-info-bg);color:var(--color-info-text)">
@@ -654,7 +654,7 @@ function saveToLocalStorage(status) {
     <Teleport to="body">
       <Transition name="modal-fade">
         <div v-if="showCreatorModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" @click.self="showCreatorModal = false">
-          <div class="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-card bg-surface-modal shadow-[var(--lg-shadow-md)] animate-modal-in">
+          <div class="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-card bg-surface-modal shadow-(--lg-shadow-md) animate-modal-in">
             <div class="flex items-center justify-between border-b border-card px-4 py-3">
               <div class="flex items-center gap-3">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg" style="background:var(--color-info-bg);color:var(--color-info-text)">

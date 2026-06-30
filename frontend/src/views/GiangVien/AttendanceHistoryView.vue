@@ -1,532 +1,553 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
-  Search,
-  Calendar,
-  Filter,
-  Download,
-  ChevronRight,
-  ArrowUpDown,
-  Clock,
-  Users,
+  CalendarDays,
   CheckCircle2,
-  AlertTriangle,
-  BookOpen,
+  Clock3,
+  Eye,
+  FilePenLine,
+  History,
+  LockKeyhole,
+  Search,
+  Send,
+  UnlockKeyhole,
+  Users,
   X,
-  Edit3,
-  Save,
-  AlertCircle,
 } from 'lucide-vue-next'
 
+import EmptyState from '@/components/ui/EmptyState.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import {
+  getTeacherAttendanceHistory,
+  getTeacherUnlockRequests,
+} from '@/mocks/scheduleAttendanceMockData'
+import { usePopupStore } from '@/stores/popup'
+import { formatDate, formatDateTime, formatTimeRange } from '@/utils/dateFormat'
+import { getStatusMeta, getStatusOptions } from '@/utils/statusLabels'
 
-const attendanceHistory = ref([
-  { id: 1, date: '12/05/2026', className: 'SE1601 - Java', absences: 3, total: 30, time: '07:30', room: 'A201' },
-  { id: 2, date: '11/05/2026', className: 'SS1402 - Web', absences: 5, total: 32, time: '12:30', room: 'B305' },
-  { id: 3, date: '10/05/2026', className: 'SE1601 - Java', absences: 1, total: 30, time: '07:30', room: 'A201' },
-  { id: 4, date: '08/05/2026', className: 'SA1709 - DB', absences: 0, total: 25, time: '09:45', room: 'C102' },
-])
+const popupStore = usePopupStore()
 
-// Mock data for student list per session
-const sessionStudentsMock = ref({
-  1: [
-    { id: 'SV16001', name: 'Nguyễn Văn Anh', status: 'Present', time: '07:25', note: '' },
-    { id: 'SV16002', name: 'Trần Thị Bình', status: 'Present', time: '07:28', note: '' },
-    { id: 'SV16003', name: 'Lê Hoàng Cường', status: 'Late', time: '07:42', note: 'Kẹt xe đường Cộng Hòa' },
-    { id: 'SV16004', name: 'Phạm Minh Danh', status: 'Absent', time: '--', note: 'Không lý do' },
-    { id: 'SV16005', name: 'Đỗ Thùy Dương', status: 'Present', time: '07:18', note: '' },
-    { id: 'SV16006', name: 'Nguyễn Tiến Đạt', status: 'Present', time: '07:22', note: '' },
-    { id: 'SV16007', name: 'Vũ Thị Giang', status: 'Absent', time: '--', note: 'Có phép (Bị ốm sốt)' },
-    { id: 'SV16008', name: 'Lê Minh Hải', status: 'Present', time: '07:29', note: '' },
-    { id: 'SV16009', name: 'Phạm Thanh Hương', status: 'Absent', time: '--', note: 'Nghỉ không phép' },
-    { id: 'SV16010', name: 'Nguyễn Hữu Khánh', status: 'Present', time: '07:24', note: '' }
-  ],
-  2: [
-    { id: 'SV14001', name: 'Nguyễn Văn Anh', status: 'Present', time: '12:20', note: '' },
-    { id: 'SV14002', name: 'Trần Thị Bình', status: 'Absent', time: '--', note: 'Nghỉ có phép' },
-    { id: 'SV14003', name: 'Lê Hoàng Cường', status: 'Present', time: '12:25', note: '' },
-    { id: 'SV14004', name: 'Phạm Minh Danh', status: 'Absent', time: '--', note: 'Nghỉ không phép' },
-    { id: 'SV14005', name: 'Đỗ Thùy Dương', status: 'Late', time: '12:45', note: 'Hỏng xe giữa đường' },
-    { id: 'SV14006', name: 'Nguyễn Tiến Đạt', status: 'Absent', time: '--', note: 'Không phép' },
-    { id: 'SV14007', name: 'Vũ Thị Giang', status: 'Absent', time: '--', note: 'Không phép' },
-    { id: 'SV14008', name: 'Lê Minh Hải', status: 'Present', time: '12:15', note: '' },
-    { id: 'SV14009', name: 'Phạm Thanh Hương', status: 'Absent', time: '--', note: 'Không phép' },
-    { id: 'SV14010', name: 'Nguyễn Hữu Khánh', status: 'Present', time: '12:22', note: '' }
-  ],
-  3: [
-    { id: 'SV16001', name: 'Nguyễn Văn Anh', status: 'Present', time: '07:22', note: '' },
-    { id: 'SV16002', name: 'Trần Thị Bình', status: 'Present', time: '07:25', note: '' },
-    { id: 'SV16003', name: 'Lê Hoàng Cường', status: 'Present', time: '07:27', note: '' },
-    { id: 'SV16004', name: 'Phạm Minh Danh', status: 'Present', time: '07:29', note: '' },
-    { id: 'SV16005', name: 'Đỗ Thùy Dương', status: 'Present', time: '07:15', note: '' },
-    { id: 'SV16006', name: 'Nguyễn Tiến Đạt', status: 'Present', time: '07:20', note: '' },
-    { id: 'SV16007', name: 'Vũ Thị Giang', status: 'Present', time: '07:22', note: '' },
-    { id: 'SV16008', name: 'Lê Minh Hải', status: 'Present', time: '07:24', note: '' },
-    { id: 'SV16009', name: 'Phạm Thanh Hương', status: 'Absent', time: '--', note: 'Đi muộn quá giờ' },
-    { id: 'SV16010', name: 'Nguyễn Hữu Khánh', status: 'Present', time: '07:21', note: '' }
-  ],
-  4: [
-    { id: 'SV17001', name: 'Nguyễn Văn Anh', status: 'Present', time: '09:35', note: '' },
-    { id: 'SV17002', name: 'Trần Thị Bình', status: 'Present', time: '09:40', note: '' },
-    { id: 'SV17003', name: 'Lê Hoàng Cường', status: 'Present', time: '09:42', note: '' },
-    { id: 'SV17004', name: 'Phạm Minh Danh', status: 'Present', time: '09:45', note: '' },
-    { id: 'SV17005', name: 'Đỗ Thùy Dương', status: 'Present', time: '09:30', note: '' },
-    { id: 'SV17006', name: 'Nguyễn Tiến Đạt', status: 'Present', time: '09:33', note: '' },
-    { id: 'SV17007', name: 'Vũ Thị Giang', status: 'Present', time: '09:38', note: '' },
-    { id: 'SV17008', name: 'Lê Minh Hải', status: 'Present', time: '09:41', note: '' },
-    { id: 'SV17009', name: 'Phạm Thanh Hương', status: 'Present', time: '09:43', note: '' },
-    { id: 'SV17010', name: 'Nguyễn Hữu Khánh', status: 'Present', time: '09:44', note: '' }
-  ]
+const sessions = ref(getTeacherAttendanceHistory())
+const unlockRequests = ref(getTeacherUnlockRequests())
+
+const searchQuery = ref('')
+const selectedCourse = ref('')
+const selectedStatus = ref('')
+const dateFrom = ref('')
+const dateTo = ref('')
+const selectedSessionId = ref('')
+const isUnlockModalOpen = ref(false)
+const unlockReason = ref('')
+const unlockNote = ref('')
+const formSubmitted = ref(false)
+
+const sessionStatusOptions = getStatusOptions('session').filter((option) =>
+  ['da_gui', 'da_khoa', 'da_huy'].includes(option.value),
+)
+
+const courseOptions = computed(() => {
+  const seen = new Map()
+  sessions.value.forEach((session) => {
+    const key = `${session.courseCode}-${session.className}`
+    if (!seen.has(key)) {
+      seen.set(key, {
+        value: key,
+        label: `${session.courseCode} · ${session.className}`,
+      })
+    }
+  })
+  return Array.from(seen.values())
 })
 
-// Search & Filter History
-const historySearch = ref('')
-const historyDate = ref('')
+const filteredSessions = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  const from = dateFrom.value ? new Date(dateFrom.value) : null
+  const to = dateTo.value ? new Date(dateTo.value) : null
 
-const filteredHistory = computed(() => {
-  return attendanceHistory.value.filter(item => {
-    const matchSearch = item.className.toLowerCase().includes(historySearch.value.toLowerCase()) ||
-                        item.room.toLowerCase().includes(historySearch.value.toLowerCase())
+  return sessions.value.filter((session) => {
+    const sessionDate = new Date(session.date)
+    const matchesSearch =
+      !query ||
+      session.subject.toLowerCase().includes(query) ||
+      session.courseCode.toLowerCase().includes(query) ||
+      session.className.toLowerCase().includes(query) ||
+      session.room.toLowerCase().includes(query)
+    const matchesCourse = !selectedCourse.value || `${session.courseCode}-${session.className}` === selectedCourse.value
+    const matchesStatus = !selectedStatus.value || session.status === selectedStatus.value
+    const matchesFrom = !from || sessionDate >= from
+    const matchesTo = !to || sessionDate <= to
 
-    let matchDate = true
-    if (historyDate.value) {
-      const parts = historyDate.value.split('-')
-      const formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`
-      matchDate = item.date === formattedDate
-    }
-
-    return matchSearch && matchDate
+    return matchesSearch && matchesCourse && matchesStatus && matchesFrom && matchesTo
   })
 })
 
-// Selected Session Detail state
-const selectedSession = ref(null)
-const isDetailModalOpen = ref(false)
-const activeStudents = ref([])
-const activeSearchQuery = ref('')
-const activeFilterStatus = ref('')
-const isEditing = ref(false)
+const selectedSession = computed(() =>
+  sessions.value.find((session) => session.id === selectedSessionId.value) ||
+  filteredSessions.value[0] ||
+  null,
+)
 
-const toast = ref({
-  show: false,
-  message: '',
-  type: 'success'
-})
+watch(
+  filteredSessions,
+  (items) => {
+    if (!items.length) {
+      selectedSessionId.value = ''
+      return
+    }
 
-const historySummary = computed(() => {
-  const totalSessions = attendanceHistory.value.length
-  const totalStudents = attendanceHistory.value.reduce((sum, item) => sum + item.total, 0)
-  const totalAbsences = attendanceHistory.value.reduce((sum, item) => sum + item.absences, 0)
-  const attendanceRate = totalStudents
-    ? Math.round(((totalStudents - totalAbsences) / totalStudents) * 100)
+    if (!selectedSessionId.value || !items.some((session) => session.id === selectedSessionId.value)) {
+      selectedSessionId.value = items[0].id
+    }
+  },
+  { immediate: true },
+)
+
+const summaryCards = computed(() => {
+  const submitted = sessions.value.filter((session) => session.status === 'da_gui').length
+  const locked = sessions.value.filter((session) => session.status === 'da_khoa').length
+  const pendingUnlock = unlockRequests.value.filter((request) => request.status === 'cho_duyet').length
+  const onTimeRate = sessions.value.length
+    ? Math.round((submitted / sessions.value.filter((session) => session.status !== 'da_huy').length) * 100)
     : 0
 
   return [
-    { label: 'Tổng buổi', value: totalSessions, tone: 'primary' },
-    { label: 'Đã xác nhận', value: totalSessions, tone: 'success' },
-    { label: 'Chưa xác nhận', value: 0, tone: 'warning' },
-    { label: 'Tỷ lệ CC', value: `${attendanceRate}%`, tone: 'success' },
-    { label: 'Lượt vắng', value: totalAbsences, tone: 'danger' },
-    { label: 'Đi muộn', value: countAllByStatus('Late'), tone: 'warning' },
+    { label: 'Buổi đã gửi', value: submitted, icon: CheckCircle2, variant: 'success' },
+    { label: 'Buổi đã khóa', value: locked, icon: LockKeyhole, variant: 'neutral' },
+    { label: 'Chờ mở khóa', value: pendingUnlock, icon: UnlockKeyhole, variant: 'warning' },
+    { label: 'Gửi đúng hạn', value: `${Number.isFinite(onTimeRate) ? onTimeRate : 0}%`, icon: Clock3, variant: 'info' },
   ]
 })
 
-function countAllByStatus(status) {
-  return Object.values(sessionStudentsMock.value)
-    .flat()
-    .filter((student) => student.status === status).length
+const detailStats = computed(() => {
+  const session = selectedSession.value
+  if (!session) return []
+
+  return [
+    { label: 'Tổng số', value: session.total, variant: 'neutral' },
+    { label: 'Có mặt', value: session.present, variant: 'success' },
+    { label: 'Đi muộn', value: session.late, variant: 'warning' },
+    { label: 'Có phép', value: session.excused, variant: 'info' },
+    { label: 'Vắng', value: session.absent, variant: 'danger' },
+  ]
+})
+
+const selectedUnlockRequest = computed(() =>
+  unlockRequests.value.find((request) => request.sessionId === selectedSession.value?.id) || null,
+)
+
+const canCreateUnlockRequest = computed(() =>
+  selectedSession.value &&
+  ['da_gui', 'da_khoa'].includes(selectedSession.value.status) &&
+  !selectedUnlockRequest.value,
+)
+
+const unlockReasonError = computed(() =>
+  formSubmitted.value && !unlockReason.value.trim() ? 'Vui lòng nhập lý do mở khóa.' : '',
+)
+
+function sessionStatusMeta(status) {
+  return getStatusMeta('session', status)
 }
 
-function triggerToast(msg, type = 'success') {
-  toast.value.message = msg
-  toast.value.type = type
-  toast.value.show = true
-  setTimeout(() => {
-    toast.value.show = false
-  }, 4000)
+function attendanceStatusMeta(status) {
+  return getStatusMeta('attendance', status)
 }
 
-function openSessionDetails(session) {
-  selectedSession.value = { ...session }
-  const list = sessionStudentsMock.value[session.id] || []
-  activeStudents.value = JSON.parse(JSON.stringify(list))
-  activeSearchQuery.value = ''
-  activeFilterStatus.value = ''
-  isEditing.value = false
-  isDetailModalOpen.value = true
+function unlockStatusMeta(status) {
+  return getStatusMeta('unlockRequest', status)
 }
 
-const filteredStudents = computed(() => {
-  return activeStudents.value.filter(sv => {
-    const matchSearch = sv.name.toLowerCase().includes(activeSearchQuery.value.toLowerCase()) ||
-                        sv.id.toLowerCase().includes(activeSearchQuery.value.toLowerCase())
-    const matchStatus = !activeFilterStatus.value || sv.status === activeFilterStatus.value
-    return matchSearch && matchStatus
+function selectSession(sessionId) {
+  selectedSessionId.value = sessionId
+}
+
+function openUnlockModal() {
+  if (!selectedSession.value || !canCreateUnlockRequest.value) return
+  unlockReason.value = ''
+  unlockNote.value = ''
+  formSubmitted.value = false
+  isUnlockModalOpen.value = true
+}
+
+function closeUnlockModal() {
+  isUnlockModalOpen.value = false
+  formSubmitted.value = false
+}
+
+function submitUnlockRequest() {
+  formSubmitted.value = true
+  if (!selectedSession.value || unlockReasonError.value) return
+
+  unlockRequests.value.unshift({
+    id: `unlock-local-${Date.now()}`,
+    sessionId: selectedSession.value.id,
+    subject: selectedSession.value.subject,
+    className: selectedSession.value.className,
+    status: 'cho_duyet',
+    reason: unlockReason.value.trim(),
+    note: unlockNote.value.trim(),
+    createdAt: new Date(),
   })
-})
 
-const sessionStats = computed(() => {
-  const total = activeStudents.value.length
-  const present = activeStudents.value.filter(s => s.status === 'Present').length
-  const late = activeStudents.value.filter(s => s.status === 'Late').length
-  const absent = activeStudents.value.filter(s => s.status === 'Absent').length
-
-  return { total, present, late, absent }
-})
-
-function changeStatus(index, status) {
-  if (!isEditing.value) return
-  activeStudents.value[index].status = status
-  if (status === 'Absent') {
-    activeStudents.value[index].time = '--'
-  } else if (status === 'Present' && activeStudents.value[index].time === '--') {
-    activeStudents.value[index].time = '07:30' // Fallback checkin time
-  }
+  popupStore.success('Đã tạo yêu cầu mở khóa', 'Yêu cầu demo đã được thêm vào danh sách chờ duyệt.')
+  closeUnlockModal()
 }
 
-function saveAttendanceChanges() {
-  if (selectedSession.value) {
-    const idx = attendanceHistory.value.findIndex(h => h.id === selectedSession.value.id)
-    if (idx !== -1) {
-      const absencesCount = activeStudents.value.filter(s => s.status === 'Absent').length
-      attendanceHistory.value[idx].absences = absencesCount
-      attendanceHistory.value[idx].total = activeStudents.value.length
-    }
-
-    sessionStudentsMock.value[selectedSession.value.id] = JSON.parse(JSON.stringify(activeStudents.value))
-    isEditing.value = false
-    triggerToast('Đã cập nhật lịch sử điểm danh thành công!', 'success')
-  }
-}
-
-function studentStatusVariant(status) {
-  if (status === 'Present') return 'success'
-  if (status === 'Late') return 'warning'
-  return 'danger'
-}
-
-function studentStatusLabel(status) {
-  if (status === 'Present') return 'Có mặt'
-  if (status === 'Late') return 'Đi muộn'
-  return 'Vắng mặt'
+function resetFilters() {
+  searchQuery.value = ''
+  selectedCourse.value = ''
+  selectedStatus.value = ''
+  dateFrom.value = ''
+  dateTo.value = ''
 }
 </script>
 
 <template>
-  <div class="attendance-history-page lg-page-enter">
-    <Transition name="toast-slide">
-      <div v-if="toast.show" :class="['toast', toast.type === 'success' ? 'success' : 'danger']">
-        <CheckCircle2 v-if="toast.type === 'success'" :size="18" />
-        <AlertCircle v-else :size="18" />
-        <p>{{ toast.message }}</p>
-      </div>
-    </Transition>
-
+  <div class="teacher-attendance-history-page lg-page-enter mx-auto max-w-7xl space-y-5">
     <GlassPanel variant="flat" density="compact" class="page-header">
       <div class="header-copy">
-        <div class="eyebrow">
-          <Calendar :size="15" />
-          Spring 2026 · Block 2
-        </div>
+        <p class="eyebrow">
+          <History :size="15" />
+          Lịch sử điểm danh
+        </p>
         <div>
           <h1>Lịch sử điểm danh</h1>
-          <p>Xem lại nhật ký điểm danh, tỷ lệ chuyên cần và chi tiết từng buổi học.</p>
+          <p>Tra cứu buổi đã gửi, xem chi tiết và tạo yêu cầu mở khóa khi cần điều chỉnh.</p>
         </div>
       </div>
 
-      <GlassButton variant="primary" size="sm">
-        <template #leading>
-          <Download :size="16" />
-        </template>
-        Xuất báo cáo
-      </GlassButton>
+      <GlassButton variant="secondary" @click="resetFilters">Xóa bộ lọc</GlassButton>
     </GlassPanel>
 
-    <GlassPanel variant="flat" density="compact" class="context-panel">
-      <div class="summary-strip">
-        <div v-for="item in historySummary" :key="item.label" :class="['summary-pill', item.tone]">
-          <span>{{ item.label }}</span>
-          <strong>{{ item.value }}</strong>
+    <section class="summary-grid" aria-label="Tổng quan lịch sử điểm danh">
+      <GlassPanel
+        v-for="card in summaryCards"
+        :key="card.label"
+        variant="flat"
+        density="compact"
+        class="summary-card"
+      >
+        <div class="summary-icon">
+          <component :is="card.icon" :size="18" />
         </div>
-      </div>
+        <div class="min-w-0">
+          <p>{{ card.label }}</p>
+          <strong>{{ card.value }}</strong>
+        </div>
+        <GlassBadge :variant="card.variant">{{ card.label }}</GlassBadge>
+      </GlassPanel>
+    </section>
 
-      <div class="filters">
-        <label class="input-shell">
-          <Search :size="16" />
-          <input v-model="historySearch" type="text" placeholder="Tìm lớp học, mã phòng..." />
+    <GlassPanel variant="flat" density="compact" class="filter-panel">
+      <div class="filter-grid">
+        <label class="control-field">
+          <span>Tìm kiếm</span>
+          <span class="search-control">
+            <Search :size="15" />
+            <input v-model="searchQuery" type="text" placeholder="Môn, lớp, phòng" />
+          </span>
         </label>
-        <label class="input-shell date-shell">
-          <Calendar :size="16" />
-          <input v-model="historyDate" type="date" />
+
+        <label class="control-field">
+          <span>Môn / lớp</span>
+          <select v-model="selectedCourse" class="lg-control">
+            <option value="">Tất cả</option>
+            <option v-for="option in courseOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="control-field">
+          <span>Trạng thái</span>
+          <select v-model="selectedStatus" class="lg-control">
+            <option value="">Tất cả</option>
+            <option v-for="option in sessionStatusOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="control-field">
+          <span>Từ ngày</span>
+          <input v-model="dateFrom" type="date" class="lg-control" />
+        </label>
+
+        <label class="control-field">
+          <span>Đến ngày</span>
+          <input v-model="dateTo" type="date" class="lg-control" />
         </label>
       </div>
     </GlassPanel>
 
-    <GlassPanel variant="flat" density="compact" class="history-panel">
-      <div class="panel-title">
-        <div>
-          <h2>
-            <BookOpen :size="17" />
-            Bảng lịch sử buổi học
-          </h2>
-          <p>Hiển thị {{ filteredHistory.length }} bản ghi theo bộ lọc hiện tại.</p>
+    <section class="history-grid">
+      <GlassPanel variant="flat" density="compact" class="history-table-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Danh sách buổi đã điểm danh</h2>
+            <p>Hiển thị {{ filteredSessions.length }} buổi theo bộ lọc hiện tại.</p>
+          </div>
+          <GlassBadge variant="info">Mock UI</GlassBadge>
         </div>
-        <GlassBadge variant="success">Đã xác nhận</GlassBadge>
-      </div>
 
-      <TableShell v-if="filteredHistory.length" density="compact">
-        <table>
-          <thead>
-            <tr>
-              <th>
-                <span class="sortable-label">
-                  Ngày
-                  <ArrowUpDown :size="12" />
-                </span>
-              </th>
-              <th>Lớp / Môn</th>
-              <th>Ca học / Phòng</th>
-              <th>Tổng SV</th>
-              <th>Có mặt</th>
-              <th>Vắng</th>
-              <th>Đi muộn</th>
-              <th>Có phép</th>
-              <th>Trạng thái</th>
-              <th class="text-right">Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in filteredHistory" :key="item.id">
-              <td>
-                <div class="date-cell">
-                  <span class="date-icon">
-                    <Calendar :size="16" />
+        <TableShell v-if="filteredSessions.length" density="compact" class="history-table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Ngày</th>
+                <th>Môn học</th>
+                <th>Lớp</th>
+                <th>Ca / Phòng</th>
+                <th>Trạng thái</th>
+                <th>Tổng / Có mặt / Vắng</th>
+                <th>Yêu cầu mở khóa</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="session in filteredSessions"
+                :key="session.id"
+                :class="session.id === selectedSession?.id ? 'is-selected' : ''"
+              >
+                <td>
+                  <div class="date-cell">
+                    <CalendarDays :size="15" />
+                    <span>{{ formatDate(session.date) }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="subject-cell">
+                    <strong class="clamp-1">{{ session.subject }}</strong>
+                    <small>{{ session.courseCode }}</small>
+                  </div>
+                </td>
+                <td>
+                  <GlassBadge variant="primary">{{ session.className }}</GlassBadge>
+                </td>
+                <td>
+                  <span class="muted-cell clamp-1">
+                    {{ session.shift.label }} · {{ formatTimeRange(session.date, session.endAt) }} · {{ session.room }}
                   </span>
-                  <span>
-                    <strong>{{ item.date }}</strong>
-                    <small>Học kỳ Fall</small>
+                </td>
+                <td>
+                  <GlassBadge :variant="sessionStatusMeta(session.status).variant">
+                    {{ sessionStatusMeta(session.status).label }}
+                  </GlassBadge>
+                </td>
+                <td>
+                  <span class="score-cell">
+                    {{ session.total }} / {{ session.present + session.late + session.excused }} / {{ session.absent }}
                   </span>
-                </div>
-              </td>
-              <td>
-                <div class="class-cell">
-                  <strong>{{ item.className }}</strong>
-                  <small>Phòng {{ item.room }}</small>
-                </div>
-              </td>
-              <td>
-                <span class="time-cell">
-                  <Clock :size="13" />
-                  {{ item.time }} · {{ item.room }}
-                </span>
-              </td>
-              <td class="number-cell">{{ item.total }}</td>
-              <td class="number-cell success">{{ item.total - item.absences }}</td>
-              <td class="number-cell danger">{{ item.absences }}</td>
-              <td class="number-cell warning">0</td>
-              <td class="number-cell info">0</td>
-              <td>
-                <GlassBadge :variant="item.absences === 0 ? 'success' : 'warning'">
-                  {{ item.absences === 0 ? 'Đã xác nhận' : 'Có vắng' }}
-                </GlassBadge>
-              </td>
-              <td>
-                <div class="row-actions">
-                  <GlassButton variant="ghost" size="sm">
+                </td>
+                <td>
+                  <GlassBadge
+                    v-if="unlockRequests.some((request) => request.sessionId === session.id)"
+                    :variant="unlockStatusMeta(unlockRequests.find((request) => request.sessionId === session.id)?.status).variant"
+                  >
+                    {{ unlockStatusMeta(unlockRequests.find((request) => request.sessionId === session.id)?.status).label }}
+                  </GlassBadge>
+                  <span v-else class="muted-cell">Chưa có</span>
+                </td>
+                <td>
+                  <GlassButton variant="secondary" size="sm" @click="selectSession(session.id)">
                     <template #leading>
-                      <Download :size="13" />
+                      <Eye :size="14" />
                     </template>
-                    Xuất
-                  </GlassButton>
-                  <GlassButton variant="secondary" size="sm" @click="openSessionDetails(item)">
                     Chi tiết
-                    <template #trailing>
-                      <ChevronRight :size="13" />
-                    </template>
                   </GlassButton>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </TableShell>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </TableShell>
 
-      <div v-else class="empty-block">
-        <Calendar :size="32" />
-        <h3>Không tìm thấy lịch sử điểm danh</h3>
-        <p>Vui lòng thử lại với từ khóa hoặc bộ lọc khác.</p>
-      </div>
-    </GlassPanel>
+        <div v-if="filteredSessions.length" class="history-mobile-list">
+          <button
+            v-for="session in filteredSessions"
+            :key="session.id"
+            type="button"
+            :class="['history-mobile-card', session.id === selectedSession?.id ? 'is-selected' : '']"
+            @click="selectSession(session.id)"
+          >
+            <span class="mobile-card-top">
+              <span>{{ formatDate(session.date) }}</span>
+              <GlassBadge :variant="sessionStatusMeta(session.status).variant">
+                {{ sessionStatusMeta(session.status).label }}
+              </GlassBadge>
+            </span>
+            <strong class="clamp-2">{{ session.subject }}</strong>
+            <span class="muted-cell clamp-1">
+              {{ session.className }} · {{ session.shift.label }} · {{ session.room }}
+            </span>
+            <span class="mobile-card-stats">
+              <span>{{ session.total }} tổng</span>
+              <span>{{ session.present + session.late + session.excused }} có mặt</span>
+              <span>{{ session.absent }} vắng</span>
+            </span>
+          </button>
+        </div>
+
+        <EmptyState
+          v-else
+          title="Không tìm thấy buổi điểm danh"
+          description="Thử đổi bộ lọc ngày, trạng thái hoặc từ khóa tìm kiếm."
+        >
+          <GlassButton variant="secondary" @click="resetFilters">Xóa bộ lọc</GlassButton>
+        </EmptyState>
+      </GlassPanel>
+
+      <GlassPanel v-if="selectedSession" variant="flat" density="compact" class="detail-panel">
+        <div class="detail-header">
+          <div>
+            <h2 class="clamp-2">{{ selectedSession.subject }}</h2>
+            <p>
+              {{ selectedSession.className }} · {{ formatDate(selectedSession.date) }} ·
+              {{ selectedSession.shift.label }} · {{ selectedSession.room }}
+            </p>
+          </div>
+          <GlassBadge :variant="sessionStatusMeta(selectedSession.status).variant" size="md">
+            {{ sessionStatusMeta(selectedSession.status).label }}
+          </GlassBadge>
+        </div>
+
+        <div class="detail-stats">
+          <div
+            v-for="item in detailStats"
+            :key="item.label"
+            :class="['detail-stat', item.variant]"
+          >
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h3>
+            <Users :size="15" />
+            Sinh viên nổi bật
+          </h3>
+          <div class="mini-student-list">
+            <div v-for="student in selectedSession.students.slice(0, 5)" :key="student.id" class="mini-student">
+              <span class="avatar">{{ student.name.split(' ').pop()?.[0] }}</span>
+              <span class="min-w-0">
+                <strong class="clamp-1">{{ student.name }}</strong>
+                <small class="clamp-1">{{ student.note || 'Không có ghi chú' }}</small>
+              </span>
+              <GlassBadge :variant="attendanceStatusMeta(student.status).variant">
+                {{ attendanceStatusMeta(student.status).label }}
+              </GlassBadge>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h3>
+            <Clock3 :size="15" />
+            Nhật ký xử lý
+          </h3>
+          <div class="timeline">
+            <p>
+              <CheckCircle2 :size="14" />
+              Đã gửi điểm danh lúc {{ formatDateTime(selectedSession.submittedAt) }}
+            </p>
+            <p v-if="selectedSession.lockedAt">
+              <LockKeyhole :size="14" />
+              Đã khóa lúc {{ formatDateTime(selectedSession.lockedAt) }}
+            </p>
+            <p v-if="selectedUnlockRequest">
+              <UnlockKeyhole :size="14" />
+              Yêu cầu mở khóa: {{ unlockStatusMeta(selectedUnlockRequest.status).label }}
+            </p>
+          </div>
+        </div>
+
+        <div v-if="selectedSession.lockReason" class="lock-note">
+          <LockKeyhole :size="15" />
+          {{ selectedSession.lockReason }}
+        </div>
+
+        <div class="detail-actions">
+          <GlassButton
+            variant="primary"
+            :disabled="!canCreateUnlockRequest"
+            @click="openUnlockModal"
+          >
+            <template #leading>
+              <FilePenLine :size="16" />
+            </template>
+            Tạo yêu cầu mở khóa
+          </GlassButton>
+          <p v-if="selectedUnlockRequest" class="hint-text">
+            Đã có yêu cầu {{ unlockStatusMeta(selectedUnlockRequest.status).label.toLowerCase() }} cho buổi này.
+          </p>
+        </div>
+      </GlassPanel>
+
+      <EmptyState
+        v-else
+        title="Chọn một buổi học"
+        description="Chi tiết điểm danh và yêu cầu mở khóa sẽ hiển thị ở đây."
+      />
+    </section>
 
     <Teleport to="body">
-      <div v-if="isDetailModalOpen" class="modal-root">
+      <div v-if="isUnlockModalOpen" class="modal-root" role="dialog" aria-modal="true">
         <button
           type="button"
-          class="modal-backdrop"
-          aria-label="Đóng chi tiết điểm danh"
-          @click="isDetailModalOpen = false"
+          class="modal-scrim"
+          aria-label="Đóng form yêu cầu mở khóa"
+          @click="closeUnlockModal"
         />
 
-        <GlassPanel variant="flat" density="none" class="detail-modal">
+        <GlassPanel variant="readable" density="comfortable" class="unlock-modal">
           <div class="modal-header">
-            <div class="modal-title">
-              <span class="modal-icon">
-                <Calendar :size="20" />
-              </span>
-              <span v-if="selectedSession">
-                <h3>Chi tiết điểm danh</h3>
-                <p>
-                  {{ selectedSession.className }} · {{ selectedSession.date }} ·
-                  {{ selectedSession.time }} · Phòng {{ selectedSession.room }}
-                </p>
-              </span>
+            <div>
+              <h2>Tạo yêu cầu mở khóa</h2>
+              <p v-if="selectedSession">
+                {{ selectedSession.subject }} · {{ selectedSession.className }} · {{ formatDate(selectedSession.date) }}
+              </p>
             </div>
-            <button type="button" class="icon-button" @click="isDetailModalOpen = false">
+            <button type="button" class="icon-button" aria-label="Đóng" @click="closeUnlockModal">
               <X :size="18" />
             </button>
           </div>
 
-          <div class="modal-summary">
-            <div class="summary-pill primary">
-              <span>Tổng số</span>
-              <strong>{{ sessionStats.total }}</strong>
-            </div>
-            <div class="summary-pill success">
-              <span>Có mặt</span>
-              <strong>{{ sessionStats.present }}</strong>
-            </div>
-            <div class="summary-pill warning">
-              <span>Đi muộn</span>
-              <strong>{{ sessionStats.late }}</strong>
-            </div>
-            <div class="summary-pill danger">
-              <span>Vắng</span>
-              <strong>{{ sessionStats.absent }}</strong>
-            </div>
+          <div v-if="unlockReasonError" class="form-error-summary">
+            {{ unlockReasonError }}
           </div>
 
-          <div class="modal-toolbar">
-            <label class="input-shell">
-              <Search :size="15" />
-              <input v-model="activeSearchQuery" type="text" placeholder="Tìm sinh viên, MSSV..." />
-            </label>
+          <label class="form-field">
+            <span>Lý do mở khóa <strong>*</strong></span>
+            <textarea
+              v-model="unlockReason"
+              rows="4"
+              placeholder="Nhập lý do cần mở khóa điểm danh..."
+              :aria-invalid="Boolean(unlockReasonError)"
+            />
+            <small v-if="unlockReasonError">{{ unlockReasonError }}</small>
+          </label>
 
-            <div class="filter-chips">
-              <span>Lọc:</span>
-              <button type="button" :class="['chip', !activeFilterStatus ? 'active' : '']" @click="activeFilterStatus = ''">
-                Tất cả
-              </button>
-              <button type="button" :class="['chip success', activeFilterStatus === 'Present' ? 'active' : '']" @click="activeFilterStatus = 'Present'">
-                Có mặt
-              </button>
-              <button type="button" :class="['chip warning', activeFilterStatus === 'Late' ? 'active' : '']" @click="activeFilterStatus = 'Late'">
-                Muộn
-              </button>
-              <button type="button" :class="['chip danger', activeFilterStatus === 'Absent' ? 'active' : '']" @click="activeFilterStatus = 'Absent'">
-                Vắng
-              </button>
-            </div>
-          </div>
+          <label class="form-field">
+            <span>Ghi chú bổ sung</span>
+            <textarea
+              v-model="unlockNote"
+              rows="3"
+              placeholder="Thông tin thêm cho giáo vụ nếu có..."
+            />
+          </label>
 
-          <div class="modal-body">
-            <TableShell v-if="filteredStudents.length" density="compact" sticky-header>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Sinh viên</th>
-                    <th>MSSV</th>
-                    <th>Giờ điểm danh</th>
-                    <th>Trạng thái</th>
-                    <th>Ghi chú</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(sv, idx) in filteredStudents" :key="sv.id">
-                    <td>
-                      <div class="student-cell">
-                        <span class="student-avatar">{{ sv.name.split(' ').pop()[0] }}</span>
-                        <strong>{{ sv.name }}</strong>
-                      </div>
-                    </td>
-                    <td class="student-code">{{ sv.id }}</td>
-                    <td>
-                      <span class="time-cell">
-                        <Clock :size="12" />
-                        {{ sv.time }}
-                      </span>
-                    </td>
-                    <td>
-                      <GlassBadge v-if="!isEditing" :variant="studentStatusVariant(sv.status)">
-                        {{ studentStatusLabel(sv.status) }}
-                      </GlassBadge>
-                      <div v-else class="status-actions">
-                        <button
-                          type="button"
-                          :class="['status-button success', sv.status === 'Present' ? 'active' : '']"
-                          @click="changeStatus(idx, 'Present')"
-                        >
-                          Có
-                        </button>
-                        <button
-                          type="button"
-                          :class="['status-button warning', sv.status === 'Late' ? 'active' : '']"
-                          @click="changeStatus(idx, 'Late')"
-                        >
-                          Muộn
-                        </button>
-                        <button
-                          type="button"
-                          :class="['status-button danger', sv.status === 'Absent' ? 'active' : '']"
-                          @click="changeStatus(idx, 'Absent')"
-                        >
-                          Vắng
-                        </button>
-                      </div>
-                    </td>
-                    <td>
-                      <span v-if="!isEditing" class="note-text" :title="sv.note">{{ sv.note || '--' }}</span>
-                      <input v-else v-model="sv.note" type="text" placeholder="Nhập lý do..." class="note-input" />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </TableShell>
-
-            <div v-else class="empty-block compact">
-              <Users :size="28" />
-              <h3>Không tìm thấy sinh viên</h3>
-            </div>
-          </div>
-
-          <div class="modal-footer">
-            <GlassButton variant="secondary" size="sm">
+          <div class="modal-actions">
+            <GlassButton variant="secondary" @click="closeUnlockModal">Hủy</GlassButton>
+            <GlassButton variant="primary" @click="submitUnlockRequest">
               <template #leading>
-                <Download :size="15" />
+                <Send :size="16" />
               </template>
-              Xuất file buổi này
+              Gửi yêu cầu
             </GlassButton>
-
-            <div class="modal-actions">
-              <GlassButton v-if="!isEditing" variant="primary" size="sm" @click="isEditing = true">
-                <template #leading>
-                  <Edit3 :size="15" />
-                </template>
-                Chỉnh sửa
-              </GlassButton>
-
-              <template v-else>
-                <GlassButton variant="secondary" size="sm" @click="isEditing = false">Hủy</GlassButton>
-                <GlassButton variant="primary" size="sm" @click="saveAttendanceChanges">
-                  <template #leading>
-                    <Save :size="15" />
-                  </template>
-                  Lưu thay đổi
-                </GlassButton>
-              </template>
-            </div>
           </div>
         </GlassPanel>
       </div>
@@ -535,420 +556,510 @@ function studentStatusLabel(status) {
 </template>
 
 <style scoped>
-.attendance-history-page {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.875rem;
-  padding-bottom: 2.5rem;
+.teacher-attendance-history-page {
   color: var(--text-body);
 }
 
-.toast {
-  position: fixed;
-  top: 1rem;
-  right: 1.5rem;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  max-width: min(24rem, calc(100vw - 2rem));
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-lg);
-  background: var(--surface-modal);
-  padding: 0.8rem 1rem;
-  color: var(--text-heading);
-  box-shadow: var(--lg-shadow-md);
-}
-
-.toast.success {
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-}
-
-.toast.danger {
-  background: var(--color-danger-bg);
-  color: var(--color-danger-text);
-}
-
-.toast p {
-  margin: 0;
-  font-size: 0.84rem;
-  font-weight: 800;
-}
-
 .page-header,
-.context-panel,
-.panel-title,
-.modal-header,
-.modal-toolbar,
-.modal-footer,
-.modal-title,
-.summary-strip,
-.filters,
-.row-actions,
+.summary-card,
+.panel-heading,
+.detail-header,
 .date-cell,
-.time-cell,
-.student-cell,
-.status-actions,
-.filter-chips,
+.mini-student,
+.timeline p,
+.lock-note,
+.modal-header,
 .modal-actions {
   display: flex;
   align-items: center;
 }
 
 .page-header,
-.context-panel,
-.panel-title,
-.modal-header,
-.modal-toolbar,
-.modal-footer {
-  align-items: flex-start;
+.panel-heading,
+.detail-header,
+.modal-header {
   justify-content: space-between;
   gap: 1rem;
 }
 
-.header-copy {
-  display: flex;
+.header-copy,
+.panel-heading > div,
+.detail-header > div,
+.modal-header > div {
   min-width: 0;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 
 .eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
   width: fit-content;
   border: 1px solid var(--border-card);
   border-radius: 999px;
   background: var(--surface-input);
   color: var(--text-link);
-  padding: 0.25rem 0.6rem;
-  font-size: 0.7rem;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.71875rem;
   font-weight: 850;
-  text-transform: uppercase;
 }
 
-.header-copy h1,
-.panel-title h2,
-.modal-title h3,
-.empty-block h3 {
+h1,
+h2,
+h3 {
   margin: 0;
   color: var(--text-heading);
   font-weight: 900;
+  letter-spacing: 0;
 }
 
-.header-copy h1 {
-  font-size: 1.45rem;
+h1 {
+  margin-top: 0.45rem;
+  font-size: 1.5rem;
   line-height: 1.15;
 }
 
-.panel-title h2 {
+h2 {
+  font-size: 1rem;
+}
+
+h3 {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 1rem;
+  font-size: 0.875rem;
 }
 
-.modal-title h3,
-.empty-block h3 {
-  font-size: 1rem;
-}
-
-.header-copy p,
-.panel-title p,
-.summary-pill span,
-.date-cell small,
-.class-cell small,
-.student-code,
-.note-text,
-.empty-block p {
-  color: var(--text-muted);
-}
-
-.header-copy p,
-.panel-title p,
-.modal-title p,
-.empty-block p {
+p {
   margin: 0.25rem 0 0;
-  font-size: 0.84rem;
+  color: var(--text-muted);
+  font-size: 0.84375rem;
+  line-height: 1.55;
 }
 
-.context-panel {
-  align-items: center;
-}
-
-.summary-strip,
-.filters,
-.row-actions,
-.status-actions,
-.filter-chips,
-.modal-actions {
-  gap: 0.45rem;
-  flex-wrap: wrap;
-}
-
-.summary-pill {
+.summary-grid {
   display: grid;
-  min-width: 5rem;
-  gap: 0.05rem;
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-md);
-  background: var(--surface-input);
-  padding: 0.45rem 0.6rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: stretch;
 }
 
-.summary-pill strong {
-  color: var(--text-heading);
-  font-size: 1rem;
-  font-weight: 900;
+.summary-card {
+  min-height: 7.5rem;
+  align-items: flex-start;
+  gap: 0.75rem;
 }
 
-.summary-pill span {
-  font-size: 0.68rem;
-  font-weight: 800;
+.summary-card :deep(.lg-badge) {
+  align-self: flex-end;
+  margin-left: auto;
 }
 
-.summary-pill.primary,
-.summary-pill.info {
-  background: var(--accent-primary-soft);
-}
-
-.summary-pill.success {
-  background: var(--color-success-bg);
-}
-
-.summary-pill.warning {
-  background: var(--color-warning-bg);
-}
-
-.summary-pill.danger {
-  background: var(--color-danger-bg);
-}
-
-.input-shell {
+.summary-icon,
+.avatar {
   display: inline-flex;
   align-items: center;
-  min-height: 2.25rem;
-  width: min(20rem, 100%);
+  justify-content: center;
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  color: var(--text-link);
+}
+
+.summary-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  border-radius: var(--radius-lg);
+}
+
+.summary-card p,
+.detail-stat span,
+.hint-text {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.summary-card strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--text-heading);
+  font-size: 1.45rem;
+  font-weight: 950;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.82fr) minmax(0, 0.82fr);
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.control-field,
+.form-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.control-field > span,
+.form-field > span {
+  color: var(--text-label);
+  font-size: 0.75rem;
+  font-weight: 850;
+}
+
+.form-field strong {
+  color: var(--color-danger-text);
+}
+
+.search-control,
+.lg-control {
+  min-height: var(--control-height-lg);
+}
+
+.search-control {
+  display: flex;
+  align-items: center;
   gap: 0.45rem;
   border: 1px solid var(--border-input);
   border-radius: var(--radius-md);
   background: var(--surface-input);
-  padding: 0 0.7rem;
+  padding: 0 0.75rem;
   color: var(--text-placeholder);
-  transition:
-    border-color 0.2s ease,
-    background 0.2s ease,
-    box-shadow 0.2s ease;
 }
 
-.date-shell {
-  width: min(13rem, 100%);
-}
-
-.input-shell:focus-within,
-.note-input:focus {
+.search-control:focus-within,
+.lg-control:focus,
+.form-field textarea:focus {
   border-color: var(--border-input-focus);
   background: var(--surface-input-focus);
   box-shadow: 0 0 0 3px var(--border-focus-ring);
 }
 
-.input-shell input {
-  min-width: 0;
+.search-control input,
+.lg-control,
+.form-field textarea {
   width: 100%;
   border: 0;
   outline: 0;
   background: transparent;
   color: var(--text-heading);
-  font-size: 0.82rem;
+  font-size: 0.84375rem;
   font-weight: 750;
 }
 
-.input-shell input::placeholder,
-.note-input::placeholder {
-  color: var(--text-placeholder);
+.lg-control {
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0 0.75rem;
 }
 
-.history-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
+.form-field textarea {
+  resize: vertical;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0.75rem;
+  line-height: 1.5;
 }
 
-.panel-title {
-  border-bottom: 1px solid var(--border-card);
-  padding-bottom: 0.75rem;
+.form-field small,
+.form-error-summary {
+  color: var(--color-danger-text);
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
-.sortable-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: var(--text-link);
-  white-space: nowrap;
+.form-error-summary {
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  padding: 0.625rem 0.75rem;
+}
+
+.history-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.875rem;
+  align-items: start;
+}
+
+.history-table-panel,
+.detail-panel {
+  min-width: 0;
+}
+
+.detail-panel {
+  display: grid;
+  gap: 0.875rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+thead tr {
+  border-bottom: 1px solid var(--border-table);
+  background: var(--surface-table-header);
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--border-table);
+  background: var(--surface-table);
+}
+
+tbody tr:hover,
+tbody tr.is-selected {
+  background: var(--surface-table-row-hover);
+}
+
+tbody tr.is-selected {
+  box-shadow: inset 3px 0 0 var(--text-link);
+}
+
+th,
+td {
+  padding: 0.625rem 0.75rem;
+  vertical-align: middle;
+}
+
+tbody td {
+  height: 4.875rem;
+  overflow: hidden;
+}
+
+.date-cell,
+.timeline p,
+.lock-note {
+  gap: 0.45rem;
 }
 
 .date-cell {
-  min-width: 9rem;
-  gap: 0.65rem;
-}
-
-.date-icon,
-.modal-icon,
-.student-avatar {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border-card);
-  background: var(--surface-input);
-}
-
-.date-icon {
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--radius-md);
   color: var(--text-link);
+  font-size: 0.8125rem;
+  font-weight: 850;
+  white-space: nowrap;
 }
 
-.date-cell strong,
-.class-cell strong,
-.student-cell strong {
+.subject-cell strong,
+.mini-student strong {
   display: block;
   color: var(--text-heading);
-  font-size: 0.86rem;
+  font-size: 0.84375rem;
   font-weight: 850;
 }
 
-.date-cell small,
-.class-cell small {
-  display: block;
-  margin-top: 0.1rem;
-  font-size: 0.72rem;
-  font-weight: 750;
-}
-
-.time-cell {
-  gap: 0.35rem;
-  min-width: 6.5rem;
+.subject-cell small,
+.mini-student small,
+.muted-cell,
+.score-cell {
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.78125rem;
   font-weight: 750;
 }
 
-.number-cell {
+.muted-cell,
+.score-cell {
+  white-space: nowrap;
+}
+
+.score-cell {
   color: var(--text-heading);
-  font-size: 0.82rem;
   font-weight: 900;
 }
 
-.number-cell.success {
-  color: var(--color-success-text);
+.history-mobile-list {
+  display: none;
 }
 
-.number-cell.danger {
-  color: var(--color-danger-text);
-}
-
-.number-cell.warning {
-  color: var(--color-warning-text);
-}
-
-.number-cell.info {
-  color: var(--text-link);
-}
-
-.row-actions {
-  justify-content: flex-end;
-  min-width: 9rem;
-}
-
-.empty-block {
+.history-mobile-card {
+  display: grid;
+  min-height: 9.25rem;
+  gap: 0.5rem;
   border: 1px solid var(--border-card);
   border-radius: var(--radius-lg);
-  background: var(--surface-input);
-  padding: 2rem;
-  text-align: center;
-  color: var(--text-placeholder);
+  background: var(--surface-card);
+  padding: 0.75rem;
+  text-align: left;
+  color: var(--text-body);
 }
 
-.empty-block.compact {
-  padding: 1.5rem;
+.history-mobile-card.is-selected {
+  border-color: var(--border-input-focus);
+  box-shadow: inset 3px 0 0 var(--text-link);
+}
+
+.history-mobile-card strong {
+  color: var(--text-heading);
+  font-size: 0.9375rem;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.mobile-card-top,
+.mobile-card-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mobile-card-top {
+  justify-content: space-between;
+}
+
+.mobile-card-top > span:first-child {
+  color: var(--text-link);
+  font-size: 0.8125rem;
+  font-weight: 850;
+}
+
+.mobile-card-stats {
+  flex-wrap: wrap;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.detail-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.detail-stat {
+  min-height: 4.25rem;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0.625rem;
+}
+
+.detail-stat strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--text-heading);
+  font-size: 1.1rem;
+  font-weight: 950;
+}
+
+.detail-stat.success {
+  background: var(--color-success-bg);
+}
+
+.detail-stat.warning {
+  background: var(--color-warning-bg);
+}
+
+.detail-stat.info {
+  background: var(--color-info-bg);
+}
+
+.detail-stat.danger {
+  background: var(--color-danger-bg);
+}
+
+.detail-section {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.mini-student-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.mini-student {
+  min-height: 3.5rem;
+  gap: 0.625rem;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0.5rem;
+}
+
+.avatar {
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 950;
+}
+
+.timeline {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.timeline p {
+  margin: 0;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  padding: 0.5rem 0.625rem;
+  font-weight: 750;
+}
+
+.lock-note {
+  margin: 0;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  padding: 0.625rem 0.75rem;
+  font-weight: 800;
+}
+
+.detail-actions {
+  display: grid;
+  gap: 0.5rem;
 }
 
 .modal-root {
   position: fixed;
   inset: 0;
-  z-index: 999;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
 }
 
-.modal-backdrop {
+.modal-scrim {
   position: absolute;
   inset: 0;
   border: 0;
-  background: var(--surface-modal);
-  cursor: pointer;
+  background: color-mix(in srgb, var(--surface-app) 58%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-.detail-modal {
+.unlock-modal {
   position: relative;
   z-index: 1;
-  display: flex;
-  width: min(64rem, 100%);
-  max-height: 88vh;
-  flex-direction: column;
-  animation: modal-in 0.22s ease-out both;
-}
-
-.modal-header,
-.modal-toolbar,
-.modal-footer,
-.modal-summary {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border-card);
-  background: var(--surface-card);
-}
-
-.modal-footer {
-  border-top: 1px solid var(--border-card);
-  border-bottom: 0;
-}
-
-.modal-title {
-  gap: 0.7rem;
-}
-
-.modal-title p {
-  color: var(--text-muted);
-}
-
-.modal-icon {
-  width: 2.35rem;
-  height: 2.35rem;
-  border-radius: var(--radius-lg);
-  color: var(--text-link);
+  display: grid;
+  width: min(34rem, 100%);
+  gap: 0.875rem;
+  box-shadow: var(--lg-shadow-lg);
 }
 
 .icon-button {
   display: inline-flex;
   width: 2.25rem;
   height: 2.25rem;
+  flex: none;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border-input);
   border-radius: var(--radius-md);
   background: var(--surface-input);
   color: var(--text-label);
-  transition:
-    border-color 0.2s ease,
-    background 0.2s ease,
-    color 0.2s ease;
 }
 
 .icon-button:hover {
@@ -957,191 +1068,75 @@ function studentStatusLabel(status) {
   color: var(--text-link);
 }
 
-.modal-summary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.modal-actions {
+  justify-content: flex-end;
   gap: 0.5rem;
 }
 
-.modal-toolbar {
-  align-items: center;
-}
-
-.filter-chips span {
-  color: var(--text-label);
-  font-size: 0.72rem;
-  font-weight: 850;
-  text-transform: uppercase;
-}
-
-.chip,
-.status-button {
-  min-height: 1.85rem;
-  border: 1px solid var(--border-input);
-  border-radius: var(--radius-sm);
-  background: var(--surface-input);
-  color: var(--text-label);
-  padding: 0 0.65rem;
-  font-size: 0.72rem;
-  font-weight: 850;
-  transition:
-    border-color 0.2s ease,
-    background 0.2s ease,
-    color 0.2s ease;
-}
-
-.chip:hover,
-.status-button:hover,
-.chip.active,
-.status-button.active {
-  border-color: var(--border-input-focus);
-  background: var(--accent-primary-soft);
-  color: var(--text-link);
-}
-
-.chip.success.active,
-.status-button.success.active {
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-}
-
-.chip.warning.active,
-.status-button.warning.active {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
-}
-
-.chip.danger.active,
-.status-button.danger.active {
-  background: var(--color-danger-bg);
-  color: var(--color-danger-text);
-}
-
-.modal-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 1rem;
-  background: var(--surface-input);
-}
-
-.student-cell {
-  min-width: 13rem;
-  gap: 0.65rem;
-}
-
-.student-avatar {
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--radius-md);
-  color: var(--text-link);
-  font-size: 0.75rem;
-  font-weight: 900;
-}
-
-.student-code {
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  font-weight: 750;
-}
-
-.note-text {
-  display: inline-block;
-  max-width: 14rem;
+.clamp-1,
+.clamp-2 {
+  display: -webkit-box;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.8rem;
-  font-style: italic;
+  -webkit-box-orient: vertical;
 }
 
-.note-input {
-  width: 100%;
-  min-height: 2rem;
-  border: 1px solid var(--border-input);
-  border-radius: var(--radius-sm);
-  background: var(--surface-input);
-  color: var(--text-heading);
-  padding: 0 0.65rem;
-  outline: none;
-  font-size: 0.78rem;
-  font-weight: 650;
-  transition:
-    border-color 0.2s ease,
-    background 0.2s ease,
-    box-shadow 0.2s ease;
+.clamp-1 {
+  -webkit-line-clamp: 1;
 }
 
-.toast-slide-enter-active,
-.toast-slide-leave-active {
-  transition: all 0.25s ease;
+.clamp-2 {
+  -webkit-line-clamp: 2;
 }
 
-.toast-slide-enter-from {
-  transform: translateY(-0.75rem);
-  opacity: 0;
-}
-
-.toast-slide-leave-to {
-  transform: translateY(0.75rem);
-  opacity: 0;
-}
-
-@keyframes modal-in {
-  from {
-    opacity: 0;
-    transform: translateY(0.75rem) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@media (max-width: 1024px) {
-  .page-header,
-  .context-panel,
-  .panel-title,
-  .modal-toolbar,
-  .modal-footer {
-    flex-direction: column;
-    align-items: stretch;
+@media (max-width: 1180px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .summary-strip,
-  .filters,
-  .row-actions,
-  .modal-actions {
-    justify-content: flex-start;
-  }
-
-  .modal-summary {
+  .detail-stats,
+  .mini-student-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 640px) {
-  .summary-strip,
-  .filters,
-  .filter-chips,
-  .modal-actions,
-  .row-actions {
-    display: grid;
+@media (max-width: 980px) {
+  .filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .page-header,
+  .panel-heading,
+  .detail-header,
+  .modal-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .summary-grid,
+  .filter-grid,
+  .detail-stats,
+  .mini-student-list {
     grid-template-columns: 1fr;
   }
 
-  .summary-pill,
-  .input-shell {
-    width: 100%;
+  .summary-card {
+    min-height: 7.5rem;
   }
 
-  .modal-root {
-    align-items: stretch;
-    padding: 0.5rem;
+  .history-table-shell {
+    display: none;
   }
 
-  .detail-modal {
-    max-height: calc(100vh - 1rem);
+  .history-mobile-list {
+    display: grid;
+    gap: 0.625rem;
+  }
+
+  .modal-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 }
 </style>

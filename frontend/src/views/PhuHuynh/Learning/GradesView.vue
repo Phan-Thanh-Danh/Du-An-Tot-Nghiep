@@ -174,13 +174,13 @@ function goBack() {
         >
           <div
             v-if="dropdownOpen"
-            class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-card p-1 shadow-[var(--lg-shadow-md)]"
+            class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-card p-1 shadow-(--lg-shadow-md)"
           >
             <button
               v-for="child in childrenData"
               :key="child.id"
               type="button"
-              class="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-label transition hover:bg-[var(--surface-card-hover)]"
+              class="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-label transition hover:bg-(--surface-card-hover)"
               @click="selectChild(child.id)"
             >
               <span>{{ child.name }} ({{ child.class }})</span>
@@ -250,11 +250,11 @@ function goBack() {
               <th class="py-3 px-3 text-right">Trạng thái</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-[var(--border-card)]">
+          <tbody class="divide-y divide-(--border-card)">
             <tr
               v-for="grade in filteredGrades"
               :key="grade.code"
-              class="hover:bg-[var(--surface-table-row-hover)] transition"
+              class="hover:bg-(--surface-table-row-hover) transition"
             >
               <td class="py-3 px-3 font-semibold text-orange-600 dark:text-orange-400">{{ grade.code }}</td>
               <td class="py-3 px-3 font-medium text-heading">{{ grade.name }}</td>
@@ -262,7 +262,7 @@ function goBack() {
               <td class="py-3 px-3 text-center font-semibold text-body">{{ grade.quiz !== null ? grade.quiz : '-' }}</td>
               <td class="py-3 px-3 text-center font-semibold text-body">{{ grade.midterm !== null ? grade.midterm : '-' }}</td>
               <td class="py-3 px-3 text-center font-semibold text-body">{{ grade.final !== null ? grade.final : '-' }}</td>
-              <td class="py-3 px-3 text-center font-extrabold text-heading bg-[var(--surface-table-row-hover)] text-sm">
+              <td class="py-3 px-3 text-center font-extrabold text-heading bg-(--surface-table-row-hover) text-sm">
                  {{ grade.average !== null ? grade.average : '-' }}
               </td>
               <td class="py-3 px-3 text-right">
@@ -271,7 +271,7 @@ function goBack() {
                   :class="
                     grade.status === 'Passed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' :
                     grade.status === 'Failed' ? 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400' :
-                    'bg-[var(--surface-input)] text-label border border-[var(--border-card)]'
+                    'bg-(--surface-input) text-label border border-(--border-card)'
                   "
                 >
                   <component :is="grade.status === 'Passed' ? CheckCircle : XCircle" :size="11" />
@@ -414,7 +414,7 @@ function goBack() {
               class="absolute flex flex-col items-center group pointer-events-auto w-24 transform -translate-x-1/2 h-full"
               :style="`left: ${point.pctX}%`"
             >
-              <span class="text-[10px] font-bold text-heading bg-white/95 dark:bg-slate-900/95 px-1.5 py-0.5 rounded border border-card shadow-[var(--lg-shadow-sm)] absolute"
+              <span class="text-[10px] font-bold text-heading bg-white/95 dark:bg-slate-900/95 px-1.5 py-0.5 rounded border border-card shadow-(--lg-shadow-sm) absolute"
                     :style="`top: calc(${point.pctY}% - 22px)`">
                 {{ point.gpa }}
               </span>

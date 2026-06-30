@@ -260,13 +260,13 @@ import dayjs from 'dayjs'
             Bộ lọc nâng cao
             <span
               v-if="activeFilterCount > 0"
-              class="inline-flex items-center justify-center h-4 w-4 rounded-full bg-[var(--lg-success)] text-white text-[10px] font-semibold"
+              class="inline-flex items-center justify-center h-4 w-4 rounded-full bg-(--lg-success) text-white text-[10px] font-semibold"
             >{{ activeFilterCount }}</span>
           </button>
 
           <button
             v-if="activeFilterCount > 0 || searchQuery"
-            class="text-xs font-bold text-placeholder hover:text-[var(--lg-danger)] transition-colors"
+            class="text-xs font-bold text-placeholder hover:text-(--lg-danger) transition-colors"
             @click="clearFilters"
           >Xóa bộ lọc</button>
         </div>
@@ -319,7 +319,7 @@ import dayjs from 'dayjs'
       <div class="lg-table-shell overflow-hidden">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-[var(--surface-input)]">
+            <tr class="bg-(--surface-input)">
               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thời gian</th>
               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Môn & Lớp</th>
               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Giảng viên</th>
@@ -328,12 +328,12 @@ import dayjs from 'dayjs'
             </tr>
           </thead>
           <tbody class="divide-y border-default">
-            <tr v-for="item in filteredSchedules" :key="item.id" class="group hover:bg-[var(--surface-input)] transition-colors">
+            <tr v-for="item in filteredSchedules" :key="item.id" class="group hover:bg-(--surface-input) transition-colors">
               <td class="px-4 py-4">
                 <span :class="['inline-block px-2 py-0.5 rounded-lg text-[10px] font-semibold border mb-1', getDayClass(item.day)]">
                   {{ item.day }}
                 </span>
-                <p class="text-xs font-bold text-[var(--lg-primary)]">{{ item.time }}</p>
+                <p class="text-xs font-bold text-(--lg-primary)">{{ item.time }}</p>
               </td>
               <td class="px-4 py-4">
                 <p class="text-sm font-semibold text-heading leading-tight">{{ item.subject }}</p>
@@ -341,7 +341,7 @@ import dayjs from 'dayjs'
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="h-8 w-8 rounded-full bg-[var(--color-info-bg)] flex items-center justify-center text-[10px] font-semibold text-[var(--color-info-text)] border border-[var(--color-info-bg)]">
+                  <div class="h-8 w-8 rounded-full bg-(--color-info-bg) flex items-center justify-center text-[10px] font-semibold text-(--color-info-text) border border-(--color-info-bg)">
                     {{ getInitial(item.teacher) }}
                   </div>
                   <span class="text-sm font-bold text-label">{{ item.teacher }}</span>
@@ -352,13 +352,13 @@ import dayjs from 'dayjs'
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-1">
-                  <button class="p-2 hover:bg-[var(--color-warning-bg)] hover:text-[var(--color-warning-text)] rounded-lg text-placeholder transition-all" title="Hủy buổi / Thay đổi" @click="openCancel(item)">
+                  <button class="p-2 hover:bg-(--color-warning-bg) hover:text-(--color-warning-text) rounded-lg text-placeholder transition-all" title="Hủy buổi / Thay đổi" @click="openCancel(item)">
                     <XCircle :size="16" />
                   </button>
-                  <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] rounded-lg text-placeholder transition-all" title="Lịch học bù" @click="openMakeup(item)">
+                  <button class="p-2 hover:bg-(--color-info-bg) hover:text-(--color-info-text) rounded-lg text-placeholder transition-all" title="Lịch học bù" @click="openMakeup(item)">
                     <RefreshCw :size="16" />
                   </button>
-                  <button class="p-2 hover:bg-[var(--surface-input)] rounded-lg text-placeholder transition-all" title="Lịch sử thay đổi" @click="openHistory(item)">
+                  <button class="p-2 hover:bg-(--surface-input) rounded-lg text-placeholder transition-all" title="Lịch sử thay đổi" @click="openHistory(item)">
                     <History :size="16" />
                   </button>
                 </div>
@@ -377,7 +377,7 @@ import dayjs from 'dayjs'
           </div>
           <p class="text-base font-semibold text-heading">Không tìm thấy buổi học nào</p>
           <p class="text-sm text-label mt-1">Thử thay đổi từ khóa hoặc điều chỉnh bộ lọc.</p>
-          <button class="mt-3 text-sm font-bold text-[var(--lg-primary)] hover:underline" @click="clearFilters">Xóa tất cả bộ lọc</button>
+          <button class="mt-3 text-sm font-bold text-(--lg-primary) hover:underline" @click="clearFilters">Xóa tất cả bộ lọc</button>
         </div>
       </div>
 
@@ -385,7 +385,7 @@ import dayjs from 'dayjs'
       <div class="flex flex-col md:flex-row items-center justify-between gap-4 px-4 py-2">
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2">
-            <span class="h-3 w-3 rounded-full bg-[var(--lg-success)] shadow-sm shadow-[var(--lg-success)]/20"></span>
+            <span class="h-3 w-3 rounded-full bg-(--lg-success) shadow-sm shadow-(--lg-success)/20"></span>
             <span class="text-xs font-bold text-label">{{ totalPublished }} Buổi học đã publish</span>
           </div>
           <div class="flex items-center gap-2 text-xs font-bold text-placeholder">
@@ -425,7 +425,7 @@ import dayjs from 'dayjs'
                 </div>
               </div>
               <button
-                class="h-8 w-8 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
+                class="h-8 w-8 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all"
                 @click="closeCancel"
               >
                 <X :size="16" />
@@ -445,7 +445,7 @@ import dayjs from 'dayjs'
             </div>
 
             <div>
-              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Lý do hủy <span class="text-[var(--lg-danger)]">*</span></label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Lý do hủy <span class="text-(--lg-danger)">*</span></label>
               <textarea
                 v-model="cancelReason"
                 rows="3"
@@ -454,9 +454,9 @@ import dayjs from 'dayjs'
               ></textarea>
             </div>
 
-            <div class="flex items-start gap-2 p-3 rounded-xl bg-[var(--color-warning-bg)]">
-              <AlertTriangle :size="14" class="text-[var(--color-warning-text)] shrink-0 mt-0.5" />
-              <p class="text-xs font-medium text-[var(--color-warning-text)]">
+            <div class="flex items-start gap-2 p-3 rounded-xl bg-(--color-warning-bg)">
+              <AlertTriangle :size="14" class="text-(--color-warning-text) shrink-0 mt-0.5" />
+              <p class="text-xs font-medium text-(--color-warning-text)">
                 Hủy buổi học sẽ gửi thông báo đến giảng viên và sinh viên. Thao tác này không thể hoàn tác.
               </p>
             </div>
@@ -471,8 +471,8 @@ import dayjs from 'dayjs'
               :class="[
                 'px-6 py-2.5 rounded-[18px] text-sm font-bold text-white transition-all flex items-center gap-2',
                 !cancelReason.trim() || isCancelling
-                  ? 'bg-[var(--border-default)] cursor-not-allowed'
-                  : 'bg-[var(--lg-danger)] hover:opacity-90 shadow-lg shadow-[var(--lg-danger)]/20'
+                  ? 'bg-(--border-default) cursor-not-allowed'
+                  : 'bg-(--lg-danger) hover:opacity-90 shadow-lg shadow-(--lg-danger)/20'
               ]"
               :disabled="!cancelReason.trim() || isCancelling"
               @click="confirmCancel"
@@ -512,7 +512,7 @@ import dayjs from 'dayjs'
                 </div>
               </div>
               <button
-                class="h-8 w-8 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
+                class="h-8 w-8 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all"
                 @click="closeMakeup"
               >
                 <X :size="16" />
@@ -532,7 +532,7 @@ import dayjs from 'dayjs'
             </div>
 
             <div>
-              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Ngày học bù <span class="text-[var(--lg-danger)]">*</span></label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Ngày học bù <span class="text-(--lg-danger)">*</span></label>
               <input
                 v-model="makeupDate"
                 type="date"
@@ -541,7 +541,7 @@ import dayjs from 'dayjs'
             </div>
 
             <div>
-              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Giờ học bù <span class="text-[var(--lg-danger)]">*</span></label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Giờ học bù <span class="text-(--lg-danger)">*</span></label>
               <input
                 v-model="makeupTime"
                 type="text"
@@ -609,7 +609,7 @@ import dayjs from 'dayjs'
                 </div>
               </div>
               <button
-                class="h-8 w-8 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
+                class="h-8 w-8 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all"
                 @click="closeHistory"
               >
                 <X :size="16" />
@@ -626,8 +626,8 @@ import dayjs from 'dayjs'
               >
                 <!-- Timeline dot + line -->
                 <div class="flex flex-col items-center shrink-0">
-                  <div class="h-3 w-3 rounded-full border-2 border-[var(--lg-primary)] bg-[var(--surface-card)] z-10"></div>
-                  <div v-if="idx < historyLogs[historyTarget.id].length - 1" class="w-px flex-1 bg-[var(--border-default)] -mt-1"></div>
+                  <div class="h-3 w-3 rounded-full border-2 border-(--lg-primary) bg-(--surface-card) z-10"></div>
+                  <div v-if="idx < historyLogs[historyTarget.id].length - 1" class="w-px flex-1 bg-(--border-default) -mt-1"></div>
                 </div>
                 <!-- Content -->
                 <div class="flex-1 -mt-0.5">
@@ -686,7 +686,7 @@ import dayjs from 'dayjs'
                 </div>
               </div>
               <button
-                class="h-8 w-8 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
+                class="h-8 w-8 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all"
                 @click="closeNotif"
               >
                 <X :size="16" />
@@ -705,7 +705,7 @@ import dayjs from 'dayjs'
             </div>
 
             <div>
-              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Nội dung <span class="text-[var(--lg-danger)]">*</span></label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Nội dung <span class="text-(--lg-danger)">*</span></label>
               <textarea
                 v-model="notifContent"
                 rows="4"
@@ -716,7 +716,7 @@ import dayjs from 'dayjs'
 
             <div class="surface-input rounded-2xl p-4 border border-default">
               <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)]">
+                <div class="h-10 w-10 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text)">
                   <Send :size="18" />
                 </div>
                 <div>

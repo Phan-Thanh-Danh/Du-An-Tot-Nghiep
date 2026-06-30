@@ -106,7 +106,7 @@ function navigateTo(path) {
       <div class="relative min-w-[260px]">
         <button
           type="button"
-          class="lg-input flex w-full items-center justify-between gap-3 rounded-[16px] px-4 py-3 text-sm font-bold text-heading shadow-[var(--lg-shadow-sm)] transition-all hover:bg-[var(--surface-input)] focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+          class="lg-input flex w-full items-center justify-between gap-3 rounded-[16px] px-4 py-3 text-sm font-bold text-heading shadow-(--lg-shadow-sm) transition-all hover:bg-(--surface-input) focus:outline-none focus:ring-2 focus:ring-orange-500/30"
           @click="dropdownOpen = !dropdownOpen"
         >
           <div class="flex items-center gap-2.5">
@@ -128,13 +128,13 @@ function navigateTo(path) {
         >
           <div
             v-if="dropdownOpen"
-            class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-[16px] border border-card p-1.5 shadow-[var(--lg-shadow-lg)] backdrop-blur-xl"
+            class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-[16px] border border-card p-1.5 shadow-(--lg-shadow-lg) backdrop-blur-xl"
           >
             <button
               v-for="child in children"
               :key="child.id"
               type="button"
-              class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-medium transition hover:bg-[var(--surface-card-hover)] hover:text-orange-600 focus:outline-none"
+              class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-medium transition hover:bg-(--surface-card-hover) hover:text-orange-600 focus:outline-none"
               @click="selectChild(child.id)"
             >
               <div class="flex items-center gap-3">
@@ -159,7 +159,7 @@ function navigateTo(path) {
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
       
       <!-- Card 1: Điểm học tập -->
-      <div class="lg-glass-soft hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 flex flex-col p-5 relative overflow-hidden group rounded-[20px] shadow-[var(--lg-shadow-sm)] hover:shadow-[var(--lg-shadow-lg)]">
+      <div class="lg-glass-soft hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 flex flex-col p-5 relative overflow-hidden group rounded-[20px] shadow-(--lg-shadow-sm) hover:shadow-(--lg-shadow-lg)">
         <div class="absolute -right-6 -bottom-6 opacity-5 text-orange-600 group-hover:scale-110 transition-transform duration-500">
           <Award :size="90" />
         </div>
@@ -186,7 +186,7 @@ function navigateTo(path) {
       </div>
 
       <!-- Card 2: Chuyên cần -->
-      <div class="lg-glass-soft hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 flex flex-col p-5 relative overflow-hidden group rounded-[20px] shadow-[var(--lg-shadow-sm)] hover:shadow-[var(--lg-shadow-lg)]">
+      <div class="lg-glass-soft hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 flex flex-col p-5 relative overflow-hidden group rounded-[20px] shadow-(--lg-shadow-sm) hover:shadow-(--lg-shadow-lg)">
         <div class="absolute -right-6 -bottom-6 opacity-5 text-orange-600 group-hover:scale-110 transition-transform duration-500">
           <CheckCircle :size="90" />
         </div>
@@ -212,7 +212,7 @@ function navigateTo(path) {
       </div>
 
       <!-- Card 3: Công nợ học phí -->
-      <div class="lg-glass-soft hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 flex flex-col p-5 relative overflow-hidden group rounded-[20px] shadow-[var(--lg-shadow-sm)] hover:shadow-[var(--lg-shadow-lg)]">
+      <div class="lg-glass-soft hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 flex flex-col p-5 relative overflow-hidden group rounded-[20px] shadow-(--lg-shadow-sm) hover:shadow-(--lg-shadow-lg)">
         <div class="absolute -right-6 -bottom-6 opacity-5 text-orange-600 group-hover:scale-110 transition-transform duration-500">
           <CreditCard :size="90" />
         </div>
@@ -238,7 +238,7 @@ function navigateTo(path) {
       </div>
 
       <!-- Card 4: Cảnh báo mới -->
-      <div class="lg-glass-soft hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 flex flex-col p-5 relative overflow-hidden group rounded-[20px] shadow-[var(--lg-shadow-sm)] hover:shadow-[var(--lg-shadow-lg)]">
+      <div class="lg-glass-soft hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 flex flex-col p-5 relative overflow-hidden group rounded-[20px] shadow-(--lg-shadow-sm) hover:shadow-(--lg-shadow-lg)">
         <div class="absolute -right-6 -bottom-6 opacity-5 text-orange-600 group-hover:scale-110 transition-transform duration-500">
           <AlertTriangle :size="90" />
         </div>
@@ -267,7 +267,7 @@ function navigateTo(path) {
       </div>
 
       <!-- Card 5: Lớp học hôm nay -->
-      <div class="lg-glass-soft hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 flex flex-col p-5 relative overflow-hidden group rounded-[20px] shadow-[var(--lg-shadow-sm)] hover:shadow-[var(--lg-shadow-lg)]">
+      <div class="lg-glass-soft hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 flex flex-col p-5 relative overflow-hidden group rounded-[20px] shadow-(--lg-shadow-sm) hover:shadow-(--lg-shadow-lg)">
         <div class="absolute -right-6 -bottom-6 opacity-5 text-orange-600 group-hover:scale-110 transition-transform duration-500">
           <Calendar :size="90" />
         </div>
@@ -305,7 +305,7 @@ function navigateTo(path) {
             <Clock :size="18" class="text-orange-600" />
             Lịch trình học tập hôm nay
           </h3>
-          <span class="text-xs font-bold text-muted bg-[var(--surface-input)] px-3 py-1.5 rounded-xl border border-card shadow-inner">Ngày 10 tháng 06 năm 2026</span>
+          <span class="text-xs font-bold text-muted bg-(--surface-input) px-3 py-1.5 rounded-xl border border-card shadow-inner">Ngày 10 tháng 06 năm 2026</span>
         </div>
         
         <div class="flex-1 space-y-4">
@@ -315,7 +315,7 @@ function navigateTo(path) {
           <div
             v-for="session in currentChild.schedule"
             :key="session.id"
-            class="group flex items-start gap-4 p-4 rounded-[16px] lg-solid-soft transition-all hover:shadow-[var(--lg-shadow-sm)] hover:-translate-y-0.5 border border-default cursor-pointer"
+            class="group flex items-start gap-4 p-4 rounded-[16px] lg-solid-soft transition-all hover:shadow-(--lg-shadow-sm) hover:-translate-y-0.5 border border-default cursor-pointer"
             :class="session.status === 'active' ? 'bg-orange-50/50 border-orange-200 dark:bg-orange-950/10 dark:border-orange-900/30 ring-1 ring-orange-500/20' : ''"
           >
             <!-- Trạng thái icon -->
@@ -326,7 +326,7 @@ function navigateTo(path) {
               <div v-else-if="session.status === 'active'" class="h-8 w-8 rounded-[10px] bg-orange-100 dark:bg-orange-950/40 text-orange-600 flex items-center justify-center animate-pulse shadow-sm">
                 <Clock :size="14" stroke-width="2.5" />
               </div>
-              <div v-else class="h-8 w-8 rounded-[10px] bg-[var(--surface-input)] border border-card text-muted flex items-center justify-center">
+              <div v-else class="h-8 w-8 rounded-[10px] bg-(--surface-input) border border-card text-muted flex items-center justify-center">
                 <Clock :size="14" />
               </div>
             </div>
@@ -340,7 +340,7 @@ function navigateTo(path) {
                   :class="
                     session.status === 'finished' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' :
                     session.status === 'active' ? 'bg-orange-100 text-orange-700 animate-pulse dark:bg-orange-900/40 dark:text-orange-400' :
-                    'bg-[var(--surface-input)] text-muted border border-card'
+                    'bg-(--surface-input) text-muted border border-card'
                   "
                 >
                   {{ session.status === 'finished' ? 'Đã học' : session.status === 'active' ? 'Đang diễn ra' : 'Sắp tới' }}
@@ -377,7 +377,7 @@ function navigateTo(path) {
           <div
             v-for="notif in systemNotifications"
             :key="notif.id"
-            class="group flex gap-4 relative p-4 rounded-[16px] lg-solid-soft transition-all hover:bg-[var(--surface-card-hover)] cursor-pointer border border-default"
+            class="group flex gap-4 relative p-4 rounded-[16px] lg-solid-soft transition-all hover:bg-(--surface-card-hover) cursor-pointer border border-default"
           >
             <div class="flex-shrink-0 mt-1">
               <span class="relative flex h-2.5 w-2.5">
@@ -410,7 +410,7 @@ function navigateTo(path) {
         </div>
 
         <div class="flex-1 space-y-4">
-          <div v-if="currentChild.alerts.length === 0" class="flex flex-col items-center justify-center py-12 text-center bg-[var(--surface-input)] rounded-2xl border border-card border-dashed">
+          <div v-if="currentChild.alerts.length === 0" class="flex flex-col items-center justify-center py-12 text-center bg-(--surface-input) rounded-2xl border border-card border-dashed">
             <CheckCircle :size="36" class="text-emerald-500 mb-3" />
             <p class="text-sm font-bold text-heading">Không có cảnh báo học tập nào</p>
             <p class="text-xs font-medium text-body mt-1">Con đang học tập và tham gia đầy đủ các lớp học phần.</p>
@@ -511,7 +511,7 @@ function navigateTo(path) {
                 class="absolute z-10 flex flex-col items-center h-full group pointer-events-auto w-24 transform -translate-x-1/2"
                 :style="`left: ${2 + idx * 32}%`"
               >
-                <span class="text-[11px] font-bold text-orange-500 bg-white/95 dark:bg-slate-900/95 px-1.5 py-0.5 rounded-md border border-card shadow-[var(--lg-shadow-sm)] mb-1.5 group-hover:-translate-y-1 transition-transform">
+                <span class="text-[11px] font-bold text-orange-500 bg-white/95 dark:bg-slate-900/95 px-1.5 py-0.5 rounded-md border border-card shadow-(--lg-shadow-sm) mb-1.5 group-hover:-translate-y-1 transition-transform">
                   {{ point.gpa }}
                 </span>
                 <span class="text-[9px] font-bold text-muted text-center w-full truncate px-1 mt-auto">

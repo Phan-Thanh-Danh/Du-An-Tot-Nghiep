@@ -113,9 +113,9 @@ const ROOM_TYPE_LABEL = {
 }
 
 const ROOM_STATUS_MAP = {
-  hoat_dong: { label: 'Đang hoạt động', dot: 'bg-[var(--lg-success)]' },
-  bao_tri: { label: 'Bảo trì', dot: 'bg-[var(--lg-warning)]' },
-  ngung_hoat_dong: { label: 'Ngừng hoạt động', dot: 'bg-[var(--lg-danger)]' },
+  hoat_dong: { label: 'Đang hoạt động', dot: 'bg-(--lg-success)' },
+  bao_tri: { label: 'Bảo trì', dot: 'bg-(--lg-warning)' },
+  ngung_hoat_dong: { label: 'Ngừng hoạt động', dot: 'bg-(--lg-danger)' },
 }
 
 function getRoomStatusInfo(s) {
@@ -252,13 +252,13 @@ function navigateToRooms(floorId) {
 
       <!-- Loading / Error -->
       <div v-if="loading" class="flex items-center justify-center py-16">
-        <div class="h-8 w-8 border-2 border-[var(--lg-primary)] border-t-transparent rounded-full animate-spin"></div>
+        <div class="h-8 w-8 border-2 border-(--lg-primary) border-t-transparent rounded-full animate-spin"></div>
         <span class="ml-3 text-sm text-label">Đang tải...</span>
       </div>
 
       <div v-else-if="error" class="lg-glass-strong p-6 rounded-2xl text-center">
-        <p class="text-sm text-[var(--lg-danger)] font-semibold">{{ error }}</p>
-        <button class="mt-3 text-sm font-bold text-[var(--lg-primary)] hover:underline" @click="fetchFloors">Thử lại</button>
+        <p class="text-sm text-(--lg-danger) font-semibold">{{ error }}</p>
+        <button class="mt-3 text-sm font-bold text-(--lg-primary) hover:underline" @click="fetchFloors">Thử lại</button>
       </div>
 
       <div v-else-if="filteredFloors.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
@@ -275,12 +275,12 @@ function navigateToRooms(floorId) {
           class="lg-card surface-card border border-default rounded-2xl overflow-hidden transition-all">
 
           <!-- Floor Header -->
-          <div class="flex items-center gap-3 p-4 cursor-pointer hover:bg-[var(--surface-input)] transition-colors select-none"
+          <div class="flex items-center gap-3 p-4 cursor-pointer hover:bg-(--surface-input) transition-colors select-none"
             @click="toggleFloor(f.maTang)">
             <button class="h-8 w-8 rounded-xl surface-input flex items-center justify-center text-label shrink-0">
               <component :is="expandedFloorId === f.maTang ? ChevronDown : ChevronRight" :size="18" />
             </button>
-            <div class="h-10 w-10 rounded-2xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] shrink-0">
+            <div class="h-10 w-10 rounded-2xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) shrink-0">
               <Layers :size="20" />
             </div>
             <div class="flex-1 min-w-0">
@@ -289,8 +289,8 @@ function navigateToRooms(floorId) {
                 <span v-if="f.thuTuTang" class="text-xs text-placeholder">· Thứ tự {{ f.thuTuTang }}</span>
                 <span class="text-[10px] px-2 py-0.5 rounded font-bold"
                   :class="f.conHoatDong !== false
-                    ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]'
-                    : 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]'">
+                    ? 'bg-(--color-success-bg) text-(--color-success-text)'
+                    : 'bg-(--color-danger-bg) text-(--color-danger-text)'">
                   {{ f.conHoatDong !== false ? 'Hoạt động' : 'Ngừng' }}
                 </span>
               </div>
@@ -302,11 +302,11 @@ function navigateToRooms(floorId) {
               </p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-              <button class="p-2 hover:bg-[var(--surface-input-focus)] rounded-xl text-label transition-colors"
+              <button class="p-2 hover:bg-(--surface-input-focus) rounded-xl text-label transition-colors"
                 @click.stop="openEditFloor(f)">
                 <Pencil :size="15" />
               </button>
-              <button class="p-2 hover:bg-[var(--color-danger-bg)] rounded-xl text-[var(--lg-danger)]/70 hover:text-[var(--lg-danger)] transition-colors"
+              <button class="p-2 hover:bg-(--color-danger-bg) rounded-xl text-(--lg-danger)/70 hover:text-(--lg-danger) transition-colors"
                 @click.stop="requestDeleteFloor(f)">
                 <Trash2 :size="15" />
               </button>
@@ -315,16 +315,16 @@ function navigateToRooms(floorId) {
 
           <!-- Rooms Section -->
           <Transition name="slide-down">
-            <div v-if="expandedFloorId === f.maTang" class="border-t border-default p-4 bg-[var(--surface-input)]/30">
+            <div v-if="expandedFloorId === f.maTang" class="border-t border-default p-4 bg-(--surface-input)/30">
               <div v-if="roomLoading[`floor-${f.maTang}`]" class="flex items-center gap-2 py-4 text-sm text-label">
-                <div class="h-4 w-4 border-2 border-[var(--lg-primary)] border-t-transparent rounded-full animate-spin"></div>
+                <div class="h-4 w-4 border-2 border-(--lg-primary) border-t-transparent rounded-full animate-spin"></div>
                 Đang tải phòng...
               </div>
 
               <div v-else-if="!roomCache[`floor-${f.maTang}`] || roomCache[`floor-${f.maTang}`].length === 0"
                 class="text-center py-8 text-sm text-placeholder">
                 Chưa có phòng học trên lầu này.
-                <button class="text-[var(--lg-primary)] font-semibold hover:underline ml-1"
+                <button class="text-(--lg-primary) font-semibold hover:underline ml-1"
                   @click="navigateToRooms(f.maTang)">
                   Thêm phòng
                 </button>
@@ -333,7 +333,7 @@ function navigateToRooms(floorId) {
               <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div v-for="r in roomCache[`floor-${f.maTang}`]" :key="r.maPhong"
                   class="flex items-center gap-3 p-3 rounded-xl surface-card border border-default hover:shadow-sm transition-all">
-                  <div class="h-10 w-10 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] shrink-0">
+                  <div class="h-10 w-10 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) shrink-0">
                     <component :is="getRoomTypeIcon(r.loaiPhong)" :size="18" />
                   </div>
                   <div class="flex-1 min-w-0">
@@ -370,45 +370,45 @@ function navigateToRooms(floorId) {
                 <h2 class="text-xl font-semibold text-heading">{{ editingFloor ? 'Chỉnh sửa lầu' : 'Thêm lầu mới' }}</h2>
                 <p class="text-sm text-label mt-0.5">{{ editingFloor ? 'Cập nhật thông tin lầu' : 'Thêm lầu vào tòa nhà' }}</p>
               </div>
-              <button class="h-9 w-9 rounded-2xl surface-input hover:bg-[var(--surface-input-focus)] flex items-center justify-center text-label transition-all"
+              <button class="h-9 w-9 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all"
                 @click="showFloorModal = false"><X :size="18" /></button>
             </div>
           </div>
 
           <div class="p-6 space-y-5">
-            <p v-if="floorErrors._api" class="text-sm text-[var(--lg-danger)] font-semibold">{{ floorErrors._api }}</p>
+            <p v-if="floorErrors._api" class="text-sm text-(--lg-danger) font-semibold">{{ floorErrors._api }}</p>
 
             <div>
               <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">
-                Tòa nhà <span class="text-[var(--lg-danger)]">*</span>
+                Tòa nhà <span class="text-(--lg-danger)">*</span>
               </label>
               <select v-model="floorForm.maToaNha"
-                :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', floorErrors.maToaNha ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : '']">
+                :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', floorErrors.maToaNha ? 'border-(--lg-danger) bg-(--color-danger-bg)' : '']">
                 <option :value="null" disabled>Chọn tòa nhà</option>
                 <option v-for="b in buildings" :key="b.maToaNha" :value="b.maToaNha">
                   {{ b.tenToaNha }} ({{ b.maCodeToaNha }})
                 </option>
               </select>
-              <p v-if="floorErrors.maToaNha" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ floorErrors.maToaNha }}</p>
+              <p v-if="floorErrors.maToaNha" class="mt-1 text-xs text-(--lg-danger) font-semibold">{{ floorErrors.maToaNha }}</p>
             </div>
 
             <div>
               <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">
-                Tên lầu <span class="text-[var(--lg-danger)]">*</span>
+                Tên lầu <span class="text-(--lg-danger)">*</span>
               </label>
               <input v-model="floorForm.tenTang" type="text" placeholder="VD: Tầng 1"
-                :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', floorErrors.tenTang ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : '']" />
-              <p v-if="floorErrors.tenTang" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ floorErrors.tenTang }}</p>
+                :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', floorErrors.tenTang ? 'border-(--lg-danger) bg-(--color-danger-bg)' : '']" />
+              <p v-if="floorErrors.tenTang" class="mt-1 text-xs text-(--lg-danger) font-semibold">{{ floorErrors.tenTang }}</p>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">
-                  Thứ tự <span class="text-[var(--lg-danger)]">*</span>
+                  Thứ tự <span class="text-(--lg-danger)">*</span>
                 </label>
                 <input v-model.number="floorForm.thuTuTang" type="number" min="1" placeholder="VD: 1"
-                  :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', floorErrors.thuTuTang ? 'border-[var(--lg-danger)] bg-[var(--color-danger-bg)]' : '']" />
-                <p v-if="floorErrors.thuTuTang" class="mt-1 text-xs text-[var(--lg-danger)] font-semibold">{{ floorErrors.thuTuTang }}</p>
+                  :class="['w-full lg-input px-4 py-2.5 text-sm font-medium', floorErrors.thuTuTang ? 'border-(--lg-danger) bg-(--color-danger-bg)' : '']" />
+                <p v-if="floorErrors.thuTuTang" class="mt-1 text-xs text-(--lg-danger) font-semibold">{{ floorErrors.thuTuTang }}</p>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-label uppercase tracking-widest mb-1.5">Mô tả</label>
@@ -437,8 +437,8 @@ function navigateToRooms(floorId) {
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
         <div class="relative w-full max-w-sm surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
           <div class="p-6">
-            <div class="h-12 w-12 rounded-2xl bg-[var(--color-danger-bg)] flex items-center justify-center mb-4 mx-auto">
-              <AlertCircle :size="24" class="text-[var(--lg-danger)]" />
+            <div class="h-12 w-12 rounded-2xl bg-(--color-danger-bg) flex items-center justify-center mb-4 mx-auto">
+              <AlertCircle :size="24" class="text-(--lg-danger)" />
             </div>
             <h3 class="text-lg font-semibold text-heading text-center">Xóa lầu</h3>
             <p class="text-sm text-label text-center mt-2">
@@ -449,7 +449,7 @@ function navigateToRooms(floorId) {
           </div>
           <div class="px-6 pb-6 pt-2 border-t border-default flex items-center justify-end gap-3">
             <button class="lg-button-secondary px-5 py-2.5" @click="confirmDeleteFloor = null">Hủy</button>
-            <button class="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl bg-[var(--lg-danger)] text-white hover:opacity-90 transition-all"
+            <button class="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl bg-(--lg-danger) text-white hover:opacity-90 transition-all"
               @click="executeDeleteFloor">
               <Trash2 :size="16" /> Xác nhận xóa
             </button>

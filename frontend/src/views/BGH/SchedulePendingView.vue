@@ -1,224 +1,129 @@
-﻿<template>
-  <PageContainer 
-    title="Duyệt Thời khóa biểu" 
-    subtitle="Phê duyệt thời khóa biểu trước khi công bố"
-  >
-    <template #actions>
-      <select v-model="campusFilter" class="px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)]">
-        <option value="">Tất cả cơ sở</option>
-        <option v-for="c in campuses" :key="c" :value="c">{{ c }}</option>
-      </select>
-    </template>
+<script setup>
+import { ref } from 'vue'
+import {
+  Clock, Filter, CheckCircle2, XCircle, Eye, X
+} from 'lucide-vue-next'
+import GlassBadge from '@/components/ui/GlassBadge.vue'
+import GlassButton from '@/components/ui/GlassButton.vue'
+import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
-      <div class="xl:col-span-2 space-y-4">
-        <div v-for="item in filteredSchedules" :key="item.id" class="surface-card border border-card rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
-          <div class="flex items-start justify-between gap-4">
-            <div class="flex items-start gap-3 flex-1 min-w-0">
-              <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0">{{ item.initials }}</div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <h3 class="text-base font-bold text-heading">{{ item.tenHocKy }}</h3>
-                  <span :class="urgencyBadge(item.doUrgent)" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                    {{ item.doUrgent === 'cao' ? 'Khẩn' : item.doUrgent === 'trung_binh' ? 'Thường' : 'Thấp' }}
-                  </span>
-                </div>
-                <p class="text-sm text-muted mt-0.5">{{ item.tenDonVi }} · {{ item.ngayTao }}</p>
-                <div class="flex flex-wrap gap-3 mt-2 text-xs text-muted">
-                  <span class="flex items-center gap-1"><BookOpen :size="13" /> {{ item.soLop }} lớp</span>
-                  <span class="flex items-center gap-1"><Users :size="13" /> {{ item.soGiaoVien }} GV</span>
-                  <span class="flex items-center gap-1"><Clock :size="13" /> {{ item.tongSoTiet }} tiết/tuần</span>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-2 shrink-0">
-              <button @click="approve(item)" class="flex items-center gap-1 px-3 py-1.5 bg-[var(--color-success-bg)] text-[var(--color-success-text)] rounded-lg text-xs font-bold hover:brightness-90 transition-all">
-                <CheckCircle2 :size="14" /> Duyệt
-              </button>
-              <button @click="reject(item)" class="flex items-center gap-1 px-3 py-1.5 bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] rounded-lg text-xs font-bold hover:brightness-90 transition-all">
-                <XCircle :size="14" /> Từ chối
-              </button>
-            </div>
-          </div>
+const schedules = ref([
+  { id: 'PD-241', term: 'Học kỳ 1 - 2026', type: 'Chính quy', department: 'Khoa CNTT', created: '10/05/2026', submitter: 'Nguyễn Văn A (Giáo vụ)', status: 'pending', metrics: { classes: 120, teachers: 45, hours: 360 } },
+  { id: 'PD-243', term: 'Học kỳ 1 - 2026', type: 'Chất lượng cao', department: 'Khoa Kinh tế', created: '11/05/2026', submitter: 'Trần Thị B (Giáo vụ)', status: 'pending', metrics: { classes: 80, teachers: 30, hours: 240 } },
+])
 
-          <div class="mt-4 pt-3 border-t border-default">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-bold text-heading">Xung đột phát hiện</span>
-              <span v-if="item.xungDot > 0" class="text-xs text-[var(--color-danger-text)] bg-[var(--color-danger-bg)] px-2 py-0.5 rounded-full font-bold">{{ item.xungDot }} xung đột</span>
-              <span v-else class="text-xs text-[var(--color-success-text)] bg-[var(--color-success-bg)] px-2 py-0.5 rounded-full font-bold">Không có xung đột</span>
-            </div>
-            <div v-if="item.conflicts && item.conflicts.length > 0" class="space-y-1.5">
-              <div v-for="(conf, i) in item.conflicts" :key="i" class="flex items-center gap-2 text-xs text-[var(--color-danger-text)] bg-[var(--color-danger-bg)]/30 p-2 rounded-lg">
-                <AlertTriangle :size="13" class="shrink-0" />
-                <span>{{ conf }}</span>
-              </div>
-            </div>
-            <div v-else class="text-xs text-muted italic">Không phát hiện xung đột.</div>
-          </div>
+const selectedItem = ref(null)
+const confirmDialog = ref({ isOpen: false, action: null, message: '' })
+
+function openConfirm(action, message) {
+  confirmDialog.value = { isOpen: true, action, message }
+}
+
+function handleConfirm() {
+  confirmDialog.value.isOpen = false
+  selectedItem.value = null
+}
+</script>
+
+<template>
+  <div class="h-full flex flex-col space-y-4">
+    <div class="flex items-start justify-between flex-wrap gap-4">
+      <div>
+        <div class="flex items-center gap-2">
+          <Clock class="text-(--lg-primary)" :size="24" />
+          <h1 class="text-xl font-bold text-(--text-heading)">Duyệt Thời khóa biểu</h1>
         </div>
-
-        <div v-if="filteredSchedules.length === 0" class="text-center py-12 text-muted">
-          <CalendarCheck :size="40" class="mx-auto mb-3 opacity-50" />
-          <p>Không có thời khóa biểu nào chờ duyệt.</p>
-        </div>
+        <p class="text-sm text-(--text-muted) mt-0.5 ml-8">Phê duyệt thời khóa biểu từ các khoa trước khi công bố chính thức.</p>
       </div>
-
-      <div class="space-y-4">
-        <div class="surface-card border border-card rounded-2xl p-5 shadow-sm">
-          <h3 class="text-base font-bold text-heading mb-3 flex items-center gap-2">
-            <BarChart3 :size="18" class="text-[var(--lg-primary)]" />
-            Thống kê
-          </h3>
-          <div class="space-y-3">
-            <div class="flex justify-between text-sm">
-              <span class="text-muted">Chờ duyệt</span>
-              <span class="font-bold text-heading">{{ pendingCount }}</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-muted">Đã duyệt hôm nay</span>
-              <span class="font-bold text-[var(--color-success-text)]">3</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-muted">Từ chối hôm nay</span>
-              <span class="font-bold text-[var(--color-danger-text)]">1</span>
-            </div>
-            <div class="flex justify-between text-sm pt-2 border-t border-default">
-              <span class="text-muted">Tổng số lớp trong kỳ</span>
-              <span class="font-bold text-heading">286</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="surface-card border border-card rounded-2xl p-5 shadow-sm">
-          <h3 class="text-base font-bold text-heading mb-3">Lịch sử duyệt gần đây</h3>
-          <div class="space-y-3">
-            <div v-for="log in approvalHistory" :key="log.time" class="flex gap-2 text-xs">
-              <div class="flex flex-col items-center">
-                <div :class="log.action === 'approved' ? 'bg-[var(--color-success-text)]' : 'bg-[var(--color-danger-text)]'" class="h-2 w-2 rounded-full mt-1" />
-                <div class="flex-1 w-px bg-default" />
-              </div>
-              <div>
-                <p class="font-bold text-heading">{{ log.tenHocKy }}</p>
-                <p class="text-muted">{{ log.time }} bởi {{ log.nguoiDuyet }}</p>
-                <span :class="log.action === 'approved' ? 'text-[var(--color-success-text)]' : 'text-[var(--color-danger-text)]'" class="font-bold">
-                  {{ log.action === 'approved' ? 'Đã duyệt' : 'Đã từ chối' }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="flex gap-2">
+        <GlassButton variant="secondary"><Filter :size="15" class="mr-1" /> Bộ lọc</GlassButton>
       </div>
     </div>
 
-  </PageContainer>
+    <!-- Main Content Layout -->
+    <div class="flex flex-1 min-h-0 gap-4 flex-col lg:flex-row">
+      <!-- Left: List -->
+      <div class="flex-1 surface-card border border-(--border-card) rounded-2xl p-4 flex flex-col gap-3 min-w-0 overflow-y-auto">
+        <div v-for="item in schedules" :key="item.id"
+             @click="selectedItem = item"
+             class="surface-card border rounded-2xl p-4 cursor-pointer transition-all hover:shadow-md relative overflow-hidden group flex flex-col lg:flex-row lg:items-center gap-4"
+             :class="selectedItem?.id === item.id ? 'border-(--lg-primary) ring-1 ring-(--lg-primary) bg-(--lg-primary)/5' : 'border-(--border-card)'">
 
-  <div v-if="actionModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" @click.self="actionModal = false">
-    <div class="w-full max-w-md surface-card rounded-2xl shadow-2xl border border-default overflow-hidden">
-      <div class="p-4 border-b border-default flex justify-between items-center">
-        <h3 class="text-lg font-bold text-heading">{{ actionType === 'approve' ? 'Xác nhận duyệt' : 'Từ chối' }} TKB</h3>
-        <button @click="actionModal = false" class="p-1 hover:bg-[var(--surface-input)] rounded-lg text-muted">
-          <X :size="20" />
-        </button>
-      </div>
-      <div class="p-6 space-y-4">
-        <p class="text-sm text-body">{{ actionType === 'approve' ? 'Bạn có chắc muốn duyệt thời khóa biểu' : 'Nhập lý do từ chối thời khóa biểu' }} <strong class="text-heading">{{ actionTarget?.tenHocKy }}</strong>?</p>
-        <div v-if="actionType === 'reject'" class="space-y-1">
-          <label class="block text-xs font-bold text-heading">Lý do từ chối <span class="text-[var(--color-danger-text)]">*</span></label>
-          <textarea v-model="rejectReason" rows="3" placeholder="Nhập lý do từ chối..." class="w-full px-3 py-2 bg-[var(--surface-input)] border border-input rounded-lg text-sm text-body focus:outline-none focus:border-[var(--lg-primary)] resize-none"></textarea>
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></div>
+
+          <!-- Info -->
+          <div class="flex-1 pl-2">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs font-mono font-bold text-(--text-muted)">{{ item.id }}</span>
+              <GlassBadge variant="warning" size="xs">Chờ duyệt</GlassBadge>
+            </div>
+            <h3 class="font-bold text-(--text-heading) text-base">{{ item.department }}</h3>
+            <p class="text-sm text-(--text-body) font-medium">{{ item.term }} - {{ item.type }}</p>
+          </div>
+
+          <!-- Metrics -->
+          <div class="flex items-center gap-4 py-2 lg:py-0 border-y lg:border-y-0 lg:border-l border-(--border-default) lg:px-4 shrink-0">
+             <div class="text-center">
+                <p class="text-[10px] uppercase text-(--text-muted) font-bold">Lớp</p>
+                <p class="font-bold text-(--text-heading)">{{ item.metrics.classes }}</p>
+             </div>
+             <div class="text-center">
+                <p class="text-[10px] uppercase text-(--text-muted) font-bold">Giảng viên</p>
+                <p class="font-bold text-(--text-heading)">{{ item.metrics.teachers }}</p>
+             </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex flex-wrap lg:flex-nowrap gap-2 shrink-0 lg:pl-2" @click.stop>
+             <GlassButton variant="primary" size="sm" class="flex-1 lg:flex-none justify-center" @click="openConfirm('approve', 'Phê duyệt thời khóa biểu này?')"><CheckCircle2 :size="14" class="mr-1"/>Duyệt</GlassButton>
+             <GlassButton variant="danger" size="sm" class="flex-1 lg:flex-none justify-center" @click="openConfirm('reject', 'Trả về giáo vụ yêu cầu chỉnh sửa?')"><XCircle :size="14" class="mr-1"/>Trả về</GlassButton>
+          </div>
+        </div>
+
+        <div v-if="schedules.length === 0" class="flex-1 flex flex-col items-center justify-center text-(--text-muted) p-8">
+          <CheckCircle2 :size="48" class="text-emerald-500/50 mb-4" />
+          <p class="font-bold text-(--text-heading)">Không có dữ liệu chờ duyệt</p>
         </div>
       </div>
-      <div class="p-4 border-t border-default flex justify-end gap-3">
-        <button @click="actionModal = false" class="px-4 py-2 border border-input rounded-lg text-sm font-bold text-body hover:bg-[var(--surface-input)] transition-colors">Hủy</button>
-        <button @click="confirmAction" :class="actionType === 'approve' ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] hover:brightness-90' : 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] hover:brightness-90'" class="px-4 py-2 text-sm font-bold rounded-lg transition-all">
-          {{ actionType === 'approve' ? 'Xác nhận duyệt' : 'Từ chối' }}
-        </button>
+
+      <!-- Right: Detail Panel -->
+      <div v-if="selectedItem" class="w-full lg:w-80 shrink-0 flex flex-col gap-3">
+        <div class="surface-card border border-(--border-card) rounded-2xl shadow-sm flex flex-col h-full overflow-hidden">
+          <div class="p-4 border-b border-(--border-default) flex justify-between items-center bg-(--surface-input)">
+            <h3 class="font-bold text-(--text-heading)">Chi tiết TKB</h3>
+            <button class="text-(--text-muted) hover:text-(--text-heading)" @click="selectedItem = null"><X :size="16" /></button>
+          </div>
+
+          <div class="p-4 flex-1 overflow-auto space-y-5">
+            <div>
+              <p class="text-xs text-(--text-muted) uppercase tracking-wider font-bold mb-1">Thông tin chung</p>
+              <div class="space-y-2 text-sm text-(--text-body)">
+                <div class="flex justify-between"><span class="text-(--text-muted)">Học kỳ:</span> <span class="font-medium text-right">{{ selectedItem.term }}</span></div>
+                <div class="flex justify-between"><span class="text-(--text-muted)">Đơn vị:</span> <span class="font-medium text-right">{{ selectedItem.department }}</span></div>
+                <div class="flex justify-between"><span class="text-(--text-muted)">Người nộp:</span> <span class="font-medium text-right">{{ selectedItem.submitter }}</span></div>
+                <div class="flex justify-between"><span class="text-(--text-muted)">Ngày nộp:</span> <span class="font-medium text-right">{{ selectedItem.created }}</span></div>
+              </div>
+            </div>
+
+            <div class="p-3 bg-(--surface-input) rounded-xl border border-(--border-default)">
+              <p class="text-xs font-bold text-(--text-heading) mb-2">Báo cáo kiểm tra xung đột hệ thống</p>
+              <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-sm font-medium">
+                <CheckCircle2 :size="16" /> Hoàn toàn hợp lệ (0 xung đột)
+              </div>
+            </div>
+
+            <GlassButton variant="secondary" class="w-full justify-center text-link"><Eye :size="14" class="mr-1"/> Xem dữ liệu chi tiết</GlassButton>
+          </div>
+        </div>
       </div>
     </div>
   </div>
+  <ConfirmActionDialog
+    :is-open="confirmDialog.isOpen"
+    title="Xác nhận phê duyệt"
+    :message="confirmDialog.message"
+    confirm-text="Đồng ý"
+    @confirm="handleConfirm"
+    @cancel="confirmDialog.isOpen = false"
+  />
 </template>
-
-<script setup>
-import { ref, computed } from 'vue'
-import {
-  BookOpen, Users, Clock, CheckCircle2, XCircle,
-  AlertTriangle, CalendarCheck, BarChart3, X
-} from 'lucide-vue-next'
-import PageContainer from '@/components/SinhVien/PageContainer.vue'
-
-const campusFilter = ref('')
-const actionModal = ref(false)
-const actionType = ref('approve')
-const actionTarget = ref(null)
-const rejectReason = ref('')
-
-const campuses = ['FPT Polytechnic Hồ Chí Minh', 'FPT Polytechnic Đà Nẵng']
-
-const pendingSchedules = [
-  {
-    id: 1, initials: 'CN', tenDonVi: 'FPT Polytechnic Hồ Chí Minh',
-    tenHocKy: 'Spring 2026 - Khoa CNTT', ngayTao: 'Gửi: 12/06/2026 bởi Nguyễn Văn A (Giáo vụ)',
-    soLop: 42, soGiaoVien: 18, tongSoTiet: 210, doUrgent: 'cao',
-    xungDot: 2,
-    conflicts: ['Phòng PTO.101 trùng lịch: PRO101 (T2 - 7h30) vs WEB101 (T2 - 7h30)', 'GV Nguyễn Văn B dạy 2 lớp cùng giờ (T3 - 9h30)'],
-  },
-  {
-    id: 2, initials: 'KT', tenDonVi: 'FPT Polytechnic Hồ Chí Minh',
-    tenHocKy: 'Spring 2026 - Khoa Kinh Tế', ngayTao: 'Gửi: 11/06/2026 bởi Trần Thị C (Giáo vụ)',
-    soLop: 28, soGiaoVien: 12, tongSoTiet: 140, doUrgent: 'trung_binh',
-    xungDot: 0, conflicts: [],
-  },
-  {
-    id: 3, initials: 'TK', tenDonVi: 'FPT Polytechnic Hồ Chí Minh',
-    tenHocKy: 'Spring 2026 - Khoa Thiết Kế', ngayTao: 'Gửi: 11/06/2026 bởi Lê Văn D (Giáo vụ)',
-    soLop: 18, soGiaoVien: 8, tongSoTiet: 90, doUrgent: 'thap',
-    xungDot: 1,
-    conflicts: ['Phòng Lab PTO.203 trùng lịch: Đồ họa 2D (T5 - 13h30) vs Đồ họa 3D (T5 - 13h30)'],
-  },
-  {
-    id: 4, initials: 'ĐN', tenDonVi: 'FPT Polytechnic Đà Nẵng',
-    tenHocKy: 'Spring 2026 - Đà Nẵng', ngayTao: 'Gửi: 10/06/2026 bởi Phạm Văn E (Giáo vụ)',
-    soLop: 22, soGiaoVien: 10, tongSoTiet: 110, doUrgent: 'cao',
-    xungDot: 0, conflicts: [],
-  },
-]
-
-const approvalHistory = [
-  { tenHocKy: 'Summer 2025 - Khoa CNTT', time: '15/05/2025 10:30', nguoiDuyet: 'Nguyễn Văn Hiệu Trưởng', action: 'approved' },
-  { tenHocKy: 'Fall 2025 - Khoa CNTT', time: '20/08/2025 14:00', nguoiDuyet: 'Nguyễn Văn Hiệu Trưởng', action: 'approved' },
-  { tenHocKy: 'Fall 2025 - Khoa Kinh Tế', time: '21/08/2025 09:15', nguoiDuyet: 'Nguyễn Văn Hiệu Trưởng', action: 'rejected' },
-  { tenHocKy: 'Spring 2026 - Đà Nẵng', time: '05/01/2026 08:00', nguoiDuyet: 'Nguyễn Văn Hiệu Trưởng', action: 'approved' },
-]
-
-const filteredSchedules = computed(() => {
-  if (!campusFilter.value) return pendingSchedules
-  return pendingSchedules.filter(s => s.tenDonVi === campusFilter.value)
-})
-
-const pendingCount = computed(() => filteredSchedules.value.length)
-
-function urgencyBadge(level) {
-  switch (level) {
-    case 'cao': return 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]'
-    case 'trung_binh': return 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]'
-    default: return 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]'
-  }
-}
-
-function approve(item) {
-  actionType.value = 'approve'
-  actionTarget.value = item
-  actionModal.value = true
-}
-
-function reject(item) {
-  actionType.value = 'reject'
-  actionTarget.value = item
-  rejectReason.value = ''
-  actionModal.value = true
-}
-
-function confirmAction() {
-  if (actionType.value === 'reject' && !rejectReason.value.trim()) return
-  actionModal.value = false
-}
-</script>

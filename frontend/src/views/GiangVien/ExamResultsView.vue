@@ -60,7 +60,7 @@ const highestScore = computed(() => {
       
       
       <div class="relative z-10 flex items-center gap-5">
-        <div class="h-10 w-10 rounded-2xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] border border-[var(--color-info-text)]/20 shadow-sm">
+        <div class="h-10 w-10 rounded-2xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) border border-(--color-info-text)/20 shadow-sm">
            <Award :size="32" />
         </div>
         <div>
@@ -81,28 +81,28 @@ const highestScore = computed(() => {
        <div class="grid grid-cols-1 md:grid-cols-3 xl:w-1/2 gap-4">
           <div class="rounded-2xl surface-card border border-card p-4 shadow-sm">
              <div class="flex items-center justify-between mb-3">
-                <div class="h-10 w-10 rounded-xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] border border-[var(--color-info-text)]/20">
+                <div class="h-10 w-10 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) border border-(--color-info-text)/20">
                    <TrendingUp :size="20" />
                 </div>
-                <span class="text-[10px] font-semibold uppercase tracking-widest text-muted bg-[var(--surface-input)] px-2 py-1 rounded-lg">Trung bình</span>
+                <span class="text-[10px] font-semibold uppercase tracking-widest text-muted bg-(--surface-input) px-2 py-1 rounded-lg">Trung bình</span>
              </div>
              <p class="text-xl font-semibold text-heading">{{ averageScore }}</p>
           </div>
           <div class="rounded-2xl surface-card border border-card p-4 shadow-sm">
              <div class="flex items-center justify-between mb-3">
-                <div class="h-10 w-10 rounded-xl bg-[var(--color-success-bg)] flex items-center justify-center text-[var(--color-success-text)] border border-[var(--color-success-text)]/20">
+                <div class="h-10 w-10 rounded-xl bg-(--color-success-bg) flex items-center justify-center text-(--color-success-text) border border-(--color-success-text)/20">
                    <CheckCircle2 :size="20" />
                 </div>
-                <span class="text-[10px] font-semibold uppercase tracking-widest text-muted bg-[var(--surface-input)] px-2 py-1 rounded-lg">Tỷ lệ Đạt</span>
+                <span class="text-[10px] font-semibold uppercase tracking-widest text-muted bg-(--surface-input) px-2 py-1 rounded-lg">Tỷ lệ Đạt</span>
              </div>
              <p class="text-xl font-semibold text-heading">{{ passRate }}%</p>
           </div>
           <div class="rounded-2xl surface-card border border-card p-4 shadow-sm">
              <div class="flex items-center justify-between mb-3">
-                <div class="h-10 w-10 rounded-xl bg-[var(--color-warning-bg)] flex items-center justify-center text-[var(--color-warning-text)] border border-[var(--color-warning-text)]/20">
+                <div class="h-10 w-10 rounded-xl bg-(--color-warning-bg) flex items-center justify-center text-(--color-warning-text) border border-(--color-warning-text)/20">
                    <Award :size="20" />
                 </div>
-                <span class="text-[10px] font-semibold uppercase tracking-widest text-muted bg-[var(--surface-input)] px-2 py-1 rounded-lg">Cao nhất</span>
+                <span class="text-[10px] font-semibold uppercase tracking-widest text-muted bg-(--surface-input) px-2 py-1 rounded-lg">Cao nhất</span>
              </div>
              <p class="text-xl font-semibold text-heading">{{ highestScore }}</p>
           </div>
@@ -114,10 +114,10 @@ const highestScore = computed(() => {
           <div class="flex flex-col sm:flex-row gap-4">
             <div class="relative flex-1">
               <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder" />
-              <input type="text" placeholder="Tìm sinh viên bằng tên hoặc MSSV..." class="w-full rounded-xl border border-input surface-input pl-11 pr-4 py-3 text-sm font-medium outline-none focus:border-[var(--border-input-focus)] transition-colors" />
+              <input type="text" placeholder="Tìm sinh viên bằng tên hoặc MSSV..." class="w-full rounded-xl border border-input surface-input pl-11 pr-4 py-3 text-sm font-medium outline-none focus:border-(--border-input-focus) transition-colors" />
             </div>
             <div class="relative w-full sm:w-48 shrink-0">
-               <select class="w-full rounded-xl border border-input surface-input px-4 py-3 text-sm font-medium text-label outline-none focus:border-[var(--border-input-focus)] transition-colors appearance-none cursor-pointer">
+               <select class="w-full rounded-xl border border-input surface-input px-4 py-3 text-sm font-medium text-label outline-none focus:border-(--border-input-focus) transition-colors appearance-none cursor-pointer">
                   <option>Tất cả kỳ thi</option>
                   <option>Thi giữa kỳ</option>
                   <option>Thi cuối kỳ</option>
@@ -142,10 +142,10 @@ const highestScore = computed(() => {
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
-            <tr v-for="res in examResults" :key="res.id" class="group hover:bg-[var(--surface-input)] transition-colors">
+            <tr v-for="res in examResults" :key="res.id" class="group hover:bg-(--surface-input) transition-colors">
               <td class="px-5 py-4">
                 <div class="flex items-center gap-4">
-                  <div class="h-10 w-10 rounded-2xl surface-solid border border-default flex items-center justify-center text-muted font-semibold text-sm group-hover:bg-[var(--color-info-bg)] group-hover:text-[var(--color-info-text)] group-hover:border-[var(--color-info-text)]/20 transition-colors shadow-sm">
+                  <div class="h-10 w-10 rounded-2xl surface-solid border border-default flex items-center justify-center text-muted font-semibold text-sm group-hover:bg-(--color-info-bg) group-hover:text-(--color-info-text) group-hover:border-(--color-info-text)/20 transition-colors shadow-sm">
                     {{ res.name.split(' ').pop()[0] }}
                   </div>
                   <div>
@@ -157,16 +157,16 @@ const highestScore = computed(() => {
               <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
                    <div :class="['h-10 w-10 rounded-xl flex items-center justify-center border', 
-                                res.score >= 8 ? 'bg-[var(--color-success-bg)] border-[var(--color-success-text)]/20 text-[var(--color-success-text)]' :
-                                res.score >= 5 ? 'bg-[var(--color-info-bg)] border-[var(--color-info-text)]/20 text-[var(--color-info-text)]' :
-                                'bg-[var(--color-danger-bg)] border-[var(--color-danger-text)]/20 text-[var(--color-danger-text)]']">
+                                res.score >= 8 ? 'bg-(--color-success-bg) border-(--color-success-text)/20 text-(--color-success-text)' :
+                                res.score >= 5 ? 'bg-(--color-info-bg) border-(--color-info-text)/20 text-(--color-info-text)' :
+                                'bg-(--color-danger-bg) border-(--color-danger-text)/20 text-(--color-danger-text)']">
                       <Award :size="18" />
                    </div>
                    <div class="flex flex-col">
                        <span :class="['text-xl font-semibold',
-                                    res.score >= 8 ? 'text-[var(--color-success-text)]' :
-                                    res.score >= 5 ? 'text-[var(--color-info-text)]' :
-                                    'text-[var(--color-danger-text)]']">{{ res.score.toFixed(1) }}</span>
+                                    res.score >= 8 ? 'text-(--color-success-text)' :
+                                    res.score >= 5 ? 'text-(--color-info-text)' :
+                                    'text-(--color-danger-text)']">{{ res.score.toFixed(1) }}</span>
                    </div>
                 </div>
               </td>
@@ -183,7 +183,7 @@ const highestScore = computed(() => {
                  </div>
               </td>
               <td class="px-5 py-4 text-right">
-                <button @click="openDrawer(res)" class="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-input surface-input text-[11px] font-semibold tracking-wider text-muted hover:text-link hover:border-[var(--border-input-focus)] transition-colors shadow-sm">
+                <button @click="openDrawer(res)" class="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-input surface-input text-[11px] font-semibold tracking-wider text-muted hover:text-link hover:border-(--border-input-focus) transition-colors shadow-sm">
                    Chi tiết <ChevronRight :size="14" class="ml-1" />
                 </button>
               </td>
@@ -198,9 +198,9 @@ const highestScore = computed(() => {
             <User :size="14" class="text-muted" /> Hiển thị {{ examResults.length }} kết quả
          </div>
          <div class="flex items-center gap-1">
-            <div class="h-1 w-8 bg-[var(--lg-primary)] rounded-full"></div>
-            <div class="h-1 w-2 bg-[var(--color-info-bg)] rounded-full"></div>
-            <div class="h-1 w-2 bg-[var(--color-info-bg)] rounded-full"></div>
+            <div class="h-1 w-8 bg-(--lg-primary) rounded-full"></div>
+            <div class="h-1 w-2 bg-(--color-info-bg) rounded-full"></div>
+            <div class="h-1 w-2 bg-(--color-info-bg) rounded-full"></div>
          </div>
       </div>
     </div>
@@ -211,7 +211,7 @@ const highestScore = computed(() => {
     <!-- Backdrop -->
     <div 
       v-if="isDrawerOpen" 
-      class="fixed inset-0 z-[9998] bg-[var(--surface-backdrop)] backdrop-blur-sm transition-opacity"
+      class="fixed inset-0 z-[9998] bg-(--surface-backdrop) backdrop-blur-sm transition-opacity"
       @click="closeDrawer"
     ></div>
 
@@ -224,7 +224,7 @@ const highestScore = computed(() => {
         <!-- Drawer Header -->
         <div class="flex items-center justify-between p-4 border-b border-default surface-solid">
           <div class="flex items-center gap-4">
-            <div class="h-10 w-10 rounded-2xl bg-[var(--color-info-bg)] text-[var(--color-info-text)] flex items-center justify-center font-semibold text-lg shadow-sm border border-[var(--color-info-text)]/20">
+            <div class="h-10 w-10 rounded-2xl bg-(--color-info-bg) text-(--color-info-text) flex items-center justify-center font-semibold text-lg shadow-sm border border-(--color-info-text)/20">
               {{ selectedResult.name.split(' ').pop()[0] }}
             </div>
             <div>
@@ -246,16 +246,16 @@ const highestScore = computed(() => {
                 <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Điểm tổng kết</p>
                 <div class="flex items-baseline gap-2">
                    <span :class="['text-3xl font-semibold tracking-tighter',
-                        selectedResult.score >= 8 ? 'text-[var(--color-success-text)]' :
-                        selectedResult.score >= 5 ? 'text-[var(--color-info-text)]' : 'text-[var(--color-danger-text)]']">
+                        selectedResult.score >= 8 ? 'text-(--color-success-text)' :
+                        selectedResult.score >= 5 ? 'text-(--color-info-text)' : 'text-(--color-danger-text)']">
                       {{ selectedResult.score.toFixed(1) }}
                    </span>
                    <span class="text-sm font-medium text-muted">/ 10</span>
                 </div>
              </div>
               <div :class="['px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-widest border',
-                  selectedResult.score >= 8 ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success-text)]/20' :
-                  selectedResult.score >= 5 ? 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-info-text)]/20' : 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger-text)]/20']">
+                  selectedResult.score >= 8 ? 'bg-(--color-success-bg) text-(--color-success-text) border-(--color-success-text)/20' :
+                  selectedResult.score >= 5 ? 'bg-(--color-info-bg) text-(--color-info-text) border-(--color-info-text)/20' : 'bg-(--color-danger-bg) text-(--color-danger-text) border-(--color-danger-text)/20']">
                 {{ selectedResult.score >= 5 ? 'Đạt' : 'Không đạt' }}
              </div>
           </div>
@@ -281,23 +281,23 @@ const highestScore = computed(() => {
           <!-- Questions List -->
           <div>
              <h3 class="text-sm font-semibold text-heading tracking-wide mb-4 flex items-center gap-2">
-                <CheckCircle2 :size="16" class="text-[var(--color-success-text)]" /> Chi tiết bài làm
+                <CheckCircle2 :size="16" class="text-(--color-success-text)" /> Chi tiết bài làm
              </h3>
              <div class="space-y-3">
-                <div v-for="q in mockQuestions" :key="q.id" class="rounded-2xl surface-card border border-card p-4 shadow-sm hover:border-[var(--border-input-focus)] transition-colors">
+                <div v-for="q in mockQuestions" :key="q.id" class="rounded-2xl surface-card border border-card p-4 shadow-sm hover:border-(--border-input-focus) transition-colors">
                    <div class="flex items-start gap-3">
                       <div class="mt-0.5 shrink-0">
-                         <CheckCircle v-if="q.isCorrect" :size="18" class="text-[var(--color-success-text)]" />
-                         <XCircle v-else :size="18" class="text-[var(--color-danger-text)]" />
+                         <CheckCircle v-if="q.isCorrect" :size="18" class="text-(--color-success-text)" />
+                         <XCircle v-else :size="18" class="text-(--color-danger-text)" />
                       </div>
                       <div>
                          <p class="text-sm font-semibold text-label leading-snug">{{ q.text }}</p>
                          <div class="flex items-center gap-4 mt-3">
                             <span class="text-[11px] font-semibold text-muted uppercase tracking-widest">Trả lời:
-                               <span :class="q.isCorrect ? 'text-[var(--color-success-text)]' : 'text-[var(--color-danger-text)]'">{{ q.userAns }}</span>
+                               <span :class="q.isCorrect ? 'text-(--color-success-text)' : 'text-(--color-danger-text)'">{{ q.userAns }}</span>
                             </span>
                             <span v-if="!q.isCorrect" class="text-[11px] font-semibold text-muted uppercase tracking-widest">Đáp án:
-                               <span class="text-[var(--color-success-text)]">{{ q.correctAns }}</span>
+                               <span class="text-(--color-success-text)">{{ q.correctAns }}</span>
                             </span>
                          </div>
                       </div>

@@ -24,9 +24,9 @@ const gpaStats = ref([
 ])
 
 const getGpaColor = (gpa) => {
-  if (gpa >= 3.2) return 'text-[var(--color-success-text)]'
-  if (gpa >= 2.5) return 'text-[var(--color-info-text)]'
-  return 'text-[var(--color-danger-text)]'
+  if (gpa >= 3.2) return 'text-(--color-success-text)'
+  if (gpa >= 2.5) return 'text-(--color-info-text)'
+  return 'text-(--color-danger-text)'
 }
 </script>
 
@@ -56,7 +56,7 @@ const getGpaColor = (gpa) => {
               <input 
                 type="text" 
                 placeholder="Tìm khoa, ngành hoặc lớp..." 
-                class="w-full surface-input border border-input rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-4 focus:ring-[var(--border-focus-ring)]"
+                class="w-full surface-input border border-input rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-4 focus:ring-(--border-focus-ring)"
               >
            </div>
            <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold">
@@ -75,29 +75,29 @@ const getGpaColor = (gpa) => {
       <!-- ── KPI Mini Grid ── -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
          <div class="surface-card border border-card rounded-2xl p-4 flex items-center gap-5">
-            <div class="h-10 w-10 rounded-2xl bg-[var(--color-info-bg)] flex items-center justify-center text-[var(--color-info-text)] shadow-sm border border-[var(--color-info-text)]/20">
+            <div class="h-10 w-10 rounded-2xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) shadow-sm border border-(--color-info-text)/20">
                <Target :size="24" />
             </div>
             <div>
-               <p class="text-[10px] font-semibold text-[var(--color-info-text)] uppercase tracking-widest">GPA Mục tiêu kỳ</p>
+               <p class="text-[10px] font-semibold text-(--color-info-text) uppercase tracking-widest">GPA Mục tiêu kỳ</p>
                <h3 class="text-xl font-semibold text-heading leading-tight">3.20</h3>
             </div>
          </div>
          <div class="surface-card border border-card rounded-2xl p-4 flex items-center gap-5">
-            <div class="h-10 w-10 rounded-2xl bg-[var(--color-success-bg)] flex items-center justify-center text-[var(--color-success-text)] shadow-sm border border-[var(--color-success-text)]/20">
+            <div class="h-10 w-10 rounded-2xl bg-(--color-success-bg) flex items-center justify-center text-(--color-success-text) shadow-sm border border-(--color-success-text)/20">
                <TrendingUp :size="24" />
             </div>
             <div>
-               <p class="text-[10px] font-semibold text-[var(--color-success-text)] uppercase tracking-widest">Tỷ lệ GPA >= 3.2</p>
+               <p class="text-[10px] font-semibold text-(--color-success-text) uppercase tracking-widest">Tỷ lệ GPA >= 3.2</p>
                <h3 class="text-xl font-semibold text-heading leading-tight">42.5%</h3>
             </div>
          </div>
          <div class="surface-card border border-card rounded-2xl p-4 flex items-center gap-5">
-            <div class="h-10 w-10 rounded-2xl bg-[var(--color-warning-bg)] flex items-center justify-center text-[var(--color-warning-text)] shadow-sm border border-[var(--color-warning-text)]/20">
+            <div class="h-10 w-10 rounded-2xl bg-(--color-warning-bg) flex items-center justify-center text-(--color-warning-text) shadow-sm border border-(--color-warning-text)/20">
                <Award :size="24" />
             </div>
             <div>
-               <p class="text-[10px] font-semibold text-[var(--color-warning-text)] uppercase tracking-widest">Thủ khoa kỳ (GPA)</p>
+               <p class="text-[10px] font-semibold text-(--color-warning-text) uppercase tracking-widest">Thủ khoa kỳ (GPA)</p>
                <h3 class="text-xl font-semibold text-heading leading-tight">4.00</h3>
             </div>
          </div>
@@ -116,7 +116,7 @@ const getGpaColor = (gpa) => {
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
-            <tr v-for="stat in gpaStats" :key="stat.id" class="group hover:bg-[var(--surface-input)] transition-colors">
+            <tr v-for="stat in gpaStats" :key="stat.id" class="group hover:bg-(--surface-input) transition-colors">
               <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
                   <div class="h-9 w-9 rounded-xl surface-solid flex items-center justify-center text-placeholder group-hover:text-link transition-all">
@@ -143,20 +143,20 @@ const getGpaColor = (gpa) => {
                       <p class="text-[9px] font-semibold text-muted uppercase">Min</p>
                       <p class="text-xs font-bold text-heading">{{ stat.minGpa.toFixed(2) }}</p>
                    </div>
-                   <div class="h-6 w-px bg-[var(--border-default)]"></div>
+                   <div class="h-6 w-px bg-(--border-default)"></div>
                    <div class="text-center">
-                      <p class="text-[9px] font-semibold text-[var(--color-success-text)] uppercase">Max</p>
-                      <p class="text-xs font-semibold text-[var(--color-success-text)]">{{ stat.maxGpa.toFixed(2) }}</p>
+                      <p class="text-[9px] font-semibold text-(--color-success-text) uppercase">Max</p>
+                      <p class="text-xs font-semibold text-(--color-success-text)">{{ stat.maxGpa.toFixed(2) }}</p>
                    </div>
                 </div>
               </td>
               <td class="px-4 py-4">
-                <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest border w-fit shadow-sm', stat.warningCount > 10 ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger-text)]/20' : 'surface-solid text-muted border-default']">
+                <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest border w-fit shadow-sm', stat.warningCount > 10 ? 'bg-(--color-danger-bg) text-(--color-danger-text) border-(--color-danger-text)/20' : 'surface-solid text-muted border-default']">
                   {{ stat.warningCount }} Sinh viên
                 </div>
               </td>
               <td class="px-4 py-4 text-right">
-                <button class="p-2 hover:bg-[var(--color-info-bg)] hover:text-link rounded-lg text-placeholder transition-all">
+                <button class="p-2 hover:bg-(--color-info-bg) hover:text-link rounded-lg text-placeholder transition-all">
                   <ChevronRight :size="18" />
                 </button>
               </td>

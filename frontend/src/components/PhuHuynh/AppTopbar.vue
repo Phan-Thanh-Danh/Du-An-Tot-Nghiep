@@ -169,10 +169,10 @@ function guessIcon(path) {
 
 function notifColorClass(color) {
   const map = {
-    red: 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]',
-    green: 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]',
-    blue: 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]',
-    yellow: 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]',
+    red: 'bg-(--color-danger-bg) text-(--color-danger-text)',
+    green: 'bg-(--color-success-bg) text-(--color-success-text)',
+    blue: 'bg-(--color-info-bg) text-(--color-info-text)',
+    yellow: 'bg-(--color-warning-bg) text-(--color-warning-text)',
   }
   return map[color] || 'surface-input text-label'
 }
@@ -189,7 +189,7 @@ const logout = () => {
 </script>
 
 <template>
-  <header class="lg-topbar absolute top-0 left-0 right-0 z-50 mx-2 mt-2 flex h-12 flex-shrink-0 items-center gap-2 overflow-visible rounded-[var(--radius-xl)] px-3 sm:mx-3 sm:mt-2 sm:gap-2.5">
+  <header class="lg-topbar absolute top-0 left-0 right-0 z-50 mx-2 mt-2 flex h-12 flex-shrink-0 items-center gap-2 overflow-visible rounded-(--radius-xl) px-3 sm:mx-3 sm:mt-2 sm:gap-2.5">
     <!-- Mobile toggle -->
     <button
       class="lg-icon-button flex h-8 w-8 text-muted hover:text-link lg:hidden"
@@ -210,7 +210,7 @@ const logout = () => {
 
     <!-- Command palette trigger (Cmd+K) -->
     <button
-      class="surface-input hidden h-8 items-center gap-1.5 rounded-[var(--radius-md)] border border-card px-2.5 text-[10px] font-semibold text-label shadow-sm transition-all hover:bg-[var(--surface-input-focus)] hover:text-heading focus:outline-none md:inline-flex"
+      class="surface-input hidden h-8 items-center gap-1.5 rounded-(--radius-md) border border-card px-2.5 text-[10px] font-semibold text-label shadow-sm transition-all hover:bg-(--surface-input-focus) hover:text-heading focus:outline-none md:inline-flex"
       aria-label="Mở command palette"
       @click="commandPaletteOpen = true"
     >
@@ -245,7 +245,7 @@ const logout = () => {
         <Bell :size="15" />
         <span
           v-if="unreadCount > 0"
-          class="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-orange-600 text-[8px] font-bold text-inverse ring-2 ring-[var(--surface-topbar)]"
+          class="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-orange-600 text-[8px] font-bold text-inverse ring-2 ring-(--surface-topbar)"
         >
           {{ unreadCount }}
         </span>
@@ -262,7 +262,7 @@ const logout = () => {
       >
         <div
           v-if="notifOpen"
-          class="surface-dropdown absolute right-0 top-[calc(100%+0.55rem)] z-[80] w-80 origin-top-right overflow-hidden rounded-[var(--radius-xl)] border border-card p-1 shadow-[var(--lg-shadow-md)]"
+          class="surface-dropdown absolute right-0 top-[calc(100%+0.55rem)] z-[80] w-80 origin-top-right overflow-hidden rounded-(--radius-xl) border border-card p-1 shadow-(--lg-shadow-md)"
           role="menu"
           @click.stop
         >
@@ -272,11 +272,11 @@ const logout = () => {
               {{ unreadCount }} mới
             </span>
           </div>
-          <div class="max-h-[320px] divide-y divide-[var(--border-card)] overflow-y-auto" role="none">
+          <div class="max-h-[320px] divide-y divide-(--border-card) overflow-y-auto" role="none">
             <div
               v-for="notif in mockNotifications"
               :key="notif.id"
-              class="flex cursor-pointer gap-3 px-3 py-2.5 transition-all hover:bg-[var(--surface-card-hover)] active:scale-[0.98]"
+              class="flex cursor-pointer gap-3 px-3 py-2.5 transition-all hover:bg-(--surface-card-hover) active:scale-[0.98]"
               role="menuitem"
               tabindex="0"
               @click="() => { closeAll(); if(notif.link) router.push(notif.link); }"
@@ -302,15 +302,15 @@ const logout = () => {
     <div ref="profileMenuRef" class="relative">
       <button
         :class="[
-          'surface-input flex items-center gap-2 rounded-[var(--radius-md)] border border-card p-1.5 pr-2.5 transition-all duration-200 focus:outline-none ring-offset-2 focus:ring-2 focus:ring-[var(--focus-ring)]',
-          userMenuOpen ? 'bg-[var(--surface-input-focus)] shadow-sm' : 'hover:bg-[var(--surface-input-focus)]',
+          'surface-input flex items-center gap-2 rounded-(--radius-md) border border-card p-1.5 pr-2.5 transition-all duration-200 focus:outline-none ring-offset-2 focus:ring-2 focus:ring-(--focus-ring)',
+          userMenuOpen ? 'bg-(--surface-input-focus) shadow-sm' : 'hover:bg-(--surface-input-focus)',
         ]"
         aria-haspopup="menu"
         :aria-expanded="userMenuOpen"
         aria-label="Mở hồ sơ"
         @click.stop="toggleUserMenu"
       >
-        <div class="app-topbar-avatar flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-[10px] font-bold text-inverse shadow-sm ring-1 ring-[var(--border-card)] bg-orange-100 text-orange-700">
+        <div class="app-topbar-avatar flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-[10px] font-bold text-inverse shadow-sm ring-1 ring-(--border-card) bg-orange-100 text-orange-700">
           <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" class="h-full w-full object-cover" />
           <span v-else>{{ authStore.initials || mockParentUser.initials }}</span>
         </div>
@@ -331,7 +331,7 @@ const logout = () => {
       >
         <div
           v-if="userMenuOpen"
-          class="surface-dropdown absolute right-0 top-[calc(100%+0.55rem)] z-[80] w-72 origin-top-right overflow-hidden rounded-[var(--radius-xl)] border border-card p-1.5 shadow-[var(--lg-shadow-md)]"
+          class="surface-dropdown absolute right-0 top-[calc(100%+0.55rem)] z-[80] w-72 origin-top-right overflow-hidden rounded-(--radius-xl) border border-card p-1.5 shadow-(--lg-shadow-md)"
           role="menu"
           @click.stop
         >
@@ -347,7 +347,7 @@ const logout = () => {
           <div class="p-1 space-y-0.5">
             <router-link
               to="/parent/profile/info"
-              class="flex items-center gap-2.5 rounded-[var(--radius-md)] px-3 py-2 text-[12px] font-semibold text-label transition-all hover:bg-[var(--surface-card-hover)] hover:text-orange-600"
+              class="flex items-center gap-2.5 rounded-(--radius-md) px-3 py-2 text-[12px] font-semibold text-label transition-all hover:bg-(--surface-card-hover) hover:text-orange-600"
               role="menuitem"
               @click="closeAll"
             >
@@ -356,7 +356,7 @@ const logout = () => {
             </router-link>
             <router-link
               to="/parent/finance/tuition"
-              class="flex items-center gap-2.5 rounded-[var(--radius-md)] px-3 py-2 text-[12px] font-semibold text-label transition-all hover:bg-[var(--surface-card-hover)] hover:text-orange-600"
+              class="flex items-center gap-2.5 rounded-(--radius-md) px-3 py-2 text-[12px] font-semibold text-label transition-all hover:bg-(--surface-card-hover) hover:text-orange-600"
               role="menuitem"
               @click="closeAll"
             >
