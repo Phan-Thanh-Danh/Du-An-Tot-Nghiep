@@ -427,4 +427,5 @@ public class StudentExamListItemDto
     public decimal? Score { get; set; }
     public string? ResultId { get; set; }
     public string? ClassSectionCode { get; set; }
+    public string? TrangThaiDuThi { get; set; }
 }

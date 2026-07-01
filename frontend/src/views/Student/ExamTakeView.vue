@@ -19,7 +19,10 @@ import {
   Terminal,
   XCircle,
 } from 'lucide-vue-next'
-import { mockExams, mockQuestions } from '@/data/studentData.mock.js'
+import { useAuthStore } from '@/stores/auth'
+import { examApi } from '@/services/examApi'
+import { examProctoringHub } from '@/services/examProctoringHub'
+import { requestScreenShare as webrtcRequestScreenShare, createStudentPeerConnection, stopScreenShare as webrtcStopScreenShare } from '@/services/webrtcScreenShare'
 import {
   clearExamRuntimeStorage,
   createViolation,
@@ -31,22 +34,17 @@ import {
 const route = useRoute()
 const router = useRouter()
 
-const STUDENT_ID = 'PS12345'
-const STUDENT_NAME = 'Nguyễn Văn A'
+const authStore = useAuthStore()
+const STUDENT_ID = computed(() => authStore.user?.id || authStore.user?.userId || 0)
+const STUDENT_NAME = computed(() => authStore.user?.fullName || 'Học sinh')
 const PREFLIGHT_MAX_AGE_MS = 2 * 60 * 60 * 1000
 
-const examId = String(route.params.examId || 'exam-ctdl-002')
-const exam = computed(() => {
-  return mockExams.find((item) => item.id === examId) || {
-    id: examId,
-    title: 'Bài thi trắc nghiệm',
-    subject: 'Môn học mẫu',
-    subjectCode: 'MOCK101',
-    classCode: 'MOCK-K28A',
-    durationMinutes: 45,
-    totalQuestions: mockQuestions.length,
-  }
-})
+const examId = String(route.params.examId)
+const caThiId = Number(route.query.maCaThi || sessionStorage.getItem(`exam_ca_thi_${examId}`) || examId)
+const exam = ref({ title: 'Đang tải...', durationMinutes: 45, totalQuestions: 0 })
+const questions = ref([])
+const maPhienThi = ref(null)
+const maDeKiemTra = ref(null)
 
 const answersKey = `exam_answers_${examId}`
 const flagsKey = `exam_flags_${examId}`
@@ -89,12 +87,12 @@ let lastBlurViolationAt = 0
 let suppressFocusViolationUntil = 0
 const lastViolationByType = new Map()
 
-const currentQuestion = computed(() => mockQuestions[currentQuestionIndex.value] || mockQuestions[0])
+const currentQuestion = computed(() => questions.value[currentQuestionIndex.value] || questions.value[0])
 
-const answeredCount = computed(() => mockQuestions.filter((question) => isAnswered(question)).length)
+const answeredCount = computed(() => questions.value.filter((question) => isAnswered(question)).length)
 const flaggedCount = computed(() => Object.values(flagged.value).filter(Boolean).length)
-const unansweredCount = computed(() => Math.max(mockQuestions.length - answeredCount.value, 0))
-const progressPercent = computed(() => Math.round((answeredCount.value / mockQuestions.length) * 100))
+const unansweredCount = computed(() => Math.max(questions.value.length - answeredCount.value, 0))
+const progressPercent = computed(() => Math.round((answeredCount.value / questions.value.length) * 100))
 const recentViolations = computed(() => violations.value.slice(0, 3))
 const criticalViolationCount = computed(() =>
   violations.value.filter((item) => item.severity === 'critical' || item.severity === 'high').length,
@@ -214,6 +212,14 @@ function saveDraft() {
   localStorage.setItem(lastSavedKey, savedAt)
   saveViolationLog(examId, violations.value)
   lastSavedAt.value = savedAt
+
+  // Gửi API lưu tạm
+  if (maPhienThi.value) {
+    examApi.autoSaveAnswers({
+      maPhienThi: maPhienThi.value,
+      cauTraLoiJson: JSON.stringify(answers.value)
+    }).catch(console.error)
+  }
 }
 
 function pushWarning(message, severity = 'high', action = '') {
@@ -250,6 +256,12 @@ function addViolation(type, severity, message, details = {}, options = {}) {
 
   violations.value = [violation, ...violations.value]
   saveViolationLog(examId, violations.value)
+  
+  // Gửi qua Hub
+  try {
+    examProctoringHub.sendViolationLog(caThiId, STUDENT_ID.value, type, message + (details ? ' - ' + JSON.stringify(details) : ''))
+  } catch(e) {}
+  
   return violation
 }
 
@@ -287,7 +299,7 @@ function toggleFlag(questionId) {
 }
 
 function nextQuestion() {
-  if (currentQuestionIndex.value < mockQuestions.length - 1) {
+  if (currentQuestionIndex.value < questions.value.length - 1) {
     currentQuestionIndex.value++
   }
 }
@@ -305,17 +317,163 @@ async function startExamEnvironment() {
   monitoringStatus.value = 'starting'
 
   try {
-    await requestScreenShare()
     await enterExamFullscreen()
+    
+    // 1. Xin quyền chia sẻ màn hình
+    const stream = await webrtcRequestScreenShare()
+    
+    // 2. Gọi API bắt đầu thi
+    const session = await examApi.startExam({ maCaThi: caThiId })
+    maPhienThi.value = session.maPhienThi
+    maDeKiemTra.value = session.maDeKiemTra
+    exam.value.durationMinutes = session.thoiGianLamBai || 45
+    
+    // 3. Lấy câu hỏi
+    const quizResponse = await examApi.getExamQuestions(session.maPhienThi)
+    questions.value = quizResponse || []
+    exam.value.totalQuestions = questions.value.length
+    
+    // 4. Kết nối WebRTC Hub
+    const token = localStorage.getItem('lms_access_token') || sessionStorage.getItem('lms_access_token') || ''
+    await examProctoringHub.connect(token)
+    await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
+    await examProctoringHub.screenShareStarted(caThiId, STUDENT_ID.value)
+
+    // Lưu trữ peer connections theo connectionId của giám thị
+    const studentPeerConnections = new Map()  // proctorConnectionId -> RTCPeerConnection
+    const studentPendingIce = new Map()        // proctorConnectionId -> RTCIceCandidateInit[]
+
+    function getStudentIceQueue(proctorConnId) {
+      if (!studentPendingIce.has(proctorConnId)) studentPendingIce.set(proctorConnId, [])
+      return studentPendingIce.get(proctorConnId)
+    }
+
+    async function flushStudentIceQueue(proctorConnId) {
+      const pc = studentPeerConnections.get(proctorConnId)
+      if (!pc || !pc.remoteDescription) return
+      const queue = studentPendingIce.get(proctorConnId) || []
+      if (import.meta.env.DEV && queue.length > 0)
+        console.debug(`[Student] Flushing ${queue.length} ICE for proctor`, proctorConnId)
+      while (queue.length > 0) {
+        const c = queue.shift()
+        try { await pc.addIceCandidate(new window.RTCIceCandidate(c)) }
+        catch (e) { if (import.meta.env.DEV) console.warn('[Student] flush ICE error', e) }
+      }
+    }
+
+    // WebRTC: Giám thị vào phòng sau học sinh → re-broadcast connectionId
+    examProctoringHub.eventHandlers.onProctorRequestedConnections = async () => {
+      if (examStarted.value && monitoringStatus.value !== 'stopped') {
+        if (import.meta.env.DEV) console.debug('[Student] Re-broadcasting connectionId on proctor request')
+        await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
+      }
+    }
+
+    // WebRTC: Nhận Offer từ giám thị — dto có fromConnectionId, offer { type, sdp }
+    examProctoringHub.eventHandlers.onReceiveOffer = async (dto) => {
+      if (!dto?.offer) {
+        console.warn('[Student] ReceiveOffer: invalid dto', dto)
+        return
+      }
+
+      // Bỏ qua offer của chính mình (không xảy ra trong thực tế nhưng phòng thủ)
+      if (dto.fromConnectionId === examProctoringHub.connectionId) {
+        if (import.meta.env.DEV) console.debug('[Student] Skip own offer')
+        return
+      }
+
+      const proctorConnectionId = dto.fromConnectionId
+      if (import.meta.env.DEV) console.debug('[Student] ReceiveOffer from proctor', proctorConnectionId)
+
+      // Đóng peer cũ nếu giám thị reconnect
+      if (studentPeerConnections.has(proctorConnectionId)) {
+        studentPeerConnections.get(proctorConnectionId)?.close()
+        studentPendingIce.delete(proctorConnectionId)
+      }
+
+      const pc = createStudentPeerConnection(
+        stream,
+        // Student gửi ICE candidate về giám thị
+        (candidate) => examProctoringHub.sendIceCandidate({
+          maCaThi: caThiId,
+          maHocSinh: STUDENT_ID.value,
+          targetConnectionId: proctorConnectionId,
+          candidate, // examProctoringHub sẽ chuẩn hóa qua toJSON()
+        }),
+        () => {} // negotiation callback — student không tạo offer mới
+      )
+
+      // Theo dõi trạng thái peer
+      pc.onconnectionstatechange = () => {
+        if (import.meta.env.DEV)
+          console.debug('[Student] Peer connectionState:', pc.connectionState)
+      }
+      pc.oniceconnectionstatechange = () => {
+        if (import.meta.env.DEV)
+          console.debug('[Student] ICE state:', pc.iceConnectionState)
+      }
+
+      studentPeerConnections.set(proctorConnectionId, pc)
+
+      // Xử lý ICE từ giám thị — cần queue vì ICE có thể tới trước setRemoteDescription xong
+      examProctoringHub.eventHandlers.onReceiveIceCandidate = async (iceDto) => {
+        if (!iceDto?.candidate?.candidate) return
+
+        // Bỏ qua own ICE
+        if (iceDto.fromConnectionId === examProctoringHub.connectionId) {
+          if (import.meta.env.DEV) console.debug('[Student] Skip own ICE candidate')
+          return
+        }
+
+        const targetPc = studentPeerConnections.get(iceDto.fromConnectionId)
+        const candidateInit = iceDto.candidate // đã là typed { candidate, sdpMid, sdpMLineIndex }
+
+        if (!targetPc || !targetPc.remoteDescription) {
+          if (import.meta.env.DEV) console.debug('[Student] ICE queued for proctor', iceDto.fromConnectionId)
+          getStudentIceQueue(iceDto.fromConnectionId).push(candidateInit)
+          return
+        }
+
+        try { await targetPc.addIceCandidate(new window.RTCIceCandidate(candidateInit)) }
+        catch (e) { if (import.meta.env.DEV) console.warn('[Student] addIceCandidate error', e) }
+      }
+
+      try {
+        // dto.offer là { type, sdp } từ typed DTO backend
+        const offerDesc = { type: dto.offer.type, sdp: dto.offer.sdp }
+        await pc.setRemoteDescription(new window.RTCSessionDescription(offerDesc))
+
+        // Flush ICE đã queue trước khi offer được set
+        await flushStudentIceQueue(proctorConnectionId)
+
+        const answer = await pc.createAnswer()
+        await pc.setLocalDescription(answer)
+
+        await examProctoringHub.sendAnswer({
+          maCaThi: caThiId,
+          maHocSinh: STUDENT_ID.value,
+          targetConnectionId: proctorConnectionId,
+          answer: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
+        })
+        if (import.meta.env.DEV) console.debug('[Student] Answer sent to proctor', proctorConnectionId)
+      } catch (e) {
+        console.error('[Student] Error handling offer/answer', e)
+      }
+    }
+
+    attachScreenStream(stream)
+    
     examStarted.value = true
     monitoringStatus.value = 'active'
+    timeLeftSeconds.value = Number(exam.value.durationMinutes) * 60
+    
     startTimer()
     startRuntimeMonitoring()
     saveDraft()
   } catch (error) {
     monitoringStatus.value = 'idle'
     cleanupScreenStream(false)
-    startError.value = error?.message || 'Bạn cần chia sẻ màn hình và bật toàn màn hình để bắt đầu bài thi.'
+    startError.value = error?.message || error?.response?.data?.message || 'Bạn cần chia sẻ màn hình và bật toàn màn hình để bắt đầu bài thi.'
     if (document.fullscreenElement) {
       await document.exitFullscreen().catch(() => {})
     }
@@ -404,24 +562,7 @@ function unlockExamKeyboard() {
 }
 
 async function requestScreenShare() {
-  if (!navigator.mediaDevices?.getDisplayMedia) {
-    throw new Error('Trình duyệt không hỗ trợ chia sẻ màn hình.')
-  }
-
-  isScreenSharePickerOpen.value = true
-  suppressFocusViolationUntil = Date.now() + 3000
-
-  try {
-    const stream = await navigator.mediaDevices.getDisplayMedia({
-      video: { frameRate: 5 },
-      audio: false,
-    })
-
-    attachScreenStream(stream)
-  } finally {
-    isScreenSharePickerOpen.value = false
-    suppressFocusViolationUntil = Date.now() + 2500
-  }
+  // Được thay thế bằng webrtcRequestScreenShare ở hàm startExamEnvironment
 }
 
 function attachScreenStream(stream) {
@@ -448,12 +589,15 @@ function cleanupScreenStream(markStopped = true) {
   }
 
   if (screenStream.value) {
-    screenStream.value.getTracks().forEach((track) => track.stop())
+    webrtcStopScreenShare(screenStream.value)
     screenStream.value = null
   }
 
   if (markStopped && !submitLocked) {
     monitoringStatus.value = 'stopped'
+    try {
+      examProctoringHub.screenShareStopped(caThiId, STUDENT_ID.value)
+    } catch {}
   }
 }
 
@@ -850,14 +994,8 @@ function handleBeforeUnload(event) {
 
 function buildSubmitPayload(reason) {
   return {
-    examId,
-    studentId: STUDENT_ID,
-    studentName: STUDENT_NAME,
-    answers: answers.value,
-    flagged: flagged.value,
-    violations: violations.value,
-    submittedAt: new Date().toISOString(),
-    timeLeftSeconds: timeLeftSeconds.value,
+    maPhienThi: maPhienThi.value,
+    cauTraLoiJson: JSON.stringify(answers.value),
     submitReason: reason,
   }
 }
@@ -871,7 +1009,19 @@ async function submitExam(reason = 'manual') {
 
   const payload = buildSubmitPayload(reason)
   sessionStorage.setItem('last_exam_submit_payload', JSON.stringify(payload))
-  console.log('Mock exam submit payload:', payload)
+  
+  try {
+    if (maPhienThi.value) {
+      await examApi.submitExam(payload)
+      
+      // Submit cho Quiz attempt
+      if (maDeKiemTra.value) {
+        await examApi.submitQuizAttempt(maDeKiemTra.value, { answers: answers.value })
+      }
+    }
+  } catch (error) {
+    console.error('Lỗi khi nộp bài:', error)
+  }
 
   if (timerInterval) clearInterval(timerInterval)
   if (autosaveInterval) clearInterval(autosaveInterval)
@@ -1013,9 +1163,10 @@ onUnmounted(() => {
 
     <div class="exam-take-layout" :class="{ 'is-locked': !examStarted }">
       <main class="question-main-panel glass-card">
-        <header class="question-header">
-          <span class="question-index">Câu hỏi {{ currentQuestionIndex + 1 }} / {{ mockQuestions.length }}</span>
-          <span class="question-points">[{{ currentQuestion.points }} điểm]</span>
+        <template v-if="currentQuestion">
+          <header class="question-header">
+            <span class="question-index">Câu hỏi {{ currentQuestionIndex + 1 }} / {{ questions.length }}</span>
+            <span class="question-points">[{{ currentQuestion.points }} điểm]</span>
 
           <button
             type="button"
@@ -1091,13 +1242,19 @@ onUnmounted(() => {
           <button
             type="button"
             class="nav-btn"
-            :disabled="currentQuestionIndex === mockQuestions.length - 1"
+            :disabled="currentQuestionIndex === questions.length - 1"
             @click="nextQuestion"
           >
             Câu tiếp theo
             <ChevronRight :size="16" />
           </button>
         </footer>
+        </template>
+        <template v-else>
+          <div class="empty-state p-4 text-center">
+            <p>Đang tải câu hỏi hoặc đề thi không có câu hỏi nào.</p>
+          </div>
+        </template>
       </main>
 
       <aside class="exam-status-sidebar">
@@ -1105,7 +1262,7 @@ onUnmounted(() => {
           <h3>Tiến độ bài làm</h3>
           <div class="progress-bar-container">
             <div class="progress-info">
-              <span>Đã làm: {{ answeredCount }} / {{ mockQuestions.length }} câu</span>
+              <span>Đã làm: {{ answeredCount }} / {{ questions.length }} câu</span>
               <strong>{{ progressPercent }}%</strong>
             </div>
             <div class="progress-track">
@@ -1148,7 +1305,7 @@ onUnmounted(() => {
           <h3>Danh sách câu hỏi</h3>
           <div class="question-grid">
             <button
-              v-for="(q, idx) in mockQuestions"
+              v-for="(q, idx) in questions"
               :key="q.id"
               type="button"
               class="grid-question-btn"
@@ -1207,6 +1364,11 @@ onUnmounted(() => {
           <ShieldAlert :size="30" />
         </div>
         <h2>Sẵn sàng bắt đầu bài thi</h2>
+        
+        <div v-if="startError" class="warning-banner critical" style="margin-bottom: 20px;">
+          <XCircle :size="16" />
+          <span>{{ startError }}</span>
+        </div>
         <p>
           Khi bắt đầu, hệ thống sẽ chuyển sang toàn màn hình, yêu cầu chia sẻ màn hình và ghi nhận các hành vi bất thường.
         </p>
@@ -2084,3 +2246,4 @@ onUnmounted(() => {
   }
 }
 </style>
+

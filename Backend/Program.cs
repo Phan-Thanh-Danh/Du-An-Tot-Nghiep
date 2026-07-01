@@ -220,7 +220,10 @@ builder.Services.AddScoped<ILearningProgressCalculator, LearningProgressCalculat
 builder.Services.AddScoped<ILearningProgressSyncService, LearningProgressSyncService>();
 builder.Services.AddScoped<ILearningProgressService, LearningProgressService>();
 
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+});
 
 var r2Settings =
     builder.Configuration.GetSection("R2Storage").Get<R2StorageSettings>()
@@ -271,6 +274,20 @@ builder
         options.SaveToken = true;
         options.Events = new JwtBearerEvents
         {
+            // Đọc JWT từ query string cho SignalR WebSocket/SSE
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrWhiteSpace(accessToken) &&
+                    path.StartsWithSegments("/hubs/exam-monitoring"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            },
             OnChallenge = async context =>
             {
                 context.HandleResponse();

@@ -1,6 +1,7 @@
 using Backend.Data;
 using Backend.DTOs.Common;
 using Backend.DTOs.Exam;
+using Backend.DTOs.QuizAttempts;
 using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.QuizGrading;
@@ -560,10 +561,39 @@ public class ExamService : IExamService
                     GhiChu = item.GhiChu
                 });
             }
+
+            // Sync with ThiSinhCaThi
+            var thiSinhCaThi = await _db.ThiSinhCaThis
+                .FirstOrDefaultAsync(t => t.MaCaThi == request.MaCaThi && t.MaHocSinh == item.MaHocSinh, ct);
+            if (thiSinhCaThi != null)
+            {
+                if (item.TrangThaiDiemDanh == "co_mat")
+                {
+                    thiSinhCaThi.TrangThaiDuThi = "duoc_thi";
+                }
+                else if (item.TrangThaiDiemDanh == "vang_mat" && thiSinhCaThi.TrangThaiDuThi != "dinh_chi")
+                {
+                    thiSinhCaThi.TrangThaiDuThi = "vang_thi";
+                }
+            }
         }
 
         await _db.SaveChangesAsync(ct);
         return await GetDiemDanhByCaThiAsync(request.MaCaThi, ct);
+    }
+
+    public async Task StartCaThiAsync(int id, CancellationToken ct)
+    {
+        var caThi = await _db.CaThis.FindAsync(new object[] { id }, ct)
+            ?? throw new ApiException(404, "Ca thi không tồn tại.");
+
+        if (caThi.TrangThai == "da_ket_thuc" || caThi.TrangThai == "da_huy")
+        {
+            throw new ApiException(400, "Ca thi đã kết thúc hoặc đã hủy, không thể bắt đầu.");
+        }
+
+        caThi.TrangThai = "dang_thi";
+        await _db.SaveChangesAsync(ct);
     }
 
     // ===== NhatKyViPhamThi =====
@@ -928,7 +958,8 @@ public class ExamService : IExamService
                 CloseAt = caThi?.ThoiGianKetThuc.ToString("O"),
                 Score = score,
                 ResultId = score.HasValue ? attempt?.MaPhienThi.ToString() : null,
-                ClassSectionCode = student.Lop.MaCodeLop
+                ClassSectionCode = student.Lop.MaCodeLop,
+                TrangThaiDuThi = assignment?.TrangThaiDuThi
             };
         }).ToList();
     }
@@ -987,6 +1018,46 @@ public class ExamService : IExamService
         await _db.Entry(phienThi).Reference(p => p.HocSinh).LoadAsync(ct);
 
         return MapToPhienThiDto(phienThi);
+    }
+
+    public async Task<PhienThiDto> GetExamSessionAsync(int maPhienThi, int maHocSinh, CancellationToken ct)
+    {
+        var phienThi = await _db.PhienThiHocSinhs
+            .Include(p => p.HocSinh)
+            .FirstOrDefaultAsync(p => p.MaPhienThi == maPhienThi, ct)
+            ?? throw new ApiException(404, "Không tìm thấy phiên thi.");
+
+        if (phienThi.MaHocSinh != maHocSinh)
+            throw new ApiException(403, "Không có quyền truy cập phiên thi này.");
+
+        return MapToPhienThiDto(phienThi);
+    }
+
+    public async Task<IReadOnlyList<QuizAttemptQuestionDto>> GetExamQuestionsAsync(int maPhienThi, int maHocSinh, CancellationToken ct)
+    {
+        var phienThi = await _db.PhienThiHocSinhs
+            .FirstOrDefaultAsync(p => p.MaPhienThi == maPhienThi, ct)
+            ?? throw new ApiException(404, "Không tìm thấy phiên thi.");
+
+        if (phienThi.MaHocSinh != maHocSinh)
+            throw new ApiException(403, "Không có quyền truy cập phiên thi này.");
+
+        var questions = await _db.CauHoiDeKiemTras
+            .Include(x => x.CauHoi)
+            .Where(x => x.MaDeKiemTra == phienThi.MaDeKiemTra)
+            .OrderBy(x => x.ThuTu)
+            .ToListAsync(ct);
+
+        return questions.Select(x => new QuizAttemptQuestionDto
+        {
+            MaCauHoi = x.MaCauHoi,
+            LoaiCauHoi = x.CauHoi.LoaiCauHoi,
+            NoiDung = x.CauHoi.NoiDung,
+            KieuLuaChon = x.CauHoi.KieuLuaChon,
+            LuaChon = string.IsNullOrEmpty(x.CauHoi.LuaChon) ? null : System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(x.CauHoi.LuaChon),
+            DiemSo = x.DiemSo,
+            ThuTu = x.ThuTu
+        }).ToList();
     }
 
     public async Task AutoSaveAnswerAsync(AutoSaveAnswerRequest request, int maHocSinh, CancellationToken ct)

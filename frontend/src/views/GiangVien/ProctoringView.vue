@@ -255,7 +255,7 @@
           :class="{ 'has-alert': hasUnhandledViolation(student) }"
           @click="openStudentModal(student)"
         >
-          <MockScreen :student="student" :violations="studentViolationCount(student)" />
+          <WebRTCScreen :stream="remoteStreams.get(Number(student.id))" :student="student" :violations="studentViolationCount(student)" />
           <div class="screen-card-body">
             <div>
               <p class="student-code">{{ student.studentCode }}</p>
@@ -292,7 +292,7 @@
             class="closed-card"
             @click="openStudentModal(student)"
           >
-            <MockScreen :student="student" :violations="studentViolationCount(student)" compact />
+            <WebRTCScreen :stream="remoteStreams.get(Number(student.id))" :student="student" :violations="studentViolationCount(student)" compact />
             <div>
               <strong>{{ student.studentCode }}</strong>
               <span>{{ student.name }}</span>
@@ -312,7 +312,7 @@
             <X :size="18" />
           </button>
           <div class="modal-screen">
-            <MockScreen :student="selectedStudent" :violations="studentViolationCount(selectedStudent)" large />
+            <WebRTCScreen :stream="remoteStreams.get(Number(selectedStudent.id))" :student="selectedStudent" :violations="studentViolationCount(selectedStudent)" large />
           </div>
           <aside class="modal-panel">
             <p class="section-eyebrow">Chi tiết thí sinh</p>
@@ -372,10 +372,70 @@ import {
   X,
 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
+import { useAuthStore } from '@/stores/auth'
 import { usePopupStore } from '@/stores/popup'
 import { PROCTORING_LIVE_VIOLATIONS_KEY } from '@/utils/examSecurity'
+import WebRTCScreen from '@/components/GiangVien/WebRTCScreen.vue'
 
+import { examProctoringHub } from '@/services/examProctoringHub'
+import { createProctorPeerConnection } from '@/services/webrtcScreenShare'
+import { examApi } from '@/services/examApi'
+
+const authStore = useAuthStore()
 const popupStore = usePopupStore()
+
+// State quản lý WebRTC
+const peerConnections = ref(new Map())  // maHocSinh -> { pc, connectionId }
+const remoteStreams = ref(new Map())    // maHocSinh -> MediaStream
+const pendingIceCandidates = new Map()  // maHocSinh -> RTCIceCandidateInit[]
+
+function setRemoteStream(studentId, stream) {
+  const next = new Map(remoteStreams.value)
+  next.set(Number(studentId), stream)
+  remoteStreams.value = next
+}
+
+function deleteRemoteStream(studentId) {
+  const next = new Map(remoteStreams.value)
+  next.delete(Number(studentId))
+  remoteStreams.value = next
+}
+
+// ─── ICE Queue helpers ────────────────────────────────────────────────────
+function getIceQueue(studentId) {
+  if (!pendingIceCandidates.has(studentId)) pendingIceCandidates.set(studentId, [])
+  return pendingIceCandidates.get(studentId)
+}
+
+async function flushIceQueue(studentId) {
+  const peerInfo = peerConnections.value.get(studentId)
+  if (!peerInfo?.pc || !peerInfo.pc.remoteDescription) return
+  const queue = pendingIceCandidates.get(studentId) || []
+  if (import.meta.env.DEV && queue.length > 0)
+    console.debug(`[Proctor] Flushing ${queue.length} queued ICE candidates for student`, studentId)
+  while (queue.length > 0) {
+    const c = queue.shift()
+    try { await peerInfo.pc.addIceCandidate(new RTCIceCandidate(c)) }
+    catch (e) {
+      if (import.meta.env.DEV) console.warn('[Proctor] flush ICE error for student', studentId, e, c)
+    }
+  }
+}
+
+async function safeAddIceCandidate(studentId, candidateInit) {
+  if (!candidateInit?.candidate) return
+  const peerInfo = peerConnections.value.get(studentId)
+  if (!peerInfo?.pc || !peerInfo.pc.remoteDescription) {
+    if (import.meta.env.DEV) console.debug('[Proctor] ICE queued for student', studentId)
+    getIceQueue(studentId).push(candidateInit)
+    return
+  }
+  try { await peerInfo.pc.addIceCandidate(new RTCIceCandidate(candidateInit)) }
+  catch (e) {
+    if (import.meta.env.DEV) console.warn('[Proctor] addIceCandidate error for student', studentId, e)
+  }
+}
+
 const viewState = ref('sessions')
 const currentTime = ref('')
 const selectedSessionId = ref('')
@@ -396,62 +456,44 @@ const violationLabelMap = {
   SCREEN_STREAM_STOPPED: 'Mất stream màn hình',
 }
 
-const assignedExamSessions = ref([
-  {
-    id: 'session-web201-b1',
-    examTitle: 'Thi giữa kỳ Lập trình Web',
-    subjectCode: 'WEB201',
-    classCode: 'SD1904-B1',
-    room: 'Phòng máy 401',
-    startTime: '2026-06-09T08:00:00',
-    endTime: '2026-06-09T09:00:00',
-    totalStudents: 42,
-    status: 'attendance',
-  },
-  {
-    id: 'session-fin301-final',
-    examTitle: 'Thi cuối kỳ Tài chính doanh nghiệp',
-    subjectCode: 'FIN301',
-    classCode: 'QTKD-K29B',
-    room: 'Lab thi B203',
-    startTime: '2026-06-09T13:30:00',
-    endTime: '2026-06-09T15:30:00',
-    totalStudents: 35,
-    status: 'scheduled',
-  },
-  {
-    id: 'session-ctdl101-quiz',
-    examTitle: 'Quiz 2 Cấu trúc dữ liệu',
-    subjectCode: 'CTDL101',
-    classCode: 'SD1904-B1',
-    room: 'Online supervised',
-    startTime: '2026-06-09T09:00:00',
-    endTime: '2026-06-09T09:45:00',
-    totalStudents: 40,
-    status: 'ended',
-  },
-])
+const assignedExamSessions = ref([])
+const sessionStudents = ref({})
 
-const sessionStudents = ref({
-  'session-web201-b1': [
-    createStudent('sv001', 'PS12345', 'Nguyễn Văn A', 'pass'),
-    createStudent('sv002', 'PS12346', 'Trần Thị B', 'risk'),
-    createStudent('sv003', 'PS12347', 'Lê Hoàng C', 'pass'),
-    createStudent('sv004', 'PS12348', 'Phạm Minh D', 'not_checked'),
-    createStudent('sv005', 'PS12349', 'Hoàng Minh E', 'pass'),
-    createStudent('sv006', 'PS12350', 'Vũ Gia Hân', 'risk'),
-  ],
-  'session-fin301-final': [
-    createStudent('sv101', 'PS22345', 'Đỗ Quốc Anh', 'pass'),
-    createStudent('sv102', 'PS22346', 'Nguyễn Thảo Vy', 'not_checked'),
-    createStudent('sv103', 'PS22347', 'Trần Minh Tâm', 'risk'),
-    createStudent('sv104', 'PS22348', 'Bùi Gia Bảo', 'pass'),
-  ],
-  'session-ctdl101-quiz': [
-    createStudent('sv201', 'PS32345', 'Mai Hoàng Nam', 'pass'),
-    createStudent('sv202', 'PS32346', 'Lâm Khánh Linh', 'pass'),
-  ],
-})
+// Map backend trang_thai to UI status
+function mapBackendStatus(trangThai) {
+  const map = {
+    'nhap': 'scheduled',
+    'cho_phan_cong': 'scheduled',
+    'da_san_sang': 'scheduled',
+    'dang_diem_danh': 'attendance',
+    'dang_thi': 'monitoring',
+    'da_ket_thuc': 'ended',
+    'da_huy': 'ended',
+    'su_co': 'ended',
+  }
+  return map[trangThai] || 'scheduled'
+}
+
+async function loadCaThis() {
+  try {
+    const response = await examApi.getCaThis({ PageIndex: 1, PageSize: 100 })
+    const list = response?.items || response?.Items || response?.data?.items || response || []
+    assignedExamSessions.value = list.map(c => ({
+      id: String(c.maCaThi || c.MaCaThi),
+      examTitle: c.tenCaThi || c.TenCaThi || 'Ca thi',
+      subjectCode: 'EDU',
+      classCode: c.tenDonVi || c.TenDonVi || 'Lớp',
+      room: c.tenPhong || c.TenPhong || 'Phòng thi',
+      startTime: c.ngayThi && c.thoiGianBatDau ? `${c.ngayThi.split('T')[0]}T${c.thoiGianBatDau}` : new Date().toISOString(),
+      endTime: c.ngayThi && c.thoiGianKetThuc ? `${c.ngayThi.split('T')[0]}T${c.thoiGianKetThuc}` : new Date().toISOString(),
+      totalStudents: c.soThiSinh || c.SoThiSinh || 0,
+      status: mapBackendStatus(c.trangThai || c.TrangThai),
+      backendStatus: c.trangThai || c.TrangThai,
+    }))
+  } catch (err) {
+    console.error('Error loading ca thi:', err)
+  }
+}
 
 function createStudent(id, studentCode, name, preflightStatus) {
   return {
@@ -580,6 +622,7 @@ const currentRealtimeViolations = computed(() => {
 
 onMounted(() => {
   updateTime()
+  loadCaThis()
   loadLiveViolations()
   clockTimer = window.setInterval(updateTime, 1000)
   violationTimer = window.setInterval(loadLiveViolations, 3000)
@@ -643,7 +686,8 @@ function sessionStatusLabel(status) {
   if (status === 'scheduled') return 'Sắp diễn ra'
   if (status === 'attendance') return 'Đang điểm danh'
   if (status === 'monitoring') return 'Đang canh thi'
-  return 'Đã kết thúc'
+  if (status === 'ended') return 'Đã kết thúc'
+  return 'Sắp diễn ra'
 }
 
 function sessionBadgeVariant(status) {
@@ -656,16 +700,54 @@ function sessionBadgeVariant(status) {
 function sessionActionLabel(session) {
   if (session.status === 'ended') return 'Xem biên bản'
   if (session.status === 'monitoring') return 'Mở dashboard giám thị'
+  if (session.status === 'attendance') return 'Vào điểm danh'
   return 'Vào điểm danh'
 }
 
-function openSession(session) {
+async function openSession(session) {
   selectedSessionId.value = session.id
-  if (session.status === 'monitoring') {
-    viewState.value = 'dashboard'
+  
+  try {
+    const response = await examApi.getThiSinhsByCaThi(parseInt(session.id))
+    const list = response || []
+    
+    let diemDanhMap = {}
+    try {
+      const diemDanhList = await examApi.getDiemDanh(parseInt(session.id))
+      if (Array.isArray(diemDanhList)) {
+        diemDanhList.forEach(d => { diemDanhMap[d.maHocSinh] = d.trangThaiDiemDanh })
+      }
+    } catch (e) { console.warn('Could not load diem danh', e) }
+
+    sessionStudents.value[session.id] = list.map(student => {
+      const studentId = student.maHocSinh || student.MaHocSinh
+      let attStatus = 'absent'
+      if (diemDanhMap[studentId] === 'co_mat' || student.trangThaiDuThi === 'duoc_thi') attStatus = 'present'
+      else if (diemDanhMap[studentId] === 'vang_mat') attStatus = 'absent'
+
+      return {
+        id: String(studentId),
+        studentCode: student.email?.split('@')[0] || String(studentId),
+        name: student.tenHocSinh || student.TenHocSinh || 'Học sinh',
+        attendanceStatus: attStatus,
+        preflightStatus: 'pass',
+        streamStatus: 'waiting',
+        examStatus: student.trangThaiDuThi === 'dinh_chi' ? 'suspended' : 'not_started',
+        logs: []
+      }
+    })
+  } catch (err) {
+    console.error('Error loading students:', err)
+  }
+
+  if (session.status === 'monitoring' || session.backendStatus === 'dang_thi') {
+    await startMonitoring()
   } else {
     viewState.value = 'attendance'
-    if (session.status === 'scheduled') session.status = 'attendance'
+    // Mark session as in attendance mode locally if scheduled
+    if (session.status === 'scheduled') {
+      session.status = 'attendance'
+    }
   }
 }
 
@@ -688,21 +770,193 @@ function setAttendance(student, status) {
   }
 }
 
-function startMonitoring() {
-  if (!currentSession.value || attendanceStats.value.present === 0) {
-    popupStore.warning('Chưa thể bắt đầu', 'Cần điểm danh ít nhất 1 thí sinh có mặt.')
-    return
+async function startMonitoring() {
+  if (!currentSession.value) return
+  currentSession.value.status = 'monitoring'
+  
+  const token = localStorage.getItem('lms_access_token') || sessionStorage.getItem('lms_access_token') || ''
+  await examProctoringHub.connect(token)
+  await examProctoringHub.joinExamRoom(parseInt(selectedSessionId.value))
+
+  // Submit attendance to backend
+  try {
+    const studentList = sessionStudents.value[selectedSessionId.value] || []
+    const attendancePayload = {
+      maCaThi: parseInt(selectedSessionId.value),
+      danhSachDiemDanh: studentList.map(s => ({
+        maHocSinh: parseInt(s.id),
+        trangThaiDiemDanh: s.attendanceStatus === 'present' ? 'co_mat' : 'vang_mat',
+        ghiChu: ''
+      }))
+    }
+    await examApi.batchDiemDanh(attendancePayload)
+    await examApi.startCaThi(parseInt(selectedSessionId.value))
+    
+    // Update local session status
+    if (currentSession.value) {
+      currentSession.value.backendStatus = 'dang_thi'
+    }
+  } catch (err) {
+    console.error('Error starting exam:', err)
   }
 
-  currentSession.value.status = 'monitoring'
-  presentStudents.value.forEach((student, index) => {
-    if (!['submitted', 'suspended'].includes(student.examStatus)) {
-      student.examStatus = index === presentStudents.value.length - 1 && presentStudents.value.length >= 3
-        ? 'submitted'
-        : 'in_progress'
+  // Giả lập trạng thái stream ban đầu
+  currentStudents.value.forEach((student) => {
+    if (student.attendanceStatus === 'present') {
+      student.examStatus = 'in_progress'
+      student.streamStatus = 'connecting'
     }
-    student.streamStatus = student.examStatus === 'submitted' ? 'stopped' : index === 1 ? 'reconnecting' : 'streaming'
   })
+  
+  examProctoringHub.eventHandlers.onScreenShareStatusChanged = (payload) => {
+    const student = currentStudents.value.find(s => s.id === String(payload.maHocSinh))
+    if (student) {
+      student.streamStatus = payload.status
+      if (payload.status === 'stopped') {
+        peerConnections.value.get(payload.maHocSinh)?.pc?.close()
+        peerConnections.value.delete(payload.maHocSinh)
+        deleteRemoteStream(payload.maHocSinh)
+      }
+    }
+  }
+
+    // WebRTC: Học sinh kết nối — tạo peer và gửi Offer
+    examProctoringHub.eventHandlers.onStudentConnectionIdBroadcast = async (payload) => {
+      const student = currentStudents.value.find(s => s.id === String(payload.maHocSinh))
+      if (!student) return
+
+      // Bỏ qua nếu đây là broadcast của chính mình (giám thị cũng trong group)
+      if (payload.connectionId === examProctoringHub.connectionId) {
+        if (import.meta.env.DEV) console.debug('[Proctor] Skip own StudentConnectionIdBroadcast')
+        return
+      }
+
+      if (import.meta.env.DEV)
+        console.debug('[Proctor] Student connected:', payload.maHocSinh, payload.connectionId)
+
+      student.streamStatus = 'connecting'
+
+      // Đóng peer cũ nếu học sinh reconnect
+      if (peerConnections.value.has(payload.maHocSinh)) {
+        peerConnections.value.get(payload.maHocSinh).pc.close()
+        pendingIceCandidates.delete(payload.maHocSinh)
+      }
+
+      const pc = createProctorPeerConnection(
+        // Proctor gửi ICE candidate về phía học sinh
+        (candidate) => examProctoringHub.sendIceCandidate({
+          maCaThi: parseInt(selectedSessionId.value),
+          maHocSinh: payload.maHocSinh,
+          targetConnectionId: payload.connectionId,
+          candidate, // examProctoringHub.sendIceCandidate sẽ chuẩn hóa
+        }),
+        // Nhận stream từ học sinh
+        (stream) => {
+          setRemoteStream(payload.maHocSinh, stream)
+          student.streamStatus = 'streaming'
+          if (import.meta.env.DEV)
+            console.debug('[Proctor] Remote stream received from student', payload.maHocSinh)
+        }
+      )
+
+      // Theo dõi trạng thái peer connection
+      pc.onconnectionstatechange = () => {
+        if (import.meta.env.DEV)
+          console.debug('[Proctor] Peer connectionState for student', payload.maHocSinh, ':', pc.connectionState)
+        if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+          student.streamStatus = 'stopped'
+        }
+      }
+      pc.oniceconnectionstatechange = () => {
+        if (import.meta.env.DEV)
+          console.debug('[Proctor] ICE state for student', payload.maHocSinh, ':', pc.iceConnectionState)
+      }
+
+      peerConnections.value.set(payload.maHocSinh, { pc, connectionId: payload.connectionId })
+
+      try {
+        const offer = await pc.createOffer()
+        await pc.setLocalDescription(offer)
+        // Gửi offer với typed SDP
+        await examProctoringHub.sendOffer({
+          maCaThi: parseInt(selectedSessionId.value),
+          maHocSinh: payload.maHocSinh,
+          targetConnectionId: payload.connectionId,
+          offer: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
+        })
+        if (import.meta.env.DEV)
+          console.debug('[Proctor] Offer sent to student', payload.maHocSinh)
+      } catch (e) {
+        console.error('[Proctor] Error creating offer for student', payload.maHocSinh, e)
+      }
+    }
+
+  // WebRTC: Nhận Answer từ học sinh
+  examProctoringHub.eventHandlers.onReceiveAnswer = async (dto) => {
+    if (!dto?.answer) {
+      console.warn('[Proctor] ReceiveAnswer: invalid dto', dto)
+      return
+    }
+
+    // Tìm peer theo connectionId của học sinh (fromConnectionId)
+    let studentId = null
+    let peerInfo = null
+    for (const [sid, info] of peerConnections.value.entries()) {
+      if (info.connectionId === dto.fromConnectionId) {
+        studentId = sid
+        peerInfo = info
+        break
+      }
+    }
+    if (!peerInfo) {
+      console.warn('[Proctor] ReceiveAnswer: no peer found for fromConnectionId', dto.fromConnectionId)
+      return
+    }
+
+    try {
+      // dto.answer là { type, sdp } từ typed DTO backend
+      const answerDesc = { type: dto.answer.type, sdp: dto.answer.sdp }
+      await peerInfo.pc.setRemoteDescription(new RTCSessionDescription(answerDesc))
+      if (import.meta.env.DEV)
+        console.debug('[Proctor] Remote answer set for student', studentId)
+
+      // Flush ICE candidates đã queue trước khi answer chưa có
+      await flushIceQueue(studentId)
+    } catch (e) {
+      console.error('[Proctor] Error setting remote answer for student', studentId, e)
+    }
+  }
+
+  // WebRTC: Nhận ICE Candidate từ học sinh
+  examProctoringHub.eventHandlers.onReceiveIceCandidate = async (dto) => {
+    if (!dto?.candidate?.candidate) return // bỏ qua end-of-candidates
+
+    // Bỏ qua candidate của chính mình
+    if (dto.fromConnectionId === examProctoringHub.connectionId) {
+      if (import.meta.env.DEV) console.debug('[Proctor] Skip own ICE candidate')
+      return
+    }
+
+    // Tìm studentId theo connectionId của học sinh
+    let studentId = null
+    for (const [sid, info] of peerConnections.value.entries()) {
+      if (info.connectionId === dto.fromConnectionId) {
+        studentId = sid
+        break
+      }
+    }
+    if (studentId === null) {
+      if (import.meta.env.DEV) console.debug('[Proctor] ICE candidate from unknown peer', dto.fromConnectionId)
+      return
+    }
+
+    await safeAddIceCandidate(studentId, dto.candidate)
+  }
+
+  // Join lại sau khi đã gắn đủ handler để không lỡ broadcast connectionId
+  // nếu học sinh đã bắt đầu chia sẻ màn hình trước khi giám thị vào dashboard.
+  await examProctoringHub.joinExamRoom(parseInt(selectedSessionId.value))
+
   viewState.value = 'dashboard'
   popupStore.success('Đã bắt đầu canh thi', `${presentStudents.value.length} thí sinh có mặt được đưa vào grid giám sát.`)
 }
@@ -717,6 +971,14 @@ function finishSession() {
     if (student.examStatus === 'in_progress') student.examStatus = 'submitted'
     if (student.streamStatus === 'streaming' || student.streamStatus === 'reconnecting') student.streamStatus = 'stopped'
   })
+  
+  // Clean up WebRTC
+  for (const peerInfo of peerConnections.value.values()) {
+    peerInfo.pc.close()
+  }
+  peerConnections.value.clear()
+  remoteStreams.value = new Map()
+  
   selectedStudent.value = null
   viewState.value = 'sessions'
   popupStore.success('Đã kết thúc ca', 'Biên bản mock đã được cập nhật.')
@@ -1543,3 +1805,4 @@ function markStudentHandled(student) {
   }
 }
 </style>
+

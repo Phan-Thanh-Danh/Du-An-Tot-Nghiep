@@ -1,6 +1,7 @@
 using Backend.Constants;
 using Backend.DTOs.Common;
 using Backend.DTOs.Exam;
+using Backend.DTOs.QuizAttempts;
 using Backend.Services.Exam;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -220,6 +221,14 @@ public class ExamController : ControllerBase
         return Ok(ApiResponseDto<IReadOnlyList<DiemDanhThiDto>>.Ok(result, "Điểm danh thành công"));
     }
 
+    [HttpPost("ca-thi/{id:int}/start")]
+    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    public async Task<ActionResult<ApiResponseDto>> StartCaThi(int id, CancellationToken ct)
+    {
+        await _examService.StartCaThiAsync(id, ct);
+        return Ok(ApiResponseDto.Ok("Bắt đầu ca thi thành công"));
+    }
+
     // ===== NhatKyViPhamThi =====
 
     [HttpGet("ca-thi/{maCaThi:int}/vi-pham")]
@@ -322,6 +331,26 @@ public class ExamController : ControllerBase
         var userId = GetCurrentUserId();
         var result = await _examService.GetStudentExamsAsync(userId, ct);
         return Ok(ApiResponseDto<IReadOnlyList<StudentExamListItemDto>>.Ok(result));
+    }
+
+    [HttpGet("taking/session/{maPhienThi:int}")]
+    [Authorize(Roles = AuthRoles.Student)]
+    public async Task<ActionResult<ApiResponseDto<PhienThiDto>>> GetExamSession(
+        int maPhienThi, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _examService.GetExamSessionAsync(maPhienThi, userId, ct);
+        return Ok(ApiResponseDto<PhienThiDto>.Ok(result));
+    }
+
+    [HttpGet("taking/session/{maPhienThi:int}/questions")]
+    [Authorize(Roles = AuthRoles.Student)]
+    public async Task<ActionResult<ApiResponseDto<IReadOnlyList<QuizAttemptQuestionDto>>>> GetExamQuestions(
+        int maPhienThi, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _examService.GetExamQuestionsAsync(maPhienThi, userId, ct);
+        return Ok(ApiResponseDto<IReadOnlyList<QuizAttemptQuestionDto>>.Ok(result));
     }
 
     [HttpPost("taking/start")]

@@ -1,13 +1,14 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   ArrowLeft, FileCheck, Clock, ListChecks, ShieldAlert, Globe, Maximize,
   MonitorCheck, Wifi, Puzzle, Server, Bot, CheckCircle2, AlertTriangle,
   XCircle, Loader2, PlayCircle, ChevronRight, Info, Lock, BookOpen
 } from 'lucide-vue-next'
-import { mockExams, mockExamDetail } from '@/data/studentData.mock.js'
+import { mockExamDetail } from '@/data/studentData.mock.js'
 import { runPreflightSecurityChecks } from '@/utils/examSecurity'
+import { examApi } from '@/services/examApi'
 
 const router = useRouter()
 const route = useRoute()
@@ -19,16 +20,49 @@ const checksComplete = ref(false)
 const checks = ref([])
 const preflightResult = ref(null)
 const blockedReasons = ref([])
-
-const exam = computed(() => {
-  const id = route.params.examId
-  return mockExams.find(e => e.id === id) || mockExamDetail
-})
+const exam = ref(null)
+const loadError = ref('')
 
 const examId = computed(() => String(route.params.examId || exam.value.id || mockExamDetail.id))
+const currentExam = computed(() => exam.value || mockExamDetail)
 const riskScore = computed(() => preflightResult.value?.riskScore || 0)
 const riskLevel = computed(() => preflightResult.value?.riskLevel || 'safe')
-const canEnter = computed(() => Boolean(checksComplete.value && preflightResult.value?.canEnter))
+const realExamStatus = ref(null)
+
+onMounted(async () => {
+  try {
+    const response = await examApi.getStudentExams()
+    const list = response || []
+    const myExam = list.map(normalizeApiExam).find(e =>
+      e.id === examId.value ||
+      String(e.maDeKiemTra || '') === examId.value ||
+      String(e.maCaThi || '') === examId.value
+    )
+    if (myExam) {
+      exam.value = myExam
+      realExamStatus.value = myExam
+      if (myExam.maCaThi) {
+        sessionStorage.setItem(`exam_ca_thi_${examId.value}`, String(myExam.maCaThi))
+      }
+    } else {
+      exam.value = mockExamDetail
+      loadError.value = 'Không tìm thấy bài thi trong dữ liệu CSDL.'
+    }
+  } catch (err) {
+    console.error('Lỗi khi lấy trạng thái ca thi:', err)
+    exam.value = mockExamDetail
+    loadError.value = err?.message || 'Không tải được thông tin bài thi từ CSDL.'
+  }
+})
+
+const isAllowedToEnter = computed(() => {
+  if (!realExamStatus.value) return false // fallback or waiting
+  const status = realExamStatus.value.accessStatus || realExamStatus.value.AccessStatus
+  const ttdt = realExamStatus.value.trangThaiDuThi || realExamStatus.value.TrangThaiDuThi
+  return status === 'official' && ttdt === 'duoc_thi'
+})
+
+const canEnter = computed(() => Boolean(checksComplete.value && preflightResult.value?.canEnter && isAllowedToEnter.value))
 
 const checkStatuses = ref({})
 
@@ -72,14 +106,45 @@ watch(screen, (value) => {
 function goTake() {
   if (!canEnter.value) return
 
+  const maCaThi = realExamStatus.value?.maCaThi || realExamStatus.value?.MaCaThi
+  if (!maCaThi) {
+    loadError.value = 'Bài thi chưa được gán ca thi trong CSDL.'
+    return
+  }
+
   sessionStorage.setItem(`exam_preflight_passed_${examId.value}`, JSON.stringify({
     passed: true,
     passedAt: Date.now(),
     riskScore: riskScore.value,
     checks: checks.value,
   }))
+  sessionStorage.setItem(`exam_ca_thi_${examId.value}`, String(maCaThi))
 
   router.push(`/student/exams/${examId.value}/take`)
+}
+
+function normalizeApiExam(item) {
+  const valueOf = (...keys) => keys.map((key) => item?.[key]).find((value) => value !== undefined && value !== null)
+
+  return {
+    id: String(valueOf('id', 'Id', 'maDeKiemTra', 'MaDeKiemTra')),
+    maDeKiemTra: valueOf('maDeKiemTra', 'MaDeKiemTra'),
+    maCaThi: valueOf('maCaThi', 'MaCaThi'),
+    title: valueOf('title', 'Title') || '',
+    subject: valueOf('subject', 'Subject') || '',
+    subjectCode: valueOf('subjectCode', 'SubjectCode') || '',
+    classCode: valueOf('classSectionCode', 'ClassSectionCode') || '',
+    durationMinutes: valueOf('durationMinutes', 'DurationMinutes') || 0,
+    totalQuestions: valueOf('totalQuestions', 'TotalQuestions') || 0,
+    maxAttempts: valueOf('maxAttempts', 'MaxAttempts') || 1,
+    examTypeLabel: valueOf('examTypeLabel', 'ExamTypeLabel') || 'Thi',
+    openAt: valueOf('openAt', 'OpenAt'),
+    closeAt: valueOf('closeAt', 'CloseAt'),
+    teacher: valueOf('teacher', 'Teacher') || 'Giám thị theo ca thi',
+    accessStatus: valueOf('accessStatus', 'AccessStatus') || '',
+    trangThaiDuThi: valueOf('trangThaiDuThi', 'TrangThaiDuThi'),
+    rules: mockExamDetail.rules,
+  }
 }
 
 function formatDate(iso) {
@@ -111,9 +176,9 @@ function formatDate(iso) {
             <FileCheck :size="28" />
           </div>
           <div>
-            <div class="hero-eyebrow">{{ exam.subjectCode }} · {{ exam.classCode }}</div>
-            <h1 class="hero-title">{{ exam.title || mockExamDetail.title }}</h1>
-            <p class="hero-subject">{{ exam.subject || mockExamDetail.subject }}</p>
+            <div class="hero-eyebrow">{{ currentExam.subjectCode }} · {{ currentExam.classCode }}</div>
+            <h1 class="hero-title">{{ currentExam.title || mockExamDetail.title }}</h1>
+            <p class="hero-subject">{{ currentExam.subject || mockExamDetail.subject }}</p>
           </div>
         </div>
 
@@ -122,28 +187,28 @@ function formatDate(iso) {
           <div class="stat-item">
             <Clock :size="18" class="stat-icon blue" />
             <div>
-              <div class="stat-value">{{ exam.durationMinutes || mockExamDetail.durationMinutes }} phút</div>
+              <div class="stat-value">{{ currentExam.durationMinutes || mockExamDetail.durationMinutes }} phút</div>
               <div class="stat-label">Thời lượng</div>
             </div>
           </div>
           <div class="stat-item">
             <ListChecks :size="18" class="stat-icon violet" />
             <div>
-              <div class="stat-value">{{ exam.totalQuestions || mockExamDetail.totalQuestions }} câu</div>
+              <div class="stat-value">{{ currentExam.totalQuestions || mockExamDetail.totalQuestions }} câu</div>
               <div class="stat-label">Câu hỏi</div>
             </div>
           </div>
           <div class="stat-item">
             <Lock :size="18" class="stat-icon amber" />
             <div>
-              <div class="stat-value">{{ exam.maxAttempts || mockExamDetail.maxAttempts }} lần</div>
+              <div class="stat-value">{{ currentExam.maxAttempts || mockExamDetail.maxAttempts }} lần</div>
               <div class="stat-label">Số lần làm</div>
             </div>
           </div>
           <div class="stat-item">
             <BookOpen :size="18" class="stat-icon teal" />
             <div>
-              <div class="stat-value">{{ exam.examTypeLabel || mockExamDetail.examTypeLabel }}</div>
+              <div class="stat-value">{{ currentExam.examTypeLabel || mockExamDetail.examTypeLabel }}</div>
               <div class="stat-label">Hình thức</div>
             </div>
           </div>
@@ -153,15 +218,15 @@ function formatDate(iso) {
         <div class="time-card">
           <div class="time-row">
             <span class="time-label">Mở ca thi:</span>
-            <span class="time-value">{{ formatDate(exam.openAt || mockExamDetail.openAt) }}</span>
+            <span class="time-value">{{ formatDate(currentExam.openAt || mockExamDetail.openAt) }}</span>
           </div>
           <div class="time-row">
             <span class="time-label">Đóng ca thi:</span>
-            <span class="time-value">{{ formatDate(exam.closeAt || mockExamDetail.closeAt) }}</span>
+            <span class="time-value">{{ formatDate(currentExam.closeAt || mockExamDetail.closeAt) }}</span>
           </div>
           <div class="time-row">
             <span class="time-label">Giảng viên:</span>
-            <span class="time-value">{{ exam.teacher || mockExamDetail.teacher }}</span>
+            <span class="time-value">{{ currentExam.teacher || mockExamDetail.teacher }}</span>
           </div>
         </div>
 
@@ -169,11 +234,17 @@ function formatDate(iso) {
         <div class="rules-section">
           <div class="section-title"><ShieldAlert :size="16" class="text-amber" /> Quy định bài thi</div>
           <ul class="rules-list">
-            <li v-for="(rule, i) in (exam.rules || mockExamDetail.rules)" :key="i" class="rule-item">
+            <li v-for="(rule, i) in (currentExam.rules || mockExamDetail.rules)" :key="i" class="rule-item">
               <span class="rule-num">{{ i+1 }}</span>
               {{ rule }}
             </li>
           </ul>
+        </div>
+
+        <!-- Warning -->
+        <div v-if="loadError" class="warning-banner">
+          <AlertTriangle :size="16" />
+          <span>{{ loadError }}</span>
         </div>
 
         <!-- Warning -->
@@ -322,6 +393,9 @@ function formatDate(iso) {
           <PlayCircle :size="18" />
           Vào phòng thi
         </button>
+        <p v-if="realExamStatus && !isAllowedToEnter" class="mt-2 text-danger text-center" style="font-size: 0.875rem;">
+          {{ (realExamStatus.accessStatus || realExamStatus.AccessStatus) !== 'official' ? 'Vui lòng chờ giám thị khởi động ca thi.' : 'Bạn chưa được điểm danh Có mặt.' }}
+        </p>
       </div>
     </div>
   </div>

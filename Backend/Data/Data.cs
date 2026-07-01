@@ -89,6 +89,115 @@ public static class Data
         await SeedTuitionReceivingAccountAsync(context, hcmCampus);
         await SeedDeKiemTraAsync(context, subjects, terms);
 
+        // Seed CaThi & Assign lecturer01 & student01
+        await SeedCaThiTestEnvironmentAsync(context, hcmCampus);
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedCaThiTestEnvironmentAsync(ApplicationDbContext context, DonVi hcmCampus)
+    {
+        var lecturer = await context.NguoiDungs.FirstOrDefaultAsync(u => u.Email == "lecturer01@edulms.local");
+        var student = await context.NguoiDungs.FirstOrDefaultAsync(u => u.Email == "student01@edulms.local");
+        
+        if (lecturer == null || student == null) return;
+        
+        // Ensure both are in the same campus
+        lecturer.MaDonVi = hcmCampus.MaDonVi;
+        student.MaDonVi = hcmCampus.MaDonVi;
+        await context.SaveChangesAsync();
+
+        var examNames = new[] { 
+            "Quiz Cơ sở dữ liệu", 
+            "Đề thi mẫu Lập trình C#", 
+            "Kiểm tra Thiết kế Web", 
+            "Quiz Xây dựng REST API" 
+        };
+
+        var testPapers = await context.DeKiemTras
+            .Where(d => examNames.Contains(d.TieuDe))
+            .ToListAsync();
+
+        var kyThi = await context.KyThis.FirstOrDefaultAsync(k => k.TenKyThi == "Kỳ thi thử nghiệm WebRTC");
+        if (kyThi == null)
+        {
+            kyThi = new KyThi
+            {
+                TenKyThi = "Kỳ thi thử nghiệm WebRTC",
+                MaHocKy = testPapers.FirstOrDefault()?.MaHocKy ?? 0,
+                TrangThai = "dang_dien_ra",
+                NgayTao = DateTime.UtcNow
+            };
+            context.KyThis.Add(kyThi);
+            await context.SaveChangesAsync();
+        }
+
+        var room = await context.PhongHocs.FirstOrDefaultAsync();
+
+        foreach (var testPaper in testPapers)
+        {
+            var activeLichThi = await context.LichThiTongs.FirstOrDefaultAsync(l => l.MaDeKiemTra == testPaper.MaDeKiemTra);
+            if (activeLichThi == null)
+            {
+                activeLichThi = new LichThiTong
+                {
+                    MaKyThi = kyThi.MaKyThi,
+                    MaMonHoc = testPaper.MaMonHoc ?? 0,
+                    MaDeKiemTra = testPaper.MaDeKiemTra,
+                    HinhThucThi = testPaper.HinhThucThi ?? "ket_hop",
+                    NgayThiDuKien = DateTime.Today,
+                    TrangThai = "da_gui_ve_co_so",
+                    NgayTao = DateTime.UtcNow
+                };
+                context.LichThiTongs.Add(activeLichThi);
+                await context.SaveChangesAsync();
+            }
+
+            var caThiName = $"Thi thử nghiệm WebRTC - {testPaper.TieuDe}";
+            var caThi = await context.CaThis.FirstOrDefaultAsync(c => c.TenCaThi == caThiName);
+            if (caThi == null)
+            {
+                caThi = new CaThi
+                {
+                    MaLichThiTong = activeLichThi.MaLichThiTong,
+                    TenCaThi = caThiName,
+                    MaPhong = room?.MaPhong,
+                    NgayThi = DateTime.Today,
+                    ThoiGianBatDau = DateTime.Today.AddHours(8),
+                    ThoiGianKetThuc = DateTime.Today.AddHours(22),
+                    MaDonVi = hcmCampus.MaDonVi,
+                    TrangThai = "dang_diem_danh", // Đang điểm danh thí sinh
+                    NgayTao = DateTime.UtcNow
+                };
+                context.CaThis.Add(caThi);
+                await context.SaveChangesAsync();
+            }
+
+            var isProctorAssigned = await context.PhanCongGiamThis.AnyAsync(p => p.MaCaThi == caThi.MaCaThi && p.MaGiamThi == lecturer.MaNguoiDung);
+            if (!isProctorAssigned)
+            {
+                context.PhanCongGiamThis.Add(new PhanCongGiamThi
+                {
+                    MaCaThi = caThi.MaCaThi,
+                    MaGiamThi = lecturer.MaNguoiDung,
+                    VaiTroGiamThi = "giam_thi_chinh",
+                    TrangThai = "du_kien",
+                    NgayTao = DateTime.UtcNow
+                });
+            }
+
+            var isStudentAssigned = await context.ThiSinhCaThis.AnyAsync(t => t.MaCaThi == caThi.MaCaThi && t.MaHocSinh == student.MaNguoiDung);
+            if (!isStudentAssigned)
+            {
+                context.ThiSinhCaThis.Add(new ThiSinhCaThi
+                {
+                    MaCaThi = caThi.MaCaThi,
+                    MaHocSinh = student.MaNguoiDung,
+                    TrangThaiDuThi = "cho_thi",
+                    NgayTao = DateTime.UtcNow
+                });
+            }
+        }
         await context.SaveChangesAsync();
     }
 
