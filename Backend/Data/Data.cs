@@ -52,6 +52,12 @@ public static class Data
             programs,
             users
         );
+        await EnsureStudentsHaveTrainingProgramsAsync(
+            context,
+            hcmCampus,
+            programs,
+            administrativeClasses
+        );
         await SeedTeachingCoursesAsync(
             context,
             hcmCampus,
@@ -516,6 +522,12 @@ public static class Data
             new SubjectSeed("API101", "Xây dựng REST API", 3),
             new SubjectSeed("FE101", "Vue.js căn bản", 3),
             new SubjectSeed("BE101", "ASP.NET Core căn bản", 3),
+            new SubjectSeed("MOB101", "Lập trình ứng dụng di động", 3),
+            new SubjectSeed("DEV201", "DevOps và triển khai phần mềm", 3),
+            new SubjectSeed("SEC101", "An toàn thông tin căn bản", 3),
+            new SubjectSeed("CLOUD101", "Điện toán đám mây", 3),
+            new SubjectSeed("CAP101", "Đồ án tốt nghiệp phần mềm", 4),
+            new SubjectSeed("INT101", "Thực tập doanh nghiệp CNTT", 4),
             new SubjectSeed("DES101", "Nguyên lý thị giác", 2),
             new SubjectSeed("DES102", "Photoshop căn bản", 3),
             new SubjectSeed("DES103", "Illustrator căn bản", 3),
@@ -526,6 +538,12 @@ public static class Data
             new SubjectSeed("DES108", "Motion Graphic căn bản", 3),
             new SubjectSeed("DES109", "Thiết kế portfolio", 2),
             new SubjectSeed("DES110", "Dự án thiết kế đồ họa", 3),
+            new SubjectSeed("DES111", "Thiết kế sản phẩm số", 3),
+            new SubjectSeed("DES112", "Nghiên cứu người dùng", 3),
+            new SubjectSeed("DES113", "3D căn bản", 3),
+            new SubjectSeed("DES114", "Thiết kế hệ thống thương hiệu", 3),
+            new SubjectSeed("DES115", "Đồ án tốt nghiệp thiết kế", 4),
+            new SubjectSeed("DES116", "Thực tập doanh nghiệp thiết kế", 4),
             new SubjectSeed("MKT101", "Marketing căn bản", 3),
             new SubjectSeed("MKT102", "Hành vi khách hàng", 3),
             new SubjectSeed("MKT103", "Digital Marketing", 3),
@@ -536,6 +554,12 @@ public static class Data
             new SubjectSeed("MKT108", "Kỹ năng bán hàng", 2),
             new SubjectSeed("MKT109", "Xây dựng thương hiệu", 3),
             new SubjectSeed("MKT110", "Dự án Marketing tổng hợp", 3),
+            new SubjectSeed("MKT111", "Marketing automation", 3),
+            new SubjectSeed("MKT112", "Quản trị quan hệ khách hàng", 3),
+            new SubjectSeed("MKT113", "Nghiên cứu thị trường", 3),
+            new SubjectSeed("MKT114", "Chiến lược truyền thông tích hợp", 3),
+            new SubjectSeed("MKT115", "Đồ án tốt nghiệp Marketing", 4),
+            new SubjectSeed("MKT116", "Thực tập doanh nghiệp Marketing", 4),
             new SubjectSeed("GEN101", "Kỹ năng học tập", 2),
             new SubjectSeed("GEN102", "Tin học cơ bản", 2),
             new SubjectSeed("GEN103", "Tiếng Anh cơ bản", 3),
@@ -937,6 +961,12 @@ public static class Data
                 new(5, "PRO101"),
                 new(6, "GEN103"),
                 new(6, "GEN105"),
+                new(7, "MOB101"),
+                new(7, "DEV201"),
+                new(8, "SEC101"),
+                new(8, "CLOUD101"),
+                new(9, "CAP101"),
+                new(9, "INT101"),
             ],
             ["CT_TKDH_K2026"] =
             [
@@ -955,6 +985,12 @@ public static class Data
                 new(5, "GEN102"),
                 new(6, "GEN103"),
                 new(6, "GEN105"),
+                new(7, "DES111"),
+                new(7, "DES112"),
+                new(8, "DES113"),
+                new(8, "DES114"),
+                new(9, "DES115"),
+                new(9, "DES116"),
             ],
             ["CT_MKT_K2026"] =
             [
@@ -973,6 +1009,12 @@ public static class Data
                 new(5, "GEN102"),
                 new(6, "GEN103"),
                 new(6, "GEN105"),
+                new(7, "MKT111"),
+                new(7, "MKT112"),
+                new(8, "MKT113"),
+                new(8, "MKT114"),
+                new(9, "MKT115"),
+                new(9, "MKT116"),
             ],
         };
 
@@ -1353,6 +1395,72 @@ public static class Data
 
         await context.SaveChangesAsync();
         return result;
+    }
+
+    private static async Task EnsureStudentsHaveTrainingProgramsAsync(
+        ApplicationDbContext context,
+        DonVi campus,
+        IReadOnlyDictionary<string, ChuongTrinhDaoTao> programs,
+        IReadOnlyDictionary<string, LopHanhChinh> administrativeClasses
+    )
+    {
+        var defaultClass = administrativeClasses["SD1901"];
+        var students = await context.NguoiDungs
+            .Where(user => user.VaiTroChinh == AuthRoles.ToDatabaseCode(AuthRoles.Student))
+            .ToListAsync();
+
+        foreach (var student in students)
+        {
+            student.MaDonVi = campus.MaDonVi;
+            student.NamNhapHoc ??= 2026;
+
+            if (student.MaLop is null)
+            {
+                student.MaLop = defaultClass.MaLop;
+            }
+        }
+
+        await context.SaveChangesAsync();
+
+        var studentClassIds = students
+            .Where(student => student.MaLop.HasValue)
+            .Select(student => student.MaLop!.Value)
+            .Distinct()
+            .ToList();
+        var classes = await context.LopHanhChinhs
+            .Where(classEntity => studentClassIds.Contains(classEntity.MaLop))
+            .ToListAsync();
+
+        foreach (var classEntity in classes)
+        {
+            if (classEntity.MaChuongTrinh.HasValue)
+            {
+                continue;
+            }
+
+            var programCode = ResolveProgramCodeForClass(classEntity.MaCodeLop);
+            classEntity.MaDonVi = campus.MaDonVi;
+            classEntity.MaChuongTrinh = programs[programCode].MaChuongTrinh;
+            classEntity.NamNhapHoc ??= 2026;
+            classEntity.ConHoatDong = true;
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static string ResolveProgramCodeForClass(string classCode)
+    {
+        if (classCode.StartsWith("TKDH", StringComparison.OrdinalIgnoreCase))
+        {
+            return "CT_TKDH_K2026";
+        }
+
+        if (classCode.StartsWith("MKT", StringComparison.OrdinalIgnoreCase))
+        {
+            return "CT_MKT_K2026";
+        }
+
+        return "CT_CNTT_K2026";
     }
 
     private static async Task<Dictionary<string, LopHocPhan>> SeedCourseSectionsAsync(

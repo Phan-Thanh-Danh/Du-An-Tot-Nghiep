@@ -25,5 +25,10 @@ export const studentApi = {
     return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/comments`, {
       method: 'GET',
     })
+  },
+  getStudentCurriculum() {
+    return apiRequest('/api/student/curriculum', {
+      method: 'GET',
+    })
   }
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import {
   ArrowRight,
   BookOpenCheck,
@@ -8,7 +8,6 @@ import {
   Flag,
   GitCompare,
   GraduationCap,
-  History,
   Layers3,
   Lock,
   Map,
@@ -18,16 +17,30 @@ import {
   Sparkles,
   Trophy,
 } from 'lucide-vue-next'
-import { mockStudentCurriculum, mockCurriculumVersionData } from '@/data/studentData.mock.js'
+import { studentApi } from '@/services/studentApi'
 
 const viewMode = ref('card')
-const showEarlyLearningNotification = ref(true)
+const isLoading = ref(true)
+const errorMessage = ref('')
 
-const studentCurriculum = mockStudentCurriculum
-const curriculumVersionData = mockCurriculumVersionData
+const studentCurriculum = ref(null)
+
+onMounted(async () => {
+  try {
+    const response = await studentApi.getStudentCurriculum()
+    if (response?.success) {
+      studentCurriculum.value = response.data
+    } else {
+      errorMessage.value = response?.message || 'Không tải được khung chương trình.'
+    }
+  } catch (error) {
+    errorMessage.value = error?.message || 'Không tải được khung chương trình.'
+  } finally {
+    isLoading.value = false
+  }
+})
 
 const activeFilter = ref('all')
-const selectedVersionId = ref(curriculumVersionData.availableVersions?.[0]?.programId || 'sd-2026')
 
 const statusConfig = {
   completed: { label: 'Đã hoàn thành', className: 'status-completed', icon: CheckCircle2 },
@@ -47,13 +60,6 @@ const versionStatusConfig = {
   history_only: { label: 'Chỉ lưu lịch sử', className: 'version-history' },
 }
 
-const applyStatusConfig = {
-  applied: { label: 'Đã áp dụng vào chương trình hiện tại', className: 'version-equivalent' },
-  pending_review: { label: 'Chờ xét tương đương', className: 'version-replaced' },
-  requires_supplement: { label: 'Cần học bổ sung', className: 'version-partial' },
-  history_only: { label: 'Chỉ lưu làm lịch sử tự học', className: 'version-history' },
-}
-
 const filterOptions = [
   { key: 'all', label: 'Tất cả' },
   { key: 'current', label: 'Đang học' },
@@ -63,80 +69,34 @@ const filterOptions = [
   { key: 'early_completed', label: 'Đã học trước' },
 ]
 
-const allSubjects = computed(() =>
-  studentCurriculum.semesters.flatMap((semester) =>
-    semester.blocks.flatMap((block) =>
-      block.subjects.map((item) => ({
-        ...item,
-        semesterIndex: semester.semesterIndex,
-        semesterName: semester.semesterName,
-        blockIndex: block.blockIndex,
-        blockName: block.blockName,
-      }))
-    )
-  )
-)
-
 const filteredSemesters = computed(() => {
-  const isOldVersion = selectedVersionId.value && selectedVersionId.value.endsWith('-old')
+  if (!studentCurriculum.value) return []
 
-  return studentCurriculum.semesters
+  return studentCurriculum.value.semesters
     .map((semester) => ({
       ...semester,
       blocks: semester.blocks
         .map((block) => ({
           ...block,
-          subjects: block.subjects
-            .filter((item) => activeFilter.value === 'all' || item.status === activeFilter.value)
-            .map((item) => {
-              if (isOldVersion) {
-                const historyItem = curriculumVersionData.earlyLearningHistory.find(
-                  (h) => h.newSubjectCode === item.subjectCode
-                )
-                if (historyItem) {
-                  return {
-                    ...item,
-                    subjectCode: historyItem.oldSubjectCode,
-                    subjectName: historyItem.oldSubjectName,
-                    newSubjectCode: historyItem.newSubjectCode,
-                    newSubjectName: historyItem.newSubjectName,
-                    versionStatus: 'current_program', // Hide equivalence notice since we are displaying the old version natively
-                  }
-                }
-              }
-              return item
-            }),
+          subjects: block.subjects.filter(
+            (item) => activeFilter.value === 'all' || item.status === activeFilter.value
+          ),
         }))
         .filter((block) => block.subjects.length),
     }))
     .filter((semester) => semester.blocks.length)
 })
 
-const progressPercent = computed(() =>
-  Math.round((studentCurriculum.completedCredits / studentCurriculum.totalCredits) * 100)
-)
+const progressPercent = computed(() => {
+  if (!studentCurriculum.value || !studentCurriculum.value.totalCredits) return 0
+  return Math.round((studentCurriculum.value.completedCredits / studentCurriculum.value.totalCredits) * 100)
+})
 
 const summaryCards = computed(() => [
-  { label: 'Tín chỉ hoàn thành', value: `${studentCurriculum.completedCredits}/${studentCurriculum.totalCredits}`, hint: `${progressPercent.value}% toàn chương trình`, icon: Trophy },
-  { label: 'Môn đã hoàn thành', value: `${studentCurriculum.completedSubjects}/${studentCurriculum.totalSubjects}`, hint: 'Theo khung mock hiện tại', icon: BookOpenCheck },
-  { label: 'Kỳ hiện tại', value: `Kỳ ${studentCurriculum.currentSemesterIndex}`, hint: `Block ${studentCurriculum.currentBlockIndex}`, icon: Layers3 },
-  { label: 'Môn học trước', value: earlySuggestions.value.length, hint: 'Đang mở cho tự học', icon: Rocket },
-])
-
-const earlySuggestions = computed(() =>
-  allSubjects.value.filter((item) => item.status === 'early_available').slice(0, 4)
-)
-
-const selectedVersion = computed(() =>
-  curriculumVersionData.availableVersions.find((version) => version.programId === selectedVersionId.value)
-  || curriculumVersionData.availableVersions[0]
-)
-
-const versionChangeCards = computed(() => [
-  { label: 'Môn thay thế', value: curriculumVersionData.versionChanges.replacedSubjects, icon: RefreshCcw },
-  { label: 'Môn đổi nội dung', value: curriculumVersionData.versionChanges.changedSubjects, icon: GitCompare },
-  { label: 'Môn mới thêm', value: curriculumVersionData.versionChanges.addedSubjects, icon: Sparkles },
-  { label: 'Chỉ lưu lịch sử', value: curriculumVersionData.versionChanges.historyOnlySubjects, icon: History },
+  { label: 'Tín chỉ hoàn thành', value: `${studentCurriculum.value?.completedCredits || 0}/${studentCurriculum.value?.totalCredits || 0}`, hint: `${progressPercent.value}% toàn chương trình`, icon: Trophy },
+  { label: 'Môn đã hoàn thành', value: `${studentCurriculum.value?.completedSubjects || 0}/${studentCurriculum.value?.totalSubjects || 0}`, hint: 'Theo khung chương trình hiện tại', icon: BookOpenCheck },
+  { label: 'Kỳ hiện tại', value: `Kỳ ${studentCurriculum.value?.currentSemesterIndex || 0}`, hint: `Block ${studentCurriculum.value?.currentBlockIndex || 0}`, icon: Layers3 },
+  { label: 'Tổng số kỳ', value: studentCurriculum.value?.totalSemesters || 0, hint: `${studentCurriculum.value?.trainingMonths || 0} tháng đào tạo`, icon: GraduationCap },
 ])
 
 function actionLabel(item) {
@@ -158,11 +118,20 @@ function canApplyEarlyResult(item) {
   return ['equivalent', 'partial_equivalent'].includes(item.versionStatus)
 }
 
-const isOldVersion = computed(() => selectedVersionId.value && selectedVersionId.value.endsWith('-old'))
+const isOldVersion = computed(() => false)
 </script>
 
 <template>
-  <div class="curriculum-page">
+  <div v-if="isLoading" class="loading-state">
+    <RefreshCcw class="mx-auto mb-4 animate-spin" :size="32" />
+    <p>Đang tải dữ liệu khung chương trình...</p>
+  </div>
+  <section v-else-if="errorMessage" class="empty-state">
+    <GraduationCap :size="34" />
+    <h2>Chưa tải được khung chương trình</h2>
+    <p>{{ errorMessage }}</p>
+  </section>
+  <div v-else-if="studentCurriculum" class="curriculum-page">
     <section class="curriculum-hero">
       <div class="hero-copy">
         <span class="eyebrow">
@@ -176,7 +145,7 @@ const isOldVersion = computed(() => selectedVersionId.value && selectedVersionId
         </p>
         <div class="hero-note">
           <Sparkles :size="15" />
-          Bạn có thể xem trước lộ trình toàn khóa và học sớm các môn được mở.
+          Lộ trình môn học theo chương trình đào tạo đang gán cho lớp của sinh viên.
         </div>
       </div>
 
@@ -186,75 +155,6 @@ const isOldVersion = computed(() => selectedVersionId.value && selectedVersionId
         <div class="progress-track">
           <div class="progress-fill" :style="{ width: `${progressPercent}%` }" />
         </div>
-      </div>
-    </section>
-
-    <!-- Banner Thông báo Học trước & Bảo lưu kết quả -->
-    <div v-if="showEarlyLearningNotification" class="early-notification-banner glass-card">
-      <div class="banner-icon">
-        <Rocket :size="22" class="text-(--text-link) animate-bounce" />
-      </div>
-      <div class="banner-body">
-        <h3>Nhắc nhở học trước & Bảo lưu kết quả</h3>
-        <p>
-          Hệ thống ghi nhận bạn đang có kết quả tự học trước của môn <strong>Kiểm thử phần mềm (TEST101)</strong> đạt <strong>8.4/10</strong> (hoàn thành 64% chương trình).
-          Kết quả này sẽ tự động được bảo lưu và áp dụng chính thức khi bạn bước vào Kỳ 2 - Block 2!
-        </p>
-        <div class="supplement-info">
-          <span class="supplement-badge">Cập nhật môn học</span>
-          <span>Đối với môn <strong>Lập trình C# nâng cấp (NET102)</strong>, kết quả học trước môn tương đương cũ <strong>NET101 (8.5/10)</strong> đã được áp dụng và bảo lưu thành công, bạn chỉ cần học bổ sung 30% nội dung cập nhật mới.</span>
-        </div>
-      </div>
-      <button type="button" class="banner-close-btn" @click="showEarlyLearningNotification = false">Đóng</button>
-    </div>
-
-    <section class="version-panel" aria-label="Version chương trình">
-      <div class="version-heading">
-        <div>
-          <span class="eyebrow small">
-            <GitCompare :size="13" />
-            Version chương trình
-          </span>
-          <h2>{{ curriculumVersionData.currentProgram.majorName }} - {{ curriculumVersionData.currentProgram.versionName }}</h2>
-          <p>
-            Áp dụng cho khóa {{ curriculumVersionData.currentProgram.studentCohort }} ·
-            hiệu lực từ {{ curriculumVersionData.currentProgram.effectiveFromYear }}
-          </p>
-        </div>
-
-        <label class="version-switcher">
-          <span>Xem version</span>
-          <select v-model="selectedVersionId">
-            <option
-              v-for="version in curriculumVersionData.availableVersions"
-              :key="version.programId"
-              :value="version.programId"
-            >
-              {{ version.versionName }}{{ version.hasEarlyLearningHistory ? ' - có lịch sử học trước' : '' }}
-            </option>
-          </select>
-        </label>
-      </div>
-
-      <div class="version-context">
-        <div>
-          <strong>{{ selectedVersion.versionName }}</strong>
-          <p v-if="selectedVersion.isCurrent">Đây là chương trình hiện tại của sinh viên.</p>
-          <p v-else>Kết quả học trước ở version cũ vẫn được giữ lại để xét tương đương.</p>
-        </div>
-        <span class="version-pill" :class="{ current: selectedVersion.isCurrent }">
-          {{ selectedVersion.isCurrent ? 'Chương trình hiện tại' : 'Version cũ' }}
-        </span>
-      </div>
-
-      <div class="change-grid" aria-label="Thay đổi so với version trước">
-        <article v-for="item in versionChangeCards" :key="item.label" class="change-card">
-          <component :is="item.icon" :size="16" />
-          <div>
-            <strong>{{ item.value }}</strong>
-            <span>{{ item.label }}</span>
-          </div>
-        </article>
       </div>
     </section>
 
@@ -268,34 +168,6 @@ const isOldVersion = computed(() => selectedVersionId.value && selectedVersionId
         </div>
       </article>
     </section>
-
-    <section class="early-section">
-      <div class="section-heading">
-        <div>
-          <span class="eyebrow small">
-            <Rocket :size="13" />
-            Tự học sớm
-          </span>
-          <h2>Gợi ý học trước</h2>
-        </div>
-        <p>Kết quả học trước sẽ được lưu lại khi hệ thống hỗ trợ áp dụng chính thức.</p>
-      </div>
-
-      <div class="early-grid">
-        <article v-for="item in earlySuggestions" :key="item.id" class="early-card">
-          <div>
-            <span class="subject-code">{{ item.subjectCode }}</span>
-            <h3>{{ item.subjectName }}</h3>
-            <p>{{ item.semesterName }} · {{ item.blockName }} · {{ item.credits }} tín chỉ</p>
-          </div>
-          <router-link class="early-cta" :to="'/student/courses/' + item.subjectCode">
-            Bắt đầu học trước
-            <ArrowRight :size="13" />
-          </router-link>
-        </article>
-      </div>
-    </section>
-
 
     <section class="filter-strip" aria-label="Bộ lọc trạng thái">
       <div class="filter-chips">
@@ -542,7 +414,7 @@ const isOldVersion = computed(() => selectedVersionId.value && selectedVersionId
                       <div class="score-container">
                         <span v-if="item.score" class="score-text">Chính thức: {{ item.score }}</span>
                         <span v-else-if="item.earlyScore" class="early-score-text">Học trước: {{ item.earlyScore }}</span>
-                        <span v-else-if="item.earlyScoreFromOldVersion" class="early-score-text text-purple-600">Bảo lưu: {{ item.earlyScoreFromOldVersion }}</span>
+                        <span v-else-if="item.earlyScoreFromOldVersion" class="early-score-text">Bảo lưu: {{ item.earlyScoreFromOldVersion }}</span>
                         <span v-else class="text-placeholder">--</span>
                       </div>
                     </td>
@@ -1252,6 +1124,14 @@ const isOldVersion = computed(() => selectedVersionId.value && selectedVersionId
   background: var(--surface-input);
   color: var(--text-placeholder);
   cursor: not-allowed;
+}
+
+.loading-state {
+  display: grid;
+  place-items: center;
+  min-height: 14rem;
+  color: var(--text-label);
+  text-align: center;
 }
 
 .empty-state {
