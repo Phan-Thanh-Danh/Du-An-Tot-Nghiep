@@ -30,5 +30,21 @@ export const studentApi = {
     return apiRequest('/api/student/curriculum', {
       method: 'GET',
     })
+  },
+  getAssignments() {
+    return apiRequest('/api/student/assignments', {
+      method: 'GET',
+    })
+  },
+  getAssignmentDetail(assignmentId) {
+    return apiRequest(`/api/student/assignments/${assignmentId}`, {
+      method: 'GET',
+    })
+  },
+  submitAssignment(assignmentId, formData) {
+    return apiRequest(`/api/student/assignments/${assignmentId}/submit`, {
+      method: 'POST',
+      body: formData,
+    })
   }
 }
