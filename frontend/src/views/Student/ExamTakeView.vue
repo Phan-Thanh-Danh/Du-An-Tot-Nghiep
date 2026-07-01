@@ -361,31 +361,9 @@ async function startExamEnvironment() {
       }
     }
 
-    // WebRTC: Giám thị vào phòng sau học sinh → re-broadcast connectionId
-    examProctoringHub.eventHandlers.onProctorRequestedConnections = async () => {
-      if (examStarted.value && monitoringStatus.value !== 'stopped') {
-        if (import.meta.env.DEV) console.debug('[Student] Re-broadcasting connectionId on proctor request')
-        await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
-      }
-    }
+    const initPeerAndSendOffer = async (proctorConnectionId) => {
+      if (!proctorConnectionId) return
 
-    // WebRTC: Nhận Offer từ giám thị — dto có fromConnectionId, offer { type, sdp }
-    examProctoringHub.eventHandlers.onReceiveOffer = async (dto) => {
-      if (!dto?.offer) {
-        console.warn('[Student] ReceiveOffer: invalid dto', dto)
-        return
-      }
-
-      // Bỏ qua offer của chính mình (không xảy ra trong thực tế nhưng phòng thủ)
-      if (dto.fromConnectionId === examProctoringHub.connectionId) {
-        if (import.meta.env.DEV) console.debug('[Student] Skip own offer')
-        return
-      }
-
-      const proctorConnectionId = dto.fromConnectionId
-      if (import.meta.env.DEV) console.debug('[Student] ReceiveOffer from proctor', proctorConnectionId)
-
-      // Đóng peer cũ nếu giám thị reconnect
       if (studentPeerConnections.has(proctorConnectionId)) {
         studentPeerConnections.get(proctorConnectionId)?.close()
         studentPendingIce.delete(proctorConnectionId)
@@ -400,7 +378,7 @@ async function startExamEnvironment() {
           targetConnectionId: proctorConnectionId,
           candidate, // examProctoringHub sẽ chuẩn hóa qua toJSON()
         }),
-        () => {} // negotiation callback — student không tạo offer mới
+        () => {} // negotiation callback
       )
 
       // Theo dõi trạng thái peer
@@ -415,49 +393,92 @@ async function startExamEnvironment() {
 
       studentPeerConnections.set(proctorConnectionId, pc)
 
-      // Xử lý ICE từ giám thị — cần queue vì ICE có thể tới trước setRemoteDescription xong
-      examProctoringHub.eventHandlers.onReceiveIceCandidate = async (iceDto) => {
-        if (!iceDto?.candidate?.candidate) return
-
-        // Bỏ qua own ICE
-        if (iceDto.fromConnectionId === examProctoringHub.connectionId) {
-          if (import.meta.env.DEV) console.debug('[Student] Skip own ICE candidate')
-          return
-        }
-
-        const targetPc = studentPeerConnections.get(iceDto.fromConnectionId)
-        const candidateInit = iceDto.candidate // đã là typed { candidate, sdpMid, sdpMLineIndex }
-
-        if (!targetPc || !targetPc.remoteDescription) {
-          if (import.meta.env.DEV) console.debug('[Student] ICE queued for proctor', iceDto.fromConnectionId)
-          getStudentIceQueue(iceDto.fromConnectionId).push(candidateInit)
-          return
-        }
-
-        try { await targetPc.addIceCandidate(new window.RTCIceCandidate(candidateInit)) }
-        catch (e) { if (import.meta.env.DEV) console.warn('[Student] addIceCandidate error', e) }
-      }
-
       try {
-        // dto.offer là { type, sdp } từ typed DTO backend
-        const offerDesc = { type: dto.offer.type, sdp: dto.offer.sdp }
-        await pc.setRemoteDescription(new window.RTCSessionDescription(offerDesc))
+        const offer = await pc.createOffer()
+        await pc.setLocalDescription(offer)
 
-        // Flush ICE đã queue trước khi offer được set
-        await flushStudentIceQueue(proctorConnectionId)
-
-        const answer = await pc.createAnswer()
-        await pc.setLocalDescription(answer)
-
-        await examProctoringHub.sendAnswer({
+        await examProctoringHub.sendOffer({
           maCaThi: caThiId,
           maHocSinh: STUDENT_ID.value,
           targetConnectionId: proctorConnectionId,
-          answer: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
+          offer: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
         })
-        if (import.meta.env.DEV) console.debug('[Student] Answer sent to proctor', proctorConnectionId)
+        if (import.meta.env.DEV) console.debug('[Student] Offer sent to proctor', proctorConnectionId)
       } catch (e) {
-        console.error('[Student] Error handling offer/answer', e)
+        console.error('[Student] Error creating offer', e)
+      }
+    }
+
+    // WebRTC: Giám thị yêu cầu kết nối
+    examProctoringHub.eventHandlers.onProctorRequestedConnections = async (payload) => {
+      if (examStarted.value && monitoringStatus.value !== 'stopped') {
+        if (import.meta.env.DEV) console.debug('[Student] Re-broadcasting connectionId on proctor request')
+        await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
+        if (payload?.proctorConnectionId) {
+           initPeerAndSendOffer(payload.proctorConnectionId)
+        }
+      }
+    }
+
+    // WebRTC: Giám thị phản hồi StudentConnectionIdBroadcast
+    examProctoringHub.eventHandlers.onProctorAcknowledged = async (payload) => {
+      if (examStarted.value && monitoringStatus.value !== 'stopped') {
+        if (payload?.proctorConnectionId) {
+           initPeerAndSendOffer(payload.proctorConnectionId)
+        }
+      }
+    }
+
+    // Xử lý ICE từ giám thị — cần queue vì ICE có thể tới trước setRemoteDescription xong
+    examProctoringHub.eventHandlers.onReceiveIceCandidate = async (iceDto) => {
+      if (!iceDto?.candidate?.candidate) return
+
+      // Bỏ qua own ICE
+      if (iceDto.fromConnectionId === examProctoringHub.connectionId) {
+        if (import.meta.env.DEV) console.debug('[Student] Skip own ICE candidate')
+        return
+      }
+
+      const targetPc = studentPeerConnections.get(iceDto.fromConnectionId)
+      const candidateInit = iceDto.candidate // đã là typed { candidate, sdpMid, sdpMLineIndex }
+
+      if (!targetPc || !targetPc.remoteDescription) {
+        if (import.meta.env.DEV) console.debug('[Student] ICE queued for proctor', iceDto.fromConnectionId)
+        getStudentIceQueue(iceDto.fromConnectionId).push(candidateInit)
+        return
+      }
+
+      try { await targetPc.addIceCandidate(new window.RTCIceCandidate(candidateInit)) }
+      catch (e) { if (import.meta.env.DEV) console.warn('[Student] addIceCandidate error', e) }
+    }
+
+    // WebRTC: Nhận Answer từ giám thị
+    examProctoringHub.eventHandlers.onReceiveAnswer = async (dto) => {
+      if (!dto?.answer) {
+        console.warn('[Student] ReceiveAnswer: invalid dto', dto)
+        return
+      }
+
+      if (dto.fromConnectionId === examProctoringHub.connectionId) {
+        if (import.meta.env.DEV) console.debug('[Student] Skip own answer')
+        return
+      }
+
+      const proctorConnectionId = dto.fromConnectionId
+      if (import.meta.env.DEV) console.debug('[Student] ReceiveAnswer from proctor', proctorConnectionId)
+
+      const pc = studentPeerConnections.get(proctorConnectionId)
+      if (!pc) {
+        console.warn('[Student] Received answer but no peer connection exists for proctor', proctorConnectionId)
+        return
+      }
+
+      try {
+        const answerDesc = { type: dto.answer.type, sdp: dto.answer.sdp }
+        await pc.setRemoteDescription(new window.RTCSessionDescription(answerDesc))
+        await flushStudentIceQueue(proctorConnectionId)
+      } catch (e) {
+        console.error('[Student] Error setting remote answer', e)
       }
     }
 

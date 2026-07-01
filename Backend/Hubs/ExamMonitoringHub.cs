@@ -77,7 +77,7 @@ public class ExamMonitoringHub : Hub
             Context.ConnectionId, Context.UserIdentifier, groupName
         );
         await Clients.Caller.SendAsync("JoinedRoom", new { maCaThi, message = $"Đã tham gia phòng thi {maCaThi}" });
-        await Clients.Group(groupName).SendAsync("ProctorRequestedConnections");
+        await Clients.Group(groupName).SendAsync("ProctorRequestedConnections", new { proctorConnectionId = Context.ConnectionId });
     }
 
     /// <summary>Rời nhóm theo dõi ca thi.</summary>
@@ -136,6 +136,17 @@ public class ExamMonitoringHub : Hub
             maHocSinh, maCaThi, status = "stopped", thoiDiem = DateTime.UtcNow
         });
         _logger.LogInformation("Student {MaHocSinh} stopped screen share in exam {MaCaThi}", maHocSinh, maCaThi);
+    }
+
+    /// <summary>
+    /// Giám thị phản hồi lại cho học sinh để học sinh biết connectionId của giám thị.
+    /// </summary>
+    public async Task AcknowledgeStudent(string studentConnectionId)
+    {
+        if (!string.IsNullOrWhiteSpace(studentConnectionId))
+        {
+            await Clients.Client(studentConnectionId).SendAsync("ProctorAcknowledged", new { proctorConnectionId = Context.ConnectionId });
+        }
     }
 
     // ── WebRTC Signaling ──────────────────────────────────────────────────────

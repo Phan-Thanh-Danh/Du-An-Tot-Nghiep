@@ -164,7 +164,7 @@ public static class Data
                     MaPhong = room?.MaPhong,
                     NgayThi = DateTime.Today,
                     ThoiGianBatDau = DateTime.Today.AddHours(8),
-                    ThoiGianKetThuc = DateTime.Today.AddHours(22),
+                    ThoiGianKetThuc = DateTime.Today.AddDays(1).AddHours(22),
                     MaDonVi = hcmCampus.MaDonVi,
                     TrangThai = "dang_diem_danh", // Đang điểm danh thí sinh
                     NgayTao = DateTime.UtcNow

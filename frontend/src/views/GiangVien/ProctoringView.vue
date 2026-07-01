@@ -820,7 +820,7 @@ async function startMonitoring() {
     }
   }
 
-    // WebRTC: Học sinh kết nối — tạo peer và gửi Offer
+    // WebRTC: Học sinh kết nối — Giám thị xác nhận để học sinh biết connectionId của giám thị
     examProctoringHub.eventHandlers.onStudentConnectionIdBroadcast = async (payload) => {
       const student = currentStudents.value.find(s => s.id === String(payload.maHocSinh))
       if (!student) return
@@ -836,96 +836,77 @@ async function startMonitoring() {
 
       student.streamStatus = 'connecting'
 
+      await examProctoringHub.acknowledgeStudent(payload.connectionId)
+    }
+
+    // WebRTC: Nhận Offer từ học sinh -> Tạo Answer
+    examProctoringHub.eventHandlers.onReceiveOffer = async (dto) => {
+      if (!dto?.offer) return
+      if (dto.fromConnectionId === examProctoringHub.connectionId) return
+
+      const studentId = dto.maHocSinh
+      const student = currentStudents.value.find(s => s.id === String(studentId))
+      if (!student) return
+
+      if (import.meta.env.DEV)
+        console.debug('[Proctor] ReceiveOffer from student', studentId)
+
       // Đóng peer cũ nếu học sinh reconnect
-      if (peerConnections.value.has(payload.maHocSinh)) {
-        peerConnections.value.get(payload.maHocSinh).pc.close()
-        pendingIceCandidates.delete(payload.maHocSinh)
+      if (peerConnections.value.has(studentId)) {
+        peerConnections.value.get(studentId).pc.close()
+        pendingIceCandidates.delete(studentId)
       }
 
       const pc = createProctorPeerConnection(
-        // Proctor gửi ICE candidate về phía học sinh
         (candidate) => examProctoringHub.sendIceCandidate({
           maCaThi: parseInt(selectedSessionId.value),
-          maHocSinh: payload.maHocSinh,
-          targetConnectionId: payload.connectionId,
-          candidate, // examProctoringHub.sendIceCandidate sẽ chuẩn hóa
+          maHocSinh: studentId,
+          targetConnectionId: dto.fromConnectionId,
+          candidate,
         }),
-        // Nhận stream từ học sinh
         (stream) => {
-          setRemoteStream(payload.maHocSinh, stream)
+          setRemoteStream(studentId, stream)
           student.streamStatus = 'streaming'
           if (import.meta.env.DEV)
-            console.debug('[Proctor] Remote stream received from student', payload.maHocSinh)
+            console.debug('[Proctor] Remote stream received from student', studentId)
         }
       )
 
-      // Theo dõi trạng thái peer connection
       pc.onconnectionstatechange = () => {
         if (import.meta.env.DEV)
-          console.debug('[Proctor] Peer connectionState for student', payload.maHocSinh, ':', pc.connectionState)
+          console.debug('[Proctor] Peer connectionState for student', studentId, ':', pc.connectionState)
         if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
           student.streamStatus = 'stopped'
         }
       }
       pc.oniceconnectionstatechange = () => {
         if (import.meta.env.DEV)
-          console.debug('[Proctor] ICE state for student', payload.maHocSinh, ':', pc.iceConnectionState)
+          console.debug('[Proctor] ICE state for student', studentId, ':', pc.iceConnectionState)
       }
 
-      peerConnections.value.set(payload.maHocSinh, { pc, connectionId: payload.connectionId })
+      peerConnections.value.set(studentId, { pc, connectionId: dto.fromConnectionId })
 
       try {
-        const offer = await pc.createOffer()
-        await pc.setLocalDescription(offer)
-        // Gửi offer với typed SDP
-        await examProctoringHub.sendOffer({
+        const offerDesc = { type: dto.offer.type, sdp: dto.offer.sdp }
+        await pc.setRemoteDescription(new RTCSessionDescription(offerDesc))
+
+        await flushIceQueue(studentId)
+
+        const answer = await pc.createAnswer()
+        await pc.setLocalDescription(answer)
+
+        await examProctoringHub.sendAnswer({
           maCaThi: parseInt(selectedSessionId.value),
-          maHocSinh: payload.maHocSinh,
-          targetConnectionId: payload.connectionId,
-          offer: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
+          maHocSinh: studentId,
+          targetConnectionId: dto.fromConnectionId,
+          answer: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
         })
         if (import.meta.env.DEV)
-          console.debug('[Proctor] Offer sent to student', payload.maHocSinh)
+          console.debug('[Proctor] Answer sent to student', studentId)
       } catch (e) {
-        console.error('[Proctor] Error creating offer for student', payload.maHocSinh, e)
+        console.error('[Proctor] Error handling offer for student', studentId, e)
       }
     }
-
-  // WebRTC: Nhận Answer từ học sinh
-  examProctoringHub.eventHandlers.onReceiveAnswer = async (dto) => {
-    if (!dto?.answer) {
-      console.warn('[Proctor] ReceiveAnswer: invalid dto', dto)
-      return
-    }
-
-    // Tìm peer theo connectionId của học sinh (fromConnectionId)
-    let studentId = null
-    let peerInfo = null
-    for (const [sid, info] of peerConnections.value.entries()) {
-      if (info.connectionId === dto.fromConnectionId) {
-        studentId = sid
-        peerInfo = info
-        break
-      }
-    }
-    if (!peerInfo) {
-      console.warn('[Proctor] ReceiveAnswer: no peer found for fromConnectionId', dto.fromConnectionId)
-      return
-    }
-
-    try {
-      // dto.answer là { type, sdp } từ typed DTO backend
-      const answerDesc = { type: dto.answer.type, sdp: dto.answer.sdp }
-      await peerInfo.pc.setRemoteDescription(new RTCSessionDescription(answerDesc))
-      if (import.meta.env.DEV)
-        console.debug('[Proctor] Remote answer set for student', studentId)
-
-      // Flush ICE candidates đã queue trước khi answer chưa có
-      await flushIceQueue(studentId)
-    } catch (e) {
-      console.error('[Proctor] Error setting remote answer for student', studentId, e)
-    }
-  }
 
   // WebRTC: Nhận ICE Candidate từ học sinh
   examProctoringHub.eventHandlers.onReceiveIceCandidate = async (dto) => {

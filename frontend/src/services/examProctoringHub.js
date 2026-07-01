@@ -20,6 +20,7 @@ export class ExamProctoringHub {
       onReceiveIceCandidate: null,
       onStudentConnectionIdBroadcast: null,
       onProctorRequestedConnections: null,
+      onProctorAcknowledged: null,
     }
   }
 
@@ -101,10 +102,16 @@ export class ExamProctoringHub {
       this.eventHandlers.onStudentConnectionIdBroadcast?.(payload)
     })
 
-    this.connection.on('ProctorRequestedConnections', () => {
+    this.connection.on('ProctorRequestedConnections', (payload) => {
       if (import.meta.env.DEV)
-        console.debug('[Hub] ProctorRequestedConnections received')
-      this.eventHandlers.onProctorRequestedConnections?.()
+        console.debug('[Hub] ProctorRequestedConnections received', payload)
+      this.eventHandlers.onProctorRequestedConnections?.(payload)
+    })
+
+    this.connection.on('ProctorAcknowledged', (payload) => {
+      if (import.meta.env.DEV)
+        console.debug('[Hub] ProctorAcknowledged received', payload)
+      this.eventHandlers.onProctorAcknowledged?.(payload)
     })
 
     // ── Reconnect lifecycle ────────────────────────────────────────────────
@@ -177,6 +184,10 @@ export class ExamProctoringHub {
    */
   async joinAsStudent(maCaThi, maHocSinh) {
     await this._invoke('JoinAsStudent', maCaThi, maHocSinh)
+  }
+
+  async acknowledgeStudent(studentConnectionId) {
+    await this._invoke('AcknowledgeStudent', studentConnectionId)
   }
 
   // ── Screen share ───────────────────────────────────────────────────────────
