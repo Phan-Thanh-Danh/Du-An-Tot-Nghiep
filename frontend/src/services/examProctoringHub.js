@@ -114,6 +114,18 @@ export class ExamProctoringHub {
       this.eventHandlers.onProctorAcknowledged?.(payload)
     })
 
+    this.connection.on('ViolationDetected', (payload) => {
+      if (import.meta.env.DEV)
+        console.debug('[Hub] ViolationDetected received', payload)
+      this.eventHandlers.onViolationDetected?.(payload)
+    })
+
+    this.connection.on('StudentUnlocked', (payload) => {
+      if (import.meta.env.DEV)
+        console.debug('[Hub] StudentUnlocked received', payload)
+      this.eventHandlers.onStudentUnlocked?.(payload)
+    })
+
     // ── Reconnect lifecycle ────────────────────────────────────────────────
 
     this.connection.onreconnecting(() => {
@@ -267,6 +279,10 @@ export class ExamProctoringHub {
 
   async sendWarningToStudent(studentConnectionId, message) {
     await this._invoke('SendWarningToStudent', studentConnectionId, message)
+  }
+
+  async unlockStudent(studentConnectionId) {
+    await this._invoke('UnlockStudent', studentConnectionId)
   }
 }
 

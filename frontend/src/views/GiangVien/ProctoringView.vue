@@ -286,6 +286,7 @@
                 <Monitor :size="16" />
               </button>
               <button type="button" @click="sendReminder(student)">Nhắc nhở</button>
+              <button type="button" @click="unlockStudent(student)">Mở khóa</button>
               <button type="button" class="danger" @click="suspendStudent(student)">Đình chỉ</button>
               <button type="button" @click="markStudentHandled(student)">Xử lý</button>
             </div>
@@ -640,7 +641,7 @@ onMounted(() => {
   loadCaThis()
   loadLiveViolations()
   clockTimer = window.setInterval(updateTime, 1000)
-  violationTimer = window.setInterval(loadLiveViolations, 3000)
+  // violationTimer = window.setInterval(loadLiveViolations, 3000) // Removed to prevent overwriting SignalR events
 })
 
 onUnmounted(() => {
@@ -833,6 +834,56 @@ async function startMonitoring() {
         deleteRemoteStream(payload.maHocSinh)
       }
     }
+  }
+
+  examProctoringHub.eventHandlers.onViolationDetected = (payload) => {
+    const student = currentStudents.value.find(s => s.id === String(payload.maHocSinh))
+    if (!student) return
+    
+    const severityMap = {
+      'TAB_OR_APP_SWITCH': 'critical',
+      'FULLSCREEN_EXIT': 'critical',
+      'WINDOW_BLUR': 'high',
+      'ESCAPE': 'high',
+      'ALT_TAB': 'critical',
+      'CLOSE_TAB': 'critical'
+    }
+    const severity = severityMap[payload.loaiViPham] || 'high'
+
+    liveViolations.value.unshift({
+      id: crypto.randomUUID(),
+      studentId: student.studentCode,
+      studentCode: student.studentCode,
+      type: payload.loaiViPham,
+      details: payload.chiTiet,
+      timestamp: payload.thoiDiem,
+      handled: false,
+      severity: severity
+    })
+    
+    // Save to localStorage so it persists across reloads
+    try {
+      localStorage.setItem(PROCTORING_LIVE_VIOLATIONS_KEY, JSON.stringify(liveViolations.value))
+    } catch(e) {}
+
+    // Show toast notification
+    const label = violationLabelMap[payload.loaiViPham] || payload.loaiViPham || 'Cảnh báo'
+    popupStore.error('Vi phạm nội quy', `Thí sinh ${student.name} (${student.studentCode}): ${label}`)
+
+    // Play a beep sound using Web Audio API (so no external file is needed)
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.type = 'square'
+      osc.frequency.setValueAtTime(440, ctx.currentTime)
+      gain.gain.setValueAtTime(0.1, ctx.currentTime)
+      osc.start()
+      gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.3)
+      osc.stop(ctx.currentTime + 0.3)
+    } catch (e) {}
   }
 
     // WebRTC: Học sinh kết nối — Giám thị xác nhận để học sinh biết connectionId của giám thị
@@ -1095,6 +1146,28 @@ async function sendReminder(student) {
     timestamp: new Date().toISOString(),
   })
   popupStore.info('Đã gửi nhắc nhở', `${student.studentCode} · ${message}`)
+}
+
+async function unlockStudent(student) {
+  try {
+    const peerInfo = peerConnections.value.get(Number(student.id))
+    if (peerInfo && peerInfo.connectionId) {
+      await examProctoringHub.unlockStudent(peerInfo.connectionId)
+      popupStore.success('Đã mở khóa', `Đã mở khóa bài thi cho thí sinh ${student.studentCode}.`)
+      
+      // Xử lý các cảnh báo thành đã xử lý
+      const unhandledViolations = violationsForStudent(student).filter((v) => !v.handled)
+      for (const v of unhandledViolations) {
+        v.handled = true
+      }
+    } else {
+      console.warn('[Proctor] Cannot unlock: student not connected or peer missing', student.id)
+      popupStore.warning('Không thể mở khóa', `Thí sinh ${student.studentCode} chưa kết nối.`)
+    }
+  } catch (error) {
+    console.error('[Proctor] Error unlocking student', error)
+    popupStore.error('Lỗi', 'Không thể gửi lệnh mở khóa.')
+  }
 }
 
 function suspendStudent(student) {

@@ -280,6 +280,14 @@ public class ExamMonitoringHub : Hub
         });
     }
 
+    public async Task UnlockStudent(string studentConnectionId)
+    {
+        await Clients.Client(studentConnectionId).SendAsync("StudentUnlocked", new
+        {
+            thoiDiem = DateTime.UtcNow
+        });
+    }
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     public override async Task OnDisconnectedAsync(Exception? exception)
