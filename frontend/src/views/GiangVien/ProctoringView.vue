@@ -247,35 +247,50 @@
         </div>
       </section>
 
-      <section class="screen-grid">
-        <article
-          v-for="student in activeMonitoringStudents"
-          :key="student.id"
-          class="screen-card surface-card border-card"
-          :class="{ 'has-alert': hasUnhandledViolation(student) }"
-          @click="openStudentModal(student)"
-        >
-          <WebRTCScreen :stream="remoteStreams.get(Number(student.id))" :student="student" :violations="studentViolationCount(student)" />
-          <div class="screen-card-body">
+      <section class="attendance-shell surface-card border-card" style="margin-top: 1rem;">
+        <div class="section-toolbar compact-toolbar">
+          <div>
+            <p class="section-eyebrow">Danh sách thí sinh</p>
+            <h3>Đang làm bài</h3>
+          </div>
+        </div>
+        <div class="student-table">
+          <div class="student-row table-head">
+            <span>MSSV</span>
+            <span>Họ tên</span>
+            <span>Trạng thái bài</span>
+            <span>Trạng thái stream</span>
+            <span>Vi phạm</span>
+            <span>Hành động</span>
+          </div>
+          <div
+            v-for="student in activeMonitoringStudents"
+            :key="student.id"
+            class="student-row"
+            :class="{ 'row-alert': hasUnhandledViolation(student) }"
+          >
+            <strong>{{ student.studentCode }}</strong>
+            <span>{{ student.name }}</span>
+            <GlassBadge :variant="student.examStatus === 'suspended' ? 'danger' : 'success'">
+              {{ examStatusLabel(student.examStatus) }}
+            </GlassBadge>
+            <span>{{ streamLabel(student.streamStatus) }}</span>
             <div>
-              <p class="student-code">{{ student.studentCode }}</p>
-              <h3>{{ student.name }}</h3>
+              <GlassBadge v-if="hasUnhandledViolation(student)" variant="danger">
+                {{ studentViolationCount(student) }} cảnh báo
+              </GlassBadge>
+              <span v-else>0</span>
             </div>
-            <GlassBadge v-if="hasUnhandledViolation(student)" variant="danger">Cảnh báo</GlassBadge>
+            <div class="row-actions">
+              <button type="button" title="Xem màn hình" @click="openStudentModal(student)">
+                <Monitor :size="16" />
+              </button>
+              <button type="button" @click="sendReminder(student)">Nhắc nhở</button>
+              <button type="button" class="danger" @click="suspendStudent(student)">Đình chỉ</button>
+              <button type="button" @click="markStudentHandled(student)">Xử lý</button>
+            </div>
           </div>
-          <div class="screen-meta">
-            <span>Stream: <strong>{{ streamLabel(student.streamStatus) }}</strong></span>
-            <span>Bài thi: <strong>{{ examStatusLabel(student.examStatus) }}</strong></span>
-            <span>Vi phạm: <strong>{{ studentViolationCount(student) }}</strong></span>
-            <span>Gần nhất: <strong>{{ latestViolationLabel(student) }}</strong></span>
-          </div>
-          <div class="screen-actions" @click.stop>
-            <button type="button" @click="openStudentModal(student)">Phóng to</button>
-            <button type="button" @click="sendReminder(student)">Nhắc nhở</button>
-            <button type="button" @click="suspendStudent(student)">Đình chỉ</button>
-            <button type="button" @click="markStudentHandled(student)">Đã xử lý</button>
-          </div>
-        </article>
+        </div>
       </section>
 
       <section v-if="closedStudents.length" class="closed-section surface-card border-card">
