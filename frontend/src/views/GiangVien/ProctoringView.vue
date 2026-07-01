@@ -776,7 +776,7 @@ async function startMonitoring() {
   
   const token = localStorage.getItem('lms_access_token') || sessionStorage.getItem('lms_access_token') || ''
   await examProctoringHub.connect(token)
-  await examProctoringHub.joinExamRoom(parseInt(selectedSessionId.value))
+  // JoinExamRoom will be called after handlers are registered
 
   // Submit attendance to backend
   try {
@@ -837,6 +837,8 @@ async function startMonitoring() {
       student.streamStatus = 'connecting'
 
       await examProctoringHub.acknowledgeStudent(payload.connectionId)
+      if (import.meta.env.DEV)
+        console.debug('[Proctor] AcknowledgeStudent sent to', payload.connectionId)
     }
 
     // WebRTC: Nhận Offer từ học sinh -> Tạo Answer
@@ -846,10 +848,13 @@ async function startMonitoring() {
 
       const studentId = dto.maHocSinh
       const student = currentStudents.value.find(s => s.id === String(studentId))
-      if (!student) return
+      if (!student) {
+        console.warn('[Proctor] ReceiveOffer but student not found in currentStudents', studentId)
+        return
+      }
 
       if (import.meta.env.DEV)
-        console.debug('[Proctor] ReceiveOffer from student', studentId)
+        console.debug('[Proctor] ReceiveOffer from student', studentId, dto.fromConnectionId)
 
       // Đóng peer cũ nếu học sinh reconnect
       if (peerConnections.value.has(studentId)) {
@@ -868,7 +873,7 @@ async function startMonitoring() {
           setRemoteStream(studentId, stream)
           student.streamStatus = 'streaming'
           if (import.meta.env.DEV)
-            console.debug('[Proctor] Remote stream received from student', studentId)
+            console.debug('[Proctor] Remote stream received from student', studentId, stream)
         }
       )
 

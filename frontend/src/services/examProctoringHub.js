@@ -211,7 +211,7 @@ export class ExamProctoringHub {
   // Frontend gửi: connection.invoke('SendOffer', { maCaThi, maHocSinh, targetConnectionId, offer })
 
   /**
-   * Giám thị gửi SDP Offer tới học sinh.
+   * Student gửi SDP Offer tới Proctor.
    * @param {{ maCaThi: number, maHocSinh: number, targetConnectionId: string, offer: RTCSessionDescriptionInit }} payload
    */
   async sendOffer(payload) {
@@ -226,7 +226,7 @@ export class ExamProctoringHub {
   }
 
   /**
-   * Học sinh gửi SDP Answer về giám thị.
+   * Proctor gửi SDP Answer về Student.
    * @param {{ maCaThi: number, maHocSinh: number, targetConnectionId: string, answer: RTCSessionDescriptionInit }} payload
    */
   async sendAnswer(payload) {

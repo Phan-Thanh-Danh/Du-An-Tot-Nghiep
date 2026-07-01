@@ -1,4 +1,4 @@
-﻿export const RTC_CONFIG = {
+export const RTC_CONFIG = {
   iceServers: [
     {
       urls: [
@@ -26,7 +26,7 @@ export async function requestScreenShare() {
   }
 }
 
-export function createStudentPeerConnection(stream, onIceCandidate, onNegotiationNeeded) {
+export function createStudentPeerConnection(stream, onIceCandidate) {
   const pc = new RTCPeerConnection(RTC_CONFIG)
 
   // Thêm các track từ màn hình vào peer connection
@@ -38,17 +38,6 @@ export function createStudentPeerConnection(stream, onIceCandidate, onNegotiatio
   pc.onicecandidate = (event) => {
     if (event.candidate) {
       onIceCandidate(event.candidate)
-    }
-  }
-
-  // Khi có track mới hoặc thay đổi, trigger negotiation
-  pc.onnegotiationneeded = async () => {
-    try {
-      const offer = await pc.createOffer()
-      await pc.setLocalDescription(offer)
-      onNegotiationNeeded(pc.localDescription)
-    } catch (err) {
-      console.error('Error during negotiation needed:', err)
     }
   }
 

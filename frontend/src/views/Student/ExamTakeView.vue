@@ -92,7 +92,10 @@ const currentQuestion = computed(() => questions.value[currentQuestionIndex.valu
 const answeredCount = computed(() => questions.value.filter((question) => isAnswered(question)).length)
 const flaggedCount = computed(() => Object.values(flagged.value).filter(Boolean).length)
 const unansweredCount = computed(() => Math.max(questions.value.length - answeredCount.value, 0))
-const progressPercent = computed(() => Math.round((answeredCount.value / questions.value.length) * 100))
+const progressPercent = computed(() => {
+  if (!questions.value.length) return 0
+  return Math.round((answeredCount.value / questions.value.length) * 100)
+})
 const recentViolations = computed(() => violations.value.slice(0, 3))
 const criticalViolationCount = computed(() =>
   violations.value.filter((item) => item.severity === 'critical' || item.severity === 'high').length,
@@ -117,7 +120,7 @@ const keyboardLockLabel = computed(() => {
 })
 
 const watermarkText = computed(() => {
-  return `${STUDENT_ID} • ${STUDENT_NAME} • ${currentTimestamp.value}`
+  return `${STUDENT_ID.value} • ${STUDENT_NAME.value} • ${currentTimestamp.value}`
 })
 
 function readJson(key, fallback) {
@@ -336,8 +339,6 @@ async function startExamEnvironment() {
     // 4. Kết nối WebRTC Hub
     const token = localStorage.getItem('lms_access_token') || sessionStorage.getItem('lms_access_token') || ''
     await examProctoringHub.connect(token)
-    await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
-    await examProctoringHub.screenShareStarted(caThiId, STUDENT_ID.value)
 
     // Lưu trữ peer connections theo connectionId của giám thị
     const studentPeerConnections = new Map()  // proctorConnectionId -> RTCPeerConnection
@@ -364,9 +365,14 @@ async function startExamEnvironment() {
     const initPeerAndSendOffer = async (proctorConnectionId) => {
       if (!proctorConnectionId) return
 
+      if (!stream) {
+        console.warn('[Student] Cannot create offer: screen stream is missing')
+        return
+      }
+
       if (studentPeerConnections.has(proctorConnectionId)) {
-        studentPeerConnections.get(proctorConnectionId)?.close()
-        studentPendingIce.delete(proctorConnectionId)
+        if (import.meta.env.DEV) console.debug('[Student] Peer already exists for proctor', proctorConnectionId)
+        return
       }
 
       const pc = createStudentPeerConnection(
@@ -411,21 +417,18 @@ async function startExamEnvironment() {
 
     // WebRTC: Giám thị yêu cầu kết nối
     examProctoringHub.eventHandlers.onProctorRequestedConnections = async (payload) => {
-      if (examStarted.value && monitoringStatus.value !== 'stopped') {
-        if (import.meta.env.DEV) console.debug('[Student] Re-broadcasting connectionId on proctor request')
-        await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
-        if (payload?.proctorConnectionId) {
-           initPeerAndSendOffer(payload.proctorConnectionId)
-        }
+      if (import.meta.env.DEV) console.debug('[Student] ProctorRequestedConnections', payload)
+      await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
+      if (payload?.proctorConnectionId) {
+        await initPeerAndSendOffer(payload.proctorConnectionId)
       }
     }
 
     // WebRTC: Giám thị phản hồi StudentConnectionIdBroadcast
     examProctoringHub.eventHandlers.onProctorAcknowledged = async (payload) => {
-      if (examStarted.value && monitoringStatus.value !== 'stopped') {
-        if (payload?.proctorConnectionId) {
-           initPeerAndSendOffer(payload.proctorConnectionId)
-        }
+      if (import.meta.env.DEV) console.debug('[Student] ProctorAcknowledged', payload)
+      if (payload?.proctorConnectionId) {
+        await initPeerAndSendOffer(payload.proctorConnectionId)
       }
     }
 
@@ -481,6 +484,9 @@ async function startExamEnvironment() {
         console.error('[Student] Error setting remote answer', e)
       }
     }
+
+    await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
+    await examProctoringHub.screenShareStarted(caThiId, STUDENT_ID.value)
 
     attachScreenStream(stream)
     
