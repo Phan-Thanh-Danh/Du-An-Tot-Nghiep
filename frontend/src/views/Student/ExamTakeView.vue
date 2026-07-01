@@ -485,6 +485,13 @@ async function startExamEnvironment() {
       }
     }
 
+    // Xử lý cảnh báo từ giám thị
+    examProctoringHub.eventHandlers.onWarningReceived = (payload) => {
+      const message = payload?.message || 'Giám thị đã gửi một nhắc nhở.'
+      window.alert('NHẮC NHỞ TỪ GIÁM THỊ:\n\n' + message)
+      pushWarning('Nhắc nhở từ giám thị: ' + message, 'high')
+    }
+
     await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
     await examProctoringHub.screenShareStarted(caThiId, STUDENT_ID.value)
 

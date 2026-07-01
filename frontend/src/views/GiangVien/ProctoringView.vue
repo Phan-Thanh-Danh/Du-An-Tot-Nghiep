@@ -1060,9 +1060,19 @@ function openStudentModal(student) {
   selectedStudent.value = student
 }
 
-function sendReminder(student) {
-  const message = window.prompt('Nội dung nhắc nhở', 'Vui lòng quay lại bài thi và tuân thủ quy định.')
-  if (!message) return
+async function sendReminder(student) {
+  const message = 'Vui lòng quay lại bài thi và tuân thủ quy định.'
+
+  try {
+    const peerInfo = peerConnections.value.get(Number(student.id))
+    if (peerInfo && peerInfo.connectionId) {
+      await examProctoringHub.sendWarningToStudent(peerInfo.connectionId, message)
+    } else {
+      console.warn('[Proctor] Cannot send warning: student not connected or peer missing', student.id)
+    }
+  } catch (error) {
+    console.error('[Proctor] Error sending warning', error)
+  }
 
   student.logs.unshift({
     type: 'PROCTOR_MESSAGE',
