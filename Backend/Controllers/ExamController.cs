@@ -315,6 +315,15 @@ public class ExamController : ControllerBase
 
     // ===== Exam Taking (Student) =====
 
+    [HttpGet("student/list")]
+    [Authorize(Roles = AuthRoles.Student)]
+    public async Task<ActionResult<ApiResponseDto<IReadOnlyList<StudentExamListItemDto>>>> GetStudentExams(CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _examService.GetStudentExamsAsync(userId, ct);
+        return Ok(ApiResponseDto<IReadOnlyList<StudentExamListItemDto>>.Ok(result));
+    }
+
     [HttpPost("taking/start")]
     [Authorize(Roles = AuthRoles.Student)]
     public async Task<ActionResult<ApiResponseDto<PhienThiDto>>> StartExam(

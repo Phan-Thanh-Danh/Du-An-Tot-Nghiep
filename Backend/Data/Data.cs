@@ -2168,39 +2168,62 @@ public static class Data
         IReadOnlyList<HocKy> terms
     )
     {
-        var subjectCode = "COM103";
-        if (!subjects.TryGetValue(subjectCode, out var subject))
-        {
-            return;
-        }
-
         var term = terms.FirstOrDefault(t => t.MaCodeHocKy == "HK3_2026");
         if (term == null)
         {
             return;
         }
 
-        var exists = await context.DeKiemTras.AnyAsync(x => x.TieuDe == "Đề thi mẫu Lập trình C#");
-        if (!exists)
+        var plans = new[]
         {
-            var deKiemTra = new DeKiemTra
+            new ExamSeed("COM103", "Đề thi mẫu Lập trình C#", 60, "ket_hop", "dang_mo"),
+            new ExamSeed("COM102", "Quiz Cơ sở dữ liệu", 45, "trac_nghiem", "dang_mo"),
+            new ExamSeed("WEB101", "Kiểm tra Thiết kế Web", 45, "ket_hop", "da_len_lich"),
+            new ExamSeed("API101", "Quiz Xây dựng REST API", 35, "trac_nghiem", "dang_mo"),
+            new ExamSeed("DES106", "Kiểm tra UI/UX Design", 45, "ket_hop", "dang_mo"),
+            new ExamSeed("DES104", "Quiz Thiết kế nhận diện thương hiệu", 35, "trac_nghiem", "da_len_lich"),
+            new ExamSeed("MKT101", "Quiz Marketing căn bản", 35, "trac_nghiem", "dang_mo"),
+            new ExamSeed("MKT103", "Kiểm tra Digital Marketing", 45, "ket_hop", "dang_mo"),
+        };
+
+        foreach (var plan in plans)
+        {
+            if (!subjects.TryGetValue(plan.SubjectCode, out var subject))
             {
-                MaMonHoc = subject.MaMonHoc,
-                MaHocKy = term.MaHocKy,
-                TieuDe = "Đề thi mẫu Lập trình C#",
-                ThoiGianPhut = 60,
-                CauHinhDeThi =
-                    "{\"questions\":[{\"id\":1,\"content\":\"Câu hỏi 1 trắc nghiệm\",\"type\":\"mcq\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":\"A\"}]}",
-                TrangThai = "da_len_lich",
-                LoaiDeThi = "ket_hop",
-                HinhThucThi = "online_tap_trung",
-                TyLeTracNghiem = 70.0m,
-                TyLeTuLuan = 30.0m,
-                NgayTao = DateTime.UtcNow,
-            };
-            context.DeKiemTras.Add(deKiemTra);
-            await context.SaveChangesAsync();
+                continue;
+            }
+
+            var deKiemTra = await context.DeKiemTras.FirstOrDefaultAsync(x =>
+                x.TieuDe == plan.Title && x.MaMonHoc == subject.MaMonHoc
+            );
+
+            if (deKiemTra is null)
+            {
+                deKiemTra = new DeKiemTra
+                {
+                    MaMonHoc = subject.MaMonHoc,
+                    TieuDe = plan.Title,
+                    NgayTao = DateTime.UtcNow,
+                };
+
+                context.DeKiemTras.Add(deKiemTra);
+            }
+
+            deKiemTra.MaMonHoc = subject.MaMonHoc;
+            deKiemTra.MaHocKy = term.MaHocKy;
+            deKiemTra.TieuDe = plan.Title;
+            deKiemTra.ThoiGianPhut = plan.DurationMinutes;
+            deKiemTra.CauHinhDeThi =
+                "{\"questions\":[{\"id\":1,\"content\":\"Câu hỏi mẫu trắc nghiệm\",\"type\":\"mcq\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":\"A\"}]}";
+            deKiemTra.TrangThai = plan.Status;
+            deKiemTra.LoaiDeThi = plan.ExamType;
+            deKiemTra.HinhThucThi = "online_tu_do";
+            deKiemTra.TyLeTracNghiem = plan.ExamType == "tu_luan" ? 0m : 70m;
+            deKiemTra.TyLeTuLuan = plan.ExamType == "trac_nghiem" ? 0m : 30m;
+            deKiemTra.NgayCapNhat = DateTime.UtcNow;
         }
+
+        await context.SaveChangesAsync();
     }
 
     private sealed record RoleSeed(string Code, string Name);
@@ -2328,5 +2351,13 @@ public static class Data
         string ProgramCode,
         decimal[] YearlyTuitionAmounts,
         decimal MaterialAmount
+    );
+
+    private sealed record ExamSeed(
+        string SubjectCode,
+        string Title,
+        int DurationMinutes,
+        string ExamType,
+        string Status
     );
 }

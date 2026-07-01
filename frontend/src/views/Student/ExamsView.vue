@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   AlertTriangle,
@@ -18,7 +18,7 @@ import {
   ShieldAlert,
   Timer,
 } from 'lucide-vue-next'
-import { mockExams, mockProfile } from '@/data/studentData.mock.js'
+import { getStudentExams } from '@/services/studentExamService.js'
 import {
   canStartLearning,
   canViewLearningResult,
@@ -33,199 +33,19 @@ const router = useRouter()
 
 const searchQuery = ref('')
 const selectedSemester = ref('all')
-const selectedMajor = ref('all')
 const selectedStatus = ref('all')
 const pendingEarlyExam = ref(null)
 const feedbackNotice = ref(null)
+const exams = ref([])
+const loading = ref(false)
+const loadError = ref('')
 const studentContext = {
   get classSectionCode() {
-    return mockProfile.className || 'SE1601'
+    return ''
   }
 }
 
-// FE-only mock enrichment while waiting for a real Student Exams API.
-// Keeps the existing mockExams IDs/routes intact and adds enough cards
-// to validate the compact responsive grid.
-const baseExamCatalog = mockExams
-
-const accessOverrides = {
-  'exam-toan-001': {
-    accessStatus: LEARNING_ACCESS.FUTURE_LOCKED,
-    allowEarlyLearning: false,
-    plannedSemesterIndex: 2,
-    plannedBlockIndex: 1,
-    studentCurrentSemesterIndex: 1,
-    studentCurrentBlockIndex: 2,
-  },
-  'exam-ctdl-002': {
-    accessStatus: LEARNING_ACCESS.OFFICIAL,
-    allowEarlyLearning: false,
-    plannedSemesterIndex: 1,
-    plannedBlockIndex: 2,
-    studentCurrentSemesterIndex: 1,
-    studentCurrentBlockIndex: 2,
-  },
-  'exam-ltw-003': {
-    accessStatus: LEARNING_ACCESS.COMPLETED,
-    allowEarlyLearning: false,
-    plannedSemesterIndex: 1,
-    plannedBlockIndex: 1,
-    studentCurrentSemesterIndex: 1,
-    studentCurrentBlockIndex: 2,
-  },
-  'exam-mmt-004': {
-    accessStatus: LEARNING_ACCESS.LOCKED_PREREQUISITE,
-    allowEarlyLearning: false,
-    lockedReason: 'Cần đạt môn tiên quyết trước khi xem kết quả.',
-    prerequisiteProgress: 60,
-    requiredProgress: 100,
-  },
-  'quiz-net-005': {
-    accessStatus: LEARNING_ACCESS.OFFICIAL,
-    allowEarlyLearning: false,
-    plannedSemesterIndex: 1,
-    plannedBlockIndex: 2,
-    studentCurrentSemesterIndex: 1,
-    studentCurrentBlockIndex: 2,
-  },
-  'quiz-ui-006': {
-    accessStatus: LEARNING_ACCESS.LOCKED_PREREQUISITE,
-    allowEarlyLearning: false,
-    lockedReason: 'Hoàn thành bài trước để mở quiz.',
-    prerequisiteProgress: 65,
-    requiredProgress: 80,
-  },
-  'quiz-mkt-007': {
-    accessStatus: LEARNING_ACCESS.COMPLETED,
-    allowEarlyLearning: false,
-  },
-  'exam-bus-008': {
-    accessStatus: LEARNING_ACCESS.FUTURE_LOCKED,
-    allowEarlyLearning: false,
-    plannedSemesterIndex: 2,
-    plannedBlockIndex: 2,
-    studentCurrentSemesterIndex: 1,
-    studentCurrentBlockIndex: 2,
-  },
-  'quiz-db-009': {
-    accessStatus: LEARNING_ACCESS.LOCKED_PREREQUISITE,
-    allowEarlyLearning: false,
-    lockedReason: 'Cần xem video bài trước tối thiểu 80%.',
-    prerequisiteProgress: 42,
-    requiredProgress: 80,
-  },
-  'quiz-brand-010': {
-    accessStatus: LEARNING_ACCESS.EARLY_AVAILABLE,
-    allowEarlyLearning: true,
-    plannedSemesterIndex: 2,
-    plannedBlockIndex: 2,
-    studentCurrentSemesterIndex: 1,
-    studentCurrentBlockIndex: 2,
-  },
-  'quiz-crm-011': {
-    accessStatus: LEARNING_ACCESS.EARLY_AVAILABLE,
-    allowEarlyLearning: true,
-    plannedSemesterIndex: 3,
-    plannedBlockIndex: 1,
-    studentCurrentSemesterIndex: 1,
-    studentCurrentBlockIndex: 2,
-  },
-  'exam-fin-012': {
-    accessStatus: LEARNING_ACCESS.EARLY_COMPLETED,
-    allowEarlyLearning: true,
-    earlyScore: 8.2,
-    attemptType: 'early',
-  },
-  'quiz-api-013': {
-    accessStatus: LEARNING_ACCESS.EARLY_AVAILABLE,
-    allowEarlyLearning: true,
-    plannedSemesterIndex: 3,
-    plannedBlockIndex: 1,
-    studentCurrentSemesterIndex: 1,
-    studentCurrentBlockIndex: 2,
-  },
-  'quiz-ux-014': {
-    accessStatus: LEARNING_ACCESS.EARLY_COMPLETED,
-    allowEarlyLearning: true,
-    earlyScore: 7.6,
-    attemptType: 'early',
-  },
-  'quiz-ops-015': {
-    accessStatus: LEARNING_ACCESS.FUTURE_LOCKED,
-    allowEarlyLearning: false,
-    plannedSemesterIndex: 2,
-    plannedBlockIndex: 1,
-    studentCurrentSemesterIndex: 1,
-    studentCurrentBlockIndex: 2,
-  },
-  'quiz-ads-016': {
-    accessStatus: LEARNING_ACCESS.EARLY_AVAILABLE,
-    allowEarlyLearning: true,
-    plannedSemesterIndex: 2,
-    plannedBlockIndex: 2,
-    studentCurrentSemesterIndex: 1,
-    studentCurrentBlockIndex: 2,
-  },
-}
-
-const studentExamAccessOverrides = {
-  'exam-ctdl-002': {
-    classSectionCode: 'PM-K29A',
-    openAt: '2026-06-04T08:00:00',
-    closeAt: '2026-07-30T23:59:00',
-    status: 'open',
-  },
-  'quiz-net-005': {
-    classSectionCode: 'PM-K29A',
-    openAt: '2026-06-04T08:00:00',
-    closeAt: '2026-07-30T22:00:00',
-    status: 'open',
-  },
-  'quiz-ui-006': {
-    classSectionCode: 'TK-K29B',
-    accessPolicy: { allowedByClassSection: false },
-  },
-  'quiz-db-009': {
-    closeAt: '2026-06-01T23:59:00',
-    status: 'closed',
-  },
-  'quiz-api-013': {
-    classSectionCode: 'PM-K29B',
-    openAt: '2026-06-04T09:00:00',
-    closeAt: '2026-06-04T23:00:00',
-    status: 'open',
-  },
-  'quiz-ops-015': {
-    usedAttempts: 1,
-    attempts: 1,
-    maxAttempts: 1,
-    status: 'open',
-    openAt: '2026-06-04T07:00:00',
-    closeAt: '2026-06-04T23:00:00',
-  },
-}
-
-const examCatalog = baseExamCatalog.map((exam) => ({
-  plannedSemesterIndex: 1,
-  plannedBlockIndex: 2,
-  studentCurrentSemesterIndex: 1,
-  studentCurrentBlockIndex: 2,
-  allowEarlyLearning: false,
-  accessStatus: exam.status === 'completed' ? LEARNING_ACCESS.COMPLETED : LEARNING_ACCESS.OFFICIAL,
-  lockedReason: '',
-  earlyScore: null,
-  attemptType: null,
-  classSectionCode: exam.classCode,
-  usedAttempts: exam.attempts || 0,
-  accessPolicy: {
-    requirePassword: false,
-    allowedByClassSection: true,
-    allowEarlyLearning: false,
-  },
-  ...exam,
-  ...accessOverrides[exam.id],
-  ...studentExamAccessOverrides[exam.id],
-}))
+const examCatalog = computed(() => exams.value)
 
 const accessConfig = {
   [LEARNING_ACCESS.OFFICIAL]: {
@@ -261,7 +81,6 @@ const accessConfig = {
 }
 
 const semesterOptions = computed(() => uniqueOptions('semesterName'))
-const majorOptions = computed(() => uniqueOptions('majorName'))
 
 const statusOptions = [
   { key: 'all', label: 'Tất cả trạng thái học' },
@@ -276,7 +95,7 @@ const statusOptions = [
 const filteredExams = computed(() => {
   const keyword = normalize(searchQuery.value)
 
-  return examCatalog.filter((exam) => {
+  return examCatalog.value.filter((exam) => {
     const matchesKeyword = !keyword || [
       exam.title,
       exam.subject,
@@ -285,23 +104,82 @@ const filteredExams = computed(() => {
     ].some((value) => normalize(value).includes(keyword))
 
     const matchesSemester = selectedSemester.value === 'all' || exam.semesterName === selectedSemester.value
-    const matchesMajor = selectedMajor.value === 'all' || exam.majorName === selectedMajor.value
     const matchesStatus = selectedStatus.value === 'all' || exam.accessStatus === selectedStatus.value
 
-    return matchesKeyword && matchesSemester && matchesMajor && matchesStatus
+    return matchesKeyword && matchesSemester && matchesStatus
   })
 })
 
 const metrics = computed(() => [
-  { label: 'Đang học', value: examCatalog.filter((exam) => exam.accessStatus === LEARNING_ACCESS.OFFICIAL).length, tone: 'success' },
-  { label: 'Học trước', value: examCatalog.filter((exam) => exam.accessStatus === LEARNING_ACCESS.EARLY_AVAILABLE).length, tone: 'info' },
-  { label: 'Bị khóa', value: examCatalog.filter((exam) => isLocked(exam)).length, tone: 'warning' },
-  { label: 'Đã xong', value: examCatalog.filter((exam) => canViewLearningResult(exam)).length, tone: 'primary' },
+  { label: 'Đang học', value: examCatalog.value.filter((exam) => exam.accessStatus === LEARNING_ACCESS.OFFICIAL).length, tone: 'success' },
+  { label: 'Học trước', value: examCatalog.value.filter((exam) => exam.accessStatus === LEARNING_ACCESS.EARLY_AVAILABLE).length, tone: 'info' },
+  { label: 'Bị khóa', value: examCatalog.value.filter((exam) => isLocked(exam)).length, tone: 'warning' },
+  { label: 'Đã xong', value: examCatalog.value.filter((exam) => canViewLearningResult(exam)).length, tone: 'primary' },
 ])
 
 function uniqueOptions(field) {
-  return [...new Set(examCatalog.map((exam) => exam[field]).filter(Boolean))]
+  return [...new Set(examCatalog.value.map((exam) => exam[field]).filter(Boolean))]
 }
+
+async function loadExams() {
+  loading.value = true
+  loadError.value = ''
+
+  try {
+    const items = await getStudentExams()
+    exams.value = items.map(normalizeApiExam)
+  } catch (error) {
+    loadError.value = error?.message || 'Không tải được danh sách bài thi.'
+    exams.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+function normalizeApiExam(item) {
+  const valueOf = (...keys) => keys.map((key) => item?.[key]).find((value) => value !== undefined && value !== null)
+
+  return {
+    id: String(valueOf('id', 'Id', 'maDeKiemTra', 'MaDeKiemTra')),
+    maDeKiemTra: valueOf('maDeKiemTra', 'MaDeKiemTra'),
+    maCaThi: valueOf('maCaThi', 'MaCaThi'),
+    title: valueOf('title', 'Title') || '',
+    subject: valueOf('subject', 'Subject') || '',
+    subjectCode: valueOf('subjectCode', 'SubjectCode') || '',
+    majorName: valueOf('majorName', 'MajorName') || '',
+    facultyName: valueOf('facultyName', 'FacultyName') || '',
+    semesterName: valueOf('semesterName', 'SemesterName') || 'Chưa có học kỳ',
+    blockName: valueOf('blockName', 'BlockName') || 'Block 1',
+    plannedSemesterIndex: valueOf('plannedSemesterIndex', 'PlannedSemesterIndex') || 1,
+    plannedBlockIndex: valueOf('plannedBlockIndex', 'PlannedBlockIndex') || 1,
+    studentCurrentSemesterIndex: valueOf('studentCurrentSemesterIndex', 'StudentCurrentSemesterIndex') || 1,
+    studentCurrentBlockIndex: valueOf('studentCurrentBlockIndex', 'StudentCurrentBlockIndex') || 1,
+    allowEarlyLearning: false,
+    accessStatus: valueOf('accessStatus', 'AccessStatus') || LEARNING_ACCESS.OFFICIAL,
+    lockedReason: '',
+    earlyScore: null,
+    attemptType: null,
+    classSectionCode: valueOf('classSectionCode', 'ClassSectionCode') || '',
+    durationMinutes: valueOf('durationMinutes', 'DurationMinutes') || 0,
+    totalQuestions: valueOf('totalQuestions', 'TotalQuestions') || 0,
+    examTypeLabel: valueOf('examTypeLabel', 'ExamTypeLabel') || 'Thi',
+    usedAttempts: valueOf('usedAttempts', 'UsedAttempts') ?? 0,
+    attempts: valueOf('usedAttempts', 'UsedAttempts') ?? 0,
+    maxAttempts: valueOf('maxAttempts', 'MaxAttempts') || 1,
+    status: valueOf('status', 'Status') || 'scheduled',
+    openAt: valueOf('openAt', 'OpenAt'),
+    closeAt: valueOf('closeAt', 'CloseAt'),
+    score: valueOf('score', 'Score'),
+    resultId: valueOf('resultId', 'ResultId'),
+    accessPolicy: {
+      requirePassword: false,
+      allowedByClassSection: true,
+      allowEarlyLearning: false,
+    },
+  }
+}
+
+onMounted(loadExams)
 
 function normalize(value) {
   return String(value || '')
@@ -461,16 +339,6 @@ function accessStateLabel(exam) {
       </label>
 
       <label class="select-field">
-        <GraduationCap :size="15" />
-        <select v-model="selectedMajor">
-          <option value="all">Tất cả khoa/ngành</option>
-          <option v-for="major in majorOptions" :key="major" :value="major">
-            {{ major }}
-          </option>
-        </select>
-      </label>
-
-      <label class="select-field">
         <Filter :size="15" />
         <select v-model="selectedStatus">
           <option v-for="status in statusOptions" :key="status.key" :value="status.key">
@@ -480,7 +348,20 @@ function accessStateLabel(exam) {
       </label>
     </section>
 
-    <section v-if="filteredExams.length" class="exam-grid" aria-label="Danh sách bài thi">
+    <section v-if="loading" class="empty-state" aria-live="polite">
+      <ClipboardCheck :size="34" />
+      <h2>Đang tải danh sách bài thi</h2>
+      <p>Hệ thống đang lấy bài thi theo chuyên ngành của học sinh hiện tại.</p>
+    </section>
+
+    <section v-else-if="loadError" class="empty-state" aria-live="polite">
+      <ShieldAlert :size="34" />
+      <h2>Không tải được bài thi</h2>
+      <p>{{ loadError }}</p>
+      <button type="button" class="condition-button" @click="loadExams">Thử lại</button>
+    </section>
+
+    <section v-else-if="filteredExams.length" class="exam-grid" aria-label="Danh sách bài thi">
       <article
         v-for="exam in filteredExams"
         :key="exam.id"

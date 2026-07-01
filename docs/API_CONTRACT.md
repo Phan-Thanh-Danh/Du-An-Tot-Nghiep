@@ -629,6 +629,7 @@ Luồng thi chính thức vẫn dùng `CaThi`:
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
+| GET | `/api/exam/student/list` | Student | Danh sách bài thi/kiểm tra của học sinh hiện tại. Backend tự suy ra lớp, chương trình đào tạo và chuyên ngành từ JWT user, chỉ trả đề có môn thuộc `MonHocTrongChuongTrinh` của chương trình đó; frontend không truyền filter khoa/ngành. |
 | POST | `/api/exam/taking/start` | Student | Bắt đầu phiên thi theo `MaCaThi`; không dùng giới hạn lượt quiz bài học. |
 | POST | `/api/exam/taking/autosave` | Student | Lưu tạm câu trả lời phiên thi chính thức. |
 | POST | `/api/exam/taking/submit` | Student | Nộp bài thi chính thức. |

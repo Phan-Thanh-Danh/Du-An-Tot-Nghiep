@@ -55,6 +55,7 @@ public interface IExamService
     Task<IReadOnlyList<PhienThiDto>> GetSignedSessionsAsync(int? maCaThi, CancellationToken ct);
 
     // Exam Taking
+    Task<IReadOnlyList<StudentExamListItemDto>> GetStudentExamsAsync(int maHocSinh, CancellationToken ct);
     Task<PhienThiDto> StartExamAsync(StartExamRequest request, int maHocSinh, CancellationToken ct);
     Task AutoSaveAnswerAsync(AutoSaveAnswerRequest request, int maHocSinh, CancellationToken ct);
     Task<PhienThiDto> SubmitExamAsync(SubmitExamRequest request, int maHocSinh, CancellationToken ct);
