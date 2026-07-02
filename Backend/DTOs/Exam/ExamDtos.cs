@@ -398,3 +398,34 @@ public class DeKiemTraDto
     public string? LoaiDeThi { get; set; }
     public string? HinhThucThi { get; set; }
 }
+
+public class StudentExamListItemDto
+{
+    public string Id { get; set; } = string.Empty;
+    public int MaDeKiemTra { get; set; }
+    public int? MaCaThi { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Subject { get; set; } = string.Empty;
+    public string SubjectCode { get; set; } = string.Empty;
+    public string MajorName { get; set; } = string.Empty;
+    public string FacultyName { get; set; } = string.Empty;
+    public string SemesterName { get; set; } = string.Empty;
+    public string BlockName { get; set; } = string.Empty;
+    public int PlannedSemesterIndex { get; set; }
+    public int PlannedBlockIndex { get; set; }
+    public int StudentCurrentSemesterIndex { get; set; }
+    public int StudentCurrentBlockIndex { get; set; }
+    public int DurationMinutes { get; set; }
+    public int TotalQuestions { get; set; }
+    public string ExamTypeLabel { get; set; } = string.Empty;
+    public int UsedAttempts { get; set; }
+    public int MaxAttempts { get; set; } = 1;
+    public string Status { get; set; } = string.Empty;
+    public string AccessStatus { get; set; } = string.Empty;
+    public string? OpenAt { get; set; }
+    public string? CloseAt { get; set; }
+    public decimal? Score { get; set; }
+    public string? ResultId { get; set; }
+    public string? ClassSectionCode { get; set; }
+    public string? TrangThaiDuThi { get; set; }
+}

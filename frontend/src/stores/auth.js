@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { authApi } from '@/services/apiClient'
+import { getDemoCredentials } from '@/data/authPortals'
 import { syncActiveStudentData } from '@/data/studentData.mock.js'
 
 
@@ -44,7 +45,15 @@ function isExpired(expiresAt) {
 }
 
 function normalizeRole(role) {
-  return String(role || '').trim().toLowerCase()
+  const normalized = String(role || '').trim().toLowerCase()
+  const aliases = {
+    lecturer: 'teacher',
+    trainingdepartment: 'academicstaff',
+    faculty: 'academicstaff',
+    academicdepartment: 'academicstaff',
+  }
+
+  return aliases[normalized] || normalized
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -110,76 +119,15 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     error.value = ''
 
-    // ── MOCK LOGIN CHO QUÁ TRÌNH PHÁT TRIỂN ──
-    const email = credentials.email.trim().toLowerCase()
-    
-    if (email === 'student' || email === 'student_gd' || email === 'student_mkt' || email === 'teacher' || email === 'staff' || email === 'bgh' || email === 'admin' || email === 'parent') {
-      let mockUser = {}
-      
-      if (email === 'student') {
-        mockUser = {
-          userId: 999, email: 'student@mock.local', fullName: 'Sinh Viên Demo',
-          role: 'Student', campusId: 1, status: 'Active'
-        }
-      } else if (email === 'student_gd') {
-        mockUser = {
-          userId: 991, email: 'student_gd@mock.local', fullName: 'Nguyễn Thiết Kế',
-          role: 'Student', campusId: 1, status: 'Active'
-        }
-      } else if (email === 'student_mkt') {
-        mockUser = {
-          userId: 992, email: 'student_mkt@mock.local', fullName: 'Trần Thị Marketing',
-          role: 'Student', campusId: 1, status: 'Active'
-        }
-      } else if (email === 'teacher') {
-        mockUser = {
-          userId: 888, email: 'teacher@mock.local', fullName: 'TS. Nguyễn Minh Khoa',
-          role: 'Teacher', campusId: 1, status: 'Active'
-        }
-      } else if (email === 'staff') {
-        mockUser = {
-          userId: 777, email: 'staff@mock.local', fullName: 'Trần Thị Giáo Vụ',
-          role: 'AcademicStaff', campusId: 1, status: 'Active'
-        }
-      } else if (email === 'bgh') {
-        mockUser = {
-          userId: 666, email: 'principal@mock.local', fullName: 'Nguyễn Văn Hiệu Trưởng',
-          role: 'Principal', campusId: 1, status: 'Active'
-        }
-      } else if (email === 'admin') {
-        mockUser = {
-          userId: 1, email: 'admin@edu.vn', fullName: 'Super Admin',
-          role: 'SuperAdmin', campusId: null, status: 'Active'
-        }
-      } else if (email === 'parent') {
-        mockUser = {
-          userId: 555, email: 'parent@mock.local', fullName: 'Phụ huynh Demo',
-          role: 'Parent', campusId: 1, status: 'Active'
-        }
-      }
-
-      const mockResponse = {
-        accessToken: `mock_token_${email}_${Date.now()}`,
-        user: mockUser,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        requiresPasswordChange: false
-      }
-
-      persistSession(mockResponse, Boolean(options.remember))
-      
-      // Đồng bộ dữ liệu sinh viên mock
-      try {
-        syncActiveStudentData()
-      } catch (e) {
-        console.error('Failed to sync student mock data:', e)
-      }
-
-      loading.value = false
-      return mockResponse
-    }
-
     try {
-      const response = await authApi.login(credentials)
+      const identity = credentials.usernameOrEmail || credentials.email || ''
+      const demoCredentials = getDemoCredentials(identity)
+      const loginPayload = demoCredentials || {
+        usernameOrEmail: identity,
+        password: credentials.password,
+      }
+
+      const response = await authApi.login(loginPayload)
       persistSession(response, Boolean(options.remember))
       
       // Đồng bộ dữ liệu sinh viên mock

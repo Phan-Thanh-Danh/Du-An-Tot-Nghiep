@@ -3,13 +3,13 @@ import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import * as LucideIcons from 'lucide-vue-next'
 import LessonVideoPlayer from '@/components/learning/LessonVideoPlayer.vue'
+import { studentApi } from '@/services/studentApi'
 import {
   mockCourse as rawMockCourse,
   mockStats as rawMockStats,
   mockLessons as rawMockLessons,
   mockCurrentLesson as rawMockCurrentLesson,
   mockQuizQuestions as rawMockQuizQuestions,
-  mockComments,
   mockAISummary as rawMockAISummary,
   mockStudentCurriculum,
   mockCurriculumVersionData,
@@ -295,7 +295,86 @@ const currentSubject = computed(() => {
   return null
 })
 
+const apiCourse = ref(null)
+const apiStats = ref(null)
+const apiLessons = ref(null)
+const isLoadingApi = ref(true)
+
+watch(() => courseId.value, async (newId) => {
+  if (newId) {
+    try {
+      isLoadingApi.value = true
+      const res = await studentApi.getCourseDetail(newId)
+      const isSuccess = res.success === true || res.Success === true
+      if (isSuccess) {
+        const data = res.data || res.Data || {}
+        apiCourse.value = data.course || data.Course || null
+        
+        // Cần format lại các key viết hoa từ C# sang camelCase cho Frontend dễ dùng
+        const rawStats = data.stats || data.Stats || null
+        if (rawStats) {
+           apiStats.value = rawStats.map(s => ({
+             label: s.label || s.Label,
+             value: s.value || s.Value,
+             unit: s.unit || s.Unit,
+             icon: s.icon || s.Icon,
+             tone: s.tone || s.Tone,
+             progress: s.progress || s.Progress,
+             hint: s.hint || s.Hint
+           }))
+        } else {
+           apiStats.value = null
+        }
+        
+        const rawLessons = data.lessons || data.Lessons || null
+        if (rawLessons) {
+          apiLessons.value = rawLessons.map(c => ({
+            id: c.id || c.Id,
+            chapter: c.chapter || c.Chapter,
+            title: c.title || c.Title,
+            description: c.description || c.Description,
+            status: c.status || c.Status,
+            badge: c.badge || c.Badge,
+            tone: c.tone || c.Tone,
+            icon: c.icon || c.Icon,
+            meta: c.meta || c.Meta,
+            progress: c.progress || c.Progress,
+            lessons: (c.lessons || c.Lessons || []).map(l => ({
+              id: l.id || l.Id,
+              title: l.title || l.Title,
+              duration: l.duration || l.Duration,
+              status: l.status || l.Status,
+              type: l.type || l.Type,
+              url: l.url || l.Url
+            }))
+          }))
+        } else {
+          apiLessons.value = null
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load course details from API', err)
+      apiCourse.value = null
+      apiStats.value = null
+      apiLessons.value = null
+    } finally {
+      isLoadingApi.value = false
+    }
+  }
+}, { immediate: true })
+
 const mockCourse = computed(() => {
+  if (apiCourse.value) return {
+    id: apiCourse.value.id || apiCourse.value.Id,
+    title: apiCourse.value.title || apiCourse.value.Title,
+    code: apiCourse.value.code || apiCourse.value.Code,
+    teacher: apiCourse.value.teacher || apiCourse.value.Teacher,
+    semester: apiCourse.value.semester || apiCourse.value.Semester,
+    credits: apiCourse.value.credits || apiCourse.value.Credits,
+    coverGradient: apiCourse.value.coverGradient || apiCourse.value.CoverGradient,
+    description: apiCourse.value.description || apiCourse.value.Description,
+  }
+
   if (currentSubject.value) {
     const s = currentSubject.value.subject
     let teacher = 'TS. Nguyễn Minh Khoa'
@@ -335,6 +414,8 @@ const mockCourse = computed(() => {
 })
 
 const mockStats = computed(() => {
+  if (apiStats.value) return apiStats.value
+
   const progress = currentSubject.value
     ? (currentSubject.value.subject.earlyProgressPercent ?? currentSubject.value.subject.progressPercent ?? 0)
     : (rawMockCourse.progress || 72)
@@ -350,6 +431,8 @@ const mockStats = computed(() => {
 })
 
 const mockLessons = computed(() => {
+  if (apiLessons.value) return apiLessons.value
+
   const codeUpper = courseId.value?.toUpperCase() || ''
   if (codeUpper === 'CTDL101') {
     return rawMockLessons
@@ -371,18 +454,20 @@ const mockLessons = computed(() => {
   return generateDefaultLessonsForSubject(codeUpper, subjectName)
 })
 
+const apiQuiz = ref(null)
+const apiComments = ref(null)
+
 const mockQuizQuestions = computed(() => {
+  if (apiQuiz.value && apiQuiz.value.length > 0) return apiQuiz.value
   const codeUpper = courseId.value?.toUpperCase() || ''
-  if (codeUpper === 'WEB201') {
-    return vueQuizQuestions
-  }
-  if (codeUpper === 'API201') {
-    return apiQuizQuestions
-  }
-  if (codeUpper === 'GD301' || codeUpper.includes('GD')) {
-    return rawMockQuizQuestions
-  }
+  if (codeUpper === 'WEB201') return vueQuizQuestions
+  if (codeUpper === 'API201') return apiQuizQuestions
+  if (codeUpper === 'GD301' || codeUpper.includes('GD')) return rawMockQuizQuestions
   return defaultQuizQuestions
+})
+
+const currentComments = computed(() => {
+  return apiComments.value || []
 })
 
 const mockAISummary = computed(() => {
@@ -741,7 +826,7 @@ watch(
           pauseOnBlur: true,
           minWatchPercentToComplete: 80,
           progressPercent: foundLesson.status === 'completed' ? 100 : (foundLesson.progressPercent || 0),
-          documentTitle: `${foundLesson.title}.pdf`,
+          documentTitle: foundLesson.url ? foundLesson.url.split('/').pop() : `${foundLesson.title}.pdf`,
           documentPages: 10,
           documentCurrentPage: 1,
           ...foundLesson,
@@ -758,6 +843,28 @@ watch(
   },
   { immediate: true }
 )
+
+watch(() => currentLesson.value?.id, async (newLessonId) => {
+  if (newLessonId && courseId.value) {
+    if (currentLesson.value.lessonType === 'quiz') {
+      try {
+        const res = await studentApi.getLessonQuiz(courseId.value, newLessonId)
+        apiQuiz.value = res.data || res.Data || []
+      } catch (err) {
+        console.error(err)
+        apiQuiz.value = []
+      }
+    }
+
+    try {
+      const res = await studentApi.getLessonComments(courseId.value, newLessonId)
+      apiComments.value = res.data || res.Data || []
+    } catch (err) {
+      console.error(err)
+      apiComments.value = []
+    }
+  }
+})
 </script>
 
 <template>
@@ -863,24 +970,24 @@ watch(
             <div v-else-if="activeTab === 'quiz'" class="quiz-view">
               <div
                 v-for="(q, index) in mockQuizQuestions"
-                :key="q.id"
+                :key="q.id || q.Id"
                 class="quiz-card"
                 :class="{ 'opacity-50 pointer-events-none': isQuestionLocked(index) }"
               >
                 <div class="flex items-center justify-between mb-2">
-                  <p class="font-medium text-heading">Câu {{ index + 1 }}: {{ q.question }}</p>
+                  <p class="font-medium text-heading">Câu {{ index + 1 }}: {{ q.question || q.Text }}</p>
                   <span v-if="isQuestionLocked(index)" class="text-xs text-(--color-warning-text) font-semibold flex items-center gap-1">
                     <component :is="resolveIcon('Lock')" :size="12" /> Làm câu trước đó
                   </span>
                 </div>
                 <div class="quiz-options">
                   <button
-                    v-for="(opt, idx) in q.options"
+                    v-for="(opt, idx) in q.options || q.Options"
                     :key="idx"
                     type="button"
                     :disabled="isQuestionLocked(index)"
-                    :class="{ selected: quizAnswers[q.id] === idx }"
-                    @click="selectAnswer(q.id, idx)"
+                    :class="{ selected: quizAnswers[q.id || q.Id] === idx }"
+                    @click="selectAnswer(q.id || q.Id, idx)"
                   >
                     <span>{{ ['A', 'B', 'C', 'D'][idx] }}</span>
                     {{ opt }}
@@ -917,17 +1024,17 @@ watch(
                 </div>
               </div>
 
-              <article v-for="comment in mockComments" :key="comment.id" class="comment-card">
-                <div class="avatar comment-avatar">{{ comment.initials }}</div>
+              <article v-for="comment in currentComments" :key="comment.id || comment.Id" class="comment-card">
+                <div class="avatar comment-avatar">{{ comment.initials || comment.Initials }}</div>
                 <div class="comment-body">
                   <div class="comment-author">
-                    <strong>{{ comment.author }}</strong>
-                    <span>{{ comment.time }}</span>
+                    <strong>{{ comment.author || comment.Author }}</strong>
+                    <span>{{ comment.time || comment.TimeAgo }}</span>
                   </div>
-                  <p>{{ comment.content }}</p>
-                  <button type="button" :class="{ liked: likedComments[comment.id] }" @click="toggleLike(comment.id)">
+                  <p>{{ comment.content || comment.Content }}</p>
+                  <button type="button" :class="{ liked: likedComments[comment.id || comment.Id] }" @click="toggleLike(comment.id || comment.Id)">
                     <component :is="resolveIcon('ThumbsUp')" :size="12" />
-                    {{ comment.likes + (likedComments[comment.id] ? 1 : 0) }}
+                    {{ (comment.likes !== undefined ? comment.likes : comment.Likes) + (likedComments[comment.id || comment.Id] ? 1 : 0) }}
                   </button>
                 </div>
               </article>

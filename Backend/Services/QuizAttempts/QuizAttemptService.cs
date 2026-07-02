@@ -48,7 +48,10 @@ public class QuizAttemptService : IQuizAttemptService
 
     public async Task<StartQuizAttemptResponse> StartAsync(int quizId, int studentId, CancellationToken ct)
     {
-        await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        var strategy = _db.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
 
         var quiz = await _availabilityService.SynchronizeQuizStatusAsync(quizId, DateTime.UtcNow, ct);
         await EnsureLessonQuizAsync(quiz, ct);
@@ -132,6 +135,7 @@ public class QuizAttemptService : IQuizAttemptService
             ct);
 
         return await BuildStartResponseAsync(attempt.MaPhienThi, ct);
+        });
     }
 
     public async Task SaveAnswersAsync(int attemptId, SaveQuizAnswersRequest request, int studentId, CancellationToken ct)

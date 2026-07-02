@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview",
     "test:unit": "vitest",
@@ -26,6 +26,7 @@
     "@editorjs/quote": "^2.7.6",
     "@editorjs/table": "^2.4.5",
     "@editorjs/warning": "^1.4.1",
+    "@microsoft/signalr": "^10.0.0",
     "@vueuse/core": "^14.3.0",
     "dayjs": "^1.11.21",
     "devtools-detector": "^2.0.25",

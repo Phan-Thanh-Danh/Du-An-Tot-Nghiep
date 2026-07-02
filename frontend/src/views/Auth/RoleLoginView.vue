@@ -51,7 +51,20 @@ const actualRoleLabel = ref('')
 const actualRoleDashboard = ref('')
 
 function normalizeRole(role) {
-  return String(role || '').trim().toLowerCase()
+  const normalized = String(role || '').trim().toLowerCase()
+  const aliases = {
+    lecturer: 'teacher',
+    trainingdepartment: 'academicstaff',
+    faculty: 'academicstaff',
+    academicdepartment: 'academicstaff',
+  }
+
+  return aliases[normalized] || normalized
+}
+
+function roleMatches(actualRole, expectedRoles) {
+  const roles = Array.isArray(expectedRoles) ? expectedRoles : [expectedRoles]
+  return roles.some((item) => normalizeRole(actualRole) === normalizeRole(item))
 }
 
 function getRoleLabel(role) {
@@ -59,10 +72,14 @@ function getRoleLabel(role) {
     Student: 'Sinh viên',
     Teacher: 'Giảng viên',
     AcademicStaff: 'Giáo vụ',
+    TrainingDepartment: 'Phòng đào tạo',
+    Faculty: 'Khoa',
+    AcademicDepartment: 'Bộ môn',
     Principal: 'Ban giám hiệu',
     Parent: 'Phụ huynh',
+    Admin: 'Quản trị viên',
     SuperAdmin: 'Quản trị viên',
-    ContentBoard: 'Hội đồng nội dung',
+    HoiDongQuanLyNoiDung: 'Hội đồng nội dung',
   }
   return map[role] || role
 }
@@ -82,8 +99,8 @@ async function handleSubmit(credentials) {
       return
     }
 
-    const expectedRole = portal.value?.backendRole || ''
-    if (expectedRole && normalizeRole(actualRole) !== normalizeRole(expectedRole)) {
+    const expectedRoles = portal.value?.allowedRoles || [portal.value?.backendRole || '']
+    if (expectedRoles.length && !roleMatches(actualRole, expectedRoles)) {
       actualRoleLabel.value = getRoleLabel(actualRole)
       const dashboard = getHomeRouteByRole(actualRole)
       actualRoleDashboard.value = dashboard || '/'
@@ -147,7 +164,7 @@ async function useDifferentAccount() {
 <template>
   <main
     v-if="portalValid"
-    class="liquid-bg min-h-screen flex items-center justify-center p-4 md:p-10 font-['Inter'] text-[#191c1e] antialiased overflow-x-hidden relative login-page"
+    class="liquid-bg min-h-screen flex items-center justify-center p-4 md:p-10 text-[#191c1e] antialiased overflow-x-hidden relative login-page"
     :class="{
       'login-enter-enabled': pageEnterEnabled,
       'login-enter-ready': pageEnterReady,
@@ -159,7 +176,7 @@ async function useDifferentAccount() {
     <main class="w-full max-w-[1140px] relative z-10 glass-panel rounded-[28px] overflow-hidden shadow-2xl shadow-[#00236f]/5 flex flex-col lg:flex-row min-h-[600px] h-[calc(100vh-80px)] max-h-[768px]">
       <RoleLoginHero :portal="portal" />
 
-      <div class="w-full lg:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-[#f5f5f5] overflow-y-auto">
+      <div class="w-full lg:w-1/2 p-6 md:p-8 lg:p-8 flex flex-col bg-[#F9FAFC] overflow-y-auto">
         <div class="flex lg:hidden items-center gap-2 text-[#00236f] mb-8">
           <GraduationCap class="w-8 h-8" aria-hidden="true" />
           <div class="flex flex-col">
@@ -168,19 +185,19 @@ async function useDifferentAccount() {
           </div>
         </div>
 
-        <div class="mb-3">
-          <router-link
-            to="/"
-            class="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#585f67] hover:text-[#00236f] transition-colors"
-          >
-            <ArrowLeft class="w-4 h-4" aria-hidden="true" />
-            <span>Quay lại chọn cổng truy cập</span>
-          </router-link>
-        </div>
-
-        <div class="max-w-sm w-full mx-auto space-y-8 my-auto">
+        <div class="max-w-sm w-full mx-auto space-y-6">
+          <div class="mb-1">
+            <router-link
+              to="/"
+              class="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#585f67] hover:text-[#00236f] transition-colors"
+            >
+              <ArrowLeft class="w-4 h-4" aria-hidden="true" />
+              <span>Quay lại chọn cổng truy cập</span>
+            </router-link>
+          </div>
+          
           <div class="space-y-2 text-center lg:text-left">
-            <h2 class="text-[24px] font-semibold leading-8 tracking-[-0.01em] text-[#191c1e]">
+            <h2 class="text-[24px] font-semibold leading-8 tracking-[-0.01em] text-[#00236f]">
               Chào mừng đến với {{ portal.label }}
             </h2>
             <p class="text-[14px] leading-5 text-[#444651]">
@@ -218,7 +235,7 @@ async function useDifferentAccount() {
 
   <main
     v-else
-    class="liquid-bg min-h-screen flex items-center justify-center p-4 font-['Inter'] antialiased"
+    class="liquid-bg min-h-screen flex items-center justify-center p-4 antialiased"
   >
     <div class="text-center space-y-4 max-w-sm">
       <p class="text-[15px] text-[#585f67]">Cổng truy cập không hợp lệ.</p>

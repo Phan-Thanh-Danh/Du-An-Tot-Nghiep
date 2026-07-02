@@ -43,7 +43,10 @@ export function resolveSafeRoleRedirect({ router, redirectPath, actualRole }) {
   const requiredRole = getRequiredRoleFromMatchedRoutes(resolved.matched)
   if (!requiredRole) return null
 
-  if (normalizeRole(actualRole) !== normalizeRole(requiredRole)) return null
+  const requiredRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole]
+  if (!requiredRoles.some((item) => normalizeRole(actualRole) === normalizeRole(item))) {
+    return null
+  }
 
   return redirectPath
 }

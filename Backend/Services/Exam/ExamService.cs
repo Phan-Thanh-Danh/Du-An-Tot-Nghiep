@@ -1,6 +1,7 @@
 using Backend.Data;
 using Backend.DTOs.Common;
 using Backend.DTOs.Exam;
+using Backend.DTOs.QuizAttempts;
 using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.QuizGrading;
@@ -560,10 +561,39 @@ public class ExamService : IExamService
                     GhiChu = item.GhiChu
                 });
             }
+
+            // Sync with ThiSinhCaThi
+            var thiSinhCaThi = await _db.ThiSinhCaThis
+                .FirstOrDefaultAsync(t => t.MaCaThi == request.MaCaThi && t.MaHocSinh == item.MaHocSinh, ct);
+            if (thiSinhCaThi != null)
+            {
+                if (item.TrangThaiDiemDanh == "co_mat")
+                {
+                    thiSinhCaThi.TrangThaiDuThi = "duoc_thi";
+                }
+                else if (item.TrangThaiDiemDanh == "vang_mat" && thiSinhCaThi.TrangThaiDuThi != "dinh_chi")
+                {
+                    thiSinhCaThi.TrangThaiDuThi = "vang_thi";
+                }
+            }
         }
 
         await _db.SaveChangesAsync(ct);
         return await GetDiemDanhByCaThiAsync(request.MaCaThi, ct);
+    }
+
+    public async Task StartCaThiAsync(int id, CancellationToken ct)
+    {
+        var caThi = await _db.CaThis.FindAsync(new object[] { id }, ct)
+            ?? throw new ApiException(404, "Ca thi không tồn tại.");
+
+        if (caThi.TrangThai == "da_ket_thuc" || caThi.TrangThai == "da_huy")
+        {
+            throw new ApiException(400, "Ca thi đã kết thúc hoặc đã hủy, không thể bắt đầu.");
+        }
+
+        caThi.TrangThai = "dang_thi";
+        await _db.SaveChangesAsync(ct);
     }
 
     // ===== NhatKyViPhamThi =====
@@ -802,6 +832,138 @@ public class ExamService : IExamService
 
     // ===== Exam Taking =====
 
+    public async Task<IReadOnlyList<StudentExamListItemDto>> GetStudentExamsAsync(int maHocSinh, CancellationToken ct)
+    {
+        var student = await _db.NguoiDungs
+            .AsNoTracking()
+            .Include(x => x.Lop)
+            .FirstOrDefaultAsync(x => x.MaNguoiDung == maHocSinh, ct)
+            ?? throw new ApiException(404, "Không tìm thấy học sinh hiện tại.");
+
+        if (student.MaLop is null || student.Lop?.MaChuongTrinh is null)
+        {
+            throw new ApiException(404, "Học sinh chưa được gán lớp hoặc chương trình đào tạo.");
+        }
+
+        var program = await _db.ChuongTrinhDaoTaos
+            .AsNoTracking()
+            .Include(x => x.ChuyenNganh)
+                .ThenInclude(x => x!.NganhDaoTao)
+            .FirstOrDefaultAsync(x => x.MaChuongTrinh == student.Lop.MaChuongTrinh.Value && x.ConHoatDong, ct)
+            ?? throw new ApiException(404, "Không tìm thấy chương trình đào tạo của học sinh.");
+
+        var programSubjects = await _db.MonHocTrongChuongTrinhs
+            .AsNoTracking()
+            .Include(x => x.DanhMucMonHoc)
+            .Where(x => x.MaChuongTrinh == program.MaChuongTrinh && x.ConHoatDong)
+            .ToListAsync(ct);
+
+        var subjectIds = programSubjects.Select(x => x.MaMonHoc).Distinct().ToList();
+        if (subjectIds.Count == 0)
+        {
+            return [];
+        }
+
+        var grades = await _db.DiemSos
+            .AsNoTracking()
+            .Where(x => x.MaHocSinh == maHocSinh && subjectIds.Contains(x.MaMonHoc))
+            .ToListAsync(ct);
+        var completedSubjectIds = grades
+            .Where(x => x.TrangThai == "dat")
+            .Select(x => x.MaMonHoc)
+            .ToHashSet();
+        var currentSemesterIndex = DetermineCurrentSemester(programSubjects, completedSubjectIds, program.SoHocKy);
+
+        var exams = await _db.DeKiemTras
+            .AsNoTracking()
+            .Include(x => x.MonHoc)
+            .Include(x => x.HocKy)
+            .Where(x =>
+                x.MaMonHoc.HasValue &&
+                subjectIds.Contains(x.MaMonHoc.Value) &&
+                x.TrangThai != "nhap")
+            .OrderBy(x => x.MaHocKy)
+            .ThenBy(x => x.MaMonHoc)
+            .ThenBy(x => x.TieuDe)
+            .ToListAsync(ct);
+
+        var examIds = exams.Select(x => x.MaDeKiemTra).ToList();
+        var assignments = await _db.ThiSinhCaThis
+            .AsNoTracking()
+            .Include(x => x.CaThi)
+                .ThenInclude(x => x!.LichThiTong)
+            .Where(x =>
+                x.MaHocSinh == maHocSinh &&
+                x.CaThi != null &&
+                x.CaThi.LichThiTong != null &&
+                x.CaThi.LichThiTong.MaDeKiemTra.HasValue &&
+                examIds.Contains(x.CaThi.LichThiTong.MaDeKiemTra.Value))
+            .ToListAsync(ct);
+        var assignmentByExam = assignments
+            .GroupBy(x => x.CaThi!.LichThiTong!.MaDeKiemTra!.Value)
+            .ToDictionary(
+                x => x.Key,
+                x => x.OrderByDescending(item => item.CaThi!.ThoiGianBatDau).First());
+
+        var attempts = await _db.PhienThiHocSinhs
+            .AsNoTracking()
+            .Where(x => x.MaHocSinh == maHocSinh && examIds.Contains(x.MaDeKiemTra))
+            .ToListAsync(ct);
+        var attemptsByExam = attempts
+            .GroupBy(x => x.MaDeKiemTra)
+            .ToDictionary(x => x.Key, x => x.OrderByDescending(item => item.LanThu).First());
+
+        var questionCounts = await _db.CauHoiDeKiemTras
+            .AsNoTracking()
+            .Where(x => examIds.Contains(x.MaDeKiemTra))
+            .GroupBy(x => x.MaDeKiemTra)
+            .Select(x => new { MaDeKiemTra = x.Key, Count = x.Count() })
+            .ToDictionaryAsync(x => x.MaDeKiemTra, x => x.Count, ct);
+
+        return exams.Select(exam =>
+        {
+            var programSubject = programSubjects.FirstOrDefault(x => x.MaMonHoc == exam.MaMonHoc);
+            assignmentByExam.TryGetValue(exam.MaDeKiemTra, out var assignment);
+            attemptsByExam.TryGetValue(exam.MaDeKiemTra, out var attempt);
+
+            var caThi = assignment?.CaThi;
+            var status = ResolveStudentExamStatus(exam, caThi, attempt);
+            var accessStatus = ResolveStudentExamAccessStatus(exam, caThi, attempt, programSubject?.HocKyDuKien ?? 1, currentSemesterIndex);
+            var score = attempt?.DiemCuoiCung ?? attempt?.DiemTuDong;
+
+            return new StudentExamListItemDto
+            {
+                Id = exam.MaDeKiemTra.ToString(),
+                MaDeKiemTra = exam.MaDeKiemTra,
+                MaCaThi = caThi?.MaCaThi,
+                Title = exam.TieuDe,
+                Subject = exam.MonHoc?.TenMonHoc ?? string.Empty,
+                SubjectCode = exam.MonHoc?.MaCodeMonHoc ?? string.Empty,
+                MajorName = program.ChuyenNganh?.TenChuyenNganh ?? program.TenChuongTrinh,
+                FacultyName = program.ChuyenNganh?.NganhDaoTao?.TenNganh ?? string.Empty,
+                SemesterName = exam.HocKy?.TenHocKy ?? $"Kỳ {programSubject?.HocKyDuKien ?? 1}",
+                BlockName = "Block 1",
+                PlannedSemesterIndex = programSubject?.HocKyDuKien ?? 1,
+                PlannedBlockIndex = 1,
+                StudentCurrentSemesterIndex = currentSemesterIndex,
+                StudentCurrentBlockIndex = 1,
+                DurationMinutes = exam.ThoiGianPhut,
+                TotalQuestions = questionCounts.GetValueOrDefault(exam.MaDeKiemTra),
+                ExamTypeLabel = ResolveExamTypeLabel(exam.LoaiDeThi),
+                UsedAttempts = attempts.Count(x => x.MaDeKiemTra == exam.MaDeKiemTra),
+                MaxAttempts = 1,
+                Status = status,
+                AccessStatus = accessStatus,
+                OpenAt = caThi?.ThoiGianBatDau.ToString("O"),
+                CloseAt = caThi?.ThoiGianKetThuc.ToString("O"),
+                Score = score,
+                ResultId = score.HasValue ? attempt?.MaPhienThi.ToString() : null,
+                ClassSectionCode = student.Lop.MaCodeLop,
+                TrangThaiDuThi = assignment?.TrangThaiDuThi
+            };
+        }).ToList();
+    }
+
     public async Task<PhienThiDto> StartExamAsync(StartExamRequest request, int maHocSinh, CancellationToken ct)
     {
         var caThi = await _db.CaThis
@@ -856,6 +1018,46 @@ public class ExamService : IExamService
         await _db.Entry(phienThi).Reference(p => p.HocSinh).LoadAsync(ct);
 
         return MapToPhienThiDto(phienThi);
+    }
+
+    public async Task<PhienThiDto> GetExamSessionAsync(int maPhienThi, int maHocSinh, CancellationToken ct)
+    {
+        var phienThi = await _db.PhienThiHocSinhs
+            .Include(p => p.HocSinh)
+            .FirstOrDefaultAsync(p => p.MaPhienThi == maPhienThi, ct)
+            ?? throw new ApiException(404, "Không tìm thấy phiên thi.");
+
+        if (phienThi.MaHocSinh != maHocSinh)
+            throw new ApiException(403, "Không có quyền truy cập phiên thi này.");
+
+        return MapToPhienThiDto(phienThi);
+    }
+
+    public async Task<IReadOnlyList<QuizAttemptQuestionDto>> GetExamQuestionsAsync(int maPhienThi, int maHocSinh, CancellationToken ct)
+    {
+        var phienThi = await _db.PhienThiHocSinhs
+            .FirstOrDefaultAsync(p => p.MaPhienThi == maPhienThi, ct)
+            ?? throw new ApiException(404, "Không tìm thấy phiên thi.");
+
+        if (phienThi.MaHocSinh != maHocSinh)
+            throw new ApiException(403, "Không có quyền truy cập phiên thi này.");
+
+        var questions = await _db.CauHoiDeKiemTras
+            .Include(x => x.CauHoi)
+            .Where(x => x.MaDeKiemTra == phienThi.MaDeKiemTra)
+            .OrderBy(x => x.ThuTu)
+            .ToListAsync(ct);
+
+        return questions.Select(x => new QuizAttemptQuestionDto
+        {
+            MaCauHoi = x.MaCauHoi,
+            LoaiCauHoi = x.CauHoi.LoaiCauHoi,
+            NoiDung = x.CauHoi.NoiDung,
+            KieuLuaChon = x.CauHoi.KieuLuaChon,
+            LuaChon = string.IsNullOrEmpty(x.CauHoi.LuaChon) ? null : System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(x.CauHoi.LuaChon),
+            DiemSo = x.DiemSo,
+            ThuTu = x.ThuTu
+        }).ToList();
     }
 
     public async Task AutoSaveAnswerAsync(AutoSaveAnswerRequest request, int maHocSinh, CancellationToken ct)
@@ -1043,6 +1245,82 @@ public class ExamService : IExamService
     }
 
     // ===== Helpers =====
+
+    private static int DetermineCurrentSemester(
+        IReadOnlyCollection<MonHocTrongChuongTrinh> programSubjects,
+        IReadOnlySet<int> completedSubjectIds,
+        int totalSemesters)
+    {
+        if (!programSubjects.Any())
+        {
+            return totalSemesters > 0 ? 1 : 0;
+        }
+
+        var firstOpenSemester = programSubjects
+            .GroupBy(subject => subject.HocKyDuKien)
+            .OrderBy(group => group.Key)
+            .FirstOrDefault(group => group.Any(subject => !completedSubjectIds.Contains(subject.MaMonHoc)))
+            ?.Key;
+
+        return firstOpenSemester ?? totalSemesters;
+    }
+
+    private static string ResolveStudentExamStatus(DeKiemTra exam, CaThi? caThi, PhienThiHocSinh? attempt)
+    {
+        if (attempt?.TrangThaiCongBo == "da_cong_bo" || exam.TrangThai == "da_cong_bo")
+        {
+            return "result_published";
+        }
+
+        if (caThi?.TrangThai == "dang_thi" || exam.TrangThai == "dang_mo")
+        {
+            return "open";
+        }
+
+        if (caThi?.TrangThai == "da_ket_thuc" || exam.TrangThai == "da_dong")
+        {
+            return "closed";
+        }
+
+        return exam.TrangThai == "nhap" ? "draft" : "scheduled";
+    }
+
+    private static string ResolveStudentExamAccessStatus(
+        DeKiemTra exam,
+        CaThi? caThi,
+        PhienThiHocSinh? attempt,
+        int plannedSemesterIndex,
+        int currentSemesterIndex)
+    {
+        if (attempt?.TrangThaiCongBo == "da_cong_bo" || exam.TrangThai == "da_cong_bo")
+        {
+            return "completed";
+        }
+
+        if (caThi?.TrangThai == "dang_thi" || exam.TrangThai == "dang_mo")
+        {
+            return "official";
+        }
+
+        if (caThi?.TrangThai == "da_ket_thuc" || exam.TrangThai == "da_dong")
+        {
+            return "completed";
+        }
+
+        return "future_locked";
+    }
+
+    private static string ResolveExamTypeLabel(string? loaiDeThi)
+    {
+        return loaiDeThi switch
+        {
+            "trac_nghiem" => "Trắc nghiệm",
+            "tu_luan" => "Tự luận",
+            "ket_hop" => "Kết hợp",
+            "quiz_bai_hoc" => "Quiz",
+            _ => "Thi"
+        };
+    }
 
     private static PhienThiDto MapToPhienThiDto(PhienThiHocSinh p)
     {

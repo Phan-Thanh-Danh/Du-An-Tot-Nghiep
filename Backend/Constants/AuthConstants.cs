@@ -130,7 +130,9 @@ public static class AuthPolicies
 public static class CustomClaimTypes
 {
     public const string UserId = "UserId";
+    public const string Username = "Username";
     public const string Email = "Email";
+    public const string FullName = "FullName";
     public const string Role = "Role";
     public const string CampusId = "CampusId";
     public const string Status = "Status";

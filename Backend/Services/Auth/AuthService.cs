@@ -32,12 +32,12 @@ public class AuthService : IAuthService
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request)
     {
-        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
-        var user = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.Email.ToLower() == normalizedEmail);
+        var normalizedIdentity = request.UsernameOrEmail.Trim().ToLowerInvariant();
+        var user = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.Email.ToLower() == normalizedIdentity);
 
         if (user is null)
         {
-            throw new ApiException(StatusCodes.Status401Unauthorized, "Email hoặc mật khẩu không chính xác.");
+            throw new ApiException(StatusCodes.Status401Unauthorized, "Tên đăng nhập hoặc mật khẩu không đúng");
         }
 
         var role = AuthRoles.FromDatabaseCode(user.VaiTroChinh);
@@ -90,7 +90,7 @@ public class AuthService : IAuthService
                 new { user.Email },
                 "Đăng nhập thất bại.");
 
-            throw new ApiException(StatusCodes.Status401Unauthorized, "Email hoặc mật khẩu không chính xác.");
+            throw new ApiException(StatusCodes.Status401Unauthorized, "Tên đăng nhập hoặc mật khẩu không đúng");
         }
 
         user.SoLanSaiMatKhau = 0;
@@ -278,7 +278,9 @@ public class AuthService : IAuthService
     {
         return new AuthUserDto
         {
+            Id = user.MaNguoiDung,
             UserId = user.MaNguoiDung,
+            Username = user.Email,
             Email = user.Email,
             FullName = user.HoTen,
             Role = role,

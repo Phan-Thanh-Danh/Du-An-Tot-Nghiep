@@ -96,6 +96,31 @@ export function getExamAccessState(exam, studentContext = {}, now = new Date()) 
     }
   }
 
+  const hasCaThi = exam.maCaThi || exam.MaCaThi;
+  const ttdt = exam.trangThaiDuThi || exam.TrangThaiDuThi;
+
+  if (hasCaThi && ttdt !== 'duoc_thi') {
+    if (ttdt === 'vang_thi') {
+      return {
+        canEnter: false,
+        reason: 'Bạn đã bị đánh dấu Vắng mặt trong ca thi này.',
+        state: 'absent',
+      }
+    }
+    if (ttdt === 'dinh_chi') {
+      return {
+        canEnter: false,
+        reason: 'Bạn đã bị đình chỉ thi trong ca thi này.',
+        state: 'suspended',
+      }
+    }
+    return {
+      canEnter: false,
+      reason: 'Bạn chưa được giám thị điểm danh Có mặt.',
+      state: 'not_checked_in',
+    }
+  }
+
   return {
     canEnter: true,
     reason: '',

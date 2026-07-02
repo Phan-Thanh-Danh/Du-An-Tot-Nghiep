@@ -2,6 +2,45 @@ export const SHOW_DEMO_ACCOUNTS =
   import.meta.env.DEV ||
   import.meta.env.VITE_ENABLE_DEMO_ACCOUNTS === 'true'
 
+export const DEMO_ACCOUNTS = Object.freeze({
+  student: {
+    usernameOrEmail: 'student01@edulms.local',
+    password: '123456',
+  },
+  student_gd: {
+    usernameOrEmail: 'student.tkdh01@lms.local',
+    password: '123456',
+  },
+  student_mkt: {
+    usernameOrEmail: 'student.mkt01@lms.local',
+    password: '123456',
+  },
+  teacher: {
+    usernameOrEmail: 'lecturer01@edulms.local',
+    password: '123456',
+  },
+  staff: {
+    usernameOrEmail: 'daotao@edulms.local',
+    password: '123456',
+  },
+  bgh: {
+    usernameOrEmail: 'bgh@edulms.local',
+    password: '123456',
+  },
+  admin: {
+    usernameOrEmail: 'admin@edulms.local',
+    password: '123456',
+  },
+  content_council: {
+    usernameOrEmail: 'hoidong.quanly.noidung@lms.local',
+    password: '123456',
+  },
+})
+
+export function getDemoCredentials(alias) {
+  return DEMO_ACCOUNTS[String(alias || '').trim().toLowerCase()] || null
+}
+
 export const AUTH_PORTALS = Object.freeze({
   student: {
     slug: 'student',
@@ -70,7 +109,7 @@ export const AUTH_PORTALS = Object.freeze({
     audience: 'Dành cho phụ huynh sinh viên',
     group: 'primary',
     homeRoute: '/parent/dashboard',
-    enabled: true,
+    enabled: false,
     demoUsername: 'parent',
   },
   staff: {
@@ -119,9 +158,9 @@ export const AUTH_PORTALS = Object.freeze({
     enabled: true,
     demoUsername: 'bgh',
   },
-  'content-board': {
-    slug: 'content-board',
-    backendRole: 'ContentBoard',
+  'content-council': {
+    slug: 'content-council',
+    backendRole: 'HoiDongQuanLyNoiDung',
     label: 'Hội đồng nội dung',
     shortLabel: 'HĐND',
     eyebrow: 'Quản trị học thuật',
@@ -133,13 +172,14 @@ export const AUTH_PORTALS = Object.freeze({
     features: ['Học liệu', 'Ngân hàng câu hỏi', 'Duyệt nội dung'],
     audience: 'Dành cho hội đồng nội dung',
     group: 'staff',
-    homeRoute: '/content-board/dashboard',
-    enabled: false,
-    demoUsername: undefined,
+    homeRoute: '/content-council/subjects',
+    enabled: true,
+    demoUsername: 'content_council',
   },
   'super-admin': {
     slug: 'super-admin',
     backendRole: 'SuperAdmin',
+    allowedRoles: ['SuperAdmin', 'Admin'],
     label: 'Quản trị hệ thống',
     shortLabel: 'Admin',
     eyebrow: 'Quản trị kỹ thuật',
@@ -167,11 +207,16 @@ export function getPortalConfig(slug) {
 }
 
 export function getPortalByRole(role) {
-  const normalizedRole = String(role || '').trim().toLowerCase()
+  const normalizedRoles = (Array.isArray(role) ? role : [role]).map((item) =>
+    String(item || '').trim().toLowerCase(),
+  )
 
   return (
     Object.values(AUTH_PORTALS).find(
-      (portal) => portal.backendRole.toLowerCase() === normalizedRole,
+      (portal) => {
+        const roles = portal.allowedRoles || [portal.backendRole]
+        return roles.some((item) => normalizedRoles.includes(String(item).trim().toLowerCase()))
+      },
     ) || null
   )
 }

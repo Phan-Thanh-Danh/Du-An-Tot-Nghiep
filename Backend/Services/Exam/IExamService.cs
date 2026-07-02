@@ -1,5 +1,6 @@
 using Backend.DTOs.Common;
 using Backend.DTOs.Exam;
+using Backend.DTOs.QuizAttempts;
 
 namespace Backend.Services.Exam;
 
@@ -23,6 +24,7 @@ public interface IExamService
     Task<CaThiDto> GetCaThiByIdAsync(int id, CancellationToken ct);
     Task<CaThiDto> CreateCaThiAsync(CreateCaThiRequest request, CancellationToken ct);
     Task<CaThiDto> UpdateCaThiAsync(int id, UpdateCaThiRequest request, CancellationToken ct);
+    Task StartCaThiAsync(int id, CancellationToken ct);
 
     // PhanCongGiamThi
     Task<IReadOnlyList<PhanCongGiamThiDto>> GetGiamThisByCaThiAsync(int maCaThi, CancellationToken ct);
@@ -55,7 +57,10 @@ public interface IExamService
     Task<IReadOnlyList<PhienThiDto>> GetSignedSessionsAsync(int? maCaThi, CancellationToken ct);
 
     // Exam Taking
+    Task<IReadOnlyList<StudentExamListItemDto>> GetStudentExamsAsync(int maHocSinh, CancellationToken ct);
+    Task<PhienThiDto> GetExamSessionAsync(int maPhienThi, int maHocSinh, CancellationToken ct);
     Task<PhienThiDto> StartExamAsync(StartExamRequest request, int maHocSinh, CancellationToken ct);
+    Task<IReadOnlyList<QuizAttemptQuestionDto>> GetExamQuestionsAsync(int maPhienThi, int maHocSinh, CancellationToken ct);
     Task AutoSaveAnswerAsync(AutoSaveAnswerRequest request, int maHocSinh, CancellationToken ct);
     Task<PhienThiDto> SubmitExamAsync(SubmitExamRequest request, int maHocSinh, CancellationToken ct);
 

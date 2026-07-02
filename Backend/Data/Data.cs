@@ -9,7 +9,7 @@ namespace Backend.Data;
 public static class Data
 {
     private const string RootCampusName = "LMS Root";
-    private const string DefaultPassword = "Admin@123";
+    private const string DefaultPassword = "123456";
     private const string RootLevel = "root";
     private const string CampusLevel = "co_so";
     private const string ApprovedStatus = "approved";
@@ -52,6 +52,12 @@ public static class Data
             programs,
             users
         );
+        await EnsureStudentsHaveTrainingProgramsAsync(
+            context,
+            hcmCampus,
+            programs,
+            administrativeClasses
+        );
         await SeedTeachingCoursesAsync(
             context,
             hcmCampus,
@@ -83,6 +89,115 @@ public static class Data
         await SeedTuitionReceivingAccountAsync(context, hcmCampus);
         await SeedDeKiemTraAsync(context, subjects, terms);
 
+        // Seed CaThi & Assign lecturer01 & student01
+        await SeedCaThiTestEnvironmentAsync(context, hcmCampus);
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedCaThiTestEnvironmentAsync(ApplicationDbContext context, DonVi hcmCampus)
+    {
+        var lecturer = await context.NguoiDungs.FirstOrDefaultAsync(u => u.Email == "lecturer01@edulms.local");
+        var student = await context.NguoiDungs.FirstOrDefaultAsync(u => u.Email == "student01@edulms.local");
+        
+        if (lecturer == null || student == null) return;
+        
+        // Ensure both are in the same campus
+        lecturer.MaDonVi = hcmCampus.MaDonVi;
+        student.MaDonVi = hcmCampus.MaDonVi;
+        await context.SaveChangesAsync();
+
+        var examNames = new[] { 
+            "Quiz Cơ sở dữ liệu", 
+            "Đề thi mẫu Lập trình C#", 
+            "Kiểm tra Thiết kế Web", 
+            "Quiz Xây dựng REST API" 
+        };
+
+        var testPapers = await context.DeKiemTras
+            .Where(d => examNames.Contains(d.TieuDe))
+            .ToListAsync();
+
+        var kyThi = await context.KyThis.FirstOrDefaultAsync(k => k.TenKyThi == "Kỳ thi thử nghiệm WebRTC");
+        if (kyThi == null)
+        {
+            kyThi = new KyThi
+            {
+                TenKyThi = "Kỳ thi thử nghiệm WebRTC",
+                MaHocKy = testPapers.FirstOrDefault()?.MaHocKy ?? 0,
+                TrangThai = "dang_dien_ra",
+                NgayTao = DateTime.UtcNow
+            };
+            context.KyThis.Add(kyThi);
+            await context.SaveChangesAsync();
+        }
+
+        var room = await context.PhongHocs.FirstOrDefaultAsync();
+
+        foreach (var testPaper in testPapers)
+        {
+            var activeLichThi = await context.LichThiTongs.FirstOrDefaultAsync(l => l.MaDeKiemTra == testPaper.MaDeKiemTra);
+            if (activeLichThi == null)
+            {
+                activeLichThi = new LichThiTong
+                {
+                    MaKyThi = kyThi.MaKyThi,
+                    MaMonHoc = testPaper.MaMonHoc ?? 0,
+                    MaDeKiemTra = testPaper.MaDeKiemTra,
+                    HinhThucThi = testPaper.HinhThucThi ?? "ket_hop",
+                    NgayThiDuKien = DateTime.Today,
+                    TrangThai = "da_gui_ve_co_so",
+                    NgayTao = DateTime.UtcNow
+                };
+                context.LichThiTongs.Add(activeLichThi);
+                await context.SaveChangesAsync();
+            }
+
+            var caThiName = $"Thi thử nghiệm WebRTC - {testPaper.TieuDe}";
+            var caThi = await context.CaThis.FirstOrDefaultAsync(c => c.TenCaThi == caThiName);
+            if (caThi == null)
+            {
+                caThi = new CaThi
+                {
+                    MaLichThiTong = activeLichThi.MaLichThiTong,
+                    TenCaThi = caThiName,
+                    MaPhong = room?.MaPhong,
+                    NgayThi = DateTime.Today,
+                    ThoiGianBatDau = DateTime.Today.AddHours(8),
+                    ThoiGianKetThuc = DateTime.Today.AddDays(1).AddHours(22),
+                    MaDonVi = hcmCampus.MaDonVi,
+                    TrangThai = "dang_diem_danh", // Đang điểm danh thí sinh
+                    NgayTao = DateTime.UtcNow
+                };
+                context.CaThis.Add(caThi);
+                await context.SaveChangesAsync();
+            }
+
+            var isProctorAssigned = await context.PhanCongGiamThis.AnyAsync(p => p.MaCaThi == caThi.MaCaThi && p.MaGiamThi == lecturer.MaNguoiDung);
+            if (!isProctorAssigned)
+            {
+                context.PhanCongGiamThis.Add(new PhanCongGiamThi
+                {
+                    MaCaThi = caThi.MaCaThi,
+                    MaGiamThi = lecturer.MaNguoiDung,
+                    VaiTroGiamThi = "giam_thi_chinh",
+                    TrangThai = "du_kien",
+                    NgayTao = DateTime.UtcNow
+                });
+            }
+
+            var isStudentAssigned = await context.ThiSinhCaThis.AnyAsync(t => t.MaCaThi == caThi.MaCaThi && t.MaHocSinh == student.MaNguoiDung);
+            if (!isStudentAssigned)
+            {
+                context.ThiSinhCaThis.Add(new ThiSinhCaThi
+                {
+                    MaCaThi = caThi.MaCaThi,
+                    MaHocSinh = student.MaNguoiDung,
+                    TrangThaiDuThi = "cho_thi",
+                    NgayTao = DateTime.UtcNow
+                });
+            }
+        }
         await context.SaveChangesAsync();
     }
 
@@ -505,6 +620,7 @@ public static class Data
     {
         var subjectPlans = new[]
         {
+            new SubjectSeed("CTDL101", "Cấu trúc dữ liệu & Giải thuật", 3),
             new SubjectSeed("COM101", "Nhập môn lập trình", 3),
             new SubjectSeed("COM102", "Cơ sở dữ liệu", 3),
             new SubjectSeed("COM103", "Lập trình C#", 3),
@@ -515,6 +631,12 @@ public static class Data
             new SubjectSeed("API101", "Xây dựng REST API", 3),
             new SubjectSeed("FE101", "Vue.js căn bản", 3),
             new SubjectSeed("BE101", "ASP.NET Core căn bản", 3),
+            new SubjectSeed("MOB101", "Lập trình ứng dụng di động", 3),
+            new SubjectSeed("DEV201", "DevOps và triển khai phần mềm", 3),
+            new SubjectSeed("SEC101", "An toàn thông tin căn bản", 3),
+            new SubjectSeed("CLOUD101", "Điện toán đám mây", 3),
+            new SubjectSeed("CAP101", "Đồ án tốt nghiệp phần mềm", 4),
+            new SubjectSeed("INT101", "Thực tập doanh nghiệp CNTT", 4),
             new SubjectSeed("DES101", "Nguyên lý thị giác", 2),
             new SubjectSeed("DES102", "Photoshop căn bản", 3),
             new SubjectSeed("DES103", "Illustrator căn bản", 3),
@@ -525,6 +647,12 @@ public static class Data
             new SubjectSeed("DES108", "Motion Graphic căn bản", 3),
             new SubjectSeed("DES109", "Thiết kế portfolio", 2),
             new SubjectSeed("DES110", "Dự án thiết kế đồ họa", 3),
+            new SubjectSeed("DES111", "Thiết kế sản phẩm số", 3),
+            new SubjectSeed("DES112", "Nghiên cứu người dùng", 3),
+            new SubjectSeed("DES113", "3D căn bản", 3),
+            new SubjectSeed("DES114", "Thiết kế hệ thống thương hiệu", 3),
+            new SubjectSeed("DES115", "Đồ án tốt nghiệp thiết kế", 4),
+            new SubjectSeed("DES116", "Thực tập doanh nghiệp thiết kế", 4),
             new SubjectSeed("MKT101", "Marketing căn bản", 3),
             new SubjectSeed("MKT102", "Hành vi khách hàng", 3),
             new SubjectSeed("MKT103", "Digital Marketing", 3),
@@ -535,6 +663,12 @@ public static class Data
             new SubjectSeed("MKT108", "Kỹ năng bán hàng", 2),
             new SubjectSeed("MKT109", "Xây dựng thương hiệu", 3),
             new SubjectSeed("MKT110", "Dự án Marketing tổng hợp", 3),
+            new SubjectSeed("MKT111", "Marketing automation", 3),
+            new SubjectSeed("MKT112", "Quản trị quan hệ khách hàng", 3),
+            new SubjectSeed("MKT113", "Nghiên cứu thị trường", 3),
+            new SubjectSeed("MKT114", "Chiến lược truyền thông tích hợp", 3),
+            new SubjectSeed("MKT115", "Đồ án tốt nghiệp Marketing", 4),
+            new SubjectSeed("MKT116", "Thực tập doanh nghiệp Marketing", 4),
             new SubjectSeed("GEN101", "Kỹ năng học tập", 2),
             new SubjectSeed("GEN102", "Tin học cơ bản", 2),
             new SubjectSeed("GEN103", "Tiếng Anh cơ bản", 3),
@@ -576,6 +710,79 @@ public static class Data
             StringComparer.OrdinalIgnoreCase
         )
         {
+            ["CTDL101"] =
+            [
+                new(
+                    1,
+                    "Ôn tập nền tảng lập trình",
+                    [
+                        new(
+                            1,
+                            "Con trỏ và cấp phát động",
+                            "video",
+                            "/demo/lessons/ctdl101/contro.mp4",
+                            1104,
+                            null
+                        ),
+                        new(
+                            2,
+                            "Struct và Class cơ bản",
+                            "video",
+                            "/demo/lessons/ctdl101/struct.mp4",
+                            1330,
+                            null
+                        ),
+                        new(
+                            3,
+                            "Quiz ôn tập chương 1",
+                            "trac_nghiem",
+                            "/demo/lessons/ctdl101/quiz1.pdf",
+                            null,
+                            null
+                        ),
+                    ]
+                ),
+                new(
+                    2,
+                    "Cấu trúc dữ liệu tuyến tính",
+                    [
+                        new(
+                            1,
+                            "Danh sách liên kết đơn",
+                            "video",
+                            "/demo/lessons/ctdl101/dslk.mp4",
+                            1590,
+                            null
+                        ),
+                        new(
+                            2,
+                            "Stack và ứng dụng",
+                            "video",
+                            "/demo/lessons/ctdl101/stack.mp4",
+                            1245,
+                            null
+                        ),
+                        new(
+                            3,
+                            "Queue và vòng lặp",
+                            "video",
+                            "/demo/lessons/ctdl101/queue.mp4",
+                            1440,
+                            null
+                        ),
+                        new(
+                            4,
+                            "Bài tập thực hành",
+                            "van_ban",
+                            "/demo/lessons/ctdl101/bt1.pdf",
+                            null,
+                            null
+                        ),
+                    ]
+                ),
+                new(3, "Cây nhị phân và đồ thị", []),
+                new(4, "Sắp xếp & Tìm kiếm", []),
+            ],
             ["COM103"] =
             [
                 new(
@@ -863,6 +1070,12 @@ public static class Data
                 new(5, "PRO101"),
                 new(6, "GEN103"),
                 new(6, "GEN105"),
+                new(7, "MOB101"),
+                new(7, "DEV201"),
+                new(8, "SEC101"),
+                new(8, "CLOUD101"),
+                new(9, "CAP101"),
+                new(9, "INT101"),
             ],
             ["CT_TKDH_K2026"] =
             [
@@ -881,6 +1094,12 @@ public static class Data
                 new(5, "GEN102"),
                 new(6, "GEN103"),
                 new(6, "GEN105"),
+                new(7, "DES111"),
+                new(7, "DES112"),
+                new(8, "DES113"),
+                new(8, "DES114"),
+                new(9, "DES115"),
+                new(9, "DES116"),
             ],
             ["CT_MKT_K2026"] =
             [
@@ -899,6 +1118,12 @@ public static class Data
                 new(5, "GEN102"),
                 new(6, "GEN103"),
                 new(6, "GEN105"),
+                new(7, "MKT111"),
+                new(7, "MKT112"),
+                new(8, "MKT113"),
+                new(8, "MKT114"),
+                new(9, "MKT115"),
+                new(9, "MKT116"),
             ],
         };
 
@@ -962,6 +1187,12 @@ public static class Data
                 rootCampus.MaDonVi
             ),
             new DemoUserSeed(
+                "admin@edulms.local",
+                "Quản trị hệ thống",
+                AuthRoles.ToDatabaseCode(AuthRoles.Admin),
+                rootCampus.MaDonVi
+            ),
+            new DemoUserSeed(
                 "admin@lms.local",
                 "Admin Hệ Thống",
                 AuthRoles.ToDatabaseCode(AuthRoles.Admin),
@@ -980,7 +1211,31 @@ public static class Data
                 hcmCampus.MaDonVi
             ),
             new DemoUserSeed(
+                "daotao@edulms.local",
+                "Phòng Đào Tạo",
+                AuthRoles.ToDatabaseCode(AuthRoles.AcademicStaff),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "khoa@edulms.local",
+                "Cán bộ Khoa",
+                AuthRoles.ToDatabaseCode(AuthRoles.AcademicStaff),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "bomon@edulms.local",
+                "Cán bộ Bộ môn",
+                AuthRoles.ToDatabaseCode(AuthRoles.AcademicStaff),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
                 "principal@lms.local",
+                "Ban Giám Hiệu",
+                AuthRoles.ToDatabaseCode(AuthRoles.Principal),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "bgh@edulms.local",
                 "Ban Giám Hiệu",
                 AuthRoles.ToDatabaseCode(AuthRoles.Principal),
                 hcmCampus.MaDonVi
@@ -988,6 +1243,12 @@ public static class Data
             new DemoUserSeed(
                 "teacher.cntt@lms.local",
                 "Nguyễn Văn Lập Trình",
+                AuthRoles.ToDatabaseCode(AuthRoles.Teacher),
+                hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "lecturer01@edulms.local",
+                "Trần Thị Giảng Viên",
                 AuthRoles.ToDatabaseCode(AuthRoles.Teacher),
                 hcmCampus.MaDonVi
             ),
@@ -1036,6 +1297,13 @@ public static class Data
             new DemoUserSeed(
                 "student.cntt01@lms.local",
                 "Nguyễn Văn Sinh Viên CNTT",
+                AuthRoles.ToDatabaseCode(AuthRoles.Student),
+                hcmCampus.MaDonVi,
+                2026
+            ),
+            new DemoUserSeed(
+                "student01@edulms.local",
+                "Nguyễn Văn An",
                 AuthRoles.ToDatabaseCode(AuthRoles.Student),
                 hcmCampus.MaDonVi,
                 2026
@@ -1236,6 +1504,72 @@ public static class Data
 
         await context.SaveChangesAsync();
         return result;
+    }
+
+    private static async Task EnsureStudentsHaveTrainingProgramsAsync(
+        ApplicationDbContext context,
+        DonVi campus,
+        IReadOnlyDictionary<string, ChuongTrinhDaoTao> programs,
+        IReadOnlyDictionary<string, LopHanhChinh> administrativeClasses
+    )
+    {
+        var defaultClass = administrativeClasses["SD1901"];
+        var students = await context.NguoiDungs
+            .Where(user => user.VaiTroChinh == AuthRoles.ToDatabaseCode(AuthRoles.Student))
+            .ToListAsync();
+
+        foreach (var student in students)
+        {
+            student.MaDonVi = campus.MaDonVi;
+            student.NamNhapHoc ??= 2026;
+
+            if (student.MaLop is null)
+            {
+                student.MaLop = defaultClass.MaLop;
+            }
+        }
+
+        await context.SaveChangesAsync();
+
+        var studentClassIds = students
+            .Where(student => student.MaLop.HasValue)
+            .Select(student => student.MaLop!.Value)
+            .Distinct()
+            .ToList();
+        var classes = await context.LopHanhChinhs
+            .Where(classEntity => studentClassIds.Contains(classEntity.MaLop))
+            .ToListAsync();
+
+        foreach (var classEntity in classes)
+        {
+            if (classEntity.MaChuongTrinh.HasValue)
+            {
+                continue;
+            }
+
+            var programCode = ResolveProgramCodeForClass(classEntity.MaCodeLop);
+            classEntity.MaDonVi = campus.MaDonVi;
+            classEntity.MaChuongTrinh = programs[programCode].MaChuongTrinh;
+            classEntity.NamNhapHoc ??= 2026;
+            classEntity.ConHoatDong = true;
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static string ResolveProgramCodeForClass(string classCode)
+    {
+        if (classCode.StartsWith("TKDH", StringComparison.OrdinalIgnoreCase))
+        {
+            return "CT_TKDH_K2026";
+        }
+
+        if (classCode.StartsWith("MKT", StringComparison.OrdinalIgnoreCase))
+        {
+            return "CT_MKT_K2026";
+        }
+
+        return "CT_CNTT_K2026";
     }
 
     private static async Task<Dictionary<string, LopHocPhan>> SeedCourseSectionsAsync(
@@ -1943,39 +2277,62 @@ public static class Data
         IReadOnlyList<HocKy> terms
     )
     {
-        var subjectCode = "COM103";
-        if (!subjects.TryGetValue(subjectCode, out var subject))
-        {
-            return;
-        }
-
         var term = terms.FirstOrDefault(t => t.MaCodeHocKy == "HK3_2026");
         if (term == null)
         {
             return;
         }
 
-        var exists = await context.DeKiemTras.AnyAsync(x => x.TieuDe == "Đề thi mẫu Lập trình C#");
-        if (!exists)
+        var plans = new[]
         {
-            var deKiemTra = new DeKiemTra
+            new ExamSeed("COM103", "Đề thi mẫu Lập trình C#", 60, "ket_hop", "dang_mo"),
+            new ExamSeed("COM102", "Quiz Cơ sở dữ liệu", 45, "trac_nghiem", "dang_mo"),
+            new ExamSeed("WEB101", "Kiểm tra Thiết kế Web", 45, "ket_hop", "da_len_lich"),
+            new ExamSeed("API101", "Quiz Xây dựng REST API", 35, "trac_nghiem", "dang_mo"),
+            new ExamSeed("DES106", "Kiểm tra UI/UX Design", 45, "ket_hop", "dang_mo"),
+            new ExamSeed("DES104", "Quiz Thiết kế nhận diện thương hiệu", 35, "trac_nghiem", "da_len_lich"),
+            new ExamSeed("MKT101", "Quiz Marketing căn bản", 35, "trac_nghiem", "dang_mo"),
+            new ExamSeed("MKT103", "Kiểm tra Digital Marketing", 45, "ket_hop", "dang_mo"),
+        };
+
+        foreach (var plan in plans)
+        {
+            if (!subjects.TryGetValue(plan.SubjectCode, out var subject))
             {
-                MaMonHoc = subject.MaMonHoc,
-                MaHocKy = term.MaHocKy,
-                TieuDe = "Đề thi mẫu Lập trình C#",
-                ThoiGianPhut = 60,
-                CauHinhDeThi =
-                    "{\"questions\":[{\"id\":1,\"content\":\"Câu hỏi 1 trắc nghiệm\",\"type\":\"mcq\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":\"A\"}]}",
-                TrangThai = "da_len_lich",
-                LoaiDeThi = "ket_hop",
-                HinhThucThi = "online_tap_trung",
-                TyLeTracNghiem = 70.0m,
-                TyLeTuLuan = 30.0m,
-                NgayTao = DateTime.UtcNow,
-            };
-            context.DeKiemTras.Add(deKiemTra);
-            await context.SaveChangesAsync();
+                continue;
+            }
+
+            var deKiemTra = await context.DeKiemTras.FirstOrDefaultAsync(x =>
+                x.TieuDe == plan.Title && x.MaMonHoc == subject.MaMonHoc
+            );
+
+            if (deKiemTra is null)
+            {
+                deKiemTra = new DeKiemTra
+                {
+                    MaMonHoc = subject.MaMonHoc,
+                    TieuDe = plan.Title,
+                    NgayTao = DateTime.UtcNow,
+                };
+
+                context.DeKiemTras.Add(deKiemTra);
+            }
+
+            deKiemTra.MaMonHoc = subject.MaMonHoc;
+            deKiemTra.MaHocKy = term.MaHocKy;
+            deKiemTra.TieuDe = plan.Title;
+            deKiemTra.ThoiGianPhut = plan.DurationMinutes;
+            deKiemTra.CauHinhDeThi =
+                "{\"questions\":[{\"id\":1,\"content\":\"Câu hỏi mẫu trắc nghiệm\",\"type\":\"mcq\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":\"A\"}]}";
+            deKiemTra.TrangThai = plan.Status;
+            deKiemTra.LoaiDeThi = plan.ExamType;
+            deKiemTra.HinhThucThi = "online_tu_do";
+            deKiemTra.TyLeTracNghiem = plan.ExamType == "tu_luan" ? 0m : 70m;
+            deKiemTra.TyLeTuLuan = plan.ExamType == "trac_nghiem" ? 0m : 30m;
+            deKiemTra.NgayCapNhat = DateTime.UtcNow;
         }
+
+        await context.SaveChangesAsync();
     }
 
     private sealed record RoleSeed(string Code, string Name);
@@ -2103,5 +2460,13 @@ public static class Data
         string ProgramCode,
         decimal[] YearlyTuitionAmounts,
         decimal MaterialAmount
+    );
+
+    private sealed record ExamSeed(
+        string SubjectCode,
+        string Title,
+        int DurationMinutes,
+        string ExamType,
+        string Status
     );
 }

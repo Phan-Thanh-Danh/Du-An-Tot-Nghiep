@@ -14,7 +14,7 @@ import {
   TrendingUp,
   User,
 } from 'lucide-vue-next'
-import { SHOW_DEMO_ACCOUNTS } from '@/data/authPortals'
+import { getDemoCredentials, SHOW_DEMO_ACCOUNTS } from '@/data/authPortals'
 
 const props = defineProps({
   portal: { type: Object, default: null },
@@ -71,8 +71,11 @@ function submitLogin() {
 }
 
 function quickLogin(demoEmail) {
-  form.email = demoEmail
-  form.password = 'mock_password_no_need'
+  if (props.loading) return
+
+  const demoCredentials = getDemoCredentials(demoEmail)
+  form.email = demoCredentials?.usernameOrEmail || demoEmail
+  form.password = demoCredentials?.password || ''
   submitLogin()
 }
 
@@ -109,9 +112,9 @@ defineExpose({
     </div>
 
     <div class="space-y-1">
-      <label class="block text-[14px] font-semibold text-[#444651]" for="login-username">Tên đăng nhập / Email</label>
+      <label class="block text-[14px] font-semibold text-[#00236f]" for="login-username">Tên đăng nhập / Email</label>
       <div class="relative">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#585f67] flex items-center">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#00236f]/60 flex items-center">
           <User class="w-5 h-5" aria-hidden="true" />
         </span>
         <input
@@ -124,7 +127,7 @@ defineExpose({
           :disabled="loading"
           :aria-invalid="Boolean(fieldErrors.email)"
           :aria-describedby="fieldErrors.email ? 'login-email-error' : undefined"
-          class="w-full pl-10 pr-4 py-3 rounded-lg glass-input font-['Inter'] text-[15px] leading-6 text-[#191c1e] placeholder:text-[#c5c5d3] disabled:cursor-not-allowed"
+          class="w-full pl-10 pr-4 py-3 rounded-lg glass-input text-[15px] leading-6 text-[#191c1e] placeholder:text-[#94a3b8] disabled:cursor-not-allowed"
           placeholder="Email trường hoặc mã tài khoản"
           @input="clearFieldError('email')"
         />
@@ -140,9 +143,9 @@ defineExpose({
     </div>
 
     <div class="space-y-1">
-      <label class="block text-[14px] font-semibold text-[#444651]" for="login-password">Mật khẩu</label>
+      <label class="block text-[14px] font-semibold text-[#00236f]" for="login-password">Mật khẩu</label>
       <div class="relative">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#585f67] flex items-center">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#00236f]/60 flex items-center">
           <Lock class="w-5 h-5" aria-hidden="true" />
         </span>
         <input
@@ -155,7 +158,7 @@ defineExpose({
           :disabled="loading"
           :aria-invalid="Boolean(fieldErrors.password)"
           :aria-describedby="fieldErrors.password ? 'login-password-error' : undefined"
-          class="w-full pl-10 pr-10 py-3 rounded-lg glass-input font-['Inter'] text-[15px] leading-6 text-[#191c1e] placeholder:text-[#c5c5d3] disabled:cursor-not-allowed"
+          class="w-full pl-10 pr-10 py-3 rounded-lg glass-input text-[15px] leading-6 text-[#191c1e] placeholder:text-[#94a3b8] disabled:cursor-not-allowed"
           placeholder="••••••••"
           @input="clearFieldError('password')"
           @keyup="checkCapsLock"
@@ -165,7 +168,7 @@ defineExpose({
           type="button"
           :aria-label="showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
           :disabled="loading"
-          class="absolute right-3 top-1/2 -translate-y-1/2 text-[#585f67] hover:text-[#00236f] transition-colors flex items-center disabled:cursor-not-allowed disabled:opacity-50"
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-[#00236f]/60 hover:text-[#00236f] transition-colors flex items-center disabled:cursor-not-allowed disabled:opacity-50"
           @click="showPassword = !showPassword"
         >
           <EyeOff v-if="showPassword" class="w-5 h-5" aria-hidden="true" />
@@ -190,7 +193,7 @@ defineExpose({
     </div>
 
     <div class="flex flex-col gap-2">
-      <label class="flex items-center gap-2 cursor-pointer w-fit min-h-[44px]">
+      <label class="flex items-center gap-2 cursor-pointer w-fit py-1">
         <input
           v-model="rememberLogin"
           type="checkbox"
@@ -224,7 +227,8 @@ defineExpose({
     <div v-if="hasDemo && portal?.slug === 'student'" class="space-y-2 w-full">
       <button
         type="button"
-        class="w-full py-2.5 px-4 rounded-lg border border-dashed border-blue-200 hover:border-blue-500 text-[13px] font-semibold text-blue-800 hover:bg-blue-50/50 transition-colors flex items-center justify-center gap-2"
+        :disabled="loading"
+        class="w-full py-2.5 px-4 rounded-lg border border-blue-300 hover:border-blue-500 text-[13px] font-semibold text-blue-800 bg-white/60 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow"
         @click="quickLogin('student')"
       >
         <GraduationCap class="w-4 h-4 text-blue-600" aria-hidden="true" />
@@ -232,7 +236,8 @@ defineExpose({
       </button>
       <button
         type="button"
-        class="w-full py-2.5 px-4 rounded-lg border border-dashed border-emerald-200 hover:border-emerald-500 text-[13px] font-semibold text-emerald-800 hover:bg-emerald-50/50 transition-colors flex items-center justify-center gap-2"
+        :disabled="loading"
+        class="w-full py-2.5 px-4 rounded-lg border border-emerald-300 hover:border-emerald-500 text-[13px] font-semibold text-emerald-800 bg-white/60 hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow"
         @click="quickLogin('student_gd')"
       >
         <Palette class="w-4 h-4 text-emerald-600" aria-hidden="true" />
@@ -240,7 +245,8 @@ defineExpose({
       </button>
       <button
         type="button"
-        class="w-full py-2.5 px-4 rounded-lg border border-dashed border-orange-200 hover:border-orange-500 text-[13px] font-semibold text-orange-800 hover:bg-orange-50/50 transition-colors flex items-center justify-center gap-2"
+        :disabled="loading"
+        class="w-full py-2.5 px-4 rounded-lg border border-orange-300 hover:border-orange-500 text-[13px] font-semibold text-orange-800 bg-white/60 hover:bg-orange-50 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow"
         @click="quickLogin('student_mkt')"
       >
         <TrendingUp class="w-4 h-4 text-orange-600" aria-hidden="true" />
@@ -251,7 +257,8 @@ defineExpose({
     <button
       v-else-if="hasDemo"
       type="button"
-      class="w-full py-3 px-4 rounded-lg border border-dashed border-[#00236f]/20 text-[13px] font-semibold text-[#00236f] hover:bg-[#00236f]/5 transition-colors flex items-center justify-center gap-2"
+      :disabled="loading"
+      class="w-full py-3 px-4 rounded-lg border border-[#00236f]/30 text-[13px] font-semibold text-[#00236f] bg-white/60 hover:bg-[#00236f]/5 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow"
       @click="quickLogin(portal.demoUsername)"
     >
       <Box class="w-4 h-4" aria-hidden="true" />
@@ -262,16 +269,16 @@ defineExpose({
 
 <style scoped>
 .glass-input {
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(30, 58, 138, 0.1);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 35, 111, 0.2);
   transition: all 0.3s ease;
 }
 
 .glass-input:focus {
-  background: rgba(255, 255, 255, 0.8);
-  border-color: #1e3a8a;
+  background: rgba(255, 255, 255, 1);
+  border-color: #00236f;
   outline: none;
-  box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 35, 111, 0.1);
 }
 
 .glass-input:disabled {
@@ -290,17 +297,17 @@ input:-webkit-autofill:active {
 }
 
 .login-submit-btn {
-  background: linear-gradient(90deg, #1d4ed8 0%, #2563eb 52%, #0891b2 100%);
+  background: linear-gradient(90deg, #00236f 0%, #1e3a8a 52%, #0891b2 100%);
   box-shadow:
-    0 18px 40px rgba(37, 99, 235, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    0 8px 24px rgba(0, 35, 111, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .login-submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow:
-    0 22px 48px rgba(37, 99, 235, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.34);
+    0 12px 32px rgba(0, 35, 111, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .login-submit-btn:active:not(:disabled) {

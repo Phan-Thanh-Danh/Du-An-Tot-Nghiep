@@ -7,8 +7,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "email": "superadmin@lms.local",
-  "password": "Admin@123456"
+  "usernameOrEmail": "student01@edulms.local",
+  "password": "123456"
 }
 
 ###

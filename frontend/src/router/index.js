@@ -449,7 +449,7 @@ const router = createRouter({
     {
       path: '/super-admin',
       component: () => import('../components/SuperAdmin/Layout_SuperAdmin.vue'),
-      meta: { requiresAuth: true, role: 'SuperAdmin' },
+      meta: { requiresAuth: true, role: ['SuperAdmin', 'Admin'] },
       children: [
         { path: '', redirect: '/super-admin/dashboard' },
         {

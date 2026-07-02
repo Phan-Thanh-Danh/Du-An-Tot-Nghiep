@@ -11,7 +11,8 @@ import {
   LockKeyhole,
   RefreshCw,
   ArrowRight,
-  MessageCircleQuestion
+  MessageCircleQuestion,
+  BookOpenCheck
 } from 'lucide-vue-next'
 import { AUTH_PORTALS } from '@/data/authPortals'
 import LearningOrbit from '@/components/auth/LearningOrbit.vue'
@@ -68,7 +69,10 @@ onBeforeUnmount(() => {
 
 const studentPortal = computed(() => AUTH_PORTALS['student'])
 const teacherPortal = computed(() => AUTH_PORTALS['teacher'])
-const parentPortal = computed(() => AUTH_PORTALS['parent'])
+const parentPortal = computed(() => {
+  const portal = AUTH_PORTALS['parent']
+  return portal?.enabled ? portal : null
+})
 
 const staffPortals = computed(() =>
   Object.values(AUTH_PORTALS).filter((p) => p.group === 'staff' && p.enabled),
@@ -77,6 +81,7 @@ const staffPortals = computed(() =>
 function getStaffIcon(slug) {
   if (slug === 'staff') return Briefcase
   if (slug === 'bgh') return Award
+  if (slug === 'content-council') return BookOpenCheck
   return Settings
 }
 </script>
@@ -263,6 +268,7 @@ function getStaffIcon(slug) {
                 />
               </div>
               <div
+                v-if="parentPortal"
                 class="portal-card-reveal portal-reveal"
                 :style="{
                   '--reveal-delay': '360ms',
