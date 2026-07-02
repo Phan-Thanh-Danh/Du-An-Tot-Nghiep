@@ -1,16 +1,29 @@
 export const ROLE_HOME_ROUTES = Object.freeze({
   Student: '/student/dashboard',
+
   Teacher: '/teacher/dashboard',
   Lecturer: '/teacher/dashboard',
+
   AcademicStaff: '/staff/dashboard',
   TrainingDepartment: '/staff/dashboard',
   Faculty: '/staff/dashboard',
   AcademicDepartment: '/staff/dashboard',
+
   Principal: '/bgh/dashboard',
+  Chairman: '/bgh/dashboard',
+
   Parent: '/parent/dashboard',
-  HoiDongQuanLyNoiDung: '/content-council/subjects',
+
   Admin: '/super-admin/dashboard',
   SuperAdmin: '/super-admin/dashboard',
+  CampusAdmin: '/super-admin/dashboard',
+  SubCampusAdmin: '/super-admin/dashboard',
+
+  HoiDongQuanLyNoiDung: '/content-council/subjects',
+
+  FinanceAdmin: '/super-admin/finance/payments',
+  CampusAccountant: '/super-admin/finance/payments',
+  CampusChiefAccountant: '/super-admin/finance/payments',
 })
 
 export function normalizeRole(role) {
@@ -20,6 +33,12 @@ export function normalizeRole(role) {
     trainingdepartment: 'academicstaff',
     faculty: 'academicstaff',
     academicdepartment: 'academicstaff',
+    campusadministrator: 'campusadmin',
+    subcampusadministrator: 'subcampusadmin',
+    contentcouncil: 'hoidongquanlynoidung',
+    financeadministrator: 'financeadmin',
+    accountant: 'campusaccountant',
+    chiefaccountant: 'campuschiefaccountant',
   }
 
   return aliases[normalized] || normalized
