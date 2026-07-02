@@ -23,7 +23,7 @@
     </div>
 
     <div v-for="semester in semesters" :key="semester.maChuongTrinhHocKy" class="surface-card border border-card rounded-2xl overflow-hidden shadow-sm">
-      <div class="px-5 py-3 bg-(--surface-input)/30 border-b border-default flex items-center justify-between">
+      <div class="px-5 py-3 bg-(--surface-input)/30 flex items-center justify-between">
         <h3 class="text-sm font-bold text-heading flex items-center gap-2">
           <span class="h-6 w-6 rounded-lg bg-(--lg-primary) text-white flex items-center justify-center text-[11px] font-bold">{{ semester.thuTuHocKy }}</span>
           Học kỳ {{ semester.thuTuHocKy }}
@@ -32,7 +32,7 @@
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm text-body whitespace-nowrap">
-          <thead class="bg-(--surface-card) border-b border-default">
+          <thead class="bg-(--surface-card)">
             <tr>
               <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Mã môn</th>
               <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Tên môn học</th>
@@ -43,7 +43,7 @@
               <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Trạng thái</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-default">
+          <tbody>
             <tr v-for="sub in semester.subjects" :key="sub.maChuongTrinhMonHoc" class="hover:bg-(--surface-input)/50 transition-colors">
               <td class="px-4 py-2.5">
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-(--surface-input) text-heading border border-default">{{ sub.maCodeMonHoc }}</span>
@@ -67,7 +67,7 @@
               </td>
             </tr>
           </tbody>
-          <tfoot v-if="semester.ghiChu" class="border-t border-default">
+          <tfoot v-if="semester.ghiChu">
             <tr>
               <td colspan="7" class="px-4 py-2 text-xs text-muted italic">
                 📝 {{ semester.ghiChu }}

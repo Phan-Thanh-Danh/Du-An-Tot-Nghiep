@@ -136,29 +136,19 @@ watch(mobileSidebarOpen, (open) => {
             :title="currentPageMeta.title"
             :subtitle="currentPageMeta.subtitle"
           >
-            <Suspense :timeout="0">
-              <template #default>
-                <router-view v-slot="{ Component, route }">
-                  <Transition
-                    enter-active-class="transition-all duration-200 ease-out will-change-transform will-change-opacity"
-                    enter-from-class="opacity-0 translate-y-2"
-                    enter-to-class="opacity-100 translate-y-0"
-                    leave-active-class="transition-opacity duration-75 ease-in"
-                    leave-from-class="opacity-100"
-                    leave-to-class="opacity-0"
-                    mode="out-in"
-                  >
-                    <component :is="Component" :key="route.path" />
-                  </Transition>
-                </router-view>
-              </template>
-              <template #fallback>
-                <div class="flex flex-col items-center justify-center py-20">
-                  <div class="h-8 w-8 animate-spin rounded-full border-2 border-(--border-default) border-t-(--accent-primary)" />
-                  <p class="mt-4 text-sm font-medium text-body">Đang tải dữ liệu...</p>
-                </div>
-              </template>
-            </Suspense>
+            <router-view v-slot="{ Component, route }">
+              <Transition
+                enter-active-class="transition-all duration-200 ease-out will-change-transform will-change-opacity"
+                enter-from-class="opacity-0 translate-y-2"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition-opacity duration-75 ease-in"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+                mode="out-in"
+              >
+                <component :is="Component" :key="route.path" />
+              </Transition>
+            </router-view>
           </PageContainer>
         </div>
       </main>

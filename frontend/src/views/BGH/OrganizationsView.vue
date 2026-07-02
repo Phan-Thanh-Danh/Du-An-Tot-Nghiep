@@ -2,7 +2,7 @@
   <div class="h-[calc(100vh-8rem)] flex gap-6">
     <!-- Left Panel: Tree View -->
     <div class="w-1/3 min-w-[300px] flex flex-col surface-card border border-card rounded-2xl overflow-hidden shadow-sm">
-      <div class="p-4 border-b border-default flex items-center justify-between bg-(--surface-card)">
+      <div class="p-4 flex items-center justify-between bg-(--surface-card)">
         <div>
           <h2 class="text-lg font-bold text-heading">Cơ Cấu Tổ Chức</h2>
           <p class="text-xs text-muted mt-0.5">Danh sách các khoa, phòng ban</p>
@@ -61,7 +61,7 @@
 
     <!-- Right Panel: Details/Form -->
     <div class="flex-1 flex flex-col surface-card border border-card rounded-2xl overflow-hidden shadow-sm">
-      <div class="p-4 border-b border-default bg-(--surface-card)">
+      <div class="p-4 bg-(--surface-card)">
         <h2 class="text-lg font-bold text-heading">
           {{ formMode === 'view' ? 'Chi tiết đơn vị' : (formMode === 'create' ? 'Thêm đơn vị mới' : 'Chỉnh sửa đơn vị') }}
         </h2>
@@ -129,7 +129,7 @@
           </div>
 
           <!-- Status / Dates (View Only) -->
-          <div v-if="formMode === 'view' && selectedNode" class="pt-4 border-t border-default space-y-3">
+          <div v-if="formMode === 'view' && selectedNode" class="pt-4 space-y-3">
             <div class="flex justify-between text-sm">
               <span class="text-muted font-medium">Trạng thái:</span>
               <span :class="selectedNode.isActive ? 'text-(--color-success-text)' : 'text-(--color-danger-text)'" class="font-bold">
@@ -156,7 +156,7 @@
       </div>
 
       <!-- Footer Actions -->
-      <div v-if="selectedNode || formMode !== 'view'" class="p-4 border-t border-default bg-(--surface-card) flex items-center justify-between">
+      <div v-if="selectedNode || formMode !== 'view'" class="p-4 bg-(--surface-card) flex items-center justify-between">
         
         <!-- Left actions (Delete) -->
         <div>

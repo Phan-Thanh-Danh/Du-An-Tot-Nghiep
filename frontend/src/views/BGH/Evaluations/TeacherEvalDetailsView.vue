@@ -124,7 +124,7 @@ const teacher = ref({
            <h3 class="text-xl font-semibold text-heading">{{ teacher.name }}</h3>
            <p class="text-[10px] font-semibold text-link uppercase tracking-[0.2em] mt-1">{{ teacher.code }}</p>
            
-           <div class="mt-8 pt-8 border-t border-default space-y-4 text-left">
+           <div class="mt-8 pt-8 space-y-4 text-left">
               <div class="flex items-center gap-3">
                  <BookOpen :size="16" class="text-muted" />
                  <div>

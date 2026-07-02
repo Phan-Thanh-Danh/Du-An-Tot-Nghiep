@@ -33,8 +33,8 @@
       </div>
 
       <Transition enter-active-class="transition-all duration-300" enter-from-class="max-h-0 opacity-0" enter-to-class="max-h-[2000px] opacity-100" leave-active-class="transition-all duration-200" leave-from-class="max-h-[2000px] opacity-100" leave-to-class="max-h-0 opacity-0">
-        <div v-if="expandedBuilding === building.maToaNha" class="border-t border-default overflow-hidden">
-          <div v-for="floor in getFloors(building.maToaNha)" :key="floor.maTang" class="border-b border-default last:border-b-0">
+        <div v-if="expandedBuilding === building.maToaNha" class="overflow-hidden">
+          <div v-for="floor in getFloors(building.maToaNha)" :key="floor.maTang" class="last:border-b-0">
             <div @click="toggleFloor(floor.maTang)" class="px-5 py-3 flex items-center justify-between cursor-pointer hover:bg-(--surface-input)/20 transition-colors ml-4">
               <div class="flex items-center gap-2">
                 <ChevronDown v-if="expandedFloor === floor.maTang" :size="14" class="text-muted" />

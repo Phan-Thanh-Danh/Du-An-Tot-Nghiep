@@ -1,39 +1,36 @@
 ﻿<template>
-  <PageContainer 
-    title="Đánh giá Giảng viên" 
-    subtitle="Kết quả khảo sát và đánh giá chất lượng giảng dạy"
-  >
-    <template #actions>
-      <select v-model="semesterFilter" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
+  <div class="space-y-4">
+    <div class="flex items-center gap-3">
+      <select v-model="semesterFilter" class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
         <option v-for="s in semesters" :key="s" :value="s">{{ s }}</option>
       </select>
-      <select v-model="campusFilter" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
+      <select v-model="campusFilter" class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
         <option value="">Tất cả cơ sở</option>
         <option>FPT Polytechnic Hồ Chí Minh</option>
         <option>FPT Polytechnic Đà Nẵng</option>
       </select>
-    </template>
+    </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div v-for="stat in stats" :key="stat.id" class="surface-card border border-card rounded-2xl p-4 shadow-sm">
+      <div v-for="stat in stats" :key="stat.id" class="surface-card border border-card rounded-2xl p-4 group hover:border-(--border-input-focus) transition-all">
         <div class="flex items-center justify-between">
-          <div :class="['h-9 w-9 rounded-xl flex items-center justify-center transition-transform', stat.bg, stat.iconColor]">
-            <component :is="stat.icon" :size="20" />
+          <div :class="['h-10 w-10 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm border border-default', stat.bg, stat.iconColor]">
+            <component :is="stat.icon" :size="22" />
           </div>
         </div>
-        <p class="mt-3 text-xl font-bold text-heading">{{ stat.value }}</p>
-        <p class="text-xs text-muted">{{ stat.label }}</p>
+        <p class="mt-3 text-2xl font-bold text-heading">{{ stat.value }}</p>
+        <p class="text-xs text-muted mt-0.5">{{ stat.label }}</p>
       </div>
     </div>
 
-    <div class="surface-card border border-card rounded-2xl overflow-hidden shadow-sm">
-      <div class="p-4 border-b border-default flex items-center justify-between">
+    <div class="surface-card border border-card rounded-2xl overflow-hidden">
+      <div class="p-4 flex items-center justify-between">
         <h2 class="text-base font-bold text-heading">Xếp hạng giảng viên</h2>
         <span class="text-xs text-muted">{{ filteredRankings.length }} giảng viên</span>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm text-body whitespace-nowrap">
-          <thead class="bg-(--surface-card) border-b border-default">
+          <thead class="bg-(--surface-card)">
             <tr>
               <th class="px-4 py-3 font-bold text-heading w-12">#</th>
               <th class="px-4 py-3 font-bold text-heading">Giảng viên</th>
@@ -46,8 +43,10 @@
               <th class="px-4 py-3 font-bold text-heading">Xu hướng</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-default">
-            <tr v-for="(gv, i) in filteredRankings" :key="gv.id" class="hover:bg-(--surface-input)/50 transition-colors">
+          <tbody>
+            <tr v-for="(gv, i) in filteredRankings" :key="gv.id"
+                class="hover:bg-(--surface-input)/50 transition-colors cursor-pointer"
+                @click="viewTeacherDetail(gv)">
               <td class="px-4 py-3">
                 <span :class="i < 3 ? 'text-indigo-500 font-bold' : 'text-muted'" class="text-sm">{{ i + 1 }}</span>
               </td>
@@ -79,7 +78,7 @@
               <td class="px-4 py-3">
                 <div class="flex items-center gap-1.5">
                   <div class="w-16 h-1.5 rounded-full bg-default overflow-hidden">
-                    <div class="h-full rounded-full bg-(--lg-primary)" :style="{ width: (gv.phuongPhap / 5 * 100) + '%' }" />
+                    <div class="h-full rounded-full" :class="gv.phuongPhap >= 4.5 ? 'bg-(--color-success-text)' : gv.phuongPhap >= 4.0 ? 'bg-(--color-info-text)' : 'bg-(--color-warning-text)'" :style="{ width: (gv.phuongPhap / 5 * 100) + '%' }" />
                   </div>
                   <span class="text-xs font-bold text-heading">{{ gv.phuongPhap.toFixed(1) }}</span>
                 </div>
@@ -94,8 +93,7 @@
               </td>
               <td class="px-4 py-3">
                 <div class="flex items-center gap-1 text-xs font-bold" :class="gv.xuHuong >= 0 ? 'text-(--color-success-text)' : 'text-(--color-danger-text)'">
-                  <TrendingUp v-if="gv.xuHuong >= 0" :size="14" />
-                  <TrendingDown v-else :size="14" />
+                  <component :is="gv.xuHuong >= 0 ? TrendingUp : TrendingDown" :size="14" />
                   {{ gv.xuHuong >= 0 ? '+' : '' }}{{ gv.xuHuong.toFixed(2) }}
                 </div>
               </td>
@@ -105,13 +103,13 @@
       </div>
     </div>
 
-    <div class="surface-card border border-card rounded-2xl p-5 shadow-sm">
+    <div class="surface-card border border-card rounded-2xl p-5">
       <h2 class="text-base font-bold text-heading mb-4">Phân tích đánh giá theo khoa</h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div v-for="dept in departmentStats" :key="dept.ten" class="p-4 rounded-2xl border border-default">
           <div class="flex items-center justify-between mb-2">
             <h3 class="text-sm font-bold text-heading">{{ dept.ten }}</h3>
-            <span class="text-xs font-bold text-(--lg-primary)">{{ dept.soGv }} GV</span>
+            <span class="text-xs font-bold text-link">{{ dept.soGv }} GV</span>
           </div>
           <div class="flex items-center gap-2">
             <div class="flex-1 h-2 rounded-full bg-default overflow-hidden">
@@ -129,10 +127,10 @@
       </div>
     </div>
 
-    <div class="surface-card border border-card rounded-2xl p-5 shadow-sm">
+    <div class="surface-card border border-card rounded-2xl p-5">
       <h2 class="text-base font-bold text-heading mb-3">Bình luận nổi bật từ sinh viên</h2>
-      <div class="space-y-3">
-        <div v-for="comment in comments" :key="comment.id" class="p-3 rounded-xl border border-default hover:border-(--border-input-focus) transition-all">
+      <div>
+        <div v-for="comment in comments" :key="comment.id" class="py-3 first:pt-0 last:pb-0">
           <div class="flex items-start gap-3">
             <div class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-800 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">{{ comment.initials }}</div>
             <div class="flex-1 min-w-0">
@@ -141,24 +139,23 @@
                 <span class="text-[10px] text-muted">{{ comment.monHoc }} · {{ comment.ngay }}</span>
               </div>
               <p class="text-xs text-body mt-1 italic">"{{ comment.noiDung }}"</p>
-              <div class="flex items-center gap-2 mt-1.5">
-                <div class="flex items-center gap-0.5">
-                  <Star v-for="s in 5" :key="s" :size="10" :class="s <= comment.rating ? 'text-amber-400' : 'text-default'" :fill="s <= comment.rating ? 'currentColor' : 'none'" />
-                </div>
+              <div class="flex items-center gap-0.5 mt-1">
+                <Star v-for="s in 5" :key="s" :size="10" :class="s <= comment.rating ? 'text-amber-400' : 'text-default'" :fill="s <= comment.rating ? 'currentColor' : 'none'" />
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </PageContainer>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { Star, TrendingUp, TrendingDown, ThumbsUp, MessageSquare, Users, Award } from 'lucide-vue-next'
-import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const semesterFilter = ref('Spring 2026')
 const campusFilter = ref('')
 const semesters = ['Spring 2026', 'Fall 2025', 'Summer 2025', 'Spring 2025']
@@ -200,4 +197,8 @@ const filteredRankings = computed(() => {
   if (!campusFilter.value) return teacherRankings
   return teacherRankings
 })
+
+function viewTeacherDetail(gv) {
+  router.push(`/bgh/evaluations/detail/${gv.maCodeGv}`)
+}
 </script>

@@ -43,7 +43,7 @@
               </div>
             </div>
           </div>
-          <div v-if="editing" class="flex items-center gap-3 mt-6 pt-4 border-t border-default">
+          <div v-if="editing" class="flex items-center gap-3 mt-6 pt-4">
             <button @click="cancelEdit" class="px-4 py-2 border border-input rounded-lg text-sm font-bold text-body hover:bg-(--surface-input) transition-colors">Hủy</button>
             <button @click="saveProfile" class="px-4 py-2 bg-(--lg-primary) text-white text-sm font-bold rounded-lg hover:brightness-110 transition-all">Lưu thay đổi</button>
           </div>

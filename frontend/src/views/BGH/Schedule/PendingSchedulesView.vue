@@ -1,69 +1,117 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { 
-  CheckCircle2, 
-  XCircle, 
-  Eye, 
-  Search, 
-  Filter, 
-  AlertTriangle, 
-  Clock, 
-  User,
-  Building2
+  CheckCircle2, XCircle, Eye, Search, Filter, AlertTriangle, Clock, User, Building2,
+  ChevronDown, X
 } from 'lucide-vue-next'
-import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import { usePopupStore } from '@/stores/popup'
 
-// ── Mock Data ────────────────────────────────────────────────
+const popup = usePopupStore()
+const router = useRouter()
+
 const pendingSets = ref([
   { id: 'TKB-001', semester: 'Spring 2026', campus: 'Cơ sở chính', dept: 'Khoa CNTT', classes: 86, slots: 420, conflicts: 0, sender: 'Phạm Minh D', date: '12/05/2026', status: 'pending_approval' },
   { id: 'TKB-002', semester: 'Spring 2026', campus: 'Cơ sở 2', dept: 'Khoa Kinh tế', classes: 42, slots: 215, conflicts: 3, sender: 'Nguyễn Bích L', date: '11/05/2026', status: 'pending_approval' },
   { id: 'TKB-003', semester: 'Spring 2026', campus: 'Cơ sở chính', dept: 'Khoa Ngoại ngữ', classes: 65, slots: 310, conflicts: 1, sender: 'Trần Văn K', date: '13/05/2026', status: 'pending_approval' },
+  { id: 'TKB-004', semester: 'Fall 2025', campus: 'Cơ sở chính', dept: 'Khoa Thiết kế', classes: 38, slots: 195, conflicts: 0, sender: 'Lê Hoàng A', date: '10/05/2026', status: 'approved' },
 ])
+
+const searchQuery = ref('')
+const semesterFilter = ref('all')
+const showAdvancedFilter = ref(false)
+const conflictFilter = ref('all')
+
+const filteredSets = computed(() => {
+  let list = pendingSets.value
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    list = list.filter(s => s.dept.toLowerCase().includes(q) || s.id.toLowerCase().includes(q) || s.sender.toLowerCase().includes(q) || s.semester.toLowerCase().includes(q))
+  }
+  if (semesterFilter.value !== 'all') {
+    list = list.filter(s => s.semester === semesterFilter.value)
+  }
+  if (conflictFilter.value === 'has') {
+    list = list.filter(s => s.conflicts > 0)
+  } else if (conflictFilter.value === 'none') {
+    list = list.filter(s => s.conflicts === 0)
+  }
+  return list
+})
+
+function approveSet(item) {
+  const idx = pendingSets.value.findIndex(s => s.id === item.id)
+  if (idx !== -1) {
+    pendingSets.value[idx] = { ...pendingSets.value[idx], status: 'approved' }
+    popup.success('Đã phê duyệt', `Bộ TKB "${item.id}" — ${item.dept} đã được duyệt.`)
+  }
+}
+
+function rejectSet(item) {
+  const idx = pendingSets.value.findIndex(s => s.id === item.id)
+  if (idx !== -1) {
+    pendingSets.value[idx] = { ...pendingSets.value[idx], status: 'rejected' }
+    popup.info('Đã từ chối', `Bộ TKB "${item.id}" — ${item.dept} đã bị từ chối.`)
+  }
+}
+
+function viewDetail(item) {
+  popup.info(`Chi tiết TKB: ${item.id}`, `${item.dept}\nHọc kỳ: ${item.semester}\nCơ sở: ${item.campus}\nLớp: ${item.classes}\nLịch: ${item.slots}\nXung đột: ${item.conflicts}\nNgười gửi: ${item.sender}`)
+}
 </script>
 
 <template>
-  <PageContainer 
-    title="Thời khóa biểu chờ duyệt" 
-    subtitle="Ban giám hiệu phê duyệt các bộ Thời khóa biểu do các Khoa/Phòng giáo vụ trình duyệt."
-  >
+  <div class="space-y-4">
     <div class="space-y-4">
       
-      <!-- ── Filters ── -->
       <div class="surface-card border border-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
         <div class="flex flex-wrap items-center gap-3 flex-1">
            <div class="relative max-w-sm w-full">
               <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
-              <input 
-                type="text" 
-                placeholder="Tìm theo học kỳ, khoa..." 
-                class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-(--border-input-focus)"
-              >
+              <input v-model="searchQuery" type="text" placeholder="Tìm theo khoa, mã duyệt..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
            </div>
-           <select class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none">
-              <option>Spring 2026</option>
-              <option>Fall 2025</option>
+           <select v-model="semesterFilter" class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+              <option value="all">Tất cả kỳ</option>
+              <option value="Spring 2026">Spring 2026</option>
+              <option value="Fall 2025">Fall 2025</option>
            </select>
         </div>
-        <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
-           <Filter :size="18" /> Bộ lọc nâng cao
+        <button @click="showAdvancedFilter = !showAdvancedFilter" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
+           <Filter :size="18" /> Lọc nâng cao <ChevronDown :size="14" :class="showAdvancedFilter ? 'rotate-180' : ''" class="transition-transform" />
         </button>
       </div>
 
-      <!-- ── Table ── -->
+      <Transition name="fade-slide">
+        <div v-if="showAdvancedFilter" class="surface-card border border-card rounded-2xl p-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-[10px] font-semibold text-muted uppercase tracking-widest mb-1.5">Xung đột</label>
+              <select v-model="conflictFilter" class="w-full surface-input border border-input rounded-xl px-3 py-2.5 text-xs font-semibold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+                <option value="all">Tất cả</option>
+                <option value="has">Có xung đột</option>
+                <option value="none">Không xung đột</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 mt-4">
+            <button @click="conflictFilter = 'all'; semesterFilter = 'all'; showAdvancedFilter = false" class="lg-button-secondary px-4 py-2 text-xs font-bold rounded-xl">Đặt lại</button>
+          </div>
+        </div>
+      </Transition>
+
       <div class="lg-table-shell overflow-hidden">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Khoa / Bộ phận</th>
-              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Học kỳ & CS</th>
-              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Quy mô</th>
-              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Xung đột</th>
-              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default">Người gửi</th>
-              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest border-b border-default text-right">Thao tác</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest">Khoa / Bộ phận</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest">Học kỳ & CS</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest">Quy mô</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest">Xung đột</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest">Người gửi</th>
+              <th class="px-4 py-3 text-[10px] font-semibold text-muted uppercase tracking-widest text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-default">
-            <tr v-for="set in pendingSets" :key="set.id" class="group hover:bg-(--surface-input) transition-colors">
+          <tbody>
+            <tr v-for="set in filteredSets" :key="set.id" class="group hover:bg-(--surface-input) transition-colors">
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
                   <div class="h-9 w-9 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) border border-(--color-info-text)/20">
@@ -91,7 +139,7 @@ const pendingSets = ref([
                 </div>
                 <div v-else class="inline-flex items-center gap-1.5 rounded-lg border border-(--color-danger-text)/20 bg-(--color-danger-bg) px-2 py-1 text-(--color-danger-text)">
                    <AlertTriangle :size="14" />
-                   <span class="text-[10px] font-semibold uppercase tracking-widest">{{ set.conflicts }} lỗi nghiêm trọng</span>
+                   <span class="text-[10px] font-semibold uppercase tracking-widest">{{ set.conflicts }} lỗi</span>
                 </div>
               </td>
               <td class="px-4 py-3">
@@ -102,23 +150,29 @@ const pendingSets = ref([
               </td>
               <td class="px-4 py-3 text-right">
                 <div class="flex items-center justify-end gap-1">
-                  <button class="p-2 hover:bg-(--color-info-bg) hover:text-(--color-info-text) rounded-lg text-muted transition-all" title="Xem chi tiết TKB">
+                  <button @click="viewDetail(set)" class="p-2 hover:bg-(--color-info-bg) hover:text-(--color-info-text) rounded-lg text-muted transition-all" title="Xem chi tiết">
                     <Eye :size="18" />
                   </button>
-                  <button class="p-2 hover:bg-(--color-success-bg) hover:text-(--color-success-text) rounded-lg text-muted transition-all" title="Phê duyệt">
+                  <button v-if="set.status === 'pending_approval'" @click="approveSet(set)" class="p-2 hover:bg-(--color-success-bg) hover:text-(--color-success-text) rounded-lg text-muted transition-all" title="Phê duyệt">
                     <CheckCircle2 :size="18" />
                   </button>
-                  <button class="p-2 hover:bg-(--color-danger-bg) hover:text-(--color-danger-text) rounded-lg text-muted transition-all" title="Từ chối">
+                  <button v-if="set.status === 'pending_approval'" @click="rejectSet(set)" class="p-2 hover:bg-(--color-danger-bg) hover:text-(--color-danger-text) rounded-lg text-muted transition-all" title="Từ chối">
                     <XCircle :size="18" />
                   </button>
+                  <span v-if="set.status === 'approved'" class="text-[10px] font-semibold text-(--color-success-text) uppercase tracking-widest">Đã duyệt</span>
+                  <span v-if="set.status === 'rejected'" class="text-[10px] font-semibold text-(--color-danger-text) uppercase tracking-widest">Đã từ chối</span>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
+        <div v-if="filteredSets.length === 0" class="py-12 text-center">
+          <CheckCircle2 :size="36" class="text-placeholder mx-auto mb-3" />
+          <p class="text-xs font-semibold text-muted">Không tìm thấy dữ liệu phù hợp</p>
+          <button @click="searchQuery = ''; semesterFilter = 'all'" class="mt-2 text-[11px] font-bold text-link underline-offset-2 hover:underline">Xoá bộ lọc</button>
+        </div>
       </div>
 
-      <!-- ── Approval Policy ── -->
       <div class="surface-card border border-(--color-info-text)/20 bg-(--color-info-bg) rounded-2xl p-4">
          <div class="flex items-start gap-4">
             <div class="h-10 w-10 rounded-2xl bg-(--surface-card) flex items-center justify-center text-(--color-info-text) shrink-0 border border-(--color-info-text)/20">
@@ -127,12 +181,23 @@ const pendingSets = ref([
             <div>
                <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Chính sách phê duyệt TKB</h4>
                <p class="text-xs text-(--color-info-text) mt-1 leading-relaxed">
-                 Hệ thống chỉ cho phép <strong>Duyệt & Publish</strong> bộ TKB khi số lượng xung đột nghiêm trọng (trùng phòng, trùng giảng viên) bằng 0. Nếu bộ TKB còn tồn tại xung đột, BGH vui lòng gửi yêu cầu Giáo vụ chỉnh sửa (Reject with comment).
+                 Hệ thống chỉ cho phép <strong>Duyệt & Publish</strong> bộ TKB khi số lượng xung đột nghiêm trọng (trùng phòng, trùng giảng viên) bằng 0. Nếu còn xung đột, BGH vui lòng gửi yêu cầu Giáo vụ chỉnh sửa.
                </p>
             </div>
          </div>
       </div>
 
-    </div>
-  </PageContainer>
+  </div>
 </template>
+
+<style scoped>
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.25s ease-out;
+}
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+</style>

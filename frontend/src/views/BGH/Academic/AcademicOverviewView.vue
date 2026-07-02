@@ -4,18 +4,48 @@ import {
   Users, 
   Award, 
   CheckCircle2, 
-  XCircle, 
   TrendingUp, 
   AlertCircle, 
   ChevronRight, 
   BarChart3, 
   PieChart, 
-  Filter,
-  Download
+  FileText,
+  Download,
+  ChevronDown,
+  BookOpen,
+  TrendingDown,
+  ArrowUpRight,
+  GraduationCap,
+  Eye,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import { exportToExcel, triggerPrint } from '@/services/exportService.js'
 
-// ── Mock KPIs ────────────────────────────────────────────────
+const activeChartView = ref('toan-truong')
+const semesterFilter = ref('spring-2026')
+const departmentFilter = ref('all')
+const campusFilter = ref('all')
+const showExport = ref(false)
+
+const semesters = [
+  { value: 'spring-2026', label: 'Kỳ Spring 2026' },
+  { value: 'fall-2025', label: 'Kỳ Fall 2025' },
+  { value: 'spring-2025', label: 'Kỳ Spring 2025' },
+]
+
+const departments = [
+  { value: 'all', label: 'Tất cả Khoa' },
+  { value: 'cntt', label: 'Khoa CNTT' },
+  { value: 'ktqt', label: 'Khoa Kinh tế & QT' },
+  { value: 'nna', label: 'Khoa Ngôn ngữ Anh' },
+]
+
+const campuses = [
+  { value: 'all', label: 'Tất cả Cơ sở' },
+  { value: 'cs1', label: 'Cơ sở chính' },
+  { value: 'cs2', label: 'Cơ sở 2' },
+]
+
 const kpis = [
   { id: 1, label: 'Tổng số sinh viên', value: '1,240', trend: '+5.2%', icon: Users, color: 'text-(--color-info-text)', bgColor: 'bg-(--color-info-bg)' },
   { id: 2, label: 'GPA Trung bình', value: '3.12', trend: '+0.05', icon: Award, color: 'text-(--color-info-text)', bgColor: 'bg-(--color-info-bg)' },
@@ -23,7 +53,6 @@ const kpis = [
   { id: 4, label: 'Nguy cơ rớt môn', value: '42', trend: 'Cần chú ý', icon: AlertCircle, color: 'text-(--color-danger-text)', bgColor: 'bg-(--color-danger-bg)' },
 ]
 
-// ── Mock Distribution Data ──────────────────────────────────
 const distribution = [
   { range: 'A (8.5 - 10)', count: 185, percent: 15, color: 'bg-(--color-success-text)' },
   { range: 'B (7.0 - 8.4)', count: 420, percent: 34, color: 'bg-(--color-info-text)' },
@@ -31,6 +60,54 @@ const distribution = [
   { range: 'D (4.0 - 5.4)', count: 210, percent: 17, color: 'bg-(--color-warning-text)' },
   { range: 'F (< 4.0)', count: 75, percent: 6, color: 'bg-(--color-danger-text)' },
 ]
+
+const chartData = ref([
+  { k: 'Kỳ 2021', toanTruong: 3.50, cntt: 3.45, ktqt: 3.55, nna: 3.60 },
+  { k: 'Kỳ 2022', toanTruong: 3.88, cntt: 3.75, ktqt: 3.90, nna: 3.95 },
+  { k: 'Kỳ 2023', toanTruong: 3.70, cntt: 3.60, ktqt: 3.72, nna: 3.85 },
+  { k: 'Kỳ 2024', toanTruong: 4.25, cntt: 4.10, ktqt: 4.30, nna: 4.40 },
+  { k: 'Kỳ 2025', toanTruong: 4.63, cntt: 4.50, ktqt: 4.70, nna: 4.80 },
+])
+
+const topSubjects = ref([
+  { name: 'An toàn thông tin', class: 'SE1604', teacher: 'Hoàng Văn D', total: 38, pass: 38, failRate: 0, trend: 'up' },
+  { name: 'Web Advanced', class: 'SE1602', teacher: 'Trần Thị B', total: 35, pass: 34, failRate: 2.8, trend: 'up' },
+  { name: 'Java Programming', class: 'SE1601', teacher: 'Nguyễn Văn A', total: 40, pass: 32, failRate: 20, trend: 'down' },
+  { name: 'Cơ sở dữ liệu', class: 'SE1603', teacher: 'Lê Văn C', total: 42, pass: 30, failRate: 28.5, trend: 'down' },
+])
+
+function prepareExcelData() {
+  return [
+    ...kpis.map(k => ({ 'Chỉ tiêu': k.label, 'Giá trị': k.value, 'Xu hướng': k.trend })),
+    {},
+    { 'Chỉ tiêu': 'Phân phối điểm số', 'Giá trị': '', 'Xu hướng': '' },
+    ...distribution.map(d => ({ 'Chỉ tiêu': d.range, 'Giá trị': `${d.count} SV`, 'Xu hướng': `${d.percent}%` })),
+    {},
+    { 'Chỉ tiêu': 'Xu hướng GPA theo kỳ', 'Giá trị': '', 'Xu hướng': '' },
+    ...chartData.value.map(d => ({ 'Chỉ tiêu': d.k, 'Giá trị': `Toàn trường: ${d.toanTruong}`, 'Xu hướng': '' })),
+    {},
+    { 'Chỉ tiêu': 'Xếp hạng môn học', 'Giá trị': '', 'Xu hướng': '' },
+    ...topSubjects.value.map(s => ({ 'Chỉ tiêu': s.name, 'Giá trị': `Lớp ${s.class} - ${s.teacher}`, 'Xu hướng': `${s.failRate}% fail` })),
+  ]
+}
+
+function exportExcel() {
+  exportToExcel(prepareExcelData(), `BaoCao-TongQuan-${semesterFilter.value}.xlsx`, 'Tổng quan')
+}
+
+const exportOptions = [
+  { label: 'PDF Report', icon: FileText, action: triggerPrint },
+  { label: 'Excel Data', icon: Download, action: exportExcel },
+]
+
+const getBarHeight = (gpa) => {
+  return Math.round((gpa / 5.0) * 100)
+}
+
+const getBarColor = (index) => {
+  const colors = ['bg-(--lg-primary)', 'bg-(--color-info-text)', 'bg-(--color-warning-text)', 'bg-(--color-success-text)', 'bg-(--color-danger-text)']
+  return colors[index % colors.length]
+}
 </script>
 
 <template>
@@ -39,13 +116,43 @@ const distribution = [
     subtitle="Báo cáo phân tích chất lượng học tập và hiệu quả giảng dạy trên toàn hệ thống."
   >
     <template #actions>
-       <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
-          <Download :size="18" /> Xuất báo cáo kỳ
-       </button>
+      <div class="relative">
+        <button @click="showExport = !showExport" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
+          <Download :size="18" /> Xuất báo cáo <ChevronDown :size="16" />
+        </button>
+        <div v-if="showExport" class="absolute right-0 top-full mt-2 surface-card border border-card rounded-2xl p-2 shadow-xl z-50 min-w-[180px]">
+          <button v-for="opt in exportOptions" :key="opt.label" @click="opt.action(); showExport = false" class="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-label hover:bg-(--surface-input) rounded-xl transition-colors">
+            <component :is="opt.icon" :size="16" class="text-placeholder" />
+            {{ opt.label }}
+          </button>
+        </div>
+      </div>
     </template>
 
-    <div class="space-y-8">
+    <div id="print-container" class="space-y-6">
       
+      <!-- ── Print Header (hidden on screen) ── -->
+      <div class="hidden print:block mb-8 pb-6 border-b border-slate-300">
+        <h2 class="text-2xl font-bold text-slate-800">Báo cáo tổng quan kết quả học tập</h2>
+        <p class="text-sm text-slate-500 mt-1">Học kỳ: {{ semesters.find(s => s.value === semesterFilter)?.label }}</p>
+      </div>
+
+      <!-- ── Filter Bar (hidden when printing) ── -->
+      <div class="surface-card border border-card rounded-2xl p-4 flex flex-wrap items-center gap-3 print:hidden">
+        <div class="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-widest mr-2">
+          <BarChart3 :size="16" /> Lọc
+        </div>
+        <select v-model="semesterFilter" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+          <option v-for="s in semesters" :key="s.value" :value="s.value">{{ s.label }}</option>
+        </select>
+        <select v-model="departmentFilter" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+          <option v-for="d in departments" :key="d.value" :value="d.value">{{ d.label }}</option>
+        </select>
+        <select v-model="campusFilter" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+          <option v-for="c in campuses" :key="c.value" :value="c.value">{{ c.label }}</option>
+        </select>
+      </div>
+
       <!-- ── KPI Cards ── -->
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <div v-for="kpi in kpis" :key="kpi.id" class="surface-card border border-card rounded-2xl p-4 group transition-all">
@@ -62,46 +169,56 @@ const distribution = [
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <!-- ── Chart Section (Visual Mock) ── -->
+        <!-- ── Chart Section ── -->
         <div class="lg:col-span-2 surface-card border border-card rounded-2xl p-5 overflow-hidden relative">
-           <div class="flex items-center justify-between mb-10">
+           <div class="flex items-center justify-between mb-8">
               <div>
                  <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Xu hướng GPA theo học kỳ</h4>
                  <p class="text-xs text-muted mt-1 font-bold">Dữ liệu so sánh 5 học kỳ gần nhất</p>
               </div>
               <div class="flex items-center surface-solid rounded-xl p-1 border border-default">
-                 <button class="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest surface-card text-link rounded-lg shadow-sm">Toàn trường</button>
-                 <button class="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted hover:text-label transition-colors">Theo ngành</button>
+                 <button 
+                   @click="activeChartView = 'toan-truong'"
+                   :class="['px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest rounded-lg transition-all', activeChartView === 'toan-truong' ? 'surface-card text-link shadow-sm' : 'text-muted hover:text-label']"
+                 >Toàn trường</button>
+                 <button 
+                   @click="activeChartView = 'theo-nganh'"
+                   :class="['px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest rounded-lg transition-all', activeChartView === 'theo-nganh' ? 'surface-card text-link shadow-sm' : 'text-muted hover:text-label']"
+                 >Theo ngành</button>
               </div>
            </div>
 
-           <!-- Visual Chart Placeholder -->
            <div class="h-64 flex items-end justify-between gap-4 px-4 relative">
-              <!-- Grid lines -->
               <div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5">
                  <div v-for="i in 5" :key="i" class="h-px w-full bg-(--border-default)"></div>
               </div>
               
-              <!-- Bars -->
-              <div v-for="(h, i) in [40, 55, 48, 70, 85]" :key="i" class="flex-1 group relative cursor-pointer">
+              <div v-for="(item, i) in chartData" :key="item.k" class="flex-1 group relative cursor-pointer">
                  <div 
-                   :style="{ height: `${h}%` }" 
-                   class="w-full bg-(--lg-primary) rounded-t-2xl transition-all duration-500 group-hover:opacity-80"
+                   :style="{ height: `${getBarHeight(activeChartView === 'toan-truong' ? item.toanTruong : item.cntt)}%` }" 
+                   class="w-full rounded-t-2xl transition-all duration-500 group-hover:opacity-80"
+                   :class="getBarColor(i)"
                  ></div>
-                 <p class="text-center text-[10px] font-semibold text-muted uppercase mt-4">Kỳ {{ 2021 + i }}</p>
-                 <!-- Tooltip -->
-                 <div class="absolute -top-10 left-1/2 -translate-x-1/2 surface-modal text-heading text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity border border-default">
-                    GPA: {{ (2.5 + (h/40)).toFixed(2) }}
+                 <p class="text-center text-[10px] font-semibold text-muted uppercase mt-3">{{ item.k }}</p>
+                 <div class="absolute -top-10 left-1/2 -translate-x-1/2 surface-modal text-heading text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity border border-default whitespace-nowrap">
+                    GPA: {{ activeChartView === 'toan-truong' ? item.toanTruong : item.cntt }}
                  </div>
               </div>
+           </div>
+
+           <div v-if="activeChartView === 'theo-nganh'" class="mt-6 pt-4 flex flex-wrap items-center gap-4">
+             <span class="text-[10px] font-semibold text-muted uppercase tracking-widest">Chú thích:</span>
+             <span class="flex items-center gap-1.5 text-[10px] font-bold text-label"><span class="w-3 h-3 rounded-sm bg-(--color-info-text)"></span> CNTT</span>
+             <span class="flex items-center gap-1.5 text-[10px] font-bold text-label"><span class="w-3 h-3 rounded-sm bg-(--color-warning-text)"></span> Kinh tế & QT</span>
+             <span class="flex items-center gap-1.5 text-[10px] font-bold text-label"><span class="w-3 h-3 rounded-sm bg-(--color-success-text)"></span> Ngôn ngữ Anh</span>
            </div>
         </div>
 
         <!-- ── Distribution List ── -->
         <div class="surface-card border border-card rounded-2xl p-6">
-           <h4 class="text-sm font-semibold text-heading uppercase tracking-wide mb-8">Phân phối điểm số</h4>
+           <h4 class="text-sm font-semibold text-heading uppercase tracking-wide mb-6">Phân phối điểm số</h4>
            <div class="space-y-4">
               <div v-for="item in distribution" :key="item.range">
                  <div class="flex items-center justify-between mb-2">
@@ -117,9 +234,9 @@ const distribution = [
               </div>
            </div>
            
-           <div class="mt-10 pt-8 border-t border-default">
+           <div class="mt-6 pt-6">
               <div class="flex items-center gap-4 text-xs font-bold text-muted">
-                 <PieChart :size="18" class="text-link" />
+                 <PieChart :size="18" class="text-link shrink-0" />
                  <p>Hệ số điểm A/B chiếm <strong>49%</strong>, cho thấy chất lượng đào tạo đang ở mức Khá.</p>
               </div>
            </div>
@@ -127,11 +244,81 @@ const distribution = [
 
       </div>
 
+      <!-- ── Top / Bottom Subjects ── -->
+      <div class="surface-card border border-card rounded-2xl overflow-hidden">
+        <div class="px-5 py-4 flex items-center justify-between">
+          <div>
+            <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Xếp hạng môn học theo tỷ lệ Pass</h4>
+            <p class="text-xs text-muted mt-0.5 font-bold">Môn có tỷ lệ Pass cao nhất và thấp nhất trong kỳ</p>
+          </div>
+          <router-link to="/bgh/academic/pass-fail" class="text-[10px] font-bold text-link hover:underline flex items-center gap-1">
+            Xem tất cả <ChevronRight :size="12" />
+          </router-link>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="surface-solid">
+                <th class="px-5 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Môn học & Lớp</th>
+                <th class="px-5 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Giảng viên</th>
+                <th class="px-5 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Sĩ số / Pass</th>
+                <th class="px-5 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Tỷ lệ rớt</th>
+                <th class="px-5 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Xu hướng</th>
+                <th class="px-5 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="sub in topSubjects" :key="sub.name" class="group hover:bg-(--surface-input) transition-colors">
+                <td class="px-5 py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="h-9 w-9 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) border border-(--color-info-text)/20">
+                      <BookOpen :size="18" />
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-heading leading-tight">{{ sub.name }}</p>
+                      <p class="text-[11px] font-bold text-muted mt-0.5">{{ sub.class }}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="text-xs font-bold text-label">{{ sub.teacher }}</span>
+                </td>
+                <td class="px-5 py-4">
+                  <div class="flex items-center gap-2">
+                    <Users :size="12" class="text-placeholder" />
+                    <span class="text-xs font-semibold text-muted">{{ sub.total }} SV</span>
+                    <span class="text-[10px] font-semibold text-(--color-success-text) ml-2">({{ sub.pass }} Pass)</span>
+                  </div>
+                </td>
+                <td class="px-5 py-4">
+                  <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest border w-fit shadow-sm', sub.failRate >= 20 ? 'bg-(--color-danger-bg) text-(--color-danger-text) border-(--color-danger-text)/20' : sub.failRate >= 10 ? 'bg-(--color-warning-bg) text-(--color-warning-text) border-(--color-warning-text)/20' : 'bg-(--color-success-bg) text-(--color-success-text) border-(--color-success-text)/20']">
+                    {{ sub.failRate }}%
+                  </div>
+                </td>
+                <td class="px-5 py-4">
+                  <div v-if="sub.trend === 'up'" class="flex items-center gap-1 text-[10px] font-bold text-(--color-success-text)">
+                    <ArrowUpRight :size="14" /> Cải thiện
+                  </div>
+                  <div v-else class="flex items-center gap-1 text-[10px] font-bold text-(--color-danger-text)">
+                    <TrendingDown :size="14" /> Giảm
+                  </div>
+                </td>
+                <td class="px-5 py-4 text-right">
+                  <router-link to="/bgh/academic/pass-fail" class="p-2 hover:bg-(--color-info-bg) hover:text-link rounded-lg text-placeholder transition-all inline-flex">
+                    <Eye :size="18" />
+                  </router-link>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- ── Quick Insights ── -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-         <div class="surface-card border border-(--color-warning-text)/20 rounded-2xl p-4 bg-(--color-warning-bg)">
+         <router-link to="/bgh/academic/pass-fail" class="surface-card border border-(--color-warning-text)/20 rounded-2xl p-4 bg-(--color-warning-bg) block group">
             <div class="flex items-start gap-4">
-               <div class="h-10 w-10 rounded-2xl bg-(--surface-card) flex items-center justify-center text-(--color-warning-text) shadow-sm">
+               <div class="h-10 w-10 rounded-2xl bg-(--surface-card) flex items-center justify-center text-(--color-warning-text) shadow-sm shrink-0">
                   <TrendingUp :size="20" />
                </div>
                <div>
@@ -139,15 +326,15 @@ const distribution = [
                   <p class="text-xs text-(--color-warning-text) mt-1 leading-relaxed font-medium">
                     Tỷ lệ rớt môn (Fail) có dấu hiệu tăng <strong>2.4%</strong> so với kỳ trước, tập trung ở các môn cơ sở ngành như Cấu trúc dữ liệu và Toán rời rạc.
                   </p>
-                  <button class="mt-4 text-[10px] font-semibold text-(--color-warning-text) uppercase tracking-widest flex items-center gap-1 hover:underline">
+                  <span class="mt-4 text-[10px] font-semibold text-(--color-warning-text) uppercase tracking-widest flex items-center gap-1 group-hover:underline">
                      Xem chi tiết <ChevronRight :size="12" />
-                  </button>
+                  </span>
                </div>
             </div>
-         </div>
-         <div class="surface-card border border-(--color-info-text)/20 rounded-2xl p-4 bg-(--color-info-bg)">
+         </router-link>
+         <router-link to="/bgh/academic/at-risk" class="surface-card border border-(--color-info-text)/20 rounded-2xl p-4 bg-(--color-info-bg) block group">
             <div class="flex items-start gap-4">
-               <div class="h-10 w-10 rounded-2xl bg-(--surface-card) flex items-center justify-center text-(--color-info-text) shadow-sm">
+               <div class="h-10 w-10 rounded-2xl bg-(--surface-card) flex items-center justify-center text-(--color-info-text) shadow-sm shrink-0">
                   <BarChart3 :size="20" />
                </div>
                <div>
@@ -155,14 +342,55 @@ const distribution = [
                   <p class="text-xs text-(--color-info-text) mt-1 leading-relaxed font-medium">
                     Nhóm sinh viên năm 3 có sự bứt phá về GPA với mức tăng trung bình <strong>0.3</strong> điểm nhờ vào việc áp dụng các lớp học thực hành mới.
                   </p>
-                  <button class="mt-4 text-[10px] font-semibold text-(--color-info-text) uppercase tracking-widest flex items-center gap-1 hover:underline">
+                  <span class="mt-4 text-[10px] font-semibold text-(--color-info-text) uppercase tracking-widest flex items-center gap-1 group-hover:underline">
                      Phân tích dữ liệu <ChevronRight :size="12" />
-                  </button>
+                  </span>
                </div>
             </div>
-         </div>
+         </router-link>
+      </div>
+
+      <!-- ── Phân tích bổ sung ── -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="surface-card border border-card rounded-2xl p-5 text-center">
+          <GraduationCap :size="28" class="text-(--color-info-text) mx-auto mb-3" />
+          <p class="text-2xl font-bold text-heading">245</p>
+          <p class="text-xs font-semibold text-muted uppercase tracking-widest mt-1">Tổng số môn học</p>
+        </div>
+        <div class="surface-card border border-card rounded-2xl p-5 text-center">
+          <Users :size="28" class="text-(--color-success-text) mx-auto mb-3" />
+          <p class="text-2xl font-bold text-heading">89</p>
+          <p class="text-xs font-semibold text-muted uppercase tracking-widest mt-1">Giảng viên đang giảng dạy</p>
+        </div>
+        <div class="surface-card border border-card rounded-2xl p-5 text-center">
+          <BookOpen :size="28" class="text-(--color-warning-text) mx-auto mb-3" />
+          <p class="text-2xl font-bold text-heading">156</p>
+          <p class="text-xs font-semibold text-muted uppercase tracking-widest mt-1">Lớp học phần đang mở</p>
+        </div>
       </div>
 
     </div>
   </PageContainer>
 </template>
+
+<style scoped>
+@media print {
+  #print-container {
+    padding: 0;
+    color: #1e293b;
+  }
+  #print-container .surface-card {
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+  #print-container table {
+    font-size: 10px;
+  }
+  #print-container th {
+    background: #f1f5f9;
+    color: #475569;
+  }
+}
+</style>

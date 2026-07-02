@@ -38,7 +38,7 @@
     <div class="flex-1 surface-card border border-card rounded-2xl shadow-sm flex flex-col overflow-hidden">
       <div class="flex-1 overflow-auto">
         <table class="w-full text-left text-sm text-body whitespace-nowrap">
-          <thead class="sticky top-0 bg-(--surface-card) border-b border-default z-10 backdrop-blur-[12px]">
+          <thead class="sticky top-0 bg-(--surface-card) z-10 backdrop-blur-[12px]">
             <tr>
               <th class="px-4 py-3 font-bold text-heading w-24">ID</th>
               <th class="px-4 py-3 font-bold text-heading">Mã Code</th>
@@ -46,7 +46,7 @@
               <th v-if="canEdit" class="px-4 py-3 font-bold text-heading text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-default">
+          <tbody>
             <tr v-if="loading" class="bg-transparent">
               <td colspan="4" class="py-12 text-center text-muted">
                 <Loader2 class="animate-spin mx-auto mb-2" :size="24" />
@@ -87,7 +87,7 @@
       </div>
 
       <!-- Pagination (Tĩnh vì số lượng roles thường ít) -->
-      <div class="p-4 border-t border-default bg-(--surface-card) flex items-center justify-between text-sm">
+      <div class="p-4 bg-(--surface-card) flex items-center justify-between text-sm">
         <span class="text-muted">
           Tổng số: <span class="font-bold text-heading">{{ filteredRoles.length }}</span> vai trò
         </span>
@@ -97,7 +97,7 @@
     <!-- ── Modal: Role Form ── -->
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div class="w-full max-w-md surface-card rounded-2xl shadow-2xl border border-default overflow-hidden flex flex-col max-h-full">
-        <div class="p-4 border-b border-default flex justify-between items-center">
+        <div class="p-4 flex justify-between items-center">
           <h3 class="text-lg font-bold text-heading">{{ modalMode === 'create' ? 'Thêm Vai Trò Mới' : 'Chỉnh Sửa Vai Trò' }}</h3>
           <button @click="closeModal" class="p-1 hover:bg-(--surface-input) rounded-lg text-muted">
             <X :size="20" />
@@ -133,7 +133,7 @@
           </div>
         </form>
 
-        <div class="p-4 border-t border-default bg-(--surface-card) flex justify-end gap-3">
+        <div class="p-4 bg-(--surface-card) flex justify-end gap-3">
           <button @click="closeModal" type="button" class="px-4 py-2 text-sm font-bold border border-input rounded-lg hover:bg-(--surface-input) transition-colors">
             Hủy
           </button>

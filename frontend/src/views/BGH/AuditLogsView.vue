@@ -46,7 +46,7 @@
     <div class="flex-1 surface-card border border-card rounded-2xl shadow-sm flex flex-col overflow-hidden">
       <div class="flex-1 overflow-auto">
         <table class="w-full text-left text-sm text-body whitespace-nowrap">
-          <thead class="sticky top-0 bg-(--surface-card) border-b border-default z-10 backdrop-blur-[12px]">
+          <thead class="sticky top-0 bg-(--surface-card) z-10 backdrop-blur-[12px]">
             <tr>
               <th class="px-4 py-3 font-bold text-heading">ID</th>
               <th class="px-4 py-3 font-bold text-heading">Đơn vị</th>
@@ -59,7 +59,7 @@
               <th class="px-4 py-3 font-bold text-heading"></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-default">
+          <tbody>
             <tr v-if="filteredLogs.length === 0" class="bg-transparent">
               <td colspan="9" class="py-12 text-center text-muted">
                 <History :size="32" class="mx-auto mb-2 opacity-50" />
@@ -92,7 +92,7 @@
         </table>
       </div>
 
-      <div class="p-4 border-t border-default bg-(--surface-card) flex items-center justify-between text-sm">
+      <div class="p-4 bg-(--surface-card) flex items-center justify-between text-sm">
         <span class="text-muted">
           Hiển thị {{ displayedCount }} / {{ filteredLogs.length }} bản ghi
         </span>
@@ -106,7 +106,7 @@
 
     <div v-if="detailModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" @click.self="detailModal = false">
       <div class="w-full max-w-lg surface-card rounded-2xl shadow-2xl border border-default overflow-hidden">
-        <div class="p-4 border-b border-default flex justify-between items-center">
+        <div class="p-4 flex justify-between items-center">
           <h3 class="text-lg font-bold text-heading">Chi tiết nhật ký #{{ detailLog.maKiemToan }}</h3>
           <button @click="detailModal = false" class="p-1 hover:bg-(--surface-input) rounded-lg text-muted">
             <X :size="20" />
@@ -123,7 +123,7 @@
             <div><span class="text-muted">IP:</span><p class="font-bold text-heading font-mono text-xs">{{ detailLog.diaChiIp || '—' }}</p></div>
             <div><span class="text-muted">User Agent:</span><p class="font-bold text-heading text-xs truncate">{{ detailLog.userAgent || '—' }}</p></div>
           </div>
-          <div class="pt-3 border-t border-default">
+          <div class="pt-3">
             <span class="text-muted">Mô tả:</span>
             <p class="mt-1 text-body bg-(--surface-input) p-3 rounded-lg text-sm">{{ detailLog.moTa }}</p>
           </div>
@@ -132,7 +132,7 @@
             <p class="font-mono text-xs text-body bg-(--surface-input) p-2 rounded-lg mt-1">{{ detailLog.traceId }}</p>
           </div>
         </div>
-        <div class="p-4 border-t border-default flex justify-end">
+        <div class="p-4 flex justify-end">
           <button @click="detailModal = false" class="px-4 py-2 border border-input rounded-lg text-sm font-bold text-body hover:bg-(--surface-input) transition-colors">Đóng</button>
         </div>
       </div>

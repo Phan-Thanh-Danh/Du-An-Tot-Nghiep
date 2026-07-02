@@ -39,7 +39,7 @@
     <div class="flex-1 surface-card border border-card rounded-2xl shadow-sm flex flex-col overflow-hidden">
       <div class="flex-1 overflow-auto">
         <table class="w-full text-left text-sm text-body whitespace-nowrap">
-          <thead class="sticky top-0 bg-(--surface-card) border-b border-default z-10 backdrop-blur-[12px]">
+          <thead class="sticky top-0 bg-(--surface-card) z-10 backdrop-blur-[12px]">
             <tr>
               <th class="px-4 py-3 font-bold text-heading">Mã / ID</th>
               <th class="px-4 py-3 font-bold text-heading">Họ tên</th>
@@ -50,7 +50,7 @@
               <th class="px-4 py-3 font-bold text-heading text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-default">
+          <tbody>
             <tr v-if="filteredUsers.length === 0" class="bg-transparent">
               <td colspan="7" class="py-12 text-center text-muted"><p>Không tìm thấy người dùng nào.</p></td>
             </tr>
@@ -82,7 +82,7 @@
         </table>
       </div>
 
-      <div class="p-4 border-t border-default bg-(--surface-card) flex items-center justify-between text-sm">
+      <div class="p-4 bg-(--surface-card) flex items-center justify-between text-sm">
         <span class="text-muted">Hiển thị {{ pagedUsers.length }} / {{ filteredUsers.length }} người dùng</span>
         <div class="flex items-center gap-2">
           <button @click="prevPage" :disabled="currentPage === 1" class="px-3 py-1.5 rounded-lg border border-default hover:bg-(--surface-input) disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang trước</button>

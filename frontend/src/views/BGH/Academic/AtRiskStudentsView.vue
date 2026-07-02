@@ -1,28 +1,75 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { 
-  AlertCircle, 
   Search, 
-  Filter, 
   User, 
-  TrendingDown, 
   Brain, 
-  ChevronRight, 
   Bell, 
   History, 
-  CheckCircle2,
-  Clock,
-  Zap
+  Zap,
+  Download,
+  FileText,
+  ChevronDown,
+  Loader2,
+  Inbox,
+  Send,
+  ExternalLink,
+  X,
+  Mail,
+  Phone,
+  AlertTriangle,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import { exportToExcel, triggerPrint } from '@/services/exportService.js'
+import { usePopupStore } from '@/stores/popup'
 
-// ── Mock Data ────────────────────────────────────────────────
+const popup = usePopupStore()
+const router = useRouter()
+
+const loading = ref(false)
+const semesterFilter = ref('spring-2026')
+const riskFilter = ref('all')
+const searchQuery = ref('')
+
+const semesters = [
+  { value: 'spring-2026', label: 'Kỳ Spring 2026' },
+  { value: 'fall-2025', label: 'Kỳ Fall 2025' },
+]
+
 const riskStudents = ref([
   { id: 1, name: 'Lê Hoàng Minh', code: 'SV2024005', class: 'SE1601', subject: 'Cấu trúc dữ liệu', grade: 3.5, attendance: 75, risk: 'critical', reason: 'Điểm Lab thấp & Vắng mặt liên tục (2 tuần).' },
   { id: 2, name: 'Nguyễn Thị Hoa', code: 'SV2024122', class: 'SE1602', subject: 'Java Programming', grade: 4.2, attendance: 90, risk: 'high', reason: 'Tiến độ hoàn thành Assignment chậm (>50% chưa nộp).' },
   { id: 3, name: 'Trần Văn Tú', code: 'SV2024089', class: 'SE1601', subject: 'Database Design', grade: 5.0, attendance: 82, risk: 'medium', reason: 'Điểm Quiz trung bình thấp (Dưới 4.5).' },
   { id: 4, name: 'Phạm Hồng Nam', code: 'SV2024201', class: 'SE1605', subject: 'Operating Systems', grade: 2.8, attendance: 65, risk: 'critical', reason: 'Vắng quá 20% & Điểm kiểm tra giữa kỳ < 3.0.' },
 ])
+
+const summaryStats = [
+  { label: 'Cảnh báo', count: 42, unit: 'SV', color: 'text-(--color-danger-text)', bg: 'bg-(--color-danger-bg)' },
+  { label: 'Mức Critical', count: 12, unit: 'SV', color: 'text-(--color-danger-text)', bg: 'bg-(--color-danger-bg)' },
+  { label: 'Mức High', count: 16, unit: 'SV', color: 'text-(--color-warning-text)', bg: 'bg-(--color-warning-bg)' },
+  { label: 'Mức Medium', count: 14, unit: 'SV', color: 'text-(--color-info-text)', bg: 'bg-(--color-info-bg)' },
+]
+
+const filteredStudents = computed(() => {
+  let result = riskStudents.value
+  const query = searchQuery.value.toLowerCase().trim()
+
+  if (riskFilter.value !== 'all') {
+    result = result.filter(s => s.risk === riskFilter.value)
+  }
+
+  if (query) {
+    result = result.filter(s =>
+      s.name.toLowerCase().includes(query) ||
+      s.code.toLowerCase().includes(query) ||
+      s.class.toLowerCase().includes(query) ||
+      s.subject.toLowerCase().includes(query)
+    )
+  }
+
+  return result
+})
 
 const getRiskBadge = (risk) => {
   switch (risk) {
@@ -32,6 +79,48 @@ const getRiskBadge = (risk) => {
     default: return 'surface-solid text-muted border-default'
   }
 }
+
+function prepareExcelData() {
+  return filteredStudents.value.map(s => ({
+    'Họ tên': s.name,
+    'Mã SV': s.code,
+    'Lớp': s.class,
+    'Môn': s.subject,
+    'Điểm': s.grade,
+    'Chuyên cần': `${s.attendance}%`,
+    'Mức rủi ro': s.risk,
+    'Nguyên nhân': s.reason,
+  }))
+}
+
+function exportExcel() {
+  exportToExcel(prepareExcelData(), `SV-NguyCo-${semesterFilter.value}.xlsx`, 'Nguy cơ rớt môn')
+}
+
+function viewStudentHistory(st) {
+  router.push({ name: 'bgh-academic-at-risk-student-history', params: { studentId: st.id } })
+}
+
+function sendNotification(st) {
+  popup.success('Đã gửi thông báo', `Thông báo cảnh báo đã được gửi tới ${st.name}.`)
+}
+
+const selectedStudent = ref(null)
+const isDrawerOpen = ref(false)
+
+function openDrawer(st) {
+  selectedStudent.value = st
+  isDrawerOpen.value = true
+}
+
+function closeDrawer() {
+  isDrawerOpen.value = false
+}
+
+function sendBulkWarning() {
+  const count = filteredStudents.value.length
+  popup.success('Đã gửi cảnh báo', `Đã gửi cảnh báo đến ${count} giảng viên phụ trách ${count} sinh viên có nguy cơ rớt môn.`)
+}
 </script>
 
 <template>
@@ -39,7 +128,32 @@ const getRiskBadge = (risk) => {
     title="Sinh viên có nguy cơ rớt môn" 
     subtitle="Hệ thống cảnh báo sớm (AI Early Warning) dựa trên dữ liệu điểm số, chuyên cần và tiến độ học tập."
   >
-    <div class="space-y-4">
+    <template #actions>
+      <div class="flex items-center gap-3">
+         <button @click="triggerPrint" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
+            <FileText :size="18" /> PDF Report
+         </button>
+         <button @click="exportExcel" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
+            <Download :size="18" /> Excel Data
+         </button>
+      </div>
+    </template>
+
+    <div id="print-container" class="space-y-4">
+      
+      <!-- ── Print Header ── -->
+      <div class="hidden print:block mb-6 pb-4 border-b border-slate-300">
+        <h2 class="text-xl font-bold text-slate-800">Sinh viên có nguy cơ rớt môn</h2>
+        <p class="text-xs text-slate-500 mt-1">{{ semesters.find(s => s.value === semesterFilter)?.label }}</p>
+      </div>
+
+      <!-- ── Summary Stats ── -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div v-for="stat in summaryStats" :key="stat.label" :class="['rounded-2xl p-4 border text-center', stat.bg, `border-${stat.color.replace('text-', '')}/20`]">
+          <p :class="['text-2xl font-bold', stat.color]">{{ stat.count }}</p>
+          <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">{{ stat.label }}</p>
+        </div>
+      </div>
       
       <!-- ── AI Insight Banner ── -->
       <div class="surface-card border border-(--color-info-text)/20 bg-(--color-info-bg) rounded-2xl p-5 relative overflow-hidden">
@@ -67,25 +181,46 @@ const getRiskBadge = (risk) => {
       </div>
 
       <!-- ── Toolbar ── -->
-      <div class="surface-card border border-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="surface-card border border-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div class="flex flex-wrap items-center gap-3 flex-1">
            <div class="relative max-w-sm w-full">
               <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
-              <input type="text" placeholder="Tìm tên sinh viên, mã số hoặc lớp..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-(--border-input-focus)">
+              <input v-model="searchQuery" type="text" placeholder="Tìm tên sinh viên, mã số hoặc lớp..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-(--border-input-focus)">
            </div>
-           <button class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
-              <Filter :size="18" /> Mức độ rủi ro
-           </button>
+           <select v-model="semesterFilter" class="surface-input border border-input rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+             <option v-for="s in semesters" :key="s.value" :value="s.value">{{ s.label }}</option>
+           </select>
+           <div class="relative">
+             <select v-model="riskFilter" class="surface-input border border-input rounded-xl px-4 py-2 text-xs font-bold outline-none appearance-none cursor-pointer pr-10">
+               <option value="all">Tất cả mức độ</option>
+               <option value="critical">Critical</option>
+               <option value="high">High</option>
+               <option value="medium">Medium</option>
+             </select>
+             <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-placeholder pointer-events-none" />
+           </div>
         </div>
-        <button class="lg-button-primary py-2.5 px-4 text-sm font-semibold flex items-center gap-2">
-           <Bell :size="18" /> Gửi cảnh báo cho Giảng viên
+        <button @click="sendBulkWarning" class="lg-button-primary py-2.5 px-4 text-sm font-semibold flex items-center gap-2">
+           <Send :size="18" /> Gửi cảnh báo cho Giảng viên
         </button>
       </div>
 
+      <!-- ── Loading State ── -->
+      <div v-if="loading" class="flex items-center justify-center py-20">
+        <Loader2 :size="32" class="animate-spin text-placeholder" />
+      </div>
+
+      <!-- ── Empty State ── -->
+      <div v-else-if="filteredStudents.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
+        <Inbox :size="48" class="text-placeholder mb-4" />
+        <p class="text-lg font-semibold text-muted">Không tìm thấy sinh viên nào</p>
+        <p class="text-sm text-placeholder mt-1">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
+      </div>
+
       <!-- ── Risk List ── -->
-      <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div v-else class="grid grid-cols-1 xl:grid-cols-2 gap-4">
          <div 
-           v-for="st in riskStudents" 
+           v-for="st in filteredStudents" 
            :key="st.id" 
            class="surface-card border border-card rounded-2xl p-5 group hover:border-(--border-input-focus) transition-all shadow-sm"
          >
@@ -110,10 +245,13 @@ const getRiskBadge = (risk) => {
                   <p class="text-xs font-bold text-label">{{ st.subject }}</p>
                </div>
                <div class="p-4 surface-solid rounded-2xl border border-default">
-                  <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1.5">Điểm / Chuyên cần</p>
+                  <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1.5">Điểm TB / Chuyên cần</p>
                   <div class="flex items-center justify-between">
                      <span class="text-sm font-semibold text-(--color-danger-text)">{{ st.grade }}</span>
-                     <span class="text-[10px] font-bold text-muted">{{ st.attendance }}% vắng</span>
+                     <div class="text-right">
+                       <span class="text-[10px] font-bold text-label">{{ st.attendance }}%</span>
+                       <span v-if="100 - st.attendance > 15" class="text-[9px] font-semibold text-(--color-danger-text) ml-1">(vắng {{ 100 - st.attendance }}%)</span>
+                     </div>
                   </div>
                </div>
             </div>
@@ -126,18 +264,200 @@ const getRiskBadge = (risk) => {
                </div>
             </div>
 
-            <div class="flex items-center justify-between pt-6 border-t border-default">
+            <div class="flex items-center justify-between pt-6">
                <div class="flex items-center gap-1">
-                  <button class="p-2 hover:bg-(--surface-input) rounded-lg text-muted" title="Xem lịch sử"><History :size="18" /></button>
-                  <button class="p-2 hover:bg-(--surface-input) rounded-lg text-muted" title="Gửi thông báo"><Bell :size="18" /></button>
+                  <button @click="viewStudentHistory(st)" class="p-2 hover:bg-(--surface-input) rounded-lg text-muted" title="Xem lịch sử"><History :size="18" /></button>
+                  <button @click="sendNotification(st)" class="p-2 hover:bg-(--surface-input) rounded-lg text-muted" title="Gửi thông báo"><Bell :size="18" /></button>
                </div>
-               <button class="text-xs font-semibold text-link uppercase tracking-widest flex items-center gap-1 hover:underline">
-                  Xem chi tiết hồ sơ <ChevronRight :size="14" />
-               </button>
+               <button @click="openDrawer(st)" class="text-xs font-semibold text-link uppercase tracking-widest flex items-center gap-1 hover:underline">
+                   Xem chi tiết hồ sơ <ExternalLink :size="14" />
+                </button>
             </div>
          </div>
       </div>
 
     </div>
   </PageContainer>
+
+  <!-- ── Student Detail Drawer ── -->
+  <Teleport to="body">
+    <Transition name="drawer">
+      <div v-if="isDrawerOpen && selectedStudent" class="drawer-root">
+        <div class="drawer-scrim" @click="closeDrawer"></div>
+        <aside class="drawer-panel" role="dialog" aria-modal="true">
+          <div class="drawer-header">
+            <div class="flex items-center gap-3">
+              <div class="h-10 w-10 rounded-2xl bg-(--color-danger-bg) flex items-center justify-center">
+                <AlertTriangle :size="20" class="text-(--color-danger-text)" />
+              </div>
+              <div>
+                <h2 class="text-sm font-extrabold text-heading">{{ selectedStudent.name }}</h2>
+                <p class="text-[10px] text-muted font-semibold">{{ selectedStudent.code }} • Lớp {{ selectedStudent.class }}</p>
+              </div>
+            </div>
+            <button @click="closeDrawer" class="p-2 rounded-xl surface-card border border-default text-muted hover:text-heading transition-colors">
+              <X :size="16" />
+            </button>
+          </div>
+
+          <div class="drawer-body">
+            <!-- Risk Badge & Subject -->
+            <div class="grid grid-cols-2 gap-3 mb-5">
+              <div class="p-4 surface-solid rounded-2xl border border-default">
+                <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1.5">Mức độ rủi ro</p>
+                <div :class="['inline-block px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest border shadow-sm', getRiskBadge(selectedStudent.risk)]">
+                  {{ selectedStudent.risk }}
+                </div>
+              </div>
+              <div class="p-4 surface-solid rounded-2xl border border-default">
+                <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1.5">Môn học</p>
+                <p class="text-xs font-bold text-label">{{ selectedStudent.subject }}</p>
+              </div>
+            </div>
+
+            <!-- AI Reason -->
+            <div class="flex items-start gap-3 p-4 bg-(--color-danger-bg) rounded-2xl border border-(--color-danger-text)/20 mb-5">
+              <Zap :size="16" class="text-(--color-danger-text) shrink-0 mt-0.5" />
+              <div>
+                <p class="text-[10px] font-semibold text-(--color-danger-text) uppercase tracking-widest">Dự đoán của AI</p>
+                <p class="text-[11px] text-body font-medium leading-relaxed mt-1">{{ selectedStudent.reason }}</p>
+              </div>
+            </div>
+
+            <!-- Scores -->
+            <div class="p-4 surface-solid rounded-2xl border border-default mb-5">
+              <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-3">Điểm số & Chuyên cần</p>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-muted">Điểm hiện tại</span>
+                  <span class="text-sm font-bold text-(--color-danger-text)">{{ selectedStudent.grade }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-muted">Chuyên cần</span>
+                  <div class="text-right">
+                    <span class="text-sm font-bold text-label">{{ selectedStudent.attendance }}%</span>
+                    <span v-if="100 - selectedStudent.attendance > 10" class="text-[10px] font-semibold text-(--color-danger-text) ml-1">(vắng {{ 100 - selectedStudent.attendance }}%)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contact Info (mock) -->
+            <div class="p-4 surface-solid rounded-2xl border border-default mb-5">
+              <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-3">Thông tin liên hệ</p>
+              <div class="space-y-3">
+                <div class="flex items-center gap-2.5">
+                  <Mail :size="14" class="text-placeholder shrink-0" />
+                  <span class="text-xs font-medium text-body">{{ selectedStudent.code.toLowerCase() }}@student.edu.vn</span>
+                </div>
+                <div class="flex items-center gap-2.5">
+                  <Phone :size="14" class="text-placeholder shrink-0" />
+                  <span class="text-xs font-medium text-body">0987.654.321</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Course History (mock) -->
+            <div class="p-4 surface-solid rounded-2xl border border-default mb-5">
+              <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-3">Môn học đã đăng ký (kỳ này)</p>
+              <div class="space-y-2.5">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-medium text-body">{{ selectedStudent.subject }}</span>
+                  <span class="font-semibold text-muted">{{ selectedStudent.grade }}</span>
+                </div>
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-medium text-body">Toán rời rạc</span>
+                  <span class="font-semibold text-muted">6.5</span>
+                </div>
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-medium text-body">Xác suất thống kê</span>
+                  <span class="font-semibold text-muted">7.2</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex flex-col gap-2">
+              <button @click="closeDrawer; sendNotification(selectedStudent)" class="w-full lg-button-secondary py-2.5 text-xs font-semibold flex items-center justify-center gap-2">
+                <Bell :size="16" /> Gửi thông báo cho sinh viên
+              </button>
+              <button @click="closeDrawer; viewStudentHistory(selectedStudent)" class="w-full lg-button-secondary py-2.5 text-xs font-semibold flex items-center justify-center gap-2">
+                <History :size="16" /> Xem lịch sử học tập
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
+
+<style scoped>
+@media print {
+  #print-container { padding: 0; color: #1e293b; }
+  #print-container .surface-card { border: 1px solid #cbd5e1; background: #fff; box-shadow: none; break-inside: avoid; }
+}
+
+.drawer-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.drawer-scrim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--surface-app) 50%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.drawer-panel {
+  position: relative;
+  width: min(100%, 28rem);
+  height: 100%;
+  background: var(--surface-card);
+  border-left: 1px solid var(--border-card);
+  box-shadow: -8px 0 30px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-card);
+  flex-shrink: 0;
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.drawer-enter-active .drawer-panel,
+.drawer-leave-active .drawer-panel {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.drawer-enter-from,
+.drawer-leave-to {
+  opacity: 0;
+}
+
+.drawer-enter-from .drawer-panel,
+.drawer-leave-to .drawer-panel {
+  transform: translateX(100%);
+}
+</style>

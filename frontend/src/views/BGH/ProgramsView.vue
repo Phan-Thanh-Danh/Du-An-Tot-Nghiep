@@ -49,7 +49,7 @@
         </div>
 
         <Transition enter-active-class="transition-all duration-200" enter-from-class="max-h-0 opacity-0" enter-to-class="max-h-[500px] opacity-100" leave-active-class="transition-all duration-200" leave-from-class="max-h-[500px] opacity-100" leave-to-class="max-h-0 opacity-0">
-          <div v-if="expandedId === prog.maChuongTrinh" class="mt-4 pt-4 border-t border-default overflow-hidden">
+          <div v-if="expandedId === prog.maChuongTrinh" class="mt-4 pt-4 overflow-hidden">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div class="space-y-2">
                 <div class="flex justify-between"><span class="text-muted">Mã chương trình:</span><span class="font-bold text-heading">{{ prog.maCodeChuongTrinh }}</span></div>

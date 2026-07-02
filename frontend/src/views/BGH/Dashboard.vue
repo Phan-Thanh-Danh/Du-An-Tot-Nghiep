@@ -57,7 +57,7 @@
         
         <!-- Teacher Evaluations Ranking -->
         <div class="rounded-2xl border border-card surface-card shadow-sm overflow-hidden">
-          <div class="flex items-center justify-between border-b border-default px-4 py-4">
+          <div class="flex items-center justify-between px-4 py-4">
             <div>
               <h2 class="text-lg font-bold text-heading">Ranking Giảng viên</h2>
               <p class="text-xs text-muted mt-0.5">Top giảng viên có điểm đánh giá cao nhất</p>
@@ -91,7 +91,7 @@
                  <option>Kỳ Fall 2025</option>
               </select>
            </div>
-           <div class="flex items-end justify-between h-32 gap-4 border-b border-default pb-2">
+           <div class="flex items-end justify-between h-32 gap-4 pb-2">
               <div v-for="(h, i) in [45, 65, 80, 55, 90, 75, 88]" :key="i" class="flex-1 flex flex-col items-center gap-2">
                  <div class="w-full bg-(--lg-primary) rounded-t-xl transition-all hover:opacity-80" :style="{ height: h + '%' }" />
                  <span class="text-[10px] font-bold text-muted">{{ ['CNTT', 'KT', 'NN', 'DL', 'TK', 'YT', 'GD'][i] }}</span>

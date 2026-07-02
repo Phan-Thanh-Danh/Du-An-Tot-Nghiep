@@ -128,7 +128,7 @@ const loginHistory = ref([
         
          <!-- Leadership Details & Security -->
          <div class="surface-card border border-card rounded-2xl overflow-hidden">
-            <div class="p-4 border-b border-default flex items-center justify-between">
+            <div class="p-4 flex items-center justify-between">
                <div>
                   <h4 class="text-xs font-semibold text-heading uppercase tracking-wide">Bảo mật & Liên hệ</h4>
                   <p class="text-[10px] text-muted font-medium mt-0.5">Thông tin liên lạc và thiết lập bảo mật.</p>

@@ -16,7 +16,7 @@
     <div class="surface-card border border-card rounded-2xl shadow-sm overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm text-body whitespace-nowrap">
-          <thead class="bg-(--surface-card) border-b border-default">
+          <thead class="bg-(--surface-card)">
             <tr>
               <th class="px-4 py-3 font-bold text-heading">Mã học kỳ</th>
               <th class="px-4 py-3 font-bold text-heading">Tên học kỳ</th>
@@ -28,7 +28,7 @@
               <th class="px-4 py-3 font-bold text-heading">Trạng thái</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-default">
+          <tbody>
             <tr v-if="filteredTerms.length === 0" class="bg-transparent">
               <td colspan="8" class="py-12 text-center text-muted">
                 <CalendarDays :size="32" class="mx-auto mb-2 opacity-50" />
