@@ -13,9 +13,7 @@ export function useSubjectFilters() {
   const fetchSubjects = async () => {
     isLoading.value = true
     try {
-      store.init()
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800))
+      await store.init()
     } finally {
       isLoading.value = false
     }

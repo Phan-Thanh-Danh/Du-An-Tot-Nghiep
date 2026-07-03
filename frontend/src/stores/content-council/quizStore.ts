@@ -1,26 +1,57 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { initializeQuizMockData } from '@/mocks/content-council'
-import { ContentCouncilQuiz, QuizBuilderQuestion } from '@/types/content-council/quiz'
+import { contentCouncilApi } from '@/services/contentCouncilApi'
+import type { ContentCouncilQuiz, QuizBuilderQuestion } from '@/types/content-council/quiz'
 import { useQuestionStore } from './questionStore'
+
+const ENABLE_MOCK_API =
+  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 export const useQuizStore = defineStore('contentCouncilQuiz', () => {
   const quizzes = ref<ContentCouncilQuiz[]>([])
   const quizQuestions = ref<Record<number, QuizBuilderQuestion[]>>({})
   const initialized = ref(false)
+  const loading = ref(false)
+  const error = ref<string | null>(null)
 
   const questionStore = useQuestionStore()
 
-  function init() {
+  async function init() {
     if (initialized.value) return
-    const mock = initializeQuizMockData()
-    quizzes.value = mock.quizzes
-    quizQuestions.value = mock.quizQuestions
-    initialized.value = true
+    loading.value = true
+    error.value = null
+    try {
+      if (ENABLE_MOCK_API) {
+        const mock = initializeQuizMockData()
+        quizzes.value = mock.quizzes
+        quizQuestions.value = mock.quizQuestions
+        initialized.value = true
+        return
+      }
+      const res = await contentCouncilApi.getQuizzes()
+      const data = res?.data ?? res?.items ?? res ?? []
+      quizzes.value = Array.isArray(data) ? data : []
+      initialized.value = true
+    } catch (e: any) {
+      if (ENABLE_MOCK_API) {
+        const mock = initializeQuizMockData()
+        quizzes.value = mock.quizzes
+        quizQuestions.value = mock.quizQuestions
+        initialized.value = true
+        return
+      }
+      error.value = e?.message || 'Không thể tải bài kiểm tra'
+    } finally {
+      loading.value = false
+    }
   }
 
   function reset() {
     initialized.value = false
+    quizzes.value = []
+    quizQuestions.value = {}
+    error.value = null
     init()
   }
 
@@ -32,63 +63,107 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
     return quizQuestions.value[quizId] || []
   }
 
-  function addQuiz(q: ContentCouncilQuiz) {
-    quizzes.value.unshift(q)
-    quizQuestions.value[q.id] = []
-  }
-
-  function updateQuiz(id: number, payload: Partial<ContentCouncilQuiz>) {
-    const idx = quizzes.value.findIndex(q => q.id === id)
-    if (idx !== -1) {
-      Object.assign(quizzes.value[idx], payload)
-      quizzes.value[idx].updatedAt = new Date().toISOString()
+  async function addQuiz(q: ContentCouncilQuiz) {
+    try {
+      if (!ENABLE_MOCK_API) {
+        await contentCouncilApi.createQuiz({
+          title: q.title,
+          subjectId: q.subjectId,
+          examType: q.examType,
+          totalScore: q.totalScore,
+          duration: q.duration,
+        })
+      }
+      quizzes.value.unshift(q)
+      quizQuestions.value[q.id] = []
+    } catch (e: any) {
+      error.value = e?.message || 'Không thể thêm bài kiểm tra'
     }
   }
 
-  function deleteQuiz(id: number) {
+  async function updateQuiz(id: number, payload: Partial<ContentCouncilQuiz>) {
+    try {
+      if (!ENABLE_MOCK_API) {
+        await contentCouncilApi.updateQuiz(id, payload)
+      }
+      const idx = quizzes.value.findIndex(q => q.id === id)
+      if (idx !== -1) {
+        Object.assign(quizzes.value[idx], payload)
+        quizzes.value[idx].updatedAt = new Date().toISOString()
+      }
+    } catch (e: any) {
+      error.value = e?.message || 'Không thể cập nhật bài kiểm tra'
+    }
+  }
+
+  async function deleteQuiz(id: number) {
     const idx = quizzes.value.findIndex(q => q.id === id)
-    if (idx !== -1) {
-      // Decrease usage count for all questions in this quiz
+    if (idx === -1) return
+    try {
+      if (!ENABLE_MOCK_API) {
+        await contentCouncilApi.deleteQuiz(id)
+      }
       const questions = quizQuestions.value[id] || []
-      questions.forEach(q => {
-        questionStore.adjustUsageCount(q.questionId, -1)
-      })
+      questions.forEach(q => questionStore.adjustUsageCount(q.questionId, -1))
       quizzes.value.splice(idx, 1)
       delete quizQuestions.value[id]
+    } catch (e: any) {
+      error.value = e?.message || 'Không thể xóa bài kiểm tra'
     }
   }
 
-  // Builder Methods
-  function updateQuizQuestions(quizId: number, questions: QuizBuilderQuestion[]) {
-    // 1. Find differences to update usage count
+  async function updateQuizQuestions(quizId: number, questions: QuizBuilderQuestion[]) {
     const oldQ = quizQuestions.value[quizId] || []
     const oldIds = new Set(oldQ.map(q => q.questionId))
     const newIds = new Set(questions.map(q => q.questionId))
 
-    // added
     newIds.forEach(id => {
-      if (!oldIds.has(id)) {
-        questionStore.adjustUsageCount(id, 1)
-      }
+      if (!oldIds.has(id)) questionStore.adjustUsageCount(id, 1)
     })
-
-    // removed
     oldIds.forEach(id => {
-      if (!newIds.has(id)) {
-        questionStore.adjustUsageCount(id, -1)
-      }
+      if (!newIds.has(id)) questionStore.adjustUsageCount(id, -1)
     })
 
-    // 2. Save
-    quizQuestions.value[quizId] = questions
+    try {
+      if (!ENABLE_MOCK_API) {
+        await contentCouncilApi.assignQuestions(quizId, {
+          questionIds: questions.map(q => q.questionId),
+        })
+      }
+      quizQuestions.value[quizId] = questions
+      const quiz = getQuizById(quizId)
+      if (quiz) {
+        quiz.questionCount = questions.length
+        quiz.totalScore = questions.reduce((sum, q) => sum + q.score, 0)
+        quiz.multipleChoiceQuestionCount = questions.filter(q => q.questionType === 'multiple_choice').length
+        quiz.essayQuestionCount = questions.filter(q => q.questionType === 'essay').length
+      }
+    } catch (e: any) {
+      error.value = e?.message || 'Không thể cập nhật câu hỏi cho bài kiểm tra'
+    }
+  }
 
-    // 3. Update summary on quiz
-    const quiz = getQuizById(quizId)
-    if (quiz) {
-      quiz.questionCount = questions.length
-      quiz.totalScore = questions.reduce((sum, q) => sum + q.score, 0)
-      quiz.multipleChoiceQuestionCount = questions.filter(q => q.questionType === 'multiple_choice').length
-      quiz.essayQuestionCount = questions.filter(q => q.questionType === 'essay').length
+  async function publishQuizAction(id: number) {
+    try {
+      if (!ENABLE_MOCK_API) {
+        await contentCouncilApi.publishQuiz(id)
+      }
+      const q = getQuizById(id)
+      if (q) q.status = 'published'
+    } catch (e: any) {
+      error.value = e?.message || 'Không thể xuất bản'
+    }
+  }
+
+  async function unpublishQuizAction(id: number) {
+    try {
+      if (!ENABLE_MOCK_API) {
+        await contentCouncilApi.unpublishQuiz(id)
+      }
+      const q = getQuizById(id)
+      if (q) q.status = 'draft'
+    } catch (e: any) {
+      error.value = e?.message || 'Không thể hủy xuất bản'
     }
   }
 
@@ -96,6 +171,8 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
     quizzes,
     quizQuestions,
     initialized,
+    loading,
+    error,
     init,
     reset,
     getQuizById,
@@ -103,6 +180,8 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
     addQuiz,
     updateQuiz,
     deleteQuiz,
-    updateQuizQuestions
+    updateQuizQuestions,
+    publishQuizAction,
+    unpublishQuizAction,
   }
 })
