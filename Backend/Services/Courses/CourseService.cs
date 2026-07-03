@@ -190,6 +190,178 @@ public class CourseService : ICourseService
         return ToDto(course, organization, subject, teacher, term, classEntity);
     }
 
+    public async Task<BulkAssignCoursesResultDto> BulkAssignAsync(
+        BulkAssignCoursesRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageCourses(currentUser);
+
+        var classIds = NormalizeIds(request.MaLopIds, "Danh sách lớp không được để trống.");
+        if (classIds.Count > 5)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ được phân phối tối đa 5 lớp mỗi lần.");
+        }
+
+        var status = NormalizeStatus(string.IsNullOrWhiteSpace(request.TrangThai) ? DraftStatus : request.TrangThai);
+        var subject = await ValidateSubjectAsync(request.MaMonHoc, cancellationToken);
+        var teacher = await ValidateTeacherInManagedScopeAsync(request.MaGiaoVien, currentUser, cancellationToken);
+        var organization = await ValidateOrganizationAsync(teacher.MaDonVi, currentUser, cancellationToken);
+        var term = await ValidateTermAsync(request.MaHocKy, organization.MaDonVi, cancellationToken);
+
+        var classes = await _context.LopHanhChinhs
+            .AsNoTracking()
+            .Where(x => classIds.Contains(x.MaLop))
+            .ToListAsync(cancellationToken);
+
+        var result = new BulkAssignCoursesResultDto();
+        var now = DateTime.UtcNow;
+        var coursesToCreate = new List<(KhoaHoc Course, LopHanhChinh ClassEntity)>();
+
+        foreach (var classId in classIds)
+        {
+            var classEntity = classes.FirstOrDefault(x => x.MaLop == classId);
+            if (classEntity is null || !classEntity.ConHoatDong)
+            {
+                result.Skipped.Add(new BulkAssignCourseSkippedDto
+                {
+                    MaLop = classId,
+                    LyDo = "Lớp hành chính không tồn tại hoặc không hoạt động."
+                });
+                continue;
+            }
+
+            if (classEntity.MaDonVi != organization.MaDonVi)
+            {
+                result.Skipped.Add(new BulkAssignCourseSkippedDto
+                {
+                    MaLop = classEntity.MaLop,
+                    TenLop = classEntity.TenLop,
+                    LyDo = "Lớp hành chính không thuộc cùng cơ sở với giảng viên."
+                });
+                continue;
+            }
+
+            var exists = await CourseExistsAsync(
+                organization.MaDonVi,
+                subject.MaMonHoc,
+                term?.MaHocKy,
+                classEntity.MaLop,
+                null,
+                cancellationToken);
+
+            if (exists)
+            {
+                result.Skipped.Add(new BulkAssignCourseSkippedDto
+                {
+                    MaLop = classEntity.MaLop,
+                    TenLop = classEntity.TenLop,
+                    LyDo = "Lớp đã có khóa học cho môn học này trong học kỳ đã chọn."
+                });
+                continue;
+            }
+
+            var title = NormalizeOptionalText(request.TieuDe)
+                ?? BuildCourseTitle(subject, classEntity, term, teacher);
+
+            coursesToCreate.Add((new KhoaHoc
+            {
+                MaDonVi = organization.MaDonVi,
+                MaMonHoc = subject.MaMonHoc,
+                MaGiaoVien = teacher.MaNguoiDung,
+                MaHocKy = term?.MaHocKy,
+                MaLop = classEntity.MaLop,
+                MaLopHocPhan = null,
+                TieuDe = title,
+                MoTa = NormalizeOptionalText(request.MoTa),
+                TrangThai = status,
+                UrlAnhBia = NormalizeOptionalText(request.UrlAnhBia),
+                NgayTao = now
+            }, classEntity));
+        }
+
+        if (coursesToCreate.Count == 0)
+        {
+            return result;
+        }
+
+        _context.KhoaHocs.AddRange(coursesToCreate.Select(x => x.Course));
+        await _context.SaveChangesAsync(cancellationToken);
+
+        foreach (var item in coursesToCreate)
+        {
+            result.Created.Add(ToDto(item.Course, organization, subject, teacher, term, item.ClassEntity));
+
+            var newSnapshot = await GetAuditSnapshotAsync(item.Course.MaKhoaHoc, cancellationToken);
+            await WriteAuditAsync(
+                "BULK_ASSIGN_KHOA_HOC",
+                item.Course,
+                null,
+                newSnapshot,
+                currentUser,
+                "Phân phối khóa học hàng loạt.",
+                cancellationToken);
+        }
+
+        return result;
+    }
+
+    public async Task<KhoaHocDto> CloneAsync(
+        int courseId,
+        CloneCourseRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageCourses(currentUser);
+
+        var source = await GetManagedCourseAsync(courseId, currentUser, cancellationToken);
+        var subject = await ValidateSubjectAsync(source.MaMonHoc, cancellationToken);
+        var teacher = await ValidateTeacherAsync(request.MaGiaoVien ?? source.MaGiaoVien, source.MaDonVi, cancellationToken);
+        var term = await ValidateTermAsync(request.MaHocKy ?? source.MaHocKy, source.MaDonVi, cancellationToken);
+        var classEntity = await ValidateClassAsync(request.MaLop ?? source.MaLop, source.MaDonVi, cancellationToken);
+        var organization = await _context.DonVis.AsNoTracking().FirstAsync(x => x.MaDonVi == source.MaDonVi, cancellationToken);
+
+        await ValidateUniqueCourseAsync(
+            source.MaDonVi,
+            source.MaMonHoc,
+            term?.MaHocKy,
+            classEntity.MaLop,
+            null,
+            cancellationToken);
+
+        var title = NormalizeOptionalText(request.TieuDe) ?? $"{source.TieuDe} (Bản sao)";
+        var clone = new KhoaHoc
+        {
+            MaDonVi = source.MaDonVi,
+            MaMonHoc = source.MaMonHoc,
+            MaGiaoVien = teacher.MaNguoiDung,
+            MaHocKy = term?.MaHocKy,
+            MaLop = classEntity.MaLop,
+            MaLopHocPhan = null,
+            TieuDe = title,
+            MoTa = NormalizeOptionalText(request.MoTa) ?? source.MoTa,
+            TrangThai = DraftStatus,
+            UrlAnhBia = NormalizeOptionalText(request.UrlAnhBia) ?? source.UrlAnhBia,
+            NgayTao = DateTime.UtcNow
+        };
+
+        _context.KhoaHocs.Add(clone);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var sourceSnapshot = await GetAuditSnapshotAsync(source.MaKhoaHoc, cancellationToken);
+        var newSnapshot = await GetAuditSnapshotAsync(clone.MaKhoaHoc, cancellationToken);
+        await WriteAuditAsync(
+            "CLONE_KHOA_HOC",
+            clone,
+            sourceSnapshot,
+            newSnapshot,
+            currentUser,
+            "Nhân bản khóa học.",
+            cancellationToken);
+
+        return ToDto(clone, organization, subject, teacher, term, classEntity);
+    }
+
     public async Task<KhoaHocDto> UpdateAsync(
         int courseId,
         UpdateKhoaHocRequest request,
@@ -299,6 +471,98 @@ public class CourseService : ICourseService
             currentUser,
             "Lưu trữ khóa học.",
             cancellationToken);
+    }
+
+    public async Task<BatchCourseActionResultDto> BatchArchiveAsync(
+        BatchCourseActionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageCourses(currentUser);
+
+        var ids = NormalizeIds(request.Ids, "Danh sách khóa học không được để trống.");
+        var result = new BatchCourseActionResultDto();
+
+        foreach (var id in ids)
+        {
+            try
+            {
+                var course = await GetManagedCourseAsync(id, currentUser, cancellationToken);
+                var oldSnapshot = await GetAuditSnapshotAsync(id, cancellationToken);
+                course.TrangThai = ArchivedStatus;
+
+                await _context.SaveChangesAsync(cancellationToken);
+
+                var newSnapshot = await GetAuditSnapshotAsync(id, cancellationToken);
+                await WriteAuditAsync(
+                    "BATCH_ARCHIVE_KHOA_HOC",
+                    course,
+                    oldSnapshot,
+                    newSnapshot,
+                    currentUser,
+                    "Lưu trữ khóa học hàng loạt.",
+                    cancellationToken);
+
+                result.SuccessIds.Add(id);
+            }
+            catch (ApiException ex)
+            {
+                result.Failed.Add(new BatchCourseActionFailureDto { Id = id, LyDo = ex.Message });
+            }
+        }
+
+        return result;
+    }
+
+    public async Task<BatchCourseActionResultDto> BatchPublishAsync(
+        BatchCourseActionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageCourses(currentUser);
+
+        var ids = NormalizeIds(request.Ids, "Danh sách khóa học không được để trống.");
+        var result = new BatchCourseActionResultDto();
+
+        foreach (var id in ids)
+        {
+            try
+            {
+                var course = await GetManagedCourseAsync(id, currentUser, cancellationToken);
+                if (string.Equals(course.TrangThai, ArchivedStatus, StringComparison.OrdinalIgnoreCase))
+                {
+                    result.Failed.Add(new BatchCourseActionFailureDto
+                    {
+                        Id = id,
+                        LyDo = "Không thể xuất bản khóa học đã lưu trữ."
+                    });
+                    continue;
+                }
+
+                var oldSnapshot = await GetAuditSnapshotAsync(id, cancellationToken);
+                course.TrangThai = PublishedStatus;
+
+                await _context.SaveChangesAsync(cancellationToken);
+
+                var newSnapshot = await GetAuditSnapshotAsync(id, cancellationToken);
+                await WriteAuditAsync(
+                    "BATCH_PUBLISH_KHOA_HOC",
+                    course,
+                    oldSnapshot,
+                    newSnapshot,
+                    currentUser,
+                    "Xuất bản khóa học hàng loạt.",
+                    cancellationToken);
+
+                result.SuccessIds.Add(id);
+            }
+            catch (ApiException ex)
+            {
+                result.Failed.Add(new BatchCourseActionFailureDto { Id = id, LyDo = ex.Message });
+            }
+        }
+
+        return result;
     }
 
     private IQueryable<CourseQueryResult> CreateCourseQuery()
@@ -429,6 +693,38 @@ public class CourseService : ICourseService
         return teacher;
     }
 
+    private async Task<NguoiDung> ValidateTeacherInManagedScopeAsync(
+        int teacherId,
+        CurrentUserContext currentUser,
+        CancellationToken cancellationToken)
+    {
+        var teacher = await _context.NguoiDungs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.MaNguoiDung == teacherId, cancellationToken);
+
+        if (teacher is null)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Giảng viên không tồn tại.");
+        }
+
+        if (!await HasTeacherRoleAsync(teacher, cancellationToken))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Người dùng được chọn không phải giảng viên.");
+        }
+
+        if (teacher.TrangThai == UserStatuses.DbLocked)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Giảng viên đang bị khóa.");
+        }
+
+        if (!await CanAccessOrganizationAsync(currentUser, teacher.MaDonVi, cancellationToken))
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền phân phối khóa học cho cơ sở của giảng viên này.");
+        }
+
+        return teacher;
+    }
+
     private async Task<bool> HasTeacherRoleAsync(NguoiDung teacher, CancellationToken cancellationToken)
     {
         var teacherRoleCode = AuthRoles.ToDatabaseCode(AuthRoles.Teacher);
@@ -503,7 +799,21 @@ public class CourseService : ICourseService
         int? excludedCourseId,
         CancellationToken cancellationToken)
     {
-        var exists = await _context.KhoaHocs
+        if (await CourseExistsAsync(organizationId, subjectId, termId, classId, excludedCourseId, cancellationToken))
+        {
+            throw new ApiException(StatusCodes.Status409Conflict, "Lớp này đã có khóa học cho môn học này trong học kỳ đã chọn.");
+        }
+    }
+
+    private async Task<bool> CourseExistsAsync(
+        int organizationId,
+        int subjectId,
+        int? termId,
+        int classId,
+        int? excludedCourseId,
+        CancellationToken cancellationToken)
+    {
+        return await _context.KhoaHocs
             .AsNoTracking()
             .AnyAsync(x =>
                 x.MaDonVi == organizationId &&
@@ -512,11 +822,6 @@ public class CourseService : ICourseService
                 x.MaLop == classId &&
                 (!excludedCourseId.HasValue || x.MaKhoaHoc != excludedCourseId.Value),
                 cancellationToken);
-
-        if (exists)
-        {
-            throw new ApiException(StatusCodes.Status409Conflict, "Lớp này đã có khóa học cho môn học này trong học kỳ đã chọn.");
-        }
     }
 
     private async Task<IReadOnlyList<KhoaHocChuongDto>> GetCourseChaptersAsync(
@@ -726,6 +1031,21 @@ public class CourseService : ICourseService
         }
 
         return value.Trim();
+    }
+
+    private static List<int> NormalizeIds(IEnumerable<int>? ids, string emptyMessage)
+    {
+        var normalizedIds = ids?
+            .Where(x => x > 0)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (normalizedIds.Count == 0)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, emptyMessage);
+        }
+
+        return normalizedIds;
     }
 
     private static string BuildCourseTitle(

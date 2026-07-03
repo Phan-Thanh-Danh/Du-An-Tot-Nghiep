@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Search, Plus, X, Pencil, Trash2, Users, UserCheck, UserMinus, UserPlus, MapPin, Clock, Shield } from 'lucide-vue-next'
+import { Search, Plus, X, Pencil, Trash2, Users, UserCheck, UserMinus, UserPlus, MapPin, Clock } from 'lucide-vue-next'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
@@ -12,6 +12,7 @@ import { usePopupStore } from '@/stores/popup'
 const popupStore = usePopupStore()
 const loading = ref(true); const error = ref(null); const rows = ref([])
 const searchQuery = ref(''); const filterTrangThai = ref(''); const filterDonVi = ref('')
+const assignmentMutationActionsEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const showFormModal = ref(false); const formMode = ref('create'); const editingId = ref(null); const submitting = ref(false)
 const formData = ref({ tenLop: '', monHoc: '', maGiangVien: null, giangVien: 'Chưa phân công', soBuoi: 3, donVi: '', lichDay: '', phong: '', siSo: 0, trangThai: 'unassigned' })
@@ -68,8 +69,13 @@ function clearFilters() { searchQuery.value = ''; filterTrangThai.value = ''; fi
 // ── Form ──
 const defaults = () => ({ tenLop: '', monHoc: '', maGiangVien: null, giangVien: 'Chưa phân công', soBuoi: 3, donVi: '', lichDay: '', phong: '', siSo: 0, trangThai: 'unassigned' })
 function resetForm() { formData.value = defaults(); formErrors.value = {} }
-function openCreate() { resetForm(); formMode.value = 'create'; editingId.value = null; showFormModal.value = true }
+function showDevelopingFeature() { popupStore.info('Chức năng đang phát triển', 'Chức năng đang phát triển') }
+function openCreate() {
+  if (!assignmentMutationActionsEnabled) { showDevelopingFeature(); return }
+  resetForm(); formMode.value = 'create'; editingId.value = null; showFormModal.value = true
+}
 function openEdit(r) {
+  if (!assignmentMutationActionsEnabled) { showDevelopingFeature(); return }
   formMode.value = 'edit'; editingId.value = r.maPhanCong
   formData.value = { tenLop: r.tenLop, monHoc: r.monHoc, maGiangVien: r.maGiangVien, giangVien: r.giangVien, soBuoi: r.soBuoi, donVi: r.donVi || '', lichDay: r.lichDay || '', phong: r.phong || '', siSo: r.siSo || 0, trangThai: r.trangThai }
   formErrors.value = {}; showFormModal.value = true
@@ -94,6 +100,7 @@ async function submitForm() {
 
 // ── Assign Teacher ──
 async function openAssign(r) {
+  if (!assignmentMutationActionsEnabled) { showDevelopingFeature(); return }
   assignItem.value = r; assignTeacherId.value = r.maGiangVien || null
   try {
     const data = await assignmentApi.getTeachers({ DonVi: r.donVi || undefined })
@@ -112,7 +119,10 @@ async function confirmAssign() {
 }
 
 // ── Delete ──
-function requestDelete(r) { itemToDelete.value = r; showDeleteModal.value = true }
+function requestDelete(r) {
+  if (!assignmentMutationActionsEnabled) { showDevelopingFeature(); return }
+  itemToDelete.value = r; showDeleteModal.value = true
+}
 async function confirmDelete() {
   deleting.value = true
   try {

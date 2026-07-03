@@ -1,5 +1,6 @@
 import { apiRequest } from './apiClient'
 
+const enableMock = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const MOCK_ASSIGNMENTS = [
   { maPhanCong: 1, maLopHocPhan: 101, tenLop: 'SE1601', monHoc: 'Lập trình Java', maGiangVien: 1, giangVien: 'TS. Nguyễn Minh Khoa', soBuoi: 3, trangThai: 'assigned', donVi: 'CNTT', lichDay: 'T2 (Ca 1-2), T4 (Ca 3)', phong: 'Lab 102', siSo: 30 },
   { maPhanCong: 2, maLopHocPhan: 102, tenLop: 'SE1602', monHoc: 'Cấu trúc dữ liệu', maGiangVien: 2, giangVien: 'ThS. Trần Thị Lan', soBuoi: 2, trangThai: 'assigned', donVi: 'CNTT', lichDay: 'T3 (Ca 4-5)', phong: 'P.305', siSo: 35 },
@@ -29,9 +30,52 @@ async function withFallback(apiCall, mockFallback) {
   try {
     const res = await apiCall()
     return res
-  } catch {
+  } catch (error) {
+    if (!enableMock) throw error
     return typeof mockFallback === 'function' ? mockFallback() : mockFallback
   }
+}
+
+function unwrap(response) {
+  return response?.data ?? response?.Data ?? response
+}
+
+function normalizeAssignment(item) {
+  return {
+    ...item,
+    maPhanCong: item.maTkb ?? item.maPhanCong,
+    maLopHocPhan: item.maKhoaHoc ?? item.maLopHocPhan,
+    tenLop: item.tenLop || item.maCodeLop || '',
+    monHoc: item.tenMonHoc || item.monHoc || item.tieuDeKhoaHoc || '',
+    maGiangVien: item.maGiaoVien ?? item.maGiangVien,
+    giangVien: item.tenGiaoVien || item.giangVien || 'Chưa phân công',
+    trangThai: item.maGiaoVien ? 'assigned' : 'unassigned',
+    lichDay: item.thuTrongTuan ? `Thứ ${item.thuTrongTuan} (${item.tenCa || ''})` : item.lichDay,
+    phong: item.tenPhong || item.maCodePhong || item.phong,
+    siSo: item.siSo || 0,
+  }
+}
+
+function normalizeAssignmentList(response) {
+  const data = unwrap(response)
+  const items = Array.isArray(data) ? data : data?.items || []
+  return items.map(normalizeAssignment)
+}
+
+function normalizeTeacherList(response) {
+  const data = unwrap(response)
+  const items = Array.isArray(data) ? data : data?.items || []
+  return items.map(item => ({
+    maGiangVien: item.maNguoiDung,
+    hoTen: item.hoTen,
+    donVi: item.tenDonVi || '',
+    soTietDaDay: 0,
+    tietToiDa: 0,
+  }))
+}
+
+function unavailable() {
+  throw new Error('Chức năng đang phát triển')
 }
 
 export const assignmentApi = {
@@ -41,7 +85,7 @@ export const assignmentApi = {
         const query = new URLSearchParams()
         Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') query.set(k, v) })
         const qs = query.toString()
-        return apiRequest(`/api/assignments${qs ? '?' + qs : ''}`)
+        return apiRequest(`/api/thoi-khoa-bieu${qs ? '?' + qs : ''}`).then(normalizeAssignmentList)
       },
       () => {
         let result = [...mockStore]
@@ -55,14 +99,14 @@ export const assignmentApi = {
 
   get(id) {
     return withFallback(
-      () => apiRequest(`/api/assignments/${id}`),
+      () => apiRequest(`/api/thoi-khoa-bieu/${id}`).then(res => normalizeAssignment(unwrap(res))),
       () => mockStore.find(a => a.maPhanCong === Number(id)) || null
     )
   },
 
   create(data) {
     return withFallback(
-      () => apiRequest('/api/assignments', { method: 'POST', body: JSON.stringify(data) }),
+      () => unavailable(),
       () => {
         const newItem = { ...data, maPhanCong: ++mockIdCounter }
         mockStore.push(newItem)
@@ -73,7 +117,7 @@ export const assignmentApi = {
 
   update(id, data) {
     return withFallback(
-      () => apiRequest(`/api/assignments/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+      () => unavailable(),
       () => {
         const idx = mockStore.findIndex(a => a.maPhanCong === Number(id))
         if (idx !== -1) mockStore[idx] = { ...mockStore[idx], ...data }
@@ -84,7 +128,7 @@ export const assignmentApi = {
 
   remove(id) {
     return withFallback(
-      () => apiRequest(`/api/assignments/${id}`, { method: 'DELETE' }),
+      () => unavailable(),
       () => {
         const idx = mockStore.findIndex(a => a.maPhanCong === Number(id))
         if (idx !== -1) mockStore.splice(idx, 1)
@@ -95,7 +139,7 @@ export const assignmentApi = {
 
   assignTeacher(id, maGiangVien) {
     return withFallback(
-      () => apiRequest(`/api/assignments/${id}/assign`, { method: 'PATCH', body: JSON.stringify({ maGiangVien }) }),
+      () => unavailable(),
       () => {
         const item = mockStore.find(a => a.maPhanCong === Number(id))
         if (item) {
@@ -113,9 +157,10 @@ export const assignmentApi = {
     return withFallback(
       () => {
         const query = new URLSearchParams()
-        Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') query.set(k, v) })
+        const apiParams = { PageSize: 100, Role: 'Teacher', Keyword: params.Keyword }
+        Object.entries(apiParams).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') query.set(k, v) })
         const qs = query.toString()
-        return apiRequest(`/api/assignments/teachers${qs ? '?' + qs : ''}`)
+        return apiRequest(`/api/admin/users${qs ? '?' + qs : ''}`).then(normalizeTeacherList)
       },
       () => {
         let result = [...TEACHERS]

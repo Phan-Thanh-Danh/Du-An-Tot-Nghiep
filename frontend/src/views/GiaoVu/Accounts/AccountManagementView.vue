@@ -3,7 +3,6 @@ import { ref, computed, onMounted } from 'vue'
 import { Search, Plus, X, Pencil, Users, Shield, KeyRound, Loader2 } from 'lucide-vue-next'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
-import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { accountApi } from '@/services/accountApi'
@@ -13,11 +12,11 @@ const popupStore = usePopupStore()
 const loading = ref(true); const error = ref(null); const rows = ref([])
 const searchQuery = ref(''); const filterVaiTro = ref(''); const filterKichHoat = ref('')
 const groupByMode = ref('role') // 'role' | 'class' (for students) | 'none'
+const accountMutationActionsEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const showFormModal = ref(false); const formMode = ref('create'); const editingId = ref(null); const submitting = ref(false)
 const formData = ref({ tenDangNhap: '', hoTen: '', email: '', vaiTro: 'GiangVien', donVi: '', kichHoat: true })
 const formErrors = ref({})
-const confirmDelete = ref(null)
 
 const vaiTroOptions = accountApi.getVaiTroOptions()
 const vaiTroBadge = {
@@ -102,8 +101,13 @@ function clearFilters() { searchQuery.value = ''; filterVaiTro.value = ''; filte
 // ── Form ──
 const defaults = () => ({ tenDangNhap: '', hoTen: '', email: '', vaiTro: 'GiangVien', donVi: '', kichHoat: true })
 function resetForm() { formData.value = defaults(); formErrors.value = {} }
-function openCreate() { resetForm(); formMode.value = 'create'; editingId.value = null; showFormModal.value = true }
+function showDevelopingFeature() { popupStore.info('Chức năng đang phát triển', 'Chức năng đang phát triển') }
+function openCreate() {
+  if (!accountMutationActionsEnabled) { showDevelopingFeature(); return }
+  resetForm(); formMode.value = 'create'; editingId.value = null; showFormModal.value = true
+}
 function openEdit(r) {
+  if (!accountMutationActionsEnabled) { showDevelopingFeature(); return }
   formMode.value = 'edit'; editingId.value = r.maTaiKhoan
   formData.value = { tenDangNhap: r.tenDangNhap, hoTen: r.hoTen, email: r.email, vaiTro: r.vaiTro, donVi: r.donVi || '', kichHoat: r.kichHoat }
   formErrors.value = {}; showFormModal.value = true
@@ -134,7 +138,8 @@ async function toggleActive(r) {
   catch { popupStore.error('Lỗi', 'Không thể thay đổi trạng thái.') }
 }
 async function resetPwd(r) {
-  try { const res = await accountApi.resetPassword(r.maTaiKhoan); popupStore.success('Đặt lại mật khẩu', `Mật khẩu mới: ${res.newPassword || 'Abc@123456'}`) }
+  if (!accountMutationActionsEnabled) { showDevelopingFeature(); return }
+  try { await accountApi.resetPassword(r.maTaiKhoan); popupStore.success('Đặt lại mật khẩu', 'Đặt lại mật khẩu thành công.') }
   catch { popupStore.error('Lỗi', 'Không thể đặt lại mật khẩu.') }
 }
 </script>

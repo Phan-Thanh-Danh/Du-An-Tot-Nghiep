@@ -1,5 +1,6 @@
 import { apiRequest } from './apiClient'
 
+const enableMock = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const MOCK_ACCOUNTS = [
   { maTaiKhoan: 1, tenDangNhap: 'nguyen.van.a', hoTen: 'TS. Nguyễn Văn An', email: 'an.nv@lms.edu.vn', vaiTro: 'GiangVien', donVi: 'Công nghệ thông tin', kichHoat: true, ngayTao: '2023-08-01' },
   { maTaiKhoan: 2, tenDangNhap: 'tran.thi.binh', hoTen: 'ThS. Trần Thị Bình', email: 'binh.tt@lms.edu.vn', vaiTro: 'GiangVien', donVi: 'Công nghệ thông tin', kichHoat: true, ngayTao: '2023-08-01' },
@@ -22,21 +23,80 @@ async function withFallback(apiCall, mockFallback) {
   try {
     const res = await apiCall()
     return res
-  } catch {
+  } catch (error) {
+    if (!enableMock) throw error
     return typeof mockFallback === 'function' ? mockFallback() : mockFallback
   }
 }
 
 const vaiTroOptions = ['GiangVien', 'AcademicStaff', 'SinhVien', 'Principal', 'SuperAdmin', 'PhuHuynh']
 
+function unwrap(response) {
+  return response?.data ?? response?.Data ?? response
+}
+
+function toUiRole(role) {
+  const map = {
+    Teacher: 'GiangVien',
+    Student: 'SinhVien',
+    Parent: 'PhuHuynh',
+    AcademicStaff: 'AcademicStaff',
+    Principal: 'Principal',
+    SuperAdmin: 'SuperAdmin',
+    Admin: 'SuperAdmin',
+  }
+  return map[role] || role
+}
+
+function toApiRole(role) {
+  const map = {
+    GiangVien: 'Teacher',
+    SinhVien: 'Student',
+    PhuHuynh: 'Parent',
+  }
+  return map[role] || role
+}
+
+function normalizeAccount(item) {
+  const role = toUiRole(item.tenVaiTro || item.vaiTro || item.role)
+  const status = item.trangThai || ''
+  return {
+    ...item,
+    maTaiKhoan: item.maNguoiDung ?? item.maTaiKhoan,
+    tenDangNhap: item.tenDangNhap || item.email?.split('@')[0] || '',
+    hoTen: item.hoTen || '',
+    email: item.email || '',
+    vaiTro: role,
+    donVi: item.tenDonVi || item.donVi || '',
+    kichHoat: status !== 'bi_khoa' && status !== 'inactive' && status !== 'locked',
+    ngayTao: item.ngayTao,
+  }
+}
+
+function normalizeAccountList(response) {
+  const data = unwrap(response)
+  const items = Array.isArray(data) ? data : data?.items || []
+  return items.map(normalizeAccount)
+}
+
+function unavailable() {
+  throw new Error('Chức năng đang phát triển')
+}
+
 export const accountApi = {
   list(params = {}) {
     return withFallback(
       () => {
         const query = new URLSearchParams()
-        Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') query.set(k, v) })
+        const apiParams = {
+          PageSize: params.PageSize || 100,
+          Keyword: params.Search,
+          Role: params.VaiTro ? toApiRole(params.VaiTro) : undefined,
+          TrangThai: params.KichHoat === 'false' || params.KichHoat === false ? 'bi_khoa' : undefined,
+        }
+        Object.entries(apiParams).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') query.set(k, v) })
         const qs = query.toString()
-        return apiRequest(`/api/admin/accounts${qs ? '?' + qs : ''}`)
+        return apiRequest(`/api/admin/users${qs ? '?' + qs : ''}`).then(normalizeAccountList)
       },
       () => {
         let result = [...mockStore]
@@ -60,14 +120,14 @@ export const accountApi = {
 
   get(id) {
     return withFallback(
-      () => apiRequest(`/api/admin/accounts/${id}`),
+      () => apiRequest(`/api/admin/users/${id}`).then(res => normalizeAccount(unwrap(res))),
       () => mockStore.find(a => a.maTaiKhoan === Number(id)) || null
     )
   },
 
   create(data) {
     return withFallback(
-      () => apiRequest('/api/admin/accounts', { method: 'POST', body: JSON.stringify(data) }),
+      () => unavailable(),
       () => {
         const newItem = {
           ...data,
@@ -83,7 +143,7 @@ export const accountApi = {
 
   update(id, data) {
     return withFallback(
-      () => apiRequest(`/api/admin/accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+      () => unavailable(),
       () => {
         const idx = mockStore.findIndex(a => a.maTaiKhoan === Number(id))
         if (idx !== -1) mockStore[idx] = { ...mockStore[idx], ...data }
@@ -92,9 +152,11 @@ export const accountApi = {
     )
   },
 
-  toggleActive(id) {
+  toggleActive(account) {
+    const id = typeof account === 'object' ? account.maTaiKhoan : account
+    const isActive = typeof account === 'object' ? account.kichHoat : true
     return withFallback(
-      () => apiRequest(`/api/admin/accounts/${id}/toggle-active`, { method: 'PATCH' }),
+      () => apiRequest(`/api/admin/users/${id}/${isActive ? 'lock' : 'unlock'}`, { method: 'PATCH' }),
       () => {
         const item = mockStore.find(a => a.maTaiKhoan === Number(id))
         if (item) item.kichHoat = !item.kichHoat
@@ -103,9 +165,9 @@ export const accountApi = {
     )
   },
 
-  resetPassword(id) {
+  resetPassword(_id) {
     return withFallback(
-      () => apiRequest(`/api/admin/accounts/${id}/reset-password`, { method: 'PATCH' }),
+      () => unavailable(),
       () => ({ success: true, newPassword: 'Abc@123456' })
     )
   },
