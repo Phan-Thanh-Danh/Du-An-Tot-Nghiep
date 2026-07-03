@@ -219,7 +219,7 @@ async function loadCourses() {
       totalItems: data.totalItems || 0,
       totalPages: data.totalPages || 0,
     }
-    if (import.meta.env.VITE_ENABLE_MOCK_API === 'true') {
+    if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true') {
       const allRes = await courseApi.getCourses({ ...filters.value, trangThai: undefined, pageSize: 200 })
       const allData = allRes.data || allRes
       coursesForStats.value = allData.items || []

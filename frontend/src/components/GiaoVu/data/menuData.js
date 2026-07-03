@@ -32,6 +32,7 @@ export const giaoVuMenuGroups = [
     icon: 'BookOpen',
     children: [
       { id: 'academic-terms', label: 'Học kỳ', icon: 'Calendar', route: '/staff/academic-terms' },
+      { id: 'subject-list', label: 'Môn học', icon: 'Book', route: '/staff/subjects' },
       { id: 'course-list', label: 'Danh sách khóa học', icon: 'List', route: '/staff/courses' },
     ],
   },
