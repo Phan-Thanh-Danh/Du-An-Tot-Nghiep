@@ -10,7 +10,7 @@ import { apiRequest, unwrapApiData } from './apiClient'
  *   + = CREATED in P2 (TeacherDashboard/Submissions)
  */
 export const teacherApi = {
-  // × MISSING_BACKEND: No TeacherDashboardController exists.
+  // + P2: TeacherDashboardController created
   // For now the FE calls getAttendanceToday + getSchedule to approximate.
   getDashboard() {
     return apiRequest('/api/teacher/dashboard')

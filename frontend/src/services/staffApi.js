@@ -58,7 +58,7 @@ const mockNotifications = [
 ]
 
 export const staffApi = {
-  // × MISSING_BACKEND: /api/staff/dashboard
+  // + P2: StaffDashboardController created
   async getDashboard() {
     try {
       return unwrapApiData(await apiRequest('/api/staff/dashboard'))
@@ -241,7 +241,7 @@ export const staffApi = {
     })
   },
 
-  // × MISSING_BACKEND (dự kiến: /api/rooms/book)
+  // + P2: StaffRoomBookingsController created
   bookRoom(payload) {
     return apiRequest('/api/staff/rooms/book', {
       method: 'POST',
