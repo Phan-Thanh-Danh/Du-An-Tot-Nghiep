@@ -47,6 +47,16 @@ export const studentApi = {
       body: formData,
     })
   },
+  getSubmissions() {
+    return apiRequest('/api/student/submissions', {
+      method: 'GET',
+    })
+  },
+  getSubmissionDetail(submissionId) {
+    return apiRequest(`/api/student/submissions/${submissionId}`, {
+      method: 'GET',
+    })
+  },
 
   getDisciplineRecords() {
     return apiRequest('/api/student/discipline-records')

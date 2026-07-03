@@ -21,6 +21,8 @@ public class StudentAssignmentDetailDto
     public string Status { get; set; } = string.Empty;
     public string StatusLabel { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public decimal? Score { get; set; }
+    public string? Feedback { get; set; }
     public SubmissionRulesDto Rules { get; set; } = new();
     public List<SubmissionHistoryDto> Submissions { get; set; } = new();
 }
@@ -48,6 +50,8 @@ public class SubmissionHistoryDto
     public string Note { get; set; } = string.Empty;
     public bool IsLatest { get; set; }
     public string FileUrl { get; set; } = string.Empty;
+    public decimal? Score { get; set; }
+    public string? Feedback { get; set; }
 }
 
 public class AssignmentSubmissionResultDto
@@ -55,4 +59,20 @@ public class AssignmentSubmissionResultDto
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
     public SubmissionHistoryDto? Submission { get; set; }
+}
+
+public class StudentSubmissionDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string AssignmentId { get; set; } = string.Empty;
+    public string AssignmentTitle { get; set; } = string.Empty;
+    public string Course { get; set; } = string.Empty;
+    public string SubmittedAt { get; set; } = string.Empty;
+    public int Attempt { get; set; }
+    public bool IsLate { get; set; }
+    public string FileUrl { get; set; } = string.Empty;
+    public decimal? Score { get; set; }
+    public string? Feedback { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string StatusLabel { get; set; } = string.Empty;
 }

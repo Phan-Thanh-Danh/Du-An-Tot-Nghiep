@@ -570,7 +570,17 @@ Chưa thấy controller lesson trong repo hiện tại.
 
 ### Đã có
 
-Chưa thấy controller assignment trong repo hiện tại.
+P6 hoàn thiện workflow bài tập theo role Student/Teacher trên schema hiện có `BaiTap`/`BaiNop`.
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/teacher/assignments` | Teacher | Danh sách bài tập thuộc các môn mà teacher đang phụ trách qua `KhoaHoc.MaGiaoVien`. Có phân trang `pageIndex`, `pageSize`. |
+| POST | `/api/teacher/assignments` | Teacher | Tạo bài tập cho `courseId` teacher phụ trách. Lưu `BaiTap.MaMonHoc` theo khóa học; trạng thái `nhap`, `da_xuat_ban`, `da_dong`. |
+| GET | `/api/teacher/assignments/{id}` | Teacher | Chi tiết bài tập trong phạm vi môn teacher phụ trách. |
+| PUT | `/api/teacher/assignments/{id}` | Teacher | Cập nhật tiêu đề, mô tả, hạn nộp, số lần nộp, định dạng, hướng dẫn chấm, trạng thái. |
+| DELETE | `/api/teacher/assignments/{id}` | Teacher | Xóa bài tập chưa có bài nộp; nếu đã có bài nộp thì đóng bài tập (`da_dong`). |
+| GET | `/api/student/assignments` | Student | Danh sách bài tập đã publish/closed thuộc môn sinh viên đã đăng ký học phần (`da_dang_ky`). |
+| GET | `/api/student/assignments/{assignmentId}` | Student | Chi tiết bài tập, rules nộp bài, lịch sử nộp và điểm/feedback đã công bố. |
 
 ### Dự kiến/cần bổ sung
 
@@ -581,11 +591,21 @@ Chưa thấy controller assignment trong repo hiện tại.
 - `PATCH /api/assignments/{id}/publish`
 - `PATCH /api/assignments/{id}/close`
 
+Ghi chú P6: `BaiTap` hiện chưa có cột `ma_khoa_hoc`, nên assignment được lưu theo `MaMonHoc`; `courseId` trong API teacher dùng để kiểm quyền và suy ra `MaMonHoc`. `BaiTap` cũng chưa có cột `diem_toi_da`; workflow chấm điểm dùng giới hạn hiện có của `BaiNop.diem_so` là 0-10.
+
 ## Submissions APIs
 
 ### Đã có
 
-Chưa thấy controller submission trong repo hiện tại.
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| POST | `/api/student/assignments/{assignmentId}/submit` | Student | Nộp bài bằng file lên storage hiện có. Chặn bài nháp, bài đã đóng, quá hạn, hết lượt nộp, hoặc student không thuộc môn. |
+| GET | `/api/student/submissions` | Student | Lịch sử bài nộp của student hiện tại, chỉ trả điểm/feedback khi đã công bố. |
+| GET | `/api/student/submissions/{id}` | Student | Chi tiết một bài nộp của student hiện tại. |
+| GET | `/api/teacher/assignments/{id}/submissions` | Teacher | Danh sách bài nộp của một bài tập teacher có quyền. |
+| GET | `/api/teacher/submissions` | Teacher | Danh sách bài nộp thuộc các môn teacher phụ trách. |
+| GET | `/api/teacher/submissions/{id}` | Teacher | Chi tiết bài nộp trong phạm vi teacher phụ trách. |
+| PUT | `/api/teacher/submissions/{id}/grade` | Teacher | Chấm điểm 0-10, lưu feedback, tùy chọn công bố cho student. |
 
 ### Dự kiến/cần bổ sung
 
