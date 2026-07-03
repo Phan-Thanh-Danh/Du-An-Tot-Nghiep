@@ -4,10 +4,11 @@ import { authApi } from '@/services/apiClient'
 import { getDemoCredentials } from '@/data/authPortals'
 import { syncActiveStudentData } from '@/data/studentData.mock.js'
 
-
 const ACCESS_TOKEN_KEY = 'lms_access_token'
+const REFRESH_TOKEN_KEY = 'lms_refresh_token'
 const AUTH_USER_KEY = 'lms_auth_user'
 const TOKEN_EXPIRES_AT_KEY = 'lms_token_expires_at'
+const REFRESH_TOKEN_EXPIRES_AT_KEY = 'lms_refresh_token_expires_at'
 const REQUIRES_PASSWORD_CHANGE_KEY = 'lms_requires_password_change'
 const REMEMBER_LOGIN_KEY = 'lms_remember_login'
 
@@ -29,8 +30,10 @@ function clearStoredSession() {
 
   for (const storage of storages) {
     storage.removeItem(ACCESS_TOKEN_KEY)
+    storage.removeItem(REFRESH_TOKEN_KEY)
     storage.removeItem(AUTH_USER_KEY)
     storage.removeItem(TOKEN_EXPIRES_AT_KEY)
+    storage.removeItem(REFRESH_TOKEN_EXPIRES_AT_KEY)
     storage.removeItem(REQUIRES_PASSWORD_CHANGE_KEY)
   }
 }
@@ -42,6 +45,10 @@ function isExpired(expiresAt) {
   if (Number.isNaN(expiresAtMs)) return true
 
   return expiresAtMs <= Date.now()
+}
+
+function getResponseValue(response, camelKey, pascalKey, fallback = '') {
+  return response?.[camelKey] ?? response?.[pascalKey] ?? fallback
 }
 
 function normalizeRole(role) {
@@ -58,8 +65,10 @@ function normalizeRole(role) {
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref(readStoredValue(ACCESS_TOKEN_KEY))
+  const refreshToken = ref(readStoredValue(REFRESH_TOKEN_KEY))
   const user = ref(readJson(AUTH_USER_KEY))
   const expiresAt = ref(readStoredValue(TOKEN_EXPIRES_AT_KEY))
+  const refreshTokenExpiresAt = ref(readStoredValue(REFRESH_TOKEN_EXPIRES_AT_KEY))
   const requiresPasswordChange = ref(
     readStoredValue(REQUIRES_PASSWORD_CHANGE_KEY) === 'true',
   )
@@ -68,8 +77,8 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref('')
 
   const isAuthenticated = computed(() => Boolean(accessToken.value) && !isExpired(expiresAt.value))
-  const role = computed(() => user.value?.role || '')
-  const displayName = computed(() => user.value?.fullName || user.value?.email || 'Người dùng')
+  const role = computed(() => user.value?.role || user.value?.Role || '')
+  const displayName = computed(() => user.value?.fullName || user.value?.FullName || user.value?.email || user.value?.Email || 'Người dùng')
   const initials = computed(() => {
     const name = displayName.value.trim()
     if (!name) return 'U'
@@ -82,10 +91,18 @@ export const useAuthStore = defineStore('auth', () => {
   })
 
   function persistSession(response, remember = false) {
-    accessToken.value = response.accessToken || ''
-    user.value = response.user || null
-    expiresAt.value = response.expiresAt || ''
-    requiresPasswordChange.value = Boolean(response.requiresPasswordChange)
+    accessToken.value = getResponseValue(response, 'accessToken', 'AccessToken')
+    refreshToken.value = getResponseValue(response, 'refreshToken', 'RefreshToken')
+    user.value = getResponseValue(response, 'user', 'User', null)
+    expiresAt.value = getResponseValue(response, 'expiresAt', 'ExpiresAt')
+    refreshTokenExpiresAt.value = getResponseValue(
+      response,
+      'refreshTokenExpiresAt',
+      'RefreshTokenExpiresAt',
+    )
+    requiresPasswordChange.value = Boolean(
+      getResponseValue(response, 'requiresPasswordChange', 'RequiresPasswordChange', false),
+    )
     rememberLogin.value = Boolean(remember)
 
     clearStoredSession()
@@ -93,15 +110,19 @@ export const useAuthStore = defineStore('auth', () => {
 
     const storage = rememberLogin.value ? localStorage : sessionStorage
     storage.setItem(ACCESS_TOKEN_KEY, accessToken.value)
+    storage.setItem(REFRESH_TOKEN_KEY, refreshToken.value)
     storage.setItem(AUTH_USER_KEY, JSON.stringify(user.value))
     storage.setItem(TOKEN_EXPIRES_AT_KEY, expiresAt.value)
+    storage.setItem(REFRESH_TOKEN_EXPIRES_AT_KEY, refreshTokenExpiresAt.value)
     storage.setItem(REQUIRES_PASSWORD_CHANGE_KEY, String(requiresPasswordChange.value))
   }
 
   function clearSession() {
     accessToken.value = ''
+    refreshToken.value = ''
     user.value = null
     expiresAt.value = ''
+    refreshTokenExpiresAt.value = ''
     requiresPasswordChange.value = false
     error.value = ''
 
@@ -129,7 +150,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       const response = await authApi.login(loginPayload)
       persistSession(response, Boolean(options.remember))
-      
+
       // Đồng bộ dữ liệu sinh viên mock
       try {
         syncActiveStudentData()
@@ -147,8 +168,34 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function refreshSession() {
+    if (!refreshToken.value || isExpired(refreshTokenExpiresAt.value)) {
+      clearSession()
+      throw new Error('Phiên đăng nhập đã hết hạn.')
+    }
+
+    const response = await authApi.refreshToken({
+      refreshToken: refreshToken.value,
+    })
+
+    persistSession(response, rememberLogin.value)
+    return response
+  }
+
   function logout() {
     clearSession()
+  }
+
+  async function logoutRemote() {
+    try {
+      if (refreshToken.value) {
+        await authApi.logout({ refreshToken: refreshToken.value })
+      }
+    } catch {
+      // Không chặn logout local nếu server logout thất bại.
+    } finally {
+      clearSession()
+    }
   }
 
   function hasRole(expectedRole) {
@@ -162,14 +209,17 @@ export const useAuthStore = defineStore('auth', () => {
 
   function ensureFreshSession() {
     if (accessToken.value && isExpired(expiresAt.value)) {
+      if (refreshToken.value && !isExpired(refreshTokenExpiresAt.value)) return
       clearSession()
     }
   }
 
   return {
     accessToken,
+    refreshToken,
     user,
     expiresAt,
+    refreshTokenExpiresAt,
     requiresPasswordChange,
     rememberLogin,
     loading,
@@ -179,7 +229,10 @@ export const useAuthStore = defineStore('auth', () => {
     displayName,
     initials,
     login,
+    refreshSession,
     logout,
+    logoutRemote,
+    clearSession,
     hasRole,
     ensureFreshSession,
   }

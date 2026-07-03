@@ -1,15 +1,24 @@
 <template>
-  <div class="space-y-5 pb-10">
+  <div v-if="loading" class="flex items-center justify-center min-h-[300px]">
+    <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+    <span class="ml-3 text-muted text-sm">Đang tải dashboard...</span>
+  </div>
+  <div v-else-if="error" class="flex flex-col items-center justify-center min-h-[300px] gap-4">
+    <AlertCircle :size="40" class="text-rose-400" />
+    <p class="text-rose-600 font-semibold">{{ error }}</p>
+    <button @click="loadDashboard" class="rounded-lg bg-(--accent-primary) px-4 py-2 text-xs font-bold text-white">Thử lại</button>
+  </div>
+  <div v-else class="space-y-5 pb-10">
 
     <!-- ── Welcome Header ── -->
     <div class="rounded-2xl surface-card border border-card p-5 shadow-lg">
       <div class="flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="max-w-xl text-center md:text-left">
           <h1 class="text-lg font-semibold leading-tight tracking-tight text-heading">
-            Chào buổi sáng, <span class="text-link">TS. Nguyễn Minh Khoa!</span>
+            Chào buổi sáng, <span class="text-link">{{ auth.user?.fullName || auth.user?.name || 'Giảng viên' }}!</span>
           </h1>
           <p class="mt-1 text-muted text-sm">
-            Hôm nay có 2 ca dạy và 24 bài đang chờ chấm.
+            Hôm nay có {{ teachingSchedule.length }} ca dạy và {{ (stats[2]?.value || 0) }} bài đang chờ chấm.
           </p>
           <div class="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
             <router-link to="/teacher/schedule" class="rounded-lg bg-(--accent-primary) px-4 py-2 text-xs font-bold text-white shadow-lg hover:opacity-90 transition-all active:scale-95">
@@ -216,23 +225,41 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { teacherApi } from '@/services/teacherApi'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import {
   Users, BookOpen, ClipboardCheck, TrendingUp,
   ArrowUpRight, AlertCircle, User, Bell
 } from 'lucide-vue-next'
 
-const stats = [
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const auth = useAuthStore()
+
+const loading = ref(false)
+const error = ref('')
+const stats = ref([])
+const teachingSchedule = ref([])
+const submissionStats = ref([])
+
+const DEMO_SCHEDULE = [
+  { id: 1, subject: 'Cấu trúc dữ liệu & Giải thuật', code: 'CTDL101_L01', time: '07:30 - 09:30', room: 'Phòng 302 - Cơ sở chính', students: 45, status: 'completed' },
+  { id: 2, subject: 'Lập trình hướng đối tượng', code: 'OOP202_L03', time: '13:30 - 15:30', room: 'Phòng 105 - Cơ sở chính', students: 38, status: 'upcoming' },
+  { id: 3, subject: 'Hệ quản trị CSDL', code: 'DBM301_L02', time: '15:45 - 17:45', room: 'Lab 2 - Cơ sở phụ', students: 42, status: 'upcoming' },
+]
+
+const DEMO_STATS = [
   { id: 1, label: 'Tổng sinh viên', value: '452', trend: '+12%', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: Users },
   { id: 2, label: 'Lớp đang dạy', value: '8', trend: 'Học kỳ 2', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: BookOpen },
   { id: 3, label: 'Bài chờ chấm', value: '24', trend: '6 bài gấp', isNegative: true, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: ClipboardCheck },
   { id: 4, label: 'Hiệu suất lớp', value: '82%', trend: '+5%', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: TrendingUp },
 ]
 
-const teachingSchedule = [
-  { id: 1, subject: 'Cấu trúc dữ liệu & Giải thuật', code: 'CTDL101_L01', time: '07:30 - 09:30', room: 'Phòng 302 - Cơ sở chính', students: 45, status: 'completed' },
-  { id: 2, subject: 'Lập trình hướng đối tượng', code: 'OOP202_L03', time: '13:30 - 15:30', room: 'Phòng 105 - Cơ sở chính', students: 38, status: 'upcoming' },
-  { id: 3, subject: 'Hệ quản trị CSDL', code: 'DBM301_L02', time: '15:45 - 17:45', room: 'Lab 2 - Cơ sở phụ', students: 42, status: 'upcoming' },
+const DEMO_SUBMISSIONS = [
+  { label: 'CTDL&GT - L01', value: '42/45', colorClass: 'bg-emerald-400' },
+  { label: 'OOP - L03', value: '35/38', colorClass: 'bg-blue-400' },
+  { label: 'HQTCSDL - L02', value: '40/42', colorClass: 'bg-cyan-400' },
 ]
 
 const recentSubmissions = [
@@ -242,15 +269,47 @@ const recentSubmissions = [
   { id: 4, student: 'Phạm Minh D', course: 'HQTCSDL', assignment: 'Truy vấn SQL nâng cao', time: 'Hôm qua', status: 'graded' },
 ]
 
-const submissionStats = [
-  { label: 'CTDL&GT - L01', value: '42/45', colorClass: 'bg-emerald-400' },
-  { label: 'OOP - L03', value: '35/38', colorClass: 'bg-blue-400' },
-  { label: 'HQTCSDL - L02', value: '40/42', colorClass: 'bg-cyan-400' },
-]
-
 const gradingStats = [
   { label: 'CTDL&GT - Bài tập 2', value: '12 bài', colorClass: 'bg-orange-400' },
   { label: 'OOP - Lab 4', value: '8 bài', colorClass: 'bg-amber-400' },
   { label: 'HQTCSDL - SQL', value: '4 bài', colorClass: 'bg-red-400' },
 ]
+
+async function loadDashboard() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await teacherApi.getAttendanceToday()
+    const sessions = Array.isArray(data) ? data : []
+    teachingSchedule.value = sessions.map(s => ({
+      id: s.id || s.maBuoiHoc,
+      time: s.thoiGianBatDau && s.thoiGianKetThuc ? `${s.thoiGianBatDau} - ${s.thoiGianKetThuc}` : (s.thoiGianBatDau || '07:00'),
+      subject: s.tenMonHoc || s.subject || '',
+      code: s.maLop || '',
+      room: s.phongHoc || '',
+      students: s.siSo || 0,
+      status: s.trangThai === 'da_ket_thuc' ? 'completed' : 'upcoming'
+    }))
+    stats.value = [
+      { id: 1, label: 'Tổng sinh viên', value: sessions.length || 0, trend: '+12%', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: Users },
+      { id: 2, label: 'Lớp đang dạy', value: '8', trend: 'Học kỳ 2', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: BookOpen },
+      { id: 3, label: 'Bài chờ chấm', value: '24', trend: '6 bài gấp', isNegative: true, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: ClipboardCheck },
+      { id: 4, label: 'Hiệu suất lớp', value: '82%', trend: '+5%', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: TrendingUp },
+    ]
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      teachingSchedule.value = DEMO_SCHEDULE
+      stats.value = DEMO_STATS
+      submissionStats.value = DEMO_SUBMISSIONS
+      return
+    }
+    error.value = e?.message || 'Không thể tải dữ liệu dashboard.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadDashboard()
+})
 </script>

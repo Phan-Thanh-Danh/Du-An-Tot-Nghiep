@@ -1,11 +1,12 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   Search,
   Eye,
   LogOut,
   ShieldAlert,
   AlertTriangle,
+  AlertCircle,
   Globe,
   X,
   Clock,
@@ -18,6 +19,13 @@ import {
   UserX,
   ShieldCheck
 } from 'lucide-vue-next'
+import { usePopupStore } from '@/stores/popup'
+import { apiRequest } from '@/services/apiClient'
+
+const ENABLE_MOCK_API =
+  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+
+const popup = usePopupStore()
 
 // State & Filters
 const searchQuery = ref('')
@@ -30,8 +38,11 @@ const roles = ['Tất cả', 'Sinh viên', 'Giảng viên', 'Giáo vụ', 'BGH',
 const statuses = ['Tất cả', 'Success', 'Failed', 'Suspicious']
 const campuses = ['Tất cả', 'Hà Nội', 'TP.HCM', 'Đà Nẵng', 'Cần Thơ']
 
-// Mock Login History Data
-const mockLogins = ref([
+const loading = ref(false)
+const error = ref('')
+const logins = ref([])
+
+const mockLogins = [
   {
     id: 's_001',
     userName: 'Nguyễn Văn A',
@@ -112,11 +123,29 @@ const mockLogins = ref([
     riskScore: 15,
     aiReason: 'Hành vi bình thường. Đăng nhập qua ứng dụng di động định danh.'
   }
-])
+]
+
+async function loadLogins() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await apiRequest('/api/audit-logs?pageIndex=1&pageSize=100')
+    logins.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      logins.value = JSON.parse(JSON.stringify(mockLogins))
+      return
+    }
+    error.value = e?.message || 'Không thể tải lịch sử đăng nhập.'
+    logins.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 // Filtered Logins
 const filteredLogins = computed(() => {
-  return mockLogins.value.filter(log => {
+  return logins.value.filter(log => {
     const matchSearch = log.userName.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
                         log.email.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
                         log.ip.includes(searchQuery.value.toLowerCase())
@@ -128,10 +157,10 @@ const filteredLogins = computed(() => {
 })
 
 // Statistics
-const totalLogins = computed(() => mockLogins.value.length)
+const totalLogins = computed(() => logins.value.length)
 const activeSessionsCount = ref(4)
-const failedAttemptsCount = computed(() => mockLogins.value.filter(l => l.status === 'Failed').length)
-const suspiciousAlertsCount = computed(() => mockLogins.value.filter(l => l.riskScore >= 70).length)
+const failedAttemptsCount = computed(() => logins.value.filter(l => l.status === 'Failed').length)
+const suspiciousAlertsCount = computed(() => logins.value.filter(l => l.riskScore >= 70).length)
 
 // Drawer & Modal States
 const isDetailDrawerOpen = ref(false)
@@ -164,7 +193,7 @@ const openRevokeModal = (session) => {
 }
 
 const confirmRevokeSession = () => {
-  alert(`Đã cưỡng chế đăng xuất và hủy token phiên ${sessionToRevoke.value.id} của người dùng ${sessionToRevoke.value.userName}!`)
+  popup.success(`Đã cưỡng chế đăng xuất và hủy token phiên ${sessionToRevoke.value.id} của người dùng ${sessionToRevoke.value.userName}!`)
   activeSessionsCount.value = Math.max(0, activeSessionsCount.value - 1)
   isRevokeModalOpen.value = false
 }
@@ -177,16 +206,16 @@ const openLockModal = (session) => {
 
 const confirmLockAccount = () => {
   if (!lockReason.value.trim()) {
-    alert('Vui lòng nhập lý do khóa tài khoản.')
+    popup.warning('Vui lòng nhập lý do khóa tài khoản.')
     return
   }
-  alert(`Tài khoản ${accountToLock.value.email} đã được KHÓA ngay lập tức. Lý do: ${lockReason.value}`)
+  popup.success(`Tài khoản ${accountToLock.value.email} đã được KHÓA ngay lập tức. Lý do: ${lockReason.value}`)
   
-  // Update local mock data state if match
-  const idx = mockLogins.value.findIndex(l => l.email === accountToLock.value.email)
+  // Update local data state if match
+  const idx = logins.value.findIndex(l => l.email === accountToLock.value.email)
   if (idx !== -1) {
-    mockLogins.value[idx].status = 'Failed'
-    mockLogins.value[idx].riskScore = 100
+    logins.value[idx].status = 'Failed'
+    logins.value[idx].riskScore = 100
   }
   isLockModalOpen.value = false
 }
@@ -196,7 +225,7 @@ const openAlertModal = () => {
 }
 
 const confirmCreateAlert = () => {
-  alert(`Đã thiết lập Luật giám sát: "${newAlertConfig.value.name}". AI sẽ tự động gửi thông báo khi phát hiện vi phạm hành vi này.`)
+  popup.info(`Đã thiết lập Luật giám sát: "${newAlertConfig.value.name}". AI sẽ tự động gửi thông báo khi phát hiện vi phạm hành vi này.`)
   isAlertModalOpen.value = false
 }
 
@@ -227,9 +256,20 @@ const getDeviceIcon = (device) => {
   }
   return Smartphone
 }
+
+onMounted(() => { loadLogins() })
 </script>
 
 <template>
+  <div v-if="loading" class="glass-panel rounded-2xl p-12 flex flex-col items-center justify-center mb-6">
+    <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+    <p class="text-label text-sm">Đang tải lịch sử đăng nhập...</p>
+  </div>
+  <div v-else-if="error" class="glass-panel rounded-2xl p-12 flex flex-col items-center justify-center mb-6">
+    <AlertCircle :size="40" class="text-rose-400 mb-3" />
+    <p class="text-rose-600 font-semibold mb-2">{{ error }}</p>
+    <button @click="loadLogins" class="glass-btn primary text-xs">Thử lại</button>
+  </div>
   <div class="login-history-page h-full flex flex-col gap-6">
 
     <!-- METRIC CARDS OVERVIEW -->

@@ -6,11 +6,12 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
-import { rewardDisciplineMockService } from '@/mocks/rewardDisciplineMockService'
+import { studentApi } from '@/services/studentApi'
 import { formatDate } from '@/utils/dateFormat'
 import { usePopupStore } from '@/stores/popup'
 
-const popupStore = usePopupStore()
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const popup = usePopupStore()
 const records = ref([])
 const loading = ref(false)
 const selectedRecord = ref(null)
@@ -20,10 +21,13 @@ const confirmAppeal = ref(false)
 const fetchRecords = async () => {
   loading.value = true
   try {
-    const res = await rewardDisciplineMockService.getMyDisciplineRecords()
-    records.value = res.items || []
+    const res = await studentApi.getDisciplineRecords()
+    records.value = Array.isArray(res) ? res : (res?.items ?? res?.data ?? [])
   } catch (error) {
     console.error(error)
+    if (!ENABLE_MOCK_API) {
+      popup.error('Lỗi', 'Không thể tải hồ sơ kỷ luật.')
+    }
   } finally {
     loading.value = false
   }
@@ -37,18 +41,20 @@ const canAppealCount = computed(() => records.value.filter(r => r.coTheKhieuNai 
 
 const submitAppeal = async () => {
   if (!appealReason.value.trim()) {
-    popupStore.error('Lỗi', 'Vui lòng nhập lý do khiếu nại.')
+    popup.error('Lỗi', 'Vui lòng nhập lý do khiếu nại.')
     return
   }
   confirmAppeal.value = false
   try {
-    await rewardDisciplineMockService.submitDisciplineAppeal(selectedRecord.value.id, { reason: appealReason.value })
+    const res = await studentApi.submitAppeal(selectedRecord.value.id, { reason: appealReason.value })
     selectedRecord.value.appealStatus = 'pending'
-    popupStore.success('Thành công', 'Đã gửi khiếu nại. Vui lòng chờ phản hồi.')
+    popup.success('Thành công', 'Đã gửi khiếu nại. Vui lòng chờ phản hồi.')
     appealReason.value = ''
   } catch (_err) {
     console.error(_err)
-    popupStore.error('Lỗi', 'Không thể gửi khiếu nại.')
+    if (!ENABLE_MOCK_API) {
+      popup.error('Lỗi', 'Không thể gửi khiếu nại.')
+    }
   }
 }
 </script>

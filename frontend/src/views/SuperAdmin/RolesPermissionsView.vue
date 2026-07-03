@@ -1,5 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { usePopupStore } from '@/stores/popup'
+import { rbacApi } from '@/services/rbacService'
 import {
   Shield,
   ShieldAlert,
@@ -17,6 +19,11 @@ import {
   AlertCircle,
   FileText
 } from 'lucide-vue-next'
+
+const ENABLE_MOCK_API =
+  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+
+const popup = usePopupStore()
 
 // State
 const activeTab = ref('roles') // 'roles' | 'history'
@@ -42,8 +49,8 @@ const modules = [
   { key: 'reports', name: 'Báo cáo & Phân tích', desc: 'Thống kê GPA, chuyên cần, so sánh cơ sở' }
 ]
 
-// Mock Roles Data
-const mockRoles = ref([
+// Mock Roles Data (fallback)
+const mockRoles = [
   {
     id: 1,
     name: 'Super Admin',
@@ -149,10 +156,10 @@ const mockRoles = ref([
       'reports': ['read']
     }
   }
-])
+]
 
-// Mock Audit Logs Data
-const mockAuditLogs = ref([
+// Mock Audit Logs Data (fallback)
+const mockAuditLogs = [
   {
     id: 1,
     roleName: 'Admin Cơ sở Hà Nội',
@@ -178,15 +185,41 @@ const mockAuditLogs = ref([
     reason: 'Tạo vai trò riêng biệt cho bộ phận khảo thí học kỳ hè.',
     details: null
   }
-])
+]
+
+// API data
+const loading = ref(false)
+const error = ref('')
+const roles = ref([])
+const auditLogs = ref([])
 
 // Filtered Roles
 const filteredRoles = computed(() => {
-  return mockRoles.value.filter(role => {
-    return role.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
+  return roles.value.filter(role => {
+    return role.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
            role.code.toLowerCase().includes(searchQuery.value.toLowerCase())
   })
 })
+
+// Load roles from API (with mock fallback)
+async function loadRoles() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await rbacApi.getRoles()
+    roles.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      roles.value = JSON.parse(JSON.stringify(mockRoles))
+      auditLogs.value = JSON.parse(JSON.stringify(mockAuditLogs))
+      return
+    }
+    error.value = e?.message || 'Không thể tải danh sách vai trò.'
+    roles.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 // Create Custom Role State
 const isCreateDrawerOpen = ref(false)
@@ -293,7 +326,7 @@ const openCreateDrawer = () => {
 
 const confirmCreateRole = () => {
   if (!newRole.value.name || !newRole.value.code) {
-    alert('Vui lòng điền đủ tên vai trò và mã vai trò.')
+    popup.warning('Thiếu thông tin', 'Vui lòng điền đủ tên vai trò và mã vai trò.')
     return
   }
 
@@ -309,14 +342,14 @@ const confirmCreateRole = () => {
   }
 
   if (newRole.value.baseTemplateId) {
-    const template = mockRoles.value.find(r => r.id === newRole.value.baseTemplateId)
+    const template = roles.value.find(r => r.id === newRole.value.baseTemplateId)
     if (template) {
       templatePermissions = JSON.parse(JSON.stringify(template.permissions))
     }
   }
 
   const roleObj = {
-    id: mockRoles.value.length + 1,
+    id: roles.value.length + 1,
     name: newRole.value.name,
     code: newRole.value.code.toUpperCase(),
     type: 'Custom',
@@ -329,11 +362,11 @@ const confirmCreateRole = () => {
     permissions: templatePermissions
   }
 
-  mockRoles.value.push(roleObj)
+  roles.value.push(roleObj)
 
   // Write log
-  mockAuditLogs.value.unshift({
-    id: mockAuditLogs.value.length + 1,
+  auditLogs.value.unshift({
+    id: auditLogs.value.length + 1,
     roleName: roleObj.name,
     action: 'Tạo Vai trò mới',
     operator: 'Super Admin A',
@@ -342,7 +375,7 @@ const confirmCreateRole = () => {
     details: null
   })
 
-  alert(`Đã tạo thành công vai trò tùy chỉnh: ${roleObj.name}!`)
+  popup.success('Đã tạo', `Đã tạo thành công vai trò tùy chỉnh: ${roleObj.name}!`)
   isCreateDrawerOpen.value = false
 }
 
@@ -380,7 +413,7 @@ const isChecked = (moduleKey, action) => {
 
 const savePermissionsClicked = () => {
   if (permissionDiffs.value.length === 0) {
-    alert('Không có thay đổi nào được thực hiện.')
+    popup.warning('Không có thay đổi', 'Không có thay đổi nào được thực hiện.')
     isPermissionDrawerOpen.value = false
     return
   }
@@ -390,24 +423,24 @@ const savePermissionsClicked = () => {
 
 const submitPermissionsSave = () => {
   if (!auditReason.value.trim()) {
-    alert('Vui lòng nhập lý do thay đổi để ghi nhận vào Audit Log.')
+    popup.warning('Thiếu thông tin', 'Vui lòng nhập lý do thay đổi để ghi nhận vào Audit Log.')
     return
   }
 
   const role = selectedRoleForEdit.value
-  const index = mockRoles.value.findIndex(r => r.id === role.id)
+  const index = roles.value.findIndex(r => r.id === role.id)
 
   if (index !== -1) {
-    mockRoles.value[index].permissions = JSON.parse(JSON.stringify(currentPermissions.value))
-    mockRoles.value[index].scope = currentScope.value.scope
-    mockRoles.value[index].targetCampus = currentScope.value.scope === 'Global' ? '' : currentScope.value.targetCampus
-    mockRoles.value[index].targetSubCampus = currentScope.value.scope === 'Sub-campus' ? currentScope.value.targetSubCampus : ''
-    mockRoles.value[index].scopeType = currentScope.value.scopeType
+    roles.value[index].permissions = JSON.parse(JSON.stringify(currentPermissions.value))
+    roles.value[index].scope = currentScope.value.scope
+    roles.value[index].targetCampus = currentScope.value.scope === 'Global' ? '' : currentScope.value.targetCampus
+    roles.value[index].targetSubCampus = currentScope.value.scope === 'Sub-campus' ? currentScope.value.targetSubCampus : ''
+    roles.value[index].scopeType = currentScope.value.scopeType
   }
 
   // Add Audit Log
-  mockAuditLogs.value.unshift({
-    id: mockAuditLogs.value.length + 1,
+  auditLogs.value.unshift({
+    id: auditLogs.value.length + 1,
     roleName: role.name,
     action: 'Cập nhật Quyền hạn & Phạm vi',
     operator: 'Super Admin A',
@@ -424,7 +457,7 @@ const submitPermissionsSave = () => {
     }
   })
 
-  alert(`Đã cập nhật cấu hình bảo mật cho vai trò: ${role.name}`)
+  popup.success('Đã cập nhật', `Đã cập nhật cấu hình bảo mật cho vai trò: ${role.name}`)
   isConfirmModalOpen.value = false
   isPermissionDrawerOpen.value = false
 }
@@ -436,45 +469,47 @@ const openMembersDrawer = (role) => {
 
 const deleteRole = (role) => {
   if (role.type === 'System') return
-  if (confirm(`Bạn có chắc chắn muốn xóa vai trò tùy chỉnh: ${role.name}? Tất cả thành viên sẽ mất quyền của vai trò này.`)) {
-    mockRoles.value = mockRoles.value.filter(r => r.id !== role.id)
-    
-    // Add Audit Log
-    mockAuditLogs.value.unshift({
-      id: mockAuditLogs.value.length + 1,
-      roleName: role.name,
-      action: 'Xóa Vai trò',
-      operator: 'Super Admin A',
-      time: new Date().toLocaleString(),
-      reason: `Xóa vai trò tùy chỉnh ${role.name} khỏi hệ thống.`,
-      details: null
-    })
-    
-    alert(`Đã xóa vai trò: ${role.name}`)
-  }
+  roles.value = roles.value.filter(r => r.id !== role.id)
+
+  // Add Audit Log
+  auditLogs.value.unshift({
+    id: auditLogs.value.length + 1,
+    roleName: role.name,
+    action: 'Xóa Vai trò',
+    operator: 'Super Admin A',
+    time: new Date().toLocaleString(),
+    reason: `Xóa vai trò tùy chỉnh ${role.name} khỏi hệ thống.`,
+    details: null
+  })
+
+  popup.success('Đã xóa', `Đã xóa vai trò: ${role.name}`)
 }
 
 const openAuditDrawer = (log) => {
   selectedAuditLog.value = log
   isAuditDrawerOpen.value = true
 }
+
+onMounted(() => {
+  loadRoles()
+})
 </script>
 
 <template>
   <div class="roles-permissions-page h-full flex flex-col gap-6">
-    
+
     <!-- Tab Headers & Top actions -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50 p-4 rounded-xl border border-slate-100/50 backdrop-blur-sm">
       <div class="flex gap-2">
-        <button 
-          @click="activeTab = 'roles'" 
+        <button
+          @click="activeTab = 'roles'"
           class="glass-btn justify-center font-bold px-5 py-2.5 transition-all duration-200"
           :class="activeTab === 'roles' ? 'primary !bg-purple-600 hover:!bg-purple-700' : 'secondary'"
         >
           <Shield :size="16" /> Vai trò & Ma trận quyền
         </button>
-        <button 
-          @click="activeTab = 'history'" 
+        <button
+          @click="activeTab = 'history'"
           class="glass-btn justify-center font-bold px-5 py-2.5 transition-all duration-200"
           :class="activeTab === 'history' ? 'primary !bg-purple-600 hover:!bg-purple-700' : 'secondary'"
         >
@@ -484,17 +519,17 @@ const openAuditDrawer = (log) => {
 
       <div class="flex gap-3 w-full sm:w-auto items-center">
         <div class="relative flex-1 sm:flex-initial">
-          <input 
-            v-model="searchQuery" 
-            type="text" 
-            placeholder="Tìm vai trò..." 
-            class="glass-input w-full sm:w-64 pl-9" 
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Tìm vai trò..."
+            class="glass-input w-full sm:w-64 pl-9"
           />
           <Search class="absolute left-3 top-2.5 text-placeholder" :size="16" />
         </div>
-        <button 
-          v-if="activeTab === 'roles'" 
-          @click="openCreateDrawer" 
+        <button
+          v-if="activeTab === 'roles'"
+          @click="openCreateDrawer"
           class="glass-btn primary !bg-purple-600 hover:!bg-purple-700 text-sm py-2.5"
         >
           <Plus :size="16" /> Tạo Vai trò Tùy chỉnh
@@ -517,9 +552,9 @@ const openAuditDrawer = (log) => {
             </tr>
           </thead>
           <tbody>
-            <tr 
-              v-for="role in filteredRoles" 
-              :key="role.id" 
+            <tr
+              v-for="role in filteredRoles"
+              :key="role.id"
               class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
             >
               <td>
@@ -530,8 +565,8 @@ const openAuditDrawer = (log) => {
                 <div class="text-xs text-placeholder font-mono mt-0.5">{{ role.code }}</div>
               </td>
               <td>
-                <span 
-                  class="role-badge text-xs" 
+                <span
+                  class="role-badge text-xs"
                   :class="role.type === 'System' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-amber-50 text-amber-700 border border-amber-200'"
                 >
                   {{ role.type === 'System' ? 'Hệ thống' : 'Tùy chỉnh' }}
@@ -547,8 +582,8 @@ const openAuditDrawer = (log) => {
                 </div>
               </td>
               <td class="text-center">
-                <button 
-                  @click="openMembersDrawer(role)" 
+                <button
+                  @click="openMembersDrawer(role)"
                   class="inline-flex items-center gap-1 hover:underline text-purple-600 font-semibold text-xs"
                 >
                   <Users :size="12" />
@@ -560,17 +595,17 @@ const openAuditDrawer = (log) => {
               </td>
               <td class="text-right">
                 <div class="flex items-center justify-end gap-1">
-                  <button 
-                    @click="openPermissionDrawer(role)" 
-                    class="action-btn text-purple-600 hover:bg-purple-50" 
+                  <button
+                    @click="openPermissionDrawer(role)"
+                    class="action-btn text-purple-600 hover:bg-purple-50"
                     title="Cấu hình Ma trận Quyền & Phạm vi"
                   >
                     <Edit2 :size="16" />
                   </button>
-                  <button 
-                    @click="deleteRole(role)" 
-                    class="action-btn" 
-                    :class="role.type === 'System' ? 'text-slate-300 cursor-not-allowed' : 'text-rose-600 hover:bg-rose-50'" 
+                  <button
+                    @click="deleteRole(role)"
+                    class="action-btn"
+                    :class="role.type === 'System' ? 'text-slate-300 cursor-not-allowed' : 'text-rose-600 hover:bg-rose-50'"
                     :disabled="role.type === 'System'"
                     :title="role.type === 'System' ? 'Không được xóa vai trò mặc định hệ thống' : 'Xóa vai trò tùy chỉnh'"
                   >
@@ -605,9 +640,9 @@ const openAuditDrawer = (log) => {
             </tr>
           </thead>
           <tbody>
-            <tr 
-              v-for="log in mockAuditLogs" 
-              :key="log.id" 
+            <tr
+              v-for="log in mockAuditLogs"
+              :key="log.id"
               class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
             >
               <td class="text-xs font-medium text-slate-600">
@@ -620,8 +655,8 @@ const openAuditDrawer = (log) => {
                 </div>
               </td>
               <td>
-                <span 
-                  class="px-2 py-0.5 rounded text-[10px] font-bold" 
+                <span
+                  class="px-2 py-0.5 rounded text-[10px] font-bold"
                   :class="{
                     'bg-blue-50 text-blue-700 border border-blue-200': log.action.includes('Tạo'),
                     'bg-purple-50 text-purple-700 border border-purple-200': log.action.includes('Cập nhật'),
@@ -638,10 +673,10 @@ const openAuditDrawer = (log) => {
                 {{ log.reason }}
               </td>
               <td class="text-right">
-                <button 
+                <button
                   v-if="log.details"
                   @click="openAuditDrawer(log)"
-                  class="action-btn text-purple-600 hover:bg-purple-50 inline-flex" 
+                  class="action-btn text-purple-600 hover:bg-purple-50 inline-flex"
                   title="Xem chi tiết lịch sử đổi quyền"
                 >
                   <Eye :size="16" />
@@ -656,7 +691,7 @@ const openAuditDrawer = (log) => {
 
     <!-- TELEPORTS TO BODY -->
     <Teleport to="body">
-      
+
       <!-- Drawer 1: Tạo Vai trò Tùy chỉnh -->
       <div v-if="isCreateDrawerOpen" class="drawer-overlay" @click="isCreateDrawerOpen = false"></div>
       <div class="drawer" :class="{ 'open': isCreateDrawerOpen }">
@@ -666,24 +701,24 @@ const openAuditDrawer = (log) => {
           </h3>
           <button @click="isCreateDrawerOpen = false" class="text-label hover:text-heading"><X :size="20" /></button>
         </div>
-        
+
         <div class="drawer-body p-6 flex flex-col gap-5">
           <div class="form-group">
             <label class="block text-xs font-bold text-label mb-1.5">Tên vai trò *</label>
-            <input 
-              v-model="newRole.name" 
-              type="text" 
-              placeholder="Ví dụ: Kiểm toán học vụ hè" 
-              class="glass-input w-full bg-white" 
+            <input
+              v-model="newRole.name"
+              type="text"
+              placeholder="Ví dụ: Kiểm toán học vụ hè"
+              class="glass-input w-full bg-white"
             />
           </div>
           <div class="form-group">
             <label class="block text-xs font-bold text-label mb-1.5">Mã vai trò (Code) *</label>
-            <input 
-              v-model="newRole.code" 
-              type="text" 
-              placeholder="Ví dụ: SUMMER_AUDITOR" 
-              class="glass-input w-full bg-white font-mono" 
+            <input
+              v-model="newRole.code"
+              type="text"
+              placeholder="Ví dụ: SUMMER_AUDITOR"
+              class="glass-input w-full bg-white font-mono"
             />
           </div>
           <div class="form-group">
@@ -727,10 +762,10 @@ const openAuditDrawer = (log) => {
 
           <div class="form-group">
             <label class="block text-xs font-bold text-label mb-1.5">Mô tả mục đích sử dụng</label>
-            <textarea 
-              v-model="newRole.description" 
-              rows="3" 
-              placeholder="Mô tả vai trò này dùng cho ai, phạm vi công việc ra sao..." 
+            <textarea
+              v-model="newRole.description"
+              rows="3"
+              placeholder="Mô tả vai trò này dùng cho ai, phạm vi công việc ra sao..."
               class="glass-input w-full bg-white text-xs"
             ></textarea>
           </div>
@@ -738,8 +773,8 @@ const openAuditDrawer = (log) => {
 
         <div class="p-6 border-t border-slate-100 bg-slate-50/50 flex gap-3">
           <button @click="isCreateDrawerOpen = false" class="glass-btn secondary flex-1 justify-center">Hủy</button>
-          <button 
-            @click="confirmCreateRole" 
+          <button
+            @click="confirmCreateRole"
             class="glass-btn primary flex-1 justify-center !bg-purple-600 hover:!bg-purple-700"
             :disabled="!newRole.name || !newRole.code"
           >
@@ -764,7 +799,7 @@ const openAuditDrawer = (log) => {
         </div>
 
         <div class="drawer-body p-6 flex flex-col gap-6" v-if="selectedRoleForEdit">
-          
+
           <!-- Phân khu 1: Phạm vi dữ liệu (Campus Scope) -->
           <div class="bg-purple-50/40 border border-purple-100 rounded-xl p-4">
             <h4 class="text-xs font-bold text-purple-800 uppercase tracking-wide mb-3 flex items-center gap-1.5">
@@ -793,7 +828,7 @@ const openAuditDrawer = (log) => {
                 </select>
               </div>
             </div>
-            
+
             <div class="form-group mt-3" v-if="currentScope.scope === 'Sub-campus'">
               <label class="block text-[10px] font-bold text-label mb-1">Cơ sở con cụ thể</label>
               <select v-model="currentScope.targetSubCampus" class="glass-select w-full bg-white text-xs">
@@ -805,8 +840,8 @@ const openAuditDrawer = (log) => {
             <div class="text-[10px] text-slate-500 mt-2 flex items-start gap-1">
               <AlertCircle :size="12" class="text-purple-600 shrink-0 mt-0.5" />
               <span>
-                {{ currentScope.scope === 'Global' 
-                  ? 'Quyền hạn của vai trò này sẽ có hiệu lực trên toàn bộ các đơn vị thành viên.' 
+                {{ currentScope.scope === 'Global'
+                  ? 'Quyền hạn của vai trò này sẽ có hiệu lực trên toàn bộ các đơn vị thành viên.'
                   : `Hệ thống sẽ giới hạn chỉ cho phép thực thi quyền trong phạm vi cơ sở ${currentScope.targetCampus}.` }}
               </span>
             </div>
@@ -817,7 +852,7 @@ const openAuditDrawer = (log) => {
             <h4 class="text-xs font-bold text-heading uppercase tracking-wide mb-3 flex items-center gap-1.5">
               <Shield :size="14" class="text-purple-600" /> 2. Ma trận Quyền hạn trên Module
             </h4>
-            
+
             <div class="border border-slate-100 rounded-xl overflow-hidden bg-white">
               <table class="w-full text-left text-xs border-collapse">
                 <thead>
@@ -835,42 +870,42 @@ const openAuditDrawer = (log) => {
                       <div class="font-semibold text-heading">{{ mod.name }}</div>
                       <div class="text-[10px] text-placeholder">{{ mod.desc }}</div>
                     </td>
-                    
+
                     <!-- Read -->
                     <td class="text-center py-3">
-                      <input 
-                        type="checkbox" 
-                        :checked="isChecked(mod.key, 'read')" 
+                      <input
+                        type="checkbox"
+                        :checked="isChecked(mod.key, 'read')"
                         @change="togglePermission(mod.key, 'read')"
                         class="glass-checkbox"
                       />
                     </td>
-                    
+
                     <!-- Create -->
                     <td class="text-center py-3">
-                      <input 
-                        type="checkbox" 
-                        :checked="isChecked(mod.key, 'create')" 
+                      <input
+                        type="checkbox"
+                        :checked="isChecked(mod.key, 'create')"
                         @change="togglePermission(mod.key, 'create')"
                         class="glass-checkbox"
                       />
                     </td>
-                    
+
                     <!-- Update -->
                     <td class="text-center py-3">
-                      <input 
-                        type="checkbox" 
-                        :checked="isChecked(mod.key, 'update')" 
+                      <input
+                        type="checkbox"
+                        :checked="isChecked(mod.key, 'update')"
                         @change="togglePermission(mod.key, 'update')"
                         class="glass-checkbox"
                       />
                     </td>
-                    
+
                     <!-- Delete -->
                     <td class="text-center py-3">
-                      <input 
-                        type="checkbox" 
-                        :checked="isChecked(mod.key, 'delete')" 
+                      <input
+                        type="checkbox"
+                        :checked="isChecked(mod.key, 'delete')"
                         @change="togglePermission(mod.key, 'delete')"
                         class="glass-checkbox"
                         :disabled="selectedRoleForEdit.code === 'SUPER_ADMIN'"
@@ -885,8 +920,8 @@ const openAuditDrawer = (log) => {
 
         <div class="p-6 border-t border-slate-100 bg-slate-50/50 flex gap-3">
           <button @click="isPermissionDrawerOpen = false" class="glass-btn secondary flex-1 justify-center">Hủy</button>
-          <button 
-            @click="savePermissionsClicked" 
+          <button
+            @click="savePermissionsClicked"
             class="glass-btn primary flex-1 justify-center !bg-purple-600 hover:!bg-purple-700"
           >
             Lưu thay đổi
@@ -900,19 +935,19 @@ const openAuditDrawer = (log) => {
           <h3 class="text-lg font-bold text-heading mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
             <ShieldAlert :size="20" class="text-amber-500" /> Xác nhận thay đổi phân quyền
           </h3>
-          
+
           <div class="mb-4">
             <p class="text-xs text-slate-600 mb-3">
-              Bạn đang thực hiện các thay đổi quyền hạn quan trọng đối với vai trò 
-              <strong class="text-purple-700">{{ selectedRoleForEdit?.name }}</strong>. 
+              Bạn đang thực hiện các thay đổi quyền hạn quan trọng đối với vai trò
+              <strong class="text-purple-700">{{ selectedRoleForEdit?.name }}</strong>.
               Vui lòng xem lại danh sách thay đổi dưới đây:
             </p>
-            
+
             <!-- List of diff changes -->
             <div class="max-h-48 overflow-y-auto bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-2">
-              <div 
-                v-for="(diff, i) in permissionDiffs" 
-                :key="i" 
+              <div
+                v-for="(diff, i) in permissionDiffs"
+                :key="i"
                 class="text-xs flex items-start gap-1.5"
               >
                 <span class="font-bold text-[10px] uppercase shrink-0 mt-0.5 px-1.5 py-0.2 rounded"
@@ -938,19 +973,19 @@ const openAuditDrawer = (log) => {
               <span>Lý do ghi nhận thay đổi (Bắt buộc cho Audit Log)</span>
               <span class="text-rose-500">*</span>
             </label>
-            <textarea 
-              v-model="auditReason" 
-              rows="3" 
+            <textarea
+              v-model="auditReason"
+              rows="3"
               required
-              placeholder="Nhập lý do điều chỉnh quyền (Ví dụ: Quyết định từ BGH mở đợt hè, phân bổ lại nhân sự...)" 
+              placeholder="Nhập lý do điều chỉnh quyền (Ví dụ: Quyết định từ BGH mở đợt hè, phân bổ lại nhân sự...)"
               class="glass-input w-full bg-white text-xs"
             ></textarea>
           </div>
 
           <div class="flex gap-3 justify-end pt-4 border-t border-slate-100">
             <button @click="isConfirmModalOpen = false" class="glass-btn secondary flex-1 justify-center">Quay lại</button>
-            <button 
-              @click="submitPermissionsSave" 
+            <button
+              @click="submitPermissionsSave"
               class="glass-btn primary flex-1 justify-center !bg-purple-600 hover:!bg-purple-700"
               :disabled="!auditReason.trim()"
             >
@@ -969,16 +1004,16 @@ const openAuditDrawer = (log) => {
           </h3>
           <button @click="isMembersDrawerOpen = false" class="text-label hover:text-heading"><X :size="20" /></button>
         </div>
-        
+
         <div class="drawer-body p-6">
           <p class="text-xs text-label mb-4">
             Dưới đây là danh sách những tài khoản đang trực tiếp chịu ảnh hưởng của các cấu hình bảo mật thuộc vai trò này.
           </p>
 
           <div class="space-y-3">
-            <div 
-              v-for="member in mockMembersList" 
-              :key="member.id" 
+            <div
+              v-for="member in mockMembersList"
+              :key="member.id"
               class="p-3 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors flex justify-between items-center bg-white"
             >
               <div>
@@ -1006,7 +1041,7 @@ const openAuditDrawer = (log) => {
           </h3>
           <button @click="isAuditDrawerOpen = false" class="text-label hover:text-heading"><X :size="20" /></button>
         </div>
-        
+
         <div class="drawer-body p-6 flex flex-col gap-5" v-if="selectedAuditLog">
           <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
             <div class="info-row">
@@ -1037,8 +1072,8 @@ const openAuditDrawer = (log) => {
           <div v-if="selectedAuditLog.details">
             <h4 class="text-xs font-bold text-label mb-3 uppercase tracking-wider">Biến động Quyền hạn</h4>
             <div class="space-y-2 max-h-60 overflow-y-auto">
-              <div 
-                v-for="(change, i) in selectedAuditLog.details.changes" 
+              <div
+                v-for="(change, i) in selectedAuditLog.details.changes"
                 :key="i"
                 class="p-2 border border-slate-100 rounded-lg flex items-center justify-between text-xs bg-white"
               >
@@ -1046,7 +1081,7 @@ const openAuditDrawer = (log) => {
                   <span class="font-semibold text-slate-500">{{ change.module }}:</span>
                   <span class="ml-1 text-heading font-medium">{{ change.permission }}</span>
                 </div>
-                <span 
+                <span
                   class="text-[9px] font-bold px-1.5 py-0.2 rounded"
                   :class="change.type === 'Cấp quyền' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'"
                 >

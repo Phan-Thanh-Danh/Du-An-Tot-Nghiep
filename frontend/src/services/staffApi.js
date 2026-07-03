@@ -1,4 +1,15 @@
-import { apiRequest } from './apiClient'
+import { apiRequest, unwrapApiData } from './apiClient'
+
+const ENABLE_MOCK_API =
+  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+
+/**
+ * Staff (Giao Vu) API service
+ *
+ * Backend endpoint status:
+ *   √ = controller exists
+ *   × = MISSING_BACKEND
+ */
 
 const mockDashboard = {
   stats: {
@@ -47,36 +58,194 @@ const mockNotifications = [
 ]
 
 export const staffApi = {
+  // × MISSING_BACKEND: /api/staff/dashboard
   async getDashboard() {
     try {
-      return await apiRequest('/api/staff/dashboard')
-    } catch {
-      return mockDashboard
+      return unwrapApiData(await apiRequest('/api/staff/dashboard'))
+    } catch (error) {
+      if (ENABLE_MOCK_API) return mockDashboard
+      throw error
     }
   },
 
+  // × MISSING_BACKEND
   async processAllRequests() {
     return apiRequest('/api/staff/requests/process-all', { method: 'POST' })
   },
 
+  // √ Remap to /api/notifications — NotificationsController
   async getNotifications(params = {}) {
-    const query = new URLSearchParams(params).toString()
+    const query = new URLSearchParams()
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const qs = query.toString()
     try {
-      return await apiRequest(`/api/staff/notifications${query ? '?' + query : ''}`)
-    } catch {
-      return { items: mockNotifications, total: mockNotifications.length }
+      return unwrapApiData(await apiRequest(`/api/notifications${qs ? '?' + qs : ''}`))
+    } catch (error) {
+      if (ENABLE_MOCK_API) return { items: mockNotifications, total: mockNotifications.length }
+      throw error
     }
   },
 
+  // √ /api/notifications/{id}/read — NotificationsController
   async markNotificationRead(id) {
-    return apiRequest(`/api/staff/notifications/${id}/read`, { method: 'PATCH' })
+    return apiRequest(`/api/notifications/${id}/read`, { method: 'PATCH' })
   },
 
+  // √ /api/notifications/read-all — NotificationsController
   async markAllNotificationsRead() {
-    return apiRequest('/api/staff/notifications/read-all', { method: 'PATCH' })
+    return apiRequest('/api/notifications/read-all', { method: 'PATCH' })
   },
 
+  // √ /api/notifications/{id} — NotificationsController
   async deleteNotification(id) {
-    return apiRequest(`/api/staff/notifications/${id}`, { method: 'DELETE' })
+    return apiRequest(`/api/notifications/${id}`, { method: 'DELETE' })
+  },
+
+  // ── Schedule (Thoi Khoa Bieu) ──
+  // √ GET /api/thoi-khoa-bieu — ThoiKhoaBieuController
+  getSchedules(params = {}) {
+    const query = new URLSearchParams()
+    if (params.tuan) query.append('tuan', params.tuan)
+    if (params.maLop) query.append('maLop', params.maLop)
+    if (params.maPhong) query.append('maPhong', params.maPhong)
+    if (params.keyword) query.append('keyword', params.keyword)
+    const qs = query.toString()
+    return apiRequest(`/api/thoi-khoa-bieu${qs ? '?' + qs : ''}`)
+  },
+
+  // √ GET /api/thoi-khoa-bieu/{id}
+  getScheduleById(id) {
+    return apiRequest(`/api/thoi-khoa-bieu/${id}`)
+  },
+
+  // √ POST /api/thoi-khoa-bieu — create schedule entry
+  createSchedule(payload) {
+    return apiRequest('/api/thoi-khoa-bieu', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  // √ PUT /api/thoi-khoa-bieu/{id} — update schedule entry
+  updateSchedule(id, payload) {
+    return apiRequest(`/api/thoi-khoa-bieu/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  // √ DELETE /api/thoi-khoa-bieu/{id}
+  deleteSchedule(id) {
+    return apiRequest(`/api/thoi-khoa-bieu/${id}`, { method: 'DELETE' })
+  },
+
+  // √ GET /api/thoi-khoa-bieu/check-xung-dot
+  checkConflicts(params = {}) {
+    const query = new URLSearchParams()
+    if (params.tuan) query.append('tuan', params.tuan)
+    if (params.maPhong) query.append('maPhong', params.maPhong)
+    const qs = query.toString()
+    return apiRequest(`/api/thoi-khoa-bieu/check-xung-dot${qs ? '?' + qs : ''}`)
+  },
+
+  // ── Rooms ──
+  // √ GET /api/master-data/rooms — RoomsController
+  getRooms(params = {}) {
+    const query = new URLSearchParams()
+    if (params.keyword) query.append('keyword', params.keyword)
+    if (params.toaNha) query.append('toaNha', params.toaNha)
+    const qs = query.toString()
+    return apiRequest(`/api/master-data/rooms${qs ? '?' + qs : ''}`)
+  },
+
+  getRoomById(id) {
+    return apiRequest(`/api/master-data/rooms/${id}`)
+  },
+
+  // √ GET /api/master-data/buildings
+  getBuildings() {
+    return apiRequest('/api/master-data/buildings')
+  },
+
+  // √ GET /api/master-data/floors
+  getFloors() {
+    return apiRequest('/api/master-data/floors')
+  },
+
+  // ── Ca Hoc ──
+  // √ GET /api/ca-hoc
+  getCaHoc() {
+    return apiRequest('/api/ca-hoc')
+  },
+
+  // ── Buoi Hoc ──
+  // √ GET /api/buoi-hoc — BuoiHocController
+  getSessions(params = {}) {
+    const query = new URLSearchParams()
+    if (params.maLop) query.append('maLop', params.maLop)
+    if (params.ngay) query.append('ngay', params.ngay)
+    const qs = query.toString()
+    return apiRequest(`/api/buoi-hoc${qs ? '?' + qs : ''}`)
+  },
+
+  // ── Applications/Requests ──
+  // √ GET /api/admin/applications — AdminApplicationsController
+  getPendingRequests(params = {}) {
+    const query = new URLSearchParams()
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    if (params.status) query.append('status', params.status)
+    const qs = query.toString()
+    return apiRequest(`/api/admin/applications${qs ? '?' + qs : ''}`)
+  },
+
+  getRequestById(id) {
+    return apiRequest(`/api/admin/applications/${id}`)
+  },
+
+  approveRequest(id, payload = {}) {
+    return apiRequest(`/api/admin/applications/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  rejectRequest(id, payload = {}) {
+    return apiRequest(`/api/admin/applications/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  // ── Registration Periods ──
+  // × MISSING_BACKEND (dự kiến: /api/admin/registration-periods)
+  getRegistrationPeriod() {
+    return apiRequest('/api/admin/registration-periods')
+  },
+
+  // ── Notices ──
+  // √ Remap to /api/notifications
+  getNotices(params = {}) {
+    const query = new URLSearchParams()
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const qs = query.toString()
+    return apiRequest(`/api/notices${qs ? '?' + qs : ''}`)
+  },
+
+  createNotice(payload) {
+    return apiRequest('/api/notices', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  // × MISSING_BACKEND (dự kiến: /api/rooms/book)
+  bookRoom(payload) {
+    return apiRequest('/api/staff/rooms/book', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
   },
 }
