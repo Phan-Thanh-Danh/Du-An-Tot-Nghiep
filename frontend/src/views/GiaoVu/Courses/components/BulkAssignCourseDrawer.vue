@@ -12,11 +12,15 @@ const props = defineProps({
   subjects: { type: Array, default: () => [] },
   teachers: { type: Array, default: () => [] },
   classes: { type: Array, default: () => [] },
+  majors: { type: Array, default: () => [] },
+  specializations: { type: Array, default: () => [] },
 })
 
 const popupStore = usePopupStore()
 
 const form = ref({
+  maNganh: null,
+  maChuyenNganh: null,
   maHocKy: null,
   maMonHoc: null,
   maGiaoVien: null,
@@ -178,6 +182,18 @@ async function handleSubmit() {
               <span class="text-sm font-bold">Môn học</span>
             </div>
             <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-1.5">
+                  Ngành đào tạo
+                </label>
+                <LmsSelect v-model="form.maNganh" :options="majors" placeholder="Chọn ngành đào tạo" />
+              </div>
+              <div>
+                <label class="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-1.5">
+                  Chuyên ngành
+                </label>
+                <LmsSelect v-model="form.maChuyenNganh" :options="specializations" placeholder="Chọn chuyên ngành" />
+              </div>
               <div>
                 <label class="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-1.5">
                   Môn học <span class="text-(--color-danger-text)">*</span>

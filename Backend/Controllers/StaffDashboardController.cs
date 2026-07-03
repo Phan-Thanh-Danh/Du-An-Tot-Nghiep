@@ -31,12 +31,14 @@ public class StaffDashboardController : ControllerBase
                 && (!t.NgayBatDau.HasValue || t.NgayBatDau <= today)
                 && (!t.NgayKetThuc.HasValue || t.NgayKetThuc >= today));
 
-        var conflicts = await _db.ThoiKhoaBieus
+        var conflictCounts = await _db.ThoiKhoaBieus
             .Where(t => t.TrangThai != "da_huy")
             .GroupBy(t => new { t.MaPhong, t.ThuTrongTuan, t.MaCaHoc })
-            .Where(g => g.Count() > 1)
-            .SelectMany(g => g.Skip(1))
-            .CountAsync();
+            .Select(g => g.Count())
+            .Where(c => c > 1)
+            .ToListAsync();
+
+        var conflicts = conflictCounts.Sum(c => c - 1);
 
         var activeClasses = await _db.LopHocPhans
             .CountAsync(l => l.TrangThai == "mo");

@@ -43,6 +43,8 @@ const academicTerms = ref([])
 const subjects = ref([])
 const teachers = ref([])
 const classes = ref([])
+const majors = ref([])
+const specializations = ref([])
 
 const loadingDropdowns = ref(false)
 
@@ -179,6 +181,15 @@ async function loadDropdowns() {
       { value: 1, label: 'CNTT01' },
       { value: 2, label: 'CNTT02' },
       { value: 3, label: 'KTPM01' },
+    ]
+    majors.value = [
+      { value: 1, label: 'Công nghệ thông tin' },
+      { value: 2, label: 'Kinh doanh' },
+    ]
+    specializations.value = [
+      { value: 1, label: 'Kỹ thuật phần mềm' },
+      { value: 2, label: 'An toàn thông tin' },
+      { value: 3, label: 'Quản trị kinh doanh' },
     ]
   } finally {
     loadingDropdowns.value = false
@@ -666,6 +677,8 @@ onMounted(() => {
       :subjects="subjects"
       :teachers="teachers"
       :classes="classes"
+      :majors="majors"
+      :specializations="specializations"
       @close="showBulkAssignDrawer = false"
       @done="onBulkAssignDone"
     />

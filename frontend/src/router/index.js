@@ -372,7 +372,6 @@ const router = createRouter({
         { path: 'schedule/pending', name: 'staff-schedule-pending', component: () => import('../views/GiaoVu/Schedule/PendingSchedulesView.vue') , meta: { title: 'Lịch chờ duyệt' } },
         { path: 'schedule/published', name: 'staff-schedule-published', component: () => import('../views/GiaoVu/Schedule/StaffPublishedSchedulesView.vue') , meta: { title: 'Lịch đã công bố' } },
         { path: 'academic-terms', name: 'staff-academic-terms', component: () => import('../views/GiaoVu/AcademicTerms/AcademicTermManagementView.vue'), meta: { title: 'Quản lý học kỳ' } },
-        { path: 'subjects', name: 'staff-subjects', component: () => import('../views/GiaoVu/Subjects/SubjectManagementView.vue'), meta: { title: 'Quản lý môn học' } },
         { path: 'courses', name: 'staff-courses', component: () => import('../views/GiaoVu/Courses/CourseManagementView.vue'), meta: { title: 'Danh sách khóa học', subtitle: 'Quản lý và phân phối môn học cho giảng viên và lớp hành chính' } },
         
         // Đăng ký, Dung lượng, Trạng thái khóa học
