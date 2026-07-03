@@ -1,4 +1,5 @@
 import { fileURLToPath, URL } from 'node:url'
+import fs from 'node:fs'
 
 import { defineConfig } from 'vite'
 import tailwindcss from '@tailwindcss/vite'
@@ -14,6 +15,17 @@ export default defineConfig({
     vueJsx(),
     vueDevTools(),
   ],
+  server: {
+    host: '0.0.0.0',
+    https: {
+      cert: fs.readFileSync('../certs/lms.pem'),
+      key: fs.readFileSync('../certs/lms-key.pem'),
+    },
+    hmr: {
+      host: '192.168.2.4',
+      protocol: 'wss',
+    }
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

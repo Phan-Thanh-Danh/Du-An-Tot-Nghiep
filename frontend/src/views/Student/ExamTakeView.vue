@@ -19,7 +19,10 @@ import {
   Terminal,
   XCircle,
 } from 'lucide-vue-next'
-import { mockExams, mockQuestions } from '@/data/studentData.mock.js'
+import { useAuthStore } from '@/stores/auth'
+import { examApi } from '@/services/examApi'
+import { examProctoringHub } from '@/services/examProctoringHub'
+import { requestScreenShare as webrtcRequestScreenShare, createStudentPeerConnection, stopScreenShare as webrtcStopScreenShare } from '@/services/webrtcScreenShare'
 import {
   clearExamRuntimeStorage,
   createViolation,
@@ -31,22 +34,17 @@ import {
 const route = useRoute()
 const router = useRouter()
 
-const STUDENT_ID = 'PS12345'
-const STUDENT_NAME = 'Nguyễn Văn A'
+const authStore = useAuthStore()
+const STUDENT_ID = computed(() => authStore.user?.id || authStore.user?.userId || 0)
+const STUDENT_NAME = computed(() => authStore.user?.fullName || 'Học sinh')
 const PREFLIGHT_MAX_AGE_MS = 2 * 60 * 60 * 1000
 
-const examId = String(route.params.examId || 'exam-ctdl-002')
-const exam = computed(() => {
-  return mockExams.find((item) => item.id === examId) || {
-    id: examId,
-    title: 'Bài thi trắc nghiệm',
-    subject: 'Môn học mẫu',
-    subjectCode: 'MOCK101',
-    classCode: 'MOCK-K28A',
-    durationMinutes: 45,
-    totalQuestions: mockQuestions.length,
-  }
-})
+const examId = String(route.params.examId)
+const caThiId = Number(route.query.maCaThi || sessionStorage.getItem(`exam_ca_thi_${examId}`) || examId)
+const exam = ref({ title: 'Đang tải...', durationMinutes: 45, totalQuestions: 0 })
+const questions = ref([])
+const maPhienThi = ref(null)
+const maDeKiemTra = ref(null)
 
 const answersKey = `exam_answers_${examId}`
 const flagsKey = `exam_flags_${examId}`
@@ -75,6 +73,40 @@ const fullscreenExitCount = ref(0)
 const tabSwitchCount = ref(0)
 const currentTimestamp = ref('')
 
+const browserCapabilities = ref({
+  browserName: 'unknown',
+  osName: 'unknown',
+  fullscreen: false,
+  keyboardLock: false,
+  screenShare: false,
+  secureContext: false,
+  userAgent: '',
+})
+
+const examSoftLock = ref({
+  visible: false,
+  type: '',
+  title: '',
+  message: '',
+  severity: 'high',
+  canContinue: false,
+  requireProctorUnlock: false,
+  requireFullscreen: true,
+  requireScreenShare: true,
+  violationCount: 0,
+})
+
+const lockdownState = ref({
+  fullscreenActive: false,
+  keyboardLockActive: false,
+  keyboardLockSupported: false,
+  keyboardLockFailedReason: '',
+  shortcutBlockMode: 'best-effort',
+  lastFullscreenExitAt: null,
+  lastWindowBlurAt: null,
+  lastVisibilityHiddenAt: null,
+})
+
 let timerInterval = null
 let autosaveInterval = null
 let runtimeScanInterval = null
@@ -85,16 +117,18 @@ let devtoolsListener = null
 let streamRecoveryTimer = null
 let screenTrack = null
 let submitLocked = false
-let lastBlurViolationAt = 0
 let suppressFocusViolationUntil = 0
 const lastViolationByType = new Map()
 
-const currentQuestion = computed(() => mockQuestions[currentQuestionIndex.value] || mockQuestions[0])
+const currentQuestion = computed(() => questions.value[currentQuestionIndex.value] || questions.value[0])
 
-const answeredCount = computed(() => mockQuestions.filter((question) => isAnswered(question)).length)
+const answeredCount = computed(() => questions.value.filter((question) => isAnswered(question)).length)
 const flaggedCount = computed(() => Object.values(flagged.value).filter(Boolean).length)
-const unansweredCount = computed(() => Math.max(mockQuestions.length - answeredCount.value, 0))
-const progressPercent = computed(() => Math.round((answeredCount.value / mockQuestions.length) * 100))
+const unansweredCount = computed(() => Math.max(questions.value.length - answeredCount.value, 0))
+const progressPercent = computed(() => {
+  if (!questions.value.length) return 0
+  return Math.round((answeredCount.value / questions.value.length) * 100)
+})
 const recentViolations = computed(() => violations.value.slice(0, 3))
 const criticalViolationCount = computed(() =>
   violations.value.filter((item) => item.severity === 'critical' || item.severity === 'high').length,
@@ -119,7 +153,7 @@ const keyboardLockLabel = computed(() => {
 })
 
 const watermarkText = computed(() => {
-  return `${STUDENT_ID} • ${STUDENT_NAME} • ${currentTimestamp.value}`
+  return `${STUDENT_ID.value} • ${STUDENT_NAME.value} • ${currentTimestamp.value}`
 })
 
 function readJson(key, fallback) {
@@ -155,6 +189,39 @@ function updateWatermarkTimestamp() {
     month: '2-digit',
     year: 'numeric',
   })
+}
+
+function detectBrowserName(userAgent = navigator.userAgent) {
+  const ua = userAgent.toLowerCase()
+  if (ua.includes('coc_coc_browser') || ua.includes('coc_coc')) return 'Cốc Cốc'
+  if (ua.includes('edg/')) return 'Microsoft Edge'
+  if (ua.includes('firefox/')) return 'Firefox'
+  if (ua.includes('chrome/') && !ua.includes('edg/')) return 'Chrome'
+  if (ua.includes('safari/') && !ua.includes('chrome/')) return 'Safari'
+  return 'Unknown'
+}
+
+function detectOsName(userAgent = navigator.userAgent) {
+  const ua = userAgent.toLowerCase()
+  if (ua.includes('windows')) return 'Windows'
+  if (ua.includes('mac os') || ua.includes('macintosh')) return 'macOS'
+  if (ua.includes('linux')) return 'Linux'
+  if (ua.includes('x11')) return 'Linux/Unix'
+  return 'Unknown'
+}
+
+function detectBrowserCapabilities() {
+  const userAgent = navigator.userAgent
+  browserCapabilities.value = {
+    browserName: detectBrowserName(userAgent),
+    osName: detectOsName(userAgent),
+    fullscreen: Boolean(document.documentElement.requestFullscreen),
+    keyboardLock: Boolean(navigator.keyboard?.lock),
+    screenShare: Boolean(navigator.mediaDevices?.getDisplayMedia),
+    secureContext: window.isSecureContext,
+    userAgent,
+  }
+  lockdownState.value.keyboardLockSupported = browserCapabilities.value.keyboardLock
 }
 
 function validatePreflightToken() {
@@ -214,6 +281,14 @@ function saveDraft() {
   localStorage.setItem(lastSavedKey, savedAt)
   saveViolationLog(examId, violations.value)
   lastSavedAt.value = savedAt
+
+  // Gửi API lưu tạm
+  if (maPhienThi.value) {
+    examApi.autoSaveAnswers({
+      maPhienThi: maPhienThi.value,
+      cauTraLoiJson: JSON.stringify(answers.value)
+    }).catch(console.error)
+  }
 }
 
 function pushWarning(message, severity = 'high', action = '') {
@@ -240,16 +315,27 @@ function addViolation(type, severity, message, details = {}, options = {}) {
 
   const violation = createViolation({
     examId,
-    studentId: STUDENT_ID,
-    studentName: STUDENT_NAME,
+    studentId: STUDENT_ID.value,
+    studentName: STUDENT_NAME.value,
     type,
     severity,
     message,
     details,
   })
 
+  const violationId = Object.keys(violations.value).find(id => violations.value[id]?.handled === false)
+  if (violationId && violations.value[violationId]) {
+    violations.value[violationId].handled = true
+  }
+
   violations.value = [violation, ...violations.value]
   saveViolationLog(examId, violations.value)
+  
+  // Gửi qua Hub
+  try {
+    examProctoringHub.sendViolationLog(caThiId, STUDENT_ID.value, type, message + (details ? ' - ' + JSON.stringify(details) : ''))
+  } catch(e) { console.warn(e) }
+  
   return violation
 }
 
@@ -287,7 +373,7 @@ function toggleFlag(questionId) {
 }
 
 function nextQuestion() {
-  if (currentQuestionIndex.value < mockQuestions.length - 1) {
+  if (currentQuestionIndex.value < questions.value.length - 1) {
     currentQuestionIndex.value++
   }
 }
@@ -305,90 +391,339 @@ async function startExamEnvironment() {
   monitoringStatus.value = 'starting'
 
   try {
-    await requestScreenShare()
-    await enterExamFullscreen()
+    detectBrowserCapabilities()
+    attachLockdownListeners()
+
+    const stream = await requestExamScreenShare()
+
+    await requestExamFullscreen()
+    await lockExamKeyboard()
+
+    if (!document.fullscreenElement) {
+      throw new Error('Toàn màn hình chưa được kích hoạt ổn định.')
+    }
+    
+    // 2. Gọi API bắt đầu thi
+    const session = await examApi.startExam({ maCaThi: caThiId })
+    maPhienThi.value = session.maPhienThi
+    maDeKiemTra.value = session.maDeKiemTra
+    exam.value.durationMinutes = session.thoiGianLamBai || 45
+    
+    // 3. Lấy câu hỏi
+    const quizResponse = await examApi.getExamQuestions(session.maPhienThi)
+    questions.value = quizResponse || []
+    exam.value.totalQuestions = questions.value.length
+    
+    // 4. Kết nối WebRTC Hub
+    const token = localStorage.getItem('lms_access_token') || sessionStorage.getItem('lms_access_token') || ''
+    await examProctoringHub.connect(token)
+
+    // Lưu trữ peer connections theo connectionId của giám thị
+    const studentPeerConnections = new Map()  // proctorConnectionId -> RTCPeerConnection
+    const studentPendingIce = new Map()        // proctorConnectionId -> RTCIceCandidateInit[]
+
+    function getStudentIceQueue(proctorConnId) {
+      if (!studentPendingIce.has(proctorConnId)) studentPendingIce.set(proctorConnId, [])
+      return studentPendingIce.get(proctorConnId)
+    }
+
+    async function flushStudentIceQueue(proctorConnId) {
+      const pc = studentPeerConnections.get(proctorConnId)
+      if (!pc || !pc.remoteDescription) return
+      const queue = studentPendingIce.get(proctorConnId) || []
+      if (import.meta.env.DEV && queue.length > 0)
+        console.debug(`[Student] Flushing ${queue.length} ICE for proctor`, proctorConnId)
+      while (queue.length > 0) {
+        const c = queue.shift()
+        try { await pc.addIceCandidate(new window.RTCIceCandidate(c)) }
+        catch (e) { if (import.meta.env.DEV) console.warn('[Student] flush ICE error', e) }
+      }
+    }
+
+    const initPeerAndSendOffer = async (proctorConnectionId) => {
+      if (!proctorConnectionId) return
+
+      if (!stream) {
+        console.warn('[Student] Cannot create offer: screen stream is missing')
+        return
+      }
+
+      if (studentPeerConnections.has(proctorConnectionId)) {
+        if (import.meta.env.DEV) console.debug('[Student] Peer already exists for proctor', proctorConnectionId)
+        return
+      }
+
+      const pc = createStudentPeerConnection(
+        stream,
+        // Student gửi ICE candidate về giám thị
+        (candidate) => examProctoringHub.sendIceCandidate({
+          maCaThi: caThiId,
+          maHocSinh: STUDENT_ID.value,
+          targetConnectionId: proctorConnectionId,
+          candidate, // examProctoringHub sẽ chuẩn hóa qua toJSON()
+        }),
+        () => {} // negotiation callback
+      )
+
+      // Theo dõi trạng thái peer
+      pc.onconnectionstatechange = () => {
+        if (import.meta.env.DEV)
+          console.debug('[Student] Peer connectionState:', pc.connectionState)
+      }
+      pc.oniceconnectionstatechange = () => {
+        if (import.meta.env.DEV)
+          console.debug('[Student] ICE state:', pc.iceConnectionState)
+      }
+
+      studentPeerConnections.set(proctorConnectionId, pc)
+
+      try {
+        const offer = await pc.createOffer()
+        await pc.setLocalDescription(offer)
+
+        await examProctoringHub.sendOffer({
+          maCaThi: caThiId,
+          maHocSinh: STUDENT_ID.value,
+          targetConnectionId: proctorConnectionId,
+          offer: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
+        })
+        if (import.meta.env.DEV) console.debug('[Student] Offer sent to proctor', proctorConnectionId)
+      } catch (e) {
+        console.error('[Student] Error creating offer', e)
+      }
+    }
+
+    // WebRTC: Giám thị yêu cầu kết nối
+    examProctoringHub.eventHandlers.onProctorRequestedConnections = async (payload) => {
+      if (import.meta.env.DEV) console.debug('[Student] ProctorRequestedConnections', payload)
+      await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
+      if (payload?.proctorConnectionId) {
+        await initPeerAndSendOffer(payload.proctorConnectionId)
+      }
+    }
+
+    // WebRTC: Giám thị phản hồi StudentConnectionIdBroadcast
+    examProctoringHub.eventHandlers.onProctorAcknowledged = async (payload) => {
+      if (import.meta.env.DEV) console.debug('[Student] ProctorAcknowledged', payload)
+      if (payload?.proctorConnectionId) {
+        await initPeerAndSendOffer(payload.proctorConnectionId)
+      }
+    }
+
+    // Xử lý ICE từ giám thị — cần queue vì ICE có thể tới trước setRemoteDescription xong
+    examProctoringHub.eventHandlers.onReceiveIceCandidate = async (iceDto) => {
+      if (!iceDto?.candidate?.candidate) return
+
+      // Bỏ qua own ICE
+      if (iceDto.fromConnectionId === examProctoringHub.connectionId) {
+        if (import.meta.env.DEV) console.debug('[Student] Skip own ICE candidate')
+        return
+      }
+
+      const targetPc = studentPeerConnections.get(iceDto.fromConnectionId)
+      const candidateInit = iceDto.candidate // đã là typed { candidate, sdpMid, sdpMLineIndex }
+
+      if (!targetPc || !targetPc.remoteDescription) {
+        if (import.meta.env.DEV) console.debug('[Student] ICE queued for proctor', iceDto.fromConnectionId)
+        getStudentIceQueue(iceDto.fromConnectionId).push(candidateInit)
+        return
+      }
+
+      try { await targetPc.addIceCandidate(new window.RTCIceCandidate(candidateInit)) }
+      catch (e) { if (import.meta.env.DEV) console.warn('[Student] addIceCandidate error', e) }
+    }
+
+    // WebRTC: Nhận Answer từ giám thị
+    examProctoringHub.eventHandlers.onReceiveAnswer = async (dto) => {
+      if (!dto?.answer) {
+        console.warn('[Student] ReceiveAnswer: invalid dto', dto)
+        return
+      }
+
+      if (dto.fromConnectionId === examProctoringHub.connectionId) {
+        if (import.meta.env.DEV) console.debug('[Student] Skip own answer')
+        return
+      }
+
+      const proctorConnectionId = dto.fromConnectionId
+      if (import.meta.env.DEV) console.debug('[Student] ReceiveAnswer from proctor', proctorConnectionId)
+
+      const pc = studentPeerConnections.get(proctorConnectionId)
+      if (!pc) {
+        console.warn('[Student] Received answer but no peer connection exists for proctor', proctorConnectionId)
+        return
+      }
+
+      try {
+        const answerDesc = { type: dto.answer.type, sdp: dto.answer.sdp }
+        await pc.setRemoteDescription(new window.RTCSessionDescription(answerDesc))
+        await flushStudentIceQueue(proctorConnectionId)
+      } catch (e) {
+        console.error('[Student] Error setting remote answer', e)
+      }
+    }
+
+    // Xử lý cảnh báo từ giám thị
+    examProctoringHub.eventHandlers.onWarningReceived = (payload) => {
+      const message = payload?.message || 'Giám thị đã gửi một nhắc nhở.'
+      
+      examSoftLock.value = {
+        visible: true,
+        type: 'PROCTOR_WARNING',
+        title: 'Nhắc nhở từ giám thị',
+        message: message,
+        severity: 'high',
+        canContinue: true,
+        requireProctorUnlock: false,
+        requireFullscreen: true,
+        requireScreenShare: true,
+        violationCount: examSoftLock.value.violationCount,
+      }
+      
+      pushWarning('Nhắc nhở từ giám thị: ' + message, 'high')
+      
+      try {
+        const audio = new Audio('/sound.mp3')
+        audio.play().catch(() => {})
+      } catch (err) { console.warn(err) }
+    }
+
+    // Xử lý mở khóa bài thi
+    examProctoringHub.eventHandlers.onStudentUnlocked = () => {
+      if (examSoftLock.value.requireProctorUnlock) {
+        examSoftLock.value.requireProctorUnlock = false
+        examSoftLock.value.canContinue = true
+        examSoftLock.value.violationCount = 0
+        fullscreenExitCount.value = 0
+        tabSwitchCount.value = 0
+        // Clear old violations so they don't count towards the next 3
+        violations.value = []
+        pushWarning('Giám thị đã mở khóa bài thi cho bạn. Vui lòng tiếp tục làm bài.', 'info')
+      }
+    }
+
+    await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
+    await examProctoringHub.screenShareStarted(caThiId, STUDENT_ID.value)
+
+    attachScreenStream(stream)
+    
     examStarted.value = true
     monitoringStatus.value = 'active'
+    timeLeftSeconds.value = Number(exam.value.durationMinutes) * 60
+    
     startTimer()
     startRuntimeMonitoring()
     saveDraft()
   } catch (error) {
     monitoringStatus.value = 'idle'
     cleanupScreenStream(false)
-    startError.value = error?.message || 'Bạn cần chia sẻ màn hình và bật toàn màn hình để bắt đầu bài thi.'
+    startError.value = error?.message || error?.response?.data?.message || 'Bạn cần chia sẻ màn hình và bật toàn màn hình để bắt đầu bài thi.'
     if (document.fullscreenElement) {
       await document.exitFullscreen().catch(() => {})
     }
   }
 }
 
-async function enterExamFullscreen() {
-  if (document.fullscreenElement) {
-    isFullscreen.value = true
-    await lockExamKeyboard()
-    return
-  }
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
 
+function waitForFullscreenState(timeoutMs = 1200) {
+  return new Promise((resolve) => {
+    if (document.fullscreenElement) {
+      resolve(true)
+      return
+    }
+    const timer = window.setTimeout(() => {
+      document.removeEventListener('fullscreenchange', onChange)
+      resolve(Boolean(document.fullscreenElement))
+    }, timeoutMs)
+    function onChange() {
+      window.clearTimeout(timer)
+      document.removeEventListener('fullscreenchange', onChange)
+      resolve(Boolean(document.fullscreenElement))
+    }
+    document.addEventListener('fullscreenchange', onChange)
+  })
+}
+
+async function requestExamFullscreen() {
   const root = document.documentElement
   if (!root.requestFullscreen) {
     throw new Error('Trình duyệt không hỗ trợ chế độ toàn màn hình.')
   }
-
   try {
     await root.requestFullscreen({ navigationUI: 'hide' })
-  } catch {
-    await root.requestFullscreen()
+  } catch (firstError) {
+    console.warn('[ExamLockdown] requestFullscreen with options failed, retry basic', firstError)
+    try {
+      await root.requestFullscreen()
+    } catch (fallbackError) {
+      console.error('[ExamLockdown] requestFullscreen failed', fallbackError)
+      throw new Error('Không thể bật toàn màn hình. Vui lòng cho phép fullscreen để vào phòng thi.', { cause: fallbackError })
+    }
   }
 
-  isFullscreen.value = Boolean(document.fullscreenElement)
+  await waitForFullscreenState(1200)
+  await wait(300)
+
   if (!document.fullscreenElement) {
-    throw new Error('Không thể mở toàn màn hình. Vui lòng cho phép fullscreen để vào phòng thi.')
+    throw new Error('Toàn màn hình vừa bị thoát hoặc chưa được kích hoạt ổn định.')
   }
 
-  await lockExamKeyboard()
+  isFullscreen.value = true
+  lockdownState.value.fullscreenActive = true
+  return true
+}
+
+async function requestExamScreenShare() {
+  isScreenSharePickerOpen.value = true
+  suppressFocusViolationUntil = Date.now() + 8000
+  try {
+    const stream = await webrtcRequestScreenShare()
+    suppressFocusViolationUntil = Date.now() + 3000
+    return stream
+  } finally {
+    isScreenSharePickerOpen.value = false
+  }
+}
+
+function shouldIgnoreFocusViolation() {
+  return isScreenSharePickerOpen.value || Date.now() < suppressFocusViolationUntil || examSoftLock.value.visible
 }
 
 async function lockExamKeyboard() {
+  keyboardLockActive.value = false
+  lockdownState.value.keyboardLockActive = false
+  lockdownState.value.keyboardLockFailedReason = ''
+
   if (!navigator.keyboard?.lock) {
-    keyboardLockActive.value = false
+    lockdownState.value.keyboardLockSupported = false
+    lockdownState.value.keyboardLockFailedReason = 'Trình duyệt không hỗ trợ Keyboard Lock API.'
+    return false
+  }
+
+  if (!document.fullscreenElement) {
+    lockdownState.value.keyboardLockFailedReason = 'Keyboard Lock chỉ hoạt động sau khi vào fullscreen.'
     return false
   }
 
   try {
     await navigator.keyboard.lock([
-      'AltLeft',
-      'AltRight',
-      'ControlLeft',
-      'ControlRight',
-      'MetaLeft',
-      'MetaRight',
-      'ShiftLeft',
-      'ShiftRight',
-      'Tab',
-      'PageUp',
-      'PageDown',
-      'ArrowLeft',
-      'ArrowRight',
-      'Escape',
-      'F4',
-      'F6',
-      'F11',
-      'KeyC',
-      'KeyD',
-      'KeyI',
-      'KeyJ',
-      'KeyL',
-      'KeyN',
-      'KeyP',
-      'KeyR',
-      'KeyS',
-      'KeyT',
-      'KeyW',
+      'Escape', 'AltLeft', 'AltRight', 'ControlLeft', 'ControlRight',
+      'MetaLeft', 'MetaRight', 'ShiftLeft', 'ShiftRight', 'Tab',
+      'F4', 'F6', 'F11', 'KeyW', 'KeyR', 'KeyT', 'KeyN', 'KeyL',
+      'KeyD', 'KeyP', 'KeyS', 'PageUp', 'PageDown', 'ArrowLeft', 'ArrowRight'
     ])
     keyboardLockActive.value = true
+    lockdownState.value.keyboardLockActive = true
+    lockdownState.value.keyboardLockSupported = true
     return true
-  } catch {
+  } catch (error) {
+    console.warn('[ExamLockdown] Keyboard lock failed', error)
     keyboardLockActive.value = false
+    lockdownState.value.keyboardLockActive = false
+    lockdownState.value.keyboardLockFailedReason = error?.message || 'Không thể khóa phím nâng cao trên trình duyệt này.'
     return false
   }
 }
@@ -399,29 +734,7 @@ function unlockExamKeyboard() {
   } catch {
     // Browser support differs; cleanup is best-effort.
   }
-
   keyboardLockActive.value = false
-}
-
-async function requestScreenShare() {
-  if (!navigator.mediaDevices?.getDisplayMedia) {
-    throw new Error('Trình duyệt không hỗ trợ chia sẻ màn hình.')
-  }
-
-  isScreenSharePickerOpen.value = true
-  suppressFocusViolationUntil = Date.now() + 3000
-
-  try {
-    const stream = await navigator.mediaDevices.getDisplayMedia({
-      video: { frameRate: 5 },
-      audio: false,
-    })
-
-    attachScreenStream(stream)
-  } finally {
-    isScreenSharePickerOpen.value = false
-    suppressFocusViolationUntil = Date.now() + 2500
-  }
 }
 
 function attachScreenStream(stream) {
@@ -448,12 +761,15 @@ function cleanupScreenStream(markStopped = true) {
   }
 
   if (screenStream.value) {
-    screenStream.value.getTracks().forEach((track) => track.stop())
+    webrtcStopScreenShare(screenStream.value)
     screenStream.value = null
   }
 
   if (markStopped && !submitLocked) {
     monitoringStatus.value = 'stopped'
+    try {
+      examProctoringHub.screenShareStopped(caThiId, STUDENT_ID.value)
+    } catch (e) { console.warn(e) }
   }
 }
 
@@ -476,7 +792,7 @@ async function restartScreenShare() {
   try {
     startError.value = ''
     monitoringStatus.value = 'starting'
-    await requestScreenShare()
+    await requestExamScreenShare()
     pushWarning('Chia sẻ màn hình đã được bật lại.', 'low')
   } catch (error) {
     monitoringStatus.value = 'interrupted'
@@ -486,8 +802,9 @@ async function restartScreenShare() {
 
 async function resumeFullscreen() {
   try {
-    await enterExamFullscreen()
-  } catch {
+    await requestExamFullscreen()
+  } catch (error) {
+    console.warn(error)
     pushWarning('Không thể bật lại toàn màn hình. Vui lòng thử lại.', 'high', 'fullscreen')
   }
 }
@@ -580,32 +897,157 @@ async function startDevtoolsDetection() {
   }
 }
 
-function handleFullscreenChange() {
-  isFullscreen.value = Boolean(document.fullscreenElement)
+const restrictedShortcutRules = [
+  {
+    name: 'ESCAPE',
+    match: e => e.key === 'Escape' || e.code === 'Escape',
+    severity: 'critical',
+    message: 'Thí sinh nhấn Escape trong lúc làm bài.',
+  },
+  {
+    name: 'ALT_TAB',
+    match: e => e.altKey && (e.key === 'Tab' || e.code === 'Tab'),
+    severity: 'critical',
+    message: 'Thí sinh cố dùng Alt+Tab để chuyển ứng dụng.',
+  },
+  {
+    name: 'META_TAB',
+    match: e => e.metaKey && (e.key === 'Tab' || e.code === 'Tab'),
+    severity: 'critical',
+    message: 'Thí sinh cố dùng Cmd/Meta+Tab để chuyển ứng dụng.',
+  },
+  {
+    name: 'ALT_F4',
+    match: e => e.altKey && (e.key === 'F4' || e.code === 'F4'),
+    severity: 'critical',
+    message: 'Thí sinh cố đóng cửa sổ bằng Alt+F4.',
+  },
+  {
+    name: 'CTRL_ALT_T',
+    match: e => e.ctrlKey && e.altKey && String(e.key).toLowerCase() === 't',
+    severity: 'critical',
+    message: 'Thí sinh cố mở terminal bằng Ctrl+Alt+T.',
+  },
+  {
+    name: 'CMD_Q',
+    match: e => e.metaKey && String(e.key).toLowerCase() === 'q',
+    severity: 'critical',
+    message: 'Thí sinh cố thoát ứng dụng bằng Cmd+Q.',
+  },
+  {
+    name: 'CMD_M',
+    match: e => e.metaKey && String(e.key).toLowerCase() === 'm',
+    severity: 'high',
+    message: 'Thí sinh cố thu nhỏ cửa sổ bằng Cmd+M.',
+  },
+  {
+    name: 'CLOSE_TAB',
+    match: e => (e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 'w',
+    severity: 'critical',
+    message: 'Thí sinh cố đóng tab/cửa sổ bài thi.',
+  },
+  {
+    name: 'RELOAD_PAGE',
+    match: e =>
+      (e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 'r' ||
+      e.key === 'F5' ||
+      e.code === 'F5',
+    severity: 'high',
+    message: 'Thí sinh cố tải lại trang bài thi.',
+  },
+  {
+    name: 'NEW_TAB',
+    match: e => (e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 't',
+    severity: 'high',
+    message: 'Thí sinh cố mở tab mới.',
+  },
+  {
+    name: 'NEW_WINDOW',
+    match: e => (e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 'n',
+    severity: 'high',
+    message: 'Thí sinh cố mở cửa sổ mới.',
+  },
+  {
+    name: 'ADDRESS_BAR_FOCUS',
+    match: e =>
+      ((e.ctrlKey || e.metaKey) && ['l', 'd'].includes(String(e.key).toLowerCase())) ||
+      (e.altKey && String(e.key).toLowerCase() === 'd') ||
+      e.key === 'F6' ||
+      e.code === 'F6',
+    severity: 'high',
+    message: 'Thí sinh cố chuyển focus ra thanh địa chỉ.',
+  },
+  {
+    name: 'PRINT_OR_SAVE',
+    match: e => (e.ctrlKey || e.metaKey) && ['p', 's'].includes(String(e.key).toLowerCase()),
+    severity: 'high',
+    message: 'Thí sinh cố in hoặc lưu trang bài thi.',
+  },
+  {
+    name: 'DEVTOOLS_SHORTCUT',
+    match: e =>
+      e.key === 'F12' ||
+      e.code === 'F12' ||
+      ((e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'j', 'c'].includes(String(e.key).toLowerCase())) ||
+      (e.metaKey && e.altKey && String(e.key).toLowerCase() === 'i'),
+    severity: 'critical',
+    message: 'Thí sinh cố mở Developer Tools.',
+  },
+  {
+    name: 'FULLSCREEN_TOGGLE_SHORTCUT',
+    match: e =>
+      e.key === 'F11' ||
+      e.code === 'F11' ||
+      (e.ctrlKey && e.metaKey && String(e.key).toLowerCase() === 'f'),
+    severity: 'high',
+    message: 'Thí sinh cố thay đổi chế độ toàn màn hình.',
+  },
+]
 
-  if (document.fullscreenElement && examStarted.value && !submitLocked) {
-    void lockExamKeyboard()
-  } else if (!document.fullscreenElement) {
-    unlockExamKeyboard()
-  }
-
+function handleRestrictedKeydown(event) {
   if (!examStarted.value || submitLocked) return
+  const rule = restrictedShortcutRules.find(item => item.match(event))
+  if (!rule) return
 
-  if (!document.fullscreenElement) {
-    fullscreenExitCount.value++
-    addViolation('FULLSCREEN_EXIT', 'high', 'Học sinh thoát chế độ toàn màn hình', {
-      count: fullscreenExitCount.value,
-    })
-    pushWarning('Bạn đã thoát toàn màn hình. Hành vi này đã được ghi nhận.', 'critical', 'fullscreen')
+  event.preventDefault()
+  event.stopPropagation()
+  event.stopImmediatePropagation?.()
 
-    if (fullscreenExitCount.value >= 3) {
-      pushWarning('Bạn đã thoát toàn màn hình nhiều lần. Giám thị có thể đình chỉ bài thi.', 'critical', 'fullscreen')
-    }
-  }
+  softLockExamWithViolation({
+    type: rule.name,
+    severity: rule.severity,
+    message: rule.message,
+    details: {
+      key: event.key,
+      code: event.code,
+      altKey: event.altKey,
+      ctrlKey: event.ctrlKey,
+      metaKey: event.metaKey,
+      shiftKey: event.shiftKey,
+      browser: browserCapabilities.value.browserName,
+      os: browserCapabilities.value.osName,
+      fullscreen: Boolean(document.fullscreenElement),
+      keyboardLockActive: keyboardLockActive.value,
+    },
+  })
 }
 
-function shouldIgnoreFocusViolation() {
-  return isScreenSharePickerOpen.value || Date.now() < suppressFocusViolationUntil
+function handleWindowBlur() {
+  if (!examStarted.value || submitLocked) return
+  if (shouldIgnoreFocusViolation()) return
+
+  lockdownState.value.lastWindowBlurAt = Date.now()
+  softLockExamWithViolation({
+    type: 'WINDOW_BLUR',
+    severity: 'high',
+    message: 'Cửa sổ bài thi bị mất focus. Có thể thí sinh đã chuyển ứng dụng hoặc dùng phím hệ thống.',
+    details: {
+      fullscreen: Boolean(document.fullscreenElement),
+      visibilityState: document.visibilityState,
+      browser: browserCapabilities.value.browserName,
+      os: browserCapabilities.value.osName,
+    },
+  })
 }
 
 function handleVisibilityChange() {
@@ -613,234 +1055,173 @@ function handleVisibilityChange() {
   if (shouldIgnoreFocusViolation()) return
 
   if (document.hidden) {
-    tabSwitchCount.value++
-    addViolation('TAB_SWITCH', 'high', 'Học sinh rời khỏi tab thi', {
-      count: tabSwitchCount.value,
-      source: 'visibilitychange',
+    lockdownState.value.lastVisibilityHiddenAt = Date.now()
+    softLockExamWithViolation({
+      type: 'TAB_OR_APP_SWITCH',
+      severity: 'critical',
+      message: 'Thí sinh rời khỏi tab/cửa sổ bài thi.',
+      details: {
+        visibilityState: document.visibilityState,
+        fullscreen: Boolean(document.fullscreenElement),
+        browser: browserCapabilities.value.browserName,
+        os: browserCapabilities.value.osName,
+      },
     })
-  } else if (tabSwitchCount.value > 0) {
-    pushWarning('Bạn đã rời khỏi tab thi. Hành vi này đã được ghi nhận.', 'high')
   }
 }
 
-function handleWindowBlur() {
-  if (!examStarted.value || submitLocked || document.hidden) return
+function handleFullscreenChange() {
+  const active = Boolean(document.fullscreenElement)
+  isFullscreen.value = active
+  lockdownState.value.fullscreenActive = active
+
+  if (active) {
+    void lockExamKeyboard()
+    return
+  }
+
+  unlockExamKeyboard()
+
+  if (!examStarted.value || submitLocked) return
   if (shouldIgnoreFocusViolation()) return
 
-  const now = Date.now()
-  if (now - lastBlurViolationAt < 5000) return
-  lastBlurViolationAt = now
-  tabSwitchCount.value++
-  addViolation('TAB_SWITCH', 'high', 'Học sinh rời khỏi cửa sổ thi', {
-    count: tabSwitchCount.value,
-    source: 'window.blur',
+  lockdownState.value.lastFullscreenExitAt = Date.now()
+  fullscreenExitCount.value += 1
+
+  softLockExamWithViolation({
+    type: 'FULLSCREEN_EXIT',
+    severity: 'critical',
+    message: 'Thí sinh thoát khỏi chế độ toàn màn hình.',
+    details: {
+      count: fullscreenExitCount.value,
+      browser: browserCapabilities.value.browserName,
+      os: browserCapabilities.value.osName,
+    },
   })
+}
+
+function handlePageHide() {
+  if (!examStarted.value || submitLocked) return
+  softLockExamWithViolation({
+    type: 'PAGE_HIDE',
+    severity: 'critical',
+    message: 'Trang bài thi bị ẩn hoặc sắp rời khỏi.',
+    details: {
+      visibilityState: document.visibilityState,
+      fullscreen: Boolean(document.fullscreenElement),
+    },
+  })
+}
+
+function handleWindowFocus() {
+  if (!examStarted.value || submitLocked) return
+  if (!document.fullscreenElement) {
+    examSoftLock.value.visible = true
+  }
+}
+
+function getLockdownViolationCount() {
+  return violations.value.filter(v =>
+    [
+      'FULLSCREEN_EXIT',
+      'TAB_OR_APP_SWITCH',
+      'WINDOW_BLUR',
+      'RESTRICTED_SHORTCUT',
+      'ESCAPE',
+      'ALT_TAB',
+      'META_TAB',
+      'CLOSE_TAB',
+      'DEVTOOLS_SHORTCUT',
+      'PAGE_HIDE',
+    ].includes(v.type)
+  ).length
+}
+
+function softLockExamWithViolation({ type, severity, message, details = {} }) {
+  const violation = addViolation(type, severity, message, details, { dedupeMs: 1500 })
+  if (!violation) return // Bỏ qua nếu bị dedupe
+
+  const count = getLockdownViolationCount()
+  const requireProctorUnlock = count >= 3
+
+  examSoftLock.value = {
+    visible: true,
+    type,
+    title: requireProctorUnlock
+      ? 'Bài thi đã bị khóa tạm thời'
+      : 'Phát hiện rời khỏi môi trường làm bài',
+    message: requireProctorUnlock
+      ? 'Bạn đã vi phạm quy định nhiều lần. Vui lòng chờ giám thị xử lý.'
+      : message,
+    severity,
+    canContinue: false,
+    requireProctorUnlock,
+    requireFullscreen: true,
+    requireScreenShare: true,
+    violationCount: count,
+  }
+
+  window.setTimeout(() => {
+    if (!examSoftLock.value.requireProctorUnlock) {
+      examSoftLock.value.canContinue = true
+    }
+  }, 2000)
+}
+
+async function continueAfterSoftLock() {
+  if (examSoftLock.value.requireProctorUnlock) {
+    pushWarning('Bài thi đang bị khóa. Vui lòng chờ giám thị xử lý.', 'critical')
+    return
+  }
+
+  if (!examSoftLock.value.canContinue) return
+
+  // Tạm thời bỏ qua các vi phạm focus/blur do hiệu ứng chuyển đổi fullscreen của OS
+  suppressFocusViolationUntil = Date.now() + 3000
+
+  if (!document.fullscreenElement) {
+    try {
+      await requestExamFullscreen()
+      await lockExamKeyboard()
+    } catch (error) {
+      console.warn(error)
+      pushWarning('Bạn cần quay lại toàn màn hình để tiếp tục làm bài.', 'critical')
+      return
+    }
+  }
+
+  const hasLiveScreenTrack = Boolean(
+    screenStream.value?.getVideoTracks?.().some(track => track.readyState === 'live')
+  )
+
+  if (!hasLiveScreenTrack) {
+    pushWarning('Bạn cần bật lại chia sẻ màn hình để tiếp tục làm bài.', 'critical')
+    return
+  }
+
+  examSoftLock.value.visible = false
 }
 
 function blockClipboard(event) {
   if (!examStarted.value || submitLocked) return
-
   event.preventDefault()
-  addViolation('CLIPBOARD_ATTEMPT', 'medium', 'Thao tác sao chép/dán bị chặn trong bài thi', {
-    eventType: event.type,
-  })
+  addViolation('CLIPBOARD_ATTEMPT', 'medium', 'Thao tác sao chép/dán bị chặn trong bài thi', { eventType: event.type })
   pushWarning('Thao tác sao chép/dán bị chặn trong bài thi.', 'medium')
 }
 
 function blockContextMenu(event) {
   if (!examStarted.value || submitLocked) return
-
   event.preventDefault()
-  addViolation('CONTEXT_MENU', 'low', 'Thao tác chuột phải bị chặn', {
-    eventType: event.type,
-  })
-}
-
-function blockRestrictedShortcut(event) {
-  if (!examStarted.value || submitLocked) return
-
-  const shortcut = getRestrictedShortcut(event)
-  if (!shortcut) return
-
-  event.preventDefault()
-  event.stopPropagation()
-
-  const violation = addViolation(
-    'KEYBOARD_SHORTCUT_ATTEMPT',
-    shortcut.severity,
-    shortcut.message,
-    {
-      shortcut: shortcut.name,
-      key: event.key,
-      code: event.code,
-      altKey: event.altKey,
-      metaKey: event.metaKey,
-      ctrlKey: event.ctrlKey,
-      shiftKey: event.shiftKey,
-      repeat: event.repeat,
-      keyboardLockActive: keyboardLockActive.value,
-    },
-    { dedupeMs: event.repeat ? 1200 : 0 },
-  )
-
-  if (violation) {
-    pushWarning(shortcut.warning, shortcut.severity)
-  }
-}
-
-function getRestrictedShortcut(event) {
-  const key = String(event.key || '').toLowerCase()
-  const code = String(event.code || '').toLowerCase()
-  const ctrlOrMeta = event.ctrlKey || event.metaKey
-  const isTabKey = key === 'tab' || code === 'tab'
-  const isPageNavKey = key === 'pageup' || key === 'pagedown' || code === 'pageup' || code === 'pagedown'
-  const isHorizontalArrow =
-    key === 'arrowleft' || key === 'arrowright' || code === 'arrowleft' || code === 'arrowright'
-  const isF4 = key === 'f4' || code === 'f4'
-  const isF6 = key === 'f6' || code === 'f6'
-  const isF11 = key === 'f11' || code === 'f11'
-  const isEscape = key === 'escape' || code === 'escape'
-
-  if (event.altKey && isTabKey) {
-    return {
-      name: 'ALT_TAB',
-      severity: 'critical',
-      message: 'Học sinh cố dùng Alt+Tab để chuyển cửa sổ',
-      warning: 'Alt+Tab bị chặn trong bài thi.',
-    }
-  }
-
-  if (event.metaKey && isTabKey) {
-    return {
-      name: 'META_TAB',
-      severity: 'critical',
-      message: 'Học sinh cố dùng phím hệ thống để chuyển cửa sổ',
-      warning: 'Tổ hợp chuyển cửa sổ bị chặn trong bài thi.',
-    }
-  }
-
-  if (ctrlOrMeta && isTabKey) {
-    return {
-      name: 'CTRL_TAB',
-      severity: 'high',
-      message: 'Học sinh cố dùng Ctrl+Tab để chuyển tab',
-      warning: 'Ctrl+Tab bị chặn trong bài thi.',
-    }
-  }
-
-  if (ctrlOrMeta && isPageNavKey) {
-    return {
-      name: 'CTRL_PAGE_TAB_NAV',
-      severity: 'high',
-      message: 'Học sinh cố dùng Ctrl+PageUp/PageDown để chuyển tab',
-      warning: 'Tổ hợp chuyển tab bị chặn trong bài thi.',
-    }
-  }
-
-  if (event.altKey && isHorizontalArrow) {
-    return {
-      name: 'ALT_HISTORY_NAV',
-      severity: 'high',
-      message: 'Học sinh cố dùng Alt+Arrow để điều hướng khỏi trang thi',
-      warning: 'Tổ hợp điều hướng trình duyệt bị chặn trong bài thi.',
-    }
-  }
-
-  if (event.altKey && isF4) {
-    return {
-      name: 'ALT_F4',
-      severity: 'critical',
-      message: 'Học sinh cố dùng Alt+F4 để đóng cửa sổ thi',
-      warning: 'Alt+F4 bị chặn trong bài thi.',
-    }
-  }
-
-  if (ctrlOrMeta && (key === 'w' || isF4)) {
-    return {
-      name: 'CLOSE_TAB',
-      severity: 'critical',
-      message: 'Học sinh cố đóng tab thi bằng bàn phím',
-      warning: 'Tổ hợp đóng tab bị chặn trong bài thi.',
-    }
-  }
-
-  if (ctrlOrMeta && ['t', 'n'].includes(key)) {
-    return {
-      name: 'NEW_TAB_OR_WINDOW',
-      severity: 'high',
-      message: 'Học sinh cố mở tab/cửa sổ mới bằng bàn phím',
-      warning: 'Tổ hợp mở tab hoặc cửa sổ mới bị chặn trong bài thi.',
-    }
-  }
-
-  if ((ctrlOrMeta && ['l', 'd'].includes(key)) || (event.altKey && key === 'd') || isF6) {
-    return {
-      name: 'ADDRESS_BAR_FOCUS',
-      severity: 'high',
-      message: 'Học sinh cố chuyển focus ra thanh địa chỉ trình duyệt',
-      warning: 'Tổ hợp chuyển ra thanh địa chỉ bị chặn trong bài thi.',
-    }
-  }
-
-  if (ctrlOrMeta && key === 'r') {
-    return {
-      name: 'REFRESH_PAGE',
-      severity: 'high',
-      message: 'Học sinh cố tải lại trang thi bằng bàn phím',
-      warning: 'Tổ hợp tải lại trang bị chặn trong bài thi.',
-    }
-  }
-
-  if (ctrlOrMeta && ['p', 's'].includes(key)) {
-    return {
-      name: 'PRINT_OR_SAVE',
-      severity: 'high',
-      message: 'Học sinh cố in hoặc lưu trang thi bằng bàn phím',
-      warning: 'Tổ hợp in/lưu trang bị chặn trong bài thi.',
-    }
-  }
-
-  if (ctrlOrMeta && event.shiftKey && ['i', 'j', 'c'].includes(key)) {
-    return {
-      name: 'DEVTOOLS_SHORTCUT',
-      severity: 'critical',
-      message: 'Học sinh cố mở Developer Tools bằng bàn phím',
-      warning: 'Tổ hợp mở Developer Tools bị chặn trong bài thi.',
-    }
-  }
-
-  if (isF11) {
-    return {
-      name: 'FULLSCREEN_TOGGLE',
-      severity: 'high',
-      message: 'Học sinh cố bật/tắt fullscreen bằng phím F11',
-      warning: 'F11 bị chặn trong bài thi.',
-    }
-  }
-
-  if (isEscape) {
-    return {
-      name: 'ESCAPE_FULLSCREEN',
-      severity: 'high',
-      message: 'Học sinh cố dùng Escape trong phòng thi toàn màn hình',
-      warning: 'Phím Escape bị chặn trong bài thi.',
-    }
-  }
-
-  return null
+  addViolation('CONTEXT_MENU', 'low', 'Thao tác chuột phải bị chặn', { eventType: event.type })
 }
 
 function handleBeforeUnload(event) {
   if (!examStarted.value || submitLocked) return
-
   addViolation(
     'KEYBOARD_SHORTCUT_ATTEMPT',
     'critical',
     'Học sinh cố đóng, tải lại hoặc rời trang thi',
-    {
-      shortcut: 'PAGE_UNLOAD_OR_REFRESH',
-      keyboardLockActive: keyboardLockActive.value,
-    },
+    { shortcut: 'PAGE_UNLOAD_OR_REFRESH', keyboardLockActive: keyboardLockActive.value },
     { dedupeMs: 1000 },
   )
   saveDraft()
@@ -848,85 +1229,71 @@ function handleBeforeUnload(event) {
   event.returnValue = ''
 }
 
-function buildSubmitPayload(reason) {
-  return {
-    examId,
-    studentId: STUDENT_ID,
-    studentName: STUDENT_NAME,
-    answers: answers.value,
-    flagged: flagged.value,
-    violations: violations.value,
-    submittedAt: new Date().toISOString(),
-    timeLeftSeconds: timeLeftSeconds.value,
-    submitReason: reason,
+function attachLockdownListeners() {
+  window.addEventListener('keydown', handleRestrictedKeydown, true)
+  document.addEventListener('keydown', handleRestrictedKeydown, true)
+  document.addEventListener('fullscreenchange', handleFullscreenChange, true)
+  document.addEventListener('visibilitychange', handleVisibilityChange, true)
+  window.addEventListener('blur', handleWindowBlur, true)
+  window.addEventListener('focus', handleWindowFocus, true)
+  window.addEventListener('pagehide', handlePageHide, true)
+  window.addEventListener('beforeunload', handleBeforeUnload, true)
+  window.addEventListener('contextmenu', blockContextMenu, true)
+  window.addEventListener('copy', blockClipboard, true)
+  window.addEventListener('cut', blockClipboard, true)
+  window.addEventListener('paste', blockClipboard, true)
+}
+
+function detachLockdownListeners() {
+  window.removeEventListener('keydown', handleRestrictedKeydown, true)
+  document.removeEventListener('keydown', handleRestrictedKeydown, true)
+  document.removeEventListener('fullscreenchange', handleFullscreenChange, true)
+  document.removeEventListener('visibilitychange', handleVisibilityChange, true)
+  window.removeEventListener('blur', handleWindowBlur, true)
+  window.removeEventListener('focus', handleWindowFocus, true)
+  window.removeEventListener('pagehide', handlePageHide, true)
+  window.removeEventListener('beforeunload', handleBeforeUnload, true)
+  window.removeEventListener('contextmenu', blockContextMenu, true)
+  window.removeEventListener('copy', blockClipboard, true)
+  window.removeEventListener('cut', blockClipboard, true)
+  window.removeEventListener('cut', blockClipboard, true)
+  window.removeEventListener('paste', blockClipboard, true)
+}
+
+function stopDevtoolsDetection() {
+  if (devtoolsDetectorModule && devtoolsListener) {
+    devtoolsDetectorModule.removeListener(devtoolsListener)
+    devtoolsDetectorModule.stop()
+  }
+  if (devtoolsFallbackInterval) {
+    clearInterval(devtoolsFallbackInterval)
+    devtoolsFallbackInterval = null
   }
 }
 
 async function submitExam(reason = 'manual') {
   if (submitLocked) return
-
   submitLocked = true
-  showConfirmSubmit.value = false
-  saveDraft()
-
-  const payload = buildSubmitPayload(reason)
-  sessionStorage.setItem('last_exam_submit_payload', JSON.stringify(payload))
-  console.log('Mock exam submit payload:', payload)
-
-  if (timerInterval) clearInterval(timerInterval)
-  if (autosaveInterval) clearInterval(autosaveInterval)
-  if (runtimeScanInterval) clearInterval(runtimeScanInterval)
-  unlockExamKeyboard()
-  cleanupScreenStream(false)
   monitoringStatus.value = 'stopped'
-  localStorage.setItem(submittedKey, 'true')
-  clearExamRuntimeStorage(examId)
-
-  if (document.fullscreenElement) {
-    await document.exitFullscreen().catch(() => {})
+  clearInterval(timerInterval)
+  clearInterval(autosaveInterval)
+  clearInterval(runtimeScanInterval)
+  clearInterval(watermarkInterval)
+  stopDevtoolsDetection()
+  
+  if (reason === 'timeout') {
+    pushWarning('Đã hết thời gian làm bài. Hệ thống đang tự động nộp bài.', 'critical')
   }
-
-  router.push(`/student/exams/result-${examId}`)
-}
-
-function stopDevtoolsDetection() {
-  if (devtoolsFallbackInterval) {
-    clearInterval(devtoolsFallbackInterval)
-    devtoolsFallbackInterval = null
-  }
-
+  
   try {
-    if (devtoolsDetectorModule && devtoolsListener) {
-      devtoolsDetectorModule.removeListener(devtoolsListener)
-      devtoolsDetectorModule.stop?.()
-    }
-  } catch {
-    // Best-effort cleanup only.
+    localStorage.setItem(submittedKey, 'true')
+    clearExamRuntimeStorage(examId)
+    router.replace(`/student/exams/results/${examId}`)
+  } catch (error) {
+    submitLocked = false
+    console.warn(error)
+    pushWarning('Không thể nộp bài thi. Vui lòng thử lại.', 'critical')
   }
-}
-
-function addGlobalListeners() {
-  document.addEventListener('fullscreenchange', handleFullscreenChange)
-  document.addEventListener('visibilitychange', handleVisibilityChange)
-  window.addEventListener('blur', handleWindowBlur)
-  document.addEventListener('copy', blockClipboard)
-  document.addEventListener('paste', blockClipboard)
-  document.addEventListener('cut', blockClipboard)
-  document.addEventListener('contextmenu', blockContextMenu)
-  document.addEventListener('keydown', blockRestrictedShortcut, true)
-  window.addEventListener('beforeunload', handleBeforeUnload)
-}
-
-function removeGlobalListeners() {
-  document.removeEventListener('fullscreenchange', handleFullscreenChange)
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
-  window.removeEventListener('blur', handleWindowBlur)
-  document.removeEventListener('copy', blockClipboard)
-  document.removeEventListener('paste', blockClipboard)
-  document.removeEventListener('cut', blockClipboard)
-  document.removeEventListener('contextmenu', blockContextMenu)
-  document.removeEventListener('keydown', blockRestrictedShortcut, true)
-  window.removeEventListener('beforeunload', handleBeforeUnload)
 }
 
 onMounted(() => {
@@ -939,7 +1306,7 @@ onMounted(() => {
   restoreDraft()
   updateWatermarkTimestamp()
   watermarkInterval = window.setInterval(updateWatermarkTimestamp, 1000)
-  addGlobalListeners()
+  // attachLockdownListeners is called in startExamEnvironment
 })
 
 onUnmounted(() => {
@@ -950,7 +1317,7 @@ onUnmounted(() => {
   if (streamRecoveryTimer) clearTimeout(streamRecoveryTimer)
   stopDevtoolsDetection()
   unlockExamKeyboard()
-  removeGlobalListeners()
+  detachLockdownListeners()
   cleanupScreenStream(false)
 })
 </script>
@@ -1011,11 +1378,39 @@ onUnmounted(() => {
       </button>
     </div>
 
-    <div class="exam-take-layout" :class="{ 'is-locked': !examStarted }">
+    <div class="exam-soft-lock-overlay" v-if="examSoftLock.visible">
+      <div class="lock-modal glass-card">
+        <div class="lock-icon" :class="examSoftLock.severity">
+          <AlertTriangle :size="32" />
+        </div>
+        <h2 class="lock-title">{{ examSoftLock.title }}</h2>
+        <p class="lock-message">{{ examSoftLock.message }}</p>
+        <div class="lock-details">
+          <p>Mức độ: <strong>{{ examSoftLock.severity.toUpperCase() }}</strong></p>
+          <p>Số lần vi phạm: <strong>{{ examSoftLock.violationCount }}</strong></p>
+        </div>
+        <div class="lock-actions">
+          <button
+            class="btn-primary"
+            :disabled="!examSoftLock.canContinue || examSoftLock.requireProctorUnlock"
+            @click="continueAfterSoftLock"
+          >
+            {{
+              examSoftLock.requireProctorUnlock
+                ? 'Đã khóa bài thi'
+                : (examSoftLock.canContinue ? 'Tôi hiểu và tiếp tục làm bài' : 'Vui lòng chờ...')
+            }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="exam-take-layout" :class="{ 'is-locked': !examStarted || examSoftLock.visible }">
       <main class="question-main-panel glass-card">
-        <header class="question-header">
-          <span class="question-index">Câu hỏi {{ currentQuestionIndex + 1 }} / {{ mockQuestions.length }}</span>
-          <span class="question-points">[{{ currentQuestion.points }} điểm]</span>
+        <template v-if="currentQuestion">
+          <header class="question-header">
+            <span class="question-index">Câu hỏi {{ currentQuestionIndex + 1 }} / {{ questions.length }}</span>
+            <span class="question-points">[{{ currentQuestion.points }} điểm]</span>
 
           <button
             type="button"
@@ -1091,13 +1486,19 @@ onUnmounted(() => {
           <button
             type="button"
             class="nav-btn"
-            :disabled="currentQuestionIndex === mockQuestions.length - 1"
+            :disabled="currentQuestionIndex === questions.length - 1"
             @click="nextQuestion"
           >
             Câu tiếp theo
             <ChevronRight :size="16" />
           </button>
         </footer>
+        </template>
+        <template v-else>
+          <div class="empty-state p-4 text-center">
+            <p>Đang tải câu hỏi hoặc đề thi không có câu hỏi nào.</p>
+          </div>
+        </template>
       </main>
 
       <aside class="exam-status-sidebar">
@@ -1105,7 +1506,7 @@ onUnmounted(() => {
           <h3>Tiến độ bài làm</h3>
           <div class="progress-bar-container">
             <div class="progress-info">
-              <span>Đã làm: {{ answeredCount }} / {{ mockQuestions.length }} câu</span>
+              <span>Đã làm: {{ answeredCount }} / {{ questions.length }} câu</span>
               <strong>{{ progressPercent }}%</strong>
             </div>
             <div class="progress-track">
@@ -1148,7 +1549,7 @@ onUnmounted(() => {
           <h3>Danh sách câu hỏi</h3>
           <div class="question-grid">
             <button
-              v-for="(q, idx) in mockQuestions"
+              v-for="(q, idx) in questions"
               :key="q.id"
               type="button"
               class="grid-question-btn"
@@ -1207,6 +1608,11 @@ onUnmounted(() => {
           <ShieldAlert :size="30" />
         </div>
         <h2>Sẵn sàng bắt đầu bài thi</h2>
+        
+        <div v-if="startError" class="warning-banner critical" style="margin-bottom: 20px;">
+          <XCircle :size="16" />
+          <span>{{ startError }}</span>
+        </div>
         <p>
           Khi bắt đầu, hệ thống sẽ chuyển sang toàn màn hình, yêu cầu chia sẻ màn hình và ghi nhận các hành vi bất thường.
         </p>
@@ -2058,6 +2464,109 @@ onUnmounted(() => {
   background: var(--lg-primary-dark);
 }
 
+.exam-soft-lock-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+  padding: 1rem;
+}
+
+.lock-modal {
+  background: var(--surface-card);
+  padding: 2.5rem;
+  border-radius: 20px;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  border: 1px solid var(--border-card);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.lock-icon {
+  display: inline-flex;
+  padding: 1rem;
+  border-radius: 50%;
+  margin-bottom: 1.5rem;
+}
+
+.lock-icon.critical {
+  background: rgba(220, 38, 38, 0.1);
+  color: #ef4444;
+}
+
+.lock-icon.high {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.lock-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-heading);
+  margin: 0 0 1rem;
+}
+
+.lock-message {
+  font-size: 0.95rem;
+  color: var(--text-body);
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+
+.lock-details {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 1rem;
+  background: var(--surface-solid);
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  font-size: 0.85rem;
+  color: var(--text-label);
+}
+
+.lock-details strong {
+  display: block;
+  font-size: 1.1rem;
+  color: var(--text-heading);
+  margin-top: 0.25rem;
+}
+
+.lock-actions .btn-primary {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: 12px;
+  background: var(--text-link);
+  color: var(--text-inverse);
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lock-actions .btn-primary:hover:not(:disabled) {
+  background: var(--lg-primary-dark);
+}
+
+.lock-actions .btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--surface-input);
+  color: var(--text-label);
+}
+
 @media (max-width: 900px) {
   .exam-header-strip {
     align-items: flex-start;
@@ -2084,3 +2593,4 @@ onUnmounted(() => {
   }
 }
 </style>
+

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   AlertTriangle,
@@ -171,6 +171,7 @@ function normalizeApiExam(item) {
     closeAt: valueOf('closeAt', 'CloseAt'),
     score: valueOf('score', 'Score'),
     resultId: valueOf('resultId', 'ResultId'),
+    trangThaiDuThi: valueOf('trangThaiDuThi', 'TrangThaiDuThi'),
     accessPolicy: {
       requirePassword: false,
       allowedByClassSection: true,
@@ -179,7 +180,31 @@ function normalizeApiExam(item) {
   }
 }
 
-onMounted(loadExams)
+let pollInterval = null
+
+function startPolling() {
+  pollInterval = setInterval(async () => {
+    // Only poll if there's an exam waiting for check-in
+    const needsPolling = exams.value.some(e => e.trangThaiDuThi === 'cho_thi')
+    if (needsPolling) {
+      try {
+        const items = await getStudentExams()
+        exams.value = items.map(normalizeApiExam)
+      } catch (e) {
+        // ignore errors during background poll
+      }
+    }
+  }, 10000)
+}
+
+onMounted(() => {
+  loadExams()
+  startPolling()
+})
+
+onUnmounted(() => {
+  if (pollInterval) clearInterval(pollInterval)
+})
 
 function normalize(value) {
   return String(value || '')
@@ -197,6 +222,9 @@ function formatDate(iso) {
 function actionLabel(exam) {
   const examAccess = getExamAccessState(exam, studentContext)
   if (examAccess.canViewResult) return 'Xem kết quả'
+  if (examAccess.state === 'absent') return 'Vắng mặt'
+  if (examAccess.state === 'suspended') return 'Đình chỉ'
+  if (examAccess.state === 'not_checked_in') return 'Chờ điểm danh'
   if (exam.accessStatus === LEARNING_ACCESS.EARLY_AVAILABLE) return 'Làm trước'
   if (exam.accessStatus === LEARNING_ACCESS.EARLY_COMPLETED) return exam.resultId ? 'Xem kết quả' : 'Tiếp tục học'
   if (exam.accessStatus === LEARNING_ACCESS.COMPLETED) return 'Xem kết quả'
@@ -285,6 +313,9 @@ function accessReason(exam) {
 
 function accessStateLabel(exam) {
   const state = getExamAccessState(exam, studentContext)
+  if (state.state === 'absent') return 'Vắng mặt'
+  if (state.state === 'suspended') return 'Đình chỉ'
+  if (state.state === 'not_checked_in') return 'Chờ điểm danh'
   if (state.canEnter) return 'Được phép vào thi'
   if (state.canViewResult) return 'Chỉ xem kết quả'
   return state.reason || getExamStatusLabel(exam.status)

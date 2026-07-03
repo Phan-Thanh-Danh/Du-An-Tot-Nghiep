@@ -109,7 +109,8 @@ export const AUTH_PORTALS = Object.freeze({
     audience: 'Dành cho phụ huynh sinh viên',
     group: 'primary',
     homeRoute: '/parent/dashboard',
-    enabled: false,
+    // Parent portal disabled by default until parent APIs are implemented.
+    enabled: import.meta.env.VITE_ENABLE_PARENT_PORTAL === 'true',
     demoUsername: 'parent',
   },
   staff: {
@@ -138,6 +139,7 @@ export const AUTH_PORTALS = Object.freeze({
   bgh: {
     slug: 'bgh',
     backendRole: 'Principal',
+    allowedRoles: ['Principal', 'Chairman'],
     label: 'Ban giám hiệu',
     shortLabel: 'BGH',
     eyebrow: 'Quản trị chiến lược',
@@ -176,10 +178,29 @@ export const AUTH_PORTALS = Object.freeze({
     enabled: true,
     demoUsername: 'content_council',
   },
+  finance: {
+    slug: 'finance',
+    backendRole: 'FinanceAdmin',
+    allowedRoles: ['FinanceAdmin', 'CampusAccountant', 'CampusChiefAccountant'],
+    label: 'Tài chính',
+    shortLabel: 'TC',
+    eyebrow: 'Quản trị tài chính',
+    headline: 'Theo dõi học phí và thanh toán',
+    description:
+      'Quản lý công nợ, thanh toán, hóa đơn và cấu hình học phí theo phạm vi được phân quyền.',
+    accent: 'emerald',
+    icon: 'WalletCards',
+    features: ['Học phí', 'Thanh toán', 'Hóa đơn'],
+    audience: 'Dành cho bộ phận tài chính/kế toán',
+    group: 'staff',
+    homeRoute: '/super-admin/finance/payments',
+    enabled: false,
+  },
   'super-admin': {
     slug: 'super-admin',
     backendRole: 'SuperAdmin',
-    allowedRoles: ['SuperAdmin', 'Admin'],
+    // CampusAdmin/SubCampusAdmin dùng tạm admin shell cho đến khi có portal quản trị cơ sở riêng.
+    allowedRoles: ['SuperAdmin', 'Admin', 'CampusAdmin', 'SubCampusAdmin'],
     label: 'Quản trị hệ thống',
     shortLabel: 'Admin',
     eyebrow: 'Quản trị kỹ thuật',
