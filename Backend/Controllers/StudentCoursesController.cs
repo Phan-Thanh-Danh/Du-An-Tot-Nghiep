@@ -1,9 +1,11 @@
+using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
 using Backend.DTOs.StudentCourse;
 using Backend.DTOs.StudentDashboard;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace Backend.Controllers;
 
@@ -13,27 +15,96 @@ public class StudentCoursesController : ControllerBase
 {
     [HttpGet]
     [Authorize(Roles = "Student")]
-    public ActionResult<ApiResponseDto<List<CourseProgressDto>>> GetCourses()
+    public async Task<ActionResult<ApiResponseDto<List<CourseProgressDto>>>> GetCourses(
+        [FromServices] Backend.Data.ApplicationDbContext context)
     {
-        var courses = new List<CourseProgressDto>
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        if (currentUser == null)
         {
-            new() { Id = "ctdl", Name = "Cấu trúc dữ liệu & Giải thuật", Code = "CTDL101", Lecturer = "TS. Nguyễn Minh Khoa", Progress = 72, Completed = 9, Total = 12, Status = "Cần tiếp tục", StatusVariant = "warning" },
-            new() { Id = "web", Name = "Lập trình Web nâng cao", Code = "LTW301", Lecturer = "ThS. Lê Phương Mai", Progress = 86, Completed = 12, Total = 14, Status = "Sắp hoàn thành", StatusVariant = "success" },
-            new() { Id = "db", Name = "Hệ quản trị CSDL", Code = "HQTCSDL401", Lecturer = "ThS. Trần Quốc Việt", Progress = 100, Completed = 15, Total = 15, Status = "Hoàn thành", StatusVariant = "neutral" }
-        };
+            return Unauthorized();
+        }
 
-        return Ok(ApiResponseDto<List<CourseProgressDto>>.Ok(courses));
+        var enrollments = await context.DangKyHocPhans
+            .Include(d => d.LopHocPhan!)
+                .ThenInclude(l => l.MonHoc)
+            .Where(d => d.MaHocSinh == currentUser.UserId && d.TrangThai == "da_duyet")
+            .ToListAsync();
+
+        var courseIds = enrollments
+            .Select(d => d.LopHocPhan?.MaMonHoc)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        var totalLessons = await context.Chuongs
+            .Where(c => courseIds.Contains(c.MaMonHoc))
+            .GroupBy(c => c.MaMonHoc)
+            .Select(g => new { MonHocId = g.Key, Count = g.Sum(c => c.BaiHocs.Count) })
+            .ToDictionaryAsync(g => g.MonHocId, g => g.Count);
+
+        var completedCounts = await context.TienDoBaiHocs
+            .Where(t => t.MaHocSinh == currentUser.UserId
+                && (t.PhanTramTienDo >= 100 || t.HoanThanhLuc != null))
+            .Select(t => t.BaiHoc!.Chuong!.MaMonHoc)
+            .Where(m => courseIds.Contains(m))
+            .GroupBy(m => m)
+            .Select(g => new { MonHocId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.MonHocId, g => g.Count);
+
+        var result = enrollments
+            .Select(d => d.LopHocPhan)
+            .Where(l => l?.MonHoc != null)
+            .DistinctBy(l => l!.MaMonHoc)
+            .Select(l =>
+            {
+                var total = totalLessons.GetValueOrDefault(l!.MaMonHoc);
+                var completed = completedCounts.GetValueOrDefault(l.MaMonHoc);
+                var progress = total > 0 ? (int)((double)completed / total * 100) : 0;
+
+                string status, statusVariant;
+                if (progress == 100)
+                {
+                    status = "Hoàn thành";
+                    statusVariant = "neutral";
+                }
+                else if (progress > 0)
+                {
+                    status = "Đang học";
+                    statusVariant = "success";
+                }
+                else
+                {
+                    status = "Chưa bắt đầu";
+                    statusVariant = "warning";
+                }
+
+                return new CourseProgressDto
+                {
+                    Id = l.MaCodeLopHocPhan,
+                    Name = l.MonHoc!.TenMonHoc,
+                    Code = l.MonHoc.MaCodeMonHoc,
+                    Lecturer = "Giảng viên phụ trách",
+                    Progress = progress,
+                    Completed = completed,
+                    Total = total,
+                    Status = status,
+                    StatusVariant = statusVariant
+                };
+            })
+            .ToList();
+
+        return Ok(ApiResponseDto<List<CourseProgressDto>>.Ok(result));
     }
 
     [HttpGet("{courseId}")]
     [Authorize(Roles = "Student")]
-    public async Task<ActionResult<ApiResponseDto<Backend.DTOs.StudentCourse.CourseDetailResponseDto>>> GetCourseDetail(
+    public async Task<ActionResult<ApiResponseDto<CourseDetailResponseDto>>> GetCourseDetail(
         string courseId,
         [FromServices] Backend.Data.ApplicationDbContext context)
     {
         var course = await context.DanhMucMonHocs.FirstOrDefaultAsync(c => c.MaCodeMonHoc == courseId.ToUpper());
-        
-        // If not found in DB, fallback to mock data structure for demo purposes so UI doesn't break
+
         if (course == null)
         {
             return NotFound(new { success = false, message = "Không tìm thấy môn học " + courseId.ToUpper() + " trong CSDL. Vui lòng restart backend để seed Data.cs" });
@@ -45,27 +116,27 @@ public class StudentCoursesController : ControllerBase
             .OrderBy(c => c.ThuTu)
             .ToListAsync();
 
-        var response = new Backend.DTOs.StudentCourse.CourseDetailResponseDto
+        var response = new CourseDetailResponseDto
         {
-            Course = new Backend.DTOs.StudentCourse.CourseDetailDto
+            Course = new CourseDetailDto
             {
                 Id = course.MaCodeMonHoc,
                 Title = course.TenMonHoc,
                 Code = course.MaCodeMonHoc,
-                Teacher = "TS. Nguyễn Minh Khoa", // DB doesn't have Teacher in DanhMucMonHoc yet, mock it
+                Teacher = "TS. Nguyễn Minh Khoa",
                 Semester = "HK Hiện Tại",
                 Credits = course.SoTinChi,
                 CoverGradient = "from-blue-700 via-blue-600 to-cyan-500",
                 Description = $"Môn học {course.TenMonHoc} ({course.MaCodeMonHoc}) cung cấp các kiến thức cốt lõi và kỹ năng thực hành chuyên sâu."
             },
-            Stats = new List<Backend.DTOs.StudentCourse.CourseStatDto>
+            Stats = new List<CourseStatDto>
             {
                 new() { Label = "Tiến độ", Value = "60", Unit = "%", Icon = "Gauge", Tone = "blue", Progress = 60, Hint = "7/12 bài đã hoàn thành" },
                 new() { Label = "Bài học", Value = "7", Unit = "/12", Icon = "BookOpenCheck", Tone = "green", Progress = 58, Hint = "Đã hoàn thành 7 bài" },
                 new() { Label = "Bài tập", Value = "2", Unit = "mục", Icon = "ClipboardList", Tone = "orange", Progress = 80, Hint = "1 bài gần đến hạn" },
                 new() { Label = "Tài liệu", Value = "18", Unit = "file", Icon = "Files", Tone = "violet", Progress = 60, Hint = "PDF, video, quiz" }
             },
-            Lessons = chapters.Select(ch => new Backend.DTOs.StudentCourse.CourseChapterDto
+            Lessons = chapters.Select(ch => new CourseChapterDto
             {
                 Id = "ch" + ch.MaChuong,
                 Chapter = "Chương " + ch.ThuTu,
@@ -77,7 +148,7 @@ public class StudentCoursesController : ControllerBase
                 Icon = ch.ThuTu == 1 ? "CheckCircle2" : ch.ThuTu == 2 ? "ListTree" : ch.ThuTu == 3 ? "Lock" : "GitBranch",
                 Meta = new List<string> { $"{ch.BaiHocs.Count} bài học" },
                 Progress = ch.ThuTu == 1 ? 100 : ch.ThuTu == 2 ? 60 : 0,
-                Lessons = ch.BaiHocs.OrderBy(b => b.ThuTu).Select(b => new Backend.DTOs.StudentCourse.CourseLessonDto
+                Lessons = ch.BaiHocs.OrderBy(b => b.ThuTu).Select(b => new CourseLessonDto
                 {
                     Id = "l" + b.MaBaiHoc,
                     Title = b.TieuDe,
@@ -89,7 +160,7 @@ public class StudentCoursesController : ControllerBase
             }).ToList()
         };
 
-        return Ok(ApiResponseDto<Backend.DTOs.StudentCourse.CourseDetailResponseDto>.Ok(response));
+        return Ok(ApiResponseDto<CourseDetailResponseDto>.Ok(response));
     }
 
     [HttpGet("{courseId}/lessons/{lessonId}/quiz")]
@@ -98,13 +169,58 @@ public class StudentCoursesController : ControllerBase
         string courseId, string lessonId,
         [FromServices] Backend.Data.ApplicationDbContext context)
     {
-        // TODO: Query from CauHoi based on lesson
-        var mockQuiz = new List<object>
+        if (string.IsNullOrEmpty(lessonId) || !lessonId.StartsWith("l"))
         {
-            new { Id = "q1", Text = "Mục đích chính của bài học này là gì?", Type = "single", Options = new[] { "Nắm vững kiến thức lý thuyết cơ bản", "Thực hành viết code thực tế", "Tối ưu hiệu năng ứng dụng", "Tất cả các ý trên đều đúng" }, CorrectAnswer = 3 },
-            new { Id = "q2", Text = "Sau khi hoàn thành bài học, sinh viên cần làm gì?", Type = "single", Options = new[] { "Nộp bài tập thực hành", "Làm bài kiểm tra Quiz", "Tự ôn tập lại lý thuyết", "Tham gia thảo luận nhóm" }, CorrectAnswer = 1 }
-        };
-        return Ok(ApiResponseDto<object>.Ok(mockQuiz));
+            return BadRequest();
+        }
+        if (!int.TryParse(lessonId.Substring(1), out int parsedLessonId))
+        {
+            return BadRequest();
+        }
+
+        var lessonContent = await context.BaiHocNoiDungs
+            .FirstOrDefaultAsync(n => n.MaBaiHoc == parsedLessonId && n.LoaiNoiDung == "quiz");
+
+        if (lessonContent?.MaDeKiemTra == null)
+        {
+            return Ok(ApiResponseDto<object>.Ok(new List<object>()));
+        }
+
+        var quizQuestions = await context.CauHoiDeKiemTras
+            .Include(q => q.CauHoi)
+            .Where(q => q.MaDeKiemTra == lessonContent.MaDeKiemTra.Value)
+            .OrderBy(q => q.ThuTu)
+            .ToListAsync();
+
+        var result = quizQuestions.Select(q =>
+        {
+            string[] options;
+            try
+            {
+                options = JsonSerializer.Deserialize<string[]>(q.CauHoi?.LuaChon ?? "[]") ?? [];
+            }
+            catch
+            {
+                options = (q.CauHoi?.LuaChon ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            }
+
+            int correctIndex = -1;
+            if (!string.IsNullOrEmpty(q.CauHoi?.DapAnDung))
+            {
+                int.TryParse(q.CauHoi.DapAnDung, out correctIndex);
+            }
+
+            return new
+            {
+                Id = "q" + q.MaCauHoi,
+                Text = q.CauHoi?.NoiDung ?? "",
+                Type = q.CauHoi?.KieuLuaChon == "multiple" ? "multiple" : "single",
+                Options = options,
+                CorrectAnswer = correctIndex
+            };
+        }).ToList();
+
+        return Ok(ApiResponseDto<object>.Ok(result));
     }
 
     [HttpGet("{courseId}/lessons/{lessonId}/comments")]
@@ -119,7 +235,7 @@ public class StudentCoursesController : ControllerBase
         var comments = await context.BinhLuans
             .Where(b => b.MaBaiHoc == parsedLessonId)
             .OrderByDescending(b => b.NgayTao)
-            .Select(b => new 
+            .Select(b => new
             {
                 Id = "c" + b.MaBinhLuan,
                 Author = "Sinh viên " + b.MaNguoiDung,
@@ -135,7 +251,6 @@ public class StudentCoursesController : ControllerBase
 
         if (!comments.Any())
         {
-            // Seed default data just for UI testing if empty
             var mockComments = new List<object>
             {
                 new { Id = "c1", Author = "Trần Văn An", Avatar = "", Initials = "TA", Role = "teacher", Content = "Thầy ơi, phần này giải thích thêm về stack overflow không ạ?", TimeAgo = "2 giờ trước", Likes = 4, IsLiked = false, Replies = new List<object>() },
