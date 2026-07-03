@@ -14,6 +14,8 @@ import {
   Building2, RefreshCw
 } from 'lucide-vue-next'
 
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+
 const popupStore = usePopupStore()
 
 const statusConfig = {
@@ -148,9 +150,10 @@ const downloadPDF = (id) => {
 async function loadTuitionData() {
   isLoadingData.value = true
   loadError.value = ''
-
   try {
-    await Promise.all([loadInvoices(), loadTransactions()])
+    const results = await Promise.allSettled([loadInvoices(), loadTransactions()])
+    const errors = results.filter(r => r.status === 'rejected').map(r => r.reason)
+    if (errors.length > 0) throw new Error(errors.map(e => e?.message || e).join('; '))
   } catch (error) {
     loadError.value = error?.message || 'Không thể tải dữ liệu học phí.'
     popupStore.error('Không tải được học phí', loadError.value)
@@ -159,36 +162,11 @@ async function loadTuitionData() {
   }
 }
 
-import { studentDashboardMock } from '@/data/studentData.mock.js'
-
 async function loadInvoices() {
   try {
     rawInvoices.value = await getStudentTuitionInvoices()
   } catch {
-    // fallback
-  }
-
-  const tuition = studentDashboardMock.tuition
-  if (tuition) {
-    const totalNum = parseInt(tuition.total.replace(/[^0-9]/g, ''))
-    const paidNum = parseInt(tuition.paid.replace(/[^0-9]/g, ''))
-    const remainingNum = parseInt(tuition.remaining.replace(/[^0-9]/g, ''))
-    const status = remainingNum === 0 ? 'da_thanh_toan' : paidNum > 0 ? 'thanh_toan_mot_phan' : 'chua_thanh_toan'
-
-    rawInvoices.value = [
-      {
-        maHoaDon: 1,
-        maHoaDonCode: 'HD-2026-001',
-        hocKy: studentDashboardMock.student?.semester || 'HK2 2025-2026',
-        soTien: totalNum,
-        giamTru: 0,
-        daThanhToan: paidNum,
-        soTienPhaiDong: totalNum,
-        conPhaiDong: remainingNum,
-        trangThai: status,
-        hanThanhToan: tuition.dueDate || '2026-05-25'
-      }
-    ]
+    if (!ENABLE_MOCK_API) throw e
   }
 }
 
@@ -196,26 +174,7 @@ async function loadTransactions() {
   try {
     rawTransactions.value = await getStudentTuitionTransactions()
   } catch {
-    // fallback
-  }
-
-  const tuition = studentDashboardMock.tuition
-  if (tuition) {
-    const paidNum = parseInt(tuition.paid.replace(/[^0-9]/g, ''))
-    if (paidNum > 0) {
-      rawTransactions.value = [
-        {
-          maGiaoDich: 101,
-          maThamChieuNoiBo: 'GD-2026-001',
-          ngayTao: '2026-05-10T10:30:00',
-          soTien: paidNum,
-          nhaCungCapThanhToan: 'payos',
-          trangThai: 'thanh_cong'
-        }
-      ]
-    } else {
-      rawTransactions.value = []
-    }
+    if (!ENABLE_MOCK_API) throw e
   }
 }
 

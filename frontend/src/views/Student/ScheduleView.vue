@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import dayjs from 'dayjs'
 import {
   CalendarDays,
@@ -18,11 +18,15 @@ import GlassInput from '@/components/ui/GlassInput.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
-import { getStudentScheduleSessions } from '@/mocks/scheduleAttendanceMockData'
 import { formatDate, formatTimeRange } from '@/utils/dateFormat'
 import { getStatusMeta, getStatusOptions } from '@/utils/statusLabels'
+import { studentApi } from '@/services/studentApi'
+
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const loading = ref(false)
+const error = ref('')
+const scheduleSessions = ref([])
 const anchorDate = ref(dayjs().toDate())
 const selectedSubject = ref('all')
 const selectedStatus = ref('all')
@@ -32,20 +36,19 @@ const detailOpen = ref(false)
 
 useBodyScrollLock(detailOpen)
 
-const allSessions = computed(() => getStudentScheduleSessions(anchorDate.value))
 const weekStart = computed(() => {
   const current = dayjs(anchorDate.value)
   return current.startOf('day').subtract(current.day() === 0 ? 6 : current.day() - 1, 'day')
 })
 const weekDays = computed(() => Array.from({ length: 7 }, (_, index) => weekStart.value.add(index, 'day')))
 const weekLabel = computed(() => `${formatDate(weekDays.value[0])} - ${formatDate(weekDays.value[6])}`)
-const subjects = computed(() => [...new Set(allSessions.value.map((session) => session.subject))])
+const subjects = computed(() => [...new Set(scheduleSessions.value.map((session) => session.subject))])
 const statusOptions = computed(() => getStatusOptions('session'))
 
 const filteredSessions = computed(() => {
   const keyword = searchTerm.value.trim().toLowerCase()
 
-  return allSessions.value.filter((session) => {
+  return scheduleSessions.value.filter((session) => {
     const matchesSubject = selectedSubject.value === 'all' || session.subject === selectedSubject.value
     const matchesStatus = selectedStatus.value === 'all' || session.status === selectedStatus.value
     const searchable = `${session.subject} ${session.room} ${session.teacher} ${session.courseCode}`.toLowerCase()
@@ -102,6 +105,30 @@ function closeDetail() {
 function statusMeta(status) {
   return getStatusMeta('session', status)
 }
+
+async function loadSessions(date) {
+  loading.value = true
+  error.value = ''
+  try {
+    if (ENABLE_MOCK_API) {
+      const { getStudentScheduleSessions } = await import('@/mocks/scheduleAttendanceMockData')
+      scheduleSessions.value = getStudentScheduleSessions(date)
+    } else {
+      const data = await studentApi.getSchedule({ anchorDate: date })
+      scheduleSessions.value = data.sessions || []
+    }
+  } catch (e) {
+    if (!ENABLE_MOCK_API) error.value = e?.message || 'Không thể tải dữ liệu.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => loadSessions(anchorDate.value))
+
+watch(anchorDate, (newDate) => {
+  loadSessions(newDate)
+})
 </script>
 
 <template>

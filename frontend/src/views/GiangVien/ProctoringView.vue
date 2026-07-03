@@ -46,7 +46,17 @@
     </section>
 
     <template v-if="viewState === 'sessions'">
-      <section class="stats-grid">
+      <div v-if="loading" class="flex items-center justify-center min-h-[400px]">
+        <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+        <span class="ml-3 text-muted text-sm">Đang tải ca thi...</span>
+      </div>
+      <div v-else-if="error" class="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <AlertCircle :size="48" class="text-rose-400" />
+        <p class="text-rose-600 font-semibold">{{ error }}</p>
+        <button @click="loadSessions" class="btn-primary">Thử lại</button>
+      </div>
+      <template v-else>
+        <section class="stats-grid">
         <div class="stat-card surface-card border-card">
           <span>Tổng ca</span>
           <strong>{{ sessionStats.total }}</strong>
@@ -117,6 +127,7 @@
           </button>
         </article>
       </section>
+      </template>
     </template>
 
     <template v-else-if="viewState === 'attendance' && currentSession">
@@ -358,6 +369,7 @@
 <script setup>
 import { computed, defineComponent, h, onMounted, onUnmounted, ref } from 'vue'
 import {
+  AlertCircle,
   AlertTriangle,
   Bell,
   BellOff,
@@ -374,7 +386,11 @@ import {
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import { usePopupStore } from '@/stores/popup'
 import { PROCTORING_LIVE_VIOLATIONS_KEY } from '@/utils/examSecurity'
+import { teacherApi } from '@/services/teacherApi'
 
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref('')
 const popupStore = usePopupStore()
 const viewState = ref('sessions')
 const currentTime = ref('')
@@ -396,41 +412,7 @@ const violationLabelMap = {
   SCREEN_STREAM_STOPPED: 'Mất stream màn hình',
 }
 
-const assignedExamSessions = ref([
-  {
-    id: 'session-web201-b1',
-    examTitle: 'Thi giữa kỳ Lập trình Web',
-    subjectCode: 'WEB201',
-    classCode: 'SD1904-B1',
-    room: 'Phòng máy 401',
-    startTime: '2026-06-09T08:00:00',
-    endTime: '2026-06-09T09:00:00',
-    totalStudents: 42,
-    status: 'attendance',
-  },
-  {
-    id: 'session-fin301-final',
-    examTitle: 'Thi cuối kỳ Tài chính doanh nghiệp',
-    subjectCode: 'FIN301',
-    classCode: 'QTKD-K29B',
-    room: 'Lab thi B203',
-    startTime: '2026-06-09T13:30:00',
-    endTime: '2026-06-09T15:30:00',
-    totalStudents: 35,
-    status: 'scheduled',
-  },
-  {
-    id: 'session-ctdl101-quiz',
-    examTitle: 'Quiz 2 Cấu trúc dữ liệu',
-    subjectCode: 'CTDL101',
-    classCode: 'SD1904-B1',
-    room: 'Online supervised',
-    startTime: '2026-06-09T09:00:00',
-    endTime: '2026-06-09T09:45:00',
-    totalStudents: 40,
-    status: 'ended',
-  },
-])
+const assignedExamSessions = ref([])
 
 const sessionStudents = ref({
   'session-web201-b1': [
@@ -578,7 +560,24 @@ const currentRealtimeViolations = computed(() => {
     .filter((violation) => !violation.handled)
 })
 
+async function loadSessions() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await teacherApi.getExams()
+    assignedExamSessions.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      return
+    }
+    error.value = e?.message || 'Không thể tải ca thi.'
+  } finally {
+    loading.value = false
+  }
+}
+
 onMounted(() => {
+  loadSessions()
   updateTime()
   loadLiveViolations()
   clockTimer = window.setInterval(updateTime, 1000)

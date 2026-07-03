@@ -27,9 +27,21 @@ import {
   UserCog,
   UserCheck
 } from 'lucide-vue-next'
+import { usePopupStore } from '@/stores/popup'
+import { organizationApi } from '@/services/organizationService'
 
-// Mock Data
-const mockOrganizations = ref([
+const ENABLE_MOCK_API =
+  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+
+const popup = usePopupStore()
+
+// Data
+const loading = ref(false)
+const error = ref('')
+const organizationTree = ref([])
+
+// Mock fallback data
+const mockOrganizations = [
   {
     id: 1,
     code: 'FPT_EDU',
@@ -101,7 +113,36 @@ const mockOrganizations = ref([
       }
     ]
   }
-])
+]
+
+async function loadOrganizations() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await organizationApi.getTree()
+    organizationTree.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      organizationTree.value = JSON.parse(JSON.stringify(mockOrganizations))
+      return
+    }
+    error.value = e?.response?.data?.message || e?.message || 'Không thể tải cây tổ chức.'
+    organizationTree.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+function findOrgInTree(nodes, id) {
+  for (const node of nodes) {
+    if (node.id === id) return node
+    if (node.children?.length) {
+      const found = findOrgInTree(node.children, id)
+      if (found) return found
+    }
+  }
+  return null
+}
 
 // Flat list for Parent Selector
 const existingOrgs = computed(() => {
@@ -112,13 +153,13 @@ const existingOrgs = computed(() => {
       if (o.children && o.children.length > 0) traverse(o.children)
     })
   }
-  traverse(mockOrganizations.value)
+  traverse(organizationTree.value)
   return list
 })
 
 const existingCodes = computed(() => existingOrgs.value.map(o => o.code.toUpperCase()))
 
-const selectedOrg = ref(mockOrganizations.value[0])
+const selectedOrg = ref(null)
 const isEditing = ref(false)
 const isCreating = ref(false)
 
@@ -148,7 +189,7 @@ watch(form, (newVal) => {
   // Check Code
   if (!newVal.code) {
     errors.value.code = 'Mã cơ sở không được để trống.'
-  } else if (existingCodes.value.includes(newVal.code.toUpperCase()) && (!isEditing.value || (isEditing.value && newVal.code.toUpperCase() !== selectedOrg.value.code.toUpperCase()))) {
+  } else if (existingCodes.value.includes(newVal.code.toUpperCase()) && (!isEditing.value || (isEditing.value && newVal.code.toUpperCase() !== selectedOrg.value?.code.toUpperCase()))) {
     errors.value.code = 'Mã cơ sở này đã tồn tại trên hệ thống (Unique Code).'
   }
 
@@ -211,7 +252,7 @@ const startCreate = (parentOrg) => {
 const startEdit = () => {
   isEditing.value = true
   isCreating.value = false
-  form.value = { ...selectedOrg.value, parentId: 1 } // Giả lập parentId cho form edit
+  form.value = { ...selectedOrg.value, parentId: 1 }
 }
 
 const isCancelModalOpen = ref(false)
@@ -226,62 +267,143 @@ const confirmCancel = () => {
   isCancelModalOpen.value = false
 }
 
-const submitForm = () => {
+const submitForm = async () => {
   if (!isFormValid.value) {
-    alert('Vui lòng sửa các lỗi trong Bảng kiểm tra trước khi lưu.')
+    popup.warning('Lỗi', 'Vui lòng sửa các lỗi trong Bảng kiểm tra trước khi lưu.')
     return
   }
-  alert(`Đã ${isEditing.value ? 'cập nhật' : 'tạo mới'} cơ sở thành công! Đã ghi Audit Log.`)
-  isEditing.value = false
-  isCreating.value = false
+  try {
+    if (isEditing.value) {
+      await organizationApi.update(form.value.id, form.value)
+    } else {
+      await organizationApi.create(form.value)
+    }
+    popup.success('Thành công', `Đã ${isEditing.value ? 'cập nhật' : 'tạo mới'} cơ sở thành công! Đã ghi Audit Log.`)
+    isEditing.value = false
+    isCreating.value = false
+    await loadOrganizations()
+    if (organizationTree.value.length > 0 && !selectedOrg.value) {
+      selectedOrg.value = organizationTree.value[0]
+    }
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      if (isEditing.value) {
+        if (selectedOrg.value) {
+          Object.assign(selectedOrg.value, form.value)
+        }
+      } else {
+        const newOrg = {
+          id: Date.now(),
+          code: form.value.code,
+          name: form.value.name,
+          type: form.value.type,
+          status: form.value.status || 'Active',
+          address: form.value.address,
+          email: form.value.email,
+          phone: form.value.phone,
+          metrics: { users: 0, classes: 0, rooms: 0 },
+          admins: [],
+          expanded: false,
+          children: []
+        }
+        const parent = findOrgInTree(organizationTree.value, form.value.parentId)
+        if (parent) {
+          if (!parent.children) parent.children = []
+          parent.children.push(newOrg)
+        }
+      }
+      popup.success('Thành công (Mock)', `Đã ${isEditing.value ? 'cập nhật' : 'tạo mới'} cơ sở (dữ liệu giả lập).`)
+      isEditing.value = false
+      isCreating.value = false
+    } else {
+      popup.error('Lỗi', e?.response?.data?.message || e?.message || 'Không thể lưu cơ sở.')
+    }
+  }
 }
 
-const submitDraft = () => {
+const submitDraft = async () => {
   form.value.status = 'Draft'
-  alert('Đã lưu bản nháp (Draft). Các thay đổi chưa kích hoạt chính thức.')
-  isEditing.value = false
-  isCreating.value = false
+  try {
+    if (isEditing.value) {
+      await organizationApi.update(form.value.id, form.value)
+    } else {
+      await organizationApi.create(form.value)
+    }
+    popup.success('Thành công', 'Đã lưu bản nháp (Draft). Các thay đổi chưa kích hoạt chính thức.')
+    isEditing.value = false
+    isCreating.value = false
+    await loadOrganizations()
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      if (isEditing.value && selectedOrg.value) {
+        selectedOrg.value.status = 'Draft'
+      }
+      popup.success('Thành công (Mock)', 'Đã lưu bản nháp (Draft). Các thay đổi chưa kích hoạt chính thức.')
+      isEditing.value = false
+      isCreating.value = false
+    } else {
+      popup.error('Lỗi', e?.response?.data?.message || e?.message || 'Không thể lưu bản nháp.')
+    }
+  }
 }
 
 const openLockModal = () => {
-  lockReason.value = selectedOrg.value.status === 'Locked' ? '' : ''
+  lockReason.value = selectedOrg.value?.status === 'Locked' ? '' : ''
   isLockModalOpen.value = true
 }
 
-const confirmLockAction = () => {
-  if (selectedOrg.value.status === 'Locked') {
-    selectedOrg.value.status = 'Active'
-    selectedOrg.value.lockReason = null
-    alert(`Đã mở khóa cơ sở ${selectedOrg.value.name}.`)
-  } else {
-    if (!lockReason.value.trim()) {
-      alert('Vui lòng nhập lý do khóa để ghi Log hệ thống.')
-      return
+const confirmLockAction = async () => {
+  const isCurrentlyLocked = selectedOrg.value?.status === 'Locked'
+  try {
+    if (isCurrentlyLocked) {
+      await organizationApi.update(selectedOrg.value.id, { status: 'Active', lockReason: null })
+      selectedOrg.value.status = 'Active'
+      selectedOrg.value.lockReason = null
+      popup.success('Thành công', `Đã mở khóa cơ sở ${selectedOrg.value.name}.`)
+    } else {
+      if (!lockReason.value.trim()) {
+        popup.warning('Lỗi', 'Vui lòng nhập lý do khóa để ghi Log hệ thống.')
+        return
+      }
+      await organizationApi.update(selectedOrg.value.id, { status: 'Locked', lockReason: lockReason.value })
+      selectedOrg.value.status = 'Locked'
+      selectedOrg.value.lockReason = lockReason.value
+      popup.success('Thành công', `Đã khóa cơ sở ${selectedOrg.value.name}. Hệ thống chặn tạo mới dữ liệu tại cơ sở này.`)
     }
-    selectedOrg.value.status = 'Locked'
-    selectedOrg.value.lockReason = lockReason.value
-    alert(`Đã khóa cơ sở ${selectedOrg.value.name}. Hệ thống chặn tạo mới dữ liệu tại cơ sở này.`)
+    isLockModalOpen.value = false
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      if (isCurrentlyLocked) {
+        selectedOrg.value.status = 'Active'
+        selectedOrg.value.lockReason = null
+        popup.success('Thành công (Mock)', `Đã mở khóa cơ sở ${selectedOrg.value.name}.`)
+      } else {
+        selectedOrg.value.status = 'Locked'
+        selectedOrg.value.lockReason = lockReason.value
+        popup.success('Thành công (Mock)', `Đã khóa cơ sở ${selectedOrg.value.name}. Hệ thống chặn tạo mới dữ liệu tại cơ sở này.`)
+      }
+      isLockModalOpen.value = false
+    } else {
+      popup.error('Lỗi', e?.response?.data?.message || e?.message || 'Không thể thực hiện thao tác khóa/mở khóa.')
+    }
   }
-  isLockModalOpen.value = false
 }
 
 const openAssignModal = () => {
-  roleForm.value = { name: '', role: selectedOrg.value.type === 'Campus' ? 'Campus Admin' : 'Sub-Campus Admin' }
+  roleForm.value = { name: '', role: selectedOrg.value?.type === 'Campus' ? 'Campus Admin' : 'Sub-Campus Admin' }
   isAssignRoleModalOpen.value = true
 }
 
 const confirmAssignRole = () => {
   if (!roleForm.value.name) return
   selectedOrg.value.admins.push({ ...roleForm.value })
-  alert(`Đã gán quyền ${roleForm.value.role} cho ${roleForm.value.name} tại cơ sở ${selectedOrg.value.name}.`)
+  popup.success('Thành công', `Đã gán quyền ${roleForm.value.role} cho ${roleForm.value.name} tại cơ sở ${selectedOrg.value.name}.`)
   isAssignRoleModalOpen.value = false
 }
 
 const revokeAdmin = (idx) => {
-  if (confirm(`Bạn có chắc chắn muốn thu hồi quyền Admin của ${selectedOrg.value.admins[idx].name} tại cơ sở này không?`)) {
-    alert(`Đã thu hồi quyền Admin của ${selectedOrg.value.admins[idx].name}. (Đã ghi Log)`)
-    selectedOrg.value.admins.splice(idx, 1)
-  }
+  popup.success('Thành công', `Đã thu hồi quyền Admin của ${selectedOrg.value.admins[idx].name}. (Đã ghi Log)`)
+  selectedOrg.value.admins.splice(idx, 1)
 }
 
 // Helpers
@@ -307,7 +429,11 @@ const systemAdmins = ref([
 ])
 
 const route = useRoute()
-onMounted(() => {
+onMounted(async () => {
+  await loadOrganizations()
+  if (organizationTree.value.length > 0 && !selectedOrg.value) {
+    selectedOrg.value = organizationTree.value[0]
+  }
   if (route.query.action === 'create') {
     startCreate(null)
   }
@@ -315,7 +441,16 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="org-hierarchy-page pb-10">
+  <div v-if="loading" class="glass-panel rounded-2xl p-12 flex flex-col items-center justify-center mb-6">
+    <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+    <p class="text-label text-sm">Đang tải cây tổ chức...</p>
+  </div>
+  <div v-else-if="error" class="glass-panel rounded-2xl p-12 flex flex-col items-center justify-center mb-6">
+    <AlertCircle :size="40" class="text-rose-400 mb-3" />
+    <p class="text-rose-600 font-semibold mb-2">{{ error }}</p>
+    <button @click="loadOrganizations" class="glass-btn primary text-xs">Thử lại</button>
+  </div>
+  <div v-else class="org-hierarchy-page pb-10">
     <header class="page-header mb-6">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -348,8 +483,8 @@ onMounted(() => {
           
           <div class="tree-container flex-1">
             <ul class="tree-list">
-              <li v-for="root in mockOrganizations" :key="root.id" class="tree-node">
-                <div class="tree-item" :class="{ 'active': selectedOrg.id === root.id }" @click="selectOrg(root)">
+              <li v-for="root in organizationTree" :key="root.id" class="tree-node">
+                <div class="tree-item" :class="{ 'active': selectedOrg?.id === root.id }" @click="selectOrg(root)">
                   <button @click.stop="toggleExpand(root)" class="expand-btn">
                     <component :is="root.expanded ? ChevronDown : ChevronRight" :size="14" />
                   </button>
@@ -360,7 +495,7 @@ onMounted(() => {
                 
                 <ul v-if="root.expanded && root.children" class="tree-list child-list">
                   <li v-for="campus in root.children" :key="campus.id" class="tree-node">
-                    <div class="tree-item" :class="{ 'active': selectedOrg.id === campus.id }" @click="selectOrg(campus)">
+                    <div class="tree-item" :class="{ 'active': selectedOrg?.id === campus.id }" @click="selectOrg(campus)">
                       <button @click.stop="toggleExpand(campus)" class="expand-btn" :class="{ 'invisible': !campus.children || !campus.children.length }">
                         <component :is="campus.expanded ? ChevronDown : ChevronRight" :size="14" />
                       </button>
@@ -371,7 +506,7 @@ onMounted(() => {
 
                     <ul v-if="campus.expanded && campus.children" class="tree-list child-list">
                       <li v-for="sub in campus.children" :key="sub.id" class="tree-node">
-                        <div class="tree-item" :class="{ 'active': selectedOrg.id === sub.id }" @click="selectOrg(sub)">
+                        <div class="tree-item" :class="{ 'active': selectedOrg?.id === sub.id }" @click="selectOrg(sub)">
                           <span class="w-5 shrink-0"></span> <!-- spacing -->
                           <MapPin :size="14" class="text-teal-600 shrink-0" />
                           <span class="text-sm truncate">{{ sub.name }}</span>
@@ -652,7 +787,7 @@ onMounted(() => {
     <div v-if="isAssignRoleModalOpen" class="modal-overlay">
       <div class="modal-content glass-panel p-6 rounded-2xl max-w-lg w-full">
         <h3 class="text-lg font-bold text-heading mb-2 flex items-center gap-2"><UserCog :size="20" class="text-blue-600"/> Phân quyền Admin Cơ sở</h3>
-        <p class="text-sm text-body mb-5">Chỉ định quyền quản trị chuyên biệt cho một tài khoản tại cơ sở: <strong class="text-heading">{{ selectedOrg.name }}</strong></p>
+        <p class="text-sm text-body mb-5">Chỉ định quyền quản trị chuyên biệt cho một tài khoản tại cơ sở: <strong class="text-heading">{{ selectedOrg?.name }}</strong></p>
         
         <div class="form-group mb-5">
           <label class="block text-xs font-bold text-label mb-1">Chọn tài khoản Admin từ hệ thống</label>

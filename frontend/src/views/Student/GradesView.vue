@@ -1,10 +1,18 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { mockSubjects, mockGradeSummary } from '@/data/studentData.mock.js'
 import StudentModulePage from '@/components/SinhVien/StudentModulePage.vue'
 
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+
+const loading = ref(false)
+const error = ref('')
+
+const subjectsData = computed(() => ENABLE_MOCK_API ? mockSubjects : [])
+const gradeSummaryData = computed(() => ENABLE_MOCK_API ? mockGradeSummary : {})
+
 const metrics = computed(() => {
-  const summary = mockGradeSummary || {}
+  const summary = gradeSummaryData.value || {}
   const earned = summary.totalCreditsEarned || 0
   const required = summary.totalCreditsRequired || 120
   const classification = summary.classification || 'Khá'
@@ -25,7 +33,7 @@ const metrics = computed(() => {
       unit: 'môn', 
       icon: 'CheckCircle2', 
       tone: 'green', 
-      progress: mockSubjects.length ? Math.round(((summary.totalSubjectsPassed || 0) / mockSubjects.length) * 100) : 0, 
+      progress: subjectsData.value.length ? Math.round(((summary.totalSubjectsPassed || 0) / subjectsData.value.length) * 100) : 0, 
       hint: summary.totalSubjectsFailed ? `Bị rớt ${summary.totalSubjectsFailed} môn` : 'Không có môn rớt' 
     },
     { 
@@ -50,7 +58,7 @@ const metrics = computed(() => {
 })
 
 const rows = computed(() => {
-  return mockSubjects.map((item) => {
+  return subjectsData.value.map((item) => {
     let tone = 'blue'
     if (item.status === 'pass') tone = 'green'
     else if (item.status === 'fail') tone = 'red'
@@ -85,6 +93,18 @@ const timeline = [
   { title: 'Yêu cầu sửa điểm', description: 'Luồng này là dự kiến, cần API grade-change-request.', time: 'cần bổ sung', tone: 'amber' },
   { title: 'Không tự bịa contract', description: 'Frontend chỉ trình bày demo cho đến khi backend có controller.', time: 'API rule', tone: 'teal' },
 ]
+
+onMounted(async () => {
+  loading.value = true
+  error.value = ''
+  try {
+    // Attempt to load real data in future
+  } catch (e) {
+    if (!ENABLE_MOCK_API) error.value = e?.message || 'Không thể tải dữ liệu.'
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <template>

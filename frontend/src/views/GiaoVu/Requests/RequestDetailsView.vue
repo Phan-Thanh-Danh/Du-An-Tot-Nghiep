@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { 
   ArrowLeft, 
@@ -16,48 +16,26 @@ import {
   MoreVertical,
   Printer,
   FolderPlus,
-  Trash2
+  Trash2,
+  Loader2,
+  AlertCircle,
+  Bot
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
-import { usePopup } from '@/composables/usePopup'
+import { staffApi } from '@/services/staffApi'
+import { usePopupStore } from '@/stores/popup'
 
-const popup = usePopup()
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+
+const popupStore = usePopupStore()
 const route = useRoute()
 const requestId = route.params.id || 'DON-001'
 
-// ── Dropdown Logic ───────────────────────────────────────────
-const isMenuOpen = ref(false)
-const menuRef = ref(null)
+const loading = ref(true)
+const apiError = ref('')
+const actionLoading = ref(false)
 
-const toggleMenu = () => {
-  isMenuOpen.value = !isMenuOpen.value
-}
-
-const closeMenu = (e) => {
-  if (menuRef.value && !menuRef.value.contains(e.target)) {
-    isMenuOpen.value = false
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('click', closeMenu)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', closeMenu)
-})
-
-const handleAction = (actionName) => {
-  isMenuOpen.value = false
-  if (actionName === 'delete') {
-    popup.error('Xóa đơn', 'Tính năng xóa đơn cần có quyền Admin. Bạn không thể thực hiện thao tác này.')
-  } else {
-    popup.success('Thành công', `Đã thực hiện: ${actionName}`)
-  }
-}
-
-// ── Mock Data ────────────────────────────────────────────────
-const request = ref({
+const DEMO_REQUEST = {
   id: requestId,
   student: 'Nguyễn Văn Nam',
   studentCode: 'SV2024001',
@@ -80,7 +58,80 @@ const request = ref({
   comments: [
     { id: 1, user: 'Phạm Minh D', role: 'Giáo vụ', text: 'Vui lòng kiểm tra lại sĩ số lớp L02 trước khi duyệt chuyển.', date: '12/05 10:20' }
   ]
+}
+
+const request = ref(null)
+
+// Dropdown Logic
+const isMenuOpen = ref(false)
+const menuRef = ref(null)
+
+const toggleMenu = () => {
+  isMenuOpen.value = !isMenuOpen.value
+}
+
+const closeMenu = (e) => {
+  if (menuRef.value && !menuRef.value.contains(e.target)) {
+    isMenuOpen.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeMenu)
+  loadData()
 })
+
+async function loadData() {
+  loading.value = true
+  apiError.value = ''
+  try {
+    const res = await staffApi.getRequestById(requestId)
+    request.value = res ?? null
+  } catch (err) {
+    if (ENABLE_MOCK_API) {
+      request.value = { ...DEMO_REQUEST, id: requestId }
+    } else {
+      apiError.value = err?.message || 'Không thể tải chi tiết đơn.'
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleApprove() {
+  actionLoading.value = true
+  try {
+    await staffApi.approveRequest(requestId)
+    popupStore.success('Đã duyệt đơn', `Đơn ${requestId} đã được phê duyệt thành công.`)
+    if (request.value) request.value.status = 'approved'
+  } catch (err) {
+    popupStore.error('Duyệt đơn thất bại', err?.message || 'Không thể duyệt đơn, vui lòng thử lại.')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+async function handleReject() {
+  actionLoading.value = true
+  try {
+    await staffApi.rejectRequest(requestId)
+    popupStore.error('Đã từ chối đơn', `Đơn ${requestId} đã bị từ chối.`)
+    if (request.value) request.value.status = 'rejected'
+  } catch (err) {
+    popupStore.error('Từ chối thất bại', err?.message || 'Không thể từ chối đơn, vui lòng thử lại.')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const handleAction = (actionName) => {
+  isMenuOpen.value = false
+  if (actionName === 'delete') {
+    popupStore.error('Xóa đơn', 'Tính năng xóa đơn cần có quyền Admin. Bạn không thể thực hiện thao tác này.')
+  } else {
+    popupStore.success('Thành công', `Đã thực hiện: ${actionName}`)
+  }
+}
 
 const getStepStatusClass = (status) => {
   switch (status) {
@@ -93,189 +144,211 @@ const getStepStatusClass = (status) => {
 </script>
 
 <template>
-  <PageContainer 
-    :title="`Chi tiết đơn: ${request.id}`" 
-    :subtitle="request.type"
-  >
-    <template #actions>
-      <router-link to="/staff/requests" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
-        <ArrowLeft :size="18" /> Quay lại
-      </router-link>
-    </template>
+  <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-3">
+    <Loader2 class="animate-spin text-(--text-muted)" :size="28" />
+    <p class="text-sm text-(--text-muted)">Đang tải dữ liệu...</p>
+  </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-      
-      <!-- ── Left: Request Content ── -->
-      <div class="xl:col-span-2 space-y-4">
+  <div v-else-if="apiError" class="surface-card border border-(--border-card) rounded-2xl p-6 flex flex-col items-center justify-center gap-3 max-w-lg mx-auto mt-20">
+    <AlertCircle :size="32" class="text-(--color-danger-text)" />
+    <p class="text-sm font-bold text-(--text-heading)">Không thể tải chi tiết đơn</p>
+    <p class="text-xs text-(--text-muted)">{{ apiError }}</p>
+    <button @click="loadData" class="lg-button-primary px-4 py-2 text-xs font-bold rounded-xl mt-2">Thử lại</button>
+  </div>
+
+  <template v-else-if="request">
+    <PageContainer 
+      :title="`Chi tiết đơn: ${request.id}`" 
+      :subtitle="request.type"
+    >
+      <template #actions>
+        <router-link to="/staff/requests" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
+          <ArrowLeft :size="18" /> Quay lại
+        </router-link>
+      </template>
+
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
         
-        <!-- Main Card -->
-        <div class="surface-card border border-card rounded-2xl p-6">
-           <div class="flex items-start justify-between mb-6">
-              <div class="flex items-center gap-4">
-                  <div class="h-10 w-10 rounded-2xl surface-solid flex items-center justify-center text-body shadow-sm border-default">
-                     <FileText :size="24" />
-                  </div>
-                  <div>
-                     <h3 class="text-xl font-semibold text-heading leading-tight">{{ request.title }}</h3>
-                     <p class="text-sm font-bold text-label mt-1 uppercase tracking-tighter">{{ request.type }}</p>
-                  </div>
-               </div>
-               <div class="relative" ref="menuRef">
-                 <button @click="toggleMenu" class="p-2 lg-button-ghost rounded-lg transition-colors" :class="{ 'bg-[var(--surface-hover)]': isMenuOpen }">
-                   <MoreVertical :size="20" />
-                 </button>
-                 
-                 <!-- Dropdown Menu -->
-                 <transition
-                    enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="transform scale-95 opacity-0"
-                    enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-75 ease-in"
-                    leave-from-class="transform scale-100 opacity-100"
-                    leave-to-class="transform scale-95 opacity-0"
-                  >
-                   <div v-if="isMenuOpen" class="absolute right-0 mt-2 w-56 rounded-2xl border border-default surface-card shadow-lg p-2 z-50 lg-glass-soft">
-                     <button @click="handleAction('In phiếu thông tin')" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-heading hover:bg-[var(--surface-hover)] rounded-xl transition-colors">
-                       <Printer :size="16" class="text-muted" /> In phiếu thông tin
-                     </button>
-                     <button @click="handleAction('Yêu cầu bổ sung hồ sơ')" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-heading hover:bg-[var(--surface-hover)] rounded-xl transition-colors">
-                       <FolderPlus :size="16" class="text-muted" /> Yêu cầu bổ sung hồ sơ
-                     </button>
-                     <div class="h-px border-t border-default my-1.5 mx-1"></div>
-                     <button @click="handleAction('delete')" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-[var(--color-danger-text)] hover:bg-[var(--color-danger-bg)] rounded-xl transition-colors">
-                       <Trash2 :size="16" /> Xóa đơn này
-                     </button>
+        <!-- Left: Request Content -->
+        <div class="xl:col-span-2 space-y-4">
+          
+          <!-- Main Card -->
+          <div class="surface-card border border-card rounded-2xl p-6">
+             <div class="flex items-start justify-between mb-6">
+                <div class="flex items-center gap-4">
+                    <div class="h-10 w-10 rounded-2xl surface-solid flex items-center justify-center text-body shadow-sm border-default">
+                       <FileText :size="24" />
+                    </div>
+                    <div>
+                       <h3 class="text-xl font-semibold text-heading leading-tight">{{ request.title }}</h3>
+                       <p class="text-sm font-bold text-label mt-1 uppercase tracking-tighter">{{ request.type }}</p>
+                    </div>
+                 </div>
+                 <div class="relative" ref="menuRef">
+                   <button @click="toggleMenu" class="p-2 lg-button-ghost rounded-lg transition-colors" :class="{ 'bg-[var(--surface-hover)]': isMenuOpen }">
+                     <MoreVertical :size="20" />
+                   </button>
+                   
+                   <transition
+                      enter-active-class="transition duration-200 ease-out"
+                      enter-from-class="transform scale-95 opacity-0"
+                      enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-75 ease-in"
+                      leave-from-class="transform scale-100 opacity-100"
+                      leave-to-class="transform scale-95 opacity-0"
+                    >
+                     <div v-if="isMenuOpen" class="absolute right-0 mt-2 w-56 rounded-2xl border border-default surface-card shadow-lg p-2 z-50 lg-glass-soft">
+                       <button @click="handleAction('In phiếu thông tin')" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-heading hover:bg-[var(--surface-hover)] rounded-xl transition-colors">
+                         <Printer :size="16" class="text-muted" /> In phiếu thông tin
+                       </button>
+                       <button @click="handleAction('Yêu cầu bổ sung hồ sơ')" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-heading hover:bg-[var(--surface-hover)] rounded-xl transition-colors">
+                         <FolderPlus :size="16" class="text-muted" /> Yêu cầu bổ sung hồ sơ
+                       </button>
+                       <div class="h-px border-t border-default my-1.5 mx-1"></div>
+                       <button @click="handleAction('delete')" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-[var(--color-danger-text)] hover:bg-[var(--color-danger-bg)] rounded-xl transition-colors">
+                         <Trash2 :size="16" /> Xóa đơn này
+                       </button>
+                     </div>
+                   </transition>
+                 </div>
+             </div>
+
+             <div class="prose prose-slate max-w-none">
+                 <p class="text-sm text-body leading-relaxed font-medium surface-solid p-4 rounded-2xl border-default">
+                  {{ request.content }}
+                </p>
+             </div>
+
+             <!-- Evidence Files -->
+             <div class="mt-6">
+                 <h4 class="text-xs font-semibold text-label uppercase tracking-widest mb-4">Minh chứng đính kèm</h4>
+                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div v-for="file in request.files" :key="file.name" class="flex items-center justify-between p-4 lg-list-item rounded-2xl border-default group hover:border-(--border-input-focus) transition-all cursor-pointer">
+                       <div class="flex items-center gap-3">
+                          <div class="h-10 w-10 rounded-xl surface-solid flex items-center justify-center text-placeholder transition-colors">
+                             <FileText :size="20" />
+                          </div>
+                          <div>
+                             <p class="text-xs font-bold text-heading truncate max-w-[140px]">{{ file.name }}</p>
+                             <p class="text-[10px] text-placeholder uppercase font-semibold tracking-widest mt-0.5">{{ file.size }}</p>
+                          </div>
+                       </div>
+                       <button class="p-2 lg-button-ghost"><Download :size="18" /></button>
+                    </div>
+                 </div>
+             </div>
+          </div>
+
+          <!-- Comments Section -->
+          <div class="surface-card border border-card rounded-2xl p-6">
+              <h4 class="text-xs font-semibold text-label uppercase tracking-widest mb-4 flex items-center gap-2">
+                 <MessageSquare :size="16" /> Thảo luận xử lý
+              </h4>
+              <div class="space-y-4">
+                 <div v-for="cm in request.comments" :key="cm.id" class="flex gap-4">
+                    <div class="h-9 w-9 rounded-full surface-solid flex items-center justify-center text-heading text-[10px] font-semibold shrink-0">PM</div>
+                    <div class="flex-1">
+                       <div class="flex items-center gap-2 mb-1">
+                          <span class="text-xs font-semibold text-heading">{{ cm.user }}</span>
+                          <span class="px-1.5 py-0.5 rounded-lg lg-badge-info text-[9px] font-semibold uppercase tracking-widest">{{ cm.role }}</span>
+                          <span class="text-[10px] font-semibold text-label ml-auto">{{ cm.date }}</span>
+                       </div>
+                       <p class="text-xs text-body leading-relaxed font-medium">{{ cm.text }}</p>
+                    </div>
+                 </div>
+
+                <!-- Input -->
+                <div class="mt-8 relative">
+                    <textarea 
+                      placeholder="Nhập ghi chú hoặc hướng dẫn xử lý..."
+                      class="w-full surface-input border border-input rounded-2xl p-4 text-xs font-medium outline-none h-28 resize-none"
+                    ></textarea>
+                    <button class="absolute bottom-4 right-4 lg-button-primary p-3 rounded-2xl hover:scale-105 transition-all">
+                      <Send :size="18" />
+                   </button>
+                </div>
+              </div>
+          </div>
+
+        </div>
+
+        <!-- Right: Workflow & Info -->
+        <div class="space-y-4">
+          
+          <!-- Workflow Stepper -->
+          <div class="surface-card border border-card rounded-2xl p-5 overflow-hidden relative">
+              <h4 class="text-xs font-semibold text-label uppercase tracking-widest mb-6">Quy trình phê duyệt</h4>
+              
+              <div class="relative space-y-8">
+                 <div class="absolute left-[17px] top-2 bottom-2 w-0.5 border-default"></div>
+
+                <div v-for="step in request.workflow" :key="step.step" class="relative flex gap-5 z-10">
+                   <div :class="['h-9 w-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 shadow-sm transition-all', getStepStatusClass(step.status)]">
+                      <CheckCircle2 v-if="step.status === 'completed'" :size="16" />
+                      <span v-else>{{ step.step }}</span>
                    </div>
-                 </transition>
-               </div>
-           </div>
+                   <div>
+                       <h5 :class="['text-sm font-semibold', step.status === 'pending' ? 'text-placeholder' : 'text-heading']">{{ step.label }}</h5>
+                       <p class="text-[11px] font-bold text-label mt-0.5">{{ step.user }}</p>
+                       <p v-if="step.date" class="text-[10px] font-semibold text-link uppercase tracking-tighter mt-1">{{ step.date }}</p>
+                   </div>
+                </div>
+             </div>
+          </div>
 
-           <div class="prose prose-slate max-w-none">
-               <p class="text-sm text-body leading-relaxed font-medium surface-solid p-4 rounded-2xl border-default">
-                {{ request.content }}
-              </p>
-           </div>
-
-           <!-- Evidence Files -->
-           <div class="mt-6">
-               <h4 class="text-xs font-semibold text-label uppercase tracking-widest mb-4">Minh chứng đính kèm</h4>
-               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div v-for="file in request.files" :key="file.name" class="flex items-center justify-between p-4 lg-list-item rounded-2xl border-default group hover:border-(--border-input-focus) transition-all cursor-pointer">
-                     <div class="flex items-center gap-3">
-                        <div class="h-10 w-10 rounded-xl surface-solid flex items-center justify-center text-placeholder transition-colors">
-                           <FileText :size="20" />
-                        </div>
-                        <div>
-                           <p class="text-xs font-bold text-heading truncate max-w-[140px]">{{ file.name }}</p>
-                           <p class="text-[10px] text-placeholder uppercase font-semibold tracking-widest mt-0.5">{{ file.size }}</p>
-                        </div>
-                     </div>
-                     <button class="p-2 lg-button-ghost"><Download :size="18" /></button>
-                  </div>
-               </div>
-           </div>
-        </div>
-
-        <!-- Comments Section -->
-        <div class="surface-card border border-card rounded-2xl p-6">
-            <h4 class="text-xs font-semibold text-label uppercase tracking-widest mb-4 flex items-center gap-2">
-               <MessageSquare :size="16" /> Thảo luận xử lý
-            </h4>
-            <div class="space-y-4">
-               <div v-for="cm in request.comments" :key="cm.id" class="flex gap-4">
-                  <div class="h-9 w-9 rounded-full surface-solid flex items-center justify-center text-heading text-[10px] font-semibold shrink-0">PM</div>
-                  <div class="flex-1">
-                     <div class="flex items-center gap-2 mb-1">
-                        <span class="text-xs font-semibold text-heading">{{ cm.user }}</span>
-                        <span class="px-1.5 py-0.5 rounded-lg lg-badge-info text-[9px] font-semibold uppercase tracking-widest">{{ cm.role }}</span>
-                        <span class="text-[10px] font-semibold text-label ml-auto">{{ cm.date }}</span>
-                     </div>
-                     <p class="text-xs text-body leading-relaxed font-medium">{{ cm.text }}</p>
-                  </div>
-               </div>
-
-              <!-- Input -->
-              <div class="mt-8 relative">
-                  <textarea 
-                    placeholder="Nhập ghi chú hoặc hướng dẫn xử lý..."
-                    class="w-full surface-input border border-input rounded-2xl p-4 text-xs font-medium outline-none h-28 resize-none"
-                  ></textarea>
-                  <button class="absolute bottom-4 right-4 lg-button-primary p-3 rounded-2xl hover:scale-105 transition-all">
-                    <Send :size="18" />
-                 </button>
-              </div>
-           </div>
-        </div>
-
-      </div>
-
-      <!-- ── Right: Workflow & Info ── -->
-      <div class="space-y-4">
-        
-        <!-- Workflow Stepper -->
-        <div class="surface-card border border-card rounded-2xl p-5 overflow-hidden relative">
-            <h4 class="text-xs font-semibold text-label uppercase tracking-widest mb-6">Quy trình phê duyệt</h4>
-            
-            <div class="relative space-y-8">
-               <!-- Vertical Line -->
-               <div class="absolute left-[17px] top-2 bottom-2 w-0.5 border-default"></div>
-
-              <div v-for="step in request.workflow" :key="step.step" class="relative flex gap-5 z-10">
-                 <div :class="['h-9 w-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 shadow-sm transition-all', getStepStatusClass(step.status)]">
-                    <CheckCircle2 v-if="step.status === 'completed'" :size="16" />
-                    <span v-else>{{ step.step }}</span>
+          <!-- Student Info Card -->
+          <div class="surface-card border border-card rounded-2xl p-4">
+              <h4 class="text-xs font-semibold text-label uppercase tracking-widest mb-4">Thông tin sinh viên</h4>
+              <div class="space-y-4">
+                 <div class="flex items-center gap-4">
+                    <div class="h-11 w-11 rounded-full bg-(--color-info-bg) text-(--color-info-text) border border-(--color-info-text)/20 flex items-center justify-center font-semibold text-xs">
+                       NN
+                    </div>
+                    <div>
+                       <p class="text-sm font-semibold text-heading">{{ request.student }}</p>
+                       <p class="text-[10px] font-semibold text-label uppercase">{{ request.studentCode }}</p>
+                    </div>
                  </div>
-                 <div>
-                     <h5 :class="['text-sm font-semibold', step.status === 'pending' ? 'text-placeholder' : 'text-heading']">{{ step.label }}</h5>
-                     <p class="text-[11px] font-bold text-label mt-0.5">{{ step.user }}</p>
-                     <p v-if="step.date" class="text-[10px] font-semibold text-link uppercase tracking-tighter mt-1">{{ step.date }}</p>
+                 <div class="h-px border-default"></div>
+                 <div class="grid grid-cols-2 gap-4">
+                    <div>
+                       <p class="text-[9px] font-semibold text-label uppercase">Lớp chính</p>
+                       <p class="text-xs font-bold text-heading">{{ request.class }}</p>
+                    </div>
+                    <div>
+                       <p class="text-[9px] font-semibold text-label uppercase">Học kỳ</p>
+                       <p class="text-xs font-bold text-heading">Spring 2026</p>
+                    </div>
                  </div>
               </div>
            </div>
-        </div>
 
-        <!-- Student Info Card -->
-        <div class="surface-card border border-card rounded-2xl p-4">
-            <h4 class="text-xs font-semibold text-label uppercase tracking-widest mb-4">Thông tin sinh viên</h4>
-            <div class="space-y-4">
-               <div class="flex items-center gap-4">
-                  <div class="h-11 w-11 rounded-full bg-(--color-info-bg) text-(--color-info-text) border border-(--color-info-text)/20 flex items-center justify-center font-semibold text-xs">
-                     NN
-                  </div>
-                  <div>
-                     <p class="text-sm font-semibold text-heading">{{ request.student }}</p>
-                     <p class="text-[10px] font-semibold text-label uppercase">{{ request.studentCode }}</p>
-                  </div>
-               </div>
-               <div class="h-px border-default"></div>
-               <div class="grid grid-cols-2 gap-4">
-                  <div>
-                     <p class="text-[9px] font-semibold text-label uppercase">Lớp chính</p>
-                     <p class="text-xs font-bold text-heading">{{ request.class }}</p>
-                  </div>
-                  <div>
-                     <p class="text-[9px] font-semibold text-label uppercase">Học kỳ</p>
-                     <p class="text-xs font-bold text-heading">Spring 2026</p>
-                  </div>
-               </div>
-            </div>
-         </div>
+           <!-- Main Actions -->
+           <div class="space-y-3">
+              <button
+                :disabled="actionLoading"
+                @click="handleApprove"
+                class="w-full lg-button-primary py-4 text-sm font-semibold flex items-center justify-center gap-2"
+              >
+                 <Loader2 v-if="actionLoading" class="animate-spin" :size="20" />
+                 <CheckCircle2 v-else :size="20" />
+                 DUYỆT ĐƠN (APPROVE)
+              </button>
+              <button
+                :disabled="actionLoading"
+                @click="handleReject"
+                class="w-full lg-btn-danger py-4 text-sm font-semibold flex items-center justify-center gap-2"
+              >
+                <XCircle :size="20" /> TỪ CHỐI (REJECT)
+             </button>
+             <button class="w-full lg-button-secondary py-3 text-xs font-bold flex items-center justify-center gap-2">
+                <UserPlus :size="16" /> CHUYỂN NGƯỜI XỬ LÝ
+             </button>
+          </div>
 
-         <!-- Main Actions -->
-         <div class="space-y-3">
-            <button class="w-full lg-button-primary py-4 text-sm font-semibold flex items-center justify-center gap-2">
-               <CheckCircle2 :size="20" /> DUYỆT ĐƠN (APPROVE)
-            </button>
-            <button class="w-full lg-btn-danger py-4 text-sm font-semibold flex items-center justify-center gap-2">
-              <XCircle :size="20" /> TỪ CHỐI (REJECT)
-           </button>
-           <button class="w-full lg-button-secondary py-3 text-xs font-bold flex items-center justify-center gap-2">
-              <UserPlus :size="16" /> CHUYỂN NGƯỜI XỬ LÝ
-           </button>
         </div>
 
       </div>
-
-    </div>
-  </PageContainer>
+    </PageContainer>
+  </template>
 </template>

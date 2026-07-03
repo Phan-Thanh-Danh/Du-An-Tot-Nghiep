@@ -1,19 +1,21 @@
 ﻿<script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { 
-  ArrowLeft, Users, Calendar, BookOpen, 
-  TrendingUp, FileText, Bell, Clock, ChevronRight,
-  GraduationCap
-} from 'lucide-vue-next'
+import { ArrowLeft, Users, Calendar, BookOpen, TrendingUp, FileText, Bell, Clock, ChevronRight, GraduationCap, AlertCircle } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
+import { teacherApi } from '@/services/teacherApi'
 
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const route = useRoute()
 const router = useRouter()
 
-// Mock data
-const classData = ref({
+const loading = ref(false)
+const error = ref('')
+const classData = ref(null)
+const recentActivities = ref([])
+
+const DEMO_CLASS = {
   id: route.params.id || 'SE1601',
   name: 'Lập trình Java Cơ bản',
   subject: 'Công nghệ thông tin',
@@ -22,17 +24,60 @@ const classData = ref({
   upcomingSessions: 3,
   pendingAssignments: 12,
   averageGpa: 7.8
-})
+}
 
-const recentActivities = ref([
+const DEMO_ACTIVITIES = [
   { id: 1, title: 'Đã nộp bài tập Lab 3', time: '2 giờ trước', type: 'assignment' },
   { id: 2, title: 'Sinh viên Nguyễn Văn A xin nghỉ', time: '5 giờ trước', type: 'leave' },
   { id: 3, title: 'Cập nhật tài liệu Chương 4', time: '1 ngày trước', type: 'material' },
-])
+]
+
+function mapCourseToDetail(course) {
+  return {
+    id: course.maKhoaHoc ?? course.id,
+    name: course.tieuDe ?? course.name ?? '',
+    subject: course.tenMonHoc ?? course.subject ?? '',
+    semester: course.tenHocKy ?? course.semester ?? '',
+    studentsCount: 0,
+    upcomingSessions: 0,
+    pendingAssignments: 0,
+    averageGpa: 0,
+  }
+}
+
+async function loadClass() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await teacherApi.getClassById(route.params.id)
+    classData.value = data ? mapCourseToDetail(data) : DEMO_CLASS
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      classData.value = JSON.parse(JSON.stringify(DEMO_CLASS))
+      recentActivities.value = JSON.parse(JSON.stringify(DEMO_ACTIVITIES))
+      return
+    }
+    error.value = e?.message || 'Không thể tải thông tin lớp học.'
+    classData.value = null
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => { loadClass() })
 </script>
 
 <template>
-  <div class="space-y-4 pb-10 max-w-7xl mx-auto animate-fade-in">
+  <div v-if="loading" class="flex items-center justify-center min-h-[300px]">
+    <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+    <span class="ml-3 text-muted text-sm">Đang tải thông tin lớp...</span>
+  </div>
+  <div v-else-if="error" class="flex flex-col items-center justify-center min-h-[300px] gap-4">
+    <AlertCircle :size="40" class="text-rose-400" />
+    <p class="text-rose-600 font-semibold">{{ error }}</p>
+    <button @click="loadClass" class="rounded-lg bg-(--accent-primary) px-4 py-2 text-xs font-bold text-white">Thử lại</button>
+  </div>
+  <div v-else class="space-y-4 pb-10 max-w-7xl mx-auto animate-fade-in">
     <!-- Header -->
     <div class="surface-card border border-card rounded-2xl p-4">
       <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -42,15 +87,15 @@ const recentActivities = ref([
           </button>
           <div>
             <div class="flex items-center gap-2 mb-1">
-               <GlassBadge variant="primary">{{ classData.id }}</GlassBadge>
-               <GlassBadge variant="neutral">{{ classData.semester }}</GlassBadge>
+               <GlassBadge variant="primary">{{ classData?.id }}</GlassBadge>
+               <GlassBadge variant="neutral">{{ classData?.semester }}</GlassBadge>
             </div>
-            <h1 class="text-xl font-semibold text-heading tracking-tight">{{ classData.name }}</h1>
+            <h1 class="text-xl font-semibold text-heading tracking-tight">{{ classData?.name }}</h1>
           </div>
         </div>
 
         <div class="flex gap-3">
-           <router-link :to="'/teacher/classes/' + classData.id + '/workspace'" class="rounded-xl bg-(--accent-primary) px-4 py-3 text-sm font-semibold text-inverse hover:opacity-90 transition-all shadow-md">
+           <router-link :to="'/teacher/classes/' + classData?.id + '/workspace'" class="rounded-xl bg-(--accent-primary) px-4 py-3 text-sm font-semibold text-inverse hover:opacity-90 transition-all shadow-md">
               View Class Workspace
            </router-link>
         </div>
@@ -67,7 +112,7 @@ const recentActivities = ref([
              </div>
              <p class="text-[11px] font-semibold text-muted uppercase tracking-widest">Sĩ số</p>
           </div>
-          <h3 class="text-xl font-semibold text-heading">{{ classData.studentsCount }}</h3>
+          <h3 class="text-xl font-semibold text-heading">{{ classData?.studentsCount }}</h3>
           <p class="text-xs font-semibold text-label mt-1">Sinh viên đăng ký</p>
        </div>
        
@@ -79,7 +124,7 @@ const recentActivities = ref([
              </div>
              <p class="text-[11px] font-semibold text-muted uppercase tracking-widest">Lịch học</p>
           </div>
-          <h3 class="text-xl font-semibold text-heading">{{ classData.upcomingSessions }}</h3>
+          <h3 class="text-xl font-semibold text-heading">{{ classData?.upcomingSessions }}</h3>
 <p class="text-xs font-semibold text-label mt-1">Buổi học sắp tới</p>
         </div>
         <!-- Card 3 -->
@@ -90,7 +135,7 @@ const recentActivities = ref([
               </div>
               <p class="text-[11px] font-semibold text-muted uppercase tracking-widest">Bài tập</p>
            </div>
-           <h3 class="text-xl font-semibold text-heading">{{ classData.pendingAssignments }}</h3>
+           <h3 class="text-xl font-semibold text-heading">{{ classData?.pendingAssignments }}</h3>
            <p class="text-xs font-semibold text-label mt-1">Bài nộp chờ chấm</p>
        </div>
 
@@ -102,7 +147,7 @@ const recentActivities = ref([
              </div>
              <p class="text-[11px] font-semibold text-muted uppercase tracking-widest">GPA</p>
           </div>
-          <h3 class="text-xl font-semibold text-heading">{{ classData.averageGpa }}</h3>
+          <h3 class="text-xl font-semibold text-heading">{{ classData?.averageGpa }}</h3>
           <p class="text-xs font-semibold text-label mt-1">Trung bình lớp</p>
        </div>
     </div>
