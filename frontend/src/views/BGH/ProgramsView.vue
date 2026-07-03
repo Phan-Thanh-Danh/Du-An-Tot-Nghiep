@@ -1,5 +1,21 @@
 ﻿<template>
   <div class="space-y-4 pb-10">
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3 text-muted">
+        <Loader2 :size="32" class="animate-spin" />
+        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
+      </div>
+    </div>
+    <!-- Error State -->
+    <div v-else-if="error" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3">
+        <AlertCircle :size="32" class="text-(--color-danger-text)" />
+        <p class="text-sm text-(--color-danger-text) font-medium">{{ error }}</p>
+        <button @click="loadData()" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
+      </div>
+    </div>
+    <template v-else>
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
         <h2 class="sr-only text-xl font-bold text-heading">Ngành & Chuyên ngành</h2>
@@ -73,16 +89,23 @@
         <p>Không tìm thấy chương trình đào tạo nào.</p>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   BookOpen, Users, Layers, BookMarked, Clock,
   ChevronDown, ChevronRight, FileText, CheckCircle2,
-  AlertCircle, Archive, Eye
+  AlertCircle, Archive, Eye, Loader2
 } from 'lucide-vue-next'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
+
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 
 const statusFilter = ref('')
 const expandedId = ref(null)
@@ -91,7 +114,7 @@ function toggleExpand(id) {
   expandedId.value = expandedId.value === id ? null : id
 }
 
-const trainingPrograms = [
+const mockPrograms = [
   { maChuongTrinh: 1, maCodeChuongTrinh: 'CNTT-K19', tenChuongTrinh: 'Công nghệ thông tin - Chuyên ngành PT Ứng dụng', tenChuyenNganh: 'Công nghệ thông tin (Ứng dụng phần mềm)', tenKhoa: 'Khóa 19 (2024-2027)', version: '1.0', soHocKy: 7, thoiGianDaoTaoThang: 28, tongTinChiYeuCau: 135, trangThai: 'active', moTa: 'Chương trình đào tạo cử nhân Công nghệ thông tin chuyên ngành Ứng dụng phần mềm.', ngayHieuLuc: '01/09/2024', ngayHetHieuLuc: null, nguoiGuiDuyet: 'Nguyễn Văn A', nguoiDuyet: 'Trần Thị B', ngayTao: '15/05/2024', conHoatDong: true },
   { maChuongTrinh: 2, maCodeChuongTrinh: 'CNTT-K20', tenChuongTrinh: 'Công nghệ thông tin - Chuyên ngành PT Ứng dụng', tenChuyenNganh: 'Công nghệ thông tin (Ứng dụng phần mềm)', tenKhoa: 'Khóa 20 (2025-2028)', version: '1.1', soHocKy: 7, thoiGianDaoTaoThang: 28, tongTinChiYeuCau: 138, trangThai: 'pending_approval', moTa: 'Phiên bản cập nhật chương trình CNTT khóa 20 với điều chỉnh 3 tín chỉ.', ngayHieuLuc: null, ngayHetHieuLuc: null, nguoiGuiDuyet: 'Nguyễn Văn A', nguoiDuyet: null, ngayTao: '10/03/2025', conHoatDong: true },
   { maChuongTrinh: 3, maCodeChuongTrinh: 'KT-K19', tenChuongTrinh: 'Quản trị Kinh doanh - Chuyên ngành Kế toán', tenChuyenNganh: 'Quản trị Kinh doanh (Kế toán)', tenKhoa: 'Khóa 19 (2024-2027)', version: '1.0', soHocKy: 6, thoiGianDaoTaoThang: 24, tongTinChiYeuCau: 120, trangThai: 'active', moTa: 'Chương trình đào tạo cử nhân Quản trị Kinh doanh chuyên ngành Kế toán Doanh nghiệp.', ngayHieuLuc: '01/09/2024', ngayHetHieuLuc: null, nguoiGuiDuyet: 'Lê Thị C', nguoiDuyet: 'Trần Thị B', ngayTao: '20/05/2024', conHoatDong: true },
@@ -100,9 +123,27 @@ const trainingPrograms = [
   { maChuongTrinh: 6, maCodeChuongTrinh: 'QTKS-K19', tenChuongTrinh: 'Quản trị Khách sạn - Chuyên ngành Nhà hàng', tenChuyenNganh: 'Quản trị Khách sạn', tenKhoa: 'Khóa 19 (2024-2027)', version: '1.0', soHocKy: 6, thoiGianDaoTaoThang: 24, tongTinChiYeuCau: 122, trangThai: 'draft', moTa: 'Chương trình đang được xây dựng, chưa gửi duyệt.', ngayHieuLuc: null, ngayHetHieuLuc: null, nguoiGuiDuyet: null, nguoiDuyet: null, ngayTao: '05/06/2025', conHoatDong: true },
 ]
 
+const programs = ref(mockPrograms)
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await bghApi.getPrograms()
+      programs.value = unwrapApiData(res) || mockPrograms
+    }
+  } catch (e) {
+    error.value = e?.message || 'Lỗi tải dữ liệu chương trình đào tạo'
+    programs.value = mockPrograms
+  } finally {
+    loading.value = false
+  }
+}
+
 const filteredPrograms = computed(() => {
-  if (!statusFilter.value) return trainingPrograms
-  return trainingPrograms.filter(p => p.trangThai === statusFilter.value)
+  if (!statusFilter.value) return programs.value
+  return programs.value.filter(p => p.trangThai === statusFilter.value)
 })
 
 function statusBadge(status) {
@@ -137,4 +178,6 @@ function statusLabel(status) {
     default: return status
   }
 }
+
+onMounted(() => { loadData() })
 </script>

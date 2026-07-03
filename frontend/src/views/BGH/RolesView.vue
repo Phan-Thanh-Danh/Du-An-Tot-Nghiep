@@ -53,6 +53,15 @@
                 <p>Đang tải dữ liệu...</p>
               </td>
             </tr>
+            <tr v-else-if="error" class="bg-transparent">
+              <td colspan="4" class="py-12 text-center text-muted">
+                <div class="flex flex-col items-center gap-3">
+                  <AlertCircle :size="24" class="text-(--color-danger-text)" />
+                  <p class="text-(--color-danger-text) font-medium">{{ error }}</p>
+                  <button @click="fetchRoles()" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
+                </div>
+              </td>
+            </tr>
             <tr v-else-if="filteredRoles.length === 0" class="bg-transparent">
               <td colspan="4" class="py-12 text-center text-muted">
                 <p>Không tìm thấy vai trò nào.</p>
@@ -152,9 +161,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { 
   Search, Plus, Edit2, Trash2,
-  Loader2, AlertTriangle, X 
+  Loader2, AlertTriangle, AlertCircle, X 
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
+
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const authStore = useAuthStore()
 const canEdit = computed(() => authStore.hasRole(['SuperAdmin', 'Admin']))
@@ -177,6 +190,7 @@ const mockRoles = [
 // --- Data State ---
 const rolesList = ref([])
 const loading = ref(false)
+const error = ref(null)
 const searchQuery = ref('')
 
 const filteredRoles = computed(() => {
@@ -201,12 +215,23 @@ const formData = ref({
 
 // --- Methods ---
 
-const fetchRoles = () => {
+const fetchRoles = async () => {
   loading.value = true
-  setTimeout(() => {
-    rolesList.value = [...mockRoles]
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await bghApi.getRoles()
+      rolesList.value = unwrapApiData(res) || []
+      return
+    }
+    setTimeout(() => {
+      rolesList.value = [...mockRoles]
+      loading.value = false
+    }, 200)
+  } catch (e) {
+    error.value = e?.message || 'Lỗi tải dữ liệu vai trò'
     loading.value = false
-  }, 200)
+  }
 }
 
 const openCreateModal = () => {

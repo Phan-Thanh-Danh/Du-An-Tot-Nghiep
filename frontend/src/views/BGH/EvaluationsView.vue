@@ -1,5 +1,21 @@
 ﻿<template>
   <div class="space-y-4">
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3 text-muted">
+        <Loader2 :size="32" class="animate-spin" />
+        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
+      </div>
+    </div>
+    <!-- Error State -->
+    <div v-else-if="error" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3">
+        <AlertCircle :size="32" class="text-(--color-danger-text)" />
+        <p class="text-sm text-(--color-danger-text) font-medium">{{ error }}</p>
+        <button @click="loadData()" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
+      </div>
+    </div>
+    <template v-else>
     <div class="flex items-center gap-3">
       <select v-model="semesterFilter" class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
         <option v-for="s in semesters" :key="s" :value="s">{{ s }}</option>
@@ -147,27 +163,36 @@
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { Star, TrendingUp, TrendingDown, ThumbsUp, MessageSquare, Users, Award } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { Star, TrendingUp, TrendingDown, ThumbsUp, MessageSquare, Users, Award, AlertCircle, Loader2 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
+
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 
 const router = useRouter()
 const semesterFilter = ref('Spring 2026')
 const campusFilter = ref('')
 const semesters = ['Spring 2026', 'Fall 2025', 'Summer 2025', 'Spring 2025']
 
-const stats = [
+const mockStats = [
   { id: 1, icon: ThumbsUp, value: '4.35 / 5', label: 'Điểm đánh giá trung bình', bg: 'bg-(--color-success-bg)', iconColor: 'text-(--color-success-text)' },
   { id: 2, icon: Users, value: '1,245', label: 'Số lượt khảo sát trong kỳ', bg: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)' },
   { id: 3, icon: Award, value: '12', label: 'GV đạt điểm ≥ 4.5', bg: 'bg-(--color-warning-bg)', iconColor: 'text-(--color-warning-text)' },
   { id: 4, icon: MessageSquare, value: '89%', label: 'Tỷ lệ SV tham gia khảo sát', bg: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)' },
 ]
 
-const teacherRankings = [
+const stats = ref(mockStats)
+
+const mockTeacherRankings = [
   { id: 1, hoTen: 'TS. Nguyễn Khắc Anh', initials: 'NA', maCodeGv: 'GV001', khoa: 'Khoa CNTT', diemTb: 4.9, soLuot: 145, chatLuong: 4.9, phuongPhap: 4.8, dungGio: 5.0, xuHuong: 0.12 },
   { id: 2, hoTen: 'ThS. Trần Thị Bích', initials: 'TB', maCodeGv: 'GV015', khoa: 'Khoa Kinh Tế', diemTb: 4.8, soLuot: 210, chatLuong: 4.8, phuongPhap: 4.7, dungGio: 4.9, xuHuong: 0.08 },
   { id: 3, hoTen: 'ThS. Lê Văn Cường', initials: 'LC', maCodeGv: 'GV008', khoa: 'Khoa CNTT', diemTb: 4.7, soLuot: 98, chatLuong: 4.7, phuongPhap: 4.8, dungGio: 4.6, xuHuong: 0.15 },
@@ -180,25 +205,54 @@ const teacherRankings = [
   { id: 10, hoTen: 'ThS. Ngô Thị Mai', initials: 'NM', maCodeGv: 'GV033', khoa: 'Khoa CNTT', diemTb: 3.7, soLuot: 78, chatLuong: 3.6, phuongPhap: 3.8, dungGio: 3.7, xuHuong: -0.15 },
 ]
 
-const departmentStats = [
+const teacherRankings = ref(mockTeacherRankings)
+
+const mockDepartmentStats = [
   { ten: 'Khoa Công nghệ Thông tin', diemTb: 4.48, soGv: 38, soLuotKhaoSat: 568, xuHuong: 0.12 },
   { ten: 'Khoa Kinh Tế', diemTb: 4.27, soGv: 28, soLuotKhaoSat: 390, xuHuong: 0.03 },
   { ten: 'Khoa Thiết Kế', diemTb: 4.35, soGv: 15, soLuotKhaoSat: 141, xuHuong: 0.02 },
 ]
 
-const comments = [
+const deptStats = ref(mockDepartmentStats)
+
+const mockComments = [
   { id: 1, giangVien: 'TS. Nguyễn Khắc Anh', initials: 'NA', monHoc: 'Lập trình Java', ngay: '10/06/2026', noiDung: 'Thầy giảng rất dễ hiểu, nhiều ví dụ thực tế. Em học được rất nhiều từ môn này!', rating: 5 },
   { id: 2, giangVien: 'ThS. Trần Thị Bích', initials: 'TB', monHoc: 'Kế toán tài chính', ngay: '08/06/2026', noiDung: 'Cô nhiệt tình, giải đáp mọi thắc mắc của sinh viên. Giáo trình rất hay.', rating: 5 },
   { id: 3, giangVien: 'ThS. Hoàng Minh Đức', initials: 'HĐ', monHoc: 'Cấu trúc dữ liệu', ngay: '05/06/2026', noiDung: 'Môn khó nhưng thầy giảng rất tận tâm, bài tập về nhà giúp hiểu sâu hơn.', rating: 4 },
   { id: 4, giangVien: 'ThS. Bùi Quang Linh', initials: 'BL', monHoc: 'Kinh tế vi mô', ngay: '02/06/2026', noiDung: 'Giảng viên có kiến thức nhưng phương pháp giảng dạy chưa thực sự cuốn hút.', rating: 3 },
 ]
 
+const comments = ref(mockComments)
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await bghApi.getEvaluations()
+      const data = unwrapApiData(res)
+      if (data) {
+        if (data.teacherRankings) teacherRankings.value = data.teacherRankings
+        if (data.stats) stats.value = data.stats
+        if (data.comments) comments.value = data.comments
+        if (data.departmentStats) deptStats.value = data.departmentStats
+      }
+    }
+  } catch (e) {
+    error.value = e?.message || 'Lỗi tải dữ liệu đánh giá'
+  } finally {
+    loading.value = false
+  }
+}
+
 const filteredRankings = computed(() => {
-  if (!campusFilter.value) return teacherRankings
-  return teacherRankings
+  if (!campusFilter.value) return teacherRankings.value
+  return teacherRankings.value
 })
 
 function viewTeacherDetail(gv) {
   router.push(`/bgh/evaluations/detail/${gv.maCodeGv}`)
 }
+
+onMounted(() => { loadData() })
 </script>

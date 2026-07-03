@@ -1,12 +1,18 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { 
-  Brain, TrendingUp, PieChart, MapPin, Zap, Search, Download, Filter, ChevronDown, X
+  Brain, TrendingUp, PieChart, MapPin, Zap, Search, Download, Filter, ChevronDown, X,
+  AlertCircle, Loader2
 } from 'lucide-vue-next'
 import { exportToExcel } from '@/services/exportService.js'
 import { usePopupStore } from '@/stores/popup'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
 
 const popup = usePopupStore()
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 const searchQuery = ref('')
 const sentimentFilter = ref('all')
 const showFilterDetail = ref(false)
@@ -41,6 +47,25 @@ const filteredTopics = computed(() => {
   return list
 })
 
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await bghApi.getEvaluations()
+      const data = unwrapApiData(res)
+      if (data) {
+        // Update sentiment summary and topics from API data as needed
+      }
+    }
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    loading.value = false
+  }
+}
+onMounted(() => { loadData() })
+
 function exportData() {
   const data = topTopics.value.map(t => ({
     'Chủ đề': t.label,
@@ -55,6 +80,16 @@ function exportData() {
 
 <template>
   <div class="space-y-8">
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <Loader2 :size="32" class="animate-spin text-placeholder" />
+    </div>
+    <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">
+      <AlertCircle :size="48" class="text-(--color-danger-text) mb-4" />
+      <p class="text-lg font-semibold text-muted">Đã có lỗi xảy ra</p>
+      <p class="text-sm text-placeholder mt-1">{{ error }}</p>
+      <button @click="loadData" class="mt-4 lg-button-secondary px-4 py-2 text-sm font-semibold">Thử lại</button>
+    </div>
+    <template v-else>
     <div class="flex items-center gap-3">
       <button @click="exportData" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
         <Download :size="18" /> Export Excel
@@ -181,5 +216,6 @@ function exportData() {
          </div>
       </div>
 
+  </template>
   </div>
 </template>

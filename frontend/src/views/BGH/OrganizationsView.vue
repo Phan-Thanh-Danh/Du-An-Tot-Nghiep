@@ -21,6 +21,11 @@
         <div v-if="loadingTree" class="flex justify-center p-8">
           <Loader2 class="animate-spin text-muted" :size="24" />
         </div>
+        <div v-else-if="errorTree" class="flex flex-col items-center gap-3 p-8 text-center">
+          <AlertCircle :size="24" class="text-(--color-danger-text)" />
+          <p class="text-sm text-(--color-danger-text) font-medium">{{ errorTree }}</p>
+          <button @click="loadData()" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
+        </div>
         <div v-else-if="flattenedTree.length === 0" class="text-center text-sm text-muted p-8">
           Chưa có dữ liệu cơ cấu tổ chức.
         </div>
@@ -224,6 +229,10 @@ import {
   ChevronRight, ChevronDown, Loader2, AlertCircle, Library, Users 
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
+
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const authStore = useAuthStore()
 const canEdit = computed(() => authStore.hasRole('SuperAdmin'))
@@ -231,6 +240,7 @@ const canEdit = computed(() => authStore.hasRole('SuperAdmin'))
 const treeData = ref([])
 const flatOrganizationsList = ref([])
 const loadingTree = ref(false)
+const errorTree = ref(null)
 const saving = ref(false)
 const apiError = ref('')
 
@@ -313,13 +323,25 @@ const reloadFlat = () => {
   flatOrganizationsList.value = mockDonViData.map(d => ({ id: d.id, name: d.name, parentId: d.parentId }))
 }
 
-const loadData = () => {
+const loadData = async () => {
   loadingTree.value = true
-  setTimeout(() => {
-    reloadFlat()
-    treeData.value = buildTreeFromFlat(mockDonViData)
+  errorTree.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await bghApi.getOrganizationsTree()
+      treeData.value = unwrapApiData(res) || []
+      reloadFlat()
+      return
+    }
+    setTimeout(() => {
+      reloadFlat()
+      treeData.value = buildTreeFromFlat(mockDonViData)
+      loadingTree.value = false
+    }, 200)
+  } catch (e) {
+    errorTree.value = e?.message || 'Lỗi tải dữ liệu cơ cấu tổ chức'
     loadingTree.value = false
-  }, 200)
+  }
 }
 
 const flattenTreeData = (nodes, level = 0, parentPath = []) => {

@@ -1,20 +1,44 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { 
   CheckCircle2, XCircle, Eye, Search, Filter, AlertTriangle, Clock, User, Building2,
-  ChevronDown, X
+  ChevronDown, Loader2, X
 } from 'lucide-vue-next'
 import { usePopupStore } from '@/stores/popup'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
+
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 
 const popup = usePopupStore()
 const router = useRouter()
 
-const pendingSets = ref([
+const mockPendingSets = [
   { id: 'TKB-001', semester: 'Spring 2026', campus: 'Cơ sở chính', dept: 'Khoa CNTT', classes: 86, slots: 420, conflicts: 0, sender: 'Phạm Minh D', date: '12/05/2026', status: 'pending_approval' },
   { id: 'TKB-002', semester: 'Spring 2026', campus: 'Cơ sở 2', dept: 'Khoa Kinh tế', classes: 42, slots: 215, conflicts: 3, sender: 'Nguyễn Bích L', date: '11/05/2026', status: 'pending_approval' },
   { id: 'TKB-003', semester: 'Spring 2026', campus: 'Cơ sở chính', dept: 'Khoa Ngoại ngữ', classes: 65, slots: 310, conflicts: 1, sender: 'Trần Văn K', date: '13/05/2026', status: 'pending_approval' },
   { id: 'TKB-004', semester: 'Fall 2025', campus: 'Cơ sở chính', dept: 'Khoa Thiết kế', classes: 38, slots: 195, conflicts: 0, sender: 'Lê Hoàng A', date: '10/05/2026', status: 'approved' },
-])
+]
+
+const pendingSets = ref(mockPendingSets)
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await bghApi.getPendingSchedules()
+      pendingSets.value = unwrapApiData(res) || mockPendingSets
+    }
+  } catch (e) {
+    error.value = e?.message || 'Lỗi tải dữ liệu TKB chờ duyệt'
+    pendingSets.value = mockPendingSets
+  } finally {
+    loading.value = false
+  }
+}
 
 const searchQuery = ref('')
 const semesterFilter = ref('all')
@@ -57,10 +81,28 @@ function rejectSet(item) {
 function viewDetail(item) {
   popup.info(`Chi tiết TKB: ${item.id}`, `${item.dept}\nHọc kỳ: ${item.semester}\nCơ sở: ${item.campus}\nLớp: ${item.classes}\nLịch: ${item.slots}\nXung đột: ${item.conflicts}\nNgười gửi: ${item.sender}`)
 }
+
+onMounted(() => { loadData() })
 </script>
 
 <template>
   <div class="space-y-4">
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3 text-muted">
+        <Loader2 :size="32" class="animate-spin" />
+        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
+      </div>
+    </div>
+    <!-- Error State -->
+    <div v-else-if="error" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3">
+        <AlertCircle :size="32" class="text-(--color-danger-text)" />
+        <p class="text-sm text-(--color-danger-text) font-medium">{{ error }}</p>
+        <button @click="loadData()" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
+      </div>
+    </div>
+    <template v-else>
     <div class="space-y-4">
       
       <div class="surface-card border border-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
@@ -188,8 +230,10 @@ function viewDetail(item) {
       </div>
 
   </div>
+    </template>
+  </div>
 </template>
-
+ 
 <style scoped>
 .fade-slide-enter-active,
 .fade-slide-leave-active {

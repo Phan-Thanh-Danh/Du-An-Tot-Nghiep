@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { 
   ArrowLeft, 
   Star, 
@@ -8,9 +9,18 @@ import {
   User, 
   BookOpen, 
   MessageCircle,
-  Award
+  Award,
+  AlertCircle,
+  Loader2,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
+
+const route = useRoute()
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 
 // ── Mock Data ────────────────────────────────────────────────
 const teacher = ref({
@@ -33,6 +43,26 @@ const teacher = ref({
     { term: 'Fall 2025', score: 4.92 },
   ]
 })
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await bghApi.getEvaluations()
+      const data = unwrapApiData(res)
+      if (data && data.length) {
+        const t = data.find(d => d.id === parseInt(route.query.id) || d.code === route.query.code)
+        if (t) teacher.value = { ...teacher.value, ...t }
+      }
+    }
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    loading.value = false
+  }
+}
+onMounted(() => { loadData() })
 </script>
 
 <template>
@@ -51,7 +81,16 @@ const teacher = ref({
       </div>
     </template>
 
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <Loader2 :size="32" class="animate-spin text-placeholder" />
+    </div>
+    <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">
+      <AlertCircle :size="48" class="text-(--color-danger-text) mb-4" />
+      <p class="text-lg font-semibold text-muted">Đã có lỗi xảy ra</p>
+      <p class="text-sm text-placeholder mt-1">{{ error }}</p>
+      <button @click="loadData" class="mt-4 lg-button-secondary px-4 py-2 text-sm font-semibold">Thử lại</button>
+    </div>
+    <div v-else class="grid grid-cols-1 xl:grid-cols-3 gap-8">
       
       <!-- ── Left: Criteria Breakdown ── -->
       <div class="xl:col-span-2 space-y-4">
