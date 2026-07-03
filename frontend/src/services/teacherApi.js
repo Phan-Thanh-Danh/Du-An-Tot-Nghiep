@@ -7,6 +7,7 @@ import { apiRequest, unwrapApiData } from './apiClient'
  *   √ = controller exists, Teacher authorized
  *   ! = controller exists, policy MAY exclude Teacher
  *   × = MISSING_BACKEND — no controller
+ *   + = CREATED in P2 (TeacherDashboard/Submissions)
  */
 export const teacherApi = {
   // × MISSING_BACKEND: No TeacherDashboardController exists.
@@ -146,19 +147,21 @@ export const teacherApi = {
     return unwrapApiData(await apiRequest(`/api/thoi-khoa-bieu${qs ? '?' + qs : ''}`))
   },
 
-  // ── Grading / Submissions (all × MISSING_BACKEND) ──
-  // No GradeController, AssignmentController, or SubmissionController exists
-
-  getSubmissions() {
-    return apiRequest('/api/missing/grading/submissions')
+  // √ TeacherSubmissionsController
+  getSubmissions(params = {}) {
+    const query = new URLSearchParams()
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const qs = query.toString()
+    return apiRequest(`/api/teacher/submissions${qs ? '?' + qs : ''}`)
   },
 
   getSubmissionDetail(id) {
-    return apiRequest(`/api/missing/grading/submissions/${id}`)
+    return apiRequest(`/api/teacher/submissions/${id}`)
   },
 
   gradeSubmission(id, payload) {
-    return apiRequest(`/api/missing/grading/submissions/${id}/grade`, {
+    return apiRequest(`/api/teacher/submissions/${id}/grade`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     })
