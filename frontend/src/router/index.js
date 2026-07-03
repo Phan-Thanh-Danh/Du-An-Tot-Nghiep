@@ -366,10 +366,19 @@ const router = createRouter({
         { path: 'assignments', name: 'staff-assignments', component: () => import('../views/GiaoVu/Schedule/TeacherAssignmentView.vue') , meta: { title: 'Phân công giảng viên' } },
         { path: 'buildings', name: 'staff-buildings', component: () => import('../views/GiaoVu/Facilities/BuildingManagementView.vue') , meta: { title: 'Quản lý tòa nhà' } },
         { path: 'floors', name: 'staff-floors', component: () => import('../views/GiaoVu/Facilities/FloorManagementView.vue') , meta: { title: 'Quản lý lầu' } },
+        { path: 'shifts', name: 'staff-shifts', component: () => import('../views/GiaoVu/Schedule/ShiftManagementView.vue') , meta: { title: 'Quản lý ca học' } },
         { path: 'rooms', name: 'staff-rooms', component: () => import('../views/GiaoVu/Schedule/RoomManagementView.vue') , meta: { title: 'Quản lý phòng học' } },
         { path: 'conflicts', name: 'staff-conflicts', component: () => import('../views/GiaoVu/Schedule/ConflictCheckView.vue') , meta: { title: 'Kiểm tra xung đột' } },
         { path: 'schedule/pending', name: 'staff-schedule-pending', component: () => import('../views/GiaoVu/Schedule/PendingSchedulesView.vue') , meta: { title: 'Lịch chờ duyệt' } },
         { path: 'schedule/published', name: 'staff-schedule-published', component: () => import('../views/GiaoVu/Schedule/StaffPublishedSchedulesView.vue') , meta: { title: 'Lịch đã công bố' } },
+        { path: 'academic-terms', name: 'staff-academic-terms', component: () => import('../views/GiaoVu/AcademicTerms/AcademicTermManagementView.vue'), meta: { title: 'Quản lý học kỳ' } },
+        { path: 'subjects', name: 'staff-subjects', component: () => import('../views/GiaoVu/Subjects/SubjectManagementView.vue'), meta: { title: 'Quản lý môn học' } },
+        { path: 'courses', name: 'staff-courses', component: () => import('../views/GiaoVu/Courses/CourseManagementView.vue'), meta: { title: 'Danh sách khóa học', subtitle: 'Quản lý và phân phối môn học cho giảng viên và lớp hành chính' } },
+        
+        // Đăng ký, Dung lượng, Trạng thái khóa học
+        { path: 'registrations', name: 'staff-registrations', component: () => import('../views/GiaoVu/Registration/RegistrationPeriodsView.vue'), meta: { title: 'Quản lý đợt đăng ký', subtitle: 'Cấu hình và quản lý các đợt đăng ký môn học' } },
+        { path: 'capacity', name: 'staff-capacity', component: () => import('../views/GiaoVu/Registration/CapacityAdjustmentView.vue'), meta: { title: 'Điều chỉnh dung lượng', subtitle: 'Quản lý sức chứa và danh sách chờ các lớp học' } },
+        { path: 'course-status', name: 'staff-course-status', component: () => import('../views/GiaoVu/Registration/CourseStatusView.vue'), meta: { title: 'Trạng thái khóa học', subtitle: 'Giám sát trạng thái các lớp học và xử lý hủy lớp' } },
         
         // Đơn từ (Requests)
         { path: 'requests', name: 'staff-requests', component: () => import('../views/GiaoVu/Requests/PendingRequestsView.vue') , meta: { title: 'Đơn cần xử lý' } },
@@ -386,6 +395,8 @@ const router = createRouter({
           name: 'staff-notices-history',
           component: () => import('../views/GiaoVu/Notices/NoticeHistoryView.vue'),
         },
+        { path: 'classes', name: 'staff-classes', component: () => import('../views/GiaoVu/Classes/ClassManagementView.vue'), meta: { title: 'Lớp hành chính' } },
+        { path: 'accounts', name: 'staff-accounts', component: () => import('../views/GiaoVu/Accounts/AccountManagementView.vue'), meta: { title: 'Quản lý tài khoản' } },
         {
           path: 'profile',
           name: 'staff-profile',

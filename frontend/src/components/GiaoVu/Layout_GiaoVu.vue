@@ -62,6 +62,7 @@ const pageTitleMap = {
 
   '/staff/capacity': { title: 'Điều chỉnh sức chứa', subtitle: 'Thay đổi giới hạn số lượng sinh viên cho lớp' },
   '/staff/course-status': { title: 'Hủy / Mở lớp', subtitle: 'Xử lý các lớp không đủ sĩ số tối thiểu' },
+  '/staff/courses': { title: 'Danh sách khóa học', subtitle: 'Quản lý và phân phối môn học cho giảng viên và lớp hành chính' },
   '/staff/requests': { title: 'Xử lý đơn từ', subtitle: 'Phê duyệt hoặc từ chối các yêu cầu từ sinh viên/giảng viên' },
   '/staff/notifications': { title: 'Thông báo', subtitle: 'Quản lý thông báo học vụ' },
   '/staff/notices/send': { title: 'Gửi thông báo', subtitle: 'Gửi thông báo học vụ đến sinh viên và giảng viên' },

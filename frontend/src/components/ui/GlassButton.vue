@@ -61,7 +61,7 @@ const loaderSize = computed(() => (props.size === 'sm' ? 14 : 16))
   >
     <LoaderCircle v-if="loading" :size="loaderSize" class="animate-spin" aria-hidden="true" />
     <slot name="leading" />
-    <span>
+    <span class="inline-flex items-center">
       <slot />
     </span>
     <slot name="trailing" />

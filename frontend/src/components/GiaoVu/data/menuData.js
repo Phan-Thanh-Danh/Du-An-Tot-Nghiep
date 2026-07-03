@@ -25,6 +25,18 @@ export const giaoVuMenuGroups = [
     ],
   },
 
+  // ── QUẢN LÝ KHÓA HỌC ─────────────────────────────────────
+  {
+    id: 'quan-ly-khoa-hoc',
+    label: 'Quản lý khóa học',
+    icon: 'BookOpen',
+    children: [
+      { id: 'academic-terms', label: 'Học kỳ', icon: 'Calendar', route: '/staff/academic-terms' },
+      { id: 'subject-list', label: 'Môn học', icon: 'Book', route: '/staff/subjects' },
+      { id: 'course-list', label: 'Danh sách khóa học', icon: 'List', route: '/staff/courses' },
+    ],
+  },
+
   // ── CƠ SỞ VẬT CHẤT ────────────────────────────────────────
   {
     id: 'co-so-vat-chat',
@@ -34,6 +46,7 @@ export const giaoVuMenuGroups = [
       { id: 'building-mgmt', label: 'Tòa nhà', icon: 'Building', route: '/staff/buildings' },
       { id: 'floor-mgmt', label: 'Lầu', icon: 'Layers', route: '/staff/floors' },
       { id: 'room-mgmt', label: 'Phòng học', icon: 'MapPin', route: '/staff/rooms' },
+      { id: 'shift-mgmt', label: 'Ca học', icon: 'Clock', route: '/staff/shifts' },
     ],
   },
 
@@ -70,6 +83,17 @@ export const giaoVuMenuGroups = [
     children: [
       { id: 'send-notice', label: 'Gửi thông báo', icon: 'Send', route: '/staff/notices/send' },
       { id: 'notice-history', label: 'Lịch sử thông báo', icon: 'MessageSquare', route: '/staff/notices/history' },
+    ],
+  },
+
+  // ── LỚP & NGƯỜI DÙNG ──────────────────────────────────────
+  {
+    id: 'lop-nguoi-dung',
+    label: 'Lớp & Người dùng',
+    icon: 'Users',
+    children: [
+      { id: 'class-mgmt', label: 'Lớp hành chính', icon: 'Users', route: '/staff/classes' },
+      { id: 'account-mgmt', label: 'Tài khoản', icon: 'UserCog', route: '/staff/accounts' },
     ],
   },
 

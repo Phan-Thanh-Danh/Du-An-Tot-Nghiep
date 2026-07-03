@@ -85,7 +85,7 @@ onMounted(() => { loadData() })
              <Building2 :size="18" class="text-muted" />
              <h3 class="font-bold text-heading">{{ item.dept }}</h3>
            </div>
-           <GlassBadge :variant="item.status === 'active' ? 'success' : 'default'" size="xs">
+           <GlassBadge :variant="item.status === 'active' ? 'success' : 'default'" size="sm">
              {{ item.status === 'active' ? 'Đang áp dụng' : 'Lưu trữ' }}
            </GlassBadge>
          </div>

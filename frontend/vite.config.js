@@ -22,8 +22,9 @@ export default defineConfig({
       key: fs.readFileSync('../certs/lms-key.pem'),
     },
     hmr: {
-      host: '192.168.2.4',
-      protocol: 'wss',
+      host: 'localhost',
+      port: 5175,
+      protocol: 'ws',
     }
   },
   resolve: {

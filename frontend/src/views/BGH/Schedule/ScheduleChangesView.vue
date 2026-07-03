@@ -139,10 +139,10 @@ onMounted(() => { loadData() })
             <div class="min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <h3 class="font-bold text-heading text-sm">{{ item.subject }}</h3>
-                <GlassBadge :variant="changeTypeBadge(item.type).variant" size="xs">{{ changeTypeBadge(item.type).label }}</GlassBadge>
-                <GlassBadge v-if="item.status === 'pending'" variant="warning" size="xs">Chờ duyệt</GlassBadge>
-                <GlassBadge v-else-if="item.status === 'approved'" variant="success" size="xs">Đã duyệt</GlassBadge>
-                <GlassBadge v-else variant="danger" size="xs">Từ chối</GlassBadge>
+                <GlassBadge :variant="changeTypeBadge(item.type).variant" size="sm">{{ changeTypeBadge(item.type).label }}</GlassBadge>
+                <GlassBadge v-if="item.status === 'pending'" variant="warning" size="sm">Chờ duyệt</GlassBadge>
+                <GlassBadge v-else-if="item.status === 'approved'" variant="success" size="sm">Đã duyệt</GlassBadge>
+                <GlassBadge v-else variant="danger" size="sm">Từ chối</GlassBadge>
               </div>
               <div class="mt-2 space-y-1">
                 <div class="flex items-center gap-2 text-sm text-body">

@@ -137,8 +137,8 @@ onMounted(() => { loadData() })
               <div>
                 <div class="flex items-center gap-2">
                   <span class="text-xs font-mono font-bold text-muted">{{ cf.id }}</span>
-                  <GlassBadge :variant="cf.severity === 'critical' ? 'danger' : 'warning'" size="xs">{{ cf.severity === 'critical' ? 'Nghiêm trọng' : 'Cảnh báo' }}</GlassBadge>
-                  <GlassBadge v-if="cf.status === 'resolved'" variant="success" size="xs">Đã xử lý</GlassBadge>
+                  <GlassBadge :variant="cf.severity === 'critical' ? 'danger' : 'warning'" size="sm">{{ cf.severity === 'critical' ? 'Nghiêm trọng' : 'Cảnh báo' }}</GlassBadge>
+                  <GlassBadge v-if="cf.status === 'resolved'" variant="success" size="sm">Đã xử lý</GlassBadge>
                 </div>
                 <p class="text-sm font-bold text-heading mt-0.5">{{ cf.type === 'room' ? 'Trùng phòng' : 'Trùng giảng viên' }}</p>
               </div>
