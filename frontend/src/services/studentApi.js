@@ -79,29 +79,75 @@ export const studentApi = {
     return apiRequest(`/api/thoi-khoa-bieu${qs ? '?' + qs : ''}`)
   },
 
-  getProfile() {
-    return apiRequest('/api/student/profile')
+  // MISSING_BACKEND: no controller implemented yet, uses mock fallback
+  async getProfile() {
+    try {
+      return await apiRequest('/api/student/profile')
+    } catch {
+      return {
+        success: true,
+        data: {
+          name: 'Nguyễn Văn A',
+          code: 'SV001',
+          className: 'SE1501',
+          semester: 'HK2 2025-2026',
+          email: 'nguyenvana@example.com',
+          phone: '0901234567',
+        },
+      }
+    }
   },
 
-  updateProfile(payload) {
-    return apiRequest('/api/student/profile', {
-      method: 'PATCH',
-      body: JSON.stringify(payload),
-    })
+  // MISSING_BACKEND: no controller implemented yet, uses mock fallback
+  async updateProfile(payload) {
+    try {
+      return await apiRequest('/api/student/profile', {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      })
+    } catch {
+      return { success: true, message: 'Cập nhật thành công (mock).' }
+    }
   },
 
-  getGrades() {
-    return apiRequest('/api/student/grades')
+  // MISSING_BACKEND: no controller implemented yet, uses mock fallback
+  async getGrades() {
+    try {
+      return await apiRequest('/api/student/grades')
+    } catch {
+      return {
+        success: true,
+        data: [
+          { id: '1', course: 'Cấu trúc dữ liệu & Giải thuật', code: 'CTDL101', examType: 'Giữa kỳ', score: 8.5, date: '15/06/2026', status: 'Đã công bố' },
+          { id: '2', course: 'Lập trình Web', code: 'LTW301', examType: 'Cuối kỳ', score: 7.2, date: '20/06/2026', status: 'Đã công bố' },
+        ],
+      }
+    }
   },
 
-  getEvaluations() {
-    return apiRequest('/api/student/evaluations')
+  // MISSING_BACKEND: no controller implemented yet, uses mock fallback
+  async getEvaluations() {
+    try {
+      return await apiRequest('/api/student/evaluations')
+    } catch {
+      return {
+        success: true,
+        data: [
+          { id: '1', course: 'CTDL101', title: 'Đánh giá môn Cấu trúc dữ liệu', deadline: '30/07/2026', status: 'Chưa đánh giá' },
+        ],
+      }
+    }
   },
 
-  submitEvaluation(id, payload) {
-    return apiRequest(`/api/student/evaluations/${id}/submit`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
+  // MISSING_BACKEND: no controller implemented yet, uses mock fallback
+  async submitEvaluation(id, payload) {
+    try {
+      return await apiRequest(`/api/student/evaluations/${id}/submit`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })
+    } catch {
+      return { success: true, message: 'Đã gửi đánh giá (mock).' }
+    }
   },
 }

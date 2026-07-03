@@ -1,5 +1,21 @@
 <template>
   <div class="space-y-4 pb-10 h-[calc(100vh-8rem)] flex flex-col">
+    <!-- Loading State -->
+    <div v-if="loading" class="flex-1 flex items-center justify-center">
+      <div class="flex flex-col items-center gap-3 text-muted">
+        <Loader2 :size="32" class="animate-spin" />
+        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
+      </div>
+    </div>
+    <!-- Error State -->
+    <div v-else-if="error" class="flex-1 flex items-center justify-center">
+      <div class="flex flex-col items-center gap-3">
+        <AlertCircle :size="32" class="text-(--color-danger-text)" />
+        <p class="text-sm text-(--color-danger-text) font-medium">{{ error }}</p>
+        <button @click="loadData()" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
+      </div>
+    </div>
+    <template v-else>
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
         <h2 class="sr-only text-xl font-bold text-heading">Quản lý Người Dùng</h2>
@@ -139,12 +155,19 @@
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { Search, Plus, Edit2, Lock, Unlock, Key, CheckCircle2, AlertTriangle, X } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { Search, Plus, Edit2, Lock, Unlock, Key, CheckCircle2, AlertTriangle, AlertCircle, Loader2, X } from 'lucide-vue-next'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
+
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 
 const keyword = ref('')
 const roleFilter = ref('')
@@ -215,8 +238,26 @@ const mockUsers = [
   { maNguoiDung: 24, maDonVi: 1, email: 'buithanh@lms.edu.vn', hoTen: 'Bùi Thanh', vaiTroChinh: 'nhan_vien', tenVaiTro: 'Giáo vụ', tenDonVi: 'Phòng Đào tạo', soDienThoai: '0909 123 022', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/06/2023', lanDangNhapCuoi: '13/06/2026 07:30' },
 ]
 
+const users = ref(mockUsers)
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await bghApi.getUsers()
+      users.value = unwrapApiData(res) || mockUsers
+    }
+  } catch (e) {
+    error.value = e?.message || 'Lỗi tải dữ liệu người dùng'
+    users.value = mockUsers
+  } finally {
+    loading.value = false
+  }
+}
+
 const filteredUsers = computed(() => {
-  return mockUsers.filter(u => {
+  return users.value.filter(u => {
     if (keyword.value) {
       const kw = keyword.value.toLowerCase()
       if (!u.hoTen.toLowerCase().includes(kw) && !u.email.toLowerCase().includes(kw) && !(u.soDienThoai || '').includes(kw)) return false
@@ -298,4 +339,6 @@ function handleResetPassword(user) {
   if (!newPassword || newPassword.length < 8) return
   console.log('Đặt lại mật khẩu thành công!')
 }
+
+onMounted(() => { loadData() })
 </script>

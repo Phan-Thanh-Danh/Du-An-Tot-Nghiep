@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { 
   User, 
   Mail, 
@@ -16,10 +16,20 @@ import {
   Award,
   Users,
   BarChart3,
-  Globe
+  Globe,
+  AlertCircle,
+  Loader2,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { mockBGH } from '@/components/BGH/data/menuData.js'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 
 // ── Mock Data ────────────────────────────────────────────────
 const profile = ref({
@@ -36,6 +46,28 @@ const stats = [
   { label: 'Cơ sở', value: '3', icon: Globe, color: 'text-(--color-warning-text)', bg: 'bg-(--color-warning-bg)' },
 ]
 
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const userData = auth.user
+      if (userData) {
+        profile.value = {
+          ...profile.value,
+          name: userData.fullName || userData.FullName || profile.value.name,
+          email: userData.email || userData.Email || profile.value.email,
+        }
+      }
+    }
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    loading.value = false
+  }
+}
+onMounted(() => { loadData() })
+
 const loginHistory = ref([
   { id: 1, device: 'Chrome / Windows 11', ip: '1.55.xxx.xxx', time: '16/05/2026 20:15', status: 'current' },
   { id: 2, device: 'Safari / MacBook Pro', ip: '1.55.xxx.xxx', time: '15/05/2026 09:45', status: 'previous' },
@@ -48,7 +80,16 @@ const loginHistory = ref([
     title="Hồ sơ Hiệu trưởng" 
     subtitle="Quản lý thông tin lãnh đạo, bảo mật tài khoản và giám sát hoạt động hệ thống."
   >
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <Loader2 :size="32" class="animate-spin text-placeholder" />
+    </div>
+    <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">
+      <AlertCircle :size="48" class="text-(--color-danger-text) mb-4" />
+      <p class="text-lg font-semibold text-muted">Đã có lỗi xảy ra</p>
+      <p class="text-sm text-placeholder mt-1">{{ error }}</p>
+      <button @click="loadData" class="mt-4 lg-button-secondary px-4 py-2 text-sm font-semibold">Thử lại</button>
+    </div>
+    <div v-else class="grid grid-cols-1 xl:grid-cols-3 gap-8">
       
       <!-- ── Left: Executive Profile Card ── -->
       <div class="space-y-4">

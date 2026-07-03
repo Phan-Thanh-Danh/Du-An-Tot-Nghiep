@@ -27,9 +27,8 @@ const showToast = (message: string, type: 'success' | 'error' = 'success') => {
 
 // ─── State ─────────────────────────────────────────────────────────────
 const quizStore = useQuizStore()
-quizStore.init()
 const quizzes = computed(() => quizStore.quizzes)
-const isLoading = ref(true)
+const isLoading = computed(() => quizStore.loading)
 
 const filters = ref({
   keyword: '',
@@ -80,9 +79,9 @@ onMounted(() => {
   if (route.query.page) currentPage.value = Number(route.query.page)
   if (route.query.pageSize) pageSize.value = Number(route.query.pageSize)
 
-  setTimeout(() => {
+  quizStore.init().finally(() => {
     isLoading.value = false
-  }, 600)
+  })
 })
 
 // ─── Sync URL ─────────────────────────────────────────────────────────

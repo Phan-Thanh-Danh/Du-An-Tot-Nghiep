@@ -1,5 +1,21 @@
 ﻿<template>
   <div class="space-y-4 pb-10">
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3 text-muted">
+        <Loader2 :size="32" class="animate-spin" />
+        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
+      </div>
+    </div>
+    <!-- Error State -->
+    <div v-else-if="error" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3">
+        <AlertCircle :size="32" class="text-(--color-danger-text)" />
+        <p class="text-sm text-(--color-danger-text) font-medium">{{ error }}</p>
+        <button @click="loadData()" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
+      </div>
+    </div>
+    <template v-else>
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
         <h2 class="sr-only text-xl font-bold text-heading">Khung chương trình</h2>
@@ -82,22 +98,31 @@
       <Library :size="40" class="mx-auto mb-3 opacity-50" />
       <p>Vui lòng chọn chương trình đào tạo để xem khung chương trình.</p>
     </div>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { Library, CheckCircle2, FileText, AlertCircle, Eye, Archive } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { Library, CheckCircle2, FileText, AlertCircle, Eye, Archive, Loader2 } from 'lucide-vue-next'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
+
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 
 const selectedProgram = ref(1)
 
-const programs = [
+const mockPrograms = [
   { maChuongTrinh: 1, tenChuongTrinh: 'Công nghệ thông tin - Khóa 19', tenChuyenNganh: 'Công nghệ thông tin (Ứng dụng phần mềm)', soHocKy: 7, trangThai: 'active' },
   { maChuongTrinh: 3, tenChuongTrinh: 'Quản trị Kinh doanh - Khóa 19', tenChuyenNganh: 'Quản trị Kinh doanh (Kế toán)', soHocKy: 6, trangThai: 'active' },
   { maChuongTrinh: 4, tenChuongTrinh: 'Thiết kế Đồ họa - Khóa 19', tenChuyenNganh: 'Thiết kế Đồ họa', soHocKy: 6, trangThai: 'approved' },
 ]
 
-const subjectCatalog = [
+const programs = ref(mockPrograms)
+
+const mockSubjectCatalog = [
   { maMonHoc: 1, maCodeMonHoc: 'COM101', tenMonHoc: 'Tin học cơ sở', soTinChi: 3 },
   { maMonHoc: 2, maCodeMonHoc: 'ENG101', tenMonHoc: 'Tiếng Anh 1', soTinChi: 4 },
   { maMonHoc: 3, maCodeMonHoc: 'MATH101', tenMonHoc: 'Toán rời rạc', soTinChi: 3 },
@@ -120,7 +145,9 @@ const subjectCatalog = [
   { maMonHoc: 20, maCodeMonHoc: 'PRO401', tenMonHoc: 'Lập trình nâng cao', soTinChi: 4 },
 ]
 
-const semesterData = [
+const subjectCatalog = ref(mockSubjectCatalog)
+
+const mockSemesterData = [
   { maChuongTrinh: 1, maChuongTrinhHocKy: 1, thuTuHocKy: 1, monHocs: [1, 2, 3, 4, 5], ghiChu: '' },
   { maChuongTrinh: 1, maChuongTrinhHocKy: 2, thuTuHocKy: 2, monHocs: [6, 7, 8, 9, 15], ghiChu: '' },
   { maChuongTrinh: 1, maChuongTrinhHocKy: 3, thuTuHocKy: 3, monHocs: [10, 11, 16, 17], ghiChu: '' },
@@ -129,7 +156,30 @@ const semesterData = [
   { maChuongTrinh: 1, maChuongTrinhHocKy: 6, thuTuHocKy: 6, monHocs: [14], ghiChu: 'Học kỳ làm đồ án tốt nghiệp' },
 ]
 
-const currentProgram = computed(() => programs.find(p => p.maChuongTrinh === selectedProgram.value))
+const semesterData = ref(mockSemesterData)
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const [progRes, subjRes] = await Promise.all([
+        bghApi.getPrograms(),
+        bghApi.getSubjects(),
+      ])
+      const progData = unwrapApiData(progRes)
+      const subjData = unwrapApiData(subjRes)
+      if (progData) programs.value = progData
+      if (subjData) subjectCatalog.value = subjData
+    }
+  } catch (e) {
+    error.value = e?.message || 'Lỗi tải dữ liệu chương trình đào tạo'
+  } finally {
+    loading.value = false
+  }
+}
+
+const currentProgram = computed(() => programs.value.find(p => p.maChuongTrinh === selectedProgram.value))
 
 const totalCredits = computed(() => {
   let total = 0
@@ -142,11 +192,11 @@ const totalCredits = computed(() => {
 })
 
 const semesters = computed(() => {
-  const filtered = semesterData.filter(s => s.maChuongTrinh === selectedProgram.value)
+  const filtered = semesterData.value.filter(s => s.maChuongTrinh === selectedProgram.value)
   return filtered.map(sem => ({
     ...sem,
     subjects: sem.monHocs.map(id => {
-      const mon = subjectCatalog.find(m => m.maMonHoc === id)
+      const mon = subjectCatalog.value.find(m => m.maMonHoc === id)
       return {
         maChuongTrinhMonHoc: id,
         maCodeMonHoc: mon.maCodeMonHoc,
@@ -158,7 +208,7 @@ const semesters = computed(() => {
         conHoatDong: true,
       }
     }),
-    totalCredits: sem.monHocs.reduce((sum, id) => sum + (subjectCatalog.find(m => m.maMonHoc === id)?.soTinChi || 0), 0),
+    totalCredits: sem.monHocs.reduce((sum, id) => sum + (subjectCatalog.value.find(m => m.maMonHoc === id)?.soTinChi || 0), 0),
   }))
 })
 
@@ -177,4 +227,6 @@ function statusLabel(status) {
     default: return status
   }
 }
+
+onMounted(() => { loadData() })
 </script>

@@ -1,5 +1,15 @@
 ﻿<template>
   <div class="space-y-6 pb-10">
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <Loader2 :size="32" class="animate-spin text-placeholder" />
+    </div>
+    <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">
+      <AlertCircle :size="48" class="text-(--color-danger-text) mb-4" />
+      <p class="text-lg font-semibold text-muted">Đã có lỗi xảy ra</p>
+      <p class="text-sm text-placeholder mt-1">{{ error }}</p>
+      <button @click="loadData" class="mt-4 lg-button-secondary px-4 py-2 text-sm font-semibold">Thử lại</button>
+    </div>
+    <template v-else>
     <div class="surface-card border border-card rounded-2xl overflow-hidden shadow-sm">
       <div class="p-6 lg:p-8">
         <div class="flex flex-col lg:flex-row items-center lg:items-start gap-6">
@@ -131,15 +141,26 @@
         </div>
       </div>
     </div>
+  </template>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import {
   Edit2, ShieldCheck, CheckCircle2, Eye, EyeOff,
-  Monitor, Smartphone
+  Monitor, Smartphone, AlertCircle, Loader2
 } from 'lucide-vue-next'
+import { usePopupStore } from '@/stores/popup'
+import { useAuthStore } from '@/stores/auth'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
+
+const popup = usePopupStore()
+const auth = useAuthStore()
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 
 const profile = {
   maNguoiDung: 1,
@@ -208,6 +229,27 @@ function changePassword() {
   passwordForm.newPassword = ''
   passwordForm.confirmPassword = ''
 }
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const userData = auth.user
+      if (userData) {
+        profile.hoTen = userData.fullName || userData.FullName || profile.hoTen
+        profile.email = userData.email || userData.Email || profile.email
+        profile.soDienThoai = userData.phone || userData.Phone || profile.soDienThoai
+        profile.initials = auth.initials || profile.initials
+      }
+    }
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    loading.value = false
+  }
+}
+onMounted(() => { loadData() })
 
 const recentActivity = [
   { action: 'Đăng nhập hệ thống', time: 'Hôm nay, 08:30' },

@@ -1,11 +1,17 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { 
-  Search, Filter, Trophy, TrendingUp, TrendingDown, Minus, Star, ChevronRight, ShieldCheck, Building2
+  Search, Filter, Trophy, TrendingUp, TrendingDown, Minus, Star, ChevronRight, ShieldCheck, Building2,
+  AlertCircle, Loader2
 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
 
 const router = useRouter()
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 const searchQuery = ref('')
 const deptFilter = ref('all')
 
@@ -46,6 +52,23 @@ const getTrendColor = (trend) => {
   return 'text-muted'
 }
 
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await bghApi.getEvaluations()
+      const data = unwrapApiData(res)
+      if (data && data.length) rankings.value = data
+    }
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    loading.value = false
+  }
+}
+onMounted(() => { loadData() })
+
 function viewDetail(gv) {
   router.push(`/bgh/evaluations/detail/GV00${gv.id}`)
 }
@@ -53,7 +76,16 @@ function viewDetail(gv) {
 
 <template>
   <div class="space-y-4">
-    <div class="space-y-4">
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <Loader2 :size="32" class="animate-spin text-placeholder" />
+    </div>
+    <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">
+      <AlertCircle :size="48" class="text-(--color-danger-text) mb-4" />
+      <p class="text-lg font-semibold text-muted">Đã có lỗi xảy ra</p>
+      <p class="text-sm text-placeholder mt-1">{{ error }}</p>
+      <button @click="loadData" class="mt-4 lg-button-secondary px-4 py-2 text-sm font-semibold">Thử lại</button>
+    </div>
+    <div v-else class="space-y-4">
       
       <div class="surface-card border border-(--color-info-text)/20 bg-(--color-info-bg) rounded-2xl p-5 flex items-center gap-4">
          <div class="h-10 w-10 rounded-2xl bg-(--surface-card) flex items-center justify-center text-(--color-info-text) shrink-0 border border-(--color-info-text)/20">

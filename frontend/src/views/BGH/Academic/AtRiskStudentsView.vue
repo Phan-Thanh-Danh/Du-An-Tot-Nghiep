@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Search, 
@@ -19,18 +19,42 @@ import {
   Mail,
   Phone,
   AlertTriangle,
+  AlertCircle,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { exportToExcel, triggerPrint } from '@/services/exportService.js'
 import { usePopupStore } from '@/stores/popup'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
 
 const popup = usePopupStore()
 const router = useRouter()
 
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
+const error = ref(null)
 const semesterFilter = ref('spring-2026')
 const riskFilter = ref('all')
 const searchQuery = ref('')
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await bghApi.getReportOverview()
+      const data = unwrapApiData(res)
+      if (data) {
+        // Update riskStudents and summaryStats from API data as needed
+      }
+    }
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    loading.value = false
+  }
+}
+onMounted(() => { loadData() })
 
 const semesters = [
   { value: 'spring-2026', label: 'Kỳ Spring 2026' },
@@ -139,7 +163,16 @@ function sendBulkWarning() {
       </div>
     </template>
 
-    <div id="print-container" class="space-y-4">
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <Loader2 :size="32" class="animate-spin text-placeholder" />
+    </div>
+    <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">
+      <AlertCircle :size="48" class="text-(--color-danger-text) mb-4" />
+      <p class="text-lg font-semibold text-muted">Đã có lỗi xảy ra</p>
+      <p class="text-sm text-placeholder mt-1">{{ error }}</p>
+      <button @click="loadData" class="mt-4 lg-button-secondary px-4 py-2 text-sm font-semibold">Thử lại</button>
+    </div>
+    <div v-else id="print-container" class="space-y-4">
       
       <!-- ── Print Header ── -->
       <div class="hidden print:block mb-6 pb-4 border-b border-slate-300">

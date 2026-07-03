@@ -1,5 +1,21 @@
 ﻿<template>
   <div class="space-y-4 pb-10">
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3 text-muted">
+        <Loader2 :size="32" class="animate-spin" />
+        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
+      </div>
+    </div>
+    <!-- Error State -->
+    <div v-else-if="error" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3">
+        <AlertCircle :size="32" class="text-(--color-danger-text)" />
+        <p class="text-sm text-(--color-danger-text) font-medium">{{ error }}</p>
+        <button @click="loadData()" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
+      </div>
+    </div>
+    <template v-else>
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
         <h2 class="sr-only text-xl font-bold text-heading">Cơ sở vật chất</h2>
@@ -75,40 +91,38 @@
       <Building2 :size="40" class="mx-auto mb-3 opacity-50" />
       <p>Không có tòa nhà nào.</p>
     </div>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { Building2, ChevronDown, ChevronRight, Users } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { Building2, MapPin, Monitor, Users, Wifi, Coffee, Dumbbell, Car, ChevronDown, ChevronRight, Search, Eye, Layers, AlertCircle, Loader2 } from 'lucide-vue-next'
+import { usePopupStore } from '@/stores/popup'
+import { apiRequest } from '@/services/apiClient'
 
-const campusFilter = ref('')
-const expandedBuilding = ref(null)
-const expandedFloor = ref(null)
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 
-function toggleBuilding(id) {
-  expandedBuilding.value = expandedBuilding.value === id ? null : id
-  expandedFloor.value = null
-}
+const popup = usePopupStore()
+const searchQuery = ref('')
+const typeFilter = ref('all')
+const statusFilter = ref('all')
+const campusFilter = ref('all')
+const expandedBuildings = ref(new Set())
+const showFilterDetail = ref(false)
 
-function toggleFloor(id) {
-  expandedFloor.value = expandedFloor.value === id ? null : id
-}
-
-const campuses = [
-  { maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh' },
-  { maDonVi: 2, tenDonVi: 'FPT Polytechnic Đà Nẵng' },
-  { maDonVi: 3, tenDonVi: 'FPT Polytechnic Cần Thơ' },
-]
-
-const buildings = [
+const mockBuildings = [
   { maToaNha: 1, maDonVi: 1, maCodeToaNha: 'PTO', tenToaNha: 'PTO Building', diaChi: 'Quận 12, TP.HCM', soTang: 5, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', conHoatDong: true },
   { maToaNha: 2, maDonVi: 1, maCodeToaNha: 'FBT', tenToaNha: 'FBT Tower', diaChi: 'Quận 12, TP.HCM', soTang: 3, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', conHoatDong: true },
   { maToaNha: 3, maDonVi: 2, maCodeToaNha: 'DNG', tenToaNha: 'Đà Nẵng Campus', diaChi: 'Quận Hải Châu, Đà Nẵng', soTang: 4, tenDonVi: 'FPT Polytechnic Đà Nẵng', conHoatDong: true },
   { maToaNha: 4, maDonVi: 3, maCodeToaNha: 'CTO', tenToaNha: 'Cần Thơ Campus', diaChi: 'Quận Ninh Kiều, Cần Thơ', soTang: 3, tenDonVi: 'FPT Polytechnic Cần Thơ', conHoatDong: false },
 ]
 
-const floors = [
+const buildings = ref(mockBuildings)
+
+const mockFloors = [
   { maTang: 1, maToaNha: 1, tenTang: 'Tầng 1', thuTuTang: 1, conHoatDong: true },
   { maTang: 2, maToaNha: 1, tenTang: 'Tầng 2', thuTuTang: 2, conHoatDong: true },
   { maTang: 3, maToaNha: 1, tenTang: 'Tầng 3', thuTuTang: 3, conHoatDong: true },
@@ -123,7 +137,9 @@ const floors = [
   { maTang: 12, maToaNha: 4, tenTang: 'Tầng 1', thuTuTang: 1, conHoatDong: false },
 ]
 
-const rooms = [
+const floors = ref(mockFloors)
+
+const mockRooms = [
   { maPhong: 1, maDonVi: 1, maToaNha: 1, maTang: 1, maCodePhong: 'PTO.101', tenPhong: 'Phòng 101', sucChua: 40, loaiPhong: 'ly_thuyet', loaiPhongLabel: 'Lý thuyết', trangThaiPhong: 'dang_su_dung' },
   { maPhong: 2, maDonVi: 1, maToaNha: 1, maTang: 1, maCodePhong: 'PTO.102', tenPhong: 'Phòng 102', sucChua: 35, loaiPhong: 'ly_thuyet', loaiPhongLabel: 'Lý thuyết', trangThaiPhong: 'dang_su_dung' },
   { maPhong: 3, maDonVi: 1, maToaNha: 1, maTang: 1, maCodePhong: 'PTO.103', tenPhong: 'Phòng Lab 103', sucChua: 25, loaiPhong: 'thuc_hanh', loaiPhongLabel: 'Thực hành', trangThaiPhong: 'dang_su_dung' },
@@ -140,17 +156,37 @@ const rooms = [
   { maPhong: 14, maDonVi: 2, maToaNha: 3, maTang: 11, maCodePhong: 'DNG.301', tenPhong: 'Phòng 301', sucChua: 80, loaiPhong: 'hoi_truong', loaiPhongLabel: 'Hội trường', trangThaiPhong: 'ngung_hoat_dong' },
 ]
 
+const rooms = ref(mockRooms)
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await apiRequest('/api/master-data/rooms')
+      const data = res?.data ?? res?.Data
+      if (data) {
+        rooms.value = data
+      }
+    }
+  } catch (e) {
+    error.value = e?.message || 'Lỗi tải dữ liệu cơ sở vật chất'
+  } finally {
+    loading.value = false
+  }
+}
+
 const filteredBuildings = computed(() => {
-  if (!campusFilter.value) return buildings
-  return buildings.filter(b => b.maDonVi === parseInt(campusFilter.value))
+  if (!campusFilter.value) return buildings.value
+  return buildings.value.filter(b => b.maDonVi === parseInt(campusFilter.value))
 })
 
 function getFloors(buildingId) {
-  return floors.filter(f => f.maToaNha === buildingId)
+  return floors.value.filter(f => f.maToaNha === buildingId)
 }
 
 function getRooms(floorId) {
-  return rooms.filter(r => r.maTang === floorId)
+  return rooms.value.filter(r => r.maTang === floorId)
 }
 
 function roomTypeBadge(type) {
@@ -179,4 +215,6 @@ function roomStatusLabel(status) {
     default: return status
   }
 }
+
+onMounted(() => { loadData() })
 </script>

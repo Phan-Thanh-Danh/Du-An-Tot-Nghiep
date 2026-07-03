@@ -1,13 +1,19 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { 
-  Users, Star, MessageCircle, ShieldAlert, PieChart, ChevronRight, CheckCircle2
+  Users, Star, MessageCircle, ShieldAlert, PieChart, ChevronRight, CheckCircle2,
+  AlertCircle, Loader2
 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { usePopupStore } from '@/stores/popup'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
 
 const router = useRouter()
 const popup = usePopupStore()
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 
 const kpis = [
   { id: 1, label: 'GV được đánh giá', value: '142', trend: '95% tổng số', icon: Users, color: 'text-(--color-info-text)', bgColor: 'bg-(--color-info-bg)' },
@@ -32,6 +38,25 @@ const trendHistory = [
 
 const maxTrend = Math.max(...trendHistory.map(t => t.val), 5)
 
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await bghApi.getEvaluations()
+      const data = unwrapApiData(res)
+      if (data) {
+        // Update KPIs and sentiment from API data as needed
+      }
+    }
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    loading.value = false
+  }
+}
+onMounted(() => { loadData() })
+
 function viewWarningList() {
   router.push('/bgh/evaluations/ranking')
 }
@@ -39,7 +64,16 @@ function viewWarningList() {
 
 <template>
   <div class="space-y-8">
-    <div class="space-y-8">
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <Loader2 :size="32" class="animate-spin text-placeholder" />
+    </div>
+    <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">
+      <AlertCircle :size="48" class="text-(--color-danger-text) mb-4" />
+      <p class="text-lg font-semibold text-muted">Đã có lỗi xảy ra</p>
+      <p class="text-sm text-placeholder mt-1">{{ error }}</p>
+      <button @click="loadData" class="mt-4 lg-button-secondary px-4 py-2 text-sm font-semibold">Thử lại</button>
+    </div>
+    <div v-else class="space-y-8">
       
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <div v-for="kpi in kpis" :key="kpi.id" class="surface-card border border-card rounded-2xl p-4 group hover:border-(--border-input-focus) transition-all">

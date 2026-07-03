@@ -58,7 +58,7 @@ const mockNotifications = [
 ]
 
 export const staffApi = {
-  // × MISSING_BACKEND: /api/staff/dashboard
+  // + P2: StaffDashboardController created
   async getDashboard() {
     try {
       return unwrapApiData(await apiRequest('/api/staff/dashboard'))
@@ -225,23 +225,23 @@ export const staffApi = {
   },
 
   // ── Notices ──
-  // √ Remap to /api/notifications
+  // √ Actual endpoint: /api/admin/notifications
   getNotices(params = {}) {
     const query = new URLSearchParams()
     if (params.pageIndex) query.append('pageIndex', params.pageIndex)
     if (params.pageSize) query.append('pageSize', params.pageSize)
     const qs = query.toString()
-    return apiRequest(`/api/notices${qs ? '?' + qs : ''}`)
+    return apiRequest(`/api/admin/notifications${qs ? '?' + qs : ''}`)
   },
 
   createNotice(payload) {
-    return apiRequest('/api/notices', {
+    return apiRequest('/api/admin/notifications', {
       method: 'POST',
       body: JSON.stringify(payload),
     })
   },
 
-  // × MISSING_BACKEND (dự kiến: /api/rooms/book)
+  // + P2: StaffRoomBookingsController created
   bookRoom(payload) {
     return apiRequest('/api/staff/rooms/book', {
       method: 'POST',

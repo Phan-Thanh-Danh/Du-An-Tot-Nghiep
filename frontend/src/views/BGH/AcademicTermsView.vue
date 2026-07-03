@@ -1,5 +1,21 @@
 ﻿<template>
   <div class="space-y-4 pb-10">
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3 text-muted">
+        <Loader2 :size="32" class="animate-spin" />
+        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
+      </div>
+    </div>
+    <!-- Error State -->
+    <div v-else-if="error" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3">
+        <AlertCircle :size="32" class="text-(--color-danger-text)" />
+        <p class="text-sm text-(--color-danger-text) font-medium">{{ error }}</p>
+        <button @click="loadData()" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
+      </div>
+    </div>
+    <template v-else>
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
         <h2 class="sr-only text-xl font-bold text-heading">Học kỳ & Khóa</h2>
@@ -79,16 +95,23 @@
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { CalendarDays, Lock, Unlock } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { CalendarDays, Lock, Unlock, AlertCircle, Loader2 } from 'lucide-vue-next'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
+
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 
 const yearFilter = ref('')
 
-const academicTerms = [
+const mockTerms = [
   { maHocKy: 1, maDonVi: 1, maCodeHocKy: 'FA24', tenHocKy: 'Học kỳ Fall 2024', ngayBatDau: '02/09/2024', ngayKetThuc: '31/12/2024', namHoc: '2024-2025', thuTuTrongNam: 1, daKhoa: true, soTinChiToiDa: 24, hanRutMon: '15/10/2024' },
   { maHocKy: 2, maDonVi: 1, maCodeHocKy: 'SP25', tenHocKy: 'Học kỳ Spring 2025', ngayBatDau: '06/01/2025', ngayKetThuc: '30/05/2025', namHoc: '2024-2025', thuTuTrongNam: 2, daKhoa: true, soTinChiToiDa: 24, hanRutMon: '15/02/2025' },
   { maHocKy: 3, maDonVi: 1, maCodeHocKy: 'SU25', tenHocKy: 'Học kỳ Summer 2025', ngayBatDau: '09/06/2025', ngayKetThuc: '31/08/2025', namHoc: '2025-2026', thuTuTrongNam: 3, daKhoa: true, soTinChiToiDa: 18, hanRutMon: '30/06/2025' },
@@ -98,8 +121,26 @@ const academicTerms = [
   { maHocKy: 7, maDonVi: 2, maCodeHocKy: 'SP26-DN', tenHocKy: 'Học kỳ Spring 2026 - Đà Nẵng', ngayBatDau: '05/01/2026', ngayKetThuc: '29/05/2026', namHoc: '2025-2026', thuTuTrongNam: 2, daKhoa: false, soTinChiToiDa: 24, hanRutMon: '15/02/2026' },
 ]
 
+const terms = ref(mockTerms)
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await bghApi.getAcademicTerms()
+      terms.value = unwrapApiData(res) || mockTerms
+    }
+  } catch (e) {
+    error.value = e?.message || 'Lỗi tải dữ liệu học kỳ'
+    terms.value = mockTerms
+  } finally {
+    loading.value = false
+  }
+}
+
 const academicYears = computed(() => {
-  const years = new Set(academicTerms.map(t => t.namHoc))
+  const years = new Set(terms.value.map(t => t.namHoc))
   return [...years].sort()
 })
 
@@ -111,9 +152,11 @@ const cohorts = [
 ]
 
 const filteredTerms = computed(() => {
-  if (!yearFilter.value) return academicTerms
-  return academicTerms.filter(t => t.namHoc === yearFilter.value)
+  if (!yearFilter.value) return terms.value
+  return terms.value.filter(t => t.namHoc === yearFilter.value)
 })
 
 function filterData() {}
+
+onMounted(() => { loadData() })
 </script>

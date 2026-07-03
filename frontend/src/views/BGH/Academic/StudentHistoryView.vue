@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft,
@@ -13,12 +13,18 @@ import {
   XCircle,
   Clock,
   Award,
+  Loader2,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
 
 const route = useRoute()
 const router = useRouter()
 const studentId = Number(route.params.studentId)
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 
 const allStudents = [
   { id: 1, name: 'Lê Hoàng Minh', code: 'SV2024005', class: 'SE1601', subject: 'Cấu trúc dữ liệu', grade: 3.5, attendance: 75, risk: 'critical', reason: 'Điểm Lab thấp & Vắng mặt liên tục (2 tuần).' },
@@ -70,6 +76,25 @@ function getRiskBadge(risk) {
     default: return 'surface-solid text-muted border-default'
   }
 }
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await bghApi.getReportOverview()
+      const data = unwrapApiData(res)
+      if (data) {
+        // Update student data from API response as needed
+      }
+    }
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    loading.value = false
+  }
+}
+onMounted(() => { loadData() })
 
 function goBack() {
   router.push('/bgh/academic/at-risk')
@@ -171,7 +196,16 @@ function goBack() {
         </div>
 
         <!-- ── Right Sidebar ── -->
-        <div class="space-y-6">
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <Loader2 :size="32" class="animate-spin text-placeholder" />
+    </div>
+    <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">
+      <AlertCircle :size="48" class="text-(--color-danger-text) mb-4" />
+      <p class="text-lg font-semibold text-muted">Đã có lỗi xảy ra</p>
+      <p class="text-sm text-placeholder mt-1">{{ error }}</p>
+      <button @click="loadData" class="mt-4 lg-button-secondary px-4 py-2 text-sm font-semibold">Thử lại</button>
+    </div>
+    <div v-else class="space-y-6">
 
           <!-- ── Attendance History ── -->
           <div class="surface-card border border-card rounded-2xl p-5">

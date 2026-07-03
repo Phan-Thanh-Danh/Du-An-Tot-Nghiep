@@ -56,6 +56,7 @@ onMounted(() => {
   if (q.status) filters.value.status = String(q.status)
   if (q.page) pagination.value.currentPage = Number(q.page) || 1
   if (q.pageSize) pagination.value.pageSize = Number(q.pageSize) || 20
+  questionStore.init()
 })
 
 // --- Computed ---

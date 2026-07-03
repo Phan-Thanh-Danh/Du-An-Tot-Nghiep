@@ -1,19 +1,19 @@
 # FE Integration Plan
 
 > Kết nối API thật cho các role đã có frontend.
-> Cập nhật lần cuối: 2026-07-02 | Phase 3 (Teacher) + Phase 4 (Staff/GiaoVu) completed
+> Cập nhật lần cuối: 2026-07-03 | Phase 5 (P2) — Connect All Remaining APIs completed
 
 ## Scope
 
 | Role | Routes | Priority | Status |
 |---|---|---|---|---|
 | SuperAdmin/Admin | dashboard, users, roles-permissions, organizations, login-history, training/* | P0 | ✅ All views connected |
-| Student | dashboard, courses, curriculum, assignments, exams, tuition, grades, schedule, attendance, registrations, requests, profile, notifications | P0 | ✅ Views updated (API + mock guard) |
-| Teacher | dashboard, classes, grading, exams, proctoring, attendance, assignments, requests | P1 | ✅ 7 views rewritten (Exams/Proctoring CONNECTED, rest PARTIAL/MISSING) |
-| Staff (GiaoVu) | dashboard, schedule, rooms, conflicts, requests, registration, notices, facilities, profile | P1 | ✅ staffApi rewritten with real endpoints; 14/21 views connected (Schedule, Requests, Notices, Registration, Facilities) |
-| BGH | dashboard, academic reports, schedule, evaluations, facilities, audit-logs | P2 | ❌ Pending |
-| Content Council | subjects, question-bank, quizzes, editor | P2 | ❌ Pending |
-| Parent | dashboard, grades, schedule, attendance, tuition | P3 | ❌ Pending |
+| Student | dashboard, courses, curriculum, assignments, exams, tuition, grades, schedule, attendance, registrations, requests, profile, notifications | P0 | ✅ Backend controllers fixed (drop hardcoded mock, real DB + JWT) |
+| Teacher | dashboard, classes, grading, exams, proctoring, attendance, assignments, requests | P1 | ✅ New controllers: TeacherDashboard, TeacherSubmissions. Removed /api/missing paths |
+| Staff (GiaoVu) | dashboard, schedule, rooms, conflicts, requests, registration, notices, facilities, profile | P1 | ✅ New controllers: StaffDashboard, StaffRoomBooking. Notices remapped |
+| BGH | dashboard, academic reports, schedule, evaluations, facilities, audit-logs | P2 | ✅ All 26 views connected. New controllers: BghDashboard, BghEvaluation |
+| Content Council | subjects, question-bank, quizzes, editor | P2 | ✅ All 3 stores rewritten (subjectStore, questionStore, quizStore) |
+| Parent | dashboard, grades, schedule, attendance, tuition | P3 | ❌ Gated behind VITE_ENABLE_PARENT_PORTAL |
 
 ---
 
@@ -202,9 +202,9 @@ Parent currently disabled by default.
 | Role | Routes | API Ready | Mock/Inline | Missing Backend | Action Priority |
 |---|---|---|---|---|---|
 | SuperAdmin | 30+ | 4 (users, roles, orgs, audit) | 30+ | 26 | P0 — backend fully ready |
-| Student | 14 | 6 | 5 | 3 (grades, registrations, rewards FE) | P0 — backend mostly ready |
-| Teacher | 18 | 4 (exam, attendance) | 14 | 14 | P1 — need teacherApi |
-| Staff | 17 | 15 (thoi-khoa-bieu, rooms, applications, conflicts, ca-hoc, buildings, floors, notifications) | 2 (dashboard, registration) | 2 (dashboard, registration) | P1 — ✅ Connected |
-| BGH | 20+ | 4 (orgs, users, roles, audit) | 20+ | 16 | P2 — reuse admin services |
-| Content Council | 8 | 3 (subjects, QBank, quizzes) | 8 | 0 (backend exists) | P2 — connect stores |
+| Student | 14 | 6 | 5 | 3 (grades, registrations, rewards FE) | P0 — backend mostly ready; GetCourses/GetAssignments/GetLessonQuiz fixed from hardcoded mock |
+| Teacher | 20+ | 6 (exam, attendance, courses, submissions, dashboard, bien-ban) | 14 | 0 (all controllers created) | P1 — New TeacherDashboard + TeacherSubmissions controllers |
+| Staff | 20+ | 18 (dashboard, schedule, rooms, booking, applications, conflicts, ca-hoc, buildings, floors, notifications) | 2 (registration) | 1 (registration) | P1 — New StaffDashboard + StaffRoomBooking controllers |
+| BGH | 28 | 26 | 2 (academic reports detail) | 2 (academic reports detail) | P2 — New BghDashboard + BghEvaluation controllers |
+| Content Council | 8 | 3 (subjects, QBank, quizzes) | 8 | 0 (backend exists) | P2 — All 3 stores rewritten with real API calls |
 | Parent | 15 | 0 | 15 | 15 | P3 — keep disabled |

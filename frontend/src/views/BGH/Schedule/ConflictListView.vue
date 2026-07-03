@@ -1,21 +1,44 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { AlertTriangle, CheckCircle2, Filter, Building2, CalendarDays, User, Search, ChevronDown, X } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { AlertTriangle, CheckCircle2, Filter, Building2, CalendarDays, User, Search, ChevronDown, Loader2, X } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { usePopupStore } from '@/stores/popup'
+import { apiRequest } from '@/services/apiClient'
+
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 
 const popup = usePopupStore()
 const searchQuery = ref('')
 const severityFilter = ref('all')
 const showFilterDetail = ref(false)
 
-const conflicts = ref([
+const mockConflicts = [
   { id: 'CF-001', type: 'room', severity: 'critical', dept1: 'Khoa CNTT', course1: 'Lập trình Web (SE1601)', dept2: 'Khoa Kinh tế', course2: 'Kế toán (KT120)', room: 'A1.01', slot: 'Thứ 2, Ca 1 (07:30-09:30)', date: '15/06/2026', status: 'unresolved' },
   { id: 'CF-002', type: 'teacher', severity: 'critical', dept1: 'Khoa CNTT', course1: 'Cấu trúc dữ liệu (SE1602)', dept2: 'Khoa CNTT', course2: 'Java (SE1603)', room: '—', teacher: 'Nguyễn Văn A', slot: 'Thứ 3, Ca 2 (09:45-11:45)', date: '16/06/2026', status: 'unresolved' },
   { id: 'CF-003', type: 'room', severity: 'warning', dept1: 'Khoa Ngoại ngữ', course1: 'Tiếng Anh 3 (EN101)', dept2: 'Khoa Thiết kế', course2: 'Đồ họa (GD201)', room: 'B2.03', slot: 'Thứ 5, Ca 3 (13:00-15:00)', date: '17/06/2026', status: 'resolved' },
-])
+]
+
+const conflicts = ref(mockConflicts)
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await apiRequest('/api/thoi-khoa-bieu/check-xung-dot')
+      conflicts.value = res?.data ?? res?.Data ?? mockConflicts
+    }
+  } catch (e) {
+    error.value = e?.message || 'Lỗi tải dữ liệu xung đột'
+    conflicts.value = mockConflicts
+  } finally {
+    loading.value = false
+  }
+}
 
 const filteredConflicts = computed(() => {
   let list = conflicts.value
@@ -35,9 +58,11 @@ function resolveConflict(item) {
   const idx = conflicts.value.findIndex(c => c.id === item.id)
   if (idx !== -1) {
     conflicts.value[idx] = { ...conflicts.value[idx], status: 'resolved' }
-    popup.success('Đã xử lý', `Xung đột "${item.id}" đã được đánh dấu đã xử lý.`)
   }
+  popup.success('Đã xử lý', `Xung đột "${item.id}" đã được đánh dấu đã xử lý.`)
 }
+
+onMounted(() => { loadData() })
 </script>
 
 <template>
@@ -52,6 +77,22 @@ function resolveConflict(item) {
       </div>
     </template>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3 text-muted">
+        <Loader2 :size="32" class="animate-spin" />
+        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
+      </div>
+    </div>
+    <!-- Error State -->
+    <div v-else-if="error" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3">
+        <AlertCircle :size="32" class="text-(--color-danger-text)" />
+        <p class="text-sm text-(--color-danger-text) font-medium">{{ error }}</p>
+        <button @click="loadData()" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
+      </div>
+    </div>
+    <template v-else>
     <div class="flex flex-wrap items-center gap-3 mb-4">
       <div class="flex items-center gap-1.5 rounded-lg border border-(--color-danger-text)/20 bg-(--color-danger-bg) px-3 py-1.5 text-(--color-danger-text)">
         <AlertTriangle :size="14" />
@@ -135,6 +176,7 @@ function resolveConflict(item) {
       <h3 class="text-lg font-bold text-heading">Hệ thống hoạt động ổn định</h3>
       <p class="mt-2 text-sm text-muted max-w-md">Chưa phát hiện xung đột lịch nào ở cấp toàn trường. Các giáo vụ khoa đã xử lý tốt ở cấp đơn vị.</p>
     </div>
+    </template>
   </PageContainer>
 </template>
 

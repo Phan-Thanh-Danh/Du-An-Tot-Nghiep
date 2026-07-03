@@ -104,6 +104,22 @@
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="flex-1 flex items-center justify-center">
+      <div class="flex flex-col items-center gap-3 text-muted">
+        <Loader2 :size="32" class="animate-spin" />
+        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
+      </div>
+    </div>
+    <!-- Error State -->
+    <div v-else-if="error" class="flex-1 flex items-center justify-center">
+      <div class="flex flex-col items-center gap-3">
+        <AlertCircle :size="32" class="text-(--color-danger-text)" />
+        <p class="text-sm text-(--color-danger-text) font-medium">{{ error }}</p>
+        <button @click="loadData()" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
+      </div>
+    </div>
+    <template v-else>
     <div v-if="detailModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" @click.self="detailModal = false">
       <div class="w-full max-w-lg surface-card rounded-2xl shadow-2xl border border-default overflow-hidden">
         <div class="p-4 flex justify-between items-center">
@@ -137,12 +153,37 @@
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
-import { History, Eye, X, Plus, Lock, Unlock, LogIn, Edit3, Trash2, Search } from 'lucide-vue-next'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { History, Eye, X, Plus, Lock, Unlock, LogIn, Edit3, Trash2, Search, AlertCircle, Loader2 } from 'lucide-vue-next'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
+
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
+
+const auditLogsRef = ref(auditLogs)
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await bghApi.getAuditLogs()
+      auditLogsRef.value = unwrapApiData(res) || auditLogs
+    }
+  } catch (e) {
+    error.value = e?.message || 'Lỗi tải dữ liệu nhật ký'
+    auditLogsRef.value = auditLogs
+  } finally {
+    loading.value = false
+  }
+}
 
 const pageSize = 15
 const currentPage = ref(1)
@@ -189,7 +230,7 @@ const auditLogs = [
 ]
 
 const filteredLogs = computed(() => {
-  return auditLogs.filter(log => {
+  return auditLogsRef.value.filter(log => {
     if (filters.keyword && !log.moTa.toLowerCase().includes(filters.keyword.toLowerCase()) && !log.tenNguoiThayDoi.toLowerCase().includes(filters.keyword.toLowerCase())) return false
     if (filters.loaiDoiTuong && log.loaiDoiTuong !== filters.loaiDoiTuong) return false
     if (filters.hanhDong && log.hanhDong !== filters.hanhDong) return false
@@ -248,4 +289,6 @@ function actionIcon(action) {
     default: return Edit3
   }
 }
+
+onMounted(() => { loadData() })
 </script>

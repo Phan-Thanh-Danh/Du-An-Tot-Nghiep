@@ -1,23 +1,47 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { Activity, Filter, ArrowRight, Search, CheckCircle2, XCircle, Clock, ChevronDown, X } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { Activity, Filter, ArrowRight, Search, CheckCircle2, XCircle, Clock, ChevronDown, Loader2, X } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { usePopupStore } from '@/stores/popup'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
+
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
 
 const popup = usePopupStore()
 const searchQuery = ref('')
 const statusFilter = ref('all')
 const showFilterDetail = ref(false)
 
-const changes = ref([
+const mockChanges = [
   { id: 'CH-001', subject: 'Lập trình Web (SE104.N11)', type: 'makeup', teacher: 'Lê Văn C', oldSlot: 'Thứ 3, Ca 1 - A1.01', newSlot: 'Thứ 7, Ca 2 - B2.03', reason: 'Bận họp Khoa', date: '15/06/2026', updated: '10 phút trước', status: 'pending' },
   { id: 'CH-002', subject: 'Cơ sở dữ liệu (SE201.N12)', type: 'swap', teacher: 'Trần Thị H', oldSlot: 'Thứ 5, Ca 2 - A2.05', newSlot: 'Thứ 4, Ca 3 - A2.05', reason: 'Điều chỉnh lịch phòng', date: '16/06/2026', updated: '30 phút trước', status: 'pending' },
   { id: 'CH-003', subject: 'Tiếng Anh 3 (EN101.N02)', type: 'cancel', teacher: 'Nguyễn Văn K', oldSlot: 'Thứ 2, Ca 1 - B1.01', newSlot: '—', reason: 'Lịch nghỉ bù', date: '12/06/2026', updated: '1 giờ trước', status: 'approved' },
   { id: 'CH-004', subject: 'Toán rời rạc (MA101.N05)', type: 'makeup', teacher: 'Phạm Minh D', oldSlot: 'Thứ 6, Ca 3 - C1.02', newSlot: 'CN, Ca 1 - C1.02', reason: 'Bận công tác', date: '14/06/2026', updated: '2 giờ trước', status: 'approved' },
   { id: 'CH-005', subject: 'Kinh tế vi mô (EC201.N03)', type: 'swap', teacher: 'Hoàng Thị L', oldSlot: 'Thứ 4, Ca 2 - A3.04', newSlot: 'Thứ 5, Ca 2 - B1.03', reason: 'Trùng lịch GV', date: '17/06/2026', updated: '3 giờ trước', status: 'rejected' },
-])
+]
+
+const changes = ref(mockChanges)
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      const res = await bghApi.getPendingSchedules({ status: 'changed' })
+      changes.value = unwrapApiData(res) || mockChanges
+    }
+  } catch (e) {
+    error.value = e?.message || 'Lỗi tải dữ liệu thay đổi lịch'
+    changes.value = mockChanges
+  } finally {
+    loading.value = false
+  }
+}
 
 const filteredChanges = computed(() => {
   let list = changes.value
@@ -51,9 +75,11 @@ function rejectChange(item) {
   const idx = changes.value.findIndex(c => c.id === item.id)
   if (idx !== -1) {
     changes.value[idx] = { ...changes.value[idx], status: 'rejected' }
-    popup.info('Đã từ chối', `Thay đổi "${item.id}" — ${item.subject} đã bị từ chối.`)
   }
+  popup.info('Đã từ chối', `Thay đổi "${item.id}" — ${item.subject} đã bị từ chối.`)
 }
+
+onMounted(() => { loadData() })
 </script>
 
 <template>
@@ -66,6 +92,22 @@ function rejectChange(item) {
       <div class="text-xs font-bold text-muted">{{ pendingCount }} chờ duyệt</div>
     </template>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3 text-muted">
+        <Loader2 :size="32" class="animate-spin" />
+        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
+      </div>
+    </div>
+    <!-- Error State -->
+    <div v-else-if="error" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3">
+        <AlertCircle :size="32" class="text-(--color-danger-text)" />
+        <p class="text-sm text-(--color-danger-text) font-medium">{{ error }}</p>
+        <button @click="loadData()" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
+      </div>
+    </div>
+    <template v-else>
     <div class="flex flex-wrap items-center gap-3 mb-4">
       <div class="flex gap-1 rounded-lg border border-default p-0.5 bg-(--surface-input)">
         <button @click="statusFilter = 'all'" class="px-3 py-1.5 text-[10px] font-semibold rounded-lg transition-colors" :class="statusFilter === 'all' ? 'bg-(--surface-card) text-heading shadow-sm' : 'text-muted hover:text-heading'">Tất cả</button>
@@ -136,6 +178,7 @@ function rejectChange(item) {
       <Activity :size="36" class="text-placeholder mx-auto mb-3" />
       <p class="text-xs font-semibold text-muted">Không có thay đổi nào phù hợp</p>
     </div>
+    </template>
   </PageContainer>
 </template>
 

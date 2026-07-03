@@ -1,3 +1,4 @@
+using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
 using Backend.DTOs.StudentAssignments;
 using Backend.Services.Storage;
@@ -26,31 +27,87 @@ public class StudentAssignmentsController : ControllerBase
     [Authorize(Roles = "Student")]
     public async Task<ActionResult<ApiResponseDto<List<StudentAssignmentDto>>>> GetAssignments()
     {
-        // For demonstration, let's create a mocked data response unless we have DB data.
-        var assignments = new List<StudentAssignmentDto>
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        if (currentUser == null)
         {
-            new() { Id = "1", Course = "Cấu trúc dữ liệu & Giải thuật", Title = "Bài tập 1: Cây nhị phân", Deadline = "22/07/2026", Status = "Chưa nộp", Variant = "danger", Priority = "high" },
-            new() { Id = "2", Course = "Lập trình Web", Title = "Đồ án giữa kỳ", Deadline = "25/07/2026", Status = "Đã nộp", Variant = "success", Priority = "medium" },
-            new() { Id = "3", Course = "Thiết kế UI/UX", Title = "Wireframe Mobile App", Deadline = "15/07/2026", Status = "Đã nộp", Variant = "success", Priority = "medium" },
-            new() { Id = "4", Course = "Hệ quản trị CSDL", Title = "Query Tối ưu Hóa", Deadline = "30/07/2026", Status = "Sắp đến hạn", Variant = "warning", Priority = "high" }
-        };
+            return Unauthorized();
+        }
 
-        return Ok(ApiResponseDto<List<StudentAssignmentDto>>.Ok(assignments));
+        var enrolledMonHocIds = await _context.DangKyHocPhans
+            .Where(d => d.MaHocSinh == currentUser.UserId && d.TrangThai == "da_duyet")
+            .Select(d => d.LopHocPhan!.MaMonHoc)
+            .Distinct()
+            .ToListAsync();
+
+        var assignments = await _context.BaiTaps
+            .Include(b => b.MonHoc)
+            .Where(b => enrolledMonHocIds.Contains(b.MaMonHoc))
+            .OrderByDescending(b => b.HanNop)
+            .ToListAsync();
+
+        var submittedIds = await _context.BaiNops
+            .Where(n => n.MaHocSinh == currentUser.UserId)
+            .Select(n => n.MaBaiTap)
+            .Distinct()
+            .ToListAsync();
+
+        var result = assignments.Select(a =>
+        {
+            var hasSubmitted = submittedIds.Contains(a.MaBaiTap);
+            var isOverdue = a.HanNop < DateTime.UtcNow;
+            var isNearDeadline = a.HanNop <= DateTime.UtcNow.AddDays(3);
+
+            string status, variant, priority;
+            if (hasSubmitted)
+            {
+                status = "Đã nộp";
+                variant = "success";
+                priority = "medium";
+            }
+            else if (isOverdue)
+            {
+                status = "Quá hạn";
+                variant = "danger";
+                priority = "high";
+            }
+            else if (isNearDeadline)
+            {
+                status = "Sắp đến hạn";
+                variant = "warning";
+                priority = "high";
+            }
+            else
+            {
+                status = "Chưa nộp";
+                variant = "secondary";
+                priority = "medium";
+            }
+
+            return new StudentAssignmentDto
+            {
+                Id = a.MaBaiTap.ToString(),
+                Course = a.MonHoc?.TenMonHoc ?? "",
+                Title = a.TieuDe,
+                Deadline = a.HanNop.ToString("dd/MM/yyyy"),
+                Status = status,
+                Variant = variant,
+                Priority = priority
+            };
+        }).ToList();
+
+        return Ok(ApiResponseDto<List<StudentAssignmentDto>>.Ok(result));
     }
 
     [HttpGet("{assignmentId}")]
     [Authorize(Roles = "Student")]
     public async Task<ActionResult<ApiResponseDto<StudentAssignmentDetailDto>>> GetAssignmentDetail(string assignmentId)
     {
-        // Check DB for Assignment
         int.TryParse(assignmentId, out int aId);
-        
+
         var assignment = await _context.BaiTaps
             .Include(a => a.MonHoc)
             .FirstOrDefaultAsync(a => a.MaBaiTap == aId);
 
-        // Fetch submissions for the current student
-        // Using User.Claims to get student ID ideally, hardcoding 1 for now or fetching all
         var submissions = new List<Backend.Models.BaiNop>();
         if (assignment != null)
         {
@@ -109,6 +166,12 @@ public class StudentAssignmentsController : ControllerBase
     public async Task<ActionResult<ApiResponseDto<AssignmentSubmissionResultDto>>> SubmitAssignment(
         string assignmentId, [FromForm] IFormFile file)
     {
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        if (currentUser == null)
+        {
+            return Unauthorized();
+        }
+
         if (file == null || file.Length == 0)
         {
             return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = "Vui lòng chọn file để nộp." });
@@ -117,11 +180,9 @@ public class StudentAssignmentsController : ControllerBase
         int.TryParse(assignmentId, out int aId);
         if (aId <= 0)
         {
-            // Just for mockup fallback
             aId = 1;
         }
 
-        // Upload to R2
         string fileName = $"{Guid.NewGuid()}_{file.FileName}";
         var uploadResult = await _r2StorageService.UploadFileAsync(
             file.OpenReadStream(),
@@ -134,39 +195,32 @@ public class StudentAssignmentsController : ControllerBase
             return StatusCode(500, new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = "Lỗi khi tải file lên hệ thống lưu trữ." });
         }
 
-        // Get max attempt
         var previousSubmissions = await _context.BaiNops
             .Where(n => n.MaBaiTap == aId)
             .OrderByDescending(n => n.SoLanNop)
             .ToListAsync();
-        
+
         int nextAttempt = previousSubmissions.Count > 0 ? previousSubmissions.First().SoLanNop + 1 : 1;
 
-        // Save BaiNop record to DB
         var baiNop = new Backend.Models.BaiNop
         {
             MaBaiTap = aId,
-            MaHocSinh = 1, // hardcoded for demo, normally User.Claims
+            MaHocSinh = currentUser.UserId,
             UrlTapTin = uploadResult.Url,
             SoLanNop = nextAttempt,
-            NopTre = false, // Check with Deadline in real app
+            NopTre = false,
             ThoiDiemNop = DateTime.UtcNow,
             DaCongBo = false
         };
 
         _context.BaiNops.Add(baiNop);
-        
+
         try
         {
             await _context.SaveChangesAsync();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            // If DB save fails, we should ideally delete the R2 file to avoid orphans
-            // await _r2StorageService.DeleteFileAsync(uploadResult.StorageKey);
-            // Ignore for now in this demo since it might fail due to FK constraints if mock assignment doesn't exist
-            
-            // To ensure UI works even without proper DB seed:
             var mockSubmission = new SubmissionHistoryDto
             {
                 Id = "new",

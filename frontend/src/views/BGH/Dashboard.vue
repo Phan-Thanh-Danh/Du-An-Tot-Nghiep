@@ -1,6 +1,22 @@
 <template>
   <div class="space-y-4 pb-10">
     
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3 text-muted">
+        <Loader2 :size="32" class="animate-spin" />
+        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
+      </div>
+    </div>
+    <!-- Error State -->
+    <div v-else-if="error" class="flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3">
+        <AlertCircle :size="32" class="text-(--color-danger-text)" />
+        <p class="text-sm text-(--color-danger-text) font-medium">{{ error }}</p>
+        <button @click="loadData()" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
+      </div>
+    </div>
+    <template v-else>
     <!-- ── Welcome Hero ── -->
     <div class="rounded-2xl surface-card border border-card p-4">
       <div class="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -164,14 +180,36 @@
       </div>
 
     </div>
+    </template>
   </div>
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
 import { 
-  BarChart2, PieChart, Star, AlertTriangle, GraduationCap, 
-  TrendingUp, Clock, User, UserMinus, Sparkles, ArrowUpRight, Bell, ShieldCheck
+  AlertCircle, BarChart2, PieChart, Star, AlertTriangle, GraduationCap, 
+  TrendingUp, Clock, User, UserMinus, Sparkles, ArrowUpRight, Bell, ShieldCheck, Loader2
 } from 'lucide-vue-next'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
+
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref(null)
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    if (!ENABLE_MOCK_API) {
+      await bghApi.getDashboard()
+    }
+  } catch (e) {
+    error.value = e?.message || 'Lỗi tải dữ liệu tổng quan'
+  } finally {
+    loading.value = false
+  }
+}
 
 // KPI Stats
 const stats = [
@@ -190,6 +228,8 @@ const riskStudents = [
   { id: 'SE1601', name: 'Lê Hoàng Phát', class: 'SE1601', reason: 'Vắng > 20%' },
   { id: 'SS1402', name: 'Trần Bích Thủy', class: 'SS1402', reason: 'GPA < 4.0' },
 ]
+
+onMounted(() => { loadData() })
 </script>
 
 <style scoped>
