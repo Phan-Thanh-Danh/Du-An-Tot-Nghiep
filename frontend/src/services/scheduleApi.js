@@ -1,5 +1,6 @@
 import { apiRequest } from './apiClient'
 
+const enableMock = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const MOCK_ROWS = [
   { maTkb: 1, maKhoaHoc: 1, tieuDeKhoaHoc: 'Lập trình Java - SE1601', maDonVi: 1, tenDonVi: 'Cơ sở chính', maHocKy: 4, tenHocKy: 'Học kỳ 1 - 2025-2026', maLop: 1, tenLop: 'SE1601', maCodeLop: 'SE1601', maMonHoc: 1, maCodeMonHoc: 'CT101', tenMonHoc: 'Lập trình Java', maGiaoVien: 1, tenGiaoVien: 'TS. Nguyễn Văn An', thuTrongTuan: 2, maCaHoc: 1, tenCa: 'Ca 1', buoi: 'Sáng', gioBatDau: '07:30', gioKetThuc: '09:00', maPhong: 5, maCodePhong: 'PH301', tenPhong: 'P.301', ngayBatDau: '2025-09-01', ngayKetThuc: '2026-01-09', trangThai: 'da_xuat_ban' },
   { maTkb: 2, maKhoaHoc: 2, tieuDeKhoaHoc: 'CTDL & GT - SE1601', maDonVi: 1, tenDonVi: 'Cơ sở chính', maHocKy: 4, tenHocKy: 'Học kỳ 1 - 2025-2026', maLop: 1, tenLop: 'SE1601', maCodeLop: 'SE1601', maMonHoc: 2, maCodeMonHoc: 'CT201', tenMonHoc: 'CTDL & Giải thuật', maGiaoVien: 2, tenGiaoVien: 'ThS. Trần Thị Bình', thuTrongTuan: 4, maCaHoc: 3, tenCa: 'Ca 3', buoi: 'Sáng', gioBatDau: '10:50', gioKetThuc: '12:20', maPhong: 7, maCodePhong: 'LAB401', tenPhong: 'Lab 401', ngayBatDau: '2025-09-01', ngayKetThuc: '2026-01-09', trangThai: 'da_xuat_ban' },
@@ -15,7 +16,8 @@ async function withFallback(apiCall, mockFallback) {
   try {
     const res = await apiCall()
     return res
-  } catch {
+  } catch (error) {
+    if (!enableMock) throw error
     return typeof mockFallback === 'function' ? mockFallback() : mockFallback
   }
 }

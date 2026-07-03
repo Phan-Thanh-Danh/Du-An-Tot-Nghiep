@@ -534,8 +534,12 @@ Ghi chú: audit log được ghi tự động bởi backend khi thao tác Auth/U
 | GET | `/api/courses` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff/Teacher | Danh sách khóa học có phân trang; filter `maDonVi`, `maMonHoc`, `maGiaoVien`, `maHocKy`, `maLop`, `trangThai`, `keyword`. Teacher chỉ xem khóa học do mình phụ trách. |
 | GET | `/api/courses/{id}` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff/Teacher | Chi tiết khóa học gồm cơ sở, môn học chuẩn, giảng viên, học kỳ, lớp hành chính và danh sách `Chuong -> BaiHoc` lấy theo `KhoaHoc.MaMonHoc`. |
 | POST | `/api/courses` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Tạo khóa học MVP bắt buộc `MaLop`; validate cơ sở, môn học, giảng viên role `Teacher/giao_vien`, học kỳ nếu truyền, lớp thuộc đúng cơ sở và chống trùng `MaDonVi + MaMonHoc + MaHocKy + MaLop`. |
+| POST | `/api/courses/bulk-assign` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Tạo khóa học cho tối đa 5 lớp từ `MaMonHoc + MaGiaoVien + MaHocKy? + MaLopIds`; backend xác định scope theo giảng viên/lớp/học kỳ, không tin `MaDonVi` từ FE; lớp trùng `MaDonVi + MaMonHoc + MaHocKy + MaLop` được đưa vào `skipped` thay vì fail toàn batch. |
+| POST | `/api/courses/{id}/clone` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Nhân bản khóa học sang học kỳ/lớp/giảng viên tùy chọn, trạng thái mới luôn `nhap`, tiêu đề mặc định thêm `(Bản sao)`; vẫn chặn trùng unique `MaDonVi + MaMonHoc + MaHocKy + MaLop`. |
 | PUT | `/api/courses/{id}` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Cập nhật giảng viên, học kỳ, lớp hành chính, tiêu đề, mô tả, trạng thái và ảnh bìa; ghi audit khi đổi giảng viên/lớp/trạng thái. |
 | DELETE | `/api/courses/{id}` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Lưu trữ mềm khóa học bằng `TrangThai = luu_tru`, không xóa vật lý. |
+| POST | `/api/courses/batch-archive` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Lưu trữ mềm nhiều khóa học bằng `TrangThai = luu_tru`; trả `successIds`, `failed`, `count` và không fail toàn batch khi một khóa học không hợp lệ. |
+| POST | `/api/courses/batch-publish` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Xuất bản nhiều khóa học bằng `TrangThai = da_xuat_ban`; khóa học đã `luu_tru` bị đưa vào `failed` để không hồi sinh dữ liệu lưu trữ. |
 
 ### Dự kiến/cần bổ sung
 

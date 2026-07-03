@@ -5,7 +5,7 @@ import { courseApi } from '@/services/courseApi'
 import { exportToExcel } from '@/services/exportService'
 import {
   Search, Plus, BookOpen, Clock, CheckCircle, Archive,
-  Eye, Pencil, Trash2, Loader2, AlertCircle, ChevronLeft, ChevronRight,
+  Eye, Pencil, Trash2, AlertCircle, ChevronLeft, ChevronRight,
   ArrowUpDown, ArrowUp, ArrowDown, FileDown, RefreshCw, RotateCcw,
   Copy, CheckSquare, Square, X,
 } from 'lucide-vue-next'
@@ -108,8 +108,9 @@ async function handleBatchArchive() {
   if (selectedIds.value.size === 0) return
   batchProcessing.value = true
   try {
-    await courseApi.batchArchive([...selectedIds.value])
-    popupStore.success('Lưu trữ hàng loạt', `Đã lưu trữ ${selectedIds.value.size} khóa học.`)
+    const res = await courseApi.batchArchive([...selectedIds.value])
+    const data = res.data || res
+    popupStore.success('Lưu trữ hàng loạt', `Đã lưu trữ ${data.count ?? selectedIds.value.size} khóa học.`)
     selectedIds.value = new Set()
     loadCourses()
   } catch (err) {
@@ -123,8 +124,9 @@ async function handleBatchPublish() {
   if (selectedIds.value.size === 0) return
   batchProcessing.value = true
   try {
-    await courseApi.batchPublish([...selectedIds.value])
-    popupStore.success('Xuất bản hàng loạt', `Đã xuất bản ${selectedIds.value.size} khóa học.`)
+    const res = await courseApi.batchPublish([...selectedIds.value])
+    const data = res.data || res
+    popupStore.success('Xuất bản hàng loạt', `Đã xuất bản ${data.count ?? selectedIds.value.size} khóa học.`)
     selectedIds.value = new Set()
     loadCourses()
   } catch (err) {

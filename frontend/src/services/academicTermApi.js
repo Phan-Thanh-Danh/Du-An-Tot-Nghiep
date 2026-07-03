@@ -1,5 +1,6 @@
 import { apiRequest } from './apiClient'
 
+const enableMock = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const MOCK_TERMS = [
   { maHocKy: 1, maDonVi: 1, tenDonVi: 'Cơ sở chính', maCodeHocKy: 'HK1-2024-2025', tenHocKy: 'Học kỳ 1', namHoc: '2024-2025', thuTuTrongNam: 1, ngayBatDau: '2024-09-02', ngayKetThuc: '2025-01-10', ngayKetThucBlock5: null, daKhoa: true, soTinChiToiDa: 24, hanRutMon: '2024-10-15' },
   { maHocKy: 2, maDonVi: 1, tenDonVi: 'Cơ sở chính', maCodeHocKy: 'HK2-2024-2025', tenHocKy: 'Học kỳ 2', namHoc: '2024-2025', thuTuTrongNam: 2, ngayBatDau: '2025-01-20', ngayKetThuc: '2025-06-07', ngayKetThucBlock5: null, daKhoa: true, soTinChiToiDa: 24, hanRutMon: '2025-03-01' },
@@ -16,7 +17,8 @@ async function withFallback(apiCall, mockFallback) {
   try {
     const res = await apiCall()
     return res
-  } catch {
+  } catch (error) {
+    if (!enableMock) throw error
     return typeof mockFallback === 'function' ? mockFallback() : mockFallback
   }
 }

@@ -1,6 +1,6 @@
 import { apiRequest } from './apiClient'
 
-const enableMock = import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const enableMock = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const mockCourses = [
   { maKhoaHoc: 1, maDonVi: 1, tenDonVi: 'Cơ sở chính', maMonHoc: 1, tenMonHoc: 'Lập trình Web', maMonHocCode: 'WEB101', maGiaoVien: 1, tenGiaoVien: 'Nguyễn Văn An', maHocKy: 1, tenHocKy: 'HK1 2025-2026', maLop: 1, tenLop: 'CNTT01', tieuDe: 'Lập trình Web - CNTT01', moTa: 'Môn học căn bản về phát triển web', trangThai: 'da_xuat_ban', urlAnhBia: null, ngayTao: '2025-09-01T00:00:00' },
@@ -215,7 +215,7 @@ export const courseApi = {
     return apiRequest(`/api/courses/${id}`, { method: 'DELETE' })
   },
 
-  async cloneCourse(id) {
+  async cloneCourse(id, payload = {}) {
     if (enableMock) return mockCall(() => {
       const source = mockCourses.find(c => c.maKhoaHoc === id)
       if (!source) throw new Error('Không tìm thấy khóa học')
@@ -229,7 +229,7 @@ export const courseApi = {
       mockCourses.unshift(newCourse)
       return { success: true, message: 'Nhân bản khóa học thành công', data: newCourse }
     })
-    return apiRequest(`/api/courses/${id}/clone`, { method: 'POST' })
+    return apiRequest(`/api/courses/${id}/clone`, { method: 'POST', body: JSON.stringify(payload) })
   },
 
   async batchArchive(ids) {

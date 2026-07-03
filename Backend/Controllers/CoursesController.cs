@@ -49,6 +49,28 @@ public class CoursesController : ControllerBase
             ApiResponseDto<KhoaHocDto>.Ok(course, "Tạo khóa học thành công"));
     }
 
+    [HttpPost("bulk-assign")]
+    public async Task<ActionResult<ApiResponseDto<BulkAssignCoursesResultDto>>> BulkAssign(
+        BulkAssignCoursesRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _courseService.BulkAssignAsync(request, cancellationToken);
+        return Ok(ApiResponseDto<BulkAssignCoursesResultDto>.Ok(result, $"Tạo thành công {result.CreatedCount}/{result.CreatedCount + result.SkippedCount} lớp"));
+    }
+
+    [HttpPost("{id:int}/clone")]
+    public async Task<ActionResult<ApiResponseDto<KhoaHocDto>>> Clone(
+        int id,
+        CloneCourseRequest request,
+        CancellationToken cancellationToken)
+    {
+        var course = await _courseService.CloneAsync(id, request, cancellationToken);
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = course.MaKhoaHoc },
+            ApiResponseDto<KhoaHocDto>.Ok(course, "Nhân bản khóa học thành công"));
+    }
+
     [HttpPut("{id:int}")]
     public async Task<ActionResult<ApiResponseDto<KhoaHocDto>>> Update(
         int id,
@@ -64,5 +86,23 @@ public class CoursesController : ControllerBase
     {
         await _courseService.DeleteAsync(id, cancellationToken);
         return Ok(ApiResponseDto.Ok("Lưu trữ khóa học thành công"));
+    }
+
+    [HttpPost("batch-archive")]
+    public async Task<ActionResult<ApiResponseDto<BatchCourseActionResultDto>>> BatchArchive(
+        BatchCourseActionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _courseService.BatchArchiveAsync(request, cancellationToken);
+        return Ok(ApiResponseDto<BatchCourseActionResultDto>.Ok(result, $"Đã lưu trữ {result.Count} khóa học"));
+    }
+
+    [HttpPost("batch-publish")]
+    public async Task<ActionResult<ApiResponseDto<BatchCourseActionResultDto>>> BatchPublish(
+        BatchCourseActionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _courseService.BatchPublishAsync(request, cancellationToken);
+        return Ok(ApiResponseDto<BatchCourseActionResultDto>.Ok(result, $"Đã xuất bản {result.Count} khóa học"));
     }
 }
