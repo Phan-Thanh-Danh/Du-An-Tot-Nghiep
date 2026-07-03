@@ -32,4 +32,14 @@ public class ApiResponseDto
             Message = message
         };
     }
+
+    public static ApiResponseDto Fail(string message, IReadOnlyList<string>? errors = null)
+    {
+        return new ApiResponseDto
+        {
+            Success = false,
+            Message = message,
+            Errors = errors ?? []
+        };
+    }
 }
