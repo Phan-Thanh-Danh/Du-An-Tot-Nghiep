@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { usePopupStore } from '@/stores/popup'
+import { adminUserApi } from '@/services/adminUserService'
 import {
   Search,
   Filter,
@@ -23,6 +25,11 @@ import {
   FileSpreadsheet
 } from 'lucide-vue-next'
 
+const ENABLE_MOCK_API =
+  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+
+const popup = usePopupStore()
+
 // Filters
 const searchQuery = ref('')
 const selectedRole = ref('Tất cả')
@@ -34,8 +41,11 @@ const roles = ['Tất cả', 'Giảng viên', 'Sinh viên', 'Giáo vụ', 'BGH',
 const campuses = ['Tất cả', 'Hà Nội', 'TP.HCM', 'Đà Nẵng', 'Cần Thơ', 'Toàn hệ thống']
 const statuses = ['Tất cả', 'Active', 'Locked', 'First_login']
 
-// Mock Data
-const mockUsers = ref([
+const loading = ref(false)
+const error = ref('')
+const users = ref([])
+
+const mockUsers = [
   { id: 1, name: 'Nguyễn Văn A', email: 'nguyenvana@example.com', phone: '0901234567', role: 'Sinh viên', campus: 'Hà Nội', status: 'Active', lastLogin: '2026-06-04 08:30:00', createdAt: '2026-01-15' },
   { id: 2, name: 'Trần Thị B', email: 'tranthib@example.com', phone: '0912345678', role: 'Giảng viên', campus: 'TP.HCM', status: 'Active', lastLogin: '2026-06-03 15:45:00', createdAt: '2025-08-20' },
   { id: 3, name: 'Lê Văn C', email: 'levanc@example.com', phone: '0923456789', role: 'Giáo vụ', campus: 'Đà Nẵng', status: 'Locked', lastLogin: '2026-05-20 09:15:00', createdAt: '2024-11-10', lockReason: 'Vi phạm chính sách bảo mật' },
@@ -43,14 +53,41 @@ const mockUsers = ref([
   { id: 5, name: 'Hoàng Văn E', email: 'hoangvane@example.com', phone: '0945678901', role: 'Sinh viên', campus: 'Cần Thơ', status: 'First_login', lastLogin: null, createdAt: '2026-06-01' },
   { id: 6, name: 'Ngô Thị F', email: 'ngothif@example.com', phone: '0956789012', role: 'Admin', campus: 'Toàn hệ thống', status: 'Active', lastLogin: '2026-06-04 11:20:00', createdAt: '2023-12-01' },
   { id: 7, name: 'Đỗ Văn G', email: 'dovang@example.com', phone: '0967890123', role: 'Sinh viên', campus: 'Hà Nội', status: 'Active', lastLogin: '2026-06-01 07:15:00', createdAt: '2025-09-05' },
-])
+]
+
+async function loadUsers() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await adminUserApi.getUsers({ pageIndex: 1, pageSize: 100 })
+    users.value = data?.items ?? data?.data ?? data ?? []
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      users.value = [...mockUsers]
+      return
+    }
+    error.value = e?.message || 'Không thể tải danh sách người dùng.'
+    users.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 const filteredUsers = computed(() => {
-  return mockUsers.value.filter(u => {
-    const matchSearch = u.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.value.toLowerCase())
-    const matchRole = selectedRole.value === 'Tất cả' || u.role === selectedRole.value
-    const matchCampus = selectedCampus.value === 'Tất cả' || u.campus === selectedCampus.value
-    const matchStatus = selectedStatus.value === 'Tất cả' || u.status === selectedStatus.value
+  const source = users.value
+  return source.filter(u => {
+    const name = u.name || u.fullName || u.full_name || ''
+    const email = u.email || ''
+    const role = u.role || ''
+    const campus = u.campus || u.campusName || u.maDonVi || ''
+    const status = u.status || ''
+
+    const matchSearch = searchQuery.value === '' ||
+      name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      email.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const matchRole = selectedRole.value === 'Tất cả' || role === selectedRole.value
+    const matchCampus = selectedCampus.value === 'Tất cả' || campus.includes(selectedCampus.value)
+    const matchStatus = selectedStatus.value === 'Tất cả' || status === selectedStatus.value
     return matchSearch && matchRole && matchCampus && matchStatus
   })
 })
@@ -95,16 +132,25 @@ const openEditDrawer = (user) => {
   isEditDrawerOpen.value = true
 }
 
-const confirmEditUser = () => {
+const confirmEditUser = async () => {
   if (!editUserForm.value.name || !editUserForm.value.email) {
-    alert('Vui lòng điền đủ Họ tên và Email.')
+    popup.warning('Thiếu thông tin', 'Vui lòng điền đủ Họ tên và Email.')
     return
   }
-  const index = mockUsers.value.findIndex(u => u.id === editUserForm.value.id)
-  if (index !== -1) {
-    mockUsers.value[index] = { ...mockUsers.value[index], ...editUserForm.value }
+  try {
+    await adminUserApi.update(editUserForm.value.id, editUserForm.value)
+    popup.success('Đã cập nhật', `Thông tin ${editUserForm.value.email} đã được lưu.`)
+    await loadUsers()
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      const index = users.value.findIndex(u => u.id === editUserForm.value.id)
+      if (index !== -1) users.value[index] = { ...users.value[index], ...editUserForm.value }
+      popup.success('Đã cập nhật (mock)', `Thông tin ${editUserForm.value.email} đã được lưu.`)
+    } else {
+      popup.error('Lỗi cập nhật', e?.message || 'Không thể cập nhật thông tin.')
+      return
+    }
   }
-  alert(`Đã cập nhật thông tin cho ${editUserForm.value.email}!`)
   isEditDrawerOpen.value = false
   isDrawerOpen.value = false
 }
@@ -115,15 +161,26 @@ const openCreateImportDrawer = () => {
   isCreateDrawerOpen.value = true
 }
 
-const confirmCreateImport = () => {
+const confirmCreateImport = async () => {
   if (createImportMode.value === 'create') {
     if (!newUserForm.value.name || !newUserForm.value.email || !newUserForm.value.password) {
-      alert('Vui lòng điền đầy đủ thông tin.')
+      popup.warning('Thiếu thông tin', 'Vui lòng điền đầy đủ thông tin.')
       return
     }
-    alert(`Đã tạo tài khoản cho ${newUserForm.value.email} thành công!`)
+    try {
+      await adminUserApi.create(newUserForm.value)
+      popup.success('Đã tạo tài khoản', `Tài khoản ${newUserForm.value.email} đã được tạo.`)
+      await loadUsers()
+    } catch (e) {
+      if (ENABLE_MOCK_API) {
+        popup.success('Đã tạo (mock)', `Tài khoản ${newUserForm.value.email} đã được tạo.`)
+      } else {
+        popup.error('Lỗi tạo tài khoản', e?.message || 'Không thể tạo tài khoản.')
+        return
+      }
+    }
   } else {
-    alert('Đã import danh sách tài khoản thành công!')
+    popup.info('Import', 'Chức năng import Excel đang phát triển.')
   }
   isCreateDrawerOpen.value = false
 }
@@ -138,8 +195,19 @@ const openResetModal = (user) => {
   isResetModalOpen.value = true
 }
 
-const confirmResetPassword = () => {
-  alert(`Đã gửi email cấp lại mật khẩu cho tài khoản: ${resetPasswordUser.value.email}`)
+const confirmResetPassword = async () => {
+  try {
+    await adminUserApi.resetPassword(resetPasswordUser.value.id, {
+      newPassword: prompt('Nhập mật khẩu mới:', ''),
+    })
+    popup.success('Đã reset mật khẩu', `Mật khẩu tài khoản ${resetPasswordUser.value.email} đã được đặt lại.`)
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      popup.success('Đã reset (mock)', `Mật khẩu tài khoản ${resetPasswordUser.value.email} đã được đặt lại.`)
+    } else {
+      popup.error('Lỗi reset', e?.message || 'Không thể reset mật khẩu.')
+    }
+  }
   isResetModalOpen.value = false
 }
 
@@ -150,19 +218,34 @@ const openLockModal = (user) => {
   isLockModalOpen.value = true
 }
 
-const confirmLockAction = () => {
-  if (lockActionUser.value.status === 'Locked') {
-    lockActionUser.value.status = 'Active'
-    lockActionUser.value.lockReason = null
-    alert(`Đã mở khóa tài khoản ${lockActionUser.value.email}. Đã ghi Log.`)
-  } else {
-    if (!lockReason.value.trim()) {
-      alert('Super Admin bắt buộc phải nhập lý do khóa tài khoản!')
+const confirmLockAction = async () => {
+  try {
+    if (lockActionUser.value.status === 'Locked') {
+      await adminUserApi.unlock(lockActionUser.value.id)
+      popup.success('Đã mở khóa', `Tài khoản ${lockActionUser.value.email} đã được mở khóa.`)
+    } else {
+      if (!lockReason.value.trim()) {
+        popup.warning('Thiếu lý do', 'Super Admin bắt buộc phải nhập lý do khóa tài khoản!')
+        return
+      }
+      await adminUserApi.lock(lockActionUser.value.id)
+      popup.success('Đã khóa', `Tài khoản ${lockActionUser.value.email} đã bị khóa. Đã ghi Log.`)
+    }
+    await loadUsers()
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      if (lockActionUser.value.status === 'Locked') {
+        lockActionUser.value.status = 'Active'
+        lockActionUser.value.lockReason = null
+      } else {
+        lockActionUser.value.status = 'Locked'
+        lockActionUser.value.lockReason = lockReason.value
+      }
+      popup.success(lockActionUser.value.status === 'Locked' ? 'Đã mở khóa (mock)' : 'Đã khóa (mock)', `Tài khoản ${lockActionUser.value.email}.`)
+    } else {
+      popup.error('Lỗi', e?.message || 'Không thể thực hiện thao tác.')
       return
     }
-    lockActionUser.value.status = 'Locked'
-    lockActionUser.value.lockReason = lockReason.value
-    alert(`Đã khóa tài khoản ${lockActionUser.value.email}. Đã ghi Log.`)
   }
   isLockModalOpen.value = false
 }
@@ -187,6 +270,7 @@ const formatDate = (dateStr) => {
 
 const route = useRoute()
 onMounted(() => {
+  loadUsers()
   if (route.query.action === 'import') {
     createImportMode.value = 'import'
     isCreateDrawerOpen.value = true
@@ -259,8 +343,21 @@ onMounted(() => {
       </div>
     </transition>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="glass-panel rounded-2xl p-12 flex flex-col items-center justify-center">
+      <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+      <p class="text-label text-sm">Đang tải danh sách người dùng...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="glass-panel rounded-2xl p-12 flex flex-col items-center justify-center">
+      <AlertCircle :size="40" class="text-rose-400 mb-3" />
+      <p class="text-rose-600 font-semibold mb-2">{{ error }}</p>
+      <button @click="loadUsers" class="glass-btn primary text-xs">Thử lại</button>
+    </div>
+
     <!-- Data Table -->
-    <div class="table-container glass-panel rounded-2xl overflow-hidden">
+    <div v-else class="table-container glass-panel rounded-2xl overflow-hidden">
       <table class="w-full text-left border-collapse">
         <thead>
           <tr>

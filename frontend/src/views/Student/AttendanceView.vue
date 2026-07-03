@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   CalendarRange,
@@ -18,14 +18,18 @@ import GlassPanel from '@/components/ui/GlassPanel.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ProgressBar from '@/components/ui/ProgressBar.vue'
 import TableShell from '@/components/ui/TableShell.vue'
-import {
-  getAttendanceBySubject,
-  getStudentAttendanceHistory,
-} from '@/mocks/scheduleAttendanceMockData'
 import { formatDate, formatTimeRange, toDateInputValue } from '@/utils/dateFormat'
 import { getStatusMeta, getStatusOptions } from '@/utils/statusLabels'
+import { studentApi } from '@/services/studentApi'
+
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const router = useRouter()
+
+const loading = ref(false)
+const error = ref('')
+const attendanceHistory = ref([])
+const subjectStats = ref([])
 
 const selectedSubject = ref('all')
 const selectedStatus = ref('all')
@@ -37,15 +41,13 @@ const detailOpen = ref(false)
 
 useBodyScrollLock(detailOpen)
 
-const history = computed(() => getStudentAttendanceHistory())
-const subjectStats = computed(() => getAttendanceBySubject())
-const subjects = computed(() => [...new Set(history.value.map((item) => item.subject))])
+const subjects = computed(() => [...new Set(attendanceHistory.value.map((item) => item.subject))])
 const attendanceStatusOptions = computed(() => getStatusOptions('attendance'))
 
 const filteredHistory = computed(() => {
   const keyword = searchTerm.value.trim().toLowerCase()
 
-  return history.value.filter((item) => {
+  return attendanceHistory.value.filter((item) => {
     const matchesSubject = selectedSubject.value === 'all' || item.subject === selectedSubject.value
     const matchesStatus = selectedStatus.value === 'all' || item.status === selectedStatus.value
     const matchesFrom = !dateFrom.value || toDateInputValue(item.attendedAt) >= dateFrom.value
@@ -58,7 +60,7 @@ const filteredHistory = computed(() => {
 })
 
 const kpis = computed(() => {
-  const rows = history.value
+  const rows = attendanceHistory.value
   const counted = rows.filter((item) => item.status !== 'chua_diem_danh')
   const positive = counted.filter((item) => ['co_mat', 'di_muon', 'co_phep'].includes(item.status))
   const rate = counted.length ? Math.round((positive.length / counted.length) * 100) : 100
@@ -87,6 +89,26 @@ function closeDetail() {
 function goToRequests() {
   router.push('/student/requests')
 }
+
+onMounted(async () => {
+  loading.value = true
+  error.value = ''
+  try {
+    if (ENABLE_MOCK_API) {
+      const { getAttendanceBySubject, getStudentAttendanceHistory } = await import('@/mocks/scheduleAttendanceMockData')
+      attendanceHistory.value = getStudentAttendanceHistory()
+      subjectStats.value = getAttendanceBySubject()
+    } else {
+      const data = await studentApi.getAttendance()
+      attendanceHistory.value = data.history || []
+      subjectStats.value = data.subjectStats || []
+    }
+  } catch (e) {
+    if (!ENABLE_MOCK_API) error.value = e?.message || 'Không thể tải dữ liệu.'
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <template>

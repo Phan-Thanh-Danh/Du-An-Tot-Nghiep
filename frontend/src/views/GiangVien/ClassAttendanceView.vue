@@ -4,7 +4,6 @@ import {
   Search,
   Users,
   XCircle,
-  BarChart3,
   Download,
   Calendar,
   ArrowLeft,
@@ -13,23 +12,35 @@ import {
   CheckCircle2,
   Clock,
 } from 'lucide-vue-next'
+import { teacherApi } from '@/services/teacherApi'
 
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 
-const attendanceData = ref([
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+
+const loading = ref(false)
+const error = ref('')
+
+const DEMO_ATTENDANCE = [
   { id: 'SV16001', name: 'Nguyễn Văn A', present: 12, absent: 1, percent: 92, status: 'good' },
   { id: 'SV16002', name: 'Trần Thị B', present: 10, absent: 3, percent: 76, status: 'warning' },
   { id: 'SV16003', name: 'Lê Hoàng C', present: 13, absent: 0, percent: 100, status: 'excellent' },
   { id: 'SV16004', name: 'Phạm Minh D', present: 8, absent: 5, percent: 61, status: 'danger' },
   { id: 'SV16005', name: 'Hoàng Hữu E', present: 13, absent: 0, percent: 100, status: 'excellent' },
   { id: 'SV16006', name: 'Vũ Thị F', present: 11, absent: 2, percent: 85, status: 'good' },
-])
+]
 
-const totalSessions = 13
-const avgAttendance = 82
+const attendanceData = ref([])
+
+const totalSessions = ref(13)
+const avgAttendance = computed(() => {
+  if (attendanceData.value.length === 0) return 0
+  const total = attendanceData.value.reduce((s, st) => s + st.percent, 0)
+  return Math.round(total / attendanceData.value.length)
+})
 
 const summaryStats = computed(() => {
   const absences = attendanceData.value.reduce((sum, student) => sum + student.absent, 0)
@@ -39,13 +50,37 @@ const summaryStats = computed(() => {
 
   return [
     { label: 'Sĩ số', value: attendanceData.value.length, tone: 'primary' },
-    { label: 'Tỷ lệ CC', value: `${avgAttendance}%`, tone: 'success' },
+    { label: 'Tỷ lệ CC', value: `${avgAttendance.value}%`, tone: 'success' },
     { label: 'Lượt vắng', value: absences, tone: 'danger' },
     { label: 'Đi muộn', value: late, tone: 'warning' },
     { label: 'Có phép', value: excused, tone: 'info' },
     { label: 'Nguy cơ', value: risk, tone: 'danger' },
   ]
 })
+
+async function loadAttendance() {
+  loading.value = true
+  error.value = ''
+  try {
+    // MISSING_BACKEND: no per-student attendance summary endpoint exists
+    // Trying today's attendance sessions as fallback
+    const data = await teacherApi.getAttendanceToday()
+    if (data && Array.isArray(data) && data.length > 0) {
+      attendanceData.value = data
+    } else {
+      throw new Error('No attendance data')
+    }
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      attendanceData.value = JSON.parse(JSON.stringify(DEMO_ATTENDANCE))
+      return
+    }
+    error.value = e?.message || 'Không thể tải điểm danh.'
+    attendanceData.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 const getStatusText = (status) => {
   const texts = {
@@ -69,170 +104,183 @@ const getStatusVariant = (status) => {
 
 const animateProgress = ref(false)
 onMounted(() => {
-  setTimeout(() => {
-    animateProgress.value = true
-  }, 100)
+  loadAttendance()
+  setTimeout(() => { animateProgress.value = true }, 100)
 })
 </script>
 
 <template>
   <div class="class-attendance-page lg-page-enter">
-    <GlassPanel variant="flat" density="compact" class="page-header">
-      <div class="header-main">
-        <router-link to="/teacher/classes" class="back-link" aria-label="Quay lại danh sách lớp">
-          <ArrowLeft :size="18" />
-        </router-link>
+    <div v-if="loading">
+      <GlassPanel variant="flat" density="compact" class="loading-panel">
+        <p>Đang tải dữ liệu điểm danh...</p>
+      </GlassPanel>
+    </div>
 
-        <div class="header-copy">
-          <div class="context-tags">
-            <GlassBadge variant="primary">SE1601</GlassBadge>
-            <GlassBadge variant="neutral">HK 2 - 2026</GlassBadge>
-            <GlassBadge variant="info">Sĩ số 42</GlassBadge>
+    <div v-else-if="error">
+      <GlassPanel variant="flat" density="compact" class="error-panel">
+        <p>{{ error }}</p>
+      </GlassPanel>
+    </div>
+
+    <template v-else>
+      <GlassPanel variant="flat" density="compact" class="page-header">
+        <div class="header-main">
+          <router-link to="/teacher/classes" class="back-link" aria-label="Quay lại danh sách lớp">
+            <ArrowLeft :size="18" />
+          </router-link>
+
+          <div class="header-copy">
+            <div class="context-tags">
+              <GlassBadge variant="primary">SE1601</GlassBadge>
+              <GlassBadge variant="neutral">HK 2 - 2026</GlassBadge>
+              <GlassBadge variant="info">Sĩ số 42</GlassBadge>
+            </div>
+            <h1>Điểm danh theo lớp</h1>
+            <p>Theo dõi chuyên cần, số buổi vắng và nguy cơ vượt quỹ vắng của sinh viên.</p>
           </div>
-          <h1>Điểm danh theo lớp</h1>
-          <p>Theo dõi chuyên cần, số buổi vắng và nguy cơ vượt quỹ vắng của sinh viên.</p>
         </div>
-      </div>
 
-      <div class="header-actions">
-        <GlassButton variant="secondary" size="sm">
-          <template #leading>
+        <div class="header-actions">
+          <GlassButton variant="secondary" size="sm">
+            <template #leading>
+              <Calendar :size="16" />
+            </template>
+            Xem lịch sử
+          </GlassButton>
+          <GlassButton variant="primary" size="sm">
+            <template #leading>
+              <Download :size="16" />
+            </template>
+            Xuất báo cáo
+          </GlassButton>
+        </div>
+      </GlassPanel>
+
+      <GlassPanel variant="flat" density="compact" class="context-panel">
+        <div class="summary-strip">
+          <div v-for="item in summaryStats" :key="item.label" :class="['summary-pill', item.tone]">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </div>
+        </div>
+
+        <div class="filters">
+          <label class="select-shell">
             <Calendar :size="16" />
-          </template>
-          Xem lịch sử
-        </GlassButton>
-        <GlassButton variant="primary" size="sm">
-          <template #leading>
-            <Download :size="16" />
-          </template>
-          Xuất báo cáo
-        </GlassButton>
-      </div>
-    </GlassPanel>
+            <select>
+              <option>Tháng 5/2026</option>
+              <option>Tháng 4/2026</option>
+              <option>Tháng 3/2026</option>
+            </select>
+          </label>
 
-    <GlassPanel variant="flat" density="compact" class="context-panel">
-      <div class="summary-strip">
-        <div v-for="item in summaryStats" :key="item.label" :class="['summary-pill', item.tone]">
-          <span>{{ item.label }}</span>
-          <strong>{{ item.value }}</strong>
+          <label class="input-shell">
+            <Search :size="16" />
+            <input type="text" placeholder="Tìm sinh viên, mã SV..." />
+          </label>
         </div>
-      </div>
+      </GlassPanel>
 
-      <div class="filters">
-        <label class="select-shell">
-          <Calendar :size="16" />
-          <select>
-            <option>Tháng 5/2026</option>
-            <option>Tháng 4/2026</option>
-            <option>Tháng 3/2026</option>
-          </select>
-        </label>
-
-        <label class="input-shell">
-          <Search :size="16" />
-          <input type="text" placeholder="Tìm sinh viên, mã SV..." />
-        </label>
-      </div>
-    </GlassPanel>
-
-    <GlassPanel variant="flat" density="compact" class="table-panel">
-      <div class="panel-title">
-        <div>
-          <h2>
-            <Users :size="17" />
-            Chi tiết chuyên cần
-          </h2>
-          <p>Danh sách theo dõi điểm danh từng sinh viên trong lớp SE1601.</p>
+      <GlassPanel variant="flat" density="compact" class="table-panel">
+        <div class="panel-title">
+          <div>
+            <h2>
+              <Users :size="17" />
+              Chi tiết chuyên cần
+            </h2>
+            <p>Danh sách theo dõi điểm danh từng sinh viên trong lớp SE1601.</p>
+          </div>
+          <GlassBadge variant="success">{{ totalSessions }} buổi học</GlassBadge>
         </div>
-        <GlassBadge variant="success">{{ totalSessions }} buổi học</GlassBadge>
-      </div>
 
-      <TableShell density="compact">
-        <table>
-          <thead>
-            <tr>
-              <th>Sinh viên</th>
-              <th>MSSV</th>
-              <th>Có mặt</th>
-              <th>Vắng</th>
-              <th>Đi muộn</th>
-              <th>Có phép</th>
-              <th>Tỷ lệ chuyên cần</th>
-              <th>Trạng thái</th>
-              <th class="text-right">Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="sv in attendanceData" :key="sv.id">
-              <td>
-                <div class="student-cell">
-                  <span class="student-avatar">{{ sv.name.split(' ').pop()[0] }}</span>
-                  <span>
-                    <strong>{{ sv.name }}</strong>
-                    <small>Lập trình Java</small>
-                  </span>
-                </div>
-              </td>
-              <td class="student-code">{{ sv.id }}</td>
-              <td>
-                <span class="metric-cell success">
-                  <CheckCircle2 :size="14" />
-                  {{ sv.present }}/{{ totalSessions }}
-                </span>
-              </td>
-              <td>
-                <span :class="['metric-cell', sv.absent > 3 ? 'danger' : 'neutral']">
-                  <XCircle :size="14" />
-                  {{ sv.absent }}
-                </span>
-              </td>
-              <td>
-                <span class="metric-cell warning">
-                  <Clock :size="14" />
-                  0
-                </span>
-              </td>
-              <td>
-                <span class="metric-cell info">
-                  <UserCheck :size="14" />
-                  0
-                </span>
-              </td>
-              <td>
-                <div class="progress-cell">
-                  <div class="progress-track" aria-hidden="true">
-                    <span :style="{ width: animateProgress ? `${sv.percent}%` : '0%' }" />
+        <TableShell density="compact">
+          <table>
+            <thead>
+              <tr>
+                <th>Sinh viên</th>
+                <th>MSSV</th>
+                <th>Có mặt</th>
+                <th>Vắng</th>
+                <th>Đi muộn</th>
+                <th>Có phép</th>
+                <th>Tỷ lệ chuyên cần</th>
+                <th>Trạng thái</th>
+                <th class="text-right">Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="sv in attendanceData" :key="sv.id">
+                <td>
+                  <div class="student-cell">
+                    <span class="student-avatar">{{ sv.name.split(' ').pop()[0] }}</span>
+                    <span>
+                      <strong>{{ sv.name }}</strong>
+                      <small>Lập trình Java</small>
+                    </span>
                   </div>
-                  <strong>{{ sv.percent }}%</strong>
-                </div>
-              </td>
-              <td>
-                <GlassBadge :variant="getStatusVariant(sv.status)">
-                  <AlertCircle v-if="sv.status === 'danger' || sv.status === 'warning'" :size="11" />
-                  <CheckCircle2 v-else :size="11" />
-                  {{ getStatusText(sv.status) }}
-                </GlassBadge>
-              </td>
-              <td>
-                <div class="row-actions">
-                  <GlassButton variant="ghost" size="sm">Chi tiết</GlassButton>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </TableShell>
+                </td>
+                <td class="student-code">{{ sv.id }}</td>
+                <td>
+                  <span class="metric-cell success">
+                    <CheckCircle2 :size="14" />
+                    {{ sv.present }}/{{ totalSessions }}
+                  </span>
+                </td>
+                <td>
+                  <span :class="['metric-cell', sv.absent > 3 ? 'danger' : 'neutral']">
+                    <XCircle :size="14" />
+                    {{ sv.absent }}
+                  </span>
+                </td>
+                <td>
+                  <span class="metric-cell warning">
+                    <Clock :size="14" />
+                    0
+                  </span>
+                </td>
+                <td>
+                  <span class="metric-cell info">
+                    <UserCheck :size="14" />
+                    0
+                  </span>
+                </td>
+                <td>
+                  <div class="progress-cell">
+                    <div class="progress-track" aria-hidden="true">
+                      <span :style="{ width: animateProgress ? `${sv.percent}%` : '0%' }" />
+                    </div>
+                    <strong>{{ sv.percent }}%</strong>
+                  </div>
+                </td>
+                <td>
+                  <GlassBadge :variant="getStatusVariant(sv.status)">
+                    <AlertCircle v-if="sv.status === 'danger' || sv.status === 'warning'" :size="11" />
+                    <CheckCircle2 v-else :size="11" />
+                    {{ getStatusText(sv.status) }}
+                  </GlassBadge>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <GlassButton variant="ghost" size="sm">Chi tiết</GlassButton>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </TableShell>
 
-      <div class="table-footer">
-        <span>Hiển thị 1-{{ attendanceData.length }} trong số 42 sinh viên</span>
-        <div class="pagination">
-          <button type="button">Trước</button>
-          <button type="button" class="active">1</button>
-          <button type="button">2</button>
-          <button type="button">Sau</button>
+        <div class="table-footer">
+          <span>Hiển thị 1-{{ attendanceData.length }} trong số 42 sinh viên</span>
+          <div class="pagination">
+            <button type="button">Trước</button>
+            <button type="button" class="active">1</button>
+            <button type="button">2</button>
+            <button type="button">Sau</button>
+          </div>
         </div>
-      </div>
-    </GlassPanel>
+      </GlassPanel>
+    </template>
   </div>
 </template>
 
@@ -243,6 +291,12 @@ onMounted(() => {
   gap: 0.875rem;
   padding-bottom: 2.5rem;
   color: var(--text-body);
+}
+
+.loading-panel,
+.error-panel {
+  padding: 2rem;
+  text-align: center;
 }
 
 .page-header,

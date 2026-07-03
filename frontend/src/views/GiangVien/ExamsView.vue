@@ -1,17 +1,25 @@
 <!-- ExamsView.vue -->
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { 
-  Plus, Search, FileEdit, Clock, HelpCircle, 
+import {
+  Plus, Search, FileEdit, Clock, HelpCircle,
   Send, CheckCircle2,
-  FileSignature, Calendar, Settings, ShieldCheck
+  FileSignature, Calendar, Settings, ShieldCheck, AlertCircle
 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import { EXAM_STATUS, getExamStatusLabel, normalizeExamStatus } from '@/utils/examAccess.js'
+import { teacherApi } from '@/services/teacherApi'
 
-const defaultExams = [
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+
+const loading = ref(false)
+const error = ref('')
+const exams = ref([])
+const searchQuery = ref('')
+
+const DEFAULT_EXAMS = [
   {
     id: 1,
     name: 'Thi giữa kỳ: Lập trình Web',
@@ -68,21 +76,50 @@ const defaultExams = [
   },
 ]
 
-const exams = ref([])
-const searchQuery = ref('')
-
-onMounted(() => {
-  const stored = localStorage.getItem('teacher_exams')
-  if (stored) {
-    exams.value = JSON.parse(stored).map(normalizeTeacherExam)
-  } else {
-    exams.value = defaultExams.map(normalizeTeacherExam)
-    localStorage.setItem('teacher_exams', JSON.stringify(defaultExams))
+async function loadExams() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await teacherApi.getExams()
+    const items = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+    exams.value = items.map(normalizeTeacherExam)
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      exams.value = DEFAULT_EXAMS.map(normalizeTeacherExam)
+      return
+    }
+    error.value = e?.message || 'Không thể tải danh sách kỳ thi.'
+    exams.value = []
+  } finally {
+    loading.value = false
   }
-})
+}
+
+function normalizeTeacherExam(exam) {
+  return {
+    ...exam,
+    status: normalizeExamStatus(exam.status),
+    name: exam.tenKyThi || exam.name || '',
+    subjectName: exam.tenMonHoc || exam.subjectName || '',
+    questions: exam.soCauHoi ?? exam.questions ?? 0,
+    duration: exam.thoiGianThi || exam.duration || '0 phút',
+    date: exam.ngayThi ? formatToDDMM(exam.ngayThi) : exam.date || '',
+    allowedStudents: exam.siSo ?? exam.allowedStudents ?? 0,
+    completedStudents: exam.soLuongDaNop ?? exam.completedStudents ?? 0,
+    pendingStudents: exam.soLuongConLai ?? exam.pendingStudents ?? 0,
+  }
+}
+
+function formatToDDMM(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+}
+
+onMounted(() => { loadExams() })
 
 const filteredExams = computed(() => {
-  return exams.value.filter(ex => 
+  return exams.value.filter(ex =>
     [ex.name, ex.subjectName, ex.classSectionCode].some((value) =>
       String(value || '').toLowerCase().includes(searchQuery.value.toLowerCase())
     )
@@ -108,7 +145,6 @@ const saveConfig = () => {
         0
       ),
     })
-    localStorage.setItem('teacher_exams', JSON.stringify(exams.value))
   }
   isConfigModalOpen.value = false
 }
@@ -117,7 +153,6 @@ const publishExam = (examId) => {
   const idx = exams.value.findIndex(e => e.id === examId)
   if (idx !== -1) {
     exams.value[idx].status = EXAM_STATUS.SCHEDULED
-    localStorage.setItem('teacher_exams', JSON.stringify(exams.value))
   }
 }
 
@@ -128,29 +163,6 @@ const glassBadgeVariant = (status) => {
   if (normalized === EXAM_STATUS.CLOSED) return 'neutral'
   if (normalized === EXAM_STATUS.SCHEDULED) return 'primary'
   return 'warning'
-}
-
-function normalizeTeacherExam(exam) {
-  const maxAttempts = exam.maxAttempts || 1
-  const allowedStudents = exam.allowedStudents || 40
-  const completedStudents = exam.completedStudents || 0
-  return {
-    ...exam,
-    subjectName: exam.subjectName || exam.type || 'Môn học demo',
-    classSectionCode: exam.classSectionCode || 'SD1904-DEMO',
-    openAt: exam.openAt || '',
-    closeAt: exam.closeAt || '',
-    maxAttempts,
-    allowedStudents,
-    completedStudents,
-    pendingStudents: exam.pendingStudents ?? Math.max(allowedStudents - completedStudents, 0),
-    allowEarlyLearning: Boolean(exam.allowEarlyLearning),
-    status: normalizeExamStatus(exam.status),
-    accessPolicy: {
-      requirePassword: false,
-      controlledBy: 'class_section_schedule_attempt',
-    },
-  }
 }
 
 function formatTime(value) {
@@ -197,9 +209,28 @@ function formatTime(value) {
        </div>
     </div>
 
+    <!-- Loading state -->
+    <div v-if="loading" class="flex flex-col items-center justify-center py-16">
+      <div class="h-10 w-10 rounded-full border-4 border-(--accent-primary)/30 border-t-(--accent-primary) animate-spin"></div>
+      <p class="mt-4 text-sm font-medium text-muted">Đang tải danh sách kỳ thi...</p>
+    </div>
+
+    <!-- Error state -->
+    <div v-else-if="error" class="flex flex-col items-center justify-center py-16">
+      <AlertCircle :size="48" class="text-(--color-danger-text) mb-4" />
+      <p class="text-sm font-semibold text-heading mb-2">Có lỗi xảy ra</p>
+      <p class="text-sm text-muted mb-4">{{ error }}</p>
+      <GlassButton variant="primary" size="sm" @click="loadExams">Thử lại</GlassButton>
+    </div>
+
+    <!-- Empty state -->
+    <div v-else-if="!filteredExams.length && !loading" class="flex flex-col items-center justify-center py-16">
+      <p class="text-sm font-medium text-muted">Không có kỳ thi nào.</p>
+    </div>
+
     <!-- Main List -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div v-for="(exam, index) in filteredExams" :key="exam.id" 
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div v-for="(exam, index) in filteredExams" :key="exam.id"
            class="group rounded-2xl surface-card border border-card p-5 shadow-sm hover:shadow-xl hover:border-(--accent-primary)/30 transition-all flex flex-col animate-fade-in-up"
            :style="{ animationDelay: `${index * 100}ms` }">
         <div class="flex justify-between items-start mb-4">
@@ -210,14 +241,14 @@ function formatTime(value) {
               {{ getExamStatusLabel(exam.status) }}
            </GlassBadge>
         </div>
-        
+
         <div class="flex-1">
            <div class="inline-block rounded-lg bg-(--surface-input) px-2 py-1 text-[10px] font-semibold text-muted uppercase tracking-widest mb-3">
               {{ exam.type }}
            </div>
            <h3 class="text-xl font-semibold text-heading leading-tight group-hover:text-link transition-colors line-clamp-2 min-h-[56px]">{{ exam.name }}</h3>
            <p class="mt-2 text-xs font-semibold text-muted">{{ exam.subjectName }} · {{ exam.classSectionCode }}</p>
-           
+
            <div class="mt-6 flex flex-col gap-3">
               <div class="flex items-center gap-3">
                  <div class="flex items-center justify-center w-8 h-8 rounded-full bg-(--accent-primary)/5 text-muted">

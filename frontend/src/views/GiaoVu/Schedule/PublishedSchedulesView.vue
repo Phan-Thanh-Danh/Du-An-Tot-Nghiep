@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 import {
   Search,
@@ -22,11 +22,19 @@ import {
   Undo2,
   Info,
   RotateCcw,
+  Loader2,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import { staffApi } from '@/services/staffApi'
+import { usePopupStore } from '@/stores/popup'
 
-// ── Mock Data ────────────────────────────────────────────────
-const publishedSchedules = ref([
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+
+const popupStore = usePopupStore()
+const loading = ref(true)
+const apiError = ref('')
+
+const DEMO_PUBLISHED_SCHEDULES = [
   { id: 1, subject: 'Lập trình Java', class: 'SE1601', teacher: 'Nguyễn Văn A', room: 'P.302', time: '07:30 - 10:30', day: 'Thứ 2', date: '02/06/2026', status: 'published' },
   { id: 2, subject: 'Cấu trúc dữ liệu', class: 'SE1602', teacher: 'Trần Thị B', room: 'P.105', time: '13:30 - 15:30', day: 'Thứ 3', date: '03/06/2026', status: 'published' },
   { id: 3, subject: 'Hệ quản trị CSDL', class: 'SE1603', teacher: 'Lê Văn C', room: 'Lab 2', time: '08:30 - 11:30', day: 'Thứ 4', date: '04/06/2026', status: 'published' },
@@ -35,7 +43,28 @@ const publishedSchedules = ref([
   { id: 6, subject: 'Cơ sở dữ liệu', class: 'SE1601', teacher: 'Trần Thị B', room: 'P.302', time: '09:30 - 11:00', day: 'Thứ 7', date: '07/06/2026', status: 'published' },
   { id: 7, subject: 'Toán rời rạc', class: 'SE1602', teacher: 'Lê Văn C', room: 'P.201', time: '14:00 - 16:30', day: 'Thứ 2', date: '09/06/2026', status: 'published' },
   { id: 8, subject: 'Kỹ thuật phần mềm', class: 'SE1603', teacher: 'Nguyễn Văn A', room: 'P.201', time: '10:00 - 11:30', day: 'Thứ 3', date: '10/06/2026', status: 'published' },
-])
+]
+
+const publishedSchedules = ref([])
+
+async function loadData() {
+  loading.value = true
+  apiError.value = ''
+  try {
+    const res = await staffApi.getSchedules({ trangThai: 'published' })
+    publishedSchedules.value = res?.items ?? res ?? []
+  } catch (err) {
+    if (ENABLE_MOCK_API) {
+      publishedSchedules.value = DEMO_PUBLISHED_SCHEDULES
+    } else {
+      apiError.value = err?.message || 'Không thể tải danh sách.'
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => { loadData() })
 
 // ── Search & Filter ──────────────────────────────────────────
 const searchQuery = ref('')
@@ -227,177 +256,191 @@ import dayjs from 'dayjs'
     title="Lịch đã publish" 
     subtitle="Thời khóa biểu chính thức đã công bố. Mọi chỉnh sửa sẽ được lưu audit log và gửi thông báo cho GV/SV."
   >
-    <div class="space-y-4">
-
-      <!-- ── Toolbar ── -->
-      <div class="lg-glass-strong p-4 rounded-2xl space-y-3">
-        <div class="flex flex-wrap items-center gap-3">
-          <div class="flex-1 min-w-[260px] relative">
-            <Search :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-placeholder pointer-events-none" />
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Tìm theo môn, lớp, giảng viên..."
-              class="w-full lg-input pl-10 pr-4 py-2.5 text-sm font-medium transition-all"
-            />
-            <button
-              v-if="searchQuery"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-placeholder hover:text-label"
-              @click="searchQuery = ''"
-            >
-              <X :size="14" />
-            </button>
-          </div>
-
-          <button
-            :class="[
-              'flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-xl transition-all',
-              showFilterPanel ? 'lg-button-primary' : 'lg-button-secondary text-body'
-            ]"
-            @click.stop="showFilterPanel = !showFilterPanel"
-          >
-            <SlidersHorizontal :size="16" />
-            Bộ lọc nâng cao
-            <span
-              v-if="activeFilterCount > 0"
-              class="inline-flex items-center justify-center h-4 w-4 rounded-full bg-(--lg-success) text-white text-[10px] font-semibold"
-            >{{ activeFilterCount }}</span>
-          </button>
-
-          <button
-            v-if="activeFilterCount > 0 || searchQuery"
-            class="text-xs font-bold text-placeholder hover:text-(--lg-danger) transition-colors"
-            @click="clearFilters"
-          >Xóa bộ lọc</button>
-        </div>
-
-        <!-- ── Advanced Filter Panel ── -->
-        <Transition name="slide-down">
-          <div v-if="showFilterPanel" class="pt-3 border-t border-default flex flex-wrap gap-4">
-            <div>
-              <p class="text-[10px] font-semibold uppercase tracking-widest text-placeholder mb-2">Thứ</p>
-              <div class="flex gap-2 flex-wrap">
-                <button
-                  v-for="d in ['all', ...DAYS]" :key="d"
-                  :class="[
-                    'px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
-                    filterDay === d ? 'lg-button-primary' : 'lg-button-secondary text-body'
-                  ]"
-                  @click="filterDay = d"
-                >
-                  {{ d === 'all' ? 'Tất cả' : d }}
-                </button>
-              </div>
-            </div>
-            <div>
-              <p class="text-[10px] font-semibold uppercase tracking-widest text-placeholder mb-2">Giảng viên</p>
-              <div class="flex gap-2 flex-wrap">
-                <button
-                  v-for="t in ['all', ...TEACHERS]" :key="t"
-                  :class="[
-                    'px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
-                    filterTeacher === t ? 'lg-button-primary' : 'lg-button-secondary text-body'
-                  ]"
-                  @click="filterTeacher = t"
-                >
-                  {{ t === 'all' ? 'Tất cả' : t }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </Transition>
-      </div>
-
-      <!-- ── Result count ── -->
-      <div class="flex items-center justify-between px-1">
-        <p class="text-sm text-label font-semibold">
-          Hiển thị <span class="font-semibold text-heading">{{ filteredSchedules.length }}</span> / {{ publishedSchedules.length }} buổi học
-        </p>
-      </div>
-
-      <!-- ── Published Table ── -->
-      <div class="lg-table-shell overflow-hidden">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-(--surface-input)">
-              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thời gian</th>
-              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Môn & Lớp</th>
-              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Giảng viên</th>
-              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Phòng</th>
-              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y border-default">
-            <tr v-for="item in filteredSchedules" :key="item.id" class="group hover:bg-(--surface-input) transition-colors">
-              <td class="px-4 py-4">
-                <span :class="['inline-block px-2 py-0.5 rounded-lg text-[10px] font-semibold border mb-1', getDayClass(item.day)]">
-                  {{ item.day }}
-                </span>
-                <p class="text-xs font-bold text-(--lg-primary)">{{ item.time }}</p>
-              </td>
-              <td class="px-4 py-4">
-                <p class="text-sm font-semibold text-heading leading-tight">{{ item.subject }}</p>
-                <p class="text-[11px] font-bold text-placeholder mt-0.5 uppercase tracking-tighter">{{ item.class }}</p>
-              </td>
-              <td class="px-4 py-4">
-                <div class="flex items-center gap-3">
-                  <div class="h-8 w-8 rounded-full bg-(--color-info-bg) flex items-center justify-center text-[10px] font-semibold text-(--color-info-text) border border-(--color-info-bg)">
-                    {{ getInitial(item.teacher) }}
-                  </div>
-                  <span class="text-sm font-bold text-label">{{ item.teacher }}</span>
-                </div>
-              </td>
-              <td class="px-4 py-4">
-                <span class="text-sm font-semibold text-heading">{{ item.room }}</span>
-              </td>
-              <td class="px-4 py-4">
-                <div class="flex items-center gap-1">
-                  <button class="p-2 hover:bg-(--color-warning-bg) hover:text-(--color-warning-text) rounded-lg text-placeholder transition-all" title="Hủy buổi / Thay đổi" @click="openCancel(item)">
-                    <XCircle :size="16" />
-                  </button>
-                  <button class="p-2 hover:bg-(--color-info-bg) hover:text-(--color-info-text) rounded-lg text-placeholder transition-all" title="Lịch học bù" @click="openMakeup(item)">
-                    <RefreshCw :size="16" />
-                  </button>
-                  <button class="p-2 hover:bg-(--surface-input) rounded-lg text-placeholder transition-all" title="Lịch sử thay đổi" @click="openHistory(item)">
-                    <History :size="16" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- ── Empty state ── -->
-        <div
-          v-if="filteredSchedules.length === 0"
-          class="flex flex-col items-center justify-center py-16 text-center"
-        >
-          <div class="h-14 w-14 rounded-3xl surface-input border border-default flex items-center justify-center mb-4">
-            <FileText :size="24" class="text-placeholder" />
-          </div>
-          <p class="text-base font-semibold text-heading">Không tìm thấy buổi học nào</p>
-          <p class="text-sm text-label mt-1">Thử thay đổi từ khóa hoặc điều chỉnh bộ lọc.</p>
-          <button class="mt-3 text-sm font-bold text-(--lg-primary) hover:underline" @click="clearFilters">Xóa tất cả bộ lọc</button>
-        </div>
-      </div>
-
-      <!-- ── Summary Info ── -->
-      <div class="flex flex-col md:flex-row items-center justify-between gap-4 px-4 py-2">
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2">
-            <span class="h-3 w-3 rounded-full bg-(--lg-success) shadow-sm shadow-(--lg-success)/20"></span>
-            <span class="text-xs font-bold text-label">{{ totalPublished }} Buổi học đã publish</span>
-          </div>
-          <div class="flex items-center gap-2 text-xs font-bold text-placeholder">
-            <History :size="14" />
-            Lần cuối cập nhật: 10:30 Hôm nay
-          </div>
-        </div>
-        <button class="lg-button-secondary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest flex items-center gap-2" @click="openNotif">
-          <Bell :size="14" /> Gửi thông báo toàn bộ
-        </button>
-      </div>
+    <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-3">
+      <Loader2 class="animate-spin text-(--text-muted)" :size="28" />
+      <p class="text-sm text-(--text-muted)">Đang tải dữ liệu...</p>
     </div>
+
+    <div v-else-if="apiError" class="surface-card border border-(--border-card) rounded-2xl p-6 flex flex-col items-center justify-center gap-3">
+      <AlertCircle :size="32" class="text-(--color-danger-text)" />
+      <p class="text-sm font-bold text-(--text-heading)">Không thể tải dữ liệu</p>
+      <p class="text-xs text-(--text-muted)">{{ apiError }}</p>
+      <button @click="loadData" class="lg-button-primary px-4 py-2 text-xs font-bold rounded-xl mt-2">Thử lại</button>
+    </div>
+
+    <template v-else>
+      <div class="space-y-4">
+
+        <!-- ── Toolbar ── -->
+        <div class="lg-glass-strong p-4 rounded-2xl space-y-3">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="flex-1 min-w-[260px] relative">
+              <Search :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-placeholder pointer-events-none" />
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Tìm theo môn, lớp, giảng viên..."
+                class="w-full lg-input pl-10 pr-4 py-2.5 text-sm font-medium transition-all"
+              />
+              <button
+                v-if="searchQuery"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-placeholder hover:text-label"
+                @click="searchQuery = ''"
+              >
+                <X :size="14" />
+              </button>
+            </div>
+
+            <button
+              :class="[
+                'flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-xl transition-all',
+                showFilterPanel ? 'lg-button-primary' : 'lg-button-secondary text-body'
+              ]"
+              @click.stop="showFilterPanel = !showFilterPanel"
+            >
+              <SlidersHorizontal :size="16" />
+              Bộ lọc nâng cao
+              <span
+                v-if="activeFilterCount > 0"
+                class="inline-flex items-center justify-center h-4 w-4 rounded-full bg-(--lg-success) text-white text-[10px] font-semibold"
+              >{{ activeFilterCount }}</span>
+            </button>
+
+            <button
+              v-if="activeFilterCount > 0 || searchQuery"
+              class="text-xs font-bold text-placeholder hover:text-(--lg-danger) transition-colors"
+              @click="clearFilters"
+            >Xóa bộ lọc</button>
+          </div>
+
+          <!-- ── Advanced Filter Panel ── -->
+          <Transition name="slide-down">
+            <div v-if="showFilterPanel" class="pt-3 border-t border-default flex flex-wrap gap-4">
+              <div>
+                <p class="text-[10px] font-semibold uppercase tracking-widest text-placeholder mb-2">Thứ</p>
+                <div class="flex gap-2 flex-wrap">
+                  <button
+                    v-for="d in ['all', ...DAYS]" :key="d"
+                    :class="[
+                      'px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
+                      filterDay === d ? 'lg-button-primary' : 'lg-button-secondary text-body'
+                    ]"
+                    @click="filterDay = d"
+                  >
+                    {{ d === 'all' ? 'Tất cả' : d }}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <p class="text-[10px] font-semibold uppercase tracking-widest text-placeholder mb-2">Giảng viên</p>
+                <div class="flex gap-2 flex-wrap">
+                  <button
+                    v-for="t in ['all', ...TEACHERS]" :key="t"
+                    :class="[
+                      'px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
+                      filterTeacher === t ? 'lg-button-primary' : 'lg-button-secondary text-body'
+                    ]"
+                    @click="filterTeacher = t"
+                  >
+                    {{ t === 'all' ? 'Tất cả' : t }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- ── Result count ── -->
+        <div class="flex items-center justify-between px-1">
+          <p class="text-sm text-label font-semibold">
+            Hiển thị <span class="font-semibold text-heading">{{ filteredSchedules.length }}</span> / {{ publishedSchedules.length }} buổi học
+          </p>
+        </div>
+
+        <!-- ── Published Table ── -->
+        <div class="lg-table-shell overflow-hidden">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-(--surface-input)">
+                <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thời gian</th>
+                <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Môn & Lớp</th>
+                <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Giảng viên</th>
+                <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Phòng</th>
+                <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y border-default">
+              <tr v-for="item in filteredSchedules" :key="item.id" class="group hover:bg-(--surface-input) transition-colors">
+                <td class="px-4 py-4">
+                  <span :class="['inline-block px-2 py-0.5 rounded-lg text-[10px] font-semibold border mb-1', getDayClass(item.day)]">
+                    {{ item.day }}
+                  </span>
+                  <p class="text-xs font-bold text-(--lg-primary)">{{ item.time }}</p>
+                </td>
+                <td class="px-4 py-4">
+                  <p class="text-sm font-semibold text-heading leading-tight">{{ item.subject }}</p>
+                  <p class="text-[11px] font-bold text-placeholder mt-0.5 uppercase tracking-tighter">{{ item.class }}</p>
+                </td>
+                <td class="px-4 py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="h-8 w-8 rounded-full bg-(--color-info-bg) flex items-center justify-center text-[10px] font-semibold text-(--color-info-text) border border-(--color-info-bg)">
+                      {{ getInitial(item.teacher) }}
+                    </div>
+                    <span class="text-sm font-bold text-label">{{ item.teacher }}</span>
+                  </div>
+                </td>
+                <td class="px-4 py-4">
+                  <span class="text-sm font-semibold text-heading">{{ item.room }}</span>
+                </td>
+                <td class="px-4 py-4">
+                  <div class="flex items-center gap-1">
+                    <button class="p-2 hover:bg-(--color-warning-bg) hover:text-(--color-warning-text) rounded-lg text-placeholder transition-all" title="Hủy buổi / Thay đổi" @click="openCancel(item)">
+                      <XCircle :size="16" />
+                    </button>
+                    <button class="p-2 hover:bg-(--color-info-bg) hover:text-(--color-info-text) rounded-lg text-placeholder transition-all" title="Lịch học bù" @click="openMakeup(item)">
+                      <RefreshCw :size="16" />
+                    </button>
+                    <button class="p-2 hover:bg-(--surface-input) rounded-lg text-placeholder transition-all" title="Lịch sử thay đổi" @click="openHistory(item)">
+                      <History :size="16" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- ── Empty state ── -->
+          <div
+            v-if="filteredSchedules.length === 0"
+            class="flex flex-col items-center justify-center py-16 text-center"
+          >
+            <div class="h-14 w-14 rounded-3xl surface-input border border-default flex items-center justify-center mb-4">
+              <FileText :size="24" class="text-placeholder" />
+            </div>
+            <p class="text-base font-semibold text-heading">Không tìm thấy buổi học nào</p>
+            <p class="text-sm text-label mt-1">Thử thay đổi từ khóa hoặc điều chỉnh bộ lọc.</p>
+            <button class="mt-3 text-sm font-bold text-(--lg-primary) hover:underline" @click="clearFilters">Xóa tất cả bộ lọc</button>
+          </div>
+        </div>
+
+        <!-- ── Summary Info ── -->
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4 px-4 py-2">
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+              <span class="h-3 w-3 rounded-full bg-(--lg-success) shadow-sm shadow-(--lg-success)/20"></span>
+              <span class="text-xs font-bold text-label">{{ totalPublished }} Buổi học đã publish</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs font-bold text-placeholder">
+              <History :size="14" />
+              Lần cuối cập nhật: 10:30 Hôm nay
+            </div>
+          </div>
+          <button class="lg-button-secondary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest flex items-center gap-2" @click="openNotif">
+            <Bell :size="14" /> Gửi thông báo toàn bộ
+          </button>
+        </div>
+      </div>
+    </template>
   </PageContainer>
 
   <!-- ════════════════════════════════════════════════════════════

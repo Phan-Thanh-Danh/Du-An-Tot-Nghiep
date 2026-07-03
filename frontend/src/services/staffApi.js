@@ -3,6 +3,14 @@ import { apiRequest, unwrapApiData } from './apiClient'
 const ENABLE_MOCK_API =
   import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
+/**
+ * Staff (Giao Vu) API service
+ *
+ * Backend endpoint status:
+ *   √ = controller exists
+ *   × = MISSING_BACKEND
+ */
+
 const mockDashboard = {
   stats: {
     totalRequests: 28,
@@ -17,82 +25,227 @@ const mockDashboard = {
     waitlistStudents: 45,
   },
   scheduleTasks: [
-    { id: 1, title: '2 lich trung phong hoc', desc: 'Phong A201 dang co 2 lop xep chong.', alert: true, link: '/staff/conflicts' },
-    { id: 2, title: 'TKB Khoa CNTT dang cho duyet', desc: 'Da submit ngay hom qua, chua co phan hoi tu BGH.', alert: false, link: '/staff/schedule' },
-    { id: 3, title: 'Giang vien nghi dot xuat', desc: 'Can sap xep day thay.', alert: true, link: '/staff/assignments' },
+    { id: 1, title: '2 Lịch trùng phòng học', desc: 'Phòng A201 (Tiết 1-3) đang có 2 lớp xếp chồng.', alert: true, link: '/staff/conflicts' },
+    { id: 2, title: 'TKB Khoa CNTT đang chờ duyệt', desc: 'Đã submit ngày hôm qua, chưa có phản hồi từ BGH.', alert: false, link: '/staff/schedule' },
+    { id: 3, title: 'Giảng viên nghỉ đột xuất', desc: 'TS. Nguyễn Văn A xin nghỉ chiều nay. Cần dạy thay.', alert: true, link: '/staff/assignments' },
   ],
   urgentRequests: [
-    { id: 101, type: 'Xin chuyen lop', studentName: 'Tran Binh', studentId: 'SE150212', time: '-2 NGAY' },
-    { id: 102, type: 'Xin thi lai', studentName: 'Le Hoang', studentId: 'SS140023', time: '-1 NGAY' },
-    { id: 103, type: 'Xin giay xac nhan SV', studentName: 'Pham Thu', studentId: 'SA160199', time: 'TRE 4H' },
+    { id: 101, type: 'Xin chuyển lớp', studentName: 'Trần Bình', studentId: 'SE150212', time: '-2 NGÀY' },
+    { id: 102, type: 'Xin thi lại', studentName: 'Lê Hoàng', studentId: 'SS140023', time: '-1 NGÀY' },
+    { id: 103, type: 'Xin giấy xác nhận SV', studentName: 'Phạm Thu', studentId: 'SA160199', time: 'TRỄ 4H' },
   ],
   nearFullClasses: [
-    { name: 'CT101 - Nhom 1', enrolled: 47, capacity: 50 },
-    { name: 'ITA201 - Nhom 3', enrolled: 49, capacity: 50 },
-    { name: 'MAT101 - Nhom 2', enrolled: 46, capacity: 50 },
+    { name: 'CT101 - Nhóm 1', enrolled: 47, capacity: 50 },
+    { name: 'ITA201 - Nhóm 3', enrolled: 49, capacity: 50 },
+    { name: 'MAT101 - Nhóm 2', enrolled: 46, capacity: 50 },
   ],
   waitlistClasses: [
-    { name: 'ENG102 - Nhom 1', count: 12 },
-    { name: 'PHY101 - Nhom 2', count: 8 },
-    { name: 'CS102 - Nhom 1', count: 15 },
+    { name: 'ENG102 - Nhóm 1', count: 12 },
+    { name: 'PHY101 - Nhóm 2', count: 8 },
+    { name: 'CS102 - Nhóm 1', count: 15 },
   ],
   announcements: [
-    { title: 'Mo dang ky ky Thu 2026', desc: 'He thong da san sang cho dot dang ky toi.', bg: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)' },
-    { title: 'Giang vien can nop diem', desc: 'Con 12 lop chua nop diem giua ky.', bg: 'bg-(--color-warning-bg)', iconColor: 'text-(--color-warning-text)' },
+    { title: 'Mở đăng ký kỳ Thu 2026', desc: 'Hệ thống đã sẵn sàng cho đợt đăng ký tới.', bg: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)' },
+    { title: 'Giảng viên cần nộp điểm', desc: 'Còn 12 lớp chưa nộp điểm giữa kỳ.', bg: 'bg-(--color-warning-bg)', iconColor: 'text-(--color-warning-text)' },
   ],
   semesterStats: { completed: 85, totalClasses: 1240, emptyRooms: 12 },
 }
 
 const mockNotifications = [
-  { id: 1, title: 'Mo dang ky ky Thu 2026', content: 'He thong da san sang cho dot dang ky toi.', time: '2 gio truoc', read: false },
-  { id: 2, title: 'Cap nhat lich thi HK2', content: 'Lich thi da duoc dieu chinh.', time: '1 ngay truoc', read: true },
-  { id: 3, title: 'Thong bao nghi le', content: 'Lich nghi le theo quy dinh.', time: '3 ngay truoc', read: false },
+  { id: 1, title: 'Mở đăng ký kỳ Thu 2026', content: 'Hệ thống đã sẵn sàng cho đợt đăng ký tới.', time: '2 giờ trước', read: false },
+  { id: 2, title: 'Cập nhật lịch thi HK2', content: 'Lịch thi đã được điều chỉnh. Vui lòng xem lại.', time: '1 ngày trước', read: true },
+  { id: 3, title: 'Thông báo nghỉ lễ 30/4', content: 'Lịch nghỉ lễ 30/4 - 1/5 theo quy định.', time: '3 ngày trước', read: false },
 ]
 
-function shouldUseMockFallback(error) {
-  if (ENABLE_MOCK_API) return true
-  throw error
-}
-
 export const staffApi = {
+  // × MISSING_BACKEND: /api/staff/dashboard
   async getDashboard() {
     try {
       return unwrapApiData(await apiRequest('/api/staff/dashboard'))
     } catch (error) {
-      if (shouldUseMockFallback(error)) return mockDashboard
+      if (ENABLE_MOCK_API) return mockDashboard
+      throw error
     }
   },
 
+  // × MISSING_BACKEND
   async processAllRequests() {
-    return unwrapApiData(
-      await apiRequest('/api/staff/requests/process-all', { method: 'POST' }),
-    )
+    return apiRequest('/api/staff/requests/process-all', { method: 'POST' })
   },
 
+  // √ Remap to /api/notifications — NotificationsController
   async getNotifications(params = {}) {
-    const query = new URLSearchParams(params).toString()
+    const query = new URLSearchParams()
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const qs = query.toString()
     try {
-      return unwrapApiData(await apiRequest(`/api/staff/notifications${query ? '?' + query : ''}`))
+      return unwrapApiData(await apiRequest(`/api/notifications${qs ? '?' + qs : ''}`))
     } catch (error) {
-      if (shouldUseMockFallback(error)) return { items: mockNotifications, total: mockNotifications.length }
+      if (ENABLE_MOCK_API) return { items: mockNotifications, total: mockNotifications.length }
+      throw error
     }
   },
 
+  // √ /api/notifications/{id}/read — NotificationsController
   async markNotificationRead(id) {
-    return unwrapApiData(
-      await apiRequest(`/api/staff/notifications/${id}/read`, { method: 'PATCH' }),
-    )
+    return apiRequest(`/api/notifications/${id}/read`, { method: 'PATCH' })
   },
 
+  // √ /api/notifications/read-all — NotificationsController
   async markAllNotificationsRead() {
-    return unwrapApiData(
-      await apiRequest('/api/staff/notifications/read-all', { method: 'PATCH' }),
-    )
+    return apiRequest('/api/notifications/read-all', { method: 'PATCH' })
   },
 
+  // √ /api/notifications/{id} — NotificationsController
   async deleteNotification(id) {
-    return unwrapApiData(
-      await apiRequest(`/api/staff/notifications/${id}`, { method: 'DELETE' }),
-    )
+    return apiRequest(`/api/notifications/${id}`, { method: 'DELETE' })
+  },
+
+  // ── Schedule (Thoi Khoa Bieu) ──
+  // √ GET /api/thoi-khoa-bieu — ThoiKhoaBieuController
+  getSchedules(params = {}) {
+    const query = new URLSearchParams()
+    if (params.tuan) query.append('tuan', params.tuan)
+    if (params.maLop) query.append('maLop', params.maLop)
+    if (params.maPhong) query.append('maPhong', params.maPhong)
+    if (params.keyword) query.append('keyword', params.keyword)
+    const qs = query.toString()
+    return apiRequest(`/api/thoi-khoa-bieu${qs ? '?' + qs : ''}`)
+  },
+
+  // √ GET /api/thoi-khoa-bieu/{id}
+  getScheduleById(id) {
+    return apiRequest(`/api/thoi-khoa-bieu/${id}`)
+  },
+
+  // √ POST /api/thoi-khoa-bieu — create schedule entry
+  createSchedule(payload) {
+    return apiRequest('/api/thoi-khoa-bieu', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  // √ PUT /api/thoi-khoa-bieu/{id} — update schedule entry
+  updateSchedule(id, payload) {
+    return apiRequest(`/api/thoi-khoa-bieu/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  // √ DELETE /api/thoi-khoa-bieu/{id}
+  deleteSchedule(id) {
+    return apiRequest(`/api/thoi-khoa-bieu/${id}`, { method: 'DELETE' })
+  },
+
+  // √ GET /api/thoi-khoa-bieu/check-xung-dot
+  checkConflicts(params = {}) {
+    const query = new URLSearchParams()
+    if (params.tuan) query.append('tuan', params.tuan)
+    if (params.maPhong) query.append('maPhong', params.maPhong)
+    const qs = query.toString()
+    return apiRequest(`/api/thoi-khoa-bieu/check-xung-dot${qs ? '?' + qs : ''}`)
+  },
+
+  // ── Rooms ──
+  // √ GET /api/master-data/rooms — RoomsController
+  getRooms(params = {}) {
+    const query = new URLSearchParams()
+    if (params.keyword) query.append('keyword', params.keyword)
+    if (params.toaNha) query.append('toaNha', params.toaNha)
+    const qs = query.toString()
+    return apiRequest(`/api/master-data/rooms${qs ? '?' + qs : ''}`)
+  },
+
+  getRoomById(id) {
+    return apiRequest(`/api/master-data/rooms/${id}`)
+  },
+
+  // √ GET /api/master-data/buildings
+  getBuildings() {
+    return apiRequest('/api/master-data/buildings')
+  },
+
+  // √ GET /api/master-data/floors
+  getFloors() {
+    return apiRequest('/api/master-data/floors')
+  },
+
+  // ── Ca Hoc ──
+  // √ GET /api/ca-hoc
+  getCaHoc() {
+    return apiRequest('/api/ca-hoc')
+  },
+
+  // ── Buoi Hoc ──
+  // √ GET /api/buoi-hoc — BuoiHocController
+  getSessions(params = {}) {
+    const query = new URLSearchParams()
+    if (params.maLop) query.append('maLop', params.maLop)
+    if (params.ngay) query.append('ngay', params.ngay)
+    const qs = query.toString()
+    return apiRequest(`/api/buoi-hoc${qs ? '?' + qs : ''}`)
+  },
+
+  // ── Applications/Requests ──
+  // √ GET /api/admin/applications — AdminApplicationsController
+  getPendingRequests(params = {}) {
+    const query = new URLSearchParams()
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    if (params.status) query.append('status', params.status)
+    const qs = query.toString()
+    return apiRequest(`/api/admin/applications${qs ? '?' + qs : ''}`)
+  },
+
+  getRequestById(id) {
+    return apiRequest(`/api/admin/applications/${id}`)
+  },
+
+  approveRequest(id, payload = {}) {
+    return apiRequest(`/api/admin/applications/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  rejectRequest(id, payload = {}) {
+    return apiRequest(`/api/admin/applications/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  // ── Registration Periods ──
+  // × MISSING_BACKEND (dự kiến: /api/admin/registration-periods)
+  getRegistrationPeriod() {
+    return apiRequest('/api/admin/registration-periods')
+  },
+
+  // ── Notices ──
+  // √ Remap to /api/notifications
+  getNotices(params = {}) {
+    const query = new URLSearchParams()
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const qs = query.toString()
+    return apiRequest(`/api/notices${qs ? '?' + qs : ''}`)
+  },
+
+  createNotice(payload) {
+    return apiRequest('/api/notices', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  // × MISSING_BACKEND (dự kiến: /api/rooms/book)
+  bookRoom(payload) {
+    return apiRequest('/api/staff/rooms/book', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
   },
 }

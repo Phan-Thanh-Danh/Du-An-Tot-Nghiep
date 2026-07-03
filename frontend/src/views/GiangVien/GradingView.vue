@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { usePopupStore } from '@/stores/popup'
+import { teacherApi } from '@/services/teacherApi'
 import {
   AlertCircle,
   ArrowLeft,
@@ -26,12 +27,18 @@ import TableShell from '@/components/ui/TableShell.vue'
 
 const popupStore = usePopupStore()
 
-const submissions = ref([
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+const loading = ref(false)
+const error = ref('')
+
+const DEMO_SUBMISSIONS = [
   { id: 1, studentId: 'SV16001', name: 'Nguyễn Văn A', file: 'Asm1_NVA.zip', time: '18/05/2026 09:30', score: 8.5, comment: 'Tốt, giao diện sạch sẽ.', status: 'Graded' },
   { id: 2, studentId: 'SV16002', name: 'Trần Thị B', file: 'Asm1_Final_B.rar', time: '19/05/2026 14:15', score: null, comment: '', status: 'Pending' },
   { id: 3, studentId: 'SV16003', name: 'Lê Hoàng C', file: 'LHC_Asm1.pdf', time: '19/05/2026 23:55', score: 9.0, comment: 'Xuất sắc!', status: 'Graded' },
   { id: 4, studentId: 'SV16004', name: 'Phạm Minh D', file: 'asm_java_d.zip', time: '20/05/2026 01:20', score: null, comment: '', status: 'Late' },
-])
+]
+
+const submissions = ref([])
 
 const selectedSubmission = ref(null)
 
@@ -59,7 +66,25 @@ function selectGrading(sub) {
   selectedSubmission.value = { ...sub }
 }
 
-function saveGrade() {
+async function loadSubmissions() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await teacherApi.getSubmissions()
+    submissions.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      submissions.value = JSON.parse(JSON.stringify(DEMO_SUBMISSIONS))
+      return
+    }
+    error.value = e?.message || 'Không thể tải bài nộp.'
+    submissions.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+async function saveGrade() {
   if (selectedSubmission.value) {
     const idx = submissions.value.findIndex(s => s.id === selectedSubmission.value.id)
     if (idx !== -1) {
@@ -67,8 +92,21 @@ function saveGrade() {
     }
     selectedSubmission.value = null
     popupStore.success('Đã lưu điểm', 'Điểm và nhận xét đã được lưu thành công.')
+
+    if (!ENABLE_MOCK_API) {
+      try {
+        await teacherApi.gradeSubmission(submissions.value[idx]?.id, {
+          score: submissions.value[idx]?.score,
+          comment: submissions.value[idx]?.comment
+        })
+      } catch {
+        popupStore.warning('Lưu cục bộ', 'Không đồng bộ được với máy chủ, điểm đã lưu tạm thời.')
+      }
+    }
   }
 }
+
+onMounted(() => { loadSubmissions() })
 
 function statusVariant(status) {
   if (status === 'Graded') return 'success'
@@ -84,7 +122,25 @@ function statusLabel(status) {
 </script>
 
 <template>
-  <div class="grading-page lg-page-enter">
+  <div v-if="loading" class="grading-page lg-page-enter">
+    <GlassPanel variant="flat" density="compact" class="page-header">
+      <div class="loading-state">
+        <p>Đang tải danh sách bài nộp...</p>
+      </div>
+    </GlassPanel>
+  </div>
+
+  <div v-else-if="error" class="grading-page lg-page-enter">
+    <GlassPanel variant="flat" density="compact" class="page-header">
+      <div class="error-state">
+        <AlertCircle :size="20" />
+        <p>{{ error }}</p>
+        <GlassButton variant="primary" size="sm" @click="loadSubmissions">Thử lại</GlassButton>
+      </div>
+    </GlassPanel>
+  </div>
+
+  <div v-else class="grading-page lg-page-enter">
     <GlassPanel variant="flat" density="compact" class="page-header">
       <div class="header-main">
         <router-link to="/teacher/assignments" class="back-link" aria-label="Quay lại bài tập">
@@ -325,6 +381,21 @@ function statusLabel(status) {
   gap: 0.875rem;
   padding-bottom: 2.5rem;
   color: var(--text-body);
+}
+
+.loading-state,
+.error-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.error-state {
+  color: var(--color-danger-text);
 }
 
 .page-header,

@@ -1,5 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { usePopupStore } from '@/stores/popup'
+import { rbacApi } from '@/services/rbacService'
 import {
   Shield,
   ShieldAlert,
@@ -17,6 +19,11 @@ import {
   AlertCircle,
   FileText
 } from 'lucide-vue-next'
+
+const ENABLE_MOCK_API =
+  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+
+const popup = usePopupStore()
 
 // State
 const activeTab = ref('roles') // 'roles' | 'history'
@@ -42,8 +49,8 @@ const modules = [
   { key: 'reports', name: 'Báo cáo & Phân tích', desc: 'Thống kê GPA, chuyên cần, so sánh cơ sở' }
 ]
 
-// Mock Roles Data
-const mockRoles = ref([
+// Mock Roles Data (fallback)
+const mockRoles = [
   {
     id: 1,
     name: 'Super Admin',
@@ -149,10 +156,10 @@ const mockRoles = ref([
       'reports': ['read']
     }
   }
-])
+]
 
-// Mock Audit Logs Data
-const mockAuditLogs = ref([
+// Mock Audit Logs Data (fallback)
+const mockAuditLogs = [
   {
     id: 1,
     roleName: 'Admin Cơ sở Hà Nội',
@@ -178,15 +185,41 @@ const mockAuditLogs = ref([
     reason: 'Tạo vai trò riêng biệt cho bộ phận khảo thí học kỳ hè.',
     details: null
   }
-])
+]
+
+// API data
+const loading = ref(false)
+const error = ref('')
+const roles = ref([])
+const auditLogs = ref([])
 
 // Filtered Roles
 const filteredRoles = computed(() => {
-  return mockRoles.value.filter(role => {
+  return roles.value.filter(role => {
     return role.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
            role.code.toLowerCase().includes(searchQuery.value.toLowerCase())
   })
 })
+
+// Load roles from API (with mock fallback)
+async function loadRoles() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await rbacApi.getRoles()
+    roles.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+  } catch (e) {
+    if (ENABLE_MOCK_API) {
+      roles.value = JSON.parse(JSON.stringify(mockRoles))
+      auditLogs.value = JSON.parse(JSON.stringify(mockAuditLogs))
+      return
+    }
+    error.value = e?.message || 'Không thể tải danh sách vai trò.'
+    roles.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 // Create Custom Role State
 const isCreateDrawerOpen = ref(false)
@@ -293,7 +326,7 @@ const openCreateDrawer = () => {
 
 const confirmCreateRole = () => {
   if (!newRole.value.name || !newRole.value.code) {
-    alert('Vui lòng điền đủ tên vai trò và mã vai trò.')
+    popup.warning('Thiếu thông tin', 'Vui lòng điền đủ tên vai trò và mã vai trò.')
     return
   }
 
@@ -309,14 +342,14 @@ const confirmCreateRole = () => {
   }
 
   if (newRole.value.baseTemplateId) {
-    const template = mockRoles.value.find(r => r.id === newRole.value.baseTemplateId)
+    const template = roles.value.find(r => r.id === newRole.value.baseTemplateId)
     if (template) {
       templatePermissions = JSON.parse(JSON.stringify(template.permissions))
     }
   }
 
   const roleObj = {
-    id: mockRoles.value.length + 1,
+    id: roles.value.length + 1,
     name: newRole.value.name,
     code: newRole.value.code.toUpperCase(),
     type: 'Custom',
@@ -329,11 +362,11 @@ const confirmCreateRole = () => {
     permissions: templatePermissions
   }
 
-  mockRoles.value.push(roleObj)
+  roles.value.push(roleObj)
 
   // Write log
-  mockAuditLogs.value.unshift({
-    id: mockAuditLogs.value.length + 1,
+  auditLogs.value.unshift({
+    id: auditLogs.value.length + 1,
     roleName: roleObj.name,
     action: 'Tạo Vai trò mới',
     operator: 'Super Admin A',
@@ -342,7 +375,7 @@ const confirmCreateRole = () => {
     details: null
   })
 
-  alert(`Đã tạo thành công vai trò tùy chỉnh: ${roleObj.name}!`)
+  popup.success('Đã tạo', `Đã tạo thành công vai trò tùy chỉnh: ${roleObj.name}!`)
   isCreateDrawerOpen.value = false
 }
 
@@ -380,7 +413,7 @@ const isChecked = (moduleKey, action) => {
 
 const savePermissionsClicked = () => {
   if (permissionDiffs.value.length === 0) {
-    alert('Không có thay đổi nào được thực hiện.')
+    popup.warning('Không có thay đổi', 'Không có thay đổi nào được thực hiện.')
     isPermissionDrawerOpen.value = false
     return
   }
@@ -390,24 +423,24 @@ const savePermissionsClicked = () => {
 
 const submitPermissionsSave = () => {
   if (!auditReason.value.trim()) {
-    alert('Vui lòng nhập lý do thay đổi để ghi nhận vào Audit Log.')
+    popup.warning('Thiếu thông tin', 'Vui lòng nhập lý do thay đổi để ghi nhận vào Audit Log.')
     return
   }
 
   const role = selectedRoleForEdit.value
-  const index = mockRoles.value.findIndex(r => r.id === role.id)
+  const index = roles.value.findIndex(r => r.id === role.id)
 
   if (index !== -1) {
-    mockRoles.value[index].permissions = JSON.parse(JSON.stringify(currentPermissions.value))
-    mockRoles.value[index].scope = currentScope.value.scope
-    mockRoles.value[index].targetCampus = currentScope.value.scope === 'Global' ? '' : currentScope.value.targetCampus
-    mockRoles.value[index].targetSubCampus = currentScope.value.scope === 'Sub-campus' ? currentScope.value.targetSubCampus : ''
-    mockRoles.value[index].scopeType = currentScope.value.scopeType
+    roles.value[index].permissions = JSON.parse(JSON.stringify(currentPermissions.value))
+    roles.value[index].scope = currentScope.value.scope
+    roles.value[index].targetCampus = currentScope.value.scope === 'Global' ? '' : currentScope.value.targetCampus
+    roles.value[index].targetSubCampus = currentScope.value.scope === 'Sub-campus' ? currentScope.value.targetSubCampus : ''
+    roles.value[index].scopeType = currentScope.value.scopeType
   }
 
   // Add Audit Log
-  mockAuditLogs.value.unshift({
-    id: mockAuditLogs.value.length + 1,
+  auditLogs.value.unshift({
+    id: auditLogs.value.length + 1,
     roleName: role.name,
     action: 'Cập nhật Quyền hạn & Phạm vi',
     operator: 'Super Admin A',
@@ -424,7 +457,7 @@ const submitPermissionsSave = () => {
     }
   })
 
-  alert(`Đã cập nhật cấu hình bảo mật cho vai trò: ${role.name}`)
+  popup.success('Đã cập nhật', `Đã cập nhật cấu hình bảo mật cho vai trò: ${role.name}`)
   isConfirmModalOpen.value = false
   isPermissionDrawerOpen.value = false
 }
@@ -436,28 +469,30 @@ const openMembersDrawer = (role) => {
 
 const deleteRole = (role) => {
   if (role.type === 'System') return
-  if (confirm(`Bạn có chắc chắn muốn xóa vai trò tùy chỉnh: ${role.name}? Tất cả thành viên sẽ mất quyền của vai trò này.`)) {
-    mockRoles.value = mockRoles.value.filter(r => r.id !== role.id)
-    
-    // Add Audit Log
-    mockAuditLogs.value.unshift({
-      id: mockAuditLogs.value.length + 1,
-      roleName: role.name,
-      action: 'Xóa Vai trò',
-      operator: 'Super Admin A',
-      time: new Date().toLocaleString(),
-      reason: `Xóa vai trò tùy chỉnh ${role.name} khỏi hệ thống.`,
-      details: null
-    })
-    
-    alert(`Đã xóa vai trò: ${role.name}`)
-  }
+  roles.value = roles.value.filter(r => r.id !== role.id)
+  
+  // Add Audit Log
+  auditLogs.value.unshift({
+    id: auditLogs.value.length + 1,
+    roleName: role.name,
+    action: 'Xóa Vai trò',
+    operator: 'Super Admin A',
+    time: new Date().toLocaleString(),
+    reason: `Xóa vai trò tùy chỉnh ${role.name} khỏi hệ thống.`,
+    details: null
+  })
+  
+  popup.success('Đã xóa', `Đã xóa vai trò: ${role.name}`)
 }
 
 const openAuditDrawer = (log) => {
   selectedAuditLog.value = log
   isAuditDrawerOpen.value = true
 }
+
+onMounted(() => {
+  loadRoles()
+})
 </script>
 
 <template>
