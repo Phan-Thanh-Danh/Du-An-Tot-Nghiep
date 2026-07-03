@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   AlertCircle,
   Award,
@@ -17,7 +17,6 @@ import {
   SlidersHorizontal,
   Trash2,
   Upload,
-  Users,
   X,
 } from 'lucide-vue-next'
 
@@ -26,18 +25,12 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import { teacherApi } from '@/services/teacherApi'
 
-const assignments = ref([
-  { id: 1, name: 'Assignment 1: HTML/CSS Basic', className: 'SE1601', deadline: '20/05/2026 23:59', status: 'Active', submissionsCount: 42, totalStudents: 45, maxScore: 10, type: 'Assignment' },
-  { id: 2, name: 'Assignment 2: JavaScript DOM', className: 'SE1601', deadline: '28/05/2026 23:59', status: 'Active', submissionsCount: 12, totalStudents: 45, maxScore: 10, type: 'Assignment' },
-  { id: 3, name: 'Lab 1: UI Design with Figma', className: 'SS1402', deadline: '15/05/2026 23:59', status: 'Completed', submissionsCount: 38, totalStudents: 38, maxScore: 10, type: 'Lab' },
-])
-
-const classesList = ref([
-  { code: 'SE1601', name: 'Lớp SE1601 - Java', subject: 'Lập trình Java', students: 45 },
-  { code: 'SS1402', name: 'Lớp SS1402 - Web', subject: 'Lập trình Web', students: 38 },
-  { code: 'SA1709', name: 'Lớp SA1709 - DB', subject: 'Cơ sở dữ liệu', students: 42 }
-])
+const assignments = ref([])
+const classesList = ref([])
+const loading = ref(false)
+const error = ref('')
 
 // Filter & Search states
 const searchQuery = ref('')
@@ -74,6 +67,89 @@ const summaryStats = computed(() => [
     tone: 'neutral',
   },
 ])
+
+function unwrap(response) {
+  return response?.data ?? response?.Data ?? response
+}
+
+function getItems(response) {
+  const data = unwrap(response)
+  return Array.isArray(data) ? data : data?.items || data?.Items || []
+}
+
+function formatDeadline(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function normalizeStatus(status) {
+  if (status === 'nhap') return 'Draft'
+  if (status === 'da_dong') return 'Completed'
+  return 'Active'
+}
+
+function normalizeAssignment(item) {
+  return {
+    id: item.id ?? item.Id,
+    courseId: item.courseId ?? item.CourseId,
+    name: item.title ?? item.Title ?? item.name ?? '',
+    description: item.description ?? item.Description ?? '',
+    className: item.className ?? item.ClassName ?? item.courseName ?? item.CourseName ?? '',
+    deadline: formatDeadline(item.deadline ?? item.Deadline),
+    deadlineRaw: item.deadline ?? item.Deadline,
+    status: normalizeStatus(item.status ?? item.Status),
+    submissionsCount: item.submissionsCount ?? item.SubmissionsCount ?? 0,
+    totalStudents: item.totalStudents ?? item.TotalStudents ?? 0,
+    pendingGrades: item.pendingGrades ?? item.PendingGrades ?? 0,
+    maxScore: item.maxScore ?? item.MaxScore ?? 10,
+    type: 'Assignment',
+  }
+}
+
+function normalizeClass(item) {
+  return {
+    id: item.maKhoaHoc ?? item.id ?? item.Id,
+    code: item.maKhoaHoc ?? item.id ?? item.Id,
+    name: item.tieuDe ?? item.tenLop ?? item.name ?? '',
+    subject: item.tenMonHoc ?? item.monHoc ?? item.subject ?? '',
+    students: item.siSo ?? item.totalStudents ?? 0,
+  }
+}
+
+async function loadAssignments() {
+  loading.value = true
+  error.value = ''
+  try {
+    const response = await teacherApi.getAssignments({ pageSize: 100 })
+    assignments.value = getItems(response).map(normalizeAssignment)
+  } catch (err) {
+    error.value = err?.message || 'Không thể tải danh sách bài tập.'
+    assignments.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadClasses() {
+  try {
+    const response = await teacherApi.getClasses({ pageSize: 100 })
+    classesList.value = getItems(response).map(normalizeClass).filter(item => item.id)
+  } catch {
+    classesList.value = []
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([loadAssignments(), loadClasses()])
+})
 
 // Modal & creation states
 const showCreateModal = ref(false)
@@ -213,45 +289,44 @@ function validateForm() {
     isValid = false
   }
 
-  if (!form.value.maxScore || form.value.maxScore <= 0 || form.value.maxScore > 100) {
-    errors.value.maxScore = 'Thang điểm phải từ 1 đến 100'
+  if (!form.value.maxScore || form.value.maxScore <= 0 || form.value.maxScore > 10) {
+    errors.value.maxScore = 'Thang điểm phải từ 1 đến 10'
     isValid = false
   }
 
   return isValid
 }
 
-function submitAssignment() {
+async function submitAssignment() {
   if (!validateForm()) {
     triggerToast('Vui lòng hoàn thiện tất cả thông tin hợp lệ!', 'error')
     return
   }
 
   isSubmitting.value = true
-
-  setTimeout(() => {
-    const selectedClass = classesList.value.find(c => c.code === form.value.classId)
-    const dateParts = form.value.deadlineDate.split('-')
-    const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`
-
-    const newAsm = {
-      id: assignments.value.length + 1,
-      name: form.value.name,
-      className: form.value.classId,
-      deadline: `${formattedDate} ${form.value.deadlineTime}`,
-      submissionsCount: 0,
-      totalStudents: selectedClass ? selectedClass.students : 45,
-      status: form.value.status,
+  try {
+    const payload = {
+      courseId: Number(form.value.classId),
+      title: form.value.name,
+      description: form.value.description,
+      dueAt: new Date(`${form.value.deadlineDate}T${form.value.deadlineTime}:00`).toISOString(),
       maxScore: form.value.maxScore,
-      type: form.value.type
+      maxAttempts: 3,
+      allowedFormats: ['.zip', '.rar', '.pdf', '.doc', '.docx'],
+      status: form.value.status,
     }
 
-    assignments.value.unshift(newAsm)
+    const response = await teacherApi.createAssignment(payload)
+    assignments.value.unshift(normalizeAssignment(unwrap(response)))
     isSubmitting.value = false
     showCreateModal.value = false
 
     triggerToast(`Đã tạo thành công bài tập "${form.value.name}"!`, 'success')
-  }, 900)
+  } catch (err) {
+    triggerToast(err?.message || 'Không thể tạo bài tập.', 'error')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 function assignmentStatusVariant(status) {
@@ -267,6 +342,7 @@ function assignmentStatusLabel(status) {
 }
 
 function submissionPercent(assignment) {
+  if (!assignment.totalStudents) return 0
   return Math.round((assignment.submissionsCount / assignment.totalStudents) * 100)
 }
 </script>
@@ -334,7 +410,15 @@ function submissionPercent(assignment) {
         </div>
       </div>
 
-      <TableShell v-if="filteredAssignments.length" density="compact">
+      <div v-if="loading" class="rounded-lg border border-card bg-surface-input px-4 py-6 text-center text-sm font-semibold text-muted">
+        Đang tải danh sách bài tập...
+      </div>
+
+      <div v-else-if="error" class="rounded-lg border border-card px-4 py-6 text-center text-sm font-semibold" style="background:var(--color-danger-bg);color:var(--color-danger-text)">
+        {{ error }}
+      </div>
+
+      <TableShell v-else-if="filteredAssignments.length" density="compact">
         <table>
           <thead>
             <tr>
@@ -390,8 +474,11 @@ function submissionPercent(assignment) {
               </td>
               <td>
                 <div class="row-actions">
-                  <GlassButton variant="ghost" size="sm">Xem bài nộp</GlassButton>
-                  <router-link to="/teacher/grading" class="grade-link">
+                  <router-link :to="{ path: '/teacher/grading', query: { assignmentId: asm.id } }" class="grade-link">
+                    Xem bài nộp
+                    <ChevronRight :size="14" />
+                  </router-link>
+                  <router-link :to="{ path: '/teacher/grading', query: { assignmentId: asm.id } }" class="grade-link">
                     Chấm bài
                     <ChevronRight :size="14" />
                   </router-link>
@@ -459,7 +546,7 @@ function submissionPercent(assignment) {
                 <span>Lớp học phần <b>*</b></span>
                 <select v-model="form.classId" :class="{ invalid: errors.classId }">
                   <option value="" disabled selected>Chọn lớp...</option>
-                  <option v-for="cls in classesList" :key="cls.code" :value="cls.code">
+                  <option v-for="cls in classesList" :key="cls.code" :value="cls.id">
                     {{ cls.code }} - {{ cls.subject }}
                   </option>
                 </select>
@@ -476,7 +563,7 @@ function submissionPercent(assignment) {
                     v-model.number="form.maxScore"
                     type="number"
                     min="1"
-                    max="100"
+                    max="10"
                     placeholder="10"
                     :class="{ invalid: errors.maxScore }"
                   />

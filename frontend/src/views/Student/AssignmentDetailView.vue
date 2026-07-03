@@ -19,6 +19,7 @@ const isDragging = ref(false)
 const selectedFiles = ref([])
 const showToast = ref(false)
 const toastMessage = ref('')
+const loadError = ref('')
 
 const assignment = ref({
   courseCode: '',
@@ -43,6 +44,10 @@ const assignment = ref({
 const deadlinePassed = computed(() => assignment.value.status === 'overdue')
 const deadlineUrgent = computed(() => assignment.value.status === 'late' || assignment.value.status === 'pending')
 const deadlineText = computed(() => deadlinePassed.value ? 'Đã quá hạn' : 'Sắp đến hạn')
+const scoreText = computed(() => {
+  if (assignment.value.score === null || assignment.value.score === undefined) return 'Chờ chấm'
+  return `${Number(assignment.value.score).toFixed(1)}/10`
+})
 
 // ── Methods ──────────────────────────────────────
 
@@ -55,6 +60,7 @@ const cleanAllowedFormats = computed(() => {
 
 async function fetchDetail() {
   loading.value = true
+  loadError.value = ''
   try {
     const res = await studentApi.getAssignmentDetail(assignmentId)
     if (res.success && res.data) {
@@ -62,6 +68,7 @@ async function fetchDetail() {
     }
   } catch (err) {
     console.error('Error fetching assignment detail', err)
+    loadError.value = err?.message || 'Không thể tải chi tiết bài tập.'
   } finally {
     loading.value = false
   }
@@ -152,6 +159,10 @@ const statusBadgeVariant = (s) => ({
     <div v-if="loading" class="flex justify-center p-12">
       <div class="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div>
     </div>
+    <div v-else-if="loadError" class="rounded-lg border border-card px-4 py-6 text-center text-sm font-semibold" style="background:var(--color-danger-bg);color:var(--color-danger-text)">
+      {{ loadError }}
+    </div>
+
     <template v-else>
       <!-- Toast -->
       <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 translate-y-2" leave-active-class="transition-all duration-200" leave-to-class="opacity-0">
@@ -222,7 +233,7 @@ const statusBadgeVariant = (s) => ({
             </div>
             <span class="text-label text-xs font-semibold">Điểm số</span>
           </div>
-          <p class="text-sm font-semibold text-muted">Chờ chấm</p>
+          <p class="text-sm font-semibold text-heading">{{ scoreText }}</p>
         </GlassPanel>
       </div>
 
@@ -241,6 +252,16 @@ const statusBadgeVariant = (s) => ({
               </div>
             </template>
             <p class="text-sm leading-7 text-body whitespace-pre-line">{{ assignment.description }}</p>
+          </GlassPanel>
+
+          <GlassPanel v-if="assignment.feedback" variant="flat">
+            <template #header>
+              <div class="flex items-center gap-2">
+                <component :is="icon('MessageSquare')" :size="15" style="color:var(--accent-primary)" />
+                <h2 class="text-sm font-semibold text-heading">Nhận xét giảng viên</h2>
+              </div>
+            </template>
+            <p class="text-sm leading-7 text-body whitespace-pre-line">{{ assignment.feedback }}</p>
           </GlassPanel>
 
           <!-- Upload -->

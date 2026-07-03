@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { usePopupStore } from '@/stores/popup'
 import { teacherApi } from '@/services/teacherApi'
 import {
@@ -26,6 +27,7 @@ import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 
 const popupStore = usePopupStore()
+const route = useRoute()
 
 const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
@@ -41,6 +43,11 @@ const DEMO_SUBMISSIONS = [
 const submissions = ref([])
 
 const selectedSubmission = ref(null)
+const assignmentContext = ref({
+  title: 'Bài tập',
+  className: '',
+  deadline: '',
+})
 
 const gradingStats = computed(() => {
   const graded = submissions.value.filter((submission) => submission.status === 'Graded').length
@@ -66,12 +73,63 @@ function selectGrading(sub) {
   selectedSubmission.value = { ...sub }
 }
 
+function unwrap(response) {
+  return response?.data ?? response?.Data ?? response
+}
+
+function getItems(response) {
+  const data = unwrap(response)
+  return Array.isArray(data) ? data : data?.items || data?.Items || []
+}
+
+function formatDateTime(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function normalizeSubmission(item) {
+  const id = item.submissionId ?? item.SubmissionId ?? item.id
+  const isLate = item.isLate ?? item.IsLate ?? false
+  const score = item.score ?? item.Score ?? null
+  return {
+    id,
+    studentId: String(item.studentId ?? item.StudentId ?? ''),
+    name: item.studentName ?? item.StudentName ?? item.name ?? '',
+    file: (item.fileUrl ?? item.FileUrl ?? '').split('/').pop() || 'Bài nộp',
+    fileUrl: item.fileUrl ?? item.FileUrl ?? '',
+    time: formatDateTime(item.submittedAt ?? item.SubmittedAt ?? item.time),
+    score,
+    comment: item.feedback ?? item.Feedback ?? item.comment ?? '',
+    status: score !== null ? 'Graded' : isLate ? 'Late' : 'Pending',
+    assignmentTitle: item.assignmentTitle ?? item.AssignmentTitle ?? '',
+    courseName: item.courseName ?? item.CourseName ?? '',
+    isLate,
+  }
+}
+
 async function loadSubmissions() {
   loading.value = true
   error.value = ''
   try {
-    const data = await teacherApi.getSubmissions()
-    submissions.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+    const assignmentId = route.query.assignmentId
+    const data = assignmentId
+      ? await teacherApi.getAssignmentSubmissions(assignmentId, { pageSize: 100 })
+      : await teacherApi.getSubmissions({ pageSize: 100 })
+    submissions.value = getItems(data).map(normalizeSubmission)
+    const firstSubmission = submissions.value[0]
+    assignmentContext.value = {
+      title: firstSubmission?.assignmentTitle || 'Bài tập',
+      className: firstSubmission?.courseName || '',
+      deadline: '',
+    }
   } catch (e) {
     if (ENABLE_MOCK_API) {
       submissions.value = JSON.parse(JSON.stringify(DEMO_SUBMISSIONS))
@@ -86,22 +144,29 @@ async function loadSubmissions() {
 
 async function saveGrade() {
   if (selectedSubmission.value) {
-    const idx = submissions.value.findIndex(s => s.id === selectedSubmission.value.id)
-    if (idx !== -1) {
-      submissions.value[idx] = { ...selectedSubmission.value, status: 'Graded' }
+    if (ENABLE_MOCK_API) {
+      const idx = submissions.value.findIndex(s => s.id === selectedSubmission.value.id)
+      if (idx !== -1) submissions.value[idx] = { ...selectedSubmission.value, status: 'Graded' }
+      selectedSubmission.value = null
+      popupStore.success('Đã lưu điểm', 'Điểm và nhận xét đã được lưu thành công.')
+      return
     }
-    selectedSubmission.value = null
-    popupStore.success('Đã lưu điểm', 'Điểm và nhận xét đã được lưu thành công.')
 
-    if (!ENABLE_MOCK_API) {
-      try {
-        await teacherApi.gradeSubmission(submissions.value[idx]?.id, {
-          score: submissions.value[idx]?.score,
-          comment: submissions.value[idx]?.comment
-        })
-      } catch {
-        popupStore.warning('Lưu cục bộ', 'Không đồng bộ được với máy chủ, điểm đã lưu tạm thời.')
+    try {
+      const response = await teacherApi.gradeSubmission(selectedSubmission.value.id, {
+        score: selectedSubmission.value.score,
+        feedback: selectedSubmission.value.comment,
+        publish: true,
+      })
+      const updated = normalizeSubmission(unwrap(response))
+      const idx = submissions.value.findIndex(s => s.id === selectedSubmission.value.id)
+      if (idx !== -1) {
+        submissions.value[idx] = { ...submissions.value[idx], ...updated, status: 'Graded' }
       }
+      selectedSubmission.value = null
+      popupStore.success('Đã lưu điểm', 'Điểm và nhận xét đã được lưu thành công.')
+    } catch (err) {
+      popupStore.error('Không thể lưu điểm', err?.message || 'Máy chủ từ chối yêu cầu chấm điểm.')
     }
   }
 }
@@ -149,18 +214,18 @@ function statusLabel(status) {
 
         <div class="header-copy">
           <div class="context-tags">
-            <GlassBadge variant="primary">Assignment 1</GlassBadge>
-            <GlassBadge variant="neutral">SE1601</GlassBadge>
+            <GlassBadge variant="primary">{{ assignmentContext.title }}</GlassBadge>
+            <GlassBadge v-if="assignmentContext.className" variant="neutral">{{ assignmentContext.className }}</GlassBadge>
           </div>
           <h1>Chấm bài tập</h1>
-          <p>Chấm điểm, phản hồi và theo dõi trạng thái bài nộp của lớp SE1601.</p>
+          <p>Chấm điểm, phản hồi và theo dõi trạng thái bài nộp của sinh viên.</p>
         </div>
       </div>
 
       <div class="header-meta">
         <span>
           <Clock :size="14" />
-          Hạn nộp: 20/05/2026 23:59
+          Hạn nộp: {{ assignmentContext.deadline || 'Theo bài tập' }}
         </span>
         <span>
           <CheckCircle2 :size="14" />
@@ -176,7 +241,7 @@ function statusLabel(status) {
         </span>
         <div>
           <h2>Lưu ý bài nộp trễ</h2>
-          <p>Hệ thống đánh dấu các bài nộp sau ngày 20/05/2026 là nộp trễ để giảng viên cân nhắc khi chấm.</p>
+          <p>Hệ thống đánh dấu bài nộp trễ để giảng viên cân nhắc khi chấm.</p>
         </div>
       </div>
 
@@ -229,7 +294,7 @@ function statusLabel(status) {
                     <span class="student-avatar">{{ sub.name.split(' ').pop()[0] }}</span>
                     <span>
                       <strong>{{ sub.name }}</strong>
-                      <small>{{ sub.studentId }}</small>
+                      <small>{{ sub.studentId || 'SV' }}</small>
                     </span>
                   </div>
                 </td>
@@ -256,7 +321,7 @@ function statusLabel(status) {
                 </td>
                 <td>
                   <div class="row-actions">
-                    <GlassButton variant="ghost" size="sm">
+                    <GlassButton variant="ghost" size="sm" :disabled="!sub.fileUrl" @click.stop="sub.fileUrl && window.open(sub.fileUrl, '_blank')">
                       <template #leading>
                         <Download :size="13" />
                       </template>
@@ -308,7 +373,7 @@ function statusLabel(status) {
               <FileBox :size="14" />
               File bài nộp
             </label>
-            <a href="#" class="attachment-link">
+            <a :href="selectedSubmission.fileUrl || '#'" target="_blank" rel="noopener" class="attachment-link">
               <span class="attachment-icon">
                 <Download :size="17" />
               </span>

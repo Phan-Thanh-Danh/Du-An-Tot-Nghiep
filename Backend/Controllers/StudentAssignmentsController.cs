@@ -34,14 +34,14 @@ public class StudentAssignmentsController : ControllerBase
         }
 
         var enrolledMonHocIds = await _context.DangKyHocPhans
-            .Where(d => d.MaHocSinh == currentUser.UserId && d.TrangThai == "da_duyet")
+            .Where(d => d.MaHocSinh == currentUser.UserId && d.TrangThai == "da_dang_ky")
             .Select(d => d.LopHocPhan!.MaMonHoc)
             .Distinct()
             .ToListAsync();
 
         var assignments = await _context.BaiTaps
             .Include(b => b.MonHoc)
-            .Where(b => enrolledMonHocIds.Contains(b.MaMonHoc))
+            .Where(b => enrolledMonHocIds.Contains(b.MaMonHoc) && b.TrangThai != "nhap")
             .OrderByDescending(b => b.HanNop)
             .ToListAsync();
 
@@ -102,36 +102,75 @@ public class StudentAssignmentsController : ControllerBase
     [Authorize(Roles = "Student")]
     public async Task<ActionResult<ApiResponseDto<StudentAssignmentDetailDto>>> GetAssignmentDetail(string assignmentId)
     {
-        int.TryParse(assignmentId, out int aId);
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        if (currentUser == null)
+        {
+            return Unauthorized();
+        }
+
+        if (!int.TryParse(assignmentId, out int aId) || aId <= 0)
+        {
+            return BadRequest(ApiResponseDto.Fail("Mã bài tập không hợp lệ."));
+        }
+
+        var enrolledMonHocIds = await _context.DangKyHocPhans
+            .Where(d => d.MaHocSinh == currentUser.UserId && d.TrangThai == "da_dang_ky")
+            .Select(d => d.LopHocPhan!.MaMonHoc)
+            .Distinct()
+            .ToListAsync();
 
         var assignment = await _context.BaiTaps
             .Include(a => a.MonHoc)
-            .FirstOrDefaultAsync(a => a.MaBaiTap == aId);
+            .FirstOrDefaultAsync(a => a.MaBaiTap == aId
+                && enrolledMonHocIds.Contains(a.MaMonHoc)
+                && a.TrangThai != "nhap");
+
+        if (assignment == null)
+        {
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy bài tập."));
+        }
 
         var submissions = new List<Backend.Models.BaiNop>();
-        if (assignment != null)
+        submissions = await _context.BaiNops
+            .Where(n => n.MaBaiTap == aId && n.MaHocSinh == currentUser.UserId)
+            .OrderByDescending(n => n.ThoiDiemNop)
+            .ToListAsync();
+
+        var latestSubmission = submissions.FirstOrDefault();
+        var now = DateTime.UtcNow;
+        var isOverdue = assignment.HanNop < now;
+        var status = latestSubmission?.DiemSo != null && latestSubmission.DaCongBo
+            ? "graded"
+            : latestSubmission != null
+                ? "submitted"
+                : isOverdue
+                    ? "overdue"
+                    : "pending";
+        var statusLabel = status switch
         {
-            submissions = await _context.BaiNops
-                .Where(n => n.MaBaiTap == aId)
-                .OrderByDescending(n => n.ThoiDiemNop)
-                .ToListAsync();
-        }
+            "graded" => "Đã chấm",
+            "submitted" => "Đã nộp",
+            "overdue" => "Quá hạn",
+            _ => "Chưa nộp"
+        };
 
         var detail = new StudentAssignmentDetailDto
         {
-            CourseCode = assignment?.MonHoc?.MaCodeMonHoc ?? "CTDL101",
-            Class = "SE1501",
-            Title = assignment?.TieuDe ?? "Bài tập 1: Cây nhị phân",
-            Teacher = "TS. Nguyễn Văn A",
-            DeadlineDisplay = assignment?.HanNop.ToString("dd/MM/yyyy HH:mm") ?? "22/07/2026 23:59",
-            Status = "pending",
-            StatusLabel = "Chưa nộp",
-            Description = assignment?.MoTa ?? "Sinh viên cài đặt cấu trúc dữ liệu cây nhị phân tìm kiếm bằng C++ hoặc Java. Yêu cầu nộp file mã nguồn (.cpp, .java).",
+            CourseCode = assignment.MonHoc?.MaCodeMonHoc ?? "",
+            Class = assignment.MonHoc?.TenMonHoc ?? "",
+            Title = assignment.TieuDe,
+            Teacher = "Giảng viên phụ trách",
+            DeadlineDisplay = assignment.HanNop.ToString("dd/MM/yyyy HH:mm"),
+            Status = status,
+            StatusLabel = statusLabel,
+            Description = assignment.MoTa ?? "",
+            Score = latestSubmission?.DaCongBo == true ? latestSubmission.DiemSo : null,
+            Feedback = latestSubmission?.DaCongBo == true ? latestSubmission.NhanXet : null,
             Rules = new SubmissionRulesDto
             {
-                AllowedFormats = (assignment?.DinhDangChoPhep ?? ".zip,.rar,.pdf,.doc,.docx,.cpp,.java").Split(',').ToList(),
+                AllowedFormats = ParseAllowedFormats(assignment.DinhDangChoPhep),
                 MaxSizeMB = 50,
-                MaxAttempts = assignment?.SoLanNopToiDa > 0 ? assignment.SoLanNopToiDa : 3,
+                MaxAttempts = assignment.SoLanNopToiDa > 0 ? assignment.SoLanNopToiDa : 3,
                 CurrentAttempt = submissions.Count,
                 Note = "Lưu ý: Không chấp nhận nộp bài qua email."
             },
@@ -148,15 +187,11 @@ public class StudentAssignmentsController : ControllerBase
                 FileSize = "N/A",
                 Note = s.NhanXet ?? "",
                 IsLatest = index == 0,
-                FileUrl = s.UrlTapTin
+                FileUrl = s.UrlTapTin,
+                Score = s.DaCongBo ? s.DiemSo : null,
+                Feedback = s.DaCongBo ? s.NhanXet : null
             }).ToList()
         };
-
-        if (detail.Submissions.Any())
-        {
-            detail.Status = "submitted";
-            detail.StatusLabel = "Đã nộp";
-        }
 
         return Ok(ApiResponseDto<StudentAssignmentDetailDto>.Ok(detail));
     }
@@ -177,10 +212,36 @@ public class StudentAssignmentsController : ControllerBase
             return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = "Vui lòng chọn file để nộp." });
         }
 
-        int.TryParse(assignmentId, out int aId);
-        if (aId <= 0)
+        if (!int.TryParse(assignmentId, out int aId) || aId <= 0)
         {
-            aId = 1;
+            return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = "Mã bài tập không hợp lệ." });
+        }
+
+        var enrolledMonHocIds = await _context.DangKyHocPhans
+            .Where(d => d.MaHocSinh == currentUser.UserId && d.TrangThai == "da_dang_ky")
+            .Select(d => d.LopHocPhan!.MaMonHoc)
+            .Distinct()
+            .ToListAsync();
+
+        var assignment = await _context.BaiTaps
+            .FirstOrDefaultAsync(a => a.MaBaiTap == aId
+                && enrolledMonHocIds.Contains(a.MaMonHoc)
+                && a.TrangThai != "nhap");
+
+        if (assignment == null)
+        {
+            return NotFound(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = "Không tìm thấy bài tập." });
+        }
+
+        if (assignment.TrangThai == "da_dong")
+        {
+            return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = "Bài tập đã đóng." });
+        }
+
+        var now = DateTime.UtcNow;
+        if (assignment.HanNop < now)
+        {
+            return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = "Đã quá hạn nộp bài." });
         }
 
         string fileName = $"{Guid.NewGuid()}_{file.FileName}";
@@ -196,9 +257,14 @@ public class StudentAssignmentsController : ControllerBase
         }
 
         var previousSubmissions = await _context.BaiNops
-            .Where(n => n.MaBaiTap == aId)
+            .Where(n => n.MaBaiTap == aId && n.MaHocSinh == currentUser.UserId)
             .OrderByDescending(n => n.SoLanNop)
             .ToListAsync();
+
+        if (previousSubmissions.Count >= assignment.SoLanNopToiDa)
+        {
+            return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = "Bạn đã hết lượt nộp bài." });
+        }
 
         int nextAttempt = previousSubmissions.Count > 0 ? previousSubmissions.First().SoLanNop + 1 : 1;
 
@@ -208,41 +274,13 @@ public class StudentAssignmentsController : ControllerBase
             MaHocSinh = currentUser.UserId,
             UrlTapTin = uploadResult.Url,
             SoLanNop = nextAttempt,
-            NopTre = false,
-            ThoiDiemNop = DateTime.UtcNow,
+            NopTre = assignment.HanNop < now,
+            ThoiDiemNop = now,
             DaCongBo = false
         };
 
         _context.BaiNops.Add(baiNop);
-
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        catch (Exception)
-        {
-            var mockSubmission = new SubmissionHistoryDto
-            {
-                Id = "new",
-                Attempt = nextAttempt,
-                SubmittedAt = DateTime.UtcNow.ToString("dd/MM/yyyy HH:mm"),
-                Status = "checking",
-                StatusLabel = "Đang kiểm tra",
-                OnTime = true,
-                TimeLabel = "Đúng hạn",
-                File = file.FileName,
-                FileSize = $"{file.Length / 1024} KB",
-                Note = "",
-                IsLatest = true,
-                FileUrl = uploadResult.Url
-            };
-            return Ok(ApiResponseDto<AssignmentSubmissionResultDto>.Ok(new AssignmentSubmissionResultDto
-            {
-                Success = true,
-                Message = "Nộp bài thành công (Mock DB).",
-                Submission = mockSubmission
-            }));
-        }
+        await _context.SaveChangesAsync();
 
         var result = new AssignmentSubmissionResultDto
         {
@@ -255,8 +293,8 @@ public class StudentAssignmentsController : ControllerBase
                 SubmittedAt = baiNop.ThoiDiemNop.ToString("dd/MM/yyyy HH:mm"),
                 Status = "checking",
                 StatusLabel = "Đang kiểm tra",
-                OnTime = true,
-                TimeLabel = "Đúng hạn",
+                OnTime = !baiNop.NopTre,
+                TimeLabel = baiNop.NopTre ? "Nộp trễ" : "Đúng hạn",
                 File = file.FileName,
                 FileSize = $"{file.Length / 1024} KB",
                 Note = "",
@@ -266,5 +304,22 @@ public class StudentAssignmentsController : ControllerBase
         };
 
         return Ok(ApiResponseDto<AssignmentSubmissionResultDto>.Ok(result));
+    }
+
+    private static List<string> ParseAllowedFormats(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return [".zip", ".rar", ".pdf", ".doc", ".docx"];
+        }
+
+        return raw
+            .Replace("[", "")
+            .Replace("]", "")
+            .Replace("\"", "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(item => item.StartsWith('.') ? item : $".{item}")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 }

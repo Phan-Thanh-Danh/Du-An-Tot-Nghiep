@@ -147,6 +147,47 @@ export const teacherApi = {
     return unwrapApiData(await apiRequest(`/api/thoi-khoa-bieu${qs ? '?' + qs : ''}`))
   },
 
+  // √ P6: Teacher assignment workflow
+  getAssignments(params = {}) {
+    const query = new URLSearchParams()
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const qs = query.toString()
+    return apiRequest(`/api/teacher/assignments${qs ? '?' + qs : ''}`)
+  },
+
+  getAssignmentDetail(id) {
+    return apiRequest(`/api/teacher/assignments/${id}`)
+  },
+
+  createAssignment(payload) {
+    return apiRequest('/api/teacher/assignments', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  updateAssignment(id, payload) {
+    return apiRequest(`/api/teacher/assignments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  deleteAssignment(id) {
+    return apiRequest(`/api/teacher/assignments/${id}`, {
+      method: 'DELETE',
+    })
+  },
+
+  getAssignmentSubmissions(id, params = {}) {
+    const query = new URLSearchParams()
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const qs = query.toString()
+    return apiRequest(`/api/teacher/assignments/${id}/submissions${qs ? '?' + qs : ''}`)
+  },
+
   // √ TeacherSubmissionsController
   getSubmissions(params = {}) {
     const query = new URLSearchParams()
