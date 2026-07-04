@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { usePopupStore } from '@/stores/popup'
 import { 
   Search, 
@@ -18,15 +18,43 @@ import {
   UserCheck
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import { registrationApi } from '@/services/registrationApi'
 
 const popupStore = usePopupStore()
 
-const sections = ref([
-  { id: 'LHP001', subject: 'Lập trình Java', teacher: 'Nguyễn Văn A', capacity: 45, enrolled: 45, waitlist: 12, minEnroll: 20, status: 'full', schedule: 'T2-4, 7-9h', room: 'A101', roomCapacity: 60 },
-  { id: 'LHP002', subject: 'Cấu trúc dữ liệu', teacher: 'Trần Thị B', capacity: 45, enrolled: 38, waitlist: 0, minEnroll: 20, status: 'open', schedule: 'T3-5, 9-11h', room: 'B203', roomCapacity: 50 },
-  { id: 'LHP003', subject: 'Lập trình Web', teacher: 'Lê Văn C', capacity: 40, enrolled: 12, waitlist: 0, minEnroll: 15, status: 'pending_cancel', schedule: 'T4-6, 13-15h', room: 'C305', roomCapacity: 60 },
-  { id: 'LHP004', subject: 'Hệ quản trị CSDL', teacher: 'Phạm Minh D', capacity: 45, enrolled: 42, waitlist: 5, minEnroll: 20, status: 'open', schedule: 'T5-7, 15-17h', room: 'A102', roomCapacity: 50 },
-])
+const loading = ref(true)
+const apiError = ref('')
+const sections = ref([])
+
+function mapSection(section) {
+  return {
+    sectionId: section.id,
+    id: section.code,
+    subject: section.subject,
+    teacher: section.teacher,
+    capacity: section.capacity,
+    enrolled: section.enrolled,
+    waitlist: section.waitlist,
+    minEnroll: section.minEnroll,
+    status: section.status,
+    schedule: section.schedule,
+    room: section.room || 'Chưa phân phòng',
+    roomCapacity: section.capacity,
+  }
+}
+
+async function loadSections() {
+  loading.value = true
+  apiError.value = ''
+  try {
+    const data = await registrationApi.getCapacity()
+    sections.value = Array.isArray(data) ? data.map(mapSection) : []
+  } catch (err) {
+    apiError.value = err?.message || 'Không thể tải dữ liệu sức chứa.'
+  } finally {
+    loading.value = false
+  }
+}
 
 const searchQuery = ref('')
 const showFilters = ref(false)
@@ -103,18 +131,26 @@ const waitlistImpact = computed(() => {
   return diff > 0 ? Math.min(diff, selectedSection.value.waitlist) : 0
 })
 
-function handleAdjust() {
+async function handleAdjust() {
   if (!selectedSection.value) return
   if (newCapacity.value < selectedSection.value.enrolled) {
     popupStore.error('Lỗi', 'Sức chứa không thể nhỏ hơn số đã đăng ký.')
     return
   }
   isProcessing.value = true
-  setTimeout(() => {
-    selectedSection.value.capacity = Number(newCapacity.value)
-    isProcessing.value = false
+  try {
+    const updated = await registrationApi.updateCapacity(selectedSection.value.sectionId, {
+      capacity: Number(newCapacity.value),
+      reason: reason.value,
+    })
+    Object.assign(selectedSection.value, mapSection(updated))
     popupStore.success('Đã cập nhật', `Sức chứa lớp ${selectedSection.value.id} đã được điều chỉnh thành ${selectedSection.value.capacity}.`)
-  }, 600)
+    await loadSections()
+  } catch (err) {
+    popupStore.error('Lỗi', err?.message || 'Không thể cập nhật sức chứa.')
+  } finally {
+    isProcessing.value = false
+  }
 }
 
 const showQuickModal = ref(false)
@@ -127,12 +163,20 @@ function openQuickModal(sec) {
   showQuickModal.value = true
 }
 
-function saveQuick() {
+async function saveQuick() {
   if (!quickTarget.value) return
   if (quickValue.value < quickTarget.value.enrolled) return
-  quickTarget.value.capacity = Number(quickValue.value)
-  showQuickModal.value = false
-  quickTarget.value = null
+  try {
+    const updated = await registrationApi.updateCapacity(quickTarget.value.sectionId, {
+      capacity: Number(quickValue.value),
+    })
+    Object.assign(quickTarget.value, mapSection(updated))
+    showQuickModal.value = false
+    quickTarget.value = null
+    await loadSections()
+  } catch (err) {
+    popupStore.error('Lỗi', err?.message || 'Không thể cập nhật sức chứa.')
+  }
 }
 
 function closeQuickModal() {
@@ -147,6 +191,10 @@ const metrics = computed(() => {
   const totalCapacity = sections.value.reduce((s, sec) => s + sec.capacity, 0)
   return { total, enrolled, waitlisted, totalCapacity }
 })
+
+onMounted(() => {
+  loadSections()
+})
 </script>
 
 <template>
@@ -154,6 +202,22 @@ const metrics = computed(() => {
     title="Điều chỉnh sức chứa" 
     subtitle="Tăng hoặc giảm số lượng chỗ trống của lớp học phần."
   >
+    <div v-if="loading" class="surface-card border border-card rounded-2xl p-8 text-sm font-semibold text-label">
+      Đang tải dữ liệu sức chứa...
+    </div>
+
+    <div v-else-if="apiError" class="surface-card border border-card rounded-2xl p-6">
+      <div class="flex items-start gap-3">
+        <AlertTriangle :size="20" class="text-(--color-danger-text) shrink-0" />
+        <div>
+          <p class="text-sm font-bold text-heading">Không thể tải dữ liệu</p>
+          <p class="text-xs text-muted mt-1">{{ apiError }}</p>
+          <button class="lg-button-primary px-4 py-2 text-xs font-bold rounded-xl mt-3" @click="loadSections">Thử lại</button>
+        </div>
+      </div>
+    </div>
+
+    <template v-else>
     <div class="space-y-4">
 
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -441,6 +505,7 @@ const metrics = computed(() => {
       </Transition>
 
     </div>
+    </template>
 
     <Transition
       enter-active-class="transition-all duration-200 ease-out"

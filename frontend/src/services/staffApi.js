@@ -219,7 +219,7 @@ export const staffApi = {
   },
 
   // ── Registration Periods ──
-  // × MISSING_BACKEND (dự kiến: /api/admin/registration-periods)
+  // √ P7: AdminRegistrationsController
   getRegistrationPeriod() {
     return apiRequest('/api/admin/registration-periods')
   },

@@ -7,7 +7,6 @@ const today = dayjs().format('YYYY-MM-DD')
 import {
   Plus,
   Search,
-  Calendar,
   Clock,
   Settings,
   MoreVertical,
@@ -18,30 +17,37 @@ import {
   Edit3,
   X,
   Save,
-  SlidersHorizontal,
   FileText,
-  Info,
   Loader2,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import { registrationApi } from '@/services/registrationApi'
 
 const loading = ref(true)
 const apiError = ref('')
 
-// ── Mock Data ────────────────────────────────────────────────
 const periods = ref([])
 
-function initData() {
+function mapPeriod(period) {
+  return {
+    ...period,
+    openDate: period.openDate?.slice?.(0, 10) || period.openDate,
+    closeDate: period.closeDate?.slice?.(0, 10) || period.closeDate,
+    withdrawDeadline: period.withdrawDeadline || 'Theo học kỳ',
+  }
+}
+
+async function initData() {
   loading.value = true
   apiError.value = ''
-  setTimeout(() => {
-    periods.value = [
-      { id: 1, name: 'Đợt 1 - Học kỳ Spring 2026', semester: 'Spring 2026', openDate: '2026-01-15', closeDate: '2026-01-25', withdrawDeadline: '2026-02-10', maxCredits: 24, status: 'open', studentCount: 156, classCount: 12 },
-      { id: 2, name: 'Đợt bổ sung - Học kỳ Spring 2026', semester: 'Spring 2026', openDate: '2026-02-01', closeDate: '2026-02-05', withdrawDeadline: '2026-02-15', maxCredits: 12, status: 'draft', studentCount: 0, classCount: 0 },
-      { id: 3, name: 'Học kỳ Fall 2025', semester: 'Fall 2025', openDate: '2025-08-10', closeDate: '2025-08-25', withdrawDeadline: '2025-09-10', maxCredits: 24, status: 'closed', studentCount: 342, classCount: 28 },
-    ]
+  try {
+    const data = await registrationApi.getPeriods()
+    periods.value = Array.isArray(data) ? data.map(mapPeriod) : []
+  } catch (err) {
+    apiError.value = err?.message || 'Không thể tải đợt đăng ký.'
+  } finally {
     loading.value = false
-  }, 300)
+  }
 }
 
 onMounted(() => { initData() })
@@ -68,12 +74,21 @@ const getStatusInfo = s => STATUS_MAP[s] || STATUS_MAP.closed
 
 // ── Create Period Modal ──────────────────────────────────────
 const showCreateModal = ref(false)
-const createForm = ref({ name: '', semester: '', openDate: '', closeDate: '', withdrawDeadline: '', maxCredits: 24 })
+const createForm = ref({ name: '', semester: '', maHocKy: null, openDate: '', closeDate: '', withdrawDeadline: '', maxCredits: 24 })
 const isCreating = ref(false)
 useBodyScrollLock(showCreateModal)
 
 function openCreate() {
-  createForm.value = { name: '', semester: 'Spring 2026', openDate: '', closeDate: '', withdrawDeadline: '', maxCredits: 24 }
+  const latestPeriod = periods.value[0]
+  createForm.value = {
+    name: '',
+    semester: latestPeriod?.semester || '',
+    maHocKy: latestPeriod?.maHocKy || null,
+    openDate: '',
+    closeDate: '',
+    withdrawDeadline: '',
+    maxCredits: latestPeriod?.maxCredits || 24,
+  }
   showCreateModal.value = true
 }
 
@@ -83,16 +98,21 @@ function closeCreate() {
 
 async function confirmCreate() {
   isCreating.value = true
-  await new Promise(r => setTimeout(r, 800))
-  periods.value.unshift({
-    id: Date.now(),
-    ...createForm.value,
-    status: 'draft',
-    studentCount: 0,
-    classCount: 0,
-  })
-  isCreating.value = false
-  closeCreate()
+  apiError.value = ''
+  try {
+    const created = await registrationApi.createPeriod({
+      maHocKy: Number(createForm.value.maHocKy),
+      openDate: createForm.value.openDate,
+      closeDate: createForm.value.closeDate,
+      maxCredits: Number(createForm.value.maxCredits),
+    })
+    periods.value.unshift(mapPeriod(created))
+    closeCreate()
+  } catch (err) {
+    apiError.value = err?.message || 'Không thể tạo đợt đăng ký.'
+  } finally {
+    isCreating.value = false
+  }
 }
 
 // ── Edit Period Modal ────────────────────────────────────────
@@ -115,10 +135,21 @@ function closeEdit() {
 
 async function confirmEdit() {
   isEditing.value = true
-  await new Promise(r => setTimeout(r, 800))
-  Object.assign(editTarget.value, editForm.value)
-  isEditing.value = false
-  closeEdit()
+  apiError.value = ''
+  try {
+    const updated = await registrationApi.updatePeriod(editTarget.value.id, {
+      maHocKy: Number(editForm.value.maHocKy),
+      openDate: editForm.value.openDate,
+      closeDate: editForm.value.closeDate,
+      maxCredits: Number(editForm.value.maxCredits),
+    })
+    Object.assign(editTarget.value, mapPeriod(updated))
+    closeEdit()
+  } catch (err) {
+    apiError.value = err?.message || 'Không thể cập nhật đợt đăng ký.'
+  } finally {
+    isEditing.value = false
+  }
 }
 
 // ── Open Registration (Draft → Open) ─────────────────────────
@@ -139,10 +170,16 @@ function closeOpenConfirm() {
 
 async function confirmOpen() {
   isOpening.value = true
-  await new Promise(r => setTimeout(r, 800))
-  openTarget.value.status = 'open'
-  isOpening.value = false
-  closeOpenConfirm()
+  apiError.value = ''
+  try {
+    const updated = await registrationApi.openPeriod(openTarget.value.id)
+    Object.assign(openTarget.value, mapPeriod(updated))
+    closeOpenConfirm()
+  } catch (err) {
+    apiError.value = err?.message || 'Không thể mở đợt đăng ký.'
+  } finally {
+    isOpening.value = false
+  }
 }
 
 // ── More Actions Dropdown ────────────────────────────────────
@@ -156,14 +193,24 @@ function closeMenu() {
   activeMenuId.value = null
 }
 
-function handleClosePeriod(period) {
-  period.status = 'closed'
+async function handleClosePeriod(period) {
+  try {
+    const updated = await registrationApi.closePeriod(period.id)
+    Object.assign(period, mapPeriod(updated))
+  } catch (err) {
+    apiError.value = err?.message || 'Không thể đóng đợt đăng ký.'
+  }
   closeMenu()
 }
 
-function handleDeleteDraft(period) {
-  const idx = periods.value.findIndex(p => p.id === period.id)
-  if (idx !== -1) periods.value.splice(idx, 1)
+async function handleDeleteDraft(period) {
+  try {
+    await registrationApi.deletePeriod(period.id)
+    const idx = periods.value.findIndex(p => p.id === period.id)
+    if (idx !== -1) periods.value.splice(idx, 1)
+  } catch (err) {
+    apiError.value = err?.message || 'Không thể xóa đợt đăng ký.'
+  }
   closeMenu()
 }
 
@@ -431,26 +478,15 @@ const stats = computed(() => {
           <div class="p-6 space-y-5">
             <div>
               <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">
-                Tên đợt <span class="text-(--lg-danger)">*</span>
+                Mã học kỳ <span class="text-(--lg-danger)">*</span>
               </label>
               <input
-                v-model="createForm.name"
-                type="text"
+                v-model.number="createForm.maHocKy"
+                type="number"
+                min="1"
                 class="lg-input w-full px-4 py-2.5 text-sm font-bold"
-                placeholder="VD: Đợt 1 - Học kỳ Spring 2026"
+                placeholder="VD: 1"
               />
-            </div>
-
-            <div>
-              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Học kỳ</label>
-              <select
-                v-model="createForm.semester"
-                class="lg-input w-full px-4 py-2.5 text-sm font-bold"
-              >
-                <option value="Spring 2026">Spring 2026</option>
-                <option value="Fall 2026">Fall 2026</option>
-                <option value="Spring 2027">Spring 2027</option>
-              </select>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -508,9 +544,9 @@ const stats = computed(() => {
             <button
               :class="[
                 'lg-button-primary px-6 py-2.5 text-sm font-bold flex items-center gap-2',
-                (!createForm.name || !createForm.openDate || !createForm.closeDate || isCreating) ? 'opacity-45 pointer-events-none' : ''
+                (!createForm.maHocKy || !createForm.openDate || !createForm.closeDate || isCreating) ? 'opacity-45 pointer-events-none' : ''
               ]"
-              :disabled="!createForm.name || !createForm.openDate || !createForm.closeDate || isCreating"
+              :disabled="!createForm.maHocKy || !createForm.openDate || !createForm.closeDate || isCreating"
               @click="confirmCreate"
             >
               <span v-if="isCreating" class="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -558,24 +594,13 @@ const stats = computed(() => {
 
           <div class="p-6 space-y-5">
             <div>
-              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Tên đợt <span class="text-(--lg-danger)">*</span></label>
+              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Mã học kỳ <span class="text-(--lg-danger)">*</span></label>
               <input
-                v-model="editForm.name"
-                type="text"
+                v-model.number="editForm.maHocKy"
+                type="number"
+                min="1"
                 class="lg-input w-full px-4 py-2.5 text-sm font-bold"
               />
-            </div>
-
-            <div>
-              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Học kỳ</label>
-              <select
-                v-model="editForm.semester"
-                class="lg-input w-full px-4 py-2.5 text-sm font-bold"
-              >
-                <option value="Spring 2026">Spring 2026</option>
-                <option value="Fall 2026">Fall 2026</option>
-                <option value="Spring 2027">Spring 2027</option>
-              </select>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
