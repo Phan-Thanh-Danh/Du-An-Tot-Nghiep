@@ -1,4 +1,42 @@
-import { apiRequest } from './apiClient'
+import { apiRequest, unwrapApiData } from './apiClient'
+
+const enableMock = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+
+function buildQuery(params = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') query.append(key, value)
+  })
+  const qs = query.toString()
+  return qs ? `?${qs}` : ''
+}
+
+function unavailable(feature) {
+  throw new Error(`${feature} chưa có backend endpoint. Chức năng đang phát triển.`)
+}
+
+function mapAccountProfile(account) {
+  const data = unwrapApiData(account) || {}
+  return {
+    success: true,
+    data: {
+      id: data.id ?? data.Id,
+      fullName: data.hoTen ?? data.HoTen ?? data.fullName ?? '',
+      name: data.hoTen ?? data.HoTen ?? data.fullName ?? '',
+      code: data.id ? `USER-${data.id}` : '',
+      studentId: data.id ? `USER-${data.id}` : '',
+      className: 'Chưa có dữ liệu học vụ',
+      semester: 'Chưa có dữ liệu học vụ',
+      major: 'Chưa có dữ liệu học vụ',
+      campus: 'Chưa có dữ liệu học vụ',
+      email: data.email ?? data.Email ?? '',
+      phone: data.soDienThoai ?? data.SoDienThoai ?? '',
+      address: '',
+      status: data.trangThai ?? data.TrangThai ?? '',
+      role: data.vaiTroChinh ?? data.VaiTroChinh ?? '',
+    },
+  }
+}
 
 export const studentApi = {
   getDashboard() {
@@ -89,42 +127,25 @@ export const studentApi = {
     return apiRequest(`/api/thoi-khoa-bieu${qs ? '?' + qs : ''}`)
   },
 
-  // MISSING_BACKEND: no controller implemented yet, uses mock fallback
   async getProfile() {
-    try {
-      return await apiRequest('/api/student/profile')
-    } catch {
-      return {
-        success: true,
-        data: {
-          name: 'Nguyễn Văn A',
-          code: 'SV001',
-          className: 'SE1501',
-          semester: 'HK2 2025-2026',
-          email: 'nguyenvana@example.com',
-          phone: '0901234567',
-        },
-      }
-    }
+    const response = await apiRequest('/api/account/me')
+    return mapAccountProfile(response)
   },
 
-  // MISSING_BACKEND: no controller implemented yet, uses mock fallback
   async updateProfile(payload) {
-    try {
-      return await apiRequest('/api/student/profile', {
-        method: 'PATCH',
-        body: JSON.stringify(payload),
-      })
-    } catch {
-      return { success: true, message: 'Cập nhật thành công (mock).' }
-    }
+    const response = await apiRequest('/api/account/profile', {
+      method: 'PUT',
+      body: JSON.stringify({
+        email: payload.email,
+        hoTen: payload.fullName ?? payload.hoTen,
+        soDienThoai: payload.phone ?? payload.soDienThoai,
+      }),
+    })
+    return mapAccountProfile(response)
   },
 
-  // MISSING_BACKEND: no controller implemented yet, uses mock fallback
   async getGrades() {
-    try {
-      return await apiRequest('/api/student/grades')
-    } catch {
+    if (enableMock) {
       return {
         success: true,
         data: [
@@ -133,13 +154,11 @@ export const studentApi = {
         ],
       }
     }
+    unavailable('Bảng điểm sinh viên')
   },
 
-  // MISSING_BACKEND: no controller implemented yet, uses mock fallback
   async getEvaluations() {
-    try {
-      return await apiRequest('/api/student/evaluations')
-    } catch {
+    if (enableMock) {
       return {
         success: true,
         data: [
@@ -147,17 +166,80 @@ export const studentApi = {
         ],
       }
     }
+    unavailable('Đánh giá giảng viên của sinh viên')
   },
 
-  // MISSING_BACKEND: no controller implemented yet, uses mock fallback
   async submitEvaluation(id, payload) {
-    try {
-      return await apiRequest(`/api/student/evaluations/${id}/submit`, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      })
-    } catch {
-      return { success: true, message: 'Đã gửi đánh giá (mock).' }
+    if (enableMock) {
+      return {
+        success: true,
+        message: 'Đã gửi đánh giá (DEV mock).',
+        data: { id, ...payload },
+      }
     }
+    unavailable('Gửi đánh giá giảng viên')
   },
+
+  async getRewards(params = {}) {
+    return apiRequest(`/api/student/rewards${buildQuery(params)}`)
+  },
+
+  async getRewardDetail(rewardId) {
+    return apiRequest(`/api/student/rewards/${rewardId}`)
+  },
+
+  async downloadRewardCertificate(rewardId) {
+    const token = localStorage.getItem('lms_access_token') || sessionStorage.getItem('lms_access_token') || ''
+    const baseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+    const response = await fetch(`${baseUrl}/api/student/rewards/${rewardId}/certificate/download`, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+
+    if (!response.ok) {
+      let message = 'Không thể tải bằng khen.'
+      try {
+        const data = await response.json()
+        message = data?.message || data?.Message || data?.title || message
+      } catch {
+        // Response may be plain text or empty.
+      }
+      throw new Error(message)
+    }
+
+    return response.blob()
+  },
+
+  async changePassword(payload) {
+    return apiRequest('/api/account/change-password', {
+      method: 'PUT',
+      body: JSON.stringify({
+        currentPassword: payload.currentPassword,
+        newPassword: payload.newPassword,
+        confirmPassword: payload.confirmPassword,
+      }),
+    })
+  },
+
+  async inviteParent() {
+    if (enableMock) {
+      return { success: true, message: 'Đã gửi lời mời phụ huynh (DEV mock).' }
+    }
+    unavailable('Liên kết phụ huynh')
+  },
+
+  async updateParentPermission() {
+    if (enableMock) {
+      return { success: true, message: 'Đã cập nhật quyền phụ huynh (DEV mock).' }
+    }
+    unavailable('Phân quyền phụ huynh')
+  },
+
+  async removeParentLink() {
+    if (enableMock) {
+      return { success: true, message: 'Đã hủy liên kết phụ huynh (DEV mock).' }
+    }
+    unavailable('Hủy liên kết phụ huynh')
+  },
+
 }

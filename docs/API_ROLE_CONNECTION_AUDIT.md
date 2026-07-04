@@ -329,11 +329,23 @@ Backend authorization policies và role composition:
 |---|---|---|---|
 | `staffApi.js` | `/api/staff/*` | `VITE_ENABLE_MOCK_API` | ✅ Fixed |
 | `tuitionService.js` | `/api/student/tuition/*` | `VITE_ENABLE_MOCK_API` | ✅ Fixed |
-| `buildingApi.js` | `/api/master-data/buildings/*` | `withFallback` helper | ⏸️ Cần review |
-| `floorApi.js` | `/api/master-data/floors/*` | `withFallback` helper | ⏸️ Cần review |
-| `roomApi.js` | `/api/master-data/rooms/*` | `withFallback` helper | ⏸️ Cần review |
+| `buildingApi.js` | `/api/master-data/buildings/*` | `DEV && VITE_ENABLE_MOCK_API` | ✅ Fixed |
+| `floorApi.js` | `/api/master-data/floors/*` | `DEV && VITE_ENABLE_MOCK_API` | ✅ Fixed |
+| `roomApi.js` | `/api/master-data/rooms/*` | `DEV && VITE_ENABLE_MOCK_API` | ✅ Fixed |
+| `studentApi.js` | `/api/account/me`, `/api/account/profile`, `/api/student/rewards/*` | `DEV && VITE_ENABLE_MOCK_API` only for blocked gaps | ✅ P7.5 fixed |
+| `rewardDisciplineApi.js` | `/api/admin/reward-campaigns`, `/api/admin/discipline-records`, `/api/admin/discipline-appeals`, `/api/admin/reward-discipline/reports/*` | No mock | ✅ P7.5 connected |
 | `mockDataService.js` | Pure mock (no API) | — | ⏸️ Phụ thuộc view cũ |
 | `mockFacilitiesData.js` | Static mock data | — | ⏸️ Phụ thuộc view cũ |
+
+### P7.5 Production Mock Cleanup Notes
+
+- Student profile now uses real account endpoints: `GET /api/account/me`, `PUT /api/account/profile`, `PUT /api/account/change-password`.
+- Student rewards now use real endpoints: `GET /api/student/rewards`, `GET /api/student/rewards/{id}`, `GET /api/student/rewards/{id}/certificate/download`.
+- Student grades and teacher evaluations remain intentionally blocked because no backend endpoints exist. DEV mock is only allowed when `import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'`; production throws a clear "chức năng đang phát triển" error.
+- Student parent-link actions remain intentionally blocked; Parent portal is outside P7.5 scope.
+- SuperAdmin reward/discipline core screens now call real admin APIs for campaigns, candidates, discipline records, appeals, and reports. Remaining SuperAdmin peripheral screens with inline demo data are documented as partial and should be handled in a dedicated SuperAdmin hardening phase.
+- BGH dashboard/evaluations/report views are partial but their mock/demo branches are guarded with `DEV && VITE_ENABLE_MOCK_API`; no report engine expansion in P7.5.
+- Staff registration screens from P7 remain connected to real registration APIs. Account create/update/reset and assignment mutation flows remain intentionally blocked.
 
 ---
 

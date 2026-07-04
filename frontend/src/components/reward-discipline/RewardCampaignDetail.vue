@@ -4,8 +4,9 @@ import GlassPanel from '@/components/ui/GlassPanel.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import RewardStatusBadge from './RewardStatusBadge.vue'
 import RewardCandidateTable from './RewardCandidateTable.vue'
-import { ArrowLeft, Users, CheckCircle2, XCircle } from 'lucide-vue-next'
-import { rewardDisciplineMockService } from '@/mocks/rewardDisciplineMockService'
+import { ArrowLeft, Users } from 'lucide-vue-next'
+import { rewardDisciplineApi } from '@/services/rewardDisciplineApi'
+import { unwrapApiData } from '@/services/apiClient'
 
 const props = defineProps({
   campaign: { type: Object, required: true }
@@ -14,12 +15,27 @@ const emit = defineEmits(['back'])
 
 const candidates = ref([])
 const loading = ref(false)
+const error = ref('')
+
+const mapCandidate = (item) => ({
+  id: item.maUngVienKhenThuong ?? item.MaUngVienKhenThuong,
+  rank: item.xepHang ?? item.XepHang,
+  name: item.hoTenSnapshot ?? item.HoTenSnapshot ?? 'Chưa có tên',
+  rollNum: item.mssvSnapshot ?? item.MssvSnapshot ?? '',
+  gpa: item.gpaHocKy ?? item.GpaHocKy ?? item.diemXet ?? item.DiemXet,
+  status: item.trangThai ?? item.TrangThai ?? '',
+})
 
 const loadCandidates = async () => {
   loading.value = true
+  error.value = ''
   try {
-    const res = await rewardDisciplineMockService.getRewardCandidates(props.campaign.id)
-    candidates.value = res.items
+    const res = await rewardDisciplineApi.getRewardCampaignCandidates(props.campaign.id, { pageIndex: 1, pageSize: 50 })
+    const data = unwrapApiData(res)
+    candidates.value = (data?.items ?? data?.Items ?? []).map(mapCandidate)
+  } catch (err) {
+    candidates.value = []
+    error.value = err?.message || 'Không thể tải danh sách ứng viên.'
   } finally {
     loading.value = false
   }
@@ -44,7 +60,7 @@ onMounted(() => loadCandidates())
         </div>
       </div>
       <div>
-        <GlassButton variant="primary">Sinh bằng khen (Mock)</GlassButton>
+        <GlassButton variant="primary" disabled title="Chức năng đang phát triển">Sinh bằng khen</GlassButton>
       </div>
     </div>
 
@@ -72,6 +88,7 @@ onMounted(() => loadCandidates())
         <Users class="w-5 h-5" /> Danh sách ứng viên
       </h3>
       <div v-if="loading" class="text-(--text-muted) py-4">Đang tải dữ liệu...</div>
+      <div v-else-if="error" class="text-(--color-danger-text) py-4">{{ error }}</div>
       <RewardCandidateTable v-else :candidates="candidates" />
     </div>
   </div>

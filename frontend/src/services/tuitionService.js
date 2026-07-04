@@ -1,5 +1,7 @@
 import { apiRequest } from '@/services/apiClient'
 
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+
 // Dữ liệu mock học phí fallback khi backend không khả dụng
 const mockInvoices = [
   {
@@ -35,7 +37,8 @@ export async function getStudentTuitionInvoices() {
   try {
     return unwrap(await apiRequest('/api/student/tuition/invoices', { method: 'GET' }))
   } catch (e) {
-    console.warn('Failed to fetch tuition invoices, using mock data:', e)
+    if (!ENABLE_MOCK_API) throw e
+    console.warn('Failed to fetch tuition invoices, using DEV mock data:', e)
     return mockInvoices
   }
 }
@@ -44,7 +47,8 @@ export async function getStudentTuitionTransactions() {
   try {
     return unwrap(await apiRequest('/api/student/tuition/transactions', { method: 'GET' }))
   } catch (e) {
-    console.warn('Failed to fetch tuition transactions, using mock data:', e)
+    if (!ENABLE_MOCK_API) throw e
+    console.warn('Failed to fetch tuition transactions, using DEV mock data:', e)
     return mockTransactions
   }
 }
@@ -58,7 +62,8 @@ export async function createTuitionPayment(invoiceId, provider) {
       }),
     )
   } catch (e) {
-    console.warn('Failed to create payment, using mock response:', e)
+    if (!ENABLE_MOCK_API) throw e
+    console.warn('Failed to create payment, using DEV mock response:', e)
     if (provider === 'payos') {
       return {
         checkoutUrl: 'https://pay.payos.vn/web/mock-payment-link-2026'
@@ -81,7 +86,8 @@ export async function getTuitionPaymentStatus(transactionId) {
       }),
     )
   } catch (e) {
-    console.warn('Failed to fetch payment status, using mock status:', e)
+    if (!ENABLE_MOCK_API) throw e
+    console.warn('Failed to fetch payment status, using DEV mock status:', e)
     return { trangThai: 'thanh_cong' }
   }
 }

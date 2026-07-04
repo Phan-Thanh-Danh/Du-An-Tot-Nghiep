@@ -1,18 +1,43 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { rewardDisciplineMockService } from '@/mocks/rewardDisciplineMockService'
-import RewardDisciplineMockBanner from './RewardDisciplineMockBanner.vue'
+import { rewardDisciplineApi } from '@/services/rewardDisciplineApi'
+import { unwrapApiData } from '@/services/apiClient'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import { Trophy, AlertTriangle, Users, FileText } from 'lucide-vue-next'
 
-const stats = ref({})
+const stats = ref({
+  totalRewards: 0,
+  totalDiscipline: 0,
+  pendingAppeals: 0,
+  certificatesGenerated: 0,
+  topRewardStudents: [],
+})
 const loading = ref(false)
+const error = ref('')
 
 const fetchStats = async () => {
   loading.value = true
+  error.value = ''
   try {
-    const res = await rewardDisciplineMockService.getRewardDisciplineOverview()
-    stats.value = res || {}
+    const [overviewRes, topStudentsRes] = await Promise.all([
+      rewardDisciplineApi.getOverview(),
+      rewardDisciplineApi.getTopStudents({ mode: 'reward', limit: 3 }),
+    ])
+    const overview = unwrapApiData(overviewRes) || {}
+    const topStudents = unwrapApiData(topStudentsRes) || []
+    stats.value = {
+      totalRewards: overview.totalRewards ?? overview.TotalRewards ?? 0,
+      totalDiscipline: overview.totalActiveDisciplineRecords ?? overview.TotalActiveDisciplineRecords ?? 0,
+      pendingAppeals: overview.pendingDisciplineAppeals ?? overview.PendingDisciplineAppeals ?? 0,
+      certificatesGenerated: overview.totalCertificateGenerated ?? overview.TotalCertificateGenerated ?? 0,
+      topRewardStudents: (Array.isArray(topStudents) ? topStudents : []).map((student) => ({
+        studentId: student.studentCode ?? student.StudentCode ?? student.studentId ?? student.StudentId,
+        name: student.fullName ?? student.FullName ?? 'Sinh viên',
+        score: student.score ?? student.Score ?? 0,
+      })),
+    }
+  } catch (err) {
+    error.value = err?.message || 'Không thể tải tổng quan khen thưởng - kỷ luật.'
   } finally {
     loading.value = false
   }
@@ -22,13 +47,16 @@ onMounted(() => fetchStats())
 
 <template>
   <div class="p-6 h-full bg-(--surface-page) overflow-y-auto custom-scrollbar">
-    <RewardDisciplineMockBanner />
     <h1 class="text-2xl font-bold text-(--text-heading) mb-6">Tổng quan Khen thưởng - Kỷ luật</h1>
     
     <div v-if="loading" class="grid grid-cols-1 md:grid-cols-4 gap-4 animate-pulse mb-6">
       <GlassPanel v-for="i in 4" :key="i" class="h-24"></GlassPanel>
     </div>
     
+    <div v-else-if="error" class="rounded-lg border border-(--border-default) bg-(--surface-card) p-4 text-sm text-(--color-danger-text) mb-6">
+      {{ error }}
+    </div>
+
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <GlassPanel padding="normal" class="flex items-center gap-4 border-l-4 border-amber-500">
         <div class="p-3 bg-amber-500/10 rounded-full text-amber-500"><Trophy class="w-6 h-6" /></div>
