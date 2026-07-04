@@ -107,6 +107,12 @@ function getClassLabel(classId) {
   return props.classes.find(c => c.value === classId)?.label || `#${classId}`
 }
 
+function selectRandomClasses() {
+  if (filteredClasses.value.length <= 5) return
+  const shuffled = [...filteredClasses.value].sort(() => 0.5 - Math.random())
+  selectedClassIds.value = shuffled.slice(0, 5).map(c => c.value)
+}
+
 const selectedSubject = computed(() => {
   if (!form.value.maMonHoc) return null
   return props.subjects.find(s => s.value === form.value.maMonHoc)
@@ -365,6 +371,7 @@ async function handleSubmit() {
                 <span class="text-sm font-bold">Lớp hành chính</span>
               </div>
               <div class="flex items-center gap-2">
+                <button v-if="filteredClasses.length > 5" @click="selectRandomClasses" class="text-[11px] font-medium text-(--lg-primary) hover:underline cursor-pointer bg-transparent border-0 p-0 m-0">Chọn ngẫu nhiên 5 lớp</button>
                 <span class="text-[11px] font-bold" :class="isMaxClasses ? 'text-(--color-warning-text)' : 'text-muted'">
                   {{ selectedCount }}/5
                 </span>
