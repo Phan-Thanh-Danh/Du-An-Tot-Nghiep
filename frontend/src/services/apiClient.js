@@ -39,12 +39,31 @@ async function parseResponse(response) {
 }
 
 function buildApiError(data, statusCode) {
-  const message =
+  let message =
     data?.message ||
     data?.Message ||
     data?.title ||
-    data?.errors?.[0] ||
-    'Không thể xử lý yêu cầu.'
+    data?.errors?.[0]
+
+  if (!message) {
+    switch (statusCode) {
+      case 401:
+        message = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+        break
+      case 403:
+        message = 'Bạn không có quyền thực hiện hành động này.'
+        break
+      case 404:
+        message = 'Dữ liệu không tồn tại hoặc bạn không có quyền truy cập.'
+        break
+      case 500:
+        message = 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'
+        break
+      default:
+        message = 'Không thể xử lý yêu cầu.'
+        break
+    }
+  }
 
   return new ApiError(message, statusCode, data)
 }

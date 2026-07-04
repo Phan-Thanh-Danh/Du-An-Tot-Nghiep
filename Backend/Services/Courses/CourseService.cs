@@ -6,6 +6,8 @@ using Backend.DTOs.Courses;
 using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.Audit;
+using Backend.Services.Notifications;
+using Backend.DTOs.Notifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.Courses;
@@ -26,15 +28,18 @@ public class CourseService : ICourseService
     private readonly ApplicationDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuditLogService _auditLogService;
+    private readonly INotificationService _notificationService;
 
     public CourseService(
         ApplicationDbContext context,
         IHttpContextAccessor httpContextAccessor,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        INotificationService notificationService)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _auditLogService = auditLogService;
+        _notificationService = notificationService;
     }
 
     public async Task<PagedResultDto<KhoaHocDto>> GetAsync(
@@ -187,6 +192,19 @@ public class CourseService : ICourseService
             "Tạo khóa học.",
             cancellationToken);
 
+        await _notificationService.SendToUsersAsync(new SystemNotificationRequest
+        {
+            LoaiSuKien = "academic.course.assigned",
+            LoaiThongBao = "system",
+            TieuDe = "Phân công giảng dạy",
+            TomTat = $"Bạn được phân công dạy {title}",
+            NoiDungText = $"Bạn đã được phân công giảng dạy khóa học {title} (Lớp: {classEntity.MaCodeLop}).",
+            MucDo = "info",
+            DoiTuongLienKet = "course",
+            MaDoiTuongLienKet = course.MaKhoaHoc,
+            DuongDan = $"/teacher/courses/{course.MaKhoaHoc}"
+        }, [course.MaGiaoVien], cancellationToken);
+
         return ToDto(course, organization, subject, teacher, term, classEntity);
     }
 
@@ -301,6 +319,19 @@ public class CourseService : ICourseService
                 currentUser,
                 "Phân phối khóa học hàng loạt.",
                 cancellationToken);
+
+            await _notificationService.SendToUsersAsync(new SystemNotificationRequest
+            {
+                LoaiSuKien = "academic.course.assigned",
+                LoaiThongBao = "system",
+                TieuDe = "Phân công giảng dạy",
+                TomTat = $"Bạn được phân công dạy {item.Course.TieuDe}",
+                NoiDungText = $"Bạn đã được phân công giảng dạy khóa học {item.Course.TieuDe} (Lớp: {item.ClassEntity.MaCodeLop}).",
+                MucDo = "info",
+                DoiTuongLienKet = "course",
+                MaDoiTuongLienKet = item.Course.MaKhoaHoc,
+                DuongDan = $"/teacher/courses/{item.Course.MaKhoaHoc}"
+            }, [item.Course.MaGiaoVien], cancellationToken);
         }
 
         return result;
@@ -358,6 +389,19 @@ public class CourseService : ICourseService
             currentUser,
             "Nhân bản khóa học.",
             cancellationToken);
+
+        await _notificationService.SendToUsersAsync(new SystemNotificationRequest
+        {
+            LoaiSuKien = "academic.course.assigned",
+            LoaiThongBao = "system",
+            TieuDe = "Phân công giảng dạy",
+            TomTat = $"Bạn được phân công dạy {clone.TieuDe}",
+            NoiDungText = $"Bạn đã được phân công giảng dạy khóa học {clone.TieuDe} (Lớp: {classEntity.MaCodeLop}).",
+            MucDo = "info",
+            DoiTuongLienKet = "course",
+            MaDoiTuongLienKet = clone.MaKhoaHoc,
+            DuongDan = $"/teacher/courses/{clone.MaKhoaHoc}"
+        }, [clone.MaGiaoVien], cancellationToken);
 
         return ToDto(clone, organization, subject, teacher, term, classEntity);
     }
@@ -420,6 +464,19 @@ public class CourseService : ICourseService
                 currentUser,
                 "Đổi giảng viên phụ trách khóa học.",
                 cancellationToken);
+
+            await _notificationService.SendToUsersAsync(new SystemNotificationRequest
+            {
+                LoaiSuKien = "academic.course.assigned",
+                LoaiThongBao = "system",
+                TieuDe = "Phân công giảng dạy",
+                TomTat = $"Bạn được phân công dạy {course.TieuDe}",
+                NoiDungText = $"Bạn đã được phân công giảng dạy khóa học {course.TieuDe}.",
+                MucDo = "info",
+                DoiTuongLienKet = "course",
+                MaDoiTuongLienKet = course.MaKhoaHoc,
+                DuongDan = $"/teacher/courses/{course.MaKhoaHoc}"
+            }, [course.MaGiaoVien], cancellationToken);
         }
 
         if (oldClassId != course.MaLop)

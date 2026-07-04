@@ -7,6 +7,8 @@ using Backend.DTOs.ThoiKhoaBieu;
 using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.Audit;
+using Backend.Services.Notifications;
+using Backend.DTOs.Notifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.ThoiKhoaBieu;
@@ -30,17 +32,20 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuditLogService _auditLogService;
     private readonly IScheduleConflictService _scheduleConflictService;
+    private readonly INotificationService _notificationService;
 
     public ThoiKhoaBieuService(
         ApplicationDbContext context,
         IHttpContextAccessor httpContextAccessor,
         IAuditLogService auditLogService,
-        IScheduleConflictService scheduleConflictService)
+        IScheduleConflictService scheduleConflictService,
+        INotificationService notificationService)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _auditLogService = auditLogService;
         _scheduleConflictService = scheduleConflictService;
+        _notificationService = notificationService;
     }
 
     public async Task<PagedResultDto<ThoiKhoaBieuDto>> GetAsync(
@@ -264,6 +269,19 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
             "Cập nhật thời khóa biểu.",
             cancellationToken);
 
+        await _notificationService.SendToCourseAsync(new SystemNotificationRequest
+        {
+            LoaiSuKien = "academic.schedule.updated",
+            LoaiThongBao = "system",
+            TieuDe = "Lịch học thay đổi",
+            TomTat = $"Thời khóa biểu môn học đã bị thay đổi",
+            NoiDungText = $"Thời khóa biểu của khóa học vừa được cập nhật. Vui lòng kiểm tra lại lịch học mới nhất trên hệ thống.",
+            MucDo = "warning",
+            DoiTuongLienKet = "schedule",
+            MaDoiTuongLienKet = scheduleId,
+            DuongDan = "/student/schedule"
+        }, schedule.MaKhoaHoc, null, cancellationToken);
+
         return await GetByIdAsync(scheduleId, cancellationToken);
     }
 
@@ -290,6 +308,19 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
             currentUser,
             "Hủy thời khóa biểu.",
             cancellationToken);
+
+        await _notificationService.SendToCourseAsync(new SystemNotificationRequest
+        {
+            LoaiSuKien = "academic.schedule.canceled",
+            LoaiThongBao = "system",
+            TieuDe = "Lịch học đã bị hủy",
+            TomTat = $"Một thời khóa biểu đã bị hủy",
+            NoiDungText = $"Một lịch học thuộc khóa học của bạn đã bị hủy. Vui lòng kiểm tra lại thời khóa biểu.",
+            MucDo = "danger",
+            DoiTuongLienKet = "schedule",
+            MaDoiTuongLienKet = scheduleId,
+            DuongDan = "/student/schedule"
+        }, schedule.MaKhoaHoc, null, cancellationToken);
 
         return await GetByIdAsync(scheduleId, cancellationToken);
     }

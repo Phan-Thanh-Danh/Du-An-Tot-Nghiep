@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using Backend.Services.Notifications;
+using Backend.Services.Audit;
+using Backend.DTOs.Notifications;
 
 namespace Backend.Controllers;
 
@@ -15,10 +18,17 @@ namespace Backend.Controllers;
 public class TeacherSubmissionsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly INotificationService _notificationService;
+    private readonly IAuditLogService _auditLogService;
 
-    public TeacherSubmissionsController(ApplicationDbContext context)
+    public TeacherSubmissionsController(
+        ApplicationDbContext context,
+        INotificationService notificationService,
+        IAuditLogService auditLogService)
     {
         _context = context;
+        _notificationService = notificationService;
+        _auditLogService = auditLogService;
     }
 
     [HttpGet("assignments")]
@@ -106,6 +116,34 @@ public class TeacherSubmissionsController : ControllerBase
         _context.BaiTaps.Add(assignment);
         await _context.SaveChangesAsync();
 
+        var currentUser = GetCurrentUserContext();
+
+        await _auditLogService.AddAsync(
+            course.MaDonVi,
+            "BaiTap",
+            assignment.MaBaiTap,
+            "Created",
+            userId,
+            null,
+            new { assignment.TieuDe, assignment.MoTa, assignment.HanNop, assignment.TrangThai }
+        );
+
+        if (assignment.TrangThai == "da_xuat_ban")
+        {
+            await _notificationService.SendToCourseAsync(new SystemNotificationRequest
+            {
+                LoaiSuKien = "academic.assignment.created",
+                LoaiThongBao = "system",
+                TieuDe = "Có bài tập mới",
+                TomTat = $"Bài tập {assignment.TieuDe}",
+                NoiDungText = $"Môn học {course.MonHoc?.TenMonHoc} vừa có bài tập mới: {assignment.TieuDe}. Hạn nộp: {assignment.HanNop:dd/MM/yyyy HH:mm}.",
+                MucDo = "info",
+                DoiTuongLienKet = "assignment",
+                MaDoiTuongLienKet = assignment.MaBaiTap,
+                DuongDan = $"/student/assignments/{assignment.MaBaiTap}"
+            }, course.MaKhoaHoc);
+        }
+
         return CreatedAtAction(
             nameof(GetAssignmentDetail),
             new { id = assignment.MaBaiTap },
@@ -170,6 +208,8 @@ public class TeacherSubmissionsController : ControllerBase
             assignment.MaMonHoc = course.MaMonHoc;
         }
 
+        var oldValue = new { assignment.TieuDe, assignment.MoTa, assignment.HanNop, assignment.TrangThai };
+
         assignment.TieuDe = request.Title.Trim();
         assignment.MoTa = request.Description;
         assignment.HanNop = request.DueAt!.Value;
@@ -179,6 +219,35 @@ public class TeacherSubmissionsController : ControllerBase
         assignment.TrangThai = NormalizeAssignmentStatus(request.Status);
 
         await _context.SaveChangesAsync();
+
+        var courseForAudit = teacherCourses.FirstOrDefault(k => k.MaMonHoc == assignment.MaMonHoc);
+        var campusId = courseForAudit?.MaDonVi ?? GetCurrentUserContext().CampusId;
+
+        await _auditLogService.AddAsync(
+            campusId,
+            "BaiTap",
+            assignment.MaBaiTap,
+            "Updated",
+            userId,
+            oldValue,
+            new { assignment.TieuDe, assignment.MoTa, assignment.HanNop, assignment.TrangThai }
+        );
+
+        if (oldValue.TrangThai != "da_xuat_ban" && assignment.TrangThai == "da_xuat_ban" && courseForAudit != null)
+        {
+            await _notificationService.SendToCourseAsync(new SystemNotificationRequest
+            {
+                LoaiSuKien = "academic.assignment.published",
+                LoaiThongBao = "system",
+                TieuDe = "Có bài tập mới",
+                TomTat = $"Bài tập {assignment.TieuDe}",
+                NoiDungText = $"Môn học {courseForAudit.MonHoc?.TenMonHoc} vừa mở bài tập mới: {assignment.TieuDe}. Hạn nộp: {assignment.HanNop:dd/MM/yyyy HH:mm}.",
+                MucDo = "info",
+                DoiTuongLienKet = "assignment",
+                MaDoiTuongLienKet = assignment.MaBaiTap,
+                DuongDan = $"/student/assignments/{assignment.MaBaiTap}"
+            }, courseForAudit.MaKhoaHoc);
+        }
 
         return Ok(ApiResponseDto<TeacherAssignmentDto>.Ok(MapAssignment(assignment, teacherCourses, null), "Cập nhật bài tập thành công"));
     }
@@ -199,6 +268,8 @@ public class TeacherSubmissionsController : ControllerBase
             return NotFound(ApiResponseDto.Fail("Không tìm thấy bài tập."));
 
         var hasSubmissions = await _context.BaiNops.AnyAsync(b => b.MaBaiTap == id);
+        var oldValue = new { assignment.TrangThai };
+
         if (hasSubmissions)
         {
             assignment.TrangThai = "da_dong";
@@ -209,6 +280,20 @@ public class TeacherSubmissionsController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
+
+        var courseForAudit = await _context.KhoaHocs.FirstOrDefaultAsync(k => k.MaMonHoc == assignment.MaMonHoc);
+        var campusId = courseForAudit?.MaDonVi ?? GetCurrentUserContext().CampusId;
+
+        await _auditLogService.AddAsync(
+            campusId,
+            "BaiTap",
+            assignment.MaBaiTap,
+            hasSubmissions ? "Closed" : "Deleted",
+            userId,
+            oldValue,
+            hasSubmissions ? new { assignment.TrangThai } : null
+        );
+
         return Ok(ApiResponseDto.Ok(hasSubmissions ? "Bài tập đã có bài nộp nên được đóng thay vì xóa." : "Đã xóa bài tập."));
     }
 
@@ -397,11 +482,45 @@ public class TeacherSubmissionsController : ControllerBase
         if (request.Score is < 0 or > 10)
             return BadRequest(ApiResponseDto.Fail("Điểm phải nằm trong khoảng 0-10."));
 
+        var oldScore = submission.DiemSo;
+        var oldFeedback = submission.NhanXet;
+
         submission.DiemSo = request.Score;
         submission.NhanXet = request.Feedback;
         submission.DaCongBo = request.Publish ?? false;
 
         await _context.SaveChangesAsync();
+
+        var courseForAudit = teacherMonHocIds.Count > 0 
+            ? await _context.KhoaHocs.FirstOrDefaultAsync(k => k.MaMonHoc == submission.BaiTap!.MaMonHoc)
+            : null;
+        var campusId = courseForAudit?.MaDonVi ?? GetCurrentUserContext().CampusId;
+
+        await _auditLogService.AddAsync(
+            campusId,
+            "BaiNop",
+            submission.MaBaiNop,
+            "Graded",
+            userId,
+            new { DiemSo = oldScore, NhanXet = oldFeedback },
+            new { submission.DiemSo, submission.NhanXet }
+        );
+
+        if (submission.DaCongBo)
+        {
+            await _notificationService.SendToUsersAsync(new SystemNotificationRequest
+            {
+                LoaiSuKien = "academic.submission.graded",
+                LoaiThongBao = "system",
+                TieuDe = "Bài nộp đã được chấm",
+                TomTat = $"Bài tập {submission.BaiTap?.TieuDe}",
+                NoiDungText = $"Giảng viên đã chấm điểm bài tập {submission.BaiTap?.TieuDe} của bạn. Điểm số: {submission.DiemSo}/10.",
+                MucDo = "success",
+                DoiTuongLienKet = "assignment",
+                MaDoiTuongLienKet = submission.MaBaiTap,
+                DuongDan = $"/student/assignments/{submission.MaBaiTap}"
+            }, [submission.MaHocSinh]);
+        }
 
         var dto = new TeacherSubmissionDto
         {
@@ -422,10 +541,15 @@ public class TeacherSubmissionsController : ControllerBase
         return Ok(ApiResponseDto<TeacherSubmissionDto>.Ok(dto, "Chấm điểm thành công"));
     }
 
-    private int GetCurrentUserId()
+    private CurrentUserContext GetCurrentUserContext()
     {
         var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
-        return currentUser?.UserId ?? throw new UnauthorizedAccessException("Vui lòng đăng nhập.");
+        return currentUser ?? throw new UnauthorizedAccessException("Vui lòng đăng nhập.");
+    }
+
+    private int GetCurrentUserId()
+    {
+        return GetCurrentUserContext().UserId;
     }
 
     private IQueryable<KhoaHoc> GetTeacherCoursesQuery(int userId)
