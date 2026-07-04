@@ -172,4 +172,10 @@ Chỉ chạy format khi cần và tránh format toàn bộ repo ngoài phạm vi
 
 
 - **DL3 - Discipline removal and appeal workflow**: Hoàn thành xử lý nghiệp vụ gỡ hiệu lực, hủy sau duyệt, học sinh xem kỷ luật, khiếu nại và admin xử lý khiếu nại.
-
+- **P8 - Add-on Teacher Specialization & Subject Capability Seed**: Cấu trúc lại bảng dữ liệu về chuyên môn giảng viên.
+  - **NguoiDung**: Tài khoản đăng nhập hệ thống, chứa các thông tin cá nhân cơ bản và định danh `VaiTroChinh`.
+  - **PhanQuyenNguoiDung**: Quyền hạn thực tế của user trên từng tài nguyên.
+  - **GiaoVienChuyenNganh**: Chuyên môn hoặc ngành trực thuộc của giảng viên (VD: GV CNTT thuộc nhánh Phát triển phần mềm).
+  - **GiaoVienMonHoc**: Các môn cụ thể mà giảng viên đó được phép giảng dạy, mức độ phù hợp và số năm kinh nghiệm.
+  - **KhoaHoc**: Phân công dạy môn học cho lớp hành chính trong một học kỳ.
+  - Dữ liệu demo V10 (`--SeedProfile=LargeDemo`) bao gồm hơn 100 giáo viên thực tế (35 CNTT, 20 Thiết kế đồ họa, 15 Kinh tế/Marketing, 10 Kế toán/Tài chính, 20 Ngoại ngữ/Kỹ năng mềm) cùng với khả năng dạy các môn học tương ứng chuyên môn. Dữ liệu này là tiền đề phục vụ cho tính năng **Smart Course Allocation** và **Smart Timetable**.

@@ -65,7 +65,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<MonHocTienQuyet> MonHocTienQuyets => Set<MonHocTienQuyet>();
     public DbSet<NganhDaoTao> NganhDaoTaos => Set<NganhDaoTao>();
     public DbSet<NguoiDung> NguoiDungs => Set<NguoiDung>();
-    public DbSet<NangLucGiangVien> NangLucGiangViens => Set<NangLucGiangVien>();
+    public DbSet<GiaoVienChuyenNganh> GiaoVienChuyenNganhs => Set<GiaoVienChuyenNganh>();
+    public DbSet<GiaoVienMonHoc> GiaoVienMonHocs => Set<GiaoVienMonHoc>();
     public DbSet<PasswordResetOtp> PasswordResetOtps => Set<PasswordResetOtp>();
     public DbSet<NhatKyDuyetDon> NhatKyDuyetDons => Set<NhatKyDuyetDon>();
     public DbSet<NhatKyKiemToan> NhatKyKiemToans => Set<NhatKyKiemToan>();
@@ -116,6 +117,70 @@ public class ApplicationDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.ConfigureLearningProgressModels();
+
+        modelBuilder.Entity<GiaoVienChuyenNganh>(entity =>
+        {
+            entity.HasKey(e => new { e.MaGiaoVien, e.MaChuyenNganh }).HasName("PK_GiaoVienChuyenNganh");
+            entity.HasIndex(e => e.MaGiaoVien).HasDatabaseName("IX_GiaoVienChuyenNganh_MaGiaoVien");
+            entity.HasIndex(e => e.MaChuyenNganh).HasDatabaseName("IX_GiaoVienChuyenNganh_MaChuyenNganh");
+            
+            entity.Property(e => e.MaGiaoVien).HasColumnName("ma_giao_vien");
+            entity.Property(e => e.MaChuyenNganh).HasColumnName("ma_chuyen_nganh");
+            entity.Property(e => e.LaChuyenMonChinh).HasColumnName("la_chuyen_mon_chinh");
+            entity.Property(e => e.MucDoPhuHop).HasColumnName("muc_do_phu_hop");
+            entity.Property(e => e.SoNamKinhNghiem).HasColumnName("so_nam_kinh_nghiem");
+            entity.Property(e => e.ConHoatDong).HasColumnName("con_hoat_dong");
+            entity.Property(e => e.NgayTao).HasColumnName("ngay_tao").HasColumnType("datetime2");
+            entity.Property(e => e.NgayCapNhat).HasColumnName("ngay_cap_nhat").HasColumnType("datetime2");
+
+            entity.ToTable(t => t.HasCheckConstraint("CK_GiaoVienChuyenNganh_muc_do_phu_hop", "[muc_do_phu_hop] BETWEEN 0 AND 100"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_GiaoVienChuyenNganh_so_nam_kinh_nghiem", "[so_nam_kinh_nghiem] IS NULL OR [so_nam_kinh_nghiem] >= 0"));
+
+            entity.HasOne(e => e.GiaoVien)
+                .WithMany()
+                .HasForeignKey(e => e.MaGiaoVien)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_GiaoVienChuyenNganh_ma_giao_vien__NguoiDung");
+
+            entity.HasOne(e => e.ChuyenNganh)
+                .WithMany()
+                .HasForeignKey(e => e.MaChuyenNganh)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_GiaoVienChuyenNganh_ma_chuyen_nganh__ChuyenNganh");
+        });
+
+        modelBuilder.Entity<GiaoVienMonHoc>(entity =>
+        {
+            entity.HasKey(e => new { e.MaGiaoVien, e.MaMonHoc }).HasName("PK_GiaoVienMonHoc");
+            entity.HasIndex(e => e.MaGiaoVien).HasDatabaseName("IX_GiaoVienMonHoc_MaGiaoVien");
+            entity.HasIndex(e => e.MaMonHoc).HasDatabaseName("IX_GiaoVienMonHoc_MaMonHoc");
+            
+            entity.Property(e => e.MaGiaoVien).HasColumnName("ma_giao_vien");
+            entity.Property(e => e.MaMonHoc).HasColumnName("ma_mon_hoc");
+            entity.Property(e => e.MucDoPhuHop).HasColumnName("muc_do_phu_hop");
+            entity.Property(e => e.SoLanDaDay).HasColumnName("so_lan_da_day");
+            entity.Property(e => e.SoNamKinhNghiem).HasColumnName("so_nam_kinh_nghiem");
+            entity.Property(e => e.LaMonChinh).HasColumnName("la_mon_chinh");
+            entity.Property(e => e.ConHoatDong).HasColumnName("con_hoat_dong");
+            entity.Property(e => e.NgayTao).HasColumnName("ngay_tao").HasColumnType("datetime2");
+            entity.Property(e => e.NgayCapNhat).HasColumnName("ngay_cap_nhat").HasColumnType("datetime2");
+
+            entity.ToTable(t => t.HasCheckConstraint("CK_GiaoVienMonHoc_muc_do_phu_hop", "[muc_do_phu_hop] BETWEEN 0 AND 100"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_GiaoVienMonHoc_so_lan_da_day", "[so_lan_da_day] >= 0"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_GiaoVienMonHoc_so_nam_kinh_nghiem", "[so_nam_kinh_nghiem] IS NULL OR [so_nam_kinh_nghiem] >= 0"));
+
+            entity.HasOne(e => e.GiaoVien)
+                .WithMany()
+                .HasForeignKey(e => e.MaGiaoVien)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_GiaoVienMonHoc_ma_giao_vien__NguoiDung");
+
+            entity.HasOne(e => e.MonHoc)
+                .WithMany()
+                .HasForeignKey(e => e.MaMonHoc)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_GiaoVienMonHoc_ma_mon_hoc__DanhMucMonHoc");
+        });
 
         modelBuilder.Entity<AnhChupPhanTich>(entity =>
         {
