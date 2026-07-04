@@ -397,6 +397,7 @@ const router = createRouter({
         },
         { path: 'classes', name: 'staff-classes', component: () => import('../views/GiaoVu/Classes/ClassManagementView.vue'), meta: { title: 'Lớp hành chính' } },
         { path: 'accounts', name: 'staff-accounts', component: () => import('../views/GiaoVu/Accounts/AccountManagementView.vue'), meta: { title: 'Quản lý tài khoản' } },
+        { path: 'reports', name: 'staff-reports', component: () => import('../views/GiaoVu/Reports/Index.vue'), meta: { title: 'Báo cáo & Thống kê', subtitle: 'Báo cáo chuyên sâu về khóa học, chuyên cần và tải giảng viên' } },
         {
           path: 'profile',
           name: 'staff-profile',

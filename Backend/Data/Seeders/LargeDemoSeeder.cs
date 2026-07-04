@@ -7,7 +7,7 @@ namespace Backend.Data.Seeders;
 
 public static class LargeDemoSeeder
 {
-    private const string LargeDemoCampus = "Cơ sở Large Demo V10";
+    private const string LargeDemoCampus = "Cơ sở Large Demo V12";
     private const string Password = "password123";
     
     private static readonly Dictionary<string, List<string>> MajorSpecializations = new()
@@ -61,11 +61,11 @@ public static class LargeDemoSeeder
         var exists = await context.DonVis.AnyAsync(x => x.TenDonVi == LargeDemoCampus);
         if (exists)
         {
-            Console.WriteLine("LargeDemo data (V10) already exists. Skipping.");
+            Console.WriteLine("LargeDemo data (V12) already exists. Skipping.");
             return;
         }
 
-        Console.WriteLine("Starting LargeDemo Seed V10...");
+        Console.WriteLine("Starting LargeDemo Seed V12...");
         
         var rootCampus = await context.DonVis.FirstOrDefaultAsync(x => x.CapDonVi == "root")
             ?? new DonVi { TenDonVi = "LMS Root", CapDonVi = "root", ConHoatDong = true, NgayTao = DateTime.UtcNow };
@@ -141,7 +141,7 @@ public static class LargeDemoSeeder
             for (int i = 0; i < dist.Value; i++)
             {
                 var teacher = new NguoiDung {
-                    Email = $"teacher.{majorName.Replace(" ", "").Replace("/", "").ToLower()}.v10.{teacherCounter:D3}@edulms.local",
+                    Email = $"teacher.{majorName.Replace(" ", "").Replace("/", "").ToLower()}.v12.{teacherCounter:D3}@edulms.local",
                     HoTen = $"Giảng Viên {majorName} {teacherCounter}",
                     VaiTroChinh = teacherRole,
                     MaDonVi = mainCampus.MaDonVi,
@@ -200,13 +200,13 @@ public static class LargeDemoSeeder
         await context.SaveChangesAsync();
 
         Console.WriteLine("Seeding Administrative Classes & Students...");
-        var cohort = new KhoaTuyenSinh { MaCodeKhoa = "K_LARGE_DEMO_V10", TenKhoa = "Khóa Large Demo V10", NamBatDau = 2026, ConHoatDong = true, NgayTao = DateTime.UtcNow };
+        var cohort = new KhoaTuyenSinh { MaCodeKhoa = "K_LARGE_DEMO_V12", TenKhoa = "Khóa Large Demo V12", NamBatDau = 2026, ConHoatDong = true, NgayTao = DateTime.UtcNow };
         context.KhoaTuyenSinhs.Add(cohort);
         await context.SaveChangesAsync();
 
         var program = new ChuongTrinhDaoTao { 
-            MaCodeChuongTrinh = "CT_LARGE_V10", 
-            TenChuongTrinh = "CTĐT Large V10", 
+            MaCodeChuongTrinh = "CT_LARGE_V12", 
+            TenChuongTrinh = "CTĐT Large V12", 
             MaChuyenNganh = specDict.Values.First().MaChuyenNganh, 
             MaKhoaTuyenSinh = cohort.MaKhoaTuyenSinh,
             SoHocKy = 7, ThoiGianDaoTaoThang = 28, TongTinChiYeuCau = 120, Version = "1.0",
@@ -219,8 +219,8 @@ public static class LargeDemoSeeder
         for (int i = 1; i <= 300; i++)
         {
             classes.Add(new LopHanhChinh { 
-                MaCodeLop = $"L_CLASS_V10_{i}", 
-                TenLop = $"Lớp Large V10 {i}", 
+                MaCodeLop = $"L_CLASS_V12_{i}", 
+                TenLop = $"Lớp Large V12 {i}", 
                 MaDonVi = mainCampus.MaDonVi, 
                 MaChuongTrinh = program.MaChuongTrinh, 
                 NamNhapHoc = 2026, 
@@ -242,8 +242,8 @@ public static class LargeDemoSeeder
                 int classIdx = studentIdx % classes.Count;
 
                 studentsBatch.Add(new NguoiDung {
-                    Email = $"student.large.v10.{studentIdx:D5}@edulms.local",
-                    HoTen = $"Sinh Viên Large V10 {studentIdx}",
+                    Email = $"student.large.v12.{studentIdx:D5}@edulms.local",
+                    HoTen = $"Sinh Viên Large V12 {studentIdx}",
                     VaiTroChinh = studentRole,
                     MaDonVi = mainCampus.MaDonVi,
                     TrangThai = UserStatuses.DbActive,
@@ -259,7 +259,7 @@ public static class LargeDemoSeeder
         }
 
         Console.WriteLine("Generating Smart Course Allocations...");
-        var hocKy = new HocKy { MaCodeHocKy = "HK_LARGE_V10", TenHocKy = "HK Large V10", NamHoc = "2026", ThuTuTrongNam = 1, NgayBatDau = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30)), NgayKetThuc = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(60)), MaDonVi = mainCampus.MaDonVi };
+        var hocKy = new HocKy { MaCodeHocKy = "HK_LARGE_V12", TenHocKy = "HK Large V12", NamHoc = "2026", ThuTuTrongNam = 1, NgayBatDau = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30)), NgayKetThuc = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(60)), MaDonVi = mainCampus.MaDonVi };
         context.HocKys.Add(hocKy);
         await context.SaveChangesAsync();
 
@@ -321,6 +321,6 @@ public static class LargeDemoSeeder
         context.KhoaHocs.AddRange(courses);
         await context.SaveChangesAsync();
 
-        Console.WriteLine("LargeDemo Seed V10 completed successfully.");
+        Console.WriteLine("LargeDemo Seed V12 completed successfully.");
     }
 }

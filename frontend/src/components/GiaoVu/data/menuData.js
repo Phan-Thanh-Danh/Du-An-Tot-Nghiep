@@ -86,6 +86,16 @@ export const giaoVuMenuGroups = [
     ],
   },
 
+  // ── BÁO CÁO & THỐNG KÊ ────────────────────────────────────
+  {
+    id: 'bao-cao',
+    label: 'Báo cáo',
+    icon: 'LineChart',
+    children: [
+      { id: 'reports-dashboard', label: 'Thống kê học vụ', icon: 'PieChart', route: '/staff/reports' },
+    ],
+  },
+
   // ── LỚP & NGƯỜI DÙNG ──────────────────────────────────────
   {
     id: 'lop-nguoi-dung',

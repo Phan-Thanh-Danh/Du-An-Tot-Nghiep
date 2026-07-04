@@ -41,14 +41,16 @@ public class TeacherDashboardController : ControllerBase
             .Distinct()
             .ToListAsync();
 
-        var totalStudents = await _context.NguoiDungs
+        var studentIds = await _context.NguoiDungs
             .Where(n => n.MaLop != null && classIds.Contains(n.MaLop.Value))
             .Select(n => n.MaNguoiDung)
             .Distinct()
-            .CountAsync();
+            .ToListAsync();
+
+        var totalStudents = studentIds.Count;
 
         var pendingGrading = await _context.BaiNops
-            .Where(b => b.DiemSo == null && b.BaiTap != null && teacherCourseMonHocIds.Contains(b.BaiTap.MaMonHoc))
+            .Where(b => b.DiemSo == null && b.BaiTap != null && teacherCourseMonHocIds.Contains(b.BaiTap.MaMonHoc) && studentIds.Contains(b.MaHocSinh))
             .CountAsync();
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -57,7 +59,7 @@ public class TeacherDashboardController : ControllerBase
             .CountAsync();
 
         var recentSubmissions = await _context.BaiNops
-            .Where(b => b.BaiTap != null && teacherCourseMonHocIds.Contains(b.BaiTap.MaMonHoc))
+            .Where(b => b.BaiTap != null && teacherCourseMonHocIds.Contains(b.BaiTap.MaMonHoc) && studentIds.Contains(b.MaHocSinh))
             .OrderByDescending(b => b.ThoiDiemNop)
             .Take(5)
             .Select(b => new RecentSubmissionDto

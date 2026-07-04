@@ -21,11 +21,14 @@ public class BghDashboardController : ControllerBase
     [HttpGet("dashboard")]
     public async Task<ActionResult<ApiResponseDto<BghDashboardDto>>> GetDashboard()
     {
-        var totalTeachers = await _db.NguoiDungs.CountAsync(u => u.VaiTroChinh == "giao_vien");
-        var totalStudents = await _db.NguoiDungs.CountAsync(u => u.VaiTroChinh == "hoc_sinh");
-        var totalClasses = await _db.LopHanhChinhs.CountAsync();
-        var pendingSchedules = await _db.ThoiKhoaBieus.CountAsync(t => t.TrangThai == "cho_duyet");
-        var pendingRequests = await _db.DonTus.CountAsync(d => d.TrangThai == "cho_duyet");
+        var currentUser = HttpContext.Items["CurrentUser"] as Backend.DTOs.Auth.CurrentUserContext;
+        var donViId = currentUser!.CampusId;
+
+        var totalTeachers = await _db.NguoiDungs.CountAsync(u => u.VaiTroChinh == "giao_vien" && u.MaDonVi == donViId);
+        var totalStudents = await _db.NguoiDungs.CountAsync(u => u.VaiTroChinh == "hoc_sinh" && u.MaDonVi == donViId);
+        var totalClasses = await _db.KhoaHocs.CountAsync(k => k.MaDonVi == donViId);
+        var pendingSchedules = await _db.ThoiKhoaBieus.Include(t => t.KhoaHoc).CountAsync(t => t.KhoaHoc != null && t.KhoaHoc.MaDonVi == donViId && t.TrangThai == "cho_duyet");
+        var pendingRequests = await _db.DonTus.CountAsync(d => d.MaDonVi == donViId && d.TrangThai == "cho_duyet");
 
         var recentAuditLogs = await _db.NhatKyKiemToans
             .OrderByDescending(a => a.ThoiDiemThayDoi)

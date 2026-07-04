@@ -1,5 +1,6 @@
 using Backend.Constants;
 using Backend.Data;
+using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,17 +23,23 @@ public class StaffDashboardController : ControllerBase
     [HttpGet("dashboard")]
     public async Task<ActionResult<ApiResponseDto<StaffDashboardDto>>> GetDashboard()
     {
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        var donViId = currentUser!.CampusId;
+
         var today = DateOnly.FromDateTime(DateTime.Today);
         var todayDayOfWeek = (int)DateTime.Today.DayOfWeek == 0 ? 7 : (int)DateTime.Today.DayOfWeek;
 
         var todaySchedules = await _db.ThoiKhoaBieus
-            .CountAsync(t => t.ThuTrongTuan == todayDayOfWeek
+            .Include(t => t.KhoaHoc)
+            .CountAsync(t => t.KhoaHoc != null && t.KhoaHoc.MaDonVi == donViId 
+                && t.ThuTrongTuan == todayDayOfWeek
                 && t.TrangThai != "da_huy"
                 && (!t.NgayBatDau.HasValue || t.NgayBatDau <= today)
                 && (!t.NgayKetThuc.HasValue || t.NgayKetThuc >= today));
 
         var conflictCounts = await _db.ThoiKhoaBieus
-            .Where(t => t.TrangThai != "da_huy")
+            .Include(t => t.KhoaHoc)
+            .Where(t => t.KhoaHoc != null && t.KhoaHoc.MaDonVi == donViId && t.TrangThai != "da_huy")
             .GroupBy(t => new { t.MaPhong, t.ThuTrongTuan, t.MaCaHoc })
             .Select(g => g.Count())
             .Where(c => c > 1)
@@ -40,18 +47,20 @@ public class StaffDashboardController : ControllerBase
 
         var conflicts = conflictCounts.Sum(c => c - 1);
 
-        var activeClasses = await _db.LopHocPhans
-            .CountAsync(l => l.TrangThai == "mo");
+        var activeClasses = await _db.KhoaHocs
+            .CountAsync(k => k.MaDonVi == donViId && k.TrangThai == "mo");
 
         var pendingRequests = await _db.DonTus
-            .CountAsync(d => d.TrangThai == "da_nop" || d.TrangThai == "dang_xem_xet");
+            .CountAsync(d => d.MaDonVi == donViId && (d.TrangThai == "da_nop" || d.TrangThai == "dang_xem_xet"));
 
         var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
         var newNotices = await _db.ThongBaos
-            .CountAsync(t => t.NgayTao >= sevenDaysAgo);
+            .CountAsync(t => t.MaDonVi == donViId && t.NgayTao >= sevenDaysAgo);
 
         var recentSchedules = await _db.ThoiKhoaBieus
-            .Where(t => t.TrangThai != "da_huy")
+            .Include(t => t.KhoaHoc)
+            .Include(t => t.Phong)
+            .Where(t => t.KhoaHoc != null && t.KhoaHoc.MaDonVi == donViId && t.TrangThai != "da_huy")
             .OrderByDescending(t => t.NgayTao)
             .Take(10)
             .Select(t => new ScheduleEntryDto
@@ -69,28 +78,30 @@ public class StaffDashboardController : ControllerBase
             .ToListAsync();
 
         var recentRequests = await _db.DonTus
+            .Include(d => d.HocSinh)
+            .Where(d => d.MaDonVi == donViId)
             .OrderByDescending(d => d.NgayTao)
             .Take(10)
             .Select(d => new RequestEntryDto
             {
                 Id = d.MaDonTu,
-                TieuDe = d.TieuDe,
-                LoaiDon = d.LoaiDon,
-                TrangThai = d.TrangThai,
+                TieuDe = d.TieuDe ?? "",
+                LoaiDon = d.LoaiDon ?? "",
+                TrangThai = d.TrangThai ?? "",
                 NgayTao = d.NgayTao,
                 HocSinhName = d.HocSinh != null ? d.HocSinh.HoTen : null
             })
             .ToListAsync();
 
         var announcements = await _db.ThongBaos
-            .Where(t => t.NgayTao >= sevenDaysAgo && t.TrangThai == "da_gui")
+            .Where(t => t.MaDonVi == donViId && t.NgayTao >= sevenDaysAgo && t.TrangThai == "da_gui")
             .OrderByDescending(t => t.NgayTao)
             .Take(5)
             .Select(t => new AnnouncementDto
             {
                 Id = t.MaThongBao,
                 TieuDe = t.TieuDe ?? "",
-                NoiDung = t.NoiDung,
+                NoiDung = t.NoiDung ?? "",
                 NgayTao = t.NgayTao
             })
             .ToListAsync();

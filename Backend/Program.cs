@@ -429,6 +429,19 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ExamMonitoringHub>("/hubs/exam-monitoring");
 
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var dt = context.NguoiDungs.FirstOrDefault(u => u.Email == "daotao@edulms.local");
+    var dv = context.DonVis.FirstOrDefault(d => d.TenDonVi == "Cơ sở Large Demo V12");
+    
+    if (dt != null && dv != null && dt.MaDonVi != dv.MaDonVi)
+    {
+        dt.MaDonVi = dv.MaDonVi;
+        context.SaveChanges();
+    }
+}
+
 app.Run();
 
 static async Task WriteJsonAsync(HttpContext context, int statusCode, string message)
