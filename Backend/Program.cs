@@ -405,8 +405,19 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-await Data.SeedRolesAsync(app.Services);
-
+var seedProfile = builder.Configuration["SeedProfile"];
+if (string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase))
+{
+    app.Logger.LogInformation("Running LargeDemoSeeder...");
+    using var scope = app.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await Backend.Data.Seeders.LargeDemoSeeder.SeedAsync(context);
+    app.Logger.LogInformation("LargeDemoSeeder completed.");
+}
+else
+{
+    await Data.SeedRolesAsync(app.Services);
+}
 app.UseCors("FrontendDev");
 app.UseAuthentication();
 app.UseMiddleware<JwtMiddleware>();

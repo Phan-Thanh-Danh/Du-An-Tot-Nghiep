@@ -65,6 +65,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<MonHocTienQuyet> MonHocTienQuyets => Set<MonHocTienQuyet>();
     public DbSet<NganhDaoTao> NganhDaoTaos => Set<NganhDaoTao>();
     public DbSet<NguoiDung> NguoiDungs => Set<NguoiDung>();
+    public DbSet<NangLucGiangVien> NangLucGiangViens => Set<NangLucGiangVien>();
     public DbSet<PasswordResetOtp> PasswordResetOtps => Set<PasswordResetOtp>();
     public DbSet<NhatKyDuyetDon> NhatKyDuyetDons => Set<NhatKyDuyetDon>();
     public DbSet<NhatKyKiemToan> NhatKyKiemToans => Set<NhatKyKiemToan>();
