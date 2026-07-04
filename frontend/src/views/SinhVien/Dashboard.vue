@@ -39,8 +39,8 @@ onMounted(async () => {
   } catch (err) {
     console.error('Failed to load student dashboard', err)
     error.value = 'Lỗi kết nối đến máy chủ.'
-    // Fallback to mock data on error for demo purposes, or keep it broken depending on requirements
-    dashboard.value = studentDashboardMock
+    // Fallback disabled to test live data
+    // dashboard.value = studentDashboardMock
   } finally {
     loading.value = false
   }
