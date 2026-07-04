@@ -1,54 +1,51 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 import {
   BookOpen, Users, Clock, AlertTriangle, Sparkles,
   CheckCircle2, XCircle, Search, Filter,
   ArrowRightLeft, MinusCircle, UserPlus, Zap
 } from 'lucide-vue-next'
+import { registrationApi } from '@/services/registrationApi'
 
-import { watchEffect } from 'vue'
-import { studentDashboardMock } from '@/data/studentData.mock.js'
+const loading = ref(true)
+const apiError = ref('')
+const classes = ref([])
 
-const mockClassesData = computed(() => {
-  const isGD = studentDashboardMock.student?.className?.includes('GD')
-  const isMKT = studentDashboardMock.student?.className?.includes('MR')
-  
-  if (isGD) {
-    return [
-      { id: 101, code: 'GD301-A', subject: 'Thiết kế dàn trang', credits: 3, teacher: 'ThS. Trần Typography', schedule: 'T2, 07:30 - 09:30 | P.302', slots: 40, maxSlots: 40, status: 'Full', aiTag: 'hot', prereq: 'Mỹ thuật cơ sở' },
-      { id: 102, code: 'GD301-B', subject: 'Thiết kế dàn trang', credits: 3, teacher: 'TS. Nguyễn Mỹ Thuật', schedule: 'T3, 13:30 - 15:30 | P.105', slots: 35, maxSlots: 40, status: 'Open', aiTag: 'optimal', prereq: 'Mỹ thuật cơ sở' },
-      { id: 103, code: 'GD302-A', subject: 'Màu sắc trong thiết kế', credits: 3, teacher: 'ThS. Lê Bố Cục', schedule: 'T4, 07:30 - 09:30 | P.102', slots: 40, maxSlots: 40, status: 'Enrolled', aiTag: '' },
-      { id: 104, code: 'GD303-C', subject: 'Thiết kế Web UI/UX', credits: 3, teacher: 'KS. Nguyễn Giao Diện', schedule: 'T5, 08:00 - 11:00 | Lab 04', slots: 30, maxSlots: 30, status: 'Waitlist', aiTag: 'hot', waitlistPos: 2 },
-      { id: 105, code: 'GD304-A', subject: 'Đồ họa vector nâng cao', credits: 3, teacher: 'ThS. Lê Vector', schedule: 'T6, 13:30 - 15:30 | P.205', slots: 15, maxSlots: 35, status: 'Open', aiTag: '' }
-    ]
-  } else if (isMKT) {
-    return [
-      { id: 101, code: 'MR501-A', subject: 'Digital Marketing', credits: 3, teacher: 'ThS. Lê SEO', schedule: 'T2, 07:30 - 09:30 | P.302', slots: 40, maxSlots: 40, status: 'Full', aiTag: 'hot', prereq: 'Marketing căn bản' },
-      { id: 102, code: 'MR501-B', subject: 'Digital Marketing', credits: 3, teacher: 'TS. Trần Kim Hiệu', schedule: 'T3, 13:30 - 15:30 | P.105', slots: 35, maxSlots: 40, status: 'Open', aiTag: 'optimal', prereq: 'Marketing căn bản' },
-      { id: 103, code: 'MR502-A', subject: 'Quản trị thương hiệu', credits: 3, teacher: 'ThS. Nguyễn Quảng Cáo', schedule: 'T4, 07:30 - 09:30 | P.102', slots: 40, maxSlots: 40, status: 'Enrolled', aiTag: '' },
-      { id: 104, code: 'MR101-C', subject: 'Marketing căn bản', credits: 3, teacher: 'TS. Lê Thị Bán Hàng', schedule: 'T5, 08:00 - 11:00 | Lab 04', slots: 30, maxSlots: 30, status: 'Waitlist', aiTag: 'hot', waitlistPos: 2 },
-      { id: 105, code: 'MR201-A', subject: 'Hành vi người tiêu dùng', credits: 3, teacher: 'ThS. Phạm Tâm Lý', schedule: 'T6, 13:30 - 15:30 | P.205', slots: 15, maxSlots: 35, status: 'Open', aiTag: '' }
-    ]
-  } else {
-    return [
-      { id: 101, code: 'CS301-A', subject: 'Cấu trúc dữ liệu & Giải thuật', credits: 3, teacher: 'TS. Nguyễn Minh Khoa', schedule: 'T2, 07:30 - 09:30 | P.302', slots: 40, maxSlots: 40, status: 'Full', aiTag: 'hot', prereq: 'Lập trình cơ bản' },
-      { id: 102, code: 'CS301-B', subject: 'Cấu trúc dữ liệu & Giải thuật', credits: 3, teacher: 'ThS. Trần Thu Hà', schedule: 'T3, 13:30 - 15:30 | P.105', slots: 35, maxSlots: 40, status: 'Open', aiTag: 'optimal', prereq: 'Lập trình cơ bản' },
-      { id: 103, code: 'MA201-A', subject: 'Toán rời rạc', credits: 3, teacher: 'TS. Lê Minh', schedule: 'T4, 07:30 - 09:30 | P.102', slots: 40, maxSlots: 40, status: 'Enrolled', aiTag: '' },
-      { id: 104, code: 'CS402-C', subject: 'Lập trình Web', credits: 4, teacher: 'KS. Lê Văn Tâm', schedule: 'T5, 08:00 - 11:00 | Lab 04', slots: 30, maxSlots: 30, status: 'Waitlist', aiTag: 'hot', waitlistPos: 2 },
-      { id: 105, code: 'ENG102-A', subject: 'Tiếng Anh 2', credits: 2, teacher: 'ThS. Nguyễn Lan', schedule: 'T6, 13:30 - 15:30 | P.205', slots: 15, maxSlots: 35, status: 'Open', aiTag: '' }
-    ]
+function mapSection(section) {
+  const status = section.registrationStatus || section.status
+  return {
+    id: section.id,
+    registrationId: section.registrationId,
+    code: section.code,
+    subject: section.subject,
+    credits: section.credits,
+    teacher: section.teacher,
+    schedule: section.schedule,
+    slots: section.enrolled,
+    maxSlots: section.capacity,
+    status: status === 'full' ? 'Full' : status === 'closed' || status === 'cancelled' ? 'Closed' : status || 'Open',
+    aiTag: section.status === 'full' ? 'hot' : '',
+    prereq: 'Theo chương trình đào tạo',
+    waitlistPos: section.waitlistPosition,
   }
-})
+}
 
-const mockClasses = ref([])
-
-watchEffect(() => {
-  mockClasses.value = JSON.parse(JSON.stringify(mockClassesData.value))
-})
+async function loadRegistrations() {
+  loading.value = true
+  apiError.value = ''
+  try {
+    const data = await registrationApi.getAvailableSections()
+    classes.value = Array.isArray(data) ? data.map(mapSection) : []
+  } catch (err) {
+    apiError.value = err?.message || 'Không thể tải danh sách lớp có thể đăng ký.'
+  } finally {
+    loading.value = false
+  }
+}
 
 const metrics = computed(() => {
-  const list = mockClasses.value
+  const list = classes.value
   const enrolledList = list.filter(c => c.status === 'Enrolled')
   const waitlistList = list.filter(c => c.status === 'Waitlist')
   const totalCredits = enrolledList.reduce((sum, c) => sum + c.credits, 0)
@@ -61,30 +58,16 @@ const metrics = computed(() => {
 })
 
 const subjects = computed(() => {
-  const list = mockClasses.value.map(c => c.subject)
+  const list = classes.value.map(c => c.subject)
   return ['Tất cả', ...new Set(list)]
 })
 
-const statuses = ['Tất cả', 'Open', 'Full', 'Enrolled', 'Waitlist']
+const statuses = ['Tất cả', 'Open', 'Full', 'Enrolled', 'Waitlist', 'Closed']
 
 const aiBanner = computed(() => {
-  const isGD = studentDashboardMock.student?.className?.includes('GD')
-  const isMKT = studentDashboardMock.student?.className?.includes('MR')
-  
-  if (isGD) {
-    return {
-      title: 'AI Gợi ý Lộ trình Tối ưu',
-      message: 'Thuật toán đề xuất bạn nên chọn lớp GD301-B để tối ưu thời khóa biểu, tránh khoảng trống lịch vào chiều thứ 3. Lớp GD303-C đang có nguy cơ quá tải (hot), hãy giữ vị trí Waitlist.'
-    }
-  } else if (isMKT) {
-    return {
-      title: 'AI Gợi ý Lộ trình Tối ưu',
-      message: 'Thuật toán đề xuất bạn nên chọn lớp MR501-B để tối ưu thời khóa biểu, tránh khoảng trống lịch vào chiều thứ 3. Lớp MR101-C đang có nguy cơ quá tải (hot), hãy giữ vị trí Waitlist.'
-    }
-  }
   return {
-    title: 'AI Gợi ý Lộ trình Tối ưu',
-    message: 'Thuật toán đề xuất bạn nên chọn lớp CS301-B để tối ưu thời khóa biểu, tránh khoảng trống lịch vào chiều thứ 3. Lớp CS402-C đang có nguy cơ quá tải (hot), hãy giữ vị trí Waitlist.'
+    title: 'Gợi ý đăng ký',
+    message: 'Hệ thống kiểm tra đợt đăng ký, sĩ số, trùng môn, trùng lịch và giới hạn tín chỉ trước khi ghi nhận đăng ký.'
   }
 })
 
@@ -93,7 +76,8 @@ const statusConfig = {
   Full: { label: 'Đã đầy', cls: 'badge-red', icon: Users },
   Enrolled: { label: 'Đã đăng ký', cls: 'badge-green', icon: CheckCircle2 },
   Waitlist: { label: 'Hàng chờ', cls: 'badge-amber', icon: Clock },
-  Dropped: { label: 'Đã hủy', cls: 'badge-slate', icon: XCircle }
+  Dropped: { label: 'Đã hủy', cls: 'badge-slate', icon: XCircle },
+  Closed: { label: 'Đã đóng', cls: 'badge-slate', icon: XCircle }
 }
 
 // State
@@ -117,7 +101,7 @@ const swapTarget = ref('')
 
 // Computed
 const filteredClasses = computed(() => {
-  return mockClasses.value.filter(c => {
+  return classes.value.filter(c => {
     const matchSub = filterSubject.value === 'Tất cả' || c.subject === filterSubject.value
     const matchStat = filterStatus.value === 'Tất cả' || c.status === filterStatus.value
     const matchQuery = !searchQuery.value || c.code.toLowerCase().includes(searchQuery.value.toLowerCase()) || c.subject.toLowerCase().includes(searchQuery.value.toLowerCase())
@@ -134,6 +118,7 @@ const getProgressColor = (slots, max) => {
 
 // Actions
 const openModal = (mode, cls) => {
+  if (mode === 'swap') return
   modalMode.value = mode
   activeClass.value = cls
   
@@ -152,27 +137,29 @@ const closeModal = () => {
   swapTarget.value = ''
 }
 
-const handleAction = () => {
+const handleAction = async () => {
   confirmLoading.value = true
-  setTimeout(() => {
-    // Mock action success
+  apiError.value = ''
+  try {
     if (modalMode.value === 'enroll') {
-      const idx = mockClasses.value.findIndex(c => c.id === activeClass.value.id)
-      if (idx !== -1) mockClasses.value[idx].status = 'Enrolled'
+      await registrationApi.enroll(activeClass.value.id)
     } else if (modalMode.value === 'waitlist') {
-      const idx = mockClasses.value.findIndex(c => c.id === activeClass.value.id)
-      if (idx !== -1) mockClasses.value[idx].status = 'Waitlist'
+      await registrationApi.enroll(activeClass.value.id)
     } else if (modalMode.value === 'withdraw') {
-      const idx = mockClasses.value.findIndex(c => c.id === activeClass.value.id)
-      if (idx !== -1) {
-        mockClasses.value[idx].status = 'Open'
-        mockClasses.value[idx].slots -= 1
-      }
+      await registrationApi.withdraw(activeClass.value.registrationId)
     }
-    confirmLoading.value = false
+    await loadRegistrations()
     closeModal()
-  }, 1000)
+  } catch (err) {
+    apiError.value = err?.message || 'Không thể xử lý đăng ký.'
+  } finally {
+    confirmLoading.value = false
+  }
 }
+
+onMounted(() => {
+  loadRegistrations()
+})
 
 </script>
 
@@ -186,6 +173,20 @@ const handleAction = () => {
         <p class="page-sub">Xây dựng lộ trình học tập, theo dõi sĩ số và xếp hàng chờ lớp thời gian thực.</p>
       </div>
     </div>
+
+    <div v-if="loading" class="empty-state">
+      Đang tải danh sách lớp có thể đăng ký...
+    </div>
+
+    <div v-else-if="apiError" class="warning-box red">
+      <AlertTriangle :size="20" class="shrink-0" />
+      <div>
+        <p>{{ apiError }}</p>
+        <button class="btn-secondary mt-3" @click="loadRegistrations">Thử lại</button>
+      </div>
+    </div>
+
+    <template v-else>
 
     <!-- AI Suggestion Banner -->
     <div class="ai-banner banner-violet">
@@ -286,7 +287,7 @@ const handleAction = () => {
             <button class="btn-outline flex-1" @click="openModal('withdraw', cls)">
               <MinusCircle :size="15"/> Hủy đăng ký
             </button>
-            <button v-if="cls.status === 'Enrolled'" class="btn-ghost" @click="openModal('swap', cls)" title="Đổi lớp chéo">
+            <button v-if="cls.status === 'Enrolled'" class="btn-ghost" disabled title="Chức năng đang phát triển">
               <ArrowRightLeft :size="16"/>
             </button>
           </template>
@@ -297,6 +298,8 @@ const handleAction = () => {
         Không tìm thấy lớp học phần nào khớp với bộ lọc.
       </div>
     </div>
+
+    </template>
 
     <!-- Modals -->
     <Teleport to="body">

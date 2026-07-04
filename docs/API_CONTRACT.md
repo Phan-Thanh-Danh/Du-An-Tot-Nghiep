@@ -547,9 +547,40 @@ Ghi chú: audit log được ghi tự động bởi backend khi thao tác Auth/U
 - `GET /api/courses/{id}/chapters`
 - `GET /api/students/me/courses`
 
-Ghi chú dữ liệu: Trong phạm vi MVP, `KhoaHoc` đại diện cho một môn học được mở cho một lớp hành chính trong một học kỳ và do một giảng viên phụ trách. Một giảng viên dạy cùng một môn cho nhiều lớp sẽ tạo nhiều `KhoaHoc` khác nhau. Nhiều giảng viên cùng dạy một môn cho các lớp khác nhau cũng tạo nhiều `KhoaHoc` khác nhau. `LopHocPhan` tạm thời chưa dùng trong MVP và được giữ nullable để mở rộng sau này khi cần hỗ trợ đăng ký học phần, học lại, ghép lớp hoặc chia nhóm thực hành. Nội dung học tập chuẩn vẫn lấy theo `DanhMucMonHoc -> Chuong -> BaiHoc`, không copy theo từng `KhoaHoc`.
+Ghi chú dữ liệu: Trong phạm vi MVP, `KhoaHoc` đại diện cho một môn học được mở cho một lớp hành chính trong một học kỳ và do một giảng viên phụ trách. Một giảng viên dạy cùng một môn cho nhiều lớp sẽ tạo nhiều `KhoaHoc` khác nhau. Nhiều giảng viên cùng dạy một môn cho các lớp khác nhau cũng tạo nhiều `KhoaHoc` khác nhau. Từ P7, luồng đăng ký học phần dùng `LopHocPhan`/`DangKyHocPhan` làm nguồn sĩ số và đăng ký; `KhoaHoc.MaLopHocPhan` được dùng khi cần map giảng viên/TKB/nội dung học tập sang lớp học phần. Nội dung học tập chuẩn vẫn lấy theo `DanhMucMonHoc -> Chuong -> BaiHoc`, không copy theo từng `KhoaHoc`.
 
 Roadmap: Sau MVP cần hỗ trợ cấu hình quiz/bài tập theo `KhoaHoc` để mỗi lớp có lịch mở/đóng khác nhau. `ThoiKhoaBieu` hiện đã gắn `MaKhoaHoc` và `MaCaHoc` ở tầng database; `TienDoBaiHoc` và `DiemSo` vẫn cần cân nhắc thêm `MaKhoaHoc` nullable/required theo mức độ triển khai để phân biệt cùng môn ở lớp/giảng viên/học kỳ khác nhau.
+
+## Registration / Enrollment APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/admin/registration-periods` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách đợt đăng ký trong scope cơ sở; tên đợt được derive từ học kỳ vì schema `GiaiDoanDangKy` chưa có cột tên riêng. |
+| GET | `/api/admin/registration-periods/{id}` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Chi tiết đợt đăng ký kèm số lớp và số sinh viên đã đăng ký/waitlist. |
+| POST | `/api/admin/registration-periods` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Tạo đợt nháp từ `maHocKy`, `openDate`, `closeDate`, `maxCredits`; validate học kỳ thuộc cơ sở và `closeDate > openDate`. |
+| PUT | `/api/admin/registration-periods/{id}` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Sửa đợt nháp/đang mở; không cho sửa đợt đã đóng. |
+| POST | `/api/admin/registration-periods/{id}/open` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Chuyển `GiaiDoanDangKy.TrangThai` sang `dang_mo`; có audit log. |
+| POST | `/api/admin/registration-periods/{id}/close` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Chuyển đợt sang `da_dong`; sinh viên không thể đăng ký/hủy khi không có đợt đang mở. |
+| DELETE | `/api/admin/registration-periods/{id}` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Chỉ xóa được đợt ở trạng thái `nhap`. |
+| GET | `/api/admin/registration-periods/{id}/registrations` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách lớp học phần/capacity thuộc học kỳ của đợt. |
+| GET | `/api/admin/registrations` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách đăng ký sinh viên gần nhất trong scope cơ sở, giới hạn 500 dòng. |
+| GET | `/api/admin/course-sections/capacity` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Danh sách `LopHocPhan` kèm capacity, số đã đăng ký, waitlist, trạng thái và thông tin môn/giảng viên/TKB khi có `KhoaHoc.MaLopHocPhan`. |
+| PUT | `/api/admin/course-sections/{id}/capacity` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Cập nhật `SucChua`; không được nhỏ hơn số đăng ký chính thức; tự promote waitlist theo FIFO nếu tăng sức chứa. |
+| POST | `/api/admin/course-sections/{id}/cancel` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Hủy lớp học phần bằng `TrangThai = da_huy`, chuyển đăng ký active/waitlist sang `lop_bi_huy`, có audit log. |
+| POST | `/api/admin/course-sections/{id}/reopen` | Admin/SuperAdmin/CampusAdmin/SubCampusAdmin/AcademicStaff | Mở lại lớp bằng `TrangThai = mo`, đồng bộ lại `SoDaDangKy`. |
+| GET | `/api/student/registrations/available` | Student | Trả lớp học phần trong cơ sở/học kỳ của đợt `dang_mo` hiện tại; kèm trạng thái đăng ký của sinh viên nếu có. |
+| GET | `/api/student/registrations` | Student | Danh sách đăng ký của sinh viên hiện tại, trừ đăng ký đã rút. |
+| POST | `/api/student/registrations` | Student | Đăng ký lớp học phần từ `maLopHocPhan`; validate đợt đang mở, scope cơ sở, trùng môn/học kỳ, trùng lịch nếu có TKB gắn `KhoaHoc.MaLopHocPhan`, capacity, waitlist và giới hạn tín chỉ. |
+| POST | `/api/student/registrations/{id}/withdraw` | Student | Hủy đăng ký active/waitlist khi đợt tương ứng còn đang mở; tự promote waitlist nếu sinh viên rút khỏi danh sách chính thức. |
+
+### Schema limitations / follow-up
+
+- `GiaiDoanDangKy` chưa có tên đợt, mô tả, cờ chốt danh sách, deadline hủy riêng hoặc cấu hình ngành/chương trình được phép đăng ký.
+- `NguoiDung` entity hiện chưa có mã sinh viên/MSSV riêng trong contract này; API admin registrations tạm dùng `MaNguoiDung` làm `studentCode`.
+- Kiểm tra cơ sở/học kỳ đã có; kiểm tra chuyên ngành hiện mới ở mức hạn chế vì `LopHocPhan` chưa gắn chương trình/ngành.
+- Kiểm tra trùng lịch chỉ chạy khi lớp học phần có `KhoaHoc.MaLopHocPhan` và `ThoiKhoaBieu`; lớp chưa map course/TKB sẽ bỏ qua conflict check thay vì đoán lịch.
 
 ## Lessons APIs
 

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { usePopupStore } from '@/stores/popup'
 import { 
   AlertCircle, 
@@ -16,17 +16,43 @@ import {
   RotateCcw
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import { registrationApi } from '@/services/registrationApi'
 
 const popupStore = usePopupStore()
 
-const pendingClasses = ref([
-  { id: 'LHP003', subject: 'Lập trình Web', enrolled: 12, minEnroll: 15, teacher: 'Lê Văn C', status: 'pending_cancel', reason: 'Không đủ sĩ số tối thiểu' },
-  { id: 'LHP008', subject: 'Kỹ năng mềm', enrolled: 8, minEnroll: 20, teacher: 'Trần Thị H', status: 'pending_cancel', reason: 'Không đủ sĩ số tối thiểu' },
-])
+const loading = ref(true)
+const apiError = ref('')
+const pendingClasses = ref([])
+const cancelledClasses = ref([])
 
-const cancelledClasses = ref([
-  { id: 'LHP012', subject: 'Triết học Mác-Lênin', enrolled: 5, minEnroll: 20, teacher: 'Nguyễn Văn K', status: 'cancelled', date: '12/05/2026' },
-])
+function mapSection(section) {
+  return {
+    sectionId: section.id,
+    id: section.code,
+    subject: section.subject,
+    enrolled: section.enrolled,
+    minEnroll: section.minEnroll,
+    teacher: section.teacher,
+    status: section.status,
+    reason: section.enrolled < section.minEnroll ? 'Không đủ sĩ số tối thiểu' : 'Chờ xử lý học vụ',
+    date: '',
+  }
+}
+
+async function loadClasses() {
+  loading.value = true
+  apiError.value = ''
+  try {
+    const data = await registrationApi.getCapacity()
+    const mapped = Array.isArray(data) ? data.map(mapSection) : []
+    pendingClasses.value = mapped.filter(cls => cls.status === 'pending_cancel' || (cls.status === 'open' && cls.minEnroll > 0 && cls.enrolled < cls.minEnroll))
+    cancelledClasses.value = mapped.filter(cls => cls.status === 'cancelled')
+  } catch (err) {
+    apiError.value = err?.message || 'Không thể tải trạng thái lớp học phần.'
+  } finally {
+    loading.value = false
+  }
+}
 
 const contextTarget = ref(null)
 
@@ -50,25 +76,20 @@ function openCancelModal(cls) {
   showCancelModal.value = true
 }
 
-function confirmCancel() {
+async function confirmCancel() {
   if (!cancelTarget.value) return
   cancelling.value = true
-  setTimeout(() => {
-      const idx = pendingClasses.value.findIndex(c => c.id === cancelTarget.value.id)
-      if (idx !== -1) {
-        const removed = pendingClasses.value[idx]
-        pendingClasses.value.splice(idx, 1)
-        cancelledClasses.value.unshift({
-          ...removed,
-          status: 'cancelled',
-          date: new Date().toLocaleDateString('vi-VN'),
-        })
-      }
-    cancelling.value = false
+  try {
+    await registrationApi.cancelSection(cancelTarget.value.sectionId, { reason: cancelReason.value })
+    await loadClasses()
     showCancelModal.value = false
     popupStore.success('Đã hủy lớp', `Lớp ${cancelTarget.value.id} - ${cancelTarget.value.subject} đã bị hủy.`)
     cancelTarget.value = null
-  }, 600)
+  } catch (err) {
+    popupStore.error('Lỗi', err?.message || 'Không thể hủy lớp học phần.')
+  } finally {
+    cancelling.value = false
+  }
 }
 
 function closeCancelModal() {
@@ -80,35 +101,27 @@ function closeCancelModal() {
 const showReopenModal = ref(false)
 const reopenTarget = ref(null)
 const reopening = ref(false)
-const reopenSource = ref('pending')
 
-function openReopenModal(cls, source) {
+function openReopenModal(cls) {
   reopenTarget.value = cls
-  reopenSource.value = source
   reopening.value = false
   showReopenModal.value = true
 }
 
-function confirmReopen() {
+async function confirmReopen() {
   if (!reopenTarget.value) return
   reopening.value = true
-  setTimeout(() => {
-    if (reopenSource.value === 'pending') {
-      const idx = pendingClasses.value.findIndex(c => c.id === reopenTarget.value.id)
-      if (idx !== -1) {
-        pendingClasses.value.splice(idx, 1)
-      }
-    } else {
-      const idx = cancelledClasses.value.findIndex(c => c.id === reopenTarget.value.id)
-      if (idx !== -1) {
-        cancelledClasses.value.splice(idx, 1)
-      }
-    }
-    reopening.value = false
+  try {
+    await registrationApi.reopenSection(reopenTarget.value.sectionId, { reason: 'Mở lại lớp từ màn course-status' })
+    await loadClasses()
     showReopenModal.value = false
     popupStore.success('Đã mở lại lớp', `Lớp ${reopenTarget.value.id} - ${reopenTarget.value.subject} đã được mở lại.`)
     reopenTarget.value = null
-  }, 600)
+  } catch (err) {
+    popupStore.error('Lỗi', err?.message || 'Không thể mở lại lớp học phần.')
+  } finally {
+    reopening.value = false
+  }
 }
 
 function closeReopenModal() {
@@ -129,6 +142,10 @@ function closeDetailModal() {
   showDetailModal.value = false
   detailTarget.value = null
 }
+
+onMounted(() => {
+  loadClasses()
+})
 </script>
 
 <template>
@@ -136,6 +153,22 @@ function closeDetailModal() {
     title="Hủy / Mở lại lớp" 
     subtitle="Xử lý các lớp học phần không đủ sĩ số tối thiểu hoặc cần đóng/mở lại theo nhu cầu."
   >
+    <div v-if="loading" class="surface-card border border-card rounded-2xl p-8 text-sm font-semibold text-label">
+      Đang tải trạng thái lớp học phần...
+    </div>
+
+    <div v-else-if="apiError" class="surface-card border border-card rounded-2xl p-6">
+      <div class="flex items-start gap-3">
+        <AlertCircle :size="20" class="text-(--color-danger-text) shrink-0" />
+        <div>
+          <p class="text-sm font-bold text-heading">Không thể tải dữ liệu</p>
+          <p class="text-xs text-muted mt-1">{{ apiError }}</p>
+          <button class="lg-button-primary px-4 py-2 text-xs font-bold rounded-xl mt-3" @click="loadClasses">Thử lại</button>
+        </div>
+      </div>
+    </div>
+
+    <template v-else>
     <div class="space-y-8" @click="closeContextMenu">
       
       <section class="space-y-4">
@@ -307,6 +340,7 @@ function closeDetailModal() {
       </div>
 
     </div>
+    </template>
 
     <Transition
       enter-active-class="transition-all duration-200 ease-out"

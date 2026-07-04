@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { Search, Loader2, AlertCircle, FileText } from 'lucide-vue-next'
-import { staffApi } from '@/services/staffApi'
+import { registrationApi } from '@/services/registrationApi'
 
 const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(true)
@@ -18,8 +18,19 @@ async function loadData() {
   loading.value = true
   apiError.value = ''
   try {
-    const res = await staffApi.getNotices()
-    results.value = Array.isArray(res) ? res : []
+    const data = await registrationApi.getRegistrationResults()
+    results.value = Array.isArray(data)
+      ? data.map(item => ({
+        id: item.id,
+        studentCode: item.studentCode,
+        studentName: item.studentName,
+        course: item.course,
+        group: item.group,
+        credits: item.credits,
+        status: item.status === 'Enrolled' ? 'registered' : 'waitlisted',
+        registeredAt: item.registeredAt?.replace?.('T', ' ').slice(0, 16) || item.registeredAt,
+      }))
+      : []
   } catch (err) {
     if (ENABLE_MOCK_API) {
       results.value = DEMO_RESULTS
