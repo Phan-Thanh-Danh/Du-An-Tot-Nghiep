@@ -7,4 +7,7 @@ public class DanhMucMonHoc
     public string TenMonHoc { get; set; } = string.Empty;
     public int SoTinChi { get; set; }
     public bool ConHoatDong { get; set; }
+    public int? MaChuyenNganh { get; set; }
+
+    public ChuyenNganh? ChuyenNganh { get; set; }
 }

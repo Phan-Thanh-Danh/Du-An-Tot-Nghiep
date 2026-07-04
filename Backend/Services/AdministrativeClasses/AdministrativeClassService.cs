@@ -27,15 +27,15 @@ public class AdministrativeClassService : IAdministrativeClassService
         var currentUser = GetCurrentUser();
         var allowedOrganizationIds = await GetAllowedOrganizationIdsAsync(currentUser, cancellationToken);
 
-        var query = CreateClassQuery()
-            .Where(x => allowedOrganizationIds.Contains(x.Class.MaDonVi));
+        var baseQuery = _context.LopHanhChinhs.AsQueryable();
+        baseQuery = baseQuery.Where(c => allowedOrganizationIds.Contains(c.MaDonVi));
 
         if (!string.IsNullOrWhiteSpace(parameters.Keyword))
         {
             var keyword = parameters.Keyword.Trim().ToLowerInvariant();
-            query = query.Where(x =>
-                x.Class.MaCodeLop.ToLower().Contains(keyword) ||
-                x.Class.TenLop.ToLower().Contains(keyword));
+            baseQuery = baseQuery.Where(c =>
+                c.MaCodeLop.ToLower().Contains(keyword) ||
+                c.TenLop.ToLower().Contains(keyword));
         }
 
         if (parameters.MaDonVi.HasValue)
@@ -45,26 +45,37 @@ public class AdministrativeClassService : IAdministrativeClassService
                 throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem lớp của đơn vị này.");
             }
 
-            query = query.Where(x => x.Class.MaDonVi == parameters.MaDonVi.Value);
+            baseQuery = baseQuery.Where(c => c.MaDonVi == parameters.MaDonVi.Value);
         }
 
         if (parameters.MaChuongTrinh.HasValue)
         {
-            query = query.Where(x => x.Class.MaChuongTrinh == parameters.MaChuongTrinh.Value);
+            baseQuery = baseQuery.Where(c => c.MaChuongTrinh == parameters.MaChuongTrinh.Value);
         }
 
         if (parameters.ConHoatDong.HasValue)
         {
-            query = query.Where(x => x.Class.ConHoatDong == parameters.ConHoatDong.Value);
+            baseQuery = baseQuery.Where(c => c.ConHoatDong == parameters.ConHoatDong.Value);
         }
 
-        var totalItems = await query.CountAsync(cancellationToken);
+        var totalItems = await baseQuery.CountAsync(cancellationToken);
+
+        var query = from classEntity in baseQuery
+                    join organization in _context.DonVis.AsNoTracking()
+                        on classEntity.MaDonVi equals organization.MaDonVi
+                    join teacher in _context.NguoiDungs.AsNoTracking()
+                        on classEntity.MaGiaoVienChuNhiem equals teacher.MaNguoiDung into teacherJoin
+                    from teacher in teacherJoin.DefaultIfEmpty()
+                    join trainingProgram in _context.ChuongTrinhDaoTaos.AsNoTracking()
+                        on classEntity.MaChuongTrinh equals trainingProgram.MaChuongTrinh into trainingProgramJoin
+                    from trainingProgram in trainingProgramJoin.DefaultIfEmpty()
+                    orderby organization.TenDonVi, classEntity.TenLop
+                    select new { classEntity, organization, teacher, trainingProgram };
+
         var items = await query
-            .OrderBy(x => x.Organization.TenDonVi)
-            .ThenBy(x => x.Class.TenLop)
             .Skip((parameters.PageIndex - 1) * parameters.PageSize)
             .Take(parameters.PageSize)
-            .Select(x => ToDto(x.Class, x.Organization, x.Teacher, x.TrainingProgram))
+            .Select(x => ToDto(x.classEntity, x.organization, x.teacher, x.trainingProgram))
             .ToListAsync(cancellationToken);
 
         return new PagedResultDto<AdminClassDto>
@@ -226,10 +237,11 @@ public class AdministrativeClassService : IAdministrativeClassService
             .ToList();
     }
 
-    private IQueryable<ClassQueryResult> CreateClassQuery()
+    private IQueryable<ClassQueryResult> CreateClassQuery(IQueryable<LopHanhChinh>? baseQuery = null)
     {
+        baseQuery ??= _context.LopHanhChinhs.AsNoTracking();
         return
-            from classEntity in _context.LopHanhChinhs.AsNoTracking()
+            from classEntity in baseQuery
             join organization in _context.DonVis.AsNoTracking()
                 on classEntity.MaDonVi equals organization.MaDonVi
             join teacher in _context.NguoiDungs.AsNoTracking()
@@ -438,7 +450,8 @@ public class AdministrativeClassService : IAdministrativeClassService
             MaCodeChuongTrinh = trainingProgram?.MaCodeChuongTrinh,
             TenChuongTrinh = trainingProgram?.TenChuongTrinh,
             NamNhapHoc = classEntity.NamNhapHoc,
-            ConHoatDong = classEntity.ConHoatDong
+            ConHoatDong = classEntity.ConHoatDong,
+            MaChuyenNganh = trainingProgram?.MaChuyenNganh
         };
     }
 

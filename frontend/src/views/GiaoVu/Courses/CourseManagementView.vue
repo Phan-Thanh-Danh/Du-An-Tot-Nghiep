@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { usePopupStore } from '@/stores/popup'
 import { courseApi } from '@/services/courseApi'
+import { apiRequest, unwrapApiData } from '@/services/apiClient'
 import { exportToExcel } from '@/services/exportService'
 import {
   Search, Plus, BookOpen, Clock, CheckCircle, Archive,
@@ -165,34 +166,43 @@ function getSortIcon(field) {
 async function loadDropdowns() {
   loadingDropdowns.value = true
   try {
-    academicTerms.value = [
-      { value: 1, label: 'HK1 2025-2026' },
-      { value: 2, label: 'HK2 2025-2026' },
-    ]
-    subjects.value = [
-      { value: 1, label: 'Lập trình Web (WEB101)' },
-      { value: 2, label: 'Cơ sở dữ liệu (CSDL201)' },
-      { value: 3, label: 'Cấu trúc dữ liệu (CTDL301)' },
-    ]
-    teachers.value = [
-      { value: 1, label: 'Nguyễn Văn An' },
-      { value: 2, label: 'Trần Thị Bình' },
-      { value: 3, label: 'Lê Văn Cường' },
-    ]
-    classes.value = [
-      { value: 1, label: 'CNTT01' },
-      { value: 2, label: 'CNTT02' },
-      { value: 3, label: 'KTPM01' },
-    ]
-    majors.value = [
-      { value: 1, label: 'Công nghệ thông tin' },
-      { value: 2, label: 'Kinh doanh' },
-    ]
-    specializations.value = [
-      { value: 1, label: 'Kỹ thuật phần mềm' },
-      { value: 2, label: 'An toàn thông tin' },
-      { value: 3, label: 'Quản trị kinh doanh' },
-    ]
+    const [
+      resTerms, resSubjects, resTeachers, resClasses, resMajors, resSpecializations
+    ] = await Promise.all([
+      apiRequest('/api/master-data/academic-terms').catch(() => null),
+      apiRequest(`/api/master-data/subjects?pageSize=100&_t=${Date.now()}`).catch(() => null),
+      apiRequest('/api/master-data/users/teachers').catch(() => null),
+      apiRequest('/api/admin/classes?pageSize=100').catch(() => null),
+      apiRequest('/api/master-data/majors').catch(() => null),
+      apiRequest('/api/master-data/specializations?pageSize=100').catch(() => null)
+    ])
+
+    if (resTerms) {
+       const terms = unwrapApiData(resTerms)
+       academicTerms.value = (terms.items || terms).map(t => ({ value: t.maHocKy, label: t.tenHocKy }))
+    }
+    if (resSubjects) {
+       const subs = unwrapApiData(resSubjects)
+       subjects.value = (subs.items || subs).map(s => ({ value: s.maMonHoc, label: `${s.tenMonHoc} (${s.maCodeMonHoc})`, maChuyenNganh: s.maChuyenNganh }))
+    }
+    if (resTeachers) {
+       const teachersList = unwrapApiData(resTeachers)
+       teachers.value = (teachersList.items || teachersList).map(t => ({ value: t.maNguoiDung, label: t.hoTen, chuyenNganhs: t.chuyenNganhs || [] }))
+    }
+    if (resClasses) {
+       const classesList = unwrapApiData(resClasses)
+       classes.value = (classesList.items || classesList).map(c => ({ value: c.maLop, label: c.tenLop, maChuyenNganh: c.maChuyenNganh }))
+    }
+    if (resMajors) {
+       const majorsList = unwrapApiData(resMajors)
+       majors.value = (majorsList.items || majorsList).map(m => ({ value: m.maNganh, label: m.tenNganh }))
+    }
+    if (resSpecializations) {
+       const specs = unwrapApiData(resSpecializations)
+       specializations.value = (specs.items || specs).map(s => ({ value: s.maChuyenNganh, label: s.tenChuyenNganh, maNganh: s.maNganh }))
+    }
+  } catch (err) {
+    console.error('Failed to load dropdowns', err)
   } finally {
     loadingDropdowns.value = false
   }

@@ -14,4 +14,6 @@ public interface ICourseService
     Task DeleteAsync(int courseId, CancellationToken cancellationToken = default);
     Task<BatchCourseActionResultDto> BatchArchiveAsync(BatchCourseActionRequest request, CancellationToken cancellationToken = default);
     Task<BatchCourseActionResultDto> BatchPublishAsync(BatchCourseActionRequest request, CancellationToken cancellationToken = default);
+    Task<List<AllocationSuggestionDto>> GetAllocationSuggestionsAsync(AllocationSuggestionRequest request, CancellationToken cancellationToken = default);
+    Task<AllocationPreviewDto> PreviewAllocationAsync(BulkAssignCoursesRequest request, CancellationToken cancellationToken = default);
 }

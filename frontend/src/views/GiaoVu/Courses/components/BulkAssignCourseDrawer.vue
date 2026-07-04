@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { usePopupStore } from '@/stores/popup'
 import { courseApi } from '@/services/courseApi'
 import { X, Loader2, Search, Check, ChevronDown, ChevronUp, BookOpen, Users, GraduationCap, Calendar, Eye } from 'lucide-vue-next'
@@ -42,7 +42,45 @@ onMounted(() => {
 
 const filteredClasses = computed(() => {
   const kw = classSearch.value.toLowerCase()
-  return props.classes.filter(c => c.label.toLowerCase().includes(kw))
+  let result = props.classes
+  if (form.value.maChuyenNganh) {
+    result = result.filter(c => c.maChuyenNganh === form.value.maChuyenNganh)
+  }
+  if (kw) {
+    result = result.filter(c => c.label.toLowerCase().includes(kw))
+  }
+  return result
+})
+
+const filteredTeachers = computed(() => {
+  let result = props.teachers
+  if (form.value.maChuyenNganh) {
+    result = result.filter(t => t.chuyenNganhs?.includes(form.value.maChuyenNganh))
+  }
+  return result
+})
+
+const filteredSpecializations = computed(() => {
+  if (!form.value.maNganh) return props.specializations
+  return props.specializations.filter(s => s.maNganh === form.value.maNganh)
+})
+
+const filteredSubjects = computed(() => {
+  if (!form.value.maChuyenNganh) return props.subjects
+  return props.subjects.filter(s => s.maChuyenNganh === form.value.maChuyenNganh)
+})
+
+watch(() => form.value.maNganh, () => {
+  form.value.maChuyenNganh = null
+  form.value.maMonHoc = null
+  form.value.maGiaoVien = null
+  selectedClassIds.value = []
+})
+
+watch(() => form.value.maChuyenNganh, () => {
+  form.value.maMonHoc = null
+  form.value.maGiaoVien = null
+  selectedClassIds.value = []
 })
 
 const isMaxClasses = computed(() => selectedClassIds.value.length >= 5)
@@ -114,6 +152,65 @@ const completionPercent = computed(() => {
   if (selectedCount.value > 0) score += 33
   return score
 })
+
+const teacherSuggestions = ref([])
+const loadingSuggestions = ref(false)
+const previewData = ref({ valid: [], skipped: [], isTeacherOverloaded: false, warningMessage: null })
+const loadingPreview = ref(false)
+
+let suggestionTimer
+watch(() => [form.value.maMonHoc, form.value.maHocKy, selectedClassIds.value.length], async () => {
+  if (!form.value.maMonHoc) {
+    teacherSuggestions.value = []
+    return
+  }
+  clearTimeout(suggestionTimer)
+  suggestionTimer = setTimeout(async () => {
+    loadingSuggestions.value = true
+    try {
+      const res = await courseApi.getAllocationSuggestions({
+        maMonHoc: form.value.maMonHoc,
+        maHocKy: form.value.maHocKy || undefined,
+        maLopIds: [...selectedClassIds.value]
+      })
+      teacherSuggestions.value = res.data || []
+      
+      if (!form.value.maGiaoVien && teacherSuggestions.value.length > 0) {
+        form.value.maGiaoVien = teacherSuggestions.value[0].maGiaoVien
+      }
+    } catch(e) {
+      console.error(e)
+    } finally {
+      loadingSuggestions.value = false
+    }
+  }, 500)
+}, { immediate: true })
+
+let previewTimer
+watch(() => [form.value.maMonHoc, form.value.maHocKy, form.value.maGiaoVien, selectedClassIds.value.length, form.value.tieuDe], async () => {
+  if (!isFormValid.value) {
+    previewData.value = { valid: [], skipped: [], isTeacherOverloaded: false, warningMessage: null }
+    return
+  }
+  clearTimeout(previewTimer)
+  previewTimer = setTimeout(async () => {
+    loadingPreview.value = true
+    try {
+      const res = await courseApi.previewAllocation({
+        maMonHoc: form.value.maMonHoc,
+        maGiaoVien: form.value.maGiaoVien,
+        maHocKy: form.value.maHocKy || undefined,
+        maLopIds: [...selectedClassIds.value],
+        tieuDe: form.value.tieuDe || undefined
+      })
+      previewData.value = res.data || { valid: [], skipped: [], isTeacherOverloaded: false, warningMessage: null }
+    } catch(e) {
+      console.error(e)
+    } finally {
+      loadingPreview.value = false
+    }
+  }, 500)
+}, { deep: true })
 
 async function handleSubmit() {
   if (!isFormValid.value || submitting.value) return
@@ -192,13 +289,13 @@ async function handleSubmit() {
                 <label class="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-1.5">
                   Chuyên ngành
                 </label>
-                <LmsSelect v-model="form.maChuyenNganh" :options="specializations" placeholder="Chọn chuyên ngành" />
+                <LmsSelect v-model="form.maChuyenNganh" :options="filteredSpecializations" placeholder="Chọn chuyên ngành" />
               </div>
               <div>
                 <label class="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-1.5">
                   Môn học <span class="text-(--color-danger-text)">*</span>
                 </label>
-                <LmsSelect v-model="form.maMonHoc" :options="subjects" placeholder="Chọn môn học" />
+                <LmsSelect v-model="form.maMonHoc" :options="filteredSubjects" placeholder="Chọn môn học" />
               </div>
               <div>
                 <label class="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-1.5">
@@ -228,10 +325,33 @@ async function handleSubmit() {
               <label class="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-1.5">
                 Giảng viên <span class="text-(--color-danger-text)">*</span>
               </label>
-              <LmsSelect v-model="form.maGiaoVien" :options="teachers" placeholder="Chọn giảng viên" />
+              <LmsSelect v-model="form.maGiaoVien" :options="filteredTeachers" placeholder="Chọn giảng viên" />
               <p v-if="selectedTeacher" class="text-[11px] text-muted mt-1.5">
                 <span class="font-medium">{{ selectedTeacher.label }}</span> sẽ phụ trách tất cả khóa học được tạo.
               </p>
+
+              <div v-if="loadingSuggestions" class="mt-3 flex items-center gap-2 text-[11px] text-muted">
+                 <Loader2 :size="12" class="animate-spin" /> Đang tìm giảng viên phù hợp...
+              </div>
+              <div v-else-if="teacherSuggestions.length > 0" class="mt-3 space-y-2">
+                 <p class="text-[10px] font-bold text-heading uppercase tracking-wide">Đề xuất (Dựa trên mức độ phù hợp & khối lượng)</p>
+                 <div v-for="t in teacherSuggestions" :key="t.maGiaoVien"
+                      class="p-2 rounded-lg border cursor-pointer transition-colors"
+                      :class="form.maGiaoVien === t.maGiaoVien ? 'border-(--lg-primary) bg-(--color-info-bg)' : 'border-card hover:bg-(--surface-hover)'"
+                      @click="form.maGiaoVien = t.maGiaoVien">
+                    <div class="flex items-center justify-between">
+                       <span class="text-xs font-bold text-heading">{{ t.tenGiaoVien }} <span v-if="t.laMonChinh" class="ml-1 text-[9px] bg-(--lg-primary) text-white px-1.5 py-0.5 rounded-full">Môn chính</span></span>
+                       <span class="text-[10px] font-bold" :class="t.score >= 100 ? 'text-(--color-success-text)' : 'text-(--color-warning-text)'">
+                          Điểm: {{ t.score }}
+                       </span>
+                    </div>
+                    <div class="flex items-center gap-3 mt-1 text-[10px] text-muted">
+                       <span>Phù hợp: {{ t.mucDoPhuHop }}%</span>
+                       <span>Đã dạy: {{ t.soLanDaDay }} lần</span>
+                       <span :class="t.isOverloaded ? 'text-(--color-danger-text) font-bold' : ''">Tải dự kiến: {{ t.projectedWorkload }}</span>
+                    </div>
+                 </div>
+              </div>
             </div>
           </div>
 
@@ -292,33 +412,51 @@ async function handleSubmit() {
           <!-- Preview -->
           <div v-if="isFormValid"
             class="surface-card border border-card rounded-xl p-4 space-y-3">
-            <div class="flex items-center gap-2">
-              <Eye :size="14" class="text-(--lg-primary)" />
-              <span class="text-xs font-bold text-heading uppercase tracking-wide">Xem trước</span>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <Eye :size="14" class="text-(--lg-primary)" />
+                <span class="text-xs font-bold text-heading uppercase tracking-wide">Xem trước kết quả</span>
+              </div>
+              <Loader2 v-if="loadingPreview" :size="14" class="animate-spin text-muted" />
             </div>
+
+            <div v-if="previewData.warningMessage" class="flex items-start gap-2 p-3 rounded-lg bg-(--color-warning-bg) text-(--color-warning-text) text-[11px]">
+               <div class="w-1.5 h-1.5 rounded-full bg-(--color-warning-text) mt-1 shrink-0" />
+               <span>{{ previewData.warningMessage }}</span>
+            </div>
+
             <div class="rounded-lg bg-(--surface-input) p-3 space-y-2">
               <div class="flex items-center justify-between text-xs">
-                <span class="text-muted">Số khóa học sẽ tạo</span>
+                <span class="text-muted">Tổng số lớp đã chọn</span>
                 <span class="font-bold text-heading">{{ selectedCount }}</span>
               </div>
               <div class="flex items-center justify-between text-xs">
-                <span class="text-muted">Môn học</span>
-                <span class="font-medium text-heading text-right">{{ selectedSubject?.label || '—' }}</span>
+                <span class="text-muted">Khóa học hợp lệ</span>
+                <span class="font-bold text-(--color-success-text)">{{ previewData.valid.length }}</span>
               </div>
               <div class="flex items-center justify-between text-xs">
-                <span class="text-muted">Giảng viên</span>
-                <span class="font-medium text-heading">{{ selectedTeacher?.label || '—' }}</span>
-              </div>
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-muted">Lớp</span>
-                <span class="font-medium text-heading text-right">{{ selectedCount }} lớp ({{ selectedClassIds.map(id => getClassLabel(id)).join(', ') }})</span>
-              </div>
-              <div v-if="previewTitle" class="flex items-center justify-between text-xs">
-                <span class="text-muted">Tiêu đề dự kiến</span>
-                <span class="font-medium text-heading text-right max-w-[200px] truncate">{{ previewTitle }}</span>
+                <span class="text-muted">Bị bỏ qua (lỗi/đã tồn tại)</span>
+                <span class="font-bold text-(--color-danger-text)">{{ previewData.skipped.length }}</span>
               </div>
             </div>
-            <div v-if="form.trangThai === 'nhap'" class="flex items-center gap-1.5 text-[11px] text-(--color-warning-text)">
+
+            <div v-if="previewData.skipped.length > 0" class="space-y-1.5 mt-2">
+               <p class="text-[10px] font-bold text-muted uppercase tracking-wide">Chi tiết bỏ qua</p>
+               <div v-for="sk in previewData.skipped" :key="sk.maLop" class="text-[11px] text-muted flex items-start gap-1.5">
+                  <X :size="12" class="text-(--color-danger-text) mt-0.5 shrink-0" />
+                  <span>Lớp <strong>{{ sk.tenLop || getClassLabel(sk.maLop) }}</strong>: {{ sk.lyDo }}</span>
+               </div>
+            </div>
+            
+            <div v-if="previewData.valid.length > 0" class="space-y-1.5 mt-2">
+               <p class="text-[10px] font-bold text-muted uppercase tracking-wide">Dự kiến tạo mới</p>
+               <div v-for="v in previewData.valid" :key="v.maLop" class="text-[11px] text-muted flex items-start gap-1.5">
+                  <Check :size="12" class="text-(--color-success-text) mt-0.5 shrink-0" />
+                  <span class="truncate">Lớp <strong>{{ v.tenLop }}</strong> - {{ v.tieuDe }}</span>
+               </div>
+            </div>
+
+            <div v-if="form.trangThai === 'nhap'" class="flex items-center gap-1.5 text-[11px] text-(--color-warning-text) mt-2">
               <div class="w-1.5 h-1.5 rounded-full bg-(--color-warning-text)" />
               Trạng thái <strong>Nháp</strong> — cần xuất bản sau
             </div>

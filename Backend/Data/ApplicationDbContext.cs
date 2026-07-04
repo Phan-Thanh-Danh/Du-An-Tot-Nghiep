@@ -1654,6 +1654,14 @@ public class ApplicationDbContext : DbContext
                 .HasDefaultValue(true);
             entity.HasIndex(e => e.MaCodeMonHoc).IsUnique().HasDatabaseName("UQ_DanhMucMonHoc_1");
             entity.ToTable(t => t.HasCheckConstraint("CK_DanhMucMonHoc_so_tin_chi_1", "[so_tin_chi] > 0"));
+            
+            entity.Property(e => e.MaChuyenNganh)
+                .HasColumnName("ma_chuyen_nganh");
+            entity.HasOne(e => e.ChuyenNganh)
+                .WithMany()
+                .HasForeignKey(e => e.MaChuyenNganh)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_DanhMucMonHoc_ma_chuyen_nganh__ChuyenNganh");
         });
 
         modelBuilder.Entity<DanhSachRuiRoRotMon>(entity =>

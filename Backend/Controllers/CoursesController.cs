@@ -58,6 +58,24 @@ public class CoursesController : ControllerBase
         return Ok(ApiResponseDto<BulkAssignCoursesResultDto>.Ok(result, $"Tạo thành công {result.CreatedCount}/{result.CreatedCount + result.SkippedCount} lớp"));
     }
 
+    [HttpPost("allocation-suggestions")]
+    public async Task<ActionResult<ApiResponseDto<List<AllocationSuggestionDto>>>> GetAllocationSuggestions(
+        AllocationSuggestionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var suggestions = await _courseService.GetAllocationSuggestionsAsync(request, cancellationToken);
+        return Ok(ApiResponseDto<List<AllocationSuggestionDto>>.Ok(suggestions));
+    }
+
+    [HttpPost("allocation-preview")]
+    public async Task<ActionResult<ApiResponseDto<AllocationPreviewDto>>> PreviewAllocation(
+        BulkAssignCoursesRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _courseService.PreviewAllocationAsync(request, cancellationToken);
+        return Ok(ApiResponseDto<AllocationPreviewDto>.Ok(result));
+    }
+
     [HttpPost("{id:int}/clone")]
     public async Task<ActionResult<ApiResponseDto<KhoaHocDto>>> Clone(
         int id,

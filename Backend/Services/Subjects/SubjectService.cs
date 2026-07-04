@@ -39,6 +39,11 @@ public class SubjectService : ISubjectService
             query = query.Where(x => x.ConHoatDong == parameters.ConHoatDong.Value);
         }
 
+        if (parameters.MaChuyenNganh.HasValue)
+        {
+            query = query.Where(x => x.MaChuyenNganh == parameters.MaChuyenNganh.Value);
+        }
+
         var totalItems = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderBy(x => x.MaCodeMonHoc)
@@ -50,7 +55,8 @@ public class SubjectService : ISubjectService
                 MaCodeMonHoc = x.MaCodeMonHoc,
                 TenMonHoc = x.TenMonHoc,
                 SoTinChi = x.SoTinChi,
-                ConHoatDong = x.ConHoatDong
+                ConHoatDong = x.ConHoatDong,
+                MaChuyenNganh = x.MaChuyenNganh
             })
             .ToListAsync(cancellationToken);
 
@@ -242,15 +248,13 @@ public class SubjectService : ISubjectService
         }
     }
 
-    private static SubjectDto ToDto(DanhMucMonHoc subject)
+    private static SubjectDto ToDto(DanhMucMonHoc subject) => new()
     {
-        return new SubjectDto
-        {
-            MaMonHoc = subject.MaMonHoc,
-            MaCodeMonHoc = subject.MaCodeMonHoc,
-            TenMonHoc = subject.TenMonHoc,
-            SoTinChi = subject.SoTinChi,
-            ConHoatDong = subject.ConHoatDong
-        };
-    }
+        MaMonHoc = subject.MaMonHoc,
+        MaCodeMonHoc = subject.MaCodeMonHoc,
+        TenMonHoc = subject.TenMonHoc,
+        SoTinChi = subject.SoTinChi,
+        ConHoatDong = subject.ConHoatDong,
+        MaChuyenNganh = subject.MaChuyenNganh
+    };
 }

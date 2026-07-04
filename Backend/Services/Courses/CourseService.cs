@@ -565,6 +565,175 @@ public class CourseService : ICourseService
         return result;
     }
 
+    public async Task<List<AllocationSuggestionDto>> GetAllocationSuggestionsAsync(
+        AllocationSuggestionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageCourses(currentUser);
+
+        var subject = await ValidateSubjectAsync(request.MaMonHoc, cancellationToken);
+        var organizationIds = await GetAllowedOrganizationIdsAsync(currentUser, cancellationToken);
+
+        var teacherRoleCode = AuthRoles.ToDatabaseCode(AuthRoles.Teacher);
+        var roleMappings = await _context.PhanQuyenNguoiDungs.AsNoTracking()
+            .Where(x => x.VaiTro != null && x.VaiTro.MaCodeVaiTro == teacherRoleCode)
+            .Select(x => x.MaNguoiDung)
+            .ToListAsync(cancellationToken);
+
+        var teachers = await _context.NguoiDungs
+            .AsNoTracking()
+            .Where(u => u.TrangThai != UserStatuses.DbLocked && organizationIds.Contains(u.MaDonVi))
+            .Join(_context.GiaoVienMonHocs.AsNoTracking().Where(gvm => gvm.MaMonHoc == request.MaMonHoc && gvm.ConHoatDong),
+                  u => u.MaNguoiDung,
+                  gvm => gvm.MaGiaoVien,
+                  (u, gvm) => new { Teacher = u, Mapping = gvm })
+            .ToListAsync(cancellationToken);
+            
+        var teacherIds = teachers.Select(t => t.Teacher.MaNguoiDung).ToList();
+        var workloadsQuery = _context.KhoaHocs.AsNoTracking()
+            .Where(k => teacherIds.Contains(k.MaGiaoVien) && k.TrangThai != ArchivedStatus);
+            
+        if (request.MaHocKy.HasValue)
+        {
+            workloadsQuery = workloadsQuery.Where(k => k.MaHocKy == request.MaHocKy.Value);
+        }
+        
+        var workloads = await workloadsQuery
+            .GroupBy(k => k.MaGiaoVien)
+            .Select(g => new { MaGiaoVien = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MaGiaoVien, x => x.Count, cancellationToken);
+            
+        var classesToAssign = request.MaLopIds?.Count ?? 0;
+        var suggestions = new List<AllocationSuggestionDto>();
+        
+        foreach (var item in teachers)
+        {
+            bool isTeacher = item.Teacher.VaiTroChinh.Equals(teacherRoleCode, StringComparison.OrdinalIgnoreCase) || 
+                             roleMappings.Contains(item.Teacher.MaNguoiDung);
+            if (!isTeacher) continue;
+            
+            var currentWorkload = workloads.TryGetValue(item.Teacher.MaNguoiDung, out var w) ? w : 0;
+            var projected = currentWorkload + classesToAssign;
+            bool isOverloaded = projected > 4;
+            
+            double score = item.Mapping.MucDoPhuHop;
+            if (item.Mapping.LaMonChinh) score += 20;
+            score += Math.Min(item.Mapping.SoLanDaDay * 2, 20);
+            
+            if (isOverloaded) score -= (projected - 4) * 15;
+            
+            suggestions.Add(new AllocationSuggestionDto
+            {
+                MaGiaoVien = item.Teacher.MaNguoiDung,
+                TenGiaoVien = item.Teacher.HoTen,
+                MucDoPhuHop = item.Mapping.MucDoPhuHop,
+                LaMonChinh = item.Mapping.LaMonChinh,
+                SoLanDaDay = item.Mapping.SoLanDaDay,
+                CurrentWorkload = currentWorkload,
+                ProjectedWorkload = projected,
+                Score = score,
+                IsOverloaded = isOverloaded
+            });
+        }
+
+        return suggestions.OrderByDescending(x => x.Score).ToList();
+    }
+
+    public async Task<AllocationPreviewDto> PreviewAllocationAsync(
+        BulkAssignCoursesRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageCourses(currentUser);
+
+        var classIds = NormalizeIds(request.MaLopIds, "Danh sách lớp không được để trống.");
+        var subject = await ValidateSubjectAsync(request.MaMonHoc, cancellationToken);
+        var teacher = await ValidateTeacherInManagedScopeAsync(request.MaGiaoVien, currentUser, cancellationToken);
+        var organization = await ValidateOrganizationAsync(teacher.MaDonVi, currentUser, cancellationToken);
+        var term = await ValidateTermAsync(request.MaHocKy, organization.MaDonVi, cancellationToken);
+
+        var classes = await _context.LopHanhChinhs
+            .AsNoTracking()
+            .Where(x => classIds.Contains(x.MaLop))
+            .ToListAsync(cancellationToken);
+
+        var result = new AllocationPreviewDto();
+        
+        foreach (var classId in classIds)
+        {
+            var classEntity = classes.FirstOrDefault(x => x.MaLop == classId);
+            if (classEntity is null || !classEntity.ConHoatDong)
+            {
+                result.Skipped.Add(new BulkAssignCourseSkippedDto
+                {
+                    MaLop = classId,
+                    LyDo = "Lớp hành chính không tồn tại hoặc không hoạt động."
+                });
+                continue;
+            }
+
+            if (classEntity.MaDonVi != organization.MaDonVi)
+            {
+                result.Skipped.Add(new BulkAssignCourseSkippedDto
+                {
+                    MaLop = classEntity.MaLop,
+                    TenLop = classEntity.TenLop,
+                    LyDo = "Lớp hành chính không thuộc cùng cơ sở với giảng viên."
+                });
+                continue;
+            }
+
+            var exists = await CourseExistsAsync(
+                organization.MaDonVi,
+                subject.MaMonHoc,
+                term?.MaHocKy,
+                classEntity.MaLop,
+                null,
+                cancellationToken);
+
+            if (exists)
+            {
+                result.Skipped.Add(new BulkAssignCourseSkippedDto
+                {
+                    MaLop = classEntity.MaLop,
+                    TenLop = classEntity.TenLop,
+                    LyDo = "Lớp đã có khóa học cho môn học này trong học kỳ đã chọn."
+                });
+                continue;
+            }
+
+            var title = NormalizeOptionalText(request.TieuDe)
+                ?? BuildCourseTitle(subject, classEntity, term, teacher);
+                
+            result.Valid.Add(new KhoaHocPreviewDto
+            {
+                MaLop = classEntity.MaLop,
+                TenLop = classEntity.TenLop,
+                TieuDe = title
+            });
+        }
+        
+        var workloadsQuery = _context.KhoaHocs.AsNoTracking()
+            .Where(k => k.MaGiaoVien == teacher.MaNguoiDung && k.TrangThai != ArchivedStatus);
+            
+        if (term != null)
+        {
+            workloadsQuery = workloadsQuery.Where(k => k.MaHocKy == term.MaHocKy);
+        }
+        
+        var currentWorkload = await workloadsQuery.CountAsync(cancellationToken);
+        var projected = currentWorkload + result.Valid.Count;
+        
+        if (projected > 4)
+        {
+            result.IsTeacherOverloaded = true;
+            result.WarningMessage = $"Giảng viên sẽ phụ trách {projected} khóa học trong học kỳ này (vượt quá mức khuyến nghị là 4).";
+        }
+
+        return result;
+    }
+
     private IQueryable<CourseQueryResult> CreateCourseQuery()
     {
         return

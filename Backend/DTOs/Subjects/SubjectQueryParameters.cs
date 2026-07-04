@@ -6,6 +6,7 @@ public class SubjectQueryParameters
 {
     public string? Keyword { get; set; }
     public bool? ConHoatDong { get; set; }
+    public int? MaChuyenNganh { get; set; }
 
     [Range(1, int.MaxValue, ErrorMessage = "pageIndex phải lớn hơn 0.")]
     public int PageIndex { get; set; } = 1;

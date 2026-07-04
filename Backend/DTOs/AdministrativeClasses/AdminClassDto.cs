@@ -14,4 +14,5 @@ public class AdminClassDto
     public string? TenChuongTrinh { get; set; }
     public int? NamNhapHoc { get; set; }
     public bool ConHoatDong { get; set; }
+    public int? MaChuyenNganh { get; set; }
 }

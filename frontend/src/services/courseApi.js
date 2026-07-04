@@ -195,6 +195,35 @@ export const courseApi = {
     return apiRequest('/api/courses/bulk-assign', { method: 'POST', body: JSON.stringify(payload) })
   },
 
+  async getAllocationSuggestions(payload) {
+    if (enableMock) return mockCall(() => {
+      const suggestions = [
+        { maGiaoVien: 1, tenGiaoVien: 'Nguyễn Văn An', mucDoPhuHop: 90, laMonChinh: true, soLanDaDay: 5, currentWorkload: 2, projectedWorkload: 2 + (payload.maLopIds?.length || 0), score: 110, isOverloaded: false },
+        { maGiaoVien: 2, tenGiaoVien: 'Trần Thị Bình', mucDoPhuHop: 70, laMonChinh: false, soLanDaDay: 2, currentWorkload: 4, projectedWorkload: 4 + (payload.maLopIds?.length || 0), score: 65, isOverloaded: (4 + (payload.maLopIds?.length || 0)) > 4 }
+      ]
+      return { success: true, message: 'Thành công', data: suggestions.sort((a, b) => b.score - a.score) }
+    })
+    return apiRequest('/api/courses/allocation-suggestions', { method: 'POST', body: JSON.stringify(payload) })
+  },
+
+  async previewAllocation(payload) {
+    if (enableMock) return mockCall(() => {
+      const skipped = []
+      const valid = []
+      payload.maLopIds.forEach((maLop) => {
+        const exists = mockCourses.find(c => c.maMonHoc === payload.maMonHoc && c.maHocKy === payload.maHocKy && c.maLop === maLop)
+        if (exists) {
+          skipped.push({ maLop, tenLop: mockDropdowns.classes.find(c => c.value === maLop)?.label || '', lyDo: 'Lớp đã có khóa học cho môn/học kỳ này' })
+        } else {
+          valid.push({ maLop, tenLop: mockDropdowns.classes.find(c => c.value === maLop)?.label || '', tieuDe: payload.tieuDe || 'Tên khóa học dự kiến' })
+        }
+      })
+      const isTeacherOverloaded = valid.length > 2 
+      return { success: true, message: 'Thành công', data: { skipped, valid, isTeacherOverloaded, warningMessage: isTeacherOverloaded ? 'Giảng viên sẽ bị quá tải' : null } }
+    })
+    return apiRequest('/api/courses/allocation-preview', { method: 'POST', body: JSON.stringify(payload) })
+  },
+
   async updateCourse(id, payload) {
     if (enableMock) return mockCall(() => {
       const idx = mockCourses.findIndex(c => c.maKhoaHoc === id)
