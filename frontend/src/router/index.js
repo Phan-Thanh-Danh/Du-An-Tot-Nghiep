@@ -384,6 +384,7 @@ const router = createRouter({
         { path: 'requests', name: 'staff-requests', component: () => import('../views/GiaoVu/Requests/PendingRequestsView.vue') , meta: { title: 'Đơn cần xử lý' } },
         { path: 'requests-history', name: 'staff-requests-history', component: () => import('../views/GiaoVu/Requests/RequestHistoryView.vue') , meta: { title: 'Đơn đã xử lý' } },
         { path: 'workflow', name: 'staff-workflow', component: () => import('../views/GiaoVu/Requests/WorkflowConfigView.vue') , meta: { title: 'Cấu hình quy trình' } },
+        { path: 'reports', name: 'staff-reports', component: () => import('../views/Reports/GeneralReportsView.vue') , meta: { title: 'Báo cáo tổng hợp' } },
 
         {
           path: 'notices/send',
@@ -433,6 +434,7 @@ const router = createRouter({
         { path: 'academic/at-risk/:studentId/history', name: 'bgh-academic-at-risk-student-history', component: () => import('../views/BGH/Academic/StudentHistoryView.vue'), meta: { title: 'Lịch sử học tập', subtitle: 'Chi tiết quá trình học tập của sinh viên', section: 'Đào tạo & Chương trình' } },
         { path: 'academic/reports', name: 'bgh-academic-reports', component: () => import('../views/BGH/Academic/AcademicReportsView.vue'), meta: { title: 'Báo cáo học tập chi tiết', subtitle: 'Công cụ phân tích và kết xuất báo cáo đa chiều', section: 'Đào tạo & Chương trình' } },
         { path: 'academic/pass-fail', name: 'bgh-academic-pass-fail', component: () => import('../views/BGH/Academic/PassFailRatesView.vue'), meta: { title: 'Tỷ lệ Pass/Fail môn học', subtitle: 'Theo dõi và phân tích tỷ lệ qua môn, rớt môn', section: 'Đào tạo & Chương trình' } },
+        { path: 'reports/general', name: 'bgh-reports-general', component: () => import('../views/Reports/GeneralReportsView.vue'), meta: { title: 'Báo cáo tổng hợp', subtitle: 'Tổng hợp số liệu từ các phòng ban', section: 'Đào tạo & Chương trình' } },
         // Phê duyệt & Đánh giá
         { path: 'schedule/pending', name: 'bgh-schedule-pending', component: () => import('../views/BGH/SchedulePendingView.vue'), meta: { title: 'Duyệt Thời khóa biểu', subtitle: 'Phê duyệt thời khóa biểu trước khi công bố', section: 'Phê duyệt & Đánh giá' } },
         { path: 'schedule/conflicts', name: 'bgh-schedule-conflicts', component: () => import('../views/BGH/Schedule/ConflictListView.vue'), meta: { title: 'Xung đột lịch học', subtitle: 'Giám sát các lỗi sắp xếp tài nguyên giảng dạy', section: 'Phê duyệt & Đánh giá' } },

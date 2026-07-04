@@ -38,6 +38,7 @@ export const bghMenuGroups = [
       { id: 'academic-at-risk', label: 'SV nguy cơ rớt môn', icon: 'AlertTriangle', route: '/bgh/academic/at-risk' },
       { id: 'academic-reports', label: 'Báo cáo chi tiết', icon: 'FileText', route: '/bgh/academic/reports' },
       { id: 'academic-pass-fail', label: 'Tỷ lệ Pass/Fail', icon: 'TrendingUp', route: '/bgh/academic/pass-fail' },
+      { id: 'bgh-reports-general', label: 'Báo cáo tổng hợp', icon: 'PieChart', route: '/bgh/reports/general' },
     ],
   },
 
