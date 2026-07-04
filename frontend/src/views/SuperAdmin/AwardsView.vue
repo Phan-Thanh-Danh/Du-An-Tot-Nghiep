@@ -7,7 +7,8 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import { rewardDisciplineMockService } from '@/mocks/rewardDisciplineMockService'
+import { rewardDisciplineApi } from '@/services/rewardDisciplineApi'
+import { unwrapApiData } from '@/services/apiClient'
 import { usePopupStore } from '@/stores/popup'
 
 const popupStore = usePopupStore()
@@ -19,13 +20,43 @@ const filter = ref('all')
 const selectedCampaign = ref(null)
 const candidates = ref([])
 
+const mapCampaign = (item) => ({
+  id: item.maDotKhenThuong ?? item.MaDotKhenThuong,
+  maDot: `DKT-${item.maDotKhenThuong ?? item.MaDotKhenThuong}`,
+  tenDot: item.tenDot ?? item.TenDot ?? 'Đợt khen thưởng',
+  hocKy: item.tenHocKy ?? item.TenHocKy ?? 'Chưa có học kỳ',
+  donVi: item.tenDonVi ?? item.TenDonVi,
+  trangThai: normalizeCampaignStatus(item.trangThai ?? item.TrangThai ?? 'nhap'),
+  tongUngVien: 0,
+  daDuyet: 0,
+})
+
+function normalizeCampaignStatus(status) {
+  if (['da_duyet', 'cho_duyet'].includes(status)) return 'approved'
+  if (['da_cong_bo', 'completed'].includes(status)) return 'completed'
+  return 'evaluating'
+}
+
+const mapCandidate = (item) => ({
+  id: item.maUngVienKhenThuong ?? item.MaUngVienKhenThuong,
+  rank: item.xepHang ?? item.XepHang ?? '-',
+  name: item.hoTenSnapshot ?? item.HoTenSnapshot ?? 'Chưa có tên',
+  rollNum: item.mssvSnapshot ?? item.MssvSnapshot ?? '',
+  class: '',
+  gpa: item.gpaHocKy ?? item.GpaHocKy ?? item.diemXet ?? item.DiemXet ?? '-',
+  status: item.trangThai ?? item.TrangThai ?? '',
+})
+
 const fetchCampaigns = async () => {
   loading.value = true
   try {
-    const res = await rewardDisciplineMockService.getRewardCampaigns()
-    campaigns.value = res.items || []
+    const res = await rewardDisciplineApi.getRewardCampaigns({ pageIndex: 1, pageSize: 50 })
+    const data = unwrapApiData(res)
+    campaigns.value = (data?.items ?? data?.Items ?? []).map(mapCampaign)
   } catch (err) {
     console.error(err)
+    campaigns.value = []
+    popupStore.error('Không thể tải dữ liệu', err?.message || 'Không thể tải danh sách đợt khen thưởng.')
   } finally {
     loading.value = false
   }
@@ -45,14 +76,16 @@ const filteredCampaigns = computed(() => {
   return list
 })
 
-const selectCampaign = (cmp) => {
+const selectCampaign = async (cmp) => {
   selectedCampaign.value = cmp
-  // Mock top candidates
-  candidates.value = [
-    { id: 1, rank: 1, name: 'Nguyễn Văn A', rollNum: 'SE15001', class: 'SE1501', gpa: 9.8, status: cmp.trangThai === 'approved' || cmp.trangThai === 'completed' ? 'approved' : 'evaluating' },
-    { id: 2, rank: 2, name: 'Trần Thị B', rollNum: 'SE15002', class: 'SE1502', gpa: 9.7, status: cmp.trangThai === 'approved' || cmp.trangThai === 'completed' ? 'approved' : 'evaluating' },
-    { id: 3, rank: 3, name: 'Lê Văn C', rollNum: 'SE15003', class: 'SE1503', gpa: 9.5, status: cmp.trangThai === 'approved' || cmp.trangThai === 'completed' ? 'approved' : 'evaluating' },
-  ]
+  candidates.value = []
+  try {
+    const res = await rewardDisciplineApi.getRewardCampaignCandidates(cmp.id, { pageIndex: 1, pageSize: 3 })
+    const data = unwrapApiData(res)
+    candidates.value = (data?.items ?? data?.Items ?? []).map(mapCandidate)
+  } catch (err) {
+    popupStore.error('Không thể tải ứng viên', err?.message || 'Không thể tải danh sách ứng viên.')
+  }
 }
 
 const generateCertificates = () => {
@@ -65,12 +98,12 @@ const generateCertificates = () => {
     run: async () => {
       confirmAction.value = null
       try {
-        await rewardDisciplineMockService.generateCertificates(selectedCampaign.value.id)
-        popupStore.success('Thành công', 'Đã xếp hàng đợi phát sinh bằng khen.')
+        await rewardDisciplineApi.generateRewardCertificates(selectedCampaign.value.id, {})
+        popupStore.success('Thành công', 'Đã phát sinh bằng khen.')
         selectedCampaign.value.trangThai = 'completed'
       } catch (_e) {
         console.error(_e)
-        popupStore.error('Lỗi', 'Có lỗi xảy ra khi tạo bằng khen.')
+        popupStore.error('Lỗi', _e?.message || 'Có lỗi xảy ra khi tạo bằng khen.')
       }
     }
   }
@@ -83,11 +116,16 @@ const approveCampaign = () => {
     message: `Xác nhận chốt danh sách ứng viên cho đợt "${selectedCampaign.value.tenDot}"? Bạn sẽ không thể thêm ứng viên sau khi chốt.`,
     label: 'Chốt danh sách',
     variant: 'primary',
-    run: () => {
-      selectedCampaign.value.trangThai = 'approved'
-      candidates.value.forEach(c => c.status = 'approved')
-      confirmAction.value = null
-      popupStore.success('Thành công', 'Đã chốt danh sách đợt khen thưởng.')
+    run: async () => {
+      try {
+        await rewardDisciplineApi.approveRewardCampaign(selectedCampaign.value.id)
+        selectedCampaign.value.trangThai = 'approved'
+        candidates.value.forEach(c => c.status = 'approved')
+        confirmAction.value = null
+        popupStore.success('Thành công', 'Đã chốt danh sách đợt khen thưởng.')
+      } catch (err) {
+        popupStore.error('Lỗi', err?.message || 'Không thể chốt danh sách khen thưởng.')
+      }
     }
   }
 }
