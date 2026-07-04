@@ -1,6 +1,8 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { usePopupStore } from '@/stores/popup'
+import { studentApi } from '@/services/studentApi'
+import { unwrapApiData } from '@/services/apiClient'
 import {
   User, Users, ShieldCheck, Award, Link as LinkIcon, 
   MapPin, Phone, Mail, GraduationCap, Building,
@@ -10,12 +12,25 @@ import {
 import { mockProfile, mockAwards, mockDisciplines, mockParents } from '@/data/studentData.mock.js'
 
 const popupStore = usePopupStore()
+const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
-// Mock Data
-const profile = ref({ ...mockProfile })
-const awards = ref([...mockAwards])
-const disciplines = ref([...mockDisciplines])
-const parents = ref(mockParents.map(p => ({ ...p, permissions: { ...p.permissions } })))
+const emptyProfile = {
+  fullName: '',
+  studentId: '',
+  email: '',
+  phone: '',
+  address: '',
+  className: 'Chưa có dữ liệu học vụ',
+  major: 'Chưa có dữ liệu học vụ',
+  campus: 'Chưa có dữ liệu học vụ',
+  status: '',
+}
+
+const profile = ref(ENABLE_MOCK_API ? { ...mockProfile } : { ...emptyProfile })
+const awards = ref(ENABLE_MOCK_API ? [...mockAwards] : [])
+const disciplines = ref(ENABLE_MOCK_API ? [...mockDisciplines] : [])
+const parents = ref(ENABLE_MOCK_API ? mockParents.map(p => ({ ...p, permissions: { ...p.permissions } })) : [])
+const loading = ref(false)
 
 // State
 const activeTab = ref('profile')
@@ -41,13 +56,37 @@ const inviteName = ref('')
 const isFirstLogin = computed(() => profile.value.status === 'First login')
 
 // Actions
-const updateProfile = () => {
-  profile.value.phone = editPhone.value
-  profile.value.address = editAddress.value
-  popupStore.success('Đã cập nhật', 'Thông tin liên lạc đã được cập nhật thành công.')
+const loadProfile = async () => {
+  loading.value = true
+  try {
+    const response = await studentApi.getProfile()
+    const data = unwrapApiData(response) || {}
+    profile.value = { ...profile.value, ...data }
+    editPhone.value = profile.value.phone || ''
+    editAddress.value = profile.value.address || ''
+  } catch (error) {
+    popupStore.error('Không thể tải hồ sơ', error?.message || 'Không thể tải hồ sơ cá nhân.')
+  } finally {
+    loading.value = false
+  }
 }
 
-const changePassword = () => {
+const updateProfile = async () => {
+  try {
+    const response = await studentApi.updateProfile({
+      fullName: profile.value.fullName,
+      email: profile.value.email,
+      phone: editPhone.value,
+    })
+    const data = unwrapApiData(response) || {}
+    profile.value = { ...profile.value, ...data, address: editAddress.value }
+    popupStore.success('Đã cập nhật', 'Thông tin liên lạc đã được cập nhật thành công.')
+  } catch (error) {
+    popupStore.error('Không thể cập nhật', error?.message || 'Không thể cập nhật thông tin liên lạc.')
+  }
+}
+
+const changePassword = async () => {
   if (newPassword.value !== confirmPassword.value) {
     popupStore.error('Lỗi', 'Mật khẩu xác nhận không khớp!')
     return
@@ -56,26 +95,44 @@ const changePassword = () => {
     popupStore.warning('Thiếu thông tin', 'Vui lòng điền đủ thông tin!')
     return
   }
-  popupStore.success('Đã đổi mật khẩu', 'Mật khẩu của bạn đã được thay đổi.')
-  oldPassword.value = ''
-  newPassword.value = ''
-  confirmPassword.value = ''
-  if (profile.value.status === 'First login') {
-    profile.value.status = 'Active' // Remove first login constraint
+  try {
+    await studentApi.changePassword({
+      currentPassword: oldPassword.value,
+      newPassword: newPassword.value,
+      confirmPassword: confirmPassword.value,
+    })
+    popupStore.success('Đã đổi mật khẩu', 'Mật khẩu của bạn đã được thay đổi.')
+    oldPassword.value = ''
+    newPassword.value = ''
+    confirmPassword.value = ''
+    if (profile.value.status === 'First login') {
+      profile.value.status = 'Active'
+    }
+  } catch (error) {
+    popupStore.error('Không thể đổi mật khẩu', error?.message || 'Không thể đổi mật khẩu.')
   }
 }
 
 const downloadCertificate = (award) => {
-  // Simulate PDF download with digital signature & QR
+  if (!ENABLE_MOCK_API) {
+    popupStore.warning('Chức năng đang phát triển', 'Vui lòng dùng trang Thành tích để tải bằng khen từ API thật.')
+    return
+  }
   popupStore.info('Tải bằng khen', `Đang tải file PDF Bằng khen: ${award.title}`)
 }
 
-const inviteParent = () => {
+const inviteParent = async () => {
   if (parents.value.length >= 3) {
     popupStore.warning('Giới hạn liên kết', 'Chỉ được phép liên kết tối đa 3 phụ huynh/người giám hộ.')
     return
   }
   if (!inviteEmail.value || !inviteName.value) return
+  try {
+    await studentApi.inviteParent({ name: inviteName.value, email: inviteEmail.value })
+  } catch (error) {
+    popupStore.warning('Chức năng đang phát triển', error?.message || 'Liên kết phụ huynh chưa có backend.')
+    return
+  }
   
   parents.value.push({
     id: `PR-0${parents.value.length + 1}`,
@@ -90,12 +147,23 @@ const inviteParent = () => {
   popupStore.success('Đã gửi lời mời', 'Email mời liên kết phụ huynh đã được gửi.')
 }
 
-const togglePermission = (parent, key) => {
-  parent.permissions[key] = !parent.permissions[key]
+const togglePermission = async (parent, key) => {
+  try {
+    await studentApi.updateParentPermission(parent.id, key, !parent.permissions[key])
+    parent.permissions[key] = !parent.permissions[key]
+  } catch (error) {
+    popupStore.warning('Chức năng đang phát triển', error?.message || 'Phân quyền phụ huynh chưa có backend.')
+  }
 }
 
-const removeParent = (idx) => {
+const removeParent = async (idx) => {
   if(confirm('Bạn có chắc chắn muốn thu hồi quyền truy cập và hủy liên kết với tài khoản phụ huynh này?')) {
+    try {
+      await studentApi.removeParentLink(parents.value[idx]?.id)
+    } catch (error) {
+      popupStore.warning('Chức năng đang phát triển', error?.message || 'Hủy liên kết phụ huynh chưa có backend.')
+      return
+    }
     parents.value.splice(idx, 1)
   }
 }
@@ -105,6 +173,7 @@ if (isFirstLogin.value) {
   activeTab.value = 'security'
 }
 
+onMounted(loadProfile)
 </script>
 
 <template>

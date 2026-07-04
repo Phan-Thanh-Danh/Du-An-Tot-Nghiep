@@ -6,7 +6,8 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
-import { rewardDisciplineMockService } from '@/mocks/rewardDisciplineMockService'
+import { rewardDisciplineApi } from '@/services/rewardDisciplineApi'
+import { unwrapApiData } from '@/services/apiClient'
 import { formatDate } from '@/utils/dateFormat'
 import { usePopupStore } from '@/stores/popup'
 
@@ -24,17 +25,54 @@ const selectedRecord = ref(null)
 const selectedAppeal = ref(null)
 const appealResolution = ref({ status: 'resolved', reason: '' })
 
+const normalizeRecordStatus = (status) => ['dang_hieu_luc', 'active'].includes(status) ? 'active' : 'expired'
+const normalizeAppealStatus = (status) => {
+  if (['chap_nhan', 'resolved'].includes(status)) return 'resolved'
+  if (['tu_choi', 'rejected'].includes(status)) return 'rejected'
+  return 'pending'
+}
+
+const mapRecord = (item) => ({
+  id: item.maHoSoKyLuat ?? item.MaHoSoKyLuat,
+  studentName: item.hoTenHocSinh ?? item.HoTenHocSinh ?? '',
+  studentRollNumber: item.mssv ?? item.Mssv ?? '',
+  studentClass: item.tenDonVi ?? item.TenDonVi ?? '',
+  tieuDe: item.tieuDe ?? item.TieuDe ?? 'Hồ sơ kỷ luật',
+  mucDoKyLuat: item.mucDoKyLuat ?? item.MucDoKyLuat ?? '',
+  hinhThucXuLy: item.hinhThucXuLy ?? item.HinhThucXuLy ?? '',
+  trangThai: normalizeRecordStatus(item.trangThai ?? item.TrangThai),
+  ngayViPham: item.ngayViPham ?? item.NgayViPham,
+  moTaCongKhai: item.moTaCongKhai ?? item.MoTaCongKhai,
+  moTaNoiBo: item.moTaNoiBo ?? item.MoTaNoiBo,
+})
+
+const mapAppeal = (item) => ({
+  id: item.maKhieuNaiKyLuat ?? item.MaKhieuNaiKyLuat,
+  maHoSo: item.maHoSoKyLuat ? `KL-${item.maHoSoKyLuat}` : `KL-${item.MaHoSoKyLuat}`,
+  studentName: item.tenHocSinh ?? item.TenHocSinh ?? '',
+  studentRollNumber: item.mssv ?? item.Mssv ?? '',
+  trangThai: normalizeAppealStatus(item.trangThai ?? item.TrangThai),
+  ngayKhieuNai: item.ngayTao ?? item.NgayTao,
+  lyDoKhieuNai: item.lyDoKhieuNai ?? item.LyDoKhieuNai ?? 'Xem chi tiết khiếu nại trên backend.',
+  ghiChuGiaiQuyet: item.ghiChuXuLy ?? item.GhiChuXuLy ?? item.lyDoXuLy ?? item.LyDoXuLy,
+})
+
 const fetchAll = async () => {
   loading.value = true
   try {
     const [recRes, appRes] = await Promise.all([
-      rewardDisciplineMockService.getDisciplineRecords(),
-      rewardDisciplineMockService.getDisciplineAppeals()
+      rewardDisciplineApi.getDisciplineRecords({ pageIndex: 1, pageSize: 50 }),
+      rewardDisciplineApi.getDisciplineAppeals({ pageIndex: 1, pageSize: 50 })
     ])
-    records.value = recRes.items || []
-    appeals.value = appRes.items || []
+    const recData = unwrapApiData(recRes)
+    const appData = unwrapApiData(appRes)
+    records.value = (recData?.items ?? recData?.Items ?? []).map(mapRecord)
+    appeals.value = (appData?.items ?? appData?.Items ?? []).map(mapAppeal)
   } catch (err) {
     console.error(err)
+    records.value = []
+    appeals.value = []
+    popupStore.error('Không thể tải dữ liệu', err?.message || 'Không thể tải hồ sơ kỷ luật.')
   } finally {
     loading.value = false
   }
@@ -76,10 +114,18 @@ const removeEffect = () => {
     message: `Bạn muốn gỡ hiệu lực sớm của hồ sơ "${selectedRecord.value.tieuDe}" cho sinh viên ${selectedRecord.value.studentName}?`,
     label: 'Gỡ hiệu lực',
     variant: 'danger',
-    run: () => {
-      selectedRecord.value.trangThai = 'expired'
-      confirmAction.value = null
-      popupStore.success('Thành công', 'Đã gỡ hiệu lực kỷ luật.')
+    run: async () => {
+      try {
+        await rewardDisciplineApi.removeDisciplineEffect(selectedRecord.value.id, {
+          reason: 'Gỡ hiệu lực sớm theo thao tác quản trị.',
+          removalNote: 'Thao tác từ giao diện SuperAdmin.',
+        })
+        selectedRecord.value.trangThai = 'expired'
+        confirmAction.value = null
+        popupStore.success('Thành công', 'Đã gỡ hiệu lực kỷ luật.')
+      } catch (err) {
+        popupStore.error('Lỗi', err?.message || 'Không thể gỡ hiệu lực kỷ luật.')
+      }
     }
   }
 }
@@ -96,12 +142,22 @@ const resolveAppeal = () => {
     message: isAccepting ? `Chấp nhận khiếu nại của ${selectedAppeal.value.studentName} và gỡ kỷ luật liên quan?` : `Từ chối khiếu nại của ${selectedAppeal.value.studentName}?`,
     label: isAccepting ? 'Chấp nhận' : 'Từ chối',
     variant: isAccepting ? 'primary' : 'danger',
-    run: () => {
-      selectedAppeal.value.trangThai = appealResolution.value.status
-      selectedAppeal.value.ghiChuGiaiQuyet = appealResolution.value.reason
-      confirmAction.value = null
-      popupStore.success('Thành công', 'Đã xử lý khiếu nại.')
-      appealResolution.value.reason = ''
+    run: async () => {
+      try {
+        await rewardDisciplineApi.resolveDisciplineAppeal(selectedAppeal.value.id, {
+          decision: isAccepting ? 'chap_nhan' : 'tu_choi',
+          reason: appealResolution.value.reason,
+          resolutionNote: appealResolution.value.reason,
+          removeEffect: isAccepting,
+        })
+        selectedAppeal.value.trangThai = appealResolution.value.status
+        selectedAppeal.value.ghiChuGiaiQuyet = appealResolution.value.reason
+        confirmAction.value = null
+        popupStore.success('Thành công', 'Đã xử lý khiếu nại.')
+        appealResolution.value.reason = ''
+      } catch (err) {
+        popupStore.error('Lỗi', err?.message || 'Không thể xử lý khiếu nại.')
+      }
     }
   }
 }

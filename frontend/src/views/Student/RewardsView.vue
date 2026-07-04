@@ -6,22 +6,44 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
-import { rewardDisciplineMockService } from '@/mocks/rewardDisciplineMockService'
+import { studentApi } from '@/services/studentApi'
+import { unwrapApiData } from '@/services/apiClient'
 import { formatDate } from '@/utils/dateFormat'
 
 const rewards = ref([])
 const loading = ref(false)
+const error = ref('')
 const selectedReward = ref(null)
 const filter = ref('all') // all, pending, generated
 const searchQuery = ref('')
 
+const mapReward = (item) => ({
+  id: item.maKhenThuong ?? item.MaKhenThuong,
+  loaiKhenThuong: item.tenLoaiKhenThuong ?? item.TenLoaiKhenThuong ?? item.loaiKhenThuong ?? item.LoaiKhenThuong ?? 'Khen thưởng',
+  tieuDe: item.danhHieuSnapshot ?? item.DanhHieuSnapshot ?? item.tenLoaiKhenThuong ?? item.TenLoaiKhenThuong ?? 'Khen thưởng',
+  ngayCap: item.ngayDuyet ?? item.NgayDuyet ?? item.capLuc ?? item.CapLuc,
+  hocKy: item.tenHocKySnapshot ?? item.TenHocKySnapshot ?? 'Chưa có học kỳ',
+  xepHang: item.xepHang ?? item.XepHang,
+  moTa: item.danhHieuSnapshot ?? item.DanhHieuSnapshot ?? 'Khen thưởng được ghi nhận trong hệ thống.',
+  certificateStatus: (item.hasCertificate ?? item.HasCertificate) ? 'generated' : 'pending',
+  timeline: [
+    {
+      tieuDe: 'Đã ghi nhận khen thưởng',
+      thoiGian: item.ngayDuyet ?? item.NgayDuyet ?? item.capLuc ?? item.CapLuc,
+    },
+  ],
+})
+
 const fetchRewards = async () => {
   loading.value = true
+  error.value = ''
   try {
-    const res = await rewardDisciplineMockService.getMyRewards()
-    rewards.value = res.items || []
-  } catch (error) {
-    console.error(error)
+    const response = await studentApi.getRewards({ pageIndex: 1, pageSize: 50 })
+    const data = unwrapApiData(response)
+    rewards.value = (data?.items ?? data?.Items ?? []).map(mapReward)
+  } catch (err) {
+    rewards.value = []
+    error.value = err?.message || 'Không thể tải danh sách khen thưởng.'
   } finally {
     loading.value = false
   }
@@ -47,6 +69,23 @@ const totalGenerated = computed(() => rewards.value.filter(r => r.certificateSta
 
 const selectReward = (r) => {
   selectedReward.value = r
+}
+
+const downloadCertificate = async () => {
+  if (!selectedReward.value?.id) return
+  try {
+    const blob = await studentApi.downloadRewardCertificate(selectedReward.value.id)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `bang-khen-${selectedReward.value.id}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    window.alert(error?.message || 'Không thể tải bằng khen.')
+  }
 }
 </script>
 
@@ -96,6 +135,7 @@ const selectReward = (r) => {
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 space-y-4">
         <LoadingSkeleton v-if="loading" :lines="6" />
+        <EmptyState v-else-if="error" title="Không thể tải dữ liệu" :description="error" />
         <EmptyState v-else-if="filteredRewards.length === 0" title="Chưa có khen thưởng nào" description="Bạn chưa có khen thưởng hoặc không tìm thấy kết quả phù hợp." />
 
         <div v-else class="grid sm:grid-cols-2 gap-4 min-h-[450px] content-start">
@@ -170,7 +210,7 @@ const selectReward = (r) => {
             </div>
 
             <div class="pt-4 flex gap-2 relative z-10 mt-auto">
-              <GlassButton v-if="selectedReward.certificateStatus === 'generated'" variant="primary" class="w-full justify-center !bg-amber-600 hover:!bg-amber-700 !text-white !border-none">
+              <GlassButton v-if="selectedReward.certificateStatus === 'generated'" variant="primary" class="w-full justify-center !bg-amber-600 hover:!bg-amber-700 !text-white !border-none" @click="downloadCertificate">
                 <template #leading><Download :size="18" /></template>
                 Tải bản PDF vinh danh
               </GlassButton>
