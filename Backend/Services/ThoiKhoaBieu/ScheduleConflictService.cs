@@ -187,6 +187,16 @@ public class ScheduleConflictService : IScheduleConflictService
         {
             throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền kiểm tra phòng học của cơ sở này.");
         }
+
+        if (room.TrangThaiPhong != "hoat_dong")
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Phòng học không ở trạng thái hoạt động.");
+        }
+
+        if (room.SucChua <= 0)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Phòng học không có sức chứa hợp lệ.");
+        }
     }
 
     private CurrentUserContext GetCurrentUser()

@@ -127,6 +127,12 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `GET /api/student/discipline-records/{id}` (DL3)
   - `POST /api/student/discipline-records/{id}/appeals` (DL3)
   - `GET /api/student/discipline-records/appeals/{appealId}` (DL3)
+  - `POST /api/thoi-khoa-bieu/xep-lich-thong-minh` (P12)
+  - `GET /api/thoi-khoa-bieu/drafts/{draftId}` (P12)
+  - `GET /api/thoi-khoa-bieu/drafts` (P12)
+  - `POST /api/thoi-khoa-bieu/xep-lich-thong-minh/publish` (P12)
+  - `POST /api/thoi-khoa-bieu/xep-lich-thong-minh/check-xung-dot-batch` (P12)
+  - `DELETE /api/thoi-khoa-bieu/drafts/{draftId}` (P12)
 - Endpoint chưa có controller phải ghi `dự kiến`.
 - Không tự đổi request/response DTO mà không cập nhật contract.
 

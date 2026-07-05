@@ -112,6 +112,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<UngVienKhenThuong> UngVienKhenThuongs => Set<UngVienKhenThuong>();
 
     public DbSet<KhieuNaiKyLuat> KhieuNaiKyLuats => Set<KhieuNaiKyLuat>();
+
+    // Smart Timetable entities
+    public DbSet<ScheduleGenerationJob> ScheduleGenerationJobs => Set<ScheduleGenerationJob>();
+    public DbSet<ScheduleDraftItem> ScheduleDraftItems => Set<ScheduleDraftItem>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -5673,6 +5678,92 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaDonVi)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_KhieuNaiKyLuat_ma_don_vi__DonVi");
+        });
+
+        // =============================================
+        // SMART TIMETABLE ENTITIES
+        // =============================================
+
+        modelBuilder.Entity<ScheduleGenerationJob>(entity =>
+        {
+            entity.ToTable("ScheduleGenerationJob", "dbo");
+            entity.HasKey(e => e.MaJob).HasName("PK_ScheduleGenerationJob");
+
+            entity.Property(e => e.MaJob).HasColumnName("ma_job");
+            entity.Property(e => e.DraftId).HasColumnName("draft_id").IsRequired();
+            entity.Property(e => e.MaDonVi).HasColumnName("ma_don_vi");
+            entity.Property(e => e.MaHocKy).HasColumnName("ma_hoc_ky");
+            entity.Property(e => e.NguoiYeuCau).HasColumnName("nguoi_yeu_cau");
+            entity.Property(e => e.TrangThai).HasColumnName("trang_thai").HasMaxLength(30).HasDefaultValue("draft");
+            entity.Property(e => e.TongCourse).HasColumnName("tong_course");
+            entity.Property(e => e.SoXepDuoc).HasColumnName("so_xep_duoc");
+            entity.Property(e => e.SoKhongXepDuoc).HasColumnName("so_khong_xep_duoc");
+            entity.Property(e => e.Score).HasColumnName("score").HasColumnType("float");
+            entity.Property(e => e.TomTatJson).HasColumnName("tom_tat_json").HasColumnType("nvarchar(max)");
+            entity.Property(e => e.NgayTao).HasColumnName("ngay_tao").HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.NgayXuatBan).HasColumnName("ngay_xuat_ban").HasColumnType("datetime2");
+
+            entity.HasIndex(e => e.DraftId).IsUnique().HasDatabaseName("UQ_ScheduleGenerationJob_DraftId");
+            entity.HasIndex(e => new { e.MaDonVi, e.MaHocKy }).HasDatabaseName("IX_ScheduleGenerationJob_DonVi_HocKy");
+            entity.ToTable(t => t.HasCheckConstraint("CK_ScheduleGenerationJob_trang_thai", "[trang_thai] IN (N'draft', N'da_xuat_ban')"));
+
+            entity.HasOne(e => e.DonVi)
+                .WithMany()
+                .HasForeignKey(e => e.MaDonVi)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_ScheduleGenerationJob_ma_don_vi__DonVi");
+            entity.HasOne(e => e.HocKy)
+                .WithMany()
+                .HasForeignKey(e => e.MaHocKy)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_ScheduleGenerationJob_ma_hoc_ky__HocKy");
+            entity.HasOne(e => e.NguoiYeuCauNavigation)
+                .WithMany()
+                .HasForeignKey(e => e.NguoiYeuCau)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_ScheduleGenerationJob_nguoi_yeu_cau__NguoiDung");
+        });
+
+        modelBuilder.Entity<ScheduleDraftItem>(entity =>
+        {
+            entity.ToTable("ScheduleDraftItem", "dbo");
+            entity.HasKey(e => e.MaDraftItem).HasName("PK_ScheduleDraftItem");
+
+            entity.Property(e => e.MaDraftItem).HasColumnName("ma_draft_item");
+            entity.Property(e => e.MaJob).HasColumnName("ma_job");
+            entity.Property(e => e.MaKhoaHoc).HasColumnName("ma_khoa_hoc");
+            entity.Property(e => e.ThuTrongTuan).HasColumnName("thu_trong_tuan");
+            entity.Property(e => e.MaCaHoc).HasColumnName("ma_ca_hoc");
+            entity.Property(e => e.MaPhong).HasColumnName("ma_phong");
+            entity.Property(e => e.TrangThai).HasColumnName("trang_thai").HasMaxLength(30).HasDefaultValue("pending");
+            entity.Property(e => e.Score).HasColumnName("score").HasColumnType("float");
+            entity.Property(e => e.CanhBaoJson).HasColumnName("canh_bao_json").HasColumnType("nvarchar(max)");
+            entity.Property(e => e.LoiJson).HasColumnName("loi_json").HasColumnType("nvarchar(max)");
+
+            entity.HasIndex(e => new { e.MaJob, e.MaKhoaHoc }).HasDatabaseName("IX_ScheduleDraftItem_Job_KhoaHoc");
+            entity.ToTable(t => t.HasCheckConstraint("CK_ScheduleDraftItem_trang_thai", "[trang_thai] IN (N'pending', N'xep_duoc', N'khong_xep_duoc')"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_ScheduleDraftItem_thu_trong_tuan", "[thu_trong_tuan] IS NULL OR [thu_trong_tuan] BETWEEN 1 AND 7"));
+
+            entity.HasOne(e => e.Job)
+                .WithMany()
+                .HasForeignKey(e => e.MaJob)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ScheduleDraftItem_ma_job__ScheduleGenerationJob");
+            entity.HasOne(e => e.KhoaHoc)
+                .WithMany()
+                .HasForeignKey(e => e.MaKhoaHoc)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_ScheduleDraftItem_ma_khoa_hoc__KhoaHoc");
+            entity.HasOne(e => e.CaHoc)
+                .WithMany()
+                .HasForeignKey(e => e.MaCaHoc)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_ScheduleDraftItem_ma_ca_hoc__CaHoc");
+            entity.HasOne(e => e.Phong)
+                .WithMany()
+                .HasForeignKey(e => e.MaPhong)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_ScheduleDraftItem_ma_phong__PhongHoc");
         });
     }
 }

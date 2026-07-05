@@ -171,6 +171,9 @@ public class BuoiHocService : IBuoiHocService
         var teacher = await ValidateTeacherAsync(course.MaGiaoVien, course.MaDonVi, cancellationToken);
         ValidateScheduleForGeneration(schedule);
 
+        await ValidateNoSessionConflictForGenerationAsync(
+            schedule, course, shift, room, teacher, cancellationToken);
+
         var targetDates = GetSessionDates(
             schedule.NgayBatDau!.Value,
             schedule.NgayKetThuc!.Value,
@@ -274,6 +277,11 @@ public class BuoiHocService : IBuoiHocService
         var substituteTeacher = await ValidateTeacherAsync(
             request.MaGiaoVienDayThay,
             course.MaDonVi,
+            cancellationToken);
+
+        await ValidateTeacherSubjectCapabilityAsync(
+            request.MaGiaoVienDayThay,
+            course.MaMonHoc,
             cancellationToken);
 
         await EnsureNoSessionConflictAsync(
@@ -1126,6 +1134,84 @@ public class BuoiHocService : IBuoiHocService
     private static string FormatTime(TimeOnly time)
     {
         return time.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+    }
+
+    private async Task ValidateNoSessionConflictForGenerationAsync(
+        Models.ThoiKhoaBieu schedule,
+        KhoaHoc course,
+        Models.CaHoc shift,
+        PhongHoc room,
+        NguoiDung teacher,
+        CancellationToken cancellationToken)
+    {
+        if (!schedule.NgayBatDau.HasValue)
+            return;
+
+        var targetDates = GetSessionDates(
+            schedule.NgayBatDau.Value,
+            schedule.NgayKetThuc ?? schedule.NgayBatDau.Value,
+            schedule.ThuTrongTuan);
+
+        if (targetDates.Count == 0)
+            return;
+
+        var firstDate = targetDates.First();
+        var lastDate = targetDates.Last();
+
+        var conflictedSessions = await CreateSessionQuery()
+            .Where(x =>
+                x.Session.NgayHoc >= firstDate &&
+                x.Session.NgayHoc <= lastDate &&
+                x.Session.MaCaHoc == shift.MaCaHoc &&
+                x.Session.TrangThaiBuoi != CanceledSessionStatus)
+            .ToListAsync(cancellationToken);
+
+        var conflicts = new List<string>();
+
+        foreach (var es in conflictedSessions)
+        {
+            var effectiveTid = es.Session.MaGiaoVienDayThay ?? es.Session.MaGiaoVien;
+            if (effectiveTid == teacher.MaNguoiDung)
+            {
+                conflicts.Add($"Giáo viên đã có buổi học cùng ca vào ngày {es.Session.NgayHoc:yyyy-MM-dd}.");
+            }
+
+            if (es.Session.MaPhong == room.MaPhong)
+            {
+                conflicts.Add($"Phòng học đã được sử dụng cùng ca vào ngày {es.Session.NgayHoc:yyyy-MM-dd}.");
+            }
+
+            if (es.Course.MaLop == course.MaLop)
+            {
+                conflicts.Add($"Lớp hành chính đã có buổi học cùng ca vào ngày {es.Session.NgayHoc:yyyy-MM-dd}.");
+            }
+        }
+
+        if (conflicts.Count > 0)
+        {
+            throw new ApiException(StatusCodes.Status409Conflict,
+                "Không thể sinh buổi học do xung đột lịch: " + string.Join("; ", conflicts));
+        }
+    }
+
+    private async Task ValidateTeacherSubjectCapabilityAsync(
+        int teacherId,
+        int subjectId,
+        CancellationToken cancellationToken)
+    {
+        var hasCapability = await _context.GiaoVienMonHocs
+            .AsNoTracking()
+            .AnyAsync(x =>
+                x.MaGiaoVien == teacherId &&
+                x.MaMonHoc == subjectId &&
+                x.ConHoatDong,
+                cancellationToken);
+
+        if (!hasCapability)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest,
+                "Giáo viên dạy thay không có khả năng dạy môn học này (không có trong GiaoVienMonHoc).");
+        }
     }
 
     private sealed class SessionQueryResult
