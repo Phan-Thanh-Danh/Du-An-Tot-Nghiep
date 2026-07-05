@@ -186,6 +186,7 @@ builder.Services.AddScoped<IQuizAttemptService, QuizAttemptService>();
 builder.Services.AddScoped<IThoiKhoaBieuService, ThoiKhoaBieuService>();
 builder.Services.AddScoped<IScheduleConflictService, ScheduleConflictService>();
 builder.Services.AddScoped<IBuoiHocService, BuoiHocService>();
+builder.Services.AddScoped<ISmartTimetableService, SmartTimetableService>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 builder.Services.Configure<AttendanceAutomationOptions>(
     builder.Configuration.GetSection("AttendanceAutomation")

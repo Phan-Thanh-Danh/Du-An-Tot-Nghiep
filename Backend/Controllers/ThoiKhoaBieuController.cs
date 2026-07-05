@@ -1,5 +1,6 @@
 using Backend.DTOs.Common;
 using Backend.DTOs.BuoiHoc;
+using Backend.DTOs.SmartTimetable;
 using Backend.DTOs.ThoiKhoaBieu;
 using Backend.Services.BuoiHoc;
 using Backend.Services.ThoiKhoaBieu;
@@ -16,15 +17,18 @@ public class ThoiKhoaBieuController : ControllerBase
     private readonly IThoiKhoaBieuService _thoiKhoaBieuService;
     private readonly IScheduleConflictService _scheduleConflictService;
     private readonly IBuoiHocService _buoiHocService;
+    private readonly ISmartTimetableService _smartTimetableService;
 
     public ThoiKhoaBieuController(
         IThoiKhoaBieuService thoiKhoaBieuService,
         IScheduleConflictService scheduleConflictService,
-        IBuoiHocService buoiHocService)
+        IBuoiHocService buoiHocService,
+        ISmartTimetableService smartTimetableService)
     {
         _thoiKhoaBieuService = thoiKhoaBieuService;
         _scheduleConflictService = scheduleConflictService;
         _buoiHocService = buoiHocService;
+        _smartTimetableService = smartTimetableService;
     }
 
     [HttpGet]
@@ -108,6 +112,63 @@ public class ThoiKhoaBieuController : ControllerBase
     {
         var result = await _buoiHocService.GenerateSessionsAsync(id, cancellationToken);
         return Ok(ApiResponseDto<GenerateSessionsResultDto>.Ok(result, "Sinh buổi học thành công"));
+    }
+
+    [HttpPost("generate")]
+    public async Task<ActionResult<ApiResponseDto<ScheduleDraftDto>>> Generate(
+        GenerateTimetableRequest request,
+        CancellationToken cancellationToken)
+    {
+        var draft = await _smartTimetableService.GenerateAsync(request, cancellationToken);
+        return Ok(ApiResponseDto<ScheduleDraftDto>.Ok(draft, "Sinh thời khóa biểu thông minh thành công."));
+    }
+
+    [HttpGet("drafts/{draftId:guid}")]
+    public async Task<ActionResult<ApiResponseDto<ScheduleDraftDto>>> GetDraft(
+        Guid draftId,
+        CancellationToken cancellationToken)
+    {
+        var draft = await _smartTimetableService.GetDraftAsync(draftId, cancellationToken);
+        return Ok(ApiResponseDto<ScheduleDraftDto>.Ok(draft));
+    }
+
+    [HttpGet("drafts")]
+    public async Task<ActionResult<ApiResponseDto<List<ScheduleDraftDto>>>> ListDrafts(
+        [FromQuery] int maDonVi,
+        [FromQuery] int maHocKy,
+        CancellationToken cancellationToken)
+    {
+        var drafts = await _smartTimetableService.ListDraftsAsync(maDonVi, maHocKy, cancellationToken);
+        return Ok(ApiResponseDto<List<ScheduleDraftDto>>.Ok(drafts));
+    }
+
+    [HttpPost("publish")]
+    public async Task<ActionResult<ApiResponseDto<TimetablePublishResultDto>>> Publish(
+        PublishTimetableRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _smartTimetableService.PublishAsync(request, cancellationToken);
+        return Ok(ApiResponseDto<TimetablePublishResultDto>.Ok(result, result.Success ? "Xuất bản thời khóa biểu thành công." : "Xuất bản có lỗi."));
+    }
+
+    [HttpPost("check-xung-dot-batch")]
+    public async Task<ActionResult<ApiResponseDto<ConflictCheckBatchResultDto>>> CheckConflictsBatch(
+        ConflictCheckBatchRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _smartTimetableService.CheckConflictsAsync(request, cancellationToken);
+        return Ok(ApiResponseDto<ConflictCheckBatchResultDto>.Ok(result));
+    }
+
+    [HttpDelete("drafts/{draftId:guid}")]
+    public async Task<ActionResult<ApiResponseDto<bool>>> DeleteDraft(
+        Guid draftId,
+        CancellationToken cancellationToken)
+    {
+        var deleted = await _smartTimetableService.DeleteDraftAsync(draftId, cancellationToken);
+        if (!deleted)
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy bản nháp."));
+        return Ok(ApiResponseDto<bool>.Ok(true, "Xóa bản nháp thành công."));
     }
 
     private ConflictObjectResult ToConflictResponse(ScheduleConflictException exception)

@@ -243,6 +243,29 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
             scheduleId,
             cancellationToken);
 
+        if (status == PublishedStatus && schedule.TrangThai != PublishedStatus)
+        {
+            var courseToValidate = await _context.KhoaHocs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.MaKhoaHoc == request.MaKhoaHoc, cancellationToken);
+
+            if (courseToValidate?.TrangThai == "luu_tru")
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    "Không thể xuất bản thời khóa biểu khi khóa học đang ở trạng thái lưu trữ.");
+            }
+
+            var roomForPublish = await _context.PhongHocs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.MaPhong == request.MaPhong, cancellationToken);
+
+            if (roomForPublish != null && roomForPublish.TrangThaiPhong != "hoat_dong")
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    "Không thể xuất bản thời khóa biểu vì phòng học không hoạt động.");
+            }
+        }
+
         schedule.MaKhoaHoc = course.MaKhoaHoc;
         schedule.ThuTrongTuan = request.ThuTrongTuan;
         schedule.MaCaHoc = shift.MaCaHoc;
