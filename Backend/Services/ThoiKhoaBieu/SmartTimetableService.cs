@@ -164,86 +164,89 @@ public class SmartTimetableService : ISmartTimetableService
             .ToListAsync(cancellationToken);
 
         var result = new TimetablePublishResultDto();
-        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-
-        try
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            var map = await BuildOccupationMapAsync(job.MaHocKy, job.MaDonVi, cancellationToken);
-            var courses = await _context.KhoaHocs.AsNoTracking()
-                .Where(x => x.MaHocKy == job.MaHocKy && x.MaDonVi == job.MaDonVi)
-                .ToDictionaryAsync(x => x.MaKhoaHoc, cancellationToken);
-
-            foreach (var item in items)
+            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
-                if (!item.ThuTrongTuan.HasValue || !item.MaCaHoc.HasValue || !item.MaPhong.HasValue)
+                var map = await BuildOccupationMapAsync(job.MaHocKy, job.MaDonVi, cancellationToken);
+                var courses = await _context.KhoaHocs.AsNoTracking()
+                    .Where(x => x.MaHocKy == job.MaHocKy && x.MaDonVi == job.MaDonVi)
+                    .ToDictionaryAsync(x => x.MaKhoaHoc, cancellationToken);
+
+                foreach (var item in items)
                 {
-                    result.BuoiHocLoi++;
-                    result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: thiếu thông tin thứ/ca/phòng.");
-                    continue;
+                    if (!item.ThuTrongTuan.HasValue || !item.MaCaHoc.HasValue || !item.MaPhong.HasValue)
+                    {
+                        result.BuoiHocLoi++;
+                        result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: thiếu thông tin thứ/ca/phòng.");
+                        continue;
+                    }
+
+                    if (!courses.TryGetValue(item.MaKhoaHoc, out var course))
+                    {
+                        result.BuoiHocLoi++;
+                        result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: khóa học không tồn tại.");
+                        continue;
+                    }
+
+                    if (map.IsTeacherOccupied(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, course.MaGiaoVien))
+                    {
+                        result.BuoiHocLoi++;
+                        result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: xung đột giáo viên.");
+                        continue;
+                    }
+
+                    if (map.IsClassOccupied(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, course.MaLop))
+                    {
+                        result.BuoiHocLoi++;
+                        result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: xung đột lớp.");
+                        continue;
+                    }
+
+                    if (map.IsRoomOccupied(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, item.MaPhong.Value))
+                    {
+                        result.BuoiHocLoi++;
+                        result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: xung đột phòng.");
+                        continue;
+                    }
+
+                    var schedule = new Models.ThoiKhoaBieu
+                    {
+                        MaKhoaHoc = item.MaKhoaHoc,
+                        ThuTrongTuan = item.ThuTrongTuan.Value,
+                        MaCaHoc = item.MaCaHoc.Value,
+                        MaPhong = item.MaPhong.Value,
+                        TrangThai = PublishedScheduleStatus,
+                        NgayTao = DateTime.UtcNow,
+                        NgayCapNhat = DateTime.UtcNow
+                    };
+
+                    if (job.HocKy != null)
+                    {
+                        schedule.NgayBatDau = job.HocKy.NgayBatDau;
+                        schedule.NgayKetThuc = job.HocKy.NgayKetThuc;
+                    }
+
+                    _context.ThoiKhoaBieus.Add(schedule);
+                    map.OccupyTeacher(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, course.MaGiaoVien);
+                    map.OccupyClass(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, course.MaLop);
+                    map.OccupyRoom(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, item.MaPhong.Value);
+                    result.BuoiHocDaTao++;
                 }
 
-                if (!courses.TryGetValue(item.MaKhoaHoc, out var course))
-                {
-                    result.BuoiHocLoi++;
-                    result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: khóa học không tồn tại.");
-                    continue;
-                }
-
-                if (map.IsTeacherOccupied(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, course.MaGiaoVien))
-                {
-                    result.BuoiHocLoi++;
-                    result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: xung đột giáo viên.");
-                    continue;
-                }
-
-                if (map.IsClassOccupied(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, course.MaLop))
-                {
-                    result.BuoiHocLoi++;
-                    result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: xung đột lớp.");
-                    continue;
-                }
-
-                if (map.IsRoomOccupied(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, item.MaPhong.Value))
-                {
-                    result.BuoiHocLoi++;
-                    result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: xung đột phòng.");
-                    continue;
-                }
-
-                var schedule = new Models.ThoiKhoaBieu
-                {
-                    MaKhoaHoc = item.MaKhoaHoc,
-                    ThuTrongTuan = item.ThuTrongTuan.Value,
-                    MaCaHoc = item.MaCaHoc.Value,
-                    MaPhong = item.MaPhong.Value,
-                    TrangThai = PublishedScheduleStatus,
-                    NgayTao = DateTime.UtcNow,
-                    NgayCapNhat = DateTime.UtcNow
-                };
-
-                if (job.HocKy != null)
-                {
-                    schedule.NgayBatDau = job.HocKy.NgayBatDau;
-                    schedule.NgayKetThuc = job.HocKy.NgayKetThuc;
-                }
-
-                _context.ThoiKhoaBieus.Add(schedule);
-                map.OccupyTeacher(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, course.MaGiaoVien);
-                map.OccupyClass(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, course.MaLop);
-                map.OccupyRoom(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, item.MaPhong.Value);
-                result.BuoiHocDaTao++;
+                job.TrangThai = "da_xuat_ban";
+                job.NgayXuatBan = DateTime.UtcNow;
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
             }
-
-            job.TrangThai = "da_xuat_ban";
-            job.NgayXuatBan = DateTime.UtcNow;
-            await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-        }
-        catch
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
 
         result.Success = result.BuoiHocLoi == 0;
 
@@ -471,19 +474,31 @@ public class SmartTimetableService : ISmartTimetableService
         if (job is null)
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy bản nháp.");
 
-        var items = await _context.ScheduleDraftItems
+        var draftItems = await _context.ScheduleDraftItems
             .AsNoTracking()
             .Where(x => x.MaJob == maJob)
-            .Join(_context.KhoaHocs.AsNoTracking(),
-                di => di.MaKhoaHoc, kh => kh.MaKhoaHoc,
-                (di, kh) => new { di, kh })
-            .GroupJoin(_context.CaHocs.AsNoTracking(),
-                x => x.di.MaCaHoc, ch => ch.MaCaHoc,
-                (x, chs) => new { x.di, x.kh, Ca = chs.FirstOrDefault() })
-            .GroupJoin(_context.PhongHocs.AsNoTracking(),
-                x => x.di.MaPhong, ph => ph.MaPhong,
-                (x, phs) => new { x.di, x.kh, x.Ca, Phong = phs.FirstOrDefault() })
+            .OrderBy(x => x.MaDraftItem)
             .ToListAsync(cancellationToken);
+
+        var courseIds = draftItems.Select(x => x.MaKhoaHoc).Distinct().ToList();
+        var roomIds = draftItems.Select(x => x.MaPhong).Where(x => x.HasValue).Select(x => x!.Value).Distinct().ToList();
+        var shiftIds = draftItems.Select(x => x.MaCaHoc).Where(x => x.HasValue).Select(x => x!.Value).Distinct().ToList();
+
+        var courses = courseIds.Count > 0
+            ? await _context.KhoaHocs.AsNoTracking().Where(x => courseIds.Contains(x.MaKhoaHoc)).ToListAsync(cancellationToken)
+            : new List<Backend.Models.KhoaHoc>();
+
+        var rooms = roomIds.Count > 0
+            ? await _context.PhongHocs.AsNoTracking().Where(x => roomIds.Contains(x.MaPhong)).ToListAsync(cancellationToken)
+            : new List<Backend.Models.PhongHoc>();
+
+        var shifts = shiftIds.Count > 0
+            ? await _context.CaHocs.AsNoTracking().Where(x => shiftIds.Contains(x.MaCaHoc)).ToListAsync(cancellationToken)
+            : new List<Backend.Models.CaHoc>();
+
+        var courseMap = courses.ToDictionary(x => x.MaKhoaHoc);
+        var roomMap = rooms.ToDictionary(x => x.MaPhong);
+        var shiftMap = shifts.ToDictionary(x => x.MaCaHoc);
 
         return new ScheduleDraftDto
         {
@@ -498,20 +513,31 @@ public class SmartTimetableService : ISmartTimetableService
             Score = job.Score,
             NgayTao = job.NgayTao,
             NgayXuatBan = job.NgayXuatBan,
-            Items = items.Select(x => new ScheduleDraftItemDto
+            Items = draftItems.Select(x =>
             {
-                MaDraftItem = x.di.MaDraftItem,
-                MaKhoaHoc = x.di.MaKhoaHoc,
-                ThuTrongTuan = x.di.ThuTrongTuan,
-                MaCaHoc = x.di.MaCaHoc,
-                TenCa = x.Ca?.TenCa,
-                MaPhong = x.di.MaPhong,
-                TenPhong = x.Phong?.TenPhong,
-                TrangThai = x.di.TrangThai,
-                Score = x.di.Score,
-                Loi = x.di.LoiJson != null
-                    ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(x.di.LoiJson) ?? new()
-                    : new()
+                courseMap.TryGetValue(x.MaKhoaHoc, out var course);
+                roomMap.TryGetValue(x.MaPhong ?? 0, out var room);
+                shiftMap.TryGetValue(x.MaCaHoc ?? 0, out var shift);
+
+                return new ScheduleDraftItemDto
+                {
+                    MaDraftItem = x.MaDraftItem,
+                    MaKhoaHoc = x.MaKhoaHoc,
+                    MaKhoaHocCode = null,
+                    ThuTrongTuan = x.ThuTrongTuan,
+                    MaCaHoc = x.MaCaHoc,
+                    TenCa = shift?.TenCa,
+                    MaPhong = x.MaPhong,
+                    TenPhong = room?.TenPhong,
+                    TrangThai = x.TrangThai,
+                    Score = x.Score,
+                    CanhBao = x.CanhBaoJson != null
+                        ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(x.CanhBaoJson) ?? new()
+                        : new(),
+                    Loi = x.LoiJson != null
+                        ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(x.LoiJson) ?? new()
+                        : new()
+                };
             }).ToList()
         };
     }
