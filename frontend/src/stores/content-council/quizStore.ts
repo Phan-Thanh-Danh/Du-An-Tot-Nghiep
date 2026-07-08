@@ -1,12 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { initializeQuizMockData } from '@/mocks/content-council'
 import { contentCouncilApi } from '@/services/contentCouncilApi'
 import type { ContentCouncilQuiz, QuizBuilderQuestion } from '@/types/content-council/quiz'
 import { useQuestionStore } from './questionStore'
 
-const ENABLE_MOCK_API =
-  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 export const useQuizStore = defineStore('contentCouncilQuiz', () => {
   const quizzes = ref<ContentCouncilQuiz[]>([])
@@ -22,25 +19,11 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
     loading.value = true
     error.value = null
     try {
-      if (ENABLE_MOCK_API) {
-        const mock = initializeQuizMockData()
-        quizzes.value = mock.quizzes
-        quizQuestions.value = mock.quizQuestions
-        initialized.value = true
-        return
-      }
       const res = await contentCouncilApi.getQuizzes()
       const data = res?.data ?? res?.items ?? res ?? []
       quizzes.value = Array.isArray(data) ? data : []
       initialized.value = true
     } catch (e: any) {
-      if (ENABLE_MOCK_API) {
-        const mock = initializeQuizMockData()
-        quizzes.value = mock.quizzes
-        quizQuestions.value = mock.quizQuestions
-        initialized.value = true
-        return
-      }
       error.value = e?.message || 'Không thể tải bài kiểm tra'
     } finally {
       loading.value = false
@@ -65,7 +48,7 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
 
   async function addQuiz(q: ContentCouncilQuiz) {
     try {
-      if (!ENABLE_MOCK_API) {
+      if (true) {
         await contentCouncilApi.createQuiz({
           title: q.title,
           subjectId: q.subjectId,
@@ -83,7 +66,7 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
 
   async function updateQuiz(id: number, payload: Partial<ContentCouncilQuiz>) {
     try {
-      if (!ENABLE_MOCK_API) {
+      if (true) {
         await contentCouncilApi.updateQuiz(id, payload)
       }
       const idx = quizzes.value.findIndex(q => q.id === id)
@@ -100,7 +83,7 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
     const idx = quizzes.value.findIndex(q => q.id === id)
     if (idx === -1) return
     try {
-      if (!ENABLE_MOCK_API) {
+      if (true) {
         await contentCouncilApi.deleteQuiz(id)
       }
       const questions = quizQuestions.value[id] || []
@@ -125,7 +108,7 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
     })
 
     try {
-      if (!ENABLE_MOCK_API) {
+      if (true) {
         await contentCouncilApi.assignQuestions(quizId, {
           questionIds: questions.map(q => q.questionId),
         })
@@ -145,7 +128,7 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
 
   async function publishQuizAction(id: number) {
     try {
-      if (!ENABLE_MOCK_API) {
+      if (true) {
         await contentCouncilApi.publishQuiz(id)
       }
       const q = getQuizById(id)
@@ -157,7 +140,7 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
 
   async function unpublishQuizAction(id: number) {
     try {
-      if (!ENABLE_MOCK_API) {
+      if (true) {
         await contentCouncilApi.unpublishQuiz(id)
       }
       const q = getQuizById(id)

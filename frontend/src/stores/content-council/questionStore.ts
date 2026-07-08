@@ -1,11 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { initializeQuestionMockData } from '@/mocks/content-council'
 import { contentCouncilApi } from '@/services/contentCouncilApi'
 import type { QuestionBankItem } from '@/types/content-council/questionBank'
 
-const ENABLE_MOCK_API =
-  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 export const useQuestionStore = defineStore('contentCouncilQuestion', () => {
   const questions = ref<QuestionBankItem[]>([])
@@ -18,21 +15,11 @@ export const useQuestionStore = defineStore('contentCouncilQuestion', () => {
     loading.value = true
     error.value = null
     try {
-      if (ENABLE_MOCK_API) {
-        questions.value = initializeQuestionMockData()
-        initialized.value = true
-        return
-      }
       const res = await contentCouncilApi.getQuestions()
       const data = res?.data ?? res?.items ?? res ?? []
       questions.value = Array.isArray(data) ? data : []
       initialized.value = true
     } catch (e: any) {
-      if (ENABLE_MOCK_API) {
-        questions.value = initializeQuestionMockData()
-        initialized.value = true
-        return
-      }
       error.value = e?.message || 'Không thể tải câu hỏi'
     } finally {
       loading.value = false
@@ -56,7 +43,7 @@ export const useQuestionStore = defineStore('contentCouncilQuestion', () => {
 
   async function addQuestion(q: QuestionBankItem) {
     try {
-      if (!ENABLE_MOCK_API) {
+      if (true) {
         await contentCouncilApi.createQuestion({
           subjectId: q.subjectId,
           type: q.type,
@@ -74,7 +61,7 @@ export const useQuestionStore = defineStore('contentCouncilQuestion', () => {
 
   async function updateQuestion(id: number, payload: Partial<QuestionBankItem>) {
     try {
-      if (!ENABLE_MOCK_API) {
+      if (true) {
         await contentCouncilApi.updateQuestion(id, payload)
       }
       const idx = questions.value.findIndex(q => q.id === id)
@@ -94,7 +81,7 @@ export const useQuestionStore = defineStore('contentCouncilQuestion', () => {
       throw new Error('Không thể xóa câu hỏi đang được sử dụng.')
     }
     try {
-      if (!ENABLE_MOCK_API) {
+      if (true) {
         await contentCouncilApi.deleteQuestion(id)
       }
       questions.value.splice(idx, 1)
@@ -115,7 +102,7 @@ export const useQuestionStore = defineStore('contentCouncilQuestion', () => {
     if (idx === -1) return
     const newStatus = questions.value[idx].status === 'active' ? 'inactive' : 'active'
     try {
-      if (!ENABLE_MOCK_API) {
+      if (true) {
         if (newStatus === 'active') {
           await contentCouncilApi.activateQuestion(id)
         } else {

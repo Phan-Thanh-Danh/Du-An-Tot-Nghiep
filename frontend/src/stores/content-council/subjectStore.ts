@@ -1,12 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
-import { initializeSubjectMockData } from '@/mocks/content-council'
 import { contentCouncilApi } from '@/services/contentCouncilApi'
 import type { ContentCouncilSubject, ContentCouncilSubjectDetail, SubjectContentSettings } from '@/types/content-council/subject'
 import type { EditorChapter, EditorLesson, EditorContentBlock } from '@/types/content-council/curriculum'
-
-const ENABLE_MOCK_API =
-  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 export const useSubjectStore = defineStore('contentCouncilSubject', () => {
   const subjects = ref<ContentCouncilSubject[]>([])
@@ -21,25 +17,11 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     loading.value = true
     error.value = null
     try {
-      if (ENABLE_MOCK_API) {
-        const mock = initializeSubjectMockData()
-        subjects.value = mock.subjects
-        subjectDetails.value = mock.subjectDetails
-        initialized.value = true
-        return
-      }
       const res = await contentCouncilApi.getSubjects()
       const data = res?.data ?? res?.items ?? res ?? []
       subjects.value = Array.isArray(data) ? data : []
       initialized.value = true
     } catch (e: any) {
-      if (ENABLE_MOCK_API) {
-        const mock = initializeSubjectMockData()
-        subjects.value = mock.subjects
-        subjectDetails.value = mock.subjectDetails
-        initialized.value = true
-        return
-      }
       error.value = e?.message || 'Không thể tải danh sách môn học'
     } finally {
       loading.value = false
@@ -49,32 +31,44 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
   async function loadSubjectDetail(id: number) {
     if (subjectDetails.value[id]?.chapters) return subjectDetails.value[id]
     try {
-      if (ENABLE_MOCK_API) {
-        const mock = initializeSubjectMockData()
-        if (mock.subjectDetails[id]) {
-          subjectDetails.value = { ...subjectDetails.value, [id]: mock.subjectDetails[id] }
-        }
-        return subjectDetails.value[id]
-      }
       const [subRes, chaptersRes] = await Promise.all([
         contentCouncilApi.getSubjectById(id),
         contentCouncilApi.getChapters(id),
       ])
       const sub = subRes?.data ?? subRes
-      const chapters = chaptersRes?.data ?? chaptersRes?.items ?? chaptersRes ?? []
+      const rawChapters = chaptersRes?.data ?? chaptersRes?.items ?? chaptersRes ?? []
+      
+      const mappedChapters: EditorChapter[] = Array.isArray(rawChapters) ? rawChapters.map((c: any) => ({
+         id: c.maChuong || c.id,
+         subjectId: c.maMonHoc || id,
+         title: c.tieuDe || c.title || '',
+         order: c.thuTu || c.order || 0,
+         hidden: c.daAn || c.hidden || false,
+         lessons: (c.baiHocs || c.lessons || []).map((l: any) => ({
+            id: l.maBaiHoc || l.id,
+            chapterId: l.maChuong || c.maChuong,
+            title: l.tieuDe || l.title || '',
+            order: l.thuTu || l.order || 0,
+            type: l.loaiBaiHoc || l.type || 'van_ban',
+            status: l.trangThai || l.status || 'draft',
+            contents: (l.noiDungs || l.contents || []).map((n: any) => ({
+               id: n.maNoiDung || n.id,
+               lessonId: n.maBaiHoc || l.maBaiHoc,
+               type: n.loaiNoiDung || n.type || 'van_ban',
+               title: n.tieuDe || n.title || '',
+               order: n.thuTu || n.order || 0,
+               status: n.trangThai || n.status || 'draft',
+               data: n.noiDungJson || n.noiDungHtml || n.data || ''
+            }))
+         }))
+      })) : []
+
       subjectDetails.value = {
         ...subjectDetails.value,
-        [id]: { ...sub, chapters: Array.isArray(chapters) ? chapters : [] },
+        [id]: { ...sub, chapters: mappedChapters },
       }
       return subjectDetails.value[id]
     } catch (e: any) {
-      if (ENABLE_MOCK_API) {
-        const mock = initializeSubjectMockData()
-        if (mock.subjectDetails[id]) {
-          subjectDetails.value = { ...subjectDetails.value, [id]: mock.subjectDetails[id] }
-        }
-        return subjectDetails.value[id]
-      }
       error.value = e?.message || 'Không thể tải chi tiết môn học'
       return null
     }
@@ -113,15 +107,21 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     const detail = subjectDetails.value[subjectId]
     if (!detail) return
     try {
-      if (!ENABLE_MOCK_API) {
-        await contentCouncilApi.createChapter({
-          subjectId,
-          title: chapter.title,
-          order: (detail.chapters?.length || 0) + 1,
-        })
-      }
+      const res = await contentCouncilApi.createChapter({
+        subjectId,
+        title: chapter.title,
+        order: (detail.chapters?.length || 0) + 1,
+      })
+      const newChapter = res.data ?? res;
       if (!detail.chapters) detail.chapters = []
-      detail.chapters.push(chapter)
+      detail.chapters.push({
+         id: newChapter.maChuong || newChapter.id || Date.now(),
+         subjectId,
+         title: newChapter.tieuDe || newChapter.title || chapter.title,
+         order: newChapter.thuTu || newChapter.order || chapter.order,
+         hidden: newChapter.daAn || newChapter.hidden || false,
+         lessons: []
+      })
       detail.chapterCount = detail.chapters.length
       syncSummary(subjectId)
     } catch (e: any) {
@@ -133,9 +133,7 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     const detail = subjectDetails.value[subjectId]
     if (!detail?.chapters) return
     try {
-      if (!ENABLE_MOCK_API) {
-        await contentCouncilApi.updateChapter(chapterId, payload)
-      }
+      await contentCouncilApi.updateChapter(chapterId, payload)
       const idx = detail.chapters.findIndex(c => c.id === chapterId)
       if (idx !== -1) Object.assign(detail.chapters[idx], payload)
     } catch (e: any) {
@@ -147,9 +145,7 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     const detail = subjectDetails.value[subjectId]
     if (!detail?.chapters) return
     try {
-      if (!ENABLE_MOCK_API) {
-        await contentCouncilApi.deleteChapter(chapterId)
-      }
+      await contentCouncilApi.deleteChapter(chapterId)
       detail.chapters = detail.chapters.filter(c => c.id !== chapterId)
       detail.chapterCount = detail.chapters.length
       syncSummary(subjectId)
@@ -162,9 +158,7 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     const detail = subjectDetails.value[subjectId]
     if (!detail) return
     try {
-      if (!ENABLE_MOCK_API) {
-        await contentCouncilApi.reorderChapters(subjectId, { order: newOrder.map((c, i) => ({ id: c.id, order: i + 1 })) })
-      }
+      await contentCouncilApi.reorderChapters(subjectId, { order: newOrder.map((c, i) => ({ id: c.id, order: i + 1 })) })
       detail.chapters = newOrder.map((c, i) => ({ ...c, order: i + 1 }))
     } catch (e: any) {
       error.value = e?.message || 'Không thể sắp xếp chương'
@@ -177,16 +171,23 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     const chapter = detail.chapters.find(c => c.id === chapterId)
     if (!chapter) return
     try {
-      if (!ENABLE_MOCK_API) {
-        await contentCouncilApi.createLesson({
-          chapterId,
-          title: lesson.title,
-          type: lesson.type,
-          order: (chapter.lessons?.length || 0) + 1,
-        })
-      }
+      const res = await contentCouncilApi.createLesson({
+        chapterId,
+        title: lesson.title,
+        type: lesson.type,
+        order: (chapter.lessons?.length || 0) + 1,
+      })
+      const newLesson = res.data ?? res;
       if (!chapter.lessons) chapter.lessons = []
-      chapter.lessons.push(lesson)
+      chapter.lessons.push({
+         id: newLesson.maBaiHoc || newLesson.id || Date.now(),
+         chapterId,
+         title: newLesson.tieuDe || newLesson.title || lesson.title,
+         order: newLesson.thuTu || newLesson.order || lesson.order,
+         type: newLesson.loaiBaiHoc || newLesson.type || lesson.type,
+         status: newLesson.trangThai || newLesson.status || 'draft',
+         contents: []
+      })
       syncSummary(subjectId)
     } catch (e: any) {
       error.value = e?.message || 'Không thể thêm bài học'
@@ -199,9 +200,7 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     const chapter = detail.chapters.find(c => c.id === chapterId)
     if (!chapter?.lessons) return
     try {
-      if (!ENABLE_MOCK_API) {
-        await contentCouncilApi.updateLesson(lessonId, payload)
-      }
+      await contentCouncilApi.updateLesson(lessonId, payload)
       const idx = chapter.lessons.findIndex(l => l.id === lessonId)
       if (idx !== -1) Object.assign(chapter.lessons[idx], payload)
     } catch (e: any) {
@@ -215,9 +214,7 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     const chapter = detail.chapters.find(c => c.id === chapterId)
     if (!chapter?.lessons) return
     try {
-      if (!ENABLE_MOCK_API) {
-        await contentCouncilApi.deleteLesson(lessonId)
-      }
+      await contentCouncilApi.deleteLesson(lessonId)
       chapter.lessons = chapter.lessons.filter(l => l.id !== lessonId)
       syncSummary(subjectId)
     } catch (e: any) {
@@ -233,16 +230,23 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     const lesson = chapter.lessons.find(l => l.id === lessonId)
     if (!lesson) return
     try {
-      if (!ENABLE_MOCK_API) {
-        await contentCouncilApi.createContent({
-          lessonId,
-          type: content.type,
-          data: content.data,
-          order: (lesson.contents?.length || 0) + 1,
-        })
-      }
+      const res = await contentCouncilApi.createContent({
+        lessonId,
+        type: content.type,
+        data: content.data,
+        order: (lesson.contents?.length || 0) + 1,
+      })
+      const newContent = res.data ?? res;
       if (!lesson.contents) lesson.contents = []
-      lesson.contents.push(content)
+      lesson.contents.push({
+         id: newContent.maNoiDung || newContent.id || Date.now(),
+         lessonId,
+         type: newContent.loaiNoiDung || newContent.type || content.type,
+         title: newContent.tieuDe || newContent.title || content.title,
+         order: newContent.thuTu || newContent.order || content.order,
+         status: newContent.trangThai || newContent.status || 'draft',
+         data: newContent.noiDungJson || newContent.noiDungHtml || newContent.data || content.data
+      })
       syncSummary(subjectId)
     } catch (e: any) {
       error.value = e?.message || 'Không thể thêm nội dung'
@@ -257,9 +261,7 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     const lesson = chapter.lessons.find(l => l.id === lessonId)
     if (!lesson?.contents) return
     try {
-      if (!ENABLE_MOCK_API) {
-        await contentCouncilApi.updateContent(contentId, payload)
-      }
+      await contentCouncilApi.updateContent(contentId, payload)
       const idx = lesson.contents.findIndex(c => c.id === contentId)
       if (idx !== -1) Object.assign(lesson.contents[idx], payload)
     } catch (e: any) {
@@ -275,9 +277,7 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     const lesson = chapter.lessons.find(l => l.id === lessonId)
     if (!lesson?.contents) return
     try {
-      if (!ENABLE_MOCK_API) {
-        await contentCouncilApi.deleteContent(contentId)
-      }
+      await contentCouncilApi.deleteContent(contentId)
       lesson.contents = lesson.contents.filter(c => c.id !== contentId)
       syncSummary(subjectId)
     } catch (e: any) {

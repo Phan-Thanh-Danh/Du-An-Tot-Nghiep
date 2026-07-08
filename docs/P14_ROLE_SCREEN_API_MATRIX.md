@@ -76,7 +76,7 @@
 | /bgh/academic-programs | Programs | BGH/ProgramsView | GET /api/master-data/training-programs | CONNECTED | |
 | /bgh/curriculum | Curriculum | BGH/CurriculumView | GET /api/curriculum/subjects | CONNECTED | |
 | /bgh/academic-terms | Terms | BGH/AcademicTermsView | GET /api/master-data/academic-terms | CONNECTED | |
-| /bgh/academic/overview | Academic Overview | BGH/Academic/AcademicOverviewView | MIXED | FE_ONLY | |
+| /bgh/academic/overview | Academic Overview | BGH/Academic/AcademicOverviewView | GET /api/bgh/academic/overview | CONNECTED | |
 | /bgh/academic/gpa | GPA Reports | BGH/Academic/GPAReportsView | GET /api/bgh/academic/gpa | CONNECTED | Scoped/Verified |
 | /bgh/academic/at-risk | At-Risk Students | BGH/Academic/AtRiskStudentsView | GET /api/bgh/academic/at-risk | CONNECTED | Scoped/Verified |
 | /bgh/academic/reports | Reports | BGH/Academic/AcademicReportsView | GET /api/bgh/academic/reports | CONNECTED | Scoped/Verified |
@@ -178,9 +178,9 @@
 | /student/attendance | Attendance | Student/AttendanceView | GET /api/student/attendance | CONNECTED | |
 | /student/registrations | Registrations | Student/RegistrationsView | GET/POST /api/student/registrations | CONNECTED | |
 | /student/tuition | Tuition | Student/TuitionView | GET /api/student/tuition/invoices | CONNECTED | |
-| /student/support-tickets | Support Tickets | Student/SupportTicketsView | MIXED | BE_MISSING | |
+| /student/support-tickets | Support Tickets | Student/SupportTicketsView | GET/POST /api/student/support-tickets | CONNECTED | |
 | /student/requests | Requests | Student/RequestsView | GET/POST /api/student/applications | CONNECTED | |
-| /student/evaluations | Evaluations | Student/EvaluationsView | MIXED | BE_MISSING | |
+| /student/evaluations | Evaluations | Student/EvaluationsView | GET/POST /api/student/evaluations | CONNECTED | |
 | /student/profile | Profile | Student/ProfileView | GET /api/account/me | CONNECTED | |
 | /student/rewards | Rewards | Student/RewardsView | GET /api/student/rewards | CONNECTED | |
 | /student/discipline | Discipline | Student/DisciplineView | GET /api/student/discipline-records | CONNECTED | DL3 |
@@ -192,21 +192,21 @@
 
 | Route | Screen | Component | BE Endpoints | Status | Notes |
 |---|---|---|---|---|---|
-| /phu-huynh/dashboard | Dashboard | PhuHuynh/DashboardWrapper | MIXED | BE_MISSING | |
-| /phu-huynh/children/list | Children List | PhuHuynh/Children/ListView | MIXED | BE_MISSING | |
-| /phu-huynh/children/overview | Children Overview | PhuHuynh/Children/OverviewView | MIXED | BE_MISSING | |
-| /phu-huynh/learning/grades | Grades | PhuHuynh/Learning/GradesView | MIXED | BE_MISSING | |
-| /phu-huynh/learning/schedule | Schedule | PhuHuynh/Learning/ScheduleView | MIXED | BE_MISSING | |
-| /phu-huynh/learning/attendance | Attendance | PhuHuynh/Learning/AttendanceView | MIXED | BE_MISSING | |
-| /phu-huynh/learning/alerts | Alerts | PhuHuynh/Learning/AlertsView | MIXED | BE_MISSING | |
-| /phu-huynh/finance/tuition | Tuition | PhuHuynh/Finance/TuitionView | MIXED | BE_MISSING | |
-| /phu-huynh/finance/payment | Payment | PhuHuynh/Finance/PaymentView | MIXED | BE_MISSING | |
-| /phu-huynh/finance/transactions | Transactions | PhuHuynh/Finance/TransactionsView | MIXED | BE_MISSING | |
-| /phu-huynh/finance/invoices | Invoices | PhuHuynh/Finance/InvoicesView | MIXED | BE_MISSING | |
-| /phu-huynh/notifications/system | Notifications | PhuHuynh/Notifications/SystemView | MIXED | BE_MISSING | |
-| /phu-huynh/notifications/history | History | PhuHuynh/Notifications/HistoryView | MIXED | BE_MISSING | |
-| /phu-huynh/profile/info | Profile Info | PhuHuynh/Profile/InfoView | MIXED | BE_MISSING | |
-| /phu-huynh/profile/access-rights | Access Rights | PhuHuynh/Profile/AccessRightsView | MIXED | BE_MISSING | |
+| /phu-huynh/dashboard | Dashboard | PhuHuynh/DashboardWrapper | GET /api/parent/... | CONNECTED | |
+| /phu-huynh/children/list | Children List | PhuHuynh/Children/ListView | GET /api/parent/... | CONNECTED | |
+| /phu-huynh/children/overview | Children Overview | PhuHuynh/Children/OverviewView | GET /api/parent/... | CONNECTED | |
+| /phu-huynh/learning/grades | Grades | PhuHuynh/Learning/GradesView | GET /api/parent/... | CONNECTED | |
+| /phu-huynh/learning/schedule | Schedule | PhuHuynh/Learning/ScheduleView | GET /api/parent/... | CONNECTED | |
+| /phu-huynh/learning/attendance | Attendance | PhuHuynh/Learning/AttendanceView | GET /api/parent/... | CONNECTED | |
+| /phu-huynh/learning/alerts | Alerts | PhuHuynh/Learning/AlertsView | GET /api/parent/... | CONNECTED | |
+| /phu-huynh/finance/tuition | Tuition | PhuHuynh/Finance/TuitionView | GET /api/parent/... | CONNECTED | |
+| /phu-huynh/finance/payment | Payment | PhuHuynh/Finance/PaymentView | GET /api/parent/... | CONNECTED | |
+| /phu-huynh/finance/transactions | Transactions | PhuHuynh/Finance/TransactionsView | GET /api/parent/... | CONNECTED | |
+| /phu-huynh/finance/invoices | Invoices | PhuHuynh/Finance/InvoicesView | GET /api/parent/... | CONNECTED | |
+| /phu-huynh/notifications/system | Notifications | PhuHuynh/Notifications/SystemView | GET /api/parent/... | CONNECTED | |
+| /phu-huynh/notifications/history | History | PhuHuynh/Notifications/HistoryView | GET /api/parent/... | CONNECTED | |
+| /phu-huynh/profile/info | Profile Info | PhuHuynh/Profile/InfoView | GET /api/parent/... | CONNECTED | |
+| /phu-huynh/profile/access-rights | Access Rights | PhuHuynh/Profile/AccessRightsView | GET /api/parent/... | CONNECTED | |
 
 ---
 
@@ -221,8 +221,8 @@
 | /content-council/quizzes/:id/edit | Edit Quiz | content-council/quizzes/QuizFormPage | PUT /api/exam/de-kiem-tra/{id} | CONNECTED | |
 | /content-council/quizzes/:id/builder | Quiz Builder | content-council/quizzes/QuizBuilderPage | GET/POST/PUT /api/exam/de-kiem-tra/{id}/cau-hoi | CONNECTED | |
 | /content-council/subjects/:id/overview | Subject Overview | content-council/subjects/SubjectOverviewPage | GET /api/curriculum/subjects/{id}/chapters | CONNECTED | |
-| /content-council/subjects/:id/editor | Subject Editor | content-council/subjects/SubjectEditorPage | MIXED | FE_ONLY | |
-| /content-council/subjects/:id/preview | Subject Preview | content-council/subjects/SubjectPreviewPage | MIXED | FE_ONLY | |
+| /content-council/subjects/:id/editor | Subject Editor | content-council/subjects/SubjectEditorPage | GET/POST/PUT /api/curriculum/... | CONNECTED | |
+| /content-council/subjects/:id/preview | Subject Preview | content-council/subjects/SubjectPreviewPage | GET /api/curriculum/... | CONNECTED | |
 
 ---
 
@@ -231,12 +231,12 @@
 | Role | Total Screens | Connected | FE Only / BE Missing | Notes |
 |---|---|---|---|---|---|
 | SuperAdmin (+Admin/CampusAdmin) | 45 | 28 | 17 FE_ONLY | Shared layout; 11 routes missing from initial audit |
-| BGH | 25 | 15 | 10 FE_ONLY / BE_MISSING | Academic reports/ranking are FE-only |
-| GiaoVu (Staff) | 24 | 22 | 2 FE_ONLY / BE_MISSING | Best-connected role |
+| BGH | 25 | 25 | 0 | All 25 connected (P15D) |
+| GiaoVu (Staff) | 24 | 24 | 0 | All 24 connected (P15D.2) |
 | Teacher | 25 | 25 | 0 | All 25 connected (P15C) |
 | Student | 22 | 22 | 0 | All 22 connected, no mock (P15B) |
 | Parent | 15 | 15 | 0 | All 15 connected (P15A) |
-| ContentCouncil | 9 | 7 | 2 FE_ONLY | Editor/preview pages |
+| ContentCouncil | 9 | 9 | 0 | All 9 connected (P15D.3) |
 | **Total** | **165** | **132** | **33** | 145 unique routes; 165 with per-role assignment |
 
 **Legend:**

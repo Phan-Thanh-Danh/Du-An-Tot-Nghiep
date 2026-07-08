@@ -14,7 +14,7 @@
 | Staff/GiaoVu | 24 | 24 | 0 | Done |
 | BGH | 25 | 25 | 0 | Done |
 | Parent | 15 | 15 | 0 | Done |
-| Content Council | 8 | 8 | 0 | Done |
+| Content Council | 9 | 9 | 0 | Done |
 | **Total** | **~152** | **~133** | **~19** | |
 
 ## Phases
@@ -81,6 +81,13 @@ Connected: Dashboard, Courses, Lessons, Classes, Class Details, Class Workspace,
 - Staff/GiaoVu FE_ONLY: 0.
 - Staff/GiaoVu BE_MISSING: 0.
 - Global mock removal for GiaoVu deferred to P15F.
+
+### Phase 4.2 - ContentCouncil mock removal & matrix normalization (COMPLETED P15D.3)
+- Normalised actual route count to 9.
+- Verified `/content-council/subjects/:id/editor` and `/content-council/subjects/:id/preview` routes are correctly hooked to `CurriculumController`.
+- Stripped all `ENABLE_MOCK_API` usages and fallback code inside `content-council` stores (`subjectStore`, `quizStore`, `questionStore`) and `subjectApi.js`.
+- Rewrote `subjectStore.ts` to map backend `ChuongDto` to frontend `EditorChapter` struct.
+- Normalised API status metrics across `P14_ROLE_SCREEN_API_MATRIX.md`.
 
 ### Phase 5 - SuperAdmin FE_ONLY views (MEDIUM)
 Connect: LoginHistoryView, ProgramsView, EvaluationsResultsView, report views

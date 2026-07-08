@@ -27,13 +27,13 @@
 
 | Role | Screens | Connected | FE Only | BE Missing | Notes |
 |---|---|---|---|---|---|---|
-| SuperAdmin (+Admin/CampusAdmin) | 45 | 28 | 17 | 0 | Shared layout; 11 routes missing from initial audit |
-| BGH | 25 | 25 | 0 | 0 | All endpoints fully mapped and tested in P15D |
-| GiaoVu (Staff) | 24 | 22 | 2 | 0 | Best-connected role |
-| Teacher | 25 | 17 | 8 | 0 | Requests/comments need BE |
-| Student | 22 | 19 | 3 | 0 | Evaluations, support tickets are FE-only |
-| Parent | 15 | 0 | 15 | 0 | Entire module has NO BE |
-| ContentCouncil | 9 | 7 | 2 | 0 | Editor/preview pages FE-only |
+| SuperAdmin | 45 | 28 | 17 | 0 | Shared layout; missing many endpoints |
+| BGH | 25 | 25 | 0 | 0 | All connected (P15D) |
+| Staff (GiaoVu) | 24 | 24 | 0 | 0 | All connected (P15D.2) |
+| Teacher | 25 | 25 | 0 | 0 | All connected (P15C) |
+| Student | 22 | 22 | 0 | 0 | All connected (P15B) |
+| Parent | 15 | 15 | 0 | 0 | All connected (P15A) |
+| ContentCouncil | 9 | 9 | 0 | 0 | All connected (P15D.3) |
 | **Total** | **165** | **108** | **57** | **0** | 145 unique routes; 165 when counting per-role assignments |
 
 ## 4. API Connectivity Summary
