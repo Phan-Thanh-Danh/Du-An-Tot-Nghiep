@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   History,
@@ -10,38 +10,61 @@ import {
   ChevronLeft,
   Filter
 } from 'lucide-vue-next'
-import { childrenData, setActiveChildId } from '@/components/PhuHuynh/data/parentData.js'
+import { parentApi } from '@/services/parentApi'
 
 const route = useRoute()
 const router = useRouter()
 
-// Lấy studentId từ query URL hoặc local storage, mặc định là 1
 const activeChildId = ref(Number(route.query.studentId) || Number(localStorage.getItem('parent_active_student_id')) || 1)
 const dropdownOpen = ref(false)
 const filterStatus = ref('Tất cả')
+const loading = ref(true)
+const error = ref('')
+
+const children = ref([])
+const transactions = ref([])
 
 const currentChild = computed(() => {
-  return childrenData.find(c => c.id === activeChildId.value) || childrenData[0]
+  return children.value.find(c => c.id === activeChildId.value) || children.value[0] || null
 })
 
-function selectChild(id) {
-  activeChildId.value = id
-  setActiveChildId(id)
-  dropdownOpen.value = false
-  router.replace({ query: { studentId: id } })
-}
-
-// Định dạng tiền tệ VND
-function formatCurrency(amount) {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
-}
-
-// Danh sách giao dịch lọc theo trạng thái
 const filteredTransactions = computed(() => {
-  const list = currentChild.value.transactions || []
+  const list = transactions.value || []
   if (filterStatus.value === 'Tất cả') return list
   return list.filter(t => t.status === filterStatus.value)
 })
+
+async function loadData() {
+  loading.value = true
+  error.value = ''
+  try {
+    const [childrenRes, txRes] = await Promise.all([
+      parentApi.getChildren(),
+      parentApi.getChildTransactions(activeChildId.value)
+    ])
+    children.value = childrenRes?.data || []
+    transactions.value = txRes?.data || []
+  } catch (err) {
+    error.value = err.message || 'Không thể tải dữ liệu giao dịch.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadData)
+
+function selectChild(id) {
+  activeChildId.value = id
+  localStorage.setItem('parent_active_student_id', id)
+  dropdownOpen.value = false
+  router.replace({ query: { studentId: id } })
+  loadData()
+}
+
+function formatCurrency(amount) {
+  if (amount == null) return '0 ₫'
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
+}
 
 function goBack() {
   router.push('/parent/finance/tuition')
@@ -78,9 +101,9 @@ function goBack() {
         >
           <div class="flex items-center gap-2">
             <div class="h-5 w-5 flex items-center justify-center rounded-full bg-orange-600 text-[9px] font-bold text-white">
-              {{ currentChild.name.split(' ').pop().charAt(0) }}
+              {{ currentChild?.name?.split(' ').pop().charAt(0) }}
             </div>
-            <span>{{ currentChild.name }}</span>
+            <span>{{ currentChild?.name }}</span>
           </div>
           <ChevronDown :size="14" class="text-muted transition-transform" :class="dropdownOpen ? 'rotate-180' : ''" />
         </button>
@@ -98,7 +121,7 @@ function goBack() {
             class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-card p-1 shadow-(--lg-shadow-md)"
           >
             <button
-              v-for="child in childrenData"
+              v-for="child in children"
               :key="child.id"
               type="button"
               class="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-label transition hover:bg-(--surface-card-hover)"
@@ -111,8 +134,23 @@ function goBack() {
       </div>
     </div>
 
+    <!-- ── LOADING ── -->
+    <div v-if="loading" class="lg-card-glass p-8 text-center">
+      <div class="animate-spin h-8 w-8 border-2 border-orange-600 border-t-transparent rounded-full mx-auto mb-3"></div>
+      <p class="text-xs text-muted font-semibold">Đang tải dữ liệu giao dịch...</p>
+    </div>
+
+    <!-- ── ERROR ── -->
+    <div v-else-if="error" class="lg-card-glass p-8 text-center">
+      <p class="text-sm font-bold text-heading mb-1">Đã xảy ra lỗi</p>
+      <p class="text-xs text-muted">{{ error }}</p>
+      <button @click="loadData" class="mt-4 px-4 py-2 border border-card rounded-xl text-xs font-bold text-label hover:text-orange-600 transition">
+        Thử lại
+      </button>
+    </div>
+
     <!-- ── DANH SÁCH GIAO DỊCH ── -->
-    <div class="lg-card-glass p-5 space-y-4">
+    <div v-else class="lg-card-glass p-5 space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-card">
         <h3 class="text-xs font-bold text-heading uppercase tracking-wide">
           Nhật ký đóng học phí của con
@@ -133,7 +171,10 @@ function goBack() {
         </div>
       </div>
 
-      <div v-if="filteredTransactions.length === 0" class="text-center py-12 text-muted text-xs">
+      <div v-if="transactions.length === 0" class="text-center py-12 text-muted text-xs">
+        Chưa có giao dịch nào.
+      </div>
+      <div v-else-if="filteredTransactions.length === 0" class="text-center py-12 text-muted text-xs">
         Không tìm thấy giao dịch nào phù hợp với bộ lọc.
       </div>
       <div v-else>
@@ -141,12 +182,12 @@ function goBack() {
         <div class="sm:hidden space-y-3">
           <div
             v-for="trans in filteredTransactions"
-            :key="'m-'+trans.code"
+            :key="'m-' + (trans.id || trans.code)"
             class="p-3 rounded-xl border border-card space-y-2"
           >
             <div class="flex items-center justify-between">
               <span class="font-bold text-orange-600 dark:text-orange-400 text-xs flex items-center gap-1">
-                <ArrowUpRight :size="12" /> {{ trans.code }}
+                <ArrowUpRight :size="12" /> {{ trans.id || trans.code }}
               </span>
               <span
                 class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
@@ -180,13 +221,13 @@ function goBack() {
             <tbody class="divide-y divide-(--border-card)">
               <tr
                 v-for="trans in filteredTransactions"
-                :key="trans.code"
+                :key="trans.id || trans.code"
                 class="hover:bg-(--surface-table-row-hover) transition"
               >
                 <td class="py-3 px-3 font-semibold text-orange-600 dark:text-orange-400">
                   <span class="flex items-center gap-1">
                     <ArrowUpRight :size="13" class="text-muted" />
-                    {{ trans.code }}
+                    {{ trans.id || trans.code }}
                   </span>
                 </td>
                 <td class="py-3 px-3 text-body">{{ trans.date }}</td>
