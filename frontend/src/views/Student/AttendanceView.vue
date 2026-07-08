@@ -22,8 +22,6 @@ import { formatDate, formatTimeRange, toDateInputValue } from '@/utils/dateForma
 import { getStatusMeta, getStatusOptions } from '@/utils/statusLabels'
 import { studentApi } from '@/services/studentApi'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
-
 const router = useRouter()
 
 const loading = ref(false)
@@ -94,17 +92,11 @@ onMounted(async () => {
   loading.value = true
   error.value = ''
   try {
-    if (ENABLE_MOCK_API) {
-      const { getAttendanceBySubject, getStudentAttendanceHistory } = await import('@/mocks/scheduleAttendanceMockData')
-      attendanceHistory.value = getStudentAttendanceHistory()
-      subjectStats.value = getAttendanceBySubject()
-    } else {
-      const data = await studentApi.getAttendance()
-      attendanceHistory.value = data.history || []
-      subjectStats.value = data.subjectStats || []
-    }
+    const data = await studentApi.getAttendance()
+    attendanceHistory.value = data.history || []
+    subjectStats.value = data.subjectStats || []
   } catch (e) {
-    if (!ENABLE_MOCK_API) error.value = e?.message || 'Không thể tải dữ liệu.'
+    error.value = e?.message || 'Không thể tải dữ liệu.'
   } finally {
     loading.value = false
   }

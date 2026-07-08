@@ -5,18 +5,6 @@ import * as LucideIcons from 'lucide-vue-next'
 import LessonVideoPlayer from '@/components/learning/LessonVideoPlayer.vue'
 import { studentApi } from '@/services/studentApi'
 import {
-  mockCourse as rawMockCourse,
-  mockStats as rawMockStats,
-  mockLessons as rawMockLessons,
-  mockCurrentLesson as rawMockCurrentLesson,
-  mockQuizQuestions as rawMockQuizQuestions,
-  mockAISummary as rawMockAISummary,
-  mockStudentCurriculum,
-  mockCurriculumVersionData,
-  gdLessons,
-  mktLessons,
-} from '@/data/studentData.mock.js'
-import {
   canStartLearning,
   getLockedReason,
   isLocked,
@@ -38,262 +26,6 @@ const quizSubmitted = ref(false)
 // ── DYNAMIC COURSE LOAD LOGIC ─────────────────────────
 const route = useRoute()
 const courseId = computed(() => route.params.courseId)
-
-// Mock lessons cho WEB201 (Frontend với Vue)
-const vueLessonsMock = [
-  {
-    id: 'vue_ch1',
-    chapter: 'Chương 1',
-    title: 'Giới thiệu Vue 3 & Composition API',
-    description: 'Tìm hiểu cơ bản về Vue 3, cú pháp template, reactivity APIs (ref, reactive, computed).',
-    status: 'completed',
-    badge: 'Hoàn thành',
-    tone: 'green',
-    icon: 'CheckCircle2',
-    meta: ['2 bài học'],
-    progress: 100,
-    lessons: [
-      { id: 'vuel1-1', title: 'Giới thiệu Vue 3 & Cú pháp Template', duration: '15:00', status: 'completed', type: 'video' },
-      { id: 'vuel1-2', title: 'Component & Props & Custom Events', duration: '20:15', status: 'completed', type: 'video' },
-    ]
-  },
-  {
-    id: 'vue_ch2',
-    chapter: 'Chương 2',
-    title: 'Vue Router & Quản lý Routing',
-    description: 'Xây dựng ứng dụng Single Page App (SPA) với Vue Router, dynamic routing và navigation guards.',
-    status: 'active',
-    badge: 'Đang học',
-    tone: 'blue',
-    icon: 'ListTree',
-    meta: ['3 bài học', '1 bài tập'],
-    progress: 60,
-    lessons: [
-      { id: 'vuel2-1', title: 'Định nghĩa Route & RouterView component', duration: '18:30', status: 'completed', type: 'video' },
-      { id: 'vuel2-2', title: 'Dynamic Route Matching & Params', duration: '20:45', status: 'active', type: 'video' },
-      { id: 'vuel2-3', title: 'Navigation Guards & Xác thực Route', duration: '24:00', status: 'locked', type: 'video' },
-      { id: 'vuel2-4', title: 'Bài tập: Thiết lập Router cho App bán hàng', duration: '–', status: 'locked', type: 'assignment' },
-    ]
-  },
-  {
-    id: 'vue_ch3',
-    chapter: 'Chương 3',
-    title: 'State Management với Pinia',
-    description: 'Quản lý state tập trung cho ứng dụng Vue lớn với Pinia, actions, getters và devtools.',
-    status: 'locked',
-    badge: 'Chưa mở',
-    tone: 'slate',
-    icon: 'Lock',
-    meta: ['2 bài học'],
-    progress: 0,
-    lessons: [
-      { id: 'vuel3-1', title: 'Giới thiệu Pinia Store & Định nghĩa Store đầu tiên', duration: '22:00', status: 'locked', type: 'video' },
-      { id: 'vuel3-2', title: 'Kết nối Store với Vue Components', duration: '19:40', status: 'locked', type: 'video' },
-    ]
-  }
-]
-
-// Mock lessons cho API201 (ASP.NET Core API)
-const apiLessonsMock = [
-  {
-    id: 'api_ch1',
-    chapter: 'Chương 1',
-    title: 'Tổng quan ASP.NET Core & RESTful API',
-    description: 'Tìm hiểu kiến trúc ASP.NET Core Web API, RESTful standards, routing và JSON serialization.',
-    status: 'completed',
-    badge: 'Hoàn thành',
-    tone: 'green',
-    icon: 'CheckCircle2',
-    meta: ['2 bài học'],
-    progress: 100,
-    lessons: [
-      { id: 'apil1-1', title: 'Khởi tạo Project Web API & Cấu trúc thư mục', duration: '18:00', status: 'completed', type: 'video' },
-      { id: 'apil1-2', title: 'Controller & Action Methods & Routing', duration: '22:00', status: 'completed', type: 'video' },
-    ]
-  },
-  {
-    id: 'api_ch2',
-    chapter: 'Chương 2',
-    title: 'Entity Framework Core & SQL Server',
-    description: 'Kết nối cơ sở dữ liệu SQL Server sử dụng EF Core, DbContext, Migrations và truy vấn LINQ.',
-    status: 'active',
-    badge: 'Đang học',
-    tone: 'blue',
-    icon: 'ListTree',
-    meta: ['3 bài học', '1 bài tập'],
-    progress: 50,
-    lessons: [
-      { id: 'apil2-1', title: 'Cấu hình Connection String & DbContext', duration: '28:10', status: 'completed', type: 'video' },
-      { id: 'apil2-2', title: 'Thực thi EF Core Migration & CRUD Operations', duration: '25:30', status: 'active', type: 'video' },
-      { id: 'apil2-3', title: 'Tối ưu hóa truy vấn với AutoMapper & DTOs', duration: '20:00', status: 'locked', type: 'video' },
-      { id: 'apil2-4', title: 'Bài tập: Thiết kế API quản lý sinh viên', duration: '–', status: 'locked', type: 'assignment' },
-    ]
-  },
-  {
-    id: 'api_ch3',
-    chapter: 'Chương 3',
-    title: 'JWT Authentication & Authorization',
-    description: 'Bảo mật các API endpoints bằng JSON Web Token (JWT), phân quyền Role-based authorization.',
-    status: 'locked',
-    badge: 'Chưa mở',
-    tone: 'slate',
-    icon: 'Lock',
-    meta: ['2 bài học'],
-    progress: 0,
-    lessons: [
-      { id: 'apil3-1', title: 'Generate JWT Token & Middleware setup', duration: '24:00', status: 'locked', type: 'video' },
-      { id: 'apil3-2', title: 'Phân quyền endpoint với attribute [Authorize]', duration: '21:15', status: 'locked', type: 'video' },
-    ]
-  }
-]
-
-const vueQuizQuestions = [
-  { id: 'q-vue-1', question: 'Composition API giới thiệu hàm nào để khai báo một reactive state?', options: ['reactive() & ref()', 'createState()', 'useState()', 'setData()'], answer: 0 },
-  { id: 'q-vue-2', question: 'Trong Vue Router, thẻ nào được dùng để hiển thị component tương ứng với route hiện tại?', options: ['<router-link>', '<router-view>', '<router-content>', '<router-page>'], answer: 1 },
-  { id: 'q-vue-3', question: 'Thư viện quản lý State chính thức cho Vue 3 hiện tại là gì?', options: ['Vuex', 'Redux', 'Pinia', 'Context API'], answer: 2 }
-]
-
-const apiQuizQuestions = [
-  { id: 'q-api-1', question: 'Trong ASP.NET Core, Middleware được đăng ký ở file nào?', options: ['Program.cs', 'App.config', 'Web.config', 'Controllers.cs'], answer: 0 },
-  { id: 'q-api-2', question: 'Để cấu hình JWT Bearer trong Web API, ta dùng phương thức mở rộng nào trên Builder.Services?', options: ['AddJwtBearer()', 'AddToken()', 'AddSecurity()', 'AddAuth()'], answer: 0 },
-  { id: 'q-api-3', question: 'Attribute nào được dùng để phân quyền hoặc yêu cầu đăng nhập trên controller/action?', options: ['[Authorize]', '[Role]', '[Secure]', '[Authenticate]'], answer: 0 }
-]
-
-const defaultQuizQuestions = [
-  { id: 'q-def-1', question: 'Mục đích chính của bài học này là gì?', options: ['Nắm vững kiến thức lý thuyết cơ bản', 'Thực hành viết code thực tế', 'Tối ưu hiệu năng ứng dụng', 'Tất cả các ý trên đều đúng'], answer: 3 },
-  { id: 'q-def-2', question: 'Sau khi hoàn thành bài học, sinh viên cần làm gì?', options: ['Nộp bài tập thực hành', 'Làm bài kiểm tra Quiz', 'Tự ôn tập lại lý thuyết', 'Tất cả các ý trên'], answer: 3 }
-]
-
-function generateDefaultLessonsForSubject(subjectCode, subjectName) {
-  return [
-    {
-      id: `${subjectCode}_ch1`,
-      chapter: 'Chương 1',
-      title: `Tổng quan về môn học ${subjectName}`,
-      description: `Giới thiệu cơ bản về các khái niệm cốt lõi trong môn học ${subjectName}.`,
-      status: 'completed',
-      badge: 'Hoàn thành',
-      tone: 'green',
-      icon: 'CheckCircle2',
-      meta: ['2 bài học'],
-      progress: 100,
-      lessons: [
-        { id: `${subjectCode}_l1_1`, title: `Giới thiệu môn học & Đề cương chi tiết`, duration: '12:00', status: 'completed', type: 'video' },
-        { id: `${subjectCode}_l1_2`, title: `Bài mở đầu & Hướng dẫn cài đặt môi trường`, duration: '18:15', status: 'completed', type: 'video' },
-      ]
-    },
-    {
-      id: `${subjectCode}_ch2`,
-      chapter: 'Chương 2',
-      title: `Kiến thức nền tảng của ${subjectName}`,
-      description: `Đi sâu vào các kỹ năng và phương pháp giải quyết vấn đề cốt lõi.`,
-      status: 'active',
-      badge: 'Đang học',
-      tone: 'blue',
-      icon: 'ListTree',
-      meta: ['2 bài học', '1 bài tập'],
-      progress: 50,
-      lessons: [
-        { id: `${subjectCode}_l2_1`, title: `Nguyên lý cơ bản & Lý thuyết chuyên ngành`, duration: '22:40', status: 'completed', type: 'video' },
-        { id: `${subjectCode}_l2_2`, title: `Phân tích case study & Thực hành cơ bản`, duration: '20:10', status: 'active', type: 'video' },
-        { id: `${subjectCode}_l2_3`, title: `Bài tập thực hành nâng cao`, duration: '–', status: 'locked', type: 'assignment' },
-      ]
-    },
-    {
-      id: `${subjectCode}_ch3`,
-      chapter: 'Chương 3',
-      title: `Kiến thức nâng cao & Ứng dụng`,
-      description: `Áp dụng các kiến thức nâng cao vào dự án thực tế.`,
-      status: 'locked',
-      badge: 'Chưa mở',
-      tone: 'slate',
-      icon: 'Lock',
-      meta: ['1 bài học'],
-      progress: 0,
-      lessons: [
-        { id: `${subjectCode}_l3_1`, title: `Tối ưu hóa & Triển khai ứng dụng thực tế`, duration: '25:00', status: 'locked', type: 'video' }
-      ]
-    }
-  ]
-}
-
-const currentSubject = computed(() => {
-  const codeUpper = courseId.value?.toUpperCase() || ''
-  if (!mockStudentCurriculum.semesters) return null
-  
-  // 1. Tìm trong curriculum hiện tại
-  for (const semester of mockStudentCurriculum.semesters) {
-    for (const block of semester.blocks) {
-      const found = block.subjects?.find(
-        (s) => s.subjectCode.toUpperCase() === codeUpper
-      )
-      if (found) {
-        return {
-          subject: found,
-          semesterName: semester.semesterName,
-          blockName: block.blockName,
-          semesterIndex: semester.semesterIndex,
-          blockIndex: block.blockIndex,
-          isOldVersion: false,
-        }
-      }
-    }
-  }
-  
-  // 2. Tìm trong lịch sử học trước (phiên bản cũ)
-  if (mockCurriculumVersionData.earlyLearningHistory) {
-    const foundOld = mockCurriculumVersionData.earlyLearningHistory.find(
-      (h) => h.oldSubjectCode.toUpperCase() === codeUpper
-    )
-    if (foundOld) {
-      return {
-        subject: {
-          subjectCode: foundOld.oldSubjectCode,
-          subjectName: foundOld.oldSubjectName,
-          credits: 3,
-          progressPercent: foundOld.progressPercent,
-          earlyProgressPercent: foundOld.progressPercent,
-          score: foundOld.quizScore,
-          status: 'early_completed',
-        },
-        semesterName: foundOld.oldProgramVersion,
-        blockName: 'Học phần tương đương',
-        semesterIndex: 1,
-        blockIndex: 1,
-        isOldVersion: true,
-      }
-    }
-  }
-
-  // 3. Fallback: Tự sinh môn học nếu không tìm thấy trong chương trình (ví dụ: LTW301)
-  if (codeUpper) {
-    const subjectNameMap = {
-      'LTW301': 'Lập trình Web',
-      'CTDL101': 'Cấu trúc dữ liệu & Giải thuật',
-      'WEB201': 'Frontend với Vue',
-      'API201': 'ASP.NET Core API',
-      'GD301': 'Thiết kế dàn trang',
-      'MR501': 'Digital Marketing',
-    }
-    const name = subjectNameMap[codeUpper] || `Môn học chuyên ngành ${codeUpper}`
-    return {
-      subject: {
-        subjectCode: courseId.value,
-        subjectName: name,
-        credits: 3,
-        progressPercent: 60,
-        status: 'current',
-      },
-      semesterName: 'Học kỳ chuyên ngành',
-      blockName: 'Block học phần',
-      semesterIndex: 2,
-      blockIndex: 1,
-      isOldVersion: false,
-    }
-  }
-  
-  return null
-})
 
 const apiCourse = ref(null)
 const apiStats = ref(null)
@@ -363,236 +95,54 @@ watch(() => courseId.value, async (newId) => {
   }
 }, { immediate: true })
 
-const mockCourse = computed(() => {
-  if (apiCourse.value) return {
-    id: apiCourse.value.id || apiCourse.value.Id,
-    title: apiCourse.value.title || apiCourse.value.Title,
-    code: apiCourse.value.code || apiCourse.value.Code,
-    teacher: apiCourse.value.teacher || apiCourse.value.Teacher,
-    semester: apiCourse.value.semester || apiCourse.value.Semester,
-    credits: apiCourse.value.credits || apiCourse.value.Credits,
-    coverGradient: apiCourse.value.coverGradient || apiCourse.value.CoverGradient,
-    description: apiCourse.value.description || apiCourse.value.Description,
+const courseInfo = computed(() => {
+  if (!apiCourse.value) return null
+  const c = apiCourse.value
+  return {
+    id: c.id || c.Id,
+    title: c.title || c.Title,
+    code: c.code || c.Code,
+    teacher: c.teacher || c.Teacher,
+    semester: c.semester || c.Semester,
+    credits: c.credits || c.Credits,
+    coverGradient: c.coverGradient || c.CoverGradient,
+    description: c.description || c.Description,
   }
-
-  if (currentSubject.value) {
-    const s = currentSubject.value.subject
-    let teacher = 'TS. Nguyễn Minh Khoa'
-    let coverGradient = 'from-blue-700 via-blue-600 to-cyan-500'
-    const codeUpper = s.subjectCode.toUpperCase()
-
-    if (codeUpper.includes('GD')) {
-      teacher = 'ThS. Trần Typography'
-      coverGradient = 'from-purple-700 via-indigo-600 to-blue-500'
-    } else if (codeUpper.includes('MKT') || codeUpper.includes('MR')) {
-      teacher = 'ThS. Lê SEO'
-      coverGradient = 'from-orange-600 via-red-500 to-yellow-400'
-    } else {
-      const gradients = [
-        'from-blue-700 via-blue-600 to-cyan-500',
-        'from-teal-700 via-emerald-600 to-green-500',
-        'from-indigo-700 via-purple-600 to-pink-500',
-      ]
-      const hash = codeUpper.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-      coverGradient = gradients[hash % gradients.length]
-      if (codeUpper.includes('WEB')) teacher = 'ThS. Nguyễn Frontend'
-      else if (codeUpper.includes('API')) teacher = 'ThS. Phạm Backend'
-    }
-
-    return {
-      id: s.subjectCode,
-      title: s.subjectName,
-      code: s.subjectCode,
-      teacher,
-      semester: `${currentSubject.value.semesterName} · ${currentSubject.value.blockName}`,
-      credits: s.credits || 3,
-      coverGradient,
-      description: `Môn học ${s.subjectName} (${s.subjectCode}) cung cấp các kiến thức cốt lõi và kỹ năng thực hành chuyên sâu, giúp sinh viên tích lũy đủ số tín chỉ và xây dựng năng lực chuyên môn vững chắc.`,
-    }
-  }
-  return rawMockCourse
 })
 
-const mockStats = computed(() => {
-  if (apiStats.value) return apiStats.value
+const courseStats = computed(() => apiStats.value || [])
 
-  const progress = currentSubject.value
-    ? (currentSubject.value.subject.earlyProgressPercent ?? currentSubject.value.subject.progressPercent ?? 0)
-    : (rawMockCourse.progress || 72)
-  const totalL = 12
-  const completedL = Math.round((totalL * progress) / 100)
-
-  return [
-    { label: 'Tiến độ', value: `${progress}`, unit: '%', icon: 'Gauge', tone: 'blue', progress, hint: `${completedL}/${totalL} bài đã hoàn thành` },
-    { label: 'Bài học', value: `${completedL}`, unit: `/${totalL}`, icon: 'BookOpenCheck', tone: 'green', progress: Math.round((completedL / totalL) * 100), hint: `Đã hoàn thành ${completedL} bài` },
-    { label: 'Bài tập', value: progress > 50 ? '2' : '1', unit: 'mục', icon: 'ClipboardList', tone: 'orange', progress: progress > 50 ? 80 : 40, hint: '1 bài gần đến hạn' },
-    { label: 'Tài liệu', value: '18', unit: 'file', icon: 'Files', tone: 'violet', progress: 60, hint: 'PDF, video, quiz' },
-  ]
-})
-
-const mockLessons = computed(() => {
-  if (apiLessons.value) return apiLessons.value
-
-  const codeUpper = courseId.value?.toUpperCase() || ''
-  if (codeUpper === 'CTDL101') {
-    return rawMockLessons
-  }
-  if (codeUpper === 'GD301' || codeUpper.includes('GD')) {
-    return gdLessons
-  }
-  if (codeUpper === 'MR501' || codeUpper.includes('MKT') || codeUpper.includes('MR')) {
-    return mktLessons
-  }
-  if (codeUpper === 'WEB201') {
-    return vueLessonsMock
-  }
-  if (codeUpper === 'API201') {
-    return apiLessonsMock
-  }
-  
-  const subjectName = currentSubject.value?.subject.subjectName || 'Môn học chuyên ngành'
-  return generateDefaultLessonsForSubject(codeUpper, subjectName)
-})
+const courseLessons = computed(() => apiLessons.value || [])
 
 const apiQuiz = ref(null)
 const apiComments = ref(null)
 
-const mockQuizQuestions = computed(() => {
-  if (apiQuiz.value && apiQuiz.value.length > 0) return apiQuiz.value
-  const codeUpper = courseId.value?.toUpperCase() || ''
-  if (codeUpper === 'WEB201') return vueQuizQuestions
-  if (codeUpper === 'API201') return apiQuizQuestions
-  if (codeUpper === 'GD301' || codeUpper.includes('GD')) return rawMockQuizQuestions
-  return defaultQuizQuestions
-})
+const quizQuestions = computed(() => (apiQuiz.value && apiQuiz.value.length > 0) ? apiQuiz.value : [])
 
 const currentComments = computed(() => {
   return apiComments.value || []
 })
 
-const mockAISummary = computed(() => {
-  if (currentLesson.value && currentLesson.value.title) {
-    return {
-      summary: `Bài học này tập trung vào nội dung "${currentLesson.value.title}". Sinh viên được hướng dẫn chi tiết về các khái niệm lý thuyết cốt lõi, cách thức áp dụng thực tế của kiến thức này trong phát triển phần mềm, cùng các lưu ý tối ưu hiệu năng và bảo mật hệ thống. Hãy hoàn thành đầy đủ video bài giảng, tài liệu tham khảo và bài tập Quiz đi kèm để củng cố kiến thức tốt nhất.`,
-      keyTakeaways: [
-        'Hiểu rõ khái niệm và vai trò của ' + currentLesson.value.title,
-        'Nắm vững quy trình triển khai và viết mã thực hành',
-        'Biết cách tối ưu hóa và xử lý các lỗi thường gặp'
-      ]
-    }
-  }
-  return rawMockAISummary
-})
+const aiSummary = computed(() => null)
 
-const lessonAccessOverrides = {
-  'l1-1': {
-    accessStatus: LEARNING_ACCESS.COMPLETED,
-    plannedSemesterIndex: 1,
-    plannedBlockIndex: 1,
-    lessonType: 'video',
-    allowSeek: true,
-    pauseOnBlur: true,
-    minWatchPercentToComplete: 80,
-    progressPercent: 100,
-    maxWatchedSeconds: 1104,
-  },
-  'l1-2': {
-    accessStatus: LEARNING_ACCESS.COMPLETED,
-    plannedSemesterIndex: 1,
-    plannedBlockIndex: 1,
-    lessonType: 'video',
-    allowSeek: true,
-    pauseOnBlur: true,
-    minWatchPercentToComplete: 80,
-    progressPercent: 100,
-    maxWatchedSeconds: 1330,
-  },
-  'l1-3': {
-    accessStatus: LEARNING_ACCESS.EARLY_COMPLETED,
-    plannedSemesterIndex: 1,
-    plannedBlockIndex: 1,
-    lessonType: 'quiz',
-    allowEarlyLearning: true,
-    earlyScore: 8.5,
-    attemptType: 'early',
-  },
-  'l2-1': {
-    accessStatus: LEARNING_ACCESS.COMPLETED,
-    plannedSemesterIndex: 1,
-    plannedBlockIndex: 2,
-    lessonType: 'video',
-    allowSeek: true,
-    pauseOnBlur: true,
-    minWatchPercentToComplete: 80,
-    progressPercent: 95,
-    maxWatchedSeconds: 1590,
-  },
-  'l2-2': {
-    accessStatus: LEARNING_ACCESS.OFFICIAL,
-    plannedSemesterIndex: 1,
-    plannedBlockIndex: 2,
-    lessonType: 'video',
-    allowSeek: false,
-    pauseOnBlur: true,
-    minWatchPercentToComplete: 80,
-    progressPercent: 60,
-    maxWatchedSeconds: 743,
-  },
-  'l2-3': {
-    accessStatus: LEARNING_ACCESS.LOCKED_PREREQUISITE,
-    plannedSemesterIndex: 1,
-    plannedBlockIndex: 2,
-    lessonType: 'video',
-    lockedReason: 'Cần xem video bài trước tối thiểu 80%.',
-    prerequisiteProgress: 60,
-    requiredProgress: 80,
-  },
-  'l2-4': {
-    accessStatus: LEARNING_ACCESS.LOCKED_PREREQUISITE,
-    plannedSemesterIndex: 1,
-    plannedBlockIndex: 2,
-    lessonType: 'assignment',
-    lockedReason: 'Cần hoàn thành quiz chương 1.',
-    prerequisiteProgress: 0,
-    requiredProgress: 100,
-  },
-}
 
-const chapterAccessOverrides = {
-  ch1: { accessStatus: LEARNING_ACCESS.COMPLETED, plannedSemesterIndex: 1, plannedBlockIndex: 1 },
-  ch2: { accessStatus: LEARNING_ACCESS.OFFICIAL, plannedSemesterIndex: 1, plannedBlockIndex: 2 },
-  ch3: {
-    accessStatus: LEARNING_ACCESS.LOCKED_PREREQUISITE,
-    plannedSemesterIndex: 2,
-    plannedBlockIndex: 1,
-    lockedReason: 'Hoàn thành 100% chương 2 để mở chương này.',
-  },
-  ch4: {
-    accessStatus: LEARNING_ACCESS.EARLY_AVAILABLE,
-    plannedSemesterIndex: 2,
-    plannedBlockIndex: 2,
-    allowEarlyLearning: true,
-  },
-}
 
 const learningLessons = computed(() => {
-  const currentBlockIdx = currentSubject.value?.blockIndex ?? 2
-  const currentSemesterIdx = currentSubject.value?.semesterIndex ?? 1
+  const defaultSemesterIdx = 1
+  const defaultBlockIdx = 1
 
-  return mockLessons.value.map((chapter) => ({
-    studentCurrentSemesterIndex: currentSemesterIdx,
-    studentCurrentBlockIndex: currentBlockIdx,
+  return courseLessons.value.map((chapter) => ({
+    studentCurrentSemesterIndex: defaultSemesterIdx,
+    studentCurrentBlockIndex: defaultBlockIdx,
     ...chapter,
-    accessStatus: LEARNING_ACCESS.OFFICIAL,
-    ...chapterAccessOverrides[chapter.id],
-    lessons: chapter.lessons.map((lesson) => ({
-      studentCurrentSemesterIndex: currentSemesterIdx,
-      studentCurrentBlockIndex: currentBlockIdx,
+    accessStatus: chapter.status === 'completed' ? LEARNING_ACCESS.COMPLETED : LEARNING_ACCESS.OFFICIAL,
+    lessons: (chapter.lessons || []).map((lesson) => ({
+      studentCurrentSemesterIndex: defaultSemesterIdx,
+      studentCurrentBlockIndex: defaultBlockIdx,
       allowEarlyLearning: false,
       accessStatus: lesson.status === 'completed' ? LEARNING_ACCESS.COMPLETED : LEARNING_ACCESS.OFFICIAL,
       lessonType: lesson.type || 'video',
       ...lesson,
-      ...lessonAccessOverrides[lesson.id],
     })),
   }))
 })
@@ -615,12 +165,23 @@ const currentLessonIndex = computed(() =>
 const previousLesson = computed(() => flatLessons.value[currentLessonIndex.value - 1] || null)
 const nextLesson = computed(() => flatLessons.value[currentLessonIndex.value + 1] || null)
 
-const miniStats = computed(() => [
-  { label: 'Tiến độ', value: `${mockStats.value[0]?.value || 0}%` },
-  { label: 'Bài học', value: `${mockStats.value[1]?.value || 0}${mockStats.value[1]?.unit || ''}` },
-  { label: 'Bài tập', value: `${mockStats.value[2]?.value || 0} mục` },
-  { label: 'Tài liệu', value: `${mockStats.value[3]?.value || 0} file` },
-])
+const miniStats = computed(() => {
+  const stats = courseStats.value
+  if (stats.length >= 4) {
+    return [
+      { label: 'Tiến độ', value: `${stats[0]?.value || 0}%` },
+      { label: 'Bài học', value: `${stats[1]?.value || 0}${stats[1]?.unit || ''}` },
+      { label: 'Bài tập', value: `${stats[2]?.value || 0} mục` },
+      { label: 'Tài liệu', value: `${stats[3]?.value || 0} file` },
+    ]
+  }
+  return [
+    { label: 'Tiến độ', value: '--' },
+    { label: 'Bài học', value: '--' },
+    { label: 'Bài tập', value: '--' },
+    { label: 'Tài liệu', value: '--' },
+  ]
+})
 
 const currentLessonStatusLabel = computed(() => accessBadge[currentLesson.value.accessStatus] || 'Đang học')
 
@@ -648,7 +209,6 @@ function activateLesson(chapter, lesson) {
   selectedLessonId.value = lesson.id
   expandedChapters.value[chapter.id] = true
   currentLesson.value = {
-    ...rawMockCurrentLesson,
     ...lesson,
     ...lessonProgressDrafts.value[lesson.id],
     id: lesson.id,
@@ -656,7 +216,7 @@ function activateLesson(chapter, lesson) {
     chapterTitle: `${chapter.chapter}: ${chapter.title}`,
     title: lesson.title,
     duration: lesson.duration,
-    durationSeconds: parseDurationSeconds(lesson.duration) || lesson.durationSeconds || rawMockCurrentLesson.durationSeconds,
+    durationSeconds: parseDurationSeconds(lesson.duration) || lesson.durationSeconds || 0,
   }
   activeTab.value = lesson.lessonType === 'quiz' ? 'quiz' : lesson.lessonType === 'assignment' ? 'document' : 'video'
 }
@@ -704,7 +264,7 @@ function toggleChapter(id) {
 function isQuestionLocked(index) {
   if (index === 0) return false
   for (let i = 0; i < index; i++) {
-    const prevQId = mockQuizQuestions.value[i].id
+    const prevQId = quizQuestions.value[i].id
     if (quizAnswers.value[prevQId] === undefined || quizAnswers.value[prevQId] === null) {
       return true
     }
@@ -713,7 +273,7 @@ function isQuestionLocked(index) {
 }
 
 const isQuizFullyAnswered = computed(() => {
-  return mockQuizQuestions.value.every(q => quizAnswers.value[q.id] !== undefined && quizAnswers.value[q.id] !== null)
+  return quizQuestions.value.every(q => quizAnswers.value[q.id] !== undefined && quizAnswers.value[q.id] !== null)
 })
 
 function submitQuiz() {
@@ -844,6 +404,36 @@ watch(
   { immediate: true }
 )
 
+// Auto-select first lesson when API data loads
+watch(learningLessons, (lessons) => {
+  if (lessons && lessons.length > 0 && !selectedLessonId.value) {
+    const firstChapter = lessons[0]
+    const firstLesson = firstChapter.lessons?.[0]
+    if (firstLesson && firstChapter) {
+      expandedChapters.value = { [firstChapter.id]: true }
+      selectedLessonId.value = firstLesson.id
+      currentLesson.value = {
+        videoUrl: '',
+        durationSeconds: 1200,
+        allowSeek: true,
+        pauseOnBlur: true,
+        minWatchPercentToComplete: 80,
+        progressPercent: firstLesson.progressPercent || 0,
+        documentTitle: firstLesson.url ? firstLesson.url.split('/').pop() : `${firstLesson.title}.pdf`,
+        documentPages: 10,
+        documentCurrentPage: 1,
+        ...firstLesson,
+        id: firstLesson.id,
+        chapterId: firstChapter.id,
+        chapterTitle: `${firstChapter.chapter}: ${firstChapter.title}`,
+        title: firstLesson.title,
+        duration: firstLesson.duration || '20:00',
+      }
+      activeTab.value = firstLesson.lessonType === 'quiz' ? 'quiz' : firstLesson.lessonType === 'assignment' ? 'document' : 'video'
+    }
+  }
+})
+
 watch(() => currentLesson.value?.id, async (newLessonId) => {
   if (newLessonId && courseId.value) {
     if (currentLesson.value.lessonType === 'quiz') {
@@ -884,12 +474,12 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
       <div class="course-header-main">
         <div class="course-eyebrow">
           <component :is="resolveIcon('BookOpenCheck')" :size="14" />
-          {{ mockCourse.code }} · {{ mockCourse.semester }}
+          {{ courseInfo?.code || '—' }} · {{ courseInfo?.semester || '—' }}
         </div>
-        <h1>{{ mockCourse.title }}</h1>
+        <h1>{{ courseInfo?.title || 'Chi tiết khóa học' }}</h1>
         <p>
           <component :is="resolveIcon('UserRound')" :size="14" />
-          {{ mockCourse.teacher }} · {{ mockCourse.credits }} tín chỉ
+          {{ courseInfo?.teacher || '—' }} · {{ courseInfo?.credits || '—' }} tín chỉ
         </p>
       </div>
 
@@ -969,7 +559,7 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
 
             <div v-else-if="activeTab === 'quiz'" class="quiz-view">
               <div
-                v-for="(q, index) in mockQuizQuestions"
+                v-for="(q, index) in quizQuestions"
                 :key="q.id || q.Id"
                 class="quiz-card"
                 :class="{ 'opacity-50 pointer-events-none': isQuestionLocked(index) }"
@@ -1130,13 +720,13 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
           </div>
         </section>
 
-        <section class="side-card ai-card">
+        <section v-if="aiSummary" class="side-card ai-card">
           <div class="side-heading">
             <h3>AI tóm tắt bài học</h3>
             <component :is="resolveIcon('Sparkles')" :size="16" />
           </div>
           <ul>
-            <li v-for="point in mockAISummary.points" :key="point">{{ point }}</li>
+            <li v-for="point in aiSummary.keyTakeaways" :key="point">{{ point }}</li>
           </ul>
           <button type="button" class="secondary-action full">
             <component :is="resolveIcon('MessageSquare')" :size="15" />

@@ -9,7 +9,7 @@ import {
 } from 'lucide-vue-next'
 import SidebarMenuGroup from '@/components/SinhVien/SidebarMenuGroup.vue'
 import SidebarRecentFavorites from '@/components/ui/SidebarRecentFavorites.vue'
-import { phuHuynhMenuGroups, mockParentUser } from './data/menuData.js'
+import { phuHuynhMenuGroups, parentUserFallback } from './data/menuData.js'
 import { useAuthStore } from '@/stores/auth'
 
 defineProps({
@@ -112,16 +112,16 @@ function logout() {
     >
       <div :class="['lg-nav flex items-center gap-2 rounded-xl p-2', collapsed ? '' : 'w-full']">
         <div class="lg-sidebar-avatar relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ring-1 ring-(--border-card) bg-orange-100 text-orange-700">
-          <span>{{ authStore.initials || mockParentUser.initials }}</span>
+          <span>{{ authStore.initials || parentUserFallback.initials }}</span>
           <span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-(--surface-sidebar) bg-(--sidebar-indicator)" />
         </div>
         <Transition name="fade-slide">
           <div v-if="!collapsed" class="overflow-hidden min-w-0">
             <p class="truncate text-[12px] font-medium leading-tight text-heading">
-              {{ authStore.displayName || mockParentUser.name }}
+              {{ authStore.displayName || parentUserFallback.name }}
             </p>
             <p class="truncate text-[10px] font-medium leading-tight text-muted">
-              {{ mockParentUser.relation }}
+              {{ parentUserFallback.relation }}
             </p>
           </div>
         </Transition>

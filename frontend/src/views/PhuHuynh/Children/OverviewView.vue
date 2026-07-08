@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   LineChart,
@@ -11,85 +11,136 @@ import {
   BookOpen,
   CalendarCheck
 } from 'lucide-vue-next'
+import { parentApi } from '@/services/parentApi'
+import { getStoredActiveChildId, setActiveChildId } from '@/components/PhuHuynh/data/parentState.js'
 
 const route = useRoute()
 const router = useRouter()
 
-// Mock các tài khoản học sinh
-const childrenData = ref([
-  {
-    id: 1,
-    name: 'Nguyễn Minh Quân',
-    studentId: 'SV2024001',
-    class: 'CNTT K26A',
-    major: 'Kỹ thuật Phần mềm',
-    gpa: 8.4,
-    activeCourses: 4,
-    attendanceRate: 96,
-    absences: 2,
-    excusedAbsences: 1,
-    unexcusedAbsences: 1,
-    warnings: [
-      { id: 1, type: 'danger', subject: 'Toán cao cấp', reason: 'Vắng học không phép tiết 2 ngày 10/06', date: '10/06/2026' },
-      { id: 2, type: 'warning', subject: 'Lập trình C#', reason: 'Điểm kiểm tra định kỳ dưới trung bình: 4.5', date: '07/06/2026' }
-    ],
-    coursesList: [
-      { id: 1, code: 'SWE302', name: 'Cấu trúc dữ liệu & Giải thuật', progress: 85, gpa: 8.2, status: 'Đang học' },
-      { id: 2, code: 'WEB204', name: 'Lập trình Web nâng cao', progress: 70, gpa: 8.5, status: 'Đang học' },
-      { id: 3, code: 'DBA301', name: 'Cơ sở dữ liệu phân tán', progress: 60, gpa: 7.8, status: 'Đang học' },
-      { id: 4, code: 'MAT102', name: 'Toán cao cấp', progress: 95, gpa: 5.5, status: 'Sắp kết thúc' }
-    ],
-    recentSubmissions: [
-      { id: 101, type: 'assignment', name: 'Lab 4 - Cây nhị phân tìm kiếm', subject: 'Cấu trúc dữ liệu & Giải thuật', score: '8.5', status: 'Graded', date: '09/06/2026' },
-      { id: 102, type: 'exam', name: 'Thi giữa kỳ lý thuyết', subject: 'Lập trình Web nâng cao', score: '9.0', status: 'Graded', date: '08/06/2026' },
-      { id: 103, type: 'assignment', name: 'Assignment 1 - Thiết kế Database', subject: 'Cơ sở dữ liệu phân tán', score: 'Chờ chấm', status: 'Submitted', date: '06/06/2026' },
-      { id: 104, type: 'assignment', name: 'Bài tập tích phân kép', subject: 'Toán cao cấp', score: 'Chưa nộp', status: 'Missing', date: '05/06/2026' }
-    ]
-  },
-  {
-    id: 2,
-    name: 'Nguyễn Khánh Linh',
-    studentId: 'SV2024045',
-    class: 'CNTT K26B',
-    major: 'An toàn thông tin',
-    gpa: 9.1,
-    activeCourses: 3,
-    attendanceRate: 100,
+const childrenData = ref([])
+const activeChildId = ref(Number(route.query.studentId) || getStoredActiveChildId())
+const dropdownOpen = ref(false)
+const loading = ref(false)
+const error = ref('')
+
+const currentChild = computed(() => {
+  return childrenData.value.find(c => c.id === activeChildId.value) || childrenData.value[0] || {
+    id: null,
+    name: 'Chưa có học sinh liên kết',
+    studentId: '',
+    class: '',
+    major: '',
+    gpa: 0,
+    activeCourses: 0,
+    attendanceRate: 0,
     absences: 0,
     excusedAbsences: 0,
     unexcusedAbsences: 0,
     warnings: [],
-    coursesList: [
-      { id: 1, code: 'MOB306', name: 'Phát triển ứng dụng di động', progress: 90, gpa: 9.2, status: 'Đang học' },
-      { id: 2, code: 'NET202', name: 'An toàn thông tin mạng', progress: 75, gpa: 8.8, status: 'Đang học' },
-      { id: 3, code: 'ENG201', name: 'Tiếng Anh chuyên ngành CNTT', progress: 95, gpa: 9.5, status: 'Đang học' }
-    ],
-    recentSubmissions: [
-      { id: 201, type: 'exam', name: 'Thực hành Android Lab 3', subject: 'Phát triển ứng dụng di động', score: '9.5', status: 'Graded', date: '09/06/2026' },
-      { id: 202, type: 'assignment', name: 'Bài tập mật mã hóa RSA', subject: 'An toàn thông tin mạng', score: '9.0', status: 'Graded', date: '07/06/2026' },
-      { id: 203, type: 'assignment', name: 'Bài viết Essay Tech Terminology', subject: 'Tiếng Anh chuyên ngành CNTT', score: '10', status: 'Graded', date: '04/06/2026' }
-    ]
+    coursesList: [],
+    recentSubmissions: [],
   }
-])
-
-// Lấy studentId từ query URL nếu có, nếu không thì lấy mặc định student 1
-const activeChildId = ref(Number(route.query.studentId) || 1)
-const dropdownOpen = ref(false)
-
-const currentChild = computed(() => {
-  return childrenData.value.find(c => c.id === activeChildId.value) || childrenData.value[0]
 })
 
 function selectChild(id) {
   activeChildId.value = id
   dropdownOpen.value = false
-  // Cập nhật query URL mà không tải lại trang
+  setActiveChildId(id)
   router.replace({ query: { studentId: id } })
+  loadChildDetail(id)
 }
 
 function goBack() {
   router.push('/parent/children/list')
 }
+
+function getInitial(name = '') {
+  return name.split(' ').filter(Boolean).pop()?.charAt(0).toUpperCase() || '-'
+}
+
+function mapAlerts(data) {
+  return (data?.alerts || []).map((a, idx) => ({
+    id: idx + 1,
+    type: a.severity || 'info',
+    subject: a.type || 'Hệ thống',
+    reason: a.message || '',
+    date: '',
+  }))
+}
+
+async function loadChildDetail(childId) {
+  if (!childId) return
+  const [detailRes, gradesRes, alertsRes] = await Promise.allSettled([
+    parentApi.getChildDetail(childId),
+    parentApi.getChildGrades(childId),
+    parentApi.getChildAlerts(childId),
+  ])
+  const detail = detailRes.status === 'fulfilled' ? detailRes.value?.data : {}
+  const grades = gradesRes.status === 'fulfilled' ? gradesRes.value?.data || [] : []
+  const alerts = alertsRes.status === 'fulfilled' ? mapAlerts(alertsRes.value?.data) : []
+  const index = childrenData.value.findIndex(child => child.id === childId)
+  const existing = childrenData.value[index] || {}
+  const next = {
+    ...existing,
+    name: detail?.name || existing.name || '',
+    studentId: detail?.email || existing.studentId || `ID ${childId}`,
+    class: detail?.className || existing.class || '',
+    major: '',
+    gpa: detail?.gpa || 0,
+    activeCourses: detail?.enrolledCourses || 0,
+    attendanceRate: 0,
+    absences: 0,
+    excusedAbsences: 0,
+    unexcusedAbsences: 0,
+    warnings: alerts,
+    coursesList: grades.map((grade, idx) => ({
+      id: idx + 1,
+      code: grade.code || '',
+      name: grade.subject || '',
+      progress: 0,
+      gpa: grade.total || 0,
+      status: grade.semester || '',
+    })),
+    recentSubmissions: [],
+  }
+  if (index >= 0) childrenData.value[index] = next
+}
+
+async function loadChildren() {
+  loading.value = true
+  error.value = ''
+  try {
+    const res = await parentApi.getChildren()
+    childrenData.value = (res?.data || []).map(child => ({
+      id: child.id,
+      name: child.name || '',
+      studentId: child.email || `ID ${child.id}`,
+      class: child.className || '',
+      major: '',
+      gpa: 0,
+      activeCourses: 0,
+      attendanceRate: 0,
+      absences: 0,
+      excusedAbsences: 0,
+      unexcusedAbsences: 0,
+      warnings: [],
+      coursesList: [],
+      recentSubmissions: [],
+    }))
+    const firstChild = childrenData.value.find(child => child.id === activeChildId.value) || childrenData.value[0]
+    if (firstChild) {
+      activeChildId.value = firstChild.id
+      setActiveChildId(firstChild.id)
+      await loadChildDetail(firstChild.id)
+    }
+  } catch (e) {
+    error.value = e?.message || 'Không thể tải tổng quan học sinh.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadChildren)
 </script>
 
 <template>
@@ -122,7 +173,7 @@ function goBack() {
         >
           <div class="flex items-center gap-2">
             <div class="h-5 w-5 flex items-center justify-center rounded-full bg-orange-600 text-[9px] font-bold text-white">
-              {{ currentChild.name.split(' ').pop().charAt(0) }}
+              {{ getInitial(currentChild.name) }}
             </div>
             <span>{{ currentChild.name }}</span>
           </div>
@@ -203,6 +254,9 @@ function goBack() {
             </tr>
           </thead>
           <tbody class="divide-y divide-(--border-card)">
+            <tr v-if="currentChild.recentSubmissions.length === 0">
+              <td colspan="5" class="py-8 text-center text-muted">Chưa có dữ liệu bài nộp gần đây từ hệ thống.</td>
+            </tr>
             <tr
               v-for="sub in currentChild.recentSubmissions"
               :key="sub.id"

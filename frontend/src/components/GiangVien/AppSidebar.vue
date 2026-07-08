@@ -9,7 +9,7 @@ import {
 } from 'lucide-vue-next'
 import SidebarMenuGroup from '../SinhVien/SidebarMenuGroup.vue'
 import SidebarRecentFavorites from '@/components/ui/SidebarRecentFavorites.vue'
-import { giangVienMenuGroups, mockTeacher } from './data/menuData.js'
+import { giangVienMenuGroups } from './data/menuData.js'
 import { useAuthStore } from '@/stores/auth'
 
 defineProps({
@@ -112,7 +112,7 @@ function logout() {
     >
       <div :class="['lg-nav flex items-center gap-2 rounded-xl p-2', collapsed ? '' : 'w-full']">
         <div class="lg-sidebar-avatar relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ring-1 ring-(--border-card)">
-          <span>{{ authStore.initials || mockTeacher.initials }}</span>
+          <span>{{ authStore.initials || '' }}</span>
           <span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-(--surface-sidebar) bg-(--sidebar-indicator)" />
         </div>
         <Transition name="fade-slide">
@@ -121,7 +121,7 @@ function logout() {
               {{ authStore.displayName || 'Giảng Viên Demo' }}
             </p>
             <p class="truncate text-[10px] font-medium leading-tight text-muted">
-              {{ authStore.user?.email || mockTeacher.teacherId }}
+              {{ authStore.user?.email || '' }}
             </p>
           </div>
         </Transition>

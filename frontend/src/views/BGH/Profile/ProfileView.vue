@@ -21,21 +21,22 @@ import {
   Loader2,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
-import { mockBGH } from '@/components/BGH/data/menuData.js'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
-// ── Mock Data ────────────────────────────────────────────────
 const profile = ref({
-  ...mockBGH,
+  name: '',
+  staffId: '',
+  email: '',
   phone: '0901.234.567',
   joinDate: '01/01/2020',
+  campus: '',
+  department: '',
   bio: 'Tận tâm vì sự nghiệp giáo dục và phát triển thế hệ trẻ. Cam kết xây dựng môi trường học tập hiện đại, minh bạch và chất lượng cao.',
 })
 
@@ -50,14 +51,16 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const userData = auth.user
-      if (userData) {
-        profile.value = {
-          ...profile.value,
-          name: userData.fullName || userData.FullName || profile.value.name,
-          email: userData.email || userData.Email || profile.value.email,
-        }
+    const userData = auth.user
+    if (userData) {
+      profile.value = {
+        ...profile.value,
+        name: userData.fullName || userData.FullName || profile.value.name,
+        staffId: userData.staffId || userData.StaffId || profile.value.staffId,
+        email: userData.email || userData.Email || profile.value.email,
+        phone: userData.phone || userData.Phone || profile.value.phone,
+        campus: userData.campus || userData.Campus || profile.value.campus,
+        department: userData.department || userData.Department || profile.value.department,
       }
     }
   } catch (e) {

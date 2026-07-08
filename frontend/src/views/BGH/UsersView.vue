@@ -162,10 +162,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Search, Plus, Edit2, Lock, Unlock, Key, CheckCircle2, AlertTriangle, AlertCircle, Loader2, X } from 'lucide-vue-next'
-import { bghApi } from '@/services/bghApi'
-import { unwrapApiData } from '@/services/apiClient'
+import { apiRequest, unwrapApiData } from '@/services/apiClient'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
@@ -178,79 +176,27 @@ const pageSize = 15
 const showModal = ref(false)
 const modalMode = ref('create')
 const apiError = ref('')
+const saving = ref(false)
 const formData = ref({ maNguoiDung: null, hoTen: '', email: '', soDienThoai: '', matKhau: '', maCodeVaiTro: '', maDonVi: '' })
 
-const rolesList = [
-  { maVaiTro: 1, maCodeVaiTro: 'sieu_quan_tri', tenVaiTro: 'Siêu quản trị' },
-  { maVaiTro: 2, maCodeVaiTro: 'quan_tri', tenVaiTro: 'Quản trị hệ thống' },
-  { maVaiTro: 3, maCodeVaiTro: 'quan_tri_co_so', tenVaiTro: 'Quản trị cơ sở' },
-  { maVaiTro: 4, maCodeVaiTro: 'nhan_vien', tenVaiTro: 'Giáo vụ' },
-  { maVaiTro: 5, maCodeVaiTro: 'hieu_truong', tenVaiTro: 'Ban Giám Hiệu' },
-  { maVaiTro: 6, maCodeVaiTro: 'giao_vien', tenVaiTro: 'Giảng viên' },
-  { maVaiTro: 7, maCodeVaiTro: 'hoc_sinh', tenVaiTro: 'Sinh viên' },
-  { maVaiTro: 8, maCodeVaiTro: 'chu_tich', tenVaiTro: 'Chủ tịch hệ thống' },
-  { maVaiTro: 9, maCodeVaiTro: 'admin_tai_chinh', tenVaiTro: 'Admin tài chính' },
-  { maVaiTro: 10, maCodeVaiTro: 'ke_toan_co_so', tenVaiTro: 'Kế toán cơ sở' },
-]
-
-const orgsList = [
-  { maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', capDonVi: 'Cơ sở' },
-  { maDonVi: 2, tenDonVi: 'FPT Polytechnic Đà Nẵng', capDonVi: 'Cơ sở' },
-  { maDonVi: 3, tenDonVi: 'FPT Polytechnic Cần Thơ', capDonVi: 'Cơ sở' },
-  { maDonVi: 4, tenDonVi: 'Khoa Công nghệ thông tin', capDonVi: 'Khoa' },
-  { maDonVi: 5, tenDonVi: 'Khoa Kinh tế', capDonVi: 'Khoa' },
-  { maDonVi: 6, tenDonVi: 'Khoa Thiết kế', capDonVi: 'Khoa' },
-  { maDonVi: 7, tenDonVi: 'Phòng Đào tạo', capDonVi: 'Phòng ban' },
-  { maDonVi: 8, tenDonVi: 'Phòng Công tác sinh viên', capDonVi: 'Phòng ban' },
-]
-
-const roleCodeToName = {
-  'sieu_quan_tri': 'Siêu quản trị', 'quan_tri': 'Quản trị', 'quan_tri_co_so': 'Quản trị CS',
-  'nhan_vien': 'Giáo vụ', 'hieu_truong': 'Ban Giám Hiệu', 'giao_vien': 'Giảng viên',
-  'hoc_sinh': 'Sinh viên', 'chu_tich': 'Chủ tịch', 'admin_tai_chinh': 'Admin TC',
-  'ke_toan_co_so': 'Kế toán CS'
-}
-
-const mockUsers = [
-  { maNguoiDung: 1, maDonVi: 1, email: 'hieutruong@lms.edu.vn', hoTen: 'Nguyễn Văn Hiệu Trưởng', vaiTroChinh: 'hieu_truong', tenVaiTro: 'Ban Giám Hiệu', tenDonVi: 'FPT Polytechnic Hồ Chí Minh', soDienThoai: '0909 123 456', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/01/2020', lanDangNhapCuoi: '13/06/2026 08:30' },
-  { maNguoiDung: 2, maDonVi: 1, email: 'admin@lms.edu.vn', hoTen: 'Super Admin', vaiTroChinh: 'sieu_quan_tri', tenVaiTro: 'Siêu quản trị', tenDonVi: 'FPT Polytechnic Hồ Chí Minh', soDienThoai: '0909 000 001', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/01/2020', lanDangNhapCuoi: '13/06/2026 10:00' },
-  { maNguoiDung: 3, maDonVi: 1, email: 'nguyenvana@lms.edu.vn', hoTen: 'Nguyễn Văn An', vaiTroChinh: 'giao_vien', tenVaiTro: 'Giảng viên', tenDonVi: 'Khoa Công nghệ thông tin', soDienThoai: '0909 123 001', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '15/08/2021', lanDangNhapCuoi: '12/06/2026 14:00' },
-  { maNguoiDung: 4, maDonVi: 1, email: 'tranthib@lms.edu.vn', hoTen: 'Trần Thị Bích', vaiTroChinh: 'giao_vien', tenVaiTro: 'Giảng viên', tenDonVi: 'Khoa Kinh tế', soDienThoai: '0909 123 002', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/09/2022', lanDangNhapCuoi: '11/06/2026 09:30' },
-  { maNguoiDung: 5, maDonVi: 1, email: 'levanc@lms.edu.vn', hoTen: 'Lê Văn Cường', vaiTroChinh: 'nhan_vien', tenVaiTro: 'Giáo vụ', tenDonVi: 'Phòng Đào tạo', soDienThoai: '0909 123 003', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/03/2022', lanDangNhapCuoi: '13/06/2026 07:45' },
-  { maNguoiDung: 6, maDonVi: 1, email: 'phamthid@lms.edu.vn', hoTen: 'Phạm Thị Dung', vaiTroChinh: 'giao_vien', tenVaiTro: 'Giảng viên', tenDonVi: 'Khoa Thiết kế', soDienThoai: '0909 123 004', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/06/2023', lanDangNhapCuoi: '10/06/2026 11:00' },
-  { maNguoiDung: 7, maDonVi: 1, email: 'hoangminhduc@lms.edu.vn', hoTen: 'Hoàng Minh Đức', vaiTroChinh: 'giao_vien', tenVaiTro: 'Giảng viên', tenDonVi: 'Khoa Công nghệ thông tin', soDienThoai: '0909 123 005', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/01/2023', lanDangNhapCuoi: '09/06/2026 15:30' },
-  { maNguoiDung: 8, maDonVi: 1, email: 'nguyenthihoa@lms.edu.vn', hoTen: 'Nguyễn Thị Hoa', vaiTroChinh: 'quan_tri_co_so', tenVaiTro: 'Quản trị cơ sở', tenDonVi: 'FPT Polytechnic Hồ Chí Minh', soDienThoai: '0909 123 006', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/01/2021', lanDangNhapCuoi: '13/06/2026 09:00' },
-  { maNguoiDung: 9, maDonVi: 1, email: 'vovanhung@lms.edu.vn', hoTen: 'Võ Văn Hùng', vaiTroChinh: 'giao_vien', tenVaiTro: 'Giảng viên', tenDonVi: 'Khoa Công nghệ thông tin', soDienThoai: '0909 123 007', trangThai: 'bi_khoa', namNhapHoc: null, ngayTao: '01/09/2020', lanDangNhapCuoi: '01/06/2026 08:00' },
-  { maNguoiDung: 10, maDonVi: 1, email: 'dangthikim@lms.edu.vn', hoTen: 'Đặng Thị Kim', vaiTroChinh: 'giao_vien', tenVaiTro: 'Giảng viên', tenDonVi: 'Khoa Thiết kế', soDienThoai: '0909 123 008', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/03/2022', lanDangNhapCuoi: '08/06/2026 10:15' },
-  { maNguoiDung: 11, maDonVi: 1, email: 'buiquanglinh@lms.edu.vn', hoTen: 'Bùi Quang Linh', vaiTroChinh: 'giao_vien', tenVaiTro: 'Giảng viên', tenDonVi: 'Khoa Kinh tế', soDienThoai: '0909 123 009', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/01/2023', lanDangNhapCuoi: '07/06/2026 14:00' },
-  { maNguoiDung: 12, maDonVi: 2, email: 'ngothimai@lms.edu.vn', hoTen: 'Ngô Thị Mai', vaiTroChinh: 'giao_vien', tenVaiTro: 'Giảng viên', tenDonVi: 'FPT Polytechnic Đà Nẵng', soDienThoai: '0909 123 010', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/06/2022', lanDangNhapCuoi: '06/06/2026 09:00' },
-  { maNguoiDung: 13, maDonVi: 1, email: 'tranvannam@lms.edu.vn', hoTen: 'Trần Văn Nam', vaiTroChinh: 'hoc_sinh', tenVaiTro: 'Sinh viên', tenDonVi: 'Khoa Công nghệ thông tin', soDienThoai: '0909 123 011', trangThai: 'hoat_dong', namNhapHoc: 2024, ngayTao: '01/09/2024', lanDangNhapCuoi: '13/06/2026 07:00' },
-  { maNguoiDung: 14, maDonVi: 1, email: 'lehoangphat@lms.edu.vn', hoTen: 'Lê Hoàng Phát', vaiTroChinh: 'hoc_sinh', tenVaiTro: 'Sinh viên', tenDonVi: 'Khoa Công nghệ thông tin', soDienThoai: '0909 123 012', trangThai: 'hoat_dong', namNhapHoc: 2024, ngayTao: '01/09/2024', lanDangNhapCuoi: '12/06/2026 20:30' },
-  { maNguoiDung: 15, maDonVi: 1, email: 'tranthuy@lms.edu.vn', hoTen: 'Trần Bích Thủy', vaiTroChinh: 'hoc_sinh', tenVaiTro: 'Sinh viên', tenDonVi: 'Khoa Kinh tế', soDienThoai: '0909 123 013', trangThai: 'hoat_dong', namNhapHoc: 2024, ngayTao: '01/09/2024', lanDangNhapCuoi: '11/06/2026 18:00' },
-  { maNguoiDung: 16, maDonVi: 1, email: 'phamminh@lms.edu.vn', hoTen: 'Phạm Văn Minh', vaiTroChinh: 'hoc_sinh', tenVaiTro: 'Sinh viên', tenDonVi: 'Khoa Thiết kế', soDienThoai: '0909 123 014', trangThai: 'bi_khoa', namNhapHoc: 2023, ngayTao: '01/09/2023', lanDangNhapCuoi: '01/04/2026 10:00' },
-  { maNguoiDung: 17, maDonVi: 2, email: 'nguyenvanhieu@dn.lms.edu.vn', hoTen: 'Nguyễn Văn Hiếu', vaiTroChinh: 'quan_tri_co_so', tenVaiTro: 'Quản trị cơ sở', tenDonVi: 'FPT Polytechnic Đà Nẵng', soDienThoai: '0909 123 015', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/01/2022', lanDangNhapCuoi: '13/06/2026 08:00' },
-  { maNguoiDung: 18, maDonVi: 1, email: 'nguyenkhanh@lms.edu.vn', hoTen: 'TS. Nguyễn Khắc Anh', vaiTroChinh: 'giao_vien', tenVaiTro: 'Giảng viên', tenDonVi: 'Khoa Công nghệ thông tin', soDienThoai: '0909 123 016', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '15/08/2019', lanDangNhapCuoi: '13/06/2026 11:00' },
-  { maNguoiDung: 19, maDonVi: 1, email: 'levanbinh@lms.edu.vn', hoTen: 'Lê Văn Bình', vaiTroChinh: 'giao_vien', tenVaiTro: 'Giảng viên', tenDonVi: 'Khoa Công nghệ thông tin', soDienThoai: '0909 123 017', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/01/2024', lanDangNhapCuoi: '10/06/2026 09:30' },
-  { maNguoiDung: 20, maDonVi: 1, email: 'hoangthianh@lms.edu.vn', hoTen: 'Hoàng Thị Ánh', vaiTroChinh: 'ke_toan_co_so', tenVaiTro: 'Kế toán cơ sở', tenDonVi: 'FPT Polytechnic Hồ Chí Minh', soDienThoai: '0909 123 018', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/06/2023', lanDangNhapCuoi: '12/06/2026 16:00' },
-  { maNguoiDung: 21, maDonVi: 1, email: 'tranhoang@lms.edu.vn', hoTen: 'Trần Hoàng', vaiTroChinh: 'chu_tich', tenVaiTro: 'Chủ tịch hệ thống', tenDonVi: 'FPT Polytechnic Hồ Chí Minh', soDienThoai: '0909 123 019', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/01/2019', lanDangNhapCuoi: '12/06/2026 13:00' },
-  { maNguoiDung: 22, maDonVi: 3, email: 'adminct@lms.edu.vn', hoTen: 'Admin Cần Thơ', vaiTroChinh: 'quan_tri_co_so', tenVaiTro: 'Quản trị cơ sở', tenDonVi: 'FPT Polytechnic Cần Thơ', soDienThoai: '0909 123 020', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/01/2023', lanDangNhapCuoi: '11/06/2026 08:30' },
-  { maNguoiDung: 23, maDonVi: 1, email: 'nguyenhong@lms.edu.vn', hoTen: 'Nguyễn Hồng', vaiTroChinh: 'admin_tai_chinh', tenVaiTro: 'Admin tài chính', tenDonVi: 'FPT Polytechnic Hồ Chí Minh', soDienThoai: '0909 123 021', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/03/2022', lanDangNhapCuoi: '10/06/2026 14:30' },
-  { maNguoiDung: 24, maDonVi: 1, email: 'buithanh@lms.edu.vn', hoTen: 'Bùi Thanh', vaiTroChinh: 'nhan_vien', tenVaiTro: 'Giáo vụ', tenDonVi: 'Phòng Đào tạo', soDienThoai: '0909 123 022', trangThai: 'hoat_dong', namNhapHoc: null, ngayTao: '01/06/2023', lanDangNhapCuoi: '13/06/2026 07:30' },
-]
-
-const users = ref(mockUsers)
+const rolesList = ref([])
+const orgsList = ref([])
+const users = ref([])
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getUsers()
-      users.value = unwrapApiData(res) || mockUsers
-    }
+    const [userRes, roleRes, orgRes] = await Promise.all([
+      bghApi.getUsers(),
+      bghApi.getRoles(),
+      bghApi.getOrganizations(),
+    ])
+    users.value = unwrapApiData(userRes) || []
+    rolesList.value = (unwrapApiData(roleRes) || []).map(r => ({ maVaiTro: r.maVaiTro, maCodeVaiTro: r.maCodeVaiTro, tenVaiTro: r.tenVaiTro }))
+    orgsList.value = (unwrapApiData(orgRes) || []).map(o => ({ maDonVi: o.id, tenDonVi: o.name, capDonVi: o.organizationLevel }))
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu người dùng'
-    users.value = mockUsers
   } finally {
     loading.value = false
   }
@@ -303,7 +249,7 @@ function openEditModal(user) {
 
 function closeModal() { showModal.value = false }
 
-function submitForm() {
+async function submitForm() {
   if (!formData.value.hoTen || !formData.value.email || !formData.value.maCodeVaiTro || !formData.value.maDonVi) {
     apiError.value = 'Vui lòng điền đầy đủ các trường bắt buộc (*).'
     return
@@ -313,31 +259,62 @@ function submitForm() {
     return
   }
   apiError.value = ''
-  if (modalMode.value === 'edit') {
-    const user = mockUsers.find(u => u.maNguoiDung === formData.value.maNguoiDung)
-    if (user) {
-      user.hoTen = formData.value.hoTen
-      user.email = formData.value.email
-      user.soDienThoai = formData.value.soDienThoai
-      user.vaiTroChinh = formData.value.maCodeVaiTro
-      user.tenVaiTro = roleCodeToName[formData.value.maCodeVaiTro] || formData.value.maCodeVaiTro
-      user.maDonVi = parseInt(formData.value.maDonVi)
-      user.tenDonVi = orgsList.find(o => o.maDonVi === parseInt(formData.value.maDonVi))?.tenDonVi || ''
+  saving.value = true
+  try {
+    if (modalMode.value === 'create') {
+      await apiRequest('/api/admin/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          hoTen: formData.value.hoTen,
+          email: formData.value.email,
+          soDienThoai: formData.value.soDienThoai,
+          matKhau: formData.value.matKhau,
+          maCodeVaiTro: formData.value.maCodeVaiTro,
+          maDonVi: parseInt(formData.value.maDonVi),
+        })
+      })
+    } else {
+      await apiRequest(`/api/admin/users/${formData.value.maNguoiDung}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          hoTen: formData.value.hoTen,
+          email: formData.value.email,
+          soDienThoai: formData.value.soDienThoai,
+          maCodeVaiTro: formData.value.maCodeVaiTro,
+          maDonVi: parseInt(formData.value.maDonVi),
+        })
+      })
     }
+    closeModal()
+    await loadData()
+  } catch (e) {
+    apiError.value = e?.message || 'Lỗi lưu dữ liệu'
+  } finally {
+    saving.value = false
   }
-  closeModal()
 }
 
-function handleToggleLock(user) {
+async function handleToggleLock(user) {
   const isLocking = user.trangThai === 'hoat_dong'
-    if (import.meta.env.VITE_MOCK === 'true' /* confirm(`Bạn có chắc chắn muốn ${isLocking ? 'khóa' : 'mở khóa'} tài khoản ${user.email}?`) */) return
-  user.trangThai = isLocking ? 'bi_khoa' : 'hoat_dong'
+  try {
+    await apiRequest(`/api/admin/users/${user.maNguoiDung}/${isLocking ? 'lock' : 'unlock'}`, { method: 'POST' })
+    await loadData()
+  } catch (e) {
+    apiError.value = e?.message || 'Lỗi thực hiện thao tác'
+  }
 }
 
-function handleResetPassword(user) {
+async function handleResetPassword(user) {
   const newPassword = prompt(`Nhập mật khẩu mới cho ${user.email} (tối thiểu 8 ký tự):`)
   if (!newPassword || newPassword.length < 8) return
-  console.log('Đặt lại mật khẩu thành công!')
+  try {
+    await apiRequest(`/api/admin/users/${user.maNguoiDung}/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify({ matKhauMoi: newPassword })
+    })
+  } catch (e) {
+    apiError.value = e?.message || 'Lỗi đặt lại mật khẩu'
+  }
 }
 
 onMounted(() => { loadData() })

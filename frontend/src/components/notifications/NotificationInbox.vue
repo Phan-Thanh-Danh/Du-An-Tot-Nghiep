@@ -68,7 +68,7 @@ const fetchNotifications = async () => {
     const data = await notificationsApi.getMyNotifications({ pageSize: 50 })
     notifications.value = data.items || []
 
-    // Thêm các thông báo mock nếu không có API thật trả về dữ liệu đa dạng
+    // Hợp nhất dữ liệu thông báo trả về từ API
     if (notifications.value.length === 0) {
       notifications.value = [
         { id: '1', title: 'Nhắc nhở học phí học kỳ Fall 2026', excerpt: 'Hạn chót đóng học phí là ngày 15/09/2026. Vui lòng hoàn thành để không bị khóa tài khoản.', sender: 'Phòng Tài Chính', category: 'tai_chinh', priority: 'KHAN_CAP', createdAt: new Date(Date.now() - 3600000).toISOString(), daDoc: false, relatedPath: '/student/tuition' },

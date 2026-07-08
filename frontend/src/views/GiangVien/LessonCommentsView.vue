@@ -1,10 +1,13 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { usePopupStore } from '@/stores/popup'
 import {
+  AlertCircle,
   BookOpen,
   CheckCircle2,
   Clock,
   Filter,
+  Loader2,
   MessageCircle,
   MoreHorizontal,
   Reply,
@@ -16,42 +19,87 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
+import { teacherApi } from '@/services/teacherApi'
 
-const threads = ref([
-  {
-    id: 1,
-    lesson: 'Bài 2: Cấu trúc HTML5',
-    user: 'Lê Hoàng C',
-    content: 'Tại sao chúng ta phải dùng thẻ <main> thay vì <div> hả thầy?',
-    time: '2 giờ trước',
-    replies: [
-      { id: 101, user: 'TS. Nguyễn Minh Khoa', content: 'Thẻ <main> giúp các trình đọc màn hình và SEO nhận diện nội dung chính tốt hơn em nhé.', time: '1 giờ trước', isTeacher: true },
-    ],
-  },
-  {
-    id: 2,
-    lesson: 'Bài 5: Flexbox Layout',
-    user: 'Phạm Minh D',
-    content: 'Em vẫn chưa phân biệt được justify-content và align-items.',
-    time: '5 giờ trước',
-    replies: [],
-  },
-])
+const popupStore = usePopupStore()
+const loading = ref(false)
+const error = ref('')
+const threads = ref([])
+const replyingId = ref(null)
+const replyTexts = ref({})
+const hidingId = ref(null)
 
 const commentStats = computed(() => [
   { label: 'Tổng bình luận', value: threads.value.length, variant: 'neutral' },
-  { label: 'Chưa phản hồi', value: threads.value.filter(thread => thread.replies.length === 0).length, variant: 'warning' },
-  { label: 'Đã phản hồi', value: threads.value.filter(thread => thread.replies.length > 0).length, variant: 'success' },
+  { label: 'Chưa phản hồi', value: threads.value.filter(thread => (thread.replies || []).length === 0).length, variant: 'warning' },
+  { label: 'Đã phản hồi', value: threads.value.filter(thread => (thread.replies || []).length > 0).length, variant: 'success' },
   { label: 'Hôm nay', value: 2, variant: 'info' },
 ])
 
+async function loadComments() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await teacherApi.getLessonComments()
+    threads.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+  } catch (e) {
+    error.value = e?.message || 'Không thể tải bình luận.'
+    threads.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+async function replyToComment(thread) {
+  const text = replyTexts.value[thread.id || thread.maBinhLuan]
+  if (!text?.trim()) return
+  replyingId.value = thread.id || thread.maBinhLuan
+  try {
+    await teacherApi.replyLessonComment(thread.id || thread.maBinhLuan, {
+      noiDung: text,
+      content: text,
+    })
+    if (!thread.replies) thread.replies = []
+    thread.replies.push({
+      id: Date.now(),
+      user: 'Giảng viên',
+      content: text,
+      time: 'Vừa xong',
+      isTeacher: true,
+      laGiangVien: true,
+    })
+    replyTexts.value[thread.id || thread.maBinhLuan] = ''
+    popupStore.success('Đã gửi phản hồi', 'Phản hồi của bạn đã được đăng.')
+  } catch (e) {
+    popupStore.error('Không thể gửi phản hồi', e?.message || 'Lỗi máy chủ.')
+  } finally {
+    replyingId.value = null
+  }
+}
+
+async function hideComment(thread) {
+  hidingId.value = thread.id || thread.maBinhLuan
+  try {
+    await teacherApi.hideLessonComment(thread.id || thread.maBinhLuan, { an: true, hidden: true })
+    thread.biAn = true
+    thread.hidden = true
+    popupStore.success('Đã ẩn bình luận', 'Bình luận đã được ẩn khỏi sinh viên.')
+  } catch (e) {
+    popupStore.error('Không thể ẩn bình luận', e?.message || 'Lỗi máy chủ.')
+  } finally {
+    hidingId.value = null
+  }
+}
+
 function getThreadStatus(thread) {
-  return thread.replies.length > 0 ? 'Đã phản hồi' : 'Chưa phản hồi'
+  return thread.replies && thread.replies.length > 0 ? 'Đã phản hồi' : 'Chưa phản hồi'
 }
 
 function getThreadVariant(thread) {
-  return thread.replies.length > 0 ? 'success' : 'warning'
+  return thread.replies && thread.replies.length > 0 ? 'success' : 'warning'
 }
+
+onMounted(() => { loadComments() })
 </script>
 
 <template>
@@ -118,89 +166,103 @@ function getThreadVariant(thread) {
       </div>
     </GlassPanel>
 
-    <div v-if="threads.length" class="threads-shell">
-      <GlassPanel
-        v-for="thread in threads"
-        :key="thread.id"
-        variant="surface"
-        density="compact"
-        class="thread-card"
-        :clip="false"
-      >
-        <template #header>
-          <div class="thread-header">
-            <div class="lesson-chip">
-              <BookOpen :size="15" />
-              <span>{{ thread.lesson }}</span>
-            </div>
-            <div class="thread-actions">
-              <GlassBadge :variant="getThreadVariant(thread)" size="sm">
-                {{ getThreadStatus(thread) }}
-              </GlassBadge>
-              <button type="button" class="icon-button" aria-label="Mở thao tác bình luận">
-                <MoreHorizontal :size="18" />
-              </button>
-            </div>
-          </div>
-        </template>
+    <!-- Loading -->
+    <div v-if="loading" class="flex flex-col items-center justify-center py-16">
+      <Loader2 :size="24" class="animate-spin text-muted mb-3" />
+      <p class="text-sm font-medium text-muted">Đang tải bình luận...</p>
+    </div>
 
-        <div class="thread-body">
-          <div class="avatar">{{ thread.user.split(' ').pop()[0] }}</div>
-          <div class="thread-content">
-            <div class="comment-topline">
-              <strong>{{ thread.user }}</strong>
-              <span>
-                <Clock :size="12" />
-                {{ thread.time }}
-              </span>
-            </div>
-            <p class="comment-text">{{ thread.content }}</p>
+    <!-- Error -->
+    <div v-else-if="error" class="flex flex-col items-center justify-center py-16">
+      <AlertCircle :size="40" class="text-rose-400 mb-3" />
+      <p class="text-sm font-semibold text-muted">{{ error }}</p>
+      <GlassButton variant="primary" size="sm" class="mt-3" @click="loadComments">Thử lại</GlassButton>
+    </div>
 
-            <div class="comment-tools">
-              <button type="button">
-                <ThumbsUp :size="15" />
-                Hữu ích
-              </button>
-              <button type="button">
-                <Reply :size="15" />
-                Phản hồi
-              </button>
-              <span>{{ thread.replies.length }} phản hồi</span>
-            </div>
-
-            <div v-if="thread.replies.length > 0" class="reply-thread">
-              <div v-for="reply in thread.replies" :key="reply.id" class="reply-item">
-                <span class="avatar compact">{{ reply.user.split(' ').pop()[0] }}</span>
-                <div class="reply-content">
-                  <div class="reply-topline">
-                    <strong>{{ reply.user }}</strong>
-                    <GlassBadge v-if="reply.isTeacher" variant="primary" size="sm">
-                      <CheckCircle2 :size="10" />
-                      Giảng viên
-                    </GlassBadge>
-                    <span class="reply-time">
-                      <Clock :size="11" />
-                      {{ reply.time }}
-                    </span>
-                  </div>
-                  <p>{{ reply.content }}</p>
-                </div>
+    <template v-else-if="threads.length">
+      <div class="threads-shell">
+        <GlassPanel
+          v-for="thread in threads"
+          :key="thread.id || thread.maBinhLuan"
+          v-show="!thread.biAn && !thread.hidden"
+          variant="surface"
+          density="compact"
+          class="thread-card"
+          :clip="false"
+        >
+          <template #header>
+            <div class="thread-header">
+              <div class="lesson-chip">
+                <BookOpen :size="15" />
+                <span>{{ thread.tieuDeBaiHoc || thread.lesson }}</span>
+              </div>
+              <div class="thread-actions">
+                <GlassBadge :variant="getThreadVariant(thread)" size="sm">
+                  {{ getThreadStatus(thread) }}
+                </GlassBadge>
+                <button type="button" class="icon-button" :disabled="hidingId === (thread.id || thread.maBinhLuan)" @click="hideComment(thread)" aria-label="Ẩn bình luận">
+                  <Loader2 v-if="hidingId === (thread.id || thread.maBinhLuan)" :size="14" class="animate-spin" />
+                  <MoreHorizontal v-else :size="18" />
+                </button>
               </div>
             </div>
+          </template>
 
-            <div class="quick-reply">
-              <span class="teacher-avatar">MK</span>
-              <label class="quick-reply-field">
-                <input type="text" placeholder="Viết câu trả lời của bạn..." />
-                <button type="button" aria-label="Gửi phản hồi nhanh">
-                  <Send :size="16" />
+          <div class="thread-body">
+            <div class="avatar">{{ (thread.hoTen || thread.user || '').split(' ').pop()[0] || '?' }}</div>
+            <div class="thread-content">
+              <div class="comment-topline">
+                <strong>{{ thread.hoTen || thread.user }}</strong>
+                <span>
+                  <Clock :size="12" />
+                  {{ thread.thoiGian || thread.time || '--' }}
+                </span>
+              </div>
+              <p class="comment-text">{{ thread.noiDung || thread.content }}</p>
+
+              <div class="comment-tools">
+                <button type="button" @click="replyToComment(thread)" :disabled="replyingId === (thread.id || thread.maBinhLuan)">
+                  <Reply :size="15" />
+                  Phản hồi
                 </button>
-              </label>
+                <span>{{ (thread.replies || []).length }} phản hồi</span>
+              </div>
+
+              <div v-if="thread.replies && thread.replies.length > 0" class="reply-thread">
+                <div v-for="reply in thread.replies" :key="reply.id || reply.maPhanHoi" class="reply-item">
+                  <span class="avatar compact">{{ (reply.hoTen || reply.user || '').split(' ').pop()[0] || '?' }}</span>
+                  <div class="reply-content">
+                    <div class="reply-topline">
+                      <strong>{{ reply.hoTen || reply.user }}</strong>
+                      <GlassBadge v-if="reply.isTeacher || reply.laGiangVien" variant="primary" size="sm">
+                        <CheckCircle2 :size="10" />
+                        Giảng viên
+                      </GlassBadge>
+                      <span class="reply-time">
+                        <Clock :size="11" />
+                        {{ reply.thoiGian || reply.time || '--' }}
+                      </span>
+                    </div>
+                    <p>{{ reply.noiDung || reply.content }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="quick-reply">
+                <span class="teacher-avatar">GV</span>
+                <label class="quick-reply-field">
+                  <input v-model="replyTexts[thread.id || thread.maBinhLuan]" type="text" placeholder="Viết câu trả lời của bạn..." @keyup.enter="replyToComment(thread)" />
+                  <button type="button" :disabled="replyingId === (thread.id || thread.maBinhLuan)" aria-label="Gửi phản hồi nhanh" @click="replyToComment(thread)">
+                    <Loader2 v-if="replyingId === (thread.id || thread.maBinhLuan)" :size="14" class="animate-spin" />
+                    <Send v-else :size="16" />
+                  </button>
+                </label>
+              </div>
             </div>
           </div>
-        </div>
-      </GlassPanel>
-    </div>
+        </GlassPanel>
+      </div>
+    </template>
 
     <EmptyState
       v-else

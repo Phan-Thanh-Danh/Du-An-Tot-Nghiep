@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { usePopupStore } from '@/stores/popup'
 import {
   AlertCircle,
@@ -7,6 +7,7 @@ import {
   Clock,
   FileQuestion,
   FileText,
+  Loader2,
   Mail,
   Search,
   User,
@@ -16,31 +17,59 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
+import { teacherApi } from '@/services/teacherApi'
 
 const popupStore = usePopupStore()
 
-const requests = ref([
-  { id: 1, student: 'Nguyễn Văn A', type: 'Xin vắng học', content: 'Em xin nghỉ buổi học ngày 20/05 do có việc gia đình.', status: 'Pending', time: '8:00 AM', tag: 'Vắng học', color: 'blue' },
-  { id: 2, student: 'Trần Thị B', type: 'Phúc khảo điểm', content: 'Em xin phúc khảo lại điểm thi Lab 2, em thấy mình làm đúng hết.', status: 'Pending', time: '10:30 AM', tag: 'Khảo thí', color: 'cyan' },
-  { id: 3, student: 'Lê Hoàng C', type: 'Đơn xin học bù', content: 'Em muốn xin học bù lớp SE1601 sang SE1602 vào thứ 5.', status: 'Pending', time: 'Hôm qua', tag: 'Học vụ', color: 'emerald' },
-])
-
+const loading = ref(false)
+const error = ref('')
+const requests = ref([])
 const selectedReq = ref(null)
+const processing = ref(false)
 
 const requestStats = computed(() => [
   { label: 'Tổng yêu cầu', value: requests.value.length, variant: 'neutral' },
-  { label: 'Đang chờ', value: requests.value.filter(req => req.status === 'Pending').length, variant: 'warning' },
+  { label: 'Đang chờ', value: requests.value.filter(req => (req.trangThai || req.status) === 'Pending').length, variant: 'warning' },
   { label: 'Hôm nay', value: 2, variant: 'info' },
   { label: 'Cần phản hồi', value: requests.value.length, variant: 'primary' },
 ])
+
+async function loadRequests() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await teacherApi.getTeacherRequests()
+    requests.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+  } catch (e) {
+    error.value = e?.message || 'Không thể tải yêu cầu.'
+    requests.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 function selectRequest(req) {
   selectedReq.value = req
 }
 
-function processRequest(action) {
-  popupStore.success('Đã xử lý đơn', `Đã ${action.toLowerCase()} đơn của ${selectedReq.value.student}`)
-  selectedReq.value = null
+async function processRequest(action) {
+  if (!selectedReq.value) return
+  processing.value = true
+  try {
+    await teacherApi.createTeacherRequest({
+      maYeuCau: selectedReq.value.id || selectedReq.value.maYeuCau,
+      hanhDong: action,
+      action: action,
+    })
+    const idx = requests.value.findIndex(r => (r.id || r.maYeuCau) === (selectedReq.value.id || selectedReq.value.maYeuCau))
+    if (idx !== -1) requests.value.splice(idx, 1)
+    popupStore.success('Đã xử lý đơn', `Đã ${action.toLowerCase()} đơn của ${selectedReq.value.hoTen || selectedReq.value.student}`)
+    selectedReq.value = null
+  } catch (e) {
+    popupStore.error('Không thể xử lý', e?.message || 'Lỗi máy chủ.')
+  } finally {
+    processing.value = false
+  }
 }
 
 const getTagVariant = (color) => {
@@ -51,6 +80,8 @@ const getTagVariant = (color) => {
   }
   return colors[color] || 'neutral'
 }
+
+onMounted(() => { loadRequests() })
 </script>
 
 <template>
@@ -106,10 +137,20 @@ const getTagVariant = (color) => {
           </div>
         </template>
 
-        <div v-if="requests.length" class="request-list">
+        <div v-if="loading" class="flex items-center justify-center py-12">
+          <Loader2 :size="20" class="animate-spin text-muted" />
+          <span class="ml-2 text-xs font-semibold text-muted">Đang tải yêu cầu...</span>
+        </div>
+
+        <div v-else-if="error" class="flex flex-col items-center py-12">
+          <AlertCircle :size="28" class="text-rose-400 mb-2" />
+          <p class="text-xs font-semibold text-muted">{{ error }}</p>
+        </div>
+
+        <div v-else-if="requests.length" class="request-list">
           <button
             v-for="req in requests"
-            :key="req.id"
+            :key="req.id || req.maYeuCau"
             type="button"
             :class="['request-row', selectedReq?.id === req.id && 'is-selected']"
             @click="selectRequest(req)"
@@ -119,19 +160,19 @@ const getTagVariant = (color) => {
             </span>
             <span class="request-content">
               <span class="request-topline">
-                <strong>{{ req.type }}</strong>
+                <strong>{{ req.loaiYeuCau || req.type }}</strong>
                 <span class="time-chip">
                   <Clock :size="12" />
-                  {{ req.time }}
+                  {{ req.thoiGian || req.time || '--' }}
                 </span>
               </span>
               <span class="student-line">
                 <User :size="12" />
-                Sinh viên: <b>{{ req.student }}</b>
+                Sinh viên: <b>{{ req.hoTen || req.student }}</b>
               </span>
-              <span class="request-text">"{{ req.content }}"</span>
+              <span class="request-text">"{{ req.noiDung || req.content }}"</span>
               <span class="row-meta">
-                <GlassBadge :variant="getTagVariant(req.color)" size="sm">{{ req.tag }}</GlassBadge>
+                <GlassBadge :variant="getTagVariant(req.mauSac || req.color || 'blue')" size="sm">{{ req.theLoai || req.tag || req.loaiYeuCau }}</GlassBadge>
                 <GlassBadge variant="warning" size="sm">Đang chờ</GlassBadge>
               </span>
             </span>
@@ -154,10 +195,10 @@ const getTagVariant = (color) => {
           <div class="panel-heading">
             <div>
               <h2>Chi tiết yêu cầu</h2>
-              <p>Mã yêu cầu #GV-REQ-{{ selectedReq.id }}</p>
+              <p>Mã yêu cầu #GV-REQ-{{ selectedReq.id || selectedReq.maYeuCau }}</p>
             </div>
-            <GlassBadge :variant="getTagVariant(selectedReq.color)" size="sm">
-              {{ selectedReq.tag }}
+            <GlassBadge :variant="getTagVariant(selectedReq.mauSac || selectedReq.color || 'blue')" size="sm">
+              {{ selectedReq.theLoai || selectedReq.tag || selectedReq.loaiYeuCau }}
             </GlassBadge>
           </div>
         </template>
@@ -167,10 +208,10 @@ const getTagVariant = (color) => {
             <FileText :size="22" />
           </span>
           <div>
-            <h3>{{ selectedReq.type }}</h3>
+            <h3>{{ selectedReq.loaiYeuCau || selectedReq.type }}</h3>
             <p>
               <User :size="13" />
-              {{ selectedReq.student }}
+              {{ selectedReq.hoTen || selectedReq.student }}
             </p>
           </div>
         </div>
@@ -179,7 +220,7 @@ const getTagVariant = (color) => {
           <Mail :size="15" />
           <div>
             <span>Nội dung chi tiết</span>
-            <p>"{{ selectedReq.content }}"</p>
+            <p>"{{ selectedReq.noiDung || selectedReq.content }}"</p>
           </div>
         </div>
 
@@ -188,7 +229,7 @@ const getTagVariant = (color) => {
             <span />
             <div>
               <strong>Đã gửi yêu cầu</strong>
-              <p>{{ selectedReq.time }} · Sinh viên gửi đơn lên hệ thống</p>
+              <p>{{ selectedReq.thoiGian || selectedReq.time || '--' }} · Sinh viên gửi đơn lên hệ thống</p>
             </div>
           </div>
           <div class="timeline-item is-current">
@@ -201,13 +242,14 @@ const getTagVariant = (color) => {
         </div>
 
         <div class="detail-actions">
-          <GlassButton variant="success" size="sm" block @click="processRequest('Chấp nhận')">
+          <GlassButton variant="success" size="sm" block :disabled="processing" @click="processRequest('Chấp nhận')">
             <template #leading>
-              <CheckCircle :size="14" />
+              <Loader2 v-if="processing" :size="14" class="animate-spin" />
+              <CheckCircle v-else :size="14" />
             </template>
-            Phê duyệt đơn
+            {{ processing ? 'Đang xử lý...' : 'Phê duyệt đơn' }}
           </GlassButton>
-          <GlassButton variant="danger" size="sm" block @click="processRequest('Từ chối')">
+          <GlassButton variant="danger" size="sm" block :disabled="processing" @click="processRequest('Từ chối')">
             <template #leading>
               <XCircle :size="14" />
             </template>

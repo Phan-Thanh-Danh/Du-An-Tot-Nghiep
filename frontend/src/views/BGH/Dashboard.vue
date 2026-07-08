@@ -25,7 +25,7 @@
             Tổng quan Ban giám hiệu
           </h2>
           <p class="mt-2 text-muted text-sm">
-            GPA trung bình tăng 0.12, tỷ lệ Pass đạt 92.5%. Có 2 bản thảo TKB đang chờ phê duyệt.
+            {{ dashboardText }}
           </p>
           <div class="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
             <router-link to="/bgh/schedule/pending" class="lg-button-primary rounded-lg px-3 py-2 text-xs font-bold transition-all active:scale-95">
@@ -72,7 +72,7 @@
       <div class="xl:col-span-2 space-y-4">
         
         <!-- Teacher Evaluations Ranking -->
-        <div class="rounded-2xl border border-card surface-card shadow-sm overflow-hidden">
+        <div v-if="topTeachers.length" class="rounded-2xl border border-card surface-card shadow-sm overflow-hidden">
           <div class="flex items-center justify-between px-4 py-4">
             <div>
               <h2 class="text-lg font-bold text-heading">Ranking Giảng viên</h2>
@@ -124,16 +124,16 @@
         <div class="rounded-2xl border border-card surface-card shadow-sm p-4">
            <div class="mb-3 flex items-center justify-between">
               <h3 class="text-base font-bold text-heading">TKB Chờ Duyệt</h3>
-              <span class="rounded-full bg-(--color-info-bg) px-2 py-0.5 text-[10px] font-bold text-(--color-info-text)">2 Mới</span>
+              <span class="rounded-full bg-(--color-info-bg) px-2 py-0.5 text-[10px] font-bold text-(--color-info-text)">{{ pendingCount }}</span>
            </div>
            <div class="space-y-3">
-             <div v-for="i in 2" :key="i" 
+             <div v-for="i in pendingSchedules" :key="i" 
                   class="p-3 rounded-xl border border-default surface-solid transition-all hover:bg-(--surface-input) cursor-pointer">
                <div class="flex justify-between items-start">
-                  <p class="text-xs font-bold text-heading leading-tight">Khoa {{ i === 1 ? 'CNTT' : 'Kinh Tế' }} - Spring</p>
+                  <p class="text-xs font-bold text-heading leading-tight">Bản thảo TKB #{{ i }}</p>
                   <span class="text-[9px] font-bold text-link">NEW</span>
                </div>
-               <p class="mt-0.5 text-[10px] text-muted">{{ i === 1 ? '142' : '86' }} lớp • {{ i === 1 ? '3' : '0' }} xung đột</p>
+               <p class="mt-0.5 text-[10px] text-muted">Đang chờ phê duyệt</p>
                <button class="mt-2 w-full text-center text-[10px] font-bold text-link">Xem ngay →</button>
              </div>
            </div>
@@ -144,7 +144,7 @@
           <div class="flex items-center gap-2">
              <h3 class="text-base font-bold text-heading">Cảnh báo rủi ro</h3>
           </div>
-          <p class="text-xs text-body mt-1">AI phát hiện 124 sinh viên có rủi ro rớt môn cao do vắng học.</p>
+          <p class="text-xs text-body mt-1">AI phát hiện {{ riskCount }} sinh viên có rủi ro rớt môn cao do vắng học.</p>
           
           <div class="mt-4 space-y-3">
              <div v-for="sv in riskStudents" :key="sv.id" class="flex items-center justify-between border-b border-(--color-danger-text)/20 pb-2">
@@ -185,7 +185,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { 
   AlertCircle, BarChart2, PieChart, Star, AlertTriangle, GraduationCap, 
   TrendingUp, Clock, User, UserMinus, Sparkles, ArrowUpRight, Bell, ShieldCheck, Loader2
@@ -193,17 +193,16 @@ import {
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
+const apiData = ref(null)
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      await bghApi.getDashboard()
-    }
+    const res = await bghApi.getDashboard()
+    apiData.value = unwrapApiData(res)
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu tổng quan'
   } finally {
@@ -211,23 +210,32 @@ async function loadData() {
   }
 }
 
-// KPI Stats
-const stats = [
-  { id: 1, label: 'GPA Trung Bình', value: '7.84', trend: '↑ 0.12', isNegative: false, bgColor: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)', icon: BarChart2 },
-  { id: 2, label: 'Tỷ lệ Pass', value: '92.5%', trend: 'Mục tiêu đạt', isNegative: false, bgColor: 'bg-(--color-success-bg)', iconColor: 'text-(--color-success-text)', icon: PieChart },
-  { id: 3, label: 'Đánh giá GV', value: '4.5/5', trend: '85% phản hồi', isNegative: false, bgColor: 'bg-(--color-warning-bg)', iconColor: 'text-(--color-warning-text)', icon: Star },
-  { id: 4, label: 'SV Nguy cơ rớt', value: '124', trend: 'Cảnh báo AI', isNegative: true, bgColor: 'bg-(--color-danger-bg)', iconColor: 'text-(--color-danger-text)', icon: UserMinus },
-]
+const dashboardText = computed(() => {
+  if (!apiData.value) return ''
+  const d = apiData.value
+  return `Tổng số ${d.totalStudents ?? 0} sinh viên, ${d.totalTeachers ?? 0} giáo viên, ${d.totalClasses ?? 0} lớp. Có ${d.pendingSchedules ?? 0} TKB đang chờ phê duyệt.`
+})
 
-const topTeachers = [
-  { id: 1, name: 'TS. Nguyễn Khắc A', initials: 'NA', department: 'Khoa CNTT', rating: '4.9', reviews: 145 },
-  { id: 2, name: 'ThS. Trần Thị B', initials: 'TB', department: 'Khoa Kinh Tế', rating: '4.8', reviews: 210 },
-]
+const stats = computed(() => {
+  if (!apiData.value) return []
+  const d = apiData.value
+  return [
+    { id: 1, label: 'Tổng giáo viên', value: d.totalTeachers ?? '--', trend: 'Đang giảng dạy', isNegative: false, bgColor: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)', icon: User },
+    { id: 2, label: 'Tổng sinh viên', value: d.totalStudents ?? '--', trend: 'Đang theo học', isNegative: false, bgColor: 'bg-(--color-success-bg)', iconColor: 'text-(--color-success-text)', icon: GraduationCap },
+    { id: 3, label: 'Tổng lớp học', value: d.totalClasses ?? '--', trend: 'Đang hoạt động', isNegative: false, bgColor: 'bg-(--color-warning-bg)', iconColor: 'text-(--color-warning-text)', icon: BarChart2 },
+    { id: 4, label: 'TKB chờ duyệt', value: d.pendingSchedules ?? 0, trend: d.pendingSchedules > 0 ? 'Cần xử lý' : 'Đã duyệt', isNegative: d.pendingSchedules > 0, bgColor: d.pendingSchedules > 0 ? 'bg-(--color-danger-bg)' : 'bg-(--color-success-bg)', iconColor: d.pendingSchedules > 0 ? 'text-(--color-danger-text)' : 'text-(--color-success-text)', icon: Clock },
+  ]
+})
 
-const riskStudents = [
-  { id: 'SE1601', name: 'Lê Hoàng Phát', class: 'SE1601', reason: 'Vắng > 20%' },
-  { id: 'SS1402', name: 'Trần Bích Thủy', class: 'SS1402', reason: 'GPA < 4.0' },
-]
+const topTeachers = ref([])
+const riskStudents = ref([])
+
+const pendingSchedules = computed(() => apiData.value?.pendingSchedules ?? 0)
+const pendingCount = computed(() => {
+  const n = apiData.value?.pendingSchedules ?? 0
+  return n > 0 ? `${n} Mới` : '0'
+})
+const riskCount = computed(() => apiData.value?.pendingRequests ?? 0)
 
 onMounted(() => { loadData() })
 </script>

@@ -98,6 +98,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<YeuCauHoanPhi> YeuCauHoanPhis => Set<YeuCauHoanPhi>();
     public DbSet<YeuCauMoKhoaDiemDanh> YeuCauMoKhoaDiemDanhs => Set<YeuCauMoKhoaDiemDanh>();
     public DbSet<YeuCauSuaDiem> YeuCauSuaDiems => Set<YeuCauSuaDiem>();
+    public DbSet<QuyTrinhDonTu> QuyTrinhDonTus => Set<QuyTrinhDonTu>();
+    public DbSet<BuocQuyTrinh> BuocQuyTrinhs => Set<BuocQuyTrinh>();
 
     // Exam module entities
     public DbSet<KyThi> KyThis => Set<KyThi>();

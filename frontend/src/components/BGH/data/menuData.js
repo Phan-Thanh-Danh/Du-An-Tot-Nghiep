@@ -88,13 +88,3 @@ export const bghMenuGroups = [
     ],
   },
 ]
-
-export const mockBGH = {
-  name: 'Nguyễn Văn Hiệu Trưởng',
-  staffId: 'BGH2024001',
-  email: 'hieutruong@lms.edu.vn',
-  avatar: null,
-  initials: 'HT',
-  department: 'Ban Giám Hiệu',
-  campus: 'Cơ sở chính',
-}

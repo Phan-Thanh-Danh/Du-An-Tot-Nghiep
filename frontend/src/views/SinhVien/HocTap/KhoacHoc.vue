@@ -16,7 +16,6 @@ import {
 } from 'lucide-vue-next'
 import LmsBadge from '@/components/LmsBadge.vue'
 
-import { studentDashboardMock } from '@/data/studentData.mock.js'
 import { studentApi } from '@/services/studentApi'
 
 const rawCourses = ref([])
@@ -36,8 +35,6 @@ onMounted(async () => {
   } catch (err) {
     console.error('Failed to load courses', err)
     error.value = 'Lỗi kết nối đến máy chủ.'
-    // Fallback to mock
-    rawCourses.value = studentDashboardMock.courses || []
   } finally {
     loading.value = false
   }

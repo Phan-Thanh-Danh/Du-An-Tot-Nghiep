@@ -103,7 +103,6 @@ import {
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
@@ -114,28 +113,16 @@ function toggleExpand(id) {
   expandedId.value = expandedId.value === id ? null : id
 }
 
-const mockPrograms = [
-  { maChuongTrinh: 1, maCodeChuongTrinh: 'CNTT-K19', tenChuongTrinh: 'Công nghệ thông tin - Chuyên ngành PT Ứng dụng', tenChuyenNganh: 'Công nghệ thông tin (Ứng dụng phần mềm)', tenKhoa: 'Khóa 19 (2024-2027)', version: '1.0', soHocKy: 7, thoiGianDaoTaoThang: 28, tongTinChiYeuCau: 135, trangThai: 'active', moTa: 'Chương trình đào tạo cử nhân Công nghệ thông tin chuyên ngành Ứng dụng phần mềm.', ngayHieuLuc: '01/09/2024', ngayHetHieuLuc: null, nguoiGuiDuyet: 'Nguyễn Văn A', nguoiDuyet: 'Trần Thị B', ngayTao: '15/05/2024', conHoatDong: true },
-  { maChuongTrinh: 2, maCodeChuongTrinh: 'CNTT-K20', tenChuongTrinh: 'Công nghệ thông tin - Chuyên ngành PT Ứng dụng', tenChuyenNganh: 'Công nghệ thông tin (Ứng dụng phần mềm)', tenKhoa: 'Khóa 20 (2025-2028)', version: '1.1', soHocKy: 7, thoiGianDaoTaoThang: 28, tongTinChiYeuCau: 138, trangThai: 'pending_approval', moTa: 'Phiên bản cập nhật chương trình CNTT khóa 20 với điều chỉnh 3 tín chỉ.', ngayHieuLuc: null, ngayHetHieuLuc: null, nguoiGuiDuyet: 'Nguyễn Văn A', nguoiDuyet: null, ngayTao: '10/03/2025', conHoatDong: true },
-  { maChuongTrinh: 3, maCodeChuongTrinh: 'KT-K19', tenChuongTrinh: 'Quản trị Kinh doanh - Chuyên ngành Kế toán', tenChuyenNganh: 'Quản trị Kinh doanh (Kế toán)', tenKhoa: 'Khóa 19 (2024-2027)', version: '1.0', soHocKy: 6, thoiGianDaoTaoThang: 24, tongTinChiYeuCau: 120, trangThai: 'active', moTa: 'Chương trình đào tạo cử nhân Quản trị Kinh doanh chuyên ngành Kế toán Doanh nghiệp.', ngayHieuLuc: '01/09/2024', ngayHetHieuLuc: null, nguoiGuiDuyet: 'Lê Thị C', nguoiDuyet: 'Trần Thị B', ngayTao: '20/05/2024', conHoatDong: true },
-  { maChuongTrinh: 4, maCodeChuongTrinh: 'TK-K19', tenChuongTrinh: 'Thiết kế Đồ họa - Chuyên ngành Mỹ thuật', tenChuyenNganh: 'Thiết kế Đồ họa', tenKhoa: 'Khóa 19 (2024-2027)', version: '2.0', soHocKy: 6, thoiGianDaoTaoThang: 24, tongTinChiYeuCau: 126, trangThai: 'approved', moTa: 'Chương trình đào tạo cử nhân Thiết kế Đồ họa phiên bản 2.0.', ngayHieuLuc: '01/09/2025', ngayHetHieuLuc: null, nguoiGuiDuyet: 'Phạm Văn D', nguoiDuyet: 'Trần Thị B', ngayTao: '01/08/2024', conHoatDong: true },
-  { maChuongTrinh: 5, maCodeChuongTrinh: 'CNTT-K18', tenChuongTrinh: 'Công nghệ thông tin - Chuyên ngành PT Ứng dụng', tenChuyenNganh: 'Công nghệ thông tin (Ứng dụng phần mềm)', tenKhoa: 'Khóa 18 (2023-2026)', version: '1.0', soHocKy: 7, thoiGianDaoTaoThang: 28, tongTinChiYeuCau: 135, trangThai: 'archived', moTa: 'Chương trình khóa 18 đã kết thúc và được lưu trữ.', ngayHieuLuc: '01/09/2023', ngayHetHieuLuc: '31/08/2026', nguoiGuiDuyet: 'Nguyễn Văn A', nguoiDuyet: 'Trần Thị B', ngayTao: '01/03/2023', conHoatDong: false },
-  { maChuongTrinh: 6, maCodeChuongTrinh: 'QTKS-K19', tenChuongTrinh: 'Quản trị Khách sạn - Chuyên ngành Nhà hàng', tenChuyenNganh: 'Quản trị Khách sạn', tenKhoa: 'Khóa 19 (2024-2027)', version: '1.0', soHocKy: 6, thoiGianDaoTaoThang: 24, tongTinChiYeuCau: 122, trangThai: 'draft', moTa: 'Chương trình đang được xây dựng, chưa gửi duyệt.', ngayHieuLuc: null, ngayHetHieuLuc: null, nguoiGuiDuyet: null, nguoiDuyet: null, ngayTao: '05/06/2025', conHoatDong: true },
-]
-
-const programs = ref(mockPrograms)
+const programs = ref([])
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getPrograms()
-      programs.value = unwrapApiData(res) || mockPrograms
-    }
+    const res = await bghApi.getPrograms()
+    programs.value = unwrapApiData(res) || []
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu chương trình đào tạo'
-    programs.value = mockPrograms
   } finally {
     loading.value = false
   }

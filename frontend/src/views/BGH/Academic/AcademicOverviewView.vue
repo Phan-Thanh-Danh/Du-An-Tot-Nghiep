@@ -24,10 +24,9 @@ import { exportToExcel, triggerPrint } from '@/services/exportService.js'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
-const activeChartView = ref('toan-truong')
+
 const semesterFilter = ref('spring-2026')
 const departmentFilter = ref('all')
 const campusFilter = ref('all')
@@ -52,46 +51,43 @@ const campuses = [
   { value: 'cs2', label: 'Cơ sở 2' },
 ]
 
-const kpis = [
-  { id: 1, label: 'Tổng số sinh viên', value: '1,240', trend: '+5.2%', icon: Users, color: 'text-(--color-info-text)', bgColor: 'bg-(--color-info-bg)' },
-  { id: 2, label: 'GPA Trung bình', value: '3.12', trend: '+0.05', icon: Award, color: 'text-(--color-info-text)', bgColor: 'bg-(--color-info-bg)' },
-  { id: 3, label: 'Tỷ lệ đạt (Pass)', value: '88.4%', trend: '+1.2%', icon: CheckCircle2, color: 'text-(--color-success-text)', bgColor: 'bg-(--color-success-bg)' },
-  { id: 4, label: 'Nguy cơ rớt môn', value: '42', trend: 'Cần chú ý', icon: AlertCircle, color: 'text-(--color-danger-text)', bgColor: 'bg-(--color-danger-bg)' },
-]
-
-const distribution = [
-  { range: 'A (8.5 - 10)', count: 185, percent: 15, color: 'bg-(--color-success-text)' },
-  { range: 'B (7.0 - 8.4)', count: 420, percent: 34, color: 'bg-(--color-info-text)' },
-  { range: 'C (5.5 - 6.9)', count: 350, percent: 28, color: 'bg-(--lg-primary)' },
-  { range: 'D (4.0 - 5.4)', count: 210, percent: 17, color: 'bg-(--color-warning-text)' },
-  { range: 'F (< 4.0)', count: 75, percent: 6, color: 'bg-(--color-danger-text)' },
-]
-
-const chartData = ref([
-  { k: 'Kỳ 2021', toanTruong: 3.50, cntt: 3.45, ktqt: 3.55, nna: 3.60 },
-  { k: 'Kỳ 2022', toanTruong: 3.88, cntt: 3.75, ktqt: 3.90, nna: 3.95 },
-  { k: 'Kỳ 2023', toanTruong: 3.70, cntt: 3.60, ktqt: 3.72, nna: 3.85 },
-  { k: 'Kỳ 2024', toanTruong: 4.25, cntt: 4.10, ktqt: 4.30, nna: 4.40 },
-  { k: 'Kỳ 2025', toanTruong: 4.63, cntt: 4.50, ktqt: 4.70, nna: 4.80 },
-])
-
-const topSubjects = ref([
-  { name: 'An toàn thông tin', class: 'SE1604', teacher: 'Hoàng Văn D', total: 38, pass: 38, failRate: 0, trend: 'up' },
-  { name: 'Web Advanced', class: 'SE1602', teacher: 'Trần Thị B', total: 35, pass: 34, failRate: 2.8, trend: 'up' },
-  { name: 'Java Programming', class: 'SE1601', teacher: 'Nguyễn Văn A', total: 40, pass: 32, failRate: 20, trend: 'down' },
-  { name: 'Cơ sở dữ liệu', class: 'SE1603', teacher: 'Lê Văn C', total: 42, pass: 30, failRate: 28.5, trend: 'down' },
-])
+const kpis = ref([])
+const distribution = ref([])
+const chartData = ref([])
+const topSubjects = ref([])
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getReportOverview()
-      const data = unwrapApiData(res)
-      if (data) {
-        // Update KPIs, chartData, topSubjects from API data as needed
-      }
+    const res = await bghApi.getAcademicOverview()
+    const data = unwrapApiData(res)
+    if (data) {
+      kpis.value = [
+        { id: 1, label: 'Tổng số sinh viên', value: (data.totalStudents ?? 0).toLocaleString(), trend: '—', icon: Users, color: 'text-(--color-info-text)', bgColor: 'bg-(--color-info-bg)' },
+        { id: 2, label: 'GPA Trung bình', value: (data.avgGpa ?? 0).toFixed(2), trend: '—', icon: Award, color: 'text-(--color-info-text)', bgColor: 'bg-(--color-info-bg)' },
+        { id: 3, label: 'Tỷ lệ đạt (Pass)', value: (data.passRate ?? 0).toFixed(1) + '%', trend: '—', icon: CheckCircle2, color: 'text-(--color-success-text)', bgColor: 'bg-(--color-success-bg)' },
+        { id: 4, label: 'Nguy cơ rớt môn', value: (data.atRiskCount ?? 0).toString(), trend: 'Cần chú ý', icon: AlertCircle, color: 'text-(--color-danger-text)', bgColor: 'bg-(--color-danger-bg)' },
+      ]
+      distribution.value = (data.gradeDistribution || []).map(d => ({
+        range: d.grade,
+        count: d.count,
+        percent: d.percent,
+        color: d.grade.startsWith('A') ? 'bg-(--color-success-text)' : d.grade.startsWith('B') ? 'bg-(--color-info-text)' : d.grade.startsWith('C') ? 'bg-(--lg-primary)' : d.grade.startsWith('D') ? 'bg-(--color-warning-text)' : 'bg-(--color-danger-text)',
+      }))
+      topSubjects.value = (data.topSubjects || []).map(s => ({
+        name: s.subjectName,
+        class: '',
+        teacher: '',
+        total: s.total,
+        pass: s.pass,
+        failRate: s.failRate,
+        trend: s.failRate <= 5 ? 'up' : 'down',
+      }))
+      chartData.value = (data.semesterTrend || []).map(t => ({
+        k: t.semester,
+        toanTruong: t.avgGpa
+      }))
     }
   } catch (e) {
     error.value = e.message
@@ -103,10 +99,10 @@ onMounted(() => { loadData() })
 
 function prepareExcelData() {
   return [
-    ...kpis.map(k => ({ 'Chỉ tiêu': k.label, 'Giá trị': k.value, 'Xu hướng': k.trend })),
+    ...kpis.value.map(k => ({ 'Chỉ tiêu': k.label, 'Giá trị': k.value, 'Xu hướng': k.trend })),
     {},
     { 'Chỉ tiêu': 'Phân phối điểm số', 'Giá trị': '', 'Xu hướng': '' },
-    ...distribution.map(d => ({ 'Chỉ tiêu': d.range, 'Giá trị': `${d.count} SV`, 'Xu hướng': `${d.percent}%` })),
+    ...distribution.value.map(d => ({ 'Chỉ tiêu': d.range, 'Giá trị': `${d.count} SV`, 'Xu hướng': `${d.percent}%` })),
     {},
     { 'Chỉ tiêu': 'Xu hướng GPA theo kỳ', 'Giá trị': '', 'Xu hướng': '' },
     ...chartData.value.map(d => ({ 'Chỉ tiêu': d.k, 'Giá trị': `Toàn trường: ${d.toanTruong}`, 'Xu hướng': '' })),
@@ -188,13 +184,13 @@ const getBarColor = (index) => {
       </div>
 
       <!-- ── KPI Cards ── -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div v-if="kpis.length" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <div v-for="kpi in kpis" :key="kpi.id" class="surface-card border border-card rounded-2xl p-4 group transition-all">
            <div class="flex items-center justify-between mb-4">
               <div :class="['h-10 w-10 rounded-2xl flex items-center justify-center shadow-sm border border-default', kpi.bgColor, kpi.color]">
                  <component :is="kpi.icon" :size="24" />
               </div>
-              <span :class="['text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-lg', kpi.trend.includes('+') ? 'bg-(--color-success-bg) text-(--color-success-text)' : 'bg-(--color-danger-bg) text-(--color-danger-text)']">
+              <span :class="['text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-lg', typeof kpi.trend === 'string' && kpi.trend.includes('+') ? 'bg-(--color-success-bg) text-(--color-success-text)' : 'bg-(--color-danger-bg) text-(--color-danger-text)']">
                  {{ kpi.trend }}
               </span>
            </div>
@@ -210,50 +206,36 @@ const getBarColor = (index) => {
            <div class="flex items-center justify-between mb-8">
               <div>
                  <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Xu hướng GPA theo học kỳ</h4>
-                 <p class="text-xs text-muted mt-1 font-bold">Dữ liệu so sánh 5 học kỳ gần nhất</p>
-              </div>
-              <div class="flex items-center surface-solid rounded-xl p-1 border border-default">
-                 <button 
-                   @click="activeChartView = 'toan-truong'"
-                   :class="['px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest rounded-lg transition-all', activeChartView === 'toan-truong' ? 'surface-card text-link shadow-sm' : 'text-muted hover:text-label']"
-                 >Toàn trường</button>
-                 <button 
-                   @click="activeChartView = 'theo-nganh'"
-                   :class="['px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest rounded-lg transition-all', activeChartView === 'theo-nganh' ? 'surface-card text-link shadow-sm' : 'text-muted hover:text-label']"
-                 >Theo ngành</button>
+                 <p class="text-xs text-muted mt-1 font-bold">Dữ liệu so sánh các học kỳ gần nhất</p>
               </div>
            </div>
 
-           <div class="h-64 flex items-end justify-between gap-4 px-4 relative">
+           <div v-if="chartData.length" class="h-64 flex items-end justify-between gap-4 px-4 relative">
               <div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5">
                  <div v-for="i in 5" :key="i" class="h-px w-full bg-(--border-default)"></div>
               </div>
               
               <div v-for="(item, i) in chartData" :key="item.k" class="flex-1 group relative cursor-pointer">
                  <div 
-                   :style="{ height: `${getBarHeight(activeChartView === 'toan-truong' ? item.toanTruong : item.cntt)}%` }" 
+                   :style="{ height: `${getBarHeight(item.toanTruong)}%` }" 
                    class="w-full rounded-t-2xl transition-all duration-500 group-hover:opacity-80"
                    :class="getBarColor(i)"
                  ></div>
                  <p class="text-center text-[10px] font-semibold text-muted uppercase mt-3">{{ item.k }}</p>
                  <div class="absolute -top-10 left-1/2 -translate-x-1/2 surface-modal text-heading text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity border border-default whitespace-nowrap">
-                    GPA: {{ activeChartView === 'toan-truong' ? item.toanTruong : item.cntt }}
+                    GPA: {{ item.toanTruong }}
                  </div>
               </div>
            </div>
-
-           <div v-if="activeChartView === 'theo-nganh'" class="mt-6 pt-4 flex flex-wrap items-center gap-4">
-             <span class="text-[10px] font-semibold text-muted uppercase tracking-widest">Chú thích:</span>
-             <span class="flex items-center gap-1.5 text-[10px] font-bold text-label"><span class="w-3 h-3 rounded-sm bg-(--color-info-text)"></span> CNTT</span>
-             <span class="flex items-center gap-1.5 text-[10px] font-bold text-label"><span class="w-3 h-3 rounded-sm bg-(--color-warning-text)"></span> Kinh tế & QT</span>
-             <span class="flex items-center gap-1.5 text-[10px] font-bold text-label"><span class="w-3 h-3 rounded-sm bg-(--color-success-text)"></span> Ngôn ngữ Anh</span>
+           <div v-else class="h-64 flex items-center justify-center">
+             <p class="text-xs text-muted font-medium">Chưa có dữ liệu xu hướng GPA</p>
            </div>
         </div>
 
         <!-- ── Distribution List ── -->
         <div class="surface-card border border-card rounded-2xl p-6">
            <h4 class="text-sm font-semibold text-heading uppercase tracking-wide mb-6">Phân phối điểm số</h4>
-           <div class="space-y-4">
+           <div v-if="distribution.length" class="space-y-4">
               <div v-for="item in distribution" :key="item.range">
                  <div class="flex items-center justify-between mb-2">
                     <span class="text-xs font-semibold text-label uppercase tracking-tighter">{{ item.range }}</span>
@@ -267,11 +249,14 @@ const getBarColor = (index) => {
                  </div>
               </div>
            </div>
+           <div v-else class="py-8 text-center">
+             <p class="text-xs text-muted font-medium">Chưa có dữ liệu phân phối điểm</p>
+           </div>
            
            <div class="mt-6 pt-6">
               <div class="flex items-center gap-4 text-xs font-bold text-muted">
                  <PieChart :size="18" class="text-link shrink-0" />
-                 <p>Hệ số điểm A/B chiếm <strong>49%</strong>, cho thấy chất lượng đào tạo đang ở mức Khá.</p>
+                 <p>Hệ số điểm A/B chiếm <strong>{{ distribution.length ? distribution.filter(d => d.range.startsWith('A') || d.range.startsWith('B')).reduce((s, d) => s + d.percent, 0).toFixed(0) : 0 }}%</strong>, cho thấy chất lượng đào tạo đang ở mức Khá.</p>
               </div>
            </div>
         </div>
@@ -289,7 +274,7 @@ const getBarColor = (index) => {
             Xem tất cả <ChevronRight :size="12" />
           </router-link>
         </div>
-        <div class="overflow-x-auto">
+        <div v-if="topSubjects.length" class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="surface-solid">
@@ -315,7 +300,7 @@ const getBarColor = (index) => {
                   </div>
                 </td>
                 <td class="px-5 py-4">
-                  <span class="text-xs font-bold text-label">{{ sub.teacher }}</span>
+                  <span class="text-xs font-bold text-label">{{ sub.teacher || '—' }}</span>
                 </td>
                 <td class="px-5 py-4">
                   <div class="flex items-center gap-2">
@@ -345,6 +330,9 @@ const getBarColor = (index) => {
               </tr>
             </tbody>
           </table>
+        </div>
+        <div v-else class="py-12 text-center">
+          <p class="text-xs text-muted font-medium">Chưa có dữ liệu môn học</p>
         </div>
       </div>
 
@@ -388,17 +376,17 @@ const getBarColor = (index) => {
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="surface-card border border-card rounded-2xl p-5 text-center">
           <GraduationCap :size="28" class="text-(--color-info-text) mx-auto mb-3" />
-          <p class="text-2xl font-bold text-heading">245</p>
-          <p class="text-xs font-semibold text-muted uppercase tracking-widest mt-1">Tổng số môn học</p>
+          <p class="text-2xl font-bold text-heading">{{ kpis.length ? kpis[0].value : '0' }}</p>
+          <p class="text-xs font-semibold text-muted uppercase tracking-widest mt-1">Tổng số sinh viên</p>
         </div>
         <div class="surface-card border border-card rounded-2xl p-5 text-center">
           <Users :size="28" class="text-(--color-success-text) mx-auto mb-3" />
-          <p class="text-2xl font-bold text-heading">89</p>
+          <p class="text-2xl font-bold text-heading">—</p>
           <p class="text-xs font-semibold text-muted uppercase tracking-widest mt-1">Giảng viên đang giảng dạy</p>
         </div>
         <div class="surface-card border border-card rounded-2xl p-5 text-center">
           <BookOpen :size="28" class="text-(--color-warning-text) mx-auto mb-3" />
-          <p class="text-2xl font-bold text-heading">156</p>
+          <p class="text-2xl font-bold text-heading">—</p>
           <p class="text-xs font-semibold text-muted uppercase tracking-widest mt-1">Lớp học phần đang mở</p>
         </div>
       </div>

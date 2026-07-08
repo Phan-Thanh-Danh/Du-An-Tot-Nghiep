@@ -8,7 +8,6 @@ import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
@@ -17,27 +16,16 @@ const searchQuery = ref('')
 const statusFilter = ref('all')
 const showFilterDetail = ref(false)
 
-const mockChanges = [
-  { id: 'CH-001', subject: 'Lập trình Web (SE104.N11)', type: 'makeup', teacher: 'Lê Văn C', oldSlot: 'Thứ 3, Ca 1 - A1.01', newSlot: 'Thứ 7, Ca 2 - B2.03', reason: 'Bận họp Khoa', date: '15/06/2026', updated: '10 phút trước', status: 'pending' },
-  { id: 'CH-002', subject: 'Cơ sở dữ liệu (SE201.N12)', type: 'swap', teacher: 'Trần Thị H', oldSlot: 'Thứ 5, Ca 2 - A2.05', newSlot: 'Thứ 4, Ca 3 - A2.05', reason: 'Điều chỉnh lịch phòng', date: '16/06/2026', updated: '30 phút trước', status: 'pending' },
-  { id: 'CH-003', subject: 'Tiếng Anh 3 (EN101.N02)', type: 'cancel', teacher: 'Nguyễn Văn K', oldSlot: 'Thứ 2, Ca 1 - B1.01', newSlot: '—', reason: 'Lịch nghỉ bù', date: '12/06/2026', updated: '1 giờ trước', status: 'approved' },
-  { id: 'CH-004', subject: 'Toán rời rạc (MA101.N05)', type: 'makeup', teacher: 'Phạm Minh D', oldSlot: 'Thứ 6, Ca 3 - C1.02', newSlot: 'CN, Ca 1 - C1.02', reason: 'Bận công tác', date: '14/06/2026', updated: '2 giờ trước', status: 'approved' },
-  { id: 'CH-005', subject: 'Kinh tế vi mô (EC201.N03)', type: 'swap', teacher: 'Hoàng Thị L', oldSlot: 'Thứ 4, Ca 2 - A3.04', newSlot: 'Thứ 5, Ca 2 - B1.03', reason: 'Trùng lịch GV', date: '17/06/2026', updated: '3 giờ trước', status: 'rejected' },
-]
-
-const changes = ref(mockChanges)
+const changes = ref([])
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getPendingSchedules({ status: 'changed' })
-      changes.value = unwrapApiData(res) || mockChanges
-    }
+    const res = await bghApi.getScheduleChanges()
+    changes.value = unwrapApiData(res) || []
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu thay đổi lịch'
-    changes.value = mockChanges
   } finally {
     loading.value = false
   }

@@ -105,35 +105,21 @@ import { CalendarDays, Lock, Unlock, AlertCircle, Loader2 } from 'lucide-vue-nex
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
 const yearFilter = ref('')
 
-const mockTerms = [
-  { maHocKy: 1, maDonVi: 1, maCodeHocKy: 'FA24', tenHocKy: 'Học kỳ Fall 2024', ngayBatDau: '02/09/2024', ngayKetThuc: '31/12/2024', namHoc: '2024-2025', thuTuTrongNam: 1, daKhoa: true, soTinChiToiDa: 24, hanRutMon: '15/10/2024' },
-  { maHocKy: 2, maDonVi: 1, maCodeHocKy: 'SP25', tenHocKy: 'Học kỳ Spring 2025', ngayBatDau: '06/01/2025', ngayKetThuc: '30/05/2025', namHoc: '2024-2025', thuTuTrongNam: 2, daKhoa: true, soTinChiToiDa: 24, hanRutMon: '15/02/2025' },
-  { maHocKy: 3, maDonVi: 1, maCodeHocKy: 'SU25', tenHocKy: 'Học kỳ Summer 2025', ngayBatDau: '09/06/2025', ngayKetThuc: '31/08/2025', namHoc: '2025-2026', thuTuTrongNam: 3, daKhoa: true, soTinChiToiDa: 18, hanRutMon: '30/06/2025' },
-  { maHocKy: 4, maDonVi: 1, maCodeHocKy: 'FA25', tenHocKy: 'Học kỳ Fall 2025', ngayBatDau: '01/09/2025', ngayKetThuc: '31/12/2025', namHoc: '2025-2026', thuTuTrongNam: 1, daKhoa: true, soTinChiToiDa: 24, hanRutMon: '15/10/2025' },
-  { maHocKy: 5, maDonVi: 1, maCodeHocKy: 'SP26', tenHocKy: 'Học kỳ Spring 2026', ngayBatDau: '05/01/2026', ngayKetThuc: '29/05/2026', namHoc: '2025-2026', thuTuTrongNam: 2, daKhoa: false, soTinChiToiDa: 24, hanRutMon: '15/02/2026' },
-  { maHocKy: 6, maDonVi: 1, maCodeHocKy: 'SU26', tenHocKy: 'Học kỳ Summer 2026', ngayBatDau: '08/06/2026', ngayKetThuc: '30/08/2026', namHoc: '2026-2027', thuTuTrongNam: 3, daKhoa: false, soTinChiToiDa: 18, hanRutMon: '30/06/2026' },
-  { maHocKy: 7, maDonVi: 2, maCodeHocKy: 'SP26-DN', tenHocKy: 'Học kỳ Spring 2026 - Đà Nẵng', ngayBatDau: '05/01/2026', ngayKetThuc: '29/05/2026', namHoc: '2025-2026', thuTuTrongNam: 2, daKhoa: false, soTinChiToiDa: 24, hanRutMon: '15/02/2026' },
-]
-
-const terms = ref(mockTerms)
+const terms = ref([])
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getAcademicTerms()
-      terms.value = unwrapApiData(res) || mockTerms
-    }
+    const res = await bghApi.getAcademicTerms()
+    terms.value = unwrapApiData(res) || []
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu học kỳ'
-    terms.value = mockTerms
   } finally {
     loading.value = false
   }

@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import {
+  AlertCircle,
   CalendarDays,
   CheckCircle2,
   Clock3,
@@ -20,18 +21,34 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
-import {
-  getTeacherAttendanceHistory,
-  getTeacherUnlockRequests,
-} from '@/mocks/scheduleAttendanceMockData'
 import { usePopupStore } from '@/stores/popup'
+import { teacherApi } from '@/services/teacherApi'
 import { formatDate, formatDateTime, formatTimeRange } from '@/utils/dateFormat'
 import { getStatusMeta, getStatusOptions } from '@/utils/statusLabels'
 
 const popupStore = usePopupStore()
 
-const sessions = ref(getTeacherAttendanceHistory())
-const unlockRequests = ref(getTeacherUnlockRequests())
+const loading = ref(false)
+const error = ref('')
+const sessions = ref([])
+const unlockRequests = ref([])
+
+async function loadHistory() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await teacherApi.getAttendanceHistory()
+    sessions.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+    const unlockData = await teacherApi.getUnlockRequests()
+    unlockRequests.value = Array.isArray(unlockData) ? unlockData : (unlockData?.items ?? unlockData?.data ?? [])
+  } catch (e) {
+    error.value = e?.message || 'Không thể tải lịch sử điểm danh.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => { loadHistory() })
 
 const searchQuery = ref('')
 const selectedCourse = ref('')
@@ -206,7 +223,16 @@ function resetFilters() {
 </script>
 
 <template>
-  <div class="teacher-attendance-history-page lg-page-enter mx-auto max-w-7xl space-y-5">
+  <div v-if="loading" class="flex items-center justify-center min-h-[300px]">
+    <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+    <span class="ml-3 text-muted text-sm">Đang tải lịch sử...</span>
+  </div>
+  <div v-else-if="error" class="flex flex-col items-center justify-center min-h-[300px] gap-4">
+    <AlertCircle :size="40" class="text-rose-400" />
+    <p class="text-rose-600 font-semibold">{{ error }}</p>
+    <GlassButton variant="secondary" @click="loadHistory">Thử lại</GlassButton>
+  </div>
+  <div v-else class="teacher-attendance-history-page lg-page-enter mx-auto max-w-7xl space-y-5">
     <GlassPanel variant="flat" density="compact" class="page-header">
       <div class="header-copy">
         <p class="eyebrow">
@@ -290,7 +316,6 @@ function resetFilters() {
             <h2>Danh sách buổi đã điểm danh</h2>
             <p>Hiển thị {{ filteredSessions.length }} buổi theo bộ lọc hiện tại.</p>
           </div>
-          <GlassBadge variant="info">Mock UI</GlassBadge>
         </div>
 
         <TableShell v-if="filteredSessions.length" density="compact" class="history-table-shell">

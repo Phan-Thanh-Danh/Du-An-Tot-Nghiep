@@ -163,29 +163,11 @@ import {
   Search, Plus, Edit2, Trash2,
   Loader2, AlertTriangle, AlertCircle, X 
 } from 'lucide-vue-next'
-import { useAuthStore } from '@/stores/auth'
 import { bghApi } from '@/services/bghApi'
-import { unwrapApiData } from '@/services/apiClient'
-
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+import { apiRequest, unwrapApiData } from '@/services/apiClient'
 
 const authStore = useAuthStore()
 const canEdit = computed(() => authStore.hasRole(['SuperAdmin', 'Admin']))
-
-let nextRoleId = 100
-
-const mockRoles = [
-  { maVaiTro: 1, maCodeVaiTro: 'sieu_quan_tri', tenVaiTro: 'Siêu quản trị' },
-  { maVaiTro: 2, maCodeVaiTro: 'quan_tri', tenVaiTro: 'Quản trị hệ thống' },
-  { maVaiTro: 3, maCodeVaiTro: 'quan_tri_co_so', tenVaiTro: 'Quản trị cơ sở' },
-  { maVaiTro: 4, maCodeVaiTro: 'nhan_vien', tenVaiTro: 'Giáo vụ' },
-  { maVaiTro: 5, maCodeVaiTro: 'hieu_truong', tenVaiTro: 'Ban Giám Hiệu' },
-  { maVaiTro: 6, maCodeVaiTro: 'giao_vien', tenVaiTro: 'Giảng viên' },
-  { maVaiTro: 7, maCodeVaiTro: 'hoc_sinh', tenVaiTro: 'Sinh viên' },
-  { maVaiTro: 8, maCodeVaiTro: 'chu_tich', tenVaiTro: 'Chủ tịch hệ thống' },
-  { maVaiTro: 9, maCodeVaiTro: 'admin_tai_chinh', tenVaiTro: 'Admin tài chính' },
-  { maVaiTro: 10, maCodeVaiTro: 'ke_toan_co_so', tenVaiTro: 'Kế toán cơ sở' },
-]
 
 // --- Data State ---
 const rolesList = ref([])
@@ -219,17 +201,11 @@ const fetchRoles = async () => {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getRoles()
-      rolesList.value = unwrapApiData(res) || []
-      return
-    }
-    setTimeout(() => {
-      rolesList.value = [...mockRoles]
-      loading.value = false
-    }, 200)
+    const res = await bghApi.getRoles()
+    rolesList.value = unwrapApiData(res) || []
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu vai trò'
+  } finally {
     loading.value = false
   }
 }
@@ -252,33 +228,45 @@ const closeModal = () => {
   showModal.value = false
 }
 
-const submitForm = () => {
+const submitForm = async () => {
   if (!formData.value.maCodeVaiTro || !formData.value.tenVaiTro) {
     apiError.value = 'Vui lòng điền đầy đủ các trường bắt buộc (*).'
     return
   }
   apiError.value = ''
+  saving.value = true
 
-  if (modalMode.value === 'create') {
-    const newRole = { maVaiTro: nextRoleId++, maCodeVaiTro: formData.value.maCodeVaiTro, tenVaiTro: formData.value.tenVaiTro }
-    mockRoles.push(newRole)
-  } else {
-    const role = mockRoles.find(r => r.maVaiTro === formData.value.maVaiTro)
-    if (role) {
-      role.maCodeVaiTro = formData.value.maCodeVaiTro
-      role.tenVaiTro = formData.value.tenVaiTro
+  try {
+    if (modalMode.value === 'create') {
+      await apiRequest('/api/admin/rbac/roles', {
+        method: 'POST',
+        body: JSON.stringify({ maCodeVaiTro: formData.value.maCodeVaiTro, tenVaiTro: formData.value.tenVaiTro })
+      })
+    } else {
+      await apiRequest(`/api/admin/rbac/roles/${formData.value.maVaiTro}`, {
+        method: 'PUT',
+        body: JSON.stringify({ maCodeVaiTro: formData.value.maCodeVaiTro, tenVaiTro: formData.value.tenVaiTro })
+      })
     }
+    closeModal()
+    await fetchRoles()
+  } catch (e) {
+    apiError.value = e?.message || 'Lỗi lưu dữ liệu'
+  } finally {
+    saving.value = false
   }
-
-  closeModal()
-  fetchRoles()
 }
 
-const handleDelete = (role) => {
-    if (import.meta.env.VITE_MOCK === 'true' /* confirm(`Bạn có chắc chắn muốn xóa vai trò "${role.tenVaiTro}"? Hành động này có thể ảnh hưởng lớn đến hệ thống!`) */) return
-  const idx = mockRoles.findIndex(r => r.maVaiTro === role.maVaiTro)
-  if (idx !== -1) mockRoles.splice(idx, 1)
-  fetchRoles()
+const handleDelete = async (role) => {
+  saving.value = true
+  try {
+    await apiRequest(`/api/admin/rbac/roles/${role.maVaiTro}`, { method: 'DELETE' })
+    await fetchRoles()
+  } catch (e) {
+    apiError.value = e?.message || 'Lỗi xóa vai trò'
+  } finally {
+    saving.value = false
+  }
 }
 
 onMounted(() => {

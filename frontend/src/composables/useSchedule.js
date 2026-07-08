@@ -9,26 +9,7 @@ dayjs.locale('vi')
 const events = ref([])
 const currentMonth = ref(dayjs())
 
-const mockEvents = [
-  { id: 1, title: 'Lập trình Java', teacher: 'Nguyễn Văn A', room: 'P302', start: '2026-05-26T07:30:00', end: '2026-05-26T09:00:00', status: 'published', color: '#22c55e', type: 'class' },
-  { id: 2, title: 'Cấu trúc dữ liệu & Giải thuật', teacher: 'Trần Thị B', room: 'P105', start: '2026-05-26T13:30:00', end: '2026-05-26T15:00:00', status: 'published', color: '#3b82f6', type: 'class' },
-  { id: 3, title: 'Web Frontend', teacher: 'Lê Văn C', room: 'Lab 2', start: '2026-05-27T08:30:00', end: '2026-05-27T11:30:00', status: 'pending', color: '#f59e0b', type: 'class' },
-  { id: 4, title: 'Cơ sở dữ liệu', teacher: 'Phạm Minh Tuấn', room: 'P302', start: '2026-05-28T09:30:00', end: '2026-05-28T11:00:00', status: 'published', color: '#8b5cf6', type: 'class' },
-  { id: 5, title: 'Toán rời rạc', teacher: 'Nguyễn Văn A', room: 'P201', start: '2026-05-28T14:00:00', end: '2026-05-28T16:30:00', status: 'draft', color: '#06b6d4', type: 'exam' },
-  { id: 6, title: 'Tiếng Anh chuyên ngành', teacher: 'Trần Thị B', room: 'P305', start: '2026-05-29T07:00:00', end: '2026-05-29T09:30:00', status: 'published', color: '#ef4444', type: 'class' },
-  { id: 7, title: 'Phân tích thiết kế hệ thống', teacher: 'Lê Văn C', room: 'P103', start: '2026-05-30T10:00:00', end: '2026-05-30T12:00:00', status: 'pending', color: '#14b8a6', type: 'class' },
-  { id: 8, title: 'Kỹ thuật phần mềm', teacher: 'Nguyễn Văn A', room: 'P201', start: '2026-05-26T10:00:00', end: '2026-05-26T11:30:00', status: 'published', color: '#ec4899', type: 'class' },
-  { id: 9, title: 'Mạng máy tính', teacher: 'Lê Văn C', room: 'Lab 1', start: '2026-05-27T15:00:00', end: '2026-05-27T17:00:00', status: 'published', color: '#6366f1', type: 'class' },
-  { id: 10, title: 'Hệ điều hành', teacher: 'Trần Thị B', room: 'P103', start: '2026-05-29T14:00:00', end: '2026-05-29T16:00:00', status: 'draft', color: '#f97316', type: 'exam' },
-  { id: 11, title: 'Họp tổ bộ môn', teacher: 'TS. Nguyễn Văn A', room: 'Phòng họp A', start: '2026-05-27T14:00:00', end: '2026-05-27T15:30:00', status: 'published', color: '#0ea5e9', type: 'meeting' },
-  { id: 12, title: 'Thi giữa kỳ - Toán', teacher: 'Phạm Minh Tuấn', room: 'P201,P202,P203', start: '2026-06-01T07:00:00', end: '2026-06-01T09:00:00', status: 'published', color: '#dc2626', type: 'exam' },
-]
-
 export function useSchedule() {
-  if (events.value.length === 0) {
-    events.value = mockEvents.map(e => ({ ...e }))
-  }
-
   // ── Month view ─────────────────────────────────────
   const monthGrid = computed(() => {
     const startOfMonth = currentMonth.value.startOf('month')
@@ -67,7 +48,7 @@ export function useSchedule() {
   function goToToday() { currentMonth.value = dayjs() }
 
   // ── CRUD ────────────────────────────────────────────
-  let nextId = Math.max(...events.value.map(e => e.id), 0) + 1
+  let nextId = Math.max(0, ...events.value.map(e => e.id)) + 1
 
   function createEvent(eventData) {
     const newEvent = {

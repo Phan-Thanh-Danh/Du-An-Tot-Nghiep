@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   FileText,
@@ -12,34 +12,62 @@ import {
   ShieldCheck,
   CheckCircle2
 } from 'lucide-vue-next'
-import { childrenData, setActiveChildId } from '@/components/PhuHuynh/data/parentData.js'
+import { parentApi } from '@/services/parentApi'
 import { usePopupStore } from '@/stores/popup'
 
 const route = useRoute()
 const router = useRouter()
 const popupStore = usePopupStore()
 
-// Lấy studentId từ query URL hoặc local storage, mặc định là 1
-const activeChildId = ref(Number(route.query.studentId) || Number(localStorage.getItem('parent_active_student_id')) || 1)
+const activeChildId = ref(Number(route.query.studentId) || Number(localStorage.getItem('parent_active_student_id')) || null)
 const dropdownOpen = ref(false)
+const loading = ref(true)
+const error = ref('')
 
-// State Modal xem hóa đơn chi tiết
+const children = ref([])
+const invoices = ref([])
+
+const currentChild = computed(() => {
+  return children.value.find(c => c.id === activeChildId.value) || children.value[0] || null
+})
+
 const isInvoiceModalOpen = ref(false)
 const selectedInvoice = ref(null)
 
-const currentChild = computed(() => {
-  return childrenData.find(c => c.id === activeChildId.value) || childrenData[0]
-})
+async function loadData() {
+  loading.value = true
+  error.value = ''
+  try {
+    const childrenRes = await parentApi.getChildren()
+    children.value = childrenRes?.data || []
+    const validChild = children.value.find(child => child.id === activeChildId.value) || children.value[0]
+    if (!validChild) {
+      invoices.value = []
+      return
+    }
+    activeChildId.value = validChild.id
+    localStorage.setItem('parent_active_student_id', validChild.id)
+    const invRes = await parentApi.getChildInvoices(validChild.id)
+    invoices.value = invRes?.data || []
+  } catch (err) {
+    error.value = err.message || 'Không thể tải dữ liệu hóa đơn.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadData)
 
 function selectChild(id) {
   activeChildId.value = id
-  setActiveChildId(id)
+  localStorage.setItem('parent_active_student_id', id)
   dropdownOpen.value = false
   router.replace({ query: { studentId: id } })
+  loadData()
 }
 
-// Định dạng tiền tệ VND
 function formatCurrency(amount) {
+  if (amount == null) return '0 ₫'
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
 }
 
@@ -53,7 +81,7 @@ function printInvoice() {
 }
 
 function downloadInvoicePDF(invoiceId) {
-  const invoice = currentChild.value.invoices.find(i => i.id === invoiceId)
+  const invoice = invoices.value.find(i => i.id === invoiceId)
   if (invoice) {
     selectedInvoice.value = invoice
     setTimeout(() => {
@@ -98,9 +126,9 @@ function goBack() {
         >
           <div class="flex items-center gap-2">
             <div class="h-5 w-5 flex items-center justify-center rounded-full bg-orange-600 text-[9px] font-bold text-white">
-              {{ currentChild.name.split(' ').pop().charAt(0) }}
+              {{ currentChild?.name?.split(' ').pop().charAt(0) }}
             </div>
-            <span>{{ currentChild.name }}</span>
+            <span>{{ currentChild?.name }}</span>
           </div>
           <ChevronDown :size="14" class="text-muted transition-transform" :class="dropdownOpen ? 'rotate-180' : ''" />
         </button>
@@ -118,7 +146,7 @@ function goBack() {
             class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-card p-1 shadow-(--lg-shadow-md)"
           >
             <button
-              v-for="child in childrenData"
+              v-for="child in children"
               :key="child.id"
               type="button"
               class="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-label transition hover:bg-(--surface-card-hover)"
@@ -131,8 +159,23 @@ function goBack() {
       </div>
     </div>
 
+    <!-- ── LOADING ── -->
+    <div v-if="loading" class="lg-card-glass p-8 text-center print:hidden">
+      <div class="animate-spin h-8 w-8 border-2 border-orange-600 border-t-transparent rounded-full mx-auto mb-3"></div>
+      <p class="text-xs text-muted font-semibold">Đang tải dữ liệu hóa đơn...</p>
+    </div>
+
+    <!-- ── ERROR ── -->
+    <div v-else-if="error" class="lg-card-glass p-8 text-center print:hidden">
+      <p class="text-sm font-bold text-heading mb-1">Đã xảy ra lỗi</p>
+      <p class="text-xs text-muted">{{ error }}</p>
+      <button @click="loadData" class="mt-4 px-4 py-2 border border-card rounded-xl text-xs font-bold text-label hover:text-orange-600 transition">
+        Thử lại
+      </button>
+    </div>
+
     <!-- ── DANH SÁCH HÓA ĐƠN ── -->
-    <div class="lg-card-glass p-5 space-y-4 print:hidden">
+    <div v-else class="lg-card-glass p-5 space-y-4 print:hidden">
       <div class="flex items-center justify-between pb-3 border-b border-card">
         <h3 class="text-xs font-bold text-heading uppercase tracking-wide">
           Hóa đơn học phí đã phát hành
@@ -140,7 +183,7 @@ function goBack() {
         <span class="text-[10px] text-muted font-semibold">Tự động xuất sau khi giao dịch thành công</span>
       </div>
 
-      <div v-if="currentChild.invoices.length === 0" class="text-center py-12 text-muted text-xs">
+      <div v-if="invoices.length === 0" class="text-center py-12 text-muted text-xs">
         Học sinh hiện tại chưa có hóa đơn điện tử nào được phát hành.
       </div>
       <div v-else class="overflow-x-auto">
@@ -157,13 +200,13 @@ function goBack() {
           </thead>
           <tbody class="divide-y divide-(--border-card)">
             <tr
-              v-for="inv in currentChild.invoices"
+              v-for="inv in invoices"
               :key="inv.id"
               class="hover:bg-(--surface-table-row-hover) transition"
             >
               <td class="py-3 px-3 font-semibold text-heading">{{ inv.id }}</td>
-              <td class="py-3 px-3 text-muted">{{ inv.transactionCode }}</td>
-              <td class="py-3 px-3 text-body">{{ inv.date }}</td>
+              <td class="py-3 px-3 text-muted">{{ inv.transactionCode || '—' }}</td>
+              <td class="py-3 px-3 text-body">{{ inv.createdAt || inv.date }}</td>
               <td class="py-3 px-3 text-right font-extrabold text-heading">{{ formatCurrency(inv.amount) }}</td>
               <td class="py-3 px-3 text-center">
                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
@@ -209,15 +252,15 @@ function goBack() {
           <h2 class="text-sm font-extrabold text-slate-900">HÓA ĐƠN GIÁ TRỊ GIA TĂNG</h2>
           <p class="text-[10px] text-slate-500">Ký hiệu: 1C26LMS</p>
           <p class="text-[10px] text-slate-500">Mã hóa đơn: <strong class="text-slate-800">{{ selectedInvoice.id }}</strong></p>
-          <p class="text-[10px] text-slate-500">Ngày xuất: {{ selectedInvoice.date }}</p>
+          <p class="text-[10px] text-slate-500">Ngày xuất: {{ selectedInvoice.createdAt || selectedInvoice.date }}</p>
         </div>
       </div>
 
       <!-- Purchaser info -->
       <div class="space-y-1 border-b border-slate-300 pb-3">
         <p><strong>Đơn vị mua hàng:</strong> Phạm Thị Mẹ Học Sinh (Phụ huynh học sinh)</p>
-        <p><strong>Học sinh thụ hưởng:</strong> {{ currentChild.name }} (Mã số: {{ currentChild.studentId }})</p>
-        <p><strong>Lớp học phần:</strong> {{ currentChild.class }} - Chuyên ngành: {{ currentChild.major }}</p>
+        <p><strong>Học sinh thụ hưởng:</strong> {{ currentChild?.name }} (Mã số: {{ currentChild?.studentId }})</p>
+        <p><strong>Lớp học phần:</strong> {{ currentChild?.class }} - Chuyên ngành: {{ currentChild?.major }}</p>
         <p><strong>Hình thức thanh toán:</strong> Chuyển khoản ngân hàng</p>
       </div>
 
@@ -234,7 +277,7 @@ function goBack() {
         <tbody>
           <tr>
             <td class="p-2 border-r border-b border-slate-300">1</td>
-            <td class="p-2 border-r border-b border-slate-300">Học phí đợt đóng kỳ 1 (Liên kết mã {{ selectedInvoice.transactionCode }})</td>
+            <td class="p-2 border-r border-b border-slate-300">Học phí đợt đóng kỳ 1 (Liên kết mã {{ selectedInvoice.transactionCode || selectedInvoice.id }})</td>
             <td class="p-2 border-r border-b border-slate-300 text-right">{{ formatCurrency(selectedInvoice.amount) }}</td>
             <td class="p-2 border-b border-slate-300 text-right font-bold">{{ formatCurrency(selectedInvoice.amount) }}</td>
           </tr>
@@ -264,11 +307,11 @@ function goBack() {
           <p class="font-bold text-slate-700">Người bán hàng (Nhà trường)</p>
           <p class="text-[10px] text-slate-400 italic">(Ký, đóng dấu điện tử)</p>
           
-          <!-- Mock Electronic Signature Badge -->
+          <!-- Electronic Signature Badge -->
           <div class="border-2 border-red-500 text-red-500 rounded p-1 mx-auto max-w-[150px] font-bold text-[9px] mt-4 transform rotate-2">
             <p>ĐÃ KÝ ĐIỆN TỬ</p>
             <p>LMS ACADEMIC SYSTEM</p>
-            <p>{{ selectedInvoice.date }}</p>
+            <p>{{ selectedInvoice.createdAt || selectedInvoice.date }}</p>
           </div>
         </div>
       </div>
@@ -277,7 +320,7 @@ function goBack() {
     <!-- ── MODAL XEM CHI TIẾT HÓA ĐƠN ĐIỆN TỬ ── -->
     <div v-if="isInvoiceModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 print:hidden">
       <!-- Overlay -->
-      <div @click="isInvoiceModalOpen = false" class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" />
+      <div @click="isInvoiceModalOpen = false" class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm"></div>
 
       <!-- Modal Content -->
       <div class="lg-modal w-full max-w-2xl relative z-10 flex flex-col rounded-2xl shadow-xl overflow-hidden max-h-[90vh]">
@@ -308,16 +351,16 @@ function goBack() {
               <div class="text-right">
                 <h3 class="text-xs font-extrabold text-heading">HÓA ĐƠN GIÁ TRỊ GIA TĂNG</h3>
                 <p class="text-[10px] text-muted">Mã hóa đơn: <strong>{{ selectedInvoice.id }}</strong></p>
-                <p class="text-[10px] text-muted">Ngày xuất: {{ selectedInvoice.date }}</p>
+                <p class="text-[10px] text-muted">Ngày xuất: {{ selectedInvoice.createdAt || selectedInvoice.date }}</p>
               </div>
             </div>
 
             <!-- Buyer Details -->
             <div class="space-y-1 surface-input p-3 rounded-lg border border-card">
               <p><strong>Người thanh toán:</strong> Phạm Thị Mẹ Học Sinh (Phụ huynh)</p>
-              <p><strong>Sinh viên thụ hưởng:</strong> {{ currentChild.name }} (Mã số: {{ currentChild.studentId }})</p>
-              <p><strong>Lớp học phần:</strong> {{ currentChild.class }} - Ngành: {{ currentChild.major }}</p>
-              <p><strong>Chứng từ liên kết:</strong> Giao dịch số {{ selectedInvoice.transactionCode }}</p>
+              <p><strong>Sinh viên thụ hưởng:</strong> {{ currentChild?.name }} (Mã số: {{ currentChild?.studentId }})</p>
+              <p><strong>Lớp học phần:</strong> {{ currentChild?.class }} - Ngành: {{ currentChild?.major }}</p>
+              <p><strong>Chứng từ liên kết:</strong> Giao dịch số {{ selectedInvoice.transactionCode || selectedInvoice.id }}</p>
             </div>
 
             <!-- Table of Fees -->
@@ -357,7 +400,7 @@ function goBack() {
               <div class="border border-red-500 text-red-500 rounded p-1 text-[8px] font-bold text-center w-32 transform rotate-1">
                 <p>ĐÃ KÝ ĐIỆN TỬ</p>
                 <p>LMS UNIVERSITY</p>
-                <p>{{ selectedInvoice.date }}</p>
+                <p>{{ selectedInvoice.createdAt || selectedInvoice.date }}</p>
               </div>
             </div>
 

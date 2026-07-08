@@ -9,22 +9,12 @@ import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
 const router = useRouter()
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 const searchQuery = ref('')
 const deptFilter = ref('all')
 
-const rankings = ref([
-  { id: 1, name: 'Nguyễn Văn A', dept: 'Khoa CNTT', evals: 86, avgScore: 4.92, positive: 96, negative: 1, trend: 'up' },
-  { id: 2, name: 'Trần Thị B', dept: 'Khoa Ngoại ngữ', evals: 42, avgScore: 4.85, positive: 94, negative: 2, trend: 'stable' },
-  { id: 3, name: 'Lê Văn C', dept: 'Khoa Kinh tế', evals: 120, avgScore: 4.78, positive: 90, negative: 4, trend: 'up' },
-  { id: 4, name: 'Hoàng Thị D', dept: 'Khoa CNTT', evals: 35, avgScore: 4.70, positive: 88, negative: 5, trend: 'down' },
-  { id: 5, name: 'Phạm Minh E', dept: 'Khoa Kinh tế', evals: 58, avgScore: 4.65, positive: 85, negative: 6, trend: 'stable' },
-  { id: 6, name: 'Trương Văn F', dept: 'Khoa Ngoại ngữ', evals: 47, avgScore: 4.55, positive: 82, negative: 7, trend: 'up' },
-  { id: 7, name: 'Lý Thị G', dept: 'Khoa CNTT', evals: 63, avgScore: 4.42, positive: 79, negative: 9, trend: 'stable' },
-  { id: 8, name: 'Đặng Minh H', dept: 'Khoa Kinh tế', evals: 29, avgScore: 4.35, positive: 76, negative: 10, trend: 'down' },
-])
+const rankings = ref([])
 
 const filteredRankings = computed(() => {
   let list = rankings.value
@@ -56,11 +46,9 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getEvaluations()
-      const data = unwrapApiData(res)
-      if (data && data.length) rankings.value = data
-    }
+    const res = await bghApi.getEvaluationRanking()
+    const data = unwrapApiData(res)
+    if (data && data.length) rankings.value = data
   } catch (e) {
     error.value = e.message
   } finally {

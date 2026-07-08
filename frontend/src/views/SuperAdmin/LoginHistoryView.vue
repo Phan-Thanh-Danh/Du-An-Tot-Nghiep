@@ -22,8 +22,6 @@ import {
 import { usePopupStore } from '@/stores/popup'
 import { apiRequest } from '@/services/apiClient'
 
-const ENABLE_MOCK_API =
-  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const popup = usePopupStore()
 
@@ -42,101 +40,16 @@ const loading = ref(false)
 const error = ref('')
 const logins = ref([])
 
-const mockLogins = [
-  {
-    id: 's_001',
-    userName: 'Nguyễn Văn A',
-    email: 'nguyenvana@example.com',
-    role: 'Sinh viên',
-    campus: 'Hà Nội',
-    ip: '113.190.234.12',
-    location: 'Hà Nội, Việt Nam',
-    device: 'Windows 11',
-    browser: 'Chrome 122.0',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    time: '2026-06-04 13:45:22',
-    status: 'Success',
-    riskScore: 12,
-    aiReason: 'Hành vi bình thường. Đăng nhập đúng giờ học tập thường lệ từ thiết bị quen thuộc.'
-  },
-  {
-    id: 's_002',
-    userName: 'Trần Thị B',
-    email: 'tranthib@example.com',
-    role: 'Giảng viên',
-    campus: 'TP.HCM',
-    ip: '27.72.90.54',
-    location: 'TP.HCM, Việt Nam',
-    device: 'macOS Sonoma',
-    browser: 'Safari 17.2',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15',
-    time: '2026-06-04 12:30:10',
-    status: 'Success',
-    riskScore: 8,
-    aiReason: 'Hành vi bình thường. Thiết bị và IP trùng khớp lịch sử chấm công.'
-  },
-  {
-    id: 's_003',
-    userName: 'Lê Văn C',
-    email: 'levanc@example.com',
-    role: 'Giáo vụ',
-    campus: 'Đà Nẵng',
-    ip: '103.82.143.21',
-    location: 'Đà Nẵng, Việt Nam',
-    device: 'iPhone 15 Pro',
-    browser: 'Chrome Mobile',
-    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/122.0.6261.89 Mobile/15E148 Safari/604.1',
-    time: '2026-06-04 02:15:45',
-    status: 'Suspicious',
-    riskScore: 78,
-    aiReason: 'Đăng nhập vào ban đêm (02:15 AM). Đổi thiết bị từ Laptop sang Điện thoại di động. Vị trí địa lý cách nơi đăng nhập gần nhất 300km trong vòng 1 giờ (Impossible Travel).'
-  },
-  {
-    id: 's_004',
-    userName: 'Phạm Thị D',
-    email: 'phamthid@example.com',
-    role: 'BGH',
-    campus: 'Hà Nội',
-    ip: '45.119.212.8',
-    location: 'Singapore (VPN nghi vấn)',
-    device: 'Ubuntu Linux',
-    browser: 'Firefox 123.0',
-    userAgent: 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:123.0) Gecko/20100101 Firefox/123.0',
-    time: '2026-06-03 21:10:00',
-    status: 'Failed',
-    riskScore: 92,
-    aiReason: 'Sai mật khẩu 5 lần liên tiếp trong 2 phút. Thiết bị sử dụng Linux OS chạy trình duyệt ẩn danh từ IP đặt tại Singapore. Nguy cơ bị Brute-force cao.'
-  },
-  {
-    id: 's_005',
-    userName: 'Hoàng Văn E',
-    email: 'hoangvane@example.com',
-    role: 'Sinh viên',
-    campus: 'Cần Thơ',
-    ip: '115.79.138.99',
-    location: 'Cần Thơ, Việt Nam',
-    device: 'Android 14',
-    browser: 'Samsung Browser',
-    userAgent: 'Mozilla/5.0 (Linux; Android 10; SAMSUNG SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/16.0 Chrome/92.0.4515.166 Mobile Safari/537.36',
-    time: '2026-06-02 08:05:11',
-    status: 'Success',
-    riskScore: 15,
-    aiReason: 'Hành vi bình thường. Đăng nhập qua ứng dụng di động định danh.'
-  }
-]
-
 async function loadLogins() {
   loading.value = true
   error.value = ''
   try {
-    const data = await apiRequest('/api/audit-logs?pageIndex=1&pageSize=100')
-    logins.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
-  } catch (e) {
-    if (ENABLE_MOCK_API) {
-      logins.value = JSON.parse(JSON.stringify(mockLogins))
-      return
-    }
-    error.value = e?.message || 'Không thể tải lịch sử đăng nhập.'
+    // TODO: Connect to backend API when ready
+    // const data = await apiRequest('/api/super-admin/login-history', 'GET', { limit: 100 })
+    // logins.value = data
+    logins.value = []
+  } catch (err) {
+    error.value = err.message || 'Không thể tải dữ liệu lịch sử đăng nhập.'
     logins.value = []
   } finally {
     loading.value = false

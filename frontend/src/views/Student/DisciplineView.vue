@@ -10,7 +10,6 @@ import { studentApi } from '@/services/studentApi'
 import { formatDate } from '@/utils/dateFormat'
 import { usePopupStore } from '@/stores/popup'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const popup = usePopupStore()
 const records = ref([])
 const loading = ref(false)
@@ -25,9 +24,7 @@ const fetchRecords = async () => {
     records.value = Array.isArray(res) ? res : (res?.items ?? res?.data ?? [])
   } catch (error) {
     console.error(error)
-    if (!ENABLE_MOCK_API) {
-      popup.error('Lỗi', 'Không thể tải hồ sơ kỷ luật.')
-    }
+    popup.error('Lỗi', 'Không thể tải hồ sơ kỷ luật.')
   } finally {
     loading.value = false
   }
@@ -52,9 +49,7 @@ const submitAppeal = async () => {
     appealReason.value = ''
   } catch (_err) {
     console.error(_err)
-    if (!ENABLE_MOCK_API) {
-      popup.error('Lỗi', 'Không thể gửi khiếu nại.')
-    }
+    popup.error('Lỗi', 'Không thể gửi khiếu nại.')
   }
 }
 </script>

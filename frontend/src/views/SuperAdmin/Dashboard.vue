@@ -4,7 +4,8 @@
  * Trang tổng quan hệ thống cho Super Admin.
  * Hiển thị KPI toàn trường, cảnh báo hệ thống, hoạt động gần đây.
  */
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { apiRequest } from '@/services/apiClient'
 import {
   Users, Building2, GraduationCap, ShieldAlert,
   TrendingUp, TrendingDown, Activity, Server,
@@ -15,52 +16,76 @@ const systemStats = ref([
   {
     id: 'total-users',
     label: 'Tổng người dùng',
-    value: '12,847',
-    change: '+3.2%',
+    value: '0',
+    change: '+0%',
     trend: 'up',
     icon: 'Users',
     color: 'violet',
-    sub: '245 tài khoản mới tháng này',
+    sub: 'Đang tải...',
   },
   {
     id: 'active-orgs',
     label: 'Đơn vị hoạt động',
-    value: '38',
-    change: '+2',
+    value: '0',
+    change: '+0',
     trend: 'up',
     icon: 'Building2',
     color: 'blue',
-    sub: '6 khoa, 32 phòng ban',
+    sub: 'Đang tải...',
   },
   {
     id: 'total-courses',
     label: 'Môn học đang mở',
-    value: '1,204',
-    change: '+8.1%',
+    value: '0',
+    change: '+0%',
     trend: 'up',
     icon: 'GraduationCap',
     color: 'emerald',
-    sub: 'Học kỳ 2 · 2024–2025',
+    sub: 'Đang tải...',
   },
   {
     id: 'system-health',
     label: 'Uptime hệ thống',
-    value: '99.97%',
-    change: '-0.01%',
+    value: '0%',
+    change: '-0%',
     trend: 'down',
     icon: 'Server',
     color: 'amber',
-    sub: 'Hoạt động ổn định',
+    sub: 'Đang tải...',
   },
 ])
 
-const recentActivities = ref([
-  { id: 1, type: 'user', icon: 'UserPlus', color: 'blue', text: 'Tài khoản GV Nguyễn Văn A được kích hoạt', time: '2 phút trước' },
-  { id: 2, type: 'security', icon: 'ShieldAlert', color: 'red', text: 'Phát hiện đăng nhập bất thường từ IP 192.168.1.50', time: '15 phút trước' },
-  { id: 3, type: 'config', icon: 'Settings2', color: 'violet', text: 'Cấu hình học kỳ 2/2025 được cập nhật', time: '1 giờ trước' },
-  { id: 4, type: 'backup', icon: 'DatabaseBackup', color: 'emerald', text: 'Backup tự động lúc 02:00 hoàn tất thành công', time: '6 giờ trước' },
-  { id: 5, type: 'org', icon: 'Building2', color: 'blue', text: 'Khoa Công nghệ Thông tin cập nhật cơ cấu tổ chức', time: 'Hôm qua' },
-])
+const recentActivities = ref([])
+
+onMounted(async () => {
+  try {
+    const statsRes = await apiRequest('/api/super-admin/dashboard/stats')
+    if (statsRes) {
+      systemStats.value[0].value = statsRes.totalUsers.toLocaleString()
+      systemStats.value[0].sub = 'Tài khoản trong hệ thống'
+      systemStats.value[1].value = statsRes.activeOrganizations.toLocaleString()
+      systemStats.value[1].sub = 'Cơ sở/Đơn vị hoạt động'
+      systemStats.value[2].value = statsRes.totalCourses.toLocaleString()
+      systemStats.value[2].sub = 'Lớp học phần'
+      systemStats.value[3].value = statsRes.systemUptime + '%'
+      systemStats.value[3].sub = 'Hoạt động ổn định'
+    }
+
+    const actRes = await apiRequest('/api/super-admin/dashboard/activities')
+    if (Array.isArray(actRes)) {
+      recentActivities.value = actRes.map(log => ({
+        id: log.maKiemToan,
+        type: 'log',
+        icon: log.hanhDong.includes('Create') ? 'PlusCircle' : (log.hanhDong.includes('Delete') ? 'Trash2' : 'Activity'),
+        color: 'blue',
+        text: `Hành động: ${log.hanhDong} trên ${log.loaiDoiTuong} ${log.maDoiTuong}`,
+        time: new Date(log.thoiDiemThayDoi).toLocaleString('vi-VN')
+      }))
+    }
+  } catch (error) {
+    console.error('Failed to load SuperAdmin dashboard data', error)
+  }
+})
 
 const colorMap = {
   violet: { bg: 'bg-violet-50 dark:bg-violet-600/20', text: 'text-violet-600 dark:text-violet-400', ring: 'ring-violet-100 dark:ring-violet-500/20' },

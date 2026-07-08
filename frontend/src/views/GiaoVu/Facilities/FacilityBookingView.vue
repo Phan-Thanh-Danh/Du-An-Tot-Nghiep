@@ -4,7 +4,6 @@ import { Loader2, AlertCircle, Building, Calendar, Clock, CheckCircle2 } from 'l
 import { staffApi } from '@/services/staffApi'
 import { usePopupStore } from '@/stores/popup'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const popupStore = usePopupStore()
 const loading = ref(true)
@@ -12,17 +11,6 @@ const apiError = ref('')
 const booking = ref(false)
 const rooms = ref([])
 const bookings = ref([])
-
-const DEMO_ROOMS = [
-  { id: 'A101', name: 'Phòng A101', building: 'Tòa A', capacity: 60 },
-  { id: 'A102', name: 'Phòng A102', building: 'Tòa A', capacity: 50 },
-  { id: 'B203', name: 'Phòng B203', building: 'Tòa B', capacity: 40 },
-]
-
-const DEMO_BOOKINGS = [
-  { id: 'B-001', roomName: 'Phòng A101', date: '2026-07-03', time: '07:00-09:00', purpose: 'Thi cuối kỳ', status: 'confirmed' },
-  { id: 'B-002', roomName: 'Phòng B203', date: '2026-07-04', time: '09:00-11:00', purpose: 'Học bù', status: 'pending' },
-]
 
 const form = ref({
   roomId: '',
@@ -38,13 +26,8 @@ async function loadData() {
   try {
     const res = await staffApi.getRooms()
     rooms.value = Array.isArray(res) ? res : res?.items ?? res ?? []
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      rooms.value = DEMO_ROOMS
-      bookings.value = DEMO_BOOKINGS
-    } else {
-      apiError.value = err?.message || 'Không thể tải dữ liệu.'
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }
@@ -69,12 +52,8 @@ async function handleBook() {
       status: 'pending',
     })
     form.value = { roomId: '', date: '', startTime: '', endTime: '', purpose: '' }
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      popupStore.success('Đặt phòng thành công', '(MOCK) Phòng đã được đặt.')
-    } else {
-      popupStore.error('Lỗi', err?.message || 'Không thể đặt phòng.')
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     booking.value = false
   }

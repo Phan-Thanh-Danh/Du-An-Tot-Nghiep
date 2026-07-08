@@ -1,40 +1,38 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { mockSubjects, mockGradeSummary } from '@/data/studentData.mock.js'
+import { studentApi } from '@/services/studentApi'
+import { unwrapApiData } from '@/services/apiClient'
 import StudentModulePage from '@/components/SinhVien/StudentModulePage.vue'
-
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const loading = ref(false)
 const error = ref('')
-
-const subjectsData = computed(() => ENABLE_MOCK_API ? mockSubjects : [])
-const gradeSummaryData = computed(() => ENABLE_MOCK_API ? mockGradeSummary : {})
+const subjects = ref([])
+const gradeSummary = ref({})
 
 const metrics = computed(() => {
-  const summary = gradeSummaryData.value || {}
-  const earned = summary.totalCreditsEarned || 0
-  const required = summary.totalCreditsRequired || 120
-  const classification = summary.classification || 'Khá'
+  const summary = gradeSummary.value || {}
+  const earned = summary.totalCreditsEarned ?? summary.totalTinChiDaDat ?? 0
+  const required = summary.totalCreditsRequired ?? summary.totalTinChiYeuCau ?? 120
+  const classification = summary.classification ?? summary.xepLoai ?? 'Khá'
 
   return [
     {
       label: 'GPA tích lũy',
-      value: summary.cumulativeGPA !== undefined ? String(summary.cumulativeGPA) : '3.2',
+      value: summary.cumulativeGPA !== undefined ? String(summary.cumulativeGPA ?? summary.gpaTichLuy) : '3.2',
       unit: '/4.0',
       icon: 'TrendingUp',
       tone: 'blue',
-      progress: Math.round(((summary.cumulativeGPA || 3.2) / 4.0) * 100),
+      progress: Math.round((((summary.cumulativeGPA ?? summary.gpaTichLuy) || 3.2) / 4.0) * 100),
       hint: `Xếp loại ${classification}`
     },
     {
       label: 'Môn đã đạt',
-      value: String(summary.totalSubjectsPassed || 0),
+      value: String(summary.totalSubjectsPassed ?? summary.soMonDaDat ?? 0),
       unit: 'môn',
       icon: 'CheckCircle2',
       tone: 'green',
-      progress: subjectsData.value.length ? Math.round(((summary.totalSubjectsPassed || 0) / subjectsData.value.length) * 100) : 0,
-      hint: summary.totalSubjectsFailed ? `Bị rớt ${summary.totalSubjectsFailed} môn` : 'Không có môn rớt'
+      progress: subjects.value.length ? Math.round((((summary.totalSubjectsPassed ?? summary.soMonDaDat) || 0) / subjects.value.length) * 100) : 0,
+      hint: (summary.totalSubjectsFailed ?? summary.soMonRot) ? `Bị rớt ${summary.totalSubjectsFailed ?? summary.soMonRot} môn` : 'Không có môn rớt'
     },
     {
       label: 'Tín chỉ',
@@ -47,25 +45,25 @@ const metrics = computed(() => {
     },
     {
       label: 'Cần rà soát',
-      value: String(summary.riskAlertCount || 0),
+      value: String(summary.riskAlertCount ?? summary.soCanhBao ?? 0),
       unit: 'điểm',
       icon: 'AlertTriangle',
       tone: 'amber',
-      progress: summary.riskAlertCount ? 100 : 0,
-      hint: summary.riskAlertCount ? 'Có điểm cần phản hồi gấp' : 'Điểm số ổn định'
+      progress: (summary.riskAlertCount ?? summary.soCanhBao) ? 100 : 0,
+      hint: (summary.riskAlertCount ?? summary.soCanhBao) ? 'Có điểm cần phản hồi gấp' : 'Điểm số ổn định'
     },
   ]
 })
 
 const rows = computed(() => {
-  return subjectsData.value.map((item) => {
+  return subjects.value.map((item) => {
     let tone = 'blue'
     if (item.status === 'pass') tone = 'green'
     else if (item.status === 'fail') tone = 'red'
     else if (item.gpa === null || item.gpa === undefined) tone = 'amber'
 
     let icon = 'BookOpen'
-    const codeUpper = item.code.toUpperCase()
+    const codeUpper = (item.code || '').toUpperCase()
     if (codeUpper.startsWith('GD')) icon = 'Palette'
     else if (codeUpper.startsWith('MR') || codeUpper.startsWith('MKT')) icon = 'TrendingUp'
     else if (codeUpper.startsWith('WEB') || codeUpper.startsWith('LTW') || codeUpper.startsWith('NET') || codeUpper.startsWith('SDLC')) icon = 'Code2'
@@ -98,9 +96,12 @@ onMounted(async () => {
   loading.value = true
   error.value = ''
   try {
-    // Attempt to load real data in future
+    const response = await studentApi.getGrades()
+    const data = unwrapApiData(response) || {}
+    subjects.value = data.subjects ?? data.Subjects ?? data.items ?? data.Items ?? []
+    gradeSummary.value = data.summary ?? data.Summary ?? data.gradeSummary ?? data.GradeSummary ?? {}
   } catch (e) {
-    if (!ENABLE_MOCK_API) error.value = e?.message || 'Không thể tải dữ liệu.'
+    error.value = e?.message || 'Không thể tải dữ liệu.'
   } finally {
     loading.value = false
   }

@@ -1,13 +1,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { AlertTriangle, CheckCircle2, Filter, Building2, CalendarDays, User, Search, ChevronDown, Loader2, X } from 'lucide-vue-next'
+import { AlertTriangle, AlertCircle, CheckCircle2, Filter, Building2, CalendarDays, User, Search, ChevronDown, Loader2, X } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { usePopupStore } from '@/stores/popup'
-import { apiRequest } from '@/services/apiClient'
+import { apiRequest, unwrapApiData } from '@/services/apiClient'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
@@ -16,25 +15,16 @@ const searchQuery = ref('')
 const severityFilter = ref('all')
 const showFilterDetail = ref(false)
 
-const mockConflicts = [
-  { id: 'CF-001', type: 'room', severity: 'critical', dept1: 'Khoa CNTT', course1: 'Lập trình Web (SE1601)', dept2: 'Khoa Kinh tế', course2: 'Kế toán (KT120)', room: 'A1.01', slot: 'Thứ 2, Ca 1 (07:30-09:30)', date: '15/06/2026', status: 'unresolved' },
-  { id: 'CF-002', type: 'teacher', severity: 'critical', dept1: 'Khoa CNTT', course1: 'Cấu trúc dữ liệu (SE1602)', dept2: 'Khoa CNTT', course2: 'Java (SE1603)', room: '—', teacher: 'Nguyễn Văn A', slot: 'Thứ 3, Ca 2 (09:45-11:45)', date: '16/06/2026', status: 'unresolved' },
-  { id: 'CF-003', type: 'room', severity: 'warning', dept1: 'Khoa Ngoại ngữ', course1: 'Tiếng Anh 3 (EN101)', dept2: 'Khoa Thiết kế', course2: 'Đồ họa (GD201)', room: 'B2.03', slot: 'Thứ 5, Ca 3 (13:00-15:00)', date: '17/06/2026', status: 'resolved' },
-]
-
-const conflicts = ref(mockConflicts)
+const conflicts = ref([])
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await apiRequest('/api/thoi-khoa-bieu/check-xung-dot')
-      conflicts.value = res?.data ?? res?.Data ?? mockConflicts
-    }
+    const res = await apiRequest('/api/thoi-khoa-bieu/check-xung-dot')
+    conflicts.value = unwrapApiData(res) || []
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu xung đột'
-    conflicts.value = mockConflicts
   } finally {
     loading.value = false
   }

@@ -7,34 +7,22 @@ import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
 const popup = usePopupStore()
 const searchQuery = ref('')
 
-const mockPublishedData = [
-  { id: 'TKB-001', dept: 'Khoa Công nghệ Thông tin', term: 'Học kỳ 1 - 2026', type: 'Chính quy', classes: 120, hours: 3600, campus: 'Cơ sở chính', status: 'active' },
-  { id: 'TKB-002', dept: 'Khoa Kinh tế & QT', term: 'Học kỳ 1 - 2026', type: 'Chính quy', classes: 80, hours: 2400, campus: 'Cơ sở 2', status: 'active' },
-  { id: 'TKB-003', dept: 'Khoa Ngôn ngữ Anh', term: 'Học kỳ 1 - 2026', type: 'Chất lượng cao', classes: 65, hours: 1950, campus: 'Cơ sở chính', status: 'active' },
-  { id: 'TKB-004', dept: 'Khoa Thiết kế', term: 'Học kỳ 2 - 2025', type: 'Chính quy', classes: 45, hours: 1350, campus: 'Cơ sở chính', status: 'archived' },
-  { id: 'TKB-005', dept: 'Khoa CNTT', term: 'Học kỳ 2 - 2025', type: 'Chất lượng cao', classes: 55, hours: 1650, campus: 'Cơ sở chính', status: 'archived' },
-]
-
-const publishedData = ref(mockPublishedData)
+const publishedData = ref([])
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getPendingSchedules({ status: 'published' })
-      publishedData.value = unwrapApiData(res) || mockPublishedData
-    }
+    const res = await bghApi.getPendingSchedules({ status: 'published' })
+    publishedData.value = unwrapApiData(res) || []
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu TKB đã xuất bản'
-    publishedData.value = mockPublishedData
   } finally {
     loading.value = false
   }

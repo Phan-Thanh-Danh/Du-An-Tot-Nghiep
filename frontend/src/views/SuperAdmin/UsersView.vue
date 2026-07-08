@@ -25,8 +25,6 @@ import {
   FileSpreadsheet
 } from 'lucide-vue-next'
 
-const ENABLE_MOCK_API =
-  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const popup = usePopupStore()
 
@@ -45,27 +43,15 @@ const loading = ref(false)
 const error = ref('')
 const users = ref([])
 
-const mockUsers = [
-  { id: 1, name: 'Nguyễn Văn A', email: 'nguyenvana@example.com', phone: '0901234567', role: 'Sinh viên', campus: 'Hà Nội', status: 'Active', lastLogin: '2026-06-04 08:30:00', createdAt: '2026-01-15' },
-  { id: 2, name: 'Trần Thị B', email: 'tranthib@example.com', phone: '0912345678', role: 'Giảng viên', campus: 'TP.HCM', status: 'Active', lastLogin: '2026-06-03 15:45:00', createdAt: '2025-08-20' },
-  { id: 3, name: 'Lê Văn C', email: 'levanc@example.com', phone: '0923456789', role: 'Giáo vụ', campus: 'Đà Nẵng', status: 'Locked', lastLogin: '2026-05-20 09:15:00', createdAt: '2024-11-10', lockReason: 'Vi phạm chính sách bảo mật' },
-  { id: 4, name: 'Phạm Thị D', email: 'phamthid@example.com', phone: '0934567890', role: 'BGH', campus: 'Hà Nội', status: 'Active', lastLogin: '2026-06-04 10:00:00', createdAt: '2024-05-05' },
-  { id: 5, name: 'Hoàng Văn E', email: 'hoangvane@example.com', phone: '0945678901', role: 'Sinh viên', campus: 'Cần Thơ', status: 'First_login', lastLogin: null, createdAt: '2026-06-01' },
-  { id: 6, name: 'Ngô Thị F', email: 'ngothif@example.com', phone: '0956789012', role: 'Admin', campus: 'Toàn hệ thống', status: 'Active', lastLogin: '2026-06-04 11:20:00', createdAt: '2023-12-01' },
-  { id: 7, name: 'Đỗ Văn G', email: 'dovang@example.com', phone: '0967890123', role: 'Sinh viên', campus: 'Hà Nội', status: 'Active', lastLogin: '2026-06-01 07:15:00', createdAt: '2025-09-05' },
-]
 
 async function loadUsers() {
   loading.value = true
   error.value = ''
   try {
     const data = await adminUserApi.getUsers({ pageIndex: 1, pageSize: 100 })
-    users.value = data?.items ?? data?.data ?? data ?? []
+    const list = data?.items ?? data?.data?.items ?? data?.data ?? data
+    users.value = Array.isArray(list) ? list.map(normalizeUser) : []
   } catch (e) {
-    if (ENABLE_MOCK_API) {
-      users.value = [...mockUsers]
-      return
-    }
     error.value = e?.message || 'Không thể tải danh sách người dùng.'
     users.value = []
   } finally {
@@ -74,7 +60,7 @@ async function loadUsers() {
 }
 
 const filteredUsers = computed(() => {
-  const source = users.value
+  const source = Array.isArray(users.value) ? users.value : []
   return source.filter(u => {
     const name = u.name || u.fullName || u.full_name || ''
     const email = u.email || ''
@@ -105,6 +91,22 @@ const getRoleClass = (role) => {
   if (role === 'Giáo vụ') return 'bg-blue-100 text-blue-700'
   if (role === 'Giảng viên') return 'bg-teal-100 text-teal-700'
   return 'bg-slate-100 text-slate-700'
+}
+
+function normalizeUser(user) {
+  const name = user.name || user.fullName || user.full_name || user.hoTen || user.ho_ten || user.email || ''
+  return {
+    ...user,
+    id: user.id || user.userId || user.maNguoiDung || user.ma_nguoi_dung,
+    name,
+    email: user.email || '',
+    phone: user.phone || user.soDienThoai || user.so_dien_thoai || '',
+    role: user.role || user.vaiTroChinh || user.vai_tro_chinh || '',
+    campus: user.campus || user.campusName || user.donVi || user.maDonVi || '',
+    status: user.status || user.trangThai || user.trang_thai || '',
+    lastLogin: user.lastLogin || user.lanDangNhapCuoi || user.lan_dang_nhap_cuoi || null,
+    createdAt: user.createdAt || user.ngayTao || user.ngay_tao || null,
+  }
 }
 
 // Modals & Drawer State
@@ -140,16 +142,9 @@ const confirmEditUser = async () => {
   try {
     await adminUserApi.update(editUserForm.value.id, editUserForm.value)
     popup.success('Đã cập nhật', `Thông tin ${editUserForm.value.email} đã được lưu.`)
-    await loadUsers()
   } catch (e) {
-    if (ENABLE_MOCK_API) {
-      const index = users.value.findIndex(u => u.id === editUserForm.value.id)
-      if (index !== -1) users.value[index] = { ...users.value[index], ...editUserForm.value }
-      popup.success('Đã cập nhật (mock)', `Thông tin ${editUserForm.value.email} đã được lưu.`)
-    } else {
-      popup.error('Lỗi cập nhật', e?.message || 'Không thể cập nhật thông tin.')
-      return
-    }
+    popup.error('Lỗi cập nhật', e?.message || 'Không thể cập nhật thông tin.')
+    return
   }
   isEditDrawerOpen.value = false
   isDrawerOpen.value = false
@@ -170,14 +165,9 @@ const confirmCreateImport = async () => {
     try {
       await adminUserApi.create(newUserForm.value)
       popup.success('Đã tạo tài khoản', `Tài khoản ${newUserForm.value.email} đã được tạo.`)
-      await loadUsers()
-    } catch (e) {
-      if (ENABLE_MOCK_API) {
-        popup.success('Đã tạo (mock)', `Tài khoản ${newUserForm.value.email} đã được tạo.`)
-      } else {
-        popup.error('Lỗi tạo tài khoản', e?.message || 'Không thể tạo tài khoản.')
-        return
-      }
+  } catch (e) {
+      popup.error('Lỗi tạo tài khoản', e?.message || 'Không thể tạo tài khoản.')
+      return
     }
   } else {
     popup.info('Import', 'Chức năng import Excel đang phát triển.')
@@ -200,13 +190,8 @@ const confirmResetPassword = async () => {
     await adminUserApi.resetPassword(resetPasswordUser.value.id, {
       newPassword: prompt('Nhập mật khẩu mới:', ''),
     })
-    popup.success('Đã reset mật khẩu', `Mật khẩu tài khoản ${resetPasswordUser.value.email} đã được đặt lại.`)
   } catch (e) {
-    if (ENABLE_MOCK_API) {
-      popup.success('Đã reset (mock)', `Mật khẩu tài khoản ${resetPasswordUser.value.email} đã được đặt lại.`)
-    } else {
-      popup.error('Lỗi reset', e?.message || 'Không thể reset mật khẩu.')
-    }
+    popup.error('Lỗi reset', e?.message || 'Không thể reset mật khẩu.')
   }
   isResetModalOpen.value = false
 }
@@ -231,21 +216,9 @@ const confirmLockAction = async () => {
       await adminUserApi.lock(lockActionUser.value.id)
       popup.success('Đã khóa', `Tài khoản ${lockActionUser.value.email} đã bị khóa. Đã ghi Log.`)
     }
-    await loadUsers()
   } catch (e) {
-    if (ENABLE_MOCK_API) {
-      if (lockActionUser.value.status === 'Locked') {
-        lockActionUser.value.status = 'Active'
-        lockActionUser.value.lockReason = null
-      } else {
-        lockActionUser.value.status = 'Locked'
-        lockActionUser.value.lockReason = lockReason.value
-      }
-      popup.success(lockActionUser.value.status === 'Locked' ? 'Đã mở khóa (mock)' : 'Đã khóa (mock)', `Tài khoản ${lockActionUser.value.email}.`)
-    } else {
-      popup.error('Lỗi', e?.message || 'Không thể thực hiện thao tác.')
-      return
-    }
+    popup.error('Lỗi', e?.message || 'Không thể thực hiện thao tác.')
+    return
   }
   isLockModalOpen.value = false
 }

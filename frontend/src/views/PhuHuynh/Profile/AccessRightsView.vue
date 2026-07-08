@@ -1,4 +1,5 @@
 <script setup>
+import { computed, onMounted, ref } from 'vue'
 import {
   ShieldCheck,
   CheckCircle2,
@@ -9,10 +10,12 @@ import {
   UserCheck,
   Info
 } from 'lucide-vue-next'
-import { childrenData } from '@/components/PhuHuynh/data/parentData.js'
+import { parentApi } from '@/services/parentApi'
 
-// Mock access rights data
-const accessCategories = [
+const children = ref([])
+const rawAccessRights = ref([])
+
+const accessCategories = computed(() => [
   {
     id: 1,
     name: 'Quản lý học thuật',
@@ -59,7 +62,22 @@ const accessCategories = [
       { name: 'Nhận thông báo tự động qua SMS/Zalo/Email', granted: true }
     ]
   }
-]
+])
+
+const childNamesText = computed(() =>
+  children.value.map(child => child.name).filter(Boolean).join(', ') || 'chưa có học sinh liên kết'
+)
+
+async function loadAccessRights() {
+  const [childrenRes, rightsRes] = await Promise.all([
+    parentApi.getChildren(),
+    parentApi.getAccessRights(),
+  ])
+  children.value = childrenRes?.data || []
+  rawAccessRights.value = rightsRes?.data?.links || []
+}
+
+onMounted(loadAccessRights)
 </script>
 
 <template>
@@ -85,7 +103,7 @@ const accessCategories = [
       <div>
         <p class="text-sm font-bold text-heading">Phạm vi áp dụng</p>
         <p class="text-xs text-body mt-1 leading-relaxed">
-          Các quyền truy cập dưới đây được áp dụng chung cho tất cả các sinh viên mà bạn đang giám sát trên hệ thống EduLMS (bao gồm: <span class="font-bold">{{ childrenData.map(c => c.name).join(', ') }}</span>). 
+          Các quyền truy cập dưới đây được áp dụng chung cho tất cả các sinh viên mà bạn đang giám sát trên hệ thống EduLMS (bao gồm: <span class="font-bold">{{ childNamesText }}</span>).
         </p>
       </div>
     </div>

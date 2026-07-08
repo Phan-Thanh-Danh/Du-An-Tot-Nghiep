@@ -14,6 +14,7 @@ import {
   Clock,
   Award,
   Loader2,
+  AlertCircle,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { bghApi } from '@/services/bghApi'
@@ -22,51 +23,12 @@ import { unwrapApiData } from '@/services/apiClient'
 const route = useRoute()
 const router = useRouter()
 const studentId = Number(route.params.studentId)
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
-const allStudents = [
-  { id: 1, name: 'Lê Hoàng Minh', code: 'SV2024005', class: 'SE1601', subject: 'Cấu trúc dữ liệu', grade: 3.5, attendance: 75, risk: 'critical', reason: 'Điểm Lab thấp & Vắng mặt liên tục (2 tuần).' },
-  { id: 2, name: 'Nguyễn Thị Hoa', code: 'SV2024122', class: 'SE1602', subject: 'Java Programming', grade: 4.2, attendance: 90, risk: 'high', reason: 'Tiến độ hoàn thành Assignment chậm (>50% chưa nộp).' },
-  { id: 3, name: 'Trần Văn Tú', code: 'SV2024089', class: 'SE1601', subject: 'Database Design', grade: 5.0, attendance: 82, risk: 'medium', reason: 'Điểm Quiz trung bình thấp (Dưới 4.5).' },
-  { id: 4, name: 'Phạm Hồng Nam', code: 'SV2024201', class: 'SE1605', subject: 'Operating Systems', grade: 2.8, attendance: 65, risk: 'critical', reason: 'Vắng quá 20% & Điểm kiểm tra giữa kỳ < 3.0.' },
-]
-
-const student = computed(() => allStudents.find(s => s.id === studentId))
-
-const academicHistory = computed(() => [
-  { semester: 'Spring 2024', courses: [
-    { name: 'Lập trình C', credit: 3, grade: 6.5, passed: true },
-    { name: 'Toán cao cấp', credit: 4, grade: 7.0, passed: true },
-    { name: 'Tiếng Anh A1', credit: 3, grade: 8.2, passed: true },
-  ]},
-  { semester: 'Fall 2024', courses: [
-    { name: 'Cấu trúc dữ liệu', credit: 4, grade: 5.5, passed: true },
-    { name: 'Toán rời rạc', credit: 3, grade: 6.0, passed: true },
-    { name: 'Vật lý đại cương', credit: 3, grade: 4.8, passed: true },
-  ]},
-  { semester: 'Spring 2025', courses: [
-    { name: 'Hệ điều hành', credit: 4, grade: 4.0, passed: true },
-    { name: 'Cơ sở dữ liệu', credit: 4, grade: 5.2, passed: true },
-    { name: 'Java Programming', credit: 3, grade: 4.5, passed: true },
-  ]},
-  { semester: 'Fall 2025', courses: [
-    { name: 'Mạng máy tính', credit: 3, grade: 3.8, passed: true },
-    { name: 'Phân tích thiết kế', credit: 4, grade: 4.2, passed: true },
-  ]},
-  { semester: 'Spring 2026', courses: [
-    { name: student.value?.subject || 'Đang học', credit: 3, grade: student.value?.grade || 0, passed: student.value ? student.value.grade >= 4 : true },
-  ]},
-])
-
-const attendanceHistory = ref([
-  { semester: 'Spring 2024', rate: 92 },
-  { semester: 'Fall 2024', rate: 88 },
-  { semester: 'Spring 2025', rate: 85 },
-  { semester: 'Fall 2025', rate: 80 },
-  { semester: 'Spring 2026', rate: student.value?.attendance || 75 },
-])
+const student = ref(null)
+const academicHistory = ref([])
+const attendanceHistory = ref([])
 
 function getRiskBadge(risk) {
   switch (risk) {
@@ -77,15 +39,33 @@ function getRiskBadge(risk) {
   }
 }
 
+function deriveRisk(s) {
+  if (!s) return 'unknown'
+  return s.failCount >= 3 ? 'critical' : s.failCount >= 2 ? 'high' : 'medium'
+}
+
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getReportOverview()
-      const data = unwrapApiData(res)
-      if (data) {
-        // Update student data from API response as needed
+    const res = await bghApi.getAtRiskStudents()
+    const data = unwrapApiData(res)
+    if (data?.students) {
+      const found = data.students.find(s => s.id === studentId)
+      if (found) {
+        student.value = {
+          id: found.id,
+          name: found.name,
+          code: found.email || '—',
+          class: found.classCode || '—',
+          subject: '',
+          grade: found.avgGpa,
+          attendance: null,
+          risk: deriveRisk(found),
+          reason: `Đã rớt ${found.failCount} môn. GPA hiện tại: ${found.avgGpa}.`,
+          email: found.email || '',
+          failCount: found.failCount,
+        }
       }
     }
   } catch (e) {
@@ -102,8 +82,21 @@ function goBack() {
 </script>
 
 <template>
+  <div v-if="loading" class="p-8">
+    <div class="flex items-center justify-center py-20">
+      <Loader2 :size="32" class="animate-spin text-placeholder" />
+    </div>
+  </div>
+  <div v-else-if="error" class="p-8">
+    <div class="flex flex-col items-center justify-center py-20 text-center">
+      <AlertCircle :size="48" class="text-(--color-danger-text) mb-4" />
+      <p class="text-lg font-semibold text-muted">Đã có lỗi xảy ra</p>
+      <p class="text-sm text-placeholder mt-1">{{ error }}</p>
+      <button @click="loadData" class="mt-4 lg-button-secondary px-4 py-2 text-sm font-semibold">Thử lại</button>
+    </div>
+  </div>
   <PageContainer
-    v-if="student"
+    v-else-if="student"
     :title="`Lịch sử học tập — ${student.name}`"
     :subtitle="`Mã SV: ${student.code} • Lớp: ${student.class}`"
   >
@@ -143,72 +136,70 @@ function goBack() {
         <div class="lg:col-span-2 space-y-6">
 
           <!-- ── Academic History by Semester ── -->
-          <div v-for="sem in academicHistory" :key="sem.semester" class="surface-card border border-card rounded-2xl overflow-hidden">
-            <div class="px-5 py-4 bg-(--color-info-bg) border-b border-(--color-info-text)/20 flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <Calendar :size="16" class="text-(--color-info-text)" />
-                <h4 class="text-xs font-bold text-(--color-info-text) uppercase tracking-widest">{{ sem.semester }}</h4>
+          <div v-if="academicHistory.length">
+            <div v-for="sem in academicHistory" :key="sem.semester" class="surface-card border border-card rounded-2xl overflow-hidden">
+              <div class="px-5 py-4 bg-(--color-info-bg) border-b border-(--color-info-text)/20 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <Calendar :size="16" class="text-(--color-info-text)" />
+                  <h4 class="text-xs font-bold text-(--color-info-text) uppercase tracking-widest">{{ sem.semester }}</h4>
+                </div>
+                <span class="text-[10px] font-semibold text-label">
+                  TB: {{ (sem.courses.reduce((s, c) => s + c.grade, 0) / sem.courses.length).toFixed(1) }}
+                </span>
               </div>
-              <span class="text-[10px] font-semibold text-label">
-                TB: {{ (sem.courses.reduce((s, c) => s + c.grade, 0) / sem.courses.length).toFixed(1) }}
-              </span>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                  <thead>
+                    <tr class="surface-solid">
+                      <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Môn học</th>
+                      <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Tín chỉ</th>
+                      <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Điểm</th>
+                      <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Kết quả</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="course in sem.courses" :key="course.name" class="hover:bg-(--surface-input) transition-colors">
+                      <td class="px-5 py-3.5">
+                        <div class="flex items-center gap-2">
+                          <BookOpen :size="14" class="text-placeholder shrink-0" />
+                          <span class="text-xs font-semibold text-label">{{ course.name }}</span>
+                        </div>
+                      </td>
+                      <td class="px-5 py-3.5">
+                        <span class="text-xs font-bold text-muted">{{ course.credit }}</span>
+                      </td>
+                      <td class="px-5 py-3.5">
+                        <span :class="['text-xs font-bold', course.grade >= 5 ? 'text-(--color-success-text)' : course.grade >= 4 ? 'text-(--color-warning-text)' : 'text-(--color-danger-text)']">
+                          {{ course.grade }}
+                        </span>
+                      </td>
+                      <td class="px-5 py-3.5">
+                        <div v-if="course.passed" class="flex items-center gap-1 text-[10px] font-bold text-(--color-success-text)">
+                          <CheckCircle2 :size="14" /> Pass
+                        </div>
+                        <div v-else class="flex items-center gap-1 text-[10px] font-bold text-(--color-danger-text)">
+                          <XCircle :size="14" /> Fail
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div class="overflow-x-auto">
-              <table class="w-full text-left">
-                <thead>
-                  <tr class="surface-solid">
-                    <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Môn học</th>
-                    <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Tín chỉ</th>
-                    <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Điểm</th>
-                    <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Kết quả</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="course in sem.courses" :key="course.name" class="hover:bg-(--surface-input) transition-colors">
-                    <td class="px-5 py-3.5">
-                      <div class="flex items-center gap-2">
-                        <BookOpen :size="14" class="text-placeholder shrink-0" />
-                        <span class="text-xs font-semibold text-label">{{ course.name }}</span>
-                      </div>
-                    </td>
-                    <td class="px-5 py-3.5">
-                      <span class="text-xs font-bold text-muted">{{ course.credit }}</span>
-                    </td>
-                    <td class="px-5 py-3.5">
-                      <span :class="['text-xs font-bold', course.grade >= 5 ? 'text-(--color-success-text)' : course.grade >= 4 ? 'text-(--color-warning-text)' : 'text-(--color-danger-text)']">
-                        {{ course.grade }}
-                      </span>
-                    </td>
-                    <td class="px-5 py-3.5">
-                      <div v-if="course.passed" class="flex items-center gap-1 text-[10px] font-bold text-(--color-success-text)">
-                        <CheckCircle2 :size="14" /> Pass
-                      </div>
-                      <div v-else class="flex items-center gap-1 text-[10px] font-bold text-(--color-danger-text)">
-                        <XCircle :size="14" /> Fail
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          </div>
+          <div v-else class="surface-card border border-card rounded-2xl p-8 text-center">
+            <GraduationCap :size="36" class="text-placeholder mx-auto mb-3" />
+            <p class="text-sm font-semibold text-muted">Chưa có dữ liệu lịch sử học tập</p>
+            <p class="text-xs text-placeholder mt-1">Thông tin chi tiết sẽ được cập nhật từ hệ thống.</p>
           </div>
 
         </div>
 
         <!-- ── Right Sidebar ── -->
-    <div v-if="loading" class="flex items-center justify-center py-20">
-      <Loader2 :size="32" class="animate-spin text-placeholder" />
-    </div>
-    <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">
-      <AlertCircle :size="48" class="text-(--color-danger-text) mb-4" />
-      <p class="text-lg font-semibold text-muted">Đã có lỗi xảy ra</p>
-      <p class="text-sm text-placeholder mt-1">{{ error }}</p>
-      <button @click="loadData" class="mt-4 lg-button-secondary px-4 py-2 text-sm font-semibold">Thử lại</button>
-    </div>
-    <div v-else class="space-y-6">
+        <div class="space-y-6">
 
           <!-- ── Attendance History ── -->
-          <div class="surface-card border border-card rounded-2xl p-5">
+          <div v-if="attendanceHistory.length" class="surface-card border border-card rounded-2xl p-5">
             <h4 class="text-xs font-semibold text-heading uppercase tracking-widest mb-5 flex items-center gap-2">
               <Clock :size="16" /> Chuyên cần theo kỳ
             </h4>
@@ -238,8 +229,8 @@ function goBack() {
             <div class="flex items-start gap-3 p-4 bg-(--color-danger-bg) rounded-2xl border border-(--color-danger-text)/20 mb-4">
               <TrendingDown :size="16" class="text-(--color-danger-text) shrink-0 mt-0.5" />
               <div>
-                <p class="text-[10px] font-semibold text-(--color-danger-text) uppercase tracking-widest">Xu hướng giảm</p>
-                <p class="text-[11px] text-body font-medium mt-1">Điểm số có xu hướng giảm dần qua các kỳ. Cần can thiệp sớm.</p>
+                <p class="text-[10px] font-semibold text-(--color-danger-text) uppercase tracking-widest">Cảnh báo</p>
+                <p class="text-[11px] text-body font-medium mt-1">Sinh viên có nguy cơ rớt môn. Cần can thiệp sớm.</p>
               </div>
             </div>
             <p class="text-[11px] text-body font-medium leading-relaxed">{{ student.reason }}</p>
@@ -249,13 +240,13 @@ function goBack() {
           <div class="grid grid-cols-2 gap-3">
             <div class="surface-card border border-card rounded-2xl p-4 text-center">
               <GraduationCap :size="20" class="text-(--color-info-text) mx-auto mb-2" />
-              <p class="text-lg font-bold text-heading">{{ academicHistory.reduce((s, sem) => s + sem.courses.length, 0) }}</p>
-              <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mt-1">Môn đã học</p>
+              <p class="text-lg font-bold text-heading">{{ student.failCount || 0 }}</p>
+              <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mt-1">Môn đã rớt</p>
             </div>
             <div class="surface-card border border-card rounded-2xl p-4 text-center">
               <Award :size="20" class="text-(--color-success-text) mx-auto mb-2" />
-              <p class="text-lg font-bold text-heading">{{ academicHistory.filter(sem => sem.courses.every(c => c.passed)).length }}</p>
-              <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mt-1">Kỳ đạt</p>
+              <p class="text-lg font-bold text-heading">{{ student.grade }}</p>
+              <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mt-1">GPA hiện tại</p>
             </div>
           </div>
 

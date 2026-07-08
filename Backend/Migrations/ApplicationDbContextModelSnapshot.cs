@@ -690,6 +690,44 @@ namespace Backend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Backend.Models.BuocQuyTrinh", b =>
+                {
+                    b.Property<int>("MaBuoc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaBuoc"));
+
+                    b.Property<string>("KieuBuoc")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("MaQuyTrinh")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SlaKhoangThoiGian")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TenBuoc")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("ThuTu")
+                        .HasColumnType("int");
+
+                    b.Property<string>("VaiTroXuLy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("MaBuoc");
+
+                    b.HasIndex("MaQuyTrinh");
+
+                    b.ToTable("BuocQuyTrinh");
+                });
+
             modelBuilder.Entity("Backend.Models.BuoiHoc", b =>
                 {
                     b.Property<int>("MaBuoiHoc")
@@ -5843,6 +5881,36 @@ namespace Backend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Backend.Models.QuyTrinhDonTu", b =>
+                {
+                    b.Property<int>("MaQuyTrinh")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaQuyTrinh"));
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LoaiDon")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("SlaKhoangThoiGian")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TenQuyTrinh")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("MaQuyTrinh");
+
+                    b.ToTable("QuyTrinhDonTu");
+                });
+
             modelBuilder.Entity("Backend.Models.ScheduleDraftItem", b =>
                 {
                     b.Property<int>("MaDraftItem")
@@ -7886,6 +7954,17 @@ namespace Backend.Migrations
                     b.Navigation("BinhLuanCha");
 
                     b.Navigation("NguoiDung");
+                });
+
+            modelBuilder.Entity("Backend.Models.BuocQuyTrinh", b =>
+                {
+                    b.HasOne("Backend.Models.QuyTrinhDonTu", "QuyTrinh")
+                        .WithMany("BuocQuyTrinhs")
+                        .HasForeignKey("MaQuyTrinh")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("QuyTrinh");
                 });
 
             modelBuilder.Entity("Backend.Models.BuoiHoc", b =>
@@ -10211,6 +10290,11 @@ namespace Backend.Migrations
             modelBuilder.Entity("Backend.Models.NhatKyViPhamThi", b =>
                 {
                     b.Navigation("XuLyViPhams");
+                });
+
+            modelBuilder.Entity("Backend.Models.QuyTrinhDonTu", b =>
+                {
+                    b.Navigation("BuocQuyTrinhs");
                 });
 
             modelBuilder.Entity("Backend.Models.ThongBao", b =>

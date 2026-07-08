@@ -3,23 +3,9 @@ import { ref, onMounted } from 'vue'
 import { Loader2, AlertCircle, Calendar, Clock, BookOpen } from 'lucide-vue-next'
 import { staffApi } from '@/services/staffApi'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(true)
 const apiError = ref('')
 const period = ref(null)
-
-const DEMO_PERIOD = {
-  id: 1,
-  name: 'Đợt 1 - Học kỳ Spring 2026',
-  semester: 'Spring 2026',
-  openDate: '2026-01-15',
-  closeDate: '2026-01-25',
-  withdrawDeadline: '2026-02-10',
-  maxCredits: 24,
-  status: 'open',
-  studentCount: 156,
-  classCount: 12,
-}
 
 async function loadData() {
   loading.value = true
@@ -27,12 +13,8 @@ async function loadData() {
   try {
     const res = await staffApi.getRegistrationPeriod()
     period.value = res ?? null
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      period.value = DEMO_PERIOD
-    } else {
-      apiError.value = err?.message || 'Không thể tải thông tin đợt đăng ký.'
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }

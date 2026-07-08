@@ -10,30 +10,15 @@ import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
 const popup = usePopupStore()
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 const searchQuery = ref('')
 const sentimentFilter = ref('all')
 const showFilterDetail = ref(false)
 
-const sentimentSummary = { positive: 72, neutral: 18, negative: 10 }
-
-const topTopics = ref([
-  { label: 'Giảng dạy dễ hiểu', count: 1240, sentiment: 'positive', change: '+12%' },
-  { label: 'Tương tác tốt', count: 850, sentiment: 'positive', change: '+5%' },
-  { label: 'Tài liệu chưa rõ ràng', count: 320, sentiment: 'negative', change: '-2%' },
-  { label: 'Tốc độ giảng nhanh', count: 280, sentiment: 'negative', change: '+8%' },
-  { label: 'Chấm bài chậm', count: 150, sentiment: 'negative', change: '+15%' },
-  { label: 'Nhiệt tình hỗ trợ', count: 1100, sentiment: 'positive', change: '+20%' },
-  { label: 'Bài tập thực hành tốt', count: 680, sentiment: 'positive', change: '+7%' },
-  { label: 'Giờ giấc không ổn định', count: 95, sentiment: 'negative', change: '+3%' },
-])
-
-const campusInsights = ref([
-  { campus: 'Cơ sở Hồ Chí Minh', pos: 78, neg: 8, top: 'Dễ hiểu, Nhiệt tình' },
-  { campus: 'Cơ sở Đà Nẵng', pos: 65, neg: 15, top: 'Tài liệu, Tốc độ giảng' },
-])
+const sentimentSummary = ref({ positive: 0, neutral: 0, negative: 0 })
+const topTopics = ref([])
+const campusInsights = ref([])
 
 const filteredTopics = computed(() => {
   let list = topTopics.value
@@ -51,12 +36,12 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getEvaluations()
-      const data = unwrapApiData(res)
-      if (data) {
-        // Update sentiment summary and topics from API data as needed
-      }
+    const res = await bghApi.getEvaluationAiAnalysis()
+    const data = unwrapApiData(res)
+    if (data) {
+      sentimentSummary.value = data.sentimentSummary || data.SentimentSummary || { positive: 0, neutral: 0, negative: 0 }
+      topTopics.value = data.topTopics || data.TopTopics || []
+      campusInsights.value = data.campusInsights || data.CampusInsights || []
     }
   } catch (e) {
     error.value = e.message

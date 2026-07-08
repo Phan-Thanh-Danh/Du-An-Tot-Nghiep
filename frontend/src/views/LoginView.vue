@@ -99,11 +99,6 @@ async function submitLogin() {
   }
 }
 
-function quickLogin(roleName) {
-  form.email = roleName
-  form.password = 'mock_password_no_need'
-  submitLogin()
-}
 </script>
 
 <template>
@@ -258,93 +253,6 @@ function quickLogin(roleName) {
               </template>
             </GlassButton>
           </form>
-
-          <!-- Panel Đăng nhập nhanh (Quick Login) -->
-          <div class="relative my-4 flex items-center justify-center">
-            <div class="absolute inset-0 flex items-center" aria-hidden="true">
-              <div class="w-full border-t border-slate-200/50"></div>
-            </div>
-            <span class="relative bg-white/60 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md rounded-full py-0.5">
-              Đăng nhập nhanh
-            </span>
-          </div>
-
-          <div class="grid grid-cols-3 gap-2 mb-4">
-            <!-- Hàng 1: 3 Sinh viên -->
-            <button
-              type="button"
-              class="quick-login-btn flex flex-col items-center justify-center p-2 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm"
-              @click="quickLogin('student')"
-            >
-              <GraduationCap class="h-5 w-5 text-blue-700 mb-1" />
-              <span class="text-[10px] font-bold leading-tight text-slate-800">SV Công nghệ TT</span>
-              <span class="text-[8px] text-slate-500">1-Click Login</span>
-            </button>
-            <button
-              type="button"
-              class="quick-login-btn flex flex-col items-center justify-center p-2 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm"
-              @click="quickLogin('student_gd')"
-            >
-              <GraduationCap class="h-5 w-5 text-cyan-600 mb-1" />
-              <span class="text-[10px] font-bold leading-tight text-slate-800">SV Thiết kế ĐH</span>
-              <span class="text-[8px] text-slate-500">1-Click Login</span>
-            </button>
-            <button
-              type="button"
-              class="quick-login-btn flex flex-col items-center justify-center p-2 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm"
-              @click="quickLogin('student_mkt')"
-            >
-              <GraduationCap class="h-5 w-5 text-purple-600 mb-1" />
-              <span class="text-[10px] font-bold leading-tight text-slate-800">SV Marketing</span>
-              <span class="text-[8px] text-slate-500">1-Click Login</span>
-            </button>
-
-            <!-- Hàng 2: Giảng viên, Giáo vụ, Super Admin -->
-            <button
-              type="button"
-              class="quick-login-btn flex flex-col items-center justify-center p-2 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm"
-              @click="quickLogin('teacher')"
-            >
-              <svg class="h-5 w-5 text-emerald-700 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.58 0 8 0m-8 0c1.66 0 3.308.23 4.898.674M12 6.253c1.21-.77 2.898-1.253 4.898-1.253 1.753 0 3.308.477 4.5 1.253v13C20.168 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-              <span class="text-[10px] font-bold leading-tight text-slate-800">Giảng viên</span>
-              <span class="text-[8px] text-slate-500">1-Click Login</span>
-            </button>
-            <button
-              type="button"
-              class="quick-login-btn flex flex-col items-center justify-center p-2 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm"
-              @click="quickLogin('staff')"
-            >
-              <svg class="h-5 w-5 text-teal-700 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-              <span class="text-[10px] font-bold leading-tight text-slate-800">Giáo vụ</span>
-              <span class="text-[8px] text-slate-500">1-Click Login</span>
-            </button>
-            <button
-              type="button"
-              class="quick-login-btn flex flex-col items-center justify-center p-2 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm"
-              @click="quickLogin('admin')"
-            >
-              <svg class="h-5 w-5 text-indigo-700 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              <span class="text-[10px] font-bold leading-tight text-slate-800">Super Admin</span>
-              <span class="text-[8px] text-slate-500">1-Click Login</span>
-            </button>
-
-            <!-- Hàng 3: Phụ huynh (Kéo dài hết 3 cột) -->
-            <button
-              type="button"
-              class="quick-login-btn col-span-3 flex flex-col items-center justify-center p-2 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/70 active:scale-95 transition text-center shadow-sm"
-              @click="quickLogin('parent')"
-            >
-              <Users class="h-5 w-5 text-orange-600 mb-1" />
-              <span class="text-[10px] font-bold leading-tight text-slate-800">Phụ huynh</span>
-              <span class="text-[8px] text-slate-500">1-Click Login</span>
-            </button>
-          </div>
 
           <div class="login-security-note flex gap-3 rounded-2xl px-4 py-3 text-sm">
             <ShieldCheck class="mt-0.5 h-4 w-4 flex-none text-blue-700" aria-hidden="true" />

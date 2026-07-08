@@ -1,21 +1,20 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
-  CheckCircle2, XCircle, Eye, X, Search, CalendarDays
+  CheckCircle2, XCircle, Eye, X, Search, CalendarDays, AlertCircle, Loader2
 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import { usePopupStore } from '@/stores/popup'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
 
 const popup = usePopupStore()
 
-const schedules = ref([
-  { id: 'PD-241', term: 'Học kỳ 1 - 2026', type: 'Chính quy', department: 'Khoa CNTT', created: '10/05/2026', submitter: 'Nguyễn Văn A (Giáo vụ)', status: 'pending', metrics: { classes: 120, teachers: 45, hours: 360 } },
-  { id: 'PD-242', term: 'Học kỳ 1 - 2026', type: 'Chính quy', department: 'Khoa Kinh tế & QT', created: '11/05/2026', submitter: 'Trần Thị B (Giáo vụ)', status: 'pending', metrics: { classes: 80, teachers: 28, hours: 215 } },
-  { id: 'PD-243', term: 'Học kỳ 2 - 2026', type: 'Chất lượng cao', department: 'Khoa Ngôn ngữ Anh', created: '12/05/2026', submitter: 'Lê Văn C (Giáo vụ)', status: 'pending', metrics: { classes: 65, teachers: 22, hours: 180 } },
-])
-
+const loading = ref(false)
+const error = ref(null)
+const schedules = ref([])
 const searchQuery = ref('')
 const selectedItem = ref(null)
 const confirmDialog = ref({ isOpen: false, action: null, message: '', item: null })
@@ -24,12 +23,27 @@ const filteredSchedules = computed(() => {
   let list = schedules.value
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
-    list = list.filter(s => s.department.toLowerCase().includes(q) || s.id.toLowerCase().includes(q) || s.submitter.toLowerCase().includes(q))
+    list = list.filter(s => s.department?.toLowerCase().includes(q) || s.id?.toLowerCase().includes(q) || s.submitter?.toLowerCase().includes(q))
   }
   return list
 })
 
 const pendingCount = computed(() => schedules.value.filter(s => s.status === 'pending').length)
+
+async function loadData() {
+  loading.value = true
+  error.value = null
+  try {
+    const res = await bghApi.getPendingSchedules()
+    schedules.value = unwrapApiData(res) || []
+  } catch (e) {
+    error.value = e?.message || 'Lỗi tải dữ liệu TKB chờ duyệt'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => { loadData() })
 
 function openConfirm(action, item) {
   selectedItem.value = item
@@ -65,6 +79,22 @@ function restoreItem(item) {
 
 <template>
   <div class="flex flex-1 min-h-0 gap-4 flex-col lg:flex-row">
+    <!-- Loading State -->
+    <div v-if="loading" class="flex-1 flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3 text-muted">
+        <Loader2 :size="32" class="animate-spin" />
+        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
+      </div>
+    </div>
+    <!-- Error State -->
+    <div v-else-if="error" class="flex-1 flex items-center justify-center py-20">
+      <div class="flex flex-col items-center gap-3">
+        <AlertCircle :size="32" class="text-(--color-danger-text)" />
+        <p class="text-sm text-(--color-danger-text) font-medium">{{ error }}</p>
+        <button @click="loadData" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
+      </div>
+    </div>
+    <template v-else>
     <div class="flex-1 surface-card border border-card rounded-2xl p-4 flex flex-col gap-3 min-w-0 overflow-y-auto">
       <div v-for="item in filteredSchedules" :key="item.id"
            @click="selectedItem = item"
@@ -86,16 +116,16 @@ function restoreItem(item) {
 
         <div class="flex items-center gap-4 py-2 lg:py-0 border-y lg:border-y-0 lg:border-l border-default lg:px-4 shrink-0">
            <div class="text-center">
-              <p class="text-[10px] uppercase text-muted font-bold">Lớp</p>
-              <p class="font-bold text-heading">{{ item.metrics.classes }}</p>
+             <p class="text-[10px] uppercase text-muted font-bold">Lớp</p>
+             <p class="font-bold text-heading">{{ item.metrics?.classes ?? '—' }}</p>
            </div>
            <div class="text-center">
-              <p class="text-[10px] uppercase text-muted font-bold">GV</p>
-              <p class="font-bold text-heading">{{ item.metrics.teachers }}</p>
+             <p class="text-[10px] uppercase text-muted font-bold">GV</p>
+             <p class="font-bold text-heading">{{ item.metrics?.teachers ?? '—' }}</p>
            </div>
            <div class="text-center">
-              <p class="text-[10px] uppercase text-muted font-bold">Giờ</p>
-              <p class="font-bold text-heading">{{ item.metrics.hours }}</p>
+             <p class="text-[10px] uppercase text-muted font-bold">Giờ</p>
+             <p class="font-bold text-heading">{{ item.metrics?.hours ?? '—' }}</p>
            </div>
         </div>
 
@@ -147,9 +177,9 @@ function restoreItem(item) {
 
           <div class="space-y-2 text-sm">
             <p class="text-xs font-bold text-heading mb-1">Quy mô</p>
-            <div class="flex justify-between"><span class="text-muted">Lớp học phần:</span> <span class="font-medium">{{ selectedItem.metrics.classes }}</span></div>
-            <div class="flex justify-between"><span class="text-muted">Giảng viên:</span> <span class="font-medium">{{ selectedItem.metrics.teachers }}</span></div>
-            <div class="flex justify-between"><span class="text-muted">Tổng giờ:</span> <span class="font-medium">{{ selectedItem.metrics.hours }}h</span></div>
+            <div class="flex justify-between"><span class="text-muted">Lớp học phần:</span> <span class="font-medium">{{ selectedItem.metrics?.classes ?? '—' }}</span></div>
+            <div class="flex justify-between"><span class="text-muted">Giảng viên:</span> <span class="font-medium">{{ selectedItem.metrics?.teachers ?? '—' }}</span></div>
+            <div class="flex justify-between"><span class="text-muted">Tổng giờ:</span> <span class="font-medium">{{ selectedItem.metrics?.hours ?? '—' }}</span></div>
           </div>
 
           <GlassButton variant="secondary" class="w-full justify-center text-link"><Eye :size="14" class="mr-1"/> Xem dữ liệu chi tiết</GlassButton>
@@ -171,5 +201,6 @@ function restoreItem(item) {
       :confirmLabel="'Đồng ý'"
       @confirm="handleConfirm"
     />
+    </template>
   </div>
 </template>

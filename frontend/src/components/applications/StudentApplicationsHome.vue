@@ -18,16 +18,17 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
-import {
-  applicationTypes,
-  getApplicationTypeLabel,
-  studentApplications,
-} from '@/mocks/applicationMockData'
 import { usePopupStore } from '@/stores/popup'
 import { formatDate, formatDateTime } from '@/utils/dateFormat'
 import { getStatusMeta, getStatusOptions } from '@/utils/statusLabels'
 
 const popupStore = usePopupStore()
+const applicationTypes = []
+const studentApplications = []
+
+function getApplicationTypeLabel(type) {
+  return applicationTypes.find((item) => item.value === type)?.label || type || 'Không xác định'
+}
 
 const loading = ref(false)
 const error = ref('')

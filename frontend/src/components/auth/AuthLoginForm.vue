@@ -4,17 +4,12 @@ import {
   AlertCircle,
   AlertTriangle,
   ArrowRight,
-  Box,
   Eye,
   EyeOff,
-  GraduationCap,
   LoaderCircle,
   Lock,
-  Palette,
-  TrendingUp,
   User,
 } from 'lucide-vue-next'
-import { getDemoCredentials, SHOW_DEMO_ACCOUNTS } from '@/data/authPortals'
 
 const props = defineProps({
   portal: { type: Object, default: null },
@@ -39,7 +34,6 @@ const fieldErrors = reactive({
 })
 
 const canSubmit = computed(() => form.email.trim() && form.password && !props.loading)
-const hasDemo = computed(() => SHOW_DEMO_ACCOUNTS && props.portal?.demoUsername)
 
 function clearFieldError(field) {
   fieldErrors[field] = ''
@@ -68,15 +62,6 @@ function submitLogin() {
     password: form.password,
     remember: rememberLogin.value,
   })
-}
-
-function quickLogin(demoEmail) {
-  if (props.loading) return
-
-  const demoCredentials = getDemoCredentials(demoEmail)
-  form.email = demoCredentials?.usernameOrEmail || demoEmail
-  form.password = demoCredentials?.password || ''
-  submitLogin()
 }
 
 function checkCapsLock(e) {
@@ -218,52 +203,6 @@ defineExpose({
       <ArrowRight v-if="!loading" class="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" aria-hidden="true" />
     </button>
 
-    <div v-if="hasDemo" class="relative flex py-4 items-center">
-      <div class="flex-grow border-t border-[#c5c5d3]/30"></div>
-      <span class="flex-shrink-0 mx-4 text-[12px] font-medium leading-4 tracking-[0.04em] text-[#757682]">hoặc</span>
-      <div class="flex-grow border-t border-[#c5c5d3]/30"></div>
-    </div>
-
-    <div v-if="hasDemo && portal?.slug === 'student'" class="space-y-2 w-full">
-      <button
-        type="button"
-        :disabled="loading"
-        class="w-full py-2.5 px-4 rounded-lg border border-blue-300 hover:border-blue-500 text-[13px] font-semibold text-blue-800 bg-white/60 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow"
-        @click="quickLogin('student')"
-      >
-        <GraduationCap class="w-4 h-4 text-blue-600" aria-hidden="true" />
-        <span>Sinh viên CNTT (Nguyễn Văn An)</span>
-      </button>
-      <button
-        type="button"
-        :disabled="loading"
-        class="w-full py-2.5 px-4 rounded-lg border border-emerald-300 hover:border-emerald-500 text-[13px] font-semibold text-emerald-800 bg-white/60 hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow"
-        @click="quickLogin('student_gd')"
-      >
-        <Palette class="w-4 h-4 text-emerald-600" aria-hidden="true" />
-        <span>Sinh viên TK Đồ họa (Nguyễn Thiết Kế)</span>
-      </button>
-      <button
-        type="button"
-        :disabled="loading"
-        class="w-full py-2.5 px-4 rounded-lg border border-orange-300 hover:border-orange-500 text-[13px] font-semibold text-orange-800 bg-white/60 hover:bg-orange-50 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow"
-        @click="quickLogin('student_mkt')"
-      >
-        <TrendingUp class="w-4 h-4 text-orange-600" aria-hidden="true" />
-        <span>Sinh viên Marketing (Trần Thị Marketing)</span>
-      </button>
-    </div>
-
-    <button
-      v-else-if="hasDemo"
-      type="button"
-      :disabled="loading"
-      class="w-full py-3 px-4 rounded-lg border border-[#00236f]/30 text-[13px] font-semibold text-[#00236f] bg-white/60 hover:bg-[#00236f]/5 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow"
-      @click="quickLogin(portal.demoUsername)"
-    >
-      <Box class="w-4 h-4" aria-hidden="true" />
-      <span>Đăng nhập với tài khoản demo {{ portal.shortLabel }}</span>
-    </button>
   </form>
 </template>
 

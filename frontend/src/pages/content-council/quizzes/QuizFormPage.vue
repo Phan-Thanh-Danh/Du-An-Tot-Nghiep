@@ -101,7 +101,7 @@ onMounted(() => {
       subjectId: quiz.subjectId,
       semesterId: quiz.semesterId || null,
       title: quiz.title,
-      description: '', // mock data doesn't have desc yet
+      description: '',
       examType: quiz.examType,
       format: quiz.format,
       durationMinutes: quiz.durationMinutes,
@@ -188,7 +188,7 @@ const saveDraft = async () => {
 
   isSaving.value = true
   
-  // mock api call delay
+  // Temporary local save flow until this screen is wired to the quiz write API
   await new Promise(r => setTimeout(r, 600))
   
   const mapped = mapFormToQuizModel()

@@ -1,34 +1,24 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
+import { usePopupStore } from '@/stores/popup'
+import { studentApi } from '@/services/studentApi'
+import { unwrapApiData } from '@/services/apiClient'
 import {
-  MessageSquareHeart, AlertTriangle, ShieldCheck, 
-  CheckCircle2, Edit3, Star, User, BookOpen, Send,
-  X, AlertCircle, Sparkles, ChevronDown, Bot
+  MessageSquareHeart, AlertTriangle, ShieldCheck,
+  CheckCircle2, Edit3, Star, User, Send,
+  X, AlertCircle, ChevronDown, Bot
 } from 'lucide-vue-next'
 
-// Mock Data
+const popupStore = usePopupStore()
+
 const semesters = ['Kỳ Spring 2026', 'Kỳ Fall 2025', 'Kỳ Summer 2025']
 const selectedSemester = ref('Kỳ Spring 2026')
 const semesterOpen = ref(false)
 
-const mockEvaluations = ref([
-  { 
-    id: 'EVAL-001', subject: 'Cấu trúc dữ liệu & Giải thuật', teacher: 'TS. Nguyễn Minh Khoa', 
-    status: 'Pending', editsLeft: 2, 
-    ratings: { r1: 0, r2: 0, r3: 0 }, feedback: '' 
-  },
-  { 
-    id: 'EVAL-002', subject: 'Toán rời rạc', teacher: 'ThS. Trần Thu Hà', 
-    status: 'Completed', editsLeft: 1, 
-    ratings: { r1: 5, r2: 4, r3: 5 }, feedback: 'Cô giảng bài rất nhiệt tình và dễ hiểu.' 
-  },
-  { 
-    id: 'EVAL-003', subject: 'Lập trình Web', teacher: 'KS. Lê Văn Tâm', 
-    status: 'Pending', editsLeft: 2, 
-    ratings: { r1: 0, r2: 0, r3: 0 }, feedback: '' 
-  }
-])
+const evaluations = ref([])
+const loading = ref(false)
+const error = ref('')
 
 const criteriaList = [
   { key: 'r1', label: '1. Đảm bảo thời gian và nội dung môn học', desc: 'Giảng viên đến lớp đúng giờ, dạy đủ thời lượng và bám sát đề cương.' },
@@ -36,7 +26,6 @@ const criteriaList = [
   { key: 'r3', label: '3. Thái độ và Hỗ trợ sinh viên', desc: 'Nhiệt tình giải đáp thắc mắc, tôn trọng và công bằng với sinh viên.' }
 ]
 
-// State
 const activeEval = ref(null)
 const evalModalOpen = ref(false)
 const confirmModalOpen = ref(false)
@@ -44,13 +33,42 @@ const anyModalOpen = computed(() => evalModalOpen.value || confirmModalOpen.valu
 useBodyScrollLock(anyModalOpen)
 const isSubmitting = ref(false)
 
-// Computed
-const filteredEvals = computed(() => mockEvaluations.value) // In real app, filter by selectedSemester
-const pendingCount = computed(() => mockEvaluations.value.filter(e => e.status === 'Pending').length)
+const filteredEvals = computed(() => evaluations.value)
+const pendingCount = computed(() => evaluations.value.filter(e => e.status === 'Pending').length)
 
-// Actions
+const mapEvaluation = (item) => ({
+  id: item.id ?? item.Id ?? item.maDanhGia,
+  subject: item.tenMonHoc ?? item.subject ?? item.Subject ?? item.tenMon ?? item.course,
+  teacher: item.giangVien ?? item.teacher ?? item.Teacher ?? item.tenGiangVien,
+  status: item.trangThai ?? item.status ?? item.Status ?? 'Pending',
+  editsLeft: item.soLanSua ?? item.editsLeft ?? item.EditsLeft ?? 2,
+  ratings: {
+    r1: item.diem1 ?? item.r1 ?? 0,
+    r2: item.diem2 ?? item.r2 ?? 0,
+    r3: item.diem3 ?? item.r3 ?? 0,
+  },
+  feedback: item.nhanXet ?? item.feedback ?? item.Feedback ?? ''
+})
+
+const fetchEvaluations = async () => {
+  loading.value = true
+  error.value = ''
+  try {
+    const response = await studentApi.getEvaluations()
+    const data = unwrapApiData(response) || []
+    evaluations.value = (data.items ?? data.Items ?? data).map(mapEvaluation)
+  } catch (err) {
+    error.value = err?.message || 'Không thể tải danh sách đánh giá.'
+    evaluations.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(fetchEvaluations)
+
 const openEvalModal = (ev) => {
-  activeEval.value = JSON.parse(JSON.stringify(ev)) // Deep copy to isolate changes
+  activeEval.value = JSON.parse(JSON.stringify(ev))
   evalModalOpen.value = true
 }
 
@@ -60,41 +78,38 @@ const closeEvalModal = () => {
 }
 
 const setRating = (key, val) => {
-  if (activeEval.value) {
-    activeEval.value.ratings[key] = val
-  }
+  if (activeEval.value) activeEval.value.ratings[key] = val
 }
 
 const submitEvaluation = () => {
-  // Open confirm modal first to guarantee anonymity
   confirmModalOpen.value = true
 }
 
-const confirmSubmit = () => {
+const confirmSubmit = async () => {
   isSubmitting.value = true
-  
-  setTimeout(() => {
-    // Find and update the original evaluation
-    const idx = mockEvaluations.value.findIndex(e => e.id === activeEval.value.id)
+  try {
+    await studentApi.submitEvaluation(activeEval.value.id, {
+      ratings: activeEval.value.ratings,
+      feedback: activeEval.value.feedback,
+    })
+    const idx = evaluations.value.findIndex(e => e.id === activeEval.value.id)
     if (idx !== -1) {
-      const original = mockEvaluations.value[idx]
-      original.status = 'Completed'
-      if (original.feedback !== '') { // If editing
-        original.editsLeft -= 1
-      }
-      original.ratings = { ...activeEval.value.ratings }
-      original.feedback = activeEval.value.feedback
+      evaluations.value[idx].status = 'Completed'
+      evaluations.value[idx].ratings = { ...activeEval.value.ratings }
+      evaluations.value[idx].feedback = activeEval.value.feedback
+      if (evaluations.value[idx].editsLeft > 0) evaluations.value[idx].editsLeft -= 1
     }
-    
-    isSubmitting.value = false
     confirmModalOpen.value = false
     evalModalOpen.value = false
     activeEval.value = null
-  }, 1000)
+  } catch (err) {
+    popupStore.error('Lỗi', err?.message || 'Không thể gửi đánh giá.')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 const getCompletionColor = (status) => status === 'Completed' ? 'completion-dot--done' : 'completion-dot--pending'
-
 </script>
 
 <template>

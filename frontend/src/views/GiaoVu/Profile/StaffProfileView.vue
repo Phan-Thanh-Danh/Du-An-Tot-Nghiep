@@ -29,26 +29,27 @@ import PageContainer from '@/components/SinhVien/PageContainer.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 
-// ── Mock Data ────────────────────────────────────────────────
-const profile = ref({
-  name: 'Phạm Minh Đức',
-  code: 'GV-0452',
-  role: 'Giáo vụ khoa CNTT',
-  email: 'ducpm@university.edu.vn',
-  phone: '0987.654.321',
-  campus: 'Cơ sở chính (Hồ Chí Minh)',
-  joinDate: '15/08/2021',
-  avatar: null
+import { computed } from 'vue'
+
+// ── Profile Data ────────────────────────────────────────────────
+const profile = computed(() => {
+  const u = authStore.user || {}
+  return {
+    name: u.hoTen || u.fullName || 'Người dùng',
+    code: u.maTaiKhoan || u.username || 'N/A',
+    role: u.vaiTro || u.role || 'Giáo vụ',
+    email: u.email || '',
+    phone: u.soDienThoai || 'N/A',
+    campus: u.donVi || u.campus || 'N/A',
+    joinDate: u.ngayTao ? new Date(u.ngayTao).toLocaleDateString('vi-VN') : 'N/A',
+    avatar: u.avatar || null
+  }
 })
 
 const editForm = ref({ ...profile.value })
 const editing = ref(false)
 
-const loginHistory = ref([
-  { id: 1, device: 'Chrome / Windows 11', ip: '14.232.xxx.xxx', time: '13/05/2026 08:30', status: 'current' },
-  { id: 2, device: 'Safari / iPhone 15', ip: '112.xxx.xxx.xxx', time: '12/05/2026 21:15', status: 'previous' },
-  { id: 3, device: 'Chrome / Windows 11', ip: '14.232.xxx.xxx', time: '12/05/2026 09:00', status: 'previous' },
-])
+const loginHistory = ref([])
 
 // ── Change Password ──────────────────────────────────────────
 const showChangePwd = ref(false)

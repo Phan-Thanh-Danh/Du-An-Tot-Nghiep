@@ -1,0 +1,5 @@
+export { default as SkeletonBlock } from './SkeletonBlock.vue'
+export { default as SkeletonCard } from './SkeletonCard.vue'
+export { default as SkeletonTable } from './SkeletonTable.vue'
+export { default as SkeletonChart } from './SkeletonChart.vue'
+export { default as SkeletonDashboard } from './SkeletonDashboard.vue'

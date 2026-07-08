@@ -174,7 +174,6 @@ import { useRouter } from 'vue-router'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
@@ -183,60 +182,22 @@ const semesterFilter = ref('Spring 2026')
 const campusFilter = ref('')
 const semesters = ['Spring 2026', 'Fall 2025', 'Summer 2025', 'Spring 2025']
 
-const mockStats = [
-  { id: 1, icon: ThumbsUp, value: '4.35 / 5', label: 'Điểm đánh giá trung bình', bg: 'bg-(--color-success-bg)', iconColor: 'text-(--color-success-text)' },
-  { id: 2, icon: Users, value: '1,245', label: 'Số lượt khảo sát trong kỳ', bg: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)' },
-  { id: 3, icon: Award, value: '12', label: 'GV đạt điểm ≥ 4.5', bg: 'bg-(--color-warning-bg)', iconColor: 'text-(--color-warning-text)' },
-  { id: 4, icon: MessageSquare, value: '89%', label: 'Tỷ lệ SV tham gia khảo sát', bg: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)' },
-]
-
-const stats = ref(mockStats)
-
-const mockTeacherRankings = [
-  { id: 1, hoTen: 'TS. Nguyễn Khắc Anh', initials: 'NA', maCodeGv: 'GV001', khoa: 'Khoa CNTT', diemTb: 4.9, soLuot: 145, chatLuong: 4.9, phuongPhap: 4.8, dungGio: 5.0, xuHuong: 0.12 },
-  { id: 2, hoTen: 'ThS. Trần Thị Bích', initials: 'TB', maCodeGv: 'GV015', khoa: 'Khoa Kinh Tế', diemTb: 4.8, soLuot: 210, chatLuong: 4.8, phuongPhap: 4.7, dungGio: 4.9, xuHuong: 0.08 },
-  { id: 3, hoTen: 'ThS. Lê Văn Cường', initials: 'LC', maCodeGv: 'GV008', khoa: 'Khoa CNTT', diemTb: 4.7, soLuot: 98, chatLuong: 4.7, phuongPhap: 4.8, dungGio: 4.6, xuHuong: 0.15 },
-  { id: 4, hoTen: 'TS. Phạm Thị Dung', initials: 'PD', maCodeGv: 'GV022', khoa: 'Khoa Thiết Kế', diemTb: 4.6, soLuot: 76, chatLuong: 4.5, phuongPhap: 4.7, dungGio: 4.6, xuHuong: -0.05 },
-  { id: 5, hoTen: 'ThS. Hoàng Minh Đức', initials: 'HĐ', maCodeGv: 'GV005', khoa: 'Khoa CNTT', diemTb: 4.5, soLuot: 132, chatLuong: 4.4, phuongPhap: 4.6, dungGio: 4.5, xuHuong: 0.20 },
-  { id: 6, hoTen: 'ThS. Nguyễn Thị Hoa', initials: 'NH', maCodeGv: 'GV018', khoa: 'Khoa Kinh Tế', diemTb: 4.4, soLuot: 88, chatLuong: 4.3, phuongPhap: 4.5, dungGio: 4.4, xuHuong: 0.03 },
-  { id: 7, hoTen: 'TS. Võ Văn Hùng', initials: 'VH', maCodeGv: 'GV011', khoa: 'Khoa CNTT', diemTb: 4.3, soLuot: 115, chatLuong: 4.2, phuongPhap: 4.4, dungGio: 4.3, xuHuong: -0.10 },
-  { id: 8, hoTen: 'ThS. Đặng Thị Kim', initials: 'ĐK', maCodeGv: 'GV025', khoa: 'Khoa Thiết Kế', diemTb: 4.2, soLuot: 65, chatLuong: 4.1, phuongPhap: 4.3, dungGio: 4.2, xuHuong: 0.07 },
-  { id: 9, hoTen: 'ThS. Bùi Quang Linh', initials: 'BL', maCodeGv: 'GV030', khoa: 'Khoa Kinh Tế', diemTb: 3.9, soLuot: 92, chatLuong: 3.8, phuongPhap: 4.0, dungGio: 3.9, xuHuong: -0.08 },
-  { id: 10, hoTen: 'ThS. Ngô Thị Mai', initials: 'NM', maCodeGv: 'GV033', khoa: 'Khoa CNTT', diemTb: 3.7, soLuot: 78, chatLuong: 3.6, phuongPhap: 3.8, dungGio: 3.7, xuHuong: -0.15 },
-]
-
-const teacherRankings = ref(mockTeacherRankings)
-
-const mockDepartmentStats = [
-  { ten: 'Khoa Công nghệ Thông tin', diemTb: 4.48, soGv: 38, soLuotKhaoSat: 568, xuHuong: 0.12 },
-  { ten: 'Khoa Kinh Tế', diemTb: 4.27, soGv: 28, soLuotKhaoSat: 390, xuHuong: 0.03 },
-  { ten: 'Khoa Thiết Kế', diemTb: 4.35, soGv: 15, soLuotKhaoSat: 141, xuHuong: 0.02 },
-]
-
-const deptStats = ref(mockDepartmentStats)
-
-const mockComments = [
-  { id: 1, giangVien: 'TS. Nguyễn Khắc Anh', initials: 'NA', monHoc: 'Lập trình Java', ngay: '10/06/2026', noiDung: 'Thầy giảng rất dễ hiểu, nhiều ví dụ thực tế. Em học được rất nhiều từ môn này!', rating: 5 },
-  { id: 2, giangVien: 'ThS. Trần Thị Bích', initials: 'TB', monHoc: 'Kế toán tài chính', ngay: '08/06/2026', noiDung: 'Cô nhiệt tình, giải đáp mọi thắc mắc của sinh viên. Giáo trình rất hay.', rating: 5 },
-  { id: 3, giangVien: 'ThS. Hoàng Minh Đức', initials: 'HĐ', monHoc: 'Cấu trúc dữ liệu', ngay: '05/06/2026', noiDung: 'Môn khó nhưng thầy giảng rất tận tâm, bài tập về nhà giúp hiểu sâu hơn.', rating: 4 },
-  { id: 4, giangVien: 'ThS. Bùi Quang Linh', initials: 'BL', monHoc: 'Kinh tế vi mô', ngay: '02/06/2026', noiDung: 'Giảng viên có kiến thức nhưng phương pháp giảng dạy chưa thực sự cuốn hút.', rating: 3 },
-]
-
-const comments = ref(mockComments)
+const stats = ref([])
+const teacherRankings = ref([])
+const deptStats = ref([])
+const comments = ref([])
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getEvaluations()
-      const data = unwrapApiData(res)
-      if (data) {
-        if (data.teacherRankings) teacherRankings.value = data.teacherRankings
-        if (data.stats) stats.value = data.stats
-        if (data.comments) comments.value = data.comments
-        if (data.departmentStats) deptStats.value = data.departmentStats
-      }
+    const res = await bghApi.getEvaluations()
+    const data = unwrapApiData(res)
+    if (data) {
+      if (data.teacherRankings) teacherRankings.value = data.teacherRankings
+      if (data.stats) stats.value = data.stats
+      if (data.comments) comments.value = data.comments
+      if (data.departmentStats) deptStats.value = data.departmentStats
     }
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu đánh giá'

@@ -6,7 +6,6 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import { teacherApi } from '@/services/teacherApi'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const route = useRoute()
 const router = useRouter()
 
@@ -14,23 +13,6 @@ const loading = ref(false)
 const error = ref('')
 const classData = ref(null)
 const recentActivities = ref([])
-
-const DEMO_CLASS = {
-  id: route.params.id || 'SE1601',
-  name: 'Lập trình Java Cơ bản',
-  subject: 'Công nghệ thông tin',
-  semester: 'Spring 2026',
-  studentsCount: 45,
-  upcomingSessions: 3,
-  pendingAssignments: 12,
-  averageGpa: 7.8
-}
-
-const DEMO_ACTIVITIES = [
-  { id: 1, title: 'Đã nộp bài tập Lab 3', time: '2 giờ trước', type: 'assignment' },
-  { id: 2, title: 'Sinh viên Nguyễn Văn A xin nghỉ', time: '5 giờ trước', type: 'leave' },
-  { id: 3, title: 'Cập nhật tài liệu Chương 4', time: '1 ngày trước', type: 'material' },
-]
 
 function mapCourseToDetail(course) {
   return {
@@ -50,13 +32,8 @@ async function loadClass() {
   error.value = ''
   try {
     const data = await teacherApi.getClassById(route.params.id)
-    classData.value = data ? mapCourseToDetail(data) : DEMO_CLASS
+    classData.value = data ? mapCourseToDetail(data) : null
   } catch (e) {
-    if (ENABLE_MOCK_API) {
-      classData.value = JSON.parse(JSON.stringify(DEMO_CLASS))
-      recentActivities.value = JSON.parse(JSON.stringify(DEMO_ACTIVITIES))
-      return
-    }
     error.value = e?.message || 'Không thể tải thông tin lớp học.'
     classData.value = null
   } finally {

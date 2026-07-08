@@ -1,28 +1,62 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   Network, Search, Settings2, Plus, Download,
   ArrowRight, Clock,
-  Bot, ShieldCheck, AlignLeft, CheckCircle2
+  Bot, ShieldCheck, AlignLeft, CheckCircle2,
+  Loader2
 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
+import { workflowApi } from '@/services/workflowApi'
+import { usePopupStore } from '@/stores/popup'
 
-const workflows = ref([
-  { id: 'wf1', name: 'Nghỉ học / Báo lưu', active: true, steps: 3, sla: '3 ngày' },
-  { id: 'wf2', name: 'Chuyển lớp học phần', active: true, steps: 4, sla: '2 ngày' },
-  { id: 'wf3', name: 'Cấp giấy xác nhận', active: true, steps: 2, sla: 'Tự động' },
-  { id: 'wf4', name: 'Thi lại / Hoãn thi', active: false, steps: 4, sla: '5 ngày' },
-])
+const popup = usePopupStore()
 
-const selectedWf = ref(workflows.value[1]) // Chuyển lớp học phần
+const workflows = ref([])
+const selectedWf = ref(null)
+const loading = ref(true)
+const saving = ref(false)
 
-const wfSteps = [
-  { id: 's1', name: 'Tiếp nhận đơn', role: 'Hệ thống', type: 'auto', sla: 'Tức thì' },
-  { id: 's2', name: 'Kiểm tra điều kiện (Sĩ số lớp đích)', role: 'AI Assistant', type: 'auto', sla: '1 phút' },
-  { id: 's3', name: 'Phê duyệt cuối cùng', role: 'Giáo vụ khoa', type: 'manual', sla: '2 ngày' },
-  { id: 's4', name: 'Cập nhật hệ thống & Thông báo', role: 'Hệ thống', type: 'auto', sla: 'Tức thì' },
-]
+const wfSteps = computed(() => {
+  return selectedWf.value?.wfSteps || []
+})
+
+async function fetchWorkflows() {
+  loading.value = true
+  try {
+    workflows.value = await workflowApi.getWorkflows()
+    if (workflows.value.length > 0) {
+      selectedWf.value = workflows.value[0]
+    }
+  } catch (err) {
+    popup.error('Lỗi tải dữ liệu', err?.message || 'Không thể tải cấu hình quy trình')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function toggleActive() {
+  if (!selectedWf.value) return
+  saving.value = true
+  try {
+    const updated = await workflowApi.updateWorkflow(selectedWf.value.id, {
+      active: !selectedWf.value.active
+    })
+    const index = workflows.value.findIndex(w => w.id === updated.id)
+    if (index !== -1) workflows.value[index] = updated
+    selectedWf.value = updated
+    popup.success('Thành công', 'Đã cập nhật trạng thái quy trình')
+  } catch (err) {
+    popup.error('Lỗi lưu', err?.message || 'Không thể lưu thay đổi')
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(() => {
+  fetchWorkflows()
+})
 </script>
 
 <template>
@@ -55,13 +89,19 @@ const wfSteps = [
         </div>
 
         <div class="flex-1 overflow-y-auto p-2 space-y-1">
-           <div v-for="wf in workflows" :key="wf.id"
+           <div v-if="loading" class="flex items-center justify-center py-8 text-(--text-muted)">
+             <Loader2 class="animate-spin" :size="24" />
+           </div>
+           <div v-else-if="workflows.length === 0" class="p-4 text-center text-sm text-(--text-muted)">
+             Không có quy trình nào.
+           </div>
+           <div v-else v-for="wf in workflows" :key="wf.id"
                 @click="selectedWf = wf"
                 class="p-3 rounded-xl cursor-pointer transition-all border flex flex-col gap-2"
-                :class="selectedWf.id === wf.id ? 'bg-(--lg-primary)/10 border-(--lg-primary) shadow-sm' : 'border-transparent hover:bg-(--surface-hover)'">
+                :class="selectedWf?.id === wf.id ? 'bg-(--lg-primary)/10 border-(--lg-primary) shadow-sm' : 'border-transparent hover:bg-(--surface-hover)'">
               <div class="flex items-start justify-between">
                  <h3 class="font-bold text-sm text-(--text-heading) leading-tight">{{ wf.name }}</h3>
-                 <div class="w-2 h-2 rounded-full mt-1 shrink-0" :class="wf.active ? 'bg-emerald-500' : 'bg-[var(--text-muted)]'"></div>
+                 <div class="w-2 h-2 rounded-full mt-1 shrink-0" :class="wf.active ? 'bg-emerald-500' : 'bg-(--text-muted)'"></div>
               </div>
               <div class="flex items-center gap-3 text-xs font-medium text-(--text-muted)">
                  <span class="flex items-center gap-1"><AlignLeft :size="12"/> {{ wf.steps }} bước</span>
@@ -74,14 +114,21 @@ const wfSteps = [
       <!-- Right Panel: Process Builder -->
       <div class="flex-1 surface-card border border-(--border-card) rounded-2xl shadow-sm flex flex-col min-h-0 overflow-hidden">
 
-        <!-- Builder Header -->
+         <!-- Builder Header -->
         <div class="p-5 border-b border-(--border-default) flex items-start justify-between bg-(--surface-input)">
-          <div>
+          <div v-if="selectedWf">
              <div class="flex items-center gap-3 mb-2">
                 <h2 class="text-xl font-bold text-(--text-heading)">{{ selectedWf.name }}</h2>
-                <GlassBadge :variant="selectedWf.active ? 'success' : 'neutral'">{{ selectedWf.active ? 'Đang kích hoạt' : 'Bản nháp' }}</GlassBadge>
+                <GlassBadge 
+                  :variant="selectedWf.active ? 'success' : 'neutral'" 
+                  class="cursor-pointer hover:opacity-80 transition-opacity"
+                  @click="toggleActive"
+                >
+                  <Loader2 v-if="saving" class="w-3 h-3 mr-1 animate-spin inline-block" />
+                  {{ selectedWf.active ? 'Đang kích hoạt' : 'Bản nháp' }}
+                </GlassBadge>
              </div>
-             <p class="text-sm text-(--text-muted)">Phiên bản 1.0.2 • Cập nhật lần cuối: 2 ngày trước</p>
+             <p class="text-sm text-(--text-muted)">ID: {{ selectedWf.loaiDon }}</p>
           </div>
           <GlassButton variant="primary"><Settings2 :size="15" class="mr-1"/> Lưu thay đổi</GlassButton>
         </div>

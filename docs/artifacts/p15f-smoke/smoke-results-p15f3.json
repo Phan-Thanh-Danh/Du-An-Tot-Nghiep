@@ -1,0 +1,666 @@
+﻿{
+  "generatedAt": "2026-07-08T15:27:55.830Z",
+  "frontend": "https://localhost:5173",
+  "totals": {
+    "routes": 65,
+    "passed": 65,
+    "consoleErrors": 0,
+    "runtimeExceptions": 0,
+    "network401": 0,
+    "network403": 0,
+    "network404": 0,
+    "network500": 0
+  },
+  "results": [
+    {
+      "role": "parent",
+      "route": "/parent/dashboard",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "parent",
+      "route": "/parent/children/list",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "parent",
+      "route": "/parent/children/overview",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "parent",
+      "route": "/parent/learning/grades",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "parent",
+      "route": "/parent/learning/schedule",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "parent",
+      "route": "/parent/learning/attendance",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "parent",
+      "route": "/parent/learning/alerts",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "parent",
+      "route": "/parent/finance/tuition",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "parent",
+      "route": "/parent/finance/payment",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "parent",
+      "route": "/parent/finance/transactions",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "parent",
+      "route": "/parent/finance/invoices",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "parent",
+      "route": "/parent/notifications/system",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "parent",
+      "route": "/parent/notifications/history",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "parent",
+      "route": "/parent/profile/info",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "parent",
+      "route": "/parent/profile/access-rights",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/dashboard",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/profile",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/organizations",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/users",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/roles-permissions",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/login-history",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/training/semesters",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/training/programs",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/training/subjects",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/training/courses",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/training/exam-periods",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/operations/schedules",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/operations/schedules/approval",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/operations/attendance-policy",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/operations/registration-periods",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/operations/pass-fail-rules",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/finance/tuition-config",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/finance/student-debts",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/finance/payments",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/finance/refunds",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/support/tickets",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/support/faq",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/approvals/requests",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/approvals/history",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/approvals/reports",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/rewards-discipline",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/rewards/campaigns",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/discipline/records",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/discipline/appeals",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/evaluations/config",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/evaluations/results",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/awards",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/discipline",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/reports/education-overview",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/reports/learning",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/reports/attendance",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/reports/campus-comparison",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/reports/export",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/notifications/templates",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/notifications/send",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/notifications/history",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/audit/logs",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/security/alerts",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/system/modules",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "superadmin",
+      "route": "/super-admin/system/ai-automation",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "student",
+      "route": "/student/dashboard",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "teacher",
+      "route": "/teacher/dashboard",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "staff",
+      "route": "/staff/dashboard",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "bgh",
+      "route": "/bgh/dashboard",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    },
+    {
+      "role": "content",
+      "route": "/content-council/subjects",
+      "api4xx5xx": [],
+      "consoleErrorDetails": [],
+      "runtimeExceptionDetails": [],
+      "consoleErrors": 0,
+      "runtimeExceptions": 0,
+      "pass": true
+    }
+  ]
+}

@@ -40,7 +40,7 @@ const assignment = ref({
   submissions: []
 })
 
-// ── Deadline countdown (mock logic for demo) ──────────────────────────────
+// ── Deadline countdown ───────────────────────────────────────────────────
 const deadlinePassed = computed(() => assignment.value.status === 'overdue')
 const deadlineUrgent = computed(() => assignment.value.status === 'late' || assignment.value.status === 'pending')
 const deadlineText = computed(() => deadlinePassed.value ? 'Đã quá hạn' : 'Sắp đến hạn')

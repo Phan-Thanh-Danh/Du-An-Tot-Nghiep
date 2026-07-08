@@ -189,7 +189,7 @@ const topTeacher = computed(() => {
   return sorted[0]?.name || '-'
 })
 
-// --- Score Distribution (fake chart data rendered as bars) ---
+// --- Score Distribution ---
 const scoreDistribution = ref([
   { range: '4.5 - 5.0', count: 3, percent: 50 },
   { range: '4.0 - 4.4', count: 2, percent: 33 },

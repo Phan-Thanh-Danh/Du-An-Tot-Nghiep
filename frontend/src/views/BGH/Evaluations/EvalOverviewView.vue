@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { 
   Users, Star, MessageCircle, ShieldAlert, PieChart, ChevronRight, CheckCircle2,
   AlertCircle, Loader2
@@ -11,43 +11,28 @@ import { unwrapApiData } from '@/services/apiClient'
 
 const router = useRouter()
 const popup = usePopupStore()
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
-const kpis = [
-  { id: 1, label: 'GV được đánh giá', value: '142', trend: '95% tổng số', icon: Users, color: 'text-(--color-info-text)', bgColor: 'bg-(--color-info-bg)' },
-  { id: 2, label: 'Rating Trung bình', value: '4.65', trend: '/ 5.0', icon: Star, color: 'text-(--color-warning-text)', bgColor: 'bg-(--color-warning-bg)' },
-  { id: 3, label: 'Số lượt đánh giá', value: '3,840', trend: '+12% kỳ trước', icon: MessageCircle, color: 'text-link', bgColor: 'bg-(--color-info-bg)' },
-  { id: 4, label: 'Tỷ lệ phản hồi', value: '72.4%', trend: 'Mục tiêu: 80%', icon: CheckCircle2, color: 'text-(--color-success-text)', bgColor: 'bg-(--color-success-bg)' },
-]
+const kpis = ref([])
+const sentiment = ref([])
+const trendHistory = ref([])
 
-const sentiment = [
-  { label: 'Tích cực', value: 78, color: 'bg-(--color-success-text)', desc: 'Hài lòng về phương pháp giảng dạy' },
-  { label: 'Trung lập', value: 15, color: 'bg-(--text-placeholder)', desc: 'Không có ý kiến đặc biệt' },
-  { label: 'Tiêu cực', value: 7, color: 'bg-(--color-danger-text)', desc: 'Tốc độ nhanh, bài tập nhiều' },
-]
-
-const trendHistory = [
-  { label: 'Kỳ 2021', val: 4.2 },
-  { label: 'Kỳ 2022', val: 4.35 },
-  { label: 'Kỳ 2023', val: 4.5 },
-  { label: 'Kỳ 2024', val: 4.42 },
-  { label: 'Kỳ 2025', val: 4.65 },
-]
-
-const maxTrend = Math.max(...trendHistory.map(t => t.val), 5)
+const maxTrend = computed(() => {
+  const arr = trendHistory.value.map(t => t.val)
+  return Math.max(...arr, 5)
+})
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getEvaluations()
-      const data = unwrapApiData(res)
-      if (data) {
-        // Update KPIs and sentiment from API data as needed
-      }
+    const res = await bghApi.getEvaluationOverview()
+    const data = unwrapApiData(res)
+    if (data) {
+      kpis.value = data.kpis || data.Kpis || []
+      sentiment.value = data.sentiment || data.Sentiment || []
+      trendHistory.value = data.trendHistory || data.TrendHistory || data.trend || []
     }
   } catch (e) {
     error.value = e.message

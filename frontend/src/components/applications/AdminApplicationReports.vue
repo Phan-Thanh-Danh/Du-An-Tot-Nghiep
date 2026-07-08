@@ -4,17 +4,16 @@ import { BarChart3, CheckCircle2, Clock3, TrendingUp } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
-import { applicationReportCards, getApplicationTypeLabel } from '@/mocks/applicationMockData'
 import { getStatusMeta } from '@/utils/statusLabels'
 
 const icons = [BarChart3, Clock3, CheckCircle2, TrendingUp]
 
-const typeRows = [
-  { type: 'xac_nhan_sinh_vien', total: 428, completed: 397, avgHours: 18 },
-  { type: 'nghi_phep', total: 312, completed: 286, avgHours: 9 },
-  { type: 'phuc_khao', total: 188, completed: 161, avgHours: 42 },
-  { type: 'thi_lai', total: 146, completed: 138, avgHours: 25 },
-]
+const applicationReportCards = []
+const typeRows = []
+
+function getApplicationTypeLabel(type) {
+  return type || 'Không xác định'
+}
 
 function cardStatusMeta(status) {
   return getStatusMeta('applications', status)

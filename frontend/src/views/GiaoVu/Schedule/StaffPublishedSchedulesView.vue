@@ -6,7 +6,6 @@ import {
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import { staffApi } from '@/services/staffApi'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const loading = ref(true)
 const apiError = ref('')
@@ -16,18 +15,6 @@ const selected = ref(null)
 const filterHocKy = ref('')
 const activeTab = ref('lichHoc')
 
-const DEMO_PUBLISHED_SCHEDULES = [
-  { id: 1, maTkb: 'TKB-2026-CNTT-001', tenDonVi: 'Khoa Công nghệ Thông tin', tenHocKy: 'Spring 2026', soLop: 36, soGiaoVien: 24, tongSoTiet: 648, ngayXuatBan: '2026-05-20', thayDoiPhatSinh: 2, buoiHuy: 1 },
-  { id: 2, maTkb: 'TKB-2026-KT-001', tenDonVi: 'Khoa Kinh tế', tenHocKy: 'Spring 2026', soLop: 28, soGiaoVien: 18, tongSoTiet: 504, ngayXuatBan: '2026-05-18', thayDoiPhatSinh: 0, buoiHuy: 0 },
-  { id: 3, maTkb: 'TKB-2026-NN-001', tenDonVi: 'Khoa Ngoại ngữ', tenHocKy: 'Summer 2026', soLop: 20, soGiaoVien: 15, tongSoTiet: 360, ngayXuatBan: '2026-06-01', thayDoiPhatSinh: 1, buoiHuy: 0 },
-]
-
-const DEMO_SCHEDULE_CHANGES = [
-  { id: 'C001', monHoc: 'Lập trình Java', lop: 'SE1601', giaoVien: 'TS. Nguyễn Minh Khoa', ngayHoc: '2026-06-10', loaiThayDoi: 'day_thay', trangThai: 'da_xac_nhan', truoc: 'TS. Nguyễn Minh Khoa', sau: 'ThS. Trần Thị Lan' },
-  { id: 'C002', monHoc: 'Cấu trúc dữ liệu', lop: 'SE1602', giaoVien: 'ThS. Trần Thị Lan', ngayHoc: '2026-06-12', loaiThayDoi: 'doi_phong', trangThai: 'cho_xac_nhan', truoc: 'P.305', sau: 'P.401' },
-  { id: 'C003', monHoc: 'Hệ quản trị CSDL', lop: 'SE1603', giaoVien: 'ThS. Lê Văn Dũng', ngayHoc: '2026-06-14', loaiThayDoi: 'huy_buoi', trangThai: 'da_xac_nhan', truoc: 'Buổi học bình thường', sau: 'Buổi học bị hủy' },
-]
-
 import { formatDate } from '@/utils/dateFormat'
 
 async function loadData() {
@@ -36,13 +23,8 @@ async function loadData() {
   try {
     const res = await staffApi.getSchedules()
     schedules.value = res?.items ?? res ?? []
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      schedules.value = DEMO_PUBLISHED_SCHEDULES
-      changes.value = DEMO_SCHEDULE_CHANGES
-    } else {
-      apiError.value = err?.message || 'Không thể tải danh sách.'
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }

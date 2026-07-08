@@ -4,7 +4,6 @@ import { Send, AlertCircle } from 'lucide-vue-next'
 import { staffApi } from '@/services/staffApi'
 import { usePopupStore } from '@/stores/popup'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const popupStore = usePopupStore()
 const loading = ref(false)
@@ -33,13 +32,8 @@ async function handleSubmit() {
     await staffApi.createNotice({ ...form.value })
     popupStore.success('Thành công', 'Thông báo đã được gửi.')
     form.value = { title: '', content: '', priority: 'normal', recipients: 'all' }
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      popupStore.success('Thành công', 'Thông báo đã được gửi. (MOCK)')
-      form.value = { title: '', content: '', priority: 'normal', recipients: 'all' }
-    } else {
-      apiError.value = err?.message || 'Không thể gửi thông báo.'
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }

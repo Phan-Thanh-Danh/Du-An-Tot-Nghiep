@@ -12,69 +12,10 @@ import GlassPanel from '@/components/ui/GlassPanel.vue'
 import { EXAM_STATUS, getExamStatusLabel, normalizeExamStatus } from '@/utils/examAccess.js'
 import { teacherApi } from '@/services/teacherApi'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
-
 const loading = ref(false)
 const error = ref('')
 const exams = ref([])
 const searchQuery = ref('')
-
-const DEFAULT_EXAMS = [
-  {
-    id: 1,
-    name: 'Thi giữa kỳ: Lập trình Web',
-    subjectName: 'Lập trình Web',
-    classSectionCode: 'WEB201-SD1904-B1',
-    duration: '90 phút',
-    questions: 40,
-    status: EXAM_STATUS.OPEN,
-    date: '04/06/2026',
-    openAt: '2026-06-04T08:00',
-    closeAt: '2026-06-04T10:00',
-    type: 'Trắc nghiệm',
-    maxAttempts: 1,
-    allowedStudents: 42,
-    completedStudents: 31,
-    pendingStudents: 11,
-    allowEarlyLearning: false,
-  },
-  {
-    id: 2,
-    name: 'Thi kết thúc môn: Java Basic',
-    subjectName: 'Java Basic',
-    classSectionCode: 'JAVA101-SD1905-B2',
-    duration: '120 phút',
-    questions: 50,
-    status: EXAM_STATUS.DRAFT,
-    date: '15/06/2026',
-    openAt: '2026-06-15T08:00',
-    closeAt: '2026-06-15T10:00',
-    type: 'Hỗn hợp',
-    maxAttempts: 1,
-    allowedStudents: 38,
-    completedStudents: 0,
-    pendingStudents: 38,
-    allowEarlyLearning: false,
-  },
-  {
-    id: 3,
-    name: 'Quiz 2: Cấu trúc dữ liệu',
-    subjectName: 'Cấu trúc dữ liệu',
-    classSectionCode: 'CTDL101-SD1904-B1',
-    duration: '15 phút',
-    questions: 10,
-    status: EXAM_STATUS.RESULT_PUBLISHED,
-    date: '18/05/2026',
-    openAt: '2026-05-18T08:00',
-    closeAt: '2026-05-18T23:59',
-    type: 'Trắc nghiệm',
-    maxAttempts: 2,
-    allowedStudents: 42,
-    completedStudents: 42,
-    pendingStudents: 0,
-    allowEarlyLearning: true,
-  },
-]
 
 async function loadExams() {
   loading.value = true
@@ -84,10 +25,6 @@ async function loadExams() {
     const items = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
     exams.value = items.map(normalizeTeacherExam)
   } catch (e) {
-    if (ENABLE_MOCK_API) {
-      exams.value = DEFAULT_EXAMS.map(normalizeTeacherExam)
-      return
-    }
     error.value = e?.message || 'Không thể tải danh sách kỳ thi.'
     exams.value = []
   } finally {
