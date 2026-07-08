@@ -25,11 +25,9 @@ subjectStore.init()
 
 const subject = computed(() => subjectStore.getSubjectDetail(props.subjectId))
 
-onMounted(() => {
-  // Simulate network request
-  setTimeout(() => {
-    isLoading.value = false
-  }, 600)
+onMounted(async () => {
+  await subjectStore.loadSubjectDetail(props.subjectId)
+  isLoading.value = false
 })
 
 const goBack = () => {

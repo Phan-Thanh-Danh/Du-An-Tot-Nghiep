@@ -9,7 +9,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/master-data/majors")]
-[Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.CampusAdmin},{AuthRoles.SubCampusAdmin},{AuthRoles.AcademicStaff}")]
+[Authorize(Policy = "AcademicOperations")]
 public class NganhDaoTaoController : ControllerBase
 {
     private readonly INganhDaoTaoService _majorService;

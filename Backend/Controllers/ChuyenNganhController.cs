@@ -9,7 +9,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/master-data/specializations")]
-[Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.CampusAdmin},{AuthRoles.SubCampusAdmin},{AuthRoles.AcademicStaff}")]
+[Authorize(Policy = "AcademicOperations")]
 public class ChuyenNganhController : ControllerBase
 {
     private readonly IChuyenNganhService _specializationService;

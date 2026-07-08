@@ -44,7 +44,7 @@ const toggle = () => {
         </div>
       </div>
       <div class="flex-shrink-0 text-sm font-medium text-body pl-4">
-        {{ chapter.lessons.length }} bài học
+        {{ chapter.lessons?.length || 0 }} bài học
       </div>
     </button>
 
@@ -53,7 +53,7 @@ const toggle = () => {
       v-show="isExpanded" 
       class="lg-glass-soft border-t border-card"
     >
-      <div v-if="chapter.lessons.length === 0" class="p-3 text-sm text-placeholder italic text-center">
+      <div v-if="!chapter.lessons || chapter.lessons.length === 0" class="p-3 text-sm text-placeholder italic text-center">
         Chương này chưa có bài học nào.
       </div>
       <template v-else>

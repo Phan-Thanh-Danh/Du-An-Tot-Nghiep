@@ -12,4 +12,7 @@ public class SubjectQueryParameters
 
     [Range(1, 100, ErrorMessage = "pageSize phải từ 1 đến 100.")]
     public int PageSize { get; set; } = 20;
+
+    public int? MaNganh { get; set; }
+    public int? MaChuyenNganh { get; set; }
 }

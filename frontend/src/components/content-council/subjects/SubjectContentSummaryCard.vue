@@ -28,10 +28,12 @@ const summary = computed(() => {
   props.chapters.forEach(chapter => {
     if (chapter.hidden) hiddenChapters++
     
-    totalLessons += chapter.lessons.length
+    const lessons = chapter.lessons || []
+    totalLessons += lessons.length
     
-    chapter.lessons.forEach(lesson => {
-      totalContents += lesson.contentCount
+    lessons.forEach(lesson => {
+      const contents = lesson.contents || []
+      totalContents += (lesson.contentCount !== undefined ? lesson.contentCount : contents.length)
       
       if (lesson.status === 'published') publishedLessons++
       else if (lesson.status === 'draft') draftLessons++

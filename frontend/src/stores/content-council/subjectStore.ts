@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, shallowRef } from 'vue'
+import { ref } from 'vue'
 import { initializeSubjectMockData } from '@/mocks/content-council'
 import { contentCouncilApi } from '@/services/contentCouncilApi'
 import type { ContentCouncilSubject, ContentCouncilSubjectDetail, SubjectContentSettings } from '@/types/content-council/subject'
@@ -10,33 +10,68 @@ const ENABLE_MOCK_API =
 
 export const useSubjectStore = defineStore('contentCouncilSubject', () => {
   const subjects = ref<ContentCouncilSubject[]>([])
-  const subjectDetails = shallowRef<Record<number, ContentCouncilSubjectDetail>>({})
+  const subjectDetails = ref<Record<number, ContentCouncilSubjectDetail>>({})
   const subjectSettings = ref<Record<number, SubjectContentSettings>>({})
   const initialized = ref(false)
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  async function init() {
-    if (initialized.value) return
+  const totalSubjects = ref(0)
+  const currentPage = ref(1)
+
+  async function fetchSubjects(params: any = {}) {
     loading.value = true
     error.value = null
     try {
       if (ENABLE_MOCK_API) {
         const mock = initializeSubjectMockData()
         subjects.value = mock.subjects
-        subjectDetails.value = mock.subjectDetails
+        totalSubjects.value = mock.subjects.length
         initialized.value = true
         return
       }
-      const res = await contentCouncilApi.getSubjects()
-      const data = res?.data ?? res?.items ?? res ?? []
-      subjects.value = Array.isArray(data) ? data : []
+      const res = await contentCouncilApi.getSubjects(params)
+      let payloadData = res?.data ?? res?.Data ?? res ?? []
+      let itemsList = []
+      
+      if (payloadData && !Array.isArray(payloadData)) {
+         if (Array.isArray(payloadData.items)) {
+             itemsList = payloadData.items
+             totalSubjects.value = payloadData.totalCount ?? payloadData.totalItems ?? payloadData.items.length
+         } else if (Array.isArray(payloadData.Items)) {
+             itemsList = payloadData.Items
+             totalSubjects.value = payloadData.TotalCount ?? payloadData.TotalItems ?? payloadData.Items.length
+         }
+      } else if (Array.isArray(payloadData)) {
+         itemsList = payloadData
+         totalSubjects.value = itemsList.length
+      }
+
+      subjects.value = itemsList.map(s => {
+        // Map backend DTO to frontend format if necessary
+        const id = s.maMonHoc ?? s.MaMonHoc
+        if (id) {
+          return {
+            id: id,
+            code: s.maCodeMonHoc ?? s.MaCodeMonHoc,
+            name: s.tenMonHoc ?? s.TenMonHoc,
+            status: (s.conHoatDong ?? s.ConHoatDong) ? 'draft' : 'empty', // Fallback status
+            chapterCount: 0,
+            lessonCount: 0,
+            contentCount: 0,
+            quizCount: 0,
+            updatedAt: new Date().toISOString()
+          }
+        }
+        return s
+      })
+      currentPage.value = params.pageIndex || 1
       initialized.value = true
     } catch (e: any) {
       if (ENABLE_MOCK_API) {
         const mock = initializeSubjectMockData()
         subjects.value = mock.subjects
-        subjectDetails.value = mock.subjectDetails
+        totalSubjects.value = mock.subjects.length
         initialized.value = true
         return
       }
@@ -44,6 +79,11 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  async function init() {
+    if (initialized.value) return
+    await fetchSubjects({ pageIndex: 1, pageSize: 20 })
   }
 
   async function loadSubjectDetail(id: number) {
@@ -60,11 +100,63 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
         contentCouncilApi.getSubjectById(id),
         contentCouncilApi.getChapters(id),
       ])
-      const sub = subRes?.data ?? subRes
-      const chapters = chaptersRes?.data ?? chaptersRes?.items ?? chaptersRes ?? []
+      let sub = subRes?.data ?? subRes
+      if (sub && sub.maMonHoc) {
+        sub = {
+          id: sub.maMonHoc,
+          code: sub.maCodeMonHoc,
+          name: sub.tenMonHoc,
+          status: sub.conHoatDong ? 'draft' : 'empty',
+          chapterCount: 0,
+          lessonCount: 0,
+          contentCount: 0,
+          quizCount: 0,
+          description: '',
+          instructorCount: 0,
+          studentCount: 0,
+          publishedContentRatio: 0,
+          isPublished: sub.conHoatDong,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      }
+      
+      let chapters = chaptersRes?.data ?? chaptersRes?.items ?? chaptersRes ?? []
+      if (chapters && !Array.isArray(chapters) && Array.isArray(chapters.items)) {
+        chapters = chapters.items
+      } else if (chapters && !Array.isArray(chapters) && Array.isArray(chapters.Items)) {
+        chapters = chapters.Items
+      }
+      
+      // Map backend DTO to frontend format
+      chapters = Array.isArray(chapters) ? chapters.map((c: any) => ({
+        id: c.maChuong || c.id,
+        title: c.tieuDe || c.title,
+        order: c.thuTu || c.order,
+        hidden: c.daAn || c.hidden || false,
+        lessons: (c.baiHocs || c.lessons || []).map((l: any) => ({
+          id: l.maBaiHoc || l.id,
+          chapterId: l.maChuong || l.chapterId,
+          title: l.tieuDe || l.title,
+          type: l.loaiBaiHoc || l.type || 'text',
+          status: l.trangThai || l.status || 'draft',
+          order: l.thuTu || l.order,
+          contentCount: l.soLuongNoiDung || l.contentCount || 0,
+          contents: (l.noiDungs || l.contents || []).map((cb: any) => ({
+            id: cb.maNoiDung || cb.id,
+            lessonId: cb.maBaiHoc || cb.lessonId,
+            type: cb.loaiNoiDung || cb.type,
+            title: cb.tieuDe || cb.title,
+            data: cb.duLieuJson ? JSON.parse(cb.duLieuJson) : (cb.data || {}),
+            status: cb.trangThai || cb.status || 'draft',
+            order: cb.thuTu || cb.order
+          }))
+        }))
+      })) : []
+      
       subjectDetails.value = {
         ...subjectDetails.value,
-        [id]: { ...sub, chapters: Array.isArray(chapters) ? chapters : [] },
+        [id]: { ...sub, chapters },
       }
       return subjectDetails.value[id]
     } catch (e: any) {
@@ -115,9 +207,9 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     try {
       if (!ENABLE_MOCK_API) {
         await contentCouncilApi.createChapter({
-          subjectId,
-          title: chapter.title,
-          order: (detail.chapters?.length || 0) + 1,
+          maMonHoc: subjectId,
+          tieuDe: chapter.title,
+          thuTu: (detail.chapters?.length || 0) + 1,
         })
       }
       if (!detail.chapters) detail.chapters = []
@@ -134,7 +226,11 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     if (!detail?.chapters) return
     try {
       if (!ENABLE_MOCK_API) {
-        await contentCouncilApi.updateChapter(chapterId, payload)
+        const updatePayload: any = {}
+        if (payload.title !== undefined) updatePayload.tieuDe = payload.title
+        if (payload.hidden !== undefined) updatePayload.daAn = payload.hidden
+        if (payload.order !== undefined) updatePayload.thuTu = payload.order
+        await contentCouncilApi.updateChapter(chapterId, updatePayload)
       }
       const idx = detail.chapters.findIndex(c => c.id === chapterId)
       if (idx !== -1) Object.assign(detail.chapters[idx], payload)
@@ -179,10 +275,10 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     try {
       if (!ENABLE_MOCK_API) {
         await contentCouncilApi.createLesson({
-          chapterId,
-          title: lesson.title,
-          type: lesson.type,
-          order: (chapter.lessons?.length || 0) + 1,
+          maChuong: chapterId,
+          tieuDe: lesson.title,
+          loaiBaiHoc: lesson.type,
+          thuTu: (chapter.lessons?.length || 0) + 1,
         })
       }
       if (!chapter.lessons) chapter.lessons = []
@@ -200,7 +296,12 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     if (!chapter?.lessons) return
     try {
       if (!ENABLE_MOCK_API) {
-        await contentCouncilApi.updateLesson(lessonId, payload)
+        const updatePayload: any = {}
+        if (payload.title !== undefined) updatePayload.tieuDe = payload.title
+        if (payload.type !== undefined) updatePayload.loaiBaiHoc = payload.type
+        if (payload.status !== undefined) updatePayload.trangThai = payload.status
+        if (payload.order !== undefined) updatePayload.thuTu = payload.order
+        await contentCouncilApi.updateLesson(lessonId, updatePayload)
       }
       const idx = chapter.lessons.findIndex(l => l.id === lessonId)
       if (idx !== -1) Object.assign(chapter.lessons[idx], payload)
@@ -235,10 +336,11 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     try {
       if (!ENABLE_MOCK_API) {
         await contentCouncilApi.createContent({
-          lessonId,
-          type: content.type,
-          data: content.data,
-          order: (lesson.contents?.length || 0) + 1,
+          maBaiHoc: lessonId,
+          loaiNoiDung: content.type,
+          tieuDe: content.title || '',
+          duLieuJson: content.data ? JSON.stringify(content.data) : '{}',
+          thuTu: (lesson.contents?.length || 0) + 1,
         })
       }
       if (!lesson.contents) lesson.contents = []
@@ -258,7 +360,13 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     if (!lesson?.contents) return
     try {
       if (!ENABLE_MOCK_API) {
-        await contentCouncilApi.updateContent(contentId, payload)
+        const updatePayload: any = {}
+        if (payload.title !== undefined) updatePayload.tieuDe = payload.title
+        if (payload.type !== undefined) updatePayload.loaiNoiDung = payload.type
+        if (payload.status !== undefined) updatePayload.trangThai = payload.status
+        if (payload.order !== undefined) updatePayload.thuTu = payload.order
+        if (payload.data !== undefined) updatePayload.duLieuJson = JSON.stringify(payload.data)
+        await contentCouncilApi.updateContent(contentId, updatePayload)
       }
       const idx = lesson.contents.findIndex(c => c.id === contentId)
       if (idx !== -1) Object.assign(lesson.contents[idx], payload)
@@ -321,7 +429,10 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     initialized,
     loading,
     error,
+    totalSubjects,
+    currentPage,
     init,
+    fetchSubjects,
     loadSubjectDetail,
     reset,
     getSubjectById,
@@ -337,6 +448,6 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     deleteLesson,
     addContent,
     updateContent,
-    deleteContent,
+    deleteContent
   }
 })

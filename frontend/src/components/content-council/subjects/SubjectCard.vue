@@ -59,10 +59,10 @@ const handleOpenSubject = () => {
 </script>
 
 <template>
-  <div class="bg-white rounded-xl border border-slate-200 p-5 flex flex-col h-full hover:border-blue-300 hover:shadow-sm transition-all duration-200 group">
+  <div class="surface-card rounded-xl border border-card p-5 flex flex-col h-full hover:border-blue-300 hover:shadow-sm transition-all duration-200 group">
     <!-- Header: Code and Status -->
     <div class="flex items-start justify-between mb-3">
-      <span class="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+      <span class="text-xs font-semibold tracking-wider text-label uppercase">
         {{ subject.code }}
       </span>
       <span 
@@ -74,42 +74,42 @@ const handleOpenSubject = () => {
     </div>
 
     <!-- Title and Description -->
-    <h3 class="text-lg font-bold text-slate-900 leading-tight mb-2 line-clamp-2 group-hover:text-blue-700 transition-colors">
+    <h3 class="text-lg font-bold text-heading leading-tight mb-2 line-clamp-2 group-hover:text-blue-500 transition-colors">
       {{ subject.name }}
     </h3>
-    <p class="text-sm text-slate-600 line-clamp-2 mb-4 flex-grow">
+    <p class="text-sm text-body line-clamp-2 mb-4 flex-grow">
       {{ subject.shortDescription }}
     </p>
 
     <!-- Stats Grid -->
     <div class="grid grid-cols-2 gap-x-2 gap-y-3 mb-5 mt-auto">
       <div class="flex flex-col">
-        <span class="text-lg font-bold text-slate-800">{{ subject.chapterCount }}</span>
-        <span class="text-xs text-slate-500 font-medium">Chương</span>
+        <span class="text-lg font-bold text-heading">{{ subject.chapterCount }}</span>
+        <span class="text-xs text-label font-medium">Chương</span>
       </div>
       <div class="flex flex-col">
-        <span class="text-lg font-bold text-slate-800">{{ subject.lessonCount }}</span>
-        <span class="text-xs text-slate-500 font-medium">Bài học</span>
+        <span class="text-lg font-bold text-heading">{{ subject.lessonCount }}</span>
+        <span class="text-xs text-label font-medium">Bài học</span>
       </div>
       <div class="flex flex-col">
-        <span class="text-lg font-bold text-slate-800">{{ subject.contentCount }}</span>
-        <span class="text-xs text-slate-500 font-medium">Nội dung</span>
+        <span class="text-lg font-bold text-heading">{{ subject.contentCount }}</span>
+        <span class="text-xs text-label font-medium">Nội dung</span>
       </div>
       <div class="flex flex-col">
-        <span class="text-lg font-bold text-slate-800">{{ subject.quizCount }}</span>
-        <span class="text-xs text-slate-500 font-medium">Quiz</span>
+        <span class="text-lg font-bold text-heading">{{ subject.quizCount }}</span>
+        <span class="text-xs text-label font-medium">Quiz</span>
       </div>
     </div>
 
     <!-- Footer: Date and Action -->
-    <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
-      <span class="text-xs text-slate-500">
+    <div class="flex items-center justify-between mt-auto pt-4 border-t border-card">
+      <span class="text-xs text-label">
         {{ formatRelativeTime(subject.updatedAt) }}
       </span>
       
       <button 
         @click="handleOpenSubject"
-        class="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 group-hover:translate-x-1 transition-transform"
+        class="text-sm font-medium text-link hover:underline flex items-center gap-1 group-hover:translate-x-1 transition-transform"
       >
         Mở môn học <span aria-hidden="true">&rarr;</span>
       </button>

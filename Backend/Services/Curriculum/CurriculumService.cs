@@ -40,23 +40,16 @@ public class CurriculumService : ICurriculumService
                 .FirstOrDefaultAsync(s => s.MaMonHoc == subjectId, ct)
             ?? throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy môn học.");
 
-        return await _context
+        var chapters = await _context
             .Chuongs.AsNoTracking()
+            .Include(c => c.MonHoc)
+            .Include(c => c.BaiHocs.OrderBy(b => b.ThuTu))
+                .ThenInclude(b => b.BaiHocNoiDungs.OrderBy(n => n.ThuTu))
             .Where(c => c.MaMonHoc == subjectId)
             .OrderBy(c => c.ThuTu)
-            .Select(c => new ChuongDto
-            {
-                MaChuong = c.MaChuong,
-                MaMonHoc = c.MaMonHoc,
-                TenMonHoc = subject.TenMonHoc,
-                TieuDe = c.TieuDe,
-                ThuTu = c.ThuTu,
-                DaAn = c.DaAn,
-                NgayTao = c.NgayTao,
-                NgayCapNhat = c.NgayCapNhat,
-                SoBaiHoc = c.BaiHocs.Count,
-            })
             .ToListAsync(ct);
+
+        return chapters.Select(MapChapter).ToList();
     }
 
     public async Task<ChuongDto> GetChapterByIdAsync(int chapterId, CancellationToken ct = default)

@@ -27,7 +27,7 @@ const close = () => {
 }
 
 const confirmDelete = () => {
-  editor.deleteItem()
+  editor.confirmDelete()
 }
 </script>
 

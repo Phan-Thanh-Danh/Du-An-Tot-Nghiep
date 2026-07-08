@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCurriculumEditor } from '@/composables/content-council/useCurriculumEditor'
+import { useSubjectStore } from '@/stores/content-council/subjectStore'
 import PreviewModeBanner from '@/components/content-council/preview/PreviewModeBanner.vue'
 import PreviewCurriculumSidebar from '@/components/content-council/preview/PreviewCurriculumSidebar.vue'
 import PreviewContentRenderer from '@/components/content-council/preview/PreviewContentRenderer.vue'
@@ -9,15 +10,20 @@ import LessonNavigation from '@/components/content-council/preview/LessonNavigat
 
 const route = useRoute()
 const router = useRouter()
+const store = useSubjectStore()
 
 const subjectId = Number(route.params.subjectId)
 const { chapters } = useCurriculumEditor(subjectId)
 
 const showDrafts = ref(true)
 const currentLessonId = ref(null)
+const isLoading = ref(true)
 
 // Initialize lessonId from query or default to first valid lesson
-onMounted(() => {
+onMounted(async () => {
+  await store.loadSubjectDetail(subjectId)
+  isLoading.value = false
+  
   if (route.query.lessonId) {
     currentLessonId.value = Number(route.query.lessonId)
   } else {

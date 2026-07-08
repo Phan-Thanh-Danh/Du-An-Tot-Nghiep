@@ -7,8 +7,27 @@ export const contentCouncilApi = {
     if (params.keyword) query.append('keyword', params.keyword)
     if (params.pageIndex) query.append('pageIndex', params.pageIndex)
     if (params.pageSize) query.append('pageSize', params.pageSize)
+    if (params.majorId) query.append('maNganh', params.majorId)
+    if (params.specializationId) query.append('maChuyenNganh', params.specializationId)
     const qs = query.toString()
     return apiRequest(`/api/master-data/subjects${qs ? '?' + qs : ''}`)
+  },
+
+  getMajors(params = {}) {
+    const query = new URLSearchParams()
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    else query.append('pageSize', '100') // get all
+    const qs = query.toString()
+    return apiRequest(`/api/master-data/majors${qs ? '?' + qs : ''}`)
+  },
+
+  getSpecializations(params = {}) {
+    const query = new URLSearchParams()
+    if (params.majorId) query.append('maNganh', params.majorId)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    else query.append('pageSize', '100') // get all
+    const qs = query.toString()
+    return apiRequest(`/api/master-data/specializations${qs ? '?' + qs : ''}`)
   },
 
   getSubjectById(id) {

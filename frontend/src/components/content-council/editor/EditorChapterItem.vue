@@ -74,7 +74,7 @@ const onDeleteChapter = () => {
 
       <!-- Action Menu -->
       <div class="relative flex items-center ml-2" ref="menuRef" @click.stop>
-        <div class="text-xs text-slate-400 mr-2">{{ chapter.lessons.length }} bài</div>
+        <div class="text-xs text-slate-400 mr-2">{{ chapter.lessons?.length || 0 }} bài</div>
         <button 
           @click="toggleMenu"
           class="w-7 h-7 flex items-center justify-center rounded hover:bg-slate-200 text-slate-500 transition-colors"
@@ -105,7 +105,7 @@ const onDeleteChapter = () => {
     <!-- Chapter Content (Lessons) -->
     <div v-show="isExpanded" class="border-t border-card bg-slate-50/50 p-1.5 space-y-1 rounded-b-lg">
       <EditorLessonItem
-        v-for="lesson in chapter.lessons"
+        v-for="lesson in (chapter.lessons || [])"
         :key="lesson.id"
         :lesson="lesson"
       />

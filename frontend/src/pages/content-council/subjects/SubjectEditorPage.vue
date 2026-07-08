@@ -31,7 +31,8 @@ const subject = computed(() => store.getSubjectDetail(props.subjectId) || null)
 const editor = useCurriculumEditor(props.subjectId)
 provide('curriculumEditor', editor)
 
-onMounted(() => {
+onMounted(async () => {
+  await store.loadSubjectDetail(props.subjectId)
   // If there's a lessonId in query, select it
   const queryLessonId = route.query.lessonId
   if (queryLessonId) {

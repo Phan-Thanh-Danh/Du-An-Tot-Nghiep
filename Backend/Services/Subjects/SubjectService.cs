@@ -39,6 +39,31 @@ public class SubjectService : ISubjectService
             query = query.Where(x => x.ConHoatDong == parameters.ConHoatDong.Value);
         }
 
+        if (parameters.MaChuyenNganh.HasValue)
+        {
+            var programIds = _context.Set<ChuongTrinhDaoTao>()
+                .Where(c => c.MaChuyenNganh == parameters.MaChuyenNganh.Value)
+                .Select(c => c.MaChuongTrinh);
+
+            var subjectIds = _context.MonHocTrongChuongTrinhs
+                .Where(m => programIds.Contains(m.MaChuongTrinh))
+                .Select(m => m.MaMonHoc);
+
+            query = query.Where(x => subjectIds.Contains(x.MaMonHoc));
+        }
+        else if (parameters.MaNganh.HasValue)
+        {
+            var programIds = _context.Set<ChuongTrinhDaoTao>()
+                .Where(c => _context.ChuyenNganhs.Any(cn => cn.MaChuyenNganh == c.MaChuyenNganh && cn.MaNganh == parameters.MaNganh.Value))
+                .Select(c => c.MaChuongTrinh);
+
+            var subjectIds = _context.MonHocTrongChuongTrinhs
+                .Where(m => programIds.Contains(m.MaChuongTrinh))
+                .Select(m => m.MaMonHoc);
+
+            query = query.Where(x => subjectIds.Contains(x.MaMonHoc));
+        }
+
         var totalItems = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderBy(x => x.MaCodeMonHoc)
