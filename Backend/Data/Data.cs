@@ -710,6 +710,39 @@ public static class Data
             StringComparer.OrdinalIgnoreCase
         )
         {
+            ["GEN101"] =
+            [
+                new(
+                    1,
+                    "Giới thiệu kỹ năng học tập",
+                    [
+                        new(1, "Cách quản lý thời gian", "video", "/demo/lessons/gen101/time.mp4", 900, null),
+                        new(2, "Lập kế hoạch học tập", "van_ban", null, null, "Thực hành lập kế hoạch học tập cho tuần này.")
+                    ]
+                )
+            ],
+            ["GEN102"] =
+            [
+                new(
+                    1,
+                    "Tin học cơ bản",
+                    [
+                        new(1, "Sử dụng hệ điều hành", "video", "/demo/lessons/gen102/os.mp4", 900, null),
+                        new(2, "Soạn thảo văn bản", "van_ban", null, null, "Soạn thảo văn bản cơ bản.")
+                    ]
+                )
+            ],
+            ["COM101"] =
+            [
+                new(
+                    1,
+                    "Nhập môn lập trình",
+                    [
+                        new(1, "Thuật toán và lưu đồ", "video", "/demo/lessons/com101/algorithm.mp4", 1200, null),
+                        new(2, "Bài tập thuật toán", "van_ban", null, null, "Thực hành vẽ lưu đồ.")
+                    ]
+                )
+            ],
             ["CTDL101"] =
             [
                 new(
@@ -1629,6 +1662,30 @@ public static class Data
         var termsByCode = terms.ToDictionary(x => x.MaCodeHocKy, StringComparer.OrdinalIgnoreCase);
         var coursePlans = new[]
         {
+            // HK1_2026 - GEN101 (Kỹ năng học tập)
+            new TeachingCourseSeed("GEN101", "lecturer01@edulms.local", "HK1_2026", "SD1901", "Bản phân công giảng dạy môn Kỹ năng học tập cho lớp SD1901 trong HK1_2026."),
+            new TeachingCourseSeed("GEN101", "lecturer01@edulms.local", "HK1_2026", "SD1902", "Bản phân công giảng dạy môn Kỹ năng học tập cho lớp SD1902 trong HK1_2026."),
+            new TeachingCourseSeed("GEN101", "lecturer01@edulms.local", "HK1_2026", "SD1903", "Bản phân công giảng dạy môn Kỹ năng học tập cho lớp SD1903 trong HK1_2026."),
+            new TeachingCourseSeed("GEN101", "lecturer01@edulms.local", "HK1_2026", "SD1904", "Bản phân công giảng dạy môn Kỹ năng học tập cho lớp SD1904 trong HK1_2026."),
+            new TeachingCourseSeed("GEN101", "lecturer01@edulms.local", "HK1_2026", "SD1905", "Bản phân công giảng dạy môn Kỹ năng học tập cho lớp SD1905 trong HK1_2026."),
+            new TeachingCourseSeed("GEN101", "lecturer01@edulms.local", "HK1_2026", "SD1906", "Bản phân công giảng dạy môn Kỹ năng học tập cho lớp SD1906 trong HK1_2026."),
+            
+            // HK1_2026 - GEN102 (Tin học cơ bản)
+            new TeachingCourseSeed("GEN102", "lecturer01@edulms.local", "HK1_2026", "SD1901", "Bản phân công giảng dạy môn Tin học cơ bản cho lớp SD1901 trong HK1_2026."),
+            new TeachingCourseSeed("GEN102", "lecturer01@edulms.local", "HK1_2026", "SD1902", "Bản phân công giảng dạy môn Tin học cơ bản cho lớp SD1902 trong HK1_2026."),
+            new TeachingCourseSeed("GEN102", "lecturer01@edulms.local", "HK1_2026", "SD1903", "Bản phân công giảng dạy môn Tin học cơ bản cho lớp SD1903 trong HK1_2026."),
+            new TeachingCourseSeed("GEN102", "lecturer01@edulms.local", "HK1_2026", "SD1904", "Bản phân công giảng dạy môn Tin học cơ bản cho lớp SD1904 trong HK1_2026."),
+            new TeachingCourseSeed("GEN102", "lecturer01@edulms.local", "HK1_2026", "SD1905", "Bản phân công giảng dạy môn Tin học cơ bản cho lớp SD1905 trong HK1_2026."),
+            new TeachingCourseSeed("GEN102", "lecturer01@edulms.local", "HK1_2026", "SD1906", "Bản phân công giảng dạy môn Tin học cơ bản cho lớp SD1906 trong HK1_2026."),
+            
+            // HK1_2026 - COM101 (Nhập môn lập trình)
+            new TeachingCourseSeed("COM101", "teacher.csharp.a@lms.local", "HK1_2026", "SD1901", "Bản phân công giảng dạy môn Nhập môn lập trình cho lớp SD1901 trong HK1_2026."),
+            new TeachingCourseSeed("COM101", "teacher.csharp.a@lms.local", "HK1_2026", "SD1902", "Bản phân công giảng dạy môn Nhập môn lập trình cho lớp SD1902 trong HK1_2026."),
+            new TeachingCourseSeed("COM101", "teacher.csharp.a@lms.local", "HK1_2026", "SD1903", "Bản phân công giảng dạy môn Nhập môn lập trình cho lớp SD1903 trong HK1_2026."),
+            new TeachingCourseSeed("COM101", "teacher.csharp.b@lms.local", "HK1_2026", "SD1904", "Bản phân công giảng dạy môn Nhập môn lập trình cho lớp SD1904 trong HK1_2026."),
+            new TeachingCourseSeed("COM101", "teacher.csharp.b@lms.local", "HK1_2026", "SD1905", "Bản phân công giảng dạy môn Nhập môn lập trình cho lớp SD1905 trong HK1_2026."),
+            new TeachingCourseSeed("COM101", "teacher.csharp.b@lms.local", "HK1_2026", "SD1906", "Bản phân công giảng dạy môn Nhập môn lập trình cho lớp SD1906 trong HK1_2026."),
+
             new TeachingCourseSeed(
                 "COM103",
                 "teacher.csharp.a@lms.local",

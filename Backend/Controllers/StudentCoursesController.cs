@@ -24,21 +24,32 @@ public class StudentCoursesController : ControllerBase
             return Unauthorized();
         }
 
-        var enrollments = await context.DangKyHocPhans
-            .Include(d => d.LopHocPhan!)
-                .ThenInclude(l => l.MonHoc)
-            .Where(d => d.MaHocSinh == currentUser.UserId && d.TrangThai == "da_duyet")
+        var student = await context.NguoiDungs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.MaNguoiDung == currentUser.UserId);
+
+        if (student?.MaLop is null)
+        {
+            return Ok(ApiResponseDto<List<CourseProgressDto>>.Ok([]));
+        }
+
+        var courses = await context.KhoaHocs
+            .AsNoTracking()
+            .Include(k => k.MonHoc)
+            .Include(k => k.GiaoVien)
+            .Include(k => k.HocKy)
+            .Where(k => k.MaLop == student.MaLop.Value && k.TrangThai == "da_xuat_ban")
+            .OrderBy(k => k.HocKy != null ? k.HocKy.NgayBatDau : DateOnly.MinValue)
+            .ThenBy(k => k.MonHoc != null ? k.MonHoc.TenMonHoc : k.TieuDe)
             .ToListAsync();
 
-        var courseIds = enrollments
-            .Select(d => d.LopHocPhan?.MaMonHoc)
-            .Where(id => id.HasValue)
-            .Select(id => id!.Value)
+        var subjectIds = courses
+            .Select(c => c.MaMonHoc)
             .Distinct()
             .ToList();
 
         var totalLessons = await context.Chuongs
-            .Where(c => courseIds.Contains(c.MaMonHoc))
+            .Where(c => subjectIds.Contains(c.MaMonHoc))
             .GroupBy(c => c.MaMonHoc)
             .Select(g => new { MonHocId = g.Key, Count = g.Sum(c => c.BaiHocs.Count) })
             .ToDictionaryAsync(g => g.MonHocId, g => g.Count);
@@ -47,19 +58,17 @@ public class StudentCoursesController : ControllerBase
             .Where(t => t.MaHocSinh == currentUser.UserId
                 && (t.PhanTramTienDo >= 100 || t.HoanThanhLuc != null))
             .Select(t => t.BaiHoc!.Chuong!.MaMonHoc)
-            .Where(m => courseIds.Contains(m))
+            .Where(m => subjectIds.Contains(m))
             .GroupBy(m => m)
             .Select(g => new { MonHocId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(g => g.MonHocId, g => g.Count);
 
-        var result = enrollments
-            .Select(d => d.LopHocPhan)
-            .Where(l => l?.MonHoc != null)
-            .DistinctBy(l => l!.MaMonHoc)
-            .Select(l =>
+        var result = courses
+            .Where(c => c.MonHoc != null)
+            .Select(course =>
             {
-                var total = totalLessons.GetValueOrDefault(l!.MaMonHoc);
-                var completed = completedCounts.GetValueOrDefault(l.MaMonHoc);
+                var total = totalLessons.GetValueOrDefault(course.MaMonHoc);
+                var completed = completedCounts.GetValueOrDefault(course.MaMonHoc);
                 var progress = total > 0 ? (int)((double)completed / total * 100) : 0;
 
                 string status, statusVariant;
@@ -81,10 +90,10 @@ public class StudentCoursesController : ControllerBase
 
                 return new CourseProgressDto
                 {
-                    Id = l.MaCodeLopHocPhan,
-                    Name = l.MonHoc!.TenMonHoc,
-                    Code = l.MonHoc.MaCodeMonHoc,
-                    Lecturer = "Giảng viên phụ trách",
+                    Id = course.MonHoc!.MaCodeMonHoc,
+                    Name = course.MonHoc.TenMonHoc,
+                    Code = course.MonHoc.MaCodeMonHoc,
+                    Lecturer = course.GiaoVien?.HoTen ?? "Chưa phân công",
                     Progress = progress,
                     Completed = completed,
                     Total = total,
@@ -103,31 +112,53 @@ public class StudentCoursesController : ControllerBase
         string courseId,
         [FromServices] Backend.Data.ApplicationDbContext context)
     {
-        var course = await context.DanhMucMonHocs.FirstOrDefaultAsync(c => c.MaCodeMonHoc == courseId.ToUpper());
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        if (currentUser == null) return Unauthorized();
 
-        if (course == null)
+        var student = await context.NguoiDungs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.MaNguoiDung == currentUser.UserId);
+
+        var courseCode = courseId.ToUpper();
+
+        // 1. Tìm KhoaHoc (Khóa học được phân công) dựa trên Lớp của sinh viên và Mã môn học
+        var assignedCourse = student?.MaLop != null 
+            ? await context.KhoaHocs
+                .Include(k => k.MonHoc)
+                .Include(k => k.GiaoVien)
+                .Include(k => k.HocKy)
+                .FirstOrDefaultAsync(k => k.MaLop == student.MaLop.Value && k.MonHoc!.MaCodeMonHoc == courseCode && k.TrangThai == "da_xuat_ban")
+            : null;
+
+        // 2. Nếu không tìm thấy phân công, fallback về DanhMucMonHoc gốc để vẫn xem được đề cương
+        var baseSubject = assignedCourse?.MonHoc ?? await context.DanhMucMonHocs.FirstOrDefaultAsync(c => c.MaCodeMonHoc == courseCode);
+
+        if (baseSubject == null)
         {
-            return NotFound(new { success = false, message = "Không tìm thấy môn học " + courseId.ToUpper() + " trong CSDL. Vui lòng restart backend để seed Data.cs" });
+            return NotFound(new { success = false, message = "Không tìm thấy môn học " + courseCode + " trong CSDL." });
         }
 
         var chapters = await context.Chuongs
             .Include(c => c.BaiHocs)
-            .Where(c => c.MaMonHoc == course.MaMonHoc)
+            .Where(c => c.MaMonHoc == baseSubject.MaMonHoc)
             .OrderBy(c => c.ThuTu)
             .ToListAsync();
+
+        var teacherName = assignedCourse?.GiaoVien?.HoTen ?? "Chưa phân công giảng viên";
+        var semesterName = assignedCourse?.HocKy?.TenHocKy ?? "Chưa xếp học kỳ";
 
         var response = new CourseDetailResponseDto
         {
             Course = new CourseDetailDto
             {
-                Id = course.MaCodeMonHoc,
-                Title = course.TenMonHoc,
-                Code = course.MaCodeMonHoc,
-                Teacher = "TS. Nguyễn Minh Khoa",
-                Semester = "HK Hiện Tại",
-                Credits = course.SoTinChi,
+                Id = baseSubject.MaCodeMonHoc,
+                Title = baseSubject.TenMonHoc,
+                Code = baseSubject.MaCodeMonHoc,
+                Teacher = teacherName,
+                Semester = semesterName,
+                Credits = baseSubject.SoTinChi,
                 CoverGradient = "from-blue-700 via-blue-600 to-cyan-500",
-                Description = $"Môn học {course.TenMonHoc} ({course.MaCodeMonHoc}) cung cấp các kiến thức cốt lõi và kỹ năng thực hành chuyên sâu."
+                Description = $"Môn học {baseSubject.TenMonHoc} ({baseSubject.MaCodeMonHoc}) cung cấp các kiến thức cốt lõi và kỹ năng thực hành chuyên sâu."
             },
             Stats = new List<CourseStatDto>
             {

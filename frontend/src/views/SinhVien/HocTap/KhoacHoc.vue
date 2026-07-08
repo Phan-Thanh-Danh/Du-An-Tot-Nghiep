@@ -52,8 +52,10 @@ const courses = computed(() => {
     
     if (progress === 100 || courseStatus === 'Hoàn thành' || courseStatus === 'completed') {
       status = 'completed'
-    } else if (progress === 0 || courseStatus === 'Chưa bắt đầu' || courseStatus === 'Sắp tới' || courseStatus === 'upcoming') {
+    } else if (courseStatus === 'Sắp tới' || courseStatus === 'upcoming') {
       status = 'upcoming'
+    } else {
+      status = 'learning' // Đang học
     }
 
     return {

@@ -553,7 +553,7 @@ Ghi chú: audit log được ghi tự động bởi backend khi thao tác Auth/U
 - `GET /api/courses/{id}/chapters`
 - `GET /api/students/me/courses`
 
-Ghi chú dữ liệu: Trong phạm vi MVP, `KhoaHoc` đại diện cho một môn học được mở cho một lớp hành chính trong một học kỳ và do một giảng viên phụ trách. Một giảng viên dạy cùng một môn cho nhiều lớp sẽ tạo nhiều `KhoaHoc` khác nhau. Nhiều giảng viên cùng dạy một môn cho các lớp khác nhau cũng tạo nhiều `KhoaHoc` khác nhau. Từ P7, luồng đăng ký học phần dùng `LopHocPhan`/`DangKyHocPhan` làm nguồn sĩ số và đăng ký; `KhoaHoc.MaLopHocPhan` được dùng khi cần map giảng viên/TKB/nội dung học tập sang lớp học phần. Nội dung học tập chuẩn vẫn lấy theo `DanhMucMonHoc -> Chuong -> BaiHoc`, không copy theo từng `KhoaHoc`.
+Ghi chú dữ liệu: Trong phạm vi MVP, `KhoaHoc` đại diện cho một môn học được mở cho một lớp hành chính trong một học kỳ và do một giảng viên phụ trách. Một giảng viên dạy cùng một môn cho nhiều lớp sẽ tạo nhiều `KhoaHoc` khác nhau. Nhiều giảng viên cùng dạy một môn cho các lớp khác nhau cũng tạo nhiều `KhoaHoc` khác nhau. Luồng học tập của sinh viên lấy danh sách khóa học từ `NguoiDung.MaLop -> KhoaHoc.MaLop`, không phụ thuộc `LopHocPhan`/`DangKyHocPhan`; `KhoaHoc.MaLopHocPhan` chỉ là nullable legacy/roadmap. Nội dung học tập chuẩn vẫn lấy theo `DanhMucMonHoc -> Chuong -> BaiHoc`, không copy theo từng `KhoaHoc`.
 
 Roadmap: Sau MVP cần hỗ trợ cấu hình quiz/bài tập theo `KhoaHoc` để mỗi lớp có lịch mở/đóng khác nhau. `ThoiKhoaBieu` hiện đã gắn `MaKhoaHoc` và `MaCaHoc` ở tầng database; `TienDoBaiHoc` và `DiemSo` vẫn cần cân nhắc thêm `MaKhoaHoc` nullable/required theo mức độ triển khai để phân biệt cùng môn ở lớp/giảng viên/học kỳ khác nhau.
 
