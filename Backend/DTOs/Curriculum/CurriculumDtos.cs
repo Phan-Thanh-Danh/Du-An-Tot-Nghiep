@@ -65,6 +65,7 @@ public class BaiHocUpdateDto
     public string? LoaiBaiHoc { get; set; }
     public string? NoiDungVanBan { get; set; }
     public string? DieuKienMoKhoa { get; set; }
+    public int? ThuTu { get; set; }
     public bool? DaAn { get; set; }
     public string? TrangThai { get; set; }
 }

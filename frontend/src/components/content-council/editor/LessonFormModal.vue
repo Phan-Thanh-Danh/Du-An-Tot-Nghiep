@@ -14,12 +14,15 @@ const formData = ref({
 })
 
 const isEdit = ref(false)
+const isSaving = ref(false)
+const saveError = ref('')
 
 const contentTypes = [
   { value: 'video', label: 'Video' },
   { value: 'slide_html', label: 'Slide HTML' },
-  { value: 'document', label: 'Tài liệu' },
-  { value: 'quiz', label: 'Quiz' }
+  { value: 'pdf', label: 'Tài liệu PDF' },
+  { value: 'van_ban', label: 'Văn bản' },
+  { value: 'trac_nghiem', label: 'Quiz' }
 ]
 
 const statusOptions = [
@@ -30,6 +33,7 @@ const statusOptions = [
 
 watch(() => isOpen.value, (val) => {
   if (val) {
+    saveError.value = ''
     if (editor.editingLesson.value) {
       isEdit.value = true
       formData.value = {
@@ -46,15 +50,24 @@ watch(() => isOpen.value, (val) => {
 })
 
 const close = () => {
+  if (isSaving.value) return
   isOpen.value = false
 }
 
-const save = () => {
+const save = async () => {
   if (!formData.value.title.trim()) {
     alert('Vui lòng nhập tên bài học')
     return
   }
-  editor.saveLesson(formData.value)
+  isSaving.value = true
+  saveError.value = ''
+  try {
+    await editor.saveLesson(formData.value)
+  } catch (e: any) {
+    saveError.value = e?.message || 'Không thể lưu thông tin bài học'
+  } finally {
+    isSaving.value = false
+  }
 }
 </script>
 
@@ -108,14 +121,18 @@ const save = () => {
             class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
         </div>
+
+        <p v-if="saveError" class="text-sm text-red-600">
+          {{ saveError }}
+        </p>
       </div>
 
       <div class="px-5 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3 rounded-b-xl">
-        <button @click="close" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-lg transition-colors">
+        <button @click="close" :disabled="isSaving" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
           Hủy
         </button>
-        <button @click="save" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
-          {{ isEdit ? 'Lưu thay đổi' : 'Tạo bài học' }}
+        <button @click="save" :disabled="isSaving" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+          {{ isSaving ? 'Đang lưu...' : (isEdit ? 'Lưu thay đổi' : 'Tạo bài học') }}
         </button>
       </div>
     </div>

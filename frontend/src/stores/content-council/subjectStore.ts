@@ -8,6 +8,55 @@ import type { EditorChapter, EditorLesson, EditorContentBlock } from '@/types/co
 const ENABLE_MOCK_API =
   import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
+const normalizeLessonStatus = (status?: string) => {
+  switch (status) {
+    case 'nhap':
+      return 'draft'
+    case 'da_xuat_ban':
+      return 'published'
+    default:
+      return status || 'draft'
+  }
+}
+
+const toLessonApiStatus = (status?: string) => {
+  switch (status) {
+    case 'draft':
+      return 'nhap'
+    case 'published':
+      return 'da_xuat_ban'
+    default:
+      return status
+  }
+}
+
+const normalizeLessonType = (type?: string) => {
+  if (type === 'document') return 'pdf'
+  return type || 'van_ban'
+}
+
+const mapLessonFromApi = (l: any) => ({
+  id: l.maBaiHoc || l.id,
+  chapterId: l.maChuong || l.chapterId,
+  title: l.tieuDe || l.title,
+  type: normalizeLessonType(l.loaiBaiHoc || l.type),
+  status: normalizeLessonStatus(l.trangThai || l.status),
+  order: l.thuTu || l.order,
+  contentCount: l.soLuongNoiDung || l.soNoiDung || l.contentCount || 0,
+  contents: (l.noiDungs || l.contents || []).map((cb: any) => {
+    const dataObj = cb.duLieuJson ? JSON.parse(cb.duLieuJson) : (cb.noiDungJson ? JSON.parse(cb.noiDungJson) : (cb.data || {}));
+    return {
+      id: cb.maNoiDung || cb.id,
+      lessonId: cb.maBaiHoc || cb.lessonId,
+      type: cb.loaiNoiDung || cb.type,
+      title: cb.tieuDe || cb.title,
+      status: normalizeLessonStatus(cb.trangThai || cb.status),
+      order: cb.thuTu || cb.order,
+      ...dataObj
+    }
+  })
+})
+
 export const useSubjectStore = defineStore('contentCouncilSubject', () => {
   const subjects = ref<ContentCouncilSubject[]>([])
   const subjectDetails = ref<Record<number, ContentCouncilSubjectDetail>>({})
@@ -134,24 +183,7 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
         title: c.tieuDe || c.title,
         order: c.thuTu || c.order,
         hidden: c.daAn || c.hidden || false,
-        lessons: (c.baiHocs || c.lessons || []).map((l: any) => ({
-          id: l.maBaiHoc || l.id,
-          chapterId: l.maChuong || l.chapterId,
-          title: l.tieuDe || l.title,
-          type: l.loaiBaiHoc || l.type || 'text',
-          status: l.trangThai || l.status || 'draft',
-          order: l.thuTu || l.order,
-          contentCount: l.soLuongNoiDung || l.contentCount || 0,
-          contents: (l.noiDungs || l.contents || []).map((cb: any) => ({
-            id: cb.maNoiDung || cb.id,
-            lessonId: cb.maBaiHoc || cb.lessonId,
-            type: cb.loaiNoiDung || cb.type,
-            title: cb.tieuDe || cb.title,
-            data: cb.duLieuJson ? JSON.parse(cb.duLieuJson) : (cb.data || {}),
-            status: cb.trangThai || cb.status || 'draft',
-            order: cb.thuTu || cb.order
-          }))
-        }))
+        lessons: (c.baiHocs || c.lessons || []).map(mapLessonFromApi)
       })) : []
       
       subjectDetails.value = {
@@ -274,12 +306,16 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     if (!chapter) return
     try {
       if (!ENABLE_MOCK_API) {
-        await contentCouncilApi.createLesson({
+        const res = await contentCouncilApi.createLesson({
           maChuong: chapterId,
           tieuDe: lesson.title,
-          loaiBaiHoc: lesson.type,
+          loaiBaiHoc: normalizeLessonType(lesson.type),
           thuTu: (chapter.lessons?.length || 0) + 1,
         })
+        const createdLesson = res?.data ?? res
+        if (createdLesson && createdLesson.maBaiHoc) {
+          lesson.id = createdLesson.maBaiHoc
+        }
       }
       if (!chapter.lessons) chapter.lessons = []
       chapter.lessons.push(lesson)
@@ -298,15 +334,22 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
       if (!ENABLE_MOCK_API) {
         const updatePayload: any = {}
         if (payload.title !== undefined) updatePayload.tieuDe = payload.title
-        if (payload.type !== undefined) updatePayload.loaiBaiHoc = payload.type
-        if (payload.status !== undefined) updatePayload.trangThai = payload.status
-        if (payload.order !== undefined) updatePayload.thuTu = payload.order
-        await contentCouncilApi.updateLesson(lessonId, updatePayload)
+        if (payload.type !== undefined) updatePayload.loaiBaiHoc = normalizeLessonType(payload.type)
+        if (payload.status !== undefined) updatePayload.trangThai = toLessonApiStatus(payload.status)
+        if (payload.order !== undefined && payload.order !== null) updatePayload.thuTu = payload.order
+        const updated = await contentCouncilApi.updateLesson(lessonId, updatePayload)
+        const updatedPayload = updated?.data ?? updated
+        const idx = chapter.lessons.findIndex(l => l.id === lessonId)
+        if (idx !== -1 && updatedPayload) {
+          chapter.lessons[idx] = mapLessonFromApi(updatedPayload)
+          return
+        }
       }
       const idx = chapter.lessons.findIndex(l => l.id === lessonId)
       if (idx !== -1) Object.assign(chapter.lessons[idx], payload)
     } catch (e: any) {
       error.value = e?.message || 'Không thể cập nhật bài học'
+      throw e
     }
   }
 
@@ -335,11 +378,12 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     if (!lesson) return
     try {
       if (!ENABLE_MOCK_API) {
+        const { id: _id, lessonId: _l, type: _t, status: _s, order: _o, data, ...rest } = content as any;
+        const duLieu = data ? data : rest;
         await contentCouncilApi.createContent({
           maBaiHoc: lessonId,
           loaiNoiDung: content.type,
-          tieuDe: content.title || '',
-          duLieuJson: content.data ? JSON.stringify(content.data) : '{}',
+          noiDungJson: JSON.stringify(duLieu),
           thuTu: (lesson.contents?.length || 0) + 1,
         })
       }
@@ -361,11 +405,15 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     try {
       if (!ENABLE_MOCK_API) {
         const updatePayload: any = {}
-        if (payload.title !== undefined) updatePayload.tieuDe = payload.title
-        if (payload.type !== undefined) updatePayload.loaiNoiDung = payload.type
-        if (payload.status !== undefined) updatePayload.trangThai = payload.status
-        if (payload.order !== undefined) updatePayload.thuTu = payload.order
-        if (payload.data !== undefined) updatePayload.duLieuJson = JSON.stringify(payload.data)
+        const { id: _id, lessonId: _l, type, status, order, data, ...rest } = payload as any;
+        if (type !== undefined) updatePayload.loaiNoiDung = type
+        if (status !== undefined) updatePayload.trangThai = status
+        if (order !== undefined) updatePayload.thuTu = order
+        
+        const duLieu = data ? data : rest;
+        if (Object.keys(duLieu).length > 0) {
+          updatePayload.noiDungJson = JSON.stringify(duLieu)
+        }
         await contentCouncilApi.updateContent(contentId, updatePayload)
       }
       const idx = lesson.contents.findIndex(c => c.id === contentId)

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { inject, computed } from 'vue'
 import { Edit2, Eye, MoreVertical } from 'lucide-vue-next'
+import { useRouter, useRoute } from 'vue-router'
 
 const editor = inject<any>('curriculumEditor')
 const lesson = computed(() => editor.selectedLesson.value)
@@ -12,8 +13,20 @@ const onEdit = () => {
   editor.isLessonModalOpen.value = true
 }
 
+const router = useRouter()
+const route = useRoute()
+
 const onPreview = () => {
-  alert('Chế độ xem trước đầy đủ sẽ được triển khai ở bước tiếp theo.')
+  if (!lesson.value) return
+  const subjectId = route.params.subjectId
+  
+  const url = router.resolve({
+    name: 'content-council-subject-preview',
+    params: { subjectId: subjectId },
+    query: { lessonId: lesson.value.id }
+  }).href
+  
+  window.open(url, '_blank')
 }
 
 const getStatusBadge = (status: string) => {

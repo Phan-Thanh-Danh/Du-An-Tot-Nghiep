@@ -298,6 +298,8 @@ public class CurriculumService : ICurriculumService
             entity.NoiDungVanBan = dto.NoiDungVanBan;
         if (dto.DieuKienMoKhoa is not null)
             entity.DieuKienMoKhoa = dto.DieuKienMoKhoa;
+        if (dto.ThuTu.HasValue)
+            entity.ThuTu = dto.ThuTu.Value;
         if (dto.DaAn.HasValue)
             entity.DaAn = dto.DaAn.Value;
         if (dto.TrangThai is not null)

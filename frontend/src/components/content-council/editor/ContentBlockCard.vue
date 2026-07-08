@@ -3,6 +3,7 @@ import { inject, ref } from 'vue'
 import { MoreVertical, Edit2, Copy, EyeOff, Eye, Trash2, GripVertical, Video, PlaySquare, File, FileText, HelpCircle } from 'lucide-vue-next'
 import type { EditorContentBlock } from '@/types/content-council/curriculumEditor'
 import { onClickOutside } from '@vueuse/core'
+import { useRouter, useRoute } from 'vue-router'
 
 const props = defineProps<{
   content: EditorContentBlock
@@ -48,9 +49,25 @@ const onDelete = () => {
   editor.isDeleteDialogOpen.value = true
 }
 
+const router = useRouter()
+const route = useRoute()
+
 const onPreview = () => {
   isMenuOpen.value = false
-  alert('Chế độ xem trước nội dung sẽ được triển khai ở bước tiếp theo.')
+  const subjectId = route.params.subjectId
+  
+  // Use editor's selected lesson ID instead of props.content.lessonId 
+  // because props.content.lessonId might be incorrect or undefined from the backend API
+  const lessonId = editor.selectedLesson.value?.id
+  if (!lessonId) return
+
+  const url = router.resolve({
+    name: 'content-council-subject-preview',
+    params: { subjectId: subjectId },
+    query: { lessonId: lessonId }
+  }).href
+  
+  window.open(url, '_blank')
 }
 
 const getIcon = (type: string) => {

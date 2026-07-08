@@ -11,6 +11,7 @@ public class R2StorageSettings
     public string AccessKeyId { get; set; } = string.Empty;
     public string SecretAccessKey { get; set; } = string.Empty;
     public string BucketName { get; set; } = string.Empty;
+    public string? PublicDomain { get; set; }
 }
 
 public class R2StorageService : IR2StorageService
@@ -84,7 +85,9 @@ public class R2StorageService : IR2StorageService
             "Verified object {StorageKey} in R2: {ActualSize} bytes.",
             storageKey, actualSize);
 
-        var publicUrl = $"{_settings.Endpoint}/{_settings.BucketName}/{storageKey}";
+        var publicUrl = string.IsNullOrWhiteSpace(_settings.PublicDomain)
+            ? $"{_settings.Endpoint}/{_settings.BucketName}/{storageKey}"
+            : $"{_settings.PublicDomain.TrimEnd('/')}/{storageKey}";
 
         _logger.LogInformation(
             "Uploaded file {StorageKey} ({ContentType}, {Size} bytes) to R2.",
@@ -286,8 +289,41 @@ public class R2StorageService : IR2StorageService
 
     private static string SanitizeFileName(string fileName)
     {
+        // Tách tên file và extension
+        var extension = Path.GetExtension(fileName); // e.g. ".mp4"
+        var nameOnly = Path.GetFileNameWithoutExtension(fileName);
+
+        // Loại bỏ ký tự không hợp lệ cho hệ điều hành
         var invalidChars = Path.GetInvalidFileNameChars();
-        var sanitized = string.Join("_", fileName.Split(invalidChars, StringSplitOptions.RemoveEmptyEntries));
-        return sanitized.Length > 200 ? sanitized[..200] : sanitized;
+        var sanitized = string.Join("_", nameOnly.Split(invalidChars, StringSplitOptions.RemoveEmptyEntries));
+
+        // Loại bỏ thêm ký tự nguy hiểm cho URL: # [ ] % { } | \ ^ ~ ` và khoảng trắng
+        // Ký tự # đặc biệt nguy hiểm vì trình duyệt coi nó là fragment identifier
+        sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"[#\[\]%\{\}|\\^~`\s]+", "_");
+
+        // Loại bỏ dấu tiếng Việt (normalize → remove diacritics)
+        var normalized = sanitized.Normalize(System.Text.NormalizationForm.FormD);
+        var sb = new System.Text.StringBuilder();
+        foreach (var c in normalized)
+        {
+            var unicodeCategory = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+            if (unicodeCategory != System.Globalization.UnicodeCategory.NonSpacingMark)
+            {
+                sb.Append(c);
+            }
+        }
+        sanitized = sb.ToString().Normalize(System.Text.NormalizationForm.FormC);
+
+        // Thay thế đ/Đ (không bị xử lý bởi normalization)
+        sanitized = sanitized.Replace("đ", "d").Replace("Đ", "D");
+
+        // Gộp nhiều dấu gạch dưới liên tiếp thành 1, trim đầu cuối
+        sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"_+", "_").Trim('_');
+
+        // Giới hạn độ dài
+        if (sanitized.Length > 150) sanitized = sanitized[..150];
+
+        // Ghép lại với extension
+        return sanitized + extension;
     }
 }
