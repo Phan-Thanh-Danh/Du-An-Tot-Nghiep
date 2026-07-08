@@ -22,8 +22,6 @@ import { formatDate, formatTimeRange } from '@/utils/dateFormat'
 import { getStatusMeta, getStatusOptions } from '@/utils/statusLabels'
 import { studentApi } from '@/services/studentApi'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
-
 const loading = ref(false)
 const error = ref('')
 const scheduleSessions = ref([])
@@ -110,15 +108,10 @@ async function loadSessions(date) {
   loading.value = true
   error.value = ''
   try {
-    if (ENABLE_MOCK_API) {
-      const { getStudentScheduleSessions } = await import('@/mocks/scheduleAttendanceMockData')
-      scheduleSessions.value = getStudentScheduleSessions(date)
-    } else {
-      const data = await studentApi.getSchedule({ anchorDate: date })
-      scheduleSessions.value = data.sessions || []
-    }
+    const data = await studentApi.getSchedule({ anchorDate: date })
+    scheduleSessions.value = data.sessions || []
   } catch (e) {
-    if (!ENABLE_MOCK_API) error.value = e?.message || 'Không thể tải dữ liệu.'
+    error.value = e?.message || 'Không thể tải dữ liệu.'
   } finally {
     loading.value = false
   }

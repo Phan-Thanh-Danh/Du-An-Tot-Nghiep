@@ -1,6 +1,4 @@
-// ============================================================
-// Mock Menu Data - SinhVien Sidebar
-// ============================================================
+// Menu Data - SinhVien Sidebar
 
 export const sinhVienMenuGroups = [
   // ── DASHBOARD ─────────────────────────────────────────────
@@ -163,64 +161,5 @@ export const sinhVienMenuGroups = [
         route: '/student/profile',
       }
     ],
-  },
-]
-
-// ── Mock user info ─────────────────────────────────────────
-export const mockUser = {
-  name: 'Sinh Viên Demo',
-  studentId: 'SV2024001',
-  email: 'an.nguyen@student.edu.vn',
-  avatar: null, // null = dùng initials
-  initials: 'SV',
-  class: 'CNTT K26A',
-  campus: 'Cơ sở Hà Nội',
-}
-
-// ── Mock notifications ─────────────────────────────────────
-export const mockNotifications = [
-  {
-    id: 1,
-    type: 'deadline',
-    title: 'Bài tập CTDL&GT sắp hết hạn',
-    description: 'Hạn nộp: Hôm nay 23:59',
-    time: '30 phút trước',
-    read: false,
-    icon: 'AlertCircle',
-    color: 'red',
-    link: '/student/assignments'
-  },
-  {
-    id: 2,
-    type: 'grade',
-    title: 'Điểm môn Toán đã được cập nhật',
-    description: 'Điểm kiểm tra giữa kỳ: 8.5',
-    time: '2 giờ trước',
-    read: false,
-    icon: 'CheckCircle',
-    color: 'green',
-    link: '/student/grades'
-  },
-  {
-    id: 3,
-    type: 'schedule',
-    title: 'Lịch học thay đổi',
-    description: 'Môn Vật lý dời từ P101 sang P205',
-    time: 'Hôm qua',
-    read: true,
-    icon: 'Calendar',
-    color: 'blue',
-    link: '/student/schedule'
-  },
-  {
-    id: 4,
-    type: 'tuition',
-    title: 'Nhắc nhở học phí',
-    description: 'Học phí kỳ 2 chưa thanh toán',
-    time: '2 ngày trước',
-    read: true,
-    icon: 'Wallet',
-    color: 'yellow',
-    link: '/student/tuition'
   },
 ]

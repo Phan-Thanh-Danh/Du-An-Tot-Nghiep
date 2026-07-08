@@ -1,7 +1,5 @@
 import { apiRequest, unwrapApiData } from './apiClient'
 
-const enableMock = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
-
 function buildQuery(params = {}) {
   const query = new URLSearchParams()
   Object.entries(params).forEach(([key, value]) => {
@@ -9,10 +7,6 @@ function buildQuery(params = {}) {
   })
   const qs = query.toString()
   return qs ? `?${qs}` : ''
-}
-
-function unavailable(feature) {
-  throw new Error(`${feature} chưa có backend endpoint. Chức năng đang phát triển.`)
 }
 
 function mapAccountProfile(account) {
@@ -144,47 +138,30 @@ export const studentApi = {
     return mapAccountProfile(response)
   },
 
-  async getGrades() {
-    if (enableMock) {
-      return {
-        success: true,
-        data: [
-          { id: '1', course: 'Cấu trúc dữ liệu & Giải thuật', code: 'CTDL101', examType: 'Giữa kỳ', score: 8.5, date: '15/06/2026', status: 'Đã công bố' },
-          { id: '2', course: 'Lập trình Web', code: 'LTW301', examType: 'Cuối kỳ', score: 7.2, date: '20/06/2026', status: 'Đã công bố' },
-        ],
-      }
-    }
-    unavailable('Bảng điểm sinh viên')
+  getGrades() {
+    return apiRequest('/api/student/grades', { method: 'GET' })
   },
 
-  async getEvaluations() {
-    if (enableMock) {
-      return {
-        success: true,
-        data: [
-          { id: '1', course: 'CTDL101', title: 'Đánh giá môn Cấu trúc dữ liệu', deadline: '30/07/2026', status: 'Chưa đánh giá' },
-        ],
-      }
-    }
-    unavailable('Đánh giá giảng viên của sinh viên')
+  getEvaluations() {
+    return apiRequest('/api/student/evaluations', { method: 'GET' })
   },
 
-  async submitEvaluation(id, payload) {
-    if (enableMock) {
-      return {
-        success: true,
-        message: 'Đã gửi đánh giá (DEV mock).',
-        data: { id, ...payload },
-      }
-    }
-    unavailable('Gửi đánh giá giảng viên')
+  getEvaluationDetail(evaluationId) {
+    return apiRequest(`/api/student/evaluations/${evaluationId}`, { method: 'GET' })
   },
 
-  async getRewards(params = {}) {
+  submitEvaluation(id, payload) {
+    return apiRequest('/api/student/evaluations/submit', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  getRewards(params = {}) {
     return apiRequest(`/api/student/rewards${buildQuery(params)}`)
   },
 
-  async getRewardDetail(rewardId) {
+  getRewardDetail(rewardId) {
     return apiRequest(`/api/student/rewards/${rewardId}`)
   },
 
@@ -210,6 +187,35 @@ export const studentApi = {
     return response.blob()
   },
 
+  getSupportTickets(params = {}) {
+    return apiRequest(`/api/student/support-tickets${buildQuery(params)}`)
+  },
+
+  getSupportTicketDetail(ticketId) {
+    return apiRequest(`/api/student/support-tickets/${ticketId}`)
+  },
+
+  createSupportTicket(payload) {
+    return apiRequest('/api/student/support-tickets', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  sendSupportTicketMessage(ticketId, payload) {
+    return apiRequest(`/api/student/support-tickets/${ticketId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  closeSupportTicket(ticketId, payload = {}) {
+    return apiRequest(`/api/student/support-tickets/${ticketId}/close`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
   async changePassword(payload) {
     return apiRequest('/api/account/change-password', {
       method: 'PUT',
@@ -221,25 +227,52 @@ export const studentApi = {
     })
   },
 
-  async inviteParent() {
-    if (enableMock) {
-      return { success: true, message: 'Đã gửi lời mời phụ huynh (DEV mock).' }
-    }
-    unavailable('Liên kết phụ huynh')
+  inviteParent(payload) {
+    return apiRequest('/api/student/parent-links/invite', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
   },
 
-  async updateParentPermission() {
-    if (enableMock) {
-      return { success: true, message: 'Đã cập nhật quyền phụ huynh (DEV mock).' }
-    }
-    unavailable('Phân quyền phụ huynh')
+  updateParentPermission(linkId, key, value) {
+    return apiRequest(`/api/student/parent-links/${linkId}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify({ key, value }),
+    })
   },
 
-  async removeParentLink() {
-    if (enableMock) {
-      return { success: true, message: 'Đã hủy liên kết phụ huynh (DEV mock).' }
-    }
-    unavailable('Hủy liên kết phụ huynh')
+  removeParentLink(linkId) {
+    return apiRequest(`/api/student/parent-links/${linkId}`, {
+      method: 'DELETE',
+    })
   },
 
+  getSupportTickets() {
+    return apiRequest('/api/student/support-tickets', { method: 'GET' })
+  },
+
+  getSupportTicketDetail(ticketId) {
+    return apiRequest(`/api/student/support-tickets/${ticketId}`, { method: 'GET' })
+  },
+
+  createSupportTicket(payload) {
+    return apiRequest('/api/student/support-tickets', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  sendSupportTicketMessage(ticketId, payload) {
+    return apiRequest(`/api/student/support-tickets/${ticketId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  closeSupportTicket(ticketId, payload) {
+    return apiRequest(`/api/student/support-tickets/${ticketId}/close`, {
+      method: 'POST',
+      body: payload ? JSON.stringify(payload) : undefined,
+    })
+  },
 }

@@ -9,10 +9,7 @@ import {
   Key, Save, Download, Trash2, Plus, AlertCircle,
   ToggleLeft, ToggleRight, CheckCircle2
 } from 'lucide-vue-next'
-import { mockProfile, mockAwards, mockDisciplines, mockParents } from '@/data/studentData.mock.js'
-
 const popupStore = usePopupStore()
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const emptyProfile = {
   fullName: '',
@@ -26,10 +23,10 @@ const emptyProfile = {
   status: '',
 }
 
-const profile = ref(ENABLE_MOCK_API ? { ...mockProfile } : { ...emptyProfile })
-const awards = ref(ENABLE_MOCK_API ? [...mockAwards] : [])
-const disciplines = ref(ENABLE_MOCK_API ? [...mockDisciplines] : [])
-const parents = ref(ENABLE_MOCK_API ? mockParents.map(p => ({ ...p, permissions: { ...p.permissions } })) : [])
+const profile = ref({ ...emptyProfile })
+const awards = ref([])
+const disciplines = ref([])
+const parents = ref([])
 const loading = ref(false)
 
 // State
@@ -114,10 +111,6 @@ const changePassword = async () => {
 }
 
 const downloadCertificate = (award) => {
-  if (!ENABLE_MOCK_API) {
-    popupStore.warning('Chức năng đang phát triển', 'Vui lòng dùng trang Thành tích để tải bằng khen từ API thật.')
-    return
-  }
   popupStore.info('Tải bằng khen', `Đang tải file PDF Bằng khen: ${award.title}`)
 }
 

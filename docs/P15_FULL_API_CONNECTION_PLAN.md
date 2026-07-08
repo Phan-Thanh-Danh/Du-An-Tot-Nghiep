@@ -9,21 +9,25 @@
 |---|---|---|---|---|
 | SuperAdmin | 38 | ~15 | 23 | Medium |
 | Admin | shared | ~15 | ~10 | Medium |
-| Student | 22 | 19 | 3 | High |
+| Student | 22 | 22 | 0 | Done |
 | Teacher | 23 | 17 | 6 | High |
 | Staff/GiaoVu | 24 | 22 | 2 | High |
 | BGH | 28 | ~26 | 2 | High |
-| Parent | 15 | 0 | 15 | Critical |
+| Parent | 15 | 15 | 0 | Done |
 | Content Council | 8 | 8 | 0 | Done |
-| **Total** | **~145** | **~108** | **~37** | |
+| **Total** | **~145** | **~123** | **~22** | |
 
 ## Phases
 
-### Phase 1 - Parent Module (CRITICAL)
-Build full Parent backend (15 endpoints) and connect 15 frontend screens.
+### Phase 1 - Parent Module (COMPLETED P15A)
+Built full Parent backend (15 endpoints) and connected all 15 frontend screens.
 
-### Phase 2 - Student FE_ONLY views (HIGH)
-Connect: GradesView, EvaluationsView, SupportTicketsView, ExamResultView, CoursesView
+### Phase 2 - Student FE_ONLY views (COMPLETED P15B)
+Connected: GradesView, EvaluationsView, SupportTicketsView, CourseDetailView, ProfileView, Dashboard, all others.
+- StudentDashboardController rewritten with real DB queries (was hardcoded mock)
+- studentApi.js mock fallbacks removed, real endpoints mapped
+- All student components (AppSidebar/AppTopbar) freed of mock imports
+- Student: 22/22 connected, 0 FE_ONLY, 0 BE_MISSING, 0 mock/fallback
 
 ### Phase 3 - Teacher FE_ONLY views (HIGH)
 Connect: CoursesView, ProfileView, ClassGradebookView, CreateExamView, ExamResultsView
