@@ -1,13 +1,16 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { usePopupStore } from '@/stores/popup'
 import {
+  AlertCircle,
   CheckCircle2,
   Clock,
   Filter,
   HelpCircle,
+  Loader2,
   MessageCircle,
   MessageSquare,
+  RefreshCw,
   Search,
   Send,
   User,
@@ -16,29 +19,27 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
+import { teacherApi } from '@/services/teacherApi'
 
 const popupStore = usePopupStore()
 
-const questions = ref([
-  { id: 1, student: 'Nguyễn Văn A', question: 'Thầy ơi, bài Assignment 1 có yêu cầu dùng Tailwind không ạ?', status: 'Pending', time: '10 phút trước' },
-  { id: 2, student: 'Trần Thị B', question: 'Em không nộp được file .rar lên hệ thống, thầy xem giúp em.', status: 'Answered', time: '1 giờ trước' },
-  { id: 3, student: 'Lê Hoàng C', question: 'Lịch thi giữa kỳ đã có chưa ạ?', status: 'Pending', time: '2 giờ trước' },
-  { id: 4, student: 'Hoàng Văn D', question: 'Thưa thầy, cho em hỏi thêm về cách hoạt động của Vue Router?', status: 'Pending', time: '3 giờ trước' },
-])
-
+const loading = ref(false)
+const error = ref('')
+const questions = ref([])
 const selectedQ = ref(null)
 const replyText = ref('')
 const activeFilter = ref('all')
+const replying = ref(false)
 
 const filteredQuestions = computed(() => {
   if (activeFilter.value === 'pending') {
-    return questions.value.filter(q => q.status === 'Pending')
+    return questions.value.filter(q => q.status === 'Pending' || q.trangThai === 'Pending')
   }
   return questions.value
 })
 
-const pendingCount = computed(() => questions.value.filter(q => q.status === 'Pending').length)
-const answeredCount = computed(() => questions.value.filter(q => q.status === 'Answered').length)
+const pendingCount = computed(() => questions.value.filter(q => (q.status || q.trangThai) === 'Pending').length)
+const answeredCount = computed(() => questions.value.filter(q => (q.status || q.trangThai) === 'Answered').length)
 
 const questionStats = computed(() => [
   { label: 'Tổng câu hỏi', value: questions.value.length, variant: 'neutral' },
@@ -47,26 +48,54 @@ const questionStats = computed(() => [
   { label: 'Hôm nay', value: 2, variant: 'info' },
 ])
 
+async function loadQuestions() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await teacherApi.getStudentQuestions()
+    questions.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+  } catch (e) {
+    error.value = e?.message || 'Không thể tải câu hỏi.'
+    questions.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
 function openReply(q) {
   selectedQ.value = q
   replyText.value = ''
 }
 
-function sendReply() {
-  if (selectedQ.value) {
+async function sendReply() {
+  if (!selectedQ.value || !replyText.value.trim()) return
+  replying.value = true
+  try {
+    await teacherApi.replyStudentQuestion(selectedQ.value.id || selectedQ.value.maCauHoi, {
+      noiDung: replyText.value,
+      content: replyText.value,
+    })
     selectedQ.value.status = 'Answered'
-    popupStore.success('Đã gửi phản hồi', `Phản hồi đã được gửi đến ${selectedQ.value.student}`)
+    selectedQ.value.trangThai = 'Answered'
+    popupStore.success('Đã gửi phản hồi', `Phản hồi đã được gửi đến ${selectedQ.value.hoTen || selectedQ.value.student}`)
     selectedQ.value = null
+    replyText.value = ''
+  } catch (e) {
+    popupStore.error('Không thể gửi phản hồi', e?.message || 'Lỗi máy chủ.')
+  } finally {
+    replying.value = false
   }
 }
 
 function getStatusText(status) {
-  return status === 'Pending' ? 'Chưa trả lời' : 'Đã trả lời'
+  return (status || '') === 'Pending' ? 'Chưa trả lời' : 'Đã trả lời'
 }
 
 function getStatusVariant(status) {
-  return status === 'Pending' ? 'warning' : 'success'
+  return (status || '') === 'Pending' ? 'warning' : 'success'
 }
+
+onMounted(() => { loadQuestions() })
 </script>
 
 <template>
@@ -86,6 +115,13 @@ function getStatusVariant(status) {
       </div>
 
       <div class="header-actions">
+        <GlassButton size="sm" variant="secondary" @click="loadQuestions">
+          <template #leading>
+            <Loader2 v-if="loading" :size="14" class="animate-spin" />
+            <RefreshCw v-else :size="14" />
+          </template>
+          Làm mới
+        </GlassButton>
         <GlassBadge v-if="pendingCount > 0" variant="warning" size="md">
           {{ pendingCount }} chưa trả lời
         </GlassBadge>
@@ -145,29 +181,39 @@ function getStatusVariant(status) {
           </div>
         </template>
 
-        <div v-if="filteredQuestions.length" class="question-list">
+        <div v-if="loading" class="flex items-center justify-center py-12">
+          <Loader2 :size="20" class="animate-spin text-muted" />
+          <span class="ml-2 text-xs font-semibold text-muted">Đang tải câu hỏi...</span>
+        </div>
+
+        <div v-else-if="error" class="flex flex-col items-center py-12">
+          <AlertCircle :size="28" class="text-rose-400 mb-2" />
+          <p class="text-xs font-semibold text-muted">{{ error }}</p>
+        </div>
+
+        <div v-else-if="filteredQuestions.length" class="question-list">
           <button
             v-for="q in filteredQuestions"
-            :key="q.id"
+            :key="q.id || q.maCauHoi"
             type="button"
             :class="['question-row', selectedQ?.id === q.id && 'is-selected']"
             @click="openReply(q)"
           >
-            <span class="avatar">{{ q.student.split(' ').pop()[0] }}</span>
+            <span class="avatar">{{ (q.hoTen || q.student || '').split(' ').pop()[0] || '?' }}</span>
             <span class="question-content">
               <span class="row-topline">
-                <strong>{{ q.student }}</strong>
+                <strong>{{ q.hoTen || q.student }}</strong>
                 <span class="time-chip">
                   <Clock :size="12" />
-                  {{ q.time }}
+                  {{ q.thoiGian || q.time || '--' }}
                 </span>
               </span>
-              <span class="question-text">{{ q.question }}</span>
+              <span class="question-text">{{ q.noiDung || q.question }}</span>
               <span class="row-meta">
-                <GlassBadge :variant="getStatusVariant(q.status)" size="sm">
-                  {{ getStatusText(q.status) }}
+                <GlassBadge :variant="getStatusVariant(q.status || q.trangThai)" size="sm">
+                  {{ getStatusText(q.status || q.trangThai) }}
                 </GlassBadge>
-                <span class="module-chip">WEB1013</span>
+                <span class="module-chip">{{ q.maMonHoc || 'WEB1013' }}</span>
               </span>
             </span>
           </button>
@@ -199,16 +245,16 @@ function getStatusVariant(status) {
 
         <div class="selected-question">
           <div class="selected-meta">
-            <span class="avatar compact">{{ selectedQ.student.split(' ').pop()[0] }}</span>
+            <span class="avatar compact">{{ (selectedQ.hoTen || selectedQ.student || '').split(' ').pop()[0] || '?' }}</span>
             <div>
-              <div class="student-name">{{ selectedQ.student }}</div>
+              <div class="student-name">{{ selectedQ.hoTen || selectedQ.student }}</div>
               <div class="student-time">
                 <Clock :size="12" />
-                {{ selectedQ.time }}
+                {{ selectedQ.thoiGian || selectedQ.time || '--' }}
               </div>
             </div>
           </div>
-          <p>{{ selectedQ.question }}</p>
+          <p>{{ selectedQ.noiDung || selectedQ.question }}</p>
         </div>
 
         <div class="reply-history">
@@ -216,7 +262,7 @@ function getStatusVariant(status) {
             <User :size="14" />
             <span>Câu hỏi đang chờ giảng viên phản hồi trong luồng hỗ trợ lớp học.</span>
           </div>
-          <div v-if="selectedQ.status === 'Answered'" class="history-item success">
+          <div v-if="(selectedQ.status || selectedQ.trangThai) === 'Answered'" class="history-item success">
             <CheckCircle2 :size="14" />
             <span>Đã có phản hồi trước đó. Có thể gửi cập nhật bổ sung nếu cần.</span>
           </div>
@@ -233,11 +279,12 @@ function getStatusVariant(status) {
 
         <div class="reply-actions">
           <GlassButton variant="ghost" size="sm" @click="selectedQ = null">Huỷ</GlassButton>
-          <GlassButton variant="primary" size="sm" @click="sendReply">
+          <GlassButton variant="primary" size="sm" :disabled="replying || !replyText.trim()" @click="sendReply">
             <template #leading>
-              <Send :size="14" />
+              <Loader2 v-if="replying" :size="14" class="animate-spin" />
+              <Send v-else :size="14" />
             </template>
-            Gửi câu trả lời
+            {{ replying ? 'Đang gửi...' : 'Gửi câu trả lời' }}
           </GlassButton>
         </div>
       </GlassPanel>

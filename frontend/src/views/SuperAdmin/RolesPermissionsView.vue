@@ -20,8 +20,6 @@ import {
   FileText
 } from 'lucide-vue-next'
 
-const ENABLE_MOCK_API =
-  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const popup = usePopupStore()
 
@@ -38,7 +36,7 @@ const subCampuses = {
   'Cần Thơ': ['Cơ sở Ninh Kiều']
 }
 
-// Mock modules list
+// Permission modules list
 const modules = [
   { key: 'accounts', name: 'Tài khoản & Phân quyền', desc: 'Quản lý người dùng, phân quyền RBAC' },
   { key: 'campus', name: 'Quản lý Cơ sở (Campus)', desc: 'Cây thư mục tổ chức, phòng học, thiết bị' },
@@ -49,143 +47,6 @@ const modules = [
   { key: 'reports', name: 'Báo cáo & Phân tích', desc: 'Thống kê GPA, chuyên cần, so sánh cơ sở' }
 ]
 
-// Mock Roles Data (fallback)
-const mockRoles = [
-  {
-    id: 1,
-    name: 'Super Admin',
-    code: 'SUPER_ADMIN',
-    type: 'System',
-    scope: 'Global',
-    targetCampus: '',
-    targetSubCampus: '',
-    scopeType: 'Global Admin',
-    memberCount: 2,
-    description: 'Quyền tối cao trên toàn hệ thống, không bị giới hạn cơ sở hay quyền hạn.',
-    permissions: {
-      'accounts': ['read', 'create', 'update', 'delete'],
-      'campus': ['read', 'create', 'update', 'delete'],
-      'training': ['read', 'create', 'update', 'delete'],
-      'exams': ['read', 'create', 'update', 'delete'],
-      'finance': ['read', 'create', 'update', 'delete'],
-      'requests': ['read', 'create', 'update', 'delete'],
-      'reports': ['read', 'create', 'update', 'delete']
-    }
-  },
-  {
-    id: 2,
-    name: 'Giảng viên',
-    code: 'TEACHER',
-    type: 'System',
-    scope: 'Campus',
-    targetCampus: 'Hà Nội',
-    targetSubCampus: '',
-    scopeType: 'Sub-Campus Admin',
-    memberCount: 85,
-    description: 'Vai trò dạy học và chấm điểm tại cơ sở được phân công trực tiếp.',
-    permissions: {
-      'accounts': ['read'],
-      'campus': ['read'],
-      'training': ['read', 'update'],
-      'exams': ['read', 'create', 'update'],
-      'finance': [],
-      'requests': ['read', 'create'],
-      'reports': ['read']
-    }
-  },
-  {
-    id: 3,
-    name: 'Sinh viên',
-    code: 'STUDENT',
-    type: 'System',
-    scope: 'Sub-campus',
-    targetCampus: 'Hà Nội',
-    targetSubCampus: 'Cơ sở 1 (Cầu Giấy)',
-    scopeType: 'Sub-Campus Admin',
-    memberCount: 1420,
-    description: 'Học viên tham gia học tập, đăng ký môn và thanh toán học phí cá nhân.',
-    permissions: {
-      'accounts': ['read'],
-      'campus': ['read'],
-      'training': ['read'],
-      'exams': ['read'],
-      'finance': ['read', 'create'],
-      'requests': ['read', 'create'],
-      'reports': []
-    }
-  },
-  {
-    id: 4,
-    name: 'Giáo vụ',
-    code: 'ACADEMIC_STAFF',
-    type: 'System',
-    scope: 'Campus',
-    targetCampus: 'Toàn bộ',
-    targetSubCampus: '',
-    scopeType: 'Campus Admin',
-    memberCount: 12,
-    description: 'Quản lý học vụ, điều phối thời khóa biểu và danh sách lớp học.',
-    permissions: {
-      'accounts': ['read'],
-      'campus': ['read', 'create', 'update'],
-      'training': ['read', 'create', 'update', 'delete'],
-      'exams': ['read', 'create', 'update'],
-      'finance': ['read'],
-      'requests': ['read', 'create', 'update'],
-      'reports': ['read', 'create']
-    }
-  },
-  {
-    id: 5,
-    name: 'Admin Cơ sở Hà Nội',
-    code: 'HN_CAMPUS_ADMIN',
-    type: 'Custom',
-    scope: 'Campus',
-    targetCampus: 'Hà Nội',
-    targetSubCampus: '',
-    scopeType: 'Campus Admin',
-    memberCount: 3,
-    description: 'Quản trị viên phụ trách toàn bộ chi nhánh và cơ sở thành viên thuộc khu vực Hà Nội.',
-    permissions: {
-      'accounts': ['read', 'create', 'update'],
-      'campus': ['read', 'create', 'update'],
-      'training': ['read', 'create', 'update'],
-      'exams': ['read', 'create', 'update'],
-      'finance': ['read'],
-      'requests': ['read', 'create', 'update'],
-      'reports': ['read']
-    }
-  }
-]
-
-// Mock Audit Logs Data (fallback)
-const mockAuditLogs = [
-  {
-    id: 1,
-    roleName: 'Admin Cơ sở Hà Nội',
-    action: 'Cập nhật Quyền hạn & Phạm vi',
-    operator: 'Super Admin A',
-    time: '2026-06-04 10:20:15',
-    reason: 'Mở rộng quyền cập nhật học vụ để kịp tiến độ tuyển sinh đợt 2.',
-    details: {
-      scopeBefore: 'Sub-campus (Cơ sở 1)',
-      scopeAfter: 'Campus (Hà Nội)',
-      changes: [
-        { module: 'Đào tạo & Học vụ', type: 'Cấp quyền', permission: 'Sửa (Update)' },
-        { module: 'Tài chính & Học phí', type: 'Cấp quyền', permission: 'Xem (Read)' }
-      ]
-    }
-  },
-  {
-    id: 2,
-    roleName: 'Khảo thí Tùy biến',
-    action: 'Tạo Vai trò mới',
-    operator: 'Super Admin A',
-    time: '2026-06-03 14:05:22',
-    reason: 'Tạo vai trò riêng biệt cho bộ phận khảo thí học kỳ hè.',
-    details: null
-  }
-]
 
 // API data
 const loading = ref(false)
@@ -196,24 +57,22 @@ const auditLogs = ref([])
 // Filtered Roles
 const filteredRoles = computed(() => {
   return roles.value.filter(role => {
-    return role.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-           role.code.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const name = role.name || role.tenVaiTro || ''
+    const code = role.code || role.maVaiTro || ''
+    return name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+           code.toLowerCase().includes(searchQuery.value.toLowerCase())
   })
 })
 
-// Load roles from API (with mock fallback)
+// Load roles from API
 async function loadRoles() {
   loading.value = true
   error.value = ''
   try {
     const data = await rbacApi.getRoles()
-    roles.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+    const list = data?.items ?? data?.data?.items ?? data?.data ?? data
+    roles.value = Array.isArray(list) ? list : []
   } catch (e) {
-    if (ENABLE_MOCK_API) {
-      roles.value = JSON.parse(JSON.stringify(mockRoles))
-      auditLogs.value = JSON.parse(JSON.stringify(mockAuditLogs))
-      return
-    }
     error.value = e?.message || 'Không thể tải danh sách vai trò.'
     roles.value = []
   } finally {
@@ -253,11 +112,7 @@ const auditReason = ref('')
 // Members Drawer State
 const isMembersDrawerOpen = ref(false)
 const selectedRoleForMembers = ref(null)
-const mockMembersList = [
-  { id: 101, name: 'Lê Hoàng Long', email: 'longlh@lms.edu.vn', campus: 'Hà Nội' },
-  { id: 102, name: 'Nguyễn Thị Minh', email: 'minhnt@lms.edu.vn', campus: 'Hà Nội' },
-  { id: 103, name: 'Trần Minh Quân', email: 'quantm@lms.edu.vn', campus: 'TP.HCM' }
-]
+const roleMembers = ref([])
 
 // Audit Drawer State
 const isAuditDrawerOpen = ref(false)
@@ -467,22 +322,15 @@ const openMembersDrawer = (role) => {
   isMembersDrawerOpen.value = true
 }
 
-const deleteRole = (role) => {
+const deleteRole = async (role) => {
   if (role.type === 'System') return
-  roles.value = roles.value.filter(r => r.id !== role.id)
-
-  // Add Audit Log
-  auditLogs.value.unshift({
-    id: auditLogs.value.length + 1,
-    roleName: role.name,
-    action: 'Xóa Vai trò',
-    operator: 'Super Admin A',
-    time: new Date().toLocaleString(),
-    reason: `Xóa vai trò tùy chỉnh ${role.name} khỏi hệ thống.`,
-    details: null
-  })
-
-  popup.success('Đã xóa', `Đã xóa vai trò: ${role.name}`)
+  try {
+    await rbacApi.deleteRole(role.id)
+    popup.success('Đã xóa', `Đã xóa vai trò: ${role.name}`)
+    await loadRoles()
+  } catch (e) {
+    popup.error('Lỗi xóa vai trò', e?.message || 'Không thể xóa vai trò này.')
+  }
 }
 
 const openAuditDrawer = (log) => {
@@ -641,7 +489,7 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr
-              v-for="log in mockAuditLogs"
+              v-for="log in auditLogs"
               :key="log.id"
               class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
             >
@@ -725,7 +573,7 @@ onMounted(() => {
             <label class="block text-xs font-bold text-label mb-1.5">Kế thừa quyền mẫu từ vai trò</label>
             <select v-model="newRole.baseTemplateId" class="glass-select w-full bg-white">
               <option :value="null">Bắt đầu từ đầu (Rỗng)</option>
-              <option v-for="r in mockRoles" :key="r.id" :value="r.id">{{ r.name }}</option>
+              <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.name }}</option>
             </select>
           </div>
 
@@ -1012,7 +860,7 @@ onMounted(() => {
 
           <div class="space-y-3">
             <div
-              v-for="member in mockMembersList"
+              v-for="member in roleMembers"
               :key="member.id"
               class="p-3 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors flex justify-between items-center bg-white"
             >

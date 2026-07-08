@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { HelpCircle, Clock, Target, CheckCircle } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -11,31 +11,7 @@ const props = defineProps({
 
 const showAnswers = ref(false)
 
-// Giả lập dữ liệu câu hỏi để preview vì content data của Quiz có thể chưa chứa details trong mock
-const mockQuestions = [
-  {
-    id: 1,
-    text: 'Đâu không phải là một đặc điểm của hệ thống LMS?',
-    type: 'single',
-    options: [
-      { id: 'A', text: 'Quản lý khóa học và lộ trình' },
-      { id: 'B', text: 'Chỉ dành cho việc học trực tiếp tại lớp', isCorrect: true },
-      { id: 'C', text: 'Theo dõi tiến độ học tập' },
-      { id: 'D', text: 'Tổ chức thi và đánh giá' }
-    ]
-  },
-  {
-    id: 2,
-    text: 'Vai trò của Hội đồng quản lý nội dung là gì?',
-    type: 'multiple',
-    options: [
-      { id: 'A', text: 'Xét duyệt nội dung môn học', isCorrect: true },
-      { id: 'B', text: 'Thu tiền học phí' },
-      { id: 'C', text: 'Biên soạn tài liệu và Quiz', isCorrect: true },
-      { id: 'D', text: 'Tuyển sinh' }
-    ]
-  }
-]
+const questions = computed(() => Array.isArray(props.content?.questions) ? props.content.questions : [])
 </script>
 
 <template>
@@ -69,7 +45,7 @@ const mockQuestions = [
           <p class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Số câu hỏi</p>
           <div class="flex items-center justify-center gap-1.5 text-slate-800 font-semibold">
             <HelpCircle class="w-4 h-4 text-indigo-500" />
-            <span>{{ content.questionCount || mockQuestions.length }} câu</span>
+            <span>{{ content.questionCount || questions.length }} câu</span>
           </div>
         </div>
         <div class="p-4 text-center">
@@ -108,7 +84,7 @@ const mockQuestions = [
     <!-- Questions Preview -->
     <div class="space-y-4">
       <div 
-        v-for="(q, index) in mockQuestions" 
+        v-for="(q, index) in questions"
         :key="q.id"
         class="bg-white border border-slate-200 rounded-xl p-5"
       >

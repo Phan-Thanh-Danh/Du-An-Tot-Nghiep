@@ -4,7 +4,8 @@
  * Giao diện cấu hình mô hình AI và lập lịch tác vụ tự động ngầm (Automation Jobs).
  * Tích hợp Bảng giám sát dịch vụ AI, AI Model Toggles, CRON Editor Drawer và Confirm Run Modal.
  */
-import { ref, computed } from 'vue'
+import { ref, computed , onMounted} from 'vue'
+import { apiRequest } from '@/services/apiClient'
 import {
   Brain,
   Cpu,
@@ -32,92 +33,10 @@ const connectionStats = ref({
 })
 
 // --- AI Models State ---
-const aiModels = ref([
-  {
-    id: 'AI-ANOMALY',
-    name: 'Phát hiện Đăng nhập Bất thường (Anomaly Detection)',
-    description: 'Sử dụng thuật toán Isolation Forest phân tích hành vi đăng nhập lạ dựa trên IP, thiết bị và địa lý. Điểm rủi ro > 0.70 sẽ phát cảnh báo.',
-    status: 'Enabled', // Enabled, Disabled, Failed, Running
-    apiService: 'OpenAI API',
-    lastAccuracy: '94.2%',
-    latency: '150ms'
-  },
-  {
-    id: 'AI-FAIL-RISK',
-    name: 'Dự đoán Nguy cơ Rớt môn (Fail Risk Prediction)',
-    description: 'Phân tích điểm số, số ngày vắng học, lịch sử nộp bài của sinh viên để dự báo nguy cơ trượt môn trước 3 tuần học phần kết thúc.',
-    status: 'Enabled',
-    apiService: 'Claude API',
-    lastAccuracy: '88.7%',
-    latency: '340ms'
-  },
-  {
-    id: 'AI-SENTIMENT',
-    name: 'Phân tích Cảm xúc Nhận xét (Sentiment Analysis)',
-    description: 'Quét nội dung feedback ẩn danh của sinh viên về giảng viên để phân loại Tích cực, Tiêu cực, hoặc Trung tính phục vụ khảo sát.',
-    status: 'Enabled',
-    apiService: 'Claude API',
-    lastAccuracy: '91.5%',
-    latency: '210ms'
-  },
-  {
-    id: 'AI-QGEN',
-    name: 'Tự động Sinh Câu hỏi Trắc nghiệm (Question Generation)',
-    description: 'Sinh câu hỏi và đáp án tự động từ tài liệu học tập của bài học (PDF, Slides) hỗ trợ giảng viên biên soạn ngân hàng đề thi.',
-    status: 'Disabled',
-    apiService: 'Claude API',
-    lastAccuracy: '82.4%',
-    latency: '450ms'
-  }
-])
+const aiModels = ref([])
 
 // --- Automation Jobs (Hangfire) State ---
-const automationJobs = ref([
-  {
-    id: 'JOB-ANOMALY-SCAN',
-    name: 'Quét Nhật ký Đăng nhập Bất thường',
-    cronExpression: '*/15 * * * *',
-    cronDescription: 'Chạy mỗi 15 phút một lần',
-    lastRun: '2026-06-22 13:00:00',
-    lastRunResult: 'Success', // Success, Failed
-    nextRun: '2026-06-22 13:15:00',
-    status: 'Scheduled', // Scheduled, Running, Paused
-    duration: '2.4s'
-  },
-  {
-    id: 'JOB-FAIL-RISK-CALC',
-    name: 'Tính toán Dự đoán Nguy cơ Trượt môn',
-    cronExpression: '0 2 * * *',
-    cronDescription: 'Chạy hàng ngày lúc 02:00 sáng',
-    lastRun: '2026-06-22 02:00:15',
-    lastRunResult: 'Success',
-    nextRun: '2026-06-23 02:00:00',
-    status: 'Scheduled',
-    duration: '185.2s'
-  },
-  {
-    id: 'JOB-SENTIMENT-ANALYZE',
-    name: 'Phân tích Cảm xúc Khảo sát Giảng viên',
-    cronExpression: '0 1 * * 0',
-    cronDescription: 'Chạy hàng tuần lúc 01:00 sáng Chủ nhật',
-    lastRun: '2026-06-21 01:00:35',
-    lastRunResult: 'Success',
-    nextRun: '2026-06-28 01:00:00',
-    status: 'Scheduled',
-    duration: '42.8s'
-  },
-  {
-    id: 'JOB-QGEN-BATCH',
-    name: 'Tiến trình Đồng bộ & Sinh Câu hỏi Trắc nghiệm',
-    cronExpression: '0 3 * * *',
-    cronDescription: 'Chạy hàng ngày lúc 03:00 sáng',
-    lastRun: '2026-06-22 03:00:10',
-    lastRunResult: 'Failed',
-    nextRun: '2026-06-23 03:00:00',
-    status: 'Paused',
-    duration: '0s'
-  }
-])
+const automationJobs = ref([])
 
 // --- State CRON Editor Drawer ---
 const isDrawerOpen = ref(false)
@@ -260,6 +179,27 @@ const testModelConnection = (model) => {
     triggerToast(`Kết nối thành công tới ${model.apiService}! Độ trễ: ${model.latency}`, 'success')
   }, 1200)
 }
+
+onMounted(async () => {
+  try {
+    const res = await apiRequest('/api/super-admin/ai/jobs')
+    if (Array.isArray(res)) {
+      automationJobs.value = res
+    }
+  } catch (error) {
+    console.error('Failed to load data for automationJobs', error)
+  }
+
+  try {
+    const res = await apiRequest('/api/super-admin/ai/models')
+    if (Array.isArray(res)) {
+      aiModels.value = res
+    }
+  } catch (error) {
+    console.error('Failed to load data for aiModels', error)
+  }
+})
+
 </script>
 
 <template>

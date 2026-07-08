@@ -1,16 +1,17 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 import { usePopupStore } from '@/stores/popup'
+import { studentApi } from '@/services/studentApi'
+import { unwrapApiData } from '@/services/apiClient'
 import {
-  LifeBuoy, Search, Filter, Plus, Send, Clock, 
+  LifeBuoy, Search, Plus, Send, Clock,
   CheckCircle2, XCircle, AlertCircle, Paperclip,
-  Star, ChevronRight, MessageSquare, Bot, FileText, X, ChevronDown
+  Star, MessageSquare, Bot, FileText, X, ChevronDown, Sparkles
 } from 'lucide-vue-next'
 
 const popupStore = usePopupStore()
 
-// Mock Data
 const categories = ['Kỹ thuật', 'Học vụ', 'Tài chính', 'Khác']
 const statuses = ['Open', 'In progress', 'Resolved', 'Closed']
 
@@ -21,106 +22,109 @@ const statusConfig = {
   'Closed': { label: 'Đã đóng', cls: 'badge-slate', icon: XCircle }
 }
 
-const mockTickets = ref([
-  {
-    id: 'TCK-001', title: 'Lỗi không vào được trang làm bài thi', category: 'Kỹ thuật', status: 'In progress',
-    assignedTo: 'Admin Nguyễn Văn A', createdAt: new Date(2026, 4, 20, 9, 30), deadline: new Date(2026, 4, 21, 9, 30),
-    messages: [
-      { sender: 'me', text: 'Chào Admin, em không thể bấm vào nút bắt đầu bài thi môn Cấu trúc dữ liệu.', time: '09:30 AM' },
-      { sender: 'agent', text: 'Chào em, hệ thống đã ghi nhận lỗi. Vui lòng thử xóa cache trình duyệt và thử lại nhé.', time: '09:45 AM' }
-    ],
-    timeline: [
-      { action: 'Ticket được tạo', time: '09:30 20/05/2026' },
-      { action: 'AI Phân loại: Kỹ thuật', time: '09:31 20/05/2026' },
-      { action: 'Gán cho: Nguyễn Văn A', time: '09:35 20/05/2026' }
-    ]
-  },
-  {
-    id: 'TCK-002', title: 'Xin gia hạn nộp học phí đợt 2', category: 'Tài chính', status: 'Resolved',
-    assignedTo: 'Phòng Tài vụ', createdAt: new Date(2026, 4, 15, 14, 0), deadline: new Date(2026, 4, 18, 14, 0),
-    messages: [
-      { sender: 'me', text: 'Dạ trường cho em hỏi em có thể nộp trễ học phí 5 ngày được không ạ?', time: '14:00 PM' },
-      { sender: 'agent', text: 'Chào em, yêu cầu của em đã được duyệt. Hệ thống đã cập nhật hạn nộp mới trên portal.', time: '08:30 AM (Hôm sau)' }
-    ],
-    timeline: [
-      { action: 'Ticket được tạo', time: '14:00 15/05/2026' },
-      { action: 'Đã giải quyết', time: '08:30 16/05/2026' }
-    ]
-  }
-])
-
 const faqs = [
   { question: 'Làm sao để đổi mật khẩu?', answer: 'Bạn vào mục Cá nhân > Đổi mật khẩu.' },
   { question: 'Lỗi không vào được trang thi', answer: 'Hãy thử xóa cache, dùng Chrome phiên bản mới nhất hoặc tắt các tiện ích chặn quảng cáo.' }
 ]
 
 // State
+const tickets = ref([])
+const loading = ref(false)
+const error = ref('')
 const searchQuery = ref('')
 const filterStatus = ref('Tất cả')
 const filterCategory = ref('Tất cả')
-
 const statusOpen = ref(false)
 const categoryOpen = ref(false)
-
 const activeTicket = ref(null)
 const chatInput = ref('')
-
-// Modals
 const createModalOpen = ref(false)
 useBodyScrollLock(createModalOpen)
 const ratingModalOpen = ref(false)
-const createStep = ref(1) // 1: Input & AI FAQ, 2: Form
-
-const newTicket = ref({
-  category: '',
-  title: '',
-  content: '',
-  file: null
-})
-
+const createStep = ref(1)
+const newTicket = ref({ category: 'Kỹ thuật', title: '', content: '', file: null })
 const aiSuggestions = ref([])
 const rating = ref(0)
 const ratingFeedback = ref('')
 
-// Computed
+const toDate = (v, fallback = new Date()) => v ? new Date(v) : fallback
+
+const mapTicket = (item) => ({
+  id: item.maYeuCau ?? item.maTicket ?? item.id ?? item.Id,
+  title: item.tieuDe ?? item.title ?? item.Title,
+  category: item.danhMuc ?? item.loaiYeuCau ?? item.category ?? item.Category,
+  status: item.trangThai ?? item.status ?? item.Status,
+  assignedTo: item.nguoiXuLy ?? item.assignedTo ?? item.AssignedTo ?? 'Đang chờ phân công...',
+  createdAt: toDate(item.ngayTao ?? item.createdAt ?? item.CreatedAt),
+  deadline: toDate(item.hanXuLy ?? item.deadline ?? item.Deadline, null),
+  messages: (item.tinNhan ?? item.messages ?? item.Messages ?? []).map(m => ({
+    sender: m.nguoiGui === 'sinh_vien' ? 'me' : m.nguoiGui === 'nhan_vien' ? 'agent' : m.sender ?? m.Sender ?? 'agent',
+    text: m.noiDung ?? m.text ?? m.Text,
+    time: m.thoiGian ?? m.time ?? m.Time
+  })),
+  timeline: (item.lichSu ?? item.timeline ?? item.Timeline ?? []).map(l => ({
+    action: l.hanhDong ?? l.action ?? l.Action,
+    time: l.thoiGian ?? l.time ?? l.Time
+  }))
+})
+
+const fetchTickets = async () => {
+  loading.value = true
+  error.value = ''
+  try {
+    const response = await studentApi.getSupportTickets()
+    const data = unwrapApiData(response) || []
+    tickets.value = (data.items ?? data.Items ?? data).map(mapTicket)
+  } catch (err) {
+    error.value = err?.message || 'Không thể tải danh sách ticket.'
+    tickets.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(fetchTickets)
+
 const filteredTickets = computed(() => {
-  return mockTickets.value.filter(t => {
+  return tickets.value.filter(t => {
     const matchStatus = filterStatus.value === 'Tất cả' || t.status === filterStatus.value
     const matchCat = filterCategory.value === 'Tất cả' || t.category === filterCategory.value
-    const matchQuery = t.title.toLowerCase().includes(searchQuery.value.toLowerCase()) || t.id.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const q = searchQuery.value.toLowerCase()
+    const matchQuery = t.title.toLowerCase().includes(q) || t.id.toLowerCase().includes(q)
     return matchStatus && matchCat && matchQuery
   })
 })
 
-// Actions
-const selectTicket = (t) => {
-  activeTicket.value = t
-  // Reset chat input
+const selectTicket = async (t) => {
+  try {
+    const response = await studentApi.getSupportTicketDetail(t.id)
+    const data = unwrapApiData(response) || {}
+    activeTicket.value = mapTicket(data)
+  } catch {
+    activeTicket.value = t
+  }
   chatInput.value = ''
 }
 
-const sendMessage = () => {
+const sendMessage = async () => {
   if (!chatInput.value.trim() || !activeTicket.value) return
-  if (activeTicket.value.status === 'Closed' || activeTicket.value.status === 'Resolved') return
+  if (['Closed', 'Resolved'].includes(activeTicket.value.status)) return
 
-  const now = new Date()
-  const timeStr = new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(now)
-  
-  activeTicket.value.messages.push({
-    sender: 'me',
-    text: chatInput.value,
-    time: timeStr
-  })
+  const text = chatInput.value
   chatInput.value = ''
 
-  // Mock reply
-  setTimeout(() => {
+  try {
+    const response = await studentApi.sendSupportTicketMessage(activeTicket.value.id, { content: text })
+    const data = unwrapApiData(response) || {}
     activeTicket.value.messages.push({
-      sender: 'agent',
-      text: 'Đây là tin nhắn tự động từ hệ thống. Quản trị viên sẽ phản hồi bạn sớm nhất.',
-      time: new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(new Date())
+      sender: 'me',
+      text: data.noiDung ?? data.text ?? text,
+      time: data.thoiGian ?? data.time ?? 'Vừa xong'
     })
-  }, 1500)
+  } catch (err) {
+    popupStore.error('Lỗi', err?.message || 'Không thể gửi tin nhắn.')
+    chatInput.value = text
+  }
 }
 
 const openCreateModal = () => {
@@ -131,44 +135,41 @@ const openCreateModal = () => {
 }
 
 const checkFAQ = () => {
-  // Simulate AI fetching FAQ based on title
   const query = newTicket.value.title.toLowerCase()
   aiSuggestions.value = faqs.filter(f => f.question.toLowerCase().includes(query) || query.includes('lỗi'))
-  if (aiSuggestions.value.length === 0) {
-    createStep.value = 2 // Move to form if no FAQ
+  if (aiSuggestions.value.length === 0) createStep.value = 2
+}
+
+const submitTicket = async () => {
+  if (!newTicket.value.title || !newTicket.value.content) return
+
+  try {
+    const response = await studentApi.createSupportTicket({
+      title: newTicket.value.title,
+      category: newTicket.value.category,
+      content: newTicket.value.content,
+    })
+    const data = unwrapApiData(response) || {}
+    const created = mapTicket(data)
+    tickets.value.unshift(created)
+    createModalOpen.value = false
+    selectTicket(created)
+  } catch (err) {
+    popupStore.error('Lỗi', err?.message || 'Không thể tạo ticket.')
   }
 }
 
-const submitTicket = () => {
-  const newId = `TCK-00${mockTickets.value.length + 1}`
-  const now = new Date()
-  const deadline = new Date(now.getTime() + 24 * 60 * 60 * 1000) // Default 24h
-  
-  mockTickets.value.unshift({
-    id: newId,
-    title: newTicket.value.title,
-    category: newTicket.value.category,
-    status: 'Open',
-    assignedTo: 'Đang chờ phân công...',
-    createdAt: now,
-    deadline: deadline,
-    messages: [
-      { sender: 'me', text: newTicket.value.content, time: 'Vừa xong' }
-    ],
-    timeline: [
-      { action: 'Ticket được tạo', time: 'Vừa xong' },
-      { action: 'AI Phân loại: ' + newTicket.value.category, time: 'Vừa xong' }
-    ]
-  })
-  
-  createModalOpen.value = false
-  selectTicket(mockTickets.value[0])
-}
-
-const closeTicket = () => {
+const closeTicket = async () => {
   if (!activeTicket.value) return
-  activeTicket.value.status = 'Closed'
-  ratingModalOpen.value = true
+  try {
+    await studentApi.closeSupportTicket(activeTicket.value.id)
+    activeTicket.value.status = 'Closed'
+    const idx = tickets.value.findIndex(t => t.id === activeTicket.value.id)
+    if (idx !== -1) tickets.value[idx].status = 'Closed'
+    ratingModalOpen.value = true
+  } catch (err) {
+    popupStore.error('Lỗi', err?.message || 'Không thể đóng ticket.')
+  }
 }
 
 const submitRating = () => {
@@ -178,9 +179,8 @@ const submitRating = () => {
   ratingFeedback.value = ''
 }
 
-const formatDate = (date) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date)
+const formatDate = (date) => date ? new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date) : ''
 const setRating = (val) => rating.value = val
-
 </script>
 
 <template>

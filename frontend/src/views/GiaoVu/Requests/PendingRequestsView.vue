@@ -8,7 +8,6 @@ import { usePopupStore } from '@/stores/popup'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const popupStore = usePopupStore()
 const loading = ref(true)
@@ -17,24 +16,14 @@ const requests = ref([])
 const searchQuery = ref('')
 const statusFilter = ref('')
 
-const DEMO_REQUESTS = [
-  { id: 'REQ-001', student: 'Nguyễn Văn A', studentCode: 'SV2024001', type: 'Giấy xác nhận SV', title: 'Xin cấp giấy xác nhận sinh viên', status: 'pending', date: '03/07/2026' },
-  { id: 'REQ-002', student: 'Trần Thị B', studentCode: 'SV2024002', type: 'Chuyển lớp học phần', title: 'Xin chuyển từ L01 sang L02 môn Java', status: 'under_review', date: '02/07/2026' },
-  { id: 'REQ-003', student: 'Lê Văn C', studentCode: 'SV2024003', type: 'Xin thi lại', title: 'Xin thi lại môn CT101', status: 'pending', date: '01/07/2026' },
-]
-
 async function loadData() {
   loading.value = true
   apiError.value = ''
   try {
     const res = await staffApi.getPendingRequests()
     requests.value = res?.items ?? res ?? []
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      requests.value = DEMO_REQUESTS
-    } else {
-      apiError.value = err?.message || 'Không thể tải danh sách đơn.'
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }

@@ -1,55 +1,71 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { 
   Search, Award, Clock, Download, Filter, 
-  ExternalLink, ChevronRight, User, TrendingUp, CheckCircle2, AlertTriangle, Calendar,
-  X, CheckCircle, XCircle, MinusCircle, FileText
+  ChevronRight, User, TrendingUp, CheckCircle2, AlertCircle, Calendar,
+  X, CheckCircle, XCircle, FileText, Loader2
 } from 'lucide-vue-next'
+import { teacherApi } from '@/services/teacherApi'
 
-const examResults = ref([
-  { id: 1, studentId: 'SV16001', name: 'Nguyễn Văn A', score: 9.5, timeSpent: '45 min', date: '25/05/2026', status: 'Excellent' },
-  { id: 2, studentId: 'SV16002', name: 'Trần Thị B', score: 7.2, timeSpent: '82 min', date: '25/05/2026', status: 'Good' },
-  { id: 3, studentId: 'SV16003', name: 'Lê Hoàng C', score: 8.8, timeSpent: '60 min', date: '25/05/2026', status: 'Very Good' },
-  { id: 4, studentId: 'SV16004', name: 'Phạm Minh D', score: 4.5, timeSpent: '89 min', date: '25/05/2026', status: 'Failed' },
-  { id: 5, studentId: 'SV16005', name: 'Hoàng Vũ E', score: 6.0, timeSpent: '75 min', date: '25/05/2026', status: 'Average' },
-])
-
+const loading = ref(false)
+const error = ref('')
+const examResults = ref([])
 const isDrawerOpen = ref(false)
 const selectedResult = ref(null)
 
-const mockQuestions = ref([
-  { id: 1, text: 'Câu 1: Khái niệm về RESTful API là gì?', isCorrect: true, userAns: 'A', correctAns: 'A' },
-  { id: 2, text: 'Câu 2: Phân biệt POST và PUT trong HTTP?', isCorrect: false, userAns: 'B', correctAns: 'C' },
-  { id: 3, text: 'Câu 3: Status code 404 có ý nghĩa gì?', isCorrect: true, userAns: 'D', correctAns: 'D' },
-  { id: 4, text: 'Câu 4: JWT (JSON Web Token) cấu tạo gồm mấy phần?', isCorrect: true, userAns: 'C', correctAns: 'C' },
-  { id: 5, text: 'Câu 5: Mục đích của hàm hash password (BCrypt) là gì?', isCorrect: false, userAns: 'A', correctAns: 'B' },
-])
+const examDetailQuestions = ref([])
 
-const openDrawer = (result) => {
+async function loadResults() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await teacherApi.getExamResults()
+    examResults.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+  } catch (e) {
+    error.value = e?.message || 'Không thể tải kết quả thi.'
+    examResults.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+const openDrawer = async (result) => {
   selectedResult.value = result
   isDrawerOpen.value = true
+  try {
+    const detailData = await teacherApi.getExamDetail(result.examId || result.maCaThi)
+    examDetailQuestions.value = detailData?.questions || detailData?.cauHoi || []
+  } catch {
+    examDetailQuestions.value = []
+  }
 }
 
 const closeDrawer = () => {
   isDrawerOpen.value = false
   setTimeout(() => {
     selectedResult.value = null
+    examDetailQuestions.value = []
   }, 300)
 }
 
 const averageScore = computed(() => {
-  const total = examResults.value.reduce((acc, curr) => acc + curr.score, 0)
+  if (!examResults.value.length) return '0.0'
+  const total = examResults.value.reduce((acc, curr) => acc + (curr.score || curr.diem || 0), 0)
   return (total / examResults.value.length).toFixed(1)
 })
 
 const passRate = computed(() => {
-  const passed = examResults.value.filter(res => res.score >= 5).length
+  if (!examResults.value.length) return '0'
+  const passed = examResults.value.filter(res => (res.score || res.diem || 0) >= 5).length
   return ((passed / examResults.value.length) * 100).toFixed(0)
 })
 
 const highestScore = computed(() => {
-  return Math.max(...examResults.value.map(res => res.score)).toFixed(1)
+  if (!examResults.value.length) return '0.0'
+  return Math.max(...examResults.value.map(res => res.score || res.diem || 0)).toFixed(1)
 })
+
+onMounted(() => { loadResults() })
 </script>
 
 <template>
@@ -128,8 +144,28 @@ const highestScore = computed(() => {
        </div>
     </div>
 
+    <!-- Loading -->
+    <div v-if="loading" class="flex flex-col items-center justify-center py-20">
+      <Loader2 :size="32" class="animate-spin text-muted mb-4" />
+      <p class="text-sm font-semibold text-muted">Đang tải kết quả thi...</p>
+    </div>
+
+    <!-- Error -->
+    <div v-else-if="error" class="flex flex-col items-center justify-center py-20">
+      <AlertCircle :size="48" class="text-rose-400 mb-4" />
+      <p class="text-sm font-semibold text-heading mb-2">Có lỗi xảy ra</p>
+      <p class="text-sm text-muted mb-4">{{ error }}</p>
+      <button class="btn-primary" @click="loadResults">Thử lại</button>
+    </div>
+
+    <!-- Empty -->
+    <div v-else-if="!examResults.length" class="flex flex-col items-center justify-center py-20">
+      <Award :size="48" class="text-placeholder mb-4" />
+      <p class="text-sm font-medium text-muted">Chưa có kết quả thi nào.</p>
+    </div>
+
     <!-- Results Table -->
-    <div class="rounded-2xl border border-card surface-card shadow-sm overflow-hidden animate-fade-in-up">
+    <div v-else class="rounded-2xl border border-card surface-card shadow-sm overflow-hidden animate-fade-in-up">
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
@@ -141,47 +177,47 @@ const highestScore = computed(() => {
               <th class="px-5 py-4 text-[11px] font-semibold uppercase tracking-widest text-muted text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-default">
-            <tr v-for="res in examResults" :key="res.id" class="group hover:bg-(--surface-input) transition-colors">
-              <td class="px-5 py-4">
-                <div class="flex items-center gap-4">
-                  <div class="h-10 w-10 rounded-2xl surface-solid border border-default flex items-center justify-center text-muted font-semibold text-sm group-hover:bg-(--color-info-bg) group-hover:text-(--color-info-text) group-hover:border-(--color-info-text)/20 transition-colors shadow-sm">
-                    {{ res.name.split(' ').pop()[0] }}
+            <tbody class="divide-y divide-default">
+              <tr v-for="res in examResults" :key="res.id || res.maKetQua" class="group hover:bg-(--surface-input) transition-colors">
+                <td class="px-5 py-4">
+                  <div class="flex items-center gap-4">
+                    <div class="h-10 w-10 rounded-2xl surface-solid border border-default flex items-center justify-center text-muted font-semibold text-sm group-hover:bg-(--color-info-bg) group-hover:text-(--color-info-text) group-hover:border-(--color-info-text)/20 transition-colors shadow-sm">
+                      {{ (res.hoTen || res.name || '').split(' ').pop()[0] || '?' }}
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-heading group-hover:text-link transition-colors">{{ res.hoTen || res.name }}</p>
+                      <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-0.5">{{ res.maSinhVien || res.studentId }}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p class="text-sm font-semibold text-heading group-hover:text-link transition-colors">{{ res.name }}</p>
-                    <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-0.5">{{ res.studentId }}</p>
+                </td>
+                <td class="px-4 py-4">
+                  <div class="flex items-center gap-3">
+                     <div :class="['h-10 w-10 rounded-xl flex items-center justify-center border', 
+                                  (res.diem || res.score) >= 8 ? 'bg-(--color-success-bg) border-(--color-success-text)/20 text-(--color-success-text)' :
+                                  (res.diem || res.score) >= 5 ? 'bg-(--color-info-bg) border-(--color-info-text)/20 text-(--color-info-text)' :
+                                  'bg-(--color-danger-bg) border-(--color-danger-text)/20 text-(--color-danger-text)']">
+                        <Award :size="18" />
+                     </div>
+                     <div class="flex flex-col">
+                         <span :class="['text-xl font-semibold',
+                                      (res.diem || res.score) >= 8 ? 'text-(--color-success-text)' :
+                                      (res.diem || res.score) >= 5 ? 'text-(--color-info-text)' :
+                                      'text-(--color-danger-text)']">{{ (res.diem || res.score || 0).toFixed(1) }}</span>
+                     </div>
                   </div>
-                </div>
-              </td>
-              <td class="px-4 py-4">
-                <div class="flex items-center gap-3">
-                   <div :class="['h-10 w-10 rounded-xl flex items-center justify-center border', 
-                                res.score >= 8 ? 'bg-(--color-success-bg) border-(--color-success-text)/20 text-(--color-success-text)' :
-                                res.score >= 5 ? 'bg-(--color-info-bg) border-(--color-info-text)/20 text-(--color-info-text)' :
-                                'bg-(--color-danger-bg) border-(--color-danger-text)/20 text-(--color-danger-text)']">
-                      <Award :size="18" />
+                </td>
+                <td class="px-4 py-4">
+                  <div class="flex items-center gap-2 text-sm font-semibold text-label surface-solid px-3 py-1.5 rounded-xl border border-default w-max">
+                     <Clock :size="14" class="text-link" />
+                     {{ res.thoiGianLam || res.timeSpent || '--' }}
+                  </div>
+                </td>
+                <td class="px-4 py-4">
+                   <div class="flex items-center gap-2 text-sm font-semibold text-label">
+                     <Calendar :size="14" class="text-muted" />
+                     {{ res.ngayThi || res.date || '--' }}
                    </div>
-                   <div class="flex flex-col">
-                       <span :class="['text-xl font-semibold',
-                                    res.score >= 8 ? 'text-(--color-success-text)' :
-                                    res.score >= 5 ? 'text-(--color-info-text)' :
-                                    'text-(--color-danger-text)']">{{ res.score.toFixed(1) }}</span>
-                   </div>
-                </div>
-              </td>
-              <td class="px-4 py-4">
-                <div class="flex items-center gap-2 text-sm font-semibold text-label surface-solid px-3 py-1.5 rounded-xl border border-default w-max">
-                   <Clock :size="14" class="text-link" />
-                   {{ res.timeSpent }}
-                </div>
-              </td>
-              <td class="px-4 py-4">
-                 <div class="flex items-center gap-2 text-sm font-semibold text-label">
-                   <Calendar :size="14" class="text-muted" />
-                   {{ res.date }}
-                 </div>
-              </td>
+                </td>
               <td class="px-5 py-4 text-right">
                 <button @click="openDrawer(res)" class="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-input surface-input text-[11px] font-semibold tracking-wider text-muted hover:text-link hover:border-(--border-input-focus) transition-colors shadow-sm">
                    Chi tiết <ChevronRight :size="14" class="ml-1" />
@@ -225,11 +261,11 @@ const highestScore = computed(() => {
         <div class="flex items-center justify-between p-4 border-b border-default surface-solid">
           <div class="flex items-center gap-4">
             <div class="h-10 w-10 rounded-2xl bg-(--color-info-bg) text-(--color-info-text) flex items-center justify-center font-semibold text-lg shadow-sm border border-(--color-info-text)/20">
-              {{ selectedResult.name.split(' ').pop()[0] }}
+              {{ (selectedResult.hoTen || selectedResult.name || '').split(' ').pop()[0] || '?' }}
             </div>
             <div>
-              <h2 class="text-lg font-semibold text-heading">{{ selectedResult.name }}</h2>
-              <p class="text-[11px] font-semibold text-muted uppercase tracking-widest mt-0.5">{{ selectedResult.studentId }}</p>
+              <h2 class="text-lg font-semibold text-heading">{{ selectedResult.hoTen || selectedResult.name }}</h2>
+              <p class="text-[11px] font-semibold text-muted uppercase tracking-widest mt-0.5">{{ selectedResult.maSinhVien || selectedResult.studentId }}</p>
             </div>
           </div>
           <button @click="closeDrawer" class="h-10 w-10 rounded-xl flex items-center justify-center surface-input border border-input text-muted hover:text-heading transition-colors shadow-sm">
@@ -240,23 +276,23 @@ const highestScore = computed(() => {
         <!-- Drawer Content -->
         <div class="flex-1 overflow-y-auto p-4 space-y-4 surface-solid scrollbar-hide">
           
-          <!-- Score Card -->
+           <!-- Score Card -->
           <div class="rounded-2xl surface-card border border-card p-4 shadow-sm flex items-center justify-between">
              <div>
                 <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Điểm tổng kết</p>
                 <div class="flex items-baseline gap-2">
                    <span :class="['text-3xl font-semibold tracking-tighter',
-                        selectedResult.score >= 8 ? 'text-(--color-success-text)' :
-                        selectedResult.score >= 5 ? 'text-(--color-info-text)' : 'text-(--color-danger-text)']">
-                      {{ selectedResult.score.toFixed(1) }}
+                        (selectedResult.diem || selectedResult.score) >= 8 ? 'text-(--color-success-text)' :
+                        (selectedResult.diem || selectedResult.score) >= 5 ? 'text-(--color-info-text)' : 'text-(--color-danger-text)']">
+                      {{ (selectedResult.diem || selectedResult.score || 0).toFixed(1) }}
                    </span>
                    <span class="text-sm font-medium text-muted">/ 10</span>
                 </div>
              </div>
               <div :class="['px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-widest border',
-                  selectedResult.score >= 8 ? 'bg-(--color-success-bg) text-(--color-success-text) border-(--color-success-text)/20' :
-                  selectedResult.score >= 5 ? 'bg-(--color-info-bg) text-(--color-info-text) border-(--color-info-text)/20' : 'bg-(--color-danger-bg) text-(--color-danger-text) border-(--color-danger-text)/20']">
-                {{ selectedResult.score >= 5 ? 'Đạt' : 'Không đạt' }}
+                  (selectedResult.diem || selectedResult.score) >= 8 ? 'bg-(--color-success-bg) text-(--color-success-text) border-(--color-success-text)/20' :
+                  (selectedResult.diem || selectedResult.score) >= 5 ? 'bg-(--color-info-bg) text-(--color-info-text) border-(--color-info-text)/20' : 'bg-(--color-danger-bg) text-(--color-danger-text) border-(--color-danger-text)/20']">
+                {{ (selectedResult.diem || selectedResult.score) >= 5 ? 'Đạt' : 'Không đạt' }}
              </div>
           </div>
 
@@ -267,14 +303,14 @@ const highestScore = computed(() => {
                    <Clock :size="16" class="text-link" />
                    <span class="text-[10px] font-semibold text-muted uppercase tracking-widest">Thời gian làm bài</span>
                 </div>
-                <p class="text-lg font-semibold text-heading">{{ selectedResult.timeSpent }}</p>
+                 <p class="text-lg font-semibold text-heading">{{ selectedResult.thoiGianLam || selectedResult.timeSpent || '--' }}</p>
              </div>
              <div class="rounded-2xl surface-card border border-card p-4 shadow-sm flex flex-col justify-center">
                 <div class="flex items-center gap-2 mb-2">
                    <FileText :size="16" class="text-link" />
                    <span class="text-[10px] font-semibold text-muted uppercase tracking-widest">Số câu đúng</span>
                 </div>
-                <p class="text-lg font-semibold text-heading">{{ Math.round((selectedResult.score / 10) * mockQuestions.length) }} / {{ mockQuestions.length }}</p>
+                 <p class="text-lg font-semibold text-heading">{{ examDetailQuestions.length ? Math.round(((selectedResult.diem || selectedResult.score || 0) / 10) * examDetailQuestions.length) + ' / ' + examDetailQuestions.length : '--' }}</p>
              </div>
           </div>
 
@@ -284,24 +320,24 @@ const highestScore = computed(() => {
                 <CheckCircle2 :size="16" class="text-(--color-success-text)" /> Chi tiết bài làm
              </h3>
              <div class="space-y-3">
-                <div v-for="q in mockQuestions" :key="q.id" class="rounded-2xl surface-card border border-card p-4 shadow-sm hover:border-(--border-input-focus) transition-colors">
-                   <div class="flex items-start gap-3">
-                      <div class="mt-0.5 shrink-0">
-                         <CheckCircle v-if="q.isCorrect" :size="18" class="text-(--color-success-text)" />
-                         <XCircle v-else :size="18" class="text-(--color-danger-text)" />
-                      </div>
-                      <div>
-                         <p class="text-sm font-semibold text-label leading-snug">{{ q.text }}</p>
-                         <div class="flex items-center gap-4 mt-3">
-                            <span class="text-[11px] font-semibold text-muted uppercase tracking-widest">Trả lời:
-                               <span :class="q.isCorrect ? 'text-(--color-success-text)' : 'text-(--color-danger-text)'">{{ q.userAns }}</span>
-                            </span>
-                            <span v-if="!q.isCorrect" class="text-[11px] font-semibold text-muted uppercase tracking-widest">Đáp án:
-                               <span class="text-(--color-success-text)">{{ q.correctAns }}</span>
-                            </span>
-                         </div>
-                      </div>
-                   </div>
+                 <div v-for="(q, idx) in examDetailQuestions" :key="q.id || idx" class="rounded-2xl surface-card border border-card p-4 shadow-sm hover:border-(--border-input-focus) transition-colors">
+                    <div class="flex items-start gap-3">
+                       <div class="mt-0.5 shrink-0">
+                          <CheckCircle v-if="q.dungSai || q.isCorrect" :size="18" class="text-(--color-success-text)" />
+                          <XCircle v-else :size="18" class="text-(--color-danger-text)" />
+                       </div>
+                       <div>
+                          <p class="text-sm font-semibold text-label leading-snug">{{ q.text || q.noiDung || 'Câu hỏi ' + (idx + 1) }}</p>
+                          <div class="flex items-center gap-4 mt-3">
+                             <span class="text-[11px] font-semibold text-muted uppercase tracking-widest">Trả lời:
+                                <span :class="q.dungSai || q.isCorrect ? 'text-(--color-success-text)' : 'text-(--color-danger-text)'">{{ q.traLoi || q.userAns || '--' }}</span>
+                             </span>
+                             <span v-if="!(q.dungSai || q.isCorrect)" class="text-[11px] font-semibold text-muted uppercase tracking-widest">Đáp án:
+                                <span class="text-(--color-success-text)">{{ q.dapAn || q.correctAns || '--' }}</span>
+                             </span>
+                          </div>
+                       </div>
+                    </div>
                 </div>
              </div>
           </div>

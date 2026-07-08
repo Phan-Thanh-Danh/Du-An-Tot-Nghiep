@@ -1,157 +1,120 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   CreditCard,
   ChevronDown,
-  QrCode,
   Smartphone,
   ChevronLeft,
-  X,
   Send,
   CheckCircle,
-  HelpCircle,
-  Copy
+  HelpCircle
 } from 'lucide-vue-next'
-import { childrenData, setActiveChildId } from '@/components/PhuHuynh/data/parentData.js'
+import { parentApi } from '@/services/parentApi'
 import { usePopupStore } from '@/stores/popup'
 
 const route = useRoute()
 const router = useRouter()
 const popupStore = usePopupStore()
 
-// Lấy studentId từ query URL hoặc local storage, mặc định là 1
-const activeChildId = ref(Number(route.query.studentId) || Number(localStorage.getItem('parent_active_student_id')) || 1)
+const activeChildId = ref(Number(route.query.studentId) || Number(localStorage.getItem('parent_active_student_id')) || null)
 const dropdownOpen = ref(false)
+const loading = ref(true)
+const error = ref('')
+const submitting = ref(false)
+
+const children = ref([])
+const tuitionData = ref(null)
 
 const currentChild = computed(() => {
-  return childrenData.find(c => c.id === activeChildId.value) || childrenData[0]
+  return children.value.find(c => c.id === activeChildId.value) || children.value[0] || null
 })
 
-// Chế độ nộp: 'all' (Toàn bộ số dư) hoặc 'custom' (Theo đợt)
+const totalDue = computed(() => tuitionData.value?.totalDue || 0)
+
 const paymentMode = ref('all')
 const customAmountInput = ref(0)
 
 const amountToPay = computed(() => {
   if (paymentMode.value === 'all') {
-    return currentChild.value.balanceTuition
+    return totalDue.value
   }
   return Number(customAmountInput.value) || 0
 })
 
-// Phương thức thanh toán: 'vietqr', 'napas', 'ewallet'
 const paymentMethod = ref('vietqr')
 
-// State modal QR Code
-const isQrModalOpen = ref(false)
-const transactionCode = ref('')
+async function loadData() {
+  loading.value = true
+  error.value = ''
+  try {
+    const childrenRes = await parentApi.getChildren()
+    children.value = childrenRes?.data || []
+    const validChild = children.value.find(child => child.id === activeChildId.value) || children.value[0]
+    if (!validChild) {
+      tuitionData.value = null
+      return
+    }
+    activeChildId.value = validChild.id
+    localStorage.setItem('parent_active_student_id', validChild.id)
+    const tuitionRes = await parentApi.getChildTuition(validChild.id)
+    tuitionData.value = tuitionRes?.data || null
+  } catch (err) {
+    error.value = err.message || 'Không thể tải dữ liệu.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadData)
 
 function selectChild(id) {
   activeChildId.value = id
-  setActiveChildId(id)
+  localStorage.setItem('parent_active_student_id', id)
   dropdownOpen.value = false
-  // Reset nợ
-  customAmountInput.value = currentChild.value.balanceTuition
   router.replace({ query: { studentId: id } })
+  loadData()
 }
 
-// Định dạng tiền tệ VND
 function formatCurrency(amount) {
+  if (amount == null) return '0 ₫'
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
 }
 
-// Nội dung chuyển khoản chuyển mã
-const qrTransferDescription = computed(() => {
-  const code = currentChild.value.studentId
-  const cleanedName = currentChild.value.name
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
-    .toUpperCase()
-    .replace(/\s+/g, '')
-  return `LMS PAY HP ${code} ${cleanedName}`
-})
-
-// Mở modal thanh toán
-function handlePayment() {
+async function handlePayment() {
   if (amountToPay.value <= 0) {
     popupStore.warning('Số tiền không hợp lệ', 'Vui lòng chọn số tiền lớn hơn 0 để thanh toán.')
     return
   }
-  if (amountToPay.value > currentChild.value.balanceTuition) {
-    popupStore.warning('Vượt quá công nợ', `Số tiền cần thanh toán không được vượt quá số dư nợ hiện tại: ${formatCurrency(currentChild.value.balanceTuition)}.`)
+  if (amountToPay.value > totalDue.value) {
+    popupStore.warning('Vượt quá công nợ', `Số tiền cần thanh toán không được vượt quá số dư nợ hiện tại: ${formatCurrency(totalDue.value)}.`)
     return
   }
 
-  // Tạo mã giao dịch ngẫu nhiên
-  transactionCode.value = 'TX' + Math.floor(100000 + Math.random() * 900000)
-  isQrModalOpen.value = true
-}
-
-// Giả lập thanh toán thành công, cập nhật số dư thực tế
-function simulatePaymentSuccess() {
-  const paid = amountToPay.value
-  const child = childrenData.find(c => c.id === activeChildId.value)
-  if (child) {
-    // Cập nhật công nợ học sinh
-    child.balanceTuition -= paid
-    child.paidTuition += paid
-
-    if (child.balanceTuition <= 0) {
-      child.balanceTuition = 0
-      child.isOverdue = false
-      // Cập nhật tất cả các khoản phí thành Đã nộp
-      child.feeItems.forEach(item => {
-        item.status = 'Đã nộp'
-      })
-    } else {
-      // Cập nhật các khoản phí một cách tương đối
-      let remainingToClear = paid
-      child.feeItems.forEach(item => {
-        if (item.status === 'Chưa nộp' && remainingToClear >= item.amount) {
-          item.status = 'Đã nộp'
-          remainingToClear -= item.amount
-        }
-      })
+  submitting.value = true
+  try {
+    if (!activeChildId.value) {
+      throw new Error('Chưa chọn học sinh để thanh toán.')
     }
-
-    // Thêm vào Lịch sử giao dịch
-    const methodText = paymentMethod.value === 'vietqr' ? 'Chuyển khoản VietQR' :
-                       paymentMethod.value === 'napas' ? 'Thẻ ngân hàng Napas' : 'Ví điện tử Momo'
-    
-    child.transactions.unshift({
-      code: transactionCode.value,
-      date: new Date().toLocaleDateString('vi-VN'),
-      amount: paid,
-      method: methodText,
-      status: 'Thành công'
+    const res = await parentApi.makePayment({
+      childId: activeChildId.value,
+      amount: amountToPay.value,
+      paymentMethod: paymentMethod.value
     })
-
-    // Thêm vào hóa đơn điện tử
-    const newInvoiceId = 'INV-2026-' + Math.floor(100 + Math.random() * 900)
-    child.invoices.unshift({
-      id: newInvoiceId,
-      transactionCode: transactionCode.value,
-      date: new Date().toLocaleDateString('vi-VN'),
-      amount: paid,
-      status: 'Đã phát hành'
-    })
+    if (res?.success !== false) {
+      popupStore.success(
+        'Thanh toán thành công',
+        `Hệ thống đã ghi nhận yêu cầu thanh toán số tiền ${formatCurrency(amountToPay.value)}.`
+      )
+      router.push({ path: '/parent/finance/transactions', query: { studentId: activeChildId.value } })
+    } else {
+      popupStore.error('Thanh toán thất bại', res?.message || 'Không thể xử lý thanh toán.')
+    }
+  } catch (err) {
+    popupStore.error('Thanh toán thất bại', err.message || 'Có lỗi xảy ra khi thanh toán.')
+  } finally {
+    submitting.value = false
   }
-
-  isQrModalOpen.value = false
-  popupStore.success(
-    'Thanh toán thành công',
-    `Hệ thống đã nhận được số tiền ${formatCurrency(paid)} đóng cho học sinh ${currentChild.value.name}. Công nợ đã được khấu trừ.`
-  )
-  
-  // Chuyển hướng về trang công nợ
-  router.push({ path: '/parent/finance/tuition', query: { studentId: activeChildId.value } })
-}
-
-function copyToClipboard(text) {
-  navigator.clipboard.writeText(text)
-  popupStore.info('Đã sao chép', 'Đã sao chép nội dung vào bộ nhớ tạm.')
 }
 
 function goBack() {
@@ -189,9 +152,9 @@ function goBack() {
         >
           <div class="flex items-center gap-2">
             <div class="h-5 w-5 flex items-center justify-center rounded-full bg-orange-600 text-[9px] font-bold text-white">
-              {{ currentChild.name.split(' ').pop().charAt(0) }}
+              {{ currentChild?.name?.split(' ').pop().charAt(0) }}
             </div>
-            <span>{{ currentChild.name }}</span>
+            <span>{{ currentChild?.name }}</span>
           </div>
           <ChevronDown :size="14" class="text-muted transition-transform" :class="dropdownOpen ? 'rotate-180' : ''" />
         </button>
@@ -209,7 +172,7 @@ function goBack() {
             class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-card p-1 shadow-(--lg-shadow-md)"
           >
             <button
-              v-for="child in childrenData"
+              v-for="child in children"
               :key="child.id"
               type="button"
               class="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-label transition hover:bg-(--surface-card-hover)"
@@ -222,11 +185,26 @@ function goBack() {
       </div>
     </div>
 
-    <div v-if="currentChild.balanceTuition === 0" class="lg-card-glass p-8 text-center flex flex-col items-center justify-center gap-3">
+    <!-- ── LOADING ── -->
+    <div v-if="loading" class="lg-card-glass p-8 text-center">
+      <div class="animate-spin h-8 w-8 border-2 border-orange-600 border-t-transparent rounded-full mx-auto mb-3"></div>
+      <p class="text-xs text-muted font-semibold">Đang tải dữ liệu...</p>
+    </div>
+
+    <!-- ── ERROR ── -->
+    <div v-else-if="error" class="lg-card-glass p-8 text-center">
+      <p class="text-sm font-bold text-heading mb-1">Đã xảy ra lỗi</p>
+      <p class="text-xs text-muted">{{ error }}</p>
+      <button @click="loadData" class="mt-4 px-4 py-2 border border-card rounded-xl text-xs font-bold text-label hover:text-orange-600 transition">
+        Thử lại
+      </button>
+    </div>
+
+    <div v-else-if="totalDue === 0" class="lg-card-glass p-8 text-center flex flex-col items-center justify-center gap-3">
       <CheckCircle :size="48" class="text-emerald-500" />
       <h3 class="text-sm font-bold text-heading">Không có công nợ cần thanh toán</h3>
       <p class="text-xs text-body max-w-md">
-        Học sinh <strong>{{ currentChild.name }}</strong> đã hoàn thành 100% học phí kì này. Xin chân thành cảm ơn phụ huynh!
+        Học sinh <strong>{{ currentChild?.name }}</strong> đã hoàn thành 100% học phí kì này. Xin chân thành cảm ơn phụ huynh!
       </p>
       <button @click="router.push('/parent/finance/tuition')" class="mt-2 px-4 py-2 border border-card rounded-xl text-xs font-bold text-label hover:text-orange-600 transition">
         Xem chi tiết công nợ
@@ -256,7 +234,7 @@ function goBack() {
                 <input type="radio" value="all" v-model="paymentMode" class="text-orange-600 focus:ring-orange-500" />
               </div>
               <span class="text-lg font-extrabold text-orange-600 mt-3 block">
-                {{ formatCurrency(currentChild.balanceTuition) }}
+                {{ formatCurrency(totalDue) }}
               </span>
             </label>
 
@@ -299,7 +277,7 @@ function goBack() {
             >
               <div class="flex items-center gap-3">
                 <span class="p-2 bg-orange-50 dark:bg-orange-950/20 text-orange-600 rounded-lg">
-                  <QrCode :size="16" />
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 7h3v3H7zM14 7h3v3h-3zM7 14h3v3H7zM14 14h3v3h-3z" /></svg>
                 </span>
                 <div>
                   <span class="text-xs font-bold text-heading block">Chuyển khoản nhanh VietQR (Khuyên dùng)</span>
@@ -357,15 +335,15 @@ function goBack() {
           <div class="space-y-2 text-xs">
             <div class="flex justify-between font-semibold">
               <span class="text-muted">Học sinh:</span>
-              <span class="text-heading">{{ currentChild.name }}</span>
+              <span class="text-heading">{{ currentChild?.name }}</span>
             </div>
             <div class="flex justify-between font-semibold">
               <span class="text-muted">Mã số học sinh:</span>
-              <span class="text-heading">{{ currentChild.studentId }}</span>
+              <span class="text-heading">{{ currentChild?.studentId }}</span>
             </div>
             <div class="flex justify-between font-semibold">
               <span class="text-muted">Lớp hành chính:</span>
-              <span class="text-heading">{{ currentChild.class }}</span>
+              <span class="text-heading">{{ currentChild?.class }}</span>
             </div>
             
             <div class="border-t border-card my-3"></div>
@@ -385,9 +363,10 @@ function goBack() {
 
           <button
             @click="handlePayment"
-            class="lg-button-primary bg-orange-600 hover:bg-orange-700 text-white w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-lg mt-4"
+            :disabled="submitting"
+            class="lg-button-primary bg-orange-600 hover:bg-orange-700 text-white w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-lg mt-4 disabled:opacity-60"
           >
-            <Send :size="13" /> Tiến hành thanh toán
+            <Send :size="13" :class="submitting ? 'animate-spin' : ''" /> {{ submitting ? 'Đang xử lý...' : 'Tiến hành thanh toán' }}
           </button>
         </div>
 
@@ -408,125 +387,6 @@ function goBack() {
         </div>
       </div>
 
-    </div>
-
-    <!-- ── MODAL QR CODE THANH TOÁN (VIETQR DYNAMIC) ── -->
-    <div v-if="isQrModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <!-- Overlay -->
-      <div @click="isQrModalOpen = false" class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" />
-
-      <!-- Modal Content -->
-      <div class="lg-modal w-full max-w-md relative z-10 flex flex-col rounded-2xl shadow-xl overflow-hidden">
-        
-        <!-- Header -->
-        <div class="flex items-center justify-between pb-3 border-b border-card">
-          <h2 class="text-sm font-bold text-heading flex items-center gap-2">
-            <QrCode :size="16" class="text-orange-600" />
-            Quét mã VietQR chuyển khoản
-          </h2>
-          <button @click="isQrModalOpen = false" class="text-muted hover:text-orange-600">
-            <X :size="16" />
-          </button>
-        </div>
-
-        <!-- QR Body -->
-        <div class="p-4 flex flex-col items-center text-center space-y-4">
-          
-          <!-- Dynamic QR code wrapper -->
-          <div class="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center">
-            <!-- Header VietQR logo simulation -->
-            <div class="flex items-center justify-between w-full max-w-[180px] pb-2 border-b border-slate-100 mb-2">
-              <span class="text-[9px] font-extrabold text-blue-700">Viet<span class="text-orange-600">QR</span></span>
-              <span class="text-[7px] font-bold text-slate-400">TPBank</span>
-            </div>
-
-            <!-- Fake QR Code SVG representation to look premium and authentic -->
-            <svg viewBox="0 0 100 100" class="h-44 w-44">
-              <!-- Grid corners -->
-              <rect x="5" y="5" width="20" height="20" fill="none" stroke="#000000" stroke-width="4" />
-              <rect x="9" y="9" width="12" height="12" fill="#000000" />
-              
-              <rect x="75" y="5" width="20" height="20" fill="none" stroke="#000000" stroke-width="4" />
-              <rect x="79" y="9" width="12" height="12" fill="#000000" />
-
-              <rect x="5" y="75" width="20" height="20" fill="none" stroke="#000000" stroke-width="4" />
-              <rect x="9" y="79" width="12" height="12" fill="#000000" />
-
-              <!-- Scattered mini dots in center -->
-              <rect x="40" y="10" width="8" height="8" fill="#ea580c" />
-              <rect x="55" y="20" width="10" height="4" fill="#000000" />
-              <rect x="40" y="35" width="12" height="6" fill="#000000" />
-              <rect x="65" y="35" width="6" height="15" fill="#ea580c" />
-              <rect x="15" y="45" width="20" height="4" fill="#000000" />
-              <rect x="45" y="50" width="15" height="15" fill="#000000" />
-              <rect x="70" y="60" width="10" height="10" fill="#000000" />
-              <rect x="30" y="70" width="12" height="8" fill="#ea580c" />
-              <rect x="80" y="75" width="5" height="5" fill="#000000" />
-              
-              <!-- Small center logo -->
-              <circle cx="50" cy="50" r="10" fill="#ffffff" />
-              <text x="50" y="53" text-anchor="middle" font-size="7" font-weight="bold" fill="#ea580c">LMS</text>
-            </svg>
-            
-            <p class="text-[9px] text-slate-500 font-medium mt-2">Mã QR tạo động chỉ dùng 1 lần</p>
-          </div>
-
-          <!-- Transfer details table -->
-          <div class="w-full text-xs space-y-2.5 text-left bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-card">
-            
-            <div class="flex items-center justify-between">
-              <span class="text-muted">Ngân hàng thụ hưởng:</span>
-              <span class="font-bold text-heading">TPBank (Ngân hàng Tiên Phong)</span>
-            </div>
-
-            <div class="flex items-center justify-between">
-              <span class="text-muted">Số tài khoản:</span>
-              <div class="flex items-center gap-1 font-bold text-heading">
-                <span>190204590201</span>
-                <button @click="copyToClipboard('190204590201')" class="text-orange-600 hover:text-orange-700">
-                  <Copy :size="12" />
-                </button>
-              </div>
-            </div>
-
-            <div class="flex items-center justify-between">
-              <span class="text-muted">Chủ tài khoản:</span>
-              <span class="font-bold text-heading">TRUONG DAI HOC LMS ACADEMIC</span>
-            </div>
-
-            <div class="flex items-center justify-between">
-              <span class="text-muted">Số tiền chuyển khoản:</span>
-              <span class="font-extrabold text-orange-600 text-sm">{{ formatCurrency(amountToPay) }}</span>
-            </div>
-
-            <div class="flex items-center justify-between border-t border-card pt-2 mt-2">
-              <span class="text-muted font-bold">Nội dung chuyển khoản:</span>
-              <div class="flex items-center gap-1 font-extrabold text-heading">
-                <span>{{ qrTransferDescription }}</span>
-                <button @click="copyToClipboard(qrTransferDescription)" class="text-orange-600 hover:text-orange-700">
-                  <Copy :size="12" />
-                </button>
-              </div>
-            </div>
-
-          </div>
-
-          <!-- Simulation Button -->
-          <div class="w-full pt-3 border-t border-card flex flex-col gap-2">
-            <button
-              @click="simulatePaymentSuccess"
-              class="lg-button-primary bg-emerald-600 hover:bg-emerald-700 text-white w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition"
-            >
-              <CheckCircle :size="13" /> Giả lập chuyển khoản thành công
-            </button>
-            <p class="text-[9px] text-muted">
-              * Nhấn nút giả lập phía trên để hoàn tất giao dịch tự động của phụ huynh.
-            </p>
-          </div>
-
-        </div>
-
-      </div>
     </div>
 
   </div>

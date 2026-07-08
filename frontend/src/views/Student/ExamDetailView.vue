@@ -6,7 +6,6 @@ import {
   MonitorCheck, Wifi, Puzzle, Server, Bot, CheckCircle2, AlertTriangle,
   XCircle, Loader2, PlayCircle, ChevronRight, Info, Lock, BookOpen
 } from 'lucide-vue-next'
-import { mockExamDetail } from '@/data/studentData.mock.js'
 import { runPreflightSecurityChecks } from '@/utils/examSecurity'
 import { examApi } from '@/services/examApi'
 
@@ -23,8 +22,8 @@ const blockedReasons = ref([])
 const exam = ref(null)
 const loadError = ref('')
 
-const examId = computed(() => String(route.params.examId || exam.value.id || mockExamDetail.id))
-const currentExam = computed(() => exam.value || mockExamDetail)
+const examId = computed(() => String(route.params.examId || (exam.value?.id ?? '')))
+const currentExam = computed(() => exam.value || {})
 const riskScore = computed(() => preflightResult.value?.riskScore || 0)
 const riskLevel = computed(() => preflightResult.value?.riskLevel || 'safe')
 const realExamStatus = ref(null)
@@ -45,12 +44,12 @@ onMounted(async () => {
         sessionStorage.setItem(`exam_ca_thi_${examId.value}`, String(myExam.maCaThi))
       }
     } else {
-      exam.value = mockExamDetail
+      exam.value = null
       loadError.value = 'Không tìm thấy bài thi trong dữ liệu CSDL.'
     }
   } catch (err) {
     console.error('Lỗi khi lấy trạng thái ca thi:', err)
-    exam.value = mockExamDetail
+    exam.value = null
     loadError.value = err?.message || 'Không tải được thông tin bài thi từ CSDL.'
   }
 })
@@ -143,7 +142,7 @@ function normalizeApiExam(item) {
     teacher: valueOf('teacher', 'Teacher') || 'Giám thị theo ca thi',
     accessStatus: valueOf('accessStatus', 'AccessStatus') || '',
     trangThaiDuThi: valueOf('trangThaiDuThi', 'TrangThaiDuThi'),
-    rules: mockExamDetail.rules,
+    rules: valueOf('rules', 'Rules') || [],
   }
 }
 
@@ -177,8 +176,8 @@ function formatDate(iso) {
           </div>
           <div>
             <div class="hero-eyebrow">{{ currentExam.subjectCode }} · {{ currentExam.classCode }}</div>
-            <h1 class="hero-title">{{ currentExam.title || mockExamDetail.title }}</h1>
-            <p class="hero-subject">{{ currentExam.subject || mockExamDetail.subject }}</p>
+            <h1 class="hero-title">{{ currentExam.title || 'Bài thi' }}</h1>
+            <p class="hero-subject">{{ currentExam.subject || '' }}</p>
           </div>
         </div>
 
@@ -187,28 +186,28 @@ function formatDate(iso) {
           <div class="stat-item">
             <Clock :size="18" class="stat-icon blue" />
             <div>
-              <div class="stat-value">{{ currentExam.durationMinutes || mockExamDetail.durationMinutes }} phút</div>
+              <div class="stat-value">{{ currentExam.durationMinutes || '—' }} phút</div>
               <div class="stat-label">Thời lượng</div>
             </div>
           </div>
           <div class="stat-item">
             <ListChecks :size="18" class="stat-icon violet" />
             <div>
-              <div class="stat-value">{{ currentExam.totalQuestions || mockExamDetail.totalQuestions }} câu</div>
+              <div class="stat-value">{{ currentExam.totalQuestions || '—' }} câu</div>
               <div class="stat-label">Câu hỏi</div>
             </div>
           </div>
           <div class="stat-item">
             <Lock :size="18" class="stat-icon amber" />
             <div>
-              <div class="stat-value">{{ currentExam.maxAttempts || mockExamDetail.maxAttempts }} lần</div>
+              <div class="stat-value">{{ currentExam.maxAttempts || '—' }} lần</div>
               <div class="stat-label">Số lần làm</div>
             </div>
           </div>
           <div class="stat-item">
             <BookOpen :size="18" class="stat-icon teal" />
             <div>
-              <div class="stat-value">{{ currentExam.examTypeLabel || mockExamDetail.examTypeLabel }}</div>
+              <div class="stat-value">{{ currentExam.examTypeLabel || '—' }}</div>
               <div class="stat-label">Hình thức</div>
             </div>
           </div>
@@ -218,15 +217,15 @@ function formatDate(iso) {
         <div class="time-card">
           <div class="time-row">
             <span class="time-label">Mở ca thi:</span>
-            <span class="time-value">{{ formatDate(currentExam.openAt || mockExamDetail.openAt) }}</span>
+            <span class="time-value">{{ currentExam.openAt ? formatDate(currentExam.openAt) : '—' }}</span>
           </div>
           <div class="time-row">
             <span class="time-label">Đóng ca thi:</span>
-            <span class="time-value">{{ formatDate(currentExam.closeAt || mockExamDetail.closeAt) }}</span>
+            <span class="time-value">{{ currentExam.closeAt ? formatDate(currentExam.closeAt) : '—' }}</span>
           </div>
           <div class="time-row">
             <span class="time-label">Giảng viên:</span>
-            <span class="time-value">{{ currentExam.teacher || mockExamDetail.teacher }}</span>
+            <span class="time-value">{{ currentExam.teacher || '—' }}</span>
           </div>
         </div>
 
@@ -234,7 +233,7 @@ function formatDate(iso) {
         <div class="rules-section">
           <div class="section-title"><ShieldAlert :size="16" class="text-amber" /> Quy định bài thi</div>
           <ul class="rules-list">
-            <li v-for="(rule, i) in (currentExam.rules || mockExamDetail.rules)" :key="i" class="rule-item">
+            <li v-for="(rule, i) in (currentExam.rules || [])" :key="i" class="rule-item">
               <span class="rule-num">{{ i+1 }}</span>
               {{ rule }}
             </li>

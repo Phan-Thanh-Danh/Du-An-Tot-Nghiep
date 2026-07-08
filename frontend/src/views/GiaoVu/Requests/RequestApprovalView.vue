@@ -9,7 +9,6 @@ import { usePopupStore } from '@/stores/popup'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const popupStore = usePopupStore()
 const route = useRoute()
@@ -22,29 +21,14 @@ const approving = ref(false)
 const rejecting = ref(false)
 const request = ref(null)
 
-const DEMO_REQUEST = {
-  id: requestId,
-  student: 'Nguyễn Văn Nam',
-  studentCode: 'SV2024001',
-  type: 'Chuyển lớp học phần',
-  title: 'Xin chuyển từ L01 sang L02 môn Java',
-  content: 'Do lịch làm việc part-time bị thay đổi, em xin phép được chuyển sang lớp L02 học vào tối thứ 4 để đảm bảo việc học tập.',
-  status: 'under_review',
-  date: '03/07/2026',
-}
-
 async function loadData() {
   loading.value = true
   apiError.value = ''
   try {
     const res = await staffApi.getRequestById(requestId)
     request.value = res ?? null
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      request.value = { ...DEMO_REQUEST }
-    } else {
-      apiError.value = err?.message || 'Không thể tải thông tin đơn.'
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }

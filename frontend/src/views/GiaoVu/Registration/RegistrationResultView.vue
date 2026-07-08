@@ -3,16 +3,9 @@ import { ref, onMounted } from 'vue'
 import { Search, Loader2, AlertCircle, FileText } from 'lucide-vue-next'
 import { registrationApi } from '@/services/registrationApi'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(true)
 const apiError = ref('')
 const results = ref([])
-
-const DEMO_RESULTS = [
-  { id: 'R-001', studentCode: 'SE150212', studentName: 'Trần Bình', course: 'Lập trình Java', group: 'Nhóm 1', credits: 3, status: 'registered', registeredAt: '2026-01-16 09:15' },
-  { id: 'R-002', studentCode: 'SS140023', studentName: 'Lê Hoàng', course: 'Cấu trúc dữ liệu', group: 'Nhóm 2', credits: 3, status: 'registered', registeredAt: '2026-01-16 10:30' },
-  { id: 'R-003', studentCode: 'SA160199', studentName: 'Phạm Thu', course: 'Hệ quản trị CSDL', group: 'Nhóm 1', credits: 3, status: 'waitlisted', registeredAt: '2026-01-17 08:00' },
-]
 
 async function loadData() {
   loading.value = true
@@ -31,12 +24,8 @@ async function loadData() {
         registeredAt: item.registeredAt?.replace?.('T', ' ').slice(0, 16) || item.registeredAt,
       }))
       : []
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      results.value = DEMO_RESULTS
-    } else {
-      apiError.value = err?.message || 'Không thể tải kết quả đăng ký.'
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }

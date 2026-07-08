@@ -108,10 +108,10 @@ export const giaoVuMenuGroups = [
   },
 ]
 
-export const mockStaff = {
+export const staffUserFallback = {
   name: 'Trần Thị Giáo Vụ',
-  staffId: 'GVU2024001',
-  email: 'giaovu@lms.edu.vn',
+  staffId: '',
+  email: '',
   avatar: null,
   initials: 'TV',
   department: 'Phòng Đào tạo',

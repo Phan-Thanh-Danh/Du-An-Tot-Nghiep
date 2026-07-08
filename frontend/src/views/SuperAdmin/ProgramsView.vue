@@ -103,7 +103,7 @@ const globalSubjects = ref([
   { code: 'PRN211', name: 'Lập trình ứng dụng với C#', credits: 3 }
 ])
 
-// Chi tiết danh sách môn học của từng chương trình (mock theo ProgramId)
+// Chi tiết danh sách môn học của từng chương trình theo ProgramId
 const programSubjects = ref({
   1: [
     { code: 'PRF192', name: 'Nhập môn lập trình (C)', credits: 3, semester: 1, prerequisites: [] },

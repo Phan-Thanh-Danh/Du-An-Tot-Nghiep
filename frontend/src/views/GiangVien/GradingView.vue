@@ -29,17 +29,8 @@ import TableShell from '@/components/ui/TableShell.vue'
 const popupStore = usePopupStore()
 const route = useRoute()
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref('')
-
-const DEMO_SUBMISSIONS = [
-  { id: 1, studentId: 'SV16001', name: 'Nguyễn Văn A', file: 'Asm1_NVA.zip', time: '18/05/2026 09:30', score: 8.5, comment: 'Tốt, giao diện sạch sẽ.', status: 'Graded' },
-  { id: 2, studentId: 'SV16002', name: 'Trần Thị B', file: 'Asm1_Final_B.rar', time: '19/05/2026 14:15', score: null, comment: '', status: 'Pending' },
-  { id: 3, studentId: 'SV16003', name: 'Lê Hoàng C', file: 'LHC_Asm1.pdf', time: '19/05/2026 23:55', score: 9.0, comment: 'Xuất sắc!', status: 'Graded' },
-  { id: 4, studentId: 'SV16004', name: 'Phạm Minh D', file: 'asm_java_d.zip', time: '20/05/2026 01:20', score: null, comment: '', status: 'Late' },
-]
-
 const submissions = ref([])
 
 const selectedSubmission = ref(null)
@@ -131,10 +122,6 @@ async function loadSubmissions() {
       deadline: '',
     }
   } catch (e) {
-    if (ENABLE_MOCK_API) {
-      submissions.value = JSON.parse(JSON.stringify(DEMO_SUBMISSIONS))
-      return
-    }
     error.value = e?.message || 'Không thể tải bài nộp.'
     submissions.value = []
   } finally {
@@ -144,14 +131,6 @@ async function loadSubmissions() {
 
 async function saveGrade() {
   if (selectedSubmission.value) {
-    if (ENABLE_MOCK_API) {
-      const idx = submissions.value.findIndex(s => s.id === selectedSubmission.value.id)
-      if (idx !== -1) submissions.value[idx] = { ...selectedSubmission.value, status: 'Graded' }
-      selectedSubmission.value = null
-      popupStore.success('Đã lưu điểm', 'Điểm và nhận xét đã được lưu thành công.')
-      return
-    }
-
     try {
       const response = await teacherApi.gradeSubmission(selectedSubmission.value.id, {
         score: selectedSubmission.value.score,

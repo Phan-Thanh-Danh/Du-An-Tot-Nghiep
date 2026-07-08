@@ -12,7 +12,6 @@ const popupStore = usePopupStore()
 const loading = ref(true); const error = ref(null); const rows = ref([])
 const searchQuery = ref(''); const filterVaiTro = ref(''); const filterKichHoat = ref('')
 const groupByMode = ref('role') // 'role' | 'class' (for students) | 'none'
-const accountMutationActionsEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const showFormModal = ref(false); const formMode = ref('create'); const editingId = ref(null); const submitting = ref(false)
 const formData = ref({ tenDangNhap: '', hoTen: '', email: '', vaiTro: 'GiangVien', donVi: '', kichHoat: true })
@@ -103,11 +102,11 @@ const defaults = () => ({ tenDangNhap: '', hoTen: '', email: '', vaiTro: 'GiangV
 function resetForm() { formData.value = defaults(); formErrors.value = {} }
 function showDevelopingFeature() { popupStore.info('Chức năng đang phát triển', 'Chức năng đang phát triển') }
 function openCreate() {
-  if (!accountMutationActionsEnabled) { showDevelopingFeature(); return }
+  
   resetForm(); formMode.value = 'create'; editingId.value = null; showFormModal.value = true
 }
 function openEdit(r) {
-  if (!accountMutationActionsEnabled) { showDevelopingFeature(); return }
+  
   formMode.value = 'edit'; editingId.value = r.maTaiKhoan
   formData.value = { tenDangNhap: r.tenDangNhap, hoTen: r.hoTen, email: r.email, vaiTro: r.vaiTro, donVi: r.donVi || '', kichHoat: r.kichHoat }
   formErrors.value = {}; showFormModal.value = true
@@ -138,7 +137,7 @@ async function toggleActive(r) {
   catch { popupStore.error('Lỗi', 'Không thể thay đổi trạng thái.') }
 }
 async function resetPwd(r) {
-  if (!accountMutationActionsEnabled) { showDevelopingFeature(); return }
+  
   try { await accountApi.resetPassword(r.maTaiKhoan); popupStore.success('Đặt lại mật khẩu', 'Đặt lại mật khẩu thành công.') }
   catch { popupStore.error('Lỗi', 'Không thể đặt lại mật khẩu.') }
 }

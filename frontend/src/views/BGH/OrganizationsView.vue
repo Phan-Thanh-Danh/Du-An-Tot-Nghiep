@@ -230,9 +230,7 @@ import {
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { bghApi } from '@/services/bghApi'
-import { unwrapApiData } from '@/services/apiClient'
-
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
+import { apiRequest, unwrapApiData } from '@/services/apiClient'
 
 const authStore = useAuthStore()
 const canEdit = computed(() => authStore.hasRole('SuperAdmin'))
@@ -277,69 +275,19 @@ const getParentName = (parentId) => {
   return parent ? parent.name : null
 }
 
-let nextId = 100
-
-const mockDonViData = [
-  { id: 1, parentId: null, name: 'FPT Polytechnic Hồ Chí Minh', organizationLevel: 'Cơ sở', isActive: true, createdAt: '01/01/2019 00:00', updatedAt: '01/06/2026 08:00' },
-  { id: 2, parentId: null, name: 'FPT Polytechnic Đà Nẵng', organizationLevel: 'Cơ sở', isActive: true, createdAt: '01/01/2020 00:00', updatedAt: '01/06/2026 08:00' },
-  { id: 3, parentId: null, name: 'FPT Polytechnic Cần Thơ', organizationLevel: 'Cơ sở', isActive: true, createdAt: '01/01/2021 00:00', updatedAt: '01/06/2026 08:00' },
-  { id: 4, parentId: 1, name: 'Khoa Công nghệ thông tin', organizationLevel: 'Khoa', isActive: true, createdAt: '01/01/2020 00:00', updatedAt: null },
-  { id: 5, parentId: 1, name: 'Khoa Kinh tế', organizationLevel: 'Khoa', isActive: true, createdAt: '01/01/2020 00:00', updatedAt: null },
-  { id: 6, parentId: 1, name: 'Khoa Thiết kế', organizationLevel: 'Khoa', isActive: true, createdAt: '01/01/2020 00:00', updatedAt: null },
-  { id: 7, parentId: 1, name: 'Phòng Đào tạo', organizationLevel: 'Phòng ban', isActive: true, createdAt: '01/01/2019 00:00', updatedAt: null },
-  { id: 8, parentId: 1, name: 'Phòng Công tác sinh viên', organizationLevel: 'Phòng ban', isActive: true, createdAt: '01/01/2019 00:00', updatedAt: null },
-  { id: 9, parentId: 2, name: 'Khoa Công nghệ thông tin', organizationLevel: 'Khoa', isActive: true, createdAt: '01/01/2020 00:00', updatedAt: null },
-  { id: 10, parentId: 2, name: 'Phòng Đào tạo', organizationLevel: 'Phòng ban', isActive: true, createdAt: '01/01/2020 00:00', updatedAt: null },
-  { id: 11, parentId: 3, name: 'Khoa Công nghệ thông tin', organizationLevel: 'Khoa', isActive: true, createdAt: '01/01/2021 00:00', updatedAt: null },
-  { id: 12, parentId: 3, name: 'Phòng Đào tạo', organizationLevel: 'Phòng ban', isActive: true, createdAt: '01/01/2021 00:00', updatedAt: null },
-  { id: 13, parentId: 4, name: 'Bộ môn Lập trình', organizationLevel: 'Bộ môn', isActive: true, createdAt: '01/01/2020 00:00', updatedAt: null },
-  { id: 14, parentId: 4, name: 'Bộ môn Cơ sở dữ liệu', organizationLevel: 'Bộ môn', isActive: true, createdAt: '01/01/2020 00:00', updatedAt: null },
-  { id: 15, parentId: 4, name: 'Bộ môn Mạng máy tính', organizationLevel: 'Bộ môn', isActive: true, createdAt: '01/01/2021 00:00', updatedAt: null },
-  { id: 16, parentId: 5, name: 'Bộ môn Kế toán', organizationLevel: 'Bộ môn', isActive: true, createdAt: '01/01/2021 00:00', updatedAt: null },
-  { id: 17, parentId: 5, name: 'Bộ môn Tài chính ngân hàng', organizationLevel: 'Bộ môn', isActive: true, createdAt: '01/01/2021 00:00', updatedAt: null },
-  { id: 18, parentId: 6, name: 'Bộ môn Đồ họa', organizationLevel: 'Bộ môn', isActive: true, createdAt: '01/01/2022 00:00', updatedAt: null },
-  { id: 19, parentId: 6, name: 'Bộ môn Truyền thông', organizationLevel: 'Bộ môn', isActive: true, createdAt: '01/01/2022 00:00', updatedAt: null },
-  { id: 20, parentId: 1, name: 'Trung tâm Tuyển sinh', organizationLevel: 'Trung tâm', isActive: true, createdAt: '01/06/2023 00:00', updatedAt: null },
-]
-
-const buildTreeFromFlat = (flat) => {
-  const map = new Map()
-  flat.forEach(item => {
-    map.set(item.id, { ...item, children: [] })
-  })
-  const roots = []
-  flat.forEach(item => {
-    const node = map.get(item.id)
-    if (item.parentId && map.has(item.parentId)) {
-      map.get(item.parentId).children.push(node)
-    } else {
-      roots.push(node)
-    }
-  })
-  return roots
-}
-
-const reloadFlat = () => {
-  flatOrganizationsList.value = mockDonViData.map(d => ({ id: d.id, name: d.name, parentId: d.parentId }))
-}
-
 const loadData = async () => {
   loadingTree.value = true
   errorTree.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getOrganizationsTree()
-      treeData.value = unwrapApiData(res) || []
-      reloadFlat()
-      return
-    }
-    setTimeout(() => {
-      reloadFlat()
-      treeData.value = buildTreeFromFlat(mockDonViData)
-      loadingTree.value = false
-    }, 200)
+    const [treeRes, flatRes] = await Promise.all([
+      bghApi.getOrganizationsTree(),
+      bghApi.getOrganizations()
+    ])
+    treeData.value = unwrapApiData(treeRes) || []
+    flatOrganizationsList.value = (unwrapApiData(flatRes) || []).map(o => ({ id: o.id, name: o.name, parentId: o.parentId }))
   } catch (e) {
     errorTree.value = e?.message || 'Lỗi tải dữ liệu cơ cấu tổ chức'
+  } finally {
     loadingTree.value = false
   }
 }
@@ -383,9 +331,6 @@ const toggleExpand = (nodeId) => {
 }
 
 const selectNode = (node) => {
-  if (formMode.value !== 'view') {
-        if (import.meta.env.VITE_MOCK === 'true' /* confirm('Bạn có thay đổi chưa lưu. Bạn có chắc muốn chuyển?') */) return
-  }
   selectedNode.value = node
   formMode.value = 'view'
   apiError.value = ''
@@ -435,7 +380,7 @@ const cancelEdit = () => {
   }
 }
 
-const saveOrganization = () => {
+const saveOrganization = async () => {
   if (!formData.value.name || !formData.value.organizationLevel) {
     apiError.value = 'Vui lòng điền đầy đủ tên và cấp đơn vị.'
     return
@@ -443,63 +388,57 @@ const saveOrganization = () => {
   saving.value = true
   apiError.value = ''
 
-  setTimeout(() => {
+  try {
     if (formMode.value === 'create') {
-      const newOrg = {
-        id: nextId++,
-        parentId: formData.value.parentId,
-        name: formData.value.name,
-        organizationLevel: formData.value.organizationLevel,
-        isActive: true,
-        createdAt: new Date().toLocaleString('vi-VN'),
-        updatedAt: null
-      }
-      mockDonViData.push(newOrg)
+      await apiRequest('/api/organizations', {
+        method: 'POST',
+        body: JSON.stringify({
+          parentId: formData.value.parentId,
+          name: formData.value.name,
+          organizationLevel: formData.value.organizationLevel,
+        })
+      })
     } else {
-      const org = mockDonViData.find(d => d.id === formData.value.id)
-      if (org) {
-        org.name = formData.value.name
-        org.organizationLevel = formData.value.organizationLevel
-        if (org.parentId !== formData.value.parentId) {
-          org.parentId = formData.value.parentId
-        }
-        org.updatedAt = new Date().toLocaleString('vi-VN')
-      }
+      await apiRequest(`/api/organizations/${formData.value.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          parentId: formData.value.parentId,
+          name: formData.value.name,
+          organizationLevel: formData.value.organizationLevel,
+        })
+      })
     }
-
-    reloadFlat()
-    treeData.value = buildTreeFromFlat(mockDonViData)
     formMode.value = 'view'
-    saving.value = false
-
+    await loadData()
     if (formData.value.id) {
-      const updated = mockDonViData.find(x => x.id === formData.value.id)
-      if (updated) {
-        const flat = flattenTreeData(treeData.value)
-        const found = flat.find(f => f.id === updated.id)
-        if (found) selectNode(found)
-      }
+      const flat = flattenTreeData(treeData.value)
+      const found = flat.find(f => f.id === formData.value.id)
+      if (found) selectNode(found)
     } else {
       selectedNode.value = null
       formData.value = { id: null, parentId: null, name: '', organizationLevel: '' }
     }
-  }, 300)
+  } catch (e) {
+    apiError.value = e?.message || 'Lỗi lưu dữ liệu'
+  } finally {
+    saving.value = false
+  }
 }
 
-const confirmDelete = (node) => {
-    if (import.meta.env.VITE_MOCK === 'true' /* confirm(`Bạn có chắc chắn muốn xóa đơn vị "${node.name}" không? Thao tác này có thể ảnh hưởng đến dữ liệu trực thuộc.`) */) return
+const confirmDelete = async (node) => {
   saving.value = true
   apiError.value = ''
 
-  setTimeout(() => {
-    const idx = mockDonViData.findIndex(d => d.id === node.id)
-    if (idx !== -1) mockDonViData.splice(idx, 1)
-    reloadFlat()
-    treeData.value = buildTreeFromFlat(mockDonViData)
+  try {
+    await apiRequest(`/api/organizations/${node.id}`, { method: 'DELETE' })
+    await loadData()
     selectedNode.value = null
     formData.value = { id: null, parentId: null, name: '', organizationLevel: '' }
+  } catch (e) {
+    apiError.value = e?.message || 'Lỗi xóa đơn vị'
+  } finally {
     saving.value = false
-  }, 300)
+  }
 }
 
 onMounted(() => {

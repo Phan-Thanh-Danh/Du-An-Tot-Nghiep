@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import {
+  AlertCircle,
   BookOpen,
   CheckCircle2,
   Eye,
@@ -20,37 +21,14 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
+import { teacherApi } from '@/services/teacherApi'
 
-// ── Mock Data ──────────────────────────────────────────────
-const chapters = ref([
-  {
-    id: 1,
-    title: 'Chương 1: Giới thiệu về Web Development',
-    lessons: [
-      { id: 101, title: 'Tổng quan về Frontend & Backend', type: 'text', duration: '10 min', status: 'published' },
-      { id: 102, title: 'Cài đặt môi trường phát triển', type: 'video', duration: '15 min', status: 'published' },
-    ],
-  },
-  {
-    id: 2,
-    title: 'Chương 2: HTML5 & Semantic Web',
-    lessons: [
-      { id: 201, title: 'Cấu trúc tài liệu HTML5', type: 'video', duration: '20 min', status: 'published' },
-      { id: 202, title: 'Các thẻ Semantic phổ biến', type: 'pdf', duration: '5 pages', status: 'draft' },
-      { id: 203, title: 'Bài trắc nghiệm cuối chương', type: 'quiz', duration: '10 câu', status: 'draft' },
-    ],
-  },
-])
+const loading = ref(false)
+const error = ref('')
+const chapters = ref([])
 
-const activeLessonId = ref(101)
-const activeLesson = ref({
-  id: 101,
-  title: 'Tổng quan về Frontend & Backend',
-  type: 'text',
-  content: 'Học về sự khác biệt giữa giao diện người dùng và xử lý phía máy chủ...',
-  videoUrl: '',
-  pdfUrl: '',
-})
+const activeLessonId = ref(null)
+const activeLesson = ref(null)
 
 const lessonStats = computed(() => {
   const allLessons = chapters.value.flatMap(chapter => chapter.lessons)
@@ -62,10 +40,37 @@ const lessonStats = computed(() => {
   ]
 })
 
-// ── Actions ───────────────────────────────────────────────
+async function loadLessons() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await teacherApi.getTeacherClassDetail() // expects courseId param; use first course
+    const items = data?.chuongHoc ?? data?.chapters ?? []
+    chapters.value = items.map(ch => ({
+      id: ch.id,
+      title: ch.tieuDe ?? ch.title ?? '',
+      lessons: (ch.baiHoc ?? ch.lessons ?? []).map(l => ({
+        id: l.id,
+        title: l.tieuDe ?? l.title ?? '',
+        type: l.loai ?? l.type ?? 'text',
+        duration: l.thoiLuong ?? l.duration ?? '',
+        status: l.trangThai === 'published' || l.status === 'published' ? 'published' : 'draft',
+      })),
+    }))
+    if (chapters.value.length && chapters.value[0].lessons.length) {
+      selectLesson(chapters.value[0].lessons[0])
+    }
+  } catch (e) {
+    error.value = e?.message || 'Không thể tải bài học.'
+    chapters.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
 function selectLesson(lesson) {
   activeLessonId.value = lesson.id
-  activeLesson.value = { ...lesson, content: 'Nội dung chi tiết của ' + lesson.title }
+  activeLesson.value = { ...lesson, content: lesson.content || 'Nội dung chi tiết của ' + lesson.title }
 }
 
 function addChapter() {
@@ -92,6 +97,8 @@ function addLesson(chapterId) {
   }
 }
 
+onMounted(() => { loadLessons() })
+
 function getLessonIcon(type) {
   if (type === 'video') return FileVideo
   if (type === 'pdf') return FileText
@@ -116,7 +123,16 @@ function getStatusVariant(status) {
 </script>
 
 <template>
-  <div class="lessons-page">
+  <div v-if="loading" class="flex items-center justify-center min-h-[300px]">
+    <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+    <span class="ml-3 text-muted text-sm">Đang tải bài học...</span>
+  </div>
+  <div v-else-if="error" class="flex flex-col items-center justify-center min-h-[300px] gap-4">
+    <AlertCircle :size="40" class="text-rose-400" />
+    <p class="text-rose-600 font-semibold">{{ error }}</p>
+    <GlassButton size="sm" variant="secondary" @click="loadLessons">Thử lại</GlassButton>
+  </div>
+  <div v-else class="lessons-page">
     <GlassPanel variant="soft" density="compact" class="page-header" :clip="false">
       <div class="header-main">
         <span class="header-icon">

@@ -14,8 +14,6 @@ import {
   Building2, RefreshCw
 } from 'lucide-vue-next'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
-
 const popupStore = usePopupStore()
 
 const statusConfig = {
@@ -163,19 +161,11 @@ async function loadTuitionData() {
 }
 
 async function loadInvoices() {
-  try {
-    rawInvoices.value = await getStudentTuitionInvoices()
-  } catch {
-    if (!ENABLE_MOCK_API) throw e
-  }
+  rawInvoices.value = await getStudentTuitionInvoices()
 }
 
 async function loadTransactions() {
-  try {
-    rawTransactions.value = await getStudentTuitionTransactions()
-  } catch {
-    if (!ENABLE_MOCK_API) throw e
-  }
+  rawTransactions.value = await getStudentTuitionTransactions()
 }
 
 function mapInvoice(invoice) {

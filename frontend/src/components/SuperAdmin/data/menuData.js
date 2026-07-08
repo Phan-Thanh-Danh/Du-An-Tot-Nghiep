@@ -316,60 +316,13 @@ export const superAdminMenuGroups = [
   },
 ]
 
-// ── Mock admin user ────────────────────────────────────────
-export const mockAdminUser = {
+export const adminUserFallback = {
   name: 'Super Admin',
-  email: 'admin@edu.vn',
+  email: '',
   avatar: null,
   initials: 'SA',
   role: 'Super Admin',
   campus: 'Toàn hệ thống',
 }
 
-// ── Mock notifications cho admin ───────────────────────────
-export const mockAdminNotifications = [
-  {
-    id: 1,
-    type: 'security',
-    title: 'Phát hiện đăng nhập bất thường',
-    description: '3 lần đăng nhập thất bại từ IP 192.168.1.50',
-    time: '5 phút trước',
-    read: false,
-    icon: 'ShieldAlert',
-    color: 'red',
-    link: '/super-admin/security/alerts',
-  },
-  {
-    id: 2,
-    type: 'system',
-    title: 'Backup hoàn tất',
-    description: 'Sao lưu tự động lúc 02:00 đã thành công',
-    time: '6 giờ trước',
-    read: false,
-    icon: 'CheckCircle',
-    color: 'green',
-    link: '/super-admin/system/modules',
-  },
-  {
-    id: 3,
-    type: 'user',
-    title: 'Tài khoản mới cần duyệt',
-    description: '12 tài khoản giảng viên đang chờ kích hoạt',
-    time: 'Hôm nay',
-    read: true,
-    icon: 'UserPlus',
-    color: 'blue',
-    link: '/super-admin/users',
-  },
-  {
-    id: 4,
-    type: 'system',
-    title: 'Cập nhật hệ thống khả dụng',
-    description: 'Phiên bản v2.4.1 đã sẵn sàng để cài đặt',
-    time: '2 ngày trước',
-    read: true,
-    icon: 'RefreshCw',
-    color: 'yellow',
-    link: '/super-admin/system/ai-automation',
-  },
-]
+export const adminNotifications = []

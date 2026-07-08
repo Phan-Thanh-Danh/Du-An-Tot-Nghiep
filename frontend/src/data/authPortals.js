@@ -1,46 +1,3 @@
-export const SHOW_DEMO_ACCOUNTS =
-  import.meta.env.DEV ||
-  import.meta.env.VITE_ENABLE_DEMO_ACCOUNTS === 'true'
-
-export const DEMO_ACCOUNTS = Object.freeze({
-  student: {
-    usernameOrEmail: 'student01@edulms.local',
-    password: '123456',
-  },
-  student_gd: {
-    usernameOrEmail: 'student.tkdh01@lms.local',
-    password: '123456',
-  },
-  student_mkt: {
-    usernameOrEmail: 'student.mkt01@lms.local',
-    password: '123456',
-  },
-  teacher: {
-    usernameOrEmail: 'lecturer01@edulms.local',
-    password: '123456',
-  },
-  staff: {
-    usernameOrEmail: 'daotao@edulms.local',
-    password: '123456',
-  },
-  bgh: {
-    usernameOrEmail: 'bgh@edulms.local',
-    password: '123456',
-  },
-  admin: {
-    usernameOrEmail: 'admin@edulms.local',
-    password: '123456',
-  },
-  content_council: {
-    usernameOrEmail: 'hoidong.quanly.noidung@lms.local',
-    password: '123456',
-  },
-})
-
-export function getDemoCredentials(alias) {
-  return DEMO_ACCOUNTS[String(alias || '').trim().toLowerCase()] || null
-}
-
 export const AUTH_PORTALS = Object.freeze({
   student: {
     slug: 'student',
@@ -64,7 +21,6 @@ export const AUTH_PORTALS = Object.freeze({
     group: 'primary',
     homeRoute: '/student/dashboard',
     enabled: true,
-    demoUsername: 'student',
   },
   teacher: {
     slug: 'teacher',
@@ -87,7 +43,6 @@ export const AUTH_PORTALS = Object.freeze({
     group: 'primary',
     homeRoute: '/teacher/dashboard',
     enabled: true,
-    demoUsername: 'teacher',
   },
   parent: {
     slug: 'parent',
@@ -109,9 +64,7 @@ export const AUTH_PORTALS = Object.freeze({
     audience: 'Dành cho phụ huynh sinh viên',
     group: 'primary',
     homeRoute: '/parent/dashboard',
-    // Parent portal disabled by default until parent APIs are implemented.
-    enabled: import.meta.env.VITE_ENABLE_PARENT_PORTAL === 'true',
-    demoUsername: 'parent',
+    enabled: true,
   },
   staff: {
     slug: 'staff',
@@ -134,7 +87,6 @@ export const AUTH_PORTALS = Object.freeze({
     group: 'staff',
     homeRoute: '/staff/dashboard',
     enabled: true,
-    demoUsername: 'staff',
   },
   bgh: {
     slug: 'bgh',
@@ -158,7 +110,6 @@ export const AUTH_PORTALS = Object.freeze({
     group: 'staff',
     homeRoute: '/bgh/dashboard',
     enabled: true,
-    demoUsername: 'bgh',
   },
   'content-council': {
     slug: 'content-council',
@@ -176,7 +127,6 @@ export const AUTH_PORTALS = Object.freeze({
     group: 'staff',
     homeRoute: '/content-council/subjects',
     enabled: true,
-    demoUsername: 'content_council',
   },
   finance: {
     slug: 'finance',
@@ -219,7 +169,6 @@ export const AUTH_PORTALS = Object.freeze({
     group: 'staff',
     homeRoute: '/super-admin/dashboard',
     enabled: true,
-    demoUsername: 'admin',
   },
 })
 

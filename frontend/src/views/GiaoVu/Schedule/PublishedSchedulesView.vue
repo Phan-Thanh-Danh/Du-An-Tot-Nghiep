@@ -28,22 +28,10 @@ import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { staffApi } from '@/services/staffApi'
 import { usePopupStore } from '@/stores/popup'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const popupStore = usePopupStore()
 const loading = ref(true)
 const apiError = ref('')
-
-const DEMO_PUBLISHED_SCHEDULES = [
-  { id: 1, subject: 'Lập trình Java', class: 'SE1601', teacher: 'Nguyễn Văn A', room: 'P.302', time: '07:30 - 10:30', day: 'Thứ 2', date: '02/06/2026', status: 'published' },
-  { id: 2, subject: 'Cấu trúc dữ liệu', class: 'SE1602', teacher: 'Trần Thị B', room: 'P.105', time: '13:30 - 15:30', day: 'Thứ 3', date: '03/06/2026', status: 'published' },
-  { id: 3, subject: 'Hệ quản trị CSDL', class: 'SE1603', teacher: 'Lê Văn C', room: 'Lab 2', time: '08:30 - 11:30', day: 'Thứ 4', date: '04/06/2026', status: 'published' },
-  { id: 4, subject: 'Mạng máy tính', class: 'SE1604', teacher: 'Phạm Minh Tuấn', room: 'P.401', time: '13:30 - 16:30', day: 'Thứ 5', date: '05/06/2026', status: 'published' },
-  { id: 5, subject: 'Lập trình Web', class: 'SE1605', teacher: 'Nguyễn Văn A', room: 'Lab 1', time: '07:30 - 10:30', day: 'Thứ 6', date: '06/06/2026', status: 'published' },
-  { id: 6, subject: 'Cơ sở dữ liệu', class: 'SE1601', teacher: 'Trần Thị B', room: 'P.302', time: '09:30 - 11:00', day: 'Thứ 7', date: '07/06/2026', status: 'published' },
-  { id: 7, subject: 'Toán rời rạc', class: 'SE1602', teacher: 'Lê Văn C', room: 'P.201', time: '14:00 - 16:30', day: 'Thứ 2', date: '09/06/2026', status: 'published' },
-  { id: 8, subject: 'Kỹ thuật phần mềm', class: 'SE1603', teacher: 'Nguyễn Văn A', room: 'P.201', time: '10:00 - 11:30', day: 'Thứ 3', date: '10/06/2026', status: 'published' },
-]
 
 const publishedSchedules = ref([])
 
@@ -53,12 +41,8 @@ async function loadData() {
   try {
     const res = await staffApi.getSchedules({ trangThai: 'published' })
     publishedSchedules.value = res?.items ?? res ?? []
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      publishedSchedules.value = DEMO_PUBLISHED_SCHEDULES
-    } else {
-      apiError.value = err?.message || 'Không thể tải danh sách.'
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }

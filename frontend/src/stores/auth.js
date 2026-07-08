@@ -1,8 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { authApi } from '@/services/apiClient'
-import { getDemoCredentials } from '@/data/authPortals'
-import { syncActiveStudentData } from '@/data/studentData.mock.js'
 
 const ACCESS_TOKEN_KEY = 'lms_access_token'
 const REFRESH_TOKEN_KEY = 'lms_refresh_token'
@@ -128,12 +126,6 @@ export const useAuthStore = defineStore('auth', () => {
 
     clearStoredSession()
 
-    // Đồng bộ lại dữ liệu sinh viên mock về mặc định
-    try {
-      syncActiveStudentData()
-    } catch (e) {
-      console.error('Failed to sync student mock data on logout:', e)
-    }
   }
 
   async function login(credentials, options = {}) {
@@ -142,21 +134,13 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const identity = credentials.usernameOrEmail || credentials.email || ''
-      const demoCredentials = getDemoCredentials(identity)
-      const loginPayload = demoCredentials || {
+      const loginPayload = {
         usernameOrEmail: identity,
         password: credentials.password,
       }
 
       const response = await authApi.login(loginPayload)
       persistSession(response, Boolean(options.remember))
-
-      // Đồng bộ dữ liệu sinh viên mock
-      try {
-        syncActiveStudentData()
-      } catch (e) {
-        console.error('Failed to sync student mock data:', e)
-      }
 
       return response
     } catch (err) {

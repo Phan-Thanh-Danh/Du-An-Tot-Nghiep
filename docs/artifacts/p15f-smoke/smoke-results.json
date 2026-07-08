@@ -1,0 +1,181 @@
+[
+  {
+    "role": "SuperAdmin",
+    "email": "superadmin@lms.local",
+    "login": {
+      "ok": true,
+      "status": 200,
+      "role": "SuperAdmin",
+      "fullName": "Super Admin"
+    },
+    "route": "/super-admin/dashboard",
+    "title": "Vite App",
+    "result": "PASS",
+    "screenshot": "C:\\Users\\lapto\\OneDrive\\Desktop\\Du-An-Tot-Nghiep\\docs\\artifacts\\p15f-smoke/superadmin-dashboard.png",
+    "console": [
+      {
+        "type": "error",
+        "text": "Failed to load SuperAdmin dashboard data TypeError: apiClient.get is not a function\n    at https://localhost:5173/src/views/SuperAdmin/Dashboard.vue:83:38\n    at https://localhost:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-CJdF6Oq_.js?v=d0aebd3c:3782:87\n    at callWithErrorHandling (https://localhost:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-CJdF6Oq_.js?v=d0aebd3c:1873:17)\n    at callWithAsyncErrorHandling (https://localhost:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-CJdF6Oq_.js?v=d0aebd3c:1880:15)\n    at hook.__weh.hook.__weh (https://localhost:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-CJdF6Oq_.js?v=d0aebd3c:3771:16)\n    at flushPostFlushCbs (https://localhost:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-CJdF6Oq_.js?v=d0aebd3c:2005:25)\n    at flushJobs (https://localhost:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-CJdF6Oq_.js?v=d0aebd3c:2033:3)"
+      }
+    ],
+    "exceptions": [],
+    "network": []
+  },
+  {
+    "role": "Staff",
+    "email": "p12test_staff01@lms.local",
+    "login": {
+      "ok": false,
+      "status": 401,
+      "data": {
+        "success": false,
+        "message": "Tên đăng nhập hoặc mật khẩu không đúng",
+        "errors": [
+          "Tên đăng nhập hoặc mật khẩu không đúng"
+        ],
+        "traceId": "0HNMSV8D1DKNB:00000001",
+        "statusCode": 401
+      }
+    },
+    "route": "/staff/dashboard",
+    "result": "LOGIN_FAIL",
+    "console": [
+      {
+        "type": "error",
+        "text": "Failed to load SuperAdmin dashboard data TypeError: apiClient.get is not a function\n    at https://localhost:5173/src/views/SuperAdmin/Dashboard.vue:83:38\n    at https://localhost:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-CJdF6Oq_.js?v=d0aebd3c:3782:87\n    at callWithErrorHandling (https://localhost:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-CJdF6Oq_.js?v=d0aebd3c:1873:17)\n    at callWithAsyncErrorHandling (https://localhost:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-CJdF6Oq_.js?v=d0aebd3c:1880:15)\n    at hook.__weh.hook.__weh (https://localhost:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-CJdF6Oq_.js?v=d0aebd3c:3771:16)\n    at flushPostFlushCbs (https://localhost:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-CJdF6Oq_.js?v=d0aebd3c:2005:25)\n    at flushJobs (https://localhost:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-CJdF6Oq_.js?v=d0aebd3c:2033:3)"
+      }
+    ],
+    "exceptions": [],
+    "network": [
+      {
+        "url": "https://localhost:5173/api/auth/login",
+        "status": 401
+      }
+    ]
+  },
+  {
+    "role": "Teacher",
+    "email": "p12test_teacher01@lms.local",
+    "login": {
+      "ok": false,
+      "status": 401,
+      "data": {
+        "success": false,
+        "message": "Tên đăng nhập hoặc mật khẩu không đúng",
+        "errors": [
+          "Tên đăng nhập hoặc mật khẩu không đúng"
+        ],
+        "traceId": "0HNMSV8D1DKNC:00000001",
+        "statusCode": 401
+      }
+    },
+    "route": "/teacher/dashboard",
+    "result": "LOGIN_FAIL",
+    "console": [],
+    "exceptions": [],
+    "network": [
+      {
+        "url": "https://localhost:5173/api/auth/login",
+        "status": 401
+      }
+    ]
+  },
+  {
+    "role": "Student",
+    "email": "p12test_student011@lms.local",
+    "login": {
+      "ok": false,
+      "status": 401,
+      "data": {
+        "success": false,
+        "message": "Tên đăng nhập hoặc mật khẩu không đúng",
+        "errors": [
+          "Tên đăng nhập hoặc mật khẩu không đúng"
+        ],
+        "traceId": "0HNMSV8D1DKND:00000001",
+        "statusCode": 401
+      }
+    },
+    "route": "/student/dashboard",
+    "result": "LOGIN_FAIL",
+    "console": [],
+    "exceptions": [],
+    "network": [
+      {
+        "url": "https://localhost:5173/api/auth/login",
+        "status": 401
+      }
+    ]
+  },
+  {
+    "role": "BGH",
+    "email": "p15test_bgh01@lms.local",
+    "login": {
+      "ok": false,
+      "status": 401,
+      "data": {
+        "success": false,
+        "message": "Tên đăng nhập hoặc mật khẩu không đúng",
+        "errors": [
+          "Tên đăng nhập hoặc mật khẩu không đúng"
+        ],
+        "traceId": "0HNMSV8D1DKNE:00000001",
+        "statusCode": 401
+      }
+    },
+    "route": "/bgh/dashboard",
+    "result": "LOGIN_FAIL",
+    "console": [],
+    "exceptions": [],
+    "network": [
+      {
+        "url": "https://localhost:5173/api/auth/login",
+        "status": 401
+      }
+    ]
+  },
+  {
+    "role": "Parent",
+    "email": "p15test_parent01@lms.local",
+    "login": {
+      "ok": false,
+      "status": 401,
+      "data": {
+        "success": false,
+        "message": "Tên đăng nhập hoặc mật khẩu không đúng",
+        "errors": [
+          "Tên đăng nhập hoặc mật khẩu không đúng"
+        ],
+        "traceId": "0HNMSV8D1DKNF:00000001",
+        "statusCode": 401
+      }
+    },
+    "route": "/parent/dashboard",
+    "result": "LOGIN_FAIL",
+    "console": [],
+    "exceptions": [],
+    "network": [
+      {
+        "url": "https://localhost:5173/api/auth/login",
+        "status": 401
+      }
+    ]
+  },
+  {
+    "role": "ContentCouncil",
+    "email": "hoidong.quanly.noidung@lms.local",
+    "login": {
+      "ok": true,
+      "status": 200,
+      "role": "HoiDongQuanLyNoiDung",
+      "fullName": "Hội Đồng Quản Lý Nội Dung"
+    },
+    "route": "/content-council/subjects",
+    "title": "Vite App",
+    "result": "PASS",
+    "screenshot": "C:\\Users\\lapto\\OneDrive\\Desktop\\Du-An-Tot-Nghiep\\docs\\artifacts\\p15f-smoke/contentcouncil-dashboard.png",
+    "console": [],
+    "exceptions": [],
+    "network": []
+  }
+]

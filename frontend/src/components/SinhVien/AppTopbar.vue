@@ -3,7 +3,6 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { Search, Bell, Menu } from 'lucide-vue-next'
 import * as LucideIcons from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
-import { mockUser, mockNotifications } from './data/menuData.js'
 import { useAuthStore } from '@/stores/auth'
 import { useRecentFavoritesStore } from '@/stores/recentFavorites'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
@@ -27,7 +26,7 @@ const notifMenuRef = ref(null)
 // Panels state
 const notifOpen = ref(false)
 const userMenuOpen = ref(false)
-const unreadCount = computed(() => mockNotifications.filter((n) => !n.read).length)
+const unreadCount = computed(() => 0)
 
 const pageTitleMap = {
   '/student/dashboard': { title: 'Dashboard', subtitle: 'Tổng quan học tập hôm nay' },
@@ -257,7 +256,7 @@ const notifAllLink = computed(() => {
           </div>
           <div class="max-h-[320px] divide-y divide-(--border-card) overflow-y-auto" role="none">
             <div
-              v-for="notif in mockNotifications"
+              v-for="notif in []"
               :key="notif.id"
               class="flex cursor-pointer gap-3 px-3 py-2.5 transition-all hover:bg-(--surface-card-hover) active:scale-[0.98]"
               role="menuitem"
@@ -295,10 +294,10 @@ const notifAllLink = computed(() => {
       >
         <div class="app-topbar-avatar flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-[10px] font-bold text-inverse shadow-sm ring-1 ring-(--border-card)">
           <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" class="h-full w-full object-cover" />
-          <span v-else>{{ authStore.initials || mockUser.initials }}</span>
+          <span v-else>{{ authStore.initials || '' }}</span>
         </div>
         <div class="hidden pr-1.5 text-left sm:block">
-          <p class="text-[12px] font-semibold leading-tight text-heading">{{ authStore.displayName || mockUser.name }}</p>
+          <p class="text-[12px] font-semibold leading-tight text-heading">{{ authStore.displayName || '' }}</p>
           <p class="text-[10px] font-medium capitalize text-muted">{{ (authStore.role || 'Sinh viên').toLowerCase() }}</p>
         </div>
       </button>
@@ -319,11 +318,11 @@ const notifAllLink = computed(() => {
           @click.stop
         >
           <div class="border-card surface-card border-b px-3 py-3">
-            <p class="text-[13px] font-semibold text-heading">{{ authStore.displayName || mockUser.name }}</p>
-            <p class="mt-0.5 truncate text-[11px] font-medium text-muted">{{ authStore.user?.email || mockUser.email }}</p>
-            <span class="mt-2 inline-flex items-center gap-1.5 rounded-full border border-card bg-(--accent-primary-soft) px-2.5 py-1 text-[10px] font-semibold text-link shadow-sm">
+            <p class="text-[13px] font-semibold text-heading">{{ authStore.displayName || '' }}</p>
+            <p class="mt-0.5 truncate text-[11px] font-medium text-muted">{{ authStore.user?.email || '' }}</p>
+            <span v-if="authStore.user?.campusId" class="mt-2 inline-flex items-center gap-1.5 rounded-full border border-card bg-(--accent-primary-soft) px-2.5 py-1 text-[10px] font-semibold text-link shadow-sm">
               <LucideIcons.GraduationCap :size="11" />
-              Cơ sở {{ authStore.user?.campusId || mockUser.campus }}
+              Cơ sở {{ authStore.user.campusId }}
             </span>
           </div>
 

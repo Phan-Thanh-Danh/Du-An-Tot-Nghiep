@@ -18,42 +18,30 @@ import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
 const route = useRoute()
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
-// ── Mock Data ────────────────────────────────────────────────
-const teacher = ref({
-  name: 'TS. Nguyễn Văn A',
-  code: 'GV001',
-  dept: 'Khoa Công nghệ thông tin',
-  avgRating: 4.92,
-  totalEvals: 86,
-  status: 'excellent',
-  criteria: [
-    { label: 'Kiến thức chuyên môn', score: 4.95 },
-    { label: 'Khả năng truyền đạt', score: 4.88 },
-    { label: 'Tương tác sinh viên', score: 4.90 },
-    { label: 'Công bằng đánh giá', score: 4.94 },
-    { label: 'Hỗ trợ ngoài giờ', score: 4.82 },
-  ],
-  semesterHistory: [
-    { term: 'Fall 2024', score: 4.75 },
-    { term: 'Spring 2025', score: 4.82 },
-    { term: 'Fall 2025', score: 4.92 },
-  ]
-})
+const teacher = ref(null)
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getEvaluations()
+    const teacherId = route.params.teacherId
+    if (teacherId) {
+      const res = await bghApi.getEvaluationDetail(teacherId)
       const data = unwrapApiData(res)
-      if (data && data.length) {
-        const t = data.find(d => d.id === parseInt(route.query.id) || d.code === route.query.code)
-        if (t) teacher.value = { ...teacher.value, ...t }
+      if (data) {
+        teacher.value = {
+          name: data.teacherName,
+          code: `GV${data.teacherId.toString().padStart(5, '0')}`,
+          email: data.email,
+          avgRating: data.avgRating,
+          totalReviews: data.totalReviews,
+          criteria: data.criteria || [],
+          recentFeedback: data.recentFeedback || [],
+          semesterHistory: (data.semesterHistory || []).map(s => ({ term: s.semester, score: s.avgRating }))
+        }
       }
     }
   } catch (e) {
@@ -67,7 +55,7 @@ onMounted(() => { loadData() })
 
 <template>
   <PageContainer 
-    :title="`Chi tiết đánh giá: ${teacher.name}`" 
+    :title="teacher ? `Chi tiết đánh giá: ${teacher.name}` : 'Đang tải...'" 
     subtitle="Báo cáo phân tích chuyên sâu chất lượng giảng dạy của giảng viên qua các tiêu chí và thời gian."
   >
     <template #actions>
@@ -127,7 +115,7 @@ onMounted(() => { loadData() })
            </div>
         </div>
 
-        <!-- Semester History Chart Mock -->
+        <!-- Semester History Chart -->
         <div class="surface-card border border-card rounded-2xl p-8">
            <h4 class="text-sm font-semibold text-heading uppercase tracking-wide mb-8">Biến động điểm qua các học kỳ</h4>
            <div class="h-48 flex items-end justify-between px-10 relative">

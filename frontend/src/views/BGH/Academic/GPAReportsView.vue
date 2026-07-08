@@ -23,7 +23,6 @@ import { exportToExcel, triggerPrint } from '@/services/exportService.js'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 const semesterFilter = ref('spring-2026')
@@ -44,20 +43,8 @@ const departments = [
   { value: 'nna', label: 'Khoa Ngôn ngữ Anh' },
 ]
 
-const gpaStats = ref([
-  { id: 1, group: 'Khoa Công nghệ thông tin', avgGpa: 3.25, maxGpa: 3.98, minGpa: 1.2, warningCount: 12, campus: 'Cơ sở chính' },
-  { id: 2, group: 'Khoa Kinh tế & Quản trị', avgGpa: 3.10, maxGpa: 4.0, minGpa: 1.5, warningCount: 8, campus: 'Cơ sở chính' },
-  { id: 3, group: 'Khoa Ngôn ngữ Anh', avgGpa: 3.42, maxGpa: 3.95, minGpa: 2.1, warningCount: 3, campus: 'Cơ sở 2' },
-  { id: 4, group: 'Lớp SE1601', avgGpa: 3.15, maxGpa: 3.90, minGpa: 1.8, warningCount: 4, campus: 'Cơ sở chính' },
-])
-
-const distribution = [
-  { range: 'Xuất sắc (3.6 - 4.0)', count: 186, percent: 15 },
-  { range: 'Giỏi (3.2 - 3.59)', count: 341, percent: 27.5 },
-  { range: 'Khá (2.5 - 3.19)', count: 434, percent: 35 },
-  { range: 'Trung bình (2.0 - 2.49)', count: 217, percent: 17.5 },
-  { range: 'Yếu (< 2.0)', count: 62, percent: 5 },
-]
+const gpaStats = ref([])
+const distribution = ref([])
 
 const selectedStat = ref(null)
 
@@ -73,12 +60,24 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getReportOverview()
-      const data = unwrapApiData(res)
-      if (data) {
-        // Update gpaStats and distribution from API data as needed
-      }
+    const res = await bghApi.getGpaReports()
+    const data = unwrapApiData(res)
+    if (data) {
+      gpaStats.value = (data.trends || []).map(t => ({
+        id: t.semester,
+        group: t.semester,
+        avgGpa: t.avgGpa,
+        maxGpa: t.avgGpa,
+        minGpa: t.avgGpa,
+        warningCount: 0,
+        campus: '',
+        studentCount: t.studentCount || 0,
+      }))
+      distribution.value = (data.distribution || []).map(d => ({
+        range: d.grade,
+        count: d.count,
+        percent: d.percent,
+      }))
     }
   } catch (e) {
     error.value = e.message
@@ -113,6 +112,23 @@ const filteredStats = computed(() => {
   else if (sortBy.value === 'warning') result.sort((a, b) => b.warningCount - a.warningCount)
 
   return result
+})
+
+const overallAvgGpa = computed(() => {
+  if (!gpaStats.value.length) return 0
+  const sum = gpaStats.value.reduce((s, g) => s + g.avgGpa, 0)
+  return (sum / gpaStats.value.length).toFixed(2)
+})
+
+const highGpaRate = computed(() => {
+  if (!gpaStats.value.length) return '0'
+  const high = gpaStats.value.filter(g => g.avgGpa >= 3.2).length
+  return ((high / gpaStats.value.length) * 100).toFixed(1)
+})
+
+const maxGpaValue = computed(() => {
+  if (!gpaStats.value.length) return '0.00'
+  return Math.max(...gpaStats.value.map(g => g.avgGpa)).toFixed(2)
 })
 
 function prepareExcelData() {
@@ -188,8 +204,8 @@ function exportExcel() {
                <Target :size="24" />
             </div>
             <div>
-               <p class="text-[10px] font-semibold text-(--color-info-text) uppercase tracking-widest">GPA Mục tiêu kỳ</p>
-               <h3 class="text-xl font-semibold text-heading leading-tight">3.20</h3>
+               <p class="text-[10px] font-semibold text-(--color-info-text) uppercase tracking-widest">GPA TB toàn hệ thống</p>
+               <h3 class="text-xl font-semibold text-heading leading-tight">{{ overallAvgGpa }}</h3>
             </div>
          </div>
          <div class="surface-card border border-card rounded-2xl p-4 flex items-center gap-5">
@@ -198,7 +214,7 @@ function exportExcel() {
             </div>
             <div>
                <p class="text-[10px] font-semibold text-(--color-success-text) uppercase tracking-widest">Tỷ lệ GPA >= 3.2</p>
-               <h3 class="text-xl font-semibold text-heading leading-tight">42.5%</h3>
+               <h3 class="text-xl font-semibold text-heading leading-tight">{{ highGpaRate }}%</h3>
             </div>
          </div>
          <div class="surface-card border border-card rounded-2xl p-4 flex items-center gap-5">
@@ -206,14 +222,14 @@ function exportExcel() {
                <Award :size="24" />
             </div>
             <div>
-               <p class="text-[10px] font-semibold text-(--color-warning-text) uppercase tracking-widest">Thủ khoa kỳ (GPA)</p>
-               <h3 class="text-xl font-semibold text-heading leading-tight">4.00</h3>
+               <p class="text-[10px] font-semibold text-(--color-warning-text) uppercase tracking-widest">GPA cao nhất</p>
+               <h3 class="text-xl font-semibold text-heading leading-tight">{{ maxGpaValue }}</h3>
             </div>
          </div>
       </div>
 
       <!-- ── GPA Distribution Bar Chart ── -->
-      <div class="surface-card border border-card rounded-2xl p-5">
+      <div v-if="distribution.length" class="surface-card border border-card rounded-2xl p-5">
         <h4 class="text-sm font-semibold text-heading uppercase tracking-wide mb-6">Phân bố GPA</h4>
         <div class="space-y-4">
           <div v-for="item in distribution" :key="item.range">
@@ -240,10 +256,10 @@ function exportExcel() {
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="surface-solid">
-              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Khoa / Lớp / Cơ sở</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Kỳ học / Nhóm</th>
               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest">GPA Trung bình</th>
               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Min / Max GPA</th>
-              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Dưới ngưỡng (2.0)</th>
+              <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Số SV</th>
               <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest text-right">Thao tác</th>
             </tr>
           </thead>
@@ -252,14 +268,10 @@ function exportExcel() {
               <td class="px-4 py-4">
                 <div class="flex items-center gap-3">
                   <div class="h-9 w-9 rounded-xl surface-solid flex items-center justify-center text-placeholder group-hover:text-link transition-all">
-                    <Building2 v-if="stat.group.includes('Khoa')" :size="18" />
-                    <Users v-else :size="18" />
+                    <Building2 :size="18" />
                   </div>
                   <div>
                     <p class="text-sm font-semibold text-heading leading-tight">{{ stat.group }}</p>
-                    <p class="text-[10px] font-bold text-muted mt-1 flex items-center gap-1">
-                       <MapPin :size="10" /> {{ stat.campus }}
-                    </p>
                   </div>
                 </div>
               </td>
@@ -283,8 +295,8 @@ function exportExcel() {
                 </div>
               </td>
               <td class="px-4 py-4">
-                <div :class="['px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest border w-fit shadow-sm', stat.warningCount > 10 ? 'bg-(--color-danger-bg) text-(--color-danger-text) border-(--color-danger-text)/20' : 'surface-solid text-muted border-default']">
-                  {{ stat.warningCount }} Sinh viên
+                <div class="surface-solid text-muted border-default px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest border w-fit shadow-sm">
+                  {{ stat.studentCount || '—' }}
                 </div>
               </td>
               <td class="px-4 py-4 text-right">
@@ -318,8 +330,8 @@ function exportExcel() {
                   <p :class="['text-2xl font-bold mt-1', getGpaColor(selectedStat.avgGpa)]">{{ selectedStat.avgGpa.toFixed(2) }}</p>
                 </div>
                 <div class="surface-solid rounded-2xl p-4 text-center border border-default">
-                  <p class="text-[9px] font-semibold text-muted uppercase tracking-widest">Cơ sở</p>
-                  <p class="text-sm font-bold text-heading mt-1">{{ selectedStat.campus }}</p>
+                  <p class="text-[9px] font-semibold text-muted uppercase tracking-widest">Số SV</p>
+                  <p class="text-sm font-bold text-heading mt-1">{{ selectedStat.studentCount || '—' }}</p>
                 </div>
                 <div class="surface-solid rounded-2xl p-4 text-center border border-default">
                   <p class="text-[9px] font-semibold text-muted uppercase tracking-widest">GPA Cao nhất</p>
@@ -331,7 +343,7 @@ function exportExcel() {
                 </div>
               </div>
 
-              <div class="surface-solid rounded-2xl p-5 border border-default">
+              <div v-if="distribution.length" class="surface-solid rounded-2xl p-5 border border-default">
                 <h4 class="text-xs font-semibold text-muted uppercase tracking-widest mb-4 flex items-center gap-2">
                   <BarChart3 :size="16" /> Phân bố điểm
                 </h4>
@@ -352,7 +364,7 @@ function exportExcel() {
                 <Users :size="18" class="text-(--color-danger-text) shrink-0 mt-0.5" />
                 <div>
                   <p class="text-[10px] font-semibold text-(--color-danger-text) uppercase tracking-widest">Cảnh báo</p>
-                  <p class="text-xs text-body mt-1 font-medium">{{ selectedStat.warningCount }} sinh viên có GPA dưới ngưỡng 2.0, cần theo dõi và hỗ trợ kịp thời.</p>
+                  <p class="text-xs text-body mt-1 font-medium">Dữ liệu GPA được tổng hợp từ hệ thống điểm số. Sử dụng bộ lọc để xem chi tiết theo kỳ và khoa.</p>
                 </div>
               </div>
             </div>

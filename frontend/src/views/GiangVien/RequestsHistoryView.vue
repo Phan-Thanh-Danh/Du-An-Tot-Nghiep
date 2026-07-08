@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import {
+  AlertCircle,
   ArrowUpDown,
   Calendar,
   CheckCircle,
@@ -9,6 +10,7 @@ import {
   Download,
   Filter,
   History,
+  Loader2,
   Search,
   XCircle,
   XSquare,
@@ -17,18 +19,16 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import { teacherApi } from '@/services/teacherApi'
 
-const history = ref([
-  { id: 1, date: '12/05/2026', time: '14:30', student: 'Nguyễn Văn A', type: 'Xin vắng học', result: 'Approved' },
-  { id: 2, date: '10/05/2026', time: '09:15', student: 'Trần Thị B', type: 'Phúc khảo điểm', result: 'Rejected' },
-  { id: 3, date: '08/05/2026', time: '11:45', student: 'Lê Hoàng C', type: 'Xin học bù', result: 'Approved' },
-  { id: 4, date: '05/05/2026', time: '16:20', student: 'Phạm Minh D', type: 'Xin nghỉ phép', result: 'Approved' },
-])
+const loading = ref(false)
+const error = ref('')
+const history = ref([])
 
 const historyStats = computed(() => [
   { label: 'Tổng yêu cầu', value: history.value.length, variant: 'neutral' },
-  { label: 'Đã duyệt', value: history.value.filter(item => item.result === 'Approved').length, variant: 'success' },
-  { label: 'Từ chối', value: history.value.filter(item => item.result === 'Rejected').length, variant: 'danger' },
+  { label: 'Đã duyệt', value: history.value.filter(item => (item.ketQua || item.result) === 'Approved').length, variant: 'success' },
+  { label: 'Từ chối', value: history.value.filter(item => (item.ketQua || item.result) === 'Rejected').length, variant: 'danger' },
   { label: 'Tháng này', value: 15, variant: 'info' },
 ])
 
@@ -37,17 +37,33 @@ const typeStats = computed(() => [
   { label: 'Phúc khảo', value: '30%' },
 ])
 
+async function loadHistory() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await teacherApi.getTeacherRequestHistory()
+    history.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+  } catch (e) {
+    error.value = e?.message || 'Không thể tải lịch sử yêu cầu.'
+    history.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
 const getStatusText = (status) => {
-  return status === 'Approved' ? 'Đã duyệt' : 'Từ chối'
+  return (status || '') === 'Approved' ? 'Đã duyệt' : 'Từ chối'
 }
 
 const getStatusVariant = (status) => {
-  return status === 'Approved' ? 'success' : 'danger'
+  return (status || '') === 'Approved' ? 'success' : 'danger'
 }
 
 const getStatusIcon = (status) => {
-  return status === 'Approved' ? CheckCircle : XCircle
+  return (status || '') === 'Approved' ? CheckCircle : XCircle
 }
+
+onMounted(() => { loadHistory() })
 </script>
 
 <template>
@@ -157,7 +173,17 @@ const getStatusIcon = (status) => {
           </div>
         </template>
 
-        <TableShell density="compact" sticky-header>
+        <div v-if="loading" class="flex items-center justify-center py-12">
+          <Loader2 :size="20" class="animate-spin text-muted" />
+          <span class="ml-2 text-xs font-semibold text-muted">Đang tải lịch sử...</span>
+        </div>
+
+        <div v-else-if="error" class="flex flex-col items-center py-12">
+          <AlertCircle :size="28" class="text-rose-400 mb-2" />
+          <p class="text-xs font-semibold text-muted">{{ error }}</p>
+        </div>
+
+        <TableShell v-else density="compact" sticky-header>
           <table>
             <thead>
               <tr>
@@ -173,29 +199,29 @@ const getStatusIcon = (status) => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in history" :key="item.id">
+              <tr v-for="item in history" :key="item.id || item.maYeuCau">
                 <td>
                   <div class="date-cell">
-                    <strong>{{ item.date }}</strong>
+                    <strong>{{ item.ngayXuLy || item.date || '--' }}</strong>
                     <span>
                       <Clock :size="11" />
-                      {{ item.time }}
+                      {{ item.gioXuLy || item.time || '--' }}
                     </span>
                   </div>
                 </td>
                 <td>
                   <div class="student-cell">
-                    <span class="avatar">{{ item.student.split(' ').pop()[0] }}</span>
-                    <strong>{{ item.student }}</strong>
+                    <span class="avatar">{{ (item.hoTen || item.student || '').split(' ').pop()[0] || '?' }}</span>
+                    <strong>{{ item.hoTen || item.student }}</strong>
                   </div>
                 </td>
                 <td>
-                  <span class="type-chip">{{ item.type }}</span>
+                  <span class="type-chip">{{ item.loaiYeuCau || item.type }}</span>
                 </td>
                 <td class="text-right">
-                  <GlassBadge :variant="getStatusVariant(item.result)" size="sm">
-                    <component :is="getStatusIcon(item.result)" :size="12" />
-                    {{ getStatusText(item.result) }}
+                  <GlassBadge :variant="getStatusVariant(item.ketQua || item.result)" size="sm">
+                    <component :is="getStatusIcon(item.ketQua || item.result)" :size="12" />
+                    {{ getStatusText(item.ketQua || item.result) }}
                   </GlassBadge>
                 </td>
               </tr>

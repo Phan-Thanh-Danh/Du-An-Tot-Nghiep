@@ -282,12 +282,7 @@ public class StudentCoursesController : ControllerBase
 
         if (!comments.Any())
         {
-            var mockComments = new List<object>
-            {
-                new { Id = "c1", Author = "Trần Văn An", Avatar = "", Initials = "TA", Role = "teacher", Content = "Thầy ơi, phần này giải thích thêm về stack overflow không ạ?", TimeAgo = "2 giờ trước", Likes = 4, IsLiked = false, Replies = new List<object>() },
-                new { Id = "c2", Author = "Lê Thị Bích", Avatar = "", Initials = "LB", Role = "student", Content = "Bài giảng rất dễ hiểu. Mình đã pass được 3/4 test case!", TimeAgo = "5 giờ trước", Likes = 7, IsLiked = true, Replies = new List<object>() }
-            };
-            return Ok(ApiResponseDto<object>.Ok(mockComments));
+            return Ok(ApiResponseDto<object>.Ok(Array.Empty<object>()));
         }
 
         return Ok(ApiResponseDto<object>.Ok(comments));

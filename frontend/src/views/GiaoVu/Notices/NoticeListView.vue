@@ -3,16 +3,9 @@ import { ref, onMounted } from 'vue'
 import { Search, Loader2, AlertCircle } from 'lucide-vue-next'
 import { staffApi } from '@/services/staffApi'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(true)
 const apiError = ref('')
 const notices = ref([])
-
-const DEMO_NOTICES = [
-  { id: 'N-01', title: 'Thông báo nghỉ học môn Java', content: 'Lịch nghỉ bù vào tuần sau.', sentAt: '2026-06-29 08:30', recipientCount: 30, status: 'da_gui' },
-  { id: 'N-02', title: 'Đổi phòng thi cuối kỳ', content: 'Phòng thi đã được thay đổi.', sentAt: '2026-06-28 14:15', recipientCount: 120, status: 'da_gui' },
-  { id: 'N-03', title: 'Gia hạn đăng ký môn học', content: 'Hạn đăng ký kéo dài đến 05/07.', sentAt: '2026-06-27 10:00', recipientCount: 200, status: 'da_gui' },
-]
 
 async function loadData() {
   loading.value = true
@@ -20,12 +13,8 @@ async function loadData() {
   try {
     const res = await staffApi.getNotices()
     notices.value = res?.items ?? res ?? []
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      notices.value = DEMO_NOTICES
-    } else {
-      apiError.value = err?.message || 'Không thể tải danh sách thông báo.'
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }

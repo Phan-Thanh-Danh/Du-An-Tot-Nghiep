@@ -702,6 +702,14 @@ Luồng thi chính thức vẫn dùng `CaThi`:
 - API cấu hình quiz theo từng `KhoaHoc` nếu cần lịch mở/đóng khác nhau giữa các lớp.
 - API chấm tự luận chi tiết theo từng câu nếu cần rubric thay vì nhập `DiemCuoiCung` trực tiếp.
 
+## Teacher Exam APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| POST | `/api/teacher/exams` | Teacher | Tạo đề thi cho teacher phụ trách. Validate quyền sở hữu khóa học qua `MaGiaoVien` + `TenMonHoc` + `MaCodeLop`. Tạo `DeKiemTra` và liên kết câu hỏi có sẵn (numeric MaCauHoi) qua `CauHoiDeKiemTra`. Trả `400` nếu thiếu tên/thời gian không hợp lệ; `404` nếu không tìm thấy lớp/môn phù hợp. |
+
 ## Attendance APIs
 
 ### Đã có
@@ -1246,3 +1254,22 @@ Known limitations:
 - `GET /api/admin/attendance/unlock-requests/{id}` - Get unlock request details
 - `POST /api/admin/attendance/unlock-requests/{id}/approve` - Approve unlock request
 - `POST /api/admin/attendance/unlock-requests/{id}/reject` - Reject unlock request
+
+## BGH APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/bgh/dashboard` | BGH/Admin/SuperAdmin | Lấy số liệu thống kê tổng quan (sinh viên, giáo viên, tỷ lệ đi học, lớp học). |
+| GET | `/api/bgh/evaluations` | BGH/Admin/SuperAdmin | Danh sách tất cả đánh giá giáo viên. |
+| GET | `/api/bgh/evaluations/ranking` | BGH/Admin/SuperAdmin | Xếp hạng giáo viên theo điểm đánh giá. |
+| GET | `/api/bgh/evaluations/{id}` | BGH/Admin/SuperAdmin | Chi tiết một phiếu đánh giá. |
+| GET | `/api/bgh/evaluations/overview` | BGH/Admin/SuperAdmin | Tổng quan thống kê đánh giá toàn trường. |
+| GET | `/api/bgh/evaluations/ai-analysis` | BGH/Admin/SuperAdmin | Phân tích đánh giá bằng AI. |
+| GET | `/api/bgh/academic/overview` | BGH/Admin/SuperAdmin | Tổng quan học vụ (GPA, Pass rate, tín chỉ, chứng chỉ). |
+| GET | `/api/bgh/academic/gpa` | BGH/Admin/SuperAdmin | Báo cáo phổ điểm GPA, trung bình các khóa. |
+| GET | `/api/bgh/academic/at-risk` | BGH/Admin/SuperAdmin | Danh sách sinh viên nguy cơ học thuật. |
+| GET | `/api/bgh/academic/reports` | BGH/Admin/SuperAdmin | Các báo cáo học vụ chi tiết (môn học rớt nhiều, nợ học phí, bảo lưu). |
+| GET | `/api/bgh/academic/pass-fail` | BGH/Admin/SuperAdmin | Tỷ lệ Đậu/Rớt môn học. |
+| GET | `/api/bgh/schedule/changes` | BGH/Admin/SuperAdmin | Các thay đổi lịch trình (nghỉ, bù, đổi phòng). |

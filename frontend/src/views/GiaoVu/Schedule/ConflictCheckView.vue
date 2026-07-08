@@ -6,11 +6,8 @@ import {
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
-import {
-  scheduleConflictRows
-} from '@/mocks/scheduleAttendanceMockData'
 
-const conflicts = ref(scheduleConflictRows.map(c => ({ ...c })))
+const conflicts = ref([])
 const selected = ref(null)
 const confirmAction = ref({ isOpen: false, title: '', message: '', label: '', variant: 'primary', run: null })
 const searchQuery = ref('')

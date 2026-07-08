@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { Search, RotateCcw } from 'lucide-vue-next'
 import LmsSelect from '@/components/LmsSelect.vue'
+import { useSubjectStore } from '@/stores/content-council/subjectStore'
 
 const props = defineProps<{
   filters: {
@@ -15,19 +16,16 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['update:filters', 'reset'])
+const subjectStore = useSubjectStore()
 
-// Hardcoded mock subjects (in a real app, fetched from API)
-const mockSubjects = [
-  { id: 1, code: 'WEB201', name: 'Lập trình Web cơ bản' },
-  { id: 2, code: 'COM101', name: 'Nhập môn CNTT' },
-  { id: 3, code: 'PRO192', name: 'Lập trình Java' },
-  { id: 4, code: 'DBI202', name: 'Hệ quản trị CSDL' }
-]
-
-const subjectOptions = [
+const subjectOptions = computed(() => [
   { value: 'all', label: 'Tất cả môn học' },
-  ...mockSubjects.map(s => ({ value: s.id.toString(), label: `${s.code} - ${s.name}` }))
-]
+  ...subjectStore.subjects.map(s => ({ value: s.id.toString(), label: `${s.code} - ${s.name}` }))
+])
+
+onMounted(() => {
+  subjectStore.init()
+})
 
 const typeOptions = [
   { value: 'all', label: 'Tất cả loại' },

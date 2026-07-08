@@ -25,7 +25,6 @@ import { exportToExcel, triggerPrint } from '@/services/exportService.js'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 const semesterFilter = ref('spring-2026')
@@ -40,12 +39,23 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getReportOverview()
-      const data = unwrapApiData(res)
-      if (data) {
-        // Update courseStats and trendData from API data as needed
-      }
+    const res = await bghApi.getPassFailRates()
+    const data = unwrapApiData(res)
+    if (data) {
+      courseStats.value = (data.courseStats || []).map((c, i) => ({
+        id: i + 1,
+        subject: c.subjectName,
+        class: '',
+        teacher: '',
+        total: c.total,
+        pass: c.pass,
+        fail: c.fail,
+        failRate: c.failRate,
+        reason: '',
+        dept: '',
+        avgGpa: c.avgGpa,
+      }))
+      overallPassRate.value = data.overallPassRate ?? 0
     }
   } catch (e) {
     error.value = e.message
@@ -58,6 +68,10 @@ onMounted(() => { loadData() })
 const warningThreshold = ref(0)
 const sortOrder = ref('fail-desc')
 
+const courseStats = ref([])
+const trendData = ref([])
+const overallPassRate = ref(0)
+
 const semesters = [
   { value: 'spring-2026', label: 'Kỳ Spring 2026' },
   { value: 'fall-2025', label: 'Kỳ Fall 2025' },
@@ -69,21 +83,6 @@ const departments = [
   { value: 'cntt', label: 'Khoa CNTT' },
   { value: 'ktqt', label: 'Khoa Kinh tế & QT' },
   { value: 'nna', label: 'Khoa Ngôn ngữ Anh' },
-]
-
-const courseStats = ref([
-  { id: 1, subject: 'Java Programming', class: 'SE1601', teacher: 'Nguyễn Văn A', total: 40, pass: 32, fail: 8, failRate: 20, reason: 'Điểm Final thấp (Trắc nghiệm)', dept: 'cntt' },
-  { id: 2, subject: 'Web Advanced', class: 'SE1602', teacher: 'Trần Thị B', total: 35, pass: 34, fail: 1, failRate: 2.8, reason: 'Vắng quá 20%', dept: 'cntt' },
-  { id: 3, subject: 'Cơ sở dữ liệu', class: 'SE1603', teacher: 'Lê Văn C', total: 42, pass: 30, fail: 12, failRate: 28.5, reason: 'Thiếu bài tập Lab', dept: 'cntt' },
-  { id: 4, subject: 'An toàn thông tin', class: 'SE1604', teacher: 'Hoàng Văn D', total: 38, pass: 38, fail: 0, failRate: 0, reason: 'N/A', dept: 'cntt' },
-])
-
-const trendData = [
-  { k: 'Kỳ 2021', pass: 85.2, fail: 14.8 },
-  { k: 'Kỳ 2022', pass: 87.0, fail: 13.0 },
-  { k: 'Kỳ 2023', pass: 86.1, fail: 13.9 },
-  { k: 'Kỳ 2024', pass: 89.5, fail: 10.5 },
-  { k: 'Kỳ 2025', pass: 88.4, fail: 11.6 },
 ]
 
 const filteredStats = computed(() => {
@@ -116,9 +115,7 @@ const avgPassRate = computed(() => {
 })
 
 const avgPassTrend = computed(() => {
-  const prev = trendData[trendData.length - 2]?.pass ?? 0
-  const curr = trendData[trendData.length - 1]?.pass ?? 0
-  return (curr - prev).toFixed(1)
+  return '0.0'
 })
 
 const worstCourse = computed(() => {
@@ -126,7 +123,7 @@ const worstCourse = computed(() => {
   return [...filteredStats.value].sort((a, b) => b.failRate - a.failRate)[0]
 })
 
-const maxFailRate = computed(() => Math.max(...trendData.map(d => d.fail), 1))
+const maxFailRate = computed(() => Math.max(...courseStats.value.map(c => c.failRate), 1))
 
 const getFailRateColor = (rate) => {
   if (rate >= 20) return 'text-(--color-danger-text) bg-(--color-danger-bg) border-(--color-danger-text)/20'
@@ -236,17 +233,14 @@ function exportExcel() {
             <div>
                <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Tỷ lệ Pass trung bình</h4>
                <p class="text-xs text-(--color-success-text) mt-1 font-bold">
-                 {{ avgPassRate }}% 
-                 <span v-if="avgPassTrend > 0" class="text-(--color-success-text)">(Tăng {{ avgPassTrend }}% so với kỳ trước)</span>
-                 <span v-else-if="avgPassTrend < 0" class="text-(--color-danger-text)">(Giảm {{ Math.abs(avgPassTrend) }}% so với kỳ trước)</span>
-                 <span v-else>(Không đổi so với kỳ trước)</span>
+                 {{ filteredStats.length ? avgPassRate : overallPassRate }}%
                </p>
             </div>
          </div>
       </div>
 
       <!-- ── Pass/Fail Trend Chart ── -->
-      <div class="surface-card border border-card rounded-2xl p-5">
+      <div v-if="trendData.length" class="surface-card border border-card rounded-2xl p-5">
         <div class="flex items-center justify-between mb-6">
           <div>
             <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Xu hướng Pass/Fail qua các kỳ</h4>
@@ -297,14 +291,14 @@ function exportExcel() {
                   </div>
                   <div>
                     <p class="text-sm font-semibold text-heading leading-tight">{{ stat.subject }}</p>
-                    <p class="text-[11px] font-bold text-muted mt-0.5">{{ stat.class }}</p>
+                    <p class="text-[11px] font-bold text-muted mt-0.5">{{ stat.class || '—' }}</p>
                   </div>
                 </div>
               </td>
               <td class="px-4 py-4">
                 <div class="flex items-center gap-2">
                    <Users :size="14" class="text-placeholder" />
-                   <span class="text-xs font-bold text-label">{{ stat.teacher }}</span>
+                   <span class="text-xs font-bold text-label">{{ stat.teacher || '—' }}</span>
                 </div>
               </td>
               <td class="px-4 py-4">
@@ -326,7 +320,7 @@ function exportExcel() {
                 </div>
               </td>
               <td class="px-4 py-4 max-w-[200px]">
-                 <p class="text-[11px] text-muted font-medium leading-relaxed italic">{{ stat.reason }}</p>
+                 <p class="text-[11px] text-muted font-medium leading-relaxed italic">{{ stat.reason || '—' }}</p>
               </td>
               <td class="px-4 py-4 text-right">
                 <button @click="viewCourseDetail(stat)" class="p-2 hover:bg-(--color-info-bg) hover:text-link rounded-lg text-placeholder transition-all" title="Xem chi tiết">
@@ -407,7 +401,7 @@ function exportExcel() {
             <div class="flex items-start justify-between p-5 pb-0">
               <div>
                 <p class="text-[10px] text-muted uppercase tracking-widest font-semibold">Chi tiết môn học</p>
-                <h3 class="text-lg font-bold text-heading mt-0.5">{{ selectedCourse.subject }} <span class="text-sm font-semibold text-muted">({{ selectedCourse.class }})</span></h3>
+                <h3 class="text-lg font-bold text-heading mt-0.5">{{ selectedCourse.subject }} <span class="text-sm font-semibold text-muted">({{ selectedCourse.class || '—' }})</span></h3>
               </div>
               <button @click="showDetailModal = false" class="p-1.5 hover:bg-(--surface-input) rounded-lg text-placeholder transition-colors">
                 <X :size="18" />
@@ -434,11 +428,11 @@ function exportExcel() {
               </div>
               <div class="surface-solid rounded-xl p-3">
                 <p class="text-[10px] text-muted uppercase tracking-wide mb-1">Nguyên nhân chính</p>
-                <p class="text-sm font-semibold text-heading">{{ selectedCourse.reason }}</p>
+                <p class="text-sm font-semibold text-heading">{{ selectedCourse.reason || '—' }}</p>
               </div>
               <div class="flex items-center gap-2 text-xs text-muted pt-1">
                 <Users :size="14" />
-                <span class="font-semibold">{{ selectedCourse.teacher }}</span>
+                <span class="font-semibold">{{ selectedCourse.teacher || '—' }}</span>
               </div>
             </div>
             <div class="px-5 pb-5">

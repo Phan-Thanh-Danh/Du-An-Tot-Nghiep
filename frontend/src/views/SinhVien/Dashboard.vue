@@ -3,7 +3,6 @@ import { ref, onMounted, defineAsyncComponent } from 'vue'
 import FocusAiCard from '@/components/SinhVien/dashboard/FocusAiCard.vue'
 import KpiCard from '@/components/SinhVien/dashboard/KpiCard.vue'
 import WelcomeHero from '@/components/SinhVien/dashboard/WelcomeHero.vue'
-import { studentDashboardMock } from '@/data/studentData.mock.js'
 import { studentApi } from '@/services/studentApi'
 import { AlertCircle, Loader2 } from 'lucide-vue-next'
 
@@ -20,7 +19,7 @@ defineOptions({
   name: 'StudentDashboard',
 })
 
-const dashboard = ref(studentDashboardMock)
+const dashboard = ref(null)
 const loading = ref(true)
 const error = ref(null)
 
@@ -39,8 +38,6 @@ onMounted(async () => {
   } catch (err) {
     console.error('Failed to load student dashboard', err)
     error.value = 'Lỗi kết nối đến máy chủ.'
-    // Fallback to mock data on error for demo purposes, or keep it broken depending on requirements
-    dashboard.value = studentDashboardMock
   } finally {
     loading.value = false
   }

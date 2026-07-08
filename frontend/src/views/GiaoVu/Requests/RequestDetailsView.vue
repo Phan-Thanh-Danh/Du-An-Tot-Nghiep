@@ -25,7 +25,6 @@ import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { staffApi } from '@/services/staffApi'
 import { usePopupStore } from '@/stores/popup'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const popupStore = usePopupStore()
 const route = useRoute()
@@ -34,31 +33,6 @@ const requestId = route.params.id || 'DON-001'
 const loading = ref(true)
 const apiError = ref('')
 const actionLoading = ref(false)
-
-const DEMO_REQUEST = {
-  id: requestId,
-  student: 'Nguyễn Văn Nam',
-  studentCode: 'SV2024001',
-  class: 'SE1601',
-  type: 'Chuyển lớp học phần',
-  title: 'Xin chuyển từ L01 sang L02 môn Java',
-  content: 'Do lịch làm việc part-time bị thay đổi, em xin phép được chuyển sang lớp L02 học vào tối thứ 4 để đảm bảo việc học tập.',
-  files: [
-    { name: 'Xac-nhan-cong-ty.pdf', size: '1.2MB' },
-    { name: 'Bang-diem-ky-truoc.jpg', size: '800KB' }
-  ],
-  status: 'under_review',
-  currentStep: 2,
-  workflow: [
-    { step: 1, label: 'Gửi đơn', user: 'Sinh viên', date: '12/05 08:30', status: 'completed' },
-    { step: 2, label: 'Kiểm tra hồ sơ', user: 'Giáo vụ (Phạm Minh D)', date: '12/05 10:15', status: 'current' },
-    { step: 3, label: 'Phê duyệt', user: 'Trưởng phòng Giáo vụ', date: null, status: 'pending' },
-    { step: 4, label: 'Thực thi kết quả', user: 'Hệ thống tự động', date: null, status: 'pending' }
-  ],
-  comments: [
-    { id: 1, user: 'Phạm Minh D', role: 'Giáo vụ', text: 'Vui lòng kiểm tra lại sĩ số lớp L02 trước khi duyệt chuyển.', date: '12/05 10:20' }
-  ]
-}
 
 const request = ref(null)
 
@@ -87,12 +61,8 @@ async function loadData() {
   try {
     const res = await staffApi.getRequestById(requestId)
     request.value = res ?? null
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      request.value = { ...DEMO_REQUEST, id: requestId }
-    } else {
-      apiError.value = err?.message || 'Không thể tải chi tiết đơn.'
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }

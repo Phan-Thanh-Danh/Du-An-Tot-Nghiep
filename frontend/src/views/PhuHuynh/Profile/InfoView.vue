@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import {
   User,
   Mail,
@@ -12,19 +12,36 @@ import {
   Edit,
   Camera
 } from 'lucide-vue-next'
-import { parentProfile } from '@/components/PhuHuynh/data/parentData.js'
-import { mockParentUser } from '@/components/PhuHuynh/data/menuData.js'
+import { parentApi } from '@/services/parentApi'
+import { parentUserFallback } from '@/components/PhuHuynh/data/menuData.js'
 
 const isEditing = ref(false)
+const profile = ref({
+  name: '',
+  email: '',
+  phone: '',
+  campus: '',
+})
 
 function handleEdit() {
   isEditing.value = true
-  // Mock edit action
   setTimeout(() => {
     isEditing.value = false
     alert('Tính năng cập nhật thông tin đang được hoàn thiện.')
   }, 500)
 }
+
+async function loadProfile() {
+  const res = await parentApi.getProfile()
+  profile.value = {
+    name: res?.data?.name || '',
+    email: res?.data?.email || '',
+    phone: res?.data?.phone || '',
+    campus: res?.data?.campus || '',
+  }
+}
+
+onMounted(loadProfile)
 </script>
 
 <template>
@@ -37,17 +54,17 @@ function handleEdit() {
       <div class="relative z-10 flex flex-col sm:flex-row items-center sm:items-end gap-6 text-center sm:text-left">
         <div class="relative group">
           <div class="h-28 w-28 rounded-full bg-white flex items-center justify-center shadow-lg border-4 border-white/30 text-4xl font-extrabold text-orange-600 overflow-hidden">
-            <img v-if="mockParentUser.avatar" :src="mockParentUser.avatar" class="h-full w-full object-cover" />
-            <span v-else>{{ mockParentUser.initials }}</span>
+            <img v-if="parentUserFallback.avatar" :src="parentUserFallback.avatar" class="h-full w-full object-cover" />
+            <span v-else>{{ parentUserFallback.initials }}</span>
           </div>
           <button class="absolute bottom-0 right-0 p-2 bg-white text-orange-600 rounded-full shadow-md hover:bg-orange-50 transition-colors">
             <Camera :size="16" stroke-width="2.5" />
           </button>
         </div>
         <div class="flex-1 text-white pb-2">
-          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-1">{{ parentProfile.name }}</h1>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-1">{{ profile.name || parentUserFallback.name }}</h1>
           <p class="text-orange-100 font-medium text-sm sm:text-base flex items-center justify-center sm:justify-start gap-2">
-            <ShieldCheck :size="18" /> {{ mockParentUser.relation }}
+            <ShieldCheck :size="18" /> {{ parentUserFallback.relation }}
           </p>
         </div>
         <div class="pb-2">
@@ -74,28 +91,28 @@ function handleEdit() {
             <User :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Họ và tên</p>
-              <p class="text-sm font-bold text-heading">{{ parentProfile.name }}</p>
+              <p class="text-sm font-bold text-heading">{{ profile.name || parentUserFallback.name }}</p>
             </div>
           </div>
           <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-(--surface-input) transition-colors">
             <Calendar :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Ngày sinh</p>
-              <p class="text-sm font-bold text-heading">{{ parentProfile.dob }}</p>
+              <p class="text-sm font-bold text-heading">Chưa cập nhật</p>
             </div>
           </div>
           <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-(--surface-input) transition-colors">
             <CreditCard :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Số CCCD / CMND</p>
-              <p class="text-sm font-bold text-heading">{{ parentProfile.cccd }}</p>
+              <p class="text-sm font-bold text-heading">Chưa cập nhật</p>
             </div>
           </div>
           <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-(--surface-input) transition-colors">
             <Building :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Cơ sở đăng ký</p>
-              <p class="text-sm font-bold text-heading">{{ mockParentUser.campus }}</p>
+              <p class="text-sm font-bold text-heading">{{ profile.campus || parentUserFallback.campus }}</p>
             </div>
           </div>
         </div>
@@ -114,28 +131,28 @@ function handleEdit() {
             <Phone :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Số điện thoại</p>
-              <p class="text-sm font-bold text-heading">{{ parentProfile.phone }}</p>
+              <p class="text-sm font-bold text-heading">{{ profile.phone || 'Chưa cập nhật' }}</p>
             </div>
           </div>
           <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-(--surface-input) transition-colors">
             <Mail :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Địa chỉ Email</p>
-              <p class="text-sm font-bold text-heading">{{ parentProfile.email }}</p>
+              <p class="text-sm font-bold text-heading">{{ profile.email || 'Chưa cập nhật' }}</p>
             </div>
           </div>
           <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-(--surface-input) transition-colors">
             <MapPin :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Địa chỉ thường trú</p>
-              <p class="text-sm font-bold text-heading leading-snug">{{ parentProfile.permanentAddress }}</p>
+              <p class="text-sm font-bold text-heading leading-snug">Chưa cập nhật</p>
             </div>
           </div>
           <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-(--surface-input) transition-colors">
             <MapPin :size="18" class="text-muted shrink-0 mt-0.5" />
             <div>
               <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-0.5">Nơi ở hiện tại</p>
-              <p class="text-sm font-bold text-heading leading-snug">{{ parentProfile.temporaryAddress }}</p>
+              <p class="text-sm font-bold text-heading leading-snug">Chưa cập nhật</p>
             </div>
           </div>
         </div>

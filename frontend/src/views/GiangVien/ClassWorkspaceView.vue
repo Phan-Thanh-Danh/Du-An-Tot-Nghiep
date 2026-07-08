@@ -1,7 +1,8 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
+  AlertCircle,
   ArrowLeft,
   BarChart3,
   CalendarClock,
@@ -25,60 +26,57 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import { teacherApi } from '@/services/teacherApi'
 
 const route = useRoute()
 const router = useRouter()
 
+const loading = ref(false)
+const error = ref('')
 const isMicOn = ref(true)
 const isCameraOn = ref(false)
 const activeTab = ref('content')
 const isAttendanceExpanded = ref(false)
 
-const students = ref([
-  { id: 'SV16001', name: 'Nguyễn Văn A', present: true },
-  { id: 'SV16002', name: 'Trần Thị B', present: true },
-  { id: 'SV16003', name: 'Lê Hoàng C', present: false },
-  { id: 'SV16004', name: 'Phạm Minh D', present: true },
-  { id: 'SV16005', name: 'Hoàng Hữu E', present: true },
-  { id: 'SV16006', name: 'Vũ Thị F', present: false },
-])
+const students = ref([])
+const modules = ref([])
 
-const modules = ref([
-  {
-    id: 1,
-    title: 'Chương 1: Tổng quan về Java',
-    duration: '45 phút',
-    status: 'completed',
-    type: 'video'
-  },
-  {
-    id: 2,
-    title: 'Chương 2: Hướng đối tượng cơ bản',
-    duration: '1h 20 phút',
-    status: 'playing',
-    type: 'video'
-  },
-  {
-    id: 3,
-    title: 'Bài tập thực hành: OOP',
-    duration: 'Giới hạn 2 ngày',
-    status: 'locked',
-    type: 'exercise'
-  }
-])
-
-const classCode = computed(() => route.params.id || 'SE1601')
+const classCode = computed(() => route.params.id || '')
 const presentCount = computed(() => students.value.filter((student) => student.present).length)
 const absentCount = computed(() => students.value.length - presentCount.value)
 const completedModules = computed(
   () => modules.value.filter((module) => module.status === 'completed').length,
 )
 const progressPercent = computed(() =>
-  Math.round((completedModules.value / modules.value.length) * 100),
+  modules.value.length ? Math.round((completedModules.value / modules.value.length) * 100) : 0,
 )
 const currentModule = computed(
-  () => modules.value.find((module) => module.status === 'playing') || modules.value[0],
+  () => modules.value.find((module) => module.status === 'playing') || modules.value[0] || null,
 )
+
+async function loadWorkspace() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await teacherApi.getTeacherClassWorkspace(route.params.id)
+    students.value = (data?.students || []).map(s => ({
+      id: s.maSinhVien ?? s.id,
+      name: s.tenSinhVien ?? s.name ?? '',
+      present: s.coMat ?? s.present ?? false,
+    }))
+    modules.value = (data?.modules || []).map(m => ({
+      id: m.id,
+      title: m.tieuDe ?? m.title ?? '',
+      duration: m.thoiLuong ?? m.duration ?? '',
+      status: m.trangThai ?? m.status ?? 'locked',
+      type: m.loai ?? m.type ?? 'video',
+    }))
+  } catch (e) {
+    error.value = e?.message || 'Không thể tải workspace.'
+  } finally {
+    loading.value = false
+  }
+}
 
 const workspaceStats = computed(() => [
   {
@@ -137,10 +135,21 @@ function moduleLabel(status) {
   if (status === 'playing') return 'Đang học'
   return 'Chưa mở'
 }
+
+onMounted(() => { loadWorkspace() })
 </script>
 
 <template>
-  <div class="teacher-workspace lg-page-enter">
+  <div v-if="loading" class="flex items-center justify-center min-h-[300px]">
+    <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+    <span class="ml-3 text-muted text-sm">Đang tải workspace...</span>
+  </div>
+  <div v-else-if="error" class="flex flex-col items-center justify-center min-h-[300px] gap-4">
+    <AlertCircle :size="40" class="text-rose-400" />
+    <p class="text-rose-600 font-semibold">{{ error }}</p>
+    <GlassButton variant="secondary" @click="loadWorkspace">Thử lại</GlassButton>
+  </div>
+  <div v-else class="teacher-workspace lg-page-enter">
     <GlassPanel variant="flat" density="compact" class="workspace-header">
       <div class="header-main">
         <button

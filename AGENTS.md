@@ -117,6 +117,30 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `DELETE /api/organizations/{id}/hard-delete`
   - `GET /api/organizations/{id}/subtree`
   - `GET /api/admin/accounts` là endpoint mẫu.
+  - `GET /api/student/dashboard` (P15B — real DB queries, no mock)
+  - `GET /api/student/grades` (P15B)
+  - `GET /api/student/support-tickets` (P15B)
+  - `GET /api/student/support-tickets/{id}` (P15B)
+  - `POST /api/student/support-tickets` (P15B)
+  - `POST /api/student/support-tickets/{id}/messages` (P15B)
+  - `POST /api/student/support-tickets/{id}/close` (P15B)
+  - `GET /api/student/evaluations` (P15B)
+  - `POST /api/student/evaluations/submit` (P15B)
+  - `GET /api/parent/dashboard` (P15A)
+  - `GET /api/parent/children` (P15A)
+  - `GET /api/parent/children/{id}` (P15A)
+  - `GET /api/parent/children/{id}/grades` (P15A)
+  - `GET /api/parent/children/{id}/schedule` (P15A)
+  - `GET /api/parent/children/{id}/attendance` (P15A)
+  - `GET /api/parent/children/{id}/alerts` (P15A)
+  - `GET /api/parent/children/{id}/tuition` (P15A)
+  - `GET /api/parent/children/{id}/transactions` (P15A)
+  - `GET /api/parent/children/{id}/invoices` (P15A)
+  - `POST /api/parent/payment` (P15A)
+  - `GET /api/parent/notifications` (P15A)
+  - `GET /api/parent/notifications/history` (P15A)
+  - `GET /api/parent/profile` (P15A)
+  - `GET /api/parent/access-rights` (P15A)
 
   - `POST /api/admin/discipline-records/{id}/remove-effect` (DL3)
   - `POST /api/admin/discipline-records/{id}/void-approved` (DL3)
@@ -133,6 +157,19 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `POST /api/thoi-khoa-bieu/xep-lich-thong-minh/publish` (P12)
   - `POST /api/thoi-khoa-bieu/xep-lich-thong-minh/check-xung-dot-batch` (P12)
   - `DELETE /api/thoi-khoa-bieu/drafts/{draftId}` (P12)
+  - `POST /api/teacher/exams` (P15C.1 — teacher-scoped with ownership validation)
+  - `GET /api/bgh/dashboard` (P15D)
+  - `GET /api/bgh/evaluations` (P15D)
+  - `GET /api/bgh/evaluations/ranking` (P15D)
+  - `GET /api/bgh/evaluations/{id}` (P15D)
+  - `GET /api/bgh/evaluations/overview` (P15D)
+  - `GET /api/bgh/evaluations/ai-analysis` (P15D)
+  - `GET /api/bgh/academic/overview` (P15D)
+  - `GET /api/bgh/academic/gpa` (P15D)
+  - `GET /api/bgh/academic/at-risk` (P15D)
+  - `GET /api/bgh/academic/reports` (P15D)
+  - `GET /api/bgh/academic/pass-fail` (P15D)
+  - `GET /api/bgh/schedule/changes` (P15D)
 - Endpoint chưa có controller phải ghi `dự kiến`.
 - Không tự đổi request/response DTO mà không cập nhật contract.
 
@@ -181,3 +218,27 @@ Get-ChildItem README.md,AGENTS.md,CLAUDE.md,docs,.cursor/rules -Recurse
 - Không copy nguyên source từ LMS open-source khác.
 - Không xóa code, migration, model hoặc route hiện có.
 - Không rewrite unrelated files.
+
+## Ghi Chú P15F.1 Browser Smoke
+
+- Khi chạy E2E/smoke bằng browser, ưu tiên backend `http://localhost:5097` và frontend `https://localhost:5173` nếu không có yêu cầu khác.
+- Connection string dev hiện dùng SQL Server `DELL\SQLEXPRESS02`, database `LMS`.
+- Chrome smoke artifact chuẩn đặt trong `docs/artifacts/<phase-or-task>`.
+- Skeleton loading dùng bộ component chung trong `frontend/src/components/common/skeleton`; không tạo skeleton rời rạc theo từng màn nếu có thể tái sử dụng.
+- Không thêm mock data mới. Nếu cần dữ liệu để test, seed/kiểm tra từ SQL Server thật và ghi rõ trạng thái dữ liệu trong report.
+
+## Ghi Chú P15F.2 DB Reset / Zero-Mock
+
+- Khi reset DB local cho smoke lớn, chạy backend với `SeedProfile=LargeDemo` để tái tạo dữ liệu lớn.
+- Sau clean reset ngày 2026-07-08, dữ liệu kỳ vọng tối thiểu: khoảng `10000+` học sinh và `100+` giáo viên; kết quả đã kiểm tra là `10005` học sinh, `110` giáo viên.
+- Base seed phải chạy trước `LargeDemo` để giữ các tài khoản test P12/P15: Staff, Teacher, Student, BGH, Parent, ContentCouncil.
+- Tài khoản Parent chuẩn cho smoke: `p15test_parent01@lms.local / Test@123`.
+- Không dùng lại `ENABLE_MOCK_API`, `withFallback`, thư mục `frontend/src/mocks`, hay service mock độc lập; dữ liệu test phải đến từ SQL Server thật hoặc seed thật.
+
+## Ghi Chú P15F.3 Release Hardening
+
+- Không commit machine-specific connection string hoặc secret thật trong `Backend/appsettings.json`; file này chỉ dùng default/generic placeholder. Connection string local như `DELL\SQLEXPRESS02` đặt trong `Backend/appsettings.Development.json` hoặc biến môi trường.
+- Không lưu SMTP/R2/PayOS secret thật trong config mặc định; dùng secret manager, environment variables, hoặc local dev config không đưa vào release.
+- Application evidence storage mặc định dùng Local temp storage ngoài Production để backend vẫn khởi động khi không có R2 secret trong config mặc định; Production phải cấu hình storage thật qua biến môi trường/secret manager.
+- Module Phụ huynh không dùng local business data file cho tên học sinh, điểm, học phí, chuyên cần, cảnh báo, thông báo. Các màn Parent phải lấy dữ liệu qua `parentApi`; local state chỉ được dùng cho UI state như selected child id.
+- Browser smoke có thể ghi `API connection matrix: 165/165 connected`, nhưng chỉ ghi full 165-route browser PASS khi đã thật sự click/kiểm tra đủ 165 role-route assignments.

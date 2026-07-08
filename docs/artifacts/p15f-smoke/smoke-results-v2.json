@@ -1,0 +1,125 @@
+[
+  {
+    "role": "SuperAdmin",
+    "email": "superadmin@lms.local",
+    "route": "/super-admin/dashboard",
+    "result": "PASS",
+    "screenshot": "C:\\Users\\lapto\\OneDrive\\Desktop\\Du-An-Tot-Nghiep\\docs\\artifacts\\p15f-smoke/superadmin-dashboard-v2.png",
+    "login": {
+      "ok": true,
+      "status": 200,
+      "role": "SuperAdmin",
+      "fullName": "Super Admin"
+    },
+    "console": [],
+    "exceptions": [],
+    "network": []
+  },
+  {
+    "role": "Staff",
+    "email": "daotao@edulms.local",
+    "route": "/staff/dashboard",
+    "result": "PASS",
+    "screenshot": "C:\\Users\\lapto\\OneDrive\\Desktop\\Du-An-Tot-Nghiep\\docs\\artifacts\\p15f-smoke/staff-dashboard-v2.png",
+    "login": {
+      "ok": true,
+      "status": 200,
+      "role": "AcademicStaff",
+      "fullName": "Phòng Đào Tạo"
+    },
+    "console": [],
+    "exceptions": [],
+    "network": []
+  },
+  {
+    "role": "Teacher",
+    "email": "lecturer01@edulms.local",
+    "route": "/teacher/dashboard",
+    "result": "PASS",
+    "screenshot": "C:\\Users\\lapto\\OneDrive\\Desktop\\Du-An-Tot-Nghiep\\docs\\artifacts\\p15f-smoke/teacher-dashboard-v2.png",
+    "login": {
+      "ok": true,
+      "status": 200,
+      "role": "Teacher",
+      "fullName": "Trần Thị Giảng Viên"
+    },
+    "console": [],
+    "exceptions": [],
+    "network": []
+  },
+  {
+    "role": "Student",
+    "email": "student01@edulms.local",
+    "route": "/student/dashboard",
+    "result": "PASS",
+    "screenshot": "C:\\Users\\lapto\\OneDrive\\Desktop\\Du-An-Tot-Nghiep\\docs\\artifacts\\p15f-smoke/student-dashboard-v2.png",
+    "login": {
+      "ok": true,
+      "status": 200,
+      "role": "Student",
+      "fullName": "Nguyễn Văn An"
+    },
+    "console": [],
+    "exceptions": [],
+    "network": []
+  },
+  {
+    "role": "BGH",
+    "email": "bgh@edulms.local",
+    "route": "/bgh/dashboard",
+    "result": "PASS",
+    "screenshot": "C:\\Users\\lapto\\OneDrive\\Desktop\\Du-An-Tot-Nghiep\\docs\\artifacts\\p15f-smoke/bgh-dashboard-v2.png",
+    "login": {
+      "ok": true,
+      "status": 200,
+      "role": "Principal",
+      "fullName": "Ban Giám Hiệu"
+    },
+    "console": [],
+    "exceptions": [],
+    "network": []
+  },
+  {
+    "role": "Parent",
+    "email": "p15test_parent01@lms.local",
+    "route": "/parent/dashboard",
+    "result": "LOGIN_FAIL",
+    "login": {
+      "ok": false,
+      "status": 401,
+      "data": {
+        "success": false,
+        "message": "Tên đăng nhập hoặc mật khẩu không đúng",
+        "errors": [
+          "Tên đăng nhập hoặc mật khẩu không đúng"
+        ],
+        "traceId": "0HNMSV8D1DKOA:00000001",
+        "statusCode": 401
+      }
+    },
+    "console": [],
+    "exceptions": [],
+    "network": [
+      {
+        "url": "https://localhost:5173/api/auth/login",
+        "status": 401
+      }
+    ]
+  },
+  {
+    "role": "ContentCouncil",
+    "email": "hoidong.quanly.noidung@lms.local",
+    "route": "/content-council/subjects",
+    "result": "PASS",
+    "screenshot": "C:\\Users\\lapto\\OneDrive\\Desktop\\Du-An-Tot-Nghiep\\docs\\artifacts\\p15f-smoke/contentcouncil-dashboard-v2.png",
+    "login": {
+      "ok": true,
+      "status": 200,
+      "role": "HoiDongQuanLyNoiDung",
+      "fullName": "Hội Đồng Quản Lý Nội Dung"
+    },
+    "console": [],
+    "exceptions": [],
+    "network": []
+  }
+]

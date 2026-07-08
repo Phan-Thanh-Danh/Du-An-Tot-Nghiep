@@ -91,7 +91,7 @@ const filteredQuestions = computed(() => {
     result = result.filter(q => q.status === filters.value.status)
   }
   
-  // Sort by ID desc (newest first mock)
+  // Sort by ID desc (newest first)
   return result.sort((a, b) => b.id - a.id)
 })
 

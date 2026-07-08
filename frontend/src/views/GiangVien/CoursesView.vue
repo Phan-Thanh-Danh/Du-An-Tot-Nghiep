@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import {
   AlertCircle,
   BookOpen,
@@ -16,29 +16,51 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import { teacherApi } from '@/services/teacherApi'
 
-// ── Mock Data ──────────────────────────────────────────────
-const courses = ref([
-  { id: 1, name: 'Lập trình Web nâng cao', subject: 'CNTT', lessons: 24, status: 'Published', semester: 'Spring 2026' },
-  { id: 2, name: 'Cấu trúc dữ liệu & Giải thuật', subject: 'CNTT', lessons: 18, status: 'Published', semester: 'Spring 2026' },
-  { id: 3, name: 'Cơ sở dữ liệu', subject: 'CNTT', lessons: 15, status: 'Draft', semester: 'Spring 2026' },
-  { id: 4, name: 'Lập trình hướng đối tượng (Java)', subject: 'CNTT', lessons: 22, status: 'Published', semester: 'Fall 2025' },
-  { id: 5, name: 'Trí tuệ nhân tạo cơ bản', subject: 'CNTT', lessons: 12, status: 'Archived', semester: 'Fall 2025' },
-])
+const loading = ref(false)
+const error = ref('')
+const courses = ref([])
 
 const semesters = ['Spring 2026', 'Fall 2025', 'Summer 2025']
 const subjects = ['CNTT', 'Kinh tế', 'Ngôn ngữ', 'Thiết kế']
 
-const filterSemester = ref('Spring 2026')
+const filterSemester = ref('Tất cả')
 const filterSubject = ref('Tất cả')
 const searchQuery = ref('')
 
-// ── Computed ──────────────────────────────────────────────
+function mapCourse(c) {
+  return {
+    id: c.maKhoaHoc ?? c.id,
+    name: c.tieuDe ?? c.name ?? '',
+    subject: c.tenMonHoc ?? c.subject ?? '',
+    lessons: c.soBaiHoc ?? c.lessons ?? 0,
+    status: c.trangThai === 'published' ? 'Published' : c.trangThai === 'draft' ? 'Draft' : 'Archived',
+    semester: c.tenHocKy ?? c.semester ?? '',
+  }
+}
+
+async function loadCourses() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await teacherApi.getClasses()
+    const items = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+    courses.value = items.map(mapCourse)
+  } catch (e) {
+    error.value = e?.message || 'Không thể tải danh sách khóa học.'
+    courses.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
 const filteredCourses = computed(() => {
+  const query = searchQuery.value.toLowerCase()
   return courses.value.filter(c => {
     const matchSemester = filterSemester.value === 'Tất cả' || c.semester === filterSemester.value
     const matchSubject = filterSubject.value === 'Tất cả' || c.subject === filterSubject.value
-    const matchSearch = c.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const matchSearch = !query || c.name.toLowerCase().includes(query)
     return matchSemester && matchSubject && matchSearch
   })
 })
@@ -79,10 +101,21 @@ function getCourseProgress(course) {
   if (course.status === 'Archived') return 100
   return Math.min(92, 58 + course.lessons)
 }
+
+onMounted(() => { loadCourses() })
 </script>
 
 <template>
-  <div class="courses-page">
+  <div v-if="loading" class="flex items-center justify-center min-h-[300px]">
+    <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+    <span class="ml-3 text-muted text-sm">Đang tải khóa học...</span>
+  </div>
+  <div v-else-if="error" class="flex flex-col items-center justify-center min-h-[300px] gap-4">
+    <AlertCircle :size="40" class="text-rose-400" />
+    <p class="text-rose-600 font-semibold">{{ error }}</p>
+    <GlassButton size="sm" variant="secondary" @click="loadCourses">Thử lại</GlassButton>
+  </div>
+  <div v-else class="courses-page">
     <GlassPanel variant="soft" density="compact" class="page-header" :clip="false">
       <div class="header-main">
         <span class="header-icon">

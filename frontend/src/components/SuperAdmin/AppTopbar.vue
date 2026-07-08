@@ -11,7 +11,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { Search, Bell, Menu, ShieldAlert } from 'lucide-vue-next'
 import * as LucideIcons from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
-import { mockAdminUser, mockAdminNotifications } from './data/menuData.js'
+import { adminUserFallback, adminNotifications } from './data/menuData.js'
 import { useAuthStore } from '@/stores/auth'
 import { useRecentFavoritesStore } from '@/stores/recentFavorites'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
@@ -31,7 +31,7 @@ const notifMenuRef = ref(null)
 
 const notifOpen = ref(false)
 const userMenuOpen = ref(false)
-const unreadCount = computed(() => mockAdminNotifications.filter((n) => !n.read).length)
+const unreadCount = computed(() => adminNotifications.filter((n) => !n.read).length)
 
 // Map route → page meta
 const pageTitleMap = {
@@ -285,7 +285,7 @@ const logout = () => {
           </div>
           <div class="max-h-[320px] divide-y divide-(--border-card) overflow-y-auto" role="none">
             <div
-              v-for="notif in mockAdminNotifications"
+              v-for="notif in adminNotifications"
               :key="notif.id"
               class="flex cursor-pointer gap-3 px-4 py-3 transition-all hover:bg-(--surface-card-hover) active:scale-[0.98]"
               role="menuitem"
@@ -323,10 +323,10 @@ const logout = () => {
       >
         <div class="flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm ring-1 ring-(--border-card) overflow-hidden bg-gradient-to-br from-violet-600 to-purple-600">
           <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" class="h-full w-full object-cover" />
-          <span v-else>{{ authStore.initials || mockAdminUser.initials }}</span>
+          <span v-else>{{ authStore.initials || adminUserFallback.initials }}</span>
         </div>
         <div class="hidden pr-1.5 text-left sm:block">
-          <p class="text-[12px] font-bold leading-tight text-heading">{{ authStore.displayName || mockAdminUser.name }}</p>
+          <p class="text-[12px] font-bold leading-tight text-heading">{{ authStore.displayName || adminUserFallback.name }}</p>
           <p class="text-[10px] font-medium text-violet-600 dark:text-violet-400">Super Admin</p>
         </div>
       </button>
@@ -347,11 +347,11 @@ const logout = () => {
           @click.stop
         >
           <div class="border-b border-default px-4 py-3.5 surface-card">
-            <p class="text-[13px] font-bold text-heading">{{ authStore.displayName || mockAdminUser.name }}</p>
-            <p class="mt-0.5 truncate text-[11px] font-medium text-muted">{{ authStore.user?.email || mockAdminUser.email }}</p>
+            <p class="text-[13px] font-bold text-heading">{{ authStore.displayName || adminUserFallback.name }}</p>
+            <p class="mt-0.5 truncate text-[11px] font-medium text-muted">{{ authStore.user?.email || adminUserFallback.email }}</p>
             <span class="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-violet-50 dark:bg-violet-600/25 px-2.5 py-1 text-[10px] font-semibold text-violet-700 dark:text-violet-300 border border-violet-100 dark:border-violet-500/30 shadow-sm">
               <ShieldAlert :size="11" />
-              Super Admin · {{ mockAdminUser.campus }}
+              Super Admin · {{ adminUserFallback.campus }}
             </span>
           </div>
 
