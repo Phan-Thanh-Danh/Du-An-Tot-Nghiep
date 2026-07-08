@@ -5,7 +5,7 @@
  * Hiển thị KPI toàn trường, cảnh báo hệ thống, hoạt động gần đây.
  */
 import { ref, onMounted } from 'vue'
-import { apiRequest as apiClient } from '@/services/apiClient'
+import { apiRequest } from '@/services/apiClient'
 import {
   Users, Building2, GraduationCap, ShieldAlert,
   TrendingUp, TrendingDown, Activity, Server,
@@ -59,21 +59,21 @@ const recentActivities = ref([])
 
 onMounted(async () => {
   try {
-    const statsRes = await apiClient.get('/super-admin/dashboard/stats')
-    if (statsRes.data) {
-      systemStats.value[0].value = statsRes.data.totalUsers.toLocaleString()
+    const statsRes = await apiRequest('/api/super-admin/dashboard/stats')
+    if (statsRes) {
+      systemStats.value[0].value = statsRes.totalUsers.toLocaleString()
       systemStats.value[0].sub = 'Tài khoản trong hệ thống'
-      systemStats.value[1].value = statsRes.data.activeOrganizations.toLocaleString()
+      systemStats.value[1].value = statsRes.activeOrganizations.toLocaleString()
       systemStats.value[1].sub = 'Cơ sở/Đơn vị hoạt động'
-      systemStats.value[2].value = statsRes.data.totalCourses.toLocaleString()
+      systemStats.value[2].value = statsRes.totalCourses.toLocaleString()
       systemStats.value[2].sub = 'Lớp học phần'
-      systemStats.value[3].value = statsRes.data.systemUptime + '%'
+      systemStats.value[3].value = statsRes.systemUptime + '%'
       systemStats.value[3].sub = 'Hoạt động ổn định'
     }
 
-    const actRes = await apiClient.get('/super-admin/dashboard/activities')
-    if (actRes.data) {
-      recentActivities.value = actRes.data.map(log => ({
+    const actRes = await apiRequest('/api/super-admin/dashboard/activities')
+    if (Array.isArray(actRes)) {
+      recentActivities.value = actRes.map(log => ({
         id: log.maKiemToan,
         type: 'log',
         icon: log.hanhDong.includes('Create') ? 'PlusCircle' : (log.hanhDong.includes('Delete') ? 'Trash2' : 'Activity'),

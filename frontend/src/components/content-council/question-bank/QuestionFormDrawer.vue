@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import { QuestionBankItem, QuestionType, SelectionType, QuestionDifficulty, QuestionStatus } from '@/types/content-council/questionBank'
 import { X, Save, Copy } from 'lucide-vue-next'
 import LmsSelect from '@/components/LmsSelect.vue'
 import QuestionChoiceEditor from './QuestionChoiceEditor.vue'
+import { useSubjectStore } from '@/stores/content-council/subjectStore'
 
 const props = defineProps<{
   isOpen: boolean
@@ -14,13 +15,16 @@ const props = defineProps<{
 const emit = defineEmits(['update:isOpen', 'save'])
 
 const generateId = () => Math.random().toString(36).substr(2, 9)
+const subjectStore = useSubjectStore()
 
-const mockSubjects = [
-  { value: 1, label: 'WEB201 - Lập trình Web cơ bản' },
-  { value: 2, label: 'COM101 - Nhập môn CNTT' },
-  { value: 3, label: 'PRO192 - Lập trình Java' },
-  { value: 4, label: 'DBI202 - Hệ quản trị CSDL' }
-]
+const subjectOptions = computed(() =>
+  subjectStore.subjects.map(s => ({
+    value: s.id,
+    label: `${s.code} - ${s.name}`,
+    code: s.code,
+    name: s.name
+  }))
+)
 
 const typeOptions = [
   { value: 'multiple_choice', label: 'Trắc nghiệm' },
@@ -69,7 +73,7 @@ watch(() => props.isOpen, (val) => {
     isPreviewAnswerVisible.value = false
     if (props.mode === 'create' || !props.questionData) {
       formData.value = {
-        subjectId: 1,
+        subjectId: undefined,
         type: 'multiple_choice',
         selectionType: 'single',
         content: '',
@@ -169,15 +173,18 @@ const validateAndSave = () => {
     }
   }
 
-  // Bind subjectName and Code for mock
-  const subj = mockSubjects.find(s => s.value === d.subjectId)
+  const subj = subjectOptions.value.find(s => s.value === d.subjectId)
   if (subj) {
-    d.subjectName = subj.label.split(' - ')[1]
-    d.subjectCode = subj.label.split(' - ')[0]
+    d.subjectName = subj.name
+    d.subjectCode = subj.code
   }
 
   emit('save', { ...d })
 }
+
+onMounted(() => {
+  subjectStore.init()
+})
 </script>
 
 <template>
@@ -222,7 +229,7 @@ const validateAndSave = () => {
               <LmsSelect 
                 :model-value="formData.subjectId"
                 @update:model-value="formData.subjectId = $event"
-                :options="mockSubjects"
+                :options="subjectOptions"
                 label="Môn học"
                 required
               />

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   MessageSquare,
@@ -13,23 +13,29 @@ import {
   School,
   X
 } from 'lucide-vue-next'
-import { childrenData, setActiveChildId } from '@/components/PhuHuynh/data/parentData.js'
+import { parentApi } from '@/services/parentApi'
+import { getStoredActiveChildId, setActiveChildId } from '@/components/PhuHuynh/data/parentState.js'
 import { usePopupStore } from '@/stores/popup'
 
 const route = useRoute()
 const router = useRouter()
 const popupStore = usePopupStore()
 
-// Lấy studentId từ query URL hoặc local storage, mặc định là 1
-const activeChildId = ref(Number(route.query.studentId) || Number(localStorage.getItem('parent_active_student_id')) || 1)
+const activeChildId = ref(Number(route.query.studentId) || getStoredActiveChildId())
 const dropdownOpen = ref(false)
+const children = ref([])
+const notifications = ref([])
 
 // Tìm kiếm & Lọc
 const searchQuery = ref('')
 const selectedTab = ref('Tất cả') // 'Tất cả', 'Nhà trường', 'Giảng viên'
 
 const currentChild = computed(() => {
-  return childrenData.find(c => c.id === activeChildId.value) || childrenData[0]
+  return children.value.find(c => c.id === activeChildId.value) || children.value[0] || {
+    id: null,
+    name: 'Chưa có học sinh liên kết',
+    className: '',
+  }
 })
 
 function selectChild(id) {
@@ -39,31 +45,16 @@ function selectChild(id) {
   router.replace({ query: { studentId: id } })
 }
 
-// Gom thông báo chung và tin nhắn giảng viên vào 1 danh sách
 const allNotifications = computed(() => {
-  const notices = (currentChild.value.schoolNotices || []).map(item => ({
-    ...item,
-    id: `school-${item.id}`,
-    sender: 'Ban Giám Hiệu nhà trường',
-    type: 'school'
+  return notifications.value.map(item => ({
+    id: item.id,
+    title: item.title || 'Thông báo',
+    content: item.content || '',
+    sender: 'Hệ thống LMS',
+    date: item.readAt || item.createdAt || '',
+    read: true,
+    type: 'school',
   }))
-
-  const messages = (currentChild.value.teacherMessages || []).map(item => ({
-    ...item,
-    id: `teacher-${item.id}`,
-    title: `Lời nhắn từ ${item.sender.split(' (')[0]}`,
-    sender: item.sender,
-    type: 'teacher'
-  }))
-
-  // Sắp xếp theo ngày mới nhất (ngày dd/mm/yyyy -> chuyển sang Date để so sánh)
-  return [...notices, ...messages].sort((a, b) => {
-    const parseDate = (dStr) => {
-      const parts = dStr.split('/')
-      return new Date(parts[2], parts[1] - 1, parts[0])
-    }
-    return parseDate(b.date) - parseDate(a.date)
-  })
 })
 
 // Lọc thông báo theo tab và ô tìm kiếm
@@ -92,12 +83,8 @@ const filteredNotifications = computed(() => {
 
 // Đánh dấu đã đọc
 function markAsRead(notifId) {
-  // Tìm trong schoolNotices hoặc teacherMessages để đổi read
-  const schoolItem = currentChild.value.schoolNotices?.find(n => `school-${n.id}` === notifId)
-  if (schoolItem) schoolItem.read = true
-
-  const teacherItem = currentChild.value.teacherMessages?.find(m => `teacher-${m.id}` === notifId)
-  if (teacherItem) teacherItem.read = true
+  const item = notifications.value.find(n => n.id === notifId)
+  if (item) item.read = true
 
   popupStore.success('Đã đọc', 'Đã đánh dấu thông báo này là đã đọc.')
 }
@@ -107,12 +94,7 @@ function markAllAsRead() {
   let count = 0
   filteredNotifications.value.forEach(notif => {
     if (!notif.read) {
-      const schoolItem = currentChild.value.schoolNotices?.find(n => `school-${n.id}` === notif.id)
-      if (schoolItem) schoolItem.read = true
-
-      const teacherItem = currentChild.value.teacherMessages?.find(m => `teacher-${m.id}` === notif.id)
-      if (teacherItem) teacherItem.read = true
-      
+      notif.read = true
       count++
     }
   })
@@ -129,13 +111,7 @@ const selectedNotif = ref(null)
 const isDetailModalOpen = ref(false)
 
 function openDetail(notif) {
-  // tự động mark read khi mở xem
-  const schoolItem = currentChild.value.schoolNotices?.find(n => `school-${n.id}` === notif.id)
-  if (schoolItem) schoolItem.read = true
-
-  const teacherItem = currentChild.value.teacherMessages?.find(m => `teacher-${m.id}` === notif.id)
-  if (teacherItem) teacherItem.read = true
-
+  notif.read = true
   selectedNotif.value = notif
   isDetailModalOpen.value = true
 }
@@ -143,6 +119,22 @@ function openDetail(notif) {
 function goBack() {
   router.push('/parent/dashboard')
 }
+
+async function loadData() {
+  const [childrenRes, notificationsRes] = await Promise.all([
+    parentApi.getChildren(),
+    parentApi.getNotificationHistory(),
+  ])
+  children.value = childrenRes?.data || []
+  notifications.value = notificationsRes?.data || []
+  const firstChild = children.value.find(child => child.id === activeChildId.value) || children.value[0]
+  if (firstChild) {
+    activeChildId.value = firstChild.id
+    setActiveChildId(firstChild.id)
+  }
+}
+
+onMounted(loadData)
 </script>
 
 <template>
@@ -175,7 +167,7 @@ function goBack() {
         >
           <div class="flex items-center gap-2">
             <div class="h-5 w-5 flex items-center justify-center rounded-full bg-orange-600 text-[9px] font-bold text-white">
-              {{ currentChild.name.split(' ').pop().charAt(0) }}
+              {{ currentChild.name.split(' ').filter(Boolean).pop()?.charAt(0) || '-' }}
             </div>
             <span>{{ currentChild.name }}</span>
           </div>
@@ -195,13 +187,13 @@ function goBack() {
             class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-card p-1 shadow-(--lg-shadow-md)"
           >
             <button
-              v-for="child in childrenData"
+              v-for="child in children"
               :key="child.id"
               type="button"
               class="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-label transition hover:bg-(--surface-card-hover)"
               @click="selectChild(child.id)"
             >
-              <span>{{ child.name }} ({{ child.class }})</span>
+              <span>{{ child.name }} ({{ child.className || 'Chưa có lớp' }})</span>
             </button>
           </div>
         </Transition>

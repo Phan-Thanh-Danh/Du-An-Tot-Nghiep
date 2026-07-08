@@ -1,6 +1,6 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   AlertTriangle,
@@ -19,56 +19,85 @@ import {
   ChevronDown,
   Check
 } from 'lucide-vue-next'
+import { parentApi } from '@/services/parentApi'
+import { getStoredActiveChildId, setActiveChildId } from '@/components/PhuHuynh/data/parentState.js'
 
 const router = useRouter()
 
-import { childrenData } from '@/components/PhuHuynh/data/parentData.js'
+const emptyChild = {
+  id: null,
+  name: 'Chưa có học sinh liên kết',
+  studentId: '',
+  class: '',
+  avatarInitials: '-',
+  gpa: 0,
+  gpaTrend: 'Chưa có dữ liệu',
+  attendanceRate: 0,
+  absences: 0,
+  tuitionDebt: 0,
+  tuitionStatus: 'Chưa có dữ liệu',
+  schedule: [],
+  alerts: [],
+  gradesProgress: [
+    { semester: 'Kỳ 1', gpa: 0 },
+    { semester: 'Kỳ 2', gpa: 0 },
+    { semester: 'Kỳ 3', gpa: 0 },
+    { semester: 'Kỳ 4', gpa: 0 },
+  ],
+}
 
-const activeChildId = ref(Number(localStorage.getItem('parent_active_student_id')) || 1)
+const activeChildId = ref(getStoredActiveChildId())
 const dropdownOpen = ref(false)
+const rawChildren = ref([])
+const childDetails = ref({})
+const childSchedules = ref({})
+const childAlerts = ref({})
+const childTuition = ref({})
+const childGrades = ref({})
+const systemNotifications = ref([])
+const loading = ref(false)
+const error = ref('')
 
 const children = computed(() => {
-  return childrenData.map(c => ({
-    ...c,
-    gpaTrend: c.gpaTrendText,
-    tuitionDebt: c.balanceTuition,
-    tuitionStatus: c.balanceTuition > 0 ? (c.isOverdue ? 'Quá hạn đóng' : 'Chờ thanh toán') : 'Đã hoàn thành',
-    schedule: c.id === 1 ? [
-      { id: 1, subject: 'Cấu trúc dữ liệu & Giải thuật', room: 'Phòng 201 - Nhà Beta', teacher: 'TS. Trần Thị B', time: '07:30 - 09:30', status: 'finished' },
-      { id: 2, subject: 'Toán cao cấp', room: 'Phòng 105 - Nhà Gamma', teacher: 'ThS. Lê Văn C', time: '09:30 - 11:30', status: 'active' },
-      { id: 3, subject: 'Lập trình Web nâng cao', room: 'Phòng 402 - Nhà Alpha', teacher: 'ThS. Nguyễn Văn A', time: '12:30 - 14:30', status: 'upcoming' },
-    ] : [
-      { id: 1, subject: 'An toàn thông tin mạng', room: 'Phòng 301 - Nhà Alpha', teacher: 'TS. Nguyễn Hoàng G', time: '07:30 - 09:30', status: 'finished' },
-      { id: 2, subject: 'Phát triển ứng dụng di động', room: 'Phòng Lab 2 - Nhà Beta', teacher: 'ThS. Vũ Thị H', time: '09:30 - 11:30', status: 'upcoming' },
-    ],
-    alerts: c.warnings.filter(w => !w.confirmed).map(w => ({
-      id: w.id,
-      type: w.type,
-      message: `${w.reason} (${w.subject})`,
-      time: w.date
+  return rawChildren.value.map(c => ({
+    id: c.id,
+    name: c.name,
+    studentId: c.email || `ID ${c.id}`,
+    class: c.className || 'Chưa có lớp',
+    avatarInitials: getInitials(c.name),
+    gpa: childDetails.value[c.id]?.gpa || 0,
+    gpaTrend: 'Dữ liệu từ hệ thống',
+    attendanceRate: calcAttendanceRate(childSchedules.value[c.id], childDetails.value[c.id]),
+    absences: 0,
+    tuitionDebt: childTuition.value[c.id]?.totalDue || 0,
+    tuitionStatus: (childTuition.value[c.id]?.totalDue || 0) > 0 ? 'Chờ thanh toán' : 'Đã hoàn thành',
+    schedule: (childSchedules.value[c.id] || []).map((s, idx) => ({
+      id: idx + 1,
+      subject: s.subject || 'Lịch học',
+      room: s.room || '-',
+      teacher: s.teacher || '-',
+      time: s.time || '-',
+      status: idx === 0 ? 'upcoming' : 'finished',
     })),
-    gradesProgress: c.id === 1 ? [
-      { semester: 'Kỳ 1 - Block 1', gpa: 7.8 },
-      { semester: 'Kỳ 1 - Block 2', gpa: 8.0 },
-      { semester: 'Kỳ 2 - Block 1', gpa: 8.2 },
-      { semester: 'Kỳ 2 - Block 2', gpa: 8.4 },
-    ] : [
-      { semester: 'Kỳ 1 - Block 1', gpa: 8.9 },
-      { semester: 'Kỳ 1 - Block 2', gpa: 9.0 },
-      { semester: 'Kỳ 2 - Block 1', gpa: 9.0 },
-      { semester: 'Kỳ 2 - Block 2', gpa: 9.1 },
-    ]
+    alerts: (childAlerts.value[c.id] || []).map((a, idx) => ({
+      id: idx + 1,
+      type: a.severity || 'info',
+      message: a.message || 'Cảnh báo hệ thống',
+      time: 'Từ hệ thống',
+    })),
+    gradesProgress: buildGradeProgress(childGrades.value[c.id]),
   }))
 })
 
 const currentChild = computed(() => {
-  return children.value.find(c => c.id === activeChildId.value) || children.value[0]
+  return children.value.find(c => c.id === activeChildId.value) || children.value[0] || emptyChild
 })
 
 function selectChild(id) {
   activeChildId.value = id
-  localStorage.setItem('parent_active_student_id', id)
+  setActiveChildId(id)
   dropdownOpen.value = false
+  loadChildDetails(id)
 }
 
 // ── Định dạng tiền tệ ──
@@ -76,16 +105,81 @@ function formatCurrency(amount) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
 }
 
-// ── Hệ thống thông báo chung ──
-const systemNotifications = ref([
-  { id: 1, title: 'Đăng ký học kỳ phụ', content: 'Cổng đăng ký môn học học kỳ phụ sẽ mở từ ngày 15/06/2026. Phụ huynh lưu ý lịch trình học tập của con.', time: '2 giờ trước', isNew: true },
-  { id: 2, title: 'Lịch nghỉ lễ sắp tới', content: 'Nhà trường thông báo lịch nghỉ học các lớp buổi tối và cuối tuần dịp lễ tổng kết năm học.', time: '1 ngày trước', isNew: false },
-  { id: 3, title: 'Khảo sát giảng dạy', content: 'Kính mong phụ huynh nhắc nhở con hoàn thành khảo sát chất lượng giảng dạy trên cổng thông tin trước ngày 12/06.', time: '3 ngày trước', isNew: false }
-])
-
 function navigateTo(path) {
   router.push(path)
 }
+
+function getInitials(name = '') {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(-2)
+    .map(part => part.charAt(0))
+    .join('')
+    .toUpperCase() || '-'
+}
+
+function calcAttendanceRate() {
+  return 0
+}
+
+function buildGradeProgress(grades = []) {
+  const points = grades.slice(-4).map((g, idx) => ({
+    semester: g.semester || `Kỳ ${idx + 1}`,
+    gpa: Number(g.total || 0),
+  }))
+  while (points.length < 4) {
+    points.unshift({ semester: `Kỳ ${points.length + 1}`, gpa: 0 })
+  }
+  return points
+}
+
+async function loadChildDetails(childId) {
+  if (!childId) return
+  const [detailRes, scheduleRes, alertsRes, tuitionRes, gradesRes] = await Promise.allSettled([
+    parentApi.getChildDetail(childId),
+    parentApi.getChildSchedule(childId),
+    parentApi.getChildAlerts(childId),
+    parentApi.getChildTuition(childId),
+    parentApi.getChildGrades(childId),
+  ])
+  if (detailRes.status === 'fulfilled') childDetails.value[childId] = detailRes.value?.data || {}
+  if (scheduleRes.status === 'fulfilled') childSchedules.value[childId] = scheduleRes.value?.data || []
+  if (alertsRes.status === 'fulfilled') childAlerts.value[childId] = alertsRes.value?.data?.alerts || []
+  if (tuitionRes.status === 'fulfilled') childTuition.value[childId] = tuitionRes.value?.data || {}
+  if (gradesRes.status === 'fulfilled') childGrades.value[childId] = gradesRes.value?.data || []
+}
+
+async function loadDashboard() {
+  loading.value = true
+  error.value = ''
+  try {
+    const [dashboardRes, notificationsRes] = await Promise.all([
+      parentApi.getDashboard(),
+      parentApi.getNotifications(),
+    ])
+    rawChildren.value = dashboardRes?.data?.children || []
+    systemNotifications.value = (notificationsRes?.data || []).slice(0, 5).map(item => ({
+      id: item.id,
+      title: item.title || 'Thông báo',
+      content: item.content || '',
+      time: item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN') : '',
+      isNew: !item.isRead,
+    }))
+    const firstChild = rawChildren.value.find(child => child.id === activeChildId.value) || rawChildren.value[0]
+    if (firstChild) {
+      activeChildId.value = firstChild.id
+      setActiveChildId(firstChild.id)
+      await loadChildDetails(firstChild.id)
+    }
+  } catch (e) {
+    error.value = e?.message || 'Không thể tải dữ liệu phụ huynh.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadDashboard)
 </script>
 
 <template>

@@ -104,6 +104,7 @@ builder.Services.Configure<PayOSOptions>(builder.Configuration.GetSection("PayOS
 builder.Services.AddSingleton<JwtHelper>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<Backend.Services.SuperAdmin.ISuperAdminService, Backend.Services.SuperAdmin.SuperAdminService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
@@ -408,6 +409,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 var seedProfile = builder.Configuration["SeedProfile"];
+await Data.SeedRolesAsync(app.Services);
 if (string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase))
 {
     app.Logger.LogInformation("Running LargeDemoSeeder...");
@@ -415,10 +417,6 @@ if (string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase))
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await Backend.Data.Seeders.LargeDemoSeeder.SeedAsync(context);
     app.Logger.LogInformation("LargeDemoSeeder completed.");
-}
-else
-{
-    await Data.SeedRolesAsync(app.Services);
 }
 app.UseCors("FrontendDev");
 app.UseAuthentication();

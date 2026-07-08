@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import { Search, RotateCcw } from 'lucide-vue-next'
 import LmsSelect from '@/components/LmsSelect.vue'
-import { mockSemesters } from '@/mocks/content-council/semesters.mock'
 
 const props = defineProps<{
   filters: {
@@ -18,22 +17,17 @@ const props = defineProps<{
 
 const emit = defineEmits(['update:filters', 'update:sort', 'reset'])
 
-// Hardcoded mock subjects
-const mockSubjects = [
-  { id: 1, code: 'WEB201', name: 'Lập trình Web cơ bản' },
-  { id: 2, code: 'COM101', name: 'Nhập môn CNTT' },
-  { id: 3, code: 'PRO192', name: 'Lập trình Java' },
-  { id: 4, code: 'DBI202', name: 'Hệ quản trị CSDL' }
-]
+const subjects = []
+const semesters = []
 
 const subjectOptions = [
   { value: 'all', label: 'Tất cả môn học' },
-  ...mockSubjects.map(s => ({ value: s.id.toString(), label: `${s.code} - ${s.name}` }))
+  ...subjects.map(s => ({ value: s.id.toString(), label: `${s.code} - ${s.name}` }))
 ]
 
 const semesterOptions = [
   { value: 'all', label: 'Tất cả học kỳ' },
-  ...mockSemesters.map(s => ({ value: s.id.toString(), label: s.name }))
+  ...semesters.map(s => ({ value: s.id.toString(), label: s.name }))
 ]
 
 const statusOptions = [

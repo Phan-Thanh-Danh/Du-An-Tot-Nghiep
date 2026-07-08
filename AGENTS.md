@@ -218,3 +218,27 @@ Get-ChildItem README.md,AGENTS.md,CLAUDE.md,docs,.cursor/rules -Recurse
 - Không copy nguyên source từ LMS open-source khác.
 - Không xóa code, migration, model hoặc route hiện có.
 - Không rewrite unrelated files.
+
+## Ghi Chú P15F.1 Browser Smoke
+
+- Khi chạy E2E/smoke bằng browser, ưu tiên backend `http://localhost:5097` và frontend `https://localhost:5173` nếu không có yêu cầu khác.
+- Connection string dev hiện dùng SQL Server `DELL\SQLEXPRESS02`, database `LMS`.
+- Chrome smoke artifact chuẩn đặt trong `docs/artifacts/<phase-or-task>`.
+- Skeleton loading dùng bộ component chung trong `frontend/src/components/common/skeleton`; không tạo skeleton rời rạc theo từng màn nếu có thể tái sử dụng.
+- Không thêm mock data mới. Nếu cần dữ liệu để test, seed/kiểm tra từ SQL Server thật và ghi rõ trạng thái dữ liệu trong report.
+
+## Ghi Chú P15F.2 DB Reset / Zero-Mock
+
+- Khi reset DB local cho smoke lớn, chạy backend với `SeedProfile=LargeDemo` để tái tạo dữ liệu lớn.
+- Sau clean reset ngày 2026-07-08, dữ liệu kỳ vọng tối thiểu: khoảng `10000+` học sinh và `100+` giáo viên; kết quả đã kiểm tra là `10005` học sinh, `110` giáo viên.
+- Base seed phải chạy trước `LargeDemo` để giữ các tài khoản test P12/P15: Staff, Teacher, Student, BGH, Parent, ContentCouncil.
+- Tài khoản Parent chuẩn cho smoke: `p15test_parent01@lms.local / Test@123`.
+- Không dùng lại `ENABLE_MOCK_API`, `withFallback`, thư mục `frontend/src/mocks`, hay service mock độc lập; dữ liệu test phải đến từ SQL Server thật hoặc seed thật.
+
+## Ghi Chú P15F.3 Release Hardening
+
+- Không commit machine-specific connection string hoặc secret thật trong `Backend/appsettings.json`; file này chỉ dùng default/generic placeholder. Connection string local như `DELL\SQLEXPRESS02` đặt trong `Backend/appsettings.Development.json` hoặc biến môi trường.
+- Không lưu SMTP/R2/PayOS secret thật trong config mặc định; dùng secret manager, environment variables, hoặc local dev config không đưa vào release.
+- Application evidence storage mặc định dùng Local temp storage ngoài Production để backend vẫn khởi động khi không có R2 secret trong config mặc định; Production phải cấu hình storage thật qua biến môi trường/secret manager.
+- Module Phụ huynh không dùng local business data file cho tên học sinh, điểm, học phí, chuyên cần, cảnh báo, thông báo. Các màn Parent phải lấy dữ liệu qua `parentApi`; local state chỉ được dùng cho UI state như selected child id.
+- Browser smoke có thể ghi `API connection matrix: 165/165 connected`, nhưng chỉ ghi full 165-route browser PASS khi đã thật sự click/kiểm tra đủ 165 role-route assignments.

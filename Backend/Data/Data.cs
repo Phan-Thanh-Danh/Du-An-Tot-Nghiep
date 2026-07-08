@@ -1211,6 +1211,13 @@ public static class Data
                 hcmCampus.MaDonVi
             ),
             new DemoUserSeed(
+                "p12test_staff01@lms.local",
+                "P12 Test Giáo Vụ",
+                AuthRoles.ToDatabaseCode(AuthRoles.AcademicStaff),
+                hcmCampus.MaDonVi,
+                Password: "Test@123"
+            ),
+            new DemoUserSeed(
                 "daotao@edulms.local",
                 "Phòng Đào Tạo",
                 AuthRoles.ToDatabaseCode(AuthRoles.AcademicStaff),
@@ -1241,10 +1248,24 @@ public static class Data
                 hcmCampus.MaDonVi
             ),
             new DemoUserSeed(
+                "p15test_bgh01@lms.local",
+                "P15 Test Ban Giám Hiệu",
+                AuthRoles.ToDatabaseCode(AuthRoles.Principal),
+                hcmCampus.MaDonVi,
+                Password: "Test@123"
+            ),
+            new DemoUserSeed(
                 "teacher.cntt@lms.local",
                 "Nguyễn Văn Lập Trình",
                 AuthRoles.ToDatabaseCode(AuthRoles.Teacher),
                 hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "p12test_teacher01@lms.local",
+                "P12 Test Giảng Viên",
+                AuthRoles.ToDatabaseCode(AuthRoles.Teacher),
+                hcmCampus.MaDonVi,
+                Password: "Test@123"
             ),
             new DemoUserSeed(
                 "lecturer01@edulms.local",
@@ -1302,6 +1323,14 @@ public static class Data
                 2026
             ),
             new DemoUserSeed(
+                "p12test_student011@lms.local",
+                "P12 Test Sinh Viên",
+                AuthRoles.ToDatabaseCode(AuthRoles.Student),
+                hcmCampus.MaDonVi,
+                2026,
+                "Test@123"
+            ),
+            new DemoUserSeed(
                 "student01@edulms.local",
                 "Nguyễn Văn An",
                 AuthRoles.ToDatabaseCode(AuthRoles.Student),
@@ -1329,10 +1358,24 @@ public static class Data
                 hcmCampus.MaDonVi
             ),
             new DemoUserSeed(
+                "p15test_parent01@lms.local",
+                "P15 Test Phụ Huynh",
+                AuthRoles.ToDatabaseCode(AuthRoles.Parent),
+                hcmCampus.MaDonVi,
+                Password: "Test@123"
+            ),
+            new DemoUserSeed(
                 "hoidong.quanly.noidung@lms.local",
                 "Hội Đồng Quản Lý Nội Dung",
                 AuthRoles.ToDatabaseCode(AuthRoles.HoiDongQuanLyNoiDung),
                 hcmCampus.MaDonVi
+            ),
+            new DemoUserSeed(
+                "p15test_content01@lms.local",
+                "P15 Test Hội Đồng Nội Dung",
+                AuthRoles.ToDatabaseCode(AuthRoles.HoiDongQuanLyNoiDung),
+                hcmCampus.MaDonVi,
+                Password: "Test@123"
             ),
         };
 
@@ -1358,7 +1401,7 @@ public static class Data
             user.VaiTroChinh = plan.RoleCode;
             user.NamNhapHoc = plan.EnrollmentYear;
             user.TrangThai = UserStatuses.DbActive;
-            user.MatKhauHash = PasswordHelper.HashPassword(DefaultPassword);
+            user.MatKhauHash = PasswordHelper.HashPassword(plan.Password ?? DefaultPassword);
             user.SoLanSaiMatKhau = 0;
             user.DangNhapLanDau = false;
             result[plan.Email] = user;
@@ -1796,7 +1839,7 @@ public static class Data
         IReadOnlyDictionary<string, NguoiDung> users
     )
     {
-        var parent = users["parent01@lms.local"];
+        var parent = users["p15test_parent01@lms.local"];
         var student = users["student.cntt01@lms.local"];
         var link = await context.LienKetPhuHuynhs.FirstOrDefaultAsync(x =>
             x.MaPhuHuynh == parent.MaNguoiDung && x.MaHocSinh == student.MaNguoiDung
@@ -2394,7 +2437,8 @@ public static class Data
         string FullName,
         string RoleCode,
         int CampusId,
-        int? EnrollmentYear = null
+        int? EnrollmentYear = null,
+        string? Password = null
     );
 
     private sealed record AdministrativeClassSeed(

@@ -100,6 +100,35 @@ npm run dev
   https://localhost:5173
 ```
 
+## P15F.2 Addendum - DB Reset And Strict Zero-Mock
+
+Date: 2026-07-08
+
+- Local SQL Server target confirmed as `DELL\SQLEXPRESS02`, database `LMS`.
+- `LMS` was dropped and recreated through EF Core migrations/code-first startup with `SeedProfile=LargeDemo`.
+- Post-reset counts: total users `10131`, students `10005`, teachers `110`, parents `2`, parent links `1`.
+- Parent seeded login fixed and verified: `p15test_parent01@lms.local / Test@123` now passes.
+- P12/P15 deterministic users for Staff, Teacher, Student, BGH, Parent, and ContentCouncil are active after reset.
+- Strict mock/fallback grep across `frontend/src`, `Backend/Controllers`, and `Backend/Services` returns `0` hits.
+- Final smoke artifact: `docs/artifacts/p15f-smoke/smoke-results-final.json`.
+
+## 12. P15F.1 Browser Smoke Addendum
+
+Date: 2026-07-08.
+
+- Branch: `feature/p15-zero-mock-full-production-connection`.
+- Backend: `http://localhost:5097`; frontend: `https://localhost:5173`.
+- Database: `DELL\SQLEXPRESS02/LMS`.
+- Role dashboard smoke was run through Chrome DevTools Protocol with login per role.
+- Passed roles: SuperAdmin, Staff/GiaoVu, Teacher, Student, BGH, Content Council.
+- Parent remained blocked by login `401 Unauthorized` for `p15test_parent01@lms.local`.
+- Console errors after fixes: `0`.
+- Network `404`: `0`; network `500`: `0`.
+- Large-data check passed: `10004` students and `109` teachers.
+- Full artifacts and screenshots are stored in `docs/artifacts/p15f-smoke`.
+
+See `docs/P15F_BROWSER_SMOKE_AND_SKELETON_REPORT.md` for the smoke matrix and remaining warnings.
+
 Then use Chrome DevTools Protocol (`ws://localhost:9222/...`) to automate inspection, or simply open F12 → Network tab → filter `api` to verify each screen.
 
 ## 6. Smart Features Result
@@ -218,3 +247,19 @@ Changes not staged for commit:
   modified:   frontend/src/views/Student/TuitionView.vue
   modified:   frontend/vitest.config.js
 ```
+
+## P15F.3 Addendum - Release Hardening Final Warnings Cleanup
+
+Status: `PASS_WITH_WARNINGS` on 2026-07-08.
+
+This addendum supersedes the older P14-era Parent/SuperAdmin risk notes where later P15 work has added or connected real backend APIs.
+
+- API connection matrix remains `165/165` connected.
+- `Backend/appsettings.json` is protected for commit: generic/default connection string plus empty secret placeholders. The machine-specific `DELL\SQLEXPRESS02` connection string is limited to `Backend/appsettings.Development.json` for local development. Application evidence storage defaults to Local temp storage outside Production, so startup does not require committed R2 secrets.
+- Parent portal local business data cleanup is complete for the targeted screens: `parentData.js` was removed, and Parent dashboard/children/profile/notifications screens now load through `parentApi`. Remaining local state is UI-only, such as selected child id in `localStorage`.
+- Expanded browser smoke covered all Parent sidebar routes, all SuperAdmin sidebar routes, plus one representative route each for Student, Teacher, Staff, BGH, and ContentCouncil: `65/65` pass.
+- P15F.3 smoke totals: console errors `0`, runtime exceptions `0`, network `401/403/404/500 = 0`.
+- Strict production mock/fallback grep over `frontend/src`, `Backend/Controllers`, and `Backend/Services` remains `0` hits.
+- Build verification: backend `dotnet build` PASS with 15 warnings and 0 errors; frontend `npm run build` PASS.
+- `npm run lint` still fails, but is documented as a non-build-blocking backlog in `docs/P15F_LINT_BACKLOG.md`.
+- Full 165-route browser clickthrough remains pending; do not claim browser `PASS` for all 165 routes until that is completed.

@@ -19,7 +19,7 @@ const route = useRoute()
 const router = useRouter()
 const popupStore = usePopupStore()
 
-const activeChildId = ref(Number(route.query.studentId) || Number(localStorage.getItem('parent_active_student_id')) || 1)
+const activeChildId = ref(Number(route.query.studentId) || Number(localStorage.getItem('parent_active_student_id')) || null)
 const dropdownOpen = ref(false)
 const loading = ref(true)
 const error = ref('')
@@ -38,11 +38,16 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [childrenRes, invRes] = await Promise.all([
-      parentApi.getChildren(),
-      parentApi.getChildInvoices(activeChildId.value)
-    ])
+    const childrenRes = await parentApi.getChildren()
     children.value = childrenRes?.data || []
+    const validChild = children.value.find(child => child.id === activeChildId.value) || children.value[0]
+    if (!validChild) {
+      invoices.value = []
+      return
+    }
+    activeChildId.value = validChild.id
+    localStorage.setItem('parent_active_student_id', validChild.id)
+    const invRes = await parentApi.getChildInvoices(validChild.id)
     invoices.value = invRes?.data || []
   } catch (err) {
     error.value = err.message || 'Không thể tải dữ liệu hóa đơn.'
@@ -302,7 +307,7 @@ function goBack() {
           <p class="font-bold text-slate-700">Người bán hàng (Nhà trường)</p>
           <p class="text-[10px] text-slate-400 italic">(Ký, đóng dấu điện tử)</p>
           
-          <!-- Mock Electronic Signature Badge -->
+          <!-- Electronic Signature Badge -->
           <div class="border-2 border-red-500 text-red-500 rounded p-1 mx-auto max-w-[150px] font-bold text-[9px] mt-4 transform rotate-2">
             <p>ĐÃ KÝ ĐIỆN TỬ</p>
             <p>LMS ACADEMIC SYSTEM</p>

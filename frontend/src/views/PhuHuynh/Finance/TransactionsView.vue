@@ -15,7 +15,7 @@ import { parentApi } from '@/services/parentApi'
 const route = useRoute()
 const router = useRouter()
 
-const activeChildId = ref(Number(route.query.studentId) || Number(localStorage.getItem('parent_active_student_id')) || 1)
+const activeChildId = ref(Number(route.query.studentId) || Number(localStorage.getItem('parent_active_student_id')) || null)
 const dropdownOpen = ref(false)
 const filterStatus = ref('Tất cả')
 const loading = ref(true)
@@ -38,11 +38,16 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [childrenRes, txRes] = await Promise.all([
-      parentApi.getChildren(),
-      parentApi.getChildTransactions(activeChildId.value)
-    ])
+    const childrenRes = await parentApi.getChildren()
     children.value = childrenRes?.data || []
+    const validChild = children.value.find(child => child.id === activeChildId.value) || children.value[0]
+    if (!validChild) {
+      transactions.value = []
+      return
+    }
+    activeChildId.value = validChild.id
+    localStorage.setItem('parent_active_student_id', validChild.id)
+    const txRes = await parentApi.getChildTransactions(validChild.id)
     transactions.value = txRes?.data || []
   } catch (err) {
     error.value = err.message || 'Không thể tải dữ liệu giao dịch.'

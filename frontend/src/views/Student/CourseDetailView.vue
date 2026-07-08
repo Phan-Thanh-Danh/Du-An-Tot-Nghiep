@@ -264,7 +264,7 @@ function toggleChapter(id) {
 function isQuestionLocked(index) {
   if (index === 0) return false
   for (let i = 0; i < index; i++) {
-    const prevQId = mockQuizQuestions.value[i].id
+    const prevQId = quizQuestions.value[i].id
     if (quizAnswers.value[prevQId] === undefined || quizAnswers.value[prevQId] === null) {
       return true
     }
@@ -273,7 +273,7 @@ function isQuestionLocked(index) {
 }
 
 const isQuizFullyAnswered = computed(() => {
-  return mockQuizQuestions.value.every(q => quizAnswers.value[q.id] !== undefined && quizAnswers.value[q.id] !== null)
+  return quizQuestions.value.every(q => quizAnswers.value[q.id] !== undefined && quizAnswers.value[q.id] !== null)
 })
 
 function submitQuiz() {

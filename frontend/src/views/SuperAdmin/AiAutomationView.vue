@@ -5,7 +5,7 @@
  * Tích hợp Bảng giám sát dịch vụ AI, AI Model Toggles, CRON Editor Drawer và Confirm Run Modal.
  */
 import { ref, computed , onMounted} from 'vue'
-import { apiRequest as apiClient } from '@/services/apiClient'
+import { apiRequest } from '@/services/apiClient'
 import {
   Brain,
   Cpu,
@@ -182,18 +182,18 @@ const testModelConnection = (model) => {
 
 onMounted(async () => {
   try {
-    const res = await apiClient.get('/super-admin/ai/jobs')
-    if (res.data) {
-      automationJobs.value = res.data
+    const res = await apiRequest('/api/super-admin/ai/jobs')
+    if (Array.isArray(res)) {
+      automationJobs.value = res
     }
   } catch (error) {
     console.error('Failed to load data for automationJobs', error)
   }
 
   try {
-    const res = await apiClient.get('/super-admin/ai/models')
-    if (res.data) {
-      aiModels.value = res.data
+    const res = await apiRequest('/api/super-admin/ai/models')
+    if (Array.isArray(res)) {
+      aiModels.value = res
     }
   } catch (error) {
     console.error('Failed to load data for aiModels', error)

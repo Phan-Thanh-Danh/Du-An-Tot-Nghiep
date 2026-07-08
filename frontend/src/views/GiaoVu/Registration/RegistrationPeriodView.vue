@@ -7,19 +7,6 @@ const loading = ref(true)
 const apiError = ref('')
 const period = ref(null)
 
-const DEMO_PERIOD = {
-  id: 1,
-  name: 'Đợt 1 - Học kỳ Spring 2026',
-  semester: 'Spring 2026',
-  openDate: '2026-01-15',
-  closeDate: '2026-01-25',
-  withdrawDeadline: '2026-02-10',
-  maxCredits: 24,
-  status: 'open',
-  studentCount: 156,
-  classCount: 12,
-}
-
 async function loadData() {
   loading.value = true
   apiError.value = ''

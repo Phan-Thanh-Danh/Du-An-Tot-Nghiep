@@ -20,16 +20,6 @@ const config = ref({
   withdrawDeadlineDays: 7,
 })
 
-const DEMO_CONFIG = {
-  maxCredits: 24,
-  minCredits: 12,
-  allowOverlap: false,
-  autoApprove: true,
-  waitlistEnabled: true,
-  maxWaitlist: 10,
-  withdrawDeadlineDays: 7,
-}
-
 async function loadData() {
   loading.value = true
   apiError.value = ''

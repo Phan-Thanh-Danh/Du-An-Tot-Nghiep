@@ -5,7 +5,7 @@
  * Hỗ trợ Toggle bật tắt, Campus Override, Phase management, Confirm Modal và lưu vết audit log.
  */
 import { ref, computed , onMounted} from 'vue'
-import { apiRequest as apiClient } from '@/services/apiClient'
+import { apiRequest } from '@/services/apiClient'
 import {
   Settings,
   Power,
@@ -174,9 +174,9 @@ const handleSaveCampusOverride = () => {
 
 onMounted(async () => {
   try {
-    const res = await apiClient.get('/super-admin/system/modules')
-    if (res.data) {
-      modulesMock.value = res.data
+    const res = await apiRequest('/api/super-admin/system/modules')
+    if (Array.isArray(res)) {
+      modulesMock.value = res
     }
   } catch (error) {
     console.error('Failed to load data for modulesMock', error)

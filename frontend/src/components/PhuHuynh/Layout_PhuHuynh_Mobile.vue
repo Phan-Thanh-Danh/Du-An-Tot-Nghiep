@@ -70,7 +70,7 @@ function goBack() {
   router.back()
 }
 
-// Notification count mock
+// Notification count
 const unreadCount = ref(2)
 </script>
 

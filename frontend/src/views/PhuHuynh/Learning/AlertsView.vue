@@ -24,7 +24,7 @@ const dropdownOpen = ref(false)
 const loading = ref(true)
 const error = ref(null)
 const children = ref([])
-const localWarnings = ref([])
+const warningItems = ref([])
 
 const currentChild = computed(() => {
   return children.value.find(c => c.id === activeChildId.value) || {
@@ -42,7 +42,7 @@ function selectChild(id) {
   loading.value = true
   error.value = null
   parentApi.getChildAlerts(id).then(res => {
-    localWarnings.value = mapAlertsToWarnings(res.data)
+    warningItems.value = mapAlertsToWarnings(res.data)
   }).catch(e => {
     error.value = e.message
   }).finally(() => {
@@ -67,7 +67,7 @@ function mapAlertsToWarnings(data) {
 }
 
 function confirmWarning(warnId) {
-  const warn = localWarnings.value.find(w => w.id === warnId)
+  const warn = warningItems.value.find(w => w.id === warnId)
   if (warn) {
     warn.confirmed = true
     warn.confirmedAt = new Date().toLocaleString('vi-VN')
@@ -86,7 +86,7 @@ onMounted(async () => {
       parentApi.getChildAlerts(activeChildId.value)
     ])
     children.value = childrenRes.data || []
-    localWarnings.value = mapAlertsToWarnings(alertsRes.data)
+    warningItems.value = mapAlertsToWarnings(alertsRes.data)
   } catch (e) {
     error.value = e.message || 'Không thể tải dữ liệu cảnh báo'
   } finally {
@@ -175,17 +175,17 @@ onMounted(async () => {
                 Danh sách cảnh báo hiện tại
               </h3>
               <span class="text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded">
-                {{ localWarnings.filter(w => !w.confirmed).length }} cảnh báo chưa đọc
+                {{ warningItems.filter(w => !w.confirmed).length }} cảnh báo chưa đọc
               </span>
             </div>
 
-            <div v-if="localWarnings.length === 0" class="text-center py-16 text-muted text-xs flex flex-col items-center justify-center gap-2">
+            <div v-if="warningItems.length === 0" class="text-center py-16 text-muted text-xs flex flex-col items-center justify-center gap-2">
               <CheckCircle :size="30" class="text-emerald-500" />
               <span>Tuyệt vời! Con em hiện tại không có cảnh báo rèn luyện hoặc học tập nào.</span>
             </div>
             <div v-else class="space-y-4">
               <div
-                v-for="warn in localWarnings"
+                v-for="warn in warningItems"
                 :key="warn.id"
                 class="p-4 rounded-2xl border transition relative overflow-hidden flex flex-col justify-between gap-4"
                 :class="

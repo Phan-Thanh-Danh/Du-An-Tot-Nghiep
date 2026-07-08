@@ -36,7 +36,7 @@ const subCampuses = {
   'Cần Thơ': ['Cơ sở Ninh Kiều']
 }
 
-// Mock modules list
+// Permission modules list
 const modules = [
   { key: 'accounts', name: 'Tài khoản & Phân quyền', desc: 'Quản lý người dùng, phân quyền RBAC' },
   { key: 'campus', name: 'Quản lý Cơ sở (Campus)', desc: 'Cây thư mục tổ chức, phòng học, thiết bị' },
@@ -57,18 +57,21 @@ const auditLogs = ref([])
 // Filtered Roles
 const filteredRoles = computed(() => {
   return roles.value.filter(role => {
-    return role.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-           role.code.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const name = role.name || role.tenVaiTro || ''
+    const code = role.code || role.maVaiTro || ''
+    return name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+           code.toLowerCase().includes(searchQuery.value.toLowerCase())
   })
 })
 
-// Load roles from API (with mock fallback)
+// Load roles from API
 async function loadRoles() {
   loading.value = true
   error.value = ''
   try {
     const data = await rbacApi.getRoles()
-    roles.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+    const list = data?.items ?? data?.data?.items ?? data?.data ?? data
+    roles.value = Array.isArray(list) ? list : []
   } catch (e) {
     error.value = e?.message || 'Không thể tải danh sách vai trò.'
     roles.value = []
@@ -486,7 +489,7 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr
-              v-for="log in mockAuditLogs"
+              v-for="log in auditLogs"
               :key="log.id"
               class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
             >
@@ -570,7 +573,7 @@ onMounted(() => {
             <label class="block text-xs font-bold text-label mb-1.5">Kế thừa quyền mẫu từ vai trò</label>
             <select v-model="newRole.baseTemplateId" class="glass-select w-full bg-white">
               <option :value="null">Bắt đầu từ đầu (Rỗng)</option>
-              <option v-for="r in mockRoles" :key="r.id" :value="r.id">{{ r.name }}</option>
+              <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.name }}</option>
             </select>
           </div>
 

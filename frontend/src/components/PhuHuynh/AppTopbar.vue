@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { Search, Bell, Menu, Target } from 'lucide-vue-next'
 import * as LucideIcons from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
-import { mockParentUser } from './data/menuData.js'
+import { parentUserFallback } from './data/menuData.js'
 import { useAuthStore } from '@/stores/auth'
 import { useRecentFavoritesStore } from '@/stores/recentFavorites'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
@@ -27,44 +27,9 @@ const notifMenuRef = ref(null)
 const notifOpen = ref(false)
 const userMenuOpen = ref(false)
 
-// Parent notifications mock
-const mockNotifications = [
-  {
-    id: 1,
-    type: 'alert',
-    title: 'Cảnh báo: Con vắng mặt không phép',
-    description: 'Học sinh Nguyễn Minh Quân vắng mặt tiết 2 môn Toán ngày 10/06.',
-    time: '1 giờ trước',
-    read: false,
-    icon: 'AlertTriangle',
-    color: 'red',
-    link: '/parent/learning/attendance'
-  },
-  {
-    id: 2,
-    type: 'tuition',
-    title: 'Thông báo học phí học kỳ mới',
-    description: 'Học phí học kỳ 2 đã được mở cổng đóng phí. Hạn đóng: 20/06/2026.',
-    time: '1 ngày trước',
-    read: false,
-    icon: 'Wallet',
-    color: 'yellow',
-    link: '/parent/finance/tuition'
-  },
-  {
-    id: 3,
-    type: 'grade',
-    title: 'Kết quả thi giữa kỳ có cập nhật',
-    description: 'Môn Cấu trúc dữ liệu & Giải thuật của con có điểm thi: 8.5.',
-    time: '2 ngày trước',
-    read: true,
-    icon: 'Award',
-    color: 'green',
-    link: '/parent/learning/grades'
-  }
-]
+const parentNotifications = []
 
-const unreadCount = computed(() => mockNotifications.filter((n) => !n.read).length)
+const unreadCount = computed(() => parentNotifications.filter((n) => !n.read).length)
 
 const pageTitleMap = {
   '/parent/dashboard': { title: 'Dashboard Phụ huynh', subtitle: 'Tổng quan học tập và tài chính của con' },
@@ -274,7 +239,7 @@ const logout = () => {
           </div>
           <div class="max-h-[320px] divide-y divide-(--border-card) overflow-y-auto" role="none">
             <div
-              v-for="notif in mockNotifications"
+              v-for="notif in parentNotifications"
               :key="notif.id"
               class="flex cursor-pointer gap-3 px-3 py-2.5 transition-all hover:bg-(--surface-card-hover) active:scale-[0.98]"
               role="menuitem"
@@ -312,10 +277,10 @@ const logout = () => {
       >
         <div class="app-topbar-avatar flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-[10px] font-bold text-inverse shadow-sm ring-1 ring-(--border-card) bg-orange-100 text-orange-700">
           <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" class="h-full w-full object-cover" />
-          <span v-else>{{ authStore.initials || mockParentUser.initials }}</span>
+          <span v-else>{{ authStore.initials || parentUserFallback.initials }}</span>
         </div>
         <div class="hidden pr-1.5 text-left sm:block">
-          <p class="text-[12px] font-semibold leading-tight text-heading">{{ authStore.displayName || mockParentUser.name }}</p>
+          <p class="text-[12px] font-semibold leading-tight text-heading">{{ authStore.displayName || parentUserFallback.name }}</p>
           <p class="text-[10px] font-medium capitalize text-muted">Phụ huynh</p>
         </div>
       </button>
@@ -336,11 +301,11 @@ const logout = () => {
           @click.stop
         >
           <div class="border-card surface-card border-b px-3 py-3">
-            <p class="text-[13px] font-semibold text-heading">{{ authStore.displayName || mockParentUser.name }}</p>
-            <p class="mt-0.5 truncate text-[11px] font-medium text-muted">{{ authStore.user?.email || mockParentUser.email }}</p>
+            <p class="text-[13px] font-semibold text-heading">{{ authStore.displayName || parentUserFallback.name }}</p>
+            <p class="mt-0.5 truncate text-[11px] font-medium text-muted">{{ authStore.user?.email || parentUserFallback.email }}</p>
             <span class="mt-2 inline-flex items-center gap-1.5 rounded-full border border-card bg-orange-50 dark:bg-orange-950/20 px-2.5 py-1 text-[10px] font-semibold text-orange-600 shadow-sm">
               <LucideIcons.User :size="11" />
-              {{ mockParentUser.campus }}
+              {{ parentUserFallback.campus }}
             </span>
           </div>
 

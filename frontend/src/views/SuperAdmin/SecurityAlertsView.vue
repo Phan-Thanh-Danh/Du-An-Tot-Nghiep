@@ -5,7 +5,7 @@
  * Tích hợp AI Risk Score, Alert Detail Drawer, Confirm Lock Modal và Workflow cập nhật trạng thái.
  */
 import { ref, computed , onMounted} from 'vue'
-import { apiRequest as apiClient } from '@/services/apiClient'
+import { apiRequest } from '@/services/apiClient'
 import {
   Shield,
   ShieldAlert,
@@ -244,9 +244,9 @@ const getStatusName = (status) => {
 
 onMounted(async () => {
   try {
-    const res = await apiClient.get('/super-admin/security/alerts')
-    if (res.data) {
-      alertsMock.value = res.data
+    const res = await apiRequest('/api/super-admin/security/alerts')
+    if (Array.isArray(res)) {
+      alertsMock.value = res
     }
   } catch (error) {
     console.error('Failed to load data for alertsMock', error)

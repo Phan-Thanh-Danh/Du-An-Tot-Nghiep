@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { QuizFormData } from '@/types/content-council/quizForm'
-import { mockSemesters } from '@/mocks/content-council/semesters.mock'
 
 const props = defineProps<{
   modelValue: QuizFormData
@@ -17,12 +16,8 @@ const formData = computed({
   set: (val) => emit('update:modelValue', val)
 })
 
-const mockSubjects = [
-  { id: 1, code: 'WEB201', name: 'Lập trình Web cơ bản', status: 'active' },
-  { id: 2, code: 'COM101', name: 'Nhập môn CNTT', status: 'active' },
-  { id: 3, code: 'PRO192', name: 'Lập trình Java', status: 'active' },
-  { id: 4, code: 'DBI202', name: 'Hệ quản trị CSDL', status: 'active' }
-]
+const subjects = []
+const semesters = []
 
 const updateField = (field: keyof QuizFormData, value: any) => {
   if (props.isReadOnly) return
@@ -64,7 +59,7 @@ const updateField = (field: keyof QuizFormData, value: any) => {
             ]"
           >
             <option value="" disabled>-- Chọn môn học --</option>
-            <option v-for="sub in mockSubjects" :key="sub.id" :value="sub.id">
+            <option v-for="sub in subjects" :key="sub.id" :value="sub.id">
               {{ sub.code }} - {{ sub.name }}
             </option>
           </select>
@@ -89,7 +84,7 @@ const updateField = (field: keyof QuizFormData, value: any) => {
             ]"
           >
             <option value="">Không gắn học kỳ</option>
-            <option v-for="sem in mockSemesters" :key="sem.id" :value="sem.id">
+            <option v-for="sem in semesters" :key="sem.id" :value="sem.id">
               {{ sem.name }} ({{ sem.year }})
             </option>
           </select>

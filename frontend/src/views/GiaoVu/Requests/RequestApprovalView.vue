@@ -21,17 +21,6 @@ const approving = ref(false)
 const rejecting = ref(false)
 const request = ref(null)
 
-const DEMO_REQUEST = {
-  id: requestId,
-  student: 'Nguyễn Văn Nam',
-  studentCode: 'SV2024001',
-  type: 'Chuyển lớp học phần',
-  title: 'Xin chuyển từ L01 sang L02 môn Java',
-  content: 'Do lịch làm việc part-time bị thay đổi, em xin phép được chuyển sang lớp L02 học vào tối thứ 4 để đảm bảo việc học tập.',
-  status: 'under_review',
-  date: '03/07/2026',
-}
-
 async function loadData() {
   loading.value = true
   apiError.value = ''

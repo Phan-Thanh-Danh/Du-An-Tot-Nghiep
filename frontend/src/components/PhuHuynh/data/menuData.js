@@ -1,5 +1,5 @@
 // ============================================================
-// Mock Menu Data - PhuHuynh Sidebar
+// Menu Data - PhuHuynh Sidebar
 // ============================================================
 
 export const phuHuynhMenuGroups = [
@@ -142,12 +142,11 @@ export const phuHuynhMenuGroups = [
   },
 ]
 
-// ── Mock user info ─────────────────────────────────────────
-export const mockParentUser = {
-  name: 'Phạm Thị Mẹ Học Sinh',
-  email: 'parent@mock.local',
-  avatar: null, // null = dùng initials
+export const parentUserFallback = {
+  name: 'Phụ huynh',
+  email: '',
+  avatar: null,
   initials: 'PH',
   relation: 'Phụ huynh học sinh',
-  campus: 'Cơ sở Hà Nội',
+  campus: 'EduLMS',
 }

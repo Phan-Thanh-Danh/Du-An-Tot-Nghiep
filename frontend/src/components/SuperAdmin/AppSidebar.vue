@@ -17,7 +17,7 @@ import {
 } from 'lucide-vue-next'
 import SidebarMenuGroup from './SidebarMenuGroup.vue'
 import SidebarRecentFavorites from '@/components/ui/SidebarRecentFavorites.vue'
-import { superAdminMenuGroups, mockAdminUser } from './data/menuData.js'
+import { superAdminMenuGroups, adminUserFallback } from './data/menuData.js'
 import { useAuthStore } from '@/stores/auth'
 
 defineProps({
@@ -125,17 +125,17 @@ function logout() {
       <div :class="['lg-nav flex items-center gap-2 rounded-xl p-2', collapsed ? '' : 'w-full']">
         <!-- Avatar với màu violet cho Admin -->
         <div class="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-purple-600 dark:from-violet-600/80 dark:to-purple-600/80 text-xs font-bold text-white shadow-lg shadow-violet-500/20 dark:shadow-violet-500/10 ring-2 ring-(--border-card)">
-          <span>{{ authStore.initials || mockAdminUser.initials }}</span>
+          <span>{{ authStore.initials || adminUserFallback.initials }}</span>
           <!-- Badge "SA" nhỏ biểu thị Super Admin -->
           <span class="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white dark:border-slate-800 bg-violet-600 text-[6px] font-black text-white">SA</span>
         </div>
         <Transition name="fade-slide">
           <div v-if="!collapsed" class="overflow-hidden min-w-0">
             <p class="text-[12px] font-semibold text-heading truncate leading-tight">
-              {{ authStore.displayName || mockAdminUser.name }}
+              {{ authStore.displayName || adminUserFallback.name }}
             </p>
             <p class="text-[10px] font-semibold text-link truncate leading-tight">
-              {{ mockAdminUser.role }}
+              {{ adminUserFallback.role }}
             </p>
           </div>
         </Transition>

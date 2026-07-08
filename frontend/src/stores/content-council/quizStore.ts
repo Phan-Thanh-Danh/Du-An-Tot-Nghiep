@@ -48,15 +48,13 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
 
   async function addQuiz(q: ContentCouncilQuiz) {
     try {
-      if (true) {
-        await contentCouncilApi.createQuiz({
-          title: q.title,
-          subjectId: q.subjectId,
-          examType: q.examType,
-          totalScore: q.totalScore,
-          duration: q.duration,
-        })
-      }
+      await contentCouncilApi.createQuiz({
+        title: q.title,
+        subjectId: q.subjectId,
+        examType: q.examType,
+        totalScore: q.totalScore,
+        duration: q.duration,
+      })
       quizzes.value.unshift(q)
       quizQuestions.value[q.id] = []
     } catch (e: any) {
@@ -66,9 +64,7 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
 
   async function updateQuiz(id: number, payload: Partial<ContentCouncilQuiz>) {
     try {
-      if (true) {
-        await contentCouncilApi.updateQuiz(id, payload)
-      }
+      await contentCouncilApi.updateQuiz(id, payload)
       const idx = quizzes.value.findIndex(q => q.id === id)
       if (idx !== -1) {
         Object.assign(quizzes.value[idx], payload)
@@ -83,9 +79,7 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
     const idx = quizzes.value.findIndex(q => q.id === id)
     if (idx === -1) return
     try {
-      if (true) {
-        await contentCouncilApi.deleteQuiz(id)
-      }
+      await contentCouncilApi.deleteQuiz(id)
       const questions = quizQuestions.value[id] || []
       questions.forEach(q => questionStore.adjustUsageCount(q.questionId, -1))
       quizzes.value.splice(idx, 1)
@@ -108,11 +102,9 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
     })
 
     try {
-      if (true) {
-        await contentCouncilApi.assignQuestions(quizId, {
-          questionIds: questions.map(q => q.questionId),
-        })
-      }
+      await contentCouncilApi.assignQuestions(quizId, {
+        questionIds: questions.map(q => q.questionId),
+      })
       quizQuestions.value[quizId] = questions
       const quiz = getQuizById(quizId)
       if (quiz) {
@@ -128,9 +120,7 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
 
   async function publishQuizAction(id: number) {
     try {
-      if (true) {
-        await contentCouncilApi.publishQuiz(id)
-      }
+      await contentCouncilApi.publishQuiz(id)
       const q = getQuizById(id)
       if (q) q.status = 'published'
     } catch (e: any) {
@@ -140,9 +130,7 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
 
   async function unpublishQuizAction(id: number) {
     try {
-      if (true) {
-        await contentCouncilApi.unpublishQuiz(id)
-      }
+      await contentCouncilApi.unpublishQuiz(id)
       const q = getQuizById(id)
       if (q) q.status = 'draft'
     } catch (e: any) {

@@ -49,7 +49,8 @@ async function loadUsers() {
   error.value = ''
   try {
     const data = await adminUserApi.getUsers({ pageIndex: 1, pageSize: 100 })
-    users.value = data?.items ?? data?.data ?? data ?? []
+    const list = data?.items ?? data?.data?.items ?? data?.data ?? data
+    users.value = Array.isArray(list) ? list.map(normalizeUser) : []
   } catch (e) {
     error.value = e?.message || 'Không thể tải danh sách người dùng.'
     users.value = []
@@ -59,7 +60,7 @@ async function loadUsers() {
 }
 
 const filteredUsers = computed(() => {
-  const source = users.value
+  const source = Array.isArray(users.value) ? users.value : []
   return source.filter(u => {
     const name = u.name || u.fullName || u.full_name || ''
     const email = u.email || ''
@@ -90,6 +91,22 @@ const getRoleClass = (role) => {
   if (role === 'Giáo vụ') return 'bg-blue-100 text-blue-700'
   if (role === 'Giảng viên') return 'bg-teal-100 text-teal-700'
   return 'bg-slate-100 text-slate-700'
+}
+
+function normalizeUser(user) {
+  const name = user.name || user.fullName || user.full_name || user.hoTen || user.ho_ten || user.email || ''
+  return {
+    ...user,
+    id: user.id || user.userId || user.maNguoiDung || user.ma_nguoi_dung,
+    name,
+    email: user.email || '',
+    phone: user.phone || user.soDienThoai || user.so_dien_thoai || '',
+    role: user.role || user.vaiTroChinh || user.vai_tro_chinh || '',
+    campus: user.campus || user.campusName || user.donVi || user.maDonVi || '',
+    status: user.status || user.trangThai || user.trang_thai || '',
+    lastLogin: user.lastLogin || user.lanDangNhapCuoi || user.lan_dang_nhap_cuoi || null,
+    createdAt: user.createdAt || user.ngayTao || user.ngay_tao || null,
+  }
 }
 
 // Modals & Drawer State

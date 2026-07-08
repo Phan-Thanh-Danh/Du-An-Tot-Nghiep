@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Award, CheckCircle, CreditCard, Calendar,
@@ -7,42 +7,70 @@ import {
   User, Sparkles, ChevronDown, Check, ShieldAlert,
   GraduationCap, Bell
 } from 'lucide-vue-next'
-import { childrenData } from '@/components/PhuHuynh/data/parentData.js'
+import { parentApi } from '@/services/parentApi'
+import { getStoredActiveChildId, setActiveChildId } from '@/components/PhuHuynh/data/parentState.js'
 
 const router = useRouter()
 
-const activeChildId = ref(Number(localStorage.getItem('parent_active_student_id')) || 1)
+const emptyChild = {
+  id: null,
+  name: 'Chưa có học sinh liên kết',
+  studentId: '',
+  class: '',
+  avatarInitials: '-',
+  gpa: 0,
+  attendanceRate: 0,
+  tuitionDebt: 0,
+  isOverdue: false,
+  schedule: [],
+  alerts: [],
+}
+
+const activeChildId = ref(getStoredActiveChildId())
 const dropdownOpen = ref(false)
+const rawChildren = ref([])
+const childDetails = ref({})
+const childSchedules = ref({})
+const childAlerts = ref({})
+const childTuition = ref({})
 
 const children = computed(() =>
-  childrenData.map(c => ({
-    ...c,
-    tuitionDebt: c.balanceTuition,
-    tuitionStatus: c.balanceTuition > 0 ? (c.isOverdue ? 'Quá hạn' : 'Chờ thanh toán') : 'Đã hoàn thành',
-    schedule: c.id === 1 ? [
-      { id: 1, subject: 'Cấu trúc dữ liệu & Giải thuật', room: 'P.201 - Nhà Beta', teacher: 'TS. Trần Thị B', time: '07:30–09:30', status: 'finished' },
-      { id: 2, subject: 'Toán cao cấp', room: 'P.105 - Nhà Gamma', teacher: 'ThS. Lê Văn C', time: '09:30–11:30', status: 'active' },
-      { id: 3, subject: 'Lập trình Web nâng cao', room: 'P.402 - Nhà Alpha', teacher: 'ThS. Nguyễn Văn A', time: '12:30–14:30', status: 'upcoming' },
-    ] : [
-      { id: 1, subject: 'An toàn thông tin mạng', room: 'P.301 - Nhà Alpha', teacher: 'TS. Nguyễn Hoàng G', time: '07:30–09:30', status: 'finished' },
-      { id: 2, subject: 'Phát triển ứng dụng di động', room: 'Lab 2 - Nhà Beta', teacher: 'ThS. Vũ Thị H', time: '09:30–11:30', status: 'upcoming' },
-    ],
-    alerts: c.warnings.filter(w => !w.confirmed).map(w => ({
-      id: w.id, type: w.type,
-      message: `${w.reason} (${w.subject})`,
-      time: w.date
+  rawChildren.value.map(c => ({
+    id: c.id,
+    name: c.name,
+    studentId: c.email || `ID ${c.id}`,
+    class: c.className || 'Chưa có lớp',
+    avatarInitials: getInitials(c.name),
+    gpa: childDetails.value[c.id]?.gpa || 0,
+    attendanceRate: 0,
+    tuitionDebt: childTuition.value[c.id]?.totalDue || 0,
+    isOverdue: false,
+    schedule: (childSchedules.value[c.id] || []).map((s, idx) => ({
+      id: idx + 1,
+      subject: s.subject || 'Lịch học',
+      room: s.room || '-',
+      teacher: s.teacher || '-',
+      time: s.time || '-',
+      status: idx === 0 ? 'upcoming' : 'finished',
+    })),
+    alerts: (childAlerts.value[c.id] || []).map((a, idx) => ({
+      id: idx + 1,
+      type: a.severity || 'info',
+      message: a.message || 'Cảnh báo hệ thống',
+      time: 'Từ hệ thống',
     })),
   }))
 )
 
 const currentChild = computed(() =>
-  children.value.find(c => c.id === activeChildId.value) || children.value[0]
+  children.value.find(c => c.id === activeChildId.value) || children.value[0] || emptyChild
 )
 
 function selectChild(id) {
   activeChildId.value = id
-  localStorage.setItem('parent_active_student_id', id)
+  setActiveChildId(id)
   dropdownOpen.value = false
+  loadChildDetails(id)
 }
 
 function formatCurrency(amount) {
@@ -50,6 +78,37 @@ function formatCurrency(amount) {
 }
 
 function nav(path) { router.push(path) }
+
+function getInitials(name = '') {
+  return name.split(' ').filter(Boolean).slice(-2).map(part => part.charAt(0)).join('').toUpperCase() || '-'
+}
+
+async function loadChildDetails(childId) {
+  if (!childId) return
+  const [detailRes, scheduleRes, alertsRes, tuitionRes] = await Promise.allSettled([
+    parentApi.getChildDetail(childId),
+    parentApi.getChildSchedule(childId),
+    parentApi.getChildAlerts(childId),
+    parentApi.getChildTuition(childId),
+  ])
+  if (detailRes.status === 'fulfilled') childDetails.value[childId] = detailRes.value?.data || {}
+  if (scheduleRes.status === 'fulfilled') childSchedules.value[childId] = scheduleRes.value?.data || []
+  if (alertsRes.status === 'fulfilled') childAlerts.value[childId] = alertsRes.value?.data?.alerts || []
+  if (tuitionRes.status === 'fulfilled') childTuition.value[childId] = tuitionRes.value?.data || {}
+}
+
+async function loadDashboard() {
+  const dashboardRes = await parentApi.getDashboard()
+  rawChildren.value = dashboardRes?.data?.children || []
+  const firstChild = rawChildren.value.find(child => child.id === activeChildId.value) || rawChildren.value[0]
+  if (firstChild) {
+    activeChildId.value = firstChild.id
+    setActiveChildId(firstChild.id)
+    await loadChildDetails(firstChild.id)
+  }
+}
+
+onMounted(loadDashboard)
 </script>
 
 <template>

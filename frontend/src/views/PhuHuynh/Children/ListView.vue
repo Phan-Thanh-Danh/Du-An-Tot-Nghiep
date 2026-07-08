@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Users,
@@ -11,50 +11,70 @@ import {
   CreditCard,
   AlertCircle
 } from 'lucide-vue-next'
+import { parentApi } from '@/services/parentApi'
+import { setActiveChildId } from '@/components/PhuHuynh/data/parentState.js'
 
 const router = useRouter()
 const searchQuery = ref('')
+const loading = ref(false)
+const error = ref('')
+const childrenList = ref([])
 
-// Mock danh sách học sinh liên kết
-const childrenList = ref([
-  {
-    id: 1,
-    name: 'Nguyễn Minh Quân',
-    studentId: 'SV2024001',
-    class: 'CNTT K26A',
-    email: 'quan.nm2024@student.edu.vn',
-    status: 'Active',
-    linkedDate: '10/01/2026',
-    permissions: ['Xem bảng điểm', 'Xem điểm danh', 'Xem thời khóa biểu', 'Xem học phí'],
-    avatarInitials: 'MQ'
-  },
-  {
-    id: 2,
-    name: 'Nguyễn Khánh Linh',
-    studentId: 'SV2024045',
-    class: 'CNTT K26B',
-    email: 'linh.nk2024@student.edu.vn',
-    status: 'Active',
-    linkedDate: '12/01/2026',
-    permissions: ['Xem bảng điểm', 'Xem điểm danh', 'Xem thời khóa biểu'],
-    avatarInitials: 'KL'
-  }
-])
+const filteredChildren = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return childrenList.value
+  return childrenList.value.filter(child =>
+    child.name.toLowerCase().includes(query) ||
+    child.studentId.toLowerCase().includes(query) ||
+    child.class.toLowerCase().includes(query)
+  )
+})
 
 function navigateToOverview(childId) {
+  setActiveChildId(childId)
   router.push({
     path: '/parent/children/overview',
     query: { studentId: childId }
   })
 }
 
-function navigateToSchedule() {
+function navigateToSchedule(childId) {
+  setActiveChildId(childId)
   router.push('/parent/learning/schedule')
 }
 
-function navigateToFinance() {
+function navigateToFinance(childId) {
+  setActiveChildId(childId)
   router.push('/parent/finance/tuition')
 }
+
+function getInitials(name = '') {
+  return name.split(' ').filter(Boolean).slice(-2).map(part => part.charAt(0)).join('').toUpperCase() || '-'
+}
+
+async function loadChildren() {
+  loading.value = true
+  error.value = ''
+  try {
+    const res = await parentApi.getChildren()
+    childrenList.value = (res?.data || []).map(child => ({
+      id: child.id,
+      name: child.name || '',
+      studentId: child.email || `ID ${child.id}`,
+      class: child.className || 'Chưa có lớp',
+      status: child.status || '',
+      linkedDate: '',
+      permissions: [],
+      avatarInitials: getInitials(child.name),
+    }))
+  } catch (e) {
+    error.value = e?.message || 'Không thể tải danh sách học sinh.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadChildren)
 </script>
 
 <template>
@@ -99,7 +119,7 @@ function navigateToFinance() {
     <!-- ── DANH SÁCH HỌC SINH ── -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
       <div
-        v-for="child in childrenList"
+        v-for="child in filteredChildren"
         :key="child.id"
         class="lg-card-glass p-5 flex flex-col justify-between hover:border-orange-500/30 transition-all duration-300 relative group"
       >
@@ -123,17 +143,17 @@ function navigateToFinance() {
               <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
                 <UserCheck :size="10" /> Đang liên kết
               </span>
-              <span class="text-[9px] text-muted">Từ ngày {{ child.linkedDate }}</span>
+              <span v-if="child.linkedDate" class="text-[9px] text-muted">Từ ngày {{ child.linkedDate }}</span>
             </div>
           </div>
 
           <!-- Chi tiết liên hệ -->
           <div class="space-y-1.5 mb-4 text-xs">
             <p class="flex items-center gap-2 text-body">
-              <span class="text-muted w-16">Email:</span>
-              <span class="font-medium truncate">{{ child.email }}</span>
+              <span class="text-muted w-16">Mã:</span>
+              <span class="font-medium truncate">{{ child.studentId }}</span>
             </p>
-            <div class="flex items-start gap-2 text-body">
+            <div v-if="child.permissions.length" class="flex items-start gap-2 text-body">
               <span class="text-muted w-16 flex-shrink-0 mt-0.5">Quyền hạn:</span>
               <div class="flex flex-wrap gap-1">
                 <span
@@ -176,6 +196,9 @@ function navigateToFinance() {
         </div>
       </div>
     </div>
+    <div v-if="loading" class="lg-card-glass p-8 text-center text-xs text-muted">Đang tải danh sách học sinh...</div>
+    <div v-else-if="error" class="lg-card-glass p-8 text-center text-xs text-red-600">{{ error }}</div>
+    <div v-else-if="filteredChildren.length === 0" class="lg-card-glass p-8 text-center text-xs text-muted">Không có học sinh liên kết.</div>
   </div>
 </template>
 

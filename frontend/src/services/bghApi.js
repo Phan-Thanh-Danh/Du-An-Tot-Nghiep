@@ -1,4 +1,4 @@
-import { apiRequest, unwrapApiData } from './apiClient'
+import { apiRequest } from './apiClient'
 
 export const bghApi = {
   getDashboard() {

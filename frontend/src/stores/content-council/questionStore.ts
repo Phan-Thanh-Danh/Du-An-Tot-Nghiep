@@ -43,16 +43,14 @@ export const useQuestionStore = defineStore('contentCouncilQuestion', () => {
 
   async function addQuestion(q: QuestionBankItem) {
     try {
-      if (true) {
-        await contentCouncilApi.createQuestion({
-          subjectId: q.subjectId,
-          type: q.type,
-          content: q.content,
-          choices: q.choices,
-          correctAnswer: q.correctAnswer,
-          difficulty: q.difficulty,
-        })
-      }
+      await contentCouncilApi.createQuestion({
+        subjectId: q.subjectId,
+        type: q.type,
+        content: q.content,
+        choices: q.choices,
+        correctAnswer: q.correctAnswer,
+        difficulty: q.difficulty,
+      })
       questions.value.unshift(q)
     } catch (e: any) {
       error.value = e?.message || 'Không thể thêm câu hỏi'
@@ -61,9 +59,7 @@ export const useQuestionStore = defineStore('contentCouncilQuestion', () => {
 
   async function updateQuestion(id: number, payload: Partial<QuestionBankItem>) {
     try {
-      if (true) {
-        await contentCouncilApi.updateQuestion(id, payload)
-      }
+      await contentCouncilApi.updateQuestion(id, payload)
       const idx = questions.value.findIndex(q => q.id === id)
       if (idx !== -1) {
         Object.assign(questions.value[idx], payload)
@@ -81,9 +77,7 @@ export const useQuestionStore = defineStore('contentCouncilQuestion', () => {
       throw new Error('Không thể xóa câu hỏi đang được sử dụng.')
     }
     try {
-      if (true) {
-        await contentCouncilApi.deleteQuestion(id)
-      }
+      await contentCouncilApi.deleteQuestion(id)
       questions.value.splice(idx, 1)
     } catch (e: any) {
       error.value = e?.message || 'Không thể xóa câu hỏi'
@@ -102,12 +96,10 @@ export const useQuestionStore = defineStore('contentCouncilQuestion', () => {
     if (idx === -1) return
     const newStatus = questions.value[idx].status === 'active' ? 'inactive' : 'active'
     try {
-      if (true) {
-        if (newStatus === 'active') {
-          await contentCouncilApi.activateQuestion(id)
-        } else {
-          await contentCouncilApi.deactivateQuestion(id)
-        }
+      if (newStatus === 'active') {
+        await contentCouncilApi.activateQuestion(id)
+      } else {
+        await contentCouncilApi.deactivateQuestion(id)
       }
       questions.value[idx].status = newStatus
     } catch (e: any) {

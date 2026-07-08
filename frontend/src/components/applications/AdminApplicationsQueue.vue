@@ -20,17 +20,18 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import TableShell from '@/components/ui/TableShell.vue'
-import {
-  adminApplications,
-  applicationTypes,
-  assignableUsers,
-  getApplicationTypeLabel,
-} from '@/mocks/applicationMockData'
 import { usePopupStore } from '@/stores/popup'
 import { formatDate, formatDateTime } from '@/utils/dateFormat'
 import { getStatusMeta, getStatusOptions } from '@/utils/statusLabels'
 
 const popupStore = usePopupStore()
+const adminApplications = []
+const applicationTypes = []
+const assignableUsers = []
+
+function getApplicationTypeLabel(type) {
+  return applicationTypes.find((item) => item.value === type)?.label || type || 'Không xác định'
+}
 
 const loading = ref(false)
 const error = ref('')

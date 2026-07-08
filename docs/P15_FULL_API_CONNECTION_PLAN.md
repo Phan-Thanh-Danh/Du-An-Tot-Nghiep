@@ -142,3 +142,47 @@ Connect: LoginHistoryView, ProgramsView, EvaluationsResultsView, report views
 | GET | `/api/parent/notifications/history` | Notification history |
 | GET | `/api/parent/profile` | Parent profile |
 | GET | `/api/parent/access-rights` | Access rights |
+
+## P15F.1 - Browser Smoke + Skeleton Standardization
+
+Status: `PASS_WITH_WARNINGS` on 2026-07-08.
+
+- Backend smoke target: `http://localhost:5097`; frontend target: `https://localhost:5173`.
+- SQL Server target: `DELL\SQLEXPRESS02`, database `LMS`.
+- Verified large seed data exists: `hoc_sinh = 10004`, `giao_vien = 109`.
+- Chrome/CDP smoke covered role dashboard entry routes for SuperAdmin, Staff/GiaoVu, Teacher, Student, BGH, Parent, and Content Council.
+- Final smoke result: 6 role entries passed; Parent login failed with `401 Unauthorized` for the requested P15 account.
+- Console runtime errors after fixes: `0`; network `404`: `0`; network `500`: `0`.
+- Added shared skeleton components under `frontend/src/components/common/skeleton`.
+- Removed standalone mock data/service files found under `frontend/src/data`, `frontend/src/mocks`, and mock facility services.
+- Remaining warning: several service modules still contain opt-in fallback/mock guard code such as `ENABLE_MOCK_API`/`withFallback`; these must be reviewed before claiming a strict zero-mock production state.
+
+Detailed report: `docs/P15F_BROWSER_SMOKE_AND_SKELETON_REPORT.md`.
+
+## P15F.2 - Strict Zero-Mock Finalization + Parent Login Fix
+
+Status: `PASS_WITH_WARNINGS` on 2026-07-08.
+
+- Dropped and recreated local `LMS` on `DELL\SQLEXPRESS02` through EF Core/code-first startup.
+- Startup now runs base role/demo seed before optional `SeedProfile=LargeDemo`, so deterministic P12/P15 accounts exist after a clean DB reset.
+- Verified large seed data after reset: total users `10131`, `hoc_sinh = 10005`, `giao_vien = 110`, `phu_huynh = 2`, parent links `1`.
+- Verified `p15test_parent01@lms.local / Test@123` login now returns `200`.
+- Verified P12/P15 Staff, Teacher, Student, BGH, Parent, and ContentCouncil seeded accounts are active.
+- Removed remaining `ENABLE_MOCK_API` / `withFallback` service branches and deleted standalone mock files.
+- Final hard grep over `frontend/src`, `Backend/Controllers`, and `Backend/Services` for `mock|fake|dummy|DEMO_|ENABLE_MOCK_API|withFallback|@/mocks|studentData.mock|mockFacilitiesData|mockDataService|rewardDisciplineMock` returns `0` hits.
+- Final browser smoke covered Parent dashboard, Parent children list, Parent tuition, SuperAdmin dashboard regression, and Student dashboard regression: `5/5` pass, console/runtime/network 401/403/404/500 all `0`.
+- Remaining warning: full 165-route browser coverage is still not complete, and `npm run lint` still fails on pre-existing unrelated lint/parser issues even though `npm run build` passes.
+
+## P15F.3 - Release Hardening / Final Warnings Cleanup
+
+Status: `PASS_WITH_WARNINGS` on 2026-07-08.
+
+- Protected config before release/demo review: `Backend/appsettings.json` now uses a generic/default LocalDB connection string and empty secret placeholders; `DELL\SQLEXPRESS02` is kept only in `Backend/appsettings.Development.json`. Application evidence storage defaults to Local temp storage outside Production, so startup does not require committed R2 secrets.
+- Removed Parent local business presentation data from targeted screens. `frontend/src/components/PhuHuynh/data/parentData.js` was deleted; Parent dashboard, children list/overview, profile, notification history, and system notifications now load through `parentApi`.
+- Parent-specific grep for `parentData|legacy|local|demo|mock|fake|dummy|DEMO_` has `0` production data hits; remaining `local` matches are UI/client state only.
+- Expanded browser smoke covered all Parent sidebar routes, all SuperAdmin sidebar routes, and one representative route each for Student, Teacher, Staff, BGH, and ContentCouncil: `65/65` pass.
+- P15F.3 smoke totals: console errors `0`, runtime exceptions `0`, network `401/403/404/500 = 0`.
+- Strict production mock/fallback grep remains `0` hits.
+- Build verification: backend `dotnet build` PASS with 15 warnings and 0 errors; frontend `npm run build` PASS.
+- Lint triage completed in `docs/P15F_LINT_BACKLOG.md`; `npm run lint` remains non-build-blocking backlog work.
+- Full 165-route browser clickthrough is still pending, so release/demo decision remains `PASS_WITH_WARNINGS` rather than full `PASS`.
