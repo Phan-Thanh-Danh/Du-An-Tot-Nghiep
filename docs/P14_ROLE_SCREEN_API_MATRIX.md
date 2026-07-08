@@ -77,19 +77,19 @@
 | /bgh/curriculum | Curriculum | BGH/CurriculumView | GET /api/curriculum/subjects | CONNECTED | |
 | /bgh/academic-terms | Terms | BGH/AcademicTermsView | GET /api/master-data/academic-terms | CONNECTED | |
 | /bgh/academic/overview | Academic Overview | BGH/Academic/AcademicOverviewView | MIXED | FE_ONLY | |
-| /bgh/academic/gpa | GPA Reports | BGH/Academic/GPAReportsView | MIXED | FE_ONLY | |
-| /bgh/academic/at-risk | At-Risk Students | BGH/Academic/AtRiskStudentsView | MIXED | BE_MISSING | |
-| /bgh/academic/reports | Reports | BGH/Academic/AcademicReportsView | MIXED | FE_ONLY | |
-| /bgh/academic/pass-fail | Pass/Fail | BGH/Academic/PassFailRatesView | MIXED | FE_ONLY | |
+| /bgh/academic/gpa | GPA Reports | BGH/Academic/GPAReportsView | GET /api/bgh/academic/gpa | CONNECTED | Scoped/Verified |
+| /bgh/academic/at-risk | At-Risk Students | BGH/Academic/AtRiskStudentsView | GET /api/bgh/academic/at-risk | CONNECTED | Scoped/Verified |
+| /bgh/academic/reports | Reports | BGH/Academic/AcademicReportsView | GET /api/bgh/academic/reports | CONNECTED | Scoped/Verified |
+| /bgh/academic/pass-fail | Pass/Fail | BGH/Academic/PassFailRatesView | GET /api/bgh/academic/pass-fail | CONNECTED | Scoped/Verified |
 | /bgh/schedule/pending | Pending Schedules | BGH/Schedule/PendingSchedulesView | GET /api/thoi-khoa-bieu | CONNECTED | |
 | /bgh/schedule/conflicts | Conflicts | BGH/Schedule/ConflictListView | POST /api/thoi-khoa-bieu/check-xung-dot | CONNECTED | |
 | /bgh/schedule/published | Published | BGH/Schedule/PublishedSchedulesView | GET /api/thoi-khoa-bieu | CONNECTED | |
-| /bgh/schedule/changes | Changes | BGH/Schedule/ScheduleChangesView | MIXED | FE_ONLY | |
-| /bgh/evaluations | Evaluations | BGH/EvaluationsView | GET /api/bgh/evaluations | CONNECTED | |
-| /bgh/evaluations/ranking | Teacher Ranking | BGH/Evaluations/TeacherRankingView | MIXED | FE_ONLY | |
-| /bgh/evaluations/detail/:id | Eval Details | BGH/Evaluations/TeacherEvalDetailsView | MIXED | FE_ONLY | |
-| /bgh/evaluations/overview | Eval Overview | BGH/Evaluations/EvalOverviewView | MIXED | FE_ONLY | |
-| /bgh/evaluations/ai-analysis | AI Analysis | BGH/Evaluations/AIFeedbackAnalysisView | MIXED | FE_ONLY | |
+| /bgh/schedule/changes | Changes | BGH/Schedule/ScheduleChangesView | GET /api/bgh/schedule/changes | CONNECTED | Scoped/Verified |
+| /bgh/evaluations | Evaluations | BGH/EvaluationsView | GET /api/bgh/evaluations | CONNECTED | Scoped/Verified |
+| /bgh/evaluations/ranking | Teacher Ranking | BGH/Evaluations/TeacherRankingView | GET /api/bgh/evaluations/ranking | CONNECTED | Scoped/Verified |
+| /bgh/evaluations/detail/:id | Eval Details | BGH/Evaluations/TeacherEvalDetailsView | GET /api/bgh/evaluations/{id} | CONNECTED | Scoped/Verified |
+| /bgh/evaluations/overview | Eval Overview | BGH/Evaluations/EvalOverviewView | GET /api/bgh/evaluations/overview | CONNECTED | Scoped/Verified |
+| /bgh/evaluations/ai-analysis | AI Analysis | BGH/Evaluations/AIFeedbackAnalysisView | GET /api/bgh/evaluations/ai-analysis | CONNECTED | Scoped/Verified |
 | /bgh/facilities | Facilities | BGH/FacilitiesView | GET /api/master-data/buildings, floors, rooms | CONNECTED | |
 | /bgh/audit-logs | Audit Logs | BGH/AuditLogsView | GET /api/audit-logs | CONNECTED | |
 | /bgh/profile | Profile | BGH/ProfileView | GET /api/account/me | CONNECTED | |

@@ -30,7 +30,6 @@ import { unwrapApiData } from '@/services/apiClient'
 const popup = usePopupStore()
 const router = useRouter()
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 const semesterFilter = ref('spring-2026')
@@ -41,12 +40,29 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getReportOverview()
-      const data = unwrapApiData(res)
-      if (data) {
-        // Update riskStudents and summaryStats from API data as needed
-      }
+    const res = await bghApi.getAtRiskStudents()
+    const data = unwrapApiData(res)
+    if (data) {
+      totalAtRisk.value = data.totalAtRisk ?? 0
+      const rawSummary = data.summary || {}
+      summaryStats.value = [
+        { label: 'Tổng SV nguy cơ', count: data.totalAtRisk ?? 0, unit: 'SV', color: 'text-(--color-danger-text)', bg: 'bg-(--color-danger-bg)' },
+        { label: 'Mức Critical', count: rawSummary.criticalCount ?? 0, unit: 'SV', color: 'text-(--color-danger-text)', bg: 'bg-(--color-danger-bg)' },
+        { label: 'Điểm TB nhóm rủi ro', count: rawSummary.avgGpaAtRisk ?? 0, unit: '', color: 'text-(--color-warning-text)', bg: 'bg-(--color-warning-bg)' },
+        { label: 'Tổng SV toàn trường', count: rawSummary.totalStudents ?? 0, unit: 'SV', color: 'text-(--color-info-text)', bg: 'bg-(--color-info-bg)' },
+      ]
+      riskStudents.value = (data.students || []).map(s => ({
+        id: s.id,
+        name: s.name,
+        code: s.email || '—',
+        class: s.classCode || '—',
+        subject: '',
+        grade: s.avgGpa,
+        attendance: null,
+        risk: s.failCount >= 3 ? 'critical' : s.failCount >= 2 ? 'high' : 'medium',
+        reason: `Đã rớt ${s.failCount} môn. GPA hiện tại: ${s.avgGpa}.`,
+        email: s.email || '',
+      }))
     }
   } catch (e) {
     error.value = e.message
@@ -56,23 +72,13 @@ async function loadData() {
 }
 onMounted(() => { loadData() })
 
+const totalAtRisk = ref(0)
+const summaryStats = ref([])
+const riskStudents = ref([])
+
 const semesters = [
   { value: 'spring-2026', label: 'Kỳ Spring 2026' },
   { value: 'fall-2025', label: 'Kỳ Fall 2025' },
-]
-
-const riskStudents = ref([
-  { id: 1, name: 'Lê Hoàng Minh', code: 'SV2024005', class: 'SE1601', subject: 'Cấu trúc dữ liệu', grade: 3.5, attendance: 75, risk: 'critical', reason: 'Điểm Lab thấp & Vắng mặt liên tục (2 tuần).' },
-  { id: 2, name: 'Nguyễn Thị Hoa', code: 'SV2024122', class: 'SE1602', subject: 'Java Programming', grade: 4.2, attendance: 90, risk: 'high', reason: 'Tiến độ hoàn thành Assignment chậm (>50% chưa nộp).' },
-  { id: 3, name: 'Trần Văn Tú', code: 'SV2024089', class: 'SE1601', subject: 'Database Design', grade: 5.0, attendance: 82, risk: 'medium', reason: 'Điểm Quiz trung bình thấp (Dưới 4.5).' },
-  { id: 4, name: 'Phạm Hồng Nam', code: 'SV2024201', class: 'SE1605', subject: 'Operating Systems', grade: 2.8, attendance: 65, risk: 'critical', reason: 'Vắng quá 20% & Điểm kiểm tra giữa kỳ < 3.0.' },
-])
-
-const summaryStats = [
-  { label: 'Cảnh báo', count: 42, unit: 'SV', color: 'text-(--color-danger-text)', bg: 'bg-(--color-danger-bg)' },
-  { label: 'Mức Critical', count: 12, unit: 'SV', color: 'text-(--color-danger-text)', bg: 'bg-(--color-danger-bg)' },
-  { label: 'Mức High', count: 16, unit: 'SV', color: 'text-(--color-warning-text)', bg: 'bg-(--color-warning-bg)' },
-  { label: 'Mức Medium', count: 14, unit: 'SV', color: 'text-(--color-info-text)', bg: 'bg-(--color-info-bg)' },
 ]
 
 const filteredStudents = computed(() => {
@@ -111,7 +117,7 @@ function prepareExcelData() {
     'Lớp': s.class,
     'Môn': s.subject,
     'Điểm': s.grade,
-    'Chuyên cần': `${s.attendance}%`,
+    'Chuyên cần': s.attendance != null ? `${s.attendance}%` : '—',
     'Mức rủi ro': s.risk,
     'Nguyên nhân': s.reason,
   }))
@@ -181,9 +187,9 @@ function sendBulkWarning() {
       </div>
 
       <!-- ── Summary Stats ── -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div v-if="summaryStats.length" class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div v-for="stat in summaryStats" :key="stat.label" :class="['rounded-2xl p-4 border text-center', stat.bg, `border-${stat.color.replace('text-', '')}/20`]">
-          <p :class="['text-2xl font-bold', stat.color]">{{ stat.count }}</p>
+          <p :class="['text-2xl font-bold', stat.color]">{{ typeof stat.count === 'number' && stat.count % 1 !== 0 ? stat.count.toFixed(2) : stat.count }}</p>
           <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">{{ stat.label }}</p>
         </div>
       </div>
@@ -197,7 +203,7 @@ function sendBulkWarning() {
                </div>
                <div>
                   <h3 class="text-lg font-semibold tracking-tight text-heading">AI Academic Forecast</h3>
-                  <p class="text-sm text-(--color-info-text) mt-1 font-medium max-w-md">Hệ thống đã phân tích dữ liệu của 1,240 sinh viên và phát hiện 42 trường hợp có nguy cơ rớt môn cao trong kỳ này.</p>
+                  <p class="text-sm text-(--color-info-text) mt-1 font-medium max-w-md">Hệ thống đã phân tích dữ liệu và phát hiện <strong>{{ totalAtRisk }}</strong> trường hợp có nguy cơ rớt môn cao trong kỳ này.</p>
                </div>
             </div>
             <div class="flex flex-wrap justify-center gap-3">
@@ -207,7 +213,7 @@ function sendBulkWarning() {
                </div>
                <div class="px-4 py-3 surface-card rounded-2xl border border-(--color-info-text)/20 text-center">
                   <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">Cần can thiệp</p>
-                  <p class="text-lg font-semibold text-heading">18 SV</p>
+                  <p class="text-lg font-semibold text-heading">{{ summaryStats.length ? summaryStats[1].count : 0 }} SV</p>
                </div>
             </div>
          </div>
@@ -238,13 +244,8 @@ function sendBulkWarning() {
         </button>
       </div>
 
-      <!-- ── Loading State ── -->
-      <div v-if="loading" class="flex items-center justify-center py-20">
-        <Loader2 :size="32" class="animate-spin text-placeholder" />
-      </div>
-
       <!-- ── Empty State ── -->
-      <div v-else-if="filteredStudents.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
+      <div v-if="filteredStudents.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
         <Inbox :size="48" class="text-placeholder mb-4" />
         <p class="text-lg font-semibold text-muted">Không tìm thấy sinh viên nào</p>
         <p class="text-sm text-placeholder mt-1">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
@@ -275,15 +276,14 @@ function sendBulkWarning() {
             <div class="grid grid-cols-2 gap-4 mb-8">
                <div class="p-4 surface-solid rounded-2xl border border-default">
                   <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1.5">Môn học hiện tại</p>
-                  <p class="text-xs font-bold text-label">{{ st.subject }}</p>
+                  <p class="text-xs font-bold text-label">{{ st.subject || 'Đang cập nhật' }}</p>
                </div>
                <div class="p-4 surface-solid rounded-2xl border border-default">
-                  <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1.5">Điểm TB / Chuyên cần</p>
+                  <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1.5">GPA TB / Môn rớt</p>
                   <div class="flex items-center justify-between">
-                     <span class="text-sm font-semibold text-(--color-danger-text)">{{ st.grade }}</span>
+                     <span class="text-sm font-semibold" :class="st.grade < 4 ? 'text-(--color-danger-text)' : 'text-(--color-warning-text)'">{{ st.grade }}</span>
                      <div class="text-right">
-                       <span class="text-[10px] font-bold text-label">{{ st.attendance }}%</span>
-                       <span v-if="100 - st.attendance > 15" class="text-[9px] font-semibold text-(--color-danger-text) ml-1">(vắng {{ 100 - st.attendance }}%)</span>
+                       <span class="text-[10px] font-bold text-label">{{ st.reason }}</span>
                      </div>
                   </div>
                </div>
@@ -344,7 +344,7 @@ function sendBulkWarning() {
               </div>
               <div class="p-4 surface-solid rounded-2xl border border-default">
                 <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1.5">Môn học</p>
-                <p class="text-xs font-bold text-label">{{ selectedStudent.subject }}</p>
+                <p class="text-xs font-bold text-label">{{ selectedStudent.subject || 'Đang cập nhật' }}</p>
               </div>
             </div>
 
@@ -359,52 +359,30 @@ function sendBulkWarning() {
 
             <!-- Scores -->
             <div class="p-4 surface-solid rounded-2xl border border-default mb-5">
-              <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-3">Điểm số & Chuyên cần</p>
+              <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-3">Điểm số</p>
               <div class="space-y-3">
                 <div class="flex items-center justify-between">
-                  <span class="text-xs font-semibold text-muted">Điểm hiện tại</span>
-                  <span class="text-sm font-bold text-(--color-danger-text)">{{ selectedStudent.grade }}</span>
+                  <span class="text-xs font-semibold text-muted">GPA hiện tại</span>
+                  <span class="text-sm font-bold" :class="selectedStudent.grade < 4 ? 'text-(--color-danger-text)' : 'text-(--color-warning-text)'">{{ selectedStudent.grade }}</span>
                 </div>
                 <div class="flex items-center justify-between">
-                  <span class="text-xs font-semibold text-muted">Chuyên cần</span>
-                  <div class="text-right">
-                    <span class="text-sm font-bold text-label">{{ selectedStudent.attendance }}%</span>
-                    <span v-if="100 - selectedStudent.attendance > 10" class="text-[10px] font-semibold text-(--color-danger-text) ml-1">(vắng {{ 100 - selectedStudent.attendance }}%)</span>
-                  </div>
+                  <span class="text-xs font-semibold text-muted">Số môn đã rớt</span>
+                  <span class="text-sm font-bold text-(--color-danger-text)">{{ selectedStudent.reason }}</span>
                 </div>
               </div>
             </div>
 
-            <!-- Contact Info (mock) -->
+            <!-- Contact Info -->
             <div class="p-4 surface-solid rounded-2xl border border-default mb-5">
               <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-3">Thông tin liên hệ</p>
               <div class="space-y-3">
                 <div class="flex items-center gap-2.5">
                   <Mail :size="14" class="text-placeholder shrink-0" />
-                  <span class="text-xs font-medium text-body">{{ selectedStudent.code.toLowerCase() }}@student.edu.vn</span>
+                  <span class="text-xs font-medium text-body">{{ selectedStudent.email || '—' }}</span>
                 </div>
                 <div class="flex items-center gap-2.5">
                   <Phone :size="14" class="text-placeholder shrink-0" />
-                  <span class="text-xs font-medium text-body">0987.654.321</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Course History (mock) -->
-            <div class="p-4 surface-solid rounded-2xl border border-default mb-5">
-              <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-3">Môn học đã đăng ký (kỳ này)</p>
-              <div class="space-y-2.5">
-                <div class="flex items-center justify-between text-xs">
-                  <span class="font-medium text-body">{{ selectedStudent.subject }}</span>
-                  <span class="font-semibold text-muted">{{ selectedStudent.grade }}</span>
-                </div>
-                <div class="flex items-center justify-between text-xs">
-                  <span class="font-medium text-body">Toán rời rạc</span>
-                  <span class="font-semibold text-muted">6.5</span>
-                </div>
-                <div class="flex items-center justify-between text-xs">
-                  <span class="font-medium text-body">Xác suất thống kê</span>
-                  <span class="font-semibold text-muted">7.2</span>
+                  <span class="text-xs font-medium text-body">—</span>
                 </div>
               </div>
             </div>

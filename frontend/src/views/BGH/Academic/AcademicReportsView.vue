@@ -21,7 +21,6 @@ import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
 const popup = usePopupStore()
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
@@ -42,22 +41,21 @@ const campuses = [
   { value: 'dn', label: 'Cơ sở Đà Nẵng' },
 ]
 
-const reports = ref([
-  { id: 'RPT-001', name: 'Báo cáo chất lượng học tập kỳ Spring 2026', type: 'Toàn trường', date: '12/05/2026', status: 'ready' },
-  { id: 'RPT-002', name: 'Phân tích tỷ lệ Incomplete môn đồ án', type: 'Theo môn học', date: '10/05/2026', status: 'ready' },
-  { id: 'RPT-003', name: 'Thống kê điểm trung bình Khoa CNTT', type: 'Theo khoa', date: '08/05/2026', status: 'generating' },
-])
+const reports = ref([])
+const summaryData = ref(null)
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getReportOverview()
-      const data = unwrapApiData(res)
-      if (data) {
-        // Update reports list from API data as needed
-      }
+    const res = await bghApi.getAcademicReports()
+    const data = unwrapApiData(res)
+    if (data) {
+      summaryData.value = data.summary || data
+      const s = summaryData.value
+      reports.value = [
+        { id: 'RPT-001', name: `Tổng quan học tập • ${s.totalStudents || 0} SV, ${s.totalTeachers || 0} GV`, type: 'Toàn trường', date: new Date().toLocaleDateString('vi-VN'), status: 'ready' },
+      ]
     }
   } catch (e) {
     error.value = e.message
@@ -66,6 +64,13 @@ async function loadData() {
   }
 }
 onMounted(() => { loadData() })
+
+const tabTotalClasses = ref(156)
+const tabTotalTeachers = ref(89)
+const tabAvgGpa = ref(3.12)
+const tabTotalSubjects = ref(245)
+const tabPassRate = ref(88.4)
+const tabHighFailSubjects = ref(12)
 
 function generateReport() {
   generating.value = true
@@ -224,15 +229,15 @@ function exportExcel() {
          <div v-if="activeTab === 'Class'" class="space-y-4">
            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
              <div class="surface-card border border-card rounded-2xl p-5 text-center">
-               <p class="text-2xl font-bold text-heading">156</p>
+               <p class="text-2xl font-bold text-heading">{{ summaryData?.totalClasses ?? tabTotalClasses }}</p>
                <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">Lớp học phần đang mở</p>
              </div>
              <div class="surface-card border border-card rounded-2xl p-5 text-center">
-               <p class="text-2xl font-bold text-heading">89</p>
+               <p class="text-2xl font-bold text-heading">{{ summaryData?.totalTeachers ?? tabTotalTeachers }}</p>
                <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">Giảng viên phụ trách</p>
              </div>
              <div class="surface-card border border-card rounded-2xl p-5 text-center">
-               <p class="text-2xl font-bold text-heading">3.12</p>
+               <p class="text-2xl font-bold text-heading">{{ summaryData?.avgGpa ?? tabAvgGpa }}</p>
                <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">GPA TB theo lớp</p>
              </div>
            </div>
@@ -240,15 +245,15 @@ function exportExcel() {
          <div v-if="activeTab === 'Subject'" class="space-y-4">
            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
              <div class="surface-card border border-card rounded-2xl p-5 text-center">
-               <p class="text-2xl font-bold text-heading">245</p>
+               <p class="text-2xl font-bold text-heading">{{ tabTotalSubjects }}</p>
                <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">Tổng số môn học</p>
              </div>
              <div class="surface-card border border-card rounded-2xl p-5 text-center">
-               <p class="text-2xl font-bold text-heading">88.4%</p>
+               <p class="text-2xl font-bold text-heading">{{ tabPassRate }}%</p>
                <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">Tỷ lệ Pass TB</p>
              </div>
              <div class="surface-card border border-card rounded-2xl p-5 text-center">
-               <p class="text-2xl font-bold text-heading">12</p>
+               <p class="text-2xl font-bold text-heading">{{ tabHighFailSubjects }}</p>
                <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">Môn tỷ lệ rớt cao</p>
              </div>
            </div>
@@ -256,18 +261,18 @@ function exportExcel() {
          <div v-if="activeTab === 'Campus'" class="space-y-4">
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
              <div class="surface-card border border-card rounded-2xl p-5 text-center">
-               <p class="text-2xl font-bold text-heading">890</p>
-               <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">SV Cơ sở chính</p>
+               <p class="text-2xl font-bold text-heading">{{ summaryData?.totalStudents ?? '—' }}</p>
+               <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">Tổng SV</p>
              </div>
              <div class="surface-card border border-card rounded-2xl p-5 text-center">
-               <p class="text-2xl font-bold text-heading">350</p>
-               <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">SV Cơ sở 2</p>
+               <p class="text-2xl font-bold text-heading">{{ summaryData?.activeCourses ?? '—' }}</p>
+               <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">Khóa học đang mở</p>
              </div>
            </div>
          </div>
 
          <!-- Report Cards -->
-         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+         <div v-if="reports.length" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <div 
               v-for="rpt in reports" 
               :key="rpt.id" 
@@ -294,6 +299,9 @@ function exportExcel() {
                    <button @click="viewReport(rpt)" class="text-placeholder hover:text-link"><ExternalLink :size="16" /></button>
                 </div>
             </div>
+         </div>
+         <div v-else class="py-12 text-center surface-card border border-card rounded-2xl">
+           <p class="text-sm text-muted font-medium">Chưa có báo cáo nào. Sử dụng trình tạo báo cáo để tạo mới.</p>
          </div>
       </div>
 

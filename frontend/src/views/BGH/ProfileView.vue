@@ -158,7 +158,6 @@ import { unwrapApiData } from '@/services/apiClient'
 
 const popup = usePopupStore()
 const auth = useAuthStore()
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
@@ -234,14 +233,12 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const userData = auth.user
-      if (userData) {
-        profile.hoTen = userData.fullName || userData.FullName || profile.hoTen
-        profile.email = userData.email || userData.Email || profile.email
-        profile.soDienThoai = userData.phone || userData.Phone || profile.soDienThoai
-        profile.initials = auth.initials || profile.initials
-      }
+    const userData = auth.user
+    if (userData) {
+      profile.hoTen = userData.fullName || userData.FullName || profile.hoTen
+      profile.email = userData.email || userData.Email || profile.email
+      profile.soDienThoai = userData.phone || userData.Phone || profile.soDienThoai
+      profile.initials = auth.initials || profile.initials
     }
   } catch (e) {
     error.value = e.message

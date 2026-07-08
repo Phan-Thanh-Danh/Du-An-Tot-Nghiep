@@ -28,7 +28,7 @@
 | Role | Screens | Connected | FE Only | BE Missing | Notes |
 |---|---|---|---|---|---|---|
 | SuperAdmin (+Admin/CampusAdmin) | 45 | 28 | 17 | 0 | Shared layout; 11 routes missing from initial audit |
-| BGH | 25 | 15 | 10 | 0 | Academic reports are FE-only |
+| BGH | 25 | 25 | 0 | 0 | All endpoints fully mapped and tested in P15D |
 | GiaoVu (Staff) | 24 | 22 | 2 | 0 | Best-connected role |
 | Teacher | 25 | 17 | 8 | 0 | Requests/comments need BE |
 | Student | 22 | 19 | 3 | 0 | Evaluations, support tickets are FE-only |

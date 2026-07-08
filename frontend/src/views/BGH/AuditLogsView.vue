@@ -163,23 +163,20 @@ import { History, Eye, X, Plus, Lock, Unlock, LogIn, Edit3, Trash2, Search, Aler
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
-const auditLogsRef = ref(auditLogs)
+const auditLogs = ref([])
+const auditLogsRef = auditLogs
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getAuditLogs()
-      auditLogsRef.value = unwrapApiData(res) || auditLogs
-    }
+    const res = await bghApi.getAuditLogs()
+    auditLogs.value = unwrapApiData(res) || []
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu nhật ký'
-    auditLogsRef.value = auditLogs
   } finally {
     loading.value = false
   }
@@ -206,32 +203,9 @@ watch(() => filters.fromDate, (val) => {
   }
 })
 
-const auditLogs = [
-  { maKiemToan: 1, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'User', maDoiTuong: '42', hanhDong: 'UPDATE', nguoiThayDoi: 1, tenNguoiThayDoi: 'Super Admin', thoiDiemThayDoi: '13/06/2026 10:30:15', diaChiIp: '192.168.1.100', moTa: 'Cập nhật thông tin người dùng #42 - Nguyễn Văn An', userAgent: 'Mozilla/5.0 Chrome/120', traceId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' },
-  { maKiemToan: 2, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'Organization', maDoiTuong: '5', hanhDong: 'CREATE', nguoiThayDoi: 1, tenNguoiThayDoi: 'Super Admin', thoiDiemThayDoi: '13/06/2026 09:15:42', diaChiIp: '192.168.1.100', moTa: 'Tạo mới đơn vị: Khoa Công nghệ thông tin', userAgent: 'Mozilla/5.0 Chrome/120' },
-  { maKiemToan: 3, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'User', maDoiTuong: '55', hanhDong: 'LOCK', nguoiThayDoi: 2, tenNguoiThayDoi: 'Admin CS', thoiDiemThayDoi: '13/06/2026 08:45:10', diaChiIp: '192.168.1.50', moTa: 'Khóa tài khoản sinh viên #55 - Lê Hoàng Phát (vắng > 20%)' },
-  { maKiemToan: 4, maDonVi: 2, tenDonVi: 'FPT Polytechnic Đà Nẵng', loaiDoiTuong: 'Role', maDoiTuong: '5', hanhDong: 'UPDATE', nguoiThayDoi: 3, tenNguoiThayDoi: 'Admin Đà Nẵng', thoiDiemThayDoi: '12/06/2026 16:20:33', diaChiIp: '10.0.0.25', moTa: 'Cập nhật vai trò: Giáo vụ', userAgent: 'Mozilla/5.0 Firefox/122' },
-  { maKiemToan: 5, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'TrainingProgram', maDoiTuong: '6', hanhDong: 'CREATE', nguoiThayDoi: 1, tenNguoiThayDoi: 'Super Admin', thoiDiemThayDoi: '12/06/2026 14:00:00', diaChiIp: '192.168.1.100', moTa: 'Tạo chương trình đào tạo: Quản trị Khách sạn - Khóa 20' },
-  { maKiemToan: 6, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'AcademicTerm', maDoiTuong: '5', hanhDong: 'LOCK', nguoiThayDoi: 4, tenNguoiThayDoi: 'Giáo vụ CS', thoiDiemThayDoi: '11/06/2026 11:30:00', diaChiIp: '192.168.1.75', moTa: 'Khóa học kỳ Spring 2026 - Hồ Chí Minh' },
-  { maKiemToan: 7, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'Course', maDoiTuong: '128', hanhDong: 'CREATE', nguoiThayDoi: 4, tenNguoiThayDoi: 'Giáo vụ CS', thoiDiemThayDoi: '11/06/2026 09:10:25', diaChiIp: '192.168.1.75', moTa: 'Tạo khóa học: PRO101 - Lập trình cơ bản (Lớp SE1901)' },
-  { maKiemToan: 8, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'User', maDoiTuong: '60', hanhDong: 'UNLOCK', nguoiThayDoi: 2, tenNguoiThayDoi: 'Admin CS', thoiDiemThayDoi: '10/06/2026 15:45:12', diaChiIp: '192.168.1.50', moTa: 'Mở khóa tài khoản giảng viên #60 - Trần Thị Minh' },
-  { maKiemToan: 9, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'Room', maDoiTuong: '5', hanhDong: 'UPDATE', nguoiThayDoi: 2, tenNguoiThayDoi: 'Admin CS', thoiDiemThayDoi: '10/06/2026 14:30:00', diaChiIp: '192.168.1.50', moTa: 'Cập nhật phòng học PTO.202 sang trạng thái bảo trì' },
-  { maKiemToan: 10, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'HttpRequest', maDoiTuong: '-', hanhDong: 'HTTP_GET', nguoiThayDoi: 1, tenNguoiThayDoi: 'Super Admin', thoiDiemThayDoi: '10/06/2026 10:00:00', diaChiIp: '192.168.1.100', moTa: 'Xem danh sách người dùng (GET /api/admin/users)', userAgent: 'Mozilla/5.0 Chrome/120' },
-  { maKiemToan: 11, maDonVi: 2, tenDonVi: 'FPT Polytechnic Đà Nẵng', loaiDoiTuong: 'User', maDoiTuong: '70', hanhDong: 'CREATE', nguoiThayDoi: 3, tenNguoiThayDoi: 'Admin Đà Nẵng', thoiDiemThayDoi: '09/06/2026 08:00:00', diaChiIp: '10.0.0.25', moTa: 'Tạo tài khoản giảng viên mới: Lê Văn Bình' },
-  { maKiemToan: 12, maDonVi: 3, tenDonVi: 'FPT Polytechnic Cần Thơ', loaiDoiTuong: 'Building', maDoiTuong: '4', hanhDong: 'DELETE', nguoiThayDoi: 1, tenNguoiThayDoi: 'Super Admin', thoiDiemThayDoi: '08/06/2026 16:00:00', diaChiIp: '192.168.1.100', moTa: 'Xóa mềm tòa nhà: Cần Thơ Campus' },
-  { maKiemToan: 13, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'Organization', maDoiTuong: '8', hanhDong: 'UPDATE', nguoiThayDoi: 1, tenNguoiThayDoi: 'Super Admin', thoiDiemThayDoi: '07/06/2026 10:30:00', diaChiIp: '192.168.1.100', moTa: 'Cập nhật đơn vị: Phòng Đào tạo -> Phòng Quản lý Đào tạo' },
-  { maKiemToan: 14, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'TrainingProgram', maDoiTuong: '2', hanhDong: 'UPDATE', nguoiThayDoi: 1, tenNguoiThayDoi: 'Super Admin', thoiDiemThayDoi: '07/06/2026 09:00:00', diaChiIp: '192.168.1.100', moTa: 'Cập nhật chương trình CNTT-K20: thay đổi tổng tín chỉ từ 135 lên 138' },
-  { maKiemToan: 15, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'User', maDoiTuong: '1', hanhDong: 'LOGIN', nguoiThayDoi: 1, tenNguoiThayDoi: 'Super Admin', thoiDiemThayDoi: '07/06/2026 08:30:00', diaChiIp: '192.168.1.100', moTa: 'Đăng nhập hệ thống' },
-  { maKiemToan: 16, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'Floor', maDoiTuong: '5', hanhDong: 'UPDATE', nguoiThayDoi: 2, tenNguoiThayDoi: 'Admin CS', thoiDiemThayDoi: '06/06/2026 14:00:00', diaChiIp: '192.168.1.50', moTa: 'Vô hiệu hóa Tầng 5 - PTO Building' },
-  { maKiemToan: 17, maDonVi: 2, tenDonVi: 'FPT Polytechnic Đà Nẵng', loaiDoiTuong: 'AcademicTerm', maDoiTuong: '7', hanhDong: 'CREATE', nguoiThayDoi: 3, tenNguoiThayDoi: 'Admin Đà Nẵng', thoiDiemThayDoi: '06/06/2026 10:00:00', diaChiIp: '10.0.0.25', moTa: 'Tạo học kỳ: Summer 2026 - Đà Nẵng' },
-  { maKiemToan: 18, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'Role', maDoiTuong: '3', hanhDong: 'DELETE', nguoiThayDoi: 1, tenNguoiThayDoi: 'Super Admin', thoiDiemThayDoi: '05/06/2026 11:00:00', diaChiIp: '192.168.1.100', moTa: 'Xóa vai trò: Thực tập sinh (chưa được gán cho user nào)' },
-  { maKiemToan: 19, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'Course', maDoiTuong: '130', hanhDong: 'DELETE', nguoiThayDoi: 4, tenNguoiThayDoi: 'Giáo vụ CS', thoiDiemThayDoi: '05/06/2026 09:30:00', diaChiIp: '192.168.1.75', moTa: 'Lưu trữ khóa học: WEB101 - Thiết kế Web (do trùng lịch)' },
-  { maKiemToan: 20, maDonVi: 1, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', loaiDoiTuong: 'HttpRequest', maDoiTuong: '-', hanhDong: 'HTTP_POST', nguoiThayDoi: 1, tenNguoiThayDoi: 'Super Admin', thoiDiemThayDoi: '04/06/2026 15:00:00', diaChiIp: '192.168.1.100', moTa: 'Tạo người dùng mới (POST /api/admin/users)', userAgent: 'Mozilla/5.0 Chrome/120' },
-]
-
 const filteredLogs = computed(() => {
-  return auditLogsRef.value.filter(log => {
-    if (filters.keyword && !log.moTa.toLowerCase().includes(filters.keyword.toLowerCase()) && !log.tenNguoiThayDoi.toLowerCase().includes(filters.keyword.toLowerCase())) return false
+  return auditLogs.value.filter(log => {
+    if (filters.keyword && !log.moTa?.toLowerCase().includes(filters.keyword.toLowerCase()) && !log.tenNguoiThayDoi?.toLowerCase().includes(filters.keyword.toLowerCase())) return false
     if (filters.loaiDoiTuong && log.loaiDoiTuong !== filters.loaiDoiTuong) return false
     if (filters.hanhDong && log.hanhDong !== filters.hanhDong) return false
     return true

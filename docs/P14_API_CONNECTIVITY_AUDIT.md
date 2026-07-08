@@ -108,6 +108,16 @@ All CONNECTED — paths match BE controllers exactly.
 | getRoles | GET /api/admin/rbac/roles | RbacController | CONNECTED |
 | getAuditLogs | GET /api/audit-logs | AuditLogsController | CONNECTED |
 | getEvaluations | GET /api/bgh/evaluations | BghEvaluationController | CONNECTED |
+| getEvaluationRanking | GET /api/bgh/evaluations/ranking | BghEvaluationController | CONNECTED |
+| getEvaluationDetail | GET /api/bgh/evaluations/{id} | BghEvaluationController | CONNECTED |
+| getEvaluationOverview | GET /api/bgh/evaluations/overview | BghEvaluationController | CONNECTED |
+| getEvaluationAiAnalysis | GET /api/bgh/evaluations/ai-analysis | BghEvaluationController | CONNECTED |
+| getAcademicOverview | GET /api/bgh/academic/overview | BghAcademicController | CONNECTED |
+| getGpaReports | GET /api/bgh/academic/gpa | BghAcademicController | CONNECTED |
+| getAtRiskStudents | GET /api/bgh/academic/at-risk | BghAcademicController | CONNECTED |
+| getAcademicReports | GET /api/bgh/academic/reports | BghAcademicController | CONNECTED |
+| getPassFailRates | GET /api/bgh/academic/pass-fail | BghAcademicController | CONNECTED |
+| getScheduleChanges | GET /api/bgh/schedule/changes | BghAcademicController | CONNECTED |
 
 ### Staff (`staffApi.js`)
 

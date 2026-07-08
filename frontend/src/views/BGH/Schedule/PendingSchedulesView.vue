@@ -8,33 +8,22 @@ import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
 const popup = usePopupStore()
 const router = useRouter()
 
-const mockPendingSets = [
-  { id: 'TKB-001', semester: 'Spring 2026', campus: 'Cơ sở chính', dept: 'Khoa CNTT', classes: 86, slots: 420, conflicts: 0, sender: 'Phạm Minh D', date: '12/05/2026', status: 'pending_approval' },
-  { id: 'TKB-002', semester: 'Spring 2026', campus: 'Cơ sở 2', dept: 'Khoa Kinh tế', classes: 42, slots: 215, conflicts: 3, sender: 'Nguyễn Bích L', date: '11/05/2026', status: 'pending_approval' },
-  { id: 'TKB-003', semester: 'Spring 2026', campus: 'Cơ sở chính', dept: 'Khoa Ngoại ngữ', classes: 65, slots: 310, conflicts: 1, sender: 'Trần Văn K', date: '13/05/2026', status: 'pending_approval' },
-  { id: 'TKB-004', semester: 'Fall 2025', campus: 'Cơ sở chính', dept: 'Khoa Thiết kế', classes: 38, slots: 195, conflicts: 0, sender: 'Lê Hoàng A', date: '10/05/2026', status: 'approved' },
-]
-
-const pendingSets = ref(mockPendingSets)
+const pendingSets = ref([])
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await bghApi.getPendingSchedules()
-      pendingSets.value = unwrapApiData(res) || mockPendingSets
-    }
+    const res = await bghApi.getPendingSchedules()
+    pendingSets.value = unwrapApiData(res) || []
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu TKB chờ duyệt'
-    pendingSets.value = mockPendingSets
   } finally {
     loading.value = false
   }

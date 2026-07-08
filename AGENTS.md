@@ -158,6 +158,18 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `POST /api/thoi-khoa-bieu/xep-lich-thong-minh/check-xung-dot-batch` (P12)
   - `DELETE /api/thoi-khoa-bieu/drafts/{draftId}` (P12)
   - `POST /api/teacher/exams` (P15C.1 — teacher-scoped with ownership validation)
+  - `GET /api/bgh/dashboard` (P15D)
+  - `GET /api/bgh/evaluations` (P15D)
+  - `GET /api/bgh/evaluations/ranking` (P15D)
+  - `GET /api/bgh/evaluations/{id}` (P15D)
+  - `GET /api/bgh/evaluations/overview` (P15D)
+  - `GET /api/bgh/evaluations/ai-analysis` (P15D)
+  - `GET /api/bgh/academic/overview` (P15D)
+  - `GET /api/bgh/academic/gpa` (P15D)
+  - `GET /api/bgh/academic/at-risk` (P15D)
+  - `GET /api/bgh/academic/reports` (P15D)
+  - `GET /api/bgh/academic/pass-fail` (P15D)
+  - `GET /api/bgh/schedule/changes` (P15D)
 - Endpoint chưa có controller phải ghi `dự kiến`.
 - Không tự đổi request/response DTO mà không cập nhật contract.
 

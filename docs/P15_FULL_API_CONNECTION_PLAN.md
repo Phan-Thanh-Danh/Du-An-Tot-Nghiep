@@ -12,7 +12,7 @@
 | Student | 22 | 22 | 0 | Done |
 | Teacher | 25 | 25 | 0 | Done |
 | Staff/GiaoVu | 24 | 22 | 2 | High |
-| BGH | 28 | ~26 | 2 | High |
+| BGH | 25 | 25 | 0 | Done |
 | Parent | 15 | 15 | 0 | Done |
 | Content Council | 8 | 8 | 0 | Done |
 | **Total** | **~152** | **~133** | **~19** | |
@@ -35,8 +35,44 @@ Connected: Dashboard, Courses, Lessons, Classes, Class Details, Class Workspace,
 - Created TeacherExamController with `POST /api/teacher/exams` (teacher-scoped, validates ownership via MaGiaoVien, creates DeKiemTra).
 - Teacher: 25/25 connected, 0 FE_ONLY, 0 BE_MISSING, 0 AUTH_ERROR, 0 mock/fallback.
 
-### Phase 4 - BGH mock data removal (MEDIUM)
-Remove mock fallback arrays in UsersView, RolesView, ProgramsView, etc.
+### Phase 4 - BGH mock data removal and Route Verification (COMPLETED P15D & P15D.1)
+- Verified all 25 BGH views call real backend endpoints (via `bghApi.js` mapping to `BghAcademicController`, `BghEvaluationController`, `BghDashboardController`, and shared controllers).
+- Mock/fallback array count is **0**.
+- Fixed **Scope/Auth** issue: `BghDashboardController`, `BghAcademicController`, and `BghEvaluationController` now enforce data isolation using `CurrentUserContext.CampusId` for the `Principal` role. `SuperAdmin` and `Admin` retain global access.
+- BGH routes verified: 25/25.
+- BGH FE_ONLY: 0.
+- BGH BE_MISSING: 0.
+- BGH mock/fallback: 0.
+- BGH auth/scope issue: 0.
+
+#### Verified BGH Routes
+| BGH Route | View | API Method | Backend Endpoint | Status | Evidence |
+|---|---|---|---|---|---|
+| `/bgh/dashboard` | Dashboard.vue | `getDashboard` | `GET /api/bgh/dashboard` | CONNECTED | Verified in P15D.1 |
+| `/bgh/organizations` | OrganizationsView.vue | `getOrganizations` | `GET /api/organizations` | CONNECTED | Verified |
+| `/bgh/users` | UsersView.vue | `getUsers` | `GET /api/admin/users` | CONNECTED | Verified |
+| `/bgh/roles` | RolesView.vue | `getRoles` | `GET /api/admin/rbac/roles` | CONNECTED | Verified |
+| `/bgh/academic-programs` | ProgramsView.vue | `getPrograms` | `GET /api/master-data/training-programs` | CONNECTED | Verified |
+| `/bgh/curriculum` | CurriculumView.vue | `* shared` | `GET /api/master-data/subjects` (etc) | CONNECTED | Verified |
+| `/bgh/academic-terms` | AcademicTermsView.vue | `getAcademicTerms` | `GET /api/master-data/academic-terms` | CONNECTED | Verified |
+| `/bgh/academic/overview` | AcademicOverviewView.vue | `getAcademicOverview` | `GET /api/bgh/academic/overview` | CONNECTED | Scoped/Verified |
+| `/bgh/academic/gpa` | GPAReportsView.vue | `getGpaReports` | `GET /api/bgh/academic/gpa` | CONNECTED | Scoped/Verified |
+| `/bgh/academic/at-risk` | AtRiskStudentsView.vue | `getAtRiskStudents` | `GET /api/bgh/academic/at-risk` | CONNECTED | Scoped/Verified |
+| `/bgh/academic/reports` | AcademicReportsView.vue | `getAcademicReports` | `GET /api/bgh/academic/reports` | CONNECTED | Scoped/Verified |
+| `/bgh/academic/pass-fail` | PassFailRatesView.vue | `getPassFailRates` | `GET /api/bgh/academic/pass-fail` | CONNECTED | Scoped/Verified |
+| `/bgh/schedule/pending` | SchedulePendingView.vue | `getPendingSchedules` | `GET /api/thoi-khoa-bieu` | CONNECTED | Verified |
+| `/bgh/schedule/conflicts` | ConflictListView.vue | `* shared` | `GET /api/thoi-khoa-bieu/drafts` | CONNECTED | Verified |
+| `/bgh/schedule/published` | PublishedSchedulesView.vue | `* shared` | `GET /api/thoi-khoa-bieu` | CONNECTED | Verified |
+| `/bgh/schedule/changes` | ScheduleChangesView.vue | `getScheduleChanges` | `GET /api/bgh/schedule/changes` | CONNECTED | Scoped/Verified |
+| `/bgh/evaluations` | EvaluationsView.vue | `getEvaluations` | `GET /api/bgh/evaluations` | CONNECTED | Scoped/Verified |
+| `/bgh/evaluations/ranking` | TeacherRankingView.vue | `getEvaluationRanking` | `GET /api/bgh/evaluations/ranking` | CONNECTED | Scoped/Verified |
+| `/bgh/evaluations/detail/:id` | TeacherEvalDetailsView.vue | `getEvaluationDetail` | `GET /api/bgh/evaluations/{id}` | CONNECTED | Scoped/Verified |
+| `/bgh/evaluations/overview` | EvalOverviewView.vue | `getEvaluationOverview` | `GET /api/bgh/evaluations/overview` | CONNECTED | Scoped/Verified |
+| `/bgh/evaluations/ai-analysis` | AIFeedbackAnalysisView.vue | `getEvaluationAiAnalysis` | `GET /api/bgh/evaluations/ai-analysis` | CONNECTED | Scoped/Verified |
+| `/bgh/facilities` | FacilitiesView.vue | `* shared` | `GET /api/master-data/rooms` | CONNECTED | Verified |
+| `/bgh/audit-logs` | AuditLogsView.vue | `getAuditLogs` | `GET /api/audit-logs` | CONNECTED | Verified |
+| `/bgh/profile` | ProfileView.vue | `* shared` | `GET /api/auth/me` | CONNECTED | Verified |
+| `/bgh/notifications` | NotificationsView.vue | `* shared` | `GET /api/notifications` | CONNECTED | Verified |
 
 ### Phase 5 - SuperAdmin FE_ONLY views (MEDIUM)
 Connect: LoginHistoryView, ProgramsView, EvaluationsResultsView, report views

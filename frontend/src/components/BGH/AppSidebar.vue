@@ -9,7 +9,7 @@ import {
 } from 'lucide-vue-next'
 import SidebarMenuGroup from '../SinhVien/SidebarMenuGroup.vue'
 import SidebarRecentFavorites from '@/components/ui/SidebarRecentFavorites.vue'
-import { bghMenuGroups, mockBGH } from './data/menuData.js'
+import { bghMenuGroups } from './data/menuData.js'
 import { useAuthStore } from '@/stores/auth'
 
 defineProps({
@@ -113,16 +113,16 @@ function logout() {
       <div :class="['lg-nav flex items-center gap-2 rounded-xl p-2', collapsed ? '' : 'w-full']">
         <div class="lg-sidebar-avatar relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ring-1 ring-(--border-card)">
           <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" class="h-full w-full object-cover" />
-          <span v-else>{{ authStore.initials || mockBGH.initials }}</span>
+          <span v-else>{{ authStore.initials }}</span>
           <span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-(--surface-sidebar) bg-(--sidebar-indicator)" />
         </div>
         <Transition name="fade-slide">
           <div v-if="!collapsed" class="overflow-hidden min-w-0">
             <p class="truncate text-[12px] font-medium leading-tight text-heading">
-              {{ authStore.displayName || mockBGH.name }}
+              {{ authStore.displayName }}
             </p>
             <p class="truncate text-[10px] leading-tight text-muted">
-              {{ authStore.user?.email || mockBGH.email }}
+              {{ authStore.user?.email }}
             </p>
           </div>
         </Transition>

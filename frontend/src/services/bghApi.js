@@ -1,4 +1,4 @@
-import { apiRequest } from './apiClient'
+import { apiRequest, unwrapApiData } from './apiClient'
 
 export const bghApi = {
   getDashboard() {
@@ -55,8 +55,28 @@ export const bghApi = {
     return apiRequest(`/api/master-data/training-programs${qs ? '?' + qs : ''}`)
   },
 
-  getReportOverview() {
-    return apiRequest('/api/admin/applications/reports/overview')
+  getAcademicOverview() {
+    return apiRequest('/api/bgh/academic/overview')
+  },
+
+  getGpaReports() {
+    return apiRequest('/api/bgh/academic/gpa')
+  },
+
+  getAtRiskStudents() {
+    return apiRequest('/api/bgh/academic/at-risk')
+  },
+
+  getAcademicReports() {
+    return apiRequest('/api/bgh/academic/reports')
+  },
+
+  getPassFailRates() {
+    return apiRequest('/api/bgh/academic/pass-fail')
+  },
+
+  getScheduleChanges() {
+    return apiRequest('/api/bgh/schedule/changes')
   },
 
   getPendingSchedules(params = {}) {
@@ -71,5 +91,21 @@ export const bghApi = {
     if (params.teacherId) query.append('teacherId', params.teacherId)
     const qs = query.toString()
     return apiRequest(`/api/bgh/evaluations${qs ? '?' + qs : ''}`)
+  },
+
+  getEvaluationRanking() {
+    return apiRequest('/api/bgh/evaluations/ranking')
+  },
+
+  getEvaluationDetail(teacherId) {
+    return apiRequest(`/api/bgh/evaluations/${teacherId}`)
+  },
+
+  getEvaluationOverview() {
+    return apiRequest('/api/bgh/evaluations/overview')
+  },
+
+  getEvaluationAiAnalysis() {
+    return apiRequest('/api/bgh/evaluations/ai-analysis')
   },
 }

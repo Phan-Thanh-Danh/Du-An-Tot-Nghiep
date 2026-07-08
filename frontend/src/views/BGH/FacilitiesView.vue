@@ -99,9 +99,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { Building2, MapPin, Monitor, Users, Wifi, Coffee, Dumbbell, Car, ChevronDown, ChevronRight, Search, Eye, Layers, AlertCircle, Loader2 } from 'lucide-vue-next'
 import { usePopupStore } from '@/stores/popup'
-import { apiRequest } from '@/services/apiClient'
+import { apiRequest, unwrapApiData } from '@/services/apiClient'
+import { bghApi } from '@/services/bghApi'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref(null)
 
@@ -113,62 +113,25 @@ const campusFilter = ref('all')
 const expandedBuildings = ref(new Set())
 const showFilterDetail = ref(false)
 
-const mockBuildings = [
-  { maToaNha: 1, maDonVi: 1, maCodeToaNha: 'PTO', tenToaNha: 'PTO Building', diaChi: 'Quận 12, TP.HCM', soTang: 5, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', conHoatDong: true },
-  { maToaNha: 2, maDonVi: 1, maCodeToaNha: 'FBT', tenToaNha: 'FBT Tower', diaChi: 'Quận 12, TP.HCM', soTang: 3, tenDonVi: 'FPT Polytechnic Hồ Chí Minh', conHoatDong: true },
-  { maToaNha: 3, maDonVi: 2, maCodeToaNha: 'DNG', tenToaNha: 'Đà Nẵng Campus', diaChi: 'Quận Hải Châu, Đà Nẵng', soTang: 4, tenDonVi: 'FPT Polytechnic Đà Nẵng', conHoatDong: true },
-  { maToaNha: 4, maDonVi: 3, maCodeToaNha: 'CTO', tenToaNha: 'Cần Thơ Campus', diaChi: 'Quận Ninh Kiều, Cần Thơ', soTang: 3, tenDonVi: 'FPT Polytechnic Cần Thơ', conHoatDong: false },
-]
-
-const buildings = ref(mockBuildings)
-
-const mockFloors = [
-  { maTang: 1, maToaNha: 1, tenTang: 'Tầng 1', thuTuTang: 1, conHoatDong: true },
-  { maTang: 2, maToaNha: 1, tenTang: 'Tầng 2', thuTuTang: 2, conHoatDong: true },
-  { maTang: 3, maToaNha: 1, tenTang: 'Tầng 3', thuTuTang: 3, conHoatDong: true },
-  { maTang: 4, maToaNha: 1, tenTang: 'Tầng 4', thuTuTang: 4, conHoatDong: true },
-  { maTang: 5, maToaNha: 1, tenTang: 'Tầng 5', thuTuTang: 5, conHoatDong: false },
-  { maTang: 6, maToaNha: 2, tenTang: 'Tầng Trệt', thuTuTang: 1, conHoatDong: true },
-  { maTang: 7, maToaNha: 2, tenTang: 'Tầng 1', thuTuTang: 2, conHoatDong: true },
-  { maTang: 8, maToaNha: 2, tenTang: 'Tầng 2', thuTuTang: 3, conHoatDong: true },
-  { maTang: 9, maToaNha: 3, tenTang: 'Tầng 1', thuTuTang: 1, conHoatDong: true },
-  { maTang: 10, maToaNha: 3, tenTang: 'Tầng 2', thuTuTang: 2, conHoatDong: true },
-  { maTang: 11, maToaNha: 3, tenTang: 'Tầng 3', thuTuTang: 3, conHoatDong: true },
-  { maTang: 12, maToaNha: 4, tenTang: 'Tầng 1', thuTuTang: 1, conHoatDong: false },
-]
-
-const floors = ref(mockFloors)
-
-const mockRooms = [
-  { maPhong: 1, maDonVi: 1, maToaNha: 1, maTang: 1, maCodePhong: 'PTO.101', tenPhong: 'Phòng 101', sucChua: 40, loaiPhong: 'ly_thuyet', loaiPhongLabel: 'Lý thuyết', trangThaiPhong: 'dang_su_dung' },
-  { maPhong: 2, maDonVi: 1, maToaNha: 1, maTang: 1, maCodePhong: 'PTO.102', tenPhong: 'Phòng 102', sucChua: 35, loaiPhong: 'ly_thuyet', loaiPhongLabel: 'Lý thuyết', trangThaiPhong: 'dang_su_dung' },
-  { maPhong: 3, maDonVi: 1, maToaNha: 1, maTang: 1, maCodePhong: 'PTO.103', tenPhong: 'Phòng Lab 103', sucChua: 25, loaiPhong: 'thuc_hanh', loaiPhongLabel: 'Thực hành', trangThaiPhong: 'dang_su_dung' },
-  { maPhong: 4, maDonVi: 1, maToaNha: 1, maTang: 2, maCodePhong: 'PTO.201', tenPhong: 'Phòng 201', sucChua: 40, loaiPhong: 'ly_thuyet', loaiPhongLabel: 'Lý thuyết', trangThaiPhong: 'dang_su_dung' },
-  { maPhong: 5, maDonVi: 1, maToaNha: 1, maTang: 2, maCodePhong: 'PTO.202', tenPhong: 'Phòng 202', sucChua: 30, loaiPhong: 'ly_thuyet', loaiPhongLabel: 'Lý thuyết', trangThaiPhong: 'bao_tri' },
-  { maPhong: 6, maDonVi: 1, maToaNha: 1, maTang: 2, maCodePhong: 'PTO.203', tenPhong: 'Phòng Lab 203', sucChua: 25, loaiPhong: 'thuc_hanh', loaiPhongLabel: 'Thực hành', trangThaiPhong: 'dang_su_dung' },
-  { maPhong: 7, maDonVi: 1, maToaNha: 1, maTang: 3, maCodePhong: 'PTO.301', tenPhong: 'Phòng 301', sucChua: 50, loaiPhong: 'ly_thuyet', loaiPhongLabel: 'Lý thuyết', trangThaiPhong: 'dang_su_dung' },
-  { maPhong: 8, maDonVi: 1, maToaNha: 1, maTang: 3, maCodePhong: 'PTO.302', tenPhong: 'Phòng 302', sucChua: 45, loaiPhong: 'ly_thuyet', loaiPhongLabel: 'Lý thuyết', trangThaiPhong: 'dang_su_dung' },
-  { maPhong: 9, maDonVi: 1, maToaNha: 1, maTang: 4, maCodePhong: 'PTO.401', tenPhong: 'Phòng 401', sucChua: 80, loaiPhong: 'hoi_truong', loaiPhongLabel: 'Hội trường', trangThaiPhong: 'dang_su_dung' },
-  { maPhong: 10, maDonVi: 1, maToaNha: 2, maTang: 6, maCodePhong: 'FBT.G01', tenPhong: 'Phòng G01', sucChua: 30, loaiPhong: 'ly_thuyet', loaiPhongLabel: 'Lý thuyết', trangThaiPhong: 'dang_su_dung' },
-  { maPhong: 11, maDonVi: 1, maToaNha: 2, maTang: 7, maCodePhong: 'FBT.101', tenPhong: 'Phòng 101', sucChua: 35, loaiPhong: 'thuc_hanh', loaiPhongLabel: 'Thực hành', trangThaiPhong: 'dang_su_dung' },
-  { maPhong: 12, maDonVi: 2, maToaNha: 3, maTang: 9, maCodePhong: 'DNG.101', tenPhong: 'Phòng 101', sucChua: 40, loaiPhong: 'ly_thuyet', loaiPhongLabel: 'Lý thuyết', trangThaiPhong: 'dang_su_dung' },
-  { maPhong: 13, maDonVi: 2, maToaNha: 3, maTang: 10, maCodePhong: 'DNG.201', tenPhong: 'Phòng 201', sucChua: 35, loaiPhong: 'thuc_hanh', loaiPhongLabel: 'Thực hành', trangThaiPhong: 'dang_su_dung' },
-  { maPhong: 14, maDonVi: 2, maToaNha: 3, maTang: 11, maCodePhong: 'DNG.301', tenPhong: 'Phòng 301', sucChua: 80, loaiPhong: 'hoi_truong', loaiPhongLabel: 'Hội trường', trangThaiPhong: 'ngung_hoat_dong' },
-]
-
-const rooms = ref(mockRooms)
+const buildings = ref([])
+const floors = ref([])
+const rooms = ref([])
+const campuses = ref([])
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    if (!ENABLE_MOCK_API) {
-      const res = await apiRequest('/api/master-data/rooms')
-      const data = res?.data ?? res?.Data
-      if (data) {
-        rooms.value = data
-      }
-    }
+    const [bldRes, flrRes, roomRes, orgRes] = await Promise.all([
+      apiRequest('/api/master-data/buildings'),
+      apiRequest('/api/master-data/floors'),
+      apiRequest('/api/master-data/rooms'),
+      bghApi.getOrganizations(),
+    ])
+    buildings.value = unwrapApiData(bldRes) || []
+    floors.value = unwrapApiData(flrRes) || []
+    rooms.value = unwrapApiData(roomRes) || []
+    campuses.value = (unwrapApiData(orgRes) || []).map(o => ({ maDonVi: o.id, tenDonVi: o.name }))
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu cơ sở vật chất'
   } finally {
