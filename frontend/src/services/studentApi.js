@@ -246,33 +246,4 @@ export const studentApi = {
       method: 'DELETE',
     })
   },
-
-  getSupportTickets() {
-    return apiRequest('/api/student/support-tickets', { method: 'GET' })
-  },
-
-  getSupportTicketDetail(ticketId) {
-    return apiRequest(`/api/student/support-tickets/${ticketId}`, { method: 'GET' })
-  },
-
-  createSupportTicket(payload) {
-    return apiRequest('/api/student/support-tickets', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-  },
-
-  sendSupportTicketMessage(ticketId, payload) {
-    return apiRequest(`/api/student/support-tickets/${ticketId}/messages`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-  },
-
-  closeSupportTicket(ticketId, payload) {
-    return apiRequest(`/api/student/support-tickets/${ticketId}/close`, {
-      method: 'POST',
-      body: payload ? JSON.stringify(payload) : undefined,
-    })
-  },
 }

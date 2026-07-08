@@ -129,6 +129,7 @@ builder.Services.AddScoped<IApplicationProcessingPermissionEvaluator, Applicatio
 builder.Services.AddScoped<IApplicationProcessingResultSanitizer, ApplicationProcessingResultSanitizer>();
 builder.Services.AddScoped<IApplicationPostApprovalHandler, ConfirmationApplicationPostApprovalHandler>();
 builder.Services.AddScoped<IApplicationPostApprovalProcessingService, ApplicationPostApprovalProcessingService>();
+builder.Services.AddScoped<IApplicationWorkflowService, ApplicationWorkflowService>();
 builder.Services.AddOptions<ApplicationQueueOptions>()
     .Bind(builder.Configuration.GetSection(ApplicationQueueOptions.SectionName))
     .Validate(options => options.SlaWarningBeforeHours is >= 1 and <= 168, "ApplicationQueue:SlaWarningBeforeHours must be from 1 to 168.")

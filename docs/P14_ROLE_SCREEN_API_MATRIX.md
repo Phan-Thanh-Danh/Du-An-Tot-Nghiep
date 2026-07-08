@@ -116,10 +116,10 @@
 | /giao-vu/courses | Courses | GiaoVu/Courses/CourseManagementView | GET/POST/PUT/DELETE /api/courses | CONNECTED | |
 | /giao-vu/registrations | Registration Periods | GiaoVu/Registration/RegistrationPeriodsView | GET/POST/PUT /api/admin/registration-periods | CONNECTED | |
 | /giao-vu/capacity | Capacity | GiaoVu/Registration/CapacityAdjustmentView | GET/PUT /api/admin/course-sections/capacity | CONNECTED | |
-| /giao-vu/course-status | Course Status | GiaoVu/Registration/CourseStatusView | MIXED | FE_ONLY | |
+| /giao-vu/course-status | Course Status | GiaoVu/Registration/CourseStatusView | GET /api/admin/course-sections/capacity | CONNECTED | |
 | /giao-vu/requests | Pending Requests | GiaoVu/Requests/PendingRequestsView | GET /api/admin/applications | CONNECTED | |
 | /giao-vu/requests-history | Request History | GiaoVu/Requests/RequestHistoryView | GET /api/admin/applications | CONNECTED | |
-| /giao-vu/workflow | Workflow Config | GiaoVu/Requests/WorkflowConfigView | MIXED | BE_MISSING | |
+| /giao-vu/workflow | Workflow Config | GiaoVu/Requests/WorkflowConfigView | GET/PUT /api/admin/applications/workflow | CONNECTED | |
 | /giao-vu/notices/send | Send Notice | GiaoVu/Notices/SendNoticeView | POST /api/admin/notifications | CONNECTED | |
 | /giao-vu/notices/history | Notice History | GiaoVu/Notices/NoticeHistoryView | GET /api/admin/notifications | CONNECTED | |
 | /giao-vu/classes | Classes | GiaoVu/Classes/ClassManagementView | GET/POST/PUT/DELETE /api/admin/classes | CONNECTED | |

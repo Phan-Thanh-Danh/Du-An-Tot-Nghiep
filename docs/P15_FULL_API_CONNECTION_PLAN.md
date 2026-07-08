@@ -11,7 +11,7 @@
 | Admin | shared | ~15 | ~10 | Medium |
 | Student | 22 | 22 | 0 | Done |
 | Teacher | 25 | 25 | 0 | Done |
-| Staff/GiaoVu | 24 | 22 | 2 | High |
+| Staff/GiaoVu | 24 | 24 | 0 | Done |
 | BGH | 25 | 25 | 0 | Done |
 | Parent | 15 | 15 | 0 | Done |
 | Content Council | 8 | 8 | 0 | Done |
@@ -73,6 +73,14 @@ Connected: Dashboard, Courses, Lessons, Classes, Class Details, Class Workspace,
 | `/bgh/audit-logs` | AuditLogsView.vue | `getAuditLogs` | `GET /api/audit-logs` | CONNECTED | Verified |
 | `/bgh/profile` | ProfileView.vue | `* shared` | `GET /api/auth/me` | CONNECTED | Verified |
 | `/bgh/notifications` | NotificationsView.vue | `* shared` | `GET /api/notifications` | CONNECTED | Verified |
+
+### Phase 4.1 - Staff/GiaoVu mock data removal and Route Verification (COMPLETED P15D.2)
+- Built `ApplicationWorkflowService` and `AdminWorkflowController` for `WorkflowConfigView` and wired to frontend.
+- Validated `CourseStatusView` using existing `AdminRegistrationsController`.
+- Staff/GiaoVu routes verified: 24/24.
+- Staff/GiaoVu FE_ONLY: 0.
+- Staff/GiaoVu BE_MISSING: 0.
+- Global mock removal for GiaoVu deferred to P15F.
 
 ### Phase 5 - SuperAdmin FE_ONLY views (MEDIUM)
 Connect: LoginHistoryView, ProgramsView, EvaluationsResultsView, report views
