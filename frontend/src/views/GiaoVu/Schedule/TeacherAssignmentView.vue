@@ -12,7 +12,6 @@ import { usePopupStore } from '@/stores/popup'
 const popupStore = usePopupStore()
 const loading = ref(true); const error = ref(null); const rows = ref([])
 const searchQuery = ref(''); const filterTrangThai = ref(''); const filterDonVi = ref('')
-const assignmentMutationActionsEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const showFormModal = ref(false); const formMode = ref('create'); const editingId = ref(null); const submitting = ref(false)
 const formData = ref({ tenLop: '', monHoc: '', maGiangVien: null, giangVien: 'Chưa phân công', soBuoi: 3, donVi: '', lichDay: '', phong: '', siSo: 0, trangThai: 'unassigned' })
@@ -71,11 +70,11 @@ const defaults = () => ({ tenLop: '', monHoc: '', maGiangVien: null, giangVien: 
 function resetForm() { formData.value = defaults(); formErrors.value = {} }
 function showDevelopingFeature() { popupStore.info('Chức năng đang phát triển', 'Chức năng đang phát triển') }
 function openCreate() {
-  if (!assignmentMutationActionsEnabled) { showDevelopingFeature(); return }
+  
   resetForm(); formMode.value = 'create'; editingId.value = null; showFormModal.value = true
 }
 function openEdit(r) {
-  if (!assignmentMutationActionsEnabled) { showDevelopingFeature(); return }
+  
   formMode.value = 'edit'; editingId.value = r.maPhanCong
   formData.value = { tenLop: r.tenLop, monHoc: r.monHoc, maGiangVien: r.maGiangVien, giangVien: r.giangVien, soBuoi: r.soBuoi, donVi: r.donVi || '', lichDay: r.lichDay || '', phong: r.phong || '', siSo: r.siSo || 0, trangThai: r.trangThai }
   formErrors.value = {}; showFormModal.value = true
@@ -100,7 +99,7 @@ async function submitForm() {
 
 // ── Assign Teacher ──
 async function openAssign(r) {
-  if (!assignmentMutationActionsEnabled) { showDevelopingFeature(); return }
+  
   assignItem.value = r; assignTeacherId.value = r.maGiangVien || null
   try {
     const data = await assignmentApi.getTeachers({ DonVi: r.donVi || undefined })
@@ -120,7 +119,7 @@ async function confirmAssign() {
 
 // ── Delete ──
 function requestDelete(r) {
-  if (!assignmentMutationActionsEnabled) { showDevelopingFeature(); return }
+  
   itemToDelete.value = r; showDeleteModal.value = true
 }
 async function confirmDelete() {

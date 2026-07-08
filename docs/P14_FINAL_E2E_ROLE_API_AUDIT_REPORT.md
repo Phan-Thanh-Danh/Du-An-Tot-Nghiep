@@ -27,14 +27,14 @@
 
 | Role | Screens | Connected | FE Only | BE Missing | Notes |
 |---|---|---|---|---|---|---|
-| SuperAdmin | 45 | 28 | 17 | 0 | Shared layout; missing many endpoints |
+| SuperAdmin | 45 | 45 | 0 | 0 | All 45 connected (P15E) |
 | BGH | 25 | 25 | 0 | 0 | All connected (P15D) |
 | Staff (GiaoVu) | 24 | 24 | 0 | 0 | All connected (P15D.2) |
 | Teacher | 25 | 25 | 0 | 0 | All connected (P15C) |
 | Student | 22 | 22 | 0 | 0 | All connected (P15B) |
 | Parent | 15 | 15 | 0 | 0 | All connected (P15A) |
 | ContentCouncil | 9 | 9 | 0 | 0 | All connected (P15D.3) |
-| **Total** | **165** | **108** | **57** | **0** | 145 unique routes; 165 when counting per-role assignments |
+| **Total** | **165** | **165** | **0** | **0** | 145 unique routes; 165 when counting per-role assignments |
 
 ## 4. API Connectivity Summary
 

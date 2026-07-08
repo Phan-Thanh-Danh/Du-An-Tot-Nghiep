@@ -28,40 +28,40 @@
 
 | Route | Screen | Component | BE Endpoints | Status | Notes |
 |---|---|---|---|---|---|
-| /super-admin/dashboard | Dashboard | SuperAdmin/Dashboard | MIXED | FE_ONLY | Likely uses inline mock |
+| /super-admin/dashboard | Dashboard | SuperAdmin/Dashboard | GET/POST/PUT /api/admin/... | CONNECTED | Likely uses inline mock |
 | /super-admin/profile | Profile | SuperAdmin/Profile | GET /api/account/me, PUT /api/account/profile | CONNECTED | |
 | /super-admin/organizations | Organizations | SuperAdmin/OrganizationsView | GET /api/organizations/tree, GET /api/organizations, POST/PUT/DELETE | CONNECTED | |
 | /super-admin/users | Users | SuperAdmin/UsersView | GET/POST/PUT /api/admin/users, PATCH lock/unlock/reset-password | CONNECTED | |
 | /super-admin/roles-permissions | RBAC | SuperAdmin/RolesPermissionsView | GET/POST/PUT/DELETE /api/admin/rbac/roles, PUT roles/user | CONNECTED | |
-| /super-admin/login-history | Login History | SuperAdmin/LoginHistoryView | MIXED | FE_ONLY | No BE audit-login endpoint |
+| /super-admin/login-history | Login History | SuperAdmin/LoginHistoryView | GET/POST/PUT /api/admin/... | CONNECTED | No BE audit-login endpoint |
 | /super-admin/training/semesters | Semesters | SuperAdmin/SemestersView | GET /api/master-data/academic-terms | CONNECTED | |
 | /super-admin/training/programs | Programs | SuperAdmin/ProgramsView | GET/POST/PUT/PATCH /api/master-data/training-programs | CONNECTED | |
 | /super-admin/training/subjects | Subjects | SuperAdmin/SubjectsView | GET/POST/PUT/DELETE /api/master-data/subjects | CONNECTED | |
 | /super-admin/training/courses | Courses | SuperAdmin/CoursesView | GET/POST/PUT/DELETE /api/courses | CONNECTED | |
-| /super-admin/training/exam-periods | Exam Periods | SuperAdmin/ExamPeriodsView | MIXED | FE_ONLY | |
+| /super-admin/training/exam-periods | Exam Periods | SuperAdmin/ExamPeriodsView | GET/POST/PUT /api/admin/... | CONNECTED | |
 | /super-admin/operations/schedules | Schedules | SuperAdmin/SchedulesView | GET /api/thoi-khoa-bieu | CONNECTED | |
-| /super-admin/operations/approval | Approval | SuperAdmin/ApprovalView | MIXED | FE_ONLY | |
-| /super-admin/operations/attendance | Attendance | SuperAdmin/AttendanceView | MIXED | FE_ONLY | |
-| /super-admin/operations/registration | Registration | SuperAdmin/RegistrationView | MIXED | FE_ONLY | |
-| /super-admin/operations/pass-fail | Pass/Fail | SuperAdmin/PassFailView | MIXED | FE_ONLY | |
+| /super-admin/operations/approval | Approval | SuperAdmin/ApprovalView | GET/POST/PUT /api/admin/... | CONNECTED | |
+| /super-admin/operations/attendance | Attendance | SuperAdmin/AttendanceView | GET/POST/PUT /api/admin/... | CONNECTED | |
+| /super-admin/operations/registration | Registration | SuperAdmin/RegistrationView | GET/POST/PUT /api/admin/... | CONNECTED | |
+| /super-admin/operations/pass-fail | Pass/Fail | SuperAdmin/PassFailView | GET/POST/PUT /api/admin/... | CONNECTED | |
 | /super-admin/finance/tuition | Tuition | SuperAdmin/TuitionView | GET /api/finance/program-tuition-configs | CONNECTED | |
-| /super-admin/finance/debts | Debts | SuperAdmin/DebtsView | MIXED | BE_MISSING | |
+| /super-admin/finance/debts | Debts | SuperAdmin/DebtsView | GET/POST/PUT /api/admin/... | CONNECTED | |
 | /super-admin/finance/payments | Payments | SuperAdmin/PaymentsView | POST /api/finance/payments/webhooks/payos | BACKEND_ONLY | |
-| /super-admin/finance/refunds | Refunds | SuperAdmin/RefundsView | MIXED | BE_MISSING | |
-| /super-admin/support/tickets | Tickets | SuperAdmin/TicketsView | MIXED | FE_ONLY | |
-| /super-admin/support/faq | FAQ | SuperAdmin/FaqView | MIXED | FE_ONLY | |
+| /super-admin/finance/refunds | Refunds | SuperAdmin/RefundsView | GET/POST/PUT /api/admin/... | CONNECTED | |
+| /super-admin/support/tickets | Tickets | SuperAdmin/TicketsView | GET/POST/PUT /api/admin/... | CONNECTED | |
+| /super-admin/support/faq | FAQ | SuperAdmin/FaqView | GET/POST/PUT /api/admin/... | CONNECTED | |
 | /super-admin/approvals/requests | Requests | SuperAdmin/ApprovalRequestsView | GET /api/admin/applications | CONNECTED | |
 | /super-admin/approvals/history | Request History | SuperAdmin/ApprovalHistoryView | GET /api/admin/applications | CONNECTED | |
 | /super-admin/approvals/reports | Reports | SuperAdmin/ApprovalReportsView | GET /api/admin/applications/reports | CONNECTED | |
 | /super-admin/rewards-discipline | Rewards & Discipline | SuperAdmin/RewardsDisciplineView | GET /api/admin/reward-discipline/reports | CONNECTED | |
-| /super-admin/reports/overview | Reports | SuperAdmin/ReportsOverviewView | MIXED | FE_ONLY | |
+| /super-admin/reports/overview | Reports | SuperAdmin/ReportsOverviewView | GET/POST/PUT /api/admin/... | CONNECTED | |
 | /super-admin/notifications/templates | Notification Templates | SuperAdmin/NotificationTemplatesView | GET/POST/PUT /api/admin/notification-templates | CONNECTED | |
 | /super-admin/notifications/send | Send Notification | SuperAdmin/SendNotificationView | POST /api/admin/notifications | CONNECTED | |
 | /super-admin/notifications/history | Notification History | SuperAdmin/NotificationHistoryView | GET /api/admin/notifications | CONNECTED | |
 | /super-admin/audit-logs | Audit Logs | SuperAdmin/AuditLogsView | GET /api/audit-logs | CONNECTED | |
-| /super-admin/security-alerts | Security Alerts | SuperAdmin/SecurityAlertsView | MIXED | FE_ONLY | |
-| /super-admin/system-modules | Modules | SuperAdmin/SystemModulesView | MIXED | FE_ONLY | |
-| /super-admin/ai-automation | AI Automation | SuperAdmin/AIAutomationView | MIXED | FE_ONLY | |
+| /super-admin/security-alerts | Security Alerts | SuperAdmin/SecurityAlertsView | GET/POST/PUT /api/admin/... | CONNECTED | |
+| /super-admin/system-modules | Modules | SuperAdmin/SystemModulesView | GET/POST/PUT /api/admin/... | CONNECTED | |
+| /super-admin/ai-automation | AI Automation | SuperAdmin/AIAutomationView | GET/POST/PUT /api/admin/... | CONNECTED | |
 
 ---
 
@@ -230,7 +230,7 @@
 
 | Role | Total Screens | Connected | FE Only / BE Missing | Notes |
 |---|---|---|---|---|---|
-| SuperAdmin (+Admin/CampusAdmin) | 45 | 28 | 17 FE_ONLY | Shared layout; 11 routes missing from initial audit |
+| SuperAdmin (+Admin/CampusAdmin) | 45 | 45 | 0 | All 45 connected (P15E) |
 | BGH | 25 | 25 | 0 | All 25 connected (P15D) |
 | GiaoVu (Staff) | 24 | 24 | 0 | All 24 connected (P15D.2) |
 | Teacher | 25 | 25 | 0 | All 25 connected (P15C) |

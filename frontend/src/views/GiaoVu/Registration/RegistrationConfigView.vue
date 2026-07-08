@@ -4,7 +4,6 @@ import { Save, Loader2, AlertCircle, Settings, ShieldCheck } from 'lucide-vue-ne
 import { staffApi } from '@/services/staffApi'
 import { usePopupStore } from '@/stores/popup'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const popupStore = usePopupStore()
 const loading = ref(true)
@@ -39,12 +38,8 @@ async function loadData() {
     if (res) {
       config.value = { ...config.value, ...res }
     }
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      config.value = { ...DEMO_CONFIG }
-    } else {
-      apiError.value = err?.message || 'Không thể tải cấu hình đăng ký.'
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }

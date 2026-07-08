@@ -3,17 +3,9 @@ import { ref, onMounted } from 'vue'
 import { Search, Loader2, AlertCircle, Building, MapPin, Users } from 'lucide-vue-next'
 import { staffApi } from '@/services/staffApi'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(true)
 const apiError = ref('')
 const rooms = ref([])
-
-const DEMO_ROOMS = [
-  { id: 'A101', name: 'Phòng A101', building: 'Tòa A', floor: 1, capacity: 60, type: 'lecture', status: 'available' },
-  { id: 'A102', name: 'Phòng A102', building: 'Tòa A', floor: 1, capacity: 50, type: 'lecture', status: 'available' },
-  { id: 'B203', name: 'Phòng B203', building: 'Tòa B', floor: 2, capacity: 40, type: 'lab', status: 'maintenance' },
-  { id: 'C305', name: 'Phòng C305', building: 'Tòa C', floor: 3, capacity: 80, type: 'lecture', status: 'available' },
-]
 
 async function loadData() {
   loading.value = true
@@ -21,12 +13,8 @@ async function loadData() {
   try {
     const res = await staffApi.getRooms()
     rooms.value = Array.isArray(res) ? res : res?.items ?? res ?? []
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      rooms.value = DEMO_ROOMS
-    } else {
-      apiError.value = err?.message || 'Không thể tải danh sách phòng.'
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }

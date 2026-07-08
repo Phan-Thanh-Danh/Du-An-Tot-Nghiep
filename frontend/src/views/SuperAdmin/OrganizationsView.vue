@@ -30,8 +30,6 @@ import {
 import { usePopupStore } from '@/stores/popup'
 import { organizationApi } from '@/services/organizationService'
 
-const ENABLE_MOCK_API =
-  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const popup = usePopupStore()
 
@@ -40,81 +38,6 @@ const loading = ref(false)
 const error = ref('')
 const organizationTree = ref([])
 
-// Mock fallback data
-const mockOrganizations = [
-  {
-    id: 1,
-    code: 'FPT_EDU',
-    name: 'FPT Education',
-    type: 'Root',
-    status: 'Active',
-    address: 'Hòa Lạc, Thạch Thất, Hà Nội',
-    email: 'edu@fpt.edu.vn',
-    phone: '19001234',
-    metrics: { users: 55000, classes: 2100, rooms: 580 },
-    admins: [{ name: 'Super Admin', role: 'Full Access' }],
-    expanded: true,
-    children: [
-      {
-        id: 2,
-        code: 'FPT_HN',
-        name: 'FPT University Hà Nội',
-        type: 'Campus',
-        status: 'Active',
-        address: 'Khu công nghệ cao Hòa Lạc',
-        email: 'hanoi@fpt.edu.vn',
-        phone: '024123456',
-        metrics: { users: 20000, classes: 800, rooms: 200 },
-        admins: [{ name: 'Nguyễn Văn Admin', role: 'Campus Admin' }],
-        expanded: true,
-        children: [
-          {
-            id: 4,
-            code: 'FPT_HN_HL',
-            name: 'Cơ sở Hòa Lạc',
-            type: 'Sub-campus',
-            status: 'Active',
-            address: 'Tòa nhà Alpha, Hòa Lạc',
-            email: 'alpha@fpt.edu.vn',
-            phone: '024111222',
-            metrics: { users: 15000, classes: 600, rooms: 150 },
-            admins: [],
-            children: []
-          },
-          {
-            id: 5,
-            code: 'FPT_HN_DD',
-            name: 'Cơ sở Detech',
-            type: 'Sub-campus',
-            status: 'Locked',
-            lockReason: 'Đang bảo trì nâng cấp cơ sở hạ tầng',
-            address: 'Số 8 Tôn Thất Thuyết, Hà Nội',
-            email: 'detech@fpt.edu.vn',
-            phone: '024333444',
-            metrics: { users: 5000, classes: 200, rooms: 50 },
-            admins: [{ name: 'Trần Detech', role: 'Sub-Campus Admin' }],
-            children: []
-          }
-        ]
-      },
-      {
-        id: 3,
-        code: 'FPT_HCM',
-        name: 'FPT University TP.HCM',
-        type: 'Campus',
-        status: 'Active',
-        address: 'Khu công nghệ cao Q9, TP.HCM',
-        email: 'hcm@fpt.edu.vn',
-        phone: '028123456',
-        metrics: { users: 18000, classes: 700, rooms: 180 },
-        admins: [{ name: 'Lê HCM Admin', role: 'Campus Admin' }],
-        expanded: false,
-        children: []
-      }
-    ]
-  }
-]
-
 async function loadOrganizations() {
   loading.value = true
   error.value = ''
@@ -122,10 +45,6 @@ async function loadOrganizations() {
     const data = await organizationApi.getTree()
     organizationTree.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
   } catch (e) {
-    if (ENABLE_MOCK_API) {
-      organizationTree.value = JSON.parse(JSON.stringify(mockOrganizations))
-      return
-    }
     error.value = e?.response?.data?.message || e?.message || 'Không thể tải cây tổ chức.'
     organizationTree.value = []
   } finally {
@@ -286,38 +205,7 @@ const submitForm = async () => {
       selectedOrg.value = organizationTree.value[0]
     }
   } catch (e) {
-    if (ENABLE_MOCK_API) {
-      if (isEditing.value) {
-        if (selectedOrg.value) {
-          Object.assign(selectedOrg.value, form.value)
-        }
-      } else {
-        const newOrg = {
-          id: Date.now(),
-          code: form.value.code,
-          name: form.value.name,
-          type: form.value.type,
-          status: form.value.status || 'Active',
-          address: form.value.address,
-          email: form.value.email,
-          phone: form.value.phone,
-          metrics: { users: 0, classes: 0, rooms: 0 },
-          admins: [],
-          expanded: false,
-          children: []
-        }
-        const parent = findOrgInTree(organizationTree.value, form.value.parentId)
-        if (parent) {
-          if (!parent.children) parent.children = []
-          parent.children.push(newOrg)
-        }
-      }
-      popup.success('Thành công (Mock)', `Đã ${isEditing.value ? 'cập nhật' : 'tạo mới'} cơ sở (dữ liệu giả lập).`)
-      isEditing.value = false
-      isCreating.value = false
-    } else {
-      popup.error('Lỗi', e?.response?.data?.message || e?.message || 'Không thể lưu cơ sở.')
-    }
+    popup.error('Lỗi', e?.response?.data?.message || e?.message || 'Không thể lưu cơ sở.')
   }
 }
 
@@ -334,16 +222,7 @@ const submitDraft = async () => {
     isCreating.value = false
     await loadOrganizations()
   } catch (e) {
-    if (ENABLE_MOCK_API) {
-      if (isEditing.value && selectedOrg.value) {
-        selectedOrg.value.status = 'Draft'
-      }
-      popup.success('Thành công (Mock)', 'Đã lưu bản nháp (Draft). Các thay đổi chưa kích hoạt chính thức.')
-      isEditing.value = false
-      isCreating.value = false
-    } else {
-      popup.error('Lỗi', e?.response?.data?.message || e?.message || 'Không thể lưu bản nháp.')
-    }
+    popup.error('Lỗi', e?.response?.data?.message || e?.message || 'Không thể lưu bản nháp.')
   }
 }
 
@@ -372,20 +251,7 @@ const confirmLockAction = async () => {
     }
     isLockModalOpen.value = false
   } catch (e) {
-    if (ENABLE_MOCK_API) {
-      if (isCurrentlyLocked) {
-        selectedOrg.value.status = 'Active'
-        selectedOrg.value.lockReason = null
-        popup.success('Thành công (Mock)', `Đã mở khóa cơ sở ${selectedOrg.value.name}.`)
-      } else {
-        selectedOrg.value.status = 'Locked'
-        selectedOrg.value.lockReason = lockReason.value
-        popup.success('Thành công (Mock)', `Đã khóa cơ sở ${selectedOrg.value.name}. Hệ thống chặn tạo mới dữ liệu tại cơ sở này.`)
-      }
-      isLockModalOpen.value = false
-    } else {
-      popup.error('Lỗi', e?.response?.data?.message || e?.message || 'Không thể thực hiện thao tác khóa/mở khóa.')
-    }
+    popup.error('Lỗi', e?.response?.data?.message || e?.message || 'Không thể thực hiện thao tác khóa/mở khóa.')
   }
 }
 

@@ -3,7 +3,6 @@ import { ref, onMounted } from 'vue'
 import { Loader2, AlertCircle, Calendar, Clock, BookOpen } from 'lucide-vue-next'
 import { staffApi } from '@/services/staffApi'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(true)
 const apiError = ref('')
 const period = ref(null)
@@ -27,12 +26,8 @@ async function loadData() {
   try {
     const res = await staffApi.getRegistrationPeriod()
     period.value = res ?? null
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      period.value = DEMO_PERIOD
-    } else {
-      apiError.value = err?.message || 'Không thể tải thông tin đợt đăng ký.'
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }

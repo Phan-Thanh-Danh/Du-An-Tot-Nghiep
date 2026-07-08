@@ -25,7 +25,6 @@ import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { staffApi } from '@/services/staffApi'
 import { usePopupStore } from '@/stores/popup'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const popupStore = usePopupStore()
 const route = useRoute()
@@ -87,12 +86,8 @@ async function loadData() {
   try {
     const res = await staffApi.getRequestById(requestId)
     request.value = res ?? null
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      request.value = { ...DEMO_REQUEST, id: requestId }
-    } else {
-      apiError.value = err?.message || 'Không thể tải chi tiết đơn.'
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }

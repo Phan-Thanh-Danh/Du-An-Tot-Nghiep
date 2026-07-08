@@ -9,7 +9,6 @@ import { usePopupStore } from '@/stores/popup'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 const popupStore = usePopupStore()
 const route = useRoute()
@@ -39,12 +38,8 @@ async function loadData() {
   try {
     const res = await staffApi.getRequestById(requestId)
     request.value = res ?? null
-  } catch (err) {
-    if (ENABLE_MOCK_API) {
-      request.value = { ...DEMO_REQUEST }
-    } else {
-      apiError.value = err?.message || 'Không thể tải thông tin đơn.'
-    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }

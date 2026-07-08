@@ -4,7 +4,8 @@
  * Giao diện giám sát & xử lý cảnh báo bảo mật được hệ thống phát hiện tự động.
  * Tích hợp AI Risk Score, Alert Detail Drawer, Confirm Lock Modal và Workflow cập nhật trạng thái.
  */
-import { ref, computed } from 'vue'
+import { ref, computed , onMounted} from 'vue'
+import { apiRequest as apiClient } from '@/services/apiClient'
 import {
   Shield,
   ShieldAlert,
@@ -26,107 +27,7 @@ import {
 } from 'lucide-vue-next'
 
 // --- Mock Data cho Security Alerts ---
-const alertsMock = ref([
-  {
-    id: 'SEC-001',
-    userEmail: 'giangvien_lam@fpt.edu.vn',
-    userRole: 'Teacher',
-    avatar: '',
-    campusId: 'HN',
-    alertType: 'IMPOSSIBLE_TRAVEL', // IMPOSSIBLE_TRAVEL, ANOMALOUS_IP, SUSPICIOUS_DEVICE, BRUTE_FORCE
-    riskScore: 0.88, // AI calculated risk score
-    ipAddress: '103.21.140.22',
-    deviceDetail: 'Chrome 125, MacOS 14.5',
-    location: 'Singapore (SG)',
-    detectedAt: '2026-06-22 12:45:00',
-    status: 'Open', // Open, Investigating, Resolved
-    isUserLocked: false,
-    aiExplanation: 'Phát hiện đăng nhập bất thường cách xa địa điểm đăng nhập trước đó 1,200 km (Hà Nội, VN) chỉ sau 15 phút. Hệ thống nghi ngờ tài khoản bị chiếm đoạt session token.',
-    historyLogs: [
-      { action: 'Detected', time: '2026-06-22 12:45:00', actor: 'AI (Isolation Forest)', note: 'Điểm rủi ro vượt ngưỡng 0.70 (0.88). Tự động tạo cảnh báo và gửi email thông báo cho Super Admin.' }
-    ]
-  },
-  {
-    id: 'SEC-002',
-    userEmail: 'sinhvien_namhe17@fpt.edu.vn',
-    userRole: 'Student',
-    avatar: '',
-    campusId: 'HCM',
-    alertType: 'BRUTE_FORCE',
-    riskScore: 0.72,
-    ipAddress: '171.244.10.89',
-    deviceDetail: 'Firefox 126, Windows 11',
-    location: 'TP. Hồ Chí Minh (VN)',
-    detectedAt: '2026-06-22 11:30:12',
-    status: 'Investigating',
-    isUserLocked: false,
-    aiExplanation: 'Phát hiện 8 lần thử đăng nhập thất bại liên tiếp trong vòng 45 giây trước khi đăng nhập thành công. Đây là hành vi thử mật khẩu phổ biến.',
-    historyLogs: [
-      { action: 'Detected', time: '2026-06-22 11:30:12', actor: 'AI (Isolation Forest)', note: 'Điểm rủi ro đạt 0.72. Tự động khởi tạo cảnh báo rủi ro.' },
-      { action: 'Status_Updated', time: '2026-06-22 11:45:00', actor: 'super_admin@fpt.edu.vn', note: 'Chuyển sang trạng thái Investigating. Đang liên hệ sinh viên xác minh có quên mật khẩu không.' }
-    ]
-  },
-  {
-    id: 'SEC-003',
-    userEmail: 'giaovu_binh@fpt.edu.vn',
-    userRole: 'Staff',
-    avatar: '',
-    campusId: 'DN',
-    alertType: 'ANOMALOUS_IP',
-    riskScore: 0.94,
-    ipAddress: '198.51.100.4',
-    deviceDetail: 'Python-requests/2.31',
-    location: 'California (US)',
-    detectedAt: '2026-06-21 16:20:00',
-    status: 'Open',
-    isUserLocked: true,
-    aiExplanation: 'Truy cập API Endpoint với User-Agent không phải trình duyệt (Python script) từ địa chỉ IP thuộc nhà mạng đám mây (AWS). Điểm rủi ro cực kỳ cao vì đây là tài khoản Giáo vụ nắm giữ dữ liệu điểm danh môn học.',
-    historyLogs: [
-      { action: 'Detected', time: '2026-06-21 16:20:00', actor: 'AI (Isolation Forest)', note: 'Điểm rủi ro đạt 0.94 do IP hosting và User-Agent lạ.' },
-      { action: 'Account_Locked', time: '2026-06-21 16:30:00', actor: 'super_admin@fpt.edu.vn', note: 'Khóa tài khoản khẩn cấp đề phòng bị dò quét hoặc rò rỉ API key.' }
-    ]
-  },
-  {
-    id: 'SEC-004',
-    userEmail: 'ketoan_lan@fpt.edu.vn',
-    userRole: 'Staff',
-    avatar: '',
-    campusId: 'HN',
-    alertType: 'SUSPICIOUS_DEVICE',
-    riskScore: 0.35,
-    ipAddress: '14.162.245.10',
-    deviceDetail: 'Safari 17.4, iPadOS 17.4',
-    location: 'Hà Nội (VN)',
-    detectedAt: '2026-06-21 10:15:30',
-    status: 'Resolved',
-    isUserLocked: false,
-    aiExplanation: 'Đăng nhập từ thiết bị iPad mới chưa từng được ghi nhận trong lịch sử đăng nhập của nhân sự Kế toán này. Điểm rủi ro thấp (0.35) vì IP nằm trong dải quen thuộc của văn phòng.',
-    historyLogs: [
-      { action: 'Detected', time: '2026-06-21 10:15:30', actor: 'AI (Isolation Forest)', note: 'Thiết bị mới phát sinh. Điểm rủi ro 0.35.' },
-      { action: 'Status_Updated', time: '2026-06-21 14:00:00', actor: 'super_admin@fpt.edu.vn', note: 'Đã xác minh trực tiếp. Kế toán Lan dùng iPad cá nhân để duyệt hóa đơn tại cơ quan. Đánh dấu Resolved.' }
-    ]
-  },
-  {
-    id: 'SEC-005',
-    userEmail: 'sinhvien_hieuhe16@fpt.edu.vn',
-    userRole: 'Student',
-    avatar: '',
-    campusId: 'HCM',
-    alertType: 'ANOMALOUS_IP',
-    riskScore: 0.52,
-    ipAddress: '115.79.136.21',
-    deviceDetail: 'Chrome Mobile 125, Android 13',
-    location: 'Vũng Tàu (VN)',
-    detectedAt: '2026-06-20 09:22:15',
-    status: 'Resolved',
-    isUserLocked: false,
-    aiExplanation: 'Đăng nhập từ địa chỉ IP thuộc nhà mạng di động khác thường lệ. Điểm rủi ro ở mức trung bình (0.52) do thay đổi tỉnh thành đăng nhập nhanh chóng.',
-    historyLogs: [
-      { action: 'Detected', time: '2026-06-20 09:22:15', actor: 'AI (Isolation Forest)', note: 'Thay đổi vị trí địa lý. Điểm rủi ro 0.52.' },
-      { action: 'Status_Updated', time: '2026-06-20 10:30:00', actor: 'super_admin@fpt.edu.vn', note: 'Sinh viên đi du lịch và đăng nhập học tập bằng 4G Viettel. Đánh dấu Resolved.' }
-    ]
-  }
-])
+const alertsMock = ref([])
 
 // --- State Bộ lọc ---
 const searchUser = ref('')
@@ -340,6 +241,18 @@ const getStatusName = (status) => {
     default: return status
   }
 }
+
+onMounted(async () => {
+  try {
+    const res = await apiClient.get('/super-admin/security/alerts')
+    if (res.data) {
+      alertsMock.value = res.data
+    }
+  } catch (error) {
+    console.error('Failed to load data for alertsMock', error)
+  }
+})
+
 </script>
 
 <template>

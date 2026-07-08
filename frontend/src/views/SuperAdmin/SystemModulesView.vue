@@ -4,7 +4,8 @@
  * Giao diện quản lý trạng thái hoạt động của các phân hệ chức năng (Modules) toàn hệ thống.
  * Hỗ trợ Toggle bật tắt, Campus Override, Phase management, Confirm Modal và lưu vết audit log.
  */
-import { ref, computed } from 'vue'
+import { ref, computed , onMounted} from 'vue'
+import { apiRequest as apiClient } from '@/services/apiClient'
 import {
   Settings,
   Power,
@@ -22,120 +23,7 @@ import {
 } from 'lucide-vue-next'
 
 // --- Mock Data cho System Modules ---
-const modulesMock = ref([
-  {
-    id: 'MOD-001',
-    code: 'M1',
-    name: 'Xác thực & Phân quyền (Auth & RBAC)',
-    description: 'Quản lý phiên đăng nhập, cấp phát JWT token, phân quyền vai trò người dùng hệ thống.',
-    phase: 1, // Phase 1 - Core
-    status: 'Enabled', // Enabled, Disabled, Partial
-    campuses: {
-      HN: true,
-      HCM: true,
-      DN: true
-    },
-    updatedBy: 'system_auto',
-    updatedAt: '2026-06-01 08:00:00',
-    isCore: true // Không cho phép tắt hoàn toàn để tránh sập hệ thống
-  },
-  {
-    id: 'MOD-002',
-    code: 'M3',
-    name: 'Cấu trúc Tổ chức (Organizations)',
-    description: 'Quản lý cây phân cấp Root -> Campus -> Sub-campus và gán đơn vị công tác.',
-    phase: 1,
-    status: 'Enabled',
-    campuses: {
-      HN: true,
-      HCM: true,
-      DN: true
-    },
-    updatedBy: 'system_auto',
-    updatedAt: '2026-06-01 08:00:00',
-    isCore: true
-  },
-  {
-    id: 'MOD-003',
-    code: 'M4',
-    name: 'Thi & Kiểm tra trực tuyến (Online Exam)',
-    description: 'Quản lý ngân hàng đề thi, điều phối ca thi trực tuyến và tự động chấm điểm.',
-    phase: 2, // Phase 2 - Value Add
-    status: 'Partial',
-    campuses: {
-      HN: true,
-      HCM: true,
-      DN: false
-    },
-    updatedBy: 'admin_huan@fpt.edu.vn',
-    updatedAt: '2026-06-20 14:35:10',
-    isCore: false
-  },
-  {
-    id: 'MOD-004',
-    code: 'M5',
-    name: 'Điểm danh & Chuyên cần (Attendance)',
-    description: 'Giám sát hoạt động điểm danh lớp học hằng ngày và cảnh báo ngưỡng vắng học.',
-    phase: 1,
-    status: 'Enabled',
-    campuses: {
-      HN: true,
-      HCM: true,
-      DN: true
-    },
-    updatedBy: 'super_admin@fpt.edu.vn',
-    updatedAt: '2026-06-15 09:12:00',
-    isCore: false
-  },
-  {
-    id: 'MOD-005',
-    code: 'M12',
-    name: 'Đăng ký môn học (Subject Registration)',
-    description: 'Mở đợt đăng ký môn học trực tuyến, lựa chọn lịch học và thanh toán học phí.',
-    phase: 2,
-    status: 'Disabled',
-    campuses: {
-      HN: false,
-      HCM: false,
-      DN: false
-    },
-    updatedBy: 'super_admin@fpt.edu.vn',
-    updatedAt: '2026-06-22 10:00:00',
-    isCore: false
-  },
-  {
-    id: 'MOD-006',
-    code: 'M16',
-    name: 'Notification Hub (Trung tâm thông báo)',
-    description: 'Quản lý mẫu thông báo và điều phối tin nhắn gửi đa kênh (Email, SMS, Push).',
-    phase: 2,
-    status: 'Enabled',
-    campuses: {
-      HN: true,
-      HCM: true,
-      DN: true
-    },
-    updatedBy: 'super_admin@fpt.edu.vn',
-    updatedAt: '2026-06-22 11:20:00',
-    isCore: false
-  },
-  {
-    id: 'MOD-007',
-    code: 'M20',
-    name: 'AI & Chatbot Automation',
-    description: 'Tích hợp trợ lý ảo tư vấn học vụ, phân tích điểm rủi ro bảo mật và gợi ý giờ vàng.',
-    phase: 3, // Phase 3 - Advanced
-    status: 'Partial',
-    campuses: {
-      HN: true,
-      HCM: false,
-      DN: false
-    },
-    updatedBy: 'admin_huan@fpt.edu.vn',
-    updatedAt: '2026-06-21 17:45:00',
-    isCore: false
-  }
-])
+const modulesMock = ref([])
 
 // --- State Bộ lọc ---
 const searchQuery = ref('')
@@ -283,6 +171,18 @@ const handleSaveCampusOverride = () => {
   isCampusModalOpen.value = false
   triggerToast(`Đã lưu cấu hình cơ sở cho module ${mod.code} thành công!`, 'success')
 }
+
+onMounted(async () => {
+  try {
+    const res = await apiClient.get('/super-admin/system/modules')
+    if (res.data) {
+      modulesMock.value = res.data
+    }
+  } catch (error) {
+    console.error('Failed to load data for modulesMock', error)
+  }
+})
+
 </script>
 
 <template>
