@@ -266,7 +266,9 @@
           :class="{ 'has-alert': hasUnhandledViolation(student) }"
           @click="openStudentModal(student)"
         >
-          <MockScreen :student="student" :violations="studentViolationCount(student)" />
+          <div class="placeholder-screen">
+            <span>Màn hình thí nghiệm</span>
+          </div>
           <div class="screen-card-body">
             <div>
               <p class="student-code">{{ student.studentCode }}</p>
@@ -303,7 +305,9 @@
             class="closed-card"
             @click="openStudentModal(student)"
           >
-            <MockScreen :student="student" :violations="studentViolationCount(student)" compact />
+            <div class="placeholder-screen compact">
+              <span>Màn hình thí nghiệm</span>
+            </div>
             <div>
               <strong>{{ student.studentCode }}</strong>
               <span>{{ student.name }}</span>
@@ -323,7 +327,9 @@
             <X :size="18" />
           </button>
           <div class="modal-screen">
-            <MockScreen :student="selectedStudent" :violations="studentViolationCount(selectedStudent)" large />
+            <div class="placeholder-screen large">
+              <span>Màn hình thí nghiệm</span>
+            </div>
           </div>
           <aside class="modal-panel">
             <p class="section-eyebrow">Chi tiết thí sinh</p>
@@ -367,7 +373,7 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import {
   AlertCircle,
   AlertTriangle,
@@ -385,10 +391,8 @@ import {
 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import { usePopupStore } from '@/stores/popup'
-import { PROCTORING_LIVE_VIOLATIONS_KEY } from '@/utils/examSecurity'
 import { teacherApi } from '@/services/teacherApi'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const loading = ref(false)
 const error = ref('')
 const popupStore = usePopupStore()
@@ -398,6 +402,7 @@ const selectedSessionId = ref('')
 const selectedStudent = ref(null)
 const soundEnabled = ref(true)
 const liveViolations = ref([])
+const examStudents = ref([])
 let clockTimer = null
 let violationTimer = null
 
@@ -414,97 +419,12 @@ const violationLabelMap = {
 
 const assignedExamSessions = ref([])
 
-const sessionStudents = ref({
-  'session-web201-b1': [
-    createStudent('sv001', 'PS12345', 'Nguyễn Văn A', 'pass'),
-    createStudent('sv002', 'PS12346', 'Trần Thị B', 'risk'),
-    createStudent('sv003', 'PS12347', 'Lê Hoàng C', 'pass'),
-    createStudent('sv004', 'PS12348', 'Phạm Minh D', 'not_checked'),
-    createStudent('sv005', 'PS12349', 'Hoàng Minh E', 'pass'),
-    createStudent('sv006', 'PS12350', 'Vũ Gia Hân', 'risk'),
-  ],
-  'session-fin301-final': [
-    createStudent('sv101', 'PS22345', 'Đỗ Quốc Anh', 'pass'),
-    createStudent('sv102', 'PS22346', 'Nguyễn Thảo Vy', 'not_checked'),
-    createStudent('sv103', 'PS22347', 'Trần Minh Tâm', 'risk'),
-    createStudent('sv104', 'PS22348', 'Bùi Gia Bảo', 'pass'),
-  ],
-  'session-ctdl101-quiz': [
-    createStudent('sv201', 'PS32345', 'Mai Hoàng Nam', 'pass'),
-    createStudent('sv202', 'PS32346', 'Lâm Khánh Linh', 'pass'),
-  ],
-})
-
-function createStudent(id, studentCode, name, preflightStatus) {
-  return {
-    id,
-    studentCode,
-    name,
-    attendanceStatus: 'absent',
-    preflightStatus,
-    streamStatus: 'waiting',
-    examStatus: 'not_started',
-    logs: [],
-  }
-}
-
-const MockScreen = defineComponent({
-  name: 'MockScreen',
-  props: {
-    student: { type: Object, required: true },
-    violations: { type: Number, default: 0 },
-    compact: { type: Boolean, default: false },
-    large: { type: Boolean, default: false },
-  },
-  setup(props) {
-    return () =>
-      h(
-        'div',
-        {
-          class: [
-            'mock-screen',
-            props.compact && 'compact',
-            props.large && 'large',
-            props.student.streamStatus === 'lost' && 'lost',
-          ],
-        },
-        [
-          h('div', { class: 'screen-watermark' }, props.student.studentCode),
-          h('div', { class: 'mock-window' }, [
-            h('div', { class: 'mock-window-bar' }, [
-              h('span'),
-              h('span'),
-              h('span'),
-              h('strong', 'Live screen mock'),
-            ]),
-            h('div', { class: 'mock-exam-ui' }, [
-              h('div', { class: 'mock-question' }),
-              h('div', { class: 'mock-line wide' }),
-              h('div', { class: 'mock-line' }),
-              h('div', { class: 'mock-options' }, [h('span'), h('span'), h('span'), h('span')]),
-            ]),
-          ]),
-          props.violations > 0 ? h('div', { class: 'mock-alert' }, 'Cảnh báo') : null,
-          props.student.streamStatus === 'lost'
-            ? h('div', { class: 'screen-overlay' }, 'Mất tín hiệu màn hình')
-            : null,
-          props.student.examStatus === 'submitted'
-            ? h('div', { class: 'screen-overlay success' }, 'Đã nộp bài')
-            : null,
-          props.student.examStatus === 'suspended'
-            ? h('div', { class: 'screen-overlay danger' }, 'Đã đình chỉ')
-            : null,
-        ],
-      )
-  },
-})
-
 const currentSession = computed(() => {
   return assignedExamSessions.value.find((session) => session.id === selectedSessionId.value) || null
 })
 
 const currentStudents = computed(() => {
-  return currentSession.value ? sessionStudents.value[currentSession.value.id] || [] : []
+  return currentSession.value ? examStudents.value : []
 })
 
 const presentStudents = computed(() => {
@@ -566,10 +486,11 @@ async function loadSessions() {
   try {
     const data = await teacherApi.getExams()
     assignedExamSessions.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
-  } catch (e) {
-    if (ENABLE_MOCK_API) {
-      return
+    if (selectedSessionId.value) {
+      const studentsData = await teacherApi.getExamStudents(selectedSessionId.value)
+      examStudents.value = Array.isArray(studentsData) ? studentsData : (studentsData?.items ?? studentsData?.data ?? [])
     }
+  } catch (e) {
     error.value = e?.message || 'Không thể tải ca thi.'
   } finally {
     loading.value = false
@@ -597,39 +518,14 @@ function updateTime() {
   })
 }
 
-function loadLiveViolations() {
+async function loadLiveViolations() {
+  if (!selectedSessionId.value) return
   try {
-    const raw = localStorage.getItem(PROCTORING_LIVE_VIOLATIONS_KEY)
-    const parsed = raw ? JSON.parse(raw) : []
-    liveViolations.value = Array.isArray(parsed) && parsed.length ? parsed : createDemoViolations()
+    const data = await teacherApi.getExamViolations(selectedSessionId.value)
+    liveViolations.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
   } catch {
-    liveViolations.value = createDemoViolations()
+    liveViolations.value = []
   }
-}
-
-function createDemoViolations() {
-  return [
-    {
-      id: 'demo-tab-ps12345',
-      studentId: 'PS12345',
-      studentName: 'Nguyễn Văn A',
-      type: 'TAB_SWITCH',
-      severity: 'high',
-      message: 'Học sinh rời khỏi tab thi',
-      timestamp: new Date().toISOString(),
-      handled: false,
-    },
-    {
-      id: 'demo-devtools-ps12346',
-      studentId: 'PS12346',
-      studentName: 'Trần Thị B',
-      type: 'DEVTOOLS_OPENED',
-      severity: 'critical',
-      message: 'Phát hiện dấu hiệu mở Developer Tools',
-      timestamp: new Date(Date.now() - 90000).toISOString(),
-      handled: false,
-    },
-  ]
 }
 
 function formatSessionTime(session) {
@@ -658,8 +554,14 @@ function sessionActionLabel(session) {
   return 'Vào điểm danh'
 }
 
-function openSession(session) {
+async function openSession(session) {
   selectedSessionId.value = session.id
+  try {
+    const studentsData = await teacherApi.getExamStudents(session.id)
+    examStudents.value = Array.isArray(studentsData) ? studentsData : (studentsData?.items ?? studentsData?.data ?? [])
+  } catch {
+    examStudents.value = []
+  }
   if (session.status === 'monitoring') {
     viewState.value = 'dashboard'
   } else {
@@ -706,10 +608,16 @@ function startMonitoring() {
   popupStore.success('Đã bắt đầu canh thi', `${presentStudents.value.length} thí sinh có mặt được đưa vào grid giám sát.`)
 }
 
-function finishSession() {
+async function finishSession() {
   if (!currentSession.value) return
   const confirmed = window.confirm('Kết thúc ca canh thi này?')
   if (!confirmed) return
+
+  try {
+    await teacherApi.createBienBan({ maCaThi: currentSession.value.id, trangThai: 'ended' })
+  } catch {
+    // proceed even if API fails
+  }
 
   currentSession.value.status = 'ended'
   presentStudents.value.forEach((student) => {
@@ -718,7 +626,7 @@ function finishSession() {
   })
   selectedStudent.value = null
   viewState.value = 'sessions'
-  popupStore.success('Đã kết thúc ca', 'Biên bản mock đã được cập nhật.')
+  popupStore.success('Đã kết thúc ca', 'Biên bản ca thi đã được cập nhật.')
 }
 
 function attendanceCountForSession(sessionId) {
@@ -1273,137 +1181,25 @@ function markStudentHandled(student) {
   font-weight: 700;
 }
 
-.mock-screen {
-  position: relative;
+.placeholder-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 12rem;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--text-link) 18%, transparent);
+  border: 1px dashed var(--border-card);
   border-radius: 14px;
-  background:
-    radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--text-link) 18%, transparent), transparent 34%),
-    linear-gradient(145deg, #08111f, #101827 52%, #07101d);
+  background: var(--surface-input);
+  color: var(--text-placeholder);
+  font-size: 0.78rem;
+  font-weight: 750;
 }
 
-.mock-screen.compact {
+.placeholder-screen.compact {
   min-height: 5rem;
 }
 
-.mock-screen.large {
+.placeholder-screen.large {
   min-height: 28rem;
-}
-
-.screen-watermark {
-  position: absolute;
-  inset: auto 0 1rem 0;
-  color: rgba(255,255,255,0.12);
-  font-size: 2rem;
-  font-weight: 950;
-  text-align: center;
-  transform: rotate(-16deg);
-  pointer-events: none;
-}
-
-.mock-window {
-  position: absolute;
-  inset: 1rem;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 12px;
-  background: rgba(5, 13, 26, 0.86);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
-}
-
-.mock-window-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.32rem;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  padding: 0.55rem;
-}
-
-.mock-window-bar span {
-  width: 0.48rem;
-  height: 0.48rem;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.2);
-}
-
-.mock-window-bar strong {
-  margin-left: auto;
-  color: rgba(255,255,255,0.5);
-  font-size: 0.62rem;
-}
-
-.mock-exam-ui {
-  padding: 1rem;
-}
-
-.mock-question,
-.mock-line,
-.mock-options span {
-  border-radius: 999px;
-  background: rgba(255,255,255,0.13);
-}
-
-.mock-question {
-  width: 48%;
-  height: 0.8rem;
-  margin-bottom: 1rem;
-}
-
-.mock-line {
-  width: 66%;
-  height: 0.55rem;
-  margin-bottom: 0.55rem;
-}
-
-.mock-line.wide {
-  width: 86%;
-}
-
-.mock-options {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem;
-  margin-top: 1rem;
-}
-
-.mock-options span {
-  height: 1.6rem;
-}
-
-.mock-alert,
-.screen-overlay {
-  position: absolute;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  font-size: 0.68rem;
-  font-weight: 900;
-}
-
-.mock-alert {
-  top: 0.8rem;
-  right: 0.8rem;
-  min-height: 1.6rem;
-  padding: 0 0.65rem;
-  background: var(--color-danger-bg);
-  color: var(--color-danger-text);
-}
-
-.screen-overlay {
-  inset: 0;
-  border-radius: 0;
-  background: rgba(5, 10, 20, 0.78);
-  color: white;
-  font-size: 1rem;
-}
-
-.screen-overlay.success {
-  color: var(--color-success-text);
-}
-
-.screen-overlay.danger {
-  color: var(--color-danger-text);
 }
 
 .student-modal-backdrop {

@@ -1,5 +1,5 @@
 // ============================================================
-// Mock Menu Data - GiangVien Sidebar (FULL VERSION)
+// Menu Data - GiangVien Sidebar (FULL VERSION)
 // ============================================================
 
 export const giangVienMenuGroups = [
@@ -103,12 +103,3 @@ export const giangVienMenuGroups = [
   },
 ]
 
-export const mockTeacher = {
-  name: 'TS. Nguyễn Minh Khoa',
-  teacherId: 'GV2024005',
-  email: 'khoa.nm@lms.edu.vn',
-  avatar: null,
-  initials: 'MK',
-  department: 'Khoa Công nghệ thông tin',
-  campus: 'Cơ sở chính',
-}

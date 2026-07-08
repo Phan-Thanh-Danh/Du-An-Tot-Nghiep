@@ -1,17 +1,18 @@
 <!-- CreateExamView.vue -->
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   ArrowLeft, Save, Send, Database, Clock, 
   Settings, BookOpen, AlertCircle, Check, Plus,
   X, Search, Trash2, Award, CheckCircle2,
-  Info, Users, ShieldCheck
+  Info, Users, ShieldCheck, Loader2
 } from 'lucide-vue-next'
 import { EXAM_STATUS } from '@/utils/examAccess.js'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
+import { teacherApi } from '@/services/teacherApi'
 
 const router = useRouter()
 
@@ -51,18 +52,9 @@ function triggerToast(msg, type = 'success') {
   }, 4000)
 }
 
-// Mock Question Bank
-const mockQuestionBank = ref([
-  { id: 'Q1', text: 'Thẻ HTML nào được dùng để tạo một liên kết?', type: 'Trắc nghiệm', difficulty: 'Dễ', category: 'Lập trình Web', options: ['<a>', '<link>', '<href>', '<url>'], correctAnswer: 0, score: 0.25 },
-  { id: 'Q2', text: 'Trong CSS, thuộc tính nào dùng để căn giữa văn bản?', type: 'Trắc nghiệm', difficulty: 'Dễ', category: 'Lập trình Web', options: ['align: center', 'text-align: center', 'valign: center', 'margin: auto'], correctAnswer: 1, score: 0.25 },
-  { id: 'Q3', text: 'Khái niệm "Reactive" trong VueJS dùng để làm gì?', type: 'Trắc nghiệm', difficulty: 'Trung bình', category: 'Lập trình Web', options: ['Tạo biến thông thường', 'Tự động đồng bộ và cập nhật UI khi dữ liệu thay đổi', 'Đọc ghi dữ liệu từ API', 'Quản lý routing của trang'], correctAnswer: 1, score: 0.5 },
-  { id: 'Q4', text: 'Để định dạng flexbox container, ta dùng thuộc tính CSS nào?', type: 'Trắc nghiệm', difficulty: 'Dễ', category: 'Lập trình Web', options: ['display: block', 'display: grid', 'display: flex', 'float: left'], correctAnswer: 2, score: 0.25 },
-  { id: 'Q5', text: 'Trong Java, từ khóa nào kế thừa một lớp khác?', type: 'Trắc nghiệm', difficulty: 'Dễ', category: 'Lập trình Java', options: ['implements', 'extends', 'inherits', 'import'], correctAnswer: 1, score: 0.25 },
-  { id: 'Q6', text: 'Đâu không phải là một kiểu dữ liệu nguyên thủy (primitive) trong Java?', type: 'Trắc nghiệm', difficulty: 'Trung bình', category: 'Lập trình Java', options: ['int', 'double', 'char', 'String'], correctAnswer: 3, score: 0.5 },
-  { id: 'Q7', text: 'Lớp cha cao nhất của mọi lớp trong Java là lớp nào?', type: 'Trắc nghiệm', difficulty: 'Trung bình', category: 'Lập trình Java', options: ['Object', 'Class', 'System', 'Main'], correctAnswer: 0, score: 0.5 },
-  { id: 'Q8', text: 'Khóa chính (Primary Key) trong cơ sở dữ liệu dùng để làm gì?', type: 'Trắc nghiệm', difficulty: 'Dễ', category: 'Cơ sở dữ liệu', options: ['Để mã hóa bảng dữ liệu', 'Định danh duy nhất cho mỗi bản ghi', 'Liên kết dữ liệu giữa nhiều bảng', 'Để sắp xếp các dòng dữ liệu'], correctAnswer: 1, score: 0.25 },
-  { id: 'Q9', text: 'Câu lệnh SQL nào dùng để loại bỏ các hàng trùng lặp?', type: 'Trắc nghiệm', difficulty: 'Trung bình', category: 'Cơ sở dữ liệu', options: ['SELECT UNIQUE', 'SELECT DISTINCT', 'SELECT DIFFERENT', 'SELECT SINGLE'], correctAnswer: 1, score: 0.5 }
-])
+const questionBank = ref([])
+const loadingQuestions = ref(false)
+const questionError = ref('')
 
 // Question bank filters
 const bankSearch = ref('')
@@ -71,14 +63,30 @@ const bankDifficultyFilter = ref('')
 const bankCheckedIds = ref([])
 
 const filteredBankQuestions = computed(() => {
-  return mockQuestionBank.value.filter(q => {
+  return questionBank.value.filter(q => {
     const matchSearch = q.text.toLowerCase().includes(bankSearch.value.toLowerCase())
     const matchCat = !bankCategoryFilter.value || q.category === bankCategoryFilter.value
     const matchDiff = !bankDifficultyFilter.value || q.difficulty === bankDifficultyFilter.value
-    // Exclude already added questions to avoid duplicates
     const notAddedYet = !selectedQuestions.value.some(sq => sq.id === q.id)
     return matchSearch && matchCat && matchDiff && notAddedYet
   })
+})
+
+async function loadQuestionBank() {
+  loadingQuestions.value = true
+  questionError.value = ''
+  try {
+    const data = await teacherApi.getExams()
+    questionBank.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+  } catch {
+    questionError.value = 'Không thể tải ngân hàng câu hỏi.'
+  } finally {
+    loadingQuestions.value = false
+  }
+}
+
+onMounted(() => {
+  loadQuestionBank()
 })
 
 function openQuestionBank() {
@@ -101,7 +109,7 @@ function addQuestionsFromBank() {
   }
   
   bankCheckedIds.value.forEach(id => {
-    const question = mockQuestionBank.value.find(q => q.id === id)
+    const question = questionBank.value.find(q => q.id === id)
     if (question) {
       selectedQuestions.value.push(JSON.parse(JSON.stringify(question)))
     }
@@ -189,16 +197,7 @@ const totalScore = computed(() => {
   return selectedQuestions.value.reduce((acc, q) => acc + (q.score || 0), 0)
 })
 
-function saveDraft() {
-  if (!form.value.name.trim()) {
-    triggerToast('Vui lòng nhập tên đề thi!', 'error')
-    return
-  }
-  
-  saveToLocalStorage('Draft')
-}
-
-function publish() {
+async function publish() {
   if (!form.value.name.trim()) {
     triggerToast('Vui lòng nhập tên đề thi!', 'error')
     return
@@ -209,59 +208,66 @@ function publish() {
     return
   }
   
-  saveToLocalStorage('Published')
+  try {
+    const payload = {
+      tenKyThi: form.value.name,
+      moTa: form.value.description,
+      tenMonHoc: form.value.subjectName,
+      maLop: form.value.classSectionCode,
+      loaiDeThi: form.value.type,
+      thoiGianThi: form.value.duration,
+      diemDat: form.value.passingScore,
+      soLanLamToiDa: form.value.maxAttempts,
+      xaoTronCauHoi: form.value.shuffle,
+      hienThiKetQua: form.value.showResult,
+      choPhepLamTruoc: form.value.allowEarlyLearning,
+      thoiGianMo: form.value.startTime,
+      thoiGianDong: form.value.endTime,
+      trangThai: form.value.status,
+      danhSachCauHoi: selectedQuestions.value.map(q => ({ maCauHoi: q.id, diemSo: q.score })),
+    }
+    await teacherApi.createExam(payload)
+    triggerToast('Đã xuất bản đề thi thành công!', 'success')
+    setTimeout(() => {
+      router.push('/teacher/exams')
+    }, 1000)
+  } catch (err) {
+    triggerToast(err?.message || 'Không thể tạo đề thi.', 'error')
+  }
 }
 
-function saveToLocalStorage(status) {
-  const defaultExams = [
-    { id: 1, name: 'Thi giữa kỳ: Lập trình Web', subjectName: 'Lập trình Web', classSectionCode: 'WEB201-SD1904-B1', duration: '90 phút', questions: 40, status: EXAM_STATUS.OPEN, date: '04/06/2026', openAt: '2026-06-04T08:00', closeAt: '2026-06-04T10:00', type: 'Trắc nghiệm', maxAttempts: 1, allowedStudents: 42, completedStudents: 31, pendingStudents: 11, allowEarlyLearning: false },
-    { id: 2, name: 'Thi kết thúc môn: Java Basic', subjectName: 'Java Basic', classSectionCode: 'JAVA101-SD1905-B2', duration: '120 phút', questions: 50, status: EXAM_STATUS.DRAFT, date: '15/06/2026', openAt: '2026-06-15T08:00', closeAt: '2026-06-15T10:00', type: 'Hỗn hợp', maxAttempts: 1, allowedStudents: 38, completedStudents: 0, pendingStudents: 38, allowEarlyLearning: false },
-    { id: 3, name: 'Quiz 2: Cấu trúc dữ liệu', subjectName: 'Cấu trúc dữ liệu', classSectionCode: 'CTDL101-SD1904-B1', duration: '15 phút', questions: 10, status: EXAM_STATUS.RESULT_PUBLISHED, date: '18/05/2026', openAt: '2026-05-18T08:00', closeAt: '2026-05-18T23:59', type: 'Trắc nghiệm', maxAttempts: 2, allowedStudents: 42, completedStudents: 42, pendingStudents: 0, allowEarlyLearning: true },
-  ]
-  
-  const stored = localStorage.getItem('teacher_exams')
-  const examList = stored ? JSON.parse(stored) : defaultExams
-  
-  const examId = examList.length + 1
-  
-  // Format Date
-  let examDate = '25/05/2026'
-  if (form.value.startTime) {
-    const parts = form.value.startTime.split('T')[0].split('-')
-    examDate = `${parts[2]}/${parts[1]}/${parts[0]}`
+async function saveDraft() {
+  if (!form.value.name.trim()) {
+    triggerToast('Vui lòng nhập tên đề thi!', 'error')
+    return
   }
   
-  const newExam = {
-    id: examId,
-    name: form.value.name,
-    subjectName: form.value.subjectName,
-    classSectionCode: form.value.classSectionCode,
-    duration: form.value.duration + ' phút',
-    questions: selectedQuestions.value.length,
-    // Phase 7: exam access is controlled by schedule/class/attempt, not password.
-    status: status === 'Published' ? form.value.status : EXAM_STATUS.DRAFT,
-    date: examDate,
-    openAt: form.value.startTime,
-    closeAt: form.value.endTime,
-    type: form.value.type,
-    maxAttempts: form.value.maxAttempts,
-    allowedStudents: 40,
-    completedStudents: 0,
-    pendingStudents: 40,
-    allowEarlyLearning: form.value.allowEarlyLearning,
-    accessPolicy: {
-      requirePassword: false,
-      controlledBy: 'class_section_schedule_attempt',
-    },
+  try {
+    const payload = {
+      tenKyThi: form.value.name,
+      moTa: form.value.description,
+      tenMonHoc: form.value.subjectName,
+      maLop: form.value.classSectionCode,
+      loaiDeThi: form.value.type,
+      thoiGianThi: form.value.duration,
+      diemDat: form.value.passingScore,
+      soLanLamToiDa: form.value.maxAttempts,
+      xaoTronCauHoi: form.value.shuffle,
+      hienThiKetQua: form.value.showResult,
+      choPhepLamTruoc: form.value.allowEarlyLearning,
+      thoiGianMo: form.value.startTime,
+      thoiGianDong: form.value.endTime,
+      trangThai: EXAM_STATUS.DRAFT,
+      danhSachCauHoi: selectedQuestions.value.map(q => ({ maCauHoi: q.id, diemSo: q.score })),
+    }
+    await teacherApi.createExam(payload)
+    triggerToast('Đã lưu nháp đề thi thành công!', 'success')
+    setTimeout(() => {
+      router.push('/teacher/exams')
+    }, 1000)
+  } catch (err) {
+    triggerToast(err?.message || 'Không thể lưu đề thi.', 'error')
   }
-  
-  examList.unshift(newExam)
-  localStorage.setItem('teacher_exams', JSON.stringify(examList))
-  
-  triggerToast(`Đã ${status === 'Published' ? 'xuất bản' : 'lưu nháp'} đề thi thành công!`, 'success')
-  setTimeout(() => {
-    router.push('/teacher/exams')
-  }, 1000)
 }
 </script>
 
@@ -610,6 +616,15 @@ function saveToLocalStorage(status) {
               </select>
             </div>
             <div class="flex-1 space-y-2 overflow-y-auto p-3.5 bg-surface-input">
+              <div v-if="loadingQuestions" class="flex items-center justify-center py-10">
+                <Loader2 :size="20" class="animate-spin text-muted" />
+                <span class="ml-2 text-xs font-semibold text-muted">Đang tải câu hỏi...</span>
+              </div>
+              <div v-else-if="questionError" class="flex flex-col items-center py-10 text-center">
+                <AlertCircle :size="28" class="text-rose-400 mb-2" />
+                <p class="text-xs font-semibold text-muted">{{ questionError }}</p>
+              </div>
+              <template v-else>
               <div v-for="q in filteredBankQuestions" :key="q.id" @click="toggleQuestionSelection(q.id)"
                 class="flex cursor-pointer items-start gap-3 rounded-lg border p-3.5 transition-colors"
                 :style="bankCheckedIds.includes(q.id) ? { background: 'var(--color-info-bg)', borderColor: 'var(--text-link)' } : { background: 'var(--surface-elevated)', borderColor: 'var(--border-card)' }">
@@ -637,6 +652,7 @@ function saveToLocalStorage(status) {
                 <p class="text-xs font-semibold text-muted">Không tìm thấy câu hỏi phù hợp</p>
                 <p class="text-[10px] text-placeholder">Tất cả câu hỏi trong bộ lọc đã được thêm vào đề thi hoặc không khớp từ khóa.</p>
               </div>
+              </template>
             </div>
             <div class="flex items-center justify-end gap-2.5 border-t border-card bg-surface-input px-4 py-3">
               <GlassButton variant="secondary" size="sm" @click="showBankModal = false">Hủy</GlassButton>

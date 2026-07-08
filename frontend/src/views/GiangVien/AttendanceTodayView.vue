@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import {
   AlertTriangle,
   CalendarDays,
@@ -20,8 +20,8 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import TableShell from '@/components/ui/TableShell.vue'
-import { getTeacherTodaySessions } from '@/mocks/scheduleAttendanceMockData'
 import { usePopupStore } from '@/stores/popup'
+import { teacherApi } from '@/services/teacherApi'
 import { formatTimeRange, formatWeekdayDate } from '@/utils/dateFormat'
 import { getStatusMeta, getStatusOptions } from '@/utils/statusLabels'
 
@@ -34,7 +34,7 @@ const statusFilter = ref('')
 const selectedSessionId = ref('')
 const isSubmitDialogOpen = ref(false)
 
-const sessions = ref(getTeacherTodaySessions())
+const sessions = ref([])
 
 const attendanceOptions = getStatusOptions('attendance').filter((option) =>
   ['co_mat', 'di_muon', 'co_phep', 'vang'].includes(option.value),
@@ -168,13 +168,19 @@ function requestUnlock() {
   popupStore.info('Đã tạo yêu cầu mẫu', 'Yêu cầu mở khóa sẽ được xử lý ở màn lịch sử điểm danh.')
 }
 
-function retryLoad() {
+onMounted(() => { retryLoad() })
+
+async function retryLoad() {
   loading.value = true
   error.value = ''
-  window.setTimeout(() => {
-    sessions.value = getTeacherTodaySessions()
+  try {
+    const data = await teacherApi.getAttendanceToday()
+    sessions.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    error.value = e?.message || 'Không thể tải dữ liệu.'
+  } finally {
     loading.value = false
-  }, 350)
+  }
 }
 </script>
 
@@ -241,7 +247,6 @@ function retryLoad() {
             <h2>Buổi học hôm nay</h2>
             <p>{{ sessions.length }} buổi theo lịch giảng dạy.</p>
           </div>
-          <GlassBadge variant="info">Mock UI</GlassBadge>
         </div>
 
         <div class="session-list">

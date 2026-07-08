@@ -130,6 +130,14 @@ export const teacherApi = {
     })
   },
 
+  // √ POST /api/teacher/exams — TeacherExamController, teacher-scoped with ownership validation
+  createExam(payload) {
+    return apiRequest('/api/teacher/exams', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
   // ! GET /api/exam/reports/summary — policy Reports, Teacher MAY be excluded
   getExamReports(params = {}) {
     const query = new URLSearchParams()
@@ -206,5 +214,117 @@ export const teacherApi = {
       method: 'PUT',
       body: JSON.stringify(payload),
     })
+  },
+
+  // ── Teacher Classes ──
+
+  getTeacherClasses(params = {}) {
+    const query = new URLSearchParams()
+    if (params.semesterId) query.append('semesterId', params.semesterId)
+    if (params.keyword) query.append('keyword', params.keyword)
+    const qs = query.toString()
+    return apiRequest(`/api/teacher/classes${qs ? '?' + qs : ''}`)
+  },
+
+  getTeacherClassDetail(classId) {
+    return apiRequest(`/api/teacher/classes/${classId}`)
+  },
+
+  getTeacherClassWorkspace(classId) {
+    return apiRequest(`/api/teacher/classes/${classId}/workspace`)
+  },
+
+  getTeacherClassProgress(classId) {
+    return apiRequest(`/api/teacher/classes/${classId}/progress`)
+  },
+
+  // ── Teacher Communications ──
+
+  getStudentQuestions(params = {}) {
+    const query = new URLSearchParams()
+    if (params.keyword) query.append('keyword', params.keyword)
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const qs = query.toString()
+    return apiRequest(`/api/teacher/student-questions${qs ? '?' + qs : ''}`)
+  },
+
+  replyStudentQuestion(questionId, payload) {
+    return apiRequest(`/api/teacher/student-questions/${questionId}/reply`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  getLessonComments(params = {}) {
+    const query = new URLSearchParams()
+    if (params.keyword) query.append('keyword', params.keyword)
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const qs = query.toString()
+    return apiRequest(`/api/teacher/lesson-comments${qs ? '?' + qs : ''}`)
+  },
+
+  replyLessonComment(commentId, payload) {
+    return apiRequest(`/api/teacher/lesson-comments/${commentId}/reply`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  hideLessonComment(commentId, payload) {
+    return apiRequest(`/api/teacher/lesson-comments/${commentId}/hide`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  // ── Teacher Requests ──
+
+  getTeacherRequests(params = {}) {
+    const query = new URLSearchParams()
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const qs = query.toString()
+    return apiRequest(`/api/teacher/requests${qs ? '?' + qs : ''}`)
+  },
+
+  createTeacherRequest(payload) {
+    return apiRequest('/api/teacher/requests', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  getTeacherRequestHistory(params = {}) {
+    const query = new URLSearchParams()
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const qs = query.toString()
+    return apiRequest(`/api/teacher/requests/history${qs ? '?' + qs : ''}`)
+  },
+
+  // ── Teacher Attendance History ──
+
+  getAttendanceHistory(params = {}) {
+    const query = new URLSearchParams()
+    if (params.fromDate) query.append('fromDate', params.fromDate)
+    if (params.toDate) query.append('toDate', params.toDate)
+    if (params.keyword) query.append('keyword', params.keyword)
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const qs = query.toString()
+    return apiRequest(`/api/teacher/attendance/history${qs ? '?' + qs : ''}`)
+  },
+
+  // ── Teacher Exam Results ──
+
+  getExamResults(params = {}) {
+    const query = new URLSearchParams()
+    if (params.keyword) query.append('keyword', params.keyword)
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const qs = query.toString()
+    return apiRequest(`/api/teacher/exam-results${qs ? '?' + qs : ''}`)
   },
 }

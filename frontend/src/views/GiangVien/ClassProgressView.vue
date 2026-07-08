@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   Activity,
   AlertCircle,
@@ -21,38 +22,58 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import { teacherApi } from '@/services/teacherApi'
 
-const students = ref([
-  { id: 'SV16001', name: 'Nguyễn Văn A', email: 'anv@student.edu.vn', progress: 85, gpa: 8.2, absent: 1, status: 'good' },
-  { id: 'SV16002', name: 'Trần Thị B', email: 'btt@student.edu.vn', progress: 70, gpa: 7.5, absent: 3, status: 'warning' },
-  { id: 'SV16003', name: 'Lê Hoàng C', email: 'clh@student.edu.vn', progress: 95, gpa: 9.0, absent: 0, status: 'excellent' },
-  { id: 'SV16004', name: 'Phạm Minh D', email: 'dpm@student.edu.vn', progress: 45, gpa: 5.4, absent: 5, status: 'danger' },
-  { id: 'SV16005', name: 'Hoàng Hữu E', email: 'ehh@student.edu.vn', progress: 100, gpa: 9.5, absent: 0, status: 'excellent' },
-  { id: 'SV16006', name: 'Vũ Thị F', email: 'fvt@student.edu.vn', progress: 60, gpa: 6.8, absent: 2, status: 'warning' },
-])
+const loading = ref(false)
+const error = ref('')
+const students = ref([])
+const overallProgress = ref(0)
+const completedLessons = ref(0)
+const totalLessons = ref(0)
+const activeStudents = ref(0)
 
-const overallProgress = 74
-const completedLessons = 18
-const totalLessons = 24
-const activeStudents = 42
+const chartData = ref([])
 
-const chartData = [
-  { range: '< 20%', value: 5, height: 15 },
-  { range: '20-40%', value: 8, height: 25 },
-  { range: '40-60%', value: 12, height: 45 },
-  { range: '60-80%', value: 18, height: 75 },
-  { range: '80-100%', value: 25, height: 100 }
-]
+async function loadProgress() {
+  loading.value = true
+  error.value = ''
+  try {
+    const data = await teacherApi.getTeacherClassProgress(route.params.id)
+    students.value = (data?.students || []).map(s => ({
+      id: s.maSinhVien ?? s.id,
+      name: s.tenSinhVien ?? s.name ?? '',
+      email: s.email ?? '',
+      progress: s.tienDo ?? s.progress ?? 0,
+      gpa: s.diemTB ?? s.gpa ?? 0,
+      absent: s.soBuoiVang ?? s.absent ?? 0,
+      status: s.trangThai ?? s.status ?? 'good',
+    }))
+    overallProgress.value = data?.tienDoChung ?? data?.overallProgress ?? 0
+    completedLessons.value = data?.soBaiHoanThanh ?? data?.completedLessons ?? 0
+    totalLessons.value = data?.tongSoBai ?? data?.totalLessons ?? 0
+    activeStudents.value = data?.siSo ?? data?.activeStudents ?? students.value.length
+    chartData.value = (data?.phanBo ?? data?.chartData ?? []).map(item => ({
+      range: item.nhan ?? item.range ?? '',
+      value: item.soLuong ?? item.value ?? 0,
+      height: item.chieuCao ?? item.height ?? 0,
+    }))
+  } catch (e) {
+    error.value = e?.message || 'Không thể tải tiến độ lớp.'
+  } finally {
+    loading.value = false
+  }
+  setTimeout(() => { animateProgress.value = true }, 100)
+}
 
 const summaryStats = computed(() => {
-  const completed = students.value.filter((student) => student.progress >= 90).length
+  const completed = students.value.filter((student) => (student.status === 'excellent' || student.progress >= 90)).length
   const studying = students.value.filter((student) => student.progress >= 60 && student.progress < 90).length
   const delayed = students.value.filter((student) => student.status === 'warning').length
   const risk = students.value.filter((student) => student.status === 'danger').length
 
   return [
-    { label: 'Sĩ số', value: activeStudents, tone: 'primary' },
-    { label: 'Tiến độ TB', value: `${overallProgress}%`, tone: 'success' },
+    { label: 'Sĩ số', value: activeStudents.value, tone: 'primary' },
+    { label: 'Tiến độ TB', value: `${overallProgress.value}%`, tone: 'success' },
     { label: 'Hoàn thành', value: completed, tone: 'success' },
     { label: 'Đang học', value: studying, tone: 'info' },
     { label: 'Chậm tiến độ', value: delayed, tone: 'warning' },
@@ -81,10 +102,10 @@ const getStatusVariant = (status) => {
 }
 
 const animateProgress = ref(false)
+const route = useRoute()
+
 onMounted(() => {
-  setTimeout(() => {
-    animateProgress.value = true
-  }, 100)
+  loadProgress()
 })
 
 // --- Student Drawer State ---
@@ -109,7 +130,16 @@ const closeDrawer = () => {
 </script>
 
 <template>
-  <div class="class-progress-page lg-page-enter">
+  <div v-if="loading" class="flex items-center justify-center min-h-[300px]">
+    <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+    <span class="ml-3 text-muted text-sm">Đang tải tiến độ...</span>
+  </div>
+  <div v-else-if="error" class="flex flex-col items-center justify-center min-h-[300px] gap-4">
+    <AlertCircle :size="40" class="text-rose-400" />
+    <p class="text-rose-600 font-semibold">{{ error }}</p>
+    <GlassButton variant="secondary" @click="loadProgress">Thử lại</GlassButton>
+  </div>
+  <div v-else class="class-progress-page lg-page-enter">
     <GlassPanel variant="flat" density="compact" class="page-header">
       <div class="header-main">
         <router-link to="/teacher/class-progress" class="back-link" aria-label="Quay lại danh sách lớp">

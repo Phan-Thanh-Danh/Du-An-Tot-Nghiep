@@ -234,7 +234,6 @@ import {
   ArrowUpRight, AlertCircle, User, Bell
 } from 'lucide-vue-next'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 const auth = useAuthStore()
 
 const loading = ref(false)
@@ -242,45 +241,15 @@ const error = ref('')
 const stats = ref([])
 const teachingSchedule = ref([])
 const submissionStats = ref([])
-
-const DEMO_SCHEDULE = [
-  { id: 1, subject: 'Cấu trúc dữ liệu & Giải thuật', code: 'CTDL101_L01', time: '07:30 - 09:30', room: 'Phòng 302 - Cơ sở chính', students: 45, status: 'completed' },
-  { id: 2, subject: 'Lập trình hướng đối tượng', code: 'OOP202_L03', time: '13:30 - 15:30', room: 'Phòng 105 - Cơ sở chính', students: 38, status: 'upcoming' },
-  { id: 3, subject: 'Hệ quản trị CSDL', code: 'DBM301_L02', time: '15:45 - 17:45', room: 'Lab 2 - Cơ sở phụ', students: 42, status: 'upcoming' },
-]
-
-const DEMO_STATS = [
-  { id: 1, label: 'Tổng sinh viên', value: '452', trend: '+12%', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: Users },
-  { id: 2, label: 'Lớp đang dạy', value: '8', trend: 'Học kỳ 2', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: BookOpen },
-  { id: 3, label: 'Bài chờ chấm', value: '24', trend: '6 bài gấp', isNegative: true, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: ClipboardCheck },
-  { id: 4, label: 'Hiệu suất lớp', value: '82%', trend: '+5%', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: TrendingUp },
-]
-
-const DEMO_SUBMISSIONS = [
-  { label: 'CTDL&GT - L01', value: '42/45', colorClass: 'bg-emerald-400' },
-  { label: 'OOP - L03', value: '35/38', colorClass: 'bg-blue-400' },
-  { label: 'HQTCSDL - L02', value: '40/42', colorClass: 'bg-cyan-400' },
-]
-
-const recentSubmissions = [
-  { id: 1, student: 'Lê Văn B', course: 'Lập trình Web', assignment: 'Bài tập 2: CSS Flexbox', time: '10 phút trước', status: 'new' },
-  { id: 2, student: 'Trần Thị C', course: 'OOP', assignment: 'Lab 4: Polymorphism', time: '45 phút trước', status: 'new' },
-  { id: 3, student: 'Nguyễn Văn A', course: 'CTDL&GT', assignment: 'Tiểu luận giữa kỳ', time: '2 giờ trước', status: 'graded' },
-  { id: 4, student: 'Phạm Minh D', course: 'HQTCSDL', assignment: 'Truy vấn SQL nâng cao', time: 'Hôm qua', status: 'graded' },
-]
-
-const gradingStats = [
-  { label: 'CTDL&GT - Bài tập 2', value: '12 bài', colorClass: 'bg-orange-400' },
-  { label: 'OOP - Lab 4', value: '8 bài', colorClass: 'bg-amber-400' },
-  { label: 'HQTCSDL - SQL', value: '4 bài', colorClass: 'bg-red-400' },
-]
+const recentSubmissions = ref([])
+const gradingStats = ref([])
 
 async function loadDashboard() {
   loading.value = true
   error.value = ''
   try {
-    const data = await teacherApi.getAttendanceToday()
-    const sessions = Array.isArray(data) ? data : []
+    const data = await teacherApi.getDashboard()
+    const sessions = Array.isArray(data.todaySessions) ? data.todaySessions : []
     teachingSchedule.value = sessions.map(s => ({
       id: s.id || s.maBuoiHoc,
       time: s.thoiGianBatDau && s.thoiGianKetThuc ? `${s.thoiGianBatDau} - ${s.thoiGianKetThuc}` : (s.thoiGianBatDau || '07:00'),
@@ -291,18 +260,20 @@ async function loadDashboard() {
       status: s.trangThai === 'da_ket_thuc' ? 'completed' : 'upcoming'
     }))
     stats.value = [
-      { id: 1, label: 'Tổng sinh viên', value: sessions.length || 0, trend: '+12%', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: Users },
-      { id: 2, label: 'Lớp đang dạy', value: '8', trend: 'Học kỳ 2', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: BookOpen },
-      { id: 3, label: 'Bài chờ chấm', value: '24', trend: '6 bài gấp', isNegative: true, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: ClipboardCheck },
-      { id: 4, label: 'Hiệu suất lớp', value: '82%', trend: '+5%', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: TrendingUp },
+      { id: 1, label: 'Tổng sinh viên', value: data.totalStudents ?? 0, trend: '', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: Users },
+      { id: 2, label: 'Lớp đang dạy', value: data.totalClasses ?? 0, trend: '', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: BookOpen },
+      { id: 3, label: 'Bài chờ chấm', value: data.pendingGrading ?? 0, trend: '', isNegative: true, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: ClipboardCheck },
+      { id: 4, label: 'Hiệu suất lớp', value: '--', trend: '', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: TrendingUp },
     ]
+    recentSubmissions.value = (data.recentSubmissions || []).map(s => ({
+      id: s.id,
+      student: s.tenSinhVien || s.student || '',
+      course: s.tenMonHoc || s.course || '',
+      assignment: s.tieuDe || s.assignment || '',
+      time: s.thoiGianNop || s.time || '',
+      status: s.trangThai === 'moi' ? 'new' : 'graded'
+    }))
   } catch (e) {
-    if (ENABLE_MOCK_API) {
-      teachingSchedule.value = DEMO_SCHEDULE
-      stats.value = DEMO_STATS
-      submissionStats.value = DEMO_SUBMISSIONS
-      return
-    }
     error.value = e?.message || 'Không thể tải dữ liệu dashboard.'
   } finally {
     loading.value = false

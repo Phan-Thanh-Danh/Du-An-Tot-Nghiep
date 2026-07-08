@@ -10,12 +10,12 @@
 | SuperAdmin | 38 | ~15 | 23 | Medium |
 | Admin | shared | ~15 | ~10 | Medium |
 | Student | 22 | 22 | 0 | Done |
-| Teacher | 23 | 17 | 6 | High |
+| Teacher | 25 | 25 | 0 | Done |
 | Staff/GiaoVu | 24 | 22 | 2 | High |
 | BGH | 28 | ~26 | 2 | High |
 | Parent | 15 | 15 | 0 | Done |
 | Content Council | 8 | 8 | 0 | Done |
-| **Total** | **~145** | **~123** | **~22** | |
+| **Total** | **~152** | **~133** | **~19** | |
 
 ## Phases
 
@@ -29,8 +29,11 @@ Connected: GradesView, EvaluationsView, SupportTicketsView, CourseDetailView, Pr
 - All student components (AppSidebar/AppTopbar) freed of mock imports
 - Student: 22/22 connected, 0 FE_ONLY, 0 BE_MISSING, 0 mock/fallback
 
-### Phase 3 - Teacher FE_ONLY views (HIGH)
-Connect: CoursesView, ProfileView, ClassGradebookView, CreateExamView, ExamResultsView
+### Phase 3 - Teacher FE_ONLY views (COMPLETED P15C)
+Connected: Dashboard, Courses, Lessons, Classes, Class Details, Class Workspace, Class Progress, Class Attendance, Gradebook, Assignments, Exams, Create Exam, Exam Results, Grading, Proctoring, Attendance Today, Attendance History, Grading Input, Student Questions, Lesson Comments, Requests, Request History, Profile, Notifications, Change Password.
+- Created 5 new backend controllers: TeacherClasses, TeacherCommunications, TeacherRequests, TeacherAttendanceHistory, TeacherExamResults.
+- Created TeacherExamController with `POST /api/teacher/exams` (teacher-scoped, validates ownership via MaGiaoVien, creates DeKiemTra).
+- Teacher: 25/25 connected, 0 FE_ONLY, 0 BE_MISSING, 0 AUTH_ERROR, 0 mock/fallback.
 
 ### Phase 4 - BGH mock data removal (MEDIUM)
 Remove mock fallback arrays in UsersView, RolesView, ProgramsView, etc.
@@ -42,6 +45,32 @@ Connect: LoginHistoryView, ProgramsView, EvaluationsResultsView, report views
 - `dotnet build` backend
 - `npm run build` frontend
 - `npm run test:unit` frontend tests
+
+## Teacher Module API Contract (P15C)
+
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| GET | `/api/teacher/dashboard` | Teacher dashboard overview | Teacher |
+| GET | `/api/teacher/classes` | Teacher classes list | Teacher |
+| GET | `/api/teacher/classes/{id}` | Teacher class detail | Teacher |
+| GET | `/api/teacher/classes/{id}/workspace` | Teacher class workspace | Teacher |
+| GET | `/api/teacher/classes/{id}/progress` | Teacher class progress | Teacher |
+| GET | `/api/teacher/attendance/today` | Attendance today | Teacher |
+| GET | `/api/teacher/attendance/history` | Attendance history | Teacher |
+| GET | `/api/teacher/student-questions` | Student questions | Teacher |
+| POST | `/api/teacher/student-questions/{id}/reply` | Reply student question | Teacher |
+| GET | `/api/teacher/lesson-comments` | Lesson comments | Teacher |
+| POST | `/api/teacher/lesson-comments/{id}/reply` | Reply lesson comment | Teacher |
+| PATCH | `/api/teacher/lesson-comments/{id}/hide` | Hide lesson comment | Teacher |
+| GET | `/api/teacher/requests` | Teacher requests | Teacher |
+| POST | `/api/teacher/requests` | Create request | Teacher |
+| GET | `/api/teacher/requests/history` | Request history | Teacher |
+| GET | `/api/teacher/exam-results` | Exam results | Teacher |
+| **POST** | **/api/teacher/exams** | **Create exam (teacher-scoped)** | **Teacher** |
+| GET | `/api/teacher/assignments` | Teacher assignments | Teacher |
+| POST | `/api/teacher/assignments` | Create assignment | Teacher |
+| GET | `/api/teacher/submissions` | Teacher submissions | Teacher |
+| PUT | `/api/teacher/submissions/{id}/grade` | Grade submission | Teacher |
 
 ## Parent Module API Contract (NEW)
 

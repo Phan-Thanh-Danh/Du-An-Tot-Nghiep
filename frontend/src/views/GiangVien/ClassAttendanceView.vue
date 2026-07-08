@@ -19,23 +19,12 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
-
 const loading = ref(false)
 const error = ref('')
 
-const DEMO_ATTENDANCE = [
-  { id: 'SV16001', name: 'Nguyễn Văn A', present: 12, absent: 1, percent: 92, status: 'good' },
-  { id: 'SV16002', name: 'Trần Thị B', present: 10, absent: 3, percent: 76, status: 'warning' },
-  { id: 'SV16003', name: 'Lê Hoàng C', present: 13, absent: 0, percent: 100, status: 'excellent' },
-  { id: 'SV16004', name: 'Phạm Minh D', present: 8, absent: 5, percent: 61, status: 'danger' },
-  { id: 'SV16005', name: 'Hoàng Hữu E', present: 13, absent: 0, percent: 100, status: 'excellent' },
-  { id: 'SV16006', name: 'Vũ Thị F', present: 11, absent: 2, percent: 85, status: 'good' },
-]
-
 const attendanceData = ref([])
 
-const totalSessions = ref(13)
+const totalSessions = computed(() => attendanceData.value.length ? Math.max(...attendanceData.value.map(s => s.present + s.absent)) : 0)
 const avgAttendance = computed(() => {
   if (attendanceData.value.length === 0) return 0
   const total = attendanceData.value.reduce((s, st) => s + st.percent, 0)
@@ -71,10 +60,6 @@ async function loadAttendance() {
       throw new Error('No attendance data')
     }
   } catch (e) {
-    if (ENABLE_MOCK_API) {
-      attendanceData.value = JSON.parse(JSON.stringify(DEMO_ATTENDANCE))
-      return
-    }
     error.value = e?.message || 'Không thể tải điểm danh.'
     attendanceData.value = []
   } finally {

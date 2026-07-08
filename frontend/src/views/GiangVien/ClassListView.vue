@@ -8,18 +8,10 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import { teacherApi } from '@/services/teacherApi'
 
-const ENABLE_MOCK_API = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_API === 'true'
-
 const loading = ref(false)
 const error = ref('')
 const classes = ref([])
 const filterSemester = ref('')
-
-const DEMO_CLASSES = [
-  { id: 'L01', code: 'SE1601', name: 'Lớp SE1601 - Java', subject: 'Lập trình Java', students: 45, semester: 'Spring 2026' },
-  { id: 'L02', code: 'SS1402', name: 'Lớp SS1402 - Web', subject: 'Lập trình Web', students: 38, semester: 'Spring 2026' },
-  { id: 'L03', code: 'SA1709', name: 'Lớp SA1709 - DB', subject: 'Cơ sở dữ liệu', students: 42, semester: 'Fall 2025' },
-]
 
 function mapCourseToClass(course) {
   return {
@@ -40,10 +32,6 @@ async function loadClasses() {
     const items = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
     classes.value = items.map(mapCourseToClass)
   } catch (e) {
-    if (ENABLE_MOCK_API) {
-      classes.value = JSON.parse(JSON.stringify(DEMO_CLASSES))
-      return
-    }
     error.value = e?.message || 'Không thể tải danh sách lớp.'
     classes.value = []
   } finally {

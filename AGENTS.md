@@ -157,6 +157,7 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `POST /api/thoi-khoa-bieu/xep-lich-thong-minh/publish` (P12)
   - `POST /api/thoi-khoa-bieu/xep-lich-thong-minh/check-xung-dot-batch` (P12)
   - `DELETE /api/thoi-khoa-bieu/drafts/{draftId}` (P12)
+  - `POST /api/teacher/exams` (P15C.1 — teacher-scoped with ownership validation)
 - Endpoint chưa có controller phải ghi `dự kiến`.
 - Không tự đổi request/response DTO mà không cập nhật contract.
 

@@ -702,6 +702,14 @@ Luồng thi chính thức vẫn dùng `CaThi`:
 - API cấu hình quiz theo từng `KhoaHoc` nếu cần lịch mở/đóng khác nhau giữa các lớp.
 - API chấm tự luận chi tiết theo từng câu nếu cần rubric thay vì nhập `DiemCuoiCung` trực tiếp.
 
+## Teacher Exam APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| POST | `/api/teacher/exams` | Teacher | Tạo đề thi cho teacher phụ trách. Validate quyền sở hữu khóa học qua `MaGiaoVien` + `TenMonHoc` + `MaCodeLop`. Tạo `DeKiemTra` và liên kết câu hỏi có sẵn (numeric MaCauHoi) qua `CauHoiDeKiemTra`. Trả `400` nếu thiếu tên/thời gian không hợp lệ; `404` nếu không tìm thấy lớp/môn phù hợp. |
+
 ## Attendance APIs
 
 ### Đã có

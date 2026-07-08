@@ -45,7 +45,6 @@ function toggleEdit(sv) {
 }
 
 function calculateTotal(sv) {
-  // Mock formula: 40% assignment, 60% exam
   sv.total = (sv.assignment * 0.4 + sv.exam * 0.6).toFixed(1)
 }
 
