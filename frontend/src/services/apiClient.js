@@ -142,3 +142,14 @@ export const authApi = {
     })
   },
 }
+
+export const storageApi = {
+  upload(file, folder = 'general') {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiRequest(`/api/storage/upload?folder=${folder}`, {
+      method: 'POST',
+      body: formData,
+    })
+  }
+}

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { inject, ref, watch, computed } from 'vue'
-import { X, Save } from 'lucide-vue-next'
+import { X, Save, Loader2 } from 'lucide-vue-next'
 import SlideHtmlEditor from './content/SlideHtmlEditor.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
+import { storageApi } from '@/services/apiClient'
 
 const editor = inject<any>('curriculumEditor')
 const isOpen = editor.isContentDrawerOpen
@@ -11,6 +12,7 @@ const isEdit = ref(false)
 const contentType = computed(() => editor.selectedContentType.value)
 
 const formData = ref<any>({})
+const isSaving = ref(false)
 
 const statusOptions = [
   { value: 'draft', label: 'Nháp' },
@@ -42,7 +44,7 @@ watch(() => isOpen.value, (val) => {
     } else {
       isEdit.value = false
       formData.value = {
-        title: '',
+        title: editor.selectedLesson.value?.title || '',
         status: 'draft',
         type: contentType.value,
         order: null,
@@ -57,7 +59,8 @@ watch(() => isOpen.value, (val) => {
         fileType: '',
         quizId: undefined,
         quizCompletionRule: 'pass',
-        NoiDungJson: ''
+        NoiDungJson: '',
+        rawFile: null
       }
     }
   }
@@ -67,7 +70,7 @@ const close = () => {
   isOpen.value = false
 }
 
-const save = () => {
+const save = async () => {
   if (!formData.value.title?.trim()) {
     alert('Vui lòng nhập tiêu đề')
     return
@@ -79,17 +82,45 @@ const save = () => {
     }
   }
   
-  editor.saveContent(formData.value)
+  isSaving.value = true
+  try {
+    // Upload if there's a new file
+    if (formData.value.rawFile) {
+      const folder = contentType.value === 'video' ? 'videos' : 'documents'
+      const response = await storageApi.upload(formData.value.rawFile, folder)
+      
+      if (response && response.success && response.data) {
+        const result = Array.isArray(response.data) ? response.data[0] : response.data
+        if (contentType.value === 'video') {
+          formData.value.videoUrl = result.url || result.Url
+        } else if (contentType.value === 'document') {
+          formData.value.fileUrl = result.url || result.Url
+        }
+      }
+    }
+
+    const dataToSave = { ...formData.value }
+    delete dataToSave.rawFile
+
+    editor.saveContent(dataToSave)
+  } catch (error: any) {
+    alert('Lỗi upload file: ' + (error.message || 'Vui lòng thử lại sau'))
+  } finally {
+    isSaving.value = false
+  }
 }
 
 const onFileChange = (e: any) => {
   const file = e.target.files[0]
   if (file) {
+    formData.value.rawFile = file
     formData.value.fileName = file.name
     formData.value.fileSize = file.size
     formData.value.fileType = file.type
     // Fake local object URL for preview
     formData.value.fileUrl = URL.createObjectURL(file)
+  } else {
+    formData.value.rawFile = null
   }
 }
 </script>
@@ -288,12 +319,13 @@ const onFileChange = (e: any) => {
 
       <!-- Footer -->
       <div class="px-6 py-4 border-t border-slate-200 bg-white flex items-center justify-end gap-3 z-10">
-        <button @click="close" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+        <button @click="close" :disabled="isSaving" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50">
           Hủy
         </button>
-        <button @click="save" class="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2">
-          <Save class="w-4 h-4" />
-          <span>Lưu nội dung</span>
+        <button @click="save" :disabled="isSaving" class="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50">
+          <Loader2 v-if="isSaving" class="w-4 h-4 animate-spin" />
+          <Save v-else class="w-4 h-4" />
+          <span>{{ isSaving ? 'Đang lưu...' : 'Lưu nội dung' }}</span>
         </button>
       </div>
     </div>

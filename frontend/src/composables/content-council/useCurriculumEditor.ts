@@ -64,9 +64,9 @@ export const useCurriculumEditor = (subjectId: number) => {
 
   // --- CRUD Operations delegating to store ---
 
-  const saveChapter = (chapter: any) => {
+  const saveChapter = async (chapter: any) => {
     if (editingChapter.value) {
-      store.updateChapter(subjectId, editingChapter.value.id, chapter)
+      await store.updateChapter(subjectId, editingChapter.value.id, chapter)
     } else {
       const newChap = {
         ...chapter,
@@ -74,18 +74,21 @@ export const useCurriculumEditor = (subjectId: number) => {
         order: chapters.value.length + 1,
         lessons: []
       }
-      store.addChapter(subjectId, newChap)
+      await store.addChapter(subjectId, newChap)
     }
     isChapterModalOpen.value = false
     editingChapter.value = null
   }
 
-  const saveLesson = (lesson: any) => {
-    const chapId = selectedChapterId.value || selectedChapter.value?.id
+  const saveLesson = async (lesson: any) => {
+    const editingChapId = editingLesson.value
+      ? chapters.value.find(c => c.lessons?.some(l => l.id === editingLesson.value?.id))?.id
+      : null
+    const chapId = editingChapId || selectedChapterId.value || selectedChapter.value?.id
     if (!chapId) return
 
     if (editingLesson.value) {
-      store.updateLesson(subjectId, chapId, editingLesson.value.id, lesson)
+      await store.updateLesson(subjectId, chapId, editingLesson.value.id, lesson)
     } else {
       const chapter = chapters.value.find(c => c.id === chapId)
       const newLesson = {
@@ -95,21 +98,32 @@ export const useCurriculumEditor = (subjectId: number) => {
         order: (chapter?.lessons?.length || 0) + 1,
         contents: []
       }
-      store.addLesson(subjectId, chapId, newLesson)
+      await store.addLesson(subjectId, chapId, newLesson)
       selectLesson(newLesson.id)
       expandedChapterIds.value.push(chapId)
+      
+      // Auto-open content drawer based on the selected lesson type
+      if (lesson.type) {
+        // Map lesson type to content type if needed, e.g. 'van_ban' -> 'text'
+        const mappedType = lesson.type === 'van_ban' ? 'text' : lesson.type === 'pdf' ? 'document' : lesson.type === 'trac_nghiem' ? 'quiz' : lesson.type;
+        selectedContentType.value = mappedType;
+        // Small timeout to allow lesson to be fully selected and DOM to update before opening drawer
+        setTimeout(() => {
+          isContentDrawerOpen.value = true;
+        }, 50);
+      }
     }
     isLessonModalOpen.value = false
     editingLesson.value = null
   }
 
-  const saveContent = (content: any) => {
+  const saveContent = async (content: any) => {
     const chapId = selectedChapter.value?.id
     const lessonId = selectedLessonId.value
     if (!chapId || !lessonId) return
 
     if (editingContent.value) {
-      store.updateContent(subjectId, chapId, lessonId, editingContent.value.id, content)
+      await store.updateContent(subjectId, chapId, lessonId, editingContent.value.id, content)
     } else {
       const lesson = selectedLesson.value
       const newContent = {
@@ -118,7 +132,7 @@ export const useCurriculumEditor = (subjectId: number) => {
         lessonId: lessonId,
         order: (lesson?.contents?.length || 0) + 1,
       }
-      store.addContent(subjectId, chapId, lessonId, newContent)
+      await store.addContent(subjectId, chapId, lessonId, newContent)
     }
     isContentDrawerOpen.value = false
     editingContent.value = null
