@@ -92,6 +92,175 @@ public static class Data
         // Seed CaThi & Assign lecturer01 & student01
         await SeedCaThiTestEnvironmentAsync(context, hcmCampus);
 
+        // Seed P15G smoke detail data for 166/166 browser smoke
+        await SeedP15GSmokeDetailDataAsync(
+            context,
+            hcmCampus,
+            subjects,
+            terms,
+            users,
+            administrativeClasses
+        );
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedP15GSmokeDetailDataAsync(
+        ApplicationDbContext context,
+        DonVi campus,
+        IReadOnlyDictionary<string, DanhMucMonHoc> subjects,
+        IReadOnlyList<HocKy> terms,
+        IReadOnlyDictionary<string, NguoiDung> users,
+        IReadOnlyDictionary<string, LopHanhChinh> administrativeClasses
+    )
+    {
+        var teacher = users.GetValueOrDefault("p12test_teacher01@lms.local");
+        var bghUser = users.GetValueOrDefault("p15test_bgh01@lms.local");
+        var student = users.GetValueOrDefault("p12test_student011@lms.local");
+        if (teacher == null || bghUser == null || student == null) return;
+
+        var hk3_2026 = terms.FirstOrDefault(t => t.MaCodeHocKy == "HK3_2026");
+        if (hk3_2026 == null) return;
+
+        var subjectCom103 = subjects.GetValueOrDefault("COM103");
+        if (subjectCom103 == null) return;
+
+        var subjectCom102 = subjects.GetValueOrDefault("COM102");
+        var subjectWeb101 = subjects.GetValueOrDefault("WEB101");
+        if (subjectCom102 == null || subjectWeb101 == null) return;
+
+        var sd1904 = administrativeClasses.GetValueOrDefault("SD1904");
+        if (sd1904 == null) return;
+
+        student.MaDonVi = campus.MaDonVi;
+        student.MaLop = sd1904.MaLop;
+        teacher.MaDonVi = campus.MaDonVi;
+        bghUser.MaDonVi = campus.MaDonVi;
+
+        async Task UpsertFailingGradeAsync(
+            DanhMucMonHoc subject,
+            decimal processScore,
+            decimal midtermScore,
+            decimal finalScore,
+            decimal gpa
+        )
+        {
+            var grade = await context.DiemSos.FirstOrDefaultAsync(d =>
+                d.MaHocSinh == student.MaNguoiDung &&
+                d.MaMonHoc == subject.MaMonHoc &&
+                d.MaHocKy == hk3_2026.MaHocKy);
+
+            if (grade == null)
+            {
+                grade = new DiemSo
+                {
+                    MaHocSinh = student.MaNguoiDung,
+                    MaHocKy = hk3_2026.MaHocKy,
+                    NamNhapHoc = 2026,
+                };
+                context.DiemSos.Add(grade);
+            }
+
+            grade.MaDonVi = campus.MaDonVi;
+            grade.MaMonHoc = subject.MaMonHoc;
+            grade.DiemQuaTrinh = processScore;
+            grade.DiemGiuaKy = midtermScore;
+            grade.DiemCuoiKy = finalScore;
+            grade.GpaMonHoc = gpa;
+            grade.TrangThai = "rot";
+            grade.DaKhoa = false;
+            grade.NamNhapHoc = 2026;
+        }
+
+        await UpsertFailingGradeAsync(subjectCom102, 4.0m, 3.0m, 2.5m, 3.2m);
+        await UpsertFailingGradeAsync(subjectWeb101, 4.5m, 3.5m, 2.5m, 3.5m);
+        await UpsertFailingGradeAsync(subjectCom103, 3.0m, 2.5m, 2.0m, 2.8m);
+
+        var existingTeacherCourse = await context.KhoaHocs.AnyAsync(k =>
+            k.MaGiaoVien == teacher.MaNguoiDung &&
+            k.MaLop == sd1904.MaLop &&
+            k.MaHocKy == hk3_2026.MaHocKy);
+        if (!existingTeacherCourse)
+        {
+            var web102 = subjects.GetValueOrDefault("WEB102");
+            if (web102 != null)
+            {
+                var course = await context.KhoaHocs.FirstOrDefaultAsync(k =>
+                    k.MaDonVi == campus.MaDonVi &&
+                    k.MaMonHoc == web102.MaMonHoc &&
+                    k.MaHocKy == hk3_2026.MaHocKy &&
+                    k.MaLop == sd1904.MaLop);
+
+                if (course == null)
+                {
+                    course = new KhoaHoc
+                    {
+                        MaDonVi = campus.MaDonVi,
+                        MaMonHoc = web102.MaMonHoc,
+                        MaHocKy = hk3_2026.MaHocKy,
+                        MaLop = sd1904.MaLop,
+                        NgayTao = DateTime.UtcNow
+                    };
+                    context.KhoaHocs.Add(course);
+                }
+
+                course.MaGiaoVien = teacher.MaNguoiDung;
+                course.MaLopHocPhan = null;
+                course.TieuDe = $"{web102.TenMonHoc} - {sd1904.MaCodeLop} - {hk3_2026.TenHocKy} - {teacher.HoTen}";
+                course.MoTa = "Dữ liệu kiểm thử trình duyệt P15G cho lớp giáo viên.";
+                course.TrangThai = PublishedStatus;
+            }
+        }
+
+        var cauHoi = await context.CauHoiDanhGias.FirstOrDefaultAsync();
+        if (cauHoi == null)
+        {
+            cauHoi = new CauHoiDanhGia
+            {
+                NoiDungCauHoi = "Chất lượng giảng dạy tổng thể",
+                ConHoatDong = true
+            };
+            context.CauHoiDanhGias.Add(cauHoi);
+            await context.SaveChangesAsync();
+        }
+
+        var existingEval = await context.DanhGiaGiaoViens.AnyAsync(g =>
+            g.MaGiaoVien == teacher.MaNguoiDung &&
+            g.NhanXetTuDo != null &&
+            g.NhanXetTuDo.Contains("P15G smoke"));
+        if (!existingEval)
+        {
+            context.DanhGiaGiaoViens.AddRange(
+                new DanhGiaGiaoVien
+                {
+                    MaGiaoVien = teacher.MaNguoiDung,
+                    MaHocKy = hk3_2026.MaHocKy,
+                    MaCauHoiDg = cauHoi.MaCauHoiDg,
+                    DiemSo = 5,
+                    NhanXetTuDo = "P15G smoke: giảng dạy rõ ràng, dễ hiểu",
+                    NgayTao = DateTime.UtcNow.AddDays(-3)
+                },
+                new DanhGiaGiaoVien
+                {
+                    MaGiaoVien = teacher.MaNguoiDung,
+                    MaHocKy = hk3_2026.MaHocKy,
+                    MaCauHoiDg = cauHoi.MaCauHoiDg,
+                    DiemSo = 4,
+                    NhanXetTuDo = "P15G smoke: hỗ trợ sinh viên tận tình",
+                    NgayTao = DateTime.UtcNow.AddDays(-2)
+                },
+                new DanhGiaGiaoVien
+                {
+                    MaGiaoVien = teacher.MaNguoiDung,
+                    MaHocKy = hk3_2026.MaHocKy,
+                    MaCauHoiDg = cauHoi.MaCauHoiDg,
+                    DiemSo = 5,
+                    NhanXetTuDo = "P15G smoke: phản hồi bài tập nhanh chóng",
+                    NgayTao = DateTime.UtcNow.AddDays(-1)
+                }
+            );
+        }
+
         await context.SaveChangesAsync();
     }
 
@@ -1729,6 +1898,13 @@ public static class Data
             new TeachingCourseSeed("COM101", "teacher.csharp.b@lms.local", "HK1_2026", "SD1905", "Bản phân công giảng dạy môn Nhập môn lập trình cho lớp SD1905 trong HK1_2026."),
             new TeachingCourseSeed("COM101", "teacher.csharp.b@lms.local", "HK1_2026", "SD1906", "Bản phân công giảng dạy môn Nhập môn lập trình cho lớp SD1906 trong HK1_2026."),
 
+            new TeachingCourseSeed(
+                "WEB102",
+                "p12test_teacher01@lms.local",
+                "HK3_2026",
+                "SD1904",
+                "Bản phân công giảng dạy môn Lập trình JavaScript cho lớp SD1904 trong HK3_2026 (P15G smoke)."
+            ),
             new TeachingCourseSeed(
                 "COM103",
                 "teacher.csharp.a@lms.local",

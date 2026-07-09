@@ -318,7 +318,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin", "SuperAdmin"));
     options.AddPolicy(
         "AdminUserManagement",
-        policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin")
+        policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin", "AcademicStaff")
     );
     options.AddPolicy(
         "RbacManagement",

@@ -242,3 +242,10 @@ Get-ChildItem README.md,AGENTS.md,CLAUDE.md,docs,.cursor/rules -Recurse
 - Application evidence storage mặc định dùng Local temp storage ngoài Production để backend vẫn khởi động khi không có R2 secret trong config mặc định; Production phải cấu hình storage thật qua biến môi trường/secret manager.
 - Module Phụ huynh không dùng local business data file cho tên học sinh, điểm, học phí, chuyên cần, cảnh báo, thông báo. Các màn Parent phải lấy dữ liệu qua `parentApi`; local state chỉ được dùng cho UI state như selected child id.
 - Browser smoke có thể ghi `API connection matrix: 165/165 connected`, nhưng chỉ ghi full 165-route browser PASS khi đã thật sự click/kiểm tra đủ 165 role-route assignments.
+
+## Ghi Chú P15G Full Browser Smoke
+
+- Runner P15G đặt tại `docs/artifacts/p15g-full-smoke/p15g-browser-smoke.mjs`, dùng Chrome CDP `http://127.0.0.1:9222` và ghi kết quả vào `docs/artifacts/p15g-full-smoke/smoke-results-p15g.json`.
+- Runner phải resolve ID thật từ list API trước khi vào route detail; nếu list API không có dữ liệu thì ghi `SKIPPED_NO_DATA`, không dùng ID giả.
+- Kết quả P15G.3 ngày 2026-07-09: 166 route entries, 166 pass, 0 fail, 0 `SKIPPED_NO_DATA`, console/runtime/network 401/403/404/500 đều bằng 0.
+- Dữ liệu detail P15G.3 phải đến từ seed/backend thật: BGH at-risk, BGH teacher evaluation, Teacher class detail/workspace. Không dùng ID giả hoặc fallback local.

@@ -14,16 +14,19 @@ const error = ref('')
 const classData = ref(null)
 const recentActivities = ref([])
 
-function mapCourseToDetail(course) {
+function mapClassToDetail(classDetail) {
+  const courses = classDetail.courses || []
+  const firstCourse = courses[0] || {}
   return {
-    id: course.maKhoaHoc ?? course.id,
-    name: course.tieuDe ?? course.name ?? '',
-    subject: course.tenMonHoc ?? course.subject ?? '',
-    semester: course.tenHocKy ?? course.semester ?? '',
-    studentsCount: 0,
+    id: classDetail.classId ?? classDetail.id,
+    name: classDetail.className ?? classDetail.name ?? '',
+    subject: firstCourse.subjectCode ?? firstCourse.subject ?? '',
+    semester: firstCourse.semester ?? '',
+    studentsCount: firstCourse.studentCount ?? classDetail.studentCount ?? 0,
     upcomingSessions: 0,
     pendingAssignments: 0,
     averageGpa: 0,
+    courses,
   }
 }
 
@@ -31,8 +34,8 @@ async function loadClass() {
   loading.value = true
   error.value = ''
   try {
-    const data = await teacherApi.getClassById(route.params.id)
-    classData.value = data ? mapCourseToDetail(data) : null
+    const data = await teacherApi.getTeacherClassDetail(route.params.id)
+    classData.value = data ? mapClassToDetail(data) : null
   } catch (e) {
     error.value = e?.message || 'Không thể tải thông tin lớp học.'
     classData.value = null

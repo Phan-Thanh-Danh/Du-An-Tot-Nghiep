@@ -33,12 +33,33 @@ const totalLessons = ref(0)
 const activeStudents = ref(0)
 
 const chartData = ref([])
+const route = useRoute()
+
+function getClassId(item) {
+  return item?.id ?? item?.Id ?? item?.maKhoaHoc ?? item?.MaKhoaHoc ?? item?.classId ?? item?.ClassId
+}
 
 async function loadProgress() {
   loading.value = true
   error.value = ''
   try {
-    const data = await teacherApi.getTeacherClassProgress(route.params.id)
+    let classId = route.params.id
+    if (!classId) {
+      const classList = await teacherApi.getTeacherClasses({ pageSize: 1 })
+      const firstClass = (classList?.items ?? classList?.Items ?? classList?.data ?? classList?.Data ?? classList ?? [])[0]
+      classId = getClassId(firstClass)
+    }
+    if (!classId) {
+      students.value = []
+      overallProgress.value = 0
+      completedLessons.value = 0
+      totalLessons.value = 0
+      activeStudents.value = 0
+      chartData.value = []
+      return
+    }
+
+    const data = await teacherApi.getTeacherClassProgress(classId)
     students.value = (data?.students || []).map(s => ({
       id: s.maSinhVien ?? s.id,
       name: s.tenSinhVien ?? s.name ?? '',
@@ -102,7 +123,6 @@ const getStatusVariant = (status) => {
 }
 
 const animateProgress = ref(false)
-const route = useRoute()
 
 onMounted(() => {
   loadProgress()

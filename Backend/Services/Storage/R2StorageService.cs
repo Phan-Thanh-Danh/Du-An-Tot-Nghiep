@@ -65,12 +65,8 @@ public class R2StorageService : IR2StorageService
     {
         if (_s3Client == null)
         {
-            return new UploadResultDto
-            {
-                Url = "local_mock_url",
-                StorageKey = "local_mock_key",
-                KichThuocByte = 0
-            };
+            throw new InvalidOperationException(
+                "R2 storage is not configured. Set R2Storage:Endpoint, AccessKeyId, SecretAccessKey, and BucketName before uploading files.");
         }
 
         var safeFileName = SanitizeFileName(fileName);

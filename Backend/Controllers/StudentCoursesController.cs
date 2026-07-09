@@ -130,13 +130,12 @@ public class StudentCoursesController : ControllerBase
                 .FirstOrDefaultAsync(k => k.MaLop == student.MaLop.Value && k.MonHoc!.MaCodeMonHoc == courseCode && k.TrangThai == "da_xuat_ban")
             : null;
 
-        // 2. Nếu không tìm thấy phân công, fallback về DanhMucMonHoc gốc để vẫn xem được đề cương
+        // 2. Nếu không tìm thấy phân công, chỉ cho xem đề cương khi mã môn học thật tồn tại.
         var baseSubject = assignedCourse?.MonHoc ?? await context.DanhMucMonHocs.FirstOrDefaultAsync(c => c.MaCodeMonHoc == courseCode);
 
         if (baseSubject == null)
         {
-            // Fallback object to satisfy the smoke test which hardcodes id '1'
-            baseSubject = new Backend.Models.DanhMucMonHoc { MaMonHoc = 1, MaCodeMonHoc = courseCode, TenMonHoc = "Môn học " + courseCode, SoTinChi = 3 };
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy môn học."));
         }
 
         var chapters = await context.Chuongs

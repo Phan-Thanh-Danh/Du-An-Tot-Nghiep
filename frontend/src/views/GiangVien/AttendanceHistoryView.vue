@@ -38,9 +38,9 @@ async function loadHistory() {
   error.value = ''
   try {
     const data = await teacherApi.getAttendanceHistory()
-    sessions.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+    sessions.value = Array.isArray(data) ? data : (data?.data?.items ?? data?.data ?? data?.items ?? [])
     const unlockData = await teacherApi.getUnlockRequests()
-    unlockRequests.value = Array.isArray(unlockData) ? unlockData : (unlockData?.items ?? unlockData?.data ?? [])
+    unlockRequests.value = Array.isArray(unlockData) ? unlockData : (unlockData?.data?.items ?? unlockData?.data ?? unlockData?.items ?? [])
   } catch (e) {
     error.value = e?.message || 'Không thể tải lịch sử điểm danh.'
   } finally {

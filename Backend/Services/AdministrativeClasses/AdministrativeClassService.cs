@@ -25,17 +25,18 @@ public class AdministrativeClassService : IAdministrativeClassService
         CancellationToken cancellationToken = default)
     {
         var currentUser = GetCurrentUser();
-        var allowedOrganizationIds = await GetAllowedOrganizationIdsAsync(currentUser, cancellationToken);
+        var allowedOrganizationIds = (await GetAllowedOrganizationIdsAsync(currentUser, cancellationToken)).ToList();
 
-        var query = CreateClassQuery()
-            .Where(x => allowedOrganizationIds.Contains(x.Class.MaDonVi));
+        var classQuery = _context.LopHanhChinhs
+            .AsNoTracking()
+            .Where(classEntity => allowedOrganizationIds.Contains(classEntity.MaDonVi));
 
         if (!string.IsNullOrWhiteSpace(parameters.Keyword))
         {
             var keyword = parameters.Keyword.Trim().ToLowerInvariant();
-            query = query.Where(x =>
-                x.Class.MaCodeLop.ToLower().Contains(keyword) ||
-                x.Class.TenLop.ToLower().Contains(keyword));
+            classQuery = classQuery.Where(classEntity =>
+                classEntity.MaCodeLop.ToLower().Contains(keyword) ||
+                classEntity.TenLop.ToLower().Contains(keyword));
         }
 
         if (parameters.MaDonVi.HasValue)
@@ -45,26 +46,48 @@ public class AdministrativeClassService : IAdministrativeClassService
                 throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem lớp của đơn vị này.");
             }
 
-            query = query.Where(x => x.Class.MaDonVi == parameters.MaDonVi.Value);
+            classQuery = classQuery.Where(classEntity => classEntity.MaDonVi == parameters.MaDonVi.Value);
         }
 
         if (parameters.MaChuongTrinh.HasValue)
         {
-            query = query.Where(x => x.Class.MaChuongTrinh == parameters.MaChuongTrinh.Value);
+            classQuery = classQuery.Where(classEntity => classEntity.MaChuongTrinh == parameters.MaChuongTrinh.Value);
         }
 
         if (parameters.ConHoatDong.HasValue)
         {
-            query = query.Where(x => x.Class.ConHoatDong == parameters.ConHoatDong.Value);
+            classQuery = classQuery.Where(classEntity => classEntity.ConHoatDong == parameters.ConHoatDong.Value);
         }
 
-        var totalItems = await query.CountAsync(cancellationToken);
-        var items = await query
-            .OrderBy(x => x.Organization.TenDonVi)
-            .ThenBy(x => x.Class.TenLop)
+        var totalItems = await classQuery.CountAsync(cancellationToken);
+        var items = await (
+            from classEntity in classQuery
+            join organization in _context.DonVis.AsNoTracking()
+                on classEntity.MaDonVi equals organization.MaDonVi
+            join teacher in _context.NguoiDungs.AsNoTracking()
+                on classEntity.MaGiaoVienChuNhiem equals teacher.MaNguoiDung into teacherJoin
+            from teacher in teacherJoin.DefaultIfEmpty()
+            join trainingProgram in _context.ChuongTrinhDaoTaos.AsNoTracking()
+                on classEntity.MaChuongTrinh equals trainingProgram.MaChuongTrinh into trainingProgramJoin
+            from trainingProgram in trainingProgramJoin.DefaultIfEmpty()
+            orderby organization.TenDonVi, classEntity.TenLop
+            select new AdminClassDto
+            {
+                MaLop = classEntity.MaLop,
+                MaDonVi = classEntity.MaDonVi,
+                TenDonVi = organization.TenDonVi,
+                MaCodeLop = classEntity.MaCodeLop,
+                TenLop = classEntity.TenLop,
+                MaGiaoVienChuNhiem = classEntity.MaGiaoVienChuNhiem,
+                TenGiaoVienChuNhiem = teacher != null ? teacher.HoTen : null,
+                MaChuongTrinh = classEntity.MaChuongTrinh,
+                MaCodeChuongTrinh = trainingProgram != null ? trainingProgram.MaCodeChuongTrinh : null,
+                TenChuongTrinh = trainingProgram != null ? trainingProgram.TenChuongTrinh : null,
+                NamNhapHoc = classEntity.NamNhapHoc,
+                ConHoatDong = classEntity.ConHoatDong
+            })
             .Skip((parameters.PageIndex - 1) * parameters.PageSize)
             .Take(parameters.PageSize)
-            .Select(x => ToDto(x.Class, x.Organization, x.Teacher, x.TrainingProgram))
             .ToListAsync(cancellationToken);
 
         return new PagedResultDto<AdminClassDto>
@@ -226,10 +249,16 @@ public class AdministrativeClassService : IAdministrativeClassService
             .ToList();
     }
 
-    private IQueryable<ClassQueryResult> CreateClassQuery()
+    private IQueryable<ClassQueryResult> CreateClassQuery(List<int>? allowedOrganizationIds = null)
     {
+        var classQuery = _context.LopHanhChinhs.AsNoTracking();
+        if (allowedOrganizationIds is { Count: > 0 })
+        {
+            classQuery = classQuery.Where(classEntity => allowedOrganizationIds.Contains(classEntity.MaDonVi));
+        }
+
         return
-            from classEntity in _context.LopHanhChinhs.AsNoTracking()
+            from classEntity in classQuery
             join organization in _context.DonVis.AsNoTracking()
                 on classEntity.MaDonVi equals organization.MaDonVi
             join teacher in _context.NguoiDungs.AsNoTracking()

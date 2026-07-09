@@ -5,7 +5,8 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { usePopupStore } from '@/stores/popup'
-import { apiRequest, unwrapApiData } from '@/services/apiClient'
+import { bghApi } from '@/services/bghApi'
+import { unwrapApiData } from '@/services/apiClient'
 
 const loading = ref(false)
 const error = ref(null)
@@ -21,8 +22,20 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const res = await apiRequest('/api/thoi-khoa-bieu/check-xung-dot')
-    conflicts.value = unwrapApiData(res) || []
+    const data = unwrapApiData(await bghApi.getPendingSchedules())
+    const results = Array.isArray(data) ? data : []
+    conflicts.value = results
+      .filter(item => Number(item.conflicts ?? item.Conflicts ?? 0) > 0)
+      .map((item, index) => ({
+        id: item.id ?? item.Id ?? `CF-${index + 1}`,
+        dept1: item.dept ?? item.Dept ?? '',
+        dept2: item.campus ?? item.Campus ?? '',
+        course1: item.classes ?? item.Classes ?? '',
+        course2: item.slots ?? item.Slots ?? '',
+        severity: Number(item.conflicts ?? item.Conflicts ?? 0) > 2 ? 'critical' : 'warning',
+        status: 'unresolved',
+        details: [`${item.conflicts ?? item.Conflicts} xung đột trong bộ TKB`],
+      }))
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu xung đột'
   } finally {

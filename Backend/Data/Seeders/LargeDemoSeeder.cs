@@ -200,7 +200,7 @@ public static class LargeDemoSeeder
         await context.SaveChangesAsync();
 
         Console.WriteLine("Seeding Administrative Classes & Students...");
-        var cohort = new KhoaTuyenSinh { MaCodeKhoa = "K_LARGE_DEMO_V10", TenKhoa = "Khóa Large Demo V10", NamBatDau = 2026, ConHoatDong = true, NgayTao = DateTime.UtcNow };
+        var cohort = new KhoaTuyenSinh { MaCodeKhoa = "K_LARGE_DATA_V10", TenKhoa = "Khóa Large Demo V10", NamBatDau = 2026, ConHoatDong = true, NgayTao = DateTime.UtcNow };
         context.KhoaTuyenSinhs.Add(cohort);
         await context.SaveChangesAsync();
 

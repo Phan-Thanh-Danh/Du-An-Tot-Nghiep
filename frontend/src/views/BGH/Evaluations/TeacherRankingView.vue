@@ -48,7 +48,18 @@ async function loadData() {
   try {
     const res = await bghApi.getEvaluationRanking()
     const data = unwrapApiData(res)
-    if (data && data.length) rankings.value = data
+    rankings.value = Array.isArray(data)
+      ? data.map(item => ({
+          id: item.teacherId ?? item.id,
+          name: item.teacherName || item.name || '',
+          dept: item.departmentName || item.dept || 'Chưa phân khoa',
+          avgScore: Number(item.avgRating ?? item.avgScore ?? 0),
+          evals: item.reviewCount ?? item.evals ?? 0,
+          positive: item.positive ?? 0,
+          negative: item.negative ?? 0,
+          trend: item.trend || 'stable'
+        }))
+      : []
   } catch (e) {
     error.value = e.message
   } finally {
@@ -58,7 +69,7 @@ async function loadData() {
 onMounted(() => { loadData() })
 
 function viewDetail(gv) {
-  router.push(`/bgh/evaluations/detail/GV00${gv.id}`)
+  router.push(`/bgh/evaluations/detail/${gv.id}`)
 }
 </script>
 

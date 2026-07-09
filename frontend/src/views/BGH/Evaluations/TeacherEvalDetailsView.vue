@@ -38,7 +38,10 @@ async function loadData() {
           email: data.email,
           avgRating: data.avgRating,
           totalReviews: data.totalReviews,
-          criteria: data.criteria || [],
+          criteria: (data.criteria || []).map(item => ({
+            label: item.criterionName || item.label || '',
+            score: Number(item.avgScore ?? item.score ?? 0)
+          })),
           recentFeedback: data.recentFeedback || [],
           semesterHistory: (data.semesterHistory || []).map(s => ({ term: s.semester, score: s.avgRating }))
         }

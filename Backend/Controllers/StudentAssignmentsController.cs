@@ -33,11 +33,7 @@ public class StudentAssignmentsController : ControllerBase
             return Unauthorized();
         }
 
-        var enrolledMonHocIds = await _context.DangKyHocPhans
-            .Where(d => d.MaHocSinh == currentUser.UserId && d.TrangThai == "da_dang_ky")
-            .Select(d => d.LopHocPhan!.MaMonHoc)
-            .Distinct()
-            .ToListAsync();
+        var enrolledMonHocIds = await GetStudentSubjectIdsAsync(currentUser.UserId);
 
         var assignments = await _context.BaiTaps
             .Include(b => b.MonHoc)
@@ -113,11 +109,7 @@ public class StudentAssignmentsController : ControllerBase
             return BadRequest(ApiResponseDto.Fail("Mã bài tập không hợp lệ."));
         }
 
-        var enrolledMonHocIds = await _context.DangKyHocPhans
-            .Where(d => d.MaHocSinh == currentUser.UserId && d.TrangThai == "da_dang_ky")
-            .Select(d => d.LopHocPhan!.MaMonHoc)
-            .Distinct()
-            .ToListAsync();
+        var enrolledMonHocIds = await GetStudentSubjectIdsAsync(currentUser.UserId);
 
         var assignment = await _context.BaiTaps
             .Include(a => a.MonHoc)
@@ -127,8 +119,7 @@ public class StudentAssignmentsController : ControllerBase
 
         if (assignment == null)
         {
-            // Fallback for smoke test which hardcodes id '1'
-            assignment = new Backend.Models.BaiTap { MaBaiTap = aId, TieuDe = "Bài tập " + aId, HanNop = DateTime.UtcNow.AddDays(7), MonHoc = new Backend.Models.DanhMucMonHoc { TenMonHoc = "Môn học mẫu" } };
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy bài tập."));
         }
 
         var submissions = new List<Backend.Models.BaiNop>();
@@ -218,11 +209,7 @@ public class StudentAssignmentsController : ControllerBase
             return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = "Mã bài tập không hợp lệ." });
         }
 
-        var enrolledMonHocIds = await _context.DangKyHocPhans
-            .Where(d => d.MaHocSinh == currentUser.UserId && d.TrangThai == "da_dang_ky")
-            .Select(d => d.LopHocPhan!.MaMonHoc)
-            .Distinct()
-            .ToListAsync();
+        var enrolledMonHocIds = await GetStudentSubjectIdsAsync(currentUser.UserId);
 
         var assignment = await _context.BaiTaps
             .FirstOrDefaultAsync(a => a.MaBaiTap == aId
@@ -321,6 +308,34 @@ public class StudentAssignmentsController : ControllerBase
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(item => item.StartsWith('.') ? item : $".{item}")
             .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private async Task<List<int>> GetStudentSubjectIdsAsync(int studentId)
+    {
+        var classId = await _context.NguoiDungs
+            .AsNoTracking()
+            .Where(u => u.MaNguoiDung == studentId)
+            .Select(u => u.MaLop)
+            .FirstOrDefaultAsync();
+
+        var classSubjectIds = classId.HasValue
+            ? await _context.KhoaHocs
+                .AsNoTracking()
+                .Where(k => k.MaLop == classId.Value && k.TrangThai == "da_xuat_ban")
+                .Select(k => k.MaMonHoc)
+                .ToListAsync()
+            : [];
+
+        var registeredSubjectIds = await _context.DangKyHocPhans
+            .AsNoTracking()
+            .Where(d => d.MaHocSinh == studentId && d.TrangThai == "da_dang_ky")
+            .Select(d => d.LopHocPhan!.MaMonHoc)
+            .ToListAsync();
+
+        return classSubjectIds
+            .Concat(registeredSubjectIds)
+            .Distinct()
             .ToList();
     }
 }

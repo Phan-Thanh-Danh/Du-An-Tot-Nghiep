@@ -30,6 +30,10 @@ const chapters = ref([])
 const activeLessonId = ref(null)
 const activeLesson = ref(null)
 
+function getClassId(item) {
+  return item?.id ?? item?.Id ?? item?.maKhoaHoc ?? item?.MaKhoaHoc ?? item?.classId ?? item?.ClassId
+}
+
 const lessonStats = computed(() => {
   const allLessons = chapters.value.flatMap(chapter => chapter.lessons)
   return [
@@ -44,7 +48,17 @@ async function loadLessons() {
   loading.value = true
   error.value = ''
   try {
-    const data = await teacherApi.getTeacherClassDetail() // expects courseId param; use first course
+    const classList = await teacherApi.getTeacherClasses({ pageSize: 1 })
+    const firstClass = (classList?.items ?? classList?.Items ?? classList?.data ?? classList?.Data ?? classList ?? [])[0]
+    const classId = getClassId(firstClass)
+    if (!classId) {
+      chapters.value = []
+      activeLessonId.value = null
+      activeLesson.value = null
+      return
+    }
+
+    const data = await teacherApi.getTeacherClassDetail(classId)
     const items = data?.chuongHoc ?? data?.chapters ?? []
     chapters.value = items.map(ch => ({
       id: ch.id,

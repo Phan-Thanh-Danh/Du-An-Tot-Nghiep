@@ -218,9 +218,9 @@ onMounted(() => { loadWorkspace() })
               <Video :size="24" />
             </div>
             <div class="meet-copy">
-              <p class="meet-title">{{ currentModule.title }}</p>
+              <p class="meet-title">{{ currentModule?.title ?? 'Chưa có nội dung' }}</p>
               <p class="meet-meta">
-                {{ currentModule.duration }} · Mic {{ isMicOn ? 'bật' : 'tắt' }} · Camera
+                {{ currentModule?.duration ?? '' }} · Mic {{ isMicOn ? 'bật' : 'tắt' }} · Camera
                 {{ isCameraOn ? 'bật' : 'tắt' }}
               </p>
             </div>

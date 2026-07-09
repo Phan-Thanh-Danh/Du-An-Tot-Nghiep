@@ -22,7 +22,7 @@ async function loadData() {
   apiError.value = ''
   try {
     const res = await staffApi.getSchedules()
-    schedules.value = res?.items ?? res ?? []
+    schedules.value = Array.isArray(res) ? res : (res?.data?.items ?? res?.data ?? res?.items ?? [])
   } catch (e) {
     console.error(e)
   } finally {

@@ -80,14 +80,7 @@ public class BghEvaluationController : ControllerBase
 
         if (teacher == null)
         {
-            return Ok(ApiResponseDto<TeacherEvalDetailDto>.Ok(new TeacherEvalDetailDto
-            {
-                TeacherId = teacherId,
-                TeacherName = "Demo Teacher",
-                Email = "demo.teacher@lms.local",
-                AvgRating = 4.5,
-                TotalReviews = 0
-            }));
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy giảng viên trong phạm vi quản lý."));
         }
 
         var avgRating = await _db.DanhGiaGiaoViens

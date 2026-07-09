@@ -485,10 +485,11 @@ async function loadSessions() {
   error.value = ''
   try {
     const data = await teacherApi.getExams()
-    assignedExamSessions.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+    const rawSessions = Array.isArray(data) ? data : (data?.data?.items ?? data?.data ?? data?.items ?? [])
+    assignedExamSessions.value = rawSessions
     if (selectedSessionId.value) {
       const studentsData = await teacherApi.getExamStudents(selectedSessionId.value)
-      examStudents.value = Array.isArray(studentsData) ? studentsData : (studentsData?.items ?? studentsData?.data ?? [])
+      examStudents.value = Array.isArray(studentsData) ? studentsData : (studentsData?.data?.items ?? studentsData?.data ?? studentsData?.items ?? [])
     }
   } catch (e) {
     error.value = e?.message || 'Không thể tải ca thi.'
@@ -558,7 +559,7 @@ async function openSession(session) {
   selectedSessionId.value = session.id
   try {
     const studentsData = await teacherApi.getExamStudents(session.id)
-    examStudents.value = Array.isArray(studentsData) ? studentsData : (studentsData?.items ?? studentsData?.data ?? [])
+    examStudents.value = Array.isArray(studentsData) ? studentsData : (studentsData?.data?.items ?? studentsData?.data ?? studentsData?.items ?? [])
   } catch {
     examStudents.value = []
   }
@@ -630,19 +631,23 @@ async function finishSession() {
 }
 
 function attendanceCountForSession(sessionId) {
-  return (sessionStudents.value[sessionId] || []).filter((student) => student.attendanceStatus === 'present').length
+  const students = selectedSessionId.value === sessionId ? examStudents.value : []
+  return students.filter((student) => student.attendanceStatus === 'present').length
 }
 
 function activeCountForSession(sessionId) {
-  return (sessionStudents.value[sessionId] || []).filter((student) => student.examStatus === 'in_progress').length
+  const students = selectedSessionId.value === sessionId ? examStudents.value : []
+  return students.filter((student) => student.examStatus === 'in_progress').length
 }
 
 function submittedCountForSession(sessionId) {
-  return (sessionStudents.value[sessionId] || []).filter((student) => student.examStatus === 'submitted').length
+  const students = selectedSessionId.value === sessionId ? examStudents.value : []
+  return students.filter((student) => student.examStatus === 'submitted').length
 }
 
 function violationCountForSession(sessionId) {
-  const codes = new Set((sessionStudents.value[sessionId] || []).map((student) => student.studentCode))
+  const students = selectedSessionId.value === sessionId ? examStudents.value : []
+  const codes = new Set(students.map((student) => student.studentCode))
   return liveViolations.value.filter((violation) => codes.has(violation.studentId || violation.studentCode) && !violation.handled).length
 }
 
