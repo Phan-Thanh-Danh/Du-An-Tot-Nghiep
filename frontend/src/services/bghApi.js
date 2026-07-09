@@ -11,7 +11,7 @@ export const bghApi = {
     if (params.pageSize) query.append('pageSize', params.pageSize)
     if (params.keyword) query.append('keyword', params.keyword)
     const qs = query.toString()
-    return apiRequest(`/api/admin/users${qs ? '?' + qs : ''}`)
+    return apiRequest(`/api/bgh/users${qs ? '?' + qs : ''}`)
   },
 
   getOrganizations() {

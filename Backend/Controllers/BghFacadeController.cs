@@ -79,6 +79,56 @@ public class BghFacadeController : ControllerBase
         return Ok(new { data = data, message = "Success" });
     }
 
+    [HttpGet("users")]
+    public async Task<IActionResult> GetUsers(
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 100,
+        [FromQuery] string? keyword = null)
+    {
+        var (campusId, isGlobal) = GetUserScope();
+        pageIndex = Math.Max(pageIndex, 1);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        var query =
+            from user in _db.NguoiDungs.AsNoTracking()
+            join organization in _db.DonVis.AsNoTracking()
+                on user.MaDonVi equals organization.MaDonVi
+            join role in _db.VaiTros.AsNoTracking()
+                on user.VaiTroChinh equals role.MaCodeVaiTro
+            where isGlobal || user.MaDonVi == campusId
+            select new
+            {
+                user.MaNguoiDung,
+                user.HoTen,
+                user.Email,
+                user.SoDienThoai,
+                VaiTroChinh = role.MaCodeVaiTro,
+                role.TenVaiTro,
+                user.MaDonVi,
+                organization.TenDonVi,
+                user.TrangThai,
+                user.NgayTao
+            };
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var normalizedKeyword = keyword.Trim().ToLower();
+            query = query.Where(x =>
+                x.HoTen.ToLower().Contains(normalizedKeyword) ||
+                x.Email.ToLower().Contains(normalizedKeyword) ||
+                (x.SoDienThoai != null && x.SoDienThoai.Contains(normalizedKeyword)));
+        }
+
+        var data = await query
+            .OrderByDescending(x => x.NgayTao)
+            .ThenBy(x => x.HoTen)
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return Ok(new { data = data, message = "Success" });
+    }
+
     [HttpGet("schedules")]
     public async Task<IActionResult> GetSchedules()
     {

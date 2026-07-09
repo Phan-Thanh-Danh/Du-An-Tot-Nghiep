@@ -21,7 +21,7 @@
         <h2 class="sr-only text-xl font-bold text-heading">Quản lý Người Dùng</h2>
         <p class="text-xs text-muted mt-1">Danh sách tất cả tài khoản trong hệ thống</p>
       </div>
-      <button @click="openCreateModal" class="flex items-center gap-2 px-4 py-2 bg-(--lg-primary) hover:bg-(--lg-primary-dark) text-white text-sm font-bold rounded-xl transition-all shadow-sm">
+      <button v-if="canEdit" @click="openCreateModal" class="flex items-center gap-2 px-4 py-2 bg-(--lg-primary) hover:bg-(--lg-primary-dark) text-white text-sm font-bold rounded-xl transition-all shadow-sm">
         <Plus :size="18" /> <span>Thêm người dùng</span>
       </button>
     </div>
@@ -63,7 +63,7 @@
               <th class="px-4 py-3 font-bold text-heading">Vai trò</th>
               <th class="px-4 py-3 font-bold text-heading">Đơn vị</th>
               <th class="px-4 py-3 font-bold text-heading">Trạng thái</th>
-              <th class="px-4 py-3 font-bold text-heading text-right">Thao tác</th>
+              <th v-if="canEdit" class="px-4 py-3 font-bold text-heading text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -85,7 +85,7 @@
                   {{ user.trangThai === 'hoat_dong' ? 'Hoạt động' : 'Bị khóa' }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-right">
+              <td v-if="canEdit" class="px-4 py-3 text-right">
                 <div class="flex items-center justify-end gap-2">
                   <button @click="openEditModal(user)" class="p-1.5 text-muted hover:text-(--lg-primary) hover:bg-(--lg-primary)/10 rounded-lg transition-colors" title="Chỉnh sửa"><Edit2 :size="16" /></button>
                   <button v-if="user.trangThai === 'hoat_dong'" @click="handleToggleLock(user)" class="p-1.5 text-muted hover:text-(--color-danger-text) hover:bg-(--color-danger-bg) rounded-lg transition-colors" title="Khóa tài khoản"><Lock :size="16" /></button>
@@ -162,7 +162,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Search, Plus, Edit2, Lock, Unlock, Key, CheckCircle2, AlertTriangle, AlertCircle, Loader2, X } from 'lucide-vue-next'
+import { bghApi } from '@/services/bghApi'
 import { apiRequest, unwrapApiData } from '@/services/apiClient'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+const canEdit = computed(() => authStore.hasRole(['SuperAdmin', 'Admin']))
 
 const loading = ref(false)
 const error = ref(null)
@@ -226,6 +231,7 @@ function prevPage() { if (currentPage.value > 1) currentPage.value-- }
 function nextPage() { if (currentPage.value < totalPages.value) currentPage.value++ }
 
 function openCreateModal() {
+  if (!canEdit.value) return
   modalMode.value = 'create'
   formData.value = { maNguoiDung: null, hoTen: '', email: '', soDienThoai: '', matKhau: '', maCodeVaiTro: '', maDonVi: '' }
   apiError.value = ''
@@ -233,6 +239,7 @@ function openCreateModal() {
 }
 
 function openEditModal(user) {
+  if (!canEdit.value) return
   modalMode.value = 'edit'
   apiError.value = ''
   formData.value = {
@@ -250,6 +257,7 @@ function openEditModal(user) {
 function closeModal() { showModal.value = false }
 
 async function submitForm() {
+  if (!canEdit.value) return
   if (!formData.value.hoTen || !formData.value.email || !formData.value.maCodeVaiTro || !formData.value.maDonVi) {
     apiError.value = 'Vui lòng điền đầy đủ các trường bắt buộc (*).'
     return
@@ -295,9 +303,10 @@ async function submitForm() {
 }
 
 async function handleToggleLock(user) {
+  if (!canEdit.value) return
   const isLocking = user.trangThai === 'hoat_dong'
   try {
-    await apiRequest(`/api/admin/users/${user.maNguoiDung}/${isLocking ? 'lock' : 'unlock'}`, { method: 'POST' })
+    await apiRequest(`/api/admin/users/${user.maNguoiDung}/${isLocking ? 'lock' : 'unlock'}`, { method: 'PATCH' })
     await loadData()
   } catch (e) {
     apiError.value = e?.message || 'Lỗi thực hiện thao tác'
@@ -305,11 +314,12 @@ async function handleToggleLock(user) {
 }
 
 async function handleResetPassword(user) {
+  if (!canEdit.value) return
   const newPassword = prompt(`Nhập mật khẩu mới cho ${user.email} (tối thiểu 8 ký tự):`)
   if (!newPassword || newPassword.length < 8) return
   try {
     await apiRequest(`/api/admin/users/${user.maNguoiDung}/reset-password`, {
-      method: 'POST',
+      method: 'PATCH',
       body: JSON.stringify({ matKhauMoi: newPassword })
     })
   } catch (e) {

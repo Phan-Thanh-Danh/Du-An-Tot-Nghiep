@@ -1,0 +1,222 @@
+{
+  "generatedAt": "2026-07-09T15:17:38.738Z",
+  "frontend": "https://localhost:5173",
+  "cdp": "http://127.0.0.1:9222",
+  "totals": {
+    "phase": "P16B.1",
+    "highRiskRoutesTargeted": 11,
+    "routesVisited": 11,
+    "routesPassed": 11,
+    "routesFailed": 0,
+    "consoleErrors": 0,
+    "runtimeExceptions": 0,
+    "network401": 0,
+    "network403": 0,
+    "network404": 0,
+    "network500": 0,
+    "placeholdersRemaining": 0,
+    "productionMockFallbackRemaining": 25
+  },
+  "results": [
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/operations/schedules",
+      "pageProbe": {
+        "path": "/super-admin/operations/schedules",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loading": false,
+        "title": "Vite App"
+      },
+      "safeProbe": {
+        "skipped": true
+      },
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "networkFailures": [],
+      "result": "PASS"
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/operations/schedules/approval",
+      "pageProbe": {
+        "path": "/super-admin/operations/schedules/approval",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loading": false,
+        "title": "Vite App"
+      },
+      "safeProbe": {
+        "skipped": true
+      },
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "networkFailures": [],
+      "result": "PASS"
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/finance/tuition-config",
+      "pageProbe": {
+        "path": "/super-admin/finance/tuition-config",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loading": false,
+        "title": "Vite App"
+      },
+      "safeProbe": {
+        "skipped": true
+      },
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "networkFailures": [],
+      "result": "PASS"
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/finance/student-debts",
+      "pageProbe": {
+        "path": "/super-admin/finance/student-debts",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loading": false,
+        "title": "Vite App"
+      },
+      "safeProbe": {
+        "skipped": true
+      },
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "networkFailures": [],
+      "result": "PASS"
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/finance/payments",
+      "pageProbe": {
+        "path": "/super-admin/finance/payments",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loading": false,
+        "title": "Vite App"
+      },
+      "safeProbe": {
+        "skipped": true
+      },
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "networkFailures": [],
+      "result": "PASS"
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/finance/refunds",
+      "pageProbe": {
+        "path": "/super-admin/finance/refunds",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loading": false,
+        "title": "Vite App"
+      },
+      "safeProbe": {
+        "skipped": true
+      },
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "networkFailures": [],
+      "result": "PASS"
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/notifications/history",
+      "pageProbe": {
+        "path": "/super-admin/notifications/history",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loading": false,
+        "title": "Vite App"
+      },
+      "safeProbe": {
+        "skipped": true
+      },
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "networkFailures": [],
+      "result": "PASS"
+    },
+    {
+      "role": "BGH",
+      "route": "/bgh/users",
+      "check": "bgh-users-readonly",
+      "pageProbe": {
+        "path": "/bgh/users",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loading": false,
+        "title": "Vite App"
+      },
+      "safeProbe": {
+        "adminMutationButtonCount": 0,
+        "matches": []
+      },
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "networkFailures": [],
+      "result": "PASS"
+    },
+    {
+      "role": "BGH",
+      "route": "/bgh/roles",
+      "pageProbe": {
+        "path": "/bgh/roles",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loading": false,
+        "title": "Vite App"
+      },
+      "safeProbe": {
+        "skipped": true
+      },
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "networkFailures": [],
+      "result": "PASS"
+    },
+    {
+      "role": "BGH",
+      "route": "/bgh/curriculum",
+      "pageProbe": {
+        "path": "/bgh/curriculum",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loading": false,
+        "title": "Vite App"
+      },
+      "safeProbe": {
+        "skipped": true
+      },
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "networkFailures": [],
+      "result": "PASS"
+    },
+    {
+      "role": "BGH",
+      "route": "/bgh/facilities",
+      "pageProbe": {
+        "path": "/bgh/facilities",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loading": false,
+        "title": "Vite App"
+      },
+      "safeProbe": {
+        "skipped": true
+      },
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "networkFailures": [],
+      "result": "PASS"
+    }
+  ]
+}

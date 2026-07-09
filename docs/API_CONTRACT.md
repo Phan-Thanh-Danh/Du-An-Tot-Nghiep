@@ -50,6 +50,7 @@ Ghi chú thuật ngữ: `DonVi` là tên bảng/entity kỹ thuật trong backen
 | PATCH | `/api/admin/users/{id}/lock` | Admin/SuperAdmin/CampusAdmin | Khóa tài khoản bằng trạng thái `bi_khoa`, không xóa vật lý. |
 | PATCH | `/api/admin/users/{id}/unlock` | Admin/SuperAdmin/CampusAdmin | Mở khóa tài khoản bằng trạng thái `hoat_dong`. |
 | PATCH | `/api/admin/users/{id}/reset-password` | Admin/SuperAdmin/CampusAdmin | Admin đặt lại mật khẩu user và ghi audit. |
+| GET | `/api/bgh/users` | Principal/Admin/SuperAdmin | Danh sách user read-only cho BGH, scope theo cơ sở của người dùng hiện tại; không cho mutation qua endpoint BGH. |
 
 ### Dự kiến/cần bổ sung
 

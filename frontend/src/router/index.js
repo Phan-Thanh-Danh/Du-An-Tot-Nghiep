@@ -537,13 +537,13 @@ const router = createRouter({
         {
           path: 'operations/schedules',
           name: 'super-admin-operations-schedules',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/GiaoVu/Schedule/ScheduleManagerView.vue'),
           meta: { title: 'Thời khóa biểu' },
         },
         {
           path: 'operations/schedules/approval',
           name: 'super-admin-operations-schedules-approval',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/GiaoVu/Schedule/PendingSchedulesView.vue'),
           meta: { title: 'Duyệt/Publish TKB' },
         },
         {
@@ -568,26 +568,26 @@ const router = createRouter({
         {
           path: 'finance/tuition-config',
           name: 'super-admin-finance-tuition-config',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/Finance/TuitionConfigView.vue'),
           meta: { title: 'Cấu hình học phí' },
         },
         {
           path: 'finance/student-debts',
           name: 'super-admin-finance-student-debts',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
-          meta: { title: 'Công nợ sinh viên' },
+          component: () => import('../views/SuperAdmin/Finance/FinanceMonitorView.vue'),
+          meta: { title: 'Công nợ sinh viên', financeMode: 'student-debts' },
         },
         {
           path: 'finance/payments',
           name: 'super-admin-finance-payments',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
-          meta: { title: 'Theo dõi thanh toán' },
+          component: () => import('../views/SuperAdmin/Finance/FinanceMonitorView.vue'),
+          meta: { title: 'Theo dõi thanh toán', financeMode: 'payments' },
         },
         {
           path: 'finance/refunds',
           name: 'super-admin-finance-refunds',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
-          meta: { title: 'Hoàn phí/Bảo lưu' },
+          component: () => import('../views/SuperAdmin/Finance/FinanceMonitorView.vue'),
+          meta: { title: 'Hoàn phí/Bảo lưu', financeMode: 'refunds' },
         },
         // 6. Hỗ trợ, Đơn từ và Đánh giá
         {
@@ -714,7 +714,7 @@ const router = createRouter({
         {
           path: 'notifications/history',
           name: 'super-admin-notifications-history',
-          component: () => import('../views/SuperAdmin/PlaceholderView.vue'),
+          component: () => import('../views/SuperAdmin/NotificationHistoryView.vue'),
           meta: { title: 'Lịch sử thông báo' },
         },
         // 9. Quản trị Hệ thống, Audit và Bảo mật
