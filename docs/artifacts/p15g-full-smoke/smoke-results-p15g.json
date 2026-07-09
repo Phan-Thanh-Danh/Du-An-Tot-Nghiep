@@ -1,0 +1,1872 @@
+[
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/dashboard",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": "SuperAdmin_super-admin_dashboard.png"
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/profile",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/organizations",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/users",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/roles-permissions",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/login-history",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/training/semesters",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/training/programs",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/training/subjects",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/training/courses",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/training/exam-periods",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/operations/schedules",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/operations/schedules/approval",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/operations/attendance-policy",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/operations/registration-periods",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/operations/pass-fail-rules",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/finance/tuition-config",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/finance/student-debts",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/finance/payments",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/finance/refunds",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/support/tickets",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/support/faq",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/approvals/requests",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/approvals/history",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/approvals/reports",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/rewards-discipline",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/rewards/campaigns",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/discipline/records",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/discipline/appeals",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/evaluations/config",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/evaluations/results",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/awards",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/discipline",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/reports/education-overview",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/reports/learning",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/reports/attendance",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/reports/campus-comparison",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/reports/export",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/notifications/templates",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/notifications/send",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/notifications/history",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/audit/logs",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/security/alerts",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/system/modules",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "SuperAdmin",
+    "route": "/super-admin/system/ai-automation",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/dashboard",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": "BGH_bgh_dashboard.png"
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/organizations",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/users",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/roles",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/academic-programs",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/curriculum",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/academic-terms",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/academic/overview",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/academic/gpa",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/academic/at-risk",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/academic/at-risk/1/history",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/academic/reports",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/academic/pass-fail",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/schedule/pending",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/schedule/conflicts",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 405 ()"
+    ],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/schedule/published",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/schedule/changes",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/evaluations",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/evaluations/ranking",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/evaluations/detail/1",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/evaluations/overview",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/evaluations/ai-analysis",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/facilities",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/audit-logs",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/profile",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "BGH",
+    "route": "/bgh/notifications",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/dashboard",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": "Staff_staff_dashboard.png"
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/schedule",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/assignments",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/buildings",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 400 ()"
+    ],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/floors",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 400 ()",
+      "Failed to load resource: the server responded with a status of 400 ()"
+    ],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/shifts",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 400 ()"
+    ],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/rooms",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 400 ()",
+      "Failed to load resource: the server responded with a status of 400 ()",
+      "Failed to load resource: the server responded with a status of 400 ()"
+    ],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/conflicts",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/schedule/pending",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/schedule/published",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [
+      "TypeError: schedules.value.reduce is not a function"
+    ],
+    "result": "FAIL",
+    "screenshot": "Staff_staff_schedule_published.png"
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/academic-terms",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 400 ()"
+    ],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/subjects",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 400 ()"
+    ],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/courses",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/registrations",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/capacity",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/course-status",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/requests",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/requests-history",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/workflow",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/notices/send",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/notices/history",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/classes",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [
+      "500 https://localhost:5173/api/admin/classes?PageSize=100"
+    ],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 ()"
+    ],
+    "runtimeExceptions": [],
+    "result": "FAIL",
+    "screenshot": "Staff_staff_classes.png"
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/accounts",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [
+      "403 https://localhost:5173/api/admin/users?PageSize=100"
+    ],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 403 ()"
+    ],
+    "runtimeExceptions": [],
+    "result": "FAIL",
+    "screenshot": "Staff_staff_accounts.png"
+  },
+  {
+    "role": "Staff",
+    "route": "/staff/profile",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/dashboard",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": "Teacher_teacher_dashboard.png"
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/courses",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/lessons",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 400 ()"
+    ],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/classes",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/classes/1/details",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [
+      "404 https://localhost:5173/api/courses/1"
+    ],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "runtimeExceptions": [],
+    "result": "FAIL",
+    "screenshot": "Teacher_teacher_classes_1_details.png"
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/classes/1/workspace",
+    "pageLoaded": false,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [
+      "TypeError: Cannot read properties of null (reading 'title')"
+    ],
+    "runtimeExceptions": [
+      "TypeError: Cannot read properties of null (reading 'title')"
+    ],
+    "result": "FAIL",
+    "screenshot": "Teacher_teacher_classes_1_workspace.png"
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/class-progress",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 400 ()"
+    ],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/class-attendance",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/class-grades",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/assignments",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/exams",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/exams/create",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/grading",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/exam-results",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/proctoring",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [
+      "TypeError: assignedExamSessions.value.filter is not a function",
+      "ReferenceError: sessionStudents is not defined"
+    ],
+    "result": "FAIL",
+    "screenshot": "Teacher_teacher_proctoring.png"
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/attendance",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/attendance-history",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [
+      "TypeError: unlockRequests.value.filter is not a function"
+    ],
+    "result": "FAIL",
+    "screenshot": "Teacher_teacher_attendance-history.png"
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/grading-input",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/student-questions",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/lesson-comments",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/requests",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/requests-history",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/profile",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/notifications",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Teacher",
+    "route": "/teacher/change-password",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/exams/1/take",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/dashboard",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": "Student_student_dashboard.png"
+  },
+  {
+    "role": "Student",
+    "route": "/student/courses",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/curriculum",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/courses/1",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/assignments",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/assignments/1",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/exams",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/exams/detail/1",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/exams/1",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/grades",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/schedule",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/attendance",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/registrations",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/tuition",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/support-tickets",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/requests",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/evaluations",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/profile",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/rewards",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/discipline",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Student",
+    "route": "/student/notifications",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Parent",
+    "route": "/parent/dashboard",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": "Parent_parent_dashboard.png"
+  },
+  {
+    "role": "Parent",
+    "route": "/parent/children/list",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Parent",
+    "route": "/parent/children/overview",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Parent",
+    "route": "/parent/learning/grades",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Parent",
+    "route": "/parent/learning/schedule",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Parent",
+    "route": "/parent/learning/attendance",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Parent",
+    "route": "/parent/learning/alerts",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Parent",
+    "route": "/parent/finance/tuition",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Parent",
+    "route": "/parent/finance/payment",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Parent",
+    "route": "/parent/finance/transactions",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Parent",
+    "route": "/parent/finance/invoices",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Parent",
+    "route": "/parent/notifications/system",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Parent",
+    "route": "/parent/notifications/history",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Parent",
+    "route": "/parent/profile/info",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "Parent",
+    "route": "/parent/profile/access-rights",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "ContentCouncil",
+    "route": "/content-council/subjects",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "ContentCouncil",
+    "route": "/content-council/question-bank",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "ContentCouncil",
+    "route": "/content-council/quizzes",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "ContentCouncil",
+    "route": "/content-council/quizzes/new",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "ContentCouncil",
+    "route": "/content-council/quizzes/1/edit",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "ContentCouncil",
+    "route": "/content-council/quizzes/1/builder",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "ContentCouncil",
+    "route": "/content-council/subjects/1/overview",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "ContentCouncil",
+    "route": "/content-council/subjects/1/editor",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  },
+  {
+    "role": "ContentCouncil",
+    "route": "/content-council/subjects/1/preview",
+    "pageLoaded": true,
+    "skeletonStuck": false,
+    "apiErrors": [],
+    "consoleErrors": [],
+    "runtimeExceptions": [],
+    "result": "PASS",
+    "screenshot": ""
+  }
+]

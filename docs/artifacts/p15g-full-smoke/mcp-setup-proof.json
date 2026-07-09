@@ -1,0 +1,8 @@
+{
+  "mcpSetup": true,
+  "toolsAvailable": true,
+  "url": "https://localhost:5173",
+  "consoleEmpty": true,
+  "networkRequestsCount": 51,
+  "firstRequest": "reqid=4 GET https://localhost:5173/ [200]"
+}

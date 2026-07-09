@@ -430,6 +430,56 @@ public class StudentDashboardController : ControllerBase
         }
     }
 
+    [HttpGet("schedule")]
+    public async Task<ActionResult<ApiResponseDto<object>>> GetSchedule([FromQuery] string? anchorDate)
+    {
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        if (currentUser == null) return Unauthorized();
+
+        var user = await _db.NguoiDungs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.MaNguoiDung == currentUser.UserId);
+
+        if (user == null || user.MaLop == null)
+            return Ok(ApiResponseDto<object>.Ok(new { sessions = new List<object>() }));
+
+        var currentHocKy = await _db.HocKys
+            .Where(hk => hk.NamHoc == DateTime.UtcNow.Year.ToString() + "-" + (DateTime.UtcNow.Year + 1).ToString())
+            .FirstOrDefaultAsync();
+
+        var scheduleRaw = await _db.ThoiKhoaBieus
+            .Include(t => t.KhoaHoc!)
+                .ThenInclude(k => k.MonHoc)
+            .Include(t => t.CaHoc)
+            .Include(t => t.Phong)
+            .Where(t => t.KhoaHoc != null
+                && t.KhoaHoc.MaLop == user.MaLop
+                && (currentHocKy == null || t.KhoaHoc.MaHocKy == currentHocKy.MaHocKy)
+                && t.TrangThai == "da_xuat_ban")
+            .ToListAsync();
+
+        DateTime baseDate = string.IsNullOrEmpty(anchorDate) ? DateTime.UtcNow.Date : (DateTime.TryParse(anchorDate, out var d) ? d : DateTime.UtcNow.Date);
+        int dayOfWeek = (int)baseDate.DayOfWeek;
+        DateTime monday = baseDate.AddDays(-(dayOfWeek == 0 ? 6 : dayOfWeek - 1));
+
+        var sessions = scheduleRaw.Select(t => new
+        {
+            id = t.MaTkb.ToString(),
+            subject = t.KhoaHoc?.MonHoc?.TenMonHoc ?? "",
+            room = t.Phong?.TenPhong ?? "",
+            status = "official",
+            startAt = monday.AddDays(t.ThuTrongTuan - 2).ToString("yyyy-MM-dd"), // ThuTrongTuan 2 = Monday
+            shift = new
+            {
+                label = t.CaHoc?.TenCa ?? "Ca",
+                start = t.CaHoc?.GioBatDau.ToString(@"hh\:mm") ?? "00:00",
+                end = t.CaHoc?.GioKetThuc.ToString(@"hh\:mm") ?? "00:00"
+            }
+        }).ToList();
+
+        return Ok(ApiResponseDto<object>.Ok(new { sessions }));
+    }
+
     private static int CalculateWeekProgress(HocKy? semester, DateOnly today)
     {
         if (semester == null) return 0;

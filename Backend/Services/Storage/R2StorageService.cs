@@ -32,17 +32,27 @@ public class R2StorageService : IR2StorageService
         _settings = settings;
         _logger = logger;
 
-        var s3Config = new AmazonS3Config
+        if (!string.IsNullOrWhiteSpace(settings.Endpoint))
         {
-            ServiceURL = settings.Endpoint,
-            ForcePathStyle = true,
-            Timeout = TimeSpan.FromMinutes(30)
-        };
+            try
+            {
+                var s3Config = new AmazonS3Config
+                {
+                    ServiceURL = settings.Endpoint,
+                    ForcePathStyle = true,
+                    Timeout = TimeSpan.FromMinutes(30)
+                };
 
-        _s3Client = new AmazonS3Client(
-            settings.AccessKeyId,
-            settings.SecretAccessKey,
-            s3Config);
+                _s3Client = new AmazonS3Client(
+                    settings.AccessKeyId,
+                    settings.SecretAccessKey,
+                    s3Config);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to initialize AmazonS3Client. Check R2 config.");
+            }
+        }
     }
 
     public async Task<UploadResultDto> UploadFileAsync(
@@ -52,6 +62,16 @@ public class R2StorageService : IR2StorageService
         string folder,
         CancellationToken cancellationToken = default)
     {
+        if (_s3Client == null)
+        {
+            return new UploadResultDto
+            {
+                Url = "local_mock_url",
+                StorageKey = "local_mock_key",
+                KichThuocByte = 0
+            };
+        }
+
         var safeFileName = SanitizeFileName(fileName);
         var storageKey = $"{folder}/{DateTime.UtcNow:yyyy/MM/dd}/{Guid.NewGuid():N}_{safeFileName}";
 
@@ -97,6 +117,25 @@ public class R2StorageService : IR2StorageService
             KichThuocByte = actualSize,
             ContentType = contentType
         };
+    }
+
+    public string GeneratePresignedDownloadUrl(string storageKey, TimeSpan expiresIn)
+    {
+        if (string.IsNullOrWhiteSpace(storageKey))
+            throw new ArgumentException("Storage key cannot be empty", nameof(storageKey));
+
+        if (_s3Client == null)
+            return null; // Return null if S3 is not configured
+
+        var request = new GetPreSignedUrlRequest
+        {
+            BucketName = _settings.BucketName,
+            Key = storageKey,
+            Expires = DateTime.UtcNow.Add(expiresIn),
+            Protocol = Protocol.HTTPS
+        };
+
+        return _s3Client.GetPreSignedURL(request);
     }
 
     // ── Single-part upload (small files ≤ 5 MB) ──────────────────────

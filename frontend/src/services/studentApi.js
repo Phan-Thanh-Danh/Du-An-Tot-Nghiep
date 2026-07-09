@@ -115,10 +115,9 @@ export const studentApi = {
 
   getSchedule(params = {}) {
     const query = new URLSearchParams()
-    if (params.tuan) query.append('tuan', params.tuan)
-    if (params.maLop) query.append('maLop', params.maLop)
+    if (params.anchorDate) query.append('anchorDate', params.anchorDate)
     const qs = query.toString()
-    return apiRequest(`/api/thoi-khoa-bieu${qs ? '?' + qs : ''}`)
+    return apiRequest(`/api/student/dashboard/schedule${qs ? '?' + qs : ''}`)
   },
 
   async getProfile() {

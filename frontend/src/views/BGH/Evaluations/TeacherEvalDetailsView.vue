@@ -78,7 +78,7 @@ onMounted(() => { loadData() })
       <p class="text-sm text-placeholder mt-1">{{ error }}</p>
       <button @click="loadData" class="mt-4 lg-button-secondary px-4 py-2 text-sm font-semibold">Thử lại</button>
     </div>
-    <div v-else class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+    <div v-else-if="teacher" class="grid grid-cols-1 xl:grid-cols-3 gap-8">
       
       <!-- ── Left: Criteria Breakdown ── -->
       <div class="xl:col-span-2 space-y-4">
@@ -199,7 +199,10 @@ onMounted(() => { loadData() })
         </div>
 
       </div>
-
+    </div>
+    <div v-else class="flex flex-col items-center justify-center py-20 text-center">
+      <User :size="48" class="text-placeholder mb-4" />
+      <p class="text-lg font-semibold text-muted">Không tìm thấy thông tin giảng viên</p>
     </div>
   </PageContainer>
 </template>

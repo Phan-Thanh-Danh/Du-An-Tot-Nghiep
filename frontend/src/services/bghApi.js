@@ -23,7 +23,7 @@ export const bghApi = {
   },
 
   getRoles() {
-    return apiRequest('/api/admin/rbac/roles')
+    return apiRequest('/api/bgh/rbac/roles')
   },
 
   getAuditLogs(params = {}) {
@@ -31,28 +31,28 @@ export const bghApi = {
     if (params.pageIndex) query.append('pageIndex', params.pageIndex)
     if (params.pageSize) query.append('pageSize', params.pageSize)
     const qs = query.toString()
-    return apiRequest(`/api/audit-logs${qs ? '?' + qs : ''}`)
+    return apiRequest(`/api/bgh/audit-logs${qs ? '?' + qs : ''}`)
   },
 
   getAcademicTerms(params = {}) {
     const query = new URLSearchParams()
     if (params.keyword) query.append('keyword', params.keyword)
     const qs = query.toString()
-    return apiRequest(`/api/master-data/academic-terms${qs ? '?' + qs : ''}`)
+    return apiRequest(`/api/bgh/master-data/academic-terms${qs ? '?' + qs : ''}`)
   },
 
   getSubjects(params = {}) {
     const query = new URLSearchParams()
     if (params.keyword) query.append('keyword', params.keyword)
     const qs = query.toString()
-    return apiRequest(`/api/master-data/subjects${qs ? '?' + qs : ''}`)
+    return apiRequest(`/api/bgh/master-data/subjects${qs ? '?' + qs : ''}`)
   },
 
   getPrograms(params = {}) {
     const query = new URLSearchParams()
     if (params.keyword) query.append('keyword', params.keyword)
     const qs = query.toString()
-    return apiRequest(`/api/master-data/training-programs${qs ? '?' + qs : ''}`)
+    return apiRequest(`/api/bgh/master-data/training-programs${qs ? '?' + qs : ''}`)
   },
 
   getAcademicOverview() {
@@ -83,7 +83,7 @@ export const bghApi = {
     const query = new URLSearchParams()
     if (params.status) query.append('status', params.status)
     const qs = query.toString()
-    return apiRequest(`/api/thoi-khoa-bieu${qs ? '?' + qs : ''}`)
+    return apiRequest(`/api/bgh/schedules${qs ? '?' + qs : ''}`)
   },
 
   getEvaluations(params = {}) {

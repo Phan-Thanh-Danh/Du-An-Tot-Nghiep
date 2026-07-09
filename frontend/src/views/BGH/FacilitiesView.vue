@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="space-y-4 pb-10">
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-20">
@@ -123,9 +123,9 @@ async function loadData() {
   error.value = null
   try {
     const [bldRes, flrRes, roomRes, orgRes] = await Promise.all([
-      apiRequest('/api/master-data/buildings'),
-      apiRequest('/api/master-data/floors'),
-      apiRequest('/api/master-data/rooms'),
+      apiRequest('/api/bgh/master-data/buildings'),
+      apiRequest('/api/bgh/master-data/floors'),
+      apiRequest('/api/bgh/master-data/rooms'),
       bghApi.getOrganizations(),
     ])
     buildings.value = unwrapApiData(bldRes) || []

@@ -458,7 +458,7 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
 </script>
 
 <template>
-  <div class="course-player-page">
+  <div class="course-player-page" v-if="courseInfo">
     <header class="course-header">
       <div class="course-header-actions">
         <router-link to="/student/courses" class="ghost-action">
@@ -637,7 +637,7 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
             <span class="section-kicker">Nội dung bài học</span>
             <h3>{{ currentLesson.title }}</h3>
             <p>
-              Bài học tập trung vào cách sử dụng {{ currentLesson.title.toLowerCase() }} trong bài toán thực tế,
+              Bài học tập trung vào cách sử dụng {{ currentLesson?.title?.toLowerCase() || '' }} trong bài toán thực tế,
               đi từ khái niệm, thao tác chính đến tình huống áp dụng trong thuật toán.
             </p>
           </div>
@@ -780,6 +780,11 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
         </section>
       </div>
     </Teleport>
+  </div>
+
+  <div v-else class="flex flex-col items-center justify-center py-20 text-center">
+    <p class="text-lg font-semibold text-muted">Không tìm thấy khóa học</p>
+    <router-link to="/student/courses" class="mt-4 lg-button-primary px-4 py-2">Quay lại danh sách khóa học</router-link>
   </div>
 </template>
 

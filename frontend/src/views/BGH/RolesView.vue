@@ -165,6 +165,7 @@ import {
 } from 'lucide-vue-next'
 import { bghApi } from '@/services/bghApi'
 import { apiRequest, unwrapApiData } from '@/services/apiClient'
+import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
 const canEdit = computed(() => authStore.hasRole(['SuperAdmin', 'Admin']))
