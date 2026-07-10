@@ -121,3 +121,61 @@
 - Added `GET /api/bgh/users` as a BGH read-only, campus-scoped facade endpoint; `bghApi.getUsers()` no longer calls admin-scoped `/api/admin/users` for Principal/BGH.
 - Targeted browser smoke artifact: `docs/artifacts/p16b1-high-risk/p16b1-results.json`.
 - Targeted browser smoke result: 11/11 PASS, console errors 0, runtime exceptions 0, network 401/403/404/500 all 0.
+
+## P16B.2 SuperAdmin Mock/Fallback Cleanup
+
+> Date: 2026-07-10
+> Scope: SuperAdmin rows in the `MOCK_OR_FALLBACK` group only. Staff, Teacher, Student, Parent, BGH, ContentCouncil, and `FE_ONLY_STATIC` rows outside SuperAdmin remain for later P16B passes.
+
+### Result
+
+| Group | Before P16B.2 | After P16B.2 | Notes |
+| --- | ---: | ---: | --- |
+| SuperAdmin `MOCK_OR_FALLBACK` | 18 | 0 | `frontend/src/views/SuperAdmin` now has 0 hits for mock/fake/fallback tokens. |
+| API-backed SuperAdmin cleanup | 0 | 7 | Profile, semesters, programs, subjects, courses, registration periods, and audit logs now load from real APIs. |
+| Converted to endpoint-pending | 0 | 11 | Screens with no confirmed backend contract now render a pending endpoint state with no local business data. |
+| False positive cleanup | 1 | 0 | `Finance/TuitionConfigView.vue` helper names no longer contain `fallback`. |
+
+### API-Backed Routes
+
+| Route | Component | Primary API | P16 status |
+| --- | --- | --- | --- |
+| `/super-admin/profile` | `ProfileView.vue` | `GET /api/account/me`, `PUT /api/account/profile`, `PUT /api/account/change-password` | `PASS_LOAD_ONLY_ACTIONS_PENDING` |
+| `/super-admin/training/semesters` | `SemestersView.vue` | `GET /api/master-data/academic-terms` | `PASS_LOAD_ONLY_ACTIONS_PENDING` |
+| `/super-admin/training/programs` | `ProgramsView.vue` | `GET /api/master-data/training-programs` | `PASS_LOAD_ONLY_ACTIONS_PENDING` |
+| `/super-admin/training/subjects` | `SubjectsView.vue` | `GET /api/master-data/subjects` | `PASS_LOAD_ONLY_ACTIONS_PENDING` |
+| `/super-admin/training/courses` | `CoursesView.vue` | `GET /api/courses` | `PASS_LOAD_ONLY_ACTIONS_PENDING` |
+| `/super-admin/operations/registration-periods` | `RegistrationPeriodsView.vue` | `GET /api/admin/registration-periods` | `PASS_LOAD_ONLY_ACTIONS_PENDING` |
+| `/super-admin/audit/logs` | `AuditLogsView.vue` | `GET /api/audit-logs` | `PASS_LOAD_ONLY_ACTIONS_PENDING` |
+
+These routes no longer use local business data. Mutating actions remain excluded from a full action/API claim until each payload and role permission is manually verified in P16.
+
+### Converted To Endpoint-Pending
+
+| Route | Component | P16 status | Required backend contract |
+| --- | --- | --- | --- |
+| `/super-admin/training/exam-periods` | `ExamPeriodsView.vue` | `NEEDS_BE_ENDPOINT` | Exam period administration API. |
+| `/super-admin/operations/attendance-policy` | `AttendancePolicyView.vue` | `NEEDS_BE_ENDPOINT` | Attendance policy configuration API. |
+| `/super-admin/operations/pass-fail-rules` | `PassFailRulesView.vue` | `NEEDS_BE_ENDPOINT` | Pass/fail rule configuration API. |
+| `/super-admin/support/tickets` | `SupportTicketsView.vue` | `NEEDS_BE_ENDPOINT` | SuperAdmin support-ticket administration API. |
+| `/super-admin/support/faq` | `FAQManagementView.vue` | `NEEDS_BE_ENDPOINT` | FAQ management API. |
+| `/super-admin/approvals/history` | `ApprovalsHistoryView.vue` | `NEEDS_BE_ENDPOINT` | Approval history/reporting API. |
+| `/super-admin/evaluations/config` | `EvaluationsConfigView.vue` | `NEEDS_BE_ENDPOINT` | Evaluation form/configuration API. |
+| `/super-admin/evaluations/results` | `EvaluationsResultsView.vue` | `NEEDS_BE_ENDPOINT` | Evaluation result/reporting API. |
+| `/super-admin/reports/education-overview` | `EducationOverviewView.vue` | `NEEDS_BE_ENDPOINT` | Education overview analytics API. |
+| `/super-admin/security/alerts` | `SecurityAlertsView.vue` | `NEEDS_BE_ENDPOINT` | Security alert operations API. |
+| `/super-admin/system/modules` | `SystemModulesView.vue` | `NEEDS_BE_ENDPOINT` | System module health/operations API. |
+
+### Verification
+
+| Check | Result |
+| --- | --- |
+| SuperAdmin token grep | PASS, 0 hits for `Mock Data|Mock Nhật ký|mock|fake|dummy|fallback|withFallback|localData|staticData|demoData|hardcoded` under `frontend/src/views/SuperAdmin`. |
+| Strict production grep | PASS, 0 hits for mock/fallback production tokens across `frontend/src`, `Backend/Controllers`, and `Backend/Services`. |
+| Frontend build | PASS. |
+| Backend build | PASS, 19 warnings, 0 errors. |
+| P16B.2 targeted browser smoke | PASS, 19/19 SuperAdmin routes, console errors 0, runtime exceptions 0, network 401/403/404/500 all 0. Artifact: `docs/artifacts/p16b2-superadmin-mock-cleanup/p16b2-superadmin-results.json`. |
+| Conflict marker grep | PASS, 0 hits. |
+| `git diff --check` | PASS. |
+
+Decision: `PASS_WITH_WARNINGS` for P16B.2. SuperAdmin production mock/fallback data is removed, but full SuperAdmin action/API coverage is not claimed because 11 screens still require real backend endpoints and 7 API-backed screens need runtime action verification.

@@ -163,13 +163,13 @@ function calculationTypeLabel(value) {
   const type = options.value.calculationTypes.find((item) => item.value === value)
   if (type) return type.label
 
-  const fallback = {
+  const labels = {
     co_dinh_theo_hoc_ky: 'Cố định theo học kỳ',
     theo_tin_chi: 'Theo tín chỉ',
     theo_mon_hoc: 'Theo môn học',
   }
 
-  return fallback[value] || value || 'Chưa xác định'
+  return labels[value] || value || 'Chưa xác định'
 }
 
 function rowId(row) {
@@ -189,9 +189,9 @@ function rowEditReason(row) {
   return getValue(row, 'lyDoKhongDuocSua', 'LyDoKhongDuocSua') || ''
 }
 
-function rowField(row, camelKey, pascalKey, fallback = '') {
+function rowField(row, camelKey, pascalKey, defaultText = '') {
   const value = getValue(row, camelKey, pascalKey)
-  return value === '' ? fallback : value
+  return value === '' ? defaultText : value
 }
 
 function formatMoney(value) {

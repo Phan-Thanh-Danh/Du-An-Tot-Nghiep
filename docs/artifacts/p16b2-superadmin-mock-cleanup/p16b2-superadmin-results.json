@@ -1,0 +1,302 @@
+{
+  "generatedAt": "2026-07-10T01:46:06.893Z",
+  "browser": "Chrome/150.0.7871.101",
+  "frontend": "https://localhost:5173",
+  "cdp": "http://127.0.0.1:9222",
+  "routeCount": 19,
+  "passCount": 19,
+  "failCount": 0,
+  "consoleErrors": 0,
+  "runtimeExceptions": 0,
+  "network401": 0,
+  "network403": 0,
+  "network404": 0,
+  "network500": 0,
+  "results": [
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/profile",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/profile",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nHồ sơ\nHồ sơ cá nhân Admin\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nHồ sơ cá nhân Admin\n\nQuản lý thông tin cá nhân và lịch sử đăng nhập\n\nSuperAdmin\n\nHồ sơ tài khoản\n\nDữ liệu lấy từ Account API của người đang đăng nhập.\n\nTải lại\nThông tin cá nhân\n\nGET /api/account/me, PUT /api/account/profile\n\nĐang tải hồ sơ...\nĐổi mật khẩu\n\nPUT /api/account/change-password\n\nMật khẩu hiện tại\nMật khẩu mới\nXác nhận mật khẩu\nĐổi mật khẩu\nLịch sử đăng nhập không còn dùng dữ liệu cục bộ. Cần endpoint b"
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/training/semesters",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/training/semesters",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nTraining\nHọc kỳ\nCấu hình học kỳ\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nCấu hình học kỳ\n\nQuản lý trạng thái đóng/mở/khóa học kỳ\n\nSuperAdmin\n\nQuản lý học kỳ\n\nDanh sách học kỳ lấy từ API master-data.\n\nTải lại\n\nNguồn dữ liệu thật\n\nGET /api/master-data/academic-terms\n\nP16B.2 chỉ bật tải dữ liệu thật. Tạo, sửa, khóa học kỳ cần audit action riêng trước khi đưa vào claim full action/API.\n\nĐang tải dữ liệu từ API..."
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/training/programs",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/training/programs",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nTraining\nPrograms\nCấu trúc chương trình\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nCấu trúc chương trình\n\nQuản lý chương trình đào tạo, môn học và điều kiện tiên quyết\n\nSuperAdmin\n\nKhung chương trình đào tạo\n\nDanh sách chương trình đào tạo lấy từ API master-data.\n\nTải lại\n\nNguồn dữ liệu thật\n\nGET /api/master-data/training-programs\n\nP16B.2 loại bỏ dữ liệu cục bộ. Các thao tác clone/submit/approve môn trong khung sẽ được audit action/API ở bước riêng.\n\nĐang tải dữ liệu từ API..."
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/training/subjects",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/training/subjects",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nTraining\nSubjects\nQuản lý môn học\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nQuản lý môn học\n\nCấu hình danh mục môn học và trọng số điểm\n\nSuperAdmin\n\nDanh mục môn học\n\nDanh sách môn học lấy từ API master-data.\n\nTải lại\n\nNguồn dữ liệu thật\n\nGET /api/master-data/subjects\n\nTạo, sửa, kích hoạt môn học đã có service nhưng sẽ được kiểm action/API riêng để tránh claim quá phạm vi P16B.2.\n\nĐang tải dữ liệu từ API..."
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/training/courses",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/training/courses",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nTraining\nKhóa học\nQuản lý khóa học\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nQuản lý khóa học\n\nQuản trị nội dung, gán giảng viên và tiến độ\n\nSuperAdmin\n\nQuản lý khóa học\n\nDanh sách khóa học lấy từ API Courses.\n\nTải lại\n\nNguồn dữ liệu thật\n\nGET /api/courses\n\nCác thao tác phân công, công bố và lưu trữ sẽ được kiểm riêng theo quyền và payload thật trước khi bật trong claim full action/API.\n\nĐang tải dữ liệu từ API..."
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/training/exam-periods",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/training/exam-periods",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nTraining\nExam-periods\nMở/Đóng giai đoạn thi\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nMở/Đóng giai đoạn thi\n\nĐiều phối ca thi và công bố kết quả bài làm\n\nSuperAdmin\n\nCấu hình kỳ thi\n\nCần endpoint quản trị kỳ thi trước khi bật dữ liệu nghiệp vụ.\n\nChưa bật dữ liệu nghiệp vụ trên frontend\n\nMàn này đã được dọn khỏi dữ liệu cục bộ. Cần bổ sung endpoint backend thật trước khi đưa vào claim full action/API coverage.\n\nEndpoint cần có: Cần bổ sung API quản trị kỳ thi: danh sách, tạo, cập n"
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/operations/attendance-policy",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/operations/attendance-policy",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nOperations\nAttendance-policy\nQuỹ vắng & Chuyên cần\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nQuỹ vắng & Chuyên cần\n\nCấu hình ngưỡng vắng và duyệt mở khóa điểm danh\n\nSuperAdmin\n\nChính sách điểm danh\n\nKhông hiển thị dữ liệu cấu hình khi backend policy endpoint chưa có.\n\nChưa bật dữ liệu nghiệp vụ trên frontend\n\nMàn này đã được dọn khỏi dữ liệu cục bộ. Cần bổ sung endpoint backend thật trước khi đưa vào claim full action/API coverage.\n\nEndpoint cần có: Cần bổ sung API chính sách điểm"
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/operations/registration-periods",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/operations/registration-periods",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nOperations\nRegistration-periods\nMở/Đóng đăng ký môn\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nMở/Đóng đăng ký môn\n\nQuản lý các đợt đăng ký môn và chốt danh sách lớp\n\nSuperAdmin\n\nĐợt đăng ký học phần\n\nDanh sách đợt đăng ký lấy từ API admin registrations.\n\nTải lại\n\nNguồn dữ liệu thật\n\nGET /api/admin/registration-periods\n\nP16B.2 giữ màn ở trạng thái load API thật; thao tác mở/đóng/xóa đợt sẽ được kiểm riêng trước khi claim full action/API.\n\nĐang tải dữ liệu từ API..."
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/operations/pass-fail-rules",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/operations/pass-fail-rules",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nOperations\nPass-fail-rules\nĐiều kiện Pass/Fail\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nĐiều kiện Pass/Fail\n\nThiết lập quy tắc đạt/rớt môn dựa trên điểm và chuyên cần\n\nSuperAdmin\n\nQuy tắc đạt/rớt\n\nQuy tắc học vụ cần được lấy từ backend trước khi claim full API.\n\nChưa bật dữ liệu nghiệp vụ trên frontend\n\nMàn này đã được dọn khỏi dữ liệu cục bộ. Cần bổ sung endpoint backend thật trước khi đưa vào claim full action/API coverage.\n\nEndpoint cần có: Cần bổ sung API cấu hình pass/fail: "
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/support/tickets",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/support/tickets",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nHỗ trợ\nTicket\nTicket hỗ trợ\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nTicket hỗ trợ\n\nTiếp nhận và xử lý yêu cầu hỗ trợ kỹ thuật/học vụ\n\nSuperAdmin\n\nQuản trị ticket hỗ trợ\n\nChờ API tổng hợp ticket cấp SuperAdmin.\n\nChưa bật dữ liệu nghiệp vụ trên frontend\n\nMàn này đã được dọn khỏi dữ liệu cục bộ. Cần bổ sung endpoint backend thật trước khi đưa vào claim full action/API coverage.\n\nEndpoint cần có: Cần bổ sung API support admin: danh sách ticket, phân công, trả lời, đóng ticket.\n\nP16 "
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/support/faq",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/support/faq",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nHỗ trợ\nFaq\nQuản lý FAQ\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nQuản lý FAQ\n\nXây dựng bộ câu hỏi thường gặp trợ giúp tự động\n\nSuperAdmin\n\nQuản trị FAQ\n\nFAQ không còn dùng dữ liệu cục bộ trong P16B.2.\n\nChưa bật dữ liệu nghiệp vụ trên frontend\n\nMàn này đã được dọn khỏi dữ liệu cục bộ. Cần bổ sung endpoint backend thật trước khi đưa vào claim full action/API coverage.\n\nEndpoint cần có: Cần bổ sung API FAQ: danh sách câu hỏi, tạo, cập nhật, ẩn/hiện, sắp xếp.\n\nP16 status: NEEDS_BE_END"
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/approvals/history",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/approvals/history",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nApprovals\nLịch sử\nLịch sử duyệt đơn\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nLịch sử duyệt đơn\n\nTra cứu lộ trình xử lý đơn đã kết thúc\n\nSuperAdmin\n\nLịch sử phê duyệt\n\nCần API lịch sử phê duyệt tổng hợp trước khi bật claim.\n\nChưa bật dữ liệu nghiệp vụ trên frontend\n\nMàn này đã được dọn khỏi dữ liệu cục bộ. Cần bổ sung endpoint backend thật trước khi đưa vào claim full action/API coverage.\n\nEndpoint cần có: Cần bổ sung API approval history: danh sách, bộ lọc, chi tiết và audit ngườ"
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/evaluations/config",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/evaluations/config",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nĐánh giá\nConfig\nCấu hình đánh giá GV\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nCấu hình đánh giá GV\n\nMở đợt khảo sát và tạo câu hỏi khảo sát giảng viên\n\nSuperAdmin\n\nCấu hình đánh giá\n\nKhông dùng dữ liệu biểu mẫu cục bộ khi chưa có API cấu hình.\n\nChưa bật dữ liệu nghiệp vụ trên frontend\n\nMàn này đã được dọn khỏi dữ liệu cục bộ. Cần bổ sung endpoint backend thật trước khi đưa vào claim full action/API coverage.\n\nEndpoint cần có: Cần bổ sung API evaluation config: danh sách biểu mẫu,"
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/evaluations/results",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/evaluations/results",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nĐánh giá\nResults\nKết quả đánh giá GV\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nKết quả đánh giá GV\n\nXem báo cáo ẩn danh và phân tích cảm xúc sinh viên\n\nSuperAdmin\n\nKết quả đánh giá\n\nKết quả đánh giá cần API báo cáo thật.\n\nChưa bật dữ liệu nghiệp vụ trên frontend\n\nMàn này đã được dọn khỏi dữ liệu cục bộ. Cần bổ sung endpoint backend thật trước khi đưa vào claim full action/API coverage.\n\nEndpoint cần có: Cần bổ sung API evaluation results: tổng hợp điểm, bộ lọc kỳ học, chi tiết ngư"
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/reports/education-overview",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/reports/education-overview",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nBáo cáo\nEducation-overview\nTổng quan đào tạo\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nTổng quan đào tạo\n\nBáo cáo chất lượng đào tạo chung toàn hệ thống\n\nSuperAdmin\n\nTổng quan đào tạo\n\nBáo cáo tổng quan đào tạo cần endpoint analytics riêng.\n\nChưa bật dữ liệu nghiệp vụ trên frontend\n\nMàn này đã được dọn khỏi dữ liệu cục bộ. Cần bổ sung endpoint backend thật trước khi đưa vào claim full action/API coverage.\n\nEndpoint cần có: Cần bổ sung API education overview: KPI đào tạo, trend, ph"
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/audit/logs",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/audit/logs",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nAudit\nLogs\nAudit Log\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nAudit Log\n\nTheo dõi thay đổi các trường dữ liệu nhạy cảm\n\nSuperAdmin\n\nNhật ký hệ thống\n\nAudit log lấy trực tiếp từ backend.\n\nTải lại\n\nNguồn dữ liệu thật\n\nGET /api/audit-logs\n\nBộ lọc nâng cao và xuất file sẽ được kiểm ở P16 action coverage; P16B.2 chỉ giữ dữ liệu đọc từ audit API thật.\n\nĐang tải dữ liệu từ API..."
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/security/alerts",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/security/alerts",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nSecurity\nAlerts\nSecurity Alert\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nSecurity Alert\n\nBáo cáo đăng nhập lạ và cảnh báo nguy cơ bảo mật\n\nSuperAdmin\n\nCảnh báo bảo mật\n\nCảnh báo bảo mật không còn lấy từ dữ liệu cục bộ.\n\nChưa bật dữ liệu nghiệp vụ trên frontend\n\nMàn này đã được dọn khỏi dữ liệu cục bộ. Cần bổ sung endpoint backend thật trước khi đưa vào claim full action/API coverage.\n\nEndpoint cần có: Cần bổ sung API security alerts: danh sách cảnh báo, mức độ, trạng thái xử lý, t"
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/system/modules",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/system/modules",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nSystem\nModules\nBật/Tắt module\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nBật/Tắt module\n\nQuản lý trạng thái hoạt động của các module\n\nSuperAdmin\n\nModule hệ thống\n\nTrạng thái module hệ thống cần API vận hành thật.\n\nChưa bật dữ liệu nghiệp vụ trên frontend\n\nMàn này đã được dọn khỏi dữ liệu cục bộ. Cần bổ sung endpoint backend thật trước khi đưa vào claim full action/API coverage.\n\nEndpoint cần có: Cần bổ sung API system modules: trạng thái module, health check, bật/tắt theo quyền vận"
+      }
+    },
+    {
+      "role": "SuperAdmin",
+      "route": "/super-admin/finance/tuition-config",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/super-admin/finance/tuition-config",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nSuper-admin\nFinance\nTuition-config\nCấu hình học phí\nDark\nSA\n\nSuper Admin\n\nSuper Admin\n\nCấu hình học phí\n\nThiết lập mức thu theo kỳ, môn học hoặc ngành học\n\nTổng cấu hình\n\n0\n\nĐang hiển thị\n\n0\n\nActive trên trang\n\n0\n\nNgưng trên trang\n\n0\n\nTìm kiếm\nCơ sở\nTất cả cơ sở\nChương trình\nTất cả chương trình\nHọc kỳ\nTất cả học kỳ\nTrạng thái\nTất cả trạng thái\nĐang hoạt động\nNgưng hoạt động\nCách tính\nTất cả cách tính\nXóa lọc\nTải lại\nLọc\nTạo cấu hình\nCƠ SỞ\tCHƯƠNG TRÌNH ĐÀO TẠO\tHỌC KỲ\tNĂM CT\tHK/NĂM\tTHỨ T"
+      }
+    }
+  ]
+}
