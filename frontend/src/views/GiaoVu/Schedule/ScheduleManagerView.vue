@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import {
-  CalendarRange, Search, Plus, CheckCircle, AlertTriangle, BookOpen, X, Loader2, Pencil,
+  CalendarRange, Search, Plus, CheckCircle, AlertTriangle, BookOpen, X, Loader2, Pencil, Wand2
 } from 'lucide-vue-next'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
@@ -38,6 +38,7 @@ const filterTrangThai = ref('')
 const submitting = ref(false)
 const conflictPreview = ref([])
 const checkingConflict = ref(false)
+const generating = ref(false)
 
 // drag state
 const draggingRow = ref(null)
@@ -128,6 +129,24 @@ function viewToBe(view) {
     ngayBatDau: view.ngayBatDau,
     ngayKetThuc: view.ngayKetThuc,
     trangThai: view.trangThai || 'nhap',
+  }
+}
+
+async function generateSmartTimetable() {
+  generating.value = true
+  try {
+    // For demo purposes, we pass MaHocKy=1, MaDonVi=1 and some parameters
+    await scheduleApi.generateDraft({
+      maHocKy: 1,
+      maDonVi: 1,
+      tongTheHe: 50,
+      kichThuocQuanThe: 20
+    })
+    popupStore.success('Đã xếp lịch', 'Sinh bản nháp thành công. Chuyển sang màn Lịch chờ duyệt để xem.')
+  } catch (e) {
+    popupStore.error('Lỗi xếp lịch tự động', e.message || 'Không thể xếp lịch tự động.')
+  } finally {
+    generating.value = false
   }
 }
 
@@ -407,9 +426,16 @@ function thuLabel(thu) {
         </div>
         <p class="text-sm text-(--text-muted) mt-0.5 ml-8">Quản lý lịch học theo học kỳ · Kéo thả để điều chỉnh · Click để xem chi tiết</p>
       </div>
-      <GlassButton variant="primary" class="h-10 shrink-0" @click="openCreate()">
-        <Plus :size="15" class="mr-1" /> Tạo lịch
-      </GlassButton>
+      <div class="flex gap-2">
+        <GlassButton variant="secondary" class="h-10 shrink-0 border-(--border-default)" @click="generateSmartTimetable" :disabled="generating">
+          <Loader2 v-if="generating" :size="15" class="mr-1 animate-spin" />
+          <Wand2 v-else :size="15" class="mr-1 text-(--accent-violet)" />
+          Xếp lịch tự động
+        </GlassButton>
+        <GlassButton variant="primary" class="h-10 shrink-0" @click="openCreate()">
+          <Plus :size="15" class="mr-1" /> Tạo lịch
+        </GlassButton>
+      </div>
     </div>
 
     <!-- ── Summary pills ── -->
@@ -622,7 +648,7 @@ function thuLabel(thu) {
             </GlassButton>
             <GlassButton
               v-if="selectedRow.trangThai !== 'da_huy'"
-              variant="secondary" class="w-full h-9 justify-center text-sm !text-(--color-danger-text) border-(--border-default) hover:!bg-(--color-danger-bg)"
+              variant="secondary" class="w-full h-9 justify-center text-sm text-(--color-danger-text)! border-(--border-default) hover:bg-(--color-danger-bg)!"
               @click="cancelRow(selectedRow)"
             >
               Hủy lịch này

@@ -44,7 +44,7 @@ export const scheduleApi = {
   },
 
   checkConflictsBatch(data = {}) {
-    return apiRequest('/api/thoi-khoa-bieu/xep-lich-thong-minh/check-xung-dot-batch', {
+    return apiRequest('/api/thoi-khoa-bieu/check-xung-dot-batch', {
       method: 'POST',
       body: JSON.stringify(data),
     })
@@ -56,5 +56,27 @@ export const scheduleApi = {
 
   generateSessions(id) {
     return apiRequest(`/api/thoi-khoa-bieu/${id}/generate-sessions`, { method: 'POST' })
+  },
+
+  generateDraft(data) {
+    return apiRequest('/api/thoi-khoa-bieu/generate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  getDraft(id) {
+    return apiRequest(`/api/thoi-khoa-bieu/drafts/${id}`)
+  },
+
+  publishDraft(data) {
+    return apiRequest('/api/thoi-khoa-bieu/publish', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  deleteDraft(id) {
+    return apiRequest(`/api/thoi-khoa-bieu/drafts/${id}`, { method: 'DELETE' })
   },
 }

@@ -1,8 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import {
-  Clock, Filter, AlertCircle, Send, Eye, X
+  Clock, Filter, AlertCircle, Send, Eye, X, Loader2, CheckCircle
 } from 'lucide-vue-next'
+import { usePopupStore } from '@/stores/popup'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import { scheduleApi } from '@/services/scheduleApi'
@@ -10,8 +11,9 @@ import { scheduleApi } from '@/services/scheduleApi'
 const loading = ref(false)
 const error = ref('')
 const schedules = ref([])
-
 const selectedItem = ref(null)
+const publishing = ref(false)
+const popupStore = usePopupStore()
 
 const statusLabels = {
   pending: { label: 'Chờ duyệt', variant: 'warning' },
@@ -68,6 +70,21 @@ async function loadSchedules() {
     schedules.value = []
   } finally {
     loading.value = false
+  }
+}
+
+async function publishDraft(item) {
+  if (!item) return
+  publishing.value = true
+  try {
+    await scheduleApi.publishDraft({ draftId: item.id })
+    popupStore.success('Thành công', 'Đã phê duyệt và xuất bản thời khóa biểu.')
+    await loadSchedules()
+    selectedItem.value = null
+  } catch (e) {
+    popupStore.error('Lỗi', e.message || 'Không thể xuất bản bản nháp.')
+  } finally {
+    publishing.value = false
   }
 }
 
@@ -170,7 +187,7 @@ onMounted(loadSchedules)
               <p class="text-xs text-(--text-muted) uppercase tracking-wider font-bold mb-1">Quy trình (Timeline)</p>
               <div class="relative pl-3 border-l-2 border-(--border-default) space-y-4 text-sm mt-2">
                  <div class="relative">
-                   <div class="absolute -left-4 w-2 h-2 rounded-full bg-[var(--text-muted)] mt-1.5"></div>
+                   <div class="absolute -left-4 w-2 h-2 rounded-full bg-(--text-muted) mt-1.5"></div>
                    <p class="font-bold text-(--text-heading)">Tạo bản nháp</p>
                    <p class="text-xs text-(--text-muted)">{{ selectedItem.created }}</p>
                  </div>
@@ -188,7 +205,12 @@ onMounted(loadSchedules)
             </div>
           </div>
 
-          <div class="p-4 border-t border-(--border-default)">
+          <div class="p-4 border-t border-(--border-default) space-y-2">
+            <GlassButton variant="primary" class="w-full justify-center" :disabled="publishing" @click="publishDraft(selectedItem)">
+              <Loader2 v-if="publishing" :size="15" class="mr-1.5 animate-spin" />
+              <CheckCircle v-else :size="15" class="mr-1.5" />
+              Phê duyệt & Xuất bản
+            </GlassButton>
             <GlassButton variant="secondary" class="w-full justify-center">Chỉnh sửa nội dung</GlassButton>
           </div>
         </div>
