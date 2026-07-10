@@ -8,6 +8,7 @@ import {
 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
+import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import { workflowApi } from '@/services/workflowApi'
 import { usePopupStore } from '@/stores/popup'
 
@@ -89,8 +90,8 @@ onMounted(() => {
         </div>
 
         <div class="flex-1 overflow-y-auto p-2 space-y-1">
-           <div v-if="loading" class="flex items-center justify-center py-8 text-(--text-muted)">
-             <Loader2 class="animate-spin" :size="24" />
+           <div v-if="loading" class="p-4">
+             <ListSkeleton :rows="6" />
            </div>
            <div v-else-if="workflows.length === 0" class="p-4 text-center text-sm text-(--text-muted)">
              Không có quy trình nào.

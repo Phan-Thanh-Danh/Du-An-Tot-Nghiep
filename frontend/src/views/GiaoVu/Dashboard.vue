@@ -1,10 +1,7 @@
 <template>
   <div class="space-y-4 pb-10">
 
-    <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-3">
-      <Loader2 class="animate-spin text-muted" :size="28" />
-      <p class="text-sm text-muted">Đang tải dữ liệu...</p>
-    </div>
+    <SkeletonDashboard v-if="loading" :cards="4" :rows="3" :columns="4" />
 
     <div v-else-if="apiError" class="surface-card border border-card rounded-2xl p-6 flex flex-col items-center justify-center gap-3">
       <AlertCircle :size="32" class="text-(--color-danger-text)" />
@@ -223,8 +220,9 @@
 <script setup>
 import { 
   Layers, FileStack, Calendar, Clock, AlertCircle, 
-  ArrowUpRight, ShieldCheck, Bell, AlertTriangle, Loader2
+  ArrowUpRight, ShieldCheck, Bell, AlertTriangle
 } from 'lucide-vue-next'
+import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
 import { computed } from 'vue'
 import { useStaffDashboard } from '@/composables/useStaffDashboard'
 

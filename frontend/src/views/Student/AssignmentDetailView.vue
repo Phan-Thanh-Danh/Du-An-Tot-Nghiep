@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import * as L from 'lucide-vue-next'
+import FormSkeleton from '@/components/common/skeleton/FormSkeleton.vue'
 import { studentApi } from '@/services/studentApi.js'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
@@ -156,8 +157,8 @@ const statusBadgeVariant = (s) => ({
 <template>
   <div class="lg-page-enter space-y-4 pb-6">
 
-    <div v-if="loading" class="flex justify-center p-12">
-      <div class="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div>
+    <div v-if="loading" class="p-4">
+      <FormSkeleton :fields="8" />
     </div>
     <div v-else-if="loadError" class="rounded-lg border border-card px-4 py-6 text-center text-sm font-semibold" style="background:var(--color-danger-bg);color:var(--color-danger-text)">
       {{ loadError }}

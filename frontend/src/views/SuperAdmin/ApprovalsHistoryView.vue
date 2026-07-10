@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { AlertCircle, FileCheck2, Loader2, RefreshCw } from 'lucide-vue-next'
 import { applicationsApi } from '@/services/applicationsApi'
+import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 
 const loading = ref(false)
 const error = ref('')
@@ -62,10 +63,7 @@ onMounted(loadData)
         </div>
       </div>
 
-      <div v-else-if="loading && applications.length === 0" class="mt-8 flex flex-col items-center justify-center py-10">
-        <Loader2 class="h-8 w-8 animate-spin text-muted" />
-        <p class="mt-4 text-sm font-medium text-muted">Đang tải lịch sử phê duyệt...</p>
-      </div>
+      <SkeletonTable v-else-if="loading && applications.length === 0" :rows="5" :columns="4" class="mt-8" />
 
       <div v-else-if="applications.length === 0" class="mt-8 flex flex-col items-center justify-center py-10 border border-dashed border-card rounded-xl">
         <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">

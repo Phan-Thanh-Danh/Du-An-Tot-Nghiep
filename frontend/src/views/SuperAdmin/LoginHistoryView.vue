@@ -20,6 +20,7 @@ import {
   ShieldCheck
 } from 'lucide-vue-next'
 import { usePopupStore } from '@/stores/popup'
+import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import { apiRequest } from '@/services/apiClient'
 
 
@@ -174,9 +175,8 @@ onMounted(() => { loadLogins() })
 </script>
 
 <template>
-  <div v-if="loading" class="glass-panel rounded-2xl p-12 flex flex-col items-center justify-center mb-6">
-    <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mb-4"></div>
-    <p class="text-label text-sm">Đang tải lịch sử đăng nhập...</p>
+  <div v-if="loading" class="p-4">
+    <SkeletonTable :rows="6" :columns="5" />
   </div>
   <div v-else-if="error" class="glass-panel rounded-2xl p-12 flex flex-col items-center justify-center mb-6">
     <AlertCircle :size="40" class="text-rose-400 mb-3" />

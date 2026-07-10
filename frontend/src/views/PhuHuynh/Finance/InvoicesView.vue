@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   CheckCircle2
 } from 'lucide-vue-next'
+import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import { parentApi } from '@/services/parentApi'
 import { usePopupStore } from '@/stores/popup'
 
@@ -160,9 +161,8 @@ function goBack() {
     </div>
 
     <!-- ── LOADING ── -->
-    <div v-if="loading" class="lg-card-glass p-8 text-center print:hidden">
-      <div class="animate-spin h-8 w-8 border-2 border-orange-600 border-t-transparent rounded-full mx-auto mb-3"></div>
-      <p class="text-xs text-muted font-semibold">Đang tải dữ liệu hóa đơn...</p>
+    <div v-if="loading" class="p-4">
+      <SkeletonTable :rows="5" :columns="4" />
     </div>
 
     <!-- ── ERROR ── -->

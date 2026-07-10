@@ -53,9 +53,11 @@ onMounted(loadData)
         </div>
       </div>
 
-      <div v-else-if="loading && !stats" class="mt-8 flex flex-col items-center justify-center py-10">
-        <Loader2 class="h-8 w-8 animate-spin text-muted" />
-        <p class="mt-4 text-sm font-medium text-muted">Đang tải báo cáo đào tạo...</p>
+      <div v-else-if="loading && !stats" class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div v-for="n in 4" :key="n" class="rounded-xl border border-card bg-slate-50 dark:bg-slate-800/50 p-4">
+          <div class="h-3 w-20 skeleton-shimmer rounded mb-3"></div>
+          <div class="h-6 w-16 skeleton-shimmer rounded"></div>
+        </div>
       </div>
 
       <div v-else-if="!stats" class="mt-8 flex flex-col items-center justify-center py-10 border border-dashed border-card rounded-xl">

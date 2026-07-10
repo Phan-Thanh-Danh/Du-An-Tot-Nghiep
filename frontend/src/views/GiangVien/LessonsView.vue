@@ -17,6 +17,7 @@ import {
   Trash2,
   Upload,
 } from 'lucide-vue-next'
+import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
@@ -137,9 +138,8 @@ function getStatusVariant(status) {
 </script>
 
 <template>
-  <div v-if="loading" class="flex items-center justify-center min-h-[300px]">
-    <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-    <span class="ml-3 text-muted text-sm">Đang tải bài học...</span>
+  <div v-if="loading" class="p-4">
+    <ListSkeleton :rows="6" />
   </div>
   <div v-else-if="error" class="flex flex-col items-center justify-center min-h-[300px] gap-4">
     <AlertCircle :size="40" class="text-rose-400" />

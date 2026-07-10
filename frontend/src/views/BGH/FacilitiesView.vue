@@ -1,11 +1,7 @@
 <template>
   <div class="space-y-4 pb-10">
-    <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center py-20">
-      <div class="flex flex-col items-center gap-3 text-muted">
-        <Loader2 :size="32" class="animate-spin" />
-        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
-      </div>
+    <div v-if="loading" class="p-4">
+      <SkeletonTable :rows="6" :columns="4" />
     </div>
     <!-- Error State -->
     <div v-else-if="error" class="flex items-center justify-center py-20">
@@ -97,7 +93,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Building2, MapPin, Monitor, Users, Wifi, Coffee, Dumbbell, Car, ChevronDown, ChevronRight, Search, Eye, Layers, AlertCircle, Loader2 } from 'lucide-vue-next'
+import { Building2, MapPin, Monitor, Users, Wifi, Coffee, Dumbbell, Car, ChevronDown, ChevronRight, Search, Eye, Layers, AlertCircle } from 'lucide-vue-next'
+import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import { usePopupStore } from '@/stores/popup'
 import { apiRequest, unwrapApiData } from '@/services/apiClient'
 import { bghApi } from '@/services/bghApi'

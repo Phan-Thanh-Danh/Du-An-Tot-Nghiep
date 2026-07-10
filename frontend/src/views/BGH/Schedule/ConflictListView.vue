@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { AlertTriangle, AlertCircle, CheckCircle2, Filter, Building2, CalendarDays, User, Search, ChevronDown, Loader2, X } from 'lucide-vue-next'
+import { AlertTriangle, AlertCircle, CheckCircle2, Filter, Building2, CalendarDays, User, Search, ChevronDown, X } from 'lucide-vue-next'
+import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
@@ -80,12 +81,8 @@ onMounted(() => { loadData() })
       </div>
     </template>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center py-20">
-      <div class="flex flex-col items-center gap-3 text-muted">
-        <Loader2 :size="32" class="animate-spin" />
-        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
-      </div>
+    <div v-if="loading" class="p-4">
+      <SkeletonTable :rows="6" :columns="5" />
     </div>
     <!-- Error State -->
     <div v-else-if="error" class="flex items-center justify-center py-20">

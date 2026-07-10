@@ -17,6 +17,7 @@ import {
   Sparkles,
   Trophy,
 } from 'lucide-vue-next'
+import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import { studentApi } from '@/services/studentApi'
 
 const viewMode = ref('card')
@@ -122,9 +123,8 @@ const isOldVersion = computed(() => false)
 </script>
 
 <template>
-  <div v-if="isLoading" class="loading-state">
-    <RefreshCcw class="mx-auto mb-4 animate-spin" :size="32" />
-    <p>Đang tải dữ liệu khung chương trình...</p>
+  <div v-if="isLoading" class="p-4">
+    <ListSkeleton :rows="8" />
   </div>
   <section v-else-if="errorMessage" class="empty-state">
     <GraduationCap :size="34" />

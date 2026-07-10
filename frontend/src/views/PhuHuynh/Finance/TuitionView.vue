@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   DollarSign
 } from 'lucide-vue-next'
+import SkeletonCard from '@/components/common/skeleton/SkeletonCard.vue'
 import { parentApi } from '@/services/parentApi'
 
 const route = useRoute()
@@ -173,9 +174,8 @@ function goBack() {
     </div>
 
     <!-- ── LOADING ── -->
-    <div v-if="loading" class="lg-card-glass p-8 text-center">
-      <div class="animate-spin h-8 w-8 border-2 border-orange-600 border-t-transparent rounded-full mx-auto mb-3"></div>
-      <p class="text-xs text-muted font-semibold">Đang tải dữ liệu học phí...</p>
+    <div v-if="loading" class="grid grid-cols-1 gap-4">
+      <SkeletonCard v-for="n in 3" :key="n" />
     </div>
 
     <!-- ── ERROR ── -->

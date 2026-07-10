@@ -10,6 +10,7 @@ import {
   CheckCircle,
   HelpCircle
 } from 'lucide-vue-next'
+import FormSkeleton from '@/components/common/skeleton/FormSkeleton.vue'
 import { parentApi } from '@/services/parentApi'
 import { usePopupStore } from '@/stores/popup'
 
@@ -186,9 +187,8 @@ function goBack() {
     </div>
 
     <!-- ── LOADING ── -->
-    <div v-if="loading" class="lg-card-glass p-8 text-center">
-      <div class="animate-spin h-8 w-8 border-2 border-orange-600 border-t-transparent rounded-full mx-auto mb-3"></div>
-      <p class="text-xs text-muted font-semibold">Đang tải dữ liệu...</p>
+    <div v-if="loading" class="p-4">
+      <FormSkeleton :fields="6" />
     </div>
 
     <!-- ── ERROR ── -->

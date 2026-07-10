@@ -8,6 +8,7 @@ import {
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { staffApi } from '@/services/staffApi'
 import { usePopup } from '@/composables/usePopup'
+import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 
 const router = useRouter()
 const popup = usePopup()
@@ -123,9 +124,7 @@ onMounted(loadNotifications)
       </div>
 
       <!-- List -->
-      <div v-if="loading" class="flex items-center justify-center py-20">
-        <div class="h-10 w-10 animate-spin rounded-full border-4 border-default border-t-(--lg-primary)" />
-      </div>
+      <ListSkeleton v-if="loading" :rows="6" />
 
       <div v-else-if="paginatedNotifications.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
         <div class="h-16 w-16 rounded-2xl surface-solid flex items-center justify-center mb-4">

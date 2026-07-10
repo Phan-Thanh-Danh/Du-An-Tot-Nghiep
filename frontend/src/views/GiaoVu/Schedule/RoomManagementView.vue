@@ -21,6 +21,7 @@ import {
   Lightbulb,
   DoorOpen
 } from 'lucide-vue-next'
+import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { roomApi } from '@/services/roomApi'
 import { buildingApi } from '@/services/buildingApi'
@@ -562,9 +563,8 @@ function applyFilterAndReload() {
       </div>
 
       <!-- ── Loading / Error / Result ─────────────────────────── -->
-      <div v-if="loading" class="flex items-center justify-center py-16">
-        <div class="h-8 w-8 border-2 border-(--lg-primary) border-t-transparent rounded-full animate-spin"></div>
-        <span class="ml-3 text-sm text-label">Đang tải...</span>
+      <div v-if="loading" class="p-4">
+        <SkeletonTable :rows="6" :columns="5" />
       </div>
 
       <div v-else-if="error" class="lg-glass-strong p-6 rounded-2xl text-center">

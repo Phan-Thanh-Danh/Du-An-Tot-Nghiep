@@ -1,7 +1,7 @@
 ﻿<template>
   <div class="space-y-6 pb-10">
-    <div v-if="loading" class="flex items-center justify-center py-20">
-      <Loader2 :size="32" class="animate-spin text-placeholder" />
+    <div v-if="loading" class="p-4">
+      <SkeletonTable :rows="6" :columns="2" />
     </div>
     <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">
       <AlertCircle :size="48" class="text-(--color-danger-text) mb-4" />
@@ -145,8 +145,9 @@
 import { computed, ref, reactive, onMounted } from 'vue'
 import {
   Edit2, ShieldCheck, CheckCircle2, Eye, EyeOff,
-  Monitor, AlertCircle, Loader2
+  Monitor, AlertCircle
 } from 'lucide-vue-next'
+import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import { usePopupStore } from '@/stores/popup'
 import { useAuthStore } from '@/stores/auth'
 import { apiRequest, unwrapApiData } from '@/services/apiClient'
