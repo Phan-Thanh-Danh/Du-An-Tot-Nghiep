@@ -283,11 +283,11 @@ Ghi chú: `CaHoc` là danh mục ca học cố định dùng bởi `ThoiKhoaBieu
 | PUT | `/api/thoi-khoa-bieu/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Cập nhật thời khóa biểu chưa bị hủy; không cho duplicate `MaKhoaHoc + ThuTrongTuan + MaCaHoc` với bản ghi chưa `da_huy`. |
 | PATCH | `/api/thoi-khoa-bieu/{id}/cancel` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Hủy thời khóa biểu bằng `TrangThai = da_huy`, không xóa vật lý. |
 | POST | `/api/thoi-khoa-bieu/{id}/generate-sessions` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Sinh `BuoiHoc` từ thời khóa biểu đã `da_xuat_ban`; chỉ tạo các ngày trùng `ThuTrongTuan`, bỏ qua buổi đã tồn tại theo `MaTkb + NgayHoc`. |
-| POST | `/api/thoi-khoa-bieu/xep-lich-thong-minh` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Sinh lịch thông minh batch: xếp tự động các khóa học trong `MaHocKy + MaDonVi` vào các slot trống. Trả về bản nháp (`ScheduleGenerationJob`) với danh sách `ScheduleDraftItem`. Hỗ trợ lọc theo `MaKhoaHocFilter` và tham số genetic (`TongTheHe`, `TyLeCheo`). |
-| GET | `/api/thoi-khoa-bieu/drafts/{draftId}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Lấy chi tiết bản nháp xếp lịch thông minh theo `DraftId`. |
-| GET | `/api/thoi-khoa-bieu/drafts` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Danh sách bản nháp xếp lịch thông minh theo `MaDonVi + MaHocKy`. |
-| POST | `/api/thoi-khoa-bieu/xep-lich-thong-minh/publish` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Xuất bản bản nháp: tạo `ThoiKhoaBieu` và `BuoiHoc` trong transaction; rollback nếu có xung đột. |
-| POST | `/api/thoi-khoa-bieu/xep-lich-thong-minh/check-xung-dot-batch` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Kiểm tra xung đột batch cho danh sách đề xuất `MaKhoaHoc + ThuTrongTuan + MaCaHoc + MaPhong` trong `MaHocKy + MaDonVi`. |
+| POST | `/api/thoi-khoa-bieu/generate` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Sinh lịch thông minh batch: xếp tự động các khóa học trong `MaHocKy + MaDonVi` vào các slot trống. Trả về bản nháp (`ScheduleGenerationJob`) với danh sách `ScheduleDraftItem`. Hỗ trợ lọc theo `MaKhoaHocFilter` và tham số genetic (`TongTheHe`, `TyLeCheo`). |
+| GET | `/api/thoi-khoa-bieu/drafts` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Lấy danh sách các bản nháp chưa publish. |
+| GET | `/api/thoi-khoa-bieu/drafts/{draftId}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Xem chi tiết bản nháp. |
+| POST | `/api/thoi-khoa-bieu/publish` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Xuất bản bản nháp: tạo `ThoiKhoaBieu` và `BuoiHoc` trong transaction; rollback nếu có xung đột. |
+| POST | `/api/thoi-khoa-bieu/check-xung-dot-batch` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Kiểm tra xung đột batch cho danh sách đề xuất `MaKhoaHoc + ThuTrongTuan + MaCaHoc + MaPhong` trong `MaHocKy + MaDonVi`. |
 | DELETE | `/api/thoi-khoa-bieu/drafts/{draftId}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Xóa bản nháp xếp lịch thông minh. |
 
 Ghi chú: P0-3 kiểm tra xung đột lịch ở mức `MaHocKy + ThuTrongTuan + MaCaHoc`, bỏ qua bản ghi `da_huy` và bỏ qua chính bản ghi hiện tại khi update bằng `excludeMaTkb`. P0-4 sinh `BuoiHoc` từ TKB đã xuất bản nhưng chưa làm điểm danh, đổi lịch, dạy thay, đổi phòng, đổi ca hoặc frontend. Unique index `UQ_ThoiKhoaBieu_KhoaHoc_Thu_Ca` chỉ áp dụng cho bản ghi có `TrangThai <> N'da_huy'`, nên có thể tạo lại lịch cùng khóa học/thứ/ca sau khi bản ghi cũ đã hủy. P12 (Smart Timetable Engine) thêm OccupationMap, draft persistence, atomic publish với re-validation.
@@ -428,7 +428,7 @@ RD6 dùng storage cấu hình `CertificateStorage__Provider=Local`, `Certificate
 | DELETE | `/api/admin/certificate-templates/{id}` | SuperAdmin | Vô hiệu hóa mẫu bằng `conHoatDong = false`, không hard delete kể cả khi đã được gắn với đợt/khen thưởng. |
 | POST | `/api/admin/certificate-templates/{id}/preview` | SuperAdmin | Trả payload preview an toàn từ dữ liệu mẫu hoặc `maKhenThuong`; không ghi DB, không sinh PDF. |
 
-`cauHinhJson` RD5/RD6 phải là object có `fields` array 1..50. Field chỉ nhận các key whitelist: `hoTen`, `mssv`, `tenHocKy`, `danhHieu`, `xepHang`, `diemXet`, `ngayCap`; mỗi field bắt buộc `key`, `x`, `y`, `fontSize`, `align`, `color`, `bold`. Backend không nhận HTML/CSS/script tùy ý và chặn `FileNenUrl` dạng base64. RD5 chưa upload file nền qua object storage riêng; `fileNenUrl` là URL/path an toàn đã có sẵn. RD6 sinh PDF batch từ cấu hình này và cập nhật `UrlPdfBangKhen`.
+`cauHinhJson` RD5/RD6 phải là object có `fields` array 1..50. Field chỉ nhận các key whitelist: `hoTen`, `mssv`, `tenHocKy`, `danhHieu`, `xepHang`, `diemXet`, `ngayCap`; mỗi field bắt buộc `key`, `x`, `y`, `fontSize`, `align`, `color`, `bold`. Backend không nhận HTML/CSS/script tùy ý và chặn `FileNenUrl` dạng base64. RD6 sinh PDF batch từ cấu hình này và cập nhật `UrlPdfBangKhen`.
 
 Ví dụ tạo mẫu bằng khen:
 
@@ -1005,9 +1005,9 @@ Get list of discipline records with filters.
 - maHocSinh (int?)
 - mucDoKyLuat (string?)
 - hinhThucXuLy (string?)
-- 	rangThai (string?)
+- trangThai (string?)
 - keyword (string?)
-- 	uNgay (date?)
+- tuNgay (date?)
 - denNgay (date?)
 - pageIndex (int, default 1)
 - pageSize (int, default 20)
