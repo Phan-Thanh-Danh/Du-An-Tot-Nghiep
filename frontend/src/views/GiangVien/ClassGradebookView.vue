@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import {
   ArrowUpDown,
   Award,
@@ -17,30 +17,36 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import { teacherApi } from '@/services/teacherApi'
 
-const gradebook = ref([
-  { id: 'SV16001', name: 'Nguyễn Văn A', gpa: 8.2, status: 'Pass', credits: 3 },
-  { id: 'SV16002', name: 'Trần Thị B', gpa: 7.5, status: 'Pass', credits: 3 },
-  { id: 'SV16003', name: 'Lê Hoàng C', gpa: 9.0, status: 'Pass', credits: 3 },
-  { id: 'SV16004', name: 'Phạm Minh D', gpa: 4.2, status: 'Fail', credits: 3 },
-  { id: 'SV16005', name: 'Hoàng Văn E', gpa: 6.8, status: 'Pass', credits: 3 },
-])
+const classId = 1 // Hardcoded for demo/smoke
+const gradebook = ref([])
+const loading = ref(false)
 
-const avgGPA = 7.14
-const passRate = 80
+const avgGPA = computed(() => {
+  if (!gradebook.value.length) return 0
+  const sum = gradebook.value.reduce((acc, sv) => acc + Number(sv.total || 0), 0)
+  return (sum / gradebook.value.length).toFixed(2)
+})
+const passRate = computed(() => {
+  if (!gradebook.value.length) return 0
+  const passed = gradebook.value.filter((sv) => sv.status === 'Pass').length
+  return Math.round((passed / gradebook.value.length) * 100)
+})
 
 const summaryStats = computed(() => {
   const passed = gradebook.value.filter((student) => student.status === 'Pass').length
   const failed = gradebook.value.filter((student) => student.status === 'Fail').length
-  const totalCredits = gradebook.value.reduce((sum, student) => sum + student.credits, 0)
+  // Assuming 3 credits for the course for demo
+  const totalCredits = gradebook.value.length * 3
 
   return [
     { label: 'Sinh viên', value: gradebook.value.length, tone: 'primary' },
-    { label: 'GPA TB', value: avgGPA, tone: 'neutral' },
+    { label: 'GPA TB', value: avgGPA.value, tone: 'neutral' },
     { label: 'Đạt', value: passed, tone: 'success' },
     { label: 'Rớt', value: failed, tone: 'danger' },
     { label: 'Tín chỉ', value: totalCredits, tone: 'info' },
-    { label: 'Hoàn thành', value: `${passRate}%`, tone: 'success' },
+    { label: 'Hoàn thành', value: `${passRate.value}%`, tone: 'success' },
   ]
 })
 
@@ -51,6 +57,27 @@ function statusVariant(status) {
 function statusLabel(status) {
   return status === 'Pass' ? 'Đạt' : 'Rớt'
 }
+
+async function loadGrades() {
+  loading.value = true
+  try {
+    const res = await teacherApi.getTeacherClassGrades(classId)
+    const items = res?.data || res?.Data || res || []
+    gradebook.value = (Array.isArray(items) ? items : []).map(sv => ({
+      id: sv.id,
+      name: sv.name,
+      gpa: Number(sv.total || 0).toFixed(1),
+      status: Number(sv.total || 0) >= 5 ? 'Pass' : 'Fail',
+      credits: 3 // fixed for demo
+    }))
+  } catch (error) {
+    console.error("Lỗi khi tải bảng điểm:", error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadGrades)
 </script>
 
 <template>

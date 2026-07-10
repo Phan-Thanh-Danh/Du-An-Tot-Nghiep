@@ -1097,6 +1097,23 @@ public class ExamService : IExamService
         return MapToPhienThiDto(phienThi);
     }
 
+    public async Task<object> GetStudentExamResultAsync(int maPhienThi, int maHocSinh, CancellationToken ct)
+    {
+        var phienThi = await _db.PhienThiHocSinhs
+            .Include(p => p.CaThi).ThenInclude(c => c.LichThiTong).ThenInclude(l => l.MonHoc)
+            .FirstOrDefaultAsync(p => p.MaPhienThi == maPhienThi && p.MaHocSinh == maHocSinh, ct)
+            ?? throw new ApiException(404, "Không tìm thấy kết quả thi.");
+
+        return new
+        {
+            SessionId = phienThi.MaPhienThi,
+            SubjectName = phienThi.CaThi?.LichThiTong?.MonHoc?.TenMonHoc ?? "Unknown",
+            Score = phienThi.DiemCuoiCung ?? phienThi.DiemTuDong,
+            Status = phienThi.TrangThaiLuong,
+            SubmittedAt = phienThi.NopLuc
+        };
+    }
+
     // ===== Grading =====
 
     public async Task FinalizeAutoGradeAsync(int maCaThi, CancellationToken ct)

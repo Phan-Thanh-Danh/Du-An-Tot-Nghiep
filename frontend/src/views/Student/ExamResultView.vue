@@ -1,38 +1,70 @@
 <script setup>
+import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import StudentModulePage from '@/components/SinhVien/StudentModulePage.vue'
+import { examApi } from '@/services/examApi'
 
 const route = useRoute()
-const examResultId = String(route.params.examResultId || 'exam')
+const examResultId = String(route.params.examResultId || '1')
 
-const metrics = [
-  { label: 'Điểm', value: '9.0', unit: '/10', icon: 'Award', tone: 'green', progress: 90, hint: 'Dữ liệu FE demo' },
-  { label: 'Đúng', value: '18', unit: '/20', icon: 'CheckCircle2', tone: 'teal', progress: 90, hint: 'Câu trả lời đúng' },
-  { label: 'Thời gian', value: '42', unit: 'phút', icon: 'Timer', tone: 'blue', progress: 70, hint: 'Trong giới hạn' },
-  { label: 'Vi phạm', value: '0', unit: 'lỗi', icon: 'ShieldCheck', tone: 'green', progress: 100, hint: 'Không có trong demo' },
-]
+const resultData = ref(null)
+const loading = ref(true)
+const error = ref('')
 
-const rows = [
-  { title: 'Tổng quan phiên thi', description: 'Kết quả mô phỏng cho phiên kiểm tra, chưa đọc từ backend.', badge: 'FE demo', tone: 'blue', icon: 'FileCheck2', meta: [examResultId, 'Đã nộp', 'Không vi phạm'], value: '9.0', valueHint: 'Điểm' },
-  { title: 'Phân tích câu trả lời', description: 'Khu vực này sẽ dùng table/detail solid khi có câu trả lời JSON.', badge: 'Dự kiến', tone: 'teal', icon: 'ListChecks', meta: ['18 đúng', '2 sai', '0 bỏ trống'], value: '90%', valueHint: 'Độ chính xác' },
-  { title: 'Nhật ký phiên thi', description: 'Cần API exam-session để hiển thị log thật.', badge: 'Cần bổ sung', tone: 'amber', icon: 'ScrollText', meta: ['StartedAt', 'SubmittedAt', 'ViolationLog'], value: 'API', valueHint: 'session' },
-]
+const metrics = ref([])
+const rows = ref([])
+const timeline = ref([])
 
-const timeline = [
-  { title: 'Bắt đầu phiên thi', description: 'Dữ liệu phiên làm bài là mô phỏng frontend.', time: '08:00', tone: 'blue' },
-  { title: 'Nộp bài', description: 'Submit thật cần endpoint exam-sessions.', time: '08:42', tone: 'green' },
-  { title: 'Công bố kết quả', description: 'Kết quả chỉ là UI demo khi chưa có controller exams.', time: 'dự kiến', tone: 'amber' },
-]
+onMounted(async () => {
+  try {
+    const res = await examApi.getStudentExamResult(examResultId)
+    const data = res?.data || res?.Data || res
+
+    resultData.value = data
+
+    metrics.value = [
+      { label: 'Điểm', value: data.score || '0', unit: '/10', icon: 'Award', tone: 'green', progress: (data.score || 0) * 10, hint: 'Điểm tổng kết' },
+      { label: 'Trạng thái', value: data.status || 'Hoàn thành', unit: '', icon: 'CheckCircle2', tone: 'teal', progress: 100, hint: 'Trạng thái phiên thi' }
+    ]
+
+    rows.value = [
+      { 
+        title: 'Tổng quan môn học', 
+        description: `Môn: ${data.subjectName || 'N/A'}`, 
+        badge: 'Đã cập nhật', 
+        tone: 'blue', 
+        icon: 'FileCheck2', 
+        meta: [examResultId, data.status, new Date(data.submittedAt).toLocaleString('vi-VN')], 
+        value: data.score, 
+        valueHint: 'Điểm' 
+      }
+    ]
+
+    timeline.value = [
+      { title: 'Nộp bài', description: 'Đã nộp bài và có điểm lưu trên hệ thống', time: new Date(data.submittedAt).toLocaleTimeString('vi-VN'), tone: 'green' }
+    ]
+  } catch (err) {
+    error.value = err.message || 'Lỗi lấy kết quả thi'
+    // fallback empty state
+    metrics.value = [
+      { label: 'Lỗi', value: '-', unit: '', icon: 'AlertCircle', tone: 'red', progress: 0, hint: 'Không thể tải điểm' }
+    ]
+    rows.value = []
+    timeline.value = []
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <template>
   <StudentModulePage
     icon="FileCheck2"
     eyebrow="Đánh giá"
-    :title="`Kết quả kiểm tra ${examResultId}`"
-    subtitle="Trang kết quả thi là UI dự kiến, chưa gọi API exam-session."
-    primary-title="Tổng quan kết quả"
-    primary-description="Bố cục kết quả dùng solid surface để điểm, câu trả lời và log luôn rõ ràng."
+    :title="`Kết quả thi ${examResultId}`"
+    subtitle="Đã nối API lấy kết quả điểm tự luận / trắc nghiệm."
+    primary-title="Chi tiết kết quả"
+    primary-description="Xem chi tiết điểm và nhật ký thi."
     timeline-title="Phiên thi"
     :metrics="metrics"
     :rows="rows"

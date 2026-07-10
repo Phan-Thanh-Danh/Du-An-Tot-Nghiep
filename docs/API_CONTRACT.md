@@ -742,7 +742,10 @@ Ghi chú P0-6/P0-7/P0-9: Nguồn sinh viên MVP lấy từ `BuoiHoc -> KhoaHoc.M
 
 ### Đã có
 
-Chưa thấy controller grades trong repo hiện tại.
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/teacher/classes/{classId}/grades` | Teacher | Lấy bảng điểm của lớp học. |
+| PUT | `/api/teacher/classes/{classId}/grades/{studentId}` | Teacher | Cập nhật điểm thành phần (assignment, exam) của học sinh. |
 
 ### Dự kiến/cần bổ sung
 

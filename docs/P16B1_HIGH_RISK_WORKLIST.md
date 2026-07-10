@@ -317,7 +317,7 @@ Decision: `PASS_WITH_WARNINGS` for P16B.4A. `FE_ONLY_STATIC` = 0 in connected ro
 - `ExamPeriodsView` → `ExamController` has full `ky-thi` CRUD. Repoint.
 - `ApprovalsHistoryView` → `applicationsApi` with status filter already covers history. Repoint.
 - `EvaluationsResultsView` and `EducationOverviewView` → BGH controllers have real data; add SuperAdmin to roles.
-- Teacher gradebook + grade input + student exam result = 3 `IMPLEMENT_NOW` (core demo features, small scope).
+- Teacher gradebook + grade input + student exam result = 3 `IMPLEMENT_NOW` (implemented in P16B.4C).
 - Finance routes (student-debts, payments, refunds) → `HIDE_FROM_DEMO_AND_CLAIM`; demo covered by Parent finance role.
 - FAQ → `REMOVE_ROUTE` (no entity, no controller, no data anywhere).
 - Placeholder schedule routes → `REMOVE_ROUTE` (Staff already owns schedule).

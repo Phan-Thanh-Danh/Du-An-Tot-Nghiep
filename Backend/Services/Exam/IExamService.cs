@@ -63,6 +63,7 @@ public interface IExamService
     Task<IReadOnlyList<QuizAttemptQuestionDto>> GetExamQuestionsAsync(int maPhienThi, int maHocSinh, CancellationToken ct);
     Task AutoSaveAnswerAsync(AutoSaveAnswerRequest request, int maHocSinh, CancellationToken ct);
     Task<PhienThiDto> SubmitExamAsync(SubmitExamRequest request, int maHocSinh, CancellationToken ct);
+    Task<object> GetStudentExamResultAsync(int maPhienThi, int maHocSinh, CancellationToken ct);
 
     // Grading
     Task FinalizeAutoGradeAsync(int maCaThi, CancellationToken ct);

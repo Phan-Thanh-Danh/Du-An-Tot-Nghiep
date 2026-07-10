@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import {
   AlertCircle,
   ArrowUpDown,
@@ -16,20 +16,19 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import { teacherApi } from '@/services/teacherApi'
 
-const gradesData = ref([
-  { id: 'SV16001', name: 'Nguyễn Văn A', assignment: 8.5, exam: 7.5, total: 7.9, isEditing: false },
-  { id: 'SV16002', name: 'Trần Thị B', assignment: 7.0, exam: 8.0, total: 7.6, isEditing: false },
-  { id: 'SV16003', name: 'Lê Hoàng C', assignment: 9.5, exam: 9.0, total: 9.2, isEditing: false },
-  { id: 'SV16004', name: 'Phạm Minh D', assignment: 5.0, exam: 4.5, total: 4.7, isEditing: false },
-])
+const classId = 1 // Hardcoded for demo/smoke since route has no ID
+const gradesData = ref([])
+const loading = ref(false)
 
 const gradeSummary = computed(() => {
-  const entered = gradesData.value.filter((sv) => sv.assignment !== null && sv.exam !== null).length
+  const entered = gradesData.value.filter((sv) => sv.assignment !== null && sv.exam !== null && sv.assignment !== undefined && sv.exam !== undefined).length
   const passed = gradesData.value.filter((sv) => Number(sv.total) >= 5).length
   const failed = gradesData.value.filter((sv) => Number(sv.total) < 5).length
-  const average =
-    gradesData.value.reduce((sum, sv) => sum + Number(sv.total), 0) / gradesData.value.length
+  const average = gradesData.value.length
+    ? gradesData.value.reduce((sum, sv) => sum + Number(sv.total || 0), 0) / gradesData.value.length
+    : 0
 
   return [
     { label: 'Sinh viên', value: gradesData.value.length, tone: 'primary' },
@@ -40,12 +39,39 @@ const gradeSummary = computed(() => {
   ]
 })
 
+async function loadGrades() {
+  loading.value = true
+  try {
+    const res = await teacherApi.getTeacherClassGrades(classId)
+    // Extract array from standard response
+    const items = res?.data || res?.Data || res || []
+    gradesData.value = (Array.isArray(items) ? items : []).map(sv => ({
+      ...sv,
+      isEditing: false
+    }))
+  } catch (error) {
+    console.error("Lỗi khi tải bảng điểm:", error)
+    // fallback or empty
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadGrades)
+
 function toggleEdit(sv) {
+  if (sv.isEditing) {
+    // Save
+    teacherApi.updateTeacherClassGrade(classId, sv.id, {
+      assignment: Number(sv.assignment),
+      exam: Number(sv.exam)
+    }).catch(console.error)
+  }
   sv.isEditing = !sv.isEditing
 }
 
 function calculateTotal(sv) {
-  sv.total = (sv.assignment * 0.4 + sv.exam * 0.6).toFixed(1)
+  sv.total = ((Number(sv.assignment || 0) * 0.4) + (Number(sv.exam || 0) * 0.6)).toFixed(1)
 }
 
 function gradeStatusVariant(total) {

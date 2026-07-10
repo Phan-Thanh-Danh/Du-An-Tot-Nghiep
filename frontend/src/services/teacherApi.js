@@ -238,6 +238,17 @@ export const teacherApi = {
     return apiRequest(`/api/teacher/classes/${classId}/progress`)
   },
 
+  getTeacherClassGrades(classId) {
+    return apiRequest(`/api/teacher/classes/${classId}/grades`)
+  },
+
+  updateTeacherClassGrade(classId, studentId, gradeData) {
+    return apiRequest(`/api/teacher/classes/${classId}/grades/${studentId}`, {
+      method: 'PUT',
+      body: JSON.stringify(gradeData),
+    })
+  },
+
   // ── Teacher Communications ──
 
   getStudentQuestions(params = {}) {

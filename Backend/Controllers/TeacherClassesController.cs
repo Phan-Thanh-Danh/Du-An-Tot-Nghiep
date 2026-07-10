@@ -238,4 +238,109 @@ public class TeacherClassesController : ControllerBase
             return StatusCode(500, ApiResponseDto.Fail("Lỗi khi tải tiến độ lớp: " + ex.Message));
         }
     }
+
+    [HttpGet("classes/{id}/grades")]
+    public async Task<ActionResult<ApiResponseDto<object>>> GetClassGrades(int id)
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            var userId = currentUser!.UserId;
+
+            var khoahoc = await _context.KhoaHocs
+                .FirstOrDefaultAsync(k => k.MaLop == id && k.MaGiaoVien == userId);
+            if (khoahoc == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy môn học bạn dạy trong lớp này."));
+
+            var monHocId = khoahoc.MaMonHoc;
+            var hocKyId = khoahoc.MaHocKy;
+
+            var students = await _context.NguoiDungs
+                .Where(n => n.MaLop == id)
+                .Select(n => new
+                {
+                    StudentId = n.MaNguoiDung,
+                    StudentName = n.HoTen,
+                    Diem = _context.DiemSos.FirstOrDefault(d => d.MaHocSinh == n.MaNguoiDung && d.MaMonHoc == monHocId && d.MaHocKy == hocKyId)
+                })
+                .ToListAsync();
+
+            var result = students.Select(s => new
+            {
+                id = s.StudentId.ToString(),
+                name = s.StudentName,
+                assignment = s.Diem?.DiemQuaTrinh,
+                exam = s.Diem?.DiemCuoiKy,
+                total = s.Diem != null ? s.Diem.GpaMonHoc : 0m,
+                isEditing = false
+            });
+
+            return Ok(ApiResponseDto<object>.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi tải điểm: " + ex.Message));
+        }
+    }
+
+    [HttpPut("classes/{id}/grades/{studentId}")]
+    public async Task<ActionResult<ApiResponseDto<object>>> UpdateStudentGrade(int id, int studentId, [FromBody] UpdateGradeRequest request)
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            var userId = currentUser!.UserId;
+
+            var khoahoc = await _context.KhoaHocs
+                .FirstOrDefaultAsync(k => k.MaLop == id && k.MaGiaoVien == userId);
+            if (khoahoc == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy môn học bạn dạy trong lớp này."));
+
+            var monHocId = khoahoc.MaMonHoc;
+            var hocKyId = khoahoc.MaHocKy;
+
+            var diem = await _context.DiemSos
+                .FirstOrDefaultAsync(d => d.MaHocSinh == studentId && d.MaMonHoc == monHocId && d.MaHocKy == hocKyId);
+
+            if (diem == null)
+            {
+                var hocSinh = await _context.NguoiDungs.FindAsync(studentId);
+                var donViId = hocSinh?.MaDonVi ?? 1;
+
+                diem = new Backend.Models.DiemSo
+                {
+                    MaDonVi = donViId,
+                    MaHocSinh = studentId,
+                    MaMonHoc = monHocId,
+                    MaHocKy = hocKyId ?? 1,
+                    DiemQuaTrinh = request.Assignment,
+                    DiemCuoiKy = request.Exam,
+                    GpaMonHoc = ((request.Assignment ?? 0) * 0.4m) + ((request.Exam ?? 0) * 0.6m),
+                    TrangThai = "draft",
+                    DaKhoa = false
+                };
+                _context.DiemSos.Add(diem);
+            }
+            else
+            {
+                diem.DiemQuaTrinh = request.Assignment;
+                diem.DiemCuoiKy = request.Exam;
+                diem.GpaMonHoc = ((request.Assignment ?? 0) * 0.4m) + ((request.Exam ?? 0) * 0.6m);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(ApiResponseDto<object>.Ok(new { message = "Cập nhật điểm thành công" }));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi cập nhật điểm: " + ex.Message));
+        }
+    }
+}
+
+public class UpdateGradeRequest
+{
+    public decimal? Assignment { get; set; }
+    public decimal? Exam { get; set; }
 }

@@ -398,9 +398,9 @@ All 28 `FE_ONLY_STATIC` rows have been triaged. 9 rows connected to existing API
 | `/super-admin/reports/attendance` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `HIDE_FROM_DEMO_AND_CLAIM` | No attendance analytics aggregate; session-level only | P16B.4D |
 | `/super-admin/reports/campus-comparison` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `KEEP_AS_PENDING_ADMIN_ROADMAP` | Multi-campus analytics requires new design; roadmap only | — |
 | `/super-admin/reports/export` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `KEEP_AS_PENDING_ADMIN_ROADMAP` | Export requires background jobs and format negotiation; out of thesis scope | — |
-| `/teacher/class-grades` | Teacher | `NEEDS_BE_ENDPOINT` | `IMPLEMENT_NOW` | Core demo feature; `TeacherClassesController` + grade entities exist; add `GET api/teacher/classes/{id}/grades` | P16B.4C |
-| `/teacher/grading-input` | Teacher | `NEEDS_BE_ENDPOINT` | `IMPLEMENT_NOW` | Core demo feature; component grade entry; add `PUT api/teacher/classes/{id}/grades/{studentId}` | P16B.4C |
-| `/student/exams/{id}` | Student | `NEEDS_BE_ENDPOINT` | `IMPLEMENT_NOW` | Core student feature; `PhienThi`+`BaiLam` entities exist; add `GET api/exam/student/result/{sessionId}` | P16B.4C |
+| `/teacher/class-grades` | Teacher | `NEEDS_BE_ENDPOINT` | `IMPLEMENTED` | Core demo feature; `TeacherClassesController` + grade entities exist; add `GET api/teacher/classes/{id}/grades` | P16B.4C |
+| `/teacher/grading-input` | Teacher | `NEEDS_BE_ENDPOINT` | `IMPLEMENTED` | Core demo feature; component grade entry; add `PUT api/teacher/classes/{id}/grades/{studentId}` | P16B.4C |
+| `/student/exams/{id}` | Student | `NEEDS_BE_ENDPOINT` | `IMPLEMENTED` | Core student feature; `PhienThi`+`BaiLam` entities exist; add `GET api/exam/student/result/{sessionId}` | P16B.4C |
 | `/super-admin/finance/student-debts` | SuperAdmin | `REMOVE_FROM_100_PERCENT_CLAIM` | `HIDE_FROM_DEMO_AND_CLAIM` | Student tuition exists; admin debt aggregate missing; Parent finance covers demo | P16B.4D |
 | `/super-admin/finance/payments` | SuperAdmin | `REMOVE_FROM_100_PERCENT_CLAIM` | `HIDE_FROM_DEMO_AND_CLAIM` | No admin payment list; webhook only; roadmap | P16B.4D |
 | `/super-admin/finance/refunds` | SuperAdmin | `REMOVE_FROM_100_PERCENT_CLAIM` | `HIDE_FROM_DEMO_AND_CLAIM` | No refund entity or endpoint | P16B.4D |

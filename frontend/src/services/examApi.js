@@ -5,9 +5,18 @@ function unwrapApiData(response) {
 }
 
 export const examApi = {
+  // ===== Admin / Manager =====
+  getExamPeriods(params = {}) {
+    const qs = new URLSearchParams(params).toString()
+    return apiRequest(`/api/exam/ky-thi${qs ? '?' + qs : ''}`).then(unwrapApiData)
+  },
+
   // ===== Student Exam Taking =====
   getStudentExams() {
     return apiRequest('/api/exam/student/list').then(unwrapApiData)
+  },
+  getStudentExamResult(sessionId) {
+    return apiRequest(`/api/exam/student/result/${sessionId}`).then(unwrapApiData)
   },
   getExamSession(maPhienThi) {
     return apiRequest(`/api/exam/taking/session/${maPhienThi}`).then(unwrapApiData)

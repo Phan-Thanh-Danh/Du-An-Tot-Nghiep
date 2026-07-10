@@ -383,6 +383,15 @@ public class ExamController : ControllerBase
         return Ok(ApiResponseDto<PhienThiDto>.Ok(result, "Nộp bài thi thành công"));
     }
 
+    [HttpGet("student/result/{sessionId:int}")]
+    [Authorize(Roles = AuthRoles.Student)]
+    public async Task<ActionResult<ApiResponseDto<object>>> GetStudentExamResult(int sessionId, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _examService.GetStudentExamResultAsync(sessionId, userId, ct);
+        return Ok(ApiResponseDto<object>.Ok(result));
+    }
+
     // ===== Grading =====
 
     [HttpPost("grading/auto/{maCaThi:int}")]
