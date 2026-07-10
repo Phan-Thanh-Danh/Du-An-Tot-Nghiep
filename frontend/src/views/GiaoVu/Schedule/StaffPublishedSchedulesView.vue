@@ -1,10 +1,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import {
-  CheckCircle, ArrowLeftRight, X, AlertTriangle, Users, BookOpen, Loader2,
+  CheckCircle, ArrowLeftRight, X, AlertTriangle, Users, BookOpen,
+  AlertCircle,
 } from 'lucide-vue-next'
+import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
+import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
-import { staffApi } from '@/services/staffApi'
+import { scheduleApi } from '@/services/scheduleApi'
 
 
 const loading = ref(true)
@@ -21,12 +24,40 @@ async function loadData() {
   loading.value = true
   apiError.value = ''
   try {
-    const res = await staffApi.getSchedules()
-    schedules.value = Array.isArray(res) ? res : (res?.data?.items ?? res?.data ?? res?.items ?? [])
+    const res = await scheduleApi.list({
+      PageIndex: 1,
+      PageSize: 100,
+      TrangThai: 'da_xuat_ban'
+    })
+
+    const payload = res?.data ?? res?.Data ?? res
+    const items = payload?.items ?? payload?.Items ?? payload?.data?.items ?? payload?.Data?.Items ?? []
+
+    schedules.value = Array.isArray(items)
+      ? items.map(normalizeSchedule)
+      : []
   } catch (e) {
-    console.error(e)
+    console.error('Schedule load failed', e.statusCode, e.details || e)
+    apiError.value = e?.message || 'Không thể tải dữ liệu lịch học.'
+    schedules.value = []
   } finally {
     loading.value = false
+  }
+}
+
+function normalizeSchedule(s) {
+  return {
+    ...s,
+    id: s.id ?? s.maTkb ?? s.MaTkb,
+    maTkb: s.maTkb ?? s.MaTkb ?? s.id,
+    tenDonVi: s.tenDonVi ?? s.TenDonVi ?? 'Cơ sở',
+    tenHocKy: s.tenHocKy ?? s.TenHocKy ?? 'Học kỳ',
+    ngayXuatBan: s.ngayXuatBan ?? s.NgayXuatBan ?? s.ngayCapNhat ?? s.NgayCapNhat,
+    soLop: s.soLop ?? s.SoLop ?? 1,
+    soGiaoVien: s.soGiaoVien ?? s.SoGiaoVien ?? 1,
+    tongSoTiet: s.tongSoTiet ?? s.TongSoTiet ?? 0,
+    thayDoiPhatSinh: s.thayDoiPhatSinh ?? s.ThayDoiPhatSinh ?? 0,
+    buoiHuy: s.buoiHuy ?? s.BuoiHuy ?? 0,
   }
 }
 
@@ -59,9 +90,9 @@ const stats = computed(() => ({
 <template>
   <div class="published-view space-y-4 max-w-full">
 
-    <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-3">
-      <Loader2 class="animate-spin text-(--text-muted)" :size="28" />
-      <p class="text-sm text-(--text-muted)">Đang tải dữ liệu...</p>
+    <div v-if="loading" class="p-4 space-y-4">
+      <SkeletonDashboard :cards="4" :rows="2" />
+      <SkeletonTable :rows="6" :columns="5" />
     </div>
 
     <div v-else-if="apiError" class="surface-card border border-(--border-card) rounded-2xl p-6 flex flex-col items-center justify-center gap-3">
