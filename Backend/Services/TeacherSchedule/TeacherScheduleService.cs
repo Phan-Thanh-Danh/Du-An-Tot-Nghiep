@@ -218,14 +218,22 @@ public class TeacherScheduleService : ITeacherScheduleService
     public async Task<List<TeacherScheduleTermDto>> GetTermsAsync(int teacherId)
     {
         var today = GetVietnamDateToday();
-        var termIds = await _context.BuoiHocs
+        
+        var termIdsFromBuoiHoc = await _context.BuoiHocs
             .AsNoTracking()
-            .Include(b => b.KhoaHoc)
-            .Include(b => b.Tkb)
             .Where(b => (b.MaGiaoVien == teacherId || b.MaGiaoVienDayThay == teacherId) && b.Tkb != null && b.Tkb.TrangThai == "da_xuat_ban" && b.KhoaHoc!.MaHocKy != null)
             .Select(b => b.KhoaHoc!.MaHocKy!.Value)
             .Distinct()
             .ToListAsync();
+            
+        var termIdsFromTkb = await _context.ThoiKhoaBieus
+            .AsNoTracking()
+            .Where(t => t.KhoaHoc!.MaGiaoVien == teacherId && t.TrangThai == "da_xuat_ban" && t.KhoaHoc.MaHocKy != null)
+            .Select(t => t.KhoaHoc!.MaHocKy!.Value)
+            .Distinct()
+            .ToListAsync();
+            
+        var termIds = termIdsFromBuoiHoc.Union(termIdsFromTkb).Distinct().ToList();
 
         var terms = await _context.HocKys
             .AsNoTracking()

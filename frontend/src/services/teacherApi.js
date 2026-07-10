@@ -16,16 +16,16 @@ export const teacherApi = {
     return apiRequest('/api/teacher/dashboard')
   },
 
-  getScheduleSummary() {
-    return unwrapApiData(apiRequest('/api/teacher/schedule/summary'))
+  async getScheduleSummary() {
+    return unwrapApiData(await apiRequest('/api/teacher/schedule/summary'))
   },
 
-  getTodaySchedule() {
-    return unwrapApiData(apiRequest('/api/teacher/schedule/today'))
+  async getTodaySchedule() {
+    return unwrapApiData(await apiRequest('/api/teacher/schedule/today'))
   },
 
-  getScheduleTerms() {
-    return unwrapApiData(apiRequest('/api/teacher/schedule/terms'))
+  async getScheduleTerms() {
+    return unwrapApiData(await apiRequest('/api/teacher/schedule/terms'))
   },
 
   // √ GET /api/teacher/attendance/today — AttendanceController

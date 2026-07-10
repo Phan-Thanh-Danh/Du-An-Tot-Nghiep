@@ -6,7 +6,8 @@
         <p class="text-sm text-muted mt-1">Quản lý và theo dõi các ca dạy của bạn</p>
       </div>
       <div class="flex items-center gap-3">
-        <select v-model="selectedTerm" @change="loadSchedule" class="rounded-xl border border-input bg-surface-input px-4 py-2 text-sm font-bold text-body outline-none focus:border-(--accent-primary) transition-all cursor-pointer">
+        <select v-model="selectedTerm" @change="loadSchedule" :disabled="!terms || terms.length === 0" class="rounded-xl border border-input bg-surface-input px-4 py-2 text-sm font-bold text-body outline-none focus:border-(--accent-primary) transition-all cursor-pointer">
+          <option v-if="!terms || terms.length === 0" value="null">Chưa có học kỳ có lịch giảng dạy</option>
           <option v-for="term in terms" :key="term.maHocKy" :value="term.maHocKy">
             {{ term.tenHocKy }} {{ term.isCurrent ? '(Hiện tại)' : '' }}
           </option>
@@ -43,7 +44,7 @@
     <div v-else-if="error" class="flex flex-col items-center justify-center min-h-[300px] gap-4">
       <AlertCircle :size="48" class="text-(--color-danger-text)" />
       <p class="text-(--color-danger-text) font-semibold">{{ error }}</p>
-      <button @click="loadSchedule" class="rounded-xl bg-(--accent-primary) px-5 py-2.5 text-sm font-bold text-white hover:opacity-90 transition-all">Thử lại</button>
+      <button @click="loadPage" class="rounded-xl bg-(--accent-primary) px-5 py-2.5 text-sm font-bold text-white hover:opacity-90 transition-all">Thử lại</button>
     </div>
 
     <div v-else-if="filteredSchedule.length === 0" class="flex flex-col items-center justify-center min-h-[300px] gap-4 lg-glass-soft rounded-3xl p-8 text-center">
@@ -140,15 +141,21 @@ const resetFilters = () => {
 
 const loadTerms = async () => {
   try {
-    terms.value = await teacherApi.getScheduleTerms()
-    const current = terms.value.find(t => t.isCurrent)
-    if (current) {
-      selectedTerm.value = current.maHocKy
-    } else if (terms.value.length > 0) {
-      selectedTerm.value = terms.value[0].maHocKy
+    const result = await teacherApi.getScheduleTerms()
+    if (!Array.isArray(result)) {
+      throw new TypeError('API /api/teacher/schedule/terms không trả về danh sách học kỳ hợp lệ.')
     }
+    terms.value = result
+    
+    const current = terms.value.find(t => t.isCurrent)
+    selectedTerm.value = current?.maHocKy ?? terms.value[0]?.maHocKy ?? null
+    return true
   } catch (err) {
     console.error('Failed to load terms', err)
+    error.value = err?.message || 'Không thể tải danh sách học kỳ'
+    terms.value = []
+    selectedTerm.value = null
+    return false
   }
 }
 
@@ -158,29 +165,49 @@ const loadSchedule = async () => {
   try {
     let params = {}
     if (selectedTerm.value) params.maHocKy = selectedTerm.value
+    else return // No term, don't load schedule
     
     // Add date filters based on mode if necessary
-    const today = new Date()
-    today.setHours(7,0,0,0) // roughly VN timezone
+    const now = new Date()
     
     if (currentMode.value === 'Today') {
-      const todayStr = today.toISOString().split('T')[0]
+      const y = now.getFullYear()
+      const m = String(now.getMonth() + 1).padStart(2, '0')
+      const d = String(now.getDate()).padStart(2, '0')
+      const todayStr = `${y}-${m}-${d}`
       params.ngayTu = todayStr
       params.ngayDen = todayStr
     } else if (currentMode.value === 'Week') {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       const day = today.getDay()
       const diff = today.getDate() - day + (day === 0 ? -6 : 1) // adjust when day is sunday
-      const monday = new Date(today.setDate(diff))
-      const sunday = new Date(today.setDate(diff + 6))
-      params.ngayTu = monday.toISOString().split('T')[0]
-      params.ngayDen = sunday.toISOString().split('T')[0]
+      
+      const monday = new Date(today)
+      monday.setDate(diff)
+      
+      const sunday = new Date(today)
+      sunday.setDate(diff + 6)
+      
+      const fmt = (dt) => {
+        const y = dt.getFullYear()
+        const m = String(dt.getMonth() + 1).padStart(2, '0')
+        const d = String(dt.getDate()).padStart(2, '0')
+        return `${y}-${m}-${d}`
+      }
+      
+      params.ngayTu = fmt(monday)
+      params.ngayDen = fmt(sunday)
     }
     // Term mode fetches all for the term
 
     const res = await teacherApi.getSchedule(params)
-    schedule.value = res.items || []
+    if (!res || !Array.isArray(res.items)) {
+      throw new TypeError('API lịch giảng dạy không trả về dữ liệu phân trang hợp lệ.')
+    }
+    schedule.value = res.items
   } catch (err) {
     error.value = err?.message || 'Không thể tải lịch giảng dạy'
+    schedule.value = []
   } finally {
     loading.value = false
   }
@@ -217,8 +244,19 @@ const formatDate = (dateStr) => {
   return new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).format(d)
 }
 
+const loadPage = async () => {
+  loading.value = true
+  error.value = ''
+  schedule.value = []
+  const success = await loadTerms()
+  if (success) {
+    await loadSchedule()
+  } else {
+    loading.value = false
+  }
+}
+
 onMounted(async () => {
-  await loadTerms()
-  await loadSchedule()
+  await loadPage()
 })
 </script>

@@ -89,9 +89,6 @@
                 </div>
               </div>
               <div class="flex items-center gap-3 mt-1 sm:mt-0">
-                <div class="flex items-center gap-1 text-[11px] font-semibold text-body">
-                  <Users :size="12" class="text-muted" /> {{ item.students }} SV
-                </div>
                 <GlassBadge :variant="item.status === 'completed' ? 'neutral' : 'primary'">
                   {{ item.status === 'completed' ? 'Đã hoàn thành' : 'Sắp diễn ra' }}
                 </GlassBadge>
@@ -231,7 +228,7 @@ import { teacherApi } from '@/services/teacherApi'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import {
   Users, BookOpen, ClipboardCheck, TrendingUp,
-  ArrowUpRight, AlertCircle, User, Bell
+  ArrowUpRight, AlertCircle, User, Bell, Calendar
 } from 'lucide-vue-next'
 
 const auth = useAuthStore()
@@ -248,30 +245,32 @@ async function loadDashboard() {
   loading.value = true
   error.value = ''
   try {
-    const [dashboardData, summaryData] = await Promise.all([
+    const [dashboardData, summaryData, todayData] = await Promise.all([
       teacherApi.getDashboard(),
-      teacherApi.getScheduleSummary()
+      teacherApi.getScheduleSummary(),
+      teacherApi.getTodaySchedule()
     ])
     
     const data = dashboardData
     
-    const sessions = Array.isArray(summaryData.todaySessions) ? summaryData.todaySessions : []
+    const sessions = Array.isArray(todayData) ? todayData : []
     teachingSchedule.value = sessions.map(s => ({
       id: s.maBuoiHoc,
-      time: `${s.gioBatDau} - ${s.gioKetThuc}`,
+      time: `${(s.gioBatDau || '').substring(0,5)} - ${(s.gioKetThuc || '').substring(0,5)}`,
       subject: s.tenMonHoc,
       code: s.tenLop,
       room: s.tenPhong,
-      students: 0, // No student count in new DTO
       status: s.trangThaiBuoi === 'da_ket_thuc' ? 'completed' : 'upcoming'
     }))
+    
     stats.value = [
-      { id: 1, label: 'Tổng sinh viên', value: data.totalStudents ?? 0, trend: '', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: Users },
-      { id: 2, label: 'Lớp đang dạy', value: data.totalClasses ?? 0, trend: '', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: BookOpen },
-      { id: 3, label: 'Bài chờ chấm', value: data.pendingGrading ?? 0, trend: '', isNegative: true, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: ClipboardCheck },
-      { id: 4, label: 'Hiệu suất lớp', value: '--', trend: '', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: TrendingUp },
+      { id: 1, label: 'Ca dạy hôm nay', value: sessions.length, trend: '', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: Calendar },
+      { id: 2, label: 'Lớp đang phụ trách', value: summaryData?.assignedClassCount ?? 0, trend: '', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: BookOpen },
+      { id: 3, label: 'Bài chờ chấm', value: data?.pendingGrading ?? 0, trend: '', isNegative: true, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: ClipboardCheck },
+      { id: 4, label: 'Ca dạy tuần này', value: summaryData?.weeklyShiftCount ?? 0, trend: '', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: TrendingUp },
     ]
-    recentSubmissions.value = (data.recentSubmissions || []).map(s => ({
+    
+    recentSubmissions.value = (data?.recentSubmissions || []).map(s => ({
       id: s.id,
       student: s.tenSinhVien || s.student || '',
       course: s.tenMonHoc || s.course || '',
