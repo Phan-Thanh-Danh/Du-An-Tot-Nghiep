@@ -362,3 +362,73 @@ Note: `/student/exams/{id}/take` is counted as `PASS_GUARDED_REDIRECT`; the app 
 `PASS_WITH_WARNINGS` for P16B.4A.
 
 All 28 `FE_ONLY_STATIC` rows have been triaged. 9 rows connected to existing APIs, 8 rows confirmed as wrapper/false-positive. 10 rows remain `NEEDS_BE_ENDPOINT` and 1 is `REMOVE_FROM_100_PERCENT_CLAIM`; these are outside the full API/action coverage claim until real backend contracts are added.
+
+## P16B.4B Missing Backend Endpoint Decision Matrix
+
+> Date: 2026-07-10
+> Scope: All 25 remaining `NEEDS_BE_ENDPOINT` + `REMOVE_FROM_100_PERCENT_CLAIM` rows across P16B.1–4A.
+> Method: Controller scan (85 files) + docs grep + component inspection.
+> Phase type: DOCS ONLY — no code changed.
+
+### Count
+
+| Source | NEEDS_BE_ENDPOINT | REMOVE_FROM_100 | Total |
+| --- | ---: | ---: | ---: |
+| P16B.2 SuperAdmin gaps | 11 | 0 | 11 |
+| P16B.4A FE_ONLY_STATIC | 7 | 0 | 7 |
+| P16B.1 Finance/Placeholder | 0 | 7 | 7 |
+| **Total** | **18** | **7** | **25** |
+
+### Decision Table
+
+| Route | Role | Previous | Decision | Key Reason | Next Phase |
+| --- | --- | --- | --- | --- | --- |
+| `/super-admin/training/exam-periods` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `REPOINT_EXISTING_API` | `ExamController`: `GET api/exam/ky-thi` exists with full CRUD | P16B.4C |
+| `/super-admin/operations/attendance-policy` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `KEEP_AS_PENDING_ADMIN_ROADMAP` | No policy config entity in DB; requires schema design | — |
+| `/super-admin/operations/pass-fail-rules` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `KEEP_AS_PENDING_ADMIN_ROADMAP` | BGH academic `pass-fail` is read-only report, not config; config table missing | — |
+| `/super-admin/support/tickets` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `HIDE_FROM_DEMO_AND_CLAIM` | Only student-scoped ticket endpoint exists; admin-scoped missing | P16B.4D |
+| `/super-admin/support/faq` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `REMOVE_ROUTE` | No FAQ entity, controller, migration, or data anywhere | P16B.4D |
+| `/super-admin/approvals/history` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `REPOINT_EXISTING_API` | `GET api/admin/applications` with status filter + `AdminApplicationReportsController` | P16B.4C |
+| `/super-admin/evaluations/config` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `KEEP_AS_PENDING_ADMIN_ROADMAP` | Eval form/template config not in current BghEvaluationController scope | — |
+| `/super-admin/evaluations/results` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `REPOINT_EXISTING_API` | `BghEvaluationController` covers evaluations, ranking, overview, AI analysis — add SuperAdmin to roles | P16B.4C |
+| `/super-admin/reports/education-overview` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `REPOINT_EXISTING_API` | `BghAcademicController`: `academic/overview`, `gpa`, `at-risk`, `pass-fail` — add SuperAdmin role | P16B.4C |
+| `/super-admin/security/alerts` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `REPOINT_EXISTING_API` | `SuperAdminController`: `GET api/super-admin/security/alerts` **already exists** | P16B.4C |
+| `/super-admin/system/modules` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `REPOINT_EXISTING_API` | `SuperAdminController`: `GET api/super-admin/system/modules` **already exists** | P16B.4C |
+| `/super-admin/reports/learning` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `HIDE_FROM_DEMO_AND_CLAIM` | No aggregated learning analytics endpoint; per-class data only | P16B.4D |
+| `/super-admin/reports/attendance` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `HIDE_FROM_DEMO_AND_CLAIM` | No attendance analytics aggregate; session-level only | P16B.4D |
+| `/super-admin/reports/campus-comparison` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `KEEP_AS_PENDING_ADMIN_ROADMAP` | Multi-campus analytics requires new design; roadmap only | — |
+| `/super-admin/reports/export` | SuperAdmin | `NEEDS_BE_ENDPOINT` | `KEEP_AS_PENDING_ADMIN_ROADMAP` | Export requires background jobs and format negotiation; out of thesis scope | — |
+| `/teacher/class-grades` | Teacher | `NEEDS_BE_ENDPOINT` | `IMPLEMENT_NOW` | Core demo feature; `TeacherClassesController` + grade entities exist; add `GET api/teacher/classes/{id}/grades` | P16B.4C |
+| `/teacher/grading-input` | Teacher | `NEEDS_BE_ENDPOINT` | `IMPLEMENT_NOW` | Core demo feature; component grade entry; add `PUT api/teacher/classes/{id}/grades/{studentId}` | P16B.4C |
+| `/student/exams/{id}` | Student | `NEEDS_BE_ENDPOINT` | `IMPLEMENT_NOW` | Core student feature; `PhienThi`+`BaiLam` entities exist; add `GET api/exam/student/result/{sessionId}` | P16B.4C |
+| `/super-admin/finance/student-debts` | SuperAdmin | `REMOVE_FROM_100_PERCENT_CLAIM` | `HIDE_FROM_DEMO_AND_CLAIM` | Student tuition exists; admin debt aggregate missing; Parent finance covers demo | P16B.4D |
+| `/super-admin/finance/payments` | SuperAdmin | `REMOVE_FROM_100_PERCENT_CLAIM` | `HIDE_FROM_DEMO_AND_CLAIM` | No admin payment list; webhook only; roadmap | P16B.4D |
+| `/super-admin/finance/refunds` | SuperAdmin | `REMOVE_FROM_100_PERCENT_CLAIM` | `HIDE_FROM_DEMO_AND_CLAIM` | No refund entity or endpoint | P16B.4D |
+| `/super-admin/operations/schedules` | SuperAdmin | `REMOVE_FROM_100_PERCENT_CLAIM` | `REMOVE_ROUTE` | PlaceholderView; Staff handles schedules at `/staff/schedule/*`; duplicate is confusing | P16B.4D |
+| `/super-admin/operations/schedules/approval` | SuperAdmin | `REMOVE_FROM_100_PERCENT_CLAIM` | `REMOVE_ROUTE` | Same — PlaceholderView, no backing, Staff owns this | P16B.4D |
+| `/super-admin/finance/tuition-config` | SuperAdmin | `REMOVE_FROM_100_PERCENT_CLAIM` | `HIDE_FROM_DEMO_AND_CLAIM` | `ProgramTuitionConfigsController` exists but scoped to `FinanceAuthorizationRoles`; PlaceholderView is dead end | P16B.4D |
+| `/super-admin/notifications/history` | SuperAdmin | `REMOVE_FROM_100_PERCENT_CLAIM` | `REPOINT_EXISTING_API` | `GET api/admin/notifications` already returns notification history; reuse `NoticeHistoryView` pattern | P16B.4C |
+
+### Decision Summary
+
+| Decision | Count |
+| --- | ---: |
+| `REPOINT_EXISTING_API` | 7 |
+| `IMPLEMENT_NOW` | 3 |
+| `HIDE_FROM_DEMO_AND_CLAIM` | 7 |
+| `REMOVE_ROUTE` | 3 |
+| `KEEP_AS_PENDING_ADMIN_ROADMAP` | 5 |
+| **Total** | **25** |
+
+### Verification
+
+| Check | Result |
+| --- | --- |
+| `git diff --check` | PASS (LF/CRLF warnings in docs only) |
+| Conflict marker grep | PASS, 0 hits |
+| Frontend build | NOT REQUIRED (docs only) |
+| Backend build | NOT REQUIRED (docs only) |
+
+### Decision
+
+`PASS` for P16B.4B. All 25 rows have a clear decision. No code changed. 10 routes assigned to P16B.4C (connect/implement), 10 to P16B.4D (hide/remove), 5 deferred as roadmap.

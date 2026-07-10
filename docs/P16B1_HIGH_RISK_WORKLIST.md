@@ -292,3 +292,42 @@ Decision: `PASS_WITH_WARNINGS` for P16B.3. The remaining non-SuperAdmin mock/fal
 | Smoke artifact | `docs/artifacts/p16b4a-fe-only-static/p16b4a-results.json` |
 
 Decision: `PASS_WITH_WARNINGS` for P16B.4A. `FE_ONLY_STATIC` = 0 in connected routes; 7 routes remain `NEEDS_BE_ENDPOINT` outside coverage claim.
+
+## P16B.4B Missing Backend Endpoint Decision Matrix
+
+> Date: 2026-07-10
+> Phase type: DOCS ONLY — no code changed.
+> Full detail: `docs/P16B4B_MISSING_BACKEND_ENDPOINT_DECISION_MATRIX.md`
+
+### Total Rows Triaged: 25
+
+| Decision | Count |
+| --- | ---: |
+| `REPOINT_EXISTING_API` | 7 |
+| `IMPLEMENT_NOW` | 3 |
+| `HIDE_FROM_DEMO_AND_CLAIM` | 7 |
+| `REMOVE_ROUTE` | 3 |
+| `KEEP_AS_PENDING_ADMIN_ROADMAP` | 5 |
+| **Total** | **25** |
+
+### Key Discoveries
+
+- `SecurityAlertsView` and `SystemModulesView` → endpoint **already exists** in `SuperAdminController.cs` (`api/super-admin/security/alerts`, `api/super-admin/system/modules`). No new backend needed — just FE wiring.
+- `NotificationsHistoryView` (placeholder) → `GET api/admin/notifications` already covers it. Repoint in P16B.4C.
+- `ExamPeriodsView` → `ExamController` has full `ky-thi` CRUD. Repoint.
+- `ApprovalsHistoryView` → `applicationsApi` with status filter already covers history. Repoint.
+- `EvaluationsResultsView` and `EducationOverviewView` → BGH controllers have real data; add SuperAdmin to roles.
+- Teacher gradebook + grade input + student exam result = 3 `IMPLEMENT_NOW` (core demo features, small scope).
+- Finance routes (student-debts, payments, refunds) → `HIDE_FROM_DEMO_AND_CLAIM`; demo covered by Parent finance role.
+- FAQ → `REMOVE_ROUTE` (no entity, no controller, no data anywhere).
+- Placeholder schedule routes → `REMOVE_ROUTE` (Staff already owns schedule).
+
+### Next Phases
+
+| Phase | Work | Routes |
+| --- | --- | --- |
+| **P16B.4C** | Connect repoints (FE) + implement 3 small BE endpoints | 10 routes |
+| **P16B.4D** | Hide/remove routes from router + doc update | 10 routes |
+| **P16B.5** | Runtime action audit for PASS_LOAD_ONLY_ACTIONS_PENDING | all PASS_LOAD_ONLY rows |
+
+Decision: `PASS` for P16B.4B. Matrix complete, all 25 rows decided.
