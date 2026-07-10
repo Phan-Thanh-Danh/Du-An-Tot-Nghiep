@@ -100,6 +100,25 @@ Runtime API evidence included:
 
 `P22_PASS`
 
+## P22.2 Pending Draft Visibility Fix
+
+- Smart generate now passes `maDonVi`, `maHocKy`, and `draftId` to `/staff/schedule/pending`.
+- Pending page now loads drafts using required backend query params instead of calling `listDrafts()` without context.
+- Newly generated draft is auto-selected and highlighted when `draftId` is present in the route query.
+- Direct pending route without context now shows an instruction instead of a misleading empty state.
+- Pending page wording was adjusted to `Lịch nháp/chờ duyệt` to match backend draft status.
+
+## P22.2 Runtime Smoke Result
+
+| Check | Result |
+| --- | --- |
+| Smart generate creates draft | PASS |
+| Pending route receives `maDonVi`/`maHocKy`/`draftId` | PASS |
+| `GET /api/thoi-khoa-bieu/drafts` without context in smart flow | PASS, 0 calls |
+| `GET /api/thoi-khoa-bieu/drafts?maDonVi=...&maHocKy=...` | PASS |
+| Generated draft visible in pending page | PASS |
+| Generated draft auto-selected/highlighted | PASS |
+
 ## Git Safety Note
 
 The worktree already contains many modified files from other phases. P22 changes were kept scoped to the two schedule views and this report. Commit must stage only the three P22 files listed in the safe commit checklist.

@@ -111,6 +111,35 @@ const selectedCourseTermEnd = computed(() =>
   toDateInput(selectedCourse.value?.ngayKetThucHocKy || selectedCourse.value?.hocKy?.ngayKetThuc)
 )
 
+const pendingDraftRoute = computed(() => {
+  const draft = smartDraft.value || {}
+
+  const draftId =
+    draft.draftId ??
+    draft.DraftId ??
+    draft.id ??
+    draft.Id
+
+  const maDonVi =
+    draft.maDonVi ??
+    draft.MaDonVi ??
+    smartCampusId.value
+
+  const maHocKy =
+    draft.maHocKy ??
+    draft.MaHocKy ??
+    smartTermId.value
+
+  return {
+    path: '/staff/schedule/pending',
+    query: {
+      maDonVi,
+      maHocKy,
+      draftId,
+    },
+  }
+})
+
 const unscheduledCourses = computed(() => {
   const scheduled = new Set(rows.value.filter(r => r.trangThai !== 'da_huy').map(r => Number(r.maKhoaHoc)))
   return courseOptions.value.filter(c => !scheduled.has(Number(c.maKhoaHoc)))
@@ -1551,7 +1580,7 @@ function thuLabel(thu) {
                 </div>
                 <div v-if="smartDraft" class="rounded-xl border border-(--border-default) bg-(--color-success-bg) p-3 text-sm text-(--color-success-text)">
                   Đã sinh bản nháp: {{ smartDraft.draftId || smartDraft.DraftId || smartDraft.id || 'xem trong lịch chờ duyệt' }}.
-                  <RouterLink to="/staff/schedule/pending" class="font-bold underline">Đi tới lịch chờ duyệt</RouterLink>
+                  <RouterLink :to="pendingDraftRoute" class="font-bold underline">Đi tới lịch chờ duyệt</RouterLink>
                 </div>
               </template>
             </div>
