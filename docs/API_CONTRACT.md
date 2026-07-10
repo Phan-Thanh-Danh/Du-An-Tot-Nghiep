@@ -994,16 +994,6 @@ Chưa thấy controller AI trong repo hiện tại.
 - Thêm controller mới thì cập nhật file này trong cùng PR/task.
 - Nếu endpoint chỉ là ý tưởng, để ở mục `Dự kiến/cần bổ sung`.
 - Không sửa frontend gọi endpoint dự kiến nếu backend chưa có mock/server contract rõ ràng.
-- `POST /api/thoi-khoa-bieu/generate` - Smart timetable generate draft
-- `GET /api/thoi-khoa-bieu/drafts` - List timetable drafts
-- `GET /api/thoi-khoa-bieu/drafts/{draftId}` - Get draft details
-- `POST /api/thoi-khoa-bieu/publish` - Publish draft
-- `POST /api/thoi-khoa-bieu/check-xung-dot-batch` - Batch conflict check denNgay (date?)
-- pageIndex (int, default 1)
-- pageSize (int, default 20)
-
-**Response**
-- Items: Array of list item DTOs.
 ## DL1 - Discipline Record Creation
 
 ### GET /api/admin/discipline-records
