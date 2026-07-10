@@ -1,22 +1,77 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import {
   Clock, Filter, AlertCircle, Send, Eye, X
 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
+import { scheduleApi } from '@/services/scheduleApi'
 
-const schedules = ref([
-  { id: 'PD-241', term: 'Học kỳ 1 - 2026', type: 'Chính quy', department: 'Khoa Công nghệ Thông tin', created: '10/05/2026', submitted: '12/05/2026', status: 'pending', metrics: { classes: 120, teachers: 45, hours: 360 } },
-  { id: 'PD-242', term: 'Học kỳ 1 - 2026', type: 'Chất lượng cao', department: 'Khoa Công nghệ Thông tin', created: '11/05/2026', submitted: '12/05/2026', status: 'returned', metrics: { classes: 45, teachers: 20, hours: 150 }, note: 'Trùng lịch phòng thực hành máy Mac.' },
-])
+const loading = ref(false)
+const error = ref('')
+const schedules = ref([])
 
 const selectedItem = ref(null)
 
 const statusLabels = {
   pending: { label: 'Chờ duyệt', variant: 'warning' },
-  returned: { label: 'Cần chỉnh sửa', variant: 'danger' }
+  returned: { label: 'Cần chỉnh sửa', variant: 'danger' },
+  published: { label: 'Đã xuất bản', variant: 'success' },
+  draft: { label: 'Bản nháp', variant: 'info' },
 }
+
+const visibleSchedules = computed(() => schedules.value)
+const getStatusLabel = (status) => statusLabels[status] || statusLabels.draft
+
+function unwrap(response) {
+  const data = response?.data ?? response?.Data ?? response
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.items)) return data.items
+  if (Array.isArray(data?.Items)) return data.Items
+  return []
+}
+
+function mapDraft(item) {
+  const id = item.draftId ?? item.DraftId ?? item.id ?? item.Id
+  return {
+    id,
+    term: item.tenHocKy ?? item.TenHocKy ?? item.hocKy ?? item.HocKy ?? 'Chưa xác định học kỳ',
+    type: item.loaiLich ?? item.LoaiLich ?? 'Bản nháp',
+    department: item.tenDonVi ?? item.TenDonVi ?? item.donVi ?? item.DonVi ?? 'Chưa xác định đơn vị',
+    created: formatDate(item.createdAt ?? item.CreatedAt ?? item.ngayTao ?? item.NgayTao),
+    submitted: formatDate(item.submittedAt ?? item.SubmittedAt ?? item.ngayGuiDuyet ?? item.NgayGuiDuyet),
+    status: item.status ?? item.Status ?? item.trangThai ?? item.TrangThai ?? 'draft',
+    metrics: {
+      classes: item.classCount ?? item.soLop ?? item.SoLop ?? 0,
+      teachers: item.teacherCount ?? item.soGiangVien ?? item.SoGiangVien ?? 0,
+      hours: item.totalHours ?? item.tongTiet ?? item.TongTiet ?? 0,
+    },
+    note: item.note ?? item.ghiChu ?? item.GhiChu ?? '',
+  }
+}
+
+function formatDate(value) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleDateString('vi-VN')
+}
+
+async function loadSchedules() {
+  loading.value = true
+  error.value = ''
+  try {
+    const response = await scheduleApi.listDrafts()
+    schedules.value = unwrap(response).map(mapDraft)
+  } catch (e) {
+    error.value = e.message || 'Không thể tải danh sách bản nháp thời khóa biểu.'
+    schedules.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadSchedules)
 </script>
 
 <template>
@@ -30,7 +85,7 @@ const statusLabels = {
         <p class="text-sm text-(--text-muted) mt-0.5 ml-8">Danh sách thời khóa biểu đang chờ Ban giám hiệu phê duyệt.</p>
       </div>
       <div class="flex gap-2">
-        <GlassButton variant="secondary"><Filter :size="15" class="mr-1" /> Lọc</GlassButton>
+        <GlassButton variant="secondary" @click="loadSchedules"><Filter :size="15" class="mr-1" /> Làm mới</GlassButton>
       </div>
     </div>
 
@@ -38,7 +93,11 @@ const statusLabels = {
     <div class="flex flex-1 min-h-0 gap-4 flex-col lg:flex-row">
       <!-- Left: List -->
       <div class="flex-1 surface-card border border-(--border-card) rounded-2xl p-4 flex flex-col gap-3 min-w-0 overflow-y-auto">
-        <div v-for="item in schedules" :key="item.id"
+        <div v-if="loading" class="p-8 text-sm text-(--text-muted)">Đang tải lịch chờ duyệt...</div>
+        <div v-else-if="error" class="p-8 text-sm text-(--color-danger-text)">{{ error }}</div>
+        <div v-else-if="visibleSchedules.length === 0" class="p-8 text-sm text-(--text-muted)">Chưa có bản nháp thời khóa biểu chờ xử lý.</div>
+        <template v-else>
+        <div v-for="item in visibleSchedules" :key="item.id"
              @click="selectedItem = item"
              class="surface-card border rounded-2xl p-4 cursor-pointer transition-all hover:shadow-md relative overflow-hidden group flex flex-col lg:flex-row lg:items-center gap-4"
              :class="selectedItem?.id === item.id ? 'border-(--lg-primary) ring-1 ring-(--lg-primary) bg-(--lg-primary)/5' : 'border-(--border-card)'">
@@ -49,7 +108,7 @@ const statusLabels = {
           <div class="flex-1 pl-2">
             <div class="flex items-center gap-2 mb-1">
               <span class="text-xs font-mono font-bold text-(--text-muted)">{{ item.id }}</span>
-              <GlassBadge :variant="statusLabels[item.status].variant" size="sm">{{ statusLabels[item.status].label }}</GlassBadge>
+              <GlassBadge :variant="getStatusLabel(item.status).variant" size="sm">{{ getStatusLabel(item.status).label }}</GlassBadge>
             </div>
             <h3 class="font-bold text-(--text-heading) text-base">{{ item.term }}</h3>
             <p class="text-sm text-(--text-body) font-medium">{{ item.department }} - {{ item.type }}</p>
@@ -78,6 +137,7 @@ const statusLabels = {
              <GlassButton variant="secondary" size="sm" class="flex-1 lg:flex-none justify-center" @click="selectedItem = item"><Eye :size="14" class="mr-1"/>Chi tiết</GlassButton>
           </div>
         </div>
+        </template>
       </div>
 
       <!-- Right: Detail Panel -->
@@ -96,7 +156,7 @@ const statusLabels = {
                 <div class="flex justify-between"><span class="text-(--text-muted)">Học kỳ:</span> <span class="font-medium text-right">{{ selectedItem.term }}</span></div>
                 <div class="flex justify-between"><span class="text-(--text-muted)">Đơn vị:</span> <span class="font-medium text-right">{{ selectedItem.department }}</span></div>
                 <div class="flex justify-between"><span class="text-(--text-muted)">Trạng thái:</span>
-                  <GlassBadge :variant="statusLabels[selectedItem.status].variant" size="sm">{{ statusLabels[selectedItem.status].label }}</GlassBadge>
+                  <GlassBadge :variant="getStatusLabel(selectedItem.status).variant" size="sm">{{ getStatusLabel(selectedItem.status).label }}</GlassBadge>
                 </div>
               </div>
             </div>

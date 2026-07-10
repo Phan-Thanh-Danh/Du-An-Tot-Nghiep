@@ -34,13 +34,13 @@ export const applicationsApi = {
     return unwrapApiData(await apiRequest(`/api/student/applications/${id}`))
   },
   async createDraft(payload) {
-    return unwrapApiData(await apiRequest('/api/student/applications/drafts', {
+    return unwrapApiData(await apiRequest('/api/student/applications', {
       method: 'POST',
       body: JSON.stringify(payload),
     }))
   },
   async updateDraft(id, payload) {
-    return unwrapApiData(await apiRequest(`/api/student/applications/drafts/${id}`, {
+    return unwrapApiData(await apiRequest(`/api/student/applications/${id}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     }))
@@ -65,20 +65,20 @@ export const applicationsApi = {
   },
   async uploadEvidence(applicationId, file, metadata = {}) {
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('files', file)
     if (metadata.description) formData.append('description', metadata.description)
 
-    return unwrapApiData(await apiRequest(`/api/student/applications/${applicationId}/evidence`, {
+    return unwrapApiData(await apiRequest(`/api/student/applications/${applicationId}/attachments`, {
       method: 'POST',
       body: formData,
     }))
   },
   async downloadEvidence(applicationId, evidenceId) {
     // Return URL for download or handle blob
-    return `/api/student/applications/${applicationId}/evidence/${evidenceId}/download`
+    return `/api/student/applications/${applicationId}/attachments/${evidenceId}/download`
   },
   async deleteEvidence(applicationId, evidenceId) {
-    const response = await apiRequest(`/api/student/applications/${applicationId}/evidence/${evidenceId}`, {
+    const response = await apiRequest(`/api/student/applications/${applicationId}/attachments/${evidenceId}`, {
       method: 'DELETE',
     })
     return response?.success ?? response?.Success ?? true
@@ -89,13 +89,13 @@ export const applicationsApi = {
     return unwrapApiData(await apiRequest(`/api/admin/applications${buildQuery(query)}`))
   },
   async getAdminApplicationSummary(query = {}) {
-    return unwrapApiData(await apiRequest(`/api/admin/applications/summary${buildQuery(query)}`))
+    return unwrapApiData(await apiRequest(`/api/admin/applications/queue-summary${buildQuery(query)}`))
   },
   async getAdminApplicationDetail(id) {
     return unwrapApiData(await apiRequest(`/api/admin/applications/${id}`))
   },
   async getAssignableUsers(query = {}) {
-    return unwrapApiData(await apiRequest(`/api/admin/applications/assignable-users${buildQuery(query)}`))
+    return unwrapApiData(await apiRequest(`/api/admin/applications/assignees${buildQuery(query)}`))
   },
   async receiveApplication(id, payload = {}) {
     return unwrapApiData(await apiRequest(`/api/admin/applications/${id}/receive`, {
@@ -116,7 +116,7 @@ export const applicationsApi = {
     }))
   },
   async downloadAdminEvidence(applicationId, evidenceId) {
-    return `/api/admin/applications/${applicationId}/evidence/${evidenceId}/download`
+    return `/api/admin/applications/${applicationId}/attachments/${evidenceId}/download`
   },
 
   // ── Admin Decision ───────────────────────────────────────────────
@@ -147,7 +147,7 @@ export const applicationsApi = {
     }))
   },
   async recordProcessingResult(id, payload) {
-    return unwrapApiData(await apiRequest(`/api/admin/applications/${id}/record-result`, {
+    return unwrapApiData(await apiRequest(`/api/admin/applications/${id}/record-processing-result`, {
       method: 'POST',
       body: JSON.stringify(payload),
     }))
@@ -155,24 +155,24 @@ export const applicationsApi = {
 
   // ── Reports ──────────────────────────────────────────────────────
   async getApplicationReportOverview(query = {}) {
-    return unwrapApiData(await apiRequest(`/api/admin/application-reports/overview${buildQuery(query)}`))
+    return unwrapApiData(await apiRequest(`/api/admin/applications/reports/overview${buildQuery(query)}`))
   },
   async getApplicationReportByType(query = {}) {
-    return unwrapApiData(await apiRequest(`/api/admin/application-reports/by-type${buildQuery(query)}`))
+    return unwrapApiData(await apiRequest(`/api/admin/applications/reports/by-type${buildQuery(query)}`))
   },
   async getPendingApplicationReport(query = {}) {
-    return unwrapApiData(await apiRequest(`/api/admin/application-reports/pending${buildQuery(query)}`))
+    return unwrapApiData(await apiRequest(`/api/admin/applications/reports/pending${buildQuery(query)}`))
   },
   async getOverdueApplicationReport(query = {}) {
-    return unwrapApiData(await apiRequest(`/api/admin/application-reports/overdue${buildQuery(query)}`))
+    return unwrapApiData(await apiRequest(`/api/admin/applications/reports/overdue${buildQuery(query)}`))
   },
   async getProcessingTimeReport(query = {}) {
-    return unwrapApiData(await apiRequest(`/api/admin/application-reports/processing-time${buildQuery(query)}`))
+    return unwrapApiData(await apiRequest(`/api/admin/applications/reports/processing-time${buildQuery(query)}`))
   },
   async getByAssigneeReport(query = {}) {
-    return unwrapApiData(await apiRequest(`/api/admin/application-reports/by-assignee${buildQuery(query)}`))
+    return unwrapApiData(await apiRequest(`/api/admin/applications/reports/by-assignee${buildQuery(query)}`))
   },
   async getApplicationTrends(query = {}) {
-    return unwrapApiData(await apiRequest(`/api/admin/application-reports/trends${buildQuery(query)}`))
+    return unwrapApiData(await apiRequest(`/api/admin/applications/reports/trends${buildQuery(query)}`))
   },
 }

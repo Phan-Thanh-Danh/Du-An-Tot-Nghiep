@@ -1,15 +1,45 @@
 <script setup>
-import { BarChart3, CheckCircle2, Clock3, TrendingUp } from 'lucide-vue-next'
+import { computed, onMounted, ref } from 'vue'
+import { AlertTriangle, BarChart3, CheckCircle2, Clock3, TrendingUp } from 'lucide-vue-next'
 
+import EmptyState from '@/components/ui/EmptyState.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
+import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import { applicationsApi } from '@/services/applicationsApi'
 import { getStatusMeta } from '@/utils/statusLabels'
 
-const icons = [BarChart3, Clock3, CheckCircle2, TrendingUp]
+const icons = [BarChart3, Clock3, CheckCircle2, AlertTriangle]
 
-const applicationReportCards = []
-const typeRows = []
+const loading = ref(false)
+const error = ref('')
+const overview = ref({})
+const typeRows = ref([])
+
+const applicationReportCards = computed(() => [
+  {
+    label: 'Tổng đơn',
+    value: overview.value.total ?? overview.value.tongSo ?? overview.value.totalApplications ?? 0,
+    status: 'dang_xem_xet',
+  },
+  {
+    label: 'Đang xử lý',
+    value: overview.value.inProgress ?? overview.value.dangXuLy ?? overview.value.processing ?? 0,
+    status: 'dang_xem_xet',
+  },
+  {
+    label: 'Đã hoàn tất',
+    value: overview.value.completed ?? overview.value.daHoanTat ?? overview.value.approved ?? 0,
+    status: 'da_duyet',
+  },
+  {
+    label: 'Quá hạn',
+    value: overview.value.overdue ?? overview.value.quaHan ?? 0,
+    status: 'tu_choi',
+  },
+])
 
 function getApplicationTypeLabel(type) {
   return type || 'Không xác định'
@@ -18,6 +48,46 @@ function getApplicationTypeLabel(type) {
 function cardStatusMeta(status) {
   return getStatusMeta('applications', status)
 }
+
+function unwrapList(payload) {
+  const data = payload?.data ?? payload?.Data ?? payload
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.items)) return data.items
+  if (Array.isArray(data?.Items)) return data.Items
+  return []
+}
+
+function normalizeTypeRow(row) {
+  const total = Number(row.total ?? row.tongSo ?? row.count ?? 0)
+  const completed = Number(row.completed ?? row.daHoanTat ?? row.approved ?? 0)
+  return {
+    type: row.type ?? row.loaiDon ?? row.LoaiDon ?? row.tenLoaiDon ?? row.TenLoaiDon ?? 'Không xác định',
+    total,
+    completed,
+    avgHours: Number(row.avgHours ?? row.gioXuLyTrungBinh ?? row.averageProcessingHours ?? 0),
+  }
+}
+
+async function loadReports() {
+  loading.value = true
+  error.value = ''
+  try {
+    const [overviewResult, byTypeResult] = await Promise.all([
+      applicationsApi.getApplicationReportOverview(),
+      applicationsApi.getApplicationReportByType(),
+    ])
+    overview.value = overviewResult?.data ?? overviewResult?.Data ?? overviewResult ?? {}
+    typeRows.value = unwrapList(byTypeResult).map(normalizeTypeRow)
+  } catch (e) {
+    error.value = e.message || 'Không tải được báo cáo đơn từ.'
+    overview.value = {}
+    typeRows.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadReports)
 </script>
 
 <template>
@@ -30,12 +100,23 @@ function cardStatusMeta(status) {
         </p>
         <div>
           <h1>Báo cáo đơn từ</h1>
-          <p>Tổng quan hiệu suất xử lý, cơ cấu loại đơn và cảnh báo SLA trong dữ liệu demo.</p>
+          <p>Tổng quan hiệu suất xử lý, cơ cấu loại đơn và cảnh báo SLA từ API báo cáo.</p>
         </div>
       </div>
-      <GlassBadge variant="info" size="md">Không dùng chart library</GlassBadge>
+      <GlassButton variant="secondary" :disabled="loading" @click="loadReports">Làm mới</GlassButton>
     </GlassPanel>
 
+    <LoadingSkeleton v-if="loading" :lines="6" />
+
+    <GlassPanel v-else-if="error" variant="flat" density="compact" class="error-panel">
+      <div>
+        <h2>Không tải được báo cáo</h2>
+        <p>{{ error }}</p>
+      </div>
+      <GlassButton variant="secondary" @click="loadReports">Thử lại</GlassButton>
+    </GlassPanel>
+
+    <template v-else>
     <section class="summary-grid">
       <GlassPanel
         v-for="(card, index) in applicationReportCards"
@@ -57,7 +138,7 @@ function cardStatusMeta(status) {
       </GlassPanel>
     </section>
 
-    <section class="report-grid">
+    <section v-if="typeRows.length" class="report-grid">
       <GlassPanel variant="flat" density="compact" class="report-card">
         <div class="panel-heading">
           <div>
@@ -69,7 +150,7 @@ function cardStatusMeta(status) {
           <div v-for="row in typeRows" :key="row.type" class="bar-row">
             <span class="bar-label">{{ getApplicationTypeLabel(row.type) }}</span>
             <span class="bar-track">
-              <span class="bar-fill" :style="{ width: `${Math.min(100, Math.round(row.total / 5))}%` }" />
+            <span class="bar-fill" :style="{ width: `${Math.min(100, Math.round(row.total / Math.max(1, typeRows.reduce((max, item) => Math.max(max, item.total), 0)) * 100))}%` }" />
             </span>
             <strong>{{ row.total }}</strong>
           </div>
@@ -100,7 +181,7 @@ function cardStatusMeta(status) {
                 <td>{{ row.avgHours }} giờ</td>
                 <td>
                   <GlassBadge variant="success">
-                    {{ Math.round((row.completed / row.total) * 100) }}%
+                    {{ row.total ? Math.round((row.completed / row.total) * 100) : 0 }}%
                   </GlassBadge>
                 </td>
               </tr>
@@ -109,6 +190,13 @@ function cardStatusMeta(status) {
         </TableShell>
       </GlassPanel>
     </section>
+
+    <EmptyState
+      v-else
+      title="Chưa có dữ liệu báo cáo"
+      description="API báo cáo hiện chưa trả về dòng thống kê theo loại đơn."
+    />
+    </template>
   </div>
 </template>
 

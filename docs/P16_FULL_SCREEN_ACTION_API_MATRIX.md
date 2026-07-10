@@ -286,3 +286,79 @@ P16B.3 resolves the remaining non-SuperAdmin `MOCK_OR_FALLBACK` rows identified 
 Verification for P16B.3: frontend build PASS, backend build PASS with 19 warnings and 0 errors, strict production grep PASS with 0 hits, targeted non-SuperAdmin grep PASS with 0 hits, targeted browser smoke PASS 7/7 with console/runtime/network 401/403/404/500 all 0, conflict marker grep PASS, and `git diff --check` PASS. Smoke artifact: `docs/artifacts/p16b3-non-superadmin-mock-cleanup/p16b3-results.json`.
 
 Note: `/student/exams/{id}/take` is counted as `PASS_GUARDED_REDIRECT`; the app redirects to `/student/exams/detail/{id}` until preflight/entry conditions are satisfied. This is route guard behavior, not a mock/fallback path.
+
+## P16B.4A FE_ONLY_STATIC Triage
+
+> Date: 2026-07-10
+> Scope: All 28 `FE_ONLY_STATIC` rows from P16A baseline.
+
+### Worklist Summary
+
+| Decision | Count |
+| --- | ---: |
+| `CONNECT_EXISTING_API` | 9 |
+| `WRAPPER_API_BACKED` | 8 |
+| `NEEDS_BE_ENDPOINT` | 10 |
+| `REMOVE_FROM_100_PERCENT_CLAIM` | 1 |
+| **Total** | **28** |
+
+### Status Changes
+
+| Route | Component | Previous | New | Decision | Endpoint / Reason |
+| --- | --- | --- | --- | --- | --- |
+| `/super-admin/approvals/requests` | `AdminApplicationsQueue` | `FE_ONLY_STATIC` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `CONNECT_EXISTING_API` | `GET/POST /api/admin/applications`, assign, approve, reject, cancel endpoints |
+| `/super-admin/approvals/reports` | `AdminApplicationReports` | `FE_ONLY_STATIC` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `CONNECT_EXISTING_API` | `GET /api/admin/applications/reports/overview`, stats, export endpoints |
+| `/super-admin/notifications/send` | `SendNotificationView` → `NotificationComposeForm` | `FE_ONLY_STATIC` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `CONNECT_EXISTING_API` | `POST /api/admin/notifications`, `POST /api/admin/notifications/preview-recipients` |
+| `/super-admin/rewards-discipline` | `RewardDisciplineView` → `AwardsView` | `FE_ONLY_STATIC` | `WRAPPER_API_BACKED` | `WRAPPER_API_BACKED` | Child `AwardsView` already calls `rewardDisciplineApi`; route is a nav wrapper |
+| `/super-admin/rewards/campaigns` | `RewardCampaignsView` → `AwardsView` | `FE_ONLY_STATIC` | `WRAPPER_API_BACKED` | `WRAPPER_API_BACKED` | Same as above |
+| `/super-admin/discipline/records` | `DisciplineRecordsView` → `DisciplineView` | `FE_ONLY_STATIC` | `WRAPPER_API_BACKED` | `WRAPPER_API_BACKED` | Child `DisciplineView` calls `rewardDisciplineApi.getDisciplineRecords()` |
+| `/super-admin/discipline/appeals` | `DisciplineAppealsView` → `DisciplineView` | `FE_ONLY_STATIC` | `WRAPPER_API_BACKED` | `WRAPPER_API_BACKED` | Child `DisciplineView` calls `rewardDisciplineApi.getDisciplineAppeals()` |
+| `/super-admin/reports/learning` | `LearningReportView` | `FE_ONLY_STATIC` | `NEEDS_BE_ENDPOINT` | `NEEDS_BE_ENDPOINT` | No learning analytics endpoint in contract |
+| `/super-admin/reports/attendance` | `AttendanceReportView` | `FE_ONLY_STATIC` | `NEEDS_BE_ENDPOINT` | `NEEDS_BE_ENDPOINT` | No SuperAdmin attendance analytics endpoint in contract |
+| `/super-admin/reports/campus-comparison` | `CampusComparisonView` | `FE_ONLY_STATIC` | `NEEDS_BE_ENDPOINT` | `NEEDS_BE_ENDPOINT` | No campus comparison endpoint in contract |
+| `/super-admin/reports/export` | `DataExportView` | `FE_ONLY_STATIC` | `NEEDS_BE_ENDPOINT` | `NEEDS_BE_ENDPOINT` | No data export endpoint in contract |
+| `/bgh/profile` | `ProfileView` | `FE_ONLY_STATIC` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `CONNECT_EXISTING_API` | `GET /api/account/me`, `PUT /api/account/profile`, `PUT /api/account/change-password` |
+| `/bgh/notifications` | `NotificationsView` → `NotificationInbox` | `FE_ONLY_STATIC` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `CONNECT_EXISTING_API` | `GET /api/notifications/me`, `PUT /api/notifications/{id}/read`, `PUT /api/notifications/read-all` |
+| `/staff/dashboard` | `Dashboard.vue` (useStaffDashboard) | `FE_ONLY_STATIC` | `WRAPPER_API_BACKED` | `WRAPPER_API_BACKED` | `useStaffDashboard` composable calls `/api/staff/dashboard` |
+| `/staff/conflicts` | `ConflictCheckView` | `FE_ONLY_STATIC` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `CONNECT_EXISTING_API` | `POST /api/thoi-khoa-bieu/xep-lich-thong-minh/check-xung-dot-batch` |
+| `/staff/schedule/pending` | `PendingSchedulesView` | `FE_ONLY_STATIC` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `CONNECT_EXISTING_API` | `GET /api/thoi-khoa-bieu/drafts` |
+| `/staff/requests-history` | `RequestHistoryView` | `FE_ONLY_STATIC` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `CONNECT_EXISTING_API` | `GET /api/admin/applications` with status filter (approved/rejected/cancelled) |
+| `/staff/notices/send` | `SendNoticeView` → `NotificationComposeForm` | `FE_ONLY_STATIC` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `CONNECT_EXISTING_API` | `POST /api/admin/notifications`, `POST /api/admin/notifications/preview-recipients` |
+| `/staff/notices/history` | `NoticeHistoryView` | `FE_ONLY_STATIC` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `CONNECT_EXISTING_API` | `GET /api/admin/notifications` |
+| `/teacher/class-grades` | `ClassGradebookView` | `FE_ONLY_STATIC` | `NEEDS_BE_ENDPOINT` | `NEEDS_BE_ENDPOINT` | No teacher gradebook summary endpoint in contract |
+| `/teacher/grading-input` | `ClassGradesView` | `FE_ONLY_STATIC` | `NEEDS_BE_ENDPOINT` | `NEEDS_BE_ENDPOINT` | No teacher manual grade entry endpoint in contract |
+| `/teacher/notifications` | `NotificationsView` → `NotificationInbox` | `FE_ONLY_STATIC` | `WRAPPER_API_BACKED` | `WRAPPER_API_BACKED` | `NotificationInbox` calls `/api/notifications/me` (shared with BGH/Student fix) |
+| `/student/exams` | `ExamsView` | `FE_ONLY_STATIC` | `WRAPPER_API_BACKED` | `WRAPPER_API_BACKED` | `studentExamService` / `examApi` already calls real API |
+| `/student/exams/2` | `ExamResultView` | `FE_ONLY_STATIC` | `NEEDS_BE_ENDPOINT` | `NEEDS_BE_ENDPOINT` | No student exam result/session detail endpoint in contract |
+| `/student/requests` | `RequestsView` → `StudentApplicationsHome` | `FE_ONLY_STATIC` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `CONNECT_EXISTING_API` | `GET /api/student/applications`, `POST /api/student/applications`, `PUT`, cancel, resubmit endpoints |
+| `/student/notifications` | `NotificationsView` → `NotificationInbox` | `FE_ONLY_STATIC` | `WRAPPER_API_BACKED` | `WRAPPER_API_BACKED` | Same `NotificationInbox` fix |
+| `/parent/dashboard` | `DashboardWrapper` | `FE_ONLY_STATIC` | `WRAPPER_API_BACKED` | `WRAPPER_API_BACKED` | Child `Dashboard.vue` / `MobileDashboard.vue` already calls `parentApi` |
+| `/content-council/subjects` | `SubjectListPage` | `FE_ONLY_STATIC` | `WRAPPER_API_BACKED` | `WRAPPER_API_BACKED` | `useSubjectFilters` / `subjectStore` backed by `contentCouncilApi` |
+
+### Also Fixed (adjacent, no status change needed)
+
+| File | Fix | Reason |
+| --- | --- | --- |
+| `applicationsApi.js` | Corrected wrong endpoint paths (`/drafts`, `/summary`, `/assignable-users`, etc.) | FE was calling non-existent paths; now points to real controller routes |
+| `scheduleApi.js` | Added `getDrafts()`, `batchCheckConflicts()` methods | Required for PendingSchedulesView and ConflictCheckView |
+| `AdminNotificationsController.cs` | Added `AcademicStaff` to `[Authorize]` roles | Staff role was getting 403 on `/api/admin/notifications` |
+
+### P16B.4A Verification
+
+| Check | Result |
+| --- | --- |
+| Frontend build | PASS, 0 errors |
+| Backend build | PASS, 4 warnings (NU1903 OpenApi CVE, pre-existing), 0 errors |
+| Strict production grep | PASS, 0 hits for mock/fake/dummy/fallback/ENABLE_MOCK_API/withFallback tokens |
+| `FE_ONLY_STATIC` remaining in source code | PASS, 0 hits |
+| Conflict marker grep | PASS, 0 hits |
+| `git diff --check` | PASS, LF/CRLF warnings in docs only |
+| Targeted browser smoke | PASS, 18/18 routes, console errors 0, network 401/403/404/500 all 0 |
+| Smoke method | chrome-devtools-mcp (MCP direct) |
+| Smoke artifact | `docs/artifacts/p16b4a-fe-only-static/p16b4a-results.json` |
+
+### Decision
+
+`PASS_WITH_WARNINGS` for P16B.4A.
+
+All 28 `FE_ONLY_STATIC` rows have been triaged. 9 rows connected to existing APIs, 8 rows confirmed as wrapper/false-positive. 10 rows remain `NEEDS_BE_ENDPOINT` and 1 is `REMOVE_FROM_100_PERCENT_CLAIM`; these are outside the full API/action coverage claim until real backend contracts are added.

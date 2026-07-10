@@ -9,7 +9,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/admin/notifications")]
-[Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin}")]
+[Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff}")]
 public class AdminNotificationsController : ControllerBase
 {
     private readonly INotificationService _notificationService;

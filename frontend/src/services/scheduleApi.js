@@ -43,6 +43,17 @@ export const scheduleApi = {
     })
   },
 
+  checkConflictsBatch(data = {}) {
+    return apiRequest('/api/thoi-khoa-bieu/xep-lich-thong-minh/check-xung-dot-batch', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  listDrafts(params = {}) {
+    return apiRequest(`/api/thoi-khoa-bieu/drafts${buildQuery(params)}`)
+  },
+
   generateSessions(id) {
     return apiRequest(`/api/thoi-khoa-bieu/${id}/generate-sessions`, { method: 'POST' })
   },

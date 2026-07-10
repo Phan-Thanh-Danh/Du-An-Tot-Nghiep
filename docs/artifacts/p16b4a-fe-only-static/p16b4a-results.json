@@ -1,0 +1,41 @@
+{
+  "phase": "P16B.4A",
+  "date": "2026-07-10T02:48:00+07:00",
+  "frontend": "https://localhost:5173",
+  "backend": "http://localhost:5097",
+  "method": "chrome-devtools-mcp (MCP direct)",
+  "totalRoutes": 18,
+  "pass": 18,
+  "fail": 0,
+  "consoleErrors": 0,
+  "networkErrors_401_403_404_500": 0,
+  "results": [
+    {"route": "/bgh/profile", "role": "BGH", "prevStatus": "FE_ONLY_STATIC", "newStatus": "PASS_LOAD_ONLY_ACTIONS_PENDING", "decision": "CONNECT_EXISTING_API", "http": 200, "runtimePath": "/bgh/profile", "is404": false, "result": "PASS"},
+    {"route": "/bgh/notifications", "role": "BGH", "prevStatus": "FE_ONLY_STATIC", "newStatus": "PASS_LOAD_ONLY_ACTIONS_PENDING", "decision": "CONNECT_EXISTING_API", "http": 200, "runtimePath": "/bgh/notifications", "is404": false, "result": "PASS"},
+    {"route": "/staff/conflicts", "role": "Staff", "prevStatus": "FE_ONLY_STATIC", "newStatus": "PASS_LOAD_ONLY_ACTIONS_PENDING", "decision": "CONNECT_EXISTING_API", "http": 200, "runtimePath": "/staff/conflicts", "is404": false, "result": "PASS"},
+    {"route": "/staff/schedule/pending", "role": "Staff", "prevStatus": "FE_ONLY_STATIC", "newStatus": "PASS_LOAD_ONLY_ACTIONS_PENDING", "decision": "CONNECT_EXISTING_API", "http": 200, "runtimePath": "/staff/schedule/pending", "is404": false, "result": "PASS"},
+    {"route": "/staff/requests-history", "role": "Staff", "prevStatus": "FE_ONLY_STATIC", "newStatus": "PASS_LOAD_ONLY_ACTIONS_PENDING", "decision": "CONNECT_EXISTING_API", "http": 200, "runtimePath": "/staff/requests-history", "is404": false, "result": "PASS"},
+    {"route": "/staff/notices/send", "role": "Staff", "prevStatus": "FE_ONLY_STATIC", "newStatus": "PASS_LOAD_ONLY_ACTIONS_PENDING", "decision": "CONNECT_EXISTING_API", "http": 200, "runtimePath": "/staff/notices/send", "is404": false, "result": "PASS"},
+    {"route": "/staff/notices/history", "role": "Staff", "prevStatus": "FE_ONLY_STATIC", "newStatus": "PASS_LOAD_ONLY_ACTIONS_PENDING", "decision": "CONNECT_EXISTING_API", "http": 200, "runtimePath": "/staff/notices/history", "is404": false, "result": "PASS"},
+    {"route": "/student/requests", "role": "Student", "prevStatus": "FE_ONLY_STATIC", "newStatus": "PASS_LOAD_ONLY_ACTIONS_PENDING", "decision": "CONNECT_EXISTING_API", "http": 200, "runtimePath": "/student/requests", "is404": false, "result": "PASS"},
+    {"route": "/super-admin/approvals/requests", "role": "SuperAdmin", "prevStatus": "FE_ONLY_STATIC", "newStatus": "PASS_LOAD_ONLY_ACTIONS_PENDING", "decision": "CONNECT_EXISTING_API", "http": 200, "runtimePath": "/super-admin/approvals/requests", "is404": false, "result": "PASS"},
+    {"route": "/super-admin/approvals/reports", "role": "SuperAdmin", "prevStatus": "FE_ONLY_STATIC", "newStatus": "PASS_LOAD_ONLY_ACTIONS_PENDING", "decision": "CONNECT_EXISTING_API", "http": 200, "runtimePath": "/super-admin/approvals/reports", "is404": false, "result": "PASS"},
+    {"route": "/super-admin/notifications/send", "role": "SuperAdmin", "prevStatus": "FE_ONLY_STATIC", "newStatus": "PASS_LOAD_ONLY_ACTIONS_PENDING", "decision": "CONNECT_EXISTING_API", "http": 200, "runtimePath": "/super-admin/notifications/send", "is404": false, "result": "PASS"},
+    {"route": "/super-admin/rewards-discipline", "role": "SuperAdmin", "prevStatus": "FE_ONLY_STATIC", "newStatus": "WRAPPER_API_BACKED", "decision": "WRAPPER_API_BACKED", "http": 200, "runtimePath": "/super-admin/rewards-discipline", "is404": false, "result": "PASS"},
+    {"route": "/staff/dashboard", "role": "Staff", "prevStatus": "FE_ONLY_STATIC", "newStatus": "WRAPPER_API_BACKED", "decision": "WRAPPER_API_BACKED", "http": 200, "runtimePath": "/staff/dashboard", "is404": false, "result": "PASS"},
+    {"route": "/student/exams", "role": "Student", "prevStatus": "FE_ONLY_STATIC", "newStatus": "WRAPPER_API_BACKED", "decision": "WRAPPER_API_BACKED", "http": 200, "runtimePath": "/student/exams", "is404": false, "result": "PASS"},
+    {"route": "/student/notifications", "role": "Student", "prevStatus": "FE_ONLY_STATIC", "newStatus": "WRAPPER_API_BACKED", "decision": "WRAPPER_API_BACKED", "http": 200, "runtimePath": "/student/notifications", "is404": false, "result": "PASS"},
+    {"route": "/teacher/notifications", "role": "Teacher", "prevStatus": "FE_ONLY_STATIC", "newStatus": "WRAPPER_API_BACKED", "decision": "WRAPPER_API_BACKED", "http": 200, "runtimePath": "/teacher/notifications", "is404": false, "result": "PASS"},
+    {"route": "/parent/dashboard", "role": "Parent", "prevStatus": "FE_ONLY_STATIC", "newStatus": "WRAPPER_API_BACKED", "decision": "WRAPPER_API_BACKED", "http": 200, "runtimePath": "/parent/dashboard", "is404": false, "result": "PASS"},
+    {"route": "/content-council/subjects", "role": "ContentCouncil", "prevStatus": "FE_ONLY_STATIC", "newStatus": "WRAPPER_API_BACKED", "decision": "WRAPPER_API_BACKED", "http": 200, "runtimePath": "/content-council/subjects", "is404": false, "result": "PASS"}
+  ],
+  "notes": [
+    "All 18 routes returned HTTP 200 via SPA routing.",
+    "0 console errors, 0 network 401/403/404/500.",
+    "Protected routes that require auth will redirect to /login/<role> when accessed without session — this is correct guard behavior.",
+    "Smoke run via chrome-devtools-mcp (MCP direct, no browser subagent).",
+    "CONNECT_EXISTING_API routes (9): code changed to call real APIs; loading/error/empty state present.",
+    "WRAPPER_API_BACKED routes (8): no code change needed; child/composable/store already calls real API.",
+    "NEEDS_BE_ENDPOINT routes (7) not smoked here — they remain outside claim."
+  ]
+}

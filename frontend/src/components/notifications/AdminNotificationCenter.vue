@@ -17,14 +17,7 @@ const handlePreview = async (formPayload) => {
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    const data = await notificationsApi.previewRecipients({
-      loaiNguoiNhan: formPayload.loaiNguoiNhan,
-      maDonVi: formPayload.maDonVi || null,
-      maKhoaHoc: formPayload.maKhoaHoc || null,
-      maLopHoc: formPayload.maLopHoc || null,
-      maHocKy: formPayload.maHocKy || null,
-      danhSachNguoiNhan: formPayload.danhSachNguoiNhan || []
-    })
+    const data = await notificationsApi.previewRecipients(formPayload)
     previewData.value = data
   } catch (err) {
     errorMessage.value = err.message || 'Lỗi khi lấy dữ liệu preview'

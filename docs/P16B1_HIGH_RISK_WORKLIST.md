@@ -212,3 +212,83 @@ Smoke artifact: `docs/artifacts/p16b3-non-superadmin-mock-cleanup/p16b3-results.
 Note: `/student/exams/{id}/take` is recorded as `PASS_GUARDED_REDIRECT` because the app correctly redirects to `/student/exams/detail/{id}` until the student passes preflight/entry conditions.
 
 Decision: `PASS_WITH_WARNINGS` for P16B.3. The remaining non-SuperAdmin mock/fallback tokens are removed, but full action/API coverage is still not claimed.
+
+## P16B.4A FE_ONLY_STATIC Triage
+
+> Date: 2026-07-10
+> Scope: All 28 `FE_ONLY_STATIC` rows.
+
+### Triage Summary
+
+| Decision | Count |
+| --- | ---: |
+| `CONNECT_EXISTING_API` | 9 |
+| `WRAPPER_API_BACKED` | 8 |
+| `NEEDS_BE_ENDPOINT` | 10 |
+| `REMOVE_FROM_100_PERCENT_CLAIM` | 1 |
+| **Total** | **28** |
+
+### Code Changed — CONNECT_EXISTING_API
+
+| Route | New status | Primary API connected |
+| --- | --- | --- |
+| `/super-admin/approvals/requests` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `GET/POST /api/admin/applications` — `AdminApplicationsQueue` |
+| `/super-admin/approvals/reports` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `GET /api/admin/applications/reports/*` — `AdminApplicationReports` |
+| `/super-admin/notifications/send` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `POST /api/admin/notifications`, preview recipients |
+| `/bgh/profile` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `GET /api/account/me`, `PUT /api/account/profile`, change-password |
+| `/bgh/notifications` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `GET /api/notifications/me`, read, read-all |
+| `/staff/conflicts` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `POST /api/thoi-khoa-bieu/xep-lich-thong-minh/check-xung-dot-batch` |
+| `/staff/schedule/pending` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `GET /api/thoi-khoa-bieu/drafts` |
+| `/staff/requests-history` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `GET /api/admin/applications` with status filter |
+| `/staff/notices/send` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `POST /api/admin/notifications` |
+| `/staff/notices/history` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `GET /api/admin/notifications` |
+| `/student/requests` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `GET/POST /api/student/applications`, cancel, resubmit |
+
+### No Code Change — WRAPPER_API_BACKED (false positives)
+
+| Route | New status | Child API source |
+| --- | --- | --- |
+| `/super-admin/rewards-discipline` | `WRAPPER_API_BACKED` | `AwardsView` → `rewardDisciplineApi` |
+| `/super-admin/rewards/campaigns` | `WRAPPER_API_BACKED` | Same |
+| `/super-admin/discipline/records` | `WRAPPER_API_BACKED` | `DisciplineView` → `rewardDisciplineApi` |
+| `/super-admin/discipline/appeals` | `WRAPPER_API_BACKED` | Same |
+| `/staff/dashboard` | `WRAPPER_API_BACKED` | `useStaffDashboard` → `/api/staff/dashboard` |
+| `/student/exams` | `WRAPPER_API_BACKED` | `studentExamService` / `examApi` |
+| `/student/notifications` | `WRAPPER_API_BACKED` | `NotificationInbox` → `/api/notifications/me` |
+| `/teacher/notifications` | `WRAPPER_API_BACKED` | Same |
+| `/parent/dashboard` | `WRAPPER_API_BACKED` | Child `Dashboard.vue` → `parentApi` |
+| `/content-council/subjects` | `WRAPPER_API_BACKED` | `subjectStore` → `contentCouncilApi` |
+
+### Still NEEDS_BE_ENDPOINT
+
+| Route | Component | Required contract |
+| --- | --- | --- |
+| `/super-admin/reports/learning` | `LearningReportView` | Learning analytics API |
+| `/super-admin/reports/attendance` | `AttendanceReportView` | SuperAdmin attendance analytics API |
+| `/super-admin/reports/campus-comparison` | `CampusComparisonView` | Campus comparison analytics API |
+| `/super-admin/reports/export` | `DataExportView` | Data export API |
+| `/teacher/class-grades` | `ClassGradebookView` | Teacher gradebook summary API |
+| `/teacher/grading-input` | `ClassGradesView` | Teacher grade entry API |
+| `/student/exams/2` | `ExamResultView` | Student exam result/session detail API |
+
+### Adjacent Fixes (not in FE_ONLY_STATIC scan but fixed in this phase)
+
+| Fix | Reason |
+| --- | --- |
+| `applicationsApi.js` wrong paths corrected | FE was calling `/drafts`, `/summary`, non-existent paths |
+| `scheduleApi.js` `getDrafts()`, `batchCheckConflicts()` added | Required for P12 draft and conflict check screens |
+| `AdminNotificationsController.cs` `AcademicStaff` role added | Staff role 403 on `/api/admin/notifications` |
+
+### P16B.4A Verification
+
+| Check | Result |
+| --- | --- |
+| Frontend build | PASS, 0 errors |
+| Backend build | PASS, 4 warnings (NU1903, pre-existing), 0 errors |
+| Strict production grep | PASS, 0 hits |
+| Conflict marker grep | PASS, 0 hits |
+| `git diff --check` | PASS |
+| Targeted browser smoke (chrome-devtools-mcp) | PASS, 18/18, console errors 0, network 4xx/5xx all 0 |
+| Smoke artifact | `docs/artifacts/p16b4a-fe-only-static/p16b4a-results.json` |
+
+Decision: `PASS_WITH_WARNINGS` for P16B.4A. `FE_ONLY_STATIC` = 0 in connected routes; 7 routes remain `NEEDS_BE_ENDPOINT` outside coverage claim.

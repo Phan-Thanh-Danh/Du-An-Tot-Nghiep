@@ -67,16 +67,6 @@ const fetchNotifications = async () => {
   try {
     const data = await notificationsApi.getMyNotifications({ pageSize: 50 })
     notifications.value = data.items || []
-
-    // Hợp nhất dữ liệu thông báo trả về từ API
-    if (notifications.value.length === 0) {
-      notifications.value = [
-        { id: '1', title: 'Nhắc nhở học phí học kỳ Fall 2026', excerpt: 'Hạn chót đóng học phí là ngày 15/09/2026. Vui lòng hoàn thành để không bị khóa tài khoản.', sender: 'Phòng Tài Chính', category: 'tai_chinh', priority: 'KHAN_CAP', createdAt: new Date(Date.now() - 3600000).toISOString(), daDoc: false, relatedPath: '/student/tuition' },
-        { id: '2', title: 'Thông báo đổi phòng học môn Java', excerpt: 'Môn Lập trình Java ca 2 thứ 3 được đổi sang phòng 304.', sender: 'Phòng Đào Tạo', category: 'hoc_vu', priority: 'BINH_THUONG', createdAt: new Date(Date.now() - 86400000).toISOString(), daDoc: false, relatedPath: '/student/schedule' },
-        { id: '3', title: 'Bảo trì hệ thống LMS cuối tuần', excerpt: 'Hệ thống sẽ bảo trì từ 22:00 thứ 7 đến 04:00 Chủ nhật. Trong thời gian này sinh viên không thể làm bài.', sender: 'IT Helpdesk', category: 'he_thong', priority: 'BINH_THUONG', createdAt: new Date(Date.now() - 172800000).toISOString(), daDoc: true, relatedPath: null }
-      ]
-    }
-
     unreadCount.value = notifications.value.filter(n => !n.daDoc).length
   } catch {
     error.value = 'Không thể tải thông báo. Vui lòng thử lại sau.'
@@ -89,20 +79,28 @@ onMounted(() => {
   fetchNotifications()
 })
 
-const selectNotification = (n) => {
+const selectNotification = async (n) => {
   selectedNotification.value = n
   if (!n.daDoc) {
-    n.daDoc = true
-    unreadCount.value = Math.max(0, unreadCount.value - 1)
-    // notificationsApi.markAsRead(n.id) // Call to backend
+    try {
+      await notificationsApi.markAsRead(n.id)
+      n.daDoc = true
+      unreadCount.value = Math.max(0, unreadCount.value - 1)
+    } catch {
+      popupStore.error('Lỗi', 'Không thể đánh dấu thông báo đã đọc.')
+    }
   }
 }
 
-const markAllAsRead = () => {
-  notifications.value.forEach(n => n.daDoc = true)
-  unreadCount.value = 0
-  popupStore.success('Thành công', 'Đã đánh dấu tất cả là đã đọc')
-  // notificationsApi.markAllAsRead()
+const markAllAsRead = async () => {
+  try {
+    await notificationsApi.markAllAsRead()
+    notifications.value.forEach(n => n.daDoc = true)
+    unreadCount.value = 0
+    popupStore.success('Thành công', 'Đã đánh dấu tất cả là đã đọc')
+  } catch {
+    popupStore.error('Lỗi', 'Không thể đánh dấu tất cả thông báo đã đọc.')
+  }
 }
 </script>
 

@@ -49,7 +49,10 @@
                 <div v-if="!editing" class="text-sm font-semibold text-heading px-3 py-2 bg-(--surface-input) rounded-lg">
                   {{ field.value || '—' }}
                 </div>
-                <input v-else v-model="editForm[field.key]" type="text" :placeholder="field.label" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)" />
+                <input v-if="editing && field.editable" v-model="editForm[field.key]" type="text" :placeholder="field.label" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)" />
+                <div v-else-if="editing" class="text-sm font-semibold text-heading px-3 py-2 bg-(--surface-input) rounded-lg">
+                  {{ field.value || '—' }}
+                </div>
               </div>
             </div>
           </div>
@@ -130,13 +133,6 @@
               </div>
               <span class="text-[10px] font-bold text-(--color-success-text) bg-(--color-success-bg) px-2 py-0.5 rounded-full">Hiện tại</span>
             </div>
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <Smartphone :size="16" class="text-muted" />
-                <span class="text-sm text-body">iOS - Safari</span>
-              </div>
-              <span class="text-[10px] text-muted">3 giờ trước</span>
-            </div>
           </div>
         </div>
       </div>
@@ -146,44 +142,42 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { computed, ref, reactive, onMounted } from 'vue'
 import {
   Edit2, ShieldCheck, CheckCircle2, Eye, EyeOff,
-  Monitor, Smartphone, AlertCircle, Loader2
+  Monitor, AlertCircle, Loader2
 } from 'lucide-vue-next'
 import { usePopupStore } from '@/stores/popup'
 import { useAuthStore } from '@/stores/auth'
-import { bghApi } from '@/services/bghApi'
-import { unwrapApiData } from '@/services/apiClient'
+import { apiRequest, unwrapApiData } from '@/services/apiClient'
 
 const popup = usePopupStore()
 const auth = useAuthStore()
 const loading = ref(false)
 const error = ref(null)
 
-const profile = {
-  maNguoiDung: 1,
-  hoTen: 'Nguyễn Văn Hiệu Trưởng',
-  email: 'hieutruong@lms.edu.vn',
-  soDienThoai: '0909 123 456',
-  vaiTroChinh: 'hieu_truong',
-  maDonVi: 1,
-  tenDonVi: 'FPT Polytechnic Hồ Chí Minh',
-  trangThai: 'hoat_dong',
-  ngayTao: '01/01/2020',
-  lanDangNhapCuoi: '13/06/2026 08:30',
-  initials: 'HT',
-}
+const profile = reactive({
+  maNguoiDung: null,
+  hoTen: '',
+  email: '',
+  soDienThoai: '',
+  vaiTroChinh: '',
+  maDonVi: null,
+  tenDonVi: '',
+  trangThai: '',
+  ngayTao: '',
+  initials: '',
+})
 
-const profileFields = [
-  { key: 'hoTen', label: 'Họ và tên', value: profile.hoTen },
-  { key: 'email', label: 'Email', value: profile.email },
-  { key: 'soDienThoai', label: 'Số điện thoại', value: profile.soDienThoai },
-  { key: 'tenDonVi', label: 'Đơn vị', value: profile.tenDonVi },
-]
+const profileFields = computed(() => [
+  { key: 'hoTen', label: 'Họ và tên', value: profile.hoTen, editable: true },
+  { key: 'email', label: 'Email', value: profile.email, editable: true },
+  { key: 'soDienThoai', label: 'Số điện thoại', value: profile.soDienThoai, editable: true },
+  { key: 'tenDonVi', label: 'Đơn vị', value: profile.tenDonVi, editable: false },
+])
 
 const editing = ref(false)
-const editForm = reactive({ hoTen: profile.hoTen, email: profile.email, soDienThoai: profile.soDienThoai, tenDonVi: profile.tenDonVi })
+const editForm = reactive({ hoTen: '', email: '', soDienThoai: '' })
 
 function startEdit() {
   editForm.hoTen = profile.hoTen
@@ -193,12 +187,22 @@ function startEdit() {
 }
 
 function cancelEdit() { editing.value = false }
-function saveProfile() {
-  profile.hoTen = editForm.hoTen
-  profile.email = editForm.email
-  profile.soDienThoai = editForm.soDienThoai
-  profile.tenDonVi = editForm.tenDonVi
-  editing.value = false
+async function saveProfile() {
+  try {
+    const response = await apiRequest('/api/account/profile', {
+      method: 'PUT',
+      body: JSON.stringify({
+        hoTen: editForm.hoTen,
+        email: editForm.email,
+        soDienThoai: editForm.soDienThoai,
+      }),
+    })
+    applyProfile(unwrapApiData(response))
+    editing.value = false
+    popup.success('Thành công', 'Thông tin cá nhân đã được cập nhật.')
+  } catch (e) {
+    popup.error('Lỗi', e.message || 'Không thể cập nhật hồ sơ.')
+  }
 }
 
 const showOld = ref(false)
@@ -208,7 +212,7 @@ const passwordForm = reactive({ oldPassword: '', newPassword: '', confirmPasswor
 const passwordError = ref('')
 const passwordSuccess = ref('')
 
-function changePassword() {
+async function changePassword() {
   passwordError.value = ''
   passwordSuccess.value = ''
   if (!passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
@@ -223,23 +227,29 @@ function changePassword() {
     passwordError.value = 'Mật khẩu mới và xác nhận không khớp.'
     return
   }
-  passwordSuccess.value = 'Đổi mật khẩu thành công!'
-  passwordForm.oldPassword = ''
-  passwordForm.newPassword = ''
-  passwordForm.confirmPassword = ''
+  try {
+    await apiRequest('/api/account/change-password', {
+      method: 'PUT',
+      body: JSON.stringify({
+        currentPassword: passwordForm.oldPassword,
+        newPassword: passwordForm.newPassword,
+      }),
+    })
+    passwordSuccess.value = 'Đổi mật khẩu thành công!'
+    passwordForm.oldPassword = ''
+    passwordForm.newPassword = ''
+    passwordForm.confirmPassword = ''
+  } catch (e) {
+    passwordError.value = e.message || 'Không thể đổi mật khẩu.'
+  }
 }
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const userData = auth.user
-    if (userData) {
-      profile.hoTen = userData.fullName || userData.FullName || profile.hoTen
-      profile.email = userData.email || userData.Email || profile.email
-      profile.soDienThoai = userData.phone || userData.Phone || profile.soDienThoai
-      profile.initials = auth.initials || profile.initials
-    }
+    const response = await apiRequest('/api/account/me')
+    applyProfile(unwrapApiData(response))
   } catch (e) {
     error.value = e.message
   } finally {
@@ -248,10 +258,18 @@ async function loadData() {
 }
 onMounted(() => { loadData() })
 
-const recentActivity = [
-  { action: 'Đăng nhập hệ thống', time: 'Hôm nay, 08:30' },
-  { action: 'Duyệt thời khóa biểu Khoa CNTT', time: 'Hôm qua, 14:15' },
-  { action: 'Xem báo cáo GPA Học kỳ Spring 2026', time: '12/06/2026, 10:00' },
-  { action: 'Cập nhật thông tin cá nhân', time: '11/06/2026, 09:30' },
-]
+function applyProfile(source = {}) {
+  profile.maNguoiDung = source.maNguoiDung ?? source.id ?? auth.user?.id ?? null
+  profile.hoTen = source.hoTen ?? source.fullName ?? auth.displayName ?? ''
+  profile.email = source.email ?? auth.user?.email ?? ''
+  profile.soDienThoai = source.soDienThoai ?? source.phone ?? ''
+  profile.vaiTroChinh = source.vaiTroChinh ?? source.role ?? auth.user?.role ?? ''
+  profile.maDonVi = source.maDonVi ?? null
+  profile.tenDonVi = source.tenDonVi ?? source.donVi ?? ''
+  profile.trangThai = source.trangThai ?? 'hoat_dong'
+  profile.ngayTao = source.ngayTao ? new Date(source.ngayTao).toLocaleDateString('vi-VN') : ''
+  profile.initials = auth.initials || (profile.hoTen || profile.email || 'BGH').slice(0, 2).toUpperCase()
+}
+
+const recentActivity = []
 </script>

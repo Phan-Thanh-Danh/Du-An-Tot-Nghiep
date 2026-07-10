@@ -8,6 +8,11 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import { usePopupStore } from '@/stores/popup'
 
+const props = defineProps({
+  loading: { type: Boolean, default: false },
+})
+const emit = defineEmits(['preview', 'submit'])
+
 const popupStore = usePopupStore()
 const confirmAction = ref(null)
 
@@ -16,7 +21,7 @@ const form = ref({
   excerpt: '',
   body: '',
   category: 'hoc_vu',
-  priority: 'BINH_THUONG',
+  priority: 'thong_tin',
   scope: 'all'
 })
 
@@ -27,8 +32,8 @@ const categories = [
 ]
 
 const priorities = [
-  { value: 'BINH_THUONG', label: 'Bình thường' },
-  { value: 'KHAN_CAP', label: 'Khẩn cấp' }
+  { value: 'thong_tin', label: 'Bình thường' },
+  { value: 'khan_cap', label: 'Khẩn cấp' }
 ]
 
 const scopes = [
@@ -37,12 +42,35 @@ const scopes = [
   { value: 'teachers', label: 'Chỉ giảng viên' }
 ]
 
-const recipientCount = computed(() => {
-  if (form.value.scope === 'all') return 5420
-  if (form.value.scope === 'students') return 5100
-  if (form.value.scope === 'teachers') return 320
-  return 0
-})
+const recipientScopeLabel = computed(() => scopes.find((item) => item.value === form.value.scope)?.label || 'Chưa chọn')
+
+function buildPayload() {
+  const scopeMap = {
+    all: { phamViGui: 'toan_he_thong', roleCodes: [] },
+    students: { phamViGui: 'vai_tro', roleCodes: ['hoc_sinh', 'Student'] },
+    teachers: { phamViGui: 'vai_tro', roleCodes: ['giao_vien', 'Teacher'] },
+  }
+  const scope = scopeMap[form.value.scope] || scopeMap.all
+  return {
+    tieuDe: form.value.title.trim(),
+    tomTat: form.value.excerpt.trim() || null,
+    tomTatNoiDung: form.value.excerpt.trim() || null,
+    noiDungText: form.value.body.trim(),
+    noiDungJson: JSON.stringify({
+      blocks: [{ type: 'paragraph', data: { text: form.value.body.trim() } }],
+    }),
+    mucDo: form.value.priority,
+    loaiThongBao: form.value.category,
+    phamViGui: scope.phamViGui,
+    targetType: scope.phamViGui,
+    roleCodes: scope.roleCodes,
+    targetIds: [],
+  }
+}
+
+function previewRecipients() {
+  emit('preview', buildPayload())
+}
 
 const submitForm = () => {
   if (!form.value.title.trim()) {
@@ -54,15 +82,15 @@ const submitForm = () => {
     return
   }
 
+  const payload = buildPayload()
   confirmAction.value = {
     title: 'Gửi thông báo?',
-    message: `Thông báo "${form.value.title}" sẽ được gửi đến ${recipientCount.value} người nhận.`,
+    message: `Thông báo "${form.value.title}" sẽ được gửi đến nhóm: ${recipientScopeLabel.value}.`,
     label: 'Gửi đi',
     variant: 'primary',
     run: () => {
-      // call api
+      emit('submit', payload)
       confirmAction.value = null
-      popupStore.success('Thành công', 'Thông báo đã được gửi')
       form.value.title = ''
       form.value.excerpt = ''
       form.value.body = ''
@@ -121,18 +149,18 @@ const submitForm = () => {
             </label>
             <div class="p-4 bg-(--surface-modal) rounded-lg flex items-center justify-between">
               <span class="flex items-center gap-2 text-(--text-heading)">
-                <Users :size="18" /> Số người nhận dự kiến
+                <Users :size="18" /> Phạm vi gửi
               </span>
-              <strong class="text-lg">{{ recipientCount.toLocaleString() }}</strong>
+              <strong class="text-lg">{{ recipientScopeLabel }}</strong>
             </div>
           </div>
         </GlassPanel>
 
         <div class="flex justify-end gap-3">
-          <GlassButton variant="secondary">Lưu nháp</GlassButton>
-          <GlassButton variant="primary" @click="submitForm">
+          <GlassButton variant="secondary" :disabled="props.loading" @click="previewRecipients">Xem trước người nhận</GlassButton>
+          <GlassButton variant="primary" :disabled="props.loading" @click="submitForm">
             <template #leading><Send :size="16" /></template>
-            Gửi thông báo
+            {{ props.loading ? 'Đang gửi...' : 'Gửi thông báo' }}
           </GlassButton>
         </div>
       </div>
@@ -144,7 +172,7 @@ const submitForm = () => {
           </h2>
           <div class="preview-card border border-(--border-default) rounded-xl p-5 space-y-4 bg-(--surface-card)">
             <div class="flex gap-2">
-              <GlassBadge v-if="form.priority === 'KHAN_CAP'" variant="danger" size="sm">Khẩn cấp</GlassBadge>
+              <GlassBadge v-if="form.priority === 'khan_cap'" variant="danger" size="sm">Khẩn cấp</GlassBadge>
               <GlassBadge variant="info" size="sm">{{ categories.find(c => c.value === form.category)?.label }}</GlassBadge>
             </div>
             <h3 class="text-xl font-bold text-(--text-heading) leading-tight">

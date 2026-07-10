@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import {
   CalendarDays,
   CheckCircle2,
@@ -18,21 +18,21 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
+import { applicationsApi } from '@/services/applicationsApi'
 import { usePopupStore } from '@/stores/popup'
 import { formatDate, formatDateTime } from '@/utils/dateFormat'
 import { getStatusMeta, getStatusOptions } from '@/utils/statusLabels'
 
 const popupStore = usePopupStore()
-const applicationTypes = []
-const studentApplications = []
+const applicationTypes = ref([])
 
 function getApplicationTypeLabel(type) {
-  return applicationTypes.find((item) => item.value === type)?.label || type || 'Không xác định'
+  return applicationTypes.value.find((item) => item.value === type)?.label || type || 'Không xác định'
 }
 
 const loading = ref(false)
 const error = ref('')
-const applications = ref(studentApplications.map((item) => ({ ...item })))
+const applications = ref([])
 const selectedId = ref(applications.value[0]?.id || '')
 const searchQuery = ref('')
 const statusFilter = ref('')
@@ -43,7 +43,7 @@ const submitAttempted = ref(false)
 const confirmAction = ref(null)
 
 const draft = ref({
-  type: applicationTypes[0]?.value || '',
+  type: '',
   title: '',
   reason: '',
   evidenceName: '',
@@ -139,7 +139,7 @@ function startCreate() {
   wizardStep.value = 0
   submitAttempted.value = false
   draft.value = {
-    type: applicationTypes[0]?.value || '',
+    type: applicationTypes.value[0]?.value || '',
     title: '',
     reason: '',
     evidenceName: '',
@@ -154,11 +154,21 @@ function goNext() {
   wizardStep.value = Math.min(wizardSteps.length - 1, wizardStep.value + 1)
 }
 
-function saveDraft() {
-  const created = createApplicationFromDraft('nhap')
-  popupStore.success('Đã lưu bản nháp', 'Đơn mới đã được thêm vào danh sách demo.')
-  selectedId.value = created.id
-  mode.value = 'list'
+async function saveDraft() {
+  submitAttempted.value = true
+  if (!draft.value.type || !draft.value.title.trim()) return
+  loading.value = true
+  try {
+    const created = await createApplicationFromDraft()
+    popupStore.success('Đã lưu bản nháp', 'Đơn mới đã được lưu vào hệ thống.')
+    await loadApplications()
+    selectedId.value = String(created.maDonTu ?? created.MaDonTu ?? created.id ?? '')
+    mode.value = 'list'
+  } catch (e) {
+    popupStore.error('Lỗi', e.message || 'Không thể lưu đơn.')
+  } finally {
+    loading.value = false
+  }
 }
 
 function submitDraft() {
@@ -169,63 +179,53 @@ function submitDraft() {
     message: 'Đơn sẽ được gửi đến hàng đợi xử lý của giáo vụ.',
     label: 'Nộp đơn',
     variant: 'success',
-    run: () => {
-      const created = createApplicationFromDraft('da_nop')
-      selectedId.value = created.id
-      mode.value = 'list'
-      confirmAction.value = null
-      popupStore.success('Đã nộp đơn', 'Đơn demo đã được gửi thành công.')
+    run: async () => {
+      loading.value = true
+      try {
+        const created = await createApplicationFromDraft()
+        const id = created.maDonTu ?? created.MaDonTu ?? created.id
+        const rowVersion = created.rowVersion ?? created.RowVersion ?? ''
+        const submitted = await applicationsApi.submitApplication(id, { rowVersion })
+        selectedId.value = String(submitted.maDonTu ?? submitted.MaDonTu ?? id)
+        mode.value = 'list'
+        confirmAction.value = null
+        popupStore.success('Đã nộp đơn', 'Đơn đã được gửi thành công.')
+        await loadApplications()
+      } catch (e) {
+        popupStore.error('Lỗi', e.message || 'Không thể nộp đơn.')
+      } finally {
+        loading.value = false
+      }
     },
   }
 }
 
-function createApplicationFromDraft(status) {
-  const now = new Date()
-  const item = {
-    id: `APP-DEMO-${Date.now().toString().slice(-5)}`,
-    tieuDe: draft.value.title.trim() || getApplicationTypeLabel(draft.value.type),
+function createApplicationFromDraft() {
+  return applicationsApi.createDraft({
     loaiDon: draft.value.type,
-    trangThai: status,
-    ngayTao: now,
-    ngayNop: status === 'nhap' ? null : now,
-    hanXuLy: status === 'nhap' ? null : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-    capNhatLanCuoi: now,
-    moTaNgan: draft.value.reason.trim(),
-    nguoiXuLy: '',
-    noiDungYeuCauBoSung: '',
-    lyDoTuChoi: '',
-    formData: [
-      { label: 'Loại đơn', value: getApplicationTypeLabel(draft.value.type) },
-      { label: 'Nội dung yêu cầu', value: draft.value.reason.trim() },
-    ],
-    evidence: draft.value.evidenceName
-      ? [{ id: 'ev-demo', name: draft.value.evidenceName, size: 'Demo file', uploadedAt: now }]
-      : [],
-    timeline: [
-      {
-        id: 'tl-demo',
-        at: now,
-        title: status === 'nhap' ? 'Lưu bản nháp' : 'Nộp đơn',
-        description: status === 'nhap' ? 'Sinh viên lưu bản nháp.' : 'Sinh viên nộp đơn demo.',
-        actor: 'Sinh viên',
-      },
-    ],
-  }
-  applications.value.unshift(item)
-  return item
+    tieuDe: draft.value.title.trim() || getApplicationTypeLabel(draft.value.type),
+    duLieuBieuMau: {
+      noiDungYeuCau: draft.value.reason.trim(),
+      tenMinhChungDaChon: draft.value.evidenceName.trim() || null,
+    },
+  })
 }
 
 function requestCancel(application) {
   confirmAction.value = {
     title: 'Hủy đơn này?',
-    message: `Đơn ${application.id} sẽ chuyển sang trạng thái đã hủy trong dữ liệu demo.`,
+    message: `Đơn ${application.id} sẽ được hủy trên hệ thống.`,
     label: 'Hủy đơn',
     variant: 'danger',
-    run: () => {
-      application.trangThai = 'da_huy'
-      application.capNhatLanCuoi = new Date()
-      confirmAction.value = null
-      popupStore.warning('Đã hủy đơn', 'Đơn demo đã được cập nhật trạng thái.')
+    run: async () => {
+      try {
+        await applicationsApi.cancelApplication(application.id, { rowVersion: application.rowVersion || '' })
+        await loadApplications()
+        confirmAction.value = null
+        popupStore.warning('Đã hủy đơn', 'Đơn đã được cập nhật trạng thái.')
+      } catch (e) {
+        popupStore.error('Lỗi', e.message || 'Không thể hủy đơn.')
+      }
     },
   }
 }
@@ -236,11 +236,15 @@ function resubmit(application) {
     message: 'Đơn sẽ quay lại hàng đợi xử lý sau khi bổ sung minh chứng.',
     label: 'Nộp lại',
     variant: 'success',
-    run: () => {
-      application.trangThai = 'da_nop'
-      application.capNhatLanCuoi = new Date()
-      confirmAction.value = null
-      popupStore.success('Đã nộp lại đơn', 'Đơn demo đã được gửi lại.')
+    run: async () => {
+      try {
+        await applicationsApi.resubmitApplication(application.id, { rowVersion: application.rowVersion || '' })
+        await loadApplications()
+        confirmAction.value = null
+        popupStore.success('Đã nộp lại đơn', 'Đơn đã được gửi lại.')
+      } catch (e) {
+        popupStore.error('Lỗi', e.message || 'Không thể nộp lại đơn.')
+      }
     },
   }
 }
@@ -250,13 +254,86 @@ function canCancel(application) {
 }
 
 function retryLoad() {
-  loading.value = true
-  window.setTimeout(() => {
-    applications.value = studentApplications.map((item) => ({ ...item }))
-    loading.value = false
-    error.value = ''
-  }, 350)
+  loadApplications()
 }
+
+function unwrapList(payload) {
+  const data = payload?.data ?? payload?.Data ?? payload
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.items)) return data.items
+  if (Array.isArray(data?.Items)) return data.Items
+  return []
+}
+
+function getFormValue(data, key) {
+  return data?.[key] ?? data?.[key.charAt(0).toUpperCase() + key.slice(1)] ?? ''
+}
+
+function mapApplication(item) {
+  const id = String(item.maDonTu ?? item.MaDonTu ?? item.id ?? '')
+  const formData = item.duLieuBieuMau ?? item.DuLieuBieuMau ?? {}
+  const attachments = item.attachments ?? item.Attachments ?? []
+  const timeline = item.timeline ?? item.Timeline ?? []
+  return {
+    id,
+    rowVersion: item.rowVersion ?? item.RowVersion ?? '',
+    tieuDe: item.tieuDe ?? item.TieuDe ?? '',
+    loaiDon: item.loaiDon ?? item.LoaiDon ?? '',
+    trangThai: item.trangThai ?? item.TrangThai ?? '',
+    ngayTao: item.ngayTao ?? item.NgayTao,
+    ngayNop: item.ngayNop ?? item.NgayNop,
+    hanXuLy: item.hanXuLyLuc ?? item.HanXuLyLuc,
+    capNhatLanCuoi: item.ngayCapNhat ?? item.NgayCapNhat,
+    moTaNgan: getFormValue(formData, 'noiDungYeuCau') || '',
+    nguoiXuLy: item.nguoiXuLy ?? item.NguoiXuLy ?? '',
+    noiDungYeuCauBoSung: item.noiDungYeuCauBoSung ?? item.NoiDungYeuCauBoSung ?? '',
+    lyDoTuChoi: item.lyDoTuChoi ?? item.LyDoTuChoi ?? '',
+    formData: [
+      { label: 'Loại đơn', value: item.tenLoaiDon ?? item.TenLoaiDon ?? getApplicationTypeLabel(item.loaiDon ?? item.LoaiDon) },
+      { label: 'Nội dung yêu cầu', value: getFormValue(formData, 'noiDungYeuCau') || '—' },
+    ],
+    evidence: attachments.map((file) => ({
+      id: file.maTep ?? file.MaTep,
+      name: file.tenFileGoc ?? file.TenFileGoc ?? '',
+      size: file.kichThuocByte ? `${Math.round(file.kichThuocByte / 1024)} KB` : '',
+      uploadedAt: file.ngayTao ?? file.NgayTao,
+    })),
+    timeline: timeline.map((entry, index) => ({
+      id: `${id}-${index}`,
+      at: entry.ngayTao ?? entry.NgayTao,
+      title: entry.hanhDong ?? entry.HanhDong ?? '',
+      description: entry.ghiChuCongKhai ?? entry.GhiChuCongKhai ?? '',
+      actor: entry.nguonThucHien ?? entry.NguonThucHien ?? '',
+    })),
+    canCancel: item.canCancel ?? item.CanCancel ?? false,
+  }
+}
+
+async function loadApplications() {
+  loading.value = true
+  error.value = ''
+  try {
+    const [templates, result] = await Promise.all([
+      applicationsApi.getApplicationTemplates({ pageSize: 50 }).catch(() => []),
+      applicationsApi.getMyApplications({ pageSize: 50 }),
+    ])
+    applicationTypes.value = unwrapList(templates)
+      .map((item) => ({
+        value: item.loaiDon ?? item.LoaiDon,
+        label: item.tenLoaiDon ?? item.TenLoaiDon ?? item.tenMau ?? item.TenMau,
+      }))
+      .filter((item) => item.value)
+    applications.value = unwrapList(result).map(mapApplication)
+    selectedId.value = applications.value[0]?.id || ''
+  } catch (e) {
+    error.value = e.message || 'Không tải được danh sách đơn.'
+    applications.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadApplications)
 </script>
 
 <template>
@@ -446,7 +523,7 @@ function retryLoad() {
       <div class="wizard-header">
         <div>
           <h2>Tạo đơn mới</h2>
-          <p>Hoàn tất 4 bước để lưu nháp hoặc nộp đơn demo.</p>
+          <p>Hoàn tất 4 bước để lưu nháp hoặc nộp đơn học vụ.</p>
         </div>
         <GlassButton variant="secondary" @click="mode = 'list'">Quay lại danh sách</GlassButton>
       </div>
@@ -472,7 +549,7 @@ function retryLoad() {
             @click="draft.type = type.value"
           >
             <strong>{{ type.label }}</strong>
-            <span>Biểu mẫu demo cho {{ type.label.toLowerCase() }}.</span>
+            <span>Biểu mẫu cho {{ type.label.toLowerCase() }}.</span>
           </button>
         </div>
 
@@ -489,10 +566,10 @@ function retryLoad() {
 
         <div v-else-if="wizardStep === 2" class="form-grid">
           <label class="form-field">
-            <span>Tên minh chứng demo</span>
+            <span>Tên minh chứng</span>
             <input v-model="draft.evidenceName" type="text" placeholder="VD: giay-xac-nhan.pdf" />
           </label>
-          <p class="helper-text">Phase UI chỉ lưu tên file demo, không upload backend.</p>
+          <p class="helper-text">Tên minh chứng sẽ được lưu cùng nội dung đơn.</p>
         </div>
 
         <div v-else class="review-box">

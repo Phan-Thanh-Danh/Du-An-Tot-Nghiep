@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -20,22 +20,22 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import { applicationsApi } from '@/services/applicationsApi'
 import { usePopupStore } from '@/stores/popup'
 import { formatDate, formatDateTime } from '@/utils/dateFormat'
 import { getStatusMeta, getStatusOptions } from '@/utils/statusLabels'
 
 const popupStore = usePopupStore()
-const adminApplications = []
-const applicationTypes = []
-const assignableUsers = []
+const applicationTypes = ref([])
+const assignableUsers = ref([])
 
 function getApplicationTypeLabel(type) {
-  return applicationTypes.find((item) => item.value === type)?.label || type || 'Không xác định'
+  return applicationTypes.value.find((item) => item.value === type)?.label || type || 'Không xác định'
 }
 
 const loading = ref(false)
 const error = ref('')
-const applications = ref(adminApplications.map((item) => ({ ...item })))
+const applications = ref([])
 const selectedId = ref(applications.value[0]?.id || '')
 const searchQuery = ref('')
 const statusFilter = ref('')
@@ -44,7 +44,7 @@ const assigneeFilter = ref('')
 const slaFilter = ref('')
 const actionMode = ref('')
 const actionText = ref('')
-const assigneeId = ref(assignableUsers[0]?.id || '')
+const assigneeId = ref('')
 const actionSubmitted = ref(false)
 const confirmAction = ref(null)
 
@@ -63,7 +63,7 @@ const filteredApplications = computed(() => {
       item.maSinhVien.toLowerCase().includes(query)
     const matchesStatus = !statusFilter.value || item.trangThai === statusFilter.value
     const matchesType = !typeFilter.value || item.loaiDon === typeFilter.value
-    const matchesAssignee = !assigneeFilter.value || item.nguoiXuLy === assigneeFilter.value
+    const matchesAssignee = !assigneeFilter.value || item.nguoiXuLyId === assigneeFilter.value
     const matchesSla = !slaFilter.value || item.sla === slaFilter.value
     return matchesSearch && matchesStatus && matchesType && matchesAssignee && matchesSla
   })
@@ -158,78 +158,109 @@ function openAction(mode) {
   actionMode.value = mode
   actionText.value = ''
   actionSubmitted.value = false
-  assigneeId.value = assignableUsers[0]?.id || ''
+  assigneeId.value = selectedApplication.value?.nguoiXuLyId || assignableUsers.value[0]?.id || ''
 }
 
-function receiveSelected() {
+async function receiveSelected() {
   if (!selectedApplication.value) return
-  selectedApplication.value.trangThai = 'dang_xem_xet'
-  selectedApplication.value.nguoiXuLy = selectedApplication.value.nguoiXuLy || assignableUsers[0]?.name || 'Giáo vụ'
-  selectedApplication.value.capNhatLanCuoi = new Date()
-  popupStore.success('Đã tiếp nhận đơn', `${selectedApplication.value.id} đã chuyển sang trạng thái đang xem xét.`)
+  try {
+    await applicationsApi.receiveApplication(selectedApplication.value.id, {
+      rowVersion: selectedApplication.value.rowVersion || '',
+    })
+    await loadApplications()
+    popupStore.success('Đã tiếp nhận đơn', `${selectedApplication.value.id} đã chuyển sang trạng thái đang xem xét.`)
+  } catch (e) {
+    popupStore.error('Lỗi', e.message || 'Không thể tiếp nhận đơn.')
+  }
 }
 
-function applyAction() {
+async function applyAction() {
   actionSubmitted.value = true
   if (actionError.value || !selectedApplication.value) return
 
-  const assigneeName = assignableUsers.find((item) => item.id === assigneeId.value)?.name || ''
+  const application = selectedApplication.value
+  const rowVersion = application.rowVersion || ''
+  const assigneeName = assignableUsers.value.find((item) => item.id === assigneeId.value)?.name || ''
 
-  if (actionMode.value === 'assign' || actionMode.value === 'reassign') {
-    selectedApplication.value.nguoiXuLy = assigneeName
-    selectedApplication.value.trangThai = 'dang_xem_xet'
-    selectedApplication.value.capNhatLanCuoi = new Date()
-    closeActionForm()
-    popupStore.success('Đã phân công', `Đơn được giao cho ${assigneeName}.`)
-    return
-  }
-
-  if (actionMode.value === 'supplement') {
-    selectedApplication.value.trangThai = 'yeu_cau_bo_sung'
-    selectedApplication.value.noiDungYeuCauBoSung = actionText.value.trim()
-    selectedApplication.value.capNhatLanCuoi = new Date()
-    closeActionForm()
-    popupStore.warning('Đã yêu cầu bổ sung', 'Nội dung yêu cầu đã được cập nhật trong demo.')
-    return
-  }
-
-  if (actionMode.value === 'reject') {
-    confirmAction.value = {
-      title: 'Từ chối đơn này?',
-      message: 'Sinh viên sẽ thấy lý do từ chối trong phần chi tiết đơn.',
-      label: 'Từ chối đơn',
-      variant: 'danger',
-      run: () => {
-        selectedApplication.value.trangThai = 'tu_choi'
-        selectedApplication.value.lyDoTuChoi = actionText.value.trim()
-        selectedApplication.value.capNhatLanCuoi = new Date()
-        confirmAction.value = null
-        closeActionForm()
-        popupStore.error('Đã từ chối đơn', 'Trạng thái demo đã được cập nhật.')
-      },
+  try {
+    if (actionMode.value === 'assign') {
+      await applicationsApi.assignApplication(application.id, { assigneeId: Number(assigneeId.value), rowVersion })
+      popupStore.success('Đã phân công', `Đơn được giao cho ${assigneeName}.`)
+    } else if (actionMode.value === 'reassign') {
+      await applicationsApi.reassignApplication(application.id, {
+        assigneeId: Number(assigneeId.value),
+        rowVersion,
+        lyDo: actionText.value.trim() || 'Phân công lại từ màn hàng đợi.',
+      })
+      popupStore.success('Đã phân công lại', `Đơn được giao cho ${assigneeName}.`)
+    } else if (actionMode.value === 'supplement') {
+      await applicationsApi.requestSupplement(application.id, {
+        request: actionText.value.trim(),
+        rowVersion,
+      })
+      popupStore.warning('Đã yêu cầu bổ sung', 'Nội dung yêu cầu đã được cập nhật.')
+    } else if (actionMode.value === 'reject') {
+      confirmAction.value = {
+        title: 'Từ chối đơn này?',
+        message: 'Sinh viên sẽ thấy lý do từ chối trong phần chi tiết đơn.',
+        label: 'Từ chối đơn',
+        variant: 'danger',
+        run: async () => {
+          try {
+            await applicationsApi.rejectApplication(application.id, {
+              reason: actionText.value.trim(),
+              rowVersion,
+            })
+            confirmAction.value = null
+            closeActionForm()
+            await loadApplications()
+            popupStore.error('Đã từ chối đơn', 'Trạng thái đơn đã được cập nhật.')
+          } catch (e) {
+            popupStore.error('Lỗi', e.message || 'Không thể từ chối đơn.')
+          }
+        },
+      }
+      return
     }
+    closeActionForm()
+    await loadApplications()
+  } catch (e) {
+    popupStore.error('Lỗi', e.message || 'Không thể lưu thao tác.')
   }
 }
 
 function approveSelected() {
   if (!selectedApplication.value) return
+  const application = selectedApplication.value
   confirmAction.value = {
     title: 'Duyệt đơn này?',
-    message: 'Đơn sẽ chuyển sang trạng thái đã duyệt trong dữ liệu demo.',
+    message: 'Đơn sẽ chuyển sang trạng thái đã duyệt trên hệ thống.',
     label: 'Duyệt đơn',
     variant: 'success',
-    run: () => {
-      selectedApplication.value.trangThai = 'da_duyet'
-      selectedApplication.value.capNhatLanCuoi = new Date()
-      confirmAction.value = null
-      popupStore.success('Đã duyệt đơn', 'Đơn demo đã được phê duyệt.')
+    run: async () => {
+      try {
+        await applicationsApi.approveApplication(application.id, { rowVersion: application.rowVersion || '' })
+        confirmAction.value = null
+        await loadApplications()
+        popupStore.success('Đã duyệt đơn', 'Đơn đã được phê duyệt.')
+      } catch (e) {
+        popupStore.error('Lỗi', e.message || 'Không thể duyệt đơn.')
+      }
     },
   }
 }
 
-function processAfterApproval() {
+async function processAfterApproval() {
   if (!selectedApplication.value) return
-  popupStore.info('Xử lý sau duyệt', 'Phase UI chỉ mô phỏng thao tác, chưa gọi API backend.')
+  try {
+    await applicationsApi.processApprovedApplication(selectedApplication.value.id, {
+      rowVersion: selectedApplication.value.rowVersion || '',
+    })
+    await loadApplications()
+    popupStore.info('Xử lý sau duyệt', 'Đã gửi yêu cầu xử lý sau duyệt.')
+  } catch (e) {
+    popupStore.error('Lỗi', e.message || 'Không thể xử lý sau duyệt.')
+  }
 }
 
 function isFinal(application) {
@@ -237,13 +268,86 @@ function isFinal(application) {
 }
 
 function retryLoad() {
-  loading.value = true
-  window.setTimeout(() => {
-    applications.value = adminApplications.map((item) => ({ ...item }))
-    loading.value = false
-    error.value = ''
-  }, 350)
+  loadApplications()
 }
+
+function unwrapList(payload) {
+  const data = payload?.data ?? payload?.Data ?? payload
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.items)) return data.items
+  if (Array.isArray(data?.Items)) return data.Items
+  return []
+}
+
+function getFormValue(data, key) {
+  return data?.[key] ?? data?.[key.charAt(0).toUpperCase() + key.slice(1)] ?? ''
+}
+
+function mapApplication(item) {
+  const id = String(item.maDonTu ?? item.MaDonTu ?? item.id ?? '')
+  const formData = item.duLieuBieuMau ?? item.DuLieuBieuMau ?? {}
+  const attachments = item.attachments ?? item.Attachments ?? []
+  return {
+    id,
+    rowVersion: item.rowVersion ?? item.RowVersion ?? '',
+    tieuDe: item.tieuDe ?? item.TieuDe ?? '',
+    loaiDon: item.loaiDon ?? item.LoaiDon ?? '',
+    trangThai: item.trangThai ?? item.TrangThai ?? '',
+    sinhVien: item.tenSinhVien ?? item.TenSinhVien ?? item.sinhVien ?? item.SinhVien ?? 'Sinh viên',
+    maSinhVien: String(item.maSinhVien ?? item.MaSinhVien ?? ''),
+    nguoiXuLy: item.tenNguoiXuLy ?? item.TenNguoiXuLy ?? item.nguoiXuLy ?? item.NguoiXuLy ?? '',
+    nguoiXuLyId: item.nguoiXuLyId ?? item.NguoiXuLyId ?? '',
+    ngayNop: item.ngayNop ?? item.NgayNop,
+    hanXuLy: item.hanXuLyLuc ?? item.HanXuLyLuc,
+    capNhatLanCuoi: item.ngayCapNhat ?? item.NgayCapNhat,
+    sla: item.slaTrangThai ?? item.SlaTrangThai ?? 'dung_han',
+    noiDungYeuCauBoSung: item.noiDungYeuCauBoSung ?? item.NoiDungYeuCauBoSung ?? '',
+    lyDoTuChoi: item.lyDoTuChoi ?? item.LyDoTuChoi ?? '',
+    formData: [
+      { label: 'Loại đơn', value: item.tenLoaiDon ?? item.TenLoaiDon ?? getApplicationTypeLabel(item.loaiDon ?? item.LoaiDon) },
+      { label: 'Nội dung yêu cầu', value: getFormValue(formData, 'noiDungYeuCau') || '—' },
+    ],
+    evidence: attachments.map((file) => ({
+      id: file.maTep ?? file.MaTep,
+      name: file.tenFileGoc ?? file.TenFileGoc ?? '',
+      size: file.kichThuocByte ? `${Math.round(file.kichThuocByte / 1024)} KB` : '',
+      uploadedAt: file.ngayTao ?? file.NgayTao,
+    })),
+  }
+}
+
+async function loadApplications() {
+  loading.value = true
+  error.value = ''
+  try {
+    const [templates, users, queue] = await Promise.all([
+      applicationsApi.getApplicationTemplates({ pageSize: 50 }).catch(() => []),
+      applicationsApi.getAssignableUsers({ pageSize: 100 }).catch(() => []),
+      applicationsApi.getAdminApplications({ pageSize: 50 }),
+    ])
+    applicationTypes.value = unwrapList(templates)
+      .map((item) => ({
+        value: item.loaiDon ?? item.LoaiDon,
+        label: item.tenLoaiDon ?? item.TenLoaiDon ?? item.tenMau ?? item.TenMau,
+      }))
+      .filter((item) => item.value)
+    assignableUsers.value = unwrapList(users)
+      .map((item) => ({
+        id: String(item.id ?? item.maNguoiDung ?? item.MaNguoiDung ?? ''),
+        name: item.name ?? item.hoTen ?? item.HoTen ?? item.email ?? item.Email ?? '',
+      }))
+      .filter((item) => item.id)
+    applications.value = unwrapList(queue).map(mapApplication)
+    selectedId.value = applications.value[0]?.id || ''
+  } catch (e) {
+    error.value = e.message || 'Không tải được hàng đợi.'
+    applications.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadApplications)
 </script>
 
 <template>
@@ -259,7 +363,7 @@ function retryLoad() {
           <p>Tiếp nhận, phân công, yêu cầu bổ sung, duyệt hoặc từ chối đơn theo phạm vi quản trị.</p>
         </div>
       </div>
-      <GlassBadge variant="info" size="md">Mock UI</GlassBadge>
+      <GlassBadge variant="info" size="md">API-backed</GlassBadge>
     </GlassPanel>
 
     <section class="summary-grid">
@@ -306,7 +410,7 @@ function retryLoad() {
           <span>Người xử lý</span>
           <select v-model="assigneeFilter" class="lg-control">
             <option value="">Tất cả</option>
-            <option v-for="user in assignableUsers" :key="user.id" :value="user.name">{{ user.name }}</option>
+            <option v-for="user in assignableUsers" :key="user.id" :value="user.id">{{ user.name }}</option>
           </select>
         </label>
         <label class="control-field">

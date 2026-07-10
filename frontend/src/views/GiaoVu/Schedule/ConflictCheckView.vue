@@ -6,6 +6,7 @@ import {
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
+import { scheduleApi } from '@/services/scheduleApi'
 
 const conflicts = ref([])
 const selected = ref(null)
@@ -13,6 +14,7 @@ const confirmAction = ref({ isOpen: false, title: '', message: '', label: '', va
 const searchQuery = ref('')
 const filterLoai = ref('')
 const filterMucDo = ref('')
+const error = ref('')
 
 const isChecking = ref(false)
 
@@ -43,11 +45,33 @@ const xuLyLabel = s => ({ chua_xu_ly: 'Chưa xử lý', dang_xu_ly: 'Đang xử 
 const xuLyVariant = s => ({ chua_xu_ly: 'danger', dang_xu_ly: 'warning', da_xu_ly: 'success' }[s] || 'neutral')
 const loaiIcon = l => ({ giang_vien: User, phong_hoc: Building, lop_hoc: Users }[l] || ShieldAlert)
 
-function performCheck() {
+async function performCheck() {
   isChecking.value = true
-  setTimeout(() => {
+  error.value = ''
+  try {
+    const response = await scheduleApi.checkConflictsBatch({})
+    const data = response?.data ?? response?.Data ?? response
+    const items = Array.isArray(data) ? data : data?.items || data?.conflicts || []
+    conflicts.value = items.map(mapConflict)
+  } catch (e) {
+    error.value = e.message || 'Không thể kiểm tra xung đột thời khóa biểu.'
+    conflicts.value = []
+  } finally {
     isChecking.value = false
-  }, 700)
+  }
+}
+
+function mapConflict(item) {
+  return {
+    id: item.id ?? item.maXungDot ?? item.MaXungDot ?? crypto.randomUUID(),
+    loai: item.loai ?? item.Loai ?? item.loaiXungDot ?? item.LoaiXungDot ?? 'lop_hoc',
+    mucDo: item.mucDo ?? item.MucDo ?? 'major',
+    doiTuong: item.doiTuong ?? item.DoiTuong ?? item.tenDoiTuong ?? item.TenDoiTuong ?? 'Chưa xác định',
+    moTa: item.moTa ?? item.MoTa ?? item.message ?? item.Message ?? '',
+    trangThaiXuLy: item.trangThaiXuLy ?? item.TrangThaiXuLy ?? 'chua_xu_ly',
+    thoiGian: item.thoiGian ?? item.ThoiGian ?? '',
+    deXuat: item.deXuat ?? item.DeXuat ?? '',
+  }
 }
 
 function applyFix(c) {
@@ -89,6 +113,9 @@ function runConfirm() {
           {{ isChecking ? 'Đang kiểm tra...' : 'Kiểm tra toàn hệ thống' }}
         </GlassButton>
       </div>
+    </div>
+    <div v-if="error" class="rounded-xl border border-(--color-danger-border) bg-(--color-danger-bg) p-3 text-sm text-(--color-danger-text)">
+      {{ error }}
     </div>
 
     <!-- Summary Cards -->
