@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="space-y-4 pb-10 h-[calc(100vh-8rem)] flex flex-col">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
@@ -105,11 +105,8 @@
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="flex-1 flex items-center justify-center">
-      <div class="flex flex-col items-center gap-3 text-muted">
-        <Loader2 :size="32" class="animate-spin" />
-        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
-      </div>
+    <div v-if="loading" class="flex-1 flex flex-col p-4">
+      <SkeletonTable :rows="8" :columns="6" />
     </div>
     <!-- Error State -->
     <div v-else-if="error" class="flex-1 flex items-center justify-center">
@@ -159,7 +156,12 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
-import { History, Eye, X, Plus, Lock, Unlock, LogIn, Edit3, Trash2, Search, AlertCircle, Loader2 } from 'lucide-vue-next'
+import {
+  Activity, Search, Filter, Calendar, AlertCircle, ArrowLeft,
+  ChevronDown, ArrowUpRight, ArrowDownRight, RefreshCw, Loader2, Download,
+  History, Eye, X, Plus, Lock, Unlock, LogIn, Edit3, Trash2
+} from 'lucide-vue-next'
+import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 

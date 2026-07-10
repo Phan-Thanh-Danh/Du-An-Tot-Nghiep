@@ -2,11 +2,8 @@
   <div class="space-y-4 pb-10">
     
     <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center py-20">
-      <div class="flex flex-col items-center gap-3 text-muted">
-        <Loader2 :size="32" class="animate-spin" />
-        <p class="text-sm font-medium">Đang tải dữ liệu...</p>
-      </div>
+    <div v-if="loading" class="p-4">
+      <SkeletonDashboard :cards="4" :rows="3" />
     </div>
     <!-- Error State -->
     <div v-else-if="error" class="flex items-center justify-center py-20">
@@ -186,6 +183,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
 import { 
   AlertCircle, BarChart2, PieChart, Star, AlertTriangle, GraduationCap, 
   TrendingUp, Clock, User, UserMinus, Sparkles, ArrowUpRight, Bell, ShieldCheck, Loader2

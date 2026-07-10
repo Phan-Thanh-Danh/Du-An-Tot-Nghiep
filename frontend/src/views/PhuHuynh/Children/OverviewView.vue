@@ -13,6 +13,7 @@ import {
 } from 'lucide-vue-next'
 import { parentApi } from '@/services/parentApi'
 import { getStoredActiveChildId, setActiveChildId } from '@/components/PhuHuynh/data/parentState.js'
+import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -206,6 +207,12 @@ onMounted(loadChildren)
       </div>
     </div>
 
+    <!-- Loading state -->
+    <div v-if="loading" class="p-4">
+      <SkeletonDashboard :cards="4" :rows="5" />
+    </div>
+
+    <template v-else>
     <!-- ── THÔNG TIN HỌC SINH ── -->
     <div class="lg-card-glass p-5 flex flex-col md:flex-row md:items-center justify-between gap-6">
       <div class="flex items-center gap-4">
@@ -389,6 +396,7 @@ onMounted(loadChildren)
     <div class="text-[10px] text-center text-muted">
       * Lưu ý: Kết quả học tập và thông báo trên được trích xuất từ dữ liệu của nhà trường. Học sinh có thể tùy biến hoặc thu hồi quyền giám sát bất kỳ lúc nào theo quy định bảo mật.
     </div>
+    </template>
   </div>
 </template>
 

@@ -3,8 +3,9 @@ import { ref, onMounted, defineAsyncComponent } from 'vue'
 import FocusAiCard from '@/components/SinhVien/dashboard/FocusAiCard.vue'
 import KpiCard from '@/components/SinhVien/dashboard/KpiCard.vue'
 import WelcomeHero from '@/components/SinhVien/dashboard/WelcomeHero.vue'
+import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
 import { studentApi } from '@/services/studentApi'
-import { AlertCircle, Loader2 } from 'lucide-vue-next'
+import { AlertCircle } from 'lucide-vue-next'
 
 // Lazy load below-the-fold components to prioritize initial render and prevent jank
 const CourseProgressPanel = defineAsyncComponent(() => import('@/components/SinhVien/dashboard/CourseProgressPanel.vue'))
@@ -46,9 +47,8 @@ onMounted(async () => {
 
 <template>
   <div class="lg-page-enter space-y-4 pb-5">
-    <div v-if="loading" class="flex flex-col items-center justify-center py-20">
-      <Loader2 class="h-10 w-10 animate-spin text-blue-500 mb-4" />
-      <p class="text-slate-500">Đang tải dữ liệu tổng quan...</p>
+    <div v-if="loading" class="p-4">
+      <SkeletonDashboard :cards="4" :rows="3" />
     </div>
 
     <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">

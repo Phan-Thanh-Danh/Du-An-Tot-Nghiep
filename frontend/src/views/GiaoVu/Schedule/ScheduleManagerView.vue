@@ -5,6 +5,7 @@ import {
 } from 'lucide-vue-next'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
+import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import { scheduleApi } from '@/services/scheduleApi'
 import { usePopupStore } from '@/stores/popup'
 
@@ -478,8 +479,8 @@ function thuLabel(thu) {
     </div>
 
     <!-- ── Loading state ── -->
-    <div v-if="loading && rows.length === 0" class="flex items-center justify-center py-16">
-      <Loader2 :size="36" class="text-(--lg-primary) animate-spin" />
+    <div v-if="loading && rows.length === 0" class="p-4">
+      <SkeletonTable :rows="6" :columns="7" />
     </div>
 
     <!-- ── Empty state ── -->

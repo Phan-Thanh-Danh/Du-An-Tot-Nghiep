@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
 import { 
   Search, Filter, Trophy, TrendingUp, TrendingDown, Minus, Star, ChevronRight, ShieldCheck, Building2,
   AlertCircle, Loader2
@@ -75,8 +76,9 @@ function viewDetail(gv) {
 
 <template>
   <div class="space-y-4">
-    <div v-if="loading" class="flex items-center justify-center py-20">
-      <Loader2 :size="32" class="animate-spin text-placeholder" />
+    <!-- Loading State -->
+    <div v-if="loading" class="p-4">
+      <SkeletonDashboard :cards="4" :rows="3" />
     </div>
     <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">
       <AlertCircle :size="48" class="text-(--color-danger-text) mb-4" />

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
 import { 
   Brain, TrendingUp, PieChart, MapPin, Zap, Search, Download, Filter, ChevronDown, X,
   AlertCircle, Loader2
@@ -65,8 +66,8 @@ function exportData() {
 
 <template>
   <div class="space-y-8">
-    <div v-if="loading" class="flex items-center justify-center py-20">
-      <Loader2 :size="32" class="animate-spin text-placeholder" />
+    <div v-if="loading" class="p-4">
+      <SkeletonDashboard :cards="2" :rows="4" />
     </div>
     <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">
       <AlertCircle :size="48" class="text-(--color-danger-text) mb-4" />

@@ -13,7 +13,7 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
+import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import CourseStatusBadge from './components/CourseStatusBadge.vue'
 import BulkAssignCourseDrawer from './components/BulkAssignCourseDrawer.vue'
@@ -472,7 +472,7 @@ onMounted(() => {
 
       <!-- Loading State -->
       <div v-if="loading" class="p-6">
-        <LoadingSkeleton :lines="6" />
+        <SkeletonTable :rows="6" :columns="8" />
       </div>
 
       <!-- Error State -->

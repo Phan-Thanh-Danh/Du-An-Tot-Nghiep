@@ -317,9 +317,8 @@ onMounted(() => {
     </transition>
 
     <!-- Loading State -->
-    <div v-if="loading" class="glass-panel rounded-2xl p-12 flex flex-col items-center justify-center">
-      <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mb-4"></div>
-      <p class="text-label text-sm">Đang tải danh sách người dùng...</p>
+    <div v-if="loading" class="glass-panel rounded-2xl p-4">
+      <SkeletonTable :rows="6" :columns="6" />
     </div>
 
     <!-- Error State -->

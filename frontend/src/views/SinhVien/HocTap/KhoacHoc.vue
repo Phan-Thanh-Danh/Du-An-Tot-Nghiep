@@ -15,6 +15,7 @@ import {
   Loader2
 } from 'lucide-vue-next'
 import LmsBadge from '@/components/LmsBadge.vue'
+import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
 
 import { studentApi } from '@/services/studentApi'
 
@@ -129,9 +130,8 @@ const courseSummary = computed(() => [
 
 <template>
   <div class="courses-page">
-    <div v-if="loading" class="flex flex-col items-center justify-center py-20">
-      <Loader2 class="h-10 w-10 animate-spin text-blue-500 mb-4" />
-      <p class="text-slate-500">Đang tải dữ liệu khóa học...</p>
+    <div v-if="loading" class="p-4">
+      <SkeletonDashboard :cards="4" :rows="3" />
     </div>
 
     <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">

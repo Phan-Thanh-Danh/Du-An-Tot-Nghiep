@@ -19,6 +19,7 @@ import { exportToExcel, triggerPrint } from '@/services/exportService.js'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
+import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
 
 const popup = usePopupStore()
 const loading = ref(false)
@@ -138,8 +139,9 @@ function exportExcel() {
       </div>
     </template>
 
-    <div v-if="loading" class="flex items-center justify-center py-20">
-      <Loader2 :size="32" class="animate-spin text-placeholder" />
+    <!-- Loading State -->
+    <div v-if="loading" class="p-4">
+      <SkeletonDashboard :cards="4" :rows="3" />
     </div>
     <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">
       <AlertCircle :size="48" class="text-(--color-danger-text) mb-4" />

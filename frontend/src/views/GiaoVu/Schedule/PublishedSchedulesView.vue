@@ -25,6 +25,7 @@ import {
   Loader2,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import { staffApi } from '@/services/staffApi'
 import { usePopupStore } from '@/stores/popup'
 
@@ -115,7 +116,7 @@ function closeCancel() {
 async function confirmCancel() {
   if (!cancelTarget.value || !cancelReason.value.trim()) return
   isCancelling.value = true
-  await new Promise(r => setTimeout(r, 1000))
+  // Fake action delay removed per UX standard
   const idx = publishedSchedules.value.findIndex(s => s.id === cancelTarget.value.id)
   if (idx !== -1) publishedSchedules.value.splice(idx, 1)
   isCancelling.value = false
@@ -147,7 +148,7 @@ function closeMakeup() {
 async function confirmMakeup() {
   if (!makeupTarget.value || !makeupDate.value || !makeupTime.value) return
   isMakingUp.value = true
-  await new Promise(r => setTimeout(r, 1000))
+  // Fake action delay removed per UX standard
   publishedSchedules.value.push({
     id: Date.now(),
     subject: makeupTarget.value.subject + ' (Học bù)',
@@ -209,7 +210,7 @@ function closeNotif() {
 
 async function confirmSendNotif() {
   isSendingNotif.value = true
-  await new Promise(r => setTimeout(r, 1200))
+  // Fake action delay removed per UX standard
   isSendingNotif.value = false
   closeNotif()
 }
@@ -240,9 +241,8 @@ import dayjs from 'dayjs'
     title="Lịch đã publish" 
     subtitle="Thời khóa biểu chính thức đã công bố. Mọi chỉnh sửa sẽ được lưu audit log và gửi thông báo cho GV/SV."
   >
-    <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-3">
-      <Loader2 class="animate-spin text-(--text-muted)" :size="28" />
-      <p class="text-sm text-(--text-muted)">Đang tải dữ liệu...</p>
+    <div v-if="loading" class="p-4">
+      <SkeletonTable :rows="6" :columns="5" />
     </div>
 
     <div v-else-if="apiError" class="surface-card border border-(--border-card) rounded-2xl p-6 flex flex-col items-center justify-center gap-3">

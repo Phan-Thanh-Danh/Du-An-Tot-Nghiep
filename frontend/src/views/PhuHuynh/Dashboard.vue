@@ -19,6 +19,7 @@ import {
   ChevronDown,
   Check
 } from 'lucide-vue-next'
+import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
 import { parentApi } from '@/services/parentApi'
 import { getStoredActiveChildId, setActiveChildId } from '@/components/PhuHuynh/data/parentState.js'
 
@@ -247,8 +248,12 @@ onMounted(loadDashboard)
       </div>
     </div>
 
+    <!-- Loading state -->
+    <div v-if="loading" class="p-4">
+      <SkeletonDashboard :cards="5" :rows="3" />
+    </div>
 
-
+    <template v-else>
     <!-- ── KEY CARDS GRID (5 MAIN METRICS) ── -->
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
       
@@ -623,8 +628,8 @@ onMounted(loadDashboard)
           </div>
         </div>
       </div>
-
     </div>
+    </template>
   </div>
 </template>
 

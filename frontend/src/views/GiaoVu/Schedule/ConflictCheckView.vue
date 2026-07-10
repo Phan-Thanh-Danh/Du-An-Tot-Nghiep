@@ -6,6 +6,7 @@ import {
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
+import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import { scheduleApi } from '@/services/scheduleApi'
 
 const conflicts = ref([])
@@ -210,7 +211,11 @@ function runConfirm() {
                </div>
           </div>
 
-          <div v-if="filtered.length === 0" class="flex flex-col items-center justify-center p-8 text-(--text-muted)">
+          <div v-if="isChecking" class="p-4">
+            <ListSkeleton :items="4" />
+          </div>
+
+          <div v-else-if="filtered.length === 0" class="flex flex-col items-center justify-center p-8 text-(--text-muted)">
             <CheckCircle2 :size="48" class="opacity-20 mb-3" />
             <p>Không tìm thấy xung đột nào.</p>
           </div>

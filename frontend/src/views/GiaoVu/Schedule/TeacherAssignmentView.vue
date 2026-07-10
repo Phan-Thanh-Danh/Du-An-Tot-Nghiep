@@ -4,7 +4,7 @@ import { Search, Plus, X, Pencil, Trash2, Users, UserCheck, UserMinus, UserPlus,
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
-import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
+import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { assignmentApi } from '@/services/assignmentApi'
 import { usePopupStore } from '@/stores/popup'
@@ -177,7 +177,7 @@ async function confirmDelete() {
         </div>
       </div>
 
-      <div v-if="loading" class="p-6"><LoadingSkeleton :lines="6" /></div>
+      <div v-if="loading" class="p-6"><SkeletonTable :rows="6" :columns="6" /></div>
       <div v-else-if="error" class="p-6">
         <div class="surface-card border border-card rounded-2xl p-6 flex flex-col items-center justify-center gap-3">
           <p class="text-sm font-bold text-heading">Không thể tải dữ liệu</p>

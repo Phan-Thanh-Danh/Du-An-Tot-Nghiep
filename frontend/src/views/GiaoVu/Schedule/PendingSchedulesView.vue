@@ -6,6 +6,7 @@ import {
 import { usePopupStore } from '@/stores/popup'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
+import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import { scheduleApi } from '@/services/scheduleApi'
 
 const loading = ref(false)
@@ -110,7 +111,7 @@ onMounted(loadSchedules)
     <div class="flex flex-1 min-h-0 gap-4 flex-col lg:flex-row">
       <!-- Left: List -->
       <div class="flex-1 surface-card border border-(--border-card) rounded-2xl p-4 flex flex-col gap-3 min-w-0 overflow-y-auto">
-        <div v-if="loading" class="p-8 text-sm text-(--text-muted)">Đang tải lịch chờ duyệt...</div>
+        <div v-if="loading" class="p-4"><ListSkeleton :items="4" /></div>
         <div v-else-if="error" class="p-8 text-sm text-(--color-danger-text)">{{ error }}</div>
         <div v-else-if="visibleSchedules.length === 0" class="p-8 text-sm text-(--text-muted)">Chưa có bản nháp thời khóa biểu chờ xử lý.</div>
         <template v-else>

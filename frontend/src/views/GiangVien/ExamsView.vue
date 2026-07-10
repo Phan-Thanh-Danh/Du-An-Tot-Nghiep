@@ -8,6 +8,7 @@ import {
 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
+import SkeletonCard from '@/components/common/skeleton/SkeletonCard.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import { EXAM_STATUS, getExamStatusLabel, normalizeExamStatus } from '@/utils/examAccess.js'
 import { teacherApi } from '@/services/teacherApi'
@@ -147,9 +148,8 @@ function formatTime(value) {
     </div>
 
     <!-- Loading state -->
-    <div v-if="loading" class="flex flex-col items-center justify-center py-16">
-      <div class="h-10 w-10 rounded-full border-4 border-(--accent-primary)/30 border-t-(--accent-primary) animate-spin"></div>
-      <p class="mt-4 text-sm font-medium text-muted">Đang tải danh sách kỳ thi...</p>
+    <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <SkeletonCard v-for="i in 6" :key="i" />
     </div>
 
     <!-- Error state -->
