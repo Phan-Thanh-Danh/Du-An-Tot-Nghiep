@@ -534,18 +534,7 @@ const router = createRouter({
           component: () => import('../views/SuperAdmin/ExamPeriodsView.vue'),
           meta: { title: 'Mở/Đóng giai đoạn thi' },
         },
-        {
-          path: 'operations/schedules',
-          name: 'super-admin-operations-schedules',
-          component: () => import('../views/GiaoVu/Schedule/ScheduleManagerView.vue'),
-          meta: { title: 'Thời khóa biểu' },
-        },
-        {
-          path: 'operations/schedules/approval',
-          name: 'super-admin-operations-schedules-approval',
-          component: () => import('../views/GiaoVu/Schedule/PendingSchedulesView.vue'),
-          meta: { title: 'Duyệt/Publish TKB' },
-        },
+
         {
           path: 'operations/attendance-policy',
           name: 'super-admin-operations-attendance-policy',
@@ -566,24 +555,28 @@ const router = createRouter({
         },
         // 5. Tài chính và Học phí
         {
+          // HIDE_FROM_DEMO_AND_CLAIM
           path: 'finance/tuition-config',
           name: 'super-admin-finance-tuition-config',
           component: () => import('../views/SuperAdmin/Finance/TuitionConfigView.vue'),
           meta: { title: 'Cấu hình học phí' },
         },
         {
+          // HIDE_FROM_DEMO_AND_CLAIM
           path: 'finance/student-debts',
           name: 'super-admin-finance-student-debts',
           component: () => import('../views/SuperAdmin/Finance/FinanceMonitorView.vue'),
           meta: { title: 'Công nợ sinh viên', financeMode: 'student-debts' },
         },
         {
+          // HIDE_FROM_DEMO_AND_CLAIM
           path: 'finance/payments',
           name: 'super-admin-finance-payments',
           component: () => import('../views/SuperAdmin/Finance/FinanceMonitorView.vue'),
           meta: { title: 'Theo dõi thanh toán', financeMode: 'payments' },
         },
         {
+          // HIDE_FROM_DEMO_AND_CLAIM
           path: 'finance/refunds',
           name: 'super-admin-finance-refunds',
           component: () => import('../views/SuperAdmin/Finance/FinanceMonitorView.vue'),
@@ -591,16 +584,11 @@ const router = createRouter({
         },
         // 6. Hỗ trợ, Đơn từ và Đánh giá
         {
+          // HIDE_FROM_DEMO_AND_CLAIM
           path: 'support/tickets',
           name: 'super-admin-support-tickets',
           component: () => import('../views/SuperAdmin/SupportTicketsView.vue'),
           meta: { title: 'Ticket hỗ trợ' },
-        },
-        {
-          path: 'support/faq',
-          name: 'super-admin-support-faq',
-          component: () => import('../views/SuperAdmin/FAQManagementView.vue'),
-          meta: { title: 'Quản lý FAQ' },
         },
         {
           path: 'approvals/requests',
@@ -675,12 +663,14 @@ const router = createRouter({
           meta: { title: 'Tổng quan đào tạo' },
         },
         {
+          // HIDE_FROM_DEMO_AND_CLAIM
           path: 'reports/learning',
           name: 'super-admin-reports-learning',
           component: () => import('../views/SuperAdmin/LearningReportView.vue'),
           meta: { title: 'Báo cáo học tập' },
         },
         {
+          // HIDE_FROM_DEMO_AND_CLAIM
           path: 'reports/attendance',
           name: 'super-admin-reports-attendance',
           component: () => import('../views/SuperAdmin/AttendanceReportView.vue'),
