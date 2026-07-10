@@ -17,6 +17,7 @@ export const giangVienMenuGroups = [
     label: 'Giảng dạy',
     icon: 'GraduationCap',
     children: [
+      { id: 'schedule', label: 'Lịch giảng dạy', icon: 'Calendar', route: '/teacher/schedule' },
       { id: 'courses', label: 'Khóa học', icon: 'Book', route: '/teacher/courses' },
       { id: 'lessons', label: 'Bài học', icon: 'FileVideo', route: '/teacher/lessons' },
     ],

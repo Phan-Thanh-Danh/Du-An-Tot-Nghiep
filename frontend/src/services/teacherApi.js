@@ -11,9 +11,21 @@ import { apiRequest, unwrapApiData } from './apiClient'
  */
 export const teacherApi = {
   // + P2: TeacherDashboardController created
-  // For now the FE calls getAttendanceToday + getSchedule to approximate.
+  // P23: Teacher Schedule & Dashboard Today
   getDashboard() {
     return apiRequest('/api/teacher/dashboard')
+  },
+
+  getScheduleSummary() {
+    return unwrapApiData(apiRequest('/api/teacher/schedule/summary'))
+  },
+
+  getTodaySchedule() {
+    return unwrapApiData(apiRequest('/api/teacher/schedule/today'))
+  },
+
+  getScheduleTerms() {
+    return unwrapApiData(apiRequest('/api/teacher/schedule/terms'))
   },
 
   // √ GET /api/teacher/attendance/today — AttendanceController
@@ -146,13 +158,16 @@ export const teacherApi = {
     return apiRequest(`/api/exam/reports/summary${qs ? '?' + qs : ''}`)
   },
 
-  // ! GET /api/thoi-khoa-bieu — policy AcademicOperations
+  // √ GET /api/teacher/schedule — TeacherScheduleController
   async getSchedule(params = {}) {
     const query = new URLSearchParams()
-    if (params.tuan) query.append('tuan', params.tuan)
-    if (params.maLop) query.append('maLop', params.maLop)
+    if (params.ngayTu) query.append('ngayTu', params.ngayTu)
+    if (params.ngayDen) query.append('ngayDen', params.ngayDen)
+    if (params.maHocKy) query.append('maHocKy', params.maHocKy)
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
     const qs = query.toString()
-    return unwrapApiData(await apiRequest(`/api/thoi-khoa-bieu${qs ? '?' + qs : ''}`))
+    return unwrapApiData(await apiRequest(`/api/teacher/schedule${qs ? '?' + qs : ''}`))
   },
 
   // √ P6: Teacher assignment workflow

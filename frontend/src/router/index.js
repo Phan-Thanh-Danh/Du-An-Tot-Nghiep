@@ -319,6 +319,12 @@ const router = createRouter({
           component: () => import('../views/GiangVien/Dashboard.vue'),
           meta: { title: 'Tổng quan giảng dạy' },
         },
+        {
+          path: 'schedule',
+          name: 'teacher-schedule',
+          component: () => import('../views/GiangVien/TeachingScheduleView.vue'),
+          meta: { title: 'Lịch giảng dạy' }
+        },
         // Chi tiết chức năng Giảng viên (Placeholder components)
         { path: 'courses', name: 'teacher-courses', component: () => import('../views/GiangVien/CoursesView.vue') },
         { path: 'lessons', name: 'teacher-lessons', component: () => import('../views/GiangVien/LessonsView.vue') },

@@ -1277,3 +1277,14 @@ Known limitations:
 | GET | `/api/bgh/academic/reports` | BGH/Admin/SuperAdmin | Các báo cáo học vụ chi tiết (môn học rớt nhiều, nợ học phí, bảo lưu). |
 | GET | `/api/bgh/academic/pass-fail` | BGH/Admin/SuperAdmin | Tỷ lệ Đậu/Rớt môn học. |
 | GET | `/api/bgh/schedule/changes` | BGH/Admin/SuperAdmin | Các thay đổi lịch trình (nghỉ, bù, đổi phòng). |
+
+## Teacher APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | /api/teacher/schedule/summary | GiangVien | Tổng quan lịch dạy hôm nay và tiếp theo |
+| GET | /api/teacher/schedule/terms | GiangVien | Danh sách học kỳ có lịch dạy |
+| GET | /api/teacher/schedule | GiangVien | Lịch dạy chi tiết (phân trang) |
+

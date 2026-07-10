@@ -68,6 +68,29 @@ function checkCapsLock(e) {
   capsLockOn.value = e.getModifierState('CapsLock')
 }
 
+const fastLoginAccounts = {
+  teacher: { email: 'teacher.cntt@lms.local', password: '123456', label: 'Tài khoản Giảng viên (Demo)' },
+  student: { email: 'p12test_student011@lms.local', password: 'Test@123', label: 'Tài khoản Sinh viên (Demo)' },
+  parent: { email: 'p15test_parent01@lms.local', password: 'Test@123', label: 'Tài khoản Phụ huynh (Demo)' },
+  staff: { email: 'p12test_staff01@lms.local', password: 'Test@123', label: 'Tài khoản Giáo vụ (Demo)' },
+  bgh: { email: 'p15test_bgh01@lms.local', password: 'Test@123', label: 'Tài khoản BGH (Demo)' },
+  'content-council': { email: 'p15test_content01@lms.local', password: 'Test@123', label: 'Tài khoản HĐND (Demo)' },
+  'super-admin': { email: 'admin@lms.local', password: '123456', label: 'Tài khoản Quản trị (Demo)' }
+}
+
+const fastAccount = computed(() => {
+  if (!props.portal) return null
+  return fastLoginAccounts[props.portal.slug] || null
+})
+
+function submitFastLogin() {
+  if (fastAccount.value) {
+    form.email = fastAccount.value.email
+    form.password = fastAccount.value.password
+    nextTick(() => submitLogin())
+  }
+}
+
 defineExpose({
   resetForm() {
     form.email = ''
@@ -202,6 +225,23 @@ defineExpose({
       <span v-else>Đăng nhập</span>
       <ArrowRight v-if="!loading" class="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" aria-hidden="true" />
     </button>
+
+    <!-- Nút đăng nhập nhanh cho môi trường Dev -->
+    <div v-if="fastAccount" class="mt-4">
+      <div class="relative flex items-center py-2">
+        <div class="flex-grow border-t border-[#c5c5d3]"></div>
+        <span class="flex-shrink-0 mx-4 text-[#585f67] text-[12px] font-medium">Truy cập nhanh (Dev Only)</span>
+        <div class="flex-grow border-t border-[#c5c5d3]"></div>
+      </div>
+      <button
+        type="button"
+        @click="submitFastLogin"
+        class="w-full mt-2 py-2 px-4 rounded-lg border border-[#c5c5d3] bg-white hover:bg-[#f7f9fb] text-[#00236f] text-[13px] font-semibold transition-colors flex justify-center items-center gap-2"
+      >
+        <User class="w-4 h-4" aria-hidden="true" />
+        {{ fastAccount.label }}
+      </button>
+    </div>
 
   </form>
 </template>

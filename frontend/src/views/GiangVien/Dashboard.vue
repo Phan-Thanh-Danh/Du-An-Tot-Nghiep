@@ -248,16 +248,22 @@ async function loadDashboard() {
   loading.value = true
   error.value = ''
   try {
-    const data = await teacherApi.getDashboard()
-    const sessions = Array.isArray(data.todaySessions) ? data.todaySessions : []
+    const [dashboardData, summaryData] = await Promise.all([
+      teacherApi.getDashboard(),
+      teacherApi.getScheduleSummary()
+    ])
+    
+    const data = dashboardData
+    
+    const sessions = Array.isArray(summaryData.todaySessions) ? summaryData.todaySessions : []
     teachingSchedule.value = sessions.map(s => ({
-      id: s.id || s.maBuoiHoc,
-      time: s.thoiGianBatDau && s.thoiGianKetThuc ? `${s.thoiGianBatDau} - ${s.thoiGianKetThuc}` : (s.thoiGianBatDau || '07:00'),
-      subject: s.tenMonHoc || s.subject || '',
-      code: s.maLop || '',
-      room: s.phongHoc || '',
-      students: s.siSo || 0,
-      status: s.trangThai === 'da_ket_thuc' ? 'completed' : 'upcoming'
+      id: s.maBuoiHoc,
+      time: `${s.gioBatDau} - ${s.gioKetThuc}`,
+      subject: s.tenMonHoc,
+      code: s.tenLop,
+      room: s.tenPhong,
+      students: 0, // No student count in new DTO
+      status: s.trangThaiBuoi === 'da_ket_thuc' ? 'completed' : 'upcoming'
     }))
     stats.value = [
       { id: 1, label: 'Tổng sinh viên', value: data.totalStudents ?? 0, trend: '', isNegative: false, bgColor: 'bg-(--accent-primary-soft)', iconColor: 'text-(--text-link)', icon: Users },
