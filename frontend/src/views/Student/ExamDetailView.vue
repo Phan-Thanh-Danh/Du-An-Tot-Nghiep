@@ -83,7 +83,7 @@ async function runPreflight() {
   const items = result.checks
   for (let i = 0; i < items.length; i++) {
     checkStatuses.value[items[i].id] = 'checking'
-    await new Promise(r => setTimeout(r, 260 + Math.random() * 180))
+    // Fake action delay removed per UX standard
     checkStatuses.value[items[i].id] = items[i].status
   }
 

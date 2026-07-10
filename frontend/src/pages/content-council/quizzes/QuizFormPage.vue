@@ -189,7 +189,7 @@ const saveDraft = async () => {
   isSaving.value = true
   
   // Temporary local save flow until this screen is wired to the quiz write API
-  await new Promise(r => setTimeout(r, 600))
+  // Fake action delay removed per UX standard
   
   const mapped = mapFormToQuizModel()
   

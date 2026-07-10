@@ -67,8 +67,7 @@ onMounted(async () => {
     return
   }
 
-  // Simulate network delay
-  await new Promise(r => setTimeout(r, 400))
+  // Simulate network delay removed per UX standard
 
   const found = quizStore.getQuizById(qId)
   if (!found) {
