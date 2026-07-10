@@ -4,6 +4,7 @@ using Backend.DTOs.Auth;
 using Backend.DTOs.SmartTimetable;
 using Backend.Exceptions;
 using Backend.Models;
+using Backend.Services.AcademicSchedulingContext;
 using Backend.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,17 +18,20 @@ public class SmartTimetableService : ISmartTimetableService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuditLogService _auditLogService;
     private readonly ILogger<SmartTimetableService> _logger;
+    private readonly IAcademicSchedulingContextService _schedulingContextService;
 
     public SmartTimetableService(
         ApplicationDbContext context,
         IHttpContextAccessor httpContextAccessor,
         IAuditLogService auditLogService,
-        ILogger<SmartTimetableService> logger)
+        ILogger<SmartTimetableService> logger,
+        IAcademicSchedulingContextService schedulingContextService)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _auditLogService = auditLogService;
         _logger = logger;
+        _schedulingContextService = schedulingContextService;
     }
 
     public async Task<ScheduleDraftDto> GenerateAsync(
@@ -36,6 +40,8 @@ public class SmartTimetableService : ISmartTimetableService
     {
         var currentUser = GetCurrentUser();
         EnsureCanManageSchedule(currentUser);
+
+        await _schedulingContextService.ValidateSchedulableTermAsync(request.MaDonVi, request.MaHocKy, cancellationToken);
 
         var courses = await LoadCoursesAsync(request.MaHocKy, request.MaDonVi, request.MaKhoaHocFilter, cancellationToken);
         if (courses.Count == 0)
@@ -154,6 +160,8 @@ public class SmartTimetableService : ISmartTimetableService
 
         if (job is null)
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy bản nháp.");
+
+        await _schedulingContextService.ValidateSchedulableTermAsync(job.MaDonVi, job.MaHocKy, cancellationToken);
 
         if (job.TrangThai == "da_xuat_ban")
             throw new ApiException(StatusCodes.Status400BadRequest, "Bản nháp này đã được xuất bản.");

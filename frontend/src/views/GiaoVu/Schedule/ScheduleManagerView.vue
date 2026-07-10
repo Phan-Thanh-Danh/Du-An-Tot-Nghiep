@@ -13,8 +13,10 @@ import { courseApi } from '@/services/courseApi'
 import { staffApi } from '@/services/staffApi'
 import { academicTermApi } from '@/services/academicTermApi'
 import { usePopupStore } from '@/stores/popup'
+import { useAcademicSchedulingContextStore } from '@/stores/academicSchedulingContext'
 
 const popupStore = usePopupStore()
+const schedulingContext = useAcademicSchedulingContextStore()
 
 const thuTrongTuanOptions = [
   { value: 2, label: 'Thứ 2' }, { value: 3, label: 'Thứ 3' },
@@ -55,7 +57,6 @@ const bulkSelectedCourseIds = ref([])
 const bulkReviewRows = ref([])
 const bulkCreating = ref(false)
 const smartCourseScope = ref('unscheduled')
-const smartTermId = ref('')
 const smartCampusId = ref('')
 const smartSelectedCourseIds = ref([])
 const smartOptions = ref({ tongTheHe: 100, kichThuocQuanThe: 50, tyLeCheo: 0.5 })
@@ -128,7 +129,7 @@ const pendingDraftRoute = computed(() => {
   const maHocKy =
     draft.maHocKy ??
     draft.MaHocKy ??
-    smartTermId.value
+    schedulingContext.schedulableTerm?.maHocKy
 
   return {
     path: '/staff/schedule/pending',
@@ -147,7 +148,7 @@ const unscheduledCourses = computed(() => {
 
 const bulkCandidateCourses = computed(() => {
   const source = unscheduledCourses.value.length ? unscheduledCourses.value : courseOptions.value
-  return source.filter(c => !smartTermId.value || Number(c.maHocKy) === Number(smartTermId.value))
+  return source.filter(c => !schedulingContext.schedulableTerm?.maHocKy || Number(c.maHocKy) === Number(schedulingContext.schedulableTerm?.maHocKy))
 })
 
 const filteredCourses = computed(() => {
@@ -356,9 +357,10 @@ async function loadScheduleOptions() {
   }
 }
 
-onMounted(() => {
-  loadScheduleOptions().then(loadData)
-})
+  onMounted(async () => {
+    await schedulingContext.fetchContext()
+    loadScheduleOptions().then(loadData)
+  })
 
 // ── Filtered rows ─────────────────────────────────────────────────
 const filteredRows = computed(() => {
@@ -952,15 +954,15 @@ async function createBulkDrafts() {
 }
 
 async function generateSmartDraft() {
-  if (!smartTermId.value || !smartCampusId.value) {
-    popupStore.warning('Thiếu thông tin', 'Vui lòng chọn cơ sở và học kỳ.')
+  if (!schedulingContext.schedulableTerm?.maHocKy || !smartCampusId.value) {
+    popupStore.warning('Thiếu thông tin', 'Vui lòng chọn cơ sở và đảm bảo có học kỳ hợp lệ để xếp lịch.')
     return
   }
   const selectedIds =
     smartCourseScope.value === 'manual'
       ? smartSelectedCourseIds.value.map(Number)
       : unscheduledCourses.value
-          .filter(c => Number(c.maHocKy) === Number(smartTermId.value) && Number(c.maDonVi) === Number(smartCampusId.value))
+          .filter(c => Number(c.maHocKy) === Number(schedulingContext.schedulableTerm?.maHocKy) && Number(c.maDonVi) === Number(smartCampusId.value))
           .map(c => Number(c.maKhoaHoc))
 
   if (selectedIds.length === 0) {
@@ -971,7 +973,7 @@ async function generateSmartDraft() {
   generating.value = true
   try {
     const res = await scheduleApi.generateDraft({
-      maHocKy: Number(smartTermId.value),
+      maHocKy: Number(schedulingContext.schedulableTerm?.maHocKy),
       maDonVi: Number(smartCampusId.value),
       maKhoaHocFilter: selectedIds,
       tongTheHe: Number(smartOptions.value.tongTheHe || 100),
@@ -1033,6 +1035,26 @@ function thuLabel(thu) {
 
 <template>
   <div class="schedule-calendar max-w-full space-y-4">
+    <!-- P25 Banner -->
+    <div v-if="schedulingContext.isContextLoaded && !schedulingContext.canPrepareSchedule" class="rounded-xl border border-(--color-danger-border, #f87171) bg-(--color-danger-bg) p-4 text-(--color-danger-text)">
+      <div class="flex items-start gap-3">
+        <AlertTriangle class="mt-0.5 shrink-0" :size="20" />
+        <div>
+          <h3 class="font-semibold">{{ schedulingContext.reasonMessage }}</h3>
+          <ul v-if="schedulingContext.readiness?.blockingIssues?.length" class="mt-2 list-inside list-disc text-sm">
+            <li v-for="issue in schedulingContext.readiness.blockingIssues" :key="issue.code">
+              {{ issue.message }}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div v-else-if="schedulingContext.isContextLoaded && schedulingContext.canPrepareSchedule" class="rounded-xl border border-(--color-success-border, #6ee7b7) bg-(--color-success-bg) p-4 text-(--color-success-text)">
+      <div class="flex items-center gap-3">
+        <CheckCircle class="shrink-0" :size="20" />
+        <h3 class="font-semibold">Đang thao tác xếp lịch cho Học kỳ: {{ schedulingContext.schedulableTerm?.tenHocKy }}</h3>
+      </div>
+    </div>
 
     <!-- ── Header ── -->
     <div class="flex items-start justify-between gap-4 flex-wrap">
@@ -1504,10 +1526,9 @@ function thuLabel(thu) {
               <template v-else-if="activeCreateMode === 'bulk'">
                 <div class="space-y-3">
                   <div class="flex flex-wrap items-center gap-2">
-                    <select v-model="smartTermId" class="h-9 rounded-lg border border-(--border-input) bg-(--surface-input) px-3 text-sm">
-                      <option value="">Tất cả học kỳ</option>
-                      <option v-for="term in termOptions" :key="term.value" :value="term.value">{{ term.label }}</option>
-                    </select>
+                    <div class="h-9 flex items-center rounded-lg border border-(--border-input) bg-(--surface-input) px-3 text-sm font-medium text-(--text-muted)">
+                      Học kỳ: {{ schedulingContext.schedulableTerm?.tenHocKy || '—' }}
+                    </div>
                     <GlassButton variant="secondary" @click="suggestBulkCourses">Gợi ý lịch cho các khóa đã chọn</GlassButton>
                   </div>
                   <div class="max-h-56 overflow-y-auto rounded-xl border border-(--border-default)">
@@ -1550,10 +1571,9 @@ function thuLabel(thu) {
                   </label>
                   <label class="text-xs font-semibold text-(--text-muted)">
                     Học kỳ
-                    <select v-model="smartTermId" class="mt-1 h-9 w-full rounded-lg border border-(--border-input) bg-(--surface-input) px-3 text-sm">
-                      <option value="">Chọn học kỳ</option>
-                      <option v-for="term in termOptions" :key="term.value" :value="term.value">{{ term.label }}</option>
-                    </select>
+                    <div class="mt-1 h-9 flex items-center w-full rounded-lg border border-(--border-input) bg-(--surface-input) px-3 text-sm">
+                      {{ schedulingContext.schedulableTerm?.tenHocKy || '—' }}
+                    </div>
                   </label>
                   <label class="text-xs font-semibold text-(--text-muted)">
                     Phạm vi khóa học
@@ -1602,9 +1622,10 @@ function thuLabel(thu) {
                 <Loader2 v-if="bulkCreating" :size="15" class="mr-1.5 animate-spin" />
                 Tạo nháp hàng loạt
               </GlassButton>
-              <GlassButton v-if="activeCreateMode === 'smart' && formMode !== 'edit'" variant="primary" class="h-10 px-5 text-sm" :disabled="generating" @click="generateSmartDraft">
-                <Loader2 v-if="generating" :size="15" class="mr-1.5 animate-spin" />
-                Sinh bản nháp toàn kỳ
+              <GlassButton v-if="activeCreateMode === 'smart' && formMode !== 'edit'" variant="primary" @click="generateSmartDraft" :disabled="generating || !schedulingContext.canPrepareSchedule">
+                <Loader2 v-if="generating" class="animate-spin" :size="16" />
+                <Sparkles v-else :size="16" />
+                Bắt đầu tạo
               </GlassButton>
             </div>
           </div>

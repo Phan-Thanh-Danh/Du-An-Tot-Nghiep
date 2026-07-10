@@ -6,6 +6,7 @@ using Backend.DTOs.Common;
 using Backend.DTOs.ThoiKhoaBieu;
 using Backend.Exceptions;
 using Backend.Models;
+using Backend.Services.AcademicSchedulingContext;
 using Backend.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,17 +31,20 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuditLogService _auditLogService;
     private readonly IScheduleConflictService _scheduleConflictService;
+    private readonly IAcademicSchedulingContextService _schedulingContextService;
 
     public ThoiKhoaBieuService(
         ApplicationDbContext context,
         IHttpContextAccessor httpContextAccessor,
         IAuditLogService auditLogService,
-        IScheduleConflictService scheduleConflictService)
+        IScheduleConflictService scheduleConflictService,
+        IAcademicSchedulingContextService schedulingContextService)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _auditLogService = auditLogService;
         _scheduleConflictService = scheduleConflictService;
+        _schedulingContextService = schedulingContextService;
     }
 
     public async Task<PagedResultDto<ThoiKhoaBieuDto>> GetAsync(
@@ -154,6 +158,7 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
 
         var status = NormalizeStatus(string.IsNullOrWhiteSpace(request.TrangThai) ? DraftStatus : request.TrangThai);
         var course = await ValidateCourseAsync(request.MaKhoaHoc, currentUser, cancellationToken);
+        await _schedulingContextService.ValidateSchedulableTermAsync(course.MaDonVi, course.MaHocKy ?? 0, cancellationToken);
         var shift = await ValidateShiftAsync(request.MaCaHoc, cancellationToken);
         var room = await ValidateRoomAsync(request.MaPhong, course.MaDonVi, currentUser, cancellationToken);
         ValidateDayOfWeek(request.ThuTrongTuan);
@@ -221,6 +226,7 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
         var oldSnapshot = await GetAuditSnapshotAsync(scheduleId, cancellationToken);
         var status = NormalizeStatus(request.TrangThai);
         var course = await ValidateCourseAsync(request.MaKhoaHoc, currentUser, cancellationToken);
+        await _schedulingContextService.ValidateSchedulableTermAsync(course.MaDonVi, course.MaHocKy ?? 0, cancellationToken);
         var shift = await ValidateShiftAsync(request.MaCaHoc, cancellationToken);
         var room = await ValidateRoomAsync(request.MaPhong, course.MaDonVi, currentUser, cancellationToken);
         ValidateDayOfWeek(request.ThuTrongTuan);

@@ -47,6 +47,8 @@ using Backend.Services.Subjects;
 using Backend.Services.ThoiKhoaBieu;
 using Backend.Services.TrainingPrograms;
 using Backend.Services.TrainingProgramSubjects;
+
+using Backend.Services.AcademicSchedulingContext;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -227,6 +229,7 @@ builder.Services.AddScoped<IStudentContentAccessService, StudentContentAccessSer
 builder.Services.AddScoped<ILearningProgressCalculator, LearningProgressCalculator>();
 builder.Services.AddScoped<ILearningProgressSyncService, LearningProgressSyncService>();
 builder.Services.AddScoped<ILearningProgressService, LearningProgressService>();
+builder.Services.AddScoped<IAcademicSchedulingContextService, AcademicSchedulingContextService>();
 
 builder.Services.AddSignalR(options =>
 {
