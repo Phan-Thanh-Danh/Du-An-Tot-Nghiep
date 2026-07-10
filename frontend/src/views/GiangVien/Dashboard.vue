@@ -260,7 +260,7 @@ async function loadDashboard() {
       subject: s.tenMonHoc,
       code: s.tenLop,
       room: s.tenPhong,
-      status: s.trangThaiBuoi === 'da_ket_thuc' ? 'completed' : 'upcoming'
+      status: s.trangThaiBuoi === 'da_huy' ? 'cancelled' : (s.trangThaiBuoi === 'da_ket_thuc' ? 'completed' : 'upcoming')
     }))
     
     stats.value = [

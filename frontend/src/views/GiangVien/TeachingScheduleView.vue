@@ -82,8 +82,8 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1">
                 <GlassBadge v-if="item.isSubstitute" variant="warning">Dạy thay</GlassBadge>
-                <GlassBadge :variant="item.trangThaiBuoi === 'da_ket_thuc' ? 'neutral' : 'primary'">
-                  {{ item.trangThaiBuoi === 'da_ket_thuc' ? 'Đã kết thúc' : 'Sắp diễn ra' }}
+                <GlassBadge :variant="item.trangThaiBuoi === 'da_huy' ? 'danger' : (item.trangThaiBuoi === 'da_ket_thuc' ? 'neutral' : 'primary')">
+                  {{ item.trangThaiBuoi === 'da_huy' ? 'Đã hủy' : (item.trangThaiBuoi === 'da_ket_thuc' ? 'Đã kết thúc' : 'Sắp diễn ra') }}
                 </GlassBadge>
               </div>
               <h3 class="text-base font-bold text-heading truncate">{{ item.tenMonHoc }}</h3>

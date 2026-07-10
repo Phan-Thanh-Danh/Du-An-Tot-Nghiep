@@ -32,11 +32,48 @@ function mapAccountProfile(account) {
   }
 }
 
+function mapSessionDto(item) {
+  return {
+    id: item.maBuoiHoc || item.MaBuoiHoc,
+    courseId: item.maKhoaHoc || item.MaKhoaHoc,
+    subject: item.tenMonHoc || item.TenMonHoc || '',
+    courseCode: item.maCodeMonHoc || item.MaCodeMonHoc || '',
+    room: item.tenPhong || item.TenPhong || '',
+    teacher: item.tenGiaoVien || item.TenGiaoVien || '',
+    startAt: item.ngayHoc || item.NgayHoc,
+    status: item.trangThaiBuoi || item.TrangThaiBuoi || '',
+    attendanceStatus: item.trangThaiDiemDanh || item.TrangThaiDiemDanh || '',
+    shift: {
+      start: item.gioBatDau || item.GioBatDau,
+      end: item.gioKetThuc || item.GioKetThuc,
+    },
+    isSubstitute: item.isSubstitute || item.IsSubstitute || false,
+    changeType: item.changeType || item.ChangeType || '',
+    changeMessage: item.changeMessage || item.ChangeMessage || ''
+  }
+}
+
 export const studentApi = {
-  getDashboard() {
-    return apiRequest('/api/student/dashboard', {
+  async getDashboard() {
+    const raw = await apiRequest('/api/student/dashboard', {
       method: 'GET',
     })
+    const data = unwrapApiData(raw)
+    
+    if (data && data.schedule) {
+      data.schedule = data.schedule.map(s => {
+        const mapped = mapSessionDto(s)
+        return {
+          ...mapped,
+          time: `${mapped.shift.start?.slice(0,5)} - ${mapped.shift.end?.slice(0,5)}`,
+          lecturer: mapped.teacher,
+          current: false, // You would add logic to determine if current time is within shift
+          variant: mapped.status === 'da_huy' ? 'danger' : 'primary'
+        }
+      })
+    }
+    
+    return { success: true, data }
   },
   getCourses() {
     return apiRequest('/api/student/courses', {
@@ -113,11 +150,37 @@ export const studentApi = {
     return apiRequest('/api/student/attendance')
   },
 
-  getSchedule(params = {}) {
+  async getScheduleSummary() {
+    return unwrapApiData(await apiRequest('/api/student/schedule/summary'))
+  },
+
+  async getTodaySchedule() {
+    const raw = await apiRequest('/api/student/schedule/today')
+    const data = unwrapApiData(raw) || []
+    return data.map(mapSessionDto)
+  },
+
+  async getScheduleTerms() {
+    return unwrapApiData(await apiRequest('/api/student/schedule/terms'))
+  },
+
+  async getSchedule(params = {}) {
     const query = new URLSearchParams()
-    if (params.anchorDate) query.append('anchorDate', params.anchorDate)
+    if (params.ngayTu) query.append('ngayTu', params.ngayTu)
+    if (params.ngayDen) query.append('ngayDen', params.ngayDen)
+    if (params.maHocKy) query.append('maHocKy', params.maHocKy)
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
     const qs = query.toString()
-    return apiRequest(`/api/student/dashboard/schedule${qs ? '?' + qs : ''}`)
+    
+    const raw = await apiRequest(`/api/student/schedule${qs ? '?' + qs : ''}`)
+    const data = unwrapApiData(raw)
+    const items = data?.items || data?.Items || []
+    return {
+      sessions: items.map(mapSessionDto),
+      totalItems: data?.totalItems || data?.TotalItems || 0,
+      pageIndex: data?.pageIndex || data?.PageIndex || 1,
+    }
   },
 
   async getProfile() {

@@ -162,6 +162,7 @@ builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<Backend.Services.TeacherSchedule.ITeacherScheduleService, Backend.Services.TeacherSchedule.TeacherScheduleService>();
+builder.Services.AddScoped<Backend.Services.StudentSchedule.IStudentScheduleService, Backend.Services.StudentSchedule.StudentScheduleService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<INganhDaoTaoService, NganhDaoTaoService>();
 builder.Services.AddScoped<IChuyenNganhService, ChuyenNganhService>();
