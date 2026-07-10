@@ -1,0 +1,342 @@
+{
+  "phase": "P22.1",
+  "date": "2026-07-10T07:34:32.428Z",
+  "chrome": "Chrome/150.0.7871.101",
+  "frontend": "https://localhost:5173",
+  "backend": "http://localhost:5097",
+  "routeResults": [
+    {
+      "route": "/staff/schedule",
+      "result": "PASS",
+      "page": {
+        "path": "/staff/schedule",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "hasSkeleton": false,
+        "bodyText": "EduLMS\n\nPhòng Giáo vụ\n\nDashboard\nThời khóa biểu\nQuản lý TKB\nPhân công giảng viên\nKiểm tra xung đột\nLịch chờ duyệt\nLịch đã publish\nQuản lý khóa học\nCơ sở vật chất\nĐăng ký môn học\nĐơn từ\nThông báo\nLớp & Người dùng\nCá nhân\nTrợ giúp\nĐăng xuất\nPT\n\nP12 Test Giáo Vụ\n\np12test_staff01@lms.local\n\nTrang chủ\nGiáo vụ\nThời khóa biểu\nQuản lý thời khóa biểu\nTìm kiếm\nDark\nPT\n\nP12 Test Giáo Vụ\n\nAcademicstaff\n\nHệ thống sẽ bảo trì định kỳ vào Chủ nhật (31/05) từ 02:00 - 04:00.\nQuản lý Thời khóa biểu\n\nSắp xếp lịch học và lịch thi\n\nThời khóa biểu\n\nQuản lý lịch học theo học kỳ · Kéo thả để điều chỉnh · Click để xem chi tiết\n\nXếp lịch thông minh\nTạo lịch\n0\nBản nháp\n0\nĐã xuất bản\n0\nTổng lịch\n0\nĐã hủy\nTất cả học kỳ\nTất cả trạng thái\nBản nháp\nĐã xuất bản\nĐã hủy\nLàm mới\nBản nháp\nĐã xuất bản\nĐã hủy\n\nChưa có lịch học nào\n\nNhấn \"Tạo lịch\" để thêm lịch học mới."
+      },
+      "network": [
+        {
+          "status": 200,
+          "method": "",
+          "url": "https://localhost:5173/api/ca-hoc"
+        },
+        {
+          "status": 200,
+          "method": "",
+          "url": "https://localhost:5173/api/master-data/academic-terms?pageIndex=1&pageSize=100"
+        },
+        {
+          "status": 200,
+          "method": "",
+          "url": "https://localhost:5173/api/master-data/rooms"
+        },
+        {
+          "status": 200,
+          "method": "",
+          "url": "https://localhost:5173/api/courses?PageIndex=1&PageSize=100"
+        },
+        {
+          "status": 200,
+          "method": "",
+          "url": "https://localhost:5173/api/thoi-khoa-bieu?PageIndex=1&PageSize=100"
+        },
+        {
+          "status": 200,
+          "method": "",
+          "url": "https://localhost:5173/api/thoi-khoa-bieu?PageIndex=1&PageSize=100"
+        }
+      ],
+      "badNetwork": [],
+      "consoleErrors": [],
+      "runtimeExceptions": []
+    },
+    {
+      "route": "/staff/schedule/published",
+      "result": "PASS",
+      "page": {
+        "path": "/staff/schedule/published",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "hasSkeleton": true,
+        "bodyText": "EduLMS\n\nPhòng Giáo vụ\n\nDashboard\nThời khóa biểu\nQuản lý TKB\nPhân công giảng viên\nKiểm tra xung đột\nLịch chờ duyệt\nLịch đã publish\nQuản lý khóa học\nCơ sở vật chất\nĐăng ký môn học\nĐơn từ\nThông báo\nLớp & Người dùng\nCá nhân\nTrợ giúp\nĐăng xuất\nPT\n\nP12 Test Giáo Vụ\n\np12test_staff01@lms.local\n\nTrang chủ\nGiáo vụ\nThời khóa biểu\nĐã công bố\nLịch đã công bố\nTìm kiếm\nDark\nPT\n\nP12 Test Giáo Vụ\n\nAcademicstaff\n\nHệ thống sẽ bảo trì định kỳ vào Chủ nhật (31/05) từ 02:00 - 04:00.\nLịch đã công bố\n\nThời khóa biểu chính thức đang áp dụng"
+      },
+      "network": [
+        {
+          "status": 200,
+          "method": "",
+          "url": "https://localhost:5173/api/thoi-khoa-bieu?PageIndex=1&PageSize=100&TrangThai=da_xuat_ban"
+        }
+      ],
+      "badNetwork": [],
+      "consoleErrors": [],
+      "runtimeExceptions": []
+    }
+  ],
+  "dataSources": {
+    "courses": {
+      "status": 200,
+      "count": 30
+    },
+    "terms": {
+      "status": 200,
+      "count": 9
+    },
+    "rooms": {
+      "status": 200,
+      "count": 10
+    },
+    "shifts": {
+      "status": 200,
+      "count": 5
+    },
+    "schedules": {
+      "status": 200,
+      "count": 39
+    }
+  },
+  "checks": {
+    "staffSchedule": "PASS",
+    "staffSchedulePublished": "PASS",
+    "validPostCreateSchedule": "PASS",
+    "invalidDateBlockedBeforeApi": "PASS",
+    "smartSuggestionApplyDateSync": "PASS",
+    "bulkSuggestionCollisionAware": "PASS",
+    "smartWholeTermGenerate": "PASS",
+    "alertCircleUnresolved": "PASS",
+    "thoiKhoaBieu400": "PASS",
+    "fakeSuccess": "PASS",
+    "pageLevelSpinnerBlocker": "PASS"
+  },
+  "apiEvidence": {
+    "conflictResult": {
+      "result": "PASS",
+      "status": 200,
+      "body": {
+        "success": true,
+        "message": "Kiểm tra xung đột thời khóa biểu thành công",
+        "data": {
+          "hasConflict": false,
+          "conflicts": []
+        },
+        "errors": []
+      }
+    },
+    "createResult": {
+      "result": "PASS",
+      "status": 201,
+      "body": {
+        "success": true,
+        "message": "Tạo thời khóa biểu thành công",
+        "data": {
+          "maTkb": 40,
+          "maKhoaHoc": 1,
+          "tieuDeKhoaHoc": "Kỹ năng học tập - SD1901 - Học kỳ 1 năm 2026 - Trần Thị Giảng Viên",
+          "maDonVi": 3,
+          "tenDonVi": "FPT Polytechnic Hồ Chí Minh",
+          "maHocKy": 1,
+          "tenHocKy": "Học kỳ 1 năm 2026",
+          "maLop": 1,
+          "tenLop": "SD1901 - Công nghệ thông tin K2026",
+          "maCodeLop": "SD1901",
+          "maMonHoc": 50,
+          "maCodeMonHoc": "GEN101",
+          "tenMonHoc": "Kỹ năng học tập",
+          "maGiaoVien": 15,
+          "tenGiaoVien": "Trần Thị Giảng Viên",
+          "thuTrongTuan": 6,
+          "maCaHoc": 5,
+          "tenCa": "Ca 5",
+          "buoi": "chieu",
+          "gioBatDau": "16:10:00",
+          "gioKetThuc": "17:40:00",
+          "maPhong": 1,
+          "maCodePhong": "A101",
+          "tenPhong": "Phòng A101",
+          "ngayBatDau": "2026-01-01",
+          "ngayKetThuc": "2026-04-30",
+          "trangThai": "nhap",
+          "ngayTao": "2026-07-10T07:34:31.2566035",
+          "ngayCapNhat": "2026-07-10T07:34:31.2567165"
+        },
+        "errors": []
+      },
+      "payload": {
+        "maKhoaHoc": 1,
+        "thuTrongTuan": 6,
+        "maCaHoc": 5,
+        "maPhong": 1,
+        "ngayBatDau": "2026-01-01",
+        "ngayKetThuc": "2026-04-30",
+        "trangThai": "nhap"
+      }
+    },
+    "generateResult": {
+      "result": "PASS",
+      "status": 200,
+      "selectedIds": [
+        1,
+        2,
+        3
+      ],
+      "body": {
+        "success": true,
+        "message": "Sinh thời khóa biểu thông minh thành công.",
+        "data": {
+          "maJob": 5,
+          "draftId": "78dc64e7-52de-486f-9bef-656b42dfeb8d",
+          "maDonVi": 3,
+          "maHocKy": 1,
+          "trangThai": "draft",
+          "tongCourse": 3,
+          "soXepDuoc": 3,
+          "soKhongXepDuoc": 0,
+          "score": 100,
+          "ngayTao": "2026-07-10T07:34:32.2847883",
+          "ngayXuatBan": null,
+          "items": [
+            {
+              "maDraftItem": 58,
+              "maKhoaHoc": 1,
+              "maKhoaHocCode": null,
+              "thuTrongTuan": 7,
+              "maCaHoc": 1,
+              "tenCa": "Ca 1",
+              "maPhong": 1,
+              "tenPhong": "Phòng A101",
+              "trangThai": "xep_duoc",
+              "score": null,
+              "canhBao": [],
+              "loi": []
+            },
+            {
+              "maDraftItem": 59,
+              "maKhoaHoc": 2,
+              "maKhoaHocCode": null,
+              "thuTrongTuan": 7,
+              "maCaHoc": 2,
+              "tenCa": "Ca 2",
+              "maPhong": 1,
+              "tenPhong": "Phòng A101",
+              "trangThai": "xep_duoc",
+              "score": null,
+              "canhBao": [],
+              "loi": []
+            },
+            {
+              "maDraftItem": 60,
+              "maKhoaHoc": 3,
+              "maKhoaHocCode": null,
+              "thuTrongTuan": 7,
+              "maCaHoc": 3,
+              "tenCa": "Ca 3",
+              "maPhong": 1,
+              "tenPhong": "Phòng A101",
+              "trangThai": "xep_duoc",
+              "score": null,
+              "canhBao": [],
+              "loi": []
+            }
+          ]
+        },
+        "errors": []
+      }
+    },
+    "candidate": {
+      "maKhoaHoc": 1,
+      "maHocKy": 1,
+      "maDonVi": 3,
+      "maPhong": 1,
+      "maCaHoc": 5,
+      "thuTrongTuan": 6,
+      "ngayBatDau": "2026-01-01",
+      "ngayKetThuc": "2026-04-30"
+    }
+  },
+  "network": [
+    {
+      "status": 200,
+      "method": "",
+      "url": "https://localhost:5173/api/auth/login"
+    },
+    {
+      "status": 200,
+      "method": "",
+      "url": "https://localhost:5173/api/ca-hoc"
+    },
+    {
+      "status": 200,
+      "method": "",
+      "url": "https://localhost:5173/api/master-data/academic-terms?pageIndex=1&pageSize=100"
+    },
+    {
+      "status": 200,
+      "method": "",
+      "url": "https://localhost:5173/api/master-data/rooms"
+    },
+    {
+      "status": 200,
+      "method": "",
+      "url": "https://localhost:5173/api/courses?PageIndex=1&PageSize=100"
+    },
+    {
+      "status": 200,
+      "method": "",
+      "url": "https://localhost:5173/api/thoi-khoa-bieu?PageIndex=1&PageSize=100"
+    },
+    {
+      "status": 200,
+      "method": "",
+      "url": "https://localhost:5173/api/thoi-khoa-bieu?PageIndex=1&PageSize=100"
+    },
+    {
+      "status": 200,
+      "method": "",
+      "url": "https://localhost:5173/api/thoi-khoa-bieu?PageIndex=1&PageSize=100&TrangThai=da_xuat_ban"
+    },
+    {
+      "status": 200,
+      "method": "",
+      "url": "https://localhost:5173/api/courses?PageIndex=1&PageSize=100"
+    },
+    {
+      "status": 200,
+      "method": "",
+      "url": "https://localhost:5173/api/master-data/rooms"
+    },
+    {
+      "status": 200,
+      "method": "",
+      "url": "https://localhost:5173/api/master-data/academic-terms?pageIndex=1&pageSize=100"
+    },
+    {
+      "status": 200,
+      "method": "",
+      "url": "https://localhost:5173/api/ca-hoc"
+    },
+    {
+      "status": 200,
+      "method": "",
+      "url": "https://localhost:5173/api/thoi-khoa-bieu?PageIndex=1&PageSize=100"
+    },
+    {
+      "status": 200,
+      "method": "",
+      "url": "https://localhost:5173/api/thoi-khoa-bieu/check-xung-dot"
+    },
+    {
+      "status": 201,
+      "method": "",
+      "url": "https://localhost:5173/api/thoi-khoa-bieu"
+    },
+    {
+      "status": 200,
+      "method": "",
+      "url": "https://localhost:5173/api/thoi-khoa-bieu/generate"
+    }
+  ],
+  "console": {
+    "consoleErrors": [],
+    "runtimeExceptions": []
+  }
+}
