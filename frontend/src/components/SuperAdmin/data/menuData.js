@@ -126,57 +126,12 @@ export const superAdminMenuGroups = [
     ],
   },
 
-  // ── 5. TÀI CHÍNH VÀ HỌC PHÍ ───────────────────────────────
-  {
-    id: 'finance-group',
-    label: 'Tài chính & Học phí',
-    icon: 'Wallet',
-    children: [
-      {
-        id: 'tuition-config',
-        label: 'Cấu hình học phí',
-        icon: 'BadgePercent',
-        route: '/super-admin/finance/tuition-config',
-      },
-      {
-        id: 'student-debts',
-        label: 'Công nợ sinh viên',
-        icon: 'Receipt',
-        route: '/super-admin/finance/student-debts',
-      },
-      {
-        id: 'payments',
-        label: 'Theo dõi thanh toán',
-        icon: 'CreditCard',
-        route: '/super-admin/finance/payments',
-      },
-      {
-        id: 'refunds',
-        label: 'Hoàn phí/Bảo lưu',
-        icon: 'Undo2',
-        route: '/super-admin/finance/refunds',
-      },
-    ],
-  },
-
   // ── 6. HỖ TRỢ, ĐƠN TỪ VÀ ĐÁNH GIÁ ──────────────────────────
   {
     id: 'support-group',
     label: 'Hỗ trợ & Đơn từ',
     icon: 'LifeBuoy',
     children: [
-      {
-        id: 'tickets',
-        label: 'Ticket hỗ trợ',
-        icon: 'MessageCircleHelp',
-        route: '/super-admin/support/tickets',
-      },
-      {
-        id: 'faq',
-        label: 'Quản lý FAQ',
-        icon: 'FileQuestion',
-        route: '/super-admin/support/faq',
-      },
       {
         id: 'approvals-requests',
         label: 'Đơn cần duyệt',
@@ -227,18 +182,6 @@ export const superAdminMenuGroups = [
         label: 'Tổng quan đào tạo',
         icon: 'PieChart',
         route: '/super-admin/reports/education-overview',
-      },
-      {
-        id: 'reports-learning',
-        label: 'Báo cáo học tập',
-        icon: 'LineChart',
-        route: '/super-admin/reports/learning',
-      },
-      {
-        id: 'reports-attendance',
-        label: 'Báo cáo chuyên cần',
-        icon: 'CalendarCheck2',
-        route: '/super-admin/reports/attendance',
       },
       {
         id: 'campus-comparison',

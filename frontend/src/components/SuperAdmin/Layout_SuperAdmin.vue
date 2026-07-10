@@ -80,8 +80,6 @@ const pageTitleMap = {
   '/super-admin/training/subjects': { title: 'Quản lý môn học', subtitle: 'Cấu hình danh mục môn học và trọng số điểm' },
   '/super-admin/training/courses': { title: 'Quản lý khóa học', subtitle: 'Quản trị nội dung, gán giảng viên và tiến độ' },
   '/super-admin/training/exam-periods': { title: 'Mở/Đóng giai đoạn thi', subtitle: 'Điều phối ca thi và công bố kết quả bài làm' },
-  '/super-admin/operations/schedules': { title: 'Thời khóa biểu', subtitle: 'Can thiệp, gán dạy thay hoặc tạo lịch bù' },
-  '/super-admin/operations/schedules/approval': { title: 'Duyệt/Publish TKB', subtitle: 'Phê duyệt lịch học trước khi thông báo rộng rãi' },
   '/super-admin/operations/attendance-policy': { title: 'Quỹ vắng & Chuyên cần', subtitle: 'Cấu hình ngưỡng vắng và duyệt mở khóa điểm danh' },
   '/super-admin/operations/registration-periods': { title: 'Mở/Đóng đăng ký môn', subtitle: 'Quản lý các đợt đăng ký môn và chốt danh sách lớp' },
   '/super-admin/operations/pass-fail-rules': { title: 'Điều kiện Pass/Fail', subtitle: 'Thiết lập quy tắc đạt/rớt môn dựa trên điểm và chuyên cần' },
@@ -94,7 +92,6 @@ const pageTitleMap = {
 
   // 6. Hỗ trợ, Đơn từ và Đánh giá
   '/super-admin/support/tickets': { title: 'Ticket hỗ trợ', subtitle: 'Tiếp nhận và xử lý yêu cầu hỗ trợ kỹ thuật/học vụ' },
-  '/super-admin/support/faq': { title: 'Quản lý FAQ', subtitle: 'Xây dựng bộ câu hỏi thường gặp trợ giúp tự động' },
   '/super-admin/approvals/requests': { title: 'Đơn cần duyệt', subtitle: 'Giám sát và xử lý đơn từ hành chính trực tuyến' },
   '/super-admin/approvals/history': { title: 'Lịch sử duyệt đơn', subtitle: 'Tra cứu lộ trình xử lý đơn đã kết thúc' },
   '/super-admin/evaluations/config': { title: 'Cấu hình đánh giá GV', subtitle: 'Mở đợt khảo sát và tạo câu hỏi khảo sát giảng viên' },

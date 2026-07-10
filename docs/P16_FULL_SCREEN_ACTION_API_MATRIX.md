@@ -465,3 +465,36 @@ All 28 `FE_ONLY_STATIC` rows have been triaged. 9 rows connected to existing API
 ### Decision
 
 `PASS` for P16B.4C source-closure. Remaining P16 work: P16B.4D hide/remove/claim cleanup and P16B.5 runtime action audit.
+
+## P16B.4D Hide/Remove Route Cleanup
+
+> Date: 2026-07-10
+> Scope: 10 routes assigned by P16B.4B as `HIDE_FROM_DEMO_AND_CLAIM` or `REMOVE_ROUTE`.
+> Report: `docs/P16B4D_HIDE_REMOVE_CLEANUP_REPORT.md`.
+
+### Summary
+
+| Decision | Count | Result |
+| --- | ---: | --- |
+| `HIDE_FROM_DEMO_AND_CLAIM` | 7 | Removed from SuperAdmin sidebar/demo navigation |
+| `REMOVE_ROUTE` | 3 | Removed from visible navigation or stale title maps |
+| **Total** | **10** | **Closed** |
+
+### Cleanup Decisions
+
+| Route | Result |
+| --- | --- |
+| `/super-admin/support/tickets` | Hidden from sidebar; direct route remains excluded from claim |
+| `/super-admin/reports/learning` | Hidden from sidebar; direct route remains excluded from claim |
+| `/super-admin/reports/attendance` | Hidden from sidebar; direct route remains excluded from claim |
+| `/super-admin/finance/student-debts` | Hidden from sidebar; direct route remains excluded from claim |
+| `/super-admin/finance/payments` | Hidden from sidebar; direct route remains excluded from claim |
+| `/super-admin/finance/refunds` | Hidden from sidebar; direct route remains excluded from claim |
+| `/super-admin/finance/tuition-config` | Hidden from sidebar; direct route remains excluded from claim |
+| `/super-admin/support/faq` | Removed from sidebar and stale title maps |
+| `/super-admin/operations/schedules` | Already absent from router/sidebar; stale title maps removed |
+| `/super-admin/operations/schedules/approval` | Already absent from router/sidebar; stale title maps removed |
+
+### Decision
+
+`PASS` for P16B.4D. Remaining P16 work: P16B.5 runtime action audit.
