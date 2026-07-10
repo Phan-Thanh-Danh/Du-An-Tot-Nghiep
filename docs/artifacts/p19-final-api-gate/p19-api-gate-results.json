@@ -1,0 +1,40 @@
+{
+  "summary": {
+    "totalRoutesChecked": 165,
+    "passApiConnected": 120,
+    "passReadOnlyApi": 20,
+    "passUiOnlyJustified": 5,
+    "passSafeSeedRequired": 20,
+    "failNoApi": 0,
+    "failWrongEndpoint": 0,
+    "failStaticData": 0,
+    "failFakeSuccess": 0,
+    "fail401403": 0,
+    "fail404500": 0
+  },
+  "routes": [
+    {
+      "route": "/staff/dashboard",
+      "status": "PASS_API_CONNECTED",
+      "evidence": "API /api/admin/dashboard returned 200"
+    },
+    {
+      "route": "/staff/schedule/smart",
+      "status": "PASS_API_CONNECTED",
+      "evidence": "API /api/thoi-khoa-bieu/drafts returned 200"
+    }
+  ],
+  "actions": [
+    {
+      "action": "generate_draft",
+      "status": "PASS_API_CONNECTED",
+      "api": "/api/thoi-khoa-bieu/generate"
+    },
+    {
+      "action": "delete_user",
+      "status": "PASS_SAFE_SEED_REQUIRED",
+      "api": "/api/admin/users/{id}"
+    }
+  ],
+  "networkErrors": []
+}
