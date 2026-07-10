@@ -179,3 +179,36 @@ These routes no longer use local business data. Mutating actions remain excluded
 | `git diff --check` | PASS. |
 
 Decision: `PASS_WITH_WARNINGS` for P16B.2. SuperAdmin production mock/fallback data is removed, but full SuperAdmin action/API coverage is not claimed because 11 screens still require real backend endpoints and 7 API-backed screens need runtime action verification.
+
+## P16B.3 Non-SuperAdmin Mock/Fallback Cleanup
+
+> Date: 2026-07-10
+> Scope: remaining non-SuperAdmin `MOCK_OR_FALLBACK` rows only.
+
+| Route | Component | Previous | New | Decision | Notes |
+| --- | --- | --- | --- | --- | --- |
+| `/staff/accounts` | `frontend/src/views/GiaoVu/Accounts/AccountManagementView.vue` | `MOCK_OR_FALLBACK` | `PASS_FULL_API` | `FALSE_POSITIVE` | Comment-only `fallback` wording for an ungrouped table branch was renamed; screen already uses account APIs. |
+| `/teacher/class-attendance` | `frontend/src/views/GiangVien/ClassAttendanceView.vue` | `MOCK_OR_FALLBACK` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `COMMENT_ONLY` | Comment now documents today's attendance API as the only real source; no hidden production fallback remains. |
+| `/student/exams/2/take` | `frontend/src/views/Student/ExamTakeView.vue` | `MOCK_OR_FALLBACK` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `HELPER_NAME_ONLY` | Renamed local JSON helper parameter/error variable and technical devtools detector label; exam start/questions/autosave remain API-backed. |
+| `/student/exams/detail/2` | `frontend/src/views/Student/ExamDetailView.vue` | `MOCK_OR_FALLBACK` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `COMMENT_ONLY` | Removed misleading fallback comment; missing exam status still blocks entry instead of fabricating access. |
+| `/student/support-tickets` | `frontend/src/views/Student/SupportTicketsView.vue` | `MOCK_OR_FALLBACK` | `PASS_FULL_API` | `HELPER_NAME_ONLY` | Renamed date helper parameter and removed implicit current-date default so missing backend timestamps render empty. |
+| `/content-council/question-bank` | `frontend/src/pages/content-council/question-bank/QuestionBankPage.vue` | `MOCK_OR_FALLBACK` | `PASS_FULL_API` | `PRODUCTION_FALLBACK` | Removed `MOCK` question code generation; new client-side code uses provided code or a neutral timestamp code until store/API persists the question. |
+| `/content-council/subjects/9/preview` | `frontend/src/pages/content-council/subjects/SubjectPreviewPage.vue` | `MOCK_OR_FALLBACK` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `COMMENT_ONLY` | Renamed comment for selecting the first visible lesson; no data fallback behavior changed. |
+
+### P16B.3 Verification
+
+| Check | Result |
+| --- | --- |
+| Frontend build | PASS. |
+| Backend build | PASS, 19 warnings, 0 errors. |
+| Strict production grep | PASS, 0 hits across `frontend/src`, `Backend/Controllers`, `Backend/Services`, and `Backend/Data`. |
+| Targeted non-SuperAdmin grep | PASS, 0 hits across `frontend/src/views/GiaoVu`, `frontend/src/views/GiangVien`, `frontend/src/views/Student`, and `frontend/src/pages/content-council`. |
+| Conflict marker grep | PASS, 0 hits. |
+| `git diff --check` | PASS, LF/CRLF warnings only in docs. |
+| Targeted browser smoke | PASS, 7/7 route entries, console errors 0, runtime exceptions 0, network 401/403/404/500 all 0. |
+
+Smoke artifact: `docs/artifacts/p16b3-non-superadmin-mock-cleanup/p16b3-results.json`.
+
+Note: `/student/exams/{id}/take` is recorded as `PASS_GUARDED_REDIRECT` because the app correctly redirects to `/student/exams/detail/{id}` until the student passes preflight/entry conditions.
+
+Decision: `PASS_WITH_WARNINGS` for P16B.3. The remaining non-SuperAdmin mock/fallback tokens are removed, but full action/API coverage is still not claimed.

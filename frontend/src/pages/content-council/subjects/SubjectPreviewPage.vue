@@ -64,7 +64,7 @@ const handleLessonSelect = (lessonId) => {
   router.push({ query: { lessonId } })
 }
 
-// Watch showDrafts: If current lesson becomes hidden, fallback to first
+// Watch showDrafts: If current lesson becomes hidden, select the first visible lesson
 watch(showDrafts, () => {
   if (currentLessonId.value && !currentLesson.value) {
     const firstLesson = flatLessons.value[0]

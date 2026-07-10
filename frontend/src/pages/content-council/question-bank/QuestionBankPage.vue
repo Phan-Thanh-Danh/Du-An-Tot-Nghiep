@@ -200,7 +200,7 @@ const executeSave = (formData: any) => {
     const newQuestion = {
       ...formData,
       id: Math.max(...questionStore.questions.map(q => q.id), 0) + 1,
-      code: `Q-${formData.subjectCode}-MOCK-${Math.floor(Math.random() * 1000)}`,
+      code: formData.code || `Q-${formData.subjectCode}-${Date.now()}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       usageCount: 0

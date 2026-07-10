@@ -156,12 +156,12 @@ const watermarkText = computed(() => {
   return `${STUDENT_ID.value} • ${STUDENT_NAME.value} • ${currentTimestamp.value}`
 })
 
-function readJson(key, fallback) {
+function readJson(key, defaultValue) {
   try {
     const value = localStorage.getItem(key)
-    return value ? JSON.parse(value) : fallback
+    return value ? JSON.parse(value) : defaultValue
   } catch {
-    return fallback
+    return defaultValue
   }
 }
 
@@ -658,9 +658,9 @@ async function requestExamFullscreen() {
     console.warn('[ExamLockdown] requestFullscreen with options failed, retry basic', firstError)
     try {
       await root.requestFullscreen()
-    } catch (fallbackError) {
-      console.error('[ExamLockdown] requestFullscreen failed', fallbackError)
-      throw new Error('Không thể bật toàn màn hình. Vui lòng cho phép fullscreen để vào phòng thi.', { cause: fallbackError })
+    } catch (retryError) {
+      console.error('[ExamLockdown] requestFullscreen failed', retryError)
+      throw new Error('Không thể bật toàn màn hình. Vui lòng cho phép fullscreen để vào phòng thi.', { cause: retryError })
     }
   }
 
@@ -888,7 +888,7 @@ async function startDevtoolsDetection() {
           'DEVTOOLS_OPENED',
           'critical',
           'Phát hiện dấu hiệu mở Developer Tools',
-          { widthDiff, heightDiff, detector: 'fallback' },
+          { widthDiff, heightDiff, detector: 'viewport-delta' },
           { dedupeMs: 10000 },
         )
         pushWarning('Phát hiện dấu hiệu mở Developer Tools.', 'critical')
@@ -2593,4 +2593,3 @@ onUnmounted(() => {
   }
 }
 </style>
-

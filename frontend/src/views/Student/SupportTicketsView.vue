@@ -47,7 +47,7 @@ const aiSuggestions = ref([])
 const rating = ref(0)
 const ratingFeedback = ref('')
 
-const toDate = (v, fallback = new Date()) => v ? new Date(v) : fallback
+const toDate = (value, defaultValue = null) => value ? new Date(value) : defaultValue
 
 const mapTicket = (item) => ({
   id: item.maYeuCau ?? item.maTicket ?? item.id ?? item.Id,

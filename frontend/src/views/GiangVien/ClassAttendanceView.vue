@@ -51,8 +51,8 @@ async function loadAttendance() {
   loading.value = true
   error.value = ''
   try {
-    // MISSING_BACKEND: no per-student attendance summary endpoint exists
-    // Trying today's attendance sessions as fallback
+    // MISSING_BACKEND: no per-student attendance summary endpoint exists.
+    // Use today's attendance sessions as the only real API-backed source for now.
     const data = await teacherApi.getAttendanceToday()
     if (data && Array.isArray(data) && data.length > 0) {
       attendanceData.value = data

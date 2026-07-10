@@ -55,7 +55,7 @@ onMounted(async () => {
 })
 
 const isAllowedToEnter = computed(() => {
-  if (!realExamStatus.value) return false // fallback or waiting
+  if (!realExamStatus.value) return false
   const status = realExamStatus.value.accessStatus || realExamStatus.value.AccessStatus
   const ttdt = realExamStatus.value.trangThaiDuThi || realExamStatus.value.TrangThaiDuThi
   return status === 'official' && ttdt === 'duoc_thi'

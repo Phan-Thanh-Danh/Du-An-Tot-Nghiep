@@ -269,7 +269,7 @@ async function resetPwd(r) {
             </div>
           </template>
         </template>
-        <!-- Ungrouped view fallback -->
+        <!-- Ungrouped table view -->
         <template v-else>
           <table class="w-full text-left text-sm whitespace-nowrap border-collapse">
             <thead class="bg-(--surface-input) border-b border-default text-muted">

@@ -1,0 +1,133 @@
+{
+  "generatedAt": "2026-07-10T01:58:12.796Z",
+  "browser": "Chrome/150.0.7871.101",
+  "frontend": "https://localhost:5173",
+  "cdp": "http://127.0.0.1:9222",
+  "routeCount": 7,
+  "passCount": 7,
+  "failCount": 0,
+  "skippedCount": 0,
+  "consoleErrors": 0,
+  "runtimeExceptions": 0,
+  "network401": 0,
+  "network403": 0,
+  "network404": 0,
+  "network500": 0,
+  "results": [
+    {
+      "role": "staff",
+      "requestedRoute": "/staff/accounts",
+      "route": "/staff/accounts",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/staff/accounts",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nGiáo vụ\nAccounts\nQuản lý tài khoản\nDark\nPT\n\nP12 Test Giáo Vụ\n\nAcademicstaff\n\nHệ thống sẽ bảo trì định kỳ vào Chủ nhật (31/05) từ 02:00 - 04:00.\nHệ thống Giáo vụ\n\nTỔNG TÀI KHOẢN\n\n0\n\nĐANG HOẠT ĐỘNG\n\n0\n\nĐÃ KHÓA\n\n0\n\nGIẢNG VIÊN\n\n0\n\nSINH VIÊN\n\n0\n\nTất cả vai trò\nGiảng viên\nGiáo vụ\nSinh viên\nBGH\nSuper Admin\nPhụ huynh\nTất cả trạng thái\nĐang hoạt động\nĐã khóa\nKhông sắp xếp\nSắp xếp theo vai trò\nThêm tài khoản"
+      }
+    },
+    {
+      "role": "teacher",
+      "requestedRoute": "/teacher/class-attendance",
+      "route": "/teacher/class-attendance",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/teacher/class-attendance",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nTeacher\nĐiểm danh lớp\nTrang giảng viên\nDark\nPT\n\nP12 Test Giảng Viên\n\nTeacher\n\nHệ thống sẽ bảo trì định kỳ vào Chủ nhật (31/05) từ 02:00 - 04:00.\nTrang giảng viên\n\nĐang tải dữ liệu điểm danh..."
+      }
+    },
+    {
+      "role": "student",
+      "requestedRoute": "/student/exams/2/take",
+      "route": "/student/exams/2/take",
+      "resolvedId": "2",
+      "result": "PASS_GUARDED_REDIRECT",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/student/exams/detail/2",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nStudent\nThi / Kiểm tra\nDetail\n2\nChi tiết bài thi\nDark\nPT\n\nP12 Test Sinh Viên\n\nStudent\n\nHệ thống sẽ bảo trì định kỳ vào Chủ nhật (31/05) từ 02:00 - 04:00.\nThi / Kiểm tra\n\nLịch thi và kết quả kiểm tra\n\nDanh sách bài thi\nChi tiết bài thi\n·\nBài thi\n\n— phút\nThời lượng\n— câu\nCâu hỏi\n— lần\nSố lần làm\n—\nHình thức\nMở ca thi:\n—\nĐóng ca thi:\n—\nGiảng viên:\n—\nQuy định bài thi\nBạn chỉ có thể nộp bài một lần. Hãy chắc chắn trước khi bắt đầu.\nBắt đầu kiểm tra môi trường\nMôi trường thi an toàn\nYêu cầu "
+      }
+    },
+    {
+      "role": "student",
+      "requestedRoute": "/student/exams/detail/2",
+      "route": "/student/exams/detail/2",
+      "resolvedId": "2",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/student/exams/detail/2",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nStudent\nThi / Kiểm tra\nDetail\n2\nChi tiết bài thi\nDark\nPT\n\nP12 Test Sinh Viên\n\nStudent\n\nHệ thống sẽ bảo trì định kỳ vào Chủ nhật (31/05) từ 02:00 - 04:00.\nThi / Kiểm tra\n\nLịch thi và kết quả kiểm tra\n\nDanh sách bài thi\nChi tiết bài thi\nCOM102 · SD1904\nQuiz Cơ sở dữ liệu\n\nCơ sở dữ liệu\n\n45 phút\nThời lượng\n— câu\nCâu hỏi\n1 lần\nSố lần làm\nTrắc nghiệm\nHình thức\nMở ca thi:\n—\nĐóng ca thi:\n—\nGiảng viên:\nGiám thị theo ca thi\nQuy định bài thi\nBạn chỉ có thể nộp bài một lần. Hãy chắc chắn trước kh"
+      }
+    },
+    {
+      "role": "student",
+      "requestedRoute": "/student/support-tickets",
+      "route": "/student/support-tickets",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/student/support-tickets",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nStudent\nSupport-tickets\nHỗ trợ & Ticket\nDark\nPT\n\nP12 Test Sinh Viên\n\nStudent\n\nHệ thống sẽ bảo trì định kỳ vào Chủ nhật (31/05) từ 02:00 - 04:00.\nHỗ trợ & Ticket\n\nGửi yêu cầu hỗ trợ và theo dõi xử lý\n\nHỖ TRỢ SINH VIÊN\nHỗ trợ & Ticket\n\nGửi yêu cầu hỗ trợ, theo dõi tiến độ xử lý với sự trợ giúp từ AI.\n\nTạo Ticket Mới\nTrạng thái\nDanh mục\nKhông tìm thấy ticket nào.\nChọn một ticket\n\nBấm vào một ticket ở danh sách bên trái để xem chi tiết hoặc tương tác với nhân viên hỗ trợ."
+      }
+    },
+    {
+      "role": "content",
+      "requestedRoute": "/content-council/question-bank",
+      "route": "/content-council/question-bank",
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/content-council/question-bank",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Trang chủ\nContent-council\nQuestion-bank\nNội dung môn học\nDark\n1\nPT\n\nP15 Test Hội Đồng Nội Dung\n\nHội Đồng Nội Dung\n\nNgân hàng câu hỏi\n\nTạo và quản lý câu hỏi dùng chung cho Quiz và đề kiểm tra.\n\nTải file mẫu\nImport Excel\nTạo câu hỏi\nMôn học\nTất cả môn học\nLoại câu hỏi\nTất cả loại\nKiểu lựa chọn\nTất cả kiểu\nĐộ khó\nTất cả độ khó\nTrạng thái\nTất cả trạng thái\n\tMã CH\tNội dung\tMôn học\tLoại\tĐộ khó\tTrạng thái\tSử dụng\t\n\n\nKhông tìm thấy câu hỏi\n\nKhông có dữ liệu phù hợp với bộ lọc hoặc ngân hàng câu hỏi đan"
+      }
+    },
+    {
+      "role": "content",
+      "requestedRoute": "/content-council/subjects/9/preview",
+      "route": "/content-council/subjects/9/preview",
+      "resolvedId": 9,
+      "result": "PASS",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "pageProbe": {
+        "path": "/content-council/subjects/9/preview",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "bodyText": "Chế độ xem trước\n\nBạn đang xem nội dung dưới góc nhìn của học sinh. Tiến độ và kết quả Quiz sẽ không được ghi nhận.\n\nHiển thị nội dung nháp\nQuay lại trình soạn\n?\nChưa có bài học nào để xem\n\nMôn học này hiện chưa có bài học nào được công bố hoặc hiển thị."
+      }
+    }
+  ]
+}

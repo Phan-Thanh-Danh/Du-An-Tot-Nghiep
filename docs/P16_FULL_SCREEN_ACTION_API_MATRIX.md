@@ -268,3 +268,21 @@ P16B.2 resolves the SuperAdmin rows that were previously classified as `MOCK_OR_
 | `/super-admin/finance/tuition-config` | `frontend/src/views/SuperAdmin/Finance/TuitionConfigView.vue` | false-positive token hit | `PASS_FULL_API` unchanged | Existing tuition config APIs. | Helper variable names contained `fallback`; no production data issue. | No action required from P16B.2. |
 
 Verification for P16B.2: SuperAdmin token grep 0 hits, strict production mock/fallback grep 0 hits, frontend build PASS, backend build PASS with 19 warnings and 0 errors, targeted browser smoke PASS 19/19 with console/runtime/network 401/403/404/500 all 0, conflict marker grep PASS, and `git diff --check` PASS. Smoke artifact: `docs/artifacts/p16b2-superadmin-mock-cleanup/p16b2-superadmin-results.json`.
+
+## P16B.3 Non-SuperAdmin Mock/Fallback Cleanup
+
+P16B.3 resolves the remaining non-SuperAdmin `MOCK_OR_FALLBACK` rows identified in the P16B worklist. It does not process `FE_ONLY_STATIC` rows and does not claim full action/API coverage.
+
+| Route | Component | Previous | New | Decision | Notes |
+| --- | --- | --- | --- | --- | --- |
+| `/staff/accounts` | `frontend/src/views/GiaoVu/Accounts/AccountManagementView.vue` | `MOCK_OR_FALLBACK` | `PASS_FULL_API` | `FALSE_POSITIVE` | UI comment renamed from ungrouped-view fallback to ungrouped table view; no API behavior changed. |
+| `/teacher/class-attendance` | `frontend/src/views/GiangVien/ClassAttendanceView.vue` | `MOCK_OR_FALLBACK` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `COMMENT_ONLY` | Comment now states that today's attendance API is the current real source; no silent fake data path. |
+| `/student/exams/2/take` | `frontend/src/views/Student/ExamTakeView.vue` | `MOCK_OR_FALLBACK` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `HELPER_NAME_ONLY` | Helper names and detector label no longer use fallback wording; backend exam start/questions/autosave remain the source of exam data. |
+| `/student/exams/detail/2` | `frontend/src/views/Student/ExamDetailView.vue` | `MOCK_OR_FALLBACK` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `COMMENT_ONLY` | Removed misleading fallback comment; access remains denied until real exam status is loaded. |
+| `/student/support-tickets` | `frontend/src/views/Student/SupportTicketsView.vue` | `MOCK_OR_FALLBACK` | `PASS_FULL_API` | `HELPER_NAME_ONLY` | Date helper no longer substitutes current time when backend timestamp is missing. |
+| `/content-council/question-bank` | `frontend/src/pages/content-council/question-bank/QuestionBankPage.vue` | `MOCK_OR_FALLBACK` | `PASS_FULL_API` | `PRODUCTION_FALLBACK` | Removed `MOCK` question-code generation and replaced it with provided code or neutral timestamp code. |
+| `/content-council/subjects/9/preview` | `frontend/src/pages/content-council/subjects/SubjectPreviewPage.vue` | `MOCK_OR_FALLBACK` | `PASS_LOAD_ONLY_ACTIONS_PENDING` | `COMMENT_ONLY` | Preview still selects first visible lesson when needed, with no mock/fallback token or fake data. |
+
+Verification for P16B.3: frontend build PASS, backend build PASS with 19 warnings and 0 errors, strict production grep PASS with 0 hits, targeted non-SuperAdmin grep PASS with 0 hits, targeted browser smoke PASS 7/7 with console/runtime/network 401/403/404/500 all 0, conflict marker grep PASS, and `git diff --check` PASS. Smoke artifact: `docs/artifacts/p16b3-non-superadmin-mock-cleanup/p16b3-results.json`.
+
+Note: `/student/exams/{id}/take` is counted as `PASS_GUARDED_REDIRECT`; the app redirects to `/student/exams/detail/{id}` until preflight/entry conditions are satisfied. This is route guard behavior, not a mock/fallback path.
