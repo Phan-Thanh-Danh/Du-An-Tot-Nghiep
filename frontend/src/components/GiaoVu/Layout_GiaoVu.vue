@@ -56,7 +56,7 @@ const pageTitleMap = {
   '/staff/floors': { title: 'Quản lý lầu', subtitle: 'Danh sách lầu và phòng học trực thuộc' },
   '/staff/rooms': { title: 'Quản lý phòng học', subtitle: 'Theo dõi sức chứa và thiết bị phòng' },
   '/staff/conflicts': { title: 'Kiểm tra xung đột', subtitle: 'Phát hiện trùng lịch giảng viên và phòng học' },
-  '/staff/schedule/pending': { title: 'Lịch chờ duyệt', subtitle: 'Danh sách TKB đang chờ Ban giám hiệu phê duyệt' },
+  '/staff/schedule/pending': { title: 'Bản nháp thời khóa biểu', subtitle: 'Danh sách bản nháp chờ giáo vụ rà soát và xuất bản' },
   '/staff/schedule/published': { title: 'Lịch đã công bố', subtitle: 'Thời khóa biểu chính thức đang áp dụng' },
   '/staff/registrations': { title: 'Đợt đăng ký môn học', subtitle: 'Quản lý các đợt đăng ký và cấu hình tín chỉ' },
 

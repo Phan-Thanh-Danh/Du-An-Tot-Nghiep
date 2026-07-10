@@ -45,7 +45,7 @@ const labelMap = {
   notices: 'Thông báo',
   send: 'Gửi',
   history: 'Lịch sử',
-  pending: 'Chờ duyệt',
+  pending: 'Bản nháp',
   published: 'Đã công bố',
   overview: 'Tổng quan',
   'pass-fail': 'Đỗ / Trượt',

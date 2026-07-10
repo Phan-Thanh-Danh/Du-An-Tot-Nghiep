@@ -106,7 +106,7 @@ Runtime API evidence included:
 - Pending page now loads drafts using required backend query params instead of calling `listDrafts()` without context.
 - Newly generated draft is auto-selected and highlighted when `draftId` is present in the route query.
 - Direct pending route without context now shows an instruction instead of a misleading empty state.
-- Pending page wording was adjusted to `Lịch nháp/chờ duyệt` to match backend draft status.
+- Pending page wording was adjusted toward draft review/publish wording to match backend draft status.
 
 ## P22.2 Runtime Smoke Result
 
@@ -119,10 +119,31 @@ Runtime API evidence included:
 | Generated draft visible in pending page | PASS |
 | Generated draft auto-selected/highlighted | PASS |
 
+## P22.3 Pending Draft Wording and Filter UX Fix
+
+- Renamed pending approval wording to draft review/publish wording.
+- Replaced blank campus/term inputs with real dropdowns.
+- Loaded academic terms from `academicTermApi.list()`.
+- Derived campus options from real course data.
+- Direct `/staff/schedule/pending` now lets staff choose campus and term manually.
+- Smart draft navigation still preselects campus/term/draftId from route query.
+- Updated staff sidebar, route meta, layout title/subtitle, and breadcrumb wording for the draft workflow.
+
+## P22.3 Runtime Smoke Result
+
+| Check | Result |
+| --- | --- |
+| Direct pending route shows campus/term dropdowns | PASS |
+| Blank white filter fields removed | PASS |
+| Manual campus/term load calls filtered draft endpoint | PASS |
+| Smart generate route preselects dropdowns | PASS |
+| Generated draft remains visible/highlighted | PASS |
+| BGH wording removed from staff workflow | PASS |
+
 ## Git Safety Note
 
-The worktree already contains many modified files from other phases. P22 changes were kept scoped to the two schedule views and this report. Commit must stage only the three P22 files listed in the safe commit checklist.
+The worktree already contains many modified files from other phases. P22.3 changes were kept scoped to the pending draft screen, staff navigation wording, and this report.
 
 ## Remaining Work
 
-- Commit P22 separately once unrelated worktree changes are either committed or intentionally staged out.
+- Keep later schedule workflow work separate from unrelated phase files still present in the worktree.

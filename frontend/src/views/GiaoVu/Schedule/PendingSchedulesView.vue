@@ -8,9 +8,12 @@ import { usePopupStore } from '@/stores/popup'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
+import { academicTermApi } from '@/services/academicTermApi'
+import { courseApi } from '@/services/courseApi'
 import { scheduleApi } from '@/services/scheduleApi'
 
 const loading = ref(false)
+const loadingFilters = ref(false)
 const error = ref('')
 const schedules = ref([])
 const selectedItem = ref(null)
@@ -20,9 +23,11 @@ const route = useRoute()
 const filterMaDonVi = ref('')
 const filterMaHocKy = ref('')
 const highlightDraftId = ref('')
+const campusOptions = ref([])
+const termOptions = ref([])
 
 const statusLabels = {
-  pending: { label: 'Chờ duyệt', variant: 'warning' },
+  pending: { label: 'Bản nháp', variant: 'warning' },
   returned: { label: 'Cần chỉnh sửa', variant: 'danger' },
   published: { label: 'Đã xuất bản', variant: 'success' },
   draft: { label: 'Bản nháp', variant: 'info' },
@@ -36,7 +41,33 @@ function unwrap(response) {
   if (Array.isArray(data)) return data
   if (Array.isArray(data?.items)) return data.items
   if (Array.isArray(data?.Items)) return data.Items
+  if (Array.isArray(data?.data)) return data.data
+  if (Array.isArray(data?.Data)) return data.Data
   return []
+}
+
+function unwrapList(response) {
+  return unwrap(response)
+}
+
+function normalizeTerm(t) {
+  const maHocKy = t.maHocKy ?? t.MaHocKy ?? t.id ?? t.Id
+  return {
+    maHocKy,
+    tenHocKy: t.tenHocKy ?? t.TenHocKy ?? t.ten ?? t.Ten ?? `Học kỳ ${maHocKy ?? ''}`,
+    ngayBatDau: t.ngayBatDau ?? t.NgayBatDau,
+    ngayKetThuc: t.ngayKetThuc ?? t.NgayKetThuc,
+  }
+}
+
+function normalizeCourse(c) {
+  return {
+    maKhoaHoc: c.maKhoaHoc ?? c.MaKhoaHoc ?? c.id ?? c.Id,
+    maDonVi: c.maDonVi ?? c.MaDonVi,
+    tenDonVi: c.tenDonVi ?? c.TenDonVi ?? c.tenCoSo ?? c.TenCoSo,
+    maHocKy: c.maHocKy ?? c.MaHocKy,
+    tenHocKy: c.tenHocKy ?? c.TenHocKy,
+  }
 }
 
 function mapDraft(item) {
@@ -75,12 +106,54 @@ function syncQueryContext() {
   highlightDraftId.value = route.query.draftId ? String(route.query.draftId) : ''
 }
 
+async function loadFilterOptions() {
+  loadingFilters.value = true
+  try {
+    const [termsRes, coursesRes] = await Promise.all([
+      academicTermApi.list({ PageIndex: 1, PageSize: 100 }),
+      courseApi.getCourses({ PageIndex: 1, PageSize: 100 }),
+    ])
+
+    termOptions.value = unwrapList(termsRes)
+      .map(normalizeTerm)
+      .filter(t => t.maHocKy)
+      .sort((a, b) => Number(b.maHocKy) - Number(a.maHocKy))
+
+    const campusMap = new Map()
+    unwrapList(coursesRes)
+      .map(normalizeCourse)
+      .forEach((course) => {
+        if (!course.maDonVi) return
+        campusMap.set(
+          Number(course.maDonVi),
+          course.tenDonVi || `Cơ sở ${course.maDonVi}`,
+        )
+      })
+
+    campusOptions.value = [...campusMap.entries()]
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => String(a.label).localeCompare(String(b.label), 'vi'))
+
+    if (!filterMaDonVi.value && campusOptions.value.length === 1) {
+      filterMaDonVi.value = campusOptions.value[0].value
+    }
+
+    if (!filterMaHocKy.value && termOptions.value.length === 1) {
+      filterMaHocKy.value = termOptions.value[0].maHocKy
+    }
+  } catch (e) {
+    console.error('Load pending draft filters failed', e)
+    error.value = e?.message || 'Không thể tải danh sách cơ sở/học kỳ.'
+  } finally {
+    loadingFilters.value = false
+  }
+}
+
 async function loadSchedules() {
   loading.value = true
   error.value = ''
   try {
     if (!filterMaDonVi.value || !filterMaHocKy.value) {
-      error.value = 'Vui lòng chọn cơ sở và học kỳ để xem bản nháp thời khóa biểu.'
       schedules.value = []
       selectedItem.value = null
       return
@@ -111,7 +184,7 @@ async function publishDraft(item) {
   publishing.value = true
   try {
     await scheduleApi.publishDraft({ draftId: item.id })
-    popupStore.success('Thành công', 'Đã phê duyệt và xuất bản thời khóa biểu.')
+    popupStore.success('Thành công', 'Đã xuất bản thời khóa biểu.')
     await loadSchedules()
     selectedItem.value = null
   } catch (e) {
@@ -121,16 +194,24 @@ async function publishDraft(item) {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   syncQueryContext()
-  loadSchedules()
+  await loadFilterOptions()
+  if (filterMaDonVi.value && filterMaHocKy.value) {
+    await loadSchedules()
+  }
 })
 
 watch(
   () => route.query,
-  () => {
+  async () => {
     syncQueryContext()
-    loadSchedules()
+    if (filterMaDonVi.value && filterMaHocKy.value) {
+      await loadSchedules()
+    } else {
+      schedules.value = []
+      selectedItem.value = null
+    }
   },
 )
 </script>
@@ -141,20 +222,53 @@ watch(
       <div>
         <div class="flex items-center gap-2">
           <Clock class="text-(--lg-primary)" :size="24" />
-          <h1 class="text-xl font-bold text-(--text-heading)">Lịch nháp/chờ duyệt</h1>
+          <h1 class="text-xl font-bold text-(--text-heading)">Bản nháp thời khóa biểu</h1>
         </div>
-        <p class="text-sm text-(--text-muted) mt-0.5 ml-8">Danh sách bản nháp thời khóa biểu theo cơ sở và học kỳ.</p>
+        <p class="text-sm text-(--text-muted) mt-0.5 ml-8">Danh sách bản nháp thời khóa biểu theo cơ sở và học kỳ. Giáo vụ rà soát trước khi xuất bản.</p>
       </div>
-      <div class="flex flex-wrap items-end gap-2">
-        <label class="text-xs font-semibold text-(--text-muted)">
-          Cơ sở
-          <input v-model.number="filterMaDonVi" type="number" min="1" class="mt-1 h-9 w-24 rounded-lg border border-(--border-input) bg-(--surface-input) px-3 text-sm text-(--text-body) outline-none focus:ring-2 focus:ring-(--border-focus)" />
+      <div class="flex flex-wrap items-end gap-3">
+        <label class="flex flex-col gap-1 text-xs font-semibold text-(--text-muted)">
+          <span>Cơ sở</span>
+          <select
+            v-model.number="filterMaDonVi"
+            class="h-10 min-w-[220px] rounded-xl border border-(--border-input) bg-(--surface-input) px-3 text-sm text-(--text-body) outline-none focus:ring-2 focus:ring-(--border-focus)"
+          >
+            <option value="">Chọn cơ sở</option>
+            <option
+              v-for="campus in campusOptions"
+              :key="campus.value"
+              :value="campus.value"
+            >
+              {{ campus.label }}
+            </option>
+          </select>
         </label>
-        <label class="text-xs font-semibold text-(--text-muted)">
-          Học kỳ
-          <input v-model.number="filterMaHocKy" type="number" min="1" class="mt-1 h-9 w-24 rounded-lg border border-(--border-input) bg-(--surface-input) px-3 text-sm text-(--text-body) outline-none focus:ring-2 focus:ring-(--border-focus)" />
+        <label class="flex flex-col gap-1 text-xs font-semibold text-(--text-muted)">
+          <span>Học kỳ</span>
+          <select
+            v-model.number="filterMaHocKy"
+            class="h-10 min-w-[220px] rounded-xl border border-(--border-input) bg-(--surface-input) px-3 text-sm text-(--text-body) outline-none focus:ring-2 focus:ring-(--border-focus)"
+          >
+            <option value="">Chọn học kỳ</option>
+            <option
+              v-for="term in termOptions"
+              :key="term.maHocKy"
+              :value="term.maHocKy"
+            >
+              {{ term.tenHocKy }}
+            </option>
+          </select>
         </label>
-        <GlassButton variant="secondary" @click="loadSchedules"><Filter :size="15" class="mr-1" /> Tải bản nháp</GlassButton>
+        <GlassButton
+          variant="secondary"
+          class="h-10"
+          :disabled="loading || loadingFilters || !filterMaDonVi || !filterMaHocKy"
+          @click="loadSchedules"
+        >
+          <Loader2 v-if="loadingFilters" :size="15" class="mr-1 animate-spin" />
+          <Filter v-else :size="15" class="mr-1" />
+          Tải bản nháp
+        </GlassButton>
       </div>
     </div>
 
@@ -162,9 +276,12 @@ watch(
     <div class="flex flex-1 min-h-0 gap-4 flex-col lg:flex-row">
       <!-- Left: List -->
       <div class="flex-1 surface-card border border-(--border-card) rounded-2xl p-4 flex flex-col gap-3 min-w-0 overflow-y-auto">
-        <div v-if="loading" class="p-4"><ListSkeleton :items="4" /></div>
+        <div v-if="!filterMaDonVi || !filterMaHocKy" class="surface-card border border-(--border-card) rounded-2xl p-8 text-sm text-(--text-muted)">
+          Vui lòng chọn cơ sở và học kỳ để xem bản nháp thời khóa biểu.
+        </div>
+        <div v-else-if="loading" class="p-4"><ListSkeleton :items="4" /></div>
         <div v-else-if="error" class="p-8 text-sm text-(--color-danger-text)">{{ error }}</div>
-        <div v-else-if="visibleSchedules.length === 0" class="p-8 text-sm text-(--text-muted)">Chưa có bản nháp thời khóa biểu chờ xử lý.</div>
+        <div v-else-if="visibleSchedules.length === 0" class="p-8 text-sm text-(--text-muted)">Chưa có bản nháp thời khóa biểu trong cơ sở/học kỳ đã chọn.</div>
         <template v-else>
         <div v-for="item in visibleSchedules" :key="item.id"
              @click="selectedItem = item"
@@ -174,7 +291,7 @@ watch(
                String(item.id) === String(highlightDraftId) ? 'ring-2 ring-emerald-400' : ''
              ]">
 
-          <div class="absolute left-0 top-0 bottom-0 w-1" :class="item.status === 'pending' ? 'bg-amber-500' : 'bg-red-500'"></div>
+          <div class="absolute left-0 top-0 bottom-0 w-1" :class="item.status === 'returned' ? 'bg-red-500' : 'bg-amber-500'"></div>
 
           <!-- Info -->
           <div class="flex-1 pl-2">
@@ -235,7 +352,7 @@ watch(
             </div>
 
             <div v-if="selectedItem.note" class="p-3 bg-(--color-danger-bg) border border-(--color-danger-border) rounded-xl">
-              <p class="text-xs font-bold text-(--color-danger-text) flex items-center gap-1 mb-1"><AlertCircle :size="14"/> Nhận xét từ BGH</p>
+              <p class="text-xs font-bold text-(--color-danger-text) flex items-center gap-1 mb-1"><AlertCircle :size="14"/> Ghi chú rà soát</p>
               <p class="text-sm text-(--color-danger-text) opacity-90">{{ selectedItem.note }}</p>
             </div>
 
@@ -249,7 +366,7 @@ watch(
                  </div>
                  <div class="relative">
                    <div class="absolute -left-4 w-2 h-2 rounded-full bg-amber-400 mt-1.5 ring-2 ring-amber-100 dark:ring-amber-900"></div>
-                   <p class="font-bold text-(--text-heading)">Gửi BGH duyệt</p>
+                   <p class="font-bold text-(--text-heading)">Sẵn sàng rà soát</p>
                    <p class="text-xs text-(--text-muted)">{{ selectedItem.submitted }}</p>
                  </div>
                  <div v-if="selectedItem.status === 'returned'" class="relative">
@@ -265,7 +382,7 @@ watch(
             <GlassButton variant="primary" class="w-full justify-center" :disabled="publishing" @click="publishDraft(selectedItem)">
               <Loader2 v-if="publishing" :size="15" class="mr-1.5 animate-spin" />
               <CheckCircle v-else :size="15" class="mr-1.5" />
-              Phê duyệt & Xuất bản
+              Xuất bản lịch
             </GlassButton>
             <GlassButton variant="secondary" class="w-full justify-center">Chỉnh sửa nội dung</GlassButton>
           </div>

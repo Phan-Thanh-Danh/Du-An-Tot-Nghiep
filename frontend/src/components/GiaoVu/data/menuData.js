@@ -1,5 +1,5 @@
 // ============================================================
-// Mock Menu Data - GiaoVu Sidebar
+// Menu Data - GiaoVu Sidebar
 // ============================================================
 
 export const giaoVuMenuGroups = [
@@ -20,7 +20,7 @@ export const giaoVuMenuGroups = [
       { id: 'schedule-mgmt', label: 'Quản lý TKB', icon: 'Settings', route: '/staff/schedule' },
       { id: 'lecturer-assignment', label: 'Phân công giảng viên', icon: 'UserPlus', route: '/staff/assignments' },
       { id: 'conflict-check', label: 'Kiểm tra xung đột', icon: 'AlertTriangle', route: '/staff/conflicts' },
-      { id: 'schedule-pending', label: 'Lịch chờ duyệt', icon: 'Clock', route: '/staff/schedule/pending' },
+      { id: 'schedule-pending', label: 'Bản nháp TKB', icon: 'Clock', route: '/staff/schedule/pending' },
       { id: 'schedule-published', label: 'Lịch đã publish', icon: 'CheckSquare', route: '/staff/schedule/published' },
     ],
   },
