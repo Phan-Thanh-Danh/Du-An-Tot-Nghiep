@@ -1240,11 +1240,11 @@ Known limitations:
 - `PATCH /api/thoi-khoa-bieu/{id}/cancel` - Cancel schedule
 - `POST /api/thoi-khoa-bieu/check-xung-dot` - Check conflict
 - `POST /api/thoi-khoa-bieu/{id}/generate-sessions` - Generate BuoiHoc sessions
-- `POST /api/thoi-khoa-bieu/xep-lich-thong-minh` - Smart timetable generate draft
+- `POST /api/thoi-khoa-bieu/generate` - Smart timetable generate draft
 - `GET /api/thoi-khoa-bieu/drafts/{draftId}` - Get draft detail
 - `GET /api/thoi-khoa-bieu/drafts` - List drafts
-- `POST /api/thoi-khoa-bieu/xep-lich-thong-minh/publish` - Publish draft
-- `POST /api/thoi-khoa-bieu/xep-lich-thong-minh/check-xung-dot-batch` - Batch conflict check
+- `POST /api/thoi-khoa-bieu/publish` - Publish draft
+- `POST /api/thoi-khoa-bieu/check-xung-dot-batch` - Batch conflict check
 - `DELETE /api/thoi-khoa-bieu/drafts/{draftId}` - Delete draft
 
 ### Buổi Học

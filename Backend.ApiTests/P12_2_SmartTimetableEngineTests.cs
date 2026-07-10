@@ -114,7 +114,7 @@ public class ST_OccupationMapTests
 [NonParallelizable]
 public class ST_SmartTimetableApiTests : ApiTestBase
 {
-    private static string SmartTimetableEndpoint => "api/thoi-khoa-bieu/xep-lich-thong-minh";
+    private static string SmartTimetableEndpoint => "api/thoi-khoa-bieu/generate";
     private static string DraftsEndpoint => "api/thoi-khoa-bieu/drafts";
 
     [Test]
