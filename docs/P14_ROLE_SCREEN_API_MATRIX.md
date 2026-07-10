@@ -102,7 +102,7 @@
 | Route | Screen | Component | BE Endpoints | Status | Notes |
 |---|---|---|---|---|---|
 | /giao-vu/dashboard | Dashboard | GiaoVu/Dashboard | GET /api/staff/dashboard | CONNECTED | |
-| /giao-vu/schedule | Schedule Manager | GiaoVu/Schedule/ScheduleManagerView | GET /api/thoi-khoa-bieu, POST /api/thoi-khoa-bieu/xep-lich-thong-minh | CONNECTED | P12 Smart Timetable |
+| /giao-vu/schedule | Schedule Manager | GiaoVu/Schedule/ScheduleManagerView | GET /api/thoi-khoa-bieu, POST /api/thoi-khoa-bieu/generate | CONNECTED | P12 Smart Timetable |
 | /giao-vu/assignments | Teacher Assignments | GiaoVu/Schedule/TeacherAssignmentView | GET /api/courses, POST /api/courses/bulk-assign | CONNECTED | P11 Smart Allocation |
 | /giao-vu/buildings | Buildings | GiaoVu/Facilities/BuildingManagementView | GET/POST/PUT/DELETE /api/master-data/buildings | CONNECTED | |
 | /giao-vu/floors | Floors | GiaoVu/Facilities/FloorManagementView | GET/POST/PUT/DELETE /api/master-data/floors | CONNECTED | |
