@@ -432,3 +432,36 @@ All 28 `FE_ONLY_STATIC` rows have been triaged. 9 rows connected to existing API
 ### Decision
 
 `PASS` for P16B.4B. All 25 rows have a clear decision. No code changed. 10 routes assigned to P16B.4C (connect/implement), 10 to P16B.4D (hide/remove), 5 deferred as roadmap.
+
+## P16B.4C Connect/Implement Closure
+
+> Date: 2026-07-10
+> Scope: 10 routes assigned by P16B.4B as `REPOINT_EXISTING_API` or `IMPLEMENT_NOW`.
+> Report: `docs/P16B4C_CONNECT_IMPLEMENT_REPORT.md`.
+
+### Summary
+
+| Decision | Count | Result |
+| --- | ---: | --- |
+| `REPOINT_EXISTING_API` | 7 | Connected/present |
+| `IMPLEMENT_NOW` | 3 | Implemented/present |
+| **Total** | **10** | **Closed** |
+
+### Closed Routes
+
+| Route | Result | Evidence |
+| --- | --- | --- |
+| `/super-admin/training/exam-periods` | `PASS_FULL_API` | `GET /api/exam/ky-thi` via `examApi.getExamPeriods()` |
+| `/super-admin/approvals/history` | `PASS_FULL_API` | `AdminApplicationsController` + application reports endpoints |
+| `/super-admin/evaluations/results` | `PASS_FULL_API` | `BghEvaluationController` allows SuperAdmin/Admin global scope |
+| `/super-admin/reports/education-overview` | `PASS_FULL_API` | `BghAcademicController` allows SuperAdmin/Admin global scope |
+| `/super-admin/security/alerts` | `PASS_FULL_API` | `GET /api/super-admin/security/alerts` |
+| `/super-admin/system/modules` | `PASS_FULL_API` | `GET /api/super-admin/system/modules` |
+| `/super-admin/notifications/history` | `PASS_FULL_API` | `GET /api/admin/notifications` |
+| `/teacher/class-grades` | `PASS_FULL_API` | `GET /api/teacher/classes/{id}/grades` |
+| `/teacher/grading-input` | `PASS_FULL_API` | `PUT /api/teacher/classes/{id}/grades/{studentId}` |
+| `/student/exams/{id}` | `PASS_FULL_API` | `GET /api/exam/student/result/{sessionId}` |
+
+### Decision
+
+`PASS` for P16B.4C source-closure. Remaining P16 work: P16B.4D hide/remove/claim cleanup and P16B.5 runtime action audit.
