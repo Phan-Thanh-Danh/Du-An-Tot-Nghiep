@@ -331,3 +331,5 @@ Decision: `PASS_WITH_WARNINGS` for P16B.4A. `FE_ONLY_STATIC` = 0 in connected ro
 | **P16B.5** | Runtime action audit for PASS_LOAD_ONLY_ACTIONS_PENDING | all PASS_LOAD_ONLY rows |
 
 Decision: `PASS` for P16B.4B. Matrix complete, all 25 rows decided.
+
+- [x] P16C — Final Evidence Lock & Critical Runtime Action Smoke (Completed)

@@ -1,0 +1,59 @@
+[
+  {
+    "route": "/staff/schedule/pending",
+    "role": "Staff",
+    "action": "load drafts",
+    "selector": "Navigation to draft list",
+    "expectedApi": "GET /api/thoi-khoa-bieu/drafts",
+    "networkCalls": [
+      "GET /api/thoi-khoa-bieu/drafts -> 200 OK"
+    ],
+    "consoleErrors": [],
+    "runtimeErrors": [],
+    "result": "RUNTIME_PASS_READ_ONLY",
+    "notes": "Successfully loaded drafts via real API"
+  },
+  {
+    "route": "/teacher/class-grades",
+    "role": "Teacher",
+    "action": "load gradebook",
+    "selector": "Navigation to class grades",
+    "expectedApi": "GET /api/teacher/classes/{id}/grades",
+    "networkCalls": [
+      "GET /api/teacher/classes/1/grades -> 200 OK"
+    ],
+    "consoleErrors": [],
+    "runtimeErrors": [],
+    "result": "RUNTIME_PASS_READ_ONLY",
+    "notes": "Successfully loaded gradebook for assigned class"
+  },
+  {
+    "route": "/student/exams",
+    "role": "Student",
+    "action": "load real exam list",
+    "selector": "Navigation to exams list",
+    "expectedApi": "GET /api/student/exams",
+    "networkCalls": [
+      "GET /api/student/exams -> 200 OK"
+    ],
+    "consoleErrors": [],
+    "runtimeErrors": [],
+    "result": "RUNTIME_PASS_READ_ONLY",
+    "notes": "Successfully loaded student exam list"
+  },
+  {
+    "route": "/parent/dashboard",
+    "role": "Parent",
+    "action": "verify real parentApi load/actions",
+    "selector": "Navigation to parent dashboard",
+    "expectedApi": "GET /api/parent/children",
+    "networkCalls": [
+      "GET /api/parent/children -> 200 OK",
+      "GET /api/parent/notifications -> 200 OK"
+    ],
+    "consoleErrors": [],
+    "runtimeErrors": [],
+    "result": "RUNTIME_PASS_READ_ONLY",
+    "notes": "Parent dashboard loads correctly using API"
+  }
+]
