@@ -353,4 +353,27 @@ export const teacherApi = {
     const qs = query.toString()
     return apiRequest(`/api/teacher/exam-results${qs ? '?' + qs : ''}`)
   },
+
+  // P26 - Teaching Preferences
+  async getTeachingPreferenceContext() {
+    return unwrapApiData(await apiRequest('/api/teacher/teaching-preferences/context'))
+  },
+
+  async getTeachingPreferenceForm(maHocKy) {
+    return unwrapApiData(await apiRequest(`/api/teacher/teaching-preferences/${maHocKy}`))
+  },
+
+  async saveTeachingPreferenceDraft(maHocKy, data) {
+    return unwrapApiData(await apiRequest(`/api/teacher/teaching-preferences/${maHocKy}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }))
+  },
+
+  async submitTeachingPreference(maHocKy, data) {
+    return unwrapApiData(await apiRequest(`/api/teacher/teaching-preferences/${maHocKy}/submit`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }))
+  }
 }

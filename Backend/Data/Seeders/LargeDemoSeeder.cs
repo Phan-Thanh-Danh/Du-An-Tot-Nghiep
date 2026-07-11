@@ -261,6 +261,9 @@ public static class LargeDemoSeeder
         Console.WriteLine("Generating Smart Course Allocations...");
         var hocKy = new HocKy { MaCodeHocKy = "HK_LARGE_V10", TenHocKy = "HK Large V10", NamHoc = "2026", ThuTuTrongNam = 1, NgayBatDau = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30)), NgayKetThuc = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(60)), MaDonVi = mainCampus.MaDonVi };
         context.HocKys.Add(hocKy);
+        
+        var prepTerm = new HocKy { MaCodeHocKy = "HK_PREP_V10", TenHocKy = "Học kỳ Tiếp theo (Chuẩn bị)", NamHoc = "2026", ThuTuTrongNam = 2, NgayBatDau = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(65)), NgayKetThuc = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(150)), MaDonVi = mainCampus.MaDonVi };
+        context.HocKys.Add(prepTerm);
         await context.SaveChangesAsync();
 
         var courses = new List<KhoaHoc>();
@@ -320,6 +323,56 @@ public static class LargeDemoSeeder
         
         context.KhoaHocs.AddRange(courses);
         await context.SaveChangesAsync();
+
+        Console.WriteLine("Seeding P26 - Teaching Preferences...");
+        
+        // Use the newly created prepTerm
+        if (prepTerm != null)
+        {
+            var teacherCntt = await context.NguoiDungs.FirstOrDefaultAsync(x => x.Email == "teacher.cntt@lms.local");
+            if (teacherCntt != null)
+            {
+                var pref1 = new GiaoVienNguyenVongHocKy
+                {
+                    MaGiaoVien = teacherCntt.MaNguoiDung,
+                    MaHocKy = prepTerm.MaHocKy,
+                    MaDonVi = teacherCntt.MaDonVi,
+                    SoLopToiDaMongMuon = 5,
+                    SoCaToiDaMoiTuan = 15,
+                    TrangThai = "submitted",
+                    NgayTao = DateTime.UtcNow.AddDays(-2),
+                    NgayCapNhat = DateTime.UtcNow.AddDays(-1),
+                    NgayGui = DateTime.UtcNow.AddDays(-1),
+                    ChiTietNguyenVong = new List<GiaoVienNguyenVongCaDay>
+                    {
+                        new GiaoVienNguyenVongCaDay { ThuTrongTuan = 2, MaCaHoc = 1, MucDo = "preferred", NgayTao = DateTime.UtcNow },
+                        new GiaoVienNguyenVongCaDay { ThuTrongTuan = 2, MaCaHoc = 2, MucDo = "preferred", NgayTao = DateTime.UtcNow },
+                        new GiaoVienNguyenVongCaDay { ThuTrongTuan = 3, MaCaHoc = 1, MucDo = "unavailable", NgayTao = DateTime.UtcNow },
+                        new GiaoVienNguyenVongCaDay { ThuTrongTuan = 4, MaCaHoc = 3, MucDo = "available", NgayTao = DateTime.UtcNow },
+                    }
+                };
+                context.GiaoVienNguyenVongHocKys.Add(pref1);
+            }
+            
+            var teacherCsharp = await context.NguoiDungs.FirstOrDefaultAsync(x => x.Email == "teacher.csharp.a@lms.local");
+            if (teacherCsharp != null)
+            {
+                var pref2 = new GiaoVienNguyenVongHocKy
+                {
+                    MaGiaoVien = teacherCsharp.MaNguoiDung,
+                    MaHocKy = prepTerm.MaHocKy,
+                    MaDonVi = teacherCsharp.MaDonVi,
+                    TrangThai = "draft",
+                    NgayTao = DateTime.UtcNow.AddDays(-3),
+                    ChiTietNguyenVong = new List<GiaoVienNguyenVongCaDay>
+                    {
+                        new GiaoVienNguyenVongCaDay { ThuTrongTuan = 5, MaCaHoc = 4, MucDo = "preferred", NgayTao = DateTime.UtcNow },
+                    }
+                };
+                context.GiaoVienNguyenVongHocKys.Add(pref2);
+            }
+            await context.SaveChangesAsync();
+        }
 
         Console.WriteLine("LargeDemo Seed V10 completed successfully.");
     }

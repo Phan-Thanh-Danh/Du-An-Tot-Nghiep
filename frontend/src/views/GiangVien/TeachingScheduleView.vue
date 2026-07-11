@@ -82,8 +82,8 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1">
                 <GlassBadge v-if="item.isSubstitute" variant="warning">Dạy thay</GlassBadge>
-                <GlassBadge :variant="item.trangThaiBuoi === 'da_huy' ? 'danger' : (item.trangThaiBuoi === 'da_ket_thuc' ? 'neutral' : 'primary')">
-                  {{ item.trangThaiBuoi === 'da_huy' ? 'Đã hủy' : (item.trangThaiBuoi === 'da_ket_thuc' ? 'Đã kết thúc' : 'Sắp diễn ra') }}
+                <GlassBadge :variant="getDynamicStatus(item).variant">
+                  {{ getDynamicStatus(item).text }}
                 </GlassBadge>
               </div>
               <h3 class="text-base font-bold text-heading truncate">{{ item.tenMonHoc }}</h3>
@@ -224,7 +224,19 @@ const filteredSchedule = computed(() => {
     )
   }
   if (statusFilter.value) {
-    result = result.filter(s => s.trangThaiBuoi === statusFilter.value)
+    if (statusFilter.value === 'chua_bat_dau') {
+      result = result.filter(s => {
+        const text = getDynamicStatus(s).text;
+        return text === 'Sắp diễn ra' || text === 'Đang diễn ra';
+      })
+    } else if (statusFilter.value === 'da_ket_thuc') {
+      result = result.filter(s => {
+        const text = getDynamicStatus(s).text;
+        return text === 'Đã kết thúc' || text === 'Đã hủy';
+      })
+    } else {
+      result = result.filter(s => s.trangThaiBuoi === statusFilter.value)
+    }
   }
   return result
 })
@@ -242,6 +254,29 @@ const groupedSchedule = computed(() => {
 const formatDate = (dateStr) => {
   const d = new Date(dateStr)
   return new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).format(d)
+}
+
+const getDynamicStatus = (item) => {
+  if (item.trangThaiBuoi === 'da_huy') return { text: 'Đã hủy', variant: 'danger' }
+  
+  const now = new Date()
+  const classDate = new Date(item.ngayHoc)
+  const [startHour, startMin] = item.gioBatDau.split(':').map(Number)
+  const [endHour, endMin] = item.gioKetThuc.split(':').map(Number)
+  
+  const startTime = new Date(classDate)
+  startTime.setHours(startHour, startMin, 0, 0)
+  
+  const endTime = new Date(classDate)
+  endTime.setHours(endHour, endMin, 0, 0)
+
+  if (item.trangThaiBuoi === 'da_ket_thuc' || now > endTime) {
+    return { text: 'Đã kết thúc', variant: 'neutral' }
+  } else if (now >= startTime && now <= endTime) {
+    return { text: 'Đang diễn ra', variant: 'warning' }
+  } else {
+    return { text: 'Sắp diễn ra', variant: 'primary' }
+  }
 }
 
 const loadPage = async () => {

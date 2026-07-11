@@ -119,11 +119,67 @@ public class ApplicationDbContext : DbContext
     public DbSet<ScheduleGenerationJob> ScheduleGenerationJobs => Set<ScheduleGenerationJob>();
     public DbSet<ScheduleDraftItem> ScheduleDraftItems => Set<ScheduleDraftItem>();
 
+    // P26 Teaching Preferences
+    public DbSet<GiaoVienNguyenVongHocKy> GiaoVienNguyenVongHocKys => Set<GiaoVienNguyenVongHocKy>();
+    public DbSet<GiaoVienNguyenVongCaDay> GiaoVienNguyenVongCaDays => Set<GiaoVienNguyenVongCaDay>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.ConfigureLearningProgressModels();
+
+        // P26 Configuration
+        modelBuilder.Entity<GiaoVienNguyenVongHocKy>(entity =>
+        {
+            entity.ToTable("GiaoVienNguyenVongHocKy");
+            entity.HasKey(e => e.Id);
+            
+            // 1 Teacher can only have 1 preference per term
+            entity.HasIndex(e => new { e.MaGiaoVien, e.MaHocKy })
+                .IsUnique()
+                .HasDatabaseName("IX_GiaoVienNguyenVongHocKy_MaGiaoVien_MaHocKy");
+
+            entity.Property(e => e.RowVersion)
+                .IsRowVersion()
+                .IsConcurrencyToken();
+
+            entity.HasOne(d => d.GiaoVien)
+                .WithMany()
+                .HasForeignKey(d => d.MaGiaoVien)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.HocKy)
+                .WithMany()
+                .HasForeignKey(d => d.MaHocKy)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.DonVi)
+                .WithMany()
+                .HasForeignKey(d => d.MaDonVi)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<GiaoVienNguyenVongCaDay>(entity =>
+        {
+            entity.ToTable("GiaoVienNguyenVongCaDay");
+            entity.HasKey(e => e.Id);
+            
+            // 1 Preference can only have 1 config per Slot (MaCaHoc) in a Day (ThuTrongTuan)
+            entity.HasIndex(e => new { e.NguyenVongId, e.ThuTrongTuan, e.MaCaHoc })
+                .IsUnique()
+                .HasDatabaseName("IX_GiaoVienNguyenVongCaDay_NguyenVongId_Thu_Ca");
+
+            entity.HasOne(d => d.NguyenVongHocKy)
+                .WithMany(p => p.ChiTietNguyenVong)
+                .HasForeignKey(d => d.NguyenVongId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.CaHoc)
+                .WithMany()
+                .HasForeignKey(d => d.MaCaHoc)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
 
         modelBuilder.Entity<GiaoVienChuyenNganh>(entity =>
         {

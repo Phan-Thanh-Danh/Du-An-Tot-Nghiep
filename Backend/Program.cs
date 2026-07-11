@@ -49,6 +49,8 @@ using Backend.Services.TrainingPrograms;
 using Backend.Services.TrainingProgramSubjects;
 
 using Backend.Services.AcademicSchedulingContext;
+using Backend.Services.TeachingPreferences;
+using Backend.Configuration;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -230,6 +232,11 @@ builder.Services.AddScoped<ILearningProgressCalculator, LearningProgressCalculat
 builder.Services.AddScoped<ILearningProgressSyncService, LearningProgressSyncService>();
 builder.Services.AddScoped<ILearningProgressService, LearningProgressService>();
 builder.Services.AddScoped<IAcademicSchedulingContextService, AcademicSchedulingContextService>();
+
+builder.Services.Configure<TeachingPreferenceOptions>(
+    builder.Configuration.GetSection(TeachingPreferenceOptions.SectionName)
+);
+builder.Services.AddScoped<ITeachingPreferenceService, TeachingPreferenceService>();
 
 builder.Services.AddSignalR(options =>
 {
