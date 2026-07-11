@@ -100,6 +100,7 @@ export const giangVienMenuGroups = [
     icon: 'User',
     children: [
       { id: 'profile', label: 'Hồ sơ & Bảo mật', icon: 'UserCircle', route: '/teacher/profile' },
+      { id: 'teaching-preferences', label: 'Nguyện vọng giảng dạy', icon: 'CalendarClock', route: '/teacher/teaching-preferences' },
     ],
   },
 ]

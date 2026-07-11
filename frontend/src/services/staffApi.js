@@ -28,6 +28,21 @@ export const staffApi = {
     return unwrapApiData(await apiRequest(`/api/notifications${qs ? '?' + qs : ''}`))
   },
 
+  // P25 - Academic Scheduling Context
+  async getSchedulingContext(maHocKy = null) {
+    const qs = maHocKy ? `?maHocKy=${maHocKy}` : ''
+    return unwrapApiData(await apiRequest(`/api/staff/academic-scheduling-context${qs}`))
+  },
+  
+  // P26 - Teaching Preferences
+  async getTeachingPreferenceSummary(maHocKy) {
+    return unwrapApiData(await apiRequest(`/api/staff/teaching-preferences/summary?maHocKy=${maHocKy}`))
+  },
+  
+  async getTeachersPreferenceSummary(maHocKy) {
+    return unwrapApiData(await apiRequest(`/api/staff/teaching-preferences/teachers?maHocKy=${maHocKy}`))
+  },
+
   // √ /api/notifications/{id}/read — NotificationsController
   async markNotificationRead(id) {
     return apiRequest(`/api/notifications/${id}/read`, { method: 'PATCH' })

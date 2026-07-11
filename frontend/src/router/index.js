@@ -348,6 +348,7 @@ const router = createRouter({
         { path: 'requests', name: 'teacher-requests', component: () => import('../views/GiangVien/PendingRequestsView.vue') , meta: { title: 'Đơn cần xử lý' } },
         { path: 'requests-history', name: 'teacher-requests-history', component: () => import('../views/GiangVien/RequestsHistoryView.vue') , meta: { title: 'Đơn đã xử lý' } },
         { path: 'profile', name: 'teacher-profile', component: () => import('../views/GiangVien/ProfileView.vue') },
+        { path: 'teaching-preferences', name: 'teacher-teaching-preferences', component: () => import('../views/GiangVien/TeachingPreferencesView.vue'), meta: { title: 'Đăng ký nguyện vọng giảng dạy' } },
 
         {
           path: 'notifications', name: 'teacher-notifications', component: () => import('../views/Student/NotificationsView.vue'), meta: { title: 'Thông báo', subtitle: 'Trung tâm thông báo', section: 'Cá nhân' } },
@@ -369,6 +370,7 @@ const router = createRouter({
           meta: { title: 'Tổng quan giáo vụ' },
         },
         { path: 'schedule', name: 'staff-schedule', component: () => import('../views/GiaoVu/Schedule/ScheduleManagerView.vue') , meta: { title: 'Quản lý thời khóa biểu' } },
+        { path: 'teaching-preferences', name: 'staff-teaching-preferences', component: () => import('../views/GiaoVu/TeachingPreferenceSummaryView.vue'), meta: { title: 'Tổng hợp nguyện vọng giảng dạy' } },
         { path: 'assignments', name: 'staff-assignments', component: () => import('../views/GiaoVu/Schedule/TeacherAssignmentView.vue') , meta: { title: 'Phân công giảng viên' } },
         { path: 'buildings', name: 'staff-buildings', component: () => import('../views/GiaoVu/Facilities/BuildingManagementView.vue') , meta: { title: 'Quản lý tòa nhà' } },
         { path: 'floors', name: 'staff-floors', component: () => import('../views/GiaoVu/Facilities/FloorManagementView.vue') , meta: { title: 'Quản lý lầu' } },
