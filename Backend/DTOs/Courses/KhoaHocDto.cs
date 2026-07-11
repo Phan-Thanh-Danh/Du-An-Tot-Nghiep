@@ -19,4 +19,9 @@ public class KhoaHocDto
     public string TrangThai { get; set; } = string.Empty;
     public string? UrlAnhBia { get; set; }
     public DateTime NgayTao { get; set; }
+    
+    // Gợi ý thông số từ QuyDoiTinChi
+    public int? SoBlockHoc { get; set; }
+    public int? GoiYSoBuoiMoiTuan { get; set; }
+    public int? GoiYSoCaMoiBuoi { get; set; }
 }

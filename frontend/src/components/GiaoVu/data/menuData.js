@@ -18,6 +18,8 @@ export const giaoVuMenuGroups = [
     icon: 'Calendar',
     children: [
       { id: 'schedule-mgmt', label: 'Quản lý TKB', icon: 'Settings', route: '/staff/schedule' },
+      { id: 'block-mgmt', label: 'Quản lý Block', icon: 'CalendarDays', route: '/staff/blocks' },
+      { id: 'credit-mappings', label: 'Quy đổi tín chỉ', icon: 'BookOpen', route: '/staff/credit-mappings' },
       { id: 'teaching-preferences', label: 'Nguyện vọng giảng dạy', icon: 'Heart', route: '/staff/teaching-preferences' },
       { id: 'lecturer-assignment', label: 'Phân công giảng viên', icon: 'UserPlus', route: '/staff/assignments' },
       { id: 'conflict-check', label: 'Kiểm tra xung đột', icon: 'AlertTriangle', route: '/staff/conflicts' },

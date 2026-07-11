@@ -123,6 +123,8 @@ builder.Services.AddScoped<IApplicationReferenceValidator, ApplicationReferenceV
 builder.Services.AddScoped<IApplicationEvidenceValidator, ApplicationEvidenceValidator>();
 builder.Services.AddScoped<IApplicationNotificationService, ApplicationNotificationService>();
 builder.Services.AddScoped<IStudentApplicationService, StudentApplicationService>();
+builder.Services.AddScoped<Backend.Services.Blocks.IBlockService, Backend.Services.Blocks.BlockService>();
+builder.Services.AddScoped<Backend.Services.QuyDoiTinChis.IQuyDoiTinChiService, Backend.Services.QuyDoiTinChis.QuyDoiTinChiService>();
 
 builder.Services.Configure<SmartTimetableScoringOptions>(
     builder.Configuration.GetSection(SmartTimetableScoringOptions.SectionName));
@@ -379,6 +381,10 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(
         AuthPolicies.ApplicationReceive,
         policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin", "AcademicStaff")
+    );
+    options.AddPolicy(
+        "AcademicScheduleConfig",
+        policy => policy.RequireRole("Admin", "SuperAdmin", "AcademicStaff", "CampusAdmin")
     );
     options.AddPolicy(
         AuthPolicies.ApplicationAssignmentManage,

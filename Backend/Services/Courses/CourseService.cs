@@ -165,6 +165,8 @@ public class CourseService : ICourseService
         var title = NormalizeOptionalText(request.TieuDe)
             ?? BuildCourseTitle(subject, classEntity, term, teacher);
 
+        var quyDoi = await _context.QuyDoiTinChis.FirstOrDefaultAsync(q => q.SoTinChi == subject.SoTinChi, cancellationToken);
+
         var course = new KhoaHoc
         {
             MaDonVi = organization.MaDonVi,
@@ -177,7 +179,8 @@ public class CourseService : ICourseService
             MoTa = NormalizeOptionalText(request.MoTa),
             TrangThai = status,
             UrlAnhBia = NormalizeOptionalText(request.UrlAnhBia),
-            NgayTao = DateTime.UtcNow
+            NgayTao = DateTime.UtcNow,
+            SoBlockHoc = quyDoi?.SoBlockHoc ?? 1
         };
 
         _context.KhoaHocs.Add(course);
@@ -193,7 +196,7 @@ public class CourseService : ICourseService
             "Tạo khóa học.",
             cancellationToken);
 
-        return ToDto(course, organization, subject, teacher, term, classEntity);
+        return ToDto(course, organization, subject, teacher, term, classEntity, quyDoi);
     }
 
     public async Task<BulkAssignCoursesResultDto> BulkAssignAsync(
@@ -1123,7 +1126,8 @@ public class CourseService : ICourseService
         DanhMucMonHoc subject,
         NguoiDung teacher,
         HocKy? term,
-        LopHanhChinh classEntity)
+        LopHanhChinh classEntity,
+        QuyDoiTinChi? quyDoi = null)
     {
         return new KhoaHocDto
         {
@@ -1143,7 +1147,10 @@ public class CourseService : ICourseService
             MoTa = course.MoTa,
             TrangThai = course.TrangThai,
             UrlAnhBia = course.UrlAnhBia,
-            NgayTao = course.NgayTao
+            NgayTao = course.NgayTao,
+            SoBlockHoc = course.SoBlockHoc,
+            GoiYSoBuoiMoiTuan = quyDoi?.SoBuoiMoiTuan,
+            GoiYSoCaMoiBuoi = quyDoi?.SoCaMoiBuoi
         };
     }
 
@@ -1153,9 +1160,10 @@ public class CourseService : ICourseService
         DanhMucMonHoc subject,
         NguoiDung teacher,
         HocKy? term,
-        LopHanhChinh classEntity)
+        LopHanhChinh classEntity,
+        QuyDoiTinChi? quyDoi = null)
     {
-        var dto = ToDto(course, organization, subject, teacher, term, classEntity);
+        var dto = ToDto(course, organization, subject, teacher, term, classEntity, quyDoi);
         return new KhoaHocDetailDto
         {
             MaKhoaHoc = dto.MaKhoaHoc,
@@ -1174,7 +1182,10 @@ public class CourseService : ICourseService
             MoTa = dto.MoTa,
             TrangThai = dto.TrangThai,
             UrlAnhBia = dto.UrlAnhBia,
-            NgayTao = dto.NgayTao
+            NgayTao = dto.NgayTao,
+            SoBlockHoc = dto.SoBlockHoc,
+            GoiYSoBuoiMoiTuan = dto.GoiYSoBuoiMoiTuan,
+            GoiYSoCaMoiBuoi = dto.GoiYSoCaMoiBuoi
         };
     }
 

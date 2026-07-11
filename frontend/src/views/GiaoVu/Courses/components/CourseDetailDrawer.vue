@@ -139,6 +139,25 @@ onMounted(loadDetail)
               </div>
             </div>
 
+            <!-- Gợi ý xếp lịch (QuyDoiTinChi) -->
+            <div v-if="displayCourse.soBlockHoc" class="mt-6 pt-4 border-t border-default">
+              <h3 class="text-xs font-bold text-heading uppercase mb-4">Gợi ý xếp lịch (Theo số tín chỉ)</h3>
+              <div class="grid grid-cols-3 gap-4">
+                <div class="surface-card p-3 rounded-xl border border-card shadow-sm text-center">
+                  <p class="text-[10px] font-semibold text-muted uppercase tracking-wide">Số Block</p>
+                  <p class="text-sm font-bold text-heading mt-1">{{ displayCourse.soBlockHoc }}</p>
+                </div>
+                <div class="surface-card p-3 rounded-xl border border-card shadow-sm text-center">
+                  <p class="text-[10px] font-semibold text-muted uppercase tracking-wide">Buổi / Tuần</p>
+                  <p class="text-sm font-bold text-heading mt-1">{{ displayCourse.goiYSoBuoiMoiTuan || '—' }}</p>
+                </div>
+                <div class="surface-card p-3 rounded-xl border border-card shadow-sm text-center">
+                  <p class="text-[10px] font-semibold text-muted uppercase tracking-wide">Ca / Buổi</p>
+                  <p class="text-sm font-bold text-heading mt-1">{{ displayCourse.goiYSoCaMoiBuoi || '—' }}</p>
+                </div>
+              </div>
+            </div>
+
             <div v-if="displayCourse.moTa">
               <label class="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-2">Mô tả</label>
               <p class="text-sm text-body leading-relaxed">{{ displayCourse.moTa }}</p>
