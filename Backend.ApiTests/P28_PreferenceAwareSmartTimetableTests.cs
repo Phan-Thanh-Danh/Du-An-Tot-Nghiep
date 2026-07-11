@@ -5,6 +5,8 @@ using Backend.Services.ThoiKhoaBieu.Scoring;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
+#pragma warning disable CS8618
+
 namespace Backend.ApiTests;
 
 [TestFixture]

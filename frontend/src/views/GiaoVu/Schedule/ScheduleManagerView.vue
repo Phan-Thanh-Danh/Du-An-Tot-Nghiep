@@ -344,7 +344,10 @@ async function loadScheduleOptions() {
     ])
 
     academicTermOptions.value = unwrapList(termRes).map(normalizeAcademicTerm)
-    courseOptions.value = unwrapList(courseRes).map(normalizeCourse)
+    const allCourses = unwrapList(courseRes).map(normalizeCourse)
+    courseOptions.value = schedulingContext.schedulableTerm 
+      ? allCourses.filter(c => Number(c.maHocKy) === Number(schedulingContext.schedulableTerm.maHocKy))
+      : allCourses
     roomOptions.value = unwrapList(roomRes).map(normalizeRoom)
     shiftOptions.value = unwrapList(shiftRes).map(normalizeShift).sort((a, b) => Number(a.thuTu || a.maCaHoc) - Number(b.thuTu || b.maCaHoc))
     existingSchedules.value = unwrapList(scheduleRes).map(beToView).map(viewToScheduleRecord)
@@ -668,7 +671,7 @@ async function suggestSlots() {
       topN: 5
     }
     const res = await scheduleApi.suggestSlots(payload)
-    const suggestionsData = res.data?.candidates ?? res.data?.Candidates ?? res.Data?.Candidates ?? res.candidates ?? []
+    const suggestionsData = res.candidates ?? res.Candidates ?? []
     
     suggestedSlots.value = suggestionsData.map(c => ({
       thuTrongTuan: c.thuTrongTuan ?? c.ThuTrongTuan,
@@ -691,7 +694,7 @@ async function suggestSlots() {
       popupStore.warning('Không tìm thấy slot phù hợp', 'Không có phòng/ca học nào thỏa điều kiện hiện tại.')
     }
   } catch (error) {
-    popupStore.error('Lỗi khi gợi ý', 'Không thể tải danh sách gợi ý từ hệ thống.')
+    popupStore.error('Lỗi khi gợi ý', error?.message || 'Không thể tải danh sách gợi ý từ hệ thống.')
   } finally {
     suggestingSlots.value = false
   }
@@ -809,10 +812,11 @@ async function suggestBulkCourses() {
     }
     const res = await scheduleApi.suggestSlotsBatch(payload)
     
-    const results = res.data?.results ?? res.data?.Results ?? res.Data?.Results ?? res.results ?? {}
+    const assigned = res.assigned || res.Assigned || []
     
     bulkReviewRows.value = selected.map((course) => {
-      const bestCandidate = results[course.maKhoaHoc]?.candidates?.[0] || results[course.maKhoaHoc]?.Candidates?.[0] || null
+      const courseAssigned = assigned.find(a => Number(a.maKhoaHoc ?? a.MaKhoaHoc) === Number(course.maKhoaHoc))
+      const bestCandidate = courseAssigned?.selectedCandidate ?? courseAssigned?.SelectedCandidate ?? null
       let bestSlot = null
       
       if (bestCandidate) {
@@ -834,7 +838,7 @@ async function suggestBulkCourses() {
       popupStore.warning('Một số khóa chưa có slot', 'Kiểm tra bảng review trước khi tạo nháp hàng loạt.')
     }
   } catch (error) {
-    popupStore.error('Lỗi khi gợi ý hàng loạt', 'Không thể tính toán gợi ý từ hệ thống.')
+    popupStore.error('Lỗi khi gợi ý hàng loạt', error?.message || 'Không thể tính toán gợi ý từ hệ thống.')
   }
 }
 

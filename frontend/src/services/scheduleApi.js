@@ -1,4 +1,4 @@
-import { apiRequest } from './apiClient'
+import { apiRequest, unwrapApiData } from './apiClient'
 
 function buildQuery(params = {}) {
   const query = new URLSearchParams()
@@ -50,18 +50,20 @@ export const scheduleApi = {
     })
   },
 
-  suggestSlots(data) {
-    return apiRequest('/api/thoi-khoa-bieu/suggest-slots', {
+  async suggestSlots(data) {
+    const res = await apiRequest('/api/thoi-khoa-bieu/suggest-slots', {
       method: 'POST',
       body: JSON.stringify(data),
     })
+    return unwrapApiData(res)
   },
 
-  suggestSlotsBatch(data) {
-    return apiRequest('/api/thoi-khoa-bieu/suggest-slots-batch', {
+  async suggestSlotsBatch(data) {
+    const res = await apiRequest('/api/thoi-khoa-bieu/suggest-slots-batch', {
       method: 'POST',
       body: JSON.stringify(data),
     })
+    return unwrapApiData(res)
   },
 
   listDrafts(params = {}) {

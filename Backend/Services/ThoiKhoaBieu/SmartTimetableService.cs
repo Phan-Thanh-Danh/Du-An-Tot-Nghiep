@@ -85,6 +85,7 @@ public class SmartTimetableService : ISmartTimetableService
         var khongXepDuoc = 0;
 
         var preferences = await LoadPreferencesAsync(request.MaHocKy, request.MaDonVi, courses.Select(x => x.MaGiaoVien), cancellationToken);
+        var studentCounts = await GetClassStudentCountsAsync(courses.Select(x => x.MaLop), cancellationToken);
 
         var sortedCourses = courses
             .OrderBy(c => c.MaGiaoVien)
@@ -93,7 +94,7 @@ public class SmartTimetableService : ISmartTimetableService
 
         foreach (var course in sortedCourses)
         {
-            var suggestions = GetCourseSlotSuggestions(course, map, shifts, rooms, null, preferences, 1);
+            var suggestions = GetCourseSlotSuggestions(course, map, shifts, rooms, null, preferences, studentCounts, 1);
             var best = suggestions.Candidates.FirstOrDefault();
 
             var item = new ScheduleDraftItem
@@ -154,12 +155,18 @@ public class SmartTimetableService : ISmartTimetableService
         Guid draftId,
         CancellationToken cancellationToken = default)
     {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageSchedule(currentUser);
+
         var job = await _context.ScheduleGenerationJobs
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.DraftId == draftId, cancellationToken);
 
         if (job is null)
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy bản nháp.");
+
+        if (job.MaDonVi != currentUser.CampusId && currentUser.Role != AuthRoles.SuperAdmin)
+            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền trên cơ sở này.");
 
         return await ToDraftDtoAsync(job.MaJob, cancellationToken);
     }
@@ -169,6 +176,12 @@ public class SmartTimetableService : ISmartTimetableService
         int maHocKy,
         CancellationToken cancellationToken = default)
     {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageSchedule(currentUser);
+
+        if (maDonVi != currentUser.CampusId && currentUser.Role != AuthRoles.SuperAdmin)
+            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền trên cơ sở này.");
+
         var jobs = await _context.ScheduleGenerationJobs
             .AsNoTracking()
             .Where(x => x.MaDonVi == maDonVi && x.MaHocKy == maHocKy)
@@ -195,6 +208,9 @@ public class SmartTimetableService : ISmartTimetableService
 
         if (job is null)
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy bản nháp.");
+
+        if (job.MaDonVi != currentUser.CampusId && currentUser.Role != AuthRoles.SuperAdmin)
+            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền trên cơ sở này.");
 
         await _schedulingContextService.ValidateSchedulableTermAsync(job.MaDonVi, job.MaHocKy, cancellationToken);
 
@@ -322,6 +338,11 @@ public class SmartTimetableService : ISmartTimetableService
         ConflictCheckBatchRequest request,
         CancellationToken cancellationToken = default)
     {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageSchedule(currentUser);
+
+        if (request.MaDonVi != currentUser.CampusId && currentUser.Role != AuthRoles.SuperAdmin)
+            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền trên cơ sở này.");
         var map = await BuildOccupationMapAsync(request.MaHocKy, request.MaDonVi, cancellationToken);
         var courses = await _context.KhoaHocs.AsNoTracking()
             .Where(x => x.MaHocKy == request.MaHocKy && x.MaDonVi == request.MaDonVi)
@@ -381,6 +402,9 @@ public class SmartTimetableService : ISmartTimetableService
             .FirstOrDefaultAsync(x => x.DraftId == draftId, cancellationToken);
 
         if (job is null) return false;
+        
+        if (job.MaDonVi != currentUser.CampusId && currentUser.Role != AuthRoles.SuperAdmin)
+            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền trên cơ sở này.");
         if (job.TrangThai == "da_xuat_ban")
             throw new ApiException(StatusCodes.Status400BadRequest, "Không thể xóa bản nháp đã xuất bản.");
 
@@ -438,8 +462,9 @@ public class SmartTimetableService : ISmartTimetableService
         var rooms = await LoadRoomsAsync(course.MaDonVi, request.CandidateRoomIds, cancellationToken);
         var map = await BuildOccupationMapAsync(course.MaHocKy ?? 0, course.MaDonVi, cancellationToken);
         var preferences = await LoadPreferencesAsync(course.MaHocKy ?? 0, course.MaDonVi, new[] { course.MaGiaoVien }, cancellationToken);
+        var studentCounts = await GetClassStudentCountsAsync(new[] { course.MaLop }, cancellationToken);
 
-        var result = GetCourseSlotSuggestions(course, map, shifts, rooms, request.CandidateDays, preferences, request.TopN);
+        var result = GetCourseSlotSuggestions(course, map, shifts, rooms, request.CandidateDays, preferences, studentCounts, request.TopN);
         return result;
     }
 
@@ -457,8 +482,8 @@ public class SmartTimetableService : ISmartTimetableService
             .Where(x => request.MaKhoaHocIds.Contains(x.MaKhoaHoc))
             .ToListAsync(cancellationToken);
 
-        if (courses.Count == 0)
-            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy khóa học nào.");
+        if (courses.Count == 0 || courses.Count != request.MaKhoaHocIds.Distinct().Count())
+            throw new ApiException(StatusCodes.Status400BadRequest, "Có khóa học không tồn tại hoặc không thuộc phạm vi được phép.");
 
         var maDonVi = courses[0].MaDonVi;
         var maHocKy = courses[0].MaHocKy ?? 0;
@@ -473,6 +498,7 @@ public class SmartTimetableService : ISmartTimetableService
         var map = await BuildOccupationMapAsync(maHocKy, maDonVi, cancellationToken);
         var teacherIds = courses.Select(x => x.MaGiaoVien).Distinct();
         var preferences = await LoadPreferencesAsync(maHocKy, maDonVi, teacherIds, cancellationToken);
+        var studentCounts = await GetClassStudentCountsAsync(courses.Select(x => x.MaLop), cancellationToken);
 
         var result = new BatchSlotSuggestionResultDto();
 
@@ -484,7 +510,7 @@ public class SmartTimetableService : ISmartTimetableService
 
         foreach (var course in sortedCourses)
         {
-            var suggestions = GetCourseSlotSuggestions(course, map, shifts, rooms, null, preferences, request.TopNPerCourse);
+            var suggestions = GetCourseSlotSuggestions(course, map, shifts, rooms, null, preferences, studentCounts, request.TopNPerCourse);
             var best = suggestions.Candidates.FirstOrDefault();
 
             if (best != null)
@@ -525,6 +551,7 @@ public class SmartTimetableService : ISmartTimetableService
         List<Models.PhongHoc> rooms,
         List<int>? candidateDays,
         Dictionary<int, Dictionary<(int Day, int Shift), (string Level, bool IsDraft)>> preferencesMap,
+        Dictionary<int, int> studentCounts,
         int topN)
     {
         var result = new CourseSlotSuggestionResultDto
@@ -532,7 +559,7 @@ public class SmartTimetableService : ISmartTimetableService
             MaKhoaHoc = course.MaKhoaHoc,
             MaHocKy = course.MaHocKy ?? 0,
             MaDonVi = course.MaDonVi,
-            ExpectedStudentCount = 30 // Hardcoded expected size for now as KhoaHoc does not have SiSo
+            ExpectedStudentCount = studentCounts.GetValueOrDefault(course.MaLop, 0)
         };
 
         var teacherPrefs = preferencesMap.GetValueOrDefault(course.MaGiaoVien);
@@ -731,6 +758,13 @@ public class SmartTimetableService : ISmartTimetableService
                     TenPhong = room?.TenPhong,
                     TrangThai = x.TrangThai,
                     Score = x.Score,
+                    ScoreBreakdown = x.ScoreBreakdownJson != null 
+                        ? System.Text.Json.JsonSerializer.Deserialize<Backend.DTOs.SmartTimetable.Suggestions.ScheduleSlotScoreComponentsDto>(x.ScoreBreakdownJson) 
+                        : null,
+                    LyDoGoiY = x.LyDoGoiYJson != null
+                        ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(x.LyDoGoiYJson) ?? new()
+                        : new(),
+                    PreferenceLevel = null, // Backend does not store this separately yet
                     CanhBao = x.CanhBaoJson != null
                         ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(x.CanhBaoJson) ?? new()
                         : new(),
@@ -754,5 +788,19 @@ public class SmartTimetableService : ISmartTimetableService
     {
         if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.AcademicStaff))
             throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền quản lý thời khóa biểu thông minh.");
+    }
+
+    private async Task<Dictionary<int, int>> GetClassStudentCountsAsync(IEnumerable<int> classIds, CancellationToken cancellationToken)
+    {
+        var ids = classIds.Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<int, int>();
+
+        var counts = await _context.NguoiDungs
+            .Where(x => x.MaLop != null && ids.Contains(x.MaLop.Value) && x.TrangThai == "hoat_dong" && x.VaiTroChinh == "HocSinh")
+            .GroupBy(x => x.MaLop!.Value)
+            .Select(g => new { MaLop = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MaLop, x => x.Count, cancellationToken);
+            
+        return counts;
     }
 }

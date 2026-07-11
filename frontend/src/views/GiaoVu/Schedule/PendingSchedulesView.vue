@@ -91,6 +91,7 @@ function mapDraft(item) {
       score: item.score ?? item.Score ?? 0,
     },
     note: item.note ?? item.ghiChu ?? item.GhiChu ?? '',
+    raw: item,
   }
 }
 
@@ -360,6 +361,42 @@ watch(
             <div v-if="selectedItem.note" class="p-3 bg-(--color-danger-bg) border border-(--color-danger-border) rounded-xl">
               <p class="text-xs font-bold text-(--color-danger-text) flex items-center gap-1 mb-1"><AlertCircle :size="14"/> Ghi chú rà soát</p>
               <p class="text-sm text-(--color-danger-text) opacity-90">{{ selectedItem.note }}</p>
+            </div>
+
+            <div v-if="(selectedItem.raw.items && selectedItem.raw.items.length) || (selectedItem.raw.Items && selectedItem.raw.Items.length)">
+              <p class="text-xs text-(--text-muted) uppercase tracking-wider font-bold mb-1">Chi tiết môn học</p>
+              <div class="space-y-3 mt-2 max-h-[300px] overflow-y-auto pr-1">
+                <div v-for="cItem in (selectedItem.raw.items || selectedItem.raw.Items)" :key="cItem.maDraftItem || cItem.MaDraftItem" class="text-sm border border-(--border-default) rounded-xl p-3">
+                  <div class="flex justify-between items-center mb-1">
+                    <span class="font-bold text-(--text-heading)">Khóa học {{ cItem.maKhoaHoc ?? cItem.MaKhoaHoc }}</span>
+                    <span class="font-mono text-xs text-(--lg-primary)">{{ Math.round(cItem.score ?? cItem.Score ?? 0) }}đ</span>
+                  </div>
+                  <div class="text-xs text-(--text-muted) space-y-1">
+                    <div v-if="cItem.tenPhong ?? cItem.TenPhong" class="font-medium text-(--text-body)">Phòng: {{ cItem.tenPhong ?? cItem.TenPhong }} | Thứ {{ cItem.thuTrongTuan ?? cItem.ThuTrongTuan }} | {{ cItem.tenCa ?? cItem.TenCa }}</div>
+                    
+                    <div v-if="cItem.lyDoGoiY?.length || cItem.LyDoGoiY?.length" class="mt-2 text-(--text-body)">
+                      <p class="font-bold mb-0.5 opacity-80">Lý do gợi ý:</p>
+                      <ul class="list-disc pl-4 opacity-90 space-y-0.5">
+                        <li v-for="r in (cItem.lyDoGoiY || cItem.LyDoGoiY)" :key="r">{{ r }}</li>
+                      </ul>
+                    </div>
+
+                    <div v-if="cItem.canhBao?.length || cItem.CanhBao?.length" class="mt-2 text-amber-600 dark:text-amber-400">
+                      <p class="font-bold mb-0.5 opacity-80">Cảnh báo:</p>
+                      <ul class="list-disc pl-4 opacity-90 space-y-0.5">
+                        <li v-for="w in (cItem.canhBao || cItem.CanhBao)" :key="w">{{ w }}</li>
+                      </ul>
+                    </div>
+                    
+                    <div v-if="cItem.loi?.length || cItem.Loi?.length" class="mt-2 text-red-600 dark:text-red-400">
+                      <p class="font-bold mb-0.5 opacity-80">Lỗi:</p>
+                      <ul class="list-disc pl-4 opacity-90 space-y-0.5">
+                        <li v-for="e in (cItem.loi || cItem.Loi)" :key="e">{{ e }}</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div>
