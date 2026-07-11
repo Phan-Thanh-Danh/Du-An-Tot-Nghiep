@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { FileText } from 'lucide-vue-next'
 import { sanitizeHtml } from '@/utils/htmlSanitizer'
+import SafeHtmlRenderer from '@/components/common/SafeHtmlRenderer.vue'
 
 const props = defineProps({
   content: {
@@ -32,11 +33,11 @@ const safeHtml = computed(() => {
     </div>
 
     <div class="bg-white border border-slate-200 rounded-xl p-6 sm:p-8">
-      <div 
+      <SafeHtmlRenderer
         v-if="safeHtml"
         class="prose prose-slate max-w-none text-slate-700 leading-relaxed"
-        v-html="safeHtml"
-      ></div>
+        :html="safeHtml"
+      />
       <div v-else class="text-slate-400 italic text-center py-8">
         Văn bản chưa có nội dung
       </div>

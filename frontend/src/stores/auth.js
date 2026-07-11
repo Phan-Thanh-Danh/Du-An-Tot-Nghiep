@@ -49,17 +49,7 @@ function getResponseValue(response, camelKey, pascalKey, fallback = '') {
   return response?.[camelKey] ?? response?.[pascalKey] ?? fallback
 }
 
-function normalizeRole(role) {
-  const normalized = String(role || '').trim().toLowerCase()
-  const aliases = {
-    lecturer: 'teacher',
-    trainingdepartment: 'academicstaff',
-    faculty: 'academicstaff',
-    academicdepartment: 'academicstaff',
-  }
-
-  return aliases[normalized] || normalized
-}
+import { normalizeRole } from '../constants/roleCatalog'
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref(readStoredValue(ACCESS_TOKEN_KEY))

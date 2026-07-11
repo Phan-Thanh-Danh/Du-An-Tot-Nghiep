@@ -1,5 +1,15 @@
 export const ROLE_CATALOG = Object.freeze([
   {
+    role: 'Admin',
+    dbCode: 'quan_tri',
+    portal: 'super-admin',
+    label: 'Quản trị viên',
+    homeRoute: '/super-admin/dashboard',
+    group: 'staff',
+    enabled: true,
+    permissions: ['users', 'roles', 'training', 'finance', 'audit', 'system'],
+  },
+  {
     role: 'Student',
     dbCode: 'hoc_sinh',
     portal: 'student',
@@ -149,21 +159,24 @@ const ROLE_ALIASES = {
   financeadmin: 'financeadmin',
   campusaccountant: 'campusaccountant',
   campuschiefaccountant: 'campuschiefaccountant',
+  bgh: 'principal',
+  staff: 'academicstaff',
+  contentcouncil: 'hoidongquanlynoidung',
 }
 
 export function normalizeRole(role) {
   const normalized = String(role || '').trim().toLowerCase()
-  return ROLE_ALIASES[normalized] || normalized
+  return ROLE_ALIASES[normalized] || ROLE_CATALOG.find(r => r.role.toLowerCase() === normalized)?.role || normalized
 }
 
 export function getRoleConfig(role) {
   if (!role) return null
-  const normalized = normalizeRole(role)
+  const normalized = normalizeRole(role).toLowerCase()
   return (
     ROLE_CATALOG.find(
       (entry) =>
-        normalizeRole(entry.role) === normalized ||
-        (entry.allowedRoles || []).some((ar) => normalizeRole(ar) === normalized),
+        entry.role.toLowerCase() === normalized ||
+        (entry.allowedRoles || []).some((ar) => ar.toLowerCase() === normalized),
     ) || null
   )
 }

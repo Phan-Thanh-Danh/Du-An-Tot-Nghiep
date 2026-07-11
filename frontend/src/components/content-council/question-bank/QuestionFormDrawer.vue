@@ -2,6 +2,7 @@
 import { ref, watch, computed, onMounted } from 'vue'
 import { QuestionBankItem, QuestionType, SelectionType, QuestionDifficulty, QuestionStatus } from '@/types/content-council/questionBank'
 import { X, Save, Copy } from 'lucide-vue-next'
+import SafeHtmlRenderer from '@/components/common/SafeHtmlRenderer.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
 import QuestionChoiceEditor from './QuestionChoiceEditor.vue'
 import { useSubjectStore } from '@/stores/content-council/subjectStore'
@@ -367,7 +368,7 @@ onMounted(() => {
           
           <div class="bg-white text-slate-800 rounded-lg p-6 font-sans">
             <!-- Đề bài -->
-            <div class="text-base leading-relaxed mb-6 whitespace-pre-wrap" v-html="formData.content || '<span class=\'text-slate-400 italic\'>Chưa có đề bài...</span>'"></div>
+            <SafeHtmlRenderer class="text-base leading-relaxed mb-6 whitespace-pre-wrap" :html="formData.content || `<span class='text-slate-400 italic'>Chưa có đề bài...</span>`" />
             
             <!-- Lựa chọn (Trắc nghiệm) -->
             <div v-if="formData.type === 'multiple_choice'" class="space-y-3">

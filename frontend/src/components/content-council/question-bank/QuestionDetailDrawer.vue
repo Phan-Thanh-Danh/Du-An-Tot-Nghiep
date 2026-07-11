@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { QuestionBankItem } from '@/types/content-council/questionBank'
 import { X, Edit3, Copy, Trash2, Power, PowerOff } from 'lucide-vue-next'
+import SafeHtmlRenderer from '@/components/common/SafeHtmlRenderer.vue'
 
 const props = defineProps<{
   isOpen: boolean
@@ -103,7 +104,7 @@ const formatDate = (dateString?: string) => {
                   • {{ getSelectionTypeLabel(questionData.selectionType) }}
                 </span>
               </div>
-              <div class="text-base text-slate-800 leading-relaxed whitespace-pre-wrap" v-html="questionData.content"></div>
+              <SafeHtmlRenderer class="text-base text-slate-800 leading-relaxed whitespace-pre-wrap" :html="questionData.content" />
             </div>
 
             <!-- Các lựa chọn cho trắc nghiệm -->

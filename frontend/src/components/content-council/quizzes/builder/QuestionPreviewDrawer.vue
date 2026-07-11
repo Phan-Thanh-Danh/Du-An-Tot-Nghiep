@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { X, CheckCircle, Lock } from 'lucide-vue-next'
 import { QuestionBankItem } from '@/types/content-council/questionBank'
+import SafeHtmlRenderer from '@/components/common/SafeHtmlRenderer.vue'
 
 const props = defineProps<{
   isOpen: boolean
@@ -74,7 +75,7 @@ const isCorrectChoice = (choiceId: string) => {
         <!-- Content -->
         <div class="prose prose-sm max-w-none prose-slate">
           <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Nội dung câu hỏi</h3>
-          <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl" v-html="question.content"></div>
+          <SafeHtmlRenderer class="p-4 bg-slate-50 border border-slate-200 rounded-xl" :html="question.content" />
         </div>
 
         <!-- Choices (MCQ) -->
