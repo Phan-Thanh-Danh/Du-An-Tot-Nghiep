@@ -612,129 +612,8 @@ function selectRoom(room) {
 }
 
 // ── Smart schedule suggestion (FE algorithm) ────────────────────
-function sameTermSchedule(s, course) {
-  return Number(s.maHocKy) === Number(course.maHocKy)
-}
-
-function buildOccupiedMap(schedules, course) {
-  const map = {
-    teacher: new Set(),
-    class: new Set(),
-    room: new Set(),
-    teacherDayLoad: new Map(),
-    classDayLoad: new Map(),
-  }
-
-  for (const s of schedules.filter(x => sameTermSchedule(x, course) && x.trangThai !== 'da_huy')) {
-    const thu = Number(s.thuTrongTuan)
-    const ca = Number(s.maCaHoc ?? s.caHoc?.maCaHoc)
-    const keyBase = `${thu}-${ca}`
-
-    if (s.maGiaoVien) map.teacher.add(`${keyBase}-${s.maGiaoVien}`)
-    if (s.maLop) map.class.add(`${keyBase}-${s.maLop}`)
-    if (s.maPhong) map.room.add(`${keyBase}-${s.maPhong}`)
-
-    if (s.maGiaoVien) {
-      const k = `${thu}-${s.maGiaoVien}`
-      map.teacherDayLoad.set(k, (map.teacherDayLoad.get(k) || 0) + 1)
-    }
-
-    if (s.maLop) {
-      const k = `${thu}-${s.maLop}`
-      map.classDayLoad.set(k, (map.classDayLoad.get(k) || 0) + 1)
-    }
-  }
-
-  return map
-}
-
-function calculateSlotScore({ course, room, shift, thu, occupied }) {
-  const reasons = []
-  let score = 100
-
-  const keyBase = `${thu}-${shift.maCaHoc}`
-
-  if (occupied.teacher.has(`${keyBase}-${course.maGiaoVien}`)) return null
-  if (occupied.class.has(`${keyBase}-${course.maLop}`)) return null
-  if (occupied.room.has(`${keyBase}-${room.maPhong}`)) return null
-
-  if (course.maDonVi && room.maDonVi && Number(room.maDonVi) !== Number(course.maDonVi)) return null
-  if (room.trangThaiPhong && !['hoat_dong', 'active', 'san_sang'].includes(String(room.trangThaiPhong).toLowerCase())) return null
-  if (room.conHoatDong === false) return null
-
-  if (course.siSo && room.sucChua && Number(room.sucChua) < Number(course.siSo)) return null
-
-  reasons.push('Không trùng giáo viên, lớp, phòng.')
-
-  if (course.siSo && room.sucChua) {
-    const ratio = Number(room.sucChua) / Number(course.siSo)
-    if (ratio >= 1 && ratio <= 1.5) {
-      score += 5
-      reasons.push('Phòng có sức chứa phù hợp với sĩ số.')
-    }
-    if (ratio > 2) {
-      score -= 5
-      reasons.push('Phòng hơi dư sức chứa so với sĩ số.')
-    }
-  }
-
-  const shiftText = String(`${shift.buoi || ''} ${shift.tenCa || ''}`).toLowerCase()
-  if (shiftText.includes('tối')) {
-    score -= 10
-    reasons.push('Ca tối nên bị trừ điểm nhẹ.')
-  } else {
-    score += 5
-    reasons.push('Ca sáng/chiều thuận tiện.')
-  }
-
-  if (Number(thu) === 7) {
-    score -= 5
-    reasons.push('Thứ 7 bị trừ điểm nhẹ.')
-  }
-
-  const teacherLoad = occupied.teacherDayLoad.get(`${thu}-${course.maGiaoVien}`) || 0
-  if (teacherLoad >= 3) {
-    score -= 15
-    reasons.push('Giảng viên đã có nhiều ca trong ngày này.')
-  }
-
-  const classLoad = occupied.classDayLoad.get(`${thu}-${course.maLop}`) || 0
-  if (classLoad >= 3) {
-    score -= 15
-    reasons.push('Lớp đã có nhiều ca trong ngày này.')
-  }
-
-  return {
-    thuTrongTuan: thu,
-    thu,
-    thuLabel: thuLabel(thu),
-    maCaHoc: shift.maCaHoc,
-    maPhong: room.maPhong,
-    ca: shift,
-    room,
-    tenCa: shift.tenCa,
-    tenPhong: room.tenPhong,
-    gioBatDau: shift.gioBatDau,
-    gioKetThuc: shift.gioKetThuc,
-    score: Math.max(0, Math.min(100, score)),
-    reasons,
-  }
-}
-
-function suggestSlotsForCourse(course, scheduleSource = null) {
-  const source = scheduleSource || (existingSchedules.value.length ? existingSchedules.value : rows.value.map(viewToScheduleRecord))
-  const occupied = buildOccupiedMap(source, course)
-  const result = []
-  for (const thu of [2, 3, 4, 5, 6, 7]) {
-    for (const shift of shiftOptions.value) {
-      for (const room of roomOptions.value) {
-        const suggestion = calculateSlotScore({ course, room, shift, thu, occupied })
-        if (suggestion) result.push(suggestion)
-      }
-    }
-  }
-  return result.sort((a, b) => b.score - a.score)
-}
+// ── Xử lý Smart Schedule đã chuyển xuống Backend ────────────────────
+// Các hàm tính điểm frontend (sameTermSchedule, buildOccupiedMap, calculateSlotScore, suggestSlotsForCourse) đã được gỡ bỏ.
 
 function validateDatesInTerm() {
   const course = selectedCourse.value
@@ -774,7 +653,7 @@ function validateDatesInTerm() {
   return true
 }
 
-function suggestSlots() {
+async function suggestSlots() {
   const course = selectedCourse.value
   if (!course) {
     popupStore.warning('Chưa chọn khóa học', 'Vui lòng chọn khóa học trước khi gợi ý lịch.')
@@ -784,10 +663,35 @@ function suggestSlots() {
   if (!validateDatesInTerm()) return
   suggestingSlots.value = true
   try {
-    suggestedSlots.value = suggestSlotsForCourse(course).slice(0, 5)
+    const payload = {
+      maKhoaHoc: Number(course.maKhoaHoc || course.MaKhoaHoc || course.id || course.Id),
+      topN: 5
+    }
+    const res = await scheduleApi.suggestSlots(payload)
+    const suggestionsData = res.data?.candidates ?? res.data?.Candidates ?? res.Data?.Candidates ?? res.candidates ?? []
+    
+    suggestedSlots.value = suggestionsData.map(c => ({
+      thuTrongTuan: c.thuTrongTuan ?? c.ThuTrongTuan,
+      thu: c.thuTrongTuan ?? c.ThuTrongTuan,
+      thuLabel: `Thứ ${c.thuTrongTuan ?? c.ThuTrongTuan}`,
+      maCaHoc: c.maCaHoc ?? c.MaCaHoc,
+      maPhong: c.maPhong ?? c.MaPhong,
+      ca: shiftOptions.value.find(s => Number(s.maCaHoc) === Number(c.maCaHoc ?? c.MaCaHoc)) || {},
+      room: roomOptions.value.find(r => Number(r.maPhong) === Number(c.maPhong ?? c.MaPhong)) || {},
+      tenCa: c.tenCa ?? c.TenCa,
+      tenPhong: c.tenPhong ?? c.TenPhong,
+      gioBatDau: c.gioBatDau ?? c.GioBatDau,
+      gioKetThuc: c.gioKetThuc ?? c.GioKetThuc,
+      score: c.score ?? c.Score,
+      reasons: c.reasons ?? c.Reasons ?? [],
+      warnings: c.warnings ?? c.Warnings ?? [],
+    }))
+
     if (!suggestedSlots.value.length) {
       popupStore.warning('Không tìm thấy slot phù hợp', 'Không có phòng/ca học nào thỏa điều kiện hiện tại.')
     }
+  } catch (error) {
+    popupStore.error('Lỗi khi gợi ý', 'Không thể tải danh sách gợi ý từ hệ thống.')
   } finally {
     suggestingSlots.value = false
   }
@@ -894,30 +798,43 @@ async function suggestBulkCourses() {
     popupStore.warning('Chưa chọn khóa học', 'Vui lòng tick ít nhất một khóa học để gợi ý.')
     return
   }
+
   const baseSchedules = existingSchedules.value.length ? existingSchedules.value : rows.value.map(viewToScheduleRecord)
-  const reservedSchedules = []
-  bulkReviewRows.value = selected.map((course) => {
-    const best = suggestSlotsForCourse(course, [...baseSchedules, ...reservedSchedules])[0] || null
-    if (best) {
-      reservedSchedules.push({
-        maHocKy: course.maHocKy,
-        maKhoaHoc: course.maKhoaHoc,
-        maLop: course.maLop,
-        maGiaoVien: course.maGiaoVien,
-        maPhong: best.maPhong,
-        maCaHoc: best.maCaHoc,
-        thuTrongTuan: best.thuTrongTuan,
-        trangThai: 'nhap',
-      })
+  const courseIds = selected.map(c => Number(c.maKhoaHoc))
+  
+  try {
+    const payload = {
+      maKhoaHocIds: courseIds,
+      topNPerCourse: 5
     }
-    return {
-      course,
-      slot: best,
-      status: best ? 'ready' : 'no_slot',
+    const res = await scheduleApi.suggestSlotsBatch(payload)
+    
+    const results = res.data?.results ?? res.data?.Results ?? res.Data?.Results ?? res.results ?? {}
+    
+    bulkReviewRows.value = selected.map((course) => {
+      const bestCandidate = results[course.maKhoaHoc]?.candidates?.[0] || results[course.maKhoaHoc]?.Candidates?.[0] || null
+      let bestSlot = null
+      
+      if (bestCandidate) {
+        bestSlot = {
+          maPhong: bestCandidate.maPhong ?? bestCandidate.MaPhong,
+          maCaHoc: bestCandidate.maCaHoc ?? bestCandidate.MaCaHoc,
+          thuTrongTuan: bestCandidate.thuTrongTuan ?? bestCandidate.ThuTrongTuan,
+        }
+      }
+      
+      return {
+        course,
+        slot: bestSlot,
+        status: bestSlot ? 'ready' : 'no_slot',
+      }
+    })
+    
+    if (bulkReviewRows.value.some(r => r.status === 'no_slot')) {
+      popupStore.warning('Một số khóa chưa có slot', 'Kiểm tra bảng review trước khi tạo nháp hàng loạt.')
     }
-  })
-  if (bulkReviewRows.value.some(r => r.status === 'no_slot')) {
-    popupStore.warning('Một số khóa chưa có slot', 'Kiểm tra bảng review trước khi tạo nháp hàng loạt.')
+  } catch (error) {
+    popupStore.error('Lỗi khi gợi ý hàng loạt', 'Không thể tính toán gợi ý từ hệ thống.')
   }
 }
 

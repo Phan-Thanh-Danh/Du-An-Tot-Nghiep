@@ -12,6 +12,8 @@ public class ScheduleDraftItem
     public double? Score { get; set; }
     public string? CanhBaoJson { get; set; }
     public string? LoiJson { get; set; }
+    public string? ScoreBreakdownJson { get; set; }
+    public string? LyDoGoiYJson { get; set; }
 
     public ScheduleGenerationJob? Job { get; set; }
     public KhoaHoc? KhoaHoc { get; set; }

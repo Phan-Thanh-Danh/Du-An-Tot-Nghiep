@@ -45,6 +45,8 @@ using Backend.Services.Specializations;
 using Backend.Services.Storage;
 using Backend.Services.Subjects;
 using Backend.Services.ThoiKhoaBieu;
+using Backend.Services.ThoiKhoaBieu.Scoring;
+using Backend.Configuration;
 using Backend.Services.TrainingPrograms;
 using Backend.Services.TrainingProgramSubjects;
 
@@ -121,6 +123,11 @@ builder.Services.AddScoped<IApplicationReferenceValidator, ApplicationReferenceV
 builder.Services.AddScoped<IApplicationEvidenceValidator, ApplicationEvidenceValidator>();
 builder.Services.AddScoped<IApplicationNotificationService, ApplicationNotificationService>();
 builder.Services.AddScoped<IStudentApplicationService, StudentApplicationService>();
+
+builder.Services.Configure<SmartTimetableScoringOptions>(
+    builder.Configuration.GetSection(SmartTimetableScoringOptions.SectionName));
+builder.Services.AddScoped<IScheduleCandidateScoringService, ScheduleCandidateScoringService>();
+
 builder.Services.AddScoped<IApplicationCampusScopeService, ApplicationCampusScopeService>();
 builder.Services.AddScoped<IApplicationAdminQueueService, ApplicationAdminQueueService>();
 builder.Services.AddScoped<IApplicationReportService, ApplicationReportService>();

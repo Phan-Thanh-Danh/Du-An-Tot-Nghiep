@@ -1,9 +1,17 @@
 using Backend.DTOs.SmartTimetable;
+using Backend.DTOs.SmartTimetable.Suggestions;
 
 namespace Backend.Services.ThoiKhoaBieu;
 
 public interface ISmartTimetableService
 {
+    Task<CourseSlotSuggestionResultDto> SuggestSlotsAsync(
+        SuggestScheduleSlotsRequest request,
+        CancellationToken cancellationToken = default);
+        
+    Task<BatchSlotSuggestionResultDto> SuggestSlotsBatchAsync(
+        SuggestScheduleSlotsBatchRequest request,
+        CancellationToken cancellationToken = default);
     Task<ScheduleDraftDto> GenerateAsync(
         GenerateTimetableRequest request,
         CancellationToken cancellationToken = default);

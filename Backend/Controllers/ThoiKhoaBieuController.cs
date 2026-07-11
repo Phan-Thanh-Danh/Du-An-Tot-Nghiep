@@ -1,6 +1,7 @@
 using Backend.DTOs.Common;
 using Backend.DTOs.BuoiHoc;
 using Backend.DTOs.SmartTimetable;
+using Backend.DTOs.SmartTimetable.Suggestions;
 using Backend.DTOs.ThoiKhoaBieu;
 using Backend.Services.BuoiHoc;
 using Backend.Services.ThoiKhoaBieu;
@@ -169,6 +170,24 @@ public class ThoiKhoaBieuController : ControllerBase
         if (!deleted)
             return NotFound(ApiResponseDto.Fail("Không tìm thấy bản nháp."));
         return Ok(ApiResponseDto<bool>.Ok(true, "Xóa bản nháp thành công."));
+    }
+
+    [HttpPost("suggest-slots")]
+    public async Task<ActionResult<ApiResponseDto<CourseSlotSuggestionResultDto>>> SuggestSlots(
+        SuggestScheduleSlotsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _smartTimetableService.SuggestSlotsAsync(request, cancellationToken);
+        return Ok(ApiResponseDto<CourseSlotSuggestionResultDto>.Ok(result, "Lấy danh sách gợi ý thành công."));
+    }
+
+    [HttpPost("suggest-slots-batch")]
+    public async Task<ActionResult<ApiResponseDto<BatchSlotSuggestionResultDto>>> SuggestSlotsBatch(
+        SuggestScheduleSlotsBatchRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _smartTimetableService.SuggestSlotsBatchAsync(request, cancellationToken);
+        return Ok(ApiResponseDto<BatchSlotSuggestionResultDto>.Ok(result, "Tính toán gợi ý hàng loạt thành công."));
     }
 
     private ConflictObjectResult ToConflictResponse(ScheduleConflictException exception)

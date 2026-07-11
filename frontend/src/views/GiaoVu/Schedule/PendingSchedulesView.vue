@@ -88,6 +88,7 @@ function mapDraft(item) {
       classes: item.classCount ?? item.soLop ?? item.SoLop ?? item.tongCourse ?? item.TongCourse ?? 0,
       teachers: item.teacherCount ?? item.soGiangVien ?? item.SoGiangVien ?? 0,
       hours: item.totalHours ?? item.tongTiet ?? item.TongTiet ?? 0,
+      score: item.score ?? item.Score ?? 0,
     },
     note: item.note ?? item.ghiChu ?? item.GhiChu ?? '',
   }
@@ -318,6 +319,10 @@ watch(
                 <p class="text-[10px] uppercase text-(--text-muted) font-bold">Tiết/Tuần</p>
                 <p class="font-bold text-(--text-heading)">{{ item.metrics.hours }}</p>
              </div>
+             <div class="text-center ml-2 border-l pl-4 border-(--border-default)">
+                <p class="text-[10px] uppercase text-(--lg-primary) font-bold">Điểm</p>
+                <p class="font-bold text-(--lg-primary)">{{ Math.round(item.metrics.score) }}</p>
+             </div>
           </div>
 
           <!-- Actions -->
@@ -345,6 +350,7 @@ watch(
                 <div class="flex justify-between"><span class="text-(--text-muted)">Mã TKB:</span> <span class="font-mono font-bold">{{ selectedItem.id }}</span></div>
                 <div class="flex justify-between"><span class="text-(--text-muted)">Học kỳ:</span> <span class="font-medium text-right">{{ selectedItem.term }}</span></div>
                 <div class="flex justify-between"><span class="text-(--text-muted)">Đơn vị:</span> <span class="font-medium text-right">{{ selectedItem.department }}</span></div>
+                <div class="flex justify-between"><span class="text-(--text-muted)">Điểm TB:</span> <span class="font-medium text-right text-(--lg-primary)">{{ Math.round(selectedItem.metrics.score) }}</span></div>
                 <div class="flex justify-between"><span class="text-(--text-muted)">Trạng thái:</span>
                   <GlassBadge :variant="getStatusLabel(selectedItem.status).variant" size="sm">{{ getStatusLabel(selectedItem.status).label }}</GlassBadge>
                 </div>

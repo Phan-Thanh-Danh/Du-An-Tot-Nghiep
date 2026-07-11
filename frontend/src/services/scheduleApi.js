@@ -50,6 +50,20 @@ export const scheduleApi = {
     })
   },
 
+  suggestSlots(data) {
+    return apiRequest('/api/thoi-khoa-bieu/suggest-slots', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  suggestSlotsBatch(data) {
+    return apiRequest('/api/thoi-khoa-bieu/suggest-slots-batch', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
   listDrafts(params = {}) {
     return apiRequest(`/api/thoi-khoa-bieu/drafts${buildQuery(params)}`)
   },
