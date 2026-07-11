@@ -29,6 +29,13 @@ export const courseApi = {
     })
   },
 
+  getAssignmentSuggestions(payload) {
+    return apiRequest('/api/courses/assignment-suggestions', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
   updateCourse(id, payload) {
     return apiRequest(`/api/courses/${id}`, {
       method: 'PUT',

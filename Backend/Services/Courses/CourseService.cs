@@ -26,15 +26,21 @@ public class CourseService : ICourseService
     private readonly ApplicationDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICourseTeacherEligibilityService _eligibilityService;
+    private readonly Backend.Services.AcademicSchedulingContext.IAcademicSchedulingContextService _schedulingContextService;
 
     public CourseService(
         ApplicationDbContext context,
         IHttpContextAccessor httpContextAccessor,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        ICourseTeacherEligibilityService eligibilityService,
+        Backend.Services.AcademicSchedulingContext.IAcademicSchedulingContextService schedulingContextService)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _auditLogService = auditLogService;
+        _eligibilityService = eligibilityService;
+        _schedulingContextService = schedulingContextService;
     }
 
     public async Task<PagedResultDto<KhoaHocDto>> GetAsync(
@@ -144,8 +150,8 @@ public class CourseService : ICourseService
         var status = NormalizeStatus(string.IsNullOrWhiteSpace(request.TrangThai) ? DraftStatus : request.TrangThai);
         var organization = await ValidateOrganizationAsync(request.MaDonVi, currentUser, cancellationToken);
         var subject = await ValidateSubjectAsync(request.MaMonHoc, cancellationToken);
-        var teacher = await ValidateTeacherAsync(request.MaGiaoVien, organization.MaDonVi, cancellationToken);
         var term = await ValidateTermAsync(request.MaHocKy, organization.MaDonVi, cancellationToken);
+        var teacher = await ValidateTeacherAsync(request.MaGiaoVien, organization.MaDonVi, subject.MaMonHoc, request.MaHocKy, false, cancellationToken);
         var classEntity = await ValidateClassAsync(request.MaLop, organization.MaDonVi, cancellationToken);
 
         await ValidateUniqueCourseAsync(
@@ -205,9 +211,10 @@ public class CourseService : ICourseService
 
         var status = NormalizeStatus(string.IsNullOrWhiteSpace(request.TrangThai) ? DraftStatus : request.TrangThai);
         var subject = await ValidateSubjectAsync(request.MaMonHoc, cancellationToken);
-        var teacher = await ValidateTeacherInManagedScopeAsync(request.MaGiaoVien, currentUser, cancellationToken);
+        var teacher = await ValidateTeacherInManagedScopeAsync(request.MaGiaoVien, currentUser, subject.MaMonHoc, request.MaHocKy, cancellationToken);
         var organization = await ValidateOrganizationAsync(teacher.MaDonVi, currentUser, cancellationToken);
         var term = await ValidateTermAsync(request.MaHocKy, organization.MaDonVi, cancellationToken);
+
 
         var classes = await _context.LopHanhChinhs
             .AsNoTracking()
@@ -316,8 +323,8 @@ public class CourseService : ICourseService
 
         var source = await GetManagedCourseAsync(courseId, currentUser, cancellationToken);
         var subject = await ValidateSubjectAsync(source.MaMonHoc, cancellationToken);
-        var teacher = await ValidateTeacherAsync(request.MaGiaoVien ?? source.MaGiaoVien, source.MaDonVi, cancellationToken);
         var term = await ValidateTermAsync(request.MaHocKy ?? source.MaHocKy, source.MaDonVi, cancellationToken);
+        var teacher = await ValidateTeacherAsync(request.MaGiaoVien ?? source.MaGiaoVien, source.MaDonVi, subject.MaMonHoc, request.MaHocKy ?? source.MaHocKy, false, cancellationToken);
         var classEntity = await ValidateClassAsync(request.MaLop ?? source.MaLop, source.MaDonVi, cancellationToken);
         var organization = await _context.DonVis.AsNoTracking().FirstAsync(x => x.MaDonVi == source.MaDonVi, cancellationToken);
 
@@ -376,8 +383,14 @@ public class CourseService : ICourseService
         var oldClassId = course.MaLop;
         var oldStatus = course.TrangThai;
 
-        var teacher = await ValidateTeacherAsync(request.MaGiaoVien, course.MaDonVi, cancellationToken);
         var term = await ValidateTermAsync(request.MaHocKy, course.MaDonVi, cancellationToken);
+        var teacher = await ValidateTeacherAsync(
+            request.MaGiaoVien, 
+            course.MaDonVi, 
+            course.MaMonHoc, 
+            request.MaHocKy, 
+            request.MaGiaoVien == oldTeacherId && request.MaHocKy == course.MaHocKy,
+            cancellationToken);
         var classEntity = await ValidateClassAsync(request.MaLop, course.MaDonVi, cancellationToken);
         var title = NormalizeRequiredText(request.TieuDe, "Tiêu đề khóa học");
         var status = NormalizeStatus(request.TrangThai);
@@ -664,7 +677,10 @@ public class CourseService : ICourseService
     private async Task<NguoiDung> ValidateTeacherAsync(
         int teacherId,
         int organizationId,
-        CancellationToken cancellationToken)
+        int subjectId,
+        int? termId,
+        bool skipAssignmentChecks = false,
+        CancellationToken cancellationToken = default)
     {
         var teacher = await _context.NguoiDungs
             .AsNoTracking()
@@ -675,19 +691,46 @@ public class CourseService : ICourseService
             throw new ApiException(StatusCodes.Status400BadRequest, "Giảng viên không tồn tại.");
         }
 
-        if (!await HasTeacherRoleAsync(teacher, cancellationToken))
+        if (!skipAssignmentChecks && termId.HasValue)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Người dùng được chọn không phải giảng viên.");
-        }
+            var ctx = await _schedulingContextService.GetContextAsync(organizationId, cancellationToken);
+            if (ctx.SchedulableTerm == null || ctx.SchedulableTerm.MaHocKy != termId.Value)
+            {
+                if (ctx.CurrentTerm == null || ctx.CurrentTerm.MaHocKy != termId.Value)
+                {
+                    throw new ApiException(StatusCodes.Status400BadRequest, "Khóa học phải thuộc học kỳ chuẩn bị hoặc học kỳ hiện tại để phân công giảng viên.");
+                }
+            }
 
-        if (teacher.TrangThai == UserStatuses.DbLocked)
-        {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Giảng viên đang bị khóa.");
-        }
+            var eligibility = await _eligibilityService.ValidateTeacherForSubjectAsync(
+                organizationId,
+                termId.Value,
+                subjectId,
+                teacherId,
+                cancellationToken);
 
-        if (teacher.MaDonVi != organizationId)
+            if (!eligibility.IsEligible)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, eligibility.ReasonMessage);
+            }
+        }
+        else
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Giảng viên không thuộc cơ sở đã chọn.");
+            // Fallback for courses without term (drafts)
+            if (!await HasTeacherRoleAsync(teacher, cancellationToken))
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "Người dùng được chọn không phải giảng viên.");
+            }
+
+            if (teacher.TrangThai == UserStatuses.DbLocked)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "Giảng viên đang bị khóa.");
+            }
+
+            if (teacher.MaDonVi != organizationId)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "Giảng viên không thuộc cơ sở đã chọn.");
+            }
         }
 
         return teacher;
@@ -696,6 +739,8 @@ public class CourseService : ICourseService
     private async Task<NguoiDung> ValidateTeacherInManagedScopeAsync(
         int teacherId,
         CurrentUserContext currentUser,
+        int subjectId,
+        int? termId,
         CancellationToken cancellationToken)
     {
         var teacher = await _context.NguoiDungs
@@ -707,19 +752,33 @@ public class CourseService : ICourseService
             throw new ApiException(StatusCodes.Status400BadRequest, "Giảng viên không tồn tại.");
         }
 
-        if (!await HasTeacherRoleAsync(teacher, cancellationToken))
-        {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Người dùng được chọn không phải giảng viên.");
-        }
-
-        if (teacher.TrangThai == UserStatuses.DbLocked)
-        {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Giảng viên đang bị khóa.");
-        }
-
         if (!await CanAccessOrganizationAsync(currentUser, teacher.MaDonVi, cancellationToken))
         {
             throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền phân phối khóa học cho cơ sở của giảng viên này.");
+        }
+
+        if (termId.HasValue)
+        {
+            var ctx = await _schedulingContextService.GetContextAsync(teacher.MaDonVi, cancellationToken);
+            if (ctx.SchedulableTerm == null || ctx.SchedulableTerm.MaHocKy != termId.Value)
+            {
+                if (ctx.CurrentTerm == null || ctx.CurrentTerm.MaHocKy != termId.Value)
+                {
+                    throw new ApiException(StatusCodes.Status400BadRequest, "Khóa học phải thuộc học kỳ chuẩn bị hoặc học kỳ hiện tại để phân công giảng viên.");
+                }
+            }
+
+            var eligibility = await _eligibilityService.ValidateTeacherForSubjectAsync(
+                teacher.MaDonVi,
+                termId.Value,
+                subjectId,
+                teacherId,
+                cancellationToken);
+
+            if (!eligibility.IsEligible)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, eligibility.ReasonMessage);
+            }
         }
 
         return teacher;

@@ -1,6 +1,8 @@
 using Backend.Constants;
+using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
 using Backend.DTOs.Courses;
+using Backend.DTOs.Courses.AssignmentSuggestions;
 using Backend.Services.Courses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,10 +15,14 @@ namespace Backend.Controllers;
 public class CoursesController : ControllerBase
 {
     private readonly ICourseService _courseService;
+    private readonly ICourseAssignmentSuggestionService _suggestionService;
 
-    public CoursesController(ICourseService courseService)
+    public CoursesController(
+        ICourseService courseService,
+        ICourseAssignmentSuggestionService suggestionService)
     {
         _courseService = courseService;
+        _suggestionService = suggestionService;
     }
 
     [HttpGet]
@@ -35,6 +41,21 @@ public class CoursesController : ControllerBase
     {
         var course = await _courseService.GetByIdAsync(id, cancellationToken);
         return Ok(ApiResponseDto<KhoaHocDetailDto>.Ok(course));
+    }
+
+    [HttpPost("assignment-suggestions")]
+    [Authorize(Roles = $"{AuthRoles.Admin},{AuthRoles.SuperAdmin},{AuthRoles.CampusAdmin},{AuthRoles.SubCampusAdmin},{AuthRoles.AcademicStaff}")]
+    public async Task<ActionResult<ApiResponseDto<CourseAssignmentSuggestionResultDto>>> GetAssignmentSuggestions(
+        [FromBody] CourseAssignmentSuggestionRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (HttpContext.Items["CurrentUser"] is not CurrentUserContext currentUser)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _suggestionService.GetSuggestionsAsync(request, currentUser.CampusId, cancellationToken);
+        return Ok(ApiResponseDto<CourseAssignmentSuggestionResultDto>.Ok(result));
     }
 
     [HttpPost]

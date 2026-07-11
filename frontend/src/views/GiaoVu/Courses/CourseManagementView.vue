@@ -660,6 +660,7 @@ onMounted(() => {
       :academic-terms="academicTerms"
       :teachers="teachers"
       :classes="classes"
+      :subjects="subjects"
       @close="showEditDrawer = false"
       @done="loadCourses"
     />

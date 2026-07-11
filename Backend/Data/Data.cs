@@ -68,6 +68,7 @@ public static class Data
             administrativeClasses
         );
         var shifts = await SeedClassShiftsAsync(context);
+        await SeedTeacherCapabilitiesAsync(context, users, subjects);
         await SeedTeachingPreferencesAsync(context, hcmCampus, terms, users, shifts);
         await SeedParentLinkAsync(context, users);
         await SeedFacilitiesAsync(context, hcmCampus);
@@ -2748,6 +2749,48 @@ public static class Data
         string ExamType,
         string Status
     );
+    private static async Task SeedTeacherCapabilitiesAsync(
+        ApplicationDbContext context,
+        Dictionary<string, NguoiDung> users,
+        Dictionary<string, DanhMucMonHoc> subjects)
+    {
+        var capabilities = new List<(string UserKey, string SubjectCode, int Score)>
+        {
+            ("teacher.cntt@lms.local", "COM101", 100),
+            ("teacher.cntt@lms.local", "COM103", 80),
+            ("teacher.cntt@lms.local", "WEB102", 90),
+            ("teacher.csharp.a@lms.local", "COM101", 95),
+            ("teacher.csharp.a@lms.local", "COM103", 100),
+            ("teacher.database.c@lms.local", "COM101", 70),
+            ("teacher.database.c@lms.local", "WEB102", 70)
+        };
+
+        foreach (var cap in capabilities)
+        {
+            if (users.TryGetValue(cap.UserKey, out var user) && subjects.TryGetValue(cap.SubjectCode, out var subject))
+            {
+                var existing = await context.GiaoVienMonHocs
+                    .AnyAsync(x => x.MaGiaoVien == user.MaNguoiDung && x.MaMonHoc == subject.MaMonHoc);
+                
+                if (!existing)
+                {
+                    context.GiaoVienMonHocs.Add(new GiaoVienMonHoc
+                    {
+                        MaGiaoVien = user.MaNguoiDung,
+                        MaMonHoc = subject.MaMonHoc,
+                        MucDoPhuHop = cap.Score,
+                        LaMonChinh = cap.Score >= 95,
+                        SoLanDaDay = cap.Score > 80 ? 5 : 1,
+                        SoNamKinhNghiem = cap.Score > 80 ? 2 : 1,
+                        ConHoatDong = true
+                    });
+                }
+            }
+        }
+        
+        await context.SaveChangesAsync();
+    }
+
     private static async Task SeedTeachingPreferencesAsync(
         ApplicationDbContext context,
         DonVi campus,

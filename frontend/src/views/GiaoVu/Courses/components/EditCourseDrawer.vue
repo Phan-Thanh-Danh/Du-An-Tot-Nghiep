@@ -5,6 +5,7 @@ import { courseApi } from '@/services/courseApi'
 import { X, Loader2, AlertTriangle } from 'lucide-vue-next'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
+import TeacherAssignmentSelect from './TeacherAssignmentSelect.vue'
 import CourseStatusBadge from './CourseStatusBadge.vue'
 
 const emit = defineEmits(['close', 'done'])
@@ -13,6 +14,7 @@ const props = defineProps({
   academicTerms: { type: Array, default: () => [] },
   teachers: { type: Array, default: () => [] },
   classes: { type: Array, default: () => [] },
+  subjects: { type: Array, default: () => [] },
 })
 
 const popupStore = usePopupStore()
@@ -74,14 +76,15 @@ async function handleSubmit() {
   if (!isFormValid.value || submitting.value) return
   submitting.value = true
   try {
-    const payload = {}
-    if (changedFields.value.has('tieuDe')) payload.tieuDe = form.value.tieuDe
-    if (changedFields.value.has('moTa')) payload.moTa = form.value.moTa || null
-    if (changedFields.value.has('maGiaoVien')) payload.maGiaoVien = form.value.maGiaoVien
-    if (changedFields.value.has('maLop')) payload.maLop = form.value.maLop
-    if (changedFields.value.has('maHocKy')) payload.maHocKy = form.value.maHocKy
-    if (changedFields.value.has('trangThai')) payload.trangThai = form.value.trangThai
-    if (changedFields.value.has('urlAnhBia')) payload.urlAnhBia = form.value.urlAnhBia || null
+    const payload = {
+      tieuDe: form.value.tieuDe,
+      moTa: form.value.moTa || null,
+      maGiaoVien: form.value.maGiaoVien,
+      maLop: form.value.maLop,
+      maHocKy: form.value.maHocKy,
+      trangThai: form.value.trangThai,
+      urlAnhBia: form.value.urlAnhBia || null
+    }
 
     await courseApi.updateCourse(props.course.maKhoaHoc, payload)
     popupStore.success('Cập nhật thành công', 'Khóa học đã được cập nhật.')
@@ -155,9 +158,18 @@ async function handleSubmit() {
 
           <div class="grid grid-cols-2 gap-4">
             <div>
+              <label class="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-1">Học kỳ</label>
+              <LmsSelect v-model="form.maHocKy" :options="academicTerms" placeholder="Chọn học kỳ"
+                @update:model-value="markChanged('maHocKy')" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-1">Môn học</label>
+              <LmsSelect v-model="form.maMonHoc" :options="subjects" placeholder="Chọn môn học"
+                @update:model-value="markChanged('maMonHoc')" />
+            </div>
+            <div>
               <label class="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-1">Giảng viên</label>
-              <LmsSelect v-model="form.maGiaoVien" :options="teachers" placeholder="Chọn giảng viên"
-                :disabled="hasTKB" @update:model-value="markChanged('maGiaoVien')" />
+              <TeacherAssignmentSelect v-model="form.maGiaoVien" :ma-hoc-ky="form.maHocKy" :ma-mon-hoc="form.maMonHoc" :ma-lop-ids="[form.maLop].filter(Boolean)" :teachers="teachers" :disabled="hasTKB" @update:model-value="markChanged('maGiaoVien')" />
               <p v-if="hasTKB" class="text-[10px] text-(--color-warning-text) mt-1">Đã có TKB — không thể đổi giảng viên.</p>
             </div>
             <div>
@@ -166,12 +178,7 @@ async function handleSubmit() {
                 :disabled="hasTKB" @update:model-value="markChanged('maLop')" />
               <p v-if="hasTKB" class="text-[10px] text-(--color-warning-text) mt-1">Đã có TKB — không thể đổi lớp.</p>
             </div>
-            <div>
-              <label class="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-1">Học kỳ</label>
-              <LmsSelect v-model="form.maHocKy" :options="academicTerms" placeholder="Chọn học kỳ"
-                @update:model-value="markChanged('maHocKy')" />
-            </div>
-            <div>
+            <div class="col-span-2">
               <label class="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-1">Trạng thái</label>
               <select v-model="form.trangThai" @change="markChanged('trangThai')"
                 class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-xl text-sm text-heading outline-none focus:ring-2 focus:ring-(--border-focus)">

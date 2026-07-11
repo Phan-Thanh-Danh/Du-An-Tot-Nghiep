@@ -5,6 +5,7 @@ import { courseApi } from '@/services/courseApi'
 import { X, Loader2, Search, Check, ChevronDown, ChevronUp, BookOpen, Users, GraduationCap, Calendar, Eye } from 'lucide-vue-next'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
+import TeacherAssignmentSelect from './TeacherAssignmentSelect.vue'
 
 const emit = defineEmits(['close', 'done'])
 const props = defineProps({
@@ -225,13 +226,13 @@ async function handleSubmit() {
               <span class="text-sm font-bold">Giảng viên phụ trách</span>
             </div>
             <div>
-              <label class="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-1.5">
-                Giảng viên <span class="text-(--color-danger-text)">*</span>
-              </label>
-              <LmsSelect v-model="form.maGiaoVien" :options="teachers" placeholder="Chọn giảng viên" />
-              <p v-if="selectedTeacher" class="text-[11px] text-muted mt-1.5">
-                <span class="font-medium">{{ selectedTeacher.label }}</span> sẽ phụ trách tất cả khóa học được tạo.
-              </p>
+                <label class="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-1.5">
+                  Giảng viên <span class="text-(--color-danger-text)">*</span>
+                </label>
+                <TeacherAssignmentSelect v-model="form.maGiaoVien" :ma-hoc-ky="form.maHocKy" :ma-mon-hoc="form.maMonHoc" :ma-lop-ids="selectedClassIds" :teachers="teachers" />
+                <p v-if="selectedTeacher" class="text-[11px] text-muted mt-1.5">
+                  <span class="font-medium">{{ selectedTeacher.label }}</span> sẽ phụ trách tất cả khóa học được tạo.
+                </p>
             </div>
           </div>
 
