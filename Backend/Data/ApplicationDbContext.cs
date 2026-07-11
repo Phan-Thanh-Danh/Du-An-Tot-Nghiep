@@ -5843,6 +5843,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.MaBlock).HasColumnName("ma_block");
             entity.Property(e => e.TenBlock).HasColumnName("ten_block").HasMaxLength(100).IsRequired();
             entity.Property(e => e.MaHocKy).HasColumnName("ma_hoc_ky");
+            entity.Property(e => e.ThuTuBlock).HasColumnName("thu_tu_block");
             entity.Property(e => e.NgayBatDau).HasColumnName("ngay_bat_dau").HasColumnType("date");
             entity.Property(e => e.NgayKetThuc).HasColumnName("ngay_ket_thuc").HasColumnType("date");
 
@@ -5856,22 +5857,22 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<QuyDoiTinChi>(entity =>
         {
             entity.ToTable("QuyDoiTinChi", "dbo");
-            entity.HasKey(e => e.SoTinChi).HasName("PK_QuyDoiTinChi");
+            entity.HasKey(e => e.MaQuyDoi).HasName("PK_QuyDoiTinChi");
+            
+            entity.HasIndex(e => e.SoTinChi).IsUnique().HasDatabaseName("IX_QuyDoiTinChi_SoTinChi");
 
+            entity.Property(e => e.MaQuyDoi).HasColumnName("ma_quy_doi");
             entity.Property(e => e.SoTinChi).HasColumnName("so_tin_chi");
             entity.Property(e => e.SoBlockHoc).HasColumnName("so_block_hoc");
-            entity.Property(e => e.SoBuoiTrenTuan).HasColumnName("so_buoi_tren_tuan");
-            entity.Property(e => e.SoCaTrenBuoi).HasColumnName("so_ca_tren_buoi");
+            entity.Property(e => e.SoBuoiMoiTuan).HasColumnName("so_buoi_moi_tuan");
+            entity.Property(e => e.SoCaMoiBuoi).HasColumnName("so_ca_moi_buoi");
 
-            // Seed dữ liệu mặc định như đã chốt
+            // Seed dữ liệu mẫu
             entity.HasData(
-                new QuyDoiTinChi { SoTinChi = 1, SoBlockHoc = 1, SoBuoiTrenTuan = 2, SoCaTrenBuoi = 1 },
-                new QuyDoiTinChi { SoTinChi = 2, SoBlockHoc = 1, SoBuoiTrenTuan = 4, SoCaTrenBuoi = 1 },
-                new QuyDoiTinChi { SoTinChi = 3, SoBlockHoc = 2, SoBuoiTrenTuan = 3, SoCaTrenBuoi = 1 },
-                new QuyDoiTinChi { SoTinChi = 4, SoBlockHoc = 2, SoBuoiTrenTuan = 4, SoCaTrenBuoi = 1 },
-                new QuyDoiTinChi { SoTinChi = 5, SoBlockHoc = 5, SoBuoiTrenTuan = 1, SoCaTrenBuoi = 2 },
-                new QuyDoiTinChi { SoTinChi = 6, SoBlockHoc = 5, SoBuoiTrenTuan = 1, SoCaTrenBuoi = 2 },
-                new QuyDoiTinChi { SoTinChi = 7, SoBlockHoc = 5, SoBuoiTrenTuan = 1, SoCaTrenBuoi = 2 }
+                new QuyDoiTinChi { MaQuyDoi = 1, SoTinChi = 2, SoBlockHoc = 1, SoBuoiMoiTuan = 2, SoCaMoiBuoi = 1 },
+                new QuyDoiTinChi { MaQuyDoi = 2, SoTinChi = 3, SoBlockHoc = 1, SoBuoiMoiTuan = 3, SoCaMoiBuoi = 1 },
+                new QuyDoiTinChi { MaQuyDoi = 3, SoTinChi = 4, SoBlockHoc = 2, SoBuoiMoiTuan = 2, SoCaMoiBuoi = 1 },
+                new QuyDoiTinChi { MaQuyDoi = 4, SoTinChi = 5, SoBlockHoc = 2, SoBuoiMoiTuan = 3, SoCaMoiBuoi = 1 }
             );
         });
     }

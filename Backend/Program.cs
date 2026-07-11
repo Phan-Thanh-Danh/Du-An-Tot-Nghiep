@@ -417,6 +417,10 @@ using (var scope = app.Services.CreateScope())
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await context.Database.MigrateAsync();
 
+    // Chạy BlockDataSeeder để migration data cũ nếu cần
+    var blockSeeder = new Backend.Data.Seeders.BlockDataSeeder(context);
+    await blockSeeder.SeedAsync();
+
     if (app.Environment.IsDevelopment())
     {
         try

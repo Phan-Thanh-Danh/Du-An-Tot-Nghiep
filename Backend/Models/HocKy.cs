@@ -10,6 +10,7 @@ public class HocKy
     public DateOnly NgayKetThuc { get; set; }
     public string NamHoc { get; set; } = string.Empty;
     public int ThuTuTrongNam { get; set; }
+    [Obsolete("Dùng bảng Block thay thế, giữ lại để không vỡ code cũ")]
     public DateOnly? NgayKetThucBlock5 { get; set; }
     public bool DaKhoa { get; set; }
     public int? SoTinChiToiDa { get; set; }

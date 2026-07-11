@@ -2,8 +2,9 @@ namespace Backend.Models;
 
 public class QuyDoiTinChi
 {
+    public int MaQuyDoi { get; set; }
     public int SoTinChi { get; set; }
     public int SoBlockHoc { get; set; }
-    public int SoBuoiTrenTuan { get; set; }
-    public int SoCaTrenBuoi { get; set; }
+    public int SoBuoiMoiTuan { get; set; }
+    public int SoCaMoiBuoi { get; set; }
 }

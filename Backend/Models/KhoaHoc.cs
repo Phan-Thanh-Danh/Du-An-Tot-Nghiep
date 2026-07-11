@@ -11,6 +11,7 @@ public class KhoaHoc
     public int? MaHocKy { get; set; }
     public int? MaBlockBatDau { get; set; }
     public int MaLop { get; set; }
+    public int SoBlockHoc { get; set; } = 1;
     public int? MaLopHocPhan { get; set; }
     public string TieuDe { get; set; } = string.Empty;
     public string? MoTa { get; set; }

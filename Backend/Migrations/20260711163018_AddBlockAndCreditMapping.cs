@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class AddBlockSchedulingModels : Migration
+    public partial class AddBlockAndCreditMapping : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -19,6 +19,14 @@ namespace Backend.Migrations
                 table: "LopHanhChinh",
                 type: "int",
                 nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "SoBlockHoc",
+                schema: "dbo",
+                table: "KhoaHoc",
+                type: "int",
+                nullable: false,
+                defaultValue: 0);
 
             migrationBuilder.AddColumn<int>(
                 name: "ma_block_bat_dau",
@@ -36,6 +44,7 @@ namespace Backend.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ten_block = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     ma_hoc_ky = table.Column<int>(type: "int", nullable: false),
+                    thu_tu_block = table.Column<int>(type: "int", nullable: false),
                     ngay_bat_dau = table.Column<DateOnly>(type: "date", nullable: false),
                     ngay_ket_thuc = table.Column<DateOnly>(type: "date", nullable: false)
                 },
@@ -56,30 +65,28 @@ namespace Backend.Migrations
                 schema: "dbo",
                 columns: table => new
                 {
-                    so_tin_chi = table.Column<int>(type: "int", nullable: false)
+                    ma_quy_doi = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
+                    so_tin_chi = table.Column<int>(type: "int", nullable: false),
                     so_block_hoc = table.Column<int>(type: "int", nullable: false),
-                    so_buoi_tren_tuan = table.Column<int>(type: "int", nullable: false),
-                    so_ca_tren_buoi = table.Column<int>(type: "int", nullable: false)
+                    so_buoi_moi_tuan = table.Column<int>(type: "int", nullable: false),
+                    so_ca_moi_buoi = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_QuyDoiTinChi", x => x.so_tin_chi);
+                    table.PrimaryKey("PK_QuyDoiTinChi", x => x.ma_quy_doi);
                 });
 
             migrationBuilder.InsertData(
                 schema: "dbo",
                 table: "QuyDoiTinChi",
-                columns: new[] { "so_tin_chi", "so_block_hoc", "so_buoi_tren_tuan", "so_ca_tren_buoi" },
+                columns: new[] { "ma_quy_doi", "so_block_hoc", "so_buoi_moi_tuan", "so_ca_moi_buoi", "so_tin_chi" },
                 values: new object[,]
                 {
-                    { 1, 1, 2, 1 },
-                    { 2, 1, 4, 1 },
-                    { 3, 2, 3, 1 },
-                    { 4, 2, 4, 1 },
-                    { 5, 5, 1, 2 },
-                    { 6, 5, 1, 2 },
-                    { 7, 5, 1, 2 }
+                    { 1, 1, 2, 1, 2 },
+                    { 2, 1, 3, 1, 3 },
+                    { 3, 2, 2, 1, 4 },
+                    { 4, 2, 3, 1, 5 }
                 });
 
             migrationBuilder.CreateIndex(
@@ -93,6 +100,13 @@ namespace Backend.Migrations
                 schema: "dbo",
                 table: "Block",
                 column: "ma_hoc_ky");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_QuyDoiTinChi_SoTinChi",
+                schema: "dbo",
+                table: "QuyDoiTinChi",
+                column: "so_tin_chi",
+                unique: true);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_KhoaHoc_ma_block_bat_dau__Block",
@@ -129,6 +143,11 @@ namespace Backend.Migrations
                 name: "si_so_du_kien",
                 schema: "dbo",
                 table: "LopHanhChinh");
+
+            migrationBuilder.DropColumn(
+                name: "SoBlockHoc",
+                schema: "dbo",
+                table: "KhoaHoc");
 
             migrationBuilder.DropColumn(
                 name: "ma_block_bat_dau",

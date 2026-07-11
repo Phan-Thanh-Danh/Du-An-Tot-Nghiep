@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260711161608_AddBlockSchedulingModels")]
-    partial class AddBlockSchedulingModels
+    [Migration("20260711163018_AddBlockAndCreditMapping")]
+    partial class AddBlockAndCreditMapping
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -719,6 +719,10 @@ namespace Backend.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("ten_block");
+
+                    b.Property<int>("ThuTuBlock")
+                        .HasColumnType("int")
+                        .HasColumnName("thu_tu_block");
 
                     b.HasKey("MaBlock")
                         .HasName("PK_Block");
@@ -4089,6 +4093,9 @@ namespace Backend.Migrations
                         .HasColumnName("ngay_tao")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
+                    b.Property<int>("SoBlockHoc")
+                        .HasColumnType("int");
+
                     b.Property<string>("TieuDe")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -6026,79 +6033,70 @@ namespace Backend.Migrations
 
             modelBuilder.Entity("Backend.Models.QuyDoiTinChi", b =>
                 {
-                    b.Property<int>("SoTinChi")
+                    b.Property<int>("MaQuyDoi")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("so_tin_chi");
+                        .HasColumnName("ma_quy_doi");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SoTinChi"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaQuyDoi"));
 
                     b.Property<int>("SoBlockHoc")
                         .HasColumnType("int")
                         .HasColumnName("so_block_hoc");
 
-                    b.Property<int>("SoBuoiTrenTuan")
+                    b.Property<int>("SoBuoiMoiTuan")
                         .HasColumnType("int")
-                        .HasColumnName("so_buoi_tren_tuan");
+                        .HasColumnName("so_buoi_moi_tuan");
 
-                    b.Property<int>("SoCaTrenBuoi")
+                    b.Property<int>("SoCaMoiBuoi")
                         .HasColumnType("int")
-                        .HasColumnName("so_ca_tren_buoi");
+                        .HasColumnName("so_ca_moi_buoi");
 
-                    b.HasKey("SoTinChi")
+                    b.Property<int>("SoTinChi")
+                        .HasColumnType("int")
+                        .HasColumnName("so_tin_chi");
+
+                    b.HasKey("MaQuyDoi")
                         .HasName("PK_QuyDoiTinChi");
+
+                    b.HasIndex("SoTinChi")
+                        .IsUnique()
+                        .HasDatabaseName("IX_QuyDoiTinChi_SoTinChi");
 
                     b.ToTable("QuyDoiTinChi", "dbo");
 
                     b.HasData(
                         new
                         {
-                            SoTinChi = 1,
+                            MaQuyDoi = 1,
                             SoBlockHoc = 1,
-                            SoBuoiTrenTuan = 2,
-                            SoCaTrenBuoi = 1
+                            SoBuoiMoiTuan = 2,
+                            SoCaMoiBuoi = 1,
+                            SoTinChi = 2
                         },
                         new
                         {
-                            SoTinChi = 2,
+                            MaQuyDoi = 2,
                             SoBlockHoc = 1,
-                            SoBuoiTrenTuan = 4,
-                            SoCaTrenBuoi = 1
+                            SoBuoiMoiTuan = 3,
+                            SoCaMoiBuoi = 1,
+                            SoTinChi = 3
                         },
                         new
                         {
-                            SoTinChi = 3,
+                            MaQuyDoi = 3,
                             SoBlockHoc = 2,
-                            SoBuoiTrenTuan = 3,
-                            SoCaTrenBuoi = 1
+                            SoBuoiMoiTuan = 2,
+                            SoCaMoiBuoi = 1,
+                            SoTinChi = 4
                         },
                         new
                         {
-                            SoTinChi = 4,
+                            MaQuyDoi = 4,
                             SoBlockHoc = 2,
-                            SoBuoiTrenTuan = 4,
-                            SoCaTrenBuoi = 1
-                        },
-                        new
-                        {
-                            SoTinChi = 5,
-                            SoBlockHoc = 5,
-                            SoBuoiTrenTuan = 1,
-                            SoCaTrenBuoi = 2
-                        },
-                        new
-                        {
-                            SoTinChi = 6,
-                            SoBlockHoc = 5,
-                            SoBuoiTrenTuan = 1,
-                            SoCaTrenBuoi = 2
-                        },
-                        new
-                        {
-                            SoTinChi = 7,
-                            SoBlockHoc = 5,
-                            SoBuoiTrenTuan = 1,
-                            SoCaTrenBuoi = 2
+                            SoBuoiMoiTuan = 3,
+                            SoCaMoiBuoi = 1,
+                            SoTinChi = 5
                         });
                 });
 
