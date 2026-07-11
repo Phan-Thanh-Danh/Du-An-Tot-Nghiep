@@ -13,6 +13,10 @@ Thumbs.db
 **/bin/
 **/obj/
 
+# Root node_modules (tools/scripts at repo root)
+node_modules/
+/node_modules/
+
 # Frontend (Node/Vite)
 frontend/node_modules/
 frontend/dist/
