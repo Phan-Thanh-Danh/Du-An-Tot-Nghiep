@@ -46,6 +46,7 @@ public static class Data
         await SeedProgramTermsAsync(context, programs.Values, terms);
         var programSubjects = await SeedProgramSubjectsAsync(context, programs, subjects);
         var users = await SeedDemoUsersAsync(context, rootCampus, hcmCampus);
+        await SeedBaseTeacherMajorsAsync(context, users, specializations);
         var administrativeClasses = await SeedAdministrativeClassesAsync(
             context,
             hcmCampus,
@@ -67,6 +68,7 @@ public static class Data
             administrativeClasses
         );
         var shifts = await SeedClassShiftsAsync(context);
+        await SeedTeachingPreferencesAsync(context, hcmCampus, terms, users, shifts);
         await SeedParentLinkAsync(context, users);
         await SeedFacilitiesAsync(context, hcmCampus);
         await SeedScheduleTemplatesAsync(
@@ -2746,4 +2748,104 @@ public static class Data
         string ExamType,
         string Status
     );
+    private static async Task SeedTeachingPreferencesAsync(
+        ApplicationDbContext context,
+        DonVi campus,
+        IReadOnlyList<HocKy> terms,
+        Dictionary<string, NguoiDung> users,
+        Dictionary<string, CaHoc> shifts)
+    {
+        var term = terms.FirstOrDefault(x => x.MaCodeHocKy == "HK3_2026");
+        if (term == null) return;
+
+        var teacherKeys = new[] { "teacher.cntt@lms.local", "teacher.csharp.a@lms.local", "teacher.database.c@lms.local" };
+        var activeShifts = shifts.Values.Where(x => x.ConHoatDong).OrderBy(x => x.ThuTu).ToList();
+        if (!activeShifts.Any()) return;
+
+        foreach (var key in teacherKeys)
+        {
+            if (!users.TryGetValue(key, out var teacher)) continue;
+
+            var existing = await context.GiaoVienNguyenVongHocKys
+                .AnyAsync(x => x.MaGiaoVien == teacher.MaNguoiDung && x.MaHocKy == term.MaHocKy);
+            if (existing) continue;
+
+            var status = key == "teacher.cntt@lms.local" ? "draft" : "submitted";
+            
+            var preference = new GiaoVienNguyenVongHocKy
+            {
+                MaGiaoVien = teacher.MaNguoiDung,
+                MaHocKy = term.MaHocKy,
+                MaDonVi = teacher.MaDonVi,
+                TrangThai = status,
+                NgayTao = DateTime.UtcNow,
+                NgayGui = status == "submitted" ? DateTime.UtcNow : null,
+                SoLopToiDaMongMuon = 4,
+                SoCaToiDaMoiTuan = 8,
+                GhiChu = "Dữ liệu mẫu từ hệ thống"
+            };
+
+            context.GiaoVienNguyenVongHocKys.Add(preference);
+            await context.SaveChangesAsync();
+
+            var details = new List<GiaoVienNguyenVongCaDay>();
+            
+            if (key == "teacher.cntt@lms.local")
+            {
+                details.Add(new GiaoVienNguyenVongCaDay { NguyenVongId = preference.Id, ThuTrongTuan = 2, MaCaHoc = activeShifts[0].MaCaHoc, MucDo = "preferred", NgayTao = DateTime.UtcNow });
+                if (activeShifts.Count > 1) details.Add(new GiaoVienNguyenVongCaDay { NguyenVongId = preference.Id, ThuTrongTuan = 2, MaCaHoc = activeShifts[1].MaCaHoc, MucDo = "available", NgayTao = DateTime.UtcNow });
+                details.Add(new GiaoVienNguyenVongCaDay { NguyenVongId = preference.Id, ThuTrongTuan = 3, MaCaHoc = activeShifts[0].MaCaHoc, MucDo = "preferred", NgayTao = DateTime.UtcNow });
+                if (activeShifts.Count > 3) details.Add(new GiaoVienNguyenVongCaDay { NguyenVongId = preference.Id, ThuTrongTuan = 5, MaCaHoc = activeShifts[3].MaCaHoc, MucDo = "unavailable", NgayTao = DateTime.UtcNow });
+            }
+            else if (key == "teacher.csharp.a@lms.local")
+            {
+                details.Add(new GiaoVienNguyenVongCaDay { NguyenVongId = preference.Id, ThuTrongTuan = 4, MaCaHoc = activeShifts[0].MaCaHoc, MucDo = "preferred", NgayTao = DateTime.UtcNow });
+                if (activeShifts.Count > 2) details.Add(new GiaoVienNguyenVongCaDay { NguyenVongId = preference.Id, ThuTrongTuan = 4, MaCaHoc = activeShifts[2].MaCaHoc, MucDo = "unavailable", NgayTao = DateTime.UtcNow });
+            }
+            else
+            {
+                details.Add(new GiaoVienNguyenVongCaDay { NguyenVongId = preference.Id, ThuTrongTuan = 6, MaCaHoc = activeShifts[0].MaCaHoc, MucDo = "available", NgayTao = DateTime.UtcNow });
+            }
+
+            context.GiaoVienNguyenVongCaDays.AddRange(details);
+            await context.SaveChangesAsync();
+        }
+    }
+
+    private static async Task SeedBaseTeacherMajorsAsync(
+        ApplicationDbContext context,
+        Dictionary<string, NguoiDung> users,
+        Dictionary<string, ChuyenNganh> specializations
+    )
+    {
+        var cntt = specializations.Values.FirstOrDefault(x => x.TenChuyenNganh.Contains("Phần mềm") || x.TenChuyenNganh.Contains("CNTT")) ?? specializations.Values.FirstOrDefault();
+        var mkt = specializations.Values.FirstOrDefault(x => x.TenChuyenNganh.Contains("Marketing")) ?? specializations.Values.FirstOrDefault();
+        var tkdh = specializations.Values.FirstOrDefault(x => x.TenChuyenNganh.Contains("Đồ họa")) ?? specializations.Values.FirstOrDefault();
+
+        foreach (var kvp in users)
+        {
+            if (kvp.Value.VaiTroChinh != AuthRoles.ToDatabaseCode(AuthRoles.Teacher)) continue;
+
+            var existing = await context.GiaoVienChuyenNganhs.AnyAsync(x => x.MaGiaoVien == kvp.Value.MaNguoiDung);
+            if (existing) continue;
+
+            var spec = cntt;
+            if (kvp.Key.Contains("mkt") || kvp.Key.Contains("marketing")) spec = mkt;
+            else if (kvp.Key.Contains("tkdh")) spec = tkdh;
+
+            if (spec != null)
+            {
+                context.GiaoVienChuyenNganhs.Add(new GiaoVienChuyenNganh
+                {
+                    MaGiaoVien = kvp.Value.MaNguoiDung,
+                    MaChuyenNganh = spec.MaChuyenNganh,
+                    LaChuyenMonChinh = true,
+                    MucDoPhuHop = 100,
+                    SoNamKinhNghiem = 5,
+                    NgayTao = DateTime.UtcNow
+                });
+            }
+        }
+        await context.SaveChangesAsync();
+    }
 }

@@ -31,7 +31,7 @@ export const staffApi = {
   // P25 - Academic Scheduling Context
   async getSchedulingContext(maHocKy = null) {
     const qs = maHocKy ? `?maHocKy=${maHocKy}` : ''
-    return unwrapApiData(await apiRequest(`/api/staff/academic-scheduling-context${qs}`))
+    return unwrapApiData(await apiRequest(`/api/academic-scheduling/context${qs}`))
   },
   
   // P26 - Teaching Preferences

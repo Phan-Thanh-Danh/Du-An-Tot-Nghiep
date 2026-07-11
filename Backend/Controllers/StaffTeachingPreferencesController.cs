@@ -16,14 +16,7 @@ public class StaffTeachingPreferencesController : ControllerBase
         _service = service;
     }
 
-    private int GetCurrentStaffDonViId()
-    {
-        // Actually, Staff also belongs to a DonVi, and we only summarize for their DonVi.
-        // Assuming the CurrentUser model has MaDonVi mapped. Let's get it from the DB.
-        // Wait, for simplicity, I'll retrieve it from HttpContext if it's there, but we didn't add DonViId to HttpContext yet in auth.
-        // I'll fetch the user from DB to get MaDonVi.
-        return 0; // We will implement the exact fetch logic below.
-    }
+
 
     [HttpGet("summary")]
     public async Task<IActionResult> GetSummary([FromQuery] int maHocKy, [FromServices] Backend.Data.ApplicationDbContext db)

@@ -62,9 +62,9 @@ public class P26_TeacherTeachingPreferenceTests
 
         _db.NguoiDungs.Add(new NguoiDung { MaNguoiDung = teacherId, MaDonVi = 1, HoTen = "Teacher A", VaiTroChinh = "Teacher" });
         _db.HocKys.Add(new HocKy { MaHocKy = maHocKy, MaDonVi = 1, TenHocKy = "HK1", NgayBatDau = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(20)) });
-        await _db.SaveChangesAsync();
+        _db.CaHocs.AddRange(new CaHoc { MaCaHoc = 1, TenCa = "Ca 1", ConHoatDong = true, GioBatDau = new TimeOnly(7, 0), GioKetThuc = new TimeOnly(9, 0) }, new CaHoc { MaCaHoc = 2, TenCa = "Ca 2", ConHoatDong = true, GioBatDau = new TimeOnly(9, 0), GioKetThuc = new TimeOnly(11, 0) }); await _db.SaveChangesAsync();
 
-        _mockSchedulingContext.Setup(x => x.GetContextAsync(teacherId)).ReturnsAsync(new AcademicSchedulingContextDto
+        _mockSchedulingContext.Setup(x => x.GetContextAsync(1)).ReturnsAsync(new AcademicSchedulingContextDto
         {
             SchedulableTerm = new SchedulingTermDto { MaHocKy = maHocKy, TenHocKy = "HK1" }
         });
@@ -96,9 +96,9 @@ public class P26_TeacherTeachingPreferenceTests
 
         _db.NguoiDungs.Add(new NguoiDung { MaNguoiDung = teacherId, MaDonVi = 1, HoTen = "Teacher B", VaiTroChinh = "Teacher" });
         _db.HocKys.Add(new HocKy { MaHocKy = maHocKy, MaDonVi = 1, TenHocKy = "HK2", NgayBatDau = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(20)) });
-        await _db.SaveChangesAsync();
+        _db.CaHocs.AddRange(new CaHoc { MaCaHoc = 1, TenCa = "Ca 1", ConHoatDong = true, GioBatDau = new TimeOnly(7, 0), GioKetThuc = new TimeOnly(9, 0) }, new CaHoc { MaCaHoc = 2, TenCa = "Ca 2", ConHoatDong = true, GioBatDau = new TimeOnly(9, 0), GioKetThuc = new TimeOnly(11, 0) }); await _db.SaveChangesAsync();
 
-        _mockSchedulingContext.Setup(x => x.GetContextAsync(teacherId)).ReturnsAsync(new AcademicSchedulingContextDto
+        _mockSchedulingContext.Setup(x => x.GetContextAsync(1)).ReturnsAsync(new AcademicSchedulingContextDto
         {
             SchedulableTerm = new SchedulingTermDto { MaHocKy = maHocKy, TenHocKy = "HK2" }
         });
@@ -125,7 +125,7 @@ public class P26_TeacherTeachingPreferenceTests
         _db.HocKys.Add(new HocKy { MaHocKy = maHocKy, MaDonVi = 1, TenHocKy = "HK3", NgayBatDau = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5)) });
         _db.SaveChanges();
 
-        _mockSchedulingContext.Setup(x => x.GetContextAsync(teacherId)).ReturnsAsync(new AcademicSchedulingContextDto
+        _mockSchedulingContext.Setup(x => x.GetContextAsync(1)).ReturnsAsync(new AcademicSchedulingContextDto
         {
             SchedulableTerm = new SchedulingTermDto { MaHocKy = maHocKy, TenHocKy = "HK3" }
         });
@@ -158,9 +158,9 @@ public class P26_TeacherTeachingPreferenceTests
             }
         };
         _db.GiaoVienNguyenVongHocKys.Add(pref);
-        await _db.SaveChangesAsync();
+        _db.CaHocs.AddRange(new CaHoc { MaCaHoc = 1, TenCa = "Ca 1", ConHoatDong = true, GioBatDau = new TimeOnly(7, 0), GioKetThuc = new TimeOnly(9, 0) }, new CaHoc { MaCaHoc = 2, TenCa = "Ca 2", ConHoatDong = true, GioBatDau = new TimeOnly(9, 0), GioKetThuc = new TimeOnly(11, 0) }); await _db.SaveChangesAsync();
 
-        _mockSchedulingContext.Setup(x => x.GetContextAsync(teacherId)).ReturnsAsync(new AcademicSchedulingContextDto
+        _mockSchedulingContext.Setup(x => x.GetContextAsync(1)).ReturnsAsync(new AcademicSchedulingContextDto
         {
             SchedulableTerm = new SchedulingTermDto { MaHocKy = maHocKy, TenHocKy = "HK4" }
         });
