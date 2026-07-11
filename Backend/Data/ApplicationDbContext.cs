@@ -52,6 +52,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<HoSoKyLuat> HoSoKyLuats => Set<HoSoKyLuat>();
     public DbSet<HoaDon> HoaDons => Set<HoaDon>();
     public DbSet<HocKy> HocKys => Set<HocKy>();
+    public DbSet<Block> Blocks => Set<Block>();
+    public DbSet<QuyDoiTinChi> QuyDoiTinChis => Set<QuyDoiTinChi>();
     public DbSet<KhenThuong> KhenThuongs => Set<KhenThuong>();
     public DbSet<KhoaHoc> KhoaHocs => Set<KhoaHoc>();
     public DbSet<KhoaTuyenSinh> KhoaTuyenSinhs => Set<KhoaTuyenSinh>();
@@ -3028,6 +3030,8 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("ma_mon_hoc");
             entity.Property(e => e.MaHocKy)
                 .HasColumnName("ma_hoc_ky");
+            entity.Property(e => e.MaBlockBatDau)
+                .HasColumnName("ma_block_bat_dau");
             entity.Property(e => e.MaLop)
                 .HasColumnName("ma_lop");
             entity.Property(e => e.MaLopHocPhan)
@@ -3076,6 +3080,11 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaHocKy)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_KhoaHoc_ma_hoc_ky__HocKy");
+            entity.HasOne(e => e.BlockBatDau)
+                .WithMany()
+                .HasForeignKey(e => e.MaBlockBatDau)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_KhoaHoc_ma_block_bat_dau__Block");
             entity.HasOne(e => e.Lop)
                 .WithMany()
                 .HasForeignKey(e => e.MaLop)
@@ -3181,6 +3190,8 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("ma_chuong_trinh");
             entity.Property(e => e.NamNhapHoc)
                 .HasColumnName("nam_nhap_hoc");
+            entity.Property(e => e.SiSoDuKien)
+                .HasColumnName("si_so_du_kien");
             entity.Property(e => e.ConHoatDong)
                 .HasColumnName("con_hoat_dong")
                 .HasDefaultValue(true);
@@ -5822,6 +5833,46 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaPhong)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_ScheduleDraftItem_ma_phong__PhongHoc");
+        });
+
+        modelBuilder.Entity<Block>(entity =>
+        {
+            entity.ToTable("Block", "dbo");
+            entity.HasKey(e => e.MaBlock).HasName("PK_Block");
+
+            entity.Property(e => e.MaBlock).HasColumnName("ma_block");
+            entity.Property(e => e.TenBlock).HasColumnName("ten_block").HasMaxLength(100).IsRequired();
+            entity.Property(e => e.MaHocKy).HasColumnName("ma_hoc_ky");
+            entity.Property(e => e.NgayBatDau).HasColumnName("ngay_bat_dau").HasColumnType("date");
+            entity.Property(e => e.NgayKetThuc).HasColumnName("ngay_ket_thuc").HasColumnType("date");
+
+            entity.HasOne(e => e.HocKy)
+                .WithMany()
+                .HasForeignKey(e => e.MaHocKy)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_Block_ma_hoc_ky__HocKy");
+        });
+
+        modelBuilder.Entity<QuyDoiTinChi>(entity =>
+        {
+            entity.ToTable("QuyDoiTinChi", "dbo");
+            entity.HasKey(e => e.SoTinChi).HasName("PK_QuyDoiTinChi");
+
+            entity.Property(e => e.SoTinChi).HasColumnName("so_tin_chi");
+            entity.Property(e => e.SoBlockHoc).HasColumnName("so_block_hoc");
+            entity.Property(e => e.SoBuoiTrenTuan).HasColumnName("so_buoi_tren_tuan");
+            entity.Property(e => e.SoCaTrenBuoi).HasColumnName("so_ca_tren_buoi");
+
+            // Seed dữ liệu mặc định như đã chốt
+            entity.HasData(
+                new QuyDoiTinChi { SoTinChi = 1, SoBlockHoc = 1, SoBuoiTrenTuan = 2, SoCaTrenBuoi = 1 },
+                new QuyDoiTinChi { SoTinChi = 2, SoBlockHoc = 1, SoBuoiTrenTuan = 4, SoCaTrenBuoi = 1 },
+                new QuyDoiTinChi { SoTinChi = 3, SoBlockHoc = 2, SoBuoiTrenTuan = 3, SoCaTrenBuoi = 1 },
+                new QuyDoiTinChi { SoTinChi = 4, SoBlockHoc = 2, SoBuoiTrenTuan = 4, SoCaTrenBuoi = 1 },
+                new QuyDoiTinChi { SoTinChi = 5, SoBlockHoc = 5, SoBuoiTrenTuan = 1, SoCaTrenBuoi = 2 },
+                new QuyDoiTinChi { SoTinChi = 6, SoBlockHoc = 5, SoBuoiTrenTuan = 1, SoCaTrenBuoi = 2 },
+                new QuyDoiTinChi { SoTinChi = 7, SoBlockHoc = 5, SoBuoiTrenTuan = 1, SoCaTrenBuoi = 2 }
+            );
         });
     }
 }

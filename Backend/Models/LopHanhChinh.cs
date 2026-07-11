@@ -9,6 +9,7 @@ public class LopHanhChinh
     public int? MaGiaoVienChuNhiem { get; set; }
     public int? MaChuongTrinh { get; set; }
     public int? NamNhapHoc { get; set; }
+    public int? SiSoDuKien { get; set; }
     public bool ConHoatDong { get; set; }
 
     public DonVi? DonVi { get; set; }
