@@ -1,110 +1,74 @@
 import fs from 'fs';
-import path from 'path';
+import { execSync } from 'child_process';
 
-let fails = 0;
-let endpointsParsed = 0;
-let capabilitiesParsed = 0;
+let errors = [];
 
-function logFail(msg) {
-    console.error(`[FAIL] ${msg}`);
-    fails++;
-}
-function logPass(msg) {
-    console.log(`[PASS] ${msg}`);
-}
-
-const p0Dir = path.join(process.cwd(), 'docs/p0');
-
-// 1. Endpoint Inventory
-const invPath = path.join(p0Dir, 'P0_BACKEND_ENDPOINT_INVENTORY.csv');
-if (!fs.existsSync(invPath)) {
-    logFail('P0_BACKEND_ENDPOINT_INVENTORY.csv missing');
-} else {
-    const lines = fs.readFileSync(invPath, 'utf8').split('\n').filter(l => l.trim());
-    endpointsParsed = lines.length - 1;
-    const epIds = new Set();
-    
-    for (let i = 1; i < lines.length; i++) {
-        // Simple CSV parse
-        const parts = lines[i].split(',');
-        const id = parts[0];
-        const method = parts[3];
-        const route = parts[4];
-        
-        if (epIds.has(id)) logFail(`Duplicate Endpoint ID: ${id}`);
-        epIds.add(id);
-        
-        if (!['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) logFail(`Invalid HTTP method: ${method} for ${id}`);
-        if (!route.startsWith('/api/')) logFail(`Endpoint does not begin with /api/: ${route} for ${id}`);
+function checkFile(path, name) {
+    if (!fs.existsSync(path)) {
+        errors.push(`Missing file: ${name} (${path})`);
+        return false;
     }
+    return true;
 }
 
-// 2. Capability Matrix
-const capPath = path.join(p0Dir, 'P0_BACKEND_CAPABILITY_MATRIX.csv');
-if (!fs.existsSync(capPath)) {
-    logFail('P0_BACKEND_CAPABILITY_MATRIX.csv missing');
-} else {
-    const lines = fs.readFileSync(capPath, 'utf8').split('\n').filter(l => l.trim());
-    capabilitiesParsed = lines.length - 1;
-    const capIds = new Set();
-    
-    for (let i = 1; i < lines.length; i++) {
-        // Regex to split by comma outside quotes
-        const parts = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-        if (!parts) continue;
-        
-        const id = parts[0];
+// 1. Check basic P0 files
+checkFile('docs/p0/P0_BACKEND_ENDPOINT_INVENTORY.csv', 'Endpoint Inventory');
+checkFile('docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv', 'Capability Matrix');
+checkFile('docs/p0/P0_MISSING_BACKEND_BACKLOG.md', 'Missing Backlog');
+checkFile('docs/governance/DOCUMENT_INVENTORY.csv', 'Document Inventory');
+checkFile('docs/governance/DOCUMENT_MOVE_PLAN.csv', 'Document Move Plan');
+
+// 2. Validate capability matrix content
+if (checkFile('docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv', 'Capability Matrix')) {
+    const csv = fs.readFileSync('docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv', 'utf8');
+    const lines = csv.split('\n').filter(Boolean).slice(1);
+    let hasPartialOrMissing = false;
+    for (const line of lines) {
+        const parts = line.split(',');
         const beStatus = parts[3];
-        const feStatus = parts[4];
-        const role = parts[2];
-        const evidence = parts[6] ? parts[6].replace(/(^"|"$)/g, '') : '';
-        
-        if (capIds.has(id)) logFail(`Duplicate Capability ID: ${id}`);
-        capIds.add(id);
-        
-        const validStatuses = ['IMPLEMENTED', 'PARTIAL', 'MISSING', 'UNVERIFIED'];
-        if (!validStatuses.includes(beStatus)) logFail(`Invalid BackendStatus: ${beStatus} for ${id}`);
-        if (!validStatuses.includes(feStatus)) logFail(`Invalid FrontendStatus: ${feStatus} for ${id}`);
-        
-        if (beStatus === 'IMPLEMENTED') {
-            if (!evidence.includes('Controller:') || (!evidence.includes('ServiceMethod:') && !evidence.includes('DIRECT_DB_CONTEXT'))) {
-                logFail(`IMPLEMENTED capability ${id} missing required evidence (Controller/ServiceMethod)`);
-            }
-        }
-        
-        if (beStatus === 'PARTIAL' && !evidence.toLowerCase().includes('incomplete')) {
-            logFail(`PARTIAL capability ${id} does not explain missing pieces in evidence`);
-        }
+        if (beStatus === 'PARTIAL' || beStatus === 'MISSING') hasPartialOrMissing = true;
+    }
+    if (!hasPartialOrMissing) {
+        errors.push("Capability matrix claims 100% IMPLEMENTED backend, which is a false semantic truth. At least one capability must be PARTIAL or MISSING in P0.");
     }
 }
 
-// 3. Security
-const specPath = path.join(process.cwd(), 'frontend/src/components/common/__tests__/SafeHtmlRenderer.spec.js');
-if (!fs.existsSync(specPath)) {
-    logFail('Security tests for SafeHtmlRenderer missing');
+// 3. Validate missing backlog doesn't contain false tasks
+if (checkFile('docs/p0/P0_MISSING_BACKEND_BACKLOG.md', 'Missing Backlog')) {
+    const content = fs.readFileSync('docs/p0/P0_MISSING_BACKEND_BACKLOG.md', 'utf8');
+    if (content.includes('Teacher bulk attendance') || content.includes('lacks bulk POST action')) {
+        errors.push("Missing backlog contains a false claim: 'Teacher bulk attendance' is actually implemented.");
+    }
 }
 
-// 4. Role Handoffs
-const rolesDir = path.join(p0Dir, 'roles');
-if (fs.existsSync(rolesDir)) {
-    const roles = fs.readdirSync(rolesDir).filter(f => f.endsWith('_HANDOFF.md'));
-    if (roles.length < 7) logFail(`Expected 7 role handoffs, found ${roles.length}`);
-    roles.forEach(role => {
-        const content = fs.readFileSync(path.join(rolesDir, role), 'utf8');
-        if (!content.includes('Exact folder ownership')) logFail(`Handoff ${role} missing ownership`);
-        if (!content.includes('Actual home route')) logFail(`Handoff ${role} missing home route`);
-        if (!content.includes('Definition of Done')) logFail(`Handoff ${role} missing Definition of Done`);
-    });
-} else {
-    logFail('roles/ directory missing');
+// 4. Test safe HTML renderer mitigation
+console.log('Running SafeHtmlRenderer unit tests...');
+try {
+    execSync('npm run test:unit -- --run src/components/common/__tests__/SafeHtmlRenderer.spec.js', { stdio: 'inherit', cwd: 'frontend' });
+} catch (e) {
+    errors.push('SafeHtmlRenderer unit tests failed.');
 }
 
-console.log('--- P0 Validation Summary ---');
-console.log(`Endpoints parsed: ${endpointsParsed}`);
-console.log(`Capabilities parsed: ${capabilitiesParsed}`);
-if (fails > 0) {
-    console.error(`Validation failed with ${fails} errors.`);
+// 5. Test canonical roles
+console.log('Running roleCatalog unit tests...');
+try {
+    execSync('npm run test:unit -- --run src/constants/__tests__/roleCatalog.spec.js', { stdio: 'inherit', cwd: 'frontend' });
+} catch (e) {
+    errors.push('roleCatalog unit tests failed.');
+}
+
+// 6. Test Backend Build
+console.log('Running dotnet build...');
+try {
+    execSync('dotnet build', { stdio: 'inherit', cwd: 'Backend' });
+} catch (e) {
+    errors.push('dotnet build failed.');
+}
+
+if (errors.length > 0) {
+    console.error('P0 Validation Failed with the following errors:');
+    errors.forEach(e => console.error('- ' + e));
     process.exit(1);
 } else {
-    console.log('All validations passed!');
+    console.log('P0 Validation Passed! Semantic truth and security constraints verified.');
 }

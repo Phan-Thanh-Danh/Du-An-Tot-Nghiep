@@ -5,12 +5,12 @@
 | Domain | Scope / Canonical Role | Frontend Paths (Exclusive) | Owner |
 |--------|----------------------|----------------------------|-------|
 | Student | `Student` | `frontend/src/views/Student/` | Student Team |
-| Teacher | `Teacher` | `frontend/src/views/Teacher/` | Teacher Team |
+| GiangVien | `Teacher` | `frontend/src/views/Teacher/` | Teacher Team |
 | AcademicStaff | `AcademicStaff` | `frontend/src/views/Staff/` | Academic Staff Team |
 | Parent | `Parent` | `frontend/src/views/Parent/` | Parent Team |
 | Principal | `Principal` | `frontend/src/views/BGH/` | BGH Team |
 | SuperAdmin | `SuperAdmin`, `Admin` | `frontend/src/views/Admin/` | Admin Team |
-| Content Council | `HoiDongQuanLyNoiDung` | `frontend/src/views/ContentCouncil/` | Content Council Team |
+| Content Council | `HoiDongQuanLyNoiDung` | `frontend/src/pages/content-council/`, `frontend/src/components/content-council/` | Content Council Team |
 | Foundation | Core, Layouts, UI | `frontend/src/components/common/`, `frontend/src/layouts/` | Core Frontend Team |
 | Backend | ASP.NET API | `Backend/` | Backend Team |
 | Governance | Documentation | `docs/governance/` | Project Lead |

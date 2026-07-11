@@ -19,6 +19,12 @@ const props = defineProps({
 
 const container = ref(null)
 
+DOMPurify.addHook('afterSanitizeAttributes', function (node) {
+  if ('target' in node && node.getAttribute('target') === '_blank') {
+    node.setAttribute('rel', 'noopener noreferrer')
+  }
+})
+
 function sanitize(dirtyHtml) {
   if (!dirtyHtml) return ''
   return DOMPurify.sanitize(dirtyHtml, {
@@ -34,8 +40,8 @@ function sanitize(dirtyHtml) {
     SANITIZE_DOM: true,
     KEEP_CONTENT: true,
     IN_PLACE: false,
-    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'svg', 'math', 'base'],
-    FORBID_ATTR: ['onerror', 'onload', 'onmouseover', 'onfocus', 'onblur', 'onclick']
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'svg', 'math', 'base', 'form'],
+    FORBID_ATTR: ['onerror', 'onload', 'onmouseover', 'onfocus', 'onblur', 'onclick', 'style']
   })
 }
 

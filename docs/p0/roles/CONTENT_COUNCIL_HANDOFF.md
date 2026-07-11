@@ -6,27 +6,29 @@
 - **Existing frontend aliases**: ContentCouncil
 
 ## 2. Architecture & Ownership
-- **Exact folder ownership**: `frontend/src/views/ContentCouncil/`
-- **Actual home route**: `/content-council/dashboard`
+- **Exact folder ownership**: `frontend/src/pages/content-council/, frontend/src/components/content-council/`
+- **Actual home route**: `/content-council/subjects`
 - **Layout**: `Layout_ContentCouncil.vue`
 - **Menu source**: `frontend/src/router/index.js` and API dynamic menus
 - **Shared components**: `frontend/src/components/common/`
 
 ## 3. Capabilities
-- **Supported operations**: [See P0_BACKEND_CAPABILITY_MATRIX.csv]
-- **PARTIAL operations**: [See P0_BACKEND_CAPABILITY_MATRIX.csv]
-- **MISSING operations**: [See P0_MISSING_BACKEND_BACKLOG.md]
 
-## 4. API Endpoints
-- **Exact API endpoints**: Check `P0_BACKEND_ENDPOINT_INVENTORY.csv` matching role `HoiDongQuanLyNoiDung`
-- **Proposed API operations**: Check `P0_MISSING_BACKEND_BACKLOG.md`
+### Supported operations
+- Content Council manages question bank ("EP-FC063A4E|EP-4490FAE2|EP-45EFC03E|EP-9D82B659|EP-4B47C45F|EP-9DEC4A60|EP-B922FB8B|EP-1C8F7923|EP-0D6B7B01")
 
-## 5. UI/UX
-- **Wrong-context views**: Ensure no other role's logic leaks into `frontend/src/views/ContentCouncil/`
+### PARTIAL operations
+- None
+
+### MISSING operations
+- Content Council publishes a quiz
+
+## 4. UI/UX
+- **Wrong-context views**: Ensure no other role's logic leaks into `frontend/src/pages/content-council/, frontend/src/components/content-council/`
 - **Static/mock screens**: Must be connected to real APIs
-- **UX direction**: Follow the feature UX contracts.
+- **UX direction**: Follow the feature UX contracts. (Priority: High)
 
-## 6. Rules
+## 5. Rules
 - **Files that must not be modified**: `router/index.js`, `stores/auth.js`, `SafeHtmlRenderer.vue` (Require Core Team review)
 - **Prioritized implementation tasks**: Complete all MISSING capabilities first.
 - **Definition of Done**:

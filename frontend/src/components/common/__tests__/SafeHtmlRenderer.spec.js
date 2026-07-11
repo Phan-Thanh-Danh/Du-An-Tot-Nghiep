@@ -63,4 +63,42 @@ describe('SafeHtmlRenderer', () => {
     // DOMPurify will close the tags or sanitize it
     expect(wrapper.html()).not.toContain('<b<') // just making sure no weird parsing
   })
+
+  it('strips SVG and MathML payloads', () => {
+    const wrapper = mount(SafeHtmlRenderer, {
+      props: {
+        html: '<svg><script>alert(1)</script></svg><math><mi>test</mi></math>'
+      }
+    })
+    expect(wrapper.html()).not.toContain('svg')
+    expect(wrapper.html()).not.toContain('math')
+  })
+
+  it('enforces rel="noopener noreferrer" for target="_blank"', () => {
+    const wrapper = mount(SafeHtmlRenderer, {
+      props: {
+        html: '<a href="https://example.com" target="_blank">Link</a>'
+      }
+    })
+    expect(wrapper.html()).toContain('rel="noopener noreferrer"')
+  })
+
+  it('mitigates mutation XSS (mXSS)', () => {
+    const wrapper = mount(SafeHtmlRenderer, {
+      props: {
+        html: '<noscript><p title="</noscript><img src=x onerror=alert(1)>">'
+      }
+    })
+    expect(wrapper.html()).not.toContain('onerror')
+    expect(wrapper.html()).not.toContain('img')
+  })
+
+  it('strips encoded javascript protocols', () => {
+    const wrapper = mount(SafeHtmlRenderer, {
+      props: {
+        html: '<a href="jav&#x09;ascript:alert(1);">Link</a>'
+      }
+    })
+    expect(wrapper.html()).not.toContain('javascript:')
+  })
 })

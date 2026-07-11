@@ -1,0 +1,253 @@
+graph TB
+    %% Main Entry
+    subgraph "App Entry"
+        main["main.js"]
+        App["App.vue"]
+        main --> |createApp| App
+        main --> |import| mainCSS["main.css (Tailwind v4)"]
+        main --> |import| lqCSS["liquid-glass.css"]
+    end
+
+    %% Router
+    subgraph "Router & Navigation"
+        router["router/index.js"]
+        roleRoutes["utils/roleRoutes.js"]
+        authRedirect["utils/authRedirect.js"]
+        authPortals["data/authPortals.js"]
+        navGuard["Navigation Guard (beforeEach)"]
+        
+        router --> roleRoutes
+        router --> authRedirect
+        router --> authPortals
+        router --> navGuard
+    end
+
+    %% Auth & State
+    subgraph "Auth & State Management"
+        authStore["stores/auth.js<br/>JWT + Refresh + Role"]
+        themeStore["stores/theme.js<br/>Dark/Light Mode"]
+        popupStore["stores/popup.js<br/>Toast Notifications"]
+        recentStore["stores/recentFavorites.js<br/>Recent & Favorites"]
+        announcementStore["stores/announcements.js<br/>System Announcements"]
+        schedulingStore["stores/academicSchedulingContext.js"]
+        
+        subgraph "Content Council Stores"
+            subjectStore["stores/content-council/subjectStore.ts"]
+            quizStore["stores/content-council/quizStore.ts"]
+            questionStore["stores/content-council/questionStore.ts"]
+        end
+        
+        authStore --> navGuard
+    end
+
+    %% API Layer
+    subgraph "API Layer"
+        apiClient["services/apiClient.js<br/>Base HTTP Client"]
+        
+        subgraph "Module APIs"
+            authApi["authApi"]
+            studentApi["services/studentApi.js"]
+            teacherApi["services/teacherApi.js"]
+            parentApi["services/parentApi.js"]
+            staffApi["services/staffApi.js"]
+            bghApi["services/bghApi.js"]
+            scheduleApi["services/scheduleApi.js"]
+            examApi["services/examApi.js"]
+            applicationsApi["services/applicationsApi.js"]
+            notificationsApi["services/notificationsApi.js"]
+            rewardApi["services/rewardDisciplineApi.js"]
+            contentCCApi["services/contentCouncilApi.js"]
+        end
+        
+        apiClient --> authApi
+        apiClient --> studentApi
+        apiClient --> teacherApi
+        apiClient --> parentApi
+        apiClient --> staffApi
+        apiClient --> bghApi
+        apiClient --> scheduleApi
+        apiClient --> examApi
+        apiClient --> applicationsApi
+        apiClient --> notificationsApi
+        apiClient --> rewardApi
+        apiClient --> contentCCApi
+    end
+
+    %% Layout System
+    subgraph "Layout System"
+        direction TB
+        lStudent["Layout_SinhVien<br/>(Student - Blue)"]
+        lParent["Layout_PhuHuynh<br/>(Parent - Orange)"]
+        lParentMobile["Layout_PhuHuynh_Mobile<br/>(Parent Mobile)"]
+        lTeacher["Layout_GiangVien<br/>(Teacher - Blue)"]
+        lStaff["Layout_GiaoVu<br/>(Staff - Teal)"]
+        lBGH["Layout_BGH<br/>(BGH - Navy)"]
+        lSuperAdmin["Layout_SuperAdmin<br/>(SuperAdmin - Slate)"]
+        lCC["ContentCouncilLayout<br/>(CC - Violet)"]
+        
+        subgraph "Common Layout Parts"
+            sidebar["AppSidebar (6 variants)"]
+            topbar["AppTopbar (3 variants)"]
+            pageContainer["PageContainer"]
+            pageContainer-SuperAdmin["SuperAdminPageContainer"]
+            breadcrumbs["Breadcrumbs"]
+        end
+        
+        lStudent --> sidebar
+        lStudent --> topbar
+        lStudent --> pageContainer
+        lParent --> sidebar
+        lParent --> topbar
+        lParent --> pageContainer
+        lTeacher --> sidebar
+        lTeacher --> topbar
+        lTeacher --> pageContainer
+        lStaff --> sidebar
+        lStaff --> topbar
+        lStaff --> pageContainer
+        lBGH --> sidebar
+        lBGH --> topbar
+        lBGH --> pageContainer
+        lSuperAdmin --> sidebar
+        lSuperAdmin --> topbar
+        lSuperAdmin --> pageContainer-SuperAdmin
+    end
+
+    %% Route Tree by Role
+    subgraph "Route Tree"
+        publicRoutes["Public Routes<br/>/, /login, /payment/*"]
+        studentRoutes["/student/* (22 routes)"]
+        parentRoutes["/parent/* (15 routes)"]
+        teacherRoutes["/teacher/* (28 routes)"]
+        staffRoutes["/staff/* (24 routes)"]
+        bghRoutes["/bgh/* (25 routes)"]
+        superAdminRoutes["/super-admin/* (44 routes)"]
+        ccRoutes["/content-council/* (9 routes)"]
+        notFound["404 /*"]
+        
+        router --> publicRoutes
+        router --> studentRoutes
+        router --> parentRoutes
+        router --> teacherRoutes
+        router --> staffRoutes
+        router --> bghRoutes
+        router --> superAdminRoutes
+        router --> ccRoutes
+        router --> notFound
+    end
+
+    %% Layout to Route Mapping
+    lStudent --> studentRoutes
+    lParent --> parentRoutes
+    lParentMobile --> parentRoutes
+    lTeacher --> teacherRoutes
+    lStaff --> staffRoutes
+    lBGH --> bghRoutes
+    lSuperAdmin --> superAdminRoutes
+    lCC --> ccRoutes
+
+    %% View to API Mapping
+    studentRoutes --> studentApi
+    studentRoutes --> examApi
+    studentRoutes --> applicationsApi
+    studentRoutes --> notificationsApi
+    studentRoutes --> rewardApi
+    teacherRoutes --> teacherApi
+    teacherRoutes --> examApi
+    teacherRoutes --> scheduleApi
+    staffRoutes --> staffApi
+    staffRoutes --> scheduleApi
+    staffRoutes --> classApi
+    staffRoutes --> courseApi
+    bghRoutes --> bghApi
+    superAdminRoutes --> adminUserService["adminUserService"]
+    superAdminRoutes --> rbacService["rbacService"]
+    superAdminRoutes --> notificationsApi
+    superAdminRoutes --> rewardApi
+    ccRoutes --> contentCCApi
+
+    %% View to Store Mapping
+    studentRoutes --> authStore
+    studentRoutes --> themeStore
+    teacherRoutes --> authStore
+    teacherRoutes --> themeStore
+    staffRoutes --> authStore
+    staffRoutes --> schedulingStore
+    staffRoutes --> themeStore
+    bghRoutes --> authStore
+    bghRoutes --> themeStore
+    ccRoutes --> subjectStore
+    ccRoutes --> quizStore
+    ccRoutes --> questionStore
+
+    %% Design System
+    subgraph "Design System"
+        dsTokens["CSS Custom Properties<br/>--lg-*, --surface-*, --text-*, --border-*"]
+        dsGlass["Glass Surfaces<br/>lg-glass, lg-glass-strong, lg-glass-soft"]
+        dsComponents["Component Library<br/>GlassButton, GlassBadge, GlassPanel,<br/>GlassInput, TableShell,<br/>LoadingSkeleton, EmptyState"]
+        dsDark["Dark Mode<br/>:root.dark + theme.js"]
+        
+        lqCSS --> dsTokens
+        lqCSS --> dsGlass
+        lqCSS --> dsDark
+    end
+
+    %% UI Component Library
+    subgraph "UI Component Library"
+        ui["UI Primitives (20)"]
+        skeleton["Skeleton Loaders (8)"]
+        auth["Auth Components (6)"]
+        applications["Application System (15)"]
+        notifications["Notifications System (13)"]
+        rewardDisc["Reward & Discipline (19)"]
+        contentCC["Content Council (70+)"]
+        
+        dsComponents --> ui
+        dsComponents --> skeleton
+        auth --> dsComponents
+        applications --> dsComponents
+        notifications --> dsComponents
+        rewardDisc --> dsComponents
+        contentCC --> dsComponents
+    end
+
+    %% Dead/Legacy
+    subgraph "Dead/Legacy"
+        baseCSS["assets/base.css<br/>(NOT imported)"]
+        legacyComps["HelloWorld, TheWelcome,<br/>WelcomeItem, LmsAlert,<br/>LmsBadge, LmsButton,<br/>LmsCard, LmsInput, LmsSelect"]
+        legacyIcons["Icons: Community,<br/>Documentation, Ecosystem,<br/>Support, Tooling"]
+        counterStore["stores/counter.js"]
+    end
+
+    %% Composable Layer
+    subgraph "Composables"
+        useStaffDashboard["useStaffDashboard"]
+        useSchedule["useSchedule"]
+        useCurriculum["useCurriculumEditor"]
+        useQuizBuilder["useQuizBuilder"]
+        useQuizValid["useQuizBuilderValidation"]
+        useSubjectFilters["useSubjectFilters"]
+        usePointer["usePointerSpotlight"]
+        useBodyLock["useBodyScrollLock"]
+        useRouteValid["useRouteValidation"]
+        useUnsaved["useUnsavedChangesGuard"]
+    end
+
+    staffRoutes --> useStaffDashboard
+    staffRoutes --> useSchedule
+    ccRoutes --> useCurriculum
+    ccRoutes --> useQuizBuilder
+    ccRoutes --> useQuizValid
+    ccRoutes --> useSubjectFilters
+    ccRoutes --> useUnsaved
+    ccRoutes --> useRouteValid
+
+    %% Utils
+    subgraph "Utilities"
+        dateFormat["dateFormat.js (dayjs vi)"]
+        statusLabels["statusLabels.js"]
+        examAccess["examAccess.js"]
+        examSecurity["examSecurity.js<br/>(VM/headless detection)"]
+        htmlSanitizer["htmlSanitizer.js"]
+        learningAccess["learningAccess.js"]
+    end

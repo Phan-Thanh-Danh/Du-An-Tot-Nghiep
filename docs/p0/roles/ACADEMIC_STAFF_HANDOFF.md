@@ -13,20 +13,22 @@
 - **Shared components**: `frontend/src/components/common/`
 
 ## 3. Capabilities
-- **Supported operations**: [See P0_BACKEND_CAPABILITY_MATRIX.csv]
-- **PARTIAL operations**: [See P0_BACKEND_CAPABILITY_MATRIX.csv]
-- **MISSING operations**: [See P0_MISSING_BACKEND_BACKLOG.md]
 
-## 4. API Endpoints
-- **Exact API endpoints**: Check `P0_BACKEND_ENDPOINT_INVENTORY.csv` matching role `AcademicStaff`
-- **Proposed API operations**: Check `P0_MISSING_BACKEND_BACKLOG.md`
+### Supported operations
+- Academic Staff generates schedule ("EP-66C918EA|EP-030205DC")
 
-## 5. UI/UX
+### PARTIAL operations
+- None
+
+### MISSING operations
+- None
+
+## 4. UI/UX
 - **Wrong-context views**: Ensure no other role's logic leaks into `frontend/src/views/GiaoVu/`
 - **Static/mock screens**: Must be connected to real APIs
-- **UX direction**: Follow the feature UX contracts.
+- **UX direction**: Follow the feature UX contracts. (Priority: High)
 
-## 6. Rules
+## 5. Rules
 - **Files that must not be modified**: `router/index.js`, `stores/auth.js`, `SafeHtmlRenderer.vue` (Require Core Team review)
 - **Prioritized implementation tasks**: Complete all MISSING capabilities first.
 - **Definition of Done**:

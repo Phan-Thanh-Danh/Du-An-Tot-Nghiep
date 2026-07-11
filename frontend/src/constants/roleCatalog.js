@@ -40,8 +40,7 @@ export const ROLE_CATALOG = Object.freeze([
     label: 'Phụ huynh',
     homeRoute: '/parent/dashboard',
     group: 'primary',
-    enabled: false,
-    disabledReason: 'Chưa có backend API — đang phát triển',
+    enabled: true,
     permissions: [],
   },
   {
@@ -142,31 +141,32 @@ export const ROLE_CATALOG = Object.freeze([
     label: 'Hội đồng nội dung',
     homeRoute: '/content-council/subjects',
     group: 'staff',
-    enabled: false,
-    disabledReason: 'Chưa có backend API — đang phát triển',
+    enabled: true,
     permissions: [],
   },
 ])
 
 const ROLE_ALIASES = {
-  lecturer: 'teacher',
-  trainingdepartment: 'academicstaff',
-  faculty: 'academicstaff',
-  academicdepartment: 'academicstaff',
-  campusadmin: 'campusadmin',
-  subcampusadmin: 'subcampusadmin',
-  chairman: 'chairman',
-  financeadmin: 'financeadmin',
-  campusaccountant: 'campusaccountant',
-  campuschiefaccountant: 'campuschiefaccountant',
-  bgh: 'principal',
-  staff: 'academicstaff',
-  contentcouncil: 'hoidongquanlynoidung',
+  lecturer: 'Teacher',
+  trainingdepartment: 'AcademicStaff',
+  faculty: 'AcademicStaff',
+  academicdepartment: 'AcademicStaff',
+  campusadmin: 'CampusAdmin',
+  subcampusadmin: 'SubCampusAdmin',
+  chairman: 'Chairman',
+  financeadmin: 'FinanceAdmin',
+  campusaccountant: 'CampusAccountant',
+  campuschiefaccountant: 'CampusChiefAccountant',
+  bgh: 'Principal',
+  staff: 'AcademicStaff',
+  contentcouncil: 'HoiDongQuanLyNoiDung',
 }
 
 export function normalizeRole(role) {
   const normalized = String(role || '').trim().toLowerCase()
-  return ROLE_ALIASES[normalized] || ROLE_CATALOG.find(r => r.role.toLowerCase() === normalized)?.role || normalized
+  const alias = ROLE_ALIASES[normalized]
+  const target = alias ? alias.toLowerCase() : normalized
+  return ROLE_CATALOG.find(r => r.role.toLowerCase() === target)?.role || (alias || normalized)
 }
 
 export function getRoleConfig(role) {
