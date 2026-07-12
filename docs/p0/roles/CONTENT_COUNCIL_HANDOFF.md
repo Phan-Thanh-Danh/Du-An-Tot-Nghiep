@@ -1,39 +1,41 @@
-# CONTENT_COUNCIL Handoff Package
+# CONTENT COUNCIL Handoff Package
 
 ## 1. Identity
 - **Canonical backend role**: `HoiDongQuanLyNoiDung`
-- **Database role code**: `hoidong_quanly_noidung`
-- **Existing frontend aliases**: ContentCouncil
+- **Database role code**: `hoi_dong_quan_ly_noi_dung`
+- **Frontend aliases**: `HoiDongQuanLyNoiDung`, `ContentCouncil`
 
 ## 2. Architecture & Ownership
-- **Exact folder ownership**: `frontend/src/pages/content-council/, frontend/src/components/content-council/`
-- **Actual home route**: `/content-council/subjects`
-- **Layout**: `Layout_ContentCouncil.vue`
-- **Menu source**: `frontend/src/router/index.js` and API dynamic menus
+- **Exact folder ownership**: `frontend/src/pages/content-council/`, `frontend/src/components/content-council/`
+- **Actual home route**: `/content-council/question-bank` (or similar — verify in router)
+- **Layout**: Shared layout with content-council sidebar config
+- **Menu source**: `frontend/src/router/index.js`
 - **Shared components**: `frontend/src/components/common/`
 
 ## 3. Capabilities
 
-### Supported operations
-- Content Council manages question bank ("EP-FC063A4E|EP-4490FAE2|EP-45EFC03E|EP-9D82B659|EP-4B47C45F|EP-9DEC4A60|EP-B922FB8B|EP-1C8F7923|EP-0D6B7B01")
+### IMPLEMENTED — Backend + Frontend both connected
 
-### PARTIAL operations
+| CapabilityId | Operation | Backend Route |
+|---|---|---|
+| CAP-QB-001 | Manage question bank (CRUD, activate, import) | `GET/POST/PUT/DELETE /api/question-bank/questions` |
+
+### PARTIAL — Backend IMPLEMENTED, frontend connection incomplete
+
+| CapabilityId | Operation | Backend Route | Gap |
+|---|---|---|---|
+| CAP-QZ-001 | Manage quiz (CRUD, add questions) | `GET/POST/PUT/DELETE /api/exam/de-kiem-tra` | FE quiz list/detail views partial |
+| CAP-QZ-002 | Publish quiz | `POST /api/exam/de-kiem-tra/{id}/publish` | FE publish button not connected |
+| CAP-QZ-003 | Unpublish quiz | `POST /api/exam/de-kiem-tra/{id}/unpublish` | FE unpublish action not connected |
+
+### MISSING — No backend implementation
 - None
 
-### MISSING operations
-- Content Council publishes a quiz
-
 ## 4. UI/UX
-- **Wrong-context views**: Ensure no other role's logic leaks into `frontend/src/pages/content-council/, frontend/src/components/content-council/`
-- **Static/mock screens**: Must be connected to real APIs
-- **UX direction**: Follow the feature UX contracts. (Priority: High)
+- **Folders**: `frontend/src/pages/content-council/`, `frontend/src/components/content-council/`
+- **UX priority**: Question bank management → Quiz creation → Quiz publish workflow
 
 ## 5. Rules
-- **Files that must not be modified**: `router/index.js`, `stores/auth.js`, `SafeHtmlRenderer.vue` (Require Core Team review)
-- **Prioritized implementation tasks**: Complete all MISSING capabilities first.
-- **Definition of Done**:
-  - Endpoint fully connected.
-  - No mock data used.
-  - SafeHtmlRenderer used for any rich text.
-  - Skeleton loading implemented.
-  - Permissions strictly enforced on FE and BE.
+- **Files that must not be modified**: `router/index.js`, `stores/auth.js`, `SafeHtmlRenderer.vue`
+- **SafeHtmlRenderer required**: Question content and answer HTML must always go through `SafeHtmlRenderer`
+- **Definition of Done**: All question bank and quiz endpoints connected, SafeHtmlRenderer used for rich content, no mock data
