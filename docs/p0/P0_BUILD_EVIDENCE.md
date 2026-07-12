@@ -1,13 +1,13 @@
-# P0 Round 2 — Build, Lint & Test Evidence
+# P0 Build & Validation Evidence
 
-This document serves as evidence that all regression tests passed after the Round 2 P0 remediation.
+**Date:** 2026-07-12
+**Validator Script:** `tools/docs/validate-p0.mjs`
 
-## Date of Validation
-2026-07-12
+## Validation Results
 
-## Evidence Log
+The P0 Validator script ran all required checks, including deep reference integrity between the Capability Matrix and the Endpoint Inventory.
 
-```
+```text
 [1] Checking required P0 files...
 [2-7] Validating Capability Matrix...
    Matrix rows: 82, Roles covered: Teacher, Student, Parent, Principal, SuperAdmin, AcademicStaff, HoiDongQuanLyNoiDung, Admin
@@ -27,10 +27,15 @@ This document serves as evidence that all regression tests passed after the Roun
   Matrix rows verified, all roles covered, build/test/lint clean.
 ```
 
-## Highlights
-- **Repository Hygiene**: `node_modules` removed from git tracking and correctly ignored.
-- **Capability Matrix**: Expanded to cover 82 items across all 7 roles with proper `MatchedEndpointIds` mapped to actual code endpoints.
-- **Referential Integrity**: 100% of missing entries now map securely to `P0_MISSING_BACKEND_BACKLOG.md`.
-- **Duplicate Prevention**: `ADMIN_USERS_SCHEMA.sql` is canonicalized in `docs/30-database/schema/`.
-- **Team Ownership**: Routes point securely to actual filesystem components (e.g. `GiangVien/` rather than placeholder `Teacher/`).
-- **Validation Strictness**: The `validate-p0.mjs` script was significantly overhauled to test relationships, missing endpoints, coverage thresholds, and the actual build outcomes.
+## Evidence Details
+
+1. **Backend Capability Matrix Integrity**:
+   - Every row with `BackendStatus=IMPLEMENTED` has a valid, non-symbolic `MatchedEndpointIds` matching a real ID in `P0_BACKEND_ENDPOINT_INVENTORY.csv`.
+   - The `Evidence` field for all implemented capabilities accurately maps to the exact controller and action in the backend source.
+2. **Missing Backend Backlog**:
+   - Any capability with `BackendStatus=MISSING` or `PARTIAL` correctly exists in `P0_MISSING_BACKEND_BACKLOG.md`.
+3. **Frontend Integration Backlog**:
+   - Any capability missing frontend integration is recorded in `P0_FRONTEND_INTEGRATION_BACKLOG.md`.
+4. **Code Quality**:
+   - Both backend and frontend code build successfully.
+   - Frontend passes `vitest run` and read-only lint checks (using `npx oxlint .` for strict, fast syntax verification without auto-fixing codebase history).

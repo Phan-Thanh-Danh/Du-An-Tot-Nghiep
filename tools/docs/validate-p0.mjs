@@ -83,6 +83,24 @@ for (const [label, relPath] of Object.entries(FILES)) {
 }
 
 // ── Check 2-7: Capability Matrix validation ───────────────────────────────────
+
+// Load Endpoint Inventory
+const invContent = fs.readFileSync(path.join(ROOT, 'docs/p0/P0_BACKEND_ENDPOINT_INVENTORY.csv'), 'utf8');
+const invLines = invContent.split('\n').filter(l => l.trim());
+const invHeaders = invLines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+const inventory = invLines.slice(1).map(line => {
+    const values = [];
+    let current = '';
+    let inQuote = false;
+    for (const ch of line) {
+        if (ch === '"') { inQuote = !inQuote; }
+        else if (ch === ',' && !inQuote) { values.push(current.trim()); current = ''; }
+        else { current += ch; }
+    }
+    values.push(current.trim());
+    return Object.fromEntries(invHeaders.map((h, i) => [h, (values[i] || '').replace(/^"|"$/g, '')]));
+});
+
 if (fs.existsSync(path.join(ROOT, 'docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv'))) {
   console.log('[2-7] Validating Capability Matrix...');
   const rows = parseCSV('docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv');
@@ -102,21 +120,39 @@ if (fs.existsSync(path.join(ROOT, 'docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv'))) 
   const hasPartialOrMissing = rows.some(r => ['PARTIAL', 'MISSING'].includes(r['BackendStatus']));
   check(hasPartialOrMissing, 'Capability Matrix claims 100% IMPLEMENTED — impossible for a real system. Add PARTIAL/MISSING entries.');
 
-  // 5. Every IMPLEMENTED row must have MatchedEndpointId
-  const impliedNoEndpoint = rows.filter(r =>
-    r['BackendStatus'] === 'IMPLEMENTED' &&
-    (!r['MatchedEndpointIds'] || r['MatchedEndpointIds'].trim() === '')
-  );
-  impliedNoEndpoint.forEach(r => {
-    errors.push(`${r['CapabilityId']}: BackendStatus=IMPLEMENTED but MatchedEndpointIds is empty`);
+  // 5. Every IMPLEMENTED row must have MatchedEndpointId that exists in inventory
+  const implementedRows = rows.filter(r => r['BackendStatus'] === 'IMPLEMENTED');
+  implementedRows.forEach(r => {
+    if (!r['MatchedEndpointIds'] || r['MatchedEndpointIds'].trim() === '') {
+        errors.push(`${r['CapabilityId']}: BackendStatus=IMPLEMENTED but MatchedEndpointIds is empty`);
+        return;
+    }
+    const ep = inventory.find(i => i.EndpointId === r['MatchedEndpointIds']);
+    if (!ep) {
+        errors.push(`${r['CapabilityId']}: MatchedEndpointIds '${r['MatchedEndpointIds']}' not found in Endpoint Inventory`);
+        return;
+    }
+    // Check 5b: Evidence integrity
+    const expectedEvidence = `[${ep.HttpMethod} ${ep.Route}] Controller: ${ep.Controller}, Action: ${ep.Action}`;
+    if (r['Evidence'] !== expectedEvidence) {
+        errors.push(`${r['CapabilityId']}: Evidence mismatch.\n  Expected: ${expectedEvidence}\n  Found:    ${r['Evidence']}`);
+    }
   });
 
-  // 6. Referential integrity: every MISSING capability must have a backlog entry
-  const missingCaps = rows.filter(r => r['BackendStatus'] === 'MISSING').map(r => r['CapabilityId']);
-  if (missingCaps.length > 0 && fs.existsSync(path.join(ROOT, 'docs/p0/P0_MISSING_BACKEND_BACKLOG.md'))) {
+  // 6. Referential integrity: every MISSING/PARTIAL capability must have a backlog entry
+  const backendTasks = rows.filter(r => ['MISSING', 'PARTIAL'].includes(r['BackendStatus'])).map(r => r['CapabilityId']);
+  if (backendTasks.length > 0 && fs.existsSync(path.join(ROOT, 'docs/p0/P0_MISSING_BACKEND_BACKLOG.md'))) {
     const backlog = fs.readFileSync(path.join(ROOT, 'docs/p0/P0_MISSING_BACKEND_BACKLOG.md'), 'utf8');
-    missingCaps.forEach(capId => {
-      check(backlog.includes(capId), `MISSING capability ${capId} has no entry in P0_MISSING_BACKEND_BACKLOG.md`);
+    backendTasks.forEach(capId => {
+      check(backlog.includes(capId), `Backend MISSING/PARTIAL capability ${capId} has no entry in P0_MISSING_BACKEND_BACKLOG.md`);
+    });
+  }
+
+  const frontendTasks = rows.filter(r => ['PARTIAL', 'STATIC_UI_ONLY', 'DESIGNED_NOT_CONNECTED'].includes(r['FrontendStatus'])).map(r => r['CapabilityId']);
+  if (frontendTasks.length > 0 && fs.existsSync(path.join(ROOT, 'docs/p0/P0_FRONTEND_INTEGRATION_BACKLOG.md'))) {
+    const backlog = fs.readFileSync(path.join(ROOT, 'docs/p0/P0_FRONTEND_INTEGRATION_BACKLOG.md'), 'utf8');
+    frontendTasks.forEach(capId => {
+      check(backlog.includes(capId), `Frontend PARTIAL capability ${capId} has no entry in P0_FRONTEND_INTEGRATION_BACKLOG.md`);
     });
   }
 
@@ -164,7 +200,7 @@ try {
 // ── Check 10: Frontend lint ───────────────────────────────────────────────────
 console.log('[10] Running frontend lint (oxlint only for speed)...');
 try {
-  execSync('npx oxlint . --fix', { stdio: 'pipe', cwd: path.join(ROOT, 'frontend') });
+  execSync('npx oxlint .', { stdio: 'pipe', cwd: path.join(ROOT, 'frontend') });
   console.log('   ✓ Frontend oxlint passed');
 } catch (e) {
   errors.push(`Frontend lint (oxlint) FAILED:\n${e.stdout?.toString() || e.message}`);
