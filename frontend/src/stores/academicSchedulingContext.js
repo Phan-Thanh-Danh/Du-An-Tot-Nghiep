@@ -53,6 +53,10 @@ export const useAcademicSchedulingContextStore = defineStore('academicScheduling
     }
   }
 
+  const selectedMajorId = ref(null)
+  const selectedSpecializationId = ref(null)
+  const selectedClassId = ref(null)
+
   function clearContext() {
     isContextLoaded.value = false
     error.value = null
@@ -69,6 +73,12 @@ export const useAcademicSchedulingContextStore = defineStore('academicScheduling
     }
   }
 
+  function clearSelection() {
+    selectedMajorId.value = null
+    selectedSpecializationId.value = null
+    selectedClassId.value = null
+  }
+
   return {
     isContextLoaded,
     isLoading,
@@ -82,7 +92,11 @@ export const useAcademicSchedulingContextStore = defineStore('academicScheduling
     reasonCode,
     reasonMessage,
     readiness,
+    selectedMajorId,
+    selectedSpecializationId,
+    selectedClassId,
     fetchContext,
-    clearContext
+    clearContext,
+    clearSelection
   }
 })

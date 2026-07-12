@@ -149,6 +149,29 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
         return ToDetailDto(result);
     }
 
+    public async Task DeleteAsync(
+        int scheduleId,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageSchedules(currentUser);
+
+        var schedule = await GetManagedScheduleAsync(scheduleId, currentUser, cancellationToken);
+        var oldSnapshot = await GetAuditSnapshotAsync(scheduleId, cancellationToken);
+
+        _context.ThoiKhoaBieus.Remove(schedule);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await WriteAuditAsync(
+            "DELETE_THOI_KHOA_BIEU",
+            schedule,
+            oldSnapshot,
+            null,
+            currentUser,
+            "Xóa lịch học.",
+            cancellationToken);
+    }
+
     public async Task<ThoiKhoaBieuDetailDto> CreateAsync(
         CreateThoiKhoaBieuRequest request,
         CancellationToken cancellationToken = default)
@@ -164,6 +187,7 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
         ValidateDayOfWeek(request.ThuTrongTuan);
         ValidateDateRange(request.NgayBatDau, request.NgayKetThuc);
         await ValidateScheduleDatesInTermAsync(course, request.NgayBatDau, request.NgayKetThuc, cancellationToken);
+        await ValidateScheduleDatesInBlockAsync(course, request.NgayBatDau, request.NgayKetThuc, cancellationToken);
         await _scheduleConflictService.EnsureNoConflictAsync(
             new CheckScheduleConflictRequest
             {
@@ -232,6 +256,7 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
         ValidateDayOfWeek(request.ThuTrongTuan);
         ValidateDateRange(request.NgayBatDau, request.NgayKetThuc);
         await ValidateScheduleDatesInTermAsync(course, request.NgayBatDau, request.NgayKetThuc, cancellationToken);
+        await ValidateScheduleDatesInBlockAsync(course, request.NgayBatDau, request.NgayKetThuc, cancellationToken);
         await _scheduleConflictService.EnsureNoConflictAsync(
             new CheckScheduleConflictRequest
             {
@@ -269,6 +294,13 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
             {
                 throw new ApiException(StatusCodes.Status400BadRequest,
                     "Không thể xuất bản thời khóa biểu vì phòng học không hoạt động.");
+            }
+
+            var tienDo = await GetTienDoBuoiHocAsync(request.MaKhoaHoc, cancellationToken);
+            if (!tienDo.DayDu)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    $"Khóa học chưa xếp đủ số buổi/tuần yêu cầu ({tienDo.SoBuoiDaXep}/{tienDo.SoBuoiYeuCau}).");
             }
         }
 
@@ -494,6 +526,49 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
         if (endDate.HasValue && endDate.Value > term.NgayKetThuc)
         {
             throw new ApiException(StatusCodes.Status400BadRequest, "Ngày kết thúc thời khóa biểu không được sau ngày kết thúc học kỳ.");
+        }
+    }
+
+    private async Task ValidateScheduleDatesInBlockAsync(
+        KhoaHoc course,
+        DateOnly? startDate,
+        DateOnly? endDate,
+        CancellationToken cancellationToken)
+    {
+        if (!startDate.HasValue && !endDate.HasValue)
+        {
+            return;
+        }
+
+        if (!course.MaBlockBatDau.HasValue)
+        {
+            return;
+        }
+
+        var blocks = await _context.Blocks
+            .AsNoTracking()
+            .Where(b => b.MaHocKy == course.MaHocKy 
+                     && b.ThuTuBlock >= course.MaBlockBatDau 
+                     && b.ThuTuBlock < course.MaBlockBatDau + course.SoBlockHoc)
+            .OrderBy(b => b.ThuTuBlock)
+            .ToListAsync(cancellationToken);
+
+        if (!blocks.Any())
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Không tìm thấy thông tin Block của học kỳ này.");
+        }
+
+        var minDate = blocks.First().NgayBatDau;
+        var maxDate = blocks.Last().NgayKetThuc;
+
+        if (startDate.HasValue && startDate.Value < minDate)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, $"Khóa học này chỉ được xếp lịch từ {minDate:dd/MM/yyyy} đến {maxDate:dd/MM/yyyy} (Block {course.MaBlockBatDau}-{course.MaBlockBatDau + course.SoBlockHoc - 1}).");
+        }
+
+        if (endDate.HasValue && endDate.Value > maxDate)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, $"Khóa học này chỉ được xếp lịch từ {minDate:dd/MM/yyyy} đến {maxDate:dd/MM/yyyy} (Block {course.MaBlockBatDau}-{course.MaBlockBatDau + course.SoBlockHoc - 1}).");
         }
     }
 
@@ -763,6 +838,36 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
         };
     }
 
+    public async Task<TienDoBuoiHocDto> GetTienDoBuoiHocAsync(
+        int courseId, 
+        CancellationToken cancellationToken = default)
+    {
+        var course = await _context.KhoaHocs
+            .Include(c => c.MonHoc)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.MaKhoaHoc == courseId, cancellationToken);
+
+        if (course == null || course.MonHoc == null)
+        {
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy khóa học hoặc thông tin môn học.");
+        }
+
+        var quyDoi = await _context.QuyDoiTinChis
+            .AsNoTracking()
+            .FirstOrDefaultAsync(q => q.SoTinChi == course.MonHoc.SoTinChi, cancellationToken);
+
+        int soBuoiYeuCau = quyDoi?.SoBuoiMoiTuan ?? 0;
+
+        int soBuoiDaXep = await _context.ThoiKhoaBieus
+            .CountAsync(t => t.MaKhoaHoc == courseId && t.TrangThai != CanceledStatus, cancellationToken);
+
+        return new TienDoBuoiHocDto
+        {
+            SoBuoiYeuCau = soBuoiYeuCau,
+            SoBuoiDaXep = soBuoiDaXep,
+            DayDu = soBuoiYeuCau > 0 && soBuoiDaXep >= soBuoiYeuCau
+        };
+    }
     private static string FormatTime(TimeOnly time)
     {
         return time.ToString("HH:mm:ss", CultureInfo.InvariantCulture);

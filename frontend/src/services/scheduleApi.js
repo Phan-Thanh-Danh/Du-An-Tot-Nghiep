@@ -18,6 +18,10 @@ export const scheduleApi = {
     return apiRequest(`/api/thoi-khoa-bieu/${id}`)
   },
 
+  getTienDoBuoiHoc(maKhoaHoc) {
+    return apiRequest(`/api/thoi-khoa-bieu/khoa-hoc/${maKhoaHoc}/tien-do-buoi`).then(res => res.data || res.Data || res)
+  },
+
   create(data) {
     return apiRequest('/api/thoi-khoa-bieu', {
       method: 'POST',

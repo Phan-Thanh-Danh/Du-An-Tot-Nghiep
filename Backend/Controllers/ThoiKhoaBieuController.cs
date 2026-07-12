@@ -190,6 +190,16 @@ public class ThoiKhoaBieuController : ControllerBase
         return Ok(ApiResponseDto<BatchSlotSuggestionResultDto>.Ok(result, "Tính toán gợi ý hàng loạt thành công."));
     }
 
+    [HttpGet("khoa-hoc/{maKhoaHoc}/tien-do-buoi")]
+    [ProducesResponseType(typeof(ApiResponseDto<TienDoBuoiHocDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetTienDoBuoiHoc(
+        [FromRoute] int maKhoaHoc,
+        CancellationToken cancellationToken)
+    {
+        var result = await _thoiKhoaBieuService.GetTienDoBuoiHocAsync(maKhoaHoc, cancellationToken);
+        return Ok(ApiResponseDto<TienDoBuoiHocDto>.Ok(result));
+    }
+
     private ConflictObjectResult ToConflictResponse(ScheduleConflictException exception)
     {
         return Conflict(new ApiResponseDto<ScheduleConflictResultDto>

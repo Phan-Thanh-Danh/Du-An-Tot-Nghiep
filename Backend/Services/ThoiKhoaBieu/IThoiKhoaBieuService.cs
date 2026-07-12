@@ -20,5 +20,13 @@ public interface IThoiKhoaBieuService
         UpdateThoiKhoaBieuRequest request,
         CancellationToken cancellationToken = default);
 
+    Task DeleteAsync(
+        int scheduleId,
+        CancellationToken cancellationToken = default);
+
+    Task<TienDoBuoiHocDto> GetTienDoBuoiHocAsync(
+        int courseId, 
+        CancellationToken cancellationToken = default);
+
     Task<ThoiKhoaBieuDetailDto> CancelAsync(int scheduleId, CancellationToken cancellationToken = default);
 }

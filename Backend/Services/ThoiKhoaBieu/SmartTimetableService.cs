@@ -230,14 +230,44 @@ public class SmartTimetableService : ISmartTimetableService
             try
             {
                 var map = await BuildOccupationMapAsync(job.MaHocKy, job.MaDonVi, cancellationToken);
-                var courses = await _context.KhoaHocs.AsNoTracking()
+                var courses = await _context.KhoaHocs.Include(x => x.MonHoc).AsNoTracking()
                     .Where(x => x.MaHocKy == job.MaHocKy && x.MaDonVi == job.MaDonVi)
                     .ToDictionaryAsync(x => x.MaKhoaHoc, cancellationToken);
+                
+                var quyDoiDict = await _context.QuyDoiTinChis.AsNoTracking()
+                    .ToDictionaryAsync(x => x.SoTinChi, x => x.SoBuoiMoiTuan, cancellationToken);
+
                 var rooms = await _context.PhongHocs.AsNoTracking()
                     .Where(x => x.MaDonVi == job.MaDonVi)
                     .ToDictionaryAsync(x => x.MaPhong, cancellationToken);
 
-                foreach (var item in items)
+                var existingSchedulesCount = await _context.ThoiKhoaBieus.AsNoTracking()
+                    .Where(x => x.TrangThai != "da_huy")
+                    .GroupBy(x => x.MaKhoaHoc)
+                    .ToDictionaryAsync(g => g.Key, g => g.Count(), cancellationToken);
+
+                var groupedItems = items.GroupBy(x => x.MaKhoaHoc).ToList();
+                var validItems = new List<Models.ScheduleDraftItem>();
+
+                foreach (var group in groupedItems)
+                {
+                    if (courses.TryGetValue(group.Key, out var c) && c.MonHoc != null)
+                    {
+                        int soBuoiYeuCau = quyDoiDict.GetValueOrDefault(c.MonHoc.SoTinChi, 0);
+                        int soBuoiHienTai = existingSchedulesCount.GetValueOrDefault(group.Key, 0);
+                        int soBuoiThem = group.Count();
+
+                        if (soBuoiYeuCau > 0 && (soBuoiHienTai + soBuoiThem) < soBuoiYeuCau)
+                        {
+                            result.BuoiHocLoi += soBuoiThem;
+                            result.ChiTietLoi.Add($"MaKhoaHoc {group.Key}: chưa xếp đủ số buổi/tuần yêu cầu ({soBuoiHienTai + soBuoiThem}/{soBuoiYeuCau}).");
+                            continue;
+                        }
+                    }
+                    validItems.AddRange(group);
+                }
+
+                foreach (var item in validItems)
                 {
                     if (!item.ThuTrongTuan.HasValue || !item.MaCaHoc.HasValue || !item.MaPhong.HasValue)
                     {

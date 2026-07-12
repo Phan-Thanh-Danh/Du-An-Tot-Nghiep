@@ -8,10 +8,12 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
+import ClassNavigator from './ClassNavigator.vue'
 import { scheduleApi } from '@/services/scheduleApi'
 import { courseApi } from '@/services/courseApi'
 import { staffApi } from '@/services/staffApi'
 import { academicTermApi } from '@/services/academicTermApi'
+import { blockApi } from '@/services/blockApi'
 import { usePopupStore } from '@/stores/popup'
 import { useAcademicSchedulingContextStore } from '@/stores/academicSchedulingContext'
 
@@ -46,6 +48,7 @@ const courseOptions = ref([])
 const roomOptions = ref([])
 const shiftOptions = ref([])
 const academicTermOptions = ref([])
+const termBlocks = ref([])
 const existingSchedules = ref([])
 const courseSearchQuery = ref('')
 const roomSearchQuery = ref('')
@@ -71,8 +74,7 @@ const shifts = computed(() => shiftOptions.value)
 
 // ── Lookup ────────────────────────────────────────────────────────
 const hocKyOptions = computed(() => {
-  const set = new Set(rows.value.map(r => r.hocKy?.ten).filter(Boolean))
-  return [...set]
+  return academicTermOptions.value.map(t => t.tenHocKy)
 })
 
 const termOptions = computed(() => {
@@ -104,13 +106,29 @@ const selectedCourse = computed(() =>
   courseOptions.value.find(c => Number(c.maKhoaHoc) === Number(form.value.maKhoaHoc)) || form.value.selectedCourse || null
 )
 
-const selectedCourseTermStart = computed(() =>
-  toDateInput(selectedCourse.value?.ngayBatDauHocKy || selectedCourse.value?.hocKy?.ngayBatDau)
-)
+const selectedCourseTermStart = computed(() => {
+  const c = selectedCourse.value
+  if (!c) return ''
+  if (c.maBlockBatDau && termBlocks.value.length) {
+    const startBlock = termBlocks.value.find(b => b.maBlock === c.maBlockBatDau)
+    if (startBlock) return toDateInput(startBlock.ngayBatDau)
+  }
+  return toDateInput(c.ngayBatDauHocKy || c.hocKy?.ngayBatDau)
+})
 
-const selectedCourseTermEnd = computed(() =>
-  toDateInput(selectedCourse.value?.ngayKetThucHocKy || selectedCourse.value?.hocKy?.ngayKetThuc)
-)
+const selectedCourseTermEnd = computed(() => {
+  const c = selectedCourse.value
+  if (!c) return ''
+  if (c.maBlockBatDau && c.soBlockHoc && termBlocks.value.length) {
+    const startBlock = termBlocks.value.find(b => b.maBlock === c.maBlockBatDau)
+    if (startBlock) {
+      const endSoThuTu = startBlock.soThuTu + c.soBlockHoc - 1
+      const endBlock = termBlocks.value.find(b => b.soThuTu === endSoThuTu)
+      if (endBlock) return toDateInput(endBlock.ngayKetThuc)
+    }
+  }
+  return toDateInput(c.ngayKetThucHocKy || c.hocKy?.ngayKetThuc)
+})
 
 const pendingDraftRoute = computed(() => {
   const draft = smartDraft.value || {}
@@ -195,17 +213,38 @@ const emptyForm = () => ({
 })
 const form = ref(emptyForm())
 const editingId = ref(null)
+const courseProgress = ref(null)
 
-// ── Data loading ──────────────────────────────────────────────────
+// ── Detail panel ──────────────────────────────────────────────────
 async function loadData() {
+  if (!schedulingContext.selectedClassId) {
+    rows.value = []
+    existingSchedules.value = []
+    return
+  }
+
   loading.value = true
   try {
-    const data = await scheduleApi.list({
-      TrangThai: filterTrangThai.value || undefined,
-      PageIndex: 1,
-      PageSize: 100,
-    })
-    const raw = unwrapList(data)
+    const [scheduleRes, courseRes] = await Promise.all([
+      scheduleApi.list({
+        TrangThai: filterTrangThai.value || undefined,
+        MaLop: schedulingContext.selectedClassId,
+        PageIndex: 1,
+        PageSize: 100,
+      }),
+      courseApi.getCourses({ 
+        MaLop: schedulingContext.selectedClassId, 
+        PageIndex: 1, 
+        PageSize: 100 
+      })
+    ])
+    
+    const allCourses = unwrapList(courseRes).map(normalizeCourse)
+    courseOptions.value = schedulingContext.schedulableTerm 
+      ? allCourses.filter(c => Number(c.maHocKy) === Number(schedulingContext.schedulableTerm.maHocKy))
+      : allCourses
+
+    const raw = unwrapList(scheduleRes)
     rows.value = Array.isArray(raw) ? raw.map(beToView) : []
     existingSchedules.value = rows.value.map(viewToScheduleRecord)
   } catch {
@@ -361,9 +400,16 @@ async function loadScheduleOptions() {
 }
 
   onMounted(async () => {
-    await schedulingContext.fetchContext()
-    loadScheduleOptions().then(loadData)
-  })
+  await schedulingContext.fetchContext()
+  if (schedulingContext.schedulableTerm) {
+    try {
+      termBlocks.value = await blockApi.getByTerm(schedulingContext.schedulableTerm.maHocKy)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+  loadScheduleOptions().then(loadData)
+})
 
 // ── Filtered rows ─────────────────────────────────────────────────
 const filteredRows = computed(() => {
@@ -491,7 +537,7 @@ function openSmartMode() {
   showFormModal.value = true
 }
 
-function openEdit(row) {
+async function openEdit(row) {
   formMode.value = 'edit'
   editingId.value = row.id
   form.value = {
@@ -511,6 +557,16 @@ function openEdit(row) {
   conflictPreview.value = []
   selectedRow.value = null
   showFormModal.value = true
+
+  if (row.maKhoaHoc) {
+    try {
+      courseProgress.value = null
+      const res = await scheduleApi.getTienDoBuoiHoc(row.maKhoaHoc)
+      courseProgress.value = res
+    } catch (e) {
+      console.error(e)
+    }
+  }
 }
 
 function closeFormModal() {
@@ -524,6 +580,7 @@ function closeFormModal() {
   suggestedSlots.value = []
   bulkReviewRows.value = []
   smartDraft.value = null
+  courseProgress.value = null
 }
 
 // ── Course / Room selection ──────────────────────────────────────
@@ -592,7 +649,7 @@ function applyDateMode() {
 
 watch(() => form.value.dateMode, applyDateMode)
 
-function selectCourse(course) {
+async function selectCourse(course) {
   form.value.maKhoaHoc = course.maKhoaHoc
   form.value.selectedCourse = course
   form.value.hocKy = { ma: course.maHocKy || '', ten: course.tenHocKy || '' }
@@ -604,6 +661,15 @@ function selectCourse(course) {
   conflictPreview.value = []
   suggestedSlots.value = []
   applyDateMode()
+
+  // Fetch progress
+  try {
+    courseProgress.value = null
+    const res = await scheduleApi.getTienDoBuoiHoc(course.maKhoaHoc)
+    courseProgress.value = res
+  } catch (e) {
+    console.error('Failed to get course progress', e)
+  }
 }
 
 function selectRoom(room) {
@@ -978,6 +1044,8 @@ function thuLabel(thu) {
     </div>
 
     <!-- ── Header ── -->
+    <ClassNavigator @class-selected="loadData" />
+
     <div class="flex items-start justify-between gap-4 flex-wrap">
       <div>
         <div class="flex items-center gap-2">
@@ -1040,13 +1108,6 @@ function thuLabel(thu) {
     <!-- ── Loading state ── -->
     <div v-if="loading && rows.length === 0" class="p-4">
       <SkeletonTable :rows="6" :columns="7" />
-    </div>
-
-    <!-- ── Empty state ── -->
-    <div v-else-if="!loading && rows.length === 0" class="flex flex-col items-center justify-center py-16 text-(--text-muted)">
-      <CalendarRange :size="48" class="mb-3 opacity-40" />
-      <p class="text-lg font-semibold text-(--text-body)">Chưa có lịch học nào</p>
-      <p class="text-sm mt-1">Nhấn "Tạo lịch" để thêm lịch học mới.</p>
     </div>
 
     <!-- ── Main calendar area ── -->
@@ -1292,6 +1353,11 @@ function thuLabel(thu) {
                   </span>
                   <span class="px-2 py-1 rounded-full bg-(--surface-input) text-(--text-muted) flex items-center gap-1">
                     <BookOpen :size="12" /> {{ form.hocKy?.ten }}
+                  </span>
+                  <span v-if="courseProgress" 
+                        class="px-2 py-1 rounded-full flex items-center gap-1 font-semibold"
+                        :class="courseProgress.dayDu ? 'bg-(--color-success-bg) text-(--color-success-text)' : 'bg-(--color-warning-bg) text-(--color-warning-text)'">
+                    Tiến độ: {{ courseProgress.soBuoiDaXep }} / {{ courseProgress.soBuoiYeuCau }} buổi
                   </span>
                 </div>
                 <div
