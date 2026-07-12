@@ -1,8 +1,11 @@
 /**
  * Regenerate DOCUMENT_REFERENCES.csv from actual Markdown source links.
  *
- * Scans all .md files in the repo, extracts markdown links [...](path)
- * pointing to internal files, and writes the CSV.
+ * Scans all .md files in the repo, extracts markdown links (inline, reference-style,
+ * HTML, and plain-text paths), resolves them, validates targets exist, and writes
+ * the CSV with a ValidationStatus column.
+ *
+ * Exits non-zero when any broken reference is found.
  */
 
 import fs from 'fs';
@@ -17,6 +20,7 @@ const IGNORE_DIRS = new Set([
 
 const refs = [];
 let fileCount = 0;
+let brokenCount = 0;
 
 function walk(dir) {
   let entries;
@@ -38,60 +42,139 @@ function walk(dir) {
   }
 }
 
+// ── Link extraction helpers ───────────────────────────────────────────────────
+
+function extractInlineLinks(line) {
+  const results = [];
+  // Inline: [text](path) and ![alt](path) — captures optional title in quotes after path
+  const inlineRe = /!?\[(?![^\]]*:\/\/)[^\]]*\]\(\s*([^\s()]+(?:\s+"[^"]*")?)\s*\)/g;
+  let m;
+  while ((m = inlineRe.exec(line)) !== null) {
+    let target = m[1].trim();
+    // Strip title ("..." or '...') at end
+    target = target.replace(/\s+["'][^"']*["']$/, '');
+    results.push(target);
+  }
+  return results;
+}
+
+function extractReferenceStyleLinks(line) {
+  const results = [];
+  // Reference definition: [label]: path
+  const defRe = /^\[([^\]]+)\]:\s+(\S+)/gm;
+  let m;
+  while ((m = defRe.exec(line)) !== null) {
+    results.push(m[2].trim());
+  }
+  return results;
+}
+
+function extractHTMLLinks(line) {
+  const results = [];
+  // <a href="..."> and <img src="...">
+  const htmlRe = /<(?:a|img)\s[^>]*(?:href|src)\s*=\s*"([^"]+)"/gi;
+  let m;
+  while ((m = htmlRe.exec(line)) !== null) {
+    results.push(m[1].trim());
+  }
+  return results;
+}
+
+function extractAllLinks(line) {
+  return [
+    ...extractInlineLinks(line),
+    ...extractReferenceStyleLinks(line),
+    ...extractHTMLLinks(line),
+  ];
+}
+
+// ── Target normalization ──────────────────────────────────────────────────────
+
+function stripFragment(target) {
+  const hashIdx = target.indexOf('#');
+  return hashIdx >= 0 ? target.slice(0, hashIdx) : target;
+}
+
+// ── File processing ───────────────────────────────────────────────────────────
+
 function processFile(relPath, fullPath) {
   fileCount++;
   const content = fs.readFileSync(fullPath, 'utf8');
   const lines = content.split('\n');
 
-  // Regex to match [text](path) and ![alt](path) markdown links
-  const linkRe = /\[(?![^\]]*:\/\/)[^\]]*\]\(([^)]+)\)/g;
-  // Also match image links ![alt](path)
-  const imgRe = /!\[(?![^\]]*:\/\/)[^\]]*\]\(([^)]+)\)/g;
-
-  const allLinks = [];
-
-  // Collect both types
-  for (const line of lines) {
-    const matches = [...line.matchAll(linkRe), ...line.matchAll(imgRe)];
-    for (const m of matches) {
-      allLinks.push({ target: m[1].trim(), line: lines.indexOf(line) + 1 });
-    }
-  }
-
-  // Deduplicate by (target, line) within the same file
   const seen = new Set();
-  for (const { target, line } of allLinks) {
-    if (seen.has(`${target}:${line}`)) continue;
-    seen.add(`${target}:${line}`);
 
-    // Skip URLs, anchors, absolute paths (except repo-relative)
-    if (target.startsWith('http://') || target.startsWith('https://')) continue;
-    if (target.startsWith('#') || target.startsWith('mailto:')) continue;
-    if (target.startsWith('file:///')) {
-      console.warn(`[BROKEN_ABSOLUTE] ${relPath}:${line} — ${target}`);
-      continue;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const rawTargets = extractAllLinks(line);
+    const lineNum = i + 1;
+
+    for (const rawTarget of rawTargets) {
+      const dedupKey = `${rawTarget}:${lineNum}`;
+      if (seen.has(dedupKey)) continue;
+      seen.add(dedupKey);
+
+      // Skip external URLs, anchors, mailto
+      if (rawTarget.startsWith('http://') || rawTarget.startsWith('https://')) continue;
+      if (rawTarget.startsWith('#') || rawTarget.startsWith('mailto:')) continue;
+
+      // Strip fragment for resolution
+      const target = stripFragment(rawTarget);
+
+      // Check for file:/// absolute paths
+      if (/^file:\/\/\/[cC]:/i.test(target)) {
+        console.warn(`[BROKEN_ABSOLUTE] ${relPath}:${lineNum} — ${rawTarget}`);
+        refs.push({
+          SourcePath: relPath,
+          TargetPath: rawTarget,
+          Line: lineNum,
+          ReferenceType: 'Link',
+          ValidationStatus: 'BROKEN_ABSOLUTE',
+        });
+        brokenCount++;
+        continue;
+      }
+
+      // Resolve relative path from the source file's directory
+      const sourceDir = path.dirname(fullPath);
+      const resolved = path.resolve(sourceDir, target);
+      const relTarget = path.relative(ROOT, resolved).replace(/\\/g, '/');
+
+      // Skip if outside repo
+      if (relTarget.startsWith('..') || path.isAbsolute(relTarget)) {
+        refs.push({
+          SourcePath: relPath,
+          TargetPath: rawTarget,
+          Line: lineNum,
+          ReferenceType: 'Link',
+          ValidationStatus: 'OUTSIDE_REPO',
+        });
+        brokenCount++;
+        continue;
+      }
+
+      // Verify target exists
+      if (!fs.existsSync(resolved)) {
+        console.warn(`[BROKEN_LINK] ${relPath}:${lineNum} — '${rawTarget}' resolves to '${relTarget}' but file does not exist`);
+        refs.push({
+          SourcePath: relPath,
+          TargetPath: relTarget,
+          Line: lineNum,
+          ReferenceType: 'Link',
+          ValidationStatus: 'BROKEN_TARGET',
+        });
+        brokenCount++;
+        continue;
+      }
+
+      refs.push({
+        SourcePath: relPath,
+        TargetPath: relTarget,
+        Line: lineNum,
+        ReferenceType: 'Link',
+        ValidationStatus: 'VALID',
+      });
     }
-
-    // Resolve relative path from the source file's directory
-    const sourceDir = path.dirname(fullPath);
-    const resolved = path.resolve(sourceDir, target);
-    const relTarget = path.relative(ROOT, resolved).replace(/\\/g, '/');
-
-    // Skip if outside repo
-    if (relTarget.startsWith('..') || path.isAbsolute(relTarget)) continue;
-
-    // Verify target exists
-    if (!fs.existsSync(resolved)) {
-      console.warn(`[BROKEN_LINK] ${relPath}:${line} — '${target}' resolves to '${relTarget}' but file does not exist`);
-      continue;
-    }
-
-    refs.push({
-      SourcePath: relPath,
-      TargetPath: relTarget,
-      Line: line,
-      ReferenceType: 'Link',
-    });
   }
 }
 
@@ -108,15 +191,20 @@ refs.sort((a, b) => {
   return a.Line - b.Line;
 });
 
-// Write CSV
+// Write CSV with ValidationStatus column
 const csvPath = path.join(ROOT, 'docs/governance/DOCUMENT_REFERENCES.csv');
-const header = 'SourcePath,TargetPath,Line,ReferenceType';
+const header = 'SourcePath,TargetPath,Line,ReferenceType,ValidationStatus';
 const rows = refs.map(r =>
-  `${r.SourcePath},${r.TargetPath},${r.Line},${r.ReferenceType}`
+  `${r.SourcePath},${r.TargetPath},${r.Line},${r.ReferenceType},${r.ValidationStatus}`
 );
 const csvContent = [header, ...rows, ''].join('\n');
 fs.writeFileSync(csvPath, csvContent, 'utf8');
 
-console.log(`  Found ${refs.length} references`);
+const validCount = refs.filter(r => r.ValidationStatus === 'VALID').length;
+console.log(`  ${validCount} valid, ${brokenCount} broken, ${refs.length} total references`);
 console.log(`  Written to ${csvPath}`);
-console.log('Done.');
+console.log(brokenCount > 0 ? `FAILED — ${brokenCount} broken reference(s) found.` : 'Done.');
+
+if (brokenCount > 0) {
+  process.exit(1);
+}

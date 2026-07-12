@@ -252,8 +252,15 @@ if (fs.existsSync(path.join(ROOT, 'docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv'))) 
 
   // 6e. Validate DOCUMENT_REFERENCES.csv — each TargetPath must exist on disk
   if (fs.existsSync(path.join(ROOT, 'docs/governance/DOCUMENT_REFERENCES.csv'))) {
-      console.log('[6e] Validating DOCUMENT_REFERENCES.csv target existence...');
+      console.log('[6e] Validating DOCUMENT_REFERENCES.csv entries...');
       const refsRows = parseCSV('docs/governance/DOCUMENT_REFERENCES.csv');
+
+      // Check for BROKEN status in CSV
+      const brokenInCsv = refsRows.filter(r => r['ValidationStatus'] && r['ValidationStatus'] !== 'VALID');
+      for (const row of brokenInCsv) {
+          errors.push(`DOCUMENT_REFERENCES.csv: ${row['SourcePath']}:${row['Line']} has ValidationStatus='${row['ValidationStatus']}' — must be fixed before Move Plan execution`);
+      }
+
       let missingTargets = 0;
       for (const row of refsRows) {
           const targetFull = path.join(ROOT, row['TargetPath']);
@@ -262,44 +269,98 @@ if (fs.existsSync(path.join(ROOT, 'docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv'))) 
               errors.push(`DOCUMENT_REFERENCES.csv: TargetPath '${row['TargetPath']}' (referenced by ${row['SourcePath']}:${row['Line']}) does not exist on disk`);
           }
       }
-      if (missingTargets === 0) console.log(`   ✓ All ${refsRows.length} TargetPath entries exist on disk`);
+      if (missingTargets === 0 && brokenInCsv.length === 0) console.log(`   ✓ All ${refsRows.length} entries valid and targets exist on disk`);
 
-      // 6f. Source/Report parity — regenerate references and compare
-      console.log('[6f] Checking source/report parity for DOCUMENT_REFERENCES.csv...');
-      const LINK_RE = /\[(?![^\]]*:\/\/)[^\]]*\]\(([^)]+)\)/g;
-      const IMG_RE = /!\[(?![^\]]*:\/\/)[^\]]*\]\(([^)]+)\)/g;
-      const generated = [];
-      const refFiles = new Set(refsRows.map(r => r['SourcePath']));
-      for (const srcPath of refFiles) {
-          const srcFull = path.join(ROOT, srcPath);
-          if (!fs.existsSync(srcFull)) continue;
-          const content = fs.readFileSync(srcFull, 'utf8');
-          const lines = content.split('\n');
-          for (let i = 0; i < lines.length; i++) {
-              const line = lines[i];
-              const matches = [...line.matchAll(LINK_RE), ...line.matchAll(IMG_RE)];
-              for (const m of matches) {
-                  const target = m[1].trim();
-                  if (target.startsWith('http://') || target.startsWith('https://') || target.startsWith('#') || target.startsWith('mailto:') || target.startsWith('file:///')) continue;
-                  const sourceDir = path.dirname(srcFull);
-                  const resolved = path.resolve(sourceDir, target);
-                  const relTarget = path.relative(ROOT, resolved).replace(/\\/g, '/');
-                  if (!relTarget.startsWith('..') && !path.isAbsolute(relTarget)) {
-                      generated.push({ SourcePath: srcPath, TargetPath: relTarget, Line: i + 1 });
-                  }
-              }
-          }
+      // 6f. Source/Report parity — scan ALL .md files, two-way comparison
+      console.log('[6f] Checking source/report parity (full scan, bidirectional)...');
+
+      // Shared scanner — mirrors generate-document-refs.mjs logic
+      function extractInlineLinks(line) {
+        const results = [];
+        const inlineRe = /!?\[(?![^\]]*:\/\/)[^\]]*\]\(\s*([^\s()]+(?:\s+"[^"]*")?)\s*\)/g;
+        let m;
+        while ((m = inlineRe.exec(line)) !== null) {
+          let target = m[1].trim();
+          target = target.replace(/\s+["'][^"']*["']$/, '');
+          results.push(target);
+        }
+        return results;
       }
-      // Compare: every generated reference should have a matching row in CSV
+      function extractReferenceStyleLinks(line) {
+        const results = [];
+        const defRe = /^\[([^\]]+)\]:\s+(\S+)/gm;
+        let m;
+        while ((m = defRe.exec(line)) !== null) results.push(m[2].trim());
+        return results;
+      }
+      function extractHTMLLinks(line) {
+        const results = [];
+        const htmlRe = /<(?:a|img)\s[^>]*(?:href|src)\s*=\s*"([^"]+)"/gi;
+        let m;
+        while ((m = htmlRe.exec(line)) !== null) results.push(m[1].trim());
+        return results;
+      }
+      function extractAllLinks(line) {
+        return [...extractInlineLinks(line), ...extractReferenceStyleLinks(line), ...extractHTMLLinks(line)];
+      }
+
+      const IGNORE_DIRS_SCAN = new Set(['node_modules', '.git', '.cursor', 'Backend/bin', 'Backend/obj', 'frontend/node_modules', 'frontend/dist']);
+      const generated = [];
+
+      function walkForParity(dir) {
+        let entries;
+        try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+        for (const entry of entries) {
+          const full = path.join(dir, entry.name);
+          const rel = path.relative(ROOT, full).replace(/\\/g, '/');
+          if (entry.isDirectory()) {
+            if (!IGNORE_DIRS_SCAN.has(entry.name) && !rel.startsWith('.')) walkForParity(full);
+          } else if (entry.name.endsWith('.md')) {
+            const content = fs.readFileSync(full, 'utf8');
+            const lines = content.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              const rawTargets = extractAllLinks(line);
+              const lineNum = i + 1;
+              for (const rawTarget of rawTargets) {
+                if (rawTarget.startsWith('http://') || rawTarget.startsWith('https://') || rawTarget.startsWith('#') || rawTarget.startsWith('mailto:') || rawTarget.startsWith('file:///')) continue;
+                // Strip fragment
+                const hashIdx = rawTarget.indexOf('#');
+                const target = hashIdx >= 0 ? rawTarget.slice(0, hashIdx) : rawTarget;
+                const sourceDir = path.dirname(full);
+                const resolved = path.resolve(sourceDir, target);
+                const relTarget = path.relative(ROOT, resolved).replace(/\\/g, '/');
+                if (!relTarget.startsWith('..') && !path.isAbsolute(relTarget)) {
+                  generated.push({ SourcePath: rel, TargetPath: relTarget, Line: lineNum });
+                }
+              }
+            }
+          }
+        }
+      }
+      walkForParity(ROOT);
+
+      // Forward parity: every source reference must be in CSV
       let parityErrors = 0;
       for (const g of generated) {
           const match = refsRows.some(r => r['SourcePath'] === g.SourcePath && r['TargetPath'] === g.TargetPath && parseInt(r['Line']) === g.Line);
           if (!match) {
               parityErrors++;
-              errors.push(`Parity error: reference ${g.SourcePath}:${g.Line} → '${g.TargetPath}' found in source but missing from DOCUMENT_REFERENCES.csv`);
+              errors.push(`Parity error (forward): reference ${g.SourcePath}:${g.Line} → '${g.TargetPath}' found in source but missing from DOCUMENT_REFERENCES.csv`);
           }
       }
-      if (parityErrors === 0) console.log(`   ✓ Source/report parity: all ${generated.length} references match CSV`);
+
+      // Reverse parity: every CSV row must exist in source
+      let reverseErrors = 0;
+      for (const row of refsRows) {
+          const match = generated.some(g => g.SourcePath === row['SourcePath'] && g.TargetPath === row['TargetPath'] && g.Line === parseInt(row['Line']));
+          if (!match) {
+              reverseErrors++;
+              errors.push(`Parity error (reverse): CSV row ${row['SourcePath']}:${row['Line']} → '${row['TargetPath']}' has no matching reference in source`);
+          }
+      }
+
+      if (parityErrors === 0 && reverseErrors === 0) console.log(`   ✓ Bidirectional parity: ${generated.length} source refs ↔ ${refsRows.length} CSV rows match`);
   }
 
   // 7. Matrix coverage: each canonical role must have >= 3 capabilities

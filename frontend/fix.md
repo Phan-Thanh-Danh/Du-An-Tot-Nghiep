@@ -35,8 +35,14 @@ Pinia Store `useAuthStore` ([đường dẫn file](src/stores/auth.js)):
 *   Hàm `login()` sẽ kiểm tra email. Nếu email thuộc 3 tài khoản trên, store sẽ tự cấp thông tin người dùng giả lập tương ứng với role `Student` và lưu session.
 *   Store gọi hàm `syncActiveStudentData()` khi đăng nhập hoặc đăng xuất để đồng bộ dữ liệu mock cho các trang con.
 
-### 2.3 Cơ chế đồng bộ dữ liệu động
-Dữ liệu mock được quản lý tập trung ở file `studentData.mock.js` (đã xóa — `src/data/studentData.mock.js` không còn tồn tại trong repository):
+### 2.3 Cơ chế đồng bộ dữ liệu động (Historical — file `studentData.mock.js` đã bị xóa)
+
+> ⚠ **Tài liệu cũ (historical):** File `src/data/studentData.mock.js` đã bị xóa khỏi repository.
+> Implementation hiện tại không còn dùng mock data tập trung. Phần mô tả dưới đây được giữ lại
+> để tham khảo logic cũ, nhưng không phản ánh code đang chạy.
+
+Trước đây, dữ liệu mock được quản lý tập trung ở file `studentData.mock.js`. Cơ chế hoạt động cũ:
+
 *   Hàm `syncActiveStudentData()` sẽ đọc thông tin email trong session.
 *   Nếu email là `student_gd`, toàn bộ dữ liệu mẫu chung (profile, dashboard, courses, assignments, grades, attendance, schedule, tuition, registrations...) sẽ được ghi đè bằng bộ dữ liệu của ngành **Thiết kế Đồ họa**.
 *   Nếu email là `student_mkt`, dữ liệu mẫu chung sẽ được ghi đè bằng bộ dữ liệu của ngành **Marketing**.
