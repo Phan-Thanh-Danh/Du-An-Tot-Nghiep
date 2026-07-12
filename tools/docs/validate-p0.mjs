@@ -78,6 +78,10 @@ const FILES = {
   'Team Ownership': 'docs/p0/P0_TEAM_OWNERSHIP.md',
   'Document Inventory': 'docs/governance/DOCUMENT_INVENTORY.csv',
   'Document Move Plan': 'docs/governance/DOCUMENT_MOVE_PLAN.csv',
+  'Document References': 'docs/governance/DOCUMENT_REFERENCES.csv',
+  'Document Map': 'docs/governance/DOCUMENT_MAP.md',
+  'Document Naming Standard': 'docs/governance/DOCUMENT_NAMING_STANDARD.md',
+  'Document Ownership': 'docs/governance/DOCUMENT_OWNERSHIP.md',
 };
 for (const [label, relPath] of Object.entries(FILES)) {
   fileExists(relPath, label);
@@ -187,26 +191,46 @@ if (fs.existsSync(path.join(ROOT, 'docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv'))) 
       }
   });
 
-  // 6c. Verify Handoff files staleness
+  // 6c. Verify Handoff files completeness and staleness
   const handoffDir = path.join(ROOT, 'docs/p0/roles');
   if (fs.existsSync(handoffDir)) {
-      const files = fs.readdirSync(handoffDir).filter(f => f.endsWith('_HANDOFF.md'));
-      files.forEach(f => {
-          const content = fs.readFileSync(path.join(handoffDir, f), 'utf8');
-          // For every row in matrix, if it belongs to this role, it must exist exactly in the handoff
-          rows.forEach(r => {
-             // Basic staleness check: if the capability ID exists, ensure the MatchedEndpointIds string is in the file.
-             // (We won't parse the markdown strictly, just check string presence of the updated ID)
-             if (content.includes(r['CapabilityId'])) {
-                 const expectedIdStr = r['MatchedEndpointIds'] ? `|${r['MatchedEndpointIds']} |`.replace(/\|/g, '\\|') : '| N/A |';
-                 // A simple includes check is safe enough for missing IDs
-                 if (r['MatchedEndpointIds'] && !content.includes(r['MatchedEndpointIds'])) {
-                     errors.push(`Stale Handoff: ${f} mentions ${r['CapabilityId']} but lacks its new EndpointIds (${r['MatchedEndpointIds']})`);
-                 }
-             }
-          });
+      const roleCapabilities = {};
+      rows.forEach(r => {
+          if (!r['FrontendRole']) return;
+          if (!roleCapabilities[r['FrontendRole']]) roleCapabilities[r['FrontendRole']] = [];
+          roleCapabilities[r['FrontendRole']].push(r);
       });
+      
+      for (const [role, caps] of Object.entries(roleCapabilities)) {
+          let expectedFileName = role.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase() + '_HANDOFF.md';
+          if (role === 'HoiDongQuanLyNoiDung') expectedFileName = 'CONTENT_COUNCIL_HANDOFF.md';
+          
+          const fullPath = path.join(handoffDir, expectedFileName);
+          if (!fs.existsSync(fullPath)) {
+              errors.push(`Missing handoff file for role ${role}: ${expectedFileName}`);
+              continue;
+          }
+          
+          const content = fs.readFileSync(fullPath, 'utf8');
+          caps.forEach(r => {
+              if (!content.includes(r['CapabilityId'])) {
+                  errors.push(`Handoff completeness failed: ${expectedFileName} is missing capability ${r['CapabilityId']}`);
+              }
+              if (r['MatchedEndpointIds'] && !content.includes(r['MatchedEndpointIds'])) {
+                  errors.push(`Stale Handoff: ${expectedFileName} mentions ${r['CapabilityId']} but lacks its EndpointIds (${r['MatchedEndpointIds']})`);
+              }
+          });
+      }
   }
+
+  // 6d. Document Governance Validation
+  if (fs.existsSync(path.join(ROOT, 'docs/governance/DOCUMENT_REFERENCES.csv'))) {
+      const refsContent = fs.readFileSync(path.join(ROOT, 'docs/governance/DOCUMENT_REFERENCES.csv'), 'utf8');
+      if (refsContent.includes('BROKEN_LOCAL_ABSOLUTE_PATH')) {
+          errors.push('DOCUMENT_REFERENCES.csv contains BROKEN_LOCAL_ABSOLUTE_PATH entries. These must be fixed before Move Plan execution.');
+      }
+  }
+
 
   // 7. Matrix coverage: each canonical role must have >= 3 capabilities
   const roleCoverage = {};
