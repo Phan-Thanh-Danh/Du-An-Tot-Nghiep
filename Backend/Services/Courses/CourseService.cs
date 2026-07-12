@@ -1148,6 +1148,7 @@ public class CourseService : ICourseService
             TrangThai = course.TrangThai,
             UrlAnhBia = course.UrlAnhBia,
             NgayTao = course.NgayTao,
+            MaBlockBatDau = course.MaBlockBatDau,
             SoBlockHoc = course.SoBlockHoc,
             GoiYSoBuoiMoiTuan = quyDoi?.SoBuoiMoiTuan,
             GoiYSoCaMoiBuoi = quyDoi?.SoCaMoiBuoi
@@ -1183,6 +1184,7 @@ public class CourseService : ICourseService
             TrangThai = dto.TrangThai,
             UrlAnhBia = dto.UrlAnhBia,
             NgayTao = dto.NgayTao,
+            MaBlockBatDau = dto.MaBlockBatDau,
             SoBlockHoc = dto.SoBlockHoc,
             GoiYSoBuoiMoiTuan = dto.GoiYSoBuoiMoiTuan,
             GoiYSoCaMoiBuoi = dto.GoiYSoCaMoiBuoi

@@ -22,4 +22,6 @@ public class UpdateThoiKhoaBieuRequest
     [Required(ErrorMessage = "Trạng thái không được để trống.")]
     [MaxLength(20, ErrorMessage = "Trạng thái không được vượt quá 20 ký tự.")]
     public string TrangThai { get; set; } = string.Empty;
+
+    public int? MaLopDangThaoTac { get; set; }
 }

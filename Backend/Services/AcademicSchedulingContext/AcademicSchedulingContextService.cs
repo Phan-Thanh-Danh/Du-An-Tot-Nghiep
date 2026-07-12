@@ -63,6 +63,7 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
                 TenHocKy = x.TenHocKy,
                 NgayBatDau = x.NgayBatDau,
                 NgayKetThuc = x.NgayKetThuc,
+                DaKhoa = x.DaKhoa,
                 DaysUntilStart =
                     x.NgayBatDau > today ? x.NgayBatDau.DayNumber - today.DayNumber : null,
             })
@@ -71,7 +72,7 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
         var currentTerms = allTerms
             .Where(x => x.NgayBatDau <= today && x.NgayKetThuc >= today)
             .ToList();
-        var futureTerms = allTerms.Where(x => x.NgayBatDau > today).ToList();
+        var futureTerms = allTerms.Where(x => x.NgayBatDau > today && !x.DaKhoa).ToList();
 
         var result = new AcademicSchedulingContextDto
         {

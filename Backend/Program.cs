@@ -413,6 +413,12 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    
+    app.MapGet("/dev/seed-test-term", async (ApplicationDbContext db) =>
+    {
+        var msg = await Backend.Data.Seeders.TestDataSeeder.SeedFreshTermForTestingAsync(db);
+        return Results.Ok(new { message = msg });
+    });
 }
 
 app.UseMiddleware<ExceptionMiddleware>();

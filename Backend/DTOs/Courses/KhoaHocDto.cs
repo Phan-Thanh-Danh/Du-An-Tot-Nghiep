@@ -21,7 +21,10 @@ public class KhoaHocDto
     public DateTime NgayTao { get; set; }
     
     // Gợi ý thông số từ QuyDoiTinChi
+    public int? MaBlockBatDau { get; set; }
     public int? SoBlockHoc { get; set; }
     public int? GoiYSoBuoiMoiTuan { get; set; }
     public int? GoiYSoCaMoiBuoi { get; set; }
+    public DateTime? NgayBatDauBlock { get; set; }
+    public DateTime? NgayKetThucBlock { get; set; }
 }

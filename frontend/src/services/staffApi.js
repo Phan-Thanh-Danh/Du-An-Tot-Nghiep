@@ -111,6 +111,9 @@ export const staffApi = {
     const query = new URLSearchParams()
     if (params.keyword) query.append('keyword', params.keyword)
     if (params.toaNha) query.append('toaNha', params.toaNha)
+    if (params.maDonVi) query.append('MaDonVi', params.maDonVi)
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
     const qs = query.toString()
     return apiRequest(`/api/master-data/rooms${qs ? '?' + qs : ''}`)
   },

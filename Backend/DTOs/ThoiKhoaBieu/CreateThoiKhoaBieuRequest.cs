@@ -21,4 +21,6 @@ public class CreateThoiKhoaBieuRequest
 
     [MaxLength(20, ErrorMessage = "Trạng thái không được vượt quá 20 ký tự.")]
     public string? TrangThai { get; set; }
+
+    public int? MaLopDangThaoTac { get; set; }
 }

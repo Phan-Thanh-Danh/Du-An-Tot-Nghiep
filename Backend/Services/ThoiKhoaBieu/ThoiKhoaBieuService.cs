@@ -181,6 +181,12 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
 
         var status = NormalizeStatus(string.IsNullOrWhiteSpace(request.TrangThai) ? DraftStatus : request.TrangThai);
         var course = await ValidateCourseAsync(request.MaKhoaHoc, currentUser, cancellationToken);
+        
+        if (request.MaLopDangThaoTac.HasValue && course.MaLop != request.MaLopDangThaoTac.Value)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Khóa học này không thuộc lớp bạn đang thao tác.");
+        }
+
         await _schedulingContextService.ValidateSchedulableTermAsync(course.MaDonVi, course.MaHocKy ?? 0, cancellationToken);
         var shift = await ValidateShiftAsync(request.MaCaHoc, cancellationToken);
         var room = await ValidateRoomAsync(request.MaPhong, course.MaDonVi, currentUser, cancellationToken);
@@ -250,6 +256,12 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
         var oldSnapshot = await GetAuditSnapshotAsync(scheduleId, cancellationToken);
         var status = NormalizeStatus(request.TrangThai);
         var course = await ValidateCourseAsync(request.MaKhoaHoc, currentUser, cancellationToken);
+        
+        if (request.MaLopDangThaoTac.HasValue && course.MaLop != request.MaLopDangThaoTac.Value)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Khóa học này không thuộc lớp bạn đang thao tác.");
+        }
+
         await _schedulingContextService.ValidateSchedulableTermAsync(course.MaDonVi, course.MaHocKy ?? 0, cancellationToken);
         var shift = await ValidateShiftAsync(request.MaCaHoc, cancellationToken);
         var room = await ValidateRoomAsync(request.MaPhong, course.MaDonVi, currentUser, cancellationToken);
@@ -545,11 +557,20 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
             return;
         }
 
+        var startBlock = await _context.Blocks
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.MaBlock == course.MaBlockBatDau, cancellationToken);
+            
+        if (startBlock == null)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Không tìm thấy thông tin Block bắt đầu của khóa học.");
+        }
+
         var blocks = await _context.Blocks
             .AsNoTracking()
             .Where(b => b.MaHocKy == course.MaHocKy 
-                     && b.ThuTuBlock >= course.MaBlockBatDau 
-                     && b.ThuTuBlock < course.MaBlockBatDau + course.SoBlockHoc)
+                     && b.ThuTuBlock >= startBlock.ThuTuBlock 
+                     && b.ThuTuBlock < startBlock.ThuTuBlock + course.SoBlockHoc)
             .OrderBy(b => b.ThuTuBlock)
             .ToListAsync(cancellationToken);
 
@@ -563,12 +584,12 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
 
         if (startDate.HasValue && startDate.Value < minDate)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, $"Khóa học này chỉ được xếp lịch từ {minDate:dd/MM/yyyy} đến {maxDate:dd/MM/yyyy} (Block {course.MaBlockBatDau}-{course.MaBlockBatDau + course.SoBlockHoc - 1}).");
+            throw new ApiException(StatusCodes.Status400BadRequest, $"Khóa học này chỉ được xếp lịch từ {minDate:dd/MM/yyyy} đến {maxDate:dd/MM/yyyy} (Block {startBlock.ThuTuBlock}-{startBlock.ThuTuBlock + course.SoBlockHoc - 1}).");
         }
 
         if (endDate.HasValue && endDate.Value > maxDate)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, $"Khóa học này chỉ được xếp lịch từ {minDate:dd/MM/yyyy} đến {maxDate:dd/MM/yyyy} (Block {course.MaBlockBatDau}-{course.MaBlockBatDau + course.SoBlockHoc - 1}).");
+            throw new ApiException(StatusCodes.Status400BadRequest, $"Khóa học này chỉ được xếp lịch từ {minDate:dd/MM/yyyy} đến {maxDate:dd/MM/yyyy} (Block {startBlock.ThuTuBlock}-{startBlock.ThuTuBlock + course.SoBlockHoc - 1}).");
         }
     }
 

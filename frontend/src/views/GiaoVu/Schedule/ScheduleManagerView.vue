@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import {
   CalendarRange, Search, Plus, CheckCircle, AlertTriangle, BookOpen, X, Loader2, Pencil, Wand2,
-  Clock, MapPin, Sparkles, GraduationCap, Users, ChevronDown
+  Clock, Sparkles, GraduationCap, Users, ChevronDown
 } from 'lucide-vue-next'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
@@ -74,21 +74,11 @@ const shifts = computed(() => shiftOptions.value)
 
 // ── Lookup ────────────────────────────────────────────────────────
 const hocKyOptions = computed(() => {
-  return academicTermOptions.value.map(t => t.tenHocKy)
-})
-
-const termOptions = computed(() => {
-  const map = new Map()
-  courseOptions.value.forEach((c) => {
-    if (c.maHocKy) map.set(Number(c.maHocKy), c.tenHocKy || `Học kỳ ${c.maHocKy}`)
-  })
-  academicTermOptions.value.forEach((t) => {
-    if (t.maHocKy) map.set(Number(t.maHocKy), t.tenHocKy || `Học kỳ ${t.maHocKy}`)
-  })
-  rows.value.forEach((r) => {
-    if (r.hocKy?.ma) map.set(Number(r.hocKy.ma), r.hocKy.ten || `Học kỳ ${r.hocKy.ma}`)
-  })
-  return [...map.entries()].map(([value, label]) => ({ value, label }))
+  const seen = new Set()
+  return academicTermOptions.value
+    .filter(t => t.maHocKy && t.tenHocKy)
+    .filter(t => { if (seen.has(t.maHocKy)) return false; seen.add(t.maHocKy); return true })
+    .sort((a, b) => a.tenHocKy.localeCompare(b.tenHocKy))
 })
 
 const campusOptions = computed(() => {
@@ -170,9 +160,14 @@ const bulkCandidateCourses = computed(() => {
 })
 
 const filteredCourses = computed(() => {
-  if (!courseSearchQuery.value) return courseOptions.value.slice(0, 50)
+  // Lọc theo học kỳ đang chọn ở bộ lọc (nếu có)
+  let base = courseOptions.value
+  if (filterHocKy.value) {
+    base = base.filter(c => Number(c.maHocKy) === Number(filterHocKy.value))
+  }
+  if (!courseSearchQuery.value) return base.slice(0, 50)
   const q = courseSearchQuery.value.toLowerCase()
-  return courseOptions.value.filter(c =>
+  return base.filter(c =>
     c.tenMonHoc?.toLowerCase().includes(q) ||
     c.tenLop?.toLowerCase().includes(q) ||
     c.tenGiaoVien?.toLowerCase().includes(q) ||
@@ -180,20 +175,76 @@ const filteredCourses = computed(() => {
   ).slice(0, 100)
 })
 
-const filteredRooms = computed(() => {
-  let list = roomOptions.value
+const selectedToaNha = ref('')
+const selectedTang = ref('')
+
+const baseCampusRooms = computed(() => {
   const selectedCampusId = selectedCourse.value?.maDonVi
-  if (selectedCampusId) {
-    list = list.filter(r => Number(r.maDonVi) === Number(selectedCampusId))
-  }
-  if (!roomSearchQuery.value) return list
-  const q = roomSearchQuery.value.toLowerCase()
-  return list.filter(r =>
-    r.tenPhong?.toLowerCase().includes(q) ||
-    r.maCodePhong?.toLowerCase().includes(q) ||
-    r.tenToaNha?.toLowerCase().includes(q)
-  )
+  if (!selectedCampusId) return roomOptions.value
+  return roomOptions.value.filter(r => Number(r.maDonVi) === Number(selectedCampusId))
 })
+
+const toaNhaOptions = computed(() => {
+  const toas = new Map()
+  baseCampusRooms.value.forEach(r => {
+    if (r.maToaNha !== undefined && r.maToaNha !== null) {
+      const tenToaNha = r.tenToaNha || r.maCodeToaNha || `Tòa nhà ${r.maToaNha}`
+      toas.set(r.maToaNha, { maToaNha: r.maToaNha, tenToaNha })
+    }
+  })
+  return Array.from(toas.values()).sort((a, b) => a.tenToaNha.localeCompare(b.tenToaNha))
+})
+
+const tangOptions = computed(() => {
+  if (!selectedToaNha.value) return []
+  const tangs = new Map()
+  baseCampusRooms.value.filter(r => r.maToaNha === selectedToaNha.value).forEach(r => {
+    if (r.maTang !== undefined && r.maTang !== null) {
+      const tenTang = r.tenTang || `Tầng ${r.maTang}`
+      tangs.set(r.maTang, { maTang: r.maTang, tenTang })
+    }
+  })
+  return Array.from(tangs.values()).sort((a, b) => a.tenTang.localeCompare(b.tenTang))
+})
+
+const filteredRooms = computed(() => {
+  if (!selectedTang.value) return []
+  return baseCampusRooms.value.filter(r => r.maTang === selectedTang.value).sort((a, b) => (a.tenPhong || '').localeCompare(b.tenPhong || ''))
+})
+
+function onToaNhaChange() {
+  selectedTang.value = ''
+  form.value.maPhong = ''
+  form.value.phongHoc = null
+}
+
+function onTangChange() {
+  form.value.maPhong = ''
+  form.value.phongHoc = null
+}
+
+function onRoomSelectChange() {
+  const room = filteredRooms.value.find(r => r.maPhong === form.value.maPhong)
+  if (room) {
+    form.value.phongHoc = { ma: room.maPhong, ten: room.tenPhong }
+    conflictPreview.value = []
+  } else {
+    form.value.phongHoc = null
+  }
+}
+
+function preselectCascadingRoom(maPhong) {
+  if (!maPhong) {
+    selectedToaNha.value = ''
+    selectedTang.value = ''
+    return
+  }
+  const room = roomOptions.value.find(r => String(r.maPhong) === String(maPhong))
+  if (room) {
+    selectedToaNha.value = room.maToaNha || ''
+    selectedTang.value = room.maTang || ''
+  }
+}
 
 const emptyForm = () => ({
   maKhoaHoc: '',
@@ -209,7 +260,8 @@ const emptyForm = () => ({
   ngayBatDau: '',
   ngayKetThuc: '',
   trangThai: 'nhap',
-  dateMode: 'whole_term',
+  dateMode: 'whole_block',
+  isPreFilledCaHoc: false,
 })
 const form = ref(emptyForm())
 const editingId = ref(null)
@@ -340,6 +392,9 @@ function normalizeRoom(r) {
     maCodePhong: r.maCodePhong ?? r.MaCodePhong,
     tenPhong: r.tenPhong ?? r.TenPhong ?? r.maCodePhong ?? r.MaCodePhong,
     tenToaNha: r.tenToaNha ?? r.TenToaNha,
+    maToaNha: r.maToaNha ?? r.MaToaNha,
+    tenTang: r.tenTang ?? r.TenTang,
+    maTang: r.maTang ?? r.MaTang,
     maDonVi: r.maDonVi ?? r.MaDonVi,
     sucChua: r.sucChua ?? r.SucChua,
     trangThaiPhong: r.trangThaiPhong ?? r.TrangThaiPhong,
@@ -377,7 +432,11 @@ async function loadScheduleOptions() {
     const [termRes, courseRes, roomRes, shiftRes, scheduleRes] = await Promise.all([
       academicTermApi.list({ PageIndex: 1, PageSize: 100 }),
       courseApi.getCourses({ PageIndex: 1, PageSize: 100 }),
-      staffApi.getRooms({ pageIndex: 1, pageSize: 100 }),
+      staffApi.getRooms({ 
+        pageIndex: 1, 
+        pageSize: 100,
+        maDonVi: schedulingContext.selectedDonVi?.maDonVi
+      }),
       staffApi.getCaHoc(),
       scheduleApi.list({ PageIndex: 1, PageSize: 100 }),
     ])
@@ -414,7 +473,7 @@ async function loadScheduleOptions() {
 // ── Filtered rows ─────────────────────────────────────────────────
 const filteredRows = computed(() => {
   let list = rows.value
-  if (filterHocKy.value) list = list.filter(r => r.hocKy?.ten === filterHocKy.value)
+  if (filterHocKy.value) list = list.filter(r => Number(r.maHocKy ?? r.hocKy?.ma) === Number(filterHocKy.value))
   if (filterTrangThai.value) list = list.filter(r => r.trangThai === filterTrangThai.value)
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
@@ -525,6 +584,7 @@ function openCreate(thu, caId) {
   form.value = emptyForm()
   if (thu) form.value.thuTrongTuan = thu
   if (caId) form.value.caHoc = shiftOptions.value.find(c => c.id === caId) || shiftOptions.value[0] || null
+  if (thu && caId) form.value.isPreFilledCaHoc = true
   conflictPreview.value = []
   selectedRow.value = null
   showFormModal.value = true
@@ -554,6 +614,8 @@ async function openEdit(row) {
     ngayKetThuc: row.ngayKetThuc,
     trangThai: row.trangThai,
   }
+  form.value.maPhong = row.phongHoc?.ma || row.phongHoc?.maPhong || ''
+  preselectCascadingRoom(form.value.maPhong)
   conflictPreview.value = []
   selectedRow.value = null
   showFormModal.value = true
@@ -577,6 +639,8 @@ function closeFormModal() {
   showRoomDropdown.value = false
   courseSearchQuery.value = ''
   roomSearchQuery.value = ''
+  selectedToaNha.value = ''
+  selectedTang.value = ''
   suggestedSlots.value = []
   bulkReviewRows.value = []
   smartDraft.value = null
@@ -672,13 +736,7 @@ async function selectCourse(course) {
   }
 }
 
-function selectRoom(room) {
-  form.value.maPhong = room.maPhong
-  form.value.phongHoc = { ma: room.maPhong, ten: room.tenPhong }
-  roomSearchQuery.value = room.tenPhong || room.maCodePhong || ''
-  showRoomDropdown.value = false
-  conflictPreview.value = []
-}
+
 
 // ── Smart schedule suggestion (FE algorithm) ────────────────────
 // ── Xử lý Smart Schedule đã chuyển xuống Backend ────────────────────
@@ -778,6 +836,16 @@ function applySuggestion(slot) {
   checkConflicts()
 }
 
+const canPublish = computed(() => {
+  if (!courseProgress.value) return true
+  const current = courseProgress.value.soBuoiDaXep
+  const req = courseProgress.value.soBuoiYeuCau
+  if (formMode.value === 'create') {
+    return current + 1 >= req
+  }
+  return current >= req
+})
+
 // ── Conflict check via API ────────────────────────────────────────
 async function checkConflicts() {
   conflictPreview.value = []
@@ -831,6 +899,7 @@ function buildCreatePayload(status = 'nhap') {
     ngayBatDau: form.value.ngayBatDau || null,
     ngayKetThuc: form.value.ngayKetThuc || null,
     trangThai: status,
+      maLopDangThaoTac: schedulingContext.selectedClassId ? Number(schedulingContext.selectedClassId) : null,
   }
 }
 
@@ -868,7 +937,6 @@ async function suggestBulkCourses() {
     return
   }
 
-  const baseSchedules = existingSchedules.value.length ? existingSchedules.value : rows.value.map(viewToScheduleRecord)
   const courseIds = selected.map(c => Number(c.maKhoaHoc))
   
   try {
@@ -976,6 +1044,42 @@ async function generateSmartDraft() {
   }
 }
 
+// ── Publish all drafts ────────────────────────────────────────────
+const draftRows = computed(() => rows.value.filter(r => r.trangThai === 'nhap'))
+const publishingAll = ref(false)
+
+function publishAll() {
+  const drafts = draftRows.value
+  if (!drafts.length) {
+    popupStore.warning('Không có bản nháp', 'Tất cả lịch đã được xuất bản hoặc chưa có lịch nào.')
+    return
+  }
+  confirmAction.value = {
+    title: 'Xuất bản toàn bộ thời khóa biểu?',
+    message: `${drafts.length} ca học nháp sẽ được công bố chính thức tới sinh viên và giảng viên. Hành động này không thể hoàn tác.`,
+    label: 'Xuất bản tất cả',
+    variant: 'primary',
+    run: async () => {
+      confirmAction.value = null
+      publishingAll.value = true
+      try {
+        await Promise.all(
+          drafts.map(row =>
+            scheduleApi.update(row.id, { ...viewToBe(row), trangThai: 'da_xuat_ban' })
+          )
+        )
+        await loadData()
+        popupStore.success('Đã xuất bản', `Đã công bố ${drafts.length} ca học thành công.`)
+      } catch (e) {
+        popupStore.error('Lỗi xuất bản', e?.message || 'Một số lịch không thể xuất bản.')
+        await loadData()
+      } finally {
+        publishingAll.value = false
+      }
+    },
+  }
+}
+
 // ── Publish existing row ──────────────────────────────────────────
 function publishRow(row) {
   confirmAction.value = {
@@ -1060,6 +1164,17 @@ function thuLabel(thu) {
           <Wand2 v-else :size="15" class="mr-1 text-(--accent-violet)" />
           Xếp lịch thông minh
         </GlassButton>
+        <GlassButton
+          v-if="draftRows.length > 0"
+          variant="secondary"
+          class="h-10 shrink-0 border-emerald-500/50 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+          :disabled="publishingAll"
+          @click="publishAll"
+        >
+          <Loader2 v-if="publishingAll" :size="15" class="mr-1 animate-spin" />
+          <CheckCircle v-else :size="15" class="mr-1" />
+          Xuất bản ({{ draftRows.length }} nháp)
+        </GlassButton>
         <GlassButton variant="primary" class="h-10 shrink-0" @click="openCreate()">
           <Plus :size="15" class="mr-1" /> Tạo lịch
         </GlassButton>
@@ -1086,7 +1201,7 @@ function thuLabel(thu) {
       </label>
       <select v-model="filterHocKy" class="h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
         <option value="">Tất cả học kỳ</option>
-        <option v-for="hk in hocKyOptions" :key="hk">{{ hk }}</option>
+        <option v-for="hk in hocKyOptions" :key="hk.maHocKy" :value="hk.maHocKy">{{ hk.tenHocKy }}</option>
       </select>
       <select v-model="filterTrangThai" class="h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
         <option value="">Tất cả trạng thái</option>
@@ -1149,12 +1264,20 @@ function thuLabel(thu) {
               @dragover="onDragOver(day.value, shift.id, $event)"
               @dragleave="onDragLeave"
               @drop="onDrop(day.value, shift.id, $event)"
-              @click.self="openCreate(day.value, shift.id)"
             >
               <div
                 v-if="dragOverCell === `${day.value}-${shift.id}`"
                 class="absolute inset-1 border-2 border-dashed border-(--lg-primary) rounded-lg pointer-events-none z-0 opacity-60"
               ></div>
+
+              <!-- Empty state placeholder -->
+              <div
+                v-if="cellItems(day.value, shift.id).length === 0"
+                class="absolute inset-0 m-1 rounded-lg border border-dashed border-(--border-default) flex items-center justify-center opacity-0 hover:opacity-100 hover:bg-(--surface-input) cursor-pointer transition-all z-0"
+                @click="openCreate(day.value, shift.id)"
+              >
+                <Plus class="text-(--text-muted) w-5 h-5" />
+              </div>
 
               <div
                 v-for="row in cellItems(day.value, shift.id)" :key="row.id"
@@ -1181,14 +1304,6 @@ function thuLabel(thu) {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div
-                v-if="cellItems(day.value, shift.id).length === 0"
-                class="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
-                @click.stop="openCreate(day.value, shift.id)"
-              >
-                <Plus :size="16" class="text-(--text-muted)" />
               </div>
             </div>
           </div>
@@ -1260,13 +1375,6 @@ function thuLabel(thu) {
           </div>
 
           <div class="p-3 border-t border-(--border-default) bg-(--surface-modal) flex flex-col gap-2">
-            <GlassButton
-              v-if="selectedRow.trangThai === 'nhap'"
-              variant="primary" class="w-full h-9 justify-center text-sm"
-              @click="publishRow(selectedRow)"
-            >
-              <CheckCircle :size="15" class="mr-1" /> Xuất bản lịch
-            </GlassButton>
             <GlassButton
               v-if="selectedRow.trangThai !== 'da_huy'"
               variant="secondary" class="w-full h-9 justify-center text-sm text-(--color-danger-text)! border-(--border-default) hover:bg-(--color-danger-bg)!"
@@ -1363,7 +1471,7 @@ function thuLabel(thu) {
                 <div
                   v-if="showCourseDropdown && filteredCourses.length > 0"
                   class="absolute z-20 left-0 right-0 top-full mt-1 bg-(--surface-modal) border border-(--border-card) rounded-xl shadow-xl max-h-64 overflow-y-auto"
-                  @click.outside="showCourseDropdown = false"
+                  @click="showCourseDropdown = false"
                 >
                   <button
                     v-for="c in filteredCourses" :key="c.maKhoaHoc"
@@ -1382,13 +1490,13 @@ function thuLabel(thu) {
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs font-semibold text-(--text-muted) mb-1">Thứ *</label>
-                  <select v-model="form.thuTrongTuan" class="w-full h-9 px-2 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
+                  <select v-model="form.thuTrongTuan" :disabled="form.isPreFilledCaHoc" class="w-full h-9 px-2 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus) disabled:opacity-50">
                     <option v-for="t in thuTrongTuanOptions" :key="t.value" :value="t.value">{{ t.label }}</option>
                   </select>
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-(--text-muted) mb-1">Ca học *</label>
-                  <select v-model="form.caHoc" class="w-full h-9 px-2 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
+                  <select v-model="form.caHoc" :disabled="form.isPreFilledCaHoc" class="w-full h-9 px-2 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus) disabled:opacity-50">
                     <option v-for="ca in shiftOptions" :key="ca.id" :value="ca">{{ ca.tenCa }} ({{ ca.gioBatDau }}–{{ ca.gioKetThuc }})</option>
                   </select>
                 </div>
@@ -1404,35 +1512,41 @@ function thuLabel(thu) {
               </div>
 
               <!-- Room search -->
-              <div class="relative">
-                <label class="block text-xs font-semibold text-(--text-muted) mb-1">Phòng học *</label>
-                <div class="relative">
-                  <input
-                    v-model="roomSearchQuery"
-                    type="text"
-                    placeholder="Tìm phòng theo tên, mã, tòa nhà..."
-                    class="w-full h-9 pl-3 pr-8 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)"
-                    @focus="showRoomDropdown = true"
-                    @input="showRoomDropdown = true"
-                  />
-                  <MapPin :size="14" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-(--text-muted)" />
-                </div>
-                <div
-                  v-if="showRoomDropdown && filteredRooms.length > 0"
-                  class="absolute z-20 left-0 right-0 top-full mt-1 bg-(--surface-modal) border border-(--border-card) rounded-xl shadow-xl max-h-56 overflow-y-auto"
-                  @click.outside="showRoomDropdown = false"
-                >
-                  <button
-                    v-for="r in filteredRooms" :key="r.maPhong"
-                    class="w-full px-3 py-2.5 text-left text-sm hover:bg-(--surface-hover) transition-colors border-b last:border-b-0 border-(--border-default) flex items-center gap-2"
-                    @click="selectRoom(r)"
+              <div class="grid grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-(--text-muted) mb-1">Tòa nhà *</label>
+                  <select
+                    v-model="selectedToaNha"
+                    @change="onToaNhaChange"
+                    class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)"
                   >
-                    <MapPin :size="14" class="text-(--lg-primary) shrink-0" />
-                    <div class="min-w-0 flex-1">
-                      <span class="font-medium text-(--text-heading) block truncate">{{ r.tenPhong }}</span>
-                      <span class="text-(--text-muted) text-xs block truncate">{{ r.maCodePhong }} · {{ r.tenToaNha }} ({{ r.sucChua }} chỗ)</span>
-                    </div>
-                  </button>
+                    <option value="">-- Chọn tòa nhà --</option>
+                    <option v-for="t in toaNhaOptions" :key="t.maToaNha" :value="t.maToaNha">{{ t.tenToaNha }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-(--text-muted) mb-1">Tầng/Lầu *</label>
+                  <select
+                    v-model="selectedTang"
+                    @change="onTangChange"
+                    :disabled="!selectedToaNha"
+                    class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus) disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">-- Chọn tầng --</option>
+                    <option v-for="t in tangOptions" :key="t.maTang" :value="t.maTang">{{ t.tenTang }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-(--text-muted) mb-1">Phòng học *</label>
+                  <select
+                    v-model="form.maPhong"
+                    @change="onRoomSelectChange"
+                    :disabled="!selectedTang"
+                    class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus) disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">-- Chọn phòng --</option>
+                    <option v-for="r in filteredRooms" :key="r.maPhong" :value="r.maPhong">{{ r.tenPhong }} ({{ r.sucChua }} chỗ)</option>
+                  </select>
                 </div>
               </div>
 
@@ -1597,13 +1711,10 @@ function thuLabel(thu) {
               <GlassButton variant="secondary" class="h-10 px-5 text-sm" @click="closeFormModal">
                 Hủy
               </GlassButton>
-              <GlassButton v-if="activeCreateMode === 'quick' || formMode === 'edit'" variant="secondary" class="h-10 px-5 text-sm" :disabled="submitting" @click="saveDraft">
-                <BookOpen :size="15" class="mr-1.5" /> Lưu nháp
-              </GlassButton>
-              <GlassButton v-if="activeCreateMode === 'quick' || formMode === 'edit'" variant="primary" class="h-10 px-5 text-sm" :disabled="submitting" @click="publishDraft">
+              <GlassButton v-if="activeCreateMode === 'quick' || formMode === 'edit'" variant="primary" class="h-10 px-5 text-sm" :disabled="submitting" @click="saveDraft">
                 <Loader2 v-if="submitting" :size="15" class="mr-1.5 animate-spin" />
-                <CheckCircle v-else :size="15" class="mr-1.5" />
-                {{ submitting ? 'Đang lưu...' : 'Xuất bản ngay' }}
+                <BookOpen v-else :size="15" class="mr-1.5" />
+                {{ submitting ? 'Đang lưu...' : 'Lưu nháp' }}
               </GlassButton>
               <GlassButton v-if="activeCreateMode === 'bulk' && formMode !== 'edit'" variant="primary" class="h-10 px-5 text-sm" :disabled="bulkCreating || !bulkReviewRows.length" @click="createBulkDrafts">
                 <Loader2 v-if="bulkCreating" :size="15" class="mr-1.5 animate-spin" />
@@ -1622,12 +1733,12 @@ function thuLabel(thu) {
 
     <ConfirmActionDialog
       v-if="confirmAction"
-      :show="true"
+      :modelValue="!!confirmAction"
       :title="confirmAction.title"
       :message="confirmAction.message"
       :confirmLabel="confirmAction.label"
       :variant="confirmAction.variant"
-      @confirm="confirmAction.run"
+      @confirm="confirmAction?.run()"
       @cancel="confirmAction = null"
     />
   </div>

@@ -7,5 +7,6 @@ public class SchedulingTermDto
     public string TenHocKy { get; set; } = string.Empty;
     public DateOnly NgayBatDau { get; set; }
     public DateOnly NgayKetThuc { get; set; }
+    public bool DaKhoa { get; set; }
     public int? DaysUntilStart { get; set; }
 }
