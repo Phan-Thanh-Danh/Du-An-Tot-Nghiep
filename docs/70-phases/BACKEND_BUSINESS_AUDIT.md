@@ -39,7 +39,7 @@ Nói ngắn gọn, hệ thống làm 3 việc chính:
 
 ## 3. Kiến trúc dữ liệu chính
 
-Backend dùng ASP.NET Core + EF Core + SQL Server. DbContext chính là [Backend/Data/ApplicationDbContext.cs](../Backend/Data/ApplicationDbContext.cs), chứa rất nhiều DbSet cho các nhóm dữ liệu.
+Backend dùng ASP.NET Core + EF Core + SQL Server. DbContext chính là [Backend/Data/ApplicationDbContext.cs](../../Backend/Data/ApplicationDbContext.cs), chứa rất nhiều DbSet cho các nhóm dữ liệu.
 
 ### 3.1 Nhóm dữ liệu người dùng và phân quyền
 

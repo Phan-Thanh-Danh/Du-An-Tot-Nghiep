@@ -2,8 +2,10 @@
  * Regenerate DOCUMENT_REFERENCES.csv from actual Markdown source links.
  *
  * Scans all .md files in the repo, extracts markdown links (inline, reference-style,
- * HTML, and plain-text paths), resolves them, validates targets exist, and writes
+ * and HTML <a>/<img>), resolves them, validates targets exist, and writes
  * the CSV with a ValidationStatus column.
+ *
+ * Does NOT scan plain-text/backtick paths — only formal markdown link syntax.
  *
  * Exits non-zero when any broken reference is found.
  */

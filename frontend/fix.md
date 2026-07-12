@@ -50,9 +50,11 @@ Trước đây, dữ liệu mock được quản lý tập trung ở file `stude
 
 ---
 
-## 3. Các View hiển thị sử dụng dữ liệu đồng bộ
+## 3. Các View hiển thị sử dụng dữ liệu đồng bộ (Historical)
 
-Toàn bộ các trang chức năng của sinh viên đã được liên kết với dữ liệu reactive từ `studentData.mock.js`. Khi đăng nhập bằng tài khoản khác nhau, dữ liệu trên các trang sau sẽ tự động thay đổi theo đúng chuyên ngành:
+> ⚠ **Tài liệu cũ (historical):** `studentData.mock.js` đã bị xóa. Các view dưới đây trước đây được liên kết với mock data tập trung; implementation hiện tại không còn dùng cơ chế này.
+
+Toàn bộ các trang chức năng của sinh viên trước đây được liên kết với dữ liệu reactive từ `studentData.mock.js`. Khi đăng nhập bằng tài khoản khác nhau, dữ liệu trên các trang sau sẽ tự động thay đổi theo đúng chuyên ngành:
 
 *   **Trang chủ Dashboard**: [Dashboard.vue](src/views/SinhVien/Dashboard.vue)
 *   **Danh sách Khóa học**: [KhoacHoc.vue](src/views/SinhVien/HocTap/KhoacHoc.vue)
