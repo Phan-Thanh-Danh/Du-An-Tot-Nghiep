@@ -60,7 +60,7 @@
 - **Gap Details**: UI is static or API integration is missing/partial.
 - **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-## CAP-TCH-015: Teacher manages assignments
+## CAP-TCH-015: Teacher lists, creates, details, updates, and deletes assignments
 - **Role**: Teacher
 - **Status**: PARTIAL
 - **Gap Details**: UI is static or API integration is missing/partial.

@@ -151,6 +151,13 @@ if (fs.existsSync(path.join(ROOT, 'docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv'))) 
       if (r['BackendStatus'] === 'MISSING' && r['FrontendStatus'] === 'IMPLEMENTED') {
           errors.push(`${r['CapabilityId']}: Contradiction - Backend is MISSING but Frontend is IMPLEMENTED.`);
       }
+      
+      // 5d. MissingEvidence verification
+      if (r['BackendStatus'] === 'MISSING') {
+          if (!r['MissingEvidence'] || r['MissingEvidence'].trim() === '') {
+              errors.push(`${r['CapabilityId']}: BackendStatus is MISSING but MissingEvidence is empty.`);
+          }
+      }
   });
 
   // 6. Referential integrity: every MISSING/PARTIAL capability must have a backlog entry

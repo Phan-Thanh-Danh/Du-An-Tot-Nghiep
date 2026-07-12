@@ -25,6 +25,6 @@
 | CAP-TCH-012 | Teacher submits teaching preferences | `EP-B587373E` | IMPLEMENTED | PARTIAL |
 | CAP-TCH-013 | Teacher views student questions | `EP-F2C043D4` | IMPLEMENTED | PARTIAL |
 | CAP-TCH-014 | Teacher replies to student question | `EP-E7D8DFEC` | IMPLEMENTED | PARTIAL |
-| CAP-TCH-015 | Teacher manages assignments | `EP-15EB41CF|EP-A8F32614` | IMPLEMENTED | PARTIAL |
+| CAP-TCH-015 | Teacher lists, creates, details, updates, and deletes assignments | `EP-15EB41CF|EP-A8F32614|EP-52BD1B27|EP-D41BED18|EP-A3ED0009` | IMPLEMENTED | PARTIAL |
 | CAP-TCH-016 | Teacher grades submissions | `EP-B58C302C` | IMPLEMENTED | PARTIAL |
 | CAP-TCH-017 | Teacher views exam results | `EP-23F51431` | IMPLEMENTED | PARTIAL |

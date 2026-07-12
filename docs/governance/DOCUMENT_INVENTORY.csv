@@ -1,72 +1,72 @@
 ID,CurrentPath,FileName,Extension,Domain,Purpose,Owner,SourceOfTruth,GeneratedOrManual,Status,ProposedPath,Risk
 DOC-001,CURSOR.md,CURSOR.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,CURSOR.md,Low
-DOC-002,design-md/airbnb/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/airbnb/README.md,Low
-DOC-003,design-md/airtable/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/airtable/README.md,Low
-DOC-004,design-md/apple/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/apple/README.md,Low
-DOC-005,design-md/bmw/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/bmw/README.md,Low
-DOC-006,design-md/cal/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/cal/README.md,Low
-DOC-007,design-md/claude/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/claude/README.md,Low
-DOC-008,design-md/clay/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/clay/README.md,Low
-DOC-009,design-md/clickhouse/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/clickhouse/README.md,Low
-DOC-010,design-md/cohere/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/cohere/README.md,Low
-DOC-011,design-md/coinbase/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/coinbase/README.md,Low
-DOC-012,design-md/composio/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/composio/README.md,Low
-DOC-013,design-md/cursor/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/cursor/README.md,Low
-DOC-014,design-md/elevenlabs/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/elevenlabs/README.md,Low
-DOC-015,design-md/expo/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/expo/README.md,Low
-DOC-016,design-md/ferrari/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/ferrari/README.md,Low
-DOC-017,design-md/figma/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/figma/README.md,Low
-DOC-018,design-md/framer/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/framer/README.md,Low
-DOC-019,design-md/hashicorp/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/hashicorp/README.md,Low
-DOC-020,design-md/ibm/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/ibm/README.md,Low
-DOC-021,design-md/intercom/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/intercom/README.md,Low
-DOC-022,design-md/kraken/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/kraken/README.md,Low
-DOC-023,design-md/lamborghini/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/lamborghini/README.md,Low
-DOC-024,design-md/linear.app/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/linear.app/README.md,Low
-DOC-025,design-md/lovable/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/lovable/README.md,Low
-DOC-026,design-md/minimax/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/minimax/README.md,Low
-DOC-027,design-md/mintlify/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/mintlify/README.md,Low
-DOC-028,design-md/miro/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/miro/README.md,Low
-DOC-029,design-md/mistral.ai/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/mistral.ai/README.md,Low
-DOC-030,design-md/mongodb/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/mongodb/README.md,Low
-DOC-031,design-md/notion/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/notion/README.md,Low
-DOC-032,design-md/nvidia/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/nvidia/README.md,Low
-DOC-033,design-md/ollama/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/ollama/README.md,Low
-DOC-034,design-md/opencode.ai/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/opencode.ai/README.md,Low
-DOC-035,design-md/pinterest/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/pinterest/README.md,Low
-DOC-036,design-md/posthog/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/posthog/README.md,Low
-DOC-037,design-md/raycast/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/raycast/README.md,Low
-DOC-038,design-md/renault/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/renault/README.md,Low
-DOC-039,design-md/replicate/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/replicate/README.md,Low
-DOC-040,design-md/resend/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/resend/README.md,Low
-DOC-041,design-md/revolut/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/revolut/README.md,Low
-DOC-042,design-md/runwayml/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/runwayml/README.md,Low
-DOC-043,design-md/sanity/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/sanity/README.md,Low
-DOC-044,design-md/semrush/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/semrush/README.md,Low
-DOC-045,design-md/sentry/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/sentry/README.md,Low
-DOC-046,design-md/spacex/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/spacex/README.md,Low
-DOC-047,design-md/spotify/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/spotify/README.md,Low
-DOC-048,design-md/stripe/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/stripe/README.md,Low
-DOC-049,design-md/supabase/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/supabase/README.md,Low
-DOC-050,design-md/superhuman/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/superhuman/README.md,Low
-DOC-051,design-md/tesla/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/tesla/README.md,Low
-DOC-052,design-md/together.ai/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/together.ai/README.md,Low
-DOC-053,design-md/uber/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/uber/README.md,Low
-DOC-054,design-md/vercel/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/vercel/README.md,Low
-DOC-055,design-md/voltagent/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/voltagent/README.md,Low
-DOC-056,design-md/warp/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/warp/README.md,Low
-DOC-057,design-md/webflow/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/webflow/README.md,Low
-DOC-058,design-md/wise/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/wise/README.md,Low
-DOC-059,design-md/x.ai/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/x.ai/README.md,Low
-DOC-060,design-md/zapier/README.md,README.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,design-md/zapier/README.md,Low
+DOC-002,design-md/airbnb/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/airbnb/README.md,Low
+DOC-003,design-md/airtable/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/airtable/README.md,Low
+DOC-004,design-md/apple/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/apple/README.md,Low
+DOC-005,design-md/bmw/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/bmw/README.md,Low
+DOC-006,design-md/cal/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/cal/README.md,Low
+DOC-007,design-md/claude/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/claude/README.md,Low
+DOC-008,design-md/clay/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/clay/README.md,Low
+DOC-009,design-md/clickhouse/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/clickhouse/README.md,Low
+DOC-010,design-md/cohere/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/cohere/README.md,Low
+DOC-011,design-md/coinbase/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/coinbase/README.md,Low
+DOC-012,design-md/composio/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/composio/README.md,Low
+DOC-013,design-md/cursor/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/cursor/README.md,Low
+DOC-014,design-md/elevenlabs/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/elevenlabs/README.md,Low
+DOC-015,design-md/expo/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/expo/README.md,Low
+DOC-016,design-md/ferrari/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/ferrari/README.md,Low
+DOC-017,design-md/figma/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/figma/README.md,Low
+DOC-018,design-md/framer/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/framer/README.md,Low
+DOC-019,design-md/hashicorp/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/hashicorp/README.md,Low
+DOC-020,design-md/ibm/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/ibm/README.md,Low
+DOC-021,design-md/intercom/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/intercom/README.md,Low
+DOC-022,design-md/kraken/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/kraken/README.md,Low
+DOC-023,design-md/lamborghini/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/lamborghini/README.md,Low
+DOC-024,design-md/linear.app/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/linear.app/README.md,Low
+DOC-025,design-md/lovable/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/lovable/README.md,Low
+DOC-026,design-md/minimax/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/minimax/README.md,Low
+DOC-027,design-md/mintlify/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/mintlify/README.md,Low
+DOC-028,design-md/miro/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/miro/README.md,Low
+DOC-029,design-md/mistral.ai/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/mistral.ai/README.md,Low
+DOC-030,design-md/mongodb/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/mongodb/README.md,Low
+DOC-031,design-md/notion/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/notion/README.md,Low
+DOC-032,design-md/nvidia/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/nvidia/README.md,Low
+DOC-033,design-md/ollama/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/ollama/README.md,Low
+DOC-034,design-md/opencode.ai/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/opencode.ai/README.md,Low
+DOC-035,design-md/pinterest/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/pinterest/README.md,Low
+DOC-036,design-md/posthog/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/posthog/README.md,Low
+DOC-037,design-md/raycast/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/raycast/README.md,Low
+DOC-038,design-md/renault/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/renault/README.md,Low
+DOC-039,design-md/replicate/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/replicate/README.md,Low
+DOC-040,design-md/resend/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/resend/README.md,Low
+DOC-041,design-md/revolut/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/revolut/README.md,Low
+DOC-042,design-md/runwayml/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/runwayml/README.md,Low
+DOC-043,design-md/sanity/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/sanity/README.md,Low
+DOC-044,design-md/semrush/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/semrush/README.md,Low
+DOC-045,design-md/sentry/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/sentry/README.md,Low
+DOC-046,design-md/spacex/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/spacex/README.md,Low
+DOC-047,design-md/spotify/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/spotify/README.md,Low
+DOC-048,design-md/stripe/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/stripe/README.md,Low
+DOC-049,design-md/supabase/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/supabase/README.md,Low
+DOC-050,design-md/superhuman/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/superhuman/README.md,Low
+DOC-051,design-md/tesla/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/tesla/README.md,Low
+DOC-052,design-md/together.ai/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/together.ai/README.md,Low
+DOC-053,design-md/uber/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/uber/README.md,Low
+DOC-054,design-md/vercel/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/vercel/README.md,Low
+DOC-055,design-md/voltagent/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/voltagent/README.md,Low
+DOC-056,design-md/warp/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/warp/README.md,Low
+DOC-057,design-md/webflow/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/webflow/README.md,Low
+DOC-058,design-md/wise/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/wise/README.md,Low
+DOC-059,design-md/x.ai/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/x.ai/README.md,Low
+DOC-060,design-md/zapier/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,design-md/zapier/README.md,Low
 DOC-061,DESIGN.md,DESIGN.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,DESIGN.md,Low
 DOC-062,DESIGN_LIQUID_GLASS.md,DESIGN_LIQUID_GLASS.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,DESIGN_LIQUID_GLASS.md,Low
 DOC-063,docs/00-project/README.md,README.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/00-project/README.md,Low
-DOC-064,docs/10-frontend/README.md,README.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/10-frontend/README.md,Low
-DOC-065,docs/20-backend/README.md,README.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/20-backend/README.md,Low
-DOC-066,docs/30-database/README.md,README.md,.md,Database,Documentation,Backend Team,Yes,Manual,REVIEW_REQUIRED,docs/30-database/README.md,Low
-DOC-067,docs/30-database/schema/ADMIN_USERS_SCHEMA.sql,ADMIN_USERS_SCHEMA.sql,.sql,Database,Documentation,Backend Team,Yes,Manual,REVIEW_REQUIRED,docs/30-database/schema/ADMIN_USERS_SCHEMA.sql,Low
-DOC-068,docs/40-product-ux/README.md,README.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/40-product-ux/README.md,Low
+DOC-064,docs/10-frontend/README.md,README.md,.md,Frontend,Documentation,Frontend Lead,Yes,Manual,REVIEW_REQUIRED,docs/10-frontend/README.md,Low
+DOC-065,docs/20-backend/README.md,README.md,.md,Backend,Documentation,Backend Lead,Yes,Manual,REVIEW_REQUIRED,docs/20-backend/README.md,Low
+DOC-066,docs/30-database/README.md,README.md,.md,Database,Documentation,Database Admin,Yes,Manual,REVIEW_REQUIRED,docs/30-database/README.md,Low
+DOC-067,docs/30-database/schema/ADMIN_USERS_SCHEMA.sql,ADMIN_USERS_SCHEMA.sql,.sql,Database,Documentation,Database Admin,Yes,Manual,REVIEW_REQUIRED,docs/30-database/schema/ADMIN_USERS_SCHEMA.sql,Low
+DOC-068,docs/40-product-ux/README.md,README.md,.md,UX,Documentation,UX Designer,Yes,Manual,REVIEW_REQUIRED,docs/40-product-ux/README.md,Low
 DOC-069,docs/50-integration/README.md,README.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/50-integration/README.md,Low
 DOC-070,docs/60-testing/README.md,README.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/60-testing/README.md,Low
 DOC-071,docs/70-phases/README.md,README.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/70-phases/README.md,Low
@@ -184,27 +184,27 @@ DOC-183,docs/FE_UI_REWORK_BLUEPRINT.md,FE_UI_REWORK_BLUEPRINT.md,.md,UX,Document
 DOC-184,docs/FE_UI_SYSTEM_AUDIT.md,FE_UI_SYSTEM_AUDIT.md,.md,UX,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/FE_UI_SYSTEM_AUDIT.md,Low
 DOC-185,docs/FRONTEND_ARCHITECTURE.md,FRONTEND_ARCHITECTURE.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/FRONTEND_ARCHITECTURE.md,Low
 DOC-186,docs/FRONTEND_STYLE_ALIGNMENT.md,FRONTEND_STYLE_ALIGNMENT.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/FRONTEND_STYLE_ALIGNMENT.md,Low
-DOC-187,docs/governance/DOCUMENT_INVENTORY.csv,DOCUMENT_INVENTORY.csv,.csv,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/DOCUMENT_INVENTORY.csv,Low
-DOC-188,docs/governance/DOCUMENT_LIFECYCLE.md,DOCUMENT_LIFECYCLE.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/DOCUMENT_LIFECYCLE.md,Low
-DOC-189,docs/governance/DOCUMENT_MAP.md,DOCUMENT_MAP.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/DOCUMENT_MAP.md,Low
-DOC-190,docs/governance/DOCUMENT_MOVE_PLAN.csv,DOCUMENT_MOVE_PLAN.csv,.csv,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/DOCUMENT_MOVE_PLAN.csv,Low
-DOC-191,docs/governance/DOCUMENT_NAMING_STANDARD.md,DOCUMENT_NAMING_STANDARD.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/DOCUMENT_NAMING_STANDARD.md,Low
-DOC-192,docs/governance/DOCUMENT_OWNERSHIP.md,DOCUMENT_OWNERSHIP.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/DOCUMENT_OWNERSHIP.md,Low
-DOC-193,docs/governance/README.md,README.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/README.md,Low
-DOC-194,docs/governance/REORGANIZATION_REPORT.md,REORGANIZATION_REPORT.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/REORGANIZATION_REPORT.md,Low
-DOC-195,docs/p0/FEATURE_UX_CONTRACT_TEMPLATE.md,FEATURE_UX_CONTRACT_TEMPLATE.md,.md,Governance,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/p0/FEATURE_UX_CONTRACT_TEMPLATE.md,Low
-DOC-196,docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv,P0_BACKEND_CAPABILITY_MATRIX.csv,.csv,Governance,Audit,Project Lead,No,Generated,REVIEW_REQUIRED,docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv,Low
-DOC-197,docs/p0/P0_BACKEND_ENDPOINT_INVENTORY.csv,P0_BACKEND_ENDPOINT_INVENTORY.csv,.csv,Governance,Documentation,Project Lead,No,Generated,REVIEW_REQUIRED,docs/p0/P0_BACKEND_ENDPOINT_INVENTORY.csv,Low
-DOC-198,docs/p0/P0_MISSING_BACKEND_BACKLOG.md,P0_MISSING_BACKEND_BACKLOG.md,.md,Governance,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/p0/P0_MISSING_BACKEND_BACKLOG.md,Low
-DOC-199,docs/p0/P0_TEAM_OWNERSHIP.md,P0_TEAM_OWNERSHIP.md,.md,Governance,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/p0/P0_TEAM_OWNERSHIP.md,Low
-DOC-200,docs/p0/roles/ACADEMIC_STAFF_HANDOFF.md,ACADEMIC_STAFF_HANDOFF.md,.md,Governance,Role Handoff,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/p0/roles/ACADEMIC_STAFF_HANDOFF.md,Low
-DOC-201,docs/p0/roles/CONTENT_COUNCIL_HANDOFF.md,CONTENT_COUNCIL_HANDOFF.md,.md,Governance,Role Handoff,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/p0/roles/CONTENT_COUNCIL_HANDOFF.md,Low
-DOC-202,docs/p0/roles/PARENT_HANDOFF.md,PARENT_HANDOFF.md,.md,Governance,Role Handoff,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/p0/roles/PARENT_HANDOFF.md,Low
-DOC-203,docs/p0/roles/PRINCIPAL_HANDOFF.md,PRINCIPAL_HANDOFF.md,.md,Governance,Role Handoff,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/p0/roles/PRINCIPAL_HANDOFF.md,Low
-DOC-204,docs/p0/roles/STUDENT_HANDOFF.md,STUDENT_HANDOFF.md,.md,Governance,Role Handoff,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/p0/roles/STUDENT_HANDOFF.md,Low
-DOC-205,docs/p0/roles/SUPER_ADMIN_HANDOFF.md,SUPER_ADMIN_HANDOFF.md,.md,Governance,Role Handoff,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/p0/roles/SUPER_ADMIN_HANDOFF.md,Low
-DOC-206,docs/p0/roles/TEACHER_HANDOFF.md,TEACHER_HANDOFF.md,.md,Governance,Role Handoff,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/p0/roles/TEACHER_HANDOFF.md,Low
-DOC-207,docs/p0/validate-p0.mjs,validate-p0.mjs,.mjs,Governance,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/p0/validate-p0.mjs,Low
+DOC-187,docs/governance/DOCUMENT_INVENTORY.csv,DOCUMENT_INVENTORY.csv,.csv,Governance,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/DOCUMENT_INVENTORY.csv,Low
+DOC-188,docs/governance/DOCUMENT_LIFECYCLE.md,DOCUMENT_LIFECYCLE.md,.md,Governance,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/DOCUMENT_LIFECYCLE.md,Low
+DOC-189,docs/governance/DOCUMENT_MAP.md,DOCUMENT_MAP.md,.md,Governance,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/DOCUMENT_MAP.md,Low
+DOC-190,docs/governance/DOCUMENT_MOVE_PLAN.csv,DOCUMENT_MOVE_PLAN.csv,.csv,Governance,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/DOCUMENT_MOVE_PLAN.csv,Low
+DOC-191,docs/governance/DOCUMENT_NAMING_STANDARD.md,DOCUMENT_NAMING_STANDARD.md,.md,Governance,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/DOCUMENT_NAMING_STANDARD.md,Low
+DOC-192,docs/governance/DOCUMENT_OWNERSHIP.md,DOCUMENT_OWNERSHIP.md,.md,Governance,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/DOCUMENT_OWNERSHIP.md,Low
+DOC-193,docs/governance/README.md,README.md,.md,Governance,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/README.md,Low
+DOC-194,docs/governance/REORGANIZATION_REPORT.md,REORGANIZATION_REPORT.md,.md,Governance,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/governance/REORGANIZATION_REPORT.md,Low
+DOC-195,docs/p0/FEATURE_UX_CONTRACT_TEMPLATE.md,FEATURE_UX_CONTRACT_TEMPLATE.md,.md,Product,Documentation,Product Manager,Yes,Manual,REVIEW_REQUIRED,docs/p0/FEATURE_UX_CONTRACT_TEMPLATE.md,Low
+DOC-196,docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv,P0_BACKEND_CAPABILITY_MATRIX.csv,.csv,Product,Audit,Product Manager,No,Generated,REVIEW_REQUIRED,docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv,Low
+DOC-197,docs/p0/P0_BACKEND_ENDPOINT_INVENTORY.csv,P0_BACKEND_ENDPOINT_INVENTORY.csv,.csv,Product,Documentation,Product Manager,No,Generated,REVIEW_REQUIRED,docs/p0/P0_BACKEND_ENDPOINT_INVENTORY.csv,Low
+DOC-198,docs/p0/P0_MISSING_BACKEND_BACKLOG.md,P0_MISSING_BACKEND_BACKLOG.md,.md,Product,Documentation,Product Manager,Yes,Manual,REVIEW_REQUIRED,docs/p0/P0_MISSING_BACKEND_BACKLOG.md,Low
+DOC-199,docs/p0/P0_TEAM_OWNERSHIP.md,P0_TEAM_OWNERSHIP.md,.md,Product,Documentation,Product Manager,Yes,Manual,REVIEW_REQUIRED,docs/p0/P0_TEAM_OWNERSHIP.md,Low
+DOC-200,docs/p0/roles/ACADEMIC_STAFF_HANDOFF.md,ACADEMIC_STAFF_HANDOFF.md,.md,Product,Role Handoff,Product Manager,Yes,Manual,REVIEW_REQUIRED,docs/p0/roles/ACADEMIC_STAFF_HANDOFF.md,Low
+DOC-201,docs/p0/roles/CONTENT_COUNCIL_HANDOFF.md,CONTENT_COUNCIL_HANDOFF.md,.md,Product,Role Handoff,Product Manager,Yes,Manual,REVIEW_REQUIRED,docs/p0/roles/CONTENT_COUNCIL_HANDOFF.md,Low
+DOC-202,docs/p0/roles/PARENT_HANDOFF.md,PARENT_HANDOFF.md,.md,Product,Role Handoff,Product Manager,Yes,Manual,REVIEW_REQUIRED,docs/p0/roles/PARENT_HANDOFF.md,Low
+DOC-203,docs/p0/roles/PRINCIPAL_HANDOFF.md,PRINCIPAL_HANDOFF.md,.md,Product,Role Handoff,Product Manager,Yes,Manual,REVIEW_REQUIRED,docs/p0/roles/PRINCIPAL_HANDOFF.md,Low
+DOC-204,docs/p0/roles/STUDENT_HANDOFF.md,STUDENT_HANDOFF.md,.md,Product,Role Handoff,Product Manager,Yes,Manual,REVIEW_REQUIRED,docs/p0/roles/STUDENT_HANDOFF.md,Low
+DOC-205,docs/p0/roles/SUPER_ADMIN_HANDOFF.md,SUPER_ADMIN_HANDOFF.md,.md,Product,Role Handoff,Product Manager,Yes,Manual,REVIEW_REQUIRED,docs/p0/roles/SUPER_ADMIN_HANDOFF.md,Low
+DOC-206,docs/p0/roles/TEACHER_HANDOFF.md,TEACHER_HANDOFF.md,.md,Product,Role Handoff,Product Manager,Yes,Manual,REVIEW_REQUIRED,docs/p0/roles/TEACHER_HANDOFF.md,Low
+DOC-207,docs/p0/validate-p0.mjs,validate-p0.mjs,.mjs,Product,Documentation,Product Manager,Yes,Manual,REVIEW_REQUIRED,docs/p0/validate-p0.mjs,Low
 DOC-208,docs/P12_3_SMART_TIMETABLE_STRESS_SMOKE_REPORT.md,P12_3_SMART_TIMETABLE_STRESS_SMOKE_REPORT.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/P12_3_SMART_TIMETABLE_STRESS_SMOKE_REPORT.md,Low
 DOC-209,docs/P12_SMART_TIMETABLE_LOGIC_AUDIT.md,P12_SMART_TIMETABLE_LOGIC_AUDIT.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/P12_SMART_TIMETABLE_LOGIC_AUDIT.md,Low
 DOC-210,docs/P13_DEMO_READINESS_CHECKLIST.md,P13_DEMO_READINESS_CHECKLIST.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/P13_DEMO_READINESS_CHECKLIST.md,Low
@@ -239,14 +239,14 @@ DOC-238,docs/P20_SKELETON_LOADING_REPORT.md,P20_SKELETON_LOADING_REPORT.md,.md,G
 DOC-239,docs/P21_STAFF_SCHEDULE_FIX_AND_SMART_UX_REPORT.md,P21_STAFF_SCHEDULE_FIX_AND_SMART_UX_REPORT.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/P21_STAFF_SCHEDULE_FIX_AND_SMART_UX_REPORT.md,Low
 DOC-240,docs/P22_SMART_SCHEDULE_CREATION_UX_REPORT.md,P22_SMART_SCHEDULE_CREATION_UX_REPORT.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/P22_SMART_SCHEDULE_CREATION_UX_REPORT.md,Low
 DOC-241,docs/P23_TEACHER_SCHEDULE_IMPLEMENTATION_REPORT.md,P23_TEACHER_SCHEDULE_IMPLEMENTATION_REPORT.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/P23_TEACHER_SCHEDULE_IMPLEMENTATION_REPORT.md,Low
-DOC-242,docs/sql/P12_3_SMART_TIMETABLE_VALIDATION.sql,P12_3_SMART_TIMETABLE_VALIDATION.sql,.sql,Database,Documentation,Backend Team,Yes,Manual,REVIEW_REQUIRED,docs/sql/P12_3_SMART_TIMETABLE_VALIDATION.sql,Low
-DOC-243,docs/sql/P12_4_SEED_LMS_TEST_P12.sql,P12_4_SEED_LMS_TEST_P12.sql,.sql,Database,Documentation,Backend Team,Yes,Manual,REVIEW_REQUIRED,docs/sql/P12_4_SEED_LMS_TEST_P12.sql,Low
+DOC-242,docs/sql/P12_3_SMART_TIMETABLE_VALIDATION.sql,P12_3_SMART_TIMETABLE_VALIDATION.sql,.sql,Database,Documentation,Database Admin,Yes,Manual,REVIEW_REQUIRED,docs/sql/P12_3_SMART_TIMETABLE_VALIDATION.sql,Low
+DOC-243,docs/sql/P12_4_SEED_LMS_TEST_P12.sql,P12_4_SEED_LMS_TEST_P12.sql,.sql,Database,Documentation,Database Admin,Yes,Manual,REVIEW_REQUIRED,docs/sql/P12_4_SEED_LMS_TEST_P12.sql,Low
 DOC-244,docs/SYSTEM_ARCHITECTURE.md,SYSTEM_ARCHITECTURE.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,docs/SYSTEM_ARCHITECTURE.md,Low
 DOC-245,EXAMPLES.md,EXAMPLES.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,EXAMPLES.md,Low
-DOC-246,frontend/DESIGN_LIQUID_GLASS.md,DESIGN_LIQUID_GLASS.md,.md,Frontend,Documentation,Core Frontend Team,Yes,Manual,REVIEW_REQUIRED,frontend/DESIGN_LIQUID_GLASS.md,Low
-DOC-247,frontend/docs/ui/portal-motion-storyboard.md,portal-motion-storyboard.md,.md,Frontend,Documentation,Core Frontend Team,Yes,Manual,REVIEW_REQUIRED,frontend/docs/ui/portal-motion-storyboard.md,Low
-DOC-248,frontend/fix.md,fix.md,.md,Frontend,Documentation,Core Frontend Team,Yes,Manual,REVIEW_REQUIRED,frontend/fix.md,Low
-DOC-249,frontend/README.md,README.md,.md,Frontend,Documentation,Core Frontend Team,Yes,Manual,REVIEW_REQUIRED,frontend/README.md,Low
+DOC-246,frontend/DESIGN_LIQUID_GLASS.md,DESIGN_LIQUID_GLASS.md,.md,Frontend,Documentation,Frontend Lead,Yes,Manual,REVIEW_REQUIRED,frontend/DESIGN_LIQUID_GLASS.md,Low
+DOC-247,frontend/docs/ui/portal-motion-storyboard.md,portal-motion-storyboard.md,.md,Frontend,Documentation,Frontend Lead,Yes,Manual,REVIEW_REQUIRED,frontend/docs/ui/portal-motion-storyboard.md,Low
+DOC-248,frontend/fix.md,fix.md,.md,Frontend,Documentation,Frontend Lead,Yes,Manual,REVIEW_REQUIRED,frontend/fix.md,Low
+DOC-249,frontend/README.md,README.md,.md,Frontend,Documentation,Frontend Lead,Yes,Manual,REVIEW_REQUIRED,frontend/README.md,Low
 DOC-250,README.zh.md,README.zh.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,README.zh.md,Low
 DOC-251,skills/karpathy-guidelines/SKILL.md,SKILL.md,.md,General,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,skills/karpathy-guidelines/SKILL.md,Low
 DOC-252,Tài Liệu/CÁC TÍNH NĂNG AI CÓ THỂ ÁP DỤNG VÀO LMS.docx,CÁC TÍNH NĂNG AI CÓ THỂ ÁP DỤNG VÀO LMS.docx,.docx,Archive,Documentation,Project Lead,Yes,Manual,REVIEW_REQUIRED,Tài Liệu/CÁC TÍNH NĂNG AI CÓ THỂ ÁP DỤNG VÀO LMS.docx,Low
