@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Plus, X, Pencil, Loader2, BookOpen } from 'lucide-vue-next'
+import { Plus, X, Pencil, Loader2, BookOpen, Search } from 'lucide-vue-next'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
@@ -8,6 +8,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import { creditMappingApi } from '@/services/creditMappingApi'
 
 const loading = ref(true); const error = ref(null); const items = ref([])
+const searchQuery = ref('')
 
 const showFormModal = ref(false); const formMode = ref('create'); const editingId = ref(null); const submitting = ref(false)
 const formData = ref({ soTinChi: '', soBlockHoc: '', soBuoiMoiTuan: '', soCaMoiBuoi: '' })
@@ -25,6 +26,14 @@ async function fetchItems() {
 const stats = computed(() => ({
   total: items.value.length
 }))
+
+const filteredItems = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  return items.value.filter(s => {
+    if (!q) return true
+    return s.soTinChi.toString().includes(q)
+  })
+})
 
 // ── Form ──
 const defaults = () => ({ soTinChi: '', soBlockHoc: '', soBuoiMoiTuan: '', soCaMoiBuoi: '' })
@@ -93,11 +102,21 @@ async function executeDelete() {
     <!-- Main Card -->
     <div class="surface-card border border-card rounded-2xl shadow-sm overflow-hidden">
       <div class="p-4 border-b border-default bg-(--surface-input)">
-        <div class="flex items-center justify-between">
-          <h2 class="text-sm font-bold text-heading">Danh sách Quy đổi tín chỉ</h2>
-          <GlassButton variant="primary" class="h-10 shrink-0" @click="openCreate">
-            <Plus :size="15" class="mr-1" /> Thêm cấu hình
-          </GlassButton>
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="relative flex-1 min-w-[200px]">
+            <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+            <input v-model="searchQuery" type="text" placeholder="Tìm kiếm theo số tín chỉ..."
+              class="pl-9 pr-4 h-10 w-full bg-(--surface-card) border border-(--border-input) rounded-xl text-sm outline-none focus:ring-2 focus:ring-(--lg-primary)" />
+          </div>
+          <button v-if="searchQuery" @click="searchQuery = ''"
+            class="h-10 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 text-(--color-danger-text) hover:bg-(--color-danger-bg) transition-colors shrink-0">
+            <X :size="14" /> Xóa lọc
+          </button>
+          <div class="flex items-center gap-1 ml-auto">
+            <GlassButton variant="primary" class="h-10 shrink-0" @click="openCreate">
+              <Plus :size="15" class="mr-1" /> Thêm cấu hình
+            </GlassButton>
+          </div>
         </div>
       </div>
 
@@ -109,8 +128,8 @@ async function executeDelete() {
           <GlassButton variant="primary" class="px-4 py-2 text-xs font-bold rounded-xl mt-2" @click="fetchItems">Thử lại</GlassButton>
         </div>
       </div>
-      <div v-else-if="items.length === 0" class="p-6">
-        <EmptyState title="Chưa có cấu hình quy đổi nào" description="Thêm cấu hình mới để tự động hóa TKB.">
+      <div v-else-if="filteredItems.length === 0" class="p-6">
+        <EmptyState title="Không tìm thấy cấu hình" description="Vui lòng thử tìm kiếm khác hoặc thêm mới.">
           <GlassButton variant="primary" @click="openCreate"><Plus :size="15" class="mr-1" /> Thêm cấu hình</GlassButton>
         </EmptyState>
       </div>
@@ -126,11 +145,11 @@ async function executeDelete() {
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
-            <tr v-for="s in items" :key="s.maQuyDoi" class="hover:bg-(--surface-hover) transition-colors">
+            <tr v-for="s in filteredItems" :key="s.maQuyDoi" class="hover:bg-(--surface-hover) transition-colors">
               <td class="px-3 py-3.5 text-center font-bold text-(--lg-primary)">{{ s.soTinChi }} tín chỉ</td>
               <td class="px-3 py-3.5 text-center font-bold text-heading">{{ s.soBlockHoc }} Block</td>
-              <td class="px-3 py-3.5 text-center font-mono text-body">{{ s.soBuoiMoiTuan }} buổi</td>
-              <td class="px-3 py-3.5 text-center font-mono text-body">{{ s.soCaMoiBuoi }} ca</td>
+              <td class="px-3 py-3.5 text-center text-body">{{ s.soBuoiMoiTuan }} buổi</td>
+              <td class="px-3 py-3.5 text-center text-body">{{ s.soCaMoiBuoi }} ca</td>
               <td class="px-3 py-3.5">
                 <div class="flex items-center justify-center gap-1">
                   <button class="h-8 w-8 rounded-lg hover:bg-(--accent-primary-soft) flex items-center justify-center text-muted hover:text-(--sidebar-accent) transition-colors" title="Chỉnh sửa" @click.stop="openEdit(s)">

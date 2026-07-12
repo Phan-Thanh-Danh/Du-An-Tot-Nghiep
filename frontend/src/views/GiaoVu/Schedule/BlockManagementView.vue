@@ -88,13 +88,25 @@ const formatDate = (d) => {
 
 <template>
   <div class="space-y-4">
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="surface-card border border-card rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-muted uppercase tracking-wide">Tổng số Block (HK)</p>
+            <p class="text-3xl font-bold text-heading mt-1">{{ blocks.length }}</p>
+          </div>
+          <div class="h-10 w-10 rounded-2xl bg-(--color-info-bg) flex items-center justify-center">
+            <Calendar :size="20" class="text-(--color-info-text)" />
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Card -->
     <div class="surface-card border border-card rounded-2xl shadow-sm overflow-hidden">
       <div class="p-4 border-b border-default bg-(--surface-input)">
-        <div class="flex items-center justify-between">
-          <h2 class="text-sm font-bold text-heading flex items-center gap-2">
-            <Calendar :size="18" class="text-(--lg-primary)" /> Quản lý Block
-          </h2>
+        <div class="flex flex-wrap items-center gap-3">
           <div class="flex items-center gap-2 w-64">
             <label class="text-xs font-semibold text-muted whitespace-nowrap">Học kỳ:</label>
             <select v-model="selectedTerm" class="h-10 px-3 flex-1 bg-(--surface-card) border border-(--border-input) rounded-xl text-sm outline-none focus:ring-2 focus:ring-(--lg-primary)">
@@ -131,8 +143,8 @@ const formatDate = (d) => {
           <tbody class="divide-y divide-default">
             <tr v-for="b in blocks" :key="b.maBlock" class="hover:bg-(--surface-hover) transition-colors">
               <td class="px-3 py-3.5 text-center font-bold text-(--lg-primary)">Block {{ b.thuTuBlock }}</td>
-              <td class="px-3 py-3.5 text-center font-mono text-body">{{ formatDate(b.ngayBatDau) }}</td>
-              <td class="px-3 py-3.5 text-center font-mono text-body">{{ formatDate(b.ngayKetThuc) }}</td>
+              <td class="px-3 py-3.5 text-center text-body">{{ formatDate(b.ngayBatDau) }}</td>
+              <td class="px-3 py-3.5 text-center text-body">{{ formatDate(b.ngayKetThuc) }}</td>
               <td class="px-3 py-3.5">
                 <div class="flex items-center justify-center gap-1">
                   <button class="h-8 w-8 rounded-lg hover:bg-(--accent-primary-soft) flex items-center justify-center text-muted hover:text-(--sidebar-accent) transition-colors" title="Chỉnh sửa ngày" @click.stop="openEdit(b)">
