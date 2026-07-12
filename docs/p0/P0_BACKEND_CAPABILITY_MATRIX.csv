@@ -13,29 +13,29 @@ CAP-TCH-007,Teacher views today schedule,Teacher,IMPLEMENTED,IMPLEMENTED,EP-7460
 CAP-TCH-008,Teacher submits leave request,Teacher,IMPLEMENTED,PARTIAL,EP-E64834E1,"[POST /api/teacher/requests] Controller: TeacherRequestsController, Action: CreateRequest"
 CAP-TCH-009,Teacher views request history,Teacher,IMPLEMENTED,PARTIAL,EP-7D6C56B8,"[GET /api/teacher/requests/history] Controller: TeacherRequestsController, Action: GetRequestHistory"
 CAP-TCH-010,Teacher creates exam,Teacher,IMPLEMENTED,PARTIAL,EP-D176F192,"[POST /api/teacher/exams] Controller: TeacherExamController, Action: CreateExam"
-CAP-TCH-011,Teacher views teaching preferences,Teacher,MISSING,PARTIAL,,Endpoint not implemented yet
+CAP-TCH-011,Teacher views teaching preferences,Teacher,IMPLEMENTED,PARTIAL,EP-4D3F8BA8,"[GET /api/teacher/teaching-preferences/{maHocKy}] Controller: TeacherTeachingPreferencesController, Action: GetForm"
 CAP-TCH-012,Teacher submits teaching preferences,Teacher,IMPLEMENTED,PARTIAL,EP-B587373E,"[POST /api/teacher/teaching-preferences/{maHocKy}/submit] Controller: TeacherTeachingPreferencesController, Action: Submit"
 CAP-TCH-013,Teacher views student questions,Teacher,IMPLEMENTED,PARTIAL,EP-F2C043D4,"[GET /api/teacher/student-questions] Controller: TeacherCommunicationsController, Action: GetStudentQuestions"
 CAP-TCH-014,Teacher replies to student question,Teacher,IMPLEMENTED,PARTIAL,EP-E7D8DFEC,"[POST /api/teacher/student-questions/{questionId}/reply] Controller: TeacherCommunicationsController, Action: ReplyToQuestion"
-CAP-TCH-015,Teacher manages assignments,Teacher,MISSING,PARTIAL,,Endpoint not implemented yet
+CAP-TCH-015,Teacher manages assignments,Teacher,IMPLEMENTED,PARTIAL,EP-15EB41CF|EP-A8F32614,"[GET /api/teacher/assignments] Controller: TeacherSubmissionsController, Action: GetAssignments | [POST /api/teacher/assignments] Controller: TeacherSubmissionsController, Action: CreateAssignment"
 CAP-TCH-016,Teacher grades submissions,Teacher,IMPLEMENTED,PARTIAL,EP-B58C302C,"[PUT /api/teacher/submissions/{id:int}/grade] Controller: TeacherSubmissionsController, Action: GradeSubmission"
 CAP-TCH-017,Teacher views exam results,Teacher,IMPLEMENTED,PARTIAL,EP-23F51431,"[GET /api/teacher/exam-results] Controller: TeacherExamResultsController, Action: GetExamResults"
 CAP-STD-001,Student views dashboard,Student,IMPLEMENTED,IMPLEMENTED,EP-E25373E9,"[GET /api/student/dashboard] Controller: StudentDashboardController, Action: GetDashboard"
 CAP-STD-002,Student views courses,Student,IMPLEMENTED,IMPLEMENTED,EP-C6FB8CDE,"[GET /api/student/courses] Controller: StudentCoursesController, Action: GetCourses"
 CAP-STD-003,Student views schedule,Student,IMPLEMENTED,IMPLEMENTED,EP-9AAD0E7B,"[GET /api/student/dashboard/schedule] Controller: StudentDashboardController, Action: GetSchedule"
 CAP-STD-004,Student views available registrations,Student,IMPLEMENTED,PARTIAL,EP-92ACDE07,"[GET /api/student/registrations/available] Controller: StudentRegistrationsController, Action: GetAvailable"
-CAP-STD-005,Student registers for course,Student,MISSING,PARTIAL,,Endpoint not implemented yet
+CAP-STD-005,Student registers for course,Student,IMPLEMENTED,PARTIAL,EP-2C1CF1C6,"[POST /api/student/registrations] Controller: StudentRegistrationsController, Action: Enroll"
 CAP-STD-006,Student views assignments,Student,IMPLEMENTED,IMPLEMENTED,EP-90187C2E,"[GET /api/student/assignments] Controller: StudentAssignmentsController, Action: GetAssignments"
 CAP-STD-007,Student submits assignment,Student,IMPLEMENTED,IMPLEMENTED,EP-138CEBCD,"[POST /api/student/assignments/{assignmentId}/submit] Controller: StudentAssignmentsController, Action: SubmitAssignment"
 CAP-STD-008,Student views grades,Student,IMPLEMENTED,IMPLEMENTED,EP-A649C3FB,"[GET /api/student/grades] Controller: StudentGradesController, Action: GetGrades"
-CAP-STD-009,Student views tuition,Student,MISSING,IMPLEMENTED,,Endpoint not implemented yet
-CAP-STD-010,Student views support tickets,Student,MISSING,IMPLEMENTED,,Endpoint not implemented yet
+CAP-STD-009,Student views tuition,Student,IMPLEMENTED,IMPLEMENTED,EP-BFC79949|EP-9F538E15,"[GET /api/student/tuition/invoices] Controller: StudentTuitionController, Action: GetInvoices | [GET /api/student/tuition/transactions] Controller: StudentTuitionController, Action: GetTransactions"
+CAP-STD-010,Student views support tickets,Student,IMPLEMENTED,IMPLEMENTED,EP-C46FFE45|EP-7AF7F8BA,"[GET /api/student/support-tickets] Controller: StudentSupportTicketsController, Action: GetTickets | [POST /api/student/support-tickets] Controller: StudentSupportTicketsController, Action: CreateTicket"
 CAP-STD-011,Student creates support ticket,Student,IMPLEMENTED,IMPLEMENTED,EP-7AF7F8BA,"[POST /api/student/support-tickets] Controller: StudentSupportTicketsController, Action: CreateTicket"
-CAP-STD-012,Student views evaluations,Student,MISSING,IMPLEMENTED,,Endpoint not implemented yet
+CAP-STD-012,Student views evaluations,Student,IMPLEMENTED,IMPLEMENTED,EP-496948CE,"[GET /api/student/evaluations] Controller: StudentEvaluationsController, Action: GetEvaluations"
 CAP-STD-013,Student submits evaluation,Student,IMPLEMENTED,IMPLEMENTED,EP-DA081187,"[POST /api/student/evaluations/submit] Controller: StudentEvaluationsController, Action: SubmitEvaluation"
 CAP-STD-014,Student views curriculum,Student,IMPLEMENTED,IMPLEMENTED,EP-8E916F94,"[GET /api/student/curriculum] Controller: StudentCurriculumController, Action: GetCurriculum"
-CAP-STD-015,Student views discipline records,Student,MISSING,PARTIAL,,Endpoint not implemented yet
-CAP-STD-016,Student views rewards,Student,MISSING,PARTIAL,,Endpoint not implemented yet
+CAP-STD-015,Student views discipline records,Student,IMPLEMENTED,PARTIAL,EP-024E19B1,"[GET /api/student/discipline-records] Controller: StudentDisciplineRecordsController, Action: GetMyRecords"
+CAP-STD-016,Student views rewards,Student,IMPLEMENTED,PARTIAL,EP-19BFE29E,"[GET /api/student/rewards] Controller: StudentRewardsController, Action: GetMyRewards"
 CAP-APP-001,Student submits an application,Student,IMPLEMENTED,IMPLEMENTED,EP-E40402F9,"[POST /api/student/applications/{id:int}/submit] Controller: StudentApplicationsController, Action: Submit"
 CAP-APP-002,Student views applications,Student,IMPLEMENTED,IMPLEMENTED,EP-C48F2AD2,"[GET /api/student/applications] Controller: StudentApplicationsController, Action: Get"
 CAP-PAR-001,Parent views dashboard,Parent,IMPLEMENTED,IMPLEMENTED,EP-E77FC6B0,"[GET /api/parent/dashboard] Controller: ParentController, Action: GetDashboard"
@@ -45,16 +45,16 @@ CAP-PAR-004,Parent views child schedule,Parent,IMPLEMENTED,IMPLEMENTED,EP-4D5CDD
 CAP-PAR-005,Parent views child attendance,Parent,IMPLEMENTED,IMPLEMENTED,EP-4D7DE213,"[GET /api/parent/children/{childId:int}/attendance] Controller: ParentController, Action: GetChildAttendance"
 CAP-PAR-006,Parent views child alerts,Parent,IMPLEMENTED,IMPLEMENTED,EP-AE4B47BC,"[GET /api/parent/children/{childId:int}/alerts] Controller: ParentController, Action: GetChildAlerts"
 CAP-PAY-001,Parent views tuition,Parent,IMPLEMENTED,IMPLEMENTED,EP-6C1D0760,"[GET /api/parent/children/{childId:int}/tuition] Controller: ParentController, Action: GetChildTuition"
-CAP-PAY-002,Parent initiates payment,Parent,IMPLEMENTED,PARTIAL,EP-FFA37155,"[POST /api/parent/payment] Controller: ParentController, Action: MakePayment"
+CAP-PAY-002,Parent initiates payment,Parent,PARTIAL,PARTIAL,EP-FFA37155,"[POST /api/parent/payment] Controller: ParentController, Action: MakePayment"
 CAP-PAR-007,Parent views notifications,Parent,IMPLEMENTED,IMPLEMENTED,EP-DBB67D57,"[GET /api/parent/notifications] Controller: ParentController, Action: GetNotifications"
 CAP-PAR-008,Parent views profile,Parent,IMPLEMENTED,IMPLEMENTED,EP-98210255,"[GET /api/parent/profile] Controller: ParentController, Action: GetProfile"
-CAP-PAR-009,Parent views transactions,Parent,MISSING,IMPLEMENTED,,Endpoint not implemented yet
+CAP-PAR-009,Parent views transactions,Parent,IMPLEMENTED,IMPLEMENTED,EP-77D7307A,"[GET /api/parent/children/{childId:int}/transactions] Controller: ParentController, Action: GetChildTransactions"
 CAP-BGH-001,Principal views academic overview,Principal,IMPLEMENTED,IMPLEMENTED,EP-CD97F28B,"[GET /api/bgh/academic/overview] Controller: BghAcademicController, Action: GetAcademicOverview"
 CAP-BGH-002,Principal views GPA report,Principal,IMPLEMENTED,IMPLEMENTED,EP-1325B0CE,"[GET /api/bgh/academic/gpa] Controller: BghAcademicController, Action: GetGpaReports"
 CAP-BGH-003,Principal views at-risk students,Principal,IMPLEMENTED,IMPLEMENTED,EP-BE80DC87,"[GET /api/bgh/academic/at-risk] Controller: BghAcademicController, Action: GetAtRiskStudents"
 CAP-BGH-004,Principal views academic reports,Principal,IMPLEMENTED,PARTIAL,EP-C127256D,"[GET /api/bgh/academic/reports] Controller: BghAcademicController, Action: GetAcademicReports"
-CAP-BGH-005,Principal views evaluation overview,Principal,IMPLEMENTED,IMPLEMENTED,EP-510F5161,"[GET /api/bgh/evaluations/{teacherId:int}] Controller: BghEvaluationController, Action: GetEvaluationDetail"
-CAP-BGH-006,Principal views AI evaluation analysis,Principal,MISSING,PARTIAL,,Endpoint not implemented yet
+CAP-BGH-005,Principal views evaluation overview,Principal,IMPLEMENTED,IMPLEMENTED,EP-3B5A9AFD,"[GET /api/bgh/evaluations/overview] Controller: BghEvaluationController, Action: GetEvaluationOverview"
+CAP-BGH-006,Principal views AI evaluation analysis,Principal,IMPLEMENTED,PARTIAL,EP-0DFF9349,"[GET /api/bgh/evaluations/ai-analysis] Controller: BghEvaluationController, Action: GetEvaluationAiAnalysis"
 CAP-BGH-007,Principal views dashboard,Principal,IMPLEMENTED,IMPLEMENTED,EP-4CD0B070,"[GET /api/bgh/dashboard] Controller: BghDashboardController, Action: GetDashboard"
 CAP-BGH-008,Principal views schedule changes,Principal,IMPLEMENTED,PARTIAL,EP-532F7AC9,"[GET /api/bgh/schedule/changes] Controller: BghAcademicController, Action: GetScheduleChanges"
 CAP-SA-001,SuperAdmin lists users,SuperAdmin,IMPLEMENTED,IMPLEMENTED,EP-3EFF4939,"[GET /api/admin/users] Controller: AdminUsersController, Action: GetUsers"
@@ -65,7 +65,7 @@ CAP-SA-005,SuperAdmin unlocks user,SuperAdmin,IMPLEMENTED,PARTIAL,EP-C6870FC2,"[
 CAP-SA-006,SuperAdmin resets password,SuperAdmin,IMPLEMENTED,PARTIAL,EP-2F6FF7C7,"[PATCH /api/admin/users/{id:int}/reset-password] Controller: AdminUsersController, Action: ResetPassword"
 CAP-SA-007,SuperAdmin views system dashboard,SuperAdmin,MISSING,PARTIAL,,Endpoint not implemented yet
 CAP-SA-008,SuperAdmin manages organizations,SuperAdmin,IMPLEMENTED,IMPLEMENTED,EP-90F9CDC4,"[GET /api/organizations] Controller: OrganizationsController, Action: GetAll"
-CAP-SA-009,SuperAdmin manages audit logs,SuperAdmin,MISSING,PARTIAL,,Endpoint not implemented yet
+CAP-SA-009,SuperAdmin manages audit logs,SuperAdmin,IMPLEMENTED,PARTIAL,EP-581576FC,"[GET /api/audit-logs] Controller: AuditLogsController, Action: Get"
 CAP-STF-001,AcademicStaff views dashboard,AcademicStaff,IMPLEMENTED,PARTIAL,EP-BF8B6CEB,"[GET /api/staff/dashboard] Controller: StaffDashboardController, Action: GetDashboard"
 CAP-STF-002,AcademicStaff views timetable,AcademicStaff,IMPLEMENTED,IMPLEMENTED,EP-AD05AF65,"[GET /api/thoi-khoa-bieu] Controller: ThoiKhoaBieuController, Action: Get"
 CAP-STF-003,AcademicStaff creates timetable,AcademicStaff,IMPLEMENTED,IMPLEMENTED,EP-FCA8A00B,"[POST /api/thoi-khoa-bieu] Controller: ThoiKhoaBieuController, Action: Create"
@@ -77,7 +77,7 @@ CAP-STF-008,AcademicStaff views room bookings,AcademicStaff,IMPLEMENTED,PARTIAL,
 CAP-STF-009,AcademicStaff views teaching preferences summary,AcademicStaff,IMPLEMENTED,IMPLEMENTED,EP-97F23610,"[GET /api/staff/teaching-preferences/teachers] Controller: StaffTeachingPreferencesController, Action: GetTeachers"
 CAP-STF-010,AcademicStaff manages academic terms,AcademicStaff,IMPLEMENTED,PARTIAL,EP-21EEA4E1,"[GET /api/master-data/academic-terms] Controller: AcademicTermsController, Action: GetTerms"
 CAP-QB-001,Content Council manages question bank,HoiDongQuanLyNoiDung,IMPLEMENTED,IMPLEMENTED,EP-FC063A4E,"[GET /api/question-bank/questions] Controller: QuestionBankController, Action: GetQuestions"
-CAP-QZ-001,Content Council manages quiz,HoiDongQuanLyNoiDung,MISSING,PARTIAL,,Endpoint not implemented yet
+CAP-QZ-001,Content Council manages quiz,HoiDongQuanLyNoiDung,IMPLEMENTED,PARTIAL,EP-67CF1CB6|EP-682D4C08|EP-4B318C61|EP-FA9815B0,"[GET /api/exam/de-kiem-tra/search] Controller: QuizManagementController, Action: GetQuizzes | [POST /api/exam/de-kiem-tra] Controller: QuizManagementController, Action: CreateQuiz | [PUT /api/exam/de-kiem-tra/{id:int}] Controller: QuizManagementController, Action: UpdateQuiz | [DELETE /api/exam/de-kiem-tra/{id:int}] Controller: QuizManagementController, Action: DeleteQuiz"
 CAP-QZ-002,Content Council publishes quiz,HoiDongQuanLyNoiDung,IMPLEMENTED,PARTIAL,EP-3A74E19B,"[POST /api/exam/de-kiem-tra/{id:int}/publish] Controller: QuizManagementController, Action: PublishQuiz"
 CAP-QZ-003,Content Council unpublishes quiz,HoiDongQuanLyNoiDung,IMPLEMENTED,PARTIAL,EP-7788F8FD,"[POST /api/exam/de-kiem-tra/{id:int}/unpublish] Controller: QuizManagementController, Action: UnpublishQuiz"
 CAP-USR-001,Admin creates and manages users,Admin,IMPLEMENTED,IMPLEMENTED,EP-566CC592,"[POST /api/admin/users] Controller: AdminUsersController, Action: Create"

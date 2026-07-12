@@ -1,41 +1,13 @@
-# CONTENT COUNCIL Handoff Package
+# Role Handoff: HoiDongQuanLyNoiDung
 
-## 1. Identity
-- **Canonical backend role**: `HoiDongQuanLyNoiDung`
+## Foundation
 - **Database role code**: `hoi_dong_quan_ly_noi_dung`
-- **Frontend aliases**: `HoiDongQuanLyNoiDung`, `ContentCouncil`
+- **Home Route**: `/content-council/dashboard`
 
-## 2. Architecture & Ownership
-- **Exact folder ownership**: `frontend/src/pages/content-council/`, `frontend/src/components/content-council/`
-- **Actual home route**: `/content-council/question-bank` (or similar — verify in router)
-- **Layout**: Shared layout with content-council sidebar config
-- **Menu source**: `frontend/src/router/index.js`
-- **Shared components**: `frontend/src/components/common/`
-
-## 3. Capabilities
-
-### IMPLEMENTED — Backend + Frontend both connected
-
-| CapabilityId | Operation | Backend Route |
-|---|---|---|
-| CAP-QB-001 | Manage question bank (CRUD, activate, import) | `GET/POST/PUT/DELETE /api/question-bank/questions` |
-
-### PARTIAL — Backend IMPLEMENTED, frontend connection incomplete
-
-| CapabilityId | Operation | Backend Route | Gap |
-|---|---|---|---|
-| CAP-QZ-001 | Manage quiz (CRUD, add questions) | `GET/POST/PUT/DELETE /api/exam/de-kiem-tra` | FE quiz list/detail views partial |
-| CAP-QZ-002 | Publish quiz | `POST /api/exam/de-kiem-tra/{id}/publish` | FE publish button not connected |
-| CAP-QZ-003 | Unpublish quiz | `POST /api/exam/de-kiem-tra/{id}/unpublish` | FE unpublish action not connected |
-
-### MISSING — No backend implementation
-- None
-
-## 4. UI/UX
-- **Folders**: `frontend/src/pages/content-council/`, `frontend/src/components/content-council/`
-- **UX priority**: Question bank management → Quiz creation → Quiz publish workflow
-
-## 5. Rules
-- **Files that must not be modified**: `router/index.js`, `stores/auth.js`, `SafeHtmlRenderer.vue`
-- **SafeHtmlRenderer required**: Question content and answer HTML must always go through `SafeHtmlRenderer`
-- **Definition of Done**: All question bank and quiz endpoints connected, SafeHtmlRenderer used for rich content, no mock data
+## P0 Capability Matrix
+| Capability ID | Business Operation | Endpoint ID(s) | Backend Status | Frontend Status |
+|---|---|---|---|---|
+| CAP-QB-001 | Content Council manages question bank | `EP-FC063A4E` | IMPLEMENTED | IMPLEMENTED |
+| CAP-QZ-001 | Content Council manages quiz | `EP-67CF1CB6|EP-682D4C08|EP-4B318C61|EP-FA9815B0` | IMPLEMENTED | PARTIAL |
+| CAP-QZ-002 | Content Council publishes quiz | `EP-3A74E19B` | IMPLEMENTED | PARTIAL |
+| CAP-QZ-003 | Content Council unpublishes quiz | `EP-7788F8FD` | IMPLEMENTED | PARTIAL |

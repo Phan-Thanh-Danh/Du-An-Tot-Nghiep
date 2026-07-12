@@ -74,6 +74,7 @@ const FILES = {
   'Endpoint Inventory': 'docs/p0/P0_BACKEND_ENDPOINT_INVENTORY.csv',
   'Capability Matrix': 'docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv',
   'Missing Backlog': 'docs/p0/P0_MISSING_BACKEND_BACKLOG.md',
+  'Frontend Backlog': 'docs/p0/P0_FRONTEND_INTEGRATION_BACKLOG.md',
   'Team Ownership': 'docs/p0/P0_TEAM_OWNERSHIP.md',
   'Document Inventory': 'docs/governance/DOCUMENT_INVENTORY.csv',
   'Document Move Plan': 'docs/governance/DOCUMENT_MOVE_PLAN.csv',
@@ -120,23 +121,36 @@ if (fs.existsSync(path.join(ROOT, 'docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv'))) 
   const hasPartialOrMissing = rows.some(r => ['PARTIAL', 'MISSING'].includes(r['BackendStatus']));
   check(hasPartialOrMissing, 'Capability Matrix claims 100% IMPLEMENTED — impossible for a real system. Add PARTIAL/MISSING entries.');
 
-  // 5. Every IMPLEMENTED row must have MatchedEndpointId that exists in inventory
+  // 5. Every IMPLEMENTED row must have MatchedEndpointId that exists in inventory (Supports 1-to-N)
   const implementedRows = rows.filter(r => r['BackendStatus'] === 'IMPLEMENTED');
   implementedRows.forEach(r => {
     if (!r['MatchedEndpointIds'] || r['MatchedEndpointIds'].trim() === '') {
         errors.push(`${r['CapabilityId']}: BackendStatus=IMPLEMENTED but MatchedEndpointIds is empty`);
         return;
     }
-    const ep = inventory.find(i => i.EndpointId === r['MatchedEndpointIds']);
-    if (!ep) {
-        errors.push(`${r['CapabilityId']}: MatchedEndpointIds '${r['MatchedEndpointIds']}' not found in Endpoint Inventory`);
-        return;
-    }
-    // Check 5b: Evidence integrity
-    const expectedEvidence = `[${ep.HttpMethod} ${ep.Route}] Controller: ${ep.Controller}, Action: ${ep.Action}`;
-    if (r['Evidence'] !== expectedEvidence) {
+    const ids = r['MatchedEndpointIds'].split('|').map(x => x.trim());
+    let expectedEvidenceParts = [];
+    ids.forEach(id => {
+        const ep = inventory.find(i => i.EndpointId === id);
+        if (!ep) {
+            errors.push(`${r['CapabilityId']}: MatchedEndpointIds '${id}' not found in Endpoint Inventory`);
+        } else {
+            expectedEvidenceParts.push(`[${ep.HttpMethod} ${ep.Route}] Controller: ${ep.Controller}, Action: ${ep.Action}`);
+        }
+    });
+    
+    // Check 5b: Evidence integrity for all endpoints
+    const expectedEvidence = expectedEvidenceParts.join(' | ');
+    if (r['Evidence'] !== expectedEvidence && expectedEvidenceParts.length > 0) {
         errors.push(`${r['CapabilityId']}: Evidence mismatch.\n  Expected: ${expectedEvidence}\n  Found:    ${r['Evidence']}`);
     }
+  });
+
+  // 5c. Check for status contradiction
+  rows.forEach(r => {
+      if (r['BackendStatus'] === 'MISSING' && r['FrontendStatus'] === 'IMPLEMENTED') {
+          errors.push(`${r['CapabilityId']}: Contradiction - Backend is MISSING but Frontend is IMPLEMENTED.`);
+      }
   });
 
   // 6. Referential integrity: every MISSING/PARTIAL capability must have a backlog entry
@@ -154,6 +168,37 @@ if (fs.existsSync(path.join(ROOT, 'docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv'))) 
     frontendTasks.forEach(capId => {
       check(backlog.includes(capId), `Frontend PARTIAL capability ${capId} has no entry in P0_FRONTEND_INTEGRATION_BACKLOG.md`);
     });
+  }
+
+  // 6b. Check for undefined operations in backlogs
+  ['docs/p0/P0_MISSING_BACKEND_BACKLOG.md', 'docs/p0/P0_FRONTEND_INTEGRATION_BACKLOG.md'].forEach(file => {
+      if (fs.existsSync(path.join(ROOT, file))) {
+          const content = fs.readFileSync(path.join(ROOT, file), 'utf8');
+          if (content.includes('undefined')) {
+              errors.push(`${file} contains 'undefined'. Backlog generation failed to extract valid BusinessOperation or variables.`);
+          }
+      }
+  });
+
+  // 6c. Verify Handoff files staleness
+  const handoffDir = path.join(ROOT, 'docs/p0/roles');
+  if (fs.existsSync(handoffDir)) {
+      const files = fs.readdirSync(handoffDir).filter(f => f.endsWith('_HANDOFF.md'));
+      files.forEach(f => {
+          const content = fs.readFileSync(path.join(handoffDir, f), 'utf8');
+          // For every row in matrix, if it belongs to this role, it must exist exactly in the handoff
+          rows.forEach(r => {
+             // Basic staleness check: if the capability ID exists, ensure the MatchedEndpointIds string is in the file.
+             // (We won't parse the markdown strictly, just check string presence of the updated ID)
+             if (content.includes(r['CapabilityId'])) {
+                 const expectedIdStr = r['MatchedEndpointIds'] ? `|${r['MatchedEndpointIds']} |`.replace(/\|/g, '\\|') : '| N/A |';
+                 // A simple includes check is safe enough for missing IDs
+                 if (r['MatchedEndpointIds'] && !content.includes(r['MatchedEndpointIds'])) {
+                     errors.push(`Stale Handoff: ${f} mentions ${r['CapabilityId']} but lacks its new EndpointIds (${r['MatchedEndpointIds']})`);
+                 }
+             }
+          });
+      });
   }
 
   // 7. Matrix coverage: each canonical role must have >= 3 capabilities

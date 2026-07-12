@@ -1,55 +1,18 @@
-# SUPER ADMIN Handoff Package
+# Role Handoff: SuperAdmin
 
-## 1. Identity
-- **Canonical backend role**: `SuperAdmin`
-- **Database role code**: `super_admin`
-- **Frontend aliases**: `SuperAdmin`, `Admin`
-- **Note**: `Admin` is a sub-role with reduced permissions. Both share this handoff.
+## Foundation
+- **Database role code**: `sieu_quan_tri`
+- **Home Route**: `/super-admin/dashboard`
 
-## 2. Architecture & Ownership
-- **Exact folder ownership**: `frontend/src/views/SuperAdmin/`
-- **Actual home route**: `/super-admin/dashboard`
-- **Layout**: Shared admin layout
-- **Menu source**: `frontend/src/router/index.js`
-- **Shared components**: `frontend/src/components/common/`
-
-## 3. Capabilities
-
-### IMPLEMENTED — Backend + Frontend both connected
-
-| CapabilityId | Operation | Backend Route |
-|---|---|---|
-| CAP-SA-001 | List users | `GET /api/admin/users` |
-| CAP-SA-002 | Create user | `POST /api/admin/users` |
-| CAP-SA-008 | Manage organizations | `GET/POST/PUT/DELETE /api/organizations` |
-| CAP-USR-001 | Admin user management (legacy alias) | `GET/POST /api/admin/users` |
-
-### PARTIAL — Backend IMPLEMENTED, frontend connection incomplete
-
-| CapabilityId | Operation | Backend Route | Gap |
-|---|---|---|---|
-| CAP-SA-003 | Update user | `PUT /api/admin/users/{id}` | FE edit form partial |
-| CAP-SA-004 | Lock user | `PATCH /api/admin/users/{id}/lock` | FE action button not wired |
-| CAP-SA-005 | Unlock user | `PATCH /api/admin/users/{id}/unlock` | FE action button not wired |
-| CAP-SA-006 | Reset password | `PATCH /api/admin/users/{id}/reset-password` | FE form not wired |
-| CAP-SA-007 | View system dashboard | `GET /api/super-admin/dashboard/stats` | FE stats cards partial |
-| CAP-SA-009 | View audit logs | `GET /api/audit-logs` | FE list filter not fully connected |
-
-### MISSING — No backend implementation
-- None
-
-## 4. Additional Admin Capabilities
-The Admin role also covers:
-- `GET /api/admin/rbac` — RBAC management (`RbacController`)
-- `GET/POST /api/admin/discipline-appeals` — Discipline appeals
-- `GET/POST /api/admin/registrations` — Manage student registrations
-- `GET/POST/PUT /api/master-data/*` — Training programs, subjects, terms (SuperAdmin only)
-
-## 5. UI/UX
-- **Folder**: `frontend/src/views/SuperAdmin/`
-- **UX priority**: User management → Organizations → System dashboard → Audit logs
-
-## 6. Rules
-- **Files that must not be modified**: `router/index.js`, `stores/auth.js`
-- **Policy**: `AdminUserManagement` policy is enforced on all user management endpoints — do not bypass on FE
-- **Definition of Done**: All endpoints connected, skeleton loading, permissions enforced
+## P0 Capability Matrix
+| Capability ID | Business Operation | Endpoint ID(s) | Backend Status | Frontend Status |
+|---|---|---|---|---|
+| CAP-SA-001 | SuperAdmin lists users | `EP-3EFF4939` | IMPLEMENTED | IMPLEMENTED |
+| CAP-SA-002 | SuperAdmin creates user | `EP-566CC592` | IMPLEMENTED | IMPLEMENTED |
+| CAP-SA-003 | SuperAdmin updates user | `EP-1E2651E3` | IMPLEMENTED | PARTIAL |
+| CAP-SA-004 | SuperAdmin locks user | `EP-308062F8` | IMPLEMENTED | PARTIAL |
+| CAP-SA-005 | SuperAdmin unlocks user | `EP-C6870FC2` | IMPLEMENTED | PARTIAL |
+| CAP-SA-006 | SuperAdmin resets password | `EP-2F6FF7C7` | IMPLEMENTED | PARTIAL |
+| CAP-SA-007 | SuperAdmin views system dashboard | N/A | MISSING | PARTIAL |
+| CAP-SA-008 | SuperAdmin manages organizations | `EP-90F9CDC4` | IMPLEMENTED | IMPLEMENTED |
+| CAP-SA-009 | SuperAdmin manages audit logs | `EP-581576FC` | IMPLEMENTED | PARTIAL |

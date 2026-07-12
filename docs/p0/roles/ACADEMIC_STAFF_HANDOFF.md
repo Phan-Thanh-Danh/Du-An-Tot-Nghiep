@@ -1,47 +1,19 @@
-# ACADEMIC STAFF (GiaoVu) Handoff Package
+# Role Handoff: AcademicStaff
 
-## 1. Identity
-- **Canonical backend role**: `AcademicStaff`
+## Foundation
 - **Database role code**: `giao_vu`
-- **Frontend aliases**: `AcademicStaff`, `GiaoVu`
+- **Home Route**: `/staff/dashboard`
 
-## 2. Architecture & Ownership
-- **Exact folder ownership**: `frontend/src/views/GiaoVu/`
-- **Actual home route**: `/staff/dashboard`
-- **Layout**: `Layout_GiaoVu.vue`
-- **Menu source**: `frontend/src/router/index.js`
-- **Shared components**: `frontend/src/components/common/`
-
-## 3. Capabilities
-
-### IMPLEMENTED — Backend + Frontend both connected
-
-| CapabilityId | Operation | Backend Route |
-|---|---|---|
-| CAP-STF-002 | View timetable list | `GET /api/thoi-khoa-bieu` |
-| CAP-STF-003 | Create timetable | `POST /api/thoi-khoa-bieu` |
-| CAP-STF-004 | Generate sessions | `POST /api/thoi-khoa-bieu/{id}/generate-sessions` |
-| CAP-STF-005 | AI-generate timetable | `POST /api/thoi-khoa-bieu/generate` |
-| CAP-STF-009 | View teaching preferences summary | `GET /api/staff/teaching-preferences/summary` |
-
-### PARTIAL — Backend IMPLEMENTED, frontend connection incomplete
-
-| CapabilityId | Operation | Backend Route | Gap |
-|---|---|---|---|
-| CAP-STF-001 | View dashboard | `GET /api/staff/dashboard` | FE dashboard cards partial |
-| CAP-STF-006 | Publish timetable | `POST /api/thoi-khoa-bieu/publish` | Confirmation dialog not wired (BL-003) |
-| CAP-STF-007 | Book room | `POST /api/staff/rooms/book` | FE booking form partial |
-| CAP-STF-008 | View room bookings | `GET /api/staff/rooms/bookings` | FE list not fully connected |
-| CAP-STF-010 | Manage academic terms | `GET/POST/PUT /api/academic-terms` | FE admin term form partial |
-
-### MISSING — No backend implementation
-- None
-
-## 4. UI/UX
-- **Folder**: `frontend/src/views/GiaoVu/`
-- **UX priority**: Timetable management → Room bookings → Teaching preferences → Academic terms → Dashboard
-
-## 5. Rules
-- **Files that must not be modified**: `router/index.js`, `stores/auth.js`
-- **Policy**: `AcademicOperations` policy enforced on timetable generation endpoints
-- **Definition of Done**: Endpoints connected, no mock data, skeleton loading, permissions enforced
+## P0 Capability Matrix
+| Capability ID | Business Operation | Endpoint ID(s) | Backend Status | Frontend Status |
+|---|---|---|---|---|
+| CAP-STF-001 | AcademicStaff views dashboard | `EP-BF8B6CEB` | IMPLEMENTED | PARTIAL |
+| CAP-STF-002 | AcademicStaff views timetable | `EP-AD05AF65` | IMPLEMENTED | IMPLEMENTED |
+| CAP-STF-003 | AcademicStaff creates timetable | `EP-FCA8A00B` | IMPLEMENTED | IMPLEMENTED |
+| CAP-STF-004 | AcademicStaff generates sessions | `EP-66C918EA` | IMPLEMENTED | IMPLEMENTED |
+| CAP-STF-005 | AcademicStaff AI-generates timetable | `EP-030205DC` | IMPLEMENTED | IMPLEMENTED |
+| CAP-STF-006 | AcademicStaff publishes timetable | `EP-B798C5A4` | IMPLEMENTED | PARTIAL |
+| CAP-STF-007 | AcademicStaff books room | `EP-62CAF4F2` | IMPLEMENTED | PARTIAL |
+| CAP-STF-008 | AcademicStaff views room bookings | `EP-62CAF4F2` | IMPLEMENTED | PARTIAL |
+| CAP-STF-009 | AcademicStaff views teaching preferences summary | `EP-97F23610` | IMPLEMENTED | IMPLEMENTED |
+| CAP-STF-010 | AcademicStaff manages academic terms | `EP-21EEA4E1` | IMPLEMENTED | PARTIAL |

@@ -1,62 +1,30 @@
-# TEACHER Handoff Package
+# Role Handoff: Teacher
 
-## 1. Identity
-- **Canonical backend role**: `Teacher`
+## Foundation
 - **Database role code**: `giao_vien`
-- **Frontend aliases**: `GiangVien`, `Teacher`
+- **Home Route**: `/teacher/dashboard`
 
-## 2. Architecture & Ownership
-- **Exact folder ownership**: `frontend/src/views/GiangVien/`
-- **Actual home route**: `/teacher/dashboard`
-- **Layout**: `Layout_GiangVien.vue`
-- **Menu source**: `frontend/src/router/index.js`
-- **Shared components**: `frontend/src/components/common/`
-
-## 3. Capabilities
-
-### IMPLEMENTED — Backend + Frontend both connected
-
-| CapabilityId | Operation | Backend Route |
-|---|---|---|
-| CAP-ATT-001 | Open attendance session | `POST /api/buoi-hoc/{id}/attendance/start` |
-| CAP-ATT-002 | Bulk-update attendance | `PUT /api/buoi-hoc/{id}/attendance/bulk` |
-| CAP-ATT-003 | Submit attendance | `POST /api/buoi-hoc/{id}/attendance/submit` |
-| CAP-TCH-001 | View dashboard | `GET /api/teacher/dashboard` |
-| CAP-TCH-002 | View class list | `GET /api/teacher/classes` |
-| CAP-TCH-003 | View class workspace | `GET /api/teacher/classes/{id}/workspace` |
-| CAP-TCH-006 | View schedule | `GET /api/teacher/schedule` |
-| CAP-TCH-007 | View today schedule | `GET /api/teacher/schedule/today` |
-
-### PARTIAL — Backend IMPLEMENTED, frontend connection incomplete
-
-| CapabilityId | Operation | Backend Route | Gap |
-|---|---|---|---|
-| CAP-ATT-004 | View attendance history | `GET /api/teacher/attendance/history` | FE not connected |
-| CAP-TCH-004 | View class grades | `GET /api/teacher/classes/{id}/grades` | Filter/export not wired (BL-002) |
-| CAP-TCH-005 | Update student grade | `PUT /api/teacher/classes/{id}/grades/{studentId}` | FE inline edit not wired |
-| CAP-TCH-008 | Submit leave request | `POST /api/teacher/requests` | FE form not complete |
-| CAP-TCH-009 | View request history | `GET /api/teacher/requests/history` | FE list not connected |
-| CAP-TCH-010 | Create exam | `POST /api/teacher/exams` | FE creation flow partial |
-| CAP-TCH-011 | View teaching preferences | `GET /api/teacher/teaching-preferences/{maHocKy}` | FE view partial |
-| CAP-TCH-012 | Submit teaching preferences | `POST /api/teacher/teaching-preferences/{maHocKy}/submit` | FE submit not wired |
-| CAP-TCH-013 | View student questions | `GET /api/teacher/student-questions` | FE not connected |
-| CAP-TCH-014 | Reply to student question | `POST /api/teacher/student-questions/{id}/reply` | FE not connected |
-| CAP-TCH-015 | Manage assignments | `GET/POST /api/teacher/assignments` | FE partial |
-| CAP-TCH-016 | Grade submissions | `PUT /api/teacher/submissions/{id}/grade` | FE grading UI partial |
-| CAP-TCH-017 | View exam results | `GET /api/teacher/exam-results` | FE not connected |
-
-### MISSING — No backend implementation
-- None
-
-## 4. UI/UX
-- **Folder to own exclusively**: `frontend/src/views/GiangVien/`
-- **Static/mock screens**: Connect all PARTIAL views to real APIs before adding new features
-- **UX priority**: Attendance flow → Class workspace → Gradebook → Schedule → Teaching preferences
-
-## 5. Rules
-- **Files that must not be modified without Core Team review**: `router/index.js`, `stores/auth.js`, `SafeHtmlRenderer.vue`
-- **Definition of Done**:
-  - Endpoint fully connected, no mock data
-  - SafeHtmlRenderer used for any rich text (e.g. lesson comments)
-  - Skeleton loading implemented for all async data
-  - Permissions strictly enforced on FE and BE
+## P0 Capability Matrix
+| Capability ID | Business Operation | Endpoint ID(s) | Backend Status | Frontend Status |
+|---|---|---|---|---|
+| CAP-ATT-001 | Teacher opens attendance session | `EP-BD53AAA7` | IMPLEMENTED | IMPLEMENTED |
+| CAP-ATT-002 | Teacher bulk-updates attendance | `EP-E86CF615` | IMPLEMENTED | IMPLEMENTED |
+| CAP-ATT-003 | Teacher submits attendance | `EP-B3CFFB29` | IMPLEMENTED | IMPLEMENTED |
+| CAP-ATT-004 | Teacher views attendance history | `EP-A60DF934` | IMPLEMENTED | PARTIAL |
+| CAP-TCH-001 | Teacher views dashboard | `EP-2B2AD37B` | IMPLEMENTED | IMPLEMENTED |
+| CAP-TCH-002 | Teacher views class list | `EP-5CADF015` | IMPLEMENTED | IMPLEMENTED |
+| CAP-TCH-003 | Teacher views class workspace | `EP-9B2FAA1F` | IMPLEMENTED | IMPLEMENTED |
+| CAP-TCH-004 | Teacher views class grades | `EP-9DCDD8E3` | IMPLEMENTED | PARTIAL |
+| CAP-TCH-005 | Teacher updates student grade | `EP-E3126E50` | IMPLEMENTED | PARTIAL |
+| CAP-TCH-006 | Teacher views schedule | `EP-3FD5FA2D` | IMPLEMENTED | IMPLEMENTED |
+| CAP-TCH-007 | Teacher views today schedule | `EP-746073A5` | IMPLEMENTED | IMPLEMENTED |
+| CAP-TCH-008 | Teacher submits leave request | `EP-E64834E1` | IMPLEMENTED | PARTIAL |
+| CAP-TCH-009 | Teacher views request history | `EP-7D6C56B8` | IMPLEMENTED | PARTIAL |
+| CAP-TCH-010 | Teacher creates exam | `EP-D176F192` | IMPLEMENTED | PARTIAL |
+| CAP-TCH-011 | Teacher views teaching preferences | `EP-4D3F8BA8` | IMPLEMENTED | PARTIAL |
+| CAP-TCH-012 | Teacher submits teaching preferences | `EP-B587373E` | IMPLEMENTED | PARTIAL |
+| CAP-TCH-013 | Teacher views student questions | `EP-F2C043D4` | IMPLEMENTED | PARTIAL |
+| CAP-TCH-014 | Teacher replies to student question | `EP-E7D8DFEC` | IMPLEMENTED | PARTIAL |
+| CAP-TCH-015 | Teacher manages assignments | `EP-15EB41CF|EP-A8F32614` | IMPLEMENTED | PARTIAL |
+| CAP-TCH-016 | Teacher grades submissions | `EP-B58C302C` | IMPLEMENTED | PARTIAL |
+| CAP-TCH-017 | Teacher views exam results | `EP-23F51431` | IMPLEMENTED | PARTIAL |

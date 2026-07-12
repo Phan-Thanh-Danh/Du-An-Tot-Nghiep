@@ -1,49 +1,20 @@
-# PARENT Handoff Package
+# Role Handoff: Parent
 
-## 1. Identity
-- **Canonical backend role**: `Parent`
+## Foundation
 - **Database role code**: `phu_huynh`
-- **Frontend aliases**: `Parent`, `PhuHuynh`
+- **Home Route**: `/parent/dashboard`
 
-## 2. Architecture & Ownership
-- **Exact folder ownership**: `frontend/src/views/PhuHuynh/`
-- **Actual home route**: `/parent/dashboard`
-- **Layout**: `Layout_PhuHuynh.vue` (or shared layout with Parent-specific sidebar vars)
-- **Menu source**: `frontend/src/router/index.js`
-- **Shared components**: `frontend/src/components/common/`
-
-## 3. Capabilities
-
-### IMPLEMENTED — Backend + Frontend both connected
-
-| CapabilityId | Operation | Backend Route |
-|---|---|---|
-| CAP-PAR-001 | View dashboard | `GET /api/parent/dashboard` |
-| CAP-PAR-002 | View children list | `GET /api/parent/children` |
-| CAP-PAR-003 | View child grades | `GET /api/parent/children/{id}/grades` |
-| CAP-PAR-004 | View child schedule | `GET /api/parent/children/{id}/schedule` |
-| CAP-PAR-005 | View child attendance | `GET /api/parent/children/{id}/attendance` |
-| CAP-PAR-006 | View child alerts | `GET /api/parent/children/{id}/alerts` |
-| CAP-PAY-001 | View tuition | `GET /api/parent/children/{id}/tuition` |
-| CAP-PAR-007 | View notifications | `GET /api/parent/notifications` |
-| CAP-PAR-008 | View profile | `GET /api/parent/profile` |
-| CAP-PAR-009 | View transactions | `GET /api/parent/children/{id}/transactions` |
-
-### PARTIAL — Backend IMPLEMENTED, workflow incomplete
-
-| CapabilityId | Operation | Backend Route | Gap |
-|---|---|---|---|
-| CAP-PAY-002 | Initiate payment | `POST /api/parent/payment` | PayOS webhook reconciliation incomplete (BL-001) |
-
-### MISSING — No backend implementation
-- None
-
-## 4. UI/UX
-- **Folder**: `frontend/src/views/PhuHuynh/`
-- **UX priority**: Dashboard → Child selection → Grades → Attendance → Tuition → Alerts
-- **Multi-child navigation**: Parent may have multiple children — ensure child switcher persists selection
-
-## 5. Rules
-- **Local state**: `selectedChildId` in Pinia store only — never hardcode child data in component
-- **Files that must not be modified**: `router/index.js`, `stores/auth.js`
-- **Definition of Done**: All data from `parentApi` module, no local business data files, no mock data
+## P0 Capability Matrix
+| Capability ID | Business Operation | Endpoint ID(s) | Backend Status | Frontend Status |
+|---|---|---|---|---|
+| CAP-PAR-001 | Parent views dashboard | `EP-E77FC6B0` | IMPLEMENTED | IMPLEMENTED |
+| CAP-PAR-002 | Parent views children list | `EP-13E2AEA1` | IMPLEMENTED | IMPLEMENTED |
+| CAP-PAR-003 | Parent views child grades | `EP-5402F51A` | IMPLEMENTED | IMPLEMENTED |
+| CAP-PAR-004 | Parent views child schedule | `EP-4D5CDDEE` | IMPLEMENTED | IMPLEMENTED |
+| CAP-PAR-005 | Parent views child attendance | `EP-4D7DE213` | IMPLEMENTED | IMPLEMENTED |
+| CAP-PAR-006 | Parent views child alerts | `EP-AE4B47BC` | IMPLEMENTED | IMPLEMENTED |
+| CAP-PAY-001 | Parent views tuition | `EP-6C1D0760` | IMPLEMENTED | IMPLEMENTED |
+| CAP-PAY-002 | Parent initiates payment | `EP-FFA37155` | PARTIAL | PARTIAL |
+| CAP-PAR-007 | Parent views notifications | `EP-DBB67D57` | IMPLEMENTED | IMPLEMENTED |
+| CAP-PAR-008 | Parent views profile | `EP-98210255` | IMPLEMENTED | IMPLEMENTED |
+| CAP-PAR-009 | Parent views transactions | `EP-77D7307A` | IMPLEMENTED | IMPLEMENTED |

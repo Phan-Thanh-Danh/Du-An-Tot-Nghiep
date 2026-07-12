@@ -1,217 +1,212 @@
 # P0 Frontend Integration Backlog
 
-This document tracks all capabilities where the Frontend is not fully IMPLEMENTED.
-Includes PARTIAL, STATIC_UI_ONLY, and DESIGNED_NOT_CONNECTED.
-
-## Missing Integration Tasks
-
-### BL-FE-001: CAP-ATT-004
+## CAP-ATT-004: Teacher views attendance history
 - **Role**: Teacher
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-002: CAP-TCH-004
+## CAP-TCH-004: Teacher views class grades
 - **Role**: Teacher
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-003: CAP-TCH-005
+## CAP-TCH-005: Teacher updates student grade
 - **Role**: Teacher
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-004: CAP-TCH-008
+## CAP-TCH-008: Teacher submits leave request
 - **Role**: Teacher
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-005: CAP-TCH-009
+## CAP-TCH-009: Teacher views request history
 - **Role**: Teacher
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-006: CAP-TCH-010
+## CAP-TCH-010: Teacher creates exam
 - **Role**: Teacher
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-007: CAP-TCH-011
+## CAP-TCH-011: Teacher views teaching preferences
 - **Role**: Teacher
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-008: CAP-TCH-012
+## CAP-TCH-012: Teacher submits teaching preferences
 - **Role**: Teacher
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-009: CAP-TCH-013
+## CAP-TCH-013: Teacher views student questions
 - **Role**: Teacher
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-010: CAP-TCH-014
+## CAP-TCH-014: Teacher replies to student question
 - **Role**: Teacher
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-011: CAP-TCH-015
+## CAP-TCH-015: Teacher manages assignments
 - **Role**: Teacher
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-012: CAP-TCH-016
+## CAP-TCH-016: Teacher grades submissions
 - **Role**: Teacher
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-013: CAP-TCH-017
+## CAP-TCH-017: Teacher views exam results
 - **Role**: Teacher
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-014: CAP-STD-004
+## CAP-STD-004: Student views available registrations
 - **Role**: Student
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-015: CAP-STD-005
+## CAP-STD-005: Student registers for course
 - **Role**: Student
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-016: CAP-STD-015
+## CAP-STD-015: Student views discipline records
 - **Role**: Student
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-017: CAP-STD-016
+## CAP-STD-016: Student views rewards
 - **Role**: Student
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-018: CAP-PAY-002
+## CAP-PAY-002: Parent initiates payment
 - **Role**: Parent
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-019: CAP-BGH-004
+## CAP-BGH-004: Principal views academic reports
 - **Role**: Principal
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-020: CAP-BGH-006
+## CAP-BGH-006: Principal views AI evaluation analysis
 - **Role**: Principal
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-021: CAP-BGH-008
+## CAP-BGH-008: Principal views schedule changes
 - **Role**: Principal
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-022: CAP-SA-003
+## CAP-SA-003: SuperAdmin updates user
 - **Role**: SuperAdmin
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-023: CAP-SA-004
+## CAP-SA-004: SuperAdmin locks user
 - **Role**: SuperAdmin
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-024: CAP-SA-005
+## CAP-SA-005: SuperAdmin unlocks user
 - **Role**: SuperAdmin
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-025: CAP-SA-006
+## CAP-SA-006: SuperAdmin resets password
 - **Role**: SuperAdmin
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-026: CAP-SA-007
+## CAP-SA-007: SuperAdmin views system dashboard
 - **Role**: SuperAdmin
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-027: CAP-SA-009
+## CAP-SA-009: SuperAdmin manages audit logs
 - **Role**: SuperAdmin
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-028: CAP-STF-001
+## CAP-STF-001: AcademicStaff views dashboard
 - **Role**: AcademicStaff
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-029: CAP-STF-006
+## CAP-STF-006: AcademicStaff publishes timetable
 - **Role**: AcademicStaff
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-030: CAP-STF-007
+## CAP-STF-007: AcademicStaff books room
 - **Role**: AcademicStaff
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-031: CAP-STF-008
+## CAP-STF-008: AcademicStaff views room bookings
 - **Role**: AcademicStaff
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-032: CAP-STF-010
+## CAP-STF-010: AcademicStaff manages academic terms
 - **Role**: AcademicStaff
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-033: CAP-QZ-001
+## CAP-QZ-001: Content Council manages quiz
 - **Role**: HoiDongQuanLyNoiDung
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-034: CAP-QZ-002
+## CAP-QZ-002: Content Council publishes quiz
 - **Role**: HoiDongQuanLyNoiDung
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
-### BL-FE-035: CAP-QZ-003
+## CAP-QZ-003: Content Council unpublishes quiz
 - **Role**: HoiDongQuanLyNoiDung
-- **Operation**: undefined
 - **Status**: PARTIAL
-- **Details**: Needs frontend integration with backend endpoint.
+- **Gap Details**: UI is static or API integration is missing/partial.
+- **Acceptance Criteria**: Must connect to backend API and handle loading/error states properly.
 
