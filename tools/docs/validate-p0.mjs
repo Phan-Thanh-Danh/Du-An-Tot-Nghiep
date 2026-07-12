@@ -223,14 +223,84 @@ if (fs.existsSync(path.join(ROOT, 'docs/p0/P0_BACKEND_CAPABILITY_MATRIX.csv'))) 
       }
   }
 
-  // 6d. Document Governance Validation
-  if (fs.existsSync(path.join(ROOT, 'docs/governance/DOCUMENT_REFERENCES.csv'))) {
-      const refsContent = fs.readFileSync(path.join(ROOT, 'docs/governance/DOCUMENT_REFERENCES.csv'), 'utf8');
-      if (refsContent.includes('BROKEN_LOCAL_ABSOLUTE_PATH')) {
-          errors.push('DOCUMENT_REFERENCES.csv contains BROKEN_LOCAL_ABSOLUTE_PATH entries. These must be fixed before Move Plan execution.');
+  // 6d. Document Governance Validation — scan source files for file:/// patterns
+  console.log('[6d] Scanning Markdown source files for file:/// absolute paths...');
+  const IGNORE_DIRS = new Set(['node_modules', '.git', '.cursor', 'Backend/bin', 'Backend/obj', 'frontend/node_modules', 'frontend/dist']);
+  let absolutePathCount = 0;
+  function walkForAbsolutePaths(dir) {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      const rel = path.relative(ROOT, full).replace(/\\/g, '/');
+      if (entry.isDirectory()) {
+        if (!IGNORE_DIRS.has(entry.name) && !rel.startsWith('.')) walkForAbsolutePaths(full);
+      } else if (entry.name.endsWith('.md')) {
+        const content = fs.readFileSync(full, 'utf8');
+        const lines = content.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          if (/file:\/\/\/[cC]:/i.test(lines[i])) {
+            absolutePathCount++;
+            errors.push(`BROKEN_LOCAL_ABSOLUTE_PATH in ${rel}:${i+1} — ${lines[i].trim().slice(0, 120)}`);
+          }
+        }
       }
+    }
   }
+  walkForAbsolutePaths(ROOT);
+  if (absolutePathCount === 0) console.log('   ✓ No file:/// absolute paths found in Markdown source');
 
+  // 6e. Validate DOCUMENT_REFERENCES.csv — each TargetPath must exist on disk
+  if (fs.existsSync(path.join(ROOT, 'docs/governance/DOCUMENT_REFERENCES.csv'))) {
+      console.log('[6e] Validating DOCUMENT_REFERENCES.csv target existence...');
+      const refsRows = parseCSV('docs/governance/DOCUMENT_REFERENCES.csv');
+      let missingTargets = 0;
+      for (const row of refsRows) {
+          const targetFull = path.join(ROOT, row['TargetPath']);
+          if (!fs.existsSync(targetFull)) {
+              missingTargets++;
+              errors.push(`DOCUMENT_REFERENCES.csv: TargetPath '${row['TargetPath']}' (referenced by ${row['SourcePath']}:${row['Line']}) does not exist on disk`);
+          }
+      }
+      if (missingTargets === 0) console.log(`   ✓ All ${refsRows.length} TargetPath entries exist on disk`);
+
+      // 6f. Source/Report parity — regenerate references and compare
+      console.log('[6f] Checking source/report parity for DOCUMENT_REFERENCES.csv...');
+      const LINK_RE = /\[(?![^\]]*:\/\/)[^\]]*\]\(([^)]+)\)/g;
+      const IMG_RE = /!\[(?![^\]]*:\/\/)[^\]]*\]\(([^)]+)\)/g;
+      const generated = [];
+      const refFiles = new Set(refsRows.map(r => r['SourcePath']));
+      for (const srcPath of refFiles) {
+          const srcFull = path.join(ROOT, srcPath);
+          if (!fs.existsSync(srcFull)) continue;
+          const content = fs.readFileSync(srcFull, 'utf8');
+          const lines = content.split('\n');
+          for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              const matches = [...line.matchAll(LINK_RE), ...line.matchAll(IMG_RE)];
+              for (const m of matches) {
+                  const target = m[1].trim();
+                  if (target.startsWith('http://') || target.startsWith('https://') || target.startsWith('#') || target.startsWith('mailto:') || target.startsWith('file:///')) continue;
+                  const sourceDir = path.dirname(srcFull);
+                  const resolved = path.resolve(sourceDir, target);
+                  const relTarget = path.relative(ROOT, resolved).replace(/\\/g, '/');
+                  if (!relTarget.startsWith('..') && !path.isAbsolute(relTarget)) {
+                      generated.push({ SourcePath: srcPath, TargetPath: relTarget, Line: i + 1 });
+                  }
+              }
+          }
+      }
+      // Compare: every generated reference should have a matching row in CSV
+      let parityErrors = 0;
+      for (const g of generated) {
+          const match = refsRows.some(r => r['SourcePath'] === g.SourcePath && r['TargetPath'] === g.TargetPath && parseInt(r['Line']) === g.Line);
+          if (!match) {
+              parityErrors++;
+              errors.push(`Parity error: reference ${g.SourcePath}:${g.Line} → '${g.TargetPath}' found in source but missing from DOCUMENT_REFERENCES.csv`);
+          }
+      }
+      if (parityErrors === 0) console.log(`   ✓ Source/report parity: all ${generated.length} references match CSV`);
+  }
 
   // 7. Matrix coverage: each canonical role must have >= 3 capabilities
   const roleCoverage = {};

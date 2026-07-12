@@ -26,17 +26,17 @@ Tài liệu này hướng dẫn cách cấu hình đăng nhập nhanh và cơ ch
 ## 2. Logic Xử lý tại Frontend
 
 ### 2.1 Cấu hình form Đăng nhập
-Form đăng nhập nhanh nằm ở component `AuthLoginForm.vue` ([đường dẫn file](file:///c:/LMS/Du-An-Tot-Nghiep/frontend/src/components/auth/AuthLoginForm.vue)):
+Form đăng nhập nhanh nằm ở component `AuthLoginForm.vue` ([đường dẫn file](src/components/auth/AuthLoginForm.vue)):
 *   Khi truy cập cổng sinh viên (`portal.slug === 'student'`), giao diện tự động render ra 3 nút đăng nhập nhanh thay vì 1 nút chung.
 *   Khi click vào nút, email tương ứng (`student`, `student_gd`, `student_mkt`) sẽ được điền vào form và submit tự động.
 
 ### 2.2 Xử lý session tại authStore
-Pinia Store `useAuthStore` ([đường dẫn file](file:///c:/LMS/Du-An-Tot-Nghiep/frontend/src/stores/auth.js)):
+Pinia Store `useAuthStore` ([đường dẫn file](src/stores/auth.js)):
 *   Hàm `login()` sẽ kiểm tra email. Nếu email thuộc 3 tài khoản trên, store sẽ tự cấp thông tin người dùng giả lập tương ứng với role `Student` và lưu session.
 *   Store gọi hàm `syncActiveStudentData()` khi đăng nhập hoặc đăng xuất để đồng bộ dữ liệu mock cho các trang con.
 
 ### 2.3 Cơ chế đồng bộ dữ liệu động
-Dữ liệu mock được quản lý tập trung ở file `studentData.mock.js` ([đường dẫn file](file:///c:/LMS/Du-An-Tot-Nghiep/frontend/src/data/studentData.mock.js)):
+Dữ liệu mock được quản lý tập trung ở file `studentData.mock.js` (đã xóa — `src/data/studentData.mock.js` không còn tồn tại trong repository):
 *   Hàm `syncActiveStudentData()` sẽ đọc thông tin email trong session.
 *   Nếu email là `student_gd`, toàn bộ dữ liệu mẫu chung (profile, dashboard, courses, assignments, grades, attendance, schedule, tuition, registrations...) sẽ được ghi đè bằng bộ dữ liệu của ngành **Thiết kế Đồ họa**.
 *   Nếu email là `student_mkt`, dữ liệu mẫu chung sẽ được ghi đè bằng bộ dữ liệu của ngành **Marketing**.
@@ -48,16 +48,16 @@ Dữ liệu mock được quản lý tập trung ở file `studentData.mock.js` 
 
 Toàn bộ các trang chức năng của sinh viên đã được liên kết với dữ liệu reactive từ `studentData.mock.js`. Khi đăng nhập bằng tài khoản khác nhau, dữ liệu trên các trang sau sẽ tự động thay đổi theo đúng chuyên ngành:
 
-*   **Trang chủ Dashboard**: [Dashboard.vue](file:///c:/LMS/Du-An-Tot-Nghiep/frontend/src/views/SinhVien/Dashboard.vue)
-*   **Danh sách Khóa học**: [KhoacHoc.vue](file:///c:/LMS/Du-An-Tot-Nghiep/frontend/src/views/SinhVien/HocTap/KhoacHoc.vue)
-*   **Bài tập môn học**: [AssignmentsView.vue](file:///c:/LMS/Du-An-Tot-Nghiep/frontend/src/views/Student/AssignmentsView.vue)
-*   **Bảng điểm học tập**: [GradesView.vue](file:///c:/LMS/Du-An-Tot-Nghiep/frontend/src/views/Student/GradesView.vue)
-*   **Chuyên cần & Điểm danh**: [AttendanceView.vue](file:///c:/LMS/Du-An-Tot-Nghiep/frontend/src/views/Student/AttendanceView.vue)
-*   **Thời khóa biểu tuần**: [ScheduleView.vue](file:///c:/LMS/Du-An-Tot-Nghiep/frontend/src/views/Student/ScheduleView.vue)
-*   **Hóa đơn học phí**: [TuitionView.vue](file:///c:/LMS/Du-An-Tot-Nghiep/frontend/src/views/Student/TuitionView.vue)
-*   **Đăng ký môn học**: [RegistrationsView.vue](file:///c:/LMS/Du-An-Tot-Nghiep/frontend/src/views/Student/RegistrationsView.vue)
-*   **Khung chương trình học**: [CurriculumView.vue](file:///c:/LMS/Du-An-Tot-Nghiep/frontend/src/views/Student/CurriculumView.vue)
-*   **Chi tiết môn học (bài giảng, video, quiz)**: [CourseDetailView.vue](file:///c:/LMS/Du-An-Tot-Nghiep/frontend/src/views/Student/CourseDetailView.vue)
+*   **Trang chủ Dashboard**: [Dashboard.vue](src/views/SinhVien/Dashboard.vue)
+*   **Danh sách Khóa học**: [KhoacHoc.vue](src/views/SinhVien/HocTap/KhoacHoc.vue)
+*   **Bài tập môn học**: [AssignmentsView.vue](src/views/Student/AssignmentsView.vue)
+*   **Bảng điểm học tập**: [GradesView.vue](src/views/Student/GradesView.vue)
+*   **Chuyên cần & Điểm danh**: [AttendanceView.vue](src/views/Student/AttendanceView.vue)
+*   **Thời khóa biểu tuần**: [ScheduleView.vue](src/views/Student/ScheduleView.vue)
+*   **Hóa đơn học phí**: [TuitionView.vue](src/views/Student/TuitionView.vue)
+*   **Đăng ký môn học**: [RegistrationsView.vue](src/views/Student/RegistrationsView.vue)
+*   **Khung chương trình học**: [CurriculumView.vue](src/views/Student/CurriculumView.vue)
+*   **Chi tiết môn học (bài giảng, video, quiz)**: [CourseDetailView.vue](src/views/Student/CourseDetailView.vue)
 
 ---
 

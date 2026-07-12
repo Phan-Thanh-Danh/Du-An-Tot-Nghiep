@@ -1,15 +1,17 @@
 SourcePath,TargetPath,Line,ReferenceType
-CURSOR.md,.cursor/rules/karpathy-guidelines.mdc,8,Link
+CURSOR.md,.cursor/rules/lms-project.mdc,8,Link
 CURSOR.md,CLAUDE.md,15,Link
 CURSOR.md,skills/karpathy-guidelines/SKILL.md,19,Link
 CURSOR.md,README.md,23,Link
 CURSOR.md,CLAUDE.md,28,Link
-CURSOR.md,.cursor/rules/karpathy-guidelines.mdc,28,Link
+CURSOR.md,.cursor/rules/lms-project.mdc,28,Link
 CURSOR.md,skills/karpathy-guidelines/SKILL.md,28,Link
+README.zh.md,README.md,9,Link
+README.zh.md,.cursor/rules/lms-project.mdc,130,Link
+README.zh.md,CURSOR.md,130,Link
 docs/BACKEND_BUSINESS_AUDIT.md,Backend/Data/ApplicationDbContext.cs,42,Link
 frontend/fix.md,frontend/src/components/auth/AuthLoginForm.vue,29,Link
 frontend/fix.md,frontend/src/stores/auth.js,34,Link
-frontend/fix.md,frontend/src/data/studentData.mock.js,39,Link
 frontend/fix.md,frontend/src/views/SinhVien/Dashboard.vue,51,Link
 frontend/fix.md,frontend/src/views/SinhVien/HocTap/KhoacHoc.vue,52,Link
 frontend/fix.md,frontend/src/views/Student/AssignmentsView.vue,53,Link
@@ -20,6 +22,3 @@ frontend/fix.md,frontend/src/views/Student/TuitionView.vue,57,Link
 frontend/fix.md,frontend/src/views/Student/RegistrationsView.vue,58,Link
 frontend/fix.md,frontend/src/views/Student/CurriculumView.vue,59,Link
 frontend/fix.md,frontend/src/views/Student/CourseDetailView.vue,60,Link
-README.zh.md,./README.md,9,Link
-README.zh.md,.cursor/rules/karpathy-guidelines.mdc,130,Link
-README.zh.md,CURSOR.md,130,Link
