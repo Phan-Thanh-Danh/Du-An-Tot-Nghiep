@@ -1,4 +1,4 @@
-# Role Handoff: HoiDongQuanLyNoiDung
+o# Role Handoff: HoiDongQuanLyNoiDung
 
 ## Foundation
 - **Database role code**: `hoi_dong_quan_ly_noi_dung`

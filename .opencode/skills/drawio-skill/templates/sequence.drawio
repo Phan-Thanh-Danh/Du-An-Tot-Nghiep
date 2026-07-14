@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio-skill" modified="2026-07-14T10:00:00.000Z" version="24.2.5">
+  <diagram id="seq-main" name="Sequence">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Lifelines (vertical dashed lines) -->
+        <mxCell id="actor" value="Client" style="shape=umlActor;whiteSpace=wrap;html=1;fontStyle=1;fontColor=#334155;" vertex="1" parent="1">
+          <mxGeometry x="60" y="60" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="actor-line" value="" style="endArrow=none;dashed=1;strokeWidth=1;strokeColor=#94A3B8;html=1;" edge="1" parent="1" source="actor" target="actor-line-bottom">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="actor-line-bottom" value="" style="line;strokeWidth=0;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="700" width="0" height="0" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api" value="API Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#64748B;strokeColor=#475569;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="320" y="60" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="api-line" value="" style="endArrow=none;dashed=1;strokeWidth=1;strokeColor=#94A3B8;html=1;" edge="1" parent="1" source="api" target="api-line-bottom">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="api-line-bottom" value="" style="line;strokeWidth=0;html=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="700" width="0" height="0" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc" value="Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3B82F6;strokeColor=#2563EB;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="620" y="60" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-line" value="" style="endArrow=none;dashed=1;strokeWidth=1;strokeColor=#94A3B8;html=1;" edge="1" parent="1" source="svc" target="svc-line-bottom">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-line-bottom" value="" style="line;strokeWidth=0;html=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="700" width="0" height="0" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db" value="Database" style="shape=cylinder;whiteSpace=wrap;html=1;fillColor=#10B981;strokeColor=#059669;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="920" y="60" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="db-line" value="" style="endArrow=none;dashed=1;strokeWidth=1;strokeColor=#94A3B8;html=1;" edge="1" parent="1" source="db" target="db-line-bottom">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="db-line-bottom" value="" style="line;strokeWidth=0;html=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="700" width="0" height="0" as="geometry" />
+        </mxCell>
+
+        <!-- Messages -->
+        <!-- 1: Request -->
+        <mxCell id="m1" style="endArrow=blockThin;endFill=1;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=1;exitY=0.5;" edge="1" parent="1" source="actor" target="api-line">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="0" y="0" as="offset" />
+            <mxCell style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="1. HTTP POST /api/resource" vertex="1" connectable="0" parent="m1">
+              <mxGeometry x="-0.5" y="-1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+            </mxCell>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1-activ" value="" style="fillColor=#3B82F6;strokeColor=#2563EB;html=1;verticalAlign=bottom;align=center;" vertex="1" parent="1">
+          <mxGeometry x="375" y="130" width="10" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 2: Forward -->
+        <mxCell id="m2" style="endArrow=blockThin;endFill=1;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=1;exitY=0.5;" edge="1" parent="1" source="m1-activ" target="svc-line">
+          <mxGeometry relative="1" as="geometry">
+            <mxCell style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="2. Validate + Process" vertex="1" connectable="0" parent="m2">
+              <mxGeometry x="-0.5" y="-1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+            </mxCell>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 3: DB Query -->
+        <mxCell id="m3" style="endArrow=blockThin;endFill=1;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=1;exitY=0.5;" edge="1" parent="1" source="svc" target="db-line">
+          <mxGeometry relative="1" as="geometry">
+            <mxCell style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="3. SELECT / INSERT" vertex="1" connectable="0" parent="m3">
+              <mxGeometry x="-0.5" y="-1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+            </mxCell>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 4: DB Response -->
+        <mxCell id="m4" style="endArrow=blockThin;endFill=1;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;exitX=0;exitY=0.5;" edge="1" parent="1" source="db" target="svc-line">
+          <mxGeometry relative="1" as="geometry">
+            <mxCell style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="4. Result" vertex="1" connectable="0" parent="m4">
+              <mxGeometry x="-0.5" y="-1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+            </mxCell>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 5: Response -->
+        <mxCell id="m5" style="endArrow=blockThin;endFill=1;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;exitX=0;exitY=0.5;" edge="1" parent="1" source="svc" target="m1-activ">
+          <mxGeometry relative="1" as="geometry">
+            <mxCell style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="5. HTTP 200 OK" vertex="1" connectable="0" parent="m5">
+              <mxGeometry x="-0.5" y="-1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+            </mxCell>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m6" style="endArrow=blockThin;endFill=1;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;exitX=0;exitY=0.5;" edge="1" parent="1" source="m1-activ" target="actor">
+          <mxGeometry relative="1" as="geometry">
+            <mxCell style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="6. Response" vertex="1" connectable="0" parent="m6">
+              <mxGeometry x="-0.5" y="-1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+            </mxCell>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

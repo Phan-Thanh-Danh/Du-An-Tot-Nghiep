@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio-skill" modified="2026-07-14T10:00:00.000Z" version="24.2.5">
+  <diagram id="flowchart-main" name="Flowchart">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Start -->
+        <mxCell id="start" value="Start" style="ellipse;whiteSpace=wrap;html=1;fillColor=#10B981;strokeColor=#059669;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="60" y="40" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Process 1 -->
+        <mxCell id="p1" value="Process Step 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3B82F6;strokeColor=#2563EB;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="60" y="140" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Decision -->
+        <mxCell id="dec" value="Decision ?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#F59E0B;strokeColor=#D97706;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="50" y="250" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Process 2 (Yes branch) -->
+        <mxCell id="p2" value="Process Step 2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3B82F6;strokeColor=#2563EB;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="320" y="250" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Process 3 (No branch) -->
+        <mxCell id="p3" value="Process Step 3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8B5CF6;strokeColor=#7C3AED;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- End -->
+        <mxCell id="end" value="End" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EF4444;strokeColor=#DC2626;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="320" y="400" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Connectors -->
+        <mxCell id="e1" style="endArrow=blockThin;endFill=1;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" parent="1" source="start" target="p1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e2" style="endArrow=blockThin;endFill=1;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" parent="1" source="p1" target="dec">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e3" style="endArrow=blockThin;endFill=1;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" parent="1" source="dec" target="p2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="0" y="0" as="offset" />
+            <mxCell style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Yes" vertex="1" connectable="0" parent="e3">
+              <mxGeometry x="-0.5" y="-1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+            </mxCell>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e4" style="endArrow=blockThin;endFill=1;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" parent="1" source="dec" target="p3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="0" y="0" as="offset" />
+            <mxCell style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="No" vertex="1" connectable="0" parent="e4">
+              <mxGeometry x="-0.5" y="-1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+            </mxCell>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e5" style="endArrow=blockThin;endFill=1;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" parent="1" source="p2" target="end">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e6" style="endArrow=blockThin;endFill=1;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" parent="1" source="p3" target="end">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
