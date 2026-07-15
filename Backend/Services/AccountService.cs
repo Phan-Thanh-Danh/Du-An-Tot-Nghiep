@@ -26,7 +26,7 @@ public class AccountService : IAccountService
     )
     {
         var user = await GetUserAsync(userId, cancellationToken);
-        return ToProfileResponse(user);
+        return await ToProfileResponseAsync(user, cancellationToken);
     }
 
     public async Task<AccountProfileResponse> UpdateProfileAsync(
@@ -44,7 +44,7 @@ public class AccountService : IAccountService
         }
 
         var user = await GetUserAsync(userId, cancellationToken);
-        var oldValue = ToProfileResponse(user);
+        var oldValue = await ToProfileResponseAsync(user, cancellationToken);
 
         if (request.Email is not null)
         {
@@ -94,7 +94,7 @@ public class AccountService : IAccountService
         }
 
         await _context.SaveChangesAsync(cancellationToken);
-        var newValue = ToProfileResponse(user);
+        var newValue = await ToProfileResponseAsync(user, cancellationToken);
         await _auditLogService.LogAsync(
             "User",
             user.MaNguoiDung.ToString(),
@@ -107,7 +107,7 @@ public class AccountService : IAccountService
             cancellationToken
         );
 
-        return ToProfileResponse(user);
+        return await ToProfileResponseAsync(user, cancellationToken);
     }
 
     public async Task ChangePasswordAsync(
@@ -190,10 +190,15 @@ public class AccountService : IAccountService
 
     private async Task<NguoiDung> GetUserAsync(int userId, CancellationToken cancellationToken)
     {
-        var user = await _context.NguoiDungs.FirstOrDefaultAsync(
-            x => x.MaNguoiDung == userId,
-            cancellationToken
-        );
+        var user = await _context.NguoiDungs
+            .Include(x => x.DonVi)
+            .Include(x => x.Lop)
+                .ThenInclude(l => l!.ChuongTrinh)
+                    .ThenInclude(c => c!.ChuyenNganh)
+            .FirstOrDefaultAsync(
+                x => x.MaNguoiDung == userId,
+                cancellationToken
+            );
         if (user is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy người dùng.");
@@ -202,8 +207,16 @@ public class AccountService : IAccountService
         return user;
     }
 
-    private static AccountProfileResponse ToProfileResponse(NguoiDung user)
+    private async Task<AccountProfileResponse> ToProfileResponseAsync(NguoiDung user, CancellationToken cancellationToken)
     {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var currentHocKy = await _context.HocKys
+            .Where(h => h.MaDonVi == user.MaDonVi
+                && h.NgayBatDau <= today
+                && h.NgayKetThuc >= today)
+            .OrderByDescending(h => h.NgayBatDau)
+            .FirstOrDefaultAsync(cancellationToken);
+
         return new AccountProfileResponse
         {
             Id = user.MaNguoiDung,
@@ -212,6 +225,10 @@ public class AccountService : IAccountService
             SoDienThoai = user.SoDienThoai,
             VaiTroChinh = user.VaiTroChinh,
             TrangThai = user.TrangThai,
+            Campus = user.DonVi?.TenDonVi,
+            ClassName = user.Lop?.TenLop,
+            Major = user.Lop?.ChuongTrinh?.ChuyenNganh?.TenChuyenNganh,
+            Semester = currentHocKy?.TenHocKy
         };
     }
 }
