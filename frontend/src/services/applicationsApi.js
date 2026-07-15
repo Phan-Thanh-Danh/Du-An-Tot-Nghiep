@@ -1,6 +1,6 @@
 import { apiRequest, unwrapApiData } from './apiClient'
 
-const APPLICATION_SCHEMA_BASE = '/api/applications/schema'
+const APPLICATION_SCHEMA_BASE = '/api/applications'
 
 const buildQuery = (params) => {
   if (!params) return ''
@@ -17,7 +17,7 @@ const buildQuery = (params) => {
 export const applicationsApi = {
   // ── Schema/Template ──────────────────────────────────────────────
   async getApplicationSchemaOptions() {
-    return unwrapApiData(await apiRequest(`${APPLICATION_SCHEMA_BASE}/options`))
+    return unwrapApiData(await apiRequest(`${APPLICATION_SCHEMA_BASE}/schema/options`))
   },
   async getApplicationTemplates(query = {}) {
     return unwrapApiData(await apiRequest(`${APPLICATION_SCHEMA_BASE}/templates${buildQuery(query)}`))

@@ -126,6 +126,14 @@ function statusMeta(status) {
 function selectApplication(id) {
   selectedId.value = id
   mode.value = 'list'
+  
+  // On small screens, scroll down to the detail panel
+  setTimeout(() => {
+    const detailPanel = document.querySelector('.detail-panel')
+    if (detailPanel && window.innerWidth <= 1024) {
+      detailPanel.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, 100)
 }
 
 function resetFilters() {
@@ -274,6 +282,37 @@ function mapApplication(item) {
   const formData = item.duLieuBieuMau ?? item.DuLieuBieuMau ?? {}
   const attachments = item.attachments ?? item.Attachments ?? []
   const timeline = item.timeline ?? item.Timeline ?? []
+  const formDataList = [
+    { label: 'Loại đơn', value: item.tenLoaiDon ?? item.TenLoaiDon ?? getApplicationTypeLabel(item.loaiDon ?? item.LoaiDon) }
+  ]
+
+  const templateConfig = item.template ?? item.Template
+  if (templateConfig) {
+    try {
+      const configStr = templateConfig.cauHinhJson ?? templateConfig.CauHinhJson
+      const configObj = typeof configStr === 'string' ? JSON.parse(configStr) : (configStr || {})
+      const tplFields = configObj.fields || []
+      tplFields.forEach(f => {
+        formDataList.push({
+          label: f.label,
+          value: getFormValue(formData, f.key) || '—'
+        })
+      })
+    } catch (e) {
+      console.warn('Failed to parse template fields for mapping', e)
+    }
+  } else {
+    // Fallback if no template fields found
+    Object.keys(formData).forEach(key => {
+      formDataList.push({
+        label: key,
+        value: formData[key]
+      })
+    })
+  }
+
+  const moTaNgan = getFormValue(formData, 'noi_dung') || getFormValue(formData, 'ly_do') || getFormValue(formData, 'noiDungYeuCau') || ''
+
   return {
     id,
     rowVersion: item.rowVersion ?? item.RowVersion ?? '',
@@ -284,14 +323,11 @@ function mapApplication(item) {
     ngayNop: item.ngayNop ?? item.NgayNop,
     hanXuLy: item.hanXuLyLuc ?? item.HanXuLyLuc,
     capNhatLanCuoi: item.ngayCapNhat ?? item.NgayCapNhat,
-    moTaNgan: getFormValue(formData, 'noiDungYeuCau') || '',
+    moTaNgan,
     nguoiXuLy: item.nguoiXuLy ?? item.NguoiXuLy ?? '',
     noiDungYeuCauBoSung: item.noiDungYeuCauBoSung ?? item.NoiDungYeuCauBoSung ?? '',
     lyDoTuChoi: item.lyDoTuChoi ?? item.LyDoTuChoi ?? '',
-    formData: [
-      { label: 'Loại đơn', value: item.tenLoaiDon ?? item.TenLoaiDon ?? getApplicationTypeLabel(item.loaiDon ?? item.LoaiDon) },
-      { label: 'Nội dung yêu cầu', value: getFormValue(formData, 'noiDungYeuCau') || '—' },
-    ],
+    formData: formDataList,
     evidence: attachments.map((file) => ({
       id: file.maTep ?? file.MaTep,
       name: file.tenFileGoc ?? file.TenFileGoc ?? '',
