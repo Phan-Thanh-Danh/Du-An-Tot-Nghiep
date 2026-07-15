@@ -146,8 +146,53 @@ export const studentApi = {
     return apiRequest(`/api/student/discipline-records/appeals/${appealId}`)
   },
 
-  getAttendance() {
-    return apiRequest('/api/student/attendance')
+  async getAttendance(params = {}) {
+    const defaultParams = { pageIndex: 1, pageSize: 1000 }
+    const query = new URLSearchParams({ ...defaultParams, ...params }).toString()
+    const raw = await apiRequest(`/api/student/attendance?${query}`)
+    const data = unwrapApiData(raw) || {}
+    
+    const items = data.items || []
+    
+    const history = items.map(dto => ({
+      id: dto.maDiemDanh || Math.random(),
+      subject: dto.tenMonHoc || '',
+      courseCode: dto.tieuDeKhoaHoc || '',
+      shift: { 
+        label: dto.tenCa || '', 
+        start: dto.gioBatDau || '', 
+        end: dto.gioKetThuc || '' 
+      },
+      room: dto.tenPhong || '',
+      status: dto.trangThai || 'chua_diem_danh',
+      note: '',
+      attendedAt: dto.ngayHoc || new Date().toISOString()
+    }))
+
+    // Tự động tính toán subjectStats từ history
+    const statsMap = {}
+    history.forEach(item => {
+      if (!statsMap[item.courseCode]) {
+        statsMap[item.courseCode] = {
+          courseId: item.courseCode,
+          subject: item.subject,
+          total: 0,
+          absent: 0
+        }
+      }
+      const stat = statsMap[item.courseCode]
+      if (item.status !== 'chua_diem_danh') {
+        stat.total++
+        if (item.status === 'vang') stat.absent++
+      }
+    })
+
+    const subjectStats = Object.values(statsMap).map(stat => ({
+      ...stat,
+      rate: stat.total > 0 ? Math.round(((stat.total - stat.absent) / stat.total) * 100) : 100
+    }))
+
+    return { history, subjectStats }
   },
 
   async getScheduleSummary() {

@@ -3,6 +3,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   CalendarRange,
+  ChevronLeft,
   ChevronRight,
   Clock,
   FileSignature,
@@ -55,6 +56,18 @@ const filteredHistory = computed(() => {
 
     return matchesSubject && matchesStatus && matchesFrom && matchesTo && matchesSearch
   })
+})
+
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+const totalItems = computed(() => filteredHistory.value.length)
+const totalPages = computed(() => Math.ceil(totalItems.value / pageSize.value) || 1)
+
+const paginatedHistory = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredHistory.value.slice(start, end)
 })
 
 const kpis = computed(() => {
@@ -200,7 +213,7 @@ onMounted(async () => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in filteredHistory" :key="item.id">
+            <tr v-for="item in paginatedHistory" :key="item.id">
               <td>{{ formatDate(item.attendedAt) }}</td>
               <td>
                 <div class="font-semibold text-heading">{{ item.subject }}</div>
@@ -228,11 +241,54 @@ onMounted(async () => {
           </tbody>
         </table>
       </TableShell>
+
+      <!-- Pagination -->
+      <div class="flex flex-col items-center justify-between gap-4 border-t border-white/5 p-4 sm:flex-row">
+        <div class="text-sm text-muted">
+          Hiển thị <span class="font-medium text-heading">{{ totalItems > 0 ? (currentPage - 1) * pageSize + 1 : 0 }}</span> – 
+          <span class="font-medium text-heading">{{ Math.min(currentPage * pageSize, totalItems) }}</span> 
+          trong tổng số <span class="font-medium text-heading">{{ totalItems }}</span> buổi học
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <select 
+            v-model="pageSize" 
+            @change="currentPage = 1"
+            class="lg-control rounded-lg py-1.5 text-sm"
+          >
+            <option :value="5">5 / trang</option>
+            <option :value="10">10 / trang</option>
+            <option :value="20">20 / trang</option>
+          </select>
+
+          <div class="flex items-center gap-1">
+            <button 
+              @click="currentPage--"
+              :disabled="currentPage <= 1"
+              class="rounded-lg border border-white/10 p-1.5 text-muted transition-colors hover:bg-white/5 hover:text-heading disabled:pointer-events-none disabled:opacity-50"
+            >
+              <ChevronLeft :size="20" />
+            </button>
+            
+            <div class="px-3 text-sm font-medium text-heading">
+              Trang {{ currentPage }} / {{ totalPages }}
+            </div>
+            
+            <button 
+              @click="currentPage++"
+              :disabled="currentPage >= totalPages"
+              class="rounded-lg border border-white/10 p-1.5 text-muted transition-colors hover:bg-white/5 hover:text-heading disabled:pointer-events-none disabled:opacity-50"
+            >
+              <ChevronRight :size="20" />
+            </button>
+          </div>
+        </div>
+      </div>
     </GlassPanel>
 
     <div class="attendance-mobile-list">
       <GlassPanel
-        v-for="item in filteredHistory"
+        v-for="item in paginatedHistory"
         :key="`mobile-${item.id}`"
         variant="surface"
         density="compact"
