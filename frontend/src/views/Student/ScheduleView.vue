@@ -38,8 +38,8 @@ const weekStart = computed(() => {
   const current = dayjs(anchorDate.value)
   return current.startOf('day').subtract(current.day() === 0 ? 6 : current.day() - 1, 'day')
 })
-const weekDays = computed(() => Array.from({ length: 7 }, (_, index) => weekStart.value.add(index, 'day')))
-const weekLabel = computed(() => `${formatDate(weekDays.value[0])} - ${formatDate(weekDays.value[6])}`)
+const weekDays = computed(() => Array.from({ length: 6 }, (_, index) => weekStart.value.add(index, 'day')))
+const weekLabel = computed(() => `${formatDate(weekDays.value[0])} - ${formatDate(weekDays.value[5])}`)
 const subjects = computed(() => [...new Set(scheduleSessions.value.map((session) => session.subject))])
 const statusOptions = computed(() => getStatusOptions('session'))
 
@@ -73,9 +73,22 @@ const changedCount = computed(() =>
 
 const visibleSessionCount = computed(() => filteredSessions.value.length)
 
-function sessionsForDay(day) {
+const shifts = [
+  { id: 'ca1', label: 'Ca 1', start: '07:30:00', end: '09:00:00' },
+  { id: 'ca2', label: 'Ca 2', start: '09:05:00', end: '12:00:00' },
+  { id: 'ca3', label: 'Ca 3', start: '13:00:00', end: '14:30:00' },
+  { id: 'ca4', label: 'Ca 4', start: '14:35:00', end: '16:05:00' },
+  { id: 'ca5', label: 'Ca 5', start: '16:10:00', end: '17:40:00' },
+]
+
+function sessionsForCell(day, shiftStart) {
+  const targetPrefix = shiftStart.substring(0, 8) // use the full time string
   return filteredSessions.value
-    .filter((session) => dayjs(session.startAt).isSame(day, 'day'))
+    .filter(
+      (session) =>
+        dayjs(session.startAt).isSame(day, 'day') &&
+        session.shift?.start === targetPrefix
+    )
     .sort((left, right) => dayjs(left.startAt).valueOf() - dayjs(right.startAt).valueOf())
 }
 
@@ -227,54 +240,66 @@ watch(anchorDate, (newDate) => {
       description="Thử đổi bộ lọc môn học, trạng thái hoặc quay về tuần hiện tại."
     />
 
-    <div v-else class="schedule-grid">
-      <GlassPanel
-        v-for="day in weekDays"
-        :key="day.format('YYYY-MM-DD')"
-        variant="surface"
-        density="compact"
-        class="day-column h-full"
-      >
-        <div :class="['day-header', day.isSame(dayjs(), 'day') ? 'is-today' : '']">
-          <span class="ui-label text-label">{{ day.format('dddd') }}</span>
-          <strong class="text-heading">{{ day.format('DD/MM') }}</strong>
-        </div>
-
-        <div class="day-body">
-          <button
-            v-for="session in sessionsForDay(day)"
-            :key="session.id"
-            type="button"
-            class="session-card"
-            @click="openDetail(session)"
+    <div v-else class="flex-1 min-w-0 overflow-x-auto pb-4">
+      <div class="surface-card border border-(--border-card) rounded-2xl overflow-hidden shadow-sm" style="min-width: 768px">
+        <!-- Day headers -->
+        <div class="grid border-b border-(--border-default)" :style="`grid-template-columns: 80px repeat(${weekDays.length}, 1fr)`">
+          <div class="p-2 text-center text-xs font-semibold text-(--text-muted) bg-(--surface-solid) border-r border-(--border-default) flex items-center justify-center">
+            Ca / Thứ
+          </div>
+          <div
+            v-for="day in weekDays" :key="day.format('YYYY-MM-DD')"
+            class="p-2.5 text-center text-xs bg-(--surface-solid) border-r last:border-r-0 border-(--border-default)"
           >
-            <div class="flex min-w-0 items-start justify-between gap-2">
-              <div class="min-w-0">
-                <p class="session-time">
-                  {{ session.shift.label }} · {{ formatTimeRange(session.shift.start, session.shift.end) }}
-                </p>
-                <h3 class="session-title">{{ session.subject }}</h3>
-              </div>
-              <GlassBadge :variant="statusMeta(session.status).variant" class="shrink-0">
-                {{ statusMeta(session.status).label }}
-              </GlassBadge>
+            <div :class="day.isSame(dayjs(), 'day') ? 'text-(--text-link) font-bold' : 'text-(--text-heading) font-semibold'">
+              Thứ {{ day.day() === 0 ? 'CN' : day.day() + 1 }}
             </div>
-            <div class="session-meta">
-              <span class="inline-flex min-w-0 items-center gap-1.5">
-                <MapPin :size="13" aria-hidden="true" />{{ session.room }}
-              </span>
-              <span class="inline-flex min-w-0 items-center gap-1.5">
-                <User :size="13" aria-hidden="true" />
-                {{ session.substituteTeacher || session.teacher }}
-              </span>
-            </div>
-          </button>
-
-          <p v-if="sessionsForDay(day).length === 0" class="empty-day">
-            Không có buổi học
-          </p>
+          </div>
         </div>
-      </GlassPanel>
+
+        <!-- Shift rows -->
+        <div v-for="shift in shifts" :key="shift.id" class="grid border-b last:border-b-0 border-(--border-default)" :style="`grid-template-columns: 80px repeat(${weekDays.length}, 1fr)`">
+          <!-- Shift label -->
+          <div class="p-2 flex flex-col items-center justify-center text-center border-r border-(--border-default) bg-(--surface-solid) select-none">
+            <span class="text-xs font-bold text-(--text-heading)">{{ shift.label }}</span>
+            <span class="text-[10px] text-(--text-muted) leading-tight mt-0.5">{{ shift.start }}<br>{{ shift.end }}</span>
+          </div>
+
+          <!-- Day cells -->
+          <div
+            v-for="day in weekDays" :key="day.format('YYYY-MM-DD')"
+            class="border-r last:border-r-0 border-(--border-default) p-1 min-h-[100px] transition-colors relative hover:bg-(--surface-hover)"
+          >
+            <!-- Empty state placeholder -->
+            <div
+              v-if="sessionsForCell(day, shift.start).length === 0"
+              class="absolute inset-0 m-1 rounded-lg border border-dashed border-(--border-default) flex items-center justify-center opacity-0 hover:opacity-100 transition-all z-0"
+            >
+              <span class="text-[10px] text-(--text-muted) font-medium">Trống</span>
+            </div>
+
+            <!-- Session cards -->
+            <button
+              v-for="session in sessionsForCell(day, shift.start)" :key="session.id"
+              type="button"
+              class="relative z-10 mb-1 last:mb-0 w-full text-left rounded-lg border px-2 py-1.5 transition-all hover:shadow-md hover:-translate-y-0.5 border-(--border-default) bg-(--surface-card)"
+              @click="openDetail(session)"
+            >
+              <div class="flex items-start gap-1.5">
+                <span class="mt-1 shrink-0 w-1.5 h-1.5 rounded-full" :class="statusMeta(session.status).variant === 'success' ? 'bg-emerald-500' : (statusMeta(session.status).variant === 'danger' ? 'bg-red-500' : 'bg-blue-500')"></span>
+                <div class="min-w-0 flex-1">
+                  <div class="text-xs font-bold truncate leading-tight text-(--text-heading)" :title="session.subject">
+                    {{ session.subject }}
+                  </div>
+                  <div class="text-[10px] truncate leading-tight text-(--text-muted) mt-0.5">
+                    {{ session.room }} · {{ session.substituteTeacher || session.teacher }}
+                  </div>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <Teleport to="body">
