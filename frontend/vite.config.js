@@ -21,10 +21,10 @@ export default defineConfig(({ mode }) => {
     ],
     server: {
       host: '0.0.0.0',
-      https: {
+      https: fs.existsSync('../certs/lms.pem') && fs.existsSync('../certs/lms-key.pem') ? {
         cert: fs.readFileSync('../certs/lms.pem'),
         key: fs.readFileSync('../certs/lms-key.pem'),
-      },
+      } : false,
       proxy: {
         '/api': {
           target: backendOrigin,

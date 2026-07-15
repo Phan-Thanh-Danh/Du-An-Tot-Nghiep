@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Test@123_PassWord!
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      # Overriding the default connection string to point to the sqlserver container
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=LMS;User Id=sa;Password=Test@123_PassWord!;TrustServerCertificate=True;
+    ports:
+      - "5097:5097"
+    depends_on:
+      - sqlserver
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Mount the local certs folder to Nginx container so it can serve HTTPS
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+
+volumes:
+  sqlserver_data:
