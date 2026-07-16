@@ -218,13 +218,9 @@ onMounted(() => { loadWorkspace() })
         </button>
 
         <div class="header-copy">
-          <div class="header-kicker">
-            <GraduationCap :size="15" />
-            Workspace lớp học
-          </div>
           <div>
-            <h1>{{ classInfo?.courses?.[0]?.courseName || 'Lớp học' }} - Lớp {{ classInfo?.className || classCode }}</h1>
-            <p>{{ classInfo?.courses?.[0]?.subjectCode || 'Môn học' }} <span v-if="classInfo?.chuyenNganh">· {{ classInfo.chuyenNganh }}</span> <span v-if="classInfo?.phongHoc">· Phòng: {{ classInfo.phongHoc }}</span></p>
+            <h1>{{ classInfo?.courses?.[0]?.courseName?.split('-')[0]?.trim() || 'Môn học' }} - Lớp {{ classInfo?.className || classCode }}</h1>
+            <p>{{ classInfo?.courses?.[0]?.subjectCode || 'Mã môn' }} <span v-if="classInfo?.chuyenNganh">· {{ classInfo.chuyenNganh }}</span> <span v-if="classInfo?.phongHoc">· Phòng: {{ classInfo.phongHoc }}</span></p>
           </div>
         </div>
 

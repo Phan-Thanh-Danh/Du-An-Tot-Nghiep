@@ -103,20 +103,33 @@ public class TeacherClassesController : ControllerBase
                 return NotFound(ApiResponseDto.Fail("Không tìm thấy lớp hoặc bạn không dạy lớp này."));
 
             var lop = await _context.LopHanhChinhs
+                .Include(l => l.ChuongTrinh)
+                    .ThenInclude(c => c.ChuyenNganh)
                 .Where(l => l.MaLop == id)
-                .Select(l => new { l.MaLop, l.TenLop })
-                .FirstAsync();
+                .Select(l => new 
+                { 
+                    l.MaLop, 
+                    l.TenLop,
+                    ChuyenNganh = l.ChuongTrinh != null && l.ChuongTrinh.ChuyenNganh != null ? l.ChuongTrinh.ChuyenNganh.TenChuyenNganh : ""
+                })
+                .FirstOrDefaultAsync();
 
-            var khoahoc = await _context.KhoaHocs
+            if (lop == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy lớp học."));
+
+            var courses = await _context.KhoaHocs
                 .Include(k => k.MonHoc)
-                .FirstOrDefaultAsync(k => k.MaKhoaHoc == id && k.MaGiaoVien == userId);
+                .Where(k => k.MaLop == id && k.MaGiaoVien == userId)
+                .ToListAsync();
 
-            if (khoahoc == null)
-                return NotFound(ApiResponseDto.Fail("Không tìm thấy khoá học hoặc bạn không dạy khoá học này."));
+            if (!courses.Any())
+                return NotFound(ApiResponseDto.Fail("Bạn không dạy khoá học nào trong lớp này."));
+
+            var courseIds = courses.Select(c => c.MaKhoaHoc).ToList();
 
             var currentSession = await _context.BuoiHocs
                 .Include(b => b.Phong)
-                .Where(b => b.MaKhoaHoc == id && b.MaGiaoVien == userId && b.NgayHoc == DateOnly.FromDateTime(DateTime.Today))
+                .Where(b => courseIds.Contains(b.MaKhoaHoc) && b.MaGiaoVien == userId && b.NgayHoc == DateOnly.FromDateTime(DateTime.Today))
                 .OrderBy(b => b.MaCaHoc)
                 .FirstOrDefaultAsync();
 
@@ -124,14 +137,16 @@ public class TeacherClassesController : ControllerBase
             {
                 currentSession = await _context.BuoiHocs
                     .Include(b => b.Phong)
-                    .Where(b => b.MaKhoaHoc == id && b.MaGiaoVien == userId)
+                    .Where(b => courseIds.Contains(b.MaKhoaHoc) && b.MaGiaoVien == userId)
                     .OrderByDescending(b => b.NgayHoc)
                     .ThenBy(b => b.MaCaHoc)
                     .FirstOrDefaultAsync();
             }
 
             var students = await _context.NguoiDungs
-                .Where(n => n.MaLop == khoahoc.MaLop && n.VaiTroChinh == "hoc_sinh")
+                .Where(n => n.MaLop == id && n.VaiTroChinh == "hoc_sinh")
+                .OrderBy(n => n.HoTen)
+                .ThenBy(n => n.MaNguoiDung)
                 .Select(n => new
                 {
                     Id = n.MaNguoiDung,
@@ -142,7 +157,7 @@ public class TeacherClassesController : ControllerBase
                 })
                 .ToListAsync();
 
-            var monHocIds = new List<int> { khoahoc.MaMonHoc };
+            var monHocIds = courses.Select(c => c.MaMonHoc).ToList();
             var modules = new List<object>();
             if (monHocIds.Count > 0)
             {
@@ -162,13 +177,19 @@ public class TeacherClassesController : ControllerBase
 
             return Ok(ApiResponseDto<object>.Ok(new
             {
-                CourseId = khoahoc.MaKhoaHoc,
-                CourseName = khoahoc.TieuDe,
-                SubjectCode = khoahoc.MonHoc != null ? khoahoc.MonHoc.MaCodeMonHoc : "",
+                ClassName = lop.TenLop,
+                ChuyenNganh = lop.ChuyenNganh,
+                PhongHoc = currentSession?.Phong?.TenPhong,
                 SessionId = currentSession?.MaBuoiHoc,
                 SessionStatus = currentSession?.TrangThaiDiemDanh,
                 SessionDate = currentSession?.NgayHoc.ToDateTime(new TimeOnly(0, 0)),
                 Students = students,
+                Courses = courses.Select(c => new 
+                {
+                    CourseId = c.MaKhoaHoc,
+                    CourseName = c.TieuDe,
+                    SubjectCode = c.MonHoc != null ? c.MonHoc.MaCodeMonHoc : ""
+                }),
                 Modules = modules
             }));
         }
