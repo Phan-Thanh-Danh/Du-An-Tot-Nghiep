@@ -186,11 +186,11 @@
           <div class="mt-4 grid grid-cols-2 gap-2">
             <div class="rounded-lg bg-white/10 p-2 backdrop-blur-sm border border-white/10">
               <p class="text-[9px] uppercase font-bold opacity-80 tracking-wider">Lớp đang dạy</p>
-              <p class="text-base font-semibold mt-0.5">8</p>
+              <p class="text-base font-semibold mt-0.5">{{ stats[1]?.value || 0 }}</p>
             </div>
             <div class="rounded-lg bg-white/10 p-2 backdrop-blur-sm border border-white/10">
               <p class="text-[9px] uppercase font-bold opacity-80 tracking-wider">Hiệu suất</p>
-              <p class="text-base font-semibold mt-0.5">82%</p>
+              <p class="text-base font-semibold mt-0.5">--</p>
             </div>
           </div>
         </div>

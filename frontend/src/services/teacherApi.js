@@ -12,8 +12,8 @@ import { apiRequest, unwrapApiData } from './apiClient'
 export const teacherApi = {
   // + P2: TeacherDashboardController created
   // P23: Teacher Schedule & Dashboard Today
-  getDashboard() {
-    return apiRequest('/api/teacher/dashboard')
+  async getDashboard() {
+    return unwrapApiData(await apiRequest('/api/teacher/dashboard'))
   },
 
   async getScheduleSummary() {

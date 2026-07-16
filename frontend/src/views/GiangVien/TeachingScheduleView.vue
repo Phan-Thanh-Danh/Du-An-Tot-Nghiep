@@ -102,7 +102,7 @@
             
             <!-- Actions -->
             <div class="flex gap-2 w-full md:w-auto">
-              <router-link :to="`/teacher/classes/${item.maKhoaHoc}`" class="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl border border-card bg-surface-card px-4 py-2 text-xs font-bold text-body hover:text-link hover:border-(--accent-primary)/30 transition-all">
+              <router-link :to="`/teacher/classes/${item.maKhoaHoc}/workspace`" class="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl border border-card bg-surface-card px-4 py-2 text-xs font-bold text-body hover:text-link hover:border-(--accent-primary)/30 transition-all">
                 <BookOpen :size="14" />
                 <span>Lớp học</span>
               </router-link>

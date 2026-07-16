@@ -107,65 +107,69 @@ public class TeacherClassesController : ControllerBase
                 .Select(l => new { l.MaLop, l.TenLop })
                 .FirstAsync();
 
-            var courses = await _context.KhoaHocs
-                .Where(k => k.MaLop == id && k.MaGiaoVien == userId)
-                .Select(k => new
+            var khoahoc = await _context.KhoaHocs
+                .Include(k => k.MonHoc)
+                .FirstOrDefaultAsync(k => k.MaKhoaHoc == id && k.MaGiaoVien == userId);
+
+            if (khoahoc == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy khoá học hoặc bạn không dạy khoá học này."));
+
+            var currentSession = await _context.BuoiHocs
+                .Include(b => b.Phong)
+                .Where(b => b.MaKhoaHoc == id && b.MaGiaoVien == userId && b.NgayHoc == DateOnly.FromDateTime(DateTime.Today))
+                .OrderBy(b => b.MaCaHoc)
+                .FirstOrDefaultAsync();
+
+            if (currentSession == null)
+            {
+                currentSession = await _context.BuoiHocs
+                    .Include(b => b.Phong)
+                    .Where(b => b.MaKhoaHoc == id && b.MaGiaoVien == userId)
+                    .OrderByDescending(b => b.NgayHoc)
+                    .ThenBy(b => b.MaCaHoc)
+                    .FirstOrDefaultAsync();
+            }
+
+            var students = await _context.NguoiDungs
+                .Where(n => n.MaLop == khoahoc.MaLop && n.VaiTroChinh == "hoc_sinh")
+                .Select(n => new
                 {
-                    CourseId = k.MaKhoaHoc,
-                    CourseName = k.TieuDe,
-                    SubjectCode = k.MonHoc != null ? k.MonHoc.MaCodeMonHoc : "",
-                    StudentCount = _context.NguoiDungs.Count(n => n.MaLop == id)
+                    Id = n.MaNguoiDung,
+                    Name = n.HoTen,
+                    Email = n.Email,
+                    Avatar = "",
+                    Present = true
                 })
                 .ToListAsync();
 
-            var monHocIds = await _context.KhoaHocs
-                .Where(k => k.MaLop == id && k.MaGiaoVien == userId)
-                .Select(k => k.MaMonHoc)
-                .Distinct()
-                .ToListAsync();
-
-            var submissions = new List<object>();
-            var comments = new List<object>();
-
+            var monHocIds = new List<int> { khoahoc.MaMonHoc };
+            var modules = new List<object>();
             if (monHocIds.Count > 0)
             {
-                submissions = await _context.BaiNops
-                    .Where(b => b.BaiTap != null && monHocIds.Contains(b.BaiTap.MaMonHoc))
-                    .OrderByDescending(b => b.ThoiDiemNop)
-                    .Take(5)
+                modules = await _context.BaiHocs
+                    .Where(b => b.Chuong != null && monHocIds.Contains(b.Chuong.MaMonHoc))
                     .Select(b => new
                     {
-                        Type = "nop_bai",
-                        Description = (b.HocSinh != null ? b.HocSinh.HoTen : "") + " nộp bài " + (b.BaiTap != null ? b.BaiTap.TieuDe : ""),
-                        Time = b.ThoiDiemNop
+                        Id = b.MaBaiHoc,
+                        Title = b.TieuDe,
+                        Duration = "45 phút",
+                        Status = "locked",
+                        Type = "video"
                     })
-                    .ToListAsync<object>();
-
-                comments = await _context.BinhLuans
-                    .Where(c => c.BaiHoc != null && c.BaiHoc.Chuong != null && monHocIds.Contains(c.BaiHoc.Chuong.MaMonHoc))
-                    .OrderByDescending(c => c.NgayTao)
-                    .Take(5)
-                    .Select(c => new
-                    {
-                        Type = "binh_luan",
-                        Description = (c.NguoiDung != null ? c.NguoiDung.HoTen : "") + " bình luận: " + c.NoiDung,
-                        Time = c.NgayTao
-                    })
+                    .Take(10)
                     .ToListAsync<object>();
             }
 
-            var recentActivity = submissions
-                .Concat(comments)
-                .OrderByDescending(a => ((dynamic)a).Time)
-                .Take(10)
-                .ToList();
-
             return Ok(ApiResponseDto<object>.Ok(new
             {
-                ClassId = lop.MaLop,
-                ClassName = lop.TenLop,
-                Courses = courses,
-                RecentActivity = recentActivity
+                CourseId = khoahoc.MaKhoaHoc,
+                CourseName = khoahoc.TieuDe,
+                SubjectCode = khoahoc.MonHoc != null ? khoahoc.MonHoc.MaCodeMonHoc : "",
+                SessionId = currentSession?.MaBuoiHoc,
+                SessionStatus = currentSession?.TrangThaiDiemDanh,
+                SessionDate = currentSession?.NgayHoc.ToDateTime(new TimeOnly(0, 0)),
+                Students = students,
+                Modules = modules
             }));
         }
         catch (Exception ex)

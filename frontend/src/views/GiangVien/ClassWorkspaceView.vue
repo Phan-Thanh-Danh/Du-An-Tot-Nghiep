@@ -28,9 +28,11 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 import { teacherApi } from '@/services/teacherApi'
+import { usePopupStore } from '@/stores/popup'
 
 const route = useRoute()
 const router = useRouter()
+const popupStore = usePopupStore()
 
 const loading = ref(false)
 const error = ref('')
@@ -41,6 +43,7 @@ const isAttendanceExpanded = ref(false)
 
 const students = ref([])
 const modules = ref([])
+const classInfo = ref({})
 
 const classCode = computed(() => route.params.id || '')
 const presentCount = computed(() => students.value.filter((student) => student.present).length)
@@ -51,6 +54,13 @@ const completedModules = computed(
 const progressPercent = computed(() =>
   modules.value.length ? Math.round((completedModules.value / modules.value.length) * 100) : 0,
 )
+
+function formatSessionDateTime(sessionDate) {
+  if (!sessionDate) return 'Chưa có lịch';
+  const d = new Date(sessionDate);
+  const options = { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' };
+  return d.toLocaleDateString('vi-VN', options);
+}
 const currentModule = computed(
   () => modules.value.find((module) => module.status === 'playing') || modules.value[0] || null,
 )
@@ -59,7 +69,9 @@ async function loadWorkspace() {
   loading.value = true
   error.value = ''
   try {
-    const data = await teacherApi.getTeacherClassWorkspace(route.params.id)
+    const response = await teacherApi.getTeacherClassWorkspace(route.params.id)
+    const data = response?.data || response
+    classInfo.value = data
     students.value = (data?.students || []).map(s => ({
       id: s.maSinhVien ?? s.id,
       name: s.tenSinhVien ?? s.name ?? '',
@@ -83,7 +95,7 @@ const workspaceStats = computed(() => [
   {
     label: 'Sĩ số',
     value: students.value.length,
-    hint: `Lớp ${classCode.value}`,
+    hint: `Lớp ${classInfo.value?.className || classCode.value}`,
     icon: Users,
     tone: 'primary',
   },
@@ -137,6 +149,50 @@ function moduleLabel(status) {
   return 'Chưa mở'
 }
 
+const isSavingAttendance = ref(false)
+
+async function saveAttendance() {
+  if (!classInfo.value?.sessionId) {
+    popupStore.show({
+      type: 'error',
+      title: 'Lỗi',
+      message: 'Không tìm thấy ca học hôm nay để lưu điểm danh.'
+    })
+    return
+  }
+
+  isSavingAttendance.value = true
+  try {
+    const payload = {
+      items: students.value.map(s => ({
+        maSinhVien: s.id,
+        trangThai: s.present ? 'co_mat' : 'vang'
+      }))
+    }
+    await teacherApi.bulkUpdateAttendance(classInfo.value.sessionId, payload)
+    popupStore.show({
+      type: 'success',
+      title: 'Thành công',
+      message: 'Lưu điểm danh thành công!'
+    })
+  } catch (err) {
+    console.error('Lỗi khi lưu điểm danh:', err)
+    popupStore.show({
+      type: 'error',
+      title: 'Lỗi lưu dữ liệu',
+      message: 'Có lỗi xảy ra khi lưu điểm danh. Vui lòng thử lại.'
+    })
+  } finally {
+    isSavingAttendance.value = false
+  }
+}
+
+function markAllPresent() {
+  students.value.forEach(s => {
+    s.present = true
+  })
+}
+
 onMounted(() => { loadWorkspace() })
 </script>
 
@@ -167,16 +223,19 @@ onMounted(() => { loadWorkspace() })
             Workspace lớp học
           </div>
           <div>
-            <h1>Lập trình Java - {{ classCode }}</h1>
-            <p>Java OOP · Spring 2026 · Block 2</p>
+            <h1>{{ classInfo?.courses?.[0]?.courseName || 'Lớp học' }} - Lớp {{ classInfo?.className || classCode }}</h1>
+            <p>{{ classInfo?.courses?.[0]?.subjectCode || 'Môn học' }} <span v-if="classInfo?.chuyenNganh">· {{ classInfo.chuyenNganh }}</span> <span v-if="classInfo?.phongHoc">· Phòng: {{ classInfo.phongHoc }}</span></p>
           </div>
         </div>
 
         <div class="header-status">
-          <GlassBadge variant="success">Đang diễn ra</GlassBadge>
+          <GlassBadge variant="success" v-if="classInfo?.sessionStatus === 'dang_diem_danh'">Đang diễn ra</GlassBadge>
+          <GlassBadge variant="warning" v-else-if="classInfo?.sessionStatus === 'chua_mo'">Chưa bắt đầu</GlassBadge>
+          <GlassBadge variant="secondary" v-else>Đã kết thúc</GlassBadge>
+          
           <span class="session-time">
             <CalendarClock :size="14" />
-            Hôm nay · 07:30-09:30
+            {{ classInfo?.sessionDate ? formatSessionDateTime(classInfo.sessionDate) : 'Chưa có thông tin' }}
           </span>
         </div>
       </div>
@@ -364,12 +423,28 @@ onMounted(() => { loadWorkspace() })
               </table>
             </TableShell>
 
-            <div class="attendance-footer">
-              <GlassButton variant="success" size="md">
+            <div class="attendance-footer" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+              <GlassButton 
+                variant="primary" 
+                size="md" 
+                @click="markAllPresent"
+                :disabled="isSavingAttendance"
+              >
+                <template #leading>
+                  <Users :size="17" />
+                </template>
+                Điểm danh tất cả
+              </GlassButton>
+              <GlassButton 
+                variant="success" 
+                size="md" 
+                @click="saveAttendance"
+                :disabled="isSavingAttendance"
+              >
                 <template #leading>
                   <UserCheck :size="17" />
                 </template>
-                Lưu điểm danh
+                {{ isSavingAttendance ? 'Đang lưu...' : 'Lưu điểm danh' }}
               </GlassButton>
             </div>
           </div>
