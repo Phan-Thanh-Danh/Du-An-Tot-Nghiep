@@ -7,6 +7,7 @@ import {
 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
+import TeacherClassCard from '@/components/GiangVien/TeacherClassCard.vue'
 import { teacherApi } from '@/services/teacherApi'
 
 const loading = ref(false)
@@ -93,41 +94,25 @@ onMounted(() => { loadClasses() })
       </div>
 
       <!-- Grid / Table -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div v-for="cls in classes" :key="cls.id" class="lg-glass-soft lg-card-hover rounded-2xl p-4 flex flex-col">
-          <div class="flex justify-between items-start mb-4">
-            <div class="h-10 w-10 rounded-2xl bg-(--accent-primary)/10 flex items-center justify-center text-link border border-(--accent-primary)/20">
-              <GraduationCap :size="24" />
-            </div>
-            <button class="p-1.5 text-muted hover:text-heading"><MoreHorizontal :size="20" /></button>
-          </div>
-
-          <div class="flex-1">
-            <h3 class="text-xl font-bold text-heading">{{ cls.code }}</h3>
-            <p class="text-sm font-semibold text-label mt-1">{{ cls.name }}</p>
-
-            <div class="mt-6 space-y-3">
-              <div class="flex items-center gap-3 text-sm text-body">
-                <BookOpen :size="16" class="text-muted" />
-                <span>Môn: <span class="font-bold">{{ cls.subject }}</span></span>
-              </div>
-              <div class="flex items-center gap-3 text-sm text-body">
-                <Users :size="16" class="text-muted" />
-                <span>Sĩ số: <span class="font-bold">{{ cls.students }} sinh viên</span></span>
-              </div>
-              <div class="flex items-center gap-3 text-sm text-body">
-                <Calendar :size="16" class="text-muted" />
-                <span>Học kỳ: <GlassBadge variant="primary">{{ cls.semester }}</GlassBadge></span>
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-8 pt-4 border-t border-card flex items-center justify-between">
-             <router-link :to="'/teacher/class-progress/' + cls.id" class="rounded-xl bg-(--accent-primary) px-4 py-2 text-xs font-bold text-inverse hover:opacity-90 transition-all flex items-center gap-2 w-full justify-center">
-                <Eye :size="14" /> Xem tiến độ khóa học
-              </router-link>
-          </div>
-        </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <TeacherClassCard
+          v-for="cls in classes"
+          :key="cls.id"
+          :title="cls.code"
+          :subtitle="cls.name"
+          :semester="cls.semester"
+          :studentsCount="cls.students"
+        >
+          <template #action>
+            <router-link
+              :to="'/teacher/class-progress/' + cls.id"
+              class="w-full flex justify-center items-center gap-2 group-hover:bg-(--accent-primary) group-hover:text-inverse transition-all bg-slate-100 px-4 py-2 rounded-xl text-xs font-bold"
+            >
+              Xem tiến độ khóa học
+              <Eye :size="14" />
+            </router-link>
+          </template>
+        </TeacherClassCard>
       </div>
     </template>
   </div>

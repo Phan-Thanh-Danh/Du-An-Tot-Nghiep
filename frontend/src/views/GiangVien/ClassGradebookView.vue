@@ -20,6 +20,7 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import TeacherClassCard from '@/components/GiangVien/TeacherClassCard.vue'
 import { teacherApi } from '@/services/teacherApi'
 
 const route = useRoute()
@@ -185,48 +186,24 @@ onMounted(loadGrades)
       </div>
       
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div 
-          v-for="cls in myClasses" 
+        <TeacherClassCard
+          v-for="cls in myClasses"
           :key="cls.classId || cls.id"
-          @click="goToGrades(cls.classId || cls.id)"
-          class="class-card group"
+          :title="cls.className"
+          :subtitle="cls.courseName || cls.subjectName || 'N/A'"
+          :semester="cls.semester || 'Học kỳ hiện tại'"
+          :studentsCount="cls.studentCount || cls.totalStudents"
         >
-          <div class="card-glow"></div>
-          <div class="card-content">
-            <div class="flex justify-between items-start mb-4">
-              <div>
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-semibold mb-2">
-                  <Calendar class="w-3.5 h-3.5" />
-                  {{ cls.semester || 'Học kỳ hiện tại' }}
-                </span>
-                <h3 class="text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
-                  {{ cls.className }}
-                </h3>
-              </div>
-              <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                <Users class="w-5 h-5" />
-              </div>
-            </div>
-            
-            <div class="space-y-3 mb-5">
-              <div class="flex items-center text-sm text-slate-600">
-                <span class="w-24 font-medium">Môn học:</span>
-                <span class="truncate flex-1" :title="cls.courseName || cls.subjectName">{{ cls.courseName || cls.subjectName || 'N/A' }}</span>
-              </div>
-              <div class="flex items-center text-sm text-slate-600">
-                <span class="w-24 font-medium">Sĩ số:</span>
-                <span>{{ cls.studentCount || cls.totalStudents || '--' }} sinh viên</span>
-              </div>
-            </div>
-            
-            <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
-              <span class="text-sm font-medium text-slate-500">Xem sổ điểm</span>
-              <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                <ArrowUpDown class="w-4 h-4 rotate-90" />
-              </div>
-            </div>
-          </div>
-        </div>
+          <template #action>
+            <button
+              @click="goToGrades(cls.classId || cls.id)"
+              class="w-full flex justify-center items-center gap-2 group-hover:bg-(--accent-primary) group-hover:text-inverse transition-all bg-slate-100 px-4 py-2 rounded-xl text-xs font-bold"
+            >
+              Xem sổ điểm
+              <ArrowUpDown class="w-4 h-4 rotate-90" />
+            </button>
+          </template>
+        </TeacherClassCard>
       </div>
     </template>
     
@@ -751,42 +728,5 @@ onMounted(loadGrades)
   .note-cell {
     text-align: left;
   }
-}
-
-.class-card {
-  position: relative;
-  background: white;
-  border-radius: 16px;
-  border: 1px solid var(--border-card);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-  overflow: hidden;
-}
-
-.class-card:hover {
-  transform: translateY(-4px);
-  border-color: #93c5fd;
-  box-shadow: 0 12px 24px -8px rgba(37, 99, 235, 0.15);
-}
-
-.card-glow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 60%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.class-card:hover .card-glow {
-  opacity: 1;
-}
-
-.card-content {
-  position: relative;
-  padding: 1.5rem;
-  z-index: 1;
 }
 </style>

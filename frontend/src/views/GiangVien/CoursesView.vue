@@ -15,6 +15,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
+import TeacherClassCard from '@/components/GiangVien/TeacherClassCard.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 import { teacherApi } from '@/services/teacherApi'
 
@@ -180,44 +181,17 @@ onMounted(() => { loadCourses() })
       </div>
 
       <div v-if="filteredCourses.length" class="courses-grid">
-        <div v-for="course in filteredCourses" :key="course.id" class="course-card group">
-          <div class="course-card-header">
-            <div class="course-icon-wrapper">
-              <BookOpen :size="24" class="text-link" />
-            </div>
-            <GlassBadge :variant="getStatusVariant(course.status)" size="sm" class="status-badge">
-              <CheckCircle2 v-if="course.status === 'Published'" :size="12" />
-              <Clock v-else-if="course.status === 'Draft'" :size="12" />
-              <AlertCircle v-else :size="12" />
-              {{ getStatusText(course.status) }}
-            </GlassBadge>
-          </div>
-          
-          <div class="course-card-body">
-            <h3 class="course-title" :title="course.name">{{ course.name }}</h3>
-            <div class="course-meta">
-              <span class="meta-item">
-                <Calendar :size="14" />
-                {{ course.semester }}
-              </span>
-              <span class="meta-item">
-                <Layers :size="14" />
-                {{ course.subject }}
-              </span>
-            </div>
-            
-            <div class="course-progress">
-              <div class="progress-header">
-                <span class="text-xs font-semibold text-muted">{{ course.lessons }} bài học</span>
-                <span class="text-xs font-bold text-link">{{ getCourseProgress(course) }}%</span>
-              </div>
-              <div class="progress-track">
-                <div class="progress-fill" :style="{ width: `${getCourseProgress(course)}%` }"></div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="course-card-footer">
+        <TeacherClassCard
+          v-for="course in filteredCourses"
+          :key="course.id"
+          :title="course.name"
+          :subtitle="course.subject"
+          :semester="course.semester"
+          :status="course.status"
+          :lessonsCount="course.lessons"
+          :progress="getCourseProgress(course)"
+        >
+          <template #action>
             <GlassButton
               size="md"
               variant="primary"
@@ -227,8 +201,8 @@ onMounted(() => { loadCourses() })
               Vào không gian khóa học
               <ExternalLink :size="16" />
             </GlassButton>
-          </div>
-        </div>
+          </template>
+        </TeacherClassCard>
       </div>
 
       <EmptyState
@@ -443,126 +417,6 @@ onMounted(() => { loadCourses() })
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
   padding: 0.5rem 0;
-}
-
-.course-card {
-  display: flex;
-  flex-direction: column;
-  background: var(--surface-card);
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-}
-
-.course-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -4px rgba(0, 0, 0, 0.04);
-  border-color: rgba(37, 99, 235, 0.3); /* blue-600 with opacity */
-}
-
-.course-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 1.25rem 1.25rem 0;
-}
-
-.course-icon-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: var(--radius-lg);
-  background: var(--surface-input);
-  border: 1px solid var(--border-input);
-  transition: all 0.3s ease;
-}
-
-.course-card:hover .course-icon-wrapper {
-  background: rgba(37, 99, 235, 0.1);
-  border-color: rgba(37, 99, 235, 0.2);
-}
-
-.status-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.course-card-body {
-  padding: 1.25rem;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.course-title {
-  margin: 0 0 0.75rem;
-  font-size: 1.125rem;
-  font-weight: 800;
-  color: var(--text-heading);
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.course-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-}
-
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: var(--surface-input);
-  padding: 0.25rem 0.625rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-input);
-}
-
-.course-progress {
-  margin-top: auto;
-}
-
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.progress-track {
-  width: 100%;
-  height: 0.375rem;
-  background: var(--surface-input);
-  border-radius: 999px;
-  overflow: hidden;
-  border: 1px solid var(--border-card);
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--text-link);
-  border-radius: inherit;
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.course-card-footer {
-  padding: 1rem 1.25rem;
-  border-top: 1px solid var(--border-card);
-  background: var(--surface-sidebar);
 }
 
 @media (max-width: 1024px) {

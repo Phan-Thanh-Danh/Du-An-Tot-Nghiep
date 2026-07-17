@@ -19,6 +19,7 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import TeacherClassCard from '@/components/GiangVien/TeacherClassCard.vue'
 
 const loading = ref(false)
 const error = ref('')
@@ -163,25 +164,23 @@ onMounted(() => {
         </div>
       </div>
       
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div v-for="cls in myClasses" :key="cls.classId || cls.id" class="lg-glass-soft lg-card-hover rounded-2xl p-4 flex flex-col">
-          <div class="flex justify-between items-start mb-4">
-            <div class="h-10 w-10 rounded-2xl bg-(--accent-primary)/10 flex items-center justify-center text-link border border-(--accent-primary)/20">
-              <Users :size="24" />
-            </div>
-          </div>
-
-          <div class="flex-1">
-            <h3 class="text-xl font-bold text-heading">{{ cls.className }}</h3>
-            <p class="text-sm font-semibold text-label mt-1">Lớp học phần</p>
-          </div>
-
-          <div class="mt-8 pt-4 border-t border-card flex items-center justify-between">
-             <router-link :to="{ query: { classId: cls.classId || cls.id } }" class="rounded-xl bg-(--accent-primary) px-4 py-2 text-xs font-bold text-inverse hover:opacity-90 transition-all flex items-center gap-2 w-full justify-center">
-                <CheckCircle2 :size="14" /> Xem điểm danh
-              </router-link>
-          </div>
-        </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <TeacherClassCard
+          v-for="cls in myClasses"
+          :key="cls.classId || cls.id"
+          :title="cls.className"
+          subtitle="Lớp học phần"
+        >
+          <template #action>
+            <router-link
+              :to="{ query: { classId: cls.classId || cls.id } }"
+              class="w-full flex justify-center items-center gap-2 group-hover:bg-(--accent-primary) group-hover:text-inverse transition-all bg-slate-100 px-4 py-2 rounded-xl text-xs font-bold"
+            >
+              Xem điểm danh
+              <CheckCircle2 :size="14" />
+            </router-link>
+          </template>
+        </TeacherClassCard>
         
         <div v-if="myClasses.length === 0" class="col-span-full py-12 text-center text-muted">
           Bạn chưa được phân công giảng dạy lớp nào.
