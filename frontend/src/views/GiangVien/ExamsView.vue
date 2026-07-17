@@ -23,7 +23,8 @@ async function loadExams() {
   error.value = ''
   try {
     const data = await teacherApi.getExams()
-    const items = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+    const extracted = data?.data?.items ?? data?.items ?? data?.data ?? data
+    const items = Array.isArray(extracted) ? extracted : []
     exams.value = items.map(normalizeTeacherExam)
   } catch (e) {
     error.value = e?.message || 'Không thể tải danh sách kỳ thi.'

@@ -29,7 +29,8 @@ async function loadClasses() {
   error.value = ''
   try {
     const data = await teacherApi.getClasses({ semesterId: filterSemester.value || undefined })
-    const items = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+    const extracted = data?.data?.items ?? data?.items ?? data?.data ?? data
+    const items = Array.isArray(extracted) ? extracted : []
     classes.value = items.map(mapCourseToClass)
   } catch (e) {
     error.value = e?.message || 'Không thể tải danh sách lớp.'

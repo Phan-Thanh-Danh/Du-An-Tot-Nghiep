@@ -60,7 +60,8 @@ async function loadLessons() {
     }
 
     const data = await teacherApi.getTeacherClassDetail(classId)
-    const items = data?.chuongHoc ?? data?.chapters ?? []
+    const unwrapped = data?.data ?? data?.Data ?? data
+    const items = Array.isArray(unwrapped?.chuongHoc) ? unwrapped.chuongHoc : (Array.isArray(unwrapped?.chapters) ? unwrapped.chapters : [])
     chapters.value = items.map(ch => ({
       id: ch.id,
       title: ch.tieuDe ?? ch.title ?? '',

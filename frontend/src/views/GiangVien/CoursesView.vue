@@ -23,10 +23,8 @@ const error = ref('')
 const courses = ref([])
 
 const semesters = ['Spring 2026', 'Fall 2025', 'Summer 2025']
-const subjects = ['CNTT', 'Kinh tế', 'Ngôn ngữ', 'Thiết kế']
 
 const filterSemester = ref('Tất cả')
-const filterSubject = ref('Tất cả')
 const searchQuery = ref('')
 
 function mapCourse(c) {
@@ -37,6 +35,7 @@ function mapCourse(c) {
     lessons: c.soBaiHoc ?? c.lessons ?? 0,
     status: c.trangThai === 'published' ? 'Published' : c.trangThai === 'draft' ? 'Draft' : 'Archived',
     semester: c.tenHocKy ?? c.semester ?? '',
+    progress: c.tienDo ?? c.progress,
   }
 }
 
@@ -45,7 +44,8 @@ async function loadCourses() {
   error.value = ''
   try {
     const data = await teacherApi.getClasses()
-    const items = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+    const extracted = data?.data?.items ?? data?.items ?? data?.data ?? data
+    const items = Array.isArray(extracted) ? extracted : []
     courses.value = items.map(mapCourse)
   } catch (e) {
     error.value = e?.message || 'Không thể tải danh sách khóa học.'
@@ -59,9 +59,8 @@ const filteredCourses = computed(() => {
   const query = searchQuery.value.toLowerCase()
   return courses.value.filter(c => {
     const matchSemester = filterSemester.value === 'Tất cả' || c.semester === filterSemester.value
-    const matchSubject = filterSubject.value === 'Tất cả' || c.subject === filterSubject.value
     const matchSearch = !query || c.name.toLowerCase().includes(query)
-    return matchSemester && matchSubject && matchSearch
+    return matchSemester && matchSearch
   })
 })
 
@@ -75,7 +74,6 @@ const courseStats = computed(() => [
 function resetFilters() {
   searchQuery.value = ''
   filterSemester.value = 'Tất cả'
-  filterSubject.value = 'Tất cả'
 }
 
 function getStatusText(status) {
@@ -97,8 +95,12 @@ function getStatusVariant(status) {
 }
 
 function getCourseProgress(course) {
-  if (course.status === 'Draft') return 38
-  if (course.status === 'Archived') return 100
+  if (course.progress !== undefined && course.progress !== null) {
+    return course.progress;
+  }
+  if (course.status === 'Draft') return 0;
+  if (course.status === 'Archived') return 100;
+  if (course.lessons === 0) return 0;
   return Math.min(92, 58 + course.lessons)
 }
 
@@ -165,99 +167,69 @@ onMounted(() => { loadCourses() })
             <option v-for="s in semesters" :key="s" :value="s">{{ s }}</option>
           </select>
         </label>
-
-        <label class="select-field">
-          <Layers :size="15" />
-          <select v-model="filterSubject">
-            <option value="Tất cả">Tất cả môn</option>
-            <option v-for="subj in subjects" :key="subj" :value="subj">{{ subj }}</option>
-          </select>
-        </label>
       </div>
     </GlassPanel>
 
-    <GlassPanel variant="surface" density="none" class="courses-table-panel">
-      <template #header>
-        <div class="panel-heading">
-          <div>
-            <h2>Danh sách khóa học</h2>
-            <p>Hiển thị {{ filteredCourses.length }} / {{ courses.length }} khóa học</p>
-          </div>
-          <GlassBadge variant="primary" size="sm">LMS Academic</GlassBadge>
+    <div class="courses-content-area mt-4">
+      <div class="panel-heading mb-4 px-1">
+        <div>
+          <h2>Danh sách khóa học</h2>
+          <p>Hiển thị {{ filteredCourses.length }} / {{ courses.length }} khóa học</p>
         </div>
-      </template>
+        <GlassBadge variant="primary" size="sm">LMS Academic</GlassBadge>
+      </div>
 
-      <TableShell v-if="filteredCourses.length" density="compact" sticky-header>
-        <table>
-          <thead>
-            <tr>
-              <th>Khóa học</th>
-              <th>Môn</th>
-              <th>Bài học</th>
-              <th>Tiến độ</th>
-              <th>Trạng thái</th>
-              <th class="text-right">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="course in filteredCourses" :key="course.id">
-              <td>
-                <div class="course-cell">
-                  <span class="course-icon">
-                    <BookOpen :size="17" />
-                  </span>
-                  <span class="min-w-0">
-                    <strong>{{ course.name }}</strong>
-                    <small>
-                      <Calendar :size="12" />
-                      {{ course.semester }}
-                    </small>
-                  </span>
-                </div>
-              </td>
-              <td>
-                <span class="subject-chip">
-                  <Layers :size="13" />
-                  {{ course.subject }}
-                </span>
-              </td>
-              <td>
-                <span class="lesson-count">{{ course.lessons }}</span>
-                <span class="muted"> bài học</span>
-              </td>
-              <td>
-                <div class="progress-cell">
-                  <div class="progress-line">
-                    <span :style="{ width: `${getCourseProgress(course)}%` }" />
-                  </div>
-                  <strong>{{ getCourseProgress(course) }}%</strong>
-                </div>
-              </td>
-              <td>
-                <GlassBadge :variant="getStatusVariant(course.status)" size="sm">
-                  <CheckCircle2 v-if="course.status === 'Published'" :size="11" />
-                  <Clock v-else-if="course.status === 'Draft'" :size="11" />
-                  <AlertCircle v-else :size="11" />
-                  {{ getStatusText(course.status) }}
-                </GlassBadge>
-              </td>
-              <td class="text-right">
-                <GlassButton
-                  size="sm"
-                  variant="ghost"
-                  title="Xem chi tiết"
-                  @click="$router.push('/teacher/classes')"
-                >
-                  <template #leading>
-                    <ExternalLink :size="14" />
-                  </template>
-                  Vào lớp
-                </GlassButton>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </TableShell>
+      <div v-if="filteredCourses.length" class="courses-grid">
+        <div v-for="course in filteredCourses" :key="course.id" class="course-card group">
+          <div class="course-card-header">
+            <div class="course-icon-wrapper">
+              <BookOpen :size="24" class="text-link" />
+            </div>
+            <GlassBadge :variant="getStatusVariant(course.status)" size="sm" class="status-badge">
+              <CheckCircle2 v-if="course.status === 'Published'" :size="12" />
+              <Clock v-else-if="course.status === 'Draft'" :size="12" />
+              <AlertCircle v-else :size="12" />
+              {{ getStatusText(course.status) }}
+            </GlassBadge>
+          </div>
+          
+          <div class="course-card-body">
+            <h3 class="course-title" :title="course.name">{{ course.name }}</h3>
+            <div class="course-meta">
+              <span class="meta-item">
+                <Calendar :size="14" />
+                {{ course.semester }}
+              </span>
+              <span class="meta-item">
+                <Layers :size="14" />
+                {{ course.subject }}
+              </span>
+            </div>
+            
+            <div class="course-progress">
+              <div class="progress-header">
+                <span class="text-xs font-semibold text-muted">{{ course.lessons }} bài học</span>
+                <span class="text-xs font-bold text-link">{{ getCourseProgress(course) }}%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" :style="{ width: `${getCourseProgress(course)}%` }"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="course-card-footer">
+            <GlassButton
+              size="md"
+              variant="primary"
+              class="w-full flex justify-center items-center gap-2 group-hover:bg-(--accent-primary) group-hover:text-inverse transition-all"
+              @click="$router.push(`/teacher/class-progress/${course.id}`)"
+            >
+              Vào không gian khóa học
+              <ExternalLink :size="16" />
+            </GlassButton>
+          </div>
+        </div>
+      </div>
 
       <EmptyState
         v-else
@@ -269,7 +241,7 @@ onMounted(() => { loadCourses() })
         </template>
         <GlassButton size="sm" variant="secondary" @click="resetFilters">Đặt lại bộ lọc</GlassButton>
       </EmptyState>
-    </GlassPanel>
+    </div>
   </div>
 </template>
 
@@ -459,105 +431,138 @@ onMounted(() => { loadCourses() })
   font-weight: 600;
 }
 
-table {
-  border-collapse: collapse;
-  width: 100%;
+.courses-table-panel {
+  min-width: 0;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
-th {
-  background: var(--surface-input);
-  text-align: left;
-  white-space: nowrap;
+.courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  padding: 0.5rem 0;
 }
 
-td {
-  border-top: 1px solid var(--border-card);
-  vertical-align: middle;
-}
-
-tbody tr {
-  transition: background 160ms ease;
-}
-
-tbody tr:hover {
-  background: var(--surface-input);
-}
-
-.course-cell {
-  gap: 0.75rem;
-  min-width: 18rem;
-}
-
-.course-icon {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: var(--radius-md);
-}
-
-.course-cell strong {
-  display: block;
+.course-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-xl);
   overflow: hidden;
-  color: var(--text-heading);
-  font-size: 0.875rem;
-  font-weight: 900;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
 }
 
-.course-cell small {
+.course-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -4px rgba(0, 0, 0, 0.04);
+  border-color: rgba(37, 99, 235, 0.3); /* blue-600 with opacity */
+}
+
+.course-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.25rem 1.25rem 0;
+}
+
+.course-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface-input);
+  border: 1px solid var(--border-input);
+  transition: all 0.3s ease;
+}
+
+.course-card:hover .course-icon-wrapper {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
   gap: 0.25rem;
-  margin-top: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 650;
 }
 
-.subject-chip {
-  width: max-content;
-  gap: 0.375rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-card);
-  background: var(--surface-input);
-  color: var(--text-body);
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 800;
-}
-
-.lesson-count {
-  color: var(--text-heading);
-  font-weight: 900;
-}
-
-.progress-cell {
-  gap: 0.5rem;
-  min-width: 8rem;
-}
-
-.progress-cell strong {
-  color: var(--text-heading);
-  font-size: 0.75rem;
-  font-weight: 900;
-}
-
-.progress-line {
+.course-card-body {
+  padding: 1.25rem;
   flex: 1;
-  min-width: 4rem;
-  height: 0.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.course-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--text-heading);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  border-radius: 999px;
+  text-overflow: ellipsis;
+}
+
+.course-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
   background: var(--surface-input);
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-input);
+}
+
+.course-progress {
+  margin-top: auto;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.progress-track {
+  width: 100%;
+  height: 0.375rem;
+  background: var(--surface-input);
+  border-radius: 999px;
+  overflow: hidden;
   border: 1px solid var(--border-card);
 }
 
-.progress-line span {
-  display: block;
+.progress-fill {
   height: 100%;
-  border-radius: inherit;
   background: var(--text-link);
+  border-radius: inherit;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.text-right {
-  text-align: right;
+.course-card-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border-card);
+  background: var(--surface-sidebar);
 }
 
 @media (max-width: 1024px) {

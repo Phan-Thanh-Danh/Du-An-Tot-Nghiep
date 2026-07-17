@@ -30,7 +30,8 @@ async function loadClasses() {
   try {
     const data = await teacherApi.getTeacherCourses({ semesterId: filterSemester.value || undefined })
     const unwrapped = data?.data ?? data?.Data ?? data
-    const items = Array.isArray(unwrapped) ? unwrapped : (unwrapped?.items ?? unwrapped?.Items ?? [])
+    const extracted = Array.isArray(unwrapped) ? unwrapped : (unwrapped?.items ?? unwrapped?.Items ?? [])
+    const items = Array.isArray(extracted) ? extracted : []
     classes.value = items.map(mapCourseToClass)
   } catch (e) {
     error.value = e?.message || 'Không thể tải danh sách khóa học.'
