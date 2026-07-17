@@ -274,6 +274,29 @@ export const teacherApi = {
     return apiRequest(`/api/teacher/classes/${classId}/grades`)
   },
 
+  async exportClassGrades(classId) {
+    const { getStoredAccessToken } = await import('./apiClient')
+    const token = getStoredAccessToken()
+    
+    // We cannot use apiRequest directly because we need response.blob()
+    const url = `/api/teacher/classes/${classId}/grades/export`
+    // Assuming getApiBaseUrl is either used or just let the proxy handle it
+    const fullUrl = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '')}${url}` : url
+    
+    const response = await fetch(fullUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error('Export failed')
+    }
+    
+    return response.blob()
+  },
+
   updateTeacherClassGrade(classId, studentId, gradeData) {
     return apiRequest(`/api/teacher/classes/${classId}/grades/${studentId}`, {
       method: 'PUT',

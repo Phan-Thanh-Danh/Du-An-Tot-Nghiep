@@ -1,5 +1,6 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowUpDown,
   Award,
@@ -11,6 +12,8 @@ import {
   TrendingUp,
   Users,
   XCircle,
+  Calendar,
+  ArrowLeft
 } from 'lucide-vue-next'
 
 import GlassBadge from '@/components/ui/GlassBadge.vue'
@@ -19,7 +22,13 @@ import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 import { teacherApi } from '@/services/teacherApi'
 
-const classId = 1 // Hardcoded for demo/smoke
+const route = useRoute()
+const router = useRouter()
+
+const myClasses = ref([])
+const selectedClassId = ref('')
+const selectedClassName = ref('')
+
 const gradebook = ref([])
 const loading = ref(false)
 
@@ -58,7 +67,40 @@ function statusLabel(status) {
   return status === 'Pass' ? 'Đạt' : 'Rớt'
 }
 
+const getClassesList = async () => {
+  loading.value = true
+  try {
+    const classesRes = await teacherApi.getTeacherClasses()
+    const classesData = classesRes?.data?.data ?? classesRes?.data ?? classesRes?.Data ?? classesRes
+    if (classesData && Array.isArray(classesData)) {
+      myClasses.value = classesData
+    }
+  } catch (error) {
+    console.error("Lỗi tải danh sách lớp:", error)
+  } finally {
+    loading.value = false
+  }
+}
+
 async function loadGrades() {
+  const classId = route.query.classId
+  
+  if (!classId) {
+    selectedClassId.value = ''
+    gradebook.value = []
+    if (myClasses.value.length === 0) {
+      await getClassesList()
+    }
+    return
+  }
+
+  selectedClassId.value = classId
+  if (myClasses.value.length === 0) {
+    await getClassesList()
+  }
+  const cls = myClasses.value.find(c => String(c.classId || c.id) === String(classId))
+  selectedClassName.value = cls ? cls.className : `Lớp ${classId}`
+
   loading.value = true
   try {
     const res = await teacherApi.getTeacherClassGrades(classId)
@@ -73,156 +115,273 @@ async function loadGrades() {
     }))
   } catch (error) {
     console.error("Lỗi khi tải bảng điểm:", error)
+    gradebook.value = []
   } finally {
     loading.value = false
   }
 }
+
+const goToGrades = (id) => {
+  router.push({ query: { ...route.query, classId: id } })
+}
+
+const goBack = () => {
+  const q = { ...route.query }
+  delete q.classId
+  router.push({ query: q })
+}
+
+const exporting = ref(false)
+const handleExport = async () => {
+  if (!selectedClassId.value) return
+  exporting.value = true
+  try {
+    const blob = await teacherApi.exportClassGrades(selectedClassId.value)
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    // Use the class name for the file name, replacing spaces with underscores
+    const safeName = (selectedClassName.value || `Lop_${selectedClassId.value}`).replace(/ /g, '_')
+    a.download = `BangDiem_${safeName}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error("Lỗi khi xuất bảng điểm:", error)
+    alert("Không thể xuất bảng điểm lúc này. Vui lòng thử lại sau.")
+  } finally {
+    exporting.value = false
+  }
+}
+
+watch(() => route.query.classId, () => {
+  loadGrades()
+})
 
 onMounted(loadGrades)
 </script>
 
 <template>
   <div class="gradebook-page lg-page-enter">
-    <GlassPanel variant="flat" density="compact" class="page-header">
-      <div class="header-copy">
-        <div class="eyebrow">
-          <Users :size="15" />
-          SE1601 · Lập trình Java
-        </div>
+    <div v-if="loading && !route.query.classId && myClasses.length === 0">
+      <GlassPanel variant="flat" density="compact" class="loading-panel">
+        <p>Đang tải danh sách lớp...</p>
+      </GlassPanel>
+    </div>
+    
+    <!-- CARD GRID VIEW (NO CLASS SELECTED) -->
+    <template v-else-if="!route.query.classId">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1>Sổ điểm lớp</h1>
-          <p>Tổng hợp kết quả học tập và trạng thái hoàn thành môn học của lớp SE1601.</p>
+          <h1 class="text-xl font-bold text-heading tracking-tight">Sổ điểm lớp học</h1>
+          <p class="text-muted mt-1">Chọn lớp học để xem chi tiết kết quả học tập của sinh viên.</p>
         </div>
       </div>
-
-      <div class="header-actions">
-        <GlassButton variant="secondary" size="sm">
-          <template #leading>
-            <Printer :size="16" />
-          </template>
-          In bảng điểm
-        </GlassButton>
-        <GlassButton variant="primary" size="sm">
-          <template #leading>
-            <Download :size="16" />
-          </template>
-          Xuất bảng điểm
-        </GlassButton>
+      
+      <div v-if="myClasses.length === 0" class="text-center p-8 bg-white rounded-xl shadow-sm border border-slate-200">
+        <Users class="mx-auto h-12 w-12 text-slate-300 mb-3" />
+        <p class="text-slate-500">Bạn chưa được phân công giảng dạy lớp nào.</p>
       </div>
-    </GlassPanel>
-
-    <GlassPanel variant="flat" density="compact" class="context-panel">
-      <div class="metric-strip">
-        <div class="metric-card">
-          <span class="metric-icon">
-            <TrendingUp :size="17" />
-          </span>
-          <div>
-            <p>GPA trung bình</p>
-            <strong>{{ avgGPA }}<small>/10.0</small></strong>
-            <div class="progress-track" aria-hidden="true">
-              <span :style="{ width: `${avgGPA * 10}%` }" />
+      
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div 
+          v-for="cls in myClasses" 
+          :key="cls.classId || cls.id"
+          @click="goToGrades(cls.classId || cls.id)"
+          class="class-card group"
+        >
+          <div class="card-glow"></div>
+          <div class="card-content">
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-semibold mb-2">
+                  <Calendar class="w-3.5 h-3.5" />
+                  {{ cls.semester || 'Học kỳ hiện tại' }}
+                </span>
+                <h3 class="text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                  {{ cls.className }}
+                </h3>
+              </div>
+              <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                <Users class="w-5 h-5" />
+              </div>
+            </div>
+            
+            <div class="space-y-3 mb-5">
+              <div class="flex items-center text-sm text-slate-600">
+                <span class="w-24 font-medium">Môn học:</span>
+                <span class="truncate flex-1" :title="cls.courseName || cls.subjectName">{{ cls.courseName || cls.subjectName || 'N/A' }}</span>
+              </div>
+              <div class="flex items-center text-sm text-slate-600">
+                <span class="w-24 font-medium">Sĩ số:</span>
+                <span>{{ cls.studentCount || cls.totalStudents || '--' }} sinh viên</span>
+              </div>
+            </div>
+            
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+              <span class="text-sm font-medium text-slate-500">Xem sổ điểm</span>
+              <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                <ArrowUpDown class="w-4 h-4 rotate-90" />
+              </div>
             </div>
           </div>
         </div>
+      </div>
+    </template>
+    
+    <!-- DETAIL GRADEBOOK VIEW -->
+    <template v-else>
+      <div class="flex items-center gap-2 mb-2">
+        <GlassButton variant="secondary" size="sm" @click="goBack" class="!px-2">
+          <template #leading><ArrowLeft :size="16" /></template>
+        </GlassButton>
+        <span class="text-sm text-muted">Quay lại danh sách lớp</span>
+      </div>
 
-        <div class="metric-card">
-          <span class="metric-icon success">
-            <CheckCircle2 :size="17" />
-          </span>
+      <GlassPanel variant="flat" density="compact" class="page-header">
+        <div class="header-copy">
+          <div class="eyebrow">
+            <Users :size="15" />
+            {{ selectedClassName }}
+          </div>
           <div>
-            <p>Tỷ lệ đạt</p>
-            <strong>{{ passRate }}<small>% hoàn thành</small></strong>
-            <div class="progress-track" aria-hidden="true">
-              <span :style="{ width: `${passRate}%` }" />
-            </div>
+            <h1>Sổ điểm lớp</h1>
+            <p>Tổng hợp kết quả học tập và trạng thái hoàn thành môn học của {{ selectedClassName }}.</p>
           </div>
         </div>
-      </div>
-
-      <div class="summary-strip">
-        <div v-for="item in summaryStats" :key="item.label" :class="['summary-pill', item.tone]">
-          <span>{{ item.label }}</span>
-          <strong>{{ item.value }}</strong>
-        </div>
-      </div>
-    </GlassPanel>
-
-    <GlassPanel variant="flat" density="compact" class="table-panel">
-      <div class="table-toolbar">
-        <div>
-          <h2>Bảng kết quả chi tiết</h2>
-          <p>{{ gradebook.length }} sinh viên · Học kỳ Spring 2026 · Block 2</p>
-        </div>
-        <div class="filters">
-          <label class="search-field">
-            <Search :size="16" />
-            <input type="text" placeholder="Tìm sinh viên..." />
-          </label>
+  
+        <div class="header-actions">
           <GlassButton variant="secondary" size="sm">
             <template #leading>
-              <Filter :size="15" />
+              <Printer :size="16" />
             </template>
-            Trạng thái
+            In bảng điểm
+          </GlassButton>
+          <GlassButton variant="primary" size="sm" :loading="exporting" @click="handleExport">
+            <template #leading v-if="!exporting">
+              <Download :size="16" />
+            </template>
+            Xuất bảng điểm
           </GlassButton>
         </div>
-      </div>
-
-      <TableShell density="compact">
-        <table>
-          <thead>
-            <tr>
-              <th>Sinh viên</th>
-              <th>MSSV</th>
-              <th>Lớp</th>
-              <th>Tín chỉ</th>
-              <th>
-                <span class="sortable-label">
-                  GPA
-                  <ArrowUpDown :size="12" />
-                </span>
-              </th>
-              <th>Trạng thái</th>
-              <th class="text-right">Ghi chú</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="sv in gradebook" :key="sv.id">
-              <td>
-                <div class="student-cell">
-                  <span class="student-avatar">{{ sv.name.split(' ').pop()[0] }}</span>
-                  <span>
-                    <strong>{{ sv.name }}</strong>
-                    <small>Java OOP</small>
+      </GlassPanel>
+  
+      <GlassPanel variant="flat" density="compact" class="context-panel">
+        <div class="metric-strip">
+          <div class="metric-card">
+            <span class="metric-icon">
+              <TrendingUp :size="17" />
+            </span>
+            <div>
+              <p>GPA trung bình</p>
+              <strong>{{ avgGPA }}<small>/10.0</small></strong>
+              <div class="progress-track" aria-hidden="true">
+                <span :style="{ width: `${avgGPA * 10}%` }" />
+              </div>
+            </div>
+          </div>
+  
+          <div class="metric-card">
+            <span class="metric-icon success">
+              <CheckCircle2 :size="17" />
+            </span>
+            <div>
+              <p>Tỷ lệ đạt</p>
+              <strong>{{ passRate }}<small>% hoàn thành</small></strong>
+              <div class="progress-track" aria-hidden="true">
+                <span :style="{ width: `${passRate}%` }" />
+              </div>
+            </div>
+          </div>
+        </div>
+  
+        <div class="summary-strip">
+          <div v-for="item in summaryStats" :key="item.label" :class="['summary-pill', item.tone]">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </div>
+        </div>
+      </GlassPanel>
+  
+      <GlassPanel variant="flat" density="compact" class="table-panel">
+        <div class="table-toolbar">
+          <div>
+            <h2>Bảng kết quả chi tiết</h2>
+            <p>{{ gradebook.length }} sinh viên · Học kỳ hiện tại</p>
+          </div>
+          <div class="filters">
+            <label class="search-field">
+              <Search :size="16" />
+              <input type="text" placeholder="Tìm sinh viên..." />
+            </label>
+            <GlassButton variant="secondary" size="sm">
+              <template #leading>
+                <Filter :size="15" />
+              </template>
+              Trạng thái
+            </GlassButton>
+          </div>
+        </div>
+  
+        <div v-if="loading" class="py-8 text-center text-muted">
+          Đang tải dữ liệu điểm...
+        </div>
+        <TableShell v-else density="compact">
+          <table>
+            <thead>
+              <tr>
+                <th>Sinh viên</th>
+                <th>MSSV</th>
+                <th>Lớp</th>
+                <th>Tín chỉ</th>
+                <th>
+                  <span class="sortable-label">
+                    GPA
+                    <ArrowUpDown :size="12" />
                   </span>
-                </div>
-              </td>
-              <td class="student-code">{{ sv.id }}</td>
-              <td>
-                <GlassBadge variant="primary">SE1601</GlassBadge>
-              </td>
-              <td class="credits-cell">{{ sv.credits }}</td>
-              <td>
-                <span class="gpa-cell">
-                  <Award :size="15" />
-                  <strong :class="Number(sv.gpa) < 5 ? 'failed' : 'passed'">{{ sv.gpa }}</strong>
-                </span>
-              </td>
-              <td>
-                <GlassBadge :variant="statusVariant(sv.status)">
-                  <CheckCircle2 v-if="sv.status === 'Pass'" :size="11" />
-                  <XCircle v-else :size="11" />
-                  {{ statusLabel(sv.status) }}
-                </GlassBadge>
-              </td>
-              <td class="note-cell">
-                {{ sv.status === 'Pass' ? 'Đủ điều kiện hoàn thành' : 'Cần theo dõi học lại' }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </TableShell>
-    </GlassPanel>
+                </th>
+                <th>Trạng thái</th>
+                <th class="text-right">Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="sv in gradebook" :key="sv.id">
+                <td>
+                  <div class="student-cell">
+                    <span class="student-avatar">{{ sv.name.split(' ').pop()[0] }}</span>
+                    <span>
+                      <strong>{{ sv.name }}</strong>
+                    </span>
+                  </div>
+                </td>
+                <td class="student-code">{{ sv.id }}</td>
+                <td>
+                  <GlassBadge variant="primary">{{ selectedClassName }}</GlassBadge>
+                </td>
+                <td class="credits-cell">{{ sv.credits }}</td>
+                <td>
+                  <span class="gpa-cell">
+                    <Award :size="15" />
+                    <strong :class="Number(sv.gpa) < 5 ? 'failed' : 'passed'">{{ sv.gpa }}</strong>
+                  </span>
+                </td>
+                <td>
+                  <GlassBadge :variant="statusVariant(sv.status)">
+                    <CheckCircle2 v-if="sv.status === 'Pass'" :size="11" />
+                    <XCircle v-else :size="11" />
+                    {{ statusLabel(sv.status) }}
+                  </GlassBadge>
+                </td>
+                <td class="note-cell">
+                  {{ sv.status === 'Pass' ? 'Đủ điều kiện hoàn thành' : 'Cần theo dõi học lại' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </TableShell>
+      </GlassPanel>
+    </template>
   </div>
 </template>
 
@@ -592,5 +751,42 @@ onMounted(loadGrades)
   .note-cell {
     text-align: left;
   }
+}
+
+.class-card {
+  position: relative;
+  background: white;
+  border-radius: 16px;
+  border: 1px solid var(--border-card);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.class-card:hover {
+  transform: translateY(-4px);
+  border-color: #93c5fd;
+  box-shadow: 0 12px 24px -8px rgba(37, 99, 235, 0.15);
+}
+
+.card-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.class-card:hover .card-glow {
+  opacity: 1;
+}
+
+.card-content {
+  position: relative;
+  padding: 1.5rem;
+  z-index: 1;
 }
 </style>

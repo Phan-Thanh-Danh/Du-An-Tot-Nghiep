@@ -21,7 +21,7 @@ export function unwrapApiData(response) {
   return response?.data ?? response?.Data ?? response
 }
 
-function getStoredAccessToken() {
+export function getStoredAccessToken() {
   return localStorage.getItem('lms_access_token') || sessionStorage.getItem('lms_access_token') || ''
 }
 

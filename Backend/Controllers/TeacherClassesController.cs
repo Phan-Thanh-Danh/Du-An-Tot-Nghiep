@@ -5,7 +5,8 @@ using Backend.DTOs.Attendance;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
+using OfficeOpenXml;
+using OfficeOpenXml.Drawing.Chart;
 namespace Backend.Controllers;
 
 [ApiController]
@@ -598,6 +599,131 @@ public class TeacherClassesController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, ApiResponseDto.Fail("Lỗi khi cập nhật điểm: " + ex.Message));
+        }
+    }
+
+    [HttpGet("classes/{id}/grades/export")]
+    public async Task<IActionResult> ExportClassGrades(int id)
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            var userId = currentUser!.UserId;
+
+            var khoahoc = await _context.KhoaHocs
+                .Include(k => k.MonHoc)
+                .Include(k => k.Lop)
+                .FirstOrDefaultAsync(k => k.MaLop == id && k.MaGiaoVien == userId);
+                
+            if (khoahoc == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy môn học bạn dạy trong lớp này."));
+
+            var monHocId = khoahoc.MaMonHoc;
+            var hocKyId = khoahoc.MaHocKy;
+
+            var students = await _context.NguoiDungs
+                .Where(n => n.MaLop == id)
+                .Select(n => new
+                {
+                    StudentId = n.MaNguoiDung,
+                    StudentName = n.HoTen,
+                    Diem = _context.DiemSos.FirstOrDefault(d => d.MaHocSinh == n.MaNguoiDung && d.MaMonHoc == monHocId && d.MaHocKy == hocKyId)
+                })
+                .ToListAsync();
+
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            using var package = new ExcelPackage();
+            var worksheet = package.Workbook.Worksheets.Add("Bang_Diem");
+
+            // Header
+            string className = khoahoc.Lop?.TenLop ?? $"Lớp {id}";
+            string subjectName = khoahoc.MonHoc?.TenMonHoc ?? "Môn học";
+            worksheet.Cells["A1"].Value = $"BẢNG ĐIỂM - {className.ToUpper()} - {subjectName.ToUpper()}";
+            worksheet.Cells["A1:F1"].Merge = true;
+            worksheet.Cells["A1"].Style.Font.Bold = true;
+            worksheet.Cells["A1"].Style.Font.Size = 16;
+            worksheet.Cells["A1"].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+
+            // Columns Header
+            string[] headers = { "STT", "MSSV", "Họ và Tên", "Điểm QT", "Điểm CK", "GPA", "Trạng thái" };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var cell = worksheet.Cells[3, i + 1];
+                cell.Value = headers[i];
+                cell.Style.Font.Bold = true;
+                cell.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+                cell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightBlue);
+                cell.Style.Border.BorderAround(OfficeOpenXml.Style.ExcelBorderStyle.Thin);
+            }
+
+            int row = 4;
+            int passCount = 0;
+            int failCount = 0;
+
+            foreach (var s in students)
+            {
+                decimal qt = s.Diem?.DiemQuaTrinh ?? 0;
+                decimal ck = s.Diem?.DiemCuoiKy ?? 0;
+                decimal total = s.Diem != null ? s.Diem.GpaMonHoc : 0;
+                bool isPass = total >= 5;
+
+                if (isPass) passCount++;
+                else failCount++;
+
+                worksheet.Cells[row, 1].Value = row - 3;
+                worksheet.Cells[row, 2].Value = s.StudentId.ToString();
+                worksheet.Cells[row, 3].Value = s.StudentName;
+                worksheet.Cells[row, 4].Value = qt;
+                worksheet.Cells[row, 5].Value = ck;
+                worksheet.Cells[row, 6].Value = total;
+                worksheet.Cells[row, 7].Value = isPass ? "Đạt" : "Rớt";
+                
+                if (isPass) worksheet.Cells[row, 7].Style.Font.Color.SetColor(System.Drawing.Color.Green);
+                else worksheet.Cells[row, 7].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+
+                for (int col = 1; col <= 7; col++)
+                {
+                    worksheet.Cells[row, col].Style.Border.BorderAround(OfficeOpenXml.Style.ExcelBorderStyle.Thin);
+                }
+                row++;
+            }
+
+            worksheet.Column(1).Width = 5; // STT
+            worksheet.Column(2).Width = 15; // MSSV
+            worksheet.Column(3).Width = 25; // Tên
+            worksheet.Column(4).Width = 10; // QT
+            worksheet.Column(5).Width = 10; // CK
+            worksheet.Column(6).Width = 10; // GPA
+            worksheet.Column(7).Width = 15; // Trạng thái
+
+            // Add Pie Chart for Pass/Fail
+            var pieChart = worksheet.Drawings.AddPieChart("PassFailChart", ePieChartType.Pie);
+            pieChart.Title.Text = "Tỷ lệ Đạt/Rớt";
+            pieChart.SetPosition(2, 0, 8, 0);
+            pieChart.SetSize(400, 300);
+
+            // Create some hidden cells to hold chart data
+            worksheet.Cells["Z1"].Value = "Đạt";
+            worksheet.Cells["Z2"].Value = "Rớt";
+            worksheet.Cells["AA1"].Value = passCount;
+            worksheet.Cells["AA2"].Value = failCount;
+
+            var series = pieChart.Series.Add(worksheet.Cells["AA1:AA2"], worksheet.Cells["Z1:Z2"]);
+            var dataLabel = pieChart.DataLabel;
+            dataLabel.ShowPercent = true;
+            dataLabel.ShowLeaderLines = true;
+
+            var stream = new MemoryStream();
+            package.SaveAs(stream);
+            stream.Position = 0;
+
+            string excelName = $"BangDiem_{className}.xlsx";
+            return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelName);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi xuất bảng điểm: " + ex.Message));
         }
     }
 }
