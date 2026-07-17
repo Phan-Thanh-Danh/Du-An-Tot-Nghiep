@@ -217,6 +217,7 @@ public class StudentDisciplineRecordListItemDto
     public DateOnly? NgayBatDauHieuLuc { get; set; }
     public DateOnly? NgayKetThucHieuLuc { get; set; }
     public bool CoTheKhieuNai { get; set; }
+    public string? AppealStatus { get; set; }
 }
 
 public class StudentDisciplineRecordDetailDto : StudentDisciplineRecordListItemDto

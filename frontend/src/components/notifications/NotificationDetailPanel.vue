@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { Calendar, User, ExternalLink } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
+import SafeHtmlRenderer from '@/components/common/SafeHtmlRenderer.vue'
 import { formatDate } from '@/utils/dateFormat'
 import { getStatusMeta } from '@/utils/statusLabels'
 
@@ -11,12 +12,6 @@ const props = defineProps({
     type: Object,
     required: true
   }
-})
-
-// Thay vì dùng v-html, chúng ta render đoạn text an toàn bằng cách tách dòng
-const safeBodyParagraphs = computed(() => {
-  const text = props.notification.body || props.notification.excerpt || ''
-  return text.split('\n').filter(p => p.trim().length > 0)
 })
 </script>
 
@@ -47,8 +42,8 @@ const safeBodyParagraphs = computed(() => {
     </div>
 
     <div class="detail-body flex-1 text-(--text-body) text-base leading-relaxed space-y-4">
-      <!-- Safe rendering without v-html -->
-      <p v-for="(p, index) in safeBodyParagraphs" :key="index">{{ p }}</p>
+      <!-- Safe rendering of Rich Text notification body -->
+      <SafeHtmlRenderer :html="notification.body || notification.excerpt" />
     </div>
 
     <div v-if="notification.relatedPath" class="detail-footer pt-6 mt-auto border-t border-(--border-default)">

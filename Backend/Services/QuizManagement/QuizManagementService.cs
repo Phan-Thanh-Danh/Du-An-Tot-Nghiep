@@ -669,6 +669,7 @@ public class QuizManagementService : IQuizManagementService
         if (inUse) throw new ApiException(409, "Đề kiểm tra đã được sử dụng, không thể chuyển về nháp");
 
         quiz.TrangThai = "nhap";
+        quiz.TrangThaiDuyet = "nhap";
         quiz.NgayCapNhat = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
@@ -730,6 +731,46 @@ public class QuizManagementService : IQuizManagementService
             userId,
             null,
             "Đóng quiz thủ công",
+            ct);
+    }
+
+    public async Task ValidateQuizAsync(int id, int userId, CancellationToken ct)
+    {
+        var quiz = await _db.DeKiemTras.FirstOrDefaultAsync(x => x.MaDeKiemTra == id, ct);
+        if (quiz == null) throw new ApiException(404, "Không tìm thấy Đề kiểm tra");
+        if (quiz.TrangThai != "nhap") throw new ApiException(409, "Chỉ có thể xác thực đề kiểm tra ở trạng thái nháp");
+
+        var config = QuizConfigurationDto.Parse(quiz.CauHinhDeThi);
+        config.Validate();
+
+        var questions = await _db.CauHoiDeKiemTras.Include(x => x.CauHoi).Where(x => x.MaDeKiemTra == id).ToListAsync(ct);
+        if (!questions.Any()) throw new ApiException(409, "Đề kiểm tra chưa có câu hỏi nào để xác thực");
+
+        if (questions.Any(x => x.CauHoi == null || !x.CauHoi.ConHoatDong))
+            throw new ApiException(409, "Có câu hỏi đang bị vô hiệu hóa, không thể xác thực");
+
+        var totalScore = questions.Sum(x => x.DiemSo);
+        if (totalScore != config.TongDiem)
+            throw new ApiException(409, $"Tổng điểm các câu hỏi ({totalScore}) không khớp với cấu hình tổng điểm của đề ({config.TongDiem})");
+
+        var uniqueIds = new HashSet<int>(questions.Select(x => x.MaCauHoi));
+        if (uniqueIds.Count != questions.Count)
+            throw new ApiException(409, "Tồn tại câu hỏi bị trùng lặp trong đề kiểm tra");
+
+        quiz.TrangThaiDuyet = "da_xac_thuc";
+        quiz.NgayCapNhat = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+
+        await _auditLogService.LogAsync(
+            "DeKiemTra", 
+            id.ToString(), 
+            "VALIDATE_QUIZ", 
+            "nhap", 
+            "da_xac_thuc", 
+            userId, 
+            null, 
+            "Xác thực đề kiểm tra", 
             ct);
     }
 

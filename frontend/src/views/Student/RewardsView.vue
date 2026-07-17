@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Trophy, Download, Star } from 'lucide-vue-next'
+import { Trophy, Download, Star, ShieldAlert, AlertTriangle } from 'lucide-vue-next'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
@@ -12,6 +12,7 @@ import { formatDate } from '@/utils/dateFormat'
 
 const rewards = ref([])
 const loading = ref(false)
+const forbidden = ref(false)
 const error = ref('')
 const selectedReward = ref(null)
 const filter = ref('all') // all, pending, generated
@@ -37,13 +38,23 @@ const mapReward = (item) => ({
 const fetchRewards = async () => {
   loading.value = true
   error.value = ''
+  forbidden.value = false
   try {
     const response = await studentApi.getRewards({ pageIndex: 1, pageSize: 50 })
     const data = unwrapApiData(response)
     rewards.value = (data?.items ?? data?.Items ?? []).map(mapReward)
+    if (rewards.value.length > 0) {
+      selectedReward.value = rewards.value[0]
+    } else {
+      selectedReward.value = null
+    }
   } catch (err) {
     rewards.value = []
-    error.value = err?.message || 'Không thể tải danh sách khen thưởng.'
+    if (err?.statusCode === 403) {
+      forbidden.value = true
+    } else {
+      error.value = err?.message || 'Không thể tải danh sách khen thưởng.'
+    }
   } finally {
     loading.value = false
   }
@@ -135,9 +146,26 @@ const downloadCertificate = async () => {
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 space-y-4">
         <LoadingSkeleton v-if="loading" :lines="6" />
-        <EmptyState v-else-if="error" title="Không thể tải dữ liệu" :description="error" />
+        
+        <!-- Forbidden state -->
+        <div v-else-if="forbidden" class="flex flex-col items-center justify-center py-16 bg-(--surface-card) border border-(--border-default) rounded-xl">
+          <ShieldAlert :size="48" class="text-(--color-danger-bg, #ef4444) mb-4" />
+          <h3 class="text-lg font-bold text-(--text-heading)">Không có quyền truy cập</h3>
+          <p class="text-sm text-(--text-muted) mt-1">Hồ sơ khen thưởng của bạn không khả dụng hoặc bị từ chối truy cập.</p>
+        </div>
+
+        <!-- Error state -->
+        <div v-else-if="error" class="flex flex-col items-center justify-center py-16 bg-(--surface-card) border border-(--border-default) rounded-xl">
+          <AlertTriangle :size="48" class="text-(--color-danger-bg, #ef4444) mb-4" />
+          <h3 class="text-lg font-bold text-(--text-heading)">Đã xảy ra lỗi</h3>
+          <p class="text-sm text-(--text-muted) mt-1 mb-4">{{ error }}</p>
+          <GlassButton variant="secondary" @click="fetchRewards">Thử lại</GlassButton>
+        </div>
+
+        <!-- Empty state -->
         <EmptyState v-else-if="filteredRewards.length === 0" title="Chưa có khen thưởng nào" description="Bạn chưa có khen thưởng hoặc không tìm thấy kết quả phù hợp." />
 
+        <!-- Success state -->
         <div v-else class="grid sm:grid-cols-2 gap-4 min-h-[450px] content-start">
           <GlassPanel
             v-for="r in filteredRewards" :key="r.id"
@@ -170,7 +198,7 @@ const downloadCertificate = async () => {
         <div class="sticky top-6 flex flex-col min-h-[450px] lg:w-[380px] xl:w-[420px] bg-(--surface-card) rounded-2xl border border-(--border-default) shadow-lg shadow-amber-500/5 overflow-hidden mx-auto lg:mx-0 w-full">
           <div class="h-2 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500"></div>
           <div class="p-6 flex flex-col flex-1">
-          <EmptyState v-if="!selectedReward" title="Chọn vinh danh" description="Nhấp vào thẻ bên trái để xem chi tiết Bằng khen." />
+          <EmptyState v-if="loading || forbidden || error || !selectedReward" title="Chọn vinh danh" description="Nhấp vào thẻ bên trái để xem chi tiết Bằng khen." />
           <div v-else class="space-y-6 flex flex-col h-full relative">
             <div class="absolute top-0 right-0 text-amber-500/10">
               <Star :size="80" fill="currentColor" />

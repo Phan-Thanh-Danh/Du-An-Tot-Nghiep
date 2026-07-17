@@ -58,7 +58,7 @@ const formatString = computed(() => {
           <h1 class="text-xl font-bold text-slate-800 tracking-tight leading-none line-clamp-1">
             {{ quiz.title || 'Quiz không tiêu đề' }}
           </h1>
-          <QuizStatusBadge :status="quiz.status" />
+          <QuizStatusBadge :status="quiz.status" :trangThaiDuyet="quiz.trangThaiDuyet" />
         </div>
         <div class="flex items-center gap-2 text-sm text-slate-500">
           <span>{{ formatString }}</span>

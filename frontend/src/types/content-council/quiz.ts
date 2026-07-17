@@ -39,6 +39,7 @@ export interface ContentCouncilQuiz {
   openAt?: string
   closeAt?: string
   usageCount: number
+  trangThaiDuyet?: string
   createdAt: string
   updatedAt: string
 }

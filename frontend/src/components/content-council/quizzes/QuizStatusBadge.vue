@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { QuizStatus } from '@/types/content-council/quiz'
-import { FileEdit, Send, PlayCircle, Lock } from 'lucide-vue-next'
+import { FileEdit, Send, PlayCircle, Lock, CheckCircle } from 'lucide-vue-next'
 
 const props = defineProps<{
   status: QuizStatus
+  trangThaiDuyet?: string
 }>()
 
 const statusConfig = computed(() => {
+  if (props.status === 'draft' && props.trangThaiDuyet === 'da_xac_thuc') {
+    return { label: 'Đã xác thực', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle }
+  }
   switch (props.status) {
     case 'draft':
       return { label: 'Bản nháp', color: 'bg-slate-100 text-slate-700 border-slate-200', icon: FileEdit }

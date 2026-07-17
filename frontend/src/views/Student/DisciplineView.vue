@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { AlertTriangle, ShieldAlert, Scale } from 'lucide-vue-next'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
+import GlassButton from '@/components/ui/GlassButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
@@ -13,18 +14,54 @@ import { usePopupStore } from '@/stores/popup'
 const popup = usePopupStore()
 const records = ref([])
 const loading = ref(false)
+const forbidden = ref(false)
+const error = ref(null)
 const selectedRecord = ref(null)
 const appealReason = ref('')
 const confirmAppeal = ref(false)
 
 const fetchRecords = async () => {
   loading.value = true
+  error.value = null
+  forbidden.value = false
   try {
     const res = await studentApi.getDisciplineRecords()
-    records.value = Array.isArray(res) ? res : (res?.items ?? res?.data ?? [])
-  } catch (error) {
-    console.error(error)
-    popup.error('Lỗi', 'Không thể tải hồ sơ kỷ luật.')
+    const raw = res?.items ?? res?.data ?? res ?? []
+    const list = Array.isArray(raw) ? raw : (raw.items ?? [])
+    records.value = list.map(item => {
+      let appealStatusStr = null
+      if (item.appealStatus === 'cho_xu_ly') appealStatusStr = 'pending'
+      else if (item.appealStatus === 'chap_nhan') appealStatusStr = 'accepted'
+      else if (item.appealStatus === 'tu_choi') appealStatusStr = 'rejected'
+      else if (item.appealStatus === 'da_huy') appealStatusStr = 'cancelled'
+
+      return {
+        id: item.maHoSoKyLuat,
+        tieuDe: item.tieuDe,
+        mucDoKyLuat: item.mucDoKyLuat,
+        hinhThucXuLy: item.hinhThucXuLy,
+        trangThai: item.trangThai,
+        ngayViPham: item.ngayViPham,
+        thoiHanHieuLuc: item.ngayKetThucHieuLuc,
+        coTheKhieuNai: item.coTheKhieuNai,
+        appealStatus: appealStatusStr,
+        moTaCongKhai: item.moTaViPham || '',
+        canCuXuLy: item.canCuXuLy || '',
+      }
+    })
+    if (records.value.length > 0) {
+      selectedRecord.value = records.value[0]
+    } else {
+      selectedRecord.value = null
+    }
+  } catch (err) {
+    console.error(err)
+    if (err?.statusCode === 403) {
+      forbidden.value = true
+    } else {
+      error.value = err?.message || 'Không thể tải hồ sơ kỷ luật.'
+    }
+    popup.error('Lỗi', err?.message || 'Không thể tải hồ sơ kỷ luật.')
   } finally {
     loading.value = false
   }
@@ -41,15 +78,19 @@ const submitAppeal = async () => {
     popup.error('Lỗi', 'Vui lòng nhập lý do khiếu nại.')
     return
   }
+  if (appealReason.value.trim().length < 20) {
+    popup.error('Lỗi', 'Lý do khiếu nại phải từ 20 ký tự trở lên.')
+    return
+  }
   confirmAppeal.value = false
   try {
-    const res = await studentApi.submitAppeal(selectedRecord.value.id, { reason: appealReason.value })
-    selectedRecord.value.appealStatus = 'pending'
+    await studentApi.submitAppeal(selectedRecord.value.id, { reason: appealReason.value })
     popup.success('Thành công', 'Đã gửi khiếu nại. Vui lòng chờ phản hồi.')
     appealReason.value = ''
+    await fetchRecords()
   } catch (_err) {
     console.error(_err)
-    popup.error('Lỗi', 'Không thể gửi khiếu nại.')
+    popup.error('Lỗi', _err?.message || 'Không thể gửi khiếu nại.')
   }
 }
 </script>
@@ -91,8 +132,26 @@ const submitAppeal = async () => {
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 space-y-4">
         <LoadingSkeleton v-if="loading" :lines="5" />
+        
+        <!-- Forbidden state -->
+        <div v-else-if="forbidden" class="flex flex-col items-center justify-center py-16 bg-(--surface-card) border border-(--border-default) rounded-xl">
+          <ShieldAlert :size="48" class="text-(--color-danger-bg, #ef4444) mb-4" />
+          <h3 class="text-lg font-bold text-(--text-heading)">Không có quyền truy cập</h3>
+          <p class="text-sm text-(--text-muted) mt-1">Hồ sơ kỷ luật của bạn không khả dụng hoặc bị từ chối truy cập.</p>
+        </div>
+
+        <!-- Error state -->
+        <div v-else-if="error" class="flex flex-col items-center justify-center py-16 bg-(--surface-card) border border-(--border-default) rounded-xl">
+          <AlertTriangle :size="48" class="text-(--color-danger-bg, #ef4444) mb-4" />
+          <h3 class="text-lg font-bold text-(--text-heading)">Đã xảy ra lỗi</h3>
+          <p class="text-sm text-(--text-muted) mt-1 mb-4">{{ error }}</p>
+          <GlassButton variant="secondary" @click="fetchRecords">Thử lại</GlassButton>
+        </div>
+
+        <!-- Empty state -->
         <EmptyState v-else-if="records.length === 0" title="Hồ sơ trống" description="Bạn không có hồ sơ kỷ luật nào." />
 
+        <!-- Success state -->
         <div v-else class="space-y-4 min-h-[450px] content-start">
           <GlassPanel
             v-for="r in records" :key="r.id"
@@ -135,7 +194,7 @@ const submitAppeal = async () => {
         <div class="sticky top-6 flex flex-col min-h-[450px] lg:w-[380px] xl:w-[420px] bg-(--surface-card) rounded-2xl border border-(--border-default) shadow-lg overflow-hidden mx-auto lg:mx-0 w-full">
           <div class="h-1.5" :class="selectedRecord?.trangThai === 'active' ? 'bg-(--color-danger-bg)' : 'bg-(--border-focus)'"></div>
           <div class="p-6 flex flex-col flex-1">
-            <EmptyState v-if="!selectedRecord" title="Chưa chọn hồ sơ" description="Nhấp vào thẻ bên trái để xem chi tiết vi phạm." />
+            <EmptyState v-if="loading || forbidden || error || !selectedRecord" title="Chưa chọn hồ sơ" description="Nhấp vào thẻ bên trái để xem chi tiết vi phạm." />
             <div v-else class="flex flex-col h-full relative">
               <div class="mb-6 pb-5 border-b border-dashed border-(--border-default)">
                 <div class="flex items-center gap-2 mb-3">

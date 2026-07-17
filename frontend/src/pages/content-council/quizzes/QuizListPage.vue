@@ -3,13 +3,17 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ContentCouncilQuiz } from '@/types/content-council/quiz'
 import { useQuizStore } from '@/stores/content-council/quizStore'
+import { usePopupStore } from '@/stores/popup'
 import QuizFilterBar from '@/components/content-council/quizzes/QuizFilterBar.vue'
 import QuizTable from '@/components/content-council/quizzes/QuizTable.vue'
 import QuizMobileCard from '@/components/content-council/quizzes/QuizMobileCard.vue'
 import QuizDetailDrawer from '@/components/content-council/quizzes/QuizDetailDrawer.vue'
 import QuizTableSkeleton from '@/components/content-council/quizzes/QuizTableSkeleton.vue'
 import QuizEmptyState from '@/components/content-council/quizzes/QuizEmptyState.vue'
-import { Plus, X } from 'lucide-vue-next'
+import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import { Plus, X, ShieldAlert, AlertCircle } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -65,9 +69,12 @@ const closeDialog = () => {
   dialogState.value.errors = []
 }
 
+const forbidden = ref(false)
+const apiError = ref('')
+const popupStore = usePopupStore()
+
 // ─── Initialize Data ───────────────────────────────────────────────────
-onMounted(() => {
-  
+onMounted(async () => {
   // Parse URL query
   if (route.query.keyword) filters.value.keyword = route.query.keyword as string
   if (route.query.subjectId) filters.value.subjectId = route.query.subjectId as string
@@ -79,10 +86,39 @@ onMounted(() => {
   if (route.query.page) currentPage.value = Number(route.query.page)
   if (route.query.pageSize) pageSize.value = Number(route.query.pageSize)
 
-  quizStore.init().finally(() => {
+  isLoading.value = true
+  forbidden.value = false
+  apiError.value = ''
+  try {
+    await quizStore.init()
+    if (quizStore.error) {
+      apiError.value = quizStore.error
+    }
+  } catch (e: any) {
+    if (e?.statusCode === 403) {
+      forbidden.value = true
+    } else {
+      apiError.value = e?.message || 'Không thể tải danh sách đề kiểm tra.'
+    }
+  } finally {
     isLoading.value = false
-  })
+  }
 })
+
+const reloadData = async () => {
+  quizStore.reset()
+  isLoading.value = true
+  forbidden.value = false
+  apiError.value = ''
+  try {
+    await quizStore.init()
+  } catch (e: any) {
+    if (e?.statusCode === 403) forbidden.value = true
+    else apiError.value = e?.message || 'Không thể tải danh sách đề kiểm tra.'
+  } finally {
+    isLoading.value = false
+  }
+}
 
 // ─── Sync URL ─────────────────────────────────────────────────────────
 watch([filters, sort, currentPage, pageSize], () => {
@@ -186,56 +222,58 @@ const handleAction = ({ type, quiz }: { type: string, quiz: ContentCouncilQuiz }
       errors: []
     }
   } 
-  else if (type === 'publish') {
-    // Validate publish
+  else if (type === 'validate') {
     const errors: string[] = []
     if (quiz.questionCount === 0) errors.push('Quiz chưa có câu hỏi.')
-    if (quiz.totalScore <= 0) errors.push('Tổng điểm phải lớn hơn 0.')
+    if (quiz.totalScore <= 0) errors.push('Tổng điểm cấu hình phải lớn hơn 0.')
     if (quiz.durationMinutes <= 0) errors.push('Thời gian làm bài phải lớn hơn 0.')
-    if (!quiz.unlimitedAttempts && (!quiz.maximumAttempts || quiz.maximumAttempts <= 0)) {
-      errors.push('Số lượt làm tối đa không hợp lệ.')
-    }
-    if (quiz.format === 'multiple_choice' && quiz.essayQuestionCount > 0) {
-      errors.push('Quiz trắc nghiệm không thể chứa câu tự luận.')
-    }
 
     if (errors.length > 0) {
-      dialogState.value = {
-        isOpen: true,
-        title: 'Chưa thể xuất bản Quiz',
-        message: 'Quiz chưa đủ điều kiện để xuất bản. Vui lòng khắc phục các lỗi sau:',
-        confirmText: 'Đã hiểu',
-        confirmClass: 'bg-slate-200 hover:bg-slate-300 text-slate-800',
-        actionType: 'cancel_only',
-        quiz: quiz,
-        warnings: [],
-        errors: errors
-      }
-    } else {
-      dialogState.value = {
-        isOpen: true,
-        title: 'Xuất bản Quiz?',
-        message: 'Sau khi xuất bản, Quiz sẵn sàng để được mở cho học sinh hoặc gắn vào nội dung bài học.',
-        confirmText: 'Xuất bản',
-        confirmClass: 'bg-blue-600 hover:bg-blue-700 text-white',
-        actionType: 'publish',
-        quiz: quiz,
-        warnings: [],
-        errors: []
-      }
+      popupStore.error('Chưa thể xác thực Quiz', errors.join('\n'))
+      return
+    }
+
+    dialogState.value = {
+      isOpen: true,
+      title: 'Xác thực cấu trúc Quiz?',
+      message: `Bạn có chắc chắn muốn xác thực cấu trúc cho Quiz "${quiz.title}"? Quiz sẽ được kiểm tra cấu hình điểm và câu hỏi, sau đó khóa để sẵn sàng xuất bản.`,
+      confirmText: 'Xác thực',
+      confirmClass: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+      actionType: 'validate',
+      quiz: quiz,
+      warnings: [],
+      errors: []
+    }
+  }
+  else if (type === 'publish') {
+    if (quiz.trangThaiDuyet !== 'da_xac_thuc') {
+      popupStore.error('Chưa thể xuất bản', 'Quiz cần được Xác thực (Validated) trước khi xuất bản.')
+      return
+    }
+
+    dialogState.value = {
+      isOpen: true,
+      title: 'Xuất bản Quiz?',
+      message: `Bạn có chắc chắn muốn công bố Quiz "${quiz.title}"? Quiz sẽ sẵn sàng cho học sinh hoặc gắn vào nội dung bài học.`,
+      confirmText: 'Xuất bản',
+      confirmClass: 'bg-blue-600 hover:bg-blue-700 text-white',
+      actionType: 'publish',
+      quiz: quiz,
+      warnings: [],
+      errors: []
     }
   }
   else if (type === 'unpublish') {
     if (quiz.status === 'open') {
-      showToast('Không thể chuyển về nháp khi Quiz đang mở.', 'error')
+      popupStore.error('Không thể hủy xuất bản', 'Không thể chuyển về nháp khi Quiz đang mở.')
       return
     }
     dialogState.value = {
       isOpen: true,
-      title: 'Chuyển Quiz về bản nháp?',
-      message: 'Quiz sẽ không còn ở trạng thái sẵn sàng mở. Các cấu hình vẫn được giữ nguyên.',
+      title: 'Hủy xuất bản Quiz?',
+      message: `Bạn có chắc chắn muốn hủy xuất bản Quiz "${quiz.title}"? Trạng thái sẽ quay lại Bản nháp và cần xác thực lại nếu muốn xuất bản trong tương lai.`,
       confirmText: 'Chuyển về bản nháp',
-      confirmClass: 'bg-blue-600 hover:bg-blue-700 text-white',
+      confirmClass: 'bg-amber-600 hover:bg-amber-700 text-white',
       actionType: 'unpublish',
       quiz: quiz,
       warnings: [],
@@ -270,106 +308,85 @@ const handleAction = ({ type, quiz }: { type: string, quiz: ContentCouncilQuiz }
   }
   else if (type === 'delete') {
     if (quiz.usageCount > 0) {
-      dialogState.value = {
-        isOpen: true,
-        title: 'Không thể xóa Quiz',
-        message: `Quiz đang được sử dụng trong ${quiz.usageCount} bài học. Hãy gỡ Quiz khỏi các bài học trước khi xóa.`,
-        confirmText: 'Đã hiểu',
-        confirmClass: 'bg-slate-200 hover:bg-slate-300 text-slate-800',
-        actionType: 'cancel_only',
-        quiz: quiz,
-        warnings: [],
-        errors: []
-      }
-    } else {
-      dialogState.value = {
-        isOpen: true,
-        title: 'Xóa Quiz?',
-        message: `Quiz "${quiz.title}" sẽ bị xóa vĩnh viễn và không thể khôi phục.`,
-        confirmText: 'Xóa Quiz',
-        confirmClass: 'bg-red-600 hover:bg-red-700 text-white',
-        actionType: 'delete',
-        quiz: quiz,
-        warnings: [],
-        errors: []
-      }
+      popupStore.error('Không thể xóa', `Quiz đang được sử dụng trong ${quiz.usageCount} bài học. Vui lòng gỡ Quiz khỏi bài học trước.`)
+      return
+    }
+    dialogState.value = {
+      isOpen: true,
+      title: 'Xóa Quiz?',
+      message: `Quiz "${quiz.title}" sẽ bị xóa vĩnh viễn và không thể khôi phục.`,
+      confirmText: 'Xóa Quiz',
+      confirmClass: 'bg-red-600 hover:bg-red-700 text-white',
+      actionType: 'delete',
+      quiz: quiz,
+      warnings: [],
+      errors: []
     }
   }
 }
 
-const confirmAction = () => {
+const isExecutingAction = ref(false)
+const confirmAction = async () => {
   const type = dialogState.value.actionType
   const quiz = dialogState.value.quiz
   if (!quiz) return
 
-  if (type === 'cancel_only') {
-    closeDialog()
-    return
-  }
-
-  const index = quizzes.value.findIndex(q => q.id === quiz.id)
-  
-  if (type === 'duplicate') {
-    const newQuiz = { ...quiz }
-    newQuiz.id = Date.now()
-    newQuiz.code = `QZ-${quiz.subjectCode}-COPY`
-    newQuiz.title = `${quiz.title} (Bản sao)`
-    newQuiz.status = 'draft'
-    newQuiz.usageCount = 0
-    newQuiz.openAt = undefined
-    newQuiz.closeAt = undefined
-    newQuiz.updatedAt = new Date().toISOString()
-    quizStore.addQuiz(newQuiz)
-    showToast('Đã tạo bản sao Quiz trong phiên thử nghiệm.', 'success')
-  } 
-  else if (type === 'publish') {
-    if (index !== -1) {
-      const updated = { ...quizzes.value[index], status: 'published' as const, updatedAt: new Date().toISOString() }
-      quizStore.updateQuiz(updated)
-      showToast('Đã xuất bản Quiz trong phiên thử nghiệm.', 'success')
+  isExecutingAction.value = true
+  try {
+    if (type === 'duplicate') {
+      const newQuiz = { ...quiz }
+      newQuiz.id = Date.now()
+      newQuiz.code = `QZ-${quiz.subjectCode}-${Math.floor(Math.random() * 1000)}`
+      newQuiz.title = `${quiz.title} (Bản sao)`
+      newQuiz.status = 'draft'
+      newQuiz.usageCount = 0
+      newQuiz.openAt = undefined
+      newQuiz.closeAt = undefined
+      newQuiz.updatedAt = new Date().toISOString()
+      await quizStore.addQuiz(newQuiz)
+      popupStore.success('Thành công', 'Đã nhân bản Quiz.')
+    } 
+    else if (type === 'validate') {
+      await quizStore.validateQuizAction(quiz.id)
+      popupStore.success('Thành công', 'Đã xác thực đề kiểm tra.')
     }
-  }
-  else if (type === 'unpublish') {
-    if (index !== -1) {
-      const updated = { ...quizzes.value[index], status: 'draft' as const, updatedAt: new Date().toISOString() }
-      quizStore.updateQuiz(updated)
-      showToast('Đã chuyển Quiz về bản nháp.', 'success')
+    else if (type === 'publish') {
+      await quizStore.publishQuizAction(quiz.id)
+      popupStore.success('Thành công', 'Đã xuất bản đề kiểm tra.')
     }
-  }
-  else if (type === 'open') {
-    if (index !== -1) {
-      const updated = { ...quizzes.value[index], status: 'open' as const, updatedAt: new Date().toISOString() }
-      quizStore.updateQuiz(updated)
-      showToast('Đã mở Quiz.', 'success')
+    else if (type === 'unpublish') {
+      await quizStore.unpublishQuizAction(quiz.id)
+      popupStore.success('Thành công', 'Đã chuyển đề kiểm tra về bản nháp.')
     }
-  }
-  else if (type === 'close') {
-    if (index !== -1) {
-      const updated = { ...quizzes.value[index], status: 'closed' as const, updatedAt: new Date().toISOString() }
-      quizStore.updateQuiz(updated)
-      showToast('Đã đóng Quiz.', 'success')
+    else if (type === 'open') {
+      await quizStore.updateQuiz(quiz.id, { status: 'open' })
+      popupStore.success('Thành công', 'Đã mở đề kiểm tra.')
     }
-  }
-  else if (type === 'delete') {
-    if (index !== -1) {
-      quizStore.deleteQuiz(quizzes.value[index].id)
-      showToast('Đã xóa Quiz thành công.', 'success')
-      // Adjust pagination
+    else if (type === 'close') {
+      await quizStore.updateQuiz(quiz.id, { status: 'closed' })
+      popupStore.success('Thành công', 'Đã đóng đề kiểm tra.')
+    }
+    else if (type === 'delete') {
+      await quizStore.deleteQuiz(quiz.id)
+      popupStore.success('Thành công', 'Đã xóa Quiz thành công.')
       if (paginatedQuizzes.value.length === 0 && currentPage.value > 1) {
         currentPage.value--
       }
     }
-  }
-
-  closeDialog()
-  
-  // Update detail drawer state if it's open
-  if (isDrawerOpen.value && selectedQuiz.value && selectedQuiz.value.id === quiz.id) {
-    if (type === 'delete') {
-      isDrawerOpen.value = false
-    } else {
-      selectedQuiz.value = quizzes.value.find(q => q.id === quiz.id) || null
+    closeDialog()
+    
+    // Update detail drawer state if it's open
+    if (isDrawerOpen.value && selectedQuiz.value && selectedQuiz.value.id === quiz.id) {
+      if (type === 'delete') {
+        isDrawerOpen.value = false
+      } else {
+        selectedQuiz.value = quizStore.getQuizById(quiz.id) || null
+      }
     }
+  } catch (e: any) {
+    popupStore.error('Lỗi thao tác', e.message || 'Không thể thực hiện hành động.')
+  } finally {
+    isExecutingAction.value = false
   }
 }
 </script>
@@ -402,6 +419,23 @@ const confirmAction = () => {
     <div class="flex-1 flex flex-col min-h-0">
       <template v-if="isLoading">
         <QuizTableSkeleton />
+      </template>
+
+      <template v-else-if="forbidden">
+        <div class="flex flex-col items-center justify-center py-16 bg-(--surface-card) border border-(--border-default) rounded-xl">
+          <ShieldAlert :size="48" class="text-red-500 mb-4" />
+          <h3 class="text-lg font-bold text-(--text-heading)">Không có quyền truy cập</h3>
+          <p class="text-sm text-(--text-muted) mt-1">Tài khoản của bạn không được phân quyền quản lý đề thi.</p>
+        </div>
+      </template>
+
+      <template v-else-if="apiError">
+        <div class="flex flex-col items-center justify-center py-16 bg-(--surface-card) border border-(--border-default) rounded-xl">
+          <AlertCircle :size="48" class="text-red-500 mb-4" />
+          <h3 class="text-lg font-bold text-(--text-heading)">Đã xảy ra lỗi</h3>
+          <p class="text-sm text-(--text-muted) mt-1 mb-4">{{ apiError }}</p>
+          <button @click="reloadData" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Thử lại</button>
+        </div>
       </template>
 
       <template v-else-if="filteredQuizzes.length === 0">
@@ -464,40 +498,17 @@ const confirmAction = () => {
       @action="handleAction"
     />
 
-    <!-- Generic Confirm Dialog -->
-    <div v-if="dialogState.isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="closeDialog"></div>
-      
-      <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up">
-        <div class="p-6">
-          <h3 class="text-lg font-bold text-slate-800 mb-2">{{ dialogState.title }}</h3>
-          <p class="text-slate-600 text-sm whitespace-pre-line">{{ dialogState.message }}</p>
-          
-          <div v-if="dialogState.errors && dialogState.errors.length > 0" class="mt-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">
-            <ul class="list-disc pl-4 space-y-1">
-              <li v-for="(err, i) in dialogState.errors" :key="i">{{ err }}</li>
-            </ul>
-          </div>
-        </div>
-        
-        <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-          <button 
-            v-if="dialogState.actionType !== 'cancel_only'"
-            @click="closeDialog"
-            class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-          >
-            Hủy
-          </button>
-          <button 
-            @click="confirmAction"
-            class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-            :class="dialogState.confirmClass"
-          >
-            {{ dialogState.confirmText }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Confirm Dialog -->
+    <ConfirmActionDialog
+      v-model="dialogState.isOpen"
+      :title="dialogState.title"
+      :message="dialogState.message"
+      :confirmLabel="dialogState.confirmText"
+      :variant="dialogState.actionType === 'delete' ? 'danger' : dialogState.actionType === 'validate' ? 'success' : 'primary'"
+      :loading="isExecutingAction"
+      @confirm="confirmAction"
+      @cancel="closeDialog"
+    />
 
     <!-- Toasts Container -->
     <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none">

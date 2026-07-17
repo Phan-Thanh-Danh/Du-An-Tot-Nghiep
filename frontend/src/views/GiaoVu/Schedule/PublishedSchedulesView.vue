@@ -24,17 +24,21 @@ import {
   RotateCcw,
   Loader2,
 } from 'lucide-vue-next'
-import PageContainer from '@/components/SinhVien/PageContainer.vue'
-import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import { staffApi } from '@/services/staffApi'
 import { usePopupStore } from '@/stores/popup'
-
+import GlassPanel from '@/components/ui/GlassPanel.vue'
+import GlassButton from '@/components/ui/GlassButton.vue'
+import GlassInput from '@/components/ui/GlassInput.vue'
+import GlassBadge from '@/components/ui/GlassBadge.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
+import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 
 const popupStore = usePopupStore()
 const loading = ref(true)
 const apiError = ref('')
-
 const publishedSchedules = ref([])
+const rooms = ref([])
 
 async function loadData() {
   loading.value = true
@@ -44,12 +48,26 @@ async function loadData() {
     publishedSchedules.value = res?.items ?? res ?? []
   } catch (e) {
     console.error(e)
+    apiError.value = e?.message || 'Không thể tải danh sách thời khóa biểu đã công bố.'
   } finally {
     loading.value = false
   }
 }
 
-onMounted(() => { loadData() })
+async function loadRooms() {
+  try {
+    const res = await staffApi.getRooms({ pageSize: 100 })
+    const rRaw = res?.items ?? res?.data ?? res ?? []
+    rooms.value = Array.isArray(rRaw) ? rRaw : (rRaw.items ?? [])
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+onMounted(() => {
+  loadData()
+  loadRooms()
+})
 
 // ── Search & Filter ──────────────────────────────────────────
 const searchQuery = ref('')
@@ -237,19 +255,28 @@ import dayjs from 'dayjs'
 </script>
 
 <template>
-  <PageContainer 
-    title="Lịch đã publish" 
-    subtitle="Thời khóa biểu chính thức đã công bố. Mọi chỉnh sửa sẽ được lưu audit log và gửi thông báo cho GV/SV."
-  >
-    <div v-if="loading" class="p-4">
-      <SkeletonTable :rows="6" :columns="5" />
+  <div class="published-schedules max-w-7xl mx-auto space-y-6 p-4 md:p-6">
+    <!-- Header -->
+    <div class="border-b border-(--border-default) pb-4">
+      <div class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-(--text-link) mb-1">
+        <Calendar :size="14"/>
+        Thời khóa biểu
+      </div>
+      <h1 class="text-3xl font-extrabold text-(--text-heading) tracking-tight">Lịch đã publish</h1>
+      <p class="text-sm text-(--text-muted) mt-1">Thời khóa biểu chính thức đã công bố. Mọi chỉnh sửa sẽ được lưu audit log và gửi thông báo cho GV/SV.</p>
     </div>
 
-    <div v-else-if="apiError" class="surface-card border border-(--border-card) rounded-2xl p-6 flex flex-col items-center justify-center gap-3">
-      <AlertCircle :size="32" class="text-(--color-danger-text)" />
-      <p class="text-sm font-bold text-(--text-heading)">Không thể tải dữ liệu</p>
-      <p class="text-xs text-(--text-muted)">{{ apiError }}</p>
-      <button @click="loadData" class="lg-button-primary px-4 py-2 text-xs font-bold rounded-xl mt-2">Thử lại</button>
+    <!-- 5 States Container -->
+    <div v-if="loading" class="space-y-4 py-8">
+      <LoadingSkeleton :lines="6" />
+    </div>
+
+    <!-- Error State with Retry -->
+    <div v-else-if="apiError" class="flex flex-col items-center justify-center py-16 bg-(--surface-card) border border-(--border-default) rounded-xl">
+      <AlertCircle :size="48" class="text-(--color-danger-bg, #ef4444) mb-4" />
+      <h3 class="text-lg font-bold text-(--text-heading)">Đã xảy ra lỗi</h3>
+      <p class="text-sm text-(--text-muted) mt-1 mb-4">{{ apiError }}</p>
+      <GlassButton variant="secondary" @click="loadData">Thử lại</GlassButton>
     </div>
 
     <template v-else>
@@ -404,378 +431,131 @@ import dayjs from 'dayjs'
             <p class="text-base font-semibold text-heading">Không tìm thấy buổi học nào</p>
             <p class="text-sm text-label mt-1">Thử thay đổi từ khóa hoặc điều chỉnh bộ lọc.</p>
             <button class="mt-3 text-sm font-bold text-(--lg-primary) hover:underline" @click="clearFilters">Xóa tất cả bộ lọc</button>
-          </div>
-        </div>
+        <!-- Cancel Booking/Class Modal -->
+  <ConfirmActionDialog
+    :modelValue="showCancelModal"
+    @update:modelValue="showCancelModal = $event"
+    title="Hủy buổi học đã công bố"
+    confirmLabel="Hủy buổi học"
+    variant="danger"
+    :loading="isCancelling"
+    @confirm="confirmCancel"
+    @cancel="closeCancel"
+  >
+    <div v-if="cancelTarget" class="space-y-4 mt-3">
+      <div class="p-3 bg-(--surface-input) border border-(--border-default) rounded-xl">
+        <p class="text-sm font-bold text-(--text-heading)">{{ cancelTarget.subject }}</p>
+        <p class="text-xs text-(--text-muted) mt-1">Lớp: {{ cancelTarget.class }} &bull; {{ cancelTarget.day }}, {{ cancelTarget.time }} &bull; Phòng: {{ cancelTarget.room }}</p>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-(--text-muted) mb-1">Lý do hủy <span class="text-red-500">*</span></label>
+        <GlassInput v-model="cancelReason" placeholder="Nhập lý do hủy buổi học (tối thiểu 10 ký tự)..." class="w-full" />
+      </div>
+      <div class="p-3 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg text-xs font-semibold flex items-start gap-2 border border-red-500/20">
+        <AlertTriangle :size="14" class="shrink-0 mt-0.5" />
+        <span>Thao tác này sẽ gửi email và thông báo tức thời đến giảng viên cùng sinh viên của lớp. Hành động không thể hoàn tác.</span>
+      </div>
+    </div>
+  </ConfirmActionDialog>
 
-        <!-- ── Summary Info ── -->
-        <div class="flex flex-col md:flex-row items-center justify-between gap-4 px-4 py-2">
-          <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2">
-              <span class="h-3 w-3 rounded-full bg-(--lg-success) shadow-sm shadow-(--lg-success)/20"></span>
-              <span class="text-xs font-bold text-label">{{ totalPublished }} Buổi học đã publish</span>
-            </div>
-            <div class="flex items-center gap-2 text-xs font-bold text-placeholder">
-              <History :size="14" />
-              Lần cuối cập nhật: 10:30 Hôm nay
-            </div>
-          </div>
-          <button class="lg-button-secondary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest flex items-center gap-2" @click="openNotif">
-            <Bell :size="14" /> Gửi thông báo toàn bộ
-          </button>
+  <!-- Make-up Class Modal -->
+  <ConfirmActionDialog
+    :modelValue="showMakeupModal"
+    @update:modelValue="showMakeupModal = $event"
+    title="Xếp lịch học bù"
+    confirmLabel="Tạo lịch học bù"
+    variant="primary"
+    :loading="isMakingUp"
+    @confirm="confirmMakeup"
+    @cancel="closeMakeup"
+  >
+    <div v-if="makeupTarget" class="space-y-4 mt-3">
+      <div class="p-3 bg-(--surface-input) border border-(--border-default) rounded-xl">
+        <p class="text-sm font-bold text-(--text-heading)">{{ makeupTarget.subject }}</p>
+        <p class="text-xs text-(--text-muted) mt-1">Lớp: {{ makeupTarget.class }} &bull; Giảng viên: {{ makeupTarget.teacher }}</p>
+      </div>
+      
+      <div>
+        <label class="block text-xs font-semibold text-(--text-muted) mb-1">Ngày học bù <span class="text-red-500">*</span></label>
+        <GlassInput v-slot="scope" class="w-full">
+          <input v-model="makeupDate" v-bind="scope" type="date" class="bg-transparent border-none outline-none w-full text-xs text-(--text-body)" />
+        </GlassInput>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-(--text-muted) mb-1">Giờ học bù <span class="text-red-500">*</span></label>
+        <GlassInput v-model="makeupTime" placeholder="VD: Ca 1 (07:30 - 09:30)" class="w-full" />
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-(--text-muted) mb-1">Chọn phòng học bù</label>
+        <select v-slot="scope" v-model="makeupRoom" class="text-xs bg-(--surface-input) border border-(--border-input) text-(--text-body) rounded-lg w-full px-3 py-2.5 outline-none focus:ring-1 focus:ring-(--border-focus)">
+          <option value="">-- Giữ nguyên hoặc chọn phòng mới --</option>
+          <option v-for="room in rooms" :key="room.maPhong" :value="room.tenPhong || room.maCodePhong">
+            {{ room.tenPhong || room.maCodePhong }}
+          </option>
+        </select>
+      </div>
+    </div>
+  </ConfirmActionDialog>
+
+  <!-- History Modal -->
+  <ConfirmActionDialog
+    :modelValue="showHistoryModal"
+    @update:modelValue="showHistoryModal = $event"
+    title="Lịch sử thay đổi"
+    confirmLabel="Xác nhận"
+    variant="primary"
+    @confirm="closeHistory"
+    @cancel="closeHistory"
+  >
+    <div v-if="historyTarget" class="space-y-4 mt-3 max-h-[350px] overflow-y-auto pr-1">
+      <p class="text-xs text-(--text-muted) font-semibold">{{ historyTarget.subject }} &bull; Lớp: {{ historyTarget.class }}</p>
+      
+      <div v-if="historyLogs[historyTarget.id] && historyLogs[historyTarget.id].length > 0" class="relative pl-3 border-l-2 border-(--border-default) space-y-4">
+        <div v-for="(log, idx) in historyLogs[historyTarget.id]" :key="idx" class="relative">
+          <div class="absolute -left-4.5 w-2.5 h-2.5 rounded-full border-2 border-blue-500 bg-(--surface-card) mt-1"></div>
+          <p class="text-xs font-bold text-(--text-heading) flex justify-between gap-2">
+            <span>{{ log.action }}</span>
+            <span class="text-[10px] text-muted">{{ log.at }}</span>
+          </p>
+          <p class="text-[11px] text-(--text-body) mt-0.5">{{ log.detail }}</p>
+          <p class="text-[9px] text-muted mt-0.5">Thực hiện bởi: {{ log.by }}</p>
         </div>
       </div>
-    </template>
-  </PageContainer>
 
-  <!-- ════════════════════════════════════════════════════════════
-       Cancel / Change Modal
-  ════════════════════════════════════════════════════════════ -->
-  <Teleport to="body">
-    <Transition name="modal">
-      <div
-        v-if="showCancelModal && cancelTarget"
-        class="fixed inset-0 z-[100] flex items-center justify-center p-4"
-        @click.self="closeCancel"
-      >
-        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
-
-        <div class="relative w-full max-w-md surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
-          <div class="modal-header p-5">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-2xl surface-input flex items-center justify-center">
-                  <XCircle :size="20" class="text-link" />
-                </div>
-                <div>
-                  <h2 class="text-lg font-semibold text-heading">Hủy buổi học</h2>
-                  <p class="text-xs text-label mt-0.5">Thao tác này sẽ gửi thông báo đến GV & SV</p>
-                </div>
-              </div>
-              <button
-                class="h-8 w-8 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all"
-                @click="closeCancel"
-              >
-                <X :size="16" />
-              </button>
-            </div>
-          </div>
-
-          <div class="p-6 space-y-5">
-            <div class="surface-input rounded-2xl p-4 border border-default">
-              <div class="flex items-center gap-3 mb-3">
-                <BookOpen :size="16" class="text-placeholder" />
-                <div>
-                  <p class="text-sm font-semibold text-heading">{{ cancelTarget.subject }}</p>
-                  <p class="text-xs text-label">{{ cancelTarget.class }} · {{ cancelTarget.day }}, {{ cancelTarget.time }} · {{ cancelTarget.room }}</p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Lý do hủy <span class="text-(--lg-danger)">*</span></label>
-              <textarea
-                v-model="cancelReason"
-                rows="3"
-                class="lg-input w-full px-4 py-2.5 text-sm font-medium resize-none"
-                placeholder="Nhập lý do hủy buổi học..."
-              ></textarea>
-            </div>
-
-            <div class="flex items-start gap-2 p-3 rounded-xl bg-(--color-warning-bg)">
-              <AlertTriangle :size="14" class="text-(--color-warning-text) shrink-0 mt-0.5" />
-              <p class="text-xs font-medium text-(--color-warning-text)">
-                Hủy buổi học sẽ gửi thông báo đến giảng viên và sinh viên. Thao tác này không thể hoàn tác.
-              </p>
-            </div>
-          </div>
-
-          <div class="px-6 pb-6 flex items-center justify-end gap-3">
-            <button
-              class="lg-button-secondary px-5 py-2.5 text-sm font-bold"
-              @click="closeCancel"
-            >Hủy</button>
-            <button
-              :class="[
-                'px-6 py-2.5 rounded-[18px] text-sm font-bold text-white transition-all flex items-center gap-2',
-                !cancelReason.trim() || isCancelling
-                  ? 'bg-(--border-default) cursor-not-allowed'
-                  : 'bg-(--lg-danger) hover:opacity-90 shadow-lg shadow-(--lg-danger)/20'
-              ]"
-              :disabled="!cancelReason.trim() || isCancelling"
-              @click="confirmCancel"
-            >
-              <span v-if="isCancelling" class="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-              <XCircle v-else :size="16" />
-              {{ isCancelling ? 'Đang hủy...' : 'Xác nhận hủy buổi' }}
-            </button>
-          </div>
-        </div>
+      <div v-else class="py-8 text-center">
+        <p class="text-xs text-muted">Chưa có lịch sử thay đổi nào được ghi nhận cho buổi học này.</p>
       </div>
-    </Transition>
-  </Teleport>
+    </div>
+  </ConfirmActionDialog>
 
-  <!-- ════════════════════════════════════════════════════════════
-       Make-up Class Modal
-  ════════════════════════════════════════════════════════════ -->
-  <Teleport to="body">
-    <Transition name="modal">
-      <div
-        v-if="showMakeupModal && makeupTarget"
-        class="fixed inset-0 z-[110] flex items-center justify-center p-4"
-        @click.self="closeMakeup"
-      >
-        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
-
-        <div class="relative w-full max-w-md surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
-          <div class="modal-header p-5">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-2xl surface-input flex items-center justify-center">
-                  <RefreshCw :size="20" class="text-link" />
-                </div>
-                <div>
-                  <h2 class="text-lg font-semibold text-heading">Tạo lịch học bù</h2>
-                  <p class="text-xs text-label mt-0.5">Lên lịch học bù cho buổi đã hủy</p>
-                </div>
-              </div>
-              <button
-                class="h-8 w-8 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all"
-                @click="closeMakeup"
-              >
-                <X :size="16" />
-              </button>
-            </div>
-          </div>
-
-          <div class="p-6 space-y-5">
-            <div class="surface-input rounded-2xl p-4 border border-default">
-              <div class="flex items-center gap-3">
-                <BookOpen :size="16" class="text-placeholder" />
-                <div>
-                  <p class="text-sm font-semibold text-heading">{{ makeupTarget.subject }}</p>
-                  <p class="text-xs text-label">{{ makeupTarget.class }} · GV: {{ makeupTarget.teacher }}</p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Ngày học bù <span class="text-(--lg-danger)">*</span></label>
-              <input
-                v-model="makeupDate"
-                type="date"
-                class="lg-input w-full px-4 py-2.5 text-sm font-bold"
-              />
-            </div>
-
-            <div>
-              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Giờ học bù <span class="text-(--lg-danger)">*</span></label>
-              <input
-                v-model="makeupTime"
-                type="text"
-                class="lg-input w-full px-4 py-2.5 text-sm font-bold"
-                placeholder="VD: 07:30 - 10:30"
-              />
-            </div>
-
-            <div>
-              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Phòng học</label>
-              <input
-                v-model="makeupRoom"
-                type="text"
-                class="lg-input w-full px-4 py-2.5 text-sm font-bold"
-                :placeholder="makeupTarget.room"
-              />
-            </div>
-          </div>
-
-          <div class="px-6 pb-6 flex items-center justify-end gap-3">
-            <button
-              class="lg-button-secondary px-5 py-2.5 text-sm font-bold"
-              @click="closeMakeup"
-            >Hủy</button>
-            <button
-              :class="[
-                'lg-button-primary px-6 py-2.5 text-sm font-bold flex items-center gap-2',
-                (!makeupDate || !makeupTime || isMakingUp) ? 'opacity-45 pointer-events-none' : ''
-              ]"
-              :disabled="!makeupDate || !makeupTime || isMakingUp"
-              @click="confirmMakeup"
-            >
-              <span v-if="isMakingUp" class="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-              <RefreshCw v-else :size="16" />
-              {{ isMakingUp ? 'Đang tạo...' : 'Tạo lịch học bù' }}
-            </button>
-          </div>
-        </div>
+  <!-- Send Notification Modal -->
+  <ConfirmActionDialog
+    :modelValue="showNotifModal"
+    @update:modelValue="showNotifModal = $event"
+    title="Gửi thông báo thay đổi lịch học"
+    confirmLabel="Gửi thông báo"
+    variant="primary"
+    :loading="isSendingNotif"
+    @confirm="confirmSendNotif"
+    @cancel="closeNotif"
+  >
+    <div class="space-y-4 mt-3">
+      <div>
+        <label class="block text-xs font-semibold text-(--text-muted) mb-1">Tiêu đề thông báo <span class="text-red-500">*</span></label>
+        <GlassInput v-model="notifTitle" class="w-full" />
       </div>
-    </Transition>
-  </Teleport>
-
-  <!-- ════════════════════════════════════════════════════════════
-       History Modal
-  ════════════════════════════════════════════════════════════ -->
-  <Teleport to="body">
-    <Transition name="modal">
-      <div
-        v-if="showHistoryModal && historyTarget"
-        class="fixed inset-0 z-[120] flex items-center justify-center p-4"
-        @click.self="closeHistory"
-      >
-        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
-
-        <div class="relative w-full max-w-lg surface-modal rounded-2xl shadow-sm overflow-hidden max-h-[80vh] overflow-y-auto border border-default">
-          <div class="modal-header p-5">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-2xl surface-input flex items-center justify-center">
-                  <History :size="20" class="text-link" />
-                </div>
-                <div>
-                  <h2 class="text-lg font-semibold text-heading">Lịch sử thay đổi</h2>
-                  <p class="text-xs text-label mt-0.5">{{ historyTarget.subject }} · {{ historyTarget.class }}</p>
-                </div>
-              </div>
-              <button
-                class="h-8 w-8 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all"
-                @click="closeHistory"
-              >
-                <X :size="16" />
-              </button>
-            </div>
-          </div>
-
-          <div class="p-6">
-            <div v-if="historyLogs[historyTarget.id] && historyLogs[historyTarget.id].length > 0" class="space-y-0">
-              <div
-                v-for="(log, idx) in historyLogs[historyTarget.id]"
-                :key="idx"
-                class="relative flex items-start gap-4 pb-6 last:pb-0"
-              >
-                <!-- Timeline dot + line -->
-                <div class="flex flex-col items-center shrink-0">
-                  <div class="h-3 w-3 rounded-full border-2 border-(--lg-primary) bg-(--surface-card) z-10"></div>
-                  <div v-if="idx < historyLogs[historyTarget.id].length - 1" class="w-px flex-1 bg-(--border-default) -mt-1"></div>
-                </div>
-                <!-- Content -->
-                <div class="flex-1 -mt-0.5">
-                  <div class="flex items-center justify-between">
-                    <p class="text-sm font-semibold text-heading">{{ log.action }}</p>
-                    <p class="text-[10px] font-bold text-placeholder">{{ log.at }}</p>
-                  </div>
-                  <p class="text-xs font-medium text-label mt-0.5">{{ log.detail }}</p>
-                  <p class="text-[10px] font-bold text-placeholder mt-0.5">Bởi: {{ log.by }}</p>
-                </div>
-              </div>
-            </div>
-
-            <div v-else class="py-8 text-center">
-              <div class="h-12 w-12 rounded-2xl surface-input border border-default flex items-center justify-center mx-auto mb-3">
-                <Info :size="20" class="text-placeholder" />
-              </div>
-              <p class="text-sm font-semibold text-heading">Chưa có lịch sử thay đổi</p>
-              <p class="text-xs text-label mt-1">Buổi học này chưa có thay đổi nào được ghi nhận.</p>
-            </div>
-          </div>
-
-          <div class="px-6 pb-6 flex items-center justify-end">
-            <button
-              class="lg-button-secondary px-5 py-2.5 text-sm font-bold"
-              @click="closeHistory"
-            >Đóng</button>
-          </div>
-        </div>
+      <div>
+        <label class="block text-xs font-semibold text-(--text-muted) mb-1">Nội dung thông báo <span class="text-red-500">*</span></label>
+        <GlassInput v-model="notifContent" placeholder="Nhập nội dung chi tiết gửi tới toàn bộ lớp học..." class="w-full" />
       </div>
-    </Transition>
-  </Teleport>
-
-  <!-- ════════════════════════════════════════════════════════════
-       Send Notification Modal
-  ════════════════════════════════════════════════════════════ -->
-  <Teleport to="body">
-    <Transition name="modal">
-      <div
-        v-if="showNotifModal"
-        class="fixed inset-0 z-[130] flex items-center justify-center p-4"
-        @click.self="closeNotif"
-      >
-        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
-
-        <div class="relative w-full max-w-md surface-modal rounded-2xl shadow-sm overflow-hidden border border-default">
-          <div class="modal-header p-5">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-2xl surface-input flex items-center justify-center">
-                  <Bell :size="20" class="text-link" />
-                </div>
-                <div>
-                  <h2 class="text-lg font-semibold text-heading">Gửi thông báo</h2>
-                  <p class="text-xs text-label mt-0.5">Thông báo đến toàn bộ GV & SV liên quan</p>
-                </div>
-              </div>
-              <button
-                class="h-8 w-8 rounded-2xl surface-input hover:bg-(--surface-input-focus) flex items-center justify-center text-label transition-all"
-                @click="closeNotif"
-              >
-                <X :size="16" />
-              </button>
-            </div>
-          </div>
-
-          <div class="p-6 space-y-5">
-            <div>
-              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Tiêu đề</label>
-              <input
-                v-model="notifTitle"
-                type="text"
-                class="lg-input w-full px-4 py-2.5 text-sm font-bold"
-              />
-            </div>
-
-            <div>
-              <label class="text-[11px] font-semibold text-label uppercase tracking-widest mb-1.5 block">Nội dung <span class="text-(--lg-danger)">*</span></label>
-              <textarea
-                v-model="notifContent"
-                rows="4"
-                class="lg-input w-full px-4 py-2.5 text-sm font-medium resize-none"
-                placeholder="Nhập nội dung thông báo..."
-              ></textarea>
-            </div>
-
-            <div class="surface-input rounded-2xl p-4 border border-default">
-              <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text)">
-                  <Send :size="18" />
-                </div>
-                <div>
-                  <p class="text-sm font-semibold text-heading">{{ totalPublished }} buổi học</p>
-                  <p class="text-xs text-label mt-0.5">Sẽ gửi thông báo đến tất cả giảng viên và sinh viên có liên quan.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="px-6 pb-6 flex items-center justify-end gap-3">
-            <button
-              class="lg-button-secondary px-5 py-2.5 text-sm font-bold"
-              @click="closeNotif"
-            >Hủy</button>
-            <button
-              :class="[
-                'lg-button-primary px-6 py-2.5 text-sm font-bold flex items-center gap-2',
-                (!notifContent.trim() || isSendingNotif) ? 'opacity-45 pointer-events-none' : ''
-              ]"
-              :disabled="!notifContent.trim() || isSendingNotif"
-              @click="confirmSendNotif"
-            >
-              <span v-if="isSendingNotif" class="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-              <Bell v-else :size="16" />
-              {{ isSendingNotif ? 'Đang gửi...' : 'Gửi thông báo' }}
-            </button>
-          </div>
-        </div>
+      <div class="p-3 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-semibold flex items-start gap-2 border border-blue-500/20">
+        <Send :size="14" class="shrink-0 mt-0.5" />
+        <span>Hệ thống sẽ gửi email và thông báo thông qua app cho toàn bộ giảng viên và sinh viên liên quan đến {{ totalPublished }} buổi học này.</span>
       </div>
-    </Transition>
-  </Teleport>
+    </div>
+  </ConfirmActionDialog>
 </template>
 
 <style scoped>

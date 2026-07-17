@@ -118,13 +118,28 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
     }
   }
 
+  async function validateQuizAction(id: number) {
+    try {
+      await contentCouncilApi.validateQuiz(id)
+      const q = getQuizById(id)
+      if (q) q.trangThaiDuyet = 'da_xac_thuc'
+    } catch (e: any) {
+      error.value = e?.message || 'Không thể xác thực đề kiểm tra'
+      throw e
+    }
+  }
+
   async function publishQuizAction(id: number) {
     try {
       await contentCouncilApi.publishQuiz(id)
       const q = getQuizById(id)
-      if (q) q.status = 'published'
+      if (q) {
+        q.status = 'published'
+        q.trangThaiDuyet = 'da_xac_thuc'
+      }
     } catch (e: any) {
       error.value = e?.message || 'Không thể xuất bản'
+      throw e
     }
   }
 
@@ -132,9 +147,13 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
     try {
       await contentCouncilApi.unpublishQuiz(id)
       const q = getQuizById(id)
-      if (q) q.status = 'draft'
+      if (q) {
+        q.status = 'draft'
+        q.trangThaiDuyet = 'nhap'
+      }
     } catch (e: any) {
       error.value = e?.message || 'Không thể hủy xuất bản'
+      throw e
     }
   }
 
@@ -152,6 +171,7 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
     updateQuiz,
     deleteQuiz,
     updateQuizQuestions,
+    validateQuizAction,
     publishQuizAction,
     unpublishQuizAction,
   }

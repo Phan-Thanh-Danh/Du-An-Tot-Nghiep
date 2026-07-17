@@ -4,6 +4,7 @@ import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useQuizStore } from '@/stores/content-council/quizStore'
 import { useQuizBuilder } from '@/composables/content-council/useQuizBuilder'
 import { useQuizBuilderValidation } from '@/composables/content-council/useQuizBuilderValidation'
+import { usePopupStore } from '@/stores/popup'
 import { ContentCouncilQuiz } from '@/types/content-council/quiz'
 import { QuestionBankItem } from '@/types/content-council/questionBank'
 
@@ -25,6 +26,7 @@ const router = useRouter()
 const quizStore = useQuizStore()
 quizStore.init()
 const validation = useQuizBuilderValidation()
+const popupStore = usePopupStore()
 
 const isLoading = ref(true)
 const quiz = ref<ContentCouncilQuiz | null>(null)
@@ -106,7 +108,7 @@ onBeforeRouteLeave((to, from, next) => {
 const handleSave = async () => {
   if (builder && quiz.value) {
     if (!validationResult.value?.canSave) {
-      alert('Cấu trúc chưa hợp lệ để lưu. Vui lòng kiểm tra lại các lỗi.')
+      popupStore.error('Cấu trúc chưa hợp lệ', 'Cấu trúc chưa hợp lệ để lưu. Vui lòng kiểm tra lại các lỗi.')
       return
     }
     
@@ -115,12 +117,12 @@ const handleSave = async () => {
     quiz.value.questionCount = questions.value.length
     quiz.value.multipleChoiceQuestionCount = validationResult.value.metrics.multipleChoiceCount
     quiz.value.essayQuestionCount = validationResult.value.metrics.essayCount
-    quizStore.updateQuiz(quiz.value)
+    await quizStore.updateQuiz(quiz.value.id, quiz.value)
 
     if (validationResult.value.errors.length > 0) {
-      alert('Đã lưu cấu trúc Quiz trong phiên thử nghiệm, nhưng Quiz chưa đủ điều kiện xuất bản.')
+      popupStore.warning('Đã lưu cấu trúc', 'Đã lưu cấu trúc Quiz thành công, nhưng Quiz chưa đủ điều kiện xuất bản.')
     } else {
-      alert('Đã lưu cấu trúc Quiz trong phiên thử nghiệm.')
+      popupStore.success('Thành công', 'Đã lưu cấu trúc Quiz thành công.')
     }
   }
 }
@@ -131,18 +133,24 @@ const handlePublish = () => {
 
 const confirmPublish = async () => {
   if (quiz.value && canPublish.value) {
-    quiz.value.status = 'published'
-    quiz.value.questionCount = questions.value.length
-    quiz.value.multipleChoiceQuestionCount = validationResult.value!.metrics.multipleChoiceCount
-    quiz.value.essayQuestionCount = validationResult.value!.metrics.essayCount
-    quizStore.updateQuiz(quiz.value)
-    
-    if (builder) {
-      await builder.saveStructure() // clear dirty state
+    try {
+      await quizStore.publishQuizAction(quiz.value.id)
+      
+      quiz.value.status = 'published'
+      quiz.value.questionCount = questions.value.length
+      quiz.value.multipleChoiceQuestionCount = validationResult.value!.metrics.multipleChoiceCount
+      quiz.value.essayQuestionCount = validationResult.value!.metrics.essayCount
+      quiz.value.trangThaiDuyet = 'da_xac_thuc'
+      
+      if (builder) {
+        await builder.saveStructure() // clear dirty state
+      }
+      
+      showPublishDialog.value = false
+      popupStore.success('Xuất bản thành công', 'Đã xuất bản Quiz thành công.')
+    } catch (e: any) {
+      popupStore.error('Lỗi xuất bản', e.message || 'Không thể xuất bản Quiz.')
     }
-    
-    showPublishDialog.value = false
-    alert('Đã xuất bản Quiz trong phiên thử nghiệm.')
   }
 }
 

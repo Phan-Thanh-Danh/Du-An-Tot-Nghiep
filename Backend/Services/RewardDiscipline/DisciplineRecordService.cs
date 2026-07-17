@@ -943,7 +943,11 @@ public class DisciplineRecordService : IDisciplineRecordService
                 NgayDuyet = h.NgayDuyet,
                 NgayBatDauHieuLuc = h.NgayHieuLuc,
                 NgayKetThucHieuLuc = h.NgayHetHieuLuc,
-                CoTheKhieuNai = (h.TrangThai == RewardDisciplineConstants.DisciplineStatuses.Active || h.TrangThai == RewardDisciplineConstants.DisciplineStatuses.Approved)
+                CoTheKhieuNai = (h.TrangThai == RewardDisciplineConstants.DisciplineStatuses.Active || h.TrangThai == RewardDisciplineConstants.DisciplineStatuses.Approved),
+                AppealStatus = h.KhieuNaiKyLuats
+                    .OrderByDescending(k => k.NgayTao)
+                    .Select(k => k.TrangThai)
+                    .FirstOrDefault()
             })
             .ToListAsync(cancellationToken);
 
@@ -965,6 +969,7 @@ public class DisciplineRecordService : IDisciplineRecordService
 
         var hoso = await _context.HoSoKyLuats
             .Include(h => h.HocKy)
+            .Include(h => h.KhieuNaiKyLuats)
             .FirstOrDefaultAsync(h => h.MaKyLuat == recordId && h.MaHocSinh == studentId, cancellationToken);
 
         if (hoso == null)
@@ -996,6 +1001,10 @@ public class DisciplineRecordService : IDisciplineRecordService
             NgayBatDauHieuLuc = hoso.NgayHieuLuc,
             NgayKetThucHieuLuc = hoso.NgayHetHieuLuc,
             CoTheKhieuNai = (hoso.TrangThai == RewardDisciplineConstants.DisciplineStatuses.Active || hoso.TrangThai == RewardDisciplineConstants.DisciplineStatuses.Approved),
+            AppealStatus = hoso.KhieuNaiKyLuats
+                .OrderByDescending(k => k.NgayTao)
+                .Select(k => k.TrangThai)
+                .FirstOrDefault(),
             MoTaViPham = hoso.MoTa,
             CanCuXuLy = hoso.CanCuXuLy
         };

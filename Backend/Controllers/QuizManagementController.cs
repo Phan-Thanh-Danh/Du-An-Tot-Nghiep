@@ -114,6 +114,14 @@ public class QuizManagementController : ControllerBase
         return Ok(ApiResponseDto.Ok("Sắp xếp câu hỏi thành công"));
     }
 
+    [HttpPost("{id:int}/validate")]
+    public async Task<ActionResult<ApiResponseDto>> ValidateQuiz(int id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        await _quizService.ValidateQuizAsync(id, userId, ct);
+        return Ok(ApiResponseDto.Ok("Xác thực đề kiểm tra thành công"));
+    }
+
     [HttpPost("{id:int}/publish")]
     public async Task<ActionResult<ApiResponseDto>> PublishQuiz(int id, CancellationToken ct)
     {

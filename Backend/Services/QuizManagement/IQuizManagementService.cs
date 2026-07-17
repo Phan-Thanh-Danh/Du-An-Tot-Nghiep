@@ -22,4 +22,5 @@ public interface IQuizManagementService
     Task UnpublishQuizAsync(int id, int userId, CancellationToken ct);
     Task OpenQuizAsync(int id, int userId, CancellationToken ct);
     Task CloseQuizAsync(int id, int userId, CancellationToken ct);
+    Task ValidateQuizAsync(int id, int userId, CancellationToken ct);
 }

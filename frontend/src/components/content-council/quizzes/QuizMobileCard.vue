@@ -66,7 +66,7 @@ onUnmounted(() => {
         <span class="font-mono text-xs font-medium text-slate-700 bg-slate-100 px-2 py-1 rounded">
           {{ quiz.code }}
         </span>
-        <QuizStatusBadge :status="quiz.status" />
+        <QuizStatusBadge :status="quiz.status" :trangThaiDuyet="quiz.trangThaiDuyet" />
       </div>
 
       <div @click.stop>
@@ -108,11 +108,18 @@ onUnmounted(() => {
               </div>
 
               <div class="p-1">
-                  <button v-if="quiz.status === 'draft'"
+                  <button v-if="quiz.status === 'draft' && quiz.trangThaiDuyet !== 'da_xac_thuc'"
+                    @click="handleAction('validate')"
+                    class="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:text-emerald-700 hover:bg-emerald-50"
+                  >
+                    <CheckCircle2 class="w-4 h-4 text-emerald-500" /> Xác thực Quiz
+                  </button>
+
+                  <button v-else-if="quiz.status === 'draft' && quiz.trangThaiDuyet === 'da_xac_thuc'"
                     @click="handleAction('publish')"
                     class="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:text-blue-700 hover:bg-blue-50"
                   >
-                    <Send class="w-4 h-4" /> Xuất bản
+                    <Send class="w-4 h-4 text-blue-500" /> Xuất bản
                   </button>
 
                   <button v-if="quiz.status === 'published' || quiz.status === 'closed'"

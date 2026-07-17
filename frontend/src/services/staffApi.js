@@ -201,6 +201,15 @@ export const staffApi = {
   },
 
   // + P2: StaffRoomBookingsController created
+  getBookings(params = {}) {
+    const query = new URLSearchParams()
+    if (params.roomId) query.append('roomId', params.roomId)
+    if (params.date) query.append('date', params.date)
+    if (params.status) query.append('status', params.status)
+    const qs = query.toString()
+    return apiRequest(`/api/staff/rooms/bookings${qs ? '?' + qs : ''}`)
+  },
+
   bookRoom(payload) {
     return apiRequest('/api/staff/rooms/book', {
       method: 'POST',

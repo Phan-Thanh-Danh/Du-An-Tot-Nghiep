@@ -60,7 +60,7 @@ const handleAction = (type: string) => {
             <span class="font-mono text-sm font-medium text-slate-700 bg-slate-200/50 px-2 py-1 rounded">
               {{ quiz.code }}
             </span>
-            <QuizStatusBadge :status="quiz.status" />
+            <QuizStatusBadge :status="quiz.status" :trangThaiDuyet="quiz.trangThaiDuyet" />
           </div>
           <h2 class="text-xl font-bold text-slate-800 leading-tight">
             {{ quiz.title }}

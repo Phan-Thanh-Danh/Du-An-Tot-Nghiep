@@ -1,14 +1,21 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Search, Plus, X, Pencil, Calendar, Lock, Unlock, Loader2 } from 'lucide-vue-next'
+import { Search, Plus, X, Pencil, Calendar, Lock, Unlock, Loader2, ShieldAlert, AlertCircle } from 'lucide-vue-next'
 import GlassButton from '@/components/ui/GlassButton.vue'
+import GlassBadge from '@/components/ui/GlassBadge.vue'
+import GlassInput from '@/components/ui/GlassInput.vue'
+import TableShell from '@/components/ui/TableShell.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { academicTermApi } from '@/services/academicTermApi'
 
-const loading = ref(true); const error = ref(null); const terms = ref([])
-const searchQuery = ref(''); const filterStatus = ref('all')
+const loading = ref(true)
+const forbidden = ref(false)
+const error = ref(null)
+const terms = ref([])
+const searchQuery = ref('')
+const filterStatus = ref('all')
 
 const showFormModal = ref(false); const formMode = ref('create'); const editingId = ref(null); const submitting = ref(false)
 let formData = ref({ maCodeHocKy: '', tenHocKy: '', namHoc: '', thuTuTrongNam: 1, ngayBatDau: '', ngayKetThuc: '', ngayKetThucBlock5: '', soTinChiToiDa: null, hanRutMon: '', daKhoa: false })
@@ -17,9 +24,19 @@ const confirmDelete = ref(null)
 
 onMounted(fetchTerms)
 async function fetchTerms() {
-  loading.value = true; error.value = null
-  try { const res = await academicTermApi.list({ PageSize: 200 }); terms.value = Array.isArray(res) ? res : (res?.items || res?.data || []) }
-  catch (e) { error.value = e.message || 'Không thể tải danh sách học kỳ' }
+  loading.value = true; error.value = null; forbidden.value = false
+  try {
+    const res = await academicTermApi.list({ PageSize: 200 })
+    terms.value = Array.isArray(res) ? res : (res?.items || res?.data || [])
+  }
+  catch (e) {
+    console.error(e)
+    if (e?.statusCode === 403) {
+      forbidden.value = true
+    } else {
+      error.value = e.message || 'Không thể tải danh sách học kỳ'
+    }
+  }
   finally { loading.value = false }
 }
 
@@ -131,10 +148,10 @@ async function executeDelete() {
     <div class="surface-card border border-card rounded-2xl shadow-sm overflow-hidden">
       <div class="p-4 border-b border-default bg-(--surface-input)">
         <div class="flex flex-wrap items-center gap-3">
-          <div class="relative flex-1 min-w-[200px]">
-            <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-            <input v-model="searchQuery" type="text" placeholder="Tìm mã HK, tên, năm học..."
-              class="pl-9 pr-4 h-10 w-full bg-(--surface-card) border border-(--border-input) rounded-xl text-sm outline-none focus:ring-2 focus:ring-(--lg-primary)" />
+          <div class="flex-1 min-w-[200px]">
+            <GlassInput v-model="searchQuery" placeholder="Tìm mã HK, tên, năm học...">
+              <template #prefix><Search :size="15" class="text-placeholder" /></template>
+            </GlassInput>
           </div>
           <select v-model="filterStatus" class="h-10 px-3 bg-(--surface-card) border border-(--border-input) rounded-xl text-sm outline-none focus:ring-2 focus:ring-(--lg-primary)">
             <option value="all">Tất cả trạng thái</option>
@@ -153,21 +170,33 @@ async function executeDelete() {
         </div>
       </div>
 
+      <!-- 5 States Container -->
       <div v-if="loading" class="p-6"><LoadingSkeleton :lines="6" /></div>
-      <div v-else-if="error" class="p-6">
-        <div class="surface-card border border-card rounded-2xl p-6 flex flex-col items-center justify-center gap-3">
-          <p class="text-sm font-bold text-heading">Không thể tải dữ liệu</p>
-          <p class="text-xs text-muted">{{ error }}</p>
-          <GlassButton variant="primary" class="px-4 py-2 text-xs font-bold rounded-xl mt-2" @click="fetchTerms">Thử lại</GlassButton>
-        </div>
+
+      <!-- Forbidden State -->
+      <div v-else-if="forbidden" class="flex flex-col items-center justify-center py-16 bg-(--surface-card) border border-(--border-default) rounded-xl">
+        <ShieldAlert :size="48" class="text-(--color-danger-bg, #ef4444) mb-4" />
+        <h3 class="text-lg font-bold text-(--text-heading)">Không có quyền truy cập</h3>
+        <p class="text-sm text-(--text-muted) mt-1">Tài khoản của bạn không được phân quyền quản lý học kỳ.</p>
       </div>
+
+      <!-- Error State with Retry -->
+      <div v-else-if="error" class="flex flex-col items-center justify-center py-16 bg-(--surface-card) border border-(--border-default) rounded-xl">
+        <AlertCircle :size="48" class="text-(--color-danger-bg, #ef4444) mb-4" />
+        <h3 class="text-lg font-bold text-(--text-heading)">Đã xảy ra lỗi</h3>
+        <p class="text-sm text-(--text-muted) mt-1 mb-4">{{ error }}</p>
+        <GlassButton variant="secondary" @click="fetchTerms">Thử lại</GlassButton>
+      </div>
+
+      <!-- Empty State -->
       <div v-else-if="filteredTerms.length === 0" class="p-6">
         <EmptyState title="Không tìm thấy học kỳ nào" description="Thử thay đổi từ khóa hoặc bộ lọc.">
           <GlassButton variant="primary" @click="openCreate"><Plus :size="15" class="mr-1" /> Thêm học kỳ</GlassButton>
         </EmptyState>
       </div>
 
-      <div v-else class="overflow-x-auto">
+      <!-- Success State: TableShell -->
+      <TableShell v-else>
         <table class="w-full text-left text-sm whitespace-nowrap border-collapse">
           <thead class="bg-(--surface-input) border-b border-default text-muted">
             <tr>
@@ -192,11 +221,9 @@ async function executeDelete() {
               <td class="px-3 py-3.5 text-body">{{ formatDate(t.ngayKetThuc) }}</td>
               <td class="px-3 py-3.5 text-center font-bold text-body">{{ t.soTinChiToiDa || '—' }}</td>
               <td class="px-3 py-3.5">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
-                  :class="t.daKhoa ? 'bg-(--color-danger-bg) text-(--color-danger-text)' : 'bg-(--color-success-bg) text-(--color-success-text)'">
-                   <span class="h-1.5 w-1.5 rounded-full" :class="{'bg-(--color-danger-text)': t.daKhoa, 'bg-(--color-success-text)': !t.daKhoa}"></span>
+                <GlassBadge :variant="t.daKhoa ? 'danger' : 'success'" size="sm">
                   {{ t.daKhoa ? 'Đã khóa' : 'Đang mở' }}
-                </span>
+                </GlassBadge>
               </td>
               <td class="px-3 py-3.5">
                 <div class="flex items-center justify-center gap-1">
@@ -214,7 +241,7 @@ async function executeDelete() {
             </tr>
           </tbody>
         </table>
-      </div>
+      </TableShell>
     </div>
 
     <!-- Create / Edit Modal -->
@@ -231,24 +258,21 @@ async function executeDelete() {
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs font-semibold text-(--text-muted) mb-1">Mã HK <span class="text-(--color-danger-text)">*</span></label>
-                  <input v-model="formData.maCodeHocKy" type="text" placeholder="VD: HK1-2025-2026" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.maCodeHocKy ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''" />
-                  <p v-if="formErrors.maCodeHocKy" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.maCodeHocKy }}</p>
+                  <GlassInput v-model="formData.maCodeHocKy" placeholder="VD: HK1-2025-2026" :error="formErrors.maCodeHocKy" class="w-full" />
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-(--text-muted) mb-1">Tên học kỳ <span class="text-(--color-danger-text)">*</span></label>
-                  <input v-model="formData.tenHocKy" type="text" placeholder="VD: Học kỳ 1" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.tenHocKy ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''" />
-                  <p v-if="formErrors.tenHocKy" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.tenHocKy }}</p>
+                  <GlassInput v-model="formData.tenHocKy" placeholder="VD: Học kỳ 1" :error="formErrors.tenHocKy" class="w-full" />
                 </div>
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs font-semibold text-(--text-muted) mb-1">Năm học <span class="text-(--color-danger-text)">*</span></label>
-                  <input v-model="formData.namHoc" type="text" placeholder="VD: 2025-2026" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.namHoc ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''" />
-                  <p v-if="formErrors.namHoc" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.namHoc }}</p>
+                  <GlassInput v-model="formData.namHoc" placeholder="VD: 2025-2026" :error="formErrors.namHoc" class="w-full" />
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-(--text-muted) mb-1">Thứ tự</label>
-                  <select v-model="formData.thuTuTrongNam" class="w-full h-9 px-2 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
+                  <select v-model="formData.thuTuTrongNam" class="text-xs bg-(--surface-input) border border-(--border-input) text-(--text-body) rounded-lg w-full h-[38px] px-3 outline-none focus:ring-1 focus:ring-(--border-focus)">
                     <option :value="1">1 - Học kỳ 1</option>
                     <option :value="2">2 - Học kỳ 2</option>
                     <option :value="3">3 - Học kỳ hè</option>
@@ -258,23 +282,27 @@ async function executeDelete() {
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs font-semibold text-(--text-muted) mb-1">Ngày BĐ <span class="text-(--color-danger-text)">*</span></label>
-                  <input v-model="formData.ngayBatDau" type="date" class="w-full h-9 px-2 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.ngayBatDau ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''" />
-                  <p v-if="formErrors.ngayBatDau" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.ngayBatDau }}</p>
+                  <GlassInput v-slot="scope" :error="formErrors.ngayBatDau" class="w-full">
+                    <input v-model="formData.ngayBatDau" v-bind="scope" type="date" class="bg-transparent border-none outline-none w-full text-xs text-(--text-body)" />
+                  </GlassInput>
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-(--text-muted) mb-1">Ngày KT <span class="text-(--color-danger-text)">*</span></label>
-                  <input v-model="formData.ngayKetThuc" type="date" class="w-full h-9 px-2 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.ngayKetThuc ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''" />
-                  <p v-if="formErrors.ngayKetThuc" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.ngayKetThuc }}</p>
+                  <GlassInput v-slot="scope" :error="formErrors.ngayKetThuc" class="w-full">
+                    <input v-model="formData.ngayKetThuc" v-bind="scope" type="date" class="bg-transparent border-none outline-none w-full text-xs text-(--text-body)" />
+                  </GlassInput>
                 </div>
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs font-semibold text-(--text-muted) mb-1">Hạn rút môn</label>
-                  <input v-model="formData.hanRutMon" type="date" class="w-full h-9 px-2 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+                  <GlassInput v-slot="scope" class="w-full">
+                    <input v-model="formData.hanRutMon" v-bind="scope" type="date" class="bg-transparent border-none outline-none w-full text-xs text-(--text-body)" />
+                  </GlassInput>
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-(--text-muted) mb-1">Số TC tối đa</label>
-                  <input v-model.number="formData.soTinChiToiDa" type="number" min="1" placeholder="VD: 24" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+                  <GlassInput v-model.number="formData.soTinChiToiDa" type="number" min="1" placeholder="VD: 24" class="w-full" />
                 </div>
               </div>
               <div class="flex items-center gap-3">

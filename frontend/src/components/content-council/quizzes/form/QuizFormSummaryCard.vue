@@ -44,7 +44,7 @@ const getFormatLabel = (format: string) => {
 
       <div class="flex justify-between items-start gap-4">
         <span class="text-slate-500">Trạng thái:</span>
-        <QuizStatusBadge :status="formData.status" />
+        <QuizStatusBadge :status="formData.status" :trangThaiDuyet="formData.trangThaiDuyet" />
       </div>
       
       <div class="flex justify-between gap-4">

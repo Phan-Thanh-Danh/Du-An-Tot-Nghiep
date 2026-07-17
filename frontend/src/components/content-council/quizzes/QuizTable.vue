@@ -2,9 +2,10 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { ContentCouncilQuiz } from '@/types/content-council/quiz'
 import QuizStatusBadge from './QuizStatusBadge.vue'
+import TableShell from '@/components/ui/TableShell.vue'
 import { 
   MoreHorizontal, Eye, Edit3, PenTool, Copy, Send, RotateCcw, 
-  PlayCircle, Lock, Trash2, AlertTriangle, ChevronLeft, ChevronRight 
+  PlayCircle, Lock, Trash2, AlertTriangle, ChevronLeft, ChevronRight, CheckCircle 
 } from 'lucide-vue-next'
 
 const props = defineProps<{
@@ -77,7 +78,7 @@ const displayPages = computed(() => {
 <template>
   <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
     <!-- Table -->
-    <div class="overflow-x-auto flex-1">
+    <TableShell>
       <table class="w-full text-left border-collapse min-w-[1000px]">
         <thead class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold">
           <tr>
@@ -144,7 +145,7 @@ const displayPages = computed(() => {
             </td>
 
             <td class="p-4">
-              <QuizStatusBadge :status="quiz.status" />
+              <QuizStatusBadge :status="quiz.status" :trangThaiDuyet="quiz.trangThaiDuyet" />
             </td>
 
             <td class="p-4 text-xs text-slate-500">
@@ -201,11 +202,18 @@ const displayPages = computed(() => {
                     </div>
 
                     <div class="p-1">
-                        <button v-if="quiz.status === 'draft'"
+                        <button v-if="quiz.status === 'draft' && quiz.trangThaiDuyet !== 'da_xac_thuc'"
+                          @click="handleAction('validate', quiz)"
+                          class="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:text-emerald-700 hover:bg-emerald-50"
+                        >
+                          <CheckCircle class="w-4 h-4 text-emerald-500" /> Xác thực Quiz
+                        </button>
+
+                        <button v-else-if="quiz.status === 'draft' && quiz.trangThaiDuyet === 'da_xac_thuc'"
                           @click="handleAction('publish', quiz)"
                           class="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:text-blue-700 hover:bg-blue-50"
                         >
-                          <Send class="w-4 h-4" /> Xuất bản
+                          <Send class="w-4 h-4 text-blue-500" /> Xuất bản
                         </button>
 
                         <button v-if="quiz.status === 'published' || quiz.status === 'closed'"
@@ -245,7 +253,7 @@ const displayPages = computed(() => {
           </tr>
         </tbody>
       </table>
-    </div>
+    </TableShell>
 
     <!-- Pagination -->
     <div class="border-t border-slate-200 bg-slate-50 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-4">

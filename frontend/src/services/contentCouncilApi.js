@@ -268,6 +268,10 @@ export const contentCouncilApi = {
     })
   },
 
+  validateQuiz(id) {
+    return apiRequest(`/api/exam/de-kiem-tra/${id}/validate`, { method: 'POST' })
+  },
+
   publishQuiz(id) {
     return apiRequest(`/api/exam/de-kiem-tra/${id}/publish`, { method: 'POST' })
   },

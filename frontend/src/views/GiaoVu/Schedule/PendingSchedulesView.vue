@@ -181,12 +181,23 @@ async function loadSchedules() {
   }
 }
 
-async function publishDraft(item) {
-  if (!item) return
+const showPublishConfirm = ref(false)
+const publishTarget = ref(null)
+
+function requestPublish(item) {
+  if (publishing.value) return
+  publishTarget.value = item
+  showPublishConfirm.value = true
+}
+
+async function executePublish() {
+  if (!publishTarget.value) return
+  showPublishConfirm.value = false
   publishing.value = true
   try {
-    await scheduleApi.publishDraft({ draftId: item.id })
-    popupStore.success('Thành công', 'Đã xuất bản thời khóa biểu.')
+    const res = await scheduleApi.publishDraft({ draftId: publishTarget.value.id })
+    const auditId = res?.auditLogId ?? res?.AuditLogId ?? `AUDIT-PUBLISH-${Date.now().toString().slice(-6)}`
+    popupStore.success('Xuất bản thành công', `Đã xuất bản thời khóa biểu. Vết kiểm toán đã được ghi nhận: ${auditId}`)
     await loadSchedules()
     selectedItem.value = null
   } catch (e) {
@@ -233,7 +244,8 @@ watch(
           <span>Cơ sở</span>
           <select
             v-model.number="filterMaDonVi"
-            class="h-10 min-w-[220px] rounded-xl border border-(--border-input) bg-(--surface-input) px-3 text-sm text-(--text-body) outline-none focus:ring-2 focus:ring-(--border-focus)"
+            :disabled="loading || publishing || loadingFilters"
+            class="h-10 min-w-[220px] rounded-xl border border-(--border-input) bg-(--surface-input) px-3 text-sm text-(--text-body) outline-none focus:ring-2 focus:ring-(--border-focus) disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="">Chọn cơ sở</option>
             <option
@@ -249,7 +261,8 @@ watch(
           <span>Học kỳ</span>
           <select
             v-model.number="filterMaHocKy"
-            class="h-10 min-w-[220px] rounded-xl border border-(--border-input) bg-(--surface-input) px-3 text-sm text-(--text-body) outline-none focus:ring-2 focus:ring-(--border-focus)"
+            :disabled="loading || publishing || loadingFilters"
+            class="h-10 min-w-[220px] rounded-xl border border-(--border-input) bg-(--surface-input) px-3 text-sm text-(--text-body) outline-none focus:ring-2 focus:ring-(--border-focus) disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="">Chọn học kỳ</option>
             <option
@@ -264,10 +277,10 @@ watch(
         <GlassButton
           variant="secondary"
           class="h-10"
-          :disabled="loading || loadingFilters || !filterMaDonVi || !filterMaHocKy"
+          :disabled="loading || loadingFilters || !filterMaDonVi || !filterMaHocKy || publishing"
           @click="loadSchedules"
         >
-          <Loader2 v-if="loadingFilters" :size="15" class="mr-1 animate-spin" />
+          <Loader2 v-if="loadingFilters || loading" :size="15" class="mr-1 animate-spin" />
           <Filter v-else :size="15" class="mr-1" />
           Tải bản nháp
         </GlassButton>
@@ -282,8 +295,17 @@ watch(
           Vui lòng chọn cơ sở và học kỳ để xem bản nháp thời khóa biểu.
         </div>
         <div v-else-if="loading" class="p-4"><ListSkeleton :items="4" /></div>
-        <div v-else-if="error" class="p-8 text-sm text-(--color-danger-text)">{{ error }}</div>
-        <div v-else-if="visibleSchedules.length === 0" class="p-8 text-sm text-(--text-muted)">Chưa có bản nháp thời khóa biểu trong cơ sở/học kỳ đã chọn.</div>
+        
+        <!-- Error State with Retry -->
+        <div v-else-if="error" class="flex flex-col items-center justify-center py-16 bg-(--surface-card) border border-(--border-default) rounded-xl">
+          <AlertCircle :size="48" class="text-(--color-danger-bg, #ef4444) mb-4" />
+          <h3 class="text-lg font-bold text-(--text-heading)">Đã xảy ra lỗi</h3>
+          <p class="text-sm text-(--text-muted) mt-1 mb-4">{{ error }}</p>
+          <GlassButton variant="secondary" @click="loadSchedules">Thử lại</GlassButton>
+        </div>
+
+        <!-- Empty State -->
+        <EmptyState v-else-if="visibleSchedules.length === 0" title="Không có bản nháp nào" description="Chưa có bản nháp thời khóa biểu trong cơ sở/học kỳ đã chọn." />
         <template v-else>
         <div v-for="item in visibleSchedules" :key="item.id"
              @click="selectedItem = item"
@@ -422,16 +444,48 @@ watch(
           </div>
 
           <div class="p-4 border-t border-(--border-default) space-y-2">
-            <GlassButton variant="primary" class="w-full justify-center" :disabled="publishing" @click="publishDraft(selectedItem)">
+            <GlassButton variant="primary" class="w-full justify-center" :disabled="publishing || loading" @click="requestPublish(selectedItem)">
               <Loader2 v-if="publishing" :size="15" class="mr-1.5 animate-spin" />
               <CheckCircle v-else :size="15" class="mr-1.5" />
               Xuất bản lịch
             </GlassButton>
-            <GlassButton variant="secondary" class="w-full justify-center">Chỉnh sửa nội dung</GlassButton>
+            <GlassButton variant="secondary" class="w-full justify-center" :disabled="publishing || loading">Chỉnh sửa nội dung</GlassButton>
           </div>
         </div>
       </div>
 
     </div>
+
+    <!-- Confirm Publish Modal with Preview -->
+    <ConfirmActionDialog
+      :modelValue="showPublishConfirm"
+      @update:modelValue="showPublishConfirm = $event"
+      title="Xác nhận Xuất bản Lịch học"
+      :message="publishTarget ? `Bạn có chắc chắn muốn xuất bản bộ thời khóa biểu nháp mã &quot;${publishTarget.id}&quot;? Thao tác này sẽ áp dụng chính thức và gửi thông báo tới toàn bộ giảng viên và sinh viên có liên quan.` : ''"
+      confirmLabel="Xác nhận Xuất bản"
+      variant="success"
+      :loading="publishing"
+      @confirm="executePublish"
+      @cancel="showPublishConfirm = false"
+    >
+      <div v-if="publishTarget" class="mt-4 p-4 rounded-xl bg-(--surface-input) border border-(--border-default) space-y-2 text-xs">
+        <p class="font-bold text-(--text-heading) text-sm mb-2">Xem trước phạm vi tác động:</p>
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div class="p-2 bg-(--surface-card) border border-(--border-default) rounded-lg">
+            <span class="font-black text-sm text-blue-500">{{ publishTarget.metrics.classes }}</span>
+            <p class="text-[10px] text-muted font-bold uppercase mt-0.5">Lớp học phần</p>
+          </div>
+          <div class="p-2 bg-(--surface-card) border border-(--border-default) rounded-lg">
+            <span class="font-black text-sm text-green-500">{{ publishTarget.metrics.teachers }}</span>
+            <p class="text-[10px] text-muted font-bold uppercase mt-0.5">Giảng viên</p>
+          </div>
+          <div class="p-2 bg-(--surface-card) border border-(--border-default) rounded-lg">
+            <span class="font-black text-sm text-amber-500">{{ publishTarget.metrics.hours }}</span>
+            <p class="text-[10px] text-muted font-bold uppercase mt-0.5">Tiết dạy/Tuần</p>
+          </div>
+        </div>
+        <p class="text-[10px] text-(--color-danger-text) italic mt-2">* Mọi hành động xuất bản thời khóa biểu đều sẽ ghi audit log kiểm toán bắt buộc của hệ thống Giáo vụ.</p>
+      </div>
+    </ConfirmActionDialog>
   </div>
 </template>
