@@ -631,7 +631,7 @@ public class TeacherClassesController : ControllerBase
                 })
                 .ToListAsync();
 
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            ExcelPackage.License.SetNonCommercialPersonal("Phan Thanh Danh");
             using var package = new ExcelPackage();
             var worksheet = package.Workbook.Worksheets.Add("Bang_Diem");
 

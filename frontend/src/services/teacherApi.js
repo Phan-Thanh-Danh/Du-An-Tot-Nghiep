@@ -291,7 +291,14 @@ export const teacherApi = {
     })
     
     if (!response.ok) {
-      throw new Error('Export failed')
+      let message = `Export failed (HTTP ${response.status})`
+      try {
+        const errJson = await response.json()
+        message = errJson.message || message
+      } catch {
+        // response không phải JSON, giữ message mặc định
+      }
+      throw new Error(message)
     }
     
     return response.blob()
