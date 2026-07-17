@@ -20,6 +20,8 @@ import {
   UserX,
   Users,
   Video,
+  BookOpen,
+  Eye,
 } from 'lucide-vue-next'
 
 import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
@@ -38,7 +40,7 @@ const loading = ref(false)
 const error = ref('')
 const isMicOn = ref(true)
 const isCameraOn = ref(false)
-const activeTab = ref('content')
+const activeTab = ref('courses')
 const isAttendanceExpanded = ref(false)
 
 const students = ref([])
@@ -116,6 +118,13 @@ const workspaceStats = computed(() => [
 ])
 
 const quickActions = [
+  {
+    label: 'Khóa học',
+    icon: BookOpen,
+    action: () => {
+      activeTab.value = 'courses'
+    },
+  },
   {
     label: 'Điểm danh',
     icon: ClipboardCheck,
@@ -295,6 +304,14 @@ onMounted(() => { loadWorkspace() })
           <div class="tab-bar">
             <button
               type="button"
+              :class="['tab-button', activeTab === 'courses' ? 'active' : '']"
+              @click="activeTab = 'courses'"
+            >
+              <BookOpen :size="16" />
+              Khóa học
+            </button>
+            <button
+              type="button"
               :class="['tab-button', activeTab === 'content' ? 'active' : '']"
               @click="activeTab = 'content'"
             >
@@ -309,6 +326,34 @@ onMounted(() => { loadWorkspace() })
               <ClipboardCheck :size="16" />
               Điểm danh
             </button>
+          </div>
+
+          <div v-if="activeTab === 'courses'" class="content-stack">
+            <div class="module-list" v-if="classInfo?.courses?.length">
+              <article
+                v-for="course in classInfo.courses"
+                :key="course.id"
+                class="module-row"
+              >
+                <div class="module-status">
+                  <BookOpen :size="16" />
+                </div>
+                <div class="module-copy">
+                  <div class="module-title-row">
+                    <h3>{{ course.courseName || course.name }}</h3>
+                  </div>
+                  <p>{{ course.subjectCode || course.code }}</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <router-link :to="'/teacher/class-progress/' + (course.courseId || course.id)" class="rounded-lg bg-(--accent-primary) px-3 py-1.5 text-xs font-bold text-inverse hover:opacity-90 transition-all flex items-center gap-1">
+                    <Eye :size="14" /> Xem tiến độ
+                  </router-link>
+                </div>
+              </article>
+            </div>
+            <div v-else class="text-center py-8 text-muted text-sm">
+              Không có khóa học nào được phân công trong lớp này.
+            </div>
           </div>
 
           <div v-if="activeTab === 'content'" class="content-stack">

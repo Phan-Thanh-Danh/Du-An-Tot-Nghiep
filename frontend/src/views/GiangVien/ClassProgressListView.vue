@@ -15,12 +15,12 @@ const filterSemester = ref('')
 
 function mapCourseToClass(course) {
   return {
-    id: course.maKhoaHoc ?? course.id,
-    code: course.tenLop ?? course.code ?? '',
-    name: course.tieuDe ?? course.name ?? '',
-    subject: course.tenMonHoc ?? course.subject ?? '',
-    students: 0,
-    semester: course.tenHocKy ?? course.semester ?? '',
+    id: course.courseId || course.CourseId,
+    code: course.subjectCode || course.SubjectCode || '',
+    name: course.courseName || course.CourseName || '',
+    subject: `Lớp ${course.className || course.ClassName || ''}`,
+    students: course.studentCount || course.StudentCount || 0,
+    semester: course.semester || course.Semester || 'N/A',
   }
 }
 
@@ -28,11 +28,12 @@ async function loadClasses() {
   loading.value = true
   error.value = ''
   try {
-    const data = await teacherApi.getClasses({ semesterId: filterSemester.value || undefined })
-    const items = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+    const data = await teacherApi.getTeacherCourses({ semesterId: filterSemester.value || undefined })
+    const unwrapped = data?.data ?? data?.Data ?? data
+    const items = Array.isArray(unwrapped) ? unwrapped : (unwrapped?.items ?? unwrapped?.Items ?? [])
     classes.value = items.map(mapCourseToClass)
   } catch (e) {
-    error.value = e?.message || 'Không thể tải danh sách lớp.'
+    error.value = e?.message || 'Không thể tải danh sách khóa học.'
     classes.value = []
   } finally {
     loading.value = false
@@ -57,8 +58,8 @@ onMounted(() => { loadClasses() })
       <!-- Header -->
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 class="text-xl font-bold text-heading tracking-tight">Danh sách lớp học</h1>
-          <p class="text-muted mt-1">Quản lý và theo dõi các lớp học bạn đang phụ trách giảng dạy.</p>
+          <h1 class="text-xl font-bold text-heading tracking-tight">Tiến độ học tập các lớp</h1>
+          <p class="text-muted mt-1">Chọn lớp học để theo dõi chi tiết tiến độ học tập của sinh viên.</p>
         </div>
         <div class="flex gap-2">
           <GlassButton variant="secondary" size="sm">
@@ -71,7 +72,7 @@ onMounted(() => { loadClasses() })
       <div class="lg-glass-soft rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-center">
         <div class="relative flex-1 w-full">
           <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-          <input type="text" placeholder="Tìm theo mã lớp, tên lớp..." class="lg-control w-full pl-11 pr-4" />
+          <input type="text" placeholder="Tìm theo mã khóa học, tên khóa học..." class="lg-control w-full pl-11 pr-4" />
         </div>
         <div class="flex items-center gap-3 w-full md:w-auto">
           <select v-model="filterSemester" class="lg-control flex-1 md:w-48">
@@ -115,11 +116,8 @@ onMounted(() => { loadClasses() })
           </div>
 
           <div class="mt-8 pt-4 border-t border-card flex items-center justify-between">
-             <router-link :to="'/teacher/classes/' + cls.id + '/details'" class="text-xs font-bold text-link hover:underline flex items-center gap-1">
-                Xem chi tiết <ChevronRight :size="14" />
-              </router-link>
-             <router-link :to="'/teacher/classes/' + cls.id + '/workspace'" class="rounded-xl bg-(--accent-primary) px-4 py-2 text-xs font-bold text-inverse hover:opacity-90 transition-all flex items-center gap-2">
-                <Eye :size="14" /> View class
+             <router-link :to="'/teacher/class-progress/' + cls.id" class="rounded-xl bg-(--accent-primary) px-4 py-2 text-xs font-bold text-inverse hover:opacity-90 transition-all flex items-center gap-2 w-full justify-center">
+                <Eye :size="14" /> Xem tiến độ khóa học
               </router-link>
           </div>
         </div>

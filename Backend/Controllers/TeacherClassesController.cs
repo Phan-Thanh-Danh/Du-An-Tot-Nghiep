@@ -47,6 +47,45 @@ public class TeacherClassesController : ControllerBase
         }
     }
 
+    [HttpGet("courses")]
+    public async Task<ActionResult<ApiResponseDto<object>>> GetCourses([FromQuery] string? semesterId = null, [FromQuery] string? keyword = null)
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            var userId = currentUser!.UserId;
+
+            var query = _context.KhoaHocs
+                .Include(k => k.Lop)
+                .Include(k => k.MonHoc)
+                .Where(k => k.MaGiaoVien == userId)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                query = query.Where(k => k.TieuDe.Contains(keyword) || (k.Lop != null && k.Lop.TenLop.Contains(keyword)));
+            }
+
+            var courses = await query
+                .Select(k => new
+                {
+                    CourseId = k.MaKhoaHoc,
+                    CourseName = k.TieuDe,
+                    SubjectCode = k.MonHoc != null ? k.MonHoc.MaCodeMonHoc : "",
+                    ClassName = k.Lop != null ? k.Lop.TenLop : "",
+                    StudentCount = _context.NguoiDungs.Count(n => n.MaLop == k.MaLop),
+                    Semester = "N/A"
+                })
+                .ToListAsync();
+
+            return Ok(ApiResponseDto<object>.Ok(courses));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi tải danh sách khóa học: " + ex.Message));
+        }
+    }
+
     [HttpGet("classes/{id}")]
     public async Task<ActionResult<ApiResponseDto<object>>> GetClassDetail(int id)
     {
@@ -231,36 +270,153 @@ public class TeacherClassesController : ControllerBase
             var totalLessons = lessonIds.Count;
 
             var students = await _context.NguoiDungs
-                .Where(n => n.MaLop == id)
+                .Where(n => n.MaLop == id && n.VaiTroChinh == "hoc_sinh")
                 .Select(n => new
                 {
                     StudentId = n.MaNguoiDung,
                     StudentName = n.HoTen,
+                    Email = n.Email,
                     CoursesCompleted = lessonIds.Count > 0
                         ? _context.TienDoBaiHocs.Count(t => t.MaHocSinh == n.MaNguoiDung && lessonIds.Contains(t.MaBaiHoc) && t.HoanThanhLuc != null)
-                        : 0
+                        : 0,
+                    Absent = _context.DiemDanhs.Count(d => d.MaHocSinh == n.MaNguoiDung && d.TrangThai == "vang")
                 })
                 .ToListAsync();
 
-            var result = students.Select(s => new
-            {
-                StudentId = s.StudentId,
-                StudentName = s.StudentName,
-                CoursesCompleted = s.CoursesCompleted,
-                CoursesTotal = totalLessons,
-                OverallProgress = totalLessons > 0 ? Math.Round((decimal)s.CoursesCompleted / totalLessons * 100, 1) : 0m
+            var result = students.Select(s => {
+                var prog = totalLessons > 0 ? (int)Math.Round((decimal)s.CoursesCompleted / totalLessons * 100) : 0;
+                var status = "good";
+                if (prog >= 90) status = "excellent";
+                else if (prog < 50) status = "danger";
+                else if (prog < 70) status = "warning";
+
+                return new
+                {
+                    id = s.StudentId,
+                    name = s.StudentName,
+                    email = s.Email,
+                    progress = prog,
+                    gpa = 0, // Mock GPA for now
+                    absent = s.Absent,
+                    status = status
+                };
             }).ToList();
+
+            var overallProgress = result.Count > 0 ? (int)Math.Round(result.Average(r => r.progress)) : 0;
+            var completedLessons = result.Sum(r => r.progress == 100 ? 1 : 0);
+
+            var chartData = new List<object>
+            {
+                new { range = "0-20%", value = result.Count(r => r.progress <= 20), height = 20 },
+                new { range = "21-50%", value = result.Count(r => r.progress > 20 && r.progress <= 50), height = 40 },
+                new { range = "51-80%", value = result.Count(r => r.progress > 50 && r.progress <= 80), height = 70 },
+                new { range = "81-100%", value = result.Count(r => r.progress > 80), height = 100 }
+            };
 
             return Ok(ApiResponseDto<object>.Ok(new
             {
-                ClassId = lop.MaLop,
-                ClassName = lop.TenLop,
-                Students = result
+                classId = lop.MaLop,
+                className = lop.TenLop,
+                students = result,
+                overallProgress = overallProgress,
+                completedLessons = students.Sum(s => s.CoursesCompleted),
+                totalLessons = totalLessons * (students.Count > 0 ? students.Count : 1),
+                activeStudents = result.Count,
+                chartData = chartData
             }));
         }
         catch (Exception ex)
         {
             return StatusCode(500, ApiResponseDto.Fail("Lỗi khi tải tiến độ lớp: " + ex.Message));
+        }
+    }
+
+    [HttpGet("courses/{id}/progress")]
+    public async Task<ActionResult<ApiResponseDto<object>>> GetCourseProgress(int id)
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            var userId = currentUser!.UserId;
+
+            var khoaHoc = await _context.KhoaHocs
+                .Include(k => k.MonHoc)
+                .Include(k => k.Lop)
+                .FirstOrDefaultAsync(k => k.MaKhoaHoc == id && k.MaGiaoVien == userId);
+            
+            if (khoaHoc == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy khóa học hoặc bạn không dạy khóa học này."));
+
+            var monHocId = khoaHoc.MaMonHoc;
+            var lopId = khoaHoc.MaLop;
+
+            var lessonIds = await _context.BaiHocs
+                .Where(b => b.Chuong != null && b.Chuong.MaMonHoc == monHocId)
+                .Select(b => b.MaBaiHoc)
+                .ToListAsync();
+
+            var totalLessons = lessonIds.Count;
+
+            var students = await _context.NguoiDungs
+                .Where(n => n.MaLop == lopId && n.VaiTroChinh == "hoc_sinh")
+                .Select(n => new
+                {
+                    StudentId = n.MaNguoiDung,
+                    StudentName = n.HoTen,
+                    Email = n.Email,
+                    CoursesCompleted = lessonIds.Count > 0
+                        ? _context.TienDoBaiHocs.Count(t => t.MaHocSinh == n.MaNguoiDung && lessonIds.Contains(t.MaBaiHoc) && t.HoanThanhLuc != null)
+                        : 0,
+                    Absent = _context.DiemDanhs.Count(d => d.MaHocSinh == n.MaNguoiDung && d.TrangThai == "vang" && d.BuoiHoc != null && d.BuoiHoc.MaKhoaHoc == id)
+                })
+                .ToListAsync();
+
+            var result = students.Select(s => {
+                var prog = totalLessons > 0 ? (int)Math.Round((decimal)s.CoursesCompleted / totalLessons * 100) : 0;
+                var status = "good";
+                if (prog >= 90) status = "excellent";
+                else if (prog < 50) status = "danger";
+                else if (prog < 70) status = "warning";
+
+                return new
+                {
+                    id = s.StudentId,
+                    name = s.StudentName,
+                    email = s.Email,
+                    progress = prog,
+                    gpa = 0, // Mock GPA for now
+                    absent = s.Absent,
+                    status = status
+                };
+            }).ToList();
+
+            var overallProgress = result.Count > 0 ? (int)Math.Round(result.Average(r => r.progress)) : 0;
+            var completedLessons = result.Sum(r => r.progress == 100 ? 1 : 0);
+
+            var chartData = new List<object>
+            {
+                new { range = "0-20%", value = result.Count(r => r.progress <= 20), height = 20 },
+                new { range = "21-50%", value = result.Count(r => r.progress > 20 && r.progress <= 50), height = 40 },
+                new { range = "51-80%", value = result.Count(r => r.progress > 50 && r.progress <= 80), height = 70 },
+                new { range = "81-100%", value = result.Count(r => r.progress > 80), height = 100 }
+            };
+
+            return Ok(ApiResponseDto<object>.Ok(new
+            {
+                courseId = khoaHoc.MaKhoaHoc,
+                courseName = !string.IsNullOrEmpty(khoaHoc.TieuDe) ? khoaHoc.TieuDe : (khoaHoc.MonHoc != null ? khoaHoc.MonHoc.TenMonHoc : ""),
+                className = khoaHoc.Lop != null ? khoaHoc.Lop.TenLop : "",
+                students = result,
+                overallProgress = overallProgress,
+                completedLessons = students.Sum(s => s.CoursesCompleted),
+                totalLessons = totalLessons * (students.Count > 0 ? students.Count : 1),
+                activeStudents = result.Count,
+                chartData = chartData
+            }));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi tải tiến độ khóa học: " + ex.Message));
         }
     }
 

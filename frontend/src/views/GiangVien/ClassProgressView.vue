@@ -32,6 +32,8 @@ const overallProgress = ref(0)
 const completedLessons = ref(0)
 const totalLessons = ref(0)
 const activeStudents = ref(0)
+const courseName = ref('')
+const className = ref('')
 
 const chartData = ref([])
 const route = useRoute()
@@ -44,23 +46,27 @@ async function loadProgress() {
   loading.value = true
   error.value = ''
   try {
-    let classId = route.params.id
-    if (!classId) {
-      const classList = await teacherApi.getTeacherClasses({ pageSize: 1 })
-      const firstClass = (classList?.items ?? classList?.Items ?? classList?.data ?? classList?.Data ?? classList ?? [])[0]
-      classId = getClassId(firstClass)
+    let courseId = route.params.id
+    if (!courseId || courseId === 'undefined') {
+      const courseList = await teacherApi.getTeacherCourses({ pageSize: 1 })
+      const firstCourse = (courseList?.items ?? courseList?.Items ?? courseList?.data ?? courseList?.Data ?? courseList ?? [])[0]
+      courseId = firstCourse?.courseId ?? firstCourse?.CourseId
     }
-    if (!classId) {
+    if (!courseId) {
       students.value = []
       overallProgress.value = 0
       completedLessons.value = 0
       totalLessons.value = 0
       activeStudents.value = 0
       chartData.value = []
+      courseName.value = ''
+      className.value = ''
       return
     }
 
-    const data = await teacherApi.getTeacherClassProgress(classId)
+    const raw = await teacherApi.getTeacherCourseProgress(courseId)
+    const data = raw?.data ?? raw?.Data ?? raw
+    
     students.value = (data?.students || []).map(s => ({
       id: s.maSinhVien ?? s.id,
       name: s.tenSinhVien ?? s.name ?? '',
@@ -79,8 +85,10 @@ async function loadProgress() {
       value: item.soLuong ?? item.value ?? 0,
       height: item.chieuCao ?? item.height ?? 0,
     }))
+    courseName.value = data?.tenKhoaHoc ?? data?.courseName ?? ''
+    className.value = data?.tenLop ?? data?.className ?? ''
   } catch (e) {
-    error.value = e?.message || 'Không thể tải tiến độ lớp.'
+    error.value = e?.message || 'Không thể tải tiến độ khóa học.'
   } finally {
     loading.value = false
   }
@@ -168,12 +176,11 @@ const closeDrawer = () => {
 
         <div class="header-copy">
           <div class="context-tags">
-            <GlassBadge variant="primary">SE1601</GlassBadge>
+            <GlassBadge variant="primary" v-if="className">{{ className }}</GlassBadge>
             <GlassBadge variant="success">Đang diễn ra</GlassBadge>
-            <GlassBadge variant="neutral">Spring 2026 · Block 2</GlassBadge>
           </div>
-          <h1>Tiến độ lớp học</h1>
-          <p>Theo dõi tiến độ học, bài hoàn thành và sinh viên có nguy cơ chậm tiến độ.</p>
+          <h1>{{ courseName || 'Tiến độ khóa học' }}</h1>
+          <p>Theo dõi tiến độ học, bài hoàn thành và sinh viên có nguy cơ chậm tiến độ của khóa học này.</p>
         </div>
       </div>
 

@@ -241,6 +241,14 @@ export const teacherApi = {
     return apiRequest(`/api/teacher/classes${qs ? '?' + qs : ''}`)
   },
 
+  getTeacherCourses(params = {}) {
+    const query = new URLSearchParams()
+    if (params.semesterId) query.append('semesterId', params.semesterId)
+    if (params.keyword) query.append('keyword', params.keyword)
+    const qs = query.toString()
+    return apiRequest(`/api/teacher/courses${qs ? '?' + qs : ''}`)
+  },
+
   getTeacherClassDetail(classId) {
     return apiRequest(`/api/teacher/classes/${classId}`)
   },
@@ -251,6 +259,10 @@ export const teacherApi = {
 
   getTeacherClassProgress(classId) {
     return apiRequest(`/api/teacher/classes/${classId}/progress`)
+  },
+
+  getTeacherCourseProgress(courseId) {
+    return apiRequest(`/api/teacher/courses/${courseId}/progress`)
   },
 
   getTeacherClassGrades(classId) {
