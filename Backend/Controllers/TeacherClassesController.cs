@@ -1,6 +1,7 @@
 using Backend.Data;
 using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
+using Backend.DTOs.Attendance;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +45,81 @@ public class TeacherClassesController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, ApiResponseDto.Fail("Lỗi khi tải danh sách lớp: " + ex.Message));
+        }
+    }
+
+    [HttpGet("classes/{id}/attendance")]
+    public async Task<ActionResult<ApiResponseDto<ClassAttendanceSummaryDto>>> GetClassAttendance(int id)
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            var userId = currentUser!.UserId;
+
+            // 1. Lấy danh sách các KhoaHoc thuộc lớp id do giáo viên này phụ trách
+            var khoaHocs = await _context.KhoaHocs
+                .Where(k => k.MaLop == id && k.MaGiaoVien == userId)
+                .Select(k => k.MaKhoaHoc)
+                .ToListAsync();
+
+            if (!khoaHocs.Any())
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy lớp học hoặc bạn không được phân công giảng dạy lớp này."));
+
+            // 2. Lấy danh sách các BuoiHoc đã diễn ra của các khóa học này
+            var completedSessions = await _context.BuoiHocs
+                .Where(b => khoaHocs.Contains(b.MaKhoaHoc) && b.TrangThaiBuoi == "da_dien_ra")
+                .Select(b => b.MaBuoiHoc)
+                .ToListAsync();
+
+            int totalSessions = completedSessions.Count;
+
+            // 3. Lấy danh sách sinh viên trong lớp
+            var students = await _context.NguoiDungs
+                .Where(n => n.MaLop == id)
+                .ToListAsync();
+
+            // 4. Lấy dữ liệu điểm danh
+            var diemDanhs = await _context.DiemDanhs
+                .Where(d => completedSessions.Contains(d.MaBuoiHoc) && d.MaHocSinh != null)
+                .ToListAsync();
+
+            var resultStudents = new List<ClassAttendanceStudentDto>();
+
+            foreach (var student in students)
+            {
+                var studentDiemDanhs = diemDanhs.Where(d => d.MaHocSinh == student.MaNguoiDung).ToList();
+                int present = studentDiemDanhs.Count(d => d.TrangThai == "co_mat" || d.TrangThai == "di_muon");
+                int absent = studentDiemDanhs.Count(d => d.TrangThai == "vang" || d.TrangThai == "vang_co_phep" || d.TrangThai == "co_phep");
+                
+                int percent = totalSessions > 0 ? (int)Math.Round((double)present / totalSessions * 100) : 100;
+                
+                string status = "excellent";
+                if (percent < 50) status = "danger";
+                else if (percent < 70) status = "warning";
+                else if (percent < 90) status = "good";
+
+                resultStudents.Add(new ClassAttendanceStudentDto
+                {
+                    Id = student.MaNguoiDung,
+                    Name = student.HoTen,
+                    Present = present,
+                    Absent = absent,
+                    Percent = percent,
+                    Status = status
+                });
+            }
+
+            var result = new ClassAttendanceSummaryDto
+            {
+                TotalSessions = totalSessions,
+                Students = resultStudents
+            };
+
+            return Ok(ApiResponseDto<ClassAttendanceSummaryDto>.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi tải chuyên cần lớp học: " + ex.Message));
         }
     }
 

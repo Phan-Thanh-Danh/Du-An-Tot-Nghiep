@@ -157,7 +157,7 @@ onMounted(() => { loadClass() })
                    <ChevronRight :size="18" class="text-muted group-hover:text-link group-hover:translate-x-1 transition-all" />
                 </router-link>
                 
-                <router-link to="/teacher/class-attendance" class="group flex items-center justify-between p-5 rounded-2xl border border-card surface-card hover:surface-elevated hover:border-link/30 hover:shadow-md transition-all">
+                <router-link :to="{ path: '/teacher/class-attendance', query: { classId: route.params.id } }" class="group flex items-center justify-between p-5 rounded-2xl border border-card surface-card hover:surface-elevated hover:border-link/30 hover:shadow-md transition-all">
                    <div class="flex items-center gap-4">
                       <div class="h-10 w-10 rounded-2xl bg-(--color-info-bg) text-(--color-info-text) flex items-center justify-center group-hover:scale-110 transition-transform">
                          <Clock :size="20" />

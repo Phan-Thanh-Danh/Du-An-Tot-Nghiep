@@ -1,5 +1,6 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   Search,
   Users,
@@ -23,8 +24,14 @@ const loading = ref(false)
 const error = ref('')
 
 const attendanceData = ref([])
+const route = useRoute()
+const router = useRouter()
 
-const totalSessions = computed(() => attendanceData.value.length ? Math.max(...attendanceData.value.map(s => s.present + s.absent)) : 0)
+const myClasses = ref([])
+const selectedClassId = ref('')
+
+const apiTotalSessions = ref(0)
+const totalSessions = computed(() => apiTotalSessions.value > 0 ? apiTotalSessions.value : attendanceData.value.length ? Math.max(...attendanceData.value.map(s => s.present + s.absent)) : 0)
 const avgAttendance = computed(() => {
   if (attendanceData.value.length === 0) return 0
   const total = attendanceData.value.reduce((s, st) => s + st.percent, 0)
@@ -51,14 +58,31 @@ async function loadAttendance() {
   loading.value = true
   error.value = ''
   try {
-    // MISSING_BACKEND: no per-student attendance summary endpoint exists.
-    // Use today's attendance sessions as the only real API-backed source for now.
-    const res = await teacherApi.getAttendanceToday()
-    const extracted = res?.data?.items ?? res?.items ?? res?.data?.data ?? res?.data ?? res?.Data ?? res
-    if (extracted && Array.isArray(extracted) && extracted.length > 0) {
-      attendanceData.value = extracted
+    let classId = route.query.classId
+
+    // Lấy danh sách lớp
+    if (myClasses.value.length === 0) {
+      const classesRes = await teacherApi.getTeacherClasses()
+      const classesData = classesRes?.data?.data ?? classesRes?.data ?? classesRes?.Data ?? classesRes
+      if (classesData && Array.isArray(classesData)) {
+        myClasses.value = classesData
+      }
+    }
+
+    if (!classId) {
+      return // Dừng lại ở đây để hiển thị danh sách dạng Card
+    }
+
+    selectedClassId.value = classId
+
+    const res = await teacherApi.getTeacherClassAttendance(classId)
+    const data = res?.data?.data ?? res?.data ?? res?.Data ?? res
+    
+    if (data && data.students) {
+      attendanceData.value = data.students
+      apiTotalSessions.value = data.totalSessions ?? 0
     } else {
-      throw new Error('No attendance data')
+      throw new Error('Không có dữ liệu điểm danh')
     }
   } catch (e) {
     error.value = e?.message || 'Không thể tải điểm danh.'
@@ -89,6 +113,27 @@ const getStatusVariant = (status) => {
 }
 
 const animateProgress = ref(false)
+
+const onClassChange = () => {
+  if (selectedClassId.value) {
+    router.push({ query: { ...route.query, classId: selectedClassId.value } })
+  }
+}
+
+watch(() => route.query.classId, (newId) => {
+  if (!newId) {
+    selectedClassId.value = ''
+    attendanceData.value = []
+    return
+  }
+  if (newId !== selectedClassId.value) {
+    selectedClassId.value = newId
+    loadAttendance()
+  } else {
+    loadAttendance()
+  }
+})
+
 onMounted(() => {
   loadAttendance()
   setTimeout(() => { animateProgress.value = true }, 100)
@@ -109,18 +154,54 @@ onMounted(() => {
       </GlassPanel>
     </div>
 
+    <!-- HIỂN THỊ DẠNG CARD KHI CHƯA CHỌN LỚP -->
+    <template v-else-if="!route.query.classId">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 class="text-xl font-bold text-heading tracking-tight">Danh sách lớp học</h1>
+          <p class="text-muted mt-1">Chọn lớp học để theo dõi chi tiết điểm danh và chuyên cần.</p>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div v-for="cls in myClasses" :key="cls.classId || cls.id" class="lg-glass-soft lg-card-hover rounded-2xl p-4 flex flex-col">
+          <div class="flex justify-between items-start mb-4">
+            <div class="h-10 w-10 rounded-2xl bg-(--accent-primary)/10 flex items-center justify-center text-link border border-(--accent-primary)/20">
+              <Users :size="24" />
+            </div>
+          </div>
+
+          <div class="flex-1">
+            <h3 class="text-xl font-bold text-heading">{{ cls.className }}</h3>
+            <p class="text-sm font-semibold text-label mt-1">Lớp học phần</p>
+          </div>
+
+          <div class="mt-8 pt-4 border-t border-card flex items-center justify-between">
+             <router-link :to="{ query: { classId: cls.classId || cls.id } }" class="rounded-xl bg-(--accent-primary) px-4 py-2 text-xs font-bold text-inverse hover:opacity-90 transition-all flex items-center gap-2 w-full justify-center">
+                <CheckCircle2 :size="14" /> Xem điểm danh
+              </router-link>
+          </div>
+        </div>
+        
+        <div v-if="myClasses.length === 0" class="col-span-full py-12 text-center text-muted">
+          Bạn chưa được phân công giảng dạy lớp nào.
+        </div>
+      </div>
+    </template>
+
+    <!-- HIỂN THỊ DẠNG BẢNG CHI TIẾT KHI ĐÃ CHỌN LỚP -->
     <template v-else>
       <GlassPanel variant="flat" density="compact" class="page-header">
         <div class="header-main">
-          <router-link to="/teacher/classes" class="back-link" aria-label="Quay lại danh sách lớp">
+          <router-link to="/teacher/class-attendance" class="back-link" aria-label="Quay lại danh sách lớp">
             <ArrowLeft :size="18" />
           </router-link>
 
           <div class="header-copy">
             <div class="context-tags">
-              <GlassBadge variant="primary">SE1601</GlassBadge>
-              <GlassBadge variant="neutral">HK 2 - 2026</GlassBadge>
-              <GlassBadge variant="info">Sĩ số 42</GlassBadge>
+              <GlassBadge variant="primary" v-if="selectedClassId">{{ myClasses.find(c => c.classId == selectedClassId)?.className || 'Lớp' }}</GlassBadge>
+              <GlassBadge variant="neutral">HK hiện tại</GlassBadge>
+              <GlassBadge variant="info">Sĩ số {{ attendanceData.length }}</GlassBadge>
             </div>
             <h1>Điểm danh theo lớp</h1>
             <p>Theo dõi chuyên cần, số buổi vắng và nguy cơ vượt quỹ vắng của sinh viên.</p>
@@ -153,11 +234,11 @@ onMounted(() => {
 
         <div class="filters">
           <label class="select-shell">
-            <Calendar :size="16" />
-            <select>
-              <option>Tháng 5/2026</option>
-              <option>Tháng 4/2026</option>
-              <option>Tháng 3/2026</option>
+            <Users :size="16" />
+            <select v-model="selectedClassId" @change="onClassChange">
+              <option v-for="cls in myClasses" :key="cls.classId || cls.id" :value="cls.classId || cls.id">
+                Lớp {{ cls.className }}
+              </option>
             </select>
           </label>
 
@@ -175,7 +256,7 @@ onMounted(() => {
               <Users :size="17" />
               Chi tiết chuyên cần
             </h2>
-            <p>Danh sách theo dõi điểm danh từng sinh viên trong lớp SE1601.</p>
+            <p>Danh sách theo dõi điểm danh từng sinh viên trong lớp {{ myClasses.find(c => c.classId == selectedClassId)?.className || '' }}.</p>
           </div>
           <GlassBadge variant="success">{{ totalSessions }} buổi học</GlassBadge>
         </div>

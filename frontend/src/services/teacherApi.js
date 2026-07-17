@@ -33,6 +33,10 @@ export const teacherApi = {
     return apiRequest('/api/teacher/attendance/today')
   },
 
+  getTeacherClassAttendance(classId) {
+    return apiRequest(`/api/teacher/classes/${classId}/attendance`)
+  },
+
   // √ GET /api/teacher/attendance/unlock-requests — AttendanceUnlockController
   getUnlockRequests() {
     return apiRequest('/api/teacher/attendance/unlock-requests')
