@@ -48,7 +48,7 @@ public class TeacherClassesController : ControllerBase
     }
 
     [HttpGet("courses")]
-    public async Task<ActionResult<ApiResponseDto<object>>> GetCourses([FromQuery] string? semesterId = null, [FromQuery] string? keyword = null)
+    public async Task<ActionResult<ApiResponseDto<object>>> GetCourses([FromQuery] string? semesterId = null, [FromQuery] string? keyword = null, [FromQuery] int? classId = null)
     {
         try
         {
@@ -60,6 +60,11 @@ public class TeacherClassesController : ControllerBase
                 .Include(k => k.MonHoc)
                 .Where(k => k.MaGiaoVien == userId)
                 .AsQueryable();
+
+            if (classId.HasValue)
+            {
+                query = query.Where(k => k.MaLop == classId.Value);
+            }
 
             if (!string.IsNullOrEmpty(keyword))
             {
@@ -73,6 +78,7 @@ public class TeacherClassesController : ControllerBase
                     CourseName = k.TieuDe,
                     SubjectCode = k.MonHoc != null ? k.MonHoc.MaCodeMonHoc : "",
                     ClassName = k.Lop != null ? k.Lop.TenLop : "",
+                    ClassId = k.MaLop,
                     StudentCount = _context.NguoiDungs.Count(n => n.MaLop == k.MaLop),
                     Semester = "N/A"
                 })

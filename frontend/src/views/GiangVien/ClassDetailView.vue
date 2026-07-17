@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Users, Calendar, BookOpen, TrendingUp, FileText, Bell, Clock, ChevronRight, GraduationCap, AlertCircle } from 'lucide-vue-next'
@@ -35,7 +35,8 @@ async function loadClass() {
   loading.value = true
   error.value = ''
   try {
-    const data = await teacherApi.getTeacherClassDetail(route.params.id)
+    const res = await teacherApi.getTeacherClassDetail(route.params.id)
+    const data = res?.data?.data ?? res?.data ?? res
     classData.value = data ? mapClassToDetail(data) : null
   } catch (e) {
     error.value = e?.message || 'Không thể tải thông tin lớp học.'
@@ -143,7 +144,7 @@ onMounted(() => { loadClass() })
                </h2>
              </template>
              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <router-link to="/teacher/class-progress" class="group flex items-center justify-between p-5 rounded-2xl border border-card surface-card hover:surface-elevated hover:border-link/30 hover:shadow-md transition-all">
+                <router-link :to="{ path: '/teacher/class-progress', query: { classId: route.params.id } }" class="group flex items-center justify-between p-5 rounded-2xl border border-card surface-card hover:surface-elevated hover:border-link/30 hover:shadow-md transition-all">
                    <div class="flex items-center gap-4">
                       <div class="h-10 w-10 rounded-2xl bg-(--accent-primary)/10 text-link flex items-center justify-center group-hover:scale-110 transition-transform">
                          <GraduationCap :size="20" />

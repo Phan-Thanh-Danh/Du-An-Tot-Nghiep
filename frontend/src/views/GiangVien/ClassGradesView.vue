@@ -44,8 +44,9 @@ async function loadGrades() {
   try {
     const res = await teacherApi.getTeacherClassGrades(classId)
     // Extract array from standard response
-    const items = res?.data || res?.Data || res || []
-    gradesData.value = (Array.isArray(items) ? items : []).map(sv => ({
+    const extracted = res?.data?.items ?? res?.items ?? res?.data?.data ?? res?.data ?? res?.Data ?? res
+    const items = Array.isArray(extracted) ? extracted : []
+    gradesData.value = items.map(sv => ({
       ...sv,
       isEditing: false
     }))

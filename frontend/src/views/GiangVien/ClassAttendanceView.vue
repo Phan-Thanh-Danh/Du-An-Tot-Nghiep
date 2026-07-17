@@ -53,9 +53,10 @@ async function loadAttendance() {
   try {
     // MISSING_BACKEND: no per-student attendance summary endpoint exists.
     // Use today's attendance sessions as the only real API-backed source for now.
-    const data = await teacherApi.getAttendanceToday()
-    if (data && Array.isArray(data) && data.length > 0) {
-      attendanceData.value = data
+    const res = await teacherApi.getAttendanceToday()
+    const extracted = res?.data?.items ?? res?.items ?? res?.data?.data ?? res?.data ?? res?.Data ?? res
+    if (extracted && Array.isArray(extracted) && extracted.length > 0) {
+      attendanceData.value = extracted
     } else {
       throw new Error('No attendance data')
     }

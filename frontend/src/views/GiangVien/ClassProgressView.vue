@@ -65,7 +65,7 @@ async function loadProgress() {
     }
 
     const raw = await teacherApi.getTeacherCourseProgress(courseId)
-    const data = raw?.data ?? raw?.Data ?? raw
+    const data = raw?.data?.data ?? raw?.data ?? raw?.Data ?? raw
     
     students.value = (data?.students || []).map(s => ({
       id: s.maSinhVien ?? s.id,

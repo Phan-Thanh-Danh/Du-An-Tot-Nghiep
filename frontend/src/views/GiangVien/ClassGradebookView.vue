@@ -62,8 +62,9 @@ async function loadGrades() {
   loading.value = true
   try {
     const res = await teacherApi.getTeacherClassGrades(classId)
-    const items = res?.data || res?.Data || res || []
-    gradebook.value = (Array.isArray(items) ? items : []).map(sv => ({
+    const extracted = res?.data?.items ?? res?.items ?? res?.data?.data ?? res?.data ?? res?.Data ?? res
+    const items = Array.isArray(extracted) ? extracted : []
+    gradebook.value = items.map(sv => ({
       id: sv.id,
       name: sv.name,
       gpa: Number(sv.total || 0).toFixed(1),

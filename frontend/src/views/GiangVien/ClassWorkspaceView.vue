@@ -72,7 +72,7 @@ async function loadWorkspace() {
   error.value = ''
   try {
     const response = await teacherApi.getTeacherClassWorkspace(route.params.id)
-    const data = response?.data || response
+    const data = response?.data?.data ?? response?.data ?? response
     classInfo.value = data
     students.value = (data?.students || []).map(s => ({
       id: s.maSinhVien ?? s.id,

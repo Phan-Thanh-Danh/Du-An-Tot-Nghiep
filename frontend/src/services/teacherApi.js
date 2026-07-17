@@ -245,6 +245,7 @@ export const teacherApi = {
     const query = new URLSearchParams()
     if (params.semesterId) query.append('semesterId', params.semesterId)
     if (params.keyword) query.append('keyword', params.keyword)
+    if (params.classId) query.append('classId', params.classId)
     const qs = query.toString()
     return apiRequest(`/api/teacher/courses${qs ? '?' + qs : ''}`)
   },

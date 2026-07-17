@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   Search, Filter, Users, BookOpen, Calendar, ChevronRight,
   MoreHorizontal, Eye, Download, GraduationCap, AlertCircle
@@ -12,6 +13,7 @@ const loading = ref(false)
 const error = ref('')
 const classes = ref([])
 const filterSemester = ref('')
+const route = useRoute()
 
 function mapCourseToClass(course) {
   return {
@@ -28,7 +30,11 @@ async function loadClasses() {
   loading.value = true
   error.value = ''
   try {
-    const data = await teacherApi.getTeacherCourses({ semesterId: filterSemester.value || undefined })
+    const classId = route.query.classId
+    const data = await teacherApi.getTeacherCourses({ 
+      semesterId: filterSemester.value || undefined,
+      classId: classId || undefined
+    })
     const unwrapped = data?.data ?? data?.Data ?? data
     const extracted = Array.isArray(unwrapped) ? unwrapped : (unwrapped?.items ?? unwrapped?.Items ?? [])
     const items = Array.isArray(extracted) ? extracted : []
