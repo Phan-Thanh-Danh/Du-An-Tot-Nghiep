@@ -21,6 +21,93 @@ public class TeacherSubmissionsController : ControllerBase
         _context = context;
     }
 
+    [HttpGet("courses/{courseId:int}/assignments")]
+    public async Task<ActionResult<ApiResponseDto<IEnumerable<TeacherAssignmentDto>>>> GetCourseAssignments(int courseId)
+    {
+        var userId = GetCurrentUserId();
+        
+        var course = await GetTeacherCoursesQuery(userId)
+            .Include(k => k.MonHoc)
+            .Include(k => k.LopHocPhan)
+            .Include(k => k.Lop)
+            .FirstOrDefaultAsync(k => k.MaKhoaHoc == courseId);
+
+        if (course == null)
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy khóa học hoặc bạn không dạy khóa này."));
+
+        var assignments = await _context.BaiTaps
+            .Include(b => b.MonHoc)
+            .Where(b => b.MaMonHoc == course.MaMonHoc)
+            .OrderByDescending(b => b.HanNop)
+            .ToListAsync();
+
+        var assignmentIds = assignments.Select(a => a.MaBaiTap).ToList();
+        var submissionStats = await _context.BaiNops
+            .Where(b => assignmentIds.Contains(b.MaBaiTap))
+            .GroupBy(b => b.MaBaiTap)
+            .Select(g => new
+            {
+                AssignmentId = g.Key,
+                Submitted = g.Count(),
+                Pending = g.Count(s => s.DiemSo == null)
+            })
+            .ToDictionaryAsync(g => g.AssignmentId);
+
+        var items = assignments
+            .Select(a => MapAssignment(a, new List<KhoaHoc> { course }, submissionStats.GetValueOrDefault(a.MaBaiTap)))
+            .ToList();
+
+        return Ok(ApiResponseDto<IEnumerable<TeacherAssignmentDto>>.Ok(items));
+    }
+
+    [HttpGet("courses/{courseId:int}/assignments/{assignmentId:int}/students-status")]
+    public async Task<ActionResult<ApiResponseDto<IEnumerable<object>>>> GetCourseAssignmentStudentStatus(int courseId, int assignmentId)
+    {
+        var userId = GetCurrentUserId();
+        
+        var course = await GetTeacherCoursesQuery(userId)
+            .FirstOrDefaultAsync(k => k.MaKhoaHoc == courseId);
+
+        if (course == null)
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy khóa học."));
+
+        var assignment = await _context.BaiTaps.FirstOrDefaultAsync(b => b.MaBaiTap == assignmentId && b.MaMonHoc == course.MaMonHoc);
+        if (assignment == null)
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy bài tập trong khóa học này."));
+
+        // Lấy danh sách toàn bộ học sinh trong lớp
+        var students = await _context.NguoiDungs
+            .Where(n => n.MaLop == course.MaLop && n.VaiTroChinh == "hoc_sinh")
+            .OrderBy(n => n.HoTen)
+            .Select(n => new { n.MaNguoiDung, n.HoTen })
+            .ToListAsync();
+
+        var studentIds = students.Select(s => s.MaNguoiDung).ToList();
+
+        // Lấy bài nộp của assignment này cho các học sinh
+        var submissions = await _context.BaiNops
+            .Where(b => b.MaBaiTap == assignmentId && studentIds.Contains(b.MaHocSinh))
+            .ToDictionaryAsync(b => b.MaHocSinh);
+
+        var result = students.Select(s => {
+            var sub = submissions.GetValueOrDefault(s.MaNguoiDung);
+            return new {
+                StudentId = s.MaNguoiDung,
+                StudentName = s.HoTen,
+                SubmissionId = sub?.MaBaiNop,
+                SubmittedAt = sub?.ThoiDiemNop,
+                FileUrl = sub?.UrlTapTin,
+                AttemptNumber = sub?.SoLanNop ?? 0,
+                IsLate = sub?.NopTre ?? false,
+                Score = sub?.DiemSo,
+                Feedback = sub?.NhanXet,
+                Status = sub == null ? "Chưa nộp bài" : (sub.DiemSo != null ? "Đã chấm" : "Đã nộp")
+            };
+        });
+
+        return Ok(ApiResponseDto<IEnumerable<object>>.Ok(result));
+    }
+
     [HttpGet("assignments")]
     public async Task<ActionResult<ApiResponseDto<PagedResultDto<TeacherAssignmentDto>>>> GetAssignments(
         [FromQuery] int pageIndex = 1,

@@ -215,6 +215,14 @@ export const teacherApi = {
     return apiRequest(`/api/teacher/assignments/${id}/submissions${qs ? '?' + qs : ''}`)
   },
 
+  getTeacherCourseAssignments(courseId) {
+    return apiRequest(`/api/teacher/courses/${courseId}/assignments`)
+  },
+
+  getCourseAssignmentStudentStatus(courseId, assignmentId) {
+    return apiRequest(`/api/teacher/courses/${courseId}/assignments/${assignmentId}/students-status`)
+  },
+
   // √ TeacherSubmissionsController
   getSubmissions(params = {}) {
     const query = new URLSearchParams()
