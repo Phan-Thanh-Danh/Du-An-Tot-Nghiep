@@ -85,9 +85,16 @@ public class TeacherSubmissionsController : ControllerBase
         var studentIds = students.Select(s => s.MaNguoiDung).ToList();
 
         // Lấy bài nộp của assignment này cho các học sinh
-        var submissions = await _context.BaiNops
+        var submissionsList = await _context.BaiNops
             .Where(b => b.MaBaiTap == assignmentId && studentIds.Contains(b.MaHocSinh))
-            .ToDictionaryAsync(b => b.MaHocSinh);
+            .ToListAsync();
+
+        var submissions = submissionsList
+            .GroupBy(b => b.MaHocSinh)
+            .ToDictionary(
+                g => g.Key, 
+                g => g.OrderByDescending(b => b.SoLanNop).FirstOrDefault()
+            );
 
         var result = students.Select(s => {
             var sub = submissions.GetValueOrDefault(s.MaNguoiDung);

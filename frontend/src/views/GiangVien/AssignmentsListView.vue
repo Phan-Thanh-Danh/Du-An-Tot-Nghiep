@@ -9,7 +9,10 @@ import {
   CheckCircle2,
   AlertCircle,
   FileText,
-  Filter
+  Filter,
+  Download,
+  Edit3,
+  X
 } from 'lucide-vue-next'
 import TeacherClassCard from '@/components/GiangVien/TeacherClassCard.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
@@ -33,6 +36,52 @@ const selectedAssignment = ref(null)
 
 // Search
 const searchQuery = ref('')
+
+// Grading Modal State
+const showGradingModal = ref(false)
+const gradingStudent = ref(null)
+const gradingSubmitting = ref(false)
+const gradingForm = ref({
+  score: null,
+  feedback: '',
+  publish: true
+})
+
+function openGradingModal(student) {
+  gradingStudent.value = student
+  gradingForm.value = {
+    score: student.score ?? student.Score ?? null,
+    feedback: student.feedback ?? student.Feedback ?? '',
+    publish: true
+  }
+  showGradingModal.value = true
+}
+
+function closeGradingModal() {
+  showGradingModal.value = false
+  gradingStudent.value = null
+}
+
+async function submitGrade() {
+  if (gradingForm.value.score == null) return;
+  gradingSubmitting.value = true;
+  try {
+    const submissionId = gradingStudent.value.submissionId ?? gradingStudent.value.SubmissionId;
+    await teacherApi.gradeSubmission(submissionId, {
+      score: gradingForm.value.score,
+      feedback: gradingForm.value.feedback,
+      publish: gradingForm.value.publish
+    });
+    // Reload student list
+    await loadStudents(selectedAssignment.value);
+    closeGradingModal();
+  } catch (err) {
+    console.error('Grade failed', err);
+    alert('Không thể chấm điểm. Vui lòng thử lại.');
+  } finally {
+    gradingSubmitting.value = false;
+  }
+}
 
 // Data loading
 async function loadCourses() {
@@ -284,12 +333,6 @@ const filteredStudents = computed(() => {
           <div>
             <h2 class="flex items-center gap-3">
               {{ selectedAssignment?.tieuDe ?? selectedAssignment?.TieuDe ?? selectedAssignment?.name ?? selectedAssignment?.Name }}
-              <router-link 
-                :to="{ path: '/teacher/grading', query: { assignmentId: selectedAssignment?.maBaiTap ?? selectedAssignment?.MaBaiTap ?? selectedAssignment?.id ?? selectedAssignment?.Id } }" 
-                class="px-3 py-1 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
-              >
-                Chấm bài Lab này
-              </router-link>
             </h2>
             <p>Tình trạng nộp bài của sinh viên lớp {{ selectedCourse?.className ?? selectedCourse?.ClassName }}</p>
           </div>
@@ -310,6 +353,7 @@ const filteredStudents = computed(() => {
                   <th class="p-4 font-semibold text-sm text-heading w-48">Trạng thái</th>
                   <th class="p-4 font-semibold text-sm text-heading w-48">Thời gian nộp</th>
                   <th class="p-4 font-semibold text-sm text-heading w-24">Điểm</th>
+                  <th class="p-4 font-semibold text-sm text-heading w-32">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -328,6 +372,17 @@ const filteredStudents = computed(() => {
                   </td>
                   <td class="p-4 text-sm text-body">{{ formatDate(student.submittedAt ?? student.SubmittedAt) }}</td>
                   <td class="p-4 text-sm font-semibold text-heading">{{ student.score ?? student.Score ?? '-' }}</td>
+                  <td class="p-4 text-sm">
+                    <div class="flex items-center gap-2" v-if="student.submissionId ?? student.SubmissionId">
+                      <a :href="student.fileUrl ?? student.FileUrl" target="_blank" class="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors" title="Tải bài tập">
+                        <Download :size="16" />
+                      </a>
+                      <button @click="openGradingModal(student)" class="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors" title="Chấm điểm & Nhận xét">
+                        <Edit3 :size="16" />
+                      </button>
+                    </div>
+                    <span v-else class="text-muted text-xs">Chưa có bài</span>
+                  </td>
                 </tr>
                 <tr v-if="filteredStudents.length === 0">
                   <td colspan="6" class="p-8 text-center text-body">
@@ -339,6 +394,32 @@ const filteredStudents = computed(() => {
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Grading Modal -->
+    <div v-if="showGradingModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <GlassPanel variant="surface" density="normal" class="w-full max-w-md shadow-2xl">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold text-heading">Chấm điểm: {{ gradingStudent?.studentName ?? gradingStudent?.StudentName }}</h3>
+          <button @click="closeGradingModal" class="text-muted hover:text-heading">
+            <X :size="20" />
+          </button>
+        </div>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-body mb-1">Điểm số</label>
+            <input type="number" step="0.5" min="0" max="10" v-model="gradingForm.score" class="w-full p-2 border border-input rounded-md bg-transparent text-heading focus:outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-body mb-1">Nhận xét</label>
+            <textarea v-model="gradingForm.feedback" rows="3" class="w-full p-2 border border-input rounded-md bg-transparent text-heading focus:outline-none focus:border-blue-500"></textarea>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <GlassButton variant="secondary" @click="closeGradingModal">Hủy</GlassButton>
+          <GlassButton variant="primary" @click="submitGrade" :disabled="gradingSubmitting || gradingForm.score == null">Lưu điểm</GlassButton>
+        </div>
+      </GlassPanel>
     </div>
   </div>
 </template>

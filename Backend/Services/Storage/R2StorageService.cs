@@ -26,33 +26,45 @@ public class R2StorageService : IR2StorageService
     /// <summary>Each multipart part is 10 MB.</summary>
     private const int PartSize = 10 * 1024 * 1024; // 10 MB
 
+    private readonly string _localFallbackRoot;
+
     public R2StorageService(
-        R2StorageSettings settings,
-        ILogger<R2StorageService> logger)
+        R2StorageSettings r2Settings,
+        ILogger<R2StorageService> logger,
+        IWebHostEnvironment env)
     {
-        _settings = settings;
+        _settings = r2Settings;
         _logger = logger;
+        
+        _localFallbackRoot = Path.Combine(env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot"), "uploads");
 
-        if (!string.IsNullOrWhiteSpace(settings.Endpoint))
+        if (string.IsNullOrWhiteSpace(r2Settings.AccessKeyId) ||
+            string.IsNullOrWhiteSpace(r2Settings.SecretAccessKey) ||
+            string.IsNullOrWhiteSpace(r2Settings.Endpoint) ||
+            string.IsNullOrWhiteSpace(r2Settings.BucketName))
         {
-            try
-            {
-                var s3Config = new AmazonS3Config
-                {
-                    ServiceURL = settings.Endpoint,
-                    ForcePathStyle = true,
-                    Timeout = TimeSpan.FromMinutes(30)
-                };
+            _logger.LogWarning("R2 Storage configuration is incomplete. Falling back to local storage at {Path}", _localFallbackRoot);
+            Directory.CreateDirectory(_localFallbackRoot);
+            return;
+        }
 
-                _s3Client = new AmazonS3Client(
-                    settings.AccessKeyId,
-                    settings.SecretAccessKey,
-                    s3Config);
-            }
-            catch (Exception ex)
+        try
+        {
+            var s3Config = new AmazonS3Config
             {
-                _logger.LogWarning(ex, "Failed to initialize AmazonS3Client. Check R2 config.");
-            }
+                ServiceURL = r2Settings.Endpoint,
+                AuthenticationRegion = "auto"
+            };
+
+            _s3Client = new AmazonS3Client(
+                r2Settings.AccessKeyId,
+                r2Settings.SecretAccessKey,
+                s3Config);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to initialize AmazonS3Client. Check R2 config. Falling back to local storage.");
+            Directory.CreateDirectory(_localFallbackRoot);
         }
     }
 
@@ -63,14 +75,31 @@ public class R2StorageService : IR2StorageService
         string folder,
         CancellationToken cancellationToken = default)
     {
-        if (_s3Client == null)
-        {
-            throw new InvalidOperationException(
-                "R2 storage is not configured. Set R2Storage:Endpoint, AccessKeyId, SecretAccessKey, and BucketName before uploading files.");
-        }
-
         var safeFileName = SanitizeFileName(fileName);
         var storageKey = $"{folder}/{DateTime.UtcNow:yyyy/MM/dd}/{Guid.NewGuid():N}_{safeFileName}";
+
+        if (_s3Client == null)
+        {
+            // Fallback to local storage
+            var fullPath = Path.Combine(_localFallbackRoot, storageKey.Replace('/', Path.DirectorySeparatorChar));
+            Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+            using (var fs = new FileStream(fullPath, FileMode.Create))
+            {
+                if (fileStream.CanSeek)
+                {
+                    fileStream.Position = 0;
+                }
+                await fileStream.CopyToAsync(fs, cancellationToken);
+            }
+            
+            return new UploadResultDto
+            {
+                Url = $"/uploads/{storageKey}",
+                StorageKey = storageKey,
+                KichThuocByte = fileStream.CanSeek ? fileStream.Length : new FileInfo(fullPath).Length,
+                ContentType = contentType
+            };
+        }
 
         long fileSize;
 

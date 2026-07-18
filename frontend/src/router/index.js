@@ -338,7 +338,6 @@ const router = createRouter({
         { path: 'assignments', name: 'teacher-assignments', component: () => import('../views/GiangVien/AssignmentsListView.vue') , meta: { title: 'Phân công giảng viên' } },
         { path: 'exams', name: 'teacher-exams', component: () => import('../views/GiangVien/ExamsView.vue') },
         { path: 'exams/create', name: 'teacher-exams-create', component: () => import('../views/GiangVien/CreateExamView.vue') },
-        { path: 'grading', name: 'teacher-grading', component: () => import('../views/GiangVien/GradingView.vue') },
         { path: 'exam-results', name: 'teacher-exam-results', component: () => import('../views/GiangVien/ExamResultsView.vue') },
         { path: 'proctoring', name: 'teacher-proctoring', component: () => import('../views/GiangVien/ProctoringView.vue') },
         { path: 'attendance', name: 'teacher-attendance-today', component: () => import('../views/GiangVien/AttendanceTodayView.vue') },

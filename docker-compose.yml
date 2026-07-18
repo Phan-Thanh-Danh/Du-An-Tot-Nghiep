@@ -19,6 +19,13 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       # Overriding the default connection string to point to the sqlserver container
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=LMS;User Id=sa;Password=Test@123_PassWord!;TrustServerCertificate=True;
+      # R2 Storage
+      - R2Storage__AccountId=87934b0fb36afe0a6b19db75efc7fe24
+      - R2Storage__Endpoint=https://87934b0fb36afe0a6b19db75efc7fe24.r2.cloudflarestorage.com
+      - R2Storage__AccessKeyId=872e796be9c27223e4d2b7fe48afd75e
+      - R2Storage__SecretAccessKey=46a0c09da41ff2f0a7cc7aacad3bb8ed6c418eb4530617862c860d248bf2e28b
+      - R2Storage__BucketName=aet-lms-media
+      - R2Storage__PublicDomain=https://pub-05926a5122ef4b4791e652fd76c73072.r2.dev
     ports:
       - "5097:5097"
     depends_on:
