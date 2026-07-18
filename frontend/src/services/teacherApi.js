@@ -223,6 +223,29 @@ export const teacherApi = {
     return apiRequest(`/api/teacher/courses/${courseId}/assignments/${assignmentId}/students-status`)
   },
 
+  async downloadAllSubmissions(courseId, assignmentId) {
+    const token = localStorage.getItem('lms_access_token') || sessionStorage.getItem('lms_access_token') || ''
+    const url = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '') + `/api/teacher/courses/${courseId}/assignments/${assignmentId}/download-all`
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    if (!response.ok) {
+      let msg = 'Lỗi khi tải file'
+      try {
+        const errorData = await response.json()
+        msg = errorData?.message || msg
+      } catch (e) {}
+      throw new Error(msg)
+    }
+    
+    return await response.blob()
+  },
+
   // √ TeacherSubmissionsController
   getSubmissions(params = {}) {
     const query = new URLSearchParams()

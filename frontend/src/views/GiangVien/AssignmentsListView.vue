@@ -149,6 +149,35 @@ function goBackToAssignments() {
   searchQuery.value = ''
 }
 
+const downloadingAll = ref(false)
+
+const downloadAll = async () => {
+  if (!selectedCourse.value || !selectedAssignment.value) return
+  const courseId = selectedCourse.value.courseId ?? selectedCourse.value.CourseId
+  const assignmentId = selectedAssignment.value.maBaiTap ?? selectedAssignment.value.MaBaiTap ?? selectedAssignment.value.id ?? selectedAssignment.value.Id
+
+  downloadingAll.value = true
+  try {
+    const blob = await teacherApi.downloadAllSubmissions(courseId, assignmentId)
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const courseName = selectedCourse.value.courseName ?? selectedCourse.value.CourseName ?? selectedCourse.value.tenMonHoc ?? 'KhoaHoc'
+    const className = selectedCourse.value.className ?? selectedCourse.value.ClassName ?? selectedCourse.value.tenLop ?? 'Lop'
+    const safeCourseName = courseName.replace(/[\/\\:*?"<>|]/g, '').replace(/\s+/g, '_')
+    const safeClassName = className.replace(/[\/\\:*?"<>|]/g, '').replace(/\s+/g, '_')
+    a.download = `${safeCourseName}_${safeClassName}.zip`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+  } catch (err) {
+    alert(err.message || 'Lỗi tải file')
+  } finally {
+    downloadingAll.value = false
+  }
+}
+
 // Formatting
 function formatDate(dateString) {
   if (!dateString) return 'Không có'
@@ -329,14 +358,21 @@ const filteredStudents = computed(() => {
 
       <!-- Step 3: Students & Submissions -->
       <div v-if="currentStep === 3">
-        <div class="panel-heading mb-4 px-1">
+        <div class="panel-heading mb-4 px-1 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
           <div>
             <h2 class="flex items-center gap-3">
               {{ selectedAssignment?.tieuDe ?? selectedAssignment?.TieuDe ?? selectedAssignment?.name ?? selectedAssignment?.Name }}
             </h2>
             <p>Tình trạng nộp bài của sinh viên lớp {{ selectedCourse?.className ?? selectedCourse?.ClassName }}</p>
           </div>
-          <GlassBadge variant="primary" size="sm">LMS Academic</GlassBadge>
+          <div class="flex items-center gap-3">
+            <GlassButton variant="primary" size="sm" @click="downloadAll" :disabled="downloadingAll" class="flex items-center gap-2">
+              <Download :size="16" />
+              <span v-if="downloadingAll">Đang tải...</span>
+              <span v-else>Tải tất cả bài nộp</span>
+            </GlassButton>
+            <GlassBadge variant="primary" size="sm">LMS Academic</GlassBadge>
+          </div>
         </div>
 
         <div v-if="loading" class="flex justify-center p-12">

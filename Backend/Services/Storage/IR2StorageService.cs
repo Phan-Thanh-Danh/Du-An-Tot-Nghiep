@@ -9,6 +9,7 @@ public interface IR2StorageService
         string fileName,
         string contentType,
         string folder,
+        bool keepOriginalFileName = false,
         CancellationToken cancellationToken = default);
 
     Task DeleteFileAsync(string storageKey, CancellationToken cancellationToken = default);

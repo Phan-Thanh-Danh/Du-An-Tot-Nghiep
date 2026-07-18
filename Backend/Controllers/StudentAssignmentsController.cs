@@ -232,12 +232,21 @@ public class StudentAssignmentsController : ControllerBase
             return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = "Đã quá hạn nộp bài." });
         }
 
-        string fileName = $"{Guid.NewGuid()}_{file.FileName}";
+        var student = await _context.NguoiDungs.FirstOrDefaultAsync(u => u.MaNguoiDung == currentUser.UserId);
+        string studentName = student?.HoTen ?? "Unknown";
+        // Convert to unaccented characters if possible, or just replace spaces. 
+        // For simplicity, we just replace spaces.
+        string safeStudentName = System.Text.RegularExpressions.Regex.Replace(studentName, @"\s+", "_");
+        
+        string safeFileName = System.Text.RegularExpressions.Regex.Replace(file.FileName, @"[^a-zA-Z0-9_\-\.]", "_");
+        string fileName = $"{currentUser.UserId}_{safeStudentName}_{safeFileName}";
+
         var uploadResult = await _r2StorageService.UploadFileAsync(
             file.OpenReadStream(),
             fileName,
             file.ContentType,
-            "student-assignments");
+            "student-assignments",
+            keepOriginalFileName: true);
 
         if (uploadResult == null || string.IsNullOrEmpty(uploadResult.Url))
         {

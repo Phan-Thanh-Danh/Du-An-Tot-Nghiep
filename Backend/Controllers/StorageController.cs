@@ -83,7 +83,7 @@ public class StorageController : ControllerBase
         foreach (var f in file)
         {
             await using var stream = f.OpenReadStream();
-            var result = await _storage.UploadFileAsync(stream, f.FileName, f.ContentType, folder, ct);
+            var result = await _storage.UploadFileAsync(stream, f.FileName, f.ContentType, folder, false, ct);
             results.Add(result);
         }
 

@@ -115,6 +115,117 @@ public class TeacherSubmissionsController : ControllerBase
         return Ok(ApiResponseDto<IEnumerable<object>>.Ok(result));
     }
 
+    [HttpGet("courses/{courseId:int}/assignments/{assignmentId:int}/download-all")]
+    public async Task<IActionResult> DownloadAllSubmissions(
+        int courseId, 
+        int assignmentId,
+        [FromServices] IHttpClientFactory httpClientFactory,
+        [FromServices] Microsoft.AspNetCore.Hosting.IWebHostEnvironment env)
+    {
+        var userId = GetCurrentUserId();
+        
+        var course = await GetTeacherCoursesQuery(userId)
+            .Include(k => k.MonHoc)
+            .Include(k => k.Lop)
+            .FirstOrDefaultAsync(k => k.MaKhoaHoc == courseId);
+
+        if (course == null)
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy khóa học."));
+
+        var assignment = await _context.BaiTaps.FirstOrDefaultAsync(b => b.MaBaiTap == assignmentId && b.MaMonHoc == course.MaMonHoc);
+        if (assignment == null)
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy bài tập trong khóa học này."));
+
+        // Lấy danh sách toàn bộ học sinh trong lớp
+        var students = await _context.NguoiDungs
+            .Where(n => n.MaLop == course.MaLop && n.VaiTroChinh == "hoc_sinh")
+            .Select(n => new { n.MaNguoiDung, n.HoTen })
+            .ToListAsync();
+
+        var studentIds = students.Select(s => s.MaNguoiDung).ToList();
+
+        var submissionsList = await _context.BaiNops
+            .Where(b => b.MaBaiTap == assignmentId && studentIds.Contains(b.MaHocSinh))
+            .ToListAsync();
+
+        var latestSubmissions = submissionsList
+            .GroupBy(b => b.MaHocSinh)
+            .Select(g => g.OrderByDescending(b => b.SoLanNop).FirstOrDefault())
+            .Where(b => b != null && !string.IsNullOrEmpty(b.UrlTapTin))
+            .ToList();
+
+        if (!latestSubmissions.Any())
+            return BadRequest(ApiResponseDto.Fail("Chưa có sinh viên nào nộp bài."));
+
+        var memoryStream = new MemoryStream();
+        using (var archive = new System.IO.Compression.ZipArchive(memoryStream, System.IO.Compression.ZipArchiveMode.Create, true))
+        {
+            var httpClient = httpClientFactory.CreateClient();
+            string safeCourseName = System.Text.RegularExpressions.Regex.Replace(course.MonHoc?.TenMonHoc ?? "KhoaHoc", @"[^a-zA-Z0-9_\-\.]", "_");
+            string safeClassName = System.Text.RegularExpressions.Regex.Replace(course.Lop?.TenLop ?? "Lop", @"[^a-zA-Z0-9_\-\.]", "_");
+            
+            foreach (var sub in latestSubmissions)
+            {
+                var student = students.FirstOrDefault(s => s.MaNguoiDung == sub.MaHocSinh);
+                var studentName = student?.HoTen ?? "Unknown";
+                string safeStudentName = System.Text.RegularExpressions.Regex.Replace(studentName, @"\s+", "_");
+                
+                string fileName = Path.GetFileName(sub.UrlTapTin) ?? "";
+                if (fileName.Contains('?')) fileName = fileName.Split('?')[0];
+                
+                // Loại bỏ mã GUID 32 ký tự nếu có (dành cho các file cũ)
+                if (fileName.Length > 33 && fileName[32] == '_' && System.Text.RegularExpressions.Regex.IsMatch(fileName.Substring(0, 32), @"^[0-9a-fA-F]{32}$"))
+                {
+                    fileName = fileName.Substring(33);
+                }
+
+                // Loại bỏ tiền tố MãSinhViên_HọTênSinhViên_ nếu đã có (để tránh bị nối chuỗi 2 lần)
+                string studentPrefix = $"{sub.MaHocSinh}_{safeStudentName}_";
+                if (fileName.StartsWith(studentPrefix))
+                {
+                    fileName = fileName.Substring(studentPrefix.Length);
+                }
+
+                string entryName = $"{sub.MaHocSinh}_{safeStudentName}_{fileName}";
+
+                var entry = archive.CreateEntry(entryName, System.IO.Compression.CompressionLevel.Fastest);
+                using var entryStream = entry.Open();
+
+                if (sub.UrlTapTin!.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        var response = await httpClient.GetAsync(sub.UrlTapTin);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            using var contentStream = await response.Content.ReadAsStreamAsync();
+                            await contentStream.CopyToAsync(entryStream);
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore download errors for individual files
+                    }
+                }
+                else
+                {
+                    // Local file
+                    var localPath = Path.Combine(env.WebRootPath, sub.UrlTapTin.TrimStart('/'));
+                    if (System.IO.File.Exists(localPath))
+                    {
+                        using var fs = new FileStream(localPath, FileMode.Open, FileAccess.Read);
+                        await fs.CopyToAsync(entryStream);
+                    }
+                }
+            }
+        }
+
+        memoryStream.Position = 0;
+        string safeCourseNameOut = System.Text.RegularExpressions.Regex.Replace(course.MonHoc?.TenMonHoc ?? "KhoaHoc", @"[^a-zA-Z0-9_\-\.]", "_");
+        string safeClassNameOut = System.Text.RegularExpressions.Regex.Replace(course.Lop?.TenLop ?? "Lop", @"[^a-zA-Z0-9_\-\.]", "_");
+        return File(memoryStream, "application/zip", $"{safeCourseNameOut}_{safeClassNameOut}.zip");
+    }
+
     [HttpGet("assignments")]
     public async Task<ActionResult<ApiResponseDto<PagedResultDto<TeacherAssignmentDto>>>> GetAssignments(
         [FromQuery] int pageIndex = 1,

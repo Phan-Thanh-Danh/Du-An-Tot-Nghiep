@@ -73,10 +73,13 @@ public class R2StorageService : IR2StorageService
         string fileName,
         string contentType,
         string folder,
+        bool keepOriginalFileName = false,
         CancellationToken cancellationToken = default)
     {
         var safeFileName = SanitizeFileName(fileName);
-        var storageKey = $"{folder}/{DateTime.UtcNow:yyyy/MM/dd}/{Guid.NewGuid():N}_{safeFileName}";
+        var storageKey = keepOriginalFileName 
+            ? $"{folder}/{DateTime.UtcNow:yyyy/MM/dd}/{safeFileName}"
+            : $"{folder}/{DateTime.UtcNow:yyyy/MM/dd}/{Guid.NewGuid():N}_{safeFileName}";
 
         if (_s3Client == null)
         {
