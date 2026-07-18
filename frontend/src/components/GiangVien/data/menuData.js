@@ -42,8 +42,7 @@ export const giangVienMenuGroups = [
     label: 'Bài tập',
     icon: 'ClipboardList',
     children: [
-      { id: 'assignments', label: 'Danh sách bài tập', icon: 'FileText', route: '/teacher/assignments' },
-      { id: 'grading', label: 'Bài nộp & Chấm điểm', icon: 'CheckSquare', route: '/teacher/grading' },
+      { id: 'assignments', label: 'Quản lý bài tập', icon: 'FileText', route: '/teacher/assignments' },
     ],
   },
 
