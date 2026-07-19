@@ -34,16 +34,22 @@ public class TeacherAttendanceHistoryController : ControllerBase
                 .OrderByDescending(b => b.NgayHoc)
                 .Select(b => new
                 {
-                    SessionId = b.MaBuoiHoc,
-                    Date = b.NgayHoc,
-                    CourseName = b.KhoaHoc != null ? b.KhoaHoc.TieuDe : "",
-                    ClassName = b.KhoaHoc != null && b.KhoaHoc.Lop != null ? b.KhoaHoc.Lop.TenLop : "",
-                    Shift = b.CaHoc != null ? b.CaHoc.TenCa : "",
-                    Room = b.Phong != null ? b.Phong.TenPhong : "",
-                    Total = _context.DiemDanhs.Count(d => d.MaBuoiHoc == b.MaBuoiHoc),
-                    Present = _context.DiemDanhs.Count(d => d.MaBuoiHoc == b.MaBuoiHoc && (d.TrangThai == "co_mat" || d.TrangThai == "di_muon")),
-                    Absent = _context.DiemDanhs.Count(d => d.MaBuoiHoc == b.MaBuoiHoc && (d.TrangThai == "vang" || d.TrangThai == "co_phep")),
-                    Status = b.TrangThaiBuoi
+                    id = b.MaBuoiHoc,
+                    date = b.NgayHoc,
+                    subject = b.KhoaHoc != null ? b.KhoaHoc.TieuDe : "",
+                    courseCode = b.KhoaHoc != null ? b.KhoaHoc.MaKhoaHoc.ToString() : "",
+                    className = b.KhoaHoc != null && b.KhoaHoc.Lop != null ? b.KhoaHoc.Lop.TenLop : "",
+                    shift = new { label = b.CaHoc != null ? b.CaHoc.TenCa : "" },
+                    room = b.Phong != null ? b.Phong.TenPhong : "",
+                    total = _context.DiemDanhs.Count(d => d.MaBuoiHoc == b.MaBuoiHoc),
+                    present = _context.DiemDanhs.Count(d => d.MaBuoiHoc == b.MaBuoiHoc && d.TrangThai == "co_mat"),
+                    late = _context.DiemDanhs.Count(d => d.MaBuoiHoc == b.MaBuoiHoc && d.TrangThai == "di_muon"),
+                    excused = _context.DiemDanhs.Count(d => d.MaBuoiHoc == b.MaBuoiHoc && d.TrangThai == "co_phep"),
+                    absent = _context.DiemDanhs.Count(d => d.MaBuoiHoc == b.MaBuoiHoc && d.TrangThai == "vang"),
+                    status = b.TrangThaiBuoi,
+                    submittedAt = (DateTime?)null,
+                    lockedAt = (DateTime?)null,
+                    lockReason = (string)null
                 })
                 .ToListAsync();
 

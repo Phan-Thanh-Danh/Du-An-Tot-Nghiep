@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch, nextTick } from 'vue'
 import {
   AlertCircle,
   CalendarDays,
@@ -57,6 +57,7 @@ const selectedStatus = ref('')
 const dateFrom = ref('')
 const dateTo = ref('')
 const selectedSessionId = ref('')
+const isDetailModalOpen = ref(false)
 const isUnlockModalOpen = ref(false)
 const unlockReason = ref('')
 const unlockNote = ref('')
@@ -117,7 +118,7 @@ watch(
     }
 
     if (!selectedSessionId.value || !items.some((session) => session.id === selectedSessionId.value)) {
-      selectedSessionId.value = items[0].id
+      selectSession(items[0].id)
     }
   },
   { immediate: true },
@@ -178,8 +179,40 @@ function unlockStatusMeta(status) {
   return getStatusMeta('unlockRequest', status)
 }
 
-function selectSession(sessionId) {
+function closeDetailModal() {
+  isDetailModalOpen.value = false
+}
+
+async function openSessionDetail(sessionId) {
   selectedSessionId.value = sessionId
+  isDetailModalOpen.value = true
+  await fetchSessionDetail(sessionId)
+}
+
+async function selectSession(sessionId) {
+  selectedSessionId.value = sessionId
+  await fetchSessionDetail(sessionId)
+}
+
+async function fetchSessionDetail(sessionId) {
+  try {
+    const res = await teacherApi.getAttendanceSession(sessionId)
+    const data = res?.data ?? res
+    if (data && Array.isArray(data.students)) {
+      const mappedStudents = data.students.map((s) => ({
+        id: s.maHocSinh || s.maSinhVien || s.id,
+        name: s.hoTenHocSinh || s.hoTen || s.name || 'Sinh viên',
+        note: s.ghiChu || s.note || '',
+        status: s.trangThai || s.status
+      }))
+      const session = sessions.value.find((s) => s.id === sessionId)
+      if (session) {
+        session.students = mappedStudents
+      }
+    }
+  } catch (e) {
+    console.error('Lỗi khi tải chi tiết buổi học', e)
+  }
 }
 
 function openUnlockModal() {
@@ -232,7 +265,7 @@ function resetFilters() {
     <p class="text-rose-600 font-semibold">{{ error }}</p>
     <GlassButton variant="secondary" @click="loadHistory">Thử lại</GlassButton>
   </div>
-  <div v-else class="teacher-attendance-history-page lg-page-enter mx-auto max-w-7xl space-y-5">
+  <div v-else class="teacher-attendance-history-page lg-page-enter mx-auto max-w-[96%] xl:max-w-[90%] space-y-5">
     <GlassPanel variant="flat" density="compact" class="page-header">
       <div class="header-copy">
         <p class="eyebrow">
@@ -378,7 +411,7 @@ function resetFilters() {
                   <span v-else class="muted-cell">Chưa có</span>
                 </td>
                 <td>
-                  <GlassButton variant="secondary" size="sm" @click="selectSession(session.id)">
+                  <GlassButton variant="secondary" size="sm" @click="openSessionDetail(session.id)">
                     <template #leading>
                       <Eye :size="14" />
                     </template>
@@ -396,7 +429,7 @@ function resetFilters() {
             :key="session.id"
             type="button"
             :class="['history-mobile-card', session.id === selectedSession?.id ? 'is-selected' : '']"
-            @click="selectSession(session.id)"
+            @click="openSessionDetail(session.id)"
           >
             <span class="mobile-card-top">
               <span>{{ formatDate(session.date) }}</span>
@@ -425,101 +458,130 @@ function resetFilters() {
         </EmptyState>
       </GlassPanel>
 
-      <GlassPanel v-if="selectedSession" variant="flat" density="compact" class="detail-panel">
-        <div class="detail-header">
-          <div>
-            <h2 class="clamp-2">{{ selectedSession.subject }}</h2>
-            <p>
-              {{ selectedSession.className }} · {{ formatDate(selectedSession.date) }} ·
-              {{ selectedSession.shift.label }} · {{ selectedSession.room }}
-            </p>
-          </div>
-          <GlassBadge :variant="sessionStatusMeta(selectedSession.status).variant" size="md">
-            {{ sessionStatusMeta(selectedSession.status).label }}
-          </GlassBadge>
-        </div>
-
-        <div class="detail-stats">
-          <div
-            v-for="item in detailStats"
-            :key="item.label"
-            :class="['detail-stat', item.variant]"
-          >
-            <span>{{ item.label }}</span>
-            <strong>{{ item.value }}</strong>
-          </div>
-        </div>
-
-        <div v-if="selectedSession.students?.length" class="detail-section">
-          <h3>
-            <Users :size="15" />
-            Sinh viên nổi bật
-          </h3>
-          <div class="mini-student-list">
-            <div v-for="student in selectedSession.students.slice(0, 5)" :key="student.id" class="mini-student">
-              <span class="avatar">{{ student.name.split(' ').pop()?.[0] }}</span>
-              <span class="min-w-0">
-                <strong class="clamp-1">{{ student.name }}</strong>
-                <small class="clamp-1">{{ student.note || 'Không có ghi chú' }}</small>
-              </span>
-              <GlassBadge :variant="attendanceStatusMeta(student.status).variant">
-                {{ attendanceStatusMeta(student.status).label }}
-              </GlassBadge>
-            </div>
-          </div>
-        </div>
-
-        <div class="detail-section">
-          <h3>
-            <Clock3 :size="15" />
-            Nhật ký xử lý
-          </h3>
-          <div class="timeline">
-            <p>
-              <CheckCircle2 :size="14" />
-              Đã gửi điểm danh lúc {{ formatDateTime(selectedSession.submittedAt) }}
-            </p>
-            <p v-if="selectedSession.lockedAt">
-              <LockKeyhole :size="14" />
-              Đã khóa lúc {{ formatDateTime(selectedSession.lockedAt) }}
-            </p>
-            <p v-if="selectedUnlockRequest">
-              <UnlockKeyhole :size="14" />
-              Yêu cầu mở khóa: {{ unlockStatusMeta(selectedUnlockRequest.status).label }}
-            </p>
-          </div>
-        </div>
-
-        <div v-if="selectedSession.lockReason" class="lock-note">
-          <LockKeyhole :size="15" />
-          {{ selectedSession.lockReason }}
-        </div>
-
-        <div class="detail-actions">
-          <GlassButton
-            variant="primary"
-            :disabled="!canCreateUnlockRequest"
-            @click="openUnlockModal"
-          >
-            <template #leading>
-              <FilePenLine :size="16" />
-            </template>
-            Tạo yêu cầu mở khóa
-          </GlassButton>
-          <p v-if="selectedUnlockRequest" class="hint-text">
-            Đã có yêu cầu {{ unlockStatusMeta(selectedUnlockRequest.status).label.toLowerCase() }} cho buổi này.
-          </p>
-        </div>
-      </GlassPanel>
-
-      <EmptyState
-        v-else
-        title="Chọn một buổi học"
-        description="Chi tiết điểm danh và yêu cầu mở khóa sẽ hiển thị ở đây."
-      />
     </section>
 
     <Teleport to="body">
+      <div v-if="isDetailModalOpen" class="modal-root" role="dialog" aria-modal="true">
+        <button
+          type="button"
+          class="modal-scrim"
+          aria-label="Đóng form chi tiết"
+          @click="closeDetailModal"
+        />
+
+        <GlassPanel v-if="selectedSession" variant="readable" density="comfortable" class="detail-modal">
+          <div class="modal-header">
+            <div>
+              <h2 class="clamp-2">{{ selectedSession.subject }}</h2>
+              <p>
+                {{ selectedSession.className }} · {{ formatDate(selectedSession.date) }} ·
+                {{ selectedSession.shift.label }} · {{ selectedSession.room }}
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <GlassBadge :variant="sessionStatusMeta(selectedSession.status).variant" size="md">
+                {{ sessionStatusMeta(selectedSession.status).label }}
+              </GlassBadge>
+              <button type="button" class="icon-button" aria-label="Đóng" @click="closeDetailModal">
+                <X :size="18" />
+              </button>
+            </div>
+          </div>
+
+          <div class="detail-stats">
+            <div
+              v-for="item in detailStats"
+              :key="item.label"
+              :class="['detail-stat', item.variant]"
+            >
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </div>
+          </div>
+
+          <div v-if="selectedSession.students?.length" class="detail-section">
+            <h3>
+              <Users :size="15" />
+              Danh sách sinh viên
+            </h3>
+            <TableShell density="compact" class="student-table-shell">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Mã SV</th>
+                    <th>Họ và tên</th>
+                    <th>Trạng thái</th>
+                    <th>Ghi chú</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="student in selectedSession.students" :key="student.id">
+                    <td>{{ student.id }}</td>
+                    <td>
+                      <div class="student-info">
+                        <span class="avatar">{{ student.name?.split(' ').pop()?.[0] || '?' }}</span>
+                        <span class="clamp-1">{{ student.name }}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <GlassBadge :variant="attendanceStatusMeta(student.status).variant">
+                        {{ attendanceStatusMeta(student.status).label }}
+                      </GlassBadge>
+                    </td>
+                    <td>
+                      <span class="muted-cell">{{ student.note || '-' }}</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </TableShell>
+          </div>
+
+          <div class="detail-section">
+            <h3>
+              <Clock3 :size="15" />
+              Nhật ký xử lý
+            </h3>
+            <div class="timeline">
+              <p>
+                <CheckCircle2 :size="14" />
+                Đã gửi điểm danh lúc {{ formatDateTime(selectedSession.submittedAt) }}
+              </p>
+              <p v-if="selectedSession.lockedAt">
+                <LockKeyhole :size="14" />
+                Đã khóa lúc {{ formatDateTime(selectedSession.lockedAt) }}
+              </p>
+              <p v-if="selectedUnlockRequest">
+                <UnlockKeyhole :size="14" />
+                Yêu cầu mở khóa: {{ unlockStatusMeta(selectedUnlockRequest.status).label }}
+              </p>
+            </div>
+          </div>
+
+          <div v-if="selectedSession.lockReason" class="lock-note">
+            <LockKeyhole :size="15" />
+            {{ selectedSession.lockReason }}
+          </div>
+
+          <div class="detail-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
+            <p v-if="selectedUnlockRequest" class="hint-text" style="margin-right: auto;">
+              Đã có yêu cầu {{ unlockStatusMeta(selectedUnlockRequest.status).label.toLowerCase() }} cho buổi này.
+            </p>
+            <GlassButton variant="secondary" @click="closeDetailModal">Đóng</GlassButton>
+            <GlassButton
+              variant="primary"
+              :disabled="!canCreateUnlockRequest"
+              @click="openUnlockModal"
+            >
+              <template #leading>
+                <FilePenLine :size="16" />
+              </template>
+              Tạo yêu cầu mở khóa
+            </GlassButton>
+          </div>
+        </GlassPanel>
+      </div>
+
       <div v-if="isUnlockModalOpen" class="modal-root" role="dialog" aria-modal="true">
         <button
           type="button"
@@ -812,14 +874,8 @@ p {
   align-items: start;
 }
 
-.history-table-panel,
-.detail-panel {
+.history-table-panel {
   min-width: 0;
-}
-
-.detail-panel {
-  display: grid;
-  gap: 0.875rem;
 }
 
 table {
@@ -993,19 +1049,14 @@ tbody td {
   gap: 0.625rem;
 }
 
-.mini-student-list {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.5rem;
+.student-table-shell {
+  margin-top: 0.5rem;
 }
 
-.mini-student {
-  min-height: 3.5rem;
-  gap: 0.625rem;
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-md);
-  background: var(--surface-input);
-  padding: 0.5rem;
+.student-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .avatar {
@@ -1074,6 +1125,17 @@ tbody td {
   box-shadow: var(--lg-shadow-lg);
 }
 
+.detail-modal {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: min(54rem, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  gap: 0.875rem;
+  box-shadow: var(--lg-shadow-lg);
+}
+
 .icon-button {
   display: inline-flex;
   width: 2.25rem;
@@ -1118,8 +1180,7 @@ tbody td {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .detail-stats,
-  .mini-student-list {
+  .detail-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1141,8 +1202,7 @@ tbody td {
 
   .summary-grid,
   .filter-grid,
-  .detail-stats,
-  .mini-student-list {
+  .detail-stats {
     grid-template-columns: 1fr;
   }
 
