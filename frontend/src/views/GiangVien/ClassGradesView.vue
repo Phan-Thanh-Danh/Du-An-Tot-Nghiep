@@ -16,9 +16,12 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import { useRoute, useRouter } from 'vue-router'
 import { teacherApi } from '@/services/teacherApi'
 
-const classId = 1 // Hardcoded for demo/smoke since route has no ID
+const route = useRoute()
+const router = useRouter()
+const classId = route.params.classId
 const gradesData = ref([])
 const loading = ref(false)
 
@@ -99,6 +102,9 @@ function gradeStatusLabel(total) {
       </div>
 
       <div class="header-actions">
+        <GlassButton variant="secondary" size="sm" @click="router.push('/teacher/grading-input')">
+          Quay lại danh sách
+        </GlassButton>
         <GlassButton variant="secondary" size="sm">
           <template #leading>
             <Download :size="16" />

@@ -354,7 +354,8 @@ const router = createRouter({
         { path: 'proctoring', name: 'teacher-proctoring', component: () => import('../views/GiangVien/ProctoringView.vue') },
 
         { path: 'attendance-history', name: 'teacher-attendance-history', component: () => import('../views/GiangVien/AttendanceHistoryView.vue') },
-        { path: 'grading-input', name: 'teacher-grading-input', component: () => import('../views/GiangVien/ClassGradesView.vue') },
+        { path: 'grading-input', name: 'teacher-grading-input', component: () => import('../views/GiangVien/GradingCourseListView.vue') },
+        { path: 'grading-input/:classId', name: 'teacher-grading-detail', component: () => import('../views/GiangVien/ClassGradesView.vue') },
         { path: 'student-questions', name: 'teacher-student-questions', component: () => import('../views/GiangVien/StudentQuestionsView.vue') },
         { path: 'lesson-comments', name: 'teacher-lesson-comments', component: () => import('../views/GiangVien/LessonCommentsView.vue') },
         { path: 'requests', name: 'teacher-requests', component: () => import('../views/GiangVien/PendingRequestsView.vue') , meta: { title: 'Đơn cần xử lý' } },
