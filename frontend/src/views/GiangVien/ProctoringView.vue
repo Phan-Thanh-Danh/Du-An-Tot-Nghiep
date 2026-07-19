@@ -319,7 +319,7 @@
       </section>
     </template>
 
-    <Teleport to="body">
+    <Teleport to="body" v-if="!isUnmounting">
       <div v-if="selectedStudent" class="student-modal-backdrop" @click.self="selectedStudent = null">
         <section class="student-modal surface-card border-card">
           <button type="button" class="modal-close" @click="selectedStudent = null">
@@ -372,7 +372,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, onUnmounted, ref } from 'vue'
 import {
   AlertCircle,
   AlertTriangle,
@@ -405,6 +405,7 @@ const liveViolations = ref([])
 const examStudents = ref([])
 let clockTimer = null
 let violationTimer = null
+const isUnmounting = ref(false)
 
 const violationLabelMap = {
   TAB_SWITCH: 'Rời tab',
@@ -506,9 +507,17 @@ onMounted(() => {
   violationTimer = window.setInterval(loadLiveViolations, 3000)
 })
 
+onBeforeUnmount(() => {
+  isUnmounting.value = true
+})
+
 onUnmounted(() => {
-  if (clockTimer) clearInterval(clockTimer)
-  if (violationTimer) clearInterval(violationTimer)
+  try {
+    if (clockTimer) window.clearInterval(clockTimer)
+    if (violationTimer) window.clearInterval(violationTimer)
+  } catch (e) {
+    console.error('Lỗi khi unmount ProctoringView:', e)
+  }
 })
 
 function updateTime() {

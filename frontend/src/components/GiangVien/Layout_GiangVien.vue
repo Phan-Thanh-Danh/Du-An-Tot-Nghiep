@@ -157,7 +157,9 @@ const currentPageMeta = computed(() => {
                 leave-to-class="opacity-0"
                 mode="out-in"
               >
-                <component :is="Component" :key="route.path" />
+                <div :key="route.path" class="w-full h-full">
+                  <component :is="Component" />
+                </div>
               </Transition>
             </router-view>
           </PageContainer>

@@ -450,7 +450,7 @@ function resetFilters() {
           </div>
         </div>
 
-        <div class="detail-section">
+        <div v-if="selectedSession.students?.length" class="detail-section">
           <h3>
             <Users :size="15" />
             Sinh viên nổi bật

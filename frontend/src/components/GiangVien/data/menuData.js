@@ -52,7 +52,6 @@ export const giangVienMenuGroups = [
     label: 'Thi cử',
     icon: 'ShieldCheck',
     children: [
-      { id: 'exams', label: 'Đề thi & Quiz', icon: 'FileCheck2', route: '/teacher/exams' },
       { id: 'exam-results', label: 'Kết quả bài thi', icon: 'Award', route: '/teacher/exam-results' },
       { id: 'proctoring', label: 'Canh thi', icon: 'Video', route: '/teacher/proctoring', badge: true },
     ],
