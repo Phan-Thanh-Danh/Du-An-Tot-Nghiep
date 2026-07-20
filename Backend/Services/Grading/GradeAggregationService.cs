@@ -86,7 +86,7 @@ public class GradeAggregationService : IGradeAggregationService
                 MaHocKy = termId,
                 TrangThai = "draft",
                 DaKhoa = false,
-                NamNhapHoc = DateTime.UtcNow.Year // fallback
+                NamNhapHoc = hocSinh?.NamNhapHoc ?? DateTime.UtcNow.Year
             };
             isNew = true;
         }

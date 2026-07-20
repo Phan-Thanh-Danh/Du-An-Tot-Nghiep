@@ -1129,6 +1129,10 @@ public class ExamService : IExamService
 
     // ===== Grading =====
 
+    // Lưu ý: Hàm này CHƯA đồng bộ DiemGiuaKy/DiemCuoiKy vào DiemSo, vì điểm ở bước
+    // này chỉ là tạm (trạng thái "da_cham_xong"), có thể còn bị điều chỉnh (chấm tự luận,
+    // phúc khảo) trước khi công bố chính thức. Việc đồng bộ CHỈ diễn ra ở PublishScoresAsync
+    // (khi TrangThaiCongBo chuyển sang "da_cong_bo") — xem SyncDiemThiToDiemSoAsync.
     public async Task FinalizeAutoGradeAsync(int maCaThi, CancellationToken ct)
     {
         var phienThis = await _db.PhienThiHocSinhs
@@ -1467,7 +1471,8 @@ public class ExamService : IExamService
                     MaMonHoc = info.MaMonHoc,
                     MaHocKy = info.MaHocKy,
                     TrangThai = "dang_hoc",
-                    DaKhoa = false
+                    DaKhoa = false,
+                    NamNhapHoc = hs.NamNhapHoc ?? DateTime.UtcNow.Year
                 };
                 _db.DiemSos.Add(diemSo);
             }
