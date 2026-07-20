@@ -10,6 +10,7 @@ using Backend.Services.Audit;
 using Backend.Services.QuizGrading;
 using Backend.Services.QuizRuntime;
 using Backend.Services.LearningProgress;
+using Backend.Services.Grading;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.QuizAttempts;
@@ -26,19 +27,22 @@ public class QuizAttemptService : IQuizAttemptService
     private readonly IQuizGradingService _gradingService;
     private readonly IAuditLogService _auditLogService;
     private readonly ILearningProgressSyncService _progressSyncService;
+    private readonly IGradeAggregationService _gradeAggregationService;
 
     public QuizAttemptService(
         ApplicationDbContext db,
         IQuizAvailabilityService availabilityService,
         IQuizGradingService gradingService,
         IAuditLogService auditLogService,
-        ILearningProgressSyncService progressSyncService)
+        ILearningProgressSyncService progressSyncService,
+        IGradeAggregationService gradeAggregationService)
     {
         _db = db;
         _availabilityService = availabilityService;
         _gradingService = gradingService;
         _auditLogService = auditLogService;
         _progressSyncService = progressSyncService;
+        _gradeAggregationService = gradeAggregationService;
     }
 
     public Task<QuizAvailabilityDto> GetAvailabilityAsync(int quizId, int studentId, CancellationToken ct)
@@ -219,6 +223,208 @@ public class QuizAttemptService : IQuizAttemptService
         };
     }
 
+    public Task<QuizAvailabilityDto> GetProgressTestAvailabilityAsync(int quizId, int studentId, CancellationToken ct)
+    {
+        return _availabilityService.GetAvailabilityAsync(quizId, studentId, ct);
+    }
+
+    public async Task<StartQuizAttemptResponse> StartProgressTestAsync(int quizId, int studentId, CancellationToken ct)
+    {
+        var strategy = _db.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+
+            var quiz = await _availabilityService.SynchronizeQuizStatusAsync(quizId, DateTime.UtcNow, ct);
+            await EnsureProgressTestAsync(quiz, ct);
+
+            var config = QuizConfigurationDto.Parse(quiz.CauHinhDeThi);
+            if (quiz.TrangThai != "dang_mo")
+            {
+                throw new ApiException(409, "Quiz chưa mở hoặc đã đóng");
+            }
+
+            var existingActive = await _db.PhienThiHocSinhs
+                .Where(x => x.MaDeKiemTra == quizId && x.MaHocSinh == studentId && x.MaCaThi == null && x.TrangThaiLuong == "dang_hoat_dong" && x.NopLuc == null)
+                .OrderByDescending(x => x.LanThu)
+                .FirstOrDefaultAsync(ct);
+
+            if (existingActive != null)
+            {
+                existingActive = await AutoSubmitIfExpiredAsync(existingActive, config, ct);
+                if (existingActive.TrangThaiLuong == "dang_hoat_dong")
+                {
+                    await transaction.CommitAsync(ct);
+                    return await BuildStartResponseAsync(existingActive.MaPhienThi, ct);
+                }
+            }
+
+            var completedCount = await _db.PhienThiHocSinhs
+                .CountAsync(x => x.MaDeKiemTra == quizId && x.MaHocSinh == studentId && x.MaCaThi == null && x.TrangThaiLuong == "da_dung", ct);
+
+            if (!config.KhongGioiHanSoLan && completedCount >= config.SoLanLamToiDa)
+            {
+                throw new ApiException(409, "Đã hết số lượt làm quiz");
+            }
+
+            var questions = await LoadQuestionsAsync(quizId, ct);
+            if (questions.Count == 0)
+            {
+                throw new ApiException(409, "Quiz chưa có câu hỏi");
+            }
+
+            var now = DateTime.UtcNow;
+            var attemptNumber = await _db.PhienThiHocSinhs
+                .Where(x => x.MaDeKiemTra == quizId && x.MaHocSinh == studentId && x.MaCaThi == null)
+                .Select(x => (int?)x.LanThu)
+                .MaxAsync(ct) ?? 0;
+
+            var dueAt = now.AddMinutes(quiz.ThoiGianPhut);
+            if (config.DongLuc.HasValue && config.DongLuc.Value < dueAt)
+            {
+                dueAt = config.DongLuc.Value;
+            }
+
+            var snapshot = BuildSnapshot(questions, config);
+            var attempt = new PhienThiHocSinh
+            {
+                MaDeKiemTra = quizId,
+                MaHocSinh = studentId,
+                MaCaThi = null,
+                LanThu = attemptNumber + 1,
+                BatDauLuc = now,
+                HanNopLuc = dueAt,
+                TrangThaiLuong = "dang_hoat_dong",
+                TrangThaiKyTen = "chua_ky",
+                TrangThaiCongBo = "chua_co_diem",
+                DeThiSnapshotJson = JsonSerializer.Serialize(snapshot, JsonOptions),
+                NgayCapNhat = now
+            };
+
+            _db.PhienThiHocSinhs.Add(attempt);
+            await _db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+
+            await _auditLogService.LogAsync(
+                "PhienThiHocSinh",
+                attempt.MaPhienThi.ToString(),
+                "START_PROGRESS_TEST_ATTEMPT",
+                null,
+                new { attempt.MaDeKiemTra, attempt.LanThu },
+                studentId,
+                null,
+                "Học sinh bắt đầu lượt làm Progress Test",
+                ct);
+
+            return await BuildStartResponseAsync(attempt.MaPhienThi, ct);
+        });
+    }
+
+    public async Task SaveProgressTestAnswersAsync(int attemptId, SaveQuizAnswersRequest request, int studentId, CancellationToken ct)
+    {
+        var attempt = await GetOwnedProgressTestAttemptAsync(attemptId, studentId, ct);
+        var quizId = attempt.MaDeKiemTra;
+        var config = QuizConfigurationDto.Parse(attempt.DeKiemTra!.CauHinhDeThi);
+        attempt = await AutoSubmitIfExpiredAsync(attempt, config, ct);
+        if (attempt.TrangThaiLuong != "dang_hoat_dong")
+        {
+            throw new ApiException(409, "Lượt làm đã kết thúc");
+        }
+
+        ValidateAnswers(request.Answers, quizId);
+        attempt.SaoLuuCucBo = JsonSerializer.Serialize(request, JsonOptions);
+        attempt.NgayCapNhat = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<QuizAttemptResultDto> SubmitProgressTestAsync(int attemptId, SubmitQuizAttemptRequest request, int studentId, CancellationToken ct)
+    {
+        var attempt = await GetOwnedProgressTestAttemptAsync(attemptId, studentId, ct);
+        var quizId = attempt.MaDeKiemTra;
+        var config = QuizConfigurationDto.Parse(attempt.DeKiemTra!.CauHinhDeThi);
+        attempt = await AutoSubmitIfExpiredAsync(attempt, config, ct);
+        if (attempt.TrangThaiLuong != "dang_hoat_dong")
+        {
+            return await BuildResultAsync(attempt, config, config.HienKetQuaSauKhiNop, config.HienDapAnDungSauKhiNop, ct);
+        }
+
+        ValidateAnswers(request.Answers, quizId);
+        await FinalizeAttemptAsync(attempt, request.Answers, config, DateTime.UtcNow, ct);
+        await _db.SaveChangesAsync(ct);
+
+        await _auditLogService.LogAsync(
+            "PhienThiHocSinh",
+            attempt.MaPhienThi.ToString(),
+            "SUBMIT_PROGRESS_TEST_ATTEMPT",
+            null,
+            new { attempt.MaDeKiemTra, attempt.LanThu, attempt.DiemTuDong, attempt.DiemCuoiCung, attempt.SoCauDung, attempt.KetQuaDat },
+            studentId,
+            null,
+            "Học sinh nộp bài Progress Test",
+            ct);
+
+        return await BuildResultAsync(attempt, config, config.HienKetQuaSauKhiNop, config.HienDapAnDungSauKhiNop, ct);
+    }
+
+    public async Task<QuizAttemptHistoryDto> GetProgressTestHistoryAsync(int quizId, int studentId, CancellationToken ct)
+    {
+        var quiz = await _db.DeKiemTras.FirstOrDefaultAsync(x => x.MaDeKiemTra == quizId, ct);
+        if (quiz == null)
+        {
+            throw new ApiException(404, "Không tìm thấy quiz");
+        }
+
+        await EnsureProgressTestAsync(quiz, ct);
+        var config = QuizConfigurationDto.Parse(quiz.CauHinhDeThi);
+        var attempts = await _db.PhienThiHocSinhs
+            .Where(x => x.MaDeKiemTra == quizId && x.MaHocSinh == studentId && x.MaCaThi == null)
+            .OrderBy(x => x.LanThu)
+            .ToListAsync(ct);
+
+        var completed = attempts.Where(x => x.TrangThaiLuong == "da_dung").ToList();
+        return new QuizAttemptHistoryDto
+        {
+            MaDeKiemTra = quizId,
+            LanLam = attempts.Select(x => new QuizAttemptHistoryItemDto
+            {
+                MaPhienThi = x.MaPhienThi,
+                LanThu = x.LanThu,
+                BatDauLuc = x.BatDauLuc,
+                NopLuc = x.NopLuc,
+                TrangThaiLuong = x.TrangThaiLuong,
+                DiemTuDong = x.DiemTuDong,
+                DiemCuoiCung = x.DiemCuoiCung,
+                SoCauDung = x.SoCauDung,
+                KetQuaDat = x.KetQuaDat
+            }).ToList(),
+            KetQuaCuoi = BuildFinalSummary(completed, config)
+        };
+    }
+
+    private async Task<PhienThiHocSinh> GetOwnedProgressTestAttemptAsync(int attemptId, int studentId, CancellationToken ct)
+    {
+        var attempt = await _db.PhienThiHocSinhs
+            .Include(x => x.DeKiemTra)
+            .FirstOrDefaultAsync(x => x.MaPhienThi == attemptId && x.MaHocSinh == studentId && x.MaCaThi == null, ct);
+
+        if (attempt == null)
+        {
+            throw new ApiException(404, "Không tìm thấy lượt làm quiz");
+        }
+
+        await EnsureProgressTestAsync(attempt.DeKiemTra!, ct);
+        return attempt;
+    }
+
+    private Task EnsureProgressTestAsync(DeKiemTra quiz, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(quiz.LoaiDeThi) || quiz.LoaiDeThi != "progress_test")
+        {
+            throw new ApiException(400, "Loại đề không phù hợp với Progress Test");
+        }
+        return Task.CompletedTask;
+    }
+
     private async Task<PhienThiHocSinh> GetOwnedLessonAttemptAsync(int attemptId, int studentId, CancellationToken ct)
     {
         var attempt = await _db.PhienThiHocSinhs
@@ -291,6 +497,13 @@ public class QuizAttemptService : IQuizAttemptService
         if (content != null)
         {
             await _progressSyncService.SyncQuizProgressAsync(attempt.MaHocSinh, content.MaNoiDung, attempt);
+        }
+
+        // Recompute Grade (Trigger)
+        var quiz = await _db.DeKiemTras.FirstOrDefaultAsync(x => x.MaDeKiemTra == attempt.MaDeKiemTra, ct);
+        if (quiz?.MaMonHoc != null && quiz?.MaHocKy != null)
+        {
+            await _gradeAggregationService.CalculateGradeAsync(attempt.MaHocSinh, quiz.MaMonHoc.Value, quiz.MaHocKy.Value, ct);
         }
     }
 

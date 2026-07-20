@@ -579,20 +579,41 @@ public class TeacherClassesController : ControllerBase
                     MaHocKy = hocKyId ?? 1,
                     DiemQuaTrinh = request.Assignment,
                     DiemCuoiKy = request.Exam,
-                    GpaMonHoc = ((request.Assignment ?? 0) * 0.4m) + ((request.Exam ?? 0) * 0.6m),
                     TrangThai = "draft",
                     DaKhoa = false
                 };
                 _context.DiemSos.Add(diem);
+                await _context.SaveChangesAsync();
             }
             else
             {
+                // Assign manual input first as fallback, CalculateGradeAsync will override if configs exist.
                 diem.DiemQuaTrinh = request.Assignment;
                 diem.DiemCuoiKy = request.Exam;
-                diem.GpaMonHoc = ((request.Assignment ?? 0) * 0.4m) + ((request.Exam ?? 0) * 0.6m);
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
+            var gradeService = HttpContext.RequestServices.GetService<Backend.Services.Grading.IGradeAggregationService>();
+            if (gradeService != null)
+            {
+                try 
+                {
+                    await gradeService.CalculateGradeAsync(studentId, monHocId, hocKyId ?? 1);
+                }
+                catch (Backend.Exceptions.ApiException ex)
+                {
+                    // If no config, fallback to manual GPA calculation
+                    if (ex.StatusCode == 400 && ex.Message.Contains("chưa cấu hình"))
+                    {
+                        diem.GpaMonHoc = ((request.Assignment ?? 0) * 0.4m) + ((request.Exam ?? 0) * 0.6m);
+                        await _context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+            }
 
             return Ok(ApiResponseDto<object>.Ok(new { message = "Cập nhật điểm thành công" }));
         }
