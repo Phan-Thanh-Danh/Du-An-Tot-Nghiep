@@ -1,7 +1,12 @@
+using System.Text.Json;
 using Backend.Data;
 using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
 using Backend.DTOs.Attendance;
+using Backend.DTOs.Grading;
+using Backend.DTOs.QuizManagement;
+using Backend.Models;
+using Backend.Services.Grading;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,10 +20,12 @@ namespace Backend.Controllers;
 public class TeacherClassesController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IGradeAggregationService _gradeService;
 
-    public TeacherClassesController(ApplicationDbContext context)
+    public TeacherClassesController(ApplicationDbContext context, IGradeAggregationService gradeService)
     {
         _context = context;
+        _gradeService = gradeService;
     }
 
     [HttpGet("classes")]
@@ -744,6 +751,426 @@ public class TeacherClassesController : ControllerBase
         {
             Console.WriteLine(ex);
             return StatusCode(500, ApiResponseDto.Fail("Lỗi khi xuất bảng điểm: " + ex.Message));
+        }
+    }
+
+    // ===== Phase 3: New Grading Board Endpoints (read-only + lock/unlock) =====
+
+    [HttpGet("classes/{id}/grades/v2")]
+    public async Task<ActionResult<ApiResponseDto<ClassGradesSummaryDto>>> GetClassGradesV2(int id, [FromQuery] int? courseId = null)
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            var userId = currentUser!.UserId;
+
+            // Resolve KhoaHoc: use courseId if provided, otherwise first match
+            KhoaHoc? khoahoc;
+            if (courseId.HasValue)
+            {
+                khoahoc = await _context.KhoaHocs
+                    .Include(k => k.MonHoc)
+                    .Include(k => k.Lop)
+                    .FirstOrDefaultAsync(k => k.MaKhoaHoc == courseId.Value && k.MaLop == id && k.MaGiaoVien == userId);
+            }
+            else
+            {
+                khoahoc = await _context.KhoaHocs
+                    .Include(k => k.MonHoc)
+                    .Include(k => k.Lop)
+                    .FirstOrDefaultAsync(k => k.MaLop == id && k.MaGiaoVien == userId);
+            }
+
+            if (khoahoc == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy môn học bạn dạy trong lớp này."));
+
+            var monHocId = khoahoc.MaMonHoc;
+            var hocKyId = khoahoc.MaHocKy;
+
+            if (!hocKyId.HasValue)
+                return BadRequest(ApiResponseDto.Fail("Khóa học chưa được gán học kỳ, không thể xem bảng điểm."));
+
+            // Load grade type configs dynamically
+            var configs = await _context.CauHinhDauDiemQuaTrinhs
+                .Include(x => x.LoaiDauDiem)
+                .Where(x => x.MaMonHoc == monHocId && x.MaHocKy == hocKyId.Value)
+                .OrderBy(x => x.LoaiDauDiem != null ? x.LoaiDauDiem.ThuTuHienThi : 0)
+                .ToListAsync();
+
+            var gradeColumns = configs.Select(c => new GradeTypeColumnDto
+            {
+                Code = c.LoaiDauDiem?.MaCode ?? "",
+                Name = c.LoaiDauDiem?.TenLoai ?? "",
+                Weight = c.TrongSoNoiBo,
+                ColumnCount = c.SoLuongCot
+            }).ToList();
+
+            // Load students
+            var students = await _context.NguoiDungs
+                .Where(n => n.MaLop == id && n.VaiTroChinh == "hoc_sinh")
+                .OrderBy(n => n.HoTen)
+                .Select(n => new { n.MaNguoiDung, n.HoTen })
+                .ToListAsync();
+
+            // Load all DiemSo records for this class/subject/term in one query
+            var studentIds = students.Select(s => s.MaNguoiDung).ToList();
+            var diemRecords = await _context.DiemSos
+                .Where(d => studentIds.Contains(d.MaHocSinh) && d.MaMonHoc == monHocId && d.MaHocKy == hocKyId.Value)
+                .ToListAsync();
+
+            var studentGrades = new List<StudentGradeSummaryDto>();
+
+            foreach (var student in students)
+            {
+                var diemRecord = diemRecords.FirstOrDefault(d => d.MaHocSinh == student.MaNguoiDung);
+
+                var typeGrades = new Dictionary<string, decimal?>();
+                foreach (var config in configs)
+                {
+                    var loaiCode = config.LoaiDauDiem?.MaCode ?? "";
+                    decimal? typeGrade = null;
+
+                    if (loaiCode == "chuyen_can")
+                    {
+                        typeGrade = await _gradeService.GetAttendanceGradeAsync(student.MaNguoiDung, monHocId, hocKyId.Value);
+                    }
+                    else if (loaiCode == "lab" || loaiCode == "assignment")
+                    {
+                        typeGrade = await _gradeService.GetAssignmentTypeGradeAsync(student.MaNguoiDung, monHocId, config);
+                    }
+                    else if (loaiCode == "quiz" || loaiCode == "progress_test")
+                    {
+                        typeGrade = await _gradeService.GetQuizTypeGradeAsync(student.MaNguoiDung, monHocId, hocKyId.Value, loaiCode, config);
+                    }
+
+                    typeGrades[loaiCode] = typeGrade.HasValue ? Math.Round(typeGrade.Value, 2) : null;
+                }
+
+                studentGrades.Add(new StudentGradeSummaryDto
+                {
+                    StudentId = student.MaNguoiDung,
+                    StudentName = student.HoTen,
+                    TypeGrades = typeGrades,
+                    DiemQuaTrinh = diemRecord?.DiemQuaTrinh,
+                    DiemGiuaKy = diemRecord?.DiemGiuaKy,
+                    DiemCuoiKy = diemRecord?.DiemCuoiKy,
+                    GpaMonHoc = diemRecord != null ? diemRecord.GpaMonHoc : null,
+                    TrangThai = diemRecord?.TrangThai != "draft" ? diemRecord?.TrangThai : null,
+                    DaKhoa = diemRecord?.DaKhoa ?? false
+                });
+            }
+
+            var result = new ClassGradesSummaryDto
+            {
+                ClassId = id,
+                ClassName = khoahoc.Lop?.TenLop ?? "",
+                CourseId = khoahoc.MaKhoaHoc,
+                SubjectName = khoahoc.MonHoc?.TenMonHoc ?? "",
+                GradeColumns = gradeColumns,
+                Students = studentGrades
+            };
+
+            return Ok(ApiResponseDto<ClassGradesSummaryDto>.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi tải bảng điểm tổng hợp: " + ex.Message));
+        }
+    }
+
+    [HttpGet("classes/{id}/grades/{studentId}/detail")]
+    public async Task<ActionResult<ApiResponseDto<StudentGradeDetailDto>>> GetStudentGradeDetail(int id, int studentId, [FromQuery] int? courseId = null)
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            var userId = currentUser!.UserId;
+
+            KhoaHoc? khoahoc;
+            if (courseId.HasValue)
+            {
+                khoahoc = await _context.KhoaHocs
+                    .Include(k => k.MonHoc)
+                    .FirstOrDefaultAsync(k => k.MaKhoaHoc == courseId.Value && k.MaLop == id && k.MaGiaoVien == userId);
+            }
+            else
+            {
+                khoahoc = await _context.KhoaHocs
+                    .Include(k => k.MonHoc)
+                    .FirstOrDefaultAsync(k => k.MaLop == id && k.MaGiaoVien == userId);
+            }
+
+            if (khoahoc == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy môn học bạn dạy trong lớp này."));
+
+            var monHocId = khoahoc.MaMonHoc;
+            var hocKyId = khoahoc.MaHocKy;
+
+            if (!hocKyId.HasValue)
+                return BadRequest(ApiResponseDto.Fail("Khóa học chưa được gán học kỳ."));
+
+            // Verify student belongs to this class
+            var student = await _context.NguoiDungs
+                .Where(n => n.MaNguoiDung == studentId && n.MaLop == id)
+                .Select(n => new { n.MaNguoiDung, n.HoTen })
+                .FirstOrDefaultAsync();
+
+            if (student == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy học sinh trong lớp này."));
+
+            var diemRecord = await _context.DiemSos
+                .FirstOrDefaultAsync(d => d.MaHocSinh == studentId && d.MaMonHoc == monHocId && d.MaHocKy == hocKyId.Value);
+
+            var configs = await _context.CauHinhDauDiemQuaTrinhs
+                .Include(x => x.LoaiDauDiem)
+                .Where(x => x.MaMonHoc == monHocId && x.MaHocKy == hocKyId.Value)
+                .OrderBy(x => x.LoaiDauDiem != null ? x.LoaiDauDiem.ThuTuHienThi : 0)
+                .ToListAsync();
+
+            var gradeTypes = new List<GradeTypeDetailDto>();
+
+            foreach (var config in configs)
+            {
+                var loaiCode = config.LoaiDauDiem?.MaCode ?? "";
+                var detail = new GradeTypeDetailDto
+                {
+                    Code = loaiCode,
+                    Name = config.LoaiDauDiem?.TenLoai ?? "",
+                    Weight = config.TrongSoNoiBo
+                };
+
+                if (loaiCode == "chuyen_can")
+                {
+                    detail.AverageGrade = await _gradeService.GetAttendanceGradeAsync(studentId, monHocId, hocKyId.Value);
+                    if (detail.AverageGrade.HasValue)
+                    {
+                        detail.AverageGrade = Math.Round(detail.AverageGrade.Value, 2);
+                    }
+                    // Attendance has no sub-items breakdown at assignment level
+                }
+                else if (loaiCode == "lab" || loaiCode == "assignment")
+                {
+                    detail.AverageGrade = await _gradeService.GetAssignmentTypeGradeAsync(studentId, monHocId, config);
+                    if (detail.AverageGrade.HasValue)
+                    {
+                        detail.AverageGrade = Math.Round(detail.AverageGrade.Value, 2);
+                    }
+
+                    // Get per-item breakdown
+                    var baiTaps = await _context.BaiTaps
+                        .Where(b => b.MaMonHoc == monHocId && b.MaCauHinhDauDiem == config.MaCauHinhDauDiem)
+                        .OrderBy(b => b.MaBaiTap)
+                        .Select(b => new { b.MaBaiTap, b.TieuDe })
+                        .ToListAsync();
+
+                    foreach (var bt in baiTaps)
+                    {
+                        // Latest submission per assignment
+                        var latestSub = await _context.BaiNops
+                            .Where(b => b.MaBaiTap == bt.MaBaiTap && b.MaHocSinh == studentId)
+                            .OrderByDescending(b => b.ThoiDiemNop)
+                            .Select(b => new { b.DiemSo })
+                            .FirstOrDefaultAsync();
+
+                        detail.Items.Add(new GradeItemDto
+                        {
+                            ItemId = bt.MaBaiTap,
+                            ItemName = bt.TieuDe,
+                            Grade = latestSub?.DiemSo // null = chưa nộp, 0 = có nộp nhưng 0 điểm
+                        });
+                    }
+                }
+                else if (loaiCode == "quiz" || loaiCode == "progress_test")
+                {
+                    detail.AverageGrade = await _gradeService.GetQuizTypeGradeAsync(studentId, monHocId, hocKyId.Value, loaiCode, config);
+                    if (detail.AverageGrade.HasValue)
+                    {
+                        detail.AverageGrade = Math.Round(detail.AverageGrade.Value, 2);
+                    }
+
+                    string expectedLoaiDeThi = loaiCode == "quiz" ? "quiz_bai_hoc" : "progress_test";
+                    var deKiemTras = await _context.DeKiemTras
+                        .Where(d => d.MaMonHoc == monHocId && d.MaHocKy == hocKyId.Value && d.LoaiDeThi == expectedLoaiDeThi)
+                        .OrderBy(d => d.MaDeKiemTra)
+                        .Select(d => new { d.MaDeKiemTra, d.TieuDe, d.CauHinhDeThi })
+                        .ToListAsync();
+
+                    foreach (var dk in deKiemTras)
+                    {
+                        var attempts = await _context.PhienThiHocSinhs
+                            .Where(x => x.MaDeKiemTra == dk.MaDeKiemTra && x.MaHocSinh == studentId && x.MaCaThi == null && x.TrangThaiLuong == "da_dung")
+                            .ToListAsync();
+
+                        var scoredAttempts = attempts.Where(x => x.DiemCuoiCung.HasValue || x.DiemTuDong.HasValue).ToList();
+
+                        decimal? testScore = null;
+                        if (scoredAttempts.Any())
+                        {
+                            var quizConfig = QuizConfigurationDto.Parse(dk.CauHinhDeThi);
+                            switch (quizConfig.CachTinhDiemCuoi)
+                            {
+                                case "lan_cuoi":
+                                    var last = scoredAttempts.OrderByDescending(x => x.LanThu).First();
+                                    testScore = last.DiemCuoiCung ?? last.DiemTuDong ?? 0;
+                                    break;
+                                case "trung_binh":
+                                    testScore = scoredAttempts.Average(x => x.DiemCuoiCung ?? x.DiemTuDong ?? 0);
+                                    break;
+                                default:
+                                    testScore = scoredAttempts.Max(x => x.DiemCuoiCung ?? x.DiemTuDong ?? 0);
+                                    break;
+                            }
+                        }
+
+                        detail.Items.Add(new GradeItemDto
+                        {
+                            ItemId = dk.MaDeKiemTra,
+                            ItemName = dk.TieuDe,
+                            Grade = testScore // null = chưa làm
+                        });
+                    }
+                }
+
+                gradeTypes.Add(detail);
+            }
+
+            var result = new StudentGradeDetailDto
+            {
+                StudentId = student.MaNguoiDung,
+                StudentName = student.HoTen,
+                GradeTypes = gradeTypes,
+                DiemQuaTrinh = diemRecord?.DiemQuaTrinh,
+                DiemGiuaKy = diemRecord?.DiemGiuaKy,
+                DiemCuoiKy = diemRecord?.DiemCuoiKy,
+                GpaMonHoc = diemRecord != null ? diemRecord.GpaMonHoc : null,
+                TrangThai = diemRecord?.TrangThai != "draft" ? diemRecord?.TrangThai : null,
+                DaKhoa = diemRecord?.DaKhoa ?? false
+            };
+
+            return Ok(ApiResponseDto<StudentGradeDetailDto>.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi tải chi tiết điểm: " + ex.Message));
+        }
+    }
+
+    [HttpPost("classes/{id}/grades/{studentId}/lock")]
+    public async Task<ActionResult<ApiResponseDto<object>>> LockStudentGrade(int id, int studentId)
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            var userId = currentUser!.UserId;
+
+            var khoahoc = await _context.KhoaHocs
+                .FirstOrDefaultAsync(k => k.MaLop == id && k.MaGiaoVien == userId);
+            if (khoahoc == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy môn học bạn dạy trong lớp này."));
+
+            var monHocId = khoahoc.MaMonHoc;
+            var hocKyId = khoahoc.MaHocKy;
+
+            if (!hocKyId.HasValue)
+                return BadRequest(ApiResponseDto.Fail("Khóa học chưa được gán học kỳ."));
+
+            var diemRecord = await _context.DiemSos
+                .FirstOrDefaultAsync(d => d.MaHocSinh == studentId && d.MaMonHoc == monHocId && d.MaHocKy == hocKyId.Value);
+
+            if (diemRecord == null)
+                return BadRequest(ApiResponseDto.Fail("Học sinh chưa có dữ liệu điểm. Cần tính điểm trước khi khoá."));
+
+            if (diemRecord.TrangThai == "draft" || string.IsNullOrEmpty(diemRecord.TrangThai))
+                return BadRequest(ApiResponseDto.Fail("Bảng điểm chưa được tính toán hoàn chỉnh (trạng thái draft). Cần chạy tính điểm trước khi khoá."));
+
+            if (diemRecord.DaKhoa)
+                return Conflict(ApiResponseDto.Fail("Bảng điểm đã được khoá trước đó."));
+
+            // Lock
+            diemRecord.DaKhoa = true;
+
+            // Audit log
+            var auditLog = new NhatKyThayDoiDiem
+            {
+                MaDiemSo = diemRecord.MaDiemSo,
+                NguoiThayDoi = userId,
+                GiaTriCu = JsonSerializer.Serialize(new { DaKhoa = false }),
+                GiaTriMoi = JsonSerializer.Serialize(new { DaKhoa = true }),
+                LyDo = "Giáo viên khoá bảng điểm",
+                ThayDoiLuc = DateTime.UtcNow
+            };
+            _context.NhatKyThayDoiDiems.Add(auditLog);
+
+            await _context.SaveChangesAsync();
+
+            return Ok(ApiResponseDto<object>.Ok(new { message = "Đã khoá bảng điểm thành công." }));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi khoá bảng điểm: " + ex.Message));
+        }
+    }
+
+    [HttpPost("classes/{id}/grades/{studentId}/unlock")]
+    public async Task<ActionResult<ApiResponseDto<object>>> UnlockStudentGrade(int id, int studentId, [FromBody] UnlockGradeRequest request)
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            var userId = currentUser!.UserId;
+
+            var khoahoc = await _context.KhoaHocs
+                .FirstOrDefaultAsync(k => k.MaLop == id && k.MaGiaoVien == userId);
+            if (khoahoc == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy môn học bạn dạy trong lớp này."));
+
+            var monHocId = khoahoc.MaMonHoc;
+            var hocKyId = khoahoc.MaHocKy;
+
+            if (!hocKyId.HasValue)
+                return BadRequest(ApiResponseDto.Fail("Khóa học chưa được gán học kỳ."));
+
+            var diemRecord = await _context.DiemSos
+                .FirstOrDefaultAsync(d => d.MaHocSinh == studentId && d.MaMonHoc == monHocId && d.MaHocKy == hocKyId.Value);
+
+            if (diemRecord == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy dữ liệu điểm của học sinh."));
+
+            if (!diemRecord.DaKhoa)
+                return BadRequest(ApiResponseDto.Fail("Bảng điểm chưa được khoá, không cần yêu cầu mở khoá."));
+
+            // Check for existing pending unlock request
+            var existingRequest = await _context.YeuCauSuaDiems
+                .AnyAsync(y => y.MaDiemSo == diemRecord.MaDiemSo && y.TrangThai == "cho_duyet" && y.LoaiYeuCau == "mo_khoa_bang_diem");
+
+            if (existingRequest)
+                return Conflict(ApiResponseDto.Fail("Đã có yêu cầu mở khoá đang chờ duyệt cho bảng điểm này."));
+
+            if (string.IsNullOrWhiteSpace(request.LyDo))
+                return BadRequest(ApiResponseDto.Fail("Vui lòng cung cấp lý do yêu cầu mở khoá."));
+
+            // Create YeuCauSuaDiem for approval
+            var yeuCau = new YeuCauSuaDiem
+            {
+                MaDiemSo = diemRecord.MaDiemSo,
+                NguoiYeuCau = userId,
+                LyDo = request.LyDo,
+                TrangThai = "cho_duyet",
+                LoaiYeuCau = "mo_khoa_bang_diem"
+            };
+            _context.YeuCauSuaDiems.Add(yeuCau);
+
+            await _context.SaveChangesAsync();
+
+            return Ok(ApiResponseDto<object>.Ok(new
+            {
+                message = "Đã gửi yêu cầu mở khoá bảng điểm. Vui lòng chờ duyệt.",
+                requestId = yeuCau.MaYcSuaDiem
+            }));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi gửi yêu cầu mở khoá: " + ex.Message));
         }
     }
 }
