@@ -5302,7 +5302,7 @@ public class ApplicationDbContext : DbContext
         // KyThi
         modelBuilder.Entity<KyThi>(entity =>
         {
-            entity.ToTable("KyThi", "dbo");
+            entity.ToTable("KyThi", "dbo", t => t.HasCheckConstraint("CK_KyThi_LoaiKyThi", "loai_ky_thi IN ('giua_ky', 'cuoi_ky')"));
             entity.HasKey(e => e.MaKyThi).HasName("PK_KyThi");
             entity.Property(e => e.MaKyThi)
                 .HasColumnName("ma_ky_thi");
@@ -5312,6 +5312,11 @@ public class ApplicationDbContext : DbContext
                 .IsRequired();
             entity.Property(e => e.MaHocKy)
                 .HasColumnName("ma_hoc_ky");
+            entity.Property(e => e.LoaiKyThi)
+                .HasColumnName("loai_ky_thi")
+                .HasMaxLength(20)
+                .IsRequired()
+                .HasDefaultValue("cuoi_ky");
             entity.Property(e => e.TrangThai)
                 .HasColumnName("trang_thai")
                 .HasMaxLength(30)

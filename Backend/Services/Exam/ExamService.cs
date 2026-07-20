@@ -55,6 +55,7 @@ public class ExamService : IExamService
                 TenKyThi = k.TenKyThi,
                 MaHocKy = k.MaHocKy,
                 TenHocKy = k.HocKy != null ? k.HocKy.TenHocKy : null,
+                LoaiKyThi = k.LoaiKyThi,
                 TrangThai = k.TrangThai,
                 NgayTao = k.NgayTao,
                 NgayCapNhat = k.NgayCapNhat,
@@ -85,6 +86,7 @@ public class ExamService : IExamService
             TenKyThi = k.TenKyThi,
             MaHocKy = k.MaHocKy,
             TenHocKy = k.HocKy?.TenHocKy,
+            LoaiKyThi = k.LoaiKyThi,
             TrangThai = k.TrangThai,
             NgayTao = k.NgayTao,
             NgayCapNhat = k.NgayCapNhat,
@@ -101,6 +103,7 @@ public class ExamService : IExamService
         {
             TenKyThi = request.TenKyThi,
             MaHocKy = request.MaHocKy,
+            LoaiKyThi = request.LoaiKyThi,
             TrangThai = "nhap"
         };
 
@@ -119,6 +122,8 @@ public class ExamService : IExamService
             entity.TenKyThi = request.TenKyThi;
         if (!string.IsNullOrWhiteSpace(request.TrangThai))
             entity.TrangThai = request.TrangThai;
+        if (!string.IsNullOrWhiteSpace(request.LoaiKyThi))
+            entity.LoaiKyThi = request.LoaiKyThi;
 
         entity.NgayCapNhat = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
@@ -1170,6 +1175,9 @@ public class ExamService : IExamService
 
         await _db.SaveChangesAsync(ct);
 
+        // Sync DiemGiuaKy/DiemCuoiKy to DiemSo
+        await SyncDiemThiToDiemSoAsync(new[] { phienThi }, ct);
+
         // Recompute Grade (Trigger)
         var quiz = await _db.DeKiemTras.FirstOrDefaultAsync(x => x.MaDeKiemTra == phienThi.MaDeKiemTra, ct);
         if (quiz?.MaMonHoc != null && quiz?.MaHocKy != null)
@@ -1212,6 +1220,9 @@ public class ExamService : IExamService
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // Sync DiemGiuaKy/DiemCuoiKy to DiemSo
+        await SyncDiemThiToDiemSoAsync(phienThis, ct);
 
         // Recompute Grade (Trigger) for all students in published attempts
         var deKiemTraId = phienThis.FirstOrDefault()?.MaDeKiemTra;
@@ -1407,5 +1418,66 @@ public class ExamService : IExamService
             NguoiXacNhanKyTen = p.NguoiXacNhanKyTen,
             TrangThaiCongBo = p.TrangThaiCongBo
         };
+    }
+
+    private async Task SyncDiemThiToDiemSoAsync(IEnumerable<PhienThiHocSinh> phienThis, CancellationToken ct)
+    {
+        var phienThiIds = phienThis.Select(p => p.MaPhienThi).ToList();
+        if (!phienThiIds.Any()) return;
+
+        var examInfos = await _db.PhienThiHocSinhs
+            .Where(x => phienThiIds.Contains(x.MaPhienThi))
+            .Select(x => new
+            {
+                MaPhienThi = x.MaPhienThi,
+                MaHocSinh = x.MaHocSinh,
+                DiemCuoiCung = x.DiemCuoiCung,
+                MaMonHoc = x.CaThi.LichThiTong.MaMonHoc,
+                MaHocKy = x.CaThi.LichThiTong.KyThi.MaHocKy,
+                LoaiKyThi = x.CaThi.LichThiTong.KyThi.LoaiKyThi
+            })
+            .ToListAsync(ct);
+
+        foreach (var info in examInfos)
+        {
+            if (info.DiemCuoiCung == null) continue;
+
+            var diemSo = await _db.DiemSos
+                .FirstOrDefaultAsync(d => d.MaHocSinh == info.MaHocSinh &&
+                                          d.MaMonHoc == info.MaMonHoc &&
+                                          d.MaHocKy == info.MaHocKy, ct);
+
+            if (diemSo != null)
+            {
+                if (diemSo.DaKhoa)
+                {
+                    _logger.LogWarning("Bỏ qua đồng bộ điểm thi cho học sinh {MaHocSinh} vì bảng điểm đã bị khóa.", info.MaHocSinh);
+                    continue;
+                }
+            }
+            else
+            {
+                var hs = await _db.NguoiDungs.FindAsync(new object[] { info.MaHocSinh }, ct);
+                if (hs == null) continue;
+
+                diemSo = new DiemSo
+                {
+                    MaDonVi = hs.MaDonVi,
+                    MaHocSinh = info.MaHocSinh,
+                    MaMonHoc = info.MaMonHoc,
+                    MaHocKy = info.MaHocKy,
+                    TrangThai = "dang_hoc",
+                    DaKhoa = false
+                };
+                _db.DiemSos.Add(diemSo);
+            }
+
+            if (info.LoaiKyThi == "giua_ky")
+                diemSo.DiemGiuaKy = info.DiemCuoiCung;
+            else if (info.LoaiKyThi == "cuoi_ky")
+                diemSo.DiemCuoiKy = info.DiemCuoiCung;
+        }
+
+        await _db.SaveChangesAsync(ct);
     }
 }

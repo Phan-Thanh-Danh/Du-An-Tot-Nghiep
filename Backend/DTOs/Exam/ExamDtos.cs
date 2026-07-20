@@ -9,6 +9,7 @@ public class KyThiDto
     public string TenKyThi { get; set; } = string.Empty;
     public int MaHocKy { get; set; }
     public string? TenHocKy { get; set; }
+    public string LoaiKyThi { get; set; } = string.Empty;
     public string TrangThai { get; set; } = string.Empty;
     public DateTime NgayTao { get; set; }
     public DateTime? NgayCapNhat { get; set; }
@@ -23,6 +24,10 @@ public class CreateKyThiRequest
 
     [Required(ErrorMessage = "Mã học kỳ là bắt buộc.")]
     public int MaHocKy { get; set; }
+
+    [Required(ErrorMessage = "Loại kỳ thi là bắt buộc.")]
+    [RegularExpression("^(giua_ky|cuoi_ky)$", ErrorMessage = "Loại kỳ thi phải là 'giua_ky' hoặc 'cuoi_ky'.")]
+    public string LoaiKyThi { get; set; } = "cuoi_ky";
 }
 
 public class UpdateKyThiRequest
@@ -31,6 +36,9 @@ public class UpdateKyThiRequest
     public string? TenKyThi { get; set; }
 
     public string? TrangThai { get; set; }
+
+    [RegularExpression("^(giua_ky|cuoi_ky)$", ErrorMessage = "Loại kỳ thi phải là 'giua_ky' hoặc 'cuoi_ky'.")]
+    public string? LoaiKyThi { get; set; }
 }
 
 // ===== LichThiTong DTOs =====
