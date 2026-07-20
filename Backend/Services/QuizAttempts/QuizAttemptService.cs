@@ -28,6 +28,7 @@ public class QuizAttemptService : IQuizAttemptService
     private readonly IAuditLogService _auditLogService;
     private readonly ILearningProgressSyncService _progressSyncService;
     private readonly IGradeAggregationService _gradeAggregationService;
+    private readonly ILogger<QuizAttemptService> _logger;
 
     public QuizAttemptService(
         ApplicationDbContext db,
@@ -35,7 +36,8 @@ public class QuizAttemptService : IQuizAttemptService
         IQuizGradingService gradingService,
         IAuditLogService auditLogService,
         ILearningProgressSyncService progressSyncService,
-        IGradeAggregationService gradeAggregationService)
+        IGradeAggregationService gradeAggregationService,
+        ILogger<QuizAttemptService> logger)
     {
         _db = db;
         _availabilityService = availabilityService;
@@ -43,6 +45,7 @@ public class QuizAttemptService : IQuizAttemptService
         _auditLogService = auditLogService;
         _progressSyncService = progressSyncService;
         _gradeAggregationService = gradeAggregationService;
+        _logger = logger;
     }
 
     public Task<QuizAvailabilityDto> GetAvailabilityAsync(int quizId, int studentId, CancellationToken ct)
@@ -500,10 +503,17 @@ public class QuizAttemptService : IQuizAttemptService
         }
 
         // Recompute Grade (Trigger)
-        var quiz = await _db.DeKiemTras.FirstOrDefaultAsync(x => x.MaDeKiemTra == attempt.MaDeKiemTra, ct);
-        if (quiz?.MaMonHoc != null && quiz?.MaHocKy != null)
+        try
         {
-            await _gradeAggregationService.CalculateGradeAsync(attempt.MaHocSinh, quiz.MaMonHoc.Value, quiz.MaHocKy.Value, ct);
+            var quiz = await _db.DeKiemTras.FirstOrDefaultAsync(x => x.MaDeKiemTra == attempt.MaDeKiemTra, ct);
+            if (quiz?.MaMonHoc != null && quiz?.MaHocKy != null)
+            {
+                await _gradeAggregationService.CalculateGradeAsync(attempt.MaHocSinh, quiz.MaMonHoc.Value, quiz.MaHocKy.Value, ct);
+            }
+        }
+        catch (Backend.Exceptions.ApiException ex) when (ex.StatusCode == 400)
+        {
+            _logger.LogWarning("Không thể tính lại điểm sau khi nộp quiz (môn chưa cấu hình đầu điểm): {Message}", ex.Message);
         }
     }
 

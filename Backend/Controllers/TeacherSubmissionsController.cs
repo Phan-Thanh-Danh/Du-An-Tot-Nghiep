@@ -592,6 +592,7 @@ public class TeacherSubmissionsController : ControllerBase
 
         var submission = await _context.BaiNops
             .Include(b => b.BaiTap!).ThenInclude(bt => bt.MonHoc)
+            .Include(b => b.BaiTap!).ThenInclude(bt => bt.CauHinhDauDiem)
             .Include(b => b.HocSinh)
             .Where(b => b.BaiTap != null && teacherMonHocIds.Contains(b.BaiTap.MaMonHoc))
             .FirstOrDefaultAsync(b => b.MaBaiNop == id);
@@ -607,6 +608,28 @@ public class TeacherSubmissionsController : ControllerBase
         submission.DaCongBo = request.Publish ?? false;
 
         await _context.SaveChangesAsync();
+
+        // Recompute Grade (Trigger)
+        if (submission.BaiTap?.CauHinhDauDiem != null)
+        {
+            var gradeService = HttpContext.RequestServices.GetService<Backend.Services.Grading.IGradeAggregationService>();
+            var logger = HttpContext.RequestServices.GetService<ILogger<TeacherSubmissionsController>>();
+            
+            if (gradeService != null)
+            {
+                try
+                {
+                    await gradeService.CalculateGradeAsync(
+                        submission.MaHocSinh, 
+                        submission.BaiTap.MaMonHoc, 
+                        submission.BaiTap.CauHinhDauDiem.MaHocKy);
+                }
+                catch (Backend.Exceptions.ApiException ex) when (ex.StatusCode == 400)
+                {
+                    logger?.LogWarning("Không thể tính lại điểm sau khi chấm bài nộp (môn chưa cấu hình đầu điểm): {Message}", ex.Message);
+                }
+            }
+        }
 
         var dto = new TeacherSubmissionDto
         {

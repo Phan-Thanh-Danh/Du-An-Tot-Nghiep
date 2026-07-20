@@ -54,7 +54,7 @@ public class GradeAggregationService : IGradeAggregationService
             }
             else if (loaiCode == "quiz" || loaiCode == "progress_test")
             {
-                typeGrade = await CalculateQuizGradeAsync(studentId, subjectId, loaiCode, config, ct);
+                typeGrade = await CalculateQuizGradeAsync(studentId, subjectId, termId, loaiCode, config, ct);
             }
 
             processGradeSum += typeGrade * config.TrongSoNoiBo;
@@ -121,7 +121,7 @@ public class GradeAggregationService : IGradeAggregationService
         if (!khoahocs.Any()) return 0m;
 
         var totalSessions = await _db.BuoiHocs
-            .CountAsync(b => khoahocs.Contains(b.MaKhoaHoc) && b.TrangThaiBuoi != "huy", ct); // only count valid sessions? Default is all sessions of the course. Let's count all that are not cancelled.
+            .CountAsync(b => khoahocs.Contains(b.MaKhoaHoc) && b.TrangThaiBuoi == "da_dien_ra", ct); // only count sessions that have already occurred
 
         if (totalSessions == 0) return 0m;
 
@@ -162,13 +162,13 @@ public class GradeAggregationService : IGradeAggregationService
         return sumGrade / config.SoLuongCot;
     }
 
-    private async Task<decimal> CalculateQuizGradeAsync(int studentId, int subjectId, string loaiCode, CauHinhDauDiemQuaTrinh config, CancellationToken ct)
+    private async Task<decimal> CalculateQuizGradeAsync(int studentId, int subjectId, int termId, string loaiCode, CauHinhDauDiemQuaTrinh config, CancellationToken ct)
     {
         // LoaiDeThi for quiz is "quiz_bai_hoc", for progress_test is "progress_test"
         string expectedLoaiDeThi = loaiCode == "quiz" ? "quiz_bai_hoc" : "progress_test";
 
         var deKiemTras = await _db.DeKiemTras
-            .Where(d => d.MaMonHoc == subjectId && d.LoaiDeThi == expectedLoaiDeThi)
+            .Where(d => d.MaMonHoc == subjectId && d.MaHocKy == termId && d.LoaiDeThi == expectedLoaiDeThi)
             .Select(d => new { d.MaDeKiemTra, d.CauHinhDeThi })
             .ToListAsync(ct);
 
@@ -207,5 +207,17 @@ public class GradeAggregationService : IGradeAggregationService
         }
 
         return sumGrade / config.SoLuongCot;
+    }
+
+    public async Task CalculateFallbackGradeAsync(int studentId, int subjectId, int termId, decimal? manualAssignmentGrade, decimal? manualExamGrade, CancellationToken ct = default)
+    {
+        var diemRecord = await _db.DiemSos
+            .FirstOrDefaultAsync(x => x.MaHocSinh == studentId && x.MaMonHoc == subjectId && x.MaHocKy == termId, ct);
+
+        if (diemRecord != null)
+        {
+            diemRecord.GpaMonHoc = ((manualAssignmentGrade ?? 0) * 0.4m) + ((manualExamGrade ?? 0) * 0.6m);
+            await _db.SaveChangesAsync(ct);
+        }
     }
 }

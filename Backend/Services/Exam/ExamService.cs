@@ -13,11 +13,19 @@ public class ExamService : IExamService
 {
     private readonly ApplicationDbContext _db;
     private readonly IQuizGradingService _gradingService;
+    private readonly Backend.Services.Grading.IGradeAggregationService _gradeAggregationService;
+    private readonly ILogger<ExamService> _logger;
 
-    public ExamService(ApplicationDbContext db, IQuizGradingService gradingService)
+    public ExamService(
+        ApplicationDbContext db, 
+        IQuizGradingService gradingService,
+        Backend.Services.Grading.IGradeAggregationService gradeAggregationService,
+        ILogger<ExamService> logger)
     {
         _db = db;
         _gradingService = gradingService;
+        _gradeAggregationService = gradeAggregationService;
+        _logger = logger;
     }
 
     // ===== KyThi =====
@@ -1162,6 +1170,20 @@ public class ExamService : IExamService
 
         await _db.SaveChangesAsync(ct);
 
+        // Recompute Grade (Trigger)
+        var quiz = await _db.DeKiemTras.FirstOrDefaultAsync(x => x.MaDeKiemTra == phienThi.MaDeKiemTra, ct);
+        if (quiz?.MaMonHoc != null && quiz?.MaHocKy != null)
+        {
+            try
+            {
+                await _gradeAggregationService.CalculateGradeAsync(phienThi.MaHocSinh, quiz.MaMonHoc.Value, quiz.MaHocKy.Value, ct);
+            }
+            catch (ApiException ex) when (ex.StatusCode == 400)
+            {
+                _logger.LogWarning("Không thể tính lại điểm sau khi chấm tự luận (môn chưa cấu hình đầu điểm): {Message}", ex.Message);
+            }
+        }
+
         return MapToPhienThiDto(phienThi);
     }
 
@@ -1190,6 +1212,27 @@ public class ExamService : IExamService
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // Recompute Grade (Trigger) for all students in published attempts
+        var deKiemTraId = phienThis.FirstOrDefault()?.MaDeKiemTra;
+        if (deKiemTraId.HasValue)
+        {
+            var quiz = await _db.DeKiemTras.FirstOrDefaultAsync(x => x.MaDeKiemTra == deKiemTraId, ct);
+            if (quiz?.MaMonHoc != null && quiz?.MaHocKy != null)
+            {
+                foreach (var p in phienThis)
+                {
+                    try
+                    {
+                        await _gradeAggregationService.CalculateGradeAsync(p.MaHocSinh, quiz.MaMonHoc.Value, quiz.MaHocKy.Value, ct);
+                    }
+                    catch (ApiException ex) when (ex.StatusCode == 400)
+                    {
+                        _logger.LogWarning("Không thể tính lại điểm sau khi công bố điểm thi (môn chưa cấu hình đầu điểm): {Message}", ex.Message);
+                    }
+                }
+            }
+        }
     }
 
     // ===== Reports =====

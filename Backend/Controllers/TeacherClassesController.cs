@@ -605,8 +605,7 @@ public class TeacherClassesController : ControllerBase
                     // If no config, fallback to manual GPA calculation
                     if (ex.StatusCode == 400 && ex.Message.Contains("chưa cấu hình"))
                     {
-                        diem.GpaMonHoc = ((request.Assignment ?? 0) * 0.4m) + ((request.Exam ?? 0) * 0.6m);
-                        await _context.SaveChangesAsync();
+                        await gradeService.CalculateFallbackGradeAsync(studentId, monHocId, hocKyId ?? 1, request.Assignment, request.Exam);
                     }
                     else
                     {

@@ -31,15 +31,21 @@ public class AttendanceService : IAttendanceService
     private readonly ApplicationDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuditLogService _auditLogService;
+    private readonly Backend.Services.Grading.IGradeAggregationService _gradeAggregationService;
+    private readonly ILogger<AttendanceService> _logger;
 
     public AttendanceService(
         ApplicationDbContext context,
         IHttpContextAccessor httpContextAccessor,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        Backend.Services.Grading.IGradeAggregationService gradeAggregationService,
+        ILogger<AttendanceService> logger)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _auditLogService = auditLogService;
+        _gradeAggregationService = gradeAggregationService;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<AttendanceSessionDto>> GetTeacherTodayAsync(CancellationToken cancellationToken = default)
@@ -174,6 +180,19 @@ public class AttendanceService : IAttendanceService
             cancellationToken,
             "DiemDanh");
 
+        // Recompute Grade (Trigger)
+        if (queryResult.Course?.MaMonHoc != null && queryResult.Course?.MaHocKy != null)
+        {
+            try
+            {
+                await _gradeAggregationService.CalculateGradeAsync(studentId, queryResult.Course.MaMonHoc, queryResult.Course.MaHocKy.Value, cancellationToken);
+            }
+            catch (ApiException ex) when (ex.StatusCode == 400)
+            {
+                _logger.LogWarning("Không thể tính lại điểm sau khi cập nhật điểm danh cá nhân (môn chưa cấu hình đầu điểm): {Message}", ex.Message);
+            }
+        }
+
         return await GetAttendanceStudentDtoAsync(attendance.MaDiemDanh, cancellationToken);
     }
 
@@ -231,6 +250,22 @@ public class AttendanceService : IAttendanceService
             $"Cập nhật điểm danh hàng loạt {attendances.Count} sinh viên.",
             cancellationToken);
 
+        // Recompute Grade (Trigger)
+        if (queryResult.Course?.MaMonHoc != null && queryResult.Course?.MaHocKy != null)
+        {
+            foreach (var studentId in requestedStudentIds)
+            {
+                try
+                {
+                    await _gradeAggregationService.CalculateGradeAsync(studentId, queryResult.Course.MaMonHoc, queryResult.Course.MaHocKy.Value, cancellationToken);
+                }
+                catch (ApiException ex) when (ex.StatusCode == 400)
+                {
+                    _logger.LogWarning("Không thể tính lại điểm sau khi điểm danh hàng loạt (môn chưa cấu hình đầu điểm): {Message}", ex.Message);
+                }
+            }
+        }
+
         return await GetAttendanceDetailForCurrentUserAsync(session.MaBuoiHoc, cancellationToken);
     }
 
@@ -258,6 +293,27 @@ public class AttendanceService : IAttendanceService
             currentUser,
             "Gửi điểm danh buổi học.",
             cancellationToken);
+
+        // Recompute Grade (Trigger)
+        if (queryResult.Course?.MaMonHoc != null && queryResult.Course?.MaHocKy != null)
+        {
+            var studentIds = await _context.DiemDanhs
+                .Where(x => x.MaBuoiHoc == session.MaBuoiHoc)
+                .Select(x => x.MaHocSinh)
+                .ToListAsync(cancellationToken);
+
+            foreach (var studentId in studentIds)
+            {
+                try
+                {
+                    await _gradeAggregationService.CalculateGradeAsync(studentId, queryResult.Course.MaMonHoc, queryResult.Course.MaHocKy.Value, cancellationToken);
+                }
+                catch (ApiException ex) when (ex.StatusCode == 400)
+                {
+                    _logger.LogWarning("Không thể tính lại điểm sau khi gửi điểm danh buổi học (môn chưa cấu hình đầu điểm): {Message}", ex.Message);
+                }
+            }
+        }
 
         return await GetAttendanceDetailForCurrentUserAsync(session.MaBuoiHoc, cancellationToken);
     }
