@@ -13,7 +13,9 @@ import {
   Users,
   XCircle,
   Calendar,
-  ArrowLeft
+  ArrowLeft,
+  Eye,
+  X
 } from 'lucide-vue-next'
 
 import GlassBadge from '@/components/ui/GlassBadge.vue'
@@ -31,7 +33,40 @@ const selectedClassId = ref('')
 const selectedClassName = ref('')
 
 const gradebook = ref([])
+const gradeColumns = ref([])
 const loading = ref(false)
+
+// ── Detail modal ──
+const showDetailModal = ref(false)
+const detailLoading = ref(false)
+const detailData = ref(null)
+const detailStudentName = ref('')
+
+function formatGrade(value) {
+  if (value === null || value === undefined) return '—'
+  return Number(value).toFixed(2)
+}
+
+// ── Detail modal functions ──
+async function openDetail(sv) {
+  detailStudentName.value = sv.name
+  detailData.value = null
+  showDetailModal.value = true
+  detailLoading.value = true
+  try {
+    const res = await teacherApi.getStudentGradeDetail(selectedClassId.value, sv.id)
+    detailData.value = res?.data ?? res?.Data ?? res
+  } catch (error) {
+    console.error('Lỗi khi tải chi tiết điểm:', error)
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+function closeDetail() {
+  showDetailModal.value = false
+  detailData.value = null
+}
 
 const avgGPA = computed(() => {
   if (!gradebook.value.length) return 0
@@ -104,14 +139,21 @@ async function loadGrades() {
 
   loading.value = true
   try {
-    const res = await teacherApi.getTeacherClassGrades(classId)
-    const extracted = res?.data?.items ?? res?.items ?? res?.data?.data ?? res?.data ?? res?.Data ?? res
-    const items = Array.isArray(extracted) ? extracted : []
+    const res = await teacherApi.getClassGradesV2(classId)
+    const data = res?.data ?? res?.Data ?? res
+    gradeColumns.value = data?.gradeColumns ?? data?.GradeColumns ?? []
+    const items = data?.students ?? data?.Students ?? []
     gradebook.value = items.map(sv => ({
-      id: sv.id,
-      name: sv.name,
-      gpa: Number(sv.total || 0).toFixed(1),
-      status: Number(sv.total || 0) >= 5 ? 'Pass' : 'Fail',
+      id: sv.studentId,
+      name: sv.studentName,
+      typeGrades: sv.typeGrades,
+      diemQuaTrinh: sv.diemQuaTrinh,
+      diemGiuaKy: sv.diemGiuaKy,
+      diemCuoiKy: sv.diemCuoiKy,
+      gpa: Number(sv.gpaMonHoc || 0).toFixed(1),
+      status: sv.trangThai === 'Đạt' ? 'Pass' : 'Fail',
+      trangThai: sv.trangThai,
+      daKhoa: sv.daKhoa,
       credits: 3 // fixed for demo
     }))
   } catch (error) {
@@ -309,49 +351,65 @@ onMounted(loadGrades)
             <thead>
               <tr>
                 <th>Sinh viên</th>
-                <th>MSSV</th>
-                <th>Lớp</th>
-                <th>Tín chỉ</th>
-                <th>
+                <th v-for="col in gradeColumns" :key="col.code ?? col.Code">
                   <span class="sortable-label">
-                    GPA
+                    {{ col.name ?? col.Name }}
+                    <template v-if="(col.code ?? col.Code) !== 'chuyen_can'">(TB)</template>
+                    <ArrowUpDown :size="12" />
+                  </span>
+                </th>
+                <th>Điểm QT</th>
+                <th>Giữa kỳ</th>
+                <th>Cuối kỳ</th>
+                <th>
+                  <span class="sortable-label total-label">
+                    Tổng kết
                     <ArrowUpDown :size="12" />
                   </span>
                 </th>
                 <th>Trạng thái</th>
-                <th class="text-right">Ghi chú</th>
+                <th class="text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="sv in gradebook" :key="sv.id">
                 <td>
                   <div class="student-cell">
-                    <span class="student-avatar">{{ sv.name.split(' ').pop()[0] }}</span>
+                    <span class="student-avatar">{{ sv.name.split(' ').pop()[0] ?? '?' }}</span>
                     <span>
                       <strong>{{ sv.name }}</strong>
+                      <small>{{ sv.id }}</small>
                     </span>
                   </div>
                 </td>
-                <td class="student-code">{{ sv.id }}</td>
-                <td>
-                  <GlassBadge variant="primary">{{ selectedClassName }}</GlassBadge>
+                
+                <td v-for="col in gradeColumns" :key="(col.code ?? col.Code) + '-' + sv.id">
+                  <span class="grade-value">{{ formatGrade((sv.typeGrades ?? sv.TypeGrades)?.[col.code ?? col.Code]) }}</span>
                 </td>
-                <td class="credits-cell">{{ sv.credits }}</td>
+                
+                <td><span class="grade-value">{{ formatGrade(sv.diemQuaTrinh) }}</span></td>
+                <td><span class="grade-value">{{ formatGrade(sv.diemGiuaKy) }}</span></td>
+                <td><span class="grade-value">{{ formatGrade(sv.diemCuoiKy) }}</span></td>
+
                 <td>
-                  <span class="gpa-cell">
-                    <Award :size="15" />
-                    <strong :class="Number(sv.gpa) < 5 ? 'failed' : 'passed'">{{ sv.gpa }}</strong>
-                  </span>
+                  <strong :class="['total-score', sv.status === 'Fail' ? 'failed' : sv.status === 'Pass' ? 'passed' : '']">
+                    {{ sv.gpa }}
+                  </strong>
                 </td>
                 <td>
                   <GlassBadge :variant="statusVariant(sv.status)">
-                    <CheckCircle2 v-if="sv.status === 'Pass'" :size="11" />
-                    <XCircle v-else :size="11" />
                     {{ statusLabel(sv.status) }}
                   </GlassBadge>
                 </td>
-                <td class="note-cell">
-                  {{ sv.status === 'Pass' ? 'Đủ điều kiện hoàn thành' : 'Cần theo dõi học lại' }}
+                <td>
+                  <div class="row-actions" style="justify-content: flex-end;">
+                    <GlassButton variant="secondary" size="sm" @click="openDetail(sv)">
+                      <template #leading>
+                        <Eye :size="14" />
+                      </template>
+                      Xem chi tiết
+                    </GlassButton>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -359,6 +417,82 @@ onMounted(loadGrades)
         </TableShell>
       </GlassPanel>
     </template>
+    
+    <!-- ═══ MODAL: Xem chi tiết điểm ═══ -->
+    <Teleport to="body">
+      <div v-if="showDetailModal" class="modal-overlay" @click.self="closeDetail" @keydown.esc="closeDetail">
+        <GlassPanel variant="readable" density="comfortable" :clip="false" class="detail-modal">
+          <div class="detail-header">
+            <div>
+              <h2>Chi tiết điểm</h2>
+              <p>{{ detailStudentName }}</p>
+            </div>
+            <button class="lg-icon-button detail-close" @click="closeDetail" aria-label="Đóng">
+              <X :size="16" />
+            </button>
+          </div>
+
+          <div v-if="detailLoading" class="py-8 text-center text-muted">
+            Đang tải chi tiết điểm...
+          </div>
+
+          <template v-else-if="detailData">
+            <div class="detail-types-table-wrapper" style="overflow-x: auto; margin-bottom: 1.5rem; padding-bottom: 0.5rem;">
+              <TableShell density="compact" style="width: max-content; min-width: 100%;">
+                <table class="detail-table">
+                  <thead>
+                    <tr>
+                      <th class="sticky-col"></th>
+                      <template v-for="gt in (detailData.gradeTypes ?? detailData.GradeTypes ?? [])" :key="'th-' + (gt.code ?? gt.Code)">
+                        <th v-for="item in (gt.items ?? gt.Items ?? [])" :key="item.itemId ?? item.ItemId" class="text-center">
+                          {{ item.itemName ?? item.ItemName }}
+                        </th>
+                      </template>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="sticky-col"><strong>Điểm</strong></td>
+                      <template v-for="gt in (detailData.gradeTypes ?? detailData.GradeTypes ?? [])" :key="'td-' + (gt.code ?? gt.Code)">
+                        <td v-for="item in (gt.items ?? gt.Items ?? [])" :key="item.itemId ?? item.ItemId" class="text-center">
+                          <span :class="['detail-item-grade', (item.grade ?? item.Grade) === null ? 'no-data' : '']">
+                            {{ (item.grade ?? item.Grade) === null ? '—' : formatGrade(item.grade ?? item.Grade) }}
+                          </span>
+                        </td>
+                      </template>
+                    </tr>
+                  </tbody>
+                </table>
+              </TableShell>
+            </div>
+
+            <div class="detail-summary" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
+              <div class="detail-summary-row" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--surface-card); border-radius: 6px; border: 1px solid var(--border-card);">
+                <span>Điểm quá trình</span>
+                <strong>{{ formatGrade(detailData.diemQuaTrinh ?? detailData.DiemQuaTrinh) }}</strong>
+              </div>
+              <div class="detail-summary-row" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--surface-card); border-radius: 6px; border: 1px solid var(--border-card);">
+                <span>Giữa kỳ</span>
+                <strong>{{ formatGrade(detailData.diemGiuaKy ?? detailData.DiemGiuaKy) }}</strong>
+              </div>
+              <div class="detail-summary-row" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--surface-card); border-radius: 6px; border: 1px solid var(--border-card);">
+                <span>Cuối kỳ</span>
+                <strong>{{ formatGrade(detailData.diemCuoiKy ?? detailData.DiemCuoiKy) }}</strong>
+              </div>
+              <div class="detail-summary-row total" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--surface-elevated); border-radius: 6px; border: 1px solid var(--border-card); font-weight: 700; margin-top: 0.5rem;">
+                <span>Tổng kết (GPA)</span>
+                <strong :class="(detailData.trangThai ?? detailData.TrangThai) === 'Đạt' ? 'text-success' : 'text-danger'">
+                  {{ formatGrade(detailData.gpaMonHoc ?? detailData.GpaMonHoc) }}
+                </strong>
+              </div>
+            </div>
+          </template>
+          <div v-else class="py-8 text-center text-muted">
+            Không thể tải chi tiết điểm.
+          </div>
+        </GlassPanel>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -729,4 +863,66 @@ onMounted(loadGrades)
     text-align: left;
   }
 }
+.detail-types-table-wrapper {
+  border: 1px solid var(--border-card, #e2e8f0);
+  border-radius: 8px;
+  background-color: var(--surface-card, #ffffff);
+}
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.detail-table th, .detail-table td {
+  padding: 0.75rem 1rem;
+  border-right: 1px solid var(--border-card, #e2e8f0);
+  border-bottom: 1px solid var(--border-card, #e2e8f0);
+  white-space: nowrap;
+}
+.detail-table th.sticky-col, .detail-table td.sticky-col {
+  position: sticky;
+  left: 0;
+  background-color: var(--surface-card, #f8fafc);
+  z-index: 10;
+  border-right: 2px solid var(--border-card, #e2e8f0);
+}
+.detail-table thead th {
+  background-color: var(--surface-card, #f8fafc);
+  font-weight: 600;
+}
+.detail-modal {
+  width: 90vw;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+.detail-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+.detail-header p {
+  margin: 0.25rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.text-success { color: var(--color-success-text, #059669); }
+.text-danger { color: var(--color-danger-text, #dc2626); }
+.text-center { text-align: center; }
 </style>

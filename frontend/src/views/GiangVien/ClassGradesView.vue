@@ -261,7 +261,7 @@ function closeUnlockModal() {
               <th v-for="col in gradeColumns" :key="col.code ?? col.Code">
                 <span class="sortable-label">
                   {{ col.name ?? col.Name }}
-                  ({{ (col.weight ?? col.Weight).toFixed(0) }}%)
+                  <template v-if="(col.code ?? col.Code) !== 'chuyen_can'">(TB)</template>
                   <ArrowUpDown :size="12" />
                 </span>
               </th>
@@ -321,7 +321,7 @@ function closeUnlockModal() {
                     <template #leading>
                       <Eye :size="14" />
                     </template>
-                    Chi tiết
+                    Xem chi tiết
                   </GlassButton>
 
                   <!-- Đã khoá -->
@@ -407,39 +407,33 @@ function closeUnlockModal() {
           </div>
 
           <template v-else-if="detailData">
-            <div class="detail-types">
-              <GlassPanel
-                v-for="gt in (detailData.gradeTypes ?? detailData.GradeTypes ?? [])"
-                :key="gt.code ?? gt.Code"
-                variant="flat"
-                density="compact"
-                class="detail-type-card"
-              >
-                <div class="detail-type-header">
-                  <strong>{{ gt.name ?? gt.Name }}</strong>
-                  <div class="detail-type-meta">
-                    <GlassBadge variant="primary">
-                      Trọng số: {{ (gt.weight ?? gt.Weight).toFixed(0) }}%
-                    </GlassBadge>
-                    <GlassBadge :variant="(gt.averageGrade ?? gt.AverageGrade) != null ? 'success' : 'neutral'">
-                      TB: {{ formatGrade(gt.averageGrade ?? gt.AverageGrade) }}
-                    </GlassBadge>
-                  </div>
-                </div>
-                <div v-if="(gt.items ?? gt.Items ?? []).length > 0" class="detail-items">
-                  <div
-                    v-for="item in (gt.items ?? gt.Items)"
-                    :key="item.itemId ?? item.ItemId"
-                    class="detail-item"
-                  >
-                    <span class="detail-item-name">{{ item.itemName ?? item.ItemName }}</span>
-                    <span :class="['detail-item-grade', (item.grade ?? item.Grade) === null ? 'no-data' : '']">
-                      {{ formatGrade(item.grade ?? item.Grade) }}
-                    </span>
-                  </div>
-                </div>
-                <p v-else class="detail-no-items">Không có mục chi tiết cho loại điểm này.</p>
-              </GlassPanel>
+            <div class="detail-types-table-wrapper" style="overflow-x: auto; margin-bottom: 1.5rem; padding-bottom: 0.5rem;">
+              <TableShell density="compact" style="width: max-content; min-width: 100%;">
+                <table class="detail-table">
+                  <thead>
+                    <tr>
+                      <th class="sticky-col"></th>
+                      <template v-for="gt in (detailData.gradeTypes ?? detailData.GradeTypes ?? [])" :key="'th-' + (gt.code ?? gt.Code)">
+                        <th v-for="item in (gt.items ?? gt.Items ?? [])" :key="item.itemId ?? item.ItemId" class="text-center">
+                          {{ item.itemName ?? item.ItemName }}
+                        </th>
+                      </template>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="sticky-col"><strong>Điểm</strong></td>
+                      <template v-for="gt in (detailData.gradeTypes ?? detailData.GradeTypes ?? [])" :key="'td-' + (gt.code ?? gt.Code)">
+                        <td v-for="item in (gt.items ?? gt.Items ?? [])" :key="item.itemId ?? item.ItemId" class="text-center">
+                          <span :class="['detail-item-grade', (item.grade ?? item.Grade) === null ? 'no-data' : '']">
+                            {{ (item.grade ?? item.Grade) === null ? '—' : formatGrade(item.grade ?? item.Grade) }}
+                          </span>
+                        </td>
+                      </template>
+                    </tr>
+                  </tbody>
+                </table>
+              </TableShell>
             </div>
 
             <div class="detail-summary">
@@ -1142,5 +1136,32 @@ function closeUnlockModal() {
   .row-actions {
     justify-content: flex-start;
   }
+}
+.detail-types-table-wrapper {
+  margin-top: 1rem;
+  border: 1px solid var(--border-card, #e2e8f0);
+  border-radius: 8px;
+  background-color: var(--surface-card, #ffffff);
+}
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.detail-table th, .detail-table td {
+  padding: 0.75rem 1rem;
+  border-right: 1px solid var(--border-card, #e2e8f0);
+  border-bottom: 1px solid var(--border-card, #e2e8f0);
+  white-space: nowrap;
+}
+.detail-table th.sticky-col, .detail-table td.sticky-col {
+  position: sticky;
+  left: 0;
+  background-color: var(--surface-card, #f8fafc);
+  z-index: 10;
+  border-right: 2px solid var(--border-card, #e2e8f0);
+}
+.detail-table thead th {
+  background-color: var(--surface-card, #f8fafc);
+  font-weight: 600;
 }
 </style>

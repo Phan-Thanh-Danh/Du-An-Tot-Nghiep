@@ -855,7 +855,7 @@ public class TeacherClassesController : ControllerBase
                     DiemGiuaKy = diemRecord?.DiemGiuaKy,
                     DiemCuoiKy = diemRecord?.DiemCuoiKy,
                     GpaMonHoc = diemRecord != null ? diemRecord.GpaMonHoc : null,
-                    TrangThai = diemRecord?.TrangThai != "draft" ? diemRecord?.TrangThai : null,
+                    TrangThai = diemRecord?.TrangThai == "dat" ? "Đạt" : (diemRecord?.TrangThai == "rot" ? "Rớt" : (diemRecord?.TrangThai != "draft" ? diemRecord?.TrangThai : null)),
                     DaKhoa = diemRecord?.DaKhoa ?? false
                 });
             }

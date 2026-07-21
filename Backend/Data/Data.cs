@@ -105,6 +105,9 @@ public static class Data
             administrativeClasses
         );
 
+        // Seed GEN101 data for SD1904
+        await SeedGEN101DataAsync(context, terms, administrativeClasses);
+
         await context.SaveChangesAsync();
     }
 
@@ -2890,5 +2893,178 @@ public static class Data
             }
         }
         await context.SaveChangesAsync();
+    }
+    private static async Task SeedGEN101DataAsync(
+        ApplicationDbContext context,
+        IReadOnlyList<HocKy> terms,
+        IReadOnlyDictionary<string, LopHanhChinh> administrativeClasses)
+    {
+        var hk1_2026 = terms.FirstOrDefault(t => t.MaCodeHocKy == "HK1_2026");
+        if (hk1_2026 == null) return;
+
+        var sd1904 = administrativeClasses.GetValueOrDefault("SD1904");
+        if (sd1904 == null) return;
+
+        var gen101 = await context.DanhMucMonHocs.FirstOrDefaultAsync(m => m.MaCodeMonHoc == "GEN101");
+        if (gen101 == null) return;
+
+        // 1. CauHinhDiemMonHoc
+        var config = await context.CauHinhDiemMonHocs.FirstOrDefaultAsync(c => c.MaMonHoc == gen101.MaMonHoc && c.MaHocKy == hk1_2026.MaHocKy);
+        if (config == null)
+        {
+            config = new CauHinhDiemMonHoc
+            {
+                MaMonHoc = gen101.MaMonHoc,
+                MaHocKy = hk1_2026.MaHocKy,
+                TrongSoQuaTrinh = 60,
+                TrongSoGiuaKy = 0,
+                TrongSoCuoiKy = 40,
+                NguongDat = 5.5m
+            };
+            context.CauHinhDiemMonHocs.Add(config);
+            await context.SaveChangesAsync();
+        }
+
+        // 2. CauHinhDauDiemQuaTrinh
+        var ccConfig = await context.CauHinhDauDiemQuaTrinhs.FirstOrDefaultAsync(c => c.MaMonHoc == gen101.MaMonHoc && c.MaHocKy == hk1_2026.MaHocKy && c.LoaiDauDiem.MaCode == "chuyen_can");
+        if (ccConfig == null)
+        {
+            var ccType = await context.LoaiDauDiemQuaTrinhs.FirstOrDefaultAsync(l => l.MaCode == "chuyen_can");
+            if (ccType != null)
+            {
+                ccConfig = new CauHinhDauDiemQuaTrinh
+                {
+                    MaMonHoc = gen101.MaMonHoc,
+                    MaHocKy = hk1_2026.MaHocKy,
+                    MaLoaiDauDiem = ccType.MaLoaiDauDiem,
+                    TrongSoNoiBo = 30,
+                    SoLuongCot = 1
+                };
+                context.CauHinhDauDiemQuaTrinhs.Add(ccConfig);
+            }
+        }
+
+        var asConfig = await context.CauHinhDauDiemQuaTrinhs.FirstOrDefaultAsync(c => c.MaMonHoc == gen101.MaMonHoc && c.MaHocKy == hk1_2026.MaHocKy && c.LoaiDauDiem.MaCode == "assignment");
+        if (asConfig == null)
+        {
+            var asType = await context.LoaiDauDiemQuaTrinhs.FirstOrDefaultAsync(l => l.MaCode == "assignment");
+            if (asType != null)
+            {
+                asConfig = new CauHinhDauDiemQuaTrinh
+                {
+                    MaMonHoc = gen101.MaMonHoc,
+                    MaHocKy = hk1_2026.MaHocKy,
+                    MaLoaiDauDiem = asType.MaLoaiDauDiem,
+                    TrongSoNoiBo = 70,
+                    SoLuongCot = 5
+                };
+                context.CauHinhDauDiemQuaTrinhs.Add(asConfig);
+                await context.SaveChangesAsync(); // save to get ID for BaiTap
+            }
+        }
+
+        // 3. BaiTap
+        var currentBaiTaps = await context.BaiTaps.CountAsync(b => b.MaMonHoc == gen101.MaMonHoc);
+        if (currentBaiTaps == 0 && asConfig != null)
+        {
+            for (int i = 1; i <= 5; i++)
+            {
+                context.BaiTaps.Add(new BaiTap
+                {
+                    MaMonHoc = gen101.MaMonHoc,
+                    MaCauHinhDauDiem = asConfig.MaCauHinhDauDiem,
+                    TieuDe = $"Bài tập số {i}",
+                    MoTa = $"Mô tả bài tập số {i} cho GEN101",
+                    HanNop = DateTime.UtcNow.AddDays(7 * i),
+                    DinhDangChoPhep = "[]",
+                    TrangThai = "da_xuat_ban"
+                });
+            }
+            await context.SaveChangesAsync();
+        }
+
+        var baiTaps = await context.BaiTaps.Where(b => b.MaMonHoc == gen101.MaMonHoc).OrderBy(b => b.MaBaiTap).ToListAsync();
+
+        // 4. BaiNop
+        var students = await context.NguoiDungs.Where(n => n.MaLop == sd1904.MaLop && n.VaiTroChinh == AuthRoles.ToDatabaseCode(AuthRoles.Student)).ToListAsync();
+        if (students.Any() && baiTaps.Count == 5)
+        {
+            var hasBaiNops = await context.BaiNops.AnyAsync(b => baiTaps.Select(bt => bt.MaBaiTap).Contains(b.MaBaiTap));
+            if (!hasBaiNops)
+            {
+                var random = new Random(42);
+                for (int i = 0; i < students.Count; i++)
+                {
+                    var student = students[i];
+                    int assignmentsToSubmit = 5;
+
+                    if (i >= 10 && i < 20) assignmentsToSubmit = random.Next(3, 5); // 3-4 assignments
+                    else if (i >= 20 && i < 30) assignmentsToSubmit = 0; // No assignments
+
+                    for (int j = 0; j < assignmentsToSubmit; j++)
+                    {
+                        var bt = baiTaps[j];
+                        context.BaiNops.Add(new BaiNop
+                        {
+                            MaBaiTap = bt.MaBaiTap,
+                            MaHocSinh = student.MaNguoiDung,
+                            DiemSo = (decimal)(random.NextDouble() * 5 + 5), // Score between 5 and 10
+                            ThoiDiemNop = DateTime.UtcNow,
+                            SoLanNop = 1
+                        });
+                    }
+                }
+                await context.SaveChangesAsync();
+            }
+        }
+
+        // 5. DiemDanh
+        var kh = await context.KhoaHocs.FirstOrDefaultAsync(k => k.MaLop == sd1904.MaLop && k.MaMonHoc == gen101.MaMonHoc && k.MaHocKy == hk1_2026.MaHocKy);
+        if (kh != null && students.Any())
+        {
+            var buoiHocs = await context.BuoiHocs.Where(b => b.MaKhoaHoc == kh.MaKhoaHoc).ToListAsync();
+            if (buoiHocs.Count < 5)
+            {
+                for (int i = buoiHocs.Count + 1; i <= 5; i++)
+                {
+                    var buoiHoc = new BuoiHoc
+                    {
+                        MaKhoaHoc = kh.MaKhoaHoc,
+                        NgayHoc = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(i)),
+                        TrangThaiBuoi = "da_dien_ra",
+                        TrangThaiDiemDanh = "da_diem_danh"
+                    };
+                    context.BuoiHocs.Add(buoiHoc);
+                    buoiHocs.Add(buoiHoc);
+                }
+                await context.SaveChangesAsync();
+            }
+
+            var hasDiemDanh = await context.DiemDanhs.AnyAsync(d => buoiHocs.Select(b => b.MaBuoiHoc).Contains(d.MaBuoiHoc));
+            if (!hasDiemDanh)
+            {
+                var random = new Random(42);
+                foreach (var student in students)
+                {
+                    int i = students.IndexOf(student);
+                    foreach (var buoiHoc in buoiHocs)
+                    {
+                        string status = "co_mat";
+                        if (i >= 10 && i < 20 && random.NextDouble() > 0.8) status = "vang_mat";
+                        else if (i >= 20 && i < 30) status = "vang_mat";
+
+                        context.DiemDanhs.Add(new DiemDanh
+                        {
+                            MaBuoiHoc = buoiHoc.MaBuoiHoc,
+                            MaHocSinh = student.MaNguoiDung,
+                            TrangThai = status,
+                            GhiNhanLuc = DateTime.UtcNow,
+                            NguoiGhiNhan = 1
+                        });
+                    }
+                }
+                await context.SaveChangesAsync();
+            }
+        }
     }
 }
