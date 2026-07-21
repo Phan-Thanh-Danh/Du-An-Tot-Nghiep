@@ -29,8 +29,9 @@ const route = useRoute()
 const router = useRouter()
 
 const myClasses = ref([])
-const selectedClassId = ref('')
+const selectedCourseId = ref('')
 const selectedClassName = ref('')
+const selectedCourseName = ref('')
 
 const gradebook = ref([])
 const gradeColumns = ref([])
@@ -48,13 +49,41 @@ function formatGrade(value) {
 }
 
 // ── Detail modal functions ──
+const interleavedColumns = computed(() => {
+  if (!detailData.value) return []
+  const gts = detailData.value.gradeTypes ?? detailData.value.GradeTypes ?? []
+  
+  let maxItems = 0
+  gts.forEach(gt => {
+    const items = gt.items ?? gt.Items ?? []
+    if (items.length > maxItems) maxItems = items.length
+  })
+
+  const cols = []
+  for (let i = 0; i < maxItems; i++) {
+    gts.forEach(gt => {
+      const items = gt.items ?? gt.Items ?? []
+      if (i < items.length) {
+        cols.push({
+          gtCode: gt.code ?? gt.Code,
+          gtName: gt.name ?? gt.Name,
+          ...items[i]
+        })
+      }
+    })
+  }
+  return cols
+})
+
 async function openDetail(sv) {
   detailStudentName.value = sv.name
   detailData.value = null
   showDetailModal.value = true
   detailLoading.value = true
   try {
-    const res = await teacherApi.getStudentGradeDetail(selectedClassId.value, sv.id)
+    const cls = myClasses.value.find(c => String(c.maKhoaHoc) === String(selectedCourseId.value))
+    if (!cls) return
+    const res = await teacherApi.getStudentGradeDetail(cls.maLop, sv.id)
     detailData.value = res?.data ?? res?.Data ?? res
   } catch (error) {
     console.error('Lỗi khi tải chi tiết điểm:', error)
@@ -106,23 +135,23 @@ function statusLabel(status) {
 const getClassesList = async () => {
   loading.value = true
   try {
-    const classesRes = await teacherApi.getTeacherClasses()
-    const classesData = classesRes?.data?.data ?? classesRes?.data ?? classesRes?.Data ?? classesRes
+    const classesRes = await teacherApi.getClasses()
+    const classesData = classesRes?.data?.items ?? classesRes?.data ?? classesRes?.items ?? classesRes
     if (classesData && Array.isArray(classesData)) {
       myClasses.value = classesData
     }
   } catch (error) {
-    console.error("Lỗi tải danh sách lớp:", error)
+    console.error("Lỗi tải danh sách khóa học:", error)
   } finally {
     loading.value = false
   }
 }
 
 async function loadGrades() {
-  const classId = route.query.classId
+  const courseId = route.query.courseId
   
-  if (!classId) {
-    selectedClassId.value = ''
+  if (!courseId) {
+    selectedCourseId.value = ''
     gradebook.value = []
     if (myClasses.value.length === 0) {
       await getClassesList()
@@ -130,16 +159,18 @@ async function loadGrades() {
     return
   }
 
-  selectedClassId.value = classId
+  selectedCourseId.value = courseId
   if (myClasses.value.length === 0) {
     await getClassesList()
   }
-  const cls = myClasses.value.find(c => String(c.classId || c.id) === String(classId))
-  selectedClassName.value = cls ? cls.className : `Lớp ${classId}`
+  const cls = myClasses.value.find(c => String(c.maKhoaHoc) === String(courseId))
+  selectedClassName.value = cls ? cls.tenLop : `Lớp của khóa ${courseId}`
+  selectedCourseName.value = cls ? cls.tenMonHoc : `Khóa học ${courseId}`
 
   loading.value = true
   try {
-    const res = await teacherApi.getClassGradesV2(classId)
+    // Gọi API V2 với classId và courseId
+    const res = await teacherApi.getClassGradesV2(cls?.maLop || 0, courseId)
     const data = res?.data ?? res?.Data ?? res
     gradeColumns.value = data?.gradeColumns ?? data?.GradeColumns ?? []
     const items = data?.students ?? data?.Students ?? []
@@ -165,26 +196,29 @@ async function loadGrades() {
 }
 
 const goToGrades = (id) => {
-  router.push({ query: { ...route.query, classId: id } })
+  router.push({ query: { ...route.query, courseId: id } })
 }
 
 const goBack = () => {
   const q = { ...route.query }
-  delete q.classId
+  delete q.courseId
   router.push({ query: q })
 }
 
 const exporting = ref(false)
 const handleExport = async () => {
-  if (!selectedClassId.value) return
+  if (!selectedCourseId.value) return
   exporting.value = true
   try {
-    const blob = await teacherApi.exportClassGrades(selectedClassId.value)
+    // export API might still need classId, check if needed
+    const cls = myClasses.value.find(c => String(c.maKhoaHoc) === String(selectedCourseId.value))
+    if (!cls) return
+    const blob = await teacherApi.exportClassGrades(cls.maLop)
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     // Use the class name for the file name, replacing spaces with underscores
-    const safeName = (selectedClassName.value || `Lop_${selectedClassId.value}`).replace(/ /g, '_')
+    const safeName = (selectedCourseName.value || `KhoaHoc_${selectedCourseId.value}`).replace(/ /g, '_')
     a.download = `BangDiem_${safeName}.xlsx`
     document.body.appendChild(a)
     a.click()
@@ -198,7 +232,7 @@ const handleExport = async () => {
   }
 }
 
-watch(() => route.query.classId, () => {
+watch(() => route.query.courseId, () => {
   loadGrades()
 })
 
@@ -207,18 +241,18 @@ onMounted(loadGrades)
 
 <template>
   <div class="gradebook-page lg-page-enter">
-    <div v-if="loading && !route.query.classId && myClasses.length === 0">
+    <div v-if="loading && !route.query.courseId && myClasses.length === 0">
       <GlassPanel variant="flat" density="compact" class="loading-panel">
-        <p>Đang tải danh sách lớp...</p>
+        <p>Đang tải danh sách khóa học...</p>
       </GlassPanel>
     </div>
     
     <!-- CARD GRID VIEW (NO CLASS SELECTED) -->
-    <template v-else-if="!route.query.classId">
+    <template v-else-if="!route.query.courseId">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 class="text-xl font-bold text-heading tracking-tight">Sổ điểm lớp học</h1>
-          <p class="text-muted mt-1">Chọn lớp học để xem chi tiết kết quả học tập của sinh viên.</p>
+          <h1 class="text-xl font-bold text-heading tracking-tight">Quản lý điểm khóa học</h1>
+          <p class="text-muted mt-1">Chọn khóa học để xem chi tiết kết quả học tập của sinh viên.</p>
         </div>
       </div>
       
@@ -230,15 +264,14 @@ onMounted(loadGrades)
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <TeacherClassCard
           v-for="cls in myClasses"
-          :key="cls.classId || cls.id"
-          :title="cls.className"
-          :subtitle="cls.courseName || cls.subjectName || 'N/A'"
-          :semester="cls.semester || 'Học kỳ hiện tại'"
-          :studentsCount="cls.studentCount || cls.totalStudents"
+          :key="cls.maKhoaHoc"
+          :title="`${cls.tenMonHoc} - ${cls.tenLop}`"
+          :semester="cls.tenHocKy || 'Học kỳ hiện tại'"
+          :studentsCount="0"
         >
           <template #action>
             <button
-              @click="goToGrades(cls.classId || cls.id)"
+              @click="goToGrades(cls.maKhoaHoc)"
               class="w-full flex justify-center items-center gap-2 group-hover:bg-(--accent-primary) group-hover:text-inverse transition-all bg-slate-100 px-4 py-2 rounded-xl text-xs font-bold"
             >
               Xem sổ điểm
@@ -249,13 +282,13 @@ onMounted(loadGrades)
       </div>
     </template>
     
-    <!-- DETAIL GRADEBOOK VIEW -->
+    <!-- CLASS GRADEBOOK VIEW (CLASS SELECTED) -->
     <template v-else>
       <div class="flex items-center gap-2 mb-2">
         <GlassButton variant="secondary" size="sm" @click="goBack" class="!px-2">
           <template #leading><ArrowLeft :size="16" /></template>
         </GlassButton>
-        <span class="text-sm text-muted">Quay lại danh sách lớp</span>
+        <span class="text-sm text-muted">Quay lại danh sách khóa học</span>
       </div>
 
       <GlassPanel variant="flat" density="compact" class="page-header">
@@ -265,7 +298,7 @@ onMounted(loadGrades)
             {{ selectedClassName }}
           </div>
           <div>
-            <h1>Sổ điểm lớp</h1>
+            <h1>Sổ điểm khóa {{ selectedCourseName }}</h1>
             <p>Tổng hợp kết quả học tập và trạng thái hoàn thành môn học của {{ selectedClassName }}.</p>
           </div>
         </div>
@@ -437,29 +470,26 @@ onMounted(loadGrades)
           </div>
 
           <template v-else-if="detailData">
-            <div class="detail-types-table-wrapper" style="overflow-x: auto; margin-bottom: 1.5rem; padding-bottom: 0.5rem;">
-              <TableShell density="compact" style="width: max-content; min-width: 100%;">
+            <div class="detail-types-table-wrapper" style="overflow-x: auto; margin-bottom: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+              <TableShell density="comfortable" style="width: max-content; min-width: 100%;">
                 <table class="detail-table">
                   <thead>
                     <tr>
-                      <th class="sticky-col"></th>
-                      <template v-for="gt in (detailData.gradeTypes ?? detailData.GradeTypes ?? [])" :key="'th-' + (gt.code ?? gt.Code)">
-                        <th v-for="item in (gt.items ?? gt.Items ?? [])" :key="item.itemId ?? item.ItemId" class="text-center">
-                          {{ item.itemName ?? item.ItemName }}
-                        </th>
-                      </template>
+                      <th class="sticky-col">Đầu điểm</th>
+                      <th v-for="(col, index) in interleavedColumns" :key="'th-' + index" class="text-center">
+                        <div class="text-xs text-slate-500 font-medium mb-1">{{ col.gtName }}</div>
+                        <div class="font-bold text-slate-800">{{ col.itemName ?? col.ItemName }}</div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td class="sticky-col"><strong>Điểm</strong></td>
-                      <template v-for="gt in (detailData.gradeTypes ?? detailData.GradeTypes ?? [])" :key="'td-' + (gt.code ?? gt.Code)">
-                        <td v-for="item in (gt.items ?? gt.Items ?? [])" :key="item.itemId ?? item.ItemId" class="text-center">
-                          <span :class="['detail-item-grade', (item.grade ?? item.Grade) === null ? 'no-data' : '']">
-                            {{ (item.grade ?? item.Grade) === null ? '—' : formatGrade(item.grade ?? item.Grade) }}
-                          </span>
-                        </td>
-                      </template>
+                      <td class="sticky-col font-bold">Điểm số</td>
+                      <td v-for="(col, index) in interleavedColumns" :key="'td-' + index" class="text-center">
+                        <span :class="['detail-item-grade font-semibold text-[1.05rem]', (col.grade ?? col.Grade) === null ? 'text-slate-400' : 'text-slate-800']">
+                          {{ (col.grade ?? col.Grade) === null ? '—' : formatGrade(col.grade ?? col.Grade) }}
+                        </span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -873,7 +903,7 @@ onMounted(loadGrades)
   border-collapse: collapse;
 }
 .detail-table th, .detail-table td {
-  padding: 0.75rem 1rem;
+  padding: 1rem 1.25rem;
   border-right: 1px solid var(--border-card, #e2e8f0);
   border-bottom: 1px solid var(--border-card, #e2e8f0);
   white-space: nowrap;
@@ -884,22 +914,26 @@ onMounted(loadGrades)
   background-color: var(--surface-card, #f8fafc);
   z-index: 10;
   border-right: 2px solid var(--border-card, #e2e8f0);
+  box-shadow: 2px 0 5px rgba(0,0,0,0.02);
 }
 .detail-table thead th {
   background-color: var(--surface-card, #f8fafc);
   font-weight: 600;
+  border-bottom: 2px solid var(--border-card, #e2e8f0);
 }
 .detail-modal {
-  width: 90vw;
-  max-width: 800px;
+  width: 95vw;
+  max-width: 1000px;
   max-height: 90vh;
   overflow-y: auto;
+  border-radius: 16px;
+  padding: 2rem;
 }
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -909,7 +943,7 @@ onMounted(loadGrades)
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 .detail-header h2 {
   margin: 0;
