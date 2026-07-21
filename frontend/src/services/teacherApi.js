@@ -335,6 +335,31 @@ export const teacherApi = {
     return response.blob()
   },
 
+  // Phase 4: Grade V2 APIs (tổng hợp, chi tiết, khoá, mở khoá)
+  getClassGradesV2(classId, courseId) {
+    const query = courseId ? `?courseId=${courseId}` : ''
+    return apiRequest(`/api/teacher/classes/${classId}/grades/v2${query}`)
+  },
+
+  getStudentGradeDetail(classId, studentId, courseId) {
+    const query = courseId ? `?courseId=${courseId}` : ''
+    return apiRequest(`/api/teacher/classes/${classId}/grades/${studentId}/detail${query}`)
+  },
+
+  lockStudentGrade(classId, studentId) {
+    return apiRequest(`/api/teacher/classes/${classId}/grades/${studentId}/lock`, {
+      method: 'POST',
+    })
+  },
+
+  requestUnlockStudentGrade(classId, studentId, lyDo) {
+    return apiRequest(`/api/teacher/classes/${classId}/grades/${studentId}/unlock`, {
+      method: 'POST',
+      body: JSON.stringify({ lyDo }),
+    })
+  },
+
+
   updateTeacherClassGrade(classId, studentId, gradeData) {
     return apiRequest(`/api/teacher/classes/${classId}/grades/${studentId}`, {
       method: 'PUT',
