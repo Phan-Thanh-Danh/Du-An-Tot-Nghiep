@@ -1,6 +1,9 @@
+using System.Text.Json;
 using Backend.Constants;
 using Backend.Data;
+using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
+using Backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +12,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/bgh")]
-[Authorize(Roles = AuthRoles.Principal + "," + AuthRoles.SuperAdmin + "," + AuthRoles.Admin)]
+[Authorize(Roles = AuthRoles.Principal + "," + AuthRoles.SuperAdmin + "," + AuthRoles.Admin + "," + AuthRoles.AcademicStaff)]
 public class BghAcademicController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
@@ -283,6 +286,91 @@ public class BghAcademicController : ControllerBase
 
         return Ok(ApiResponseDto<List<ScheduleChangeDto>>.Ok(changes));
     }
+
+    // ===== Grade Unlock Request Approval =====
+
+    [HttpPost("grade-unlock-requests/{requestId}/approve")]
+    public async Task<ActionResult<ApiResponseDto<object>>> ApproveGradeUnlockRequest(int requestId)
+    {
+        var user = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        var userId = user!.UserId;
+
+        var yeuCau = await _db.YeuCauSuaDiems
+            .Include(y => y.DiemSo)
+            .FirstOrDefaultAsync(y => y.MaYcSuaDiem == requestId);
+
+        if (yeuCau == null)
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy yêu cầu mở khoá."));
+
+        if (yeuCau.LoaiYeuCau != "mo_khoa_bang_diem")
+            return BadRequest(ApiResponseDto.Fail("Yêu cầu này không phải loại mở khoá bảng điểm."));
+
+        if (yeuCau.TrangThai != "cho_duyet")
+            return Conflict(ApiResponseDto.Fail($"Yêu cầu đã được xử lý (trạng thái: {yeuCau.TrangThai})."));
+
+        // Approve the request
+        yeuCau.TrangThai = "da_duyet";
+        yeuCau.NguoiDuyet = userId;
+
+        // Unlock the grade record
+        if (yeuCau.DiemSo != null)
+        {
+            yeuCau.DiemSo.DaKhoa = false;
+
+            // Audit log
+            var auditLog = new NhatKyThayDoiDiem
+            {
+                MaDiemSo = yeuCau.MaDiemSo,
+                NguoiThayDoi = userId,
+                GiaTriCu = JsonSerializer.Serialize(new { DaKhoa = true }),
+                GiaTriMoi = JsonSerializer.Serialize(new { DaKhoa = false }),
+                LyDo = $"Duyệt yêu cầu mở khoá #{requestId}: {yeuCau.LyDo}",
+                NguoiDuyet = userId,
+                ThayDoiLuc = DateTime.UtcNow
+            };
+            _db.NhatKyThayDoiDiems.Add(auditLog);
+        }
+
+        await _db.SaveChangesAsync();
+
+        return Ok(ApiResponseDto<object>.Ok(new
+        {
+            message = "Đã duyệt yêu cầu mở khoá bảng điểm.",
+            requestId = yeuCau.MaYcSuaDiem,
+            diemSoId = yeuCau.MaDiemSo
+        }));
+    }
+
+    [HttpPost("grade-unlock-requests/{requestId}/reject")]
+    public async Task<ActionResult<ApiResponseDto<object>>> RejectGradeUnlockRequest(int requestId, [FromBody] RejectGradeUnlockRequest request)
+    {
+        var user = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        var userId = user!.UserId;
+
+        var yeuCau = await _db.YeuCauSuaDiems
+            .FirstOrDefaultAsync(y => y.MaYcSuaDiem == requestId);
+
+        if (yeuCau == null)
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy yêu cầu mở khoá."));
+
+        if (yeuCau.LoaiYeuCau != "mo_khoa_bang_diem")
+            return BadRequest(ApiResponseDto.Fail("Yêu cầu này không phải loại mở khoá bảng điểm."));
+
+        if (yeuCau.TrangThai != "cho_duyet")
+            return Conflict(ApiResponseDto.Fail($"Yêu cầu đã được xử lý (trạng thái: {yeuCau.TrangThai})."));
+
+        // Reject — do not change DaKhoa
+        yeuCau.TrangThai = "tu_choi";
+        yeuCau.NguoiDuyet = userId;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(ApiResponseDto<object>.Ok(new
+        {
+            message = "Đã từ chối yêu cầu mở khoá bảng điểm.",
+            requestId = yeuCau.MaYcSuaDiem
+        }));
+    }
 }
 
 // DTOs
@@ -380,4 +468,9 @@ public class ScheduleChangeDto
     public string TeacherName { get; set; } = "";
     public string SubstituteTeacherName { get; set; } = "";
     public DateTime UpdatedAt { get; set; }
+}
+
+public class RejectGradeUnlockRequest
+{
+    public string? LyDoTuChoi { get; set; }
 }

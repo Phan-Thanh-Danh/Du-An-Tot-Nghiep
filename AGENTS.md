@@ -153,6 +153,8 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `GET /api/bgh/academic/reports` (P15D)
   - `GET /api/bgh/academic/pass-fail` (P15D)
   - `GET /api/bgh/schedule/changes` (P15D)
+  - `POST /api/bgh/grade-unlock-requests/{requestId}/approve` (Phase 3)
+  - `POST /api/bgh/grade-unlock-requests/{requestId}/reject` (Phase 3)
 - Endpoint chưa có controller phải ghi `dự kiến`.
 - Không tự đổi request/response DTO mà không cập nhật contract.
 

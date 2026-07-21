@@ -832,15 +832,15 @@ public class TeacherClassesController : ControllerBase
 
                     if (loaiCode == "chuyen_can")
                     {
-                        typeGrade = await _gradeService.GetAttendanceGradeAsync(student.MaNguoiDung, monHocId, hocKyId.Value);
+                        typeGrade = await _gradeService.CalculateAttendanceGradeAsync(student.MaNguoiDung, monHocId, hocKyId.Value);
                     }
                     else if (loaiCode == "lab" || loaiCode == "assignment")
                     {
-                        typeGrade = await _gradeService.GetAssignmentTypeGradeAsync(student.MaNguoiDung, monHocId, config);
+                        typeGrade = await _gradeService.CalculateAssignmentGradeAsync(student.MaNguoiDung, monHocId, config);
                     }
                     else if (loaiCode == "quiz" || loaiCode == "progress_test")
                     {
-                        typeGrade = await _gradeService.GetQuizTypeGradeAsync(student.MaNguoiDung, monHocId, hocKyId.Value, loaiCode, config);
+                        typeGrade = await _gradeService.CalculateQuizGradeAsync(student.MaNguoiDung, monHocId, hocKyId.Value, loaiCode, config);
                     }
 
                     typeGrades[loaiCode] = typeGrade.HasValue ? Math.Round(typeGrade.Value, 2) : null;
@@ -941,7 +941,7 @@ public class TeacherClassesController : ControllerBase
 
                 if (loaiCode == "chuyen_can")
                 {
-                    detail.AverageGrade = await _gradeService.GetAttendanceGradeAsync(studentId, monHocId, hocKyId.Value);
+                    detail.AverageGrade = await _gradeService.CalculateAttendanceGradeAsync(studentId, monHocId, hocKyId.Value);
                     if (detail.AverageGrade.HasValue)
                     {
                         detail.AverageGrade = Math.Round(detail.AverageGrade.Value, 2);
@@ -950,7 +950,7 @@ public class TeacherClassesController : ControllerBase
                 }
                 else if (loaiCode == "lab" || loaiCode == "assignment")
                 {
-                    detail.AverageGrade = await _gradeService.GetAssignmentTypeGradeAsync(studentId, monHocId, config);
+                    detail.AverageGrade = await _gradeService.CalculateAssignmentGradeAsync(studentId, monHocId, config);
                     if (detail.AverageGrade.HasValue)
                     {
                         detail.AverageGrade = Math.Round(detail.AverageGrade.Value, 2);
@@ -982,7 +982,7 @@ public class TeacherClassesController : ControllerBase
                 }
                 else if (loaiCode == "quiz" || loaiCode == "progress_test")
                 {
-                    detail.AverageGrade = await _gradeService.GetQuizTypeGradeAsync(studentId, monHocId, hocKyId.Value, loaiCode, config);
+                    detail.AverageGrade = await _gradeService.CalculateQuizGradeAsync(studentId, monHocId, hocKyId.Value, loaiCode, config);
                     if (detail.AverageGrade.HasValue)
                     {
                         detail.AverageGrade = Math.Round(detail.AverageGrade.Value, 2);

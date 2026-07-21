@@ -46,15 +46,15 @@ public class GradeAggregationService : IGradeAggregationService
 
             if (loaiCode == "chuyen_can")
             {
-                typeGrade = await CalculateAttendanceGradeAsync(studentId, subjectId, termId, ct);
+                typeGrade = await CalculateAttendanceGradeAsync(studentId, subjectId, termId, ct) ?? 0m;
             }
             else if (loaiCode == "lab" || loaiCode == "assignment")
             {
-                typeGrade = await CalculateAssignmentGradeAsync(studentId, subjectId, config, ct);
+                typeGrade = await CalculateAssignmentGradeAsync(studentId, subjectId, config, ct) ?? 0m;
             }
             else if (loaiCode == "quiz" || loaiCode == "progress_test")
             {
-                typeGrade = await CalculateQuizGradeAsync(studentId, subjectId, termId, loaiCode, config, ct);
+                typeGrade = await CalculateQuizGradeAsync(studentId, subjectId, termId, loaiCode, config, ct) ?? 0m;
             }
 
             processGradeSum += typeGrade * config.TrongSoNoiBo;
@@ -110,7 +110,7 @@ public class GradeAggregationService : IGradeAggregationService
         await _db.SaveChangesAsync(ct);
     }
 
-    private async Task<decimal> CalculateAttendanceGradeAsync(int studentId, int subjectId, int termId, CancellationToken ct)
+    public async Task<decimal?> CalculateAttendanceGradeAsync(int studentId, int subjectId, int termId, CancellationToken ct = default)
     {
         // Công thức 3: Điểm Chuyên cần = 10 * (Số buổi có mặt / Tổng số buổi học của môn)
         var khoahocs = await _db.KhoaHocs
@@ -118,23 +118,22 @@ public class GradeAggregationService : IGradeAggregationService
             .Select(k => k.MaKhoaHoc)
             .ToListAsync(ct);
 
-        if (!khoahocs.Any()) return 0m;
+        if (!khoahocs.Any()) return null;
 
         var totalSessions = await _db.BuoiHocs
             .CountAsync(b => khoahocs.Contains(b.MaKhoaHoc) && b.TrangThaiBuoi == "da_dien_ra", ct); // only count sessions that have already occurred
 
-        if (totalSessions == 0) return 0m;
+        if (totalSessions == 0) return null;
 
         var presentCount = await _db.DiemDanhs
             .CountAsync(d => khoahocs.Contains(d.BuoiHoc!.MaKhoaHoc) 
                 && d.MaHocSinh == studentId 
                 && (d.TrangThai == "co_mat" || d.TrangThai == "di_muon"), ct);
 
-        decimal grade = 10m * presentCount / totalSessions;
-        return grade;
+        return 10m * presentCount / totalSessions;
     }
 
-    private async Task<decimal> CalculateAssignmentGradeAsync(int studentId, int subjectId, CauHinhDauDiemQuaTrinh config, CancellationToken ct)
+    public async Task<decimal?> CalculateAssignmentGradeAsync(int studentId, int subjectId, CauHinhDauDiemQuaTrinh config, CancellationToken ct = default)
     {
         // Công thức 2: Điểm(loại L) = SUM(điểm từng bài loại L, thiếu = 0) / SoLuongCot(loại L)
         var baiTaps = await _db.BaiTaps
@@ -142,7 +141,7 @@ public class GradeAggregationService : IGradeAggregationService
             .Select(b => b.MaBaiTap)
             .ToListAsync(ct);
 
-        if (!baiTaps.Any()) return 0m;
+        if (!baiTaps.Any() || config.SoLuongCot == 0) return null;
 
         var submissions = await _db.BaiNops
             .Where(b => baiTaps.Contains(b.MaBaiTap) && b.MaHocSinh == studentId)
@@ -162,7 +161,7 @@ public class GradeAggregationService : IGradeAggregationService
         return sumGrade / config.SoLuongCot;
     }
 
-    private async Task<decimal> CalculateQuizGradeAsync(int studentId, int subjectId, int termId, string loaiCode, CauHinhDauDiemQuaTrinh config, CancellationToken ct)
+    public async Task<decimal?> CalculateQuizGradeAsync(int studentId, int subjectId, int termId, string loaiCode, CauHinhDauDiemQuaTrinh config, CancellationToken ct = default)
     {
         // LoaiDeThi for quiz is "quiz_bai_hoc", for progress_test is "progress_test"
         string expectedLoaiDeThi = loaiCode == "quiz" ? "quiz_bai_hoc" : "progress_test";
@@ -172,7 +171,7 @@ public class GradeAggregationService : IGradeAggregationService
             .Select(d => new { d.MaDeKiemTra, d.CauHinhDeThi })
             .ToListAsync(ct);
 
-        if (!deKiemTras.Any()) return 0m;
+        if (!deKiemTras.Any() || config.SoLuongCot == 0) return null;
 
         decimal sumGrade = 0;
 
@@ -221,100 +220,4 @@ public class GradeAggregationService : IGradeAggregationService
         }
     }
 
-    // ===== Phase 3: Read-only methods for display =====
-
-    public async Task<decimal?> GetAttendanceGradeAsync(int studentId, int subjectId, int termId, CancellationToken ct = default)
-    {
-        var khoahocs = await _db.KhoaHocs
-            .Where(k => k.MaMonHoc == subjectId && k.MaHocKy == termId)
-            .Select(k => k.MaKhoaHoc)
-            .ToListAsync(ct);
-
-        if (!khoahocs.Any()) return null;
-
-        var totalSessions = await _db.BuoiHocs
-            .CountAsync(b => khoahocs.Contains(b.MaKhoaHoc) && b.TrangThaiBuoi == "da_dien_ra", ct);
-
-        if (totalSessions == 0) return null;
-
-        var presentCount = await _db.DiemDanhs
-            .CountAsync(d => khoahocs.Contains(d.BuoiHoc!.MaKhoaHoc)
-                && d.MaHocSinh == studentId
-                && (d.TrangThai == "co_mat" || d.TrangThai == "di_muon"), ct);
-
-        return 10m * presentCount / totalSessions;
-    }
-
-    public async Task<decimal?> GetAssignmentTypeGradeAsync(int studentId, int subjectId, CauHinhDauDiemQuaTrinh config, CancellationToken ct = default)
-    {
-        var baiTaps = await _db.BaiTaps
-            .Where(b => b.MaMonHoc == subjectId && b.MaCauHinhDauDiem == config.MaCauHinhDauDiem)
-            .Select(b => b.MaBaiTap)
-            .ToListAsync(ct);
-
-        if (!baiTaps.Any() || config.SoLuongCot == 0) return null;
-
-        var submissions = await _db.BaiNops
-            .Where(b => baiTaps.Contains(b.MaBaiTap) && b.MaHocSinh == studentId)
-            .GroupBy(b => b.MaBaiTap)
-            .Select(g => g.OrderByDescending(x => x.ThoiDiemNop).FirstOrDefault())
-            .ToListAsync(ct);
-
-        decimal sumGrade = 0;
-        foreach (var sub in submissions)
-        {
-            if (sub != null && sub.DiemSo.HasValue)
-            {
-                sumGrade += sub.DiemSo.Value;
-            }
-        }
-
-        return sumGrade / config.SoLuongCot;
-    }
-
-    public async Task<decimal?> GetQuizTypeGradeAsync(int studentId, int subjectId, int termId, string loaiCode, CauHinhDauDiemQuaTrinh config, CancellationToken ct = default)
-    {
-        string expectedLoaiDeThi = loaiCode == "quiz" ? "quiz_bai_hoc" : "progress_test";
-
-        var deKiemTras = await _db.DeKiemTras
-            .Where(d => d.MaMonHoc == subjectId && d.MaHocKy == termId && d.LoaiDeThi == expectedLoaiDeThi)
-            .Select(d => new { d.MaDeKiemTra, d.CauHinhDeThi })
-            .ToListAsync(ct);
-
-        if (!deKiemTras.Any() || config.SoLuongCot == 0) return null;
-
-        decimal sumGrade = 0;
-
-        foreach (var deKiemTra in deKiemTras)
-        {
-            var attempts = await _db.PhienThiHocSinhs
-                .Where(x => x.MaDeKiemTra == deKiemTra.MaDeKiemTra && x.MaHocSinh == studentId && x.MaCaThi == null && x.TrangThaiLuong == "da_dung")
-                .ToListAsync(ct);
-
-            var scoredAttempts = attempts.Where(x => x.DiemCuoiCung.HasValue || x.DiemTuDong.HasValue).ToList();
-            if (scoredAttempts.Any())
-            {
-                var quizConfig = QuizConfigurationDto.Parse(deKiemTra.CauHinhDeThi);
-                decimal testScore = 0;
-
-                switch (quizConfig.CachTinhDiemCuoi)
-                {
-                    case "lan_cuoi":
-                        var last = scoredAttempts.OrderByDescending(x => x.LanThu).First();
-                        testScore = last.DiemCuoiCung ?? last.DiemTuDong ?? 0;
-                        break;
-                    case "trung_binh":
-                        testScore = scoredAttempts.Average(x => x.DiemCuoiCung ?? x.DiemTuDong ?? 0);
-                        break;
-                    default:
-                        testScore = scoredAttempts.Max(x => x.DiemCuoiCung ?? x.DiemTuDong ?? 0);
-                        break;
-                }
-
-                sumGrade += testScore;
-            }
-        }
-
-        return sumGrade / config.SoLuongCot;
-    }
 }
