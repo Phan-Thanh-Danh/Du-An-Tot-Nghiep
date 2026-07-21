@@ -64,8 +64,8 @@ const filteredStudents = computed(() => {
 const gradeSummary = computed(() => {
   const all = students.value
   const withGrade = all.filter((s) => s.gpaMonHoc != null)
-  const passed = all.filter((s) => s.trangThai === 'dat').length
-  const failed = all.filter((s) => s.trangThai === 'rot').length
+  const passed = all.filter((s) => s.trangThai === 'Đạt').length
+  const failed = all.filter((s) => s.trangThai === 'Rớt').length
   const avg =
     withGrade.length > 0
       ? (withGrade.reduce((sum, s) => sum + Number(s.gpaMonHoc), 0) / withGrade.length).toFixed(1)
@@ -87,14 +87,14 @@ function formatGrade(value) {
 }
 
 function trangThaiLabel(trangThai) {
-  if (trangThai === 'dat') return 'Đạt'
-  if (trangThai === 'rot') return 'Rớt'
+  if (trangThai === 'Đạt') return 'Đạt'
+  if (trangThai === 'Rớt') return 'Rớt'
   return '—'
 }
 
 function trangThaiVariant(trangThai) {
-  if (trangThai === 'dat') return 'success'
-  if (trangThai === 'rot') return 'danger'
+  if (trangThai === 'Đạt') return 'success'
+  if (trangThai === 'Rớt') return 'danger'
   return 'neutral'
 }
 
@@ -261,7 +261,7 @@ function closeUnlockModal() {
               <th v-for="col in gradeColumns" :key="col.code ?? col.Code">
                 <span class="sortable-label">
                   {{ col.name ?? col.Name }}
-                  ({{ ((col.weight ?? col.Weight) * 100).toFixed(0) }}%)
+                  ({{ (col.weight ?? col.Weight).toFixed(0) }}%)
                   <ArrowUpDown :size="12" />
                 </span>
               </th>
@@ -302,7 +302,7 @@ function closeUnlockModal() {
                 <strong
                   :class="[
                     'total-score',
-                    (sv.trangThai ?? sv.TrangThai) === 'rot' ? 'failed' : (sv.trangThai ?? sv.TrangThai) === 'dat' ? 'passed' : '',
+                    (sv.trangThai ?? sv.TrangThai) === 'Rớt' ? 'failed' : (sv.trangThai ?? sv.TrangThai) === 'Đạt' ? 'passed' : '',
                   ]"
                 >
                   {{ formatGrade(sv.gpaMonHoc ?? sv.GpaMonHoc) }}
@@ -419,7 +419,7 @@ function closeUnlockModal() {
                   <strong>{{ gt.name ?? gt.Name }}</strong>
                   <div class="detail-type-meta">
                     <GlassBadge variant="primary">
-                      Trọng số: {{ ((gt.weight ?? gt.Weight) * 100).toFixed(0) }}%
+                      Trọng số: {{ (gt.weight ?? gt.Weight).toFixed(0) }}%
                     </GlassBadge>
                     <GlassBadge :variant="(gt.averageGrade ?? gt.AverageGrade) != null ? 'success' : 'neutral'">
                       TB: {{ formatGrade(gt.averageGrade ?? gt.AverageGrade) }}
