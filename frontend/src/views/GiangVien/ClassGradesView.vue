@@ -89,7 +89,7 @@ function formatGrade(value) {
 function trangThaiLabel(trangThai) {
   if (trangThai === 'Đạt') return 'Đạt'
   if (trangThai === 'Rớt') return 'Rớt'
-  return '—'
+  return 'Chưa có điểm'
 }
 
 function trangThaiVariant(trangThai) {

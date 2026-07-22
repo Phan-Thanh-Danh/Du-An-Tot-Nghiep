@@ -99,13 +99,14 @@ function closeDetail() {
 
 const avgGPA = computed(() => {
   if (!gradebook.value.length) return 0
-  const sum = gradebook.value.reduce((acc, sv) => acc + Number(sv.total || 0), 0)
+  const sum = gradebook.value.reduce((acc, sv) => acc + Number(sv.gpa || 0), 0)
   return (sum / gradebook.value.length).toFixed(2)
 })
 const passRate = computed(() => {
-  if (!gradebook.value.length) return 0
-  const passed = gradebook.value.filter((sv) => sv.status === 'Pass').length
-  return Math.round((passed / gradebook.value.length) * 100)
+  const gradedStudents = gradebook.value.filter(sv => sv.status !== 'Pending')
+  if (!gradedStudents.length) return 0
+  const passed = gradedStudents.filter((sv) => sv.status === 'Pass').length
+  return Math.round((passed / gradedStudents.length) * 100)
 })
 
 const summaryStats = computed(() => {
@@ -125,11 +126,15 @@ const summaryStats = computed(() => {
 })
 
 function statusVariant(status) {
-  return status === 'Pass' ? 'success' : 'danger'
+  if (status === 'Pass') return 'success'
+  if (status === 'Fail') return 'danger'
+  return 'neutral'
 }
 
 function statusLabel(status) {
-  return status === 'Pass' ? 'Đạt' : 'Rớt'
+  if (status === 'Pass') return 'Đạt'
+  if (status === 'Fail') return 'Rớt'
+  return 'Chưa có điểm'
 }
 
 const getClassesList = async () => {
@@ -181,8 +186,8 @@ async function loadGrades() {
       diemQuaTrinh: sv.diemQuaTrinh,
       diemGiuaKy: sv.diemGiuaKy,
       diemCuoiKy: sv.diemCuoiKy,
-      gpa: Number(sv.gpaMonHoc || 0).toFixed(1),
-      status: sv.trangThai === 'Đạt' ? 'Pass' : 'Fail',
+      gpa: sv.gpaMonHoc,
+      status: sv.trangThai === 'Đạt' ? 'Pass' : sv.trangThai === 'Rớt' ? 'Fail' : 'Pending',
       trangThai: sv.trangThai,
       daKhoa: sv.daKhoa,
       credits: 3 // fixed for demo
@@ -426,7 +431,7 @@ onMounted(loadGrades)
 
                 <td>
                   <strong :class="['total-score', sv.status === 'Fail' ? 'failed' : sv.status === 'Pass' ? 'passed' : '']">
-                    {{ sv.gpa }}
+                    {{ formatGrade(sv.gpa) }}
                   </strong>
                 </td>
                 <td>

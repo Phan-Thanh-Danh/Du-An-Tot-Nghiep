@@ -100,7 +100,7 @@ public class GradeAggregationService : IGradeAggregationService
         decimal gpa = (pt * subjectConfig.TrongSoQuaTrinh + gk * subjectConfig.TrongSoGiuaKy + ck * subjectConfig.TrongSoCuoiKy) / 100m;
         diemRecord.GpaMonHoc = Math.Round(gpa, 2);
 
-        diemRecord.TrangThai = diemRecord.GpaMonHoc >= subjectConfig.NguongDat ? "dat" : "rot";
+        diemRecord.TrangThai = diemRecord.GpaMonHoc >= subjectConfig.NguongDat ? "Đạt" : "Rớt";
 
         if (isNew)
         {
