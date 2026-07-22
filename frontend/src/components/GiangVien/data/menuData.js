@@ -65,7 +65,6 @@ export const giangVienMenuGroups = [
     children: [
 
       { id: 'attendance-history', label: 'Lịch sử điểm danh', icon: 'History', route: '/teacher/attendance-history' },
-      { id: 'grading-input', label: 'Nhập điểm', icon: 'Edit3', route: '/teacher/grading-input' },
     ],
   },
 
