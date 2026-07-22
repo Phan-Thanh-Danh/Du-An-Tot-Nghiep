@@ -1,5 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { teacherApi } from '@/services/teacherApi'
 import { usePopupStore } from '@/stores/popup'
 import {
   Briefcase,
@@ -22,20 +23,45 @@ const authStore = useAuthStore()
 const popupStore = usePopupStore()
 
 const user = ref({
-  name: 'TS. Nguyễn Minh Khoa',
-  email: 'khoa.nm@lms.edu.vn',
-  phone: '0901 234 567',
-  department: 'Khoa Công nghệ thông tin',
-  position: 'Giảng viên cấp cao',
-  joinDate: '15/01/2020',
-  address: 'Quận 7, TP. Hồ Chí Minh',
+  name: 'Giảng viên',
+  email: 'Chưa cập nhật',
+  phone: 'Chưa cập nhật',
+  department: 'Giảng viên',
+  position: 'Giảng viên',
+  joinDate: 'Chưa cập nhật',
+  address: 'Chưa cập nhật',
 })
 
-const teachingStats = computed(() => [
-  { label: 'Lớp đang dạy', value: 4, variant: 'primary' },
-  { label: 'Môn phụ trách', value: 3, variant: 'info' },
-  { label: 'Học kỳ', value: 'Spring', variant: 'neutral' },
-])
+const dashboardData = ref(null)
+
+onMounted(async () => {
+  const u = authStore.user || {}
+  user.value = {
+    name: authStore.displayName || 'Giảng viên',
+    email: u.email || u.Email || 'Chưa cập nhật',
+    phone: u.phone || u.Phone || u.phoneNumber || u.PhoneNumber || 'Chưa cập nhật',
+    department: 'Giảng viên',
+    position: 'Giảng viên',
+    joinDate: 'Chưa cập nhật',
+    address: u.address || u.Address || 'Chưa cập nhật',
+  }
+
+  try {
+    const res = await teacherApi.getDashboard()
+    dashboardData.value = res?.data ?? res?.Data ?? res
+  } catch (error) {
+    console.error('Lỗi khi tải thông tin giảng dạy:', error)
+  }
+})
+
+const teachingStats = computed(() => {
+  const data = dashboardData.value || {}
+  return [
+    { label: 'Lớp đang dạy', value: data.totalClasses ?? data.TotalClasses ?? 0, variant: 'primary' },
+    { label: 'Sinh viên', value: data.totalStudents ?? data.TotalStudents ?? 0, variant: 'info' },
+    { label: 'Cần chấm điểm', value: data.pendingGrading ?? data.PendingGrading ?? 0, variant: 'danger' },
+  ]
+})
 
 function handleUpdate() {
   popupStore.success('Đã cập nhật', 'Thông tin cá nhân đã được cập nhật thành công.')
@@ -132,7 +158,7 @@ function handleUpdate() {
                 <h2>Thông tin cá nhân</h2>
                 <p>Cập nhật dữ liệu liên hệ và hồ sơ công tác.</p>
               </div>
-              <GlassBadge variant="neutral" size="sm">Mã GV: GV-1024</GlassBadge>
+              <GlassBadge variant="neutral" size="sm">Mã GV: GV-{{ authStore.user?.userId || authStore.user?.UserId || authStore.user?.id || authStore.user?.Id || 'N/A' }}</GlassBadge>
             </div>
           </template>
 
