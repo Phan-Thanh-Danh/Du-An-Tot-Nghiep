@@ -266,7 +266,8 @@
           @click="openStudentModal(student)"
         >
           <div class="placeholder-screen">
-            <span>Màn hình thí nghiệm</span>
+            <video v-if="studentStreams[student.studentId]" :srcObject.prop="studentStreams[student.studentId]" autoplay playsinline muted></video>
+            <span v-else>Đang chờ màn hình...</span>
           </div>
           <div class="screen-card-body">
             <div>
@@ -305,7 +306,8 @@
             @click="openStudentModal(student)"
           >
             <div class="placeholder-screen compact">
-              <span>Màn hình thí nghiệm</span>
+              <video v-if="studentStreams[student.studentId]" :srcObject.prop="studentStreams[student.studentId]" autoplay playsinline muted></video>
+              <span v-else>Đã đóng màn hình</span>
             </div>
             <div>
               <strong>{{ student.studentCode }}</strong>
@@ -327,7 +329,8 @@
           </button>
           <div class="modal-screen">
             <div class="placeholder-screen large">
-              <span>Màn hình thí nghiệm</span>
+              <video v-if="studentStreams[selectedStudent.studentId]" :srcObject.prop="studentStreams[selectedStudent.studentId]" autoplay playsinline muted></video>
+              <span v-else>Đang chờ màn hình...</span>
             </div>
           </div>
           <aside class="modal-panel">
@@ -392,7 +395,11 @@ import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import { usePopupStore } from '@/stores/popup'
 import { teacherApi } from '@/services/teacherApi'
+import { examProctoringHub } from '@/services/examProctoringHub'
+import { createProctorPeerConnection } from '@/services/webrtcScreenShare'
+import { useAuthStore } from '@/stores/auth'
 
+const authStore = useAuthStore()
 const loading = ref(false)
 const error = ref('')
 const popupStore = usePopupStore()
@@ -403,6 +410,8 @@ const selectedStudent = ref(null)
 const soundEnabled = ref(true)
 const liveViolations = ref([])
 const examStudents = ref([])
+const studentStreams = ref({})
+const peerConnections = new Map()
 let clockTimer = null
 let violationTimer = null
 const isUnmounting = ref(false)
@@ -505,6 +514,7 @@ onMounted(() => {
   loadLiveViolations()
   clockTimer = window.setInterval(updateTime, 1000)
   violationTimer = window.setInterval(loadLiveViolations, 3000)
+  setupHubAndWebRTC()
 })
 
 onBeforeUnmount(() => {
@@ -515,10 +525,107 @@ onUnmounted(() => {
   try {
     if (clockTimer) window.clearInterval(clockTimer)
     if (violationTimer) window.clearInterval(violationTimer)
+    
+    // Stop all WebRTC tracks and close connections
+    for (const stream of Object.values(studentStreams.value)) {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop())
+      }
+    }
+    for (const pc of peerConnections.values()) {
+      pc.close()
+    }
+    peerConnections.clear()
+    studentStreams.value = {}
+
+    // Disconnect hub
+    examProctoringHub.disconnect()
   } catch (e) {
     console.error('Lỗi khi unmount ProctoringView:', e)
   }
 })
+
+async function setupHubAndWebRTC() {
+  try {
+    const token = authStore.token
+    if (!token) return
+
+    await examProctoringHub.connect(token)
+
+    examProctoringHub.eventHandlers.onReceiveOffer = async (dto) => {
+      const { maCaThi, maHocSinh, targetConnectionId, offer } = dto
+      if (maCaThi != currentSession.value?.id) return
+
+      let pc = peerConnections.get(maHocSinh)
+      if (!pc) {
+        pc = createProctorPeerConnection(
+          (candidate) => {
+            examProctoringHub.sendIceCandidate({
+              maCaThi,
+              maHocSinh,
+              targetConnectionId: dto.fromConnectionId,
+              candidate
+            })
+          },
+          (stream) => {
+            studentStreams.value[maHocSinh] = stream
+          }
+        )
+        peerConnections.set(maHocSinh, pc)
+      }
+
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(offer))
+        const answer = await pc.createAnswer()
+        await pc.setLocalDescription(answer)
+
+        examProctoringHub.sendAnswer({
+          maCaThi,
+          maHocSinh,
+          targetConnectionId: dto.fromConnectionId,
+          answer
+        })
+      } catch (err) {
+        console.error(`Error handling offer from student ${maHocSinh}:`, err)
+      }
+    }
+
+    examProctoringHub.eventHandlers.onReceiveIceCandidate = async (dto) => {
+      const { maHocSinh, candidate } = dto
+      const pc = peerConnections.get(maHocSinh)
+      if (pc && candidate) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate))
+        } catch (e) {
+          console.error(`Error adding ICE candidate from student ${maHocSinh}:`, e)
+        }
+      }
+    }
+    
+    examProctoringHub.eventHandlers.onStudentConnectionIdBroadcast = async (payload) => {
+      if (payload.maCaThi == currentSession.value?.id) {
+        await examProctoringHub.acknowledgeStudent(payload.connectionId)
+      }
+    }
+    
+    examProctoringHub.eventHandlers.onScreenShareStatusChanged = (payload) => {
+      if (payload.status === 'stopped' && studentStreams.value[payload.maHocSinh]) {
+         const stream = studentStreams.value[payload.maHocSinh]
+         stream.getTracks().forEach(track => track.stop())
+         delete studentStreams.value[payload.maHocSinh]
+         
+         const pc = peerConnections.get(payload.maHocSinh)
+         if (pc) {
+           pc.close()
+           peerConnections.delete(payload.maHocSinh)
+         }
+      }
+    }
+
+  } catch (e) {
+    console.error('Error setting up ExamProctoringHub', e)
+  }
+}
 
 function updateTime() {
   currentTime.value = new Date().toLocaleTimeString('vi-VN', {
@@ -572,6 +679,11 @@ async function openSession(session) {
   } catch {
     examStudents.value = []
   }
+  
+  if (examProctoringHub.isConnected) {
+    examProctoringHub.joinExamRoom(session.id).catch(console.error)
+  }
+
   if (session.status === 'monitoring') {
     viewState.value = 'dashboard'
   } else {
@@ -584,6 +696,10 @@ function goBack() {
   if (viewState.value === 'dashboard') {
     viewState.value = 'attendance'
     return
+  }
+
+  if (selectedSessionId.value && examProctoringHub.isConnected) {
+    examProctoringHub.leaveExamRoom(selectedSessionId.value).catch(console.error)
   }
 
   selectedSessionId.value = ''
@@ -599,23 +715,44 @@ function setAttendance(student, status) {
   }
 }
 
-function startMonitoring() {
+async function startMonitoring() {
   if (!currentSession.value || attendanceStats.value.present === 0) {
     popupStore.warning('Chưa thể bắt đầu', 'Cần điểm danh ít nhất 1 thí sinh có mặt.')
     return
   }
 
-  currentSession.value.status = 'monitoring'
-  presentStudents.value.forEach((student, index) => {
-    if (!['submitted', 'suspended'].includes(student.examStatus)) {
-      student.examStatus = index === presentStudents.value.length - 1 && presentStudents.value.length >= 3
-        ? 'submitted'
-        : 'in_progress'
+  try {
+    const attendancePayload = {
+      maCaThi: currentSession.value.id,
+      danhSachDiemDanh: currentStudents.value.map(s => {
+        let mappedStatus = 'cho_thi';
+        if (s.attendanceStatus === 'present') mappedStatus = 'co_mat';
+        if (s.attendanceStatus === 'absent') mappedStatus = 'vang_mat';
+        return {
+          maHocSinh: s.studentId || s.id,
+          trangThaiDiemDanh: mappedStatus,
+          ghiChu: ''
+        };
+      })
     }
-    student.streamStatus = student.examStatus === 'submitted' ? 'stopped' : index === 1 ? 'reconnecting' : 'streaming'
-  })
-  viewState.value = 'dashboard'
-  popupStore.success('Đã bắt đầu canh thi', `${presentStudents.value.length} thí sinh có mặt được đưa vào grid giám sát.`)
+    
+    await teacherApi.batchExamAttendance(attendancePayload)
+    await teacherApi.startExamSession(currentSession.value.id)
+
+    currentSession.value.status = 'monitoring'
+    presentStudents.value.forEach((student, index) => {
+      if (!['submitted', 'suspended'].includes(student.examStatus)) {
+        student.examStatus = index === presentStudents.value.length - 1 && presentStudents.value.length >= 3
+          ? 'submitted'
+          : 'in_progress'
+      }
+      student.streamStatus = student.examStatus === 'submitted' ? 'stopped' : index === 1 ? 'reconnecting' : 'streaming'
+    })
+    viewState.value = 'dashboard'
+    popupStore.success('Đã bắt đầu canh thi', `${presentStudents.value.length} thí sinh có mặt được đưa vào grid giám sát.`)
+  } catch (error) {
+    popupStore.error('Lỗi', 'Không thể bắt đầu ca thi: ' + (error?.response?.data?.message || error.message || 'Lỗi không xác định'))
+  }
 }
 
 async function finishSession() {

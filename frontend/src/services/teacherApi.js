@@ -141,6 +141,10 @@ export const teacherApi = {
     return apiRequest(`/api/exam/ca-thi/${id}`)
   },
 
+  startExamSession(id) {
+    return apiRequest(`/api/exam/ca-thi/${id}/start`, { method: 'POST' })
+  },
+
   async getExamStudents(examId) {
     const rawRes = await apiRequest(`/api/exam/ca-thi/${examId}/thi-sinh`)
     const res = unwrapApiData(rawRes)
@@ -154,6 +158,7 @@ export const teacherApi = {
       
       return {
         id: c.maThiSinhCaThi || c.maHocSinh,
+        studentId: c.maHocSinh,
         studentCode: (c.email || c.maHocSinh || '').toString().split('@')[0],
         name: c.tenHocSinh || 'Thí sinh',
         attendanceStatus: 'present', // Assume present for proctoring mockup if they are in the list
