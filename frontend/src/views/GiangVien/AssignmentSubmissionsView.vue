@@ -120,8 +120,8 @@ const downloadAll = async () => {
     a.href = url
     const courseName = selectedCourse.value.courseName ?? selectedCourse.value.CourseName ?? selectedCourse.value.tenMonHoc ?? 'KhoaHoc'
     const className = selectedCourse.value.className ?? selectedCourse.value.ClassName ?? selectedCourse.value.tenLop ?? 'Lop'
-    const safeCourseName = courseName.replace(/[\/\\:*?"<>|]/g, '').replace(/\s+/g, '_')
-    const safeClassName = className.replace(/[\/\\:*?"<>|]/g, '').replace(/\s+/g, '_')
+    const safeCourseName = courseName.replace(/[/\\:*?"<>|]/g, '').replace(/\s+/g, '_')
+    const safeClassName = className.replace(/[/\\:*?"<>|]/g, '').replace(/\s+/g, '_')
     a.download = `${safeCourseName}_${safeClassName}.zip`
     document.body.appendChild(a)
     a.click()

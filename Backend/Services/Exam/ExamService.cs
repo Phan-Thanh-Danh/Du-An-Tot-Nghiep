@@ -995,6 +995,13 @@ public class ExamService : IExamService
         if (thiSinh.TrangThaiDuThi == "khong_duoc_thi" || thiSinh.TrangThaiDuThi == "dinh_chi")
             throw new ApiException(403, "Sinh viên không đủ điều kiện dự thi.");
 
+        // Validate Environment Security
+        if (request.EnvCheckScore >= 70)
+            throw new ApiException(403, "Môi trường thi không đạt yêu cầu bảo mật. Vui lòng quét lại môi trường.");
+
+        // We can optionally check IsAgentActive here if needed, but let's assume EnvCheckScore incorporates it
+        // Or we can explicitly check if (request.EnvCheckScore > 30 && !request.IsAgentActive) etc.
+
         // Check if already has session
         var existingSession = await _db.PhienThiHocSinhs
             .Include(p => p.HocSinh)

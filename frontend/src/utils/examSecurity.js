@@ -11,32 +11,6 @@ const VM_KEYWORDS = [
   'vbox',
 ]
 
-const TRANSLATION_EXTENSION_SELECTORS = [
-  '#goog-gt-tt',
-  '.goog-te-banner-frame',
-  '#goog-te-banner',
-  'iframe[src*="translate.google"]',
-  '#immersive-translate-popup',
-  '[class*="immersive-translate"]',
-  '[id*="immersive-translate"]',
-  '[class*="deepl"]',
-  '[id*="deepl"]',
-]
-
-const AI_WRITING_EXTENSION_SELECTORS = [
-  '[data-gramm]',
-  'grammarly-extension',
-  '[class*="grammarly"]',
-  '[id*="grammarly"]',
-  '[class*="quillbot"]',
-  '[id*="quillbot"]',
-  '[class*="monica"]',
-  '[id*="monica"]',
-  '[class*="chatgpt"]',
-  '[id*="chatgpt"]',
-  '[class*="ai-assistant"]',
-  '[id*="ai-assistant"]',
-]
 
 export const PROCTORING_LIVE_VIOLATIONS_KEY = 'proctoring_live_violations'
 
@@ -239,120 +213,74 @@ export function detectHeadlessBrowser(webglInfo = getWebGLInfo()) {
   })
 }
 
-function findDomArtifacts(selectors) {
-  if (!hasBrowserApi()) return []
-
-  return selectors
-    .map((selector) => {
-      try {
-        const node = document.querySelector(selector)
-        return node ? { selector, tagName: node.tagName, id: node.id || '', className: String(node.className || '') } : null
-      } catch {
-        return null
-      }
-    })
-    .filter(Boolean)
-}
-
-export function detectForbiddenExtensions() {
-  const translationArtifacts = findDomArtifacts(TRANSLATION_EXTENSION_SELECTORS)
-  const aiWritingArtifacts = findDomArtifacts(AI_WRITING_EXTENSION_SELECTORS)
-  const artifacts = [...translationArtifacts, ...aiWritingArtifacts]
-
-  if (artifacts.length > 0) {
-    const category =
-      translationArtifacts.length > 0 && aiWritingArtifacts.length > 0
-        ? 'translation_ai'
-        : translationArtifacts.length > 0
-          ? 'translation'
-          : 'ai_writing'
-
+export async function detectExamGuardAgent() {
+  if (!hasBrowserApi()) {
     return makeCheck({
-      id: 'extensions_forbidden',
-      label: 'Extension dịch / AI / viết',
-      description: 'Quét DOM artifact của extension bị cấm',
-      status: 'fail',
-      risk: 70,
-      reason: 'Phát hiện tiện ích có thể hỗ trợ dịch/AI/viết. Vui lòng tắt extension rồi kiểm tra lại.',
-      icon: 'Puzzle',
-      details: { category, artifacts },
+      id: 'env_agent',
+      label: 'ExamGuard Agent',
+      description: 'Kiểm tra Agent hệ điều hành',
+      status: 'warning',
+      risk: 30,
+      reason: 'Không thể kiểm tra Agent trong ngữ cảnh hiện tại.',
+      icon: 'ShieldAlert',
     })
   }
 
-  return makeCheck({
-    id: 'extensions_forbidden',
-    label: 'Extension dịch / AI / viết',
-    description: 'Quét DOM artifact của extension bị cấm',
-    status: 'pass',
-    risk: 0,
-    reason: 'Không phát hiện tiện ích dịch, AI hoặc viết văn bản trong DOM.',
-    icon: 'Puzzle',
-    details: { artifacts: [] },
-  })
-}
+  try {
+    const response = await fetch('https://127.0.0.1:17892/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: 'preflight', apiBaseUrl: window.location.origin })
+    })
 
-export function detectAdblockLikeExtensions() {
-  return new Promise((resolve) => {
-    if (!hasBrowserApi() || !document.body) {
-      resolve(
-        makeCheck({
-          id: 'extensions_adblock',
-          label: 'Adblock / Privacy',
-          description: 'Kiểm tra bait element',
-          status: 'warning',
-          risk: 15,
-          reason: 'Không thể kiểm tra tiện ích chặn nội dung ở thời điểm này.',
-          icon: 'Puzzle',
-        }),
-      )
-      return
+    if (!response.ok) {
+      return makeCheck({
+        id: 'env_agent',
+        label: 'ExamGuard Agent',
+        description: 'Kiểm tra Agent hệ điều hành',
+        status: 'fail',
+        risk: 100,
+        reason: 'ExamGuard Agent trả về lỗi. Vui lòng kiểm tra lại.',
+        icon: 'ShieldAlert',
+      })
     }
 
-    const bait = document.createElement('div')
-    bait.className = 'adsbox ad-banner ad-unit pub_300x250'
-    bait.style.position = 'absolute'
-    bait.style.left = '-9999px'
-    bait.style.width = '300px'
-    bait.style.height = '250px'
-    bait.style.pointerEvents = 'none'
-    bait.setAttribute('aria-hidden', 'true')
-    document.body.appendChild(bait)
+    const data = await response.json()
 
-    window.setTimeout(() => {
-      const style = window.getComputedStyle(bait)
-      const hidden =
-        bait.offsetHeight === 0 ||
-        bait.offsetWidth === 0 ||
-        style.display === 'none' ||
-        style.visibility === 'hidden'
+    if (!data.safe) {
+      return makeCheck({
+        id: 'env_agent',
+        label: 'ExamGuard Agent',
+        description: 'Kiểm tra phần mềm cấm',
+        status: 'fail',
+        risk: 100,
+        reason: data.message || 'Phát hiện phần mềm bị cấm (Remote Desktop / Extension AI). Vui lòng tắt và thử lại.',
+        icon: 'ShieldAlert',
+        details: { detectedApps: data.detectedApps }
+      })
+    }
 
-      bait.remove()
+    return makeCheck({
+      id: 'env_agent',
+      label: 'ExamGuard Agent',
+      description: 'Kiểm tra Agent hệ điều hành',
+      status: 'pass',
+      risk: 0,
+      reason: 'Agent đang chạy và không phát hiện phần mềm bị cấm.',
+      icon: 'ShieldCheck',
+    })
 
-      resolve(
-        hidden
-          ? makeCheck({
-              id: 'extensions_adblock',
-              label: 'Adblock / Privacy',
-              description: 'Kiểm tra bait element',
-              status: 'warning',
-              risk: 25,
-              reason: 'Có tiện ích chặn nội dung có thể ảnh hưởng đến giám sát bài thi.',
-              icon: 'Puzzle',
-              details: { baitHidden: true },
-            })
-          : makeCheck({
-              id: 'extensions_adblock',
-              label: 'Adblock / Privacy',
-              description: 'Kiểm tra bait element',
-              status: 'pass',
-              risk: 0,
-              reason: 'Không phát hiện hành vi chặn nội dung qua bait element.',
-              icon: 'Puzzle',
-              details: { baitHidden: false },
-            }),
-      )
-    }, 120)
-  })
+  } catch {
+    return makeCheck({
+      id: 'env_agent',
+      label: 'ExamGuard Agent',
+      description: 'Kiểm tra Agent hệ điều hành',
+      status: 'fail',
+      risk: 100,
+      reason: 'Chưa khởi động ExamGuard Agent. Vui lòng tải về và chạy ứng dụng trước khi thi.',
+      icon: 'ShieldAlert',
+    })
+  }
 }
 
 function detectFullscreenSupport() {
@@ -393,8 +321,7 @@ export async function runPreflightSecurityChecks() {
     detectHeadlessBrowser(webglInfo),
     detectVirtualMachine(webglInfo),
     detectRemoteDesktop(webglInfo),
-    detectForbiddenExtensions(),
-    await detectAdblockLikeExtensions(),
+    await detectExamGuardAgent(),
     detectFullscreenSupport(),
     detectScreenShareSupport(),
   ]

@@ -26,7 +26,7 @@ import { requestScreenShare as webrtcRequestScreenShare, createStudentPeerConnec
 import {
   clearExamRuntimeStorage,
   createViolation,
-  detectForbiddenExtensions,
+  detectExamGuardAgent,
   loadViolationLog,
   saveViolationLog,
 } from '@/utils/examSecurity'
@@ -72,6 +72,7 @@ const timeLeftSeconds = ref(Number(exam.value.durationMinutes || 45) * 60)
 const fullscreenExitCount = ref(0)
 const tabSwitchCount = ref(0)
 const currentTimestamp = ref('')
+const isSuspended = ref(false)
 
 const browserCapabilities = ref({
   browserName: 'unknown',
@@ -336,10 +337,22 @@ function addViolation(type, severity, message, details = {}, options = {}) {
     examProctoringHub.sendViolationLog(caThiId, STUDENT_ID.value, type, message + (details ? ' - ' + JSON.stringify(details) : ''))
   } catch(e) { console.warn(e) }
   
+  // Gửi trực tiếp qua HTTP API (đảm bảo real-time)
+  try {
+    examApi.logViolation({
+      maCaThi: caThiId,
+      maHocSinh: STUDENT_ID.value,
+      loaiViPham: type,
+      mucDo: severity,
+      moTa: message + (details ? ' - ' + JSON.stringify(details) : '')
+    }).catch(() => {})
+  } catch(e) {}
+  
   return violation
 }
 
 function selectChoice(questionId, choiceId) {
+  if (isSuspended.value) return
   answers.value = {
     ...answers.value,
     [questionId]: choiceId,
@@ -347,6 +360,7 @@ function selectChoice(questionId, choiceId) {
 }
 
 function toggleMultiChoice(questionId, choiceId) {
+  if (isSuspended.value) return
   const currentArr = Array.isArray(answers.value[questionId]) ? answers.value[questionId] : []
   const nextArr = currentArr.includes(choiceId)
     ? currentArr.filter((item) => item !== choiceId)
@@ -359,6 +373,7 @@ function toggleMultiChoice(questionId, choiceId) {
 }
 
 function updateTextAnswer(questionId, value) {
+  if (isSuspended.value) return
   answers.value = {
     ...answers.value,
     [questionId]: value,
@@ -404,7 +419,27 @@ async function startExamEnvironment() {
     }
     
     // 2. Gọi API bắt đầu thi
-    const session = await examApi.startExam({ maCaThi: caThiId })
+    const preflightRaw = sessionStorage.getItem(`exam_preflight_passed_${examId}`)
+    let envScore = 0
+    let isAgentActive = false
+    if (preflightRaw) {
+      try {
+        const pf = JSON.parse(preflightRaw)
+        envScore = pf.riskScore || 0
+        // If there's an agent check in checks, parse it
+        isAgentActive = pf.checks?.some(c => c.id === 'env_agent' && c.status === 'pass') || false
+      } catch(e) {}
+    }
+    
+    // Tạo fingerprint cơ bản
+    const fingerprint = btoa(navigator.userAgent + screen.width + screen.height + screen.colorDepth).substring(0, 50)
+
+    const session = await examApi.startExam({ 
+      maCaThi: caThiId,
+      envCheckScore: envScore,
+      browserFingerprint: fingerprint,
+      isAgentActive: isAgentActive
+    })
     maPhienThi.value = session.maPhienThi
     maDeKiemTra.value = session.maDeKiemTra
     exam.value.durationMinutes = session.thoiGianLamBai || 45
@@ -777,6 +812,7 @@ function handleScreenTrackEnded() {
   if (!examStarted.value || submitLocked) return
 
   monitoringStatus.value = 'interrupted'
+  isSuspended.value = true // Kích hoạt Hard Lock
   addViolation('SCREEN_STREAM_STOPPED', 'critical', 'Luồng chia sẻ màn hình bị ngắt')
   pushWarning('Luồng chia sẻ màn hình bị ngắt. Vui lòng bật lại trong vòng 10 giây.', 'critical', 'screen')
 
@@ -793,6 +829,7 @@ async function restartScreenShare() {
     startError.value = ''
     monitoringStatus.value = 'starting'
     await requestExamScreenShare()
+    isSuspended.value = false // Bỏ Hard Lock
     pushWarning('Chia sẻ màn hình đã được bật lại.', 'low')
   } catch (error) {
     monitoringStatus.value = 'interrupted'
@@ -838,19 +875,19 @@ function startRuntimeMonitoring() {
   startDevtoolsDetection()
 }
 
-function scanForbiddenExtensionsRuntime() {
+async function scanForbiddenExtensionsRuntime() {
   if (!examStarted.value || submitLocked) return
 
-  const result = detectForbiddenExtensions()
+  const result = await detectExamGuardAgent()
   if (result.status === 'fail') {
     addViolation(
-      'FORBIDDEN_EXTENSION_RUNTIME',
+      'FORBIDDEN_APP_RUNTIME',
       'critical',
-      'Phát hiện extension bị cấm trong lúc thi',
+      'Phát hiện phần mềm bị cấm trong lúc thi (Agent check failed)',
       result.details,
       { dedupeMs: 15000 },
     )
-    pushWarning('Phát hiện extension bị cấm trong lúc thi.', 'critical')
+    pushWarning('Phát hiện phần mềm bị cấm trong lúc thi.', 'critical')
   }
 }
 
@@ -1242,6 +1279,7 @@ function attachLockdownListeners() {
   window.addEventListener('copy', blockClipboard, true)
   window.addEventListener('cut', blockClipboard, true)
   window.addEventListener('paste', blockClipboard, true)
+  window.addEventListener('selectstart', blockClipboard, true)
 }
 
 function detachLockdownListeners() {
@@ -1258,6 +1296,7 @@ function detachLockdownListeners() {
   window.removeEventListener('cut', blockClipboard, true)
   window.removeEventListener('cut', blockClipboard, true)
   window.removeEventListener('paste', blockClipboard, true)
+  window.removeEventListener('selectstart', blockClipboard, true)
 }
 
 function stopDevtoolsDetection() {
@@ -1272,7 +1311,7 @@ function stopDevtoolsDetection() {
 }
 
 async function submitExam(reason = 'manual') {
-  if (submitLocked) return
+  if (submitLocked || isSuspended.value) return
   submitLocked = true
   monitoringStatus.value = 'stopped'
   clearInterval(timerInterval)
@@ -1405,7 +1444,23 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div class="exam-take-layout" :class="{ 'is-locked': !examStarted || examSoftLock.visible }">
+    <!-- Hard Lock Overlay khi mất chia sẻ màn hình -->
+    <div class="exam-soft-lock-overlay" v-if="isSuspended">
+      <div class="lock-modal glass-card">
+        <div class="lock-icon critical">
+          <MonitorCheck :size="32" />
+        </div>
+        <h2 class="lock-title">Đã Khóa Bài Thi</h2>
+        <p class="lock-message">Màn hình của bạn đã dừng chia sẻ. Bài thi đã bị khóa tạm thời để đảm bảo tính công bằng.</p>
+        <div class="lock-actions">
+          <button class="btn-primary" @click="restartScreenShare">
+            Bật lại Toàn bộ màn hình
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="exam-take-layout" :class="{ 'is-locked': !examStarted || examSoftLock.visible || isSuspended }">
       <main class="question-main-panel glass-card">
         <template v-if="currentQuestion">
           <header class="question-header">
@@ -1613,13 +1668,26 @@ onUnmounted(() => {
           <XCircle :size="16" />
           <span>{{ startError }}</span>
         </div>
+        
+        <div v-if="startError && startError.includes('ExamGuard Agent')" class="agent-download-section">
+          <p class="agent-download-desc">Vui lòng tải và chạy ứng dụng ExamGuard Agent (không cần cài đặt):</p>
+          <div class="agent-download-links">
+            <a href="https://github.com/Phan-Thanh-Danh/Remote-Desktop/raw/main/publish/win-x64/ExamGuard.Agent.exe" target="_blank" class="agent-btn win">
+              <Download :size="16" /> Windows (x64)
+            </a>
+            <a href="https://github.com/Phan-Thanh-Danh/Remote-Desktop/raw/main/publish/osx-arm64/ExamGuard.Agent" target="_blank" class="agent-btn mac">
+              <Download :size="16" /> macOS (Apple Silicon)
+            </a>
+          </div>
+          <p class="agent-note">Sau khi chạy ứng dụng, hãy ấn "Bắt đầu làm bài" để quét lại.</p>
+        </div>
         <p>
           Khi bắt đầu, hệ thống sẽ chuyển sang toàn màn hình, yêu cầu chia sẻ màn hình và ghi nhận các hành vi bất thường.
         </p>
         <div class="start-checks">
           <span><Maximize :size="14" /> Toàn màn hình bắt buộc</span>
           <span><MonitorCheck :size="14" /> Chia sẻ màn hình bắt buộc</span>
-          <span><ClipboardX :size="14" /> Chặn copy/paste/cut</span>
+          <span><ClipboardX :size="14" /> Chặn copy/paste/bôi đen</span>
         </div>
         <button type="button" class="btn-start" :disabled="monitoringStatus === 'starting'" @click="startExamEnvironment">
           <PlayCircle :size="18" />
@@ -1882,7 +1950,15 @@ onUnmounted(() => {
 }
 
 .exam-take-layout.is-locked {
-  filter: saturate(0.75);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Chống bôi đen (Text selection) */
+.exam-take-layout {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
 }
 
 .question-main-panel {
@@ -1957,6 +2033,52 @@ onUnmounted(() => {
 .choices-grid {
   display: grid;
   gap: 0.65rem;
+}
+
+.start-checks span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.agent-download-section {
+  background: var(--surface-card, #f8fafc);
+  border: 1px solid var(--border-card, #e2e8f0);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+.agent-download-desc {
+  font-size: 14px;
+  margin-bottom: 12px;
+  font-weight: 500;
+  color: var(--text-heading, #1e293b);
+}
+.agent-download-links {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.agent-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.agent-btn:hover { opacity: 0.9; }
+.agent-btn.win { background: #0078d7; }
+.agent-btn.mac { background: #333333; }
+.agent-note {
+  font-size: 12px;
+  color: var(--text-body, #64748b);
+  margin: 0;
 }
 
 .choice-card {

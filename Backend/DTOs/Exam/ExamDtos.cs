@@ -325,6 +325,14 @@ public class StartExamRequest
 {
     [Required(ErrorMessage = "Mã ca thi là bắt buộc.")]
     public int MaCaThi { get; set; }
+
+    [Required(ErrorMessage = "Điểm rủi ro môi trường là bắt buộc.")]
+    public int EnvCheckScore { get; set; }
+
+    [Required(ErrorMessage = "Dấu vân tay trình duyệt là bắt buộc.")]
+    public string BrowserFingerprint { get; set; } = string.Empty;
+
+    public bool IsAgentActive { get; set; }
 }
 
 public class AutoSaveAnswerRequest

@@ -460,6 +460,8 @@ if (string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase))
     await Backend.Data.Seeders.LargeDemoSeeder.SeedAsync(context);
     app.Logger.LogInformation("LargeDemoSeeder completed.");
 }
+
+app.UseMiddleware<Backend.Middlewares.SecurityHeadersMiddleware>();
 app.UseCors("FrontendDev");
 app.UseAuthentication();
 app.UseMiddleware<JwtMiddleware>();
