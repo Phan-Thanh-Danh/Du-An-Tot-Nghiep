@@ -13,17 +13,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("ViteCors", policy =>
     {
-        policy.SetIsOriginAllowed(origin =>
-            {
-                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
-                {
-                    return false;
-                }
-
-                return (uri.Host == "localhost" || uri.Host == "127.0.0.1")
-                    && uri.Port >= 5173
-                    && uri.Port <= 5199;
-            })
+        policy.SetIsOriginAllowed(origin => true)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });

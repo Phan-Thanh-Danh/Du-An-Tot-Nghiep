@@ -97,20 +97,72 @@ export const teacherApi = {
   // ── Exams (ca-thi) ──
   // √ Teacher authorized on ExamController
 
-  getExams(params = {}) {
+  async getExams(params = {}) {
     const query = new URLSearchParams()
     if (params.semesterId) query.append('semesterId', params.semesterId)
     if (params.keyword) query.append('keyword', params.keyword)
     const qs = query.toString()
-    return apiRequest(`/api/exam/ca-thi${qs ? '?' + qs : ''}`)
+    const rawRes = await apiRequest(`/api/exam/ca-thi${qs ? '?' + qs : ''}`)
+    const res = unwrapApiData(rawRes)
+    let items = Array.isArray(res) ? res : (res?.items || [])
+    
+    return items.filter(c => c.trangThai !== 'da_huy').map(c => {
+      let status = 'scheduled'
+      if (c.trangThai === 'dang_diem_danh') status = 'attendance'
+      if (c.trangThai === 'dang_thi') status = 'monitoring'
+      if (c.trangThai === 'da_ket_thuc') status = 'ended'
+      
+      let classCode = c.tenCaThi
+      let subjectCode = 'Môn thi'
+      let examTitle = c.tenCaThi
+      
+      const parts = c.tenCaThi.split(' - ')
+      if (parts.length >= 3) {
+        classCode = parts[0].trim()
+        subjectCode = parts[1].trim()
+        examTitle = parts.slice(2).join(' - ').trim()
+      }
+
+      return {
+        id: c.maCaThi,
+        subjectCode: subjectCode,
+        classCode: classCode,
+        examTitle: examTitle,
+        room: c.tenPhong || 'Chưa xếp phòng',
+        startTime: c.thoiGianBatDau,
+        endTime: c.thoiGianKetThuc,
+        status: status,
+        totalStudents: c.soThiSinh || 0
+      }
+    })
   },
 
   getExamDetail(id) {
     return apiRequest(`/api/exam/ca-thi/${id}`)
   },
 
-  getExamStudents(examId) {
-    return apiRequest(`/api/exam/ca-thi/${examId}/thi-sinh`)
+  async getExamStudents(examId) {
+    const rawRes = await apiRequest(`/api/exam/ca-thi/${examId}/thi-sinh`)
+    const res = unwrapApiData(rawRes)
+    let items = Array.isArray(res) ? res : (res?.items || [])
+    
+    return items.map(c => {
+      let examStatus = 'not_started'
+      if (c.trangThaiDuThi === 'dang_thi') examStatus = 'in_progress'
+      if (c.trangThaiDuThi === 'da_nop') examStatus = 'submitted'
+      if (c.trangThaiDuThi === 'dinh_chi') examStatus = 'suspended'
+      
+      return {
+        id: c.maThiSinhCaThi || c.maHocSinh,
+        studentCode: (c.email || c.maHocSinh || '').toString().split('@')[0],
+        name: c.tenHocSinh || 'Thí sinh',
+        attendanceStatus: 'present', // Assume present for proctoring mockup if they are in the list
+        preflightStatus: 'pass',
+        streamStatus: examStatus === 'in_progress' ? 'streaming' : (examStatus === 'submitted' ? 'stopped' : 'waiting'),
+        examStatus: examStatus,
+        logs: []
+      }
+    })
   },
 
   getExamAttendance(examId) {
@@ -124,8 +176,20 @@ export const teacherApi = {
     })
   },
 
-  getExamViolations(examId) {
-    return apiRequest(`/api/exam/ca-thi/${examId}/vi-pham`)
+  async getExamViolations(examId) {
+    const rawRes = await apiRequest(`/api/exam/ca-thi/${examId}/vi-pham`)
+    const res = unwrapApiData(rawRes)
+    let items = Array.isArray(res) ? res : (res?.items || [])
+    return items.map(v => ({
+      id: v.maViPham,
+      studentId: v.maHocSinh,
+      studentCode: (v.tenHocSinh || '').toString().split('@')[0], // Simplified
+      type: v.loaiViPham,
+      severity: v.mucDo === 'dinh_chi' ? 'critical' : (v.mucDo === 'canh_cao' ? 'high' : 'low'),
+      timestamp: v.thoiDiem,
+      message: v.chiTietJson,
+      handled: v.soLanXuLy > 0
+    }))
   },
 
   createViolation(payload) {
