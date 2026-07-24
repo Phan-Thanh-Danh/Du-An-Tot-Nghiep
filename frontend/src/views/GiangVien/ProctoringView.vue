@@ -266,7 +266,12 @@
           @click="openStudentModal(student)"
         >
           <div class="placeholder-screen">
-            <video v-if="studentStreams[student.studentId]" :srcObject.prop="studentStreams[student.studentId]" autoplay playsinline muted></video>
+            <WebRTCScreen 
+              v-if="studentStreams[student.studentId]" 
+              :student="student" 
+              :violations="studentViolationCount(student)" 
+              :stream="studentStreams[student.studentId]" 
+            />
             <span v-else>Đang chờ màn hình...</span>
           </div>
           <div class="screen-card-body">
@@ -306,7 +311,13 @@
             @click="openStudentModal(student)"
           >
             <div class="placeholder-screen compact">
-              <video v-if="studentStreams[student.studentId]" :srcObject.prop="studentStreams[student.studentId]" autoplay playsinline muted></video>
+              <WebRTCScreen 
+                v-if="studentStreams[student.studentId]" 
+                compact 
+                :student="student" 
+                :violations="studentViolationCount(student)" 
+                :stream="studentStreams[student.studentId]" 
+              />
               <span v-else>Đã đóng màn hình</span>
             </div>
             <div>
@@ -329,7 +340,13 @@
           </button>
           <div class="modal-screen">
             <div class="placeholder-screen large">
-              <video v-if="studentStreams[selectedStudent.studentId]" :srcObject.prop="studentStreams[selectedStudent.studentId]" autoplay playsinline muted></video>
+              <WebRTCScreen 
+                v-if="studentStreams[selectedStudent.studentId]" 
+                large 
+                :student="selectedStudent" 
+                :violations="studentViolationCount(selectedStudent)" 
+                :stream="studentStreams[selectedStudent.studentId]" 
+              />
               <span v-else>Đang chờ màn hình...</span>
             </div>
           </div>
@@ -393,6 +410,7 @@ import {
 } from 'lucide-vue-next'
 import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
+import WebRTCScreen from '@/components/GiangVien/WebRTCScreen.vue'
 import { usePopupStore } from '@/stores/popup'
 import { teacherApi } from '@/services/teacherApi'
 import { examProctoringHub } from '@/services/examProctoringHub'
@@ -609,6 +627,11 @@ async function setupHubAndWebRTC() {
     }
     
     examProctoringHub.eventHandlers.onScreenShareStatusChanged = (payload) => {
+      const student = examStudents.value.find(s => s.studentId === payload.maHocSinh)
+      if (student) {
+        student.streamStatus = payload.status
+      }
+
       if (payload.status === 'stopped' && studentStreams.value[payload.maHocSinh]) {
          const stream = studentStreams.value[payload.maHocSinh]
          stream.getTracks().forEach(track => track.stop())
@@ -742,11 +765,9 @@ async function startMonitoring() {
     currentSession.value.status = 'monitoring'
     presentStudents.value.forEach((student, index) => {
       if (!['submitted', 'suspended'].includes(student.examStatus)) {
-        student.examStatus = index === presentStudents.value.length - 1 && presentStudents.value.length >= 3
-          ? 'submitted'
-          : 'in_progress'
+        student.examStatus = 'in_progress'
       }
-      student.streamStatus = student.examStatus === 'submitted' ? 'stopped' : index === 1 ? 'reconnecting' : 'streaming'
+      student.streamStatus = 'waiting' // Status is updated by onScreenShareStatusChanged
     })
     viewState.value = 'dashboard'
     popupStore.success('Đã bắt đầu canh thi', `${presentStudents.value.length} thí sinh có mặt được đưa vào grid giám sát.`)

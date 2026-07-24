@@ -367,9 +367,9 @@ export function createViolation({
   }
 }
 
-export function saveViolationLog(examId, violations) {
+export function saveViolationLog(examId, studentId, violations) {
   const normalizedViolations = Array.isArray(violations) ? violations : []
-  localStorage.setItem(`exam_violations_${examId}`, JSON.stringify(normalizedViolations))
+  localStorage.setItem(`exam_violations_${examId}_${studentId}`, JSON.stringify(normalizedViolations))
 
   const current = readJson(PROCTORING_LIVE_VIOLATIONS_KEY, [])
   const merged = [...normalizedViolations, ...current]
@@ -385,17 +385,17 @@ export function saveViolationLog(examId, violations) {
   localStorage.setItem(PROCTORING_LIVE_VIOLATIONS_KEY, JSON.stringify(uniqueById.slice(0, 100)))
 }
 
-export function loadViolationLog(examId) {
-  return readJson(`exam_violations_${examId}`, [])
+export function loadViolationLog(examId, studentId) {
+  return readJson(`exam_violations_${examId}_${studentId}`, [])
 }
 
-export function clearExamRuntimeStorage(examId) {
-  if (!examId) return
+export function clearExamRuntimeStorage(examId, studentId) {
+  if (!examId || !studentId) return
 
-  localStorage.removeItem(`exam_answers_${examId}`)
-  localStorage.removeItem(`exam_flags_${examId}`)
-  localStorage.removeItem(`exam_time_left_${examId}`)
-  localStorage.removeItem(`exam_violations_${examId}`)
-  localStorage.removeItem(`exam_last_saved_at_${examId}`)
-  localStorage.removeItem(`exam_submitted_${examId}`)
+  localStorage.removeItem(`exam_answers_${examId}_${studentId}`)
+  localStorage.removeItem(`exam_flags_${examId}_${studentId}`)
+  localStorage.removeItem(`exam_time_left_${examId}_${studentId}`)
+  localStorage.removeItem(`exam_violations_${examId}_${studentId}`)
+  localStorage.removeItem(`exam_last_saved_at_${examId}_${studentId}`)
+  localStorage.removeItem(`exam_submitted_${examId}_${studentId}`)
 }

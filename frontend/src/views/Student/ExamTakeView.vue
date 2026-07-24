@@ -46,11 +46,11 @@ const questions = ref([])
 const maPhienThi = ref(null)
 const maDeKiemTra = ref(null)
 
-const answersKey = `exam_answers_${examId}`
-const flagsKey = `exam_flags_${examId}`
-const timeKey = `exam_time_left_${examId}`
-const lastSavedKey = `exam_last_saved_at_${examId}`
-const submittedKey = `exam_submitted_${examId}`
+const answersKey = computed(() => `exam_answers_${examId}_${STUDENT_ID.value}`)
+const flagsKey = computed(() => `exam_flags_${examId}_${STUDENT_ID.value}`)
+const timeKey = computed(() => `exam_time_left_${examId}_${STUDENT_ID.value}`)
+const lastSavedKey = computed(() => `exam_last_saved_at_${examId}_${STUDENT_ID.value}`)
+const submittedKey = computed(() => `exam_submitted_${examId}_${STUDENT_ID.value}`)
 
 const preflightReady = ref(false)
 const examStarted = ref(false)
@@ -237,16 +237,16 @@ function validatePreflightToken() {
 }
 
 function restoreDraft() {
-  if (localStorage.getItem(submittedKey) === 'true') {
-    clearExamRuntimeStorage(examId)
+  if (localStorage.getItem(submittedKey.value) === 'true') {
+    clearExamRuntimeStorage(examId, STUDENT_ID.value)
     return
   }
 
-  const restoredAnswers = readJson(answersKey, null)
-  const restoredFlags = readJson(flagsKey, null)
-  const restoredTime = Number(localStorage.getItem(timeKey) || 0)
-  const restoredViolations = loadViolationLog(examId)
-  const restoredSavedAt = localStorage.getItem(lastSavedKey) || ''
+  const restoredAnswers = readJson(answersKey.value, null)
+  const restoredFlags = readJson(flagsKey.value, null)
+  const restoredTime = Number(localStorage.getItem(timeKey.value) || 0)
+  const restoredViolations = loadViolationLog(examId, STUDENT_ID.value)
+  const restoredSavedAt = localStorage.getItem(lastSavedKey.value) || ''
 
   if (restoredAnswers && typeof restoredAnswers === 'object') {
     answers.value = restoredAnswers
@@ -276,11 +276,11 @@ function saveDraft() {
   if (submitLocked) return
 
   const savedAt = new Date().toISOString()
-  localStorage.setItem(answersKey, JSON.stringify(answers.value))
-  localStorage.setItem(flagsKey, JSON.stringify(flagged.value))
-  localStorage.setItem(timeKey, String(timeLeftSeconds.value))
-  localStorage.setItem(lastSavedKey, savedAt)
-  saveViolationLog(examId, violations.value)
+  localStorage.setItem(answersKey.value, JSON.stringify(answers.value))
+  localStorage.setItem(flagsKey.value, JSON.stringify(flagged.value))
+  localStorage.setItem(timeKey.value, String(timeLeftSeconds.value))
+  localStorage.setItem(lastSavedKey.value, savedAt)
+  saveViolationLog(examId, STUDENT_ID.value, violations.value)
   lastSavedAt.value = savedAt
 
   // Gửi API lưu tạm
@@ -330,7 +330,7 @@ function addViolation(type, severity, message, details = {}, options = {}) {
   }
 
   violations.value = [violation, ...violations.value]
-  saveViolationLog(examId, violations.value)
+  saveViolationLog(examId, STUDENT_ID.value, violations.value)
   
   // Gửi qua Hub
   try {
@@ -1325,8 +1325,8 @@ async function submitExam(reason = 'manual') {
   }
   
   try {
-    localStorage.setItem(submittedKey, 'true')
-    clearExamRuntimeStorage(examId)
+    localStorage.setItem(submittedKey.value, 'true')
+    clearExamRuntimeStorage(examId, STUDENT_ID.value)
     router.replace(`/student/exams/results/${examId}`)
   } catch (error) {
     submitLocked = false
@@ -1340,6 +1340,22 @@ onMounted(() => {
     router.replace(`/student/exams/detail/${examId}`)
     return
   }
+  
+  const previousStudentKey = `exam_last_student_${examId}`
+  const lastStudent = localStorage.getItem(previousStudentKey)
+  if (lastStudent && lastStudent !== String(STUDENT_ID.value)) {
+    clearExamRuntimeStorage(examId, lastStudent)
+    violations.value = []
+    examSoftLock.value = {
+      isLocked: false,
+      requireProctorUnlock: false,
+      canContinue: true,
+      violationCount: 0
+    }
+    fullscreenExitCount.value = 0
+    tabSwitchCount.value = 0
+  }
+  localStorage.setItem(previousStudentKey, String(STUDENT_ID.value))
 
   preflightReady.value = true
   restoreDraft()

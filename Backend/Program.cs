@@ -256,6 +256,8 @@ builder.Services.AddScoped<ITeachingPreferenceService, TeachingPreferenceService
 builder.Services.AddSignalR(options =>
 {
     options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    options.KeepAliveInterval = TimeSpan.FromSeconds(30);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
 });
 
 var r2Settings =

@@ -21,6 +21,7 @@ export class ExamProctoringHub {
       onStudentConnectionIdBroadcast: null,
       onProctorRequestedConnections: null,
       onProctorAcknowledged: null,
+      onReconnected: null,
     }
   }
 
@@ -49,6 +50,9 @@ export class ExamProctoringHub {
       .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
       .configureLogging(signalR.LogLevel.Information)
       .build()
+      
+    this.connection.serverTimeoutInMilliseconds = 60000
+    this.connection.keepAliveIntervalInMilliseconds = 30000
 
     // ── Register events ────────────────────────────────────────────────────
 
@@ -134,6 +138,7 @@ export class ExamProctoringHub {
 
     this.connection.onreconnected((connectionId) => {
       console.info('[Hub] SignalR reconnected. connectionId:', connectionId)
+      this.eventHandlers.onReconnected?.(connectionId)
     })
 
     this.connection.onclose((error) => {
@@ -277,12 +282,12 @@ export class ExamProctoringHub {
 
   // ── Warning ────────────────────────────────────────────────────────────────
 
-  async sendWarningToStudent(studentConnectionId, message) {
-    await this._invoke('SendWarningToStudent', studentConnectionId, message)
+  async sendWarningToStudent(maCaThi, studentConnectionId, message) {
+    await this._invoke('SendWarningToStudent', maCaThi, studentConnectionId, message)
   }
 
-  async unlockStudent(studentConnectionId) {
-    await this._invoke('UnlockStudent', studentConnectionId)
+  async unlockStudent(maCaThi, studentConnectionId) {
+    await this._invoke('UnlockStudent', maCaThi, studentConnectionId)
   }
 }
 

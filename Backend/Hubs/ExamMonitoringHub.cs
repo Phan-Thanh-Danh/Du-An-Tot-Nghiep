@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Backend.Data;
+using Microsoft.EntityFrameworkCore;
+using Backend.Constants;
 
 namespace Backend.Hubs;
 
@@ -56,10 +59,12 @@ public class WebRtcIceCandidateMessageDto
 public class ExamMonitoringHub : Hub
 {
     private readonly ILogger<ExamMonitoringHub> _logger;
+    private readonly ApplicationDbContext _dbContext;
 
-    public ExamMonitoringHub(ILogger<ExamMonitoringHub> logger)
+    public ExamMonitoringHub(ILogger<ExamMonitoringHub> logger, ApplicationDbContext dbContext)
     {
         _logger = logger;
+        _dbContext = dbContext;
     }
 
     // ── Room Management ───────────────────────────────────────────────────────
@@ -70,6 +75,8 @@ public class ExamMonitoringHub : Hub
     /// </summary>
     public async Task JoinExamRoom(int maCaThi)
     {
+        if (!await IsAuthorizedProctor(maCaThi)) return;
+
         var groupName = $"exam-{maCaThi}";
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         _logger.LogInformation(
@@ -95,6 +102,7 @@ public class ExamMonitoringHub : Hub
     /// </summary>
     public async Task JoinAsStudent(int maCaThi, int maHocSinh)
     {
+        if (!VerifyStudentIdentity(maHocSinh)) return;
         if (maCaThi <= 0 || maHocSinh <= 0)
         {
             _logger.LogWarning("JoinAsStudent: Invalid payload — maCaThi={MaCaThi}, maHocSinh={MaHocSinh}", maCaThi, maHocSinh);
@@ -120,6 +128,7 @@ public class ExamMonitoringHub : Hub
 
     public async Task ScreenShareStarted(int maCaThi, int maHocSinh)
     {
+        if (!VerifyStudentIdentity(maHocSinh)) return;
         if (maCaThi <= 0 || maHocSinh <= 0) return;
         await Clients.Group($"exam-{maCaThi}").SendAsync("ScreenShareStatusChanged", new
         {
@@ -130,6 +139,7 @@ public class ExamMonitoringHub : Hub
 
     public async Task ScreenShareStopped(int maCaThi, int maHocSinh)
     {
+        if (!VerifyStudentIdentity(maHocSinh)) return;
         if (maCaThi <= 0 || maHocSinh <= 0) return;
         await Clients.Group($"exam-{maCaThi}").SendAsync("ScreenShareStatusChanged", new
         {
@@ -143,6 +153,7 @@ public class ExamMonitoringHub : Hub
     /// </summary>
     public async Task AcknowledgeStudent(string studentConnectionId)
     {
+        if (!IsProctorOrAdmin()) return;
         if (!string.IsNullOrWhiteSpace(studentConnectionId))
         {
             await Clients.Client(studentConnectionId).SendAsync("ProctorAcknowledged", new { proctorConnectionId = Context.ConnectionId });
@@ -157,6 +168,7 @@ public class ExamMonitoringHub : Hub
     /// </summary>
     public async Task SendOffer(WebRtcOfferDto dto)
     {
+        if (!await IsAuthorizedProctor(dto.MaCaThi)) return;
         if (dto.MaCaThi <= 0 || dto.MaHocSinh <= 0)
         {
             _logger.LogWarning("SendOffer: Invalid maCaThi/maHocSinh — ignored.");
@@ -188,6 +200,7 @@ public class ExamMonitoringHub : Hub
     /// </summary>
     public async Task SendAnswer(WebRtcAnswerDto dto)
     {
+        if (!VerifyStudentIdentity(dto.MaHocSinh)) return;
         if (dto.MaCaThi <= 0 || dto.MaHocSinh <= 0)
         {
             _logger.LogWarning("SendAnswer: Invalid maCaThi/maHocSinh — ignored.");
@@ -219,6 +232,17 @@ public class ExamMonitoringHub : Hub
     /// </summary>
     public async Task SendIceCandidate(WebRtcIceCandidateMessageDto dto)
     {
+        // Both Proctor and Student can send ICE Candidates
+        // Only verify student identity if they are a student
+        if (Context.User?.IsInRole(AuthRoles.Student) == true)
+        {
+            if (!VerifyStudentIdentity(dto.MaHocSinh)) return;
+        }
+        else
+        {
+            if (!await IsAuthorizedProctor(dto.MaCaThi)) return;
+        }
+
         if (dto.MaCaThi <= 0 || dto.MaHocSinh <= 0)
         {
             _logger.LogWarning("SendIceCandidate: Invalid maCaThi/maHocSinh — ignored.");
@@ -252,6 +276,7 @@ public class ExamMonitoringHub : Hub
 
     public async Task SendViolationLog(int maCaThi, int maHocSinh, string loaiViPham, string? chiTiet)
     {
+        if (!await IsAuthorizedProctor(maCaThi)) return;
         await Clients.Group($"exam-{maCaThi}").SendAsync("ViolationDetected", new
         {
             maHocSinh, loaiViPham, chiTiet,
@@ -266,22 +291,25 @@ public class ExamMonitoringHub : Hub
 
     public async Task UpdateStudentStatus(int maCaThi, int maHocSinh, string status)
     {
+        if (!await IsAuthorizedProctor(maCaThi)) return;
         await Clients.Group($"exam-{maCaThi}").SendAsync("StudentStatusUpdated", new
         {
             maHocSinh, status, thoiDiem = DateTime.UtcNow
         });
     }
 
-    public async Task SendWarningToStudent(string studentConnectionId, string message)
+    public async Task SendWarningToStudent(int maCaThi, string studentConnectionId, string message)
     {
+        if (!await IsAuthorizedProctor(maCaThi)) return;
         await Clients.Client(studentConnectionId).SendAsync("WarningReceived", new
         {
             message, thoiDiem = DateTime.UtcNow
         });
     }
 
-    public async Task UnlockStudent(string studentConnectionId)
+    public async Task UnlockStudent(int maCaThi, string studentConnectionId)
     {
+        if (!await IsAuthorizedProctor(maCaThi)) return;
         await Clients.Client(studentConnectionId).SendAsync("StudentUnlocked", new
         {
             thoiDiem = DateTime.UtcNow
@@ -298,5 +326,48 @@ public class ExamMonitoringHub : Hub
             exception?.Message ?? "clean disconnect"
         );
         await base.OnDisconnectedAsync(exception);
+    }
+
+    // ── Private Security Helpers ──────────────────────────────────────────────
+
+    private bool VerifyStudentIdentity(int maHocSinh)
+    {
+        if (Context.UserIdentifier != maHocSinh.ToString())
+        {
+            _logger.LogWarning("Security Violation: User {UserId} attempted to act as student {MaHocSinh}", Context.UserIdentifier, maHocSinh);
+            return false;
+        }
+        return true;
+    }
+
+    private bool IsProctorOrAdmin()
+    {
+        return Context.User?.IsInRole(AuthRoles.Teacher) == true || Context.User?.IsInRole(AuthRoles.Admin) == true || Context.User?.IsInRole(AuthRoles.SuperAdmin) == true;
+    }
+
+    private async Task<bool> IsAuthorizedProctor(int maCaThi)
+    {
+        if (Context.User?.IsInRole(AuthRoles.Admin) == true || Context.User?.IsInRole(AuthRoles.SuperAdmin) == true)
+        {
+            return true;
+        }
+
+        if (Context.User?.IsInRole(AuthRoles.Teacher) != true)
+        {
+            _logger.LogWarning("Security Violation: User {UserId} is not a teacher or admin", Context.UserIdentifier);
+            return false;
+        }
+
+        if (int.TryParse(Context.UserIdentifier, out int teacherId))
+        {
+            var isAssigned = await _dbContext.PhanCongGiamThis.AnyAsync(p => p.MaCaThi == maCaThi && p.MaGiamThi == teacherId);
+            if (!isAssigned)
+            {
+                _logger.LogWarning("Security Violation: Teacher {TeacherId} is not assigned to exam {MaCaThi}", teacherId, maCaThi);
+            }
+            return isAssigned;
+        }
+
+        return false;
     }
 }
