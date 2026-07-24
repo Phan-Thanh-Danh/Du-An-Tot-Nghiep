@@ -622,6 +622,10 @@ async function setupHubAndWebRTC() {
     
     examProctoringHub.eventHandlers.onStudentConnectionIdBroadcast = async (payload) => {
       if (payload.maCaThi == currentSession.value?.id) {
+        const student = examStudents.value.find(s => s.studentId === payload.maHocSinh || s.id === payload.maHocSinh)
+        if (student) {
+          student.connectionId = payload.connectionId
+        }
         await examProctoringHub.acknowledgeStudent(payload.connectionId)
       }
     }
@@ -895,6 +899,11 @@ function sendReminder(student) {
   const message = window.prompt('Nội dung nhắc nhở', 'Vui lòng quay lại bài thi và tuân thủ quy định.')
   if (!message) return
 
+  if (student.connectionId && currentSession.value) {
+    examProctoringHub.sendWarningToStudent(currentSession.value.id, student.connectionId, message)
+  }
+
+  if (!student.logs) student.logs = []
   student.logs.unshift({
     type: 'PROCTOR_MESSAGE',
     message,
@@ -903,15 +912,29 @@ function sendReminder(student) {
   popupStore.info('Đã gửi nhắc nhở', `${student.studentCode} · ${message}`)
 }
 
-function suspendStudent(student) {
-  const confirmed = window.confirm(`Đình chỉ thí sinh ${student.studentCode}?`)
-  if (!confirmed) return
+async function suspendStudent(student) {
+  const reason = window.prompt(`Lý do đình chỉ thí sinh ${student.studentCode}?`, 'Vi phạm quy chế thi')
+  if (!reason) return
+
+  if (currentSession.value) {
+    try {
+      await examProctoringHub.suspendStudent(
+        currentSession.value.id, 
+        student.studentId || student.id, 
+        student.connectionId || '', 
+        reason
+      )
+    } catch (e) {
+      console.error('Error suspending student:', e)
+    }
+  }
 
   student.examStatus = 'suspended'
   student.streamStatus = 'stopped'
+  if (!student.logs) student.logs = []
   student.logs.unshift({
     type: 'SUSPENDED',
-    message: 'Giám thị đình chỉ thí sinh',
+    message: `Đình chỉ: ${reason}`,
     timestamp: new Date().toISOString(),
   })
   popupStore.warning('Đã đình chỉ', `${student.studentCode} đã được chuyển sang trạng thái bị đình chỉ.`)

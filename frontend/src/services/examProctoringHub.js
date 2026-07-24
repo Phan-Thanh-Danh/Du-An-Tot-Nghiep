@@ -22,6 +22,7 @@ export class ExamProctoringHub {
       onProctorRequestedConnections: null,
       onProctorAcknowledged: null,
       onReconnected: null,
+      onStudentSuspended: null,
     }
   }
 
@@ -128,6 +129,12 @@ export class ExamProctoringHub {
       if (import.meta.env.DEV)
         console.debug('[Hub] StudentUnlocked received', payload)
       this.eventHandlers.onStudentUnlocked?.(payload)
+    })
+
+    this.connection.on('StudentSuspended', (payload) => {
+      if (import.meta.env.DEV)
+        console.debug('[Hub] StudentSuspended received', payload)
+      this.eventHandlers.onStudentSuspended?.(payload)
     })
 
     // ── Reconnect lifecycle ────────────────────────────────────────────────
@@ -288,6 +295,10 @@ export class ExamProctoringHub {
 
   async unlockStudent(maCaThi, studentConnectionId) {
     await this._invoke('UnlockStudent', maCaThi, studentConnectionId)
+  }
+
+  async suspendStudent(maCaThi, maHocSinh, studentConnectionId, lyDo) {
+    await this._invoke('SuspendStudent', maCaThi, maHocSinh, studentConnectionId, lyDo)
   }
 }
 

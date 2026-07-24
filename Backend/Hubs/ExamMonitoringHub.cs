@@ -316,6 +316,39 @@ public class ExamMonitoringHub : Hub
         });
     }
 
+    public async Task SuspendStudent(int maCaThi, int maHocSinh, string studentConnectionId, string lyDo)
+    {
+        if (!await IsAuthorizedProctor(maCaThi)) return;
+
+        var thiSinhCaThi = await _dbContext.ThiSinhCaThis
+            .FirstOrDefaultAsync(t => t.MaCaThi == maCaThi && t.MaHocSinh == maHocSinh);
+            
+        if (thiSinhCaThi != null)
+        {
+            thiSinhCaThi.TrangThaiDuThi = "dinh_chi";
+            await _dbContext.SaveChangesAsync();
+        }
+
+        if (!string.IsNullOrWhiteSpace(studentConnectionId))
+        {
+            await Clients.Client(studentConnectionId).SendAsync("StudentSuspended", new
+            {
+                maHocSinh,
+                lyDo,
+                thoiDiem = DateTime.UtcNow
+            });
+        }
+
+        await Clients.Group($"exam-{maCaThi}").SendAsync("StudentStatusUpdated", new
+        {
+            maHocSinh,
+            status = "suspended",
+            thoiDiem = DateTime.UtcNow
+        });
+
+        _logger.LogWarning("Proctor {UserId} suspended student {MaHocSinh} in exam {MaCaThi}. Reason: {Reason}", Context.UserIdentifier, maHocSinh, maCaThi, lyDo);
+    }
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     public override async Task OnDisconnectedAsync(Exception? exception)

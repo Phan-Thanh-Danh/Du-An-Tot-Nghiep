@@ -242,6 +242,25 @@ function restoreDraft() {
     return
   }
 
+  const suspendedReason = localStorage.getItem(`exam_suspended_${examId}_${STUDENT_ID.value}`)
+  if (suspendedReason) {
+    isSuspended.value = true
+    examSoftLock.value = {
+        visible: true,
+        type: 'SUSPENDED',
+        title: 'ĐÌNH CHỈ THI',
+        message: `Bạn đã bị giám thị đình chỉ thi. Lý do: ${suspendedReason}`,
+        severity: 'critical',
+        canContinue: false,
+        requireProctorUnlock: false,
+        requireFullscreen: false,
+        requireScreenShare: false,
+        violationCount: 99,
+    }
+    submitLocked = true
+    return
+  }
+
   const restoredAnswers = readJson(answersKey.value, null)
   const restoredFlags = readJson(flagsKey.value, null)
   const restoredTime = Number(localStorage.getItem(timeKey.value) || 0)
@@ -635,6 +654,39 @@ async function startExamEnvironment() {
         violations.value = []
         pushWarning('Giám thị đã mở khóa bài thi cho bạn. Vui lòng tiếp tục làm bài.', 'info')
       }
+    }
+
+    examProctoringHub.eventHandlers.onStudentSuspended = (payload) => {
+      const reason = payload?.lyDo || 'Vi phạm quy chế thi'
+      isSuspended.value = true
+      
+      examSoftLock.value = {
+        visible: true,
+        type: 'SUSPENDED',
+        title: 'ĐÌNH CHỈ THI',
+        message: `Bạn đã bị giám thị đình chỉ thi. Lý do: ${reason}`,
+        severity: 'critical',
+        canContinue: false,
+        requireProctorUnlock: false,
+        requireFullscreen: false,
+        requireScreenShare: false,
+        violationCount: 99,
+      }
+      
+      pushWarning(`Bạn đã bị đình chỉ thi. Lý do: ${reason}`, 'critical')
+      
+      saveDraft()
+      
+      monitoringStatus.value = 'stopped'
+      clearInterval(timerInterval)
+      clearInterval(autosaveInterval)
+      clearInterval(runtimeScanInterval)
+      clearInterval(watermarkInterval)
+      stopDevtoolsDetection()
+      submitLocked = true
+      cleanupScreenStream(false)
+      
+      localStorage.setItem(`exam_suspended_${examId}_${STUDENT_ID.value}`, reason)
     }
 
     await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
