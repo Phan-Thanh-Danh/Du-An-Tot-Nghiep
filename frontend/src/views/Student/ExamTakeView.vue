@@ -470,7 +470,22 @@ async function startExamEnvironment() {
     
     // 3. Lấy câu hỏi
     const quizResponse = await examApi.getExamQuestions(session.maPhienThi)
-    questions.value = quizResponse || []
+    questions.value = (quizResponse || []).map(q => {
+      let type = 'essay';
+      if (q.loaiCauHoi === 'trac_nghiem') {
+        type = q.kieuLuaChon === 'nhieu_lua_chon' ? 'multiple_choice' : 'single_choice';
+      }
+      let parsedChoices = typeof q.luaChon === 'string' ? JSON.parse(q.luaChon) : (q.luaChon || []);
+      parsedChoices = parsedChoices.map(c => ({...c, label: c.id}));
+      
+      return {
+        id: q.maCauHoi,
+        content: q.noiDung,
+        type: type,
+        choices: parsedChoices,
+        ...q
+      };
+    })
     exam.value.totalQuestions = questions.value.length
     
     // 4. Kết nối WebRTC Hub
@@ -1114,7 +1129,10 @@ function handleRestrictedKeydown(event) {
   })
 }
 
-function handleWindowBlur() {
+function handleWindowBlur(e) {
+  // Bỏ qua nếu sự kiện blur không phải do mất focus của window (ví dụ: chuyển focus giữa các input)
+  if (e && e.target !== window && e.target !== document) return
+
   if (!examStarted.value || submitLocked) return
   if (shouldIgnoreFocusViolation()) return
 
@@ -1376,6 +1394,17 @@ async function submitExam(reason = 'manual') {
   }
   
   try {
+    const answersArray = Object.entries(answers.value).map(([maCauHoi, ans]) => ({
+      maCauHoi: parseInt(maCauHoi),
+      selectedOptionIds: Array.isArray(ans) ? ans : [ans],
+      essayText: null
+    }))
+    const payload = {
+      maPhienThi: maPhienThi.value,
+      cauTraLoiJson: JSON.stringify(answersArray)
+    }
+    await examApi.submitExam(payload)
+    
     localStorage.setItem(submittedKey.value, 'true')
     clearExamRuntimeStorage(examId, STUDENT_ID.value)
     router.replace(`/student/exams/results/${examId}`)
