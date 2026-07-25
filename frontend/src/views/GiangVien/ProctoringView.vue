@@ -580,25 +580,29 @@ async function setupHubAndWebRTC() {
     // Hàm tạo và gửi Offer cho thí sinh
     const createAndSendOffer = async (maHocSinh, targetConnectionId) => {
       let pc = peerConnections.get(maHocSinh)
-      if (!pc) {
-        pc = createProctorPeerConnection(
-          (candidate) => {
-            examProctoringHub.sendIceCandidate({
-              maCaThi: currentSession.value.id,
-              maHocSinh,
-              targetConnectionId,
-              candidate
-            })
-          },
-          (stream) => {
-            studentStreams.value = { 
-              ...studentStreams.value, 
-              [maHocSinh]: markRaw(stream) 
-            }
-          }
-        )
-        peerConnections.set(maHocSinh, pc)
+      if (pc) {
+        // Destroy old connection to avoid m-line mismatch
+        pc.close()
+        peerConnections.delete(maHocSinh)
       }
+
+      pc = createProctorPeerConnection(
+        (candidate) => {
+          examProctoringHub.sendIceCandidate({
+            maCaThi: currentSession.value.id,
+            maHocSinh,
+            targetConnectionId,
+            candidate
+          })
+        },
+        (stream) => {
+          studentStreams.value = { 
+            ...studentStreams.value, 
+            [maHocSinh]: markRaw(stream) 
+          }
+        }
+      )
+      peerConnections.set(maHocSinh, pc)
 
       try {
         const offer = await pc.createOffer({ offerToReceiveVideo: true, offerToReceiveAudio: false })
