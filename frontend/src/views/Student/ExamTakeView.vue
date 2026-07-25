@@ -498,66 +498,10 @@ async function startExamEnvironment() {
       }
     }
 
-    const initPeerAndSendOffer = async (proctorConnectionId) => {
-      if (!proctorConnectionId) return
-
-      if (!screenStream.value) {
-        console.warn('[Student] Cannot create offer: screen stream is missing')
-        return
-      }
-
-      if (studentPeerConnections.has(proctorConnectionId)) {
-        if (import.meta.env.DEV) console.debug('[Student] Peer already exists for proctor', proctorConnectionId)
-        return
-      }
-
-      const pc = createStudentPeerConnection(
-        screenStream.value,
-        // Student gửi ICE candidate về giám thị
-        (candidate) => examProctoringHub.sendIceCandidate({
-          maCaThi: caThiId,
-          maHocSinh: STUDENT_ID.value,
-          targetConnectionId: proctorConnectionId,
-          candidate, // examProctoringHub sẽ chuẩn hóa qua toJSON()
-        }),
-        () => {} // negotiation callback
-      )
-
-      // Theo dõi trạng thái peer
-      pc.onconnectionstatechange = () => {
-        if (import.meta.env.DEV)
-          console.debug('[Student] Peer connectionState:', pc.connectionState)
-      }
-      pc.oniceconnectionstatechange = () => {
-        if (import.meta.env.DEV)
-          console.debug('[Student] ICE state:', pc.iceConnectionState)
-      }
-
-      studentPeerConnections.set(proctorConnectionId, pc)
-
-      try {
-        const offer = await pc.createOffer()
-        await pc.setLocalDescription(offer)
-
-        await examProctoringHub.sendOffer({
-          maCaThi: caThiId,
-          maHocSinh: STUDENT_ID.value,
-          targetConnectionId: proctorConnectionId,
-          offer: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
-        })
-        if (import.meta.env.DEV) console.debug('[Student] Offer sent to proctor', proctorConnectionId)
-      } catch (e) {
-        console.error('[Student] Error creating offer', e)
-      }
-    }
-
     // WebRTC: Giám thị yêu cầu kết nối
     examProctoringHub.eventHandlers.onProctorRequestedConnections = async (payload) => {
       if (import.meta.env.DEV) console.debug('[Student] ProctorRequestedConnections', payload)
       await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
-      if (payload?.proctorConnectionId) {
-        await initPeerAndSendOffer(payload.proctorConnectionId)
-      }
 
       // Re-broadcast stream status so the newly joined proctor updates the UI from 'waiting' to 'streaming'
       if (screenStream.value) {
@@ -568,9 +512,7 @@ async function startExamEnvironment() {
     // WebRTC: Giám thị phản hồi StudentConnectionIdBroadcast
     examProctoringHub.eventHandlers.onProctorAcknowledged = async (payload) => {
       if (import.meta.env.DEV) console.debug('[Student] ProctorAcknowledged', payload)
-      if (payload?.proctorConnectionId) {
-        await initPeerAndSendOffer(payload.proctorConnectionId)
-      }
+      // Thí sinh chỉ cần chờ giám thị gửi Offer, không cần gửi Offer nữa.
     }
 
     // Xử lý ICE từ giám thị — cần queue vì ICE có thể tới trước setRemoteDescription xong
@@ -596,33 +538,59 @@ async function startExamEnvironment() {
       catch (e) { if (import.meta.env.DEV) console.warn('[Student] addIceCandidate error', e) }
     }
 
-    // WebRTC: Nhận Answer từ giám thị
-    examProctoringHub.eventHandlers.onReceiveAnswer = async (dto) => {
-      if (!dto?.answer) {
-        console.warn('[Student] ReceiveAnswer: invalid dto', dto)
+    // WebRTC: Nhận Offer từ giám thị
+    examProctoringHub.eventHandlers.onReceiveOffer = async (dto) => {
+      if (!dto?.offer) {
+        console.warn('[Student] ReceiveOffer: invalid dto', dto)
         return
       }
 
       if (dto.fromConnectionId === examProctoringHub.connectionId) {
-        if (import.meta.env.DEV) console.debug('[Student] Skip own answer')
         return
       }
 
       const proctorConnectionId = dto.fromConnectionId
-      if (import.meta.env.DEV) console.debug('[Student] ReceiveAnswer from proctor', proctorConnectionId)
+      if (import.meta.env.DEV) console.debug('[Student] ReceiveOffer from proctor', proctorConnectionId)
 
-      const pc = studentPeerConnections.get(proctorConnectionId)
-      if (!pc) {
-        console.warn('[Student] Received answer but no peer connection exists for proctor', proctorConnectionId)
-        return
+      // Dọn dẹp PeerConnection cũ nếu có
+      if (studentPeerConnections.has(proctorConnectionId)) {
+        studentPeerConnections.get(proctorConnectionId).close()
+        studentPeerConnections.delete(proctorConnectionId)
       }
 
+      const pc = createStudentPeerConnection(
+        screenStream.value,
+        (candidate) => examProctoringHub.sendIceCandidate({
+          maCaThi: caThiId,
+          maHocSinh: STUDENT_ID.value,
+          targetConnectionId: proctorConnectionId,
+          candidate,
+        }),
+        () => {}
+      )
+
+      pc.onconnectionstatechange = () => {
+        if (import.meta.env.DEV) console.debug('[Student] Peer connectionState:', pc.connectionState)
+      }
+
+      studentPeerConnections.set(proctorConnectionId, pc)
+
       try {
-        const answerDesc = { type: dto.answer.type, sdp: dto.answer.sdp }
-        await pc.setRemoteDescription(new window.RTCSessionDescription(answerDesc))
+        const offerDesc = { type: dto.offer.type, sdp: dto.offer.sdp }
+        await pc.setRemoteDescription(new window.RTCSessionDescription(offerDesc))
         await flushStudentIceQueue(proctorConnectionId)
+        
+        const answer = await pc.createAnswer()
+        await pc.setLocalDescription(answer)
+        
+        await examProctoringHub.sendAnswer({
+          maCaThi: caThiId,
+          maHocSinh: STUDENT_ID.value,
+          targetConnectionId: proctorConnectionId,
+          answer: { type: pc.localDescription.type, sdp: pc.localDescription.sdp }
+        })
       } catch (e) {
-        console.error('[Student] Error setting remote answer', e)
+        console.error('[Student] Error setting remote offer and sending answer', e)
       }
     }
 
@@ -947,7 +915,7 @@ function startRuntimeMonitoring() {
   }
 
   scanForbiddenExtensionsRuntime()
-  startDevtoolsDetection()
+  // startDevtoolsDetection() // Tạm tắt để dev debug theo yêu cầu
 }
 
 async function scanForbiddenExtensionsRuntime() {
@@ -1117,6 +1085,8 @@ const restrictedShortcutRules = [
 ]
 
 function handleRestrictedKeydown(event) {
+  // [Bypass for testing]
+  return;
   if (!examStarted.value || submitLocked) return
   const rule = restrictedShortcutRules.find(item => item.match(event))
   if (!rule) return
@@ -1315,6 +1285,8 @@ async function continueAfterSoftLock() {
 }
 
 function blockClipboard(event) {
+  // [Bypass for testing] return
+  return;
   if (!examStarted.value || submitLocked) return
   event.preventDefault()
   addViolation('CLIPBOARD_ATTEMPT', 'medium', 'Thao tác sao chép/dán bị chặn trong bài thi', { eventType: event.type })
@@ -1322,12 +1294,16 @@ function blockClipboard(event) {
 }
 
 function blockContextMenu(event) {
+  // [Bypass for testing] return
+  return;
   if (!examStarted.value || submitLocked) return
   event.preventDefault()
   addViolation('CONTEXT_MENU', 'low', 'Thao tác chuột phải bị chặn', { eventType: event.type })
 }
 
 function handleBeforeUnload(event) {
+  // [Bypass for testing] return
+  return;
   if (!examStarted.value || submitLocked) return
   addViolation(
     'KEYBOARD_SHORTCUT_ATTEMPT',

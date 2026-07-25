@@ -167,7 +167,7 @@ public class ExamMonitoringHub : Hub
     /// </summary>
     public async Task SendOffer(WebRtcOfferDto dto)
     {
-        if (!VerifyStudentIdentity(dto.MaHocSinh)) return;
+        if (!await IsAuthorizedProctor(dto.MaCaThi)) return;
         if (dto.MaCaThi <= 0 || dto.MaHocSinh <= 0)
         {
             _logger.LogWarning("SendOffer: Invalid maCaThi/maHocSinh — ignored.");
@@ -199,7 +199,7 @@ public class ExamMonitoringHub : Hub
     /// </summary>
     public async Task SendAnswer(WebRtcAnswerDto dto)
     {
-        if (!await IsAuthorizedProctor(dto.MaCaThi)) return;
+        if (!VerifyStudentIdentity(dto.MaHocSinh)) return;
         if (dto.MaCaThi <= 0 || dto.MaHocSinh <= 0)
         {
             _logger.LogWarning("SendAnswer: Invalid maCaThi/maHocSinh — ignored.");

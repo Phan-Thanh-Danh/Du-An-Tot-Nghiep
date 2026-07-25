@@ -1,4 +1,4 @@
-export const RTC_CONFIG = {
+export const getRtcConfig = () => ({
   iceServers: [
     {
       urls: [
@@ -7,13 +7,12 @@ export const RTC_CONFIG = {
       ]
     },
     {
-      // [TODO: Khi deploy lên Production, cần thay 127.0.0.1 bằng IP hoặc Domain thật của server]
-      urls: 'turn:127.0.0.1:3478',
+      urls: `turn:${window.location.hostname}:3478`,
       username: 'lms_turn_user',
       credential: 'lms_turn_password'
     }
   ]
-}
+})
 
 export async function requestScreenShare() {
   try {
@@ -44,12 +43,15 @@ export async function requestScreenShare() {
 }
 
 export function createStudentPeerConnection(stream, onIceCandidate) {
-  const pc = new RTCPeerConnection(RTC_CONFIG)
+  const pc = new RTCPeerConnection(getRtcConfig())
 
   // Thêm các track từ màn hình vào peer connection
-  stream.getTracks().forEach((track) => {
-    pc.addTrack(track, stream)
-  })
+  if (stream) {
+    stream.getTracks().forEach((track) => {
+      track.enabled = true
+      pc.addTrack(track, stream)
+    })
+  }
 
   // Lắng nghe ICE candidates để gửi cho teacher
   pc.onicecandidate = (event) => {
@@ -62,19 +64,21 @@ export function createStudentPeerConnection(stream, onIceCandidate) {
 }
 
 export function createProctorPeerConnection(onIceCandidate, onTrack) {
-  const pc = new RTCPeerConnection(RTC_CONFIG)
-  const remoteStream = new MediaStream()
+  const pc = new RTCPeerConnection(getRtcConfig())
+  pc.addTransceiver('video', { direction: 'recvonly' })
   let trackFired = false
 
   // Lắng nghe stream từ student
   pc.ontrack = (event) => {
     const track = event.track
-    remoteStream.addTrack(track)
+    track.enabled = true
 
     const publish = () => {
       if (!trackFired) {
         trackFired = true
-        onTrack(remoteStream)
+        // Tạo stream mới thay vì dùng stream tạo sẵn (như stream.git)
+        const newStream = new MediaStream([track])
+        onTrack(newStream)
       }
     }
 

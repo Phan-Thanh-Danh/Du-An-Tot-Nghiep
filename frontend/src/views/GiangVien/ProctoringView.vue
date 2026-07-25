@@ -566,23 +566,27 @@ onUnmounted(() => {
 
 async function setupHubAndWebRTC() {
   try {
-    const token = authStore.token
-    if (!token) return
+    const token = authStore.accessToken
+    console.log('[Proctor] setupHubAndWebRTC called, hasToken:', !!token)
+    if (!token) {
+      console.warn('[Proctor] No auth token available, aborting setupHubAndWebRTC')
+      return
+    }
 
+    console.log('[Proctor] Connecting to hub...')
     await examProctoringHub.connect(token)
+    console.log('[Proctor] Hub connect call finished. isConnected:', examProctoringHub.isConnected)
 
-    examProctoringHub.eventHandlers.onReceiveOffer = async (dto) => {
-      const { maCaThi, maHocSinh, targetConnectionId, offer } = dto
-      if (maCaThi != currentSession.value?.id) return
-
+    // Hàm tạo và gửi Offer cho thí sinh
+    const createAndSendOffer = async (maHocSinh, targetConnectionId) => {
       let pc = peerConnections.get(maHocSinh)
       if (!pc) {
         pc = createProctorPeerConnection(
           (candidate) => {
             examProctoringHub.sendIceCandidate({
-              maCaThi,
+              maCaThi: currentSession.value.id,
               maHocSinh,
-              targetConnectionId: dto.fromConnectionId,
+              targetConnectionId,
               candidate
             })
           },
@@ -597,29 +601,43 @@ async function setupHubAndWebRTC() {
       }
 
       try {
-        await pc.setRemoteDescription(new RTCSessionDescription(offer))
+        const offer = await pc.createOffer({ offerToReceiveVideo: true, offerToReceiveAudio: false })
+        await pc.setLocalDescription(offer)
 
-        // Flush ICE queue now that remote description is set
-        if (iceCandidateQueue.has(maHocSinh)) {
-          const queue = iceCandidateQueue.get(maHocSinh)
-          while (queue.length > 0) {
-            const c = queue.shift()
-            try { await pc.addIceCandidate(new RTCIceCandidate(c)) }
-            catch (e) { console.warn(`Error flushing ICE for ${maHocSinh}`, e) }
-          }
-        }
-
-        const answer = await pc.createAnswer()
-        await pc.setLocalDescription(answer)
-
-        examProctoringHub.sendAnswer({
-          maCaThi,
+        examProctoringHub.sendOffer({
+          maCaThi: currentSession.value.id,
           maHocSinh,
-          targetConnectionId: dto.fromConnectionId,
-          answer: { type: answer.type, sdp: answer.sdp }
+          targetConnectionId,
+          offer: { type: pc.localDescription.type, sdp: pc.localDescription.sdp }
         })
       } catch (err) {
-        console.error(`Error handling offer from student ${maHocSinh}:`, err)
+        console.error(`Error creating offer for student ${maHocSinh}:`, err)
+      }
+    }
+
+    // Lắng nghe Answer từ thí sinh
+    examProctoringHub.eventHandlers.onReceiveAnswer = async (dto) => {
+      const { maCaThi, maHocSinh, answer } = dto
+      if (maCaThi != currentSession.value?.id) return
+
+      let pc = peerConnections.get(maHocSinh)
+      if (pc) {
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription(answer))
+
+          // Flush ICE queue now that remote description is set
+          if (iceCandidateQueue.has(maHocSinh)) {
+            const queue = iceCandidateQueue.get(maHocSinh)
+            while (queue.length > 0) {
+              const c = queue.shift()
+              try { await pc.addIceCandidate(new RTCIceCandidate(c)) }
+              catch (e) { console.warn(`Error flushing ICE for ${maHocSinh}`, e) }
+            }
+            iceCandidateQueue.delete(maHocSinh)
+          }
+        } catch (err) {
+          console.error(`Error handling answer from student ${maHocSinh}:`, err)
+        }
       }
     }
 
@@ -649,13 +667,22 @@ async function setupHubAndWebRTC() {
           student.connectionId = payload.connectionId
         }
         await examProctoringHub.acknowledgeStudent(payload.connectionId)
+        
+        // --- NEW: Tạo SDP Offer và gửi cho Thí sinh ---
+        await createAndSendOffer(payload.maHocSinh, payload.connectionId)
       }
     }
     
-    examProctoringHub.eventHandlers.onScreenShareStatusChanged = (payload) => {
+    examProctoringHub.eventHandlers.onScreenShareStatusChanged = async (payload) => {
       const student = examStudents.value.find(s => s.studentId === payload.maHocSinh)
       if (student) {
         student.streamStatus = payload.status
+      }
+
+      // NẾU HỌC SINH VỪA BẮT ĐẦU CHIA SẺ, GIÁM THỊ CẦN TẠO OFFER MỚI GỬI SANG ĐỂ NHẬN LUỒNG!
+      if ((payload.status === 'streaming' || payload.status === 'active') && student?.connectionId) {
+        if (import.meta.env.DEV) console.debug('[Proctor] Student started sharing, sending new offer...')
+        await createAndSendOffer(payload.maHocSinh, student.connectionId)
       }
 
       if (payload.status === 'stopped' && studentStreams.value[payload.maHocSinh]) {
@@ -671,6 +698,12 @@ async function setupHubAndWebRTC() {
            peerConnections.delete(payload.maHocSinh)
          }
       }
+    }
+
+    // ── SAU KHI HUB CONNECTED: Nếu đã có session được chọn thì tự động join ──
+    if (selectedSessionId.value && examProctoringHub.isConnected) {
+      console.log('[Proctor] Hub connected, auto-joining exam room', selectedSessionId.value)
+      await examProctoringHub.joinExamRoom(selectedSessionId.value).catch(console.error)
     }
 
   } catch (e) {
@@ -731,8 +764,26 @@ async function openSession(session) {
     examStudents.value = []
   }
   
+  console.log('[Proctor] openSession:', session.id, 'hub connected:', examProctoringHub.isConnected)
+  
+  // Chờ hub connect xong (tối đa 5 giây)
+  if (!examProctoringHub.isConnected) {
+    console.warn('[Proctor] Hub not connected, waiting...')
+    for (let i = 0; i < 50; i++) {
+      await new Promise(r => setTimeout(r, 100))
+      if (examProctoringHub.isConnected) break
+    }
+  }
+
   if (examProctoringHub.isConnected) {
-    examProctoringHub.joinExamRoom(session.id).catch(console.error)
+    try {
+      await examProctoringHub.joinExamRoom(session.id)
+      console.log('[Proctor] ✅ Successfully joined exam room', session.id)
+    } catch (e) {
+      console.error('[Proctor] ❌ Failed to join exam room', e)
+    }
+  } else {
+    console.error('[Proctor] ❌ Hub still not connected after 5s wait!')
   }
 
   if (session.status === 'monitoring') {
