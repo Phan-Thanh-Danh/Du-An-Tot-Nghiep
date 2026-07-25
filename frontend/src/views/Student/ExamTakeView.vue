@@ -1407,7 +1407,7 @@ async function submitExam(reason = 'manual') {
     
     localStorage.setItem(submittedKey.value, 'true')
     clearExamRuntimeStorage(examId, STUDENT_ID.value)
-    router.replace(`/student/exams/results/${examId}`)
+    router.replace(`/student/exams/${maPhienThi.value}`)
   } catch (error) {
     submitLocked = false
     console.warn(error)
