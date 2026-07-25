@@ -9,11 +9,25 @@ namespace Backend.Controllers
     public class DebugController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-        public DebugController(ApplicationDbContext context) { _context = context; }
+        private readonly IWebHostEnvironment _env;
+
+        public DebugController(ApplicationDbContext context, IWebHostEnvironment env)
+        {
+            _context = context;
+            _env = env;
+        }
+
+        private IActionResult? EnsureDevelopmentOnly()
+        {
+            if (!_env.IsDevelopment()) return NotFound();
+            return null;
+        }
 
         [HttpGet("course/{id}")]
         public async Task<IActionResult> GetCourse(int id)
         {
+            var guard = EnsureDevelopmentOnly();
+            if (guard != null) return guard;
             var khoaHoc = await _context.KhoaHocs.Include(k => k.MonHoc).Include(k => k.Lop).FirstOrDefaultAsync(k => k.MaKhoaHoc == id);
             if (khoaHoc == null) return NotFound();
             return Ok(new {
@@ -29,6 +43,9 @@ namespace Backend.Controllers
         [HttpPost("reset-cathi")]
         public async Task<IActionResult> ResetCaThi()
         {
+            var guard = EnsureDevelopmentOnly();
+            if (guard != null) return guard;
+
             try
             {
                 var teacher = await _context.NguoiDungs.FirstOrDefaultAsync(u => u.Email == "lecturer01@edulms.local");

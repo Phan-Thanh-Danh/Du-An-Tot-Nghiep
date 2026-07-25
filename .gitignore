@@ -71,5 +71,9 @@ frontend/package-lock.json
 *.trx
 TestResults/
 
-
 .aider*
+
+# Scratch and temp files
+*.diff.txt
+diff_*.txt
+/scratch/
