@@ -392,7 +392,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onBeforeUnmount, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, onUnmounted, ref, markRaw } from 'vue'
 import {
   AlertCircle,
   AlertTriangle,
@@ -430,6 +430,7 @@ const liveViolations = ref([])
 const examStudents = ref([])
 const studentStreams = ref({})
 const peerConnections = new Map()
+const iceCandidateQueue = new Map()
 let clockTimer = null
 let violationTimer = null
 const isUnmounting = ref(false)
@@ -586,7 +587,10 @@ async function setupHubAndWebRTC() {
             })
           },
           (stream) => {
-            studentStreams.value[maHocSinh] = stream
+            studentStreams.value = { 
+              ...studentStreams.value, 
+              [maHocSinh]: markRaw(stream) 
+            }
           }
         )
         peerConnections.set(maHocSinh, pc)
@@ -594,6 +598,17 @@ async function setupHubAndWebRTC() {
 
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(offer))
+
+        // Flush ICE queue now that remote description is set
+        if (iceCandidateQueue.has(maHocSinh)) {
+          const queue = iceCandidateQueue.get(maHocSinh)
+          while (queue.length > 0) {
+            const c = queue.shift()
+            try { await pc.addIceCandidate(new RTCIceCandidate(c)) }
+            catch (e) { console.warn(`Error flushing ICE for ${maHocSinh}`, e) }
+          }
+        }
+
         const answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
 
@@ -601,7 +616,7 @@ async function setupHubAndWebRTC() {
           maCaThi,
           maHocSinh,
           targetConnectionId: dto.fromConnectionId,
-          answer
+          answer: { type: answer.type, sdp: answer.sdp }
         })
       } catch (err) {
         console.error(`Error handling offer from student ${maHocSinh}:`, err)
@@ -612,10 +627,17 @@ async function setupHubAndWebRTC() {
       const { maHocSinh, candidate } = dto
       const pc = peerConnections.get(maHocSinh)
       if (pc && candidate) {
-        try {
-          await pc.addIceCandidate(new RTCIceCandidate(candidate))
-        } catch (e) {
-          console.error(`Error adding ICE candidate from student ${maHocSinh}:`, e)
+        if (!pc.remoteDescription) {
+          if (!iceCandidateQueue.has(maHocSinh)) {
+            iceCandidateQueue.set(maHocSinh, [])
+          }
+          iceCandidateQueue.get(maHocSinh).push(candidate)
+        } else {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate))
+          } catch (e) {
+            console.error(`Error adding ICE candidate from student ${maHocSinh}:`, e)
+          }
         }
       }
     }
@@ -639,7 +661,9 @@ async function setupHubAndWebRTC() {
       if (payload.status === 'stopped' && studentStreams.value[payload.maHocSinh]) {
          const stream = studentStreams.value[payload.maHocSinh]
          stream.getTracks().forEach(track => track.stop())
-         delete studentStreams.value[payload.maHocSinh]
+         const newStreams = { ...studentStreams.value }
+         delete newStreams[payload.maHocSinh]
+         studentStreams.value = newStreams
          
          const pc = peerConnections.get(payload.maHocSinh)
          if (pc) {

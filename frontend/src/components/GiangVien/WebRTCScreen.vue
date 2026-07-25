@@ -1,6 +1,6 @@
 <template>
   <div class="webrtc-screen" :class="{ 'stream-active': isStreaming, 'stream-stopped': isStopped }">
-    <video ref="videoRef" autoplay playsinline class="webrtc-video" :class="{ compact, large }"></video>
+    <video ref="videoRef" autoplay playsinline muted class="webrtc-video" :class="{ compact, large }"></video>
     <div class="webrtc-overlay">
       <span v-if="!isStreaming" class="status-badge">
         {{ isStopped ? 'Đã dừng chia sẻ' : 'Đang kết nối...' }}

@@ -5,6 +5,12 @@ export const RTC_CONFIG = {
         'stun:stun.l.google.com:19302',
         'stun:stun1.l.google.com:19302'
       ]
+    },
+    {
+      // [TODO: Khi deploy lên Production, cần thay 127.0.0.1 bằng IP hoặc Domain thật của server]
+      urls: 'turn:127.0.0.1:3478',
+      username: 'lms_turn_user',
+      credential: 'lms_turn_password'
     }
   ]
 }
@@ -57,11 +63,26 @@ export function createStudentPeerConnection(stream, onIceCandidate) {
 
 export function createProctorPeerConnection(onIceCandidate, onTrack) {
   const pc = new RTCPeerConnection(RTC_CONFIG)
+  const remoteStream = new MediaStream()
+  let trackFired = false
 
   // Lắng nghe stream từ student
   pc.ontrack = (event) => {
-    if (event.streams && event.streams[0]) {
-      onTrack(event.streams[0])
+    const track = event.track
+    remoteStream.addTrack(track)
+
+    const publish = () => {
+      if (!trackFired) {
+        trackFired = true
+        onTrack(remoteStream)
+      }
+    }
+
+    if (!track.muted) {
+      publish()
+    }
+    track.onunmute = () => {
+      publish()
     }
   }
 

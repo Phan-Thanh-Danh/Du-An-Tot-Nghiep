@@ -1354,12 +1354,21 @@ public class ExamService : IExamService
             return "result_published";
         }
 
-        if (caThi?.TrangThai == "dang_thi" || exam.TrangThai == "dang_mo")
+        if (caThi != null)
+        {
+            if (caThi.TrangThai == "dang_thi") return "open";
+            if (caThi.TrangThai == "da_ket_thuc") return "closed";
+            // For other session states like da_san_sang, cho_phan_cong, we return scheduled
+            return "scheduled";
+        }
+
+        // Fallback for exams without a specific CaThi assignment
+        if (exam.TrangThai == "dang_mo")
         {
             return "open";
         }
 
-        if (caThi?.TrangThai == "da_ket_thuc" || exam.TrangThai == "da_dong")
+        if (exam.TrangThai == "da_dong")
         {
             return "closed";
         }

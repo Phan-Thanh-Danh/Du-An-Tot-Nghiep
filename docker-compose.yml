@@ -44,5 +44,16 @@ services:
     depends_on:
       - backend
 
+  coturn:
+    image: coturn/coturn:latest
+    restart: unless-stopped
+    entrypoint: ["turnserver", "-c", "/etc/coturn/turnserver.conf"]
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      - "49152-49200:49152-49200/udp"
+    volumes:
+      - ./turnserver.conf:/etc/coturn/turnserver.conf:ro
+
 volumes:
   sqlserver_data:

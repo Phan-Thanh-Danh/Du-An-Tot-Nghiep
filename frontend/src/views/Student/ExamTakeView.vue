@@ -121,6 +121,10 @@ let submitLocked = false
 let suppressFocusViolationUntil = 0
 const lastViolationByType = new Map()
 
+// Lưu trữ peer connections theo connectionId của giám thị
+const studentPeerConnections = new Map()  // proctorConnectionId -> RTCPeerConnection
+const studentPendingIce = new Map()        // proctorConnectionId -> RTCIceCandidateInit[]
+
 const currentQuestion = computed(() => questions.value[currentQuestionIndex.value] || questions.value[0])
 
 const answeredCount = computed(() => questions.value.filter((question) => isAnswered(question)).length)
@@ -429,6 +433,7 @@ async function startExamEnvironment() {
     attachLockdownListeners()
 
     const stream = await requestExamScreenShare()
+    attachScreenStream(stream)
 
     await requestExamFullscreen()
     await lockExamKeyboard()
@@ -473,8 +478,7 @@ async function startExamEnvironment() {
     await examProctoringHub.connect(token)
 
     // Lưu trữ peer connections theo connectionId của giám thị
-    const studentPeerConnections = new Map()  // proctorConnectionId -> RTCPeerConnection
-    const studentPendingIce = new Map()        // proctorConnectionId -> RTCIceCandidateInit[]
+    // (đã được chuyển lên cấp component để tái sử dụng)
 
     function getStudentIceQueue(proctorConnId) {
       if (!studentPendingIce.has(proctorConnId)) studentPendingIce.set(proctorConnId, [])
@@ -497,7 +501,7 @@ async function startExamEnvironment() {
     const initPeerAndSendOffer = async (proctorConnectionId) => {
       if (!proctorConnectionId) return
 
-      if (!stream) {
+      if (!screenStream.value) {
         console.warn('[Student] Cannot create offer: screen stream is missing')
         return
       }
@@ -508,7 +512,7 @@ async function startExamEnvironment() {
       }
 
       const pc = createStudentPeerConnection(
-        stream,
+        screenStream.value,
         // Student gửi ICE candidate về giám thị
         (candidate) => examProctoringHub.sendIceCandidate({
           maCaThi: caThiId,
@@ -553,6 +557,11 @@ async function startExamEnvironment() {
       await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
       if (payload?.proctorConnectionId) {
         await initPeerAndSendOffer(payload.proctorConnectionId)
+      }
+
+      // Re-broadcast stream status so the newly joined proctor updates the UI from 'waiting' to 'streaming'
+      if (screenStream.value) {
+        await examProctoringHub.screenShareStarted(caThiId, STUDENT_ID.value)
       }
     }
 
@@ -692,7 +701,7 @@ async function startExamEnvironment() {
     await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
     await examProctoringHub.screenShareStarted(caThiId, STUDENT_ID.value)
 
-    attachScreenStream(stream)
+    // Đã gọi attachScreenStream(stream) ở trên cùng của hàm
     
     examStarted.value = true
     monitoringStatus.value = 'active'
@@ -880,7 +889,21 @@ async function restartScreenShare() {
   try {
     startError.value = ''
     monitoringStatus.value = 'starting'
-    await requestExamScreenShare()
+    const newStream = await requestExamScreenShare()
+    attachScreenStream(newStream)
+    
+    const videoTrack = newStream.getVideoTracks()[0]
+    for (const pc of studentPeerConnections.values()) {
+      const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video')
+      if (sender && videoTrack) {
+        await sender.replaceTrack(videoTrack)
+      }
+    }
+    
+    if (examProctoringHub.isConnected) {
+      await examProctoringHub.screenShareStarted(caThiId, STUDENT_ID.value)
+    }
+
     isSuspended.value = false // Bỏ Hard Lock
     pushWarning('Chia sẻ màn hình đã được bật lại.', 'low')
   } catch (error) {

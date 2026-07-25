@@ -163,12 +163,11 @@ public class ExamMonitoringHub : Hub
     // ── WebRTC Signaling ──────────────────────────────────────────────────────
 
     /// <summary>
-    /// Gửi Offer SDP tới học sinh.
-    /// Nếu chưa biết targetConnectionId thì fallback broadcast cả phòng (trường hợp proctor join sau student).
+    /// Học sinh gửi Offer SDP tới giám thị.
     /// </summary>
     public async Task SendOffer(WebRtcOfferDto dto)
     {
-        if (!await IsAuthorizedProctor(dto.MaCaThi)) return;
+        if (!VerifyStudentIdentity(dto.MaHocSinh)) return;
         if (dto.MaCaThi <= 0 || dto.MaHocSinh <= 0)
         {
             _logger.LogWarning("SendOffer: Invalid maCaThi/maHocSinh — ignored.");
@@ -187,7 +186,7 @@ public class ExamMonitoringHub : Hub
             return;
         }
 
-        // Fallback: proctor gửi offer nhưng chưa có targetConnectionId → broadcast phòng
+        // Fallback: student gửi offer nhưng chưa có targetConnectionId → broadcast tới proctors
         _logger.LogWarning(
             "SendOffer: No targetConnectionId — broadcasting to group exam-{MaCaThi}", dto.MaCaThi
         );
@@ -195,12 +194,12 @@ public class ExamMonitoringHub : Hub
     }
 
     /// <summary>
-    /// Học sinh gửi Answer SDP về giám thị.
+    /// Giám thị gửi Answer SDP về học sinh.
     /// BẮT BUỘC có targetConnectionId — không broadcast.
     /// </summary>
     public async Task SendAnswer(WebRtcAnswerDto dto)
     {
-        if (!VerifyStudentIdentity(dto.MaHocSinh)) return;
+        if (!await IsAuthorizedProctor(dto.MaCaThi)) return;
         if (dto.MaCaThi <= 0 || dto.MaHocSinh <= 0)
         {
             _logger.LogWarning("SendAnswer: Invalid maCaThi/maHocSinh — ignored.");
