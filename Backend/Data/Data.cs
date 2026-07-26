@@ -93,7 +93,7 @@ public static class Data
         await SeedDeKiemTraAsync(context, subjects, terms);
 
         // Seed CaThi & Assign lecturer01 & student01
-        await SeedCaThiTestEnvironmentAsync(context, hcmCampus);
+        // await SeedCaThiTestEnvironmentAsync(context, hcmCampus);
 
         // Seed P15G smoke detail data for 166/166 browser smoke
         await SeedP15GSmokeDetailDataAsync(

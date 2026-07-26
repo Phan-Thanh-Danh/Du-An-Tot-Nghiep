@@ -13,11 +13,6 @@ END
 DECLARE @MaPhong INT = 1;
 DECLARE @MaGiamThi INT = 15;
 
--- Danh sach mon hoc:
--- 2: Nhập môn lập trình
--- 51: Tin học cơ bản
--- 50: Kỹ năng học tập
-
 -- Xoa du lieu cu
 DELETE FROM PhienThiHocSinh;
 DELETE FROM DiemDanhThi;
@@ -59,7 +54,7 @@ BEGIN
             15, 
             'trac_nghiem', 
             'chon_mot', 
-            N'Câu ' + CAST(@i AS NVARCHAR) + N': Kiến thức liên quan đến ' + @MonTen + N' (Sample)?', 
+            N'Câu ' + CAST(@i AS NVARCHAR) + N': Kiến thức liên quan đến ' + @MonTen + N'?', 
             N'[{"id":"A","text":"Lựa chọn A"},{"id":"B","text":"Lựa chọn B"},{"id":"C","text":"Lựa chọn C"},{"id":"D","text":"Lựa chọn D"}]', 
             N'["A"]',
             'de',
@@ -94,10 +89,16 @@ BEGIN
     INSERT INTO ThiSinhCaThi (ma_ca_thi, ma_hoc_sinh, trang_thai_du_thi, ngay_tao)
     SELECT @CaThiId, ma_nguoi_dung, 'cho_thi', GETDATE()
     FROM NguoiDung 
-    WHERE vai_tro_chinh = 'hoc_sinh' AND (email LIKE '%sd1904%' OR email = 'student01@edulms.local');
+    WHERE vai_tro_chinh = 'hoc_sinh' AND ma_lop = 4;
 
     FETCH NEXT FROM cur INTO @MonId, @MonTen;
 END
 
 CLOSE cur;
 DEALLOCATE cur;
+-- Đảm bảo 3 bài thi này được hiển thị
+UPDATE DeKiemTra SET trang_thai = 'dang_mo' WHERE ma_mon_hoc IN (2, 50, 51);
+
+-- Ẩn các đề thi không liên quan để tránh hiện trong danh sách của sinh viên
+UPDATE DeKiemTra SET trang_thai = 'nhap' 
+WHERE ma_mon_hoc NOT IN (2, 50, 51) OR ma_mon_hoc IS NULL;

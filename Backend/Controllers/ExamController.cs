@@ -241,7 +241,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpPost("vi-pham")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin},{AuthRoles.Student}")]
     public async Task<ActionResult<ApiResponseDto<NhatKyViPhamThiDto>>> CreateViPham(
         CreateNhatKyViPhamRequest request, CancellationToken ct)
     {

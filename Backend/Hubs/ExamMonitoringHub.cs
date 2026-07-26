@@ -275,7 +275,8 @@ public class ExamMonitoringHub : Hub
 
     public async Task SendViolationLog(int maCaThi, int maHocSinh, string loaiViPham, string? chiTiet)
     {
-        if (!await IsAuthorizedProctor(maCaThi)) return;
+        if (!VerifyStudentIdentity(maHocSinh)) return;
+        
         await Clients.Group($"exam-{maCaThi}").SendAsync("ViolationDetected", new
         {
             maHocSinh, loaiViPham, chiTiet,
