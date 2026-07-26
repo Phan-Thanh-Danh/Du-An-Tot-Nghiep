@@ -145,6 +145,14 @@ export const teacherApi = {
     return apiRequest(`/api/exam/ca-thi/${id}/start`, { method: 'POST' })
   },
 
+  endExamSession(id) {
+    return apiRequest(`/api/exam/ca-thi/${id}/end`, { method: 'POST' })
+  },
+
+  suspendExamSession(id) {
+    return apiRequest(`/api/exam/ca-thi/${id}/suspend`, { method: 'POST' })
+  },
+
   async getExamStudents(examId) {
     const rawRes = await apiRequest(`/api/exam/ca-thi/${examId}/thi-sinh`)
     const res = unwrapApiData(rawRes)

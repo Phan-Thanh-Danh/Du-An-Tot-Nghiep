@@ -609,6 +609,29 @@ public class ExamService : IExamService
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task EndCaThiAsync(int id, CancellationToken ct)
+    {
+        var caThi = await _db.CaThis.FindAsync(new object[] { id }, ct)
+            ?? throw new ApiException(404, "Ca thi không tồn tại.");
+
+        caThi.TrangThai = "da_ket_thuc";
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task SuspendCaThiAsync(int id, CancellationToken ct)
+    {
+        var caThi = await _db.CaThis.FindAsync(new object[] { id }, ct)
+            ?? throw new ApiException(404, "Ca thi không tồn tại.");
+
+        if (caThi.TrangThai == "da_ket_thuc" || caThi.TrangThai == "da_huy")
+        {
+            throw new ApiException(400, "Ca thi đã kết thúc hoặc đã hủy, không thể tạm dừng.");
+        }
+
+        caThi.TrangThai = "tam_dung";
+        await _db.SaveChangesAsync(ct);
+    }
+
     // ===== NhatKyViPhamThi =====
 
     public async Task<IReadOnlyList<NhatKyViPhamThiDto>> GetViPhamsByCaThiAsync(int maCaThi, CancellationToken ct)
@@ -887,13 +910,19 @@ public class ExamService : IExamService
             .ToHashSet();
         var currentSemesterIndex = DetermineCurrentSemester(programSubjects, completedSubjectIds, program.SoHocKy);
 
+        var assignedExamIds = await _db.ThiSinhCaThis
+            .AsNoTracking()
+            .Where(x => x.MaHocSinh == maHocSinh && x.CaThi != null && x.CaThi.LichThiTong != null && x.CaThi.LichThiTong.MaDeKiemTra.HasValue)
+            .Select(x => x.CaThi!.LichThiTong!.MaDeKiemTra!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+
         var exams = await _db.DeKiemTras
             .AsNoTracking()
             .Include(x => x.MonHoc)
             .Include(x => x.HocKy)
             .Where(x =>
-                x.MaMonHoc.HasValue &&
-                subjectIds.Contains(x.MaMonHoc.Value) &&
+                ((x.MaMonHoc.HasValue && subjectIds.Contains(x.MaMonHoc.Value)) || assignedExamIds.Contains(x.MaDeKiemTra)) &&
                 x.TrangThai != "nhap")
             .OrderBy(x => x.MaHocKy)
             .ThenBy(x => x.MaMonHoc)
@@ -974,7 +1003,7 @@ public class ExamService : IExamService
                 ClassSectionCode = student.Lop.MaCodeLop,
                 TrangThaiDuThi = assignment?.TrangThaiDuThi
             };
-        }).ToList();
+        }).Where(x => x.MaCaThi != null || x.UsedAttempts > 0).ToList();
     }
 
     public async Task<PhienThiDto> StartExamAsync(StartExamRequest request, int maHocSinh, CancellationToken ct)

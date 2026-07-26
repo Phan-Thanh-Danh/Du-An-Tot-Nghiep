@@ -654,7 +654,7 @@ async function endExamSession() {
 
   if (currentSession.value) {
     try {
-      await examProctoringHub.endExamSession(currentSession.value.id)
+      await teacherApi.endExamSession(currentSession.value.id)
       cleanupWebRTC()
       isMonitoring.value = false
       router.push({ name: 'teacher-proctoring-sessions' })
@@ -664,11 +664,15 @@ async function endExamSession() {
   }
 }
 
-function suspendExamSession() {
+async function suspendExamSession() {
   if (!confirm('Tạm dừng toàn bộ ca thi? Học sinh sẽ không thể làm bài tiếp.')) return
   if (currentSession.value) {
-    examProctoringHub.suspendExamSession(currentSession.value.id, 'Giám thị yêu cầu tạm dừng')
-    popupStore.warning('Đã tạm dừng', 'Toàn bộ ca thi đã bị tạm dừng.')
+    try {
+      await teacherApi.suspendExamSession(currentSession.value.id)
+      popupStore.warning('Đã tạm dừng', 'Toàn bộ ca thi đã bị tạm dừng.')
+    } catch (e) {
+      popupStore.error('Lỗi', 'Không thể tạm dừng ca thi.')
+    }
   }
 }
 

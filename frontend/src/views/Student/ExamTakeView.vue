@@ -1088,8 +1088,8 @@ const restrictedShortcutRules = [
   {
     name: 'DEVTOOLS_SHORTCUT',
     match: e =>
-      e.key === 'F12' ||
-      e.code === 'F12' ||
+      // e.key === 'F12' ||
+      // e.code === 'F12' ||
       ((e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'j', 'c'].includes(String(e.key).toLowerCase())) ||
       (e.metaKey && e.altKey && String(e.key).toLowerCase() === 'i'),
     severity: 'critical',

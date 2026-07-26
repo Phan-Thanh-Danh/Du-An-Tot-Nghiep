@@ -25,8 +25,10 @@ public interface IExamService
     Task<CaThiDto> CreateCaThiAsync(CreateCaThiRequest request, CancellationToken ct);
     Task<CaThiDto> UpdateCaThiAsync(int id, UpdateCaThiRequest request, CancellationToken ct);
     Task StartCaThiAsync(int id, CancellationToken ct);
+    Task EndCaThiAsync(int id, CancellationToken ct);
+    Task SuspendCaThiAsync(int id, CancellationToken ct);
 
-    // PhanCongGiamThi
+    // ===== PhanCongGiamThi =====
     Task<IReadOnlyList<PhanCongGiamThiDto>> GetGiamThisByCaThiAsync(int maCaThi, CancellationToken ct);
     Task<PhanCongGiamThiDto> AssignGiamThiAsync(CreatePhanCongGiamThiRequest request, CancellationToken ct);
     Task RemoveGiamThiAsync(int maPhanCong, CancellationToken ct);
