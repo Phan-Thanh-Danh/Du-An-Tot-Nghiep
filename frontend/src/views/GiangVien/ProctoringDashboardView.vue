@@ -207,7 +207,7 @@
               <button type="button" @click="requestCameraStream(selectedStudent)">
                 <Video :size="14" class="mr-1" inline /> Xem camera
               </button>
-              <button type="button" @click="sendReminder(selectedStudent)">
+              <button type="button" @click="showReminderDialog(selectedStudent)">
                 <MessageSquareWarning :size="14" class="mr-1" inline /> Nhắc nhở
               </button>
               <button type="button" @click="suspendStudent(selectedStudent)" class="danger">
@@ -224,14 +224,19 @@
                 {{ examStatusLabel(selectedStudent?.examStatus) }}
               </GlassBadge>
               
-              <div class="modal-facts">
-                <div>
-                  <span>Vi phạm chưa xử lý</span>
-                  <strong class="text-rose-500">{{ studentViolationCount(selectedStudent) }}</strong>
+              <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border-default); font-size: 0.78rem;">
+                  <span style="color: var(--text-label);">Vi phạm chưa xử lý</span>
+                  <strong :class="studentViolationCount(selectedStudent) > 0 ? 'text-rose-500' : 'text-green-500'" style="font-size: 0.82rem;">
+                    {{ studentViolationCount(selectedStudent) }} vi phạm
+                  </strong>
                 </div>
-                <div>
-                  <span>Trạng thái kết nối</span>
-                  <strong>{{ selectedStudent?.connectionId ? 'Online' : 'Offline' }}</strong>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: 0.78rem;">
+                  <span style="color: var(--text-label);">Trạng thái kết nối</span>
+                  <strong :class="selectedStudent?.connectionId ? 'text-green-500' : 'text-slate-400'" style="font-size: 0.82rem;">
+                    <span v-if="selectedStudent?.connectionId">&#9679; Online</span>
+                    <span v-else>&#9675; Offline</span>
+                  </strong>
                 </div>
               </div>
               
@@ -264,6 +269,37 @@
               </div>
             </div>
           </aside>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- REMINDER DIALOG -->
+    <Teleport to="body">
+      <div v-if="reminderDialog.visible" class="student-modal-backdrop" @click="reminderDialog.visible = false">
+        <div class="reminder-dialog surface-card border-card" @click.stop>
+          <h3 class="reminder-title">
+            <MessageSquareWarning :size="18" />
+            Nhắc nhở thí sinh
+          </h3>
+          <p class="reminder-student">{{ reminderDialog.student?.studentCode }} &mdash; {{ reminderDialog.student?.name }}</p>
+
+          <div class="reminder-presets">
+            <button
+              v-for="preset in reminderPresets"
+              :key="preset"
+              type="button"
+              class="preset-btn"
+              :class="{ active: reminderDialog.message === preset }"
+              @click="reminderDialog.message = preset"
+            >{{ preset }}</button>
+          </div>
+
+          <div class="reminder-actions">
+            <button type="button" class="ghost-btn" @click="reminderDialog.visible = false">Hủy</button>
+            <button type="button" class="send-btn" @click="sendReminderConfirm">
+              <MessageSquareWarning :size="14" /> Gửi nhắc nhở
+            </button>
+          </div>
         </div>
       </div>
     </Teleport>
@@ -315,6 +351,14 @@ const isMonitoring = ref(false)
 const remoteVideoRefs = ref({})
 const liveViolations = ref([])
 const selectedStudent = ref(null)
+
+const reminderDialog = ref({ visible: false, student: null, message: '' })
+const reminderPresets = [
+  'Vui lòng quay lại bài thi và tuân thủ quy định.',
+  'Không được chuyển tab hoặc rời khỏi cửa sổ thi.',
+  'Hãy giữ nàn hì̀nh, không có vấn đề gì đầu.',
+  'Liên hệ giám thị nếu có vấn đề kỹ thuật.',
+]
 
 const activeCount = computed(() => {
   return currentStudents.value.filter((s) => s.examStatus === 'in_progress').length
@@ -580,10 +624,18 @@ function setModalVideoRef(el, code) {
 
 // Actions
 function requestScreenStream(student) {
+  // Mở modal để xem stream
+  openStudentModal(student)
+  
   if (currentSession.value && student.connectionId) {
-    examProctoringHub.requestStream(currentSession.value.id, student.connectionId, 'screen')
-    popupStore.info('Đã gửi yêu cầu', `Yêu cầu stream màn hình đến ${student.studentCode}`)
-  } else {
+    // Chặn fullscreen video modal sau khi render
+    nextTick(() => {
+      const modalVideoEl = remoteVideoRefs.value[`modal_${student.studentId}`]
+      if (modalVideoEl && studentStreams.value[student.studentId]) {
+        modalVideoEl.requestFullscreen?.().catch(() => {})
+      }
+    })
+  } else if (!student.connectionId) {
     popupStore.warning('Không thể gửi', 'Thí sinh chưa kết nối.')
   }
 }
@@ -657,10 +709,22 @@ function closeStudentModal() {
 }
 
 function sendReminder(student) {
-  const message = window.prompt('Nội dung nhắc nhở', 'Vui lòng quay lại bài thi và tuân thủ quy định.')
-  if (!message) return
+  showReminderDialog(student)
+}
 
-  if (student.connectionId && currentSession.value) {
+function showReminderDialog(student) {
+  reminderDialog.value = {
+    visible: true,
+    student,
+    message: reminderPresets[0],
+  }
+}
+
+function sendReminderConfirm() {
+  const { student, message } = reminderDialog.value
+  if (!message.trim()) return
+
+  if (student?.connectionId && currentSession.value) {
     examProctoringHub.sendWarningToStudent(currentSession.value.id, student.connectionId, message)
   }
 
@@ -670,7 +734,8 @@ function sendReminder(student) {
     message,
     timestamp: new Date().toISOString(),
   })
-  popupStore.info('Đã gửi nhắc nhở', `${student.studentCode} · ${message}`)
+  popupStore.info('Dã gửi nhắc nhở', `${student.studentCode} · ${message}`)
+  reminderDialog.value.visible = false
 }
 
 async function suspendStudent(student) {
@@ -1120,4 +1185,121 @@ function markStudentHandled(student) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ── Modal facts rows ─────────────────────────────────────────────────── */
+.modal-fact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-default);
+  gap: 12px;
+}
+.modal-fact-row:last-child { border-bottom: none; }
+.modal-fact-row > span { color: var(--text-label); font-size: 0.8rem; }
+.modal-fact-row > strong { font-size: 0.9rem; display: flex; align-items: center; gap: 4px; }
+
+/* ── Reminder dialog ─────────────────────────────────────────────────── */
+.reminder-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  width: min(480px, 95vw);
+  padding: 28px 28px 24px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.reminder-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin: 0;
+}
+
+.reminder-student {
+  font-size: 0.82rem;
+  color: var(--text-label);
+  margin: 0;
+}
+
+.reminder-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preset-btn {
+  font-size: 0.75rem;
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border-input);
+  background: transparent;
+  color: var(--text-body);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+.preset-btn:hover { background: var(--surface-input); }
+.preset-btn.active {
+  background: var(--lg-primary, #2563eb);
+  color: #fff;
+  border-color: transparent;
+}
+
+.reminder-textarea {
+  width: 100%;
+  background: var(--surface-input);
+  border: 1px solid var(--border-input);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text-body);
+  font-size: 0.85rem;
+  resize: vertical;
+  outline: none;
+  transition: border 0.15s;
+  box-sizing: border-box;
+}
+.reminder-textarea:focus { border-color: var(--border-input-focus); }
+
+.reminder-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ghost-btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--text-label);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.15s;
+}
+.ghost-btn:hover { background: var(--surface-input); }
+
+.send-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: 8px;
+  background: var(--lg-primary, #2563eb);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+.send-btn:hover { opacity: 0.88; }
 </style>
