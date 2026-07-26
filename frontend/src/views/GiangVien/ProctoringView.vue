@@ -392,7 +392,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onBeforeUnmount, onUnmounted, ref, markRaw } from 'vue'
+import { computed, onMounted, onBeforeUnmount, onUnmounted, ref, markRaw, watch } from 'vue'
 import {
   AlertCircle,
   AlertTriangle,
@@ -421,12 +421,15 @@ const authStore = useAuthStore()
 const loading = ref(false)
 const error = ref('')
 const popupStore = usePopupStore()
-const viewState = ref('sessions')
+const viewState = ref(sessionStorage.getItem('proctoring_viewState') || 'sessions')
 const currentTime = ref('')
-const selectedSessionId = ref('')
+const selectedSessionId = ref(sessionStorage.getItem('proctoring_sessionId') ? Number(sessionStorage.getItem('proctoring_sessionId')) : '')
 const selectedStudent = ref(null)
 const soundEnabled = ref(true)
 const liveViolations = ref([])
+
+watch(viewState, (val) => sessionStorage.setItem('proctoring_viewState', val))
+watch(selectedSessionId, (val) => sessionStorage.setItem('proctoring_sessionId', val))
 const examStudents = ref([])
 const studentStreams = ref({})
 const peerConnections = new Map()
@@ -585,6 +588,7 @@ async function setupHubAndWebRTC() {
         pc.close()
         peerConnections.delete(maHocSinh)
       }
+      iceCandidateQueue.delete(maHocSinh)
 
       pc = createProctorPeerConnection(
         (candidate) => {
@@ -600,6 +604,10 @@ async function setupHubAndWebRTC() {
             ...studentStreams.value, 
             [maHocSinh]: markRaw(stream) 
           }
+        },
+        async () => {
+          if (import.meta.env.DEV) console.warn(`[Proctor] WebRTC reconnecting for student ${maHocSinh}...`)
+          await createAndSendOffer(maHocSinh, targetConnectionId)
         }
       )
       peerConnections.set(maHocSinh, pc)
@@ -665,7 +673,7 @@ async function setupHubAndWebRTC() {
     }
     
     examProctoringHub.eventHandlers.onStudentConnectionIdBroadcast = async (payload) => {
-      if (payload.maCaThi == currentSession.value?.id) {
+      if (payload.maCaThi == selectedSessionId.value) {
         const student = examStudents.value.find(s => s.studentId === payload.maHocSinh || s.id === payload.maHocSinh)
         if (student) {
           student.connectionId = payload.connectionId
@@ -707,7 +715,7 @@ async function setupHubAndWebRTC() {
     // ── SAU KHI HUB CONNECTED: Nếu đã có session được chọn thì tự động join ──
     if (selectedSessionId.value && examProctoringHub.isConnected) {
       console.log('[Proctor] Hub connected, auto-joining exam room', selectedSessionId.value)
-      await examProctoringHub.joinExamRoom(selectedSessionId.value).catch(console.error)
+      await examProctoringHub.joinExamRoom(parseInt(selectedSessionId.value, 10)).catch(console.error)
     }
 
   } catch (e) {
@@ -805,7 +813,7 @@ function goBack() {
   }
 
   if (selectedSessionId.value && examProctoringHub.isConnected) {
-    examProctoringHub.leaveExamRoom(selectedSessionId.value).catch(console.error)
+    examProctoringHub.leaveExamRoom(parseInt(selectedSessionId.value, 10)).catch(console.error)
   }
 
   selectedSessionId.value = ''

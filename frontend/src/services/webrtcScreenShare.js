@@ -63,7 +63,7 @@ export function createStudentPeerConnection(stream, onIceCandidate) {
   return pc
 }
 
-export function createProctorPeerConnection(onIceCandidate, onTrack) {
+export function createProctorPeerConnection(onIceCandidate, onTrack, onReconnectNeeded) {
   const pc = new RTCPeerConnection(getRtcConfig())
   pc.addTransceiver('video', { direction: 'recvonly' })
   let trackFired = false
@@ -76,7 +76,6 @@ export function createProctorPeerConnection(onIceCandidate, onTrack) {
     const publish = () => {
       if (!trackFired) {
         trackFired = true
-        // Tạo stream mới thay vì dùng stream tạo sẵn (như stream.git)
         const newStream = new MediaStream([track])
         onTrack(newStream)
       }
@@ -94,6 +93,20 @@ export function createProctorPeerConnection(onIceCandidate, onTrack) {
   pc.onicecandidate = (event) => {
     if (event.candidate) {
       onIceCandidate(event.candidate)
+    }
+  }
+
+  pc.oniceconnectionstatechange = () => {
+    if (pc.iceConnectionState === 'failed') {
+      console.warn('WebRTC: ICE failed, triggering reconnect...')
+      if (onReconnectNeeded) onReconnectNeeded()
+    }
+  }
+
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+      console.warn('WebRTC: Connection failed/disconnected, triggering reconnect...')
+      if (onReconnectNeeded) onReconnectNeeded()
     }
   }
 

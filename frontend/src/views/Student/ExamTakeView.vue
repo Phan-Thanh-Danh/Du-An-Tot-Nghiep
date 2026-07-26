@@ -586,6 +586,13 @@ async function startExamEnvironment() {
 
       pc.onconnectionstatechange = () => {
         if (import.meta.env.DEV) console.debug('[Student] Peer connectionState:', pc.connectionState)
+        if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected' || pc.connectionState === 'closed') {
+           const oldPc = studentPeerConnections.get(proctorConnectionId)
+           if (oldPc) {
+             oldPc.close()
+           }
+           studentPeerConnections.delete(proctorConnectionId)
+        }
       }
 
       studentPeerConnections.set(proctorConnectionId, pc)
