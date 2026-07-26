@@ -1,0 +1,1123 @@
+<template>
+  <div class="proctor-page">
+    <section class="proctor-header surface-card border-card">
+      <div class="header-main">
+        <div class="header-icon">
+          <Monitor :size="24" />
+        </div>
+        <div>
+          <p class="header-eyebrow">M4 Controlled Exam Environment</p>
+          <h1>Dashboard Giám sát</h1>
+          <p>Giám sát realtime không gian thi và màn hình thí sinh.</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button
+          type="button"
+          class="ghost-action"
+          @click="endExamSession"
+        >
+          <LogOut :size="16" />
+          Kết thúc ca thi
+        </button>
+
+        <div class="time-chip">
+          <Clock :size="18" />
+          <div>
+            <span>Thời gian thực</span>
+            <strong>{{ currentTime }}</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div v-if="loading" class="p-4">
+      <ListSkeleton :rows="4" />
+    </div>
+    <div v-else-if="error" class="flex flex-col items-center justify-center min-h-[400px] gap-4">
+      <AlertCircle :size="48" class="text-rose-400" />
+      <p class="text-rose-600 font-semibold">{{ error }}</p>
+      <button @click="router.push({ name: 'teacher-proctoring-sessions' })" class="btn-primary">Quay lại</button>
+    </div>
+    <template v-else-if="currentSession">
+      <!-- DASHBOARD TOOLBAR -->
+      <section class="dashboard-toolbar surface-card border-card">
+        <div>
+          <p class="section-eyebrow">{{ currentSession.subjectCode }} · {{ currentSession.classCode }}</p>
+          <h2>Dashboard Giám sát</h2>
+          <p>{{ currentSession.examTitle }} · Phòng: {{ currentSession.room }}</p>
+        </div>
+        <div class="dashboard-counters">
+          <div>
+            <span>Đang thi</span>
+            <strong>{{ activeCount }} / {{ currentStudents.length }}</strong>
+          </div>
+          <div>
+            <span>Cảnh báo mới</span>
+            <strong class="text-rose-500">{{ unhandledViolations.length }}</strong>
+          </div>
+          <div>
+            <span>Đã nộp bài</span>
+            <strong class="text-teal-500">{{ submittedCount }}</strong>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="danger-action"
+          :disabled="!isMonitoring"
+          @click="suspendExamSession"
+        >
+          <ShieldAlert :size="16" />
+          Tạm dừng ca thi
+        </button>
+      </section>
+
+      <!-- ALERTS STRIP -->
+      <section v-if="unhandledViolations.length > 0" class="alert-strip surface-card border-card">
+        <div class="alert-strip-head">
+          <div class="flex items-center gap-2">
+            <AlertTriangle :size="18" class="text-rose-500" />
+            <h3 class="font-bold text-rose-500 m-0">Cảnh báo vi phạm ({{ unhandledViolations.length }})</h3>
+          </div>
+          <button type="button" class="ghost-action" @click="clearAllAlerts">Đánh dấu đã xem tất cả</button>
+        </div>
+        <div class="alert-list">
+          <div
+            v-for="alert in unhandledViolations"
+            :key="alert.id"
+            class="alert-item"
+            :class="{ critical: ['high', 'critical'].includes(alert.severity) }"
+          >
+            <ShieldAlert v-if="['high', 'critical'].includes(alert.severity)" :size="16" />
+            <AlertCircle v-else :size="16" />
+            <div>
+              <strong>{{ alert.studentCode }} - {{ violationLabel(alert.type) }}</strong>
+              <span>{{ formatViolationTime(alert.timestamp) }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GRID -->
+      <section class="screen-grid">
+        <article
+          v-for="student in currentStudents"
+          :key="student.id"
+          class="screen-card surface-card border-card"
+          :class="{ 'has-alert': hasUnhandledViolation(student) }"
+          @click="openStudentModal(student)"
+        >
+          <div class="video-container" style="aspect-ratio: 16/9; background: #000; border-radius: 12px; overflow: hidden; position: relative;">
+            <video
+              :ref="(el) => setVideoRef(el, student.studentId)"
+              autoplay
+              playsinline
+              muted
+              style="width: 100%; height: 100%; object-fit: cover;"
+              v-show="studentStreams[student.studentId]"
+            ></video>
+            
+            <div
+              v-if="!studentStreams[student.studentId]"
+              class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-2"
+            >
+              <VideoOff v-if="student.streamStatus === 'lost' || student.streamStatus === 'stopped'" :size="32" />
+              <Loader2 v-else-if="student.streamStatus === 'reconnecting' || student.streamStatus === 'waiting'" :size="32" class="animate-spin" />
+              <Monitor v-else :size="32" />
+              <span class="text-xs font-semibold">{{ streamLabel(student.streamStatus) }}</span>
+            </div>
+
+            <!-- Overlay metrics -->
+            <div class="absolute bottom-2 left-2 flex gap-1">
+              <GlassBadge v-if="student.examStatus === 'submitted'" variant="success">Đã nộp</GlassBadge>
+              <GlassBadge v-else-if="student.examStatus === 'suspended'" variant="danger">Đình chỉ</GlassBadge>
+              <GlassBadge v-if="hasUnhandledViolation(student)" variant="danger">
+                {{ studentViolationCount(student) }} Vi phạm
+              </GlassBadge>
+            </div>
+          </div>
+
+          <div class="screen-card-body">
+            <span class="student-code">{{ student.studentCode }}</span>
+            <h3>{{ student.name }}</h3>
+            
+            <div class="screen-meta">
+              <div>
+                <span>Trạng thái</span>
+                <strong>{{ examStatusLabel(student.examStatus) }}</strong>
+              </div>
+              <div>
+                <span>Cảnh báo gần nhất</span>
+                <strong>{{ latestViolationLabel(student) }}</strong>
+              </div>
+            </div>
+
+            <div class="screen-actions">
+              <button type="button" @click.stop="requestScreenStream(student)" title="Yêu cầu Stream màn hình">
+                <MonitorPlay :size="14" />
+              </button>
+              <button type="button" @click.stop="requestCameraStream(student)" title="Yêu cầu Camera">
+                <Video :size="14" />
+              </button>
+              <button type="button" @click.stop="sendReminder(student)" title="Nhắc nhở">
+                <MessageSquareWarning :size="14" />
+              </button>
+              <button type="button" @click.stop="suspendStudent(student)" title="Đình chỉ" class="text-rose-500">
+                <ShieldAlert :size="14" />
+              </button>
+            </div>
+          </div>
+        </article>
+      </section>
+    </template>
+    
+    <!-- STUDENT MODAL -->
+    <Teleport to="body">
+      <div v-if="selectedStudent" class="student-modal-backdrop" @click="closeStudentModal">
+        <div class="student-modal surface-card border-card" @click.stop>
+          <button type="button" class="modal-close" @click="closeStudentModal">
+            <X :size="18" />
+          </button>
+          
+          <div class="modal-main">
+            <div class="video-container large mb-4" style="aspect-ratio: 16/9; background: #000; border-radius: 12px; overflow: hidden; position: relative;">
+              <video
+                :ref="(el) => setModalVideoRef(el, selectedStudent?.studentId)"
+                autoplay
+                playsinline
+                muted
+                style="width: 100%; height: 100%; object-fit: contain;"
+                v-show="studentStreams[selectedStudent?.studentId]"
+              ></video>
+              
+              <div
+                v-if="!studentStreams[selectedStudent?.studentId]"
+                class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-2"
+              >
+                <VideoOff :size="48" />
+                <span class="text-sm font-semibold">{{ streamLabel(selectedStudent?.streamStatus) }}</span>
+              </div>
+            </div>
+
+            <div class="modal-actions">
+              <button type="button" @click="requestScreenStream(selectedStudent)">
+                <MonitorPlay :size="14" class="mr-1" inline /> Xem màn hình
+              </button>
+              <button type="button" @click="requestCameraStream(selectedStudent)">
+                <Video :size="14" class="mr-1" inline /> Xem camera
+              </button>
+              <button type="button" @click="sendReminder(selectedStudent)">
+                <MessageSquareWarning :size="14" class="mr-1" inline /> Nhắc nhở
+              </button>
+              <button type="button" @click="suspendStudent(selectedStudent)" class="danger">
+                <ShieldAlert :size="14" class="mr-1" inline /> Đình chỉ
+              </button>
+            </div>
+          </div>
+
+          <aside class="modal-sidebar">
+            <div class="modal-panel mb-4">
+              <span class="student-code">{{ selectedStudent?.studentCode }}</span>
+              <h2>{{ selectedStudent?.name }}</h2>
+              <GlassBadge :variant="selectedStudent?.examStatus === 'in_progress' ? 'success' : 'warning'">
+                {{ examStatusLabel(selectedStudent?.examStatus) }}
+              </GlassBadge>
+              
+              <div class="modal-facts">
+                <div>
+                  <span>Vi phạm chưa xử lý</span>
+                  <strong class="text-rose-500">{{ studentViolationCount(selectedStudent) }}</strong>
+                </div>
+                <div>
+                  <span>Trạng thái kết nối</span>
+                  <strong>{{ selectedStudent?.connectionId ? 'Online' : 'Offline' }}</strong>
+                </div>
+              </div>
+              
+              <button
+                v-if="hasUnhandledViolation(selectedStudent)"
+                type="button"
+                class="primary-action w-full"
+                @click="markStudentHandled(selectedStudent)"
+              >
+                Đánh dấu đã xử lý tất cả
+              </button>
+            </div>
+
+            <div class="modal-panel timeline">
+              <h3>Lịch sử hoạt động</h3>
+              <div class="timeline-list">
+                <div
+                  v-for="log in sortedStudentLogs"
+                  :key="log.timestamp + log.type"
+                  class="timeline-item"
+                  :class="{ handled: log.handled || log.type !== 'VIOLATION' }"
+                >
+                  <strong>{{ log.title || violationLabel(log.type) }}</strong>
+                  <span>{{ log.message || 'Cảnh báo tự động' }}</span>
+                  <small>{{ formatViolationTime(log.timestamp) }}</small>
+                </div>
+                <div v-if="!sortedStudentLogs.length" class="text-center text-slate-400 text-xs py-4">
+                  Chưa có dữ liệu
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </Teleport>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, onUnmounted, nextTick, markRaw } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import {
+  Monitor, Clock, LogOut, AlertCircle, ShieldAlert,
+  AlertTriangle, VideoOff, Loader2, MonitorPlay, Video,
+  MessageSquareWarning, X
+} from 'lucide-vue-next'
+import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
+import GlassBadge from '@/components/ui/GlassBadge.vue'
+import { usePopupStore } from '@/stores/popup'
+import { useAuthStore } from '@/stores/auth'
+import { teacherApi } from '@/services/teacherApi'
+import { examProctoringHub } from '@/services/examProctoringHub'
+import { createProctorPeerConnection } from '@/services/webrtcScreenShare'
+import { useProctoringSession } from '@/composables/useProctoringSession'
+
+const route = useRoute()
+const router = useRouter()
+const popupStore = usePopupStore()
+
+const {
+  loading,
+  error,
+  currentSession,
+  currentStudents,
+  loadSessionData,
+  formatSessionTime,
+  formatViolationTime,
+  violationLabel,
+  streamLabel,
+  examStatusLabel,
+} = useProctoringSession()
+
+const currentTime = ref('')
+let clockTimer = null
+
+// Dùng Map thường (KHÔNG reactive) để tránh Vue proxy làm hỏng các method WebRTC gốc
+const peerConnections = new Map()
+const iceCandidateQueue = new Map()
+const studentStreams = ref({})
+const isMonitoring = ref(false)
+const remoteVideoRefs = ref({})
+const liveViolations = ref([])
+const selectedStudent = ref(null)
+
+const activeCount = computed(() => {
+  return currentStudents.value.filter((s) => s.examStatus === 'in_progress').length
+})
+
+const submittedCount = computed(() => {
+  return currentStudents.value.filter((s) => s.examStatus === 'submitted').length
+})
+
+const unhandledViolations = computed(() => {
+  return liveViolations.value.filter((v) => !v.handled)
+})
+
+const sortedStudentLogs = computed(() => {
+  if (!selectedStudent.value) return []
+  const logs = selectedStudent.value.logs || []
+  const viols = violationsForStudent(selectedStudent.value).map(v => ({
+    ...v,
+    title: violationLabel(v.type),
+    message: v.details || 'Hệ thống tự động ghi nhận'
+  }))
+  return [...logs, ...viols].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+})
+
+function updateTime() {
+  currentTime.value = new Date().toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
+
+onMounted(async () => {
+  const sessionId = route.params.sessionId
+  if (sessionId) {
+    await loadSessionData(sessionId)
+    if (currentSession.value) {
+      await initializeHub(currentSession.value.id)
+    }
+  }
+  updateTime()
+  clockTimer = window.setInterval(updateTime, 1000)
+})
+
+onUnmounted(() => {
+  if (clockTimer) window.clearInterval(clockTimer)
+  cleanupWebRTC()
+  examProctoringHub.disconnect()
+})
+
+// WebRTC & Hub Logic
+function cleanupWebRTC() {
+  // Stop all WebRTC tracks and close connections
+  for (const stream of Object.values(studentStreams.value)) {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop())
+    }
+  }
+  for (const pc of peerConnections.values()) {
+    if (pc) pc.close()
+  }
+  peerConnections.clear()
+  studentStreams.value = {}
+  iceCandidateQueue.clear()
+}
+
+async function initializeHub(sessionId) {
+  try {
+    const authStore = useAuthStore()
+    const token = authStore.accessToken || localStorage.getItem('token')
+    if (!token) {
+      console.warn('[Proctor] No auth token available, aborting initializeHub')
+      return
+    }
+
+    console.log('[Proctor] Connecting to hub...')
+    await examProctoringHub.connect(token)
+    console.log('[Proctor] Hub connect call finished. isConnected:', examProctoringHub.isConnected)
+
+    isMonitoring.value = true
+
+    // Hàm tạo và gửi Offer cho thí sinh
+    const createAndSendOffer = async (maHocSinh, targetConnectionId) => {
+      let pc = peerConnections.get(maHocSinh)
+      if (pc) {
+        pc.close()
+        peerConnections.delete(maHocSinh)
+      }
+      iceCandidateQueue.delete(maHocSinh)
+
+      pc = createProctorPeerConnection(
+        (candidate) => {
+          examProctoringHub.sendIceCandidate({
+            maCaThi: sessionId,
+            maHocSinh,
+            targetConnectionId,
+            candidate
+          })
+        },
+        (stream) => {
+          studentStreams.value = { 
+            ...studentStreams.value, 
+            [maHocSinh]: markRaw(stream)
+          }
+        },
+        async () => {
+          if (import.meta.env.DEV) console.warn(`[Proctor] WebRTC reconnecting for student ${maHocSinh}...`)
+          await createAndSendOffer(maHocSinh, targetConnectionId)
+        }
+      )
+      peerConnections.set(maHocSinh, pc)
+
+      try {
+        const offer = await pc.createOffer({ offerToReceiveVideo: true, offerToReceiveAudio: false })
+        await pc.setLocalDescription(offer)
+
+        examProctoringHub.sendOffer({
+          maCaThi: sessionId,
+          maHocSinh,
+          targetConnectionId,
+          offer: { type: pc.localDescription.type, sdp: pc.localDescription.sdp }
+        })
+      } catch (err) {
+        console.error(`Error creating offer for student ${maHocSinh}:`, err)
+      }
+    }
+
+    // Lắng nghe Answer từ thí sinh
+    examProctoringHub.eventHandlers.onReceiveAnswer = async (dto) => {
+      const { maCaThi, maHocSinh, answer } = dto
+      if (maCaThi != sessionId) return
+
+      const pc = peerConnections.get(maHocSinh)
+      if (pc) {
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription(answer))
+
+          // Flush ICE queue now that remote description is set
+          if (iceCandidateQueue.has(maHocSinh)) {
+            const queue = iceCandidateQueue.get(maHocSinh)
+            while (queue.length > 0) {
+              const c = queue.shift()
+              try { await pc.addIceCandidate(new RTCIceCandidate(c)) }
+              catch (e) { console.warn(`Error flushing ICE for ${maHocSinh}`, e) }
+            }
+            iceCandidateQueue.delete(maHocSinh)
+          }
+        } catch (err) {
+          console.error(`Error handling answer from student ${maHocSinh}:`, err)
+        }
+      }
+    }
+
+    examProctoringHub.eventHandlers.onReceiveIceCandidate = async (dto) => {
+      const { maHocSinh, candidate } = dto
+      const pc = peerConnections.get(maHocSinh)
+      if (pc && candidate) {
+        if (!pc.remoteDescription) {
+          if (!iceCandidateQueue.has(maHocSinh)) {
+            iceCandidateQueue.set(maHocSinh, [])
+          }
+          iceCandidateQueue.get(maHocSinh).push(candidate)
+        } else {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate))
+          } catch (e) {
+            console.error(`Error adding ICE candidate from student ${maHocSinh}:`, e)
+          }
+        }
+      }
+    }
+    
+    examProctoringHub.eventHandlers.onStudentConnectionIdBroadcast = async (payload) => {
+      console.log('[Proctor] onStudentConnectionIdBroadcast', payload)
+      if (payload.maCaThi == sessionId) {
+        const student = currentStudents.value.find(s => s.studentId === payload.maHocSinh || s.id === payload.maHocSinh)
+        console.log('[Proctor] Found student:', student?.studentCode, 'maHocSinh:', payload.maHocSinh)
+        if (student) {
+          student.connectionId = payload.connectionId
+        }
+        await examProctoringHub.acknowledgeStudent(payload.connectionId)
+        
+        // Tạo offer ngay khi biết connectionId
+        await createAndSendOffer(payload.maHocSinh, payload.connectionId)
+      }
+    }
+    
+    examProctoringHub.eventHandlers.onScreenShareStatusChanged = async (payload) => {
+      console.log('[Proctor] onScreenShareStatusChanged', payload)
+      const student = currentStudents.value.find(s => s.studentId === payload.maHocSinh || s.id === payload.maHocSinh)
+      if (student) {
+        student.streamStatus = payload.status
+      }
+
+      if ((payload.status === 'streaming' || payload.status === 'active') && student?.connectionId) {
+        console.log('[Proctor] Student started sharing, sending new offer to connectionId:', student.connectionId)
+        await createAndSendOffer(payload.maHocSinh, student.connectionId)
+      } else if ((payload.status === 'streaming' || payload.status === 'active') && !student?.connectionId) {
+        console.warn('[Proctor] Student streaming but no connectionId yet, will wait for StudentConnectionIdBroadcast')
+      }
+
+      if (payload.status === 'stopped' && studentStreams.value[payload.maHocSinh]) {
+         const stream = studentStreams.value[payload.maHocSinh]
+         stream.getTracks().forEach(track => track.stop())
+         const newStreams = { ...studentStreams.value }
+         delete newStreams[payload.maHocSinh]
+         studentStreams.value = newStreams
+         
+         const pc = peerConnections.get(payload.maHocSinh)
+         if (pc) {
+           pc.close()
+           peerConnections.delete(payload.maHocSinh)
+         }
+      }
+    }
+
+    examProctoringHub.eventHandlers.onViolationDetected = (payload) => {
+      liveViolations.value.unshift({
+        ...payload,
+        id: Date.now() + Math.random(),
+        handled: false,
+      })
+    }
+
+    // Khi SignalR tự reconnect, cần rejoin exam room để backend broadcast lại student connectionIds
+    examProctoringHub.eventHandlers.onReconnected = async () => {
+      console.log('[Proctor] Hub reconnected, rejoining exam room', sessionId)
+      await examProctoringHub.joinExamRoom(parseInt(sessionId, 10)).catch(console.error)
+    }
+
+    if (examProctoringHub.isConnected) {
+      console.log('[Proctor] Hub connected, auto-joining exam room', sessionId)
+      await examProctoringHub.joinExamRoom(parseInt(sessionId, 10)).catch(console.error)
+    }
+
+    const violationsData = await teacherApi.getExamViolations(sessionId)
+    const rawViolations = Array.isArray(violationsData) ? violationsData : (violationsData?.data?.items ?? violationsData?.data ?? violationsData?.items ?? [])
+    liveViolations.value = rawViolations.map(v => ({...v, handled: false}))
+
+  } catch (err) {
+    console.error('Hub error:', err)
+    popupStore.error('Lỗi kết nối', 'Không thể kết nối server giám sát.')
+  }
+}
+
+function setVideoRef(el, code) {
+  if (el) {
+    remoteVideoRefs.value[code] = el
+    if (studentStreams.value[code] && el.srcObject !== studentStreams.value[code]) {
+      el.srcObject = studentStreams.value[code]
+    }
+  }
+}
+
+function setModalVideoRef(el, code) {
+  if (el) {
+    remoteVideoRefs.value[`modal_${code}`] = el
+    if (studentStreams.value[code] && el.srcObject !== studentStreams.value[code]) {
+      el.srcObject = studentStreams.value[code]
+    }
+  }
+}
+
+// Actions
+function requestScreenStream(student) {
+  if (currentSession.value && student.connectionId) {
+    examProctoringHub.requestStream(currentSession.value.id, student.connectionId, 'screen')
+    popupStore.info('Đã gửi yêu cầu', `Yêu cầu stream màn hình đến ${student.studentCode}`)
+  } else {
+    popupStore.warning('Không thể gửi', 'Thí sinh chưa kết nối.')
+  }
+}
+
+function requestCameraStream(student) {
+  if (currentSession.value && student.connectionId) {
+    examProctoringHub.requestStream(currentSession.value.id, student.connectionId, 'camera')
+    popupStore.info('Đã gửi yêu cầu', `Yêu cầu stream camera đến ${student.studentCode}`)
+  } else {
+    popupStore.warning('Không thể gửi', 'Thí sinh chưa kết nối.')
+  }
+}
+
+async function endExamSession() {
+  if (!confirm('Bạn có chắc chắn muốn kết thúc ca thi này?')) return
+
+  if (currentSession.value) {
+    try {
+      await examProctoringHub.endExamSession(currentSession.value.id)
+      cleanupWebRTC()
+      isMonitoring.value = false
+      router.push({ name: 'teacher-proctoring-sessions' })
+    } catch (e) {
+      popupStore.error('Lỗi', 'Không thể kết thúc ca thi.')
+    }
+  }
+}
+
+function suspendExamSession() {
+  if (!confirm('Tạm dừng toàn bộ ca thi? Học sinh sẽ không thể làm bài tiếp.')) return
+  if (currentSession.value) {
+    examProctoringHub.suspendExamSession(currentSession.value.id, 'Giám thị yêu cầu tạm dừng')
+    popupStore.warning('Đã tạm dừng', 'Toàn bộ ca thi đã bị tạm dừng.')
+  }
+}
+
+// Violations & Modal
+function violationsForStudent(student) {
+  if (!student) return []
+  return liveViolations.value.filter((violation) => (violation.studentId || violation.studentCode) === student.studentCode)
+}
+
+function studentViolationCount(student) {
+  return violationsForStudent(student).filter((violation) => !violation.handled).length
+}
+
+function latestViolationForStudent(student) {
+  return violationsForStudent(student).filter((violation) => !violation.handled)[0] || null
+}
+
+function latestViolationLabel(student) {
+  const latest = latestViolationForStudent(student)
+  return latest ? violationLabel(latest.type) : 'Không có'
+}
+
+function hasUnhandledViolation(student) {
+  const latest = latestViolationForStudent(student)
+  return Boolean(latest && ['high', 'critical'].includes(latest.severity)) || studentViolationCount(student) > 0
+}
+
+function clearAllAlerts() {
+  liveViolations.value.forEach((v) => { v.handled = true })
+}
+
+function openStudentModal(student) {
+  selectedStudent.value = student
+}
+
+function closeStudentModal() {
+  selectedStudent.value = null
+}
+
+function sendReminder(student) {
+  const message = window.prompt('Nội dung nhắc nhở', 'Vui lòng quay lại bài thi và tuân thủ quy định.')
+  if (!message) return
+
+  if (student.connectionId && currentSession.value) {
+    examProctoringHub.sendWarningToStudent(currentSession.value.id, student.connectionId, message)
+  }
+
+  if (!student.logs) student.logs = []
+  student.logs.unshift({
+    type: 'PROCTOR_MESSAGE',
+    message,
+    timestamp: new Date().toISOString(),
+  })
+  popupStore.info('Đã gửi nhắc nhở', `${student.studentCode} · ${message}`)
+}
+
+async function suspendStudent(student) {
+  const reason = window.prompt(`Lý do đình chỉ thí sinh ${student.studentCode}?`, 'Vi phạm quy chế thi')
+  if (!reason) return
+
+  if (currentSession.value) {
+    try {
+      await examProctoringHub.suspendStudent(
+        currentSession.value.id, 
+        student.studentId || student.id, 
+        student.connectionId || '', 
+        reason
+      )
+    } catch (e) {
+      console.error('Error suspending student:', e)
+    }
+  }
+
+  student.examStatus = 'suspended'
+  student.streamStatus = 'stopped'
+  if (!student.logs) student.logs = []
+  student.logs.unshift({
+    type: 'SUSPENDED',
+    message: `Đình chỉ: ${reason}`,
+    timestamp: new Date().toISOString(),
+  })
+  popupStore.warning('Đã đình chỉ', `${student.studentCode} đã được chuyển sang trạng thái bị đình chỉ.`)
+}
+
+function markStudentHandled(student) {
+  violationsForStudent(student).forEach((violation) => {
+    violation.handled = true
+  })
+  if (!student.logs) student.logs = []
+  student.logs.unshift({
+    type: 'VIOLATION_HANDLED',
+    message: 'Giám thị đánh dấu xử lý cảnh báo',
+    timestamp: new Date().toISOString(),
+  })
+  popupStore.success('Đã xử lý', `Cảnh báo của ${student.studentCode} đã được đánh dấu xử lý.`)
+}
+</script>
+
+<style scoped>
+.proctor-page {
+  display: flex;
+  min-height: calc(100vh - 132px);
+  flex-direction: column;
+  gap: 1rem;
+  color: var(--text-body);
+}
+
+.border-card {
+  border: 1px solid var(--border-card);
+}
+
+.proctor-header,
+.dashboard-toolbar,
+.alert-strip {
+  border-radius: 18px;
+  box-shadow: var(--lg-shadow-sm);
+}
+
+.proctor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.header-main,
+.header-actions,
+.alert-strip-head,
+.screen-card-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header-icon {
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--accent-primary-soft);
+  color: var(--text-link);
+}
+
+.header-eyebrow,
+.section-eyebrow,
+.student-code {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.student-code {
+  color: var(--text-link);
+}
+
+.proctor-header h1,
+.dashboard-toolbar h2,
+.screen-card h3,
+.modal-panel h2 {
+  margin: 0.1rem 0;
+  color: var(--text-heading);
+  font-weight: 850;
+}
+.proctor-header h1, .dashboard-toolbar h2 { font-size: 1.05rem; }
+.screen-card h3 { font-size: 0.9rem; margin-top: 0; }
+.modal-panel h2 { font-size: 1.05rem; }
+
+.proctor-header p,
+.dashboard-toolbar p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.time-chip,
+.ghost-action,
+.danger-action,
+.primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.time-chip {
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  padding: 0.65rem 0.8rem;
+  cursor: default;
+}
+
+.time-chip span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+}
+
+.time-chip strong {
+  display: block;
+  color: var(--text-heading);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.ghost-action,
+.danger-action,
+.primary-action {
+  min-height: 2.4rem;
+  border: 1px solid var(--border-card);
+  padding: 0 0.8rem;
+}
+
+.ghost-action {
+  background: var(--surface-input);
+  color: var(--text-label);
+}
+
+.danger-action {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+  border-color: transparent;
+}
+.danger-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.primary-action {
+  border: 0;
+  background: var(--text-link);
+  color: var(--text-inverse);
+}
+
+.dashboard-toolbar {
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dashboard-counters {
+  display: grid;
+  grid-template-columns: repeat(3, 7rem);
+  gap: 0.5rem;
+}
+
+.dashboard-counters div,
+.modal-facts span {
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--surface-input);
+  padding: 0.55rem;
+}
+
+.dashboard-counters span,
+.screen-meta span {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  display: block;
+}
+
+.dashboard-counters strong,
+.screen-meta strong,
+.modal-facts strong {
+  display: block;
+  color: var(--text-heading);
+  font-weight: 900;
+}
+
+.alert-strip {
+  padding: 1rem;
+}
+
+.alert-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.alert-item {
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--surface-input);
+  padding: 0.65rem;
+  color: var(--text-label);
+  font-size: 0.72rem;
+  font-weight: 750;
+  display: flex;
+  gap: 0.55rem;
+}
+
+.alert-item.critical {
+  border-color: color-mix(in srgb, var(--color-danger-text) 32%, transparent);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.alert-item strong,
+.alert-item span {
+  display: block;
+}
+
+.screen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.screen-card {
+  border-radius: 18px;
+  padding: 1rem;
+  box-shadow: var(--lg-shadow-sm);
+  cursor: pointer;
+  transition: transform 0.18s ease;
+}
+
+.screen-card:hover {
+  transform: translateY(-2px);
+}
+
+.screen-card.has-alert {
+  border-color: color-mix(in srgb, var(--color-danger-text) 56%, var(--border-card));
+  animation: alert-blink 1.8s ease-in-out infinite;
+}
+
+.screen-card-body {
+  margin-top: 0.8rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+}
+
+.screen-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+  width: 100%;
+}
+
+.screen-actions,
+.modal-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+  width: 100%;
+}
+
+.screen-actions button,
+.modal-actions button {
+  min-height: 2rem;
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  background: var(--surface-input);
+  color: var(--text-label);
+  font-size: 0.68rem;
+  font-weight: 850;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Modal Styles */
+.student-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: rgba(3, 7, 18, 0.72);
+  padding: 1.5rem;
+}
+
+.student-modal {
+  position: relative;
+  display: grid;
+  width: min(1180px, 96vw);
+  max-height: 92vh;
+  grid-template-columns: 1fr 340px;
+  gap: 1rem;
+  overflow: auto;
+  border-radius: 20px;
+  padding: 1rem;
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
+  z-index: 1;
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  place-items: center;
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  background: var(--surface-input);
+  color: var(--text-label);
+  cursor: pointer;
+}
+
+.modal-panel {
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  background: var(--surface-input);
+  padding: 1rem;
+}
+
+.modal-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.timeline h3 {
+  margin: 0 0 0.55rem;
+  color: var(--text-heading);
+  font-size: 0.86rem;
+}
+
+.timeline-list {
+  display: flex;
+  max-height: 15rem;
+  flex-direction: column;
+  gap: 0.45rem;
+  overflow-y: auto;
+}
+
+.timeline-item {
+  border: 1px solid color-mix(in srgb, var(--color-danger-text) 25%, transparent);
+  border-radius: 12px;
+  background: var(--color-danger-bg);
+  padding: 0.65rem;
+  color: var(--color-danger-text);
+  font-size: 0.72rem;
+}
+
+.timeline-item.handled {
+  border-color: var(--border-default);
+  background: var(--surface-card);
+  color: var(--text-muted);
+}
+
+.timeline-item strong,
+.timeline-item span,
+.timeline-item small {
+  display: block;
+}
+
+.modal-actions {
+  grid-template-columns: 1fr;
+}
+
+.modal-actions .danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+@keyframes alert-blink {
+  0%, 100% {
+    box-shadow: 0 0 0 color-mix(in srgb, var(--color-danger-text) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger-text) 16%, transparent);
+  }
+}
+
+@media (max-width: 980px) {
+  .proctor-header,
+  .header-main,
+  .header-actions,
+  .dashboard-toolbar,
+  .alert-strip-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .student-modal,
+  .dashboard-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-counters,
+  .screen-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+</style>

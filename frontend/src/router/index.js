@@ -351,7 +351,9 @@ const router = createRouter({
         { path: 'assignments/:courseId', name: 'teacher-assignments-list', component: () => import('../views/GiangVien/AssignmentListView.vue') , meta: { title: 'Danh sách bài tập' } },
         { path: 'assignments/:courseId/:assignmentId', name: 'teacher-assignment-submissions', component: () => import('../views/GiangVien/AssignmentSubmissionsView.vue') , meta: { title: 'Tình trạng nộp bài' } },
         { path: 'exam-results', name: 'teacher-exam-results', component: () => import('../views/GiangVien/ExamResultsView.vue') },
-        { path: 'proctoring', name: 'teacher-proctoring', component: () => import('../views/GiangVien/ProctoringView.vue') },
+        { path: 'proctoring', name: 'teacher-proctoring-sessions', component: () => import('../views/GiangVien/ProctoringSessionsView.vue') },
+        { path: 'proctoring/:sessionId/attendance', name: 'teacher-proctoring-attendance', component: () => import('../views/GiangVien/ProctoringAttendanceView.vue') },
+        { path: 'proctoring/:sessionId/dashboard', name: 'teacher-proctoring-dashboard', component: () => import('../views/GiangVien/ProctoringDashboardView.vue') },
 
         { path: 'attendance-history', name: 'teacher-attendance-history', component: () => import('../views/GiangVien/AttendanceHistoryView.vue') },
         { path: 'grading-input', name: 'teacher-grading-input', component: () => import('../views/GiangVien/GradingCourseListView.vue') },
