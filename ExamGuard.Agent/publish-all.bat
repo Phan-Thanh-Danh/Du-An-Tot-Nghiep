@@ -40,24 +40,6 @@ del /s /q "%OUTPUT_DIR%\*.pdb" >nul 2>&1
 del /s /q "%OUTPUT_DIR%\*.staticwebassets.endpoints.json" >nul 2>&1
 del /s /q "%OUTPUT_DIR%\aspnetcorev2_inprocess.dll" >nul 2>&1
 del /s /q "%OUTPUT_DIR%\web.config" >nul 2>&1
-for /d /r "%OUTPUT_DIR%" %%d in (publish) do if exist "%%d" rmdir /s /q "%%d" >nul 2>&1
 
 echo.
-echo Dang tao file launcher cho Linux (ExamGuard.desktop va Chay-Agent.sh)...
-powershell -Command "$lines = @('[Desktop Entry]', 'Version=1.0', 'Type=Application', 'Name=ExamGuard Agent', 'Comment=ExamGuard Agent cho Linux', 'Exec=bash -c \"cd \"\"$(dirname \"\"%%k\"\")\"\" && chmod +x ./ExamGuard.Agent && ./ExamGuard.Agent\"', 'Icon=utilities-terminal', 'Terminal=true', 'Categories=Utility;'); [System.IO.File]::WriteAllLines('%OUTPUT_DIR%\linux-x64\ExamGuard.desktop', $lines)"
-copy /y "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop" "%OUTPUT_DIR%\linux-arm64\ExamGuard.desktop" >nul
-
-powershell -Command "$lines = @('#!/bin/bash', 'cd \"$(dirname \"$0\")\"', 'chmod +x ./ExamGuard.Agent', './ExamGuard.Agent'); [System.IO.File]::WriteAllLines('%OUTPUT_DIR%\linux-x64\Chay-Agent.sh', $lines)"
-copy /y "%OUTPUT_DIR%\linux-x64\Chay-Agent.sh" "%OUTPUT_DIR%\linux-arm64\Chay-Agent.sh" >nul
-
-echo.
-echo Dang nen file .tar.gz cho Linux/macOS (Giu nguyen quyen chmod +x khi giai nen)...
-tar -czvf "%OUTPUT_DIR%\ExamGuard-Agent-linux-x64.tar.gz" -C "%OUTPUT_DIR%\linux-x64" .
-tar -czvf "%OUTPUT_DIR%\ExamGuard-Agent-linux-arm64.tar.gz" -C "%OUTPUT_DIR%\linux-arm64" .
-tar -czvf "%OUTPUT_DIR%\ExamGuard-Agent-osx-x64.tar.gz" -C "%OUTPUT_DIR%\osx-x64" ExamGuard.Agent
-tar -czvf "%OUTPUT_DIR%\ExamGuard-Agent-osx-arm64.tar.gz" -C "%OUTPUT_DIR%\osx-arm64" ExamGuard.Agent
-
-echo.
-echo Hoan tat! 
-echo File nén cho Linux/macOS (.tar.gz) da duoc tao tai thu muc publish/
-
+echo Hoan tat! Trong moi thu muc con bay gio chi co DUNG 1 FILE DUY NHAT (.exe cho Win, khong duoi cho Linux/macOS).

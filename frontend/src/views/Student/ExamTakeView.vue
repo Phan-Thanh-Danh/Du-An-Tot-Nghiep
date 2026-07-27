@@ -1814,9 +1814,6 @@ onUnmounted(() => {
             <a href="https://github.com/Phan-Thanh-Danh/Remote-Desktop/raw/main/publish/win-x64/ExamGuard.Agent.exe" target="_blank" class="agent-btn win">
               <Download :size="16" /> Windows (x64)
             </a>
-            <a href="https://github.com/Phan-Thanh-Danh/Remote-Desktop/raw/main/publish/ExamGuard-Agent-linux-x64.tar.gz" target="_blank" class="agent-btn linux">
-              <Download :size="16" /> Linux (x64 .tar.gz)
-            </a>
             <a href="https://github.com/Phan-Thanh-Danh/Remote-Desktop/raw/main/publish/osx-arm64/ExamGuard.Agent" target="_blank" class="agent-btn mac">
               <Download :size="16" /> macOS (Apple Silicon)
             </a>

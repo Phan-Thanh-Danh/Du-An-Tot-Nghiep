@@ -1,9 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=ExamGuard Agent
-Comment=ExamGuard Agent cho Linux
-Exec=bash -c "cd \"$$(dirname \"%k\")\" ^&^& chmod +x ./ExamGuard.Agent ^&^& ./ExamGuard.Agent"
-Icon=utilities-terminal
-Terminal=true
-Categories=Utility;

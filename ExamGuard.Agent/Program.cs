@@ -1,6 +1,3 @@
-using System.Net;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using ExamGuard.Agent.Models;
@@ -11,26 +8,6 @@ var extensionScanner = new ExtensionScanner();
 var backendReporter = new BackendReporter();
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.WebHost.ConfigureKestrel(options =>
-{
-    // HTTP endpoint (for HTTP web apps - 100% smooth, no SSL certificate prompts)
-    options.Listen(IPAddress.Loopback, 17892);
-
-    // HTTPS endpoint (for HTTPS web apps)
-    options.Listen(IPAddress.Loopback, 17893, listenOptions =>
-    {
-        try
-        {
-            var cert = CreateSelfSignedCert();
-            listenOptions.UseHttps(cert);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[agent] Warn: Could not bind HTTPS port 17893 ({ex.Message}).");
-        }
-    });
-});
 
 builder.Services.AddCors(options =>
 {
@@ -44,22 +21,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+app.Urls.Clear();
+app.Urls.Add("https://127.0.0.1:17892");
 app.UseCors("ViteCors");
-
-static X509Certificate2 CreateSelfSignedCert()
-{
-    using var rsa = RSA.Create(2048);
-    var request = new CertificateRequest("CN=127.0.0.1", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-    
-    var sanBuilder = new SubjectAlternativeNameBuilder();
-    sanBuilder.AddIpAddress(IPAddress.Loopback);
-    sanBuilder.AddDnsName("localhost");
-    request.CertificateExtensions.Add(sanBuilder.Build());
-
-    var cert = request.CreateSelfSigned(DateTimeOffset.Now.AddDays(-1), DateTimeOffset.Now.AddYears(10));
-    var pfxBytes = cert.Export(X509ContentType.Pkcs12, "examguard");
-    return new X509Certificate2(pfxBytes, "examguard", X509KeyStorageFlags.Exportable);
-}
 
 app.MapGet("/health", () => Results.Json(new
 {
