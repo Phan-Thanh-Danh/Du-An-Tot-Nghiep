@@ -43,9 +43,28 @@ del /s /q "%OUTPUT_DIR%\web.config" >nul 2>&1
 for /d /r "%OUTPUT_DIR%" %%d in (publish) do if exist "%%d" rmdir /s /q "%%d" >nul 2>&1
 
 echo.
+echo Dang tao file launcher cho Linux (ExamGuard.desktop va Chay-Agent.sh)...
+echo [Desktop Entry]> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
+echo Version=1.0>> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
+echo Type=Application>> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
+echo Name=ExamGuard Agent>> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
+echo Comment=ExamGuard Agent cho Linux>> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
+echo Exec=bash -c "cd \"$$(dirname \"%%k\")\" ^&^& chmod +x ./ExamGuard.Agent ^&^& ./ExamGuard.Agent">> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
+echo Icon=utilities-terminal>> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
+echo Terminal=true>> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
+echo Categories=Utility;>> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
+copy /y "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop" "%OUTPUT_DIR%\linux-arm64\ExamGuard.desktop" >nul
+
+echo #!/bin/bash> "%OUTPUT_DIR%\linux-x64\Chay-Agent.sh"
+echo cd "$(dirname "$0")">> "%OUTPUT_DIR%\linux-x64\Chay-Agent.sh"
+echo chmod +x ./ExamGuard.Agent>> "%OUTPUT_DIR%\linux-x64\Chay-Agent.sh"
+echo ./ExamGuard.Agent>> "%OUTPUT_DIR%\linux-x64\Chay-Agent.sh"
+copy /y "%OUTPUT_DIR%\linux-x64\Chay-Agent.sh" "%OUTPUT_DIR%\linux-arm64\Chay-Agent.sh" >nul
+
+echo.
 echo Dang nen file .tar.gz cho Linux/macOS (Giu nguyen quyen chmod +x khi giai nen)...
-tar -czvf "%OUTPUT_DIR%\ExamGuard-Agent-linux-x64.tar.gz" -C "%OUTPUT_DIR%\linux-x64" ExamGuard.Agent
-tar -czvf "%OUTPUT_DIR%\ExamGuard-Agent-linux-arm64.tar.gz" -C "%OUTPUT_DIR%\linux-arm64" ExamGuard.Agent
+tar -czvf "%OUTPUT_DIR%\ExamGuard-Agent-linux-x64.tar.gz" -C "%OUTPUT_DIR%\linux-x64" .
+tar -czvf "%OUTPUT_DIR%\ExamGuard-Agent-linux-arm64.tar.gz" -C "%OUTPUT_DIR%\linux-arm64" .
 tar -czvf "%OUTPUT_DIR%\ExamGuard-Agent-osx-x64.tar.gz" -C "%OUTPUT_DIR%\osx-x64" ExamGuard.Agent
 tar -czvf "%OUTPUT_DIR%\ExamGuard-Agent-osx-arm64.tar.gz" -C "%OUTPUT_DIR%\osx-arm64" ExamGuard.Agent
 
