@@ -521,6 +521,88 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- REALTIME VIOLATION POPUP BANNER (CENTERED, THEME-ADAPTIVE, LARGER) -->
+    <Teleport to="body">
+      <div
+        v-if="activeViolationAlert"
+        class="violation-alert-backdrop"
+        style="position: fixed; inset: 0; z-index: 9999999; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(6px);"
+        @click.self="activeViolationAlert = null"
+      >
+        <div
+          class="violation-alert-modal lg-glass-strong surface-card border-card"
+          style="width: 100%; max-width: 540px; margin: 1.25rem; padding: 1.75rem; border-radius: 24px; position: relative; box-shadow: 0 20px 50px rgba(225, 29, 72, 0.35); border: 2px solid rgba(244, 63, 94, 0.4);"
+        >
+          <!-- Top Accent Warning Bar -->
+          <div style="position: absolute; top: 0; left: 0; right: 0; height: 6px; background: linear-gradient(90deg, #e11d48, #f59e0b, #e11d48); border-top-left-radius: 24px; border-top-right-radius: 24px;"></div>
+
+          <!-- Header -->
+          <div class="flex items-start justify-between gap-4 mb-4">
+            <div class="flex items-center gap-3">
+              <div class="p-3 rounded-2xl bg-rose-500/15 text-rose-500 border border-rose-500/30">
+                <ShieldAlert :size="28" />
+              </div>
+              <div>
+                <h3 class="font-extrabold text-heading text-lg m-0 flex items-center gap-2" style="color: #f43f5e;">
+                  🚨 CẢNH BÁO VI PHẠM THI!
+                </h3>
+                <span class="text-xs text-label font-medium">Thời gian: {{ formatViolationTime(activeViolationAlert.timestamp) }}</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="p-2 rounded-xl text-slate-400 hover:text-heading hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+              @click="activeViolationAlert = null"
+            >
+              <X :size="22" />
+            </button>
+          </div>
+
+          <!-- Content Body -->
+          <div class="space-y-3 mb-5 p-4 rounded-2xl surface-input border-card" style="background: rgba(0, 0, 0, 0.04);">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-label font-medium">Thí sinh vi phạm:</span>
+              <strong class="text-heading font-extrabold text-base text-amber-500 dark:text-amber-300">
+                {{ activeViolationAlert.studentName || activeViolationAlert.studentCode }} ({{ activeViolationAlert.studentCode }})
+              </strong>
+            </div>
+
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-label font-medium">Hành vi vi phạm:</span>
+              <span class="px-3 py-1 rounded-xl text-rose-600 dark:text-rose-300 bg-rose-500/15 font-bold border border-rose-500/30 text-xs">
+                {{ violationLabel(activeViolationAlert.type) }}
+              </span>
+            </div>
+
+            <div v-if="activeViolationAlert.details" class="text-xs text-body pt-2 border-t border-card">
+              <span class="text-label font-semibold">Mô tả chi tiết: </span>
+              <span>{{ activeViolationAlert.details }}</span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all transform hover:-translate-y-0.5"
+              @click="openViolationStudentModal(activeViolationAlert)"
+            >
+              <MonitorPlay :size="18" />
+              Xem màn hình & Chi tiết
+            </button>
+
+            <button
+              type="button"
+              class="py-3 px-5 rounded-xl surface-input border-card text-heading font-semibold text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+              @click="activeViolationAlert = null"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -598,6 +680,23 @@ const isMonitoring = ref(false)
 const remoteVideoRefs = ref({})
 const liveViolations = ref([])
 const selectedStudent = ref(null)
+const activeViolationAlert = ref(null)
+
+function openViolationStudentModal(violation) {
+  if (!violation) return
+  const student = currentStudents.value.find(s => 
+    String(s.studentId || s.id) === String(violation.studentId || violation.maHocSinh) || 
+    (violation.studentCode && s.studentCode === violation.studentCode)
+  )
+
+  activeViolationAlert.value = null // Close banner
+
+  if (student) {
+    requestScreenStream(student) // Open student modal & stream!
+  } else {
+    popupStore.warning('Thông báo', `Thí sinh ${violation.studentCode || violation.studentId} không tìm thấy trong danh sách ca thi.`)
+  }
+}
 
 const soundEnabled = ref(true)
 let audioObj = null
@@ -916,6 +1015,17 @@ async function initializeHub(sessionId) {
         'Cảnh báo vi phạm mới!',
         `${normViolation.studentCode || normViolation.studentId} - ${violationLabel(normViolation.type)}`
       )
+
+      // 🚨 Hiển thị Popup Banner Cảnh báo nổi bật cho Giám thị
+      activeViolationAlert.value = normViolation
+
+      // Tự động ẩn popup sau 12 giây nếu không thao tác
+      const alertId = normViolation.id
+      setTimeout(() => {
+        if (activeViolationAlert.value?.id === alertId) {
+          activeViolationAlert.value = null
+        }
+      }, 12000)
 
       // 🔔 Phát âm thanh báo động vi phạm cho Giám thị
       playViolationSound()
@@ -1971,5 +2081,24 @@ function markStudentHandled(student) {
 .btn-action-icon:hover {
   background: rgba(255, 255, 255, 0.1);
   color: var(--text-heading);
+}
+
+/* REALTIME VIOLATION MODAL ANIMATION */
+.violation-alert-backdrop {
+  animation: fadeInBackdrop 0.25s ease-out forwards;
+}
+
+.violation-alert-modal {
+  animation: zoomInModal 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInBackdrop {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoomInModal {
+  from { opacity: 0; transform: scale(0.88); }
+  to { opacity: 1; transform: scale(1); }
 }
 </style>
