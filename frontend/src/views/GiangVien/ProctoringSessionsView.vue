@@ -190,7 +190,9 @@ function sessionActionLabel(session) {
 }
 
 function openSession(session) {
-  if (session.status === 'monitoring') {
+  if (session.status === 'ended') {
+    router.push({ name: 'teacher-proctoring-report', params: { sessionId: session.id } })
+  } else if (session.status === 'monitoring') {
     router.push({ name: 'teacher-proctoring-dashboard', params: { sessionId: session.id } })
   } else {
     router.push({ name: 'teacher-proctoring-attendance', params: { sessionId: session.id } })
