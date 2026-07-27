@@ -16,6 +16,18 @@
         <button
           type="button"
           class="ghost-action"
+          :class="{ 'text-emerald-400': soundEnabled, 'text-slate-400': !soundEnabled }"
+          @click="toggleSound"
+          :title="soundEnabled ? 'Đang bật âm thanh cảnh báo (Click để tắt)' : 'Đã tắt âm thanh cảnh báo (Click để bật)'"
+        >
+          <Volume2 v-if="soundEnabled" :size="16" />
+          <VolumeX v-else :size="16" />
+          <span>{{ soundEnabled ? 'Âm cảnh báo ON' : 'Âm cảnh báo OFF' }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="ghost-action"
           @click="endExamSession"
         >
           <LogOut :size="16" />
@@ -518,7 +530,8 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   Monitor, Clock, LogOut, AlertCircle, ShieldAlert,
   AlertTriangle, VideoOff, Loader2, MonitorPlay, Video,
-  MessageSquareWarning, X, LayoutList, LayoutGrid, Search, Check, Play
+  MessageSquareWarning, X, LayoutList, LayoutGrid, Search, Check, Play,
+  Volume2, VolumeX
 } from 'lucide-vue-next'
 import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
@@ -585,6 +598,66 @@ const isMonitoring = ref(false)
 const remoteVideoRefs = ref({})
 const liveViolations = ref([])
 const selectedStudent = ref(null)
+
+const soundEnabled = ref(true)
+let audioObj = null
+
+function toggleSound() {
+  soundEnabled.value = !soundEnabled.value
+  if (soundEnabled.value) {
+    popupStore.info('Âm thanh cảnh báo', 'Đã bật âm thanh cảnh báo vi phạm.')
+    playViolationSound()
+  } else {
+    popupStore.info('Âm thanh cảnh báo', 'Đã tắt âm thanh cảnh báo.')
+  }
+}
+
+function playViolationSound() {
+  if (!soundEnabled.value) return
+
+  try {
+    if (!audioObj) {
+      audioObj = new Audio('/sound.mp3')
+    }
+    audioObj.currentTime = 0
+    const playPromise = audioObj.play()
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        console.warn('[Audio] /sound.mp3 failed, trying /Soud canh bao.mp3:', err)
+        const altAudio = new Audio(encodeURI('/Soud canh bao.mp3'))
+        altAudio.play().catch(() => playBeepFallback())
+      })
+    }
+  } catch (e) {
+    playBeepFallback()
+  }
+}
+
+function playBeepFallback() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext
+    if (!AudioCtx) return
+    const ctx = new AudioCtx()
+    
+    [0, 0.2, 0.4].forEach(delay => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'sawtooth'
+      osc.frequency.setValueAtTime(880, ctx.currentTime + delay)
+      osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + delay + 0.15)
+      
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + delay)
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + delay + 0.15)
+      
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start(ctx.currentTime + delay)
+      osc.stop(ctx.currentTime + delay + 0.15)
+    })
+  } catch (err) {
+    console.warn('[Audio] Beep fallback error:', err)
+  }
+}
 
 const reminderDialog = ref({ visible: false, student: null, message: '' })
 const reminderPresets = [
@@ -826,11 +899,26 @@ async function initializeHub(sessionId) {
         handled: false,
       }
 
+      // Check if identical violation was received within 3 seconds
+      const isDuplicate = liveViolations.value.some(v => 
+        String(v.studentId || v.maHocSinh) === String(normViolation.studentId) &&
+        v.type === normViolation.type &&
+        Math.abs(new Date(v.timestamp).getTime() - new Date(normViolation.timestamp).getTime()) < 3000
+      )
+
+      if (isDuplicate) {
+        console.warn('[Proctor] Ignored duplicate violation event:', normViolation)
+        return
+      }
+
       liveViolations.value.unshift(normViolation)
       popupStore.warning(
         'Cảnh báo vi phạm mới!',
         `${normViolation.studentCode || normViolation.studentId} - ${violationLabel(normViolation.type)}`
       )
+
+      // 🔔 Phát âm thanh báo động vi phạm cho Giám thị
+      playViolationSound()
     }
 
     // Khi SignalR tự reconnect, cần rejoin exam room để backend broadcast lại student connectionIds
