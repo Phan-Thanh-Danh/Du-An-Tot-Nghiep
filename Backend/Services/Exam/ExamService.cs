@@ -440,13 +440,18 @@ public class ExamService : IExamService
 
     public async Task EndCaThiAsync(int id, CancellationToken ct)
     {
-        var caThi = await _db.CaThis.FindAsync(new object[] { id }, ct)
+        var caThi = await _db.CaThis
+            .Include(c => c.LichThiTong)
+            .FirstOrDefaultAsync(c => c.MaCaThi == id, ct)
             ?? throw new ApiException(404, "Không tìm thấy ca thi.");
-        
+
         caThi.TrangThai = "da_ket_thuc";
         caThi.NgayCapNhat = DateTime.UtcNow;
 
-        // Auto-submit all remaining active student sessions
+        // MaDeKiemTra lấy từ LichThiTong
+        int? maDeKiemTra = caThi.LichThiTong?.MaDeKiemTra;
+
+        // ── 1. Auto-submit các phiên đang làm dở ────────────────────────────
         var activeSessions = await _db.PhienThiHocSinhs
             .Where(p => p.MaCaThi == id && p.TrangThaiLuong != "da_dung")
             .ToListAsync(ct);
@@ -483,12 +488,72 @@ public class ExamService : IExamService
             }
         }
 
+        // ── 2. Tạo phiên 0 điểm cho thí sinh chưa bắt đầu ──────────────────
+        if (maDeKiemTra.HasValue)
+        {
+            var allThiSinhIds = await _db.ThiSinhCaThis
+                .Where(ts => ts.MaCaThi == id)
+                .Select(ts => ts.MaHocSinh)
+                .ToListAsync(ct);
+
+            // Chặn cả 2 unique constraints:
+            //   UQ_PhienThiHocSinh_CaThi_HocSinh      → (ma_ca_thi, ma_hoc_sinh)
+            //   UQ_PhienThiHocSinh_De_HocSinh_LanThu  → (ma_de_kiem_tra, ma_hoc_sinh, lan_thu)
+            var existingByCaThi = await _db.PhienThiHocSinhs
+                .Where(p => p.MaCaThi == id)
+                .Select(p => p.MaHocSinh)
+                .ToListAsync(ct);
+
+            var existingByDe = await _db.PhienThiHocSinhs
+                .Where(p => p.MaDeKiemTra == maDeKiemTra.Value && p.LanThu == 1)
+                .Select(p => p.MaHocSinh)
+                .ToListAsync(ct);
+
+            var skipIds = existingByCaThi.Union(existingByDe).ToHashSet();
+
+            var notStartedIds = allThiSinhIds.Where(sid => !skipIds.Contains(sid)).ToList();
+
+            if (notStartedIds.Any())
+            {
+                // Cập nhật TrangThaiDuThi
+                var thiSinhEntities = await _db.ThiSinhCaThis
+                    .Where(ts => ts.MaCaThi == id && notStartedIds.Contains(ts.MaHocSinh))
+                    .ToListAsync(ct);
+
+                foreach (var ts in thiSinhEntities)
+                {
+                    _db.PhienThiHocSinhs.Add(new PhienThiHocSinh
+                    {
+                        MaCaThi        = id,
+                        MaHocSinh      = ts.MaHocSinh,
+                        MaDeKiemTra    = maDeKiemTra.Value,
+                        BatDauLuc      = DateTime.UtcNow,
+                        NopLuc         = DateTime.UtcNow,
+                        CauTraLoiJson  = "[]",
+                        SaoLuuCucBo    = "[]",
+                        TrangThaiLuong = "da_dung",
+                        DiemTuDong     = 0,
+                        DiemCuoiCung   = 0,
+                        SoCauDung      = 0,
+                        TrangThaiCongBo = "da_cham_xong",
+                        NgayCapNhat    = DateTime.UtcNow
+                    });
+                }
+
+                _logger.LogInformation(
+                    "EndCaThi {Id}: tạo {Count} phiên 0 điểm cho thí sinh chưa bắt đầu.",
+                    id, notStartedIds.Count);
+            }
+        }
+        // ────────────────────────────────────────────────────────────────────
+
         await _db.SaveChangesAsync(ct);
 
-        // Broadcast to SignalR groups
+        // Broadcast SignalR
         await _hubContext.Clients.Group($"exam-{id}").SendAsync("ExamStatusChanged", new { maCaThi = id, status = "da_ket_thuc" }, ct);
         await _hubContext.Clients.Group($"exam-{id}").SendAsync("StudentStatusUpdated", new { status = "da_ket_thuc", thoiDiem = DateTime.UtcNow }, ct);
     }
+
 
     public async Task SuspendCaThiAsync(int id, CancellationToken ct)
     {
