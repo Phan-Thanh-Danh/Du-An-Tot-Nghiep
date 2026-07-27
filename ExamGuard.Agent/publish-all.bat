@@ -40,6 +40,7 @@ del /s /q "%OUTPUT_DIR%\*.pdb" >nul 2>&1
 del /s /q "%OUTPUT_DIR%\*.staticwebassets.endpoints.json" >nul 2>&1
 del /s /q "%OUTPUT_DIR%\aspnetcorev2_inprocess.dll" >nul 2>&1
 del /s /q "%OUTPUT_DIR%\web.config" >nul 2>&1
+for /d /r "%OUTPUT_DIR%" %%d in (publish) do if exist "%%d" rmdir /s /q "%%d" >nul 2>&1
 
 echo.
 echo Hoan tat! Trong moi thu muc con bay gio chi co DUNG 1 FILE DUY NHAT (.exe cho Win, khong duoi cho Linux/macOS).
