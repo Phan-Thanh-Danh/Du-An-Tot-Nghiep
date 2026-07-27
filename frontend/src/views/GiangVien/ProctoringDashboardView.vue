@@ -810,11 +810,27 @@ async function initializeHub(sessionId) {
     }
 
     examProctoringHub.eventHandlers.onViolationDetected = (payload) => {
-      liveViolations.value.unshift({
+      console.log('[Proctor] onViolationDetected received:', payload)
+      const studentId = payload.studentId || payload.maHocSinh
+      const studentCode = payload.studentCode
+      const st = currentStudents.value.find(s => String(s.studentId || s.id) === String(studentId) || (studentCode && s.studentCode === studentCode))
+
+      const normViolation = {
         ...payload,
-        id: Date.now() + Math.random(),
+        id: payload.id || Date.now() + Math.random(),
+        type: payload.type || payload.loaiViPham,
+        studentId: studentId,
+        studentCode: studentCode || st?.studentCode,
+        details: payload.details || payload.chiTiet || 'Cảnh báo tự động',
+        timestamp: payload.timestamp || payload.thoiDiem || new Date().toISOString(),
         handled: false,
-      })
+      }
+
+      liveViolations.value.unshift(normViolation)
+      popupStore.warning(
+        'Cảnh báo vi phạm mới!',
+        `${normViolation.studentCode || normViolation.studentId} - ${violationLabel(normViolation.type)}`
+      )
     }
 
     // Khi SignalR tự reconnect, cần rejoin exam room để backend broadcast lại student connectionIds
@@ -830,7 +846,20 @@ async function initializeHub(sessionId) {
 
     const violationsData = await teacherApi.getExamViolations(sessionId)
     const rawViolations = Array.isArray(violationsData) ? violationsData : (violationsData?.data?.items ?? violationsData?.data ?? violationsData?.items ?? [])
-    liveViolations.value = rawViolations.map(v => ({...v, handled: false}))
+    liveViolations.value = rawViolations.map(v => {
+      const studentId = v.studentId || v.maHocSinh
+      const st = currentStudents.value.find(s => String(s.studentId || s.id) === String(studentId) || (v.studentCode && s.studentCode === v.studentCode))
+      return {
+        ...v,
+        id: v.id || Date.now() + Math.random(),
+        type: v.type || v.loaiViPham,
+        studentId: studentId,
+        studentCode: v.studentCode || st?.studentCode,
+        details: v.details || v.chiTiet || 'Cảnh báo tự động',
+        timestamp: v.timestamp || v.thoiDiem || v.ngayTao || new Date().toISOString(),
+        handled: false
+      }
+    })
 
   } catch (err) {
     console.error('Hub error:', err)
@@ -876,7 +905,11 @@ function requestScreenStream(student) {
 
 function requestCameraStream(student) {
   if (currentSession.value && student.connectionId) {
-    examProctoringHub.requestStream(currentSession.value.id, student.connectionId, 'camera')
+    if (typeof examProctoringHub.requestStream === 'function') {
+      examProctoringHub.requestStream(currentSession.value.id, student.connectionId, 'camera').catch(() => {})
+    } else {
+      examProctoringHub.sendWarningToStudent(currentSession.value.id, student.connectionId, 'Yêu cầu mở camera').catch(() => {})
+    }
     popupStore.info('Đã gửi yêu cầu', `Yêu cầu stream camera đến ${student.studentCode}`)
   } else {
     popupStore.warning('Không thể gửi', 'Thí sinh chưa kết nối.')
@@ -925,7 +958,14 @@ async function suspendExamSession() {
 // Violations & Modal
 function violationsForStudent(student) {
   if (!student) return []
-  return liveViolations.value.filter((violation) => (violation.studentId || violation.studentCode) === student.studentCode)
+  const sId = String(student.studentId || student.id || '')
+  const sCode = String(student.studentCode || '').toLowerCase()
+
+  return liveViolations.value.filter((v) => {
+    const vId = String(v.studentId || v.maHocSinh || v.id || '')
+    const vCode = String(v.studentCode || '').toLowerCase()
+    return (sId && vId && sId === vId) || (sCode && vCode && sCode === vCode)
+  })
 }
 
 function studentViolationCount(student) {

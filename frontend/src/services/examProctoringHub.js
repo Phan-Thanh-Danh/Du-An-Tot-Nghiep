@@ -216,6 +216,10 @@ export class ExamProctoringHub {
 
   // ── Screen share ───────────────────────────────────────────────────────────
 
+  async requestStream(maCaThi, studentConnectionId, streamType = 'camera') {
+    await this._invoke('RequestStream', maCaThi, studentConnectionId, streamType)
+  }
+
   async screenShareStarted(maCaThi, maHocSinh) {
     await this._invoke('ScreenShareStarted', maCaThi, maHocSinh)
   }
