@@ -14,7 +14,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Listen(IPAddress.Loopback, 17892, listenOptions =>
+    // HTTP endpoint (for HTTP web apps - 100% smooth, no SSL certificate prompts)
+    options.Listen(IPAddress.Loopback, 17892);
+
+    // HTTPS endpoint (for HTTPS web apps)
+    options.Listen(IPAddress.Loopback, 17893, listenOptions =>
     {
         try
         {
@@ -23,8 +27,7 @@ builder.WebHost.ConfigureKestrel(options =>
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[agent] Warn: Could not bind HTTPS with self-signed cert ({ex.Message}), falling back to default HTTPS.");
-            listenOptions.UseHttps();
+            Console.WriteLine($"[agent] Warn: Could not bind HTTPS port 17893 ({ex.Message}).");
         }
     });
 });

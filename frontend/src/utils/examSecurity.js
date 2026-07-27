@@ -226,24 +226,35 @@ export async function detectExamGuardAgent() {
     })
   }
 
-  try {
-    const response = await fetch('https://127.0.0.1:17892/check', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: 'preflight', apiBaseUrl: window.location.origin })
-    })
+  let response
+  const payload = JSON.stringify({ sessionId: 'preflight', apiBaseUrl: window.location.origin })
+  const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload }
 
-    if (!response.ok) {
-      return makeCheck({
-        id: 'env_agent',
-        label: 'ExamGuard Agent',
-        description: 'Kiểm tra Agent hệ điều hành',
-        status: 'fail',
-        risk: 100,
-        reason: 'ExamGuard Agent trả về lỗi. Vui lòng kiểm tra lại.',
-        icon: 'ShieldAlert',
-      })
+  try {
+    response = await fetch('http://127.0.0.1:17892/check', opts)
+  } catch {
+    try {
+      response = await fetch('https://127.0.0.1:17892/check', opts)
+    } catch {
+      try {
+        response = await fetch('https://127.0.0.1:17893/check', opts)
+      } catch {
+        // all connection attempts failed
+      }
     }
+  }
+
+  if (!response || !response.ok) {
+    return makeCheck({
+      id: 'env_agent',
+      label: 'ExamGuard Agent',
+      description: 'Kiểm tra Agent hệ điều hành',
+      status: 'fail',
+      risk: 100,
+      reason: 'ExamGuard Agent trả về lỗi hoặc chưa khởi động. Vui lòng kiểm tra lại.',
+      icon: 'ShieldAlert',
+    })
+  }
 
     const data = await response.json()
 
