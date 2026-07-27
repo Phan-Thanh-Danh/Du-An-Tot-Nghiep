@@ -1387,7 +1387,7 @@ public class ExamService : IExamService
         {
             if (caThi.TrangThai == "dang_thi") return "open";
             if (caThi.TrangThai == "da_ket_thuc") return "closed";
-            // For other session states like da_san_sang, cho_phan_cong, we return scheduled
+            // da_san_sang, dang_diem_danh, cho_phan_cong return scheduled until teacher starts the ca thi!
             return "scheduled";
         }
 
@@ -1417,12 +1417,19 @@ public class ExamService : IExamService
             return "completed";
         }
 
-        if (caThi?.TrangThai == "dang_thi" || exam.TrangThai == "dang_mo")
+        if (caThi != null)
+        {
+            if (caThi.TrangThai == "dang_thi") return "official";
+            if (caThi.TrangThai == "da_ket_thuc") return "completed";
+            return "future_locked";
+        }
+
+        if (exam.TrangThai == "dang_mo")
         {
             return "official";
         }
 
-        if (caThi?.TrangThai == "da_ket_thuc" || exam.TrangThai == "da_dong")
+        if (exam.TrangThai == "da_dong")
         {
             return "completed";
         }

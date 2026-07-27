@@ -2,6 +2,16 @@ USE LMS;
 GO
 SET QUOTED_IDENTIFIER ON;
 
+-- Clear previous test data completely in correct FK order
+DELETE FROM NhatKyViPhamThi;
+DELETE FROM PhienThiHocSinh;
+DELETE FROM DiemDanhThi;
+DELETE FROM ThiSinhCaThi;
+DELETE FROM PhanCongGiamThi;
+DELETE FROM CaThi;
+DELETE FROM LichThiTong;
+GO
+
 DECLARE @KyThiId INT;
 SELECT TOP 1 @KyThiId = ma_ky_thi FROM KyThi;
 IF @KyThiId IS NULL
@@ -12,14 +22,6 @@ END
 
 DECLARE @MaPhong INT = 1;
 DECLARE @MaGiamThi INT = 15;
-
--- Xoa du lieu cu
-DELETE FROM PhienThiHocSinh;
-DELETE FROM DiemDanhThi;
-DELETE FROM ThiSinhCaThi;
-DELETE FROM PhanCongGiamThi;
-DELETE FROM CaThi;
-DELETE FROM LichThiTong;
 
 DECLARE @MonHocs TABLE (id INT, ten NVARCHAR(255));
 INSERT INTO @MonHocs VALUES (2, N'Nhập môn lập trình'), (51, N'Tin học cơ bản'), (50, N'Kỹ năng học tập');
@@ -75,7 +77,7 @@ BEGIN
     VALUES (@KyThiId, @MonId, @DeKiemTraId, 'online_tap_trung', GETDATE(), 'da_gui_ve_co_so', GETDATE());
     SET @LichThiId = SCOPE_IDENTITY();
 
-    -- Ca Thi
+    -- Ca Thi: Dat trang_thai = 'da_san_sang' (Đã sẵn sàng) để Giảng viên tự điểm danh và mở ca thi
     DECLARE @CaThiId INT;
     INSERT INTO CaThi (ma_lich_thi_tong, ten_ca_thi, ma_phong, ngay_thi, thoi_gian_bat_dau, thoi_gian_ket_thuc, ma_don_vi, trang_thai, ngay_tao)
     VALUES (@LichThiId, N'Thi ' + @MonTen, @MaPhong, CAST(GETDATE() AS DATE), GETDATE(), DATEADD(HOUR, 2, GETDATE()), 1, 'da_san_sang', GETDATE());
@@ -85,7 +87,7 @@ BEGIN
     INSERT INTO PhanCongGiamThi (ma_ca_thi, ma_giam_thi, vai_tro_giam_thi, trang_thai, ngay_tao)
     VALUES (@CaThiId, @MaGiamThi, 'giam_thi_chinh', 'da_xac_nhan', GETDATE());
 
-    -- Thi sinh
+    -- Thi sinh: Dat trang_thai_du_thi = 'cho_thi' (Chờ thi / Chờ điểm danh)
     INSERT INTO ThiSinhCaThi (ma_ca_thi, ma_hoc_sinh, trang_thai_du_thi, ngay_tao)
     SELECT @CaThiId, ma_nguoi_dung, 'cho_thi', GETDATE()
     FROM NguoiDung 
@@ -96,9 +98,11 @@ END
 
 CLOSE cur;
 DEALLOCATE cur;
--- Đảm bảo 3 bài thi này được hiển thị
+
+-- Đảm bảo 3 đề thi ở trạng thái dang_mo
 UPDATE DeKiemTra SET trang_thai = 'dang_mo' WHERE ma_mon_hoc IN (2, 50, 51);
 
--- Ẩn các đề thi không liên quan để tránh hiện trong danh sách của sinh viên
+-- Ẩn các đề thi không liên quan
 UPDATE DeKiemTra SET trang_thai = 'nhap' 
 WHERE ma_mon_hoc NOT IN (2, 50, 51) OR ma_mon_hoc IS NULL;
+GO

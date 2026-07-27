@@ -99,7 +99,7 @@ export function getExamAccessState(exam, studentContext = {}, now = new Date()) 
   const hasCaThi = exam.maCaThi || exam.MaCaThi;
   const ttdt = exam.trangThaiDuThi || exam.TrangThaiDuThi;
 
-  if (hasCaThi && ttdt !== 'duoc_thi') {
+  if (hasCaThi && !['duoc_thi', 'cho_thi'].includes(ttdt)) {
     if (ttdt === 'vang_thi') {
       return {
         canEnter: false,

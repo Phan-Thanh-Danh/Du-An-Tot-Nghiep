@@ -64,6 +64,16 @@
         </div>
         <button
           type="button"
+          class="primary-action text-white"
+          style="background: #10b981; border: none;"
+          @click="startExamSession"
+        >
+          <Play :size="16" />
+          Mở ca thi cho sinh viên
+        </button>
+
+        <button
+          type="button"
           class="danger-action"
           :disabled="!isMonitoring"
           @click="suspendExamSession"
@@ -99,10 +109,206 @@
         </div>
       </section>
 
-      <!-- GRID -->
-      <section class="screen-grid">
+      <!-- CONTROLS & FILTERS BAR -->
+      <section class="students-controls-bar surface-card border-card">
+        <div class="search-and-filters">
+          <div class="search-box">
+            <Search :size="16" class="search-icon" />
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Tìm theo Mã SV, Họ tên..."
+              class="search-input"
+            />
+          </div>
+
+          <div class="filter-pills">
+            <button
+              type="button"
+              class="filter-pill"
+              :class="{ active: statusFilter === 'all' }"
+              @click="statusFilter = 'all'"
+            >
+              Tất cả ({{ currentStudents.length }})
+            </button>
+            <button
+              type="button"
+              class="filter-pill"
+              :class="{ active: statusFilter === 'in_progress' }"
+              @click="statusFilter = 'in_progress'"
+            >
+              Đang thi ({{ activeCount }})
+            </button>
+            <button
+              type="button"
+              class="filter-pill"
+              :class="{ active: statusFilter === 'violation' }"
+              @click="statusFilter = 'violation'"
+            >
+              Cảnh báo ({{ unhandledViolations.length }})
+            </button>
+            <button
+              type="button"
+              class="filter-pill"
+              :class="{ active: statusFilter === 'submitted' }"
+              @click="statusFilter = 'submitted'"
+            >
+              Đã nộp bài ({{ submittedCount }})
+            </button>
+          </div>
+        </div>
+
+        <div class="view-switcher">
+          <button
+            type="button"
+            class="switch-btn"
+            :class="{ active: viewMode === 'table' }"
+            @click="viewMode = 'table'"
+            title="Hiển thị dạng Bảng danh sách"
+          >
+            <LayoutList :size="16" />
+            <span>Bảng danh sách</span>
+          </button>
+          <button
+            type="button"
+            class="switch-btn"
+            :class="{ active: viewMode === 'grid' }"
+            @click="viewMode = 'grid'"
+            title="Hiển thị dạng Lưới màn hình"
+          >
+            <LayoutGrid :size="16" />
+            <span>Lưới màn hình</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- TABLE VIEW (DEFAULT) -->
+      <section v-if="viewMode === 'table'" class="students-table-container surface-card border-card">
+        <div class="table-responsive">
+          <table class="students-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">STT</th>
+                <th>Thí sinh</th>
+                <th>Trạng thái thi</th>
+                <th>Kết nối</th>
+                <th>Màn hình chia sẻ</th>
+                <th>Cảnh báo / Vi phạm</th>
+                <th style="text-align: right; padding-right: 1.25rem;">Thao tác giám sát</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(student, index) in filteredStudents"
+                :key="student.id || student.studentId"
+                class="student-row"
+                :class="{ 'has-alert-row': hasUnhandledViolation(student) }"
+                @click="openStudentModal(student)"
+              >
+                <td class="text-center font-semibold text-slate-400">{{ index + 1 }}</td>
+                <td>
+                  <div class="student-info-cell">
+                    <div class="student-avatar-chip">
+                      {{ (student.name || 'SV').charAt(0).toUpperCase() }}
+                    </div>
+                    <div>
+                      <span class="student-code-text">{{ student.studentCode }}</span>
+                      <div class="student-name-text">{{ student.name }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <GlassBadge v-if="student.examStatus === 'in_progress'" variant="success">Đang thi</GlassBadge>
+                  <GlassBadge v-else-if="student.examStatus === 'submitted'" variant="info">Đã nộp bài</GlassBadge>
+                  <GlassBadge v-else-if="student.examStatus === 'suspended'" variant="danger">Bị đình chỉ</GlassBadge>
+                  <GlassBadge v-else variant="default">{{ examStatusLabel(student.examStatus) }}</GlassBadge>
+                </td>
+                <td>
+                  <span v-if="student.connectionId" class="connection-status-tag online">
+                    <span class="dot"></span> Online
+                  </span>
+                  <span v-else class="connection-status-tag offline">
+                    <span class="dot"></span> Offline
+                  </span>
+                </td>
+                <td>
+                  <span v-if="studentStreams[student.studentId]" class="stream-status-tag active">
+                    <MonitorPlay :size="14" /> Đang phát live
+                  </span>
+                  <span v-else-if="student.streamStatus === 'streaming' || student.streamStatus === 'active'" class="stream-status-tag active">
+                    <Monitor :size="14" /> Sẵn sàng
+                  </span>
+                  <span v-else class="stream-status-tag inactive">
+                    <VideoOff :size="14" /> {{ streamLabel(student.streamStatus) }}
+                  </span>
+                </td>
+                <td>
+                  <div v-if="studentViolationCount(student) > 0" class="flex items-center gap-2">
+                    <GlassBadge variant="danger" class="animate-pulse">
+                      {{ studentViolationCount(student) }} Vi phạm
+                    </GlassBadge>
+                    <span class="text-xs text-rose-400 truncate max-w-[180px]" :title="latestViolationLabel(student)">
+                      {{ latestViolationLabel(student) }}
+                    </span>
+                  </div>
+                  <span v-else class="text-xs text-slate-400">Không có</span>
+                </td>
+                <td class="text-right" @click.stop>
+                  <div class="row-actions">
+                    <button
+                      type="button"
+                      class="btn-action-primary"
+                      @click="requestScreenStream(student)"
+                      title="Mở popup xem màn hình chia sẻ trực tiếp"
+                    >
+                      <MonitorPlay :size="14" />
+                      <span>Xem màn hình</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn-action-icon"
+                      @click="showReminderDialog(student)"
+                      title="Nhắc nhở thí sinh"
+                    >
+                      <MessageSquareWarning :size="14" />
+                    </button>
+
+                    <button
+                      v-if="hasUnhandledViolation(student)"
+                      type="button"
+                      class="btn-action-icon text-teal-400"
+                      @click="markStudentHandled(student)"
+                      title="Đánh dấu đã xử lý vi phạm"
+                    >
+                      <Check :size="14" />
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn-action-icon text-rose-400 hover:text-rose-300"
+                      @click="suspendStudent(student)"
+                      title="Đình chỉ bài thi"
+                    >
+                      <ShieldAlert :size="14" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="filteredStudents.length === 0">
+                <td colspan="7" class="text-center py-8 text-slate-400">
+                  Không tìm thấy thí sinh phù hợp
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- GRID VIEW -->
+      <section v-else class="screen-grid">
         <article
-          v-for="student in currentStudents"
+          v-for="student in filteredStudents"
           :key="student.id"
           class="screen-card surface-card border-card"
           :class="{ 'has-alert': hasUnhandledViolation(student) }"
@@ -312,7 +518,7 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   Monitor, Clock, LogOut, AlertCircle, ShieldAlert,
   AlertTriangle, VideoOff, Loader2, MonitorPlay, Video,
-  MessageSquareWarning, X
+  MessageSquareWarning, X, LayoutList, LayoutGrid, Search, Check, Play
 } from 'lucide-vue-next'
 import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
@@ -342,6 +548,34 @@ const {
 
 const currentTime = ref('')
 let clockTimer = null
+
+const viewMode = ref('table')
+const searchQuery = ref('')
+const statusFilter = ref('all')
+
+const filteredStudents = computed(() => {
+  return currentStudents.value.filter((student) => {
+    if (searchQuery.value.trim()) {
+      const q = searchQuery.value.trim().toLowerCase()
+      const codeMatch = student.studentCode?.toLowerCase().includes(q)
+      const nameMatch = student.name?.toLowerCase().includes(q)
+      if (!codeMatch && !nameMatch) return false
+    }
+    if (statusFilter.value === 'in_progress') {
+      return student.examStatus === 'in_progress'
+    }
+    if (statusFilter.value === 'submitted') {
+      return student.examStatus === 'submitted'
+    }
+    if (statusFilter.value === 'suspended') {
+      return student.examStatus === 'suspended'
+    }
+    if (statusFilter.value === 'violation') {
+      return hasUnhandledViolation(student)
+    }
+    return true
+  })
+})
 
 // Dùng Map thường (KHÔNG reactive) để tránh Vue proxy làm hỏng các method WebRTC gốc
 const peerConnections = new Map()
@@ -646,6 +880,18 @@ function requestCameraStream(student) {
     popupStore.info('Đã gửi yêu cầu', `Yêu cầu stream camera đến ${student.studentCode}`)
   } else {
     popupStore.warning('Không thể gửi', 'Thí sinh chưa kết nối.')
+  }
+}
+
+async function startExamSession() {
+  if (!confirm('Bạn có chắc chắn muốn mở ca thi cho sinh viên bắt đầu vào làm bài?')) return
+  if (currentSession.value) {
+    try {
+      await teacherApi.startExamSession(currentSession.value.id)
+      popupStore.success('Đã mở ca thi', 'Ca thi đã được mở thành công. Sinh viên có thể bấm "Vào làm"!')
+    } catch (e) {
+      popupStore.error('Lỗi', 'Không thể mở ca thi.')
+    }
   }
 }
 
@@ -1306,4 +1552,296 @@ function markStudentHandled(student) {
   transition: opacity 0.15s;
 }
 .send-btn:hover { opacity: 0.88; }
+
+/* CONTROLS & FILTERS BAR */
+.students-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 16px;
+  flex-wrap: wrap;
+}
+
+.search-and-filters {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 240px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  color: var(--text-heading);
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  border-color: var(--text-link);
+}
+
+.filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.filter-pill {
+  padding: 0.35rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-pill:hover {
+  color: var(--text-heading);
+}
+
+.filter-pill.active {
+  background: var(--accent-primary-soft, rgba(37, 99, 235, 0.15));
+  border-color: var(--text-link);
+  color: var(--text-link);
+  font-weight: 700;
+}
+
+.view-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--surface-input);
+  padding: 0.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-card);
+}
+
+.switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 9px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.switch-btn:hover {
+  color: var(--text-heading);
+}
+
+.switch-btn.active {
+  background: var(--surface-card);
+  color: var(--text-heading);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* STUDENTS TABLE */
+.students-table-container {
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--lg-shadow-sm);
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.students-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.82rem;
+}
+
+.students-table th {
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-card);
+}
+
+.student-row {
+  border-bottom: 1px solid var(--border-card);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.student-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.student-row.has-alert-row {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.student-row.has-alert-row:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.students-table td {
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+}
+
+.student-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.student-avatar-chip {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 10px;
+  background: var(--accent-primary-soft, rgba(37, 99, 235, 0.2));
+  color: var(--text-link);
+  font-weight: 850;
+  font-size: 0.85rem;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.student-code-text {
+  font-size: 0.68rem;
+  font-weight: 850;
+  color: var(--text-link);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.student-name-text {
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.connection-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.connection-status-tag .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.connection-status-tag.online {
+  color: #10b981;
+}
+
+.connection-status-tag.online .dot {
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.connection-status-tag.offline {
+  color: var(--text-muted);
+}
+
+.connection-status-tag.offline .dot {
+  background: #94a3b8;
+}
+
+.stream-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.stream-status-tag.active {
+  color: #3b82f6;
+}
+
+.stream-status-tag.inactive {
+  color: var(--text-muted);
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.btn-action-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 10px;
+  background: var(--text-link);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.btn-action-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-card);
+  background: var(--surface-input);
+  color: var(--text-label);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-action-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-heading);
+}
 </style>

@@ -341,7 +341,7 @@ public static class Data
                     ThoiGianBatDau = DateTime.Today.AddHours(8),
                     ThoiGianKetThuc = DateTime.Today.AddDays(1).AddHours(22),
                     MaDonVi = hcmCampus.MaDonVi,
-                    TrangThai = "dang_diem_danh", // Đang điểm danh thí sinh
+                    TrangThai = "dang_thi", // Đang thi
                     NgayTao = DateTime.UtcNow
                 };
                 context.CaThis.Add(caThi);
@@ -368,7 +368,7 @@ public static class Data
                 {
                     MaCaThi = caThi.MaCaThi,
                     MaHocSinh = student.MaNguoiDung,
-                    TrangThaiDuThi = "cho_thi",
+                    TrangThaiDuThi = "duoc_thi",
                     NgayTao = DateTime.UtcNow
                 });
             }
