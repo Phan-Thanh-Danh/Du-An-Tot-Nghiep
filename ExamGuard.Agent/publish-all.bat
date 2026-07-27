@@ -44,21 +44,10 @@ for /d /r "%OUTPUT_DIR%" %%d in (publish) do if exist "%%d" rmdir /s /q "%%d" >n
 
 echo.
 echo Dang tao file launcher cho Linux (ExamGuard.desktop va Chay-Agent.sh)...
-echo [Desktop Entry]> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
-echo Version=1.0>> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
-echo Type=Application>> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
-echo Name=ExamGuard Agent>> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
-echo Comment=ExamGuard Agent cho Linux>> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
-echo Exec=bash -c "cd \"$$(dirname \"%%k\")\" ^&^& chmod +x ./ExamGuard.Agent ^&^& ./ExamGuard.Agent">> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
-echo Icon=utilities-terminal>> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
-echo Terminal=true>> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
-echo Categories=Utility;>> "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop"
+powershell -Command "$lines = @('[Desktop Entry]', 'Version=1.0', 'Type=Application', 'Name=ExamGuard Agent', 'Comment=ExamGuard Agent cho Linux', 'Exec=bash -c \"cd \"\"$(dirname \"\"%%k\"\")\"\" && chmod +x ./ExamGuard.Agent && ./ExamGuard.Agent\"', 'Icon=utilities-terminal', 'Terminal=true', 'Categories=Utility;'); [System.IO.File]::WriteAllLines('%OUTPUT_DIR%\linux-x64\ExamGuard.desktop', $lines)"
 copy /y "%OUTPUT_DIR%\linux-x64\ExamGuard.desktop" "%OUTPUT_DIR%\linux-arm64\ExamGuard.desktop" >nul
 
-echo #!/bin/bash> "%OUTPUT_DIR%\linux-x64\Chay-Agent.sh"
-echo cd "$(dirname "$0")">> "%OUTPUT_DIR%\linux-x64\Chay-Agent.sh"
-echo chmod +x ./ExamGuard.Agent>> "%OUTPUT_DIR%\linux-x64\Chay-Agent.sh"
-echo ./ExamGuard.Agent>> "%OUTPUT_DIR%\linux-x64\Chay-Agent.sh"
+powershell -Command "$lines = @('#!/bin/bash', 'cd \"$(dirname \"$0\")\"', 'chmod +x ./ExamGuard.Agent', './ExamGuard.Agent'); [System.IO.File]::WriteAllLines('%OUTPUT_DIR%\linux-x64\Chay-Agent.sh', $lines)"
 copy /y "%OUTPUT_DIR%\linux-x64\Chay-Agent.sh" "%OUTPUT_DIR%\linux-arm64\Chay-Agent.sh" >nul
 
 echo.
