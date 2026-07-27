@@ -289,12 +289,11 @@ public class ExamMonitoringHub : Hub
         );
     }
 
-    public async Task UpdateStudentStatus(int maCaThi, int maHocSinh, string status)
+    public async Task UpdateStudentStatus(int maCaThi, int maHocSinh, string status, decimal? diemSo = null)
     {
-        if (!await IsAuthorizedProctor(maCaThi)) return;
         await Clients.Group($"exam-{maCaThi}").SendAsync("StudentStatusUpdated", new
         {
-            maHocSinh, status, thoiDiem = DateTime.UtcNow
+            maHocSinh, status, diemSo, thoiDiem = DateTime.UtcNow
         });
     }
 

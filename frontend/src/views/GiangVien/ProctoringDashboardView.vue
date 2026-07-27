@@ -231,7 +231,13 @@
                 </td>
                 <td>
                   <GlassBadge v-if="student.examStatus === 'in_progress'" variant="success">Đang thi</GlassBadge>
-                  <GlassBadge v-else-if="student.examStatus === 'submitted'" variant="info">Đã nộp bài</GlassBadge>
+                  <div v-else-if="['submitted', 'da_nop', 'da_dung', 'completed'].includes(student.examStatus)" class="flex items-center gap-1.5">
+                    <GlassBadge variant="info">Đã nộp bài</GlassBadge>
+                    <span v-if="student.score != null" class="px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 font-extrabold text-xs border border-emerald-500/30">
+                      {{ student.score }}đ
+                    </span>
+                    <span v-else class="text-[11px] text-slate-400 font-medium">(Chờ chấm)</span>
+                  </div>
                   <GlassBadge v-else-if="student.examStatus === 'suspended'" variant="danger">Bị đình chỉ</GlassBadge>
                   <GlassBadge v-else variant="default">{{ examStatusLabel(student.examStatus) }}</GlassBadge>
                 </td>
@@ -443,6 +449,12 @@
               </GlassBadge>
               
               <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px;">
+                <div v-if="['submitted', 'da_nop', 'da_dung', 'completed'].includes(selectedStudent?.examStatus)" style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border-default); font-size: 0.78rem;">
+                  <span style="color: var(--text-label);">Điểm thi</span>
+                  <strong class="text-emerald-500 font-extrabold" style="font-size: 0.88rem;">
+                    {{ selectedStudent?.score != null ? selectedStudent.score + ' điểm' : 'Chưa có (Chờ chấm)' }}
+                  </strong>
+                </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border-default); font-size: 0.78rem;">
                   <span style="color: var(--text-label);">Vi phạm chưa xử lý</span>
                   <strong :class="studentViolationCount(selectedStudent) > 0 ? 'text-rose-500' : 'text-green-500'" style="font-size: 0.82rem;">
@@ -660,7 +672,7 @@ const filteredStudents = computed(() => {
       return student.examStatus === 'in_progress'
     }
     if (statusFilter.value === 'submitted') {
-      return student.examStatus === 'submitted'
+      return ['submitted', 'da_nop', 'da_dung', 'completed'].includes(student.examStatus)
     }
     if (statusFilter.value === 'suspended') {
       return student.examStatus === 'suspended'
@@ -771,7 +783,7 @@ const activeCount = computed(() => {
 })
 
 const submittedCount = computed(() => {
-  return currentStudents.value.filter((s) => s.examStatus === 'submitted').length
+  return currentStudents.value.filter((s) => ['submitted', 'da_nop', 'da_dung', 'completed'].includes(s.examStatus)).length
 })
 
 const unhandledViolations = computed(() => {
@@ -940,10 +952,13 @@ async function initializeHub(sessionId) {
     examProctoringHub.eventHandlers.onStudentConnectionIdBroadcast = async (payload) => {
       console.log('[Proctor] onStudentConnectionIdBroadcast', payload)
       if (payload.maCaThi == sessionId) {
-        const student = currentStudents.value.find(s => s.studentId === payload.maHocSinh || s.id === payload.maHocSinh)
+        const student = currentStudents.value.find(s => String(s.studentId || s.id) === String(payload.maHocSinh))
         console.log('[Proctor] Found student:', student?.studentCode, 'maHocSinh:', payload.maHocSinh)
         if (student) {
           student.connectionId = payload.connectionId
+          if (student.examStatus !== 'submitted' && student.examStatus !== 'suspended') {
+            student.examStatus = 'in_progress'
+          }
         }
         await examProctoringHub.acknowledgeStudent(payload.connectionId)
         
@@ -954,9 +969,12 @@ async function initializeHub(sessionId) {
     
     examProctoringHub.eventHandlers.onScreenShareStatusChanged = async (payload) => {
       console.log('[Proctor] onScreenShareStatusChanged', payload)
-      const student = currentStudents.value.find(s => s.studentId === payload.maHocSinh || s.id === payload.maHocSinh)
+      const student = currentStudents.value.find(s => String(s.studentId || s.id) === String(payload.maHocSinh))
       if (student) {
         student.streamStatus = payload.status
+        if (student.examStatus !== 'submitted' && student.examStatus !== 'suspended') {
+          student.examStatus = 'in_progress'
+        }
       }
 
       if ((payload.status === 'streaming' || payload.status === 'active') && student?.connectionId) {
@@ -978,6 +996,32 @@ async function initializeHub(sessionId) {
            pc.close()
            peerConnections.delete(payload.maHocSinh)
          }
+      }
+    }
+
+    examProctoringHub.eventHandlers.onStudentStatusUpdated = (payload) => {
+      console.log('[Proctor] onStudentStatusUpdated received:', payload)
+      const student = currentStudents.value.find(s => String(s.studentId || s.id) === String(payload.maHocSinh))
+      if (student) {
+        const st = (payload.status || payload.trangThai || '').toString().toLowerCase()
+        if (['submitted', 'da_nop', 'da_nop_bai', 'completed'].includes(st)) {
+          student.examStatus = 'submitted'
+          student.streamStatus = 'stopped'
+          if (payload.diemSo !== undefined && payload.diemSo !== null) {
+            student.score = payload.diemSo
+          } else if (payload.score !== undefined && payload.score !== null) {
+            student.score = payload.score
+          }
+        } else if (['in_progress', 'dang_thi'].includes(st)) {
+          student.examStatus = 'in_progress'
+        } else if (['suspended', 'dinh_chi'].includes(st)) {
+          student.examStatus = 'suspended'
+        }
+      }
+
+      // Refresh candidate data from backend silently to ensure full sync
+      if (sessionId) {
+        loadSessionData(sessionId).catch(e => console.warn('[Proctor] Silent refresh failed:', e))
       }
     }
 

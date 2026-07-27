@@ -480,20 +480,37 @@ public class ExamService : IExamService
 
     public async Task<IReadOnlyList<ThiSinhCaThiDto>> GetThiSinhsByCaThiAsync(int maCaThi, CancellationToken ct)
     {
-        return await _db.ThiSinhCaThis
+        var thiSinhs = await _db.ThiSinhCaThis
             .Include(t => t.HocSinh)
             .Where(t => t.MaCaThi == maCaThi)
-            .Select(t => new ThiSinhCaThiDto
+            .ToListAsync(ct);
+
+        var phienThis = await _db.PhienThiHocSinhs
+            .Where(p => p.MaCaThi == maCaThi)
+            .ToListAsync(ct);
+
+        return thiSinhs.Select(t => {
+            var pt = phienThis.FirstOrDefault(p => p.MaHocSinh == t.MaHocSinh);
+            var status = t.TrangThaiDuThi;
+            decimal? diemSo = null;
+            if (pt != null)
+            {
+                diemSo = pt.DiemCuoiCung ?? pt.DiemTuDong;
+                if (pt.TrangThaiLuong == "da_dung") status = "da_nop";
+                else if (status != "dinh_chi" && status != "da_nop") status = "dang_thi";
+            }
+            return new ThiSinhCaThiDto
             {
                 MaThiSinhCaThi = t.MaThiSinhCaThi,
                 MaCaThi = t.MaCaThi,
                 MaHocSinh = t.MaHocSinh,
                 TenHocSinh = t.HocSinh != null ? t.HocSinh.HoTen : null,
                 Email = t.HocSinh != null ? t.HocSinh.Email : null,
-                TrangThaiDuThi = t.TrangThaiDuThi,
+                TrangThaiDuThi = status,
+                DiemSo = diemSo,
                 GhiChu = t.GhiChu
-            })
-            .ToListAsync(ct);
+            };
+        }).ToList();
     }
 
     public async Task<IReadOnlyList<ThiSinhCaThiDto>> AddThiSinhsToCaThiAsync(AddThiSinhCaThiRequest request, CancellationToken ct)
@@ -1140,6 +1157,31 @@ public class ExamService : IExamService
         phienThi.CauTraLoiJson = request.CauTraLoiJson;
         phienThi.NopLuc = DateTime.UtcNow;
         phienThi.TrangThaiLuong = "da_dung";
+
+        try
+        {
+            var questions = await _db.CauHoiDeKiemTras
+                .Include(x => x.CauHoi)
+                .Where(x => x.MaDeKiemTra == phienThi.MaDeKiemTra)
+                .OrderBy(x => x.ThuTu)
+                .ToListAsync(ct);
+
+            var answers = _gradingService.ParseAnswersJson(phienThi.CauTraLoiJson);
+            var grading = _gradingService.GradeObjectiveQuestions(questions, answers, false);
+
+            phienThi.DiemTuDong = grading.DiemTracNghiem;
+            phienThi.SoCauDung = grading.SoCauDung;
+            if (!grading.CoCauTuLuan)
+            {
+                phienThi.DiemCuoiCung = grading.DiemTracNghiem;
+            }
+            phienThi.TrangThaiCongBo = grading.CoCauTuLuan ? "chua_co_diem" : "da_cham_xong";
+            phienThi.NgayCapNhat = DateTime.UtcNow;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Lỗi tự động chấm điểm khi nộp bài.");
+        }
 
         await _db.SaveChangesAsync(ct);
 

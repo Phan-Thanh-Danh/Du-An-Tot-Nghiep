@@ -173,6 +173,7 @@ public class ThiSinhCaThiDto
     public string? TenHocSinh { get; set; }
     public string? Email { get; set; }
     public string TrangThaiDuThi { get; set; } = string.Empty;
+    public decimal? DiemSo { get; set; }
     public string? GhiChu { get; set; }
 }
 

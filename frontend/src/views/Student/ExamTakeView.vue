@@ -1410,8 +1410,19 @@ async function submitExam(reason = 'manual') {
       maPhienThi: maPhienThi.value,
       cauTraLoiJson: JSON.stringify(answersArray)
     }
-    await examApi.submitExam(payload)
+    const submitRes = await examApi.submitExam(payload)
+    const finalScore = submitRes?.diemCuoiCung ?? submitRes?.diemTuDong ?? null
     
+    // Notify Proctor Hub via SignalR in real-time with score
+    try {
+      if (examProctoringHub.isConnected) {
+        await examProctoringHub._invoke('UpdateStudentStatus', caThiId, STUDENT_ID.value, 'submitted', finalScore)
+        await examProctoringHub.screenShareStopped(caThiId, STUDENT_ID.value)
+      }
+    } catch (e) {
+      console.warn('[ExamTake] Error broadcasting submitted status:', e)
+    }
+
     localStorage.setItem(submittedKey.value, 'true')
     clearExamRuntimeStorage(examId, STUDENT_ID.value)
     router.replace(`/student/exams/${maPhienThi.value}`)

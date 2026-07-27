@@ -159,10 +159,11 @@ export const teacherApi = {
     let items = Array.isArray(res) ? res : (res?.items || [])
     
     return items.map(c => {
-      let examStatus = 'not_started'
-      if (c.trangThaiDuThi === 'dang_thi') examStatus = 'in_progress'
-      if (c.trangThaiDuThi === 'da_nop') examStatus = 'submitted'
-      if (c.trangThaiDuThi === 'dinh_chi') examStatus = 'suspended'
+      let examStatus = 'in_progress'
+      const ttdt = (c.trangThaiDuThi || c.trangThai || '').toString().toLowerCase()
+      if (['da_nop', 'submitted', 'da_nop_bai', 'da_ket_thuc', 'completed'].includes(ttdt)) examStatus = 'submitted'
+      else if (['dinh_chi', 'suspended'].includes(ttdt)) examStatus = 'suspended'
+      else if (['chua_bat_dau', 'chua_thi'].includes(ttdt)) examStatus = 'not_started'
       
       return {
         id: c.maThiSinhCaThi || c.maHocSinh,
@@ -173,6 +174,7 @@ export const teacherApi = {
         preflightStatus: 'pass',
         streamStatus: examStatus === 'in_progress' ? 'streaming' : (examStatus === 'submitted' ? 'stopped' : 'waiting'),
         examStatus: examStatus,
+        score: c.diemSo !== undefined && c.diemSo !== null ? c.diemSo : null,
         logs: []
       }
     })
