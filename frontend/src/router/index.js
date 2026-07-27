@@ -354,6 +354,7 @@ const router = createRouter({
         { path: 'proctoring', name: 'teacher-proctoring-sessions', component: () => import('../views/GiangVien/ProctoringSessionsView.vue') },
         { path: 'proctoring/:sessionId/attendance', name: 'teacher-proctoring-attendance', component: () => import('../views/GiangVien/ProctoringAttendanceView.vue') },
         { path: 'proctoring/:sessionId/dashboard', name: 'teacher-proctoring-dashboard', component: () => import('../views/GiangVien/ProctoringDashboardView.vue') },
+        { path: 'proctoring/:sessionId/report', name: 'teacher-proctoring-report', component: () => import('../views/GiangVien/ProctoringReportView.vue'), meta: { title: 'Biên bản giám sát ca thi' } },
 
         { path: 'attendance-history', name: 'teacher-attendance-history', component: () => import('../views/GiangVien/AttendanceHistoryView.vue') },
         { path: 'grading-input', name: 'teacher-grading-input', component: () => import('../views/GiangVien/GradingCourseListView.vue') },

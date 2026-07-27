@@ -12,7 +12,7 @@
         </div>
       </div>
 
-      <div class="header-actions">
+      <div class="header-actions flex items-center gap-2">
         <button
           type="button"
           class="ghost-action"
@@ -27,11 +27,30 @@
 
         <button
           type="button"
-          class="ghost-action"
-          @click="endExamSession"
+          class="px-3.5 py-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold text-xs border border-amber-500/20 hover:bg-amber-500/20 flex items-center gap-1.5 transition cursor-pointer"
+          :disabled="!isMonitoring"
+          @click="suspendExamSession"
         >
-          <LogOut :size="16" />
-          Kết thúc ca thi
+          <ShieldAlert :size="16" />
+          <span>Tạm dừng ca thi</span>
+        </button>
+
+        <button
+          type="button"
+          class="px-3.5 py-2 rounded-xl bg-rose-600 text-white font-semibold text-xs hover:bg-rose-700 flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+          @click="confirmEndExamSession"
+        >
+          <SquareX :size="16" />
+          <span>Kết thúc ca thi</span>
+        </button>
+
+        <button
+          type="button"
+          class="px-3.5 py-2 rounded-xl bg-surface-input border border-card text-heading font-semibold text-xs hover:bg-black/5 dark:hover:bg-white/10 flex items-center gap-1.5 transition cursor-pointer"
+          @click="openExamReportModal"
+        >
+          <FileText :size="16" />
+          <span>Biên bản ca thi</span>
         </button>
 
         <div class="time-chip">
@@ -56,9 +75,9 @@
       <!-- DASHBOARD TOOLBAR -->
       <section class="dashboard-toolbar surface-card border-card">
         <div>
-          <p class="section-eyebrow">{{ currentSession.subjectCode }} · {{ currentSession.classCode }}</p>
-          <h2>Dashboard Giám sát</h2>
-          <p>{{ currentSession.examTitle }} · Phòng: {{ currentSession.room }}</p>
+          <p class="section-eyebrow">MÔN THI · {{ currentSession.examTitle || currentSession.subjectCode }}</p>
+          <h2>{{ currentSession.examTitle }}</h2>
+          <p>Phòng: {{ currentSession.room }}</p>
         </div>
         <div class="dashboard-counters">
           <div>
@@ -74,25 +93,6 @@
             <strong class="text-teal-500">{{ submittedCount }}</strong>
           </div>
         </div>
-        <button
-          type="button"
-          class="primary-action text-white"
-          style="background: #10b981; border: none;"
-          @click="startExamSession"
-        >
-          <Play :size="16" />
-          Mở ca thi cho sinh viên
-        </button>
-
-        <button
-          type="button"
-          class="danger-action"
-          :disabled="!isMonitoring"
-          @click="suspendExamSession"
-        >
-          <ShieldAlert :size="16" />
-          Tạm dừng ca thi
-        </button>
       </section>
 
       <!-- ALERTS STRIP -->
@@ -615,6 +615,58 @@
         </div>
       </div>
     </Teleport>
+    <!-- CUSTOM CONFIRMATION MODAL (POPUP TỰ LÀM) -->
+    <Teleport to="body">
+      <div v-if="confirmDialog.visible" class="student-modal-backdrop" @click="confirmDialog.visible = false">
+        <div
+          class="custom-confirm-modal lg-glass-strong surface-card border-card text-heading p-6 max-w-md w-full rounded-2xl shadow-2xl relative text-center flex flex-col items-center gap-4"
+          style="animation: zoomInModal 0.25s cubic-bezier(0.16, 1, 0.3, 1);"
+          @click.stop
+        >
+          <!-- Icon header -->
+          <div
+            class="w-14 h-14 rounded-full flex items-center justify-center shadow-inner"
+            :class="{
+              'bg-rose-500/15 text-rose-500 border border-rose-500/30': confirmDialog.variant === 'danger',
+              'bg-amber-500/15 text-amber-500 border border-amber-500/30': confirmDialog.variant === 'warning',
+              'bg-teal-500/15 text-teal-500 border border-teal-500/30': confirmDialog.variant === 'primary'
+            }"
+          >
+            <ShieldAlert v-if="confirmDialog.variant === 'danger'" :size="30" />
+            <AlertTriangle v-else-if="confirmDialog.variant === 'warning'" :size="30" />
+            <HelpCircle v-else :size="30" />
+          </div>
+
+          <div>
+            <h3 class="text-lg font-bold text-heading mb-1.5">{{ confirmDialog.title }}</h3>
+            <p class="text-xs text-label leading-relaxed m-0 px-2">{{ confirmDialog.message }}</p>
+          </div>
+
+          <div class="flex items-center justify-center gap-3 w-full mt-2">
+            <button
+              type="button"
+              class="flex-1 py-2.5 px-4 rounded-xl surface-input border-card text-heading font-semibold text-xs hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer"
+              @click="confirmDialog.visible = false"
+            >
+              {{ confirmDialog.cancelText }}
+            </button>
+            
+            <button
+              type="button"
+              class="flex-1 py-2.5 px-4 rounded-xl font-bold text-xs text-white shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
+              :class="{
+                'bg-rose-600 hover:bg-rose-700': confirmDialog.variant === 'danger',
+                'bg-amber-600 hover:bg-amber-700': confirmDialog.variant === 'warning',
+                'bg-teal-600 hover:bg-teal-700': confirmDialog.variant === 'primary'
+              }"
+              @click="handleConfirmDialogAction"
+            >
+              <span>{{ confirmDialog.confirmText }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -625,7 +677,7 @@ import {
   Monitor, Clock, LogOut, AlertCircle, ShieldAlert,
   AlertTriangle, VideoOff, Loader2, MonitorPlay, Video,
   MessageSquareWarning, X, LayoutList, LayoutGrid, Search, Check, Play,
-  Volume2, VolumeX
+  Volume2, VolumeX, Printer, FileText, SquareX, HelpCircle
 } from 'lucide-vue-next'
 import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
@@ -639,6 +691,39 @@ import { useProctoringSession } from '@/composables/useProctoringSession'
 const route = useRoute()
 const router = useRouter()
 const popupStore = usePopupStore()
+
+const showReportModal = ref(false)
+const loadingReport = ref(false)
+const reportData = ref(null)
+
+const confirmDialog = ref({
+  visible: false,
+  title: '',
+  message: '',
+  confirmText: 'Xác nhận',
+  cancelText: 'Hủy bỏ',
+  variant: 'danger',
+  onConfirm: null
+})
+
+const showConfirmModal = (options) => {
+  confirmDialog.value = {
+    visible: true,
+    title: options.title || 'Xác nhận thao tác',
+    message: options.message || '',
+    confirmText: options.confirmText || 'Xác nhận',
+    cancelText: options.cancelText || 'Hủy bỏ',
+    variant: options.variant || 'danger',
+    onConfirm: options.onConfirm || null
+  }
+}
+
+const handleConfirmDialogAction = async () => {
+  if (confirmDialog.value.onConfirm) {
+    await confirmDialog.value.onConfirm()
+  }
+  confirmDialog.value.visible = false
+}
 
 const {
   loading,
@@ -1170,31 +1255,60 @@ async function startExamSession() {
   }
 }
 
-async function endExamSession() {
-  if (!confirm('Bạn có chắc chắn muốn kết thúc ca thi này?')) return
-
-  if (currentSession.value) {
-    try {
-      await teacherApi.endExamSession(currentSession.value.id)
-      cleanupWebRTC()
-      isMonitoring.value = false
-      router.push({ name: 'teacher-proctoring-sessions' })
-    } catch (e) {
-      popupStore.error('Lỗi', 'Không thể kết thúc ca thi.')
+function confirmEndExamSession() {
+  showConfirmModal({
+    title: 'Xác nhận kết thúc ca thi',
+    message: 'Bạn có chắc chắn muốn KẾT THÚC ca thi này? Tất cả bài làm của thí sinh chưa nộp sẽ tự động được thu bài và tự động chấm điểm!',
+    confirmText: 'Kết thúc ca thi',
+    cancelText: 'Hủy bỏ',
+    variant: 'danger',
+    onConfirm: async () => {
+      const sId = currentSession.value?.id || sessionId
+      if (sId) {
+        try {
+          await teacherApi.endExamSession(sId)
+          popupStore.success('Đã kết thúc', 'Đã kết thúc ca thi thành công.')
+          openExamReportModal()
+        } catch (e) {
+          console.error(e)
+          popupStore.error('Lỗi', 'Không thể kết thúc ca thi.')
+        }
+      }
     }
-  }
+  })
 }
 
-async function suspendExamSession() {
-  if (!confirm('Tạm dừng toàn bộ ca thi? Học sinh sẽ không thể làm bài tiếp.')) return
-  if (currentSession.value) {
-    try {
-      await teacherApi.suspendExamSession(currentSession.value.id)
-      popupStore.warning('Đã tạm dừng', 'Toàn bộ ca thi đã bị tạm dừng.')
-    } catch (e) {
-      popupStore.error('Lỗi', 'Không thể tạm dừng ca thi.')
+async function endExamSession() {
+  confirmEndExamSession()
+}
+
+function openExamReportModal() {
+  const sId = currentSession.value?.id || sessionId
+  router.push({ name: 'teacher-proctoring-report', params: { sessionId: sId } })
+}
+
+function printExamReport() {
+  window.print()
+}
+
+function suspendExamSession() {
+  showConfirmModal({
+    title: 'Xác nhận tạm dừng ca thi',
+    message: 'Bạn có chắc chắn muốn TẠM DỪNG toàn bộ ca thi này? Thí sinh sẽ không thể làm bài tiếp cho đến khi mở lại.',
+    confirmText: 'Tạm dừng ca thi',
+    cancelText: 'Hủy bỏ',
+    variant: 'warning',
+    onConfirm: async () => {
+      if (currentSession.value) {
+        try {
+          await teacherApi.suspendExamSession(currentSession.value.id)
+          popupStore.warning('Đã tạm dừng', 'Toàn bộ ca thi đã bị tạm dừng.')
+        } catch (e) {
+          popupStore.error('Lỗi', 'Không thể tạm dừng ca thi.')
+        }
+      }
     }
-  }
+  })
 }
 
 // Violations & Modal

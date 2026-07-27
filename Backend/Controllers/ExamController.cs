@@ -152,6 +152,22 @@ public class ExamController : ControllerBase
         return Ok(ApiResponseDto<CaThiDto>.Ok(result, "Cập nhật ca thi thành công"));
     }
 
+    [HttpPost("ca-thi/{id:int}/end-session")]
+    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    public async Task<ActionResult<ApiResponseDto>> EndCaThiSession(int id, CancellationToken ct)
+    {
+        await _examService.EndCaThiAsync(id, ct);
+        return Ok(ApiResponseDto.Ok("Kết thúc ca thi thành công"));
+    }
+
+    [HttpGet("ca-thi/{id:int}/bien-ban-tong-hop")]
+    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    public async Task<ActionResult<ApiResponseDto<BienBanCaThiDto>>> GetBienBanCaThi(int id, CancellationToken ct)
+    {
+        var result = await _examService.GetBienBanCaThiAsync(id, ct);
+        return Ok(ApiResponseDto<BienBanCaThiDto>.Ok(result));
+    }
+
     // ===== PhanCongGiamThi =====
 
     [HttpGet("ca-thi/{maCaThi:int}/giam-thi")]

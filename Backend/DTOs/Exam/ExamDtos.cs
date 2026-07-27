@@ -292,6 +292,40 @@ public class BienBanThiDto
     public string TrangThaiXuLy { get; set; } = string.Empty;
 }
 
+public class BienBanCaThiDto
+{
+    public int MaCaThi { get; set; }
+    public string TenCaThi { get; set; } = string.Empty;
+    public string TenMonHoc { get; set; } = string.Empty;
+    public string MaCodeMonHoc { get; set; } = string.Empty;
+    public string TenPhong { get; set; } = string.Empty;
+    public DateTime? NgayThi { get; set; }
+    public DateTime? ThoiGianBatDau { get; set; }
+    public DateTime? ThoiGianKetThuc { get; set; }
+    public string TenGiamThi { get; set; } = string.Empty;
+    public int TongSoThiSinh { get; set; }
+    public int SoCoMat { get; set; }
+    public int SoVangThi { get; set; }
+    public int SoNopBai { get; set; }
+    public int SoDinhChi { get; set; }
+    public int TongSoViPham { get; set; }
+    public List<ChiTietThiSinhBienBanDto> DanhSachThiSinh { get; set; } = new();
+}
+
+public class ChiTietThiSinhBienBanDto
+{
+    public int MaHocSinh { get; set; }
+    public string StudentCode { get; set; } = string.Empty;
+    public string TenHocSinh { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string TrangThai { get; set; } = string.Empty;
+    public decimal? DiemSo { get; set; }
+    public int? SoCauDung { get; set; }
+    public int? TongSoCau { get; set; }
+    public int SoLuotViPham { get; set; }
+    public List<string> DanhSachViPham { get; set; } = new();
+}
+
 public class CreateBienBanThiRequest
 {
     [Required(ErrorMessage = "Mã ca thi là bắt buộc.")]

@@ -7,6 +7,9 @@ using Backend.Models;
 using Backend.Services.QuizGrading;
 using Microsoft.EntityFrameworkCore;
 
+using Microsoft.AspNetCore.SignalR;
+using Backend.Hubs;
+
 namespace Backend.Services.Exam;
 
 public class ExamService : IExamService
@@ -15,17 +18,20 @@ public class ExamService : IExamService
     private readonly IQuizGradingService _gradingService;
     private readonly Backend.Services.Grading.IGradeAggregationService _gradeAggregationService;
     private readonly ILogger<ExamService> _logger;
+    private readonly IHubContext<ExamMonitoringHub> _hubContext;
 
     public ExamService(
         ApplicationDbContext db, 
         IQuizGradingService gradingService,
         Backend.Services.Grading.IGradeAggregationService gradeAggregationService,
-        ILogger<ExamService> logger)
+        ILogger<ExamService> logger,
+        IHubContext<ExamMonitoringHub> hubContext)
     {
         _db = db;
         _gradingService = gradingService;
         _gradeAggregationService = gradeAggregationService;
         _logger = logger;
+        _hubContext = hubContext;
     }
 
     // ===== KyThi =====
@@ -421,6 +427,172 @@ public class ExamService : IExamService
         return await GetCaThiByIdAsync(id, ct);
     }
 
+    public async Task StartCaThiAsync(int id, CancellationToken ct)
+    {
+        var caThi = await _db.CaThis.FindAsync(new object[] { id }, ct)
+            ?? throw new ApiException(404, "Không tìm thấy ca thi.");
+        caThi.TrangThai = "dang_thi";
+        caThi.NgayCapNhat = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        await _hubContext.Clients.Group($"exam-{id}").SendAsync("ExamStatusChanged", new { maCaThi = id, status = "dang_thi" }, ct);
+    }
+
+    public async Task EndCaThiAsync(int id, CancellationToken ct)
+    {
+        var caThi = await _db.CaThis.FindAsync(new object[] { id }, ct)
+            ?? throw new ApiException(404, "Không tìm thấy ca thi.");
+        
+        caThi.TrangThai = "da_ket_thuc";
+        caThi.NgayCapNhat = DateTime.UtcNow;
+
+        // Auto-submit all remaining active student sessions
+        var activeSessions = await _db.PhienThiHocSinhs
+            .Where(p => p.MaCaThi == id && p.TrangThaiLuong != "da_dung")
+            .ToListAsync(ct);
+
+        foreach (var phienThi in activeSessions)
+        {
+            phienThi.CauTraLoiJson = string.IsNullOrWhiteSpace(phienThi.SaoLuuCucBo) ? "[]" : phienThi.SaoLuuCucBo;
+            phienThi.NopLuc = DateTime.UtcNow;
+            phienThi.TrangThaiLuong = "da_dung";
+
+            try
+            {
+                var questions = await _db.CauHoiDeKiemTras
+                    .Include(x => x.CauHoi)
+                    .Where(x => x.MaDeKiemTra == phienThi.MaDeKiemTra)
+                    .OrderBy(x => x.ThuTu)
+                    .ToListAsync(ct);
+
+                var answers = _gradingService.ParseAnswersJson(phienThi.CauTraLoiJson);
+                var grading = _gradingService.GradeObjectiveQuestions(questions, answers, false);
+
+                phienThi.DiemTuDong = grading.DiemTracNghiem;
+                phienThi.SoCauDung = grading.SoCauDung;
+                if (!grading.CoCauTuLuan)
+                {
+                    phienThi.DiemCuoiCung = grading.DiemTracNghiem;
+                }
+                phienThi.TrangThaiCongBo = grading.CoCauTuLuan ? "chua_co_diem" : "da_cham_xong";
+                phienThi.NgayCapNhat = DateTime.UtcNow;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Lỗi tự động chấm điểm phiên thi {MaPhienThi} khi kết thúc ca thi.", phienThi.MaPhienThi);
+            }
+        }
+
+        await _db.SaveChangesAsync(ct);
+
+        // Broadcast to SignalR groups
+        await _hubContext.Clients.Group($"exam-{id}").SendAsync("ExamStatusChanged", new { maCaThi = id, status = "da_ket_thuc" }, ct);
+        await _hubContext.Clients.Group($"exam-{id}").SendAsync("StudentStatusUpdated", new { status = "da_ket_thuc", thoiDiem = DateTime.UtcNow }, ct);
+    }
+
+    public async Task SuspendCaThiAsync(int id, CancellationToken ct)
+    {
+        var caThi = await _db.CaThis.FindAsync(new object[] { id }, ct)
+            ?? throw new ApiException(404, "Không tìm thấy ca thi.");
+        caThi.TrangThai = "su_co";
+        caThi.NgayCapNhat = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        await _hubContext.Clients.Group($"exam-{id}").SendAsync("ExamStatusChanged", new { maCaThi = id, status = "su_co" }, ct);
+    }
+
+    public async Task<BienBanCaThiDto> GetBienBanCaThiAsync(int maCaThi, CancellationToken ct)
+    {
+        var caThi = await _db.CaThis
+            .Include(c => c.Phong)
+            .Include(c => c.LichThiTong)
+                .ThenInclude(l => l!.MonHoc)
+            .Include(c => c.ThiSinhCaThis)
+                .ThenInclude(t => t.HocSinh)
+            .Include(c => c.PhanCongGiamThis)
+                .ThenInclude(g => g.GiamThi)
+            .FirstOrDefaultAsync(c => c.MaCaThi == maCaThi, ct)
+            ?? throw new ApiException(404, "Không tìm thấy ca thi.");
+
+        var phienThis = await _db.PhienThiHocSinhs
+            .Where(p => p.MaCaThi == maCaThi)
+            .ToListAsync(ct);
+
+        var viPhams = await _db.NhatKyViPhamThis
+            .Where(v => v.MaCaThi == maCaThi)
+            .ToListAsync(ct);
+
+        var giamThiNames = caThi.PhanCongGiamThis
+            .Where(g => g.GiamThi != null)
+            .Select(g => g.GiamThi!.HoTen)
+            .ToList();
+        var giamThiText = giamThiNames.Any() ? string.Join(", ", giamThiNames) : "Chưa phân công";
+
+        var result = new BienBanCaThiDto
+        {
+            MaCaThi = caThi.MaCaThi,
+            TenCaThi = caThi.TenCaThi,
+            TenMonHoc = caThi.LichThiTong?.MonHoc?.TenMonHoc ?? "Chưa rõ môn",
+            MaCodeMonHoc = caThi.LichThiTong?.MonHoc?.MaCodeMonHoc ?? "",
+            TenPhong = caThi.Phong?.TenPhong ?? "Phòng trực tuyến",
+            NgayThi = caThi.NgayThi,
+            ThoiGianBatDau = caThi.ThoiGianBatDau,
+            ThoiGianKetThuc = caThi.ThoiGianKetThuc,
+            TenGiamThi = giamThiText,
+            TongSoThiSinh = caThi.ThiSinhCaThis.Count
+        };
+
+        var listStudentDto = new List<ChiTietThiSinhBienBanDto>();
+        int soCoMat = 0, soVang = 0, soNop = 0, soDinhChi = 0;
+
+        foreach (var ts in caThi.ThiSinhCaThis)
+        {
+            var pt = phienThis.FirstOrDefault(p => p.MaHocSinh == ts.MaHocSinh);
+            var studentViPhams = viPhams.Where(v => v.MaHocSinh == ts.MaHocSinh).ToList();
+
+            string status = ts.TrangThaiDuThi;
+            decimal? diemSo = null;
+            int? soCauDung = null;
+
+            if (pt != null)
+            {
+                diemSo = pt.DiemCuoiCung ?? pt.DiemTuDong;
+                soCauDung = pt.SoCauDung;
+                if (pt.TrangThaiLuong == "da_dung") status = "da_nop";
+                else if (status != "dinh_chi") status = "dang_thi";
+            }
+
+            if (status == "da_nop") soNop++;
+            else if (status == "dinh_chi") soDinhChi++;
+            else if (status == "vang_thi") soVang++;
+            
+            if (status != "vang_thi") soCoMat++;
+
+            listStudentDto.Add(new ChiTietThiSinhBienBanDto
+            {
+                MaHocSinh = ts.MaHocSinh,
+                StudentCode = (ts.HocSinh?.Email ?? ts.MaHocSinh.ToString()).Split('@')[0],
+                TenHocSinh = ts.HocSinh?.HoTen ?? "Học sinh",
+                Email = ts.HocSinh?.Email ?? "",
+                TrangThai = status,
+                DiemSo = diemSo,
+                SoCauDung = soCauDung,
+                TongSoCau = 5,
+                SoLuotViPham = studentViPhams.Count,
+                DanhSachViPham = studentViPhams.Select(v => $"{v.LoaiViPham}: {v.ChiTietJson ?? "Vi phạm quy chế"} ({v.ThoiDiem:HH:mm:ss})").ToList()
+            });
+        }
+
+        result.SoCoMat = soCoMat;
+        result.SoVangThi = soVang;
+        result.SoNopBai = soNop;
+        result.SoDinhChi = soDinhChi;
+        result.TongSoViPham = viPhams.Count;
+        result.DanhSachThiSinh = listStudentDto;
+
+        return result;
+    }
+
     // ===== PhanCongGiamThi =====
 
     public async Task<IReadOnlyList<PhanCongGiamThiDto>> GetGiamThisByCaThiAsync(int maCaThi, CancellationToken ct)
@@ -610,43 +782,6 @@ public class ExamService : IExamService
 
         await _db.SaveChangesAsync(ct);
         return await GetDiemDanhByCaThiAsync(request.MaCaThi, ct);
-    }
-
-    public async Task StartCaThiAsync(int id, CancellationToken ct)
-    {
-        var caThi = await _db.CaThis.FindAsync(new object[] { id }, ct)
-            ?? throw new ApiException(404, "Ca thi không tồn tại.");
-
-        if (caThi.TrangThai == "da_ket_thuc" || caThi.TrangThai == "da_huy")
-        {
-            throw new ApiException(400, "Ca thi đã kết thúc hoặc đã hủy, không thể bắt đầu.");
-        }
-
-        caThi.TrangThai = "dang_thi";
-        await _db.SaveChangesAsync(ct);
-    }
-
-    public async Task EndCaThiAsync(int id, CancellationToken ct)
-    {
-        var caThi = await _db.CaThis.FindAsync(new object[] { id }, ct)
-            ?? throw new ApiException(404, "Ca thi không tồn tại.");
-
-        caThi.TrangThai = "da_ket_thuc";
-        await _db.SaveChangesAsync(ct);
-    }
-
-    public async Task SuspendCaThiAsync(int id, CancellationToken ct)
-    {
-        var caThi = await _db.CaThis.FindAsync(new object[] { id }, ct)
-            ?? throw new ApiException(404, "Ca thi không tồn tại.");
-
-        if (caThi.TrangThai == "da_ket_thuc" || caThi.TrangThai == "da_huy")
-        {
-            throw new ApiException(400, "Ca thi đã kết thúc hoặc đã hủy, không thể tạm dừng.");
-        }
-
-        caThi.TrangThai = "tam_dung";
-        await _db.SaveChangesAsync(ct);
     }
 
     // ===== NhatKyViPhamThi =====

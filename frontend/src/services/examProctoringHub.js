@@ -13,6 +13,7 @@ export class ExamProctoringHub {
       onScreenShareStatusChanged: null,
       onViolationDetected: null,
       onStudentStatusUpdated: null,
+      onExamStatusChanged: null,
       onWarningReceived: null,
       // WebRTC — payload giờ là DTO object (có fromConnectionId, targetConnectionId, offer/answer/candidate)
       onReceiveOffer: null,
@@ -74,6 +75,12 @@ export class ExamProctoringHub {
 
     this.connection.on('StudentStatusUpdated', (payload) => {
       this.eventHandlers.onStudentStatusUpdated?.(payload)
+    })
+
+    this.connection.on('ExamStatusChanged', (payload) => {
+      if (import.meta.env.DEV)
+        console.debug('[Hub] ExamStatusChanged received', payload)
+      this.eventHandlers.onExamStatusChanged?.(payload)
     })
 
     this.connection.on('WarningReceived', (payload) => {

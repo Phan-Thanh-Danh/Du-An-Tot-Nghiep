@@ -51,6 +51,7 @@ public interface IExamService
     // BienBanThi
     Task<IReadOnlyList<BienBanThiDto>> GetBienBansByCaThiAsync(int maCaThi, CancellationToken ct);
     Task<BienBanThiDto> CreateBienBanAsync(CreateBienBanThiRequest request, int maNguoiLap, CancellationToken ct);
+    Task<BienBanCaThiDto> GetBienBanCaThiAsync(int maCaThi, CancellationToken ct);
 
     // Signature
     Task<PhienThiDto> ConfirmSignatureAsync(ConfirmSignatureRequest request, int maNguoiXacNhan, CancellationToken ct);

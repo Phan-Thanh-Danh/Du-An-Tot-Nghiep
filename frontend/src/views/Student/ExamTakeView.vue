@@ -1427,6 +1427,14 @@ async function submitExam(reason = 'manual') {
     clearExamRuntimeStorage(examId, STUDENT_ID.value)
     router.replace(`/student/exams/${maPhienThi.value}`)
   } catch (error) {
+    const errMsg = error?.message || error?.response?.data?.message || ''
+    if (errMsg.includes('đã được nộp') || error?.status === 400) {
+      console.log('[ExamTake] Exam was already auto-submitted by server. Completing transition.')
+      localStorage.setItem(submittedKey.value, 'true')
+      clearExamRuntimeStorage(examId, STUDENT_ID.value)
+      router.replace(`/student/exams/${maPhienThi.value}`)
+      return
+    }
     submitLocked = false
     console.warn(error)
     pushWarning('Không thể nộp bài thi. Vui lòng thử lại.', 'critical')
@@ -1459,7 +1467,24 @@ onMounted(() => {
   restoreDraft()
   updateWatermarkTimestamp()
   watermarkInterval = window.setInterval(updateWatermarkTimestamp, 1000)
-  // attachLockdownListeners is called in startExamEnvironment
+
+  // Real-time proctoring hub listeners
+  examProctoringHub.eventHandlers.onExamStatusChanged = (payload) => {
+    console.log('[ExamTake] onExamStatusChanged received:', payload)
+    const st = (payload.status || payload.trangThai || '').toString().toLowerCase()
+    if (st === 'ket_thuc' || st === 'da_ket_thuc') {
+      pushWarning('Ca thi đã được kết thúc bởi giám thị. Hệ thống đang tự động nộp bài...', 'critical')
+      submitExam('proctor_ended')
+    }
+  }
+
+  examProctoringHub.eventHandlers.onStudentStatusUpdated = (payload) => {
+    const st = (payload.status || payload.trangThai || '').toString().toLowerCase()
+    if (st === 'ket_thuc' || st === 'da_ket_thuc') {
+      pushWarning('Ca thi đã kết thúc. Đang tự động nộp bài...', 'critical')
+      submitExam('proctor_ended')
+    }
+  }
 })
 
 onUnmounted(() => {
