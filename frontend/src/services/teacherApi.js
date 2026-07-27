@@ -537,13 +537,19 @@ export const teacherApi = {
 
   // ── Teacher Exam Results ──
 
-  getExamResults(params = {}) {
-    const query = new URLSearchParams()
-    if (params.keyword) query.append('keyword', params.keyword)
-    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
-    if (params.pageSize) query.append('pageSize', params.pageSize)
-    const qs = query.toString()
-    return apiRequest(`/api/teacher/exam-results${qs ? '?' + qs : ''}`)
+  async getExamResults(params = {}) {
+    const rawRes = await apiRequest('/api/teacher/exam-results')
+    return unwrapApiData(rawRes)
+  },
+
+  async getCaThiStudentResults(maCaThi) {
+    const rawRes = await apiRequest(`/api/teacher/exam-results/ca-thi/${maCaThi}`)
+    return unwrapApiData(rawRes)
+  },
+
+  async getStudentExamDetail(maCaThi, maHocSinh) {
+    const rawRes = await apiRequest(`/api/teacher/exam-results/ca-thi/${maCaThi}/student/${maHocSinh}`)
+    return unwrapApiData(rawRes)
   },
 
   // P26 - Teaching Preferences
