@@ -43,4 +43,13 @@ del /s /q "%OUTPUT_DIR%\web.config" >nul 2>&1
 for /d /r "%OUTPUT_DIR%" %%d in (publish) do if exist "%%d" rmdir /s /q "%%d" >nul 2>&1
 
 echo.
-echo Hoan tat! Trong moi thu muc con bay gio chi co DUNG 1 FILE DUY NHAT (.exe cho Win, khong duoi cho Linux/macOS).
+echo Dang nen file .tar.gz cho Linux/macOS (Giu nguyen quyen chmod +x khi giai nen)...
+tar -czvf "%OUTPUT_DIR%\ExamGuard-Agent-linux-x64.tar.gz" -C "%OUTPUT_DIR%\linux-x64" ExamGuard.Agent
+tar -czvf "%OUTPUT_DIR%\ExamGuard-Agent-linux-arm64.tar.gz" -C "%OUTPUT_DIR%\linux-arm64" ExamGuard.Agent
+tar -czvf "%OUTPUT_DIR%\ExamGuard-Agent-osx-x64.tar.gz" -C "%OUTPUT_DIR%\osx-x64" ExamGuard.Agent
+tar -czvf "%OUTPUT_DIR%\ExamGuard-Agent-osx-arm64.tar.gz" -C "%OUTPUT_DIR%\osx-arm64" ExamGuard.Agent
+
+echo.
+echo Hoan tat! 
+echo File nén cho Linux/macOS (.tar.gz) da duoc tao tai thu muc publish/
+
