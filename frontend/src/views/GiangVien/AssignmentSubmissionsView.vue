@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { BookOpen, AlertCircle, Search, ChevronLeft, Download, Edit3, X } from 'lucide-vue-next'
+import { BookOpen, AlertCircle, Search, ChevronLeft, Download, Edit3, X, Award, Check, User, Clock } from 'lucide-vue-next'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
@@ -291,29 +291,111 @@ function getStatusBadgeClass(status) {
     </div>
 
     <!-- Grading Modal -->
-    <div v-if="showGradingModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <GlassPanel variant="surface" density="normal" class="w-full max-w-md shadow-2xl">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-bold text-heading">Chấm điểm: {{ gradingStudent?.studentName ?? gradingStudent?.StudentName }}</h3>
-          <button @click="closeGradingModal" class="text-muted hover:text-heading">
-            <X :size="20" />
+    <div v-if="showGradingModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md transition-all animate-fade-in">
+      <div class="w-full max-w-lg lg-glass-strong rounded-3xl p-6 shadow-2xl border border-card/60 space-y-5 relative">
+        <!-- Header -->
+        <div class="flex justify-between items-center pb-3 border-b border-card">
+          <div class="flex items-center gap-3">
+            <span class="w-10 h-10 rounded-2xl bg-(--accent-primary-soft) text-(--accent-primary) flex items-center justify-center border border-card shadow-xs">
+              <Award :size="20" />
+            </span>
+            <div>
+              <h3 class="text-base font-bold text-heading leading-tight">Chấm điểm & Nhận xét</h3>
+              <p class="text-xs text-muted">Đánh giá kết quả bài nộp của sinh viên</p>
+            </div>
+          </div>
+          <button
+            @click="closeGradingModal"
+            class="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-heading hover:bg-black/5 dark:hover:bg-white/10 transition-all"
+          >
+            <X :size="18" />
           </button>
         </div>
+
+        <!-- Student Info Banner -->
+        <div class="p-3.5 rounded-2xl surface-card border border-card flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="w-9 h-9 rounded-full bg-(--accent-primary-soft) text-(--accent-primary) font-bold flex items-center justify-center text-sm shrink-0 border border-card">
+              {{ (gradingStudent?.studentName ?? gradingStudent?.StudentName ?? 'SV').split(' ').pop()[0] }}
+            </span>
+            <div class="min-w-0">
+              <h4 class="text-xs font-bold text-heading truncate">{{ gradingStudent?.studentName ?? gradingStudent?.StudentName }}</h4>
+              <p class="text-[11px] text-muted font-mono">MSSV: {{ gradingStudent?.studentId ?? gradingStudent?.StudentId }}</p>
+            </div>
+          </div>
+          <GlassBadge variant="info" size="sm" class="shrink-0">
+            <Clock :size="11" />
+            {{ formatDate(gradingStudent?.submittedAt ?? gradingStudent?.SubmittedAt) }}
+          </GlassBadge>
+        </div>
+
+        <!-- Form Body -->
         <div class="space-y-4">
+          <!-- Score Input & Presets -->
           <div>
-            <label class="block text-sm font-medium text-body mb-1">Điểm số</label>
-            <input type="number" step="0.5" min="0" max="10" v-model="gradingForm.score" class="w-full p-2 border border-input rounded-md bg-transparent text-heading focus:outline-none focus:border-blue-500" />
+            <div class="flex justify-between items-center mb-1.5">
+              <label class="text-xs font-bold text-heading">Điểm số (Thang điểm 10)</label>
+              <span class="text-xs font-bold text-(--accent-primary)">
+                {{ gradingForm.score !== null && gradingForm.score !== '' ? `${gradingForm.score} / 10` : 'Chưa nhập điểm' }}
+              </span>
+            </div>
+            <div class="relative">
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="10"
+                v-model="gradingForm.score"
+                placeholder="Nhập điểm số (0 - 10)"
+                class="lg-control w-full px-4 text-center font-bold text-lg tracking-wide text-heading"
+              />
+            </div>
+            <!-- Score Presets -->
+            <div class="flex items-center gap-1.5 mt-2 overflow-x-auto pb-1">
+              <span class="text-[11px] text-muted mr-1 font-medium">Gợi ý:</span>
+              <button
+                v-for="preset in [10, 9, 8.5, 7.5, 6, 5]"
+                :key="preset"
+                type="button"
+                @click="gradingForm.score = preset"
+                class="px-2.5 py-1 text-xs font-semibold rounded-lg border border-card surface-card text-heading hover:bg-(--accent-primary-soft) hover:text-(--accent-primary) hover:border-(--accent-primary)/30 transition-all shrink-0"
+              >
+                {{ preset }}
+              </button>
+            </div>
           </div>
+
+          <!-- Feedback Input -->
           <div>
-            <label class="block text-sm font-medium text-body mb-1">Nhận xét</label>
-            <textarea v-model="gradingForm.feedback" rows="3" class="w-full p-2 border border-input rounded-md bg-transparent text-heading focus:outline-none focus:border-blue-500"></textarea>
+            <label class="block text-xs font-bold text-heading mb-1.5">Nhận xét & Gợi ý cải thiện</label>
+            <textarea
+              v-model="gradingForm.feedback"
+              rows="3"
+              placeholder="Nhập nhận xét chi tiết bài làm cho sinh viên (tùy chọn)..."
+              class="lg-control w-full p-3 text-xs text-heading resize-none leading-relaxed"
+            ></textarea>
           </div>
         </div>
-        <div class="flex justify-end gap-3 mt-6">
-          <GlassButton variant="secondary" @click="closeGradingModal">Hủy</GlassButton>
-          <GlassButton variant="primary" @click="submitGrade" :disabled="gradingSubmitting || gradingForm.score == null">Lưu điểm</GlassButton>
+
+        <!-- Footer Actions -->
+        <div class="flex justify-end items-center gap-2.5 pt-3 border-t border-card">
+          <GlassButton variant="ghost" size="md" @click="closeGradingModal">
+            Hủy bỏ
+          </GlassButton>
+          <GlassButton
+            variant="primary"
+            size="md"
+            @click="submitGrade"
+            :disabled="gradingSubmitting || gradingForm.score === null || gradingForm.score === ''"
+          >
+            <template #leading>
+              <Check :size="16" />
+            </template>
+            <span v-if="gradingSubmitting">Đang lưu...</span>
+            <span v-else>Lưu điểm số</span>
+          </GlassButton>
         </div>
-      </GlassPanel>
+      </div>
     </div>
   </div>
 </template>
