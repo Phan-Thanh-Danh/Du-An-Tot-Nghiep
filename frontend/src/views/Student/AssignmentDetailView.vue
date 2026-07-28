@@ -54,9 +54,11 @@ const scoreText = computed(() => {
 
 const cleanAllowedFormats = computed(() => {
   if (!assignment.value.rules?.allowedFormats) return []
-  const rawString = assignment.value.rules.allowedFormats.join(',')
-  // Loại bỏ các dấu ngoặc vuông, ngoặc kép, khoảng trắng và tách bằng dấu phẩy
-  return rawString.replace(/[[\]"\s]/g, '').split(',').filter(f => f.startsWith('.'))
+  let raw = assignment.value.rules.allowedFormats
+  if (Array.isArray(raw)) raw = raw.join(',')
+  const str = String(raw).replace(/[[\]"\s]/g, '')
+  if (!str) return []
+  return str.split(',').map(f => f.startsWith('.') ? f.toLowerCase() : '.' + f.toLowerCase()).filter(f => f.length > 1)
 })
 
 async function fetchDetail() {
@@ -86,8 +88,13 @@ const attemptsLeft = computed(() => {
 
 function validateFile(file) {
   const ext = '.' + file.name.split('.').pop().toLowerCase()
-  if (!cleanAllowedFormats.value.includes(ext)) return 'invalid'
-  if (file.size > assignment.value.rules.maxSizeMB * 1024 * 1024) return 'toolarge'
+  if (cleanAllowedFormats.value.length > 0 && !cleanAllowedFormats.value.includes('.*')) {
+    if (!cleanAllowedFormats.value.includes(ext)) {
+      return 'invalid'
+    }
+  }
+  const maxSize = assignment.value.rules.maxSizeMB || 50
+  if (file.size > maxSize * 1024 * 1024) return 'toolarge'
   return 'valid'
 }
 
@@ -287,7 +294,7 @@ const statusBadgeVariant = (s) => ({
                 <component :is="icon('UploadCloud')" :size="26" :class="isDragging ? 'text-link' : 'text-placeholder'" />
                 <div class="text-center">
                   <p class="text-xs font-semibold text-body">Kéo thả file vào đây hoặc bấm để chọn file</p>
-                  <p class="text-xs text-muted mt-1">Định dạng: {{ cleanAllowedFormats.join(', ') }} · Tối đa {{ assignment.rules.maxSizeMB }} MB</p>
+                  <p class="text-xs text-muted mt-1">Định dạng: {{ cleanAllowedFormats.length > 0 ? cleanAllowedFormats.join(', ') : 'Tất cả định dạng (.pdf, .docx, .doc, .zip...)' }} · Tối đa {{ assignment.rules.maxSizeMB || 50 }} MB</p>
                 </div>
               </label>
 

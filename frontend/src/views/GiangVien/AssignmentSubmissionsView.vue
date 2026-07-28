@@ -147,6 +147,15 @@ function formatDate(dateString) {
   })
 }
 
+function downloadFile(student) {
+  const url = student.fileUrl ?? student.FileUrl
+  if (!url || !url.trim()) {
+    alert('Bài nộp này chưa có file đính kèm trên hệ thống R2!')
+    return
+  }
+  window.open(url, '_blank')
+}
+
 function getStatusBadgeClass(status) {
   if (status === 'Đã nộp') return 'badge-info'
   if (status === 'Đã chấm') return 'badge-success'
@@ -254,14 +263,20 @@ function getStatusBadgeClass(status) {
                 <td class="p-4 text-sm font-semibold text-heading">{{ student.score ?? student.Score ?? '-' }}</td>
                 <td class="p-4 text-sm">
                   <div class="flex items-center gap-2" v-if="student.submissionId ?? student.SubmissionId">
-                    <a :href="student.fileUrl ?? student.FileUrl" target="_blank" class="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors" title="Tải bài tập">
+                    <button
+                      type="button"
+                      @click="downloadFile(student)"
+                      class="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      :disabled="!(student.fileUrl || student.FileUrl)"
+                      :title="(student.fileUrl || student.FileUrl) ? 'Tải bài nộp' : 'Chưa có file bài nộp R2'"
+                    >
                       <Download :size="16" />
-                    </a>
+                    </button>
                     <button @click="openGradingModal(student)" class="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors" title="Chấm điểm & Nhận xét">
                       <Edit3 :size="16" />
                     </button>
                   </div>
-                  <span v-else class="text-muted text-xs">Chưa có bài</span>
+                  <span v-else class="text-xs text-muted">Chưa có bài</span>
                 </td>
               </tr>
               <tr v-if="filteredStudents.length === 0">

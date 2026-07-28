@@ -1,9 +1,9 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   Search, Filter, Users, BookOpen, Calendar, ChevronRight,
-  MoreHorizontal, Eye, Download, GraduationCap, AlertCircle
+  MoreHorizontal, Eye, Download, GraduationCap, AlertCircle, Inbox
 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
@@ -13,6 +13,7 @@ import { teacherApi } from '@/services/teacherApi'
 const loading = ref(false)
 const error = ref('')
 const classes = ref([])
+const searchQuery = ref('')
 const filterSemester = ref('')
 const route = useRoute()
 
@@ -22,10 +23,34 @@ function mapCourseToClass(course) {
     code: course.subjectCode || course.SubjectCode || '',
     name: course.courseName || course.CourseName || '',
     subject: `Lớp ${course.className || course.ClassName || ''}`,
+    className: course.className || course.ClassName || '',
     students: course.studentCount || course.StudentCount || 0,
     semester: course.semester || course.Semester || 'N/A',
   }
 }
+
+const availableSemesters = computed(() => {
+  const set = new Set(classes.value.map(c => c.semester).filter(s => s && s !== 'N/A'))
+  return Array.from(set)
+})
+
+const filteredClasses = computed(() => {
+  let list = classes.value
+  if (filterSemester.value) {
+    list = list.filter(c => c.semester === filterSemester.value)
+  }
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase()
+    list = list.filter(c =>
+      c.code.toLowerCase().includes(q) ||
+      c.name.toLowerCase().includes(q) ||
+      c.subject.toLowerCase().includes(q) ||
+      c.className.toLowerCase().includes(q) ||
+      String(c.id).includes(q)
+    )
+  }
+  return list
+})
 
 async function loadClasses() {
   loading.value = true
@@ -33,7 +58,6 @@ async function loadClasses() {
   try {
     const classId = route.query.classId
     const data = await teacherApi.getTeacherCourses({ 
-      semesterId: filterSemester.value || undefined,
       classId: classId || undefined
     })
     const unwrapped = data?.data ?? data?.Data ?? data
@@ -80,23 +104,45 @@ onMounted(() => { loadClasses() })
       <div class="lg-glass-soft rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-center">
         <div class="relative flex-1 w-full">
           <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-          <input type="text" placeholder="Tìm theo mã khóa học, tên khóa học..." class="lg-control w-full pl-11 pr-4" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Tìm theo mã lớp (SD1904), tên môn học, mã môn..."
+            class="lg-control w-full pl-11 pr-4"
+          />
         </div>
         <div class="flex items-center gap-3 w-full md:w-auto">
           <select v-model="filterSemester" class="lg-control flex-1 md:w-48">
-            <option value="Spring 2026">Spring 2026</option>
-            <option value="Fall 2025">Fall 2025</option>
+            <option value="">Tất cả học kỳ</option>
+            <option v-for="sem in availableSemesters" :key="sem" :value="sem">{{ sem }}</option>
           </select>
-          <button class="lg-icon-button h-10 w-10 rounded-xl border border-card surface-card text-muted hover:text-heading hover:bg-(--accent-primary)/10 transition-all">
+          <button
+            @click="searchQuery = ''; filterSemester = ''"
+            title="Xóa bộ lọc"
+            class="lg-icon-button h-10 w-10 rounded-xl border border-card surface-card text-muted hover:text-heading hover:bg-(--accent-primary)/10 transition-all flex items-center justify-center shrink-0"
+          >
             <Filter :size="18" />
           </button>
         </div>
       </div>
 
+      <!-- Empty state when no search match -->
+      <div v-if="filteredClasses.length === 0" class="flex flex-col items-center justify-center py-12 text-center surface-card border border-card rounded-2xl gap-3">
+        <Inbox :size="40" class="text-muted/50" />
+        <p class="text-heading font-semibold text-sm">Không tìm thấy lớp học nào phù hợp</p>
+        <p class="text-muted text-xs">Thử tìm kiếm với từ khóa khác (ví dụ: SD1904, C#, CNTT...)</p>
+        <button
+          @click="searchQuery = ''; filterSemester = ''"
+          class="mt-1 px-3 py-1.5 rounded-lg bg-(--accent-primary-soft) text-(--accent-primary) text-xs font-bold hover:opacity-90 transition-all"
+        >
+          Xóa bộ lọc tìm kiếm
+        </button>
+      </div>
+
       <!-- Grid / Table -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <TeacherClassCard
-          v-for="cls in classes"
+          v-for="cls in filteredClasses"
           :key="cls.id"
           :title="cls.code"
           :subtitle="cls.name"
@@ -106,7 +152,7 @@ onMounted(() => { loadClasses() })
           <template #action>
             <router-link
               :to="'/teacher/class-progress/' + cls.id"
-              class="w-full flex justify-center items-center gap-2 group-hover:bg-(--accent-primary) group-hover:text-inverse transition-all bg-slate-100 px-4 py-2 rounded-xl text-xs font-bold"
+              class="w-full flex justify-center items-center gap-2 group-hover:bg-(--accent-primary) group-hover:text-inverse transition-all bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-xl text-xs font-bold"
             >
               Xem tiến độ khóa học
               <Eye :size="14" />
