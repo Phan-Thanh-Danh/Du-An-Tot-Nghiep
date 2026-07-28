@@ -291,64 +291,68 @@ const closeDrawer = () => {
         </GlassButton>
       </div>
 
-      <TableShell density="compact">
-        <table>
+      <TableShell density="compact" class="w-full overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
           <thead>
-            <tr>
-              <th>Sinh viên</th>
-              <th>MSSV</th>
-              <th>Liên hệ</th>
-              <th>Tiến độ tổng</th>
-              <th>Bài học</th>
-              <th>Quiz / Bài tập</th>
-              <th>Lần học gần nhất</th>
-              <th>Trạng thái</th>
-              <th class="text-right">Hành động</th>
+            <tr class="border-b border-card surface-table-header">
+              <th class="whitespace-nowrap py-2.5 px-3 font-semibold text-muted text-[11px] uppercase tracking-wider">Sinh viên</th>
+              <th class="whitespace-nowrap py-2.5 px-2.5 text-center font-semibold text-muted text-[11px] uppercase tracking-wider">MSSV</th>
+              <th class="whitespace-nowrap py-2.5 px-3 font-semibold text-muted text-[11px] uppercase tracking-wider">Liên hệ</th>
+              <th class="whitespace-nowrap py-2.5 px-2.5 text-center font-semibold text-muted text-[11px] uppercase tracking-wider">Tiến độ</th>
+              <th class="whitespace-nowrap py-2.5 px-2.5 text-center font-semibold text-muted text-[11px] uppercase tracking-wider">Bài học</th>
+              <th class="whitespace-nowrap py-2.5 px-2.5 text-center font-semibold text-muted text-[11px] uppercase tracking-wider">Đánh giá</th>
+              <th class="whitespace-nowrap py-2.5 px-3 font-semibold text-muted text-[11px] uppercase tracking-wider">Lần học cuối</th>
+              <th class="whitespace-nowrap py-2.5 px-2.5 text-center font-semibold text-muted text-[11px] uppercase tracking-wider">Trạng thái</th>
+              <th class="whitespace-nowrap py-2.5 px-3 text-right font-semibold text-muted text-[11px] uppercase tracking-wider">Hành động</th>
             </tr>
           </thead>
-          <tbody>
-            <tr v-for="sv in students" :key="sv.id">
-              <td>
-                <div class="student-cell">
-                  <span class="student-avatar">{{ sv.name.split(' ').pop()[0] }}</span>
-                  <span>
-                    <strong>{{ sv.name }}</strong>
-                    <small>{{ sv.absent }} buổi vắng</small>
+          <tbody class="divide-y divide-card/40">
+            <tr v-for="sv in students" :key="sv.id" class="hover:surface-card-hover transition-colors">
+              <td class="py-2 px-3">
+                <div class="flex items-center gap-2.5">
+                  <span class="shrink-0 w-7 h-7 rounded-full bg-(--accent-primary-soft) text-(--accent-primary) font-bold flex items-center justify-center text-xs border border-(--border-card)">{{ sv.name.split(' ').pop()[0] }}</span>
+                  <span class="truncate max-w-[11rem]">
+                    <strong class="text-heading font-semibold block text-xs truncate leading-snug">{{ sv.name }}</strong>
+                    <small class="text-muted block text-[10px]">{{ sv.absent }} buổi vắng</small>
                   </span>
                 </div>
               </td>
-              <td class="student-code">{{ sv.id }}</td>
-              <td>
-                <span class="email-cell">
-                  <Mail :size="13" />
+              <td class="py-2 px-2.5 text-center font-mono text-xs text-heading font-medium">{{ sv.id }}</td>
+              <td class="py-2 px-3">
+                <span class="flex items-center gap-1.5 text-xs text-muted whitespace-nowrap">
+                  <Mail :size="13" class="shrink-0 text-muted/70" />
                   {{ sv.email }}
                 </span>
               </td>
-              <td>
-                <div class="progress-cell">
-                  <div class="progress-track" aria-hidden="true">
-                    <span :style="{ width: animateProgress ? `${sv.progress}%` : '0%' }" />
+              <td class="py-2 px-2.5 text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <div class="w-14 h-1.5 surface-input border border-card rounded-full overflow-hidden shrink-0" aria-hidden="true">
+                    <span class="block h-full bg-(--accent-primary) transition-all duration-500" :style="{ width: animateProgress ? `${sv.progress}%` : '0%' }" />
                   </div>
-                  <strong>{{ sv.progress }}%</strong>
+                  <strong class="text-xs font-bold text-heading min-w-[2.2rem] text-right">{{ sv.progress }}%</strong>
                 </div>
               </td>
-              <td class="number-cell">{{ Math.round((sv.progress / 100) * totalLessons) }}/{{ totalLessons }}</td>
-              <td class="number-cell">{{ sv.gpa >= 8 ? 'Tốt' : sv.gpa < 6 ? 'Cần hỗ trợ' : 'Đạt' }}</td>
-              <td>
-                <span class="last-active">
-                  <Clock :size="13" />
+              <td class="py-2 px-2.5 text-center whitespace-nowrap text-xs text-heading font-semibold">{{ Math.round((sv.progress / 100) * totalLessons) }}/{{ totalLessons }}</td>
+              <td class="py-2 px-2.5 text-center whitespace-nowrap text-xs">
+                <GlassBadge :variant="sv.gpa >= 8 ? 'success' : sv.gpa < 6 ? 'warning' : 'info'" size="sm">
+                  {{ sv.gpa >= 8 ? 'Tốt' : sv.gpa < 6 ? 'Cần hỗ trợ' : 'Đạt' }}
+                </GlassBadge>
+              </td>
+              <td class="py-2 px-3 whitespace-nowrap">
+                <span class="flex items-center gap-1.5 text-xs text-muted">
+                  <Clock :size="13" class="shrink-0 text-muted/70" />
                   1 ngày trước
                 </span>
               </td>
-              <td>
-                <GlassBadge :variant="getStatusVariant(sv.status)">
+              <td class="py-2 px-2.5 text-center whitespace-nowrap">
+                <GlassBadge :variant="getStatusVariant(sv.status)" size="sm">
                   <CheckCircle2 v-if="sv.status === 'excellent' || sv.status === 'good'" :size="11" />
                   <AlertCircle v-else :size="11" />
                   {{ getStatusText(sv.status) }}
                 </GlassBadge>
               </td>
-              <td>
-                <div class="row-actions">
+              <td class="py-2 px-3 text-right">
+                <div class="flex items-center justify-end gap-1 whitespace-nowrap">
                   <GlassButton variant="ghost" size="sm" @click="openStudentDetails(sv.id, 'profile')">
                     <template #leading>
                       <User :size="13" />
@@ -829,67 +833,20 @@ const closeDrawer = () => {
   transition: height 0.8s ease;
 }
 
-.student-cell {
-  min-width: 13rem;
-  gap: 0.65rem;
-}
-
 .student-avatar,
 .drawer-avatar {
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--radius-md);
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
   color: var(--text-link);
-  font-size: 0.75rem;
-  font-weight: 900;
+  font-size: 0.7rem;
+  font-weight: 700;
 }
 
 .drawer-avatar {
   width: 2.4rem;
   height: 2.4rem;
-}
-
-.student-cell strong {
-  display: block;
-  font-size: 0.86rem;
-}
-
-.student-cell small {
-  display: block;
-  margin-top: 0.1rem;
-  font-size: 0.72rem;
-  font-weight: 750;
-}
-
-.student-code,
-.number-cell {
-  color: var(--text-heading);
-  font-size: 0.8rem;
-  font-weight: 850;
-}
-
-.email-cell,
-.last-active {
-  gap: 0.35rem;
-  min-width: 9rem;
-  font-size: 0.78rem;
-  font-weight: 750;
-}
-
-.progress-cell {
-  min-width: 9rem;
-  gap: 0.55rem;
-}
-
-.progress-cell strong {
-  color: var(--text-heading);
-  font-size: 0.78rem;
-  font-weight: 900;
-}
-
-.row-actions {
-  justify-content: flex-end;
-  min-width: 12rem;
+  border-radius: var(--radius-md);
 }
 
 .table-footer {

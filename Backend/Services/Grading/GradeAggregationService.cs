@@ -84,7 +84,7 @@ public class GradeAggregationService : IGradeAggregationService
                 MaHocSinh = studentId,
                 MaMonHoc = subjectId,
                 MaHocKy = termId,
-                TrangThai = "draft",
+                TrangThai = "chua_hoan_thanh",
                 DaKhoa = false,
                 NamNhapHoc = hocSinh?.NamNhapHoc ?? DateTime.UtcNow.Year
             };
@@ -100,7 +100,7 @@ public class GradeAggregationService : IGradeAggregationService
         decimal gpa = (pt * subjectConfig.TrongSoQuaTrinh + gk * subjectConfig.TrongSoGiuaKy + ck * subjectConfig.TrongSoCuoiKy) / 100m;
         diemRecord.GpaMonHoc = Math.Round(gpa, 2);
 
-        diemRecord.TrangThai = diemRecord.GpaMonHoc >= subjectConfig.NguongDat ? "Đạt" : "Rớt";
+        diemRecord.TrangThai = diemRecord.GpaMonHoc >= subjectConfig.NguongDat ? "dat" : "rot";
 
         if (isNew)
         {

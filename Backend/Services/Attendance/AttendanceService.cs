@@ -208,18 +208,53 @@ public class AttendanceService : IAttendanceService
         EnsureTeacherCanManageAttendance(currentUser, session);
         EnsureSessionCanUpdateAttendance(session, now);
 
+        if (session.TrangThaiDiemDanh == AttendanceNotOpenedStatus)
+        {
+            session.TrangThaiDiemDanh = AttendanceInProgressStatus;
+            session.DiemDanhBatDauLuc = now;
+            session.DiemDanhHanGuiLuc = now.AddHours(24);
+            session.NgayCapNhat = now;
+        }
+
         var requestedStudentIds = items.Select(x => x.MaSinhVien).ToHashSet();
         var attendances = await _context.DiemDanhs
             .Where(x => x.MaBuoiHoc == session.MaBuoiHoc && requestedStudentIds.Contains(x.MaHocSinh))
             .ToListAsync(cancellationToken);
 
-        if (attendances.Count != requestedStudentIds.Count)
+        var foundStudentIds = attendances.Select(x => x.MaHocSinh).ToHashSet();
+        var missingStudentIds = requestedStudentIds.Where(x => !foundStudentIds.Contains(x)).ToList();
+
+        if (missingStudentIds.Count > 0)
         {
-            var foundStudentIds = attendances.Select(x => x.MaHocSinh).ToHashSet();
-            var missingStudentIds = requestedStudentIds.Where(x => !foundStudentIds.Contains(x)).OrderBy(x => x).ToList();
-            throw new ApiException(
-                StatusCodes.Status400BadRequest,
-                $"Sinh viên không thuộc danh sách điểm danh của buổi học: {string.Join(", ", missingStudentIds)}.");
+            var validClassStudentIds = await GetActiveStudentIdsAsync(queryResult.Course, cancellationToken);
+            var invalidStudentIds = missingStudentIds.Where(id => !validClassStudentIds.Contains(id)).ToList();
+            if (invalidStudentIds.Count > 0)
+            {
+                throw new ApiException(
+                    StatusCodes.Status400BadRequest,
+                    $"Sinh viên không thuộc danh sách lớp học: {string.Join(", ", invalidStudentIds)}.");
+            }
+
+            var itemByStudentMap = items.ToDictionary(x => x.MaSinhVien);
+            var newAttendances = missingStudentIds.Select(studentId =>
+            {
+                var status = itemByStudentMap[studentId].TrangThai;
+                return new DiemDanh
+                {
+                    MaDonVi = queryResult.Course.MaDonVi,
+                    MaBuoiHoc = session.MaBuoiHoc,
+                    MaHocSinh = studentId,
+                    TrangThai = status,
+                    NguoiGhiNhan = currentUser.UserId,
+                    GhiNhanLuc = now,
+                    HeSoVang = GetAbsenceWeight(status),
+                    KhoaLuc = null,
+                    MaYcMoKhoa = null
+                };
+            }).ToList();
+
+            await _context.DiemDanhs.AddRangeAsync(newAttendances, cancellationToken);
+            attendances.AddRange(newAttendances);
         }
 
         List<object> oldSnapshot = [];
@@ -545,9 +580,9 @@ public class AttendanceService : IAttendanceService
 
     private static void EnsureSessionCanUpdateAttendance(Models.BuoiHoc session, DateTime now)
     {
-        if (session.TrangThaiDiemDanh != AttendanceInProgressStatus)
+        if (session.TrangThaiDiemDanh != AttendanceInProgressStatus && session.TrangThaiDiemDanh != AttendanceNotOpenedStatus)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ được cập nhật khi điểm danh đang mở.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ được cập nhật khi điểm danh đang mở hoặc chưa mở.");
         }
 
         EnsureAttendanceDeadlineNotPassed(session, now);

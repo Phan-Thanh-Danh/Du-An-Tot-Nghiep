@@ -272,7 +272,13 @@ public class TeacherClassesController : ControllerBase
                     .FirstOrDefaultAsync();
             }
 
-            var students = await _context.NguoiDungs
+            var attendanceMap = currentSession != null
+                ? await _context.DiemDanhs
+                    .Where(d => d.MaBuoiHoc == currentSession.MaBuoiHoc)
+                    .ToDictionaryAsync(d => d.MaHocSinh, d => d.TrangThai == "co_mat")
+                : new Dictionary<int, bool>();
+
+            var studentList = await _context.NguoiDungs
                 .Where(n => n.MaLop == id && n.VaiTroChinh == "hoc_sinh")
                 .OrderBy(n => n.HoTen)
                 .ThenBy(n => n.MaNguoiDung)
@@ -281,10 +287,18 @@ public class TeacherClassesController : ControllerBase
                     Id = n.MaNguoiDung,
                     Name = n.HoTen,
                     Email = n.Email,
-                    Avatar = "",
-                    Present = true
+                    Avatar = ""
                 })
                 .ToListAsync();
+
+            var students = studentList.Select(n => new
+            {
+                n.Id,
+                n.Name,
+                n.Email,
+                n.Avatar,
+                Present = attendanceMap.TryGetValue(n.Id, out var isPresent) ? isPresent : false
+            }).ToList();
 
             var monHocIds = courses.Select(c => c.MaMonHoc).ToList();
             var modules = new List<object>();
