@@ -103,21 +103,9 @@ const router = createRouter({
         },
         {
           path: 'assignments',
-          name: 'teacher-assignments-courses',
-          component: () => import('../views/GiangVien/AssignmentCoursesView.vue'),
-          meta: { title: 'Phân công giảng viên' },
-        },
-        {
-          path: 'assignments/:courseId',
-          name: 'teacher-assignments-list',
-          component: () => import('../views/GiangVien/AssignmentListView.vue'),
-          meta: { title: 'Danh sách bài tập' },
-        },
-        {
-          path: 'assignments/:courseId/:assignmentId',
-          name: 'teacher-assignment-submissions',
-          component: () => import('../views/GiangVien/AssignmentSubmissionsView.vue'),
-          meta: { title: 'Tình trạng nộp bài' },
+          name: 'student-assignments',
+          component: () => import('../views/Student/AssignmentsView.vue'),
+          meta: { title: 'Bài tập' },
         },
         {
           path: 'assignments/:assignmentId',
