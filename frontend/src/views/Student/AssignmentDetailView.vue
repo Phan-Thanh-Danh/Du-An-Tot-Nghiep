@@ -294,7 +294,7 @@ const statusBadgeVariant = (s) => ({
                 <component :is="icon('UploadCloud')" :size="26" :class="isDragging ? 'text-link' : 'text-placeholder'" />
                 <div class="text-center">
                   <p class="text-xs font-semibold text-body">Kéo thả file vào đây hoặc bấm để chọn file</p>
-                  <p class="text-xs text-muted mt-1">Định dạng: {{ cleanAllowedFormats.length > 0 ? cleanAllowedFormats.join(', ') : 'Tất cả định dạng (.pdf, .docx, .doc, .zip...)' }} · Tối đa {{ assignment.rules.maxSizeMB || 50 }} MB</p>
+                  <p class="text-xs text-muted mt-1">Định dạng: {{ cleanAllowedFormats.join(', ') }} · Tối đa {{ assignment.rules.maxSizeMB }} MB</p>
                 </div>
               </label>
 

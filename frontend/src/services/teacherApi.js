@@ -374,6 +374,17 @@ export const teacherApi = {
     return apiRequest(`/api/teacher/courses${qs ? '?' + qs : ''}`)
   },
 
+  getTeacherSubjects(params = {}) {
+    const query = new URLSearchParams()
+    if (params.keyword) query.append('keyword', params.keyword)
+    const qs = query.toString()
+    return apiRequest(`/api/teacher/subjects${qs ? '?' + qs : ''}`)
+  },
+
+  getTeacherSubjectDetail(subjectId) {
+    return apiRequest(`/api/teacher/subjects/${subjectId}`)
+  },
+
   getTeacherClassDetail(classId) {
     return apiRequest(`/api/teacher/classes/${classId}`)
   },

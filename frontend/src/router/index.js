@@ -327,7 +327,8 @@ const router = createRouter({
         },
         // Chi tiết chức năng Giảng viên (Placeholder components)
         { path: 'courses', name: 'teacher-courses', component: () => import('../views/GiangVien/CoursesView.vue') },
-        { path: 'lessons', name: 'teacher-lessons', component: () => import('../views/GiangVien/LessonsView.vue') },
+        { path: 'lessons', name: 'teacher-lessons-courses', component: () => import('../views/GiangVien/TeacherLessonCoursesView.vue'), meta: { title: 'Bài học & Học liệu' } },
+        { path: 'lessons/:courseId', name: 'teacher-lesson-detail', component: () => import('../views/GiangVien/LessonsView.vue'), meta: { title: 'Chi tiết bài học môn học' } },
         { path: 'classes', name: 'teacher-classes', component: () => import('../views/GiangVien/ClassListView.vue') },
         { path: 'classes/:id/details', name: 'teacher-class-details', component: () => import('../views/GiangVien/ClassDetailView.vue') },
         { path: 'classes/:id/workspace', name: 'teacher-class-workspace', component: () => import('../views/GiangVien/ClassWorkspaceView.vue') },

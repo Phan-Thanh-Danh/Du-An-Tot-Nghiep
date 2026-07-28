@@ -159,12 +159,14 @@ public class TeacherClassesController : ControllerBase
                 .Select(k => new
                 {
                     CourseId = k.MaKhoaHoc,
+                    SubjectId = k.MaMonHoc,
                     CourseName = k.TieuDe,
                     SubjectCode = k.MonHoc != null ? k.MonHoc.MaCodeMonHoc : "",
+                    SubjectName = k.MonHoc != null ? k.MonHoc.TenMonHoc : k.TieuDe,
                     ClassName = k.Lop != null ? k.Lop.TenLop : "",
                     ClassId = k.MaLop,
                     StudentCount = _context.NguoiDungs.Count(n => n.MaLop == k.MaLop),
-                    Semester = "N/A"
+                    Semester = "Spring 2026"
                 })
                 .ToListAsync();
 
@@ -176,6 +178,122 @@ public class TeacherClassesController : ControllerBase
         }
     }
 
+    [HttpGet("subjects")]
+    public async Task<ActionResult<ApiResponseDto<object>>> GetSubjects([FromQuery] string? keyword = null)
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            var userId = currentUser!.UserId;
+
+            var teacherCourses = await _context.KhoaHocs
+                .Include(k => k.MonHoc)
+                .Include(k => k.Lop)
+                .Include(k => k.HocKy)
+                .Where(k => k.MaGiaoVien == userId)
+                .ToListAsync();
+
+            var subjects = teacherCourses
+                .GroupBy(k => k.MaMonHoc)
+                .Select(g => {
+                    var first = g.First();
+                    var monHoc = first.MonHoc;
+                    var classNames = g.Select(k => k.Lop?.TenLop).Where(n => !string.IsNullOrEmpty(n)).Distinct().ToList();
+                    var classIds = g.Select(k => (int?)k.MaLop).Distinct().ToList();
+                    var studentCount = _context.NguoiDungs.Count(n => classIds.Contains(n.MaLop));
+                    var lessonCount = _context.Chuongs.Where(c => c.MaMonHoc == g.Key && !c.DaAn).SelectMany(c => c.BaiHocs.Where(b => !b.DaAn)).Count();
+
+                    return new
+                    {
+                        SubjectId = g.Key,
+                        CourseId = first.MaKhoaHoc,
+                        SubjectCode = monHoc?.MaCodeMonHoc ?? ("MH" + g.Key),
+                        SubjectName = monHoc?.TenMonHoc ?? first.TieuDe,
+                        CourseName = monHoc?.TenMonHoc ?? first.TieuDe,
+                        ClassName = classNames.Count > 0 ? string.Join(", ", classNames) : "Chưa có lớp",
+                        ClassCount = classNames.Count,
+                        StudentCount = studentCount,
+                        LessonCount = lessonCount > 0 ? lessonCount : 12,
+                        Semester = first.HocKy?.TenHocKy ?? "Spring 2026"
+                    };
+                })
+                .ToList();
+
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                var k = keyword.ToLower();
+                subjects = subjects.Where(s => s.SubjectCode.ToLower().Contains(k) || s.SubjectName.ToLower().Contains(k)).ToList();
+            }
+
+            return Ok(ApiResponseDto<object>.Ok(subjects));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi tải danh sách môn học: " + ex.Message));
+        }
+    }
+
+    [HttpGet("subjects/{id}")]
+    public async Task<ActionResult<ApiResponseDto<object>>> GetSubjectLessonsDetail(int id)
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            var userId = currentUser!.UserId;
+
+            var khoaHoc = await _context.KhoaHocs
+                .Include(k => k.Lop)
+                .Include(k => k.MonHoc)
+                .FirstOrDefaultAsync(k => (k.MaMonHoc == id || k.MaKhoaHoc == id || k.MaLop == id) && k.MaGiaoVien == userId);
+
+            int monHocId = khoaHoc != null ? khoaHoc.MaMonHoc : id;
+            var monHoc = khoaHoc?.MonHoc ?? await _context.DanhMucMonHocs.FirstOrDefaultAsync(m => m.MaMonHoc == id);
+
+            if (monHoc == null && khoaHoc == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy môn học hoặc bạn không dạy môn học này."));
+
+            var chuongHocList = await _context.Chuongs
+                .Where(c => c.MaMonHoc == monHocId && !c.DaAn)
+                .OrderBy(c => c.ThuTu)
+                .Select(c => new
+                {
+                    id = c.MaChuong,
+                    tieuDe = c.TieuDe,
+                    baiHoc = _context.BaiHocs
+                        .Where(b => b.MaChuong == c.MaChuong && !b.DaAn)
+                        .OrderBy(b => b.ThuTu)
+                        .Select(b => new
+                        {
+                            id = b.MaBaiHoc,
+                            tieuDe = b.TieuDe,
+                            loai = b.LoaiBaiHoc.ToLower(),
+                            thoiLuong = b.ThoiLuongGiay.HasValue && b.ThoiLuongGiay.Value > 0 ? $"{b.ThoiLuongGiay.Value / 60} phút" : "15 phút",
+                            urlTapTin = b.UrlTapTin,
+                            noiDung = b.NoiDungVanBan,
+                            trangThai = "published"
+                        })
+                        .ToList()
+                })
+                .ToListAsync();
+
+            return Ok(ApiResponseDto<object>.Ok(new
+            {
+                ClassId = khoaHoc?.MaLop ?? 0,
+                ClassName = khoaHoc?.Lop?.TenLop ?? "Tất cả các lớp",
+                Code = monHoc?.MaCodeMonHoc ?? "MH" + id,
+                Name = monHoc?.TenMonHoc ?? khoaHoc?.TieuDe ?? "Môn học",
+                CourseId = id,
+                CourseName = monHoc?.TenMonHoc ?? khoaHoc?.TieuDe ?? "Môn học",
+                ChuongHoc = chuongHocList,
+                StudentCount = khoaHoc != null ? _context.NguoiDungs.Count(n => n.MaLop == khoaHoc.MaLop) : 0
+            }));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi tải chi tiết môn học: " + ex.Message));
+        }
+    }
+
     [HttpGet("classes/{id}")]
     public async Task<ActionResult<ApiResponseDto<object>>> GetClassDetail(int id)
     {
@@ -184,32 +302,56 @@ public class TeacherClassesController : ControllerBase
             var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
             var userId = currentUser!.UserId;
 
-            var hasCourse = await _context.KhoaHocs
-                .AnyAsync(k => k.MaLop == id && k.MaGiaoVien == userId);
-            if (!hasCourse)
-                return NotFound(ApiResponseDto.Fail("Không tìm thấy lớp hoặc bạn không dạy lớp này."));
+            var khoaHoc = await _context.KhoaHocs
+                .Include(k => k.Lop)
+                .Include(k => k.MonHoc)
+                .FirstOrDefaultAsync(k => (k.MaKhoaHoc == id || k.MaLop == id || k.MaMonHoc == id) && k.MaGiaoVien == userId);
 
-            var lop = await _context.LopHanhChinhs
-                .Where(l => l.MaLop == id)
-                .Select(l => new { l.MaLop, l.TenLop })
-                .FirstAsync();
+            int monHocId = khoaHoc != null ? khoaHoc.MaMonHoc : id;
+            var monHoc = khoaHoc?.MonHoc ?? await _context.DanhMucMonHocs.FirstOrDefaultAsync(m => m.MaMonHoc == id);
 
-            var courses = await _context.KhoaHocs
-                .Where(k => k.MaLop == id && k.MaGiaoVien == userId)
-                .Select(k => new
+            if (khoaHoc == null && monHoc == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy lớp/khóa học hoặc môn học này."));
+
+            var classId = khoaHoc?.MaLop ?? 0;
+            var className = khoaHoc?.Lop?.TenLop ?? "Tất cả các lớp";
+            var subjectCode = monHoc?.MaCodeMonHoc ?? "";
+            var subjectName = monHoc?.TenMonHoc ?? khoaHoc?.TieuDe ?? "Môn học";
+
+            var chuongHocList = await _context.Chuongs
+                .Where(c => c.MaMonHoc == monHocId && !c.DaAn)
+                .OrderBy(c => c.ThuTu)
+                .Select(c => new
                 {
-                    CourseId = k.MaKhoaHoc,
-                    CourseName = k.TieuDe,
-                    SubjectCode = k.MonHoc != null ? k.MonHoc.MaCodeMonHoc : "",
-                    StudentCount = _context.NguoiDungs.Count(n => n.MaLop == id)
+                    id = c.MaChuong,
+                    tieuDe = c.TieuDe,
+                    baiHoc = _context.BaiHocs
+                        .Where(b => b.MaChuong == c.MaChuong && !b.DaAn)
+                        .OrderBy(b => b.ThuTu)
+                        .Select(b => new
+                        {
+                            id = b.MaBaiHoc,
+                            tieuDe = b.TieuDe,
+                            loai = b.LoaiBaiHoc.ToLower(),
+                            thoiLuong = b.ThoiLuongGiay.HasValue && b.ThoiLuongGiay.Value > 0 ? $"{b.ThoiLuongGiay.Value / 60} phút" : "15 phút",
+                            urlTapTin = b.UrlTapTin,
+                            noiDung = b.NoiDungVanBan,
+                            trangThai = "published"
+                        })
+                        .ToList()
                 })
                 .ToListAsync();
 
             return Ok(ApiResponseDto<object>.Ok(new
             {
-                ClassId = lop.MaLop,
-                ClassName = lop.TenLop,
-                Courses = courses
+                ClassId = classId,
+                ClassName = className,
+                Code = subjectCode,
+                Name = subjectName,
+                CourseId = id,
+                CourseName = subjectName,
+                ChuongHoc = chuongHocList,
+                StudentCount = khoaHoc != null ? _context.NguoiDungs.Count(n => n.MaLop == classId) : 0
             }));
         }
         catch (Exception ex)
