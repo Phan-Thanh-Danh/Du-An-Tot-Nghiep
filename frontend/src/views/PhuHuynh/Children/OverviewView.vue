@@ -71,14 +71,27 @@ function mapAlerts(data) {
 
 async function loadChildDetail(childId) {
   if (!childId) return
-  const [detailRes, gradesRes, alertsRes] = await Promise.allSettled([
+  const [detailRes, gradesRes, alertsRes, attendanceRes] = await Promise.allSettled([
     parentApi.getChildDetail(childId),
     parentApi.getChildGrades(childId),
     parentApi.getChildAlerts(childId),
+    parentApi.getChildAttendance(childId)
   ])
   const detail = detailRes.status === 'fulfilled' ? detailRes.value?.data : {}
   const grades = gradesRes.status === 'fulfilled' ? gradesRes.value?.data || [] : []
   const alerts = alertsRes.status === 'fulfilled' ? mapAlerts(alertsRes.value?.data) : []
+  const attendanceData = attendanceRes.status === 'fulfilled' ? attendanceRes.value?.data || [] : []
+  
+  let excusedAbsences = 0
+  let unexcusedAbsences = 0
+  attendanceData.forEach(a => {
+    if (a.status === 'vang_co_phep') excusedAbsences++
+    else if (a.status === 'vang_mat' || a.status === 'vang') unexcusedAbsences++
+  })
+  const absences = excusedAbsences + unexcusedAbsences
+  const totalClasses = attendanceData.length
+  const attendanceRate = totalClasses > 0 ? Math.round(((totalClasses - absences) / totalClasses) * 100) : 100
+
   const index = childrenData.value.findIndex(child => child.id === childId)
   const existing = childrenData.value[index] || {}
   const next = {
@@ -89,10 +102,10 @@ async function loadChildDetail(childId) {
     major: '',
     gpa: detail?.gpa || 0,
     activeCourses: detail?.enrolledCourses || 0,
-    attendanceRate: 0,
-    absences: 0,
-    excusedAbsences: 0,
-    unexcusedAbsences: 0,
+    attendanceRate,
+    absences,
+    excusedAbsences,
+    unexcusedAbsences,
     warnings: alerts,
     coursesList: grades.map((grade, idx) => ({
       id: idx + 1,

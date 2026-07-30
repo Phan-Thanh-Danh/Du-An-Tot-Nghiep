@@ -49,6 +49,7 @@ const emptyChild = {
 
 const activeChildId = ref(getStoredActiveChildId())
 const dropdownOpen = ref(false)
+const gpaDropdownOpen = ref(false)
 const rawChildren = ref([])
 const childDetails = ref({})
 const childSchedules = ref({})
@@ -186,7 +187,7 @@ onMounted(loadDashboard)
 <template>
   <div class="space-y-6">
     <!-- ── CHỌN HỌC SINH (CHILD SELECTOR) ── -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 p-5 lg-glass-soft rounded-[24px]">
+    <div class="relative z-[90] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 p-5 lg-glass-soft !overflow-visible rounded-[24px]">
       <div class="flex items-center gap-4">
         <div class="h-12 w-12 flex items-center justify-center rounded-[14px] bg-orange-100 dark:bg-orange-950/30 text-orange-600 shadow-sm border border-orange-200/50 dark:border-orange-900/50">
           <GraduationCap :size="24" stroke-width="2.5" />
@@ -223,7 +224,7 @@ onMounted(loadDashboard)
         >
           <div
             v-if="dropdownOpen"
-            class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-[16px] border border-card p-1.5 shadow-(--lg-shadow-lg) backdrop-blur-xl"
+            class="surface-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-[100] w-full rounded-[16px] border border-card p-1.5 shadow-(--lg-shadow-lg) backdrop-blur-xl"
           >
             <button
               v-for="child in children"
@@ -538,12 +539,59 @@ onMounted(loadDashboard)
     <div class="grid grid-cols-1 gap-4 lg:gap-6">
       
       <!-- Biểu đồ tiến trình học tập -->
-      <div class="lg-glass flex flex-col p-6 rounded-[24px]">
-        <div class="border-b border-card pb-5 mb-5">
+      <div class="relative z-[90] lg-glass !overflow-visible flex flex-col p-6 rounded-[24px]">
+        <div class="border-b border-card pb-5 mb-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <h3 class="text-base font-bold text-heading flex items-center gap-2">
             <Award :size="18" class="text-orange-600" />
             Biểu đồ tiến độ GPA của con
           </h3>
+          
+          <!-- Dropdown Chọn con cho GPA -->
+          <div class="relative min-w-[220px]">
+            <button
+              type="button"
+              class="lg-input flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm font-bold text-heading shadow-sm transition-all hover:bg-slate-50 focus:outline-none"
+              @click="gpaDropdownOpen = !gpaDropdownOpen"
+            >
+              <div class="flex items-center gap-2 truncate">
+                <div class="h-6 w-6 flex items-center justify-center rounded-full bg-orange-100 text-[10px] font-bold text-orange-600">
+                  {{ currentChild.avatarInitials }}
+                </div>
+                <span class="truncate">{{ currentChild.name }}</span>
+              </div>
+              <ChevronDown :size="16" class="text-muted transition-transform duration-300" :class="{ 'rotate-180': gpaDropdownOpen }" />
+            </button>
+            
+            <Transition
+              enter-active-class="transition duration-200 ease-out"
+              enter-from-class="transform scale-95 opacity-0"
+              enter-to-class="transform scale-100 opacity-100"
+              leave-active-class="transition duration-150 ease-in"
+              leave-from-class="transform scale-100 opacity-100"
+              leave-to-class="transform scale-95 opacity-0"
+            >
+              <div
+                v-if="gpaDropdownOpen"
+                class="surface-dropdown absolute right-0 top-[calc(100%+0.25rem)] z-[100] w-full rounded-[16px] border border-card p-1.5 shadow-(--lg-shadow-lg) backdrop-blur-xl"
+              >
+                <button
+                  v-for="child in children"
+                  :key="child.id"
+                  type="button"
+                  class="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm font-medium transition hover:bg-[var(--surface-card-hover)] focus:outline-none"
+                  @click="selectChild(child.id); gpaDropdownOpen = false"
+                >
+                  <div class="flex items-center gap-2 truncate">
+                    <div class="h-6 w-6 flex items-center justify-center rounded-full bg-orange-100 dark:bg-orange-950/40 text-[10px] font-bold text-orange-600 border border-orange-200 dark:border-orange-900/50">
+                      {{ child.avatarInitials }}
+                    </div>
+                    <span class="truncate text-heading font-bold">{{ child.name }}</span>
+                  </div>
+                  <Check v-if="child.id === activeChildId" :size="14" class="text-orange-600 shrink-0" stroke-width="3" />
+                </button>
+              </div>
+            </Transition>
+          </div>
         </div>
 
         <div class="flex-1 flex flex-col justify-between">

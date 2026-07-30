@@ -230,7 +230,8 @@ const printReport = () => {
   const ngayThi = rd.ngayThi
     ? new Date(rd.ngayThi).toLocaleDateString('vi-VN')
     : new Date().toLocaleDateString('vi-VN')
-
+  const scriptStart = '<' + 'script'
+  const scriptEnd = '<' + '/script>'
   const html = `<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -358,8 +359,8 @@ const printReport = () => {
   <style>
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"><\/script>
-  <script>
+  ${scriptStart} src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous">${scriptEnd}
+  ${scriptStart}>
     window.onload = function() {
       var overlay = document.getElementById('loading-overlay');
       var content = document.getElementById('report-content');
@@ -389,7 +390,7 @@ const printReport = () => {
         overlay.innerHTML = '<p style="color:#e11d48;font-weight:700;font-size:14px;">Lỗi tạo PDF: ' + err.message + '</p><button onclick="window.print()" style="margin-top:12px;padding:8px 20px;background:#0d9488;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">In thay thế</button>';
       });
     };
-  <\/script>
+  ${scriptEnd}
 </body>
 </html>`
 

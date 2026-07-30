@@ -26,6 +26,12 @@ public class ParentController : ControllerBase
     {
         var userId = GetCurrentUserId();
         var childrenIds = await GetLinkedChildrenIds(userId, ct);
+        // [DEBUG]
+        if (childrenIds.Count == 0) {
+            return Ok(ApiResponseDto<ParentDashboardDto>.Ok(new ParentDashboardDto {
+                Children = new List<ParentChildSummaryDto> { new ParentChildSummaryDto { Id = -1, Name = "DEBUG NO CHILDREN FOR USER " + userId, ClassName = "", Status = "hoat_dong" } }
+            }));
+        }
         var children = await _db.NguoiDungs
             .Where(n => childrenIds.Contains(n.MaNguoiDung))
             .Select(n => new ParentChildSummaryDto

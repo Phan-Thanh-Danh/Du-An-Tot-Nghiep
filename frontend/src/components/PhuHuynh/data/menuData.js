@@ -24,12 +24,6 @@ export const phuHuynhMenuGroups = [
         icon: 'Contact',
         route: '/parent/children/list',
       },
-      {
-        id: 'children-overview',
-        label: 'Tổng quan học tập',
-        icon: 'LineChart',
-        route: '/parent/children/overview',
-      },
     ],
   },
 
