@@ -112,8 +112,64 @@ public class TeacherRequestsController : ControllerBase
             don.NgayDuyet = DateTime.UtcNow;
             don.NgayCapNhat = DateTime.UtcNow;
 
+            // Tự động cập nhật điểm danh → co_phep
+            string attendanceNote = "";
+            try
+            {
+                var formData = System.Text.Json.JsonDocument.Parse(don.DuLieuBieuMau ?? "{}").RootElement;
+                if (formData.TryGetProperty("CourseId", out var courseIdEl) &&
+                    formData.TryGetProperty("Date", out var dateEl) &&
+                    formData.TryGetProperty("Shift", out var shiftEl))
+                {
+                    int courseId = courseIdEl.GetInt32();
+                    var dateStr = dateEl.GetString() ?? "";
+                    var shiftLabel = shiftEl.GetString() ?? ""; // e.g. "Ca 1 (07:30 - 09:00)"
+                    var shiftName = shiftLabel.Contains('(')
+                        ? shiftLabel[..shiftLabel.IndexOf('(')].Trim()
+                        : shiftLabel.Trim(); // → "Ca 1"
+
+                    if (DateOnly.TryParse(dateStr, out var ngayHoc))
+                    {
+                        // Tìm buổi học khớp khóa học + ngày + ca
+                        var buoiHoc = await _context.BuoiHocs
+                            .Include(b => b.CaHoc)
+                            .FirstOrDefaultAsync(b =>
+                                b.MaKhoaHoc == courseId &&
+                                b.NgayHoc == ngayHoc &&
+                                b.CaHoc != null && b.CaHoc.TenCa == shiftName);
+
+                        if (buoiHoc != null)
+                        {
+                            var diemDanh = await _context.DiemDanhs.FirstOrDefaultAsync(d =>
+                                d.MaBuoiHoc == buoiHoc.MaBuoiHoc && d.MaHocSinh == don.MaHocSinh);
+
+                            if (diemDanh != null)
+                            {
+                                diemDanh.TrangThai = "co_phep";
+                                diemDanh.NguoiGhiNhan = userId;
+                                diemDanh.GhiNhanLuc = DateTime.UtcNow;
+                                attendanceNote = $" Điểm danh buổi {buoiHoc.MaBuoiHoc} đã cập nhật thành có phép.";
+                            }
+                            else
+                            {
+                                attendanceNote = " (Chưa có bản ghi điểm danh cho buổi học này.)";
+                            }
+                        }
+                        else
+                        {
+                            attendanceNote = " (Không tìm thấy buổi học khớp ngày/ca.)";
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Không block approve nếu auto-attendance lỗi
+                attendanceNote = " (Lỗi khi cập nhật điểm danh tự động.)";
+            }
+
             await _context.SaveChangesAsync();
-            return Ok(ApiResponseDto<object>.Ok(new { Message = "Đã phê duyệt đơn." }));
+            return Ok(ApiResponseDto<object>.Ok(new { Message = "Đã phê duyệt đơn." + attendanceNote }));
         }
         catch (Exception ex)
         {
