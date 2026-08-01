@@ -526,13 +526,17 @@ public class ParentController : ControllerBase
         var userId = GetCurrentUserId();
         var history = await _db.ThongBaoNguoiNhans
             .Include(t => t.ThongBao)
-            .Where(t => t.MaNguoiNhan == userId && t.DaDoc)
+                .ThenInclude(tb => tb!.NguoiTaoNavigation)
+            .Where(t => t.MaNguoiNhan == userId)
             .OrderByDescending(t => t.ThongBao != null ? t.ThongBao.NgayTao : DateTime.MinValue)
             .Select(t => new
             {
                 Id = t.MaThongBao,
                 Title = t.ThongBao != null ? t.ThongBao.TieuDe : "",
                 Content = t.ThongBao != null ? t.ThongBao.NoiDung : "",
+                Sender = t.ThongBao != null && t.ThongBao.NguoiTaoNavigation != null ? t.ThongBao.NguoiTaoNavigation.HoTen : "Ban Giám Hiệu",
+                Type = t.ThongBao != null && t.ThongBao.LoaiThongBao == "giang_vien" ? "teacher" : "school",
+                IsRead = t.DaDoc,
                 ReadAt = t.DocLuc,
                 CreatedAt = t.ThongBao != null ? t.ThongBao.NgayTao : DateTime.MinValue
             })

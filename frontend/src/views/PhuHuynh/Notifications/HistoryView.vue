@@ -16,6 +16,7 @@ import {
 import { parentApi } from '@/services/parentApi'
 import { getStoredActiveChildId, setActiveChildId } from '@/components/PhuHuynh/data/parentState.js'
 import { usePopupStore } from '@/stores/popup'
+import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -25,6 +26,8 @@ const activeChildId = ref(Number(route.query.studentId) || getStoredActiveChildI
 const dropdownOpen = ref(false)
 const children = ref([])
 const notifications = ref([])
+const loading = ref(true)
+const error = ref('')
 
 // Tìm kiếm & Lọc
 const searchQuery = ref('')
@@ -43,17 +46,30 @@ function selectChild(id) {
   setActiveChildId(id)
   dropdownOpen.value = false
   router.replace({ query: { studentId: id } })
+  loadData()
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return 'Vừa xong'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const year = d.getFullYear()
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${day}/${month}/${year} ${hh}:${mm}`
 }
 
 const allNotifications = computed(() => {
   return notifications.value.map(item => ({
     id: item.id,
-    title: item.title || 'Thông báo',
-    content: item.content || '',
-    sender: 'Hệ thống LMS',
-    date: item.readAt || item.createdAt || '',
-    read: true,
-    type: 'school',
+    title: item.title || item.tieuDe || 'Thông báo',
+    content: item.content || item.noiDung || '',
+    sender: item.sender || item.nguoiGui || 'Ban Giám Hiệu',
+    date: formatDate(item.createdAt || item.readAt || item.ngayTao),
+    read: item.isRead || item.daDoc || false,
+    type: item.type === 'teacher' || item.loaiThongBao === 'giang_vien' ? 'teacher' : 'school',
   }))
 })
 
@@ -80,17 +96,22 @@ const filteredNotifications = computed(() => {
   return list
 })
 
-
 // Đánh dấu đã đọc
-function markAsRead(notifId) {
+async function markAsRead(notifId) {
   const item = notifications.value.find(n => n.id === notifId)
-  if (item) item.read = true
+  if (item) item.isRead = true
+
+  try {
+    await parentApi.markNotificationRead(notifId)
+  } catch (e) {
+    console.warn('Cannot mark notification read on backend:', e)
+  }
 
   popupStore.success('Đã đọc', 'Đã đánh dấu thông báo này là đã đọc.')
 }
 
 // Đánh dấu đã đọc tất cả
-function markAllAsRead() {
+async function markAllAsRead() {
   let count = 0
   filteredNotifications.value.forEach(notif => {
     if (!notif.read) {
@@ -98,6 +119,12 @@ function markAllAsRead() {
       count++
     }
   })
+
+  try {
+    await parentApi.markAllNotificationsRead()
+  } catch (e) {
+    console.warn('Cannot mark all notifications read on backend:', e)
+  }
 
   if (count > 0) {
     popupStore.success('Thành công', 'Đã đánh dấu tất cả thông báo hiển thị là đã đọc.')
@@ -111,7 +138,7 @@ const selectedNotif = ref(null)
 const isDetailModalOpen = ref(false)
 
 function openDetail(notif) {
-  notif.read = true
+  markAsRead(notif.id)
   selectedNotif.value = notif
   isDetailModalOpen.value = true
 }
@@ -121,16 +148,24 @@ function goBack() {
 }
 
 async function loadData() {
-  const [childrenRes, notificationsRes] = await Promise.all([
-    parentApi.getChildren(),
-    parentApi.getNotificationHistory(),
-  ])
-  children.value = childrenRes?.data || []
-  notifications.value = notificationsRes?.data || []
-  const firstChild = children.value.find(child => child.id === activeChildId.value) || children.value[0]
-  if (firstChild) {
-    activeChildId.value = firstChild.id
-    setActiveChildId(firstChild.id)
+  loading.value = true
+  error.value = ''
+  try {
+    const [childrenRes, notificationsRes] = await Promise.all([
+      parentApi.getChildren().catch(() => ({ data: [] })),
+      parentApi.getNotificationHistory().catch(() => ({ data: [] })),
+    ])
+    children.value = childrenRes?.data || []
+    notifications.value = notificationsRes?.data || []
+    const firstChild = children.value.find(child => child.id === activeChildId.value) || children.value[0]
+    if (firstChild) {
+      activeChildId.value = firstChild.id
+      setActiveChildId(firstChild.id)
+    }
+  } catch (err) {
+    error.value = err.message || 'Không thể tải lịch sử thông báo.'
+  } finally {
+    loading.value = false
   }
 }
 
@@ -240,8 +275,22 @@ onMounted(loadData)
 
     </div>
 
+    <!-- ── LOADING ── -->
+    <div v-if="loading" class="p-4">
+      <SkeletonTable :rows="4" :columns="2" />
+    </div>
+
+    <!-- ── ERROR ── -->
+    <div v-else-if="error" class="lg-card-glass p-8 text-center">
+      <p class="text-sm font-bold text-heading mb-1">Đã xảy ra lỗi</p>
+      <p class="text-xs text-muted">{{ error }}</p>
+      <button @click="loadData" class="mt-4 px-4 py-2 border border-card rounded-xl text-xs font-bold text-label hover:text-orange-600 transition">
+        Thử lại
+      </button>
+    </div>
+
     <!-- ── DANH SÁCH THÔNG BÁO ── -->
-    <div class="space-y-3">
+    <div v-else class="space-y-3">
       <div v-if="filteredNotifications.length === 0" class="lg-card-glass p-12 text-center text-muted text-xs">
         Không tìm thấy thông báo nào phù hợp với điều kiện tìm kiếm/lọc.
       </div>
