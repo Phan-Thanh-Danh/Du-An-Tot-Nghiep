@@ -218,15 +218,11 @@ public class ParentController : ControllerBase
         var userId = GetCurrentUserId();
         await VerifyChildLinked(userId, childId, ct);
 
-        var enrolledLopHocPhanIds = await _db.DangKyHocPhans
-            .Where(d => d.MaHocSinh == childId && d.TrangThai == "da_duyet")
-            .Select(d => d.MaLopHocPhan)
-            .ToListAsync(ct);
-
-        var courseIds = await _db.KhoaHocs
-            .Where(k => k.MaLopHocPhan != null && enrolledLopHocPhanIds.Contains(k.MaLopHocPhan.Value))
-            .Select(k => k.MaKhoaHoc)
-            .ToListAsync(ct);
+        var child = await _db.NguoiDungs.FirstOrDefaultAsync(u => u.MaNguoiDung == childId, ct);
+        if (child == null || child.MaLop == null)
+        {
+            return Ok(ApiResponseDto<object>.Ok(new List<object>()));
+        }
 
         var schedule = await _db.ThoiKhoaBieus
             .Include(t => t.KhoaHoc!)
@@ -235,7 +231,7 @@ public class ParentController : ControllerBase
                 .ThenInclude(k => k.GiaoVien)
             .Include(t => t.Phong)
             .Include(t => t.CaHoc)
-            .Where(t => courseIds.Contains(t.MaKhoaHoc))
+            .Where(t => t.KhoaHoc != null && t.KhoaHoc.MaLop == child.MaLop)
             .Select(t => new
             {
                 Day = t.ThuTrongTuan,

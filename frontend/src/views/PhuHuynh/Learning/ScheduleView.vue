@@ -43,7 +43,13 @@ const scheduleByDay = computed(() => {
   const groups = {}
   schedule.value.forEach(item => {
     const dayIdx = Number(item.day)
-    const dayName = dayIdx >= 1 && dayIdx <= 7 ? dayNames[dayIdx - 1] : `Ngày ${item.day}`
+    let dayName = `Ngày ${item.day}`
+    if (dayIdx >= 2 && dayIdx <= 7) {
+      dayName = dayNames[dayIdx - 2]
+    } else if (dayIdx === 1 || dayIdx === 8) {
+      dayName = 'Chủ Nhật'
+    }
+    
     if (!groups[dayName]) groups[dayName] = []
     groups[dayName].push(item)
   })
@@ -57,7 +63,12 @@ const dayScheduleMap = computed(() => {
   const map = {}
   schedule.value.forEach(item => {
     const dayIdx = Number(item.day)
-    const dayName = dayIdx >= 1 && dayIdx <= 7 ? dayNames[dayIdx - 1] : `Ngày ${item.day}`
+    let dayName = `Ngày ${item.day}`
+    if (dayIdx >= 2 && dayIdx <= 7) {
+      dayName = dayNames[dayIdx - 2]
+    } else if (dayIdx === 1 || dayIdx === 8) {
+      dayName = 'Chủ Nhật'
+    }
     map[dayName] = true
   })
   return map
@@ -360,7 +371,7 @@ onMounted(async () => {
                 class="p-4 rounded-xl border space-y-3 border-card"
               >
                 <div class="flex items-center justify-between">
-                  <span class="text-[10px] font-bold text-orange-600 bg-orange-50 dark:bg-orange-950/20 px-2 py-0.5 rounded">Lớp học phần</span>
+                  <span class="text-[10px] font-bold text-orange-600 bg-orange-50 dark:bg-orange-950/20 px-2 py-0.5 rounded">Lớp hành chính</span>
                 </div>
 
                 <h4 class="text-xs font-bold text-heading leading-tight">{{ item.subject }}</h4>
