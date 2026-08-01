@@ -15,6 +15,7 @@ import {
 import { parentApi } from '@/services/parentApi'
 import { getStoredActiveChildId, setActiveChildId } from '@/components/PhuHuynh/data/parentState.js'
 import { usePopupStore } from '@/stores/popup'
+import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,6 +25,9 @@ const activeChildId = ref(Number(route.query.studentId) || getStoredActiveChildI
 const dropdownOpen = ref(false)
 const children = ref([])
 const notifications = ref([])
+const childAlerts = ref([])
+const loading = ref(true)
+const error = ref('')
 
 const currentChild = computed(() => {
   return children.value.find(c => c.id === activeChildId.value) || children.value[0] || {
@@ -38,17 +42,45 @@ function selectChild(id) {
   setActiveChildId(id)
   dropdownOpen.value = false
   router.replace({ query: { studentId: id } })
+  loadData()
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return 'Vừa xong'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const year = d.getFullYear()
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${day}/${month}/${year} ${hh}:${mm}`
 }
 
 const systemNotifications = computed(() => {
-  return notifications.value.map(item => ({
-    id: item.id,
-    title: item.title || 'Thông báo',
-    content: item.content || '',
-    date: item.createdAt || '',
-    read: item.isRead,
-    type: item.isRead ? 'info' : 'warning',
+  const notifs = notifications.value.map(item => ({
+    id: 'n_' + item.id,
+    rawId: item.id,
+    isAlert: false,
+    title: item.title || item.tieuDe || 'Thông báo hệ thống',
+    content: item.content || item.noiDung || '',
+    date: formatDate(item.createdAt || item.ngayTao),
+    read: item.isRead || item.daDoc || false,
+    type: item.type || (item.isRead ? 'info' : 'warning')
   }))
+
+  const alerts = childAlerts.value.map((item, idx) => ({
+    id: 'a_' + (item.id || idx),
+    rawId: item.id || idx,
+    isAlert: true,
+    title: item.title || item.message || 'Cảnh báo tự động',
+    content: item.content || item.message || '',
+    date: formatDate(item.createdAt),
+    read: item.isRead || false,
+    type: item.type || item.severity || 'warning'
+  }))
+
+  return [...alerts, ...notifs]
 })
 
 // Số thông báo chưa đọc
@@ -57,13 +89,20 @@ const unreadCount = computed(() => {
 })
 
 // Đánh dấu đã đọc một thông báo
-function markAsRead(notification) {
+async function markAsRead(notification) {
   notification.read = true
+  if (!notification.isAlert && notification.rawId) {
+    try {
+      await parentApi.markNotificationRead(notification.rawId)
+    } catch (err) {
+      console.warn('Cannot mark notification read on backend:', err)
+    }
+  }
   popupStore.success('Đã đọc', 'Đã đánh dấu thông báo là đã đọc.')
 }
 
 // Đánh dấu tất cả đã đọc
-function markAllAsRead() {
+async function markAllAsRead() {
   const unreadList = systemNotifications.value.filter(n => !n.read)
   if (unreadList.length === 0) {
     popupStore.info('Thông báo', 'Tất cả các thông báo hệ thống đã được đọc.')
@@ -72,6 +111,11 @@ function markAllAsRead() {
   unreadList.forEach(n => {
     n.read = true
   })
+  try {
+    await parentApi.markAllNotificationsRead()
+  } catch (err) {
+    console.warn('Cannot mark all notifications read on backend:', err)
+  }
   popupStore.success('Thành công', 'Đã đánh dấu tất cả các thông báo hệ thống là đã đọc.')
 }
 
@@ -80,7 +124,7 @@ const selectedNotif = ref(null)
 const isDetailModalOpen = ref(false)
 
 function openDetail(notif) {
-  notif.read = true // tự động đánh dấu đã đọc khi mở xem
+  markAsRead(notif)
   selectedNotif.value = notif
   isDetailModalOpen.value = true
 }
@@ -90,16 +134,28 @@ function goBack() {
 }
 
 async function loadData() {
-  const [childrenRes, notificationsRes] = await Promise.all([
-    parentApi.getChildren(),
-    parentApi.getNotifications(),
-  ])
-  children.value = childrenRes?.data || []
-  notifications.value = notificationsRes?.data || []
-  const firstChild = children.value.find(child => child.id === activeChildId.value) || children.value[0]
-  if (firstChild) {
-    activeChildId.value = firstChild.id
-    setActiveChildId(firstChild.id)
+  loading.value = true
+  error.value = ''
+  try {
+    const childrenRes = await parentApi.getChildren()
+    children.value = childrenRes?.data || []
+    const validChild = children.value.find(child => child.id === activeChildId.value) || children.value[0]
+    if (validChild) {
+      activeChildId.value = validChild.id
+      setActiveChildId(validChild.id)
+
+      const [notifRes, alertsRes] = await Promise.all([
+        parentApi.getNotifications().catch(() => ({ data: [] })),
+        parentApi.getChildAlerts(validChild.id).catch(() => ({ data: { alerts: [] } }))
+      ])
+
+      notifications.value = notifRes?.data || []
+      childAlerts.value = alertsRes?.data?.alerts || alertsRes?.data || []
+    }
+  } catch (err) {
+    error.value = err.message || 'Không thể tải danh sách thông báo và cảnh báo.'
+  } finally {
+    loading.value = false
   }
 }
 
@@ -169,8 +225,22 @@ onMounted(loadData)
       </div>
     </div>
 
+    <!-- ── LOADING ── -->
+    <div v-if="loading" class="p-4">
+      <SkeletonTable :rows="4" :columns="2" />
+    </div>
+
+    <!-- ── ERROR ── -->
+    <div v-else-if="error" class="lg-card-glass p-8 text-center">
+      <p class="text-sm font-bold text-heading mb-1">Đã xảy ra lỗi</p>
+      <p class="text-xs text-muted">{{ error }}</p>
+      <button @click="loadData" class="mt-4 px-4 py-2 border border-card rounded-xl text-xs font-bold text-label hover:text-orange-600 transition">
+        Thử lại
+      </button>
+    </div>
+
     <!-- ── DANH SÁCH CẢNH BÁO HỆ THỐNG ── -->
-    <div class="lg-card-glass p-5 space-y-4">
+    <div v-else class="lg-card-glass p-5 space-y-4">
       <div class="flex items-center justify-between pb-3 border-b border-card">
         <div class="flex items-center gap-2">
           <h3 class="text-xs font-bold text-heading uppercase tracking-wide">

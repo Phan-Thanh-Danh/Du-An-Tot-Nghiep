@@ -308,22 +308,60 @@ public class ParentController : ControllerBase
         var userId = GetCurrentUserId();
         await VerifyChildLinked(userId, childId, ct);
 
+        var child = await _db.NguoiDungs.FirstOrDefaultAsync(n => n.MaNguoiDung == childId, ct);
+        var studentName = child?.HoTen ?? "Sinh viên";
+
         var absentCount = await _db.DiemDanhs
             .CountAsync(d => d.MaHocSinh == childId && d.TrangThai == "vang", ct);
 
         var lowGrades = await _db.DiemSos
             .CountAsync(d => d.MaHocSinh == childId && d.GpaMonHoc < 5, ct);
 
+        var unpaidInvoices = await _db.HoaDons
+            .CountAsync(h => h.MaHocSinh == childId && h.TrangThai != "da_thanh_toan", ct);
+
         var alerts = new List<object>();
 
-        if (absentCount > 3)
+        if (absentCount > 0)
         {
-            alerts.Add(new { Type = "attendance", Message = $"Sinh viên đã vắng {absentCount} buổi.", Severity = "warning" });
+            alerts.Add(new
+            {
+                Id = 1001,
+                Title = $"Cảnh báo chuyên cần: Vắng mặt {absentCount} buổi",
+                Content = $"Sinh viên {studentName} đã vắng mặt tổng cộng {absentCount} buổi học trong kỳ. Đề nghị phụ huynh lưu ý theo dõi tỷ lệ chuyên cần.",
+                Type = absentCount > 3 ? "danger" : "warning",
+                Severity = absentCount > 3 ? "danger" : "warning",
+                CreatedAt = DateTime.Now.ToString("o"),
+                IsRead = false
+            });
         }
 
         if (lowGrades > 0)
         {
-            alerts.Add(new { Type = "grade", Message = $"Có {lowGrades} môn dưới điểm trung bình.", Severity = "danger" });
+            alerts.Add(new
+            {
+                Id = 1002,
+                Title = $"Cảnh báo kết quả học tập: Có {lowGrades} môn chưa đạt",
+                Content = $"Kết quả học tập ghi nhận sinh viên {studentName} đang có {lowGrades} môn học có điểm trung bình tích lũy dưới 5.0 (cần thi lại hoặc cải thiện).",
+                Type = "danger",
+                Severity = "danger",
+                CreatedAt = DateTime.Now.ToString("o"),
+                IsRead = false
+            });
+        }
+
+        if (unpaidInvoices > 0)
+        {
+            alerts.Add(new
+            {
+                Id = 1003,
+                Title = "Cảnh báo nộp học phí kỳ học",
+                Content = $"Sinh viên {studentName} hiện có {unpaidInvoices} khoản hóa đơn học phí chưa thanh toán hoàn tất. Phụ huynh vui lòng kiểm tra mục Tài chính để thực hiện thanh toán.",
+                Type = "warning",
+                Severity = "warning",
+                CreatedAt = DateTime.Now.ToString("o"),
+                IsRead = false
+            });
         }
 
         return Ok(ApiResponseDto<object>.Ok(new { Alerts = alerts }));
@@ -501,6 +539,43 @@ public class ParentController : ControllerBase
             .ToListAsync(ct);
 
         return Ok(ApiResponseDto<object>.Ok(history));
+    }
+
+    [HttpPost("notifications/{id:int}/read")]
+    public async Task<ActionResult<ApiResponseDto<object>>> MarkNotificationRead(int id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        var item = await _db.ThongBaoNguoiNhans
+            .FirstOrDefaultAsync(t => t.MaThongBao == id && t.MaNguoiNhan == userId, ct);
+        if (item != null)
+        {
+            item.DaDoc = true;
+            item.DocLuc = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+        }
+        return Ok(ApiResponseDto<object>.Ok(new { Success = true }));
+    }
+
+    [HttpPost("notifications/read-all")]
+    public async Task<ActionResult<ApiResponseDto<object>>> MarkAllNotificationsRead(CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        var unreadItems = await _db.ThongBaoNguoiNhans
+            .Where(t => t.MaNguoiNhan == userId && !t.DaDoc)
+            .ToListAsync(ct);
+
+        foreach (var item in unreadItems)
+        {
+            item.DaDoc = true;
+            item.DocLuc = DateTime.UtcNow;
+        }
+
+        if (unreadItems.Any())
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+
+        return Ok(ApiResponseDto<object>.Ok(new { Success = true }));
     }
 
     [HttpGet("profile")]

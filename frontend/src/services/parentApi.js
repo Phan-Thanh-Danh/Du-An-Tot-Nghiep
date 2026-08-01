@@ -82,6 +82,14 @@ export const parentApi = {
     return apiRequest('/api/parent/notifications/history', { method: 'GET' })
   },
 
+  markNotificationRead(id) {
+    return apiRequest(`/api/parent/notifications/${id}/read`, { method: 'POST' })
+  },
+
+  markAllNotificationsRead() {
+    return apiRequest('/api/parent/notifications/read-all', { method: 'POST' })
+  },
+
   getProfile() {
     return apiRequest('/api/parent/profile', { method: 'GET' })
   },
