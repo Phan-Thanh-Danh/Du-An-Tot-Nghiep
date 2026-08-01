@@ -499,6 +499,31 @@ public class ParentController : ControllerBase
         return Ok(ApiResponseDto<object>.Ok(new { Success = true, Message = "Yêu cầu thanh toán đã được ghi nhận." }));
     }
 
+    [HttpGet("profile")]
+    public async Task<ActionResult<ApiResponseDto<object>>> GetProfile(CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        var user = await _db.NguoiDungs
+            .Include(n => n.DonVi)
+            .FirstOrDefaultAsync(n => n.MaNguoiDung == userId, ct);
+
+        if (user == null)
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy thông tin người dùng."));
+
+        return Ok(ApiResponseDto<object>.Ok(new
+        {
+            Id = user.MaNguoiDung,
+            Name = user.HoTen,
+            Email = user.Email,
+            Phone = user.SoDienThoai ?? "",
+            Campus = user.DonVi != null ? user.DonVi.TenDonVi : "",
+            Role = user.VaiTroChinh,
+            CreatedAt = user.NgayTao,
+            LastLogin = user.LanDangNhapCuoi,
+            Status = user.TrangThai,
+        }));
+    }
+
     [HttpGet("notifications")]
     public async Task<ActionResult<ApiResponseDto<object>>> GetNotifications(CancellationToken ct)
     {
@@ -580,25 +605,6 @@ public class ParentController : ControllerBase
         }
 
         return Ok(ApiResponseDto<object>.Ok(new { Success = true }));
-    }
-
-    [HttpGet("profile")]
-    public async Task<ActionResult<ApiResponseDto<object>>> GetProfile(CancellationToken ct)
-    {
-        var userId = GetCurrentUserId();
-        var user = await _db.NguoiDungs
-            .Include(n => n.DonVi)
-            .FirstOrDefaultAsync(n => n.MaNguoiDung == userId, ct);
-        if (user == null) return NotFound();
-
-        return Ok(ApiResponseDto<object>.Ok(new
-        {
-            Id = user.MaNguoiDung,
-            Name = user.HoTen,
-            Email = user.Email,
-            Phone = user.SoDienThoai ?? "",
-            Campus = user.DonVi != null ? user.DonVi.TenDonVi : ""
-        }));
     }
 
     [HttpGet("access-rights")]
