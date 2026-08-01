@@ -23,6 +23,7 @@ const loading = ref(true)
 const error = ref(null)
 const grades = ref([])
 const children = ref([])
+const childDetail = ref(null)
 
 const selectedSemester = ref('')
 const selectedSubjectCode = ref('all')
@@ -137,12 +138,14 @@ function formatScore(val) {
 
 onMounted(async () => {
   try {
-    const [childrenRes, gradesRes] = await Promise.all([
+    const [childrenRes, gradesRes, detailRes] = await Promise.all([
       parentApi.getChildren().catch(() => ({ data: [] })),
-      parentApi.getChildGrades(activeChildId.value)
+      parentApi.getChildGrades(activeChildId.value),
+      parentApi.getChildDetail(activeChildId.value).catch(() => ({ data: null }))
     ])
     children.value = childrenRes.data || []
     grades.value = gradesRes.data || []
+    childDetail.value = detailRes.data || null
     if (semesters.value.length > 0) {
       selectedSemester.value = semesters.value[0]
     }
@@ -161,8 +164,13 @@ function selectChild(id) {
   router.replace({ query: { studentId: id } })
   loading.value = true
   error.value = null
-  parentApi.getChildGrades(id).then(res => {
-    grades.value = res.data || []
+  
+  Promise.all([
+    parentApi.getChildGrades(id),
+    parentApi.getChildDetail(id).catch(() => ({ data: null }))
+  ]).then(([gradesRes, detailRes]) => {
+    grades.value = gradesRes.data || []
+    childDetail.value = detailRes.data || null
     if (semesters.value.length > 0) {
       selectedSemester.value = semesters.value[0]
     }
@@ -173,8 +181,121 @@ function selectChild(id) {
   })
 }
 
-function exportPDF() {
-  window.print()
+const exportPDF = () => {
+  const c = childDetail.value || currentChild.value
+  if (!c || !grades.value.length) return
+
+  const rows = filteredGrades.value.map((g) => {
+    return `
+      <tr>
+        <td style="text-align:center">${g.code}</td>
+        <td>${g.subject}</td>
+        <td style="text-align:center">${formatScore(g.processScore)}</td>
+        <td style="text-align:center">${formatScore(g.midtermScore)}</td>
+        <td style="text-align:center">${formatScore(g.finalScore)}</td>
+        <td style="text-align:center;font-weight:bold">${formatScore(g.total)}</td>
+        <td style="text-align:center">${getStatusInfo(g.total).label}</td>
+      </tr>`
+  }).join('')
+
+  const now = new Date()
+  const ngayIn = `Ngày ${now.getDate().toString().padStart(2, '0')} tháng ${(now.getMonth() + 1).toString().padStart(2, '0')} năm ${now.getFullYear()}`
+  const scriptStart = '<' + 'script'
+  const scriptEnd = '<' + '/script>'
+  
+  const html = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bảng Điểm - ${c.name}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; color: #000; background: #fff; padding: 20mm 15mm; }
+    .header { text-align: center; margin-bottom: 24px; border-bottom: 2px solid #000; padding-bottom: 16px; }
+    .header h1 { font-size: 18pt; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; }
+    .header .meta { font-size: 10pt; color: #444; font-style: italic; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 32px; margin-bottom: 24px; font-size: 11pt; }
+    table { width: 100%; border-collapse: collapse; font-size: 11pt; margin-bottom: 30px; }
+    th, td { border: 1px solid #000; padding: 8px; vertical-align: middle; }
+    th { font-weight: bold; text-align: center; background-color: #f1f5f9; }
+    .sign-section { display: grid; grid-template-columns: 1fr 1fr; text-align: center; margin-top: 40px; font-size: 11pt; }
+    .sign-section .sign-blank { height: 80px; }
+  </style>
+</head>
+<body>
+  <div id="report-content">
+    <div class="header">
+      <h1>EduLMS - BÁO CÁO KẾT QUẢ HỌC TẬP</h1>
+      <div class="meta">Ngày in: ${ngayIn}</div>
+    </div>
+    <div class="info-grid">
+      <div><strong>Học sinh:</strong> ${c.name}</div>
+      <div><strong>Lớp học phần:</strong> ${c.className || '---'}</div>
+      <div><strong>Mã số học sinh:</strong> ${c.email || c.id || '---'}</div>
+      <div><strong>Ngành học:</strong> ${c.major || '---'}</div>
+      <div style="grid-column: 1 / -1"><strong>Học kỳ:</strong> ${selectedSemester.value || 'Tất cả'}</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Mã môn</th>
+          <th>Tên môn học</th>
+          <th>Quá trình</th>
+          <th>Giữa kỳ</th>
+          <th>Cuối kỳ</th>
+          <th>Điểm TB</th>
+          <th>Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="sign-section">
+      <div></div>
+      <div>
+        <p><em>Ngày ..... tháng ..... năm 20....</em></p>
+        <p><strong>XÁC NHẬN CỦA NHÀ TRƯỜNG</strong></p>
+        <p style="font-size:10pt;font-style:italic">(Ký và ghi rõ họ tên)</p>
+        <div class="sign-blank"></div>
+      </div>
+    </div>
+  </div>
+  <div id="loading-overlay" style="position:fixed;inset:0;background:rgba(255,255,255,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;font-family:sans-serif;">
+    <div style="width:48px;height:48px;border:5px solid #e2e8f0;border-top-color:#ea580c;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:16px;"></div>
+    <p style="color:#ea580c;font-weight:700;font-size:15px;margin:0;">Đang tạo file PDF...</p>
+    <p style="color:#64748b;font-size:12px;margin:4px 0 0;">Vui lòng chờ, file sẽ tự động tải về</p>
+  </div>
+  <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+  ${scriptStart} src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous">${scriptEnd}
+  ${scriptStart}>
+    window.onload = function() {
+      var overlay = document.getElementById('loading-overlay');
+      var content = document.getElementById('report-content');
+      var filename = 'BangDiem_${c.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf';
+      var opt = {
+        margin: [15, 10, 15, 10],
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(content).save().then(function() {
+        overlay.innerHTML = '<p style="color:#ea580c;font-weight:700;font-size:16px;">✓ Tải xuống thành công!</p><p style="color:#64748b;font-size:12px;">Cửa sổ này sẽ tự đóng...</p>';
+        setTimeout(function() { window.close(); }, 1500);
+      }).catch(function(err) {
+        overlay.innerHTML = '<p style="color:#e11d48;font-weight:700;font-size:14px;">Lỗi tạo PDF: ' + err.message + '</p><button onclick="window.print()" style="margin-top:12px;padding:8px 20px;background:#ea580c;color:#fff;border:none;border-radius:8px;cursor:pointer;">In thay thế</button>';
+      });
+    };
+  ${scriptEnd}
+</body>
+</html>`
+
+  const printWindow = window.open('', '_blank', 'width=1000,height=750')
+  if (printWindow) {
+    printWindow.document.write(html)
+    printWindow.document.close()
+  } else {
+    alert('Vui lòng cho phép popup để tải PDF.')
+  }
 }
 
 function goBack() {
@@ -183,7 +304,7 @@ function goBack() {
 </script>
 
 <template>
-  <div class="space-y-6 print-container" id="grades-view-page">
+  <div class="space-y-6" id="grades-view-page">
     <div v-if="loading" class="flex items-center justify-center py-20">
       <div class="text-xs text-muted">Đang tải dữ liệu...</div>
     </div>
@@ -208,7 +329,7 @@ function goBack() {
               <Award :size="20" class="text-orange-600" />
               Bảng điểm học tập
             </h2>
-            <p class="text-xs text-body">Theo dõi chi tiết điểm chuyên cần, quiz, kiểm tra giữa kỳ và cuối kỳ của con</p>
+            <p class="text-xs text-body">Theo dõi chi tiết điểm quá trình, giữa kỳ và cuối kỳ của con</p>
           </div>
         </div>
 
@@ -253,24 +374,6 @@ function goBack() {
         </div>
       </div>
 
-      <!-- ── THÔNG TIN HỌC SINH (Hiển thị khi In) ── -->
-      <div class="hidden print:block border-b border-slate-300 pb-4 mb-6">
-        <div class="text-center space-y-1">
-          <h1 class="text-xl font-bold text-slate-900">EduLMS - BÁO CÁO KẾT QUẢ HỌC TẬP</h1>
-          <p class="text-xs text-slate-600">Ngày in: {{ new Date().toLocaleDateString('vi-VN') }}</p>
-        </div>
-        <div class="grid grid-cols-2 gap-4 mt-4 text-xs text-slate-800">
-          <div>
-            <p><strong>Học sinh:</strong> {{ currentChild.name }}</p>
-            <p><strong>Mã số học sinh:</strong> {{ currentChild.studentId || '---' }}</p>
-          </div>
-          <div>
-            <p><strong>Lớp học phần:</strong> {{ currentChild.className }}</p>
-            <p><strong>Ngành học:</strong> {{ currentChild.major || '---' }}</p>
-          </div>
-        </div>
-      </div>
-
       <!-- ── THÔNG BÁO QUY TẮC PHÊ DUYỆT ĐIỂM ── -->
       <div class="p-4 rounded-xl border border-orange-200 dark:border-orange-950/20 bg-orange-50/40 dark:bg-orange-950/5 flex gap-3 print:hidden">
         <AlertCircle :size="18" class="text-orange-600 flex-shrink-0 mt-0.5" />
@@ -302,10 +405,9 @@ function goBack() {
               <tr class="border-b border-card text-muted uppercase font-bold text-[10px]">
                 <th class="py-3 px-3">Mã môn</th>
                 <th class="py-3 px-3">Tên môn học</th>
-                <th class="py-3 px-3 text-center">Chuyên cần (10%)</th>
-                <th class="py-3 px-3 text-center">Quiz/Lab (20%)</th>
-                <th class="py-3 px-3 text-center">Giữa kỳ (30%)</th>
-                <th class="py-3 px-3 text-center">Cuối kỳ (40%)</th>
+                <th class="py-3 px-3 text-center">Quá trình</th>
+                <th class="py-3 px-3 text-center">Giữa kỳ</th>
+                <th class="py-3 px-3 text-center">Cuối kỳ</th>
                 <th class="py-3 px-3 text-center font-extrabold">Điểm TB</th>
                 <th class="py-3 px-3 text-right">Trạng thái</th>
               </tr>
@@ -319,7 +421,6 @@ function goBack() {
                 <td class="py-3 px-3 font-semibold text-orange-600 dark:text-orange-400">{{ grade.code }}</td>
                 <td class="py-3 px-3 font-medium text-heading">{{ grade.subject }}</td>
                 <td class="py-3 px-3 text-center font-semibold text-body">{{ formatScore(grade.processScore) }}</td>
-                <td class="py-3 px-3 text-center font-semibold text-body">-</td>
                 <td class="py-3 px-3 text-center font-semibold text-body">{{ formatScore(grade.midtermScore) }}</td>
                 <td class="py-3 px-3 text-center font-semibold text-body">{{ formatScore(grade.finalScore) }}</td>
                 <td class="py-3 px-3 text-center font-extrabold text-heading bg-(--surface-table-row-hover) text-sm">
@@ -451,7 +552,7 @@ function goBack() {
               <div
                 v-for="(point, idx) in trendPoints"
                 :key="'dot-'+idx"
-                class="absolute rounded-full bg-[#ea580c] border-[2px] border-white dark:border-slate-900 shadow-sm transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 w-3 h-3"
+                class="absolute rounded-full bg-orange-500 border-[2px] border-card shadow-sm transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 w-3 h-3"
                 :style="`left: ${point.pctX}%; top: ${point.pctY}%`"
               ></div>
             </div>
@@ -463,7 +564,7 @@ function goBack() {
                 class="absolute flex flex-col items-center group pointer-events-auto w-24 transform -translate-x-1/2 h-full"
                 :style="`left: ${point.pctX}%`"
               >
-                <span class="text-[10px] font-bold text-heading bg-white/95 dark:bg-slate-900/95 px-1.5 py-0.5 rounded border border-card shadow-(--lg-shadow-sm) absolute"
+                <span class="text-[10px] font-bold text-heading surface-card px-1.5 py-0.5 rounded border border-card shadow-(--lg-shadow-sm) absolute"
                       :style="`top: calc(${point.pctY}% - 22px)`">
                   {{ point.gpa }}
                 </span>
@@ -480,25 +581,4 @@ function goBack() {
 </template>
 
 <style scoped>
-@media print {
-  @page {
-    margin: 0;
-  }
-  .print-container {
-    background: white !important;
-    color: black !important;
-  }
-  .print\:hidden {
-    display: none !important;
-  }
-  #grades-view-page {
-    margin: 0;
-    padding: 30px;
-    background: white !important;
-  }
-  th, td {
-    border-bottom: 1px solid #cbd5e1 !important;
-    color: #0f172a !important;
-  }
-}
 </style>
