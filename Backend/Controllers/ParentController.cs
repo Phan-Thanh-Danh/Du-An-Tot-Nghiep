@@ -182,6 +182,35 @@ public class ParentController : ControllerBase
         return Ok(ApiResponseDto<object>.Ok(grades));
     }
 
+    [HttpGet("children/{childId:int}/courses")]
+    public async Task<ActionResult<ApiResponseDto<object>>> GetChildCourses(
+        int childId, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        await VerifyChildLinked(userId, childId, ct);
+
+        var child = await _db.NguoiDungs.FirstOrDefaultAsync(u => u.MaNguoiDung == childId, ct);
+        if (child == null || child.MaLop == null)
+        {
+            return Ok(ApiResponseDto<object>.Ok(new List<object>()));
+        }
+
+        var courses = await _db.KhoaHocs
+            .Include(k => k.MonHoc)
+            .Include(k => k.HocKy)
+            .Where(k => k.MaLop == child.MaLop)
+            .Select(k => new
+            {
+                Subject = k.MonHoc != null ? k.MonHoc.TenMonHoc : "",
+                Code = k.MonHoc != null ? k.MonHoc.MaCodeMonHoc : "",
+                Semester = k.HocKy != null ? k.HocKy.TenHocKy : ""
+            })
+            .Distinct()
+            .ToListAsync(ct);
+
+        return Ok(ApiResponseDto<object>.Ok(courses));
+    }
+
     [HttpGet("children/{childId:int}/schedule")]
     public async Task<ActionResult<ApiResponseDto<object>>> GetChildSchedule(
         int childId, CancellationToken ct)
@@ -231,12 +260,26 @@ public class ParentController : ControllerBase
             .Include(d => d.BuoiHoc!)
                 .ThenInclude(b => b.KhoaHoc!)
                 .ThenInclude(k => k.MonHoc)
+            .Include(d => d.BuoiHoc!)
+                .ThenInclude(b => b.KhoaHoc!)
+                .ThenInclude(k => k.HocKy)
+            .Include(d => d.BuoiHoc!)
+                .ThenInclude(b => b.CaHoc)
+            .Include(d => d.BuoiHoc!)
+                .ThenInclude(b => b.Phong)
+            .Include(d => d.BuoiHoc!)
+                .ThenInclude(b => b.GiaoVien)
             .Where(d => d.MaHocSinh == childId)
             .Select(d => new
             {
                 Subject = d.BuoiHoc!.KhoaHoc!.MonHoc != null ? d.BuoiHoc.KhoaHoc.MonHoc.TenMonHoc : "",
                 Date = d.BuoiHoc.NgayHoc,
-                Status = d.TrangThai
+                Shift = d.BuoiHoc.CaHoc != null ? d.BuoiHoc.CaHoc.TenCa : "",
+                Room = d.BuoiHoc.Phong != null ? d.BuoiHoc.Phong.MaCodePhong : "",
+                Teacher = d.BuoiHoc.GiaoVien != null ? d.BuoiHoc.GiaoVien.HoTen : "",
+                Status = d.TrangThai,
+                Note = d.BuoiHoc.GhiChu ?? "",
+                Semester = d.BuoiHoc.KhoaHoc.HocKy != null ? d.BuoiHoc.KhoaHoc.HocKy.TenHocKy : ""
             })
             .ToListAsync(ct);
 

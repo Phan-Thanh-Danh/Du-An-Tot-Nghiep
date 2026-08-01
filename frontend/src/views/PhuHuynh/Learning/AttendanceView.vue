@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   UserCheck,
@@ -14,7 +14,8 @@ import {
   Send,
   Upload,
   X,
-  AlertCircle
+  AlertCircle,
+  Printer
 } from 'lucide-vue-next'
 import { parentApi } from '@/services/parentApi'
 import { usePopupStore } from '@/stores/popup'
@@ -29,8 +30,14 @@ const loading = ref(true)
 const error = ref(null)
 const attendance = ref([])
 const children = ref([])
+const enrolledGrades = ref([])
+const childDetail = ref(null)
 
 const filterStatus = ref('Tất cả')
+const filterSubject = ref('Tất cả')
+const filterSemester = ref('Tất cả')
+const currentPage = ref(1)
+const itemsPerPage = 10
 
 const isModalOpen = ref(false)
 const formSubject = ref('')
@@ -45,6 +52,7 @@ const statusLabels = {
   'di_muon': 'Đi muộn',
   'vang_co_phep': 'Vắng có phép',
   'vang_khong_phep': 'Vắng không phép',
+  'vang': 'Vắng không phép',
   'Có mặt': 'Có mặt',
   'Đi muộn': 'Đi muộn',
   'Vắng có phép': 'Vắng có phép',
@@ -64,15 +72,80 @@ function getDisplayStatus(status) {
   return statusLabels[status] || status
 }
 
-const filteredAttendance = computed(() => {
-  if (filterStatus.value === 'Tất cả') return attendance.value
-  return attendance.value.filter(item => getDisplayStatus(item.status) === filterStatus.value)
+const enhancedAttendance = computed(() => {
+  return attendance.value.map(a => {
+    let sem = a.semester
+    if (!sem) {
+      const gradeMatch = enrolledGrades.value.find(g => g.subject === a.subject)
+      sem = gradeMatch ? gradeMatch.semester : 'Khác'
+    }
+    return { ...a, semester: sem }
+  })
+})
+
+const activeSemesters = computed(() => {
+  const semsFromAttendance = enhancedAttendance.value.map(a => a.semester).filter(Boolean)
+  const semsFromGrades = enrolledGrades.value.map(g => g.semester).filter(Boolean)
+  const semesters = new Set([...semsFromAttendance, ...semsFromGrades])
+  return Array.from(semesters).filter(s => s !== 'Khác')
 })
 
 const activeSubjects = computed(() => {
-  const subjects = new Set(attendance.value.map(a => a.subject).filter(Boolean))
+  let validGrades = enrolledGrades.value
+  let validAttendance = enhancedAttendance.value
+
+  if (filterSemester.value !== 'Tất cả') {
+    validGrades = validGrades.filter(g => g.semester === filterSemester.value)
+    validAttendance = validAttendance.filter(a => a.semester === filterSemester.value)
+  }
+
+  const subsFromGrades = validGrades.map(g => g.subject).filter(Boolean)
+  const subsFromAttendance = validAttendance.map(a => a.subject).filter(Boolean)
+
+  const subjects = new Set([...subsFromAttendance, ...subsFromGrades])
   return Array.from(subjects)
 })
+
+watch(filterSemester, () => {
+  filterSubject.value = 'Tất cả'
+  currentPage.value = 1
+})
+
+watch(filterSubject, () => {
+  currentPage.value = 1
+})
+
+const filteredAttendance = computed(() => {
+  let result = enhancedAttendance.value
+  
+  if (filterStatus.value !== 'Tất cả') {
+    result = result.filter(item => getDisplayStatus(item.status) === filterStatus.value)
+  }
+  if (filterSubject.value !== 'Tất cả') {
+    result = result.filter(item => item.subject === filterSubject.value)
+  }
+  if (filterSemester.value !== 'Tất cả') {
+    result = result.filter(item => item.semester === filterSemester.value)
+  }
+  
+  return result
+})
+
+const totalPages = computed(() => Math.ceil(filteredAttendance.value.length / itemsPerPage) || 1)
+
+const paginatedAttendance = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return filteredAttendance.value.slice(start, end)
+})
+
+function prevPage() {
+  if (currentPage.value > 1) currentPage.value--
+}
+
+function nextPage() {
+  if (currentPage.value < totalPages.value) currentPage.value++
+}
 
 const presentCount = computed(() =>
   attendance.value.filter(a => a.status === 'co_mat' || a.status === 'Có mặt').length
@@ -84,7 +157,7 @@ const excusedAbsences = computed(() =>
   attendance.value.filter(a => a.status === 'vang_co_phep' || a.status === 'Vắng có phép').length
 )
 const unexcusedAbsences = computed(() =>
-  attendance.value.filter(a => a.status === 'vang_khong_phep' || a.status === 'Vắng không phép').length
+  attendance.value.filter(a => a.status === 'vang_khong_phep' || a.status === 'vang' || a.status === 'Vắng không phép').length
 )
 
 const attendanceRate = computed(() => {
@@ -104,6 +177,9 @@ function selectChild(id) {
   localStorage.setItem('parent_active_student_id', id)
   dropdownOpen.value = false
   filterStatus.value = 'Tất cả'
+  filterSubject.value = 'Tất cả'
+  filterSemester.value = 'Tất cả'
+  currentPage.value = 1
   router.replace({ query: { studentId: id } })
   loading.value = true
   error.value = null
@@ -111,7 +187,21 @@ function selectChild(id) {
     attendance.value = res.data || []
   }).catch(e => {
     error.value = e.message
-  }).finally(() => {
+  })
+  
+  parentApi.getChildCourses(id).then(res => {
+    enrolledGrades.value = res.data || []
+  }).catch(() => {})
+
+  parentApi.getChildDetail(id).then(res => {
+    childDetail.value = res.data || null
+  }).catch(() => {})
+
+  Promise.all([
+    parentApi.getChildAttendance(id),
+    parentApi.getChildCourses(id),
+    parentApi.getChildDetail(id).catch(() => ({ data: null }))
+  ]).finally(() => {
     loading.value = false
   })
 }
@@ -157,18 +247,145 @@ function formatDate(dateVal) {
   }
 }
 
+const exportPDF = () => {
+  const c = childDetail.value || currentChild.value
+  if (!c || !filteredAttendance.value.length) {
+    popupStore.error('Lỗi', 'Không có dữ liệu điểm danh để tải xuống.')
+    return
+  }
+
+  const rows = filteredAttendance.value.map((a) => {
+    let statusLabel = getDisplayStatus(a.status)
+    return `
+      <tr>
+        <td style="text-align:center">${formatDate(a.date)}</td>
+        <td style="text-align:center">${a.shift || '---'}</td>
+        <td>${a.subject}</td>
+        <td style="text-align:center">${a.room || '---'}</td>
+        <td style="text-align:center">${a.teacher || '---'}</td>
+        <td style="text-align:center">${statusLabel}</td>
+        <td>${a.note || ''}</td>
+      </tr>`
+  }).join('')
+
+  const now = new Date()
+  const ngayIn = `Ngày ${now.getDate().toString().padStart(2, '0')} tháng ${(now.getMonth() + 1).toString().padStart(2, '0')} năm ${now.getFullYear()}`
+  const scriptStart = '<' + 'script'
+  const scriptEnd = '<' + '/script>'
+  
+  const html = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bảng Điểm Danh - ${c.name}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; color: #000; background: #fff; padding: 20mm 15mm; }
+    .header { text-align: center; margin-bottom: 24px; border-bottom: 2px solid #000; padding-bottom: 16px; }
+    .header h1 { font-size: 18pt; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; }
+    .header .meta { font-size: 10pt; color: #444; font-style: italic; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 32px; margin-bottom: 24px; font-size: 11pt; }
+    table { width: 100%; border-collapse: collapse; font-size: 11pt; margin-bottom: 30px; }
+    th, td { border: 1px solid #000; padding: 8px; vertical-align: middle; }
+    th { font-weight: bold; text-align: center; background-color: #f1f5f9; }
+    .sign-section { display: grid; grid-template-columns: 1fr 1fr; text-align: center; margin-top: 40px; font-size: 11pt; }
+    .sign-section .sign-blank { height: 80px; }
+  </style>
+</head>
+<body>
+  <div id="report-content">
+    <div class="header">
+      <h1>EduLMS - BÁO CÁO TÌNH HÌNH ĐIỂM DANH</h1>
+      <div class="meta">Ngày in: ${ngayIn}</div>
+    </div>
+    <div class="info-grid">
+      <div><strong>Học sinh:</strong> ${c.name}</div>
+      <div><strong>Lớp hành chính:</strong> ${c.className || '---'}</div>
+      <div><strong>Mã số học sinh:</strong> ${c.email || c.id || '---'}</div>
+      <div><strong>Ngành học:</strong> ${c.major || '---'}</div>
+      <div><strong>Học kỳ:</strong> ${filterSemester.value}</div>
+      <div><strong>Môn học:</strong> ${filterSubject.value}</div>
+      <div style="grid-column: 1 / -1">
+        <strong>Thống kê:</strong> 
+        Có mặt: ${presentCount.value} | Đi muộn: ${lateCount.value} | 
+        Vắng có phép: ${excusedAbsences.value} | Vắng không phép: ${unexcusedAbsences.value}
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Ngày học</th>
+          <th>Ca học</th>
+          <th>Môn học</th>
+          <th>Phòng</th>
+          <th>Giảng viên</th>
+          <th>Trạng thái</th>
+          <th>Ghi chú</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="sign-section">
+      <div></div>
+      <div>
+        <p><em>Ngày ..... tháng ..... năm 20....</em></p>
+        <p><strong>XÁC NHẬN CỦA NHÀ TRƯỜNG</strong></p>
+        <p style="font-size:10pt;font-style:italic">(Ký và ghi rõ họ tên)</p>
+        <div class="sign-blank"></div>
+      </div>
+    </div>
+  </div>
+  <div id="loading-overlay" style="position:fixed;inset:0;background:rgba(255,255,255,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;font-family:sans-serif;">
+    <div style="width:48px;height:48px;border:5px solid #e2e8f0;border-top-color:#ea580c;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:16px;"></div>
+    <p style="color:#ea580c;font-weight:700;font-size:15px;margin:0;">Đang tạo file PDF...</p>
+    <p style="color:#64748b;font-size:12px;margin:4px 0 0;">Vui lòng chờ, file sẽ tự động tải về</p>
+  </div>
+  <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+  ${scriptStart} src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous">${scriptEnd}
+  ${scriptStart}>
+    window.onload = function() {
+      var overlay = document.getElementById('loading-overlay');
+      var content = document.getElementById('report-content');
+      var filename = 'DiemDanh_${c.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf';
+      var opt = {
+        margin: [15, 10, 15, 10],
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(content).save().then(function() {
+        overlay.innerHTML = '<p style="color:#ea580c;font-weight:700;font-size:16px;">✓ Tải xuống thành công!</p><p style="color:#64748b;font-size:12px;">Cửa sổ này sẽ tự đóng...</p>';
+        setTimeout(function() { window.close(); }, 1500);
+      }).catch(function(err) {
+        overlay.innerHTML = '<p style="color:#e11d48;font-weight:700;font-size:14px;">Lỗi tạo PDF: ' + err.message + '</p><button onclick="window.print()" style="margin-top:12px;padding:8px 20px;background:#ea580c;color:#fff;border:none;border-radius:8px;cursor:pointer;">In thay thế</button>';
+      });
+    };
+  ${scriptEnd}
+</body>
+</html>`
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  window.open(url, '_blank')
+}
+
 function goBack() {
   router.push('/parent/dashboard')
 }
 
 onMounted(async () => {
   try {
-    const [childrenRes, attendanceRes] = await Promise.all([
+    const [childrenRes, attendanceRes, coursesRes, detailRes] = await Promise.all([
       parentApi.getChildren().catch(() => ({ data: [] })),
-      parentApi.getChildAttendance(activeChildId.value)
+      parentApi.getChildAttendance(activeChildId.value),
+      parentApi.getChildCourses(activeChildId.value).catch(() => ({ data: [] })),
+      parentApi.getChildDetail(activeChildId.value).catch(() => ({ data: null }))
     ])
     children.value = childrenRes.data || []
     attendance.value = attendanceRes.data || []
+    enrolledGrades.value = coursesRes.data || []
+    childDetail.value = detailRes.data || null
   } catch (e) {
     error.value = e.message || 'Không thể tải dữ liệu điểm danh'
   } finally {
@@ -368,16 +585,34 @@ onMounted(async () => {
             <h3 class="text-xs font-bold text-heading uppercase tracking-wide">
               Nhật ký điểm danh chi tiết
             </h3>
-            <div class="flex flex-wrap gap-1.5">
+            <div class="flex flex-wrap items-center gap-2">
               <button
-                v-for="status in ['Tất cả', 'Có mặt', 'Đi muộn', 'Vắng có phép', 'Vắng không phép']"
-                :key="status"
-                @click="filterStatus = status"
-                class="px-2.5 py-1 text-[10px] rounded-lg font-semibold border transition"
-                :class="filterStatus === status ? 'bg-orange-600 border-orange-600 text-white' : 'border-card text-label hover:text-orange-600'"
+                @click="exportPDF"
+                class="lg-icon-button flex h-8 items-center gap-1.5 rounded-lg border border-card surface-card px-3 text-xs font-bold text-label hover:text-orange-600 transition"
+                title="Tải PDF bảng điểm danh"
               >
-                {{ status }}
+                <Printer :size="14" />
+                <span class="hidden sm:inline">Tải PDF</span>
               </button>
+              <select v-model="filterSemester" class="px-2.5 py-1 text-[10px] rounded-lg font-semibold border border-card surface-card focus:outline-none text-label">
+                <option value="Tất cả">Tất cả kỳ</option>
+                <option v-for="sem in activeSemesters" :key="sem" :value="sem">{{ sem || 'Khác' }}</option>
+              </select>
+              <select v-model="filterSubject" class="px-2.5 py-1 text-[10px] rounded-lg font-semibold border border-card surface-card focus:outline-none max-w-[150px] truncate text-label">
+                <option value="Tất cả">Tất cả môn</option>
+                <option v-for="sub in activeSubjects" :key="sub" :value="sub">{{ sub }}</option>
+              </select>
+              <div class="flex flex-wrap gap-1.5">
+                <button
+                  v-for="status in ['Tất cả', 'Có mặt', 'Đi muộn', 'Vắng có phép', 'Vắng không phép']"
+                  :key="status"
+                  @click="filterStatus = status; currentPage = 1"
+                  class="px-2.5 py-1 text-[10px] rounded-lg font-semibold border transition"
+                  :class="filterStatus === status ? 'bg-orange-600 border-orange-600 text-white' : 'border-card text-label hover:text-orange-600'"
+                >
+                  {{ status }}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -391,19 +626,23 @@ onMounted(async () => {
                   <th class="py-3 px-3">Ngày học</th>
                   <th class="py-3 px-3">Môn học</th>
                   <th class="py-3 px-3">Ca học</th>
+                  <th class="py-3 px-3">Phòng</th>
+                  <th class="py-3 px-3">Giảng viên</th>
                   <th class="py-3 px-3">Trạng thái</th>
                   <th class="py-3 px-3 text-right">Ghi chú của Giảng viên</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-(--border-card)">
                 <tr
-                  v-for="(item, idx) in filteredAttendance"
+                  v-for="(item, idx) in paginatedAttendance"
                   :key="idx"
                   class="hover:bg-(--surface-table-row-hover) transition"
                 >
                   <td class="py-3 px-3 font-semibold text-heading">{{ formatDate(item.date) }}</td>
                   <td class="py-3 px-3 font-medium text-body">{{ item.subject }}</td>
-                  <td class="py-3 px-3 text-muted">-</td>
+                  <td class="py-3 px-3 text-muted">{{ item.shift || '-' }}</td>
+                  <td class="py-3 px-3 text-muted">{{ item.room || '-' }}</td>
+                  <td class="py-3 px-3 text-muted">{{ item.teacher || '-' }}</td>
                   <td class="py-3 px-3">
                     <span
                       class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold"
@@ -417,10 +656,31 @@ onMounted(async () => {
                       {{ getDisplayStatus(item.status) }}
                     </span>
                   </td>
-                  <td class="py-3 px-3 text-right text-muted italic font-medium">-</td>
+                  <td class="py-3 px-3 text-right text-muted italic font-medium">{{ item.note || '-' }}</td>
                 </tr>
               </tbody>
             </table>
+          </div>
+          
+          <!-- Phân trang -->
+          <div v-if="totalPages > 1" class="flex items-center justify-between border-t border-card pt-4 mt-2">
+            <span class="text-[10px] text-muted font-medium">Trang {{ currentPage }} / {{ totalPages }}</span>
+            <div class="flex gap-2">
+              <button 
+                @click="prevPage" 
+                :disabled="currentPage === 1"
+                class="px-2.5 py-1 text-[10px] font-bold rounded-lg border border-card surface-card text-label disabled:opacity-50 hover:text-orange-600 transition"
+              >
+                Trước
+              </button>
+              <button 
+                @click="nextPage" 
+                :disabled="currentPage === totalPages"
+                class="px-2.5 py-1 text-[10px] font-bold rounded-lg border border-card surface-card text-label disabled:opacity-50 hover:text-orange-600 transition"
+              >
+                Sau
+              </button>
+            </div>
           </div>
         </div>
       </template>

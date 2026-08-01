@@ -17,6 +17,10 @@ export const parentApi = {
     return apiRequest(`/api/parent/children/${childId}/grades`, { method: 'GET' })
   },
 
+  getChildCourses(childId) {
+    return apiRequest(`/api/parent/children/${childId}/courses`, { method: 'GET' })
+  },
+
   getChildSchedule(childId) {
     return apiRequest(`/api/parent/children/${childId}/schedule`, { method: 'GET' })
   },
