@@ -56,6 +56,17 @@ export const parentApi = {
     return apiRequest(`/api/parent/children/${childId}/invoices`, { method: 'GET' })
   },
 
+  createTuitionPayment(childId, invoiceId) {
+    return apiRequest(`/api/parent/children/${childId}/invoices/${invoiceId}/payments`, {
+      method: 'POST',
+      body: JSON.stringify({ provider: 'payos' }),
+    })
+  },
+
+  getTuitionPayment(childId, transactionId) {
+    return apiRequest(`/api/parent/children/${childId}/payments/${transactionId}`, { method: 'GET' })
+  },
+
   makePayment(payload) {
     return apiRequest('/api/parent/payment', {
       method: 'POST',

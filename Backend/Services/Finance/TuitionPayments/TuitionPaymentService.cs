@@ -617,7 +617,25 @@ public class TuitionPaymentService : ITuitionPaymentService
 
         var orderCode = transaction.MaGiaoDich;
         var orderCodeText = orderCode.ToString(CultureInfo.InvariantCulture);
-        var transferContent = $"LMS {orderCodeText}";
+
+        var student = await _context.NguoiDungs.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.MaNguoiDung == invoice.MaHocSinh, cancellationToken);
+        var term = await _context.HocKys.AsNoTracking()
+            .FirstOrDefaultAsync(h => h.MaHocKy == invoice.MaHocKy, cancellationToken);
+
+        var studentName = student != null ? RemoveAccents(student.HoTen) : $"SV{invoice.MaHocSinh}";
+        var studentCode = student != null ? $"{student.MaNguoiDung}" : $"{invoice.MaHocSinh}";
+        var termName = term != null ? RemoveAccents(term.TenHocKy) : "HK";
+        termName = termName.Replace("Hoc ky", "HK").Replace("Hoc Ky", "HK").Replace("  ", " ").Trim();
+
+        var rawContent = $"TTHP {termName} {studentName} {studentCode}".Trim();
+        rawContent = System.Text.RegularExpressions.Regex.Replace(rawContent, @"[^a-zA-Z0-9 ]", "").Trim();
+        if (rawContent.Length > 25)
+        {
+            rawContent = rawContent.Substring(0, 25).TrimEnd();
+        }
+
+        var transferContent = string.IsNullOrWhiteSpace(rawContent) ? $"LMS {orderCodeText}" : rawContent;
 
         transaction.MaThamChieuNoiBo = orderCodeText;
         transaction.NoiDungChuyenKhoan = transferContent;
@@ -904,5 +922,24 @@ public class TuitionPaymentService : ITuitionPaymentService
         return decimal.TryParse(value.ToString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed)
             ? parsed
             : 0m;
+    }
+
+    private static string RemoveAccents(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var normalizedString = text.Normalize(System.Text.NormalizationForm.FormD);
+        var stringBuilder = new System.Text.StringBuilder();
+
+        foreach (var c in normalizedString)
+        {
+            var unicodeCategory = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+            if (unicodeCategory != System.Globalization.UnicodeCategory.NonSpacingMark)
+            {
+                stringBuilder.Append(c);
+            }
+        }
+
+        return stringBuilder.ToString().Normalize(System.Text.NormalizationForm.FormC)
+            .Replace("Đ", "D").Replace("đ", "d");
     }
 }

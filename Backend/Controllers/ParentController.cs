@@ -1,13 +1,15 @@
 using Backend.Constants;
 using Backend.Data;
-using Backend.Services.Storage;
 using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
+using Backend.DTOs.Finance.TuitionPayments;
 using Backend.Exceptions;
+using Backend.Models;
+using Backend.Services.Finance.TuitionPayments;
+using Backend.Services.Storage;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Backend.Models;
 
 namespace Backend.Controllers;
 
@@ -18,11 +20,16 @@ public class ParentController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
     private readonly IR2StorageService _storageService;
+    private readonly ITuitionPaymentService _tuitionPaymentService;
 
-    public ParentController(ApplicationDbContext db, IR2StorageService storageService)
+    public ParentController(
+        ApplicationDbContext db,
+        IR2StorageService storageService,
+        ITuitionPaymentService tuitionPaymentService)
     {
         _db = db;
         _storageService = storageService;
+        _tuitionPaymentService = tuitionPaymentService;
     }
 
     [HttpGet("dashboard")]
@@ -387,7 +394,47 @@ public class ParentController : ControllerBase
         return Ok(ApiResponseDto<object>.Ok(invoices));
     }
 
+    [HttpPost("children/{childId:int}/invoices/{invoiceId:int}/payments")]
+    public async Task<ActionResult<ApiResponseDto<CreateTuitionPaymentResponse>>> CreateChildTuitionPayment(
+        int childId,
+        int invoiceId,
+        CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        await VerifyChildLinked(userId, childId, ct);
+
+        var payment = await _tuitionPaymentService.CreatePaymentAsync(
+            invoiceId,
+            childId, // Note: childId (student ID), NOT parent userId
+            FinanceConstants.PaymentProviders.PayOs,
+            ct);
+
+        return Ok(ApiResponseDto<CreateTuitionPaymentResponse>.Ok(
+            payment,
+            "Tạo giao dịch thanh toán học phí thành công."));
+    }
+
+    [HttpGet("children/{childId:int}/payments/{transactionId:int}")]
+    public async Task<ActionResult<ApiResponseDto<CreateTuitionPaymentResponse>>> GetChildTuitionPayment(
+        int childId,
+        int transactionId,
+        CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        await VerifyChildLinked(userId, childId, ct);
+
+        var payment = await _tuitionPaymentService.GetPaymentAsync(
+            transactionId,
+            childId, // Note: childId (student ID), NOT parent userId
+            ct);
+
+        return Ok(ApiResponseDto<CreateTuitionPaymentResponse>.Ok(
+            payment,
+            "Lấy trạng thái giao dịch học phí thành công."));
+    }
+
     [HttpPost("payment")]
+    [Obsolete("Sử dụng CreateChildTuitionPayment thay thế.")]
     public async Task<ActionResult<ApiResponseDto<object>>> MakePayment(
         [FromBody] ParentPaymentRequest request, CancellationToken ct)
     {

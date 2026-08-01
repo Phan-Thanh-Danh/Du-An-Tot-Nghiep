@@ -38,26 +38,55 @@ const totalTuition = computed(() => {
 
 const paidTuition = computed(() => Math.max(0, totalTuition.value - totalDue.value))
 
+function isInvoicePaid(status) {
+  if (!status) return false
+  const s = String(status).toLowerCase()
+  return s === 'da_thanh_toan' || s === 'đã nộp' || s === 'da_nop' || s === 'paid'
+}
+
+function parseDate(dateStr) {
+  if (!dateStr) return null
+  const str = String(dateStr).trim()
+  if (str.includes('/')) {
+    const parts = str.split('/')
+    if (parts.length === 3) return new Date(+parts[2], +parts[1] - 1, +parts[0])
+  }
+  const d = new Date(str)
+  return isNaN(d.getTime()) ? null : d
+}
+
+function formatDate(dateStr) {
+  const d = parseDate(dateStr)
+  if (!d) return dateStr || '—'
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const year = d.getFullYear()
+  return `${day}/${month}/${year}`
+}
+
+function formatStatusLabel(status) {
+  if (isInvoicePaid(status)) return 'Đã thanh toán'
+  if (status === 'qua_han') return 'Quá hạn'
+  return 'Chưa thanh toán'
+}
+
 const isOverdue = computed(() => {
+  const now = new Date()
   return invoices.value.some(inv => {
-    if (inv.status === 'Đã nộp' || !inv.dueDate) return false
-    const parts = String(inv.dueDate).split('/')
-    if (parts.length !== 3) return false
-    const due = new Date(+parts[2], +parts[1] - 1, +parts[0])
-    return due < new Date()
+    if (isInvoicePaid(inv.status) || !inv.dueDate) return false
+    const due = parseDate(inv.dueDate)
+    return due ? due < now : false
   })
 })
 
 const deadlineTuition = computed(() => {
-  const unpaid = invoices.value.filter(inv => inv.status !== 'Đã nộp' && inv.dueDate)
+  const unpaid = invoices.value.filter(inv => !isInvoicePaid(inv.status) && inv.dueDate)
   if (unpaid.length === 0) return ''
-  const dates = unpaid.map(inv => {
-    const parts = String(inv.dueDate).split('/')
-    return parts.length === 3 ? new Date(+parts[2], +parts[1] - 1, +parts[0]) : new Date(0)
-  })
-  const latest = new Date(Math.max(...dates))
-  const d = latest.getDate().toString().padStart(2, '0')
-  const m = (latest.getMonth() + 1).toString().padStart(2, '0')
+  const dates = unpaid.map(inv => parseDate(inv.dueDate)).filter(Boolean)
+  if (dates.length === 0) return ''
+  const latest = new Date(Math.max(...dates.map(d => d.getTime())))
+  const d = String(latest.getDate()).padStart(2, '0')
+  const m = String(latest.getMonth() + 1).padStart(2, '0')
   const y = latest.getFullYear()
   return `${d}/${m}/${y}`
 })
@@ -306,15 +335,16 @@ function goBack() {
             class="flex items-center justify-between p-3 rounded-xl border border-card hover:bg-(--surface-card-hover) transition"
           >
             <div class="flex-1 min-w-0 pr-3">
-              <p class="text-xs font-semibold text-heading leading-snug">{{ inv.id || 'Hóa đơn' }}</p>
+              <p class="text-xs font-semibold text-heading leading-snug">Hóa đơn #{{ inv.id }}</p>
+              <p class="text-[11px] text-muted">Hạn: {{ formatDate(inv.dueDate) }}</p>
               <p class="text-xs font-extrabold text-body mt-0.5">{{ formatCurrency(inv.amount) }}</p>
             </div>
             <span
               class="flex-shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
-              :class="inv.status === 'Đã nộp' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400'"
+              :class="isInvoicePaid(inv.status) ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400'"
             >
-              <component :is="inv.status === 'Đã nộp' ? CheckCircle : AlertTriangle" :size="11" />
-              {{ inv.status }}
+              <component :is="isInvoicePaid(inv.status) ? CheckCircle : AlertTriangle" :size="11" />
+              {{ formatStatusLabel(inv.status) }}
             </span>
           </div>
         </div>
@@ -336,19 +366,19 @@ function goBack() {
                 :key="idx"
                 class="hover:bg-(--surface-table-row-hover) transition"
               >
-                <td class="py-3 px-3 font-semibold text-heading">{{ inv.id || 'Hóa đơn' }}</td>
+                <td class="py-3 px-3 font-semibold text-heading">Hóa đơn #{{ inv.id }}</td>
                 <td class="py-3 px-3 text-right font-extrabold text-body">{{ formatCurrency(inv.amount) }}</td>
-                <td class="py-3 px-3 text-right text-muted">{{ inv.dueDate || '—' }}</td>
+                <td class="py-3 px-3 text-right text-muted">{{ formatDate(inv.dueDate) }}</td>
                 <td class="py-3 px-3 text-right">
                   <span
                     class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold"
                     :class="
-                      inv.status === 'Đã nộp' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' :
+                      isInvoicePaid(inv.status) ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' :
                       'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400'
                     "
                   >
-                    <component :is="inv.status === 'Đã nộp' ? CheckCircle : AlertTriangle" :size="11" />
-                    {{ inv.status }}
+                    <component :is="isInvoicePaid(inv.status) ? CheckCircle : AlertTriangle" :size="11" />
+                    {{ formatStatusLabel(inv.status) }}
                   </span>
                 </td>
               </tr>

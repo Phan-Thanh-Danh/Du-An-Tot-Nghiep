@@ -1,14 +1,18 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   CreditCard,
   ChevronDown,
-  Smartphone,
   ChevronLeft,
-  Send,
   CheckCircle,
-  HelpCircle
+  AlertTriangle,
+  HelpCircle,
+  Copy,
+  ExternalLink,
+  Loader2,
+  QrCode,
+  X
 } from 'lucide-vue-next'
 import FormSkeleton from '@/components/common/skeleton/FormSkeleton.vue'
 import { parentApi } from '@/services/parentApi'
@@ -31,19 +35,37 @@ const currentChild = computed(() => {
   return children.value.find(c => c.id === activeChildId.value) || children.value[0] || null
 })
 
-const totalDue = computed(() => tuitionData.value?.totalDue || 0)
+function isInvoicePaid(status) {
+  if (!status) return false
+  const s = String(status).toLowerCase()
+  return s === 'da_thanh_toan' || s === 'đã nộp' || s === 'da_nop' || s === 'paid'
+}
 
-const paymentMode = ref('all')
-const customAmountInput = ref(0)
+const invoices = computed(() => tuitionData.value?.invoices || [])
+const unpaidInvoices = computed(() => invoices.value.filter(inv => !isInvoicePaid(inv.status)))
 
-const amountToPay = computed(() => {
-  if (paymentMode.value === 'all') {
-    return totalDue.value
+const selectedInvoiceId = ref(null)
+
+const selectedInvoice = computed(() => {
+  if (!selectedInvoiceId.value && unpaidInvoices.value.length > 0) {
+    return unpaidInvoices.value[0]
   }
-  return Number(customAmountInput.value) || 0
+  return unpaidInvoices.value.find(inv => inv.id === selectedInvoiceId.value) || unpaidInvoices.value[0] || null
 })
 
-const paymentMethod = ref('vietqr')
+const totalDue = computed(() => tuitionData.value?.totalDue || 0)
+
+const activePayment = ref(null)
+let pollTimer = null
+
+const payOsQrImage = computed(() => {
+  if (!activePayment.value) return ''
+  const p = activePayment.value
+  if (p.qrUrl) return p.qrUrl
+  const payload = p.qrPayload || p.checkoutUrl || ''
+  if (!payload) return ''
+  return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(payload)}`
+})
 
 async function loadData() {
   loading.value = true
@@ -60,6 +82,12 @@ async function loadData() {
     localStorage.setItem('parent_active_student_id', validChild.id)
     const tuitionRes = await parentApi.getChildTuition(validChild.id)
     tuitionData.value = tuitionRes?.data || null
+
+    if (unpaidInvoices.value.length > 0) {
+      const qId = Number(route.query.invoiceId)
+      const found = unpaidInvoices.value.find(i => i.id === qId)
+      selectedInvoiceId.value = found ? found.id : unpaidInvoices.value[0].id
+    }
   } catch (err) {
     error.value = err.message || 'Không thể tải dữ liệu.'
   } finally {
@@ -70,6 +98,7 @@ async function loadData() {
 onMounted(loadData)
 
 function selectChild(id) {
+  cancelActivePayment()
   activeChildId.value = id
   localStorage.setItem('parent_active_student_id', id)
   dropdownOpen.value = false
@@ -82,13 +111,19 @@ function formatCurrency(amount) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
 }
 
+function formatDate(dateStr) {
+  if (!dateStr) return '—'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const year = d.getFullYear()
+  return `${day}/${month}/${year}`
+}
+
 async function handlePayment() {
-  if (amountToPay.value <= 0) {
-    popupStore.warning('Số tiền không hợp lệ', 'Vui lòng chọn số tiền lớn hơn 0 để thanh toán.')
-    return
-  }
-  if (amountToPay.value > totalDue.value) {
-    popupStore.warning('Vượt quá công nợ', `Số tiền cần thanh toán không được vượt quá số dư nợ hiện tại: ${formatCurrency(totalDue.value)}.`)
+  if (!selectedInvoice.value) {
+    popupStore.warning('Chưa chọn hóa đơn', 'Không tìm thấy hóa đơn cần thanh toán.')
     return
   }
 
@@ -97,30 +132,92 @@ async function handlePayment() {
     if (!activeChildId.value) {
       throw new Error('Chưa chọn học sinh để thanh toán.')
     }
-    const res = await parentApi.makePayment({
-      childId: activeChildId.value,
-      amount: amountToPay.value,
-      paymentMethod: paymentMethod.value
-    })
-    if (res?.success !== false) {
-      popupStore.success(
-        'Thanh toán thành công',
-        `Hệ thống đã ghi nhận yêu cầu thanh toán số tiền ${formatCurrency(amountToPay.value)}.`
-      )
-      router.push({ path: '/parent/finance/transactions', query: { studentId: activeChildId.value } })
-    } else {
-      popupStore.error('Thanh toán thất bại', res?.message || 'Không thể xử lý thanh toán.')
+    const res = await parentApi.createTuitionPayment(activeChildId.value, selectedInvoice.value.id)
+    const paymentData = res?.data || res
+
+    if (!paymentData || (!paymentData.maGiaoDich && !paymentData.MaGiaoDich)) {
+      throw new Error(paymentData?.message || 'Không thể tạo mã QR thanh toán PayOS.')
     }
+
+    activePayment.value = {
+      maGiaoDich: paymentData.maGiaoDich || paymentData.MaGiaoDich,
+      maHoaDon: paymentData.maHoaDon || paymentData.MaHoaDon,
+      amount: paymentData.amount || paymentData.Amount,
+      maThamChieuNoiBo: paymentData.maThamChieuNoiBo || paymentData.MaThamChieuNoiBo,
+      noiDungChuyenKhoan: paymentData.noiDungChuyenKhoan || paymentData.NoiDungChuyenKhoan,
+      qrUrl: paymentData.qrUrl || paymentData.QrUrl,
+      checkoutUrl: paymentData.checkoutUrl || paymentData.CheckoutUrl,
+      qrPayload: paymentData.qrPayload || paymentData.QrPayload,
+      trangThai: paymentData.trangThai || paymentData.TrangThai || 'cho_thanh_toan'
+    }
+
+    popupStore.info('Tạo mã QR thành công', 'Vui lòng quét mã QR bên dưới để hoàn tất thanh toán.')
+    startPolling()
   } catch (err) {
-    popupStore.error('Thanh toán thất bại', err.message || 'Có lỗi xảy ra khi thanh toán.')
+    popupStore.error('Thanh toán thất bại', err.message || 'Có lỗi xảy ra khi tạo giao dịch PayOS.')
   } finally {
     submitting.value = false
   }
 }
 
+function startPolling() {
+  stopPolling()
+  pollTimer = setInterval(checkPaymentStatus, 3000)
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+async function checkPaymentStatus() {
+  if (!activePayment.value || !activeChildId.value) return
+  try {
+    const res = await parentApi.getTuitionPayment(activeChildId.value, activePayment.value.maGiaoDich)
+    const data = res?.data || res
+    const status = data?.trangThai || data?.TrangThai
+    if (status) {
+      activePayment.value.trangThai = status
+      if (status === 'thanh_cong') {
+        stopPolling()
+        popupStore.success(
+          'Thanh toán thành công!',
+          `Hệ thống đã nhận được tiền và gạch nợ cho hóa đơn #${activePayment.value.maHoaDon}.`
+        )
+        setTimeout(() => {
+          router.push({ path: '/parent/finance/transactions', query: { studentId: activeChildId.value } })
+        }, 1500)
+      } else if (['that_bai', 'da_huy', 'het_han'].includes(status)) {
+        stopPolling()
+        popupStore.error('Giao dịch không thành công', `Trạng thái: ${status === 'het_han' ? 'Hết hạn' : 'Đã hủy'}.`)
+      }
+    }
+  } catch (err) {
+    console.error('Lỗi kiểm tra trạng thái thanh toán PayOS:', err)
+  }
+}
+
+function cancelActivePayment() {
+  stopPolling()
+  activePayment.value = null
+}
+
+function copyContent(text) {
+  if (!text) return
+  navigator.clipboard.writeText(text)
+  popupStore.success('Đã sao chép', `Nội dung: ${text}`)
+}
+
 function goBack() {
+  stopPolling()
   router.push('/parent/finance/tuition')
 }
+
+onUnmounted(() => {
+  stopPolling()
+})
 </script>
 
 <template>
@@ -138,9 +235,9 @@ function goBack() {
         <div>
           <h2 class="text-lg font-bold text-heading flex items-center gap-2">
             <CreditCard :size="20" class="text-orange-600" />
-            Thanh toán học phí trực tuyến
+            Thanh toán học phí PayOS
           </h2>
-          <p class="text-xs text-body">Đóng học phí tiện lợi qua cổng thanh toán bảo mật VietQR, ví điện tử</p>
+          <p class="text-xs text-body">Cổng thanh toán trực tuyến tự động qua PayOS (VietQR / Chuyển khoản)</p>
         </div>
       </div>
 
@@ -200,9 +297,10 @@ function goBack() {
       </button>
     </div>
 
-    <div v-else-if="totalDue === 0" class="lg-card-glass p-8 text-center flex flex-col items-center justify-center gap-3">
+    <!-- ── KHÔNG CÓ CÔNG NỢ ── -->
+    <div v-else-if="totalDue === 0 || unpaidInvoices.length === 0" class="lg-card-glass p-8 text-center flex flex-col items-center justify-center gap-3">
       <CheckCircle :size="48" class="text-emerald-500" />
-      <h3 class="text-sm font-bold text-heading">Không có công nợ cần thanh toán</h3>
+      <h3 class="text-sm font-bold text-heading">Không có hóa đơn cần thanh toán</h3>
       <p class="text-xs text-body max-w-md">
         Học sinh <strong>{{ currentChild?.name }}</strong> đã hoàn thành 100% học phí kì này. Xin chân thành cảm ơn phụ huynh!
       </p>
@@ -211,121 +309,164 @@ function goBack() {
       </button>
     </div>
 
-    <!-- ── FORM THANH TOÁN CHÍNH ── -->
+    <!-- ── HIỂN THỊ MÃ QR PAYOS ĐÃ KHỞI TẠO (POLLING DANG DIỄN RA) ── -->
+    <div v-else-if="activePayment" class="lg-card-glass p-6 space-y-6">
+      <div class="flex items-center justify-between pb-3 border-b border-card">
+        <div class="flex items-center gap-2">
+          <QrCode :size="20" class="text-orange-600" />
+          <h3 class="text-sm font-bold text-heading uppercase tracking-wide">
+            Mã QR Thanh Toán PayOS (Tự động xác nhận)
+          </h3>
+        </div>
+        <button
+          @click="cancelActivePayment"
+          class="flex items-center gap-1 text-xs font-bold text-muted hover:text-red-500 transition px-2 py-1 rounded-lg border border-card"
+        >
+          <X :size="14" />
+          Hủy / Chọn hóa đơn khác
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+        <!-- Cột QR Code -->
+        <div class="flex flex-col items-center justify-center p-4 rounded-2xl surface-input border border-card text-center space-y-3">
+          <img
+            :src="payOsQrImage"
+            alt="Mã QR thanh toán VietQR / PayOS"
+            class="w-60 h-60 rounded-xl border border-card shadow-md p-2 bg-white object-contain"
+          />
+          <p class="text-[11px] text-muted font-medium">Quét mã bằng ứng dụng ngân hàng hoặc ví điện tử</p>
+          <a
+            v-if="activePayment.checkoutUrl"
+            :href="activePayment.checkoutUrl"
+            target="_blank"
+            class="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
+          >
+            Mở trang thanh toán PayOS <ExternalLink :size="13" />
+          </a>
+        </div>
+
+        <!-- Cột Thông tin chuyển khoản & Polling Status -->
+        <div class="space-y-4">
+          <div class="p-4 rounded-xl border border-orange-200 dark:border-orange-950/20 bg-orange-50/20 dark:bg-orange-950/10 space-y-3 text-xs">
+            <div class="flex justify-between items-center">
+              <span class="text-muted font-medium">Hóa đơn:</span>
+              <span class="font-bold text-heading">Hóa đơn #{{ activePayment.maHoaDon }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-muted font-medium">Số tiền thanh toán:</span>
+              <span class="text-base font-extrabold text-orange-600">{{ formatCurrency(activePayment.amount) }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-muted font-medium">Mã tham chiếu:</span>
+              <span class="font-mono text-heading font-bold">{{ activePayment.maThamChieuNoiBo }}</span>
+            </div>
+            <div class="pt-2 border-t border-card">
+              <div class="flex justify-between items-center mb-1.5">
+                <span class="text-muted font-bold">Nội dung chuyển khoản (bắt buộc):</span>
+                <button
+                  @click="copyContent(activePayment.noiDungChuyenKhoan)"
+                  class="inline-flex items-center gap-1 text-[11px] font-bold text-orange-600 hover:text-orange-700 hover:underline transition"
+                >
+                  <Copy :size="12" /> Sao chép
+                </button>
+              </div>
+              <p class="font-mono text-xs font-extrabold text-heading p-2.5 rounded-lg surface-input border border-card text-center select-all tracking-wider">
+                {{ activePayment.noiDungChuyenKhoan }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Trạng thái Polling -->
+          <div class="p-3.5 rounded-xl border border-card surface-input flex items-center gap-3">
+            <Loader2 :size="18" class="animate-spin text-orange-600 flex-shrink-0" />
+            <div class="text-xs">
+              <p class="font-bold text-heading">Đang chờ thanh toán...</p>
+              <p class="text-[11px] text-muted">Hệ thống tự động kiểm tra trạng thái mỗi 3 giây.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FORM CHỌN HÓA ĐƠN VÀ TẠO MÃ THANH TOÁN ── -->
     <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
-      <!-- Cột trái: Form nhập số tiền và lựa chọn đợt đóng (2/3 width) -->
+      <!-- Cột trái: Chọn hóa đơn & Provider (2/3 width) -->
       <div class="lg:col-span-2 space-y-6">
         
-        <!-- Nhập khoản phí đóng -->
+        <!-- Chọn hóa đơn cần thanh toán -->
         <div class="lg-card-glass p-5 space-y-4">
           <h3 class="text-xs font-bold text-heading uppercase tracking-wide pb-2 border-b border-card">
-            1. Chọn khoản phí thanh toán
+            1. Chọn hóa đơn học phí cần thanh toán
           </h3>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <!-- Đóng toàn bộ -->
+          <div class="space-y-2.5">
             <label
-              class="p-4 rounded-xl border cursor-pointer flex flex-col justify-between transition"
-              :class="paymentMode === 'all' ? 'border-orange-500 bg-orange-50/10' : 'border-card hover:bg-slate-50/40'"
+              v-for="inv in unpaidInvoices"
+              :key="inv.id"
+              class="p-4 rounded-xl border cursor-pointer flex items-center justify-between transition"
+              :class="selectedInvoiceId === inv.id ? 'border-orange-500 bg-orange-50/10' : 'border-card hover:bg-slate-50/40'"
             >
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-heading">Đóng toàn bộ công nợ</span>
-                <input type="radio" value="all" v-model="paymentMode" class="text-orange-600 focus:ring-orange-500" />
-              </div>
-              <span class="text-lg font-extrabold text-orange-600 mt-3 block">
-                {{ formatCurrency(totalDue) }}
-              </span>
-            </label>
-
-            <!-- Đóng theo đợt -->
-            <label
-              class="p-4 rounded-xl border cursor-pointer flex flex-col justify-between transition"
-              :class="paymentMode === 'custom' ? 'border-orange-500 bg-orange-50/10' : 'border-card hover:bg-slate-50/40'"
-            >
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-heading">Đóng theo đợt tự chọn</span>
-                <input type="radio" value="custom" v-model="paymentMode" class="text-orange-600 focus:ring-orange-500" />
-              </div>
-              
-              <!-- Input số tiền nếu chọn custom -->
-              <div class="mt-2 relative">
+              <div class="flex items-center gap-3">
                 <input
-                  v-model="customAmountInput"
-                  type="number"
-                  :disabled="paymentMode !== 'custom'"
-                  class="surface-input border-card w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border focus:outline-none focus:ring-2 focus:ring-orange-500/20 disabled:opacity-40"
-                  placeholder="Nhập số tiền đóng..."
+                  type="radio"
+                  :value="inv.id"
+                  v-model="selectedInvoiceId"
+                  class="text-orange-600 focus:ring-orange-500"
                 />
-                <span class="absolute left-3 top-2 text-[10px] text-muted font-bold">đ</span>
+                <div>
+                  <span class="text-xs font-bold text-heading block">Hóa đơn #{{ inv.id }}</span>
+                  <span class="text-[11px] text-muted block mt-0.5">Hạn đóng: {{ formatDate(inv.dueDate) }}</span>
+                </div>
               </div>
+              <span class="text-sm font-extrabold text-orange-600">
+                {{ formatCurrency(inv.amount) }}
+              </span>
             </label>
           </div>
         </div>
 
-        <!-- Chọn phương thức thanh toán -->
+        <!-- Phương thức thanh toán (Cố định PayOS) -->
         <div class="lg-card-glass p-5 space-y-4">
           <h3 class="text-xs font-bold text-heading uppercase tracking-wide pb-2 border-b border-card">
-            2. Chọn phương thức thanh toán
+            2. Phương thức thanh toán
           </h3>
 
           <div class="space-y-3">
-            <!-- VietQR -->
-            <label
-              class="p-3.5 rounded-xl border cursor-pointer flex items-center justify-between transition"
-              :class="paymentMethod === 'vietqr' ? 'border-orange-500 bg-orange-50/10' : 'border-card hover:bg-slate-50/40'"
-            >
+            <!-- PayOS -->
+            <label class="p-3.5 rounded-xl border border-orange-500 bg-orange-50/10 cursor-pointer flex items-center justify-between">
               <div class="flex items-center gap-3">
-                <span class="p-2 bg-orange-50 dark:bg-orange-950/20 text-orange-600 rounded-lg">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 7h3v3H7zM14 7h3v3h-3zM7 14h3v3H7zM14 14h3v3h-3z" /></svg>
-                </span>
-                <div>
-                  <span class="text-xs font-bold text-heading block">Chuyển khoản nhanh VietQR (Khuyên dùng)</span>
-                  <span class="text-[10px] text-muted font-normal block mt-0.5">Quét mã QR động chuyển khoản tức thì không cần nhập số tài khoản</span>
-                </div>
-              </div>
-              <input type="radio" value="vietqr" v-model="paymentMethod" class="text-orange-600 focus:ring-orange-500" />
-            </label>
-
-            <!-- Thẻ ngân hàng Napas -->
-            <label
-              class="p-3.5 rounded-xl border cursor-pointer flex items-center justify-between transition"
-              :class="paymentMethod === 'napas' ? 'border-orange-500 bg-orange-50/10' : 'border-card hover:bg-slate-50/40'"
-            >
-              <div class="flex items-center gap-3">
-                <span class="p-2 bg-blue-50 dark:bg-blue-950/20 text-blue-600 rounded-lg">
+                <span class="p-2 bg-orange-500 text-white rounded-lg">
                   <CreditCard :size="16" />
                 </span>
                 <div>
-                  <span class="text-xs font-bold text-heading block">Thẻ nội địa Napas / Thẻ quốc tế</span>
-                  <span class="text-[10px] text-muted font-normal block mt-0.5">Hỗ trợ các thẻ ATM nội địa Napas, thẻ Visa/MasterCard</span>
+                  <span class="text-xs font-bold text-heading block">Cổng thanh toán tự động PayOS (Khuyên dùng)</span>
+                  <span class="text-[10px] text-muted font-normal block mt-0.5">Tạo mã QR thanh toán động, gạch nợ tự động ngay lập tức</span>
                 </div>
               </div>
-              <input type="radio" value="napas" v-model="paymentMethod" class="text-orange-600 focus:ring-orange-500" />
+              <input type="radio" checked disabled class="text-orange-600" />
             </label>
 
-            <!-- Ví điện tử -->
-            <label
-              class="p-3.5 rounded-xl border cursor-pointer flex items-center justify-between transition"
-              :class="paymentMethod === 'ewallet' ? 'border-orange-500 bg-orange-50/10' : 'border-card hover:bg-slate-50/40'"
-            >
+            <!-- VietQR / Khác (Tạm ngưng) -->
+            <div class="p-3.5 rounded-xl border border-card opacity-50 flex items-center justify-between">
               <div class="flex items-center gap-3">
-                <span class="p-2 bg-pink-50 dark:bg-pink-950/20 text-pink-600 rounded-lg">
-                  <Smartphone :size="16" />
+                <span class="p-2 bg-slate-100 dark:bg-slate-800 text-muted rounded-lg">
+                  <QrCode :size="16" />
                 </span>
                 <div>
-                  <span class="text-xs font-bold text-heading block">Ví điện tử Momo / ZaloPay</span>
-                  <span class="text-[10px] text-muted font-normal block mt-0.5">Thanh toán qua ví điện tử liên kết trên điện thoại</span>
+                  <span class="text-xs font-bold text-heading block">VietQR Tĩnh / Phương thức khác</span>
+                  <span class="text-[10px] text-muted font-normal block mt-0.5">Tạm ngưng — vui lòng dùng cổng PayOS tự động ở trên</span>
                 </div>
               </div>
-              <input type="radio" value="ewallet" v-model="paymentMethod" class="text-orange-600 focus:ring-orange-500" />
-            </label>
+              <span class="text-[10px] font-bold text-muted bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded">Đang bảo trì</span>
+            </div>
           </div>
         </div>
 
       </div>
 
-      <!-- Cột phải: Summary đóng tiền & Button Thanh toán (1/3 width) -->
+      <!-- Cột phải: Summary & Button Thanh toán (1/3 width) -->
       <div class="space-y-6">
         <div class="lg-card-glass p-5 space-y-4">
           <h3 class="text-xs font-bold text-heading uppercase tracking-wide pb-2 border-b border-card">
@@ -338,39 +479,36 @@ function goBack() {
               <span class="text-heading">{{ currentChild?.name }}</span>
             </div>
             <div class="flex justify-between font-semibold">
-              <span class="text-muted">Mã số học sinh:</span>
-              <span class="text-heading">{{ currentChild?.studentId }}</span>
+              <span class="text-muted">Hóa đơn chọn:</span>
+              <span class="text-heading font-bold">#{{ selectedInvoice?.id || '—' }}</span>
             </div>
             <div class="flex justify-between font-semibold">
-              <span class="text-muted">Lớp hành chính:</span>
-              <span class="text-heading">{{ currentChild?.class }}</span>
+              <span class="text-muted">Cổng thanh toán:</span>
+              <span class="text-orange-600 font-bold">PayOS</span>
             </div>
             
             <div class="border-t border-card my-3"></div>
             
-            <div class="flex justify-between font-semibold">
-              <span class="text-muted">Phương thức:</span>
-              <span class="text-heading font-bold">
-                {{ paymentMethod === 'vietqr' ? 'Quét VietQR' : paymentMethod === 'napas' ? 'Thẻ ngân hàng' : 'Ví Momo' }}
-              </span>
-            </div>
-            
             <div class="flex justify-between items-baseline font-semibold pt-1">
               <span class="text-muted">Số tiền thanh toán:</span>
-              <span class="text-base font-extrabold text-orange-600">{{ formatCurrency(amountToPay) }}</span>
+              <span class="text-base font-extrabold text-orange-600">
+                {{ formatCurrency(selectedInvoice?.amount) }}
+              </span>
             </div>
           </div>
 
           <button
             @click="handlePayment"
-            :disabled="submitting"
+            :disabled="submitting || !selectedInvoice"
             class="lg-button-primary bg-orange-600 hover:bg-orange-700 text-white w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-lg mt-4 disabled:opacity-60"
           >
-            <Send :size="13" :class="submitting ? 'animate-spin' : ''" /> {{ submitting ? 'Đang xử lý...' : 'Tiến hành thanh toán' }}
+            <Loader2 v-if="submitting" :size="14" class="animate-spin" />
+            <CreditCard v-else :size="14" />
+            {{ submitting ? 'Đang tạo mã QR...' : 'Tạo mã QR thanh toán PayOS' }}
           </button>
         </div>
 
-        <!-- Hướng dẫn bảo mật -->
+        <!-- Hướng dẫn an toàn -->
         <div class="lg-card-glass p-5 space-y-3">
           <h3 class="text-xs font-bold text-heading uppercase tracking-wide pb-2 border-b border-card flex items-center gap-1.5">
             <HelpCircle :size="15" class="text-orange-600" />
@@ -378,10 +516,10 @@ function goBack() {
           </h3>
           <div class="text-[10px] text-body leading-relaxed space-y-2">
             <p>
-              1. Vui lòng quét mã QR chuyển khoản chính thức do hệ thống cung cấp, không gửi trực tiếp đến số tài khoản cá nhân.
+              1. Quét mã QR chuyển khoản chính thức do PayOS cung cấp.
             </p>
             <p>
-              2. Nội dung chuyển khoản cần ghi chính xác theo mã hiển thị trên màn hình để hệ thống tự động gạch nợ thành công trong vòng 3 phút.
+              2. Giữ nguyên <strong>Nội dung chuyển khoản</strong> khi gửi tiền để hệ thống gạch nợ tự động.
             </p>
           </div>
         </div>

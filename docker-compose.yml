@@ -26,6 +26,13 @@ services:
       - R2Storage__SecretAccessKey=46a0c09da41ff2f0a7cc7aacad3bb8ed6c418eb4530617862c860d248bf2e28b
       - R2Storage__BucketName=aet-lms-media
       - R2Storage__PublicDomain=https://pub-05926a5122ef4b4791e652fd76c73072.r2.dev
+      # PayOS
+      - PayOS__ClientId=e996915a-86cd-4ac4-8cf8-4a77986670af
+      - PayOS__ApiKey=e57d0543-b6c9-4f2a-984b-0c592c85a802
+      - PayOS__ChecksumKey=3418ca3cb045db5f8203f2a0b53618bb09e028050554472853a67559c95cf1da
+      - PayOS__ReturnUrl=http://localhost:5173/payment/success
+      - PayOS__CancelUrl=http://localhost:5173/payment/cancel
+      - PayOS__BaseUrl=https://api-merchant.payos.vn
     ports:
       - "5097:5097"
     depends_on:
