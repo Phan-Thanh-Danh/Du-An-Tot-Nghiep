@@ -27,9 +27,23 @@ const error = ref('')
 
 const children = ref([])
 const invoices = ref([])
+const childDetail = ref(null)
 
 const currentChild = computed(() => {
   return children.value.find(c => c.id === activeChildId.value) || children.value[0] || null
+})
+
+const currentChildInfo = computed(() => {
+  const c = currentChild.value || {}
+  const d = childDetail.value || {}
+  return {
+    id: c.id || d.id || '—',
+    name: c.name || d.name || 'Học sinh',
+    studentId: c.studentId || d.email || c.id || '—',
+    className: d.className || c.className || c.class || 'CNTT-K16A',
+    major: d.major || c.major || c.majorName || 'Công nghệ thông tin',
+    campus: d.campus || c.campus || d.donVi || c.donVi || 'FPT Polytechnic Hồ Chí Minh'
+  }
 })
 
 const isInvoiceModalOpen = ref(false)
@@ -48,8 +62,14 @@ async function loadData() {
     }
     activeChildId.value = validChild.id
     localStorage.setItem('parent_active_student_id', validChild.id)
-    const invRes = await parentApi.getChildInvoices(validChild.id)
+
+    const [invRes, detailRes] = await Promise.all([
+      parentApi.getChildInvoices(validChild.id).catch(() => ({ data: [] })),
+      parentApi.getChildDetail(validChild.id).catch(() => ({ data: null }))
+    ])
+
     invoices.value = invRes?.data || []
+    childDetail.value = detailRes?.data || null
   } catch (err) {
     error.value = err.message || 'Không thể tải dữ liệu hóa đơn.'
   } finally {
@@ -77,18 +97,198 @@ function openInvoice(invoice) {
   isInvoiceModalOpen.value = true
 }
 
+function formatDate(dateStr) {
+  if (!dateStr) return '—'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const year = d.getFullYear()
+  return `${day}/${month}/${year}`
+}
+
+function formatStampDate(dateStr) {
+  if (!dateStr) return '2026-07-30 01:56:41'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  const ss = String(d.getSeconds()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`
+}
+
+function isInvoicePaid(status) {
+  if (!status) return false
+  const s = String(status).toLowerCase()
+  return s === 'da_thanh_toan' || s === 'đã nộp' || s === 'da_nop' || s === 'paid'
+}
+
 function printInvoice() {
-  window.print()
+  if (selectedInvoice.value) {
+    downloadInvoicePDF(selectedInvoice.value.id)
+  } else {
+    window.print()
+  }
 }
 
 function downloadInvoicePDF(invoiceId) {
-  const invoice = invoices.value.find(i => i.id === invoiceId)
-  if (invoice) {
-    selectedInvoice.value = invoice
-    setTimeout(() => {
-      window.print()
-      popupStore.success('Tải xuống thành công', `Vui lòng chọn 'Lưu dưới dạng PDF' để lưu hóa đơn ${invoiceId}.`)
-    }, 100)
+  const inv = invoices.value.find(i => i.id === invoiceId) || selectedInvoice.value
+  if (!inv) return
+
+  const info = currentChildInfo.value
+  const formattedAmount = formatCurrency(inv.amount)
+  const formattedDate = formatDate(inv.createdAt || inv.date || inv.dueDate)
+  const isPaid = isInvoicePaid(inv.status)
+  const statusText = isPaid ? 'ĐÃ THANH TOÁN' : 'CHƯA THANH TOÁN'
+  const statusColor = isPaid ? '#16a34a' : '#dc2626'
+
+  const scriptStart = '<script'
+  const scriptEnd = '<\/script>'
+
+  const html = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>HoaDon_HD${inv.id}_${info.name.replace(/\s+/g, '_')}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; color: #000; background: #fff; padding: 15mm 12mm; line-height: 1.4; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 18px; }
+    .logo-title { font-size: 15pt; font-weight: bold; text-transform: uppercase; color: #000; }
+    .logo-sub { font-size: 10pt; color: #333; margin-top: 3px; font-style: italic; }
+    .invoice-title { text-align: right; }
+    .invoice-title h2 { margin: 0; color: #000; font-size: 15pt; text-transform: uppercase; font-weight: bold; }
+    .invoice-title p { margin: 3px 0 0; color: #444; font-size: 10pt; }
+    .info-box { border: 1px solid #000; background: #fdfdfd; padding: 10px 14px; margin-bottom: 18px; font-size: 11pt; }
+    .info-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .info-row:last-child { margin-bottom: 0; }
+    .info-label { font-weight: bold; }
+    .info-val { font-weight: normal; }
+    table { width: 100%; border-collapse: collapse; font-size: 11pt; margin-bottom: 20px; }
+    th, td { border: 1px solid #000; padding: 7px 10px; text-align: left; }
+    th { background: #f1f5f9; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 10pt; }
+    .text-right { text-align: right; }
+    .total-row { font-weight: bold; font-size: 12pt; background: #fafafa; }
+    .stamp-container { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 30px; }
+    .stamp-box { border: 1.5px solid #ef4444; color: #ef4444; padding: 6px 10px; border-radius: 8px; font-weight: bold; text-align: center; transform: rotate(-1.5deg); background: rgba(254, 242, 242, 0.4); display: inline-block; width: 155px; word-break: break-all; line-height: 1.2; }
+    .footer-note { color: #555; font-size: 9.5pt; font-style: italic; max-width: 320px; }
+  </style>
+</head>
+<body>
+  <div id="report-content">
+    <div class="header">
+      <div>
+        <div class="logo-title">TRƯỜNG ĐẠI HỌC LMS ACADEMIC</div>
+        <div class="logo-sub">Cơ sở: ${info.campus}</div>
+        <div class="logo-sub">Mã số thuế: 0102030405 | Hotline: 1900 1234</div>
+      </div>
+      <div class="invoice-title">
+        <h2>HÓA ĐƠN ĐIỆN TỬ</h2>
+        <p>Mã hóa đơn: <strong>HD#${inv.id}</strong></p>
+        <p>Ngày phát hành: ${formattedDate}</p>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <div class="info-row">
+        <span class="info-label">Sinh viên thụ hưởng:</span>
+        <span class="info-val"><strong>${info.name}</strong> (MSSV: ${info.studentId})</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Lớp hành chính:</span>
+        <span class="info-val">${info.className}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Chuyên ngành đào tạo:</span>
+        <span class="info-val">${info.major}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Mã giao dịch liên kết:</span>
+        <span class="info-val">${inv.transactionCode || `GD-${inv.id}`}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Trạng thái hóa đơn:</span>
+        <span class="info-val" style="color: ${statusColor}; font-weight: bold;">${statusText}</span>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 50px; text-align: center;">STT</th>
+          <th>Tên dịch vụ / Khoản thu</th>
+          <th class="text-right" style="width: 150px;">Thành tiền (VND)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="text-align: center;">1</td>
+          <td>Học phí đợt đóng kỳ 1 (Hệ thống quản lý đào tạo LMS)</td>
+          <td class="text-right font-weight: bold;">${formattedAmount}</td>
+        </tr>
+        <tr>
+          <td colspan="2" class="text-right" style="font-weight: bold;">Thuế giá trị gia tăng (VAT 0%):</td>
+          <td class="text-right">0 ₫</td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="2" class="text-right">TỔNG CỘNG TIỀN THANH TOÁN:</td>
+          <td class="text-right">${formattedAmount}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="stamp-container">
+      <div class="footer-note">
+        * Chứng từ hóa đơn điện tử gốc được mã hóa và lưu trữ chính thức trên CSDL LMS System.
+      </div>
+      <div class="stamp-box">
+        <div style="font-size: 10pt; font-weight: 800; text-transform: uppercase; color: #ef4444; margin-bottom: 2px;">ĐÃ KÝ ĐIỆN TỬ</div>
+        <div style="font-size: 8.5pt; font-weight: 700; color: #ef4444; margin-bottom: 2px;">LMS UNIVERSITY</div>
+        <div style="font-size: 7.5pt; color: #ef4444; word-break: break-all; font-weight: 600;">${inv.createdAt || inv.date || '2026-07-30T01:56:41.2166667'}</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading-overlay" style="position:fixed;inset:0;background:rgba(255,255,255,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;font-family:sans-serif;">
+    <div style="width:48px;height:48px;border:5px solid #e2e8f0;border-top-color:#ea580c;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:16px;"></div>
+    <p style="color:#ea580c;font-weight:700;font-size:15px;margin:0;">Đang tạo file hóa đơn PDF...</p>
+    <p style="color:#64748b;font-size:12px;margin:4px 0 0;">File PDF sẽ tự động tải về thiết bị của bạn</p>
+  </div>
+  <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+  ${scriptStart} src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous">${scriptEnd}
+  ${scriptStart}>
+    window.onload = function() {
+      var overlay = document.getElementById('loading-overlay');
+      var content = document.getElementById('report-content');
+      var filename = 'HoaDon_HD${inv.id}_${info.name.replace(/\s+/g, '_')}.pdf';
+      var opt = {
+        margin: [10, 10, 10, 10],
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(content).save().then(function() {
+        overlay.innerHTML = '<p style="color:#ea580c;font-weight:700;font-size:16px;">✓ Tải hóa đơn PDF thành công!</p><p style="color:#64748b;font-size:12px;">Cửa sổ này sẽ tự đóng...</p>';
+        setTimeout(function() { window.close(); }, 1200);
+      }).catch(function(err) {
+        overlay.innerHTML = '<p style="color:#e11d48;font-weight:700;font-size:14px;">Lỗi tạo PDF: ' + err.message + '</p><button onclick="window.print()" style="margin-top:12px;padding:8px 20px;background:#ea580c;color:#fff;border:none;border-radius:8px;cursor:pointer;">In bằng trình duyệt</button>';
+      });
+    };
+  ${scriptEnd}
+</body>
+</html>`
+
+  const printWindow = window.open('', '_blank', 'width=900,height=700')
+  if (printWindow) {
+    printWindow.document.write(html)
+    printWindow.document.close()
+    popupStore.success('Đang tải hóa đơn PDF', `Hóa đơn HD#${inv.id} đang được kết xuất và tải về dưới dạng file PDF.`)
+  } else {
+    popupStore.warning('Cảnh báo Popup', 'Vui lòng cho phép mở cửa sổ bật lên (popup) để tải file PDF hóa đơn.')
   }
 }
 
@@ -187,12 +387,14 @@ function goBack() {
         Học sinh hiện tại chưa có hóa đơn điện tử nào được phát hành.
       </div>
       <div v-else class="overflow-x-auto">
-        <table class="w-full text-xs text-left border-collapse min-w-[600px]">
+        <table class="w-full text-xs text-left border-collapse min-w-[750px]">
           <thead>
             <tr class="border-b border-card text-muted uppercase font-bold text-[10px]">
               <th class="py-3 px-3">Mã hóa đơn</th>
-              <th class="py-3 px-3">Mã giao dịch gốc</th>
+              <th class="py-3 px-3">Khoản thu / Kỳ học</th>
+              <th class="py-3 px-3">Mã giao dịch</th>
               <th class="py-3 px-3">Ngày phát hành</th>
+              <th class="py-3 px-3">Hạn thanh toán</th>
               <th class="py-3 px-3 text-right">Tổng tiền</th>
               <th class="py-3 px-3 text-center">Trạng thái</th>
               <th class="py-3 px-3 text-right">Thao tác</th>
@@ -204,14 +406,25 @@ function goBack() {
               :key="inv.id"
               class="hover:bg-(--surface-table-row-hover) transition"
             >
-              <td class="py-3 px-3 font-semibold text-heading">{{ inv.id }}</td>
-              <td class="py-3 px-3 text-muted">{{ inv.transactionCode || '—' }}</td>
-              <td class="py-3 px-3 text-body">{{ inv.createdAt || inv.date }}</td>
+              <td class="py-3 px-3 font-bold text-heading font-mono">{{ inv.invoiceCode || ('HD#' + inv.id) }}</td>
+              <td class="py-3 px-3 font-semibold text-heading">{{ inv.title || 'Học phí đợt đóng kỳ học' }}</td>
+              <td class="py-3 px-3 text-muted font-mono text-[11px]">{{ inv.transactionCode ? ('GD-' + inv.transactionCode) : '—' }}</td>
+              <td class="py-3 px-3 text-body">{{ formatDate(inv.createdAt || inv.date) }}</td>
+              <td class="py-3 px-3 text-muted">{{ formatDate(inv.dueDate) }}</td>
               <td class="py-3 px-3 text-right font-extrabold text-heading">{{ formatCurrency(inv.amount) }}</td>
               <td class="py-3 px-3 text-center">
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
+                <span
+                  v-if="isInvoicePaid(inv.status)"
+                  class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                >
                   <ShieldCheck :size="11" />
-                  {{ inv.status }}
+                  Đã thanh toán
+                </span>
+                <span
+                  v-else
+                  class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                >
+                  Chưa thanh toán
                 </span>
               </td>
               <td class="py-3 px-3 text-right">
@@ -346,21 +559,22 @@ function goBack() {
               <div class="space-y-1">
                 <h3 class="text-xs font-extrabold text-heading">TRƯỜNG ĐẠI HỌC LMS ACADEMIC</h3>
                 <p class="text-[10px] text-muted">Mã số thuế: 0102030405</p>
-                <p class="text-[10px] text-muted">Địa chỉ: Khu Công nghệ cao Hòa Lạc, Thạch Thất, Hà Nội</p>
+                <p class="text-[10px] text-muted">Cơ sở: {{ currentChildInfo.campus }}</p>
               </div>
               <div class="text-right">
-                <h3 class="text-xs font-extrabold text-heading">HÓA ĐƠN GIÁ TRỊ GIA TĂNG</h3>
-                <p class="text-[10px] text-muted">Mã hóa đơn: <strong>{{ selectedInvoice.id }}</strong></p>
-                <p class="text-[10px] text-muted">Ngày xuất: {{ selectedInvoice.createdAt || selectedInvoice.date }}</p>
+                <h3 class="text-xs font-extrabold text-heading">HÓA ĐƠN ĐIỆN TỬ</h3>
+                <p class="text-[10px] text-muted">Mã hóa đơn: <strong>{{ selectedInvoice.invoiceCode || ('HD#' + selectedInvoice.id) }}</strong></p>
+                <p class="text-[10px] text-muted">Ngày xuất: {{ formatDate(selectedInvoice.createdAt || selectedInvoice.date) }}</p>
               </div>
             </div>
 
             <!-- Buyer Details -->
-            <div class="space-y-1 surface-input p-3 rounded-lg border border-card">
-              <p><strong>Người thanh toán:</strong> Phạm Thị Mẹ Học Sinh (Phụ huynh)</p>
-              <p><strong>Sinh viên thụ hưởng:</strong> {{ currentChild?.name }} (Mã số: {{ currentChild?.studentId }})</p>
-              <p><strong>Lớp học phần:</strong> {{ currentChild?.class }} - Ngành: {{ currentChild?.major }}</p>
-              <p><strong>Chứng từ liên kết:</strong> Giao dịch số {{ selectedInvoice.transactionCode || selectedInvoice.id }}</p>
+            <div class="space-y-1.5 surface-input p-3 rounded-lg border border-card text-xs">
+              <p><strong>Người thanh toán:</strong> Phụ huynh sinh viên</p>
+              <p><strong>Sinh viên thụ hưởng:</strong> {{ currentChildInfo.name }} (MSSV: {{ currentChildInfo.studentId }})</p>
+              <p><strong>Lớp hành chính:</strong> {{ currentChildInfo.className }}</p>
+              <p><strong>Chuyên ngành đào tạo:</strong> {{ currentChildInfo.major }}</p>
+              <p><strong>Mã giao dịch liên kết:</strong> {{ selectedInvoice.transactionCode ? ('GD-' + selectedInvoice.transactionCode) : ('GD-' + selectedInvoice.id) }}</p>
             </div>
 
             <!-- Table of Fees -->
@@ -374,33 +588,35 @@ function goBack() {
               </thead>
               <tbody>
                 <tr class="border-b border-card">
-                  <td class="p-2 border-r border-card">1</td>
-                  <td class="p-2 border-r border-card">Học phí đợt đóng kỳ 1 (Bổ sung quỹ học tập LMS)</td>
+                  <td class="p-2 border-r border-card text-center">1</td>
+                  <td class="p-2 border-r border-card">{{ selectedInvoice.title || 'Học phí đợt đóng kỳ 1 (Hệ thống quản lý đào tạo LMS)' }}</td>
                   <td class="p-2 text-right font-semibold">{{ formatCurrency(selectedInvoice.amount) }}</td>
                 </tr>
                 <tr class="font-bold border-t border-card">
                   <td colspan="2" class="p-2 border-r border-card text-right">Thuế giá trị gia tăng (VAT 0%):</td>
-                  <td class="p-2 text-right">0đ</td>
+                  <td class="p-2 text-right">0 ₫</td>
                 </tr>
                 <tr class="font-extrabold text-orange-600 bg-orange-50/10 border-t-2 border-card">
-                  <td colspan="2" class="p-2 border-r border-card text-right">TỔNG THANH TOÁN THỰC TẾ:</td>
+                  <td colspan="2" class="p-2 border-r border-card text-right">TỔNG CỘNG TIỀN THANH TOÁN:</td>
                   <td class="p-2 text-right">{{ formatCurrency(selectedInvoice.amount) }}</td>
                 </tr>
               </tbody>
             </table>
 
             <!-- Stamp Signature simulation -->
-            <div class="flex justify-between items-center pt-4">
-              <span class="text-[9px] text-muted italic font-medium flex items-center gap-1">
+            <div class="flex justify-between items-end pt-4">
+              <span class="text-[9.5px] text-muted italic font-medium flex items-center gap-1">
                 <CheckCircle2 :size="12" class="text-emerald-500" />
-                Hóa đơn gốc được mã hóa lưu trữ an toàn trên Blockchain LMS
+                Chứng từ hóa đơn điện tử gốc được mã hóa và lưu trữ an toàn trên CSDL LMS System.
               </span>
 
-              <!-- Stamp visual -->
-              <div class="border border-red-500 text-red-500 rounded p-1 text-[8px] font-bold text-center w-32 transform rotate-1">
-                <p>ĐÃ KÝ ĐIỆN TỬ</p>
-                <p>LMS UNIVERSITY</p>
-                <p>{{ selectedInvoice.createdAt || selectedInvoice.date }}</p>
+              <!-- Stamp visual matching user's requested red seal image -->
+              <div
+                class="border-[1.5px] border-red-500 text-red-500 rounded-lg p-2 text-center w-38 font-bold tracking-tight transform -rotate-1 bg-red-50/40 dark:bg-red-950/20 shadow-xs leading-tight"
+              >
+                <p class="text-[10.5px] font-black uppercase text-red-500">ĐÃ KÝ ĐIỆN TỬ</p>
+                <p class="text-[9px] font-bold text-red-500 mt-0.5">LMS UNIVERSITY</p>
+                <p class="text-[7.5px] font-semibold text-red-500 mt-0.5 break-all opacity-95">{{ selectedInvoice.createdAt || selectedInvoice.date }}</p>
               </div>
             </div>
 

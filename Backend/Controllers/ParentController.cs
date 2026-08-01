@@ -73,12 +73,15 @@ public class ParentController : ControllerBase
         var childrenIds = await GetLinkedChildrenIds(userId, ct);
 
         var children = await _db.NguoiDungs
+            .Include(n => n.Lop)
+            .Include(n => n.DonVi)
             .Where(n => childrenIds.Contains(n.MaNguoiDung))
             .Select(n => new ParentChildSummaryDto
             {
                 Id = n.MaNguoiDung,
                 Name = n.HoTen,
                 ClassName = n.Lop != null ? n.Lop.TenLop : "",
+                Campus = n.DonVi != null ? n.DonVi.TenDonVi : "",
                 Status = n.TrangThai
             })
             .ToListAsync(ct);
@@ -94,6 +97,7 @@ public class ParentController : ControllerBase
         await VerifyChildLinked(userId, childId, ct);
 
         var child = await _db.NguoiDungs
+            .Include(n => n.DonVi)
             .Include(n => n.Lop)
                 .ThenInclude(l => l.ChuongTrinh)
                     .ThenInclude(c => c.ChuyenNganh)
@@ -159,6 +163,7 @@ public class ParentController : ControllerBase
             Phone = child.SoDienThoai ?? "",
             ClassName = child.Lop?.TenLop ?? "",
             Major = child.Lop?.ChuongTrinh?.ChuyenNganh?.TenChuyenNganh ?? "",
+            Campus = child.DonVi?.TenDonVi ?? "",
             EnrolledCourses = enrollments,
             Gpa = Math.Round(gpa, 2),
             RecentSubmissions = recentSubmissions
@@ -379,15 +384,22 @@ public class ParentController : ControllerBase
         await VerifyChildLinked(userId, childId, ct);
 
         var invoices = await _db.HoaDons
+            .Include(h => h.HocKy)
             .Where(h => h.MaHocSinh == childId)
             .OrderByDescending(h => h.NgayTao)
             .Select(h => new
             {
                 Id = h.MaHoaDon,
+                InvoiceCode = !string.IsNullOrWhiteSpace(h.MaHoaDonCode) ? h.MaHoaDonCode : $"HD#{h.MaHoaDon}",
+                Title = h.HocKy != null ? $"Học phí {h.HocKy.TenHocKy}" : $"Học phí đợt #{h.MaHoaDon}",
                 Amount = h.SoTien,
+                PaidAmount = h.DaThanhToan,
+                DiscountAmount = h.GiamTru,
+                RemainingAmount = h.SoTien - h.GiamTru - h.DaThanhToan,
                 CreatedAt = h.NgayTao,
                 DueDate = h.HanThanhToan,
-                Status = h.TrangThai ?? ""
+                Status = h.TrangThai ?? "",
+                TransactionCode = _db.GiaoDichs.Where(g => g.MaHoaDon == h.MaHoaDon).OrderByDescending(g => g.NgayTao).Select(g => g.MaThamChieuNoiBo).FirstOrDefault()
             })
             .ToListAsync(ct);
 
@@ -644,6 +656,7 @@ public class ParentChildSummaryDto
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string ClassName { get; set; } = string.Empty;
+    public string Campus { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
 }
 
@@ -655,6 +668,7 @@ public class ParentChildDetailDto
     public string Phone { get; set; } = string.Empty;
     public string ClassName { get; set; } = string.Empty;
     public string Major { get; set; } = string.Empty;
+    public string Campus { get; set; } = string.Empty;
     public int EnrolledCourses { get; set; }
     public double Gpa { get; set; }
     public List<ParentRecentSubmissionDto> RecentSubmissions { get; set; } = new();
