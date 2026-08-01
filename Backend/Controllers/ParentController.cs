@@ -84,6 +84,8 @@ public class ParentController : ControllerBase
 
         var child = await _db.NguoiDungs
             .Include(n => n.Lop)
+                .ThenInclude(l => l.ChuongTrinh)
+                    .ThenInclude(c => c.ChuyenNganh)
             .FirstOrDefaultAsync(n => n.MaNguoiDung == childId, ct);
         if (child == null) return NotFound();
 
@@ -93,6 +95,51 @@ public class ParentController : ControllerBase
             .Where(d => d.MaHocSinh == childId)
             .AverageAsync(d => (double?)d.GpaMonHoc) ?? 0;
 
+        var assignments = await _db.BaiNops
+            .Include(b => b.BaiTap)
+                .ThenInclude(t => t.MonHoc)
+            .Where(b => b.MaHocSinh == childId && (b.DaCongBo || b.ThoiDiemNop != default))
+            .OrderByDescending(b => b.ThoiDiemNop)
+            .Take(5)
+            .Select(b => new 
+            {
+                Name = b.BaiTap != null ? b.BaiTap.TieuDe : "",
+                Subject = b.BaiTap != null && b.BaiTap.MonHoc != null ? b.BaiTap.MonHoc.TenMonHoc : "",
+                DateRaw = b.ThoiDiemNop,
+                Status = b.DaCongBo && b.DiemSo != null ? "Graded" : "Submitted",
+                Score = b.DaCongBo ? b.DiemSo : null
+            })
+            .ToListAsync(ct);
+
+        var quizzes = await _db.PhienThiHocSinhs
+            .Include(p => p.DeKiemTra)
+                .ThenInclude(d => d.MonHoc)
+            .Where(p => p.MaHocSinh == childId && p.TrangThaiLuong == "da_dung" && p.NopLuc != null)
+            .OrderByDescending(p => p.NopLuc)
+            .Take(5)
+            .Select(p => new 
+            {
+                Name = p.DeKiemTra != null ? p.DeKiemTra.TieuDe : "",
+                Subject = p.DeKiemTra != null && p.DeKiemTra.MonHoc != null ? p.DeKiemTra.MonHoc.TenMonHoc : "",
+                DateRaw = p.NopLuc!.Value,
+                Status = p.DiemCuoiCung != null ? "Graded" : "Submitted",
+                Score = p.DiemCuoiCung
+            })
+            .ToListAsync(ct);
+
+        var recentSubmissions = assignments.Concat(quizzes)
+            .OrderByDescending(x => x.DateRaw)
+            .Take(5)
+            .Select(r => new ParentRecentSubmissionDto
+            {
+                Name = r.Name,
+                Subject = r.Subject,
+                Date = r.DateRaw.ToString("dd/MM/yyyy HH:mm"),
+                Status = r.Status,
+                Score = r.Score
+            })
+            .ToList();
+
         var data = new ParentChildDetailDto
         {
             Id = child.MaNguoiDung,
@@ -100,8 +147,10 @@ public class ParentController : ControllerBase
             Email = child.Email,
             Phone = child.SoDienThoai ?? "",
             ClassName = child.Lop?.TenLop ?? "",
+            Major = child.Lop?.ChuongTrinh?.ChuyenNganh?.TenChuyenNganh ?? "",
             EnrolledCourses = enrollments,
-            Gpa = Math.Round(gpa, 2)
+            Gpa = Math.Round(gpa, 2),
+            RecentSubmissions = recentSubmissions
         };
 
         return Ok(ApiResponseDto<ParentChildDetailDto>.Ok(data));
@@ -430,8 +479,19 @@ public class ParentChildDetailDto
     public string Email { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string ClassName { get; set; } = string.Empty;
+    public string Major { get; set; } = string.Empty;
     public int EnrolledCourses { get; set; }
     public double Gpa { get; set; }
+    public List<ParentRecentSubmissionDto> RecentSubmissions { get; set; } = new();
+}
+
+public class ParentRecentSubmissionDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string Subject { get; set; } = string.Empty;
+    public string Date { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public decimal? Score { get; set; }
 }
 
 public class ParentPaymentRequest

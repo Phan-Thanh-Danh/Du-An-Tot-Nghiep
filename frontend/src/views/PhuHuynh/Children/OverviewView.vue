@@ -99,7 +99,7 @@ async function loadChildDetail(childId) {
     name: detail?.name || existing.name || '',
     studentId: detail?.email || existing.studentId || `ID ${childId}`,
     class: detail?.className || existing.class || '',
-    major: '',
+    major: detail?.major || existing.major || '',
     gpa: detail?.gpa || 0,
     activeCourses: detail?.enrolledCourses || 0,
     attendanceRate,
@@ -115,7 +115,7 @@ async function loadChildDetail(childId) {
       gpa: grade.total || 0,
       status: grade.semester || '',
     })),
-    recentSubmissions: [],
+    recentSubmissions: detail?.recentSubmissions || [],
   }
   if (index >= 0) childrenData.value[index] = next
 }
