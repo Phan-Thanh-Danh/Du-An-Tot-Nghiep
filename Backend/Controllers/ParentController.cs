@@ -1,11 +1,13 @@
 using Backend.Constants;
 using Backend.Data;
+using Backend.Services.Storage;
 using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
 using Backend.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Backend.Models;
 
 namespace Backend.Controllers;
 
@@ -15,10 +17,12 @@ namespace Backend.Controllers;
 public class ParentController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
+    private readonly IR2StorageService _storageService;
 
-    public ParentController(ApplicationDbContext db)
+    public ParentController(ApplicationDbContext db, IR2StorageService storageService)
     {
         _db = db;
+        _storageService = storageService;
     }
 
     [HttpGet("dashboard")]
@@ -268,9 +272,12 @@ public class ParentController : ControllerBase
             .Where(d => d.MaHocSinh == childId)
             .Select(d => new
             {
+                CourseId = d.BuoiHoc!.MaKhoaHoc,
                 Subject = d.BuoiHoc!.KhoaHoc!.MonHoc != null ? d.BuoiHoc.KhoaHoc.MonHoc.TenMonHoc : "",
                 Date = d.BuoiHoc.NgayHoc,
                 Shift = d.BuoiHoc.CaHoc != null ? d.BuoiHoc.CaHoc.TenCa : "",
+                ShiftStart = d.BuoiHoc.CaHoc != null ? d.BuoiHoc.CaHoc.GioBatDau.ToString("HH:mm") : "",
+                ShiftEnd = d.BuoiHoc.CaHoc != null ? d.BuoiHoc.CaHoc.GioKetThuc.ToString("HH:mm") : "",
                 Room = d.BuoiHoc.Phong != null ? d.BuoiHoc.Phong.MaCodePhong : "",
                 Teacher = d.BuoiHoc.GiaoVien != null ? d.BuoiHoc.GiaoVien.HoTen : "",
                 Status = d.TrangThai,
@@ -494,6 +501,88 @@ public class ParentController : ControllerBase
         if (!linked)
             throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem thông tin của học sinh này.");
     }
+
+    [HttpGet("children/{childId:int}/active-courses")]
+    public async Task<ActionResult<ApiResponseDto<List<ParentActiveCourseDto>>>> GetActiveCourses(
+        int childId, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        await VerifyChildLinked(userId, childId, ct);
+
+        var child = await _db.NguoiDungs.FirstOrDefaultAsync(n => n.MaNguoiDung == childId, ct);
+        if (child == null) return NotFound();
+
+        var courses = await _db.KhoaHocs
+            .Include(k => k.MonHoc)
+            .Include(k => k.GiaoVien)
+            .Where(k => k.MaLop == child.MaLop)
+            .Select(k => new ParentActiveCourseDto
+            {
+                CourseId = k.MaKhoaHoc,
+                SubjectName = k.MonHoc != null ? k.MonHoc.TenMonHoc : k.TieuDe,
+                TeacherName = k.GiaoVien != null ? k.GiaoVien.HoTen : ""
+            })
+            .ToListAsync(ct);
+
+        return Ok(ApiResponseDto<List<ParentActiveCourseDto>>.Ok(courses));
+    }
+
+    [HttpPost("children/{childId:int}/leave-requests")]
+    public async Task<ActionResult<ApiResponseDto>> SubmitLeaveRequest(
+        int childId, [FromForm] ParentLeaveRequestForm request, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        await VerifyChildLinked(userId, childId, ct);
+
+        var course = await _db.KhoaHocs
+            .Include(k => k.MonHoc)
+            .Include(k => k.HocKy)
+            .FirstOrDefaultAsync(k => k.MaKhoaHoc == request.CourseId, ct);
+        if (course == null) return BadRequest(ApiResponseDto.Fail("Khóa học không tồn tại."));
+
+        string? fileUrl = null;
+        if (request.File != null)
+        {
+            var uploadResult = await _storageService.UploadFileAsync(
+                request.File.OpenReadStream(),
+                request.File.FileName,
+                request.File.ContentType,
+                "leave-requests",
+                cancellationToken: ct);
+            fileUrl = uploadResult.Url;
+        }
+
+        var donTu = new DonTu
+        {
+            MaDonVi = course.MaDonVi,
+            MaHocSinh = childId,
+            LoaiDon = "nghi_phep",
+            TieuDe = $"Đơn xin nghỉ phép khóa học {course.TieuDe}",
+            TrangThai = "da_nop",
+            TrangThaiXuLyNghiepVu = "cho_xu_ly",
+            NguoiDuyetHienTai = course.MaGiaoVien,
+            UrlBangChung = fileUrl,
+            DuLieuBieuMau = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                CourseId = request.CourseId,
+                CourseName = course.TieuDe,
+                SubjectName = course.MonHoc?.TenMonHoc ?? "",
+                SemesterName = course.HocKy?.TenHocKy ?? "",
+                Date = request.Date.ToString("yyyy-MM-dd"),
+                Shift = request.Shift,
+                Reason = request.Reason,
+                EvidenceUrl = fileUrl
+            }),
+            NgayTao = DateTime.UtcNow,
+            NgayCapNhat = DateTime.UtcNow,
+            NgayNop = DateTime.UtcNow
+        };
+
+        _db.DonTus.Add(donTu);
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(ApiResponseDto<object>.Ok(new { Message = "Gửi đơn xin nghỉ phép thành công." }));
+    }
 }
 
 // DTOs
@@ -540,3 +629,20 @@ public class ParentPaymentRequest
     public decimal Amount { get; set; }
     public string? PaymentMethod { get; set; }
 }
+
+public class ParentActiveCourseDto
+{
+    public int CourseId { get; set; }
+    public string SubjectName { get; set; } = string.Empty;
+    public string TeacherName { get; set; } = string.Empty;
+}
+
+public class ParentLeaveRequestForm
+{
+    public int CourseId { get; set; }
+    public DateTime Date { get; set; }
+    public string Shift { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+    public IFormFile? File { get; set; }
+}
+

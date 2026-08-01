@@ -5,6 +5,7 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
+  ExternalLink,
   FileQuestion,
   FileText,
   Loader2,
@@ -29,10 +30,25 @@ const processing = ref(false)
 
 const requestStats = computed(() => [
   { label: 'Tổng yêu cầu', value: requests.value.length, variant: 'neutral' },
-  { label: 'Đang chờ', value: requests.value.filter(req => (req.trangThai || req.status) === 'Pending').length, variant: 'warning' },
-  { label: 'Hôm nay', value: 2, variant: 'info' },
+  { label: 'Đang chờ', value: requests.value.length, variant: 'warning' },
+  { label: 'Hôm nay', value: requests.value.length, variant: 'info' },
   { label: 'Cần phản hồi', value: requests.value.length, variant: 'primary' },
 ])
+
+function parseFormData(jsonStr) {
+  if (!jsonStr) return {}
+  try { return JSON.parse(jsonStr) } catch { return {} }
+}
+
+function formatDate(d) {
+  if (!d) return '--'
+  return new Date(d).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+function getTypeLabel(type) {
+  const labels = { nghi_phep: 'Xin nghỉ phép', hoc_lai: 'Học lại', khieu_nai: 'Khiếu nại' }
+  return labels[type] || type
+}
 
 async function loadRequests() {
   loading.value = true
@@ -55,18 +71,20 @@ function selectRequest(req) {
 async function processRequest(action) {
   if (!selectedReq.value) return
   processing.value = true
+  const reqId = selectedReq.value.requestId
   try {
-    await teacherApi.createTeacherRequest({
-      maYeuCau: selectedReq.value.id || selectedReq.value.maYeuCau,
-      hanhDong: action,
-      action: action,
-    })
-    const idx = requests.value.findIndex(r => (r.id || r.maYeuCau) === (selectedReq.value.id || selectedReq.value.maYeuCau))
+    if (action === 'Chấp nhận') {
+      await teacherApi.approveTeacherRequest(reqId)
+    } else {
+      await teacherApi.rejectTeacherRequest(reqId, 'Không được chấp thuận.')
+    }
+    const idx = requests.value.findIndex(r => r.requestId === reqId)
     if (idx !== -1) requests.value.splice(idx, 1)
-    popupStore.success('Đã xử lý đơn', `Đã ${action.toLowerCase()} đơn của ${selectedReq.value.hoTen || selectedReq.value.student}`)
+    popupStore.success('Đã xử lý đơn', `Đã ${action === 'Chấp nhận' ? 'phê duyệt' : 'từ chối'} đơn của ${selectedReq.value.studentName || '--'}`)
     selectedReq.value = null
   } catch (e) {
     popupStore.error('Không thể xử lý', e?.message || 'Lỗi máy chủ.')
+
   } finally {
     processing.value = false
   }
@@ -160,20 +178,20 @@ onMounted(() => { loadRequests() })
             </span>
             <span class="request-content">
               <span class="request-topline">
-                <strong>{{ req.loaiYeuCau || req.type }}</strong>
+                <strong>{{ getTypeLabel(req.type) }}</strong>
                 <span class="time-chip">
                   <Clock :size="12" />
-                  {{ req.thoiGian || req.time || '--' }}
+                  {{ formatDate(req.submittedAt || req.createdAt) }}
                 </span>
               </span>
               <span class="student-line">
                 <User :size="12" />
-                Sinh viên: <b>{{ req.hoTen || req.student }}</b>
+                Sinh viên: <b>{{ req.studentName || '--' }}</b>
               </span>
-              <span class="request-text">"{{ req.noiDung || req.content }}"</span>
+              <span class="request-text">{{ req.title }}</span>
               <span class="row-meta">
-                <GlassBadge :variant="getTagVariant(req.mauSac || req.color || 'blue')" size="sm">{{ req.theLoai || req.tag || req.loaiYeuCau }}</GlassBadge>
-                <GlassBadge variant="warning" size="sm">Đang chờ</GlassBadge>
+                <GlassBadge variant="warning" size="sm">Đang chờ duyệt</GlassBadge>
+                <GlassBadge variant="info" size="sm">#{{ req.requestId }}</GlassBadge>
               </span>
             </span>
           </button>
@@ -195,11 +213,9 @@ onMounted(() => { loadRequests() })
           <div class="panel-heading">
             <div>
               <h2>Chi tiết yêu cầu</h2>
-              <p>Mã yêu cầu #GV-REQ-{{ selectedReq.id || selectedReq.maYeuCau }}</p>
+              <p>Mã đơn #{{ selectedReq.requestId }}</p>
             </div>
-            <GlassBadge :variant="getTagVariant(selectedReq.mauSac || selectedReq.color || 'blue')" size="sm">
-              {{ selectedReq.theLoai || selectedReq.tag || selectedReq.loaiYeuCau }}
-            </GlassBadge>
+            <GlassBadge variant="warning" size="sm">Đang chờ duyệt</GlassBadge>
           </div>
         </template>
 
@@ -208,19 +224,35 @@ onMounted(() => { loadRequests() })
             <FileText :size="22" />
           </span>
           <div>
-            <h3>{{ selectedReq.loaiYeuCau || selectedReq.type }}</h3>
+            <h3>{{ getTypeLabel(selectedReq.type) }}</h3>
             <p>
               <User :size="13" />
-              {{ selectedReq.hoTen || selectedReq.student }}
+              {{ selectedReq.studentName || '--' }}
             </p>
           </div>
         </div>
 
-        <div class="content-box">
-          <Mail :size="15" />
-          <div>
-            <span>Nội dung chi tiết</span>
-            <p>"{{ selectedReq.noiDung || selectedReq.content }}"</p>
+        <!-- Thông tin đơn từ FormData -->
+        <div class="content-box" style="flex-direction: column; align-items: flex-start; gap: 0.5rem;">
+          <div style="display:flex; align-items:center; gap:0.5rem; font-weight:700; font-size:0.75rem;">
+            <Mail :size="15" />
+            <span>Chi tiết đơn xin nghỉ phép</span>
+          </div>
+          <div style="width:100%; display:grid; grid-template-columns:1fr 1fr; gap:0.375rem 1rem; font-size:0.75rem;">
+            <div><span style="color:var(--text-muted)">Khóa học:</span> <b>{{ parseFormData(selectedReq.formData).CourseName || '--' }}</b></div>
+            <div><span style="color:var(--text-muted)">Môn học:</span> <b>{{ parseFormData(selectedReq.formData).SubjectName || '--' }}</b></div>
+            <div><span style="color:var(--text-muted)">Học kỳ:</span> <b>{{ parseFormData(selectedReq.formData).SemesterName || '--' }}</b></div>
+            <div><span style="color:var(--text-muted)">Ngày nghỉ:</span> <b>{{ parseFormData(selectedReq.formData).Date || '--' }}</b></div>
+            <div><span style="color:var(--text-muted)">Ca học:</span> <b>{{ parseFormData(selectedReq.formData).Shift || '--' }}</b></div>
+            <div><span style="color:var(--text-muted)">Ngày nộp:</span> <b>{{ formatDate(selectedReq.submittedAt) }}</b></div>
+            <div style="grid-column:1/-1"><span style="color:var(--text-muted)">Lý do:</span> <b>{{ parseFormData(selectedReq.formData).Reason || '--' }}</b></div>
+            <div v-if="selectedReq.evidenceUrl || parseFormData(selectedReq.formData).EvidenceUrl" style="grid-column:1/-1">
+              <span style="color:var(--text-muted)">Minh chứng:</span>
+              <a :href="selectedReq.evidenceUrl || parseFormData(selectedReq.formData).EvidenceUrl" target="_blank"
+                 style="color:var(--text-link); font-weight:600; display:inline-flex; align-items:center; gap:0.25rem; margin-left:0.25rem;">
+                Xem ảnh <ExternalLink :size="12" />
+              </a>
+            </div>
           </div>
         </div>
 
@@ -228,15 +260,15 @@ onMounted(() => { loadRequests() })
           <div class="timeline-item">
             <span />
             <div>
-              <strong>Đã gửi yêu cầu</strong>
-              <p>{{ selectedReq.thoiGian || selectedReq.time || '--' }} · Sinh viên gửi đơn lên hệ thống</p>
+              <strong>Đã nộp đơn</strong>
+              <p>{{ formatDate(selectedReq.submittedAt) }} · Phụ huynh gửi đơn lên hệ thống</p>
             </div>
           </div>
           <div class="timeline-item is-current">
             <span />
             <div>
-              <strong>Đang chờ phản hồi</strong>
-              <p>Giảng viên xem nội dung và cập nhật hướng xử lý.</p>
+              <strong>Đang chờ giảng viên phê duyệt</strong>
+              <p>Xem nội dung và ảnh minh chứng rồi phê duyệt hoặc từ chối.</p>
             </div>
           </div>
         </div>

@@ -11,6 +11,7 @@ import {
   XCircle,
   AlertTriangle,
   ChevronLeft,
+  ChevronRight,
   Send,
   Upload,
   X,
@@ -27,10 +28,10 @@ const popupStore = usePopupStore()
 const activeChildId = ref(Number(route.query.studentId) || Number(localStorage.getItem('parent_active_student_id')))
 const dropdownOpen = ref(false)
 const loading = ref(true)
-const error = ref(null)
 const attendance = ref([])
 const children = ref([])
 const enrolledGrades = ref([])
+const actualActiveCourses = ref([])
 const childDetail = ref(null)
 
 const filterStatus = ref('Tất cả')
@@ -40,12 +41,71 @@ const currentPage = ref(1)
 const itemsPerPage = 10
 
 const isModalOpen = ref(false)
-const formSubject = ref('')
+const formCourseId = ref('')
 const formDate = ref('')
 const formShift = ref('Ca 1 (07:30 - 09:30)')
 const formReason = ref('')
 const formFile = ref(null)
 const fileName = ref('')
+const showCalendarPopup = ref(false)
+const calYear = ref(new Date().getFullYear())
+const calMonth = ref(new Date().getMonth())
+const selectedCalDate = ref(null)
+
+const courseAttendanceDates = computed(() => {
+  if (!formCourseId.value) return []
+  return attendance.value.filter(a => a.courseId === formCourseId.value)
+})
+
+const monthDaysLeave = computed(() => {
+  const daysInMonth = new Date(calYear.value, calMonth.value + 1, 0).getDate()
+  const firstDayOfWeek = new Date(calYear.value, calMonth.value, 1).getDay()
+  const startOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1
+  const days = []
+  
+  for (let i = 0; i < startOffset; i++) {
+    days.push({ dayNumber: null, filler: true })
+  }
+  
+  for (let i = 1; i <= daysInMonth; i++) {
+    const dStr = `${calYear.value}-${String(calMonth.value + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`
+    const classesOnDay = courseAttendanceDates.value.filter(a => a.date.startsWith(dStr))
+    days.push({
+      dayNumber: i,
+      dateString: dStr,
+      filler: false,
+      hasClasses: classesOnDay.length > 0,
+      classes: classesOnDay
+    })
+  }
+  
+  return days
+})
+
+function prevCalMonth() {
+  if (calMonth.value === 0) { calMonth.value = 11; calYear.value-- }
+  else { calMonth.value-- }
+  selectedCalDate.value = null
+}
+function nextCalMonth() {
+  if (calMonth.value === 11) { calMonth.value = 0; calYear.value++ }
+  else { calMonth.value++ }
+  selectedCalDate.value = null
+}
+
+function selectDayFromCalendar(dayObj) {
+  if (!dayObj.hasClasses) return
+  selectedCalDate.value = dayObj
+}
+
+function selectShiftFromCalendar(shiftItem) {
+  formDate.value = shiftItem.date.substring(0, 10)
+  const timeLabel = shiftItem.shiftStart && shiftItem.shiftEnd
+    ? `${shiftItem.shift} (${shiftItem.shiftStart} - ${shiftItem.shiftEnd})`
+    : shiftItem.shift
+  formShift.value = timeLabel
+  showCalendarPopup.value = false
+}
 
 const statusLabels = {
   'co_mat': 'Có mặt',
@@ -193,6 +253,10 @@ function selectChild(id) {
     enrolledGrades.value = res.data || []
   }).catch(() => {})
 
+  parentApi.getActiveCourses(id).then(res => {
+    actualActiveCourses.value = res.data || []
+  }).catch(() => {})
+
   parentApi.getChildDetail(id).then(res => {
     childDetail.value = res.data || null
   }).catch(() => {})
@@ -200,6 +264,7 @@ function selectChild(id) {
   Promise.all([
     parentApi.getChildAttendance(id),
     parentApi.getChildCourses(id),
+    parentApi.getActiveCourses(id),
     parentApi.getChildDetail(id).catch(() => ({ data: null }))
   ]).finally(() => {
     loading.value = false
@@ -207,13 +272,20 @@ function selectChild(id) {
 }
 
 function openLeaveModal() {
-  if (activeSubjects.value.length > 0) {
-    formSubject.value = activeSubjects.value[0]
+  if (actualActiveCourses.value.length > 0) {
+    formCourseId.value = actualActiveCourses.value[0].courseId
+  } else {
+    formCourseId.value = ''
   }
-  formDate.value = new Date().toISOString().substring(0, 10)
+  formDate.value = ''
+  formShift.value = ''
   formReason.value = ''
   formFile.value = null
   fileName.value = ''
+  showCalendarPopup.value = false
+  selectedCalDate.value = null
+  calYear.value = new Date().getFullYear()
+  calMonth.value = new Date().getMonth()
   isModalOpen.value = true
 }
 
@@ -225,16 +297,28 @@ function handleFileChange(event) {
   }
 }
 
-function submitLeaveRequest() {
-  if (!formSubject.value || !formDate.value || !formReason.value.trim()) {
+async function submitLeaveRequest() {
+  if (!formCourseId.value || !formDate.value || !formReason.value.trim()) {
     popupStore.error('Thiếu thông tin', 'Vui lòng điền đầy đủ các thông tin bắt buộc.')
     return
   }
-  isModalOpen.value = false
-  popupStore.success(
-    'Gửi đơn xin phép thành công',
-    `Đơn xin nghỉ học môn "${formSubject.value}" ngày ${formDate.value} đã được chuyển tới Giảng viên bộ môn phê duyệt.`
-  )
+
+  const formData = new FormData()
+  formData.append('CourseId', formCourseId.value)
+  formData.append('Date', formDate.value)
+  formData.append('Shift', formShift.value)
+  formData.append('Reason', formReason.value)
+  if (formFile.value) {
+    formData.append('File', formFile.value)
+  }
+
+  try {
+    const res = await parentApi.submitLeaveRequest(activeChildId.value, formData)
+    isModalOpen.value = false
+    popupStore.success('Thành công', res.message || 'Gửi đơn xin phép thành công.')
+  } catch (err) {
+    popupStore.error('Lỗi', err.message || 'Không thể gửi đơn xin phép.')
+  }
 }
 
 function formatDate(dateVal) {
@@ -376,15 +460,17 @@ function goBack() {
 
 onMounted(async () => {
   try {
-    const [childrenRes, attendanceRes, coursesRes, detailRes] = await Promise.all([
+    const [childrenRes, attendanceRes, coursesRes, activeCoursesRes, detailRes] = await Promise.all([
       parentApi.getChildren().catch(() => ({ data: [] })),
       parentApi.getChildAttendance(activeChildId.value),
       parentApi.getChildCourses(activeChildId.value).catch(() => ({ data: [] })),
+      parentApi.getActiveCourses(activeChildId.value).catch(() => ({ data: [] })),
       parentApi.getChildDetail(activeChildId.value).catch(() => ({ data: null }))
     ])
     children.value = childrenRes.data || []
     attendance.value = attendanceRes.data || []
     enrolledGrades.value = coursesRes.data || []
+    actualActiveCourses.value = activeCoursesRes.data || []
     childDetail.value = detailRes.data || null
   } catch (e) {
     error.value = e.message || 'Không thể tải dữ liệu điểm danh'
@@ -713,40 +799,81 @@ onMounted(async () => {
           </div>
 
           <div class="space-y-1">
-            <label class="text-[11px] font-bold text-label block">Môn học xin nghỉ *</label>
+            <label class="text-[11px] font-bold text-label block">Khóa học xin nghỉ *</label>
             <select
-              v-model="formSubject"
+              v-model="formCourseId"
               required
               class="surface-input border-card w-full px-3 py-2 text-xs rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/20"
             >
-              <option v-for="sub in activeSubjects" :key="sub" :value="sub">
-                {{ sub }}
+              <option v-for="course in actualActiveCourses" :key="course.courseId" :value="course.courseId">
+                {{ course.subjectName }} - {{ course.teacherName }}
               </option>
             </select>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div v-if="!showCalendarPopup" class="grid grid-cols-1 gap-4">
             <div class="space-y-1">
-              <label class="text-[11px] font-bold text-label block">Ngày xin nghỉ *</label>
-              <input
-                v-model="formDate"
-                type="date"
-                required
-                class="surface-input border-card w-full px-3 py-2 text-xs rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="text-[11px] font-bold text-label block">Ca học xin nghỉ *</label>
-              <select
-                v-model="formShift"
-                required
-                class="surface-input border-card w-full px-3 py-2 text-xs rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+              <label class="text-[11px] font-bold text-label block">Buổi học xin nghỉ *</label>
+              <button
+                type="button"
+                @click="showCalendarPopup = true"
+                class="surface-input border-card w-full px-3 py-2 text-xs rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-left flex justify-between items-center"
               >
-                <option value="Ca 1 (07:30 - 09:30)">Ca 1 (07:30 - 09:30)</option>
-                <option value="Ca 2 (09:30 - 11:30)">Ca 2 (09:30 - 11:30)</option>
-                <option value="Ca 3 (12:30 - 14:30)">Ca 3 (12:30 - 14:30)</option>
-                <option value="Ca 4 (14:45 - 16:45)">Ca 4 (14:45 - 16:45)</option>
-              </select>
+                <span :class="formDate ? 'text-heading' : 'text-muted'">
+                  {{ formDate ? `${formatDate(formDate)} - ${formShift}` : 'Nhấn để chọn lịch học...' }}
+                </span>
+                <Calendar :size="14" class="text-muted" />
+              </button>
+            </div>
+          </div>
+          
+          <div v-else class="border border-card rounded-xl p-3 surface-card">
+            <div class="flex items-center justify-between mb-3">
+              <button type="button" class="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-label transition" @click="prevCalMonth"><ChevronLeft :size="14"/></button>
+              <span class="text-xs font-bold text-heading uppercase">Tháng {{ calMonth + 1 }} - {{ calYear }}</span>
+              <button type="button" class="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-label transition" @click="nextCalMonth"><ChevronRight :size="14"/></button>
+            </div>
+            
+            <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-muted mb-2">
+              <div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div>
+            </div>
+            
+            <div class="grid grid-cols-7 gap-1">
+              <div v-for="(day, idx) in monthDaysLeave" :key="idx" class="aspect-square flex items-center justify-center">
+                <button
+                  v-if="!day.filler"
+                  type="button"
+                  @click="selectDayFromCalendar(day)"
+                  :disabled="!day.hasClasses"
+                  class="w-full h-full rounded-lg flex flex-col items-center justify-center relative transition-all"
+                  :class="[
+                    day.hasClasses ? 'cursor-pointer hover:border-orange-500 border border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50' : 'opacity-30 cursor-not-allowed',
+                    selectedCalDate?.dateString === day.dateString ? 'bg-orange-100 dark:bg-orange-900/30 border-orange-500 text-orange-700 dark:text-orange-300 font-bold' : 'text-heading'
+                  ]"
+                >
+                  <span class="text-[11px]">{{ day.dayNumber }}</span>
+                  <span v-if="day.hasClasses" class="w-1 h-1 bg-orange-500 rounded-full mt-0.5 shadow-sm"></span>
+                </button>
+              </div>
+            </div>
+            
+            <div v-if="selectedCalDate" class="mt-4 pt-3 border-t border-card space-y-2">
+              <p class="text-[11px] font-bold text-heading">Chọn ca học ({{ formatDate(selectedCalDate.dateString) }})</p>
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  v-for="(cls, cIdx) in selectedCalDate.classes"
+                  :key="cIdx"
+                  type="button"
+                  @click="selectShiftFromCalendar(cls)"
+                  class="px-2 py-1.5 rounded-lg border border-orange-200 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 text-[11px] font-bold hover:bg-orange-600 hover:text-white transition"
+                >
+                  {{ cls.shiftStart && cls.shiftEnd ? `${cls.shift} (${cls.shiftStart} - ${cls.shiftEnd})` : cls.shift }}
+                </button>
+              </div>
+            </div>
+            
+            <div class="mt-3 text-right">
+              <button type="button" @click="showCalendarPopup = false" class="text-[11px] text-muted hover:text-orange-600 font-bold underline transition">Đóng lịch</button>
             </div>
           </div>
 

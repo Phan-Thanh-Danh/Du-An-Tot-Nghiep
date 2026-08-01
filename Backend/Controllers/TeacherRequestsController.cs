@@ -28,8 +28,12 @@ public class TeacherRequestsController : ControllerBase
             var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
             var userId = currentUser!.UserId;
 
-            var requests = await _context.DonTus
-                .Where(d => d.MaHocSinh == userId)
+            // Đơn cần giáo viên xét duyệt: được gán NguoiDuyetHienTai = giáo viên này
+            var pendingRequests = await _context.DonTus
+                .Where(d => d.NguoiDuyetHienTai == userId
+                    && d.TrangThai == "da_nop"
+                    && d.TrangThaiXuLyNghiepVu == "cho_xu_ly")
+                .Include(d => d.HocSinh)
                 .OrderByDescending(d => d.NgayTao)
                 .Select(d => new
                 {
@@ -37,12 +41,18 @@ public class TeacherRequestsController : ControllerBase
                     Title = d.TieuDe,
                     Type = d.LoaiDon,
                     Status = d.TrangThai,
+                    ProcessingStatus = d.TrangThaiXuLyNghiepVu,
                     CreatedAt = d.NgayTao,
-                    UpdatedAt = d.NgayCapNhat
+                    UpdatedAt = d.NgayCapNhat,
+                    SubmittedAt = d.NgayNop,
+                    StudentId = d.MaHocSinh,
+                    StudentName = d.HocSinh != null ? d.HocSinh.HoTen : "",
+                    FormData = d.DuLieuBieuMau,
+                    EvidenceUrl = d.UrlBangChung
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponseDto<object>.Ok(requests));
+            return Ok(ApiResponseDto<object>.Ok(pendingRequests));
         }
         catch (Exception ex)
         {
@@ -79,6 +89,64 @@ public class TeacherRequestsController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, ApiResponseDto.Fail("Lỗi khi tạo đơn: " + ex.Message));
+        }
+    }
+
+    [HttpPost("requests/{id:int}/approve")]
+    public async Task<ActionResult<ApiResponseDto<object>>> ApproveRequest(int id)
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            var userId = currentUser!.UserId;
+
+            var don = await _context.DonTus.FirstOrDefaultAsync(d =>
+                d.MaDonTu == id && d.NguoiDuyetHienTai == userId);
+
+            if (don == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy đơn hoặc bạn không có quyền xử lý."));
+
+            don.TrangThai = "da_duyet";
+            don.TrangThaiXuLyNghiepVu = "xu_ly_thanh_cong";
+            don.NguoiXuLyCuoi = userId;
+            don.NgayDuyet = DateTime.UtcNow;
+            don.NgayCapNhat = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return Ok(ApiResponseDto<object>.Ok(new { Message = "Đã phê duyệt đơn." }));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi phê duyệt: " + ex.Message));
+        }
+    }
+
+    [HttpPost("requests/{id:int}/reject")]
+    public async Task<ActionResult<ApiResponseDto<object>>> RejectRequest(int id, [FromBody] RejectRequestDto body)
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            var userId = currentUser!.UserId;
+
+            var don = await _context.DonTus.FirstOrDefaultAsync(d =>
+                d.MaDonTu == id && d.NguoiDuyetHienTai == userId);
+
+            if (don == null)
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy đơn hoặc bạn không có quyền xử lý."));
+
+            don.TrangThai = "tu_choi";
+            don.TrangThaiXuLyNghiepVu = "xu_ly_that_bai";
+            don.NguoiXuLyCuoi = userId;
+            don.LyDoTuChoi = body?.LyDo ?? "Không được chấp thuận.";
+            don.NgayCapNhat = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return Ok(ApiResponseDto<object>.Ok(new { Message = "Đã từ chối đơn." }));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi từ chối: " + ex.Message));
         }
     }
 
@@ -119,4 +187,9 @@ public class CreateRequestRequest
     public string Title { get; set; } = string.Empty;
     public string LoaiDon { get; set; } = string.Empty;
     public string NoiDung { get; set; } = string.Empty;
+}
+
+public class RejectRequestDto
+{
+    public string? LyDo { get; set; }
 }

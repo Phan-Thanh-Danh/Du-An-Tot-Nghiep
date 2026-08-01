@@ -518,6 +518,17 @@ export const teacherApi = {
     return apiRequest(`/api/teacher/requests${qs ? '?' + qs : ''}`)
   },
 
+  approveTeacherRequest(id) {
+    return apiRequest(`/api/teacher/requests/${id}/approve`, { method: 'POST' })
+  },
+
+  rejectTeacherRequest(id, lyDo = '') {
+    return apiRequest(`/api/teacher/requests/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ lyDo }),
+    })
+  },
+
   createTeacherRequest(payload) {
     return apiRequest('/api/teacher/requests', {
       method: 'POST',

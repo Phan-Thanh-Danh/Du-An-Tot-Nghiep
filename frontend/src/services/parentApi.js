@@ -21,6 +21,17 @@ export const parentApi = {
     return apiRequest(`/api/parent/children/${childId}/courses`, { method: 'GET' })
   },
 
+  getActiveCourses(childId) {
+    return apiRequest(`/api/parent/children/${childId}/active-courses`, { method: 'GET' })
+  },
+
+  submitLeaveRequest(childId, formData) {
+    return apiRequest(`/api/parent/children/${childId}/leave-requests`, {
+      method: 'POST',
+      body: formData,
+    })
+  },
+
   getChildSchedule(childId) {
     return apiRequest(`/api/parent/children/${childId}/schedule`, { method: 'GET' })
   },
