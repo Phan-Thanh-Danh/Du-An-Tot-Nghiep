@@ -192,7 +192,7 @@ public class StudentAssignmentsController : ControllerBase
     [HttpPost("{assignmentId}/submit")]
     [Authorize(Roles = "Student")]
     public async Task<ActionResult<ApiResponseDto<AssignmentSubmissionResultDto>>> SubmitAssignment(
-        string assignmentId, [FromForm] IFormFile file)
+        string assignmentId, [FromForm] IFormFile file, [FromForm] bool overwrite = false)
     {
         var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
         if (currentUser == null)
@@ -271,25 +271,41 @@ public class StudentAssignmentsController : ControllerBase
             .OrderByDescending(n => n.SoLanNop)
             .ToListAsync();
 
-        if (previousSubmissions.Count >= assignment.SoLanNopToiDa)
+        Backend.Models.BaiNop baiNop;
+
+        if (overwrite && previousSubmissions.Count > 0)
         {
-            return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = "Bạn đã hết lượt nộp bài." });
+            baiNop = previousSubmissions.First();
+            baiNop.UrlTapTin = uploadResult.Url;
+            baiNop.NopTre = assignment.HanNop < now;
+            baiNop.ThoiDiemNop = now;
+            baiNop.DaCongBo = false;
+            baiNop.DiemSo = null;
+            baiNop.NhanXet = null;
+        }
+        else
+        {
+            if (previousSubmissions.Count >= assignment.SoLanNopToiDa)
+            {
+                return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = "Bạn đã hết lượt nộp bài." });
+            }
+
+            int nextAttempt = previousSubmissions.Count > 0 ? previousSubmissions.First().SoLanNop + 1 : 1;
+
+            baiNop = new Backend.Models.BaiNop
+            {
+                MaBaiTap = aId,
+                MaHocSinh = currentUser.UserId,
+                UrlTapTin = uploadResult.Url,
+                SoLanNop = nextAttempt,
+                NopTre = assignment.HanNop < now,
+                ThoiDiemNop = now,
+                DaCongBo = false
+            };
+
+            _context.BaiNops.Add(baiNop);
         }
 
-        int nextAttempt = previousSubmissions.Count > 0 ? previousSubmissions.First().SoLanNop + 1 : 1;
-
-        var baiNop = new Backend.Models.BaiNop
-        {
-            MaBaiTap = aId,
-            MaHocSinh = currentUser.UserId,
-            UrlTapTin = uploadResult.Url,
-            SoLanNop = nextAttempt,
-            NopTre = assignment.HanNop < now,
-            ThoiDiemNop = now,
-            DaCongBo = false
-        };
-
-        _context.BaiNops.Add(baiNop);
         await _context.SaveChangesAsync();
 
         var result = new AssignmentSubmissionResultDto

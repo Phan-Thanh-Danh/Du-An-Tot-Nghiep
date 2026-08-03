@@ -130,11 +130,11 @@ function doSubmit() {
   if (assignment.value.submissions && assignment.value.submissions.length > 0) {
     showConfirmSubmit.value = true
   } else {
-    executeSubmit()
+    executeSubmit(false)
   }
 }
 
-async function executeSubmit() {
+async function executeSubmit(overwrite = false) {
   showConfirmSubmit.value = false
   submitting.value = true
   
@@ -143,6 +143,7 @@ async function executeSubmit() {
   if (selectedFiles.value.length > 0) {
     formData.append('file', selectedFiles.value[0].file)
   }
+  formData.append('overwrite', overwrite === true ? 'true' : 'false')
 
   try {
     const res = await studentApi.submitAssignment(assignmentId, formData)
@@ -426,11 +427,11 @@ const statusBadgeVariant = (s) => ({
       <ConfirmActionDialog
         v-model="showConfirmSubmit"
         title="Xác nhận nộp bài"
-        message="Bạn đã nộp bài rồi. Bạn có chắc chắn muốn nộp file mới không? (File mới sẽ được lưu thành lần nộp tiếp theo của bạn)."
-        confirmLabel="Vẫn nộp đè"
-        cancelLabel="Hủy bỏ"
+        message="Bạn đã nộp bài rồi. Bạn có chắc chắn muốn nộp đè bài cũ không? (File cũ của lần nộp hiện tại sẽ bị xóa)."
+        confirmLabel="Có, nộp đè"
+        cancelLabel="Không đè"
         variant="primary"
-        @confirm="executeSubmit"
+        @confirm="() => executeSubmit(true)"
       />
     </template>
   </div>

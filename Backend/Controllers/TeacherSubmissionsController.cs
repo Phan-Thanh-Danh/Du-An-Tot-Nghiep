@@ -388,6 +388,37 @@ public class TeacherSubmissionsController : ControllerBase
         return Ok(ApiResponseDto<TeacherAssignmentDto>.Ok(MapAssignment(assignment, teacherCourses, null), "Cập nhật bài tập thành công"));
     }
 
+    public class UpdateMaxAttemptsRequest
+    {
+        public int MaxAttempts { get; set; }
+    }
+
+    [HttpPatch("assignments/{id:int}/max-attempts")]
+    public async Task<ActionResult<ApiResponseDto<TeacherAssignmentDto>>> UpdateAssignmentMaxAttempts(
+        int id,
+        [FromBody] UpdateMaxAttemptsRequest request)
+    {
+        var userId = GetCurrentUserId();
+        var teacherCourses = await GetTeacherCoursesQuery(userId)
+            .Include(k => k.MonHoc)
+            .Include(k => k.LopHocPhan)
+            .Include(k => k.Lop)
+            .ToListAsync();
+
+        var teacherMonHocIds = teacherCourses.Select(k => k.MaMonHoc).Distinct().ToList();
+        var assignment = await _context.BaiTaps
+            .FirstOrDefaultAsync(b => b.MaBaiTap == id && teacherMonHocIds.Contains(b.MaMonHoc));
+
+        if (assignment == null)
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy bài tập."));
+
+        assignment.SoLanNopToiDa = request.MaxAttempts > 0 ? request.MaxAttempts : 3;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(ApiResponseDto<TeacherAssignmentDto>.Ok(MapAssignment(assignment, teacherCourses, null), "Cập nhật số lần nộp thành công"));
+    }
+
     [HttpDelete("assignments/{id:int}")]
     public async Task<ActionResult<ApiResponseDto>> DeleteAssignment(int id)
     {

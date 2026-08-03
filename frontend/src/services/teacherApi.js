@@ -290,6 +290,13 @@ export const teacherApi = {
     })
   },
 
+  updateAssignmentMaxAttempts(id, maxAttempts) {
+    return apiRequest(`/api/teacher/assignments/${id}/max-attempts`, {
+      method: 'PATCH',
+      body: JSON.stringify({ maxAttempts }),
+    })
+  },
+
   deleteAssignment(id) {
     return apiRequest(`/api/teacher/assignments/${id}`, {
       method: 'DELETE',

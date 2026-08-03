@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { BookOpen, AlertCircle, Search, ChevronLeft, Download, Edit3, X, Award, Check, User, Clock } from 'lucide-vue-next'
+import { BookOpen, AlertCircle, Search, ChevronLeft, Download, Edit3, X, Award, Check, CheckCircle2, User, Clock } from 'lucide-vue-next'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
@@ -19,6 +19,20 @@ const selectedAssignment = ref(null)
 
 const courseId = route.params.courseId
 const assignmentId = route.params.assignmentId
+
+// Toast State
+const showToast = ref(false)
+const toastMessage = ref('')
+const toastIsError = ref(false)
+
+function displayToast(msg, isError = false) {
+  toastMessage.value = msg
+  toastIsError.value = isError
+  showToast.value = true
+  setTimeout(() => {
+    showToast.value = false
+  }, 3500)
+}
 
 // Grading Modal State
 const showGradingModal = ref(false)
@@ -58,11 +72,42 @@ async function submitGrade() {
     // Reload student list
     await loadData(false); // don't show full loading spinner again
     closeGradingModal();
+    displayToast('Lưu điểm thành công!');
   } catch (err) {
     console.error('Grade failed', err);
-    alert('Không thể chấm điểm. Vui lòng thử lại.');
+    displayToast('Không thể chấm điểm. Vui lòng thử lại.', true);
   } finally {
     gradingSubmitting.value = false;
+  }
+}
+
+// Update Max Attempts State
+const showMaxAttemptsModal = ref(false)
+const updatingMaxAttempts = ref(false)
+const maxAttemptsForm = ref({ value: 3 })
+
+function openMaxAttemptsModal() {
+  maxAttemptsForm.value.value = selectedAssignment.value?.maxAttempts ?? selectedAssignment.value?.MaxAttempts ?? selectedAssignment.value?.soLanNopToiDa ?? 3
+  showMaxAttemptsModal.value = true
+}
+
+function closeMaxAttemptsModal() {
+  showMaxAttemptsModal.value = false
+}
+
+async function submitMaxAttempts() {
+  if (maxAttemptsForm.value.value < 1) return;
+  updatingMaxAttempts.value = true;
+  try {
+    await teacherApi.updateAssignmentMaxAttempts(assignmentId, maxAttemptsForm.value.value);
+    await loadData(false);
+    showMaxAttemptsModal.value = false;
+    displayToast('Cập nhật số lần nộp thành công!');
+  } catch (err) {
+    console.error('Update failed', err);
+    displayToast('Không thể cập nhật số lần nộp. Vui lòng thử lại.', true);
+  } finally {
+    updatingMaxAttempts.value = false;
   }
 }
 
@@ -176,6 +221,13 @@ function getStatusBadgeClass(status) {
   </div>
   <div v-else class="courses-page">
     
+    <!-- Toast -->
+    <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 translate-y-2" leave-active-class="transition-all duration-200" leave-to-class="opacity-0">
+      <div v-if="showToast" class="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-lg" :style="{ background: toastIsError ? 'var(--color-danger-text)' : 'var(--lg-success)' }">
+        <component :is="toastIsError ? AlertCircle : CheckCircle2" :size="18" /> {{ toastMessage }}
+      </div>
+    </Transition>
+
     <!-- Header -->
     <GlassPanel variant="soft" density="compact" class="page-header" :clip="false">
       <div class="header-main">
@@ -222,6 +274,10 @@ function getStatusBadgeClass(status) {
           <p>Tình trạng nộp bài của sinh viên lớp {{ selectedCourse?.className ?? selectedCourse?.ClassName ?? 'Chưa xác định' }}</p>
         </div>
         <div class="flex items-center gap-3">
+          <GlassButton variant="secondary" size="sm" @click="openMaxAttemptsModal" class="flex items-center gap-2">
+            <Settings :size="16" />
+            <span>Sửa số lần nộp ({{ selectedAssignment?.maxAttempts ?? selectedAssignment?.MaxAttempts ?? selectedAssignment?.soLanNopToiDa ?? 3 }})</span>
+          </GlassButton>
           <GlassButton variant="primary" size="sm" @click="downloadAll" :disabled="downloadingAll" class="flex items-center gap-2">
             <Download :size="16" />
             <span v-if="downloadingAll">Đang tải...</span>
@@ -397,6 +453,38 @@ function getStatusBadgeClass(status) {
         </div>
       </div>
     </div>
+
+    <!-- Max Attempts Modal -->
+    <div v-if="showMaxAttemptsModal" class="modal-overlay" @click.self="closeMaxAttemptsModal">
+      <div class="modal-content surface-card border-card">
+        <div class="modal-header">
+          <h3 class="text-lg font-bold text-heading">Cấu hình số lần nộp bài</h3>
+          <button @click="closeMaxAttemptsModal" class="modal-close"><X :size="20" /></button>
+        </div>
+        <div class="modal-body space-y-4">
+          <div class="form-group">
+            <label class="text-sm font-semibold text-heading mb-1.5 block">Số lần nộp tối đa</label>
+            <input 
+              v-model.number="maxAttemptsForm.value" 
+              type="number" 
+              min="1"
+              max="100"
+              class="lg-control w-full p-3 font-bold text-heading"
+              placeholder="Ví dụ: 3"
+            />
+            <p class="text-xs text-muted mt-2">Mặc định là 3. Sinh viên sẽ không thể nộp bài nếu vượt quá số lần này.</p>
+          </div>
+        </div>
+        <div class="modal-footer flex items-center justify-end gap-3 mt-6 pt-3 border-t border-card">
+          <GlassButton variant="ghost" size="md" @click="closeMaxAttemptsModal">Hủy bỏ</GlassButton>
+          <GlassButton variant="primary" size="md" @click="submitMaxAttempts" :disabled="updatingMaxAttempts || maxAttemptsForm.value < 1">
+            <template #leading><Check :size="16" /></template>
+            <span v-if="updatingMaxAttempts">Đang lưu...</span>
+            <span v-else>Cập nhật</span>
+          </GlassButton>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -537,6 +625,52 @@ function getStatusBadgeClass(status) {
 }
 .back-btn:hover {
   text-decoration: underline;
+}
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 28rem;
+  padding: 1.5rem;
+  border-radius: var(--radius-xl, 1rem);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  background: var(--surface-input);
+  color: var(--text-heading);
 }
 
 /* Badges */
