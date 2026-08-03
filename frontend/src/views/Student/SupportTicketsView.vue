@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 import { usePopupStore } from '@/stores/popup'
 import { studentApi } from '@/services/studentApi'
-import { unwrapApiData } from '@/services/apiClient'
+import { unwrapApiData, storageApi } from '@/services/apiClient'
 import {
   LifeBuoy, Search, Plus, Send, Clock,
   CheckCircle2, XCircle, AlertCircle, Paperclip,
@@ -46,27 +46,37 @@ const newTicket = ref({ category: 'Kỹ thuật', title: '', content: '', file: 
 const aiSuggestions = ref([])
 const rating = ref(0)
 const ratingFeedback = ref('')
+const ticketFileInput = ref(null)
+const msgFileInput = ref(null)
+const chatFile = ref(null)
 
 const toDate = (value, defaultValue = null) => value ? new Date(value) : defaultValue
 
-const mapTicket = (item) => ({
-  id: item.maYeuCau ?? item.maTicket ?? item.id ?? item.Id,
-  title: item.tieuDe ?? item.title ?? item.Title,
-  category: item.danhMuc ?? item.loaiYeuCau ?? item.category ?? item.Category,
-  status: item.trangThai ?? item.status ?? item.Status,
-  assignedTo: item.nguoiXuLy ?? item.assignedTo ?? item.AssignedTo ?? 'Đang chờ phân công...',
-  createdAt: toDate(item.ngayTao ?? item.createdAt ?? item.CreatedAt),
-  deadline: toDate(item.hanXuLy ?? item.deadline ?? item.Deadline, null),
-  messages: (item.tinNhan ?? item.messages ?? item.Messages ?? []).map(m => ({
-    sender: m.nguoiGui === 'sinh_vien' ? 'me' : m.nguoiGui === 'nhan_vien' ? 'agent' : m.sender ?? m.Sender ?? 'agent',
-    text: m.noiDung ?? m.text ?? m.Text,
-    time: m.thoiGian ?? m.time ?? m.Time
-  })),
-  timeline: (item.lichSu ?? item.timeline ?? item.Timeline ?? []).map(l => ({
-    action: l.hanhDong ?? l.action ?? l.Action,
-    time: l.thoiGian ?? l.time ?? l.Time
-  }))
-})
+const mapTicket = (item) => {
+  const st = item.trangThai ?? item.status ?? item.Status ?? 'Open';
+  const idVal = item.maYeuCau ?? item.maTicket ?? item.id ?? item.Id;
+  return {
+    id: idVal,
+    code: item.code ?? item.Code ?? `TCK-${idVal}`,
+    title: item.tieuDe ?? item.title ?? item.Title,
+    category: item.danhMuc ?? item.loaiYeuCau ?? item.category ?? item.Category,
+    status: st.charAt(0).toUpperCase() + st.slice(1).toLowerCase(),
+    assignedTo: item.nguoiXuLy ?? item.assignedTo ?? item.AssignedTo ?? 'Đang chờ phân công...',
+    createdAt: toDate(item.ngayTao ?? item.createdAt ?? item.CreatedAt),
+    deadline: toDate(item.hanXuLy ?? item.deadline ?? item.Deadline, null),
+    messages: (item.tinNhan ?? item.messages ?? item.Messages ?? []).map(m => ({
+      sender: (m.isMe ?? m.IsMe) ? 'me' : 'agent',
+      text: m.noiDung ?? m.text ?? m.Text,
+      time: m.thoiGian ?? m.time ?? m.Time,
+      attachmentUrl: m.attachmentUrl ?? m.AttachmentUrl ?? m.urlDinhKem ?? m.UrlDinhKem
+    })),
+    timeline: (item.lichSu ?? item.timeline ?? item.Timeline ?? []).map(l => ({
+      action: l.hanhDong ?? l.action ?? l.Action,
+      time: l.thoiGian ?? l.time ?? l.Time
+    })),
+    attachmentUrl: item.attachmentUrl ?? item.AttachmentUrl ?? item.urlDinhKem ?? item.UrlDinhKem
+  }
+}
 
 const fetchTickets = async () => {
   loading.value = true
@@ -90,7 +100,7 @@ const filteredTickets = computed(() => {
     const matchStatus = filterStatus.value === 'Tất cả' || t.status === filterStatus.value
     const matchCat = filterCategory.value === 'Tất cả' || t.category === filterCategory.value
     const q = searchQuery.value.toLowerCase()
-    const matchQuery = t.title.toLowerCase().includes(q) || t.id.toLowerCase().includes(q)
+    const matchQuery = t.title.toLowerCase().includes(q) || t.code.toLowerCase().includes(q)
     return matchStatus && matchCat && matchQuery
   })
 })
@@ -106,24 +116,42 @@ const selectTicket = async (t) => {
   chatInput.value = ''
 }
 
+const handleMsgFileChange = (e) => {
+  if (e.target.files?.length > 0) {
+    chatFile.value = e.target.files[0]
+  }
+}
+
 const sendMessage = async () => {
-  if (!chatInput.value.trim() || !activeTicket.value) return
+  if ((!chatInput.value.trim() && !chatFile.value) || !activeTicket.value) return
   if (['Closed', 'Resolved'].includes(activeTicket.value.status)) return
 
   const text = chatInput.value
+  const file = chatFile.value
   chatInput.value = ''
+  chatFile.value = null
+  if (msgFileInput.value) msgFileInput.value.value = ''
 
   try {
-    const response = await studentApi.sendSupportTicketMessage(activeTicket.value.id, { content: text })
+    let attachmentUrl = null
+    if (file) {
+      const uploadRes = await storageApi.upload(file, 'support-tickets')
+      const uploadData = unwrapApiData(uploadRes)
+      attachmentUrl = uploadData?.url || uploadData?.Url || uploadData?.data?.url
+    }
+
+    const response = await studentApi.sendSupportTicketMessage(activeTicket.value.id, { content: text, attachmentUrl })
     const data = unwrapApiData(response) || {}
     activeTicket.value.messages.push({
       sender: 'me',
       text: data.noiDung ?? data.text ?? text,
-      time: data.thoiGian ?? data.time ?? 'Vừa xong'
+      time: data.thoiGian ?? data.time ?? 'Vừa xong',
+      attachmentUrl: attachmentUrl
     })
   } catch (err) {
     popupStore.error('Lỗi', err?.message || 'Không thể gửi tin nhắn.')
     chatInput.value = text
+    chatFile.value = file
   }
 }
 
@@ -140,14 +168,28 @@ const checkFAQ = () => {
   if (aiSuggestions.value.length === 0) createStep.value = 2
 }
 
+const handleTicketFileChange = (e) => {
+  if (e.target.files?.length > 0) {
+    newTicket.value.file = e.target.files[0]
+  }
+}
+
 const submitTicket = async () => {
   if (!newTicket.value.title || !newTicket.value.content) return
 
   try {
+    let attachmentUrl = null
+    if (newTicket.value.file) {
+      const uploadRes = await storageApi.upload(newTicket.value.file, 'support-tickets')
+      const uploadData = unwrapApiData(uploadRes)
+      attachmentUrl = uploadData?.url || uploadData?.Url || uploadData?.data?.url
+    }
+
     const response = await studentApi.createSupportTicket({
       title: newTicket.value.title,
       category: newTicket.value.category,
       content: newTicket.value.content,
+      attachmentUrl
     })
     const data = unwrapApiData(response) || {}
     const created = mapTicket(data)
@@ -246,7 +288,7 @@ const setRating = (val) => rating.value = val
                class="ticket-card" :class="{'active-card': activeTicket?.id === t.id}"
                @click="selectTicket(t)">
             <div class="tc-header">
-              <span class="tc-id">{{ t.id }}</span>
+              <span class="tc-id">{{ t.code }}</span>
               <span class="status-badge" :class="statusConfig[t.status].cls">
                 <component :is="statusConfig[t.status].icon" :size="12" />
                 {{ statusConfig[t.status].label }}
@@ -273,7 +315,7 @@ const setRating = (val) => rating.value = val
             <div class="flex justify-between items-start mb-2">
               <div>
                 <h2 class="detail-title">{{ activeTicket.title }}</h2>
-                <div class="detail-subtitle">Mã: {{ activeTicket.id }} • Tạo lúc: {{ formatDate(activeTicket.createdAt) }}</div>
+                <div class="detail-subtitle">Mã: {{ activeTicket.code }} • Tạo lúc: {{ formatDate(activeTicket.createdAt) }}</div>
               </div>
               <span class="status-badge lg" :class="statusConfig[activeTicket.status].cls">
                 {{ statusConfig[activeTicket.status].label }}
@@ -285,6 +327,13 @@ const setRating = (val) => rating.value = val
               <div class="info-item"><Bot :size="14"/> Xử lý: <strong>{{ activeTicket.assignedTo }}</strong></div>
               <div class="info-item"><Clock :size="14"/> Deadline: <strong class="deadline-text">{{ formatDate(activeTicket.deadline) }}</strong></div>
             </div>
+            
+            <div v-if="activeTicket.attachmentUrl" class="mt-4">
+              <a :href="activeTicket.attachmentUrl" target="_blank" class="text-sm text-blue-600 flex items-center gap-1 hover:underline">
+                <Paperclip :size="14" /> Xem đính kèm
+              </a>
+              <img v-if="activeTicket.attachmentUrl.match(/\.(jpeg|jpg|gif|png)$/i)" :src="activeTicket.attachmentUrl" class="max-w-xs mt-2 rounded-lg border border-gray-200" />
+            </div>
           </div>
 
           <!-- Detail Body (Chat + Timeline) -->
@@ -293,6 +342,12 @@ const setRating = (val) => rating.value = val
               <div v-for="(msg, i) in activeTicket.messages" :key="i" class="chat-msg" :class="msg.sender === 'me' ? 'msg-me' : 'msg-agent'">
                 <div class="msg-bubble">
                   {{ msg.text }}
+                  <div v-if="msg.attachmentUrl" class="mt-2">
+                    <a :href="msg.attachmentUrl" target="_blank" class="text-xs flex items-center gap-1 underline">
+                      <Paperclip :size="12" /> Đính kèm
+                    </a>
+                    <img v-if="msg.attachmentUrl.match(/\.(jpeg|jpg|gif|png)$/i)" :src="msg.attachmentUrl" class="max-w-[200px] mt-1 rounded border border-gray-200" />
+                  </div>
                 </div>
                 <div class="msg-time">{{ msg.time }}</div>
               </div>
@@ -324,7 +379,9 @@ const setRating = (val) => rating.value = val
               </div>
             </template>
             <template v-else>
-              <button class="btn-icon" title="Đính kèm file"><Paperclip :size="18"/></button>
+              <input type="file" ref="msgFileInput" @change="handleMsgFileChange" hidden />
+              <button class="btn-icon" title="Đính kèm file" @click="msgFileInput?.click()"><Paperclip :size="18"/></button>
+              <div v-if="chatFile" class="text-xs bg-gray-100 px-2 py-1 rounded truncate max-w-[100px] mr-2" :title="chatFile.name">{{ chatFile.name }}</div>
               <input v-model="chatInput" type="text" class="chat-input" placeholder="Nhập tin nhắn trao đổi..." @keyup.enter="sendMessage" />
               <button class="btn-primary" @click="sendMessage"><Send :size="16"/></button>
               <button class="btn-secondary" title="Kết thúc hỗ trợ" @click="closeTicket"><CheckCircle2 :size="16"/></button>
@@ -402,9 +459,11 @@ const setRating = (val) => rating.value = val
 
                 <div class="form-group mt-3">
                   <label>Tệp đính kèm (Hình ảnh lỗi minh chứng)</label>
-                  <div class="upload-box">
+                  <input type="file" ref="ticketFileInput" @change="handleTicketFileChange" hidden />
+                  <div class="upload-box" @click="ticketFileInput?.click()">
                     <Paperclip :size="20" class="upload-icon"/>
-                    <span>Kéo thả file hoặc nhấn để chọn (Tối đa 5MB)</span>
+                    <span v-if="!newTicket.file">Kéo thả file hoặc nhấn để chọn (Tối đa 5MB)</span>
+                    <span v-else class="font-bold text-blue-600">{{ newTicket.file.name }}</span>
                   </div>
                 </div>
               </template>

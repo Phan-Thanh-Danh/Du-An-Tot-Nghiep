@@ -8,7 +8,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/storage")]
-[Authorize(Policy = "AcademicOperations")]
+[Authorize]
 public class StorageController : ControllerBase
 {
     private readonly IR2StorageService _storage;
@@ -97,6 +97,7 @@ public class StorageController : ControllerBase
     }
 
     [HttpDelete]
+    [Authorize(Policy = "AcademicOperations")]
     public async Task<IActionResult> Delete([FromQuery] string storageKey, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(storageKey))

@@ -30,17 +30,30 @@ public class StudentSupportTicketsController : ControllerBase
             .OrderByDescending(p => p.NgayTao)
             .Select(p => new
             {
-                Id = $"TCK-{p.MaPhieuHt:D3}",
+                Id = p.MaPhieuHt,
+                Code = $"TCK-{p.MaPhieuHt:D3}",
                 Title = p.TieuDe,
-                Category = p.DanhMuc,
-                Status = p.TrangThai,
+                CategoryDb = p.DanhMuc,
+                StatusDb = p.TrangThai,
                 AssignedTo = p.PhanCongChoNavigation != null ? p.PhanCongChoNavigation.HoTen : "",
                 CreatedAt = p.NgayTao,
                 Deadline = p.HanXuLy
             })
             .ToListAsync(ct);
 
-        return Ok(ApiResponseDto<object>.Ok(tickets));
+        var result = tickets.Select(p => new
+        {
+            p.Id,
+            p.Code,
+            p.Title,
+            Category = MapCategoryToUi(p.CategoryDb),
+            Status = MapStatusToUi(p.StatusDb),
+            p.AssignedTo,
+            p.CreatedAt,
+            p.Deadline
+        });
+
+        return Ok(ApiResponseDto<object>.Ok(result));
     }
 
     [HttpGet("{ticketId:int}")]
@@ -63,20 +76,23 @@ public class StudentSupportTicketsController : ControllerBase
                 Sender = t.NguoiGui != null ? t.NguoiGui.HoTen : "",
                 Text = t.NoiDung,
                 Time = t.NgayTao,
-                IsMe = t.MaNguoiGui == userId
+                IsMe = t.MaNguoiGui == userId,
+                AttachmentUrl = t.UrlDinhKem
             })
             .ToListAsync(ct);
 
         return Ok(ApiResponseDto<object>.Ok(new
         {
-            Id = $"TCK-{ticket.MaPhieuHt:D3}",
+            Id = ticket.MaPhieuHt,
+            Code = $"TCK-{ticket.MaPhieuHt:D3}",
             Title = ticket.TieuDe,
-            Category = ticket.DanhMuc,
-            Status = ticket.TrangThai,
+            Category = MapCategoryToUi(ticket.DanhMuc),
+            Status = MapStatusToUi(ticket.TrangThai),
             Description = ticket.MoTa,
             AssignedTo = ticket.PhanCongChoNavigation?.HoTen ?? "",
             CreatedAt = ticket.NgayTao,
             Urgency = ticket.DoUuTien,
+            AttachmentUrl = ticket.UrlDinhKem,
             Messages = messages
         }));
     }
@@ -89,12 +105,13 @@ public class StudentSupportTicketsController : ControllerBase
         var ticket = new Models.PhieuHoTro
         {
             MaHocSinh = userId,
-            DanhMuc = request.Category ?? "Khác",
+            DanhMuc = MapCategoryToDb(request.Category),
             TieuDe = request.Title,
             MoTa = request.Description ?? "",
-            TrangThai = "open",
+            TrangThai = "mo",
             DoUuTien = "normal",
-            NgayTao = DateTime.UtcNow
+            NgayTao = DateTime.UtcNow,
+            UrlDinhKem = request.AttachmentUrl
         };
 
         _db.PhieuHoTros.Add(ticket);
@@ -103,6 +120,7 @@ public class StudentSupportTicketsController : ControllerBase
         return Ok(ApiResponseDto<object>.Ok(new
         {
             Id = ticket.MaPhieuHt,
+            Code = $"TCK-{ticket.MaPhieuHt:D3}",
             Message = "Ticket đã được tạo thành công."
         }));
     }
@@ -121,6 +139,7 @@ public class StudentSupportTicketsController : ControllerBase
             MaPhieuHt = ticketId,
             MaNguoiGui = userId,
             NoiDung = request.Content,
+            UrlDinhKem = request.AttachmentUrl,
             NgayTao = DateTime.UtcNow
         };
 
@@ -139,7 +158,7 @@ public class StudentSupportTicketsController : ControllerBase
             .FirstOrDefaultAsync(p => p.MaPhieuHt == ticketId && p.MaHocSinh == userId, ct);
         if (ticket == null) return NotFound();
 
-        ticket.TrangThai = "closed";
+        ticket.TrangThai = "da_dong";
         ticket.DanhGiaHaiLong = request?.Satisfaction;
         await _db.SaveChangesAsync(ct);
 
@@ -152,6 +171,31 @@ public class StudentSupportTicketsController : ControllerBase
             return currentUser.UserId;
         throw new ApiException(StatusCodes.Status401Unauthorized, "Token xác thực không hợp lệ.");
     }
+
+    private static string MapCategoryToDb(string? uiCategory) => uiCategory switch
+    {
+        "Kỹ thuật" => "ky_thuat",
+        "Học vụ" => "hoc_vu",
+        "Tài chính" => "tai_chinh",
+        _ => "khac"
+    };
+
+    private static string MapCategoryToUi(string dbCategory) => dbCategory switch
+    {
+        "ky_thuat" => "Kỹ thuật",
+        "hoc_vu" => "Học vụ",
+        "tai_chinh" => "Tài chính",
+        _ => "Khác"
+    };
+
+    private static string MapStatusToUi(string dbStatus) => dbStatus switch
+    {
+        "mo" => "Open",
+        "dang_xu_ly" => "In progress",
+        "da_giai_quyet" => "Resolved",
+        "da_dong" => "Closed",
+        _ => "Open"
+    };
 }
 
 public class CreateSupportTicketRequest
@@ -159,11 +203,13 @@ public class CreateSupportTicketRequest
     public string Title { get; set; } = string.Empty;
     public string? Category { get; set; }
     public string? Description { get; set; }
+    public string? AttachmentUrl { get; set; }
 }
 
 public class SendTicketMessageRequest
 {
     public string Content { get; set; } = string.Empty;
+    public string? AttachmentUrl { get; set; }
 }
 
 public class CloseTicketRequest

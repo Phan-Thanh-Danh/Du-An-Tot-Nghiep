@@ -13,6 +13,7 @@ public class PhieuHoTro
     public int? DanhGiaHaiLong { get; set; }
     public DateTime NgayTao { get; set; }
     public string DoUuTien { get; set; } = string.Empty;
+    public string? UrlDinhKem { get; set; }
 
     public NguoiDung? HocSinh { get; set; }
     public NguoiDung? PhanCongChoNavigation { get; set; }
