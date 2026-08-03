@@ -177,10 +177,10 @@ function toneClass(tone, part) {
           <div
             v-for="row in rows"
             :key="row.title"
-            @click="row.to ? $router.push(row.to) : null"
+            @click="row.onClick ? row.onClick(row) : (row.to ? $router.push(row.to) : null)"
             :class="[
               'grid gap-3 px-5 py-4 transition md:grid-cols-[minmax(0,1fr)_auto] md:items-center',
-              row.to ? 'cursor-pointer hover:bg-white/80 active:bg-white/60' : 'hover:bg-white/60'
+              (row.to || row.onClick) ? 'cursor-pointer hover:bg-white/80 active:bg-white/60' : 'hover:bg-white/60'
             ]"
           >
             <div class="flex min-w-0 gap-3">
@@ -209,16 +209,16 @@ function toneClass(tone, part) {
               </div>
             </div>
 
-            <div v-if="row.value || row.to" class="flex items-center justify-between gap-3 md:justify-end">
+            <div v-if="row.value || row.to || row.onClick" class="flex items-center justify-between gap-3 md:justify-end">
               <div v-if="row.value" class="text-left md:text-right">
                 <p class="text-sm font-bold text-slate-950">{{ row.value }}</p>
                 <p v-if="row.valueHint" class="text-xs text-slate-500">{{ row.valueHint }}</p>
               </div>
               <span
-                v-if="row.to"
+                v-if="row.to || row.onClick"
                 class="lg-button-secondary inline-flex h-9 items-center px-3 text-xs font-semibold"
               >
-                Mở
+                {{ row.actionLabel || 'Mở' }}
               </span>
             </div>
           </div>

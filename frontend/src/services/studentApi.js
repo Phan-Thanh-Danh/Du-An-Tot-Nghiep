@@ -249,6 +249,10 @@ export const studentApi = {
     return apiRequest('/api/student/grades', { method: 'GET' })
   },
 
+  getGradeDetail(monHocId, hocKyId) {
+    return apiRequest(`/api/student/grades/${monHocId}/${hocKyId}/detail`, { method: 'GET' })
+  },
+
   getEvaluations() {
     return apiRequest('/api/student/evaluations', { method: 'GET' })
   },

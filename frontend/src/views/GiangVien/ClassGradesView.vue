@@ -80,6 +80,37 @@ const gradeSummary = computed(() => {
   ]
 })
 
+const flatColumns = computed(() => {
+  if (!detailData.value) return []
+  const gts = detailData.value.gradeTypes ?? detailData.value.GradeTypes ?? []
+  
+  const cols = []
+  gts.forEach(gt => {
+    const items = gt.items ?? gt.Items ?? []
+    const typeWeight = gt.weight ?? gt.Weight ?? 0
+    if (items.length === 0) {
+      cols.push({
+        gtCode: gt.code ?? gt.Code,
+        gtName: gt.name ?? gt.Name,
+        weight: typeWeight,
+        itemName: '-',
+        grade: null
+      })
+    } else {
+      const itemWeight = (typeWeight / items.length)
+      items.forEach(item => {
+        cols.push({
+          gtCode: gt.code ?? gt.Code,
+          gtName: gt.name ?? gt.Name,
+          weight: itemWeight,
+          ...item
+        })
+      })
+    }
+  })
+  return cols
+})
+
 // ── Helpers ──
 function formatGrade(value) {
   if (value === null || value === undefined) return '—'
@@ -407,58 +438,58 @@ function closeUnlockModal() {
           </div>
 
           <template v-else-if="detailData">
-            <div class="detail-types-table-wrapper" style="overflow-x: auto; margin-bottom: 1.5rem; padding-bottom: 0.5rem;">
-              <TableShell density="compact" style="width: max-content; min-width: 100%;">
-                <table class="detail-table">
+            <div class="detail-types-table-wrapper" style="overflow-x: auto; margin-bottom: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: white;">
+              <TableShell density="comfortable" style="width: max-content; min-width: 100%;">
+                <table class="detail-table" style="color: #333;">
                   <thead>
-                    <tr>
-                      <th class="sticky-col"></th>
-                      <template v-for="gt in (detailData.gradeTypes ?? detailData.GradeTypes ?? [])" :key="'th-' + (gt.code ?? gt.Code)">
-                        <th v-for="item in (gt.items ?? gt.Items ?? [])" :key="item.itemId ?? item.ItemId" class="text-center">
-                          {{ item.itemName ?? item.ItemName }}
-                        </th>
-                      </template>
+                    <tr style="background-color: #f1f5f9;">
+                      <th rowspan="2" class="sticky-col text-center" style="left: 0; min-width: 40px; z-index: 4; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">#</th>
+                      <th rowspan="2" class="sticky-col text-left" style="left: 40px; min-width: 120px; z-index: 4; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Mã sinh viên</th>
+                      <th rowspan="2" class="sticky-col text-left" style="left: 160px; min-width: 180px; z-index: 4; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Họ và tên</th>
+                      
+                      <th v-for="(gt, index) in (detailData.gradeTypes ?? detailData.GradeTypes)" :key="'gt-' + index" 
+                          :colspan="(gt.items ?? gt.Items)?.length || 1" 
+                          class="text-center font-medium text-slate-700"
+                          style="border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+                        {{ gt.name ?? gt.Name }} <br/><span class="text-xs text-slate-500">({{ gt.weight ?? gt.Weight }}%)</span>
+                      </th>
+                      
+                      <th rowspan="2" class="text-center font-bold text-slate-700" style="min-width: 80px; border-bottom: 1px solid #e2e8f0;">Tổng kết</th>
+                      <th rowspan="2" class="text-center font-bold text-slate-700" style="min-width: 100px; border-bottom: 1px solid #e2e8f0;">Trạng thái</th>
+                    </tr>
+                    <tr style="background-color: #f8fafc;">
+                      <th v-for="(col, index) in flatColumns" :key="'col-' + index" class="text-center text-slate-600 font-medium" style="border-bottom: 1px solid #e2e8f0;">
+                        {{ col.itemName ?? col.ItemName }} <br/>
+                        <span class="text-xs text-slate-500">({{ (col.weight || 0).toFixed(1).replace('.0', '') }}%)</span>
+                      </th>
                     </tr>
                   </thead>
-                  <tbody>
-                    <tr>
-                      <td class="sticky-col"><strong>Điểm</strong></td>
-                      <template v-for="gt in (detailData.gradeTypes ?? detailData.GradeTypes ?? [])" :key="'td-' + (gt.code ?? gt.Code)">
-                        <td v-for="item in (gt.items ?? gt.Items ?? [])" :key="item.itemId ?? item.ItemId" class="text-center">
-                          <span :class="['detail-item-grade', (item.grade ?? item.Grade) === null ? 'no-data' : '']">
-                            {{ (item.grade ?? item.Grade) === null ? '—' : formatGrade(item.grade ?? item.Grade) }}
-                          </span>
-                        </td>
-                      </template>
+                  <tbody style="background: white;">
+                    <tr class="hover:bg-slate-50 transition-colors">
+                      <td class="sticky-col text-center" style="left: 0; border-right: 1px solid #f1f5f9; background: white;">1</td>
+                      <td class="sticky-col text-left font-medium" style="left: 40px; border-right: 1px solid #f1f5f9; background: white;">
+                        {{ (detailData.studentId ?? detailData.StudentId) }}
+                      </td>
+                      <td class="sticky-col text-left font-medium" style="left: 160px; border-right: 1px solid #f1f5f9; background: white;">
+                        {{ (detailData.studentName ?? detailData.StudentName) }}
+                      </td>
+                      <td v-for="(col, index) in flatColumns" :key="'td-' + index" class="text-center">
+                        <span :class="['detail-item-grade font-semibold text-[1.05rem]', (col.grade ?? col.Grade) === null ? 'text-slate-400' : 'text-slate-800']">
+                          {{ (col.grade ?? col.Grade) === null ? '—' : formatGrade(col.grade ?? col.Grade) }}
+                        </span>
+                      </td>
+                      <td class="text-center font-bold text-slate-800">
+                        {{ formatGrade(detailData.gpaMonHoc ?? detailData.GpaMonHoc) }}
+                      </td>
+                      <td class="text-center">
+                        <span :class="(detailData.trangThai ?? detailData.TrangThai) === 'Đạt' ? 'text-success font-medium' : 'text-danger font-medium'">
+                          {{ detailData.trangThai ?? detailData.TrangThai }}
+                        </span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
               </TableShell>
-            </div>
-
-            <div class="detail-summary">
-              <div class="detail-summary-row">
-                <span>Điểm quá trình</span>
-                <strong>{{ formatGrade(detailData.diemQuaTrinh ?? detailData.DiemQuaTrinh) }}</strong>
-              </div>
-              <div class="detail-summary-row">
-                <span>Giữa kỳ</span>
-                <strong>{{ formatGrade(detailData.diemGiuaKy ?? detailData.DiemGiuaKy) }}</strong>
-              </div>
-              <div class="detail-summary-row">
-                <span>Cuối kỳ</span>
-                <strong>{{ formatGrade(detailData.diemCuoiKy ?? detailData.DiemCuoiKy) }}</strong>
-              </div>
-              <div class="detail-summary-row highlight">
-                <span>Tổng kết</span>
-                <strong>{{ formatGrade(detailData.gpaMonHoc ?? detailData.GpaMonHoc) }}</strong>
-              </div>
-              <div class="detail-summary-row">
-                <span>Trạng thái</span>
-                <GlassBadge :variant="trangThaiVariant(detailData.trangThai ?? detailData.TrangThai)">
-                  {{ trangThaiLabel(detailData.trangThai ?? detailData.TrangThai) }}
-                </GlassBadge>
-              </div>
             </div>
           </template>
         </GlassPanel>
@@ -875,9 +906,9 @@ function closeUnlockModal() {
 
 /* ── Detail modal ── */
 .detail-modal {
-  width: 100%;
-  max-width: 40rem;
-  max-height: 80vh;
+  width: 95vw;
+  max-width: 1600px;
+  max-height: 90vh;
   overflow-y: auto;
   box-shadow: var(--lg-shadow-lg);
 }

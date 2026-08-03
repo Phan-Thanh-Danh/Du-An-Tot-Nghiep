@@ -49,29 +49,34 @@ function formatGrade(value) {
 }
 
 // ── Detail modal functions ──
-const interleavedColumns = computed(() => {
+const flatColumns = computed(() => {
   if (!detailData.value) return []
   const gts = detailData.value.gradeTypes ?? detailData.value.GradeTypes ?? []
   
-  let maxItems = 0
+  const cols = []
   gts.forEach(gt => {
     const items = gt.items ?? gt.Items ?? []
-    if (items.length > maxItems) maxItems = items.length
-  })
-
-  const cols = []
-  for (let i = 0; i < maxItems; i++) {
-    gts.forEach(gt => {
-      const items = gt.items ?? gt.Items ?? []
-      if (i < items.length) {
+    const typeWeight = gt.weight ?? gt.Weight ?? 0
+    if (items.length === 0) {
+      cols.push({
+        gtCode: gt.code ?? gt.Code,
+        gtName: gt.name ?? gt.Name,
+        weight: typeWeight,
+        itemName: '-',
+        grade: null
+      })
+    } else {
+      const itemWeight = (typeWeight / items.length)
+      items.forEach(item => {
         cols.push({
           gtCode: gt.code ?? gt.Code,
           gtName: gt.name ?? gt.Name,
-          ...items[i]
+          weight: itemWeight,
+          ...item
         })
-      }
-    })
-  }
+      })
+    }
+  })
   return cols
 })
 
@@ -475,51 +480,58 @@ onMounted(loadGrades)
           </div>
 
           <template v-else-if="detailData">
-            <div class="detail-types-table-wrapper" style="overflow-x: auto; margin-bottom: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+            <div class="detail-types-table-wrapper" style="overflow-x: auto; margin-bottom: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: white;">
               <TableShell density="comfortable" style="width: max-content; min-width: 100%;">
-                <table class="detail-table">
+                <table class="detail-table" style="color: #333;">
                   <thead>
-                    <tr>
-                      <th class="sticky-col">Đầu điểm</th>
-                      <th v-for="(col, index) in interleavedColumns" :key="'th-' + index" class="text-center">
-                        <div class="text-xs text-slate-500 font-medium mb-1">{{ col.gtName }}</div>
-                        <div class="font-bold text-slate-800">{{ col.itemName ?? col.ItemName }}</div>
+                    <tr style="background-color: #f1f5f9;">
+                      <th rowspan="2" class="sticky-col text-center" style="left: 0; min-width: 40px; z-index: 4; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">#</th>
+                      <th rowspan="2" class="sticky-col text-left" style="left: 40px; min-width: 120px; z-index: 4; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Mã sinh viên</th>
+                      <th rowspan="2" class="sticky-col text-left" style="left: 160px; min-width: 180px; z-index: 4; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Họ và tên</th>
+                      
+                      <th v-for="(gt, index) in (detailData.gradeTypes ?? detailData.GradeTypes)" :key="'gt-' + index" 
+                          :colspan="(gt.items ?? gt.Items)?.length || 1" 
+                          class="text-center font-medium text-slate-700"
+                          style="border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+                        {{ gt.name ?? gt.Name }} <br/><span class="text-xs text-slate-500">({{ gt.weight ?? gt.Weight }}%)</span>
+                      </th>
+                      
+                      <th rowspan="2" class="text-center font-bold text-slate-700" style="min-width: 80px; border-bottom: 1px solid #e2e8f0;">Tổng kết</th>
+                      <th rowspan="2" class="text-center font-bold text-slate-700" style="min-width: 100px; border-bottom: 1px solid #e2e8f0;">Trạng thái</th>
+                    </tr>
+                    <tr style="background-color: #f8fafc;">
+                      <th v-for="(col, index) in flatColumns" :key="'col-' + index" class="text-center text-slate-600 font-medium" style="border-bottom: 1px solid #e2e8f0;">
+                        {{ col.itemName ?? col.ItemName }} <br/>
+                        <span class="text-xs text-slate-500">({{ (col.weight || 0).toFixed(1).replace('.0', '') }}%)</span>
                       </th>
                     </tr>
                   </thead>
-                  <tbody>
-                    <tr>
-                      <td class="sticky-col font-bold">Điểm số</td>
-                      <td v-for="(col, index) in interleavedColumns" :key="'td-' + index" class="text-center">
+                  <tbody style="background: white;">
+                    <tr class="hover:bg-slate-50 transition-colors">
+                      <td class="sticky-col text-center" style="left: 0; border-right: 1px solid #f1f5f9; background: white;">1</td>
+                      <td class="sticky-col text-left font-medium" style="left: 40px; border-right: 1px solid #f1f5f9; background: white;">
+                        {{ (detailData.studentId ?? detailData.StudentId) }}
+                      </td>
+                      <td class="sticky-col text-left font-medium" style="left: 160px; border-right: 1px solid #f1f5f9; background: white;">
+                        {{ (detailData.studentName ?? detailData.StudentName) }}
+                      </td>
+                      <td v-for="(col, index) in flatColumns" :key="'td-' + index" class="text-center">
                         <span :class="['detail-item-grade font-semibold text-[1.05rem]', (col.grade ?? col.Grade) === null ? 'text-slate-400' : 'text-slate-800']">
                           {{ (col.grade ?? col.Grade) === null ? '—' : formatGrade(col.grade ?? col.Grade) }}
+                        </span>
+                      </td>
+                      <td class="text-center font-bold text-slate-800">
+                        {{ formatGrade(detailData.gpaMonHoc ?? detailData.GpaMonHoc) }}
+                      </td>
+                      <td class="text-center">
+                        <span :class="(detailData.trangThai ?? detailData.TrangThai) === 'Đạt' ? 'text-success font-medium' : 'text-danger font-medium'">
+                          {{ detailData.trangThai ?? detailData.TrangThai }}
                         </span>
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </TableShell>
-            </div>
-
-            <div class="detail-summary" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
-              <div class="detail-summary-row" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--surface-card); border-radius: 6px; border: 1px solid var(--border-card);">
-                <span>Điểm quá trình</span>
-                <strong>{{ formatGrade(detailData.diemQuaTrinh ?? detailData.DiemQuaTrinh) }}</strong>
-              </div>
-              <div class="detail-summary-row" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--surface-card); border-radius: 6px; border: 1px solid var(--border-card);">
-                <span>Giữa kỳ</span>
-                <strong>{{ formatGrade(detailData.diemGiuaKy ?? detailData.DiemGiuaKy) }}</strong>
-              </div>
-              <div class="detail-summary-row" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--surface-card); border-radius: 6px; border: 1px solid var(--border-card);">
-                <span>Cuối kỳ</span>
-                <strong>{{ formatGrade(detailData.diemCuoiKy ?? detailData.DiemCuoiKy) }}</strong>
-              </div>
-              <div class="detail-summary-row total" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--surface-elevated); border-radius: 6px; border: 1px solid var(--border-card); font-weight: 700; margin-top: 0.5rem;">
-                <span>Tổng kết (GPA)</span>
-                <strong :class="(detailData.trangThai ?? detailData.TrangThai) === 'Đạt' ? 'text-success' : 'text-danger'">
-                  {{ formatGrade(detailData.gpaMonHoc ?? detailData.GpaMonHoc) }}
-                </strong>
-              </div>
             </div>
           </template>
           <div v-else class="py-8 text-center text-muted">
@@ -928,7 +940,7 @@ onMounted(loadGrades)
 }
 .detail-modal {
   width: 95vw;
-  max-width: 1000px;
+  max-width: 1600px;
   max-height: 90vh;
   overflow-y: auto;
   border-radius: 16px;
