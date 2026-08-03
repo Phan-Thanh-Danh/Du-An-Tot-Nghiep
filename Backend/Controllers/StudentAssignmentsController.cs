@@ -161,7 +161,8 @@ public class StudentAssignmentsController : ControllerBase
             Rules = new SubmissionRulesDto
             {
                 AllowedFormats = ParseAllowedFormats(assignment.DinhDangChoPhep),
-                MaxSizeMB = 50,
+                MinSizeKB = assignment.DungLuongToiThieuKB > 0 ? assignment.DungLuongToiThieuKB : 10,
+                MaxSizeMB = assignment.DungLuongToiDaMB > 0 ? assignment.DungLuongToiDaMB : 50,
                 MaxAttempts = assignment.SoLanNopToiDa > 0 ? assignment.SoLanNopToiDa : 3,
                 CurrentAttempt = submissions.Count,
                 Note = "Lưu ý: Không chấp nhận nộp bài qua email."
@@ -230,6 +231,18 @@ public class StudentAssignmentsController : ControllerBase
         if (assignment.HanNop < now)
         {
             return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = "Đã quá hạn nộp bài." });
+        }
+
+        var minSizeKB = assignment.DungLuongToiThieuKB > 0 ? assignment.DungLuongToiThieuKB : 10;
+        if (file.Length < minSizeKB * 1024)
+        {
+            return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = $"File của bạn không có nội dung hoặc dung lượng quá nhỏ (Tối thiểu: {minSizeKB} KB)." });
+        }
+
+        var maxSizeMB = assignment.DungLuongToiDaMB > 0 ? assignment.DungLuongToiDaMB : 50;
+        if (file.Length > maxSizeMB * 1024 * 1024)
+        {
+            return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = $"Dung lượng file vượt quá giới hạn (Tối đa: {maxSizeMB} MB)." });
         }
 
         var student = await _context.NguoiDungs.FirstOrDefaultAsync(u => u.MaNguoiDung == currentUser.UserId);

@@ -33,6 +33,7 @@ const assignment = ref({
   description: '',
   rules: {
     allowedFormats: [],
+    minSizeKB: 0,
     maxSizeMB: 0,
     maxAttempts: 0,
     currentAttempt: 0,
@@ -95,6 +96,8 @@ function validateFile(file) {
   }
   const maxSize = assignment.value.rules.maxSizeMB || 50
   if (file.size > maxSize * 1024 * 1024) return 'toolarge'
+  const minSizeKB = assignment.value.rules.minSizeKB || 0
+  if (file.size < minSizeKB * 1024) return 'toosmall'
   return 'valid'
 }
 
@@ -308,6 +311,7 @@ const statusBadgeVariant = (s) => ({
                   <span class="text-xs text-muted shrink-0">{{ f.size }}</span>
                   <span v-if="f.status === 'invalid'" class="text-xs shrink-0" style="color:var(--color-danger-text)">Sai định dạng</span>
                   <span v-if="f.status === 'toolarge'" class="text-xs shrink-0" style="color:var(--color-danger-text)">Quá dung lượng</span>
+                  <span v-if="f.status === 'toosmall'" class="text-xs shrink-0" style="color:var(--color-danger-text)">Quá nhỏ / Không có nội dung</span>
                   <button @click="removeFile(f.name)" class="remove-file-button ml-1 text-muted transition-colors"><component :is="icon('X')" :size="13" /></button>
                 </div>
               </div>
@@ -388,6 +392,10 @@ const statusBadgeVariant = (s) => ({
                 <div class="flex flex-wrap gap-1.5">
                   <span v-for="fmt in cleanAllowedFormats" :key="fmt" class="inline-block rounded px-2 py-0.5 text-xs font-bold" style="background:var(--accent-primary-soft);color:var(--accent-primary)">{{ fmt }}</span>
                 </div>
+              </div>
+              <div class="flex items-center justify-between text-sm" v-if="assignment.rules.minSizeKB > 0">
+                <span class="text-muted">Dung lượng tối thiểu</span>
+                <span class="font-semibold text-heading">{{ assignment.rules.minSizeKB }} KB</span>
               </div>
               <div class="flex items-center justify-between text-sm">
                 <span class="text-muted">Dung lượng tối đa</span>

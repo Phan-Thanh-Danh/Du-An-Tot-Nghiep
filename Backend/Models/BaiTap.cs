@@ -11,6 +11,8 @@ public class BaiTap
     public string DinhDangChoPhep { get; set; } = string.Empty;
     public string? HuongDanChamDiem { get; set; }
     public string TrangThai { get; set; } = string.Empty;
+    public int DungLuongToiThieuKB { get; set; } = 10; // Default 10KB
+    public int DungLuongToiDaMB { get; set; } = 50; // Default 50MB
     public int? MaCauHinhDauDiem { get; set; }
 
     public DanhMucMonHoc? MonHoc { get; set; }

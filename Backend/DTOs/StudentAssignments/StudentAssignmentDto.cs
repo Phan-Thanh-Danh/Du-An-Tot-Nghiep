@@ -30,6 +30,7 @@ public class StudentAssignmentDetailDto
 public class SubmissionRulesDto
 {
     public List<string> AllowedFormats { get; set; } = new();
+    public int MinSizeKB { get; set; }
     public int MaxSizeMB { get; set; }
     public int MaxAttempts { get; set; }
     public int CurrentAttempt { get; set; }
