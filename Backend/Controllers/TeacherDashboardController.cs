@@ -57,6 +57,8 @@ public class TeacherDashboardController : ControllerBase
             .CountAsync();
 
         var recentSubmissions = await _context.BaiNops
+            .Include(b => b.BaiTap)
+            .ThenInclude(bt => bt.MonHoc)
             .Where(b => b.BaiTap != null && teacherCourseMonHocIds.Contains(b.BaiTap.MaMonHoc))
             .OrderByDescending(b => b.ThoiDiemNop)
             .Take(5)
@@ -64,6 +66,7 @@ public class TeacherDashboardController : ControllerBase
             {
                 SubmissionId = b.MaBaiNop,
                 StudentName = b.HocSinh != null ? b.HocSinh.HoTen : "",
+                CourseName = b.BaiTap != null && b.BaiTap.MonHoc != null ? b.BaiTap.MonHoc.TenMonHoc : "",
                 AssignmentTitle = b.BaiTap != null ? b.BaiTap.TieuDe : "",
                 SubmittedAt = b.ThoiDiemNop,
                 Score = b.DiemSo,
@@ -97,6 +100,7 @@ public class RecentSubmissionDto
 {
     public int SubmissionId { get; set; }
     public string StudentName { get; set; } = string.Empty;
+    public string CourseName { get; set; } = string.Empty;
     public string AssignmentTitle { get; set; } = string.Empty;
     public DateTime SubmittedAt { get; set; }
     public decimal? Score { get; set; }

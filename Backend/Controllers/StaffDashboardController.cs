@@ -50,6 +50,23 @@ public class StaffDashboardController : ControllerBase
         var newNotices = await _db.ThongBaos
             .CountAsync(t => t.NgayTao >= sevenDaysAgo);
 
+        // Lớp học phần sắp đầy (SoDaDangKy/SucChua >= 90%)
+        var nearFullClasses = await _db.LopHocPhans
+            .Where(l => l.TrangThai == "mo" && l.SucChua > 0 && l.SoDaDangKy * 100 / l.SucChua >= 90)
+            .Include(l => l.MonHoc)
+            .OrderByDescending(l => (double)l.SoDaDangKy / l.SucChua)
+            .Take(5)
+            .Select(l => new NearFullClassDto
+            {
+                Name = l.MaCodeLopHocPhan + (l.MonHoc != null ? " – " + l.MonHoc.TenMonHoc : ""),
+                Enrolled = l.SoDaDangKy,
+                Capacity = l.SucChua
+            })
+            .ToListAsync();
+
+        var fullClassCount = await _db.LopHocPhans
+            .CountAsync(l => l.TrangThai == "mo" && l.SucChua > 0 && l.SoDaDangKy * 100 / l.SucChua >= 90);
+
         var recentSchedules = await _db.ThoiKhoaBieus
             .Where(t => t.TrangThai != "da_huy")
             .OrderByDescending(t => t.NgayTao)
@@ -101,7 +118,9 @@ public class StaffDashboardController : ControllerBase
             Conflicts = conflicts,
             ActiveClasses = activeClasses,
             PendingRequests = pendingRequests,
+            FullClasses = fullClassCount,
             NewNotices = newNotices,
+            NearFullClasses = nearFullClasses,
             RecentSchedules = recentSchedules,
             RecentRequests = recentRequests,
             Announcements = announcements
@@ -117,10 +136,19 @@ public class StaffDashboardDto
     public int Conflicts { get; set; }
     public int ActiveClasses { get; set; }
     public int PendingRequests { get; set; }
+    public int FullClasses { get; set; }
     public int NewNotices { get; set; }
+    public List<NearFullClassDto> NearFullClasses { get; set; } = [];
     public List<ScheduleEntryDto> RecentSchedules { get; set; } = [];
     public List<RequestEntryDto> RecentRequests { get; set; } = [];
     public List<AnnouncementDto> Announcements { get; set; } = [];
+}
+
+public class NearFullClassDto
+{
+    public string Name { get; set; } = string.Empty;
+    public int Enrolled { get; set; }
+    public int Capacity { get; set; }
 }
 
 public class ScheduleEntryDto

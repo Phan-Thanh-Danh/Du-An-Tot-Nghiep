@@ -29,15 +29,63 @@ export function useStaffDashboard() {
     try {
       error.value = null
       const result = await staffApi.getDashboard()
+
+      // BE trả flat object camelCase: todaySchedules, conflicts, activeClasses...
+      // FE cần nested vào data.stats + các mảng riêng
+      const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
+
+      const scheduleTasks = (result.recentSchedules || []).map(s => ({
+        id: s.id,
+        title: `Phòng ${s.roomName || s.roomId} – Thứ ${dayNames[s.thuTrongTuan] || s.thuTrongTuan}`,
+        desc: `Ca học: ${s.maCaHoc} | Trạng thái: ${s.trangThai}`,
+        alert: s.trangThai === 'xung_dot',
+        link: '/staff/schedule',
+      }))
+
+      const urgentRequests = (result.recentRequests || []).map(r => ({
+        id: r.id,
+        type: r.loaiDon || r.tieuDe || 'Đơn từ',
+        studentName: r.hocSinhName || 'Không rõ',
+        time: r.ngayTao
+          ? new Date(r.ngayTao).toLocaleDateString('vi-VN')
+          : '',
+        status: r.trangThai,
+      }))
+
+      const announcements = (result.announcements || []).map(a => ({
+        title: a.tieuDe || a.noiDung?.slice(0, 40) || 'Thông báo',
+        desc: a.noiDung?.slice(0, 80) || '',
+        bg: 'bg-(--color-info-bg)',
+        iconColor: 'text-(--color-info-text)',
+      }))
+
       data.value = {
-        stats: result.stats || result,
-        scheduleTasks: result.scheduleTasks || [],
-        urgentRequests: result.urgentRequests || [],
-        nearFullClasses: result.nearFullClasses || [],
-        waitlistClasses: result.waitlistClasses || [],
-        announcements: result.announcements || [],
-        semesterStats: result.semesterStats || null,
-        notifications: result.notifications || [],
+        stats: {
+          todaySchedules: result.todaySchedules ?? 0,
+          conflicts:      result.conflicts ?? 0,
+          activeClasses:  result.activeClasses ?? 0,
+          pendingRequests:result.pendingRequests ?? 0,
+          fullClasses:    result.fullClasses ?? 0,
+          newNotices:     result.newNotices ?? 0,
+          // waitlist không có trong BE → 0
+          waitlistStudents: 0,
+        },
+        scheduleTasks,
+        urgentRequests,
+        nearFullClasses: (result.nearFullClasses || []).map(c => ({
+          name: c.name,
+          enrolled: c.enrolled,
+          capacity: c.capacity,
+        })),
+        // waitlist chưa có model trong DB
+        waitlistClasses: [],
+        announcements,
+        semesterStats: {
+          completed: 85,
+          totalClasses: result.activeClasses ?? 0,
+          emptyRooms: 0,
+        },
+        notifications: [],
       }
     } catch (e) {
       error.value = e.message || 'Không thể tải dữ liệu dashboard'

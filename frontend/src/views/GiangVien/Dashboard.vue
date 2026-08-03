@@ -271,12 +271,14 @@ async function loadDashboard() {
     ]
     
     recentSubmissions.value = (data?.recentSubmissions || []).map(s => ({
-      id: s.id,
-      student: s.tenSinhVien || s.student || '',
-      course: s.tenMonHoc || s.course || '',
-      assignment: s.tieuDe || s.assignment || '',
-      time: s.thoiGianNop || s.time || '',
-      status: s.trangThai === 'moi' ? 'new' : 'graded'
+      id: s.submissionId || s.id,
+      student: s.studentName || s.student || '',
+      course: s.courseName || s.course || '',
+      assignment: s.assignmentTitle || s.assignment || '',
+      time: s.submittedAt 
+        ? new Date(s.submittedAt).toLocaleDateString('vi-VN') 
+        : (s.time || ''),
+      status: s.status === 'moi' || s.status === 'cho_cham' ? 'new' : 'graded'
     }))
   } catch (e) {
     error.value = e?.message || 'Không thể tải dữ liệu dashboard.'
