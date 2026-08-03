@@ -25,6 +25,16 @@ import { getStoredActiveChildId, setActiveChildId } from '@/components/PhuHuynh/
 
 const router = useRouter()
 
+// ── Ngày hôm nay (dynamic) ──
+const today = new Date()
+// JS: 0=Chủ nhật, 1=Thứ 2, ..., 6=Thứ 7 → BE lưu 2–8 (Thứ 2=2, ..., Thứ 7=7, CN=8)
+const todayDayOfWeek = today.getDay() === 0 ? 8 : today.getDay() + 1
+
+const todayLabel = computed(() => {
+  const d = today
+  return `Ngày ${String(d.getDate()).padStart(2,'0')} tháng ${String(d.getMonth()+1).padStart(2,'0')} năm ${d.getFullYear()}`
+})
+
 const emptyChild = {
   id: null,
   name: 'Chưa có học sinh liên kết',
@@ -52,7 +62,8 @@ const dropdownOpen = ref(false)
 const gpaDropdownOpen = ref(false)
 const rawChildren = ref([])
 const childDetails = ref({})
-const childSchedules = ref({})
+const childSchedules = ref({})   // lưu toàn bộ TKB tuần
+const childAttendances = ref({}) // lưu dữ liệu điểm danh thật
 const childAlerts = ref({})
 const childTuition = ref({})
 const childGrades = ref({})
@@ -61,34 +72,50 @@ const loading = ref(false)
 const error = ref('')
 
 const children = computed(() => {
-  return rawChildren.value.map(c => ({
-    id: c.id,
-    name: c.name,
-    studentId: c.email || `ID ${c.id}`,
-    class: c.className || 'Chưa có lớp',
-    avatarInitials: getInitials(c.name),
-    gpa: childDetails.value[c.id]?.gpa || 0,
-    gpaTrend: 'Dữ liệu từ hệ thống',
-    attendanceRate: calcAttendanceRate(childSchedules.value[c.id], childDetails.value[c.id]),
-    absences: 0,
-    tuitionDebt: childTuition.value[c.id]?.totalDue || 0,
-    tuitionStatus: (childTuition.value[c.id]?.totalDue || 0) > 0 ? 'Chờ thanh toán' : 'Đã hoàn thành',
-    schedule: (childSchedules.value[c.id] || []).map((s, idx) => ({
-      id: idx + 1,
-      subject: s.subject || 'Lịch học',
-      room: s.room || '-',
-      teacher: s.teacher || '-',
-      time: s.time || '-',
-      status: idx === 0 ? 'upcoming' : 'finished',
-    })),
-    alerts: (childAlerts.value[c.id] || []).map((a, idx) => ({
-      id: idx + 1,
-      type: a.severity || 'info',
-      message: a.message || 'Cảnh báo hệ thống',
-      time: 'Từ hệ thống',
-    })),
-    gradesProgress: buildGradeProgress(childGrades.value[c.id]),
-  }))
+  return rawChildren.value.map(c => {
+    const attendance = childAttendances.value[c.id] || []
+    const total = attendance.length
+    const present = attendance.filter(a => a.status === 'co_mat' || a.status === 'di_muon').length
+    const absences = attendance.filter(a => a.status === 'vang').length
+    const attendanceRate = total > 0 ? Math.round((present / total) * 100) : 0
+
+    // Lọc TKB theo ngày hôm nay
+    const allSchedule = childSchedules.value[c.id] || []
+    const todaySchedule = allSchedule
+      .filter(s => s.day === todayDayOfWeek)
+      .map((s, idx) => ({
+        id: idx + 1,
+        subject: s.subject || 'Lịch học',
+        room: s.room || '-',
+        teacher: s.teacher || '-',
+        time: s.time || '-',
+        status: 'upcoming',
+      }))
+
+    return {
+      id: c.id,
+      name: c.name,
+      studentId: c.email || `ID ${c.id}`,
+      class: c.className || 'Chưa có lớp',
+      avatarInitials: getInitials(c.name),
+      gpa: childDetails.value[c.id]?.gpa || 0,
+      gpaTrend: 'Dữ liệu từ hệ thống',
+      attendanceRate,
+      absences,
+      tuitionDebt: childTuition.value[c.id]?.totalDue || 0,
+      tuitionStatus: (childTuition.value[c.id]?.totalDue || 0) > 0 ? 'Chờ thanh toán' : 'Đã hoàn thành',
+      schedule: todaySchedule,
+      // Fix: BE trả title/content/severity, không phải message
+      alerts: (childAlerts.value[c.id] || []).map((a, idx) => ({
+        id: a.id || idx + 1,
+        type: a.severity || a.type || 'info',
+        message: a.title || a.message || 'Cảnh báo hệ thống',
+        detail: a.content || '',
+        time: 'Từ hệ thống',
+      })),
+      gradesProgress: buildGradeProgress(childGrades.value[c.id]),
+    }
+  })
 })
 
 const currentChild = computed(() => {
@@ -121,10 +148,6 @@ function getInitials(name = '') {
     .toUpperCase() || '-'
 }
 
-function calcAttendanceRate() {
-  return 0
-}
-
 function buildGradeProgress(grades = []) {
   const points = grades.slice(-4).map((g, idx) => ({
     semester: g.semester || `Kỳ ${idx + 1}`,
@@ -138,15 +161,17 @@ function buildGradeProgress(grades = []) {
 
 async function loadChildDetails(childId) {
   if (!childId) return
-  const [detailRes, scheduleRes, alertsRes, tuitionRes, gradesRes] = await Promise.allSettled([
+  const [detailRes, scheduleRes, attendanceRes, alertsRes, tuitionRes, gradesRes] = await Promise.allSettled([
     parentApi.getChildDetail(childId),
     parentApi.getChildSchedule(childId),
+    parentApi.getChildAttendance(childId),
     parentApi.getChildAlerts(childId),
     parentApi.getChildTuition(childId),
     parentApi.getChildGrades(childId),
   ])
   if (detailRes.status === 'fulfilled') childDetails.value[childId] = detailRes.value?.data || {}
   if (scheduleRes.status === 'fulfilled') childSchedules.value[childId] = scheduleRes.value?.data || []
+  if (attendanceRes.status === 'fulfilled') childAttendances.value[childId] = attendanceRes.value?.data || []
   if (alertsRes.status === 'fulfilled') childAlerts.value[childId] = alertsRes.value?.data?.alerts || []
   if (tuitionRes.status === 'fulfilled') childTuition.value[childId] = tuitionRes.value?.data || {}
   if (gradesRes.status === 'fulfilled') childGrades.value[childId] = gradesRes.value?.data || []
@@ -183,6 +208,7 @@ async function loadDashboard() {
 
 onMounted(loadDashboard)
 </script>
+
 
 <template>
   <div class="space-y-6">
@@ -405,7 +431,7 @@ onMounted(loadDashboard)
             <Clock :size="18" class="text-orange-600" />
             Lịch trình học tập hôm nay
           </h3>
-          <span class="text-xs font-bold text-muted bg-(--surface-input) px-3 py-1.5 rounded-xl border border-card shadow-inner">Ngày 10 tháng 06 năm 2026</span>
+          <span class="text-xs font-bold text-muted bg-(--surface-input) px-3 py-1.5 rounded-xl border border-card shadow-inner">{{ todayLabel }}</span>
         </div>
         
         <div class="flex-1 space-y-4">
