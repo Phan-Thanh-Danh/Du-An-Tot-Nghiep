@@ -7,6 +7,7 @@ import { studentApi } from '@/services/studentApi.js'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
+import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 
 const route = useRoute()
 const assignmentId = route.params.assignmentId
@@ -21,6 +22,7 @@ const selectedFiles = ref([])
 const showToast = ref(false)
 const toastMessage = ref('')
 const loadError = ref('')
+const showConfirmSubmit = ref(false)
 
 const assignment = ref({
   courseCode: '',
@@ -123,8 +125,17 @@ const canSubmit = computed(() =>
   selectedFiles.value.every(f => f.status === 'valid')
 )
 
-async function doSubmit() {
+function doSubmit() {
   if (!canSubmit.value) return
+  if (assignment.value.submissions && assignment.value.submissions.length > 0) {
+    showConfirmSubmit.value = true
+  } else {
+    executeSubmit()
+  }
+}
+
+async function executeSubmit() {
+  showConfirmSubmit.value = false
   submitting.value = true
   
   const formData = new FormData()
@@ -411,6 +422,16 @@ const statusBadgeVariant = (s) => ({
 
         </div>
       </div>
+
+      <ConfirmActionDialog
+        v-model="showConfirmSubmit"
+        title="Xác nhận nộp bài"
+        message="Bạn đã nộp bài rồi. Bạn có chắc chắn muốn nộp file mới không? (File mới sẽ được lưu thành lần nộp tiếp theo của bạn)."
+        confirmLabel="Vẫn nộp đè"
+        cancelLabel="Hủy bỏ"
+        variant="primary"
+        @confirm="executeSubmit"
+      />
     </template>
   </div>
 </template>
