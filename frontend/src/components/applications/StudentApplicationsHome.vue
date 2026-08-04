@@ -90,6 +90,26 @@ watch(
   { immediate: true },
 )
 
+watch(
+  selectedId,
+  async (newId) => {
+    if (!newId) return
+    try {
+      const detail = await applicationsApi.getMyApplicationDetail(newId)
+      if (detail) {
+        const mapped = mapApplication(detail)
+        const index = applications.value.findIndex(a => a.id === String(newId))
+        if (index !== -1) {
+          applications.value[index] = { ...applications.value[index], ...mapped }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load application detail:', e)
+    }
+  },
+  { immediate: true }
+)
+
 const summaryCards = computed(() => [
   { label: 'Tổng đơn', value: applications.value.length, icon: FolderOpen, variant: 'primary' },
   {
@@ -369,10 +389,12 @@ function mapApplication(item) {
       const configObj = typeof configStr === 'string' ? JSON.parse(configStr) : (configStr || {})
       const tplFields = configObj.fields || []
       tplFields.forEach(f => {
-        formDataList.push({
-          label: f.label,
-          value: getFormValue(formData, f.key) || '—'
-        })
+        if (f.type !== 'studentInfo') {
+          formDataList.push({
+            label: f.label,
+            value: getFormValue(formData, f.key) || '—'
+          })
+        }
       })
     } catch (e) {
       console.warn('Failed to parse template fields for mapping', e)

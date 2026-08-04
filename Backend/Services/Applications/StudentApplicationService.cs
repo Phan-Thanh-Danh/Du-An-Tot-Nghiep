@@ -563,7 +563,8 @@ public class StudentApplicationService : IStudentApplicationService
             CanEdit = application.TrangThai is ApplicationStatuses.Draft or ApplicationStatuses.NeedSupplement,
             CanSubmit = application.TrangThai == ApplicationStatuses.Draft,
             CanResubmit = application.TrangThai == ApplicationStatuses.NeedSupplement,
-            CanCancel = CancelableStatuses.Contains(application.TrangThai)
+            CanCancel = CancelableStatuses.Contains(application.TrangThai),
+            RowVersion = Convert.ToBase64String(application.RowVersion)
         };
     }
 

@@ -21,6 +21,7 @@ public class StudentApplicationListItemDto
     public bool CanSubmit { get; set; }
     public bool CanResubmit { get; set; }
     public bool CanCancel { get; set; }
+    public string RowVersion { get; set; } = string.Empty;
 }
 
 public class StudentApplicationDetailDto : StudentApplicationListItemDto
