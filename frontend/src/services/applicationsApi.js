@@ -63,10 +63,12 @@ export const applicationsApi = {
       body: JSON.stringify(payload),
     }))
   },
-  async uploadEvidence(applicationId, file, metadata = {}) {
+  async uploadEvidence(applicationId, files, metadata = {}) {
     const formData = new FormData()
-    formData.append('files', file)
+    const fileArray = Array.isArray(files) ? files : [files]
+    fileArray.forEach(file => formData.append('files', file))
     if (metadata.description) formData.append('description', metadata.description)
+    if (metadata.rowVersion) formData.append('rowVersion', metadata.rowVersion)
 
     return unwrapApiData(await apiRequest(`/api/student/applications/${applicationId}/attachments`, {
       method: 'POST',

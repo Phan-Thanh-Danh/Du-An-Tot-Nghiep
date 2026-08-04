@@ -437,6 +437,8 @@ using (var scope = app.Services.CreateScope())
     var blockSeeder = new Backend.Data.Seeders.BlockDataSeeder(context);
     await blockSeeder.SeedAsync();
 
+    await Backend.Data.Seeders.ApplicationTemplateSeeder.SeedAsync(context);
+
     if (app.Environment.IsDevelopment())
     {
         try

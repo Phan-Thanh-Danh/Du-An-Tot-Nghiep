@@ -129,6 +129,7 @@ public class ApplicationFormDataValidator : IApplicationFormDataValidator
                     EvidenceRequired = GetOptionalBoolean(item, "evidenceRequired"),
                     MaxLength = GetOptionalInt(item, "maxLength"),
                     RelatedEntity = GetOptionalString(item, "relatedEntity"),
+                    AutoFill = GetOptionalString(item, "autoFill"),
                     Options = options
                 };
             }
@@ -177,6 +178,9 @@ public class ApplicationFormDataValidator : IApplicationFormDataValidator
         {
             case ApplicationFieldTypes.Text:
             case ApplicationFieldTypes.Textarea:
+            case ApplicationFieldTypes.StudentInfo:
+            case ApplicationFieldTypes.Tel:
+            case ApplicationFieldTypes.Email:
                 if (value.ValueKind != JsonValueKind.String)
                 {
                     throw InvalidFieldType(field.Key);
@@ -233,6 +237,11 @@ public class ApplicationFormDataValidator : IApplicationFormDataValidator
                     return new NormalizedFieldValue(false, null);
                 }
 
+                if (!string.IsNullOrWhiteSpace(field.AutoFill))
+                {
+                    return new NormalizedFieldValue(true, selected);
+                }
+
                 if (!field.Options.TryGetValue(selected, out var canonical))
                 {
                     throw new ApiException(StatusCodes.Status400BadRequest, $"Giá trị của field '{field.Key}' không nằm trong options.");
@@ -261,7 +270,12 @@ public class ApplicationFormDataValidator : IApplicationFormDataValidator
                         continue;
                     }
 
-                    if (!field.Options.TryGetValue(itemValue, out var itemCanonical))
+                    string itemCanonical;
+                    if (!string.IsNullOrWhiteSpace(field.AutoFill))
+                    {
+                        itemCanonical = itemValue;
+                    }
+                    else if (!field.Options.TryGetValue(itemValue, out itemCanonical))
                     {
                         throw new ApiException(StatusCodes.Status400BadRequest, $"Giá trị của field '{field.Key}' không nằm trong options.");
                     }

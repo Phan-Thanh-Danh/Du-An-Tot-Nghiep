@@ -27,6 +27,7 @@ public sealed class ApplicationFieldDefinition
     public bool EvidenceRequired { get; init; }
     public int? MaxLength { get; init; }
     public string? RelatedEntity { get; init; }
+    public string? AutoFill { get; init; }
     public IReadOnlyDictionary<string, string> Options { get; init; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 }
 

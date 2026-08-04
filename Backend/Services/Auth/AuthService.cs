@@ -33,7 +33,11 @@ public class AuthService : IAuthService
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request)
     {
         var normalizedIdentity = request.UsernameOrEmail.Trim().ToLowerInvariant();
-        var user = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.Email.ToLower() == normalizedIdentity);
+        var user = await _context.NguoiDungs
+            .Include(u => u.Lop)
+                .ThenInclude(l => l.ChuongTrinh)
+                    .ThenInclude(c => c.ChuyenNganh)
+            .FirstOrDefaultAsync(x => x.Email.ToLower() == normalizedIdentity);
 
         if (user is null)
         {
@@ -285,7 +289,9 @@ public class AuthService : IAuthService
             FullName = user.HoTen,
             Role = role,
             CampusId = user.MaDonVi,
-            Status = status
+            Status = status,
+            ClassName = user.Lop?.TenLop ?? "",
+            MajorName = user.Lop?.ChuongTrinh?.ChuyenNganh?.TenChuyenNganh ?? ""
         };
     }
 
@@ -295,6 +301,9 @@ public class AuthService : IAuthService
 
         return await _context.TokenLamMois
             .Include(x => x.NguoiDung)
+                .ThenInclude(u => u!.Lop)
+                    .ThenInclude(l => l!.ChuongTrinh)
+                        .ThenInclude(c => c!.ChuyenNganh)
             .FirstOrDefaultAsync(x =>
                 x.TokenHash == tokenHash &&
                 x.ThuHoiLuc == null &&

@@ -500,4 +500,31 @@ public class StudentDashboardController : ControllerBase
         if (diff.TotalDays < 2) return $"Ngày mai · {deadline:HH\\:mm}";
         return diff.TotalDays <= 7 ? $"{(int)diff.TotalDays} ngày nữa" : deadline.ToString("dd/MM/yyyy");
     }
+
+    [HttpGet("semesters")]
+    public async Task<ActionResult<ApiResponseDto<List<object>>>> GetSemesters()
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            if (currentUser == null)
+                return Unauthorized();
+
+            var semesters = await _db.HocKys
+                .Where(h => h.MaDonVi == currentUser.CampusId)
+                .OrderByDescending(h => h.NgayBatDau)
+                .Select(h => new
+                {
+                    id = h.MaHocKy.ToString(),
+                    name = h.TenHocKy + " " + h.NamHoc
+                })
+                .ToListAsync();
+
+            return Ok(ApiResponseDto<List<object>>.Ok(semesters.Cast<object>().ToList()));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi hệ thống: " + ex.Message));
+        }
+    }
 }

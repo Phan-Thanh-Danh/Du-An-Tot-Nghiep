@@ -26,10 +26,10 @@ public class StudentApplicationEvidenceController : ControllerBase
     public async Task<ActionResult<ApiResponseDto<ApplicationEvidenceUploadResponseDto>>> Upload(
         int applicationId,
         [FromForm] List<IFormFile> files,
-        [FromForm] string rowVersion,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        [FromForm] string? rowVersion = null)
     {
-        var result = await _evidenceService.UploadAsync(applicationId, files, rowVersion, cancellationToken);
+        var result = await _evidenceService.UploadAsync(applicationId, files, rowVersion ?? string.Empty, cancellationToken);
         return CreatedAtAction(
             nameof(Download),
             new { applicationId, attachmentId = result.UploadedFiles.FirstOrDefault()?.MaTep ?? 0 },

@@ -145,8 +145,8 @@ function downloadInvoicePDF(invoiceId) {
   const statusText = isPaid ? 'ĐÃ THANH TOÁN' : 'CHƯA THANH TOÁN'
   const statusColor = isPaid ? '#16a34a' : '#dc2626'
 
-  const scriptStart = '<script'
-  const scriptEnd = '<\/script>'
+  const scriptStart = '<scr' + 'ipt'
+  const scriptEnd = '</scr' + 'ipt>'
 
   const html = `<!DOCTYPE html>
 <html lang="vi">

@@ -120,6 +120,10 @@ public static class ApplicationFieldTypes
     public const string Boolean = "boolean";
     public const string RelatedEntity = "related_entity";
 
+    public const string StudentInfo = "studentInfo";
+    public const string Tel = "tel";
+    public const string Email = "email";
+
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         Text,
@@ -130,7 +134,10 @@ public static class ApplicationFieldTypes
         Select,
         Multiselect,
         Boolean,
-        RelatedEntity
+        RelatedEntity,
+        StudentInfo,
+        Tel,
+        Email
     };
 }
 

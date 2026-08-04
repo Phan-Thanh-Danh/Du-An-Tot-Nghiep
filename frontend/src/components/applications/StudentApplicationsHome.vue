@@ -19,11 +19,14 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import { applicationsApi } from '@/services/applicationsApi'
+import { apiRequest } from '@/services/apiClient'
 import { usePopupStore } from '@/stores/popup'
+import { useAuthStore } from '@/stores/auth'
 import { formatDate, formatDateTime } from '@/utils/dateFormat'
 import { getStatusMeta, getStatusOptions } from '@/utils/statusLabels'
 
 const popupStore = usePopupStore()
+const authStore = useAuthStore()
 const applicationTypes = ref([])
 
 function getApplicationTypeLabel(type) {
@@ -42,11 +45,12 @@ const wizardStep = ref(0)
 const submitAttempted = ref(false)
 const confirmAction = ref(null)
 
+const currentTemplate = ref(null)
+const evidenceFiles = ref([])
+
 const draft = ref({
   type: '',
-  title: '',
-  reason: '',
-  evidenceName: '',
+  dynamicFields: {},
   reviewAccepted: false,
 })
 
@@ -113,8 +117,16 @@ const wizardSteps = ['Chọn loại đơn', 'Điền thông tin', 'Minh chứng'
 const draftErrors = computed(() => {
   const errors = []
   if (!draft.value.type) errors.push('Vui lòng chọn loại đơn.')
-  if (wizardStep.value >= 1 && !draft.value.title.trim()) errors.push('Vui lòng nhập tiêu đề đơn.')
-  if (wizardStep.value >= 1 && !draft.value.reason.trim()) errors.push('Vui lòng nhập nội dung yêu cầu.')
+  if (wizardStep.value >= 1 && currentTemplate.value?.fields) {
+    currentTemplate.value.fields.forEach(field => {
+      if (field.required && !draft.value.dynamicFields[field.key]) {
+        errors.push(`Vui lòng nhập ${field.label.toLowerCase()}.`)
+      }
+    })
+  }
+  if (wizardStep.value >= 2 && currentTemplate.value?.batBuocMinhChung && !evidenceFiles.value.length) {
+    errors.push('Vui lòng đính kèm minh chứng.')
+  }
   if (wizardStep.value >= 3 && !draft.value.reviewAccepted) errors.push('Vui lòng xác nhận đã kiểm tra thông tin.')
   return errors
 })
@@ -148,29 +160,81 @@ function startCreate() {
   submitAttempted.value = false
   draft.value = {
     type: applicationTypes.value[0]?.value || '',
-    title: '',
-    reason: '',
-    evidenceName: '',
+    dynamicFields: {},
     reviewAccepted: false,
   }
+  currentTemplate.value = null
+  evidenceFiles.value = []
 }
 
-function goNext() {
+async function goNext() {
   submitAttempted.value = true
   if (draftErrors.value.length) return
   submitAttempted.value = false
+  
+  if (wizardStep.value === 0 && draft.value.type) {
+    if (!currentTemplate.value || currentTemplate.value.type !== draft.value.type) {
+      loading.value = true
+      try {
+        const tpl = await applicationsApi.getApplicationTemplateDetail(draft.value.type)
+        const configStr = tpl?.cauHinhJson ?? tpl?.CauHinhJson
+        const config = typeof configStr === 'string' ? JSON.parse(configStr) : (configStr || { fields: [] })
+        config.type = draft.value.type
+        config.batBuocMinhChung = tpl?.batBuocMinhChung ?? tpl?.BatBuocMinhChung ?? false
+        currentTemplate.value = config
+        
+        draft.value.dynamicFields = {}
+        for (const field of currentTemplate.value.fields || []) {
+          if (field.key === 'co_so_hien_tai') {
+            draft.value.dynamicFields[field.key] = authStore.user?.DonVi?.TenDonVi || ''
+          } else {
+            draft.value.dynamicFields[field.key] = ''
+          }
+
+          if (field.autoFill === 'studentSemesters') {
+            try {
+              const res = await apiRequest('/api/student/dashboard/semesters')
+              const semesters = res?.data || res || []
+              field.options = semesters.reduce((acc, sem) => {
+                acc[sem.id] = sem.name
+                return acc
+              }, {})
+            } catch (err) {
+              console.error('Failed to load semesters:', err)
+            }
+          } else if (field.autoFill === 'studentEmail') {
+            draft.value.dynamicFields[field.key] = authStore.user?.email || authStore.user?.Email || ''
+          }
+        }
+      } catch (e) {
+        popupStore.error('Lỗi', e.message || 'Không thể lấy biểu mẫu.')
+        loading.value = false
+        return
+      }
+      loading.value = false
+    }
+  }
+
   wizardStep.value = Math.min(wizardSteps.length - 1, wizardStep.value + 1)
 }
 
 async function saveDraft() {
   submitAttempted.value = true
-  if (!draft.value.type || !draft.value.title.trim()) return
+  if (!draft.value.type) return
   loading.value = true
   try {
     const created = await createApplicationFromDraft()
+    const id = created.maDonTu ?? created.MaDonTu ?? created.id
+    const rowVersion = created.rowVersion ?? created.RowVersion
+    
+    if (evidenceFiles.value.length > 0) {
+      await applicationsApi.uploadEvidence(id, evidenceFiles.value, { rowVersion })
+      evidenceFiles.value = []
+    }
+
     popupStore.success('Đã lưu bản nháp', 'Đơn mới đã được lưu vào hệ thống.')
     await loadApplications()
-    selectedId.value = String(created.maDonTu ?? created.MaDonTu ?? created.id ?? '')
+    selectedId.value = String(id)
     mode.value = 'list'
   } catch (e) {
     popupStore.error('Lỗi', e.message || 'Không thể lưu đơn.')
@@ -192,8 +256,20 @@ function submitDraft() {
       try {
         const created = await createApplicationFromDraft()
         const id = created.maDonTu ?? created.MaDonTu ?? created.id
-        const rowVersion = created.rowVersion ?? created.RowVersion ?? ''
-        const submitted = await applicationsApi.submitApplication(id, { rowVersion })
+        const rowVersion = created.rowVersion ?? created.RowVersion
+        
+        if (evidenceFiles.value.length > 0) {
+          await applicationsApi.uploadEvidence(id, evidenceFiles.value, { rowVersion })
+          evidenceFiles.value = []
+        }
+        
+        let rowVersionToSubmit = rowVersion
+        const freshApp = await applicationsApi.getMyApplicationDetail(id)
+        if (freshApp) {
+          rowVersionToSubmit = freshApp.rowVersion ?? freshApp.RowVersion ?? rowVersionToSubmit
+        }
+
+        const submitted = await applicationsApi.submitApplication(id, { rowVersion: rowVersionToSubmit })
         selectedId.value = String(submitted.maDonTu ?? submitted.MaDonTu ?? id)
         mode.value = 'list'
         confirmAction.value = null
@@ -209,13 +285,13 @@ function submitDraft() {
 }
 
 function createApplicationFromDraft() {
+  const titleField = currentTemplate.value?.fields?.find(f => f.key === 'title' || f.key === 'tieu_de')
+  const titleValue = titleField ? draft.value.dynamicFields[titleField.key] : ''
+  
   return applicationsApi.createDraft({
     loaiDon: draft.value.type,
-    tieuDe: draft.value.title.trim() || getApplicationTypeLabel(draft.value.type),
-    duLieuBieuMau: {
-      noiDungYeuCau: draft.value.reason.trim(),
-      tenMinhChungDaChon: draft.value.evidenceName.trim() || null,
-    },
+    tieuDe: (titleValue || '').trim() || getApplicationTypeLabel(draft.value.type),
+    duLieuBieuMau: { ...draft.value.dynamicFields }
   })
 }
 
@@ -356,7 +432,7 @@ async function loadApplications() {
     applicationTypes.value = unwrapList(templates)
       .map((item) => ({
         value: item.loaiDon ?? item.LoaiDon,
-        label: item.tenLoaiDon ?? item.TenLoaiDon ?? item.tenMau ?? item.TenMau,
+        label: item.tenLoaiDon ?? item.TenLoaiDon ?? item.tenMau ?? item.TenMau ?? item.loaiDon ?? 'Biểu mẫu',
       }))
       .filter((item) => item.value)
     applications.value = unwrapList(result).map(mapApplication)
@@ -585,34 +661,69 @@ onMounted(loadApplications)
             @click="draft.type = type.value"
           >
             <strong>{{ type.label }}</strong>
-            <span>Biểu mẫu cho {{ type.label.toLowerCase() }}.</span>
+            <span>Biểu mẫu cho {{ type.label?.toLowerCase() || '...' }}.</span>
           </button>
         </div>
 
         <div v-else-if="wizardStep === 1" class="form-grid">
-          <label class="form-field">
-            <span>Tiêu đề đơn</span>
-            <input v-model="draft.title" type="text" placeholder="Nhập tiêu đề rõ ràng" />
-          </label>
-          <label class="form-field">
-            <span>Nội dung yêu cầu</span>
-            <textarea v-model="draft.reason" rows="5" placeholder="Trình bày ngắn gọn lý do và thông tin cần xử lý" />
-          </label>
+          <template v-if="currentTemplate?.fields">
+            <template v-for="field in currentTemplate.fields" :key="field.key">
+              <div v-if="field.type === 'studentInfo'" class="review-box" style="margin-bottom: 1.5rem; grid-column: 1 / -1;">
+                <h3 style="margin-bottom: 0.75rem;">Thông tin sinh viên</h3>
+                <div><span>MSSV</span><strong>{{ authStore.user?.username || authStore.user?.Username || 'Chưa có' }}</strong></div>
+                <div><span>Họ tên</span><strong>{{ authStore.user?.fullName || authStore.user?.FullName || 'Chưa có' }}</strong></div>
+                <div><span>Lớp</span><strong>{{ authStore.user?.className || authStore.user?.ClassName || 'Chưa có' }}</strong></div>
+                <div><span>Ngành</span><strong>{{ authStore.user?.majorName || authStore.user?.MajorName || 'Chưa có' }}</strong></div>
+                <div><span>Email</span><strong>{{ authStore.user?.email || authStore.user?.Email || 'Chưa có' }}</strong></div>
+              </div>
+              <label v-else class="form-field">
+                <span>{{ field.label }} <span v-if="field.required" class="text-red-500">*</span></span>
+                <textarea v-if="field.type === 'textarea'" v-model="draft.dynamicFields[field.key]" rows="5" :placeholder="'Nhập ' + (field.label?.toLowerCase() || '')" />
+                <select v-else-if="field.type === 'select'" v-model="draft.dynamicFields[field.key]" class="lg-control">
+                   <option value="">-- Chọn {{ field.label?.toLowerCase() || '' }} --</option>
+                   <template v-if="Array.isArray(field.options)">
+                     <option v-for="opt in field.options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                   </template>
+                   <template v-else>
+                     <option v-for="(val, key) in field.options" :key="key" :value="key">{{ val }}</option>
+                   </template>
+                </select>
+                <input v-else-if="field.type === 'date'" v-model="draft.dynamicFields[field.key]" type="date" />
+                <input v-else v-model="draft.dynamicFields[field.key]" :type="field.type === 'number' ? 'number' : (field.type === 'tel' ? 'tel' : (field.type === 'email' ? 'email' : 'text'))" :pattern="field.pattern" :placeholder="'Nhập ' + (field.label?.toLowerCase() || '')" :disabled="field.key === 'co_so_hien_tai' || field.readonly" />
+              </label>
+            </template>
+          </template>
         </div>
 
         <div v-else-if="wizardStep === 2" class="form-grid">
           <label class="form-field">
-            <span>Tên minh chứng</span>
-            <input v-model="draft.evidenceName" type="text" placeholder="VD: giay-xac-nhan.pdf" />
+            <span>Chọn minh chứng đính kèm</span>
+            <input type="file" multiple @change="e => evidenceFiles = Array.from(e.target.files)" class="lg-control" style="padding-top: 8px;" />
           </label>
-          <p class="helper-text">Tên minh chứng sẽ được lưu cùng nội dung đơn.</p>
+          <div v-if="evidenceFiles.length" class="evidence-list mt-3">
+             <div v-for="file in evidenceFiles" :key="file.name" class="evidence-item">
+               <Paperclip :size="15" />
+               <span class="min-w-0">
+                 <strong class="clamp-1">{{ file.name }}</strong>
+                 <small>{{ Math.round(file.size / 1024) }} KB</small>
+               </span>
+             </div>
+          </div>
+          <p class="helper-text mt-2">Các file đính kèm sẽ được tự động tải lên khi bạn Lưu nháp hoặc Nộp đơn.</p>
         </div>
 
         <div v-else class="review-box">
           <div><span>Loại đơn</span><strong>{{ getApplicationTypeLabel(draft.type) }}</strong></div>
-          <div><span>Tiêu đề</span><strong>{{ draft.title || 'Chưa nhập' }}</strong></div>
-          <div><span>Nội dung</span><strong>{{ draft.reason || 'Chưa nhập' }}</strong></div>
-          <div><span>Minh chứng</span><strong>{{ draft.evidenceName || 'Không đính kèm' }}</strong></div>
+          <template v-for="field in currentTemplate?.fields" :key="field.key">
+            <div v-if="field.type !== 'studentInfo'">
+               <span>{{ field.label }}</span>
+               <strong>{{ draft.dynamicFields[field.key] || 'Chưa nhập' }}</strong>
+            </div>
+          </template>
+          <div>
+             <span>Minh chứng</span>
+             <strong>{{ evidenceFiles.length ? evidenceFiles.map(f => f.name).join(', ') : 'Không đính kèm' }}</strong>
+          </div>
           <label class="review-check">
             <input v-model="draft.reviewAccepted" type="checkbox" />
             Tôi đã kiểm tra thông tin và sẵn sàng nộp đơn.
