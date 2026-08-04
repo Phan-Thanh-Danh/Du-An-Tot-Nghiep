@@ -481,7 +481,8 @@ public class StudentApplicationService : IStudentApplicationService
                 TenFileGoc = x.TenFileGoc,
                 ContentType = x.ContentType,
                 KichThuocByte = x.KichThuocByte,
-                NgayTao = x.NgayTao
+                NgayTao = x.NgayTao,
+                Url = $"/api/student/applications/{x.MaDonTu}/attachments/{x.MaTep}/download"
             })
             .ToListAsync(cancellationToken);
 

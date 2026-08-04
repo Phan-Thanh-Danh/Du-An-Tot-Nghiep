@@ -34,6 +34,7 @@ public class AuthService : IAuthService
     {
         var normalizedIdentity = request.UsernameOrEmail.Trim().ToLowerInvariant();
         var user = await _context.NguoiDungs
+            .Include(u => u.DonVi)
             .Include(u => u.Lop)
                 .ThenInclude(l => l.ChuongTrinh)
                     .ThenInclude(c => c.ChuyenNganh)
@@ -289,6 +290,7 @@ public class AuthService : IAuthService
             FullName = user.HoTen,
             Role = role,
             CampusId = user.MaDonVi,
+            CampusName = user.DonVi?.TenDonVi ?? "",
             Status = status,
             ClassName = user.Lop?.TenLop ?? "",
             MajorName = user.Lop?.ChuongTrinh?.ChuyenNganh?.TenChuyenNganh ?? ""
@@ -300,6 +302,8 @@ public class AuthService : IAuthService
         var tokenHash = HashRefreshToken(refreshToken);
 
         return await _context.TokenLamMois
+            .Include(x => x.NguoiDung)
+                .ThenInclude(u => u!.DonVi)
             .Include(x => x.NguoiDung)
                 .ThenInclude(u => u!.Lop)
                     .ThenInclude(l => l!.ChuongTrinh)

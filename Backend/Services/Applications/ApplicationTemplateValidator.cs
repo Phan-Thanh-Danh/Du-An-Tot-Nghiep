@@ -132,13 +132,20 @@ public class ApplicationTemplateValidator : IApplicationTemplateValidator
         if (type.Equals(ApplicationFieldTypes.Select, StringComparison.OrdinalIgnoreCase) ||
             type.Equals(ApplicationFieldTypes.Multiselect, StringComparison.OrdinalIgnoreCase))
         {
-            if (!field.TryGetProperty("options", out var options) ||
-                options.ValueKind == JsonValueKind.Null)
-            {
-                throw new ApiException(StatusCodes.Status400BadRequest, "Field select/multiselect phải có options.");
-            }
+            var hasAutoFill = field.TryGetProperty("autoFill", out var autoFill) &&
+                              autoFill.ValueKind == JsonValueKind.String &&
+                              !string.IsNullOrWhiteSpace(autoFill.GetString());
 
-            ValidateOptions(options);
+            if (!hasAutoFill)
+            {
+                if (!field.TryGetProperty("options", out var options) ||
+                    options.ValueKind == JsonValueKind.Null)
+                {
+                    throw new ApiException(StatusCodes.Status400BadRequest, "Field select/multiselect phải có options (hoặc autoFill).");
+                }
+
+                ValidateOptions(options);
+            }
         }
         else if (field.TryGetProperty("options", out var options) && options.ValueKind != JsonValueKind.Null)
         {

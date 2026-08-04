@@ -75,9 +75,17 @@ export const applicationsApi = {
       body: formData,
     }))
   },
-  async downloadEvidence(applicationId, evidenceId) {
-    // Return URL for download or handle blob
-    return `/api/student/applications/${applicationId}/attachments/${evidenceId}/download`
+  async downloadEvidence(applicationId, evidenceId, filename) {
+    const response = await apiRequest(`/api/student/applications/${applicationId}/attachments/${evidenceId}/download`)
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename || `evidence_${evidenceId}`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
   },
   async deleteEvidence(applicationId, evidenceId) {
     const response = await apiRequest(`/api/student/applications/${applicationId}/attachments/${evidenceId}`, {

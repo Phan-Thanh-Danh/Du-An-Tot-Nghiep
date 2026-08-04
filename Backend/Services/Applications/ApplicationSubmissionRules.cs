@@ -286,13 +286,8 @@ public class ChangeCampusApplicationSubmissionRule : ApplicationSubmissionRuleBa
 
     public override async Task ValidateAsync(ApplicationSubmissionRuleContext context, CancellationToken cancellationToken = default)
     {
-        if (!context.FormData.Values.TryGetInt("ma_don_vi_hien_tai", out var currentCampusId) ||
-            currentCampusId != context.Student.MaDonVi)
-        {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Cơ sở hiện tại không khớp với sinh viên.");
-        }
-
-        if (!context.FormData.Values.TryGetInt("ma_don_vi_mong_muon", out var targetCampusId) ||
+        if (!context.FormData.Values.TryGetString("ma_don_vi_mong_muon", out var targetCampusStr) ||
+            !int.TryParse(targetCampusStr, out var targetCampusId) ||
             targetCampusId == context.Student.MaDonVi)
         {
             throw new ApiException(StatusCodes.Status400BadRequest, "Cơ sở mong muốn phải khác cơ sở hiện tại.");

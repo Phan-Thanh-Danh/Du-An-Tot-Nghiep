@@ -92,10 +92,14 @@ public static class ApplicationTemplateSeeder
                 {
                     fields = new object[]
                     {
-                        new { key = "title", type = "text", label = "Tiêu đề đơn", required = true, maxLength = 200 },
-                        new { key = "co_so_hien_tai", type = "text", label = "Cơ sở hiện tại", required = true, maxLength = 200 },
-                        new { key = "co_so_muon_chuyen", type = "text", label = "Cơ sở muốn chuyển tới", required = true, maxLength = 200 },
-                        new { key = "reason", type = "textarea", label = "Lý do chuyển", required = true, maxLength = 1000 }
+                        new { key = "student_info", type = "studentInfo", label = "Thông tin sinh viên", @readonly = true },
+                        new { key = "ma_don_vi_mong_muon", type = "select", label = "Cơ sở muốn chuyển đến", required = true, autoFill = "campuses" },
+                        new { key = "ma_hoc_ky", type = "select", label = "Học kỳ áp dụng", required = true, autoFill = "availableSemesters" },
+                        new { key = "ly_do", type = "textarea", label = "Lý do chuyển cơ sở", required = true, maxLength = 1000 },
+                        new { key = "dia_chi_lien_he", type = "text", label = "Địa chỉ liên hệ", required = true, maxLength = 200 },
+                        new { key = "so_dien_thoai", type = "tel", label = "Số điện thoại", required = true },
+                        new { key = "email_lien_he", type = "email", label = "Email liên hệ", required = true, autoFill = "studentEmail" },
+                        new { key = "ghi_chu", type = "textarea", label = "Ghi chú", required = false, maxLength = 500 }
                     }
                 }, options)
             },

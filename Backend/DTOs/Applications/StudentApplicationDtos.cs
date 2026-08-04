@@ -56,6 +56,7 @@ public class StudentApplicationAttachmentDto
     public string ContentType { get; set; } = string.Empty;
     public long KichThuocByte { get; set; }
     public DateTime NgayTao { get; set; }
+    public string Url { get; set; } = string.Empty;
 }
 
 public class StudentApplicationTimelineDto

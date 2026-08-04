@@ -211,7 +211,7 @@ async function goNext() {
             draft.value.dynamicFields[field.key] = ''
           }
 
-          if (field.autoFill === 'studentSemesters') {
+          if (field.autoFill === 'studentSemesters' || field.autoFill === 'availableSemesters') {
             try {
               const res = await apiRequest('/api/student/dashboard/semesters')
               const semesters = res?.data || res || []
@@ -221,6 +221,21 @@ async function goNext() {
               }, {})
             } catch (err) {
               console.error('Failed to load semesters:', err)
+            }
+          } else if (field.autoFill === 'campuses') {
+            try {
+              const res = await apiRequest('/api/organizations/campuses')
+              const orgs = res?.data || res || []
+              field.options = orgs.reduce((acc, org) => {
+                const name = org.name || org.Name || ''
+                const id = org.id || org.Id || org.maDonVi || org.MaDonVi
+                if (id && name && (org.organizationLevel === 'Campus' || org.OrganizationLevel === 'Campus' || !org.organizationLevel)) {
+                  acc[id] = name
+                }
+                return acc
+              }, {})
+            } catch (err) {
+              console.error('Failed to load campuses:', err)
             }
           } else if (field.autoFill === 'studentEmail') {
             draft.value.dynamicFields[field.key] = authStore.user?.email || authStore.user?.Email || ''
@@ -357,6 +372,14 @@ function canCancel(application) {
   return ['nhap', 'da_nop', 'dang_xem_xet', 'yeu_cau_bo_sung'].includes(application?.trangThai)
 }
 
+async function downloadFile(file) {
+  try {
+    await applicationsApi.downloadEvidence(selectedId.value, file.id, file.name)
+  } catch (e) {
+    popupStore.error('Lỗi tải file', e.message || 'Không thể tải file minh chứng.')
+  }
+}
+
 function retryLoad() {
   loadApplications()
 }
@@ -431,6 +454,7 @@ function mapApplication(item) {
       name: file.tenFileGoc ?? file.TenFileGoc ?? '',
       size: file.kichThuocByte ? `${Math.round(file.kichThuocByte / 1024)} KB` : '',
       uploadedAt: file.ngayTao ?? file.NgayTao,
+      url: file.url ?? file.Url,
     })),
     timeline: timeline.map((entry, index) => ({
       id: `${id}-${index}`,
@@ -629,7 +653,7 @@ onMounted(loadApplications)
         <section class="detail-section">
           <h3>Minh chứng</h3>
           <div v-if="selectedApplication.evidence.length" class="evidence-list">
-            <div v-for="file in selectedApplication.evidence" :key="file.id" class="evidence-item">
+            <div v-for="file in selectedApplication.evidence" :key="file.id" class="evidence-item" @click="downloadFile(file)" style="cursor: pointer;" title="Tải xuống">
               <Paperclip :size="15" />
               <span class="min-w-0">
                 <strong class="clamp-1">{{ file.name }}</strong>
@@ -696,6 +720,7 @@ onMounted(loadApplications)
                 <div><span>Họ tên</span><strong>{{ authStore.user?.fullName || authStore.user?.FullName || 'Chưa có' }}</strong></div>
                 <div><span>Lớp</span><strong>{{ authStore.user?.className || authStore.user?.ClassName || 'Chưa có' }}</strong></div>
                 <div><span>Ngành</span><strong>{{ authStore.user?.majorName || authStore.user?.MajorName || 'Chưa có' }}</strong></div>
+                <div><span>Cơ sở hiện tại</span><strong>{{ authStore.user?.campusName || authStore.user?.CampusName || authStore.user?.DonVi?.TenDonVi || authStore.user?.donVi?.tenDonVi || 'Chưa có' }}</strong></div>
                 <div><span>Email</span><strong>{{ authStore.user?.email || authStore.user?.Email || 'Chưa có' }}</strong></div>
               </div>
               <label v-else class="form-field">

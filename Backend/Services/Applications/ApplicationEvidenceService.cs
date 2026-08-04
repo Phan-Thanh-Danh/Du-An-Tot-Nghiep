@@ -551,7 +551,8 @@ public class ApplicationEvidenceService : IApplicationEvidenceService
             TenFileGoc = attachment.TenFileGoc,
             ContentType = attachment.ContentType,
             KichThuocByte = attachment.KichThuocByte,
-            NgayTao = attachment.NgayTao
+            NgayTao = attachment.NgayTao,
+            Url = $"/api/student/applications/{attachment.MaDonTu}/attachments/{attachment.MaTep}/download"
         };
     }
 

@@ -9,6 +9,7 @@ public class AuthUserDto
     public string FullName { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public int CampusId { get; set; }
+    public string CampusName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string ClassName { get; set; } = string.Empty;
     public string MajorName { get; set; } = string.Empty;

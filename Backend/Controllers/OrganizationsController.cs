@@ -27,6 +27,13 @@ public class OrganizationsController : ControllerBase
         return Ok(organizations);
     }
 
+    [HttpGet("campuses")]
+    public async Task<ActionResult<IReadOnlyList<OrganizationResponseDto>>> GetCampuses()
+    {
+        var organizations = await _organizationService.GetAllCampusesAsync();
+        return Ok(organizations);
+    }
+
     [HttpGet("tree")]
     public async Task<ActionResult<IReadOnlyList<OrganizationTreeDto>>> GetTree()
     {

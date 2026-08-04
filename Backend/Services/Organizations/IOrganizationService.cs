@@ -5,6 +5,7 @@ namespace Backend.Services.Organizations;
 public interface IOrganizationService
 {
     Task<IReadOnlyList<OrganizationResponseDto>> GetAllAsync();
+    Task<IReadOnlyList<OrganizationResponseDto>> GetAllCampusesAsync();
     Task<IReadOnlyList<OrganizationTreeDto>> GetTreeAsync();
     Task<OrganizationResponseDto> GetByIdAsync(int id);
     Task<OrganizationResponseDto> CreateAsync(OrganizationCreateDto dto, int currentUserId);

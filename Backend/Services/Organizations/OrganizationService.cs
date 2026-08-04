@@ -44,6 +44,19 @@ public class OrganizationService : IOrganizationService
             .ToList();
     }
 
+    public async Task<IReadOnlyList<OrganizationResponseDto>> GetAllCampusesAsync()
+    {
+        var organizations = await _context.DonVis
+            .AsNoTracking()
+            .Where(x => x.ConHoatDong && x.CapDonVi == DbCampus)
+            .OrderBy(x => x.TenDonVi)
+            .ToListAsync();
+
+        return organizations
+            .Select(ToResponseDto)
+            .ToList();
+    }
+
     public async Task<IReadOnlyList<OrganizationTreeDto>> GetTreeAsync()
     {
         var organizations = await GetScopedActiveOrganizationsAsync();
