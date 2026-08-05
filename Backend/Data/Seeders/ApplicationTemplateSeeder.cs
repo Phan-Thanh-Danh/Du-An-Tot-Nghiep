@@ -69,10 +69,12 @@ public static class ApplicationTemplateSeeder
                 {
                     fields = new object[]
                     {
-                        new { key = "title", type = "text", label = "Tiêu đề đơn", required = true, maxLength = 200 },
-                        new { key = "tu_ngay", type = "date", label = "Từ ngày", required = true },
-                        new { key = "den_ngay", type = "date", label = "Đến ngày", required = true },
-                        new { key = "reason", type = "textarea", label = "Lý do nghỉ phép", required = true, maxLength = 1000 }
+                        new { key = "student_info", type = "studentInfo", label = "Thông tin sinh viên", @readonly = true },
+                        new { key = "from_date", type = "date", label = "Từ ngày", required = true },
+                        new { key = "to_date", type = "date", label = "Đến ngày", required = true },
+                        new { key = "reason", type = "textarea", label = "Lý do nghỉ", required = true, maxLength = 1000 },
+                        new { key = "contact_address", type = "text", label = "Địa chỉ liên hệ", required = true },
+                        new { key = "phone", type = "tel", label = "Số điện thoại", required = true }
                     }
                 }, options)
             },

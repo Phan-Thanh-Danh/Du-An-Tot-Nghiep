@@ -47,6 +47,7 @@ const confirmAction = ref(null)
 
 const currentTemplate = ref(null)
 const evidenceFiles = ref([])
+const leavePreviewData = ref(null)
 
 const draft = ref({
   type: '',
@@ -185,6 +186,7 @@ function startCreate() {
   }
   currentTemplate.value = null
   evidenceFiles.value = []
+  leavePreviewData.value = null
 }
 
 async function goNext() {
@@ -243,6 +245,21 @@ async function goNext() {
         }
       } catch (e) {
         popupStore.error('Lỗi', e.message || 'Không thể lấy biểu mẫu.')
+        loading.value = false
+        return
+      }
+      loading.value = false
+    }
+  }
+
+  if (wizardStep.value === 1 && draft.value.type === 'nghi_phep') {
+    const { from_date, to_date } = draft.value.dynamicFields
+    if (from_date && to_date) {
+      loading.value = true
+      try {
+        leavePreviewData.value = await applicationsApi.previewLeaveApplication({ fromDate: from_date, toDate: to_date })
+      } catch (e) {
+        popupStore.error('Lỗi tính toán buổi học', e.message || 'Không thể lấy danh sách buổi học.')
         loading.value = false
         return
       }
@@ -771,7 +788,33 @@ onMounted(loadApplications)
              <span>Minh chứng</span>
              <strong>{{ evidenceFiles.length ? evidenceFiles.map(f => f.name).join(', ') : 'Không đính kèm' }}</strong>
           </div>
-          <label class="review-check">
+          
+          <div v-if="draft.type === 'nghi_phep' && leavePreviewData" style="grid-column: 1 / -1; margin-top: 0.5rem;">
+             <span style="display: block; margin-bottom: 0.5rem; color: var(--text-heading); font-weight: 800;">Các buổi học bị ảnh hưởng ({{ leavePreviewData.totalSessions }} buổi)</span>
+             <div v-if="leavePreviewData.totalSessions > 0" class="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700">
+                <table class="min-w-full text-sm text-left">
+                   <thead class="bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                      <tr>
+                         <th class="px-4 py-2 border-b dark:border-gray-700">Ngày</th>
+                         <th class="px-4 py-2 border-b dark:border-gray-700">Ca</th>
+                         <th class="px-4 py-2 border-b dark:border-gray-700">Môn</th>
+                         <th class="px-4 py-2 border-b dark:border-gray-700">Giảng viên</th>
+                      </tr>
+                   </thead>
+                   <tbody class="divide-y dark:divide-gray-700">
+                      <tr v-for="(session, i) in leavePreviewData.sessions" :key="i">
+                         <td class="px-4 py-2">{{ formatDate(session.date) }} ({{ session.weekday }})</td>
+                         <td class="px-4 py-2">{{ session.shift }}</td>
+                         <td class="px-4 py-2">{{ session.subject }}</td>
+                         <td class="px-4 py-2">{{ session.lecturer }}</td>
+                      </tr>
+                   </tbody>
+                </table>
+             </div>
+             <p v-else style="color: var(--color-success-text); font-weight: 700; margin-top: 0.25rem;">Không có buổi học nào trong khoảng thời gian này.</p>
+          </div>
+
+          <label class="review-check" style="grid-column: 1 / -1; margin-top: 0.5rem;">
             <input v-model="draft.reviewAccepted" type="checkbox" />
             Tôi đã kiểm tra thông tin và sẵn sàng nộp đơn.
           </label>

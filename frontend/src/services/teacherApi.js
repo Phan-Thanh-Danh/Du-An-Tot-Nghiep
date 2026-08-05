@@ -145,7 +145,7 @@ export const teacherApi = {
     return apiRequest(`/api/exam/ca-thi/${id}/start`, { method: 'POST' })
   },
 
-  endExamSession(id) {
+  endExamSession_old(id) {
     return apiRequest(`/api/exam/ca-thi/${id}/end`, { method: 'POST' })
   },
 
@@ -566,7 +566,7 @@ export const teacherApi = {
 
   // ── Teacher Exam Results ──
 
-  async getExamResults(params = {}) {
+  async getExamResults(_params = {}) {
     const rawRes = await apiRequest('/api/teacher/exam-results')
     return unwrapApiData(rawRes)
   },

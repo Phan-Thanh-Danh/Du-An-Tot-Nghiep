@@ -12,4 +12,5 @@ public interface IStudentApplicationService
     Task<StudentApplicationDetailDto> SubmitAsync(int applicationId, SubmitStudentApplicationRequest request, CancellationToken cancellationToken = default);
     Task<StudentApplicationDetailDto> ResubmitAsync(int applicationId, ResubmitStudentApplicationRequest request, CancellationToken cancellationToken = default);
     Task<StudentApplicationDetailDto> CancelAsync(int applicationId, CancelStudentApplicationRequest request, CancellationToken cancellationToken = default);
+    Task<LeaveApplicationPreviewResponseDto> PreviewLeaveApplicationAsync(LeaveApplicationPreviewRequestDto request, CancellationToken cancellationToken = default);
 }

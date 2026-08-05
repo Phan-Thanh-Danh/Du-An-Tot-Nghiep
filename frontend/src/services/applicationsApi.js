@@ -63,6 +63,12 @@ export const applicationsApi = {
       body: JSON.stringify(payload),
     }))
   },
+  async previewLeaveApplication(payload) {
+    return unwrapApiData(await apiRequest('/api/student/applications/leave-preview', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }))
+  },
   async uploadEvidence(applicationId, files, metadata = {}) {
     const formData = new FormData()
     const fileArray = Array.isArray(files) ? files : [files]

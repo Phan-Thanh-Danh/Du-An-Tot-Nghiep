@@ -88,4 +88,13 @@ public class StudentApplicationsController : ControllerBase
         var result = await _studentApplicationService.CancelAsync(id, request, cancellationToken);
         return Ok(ApiResponseDto<StudentApplicationDetailDto>.Ok(result, "Hủy đơn thành công."));
     }
+
+    [HttpPost("leave-preview")]
+    public async Task<ActionResult<ApiResponseDto<LeaveApplicationPreviewResponseDto>>> PreviewLeaveApplication(
+        LeaveApplicationPreviewRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _studentApplicationService.PreviewLeaveApplicationAsync(request, cancellationToken);
+        return Ok(ApiResponseDto<LeaveApplicationPreviewResponseDto>.Ok(result, "Lấy thông tin buổi học thành công."));
+    }
 }

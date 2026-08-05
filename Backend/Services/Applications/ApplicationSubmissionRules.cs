@@ -114,8 +114,8 @@ public class LeaveApplicationSubmissionRule : ApplicationSubmissionRuleBase
 
     public override Task ValidateAsync(ApplicationSubmissionRuleContext context, CancellationToken cancellationToken = default)
     {
-        var start = RequireDate(context.FormData, "ngay_bat_dau");
-        var end = RequireDate(context.FormData, "ngay_ket_thuc");
+        var start = RequireDate(context.FormData, "from_date");
+        var end = RequireDate(context.FormData, "to_date");
         var days = end.DayNumber - start.DayNumber + 1;
         if (days is < 1 or > 30)
         {

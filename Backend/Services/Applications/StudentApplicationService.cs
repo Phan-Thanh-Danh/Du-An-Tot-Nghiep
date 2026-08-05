@@ -871,4 +871,60 @@ public class StudentApplicationService : IStudentApplicationService
             throw ConcurrencyException();
         }
     }
+
+    public async Task<LeaveApplicationPreviewResponseDto> PreviewLeaveApplicationAsync(LeaveApplicationPreviewRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var student = await GetCurrentStudentAsync(cancellationToken);
+
+        if (student.MaLop == null)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Sinh viên không thuộc lớp hành chính nào.");
+        }
+
+        if (request.FromDate > request.ToDate)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Từ ngày không được lớn hơn Đến ngày.");
+        }
+
+        var affectedSessions = await _context.BuoiHocs
+            .Include(x => x.CaHoc)
+            .Include(x => x.KhoaHoc)
+                .ThenInclude(k => k.MonHoc)
+            .Include(x => x.GiaoVien)
+            .Where(x => x.KhoaHoc != null && x.KhoaHoc.MaLop == student.MaLop &&
+                        x.NgayHoc >= request.FromDate && x.NgayHoc <= request.ToDate &&
+                        x.TrangThaiBuoi != "huy")
+            .OrderBy(x => x.NgayHoc)
+            .ThenBy(x => x.MaCaHoc)
+            .Select(x => new LeaveApplicationSessionDto
+            {
+                Date = x.NgayHoc,
+                Weekday = GetVietnameseWeekday(x.NgayHoc),
+                Shift = x.CaHoc != null ? x.CaHoc.TenCa : string.Empty,
+                Subject = x.KhoaHoc != null && x.KhoaHoc.MonHoc != null ? x.KhoaHoc.MonHoc.TenMonHoc : string.Empty,
+                Lecturer = x.GiaoVien != null ? x.GiaoVien.HoTen : string.Empty
+            })
+            .ToListAsync(cancellationToken);
+
+        return new LeaveApplicationPreviewResponseDto
+        {
+            TotalSessions = affectedSessions.Count,
+            Sessions = affectedSessions
+        };
+    }
+
+    private static string GetVietnameseWeekday(DateOnly date)
+    {
+        return date.DayOfWeek switch
+        {
+            DayOfWeek.Monday => "Thứ 2",
+            DayOfWeek.Tuesday => "Thứ 3",
+            DayOfWeek.Wednesday => "Thứ 4",
+            DayOfWeek.Thursday => "Thứ 5",
+            DayOfWeek.Friday => "Thứ 6",
+            DayOfWeek.Saturday => "Thứ 7",
+            DayOfWeek.Sunday => "Chủ nhật",
+            _ => string.Empty
+        };
+    }
 }
