@@ -57,6 +57,7 @@ public class UserService : IUserService
             {
                 User = user,
                 OrganizationName = organization.TenDonVi,
+                RoleId = role.MaVaiTro,
                 RoleName = role.TenVaiTro,
                 RoleCode = role.MaCodeVaiTro
             };
@@ -93,23 +94,48 @@ public class UserService : IUserService
         }
 
         var totalItems = await query.CountAsync(cancellationToken);
-        var items = await query
+
+        // Left join with LopHanhChinh for student class info
+        var classQuery = _repository.QueryClasses().AsNoTracking();
+        var pagedQuery = query
             .OrderByDescending(x => x.User.NgayTao)
             .ThenBy(x => x.User.HoTen)
             .Skip((parameters.PageIndex - 1) * parameters.PageSize)
-            .Take(parameters.PageSize)
-            .Select(x => new UserListItemDto
-            {
-                MaNguoiDung = x.User.MaNguoiDung,
-                HoTen = x.User.HoTen,
-                Email = x.User.Email,
-                SoDienThoai = x.User.SoDienThoai,
-                TenVaiTro = x.RoleName,
-                TenDonVi = x.OrganizationName,
-                TrangThai = UserStatuses.FromDatabaseStatus(x.User.TrangThai, x.User.DangNhapLanDau),
-                NgayTao = x.User.NgayTao
-            })
-            .ToListAsync(cancellationToken);
+            .Take(parameters.PageSize);
+
+        var pagedItems = await pagedQuery.ToListAsync(cancellationToken);
+
+        // Batch load class names for students
+        var classIds = pagedItems
+            .Where(x => x.User.MaLop.HasValue)
+            .Select(x => x.User.MaLop!.Value)
+            .Distinct()
+            .ToHashSet();
+
+        var classMap = classIds.Count > 0
+            ? await classQuery
+                .Where(c => classIds.Contains(c.MaLop))
+                .Select(c => new { c.MaLop, c.TenLop })
+                .ToDictionaryAsync(c => c.MaLop, c => c.TenLop, cancellationToken)
+            : new Dictionary<int, string>();
+
+        var items = pagedItems.Select(x => new UserListItemDto
+        {
+            MaNguoiDung = x.User.MaNguoiDung,
+            HoTen = x.User.HoTen,
+            Email = x.User.Email,
+            SoDienThoai = x.User.SoDienThoai,
+            MaVaiTro = x.RoleId,
+            MaCodeVaiTro = x.RoleCode,
+            TenVaiTro = x.RoleName,
+            MaDonVi = x.User.MaDonVi,
+            TenDonVi = x.OrganizationName,
+            MaLopHanhChinh = x.User.MaLop,
+            TenLopHanhChinh = x.User.MaLop.HasValue && classMap.TryGetValue(x.User.MaLop.Value, out var cls) ? cls : null,
+            TrangThai = UserStatuses.FromDatabaseStatus(x.User.TrangThai, x.User.DangNhapLanDau),
+            NgayTao = x.User.NgayTao,
+            LanDangNhapCuoi = x.User.LanDangNhapCuoi
+        }).ToList();
 
         return new PagedResultDto<UserListItemDto>
         {
@@ -232,7 +258,7 @@ public class UserService : IUserService
         return await ToDetailDtoAsync(user, cancellationToken);
     }
 
-    public async Task LockAsync(int userId, CancellationToken cancellationToken = default)
+    public async Task LockAsync(int userId, string? reason = null, CancellationToken cancellationToken = default)
     {
         var currentUser = GetCurrentUser();
         if (currentUser.UserId == userId)
@@ -249,6 +275,11 @@ public class UserService : IUserService
 
         var newValue = await CreateAuditSnapshotAsync(user, role, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        var logDetail = string.IsNullOrWhiteSpace(reason)
+            ? "Khóa tài khoản người dùng."
+            : $"Khóa tài khoản người dùng. Lý do: {reason.Trim()}";
+
         await _auditLogService.LogAsync(
             "User",
             user.MaNguoiDung.ToString(),
@@ -257,9 +288,10 @@ public class UserService : IUserService
             newValue,
             currentUser.UserId,
             user.MaDonVi,
-            "Khóa tài khoản người dùng.",
+            logDetail,
             cancellationToken);
     }
+
 
     public async Task UnlockAsync(int userId, CancellationToken cancellationToken = default)
     {
@@ -522,13 +554,14 @@ public class UserService : IUserService
         CurrentUserContext currentUser,
         CancellationToken cancellationToken)
     {
-        if (currentUser.Role == AuthRoles.SuperAdmin)
+        if (currentUser.Role == AuthRoles.SuperAdmin || currentUser.Role == AuthRoles.Admin)
         {
             return await _repository.QueryOrganizations()
                 .AsNoTracking()
                 .Select(x => x.MaDonVi)
                 .ToHashSetAsync(cancellationToken);
         }
+
 
         if (currentUser.Role == AuthRoles.CampusAdmin)
         {

@@ -23,7 +23,7 @@ public class CampusScopeMiddleware
             return;
         }
 
-        if (currentUser.Role == AuthRoles.SuperAdmin)
+        if (currentUser.Role is AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.Chairman)
         {
             await _next(context);
             return;

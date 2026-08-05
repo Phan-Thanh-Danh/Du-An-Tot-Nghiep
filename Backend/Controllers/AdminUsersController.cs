@@ -59,11 +59,15 @@ public class AdminUsersController : ControllerBase
     }
 
     [HttpPatch("{id:int}/lock")]
-    public async Task<ActionResult<ApiResponseDto>> Lock(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponseDto>> Lock(
+        [FromRoute] int id,
+        [FromBody] LockUserRequest? request,
+        CancellationToken cancellationToken)
     {
-        await _userService.LockAsync(id, cancellationToken);
+        await _userService.LockAsync(id, request?.Reason, cancellationToken);
         return Ok(ApiResponseDto.Ok("Khóa tài khoản thành công"));
     }
+
 
     [HttpPatch("{id:int}/unlock")]
     public async Task<ActionResult<ApiResponseDto>> Unlock(int id, CancellationToken cancellationToken)

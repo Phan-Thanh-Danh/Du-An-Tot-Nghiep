@@ -31,8 +31,11 @@ export const adminUserApi = {
     })
   },
 
-  lock(id) {
-    return apiRequest(`/api/admin/users/${id}/lock`, { method: 'PATCH' })
+  lock(id, reason) {
+    return apiRequest(`/api/admin/users/${id}/lock`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason: reason || '' })
+    })
   },
 
   unlock(id) {
@@ -45,4 +48,9 @@ export const adminUserApi = {
       body: JSON.stringify(payload),
     })
   },
+
+  getRoles() {
+    return apiRequest('/api/admin/rbac/roles', { method: 'GET' })
+  }
 }
+

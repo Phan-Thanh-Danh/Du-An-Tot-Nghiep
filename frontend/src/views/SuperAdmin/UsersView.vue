@@ -1,8 +1,10 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePopupStore } from '@/stores/popup'
 import { adminUserApi } from '@/services/adminUserService'
+import { organizationApi } from '@/services/organizationService'
+import LmsSelect from '@/components/LmsSelect.vue'
 import {
   Search,
   Filter,
@@ -22,91 +24,238 @@ import {
   Shield,
   Building2,
   X,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  Sparkles
 } from 'lucide-vue-next'
-
 
 const popup = usePopupStore()
 
-// Filters
+// State & Filters
 const searchQuery = ref('')
 const selectedRole = ref('Tất cả')
 const selectedCampus = ref('Tất cả')
 const selectedStatus = ref('Tất cả')
 const selectedUsers = ref([])
 
-const roles = ['Tất cả', 'Giảng viên', 'Sinh viên', 'Giáo vụ', 'BGH', 'Admin']
-const campuses = ['Tất cả', 'Hà Nội', 'TP.HCM', 'Đà Nẵng', 'Cần Thơ', 'Toàn hệ thống']
-const statuses = ['Tất cả', 'Active', 'Locked', 'First_login']
+// Pagination
+const pageIndex = ref(1)
+const pageSize = ref(10)
+const totalItems = ref(0)
+const totalPages = ref(1)
+
+// Dynamic Lists from Backend DB
+const availableOrganizations = ref([])
+const availableRoles = ref([])
+
+const roleFilterOptions = computed(() => [
+  { value: 'Tất cả', label: 'Tất cả vai trò' },
+  ...availableRoles.value.map(r => ({ value: r.code, label: r.name }))
+])
+
+const campusFilterOptions = computed(() => [
+  { value: 'Tất cả', label: 'Tất cả cơ sở' },
+  ...availableOrganizations.value.map(c => ({ value: c.id, label: c.name }))
+])
+
+const statusFilterOptions = [
+  { value: 'Tất cả', label: 'Tất cả trạng thái' },
+  { value: 'active', label: 'Đang hoạt động' },
+  { value: 'khoa', label: 'Bị khóa' },
+  { value: 'chua_kich_hoat', label: 'Đăng nhập lần đầu' }
+]
+
+const pageSizeOptions = [
+  { value: 10, label: '10 / trang' },
+  { value: 25, label: '25 / trang' },
+  { value: 50, label: '50 / trang' },
+  { value: 100, label: '100 / trang' }
+]
+
+const formRoleOptions = computed(() => 
+  availableRoles.value.map(r => ({ value: r.id, label: r.name }))
+)
+
+const formCampusOptions = computed(() => 
+  availableOrganizations.value.map(c => ({ value: c.id, label: c.name }))
+)
 
 const loading = ref(false)
 const error = ref('')
+
 const users = ref([])
 
+// Helper to flatten organization tree for selects
+function flattenOrganizations(tree) {
+  const result = []
+  function traverse(nodes, depth = 0) {
+    if (!nodes) return
+    const list = Array.isArray(nodes) ? nodes : [nodes]
+    for (const node of list) {
+      if (!node) continue
+      const id = node.id ?? node.Id ?? node.maDonVi
+      const name = node.name ?? node.Name ?? node.tenDonVi ?? ''
+      const prefix = depth > 0 ? '— '.repeat(depth) : ''
+      if (id && name) {
+        result.push({ id, name, displayName: `${prefix}${name}` })
+      }
+      const children = node.children ?? node.Children ?? node.cacDonViCon
+      if (children && children.length > 0) {
+        traverse(children, depth + 1)
+      }
+    }
+  }
+  traverse(tree)
+  return result
+}
+
+async function loadOrganizations() {
+  try {
+    const data = await organizationApi.getTree()
+    const rawTree = Array.isArray(data) ? data : (data?.items ?? data?.data ?? (data ? [data] : []))
+    availableOrganizations.value = flattenOrganizations(rawTree)
+    
+    if (availableOrganizations.value.length === 0) {
+      const allData = await organizationApi.getAll()
+      const list = Array.isArray(allData) ? allData : (allData?.data ?? allData?.items ?? [])
+      availableOrganizations.value = list.map(o => ({
+        id: o.id || o.maDonVi,
+        name: o.name || o.tenDonVi,
+        displayName: o.name || o.tenDonVi
+      }))
+    }
+  } catch (e) {
+    console.error('Không thể nạp danh sách cơ sở:', e)
+  }
+}
+
+
+async function loadRoles() {
+  try {
+    const res = await adminUserApi.getRoles()
+    const list = res?.items ?? res?.data ?? res ?? []
+    if (Array.isArray(list) && list.length > 0) {
+      availableRoles.value = list.map(r => ({
+        id: r.maVaiTro || r.id,
+        code: r.maCodeVaiTro || r.code,
+        name: r.tenVaiTro || r.name
+      }))
+    } else {
+      availableRoles.value = [
+        { id: 1, code: 'SuperAdmin', name: 'Super Admin' },
+        { id: 2, code: 'Admin', name: 'Admin cơ sở' },
+        { id: 3, code: 'CampusAdmin', name: 'Campus Admin' },
+        { id: 4, code: 'BGH', name: 'Ban Giám Hiệu' },
+        { id: 5, code: 'AcademicStaff', name: 'Giáo vụ' },
+        { id: 6, code: 'Teacher', name: 'Giảng viên' },
+        { id: 7, code: 'Student', name: 'Sinh viên' }
+      ]
+    }
+  } catch (e) {
+    availableRoles.value = [
+      { id: 1, code: 'SuperAdmin', name: 'Super Admin' },
+      { id: 2, code: 'Admin', name: 'Admin cơ sở' },
+      { id: 3, code: 'CampusAdmin', name: 'Campus Admin' },
+      { id: 4, code: 'BGH', name: 'Ban Giám Hiệu' },
+      { id: 5, code: 'AcademicStaff', name: 'Giáo vụ' },
+      { id: 6, code: 'Teacher', name: 'Giảng viên' },
+      { id: 7, code: 'Student', name: 'Sinh viên' }
+    ]
+  }
+}
 
 async function loadUsers() {
   loading.value = true
   error.value = ''
   try {
-    const data = await adminUserApi.getUsers({ pageIndex: 1, pageSize: 100 })
-    const list = data?.items ?? data?.data?.items ?? data?.data ?? data
-    users.value = Array.isArray(list) ? list.map(normalizeUser) : []
+    const params = {
+      pageIndex: pageIndex.value,
+      pageSize: pageSize.value,
+      keyword: searchQuery.value.trim() || undefined,
+      role: selectedRole.value !== 'Tất cả' ? selectedRole.value : undefined,
+      trangThai: selectedStatus.value !== 'Tất cả' ? selectedStatus.value : undefined,
+      maDonVi: selectedCampus.value !== 'Tất cả' ? Number(selectedCampus.value) : undefined
+    }
+
+    const res = await adminUserApi.getUsers(params)
+    const payload = res?.items ? res : (res?.data ?? res)
+    const list = payload?.items ?? payload?.data ?? (Array.isArray(payload) ? payload : [])
+    
+    users.value = list.map(normalizeUser)
+    totalItems.value = payload?.totalItems ?? payload?.totalCount ?? list.length
+    totalPages.value = payload?.totalPages ?? Math.max(1, Math.ceil(totalItems.value / pageSize.value))
   } catch (e) {
-    error.value = e?.message || 'Không thể tải danh sách người dùng.'
+    error.value = e?.response?.data?.message || e?.message || 'Không thể tải danh sách người dùng.'
     users.value = []
   } finally {
     loading.value = false
   }
 }
 
-const filteredUsers = computed(() => {
-  const source = Array.isArray(users.value) ? users.value : []
-  return source.filter(u => {
-    const name = u.name || u.fullName || u.full_name || ''
-    const email = u.email || ''
-    const role = u.role || ''
-    const campus = u.campus || u.campusName || u.maDonVi || ''
-    const status = u.status || ''
-
-    const matchSearch = searchQuery.value === '' ||
-      name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      email.toLowerCase().includes(searchQuery.value.toLowerCase())
-    const matchRole = selectedRole.value === 'Tất cả' || role === selectedRole.value
-    const matchCampus = selectedCampus.value === 'Tất cả' || campus.includes(selectedCampus.value)
-    const matchStatus = selectedStatus.value === 'Tất cả' || status === selectedStatus.value
-    return matchSearch && matchRole && matchCampus && matchStatus
-  })
+// Watch filters & search to reload from API
+watch([selectedRole, selectedCampus, selectedStatus, pageSize], () => {
+  pageIndex.value = 1
+  loadUsers()
 })
 
+let searchDebounceTimer = null
+watch(searchQuery, () => {
+  clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = setTimeout(() => {
+    pageIndex.value = 1
+    loadUsers()
+  }, 400)
+})
+
+function normalizeUser(user) {
+  const id = user.maNguoiDung || user.userId || user.id || 0
+  const name = user.hoTen || user.name || user.fullName || user.email || ''
+  const email = user.email || ''
+  const phone = user.soDienThoai || user.phone || 'Chưa cập nhật'
+  const role = user.tenVaiTro || user.role || user.vaiTroChinh || 'Người dùng'
+  const campus = user.tenDonVi || user.campus || 'Chưa phân công'
+  const maDonVi = user.maDonVi || user.organizationId || 0
+  // Lấy các ID numeric từ backend (có sau khi bổ sung vào DTO)
+  const maVaiTro = user.maVaiTro || 0
+  const maLopHanhChinh = user.maLopHanhChinh ?? user.maLop ?? null
+  const maCodeVaiTro = user.maCodeVaiTro || user.vaiTroChinh || ''
+  const status = (user.trangThai || user.status || 'active').toLowerCase()
+
+  return {
+    ...user,
+    id,
+    name,
+    email,
+    phone,
+    role,
+    campus,
+    maDonVi,
+    maVaiTro,
+    maLopHanhChinh,
+    maCodeVaiTro,
+    status,
+    lastLogin: user.lanDangNhapCuoi || user.lastLogin || null,
+    createdAt: user.ngayTao || user.createdAt || null
+  }
+}
+
 const getStatusBadge = (status) => {
-  if (status === 'Active') return { class: 'bg-emerald-100 text-emerald-700 border-emerald-200', label: 'Đang hoạt động', icon: CheckCircle2 }
-  if (status === 'Locked') return { class: 'bg-rose-100 text-rose-700 border-rose-200', label: 'Bị khóa', icon: Lock }
-  if (status === 'First_login') return { class: 'bg-amber-100 text-amber-700 border-amber-200', label: 'Đăng nhập lần đầu', icon: ShieldAlert }
-  return { class: 'bg-slate-100 text-slate-700 border-slate-200', label: 'Không xác định', icon: AlertCircle }
+  const s = String(status || '').toLowerCase()
+  if (s === 'active' || s === 'đang hoạt động') return { class: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30', label: 'Đang hoạt động', icon: CheckCircle2 }
+  if (s === 'khoa' || s === 'locked' || s === 'bị khóa') return { class: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30', label: 'Bị khóa', icon: Lock }
+  if (s === 'chua_kich_hoat' || s === 'first_login' || s === 'đăng nhập lần đầu') return { class: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30', label: 'Đăng nhập lần đầu', icon: ShieldAlert }
+  return { class: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-500/30', label: status || 'Không xác định', icon: AlertCircle }
 }
 
 const getRoleClass = (role) => {
-  if (role === 'Admin') return 'bg-indigo-100 text-indigo-700'
-  if (role === 'BGH') return 'bg-purple-100 text-purple-700'
-  if (role === 'Giáo vụ') return 'bg-blue-100 text-blue-700'
-  if (role === 'Giảng viên') return 'bg-teal-100 text-teal-700'
-  return 'bg-slate-100 text-slate-700'
-}
-
-function normalizeUser(user) {
-  const name = user.name || user.fullName || user.full_name || user.hoTen || user.ho_ten || user.email || ''
-  return {
-    ...user,
-    id: user.id || user.userId || user.maNguoiDung || user.ma_nguoi_dung,
-    name,
-    email: user.email || '',
-    phone: user.phone || user.soDienThoai || user.so_dien_thoai || '',
-    role: user.role || user.vaiTroChinh || user.vai_tro_chinh || '',
-    campus: user.campus || user.campusName || user.donVi || user.maDonVi || '',
-    status: user.status || user.trangThai || user.trang_thai || '',
-    lastLogin: user.lastLogin || user.lanDangNhapCuoi || user.lan_dang_nhap_cuoi || null,
-    createdAt: user.createdAt || user.ngayTao || user.ngay_tao || null,
-  }
+  const r = String(role || '').toLowerCase()
+  if (r.includes('admin') || r.includes('quản trị')) return 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-500/30 font-bold'
+  if (r.includes('bgh') || r.includes('giám hiệu')) return 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30 font-bold'
+  if (r.includes('giao_vu') || r.includes('giáo vụ') || r.includes('staff')) return 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30 font-bold'
+  if (r.includes('giang_vien') || r.includes('giảng viên') || r.includes('teacher')) return 'bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-500/30 font-bold'
+  return 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-500/30 font-bold'
 }
 
 // Modals & Drawer State
@@ -115,64 +264,163 @@ const currentUser = ref(null)
 
 const isResetModalOpen = ref(false)
 const resetPasswordUser = ref(null)
+const newPasswordInput = ref('')
 
 const isLockModalOpen = ref(false)
 const lockActionUser = ref(null)
 const lockReason = ref('')
-const lockType = ref('temporary')
 
 const isCreateDrawerOpen = ref(false)
 const createImportMode = ref('create')
-const newUserForm = ref({ name: '', email: '', password: '', role: 'Sinh viên', campus: 'Hà Nội' })
+const newUserForm = ref({
+  hoTen: '',
+  email: '',
+  soDienThoai: '',
+  matKhau: '',
+  maVaiTro: null,
+  maDonVi: null
+})
 
 const isEditDrawerOpen = ref(false)
-const editUserForm = ref(null)
+const editUserForm = ref({
+  id: 0,
+  hoTen: '',
+  email: '',
+  soDienThoai: '',
+  maVaiTro: null,
+  maDonVi: null,
+  maLopHanhChinh: null
+})
 
 // Actions
 const openEditDrawer = (user) => {
-  editUserForm.value = { ...user }
+  // Match role theo maVaiTro numeric trước (chính xác nhất), fallback tên
+  const matchedRole = availableRoles.value.find(r =>
+    (user.maVaiTro > 0 && r.id === user.maVaiTro) ||
+    r.code === user.maCodeVaiTro ||
+    r.name === user.role ||
+    r.code === user.role
+  )
+  // Match org theo maDonVi numeric
+  const userOrgId = user.maDonVi || user.organizationId || 0
+  const matchedOrg = userOrgId
+    ? availableOrganizations.value.find(o => o.id === userOrgId)
+    : availableOrganizations.value.find(o => o.name === user.campus)
+
+  const maVaiTro = matchedRole?.id ?? availableRoles.value[0]?.id ?? null
+  const maDonVi = matchedOrg?.id ?? (userOrgId > 0 ? userOrgId : null) ?? availableOrganizations.value[0]?.id ?? null
+  // Giữ nguyên maLopHanhChinh của user – bắt buộc phải có cho Student
+  const maLopHanhChinh = user.maLopHanhChinh ?? null
+
+  console.debug('[openEditDrawer]', {
+    user_role: user.role, user_maVaiTro: user.maVaiTro,
+    user_maDonVi: user.maDonVi, user_maLopHanhChinh: user.maLopHanhChinh,
+    matchedRole, matchedOrg, maVaiTro, maDonVi, maLopHanhChinh
+  })
+
+  editUserForm.value = {
+    id: user.id,
+    hoTen: user.name,
+    email: user.email,
+    soDienThoai: user.phone === 'Chưa cập nhật' ? '' : user.phone,
+    maVaiTro,
+    maDonVi,
+    maLopHanhChinh
+  }
   isEditDrawerOpen.value = true
 }
 
 const confirmEditUser = async () => {
-  if (!editUserForm.value.name || !editUserForm.value.email) {
-    popup.warning('Thiếu thông tin', 'Vui lòng điền đủ Họ tên và Email.')
+  if (!editUserForm.value.hoTen.trim() || !editUserForm.value.email.trim()) {
+    popup.warning('Thiếu thông tin', 'Vui lòng điền đầy đủ Họ tên và Email.')
     return
   }
+
+  const maVaiTro = Number(editUserForm.value.maVaiTro)
+  const maDonVi = Number(editUserForm.value.maDonVi)
+
+  if (!maVaiTro || maVaiTro < 1) {
+    popup.warning('Thiếu thông tin', 'Vui lòng chọn Vai trò hợp lệ cho tài khoản.')
+    return
+  }
+  if (!maDonVi || maDonVi < 1) {
+    popup.warning('Thiếu thông tin', 'Vui lòng chọn Cơ sở / Đơn vị hợp lệ cho tài khoản.')
+    return
+  }
+
+  const payload = {
+    hoTen: editUserForm.value.hoTen.trim(),
+    email: editUserForm.value.email.trim(),
+    soDienThoai: editUserForm.value.soDienThoai?.trim() || null,
+    maVaiTro,
+    maDonVi,
+    maLopHanhChinh: editUserForm.value.maLopHanhChinh ?? null
+  }
+  console.debug('[confirmEditUser] payload →', payload)
+
   try {
-    await adminUserApi.update(editUserForm.value.id, editUserForm.value)
-    popup.success('Đã cập nhật', `Thông tin ${editUserForm.value.email} đã được lưu.`)
+    await adminUserApi.update(editUserForm.value.id, payload)
+    popup.success('Đã cập nhật', `Thông tin tài khoản ${editUserForm.value.email} đã được lưu thành công.`)
+    isEditDrawerOpen.value = false
+    isDrawerOpen.value = false
+    await loadUsers()
   } catch (e) {
-    popup.error('Lỗi cập nhật', e?.message || 'Không thể cập nhật thông tin.')
-    return
+    const msg = e?.response?.data?.message
+      || e?.response?.data?.title
+      || e?.message
+      || 'Không thể cập nhật tài khoản.'
+    console.error('[confirmEditUser] error', e?.response?.data ?? e)
+    popup.error('Lỗi cập nhật', msg)
   }
-  isEditDrawerOpen.value = false
-  isDrawerOpen.value = false
 }
 
 const openCreateImportDrawer = () => {
   createImportMode.value = 'create'
-  newUserForm.value = { name: '', email: '', password: '', role: 'Sinh viên', campus: 'Hà Nội' }
+  newUserForm.value = {
+    hoTen: '',
+    email: '',
+    soDienThoai: '',
+    matKhau: 'Pass@123456',
+    maVaiTro: availableRoles.value[0]?.id || 1,
+    maDonVi: availableOrganizations.value[0]?.id || 1
+  }
   isCreateDrawerOpen.value = true
+}
+
+const generateRandomPassword = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*'
+  let result = 'Pass@'
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
 }
 
 const confirmCreateImport = async () => {
   if (createImportMode.value === 'create') {
-    if (!newUserForm.value.name || !newUserForm.value.email || !newUserForm.value.password) {
-      popup.warning('Thiếu thông tin', 'Vui lòng điền đầy đủ thông tin.')
+    if (!newUserForm.value.hoTen.trim() || !newUserForm.value.email.trim() || !newUserForm.value.matKhau.trim()) {
+      popup.warning('Thiếu thông tin', 'Vui lòng điền đầy đủ Họ tên, Email và Mật khẩu.')
       return
     }
     try {
-      await adminUserApi.create(newUserForm.value)
-      popup.success('Đã tạo tài khoản', `Tài khoản ${newUserForm.value.email} đã được tạo.`)
-  } catch (e) {
-      popup.error('Lỗi tạo tài khoản', e?.message || 'Không thể tạo tài khoản.')
-      return
+      await adminUserApi.create({
+        hoTen: newUserForm.value.hoTen.trim(),
+        email: newUserForm.value.email.trim(),
+        soDienThoai: newUserForm.value.soDienThoai?.trim() || null,
+        matKhau: newUserForm.value.matKhau.trim(),
+        maVaiTro: Number(newUserForm.value.maVaiTro),
+        maDonVi: Number(newUserForm.value.maDonVi)
+      })
+      popup.success('Đã tạo tài khoản', `Tài khoản ${newUserForm.value.email} đã được khởi tạo thành công!`)
+      isCreateDrawerOpen.value = false
+      await loadUsers()
+    } catch (e) {
+      popup.error('Lỗi tạo tài khoản', e?.response?.data?.message || e?.message || 'Không thể tạo tài khoản.')
     }
   } else {
-    popup.info('Import', 'Chức năng import Excel đang phát triển.')
+    popup.info('Import Excel', 'Chức năng Import từ Excel đang được tải mẫu.')
+    isCreateDrawerOpen.value = false
   }
-  isCreateDrawerOpen.value = false
 }
 
 const openDrawer = (user) => {
@@ -182,50 +430,56 @@ const openDrawer = (user) => {
 
 const openResetModal = (user) => {
   resetPasswordUser.value = user
+  newPasswordInput.value = generateRandomPassword()
   isResetModalOpen.value = true
 }
 
 const confirmResetPassword = async () => {
+  if (!newPasswordInput.value.trim() || newPasswordInput.value.trim().length < 8) {
+    popup.warning('Mật khẩu ngắn', 'Mật khẩu mới phải có tối thiểu 8 ký tự.')
+    return
+  }
   try {
     await adminUserApi.resetPassword(resetPasswordUser.value.id, {
-      newPassword: prompt('Nhập mật khẩu mới:', ''),
+      newPassword: newPasswordInput.value.trim()
     })
+    popup.success('Đã reset mật khẩu', `Mật khẩu mới của ${resetPasswordUser.value.email} là: ${newPasswordInput.value.trim()}`)
+    isResetModalOpen.value = false
   } catch (e) {
-    popup.error('Lỗi reset', e?.message || 'Không thể reset mật khẩu.')
+    popup.error('Lỗi reset mật khẩu', e?.response?.data?.message || e?.message || 'Không thể reset mật khẩu.')
   }
-  isResetModalOpen.value = false
 }
 
 const openLockModal = (user) => {
   lockActionUser.value = user
-  lockReason.value = user.status === 'Locked' ? '' : ''
-  lockType.value = 'temporary'
+  lockReason.value = ''
   isLockModalOpen.value = true
 }
 
 const confirmLockAction = async () => {
   try {
-    if (lockActionUser.value.status === 'Locked') {
+    const isLocked = lockActionUser.value.status === 'khoa' || lockActionUser.value.status === 'locked'
+    if (isLocked) {
       await adminUserApi.unlock(lockActionUser.value.id)
-      popup.success('Đã mở khóa', `Tài khoản ${lockActionUser.value.email} đã được mở khóa.`)
+      popup.success('Đã mở khóa', `Tài khoản ${lockActionUser.value.email} đã mở khóa hoạt động.`)
     } else {
       if (!lockReason.value.trim()) {
-        popup.warning('Thiếu lý do', 'Super Admin bắt buộc phải nhập lý do khóa tài khoản!')
+        popup.warning('Bắt buộc nhập lý do', 'Vui lòng ghi rõ lý do khóa tài khoản để lưu Audit Log.')
         return
       }
-      await adminUserApi.lock(lockActionUser.value.id)
-      popup.success('Đã khóa', `Tài khoản ${lockActionUser.value.email} đã bị khóa. Đã ghi Log.`)
+      await adminUserApi.lock(lockActionUser.value.id, lockReason.value.trim())
+      popup.success('Đã khóa tài khoản', `Tài khoản ${lockActionUser.value.email} đã bị khóa và ghi Log thành công.`)
     }
+    isLockModalOpen.value = false
+    await loadUsers()
   } catch (e) {
-    popup.error('Lỗi', e?.message || 'Không thể thực hiện thao tác.')
-    return
+    popup.error('Lỗi thao tác', e?.response?.data?.message || e?.message || 'Không thể thay đổi trạng thái tài khoản.')
   }
-  isLockModalOpen.value = false
 }
 
 const toggleSelectAll = (e) => {
   if (e.target.checked) {
-    selectedUsers.value = filteredUsers.value.map(u => u.id)
+    selectedUsers.value = users.value.map(u => u.id)
   } else {
     selectedUsers.value = []
   }
@@ -233,17 +487,27 @@ const toggleSelectAll = (e) => {
 
 const formatDateTime = (dateStr) => {
   if (!dateStr) return 'Chưa đăng nhập'
-  return new Date(dateStr).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })
+  try {
+    return new Date(dateStr).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })
+  } catch {
+    return dateStr
+  }
 }
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '--'
-  return new Date(dateStr).toLocaleDateString('vi-VN')
+  try {
+    return new Date(dateStr).toLocaleDateString('vi-VN')
+  } catch {
+    return dateStr
+  }
 }
 
+
 const route = useRoute()
-onMounted(() => {
-  loadUsers()
+onMounted(async () => {
+  await Promise.all([loadOrganizations(), loadRoles()])
+  await loadUsers()
   if (route.query.action === 'import') {
     createImportMode.value = 'import'
     isCreateDrawerOpen.value = true
@@ -252,15 +516,24 @@ onMounted(() => {
 </script>
 
 <template>
+
   <div class="users-management-page">
     <!-- Header -->
     <header class="page-header mb-6">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-bold text-heading">Danh sách người dùng</h1>
-          <p class="text-sm text-label mt-1">Toàn quyền quản lý tài khoản, phân quyền và giám sát truy cập hệ thống đa cơ sở.</p>
+          <h1 class="text-2xl font-bold text-heading flex items-center gap-2">
+            Danh sách người dùng
+            <span v-if="totalItems > 0" class="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold border border-blue-200 dark:border-blue-800">
+              {{ totalItems }} tài khoản
+            </span>
+          </h1>
+          <p class="text-sm text-label mt-1">Toàn quyền quản lý tài khoản, phân quyền và giám sát truy cập hệ thống toàn bộ cơ sở.</p>
         </div>
         <div class="flex items-center gap-3">
+          <button @click="loadUsers" class="glass-btn secondary shadow-sm" title="Tải lại dữ liệu">
+            <RefreshCw :size="16" :class="{ 'animate-spin': loading }" /> Tải lại
+          </button>
           <router-link to="/super-admin/login-history" class="glass-btn secondary shadow-sm">
             <History :size="16" /> Lịch sử đăng nhập
           </router-link>
@@ -272,7 +545,7 @@ onMounted(() => {
     </header>
 
     <!-- Controls (Search & Filters) -->
-    <div class="controls-panel glass-panel mb-6 p-4 rounded-2xl flex flex-col lg:flex-row gap-4 items-center justify-between">
+    <div class="controls-panel glass-panel relative z-20 mb-6 p-4 rounded-2xl flex flex-col lg:flex-row gap-4 items-center justify-between">
       <div class="search-box relative w-full lg:w-80">
         <Search :size="18" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
         <input 
@@ -284,47 +557,38 @@ onMounted(() => {
       </div>
       
       <div class="filters flex flex-wrap items-center gap-3 w-full lg:w-auto">
-        <div class="filter-group">
-          <Filter :size="14" class="text-label" />
-          <select v-model="selectedRole" class="glass-select">
-            <option v-for="r in roles" :key="r" :value="r">{{ r === 'Tất cả' ? 'Tất cả vai trò' : r }}</option>
-          </select>
+        <div class="w-52">
+          <LmsSelect v-model="selectedRole" :options="roleFilterOptions" placeholder="Vai trò" />
         </div>
-        <div class="filter-group">
-          <Building2 :size="14" class="text-label" />
-          <select v-model="selectedCampus" class="glass-select">
-            <option v-for="c in campuses" :key="c" :value="c">{{ c === 'Tất cả' ? 'Tất cả cơ sở' : c }}</option>
-          </select>
+        <div class="w-64">
+          <LmsSelect v-model="selectedCampus" :options="campusFilterOptions" placeholder="Cơ sở" />
         </div>
-        <div class="filter-group">
-          <Shield :size="14" class="text-label" />
-          <select v-model="selectedStatus" class="glass-select">
-            <option v-for="s in statuses" :key="s" :value="s">{{ s === 'Tất cả' ? 'Tất cả trạng thái' : (s === 'First_login' ? 'Đăng nhập lần đầu' : s) }}</option>
-          </select>
+        <div class="w-48">
+          <LmsSelect v-model="selectedStatus" :options="statusFilterOptions" placeholder="Trạng thái" />
         </div>
       </div>
     </div>
 
     <!-- Bulk Actions (hiển thị khi có item được chọn) -->
     <transition name="fade">
-      <div v-if="selectedUsers.length > 0" class="bulk-actions mb-4 p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-between">
-        <span class="text-sm font-semibold text-blue-800">Đã chọn {{ selectedUsers.length }} tài khoản</span>
+      <div v-if="selectedUsers.length > 0" class="bulk-actions mb-4 p-3 rounded-xl bg-blue-500/10 border border-blue-200 dark:border-blue-800 flex items-center justify-between">
+        <span class="text-sm font-semibold text-blue-700 dark:text-blue-300">Đã chọn {{ selectedUsers.length }} tài khoản</span>
         <div class="flex gap-2">
           <button class="glass-btn secondary text-xs py-1.5 px-3"><Mail :size="14" /> Gửi thông báo</button>
-          <button class="glass-btn danger text-xs py-1.5 px-3"><Lock :size="14" /> Khóa hàng loạt</button>
         </div>
       </div>
     </transition>
 
     <!-- Loading State -->
-    <div v-if="loading" class="glass-panel rounded-2xl p-4">
-      <SkeletonTable :rows="6" :columns="6" />
+    <div v-if="loading" class="glass-panel rounded-2xl p-6 text-center text-label">
+      <RefreshCw :size="32" class="animate-spin mx-auto mb-2 text-blue-500" />
+      <p class="text-sm">Đang nạp danh sách tài khoản từ SQL Server database...</p>
     </div>
 
     <!-- Error State -->
     <div v-else-if="error" class="glass-panel rounded-2xl p-12 flex flex-col items-center justify-center">
       <AlertCircle :size="40" class="text-rose-400 mb-3" />
-      <p class="text-rose-600 font-semibold mb-2">{{ error }}</p>
+      <p class="text-rose-600 dark:text-rose-400 font-semibold mb-2">{{ error }}</p>
       <button @click="loadUsers" class="glass-btn primary text-xs">Thử lại</button>
     </div>
 
@@ -334,7 +598,7 @@ onMounted(() => {
         <thead>
           <tr>
             <th class="w-12 text-center">
-              <input type="checkbox" class="glass-checkbox" :checked="selectedUsers.length === filteredUsers.length && filteredUsers.length > 0" @change="toggleSelectAll" />
+              <input type="checkbox" class="glass-checkbox" :checked="selectedUsers.length === users.length && users.length > 0" @change="toggleSelectAll" />
             </th>
             <th>Thông tin định danh</th>
             <th>Vai trò & Cơ sở</th>
@@ -344,17 +608,17 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-if="filteredUsers.length === 0">
-            <td colspan="6" class="text-center py-10 text-placeholder">Không tìm thấy người dùng nào phù hợp.</td>
+          <tr v-if="users.length === 0">
+            <td colspan="6" class="text-center py-10 text-placeholder">Không tìm thấy người dùng nào phù hợp trong cơ sở dữ liệu.</td>
           </tr>
-          <tr v-for="user in filteredUsers" :key="user.id" class="hover:bg-slate-50/50 transition border-t border-slate-100/50">
+          <tr v-for="user in users" :key="user.id" class="hover:bg-slate-500/5 transition border-t border-slate-500/10">
             <td class="text-center">
               <input type="checkbox" class="glass-checkbox" :value="user.id" v-model="selectedUsers" />
             </td>
             <td>
               <div class="flex items-center gap-3">
                 <div class="avatar bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center rounded-full font-bold w-10 h-10 shadow-sm shrink-0">
-                  {{ user.name.charAt(0) }}
+                  {{ user.name ? user.name.charAt(0).toUpperCase() : 'U' }}
                 </div>
                 <div>
                   <div class="font-bold text-heading text-sm">{{ user.name }}</div>
@@ -370,7 +634,7 @@ onMounted(() => {
               </div>
             </td>
             <td>
-              <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold" :class="getStatusBadge(user.status).class">
+              <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" :class="getStatusBadge(user.status).class">
                 <component :is="getStatusBadge(user.status).icon" :size="12" />
                 {{ getStatusBadge(user.status).label }}
               </div>
@@ -387,260 +651,272 @@ onMounted(() => {
             </td>
             <td class="text-right">
               <div class="flex items-center justify-end gap-2">
-                <button @click="openDrawer(user)" class="action-btn text-blue-600 hover:bg-blue-50" title="Xem chi tiết">
+                <button @click="openDrawer(user)" class="action-btn text-blue-600 hover:bg-blue-500/10" title="Xem chi tiết">
                   <Eye :size="16" />
                 </button>
-                <button @click="openEditDrawer(user)" class="action-btn text-teal-600 hover:bg-teal-50" title="Chỉnh sửa & Gán quyền">
+                <button @click="openEditDrawer(user)" class="action-btn text-teal-600 hover:bg-teal-500/10" title="Chỉnh sửa & Gán quyền">
                   <Edit2 :size="16" />
                 </button>
-                <button @click="openResetModal(user)" class="action-btn text-amber-600 hover:bg-amber-50" title="Reset Mật khẩu">
+                <button @click="openResetModal(user)" class="action-btn text-amber-600 hover:bg-amber-500/10" title="Reset Mật khẩu">
                   <KeyRound :size="16" />
                 </button>
-                <button @click="openLockModal(user)" class="action-btn hover:bg-rose-50" :class="user.status === 'Locked' ? 'text-emerald-600' : 'text-rose-600'" :title="user.status === 'Locked' ? 'Mở khóa tài khoản' : 'Khóa tài khoản'">
-                  <component :is="user.status === 'Locked' ? Unlock : Lock" :size="16" />
+                <button @click="openLockModal(user)" class="action-btn hover:bg-rose-500/10" :class="user.status === 'khoa' || user.status === 'locked' ? 'text-emerald-600' : 'text-rose-600'" :title="user.status === 'khoa' || user.status === 'locked' ? 'Mở khóa tài khoản' : 'Khóa tài khoản'">
+                  <component :is="user.status === 'khoa' || user.status === 'locked' ? Unlock : Lock" :size="16" />
                 </button>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
+
+      <!-- Pagination Bar -->
+      <div class="pagination-bar p-4 border-t border-slate-500/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="text-xs text-label">
+          Trang <strong>{{ pageIndex }}</strong> / <strong>{{ totalPages }}</strong> — Tổng số <strong>{{ totalItems }}</strong> tài khoản
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 text-xs text-label">
+            <span>Hiển thị:</span>
+            <div class="w-32">
+              <LmsSelect v-model="pageSize" :options="pageSizeOptions" />
+            </div>
+          </div>
+          <div class="flex gap-1">
+            <button 
+              @click="pageIndex > 1 && (pageIndex--, loadUsers())" 
+              :disabled="pageIndex <= 1"
+              class="glass-btn secondary py-1 px-2.5 text-xs" 
+              :class="{ 'opacity-50 cursor-not-allowed': pageIndex <= 1 }"
+            >
+              <ChevronLeft :size="14" /> Trước
+            </button>
+            <button 
+              @click="pageIndex < totalPages && (pageIndex++, loadUsers())" 
+              :disabled="pageIndex >= totalPages"
+              class="glass-btn secondary py-1 px-2.5 text-xs" 
+              :class="{ 'opacity-50 cursor-not-allowed': pageIndex >= totalPages }"
+            >
+              Sau <ChevronRight :size="14" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Dịch chuyển (Teleport) tất cả Modal/Drawer ra ngoài thẻ body để không bị đè bởi Topbar/Sidebar -->
+    <!-- Teleport Modals & Drawers -->
     <Teleport to="body">
       <!-- Drawer Chi tiết User -->
       <div v-if="isDrawerOpen" class="drawer-overlay" @click="isDrawerOpen = false"></div>
-    <div class="drawer" :class="{ 'open': isDrawerOpen }">
-      <div class="drawer-header">
-        <h3 class="font-bold text-heading text-lg">Hồ sơ Người dùng</h3>
-        <button @click="isDrawerOpen = false" class="text-label hover:text-heading"><X :size="20" /></button>
+      <div class="drawer" :class="{ 'open': isDrawerOpen }">
+        <div class="drawer-header">
+          <h3 class="font-bold text-heading text-lg">Hồ sơ Người dùng</h3>
+          <button @click="isDrawerOpen = false" class="text-label hover:text-heading"><X :size="20" /></button>
+        </div>
+        <div class="drawer-body p-6" v-if="currentUser">
+          <div class="text-center mb-6">
+            <div class="mx-auto bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center rounded-full font-bold w-20 h-20 shadow-md text-2xl mb-3">
+              {{ currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U' }}
+            </div>
+            <h2 class="text-xl font-bold text-heading">{{ currentUser.name }}</h2>
+            <p class="text-sm text-label">{{ currentUser.email }}</p>
+            <div class="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold" :class="getStatusBadge(currentUser.status).class">
+              <component :is="getStatusBadge(currentUser.status).icon" :size="12" />
+              {{ getStatusBadge(currentUser.status).label }}
+            </div>
+          </div>
+
+          <div class="info-section">
+            <h4 class="font-semibold text-heading mb-3 flex items-center gap-2"><Shield :size="16" /> Phân quyền & Công tác</h4>
+            <div class="info-row"><span class="info-label">Vai trò:</span> <span class="font-semibold text-heading">{{ currentUser.role }}</span></div>
+            <div class="info-row"><span class="info-label">Cơ sở (Campus):</span> <span>{{ currentUser.campus }}</span></div>
+            <div class="info-row"><span class="info-label">Số điện thoại:</span> <span>{{ currentUser.phone }}</span></div>
+          </div>
+
+          <div class="info-section mt-6">
+            <h4 class="font-semibold text-heading mb-3 flex items-center gap-2"><History :size="16" /> Lịch sử truy cập</h4>
+            <div class="info-row"><span class="info-label">Lần đăng nhập cuối:</span> <span>{{ formatDateTime(currentUser.lastLogin) }}</span></div>
+            <div class="info-row"><span class="info-label">Ngày tạo tài khoản:</span> <span>{{ formatDate(currentUser.createdAt) }}</span></div>
+          </div>
+
+          <div class="mt-8 flex gap-3">
+            <button @click="openEditDrawer(currentUser)" class="glass-btn primary flex-1 justify-center"><Edit2 :size="16" /> Cập nhật</button>
+            <button v-if="currentUser.status !== 'khoa' && currentUser.status !== 'locked'" @click="openLockModal(currentUser)" class="glass-btn danger flex-1 justify-center"><Lock :size="16" /> Khóa TK</button>
+            <button v-else @click="openLockModal(currentUser)" class="glass-btn flex-1 justify-center !text-emerald-500 !border-emerald-500/30 !bg-emerald-500/10"><Unlock :size="16" /> Mở khóa</button>
+          </div>
+        </div>
       </div>
-      <div class="drawer-body p-6" v-if="currentUser">
-        <div class="text-center mb-6">
-          <div class="mx-auto bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center rounded-full font-bold w-20 h-20 shadow-md text-2xl mb-3">
-            {{ currentUser.name.charAt(0) }}
+
+      <!-- Modal Reset Mật khẩu Hiện Đại -->
+      <div v-if="isResetModalOpen" class="modal-overlay">
+        <div class="modal-content glass-panel p-6 rounded-2xl max-w-sm w-full">
+          <div class="flex items-center justify-center w-12 h-12 rounded-full bg-amber-500/15 text-amber-500 mb-4 mx-auto">
+            <KeyRound :size="24" />
           </div>
-          <h2 class="text-xl font-bold text-heading">{{ currentUser.name }}</h2>
-          <p class="text-sm text-label">{{ currentUser.email }}</p>
-          <div class="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold" :class="getStatusBadge(currentUser.status).class">
-            <component :is="getStatusBadge(currentUser.status).icon" :size="12" />
-            {{ getStatusBadge(currentUser.status).label }}
+          <h3 class="text-lg font-bold text-center text-heading mb-1">Reset Mật Khẩu</h3>
+          <p class="text-xs text-center text-label mb-4">Cấp lại mật khẩu cho tài khoản <strong>{{ resetPasswordUser?.email }}</strong></p>
+          
+          <div class="form-group mb-4">
+            <label class="block text-xs font-bold text-label mb-1">Mật khẩu mới</label>
+            <div class="relative">
+              <input v-model="newPasswordInput" type="text" class="glass-input w-full pr-10" placeholder="Tối thiểu 8 ký tự..." />
+              <button @click="newPasswordInput = generateRandomPassword()" class="absolute right-2 top-1/2 -translate-y-1/2 text-blue-500 hover:text-blue-600 p-1" title="Tạo mật khẩu ngẫu nhiên">
+                <Sparkles :size="16" />
+              </button>
+            </div>
+          </div>
+
+          <div class="flex gap-3">
+            <button @click="isResetModalOpen = false" class="glass-btn secondary flex-1 justify-center">Hủy</button>
+            <button @click="confirmResetPassword" class="glass-btn primary flex-1 justify-center">Xác nhận Reset</button>
           </div>
         </div>
+      </div>
 
-        <div class="info-section">
-          <h4 class="font-semibold text-heading mb-3 flex items-center gap-2"><Shield :size="16" /> Phân quyền & Công tác</h4>
-          <div class="info-row"><span class="info-label">Vai trò:</span> <span class="font-semibold text-heading">{{ currentUser.role }}</span></div>
-          <div class="info-row"><span class="info-label">Cơ sở (Campus):</span> <span>{{ currentUser.campus }}</span></div>
+      <!-- Modal Khóa / Mở Khóa Tài Khoản -->
+      <div v-if="isLockModalOpen" class="modal-overlay">
+        <div class="modal-content glass-panel p-6 rounded-2xl max-w-md w-full">
+          <div class="flex items-center gap-3 mb-5 border-b border-slate-500/10 pb-4">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full" :class="lockActionUser?.status === 'khoa' || lockActionUser?.status === 'locked' ? 'bg-emerald-500/15 text-emerald-500' : 'bg-rose-500/15 text-rose-500'">
+              <component :is="lockActionUser?.status === 'khoa' || lockActionUser?.status === 'locked' ? Unlock : Lock" :size="24" />
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-heading">{{ lockActionUser?.status === 'khoa' || lockActionUser?.status === 'locked' ? 'Mở Khóa Tài Khoản' : 'Khóa Tài Khoản' }}</h3>
+              <p class="text-xs font-semibold text-blue-500 mt-0.5">{{ lockActionUser?.email }}</p>
+            </div>
+          </div>
+
+          <template v-if="lockActionUser?.status !== 'khoa' && lockActionUser?.status !== 'locked'">
+            <div class="mb-4">
+              <div class="bg-rose-500/10 border border-rose-500/20 rounded-lg p-3 mb-4">
+                <p class="text-xs text-rose-600 dark:text-rose-400 font-medium leading-relaxed">Tài khoản này sẽ bị khóa ngưng truy cập toàn bộ hệ thống. Thao tác này sẽ được ghi vào hệ thống Audit Log.</p>
+              </div>
+              <div class="form-group">
+                <label class="block text-xs font-bold text-rose-500 mb-1">Lý do khóa tài khoản (Ghi Audit Log) *</label>
+                <textarea v-model="lockReason" rows="3" class="glass-input w-full" placeholder="VD: Vi phạm chính sách bảo mật, tạm ngừng công tác..."></textarea>
+              </div>
+            </div>
+          </template>
+          <template v-else>
+            <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 mb-6">
+              <p class="text-sm text-emerald-600 dark:text-emerald-400 font-semibold mb-1">Khôi phục trạng thái hoạt động</p>
+              <p class="text-xs text-emerald-600 dark:text-emerald-400">Tài khoản sẽ được mở khóa và đăng nhập bình thường vào hệ thống.</p>
+            </div>
+          </template>
+
+          <div class="flex gap-3 justify-end mt-2 pt-4 border-t border-slate-500/10">
+            <button @click="isLockModalOpen = false" class="glass-btn secondary flex-1 justify-center">Hủy bỏ</button>
+            <button @click="confirmLockAction" class="glass-btn flex-1 justify-center" :class="lockActionUser?.status === 'khoa' || lockActionUser?.status === 'locked' ? 'primary' : 'danger'">
+              <component :is="lockActionUser?.status === 'khoa' || lockActionUser?.status === 'locked' ? Unlock : Lock" :size="16" />
+              {{ lockActionUser?.status === 'khoa' || lockActionUser?.status === 'locked' ? 'Xác nhận Mở Khóa' : 'Xác nhận Khóa' }}
+            </button>
+          </div>
         </div>
+      </div>
 
-        <div class="info-section mt-6">
-          <h4 class="font-semibold text-heading mb-3 flex items-center gap-2"><History :size="16" /> Lịch sử truy cập</h4>
-          <div class="info-row"><span class="info-label">Lần đăng nhập cuối:</span> <span>{{ formatDateTime(currentUser.lastLogin) }}</span></div>
-          <div class="info-row"><span class="info-label">Ngày tạo tài khoản:</span> <span>{{ formatDate(currentUser.createdAt) }}</span></div>
-        </div>
-
-        <div v-if="currentUser.status === 'Locked'" class="mt-6 p-4 bg-rose-50 border border-rose-200 rounded-xl">
-          <h4 class="font-bold text-rose-800 text-sm mb-1 flex items-center gap-1"><Lock :size="14"/> Lý do khóa tài khoản</h4>
-          <p class="text-rose-700 text-sm">{{ currentUser.lockReason || 'Không có lý do rõ ràng.' }}</p>
+      <!-- Drawer Tạo / Import Tài khoản -->
+      <div v-if="isCreateDrawerOpen" class="drawer-overlay" @click="isCreateDrawerOpen = false"></div>
+      <div class="drawer" :class="{ 'open': isCreateDrawerOpen }">
+        <div class="drawer-header">
+          <h3 class="text-lg font-bold text-heading flex items-center gap-2">
+            <UserPlus :size="20" class="text-blue-500"/> Quản lý Tài khoản Mới
+          </h3>
+          <button @click="isCreateDrawerOpen = false" class="text-label hover:text-heading"><X :size="20" /></button>
         </div>
         
-        <div class="mt-8 flex gap-3">
-          <button @click="openEditDrawer(currentUser)" class="glass-btn primary flex-1 justify-center"><Edit2 :size="16" /> Cập nhật</button>
-          <button v-if="currentUser.status !== 'Locked'" @click="openLockModal(currentUser)" class="glass-btn danger flex-1 justify-center"><Lock :size="16" /> Khóa TK</button>
-          <button v-else @click="openLockModal(currentUser)" class="glass-btn flex-1 justify-center !text-emerald-700 !border-emerald-200 !bg-emerald-50"><Unlock :size="16" /> Mở khóa</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal Reset Mật khẩu -->
-    <div v-if="isResetModalOpen" class="modal-overlay">
-      <div class="modal-content glass-panel p-6 rounded-2xl max-w-sm w-full">
-        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 text-amber-600 mb-4 mx-auto">
-          <KeyRound :size="24" />
-        </div>
-        <h3 class="text-lg font-bold text-center text-heading mb-2">Reset Mật Khẩu</h3>
-        <p class="text-sm text-center text-label mb-6">Bạn có chắc chắn muốn cấp lại mật khẩu cho tài khoản <strong>{{ resetPasswordUser?.email }}</strong>?</p>
-        <div class="flex gap-3">
-          <button @click="isResetModalOpen = false" class="glass-btn secondary flex-1 justify-center">Hủy</button>
-          <button @click="confirmResetPassword" class="glass-btn primary flex-1 justify-center">Xác nhận</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal Khóa / Mở Khóa Tài Khoản -->
-    <div v-if="isLockModalOpen" class="modal-overlay">
-      <div class="modal-content glass-panel p-6 rounded-2xl max-w-md w-full">
-        <div class="flex items-center gap-3 mb-5 border-b border-slate-100 pb-4">
-          <div class="flex items-center justify-center w-12 h-12 rounded-full" :class="lockActionUser?.status === 'Locked' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'">
-            <component :is="lockActionUser?.status === 'Locked' ? Unlock : Lock" :size="24" />
+        <div class="drawer-body p-6">
+          <div class="flex border-b border-slate-500/10 mb-6">
+            <button @click="createImportMode = 'create'" class="flex-1 pb-3 font-semibold text-sm transition-colors border-b-2 outline-none" :class="createImportMode === 'create' ? 'text-blue-500 border-blue-500' : 'text-label border-transparent'">Tạo thủ công</button>
+            <button @click="createImportMode = 'import'" class="flex-1 pb-3 font-semibold text-sm transition-colors border-b-2 outline-none" :class="createImportMode === 'import' ? 'text-blue-500 border-blue-500' : 'text-label border-transparent'">Import từ Excel</button>
           </div>
-          <div>
-            <h3 class="text-lg font-bold text-heading">{{ lockActionUser?.status === 'Locked' ? 'Mở Khóa Tài Khoản' : 'Khóa Tài Khoản' }}</h3>
-            <p class="text-xs font-semibold text-blue-600 mt-0.5">{{ lockActionUser?.email }}</p>
-          </div>
-        </div>
 
-        <template v-if="lockActionUser?.status !== 'Locked'">
-          <div class="mb-4">
-            <div class="bg-rose-50 border border-rose-200 rounded-lg p-3 mb-4">
-              <p class="text-xs text-rose-700 font-medium leading-relaxed">Tài khoản này sẽ bị đưa vào trạng thái Locked (Soft delete). Người dùng sẽ không thể truy cập bất kỳ module nào của hệ thống.</p>
+          <template v-if="createImportMode === 'create'">
+            <div class="space-y-4 mb-6">
+              <div class="form-group">
+                <label class="block text-xs font-bold text-label mb-1">Họ và tên *</label>
+                <input v-model="newUserForm.hoTen" type="text" class="glass-input w-full" placeholder="Nhập họ và tên..." />
+              </div>
+              <div class="form-group">
+                <label class="block text-xs font-bold text-label mb-1">Email *</label>
+                <input v-model="newUserForm.email" type="email" class="glass-input w-full" placeholder="email@fpt.edu.vn" />
+              </div>
+              <div class="form-group">
+                <label class="block text-xs font-bold text-label mb-1">Số điện thoại</label>
+                <input v-model="newUserForm.soDienThoai" type="text" class="glass-input w-full" placeholder="0901234567" />
+              </div>
+              <div class="form-group">
+                <label class="block text-xs font-bold text-label mb-1">Mật khẩu ban đầu *</label>
+                <div class="relative">
+                  <input v-model="newUserForm.matKhau" type="text" class="glass-input w-full pr-10" placeholder="Pass@123456" />
+                  <button @click="newUserForm.matKhau = generateRandomPassword()" class="absolute right-2 top-1/2 -translate-y-1/2 text-blue-500 hover:text-blue-600 p-1" title="Tạo mật khẩu ngẫu nhiên">
+                    <Sparkles :size="16" />
+                  </button>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <LmsSelect v-model="newUserForm.maVaiTro" :options="formRoleOptions" label="Vai trò *" required />
+                <LmsSelect v-model="newUserForm.maDonVi" :options="formCampusOptions" label="Cơ sở *" required />
+              </div>
             </div>
-            <div class="form-group mb-4">
-              <label class="block text-xs font-bold text-label mb-1">Thời hạn khóa</label>
-              <select v-model="lockType" class="glass-select w-full bg-white">
-                <option value="temporary">Khóa tạm thời (Tự động mở sau thời hạn)</option>
-                <option value="permanent">Khóa vĩnh viễn (Banned)</option>
-              </select>
+          </template>
+          <template v-else>
+            <div class="border-2 border-dashed border-blue-500/30 bg-blue-500/5 rounded-xl p-8 text-center mb-6 flex flex-col items-center justify-center">
+              <div class="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center mb-3">
+                <FileSpreadsheet :size="24" class="text-blue-500" />
+              </div>
+              <h4 class="font-bold text-sm text-heading mb-1">Kéo thả file Excel vào đây</h4>
+              <p class="text-xs text-label mb-4">Hỗ trợ các định dạng .xlsx, .csv (Tối đa 5MB)</p>
+              <button class="glass-btn secondary text-xs">Chọn file từ máy tính</button>
             </div>
-            <div class="form-group">
-              <label class="block text-xs font-bold text-rose-600 mb-1">Lý do khóa (Bắt buộc ghi Audit Log) *</label>
-              <textarea v-model="lockReason" rows="3" class="glass-input w-full bg-white" placeholder="VD: Vi phạm chính sách bảo mật, nghỉ việc..."></textarea>
-            </div>
-          </div>
-        </template>
-        <template v-else>
-          <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
-            <p class="text-sm text-emerald-800 font-semibold mb-1">Khôi phục trạng thái hoạt động</p>
-            <p class="text-xs text-emerald-700">Người dùng sẽ có thể sử dụng hệ thống bình thường. Quyền hạn (Role) cũ vẫn được giữ nguyên.</p>
-          </div>
-        </template>
+          </template>
 
-        <div class="flex gap-3 justify-end mt-2 pt-4 border-t border-slate-100">
-          <button @click="isLockModalOpen = false" class="glass-btn secondary flex-1 justify-center">Hủy bỏ thao tác</button>
-          <button @click="confirmLockAction" class="glass-btn flex-1 justify-center" :class="lockActionUser?.status === 'Locked' ? 'primary' : 'danger'">
-            <component :is="lockActionUser?.status === 'Locked' ? Unlock : Lock" :size="16" />
-            {{ lockActionUser?.status === 'Locked' ? 'Xác nhận Mở Khóa' : 'Xác nhận Khóa (Ghi Log)' }}
-          </button>
+          <div class="flex gap-3 mt-6 border-t border-slate-500/10 pt-4">
+            <button @click="isCreateDrawerOpen = false" class="glass-btn secondary flex-1 justify-center">Hủy</button>
+            <button @click="confirmCreateImport" class="glass-btn primary flex-1 justify-center" :disabled="createImportMode === 'create' && (!newUserForm.hoTen || !newUserForm.email || !newUserForm.matKhau)">
+              <component :is="createImportMode === 'create' ? UserPlus : FileSpreadsheet" :size="16" />
+              {{ createImportMode === 'create' ? 'Tạo tài khoản' : 'Bắt đầu Import' }}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Drawer Tạo / Import Tài khoản -->
-    <div v-if="isCreateDrawerOpen" class="drawer-overlay" @click="isCreateDrawerOpen = false"></div>
-    <div class="drawer" :class="{ 'open': isCreateDrawerOpen }">
-      <div class="drawer-header bg-slate-50/50">
-        <h3 class="text-lg font-bold text-heading flex items-center gap-2">
-          <UserPlus :size="20" class="text-blue-600"/> Quản lý Tài khoản Mới
-        </h3>
-        <button @click="isCreateDrawerOpen = false" class="text-label hover:text-heading"><X :size="20" /></button>
-      </div>
-      
-      <div class="drawer-body p-6">
-        <div class="flex border-b border-slate-200 mb-6">
-          <button @click="createImportMode = 'create'" class="flex-1 pb-3 font-semibold text-sm transition-colors border-b-2 outline-none focus:outline-none" :class="createImportMode === 'create' ? 'text-blue-600 border-blue-600' : 'text-slate-400 border-transparent'">Tạo thủ công</button>
-          <button @click="createImportMode = 'import'" class="flex-1 pb-3 font-semibold text-sm transition-colors border-b-2 outline-none focus:outline-none" :class="createImportMode === 'import' ? 'text-blue-600 border-blue-600' : 'text-slate-400 border-transparent'">Import từ Excel</button>
+      <!-- Drawer Chỉnh sửa thông tin tài khoản -->
+      <div v-if="isEditDrawerOpen" class="drawer-overlay" @click="isEditDrawerOpen = false"></div>
+      <div class="drawer" :class="{ 'open': isEditDrawerOpen }">
+        <div class="drawer-header">
+          <h3 class="text-lg font-bold text-heading flex items-center gap-2">
+            <Edit2 :size="20" class="text-teal-500"/> Chỉnh sửa Thông tin
+          </h3>
+          <button @click="isEditDrawerOpen = false" class="text-label hover:text-heading"><X :size="20" /></button>
         </div>
-
-        <template v-if="createImportMode === 'create'">
+        
+        <div class="drawer-body p-6" v-if="editUserForm">
           <div class="space-y-4 mb-6">
             <div class="form-group">
               <label class="block text-xs font-bold text-label mb-1">Họ và tên *</label>
-              <input v-model="newUserForm.name" type="text" class="glass-input w-full bg-white" placeholder="Nhập họ và tên..." />
+              <input v-model="editUserForm.hoTen" type="text" class="glass-input w-full" />
             </div>
             <div class="form-group">
               <label class="block text-xs font-bold text-label mb-1">Email *</label>
-              <input v-model="newUserForm.email" type="email" class="glass-input w-full bg-white" placeholder="email@fpt.edu.vn" />
+              <input v-model="editUserForm.email" type="email" class="glass-input w-full" />
             </div>
             <div class="form-group">
-              <label class="block text-xs font-bold text-label mb-1">Mật khẩu *</label>
-              <div class="relative">
-                <input v-model="newUserForm.password" type="text" class="glass-input w-full bg-white" placeholder="Nhập mật khẩu..." />
-                <KeyRound :size="16" class="absolute right-3 top-1/2 -translate-y-1/2 text-placeholder" />
-              </div>
+              <label class="block text-xs font-bold text-label mb-1">Số điện thoại</label>
+              <input v-model="editUserForm.soDienThoai" type="text" class="glass-input w-full" />
             </div>
             <div class="grid grid-cols-2 gap-4">
-              <div class="form-group">
-                <label class="block text-xs font-bold text-label mb-1">Vai trò</label>
-                <select v-model="newUserForm.role" class="glass-select w-full bg-white">
-                  <option v-for="r in roles.filter(r => r !== 'Tất cả')" :key="r" :value="r">{{ r }}</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="block text-xs font-bold text-label mb-1">Cơ sở trực thuộc</label>
-                <select v-model="newUserForm.campus" class="glass-select w-full bg-white">
-                  <option v-for="c in campuses.filter(c => c !== 'Tất cả')" :key="c" :value="c">{{ c }}</option>
-                </select>
-              </div>
+              <LmsSelect v-model="editUserForm.maVaiTro" :options="formRoleOptions" label="Vai trò *" required />
+              <LmsSelect v-model="editUserForm.maDonVi" :options="formCampusOptions" label="Cơ sở *" required />
             </div>
           </div>
-        </template>
-        <template v-else>
-          <div class="border-2 border-dashed border-blue-200 bg-blue-50/50 rounded-xl p-8 text-center mb-6 flex flex-col items-center justify-center">
-            <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm mb-3">
-              <FileSpreadsheet :size="24" class="text-blue-500" />
-            </div>
-            <h4 class="font-bold text-sm text-heading mb-1">Kéo thả file Excel vào đây</h4>
-            <p class="text-xs text-label mb-4">Hỗ trợ các định dạng .xlsx, .csv (Tối đa 5MB)</p>
-            <button class="glass-btn secondary text-xs">Chọn file từ máy tính</button>
-          </div>
-          <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <p class="text-xs text-amber-800 font-semibold flex items-center gap-1"><AlertCircle :size="14"/> Hướng dẫn Import:</p>
-            <ul class="text-[10px] text-amber-700 mt-1 pl-4 list-disc">
-              <li>Mật khẩu mặc định sẽ được khởi tạo tự động và gửi qua email cho từng người (Hoặc dùng cột MatKhau nếu có).</li>
-              <li>Kiểm tra kỹ đúng định dạng cột: HoTen, Email, SoDienThoai, VaiTro, CoSo.</li>
-            </ul>
-          </div>
-        </template>
 
-        <div class="flex gap-3 mt-6 border-t border-slate-100 pt-4">
-          <button @click="isCreateDrawerOpen = false" class="glass-btn secondary flex-1 justify-center">Hủy</button>
-          <button @click="confirmCreateImport" class="glass-btn primary flex-1 justify-center" :disabled="createImportMode === 'create' && (!newUserForm.name || !newUserForm.email || !newUserForm.password)" :class="{'opacity-50 cursor-not-allowed': createImportMode === 'create' && (!newUserForm.name || !newUserForm.email || !newUserForm.password)}">
-            <component :is="createImportMode === 'create' ? UserPlus : FileSpreadsheet" :size="16" />
-            {{ createImportMode === 'create' ? 'Tạo tài khoản' : 'Bắt đầu Import' }}
-          </button>
+          <div class="flex gap-3 justify-end mt-6 border-t border-slate-500/10 pt-4">
+            <button @click="isEditDrawerOpen = false" class="glass-btn secondary flex-1 justify-center">Hủy</button>
+            <button @click="confirmEditUser" class="glass-btn primary flex-1 justify-center !bg-teal-600 hover:!bg-teal-700 !border-teal-600" :disabled="!editUserForm?.hoTen || !editUserForm?.email">
+              <Edit2 :size="16" /> Lưu thay đổi
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-
-    <!-- Drawer Chỉnh sửa thông tin tài khoản -->
-    <div v-if="isEditDrawerOpen" class="drawer-overlay" @click="isEditDrawerOpen = false"></div>
-    <div class="drawer" :class="{ 'open': isEditDrawerOpen }">
-      <div class="drawer-header bg-slate-50/50">
-        <h3 class="text-lg font-bold text-heading flex items-center gap-2">
-          <Edit2 :size="20" class="text-teal-600"/> Chỉnh sửa Thông tin
-        </h3>
-        <button @click="isEditDrawerOpen = false" class="text-label hover:text-heading"><X :size="20" /></button>
-      </div>
-      
-      <div class="drawer-body p-6" v-if="editUserForm">
-        <div class="space-y-4 mb-6">
-          <div class="form-group">
-            <label class="block text-xs font-bold text-label mb-1">Họ và tên *</label>
-            <input v-model="editUserForm.name" type="text" class="glass-input w-full bg-white" />
-          </div>
-          <div class="form-group">
-            <label class="block text-xs font-bold text-label mb-1">Email *</label>
-            <input v-model="editUserForm.email" type="email" class="glass-input w-full bg-white" />
-          </div>
-          <div class="form-group">
-            <label class="block text-xs font-bold text-label mb-1">Số điện thoại</label>
-            <input v-model="editUserForm.phone" type="text" class="glass-input w-full bg-white" />
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="form-group">
-              <label class="block text-xs font-bold text-label mb-1">Vai trò</label>
-              <select v-model="editUserForm.role" class="glass-select w-full bg-white">
-                <option v-for="r in roles.filter(r => r !== 'Tất cả')" :key="r" :value="r">{{ r }}</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="block text-xs font-bold text-label mb-1">Cơ sở trực thuộc</label>
-              <select v-model="editUserForm.campus" class="glass-select w-full bg-white">
-                <option v-for="c in campuses.filter(c => c !== 'Tất cả')" :key="c" :value="c">{{ c }}</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex gap-3 justify-end mt-6 border-t border-slate-100 pt-4">
-          <button @click="isEditDrawerOpen = false" class="glass-btn secondary flex-1 justify-center">Hủy</button>
-          <button @click="confirmEditUser" class="glass-btn primary flex-1 justify-center !bg-teal-600 hover:!bg-teal-700 !border-teal-600" :disabled="!editUserForm?.name || !editUserForm?.email">
-            <Edit2 :size="16" /> Lưu thay đổi
-          </button>
-        </div>
-      </div>
-    </div>
     </Teleport>
   </div>
 </template>
@@ -782,9 +1058,9 @@ td {
 .drawer {
   position: fixed;
   top: 0;
-  right: -400px;
+  right: -520px;
   width: 100%;
-  max-width: 400px;
+  max-width: 520px;
   height: 100vh;
   background: var(--surface-solid);
   box-shadow: -10px 0 30px rgba(0,0,0,0.1);

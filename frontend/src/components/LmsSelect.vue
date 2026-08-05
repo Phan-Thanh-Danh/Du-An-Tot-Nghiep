@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted, nextTick } from 'vue'
 import { ChevronDown, Check } from 'lucide-vue-next'
 import { onClickOutside } from '@vueuse/core'
 
@@ -11,7 +11,6 @@ const props = defineProps({
   options: {
     type: Array,
     required: true,
-    // Expected format: [{ value: '...', label: '...' }]
   },
   label: String,
   placeholder: {
@@ -28,25 +27,63 @@ const emit = defineEmits(['update:modelValue', 'change'])
 
 const isOpen = ref(false)
 const dropdownRef = ref(null)
+const menuRef = ref(null)
+const menuStyle = ref({})
 
-onClickOutside(dropdownRef, () => {
-  isOpen.value = false
+onClickOutside(dropdownRef, (event) => {
+  if (menuRef.value && menuRef.value.contains(event.target)) return
+  closeDropdown()
 })
 
 const selectedOption = computed(() => {
   return props.options.find(opt => opt.value === props.modelValue)
 })
 
-const toggleDropdown = () => {
-  if (!props.disabled) {
-    isOpen.value = !isOpen.value
+const updatePosition = () => {
+  if (!dropdownRef.value || !isOpen.value) return
+  const inputEl = dropdownRef.value.querySelector('.lg-input') || dropdownRef.value
+  const rect = inputEl.getBoundingClientRect()
+  
+  menuStyle.value = {
+    position: 'fixed',
+    top: `${rect.bottom + 4}px`,
+    left: `${rect.left}px`,
+    width: `${rect.width}px`,
+    zIndex: 9999
   }
 }
+
+const toggleDropdown = async () => {
+  if (props.disabled) return
+  isOpen.value = !isOpen.value
+  if (isOpen.value) {
+    await nextTick()
+    updatePosition()
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+  } else {
+    removeListeners()
+  }
+}
+
+const closeDropdown = () => {
+  isOpen.value = false
+  removeListeners()
+}
+
+const removeListeners = () => {
+  window.removeEventListener('scroll', updatePosition, true)
+  window.removeEventListener('resize', updatePosition)
+}
+
+onUnmounted(() => {
+  removeListeners()
+})
 
 const selectOption = (option) => {
   emit('update:modelValue', option.value)
   emit('change', option.value)
-  isOpen.value = false
+  closeDropdown()
 }
 
 const selectId = computed(() => props.id || `lms-select-${Math.random().toString(36).substr(2, 9)}`)
@@ -85,36 +122,40 @@ const selectId = computed(() => props.id || `lms-select-${Math.random().toString
       />
     </div>
 
-    <!-- Dropdown Menu -->
-    <Transition
-      enter-active-class="transition duration-100 ease-out"
-      enter-from-class="transform scale-95 opacity-0"
-      enter-to-class="transform scale-100 opacity-100"
-      leave-active-class="transition duration-75 ease-in"
-      leave-from-class="transform scale-100 opacity-100"
-      leave-to-class="transform scale-95 opacity-0"
-    >
-      <div 
-        v-if="isOpen" 
-        class="absolute z-50 w-full mt-1 surface-dropdown border border-card rounded-lg shadow-xl overflow-hidden py-1"
+    <!-- Dropdown Menu Teleport to Body -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-100 ease-out"
+        enter-from-class="transform scale-95 opacity-0"
+        enter-to-class="transform scale-100 opacity-100"
+        leave-active-class="transition duration-75 ease-in"
+        leave-from-class="transform scale-100 opacity-100"
+        leave-to-class="transform scale-95 opacity-0"
       >
-        <ul class="max-h-60 overflow-y-auto">
-          <li 
-            v-for="option in options" 
-            :key="option.value"
-            @click="selectOption(option)"
-            class="px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:bg-(--surface-table-row-hover) transition-colors"
-            :class="{
-              'bg-(--surface-table-row-hover) text-(--text-heading) font-semibold': option.value === modelValue,
-              'text-(--text-body)': option.value !== modelValue
-            }"
-          >
-            <span class="truncate flex-1 text-left">{{ option.label }}</span>
-            <Check v-if="option.value === modelValue" class="w-4 h-4 text-(--text-heading) shrink-0 ml-2" />
-          </li>
-        </ul>
-      </div>
-    </Transition>
+        <div 
+          v-if="isOpen" 
+          ref="menuRef"
+          :style="menuStyle"
+          class="surface-dropdown border border-card rounded-lg shadow-2xl overflow-hidden py-1"
+        >
+          <ul class="max-h-60 overflow-y-auto">
+            <li 
+              v-for="option in options" 
+              :key="option.value"
+              @click="selectOption(option)"
+              class="px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:bg-(--surface-table-row-hover) transition-colors"
+              :class="{
+                'bg-(--surface-table-row-hover) text-(--text-heading) font-semibold': option.value === modelValue,
+                'text-(--text-body)': option.value !== modelValue
+              }"
+            >
+              <span class="truncate flex-1 text-left">{{ option.label }}</span>
+              <Check v-if="option.value === modelValue" class="w-4 h-4 text-(--text-heading) shrink-0 ml-2" />
+            </li>
+          </ul>
+        </div>
+      </Transition>
+    </Teleport>
 
     <p v-if="error" class="lg-error-text">
       {{ error }}
@@ -138,3 +179,4 @@ ul::-webkit-scrollbar-thumb {
   background-color: rgba(71, 85, 105, 0.5);
 }
 </style>
+
