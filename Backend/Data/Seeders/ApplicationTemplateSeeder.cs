@@ -235,6 +235,47 @@ public static class ApplicationTemplateSeeder
                         new { key = "email", type = "email", label = "Email liên hệ", required = true, autoFill = "studentEmail" }
                     }
                 }, options)
+            },
+            new MauDonTu
+            {
+                LoaiDon = "thi_lai",
+                TenMau = "Đơn đăng ký thi lại",
+                PhienBan = 1,
+                BatBuocMinhChung = false,
+                SoTepToiDa = 1,
+                DungLuongTepToiDaByte = 5 * 1024 * 1024,
+                TongDungLuongToiDaByte = 5 * 1024 * 1024,
+                SlaGio = 72,
+                DangHoatDong = true,
+                NgayTao = DateTime.UtcNow,
+                NgayCapNhat = DateTime.UtcNow,
+                CauHinhJson = JsonSerializer.Serialize(new
+                {
+                    fields = new object[]
+                    {
+                        new { key = "student_info", type = "studentInfo", label = "Thông tin sinh viên", @readonly = true },
+                        new { 
+                            key = "subject_id", 
+                            type = "related_entity", 
+                            label = "Môn học đăng ký thi lại", 
+                            required = true, 
+                            autoFill = "availableRetakeSubjects",
+                            relatedEntity = "mon_hoc"
+                        },
+                        new { 
+                            key = "exam_session_id", 
+                            type = "related_entity", 
+                            label = "Ca thi", 
+                            required = true, 
+                            autoFill = "availableExamSessions",
+                            dependsOn = "subject_id",
+                            relatedEntity = "ca_thi"
+                        },
+                        new { key = "reason", type = "textarea", label = "Ghi chú", required = false, maxLength = 500 },
+                        new { key = "phone", type = "tel", label = "Số điện thoại", required = true, pattern = "^(0|\\+84)[0-9]{9,10}$" },
+                        new { key = "email", type = "email", label = "Email liên hệ", required = true, autoFill = "studentEmail" }
+                    }
+                }, options)
             }
         };
 

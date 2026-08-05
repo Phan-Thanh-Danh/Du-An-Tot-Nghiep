@@ -133,32 +133,31 @@ public class RetakeExamApplicationSubmissionRule : ApplicationSubmissionRuleBase
 
     public override string BuildDuplicateLockKey(ApplicationSubmissionRuleContext context)
     {
-        if (!context.FormData.Values.TryGetInt("ma_mon_hoc", out var subjectId) ||
-            !context.FormData.Values.TryGetInt("ma_hoc_ky", out var termId))
+        if (!context.FormData.Values.TryGetInt("subject_id", out var subjectId) ||
+            !context.FormData.Values.TryGetInt("exam_session_id", out var examSessionId))
         {
             return $"{context.Student.MaNguoiDung}|{SupportedType}|invalid";
         }
 
-        return $"{context.Student.MaNguoiDung}|{SupportedType}|{subjectId}|{termId}";
+        return $"{context.Student.MaNguoiDung}|{SupportedType}|{subjectId}|{examSessionId}";
     }
 
     public override async Task ValidateAsync(ApplicationSubmissionRuleContext context, CancellationToken cancellationToken = default)
     {
-        if (!context.FormData.Values.TryGetInt("ma_mon_hoc", out var subjectId) ||
-            !context.FormData.Values.TryGetInt("ma_hoc_ky", out var termId))
+        if (!context.FormData.Values.TryGetInt("subject_id", out var subjectId) ||
+            !context.FormData.Values.TryGetInt("exam_session_id", out var examSessionId))
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Thiếu môn học hoặc học kỳ đăng ký thi lại.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Thiếu môn học hoặc ca thi đăng ký thi lại.");
         }
 
-        var hasScore = await Context.DiemSos.AsNoTracking().AnyAsync(x =>
+        var hasFailedScore = await Context.DiemSos.AsNoTracking().AnyAsync(x =>
             x.MaHocSinh == context.Student.MaNguoiDung &&
-            x.MaDonVi == context.Student.MaDonVi &&
             x.MaMonHoc == subjectId &&
-            x.MaHocKy == termId,
+            (x.GpaMonHoc < 5.0m || x.DiemCuoiKy < 5.0m),
             cancellationToken);
-        if (!hasScore)
+        if (!hasFailedScore)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Sinh viên chưa có dữ liệu học môn này trong học kỳ đã chọn.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Sinh viên chưa có dữ liệu rớt môn này.");
         }
 
         var candidates = await Context.DonTus.AsNoTracking()
@@ -171,13 +170,13 @@ public class RetakeExamApplicationSubmissionRule : ApplicationSubmissionRuleBase
             .Select(x => new { x.MaDonTu, x.DuLieuBieuMau })
             .ToListAsync(cancellationToken);
         var duplicate = candidates.Any(x =>
-            TryGetJsonInt(x.DuLieuBieuMau, "ma_mon_hoc", out var existingSubjectId) &&
-            TryGetJsonInt(x.DuLieuBieuMau, "ma_hoc_ky", out var existingTermId) &&
+            TryGetJsonInt(x.DuLieuBieuMau, "subject_id", out var existingSubjectId) &&
+            TryGetJsonInt(x.DuLieuBieuMau, "exam_session_id", out var existingExamSessionId) &&
             existingSubjectId == subjectId &&
-            existingTermId == termId);
+            existingExamSessionId == examSessionId);
         if (duplicate)
         {
-            throw new ApiException(StatusCodes.Status409Conflict, "Đã tồn tại đơn thi lại đang xử lý cho môn học và học kỳ này.");
+            throw new ApiException(StatusCodes.Status409Conflict, "Đã tồn tại đơn thi lại đang xử lý cho môn học và ca thi này.");
         }
     }
 }

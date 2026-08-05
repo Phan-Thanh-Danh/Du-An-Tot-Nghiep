@@ -48,6 +48,9 @@ public class ApplicationReferenceValidator : IApplicationReferenceValidator
                 case ApplicationRelatedEntities.ClassSession:
                     await EnsureSessionAccessAsync(reference.Id, student, cancellationToken);
                     break;
+                case ApplicationRelatedEntities.ExamSession:
+                    await EnsureExamSessionAsync(reference.Id, cancellationToken);
+                    break;
                 default:
                     throw new ApiException(StatusCodes.Status400BadRequest, $"Related entity '{reference.RelatedEntity}' không được hỗ trợ.");
             }
@@ -169,6 +172,16 @@ public class ApplicationReferenceValidator : IApplicationReferenceValidator
         if (result is null || !await CanAccessCourseAsync(result.Course, student, cancellationToken))
         {
             throw new ApiException(StatusCodes.Status400BadRequest, "Buổi học không hợp lệ hoặc không thuộc sinh viên.");
+        }
+    }
+
+    private async Task EnsureExamSessionAsync(int id, CancellationToken cancellationToken)
+    {
+        var exists = await _context.CaThis.AsNoTracking()
+            .AnyAsync(x => x.MaCaThi == id && (x.TrangThai == "nhap" || x.TrangThai == "dang_mo"), cancellationToken);
+        if (!exists)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Ca thi không hợp lệ hoặc đã đóng.");
         }
     }
 

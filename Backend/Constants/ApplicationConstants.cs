@@ -151,6 +151,7 @@ public static class ApplicationRelatedEntities
     public const string Specialization = "chuyen_nganh";
     public const string Course = "khoa_hoc";
     public const string ClassSession = "buoi_hoc";
+    public const string ExamSession = "ca_thi";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -161,7 +162,8 @@ public static class ApplicationRelatedEntities
         Major,
         Specialization,
         Course,
-        ClassSession
+        ClassSession,
+        ExamSession
     };
 }
 

@@ -137,6 +137,17 @@ watch(
           } catch (err) {
             console.error('Failed to load specializations:', err)
           }
+        } else if (field.autoFill === 'availableExamSessions') {
+          try {
+            const res = await apiRequest(`/api/student/retake/subjects/${depVal}/exam-sessions`)
+            const sessions = res?.data || res || []
+            field.options = sessions.reduce((acc, session) => {
+              acc[session.id] = session.name
+              return acc
+            }, {})
+          } catch (err) {
+            console.error('Failed to load exam sessions:', err)
+          }
         }
       } else if (!depVal && loadedDependencies[field.key]) {
         loadedDependencies[field.key] = null
@@ -276,6 +287,17 @@ async function goNext() {
               }, {})
             } catch (err) {
               console.error('Failed to load campuses:', err)
+            }
+          } else if (field.autoFill === 'availableRetakeSubjects') {
+            try {
+              const res = await apiRequest('/api/student/retake/available-subjects')
+              const subjects = res?.data || res || []
+              field.options = subjects.reduce((acc, subj) => {
+                acc[subj.id] = `${subj.code} - ${subj.name}`
+                return acc
+              }, {})
+            } catch (err) {
+              console.error('Failed to load retake subjects:', err)
             }
           } else if (field.autoFill === 'majors') {
             try {
