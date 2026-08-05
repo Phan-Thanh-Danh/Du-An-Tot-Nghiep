@@ -60,8 +60,28 @@ public class OrganizationService : IOrganizationService
     public async Task<IReadOnlyList<OrganizationTreeDto>> GetTreeAsync()
     {
         var organizations = await GetScopedActiveOrganizationsAsync();
-        return BuildTree(organizations);
+
+        var userCounts = await _context.NguoiDungs
+            .AsNoTracking()
+            .GroupBy(x => x.MaDonVi)
+            .Select(g => new { MaDonVi = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MaDonVi, x => x.Count);
+
+        var classCounts = await _context.LopHanhChinhs
+            .AsNoTracking()
+            .GroupBy(x => x.MaDonVi)
+            .Select(g => new { MaDonVi = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MaDonVi, x => x.Count);
+
+        var roomCounts = await _context.PhongHocs
+            .AsNoTracking()
+            .GroupBy(x => x.MaDonVi)
+            .Select(g => new { MaDonVi = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MaDonVi, x => x.Count);
+
+        return BuildTree(organizations, userCounts, classCounts, roomCounts);
     }
+
 
     public async Task<OrganizationResponseDto> GetByIdAsync(int id)
     {
@@ -207,8 +227,27 @@ public class OrganizationService : IOrganizationService
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy đơn vị.");
         }
 
-        return BuildNode(root, organizations);
+        var userCounts = await _context.NguoiDungs
+            .AsNoTracking()
+            .GroupBy(x => x.MaDonVi)
+            .Select(g => new { MaDonVi = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MaDonVi, x => x.Count);
+
+        var classCounts = await _context.LopHanhChinhs
+            .AsNoTracking()
+            .GroupBy(x => x.MaDonVi)
+            .Select(g => new { MaDonVi = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MaDonVi, x => x.Count);
+
+        var roomCounts = await _context.PhongHocs
+            .AsNoTracking()
+            .GroupBy(x => x.MaDonVi)
+            .Select(g => new { MaDonVi = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MaDonVi, x => x.Count);
+
+        return BuildNode(root, organizations, userCounts, classCounts, roomCounts);
     }
+
 
     public async Task ValidateParentAsync(int? parentId, string organizationLevel)
     {
@@ -295,10 +334,11 @@ public class OrganizationService : IOrganizationService
             .Where(x => x.ConHoatDong)
             .ToListAsync();
 
-        if (currentUser.Role == AuthRoles.SuperAdmin)
+        if (currentUser.Role == AuthRoles.SuperAdmin || currentUser.Role == AuthRoles.Admin)
         {
             return organizations;
         }
+
 
         var allowedIds = currentUser.Role == AuthRoles.CampusAdmin
             ? GetDescendantIds(organizations, currentUser.CampusId)
@@ -380,28 +420,38 @@ public class OrganizationService : IOrganizationService
         return allowedIds;
     }
 
-    private static List<OrganizationTreeDto> BuildTree(IReadOnlyCollection<DonVi> organizations)
+    private static List<OrganizationTreeDto> BuildTree(
+        IReadOnlyCollection<DonVi> organizations,
+        Dictionary<int, int> userCounts,
+        Dictionary<int, int> classCounts,
+        Dictionary<int, int> roomCounts)
     {
         var organizationIds = organizations.Select(x => x.MaDonVi).ToHashSet();
 
         return organizations
             .Where(x => !x.MaDonViCha.HasValue || !organizationIds.Contains(x.MaDonViCha.Value))
             .OrderBy(x => x.TenDonVi)
-            .Select(x => BuildNode(x, organizations))
+            .Select(x => BuildNode(x, organizations, userCounts, classCounts, roomCounts))
             .ToList();
     }
 
-    private static OrganizationTreeDto BuildNode(DonVi organization, IReadOnlyCollection<DonVi> organizations)
+    private static OrganizationTreeDto BuildNode(
+        DonVi organization,
+        IReadOnlyCollection<DonVi> organizations,
+        Dictionary<int, int> userCounts,
+        Dictionary<int, int> classCounts,
+        Dictionary<int, int> roomCounts)
     {
-        var node = ToTreeDto(organization);
+        var node = ToTreeDto(organization, userCounts, classCounts, roomCounts);
         node.Children = organizations
             .Where(x => x.MaDonViCha == organization.MaDonVi)
             .OrderBy(x => x.TenDonVi)
-            .Select(x => BuildNode(x, organizations))
+            .Select(x => BuildNode(x, organizations, userCounts, classCounts, roomCounts))
             .ToList();
 
         return node;
     }
+
 
     private static string NormalizeName(string name)
     {
@@ -473,17 +523,38 @@ public class OrganizationService : IOrganizationService
         };
     }
 
-    private static OrganizationTreeDto ToTreeDto(DonVi organization)
+    private static OrganizationTreeDto ToTreeDto(
+        DonVi organization,
+        Dictionary<int, int> userCounts,
+        Dictionary<int, int> classCounts,
+        Dictionary<int, int> roomCounts)
     {
+        userCounts.TryGetValue(organization.MaDonVi, out var users);
+        classCounts.TryGetValue(organization.MaDonVi, out var classes);
+        roomCounts.TryGetValue(organization.MaDonVi, out var rooms);
+
+        var words = organization.TenDonVi.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var codePrefix = string.Concat(words.Select(w => char.IsLetterOrDigit(w[0]) ? char.ToUpper(w[0]) : 'X'));
+        if (codePrefix.Length < 2) codePrefix = "ORG";
+        var code = $"{codePrefix}_{organization.MaDonVi}";
+
         return new OrganizationTreeDto
         {
             Id = organization.MaDonVi,
             ParentId = organization.MaDonViCha,
             Name = organization.TenDonVi,
+            Code = code,
             OrganizationLevel = ToApiLevel(organization.CapDonVi),
             IsActive = organization.ConHoatDong,
             CreatedAt = organization.NgayTao,
-            UpdatedAt = organization.NgayCapNhat
+            UpdatedAt = organization.NgayCapNhat,
+            Metrics = new OrganizationMetricsDto
+            {
+                Users = users,
+                Classes = classes,
+                Rooms = rooms
+            }
         };
     }
+
 }

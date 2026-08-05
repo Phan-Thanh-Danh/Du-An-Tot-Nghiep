@@ -25,26 +25,129 @@ import {
   Info,
   Trash2,
   UserCog,
-  UserCheck
+  UserCheck,
+  Network,
+  GitBranch,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  MousePointer
 } from 'lucide-vue-next'
 import { usePopupStore } from '@/stores/popup'
 import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import { organizationApi } from '@/services/organizationService'
-
+import OrgChartNode from '@/components/SuperAdmin/OrgChartNode.vue'
 
 const popup = usePopupStore()
 
-// Data
+// Data & View Mode
 const loading = ref(false)
 const error = ref('')
 const organizationTree = ref([])
+const activeViewMode = ref('tree') // 'tree' or 'chart'
+
+// Zoom State & Handlers for Family Tree Org Chart
+const zoomScale = ref(1)
+const minZoom = 0.3
+const maxZoom = 2.5
+const isRightMouseDown = ref(false)
+
+const handleCanvasMouseDown = (e) => {
+  if (e.button === 2) {
+    isRightMouseDown.value = true
+  }
+}
+
+const handleCanvasMouseUp = (e) => {
+  if (e.button === 2) {
+    isRightMouseDown.value = false
+  }
+}
+
+const handleCanvasContextMenu = (e) => {
+  // Prevent default context menu when right-clicking canvas to allow smooth right-click + wheel zoom
+  e.preventDefault()
+}
+
+const handleCanvasWheel = (e) => {
+  // Trigger zoom when holding right mouse button OR holding Ctrl key
+  if (e.buttons === 2 || isRightMouseDown.value || e.ctrlKey) {
+    e.preventDefault()
+    const zoomFactor = e.deltaY < 0 ? 0.1 : -0.1
+    const newScale = Math.min(maxZoom, Math.max(minZoom, zoomScale.value + zoomFactor))
+    zoomScale.value = Number(newScale.toFixed(2))
+  }
+}
+
+const zoomIn = () => {
+  zoomScale.value = Math.min(maxZoom, Number((zoomScale.value + 0.15).toFixed(2)))
+}
+
+const zoomOut = () => {
+  zoomScale.value = Math.max(minZoom, Number((zoomScale.value - 0.15).toFixed(2)))
+}
+
+const resetZoom = () => {
+  zoomScale.value = 1
+}
+
+
+
+// Mapping helper to convert Backend organization DTOs to Frontend model structure
+function mapTreeNodes(nodes) {
+  if (!Array.isArray(nodes)) return []
+  return nodes.map(node => {
+    const id = node.id || node.Id || 0
+    const parentId = node.parentId !== undefined ? node.parentId : (node.ParentId !== undefined ? node.ParentId : null)
+    const name = node.name || node.Name || ''
+    
+    // Map OrganizationLevel to type
+    let type = 'Campus'
+    const level = node.organizationLevel || node.OrganizationLevel || ''
+    if (level.toLowerCase() === 'root') type = 'Root'
+    else if (level.toLowerCase() === 'subcampus' || level.toLowerCase() === 'sub-campus') type = 'Sub-campus'
+
+    // Map IsActive to status
+    const isActive = node.isActive !== undefined ? node.isActive : (node.IsActive !== undefined ? node.IsActive : true)
+    const status = isActive ? 'Active' : 'Locked'
+
+    const code = node.code || node.Code || (name ? name.split(' ').map(w => w.charAt(0)).join('').toUpperCase() + '_' + id : 'ORG_' + id)
+
+    const rawMetrics = node.metrics || node.Metrics
+    const metrics = {
+      users: rawMetrics?.users !== undefined ? rawMetrics.users : (rawMetrics?.Users !== undefined ? rawMetrics.Users : 0),
+      classes: rawMetrics?.classes !== undefined ? rawMetrics.classes : (rawMetrics?.Classes !== undefined ? rawMetrics.Classes : 0),
+      rooms: rawMetrics?.rooms !== undefined ? rawMetrics.rooms : (rawMetrics?.Rooms !== undefined ? rawMetrics.Rooms : 0)
+    }
+
+    const admins = node.admins || node.Admins || []
+
+
+    return {
+      id: id,
+      parentId: parentId,
+      name: name,
+      code: code,
+      type: type,
+      status: status,
+      expanded: node.expanded !== undefined ? node.expanded : true,
+      address: node.address || node.Address || 'Khu CNC Hòa Lạc, Thạch Thất, Hà Nội',
+      email: node.email || node.Email || `${code.toLowerCase()}@fpt.edu.vn`,
+      phone: node.phone || node.Phone || '024 7300 1866',
+      metrics: metrics,
+      admins: admins,
+      children: mapTreeNodes(node.children || node.Children)
+    }
+  })
+}
 
 async function loadOrganizations() {
   loading.value = true
   error.value = ''
   try {
     const data = await organizationApi.getTree()
-    organizationTree.value = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+    const rawTree = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+    organizationTree.value = mapTreeNodes(rawTree)
   } catch (e) {
     error.value = e?.response?.data?.message || e?.message || 'Không thể tải cây tổ chức.'
     organizationTree.value = []
@@ -52,6 +155,7 @@ async function loadOrganizations() {
     loading.value = false
   }
 }
+
 
 function findOrgInTree(nodes, id) {
   for (const node of nodes) {
@@ -192,18 +296,31 @@ const submitForm = async () => {
     popup.warning('Lỗi', 'Vui lòng sửa các lỗi trong Bảng kiểm tra trước khi lưu.')
     return
   }
+
+  const levelMapped = form.value.type === 'Sub-campus' ? 'SubCampus' : form.value.type
+  const isActiveMapped = form.value.status === 'Active'
+  const parentIdMapped = form.value.parentId === 1 ? null : form.value.parentId
+
+  const payload = {
+    parentId: parentIdMapped,
+    name: form.value.name,
+    organizationLevel: levelMapped,
+    isActive: isActiveMapped
+  }
+
   try {
     if (isEditing.value) {
-      await organizationApi.update(form.value.id, form.value)
+      await organizationApi.update(form.value.id, payload)
     } else {
-      await organizationApi.create(form.value)
+      await organizationApi.create(payload)
     }
     popup.success('Thành công', `Đã ${isEditing.value ? 'cập nhật' : 'tạo mới'} cơ sở thành công! Đã ghi Audit Log.`)
     isEditing.value = false
     isCreating.value = false
     await loadOrganizations()
-    if (organizationTree.value.length > 0 && !selectedOrg.value) {
-      selectedOrg.value = organizationTree.value[0]
+    if (organizationTree.value.length > 0) {
+      // Auto re-select active or first
+      selectedOrg.value = selectedOrg.value ? findOrgInTree(organizationTree.value, selectedOrg.value.id) : organizationTree.value[0]
     }
   } catch (e) {
     popup.error('Lỗi', e?.response?.data?.message || e?.message || 'Không thể lưu cơ sở.')
@@ -211,12 +328,21 @@ const submitForm = async () => {
 }
 
 const submitDraft = async () => {
-  form.value.status = 'Draft'
+  const levelMapped = form.value.type === 'Sub-campus' ? 'SubCampus' : form.value.type
+  const parentIdMapped = form.value.parentId === 1 ? null : form.value.parentId
+
+  const payload = {
+    parentId: parentIdMapped,
+    name: form.value.name,
+    organizationLevel: levelMapped,
+    isActive: false // Draft is Inactive
+  }
+
   try {
     if (isEditing.value) {
-      await organizationApi.update(form.value.id, form.value)
+      await organizationApi.update(form.value.id, payload)
     } else {
-      await organizationApi.create(form.value)
+      await organizationApi.create(payload)
     }
     popup.success('Thành công', 'Đã lưu bản nháp (Draft). Các thay đổi chưa kích hoạt chính thức.')
     isEditing.value = false
@@ -228,33 +354,40 @@ const submitDraft = async () => {
 }
 
 const openLockModal = () => {
-  lockReason.value = selectedOrg.value?.status === 'Locked' ? '' : ''
+  lockReason.value = ''
   isLockModalOpen.value = true
 }
 
 const confirmLockAction = async () => {
   const isCurrentlyLocked = selectedOrg.value?.status === 'Locked'
+  const levelMapped = selectedOrg.value.type === 'Sub-campus' ? 'SubCampus' : selectedOrg.value.type
+  const parentIdMapped = selectedOrg.value.parentId === 1 ? null : selectedOrg.value.parentId
+
+  const payload = {
+    parentId: parentIdMapped,
+    name: selectedOrg.value.name,
+    organizationLevel: levelMapped,
+    isActive: isCurrentlyLocked // If currently locked, set active to true (unlock). Otherwise false.
+  }
+
   try {
+    await organizationApi.update(selectedOrg.value.id, payload)
     if (isCurrentlyLocked) {
-      await organizationApi.update(selectedOrg.value.id, { status: 'Active', lockReason: null })
       selectedOrg.value.status = 'Active'
       selectedOrg.value.lockReason = null
       popup.success('Thành công', `Đã mở khóa cơ sở ${selectedOrg.value.name}.`)
     } else {
-      if (!lockReason.value.trim()) {
-        popup.warning('Lỗi', 'Vui lòng nhập lý do khóa để ghi Log hệ thống.')
-        return
-      }
-      await organizationApi.update(selectedOrg.value.id, { status: 'Locked', lockReason: lockReason.value })
       selectedOrg.value.status = 'Locked'
-      selectedOrg.value.lockReason = lockReason.value
+      selectedOrg.value.lockReason = lockReason.value || 'Khóa bởi quản trị viên'
       popup.success('Thành công', `Đã khóa cơ sở ${selectedOrg.value.name}. Hệ thống chặn tạo mới dữ liệu tại cơ sở này.`)
     }
     isLockModalOpen.value = false
+    await loadOrganizations()
   } catch (e) {
     popup.error('Lỗi', e?.response?.data?.message || e?.message || 'Không thể thực hiện thao tác khóa/mở khóa.')
   }
 }
+
 
 const openAssignModal = () => {
   roleForm.value = { name: '', role: selectedOrg.value?.type === 'Campus' ? 'Campus Admin' : 'Sub-Campus Admin' }
@@ -275,10 +408,10 @@ const revokeAdmin = (idx) => {
 
 // Helpers
 const getStatusBadge = (status) => {
-  if (status === 'Active') return { class: 'bg-emerald-100 text-emerald-700', label: 'Hoạt động' }
-  if (status === 'Locked') return { class: 'bg-rose-100 text-rose-700', label: 'Bị khóa' }
-  if (status === 'Draft') return { class: 'bg-amber-100 text-amber-700', label: 'Bản nháp' }
-  return { class: 'bg-slate-100 text-slate-700', label: status }
+  if (status === 'Active') return { class: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30', label: 'Hoạt động' }
+  if (status === 'Locked') return { class: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30', label: 'Bị khóa' }
+  if (status === 'Draft') return { class: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30', label: 'Bản nháp' }
+  return { class: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-500/30', label: status }
 }
 const getTypeIcon = (type) => {
   if (type === 'Root') return Shield
@@ -323,7 +456,30 @@ onMounted(async () => {
           <h1 class="text-2xl font-bold text-heading">Quản lý Cấu trúc Đa cơ sở (Hierarchy)</h1>
           <p class="text-sm text-label mt-1">Giao diện điều hành trung tâm: Thiết lập, điều phối, khóa và cấp quyền cho tất cả Campus/Sub-campus.</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- View Mode Switcher -->
+          <div class="flex items-center gap-1 rounded-xl border border-default surface-card p-1 shadow-sm">
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
+              :class="activeViewMode === 'tree' ? 'bg-blue-600 text-white shadow-sm' : 'text-muted hover:text-heading'"
+              @click="activeViewMode = 'tree'"
+            >
+              <Network class="h-3.5 w-3.5" />
+              Chế độ Cây
+            </button>
+
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
+              :class="activeViewMode === 'chart' ? 'bg-purple-600 text-white shadow-sm' : 'text-muted hover:text-heading'"
+              @click="activeViewMode = 'chart'"
+            >
+              <GitBranch class="h-3.5 w-3.5" />
+              Sơ đồ Gia phả
+            </button>
+          </div>
+
           <button v-if="!isCreating && !isEditing" @click="startCreate(null)" class="glass-btn primary shadow-sm">
             <Plus :size="16" /> Tạo cơ sở mới
           </button>
@@ -341,11 +497,13 @@ onMounted(async () => {
       </div>
     </header>
 
-    <div class="flex flex-col lg:flex-row gap-6">
+    <!-- ================= 1. TREE VIEW MODE ================= -->
+    <div v-if="activeViewMode === 'tree'" class="flex flex-col lg:flex-row gap-6">
+
       <!-- Cây tổ chức (Tree View) -->
       <div class="lg:w-1/3 flex flex-col gap-4">
         <div class="glass-panel p-4 rounded-2xl h-full flex flex-col">
-          <h3 class="font-bold text-heading mb-4 flex items-center gap-2 border-b border-slate-100 pb-2"><Building2 :size="18" class="text-blue-600" /> Sơ đồ Tổ chức (Tree)</h3>
+          <h3 class="font-bold text-heading mb-4 flex items-center gap-2 border-b border-default pb-2"><Building2 :size="18" class="text-blue-600 dark:text-blue-400" /> Sơ đồ Tổ chức (Tree)</h3>
           
           <div class="tree-container flex-1">
             <ul class="tree-list">
@@ -354,27 +512,33 @@ onMounted(async () => {
                   <button @click.stop="toggleExpand(root)" class="expand-btn">
                     <component :is="root.expanded ? ChevronDown : ChevronRight" :size="14" />
                   </button>
-                  <Shield :size="14" class="text-purple-600 shrink-0" />
+                  <Shield :size="14" class="text-purple-600 dark:text-purple-400 shrink-0" />
                   <span class="font-bold text-sm truncate">{{ root.name }}</span>
                   <span class="status-dot ml-auto shrink-0" :class="root.status === 'Locked' ? 'bg-rose-500' : 'bg-emerald-500'"></span>
                 </div>
                 
                 <ul v-if="root.expanded && root.children" class="tree-list child-list">
+                  <li v-if="root.children.length === 0" class="py-1.5 px-3 text-xs text-placeholder italic">
+                    Chưa có cơ sở trực thuộc
+                  </li>
                   <li v-for="campus in root.children" :key="campus.id" class="tree-node">
                     <div class="tree-item" :class="{ 'active': selectedOrg?.id === campus.id }" @click="selectOrg(campus)">
                       <button @click.stop="toggleExpand(campus)" class="expand-btn" :class="{ 'invisible': !campus.children || !campus.children.length }">
                         <component :is="campus.expanded ? ChevronDown : ChevronRight" :size="14" />
                       </button>
-                      <Building2 :size="14" class="text-blue-600 shrink-0" />
+                      <Building2 :size="14" class="text-blue-600 dark:text-blue-400 shrink-0" />
                       <span class="font-semibold text-sm truncate">{{ campus.name }}</span>
                       <span class="status-dot ml-auto shrink-0" :class="campus.status === 'Locked' ? 'bg-rose-500' : 'bg-emerald-500'"></span>
                     </div>
 
                     <ul v-if="campus.expanded && campus.children" class="tree-list child-list">
+                      <li v-if="campus.children.length === 0" class="py-1.5 px-3 text-xs text-placeholder italic">
+                        Chưa có cơ sở con trực thuộc
+                      </li>
                       <li v-for="sub in campus.children" :key="sub.id" class="tree-node">
                         <div class="tree-item" :class="{ 'active': selectedOrg?.id === sub.id }" @click="selectOrg(sub)">
                           <span class="w-5 shrink-0"></span> <!-- spacing -->
-                          <MapPin :size="14" class="text-teal-600 shrink-0" />
+                          <MapPin :size="14" class="text-teal-600 dark:text-teal-400 shrink-0" />
                           <span class="text-sm truncate">{{ sub.name }}</span>
                           <span class="status-dot ml-auto shrink-0" :class="sub.status === 'Locked' ? 'bg-rose-500' : 'bg-emerald-500'"></span>
                         </div>
@@ -392,9 +556,9 @@ onMounted(async () => {
       <div class="lg:w-2/3">
         
         <!-- ================= VIEW MODE ================= -->
-        <div v-if="!isEditing && !isCreating && selectedOrg" class="glass-panel rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+        <div v-if="!isEditing && !isCreating && selectedOrg" class="glass-panel rounded-2xl overflow-hidden shadow-sm border border-default">
           <!-- Header detail -->
-          <div class="p-6 border-b border-slate-200/60 bg-gradient-to-r from-slate-50 to-white flex justify-between items-start">
+          <div class="p-6 border-b border-default lg-glass-soft flex justify-between items-start">
             <div class="flex gap-4 items-start">
               <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-md"
                    :class="selectedOrg.type === 'Root' ? 'bg-purple-600' : (selectedOrg.type === 'Campus' ? 'bg-blue-600' : 'bg-teal-600')">
@@ -402,15 +566,15 @@ onMounted(async () => {
               </div>
               <div>
                 <div class="flex items-center gap-2 mb-1">
-                  <span class="text-xs font-bold uppercase tracking-wide" :class="selectedOrg.type === 'Root' ? 'text-purple-600' : (selectedOrg.type === 'Campus' ? 'text-blue-600' : 'text-teal-600')">
+                  <span class="text-xs font-bold uppercase tracking-wide" :class="selectedOrg.type === 'Root' ? 'text-purple-600 dark:text-purple-400' : (selectedOrg.type === 'Campus' ? 'text-blue-600 dark:text-blue-400' : 'text-teal-600 dark:text-teal-400')">
                     {{ selectedOrg.type }}
                   </span>
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold" :class="getStatusBadge(selectedOrg.status).class">
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold" :class="getStatusBadge(selectedOrg.status).class">
                     {{ getStatusBadge(selectedOrg.status).label }}
                   </span>
                 </div>
                 <h2 class="text-2xl font-bold text-heading">{{ selectedOrg.name }}</h2>
-                <p class="text-sm font-mono text-slate-500 mt-0.5">Mã cơ sở: {{ selectedOrg.code }}</p>
+                <p class="text-sm font-mono text-muted mt-0.5">Mã cơ sở: {{ selectedOrg.code }}</p>
               </div>
             </div>
             
@@ -424,8 +588,8 @@ onMounted(async () => {
           </div>
 
           <!-- Lock Notice -->
-          <div v-if="selectedOrg.status === 'Locked'" class="mx-6 mt-6 p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 text-rose-700">
-            <AlertTriangle :size="20" class="shrink-0 mt-0.5" />
+          <div v-if="selectedOrg.status === 'Locked'" class="mx-6 mt-6 p-4 rounded-xl bg-rose-500/10 border border-rose-300 dark:border-rose-500/30 flex items-start gap-3 text-rose-700 dark:text-rose-300">
+            <AlertTriangle :size="20" class="shrink-0 mt-0.5 text-rose-500" />
             <div>
               <h4 class="font-bold text-sm">Cơ sở đang bị khóa</h4>
               <p class="text-xs mt-1">Lý do: <strong>{{ selectedOrg.lockReason }}</strong></p>
@@ -456,8 +620,8 @@ onMounted(async () => {
           <div class="px-6 pb-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- Contact -->
-              <div class="info-box border border-slate-200 rounded-xl p-4 bg-slate-50/50">
-                <h4 class="font-bold text-heading text-sm mb-4 border-b border-slate-200 pb-2">Thông tin liên lạc</h4>
+              <div class="info-box border border-default rounded-xl p-4 lg-glass-soft">
+                <h4 class="font-bold text-heading text-sm mb-4 border-b border-default pb-2">Thông tin liên lạc</h4>
                 <div class="space-y-3 text-sm">
                   <div class="flex gap-3"><MapPin :size="16" class="text-placeholder shrink-0 mt-0.5" /> <span class="text-body">{{ selectedOrg.address || 'Chưa cập nhật' }}</span></div>
                   <div class="flex gap-3"><Mail :size="16" class="text-placeholder shrink-0 mt-0.5" /> <span class="text-body">{{ selectedOrg.email || 'Chưa cập nhật' }}</span></div>
@@ -466,22 +630,22 @@ onMounted(async () => {
               </div>
 
               <!-- Admins -->
-              <div class="info-box border border-slate-200 rounded-xl p-4 bg-slate-50/50">
-                <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-4">
+              <div class="info-box border border-default rounded-xl p-4 lg-glass-soft">
+                <div class="flex items-center justify-between border-b border-default pb-2 mb-4">
                   <h4 class="font-bold text-heading text-sm">Phân quyền (Admin Scope)</h4>
-                  <button @click="openAssignModal" class="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1"><Plus :size="12"/> Gán quyền</button>
+                  <button @click="openAssignModal" class="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1"><Plus :size="12"/> Gán quyền</button>
                 </div>
                 <div v-if="!selectedOrg.admins || selectedOrg.admins.length === 0" class="text-sm text-placeholder italic">Chưa có Admin nào được gán.</div>
                 <div v-else class="space-y-2">
-                  <div v-for="(admin, idx) in selectedOrg.admins" :key="idx" class="group flex items-center justify-between bg-white p-2 rounded-lg border border-slate-100 shadow-sm hover:border-slate-300 transition-all">
+                  <div v-for="(admin, idx) in selectedOrg.admins" :key="idx" class="group flex items-center justify-between surface-card p-2 rounded-lg border border-default shadow-sm hover:border-slate-400 transition-all">
                     <div class="flex items-center gap-2">
-                      <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">{{ admin.name.charAt(0) }}</div>
+                      <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-heading">{{ admin.name.charAt(0) }}</div>
                       <div>
                         <span class="block text-sm font-semibold text-heading leading-tight">{{ admin.name }}</span>
-                        <span class="block text-[10px] font-bold uppercase text-blue-600 mt-0.5">{{ admin.role }}</span>
+                        <span class="block text-[10px] font-bold uppercase text-blue-600 dark:text-blue-400 mt-0.5">{{ admin.role }}</span>
                       </div>
                     </div>
-                    <button @click="revokeAdmin(idx)" class="text-rose-500 hover:text-rose-700 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-rose-50 rounded-md" title="Thu hồi quyền">
+                    <button @click="revokeAdmin(idx)" class="text-rose-500 hover:text-rose-700 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-rose-500/10 rounded-md" title="Thu hồi quyền">
                       <Trash2 :size="16" />
                     </button>
                   </div>
@@ -490,6 +654,7 @@ onMounted(async () => {
             </div>
           </div>
         </div>
+
 
         <!-- ================= FORM MODE ================= -->
         <div v-else-if="isEditing || isCreating" class="glass-panel p-6 rounded-2xl shadow-md border-2 border-blue-100/50">
@@ -614,7 +779,136 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Modal Khóa Cơ sở -->
+    <!-- ================= 2. ORG CHART FAMILY TREE VIEW MODE ================= -->
+    <div v-if="activeViewMode === 'chart'" class="org-family-tree-view space-y-6">
+      <div class="lg-glass-soft rounded-2xl border border-default p-6 relative overflow-hidden">
+        <!-- Chart Controls Header & Zoom Toolbar -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-default pb-4">
+          <div>
+            <h3 class="text-lg font-extrabold text-heading flex items-center gap-2">
+              <GitBranch class="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              Sơ đồ Phân cấp Cơ sở Dạng Gia phả (Org Chart)
+            </h3>
+            <p class="text-xs text-muted mt-0.5 flex items-center gap-1.5">
+              <MousePointer class="h-3.5 w-3.5 text-blue-500 shrink-0" />
+              <span>Mẹo: <strong>Giữ Chuột phải + Lăn con trỏ chuột</strong> (hoặc Ctrl + Lăn chuột) để Phóng to / Thu nhỏ.</span>
+            </p>
+          </div>
+
+          <!-- Zoom Toolbar Controls -->
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1 rounded-xl border border-default surface-card p-1 shadow-sm text-xs font-bold">
+              <button
+                type="button"
+                @click="zoomOut"
+                class="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-heading transition-colors"
+                title="Thu nhỏ (-15%)"
+              >
+                <ZoomOut class="h-4 w-4" />
+              </button>
+
+              <span class="px-2 font-mono text-heading min-w-[50px] text-center select-none">
+                {{ Math.round(zoomScale * 100) }}%
+              </span>
+
+              <button
+                type="button"
+                @click="zoomIn"
+                class="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-heading transition-colors"
+                title="Phóng to (+15%)"
+              >
+                <ZoomIn class="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                @click="resetZoom"
+                class="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-muted hover:text-heading transition-colors ml-1 border-l border-default pl-2"
+                title="Đặt lại zoom (100%)"
+              >
+                <RotateCcw class="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <div v-if="selectedOrg" class="flex items-center gap-2 ml-2 pl-2 border-l border-default">
+              <button @click="startEdit" class="glass-btn secondary text-xs"><Edit2 :size="14" /> Cập nhật</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Org Chart Tree Canvas Container with Zoom Scale -->
+        <div
+          class="org-chart-canvas-wrapper py-8 px-4 flex justify-center min-w-full overflow-auto relative cursor-grab active:cursor-grabbing select-none min-h-[420px]"
+          @mousedown="handleCanvasMouseDown"
+          @mouseup="handleCanvasMouseUp"
+          @mouseleave="isRightMouseDown = false"
+          @contextmenu="handleCanvasContextMenu"
+          @wheel="handleCanvasWheel"
+        >
+          <div
+            class="org-chart-canvas transition-transform duration-100 ease-out origin-top flex justify-center"
+            :style="{ transform: `scale(${zoomScale})` }"
+          >
+            <div v-for="rootNode in organizationTree" :key="rootNode.id" class="inline-block">
+              <OrgChartNode
+                :node="rootNode"
+                :selected-id="selectedOrg?.id"
+                :level="0"
+                @select-org="selectOrg"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- Selected Node Quick Info & Actions Bar -->
+      <div v-if="selectedOrg" class="lg-glass-soft rounded-2xl border border-default p-5 transition-all">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="flex items-center gap-3.5">
+            <div
+              class="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md font-bold shrink-0"
+              :class="selectedOrg.type === 'Root' ? 'bg-purple-600' : (selectedOrg.type === 'Campus' ? 'bg-blue-600' : 'bg-teal-600')"
+            >
+              <component :is="getTypeIcon(selectedOrg.type)" class="h-6 w-6" />
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-base font-extrabold text-heading">{{ selectedOrg.name }}</h3>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold" :class="getStatusBadge(selectedOrg.status).class">
+                  {{ getStatusBadge(selectedOrg.status).label }}
+                </span>
+              </div>
+              <p class="text-xs text-muted font-mono mt-0.5">
+                Mã: <strong class="text-heading">{{ selectedOrg.code }}</strong> · {{ selectedOrg.address }}
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4">
+            <div class="grid grid-cols-2 gap-4 text-xs border-r border-default pr-4">
+              <div>
+                <span class="block text-[10px] text-muted font-bold uppercase">Người dùng</span>
+                <strong class="text-heading text-sm">{{ selectedOrg.metrics?.users || 0 }}</strong>
+              </div>
+              <div>
+                <span class="block text-[10px] text-muted font-bold uppercase">Lớp học</span>
+                <strong class="text-heading text-sm">{{ selectedOrg.metrics?.classes || 0 }}</strong>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button @click="startEdit" class="glass-btn secondary text-xs"><Edit2 :size="14" /> Cập nhật</button>
+              <button @click="openLockModal" class="glass-btn text-xs" :class="selectedOrg.status === 'Locked' ? 'primary' : 'danger'">
+                <component :is="selectedOrg.status === 'Locked' ? Unlock : Lock" :size="14" />
+                {{ selectedOrg.status === 'Locked' ? 'Mở khóa' : 'Khóa cơ sở' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="isLockModalOpen" class="modal-overlay">
       <div class="modal-content glass-panel p-6 rounded-2xl max-w-md w-full">
         <div class="flex items-center gap-3 mb-4">
