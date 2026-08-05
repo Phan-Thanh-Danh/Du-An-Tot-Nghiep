@@ -155,6 +155,22 @@ watch(
         field.options = {}
       }
     }
+
+    if (draft.value.type === 'phuc_tra_diem') {
+      const maDiemSo = newFields['ma_diem_so']
+      const cotDiem = newFields['cot_diem']
+      if (maDiemSo && cotDiem) {
+        const field = currentTemplate.value.fields.find(f => f.key === 'ma_diem_so')
+        if (field && field.rawData) {
+          const scoreInfo = field.rawData.find(s => String(s.id) === String(maDiemSo))
+          if (scoreInfo) {
+            draft.value.dynamicFields['diem_hien_tai'] = scoreInfo[cotDiem] ?? ''
+          }
+        }
+      } else {
+        if (draft.value.dynamicFields['diem_hien_tai']) draft.value.dynamicFields['diem_hien_tai'] = ''
+      }
+    }
   },
   { deep: true }
 )
@@ -298,6 +314,18 @@ async function goNext() {
               }, {})
             } catch (err) {
               console.error('Failed to load retake subjects:', err)
+            }
+          } else if (field.autoFill === 'availableRegradeScores') {
+            try {
+              const res = await apiRequest('/api/student/regrade/available-scores')
+              const scores = res?.data || res || []
+              field.rawData = scores
+              field.options = scores.reduce((acc, score) => {
+                acc[score.id] = score.label
+                return acc
+              }, {})
+            } catch (err) {
+              console.error('Failed to load regrade scores:', err)
             }
           } else if (field.autoFill === 'majors') {
             try {

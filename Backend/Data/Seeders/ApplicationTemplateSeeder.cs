@@ -1,4 +1,5 @@
 using Backend.Models;
+using Backend.Constants;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.Encodings.Web;
@@ -274,6 +275,50 @@ public static class ApplicationTemplateSeeder
                         new { key = "reason", type = "textarea", label = "Ghi chú", required = false, maxLength = 500 },
                         new { key = "phone", type = "tel", label = "Số điện thoại", required = true, pattern = "^(0|\\+84)[0-9]{9,10}$" },
                         new { key = "email", type = "email", label = "Email liên hệ", required = true, autoFill = "studentEmail" }
+                    }
+                }, options)
+            },
+            new MauDonTu
+            {
+                LoaiDon = ApplicationTypes.GradeAppeal,
+                TenMau = "Đơn phúc tra điểm",
+                PhienBan = 1,
+                BatBuocMinhChung = false,
+                SoTepToiDa = 2,
+                DungLuongTepToiDaByte = 5 * 1024 * 1024,
+                TongDungLuongToiDaByte = 10 * 1024 * 1024,
+                SlaGio = 72,
+                DangHoatDong = true,
+                NgayTao = DateTime.UtcNow,
+                NgayCapNhat = DateTime.UtcNow,
+                CauHinhJson = JsonSerializer.Serialize(new
+                {
+                    fields = new object[]
+                    {
+                        new { key = "student_info", type = "studentInfo", label = "Thông tin sinh viên", @readonly = true },
+                        new { 
+                            key = "ma_diem_so", 
+                            type = "select", 
+                            label = "Môn học cần phúc tra", 
+                            required = true, 
+                            autoFill = "availableRegradeScores"
+                        },
+                        new { 
+                            key = "cot_diem", 
+                            type = "select", 
+                            label = "Thành phần điểm cần phúc tra", 
+                            required = true, 
+                            options = new object[] {
+                                new { value = "diem_qua_trinh", label = "Điểm quá trình" },
+                                new { value = "diem_giua_ky", label = "Điểm giữa kỳ" },
+                                new { value = "diem_cuoi_ky", label = "Điểm cuối kỳ" },
+                                new { value = "gpa_mon_hoc", label = "Điểm tổng kết" }
+                            }
+                        },
+                        new { key = "diem_hien_tai", type = "number", label = "Điểm hiện tại", @readonly = true },
+                        new { key = "ly_do", type = "textarea", label = "Lý do phúc tra", required = true, maxLength = 1000 },
+                        new { key = "so_dien_thoai", type = "tel", label = "Số điện thoại", required = true, pattern = "^(0|\\+84)[0-9]{9,10}$" },
+                        new { key = "email_lien_he", type = "email", label = "Email liên hệ", required = true, autoFill = "studentEmail" }
                     }
                 }, options)
             }

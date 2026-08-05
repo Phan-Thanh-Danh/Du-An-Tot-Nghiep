@@ -22,6 +22,27 @@ internal static class ApplicationFormDataExtensions
 
                     value = 0;
                     return false;
+                case string str:
+                    if (int.TryParse(str, out var parsedInt))
+                    {
+                        value = parsedInt;
+                        return true;
+                    }
+                    value = 0;
+                    return false;
+                case System.Text.Json.JsonElement element:
+                    if (element.ValueKind == System.Text.Json.JsonValueKind.Number && element.TryGetInt32(out var elementInt))
+                    {
+                        value = elementInt;
+                        return true;
+                    }
+                    if (element.ValueKind == System.Text.Json.JsonValueKind.String && int.TryParse(element.GetString(), out var parsedElementStr))
+                    {
+                        value = parsedElementStr;
+                        return true;
+                    }
+                    value = 0;
+                    return false;
             }
         }
 
@@ -43,10 +64,22 @@ internal static class ApplicationFormDataExtensions
 
     public static bool TryGetString(this IReadOnlyDictionary<string, object?> values, string key, out string value)
     {
-        if (values.TryGetValue(key, out var raw) && raw is string text)
+        if (values.TryGetValue(key, out var raw))
         {
-            value = text;
-            return true;
+            if (raw is string text)
+            {
+                value = text;
+                return true;
+            }
+            if (raw is System.Text.Json.JsonElement element && element.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                var str = element.GetString();
+                if (str != null)
+                {
+                    value = str;
+                    return true;
+                }
+            }
         }
 
         value = string.Empty;
