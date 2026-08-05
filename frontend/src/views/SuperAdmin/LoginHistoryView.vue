@@ -45,10 +45,27 @@ async function loadLogins() {
   loading.value = true
   error.value = ''
   try {
-    // TODO: Connect to backend API when ready
-    // const data = await apiRequest('/api/super-admin/login-history', 'GET', { limit: 100 })
-    // logins.value = data
-    logins.value = []
+    const data = await apiRequest('/api/super-admin/login-history?limit=100')
+    if (Array.isArray(data)) {
+      logins.value = data.map(item => ({
+        id: item.id,
+        userName: item.userName,
+        email: item.email,
+        role: item.role,
+        campus: item.campus,
+        status: item.status,         // 'Success' | 'Failed' | 'Suspicious'
+        ip: item.ip,
+        device: item.device,
+        browser: item.device,        // dùng device làm browser label (BE không tách riêng)
+        location: item.location,
+        riskScore: item.riskScore,
+        time: new Date(item.loginTime).toLocaleString('vi-VN'),
+        sessionId: item.sessionId,
+      }))
+    } else {
+      logins.value = []
+    }
+
   } catch (err) {
     error.value = err.message || 'Không thể tải dữ liệu lịch sử đăng nhập.'
     logins.value = []
@@ -56,6 +73,7 @@ async function loadLogins() {
     loading.value = false
   }
 }
+
 
 // Filtered Logins
 const filteredLogins = computed(() => {

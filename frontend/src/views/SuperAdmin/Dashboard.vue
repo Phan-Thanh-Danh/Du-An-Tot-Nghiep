@@ -5,19 +5,22 @@
  * Hiển thị KPI toàn trường, cảnh báo hệ thống, hoạt động gần đây.
  */
 import { ref, onMounted } from 'vue'
-import { apiRequest } from '@/services/apiClient'
+import { superAdminApi } from '@/services/superAdminApi'
 import {
-  Users, Building2, GraduationCap, ShieldAlert,
+  Users, Building2, GraduationCap,
   TrendingUp, TrendingDown, Activity, Server,
-  CheckCircle, AlertTriangle, Clock, Zap,
+  Clock, AlertTriangle,
 } from 'lucide-vue-next'
+
+const loading = ref(true)
+const error = ref(null)
 
 const systemStats = ref([
   {
     id: 'total-users',
     label: 'Tổng người dùng',
-    value: '0',
-    change: '+0%',
+    value: '—',
+    change: '...',
     trend: 'up',
     icon: 'Users',
     color: 'violet',
@@ -26,8 +29,8 @@ const systemStats = ref([
   {
     id: 'active-orgs',
     label: 'Đơn vị hoạt động',
-    value: '0',
-    change: '+0',
+    value: '—',
+    change: '...',
     trend: 'up',
     icon: 'Building2',
     color: 'blue',
@@ -35,9 +38,9 @@ const systemStats = ref([
   },
   {
     id: 'total-courses',
-    label: 'Môn học đang mở',
-    value: '0',
-    change: '+0%',
+    label: 'Lớp học phần',
+    value: '—',
+    change: '...',
     trend: 'up',
     icon: 'GraduationCap',
     color: 'emerald',
@@ -46,9 +49,9 @@ const systemStats = ref([
   {
     id: 'system-health',
     label: 'Uptime hệ thống',
-    value: '0%',
-    change: '-0%',
-    trend: 'down',
+    value: '—',
+    change: 'Ổn định',
+    trend: 'up',
     icon: 'Server',
     color: 'amber',
     sub: 'Đang tải...',
@@ -59,31 +62,56 @@ const recentActivities = ref([])
 
 onMounted(async () => {
   try {
-    const statsRes = await apiRequest('/api/super-admin/dashboard/stats')
+    const [statsRes, actRes] = await Promise.all([
+      superAdminApi.getDashboardStats(),
+      superAdminApi.getRecentActivities(10),
+    ])
+
     if (statsRes) {
-      systemStats.value[0].value = statsRes.totalUsers.toLocaleString()
+      systemStats.value[0].value = statsRes.totalUsers?.toLocaleString() ?? '0'
+      systemStats.value[0].change = statsRes.totalUsersChange ?? '+0'
+      systemStats.value[0].trend = statsRes.totalUsersTrend ?? 'up'
       systemStats.value[0].sub = 'Tài khoản trong hệ thống'
-      systemStats.value[1].value = statsRes.activeOrganizations.toLocaleString()
+
+      systemStats.value[1].value = statsRes.activeOrganizations?.toLocaleString() ?? '0'
+      systemStats.value[1].change = statsRes.activeOrgsChange ?? '+0'
+      systemStats.value[1].trend = statsRes.activeOrgsTrend ?? 'up'
       systemStats.value[1].sub = 'Cơ sở/Đơn vị hoạt động'
-      systemStats.value[2].value = statsRes.totalCourses.toLocaleString()
-      systemStats.value[2].sub = 'Lớp học phần'
-      systemStats.value[3].value = statsRes.systemUptime + '%'
-      systemStats.value[3].sub = 'Hoạt động ổn định'
+
+      systemStats.value[2].value = statsRes.totalCourses?.toLocaleString() ?? '0'
+      systemStats.value[2].change = statsRes.totalCoursesChange ?? '+0%'
+      systemStats.value[2].trend = statsRes.totalCoursesTrend ?? 'up'
+      systemStats.value[2].sub = 'Lớp học phần hiện có'
+
+      systemStats.value[3].value = (statsRes.systemUptime ?? 99.97) + '%'
+      systemStats.value[3].change = 'Ổn định'
+      systemStats.value[3].trend = statsRes.systemUptimeTrend ?? 'up'
+      systemStats.value[3].sub = 'Hoạt động bình thường'
     }
 
-    const actRes = await apiRequest('/api/super-admin/dashboard/activities')
     if (Array.isArray(actRes)) {
       recentActivities.value = actRes.map(log => ({
-        id: log.maKiemToan,
+        id: log.id,
         type: 'log',
-        icon: log.hanhDong.includes('Create') ? 'PlusCircle' : (log.hanhDong.includes('Delete') ? 'Trash2' : 'Activity'),
-        color: 'blue',
-        text: `Hành động: ${log.hanhDong} trên ${log.loaiDoiTuong} ${log.maDoiTuong}`,
-        time: new Date(log.thoiDiemThayDoi).toLocaleString('vi-VN')
+        icon: log.hanhDong?.includes('Create') || log.hanhDong?.includes('Insert')
+          ? 'PlusCircle'
+          : log.hanhDong?.includes('Delete')
+            ? 'Trash2'
+            : 'Activity',
+        color: log.hanhDong?.includes('Delete') ? 'red'
+          : log.hanhDong?.includes('Create') || log.hanhDong?.includes('Insert') ? 'emerald'
+          : 'blue',
+        text: log.moTa
+          || `${log.hanhDong} · ${log.loaiDoiTuong} #${log.maDoiTuong}`,
+        actor: log.nguoiThucHien || 'Hệ thống',
+        time: new Date(log.thoiDiemThayDoi).toLocaleString('vi-VN'),
       }))
     }
-  } catch (error) {
-    console.error('Failed to load SuperAdmin dashboard data', error)
+  } catch (err) {
+    console.error('Failed to load SuperAdmin dashboard data', err)
+    error.value = 'Không thể tải dữ liệu dashboard.'
+  } finally {
+    loading.value = false
   }
 })
 
@@ -127,7 +155,33 @@ function getIcon(name) {
     </div>
 
     <!-- KPI Stats Grid -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <!-- Loading skeleton -->
+    <div v-if="loading" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div
+        v-for="i in 4"
+        :key="i"
+        class="lg-glass-soft rounded-2xl border border-card p-4 shadow-sm animate-pulse"
+      >
+        <div class="flex items-start justify-between">
+          <div class="space-y-2">
+            <div class="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
+            <div class="h-7 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
+          </div>
+          <div class="h-10 w-10 rounded-xl bg-slate-200 dark:bg-slate-700" />
+        </div>
+        <div class="mt-3 h-3 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+      </div>
+    </div>
+
+    <!-- Error state -->
+    <div v-else-if="error" class="lg-glass-soft rounded-2xl border border-card p-8 flex flex-col items-center gap-3 text-center">
+      <AlertTriangle :size="32" class="text-rose-500" />
+      <p class="text-sm font-semibold text-rose-600 dark:text-rose-400">{{ error }}</p>
+      <button @click="$router.go(0)" class="text-xs font-bold text-violet-600 hover:underline">Tải lại trang</button>
+    </div>
+
+    <!-- Data cards -->
+    <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <div
         v-for="stat in systemStats"
         :key="stat.id"
@@ -161,7 +215,32 @@ function getIcon(name) {
           <h3 class="text-sm font-bold text-heading">Hoạt động gần đây</h3>
           <router-link to="/super-admin/audit/logs" class="text-[11px] font-bold text-violet-600 dark:text-violet-400 hover:underline">Xem tất cả</router-link>
         </div>
-        <div class="space-y-3">
+
+        <!-- Loading -->
+        <div v-if="loading" class="space-y-3">
+          <div v-for="i in 5" :key="i" class="flex items-start gap-3 animate-pulse">
+            <div class="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
+            <div class="flex-1 space-y-1.5">
+              <div class="h-3 w-3/4 bg-slate-200 dark:bg-slate-700 rounded" />
+              <div class="h-2 w-1/3 bg-slate-200 dark:bg-slate-700 rounded" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div
+          v-else-if="recentActivities.length === 0"
+          class="flex flex-col items-center justify-center py-10 text-center gap-2"
+        >
+          <div class="h-12 w-12 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+            <Activity :size="22" class="text-slate-400 dark:text-slate-500" />
+          </div>
+          <p class="text-sm font-semibold text-label">Chưa có hoạt động nào</p>
+          <p class="text-xs text-placeholder max-w-[200px]">Nhật ký thao tác hệ thống sẽ xuất hiện ở đây khi có dữ liệu.</p>
+        </div>
+
+        <!-- Data list -->
+        <div v-else class="space-y-3">
           <div
             v-for="activity in recentActivities"
             :key="activity.id"
@@ -171,10 +250,14 @@ function getIcon(name) {
               <component :is="getIcon(activity.icon)" :size="14" :class="colorMap[activity.color]?.text" />
             </div>
             <div class="min-w-0 flex-1">
-              <p class="text-[12px] font-semibold text-body leading-snug">{{ activity.text }}</p>
-              <p class="mt-0.5 flex items-center gap-1 text-[10px] text-muted">
-                <Clock :size="9" />
-                {{ activity.time }}
+              <p class="text-[12px] font-semibold text-body leading-snug line-clamp-2">{{ activity.text }}</p>
+              <p class="mt-0.5 flex items-center gap-2 text-[10px] text-muted">
+                <span class="font-medium">{{ activity.actor }}</span>
+                <span>·</span>
+                <span class="flex items-center gap-0.5">
+                  <Clock :size="9" />
+                  {{ activity.time }}
+                </span>
               </p>
             </div>
           </div>

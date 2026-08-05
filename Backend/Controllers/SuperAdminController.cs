@@ -1,4 +1,3 @@
-using Backend.Models;
 using Backend.Services.SuperAdmin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -27,14 +26,14 @@ namespace Backend.Controllers
         }
 
         [HttpGet("dashboard/activities")]
-        public async Task<ActionResult<List<NhatKyKiemToan>>> GetRecentActivities([FromQuery] int limit = 10)
+        public async Task<ActionResult<List<RecentActivityDto>>> GetRecentActivities([FromQuery] int limit = 10)
         {
             var activities = await _superAdminService.GetRecentActivitiesAsync(limit);
             return Ok(activities);
         }
 
         [HttpGet("security/alerts")]
-        public async Task<ActionResult<List<CanhBaoBaoMat>>> GetSecurityAlerts()
+        public async Task<ActionResult> GetSecurityAlerts()
         {
             var alerts = await _superAdminService.GetSecurityAlertsAsync();
             return Ok(alerts);
@@ -55,17 +54,24 @@ namespace Backend.Controllers
         }
 
         [HttpGet("ai/models")]
-        public ActionResult<List<object>> GetAiModels()
+        public async Task<ActionResult<List<AiModelDto>>> GetAiModels()
         {
-            // Placeholder for real models
-            return Ok(new List<object>());
+            var models = await _superAdminService.GetAiModelsAsync();
+            return Ok(models);
         }
 
         [HttpGet("ai/jobs")]
-        public ActionResult<List<object>> GetAiJobs()
+        public async Task<ActionResult<List<AiJobDto>>> GetAiJobs()
         {
-            // Placeholder for real jobs
-            return Ok(new List<object>());
+            var jobs = await _superAdminService.GetAiJobsAsync();
+            return Ok(jobs);
+        }
+
+        [HttpGet("login-history")]
+        public async Task<ActionResult<List<LoginHistoryDto>>> GetLoginHistory([FromQuery] int limit = 100)
+        {
+            var history = await _superAdminService.GetLoginHistoryAsync(limit);
+            return Ok(history);
         }
     }
 }

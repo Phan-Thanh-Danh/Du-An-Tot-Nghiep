@@ -4,8 +4,8 @@
  * Giao diện cấu hình mô hình AI và lập lịch tác vụ tự động ngầm (Automation Jobs).
  * Tích hợp Bảng giám sát dịch vụ AI, AI Model Toggles, CRON Editor Drawer và Confirm Run Modal.
  */
-import { ref, computed , onMounted} from 'vue'
-import { apiRequest } from '@/services/apiClient'
+import { ref, computed, onMounted } from 'vue'
+import { superAdminApi } from '@/services/superAdminApi'
 import {
   Brain,
   Cpu,
@@ -34,9 +34,11 @@ const connectionStats = ref({
 
 // --- AI Models State ---
 const aiModels = ref([])
+const loadingModels = ref(true)
 
 // --- Automation Jobs (Hangfire) State ---
 const automationJobs = ref([])
+const loadingJobs = ref(true)
 
 // --- State CRON Editor Drawer ---
 const isDrawerOpen = ref(false)
@@ -182,21 +184,25 @@ const testModelConnection = (model) => {
 
 onMounted(async () => {
   try {
-    const res = await apiRequest('/api/super-admin/ai/jobs')
+    const res = await superAdminApi.getAiJobs()
     if (Array.isArray(res)) {
       automationJobs.value = res
     }
   } catch (error) {
     console.error('Failed to load data for automationJobs', error)
+  } finally {
+    loadingJobs.value = false
   }
 
   try {
-    const res = await apiRequest('/api/super-admin/ai/models')
+    const res = await superAdminApi.getAiModels()
     if (Array.isArray(res)) {
       aiModels.value = res
     }
   } catch (error) {
     console.error('Failed to load data for aiModels', error)
+  } finally {
+    loadingModels.value = false
   }
 })
 
@@ -336,7 +342,23 @@ onMounted(async () => {
           Quản lý Trạng thái Mô hình AI (AI Models)
         </h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Loading skeleton AI Models -->
+        <div v-if="loadingModels" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div v-for="i in 2" :key="i" class="lg-glass-soft lg-card lg-density-normal animate-pulse border border-default">
+            <div class="h-4 w-1/2 bg-slate-200 dark:bg-slate-700 rounded mb-3" />
+            <div class="h-3 w-full bg-slate-200 dark:bg-slate-700 rounded mb-2" />
+            <div class="h-3 w-3/4 bg-slate-200 dark:bg-slate-700 rounded" />
+          </div>
+        </div>
+
+        <!-- Empty state AI Models -->
+        <div v-else-if="aiModels.length === 0" class="flex flex-col items-center justify-center py-12 text-center gap-3 lg-glass-soft rounded-xl border border-default">
+          <Cpu class="w-10 h-10 text-slate-300 dark:text-slate-600" />
+          <p class="text-sm font-semibold text-label">Chưa có mô hình AI nào</p>
+          <p class="text-xs text-muted">Danh sách AI Models sẽ hiển thị sau khi cấu hình xong.</p>
+        </div>
+
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div 
             v-for="model in aiModels" 
             :key="model.id"
@@ -405,8 +427,20 @@ onMounted(async () => {
           Lập Lịch Tác Vụ Hệ Thống Ngầm (Hangfire Automation Jobs)
         </h2>
 
+        <!-- Loading skeleton Jobs -->
+        <div v-if="loadingJobs" class="lg-table-shell p-4 animate-pulse space-y-3">
+          <div v-for="i in 4" :key="i" class="h-10 bg-slate-200 dark:bg-slate-700 rounded" />
+        </div>
+
+        <!-- Empty state Jobs -->
+        <div v-else-if="automationJobs.length === 0" class="flex flex-col items-center justify-center py-12 text-center gap-3 lg-glass-soft rounded-xl border border-default">
+          <Clock class="w-10 h-10 text-slate-300 dark:text-slate-600" />
+          <p class="text-sm font-semibold text-label">Chưa có tác vụ nào được cấu hình</p>
+          <p class="text-xs text-muted">Danh sách Hangfire Automation Jobs sẽ hiển thị ở đây.</p>
+        </div>
+
         <!-- Bảng Job Table -->
-        <div class="lg-table-shell overflow-x-auto w-full max-w-full">
+        <div v-else class="lg-table-shell overflow-x-auto w-full max-w-full">
           <table class="min-w-[1100px] w-full divide-y divide-default text-sm">
             <thead>
               <tr class="surface-table-header">
