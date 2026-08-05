@@ -729,7 +729,7 @@ onMounted(loadApplications)
                 <select v-else-if="field.type === 'select'" v-model="draft.dynamicFields[field.key]" class="lg-control">
                    <option value="">-- Chọn {{ field.label?.toLowerCase() || '' }} --</option>
                    <template v-if="Array.isArray(field.options)">
-                     <option v-for="opt in field.options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                     <option v-for="(opt, idx) in field.options" :key="opt.value ?? opt.Value ?? idx" :value="opt.value ?? opt.Value">{{ opt.label ?? opt.Label }}</option>
                    </template>
                    <template v-else>
                      <option v-for="(val, key) in field.options" :key="key" :value="key">{{ val }}</option>

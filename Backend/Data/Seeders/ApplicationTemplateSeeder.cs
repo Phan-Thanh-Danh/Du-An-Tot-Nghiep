@@ -22,7 +22,8 @@ public static class ApplicationTemplateSeeder
 
         var options = new JsonSerializerOptions
         {
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
         var templates = new List<MauDonTu>
@@ -153,6 +154,41 @@ public static class ApplicationTemplateSeeder
                         new { key = "so_dien_thoai", type = "tel", label = "Số điện thoại", required = true, pattern = "^(0|\\+84)[0-9]{9,10}$" },
                         new { key = "email_lien_he", type = "email", label = "Email liên hệ", required = true, autoFill = "studentEmail" },
                         new { key = "ghi_chu", type = "textarea", label = "Ghi chú", required = false, maxLength = 500 }
+                    }
+                }, options)
+            },
+            new MauDonTu
+            {
+                LoaiDon = "xac_nhan",
+                TenMau = "Đơn xác nhận sinh viên",
+                PhienBan = 1,
+                BatBuocMinhChung = false,
+                SoTepToiDa = 2,
+                DungLuongTepToiDaByte = 5 * 1024 * 1024,
+                TongDungLuongToiDaByte = 10 * 1024 * 1024,
+                SlaGio = 48,
+                DangHoatDong = true,
+                NgayTao = DateTime.UtcNow,
+                NgayCapNhat = DateTime.UtcNow,
+                CauHinhJson = JsonSerializer.Serialize(new
+                {
+                    fields = new object[]
+                    {
+                        new { key = "student_info", type = "studentInfo", label = "Thông tin sinh viên", @readonly = true },
+                        new { key = "confirmation_type", type = "select", label = "Loại xác nhận", required = true, options = new[] {
+                            new { value = "Xác nhận đang là sinh viên", label = "Xác nhận đang là sinh viên" },
+                            new { value = "Xác nhận vay vốn", label = "Xác nhận vay vốn" },
+                            new { value = "Xác nhận tạm hoãn nghĩa vụ quân sự", label = "Xác nhận tạm hoãn nghĩa vụ quân sự" },
+                            new { value = "Xác nhận làm thủ tục xin việc", label = "Xác nhận làm thủ tục xin việc" },
+                            new { value = "Xác nhận hưởng chế độ", label = "Xác nhận hưởng chế độ" },
+                            new { value = "Khác", label = "Khác" }
+                        } },
+                        new { key = "recipient", type = "text", label = "Nơi nhận", required = true, maxLength = 200 },
+                        new { key = "purpose", type = "textarea", label = "Mục đích sử dụng", required = true, maxLength = 1000 },
+                        new { key = "copies", type = "number", label = "Số lượng bản", required = true, min = 1, max = 5 },
+                        new { key = "contact_address", type = "text", label = "Địa chỉ liên hệ", required = true, maxLength = 200 },
+                        new { key = "phone_number", type = "tel", label = "Số điện thoại", required = true, pattern = "^(0|\\+84)[0-9]{9,10}$" },
+                        new { key = "email", type = "email", label = "Email liên hệ", required = true, autoFill = "studentEmail" }
                     }
                 }, options)
             }

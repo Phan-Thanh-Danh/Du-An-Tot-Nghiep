@@ -311,7 +311,7 @@ public class ConfirmationApplicationSubmissionRule : ApplicationSubmissionRuleBa
 
     public override Task ValidateAsync(ApplicationSubmissionRuleContext context, CancellationToken cancellationToken = default)
     {
-        if (!context.FormData.Values.TryGetDecimal("so_ban", out var copies) ||
+        if (!context.FormData.Values.TryGetDecimal("copies", out var copies) ||
             copies < 1 ||
             copies > 5 ||
             decimal.Truncate(copies) != copies)
