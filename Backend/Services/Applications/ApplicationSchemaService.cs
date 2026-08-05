@@ -22,7 +22,7 @@ public class ApplicationSchemaService : IApplicationSchemaService
             [ApplicationTypes.ChangeMajor] = "Đơn chuyển ngành",
             [ApplicationTypes.ChangeCampus] = "Đơn chuyển cơ sở",
             [ApplicationTypes.Confirmation] = "Đơn xác nhận",
-            [ApplicationTypes.Withdrawal] = "Đơn rút học"
+            [ApplicationTypes.Withdrawal] = "Đơn xin rút học bạ"
         };
 
     private static readonly IReadOnlyDictionary<string, string> StatusLabels =

@@ -63,7 +63,33 @@ const formData = computed({
           </option>
         </select>
         
-        <!-- Checkbox -->
+        <!-- Multiselect -->
+        <div v-else-if="field.type === 'multiselect'" class="space-y-2 pt-1">
+          <template v-if="Array.isArray(field.options)">
+            <label v-for="(opt, idx) in field.options" :key="opt.value ?? idx" class="flex items-center gap-2 cursor-pointer text-sm">
+              <input 
+                type="checkbox" 
+                :value="opt.value ?? opt.Value" 
+                v-model="formData[field.key]"
+                class="w-4 h-4 rounded text-(--lg-primary) focus:ring-(--lg-primary) bg-(--surface-input) border-(--border-input)"
+              />
+              <span class="text-sm text-(--text-body)">{{ opt.label ?? opt.Label }}</span>
+            </label>
+          </template>
+          <template v-else>
+            <label v-for="(val, key) in field.options" :key="key" class="flex items-center gap-2 cursor-pointer text-sm">
+              <input 
+                type="checkbox" 
+                :value="key" 
+                v-model="formData[field.key]"
+                class="w-4 h-4 rounded text-(--lg-primary) focus:ring-(--lg-primary) bg-(--surface-input) border-(--border-input)"
+              />
+              <span class="text-sm text-(--text-body)">{{ val }}</span>
+            </label>
+          </template>
+        </div>
+
+        <!-- Single Checkbox -->
         <label v-else-if="field.type === 'checkbox'" class="flex items-center gap-2 cursor-pointer">
           <input 
             type="checkbox" 

@@ -115,8 +115,19 @@ public class ApplicationFormDataValidator : IApplicationFormDataValidator
                 {
                     foreach (var option in optionsElement.EnumerateArray())
                     {
-                        var value = GetRequiredString(option, "value");
-                        options[value] = value;
+                        if (option.ValueKind == JsonValueKind.String)
+                        {
+                            var strVal = option.GetString()?.Trim();
+                            if (!string.IsNullOrEmpty(strVal))
+                            {
+                                options[strVal] = strVal;
+                            }
+                        }
+                        else if (option.ValueKind == JsonValueKind.Object)
+                        {
+                            var value = GetRequiredString(option, "value");
+                            options[value] = value;
+                        }
                     }
                 }
 
@@ -226,6 +237,7 @@ public class ApplicationFormDataValidator : IApplicationFormDataValidator
                 return new NormalizedFieldValue(true, dateTime.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
 
             case ApplicationFieldTypes.Select:
+            case "radio":
                 if (value.ValueKind != JsonValueKind.String)
                 {
                     throw InvalidFieldType(field.Key);
@@ -250,6 +262,11 @@ public class ApplicationFormDataValidator : IApplicationFormDataValidator
                 return new NormalizedFieldValue(true, canonical);
 
             case ApplicationFieldTypes.Multiselect:
+            case "checkbox":
+                if (value.ValueKind == JsonValueKind.True || value.ValueKind == JsonValueKind.False)
+                {
+                    return new NormalizedFieldValue(true, value.GetBoolean());
+                }
                 if (value.ValueKind != JsonValueKind.Array)
                 {
                     throw InvalidFieldType(field.Key);

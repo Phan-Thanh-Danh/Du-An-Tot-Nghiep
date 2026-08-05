@@ -321,6 +321,57 @@ public static class ApplicationTemplateSeeder
                         new { key = "email_lien_he", type = "email", label = "Email liên hệ", required = true, autoFill = "studentEmail" }
                     }
                 }, options)
+            },
+            new MauDonTu
+            {
+                LoaiDon = ApplicationTypes.Withdrawal,
+                TenMau = "Đơn xin rút học bạ",
+                PhienBan = 1,
+                BatBuocMinhChung = false,
+                SoTepToiDa = 3,
+                DungLuongTepToiDaByte = 5 * 1024 * 1024,
+                TongDungLuongToiDaByte = 15 * 1024 * 1024,
+                SlaGio = 72,
+                DangHoatDong = true,
+                NgayTao = DateTime.UtcNow,
+                NgayCapNhat = DateTime.UtcNow,
+                CauHinhJson = JsonSerializer.Serialize(new
+                {
+                    fields = new object[]
+                    {
+                        new { key = "student_info", type = "studentInfo", label = "Thông tin sinh viên", @readonly = true },
+                        new { key = "reason", type = "textarea", label = "Lý do xin rút học bạ", required = true, maxLength = 1000 },
+                        new { 
+                            key = "documents", 
+                            type = "multiselect", 
+                            label = "Hồ sơ đề nghị nhận lại", 
+                            required = true,
+                            options = new object[] {
+                                new { value = "hoc_ba_thpt", label = "Học bạ THPT" },
+                                new { value = "bang_tot_nghiep_thpt", label = "Bằng tốt nghiệp THPT" },
+                                new { value = "giay_cn_tot_nghiep_tam_thoi", label = "Giấy chứng nhận tốt nghiệp tạm thời" },
+                                new { value = "ho_so_khac", label = "Hồ sơ khác" }
+                            }
+                        },
+                        new { 
+                            key = "receiver_type", 
+                            type = "select", 
+                            label = "Người nhận hồ sơ", 
+                            required = true,
+                            options = new object[] {
+                                new { value = "sinh_vien", label = "Sinh viên nhận trực tiếp" },
+                                new { value = "nguoi_duoc_uy_quyen", label = "Người được ủy quyền nhận" }
+                            }
+                        },
+                        new { key = "authorized_name", type = "text", label = "Họ tên người nhận (nếu ủy quyền)", required = false, dependsOn = "receiver_type", dependsOnValue = "nguoi_duoc_uy_quyen" },
+                        new { key = "authorized_cccd", type = "text", label = "CCCD người nhận (nếu ủy quyền)", required = false, dependsOn = "receiver_type", dependsOnValue = "nguoi_duoc_uy_quyen" },
+                        new { key = "authorized_relation", type = "text", label = "Quan hệ với sinh viên (nếu ủy quyền)", required = false, dependsOn = "receiver_type", dependsOnValue = "nguoi_duoc_uy_quyen" },
+                        new { key = "authorized_phone", type = "tel", label = "Số điện thoại người nhận (nếu ủy quyền)", required = false, dependsOn = "receiver_type", dependsOnValue = "nguoi_duoc_uy_quyen" },
+                        new { key = "contact_address", type = "text", label = "Địa chỉ liên hệ", required = true },
+                        new { key = "contact_phone", type = "tel", label = "Số điện thoại", required = true },
+                        new { key = "contact_email", type = "email", label = "Email", required = true, autoFill = "studentEmail" }
+                    }
+                }, options)
             }
         };
 

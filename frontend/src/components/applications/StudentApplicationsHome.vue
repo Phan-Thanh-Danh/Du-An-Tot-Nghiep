@@ -274,6 +274,8 @@ async function goNext() {
         for (const field of currentTemplate.value.fields || []) {
           if (field.key === 'co_so_hien_tai') {
             draft.value.dynamicFields[field.key] = authStore.user?.DonVi?.TenDonVi || ''
+          } else if (field.type === 'multiselect') {
+            draft.value.dynamicFields[field.key] = []
           } else {
             draft.value.dynamicFields[field.key] = ''
           }
@@ -513,6 +515,20 @@ function unwrapList(payload) {
 
 function getFormValue(data, key) {
   return data?.[key] ?? data?.[key.charAt(0).toUpperCase() + key.slice(1)] ?? ''
+}
+
+function getOptionLabel(field, val) {
+  if (!val || !field?.options) return val || ''
+  if (Array.isArray(field.options)) {
+    const found = field.options.find(o => String(o.value ?? o.Value) === String(val))
+    return found ? (found.label ?? found.Label ?? val) : val
+  }
+  return field.options[val] || val
+}
+
+function getMultiselectLabels(field, values) {
+  if (!Array.isArray(values) || !values.length) return 'Chưa chọn'
+  return values.map(v => getOptionLabel(field, v)).join(', ')
 }
 
 function mapApplication(item) {
@@ -842,7 +858,7 @@ onMounted(loadApplications)
                 <div><span>Cơ sở hiện tại</span><strong>{{ authStore.user?.campusName || authStore.user?.CampusName || authStore.user?.DonVi?.TenDonVi || authStore.user?.donVi?.tenDonVi || 'Chưa có' }}</strong></div>
                 <div><span>Email</span><strong>{{ authStore.user?.email || authStore.user?.Email || 'Chưa có' }}</strong></div>
               </div>
-              <label v-else class="form-field">
+              <div v-else-if="!field.dependsOn || (field.dependsOn && draft.dynamicFields[field.dependsOn] === field.dependsOnValue)" class="form-field">
                 <span>{{ field.label }} <span v-if="field.required" class="text-red-500">*</span></span>
                 <textarea v-if="field.type === 'textarea'" v-model="draft.dynamicFields[field.key]" rows="5" :placeholder="'Nhập ' + (field.label?.toLowerCase() || '')" />
                 <select v-else-if="field.type === 'select' || field.type === 'related_entity'" v-model="draft.dynamicFields[field.key]" class="lg-control">
@@ -854,9 +870,23 @@ onMounted(loadApplications)
                      <option v-for="(val, key) in field.options" :key="key" :value="key">{{ val }}</option>
                    </template>
                 </select>
+                <div v-else-if="field.type === 'multiselect'" class="checkbox-group">
+                   <template v-if="Array.isArray(field.options)">
+                     <label v-for="(opt, idx) in field.options" :key="opt.value ?? idx" class="checkbox-label">
+                       <input type="checkbox" :value="opt.value ?? opt.Value" v-model="draft.dynamicFields[field.key]" />
+                       <span>{{ opt.label ?? opt.Label }}</span>
+                     </label>
+                   </template>
+                   <template v-else>
+                     <label v-for="(val, key) in field.options" :key="key" class="checkbox-label">
+                       <input type="checkbox" :value="key" v-model="draft.dynamicFields[field.key]" />
+                       <span>{{ val }}</span>
+                     </label>
+                   </template>
+                </div>
                 <input v-else-if="field.type === 'date'" v-model="draft.dynamicFields[field.key]" type="date" />
                 <input v-else v-model="draft.dynamicFields[field.key]" :type="field.type === 'number' ? 'number' : (field.type === 'tel' ? 'tel' : (field.type === 'email' ? 'email' : 'text'))" :pattern="field.pattern" :placeholder="'Nhập ' + (field.label?.toLowerCase() || '')" :disabled="field.key === 'co_so_hien_tai' || field.readonly" />
-              </label>
+              </div>
             </template>
           </template>
         </div>
@@ -881,9 +911,19 @@ onMounted(loadApplications)
         <div v-else class="review-box">
           <div><span>Loại đơn</span><strong>{{ getApplicationTypeLabel(draft.type) }}</strong></div>
           <template v-for="field in currentTemplate?.fields" :key="field.key">
-            <div v-if="field.type !== 'studentInfo'">
+            <div v-if="field.type !== 'studentInfo' && (!field.dependsOn || draft.dynamicFields[field.dependsOn] === field.dependsOnValue)">
                <span>{{ field.label }}</span>
-               <strong>{{ draft.dynamicFields[field.key] || 'Chưa nhập' }}</strong>
+               <strong>
+                 <template v-if="Array.isArray(draft.dynamicFields[field.key])">
+                   {{ getMultiselectLabels(field, draft.dynamicFields[field.key]) }}
+                 </template>
+                 <template v-else-if="field.options">
+                   {{ getOptionLabel(field, draft.dynamicFields[field.key]) }}
+                 </template>
+                 <template v-else>
+                   {{ draft.dynamicFields[field.key] || 'Chưa nhập' }}
+                 </template>
+               </strong>
             </div>
           </template>
           <div>
@@ -1093,7 +1133,7 @@ p {
 
 .search-control,
 .lg-control,
-.form-field input,
+.form-field input:not([type="checkbox"]):not([type="radio"]),
 .form-field textarea {
   width: 100%;
   min-height: var(--control-height-lg);
@@ -1104,6 +1144,55 @@ p {
   outline: 0;
   font-size: 0.84375rem;
   font-weight: 750;
+}
+
+.checkbox-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.625rem !important;
+  margin-top: 0.375rem !important;
+  width: 100% !important;
+}
+
+.checkbox-label {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 0.625rem !important;
+  width: auto !important;
+  max-width: fit-content !important;
+  cursor: pointer !important;
+  font-size: 0.84375rem !important;
+  font-weight: 750 !important;
+  color: var(--text-heading) !important;
+  text-align: left !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 1.125rem !important;
+  height: 1.125rem !important;
+  min-height: 1.125rem !important;
+  max-width: 1.125rem !important;
+  flex: 0 0 1.125rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  accent-color: var(--sidebar-accent, #2563eb) !important;
+}
+
+.checkbox-label span {
+  display: inline !important;
+  flex: 0 1 auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  text-align: left !important;
+  color: var(--text-heading) !important;
+  font-size: 0.84375rem !important;
+  font-weight: 750 !important;
+  line-height: 1.3 !important;
 }
 
 .search-control {
