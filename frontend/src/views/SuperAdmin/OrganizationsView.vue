@@ -299,7 +299,8 @@ const submitForm = async () => {
 
   const levelMapped = form.value.type === 'Sub-campus' ? 'SubCampus' : form.value.type
   const isActiveMapped = form.value.status === 'Active'
-  const parentIdMapped = form.value.parentId === 1 ? null : form.value.parentId
+  // Gửi parentId thực sự — backend yêu cầu parentId != null cho mọi Campus/Sub-campus
+  const parentIdMapped = form.value.parentId || null
 
   const payload = {
     parentId: parentIdMapped,
@@ -329,7 +330,8 @@ const submitForm = async () => {
 
 const submitDraft = async () => {
   const levelMapped = form.value.type === 'Sub-campus' ? 'SubCampus' : form.value.type
-  const parentIdMapped = form.value.parentId === 1 ? null : form.value.parentId
+  // Gửi parentId thực sự — không chuyển 1 thành null
+  const parentIdMapped = form.value.parentId || null
 
   const payload = {
     parentId: parentIdMapped,
@@ -361,7 +363,8 @@ const openLockModal = () => {
 const confirmLockAction = async () => {
   const isCurrentlyLocked = selectedOrg.value?.status === 'Locked'
   const levelMapped = selectedOrg.value.type === 'Sub-campus' ? 'SubCampus' : selectedOrg.value.type
-  const parentIdMapped = selectedOrg.value.parentId === 1 ? null : selectedOrg.value.parentId
+  // Gửi parentId thực sự — không chuyển 1 thành null
+  const parentIdMapped = selectedOrg.value.parentId || null
 
   const payload = {
     parentId: parentIdMapped,
