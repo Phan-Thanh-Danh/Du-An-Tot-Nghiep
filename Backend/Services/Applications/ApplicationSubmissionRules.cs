@@ -390,4 +390,29 @@ public class ChangeMajorApplicationSubmissionRule : SingleActiveSameTypeApplicat
         : base(context, ApplicationTypes.ChangeMajor)
     {
     }
+
+    public override async Task ValidateAsync(ApplicationSubmissionRuleContext context, CancellationToken cancellationToken = default)
+    {
+        await base.ValidateAsync(context, cancellationToken);
+
+        if (!context.FormData.Values.TryGetInt("target_major_id", out var majorId) ||
+            !context.FormData.Values.TryGetInt("target_specialization_id", out var specializationId))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Thiếu thông tin ngành hoặc chuyên ngành muốn chuyển.");
+        }
+
+        var student = await Context.NguoiDungs
+            .Include(u => u.Lop)
+                .ThenInclude(l => l.ChuongTrinh)
+                    .ThenInclude(ct => ct.ChuyenNganh)
+            .FirstOrDefaultAsync(u => u.MaNguoiDung == context.Student.MaNguoiDung, cancellationToken);
+            
+        var currentMajorId = student?.Lop?.ChuongTrinh?.ChuyenNganh?.MaNganh;
+        var currentSpecializationId = student?.Lop?.ChuongTrinh?.MaChuyenNganh;
+
+        if (currentMajorId == majorId && currentSpecializationId == specializationId)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Ngành và chuyên ngành muốn chuyển trùng với ngành/chuyên ngành hiện tại.");
+        }
+    }
 }

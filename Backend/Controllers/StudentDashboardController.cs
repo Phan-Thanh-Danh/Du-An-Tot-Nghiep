@@ -527,4 +527,59 @@ public class StudentDashboardController : ControllerBase
             return StatusCode(500, ApiResponseDto.Fail("Lỗi hệ thống: " + ex.Message));
         }
     }
+    [HttpGet("majors")]
+    public async Task<ActionResult<ApiResponseDto<List<object>>>> GetMajors()
+    {
+        try
+        {
+            var majors = await _db.NganhDaoTaos
+                .Where(m => m.ConHoatDong)
+                .OrderBy(m => m.TenNganh)
+                .Select(m => new
+                {
+                    id = m.MaNganh.ToString(),
+                    name = m.TenNganh
+                })
+                .ToListAsync();
+
+            return Ok(ApiResponseDto<List<object>>.Ok(majors.Cast<object>().ToList()));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi hệ thống: " + ex.Message));
+        }
+    }
+
+    [HttpGet("majors/{majorId:int}/specializations")]
+    public async Task<ActionResult<ApiResponseDto<List<object>>>> GetSpecializations(int majorId)
+    {
+        try
+        {
+            var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+            if (currentUser == null)
+                return Unauthorized();
+
+            var specializations = await (
+                from spec in _db.ChuyenNganhs
+                join campus in _db.ChuyenNganhTheoCoSos
+                    on spec.MaChuyenNganh equals campus.MaChuyenNganh
+                where spec.MaNganh == majorId
+                      && spec.ConHoatDong
+                      && campus.MaDonVi == currentUser.CampusId
+                      && campus.ConHoatDong
+                orderby spec.TenChuyenNganh
+                select new
+                {
+                    id = spec.MaChuyenNganh.ToString(),
+                    name = spec.TenChuyenNganh
+                }
+            ).ToListAsync();
+
+            return Ok(ApiResponseDto<List<object>>.Ok(specializations.Cast<object>().ToList()));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi hệ thống: " + ex.Message));
+        }
+    }
 }

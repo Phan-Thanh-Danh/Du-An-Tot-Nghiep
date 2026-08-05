@@ -54,6 +54,25 @@ public class ApplicationReferenceValidator : IApplicationReferenceValidator
         }
 
         await CrossCheckScoreAsync(student, formData, cancellationToken);
+        await CrossCheckMajorSpecializationAsync(student, formData, cancellationToken);
+    }
+
+    private async Task CrossCheckMajorSpecializationAsync(
+        NguoiDung student,
+        ApplicationFormDataValidationResult formData,
+        CancellationToken cancellationToken)
+    {
+        if (formData.Values.TryGetInt("target_major_id", out var majorId) &&
+            formData.Values.TryGetInt("target_specialization_id", out var specializationId))
+        {
+            var specialization = await _context.ChuyenNganhs.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.MaChuyenNganh == specializationId, cancellationToken);
+                
+            if (specialization is null || specialization.MaNganh != majorId)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "Chuyên ngành không thuộc ngành đào tạo đã chọn.");
+            }
+        }
     }
 
     private async Task EnsureAcademicTermAsync(int id, int organizationId, CancellationToken cancellationToken)

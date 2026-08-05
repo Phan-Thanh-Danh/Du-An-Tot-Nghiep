@@ -111,6 +111,44 @@ watch(
   { immediate: true }
 )
 
+const loadedDependencies = {}
+watch(
+  () => draft.value.dynamicFields,
+  async (newFields) => {
+    if (!currentTemplate.value?.fields) return
+    
+    const dependentFields = currentTemplate.value.fields.filter(f => f.dependsOn)
+    for (const field of dependentFields) {
+      const depKey = field.dependsOn
+      const depVal = newFields[depKey]
+      
+      if (depVal && loadedDependencies[field.key] !== depVal) {
+        loadedDependencies[field.key] = depVal
+        draft.value.dynamicFields[field.key] = ''
+        
+        if (field.autoFill === 'specializationsByMajor') {
+          try {
+            const res = await apiRequest(`/api/student/dashboard/majors/${depVal}/specializations`)
+            const specializations = res?.data || res || []
+            field.options = specializations.reduce((acc, spec) => {
+              acc[spec.id] = spec.name
+              return acc
+            }, {})
+          } catch (err) {
+            console.error('Failed to load specializations:', err)
+          }
+        }
+      } else if (!depVal && loadedDependencies[field.key]) {
+        loadedDependencies[field.key] = null
+        draft.value.dynamicFields[field.key] = ''
+        field.options = {}
+      }
+    }
+  },
+  { deep: true }
+)
+
+
 const summaryCards = computed(() => [
   { label: 'Tổng đơn', value: applications.value.length, icon: FolderOpen, variant: 'primary' },
   {
@@ -239,6 +277,20 @@ async function goNext() {
             } catch (err) {
               console.error('Failed to load campuses:', err)
             }
+          } else if (field.autoFill === 'majors') {
+            try {
+              const res = await apiRequest('/api/student/dashboard/majors')
+              const majors = res?.data || res || []
+              field.options = majors.reduce((acc, major) => {
+                acc[major.id] = major.name
+                return acc
+              }, {})
+            } catch (err) {
+              console.error('Failed to load majors:', err)
+            }
+          } else if (field.autoFill === 'specializationsByMajor') {
+            // Options will be loaded by the watcher when the dependency changes
+            field.options = {}
           } else if (field.autoFill === 'studentEmail') {
             draft.value.dynamicFields[field.key] = authStore.user?.email || authStore.user?.Email || ''
           }
@@ -743,7 +795,7 @@ onMounted(loadApplications)
               <label v-else class="form-field">
                 <span>{{ field.label }} <span v-if="field.required" class="text-red-500">*</span></span>
                 <textarea v-if="field.type === 'textarea'" v-model="draft.dynamicFields[field.key]" rows="5" :placeholder="'Nhập ' + (field.label?.toLowerCase() || '')" />
-                <select v-else-if="field.type === 'select'" v-model="draft.dynamicFields[field.key]" class="lg-control">
+                <select v-else-if="field.type === 'select' || field.type === 'related_entity'" v-model="draft.dynamicFields[field.key]" class="lg-control">
                    <option value="">-- Chọn {{ field.label?.toLowerCase() || '' }} --</option>
                    <template v-if="Array.isArray(field.options)">
                      <option v-for="(opt, idx) in field.options" :key="opt.value ?? opt.Value ?? idx" :value="opt.value ?? opt.Value">{{ opt.label ?? opt.Label }}</option>

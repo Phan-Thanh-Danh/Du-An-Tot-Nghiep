@@ -193,6 +193,48 @@ public static class ApplicationTemplateSeeder
                         new { key = "email", type = "email", label = "Email liên hệ", required = true, autoFill = "studentEmail" }
                     }
                 }, options)
+            },
+            new MauDonTu
+            {
+                LoaiDon = "chuyen_nganh",
+                TenMau = "Đơn chuyển ngành/chuyên ngành",
+                PhienBan = 1,
+                BatBuocMinhChung = false,
+                SoTepToiDa = 2,
+                DungLuongTepToiDaByte = 5 * 1024 * 1024,
+                TongDungLuongToiDaByte = 10 * 1024 * 1024,
+                SlaGio = 72,
+                DangHoatDong = true,
+                NgayTao = DateTime.UtcNow,
+                NgayCapNhat = DateTime.UtcNow,
+                CauHinhJson = JsonSerializer.Serialize(new
+                {
+                    fields = new object[]
+                    {
+                        new { key = "student_info", type = "studentInfo", label = "Thông tin sinh viên", @readonly = true },
+                        new { 
+                            key = "target_major_id", 
+                            type = "related_entity", 
+                            label = "Ngành đào tạo muốn chuyển", 
+                            required = true, 
+                            autoFill = "majors",
+                            relatedEntity = "nganh"
+                        },
+                        new { 
+                            key = "target_specialization_id", 
+                            type = "related_entity", 
+                            label = "Chuyên ngành muốn chuyển", 
+                            required = true, 
+                            autoFill = "specializationsByMajor",
+                            dependsOn = "target_major_id",
+                            relatedEntity = "chuyen_nganh"
+                        },
+                        new { key = "reason", type = "textarea", label = "Lý do chuyển", required = true, maxLength = 1000 },
+                        new { key = "contact_address", type = "text", label = "Địa chỉ liên hệ", required = true, maxLength = 200 },
+                        new { key = "phone", type = "tel", label = "Số điện thoại", required = true, pattern = "^(0|\\+84)[0-9]{9,10}$" },
+                        new { key = "email", type = "email", label = "Email liên hệ", required = true, autoFill = "studentEmail" }
+                    }
+                }, options)
             }
         };
 

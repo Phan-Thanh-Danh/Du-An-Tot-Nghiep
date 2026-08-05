@@ -301,9 +301,17 @@ public class ApplicationFormDataValidator : IApplicationFormDataValidator
                 return new NormalizedFieldValue(true, value.GetBoolean());
 
             case ApplicationFieldTypes.RelatedEntity:
-                if (value.ValueKind != JsonValueKind.Number ||
-                    !value.TryGetInt32(out var id) ||
-                    id <= 0)
+                int id = 0;
+                if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var idNum))
+                {
+                    id = idNum;
+                }
+                else if (value.ValueKind == JsonValueKind.String && int.TryParse(value.GetString(), out var idStr))
+                {
+                    id = idStr;
+                }
+
+                if (id <= 0)
                 {
                     throw InvalidFieldType(field.Key);
                 }
