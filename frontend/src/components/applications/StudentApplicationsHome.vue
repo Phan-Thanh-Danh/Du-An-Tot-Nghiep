@@ -610,12 +610,13 @@ async function loadApplications() {
       applicationsApi.getApplicationTemplates({ pageSize: 50 }).catch(() => []),
       applicationsApi.getMyApplications({ pageSize: 50 }),
     ])
+    const HIDDEN_TYPES = ['chuyen_truong', 'cap_chung_chi', 'khac']
     applicationTypes.value = unwrapList(templates)
       .map((item) => ({
         value: item.loaiDon ?? item.LoaiDon,
         label: item.tenLoaiDon ?? item.TenLoaiDon ?? item.tenMau ?? item.TenMau ?? item.loaiDon ?? 'Biểu mẫu',
       }))
-      .filter((item) => item.value)
+      .filter((item) => item.value && !HIDDEN_TYPES.includes(item.value))
     applications.value = unwrapList(result).map(mapApplication)
     selectedId.value = applications.value[0]?.id || ''
   } catch (e) {
