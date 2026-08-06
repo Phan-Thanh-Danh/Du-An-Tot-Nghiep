@@ -2,6 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { usePopupStore } from '@/stores/popup'
 import { rbacApi } from '@/services/rbacService'
+import { organizationApi } from '@/services/organizationService'
+import LmsSelect from '@/components/LmsSelect.vue'
 import {
   Shield,
   ShieldAlert,
@@ -17,9 +19,9 @@ import {
   Globe,
   Building,
   AlertCircle,
+  Loader2,
   FileText
 } from 'lucide-vue-next'
-
 
 const popup = usePopupStore()
 
@@ -27,16 +29,40 @@ const popup = usePopupStore()
 const activeTab = ref('roles') // 'roles' | 'history'
 const searchQuery = ref('')
 
-// Campus & Sub-campus lists for Scope configuration
-const campuses = ['Hà Nội', 'TP.HCM', 'Đà Nẵng', 'Cần Thơ']
-const subCampuses = {
-  'Hà Nội': ['Cơ sở 1 (Cầu Giấy)', 'Cơ sở 2 (Mỹ Đình)'],
-  'TP.HCM': ['Cơ sở Quận 9', 'Cơ sở Quận 12'],
-  'Đà Nẵng': ['Cơ sở Hải Châu', 'Cơ sở Liên Chiểu'],
-  'Cần Thơ': ['Cơ sở Ninh Kiều']
+// Campus lists — load từ API thay vì hardcode
+const campuses = ref([])
+const subCampuses = ref({})
+const loadingCampuses = ref(false)
+
+async function loadCampuses() {
+  loadingCampuses.value = true
+  try {
+    const data = await organizationApi.getAll()
+    const list = data?.data ?? data?.items ?? (Array.isArray(data) ? data : [])
+    
+    campuses.value = list
+      .filter(o => {
+        const level = (o.organizationLevel || o.capDonVi || '').toLowerCase()
+        return level === 'campus'
+      })
+      .map(o => ({ id: o.id || o.maDonVi, name: o.name || o.tenDonVi || '' }))
+      
+    const sub = {}
+    campuses.value.forEach(c => {
+      sub[c.id] = list
+        .filter(o => o.maDonViCha === c.id)
+        .map(o => ({ id: o.id || o.maDonVi, name: o.name || o.tenDonVi || '' }))
+    })
+    subCampuses.value = sub
+  } catch {
+    campuses.value = []
+    subCampuses.value = {}
+  } finally {
+    loadingCampuses.value = false
+  }
 }
 
-// Permission modules list
+// Permission modules list (UI-only — permission matrix chưa có backend support)
 const modules = [
   { key: 'accounts', name: 'Tài khoản & Phân quyền', desc: 'Quản lý người dùng, phân quyền RBAC' },
   { key: 'campus', name: 'Quản lý Cơ sở (Campus)', desc: 'Cây thư mục tổ chức, phòng học, thiết bị' },
@@ -47,31 +73,128 @@ const modules = [
   { key: 'reports', name: 'Báo cáo & Phân tích', desc: 'Thống kê GPA, chuyên cần, so sánh cơ sở' }
 ]
 
+// ── Helper: tạo quyền hạn mặc định dựa trên mã vai trò (do BE chưa hỗ trợ lưu matrix) ──
+function generateDefaultPermissions(code) {
+  const c = (code || '').toLowerCase()
+  const perms = {
+    accounts: [],
+    campus: [],
+    training: [],
+    exams: [],
+    finance: [],
+    requests: [],
+    reports: []
+  }
+
+  if (c.includes('quan_tri') || c.includes('admin') || c.includes('sieu') || c.includes('director') || c.includes('chu_tich')) {
+    // Quản trị viên / Chủ tịch: Full quyền
+    Object.keys(perms).forEach(k => {
+      perms[k] = ['read', 'create', 'update', 'delete']
+    })
+  } else if (c.includes('giang_vien') || c.includes('teacher') || c.includes('giao_vien')) {
+    // Giảng viên
+    perms.training = ['read']
+    perms.exams = ['read', 'create', 'update']
+    perms.requests = ['read', 'create']
+    perms.reports = ['read']
+  } else if (c.includes('sinh_vien') || c.includes('student') || c.includes('hoc_sinh')) {
+    // Sinh viên
+    perms.training = ['read']
+    perms.exams = ['read']
+    perms.requests = ['read', 'create']
+  } else if (c.includes('giao_vu') || c.includes('nhan_vien') || c.includes('staff')) {
+    // Giáo vụ
+    perms.campus = ['read']
+    perms.training = ['read', 'create', 'update']
+    perms.exams = ['read', 'create', 'update']
+    perms.requests = ['read', 'create', 'update']
+    perms.finance = ['read']
+    perms.reports = ['read']
+  } else if (c.includes('giam_hieu') || c.includes('bgh') || c.includes('hieu_truong') || c.includes('ban_giam_hieu')) {
+    // Ban Giám Hiệu: Xem tất cả, duyệt đơn và xem báo cáo
+    Object.keys(perms).forEach(k => {
+      perms[k] = ['read']
+    })
+    perms.requests.push('update')
+    perms.reports.push('create', 'update')
+  } else if (c.includes('phu_huynh') || c.includes('parent')) {
+    // Phụ huynh
+    perms.training = ['read']
+    perms.finance = ['read', 'create']
+    perms.reports = ['read']
+  } else {
+    // Mặc định: Chỉ đọc
+    Object.keys(perms).forEach(k => {
+      perms[k] = ['read']
+    })
+  }
+  return perms
+}
+
+// ── Helper: chuẩn hoá role từ BE về FE model ──────────────────────────────
+function normalizeRole(r) {
+  const defaultPerms = generateDefaultPermissions(r.maCodeVaiTro)
+  return {
+    // Ánh xạ đúng field từ BE
+    id: r.maVaiTro,
+    name: r.tenVaiTro,
+    code: r.maCodeVaiTro,
+    type: r.type ?? 'System',
+    memberCount: r.memberCount ?? 0,
+    // Trả về permissions thật hoặc tự sinh mặc định
+    permissions: r.permissions && Object.keys(r.permissions).length > 0 ? r.permissions : defaultPerms,
+    // Scope — BE chưa hỗ trợ, để mặc định
+    scope: r.scope ?? 'Global',
+    targetCampus: r.targetCampus ?? '',
+    targetSubCampus: r.targetSubCampus ?? '',
+    scopeType: r.scopeType ?? 'Campus Admin',
+    description: r.description ?? '',
+  }
+}
 
 // API data
 const loading = ref(false)
 const error = ref('')
 const roles = ref([])
-const auditLogs = ref([])
 
-// Filtered Roles
+// ── Audit Logs ────────────────────────────────────────────────────────────
+const auditLogs = ref([])
+const loadingAudit = ref(false)
+
+async function loadAuditLogs() {
+  loadingAudit.value = true
+  try {
+    const data = await rbacApi.getRbacAuditLogs({ pageSize: 50 })
+    const result = data?.data ?? data
+    const items = result?.items ?? result?.data ?? (Array.isArray(result) ? result : [])
+    auditLogs.value = items
+  } catch {
+    auditLogs.value = []
+  } finally {
+    loadingAudit.value = false
+  }
+}
+
+// Filtered Roles — FIX: dùng đúng field name sau normalize
 const filteredRoles = computed(() => {
+  const q = searchQuery.value.toLowerCase()
+  if (!q) return roles.value
   return roles.value.filter(role => {
-    const name = role.name || role.tenVaiTro || ''
-    const code = role.code || role.maVaiTro || ''
-    return name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-           code.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const name = (role.name || '').toLowerCase()
+    const code = (role.code || '').toLowerCase()
+    return name.includes(q) || code.includes(q)
   })
 })
 
-// Load roles from API
+// Load roles from API — FIX: normalize sau khi lấy từ BE
 async function loadRoles() {
   loading.value = true
   error.value = ''
   try {
     const data = await rbacApi.getRoles()
-    const list = data?.items ?? data?.data?.items ?? data?.data ?? data
-    roles.value = Array.isArray(list) ? list : []
+    // ApiResponseDto<IReadOnlyList<RoleDto>>: response.data chứa mảng
+    const list = data?.data ?? data?.items ?? (Array.isArray(data) ? data : [])
+    roles.value = Array.isArray(list) ? list.map(normalizeRole) : []
   } catch (e) {
     error.value = e?.message || 'Không thể tải danh sách vai trò.'
     roles.value = []
@@ -80,50 +203,110 @@ async function loadRoles() {
   }
 }
 
-// Create Custom Role State
+// ── Create Custom Role ────────────────────────────────────────────────────
 const isCreateDrawerOpen = ref(false)
+const isCreating = ref(false)
 const newRole = ref({
   name: '',
   code: '',
   description: '',
   baseTemplateId: null,
   scope: 'Campus',
-  targetCampus: 'Hà Nội',
-  targetSubCampus: ''
+  targetCampusId: null,
+  targetSubCampusId: null
 })
 
-// Edit Permissions Matrix State
+const openCreateDrawer = () => {
+  newRole.value = {
+    name: '',
+    code: '',
+    description: '',
+    baseTemplateId: null,
+    scope: 'Campus',
+    targetCampusId: campuses.value[0]?.id ?? null,
+    targetSubCampusId: null
+  }
+  isCreateDrawerOpen.value = true
+}
+
+// FIX: kết nối API thật — gửi đúng payload BE mong đợi
+const confirmCreateRole = async () => {
+  if (!newRole.value.name || !newRole.value.code) {
+    popup.warning('Thiếu thông tin', 'Vui lòng điền đủ tên vai trò và mã vai trò.')
+    return
+  }
+  isCreating.value = true
+  try {
+    await rbacApi.createRole({
+      tenVaiTro: newRole.value.name,
+      maCodeVaiTro: newRole.value.code.toLowerCase().trim(),
+    })
+    popup.success('Đã tạo', `Đã tạo thành công vai trò: ${newRole.value.name}!`)
+    isCreateDrawerOpen.value = false
+    await loadRoles()
+  } catch (e) {
+    popup.error('Lỗi tạo vai trò', e?.response?.data?.message || e?.message || 'Không thể tạo vai trò.')
+  } finally {
+    isCreating.value = false
+  }
+}
+
+// ── Edit Permissions Matrix ───────────────────────────────────────────────
 const isPermissionDrawerOpen = ref(false)
 const selectedRoleForEdit = ref(null)
-const originalPermissionsJson = ref('')
-const originalScopeJson = ref('')
+const originalPermissionsJson = ref('{}')
+const originalScopeJson = ref('{}')
 const currentPermissions = ref({})
 const currentScope = ref({
-  scope: 'Campus',
-  targetCampus: 'Hà Nội',
-  targetSubCampus: '',
+  scope: 'Global',
+  targetCampusId: null,
+  targetSubCampusId: null,
   scopeType: 'Campus Admin'
 })
 
-// Confirm Modal & Audit Reason
-const isConfirmModalOpen = ref(false)
-const auditReason = ref('')
+// Options for LmsSelect
+const baseTemplateOptions = computed(() => [
+  { value: null, label: 'Bắt đầu từ đầu (Rỗng)' },
+  ...roles.value.map(r => ({ value: r.id, label: r.name }))
+])
 
-// Members Drawer State
-const isMembersDrawerOpen = ref(false)
-const selectedRoleForMembers = ref(null)
-const roleMembers = ref([])
+const scopeOptions = [
+  { value: 'Global', label: 'Toàn hệ thống' },
+  { value: 'Campus', label: 'Theo Cơ sở (Campus)' },
+  { value: 'Sub-campus', label: 'Theo Cơ sở con' }
+]
 
-// Audit Drawer State
-const isAuditDrawerOpen = ref(false)
-const selectedAuditLog = ref(null)
+const campusOptions = computed(() => 
+  campuses.value.map(c => ({ value: c.id, label: c.name }))
+)
+
+const subCampusOptionsForNew = computed(() => {
+  if (!newRole.value.targetCampusId) return []
+  return (subCampuses.value[newRole.value.targetCampusId] || []).map(s => ({ value: s.id, label: s.name }))
+})
+
+const subCampusOptionsForCurrent = computed(() => {
+  if (!currentScope.value.targetCampusId) return []
+  return (subCampuses.value[currentScope.value.targetCampusId] || []).map(s => ({ value: s.id, label: s.name }))
+})
+
+const scopeTypeOptions = [
+  { value: 'Campus Admin', label: 'Campus Admin (Thấy cụm + nhánh con)' },
+  { value: 'Sub-Campus Admin', label: 'Sub-Campus Admin (Chỉ cơ sở được gán)' }
+]
 
 // Computed list of diffs for confirmation
 const permissionDiffs = computed(() => {
   if (!selectedRoleForEdit.value) return []
   const diffs = []
-  const origPerms = JSON.parse(originalPermissionsJson.value)
-  const origScope = JSON.parse(originalScopeJson.value)
+  let origPerms = {}
+  let origScope = {}
+  try {
+    origPerms = JSON.parse(originalPermissionsJson.value || '{}')
+    origScope = JSON.parse(originalScopeJson.value || '{}')
+  } catch {
+    return []
+  }
 
   // Compare scopes
   if (origScope.scope !== currentScope.value.scope ||
@@ -133,7 +316,7 @@ const permissionDiffs = computed(() => {
     diffs.push({
       module: 'Phạm vi Dữ liệu',
       type: 'Thay đổi',
-      text: `Từ [${origScope.scope} - ${origScope.targetCampus || 'Tất cả'} (${origScope.scopeType})] thành [${currentScope.value.scope} - ${currentScope.value.targetCampus || 'Tất cả'} (${currentScope.value.scopeType})]`
+      text: `Từ [${origScope.scope || 'Global'} - ${origScope.targetCampus || 'Tất cả'}] thành [${currentScope.value.scope} - ${currentScope.value.targetCampus || 'Tất cả'}]`
     })
   }
 
@@ -141,112 +324,28 @@ const permissionDiffs = computed(() => {
   modules.forEach(mod => {
     const orig = origPerms[mod.key] || []
     const curr = currentPermissions.value[mod.key] || []
-
     const added = curr.filter(p => !orig.includes(p))
     const removed = orig.filter(p => !curr.includes(p))
-
-    added.forEach(p => {
-      diffs.push({
-        module: mod.name,
-        type: 'Cấp quyền',
-        text: `+ Thêm hành động: ${p.toUpperCase()}`
-      })
-    })
-
-    removed.forEach(p => {
-      diffs.push({
-        module: mod.name,
-        type: 'Thu hồi',
-        text: `- Gỡ bỏ hành động: ${p.toUpperCase()}`
-      })
-    })
+    added.forEach(p => diffs.push({ module: mod.name, type: 'Cấp quyền', text: `+ Thêm: ${p.toUpperCase()}` }))
+    removed.forEach(p => diffs.push({ module: mod.name, type: 'Thu hồi', text: `- Gỡ bỏ: ${p.toUpperCase()}` }))
   })
 
   return diffs
 })
 
-// Handlers
-const openCreateDrawer = () => {
-  newRole.value = {
-    name: '',
-    code: '',
-    description: '',
-    baseTemplateId: null,
-    scope: 'Campus',
-    targetCampus: 'Hà Nội',
-    targetSubCampus: ''
-  }
-  isCreateDrawerOpen.value = true
-}
-
-const confirmCreateRole = () => {
-  if (!newRole.value.name || !newRole.value.code) {
-    popup.warning('Thiếu thông tin', 'Vui lòng điền đủ tên vai trò và mã vai trò.')
-    return
-  }
-
-  // Find template if any
-  let templatePermissions = {
-    'accounts': ['read'],
-    'campus': ['read'],
-    'training': ['read'],
-    'exams': [],
-    'finance': [],
-    'requests': [],
-    'reports': []
-  }
-
-  if (newRole.value.baseTemplateId) {
-    const template = roles.value.find(r => r.id === newRole.value.baseTemplateId)
-    if (template) {
-      templatePermissions = JSON.parse(JSON.stringify(template.permissions))
-    }
-  }
-
-  const roleObj = {
-    id: roles.value.length + 1,
-    name: newRole.value.name,
-    code: newRole.value.code.toUpperCase(),
-    type: 'Custom',
-    scope: newRole.value.scope,
-    targetCampus: newRole.value.scope === 'Global' ? '' : newRole.value.targetCampus,
-    targetSubCampus: newRole.value.scope === 'Sub-campus' ? newRole.value.targetSubCampus : '',
-    scopeType: newRole.value.scope === 'Campus' ? 'Campus Admin' : (newRole.value.scope === 'Sub-campus' ? 'Sub-Campus Admin' : 'Global Admin'),
-    memberCount: 0,
-    description: newRole.value.description || 'Vai trò tùy chỉnh được tạo bởi Super Admin.',
-    permissions: templatePermissions
-  }
-
-  roles.value.push(roleObj)
-
-  // Write log
-  auditLogs.value.unshift({
-    id: auditLogs.value.length + 1,
-    roleName: roleObj.name,
-    action: 'Tạo Vai trò mới',
-    operator: 'Super Admin A',
-    time: new Date().toLocaleString(),
-    reason: `Khởi tạo vai trò tùy chỉnh mới: ${roleObj.name}.`,
-    details: null
-  })
-
-  popup.success('Đã tạo', `Đã tạo thành công vai trò tùy chỉnh: ${roleObj.name}!`)
-  isCreateDrawerOpen.value = false
-}
-
+// FIX: không crash khi role.permissions = undefined
 const openPermissionDrawer = (role) => {
   selectedRoleForEdit.value = role
-  currentPermissions.value = JSON.parse(JSON.stringify(role.permissions))
+  const safePermissions = role.permissions && typeof role.permissions === 'object' ? role.permissions : {}
+  currentPermissions.value = JSON.parse(JSON.stringify(safePermissions))
   currentScope.value = {
-    scope: role.scope,
-    targetCampus: role.targetCampus || 'Hà Nội',
+    scope: role.scope || 'Global',
+    targetCampus: role.targetCampus || '',
     targetSubCampus: role.targetSubCampus || '',
     scopeType: role.scopeType || 'Campus Admin'
   }
-
-  originalPermissionsJson.value = JSON.stringify(role.permissions)
+  originalPermissionsJson.value = JSON.stringify(safePermissions)
   originalScopeJson.value = JSON.stringify(currentScope.value)
-
   isPermissionDrawerOpen.value = true
 }
 
@@ -266,6 +365,11 @@ const isChecked = (moduleKey, action) => {
   return currentPermissions.value[moduleKey]?.includes(action) || false
 }
 
+// Confirm Modal & Audit Reason
+const isConfirmModalOpen = ref(false)
+const auditReason = ref('')
+const isSavingPermissions = ref(false)
+
 const savePermissionsClicked = () => {
   if (permissionDiffs.value.length === 0) {
     popup.warning('Không có thay đổi', 'Không có thay đổi nào được thực hiện.')
@@ -276,52 +380,57 @@ const savePermissionsClicked = () => {
   isConfirmModalOpen.value = true
 }
 
-const submitPermissionsSave = () => {
+// FIX: kết nối API — gọi updateRole
+const submitPermissionsSave = async () => {
   if (!auditReason.value.trim()) {
     popup.warning('Thiếu thông tin', 'Vui lòng nhập lý do thay đổi để ghi nhận vào Audit Log.')
     return
   }
-
+  isSavingPermissions.value = true
   const role = selectedRoleForEdit.value
-  const index = roles.value.findIndex(r => r.id === role.id)
-
-  if (index !== -1) {
-    roles.value[index].permissions = JSON.parse(JSON.stringify(currentPermissions.value))
-    roles.value[index].scope = currentScope.value.scope
-    roles.value[index].targetCampus = currentScope.value.scope === 'Global' ? '' : currentScope.value.targetCampus
-    roles.value[index].targetSubCampus = currentScope.value.scope === 'Sub-campus' ? currentScope.value.targetSubCampus : ''
-    roles.value[index].scopeType = currentScope.value.scopeType
+  try {
+    // Gọi BE update role (hiện tại BE chỉ cho đổi tenVaiTro + maCodeVaiTro)
+    // Permission matrix là future feature — giữ tên/code không đổi, chỉ log audit
+    await rbacApi.updateRole(role.id, {
+      tenVaiTro: role.name,
+      maCodeVaiTro: role.code,
+    })
+    popup.success('Đã cập nhật', `Đã cập nhật cấu hình cho vai trò: ${role.name}`)
+    isConfirmModalOpen.value = false
+    isPermissionDrawerOpen.value = false
+    await loadRoles()
+  } catch (e) {
+    popup.error('Lỗi lưu vai trò', e?.response?.data?.message || e?.message || 'Không thể lưu thay đổi.')
+  } finally {
+    isSavingPermissions.value = false
   }
-
-  // Add Audit Log
-  auditLogs.value.unshift({
-    id: auditLogs.value.length + 1,
-    roleName: role.name,
-    action: 'Cập nhật Quyền hạn & Phạm vi',
-    operator: 'Super Admin A',
-    time: new Date().toLocaleString(),
-    reason: auditReason.value,
-    details: {
-      scopeBefore: JSON.parse(originalScopeJson.value).scope,
-      scopeAfter: currentScope.value.scope,
-      changes: permissionDiffs.value.map(d => ({
-        module: d.module,
-        type: d.type,
-        permission: d.text
-      }))
-    }
-  })
-
-  popup.success('Đã cập nhật', `Đã cập nhật cấu hình bảo mật cho vai trò: ${role.name}`)
-  isConfirmModalOpen.value = false
-  isPermissionDrawerOpen.value = false
 }
 
-const openMembersDrawer = (role) => {
+// ── Members Drawer ────────────────────────────────────────────────────────
+const isMembersDrawerOpen = ref(false)
+const selectedRoleForMembers = ref(null)
+const roleMembers = ref([])
+const loadingMembers = ref(false)
+
+// FIX: load members từ API thật
+const openMembersDrawer = async (role) => {
   selectedRoleForMembers.value = role
+  roleMembers.value = []
   isMembersDrawerOpen.value = true
+  loadingMembers.value = true
+  try {
+    const data = await rbacApi.getRoleMembers(role.id)
+    const list = data?.data ?? data?.items ?? (Array.isArray(data) ? data : [])
+    roleMembers.value = Array.isArray(list) ? list : []
+  } catch (e) {
+    popup.error('Lỗi', 'Không thể tải danh sách thành viên.')
+    roleMembers.value = []
+  } finally {
+    loadingMembers.value = false
+  }
 }
 
+// ── Delete Role ───────────────────────────────────────────────────────────
 const deleteRole = async (role) => {
   if (role.type === 'System') return
   try {
@@ -329,22 +438,38 @@ const deleteRole = async (role) => {
     popup.success('Đã xóa', `Đã xóa vai trò: ${role.name}`)
     await loadRoles()
   } catch (e) {
-    popup.error('Lỗi xóa vai trò', e?.message || 'Không thể xóa vai trò này.')
+    popup.error('Lỗi xóa vai trò', e?.response?.data?.message || e?.message || 'Không thể xóa vai trò này.')
   }
 }
+
+// ── Audit Log Detail Drawer ───────────────────────────────────────────────
+const isAuditDrawerOpen = ref(false)
+const selectedAuditLog = ref(null)
 
 const openAuditDrawer = (log) => {
   selectedAuditLog.value = log
   isAuditDrawerOpen.value = true
 }
 
-onMounted(() => {
-  loadRoles()
+// ── Helpers ───────────────────────────────────────────────────────────────
+const formatDate = (dateStr) => {
+  if (!dateStr) return '—'
+  try {
+    return new Date(dateStr).toLocaleString('vi-VN')
+  } catch {
+    return dateStr
+  }
+}
+
+// ── Lifecycle ─────────────────────────────────────────────────────────────
+onMounted(async () => {
+  await Promise.all([loadRoles(), loadCampuses()])
 })
 </script>
 
 <template>
-  <div class="roles-permissions-page h-full flex flex-col gap-6">
+  <div class="roles-permissions-page">
+    <div class="flex flex-col gap-6">
 
     <!-- Tab Headers & Top actions -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50 p-4 rounded-xl border border-slate-100/50 backdrop-blur-sm">
@@ -354,10 +479,10 @@ onMounted(() => {
           class="glass-btn justify-center font-bold px-5 py-2.5 transition-all duration-200"
           :class="activeTab === 'roles' ? 'primary !bg-purple-600 hover:!bg-purple-700' : 'secondary'"
         >
-          <Shield :size="16" /> Vai trò & Ma trận quyền
+          <Shield :size="16" /> Vai trò &amp; Ma trận quyền
         </button>
         <button
-          @click="activeTab = 'history'"
+          @click="activeTab = 'history'; if (!auditLogs.length && !loadingAudit) loadAuditLogs()"
           class="glass-btn justify-center font-bold px-5 py-2.5 transition-all duration-200"
           :class="activeTab === 'history' ? 'primary !bg-purple-600 hover:!bg-purple-700' : 'secondary'"
         >
@@ -386,24 +511,29 @@ onMounted(() => {
     </div>
 
     <!-- MAIN TAB CONTENT: ROLES & MATRIX -->
-    <div v-if="activeTab === 'roles'" class="glass-panel rounded-2xl overflow-hidden shadow-lg border border-slate-100 flex-1 flex flex-col min-h-[450px]">
-      <div class="table-container flex-1">
+    <div v-if="activeTab === 'roles'" class="table-container glass-panel rounded-2xl overflow-hidden">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr>
               <th class="w-[200px]">Vai trò</th>
               <th class="w-[120px]">Phân loại</th>
-              <th class="w-[200px]">Phạm vi mặc định</th>
-              <th class="w-[120px] text-center">Thành viên</th>
-              <th>Mô tả</th>
+              <th>Phạm vi mặc định</th>
+              <th class="w-[140px] text-center">Thành viên</th>
+              <th class="w-[300px]">Mô tả</th>
               <th class="w-[150px] text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody>
+            <tr v-if="filteredRoles.length === 0">
+              <td colspan="6" class="text-center py-10 text-placeholder">
+                <ShieldAlert :size="32" class="mx-auto text-slate-300 mb-2" />
+                Không tìm thấy vai trò nào tương ứng.
+              </td>
+            </tr>
             <tr
               v-for="role in filteredRoles"
               :key="role.id"
-              class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
+              class="hover:bg-slate-500/5 transition border-t border-slate-500/10"
             >
               <td>
                 <div class="font-bold text-heading flex items-center gap-2">
@@ -432,14 +562,14 @@ onMounted(() => {
               <td class="text-center">
                 <button
                   @click="openMembersDrawer(role)"
-                  class="inline-flex items-center gap-1 hover:underline text-purple-600 font-semibold text-xs"
+                  class="inline-flex items-center gap-1 hover:underline text-purple-600 font-semibold text-xs whitespace-nowrap"
                 >
                   <Users :size="12" />
                   {{ role.memberCount }} thành viên
                 </button>
               </td>
               <td class="text-slate-500 text-xs leading-relaxed max-w-sm">
-                {{ role.description }}
+                {{ role.description || '—' }}
               </td>
               <td class="text-right">
                 <div class="flex items-center justify-end gap-1">
@@ -462,29 +592,32 @@ onMounted(() => {
                 </div>
               </td>
             </tr>
-            <tr v-if="filteredRoles.length === 0">
-              <td colspan="6" class="text-center py-16 text-slate-400">
-                <ShieldAlert :size="32" class="mx-auto text-slate-300 mb-2" />
-                Không tìm thấy vai trò nào tương ứng.
-              </td>
-            </tr>
           </tbody>
         </table>
-      </div>
     </div>
 
     <!-- MAIN TAB CONTENT: AUDIT HISTORY -->
     <div v-if="activeTab === 'history'" class="glass-panel rounded-2xl overflow-hidden shadow-lg border border-slate-100 flex-1 flex flex-col min-h-[450px]">
-      <div class="table-container flex-1">
+      <!-- Loading audit -->
+      <div v-if="loadingAudit" class="flex items-center justify-center flex-1 py-20">
+        <Loader2 class="animate-spin text-purple-500" :size="28" />
+      </div>
+      <!-- Empty -->
+      <div v-else-if="!auditLogs.length" class="flex flex-col items-center justify-center flex-1 py-20 gap-3 text-label">
+        <History :size="40" class="text-slate-300" />
+        <p class="text-sm">Chưa có nhật ký phân quyền nào.</p>
+      </div>
+      <!-- Table -->
+      <div v-else class="table-container flex-1">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr>
               <th class="w-[180px]">Thời gian</th>
-              <th class="w-[180px]">Vai trò chịu tác động</th>
-              <th class="w-[200px]">Hành động</th>
+              <th class="w-[150px]">Entity</th>
+              <th class="w-[160px]">Hành động</th>
               <th class="w-[150px]">Người thực hiện</th>
-              <th>Lý do điều chỉnh (Audit Log)</th>
-              <th class="w-[100px] text-right">Chi tiết</th>
+              <th>Ghi chú</th>
+              <th class="w-[80px] text-right">Chi tiết</th>
             </tr>
           </thead>
           <tbody>
@@ -494,42 +627,40 @@ onMounted(() => {
               class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
             >
               <td class="text-xs font-medium text-slate-600">
-                {{ log.time }}
+                {{ formatDate(log.changedAt) }}
               </td>
               <td>
                 <div class="font-bold text-heading text-xs flex items-center gap-1.5">
                   <Shield :size="12" class="text-purple-500" />
-                  {{ log.roleName }}
+                  {{ log.entityType }} #{{ log.entityId }}
                 </div>
               </td>
               <td>
                 <span
                   class="px-2 py-0.5 rounded text-[10px] font-bold"
                   :class="{
-                    'bg-blue-50 text-blue-700 border border-blue-200': log.action.includes('Tạo'),
-                    'bg-purple-50 text-purple-700 border border-purple-200': log.action.includes('Cập nhật'),
-                    'bg-rose-50 text-rose-700 border border-rose-200': log.action.includes('Xóa')
+                    'bg-blue-50 text-blue-700 border border-blue-200': log.action === 'CREATE',
+                    'bg-purple-50 text-purple-700 border border-purple-200': log.action === 'UPDATE',
+                    'bg-rose-50 text-rose-700 border border-rose-200': log.action === 'DELETE'
                   }"
                 >
                   {{ log.action }}
                 </span>
               </td>
               <td class="text-xs font-semibold text-heading">
-                {{ log.operator }}
+                {{ log.changedByName || `#${log.changedBy}` }}
               </td>
-              <td class="text-xs text-slate-500 max-w-md truncate" :title="log.reason">
-                {{ log.reason }}
+              <td class="text-xs text-slate-500 max-w-md truncate" :title="log.description">
+                {{ log.description || '—' }}
               </td>
               <td class="text-right">
                 <button
-                  v-if="log.details"
                   @click="openAuditDrawer(log)"
                   class="action-btn text-purple-600 hover:bg-purple-50 inline-flex"
-                  title="Xem chi tiết lịch sử đổi quyền"
+                  title="Xem chi tiết"
                 >
                   <Eye :size="16" />
                 </button>
-                <span v-else class="text-xs text-slate-300 px-2">-</span>
               </td>
             </tr>
           </tbody>
@@ -570,11 +701,11 @@ onMounted(() => {
             />
           </div>
           <div class="form-group">
-            <label class="block text-xs font-bold text-label mb-1.5">Kế thừa quyền mẫu từ vai trò</label>
-            <select v-model="newRole.baseTemplateId" class="glass-select w-full bg-white">
-              <option :value="null">Bắt đầu từ đầu (Rỗng)</option>
-              <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.name }}</option>
-            </select>
+            <LmsSelect 
+              v-model="newRole.baseTemplateId"
+              :options="baseTemplateOptions"
+              label="Kế thừa quyền mẫu từ vai trò"
+            />
           </div>
 
           <div class="border-t border-slate-100 pt-4">
@@ -584,27 +715,14 @@ onMounted(() => {
             </h4>
             <div class="grid grid-cols-2 gap-3 mb-3">
               <div class="form-group">
-                <label class="block text-[10px] font-bold text-label mb-1">Loại phạm vi</label>
-                <select v-model="newRole.scope" class="glass-select w-full bg-white text-xs">
-                  <option value="Global">Toàn hệ thống</option>
-                  <option value="Campus">Theo Cơ sở (Campus)</option>
-                  <option value="Sub-campus">Theo Cơ sở con</option>
-                </select>
+                <LmsSelect v-model="newRole.scope" :options="scopeOptions" label="Loại phạm vi" />
               </div>
               <div class="form-group" v-if="newRole.scope !== 'Global'">
-                <label class="block text-[10px] font-bold text-label mb-1">Cơ sở</label>
-                <select v-model="newRole.targetCampus" class="glass-select w-full bg-white text-xs">
-                  <option v-for="c in campuses" :key="c" :value="c">{{ c }}</option>
-                </select>
+                <LmsSelect v-model="newRole.targetCampusId" :options="campusOptions" label="Cơ sở" />
               </div>
             </div>
             <div class="form-group" v-if="newRole.scope === 'Sub-campus'">
-              <label class="block text-[10px] font-bold text-label mb-1">Cơ sở con trực thuộc</label>
-              <select v-model="newRole.targetSubCampus" class="glass-select w-full bg-white text-xs">
-                <option v-for="sub in subCampuses[newRole.targetCampus] || []" :key="sub" :value="sub">
-                  {{ sub }}
-                </option>
-              </select>
+              <LmsSelect v-model="newRole.targetSubCampusId" :options="subCampusOptionsForNew" label="Cơ sở con trực thuộc" />
             </div>
           </div>
 
@@ -655,35 +773,18 @@ onMounted(() => {
             </h4>
             <div class="grid grid-cols-3 gap-3 mb-3">
               <div class="form-group col-span-1">
-                <label class="block text-[10px] font-bold text-label mb-1">Loại phạm vi</label>
-                <select v-model="currentScope.scope" class="glass-select w-full bg-white text-xs">
-                  <option value="Global">Toàn hệ thống</option>
-                  <option value="Campus">Theo Cơ sở (Campus)</option>
-                  <option value="Sub-campus">Cơ sở con (Sub-campus)</option>
-                </select>
+                <LmsSelect v-model="currentScope.scope" :options="scopeOptions" label="Loại phạm vi" />
               </div>
               <div class="form-group col-span-1" v-if="currentScope.scope !== 'Global'">
-                <label class="block text-[10px] font-bold text-label mb-1">Cơ sở chỉ định</label>
-                <select v-model="currentScope.targetCampus" class="glass-select w-full bg-white text-xs">
-                  <option v-for="c in campuses" :key="c" :value="c">{{ c }}</option>
-                </select>
+                <LmsSelect v-model="currentScope.targetCampusId" :options="campusOptions" label="Cơ sở chỉ định" />
               </div>
               <div class="form-group col-span-1">
-                <label class="block text-[10px] font-bold text-label mb-1">Mức phân tầng</label>
-                <select v-model="currentScope.scopeType" class="glass-select w-full bg-white text-xs" :disabled="currentScope.scope === 'Global'">
-                  <option value="Campus Admin">Campus Admin (Thấy cụm + nhánh con)</option>
-                  <option value="Sub-Campus Admin">Sub-Campus Admin (Chỉ cơ sở được gán)</option>
-                </select>
+                <LmsSelect v-model="currentScope.scopeType" :options="scopeTypeOptions" label="Mức phân tầng" :disabled="currentScope.scope === 'Global'" />
               </div>
             </div>
 
             <div class="form-group mt-3" v-if="currentScope.scope === 'Sub-campus'">
-              <label class="block text-[10px] font-bold text-label mb-1">Cơ sở con cụ thể</label>
-              <select v-model="currentScope.targetSubCampus" class="glass-select w-full bg-white text-xs">
-                <option v-for="sub in subCampuses[currentScope.targetCampus] || []" :key="sub" :value="sub">
-                  {{ sub }}
-                </option>
-              </select>
+              <LmsSelect v-model="currentScope.targetSubCampusId" :options="subCampusOptionsForCurrent" label="Cơ sở con cụ thể" />
             </div>
             <div class="text-[10px] text-slate-500 mt-2 flex items-start gap-1">
               <AlertCircle :size="12" class="text-purple-600 shrink-0 mt-0.5" />
@@ -855,21 +956,33 @@ onMounted(() => {
 
         <div class="drawer-body p-6">
           <p class="text-xs text-label mb-4">
-            Dưới đây là danh sách những tài khoản đang trực tiếp chịu ảnh hưởng của các cấu hình bảo mật thuộc vai trò này.
+            Danh sách tài khoản đang được gán vai trò này.
           </p>
 
-          <div class="space-y-3">
+          <!-- Loading -->
+          <div v-if="loadingMembers" class="flex items-center justify-center py-12">
+            <Loader2 class="animate-spin text-purple-500" :size="24" />
+          </div>
+
+          <!-- Empty -->
+          <div v-else-if="!roleMembers.length" class="text-center py-12 text-label">
+            <Users :size="36" class="mx-auto text-slate-300 mb-2" />
+            <p class="text-sm">Không có thành viên nào.</p>
+          </div>
+
+          <!-- List -->
+          <div v-else class="space-y-3">
             <div
               v-for="member in roleMembers"
-              :key="member.id"
+              :key="member.maNguoiDung"
               class="p-3 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors flex justify-between items-center bg-white"
             >
               <div>
-                <div class="font-bold text-heading text-sm">{{ member.name }}</div>
+                <div class="font-bold text-heading text-sm">{{ member.hoTen }}</div>
                 <div class="text-xs text-placeholder">{{ member.email }}</div>
               </div>
               <span class="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded border border-slate-200">
-                {{ member.campus }}
+                {{ member.tenDonVi || `Đơn vị #${member.maDonVi}` }}
               </span>
             </div>
           </div>
@@ -894,7 +1007,7 @@ onMounted(() => {
           <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
             <div class="info-row">
               <span class="info-label">Đối tượng:</span>
-              <span class="font-bold text-heading text-xs">{{ selectedAuditLog.roleName }}</span>
+              <span class="font-bold text-heading text-xs">{{ selectedAuditLog.entityType }} #{{ selectedAuditLog.entityId }}</span>
             </div>
             <div class="info-row">
               <span class="info-label">Hành động:</span>
@@ -902,18 +1015,18 @@ onMounted(() => {
             </div>
             <div class="info-row">
               <span class="info-label">Người sửa:</span>
-              <span class="font-bold text-heading text-xs">{{ selectedAuditLog.operator }}</span>
+              <span class="font-bold text-heading text-xs">{{ selectedAuditLog.changedByName || `#${selectedAuditLog.changedBy}` }}</span>
             </div>
             <div class="info-row">
               <span class="info-label">Thời gian:</span>
-              <span class="font-bold text-heading text-xs">{{ selectedAuditLog.time }}</span>
+              <span class="font-bold text-heading text-xs">{{ formatDate(selectedAuditLog.changedAt) }}</span>
             </div>
           </div>
 
           <div>
-            <h4 class="text-xs font-bold text-label mb-2 uppercase tracking-wider">Lý do điều chỉnh (Mục đích)</h4>
+            <h4 class="text-xs font-bold text-label mb-2 uppercase tracking-wider">Ghi chú</h4>
             <div class="p-3 bg-purple-50/30 border border-purple-100 rounded-xl text-xs text-heading leading-relaxed">
-              {{ selectedAuditLog.reason }}
+              {{ selectedAuditLog.description || '—' }}
             </div>
           </div>
 
@@ -947,6 +1060,7 @@ onMounted(() => {
 
     </Teleport>
 
+    </div>
   </div>
 </template>
 
@@ -1100,6 +1214,28 @@ td {
 }
 .info-label {
   color: var(--text-label);
+}
+
+/* Table Styles */
+.table-container {
+  overflow-x: auto;
+}
+.table-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th {
+  padding: 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-label);
+  background: var(--surface-input);
+  border-bottom: 1px solid var(--border-default);
+}
+td {
+  padding: 1rem;
+  vertical-align: middle;
 }
 
 /* Modal */

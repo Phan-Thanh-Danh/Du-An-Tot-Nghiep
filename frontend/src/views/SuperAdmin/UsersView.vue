@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { usePopupStore } from '@/stores/popup'
 import { adminUserApi } from '@/services/adminUserService'
 import { organizationApi } from '@/services/organizationService'
+import { classApi } from '@/services/classApi'
 import LmsSelect from '@/components/LmsSelect.vue'
 import {
   Search,
@@ -49,6 +50,7 @@ const totalPages = ref(1)
 // Dynamic Lists from Backend DB
 const availableOrganizations = ref([])
 const availableRoles = ref([])
+const availableClasses = ref([])
 
 const roleFilterOptions = computed(() => [
   { value: 'Tất cả', label: 'Tất cả vai trò' },
@@ -81,6 +83,20 @@ const formRoleOptions = computed(() =>
 const formCampusOptions = computed(() => 
   availableOrganizations.value.map(c => ({ value: c.id, label: c.name }))
 )
+
+const formClassOptions = computed(() => {
+  return availableClasses.value.map(c => ({ value: c.maLop, label: c.tenLop }))
+})
+
+const isNewUserStudent = computed(() => {
+  const role = availableRoles.value.find(r => r.id === newUserForm.value.maVaiTro)
+  return role && role.code === 'Student'
+})
+
+const isEditUserStudent = computed(() => {
+  const role = availableRoles.value.find(r => r.id === editUserForm.value?.maVaiTro)
+  return role && role.code === 'Student'
+})
 
 const loading = ref(false)
 const error = ref('')
@@ -163,6 +179,15 @@ async function loadRoles() {
       { id: 6, code: 'Teacher', name: 'Giảng viên' },
       { id: 7, code: 'Student', name: 'Sinh viên' }
     ]
+  }
+}
+
+async function loadClasses() {
+  try {
+    const res = await classApi.list()
+    availableClasses.value = Array.isArray(res) ? res : (res?.items ?? [])
+  } catch (e) {
+    console.error('Không thể nạp danh sách lớp:', e)
   }
 }
 
@@ -354,7 +379,7 @@ const confirmEditUser = async () => {
     soDienThoai: editUserForm.value.soDienThoai?.trim() || null,
     maVaiTro,
     maDonVi,
-    maLopHanhChinh: editUserForm.value.maLopHanhChinh ?? null
+    maLopHanhChinh: isEditUserStudent.value ? (editUserForm.value.maLopHanhChinh ?? null) : null
   }
   console.debug('[confirmEditUser] payload →', payload)
 
@@ -409,7 +434,8 @@ const confirmCreateImport = async () => {
         soDienThoai: newUserForm.value.soDienThoai?.trim() || null,
         matKhau: newUserForm.value.matKhau.trim(),
         maVaiTro: Number(newUserForm.value.maVaiTro),
-        maDonVi: Number(newUserForm.value.maDonVi)
+        maDonVi: Number(newUserForm.value.maDonVi),
+        maLopHanhChinh: isNewUserStudent.value ? (newUserForm.value.maLopHanhChinh ?? null) : null
       })
       popup.success('Đã tạo tài khoản', `Tài khoản ${newUserForm.value.email} đã được khởi tạo thành công!`)
       isCreateDrawerOpen.value = false
@@ -503,10 +529,13 @@ const formatDate = (dateStr) => {
   }
 }
 
-
 const route = useRoute()
 onMounted(async () => {
-  await Promise.all([loadOrganizations(), loadRoles()])
+  await Promise.all([
+    loadOrganizations(),
+    loadRoles(),
+    loadClasses()
+  ])
   await loadUsers()
   if (route.query.action === 'import') {
     createImportMode.value = 'import'
@@ -856,6 +885,9 @@ onMounted(async () => {
                 <LmsSelect v-model="newUserForm.maVaiTro" :options="formRoleOptions" label="Vai trò *" required />
                 <LmsSelect v-model="newUserForm.maDonVi" :options="formCampusOptions" label="Cơ sở *" required />
               </div>
+              <div class="form-group mt-4" v-if="isNewUserStudent">
+                <LmsSelect v-model="newUserForm.maLopHanhChinh" :options="formClassOptions" label="Lớp hành chính *" required />
+              </div>
             </div>
           </template>
           <template v-else>
@@ -906,6 +938,9 @@ onMounted(async () => {
             <div class="grid grid-cols-2 gap-4">
               <LmsSelect v-model="editUserForm.maVaiTro" :options="formRoleOptions" label="Vai trò *" required />
               <LmsSelect v-model="editUserForm.maDonVi" :options="formCampusOptions" label="Cơ sở *" required />
+            </div>
+            <div class="form-group mt-4" v-if="isEditUserStudent">
+              <LmsSelect v-model="editUserForm.maLopHanhChinh" :options="formClassOptions" label="Lớp hành chính *" required />
             </div>
           </div>
 

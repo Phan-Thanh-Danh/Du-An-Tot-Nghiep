@@ -3032,7 +3032,11 @@ public static class Data
                         MaKhoaHoc = kh.MaKhoaHoc,
                         NgayHoc = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(i)),
                         TrangThaiBuoi = "da_dien_ra",
-                        TrangThaiDiemDanh = "da_diem_danh"
+                        TrangThaiDiemDanh = "da_khoa",
+                        MaCaHoc = 1,
+                        MaPhong = 1,
+                        MaGiaoVien = 2,
+                        MaTkb = 1
                     };
                     context.BuoiHocs.Add(buoiHoc);
                     buoiHocs.Add(buoiHoc);
@@ -3055,6 +3059,7 @@ public static class Data
 
                         context.DiemDanhs.Add(new DiemDanh
                         {
+                            MaDonVi = 1,
                             MaBuoiHoc = buoiHoc.MaBuoiHoc,
                             MaHocSinh = student.MaNguoiDung,
                             TrangThai = status,

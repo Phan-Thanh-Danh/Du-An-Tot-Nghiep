@@ -94,7 +94,7 @@ public class JwtHelper
             IssuerSigningKey = GetSecurityKey(),
             ClockSkew = TimeSpan.FromMinutes(1),
             NameClaimType = ClaimTypes.NameIdentifier,
-            RoleClaimType = ClaimTypes.Role
+            RoleClaimType = CustomClaimTypes.Role
         };
     }
 

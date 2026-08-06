@@ -32,6 +32,15 @@ public class RbacController : ControllerBase
         return Ok(ApiResponseDto<RoleDto>.Ok(role));
     }
 
+    [HttpGet("roles/{id:int}/members")]
+    public async Task<ActionResult<ApiResponseDto<IReadOnlyList<RoleMemberDto>>>> GetRoleMembers(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var members = await _rbacService.GetRoleMembersAsync(id, cancellationToken);
+        return Ok(ApiResponseDto<IReadOnlyList<RoleMemberDto>>.Ok(members));
+    }
+
     [HttpPost("roles")]
     public async Task<ActionResult<ApiResponseDto<RoleDto>>> CreateRole(
         CreateRoleRequest request,

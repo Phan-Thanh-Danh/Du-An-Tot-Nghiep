@@ -9,6 +9,10 @@ export const rbacApi = {
     return apiRequest(`/api/admin/rbac/roles/${id}`, { method: 'GET' })
   },
 
+  getRoleMembers(id) {
+    return apiRequest(`/api/admin/rbac/roles/${id}/members`, { method: 'GET' })
+  },
+
   createRole(payload) {
     return apiRequest('/api/admin/rbac/roles', {
       method: 'POST',
@@ -36,5 +40,11 @@ export const rbacApi = {
       method: 'PUT',
       body: JSON.stringify(payload),
     })
+  },
+
+  // Audit logs lọc theo entity "Role" từ endpoint chung
+  getRbacAuditLogs(params = {}) {
+    const query = new URLSearchParams({ entityType: 'Role', pageSize: 50, ...params }).toString()
+    return apiRequest(`/api/audit-logs?${query}`, { method: 'GET' })
   },
 }

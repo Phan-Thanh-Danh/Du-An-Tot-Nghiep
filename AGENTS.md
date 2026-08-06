@@ -116,6 +116,12 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `DELETE /api/organizations/{id}`
   - `DELETE /api/organizations/{id}/hard-delete`
   - `GET /api/organizations/{id}/subtree`
+  - `GET /api/admin/rbac/roles` — danh sách vai trò (trả về `type`, `memberCount`)
+  - `GET /api/admin/rbac/roles/{id}` — chi tiết vai trò
+  - `GET /api/admin/rbac/roles/{id}/members` — danh sách thành viên của vai trò
+  - `POST /api/admin/rbac/roles` — tạo vai trò
+  - `PUT /api/admin/rbac/roles/{id}` — cập nhật vai trò
+  - `DELETE /api/admin/rbac/roles/{id}` — xóa vai trò
   - `GET /api/admin/accounts` là endpoint mẫu.
   - `GET /api/student/dashboard` (P15B — real DB queries, no mock)
   - `GET /api/student/grades` (P15B)

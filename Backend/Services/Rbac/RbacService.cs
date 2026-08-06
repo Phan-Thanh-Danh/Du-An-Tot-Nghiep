@@ -26,17 +26,61 @@ public class RbacService : IRbacService
 
     public async Task<IReadOnlyList<RoleDto>> GetRolesAsync(CancellationToken cancellationToken = default)
     {
-        return await _repository.QueryRoles()
+        // Load roles + member counts in a single query using group join
+        var roles = await _repository.QueryRoles()
             .AsNoTracking()
             .OrderBy(x => x.MaVaiTro)
-            .Select(x => ToRoleDto(x))
             .ToListAsync(cancellationToken);
+
+        // Count members per role (via PhanQuyenNguoiDung assignments)
+        var memberCounts = await _repository.QueryRoleAssignments()
+            .AsNoTracking()
+            .GroupBy(x => x.MaVaiTro)
+            .Select(g => new { MaVaiTro = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        var memberCountMap = memberCounts.ToDictionary(x => x.MaVaiTro, x => x.Count);
+
+        return roles.Select(x => ToRoleDto(x, memberCountMap.GetValueOrDefault(x.MaVaiTro, 0))).ToList();
     }
 
     public async Task<RoleDto> GetRoleByIdAsync(int roleId, CancellationToken cancellationToken = default)
     {
         var role = await GetExistingRoleAsync(roleId, cancellationToken);
-        return ToRoleDto(role);
+        var memberCount = await _repository.QueryRoleAssignments()
+            .AsNoTracking()
+            .CountAsync(x => x.MaVaiTro == roleId, cancellationToken);
+        return ToRoleDto(role, memberCount);
+    }
+
+    public async Task<IReadOnlyList<RoleMemberDto>> GetRoleMembersAsync(
+        int roleId,
+        CancellationToken cancellationToken = default)
+    {
+        // Verify role exists
+        await GetExistingRoleAsync(roleId, cancellationToken);
+
+        var members = await (
+            from assignment in _repository.QueryRoleAssignments().AsNoTracking()
+            join user in _repository.QueryUsers().AsNoTracking()
+                on assignment.MaNguoiDung equals user.MaNguoiDung
+            join org in _repository.QueryOrganizations().AsNoTracking()
+                on user.MaDonVi equals org.MaDonVi into orgJoin
+            from org in orgJoin.DefaultIfEmpty()
+            where assignment.MaVaiTro == roleId
+            orderby user.HoTen
+            select new RoleMemberDto
+            {
+                MaNguoiDung = user.MaNguoiDung,
+                HoTen = user.HoTen ?? string.Empty,
+                Email = user.Email ?? string.Empty,
+                MaDonVi = user.MaDonVi,
+                TenDonVi = org != null ? org.TenDonVi : string.Empty,
+                TrangThai = user.TrangThai ?? string.Empty
+            })
+            .ToListAsync(cancellationToken);
+
+        return members;
     }
 
     public async Task<RoleDto> CreateRoleAsync(
@@ -388,13 +432,15 @@ public class RbacService : IRbacService
         };
     }
 
-    private static RoleDto ToRoleDto(VaiTro role)
+    private static RoleDto ToRoleDto(VaiTro role, int memberCount = 0)
     {
         return new RoleDto
         {
             MaVaiTro = role.MaVaiTro,
             MaCodeVaiTro = role.MaCodeVaiTro,
-            TenVaiTro = role.TenVaiTro
+            TenVaiTro = role.TenVaiTro,
+            Type = AuthRoles.IsKnownDatabaseCode(role.MaCodeVaiTro) ? "System" : "Custom",
+            MemberCount = memberCount
         };
     }
 
