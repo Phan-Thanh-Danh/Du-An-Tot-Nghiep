@@ -90,6 +90,14 @@ namespace Backend.Services.SuperAdmin
         public string Category { get; set; }
     }
 
+    public class CreateAiAlertConfigRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public string TriggerType { get; set; } = string.Empty;
+        public int Threshold { get; set; }
+        public string Channel { get; set; } = string.Empty;
+    }
+
     public interface ISuperAdminService
     {
         Task<SystemStatsDto> GetDashboardStatsAsync();
@@ -100,6 +108,9 @@ namespace Backend.Services.SuperAdmin
         Task<List<LoginHistoryDto>> GetLoginHistoryAsync(int limit);
         Task<List<AiJobDto>> GetAiJobsAsync();
         Task<List<AiModelDto>> GetAiModelsAsync();
+        
+        Task CreateAiAlertConfigAsync(CreateAiAlertConfigRequest request);
+        Task<int> GetActiveSessionsCountAsync();
     }
 }
 

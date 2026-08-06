@@ -24,6 +24,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<BuoiHoc> BuoiHocs => Set<BuoiHoc>();
     public DbSet<CaHoc> CaHocs => Set<CaHoc>();
     public DbSet<CanhBaoBaoMat> CanhBaoBaoMats => Set<CanhBaoBaoMat>();
+    public DbSet<CauHinhCanhBaoAi> CauHinhCanhBaoAis => Set<CauHinhCanhBaoAi>();
     public DbSet<CanhBaoDaoVan> CanhBaoDaoVans => Set<CanhBaoDaoVan>();
     public DbSet<CauHinhDiemMonHoc> CauHinhDiemMonHocs => Set<CauHinhDiemMonHoc>();
     public DbSet<CauHinhHocPhiChuongTrinh> CauHinhHocPhiChuongTrinhs => Set<CauHinhHocPhiChuongTrinh>();
@@ -132,6 +133,12 @@ public class ApplicationDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.ConfigureLearningProgressModels();
+
+        modelBuilder.Entity<CauHinhCanhBaoAi>(entity =>
+        {
+            entity.ToTable("CauHinhCanhBaoAi", "dbo");
+            entity.HasKey(e => e.MaCauHinh);
+        });
 
         modelBuilder.Entity<LoaiDauDiemQuaTrinh>(entity =>
         {

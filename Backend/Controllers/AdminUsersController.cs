@@ -59,13 +59,19 @@ public class AdminUsersController : ControllerBase
     }
 
     [HttpPatch("{id:int}/lock")]
-    public async Task<ActionResult<ApiResponseDto>> Lock(
-        [FromRoute] int id,
-        [FromBody] LockUserRequest? request,
-        CancellationToken cancellationToken)
+    [Authorize(Policy = "AdminUsersManagement")]
+    public async Task<ActionResult<ApiResponseDto>> LockUser(int id, [FromBody] LockUserRequest request, CancellationToken cancellationToken)
     {
-        await _userService.LockAsync(id, request?.Reason, cancellationToken);
+        await _userService.LockAsync(id, request.Reason, cancellationToken);
         return Ok(ApiResponseDto.Ok("Khóa tài khoản thành công"));
+    }
+
+    [HttpPost("{id:int}/revoke-sessions")]
+    [Authorize(Policy = "AdminUsersManagement")]
+    public async Task<ActionResult<ApiResponseDto>> RevokeSessions(int id, CancellationToken cancellationToken)
+    {
+        await _userService.RevokeSessionsAsync(id, cancellationToken);
+        return Ok(ApiResponseDto.Ok("Cưỡng chế đăng xuất thành công"));
     }
 
 

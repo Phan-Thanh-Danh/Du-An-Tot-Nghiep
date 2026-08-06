@@ -317,6 +317,26 @@ public class UserService : IUserService
             cancellationToken);
     }
 
+    public async Task RevokeSessionsAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        var user = await GetManagedUserAsync(userId, currentUser, cancellationToken);
+        
+        await _repository.RevokeUserTokensAsync(user.MaNguoiDung, cancellationToken);
+        await _repository.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.LogAsync(
+            "User",
+            user.MaNguoiDung.ToString(),
+            "REVOKE_SESSIONS",
+            null,
+            null,
+            currentUser.UserId,
+            user.MaDonVi,
+            "Cưỡng chế đăng xuất tất cả phiên.",
+            cancellationToken);
+    }
+
     public async Task ResetPasswordAsync(
         int userId,
         ResetPasswordRequest request,

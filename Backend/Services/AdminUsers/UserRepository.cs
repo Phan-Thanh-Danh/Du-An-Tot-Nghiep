@@ -90,6 +90,19 @@ public class UserRepository : IUserRepository
         _context.PhanQuyenNguoiDungs.RemoveRange(roleAssignments);
     }
 
+    public async Task RevokeUserTokensAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var activeTokens = await _context.TokenLamMois
+            .Where(t => t.MaNguoiDung == userId && t.ThuHoiLuc == null)
+            .ToListAsync(cancellationToken);
+
+        var now = DateTime.UtcNow;
+        foreach (var token in activeTokens)
+        {
+            token.ThuHoiLuc = now;
+        }
+    }
+
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.SaveChangesAsync(cancellationToken);

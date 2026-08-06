@@ -22,6 +22,8 @@ import {
 import { usePopupStore } from '@/stores/popup'
 import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import { apiRequest } from '@/services/apiClient'
+import LmsSelect from '@/components/LmsSelect.vue'
+import { adminUserApi } from '@/services/adminUserService'
 
 
 const popup = usePopupStore()
@@ -33,9 +35,18 @@ const selectedStatus = ref('Tất cả')
 const selectedCampus = ref('Tất cả')
 const selectedTimeRange = ref('30days') // 'today' | '7days' | '30days'
 
-const roles = ['Tất cả', 'Sinh viên', 'Giảng viên', 'Giáo vụ', 'BGH', 'Admin']
+const roles = ['Tất cả', 'Sinh viên', 'Giảng viên', 'Giáo vụ', 'BGH', 'Admin', 'Super Admin']
 const statuses = ['Tất cả', 'Success', 'Failed', 'Suspicious']
 const campuses = ['Tất cả', 'Hà Nội', 'TP.HCM', 'Đà Nẵng', 'Cần Thơ']
+
+const roleFilterOptions = computed(() => roles.map(r => ({ value: r, label: r })))
+const statusFilterOptions = computed(() => statuses.map(s => ({ value: s, label: getStatusLabel(s) })))
+const campusFilterOptions = computed(() => campuses.map(c => ({ value: c, label: c })))
+const timeRangeFilterOptions = [
+  { value: 'today', label: 'Hôm nay' },
+  { value: '7days', label: '7 ngày qua' },
+  { value: '30days', label: '30 ngày qua' }
+]
 
 const loading = ref(false)
 const error = ref('')
@@ -61,9 +72,17 @@ async function loadLogins() {
         riskScore: item.riskScore,
         time: new Date(item.loginTime).toLocaleString('vi-VN'),
         sessionId: item.sessionId,
+        aiReason: item.aiReason || getDefaultAiReason(item.riskScore, item.ip, item.device, item.location)
       }))
     } else {
       logins.value = []
+    }
+
+    try {
+      const activeCount = await apiRequest('/api/super-admin/active-sessions-count')
+      activeSessionsCount.value = typeof activeCount === 'number' ? activeCount : 0
+    } catch (countErr) {
+      console.error('Lỗi khi lấy số phiên active:', countErr)
     }
 
   } catch (err) {
@@ -90,7 +109,7 @@ const filteredLogins = computed(() => {
 
 // Statistics
 const totalLogins = computed(() => logins.value.length)
-const activeSessionsCount = ref(4)
+const activeSessionsCount = ref(0)
 const failedAttemptsCount = computed(() => logins.value.filter(l => l.status === 'Failed').length)
 const suspiciousAlertsCount = computed(() => logins.value.filter(l => l.riskScore >= 70).length)
 
@@ -124,10 +143,33 @@ const openRevokeModal = (session) => {
   isRevokeModalOpen.value = true
 }
 
-const confirmRevokeSession = () => {
-  popup.success(`Đã cưỡng chế đăng xuất và hủy token phiên ${sessionToRevoke.value.id} của người dùng ${sessionToRevoke.value.userName}!`)
-  activeSessionsCount.value = Math.max(0, activeSessionsCount.value - 1)
-  isRevokeModalOpen.value = false
+const isRevoking = ref(false)
+const confirmRevokeSession = async () => {
+  if (!sessionToRevoke.value) return
+  isRevoking.value = true
+  try {
+    const userEmail = sessionToRevoke.value.email
+    const res = await adminUserApi.getUsers({ keyword: userEmail })
+    const payload = res?.items ? res : (res?.data ?? res)
+    const list = payload?.items ?? payload?.data ?? (Array.isArray(payload) ? payload : [])
+    const user = list.find(u => u.email === userEmail)
+    
+    if (!user) {
+      popup.error('Không tìm thấy tài khoản', `Không thể tìm thấy tài khoản ${userEmail}.`)
+      return
+    }
+    
+    const userId = user.maNguoiDung || user.id
+    await apiRequest(`/api/admin/users/${userId}/revoke-sessions`, 'POST')
+    
+    popup.success(`Đã cưỡng chế đăng xuất và hủy token phiên của người dùng ${sessionToRevoke.value.userName}!`)
+    activeSessionsCount.value = Math.max(0, activeSessionsCount.value - 1)
+    isRevokeModalOpen.value = false
+  } catch (err) {
+    popup.error('Lỗi hủy phiên', err?.message || 'Không thể cưỡng chế đăng xuất tài khoản này.')
+  } finally {
+    isRevoking.value = false
+  }
 }
 
 const openLockModal = (session) => {
@@ -136,29 +178,70 @@ const openLockModal = (session) => {
   isLockModalOpen.value = true
 }
 
-const confirmLockAccount = () => {
+const isLocking = ref(false)
+const confirmLockAccount = async () => {
   if (!lockReason.value.trim()) {
     popup.warning('Vui lòng nhập lý do khóa tài khoản.')
     return
   }
-  popup.success(`Tài khoản ${accountToLock.value.email} đã được KHÓA ngay lập tức. Lý do: ${lockReason.value}`)
-  
-  // Update local data state if match
-  const idx = logins.value.findIndex(l => l.email === accountToLock.value.email)
-  if (idx !== -1) {
-    logins.value[idx].status = 'Failed'
-    logins.value[idx].riskScore = 100
+  isLocking.value = true
+  try {
+    const userEmail = accountToLock.value.email
+    const res = await adminUserApi.getUsers({ keyword: userEmail })
+    const payload = res?.items ? res : (res?.data ?? res)
+    const list = payload?.items ?? payload?.data ?? (Array.isArray(payload) ? payload : [])
+    const user = list.find(u => u.email === userEmail)
+    
+    if (!user) {
+      popup.error('Không tìm thấy tài khoản', `Không thể tìm thấy tài khoản ${userEmail} trong hệ thống.`)
+      return
+    }
+    
+    const userId = user.maNguoiDung || user.id
+    await adminUserApi.lock(userId, lockReason.value)
+    popup.success(`Tài khoản ${accountToLock.value.email} đã được KHÓA ngay lập tức. Lý do: ${lockReason.value}`)
+    
+    // Update local data state if match
+    const idx = logins.value.findIndex(l => l.email === accountToLock.value.email)
+    if (idx !== -1) {
+      logins.value[idx].status = 'Failed'
+      logins.value[idx].riskScore = 100
+    }
+    isLockModalOpen.value = false
+  } catch (e) {
+    popup.error('Lỗi khóa tài khoản', e?.response?.data?.message || e?.message || 'Không thể thực hiện khóa tài khoản này.')
+  } finally {
+    isLocking.value = false
   }
-  isLockModalOpen.value = false
 }
 
 const openAlertModal = () => {
   isAlertModalOpen.value = true
 }
 
-const confirmCreateAlert = () => {
-  popup.info(`Đã thiết lập Luật giám sát: "${newAlertConfig.value.name}". AI sẽ tự động gửi thông báo khi phát hiện vi phạm hành vi này.`)
-  isAlertModalOpen.value = false
+const isCreatingAlert = ref(false)
+const confirmCreateAlert = async () => {
+  isCreatingAlert.value = true
+  try {
+    await apiRequest('/api/super-admin/ai-alerts/config', 'POST', newAlertConfig.value)
+    popup.info(`Đã thiết lập Luật giám sát: "${newAlertConfig.value.name}". AI sẽ tự động gửi thông báo khi phát hiện vi phạm hành vi này.`)
+    isAlertModalOpen.value = false
+  } catch (err) {
+    popup.error('Lỗi lưu cấu hình', err?.message || 'Không thể lưu cấu hình luật cảnh báo AI.')
+  } finally {
+    isCreatingAlert.value = false
+  }
+}
+
+// Default AI anomaly detection reason generator
+const getDefaultAiReason = (score, ip, device, location) => {
+  if (score >= 80) {
+    return `Cảnh báo đặc biệt: Phát hiện điểm bất thường rất cao (${score}%). Phiên đăng nhập được thực hiện từ địa chỉ IP lạ (${ip}) trên hệ điều hành ${device} từ khu vực ${location || 'N/A'}. Khuyến nghị Super Admin thực hiện cưỡng chế đăng xuất hoặc khóa tài khoản ngay lập tức.`
+  }
+  if (score >= 50) {
+    return `Phát hiện dấu hiệu rủi ro mức trung bình (${score}%). Trình duyệt hoặc địa chỉ mạng này có sự dịch chuyển địa lý nhẹ so với thói quen đăng nhập thông thường của người dùng.`
+  }
+  return `Trạng thái an toàn: Phiên đăng nhập được đánh giá bình thường (${score}% rủi ro). Thiết bị và dải địa chỉ mạng trùng khớp hoàn hảo với hồ sơ hoạt động thường ngày tại ${location || 'Việt Nam'}.`
 }
 
 // Helpers
@@ -263,37 +346,23 @@ onMounted(() => { loadLogins() })
         </div>
 
         <!-- Role select -->
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-bold text-label whitespace-nowrap">Vai trò:</span>
-          <select v-model="selectedRole" class="glass-select bg-white py-1.5 text-xs">
-            <option v-for="r in roles" :key="r" :value="r">{{ r }}</option>
-          </select>
+        <div class="w-40">
+          <LmsSelect v-model="selectedRole" :options="roleFilterOptions" placeholder="Vai trò" />
         </div>
 
         <!-- Status select -->
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-bold text-label whitespace-nowrap">Kết quả:</span>
-          <select v-model="selectedStatus" class="glass-select bg-white py-1.5 text-xs">
-            <option v-for="s in statuses" :key="s" :value="s">{{ getStatusLabel(s) }}</option>
-          </select>
+        <div class="w-44">
+          <LmsSelect v-model="selectedStatus" :options="statusFilterOptions" placeholder="Kết quả" />
         </div>
 
         <!-- Campus select -->
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-bold text-label whitespace-nowrap">Cơ sở:</span>
-          <select v-model="selectedCampus" class="glass-select bg-white py-1.5 text-xs">
-            <option v-for="c in campuses" :key="c" :value="c">{{ c }}</option>
-          </select>
+        <div class="w-44">
+          <LmsSelect v-model="selectedCampus" :options="campusFilterOptions" placeholder="Cơ sở" />
         </div>
         
         <!-- Time range select -->
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-bold text-label whitespace-nowrap">Thời gian:</span>
-          <select v-model="selectedTimeRange" class="glass-select bg-white py-1.5 text-xs">
-            <option value="today">Hôm nay</option>
-            <option value="7days">7 ngày qua</option>
-            <option value="30days">30 ngày qua</option>
-          </select>
+        <div class="w-44">
+          <LmsSelect v-model="selectedTimeRange" :options="timeRangeFilterOptions" placeholder="Thời gian" />
         </div>
       </div>
 
@@ -308,8 +377,7 @@ onMounted(() => { loadLogins() })
     </div>
 
     <!-- MAIN LOGS TABLE -->
-    <div class="glass-panel rounded-2xl overflow-hidden shadow-lg border border-slate-100 flex-1 flex flex-col min-h-[450px]">
-      <div class="table-container flex-1">
+    <div class="table-container glass-panel rounded-2xl overflow-hidden shadow-lg border border-slate-100">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr>
@@ -410,7 +478,6 @@ onMounted(() => { loadLogins() })
             </tr>
           </tbody>
         </table>
-      </div>
       
       <!-- Footer Note -->
       <div class="p-3 bg-slate-50 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400">
@@ -533,12 +600,13 @@ onMounted(() => { loadLogins() })
           </p>
 
           <div class="flex gap-3 justify-end pt-3 border-t border-slate-100">
-            <button @click="isRevokeModalOpen = false" class="glass-btn secondary flex-1 justify-center">Hủy</button>
+            <button @click="isRevokeModalOpen = false" class="glass-btn secondary flex-1 justify-center" :disabled="isRevoking">Hủy</button>
             <button 
               @click="confirmRevokeSession" 
               class="glass-btn primary flex-1 justify-center !bg-amber-600 hover:!bg-amber-700"
+              :disabled="isRevoking"
             >
-              Hủy phiên
+              {{ isRevoking ? 'Đang hủy...' : 'Hủy phiên' }}
             </button>
           </div>
         </div>
@@ -573,9 +641,9 @@ onMounted(() => { loadLogins() })
             <button 
               @click="confirmLockAccount" 
               class="glass-btn primary flex-1 justify-center !bg-rose-600 hover:!bg-rose-700"
-              :disabled="!lockReason.trim()"
+              :disabled="!lockReason.trim() || isLocking"
             >
-              Khóa tài khoản
+              {{ isLocking ? 'Đang khóa...' : 'Khóa tài khoản' }}
             </button>
           </div>
         </div>
@@ -631,12 +699,13 @@ onMounted(() => { loadLogins() })
           </div>
 
           <div class="flex gap-3 justify-end pt-5 border-t border-slate-100 mt-4">
-            <button @click="isAlertModalOpen = false" class="glass-btn secondary flex-1 justify-center">Hủy</button>
+            <button @click="isAlertModalOpen = false" class="glass-btn secondary flex-1 justify-center" :disabled="isCreatingAlert">Hủy</button>
             <button 
               @click="confirmCreateAlert" 
               class="glass-btn primary flex-1 justify-center !bg-purple-600 hover:!bg-purple-700"
+              :disabled="isCreatingAlert"
             >
-              Thiết lập Cảnh báo
+              {{ isCreatingAlert ? 'Đang lưu...' : 'Thiết lập Cảnh báo' }}
             </button>
           </div>
         </div>

@@ -18,5 +18,6 @@ public interface IUserRepository
     Task AddAsync(NguoiDung user, CancellationToken cancellationToken = default);
     Task AddRoleAssignmentAsync(PhanQuyenNguoiDung roleAssignment, CancellationToken cancellationToken = default);
     void RemoveRoleAssignments(IEnumerable<PhanQuyenNguoiDung> roleAssignments);
+    Task RevokeUserTokensAsync(int userId, CancellationToken cancellationToken = default);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

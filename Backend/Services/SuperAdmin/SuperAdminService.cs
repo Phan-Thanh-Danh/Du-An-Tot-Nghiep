@@ -293,19 +293,45 @@ namespace Backend.Services.SuperAdmin
             return "Desktop";
         }
 
-        private static DateTime GetNextSunday()
+        private DateTime GetNextSunday()
         {
-            var today = DateTime.Now;
-            int daysUntilSunday = ((int)DayOfWeek.Sunday - (int)today.DayOfWeek + 7) % 7;
-            return daysUntilSunday == 0 ? today.AddDays(7).Date.AddHours(3) : today.AddDays(daysUntilSunday).Date.AddHours(3);
+            var now = DateTime.Now;
+            int daysUntilSunday = ((int)DayOfWeek.Sunday - (int)now.DayOfWeek + 7) % 7;
+            if (daysUntilSunday == 0) daysUntilSunday = 7;
+            return now.Date.AddDays(daysUntilSunday).AddHours(3);
         }
 
-        private static DateTime GetNextWeekday()
+        private DateTime GetNextWeekday()
         {
-            var next = DateTime.Now.AddDays(1);
+            var next = DateTime.Now.Date.AddDays(1);
             while (next.DayOfWeek == DayOfWeek.Saturday || next.DayOfWeek == DayOfWeek.Sunday)
+            {
                 next = next.AddDays(1);
-            return next.Date.AddHours(8);
+            }
+            return next.AddHours(8);
+        }
+
+        public async Task CreateAiAlertConfigAsync(CreateAiAlertConfigRequest request)
+        {
+            var config = new CauHinhCanhBaoAi
+            {
+                TenQuyTac = request.Name,
+                DieuKienKichHoat = request.TriggerType,
+                NguongTriSo = request.Threshold,
+                KenhNhan = request.Channel,
+                NgayTao = DateTime.UtcNow
+            };
+            
+            await _context.CauHinhCanhBaoAis.AddAsync(config);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<int> GetActiveSessionsCountAsync()
+        {
+            var count = await _context.TokenLamMois
+                .Where(t => t.HetHanLuc > DateTime.UtcNow && t.ThuHoiLuc == null)
+                .CountAsync();
+            return count;
         }
     }
 }

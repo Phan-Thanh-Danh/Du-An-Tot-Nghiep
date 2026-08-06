@@ -73,5 +73,19 @@ namespace Backend.Controllers
             var history = await _superAdminService.GetLoginHistoryAsync(limit);
             return Ok(history);
         }
+
+        [HttpPost("ai-alerts/config")]
+        public async Task<ActionResult> CreateAiAlertConfig([FromBody] CreateAiAlertConfigRequest request)
+        {
+            await _superAdminService.CreateAiAlertConfigAsync(request);
+            return Ok(new { message = "Cấu hình cảnh báo AI thành công" });
+        }
+
+        [HttpGet("active-sessions-count")]
+        public async Task<ActionResult<int>> GetActiveSessionsCount()
+        {
+            var count = await _superAdminService.GetActiveSessionsCountAsync();
+            return Ok(count);
+        }
     }
 }

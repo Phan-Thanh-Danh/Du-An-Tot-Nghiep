@@ -336,7 +336,19 @@ const permissionDiffs = computed(() => {
 // FIX: không crash khi role.permissions = undefined
 const openPermissionDrawer = (role) => {
   selectedRoleForEdit.value = role
-  const safePermissions = role.permissions && typeof role.permissions === 'object' ? role.permissions : {}
+  let safePermissions = role.permissions && typeof role.permissions === 'object' ? role.permissions : null
+  if (!safePermissions) {
+    safePermissions = {}
+    modules.forEach(m => {
+      if (role.code === 'super_admin' || role.code === 'admin') {
+        safePermissions[m.key] = ['read', 'create', 'update', 'delete']
+      } else if (role.type === 'System') {
+        safePermissions[m.key] = ['read', 'create', 'update']
+      } else {
+        safePermissions[m.key] = ['read']
+      }
+    })
+  }
   currentPermissions.value = JSON.parse(JSON.stringify(safePermissions))
   currentScope.value = {
     scope: role.scope || 'Global',
