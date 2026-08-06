@@ -6,7 +6,7 @@ defineProps({
   result: { type: Object, default: () => ({ created: [], skipped: [] }) },
 })
 
-const emit = defineEmits(['close', 'viewList'])
+const emit = defineEmits(['close'])
 </script>
 
 <template>
@@ -52,7 +52,7 @@ const emit = defineEmits(['close', 'viewList'])
                   <CheckCircle2 :size="14" class="text-(--color-success-text)" />
                 </div>
                 <div class="min-w-0 flex-1">
-                  <p class="text-sm font-bold text-heading truncate">{{ course.tenLop || getClassLabel(course.maLop) }}</p>
+                  <p class="text-sm font-bold text-heading truncate">{{ course.tenLop || `#${course.maLop}` }}</p>
                   <p class="text-xs text-muted truncate">{{ course.tieuDe || course.tenMonHoc || '' }}</p>
                 </div>
                 <span class="text-[11px] font-mono font-bold text-muted shrink-0">#{{ course.maKhoaHoc }}</span>

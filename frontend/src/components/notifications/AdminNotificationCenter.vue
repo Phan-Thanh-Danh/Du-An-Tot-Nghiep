@@ -27,7 +27,8 @@ const handlePreview = async (formPayload) => {
 }
 
 const handleSubmit = async (formPayload) => {
-  if (previewData.value?.tongNguoiNhan === 0) {
+  const recipientCount = previewData.value?.count ?? previewData.value?.tongNguoiNhan ?? 0
+  if (recipientCount === 0) {
     errorMessage.value = 'Không thể gửi thông báo cho 0 người nhận'
     return
   }

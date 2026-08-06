@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { staffApi } from '@/services/staffApi'
 import { usePopup } from '@/composables/usePopup'
 
@@ -13,15 +13,10 @@ export function useStaffDashboard() {
     scheduleTasks: [],
     urgentRequests: [],
     nearFullClasses: [],
-    waitlistClasses: [],
     announcements: [],
     semesterStats: null,
-    notifications: [],
   })
   const processingAll = ref(false)
-  const notificationsUnread = computed(() =>
-    data.value.notifications.filter(n => !n.read).length
-  )
 
   let refreshTimer = null
 
@@ -43,9 +38,9 @@ export function useStaffDashboard() {
       }))
 
       const urgentRequests = (result.recentRequests || []).map(r => ({
-        id: r.id,
+        id: r.maDonTu ?? r.id,
         type: r.loaiDon || r.tieuDe || 'Đơn từ',
-        studentName: r.hocSinhName || 'Không rõ',
+        studentName: r.hocSinh?.hoTen || r.hocSinhName || 'Không rõ',
         time: r.ngayTao
           ? new Date(r.ngayTao).toLocaleDateString('vi-VN')
           : '',
@@ -67,8 +62,6 @@ export function useStaffDashboard() {
           pendingRequests:result.pendingRequests ?? 0,
           fullClasses:    result.fullClasses ?? 0,
           newNotices:     result.newNotices ?? 0,
-          // waitlist không có trong BE → 0
-          waitlistStudents: 0,
         },
         scheduleTasks,
         urgentRequests,
@@ -77,15 +70,13 @@ export function useStaffDashboard() {
           enrolled: c.enrolled,
           capacity: c.capacity,
         })),
-        // waitlist chưa có model trong DB
-        waitlistClasses: [],
         announcements,
         semesterStats: {
-          completed: 85,
-          totalClasses: result.activeClasses ?? 0,
-          emptyRooms: 0,
+          todaySchedules: result.todaySchedules ?? 0,
+          activeClasses:  result.activeClasses ?? 0,
+          pendingRequests:result.pendingRequests ?? 0,
+          conflicts:      result.conflicts ?? 0,
         },
-        notifications: [],
       }
     } catch (e) {
       error.value = e.message || 'Không thể tải dữ liệu dashboard'
@@ -107,36 +98,6 @@ export function useStaffDashboard() {
     }
   }
 
-  async function loadNotifications() {
-    try {
-      const result = await staffApi.getNotifications({ limit: 5 })
-      const items = result.items || result || []
-      data.value.notifications = items
-    } catch {
-      // silent
-    }
-  }
-
-  async function markNotificationRead(id) {
-    try {
-      await staffApi.markNotificationRead(id)
-      const n = data.value.notifications.find(n => n.id === id)
-      if (n) n.read = true
-    } catch {
-      // silent
-    }
-  }
-
-  async function markAllNotificationsRead() {
-    try {
-      await staffApi.markAllNotificationsRead()
-      data.value.notifications.forEach(n => { n.read = true })
-      popup.success('Đã đánh dấu', 'Tất cả thông báo đã được đọc.')
-    } catch {
-      // silent
-    }
-  }
-
   function startAutoRefresh() {
     stopAutoRefresh()
     refreshTimer = setInterval(loadDashboard, REFRESH_INTERVAL)
@@ -151,7 +112,6 @@ export function useStaffDashboard() {
 
   onMounted(async () => {
     await loadDashboard()
-    await loadNotifications()
     startAutoRefresh()
   })
 
@@ -164,11 +124,7 @@ export function useStaffDashboard() {
     error,
     data,
     processingAll,
-    notificationsUnread,
     loadDashboard,
     processAllRequests,
-    loadNotifications,
-    markNotificationRead,
-    markAllNotificationsRead,
   }
 }

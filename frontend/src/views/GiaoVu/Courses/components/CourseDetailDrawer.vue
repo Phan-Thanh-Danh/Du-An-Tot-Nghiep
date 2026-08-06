@@ -173,16 +173,15 @@ onMounted(loadDetail)
                   @click="toggleChuong(chuong.maChuong)">
                   <ChevronDown v-if="expandedChuong === chuong.maChuong" :size="16" class="text-muted shrink-0" />
                   <ChevronRight v-else :size="16" class="text-muted shrink-0" />
-                  <span class="flex-1 text-sm font-bold text-heading">{{ chuong.tenChuong }}</span>
+                  <span class="flex-1 text-sm font-bold text-heading">{{ chuong.tieuDe }}</span>
                   <span class="text-[11px] text-muted whitespace-nowrap">{{ chuong.baiHocs?.length || 0 }} bài</span>
-                  <span class="text-[11px] text-muted bg-(--surface-input) rounded-full px-2 py-0.5 whitespace-nowrap">{{ chuong.soTiet }} tiết</span>
                 </button>
                 <div v-if="expandedChuong === chuong.maChuong" class="border-t border-default">
                   <div v-for="bai in chuong.baiHocs" :key="bai.maBaiHoc"
                     class="flex items-center gap-3 px-4 py-2.5 pl-11 text-sm text-body hover:bg-(--surface-hover) transition-colors">
                     <FileText :size="14" class="text-muted shrink-0" />
-                    <span class="flex-1">{{ bai.tenBaiHoc }}</span>
-                    <GlassBadge variant="neutral" size="sm">{{ bai.loaiBai === 'ly_thuyet' ? 'Lý thuyết' : 'Thực hành' }}</GlassBadge>
+                    <span class="flex-1">{{ bai.tieuDe }}</span>
+                    <GlassBadge variant="neutral" size="sm">{{ bai.loaiBaiHoc === 'ly_thuyet' ? 'Lý thuyết' : 'Thực hành' }}</GlassBadge>
                   </div>
                 </div>
               </div>

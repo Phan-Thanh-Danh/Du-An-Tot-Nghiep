@@ -836,16 +836,6 @@ function applySuggestion(slot) {
   checkConflicts()
 }
 
-const canPublish = computed(() => {
-  if (!courseProgress.value) return true
-  const current = courseProgress.value.soBuoiDaXep
-  const req = courseProgress.value.soBuoiYeuCau
-  if (formMode.value === 'create') {
-    return current + 1 >= req
-  }
-  return current >= req
-})
-
 // ── Conflict check via API ────────────────────────────────────────
 async function checkConflicts() {
   conflictPreview.value = []
@@ -928,7 +918,6 @@ async function saveSchedule(publishNow = false) {
 }
 
 function saveDraft() { saveSchedule(false) }
-function publishDraft() { saveSchedule(true) }
 
 async function suggestBulkCourses() {
   const selected = courseOptions.value.filter(c => bulkSelectedCourseIds.value.map(Number).includes(Number(c.maKhoaHoc)))
@@ -1076,26 +1065,6 @@ function publishAll() {
       } finally {
         publishingAll.value = false
       }
-    },
-  }
-}
-
-// ── Publish existing row ──────────────────────────────────────────
-function publishRow(row) {
-  confirmAction.value = {
-    title: 'Xuất bản lịch này?',
-    message: `"${row.monHoc?.ten}" (${row.lop?.ma}) sẽ được công bố tới sinh viên và giảng viên.`,
-    label: 'Xuất bản',
-    variant: 'primary',
-    run: async () => {
-      confirmAction.value = null
-      try {
-        await scheduleApi.update(row.id, { ...viewToBe(row), trangThai: 'da_xuat_ban' })
-        const idx = rows.value.findIndex(r => r.id === row.id)
-        if (idx !== -1) rows.value[idx].trangThai = 'da_xuat_ban'
-        if (selectedRow.value?.id === row.id) selectedRow.value = { ...rows.value.find(r => r.id === row.id) }
-        popupStore.success('Đã xuất bản', `Lịch "${row.monHoc?.ten}" đã được công bố.`)
-      } catch { popupStore.error('Lỗi', 'Không thể xuất bản lịch.') }
     },
   }
 }

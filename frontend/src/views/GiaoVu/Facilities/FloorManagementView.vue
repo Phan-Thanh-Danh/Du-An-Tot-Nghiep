@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import {
   Search, Plus, X, Layers, ChevronDown, ChevronRight, Building,
   Pencil, Trash2, AlertCircle, DoorOpen, Users, Monitor, Tv,
@@ -9,6 +9,10 @@ import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { floorApi } from '@/services/floorApi'
 import { buildingApi } from '@/services/buildingApi'
 import { roomApi } from '@/services/roomApi'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+const canManage = computed(() => authStore.hasRole(['SuperAdmin', 'Admin', 'CampusAdmin', 'SubCampusAdmin']))
 
 const loading = ref(true)
 const error = ref(null)
@@ -93,7 +97,7 @@ async function fetchRooms(floorId) {
   roomLoading[key] = true
   try {
     const res = await roomApi.getByFloor(floorId)
-    roomCache[key] = Array.isArray(res) ? res : (res?.items || res?.data || [])
+    roomCache[key] = Array.isArray(res) ? res : (res?.data?.items || res?.items || [])
   } catch {
     roomCache[key] = []
   } finally {
@@ -224,7 +228,7 @@ function navigateToRooms(floorId) {
     subtitle="Danh sách lầu trong các tòa nhà và phòng học trực thuộc."
   >
     <template #actions>
-      <button class="lg-button-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2" @click="openAddFloor">
+      <button v-if="canManage" class="lg-button-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2" @click="openAddFloor">
         <Plus :size="18" /> Thêm lầu
       </button>
     </template>
@@ -302,11 +306,11 @@ function navigateToRooms(floorId) {
               </p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-              <button class="p-2 hover:bg-(--surface-input-focus) rounded-xl text-label transition-colors"
+              <button v-if="canManage" class="p-2 hover:bg-(--surface-input-focus) rounded-xl text-label transition-colors"
                 @click.stop="openEditFloor(f)">
                 <Pencil :size="15" />
               </button>
-              <button class="p-2 hover:bg-(--color-danger-bg) rounded-xl text-(--lg-danger)/70 hover:text-(--lg-danger) transition-colors"
+              <button v-if="canManage" class="p-2 hover:bg-(--color-danger-bg) rounded-xl text-(--lg-danger)/70 hover:text-(--lg-danger) transition-colors"
                 @click.stop="requestDeleteFloor(f)">
                 <Trash2 :size="15" />
               </button>
@@ -324,7 +328,7 @@ function navigateToRooms(floorId) {
               <div v-else-if="!roomCache[`floor-${f.maTang}`] || roomCache[`floor-${f.maTang}`].length === 0"
                 class="text-center py-8 text-sm text-placeholder">
                 Chưa có phòng học trên lầu này.
-                <button class="text-(--lg-primary) font-semibold hover:underline ml-1"
+                <button v-if="canManage" class="text-(--lg-primary) font-semibold hover:underline ml-1"
                   @click="navigateToRooms(f.maTang)">
                   Thêm phòng
                 </button>

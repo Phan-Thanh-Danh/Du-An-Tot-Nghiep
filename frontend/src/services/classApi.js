@@ -47,10 +47,6 @@ function toClassPayload(data) {
   }
 }
 
-function unavailable() {
-  throw new Error('Chức năng đang phát triển')
-}
-
 export const classApi = {
   list(params = {}) {
     const apiParams = {
@@ -82,9 +78,5 @@ export const classApi = {
 
   delete(id) {
     return apiRequest(`/api/admin/classes/${id}`, { method: 'DELETE' })
-  },
-
-  getStudents() {
-    return unavailable()
   },
 }

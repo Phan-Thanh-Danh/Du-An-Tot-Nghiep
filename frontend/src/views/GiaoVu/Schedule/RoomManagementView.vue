@@ -19,13 +19,20 @@ import {
   Calendar,
   Clock,
   Lightbulb,
-  DoorOpen
+  DoorOpen,
+  Loader2
 } from 'lucide-vue-next'
 import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { roomApi } from '@/services/roomApi'
 import { buildingApi } from '@/services/buildingApi'
 import { floorApi } from '@/services/floorApi'
+import { staffApi } from '@/services/staffApi'
+import { useAuthStore } from '@/stores/auth'
+import { formatDate, formatTime } from '@/utils/dateFormat'
+
+const authStore = useAuthStore()
+const canManage = computed(() => authStore.hasRole(['SuperAdmin', 'Admin', 'CampusAdmin', 'SubCampusAdmin']))
 
 const loading = ref(true)
 const error = ref(null)
@@ -320,15 +327,33 @@ async function markMaintenance(room) {
 // ── Usage History Modal ──────────────────────────────────────
 const showHistoryModal = ref(false)
 const historyRoom = ref(null)
+const historyBookings = ref([])
+const historyLoading = ref(false)
 
-function openHistoryModal(room) {
+function formatDateTime(value) {
+  return value ? `${formatDate(value)} ${formatTime(value)}` : '—'
+}
+
+async function openHistoryModal(room) {
   historyRoom.value = room
+  historyBookings.value = []
   showHistoryModal.value = true
+  historyLoading.value = true
+  try {
+    const res = await staffApi.getBookings({ roomId: room.maPhong })
+    const data = res?.data ?? res ?? []
+    historyBookings.value = Array.isArray(data) ? data : data.items || []
+  } catch {
+    historyBookings.value = []
+  } finally {
+    historyLoading.value = false
+  }
 }
 
 function closeHistoryModal() {
   showHistoryModal.value = false
   historyRoom.value = null
+  historyBookings.value = []
 }
 
 // ── Context menu ─────────────────────────────────────────────
@@ -408,6 +433,7 @@ function applyFilterAndReload() {
   >
     <template #actions>
       <button
+        v-if="canManage"
         id="btn-add-room"
         class="lg-button-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2"
         @click="openAddModal"
@@ -611,6 +637,7 @@ function applyFilterAndReload() {
                   @click.stop
                 >
                   <button
+                    v-if="canManage"
                     class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-(--surface-input) transition-colors"
                     @click="openEditModal(room); menuOpenId = null"
                   >
@@ -623,7 +650,7 @@ function applyFilterAndReload() {
                     <History :size="14" class="text-(--lg-info)" /> Lịch sử dùng
                   </button>
                   <button
-                    v-if="room.trangThaiPhong !== 'bao_tri'"
+                    v-if="canManage && room.trangThaiPhong !== 'bao_tri'"
                     class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-body hover:bg-(--surface-input) transition-colors"
                     @click="markMaintenance(room)"
                   >
@@ -631,6 +658,7 @@ function applyFilterAndReload() {
                   </button>
                   <div class="border-t border-default my-1"></div>
                   <button
+                    v-if="canManage"
                     class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-(--lg-danger) hover:bg-(--color-danger-bg) transition-colors"
                     @click="requestDelete(room); menuOpenId = null"
                   >
@@ -1009,55 +1037,51 @@ function applyFilterAndReload() {
           </div>
 
           <div class="p-6 space-y-4">
-            <div class="flex items-center gap-3 p-4 rounded-xl surface-input border border-default">
-              <div class="flex-1 grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Tổng lượt dùng</p>
-                  <p class="text-lg font-semibold text-heading mt-1">24</p>
-                </div>
-                <div>
-                  <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Giờ sử dụng</p>
-                  <p class="text-lg font-semibold text-heading mt-1">168h</p>
-                </div>
-                <div>
-                  <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Tỉ lệ SD</p>
-                  <p class="text-lg font-semibold text-heading mt-1">78%</p>
-                </div>
-              </div>
+            <div v-if="historyLoading" class="flex justify-center py-10">
+              <Loader2 :size="24" class="animate-spin text-(--lg-primary)" />
             </div>
 
-            <div v-for="item in [
-              { date: '08/06/2026', time: '07:00 - 09:30', subject: 'Lập trình Web', teacher: 'TS. Nguyễn Văn A', status: 'completed' },
-              { date: '08/06/2026', time: '09:45 - 12:15', subject: 'Cơ sở dữ liệu', teacher: 'ThS. Trần Thị B', status: 'completed' },
-              { date: '07/06/2026', time: '13:00 - 15:30', subject: 'CTDL & GT', teacher: 'TS. Lê Văn C', status: 'completed' },
-              { date: '07/06/2026', time: '15:45 - 18:15', subject: 'Mạng máy tính', teacher: 'ThS. Phạm Thị D', status: 'cancelled' },
-              { date: '06/06/2026', time: '07:00 - 09:30', subject: 'Lập trình Web', teacher: 'TS. Nguyễn Văn A', status: 'completed' },
-            ]" :key="item.date + item.time" class="flex items-start gap-3 p-3 rounded-xl surface-input border border-default hover:bg-(--surface-input-focus) transition-colors">
-              <div class="h-9 w-9 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) shrink-0">
-                <Calendar :size="16" />
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between">
-                  <p class="text-sm font-semibold text-heading">{{ item.subject }}</p>
-                  <span
-                    :class="[
-                      'text-[9px] font-bold uppercase px-2 py-0.5 rounded-lg',
-                      item.status === 'completed'
-                        ? 'bg-(--color-success-bg) text-(--color-success-text)'
-                        : 'bg-(--color-danger-bg) text-(--color-danger-text)'
-                    ]"
-                  >{{ item.status === 'completed' ? 'Đã học' : 'Đã hủy' }}</span>
-                </div>
-                <p class="text-xs text-label mt-0.5 flex items-center gap-2">
-                  <Clock :size="11" /> {{ item.date }} · {{ item.time }}
-                </p>
-                <p class="text-xs text-label">{{ item.teacher }}</p>
-              </div>
-            </div>
-
-            <div v-if="false" class="text-center py-10">
+            <div v-else-if="historyBookings.length === 0" class="text-center py-10">
               <p class="text-sm text-label">Chưa có lịch sử sử dụng cho phòng này.</p>
             </div>
+
+            <template v-else>
+              <div class="flex items-center gap-3 p-4 rounded-xl surface-input border border-default">
+                <div class="flex-1 grid grid-cols-2 gap-3 text-center">
+                  <div>
+                    <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Tổng lượt đặt</p>
+                    <p class="text-lg font-semibold text-heading mt-1">{{ historyBookings.length }}</p>
+                  </div>
+                  <div>
+                    <p class="text-[9px] font-semibold text-placeholder uppercase tracking-widest">Đã hủy</p>
+                    <p class="text-lg font-semibold text-heading mt-1">{{ historyBookings.filter(b => b.status === 'da_huy').length }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div v-for="item in historyBookings" :key="item.id" class="flex items-start gap-3 p-3 rounded-xl surface-input border border-default hover:bg-(--surface-input-focus) transition-colors">
+                <div class="h-9 w-9 rounded-xl bg-(--color-info-bg) flex items-center justify-center text-(--color-info-text) shrink-0">
+                  <Calendar :size="16" />
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between">
+                    <p class="text-sm font-semibold text-heading">{{ item.purpose || 'Đặt phòng' }}</p>
+                    <span
+                      :class="[
+                        'text-[9px] font-bold uppercase px-2 py-0.5 rounded-lg',
+                        item.status === 'da_huy'
+                          ? 'bg-(--color-danger-bg) text-(--color-danger-text)'
+                          : 'bg-(--color-success-bg) text-(--color-success-text)'
+                      ]"
+                    >{{ item.status === 'da_huy' ? 'Đã hủy' : 'Đã đặt' }}</span>
+                  </div>
+                  <p class="text-xs text-label mt-0.5 flex items-center gap-2">
+                    <Clock :size="11" /> {{ formatDateTime(item.startTime) }} – {{ formatTime(item.endTime) }}
+                  </p>
+                  <p class="text-xs text-label">{{ item.requesterName }}</p>
+                </div>
+              </div>
+            </template>
           </div>
 
           <div class="px-6 pb-6 pt-2 border-t border-default flex items-center justify-end">

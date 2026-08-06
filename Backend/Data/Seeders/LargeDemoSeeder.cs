@@ -324,6 +324,9 @@ public static class LargeDemoSeeder
         context.KhoaHocs.AddRange(courses);
         await context.SaveChangesAsync();
 
+        Console.WriteLine("Seeding P7 Registration workflow (sections / periods / enrollments)...");
+        await SeedRegistrationWorkflowAsync(context, mainCampus, subjectsList, hocKy, prepTerm, allStudents, courses);
+
         Console.WriteLine("Seeding P26 - Teaching Preferences...");
         
         // Use the newly created prepTerm
@@ -375,5 +378,146 @@ public static class LargeDemoSeeder
         }
 
         Console.WriteLine("LargeDemo Seed V10 completed successfully.");
+    }
+
+    private static async Task SeedRegistrationWorkflowAsync(
+        ApplicationDbContext context,
+        DonVi campus,
+        IReadOnlyList<DanhMucMonHoc> subjects,
+        HocKy activeTerm,
+        HocKy prepTerm,
+        IReadOnlyList<NguoiDung> students,
+        IReadOnlyList<KhoaHoc> courses)
+    {
+        var now = DateTime.UtcNow;
+        var studentRole = AuthRoles.ToDatabaseCode(AuthRoles.Student);
+
+        // ── 1. Registration periods (idempotent) ──
+        var periodKeys = (await context.GiaiDoanDangKys
+            .Where(p => p.MaDonVi == campus.MaDonVi)
+            .Select(p => new { p.MaHocKy, p.TrangThai })
+            .ToListAsync())
+            .ToHashSet();
+
+        if (!periodKeys.Contains(new { activeTerm.MaHocKy, TrangThai = "dang_mo" }))
+        {
+            context.GiaiDoanDangKys.Add(new GiaiDoanDangKy
+            {
+                MaDonVi = campus.MaDonVi,
+                MaHocKy = activeTerm.MaHocKy,
+                BatDauLuc = now.AddDays(-7),
+                KetThucLuc = now.AddDays(30),
+                TrangThai = "dang_mo",
+                SoTinChiToiDa = 24,
+            });
+        }
+        if (!periodKeys.Contains(new { prepTerm.MaHocKy, TrangThai = "nhap" }))
+        {
+            context.GiaiDoanDangKys.Add(new GiaiDoanDangKy
+            {
+                MaDonVi = campus.MaDonVi,
+                MaHocKy = prepTerm.MaHocKy,
+                BatDauLuc = prepTerm.NgayBatDau.ToDateTime(TimeOnly.MinValue).AddDays(-20),
+                KetThucLuc = prepTerm.NgayBatDau.ToDateTime(TimeOnly.MinValue).AddDays(-5),
+                TrangThai = "nhap",
+                SoTinChiToiDa = 24,
+            });
+        }
+        await context.SaveChangesAsync();
+
+        // ── 2. Course sections for all large-demo courses ──
+        var sectionByCode = new Dictionary<string, LopHocPhan>(StringComparer.OrdinalIgnoreCase);
+        foreach (var course in courses)
+        {
+            var subject = course.MaMonHoc != 0
+                ? await context.DanhMucMonHocs.FirstOrDefaultAsync(x => x.MaMonHoc == course.MaMonHoc)
+                : null;
+            var code = $"LHP-{subject?.MaCodeMonHoc ?? course.MaMonHoc.ToString()}-{activeTerm.MaCodeHocKy}-{course.MaKhoaHoc}";
+            if (sectionByCode.ContainsKey(code))
+            {
+                continue;
+            }
+
+            var section = await context.LopHocPhans.FirstOrDefaultAsync(x => x.MaCodeLopHocPhan == code);
+            if (section is null)
+            {
+                section = new LopHocPhan { MaCodeLopHocPhan = code };
+                context.LopHocPhans.Add(section);
+            }
+
+            section.MaDonVi = campus.MaDonVi;
+            section.MaMonHoc = course.MaMonHoc;
+            section.MaHocKy = course.MaHocKy ?? 0;
+            section.SucChua = 40;
+            section.SoDangKyToiThieu = 15;
+            section.SoDaDangKy = 0;
+            section.TrangThai = "mo";
+            section.QuotaVangToiDa = 10;
+            sectionByCode[code] = section;
+        }
+
+        if (sectionByCode.Count > 0)
+        {
+            await context.SaveChangesAsync();
+            foreach (var course in courses)
+            {
+                var subject = course.MaMonHoc != 0
+                    ? await context.DanhMucMonHocs.FirstOrDefaultAsync(x => x.MaMonHoc == course.MaMonHoc)
+                    : null;
+                var code = $"LHP-{subject?.MaCodeMonHoc ?? course.MaMonHoc.ToString()}-{activeTerm.MaCodeHocKy}-{course.MaKhoaHoc}";
+                if (sectionByCode.TryGetValue(code, out var section) && section.MaLopHocPhan > 0)
+                {
+                    course.MaLopHocPhan = section.MaLopHocPhan;
+                }
+            }
+            await context.SaveChangesAsync();
+        }
+
+        // ── 3. Sample enrollments: enroll a subset of students into their own-class courses ──
+        var studentSamples = students.Where(x => x.VaiTroChinh == studentRole).Take(320).ToList();
+        var courseByClass = courses
+            .GroupBy(c => c.MaLop)
+            .ToDictionary(g => g.Key, g => g.OrderBy(c => c.MaKhoaHoc).ToList());
+
+        foreach (var student in studentSamples)
+        {
+            if (student.MaLop is null)
+            {
+                continue;
+            }
+            if (!courseByClass.TryGetValue(student.MaLop.Value, out var classCourses))
+            {
+                continue;
+            }
+
+            var picks = classCourses.Take(3).ToList();
+            foreach (var course in picks)
+            {
+                if (course.MaLopHocPhan is null)
+                {
+                    continue;
+                }
+
+                var exists = await context.DangKyHocPhans.AnyAsync(r =>
+                    r.MaHocSinh == student.MaNguoiDung && r.MaLopHocPhan == course.MaLopHocPhan.Value);
+                if (exists)
+                {
+                    continue;
+                }
+
+                context.DangKyHocPhans.Add(new DangKyHocPhan
+                {
+                    MaHocSinh = student.MaNguoiDung,
+                    MaLopHocPhan = course.MaLopHocPhan.Value,
+                    TrangThai = "da_dang_ky",
+                    LaHocLai = false,
+                    KiemTraTienQuyet = false,
+                    DaKiemTraTienQuyet = true,
+                    NgayTao = now.AddDays(-3),
+                });
+            }
+        }
+
+        await context.SaveChangesAsync();
     }
 }

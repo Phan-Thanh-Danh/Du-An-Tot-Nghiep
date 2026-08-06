@@ -5,19 +5,25 @@ import {
 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
-import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import { scheduleApi } from '@/services/scheduleApi'
 
 const conflicts = ref([])
 const selected = ref(null)
-const confirmAction = ref({ isOpen: false, title: '', message: '', label: '', variant: 'primary', run: null })
 const searchQuery = ref('')
 const filterLoai = ref('')
 const filterMucDo = ref('')
 const error = ref('')
 
 const isChecking = ref(false)
+
+function unwrapList(response) {
+  const data = response?.data ?? response?.Data ?? response
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.items)) return data.items
+  if (Array.isArray(data?.Items)) return data.Items
+  return []
+}
 
 // ── Computed ───────────────────────────────────────────────────
 const stats = computed(() => ({
@@ -50,10 +56,9 @@ async function performCheck() {
   isChecking.value = true
   error.value = ''
   try {
-    const response = await scheduleApi.checkConflictsBatch({})
-    const data = response?.data ?? response?.Data ?? response
-    const items = Array.isArray(data) ? data : data?.items || data?.conflicts || []
-    conflicts.value = items.map(mapConflict)
+    const response = await scheduleApi.list({ pageSize: 100 })
+    const rows = unwrapList(response).filter(r => r.trangThai !== 'da_huy')
+    conflicts.value = buildConflicts(rows)
   } catch (e) {
     error.value = e.message || 'Không thể kiểm tra xung đột thời khóa biểu.'
     conflicts.value = []
@@ -62,37 +67,41 @@ async function performCheck() {
   }
 }
 
-function mapConflict(item) {
-  return {
-    id: item.id ?? item.maXungDot ?? item.MaXungDot ?? crypto.randomUUID(),
-    loai: item.loai ?? item.Loai ?? item.loaiXungDot ?? item.LoaiXungDot ?? 'lop_hoc',
-    mucDo: item.mucDo ?? item.MucDo ?? 'major',
-    doiTuong: item.doiTuong ?? item.DoiTuong ?? item.tenDoiTuong ?? item.TenDoiTuong ?? 'Chưa xác định',
-    moTa: item.moTa ?? item.MoTa ?? item.message ?? item.Message ?? '',
-    trangThaiXuLy: item.trangThaiXuLy ?? item.TrangThaiXuLy ?? 'chua_xu_ly',
-    thoiGian: item.thoiGian ?? item.ThoiGian ?? '',
-    deXuat: item.deXuat ?? item.DeXuat ?? '',
-  }
+function slotLabel(item) {
+  const days = { 2: 'Thứ Hai', 3: 'Thứ Ba', 4: 'Thứ Tư', 5: 'Thứ Năm', 6: 'Thứ Sáu', 7: 'Thứ Bảy', 8: 'Chủ Nhật' }
+  return `${days[item.thuTrongTuan] ?? `Thứ ${item.thuTrongTuan}`} • Ca ${item.maCaHoc}`
 }
 
-function applyFix(c) {
-  confirmAction.value = {
-    isOpen: true,
-    title: 'Áp dụng đề xuất?',
-    message: c.deXuat,
-    label: 'Áp dụng',
-    variant: 'primary',
-    run: () => {
-      const idx = conflicts.value.findIndex(x => x.id === c.id)
-      if (idx !== -1) conflicts.value.splice(idx, 1)
-      if (selected.value?.id === c.id) selected.value = null
-      confirmAction.value.isOpen = false
+function buildConflicts(rows) {
+  const out = []
+  const groups = { giang_vien: new Map(), phong_hoc: new Map(), lop_hoc: new Map() }
+  const push = (loai, key, item, label) => {
+    const map = groups[loai]
+    if (!map.has(key)) map.set(key, [])
+    map.get(key).push({ item, label })
+  }
+  for (const r of rows) {
+    push('giang_vien', `${r.thuTrongTuan}-${r.maCaHoc}-${r.maGiaoVien}`, r, r.tenGiaoVien || `Giáo viên #${r.maGiaoVien}`)
+    push('phong_hoc', `${r.thuTrongTuan}-${r.maCaHoc}-${r.maPhong}`, r, r.tenPhong || `Phòng ${r.maPhong}`)
+    push('lop_hoc', `${r.thuTrongTuan}-${r.maCaHoc}-${r.maLop}`, r, r.tenLop || `Lớp #${r.maLop}`)
+  }
+  for (const loai of ['giang_vien', 'phong_hoc', 'lop_hoc']) {
+    for (const [key, entries] of groups[loai]) {
+      if (entries.length < 2) continue
+      const s = entries[0].item
+      out.push({
+        id: `${loai}-${key}`,
+        loai,
+        mucDo: entries.length > 2 ? 'critical' : 'major',
+        doiTuong: entries[0].label,
+        moTa: `${entries.length} buổi trùng ${loai === 'giang_vien' ? 'giảng viên' : loai === 'phong_hoc' ? 'phòng học' : 'lớp học'} tại ${slotLabel(s)}.`,
+        thoiGian: slotLabel(s),
+        trangThaiXuLy: 'chua_xu_ly',
+        deXuat: '',
+      })
     }
   }
-}
-
-function runConfirm() {
-  if (confirmAction.value.run) confirmAction.value.run()
+  return out
 }
 </script>
 
@@ -256,11 +265,6 @@ function runConfirm() {
               <p class="text-sm text-(--text-muted)">Hệ thống không có đề xuất tự động. Cần xử lý thủ công.</p>
             </div>
           </div>
-
-          <div class="p-4 border-t border-(--border-default) space-y-2">
-            <GlassButton v-if="selected.deXuat" variant="primary" class="w-full justify-center" @click="applyFix(selected)">Áp dụng gợi ý</GlassButton>
-            <GlassButton variant="secondary" class="w-full justify-center text-link">Sửa lịch thủ công</GlassButton>
-          </div>
         </div>
       </div>
 
@@ -275,12 +279,4 @@ function runConfirm() {
 
     </div>
   </div>
-
-  <ConfirmActionDialog
-    v-model="confirmAction.isOpen"
-    :title="confirmAction.title"
-    :message="confirmAction.message"
-    :confirmLabel="confirmAction.label"
-    @confirm="runConfirm"
-  />
 </template>

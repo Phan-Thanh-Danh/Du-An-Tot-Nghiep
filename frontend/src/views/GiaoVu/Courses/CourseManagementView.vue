@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { usePopupStore } from '@/stores/popup'
+import { apiRequest } from '@/services/apiClient'
 import { courseApi } from '@/services/courseApi'
 import { exportToExcel } from '@/services/exportService'
 import {
@@ -162,37 +163,33 @@ function getSortIcon(field) {
 }
 
 // ── Data ──
+function unwrapItems(payload) {
+  const data = payload?.data ?? payload?.Data ?? payload
+  if (Array.isArray(data)) return data
+  return data?.items || data?.Items || []
+}
+
 async function loadDropdowns() {
   loadingDropdowns.value = true
   try {
-    academicTerms.value = [
-      { value: 1, label: 'HK1 2025-2026' },
-      { value: 2, label: 'HK2 2025-2026' },
-    ]
-    subjects.value = [
-      { value: 1, label: 'Lập trình Web (WEB101)' },
-      { value: 2, label: 'Cơ sở dữ liệu (CSDL201)' },
-      { value: 3, label: 'Cấu trúc dữ liệu (CTDL301)' },
-    ]
-    teachers.value = [
-      { value: 1, label: 'Nguyễn Văn An' },
-      { value: 2, label: 'Trần Thị Bình' },
-      { value: 3, label: 'Lê Văn Cường' },
-    ]
-    classes.value = [
-      { value: 1, label: 'CNTT01' },
-      { value: 2, label: 'CNTT02' },
-      { value: 3, label: 'KTPM01' },
-    ]
-    majors.value = [
-      { value: 1, label: 'Công nghệ thông tin' },
-      { value: 2, label: 'Kinh doanh' },
-    ]
-    specializations.value = [
-      { value: 1, label: 'Kỹ thuật phần mềm' },
-      { value: 2, label: 'An toàn thông tin' },
-      { value: 3, label: 'Quản trị kinh doanh' },
-    ]
+    const [termsRes, subjectsRes, teachersRes, classesRes, majorsRes, specsRes] = await Promise.all([
+      apiRequest('/api/master-data/academic-terms?pageSize=100'),
+      apiRequest('/api/master-data/subjects?pageSize=100'),
+      apiRequest('/api/admin/users?Role=Teacher&pageSize=100'),
+      apiRequest('/api/admin/classes?PageSize=100'),
+      apiRequest('/api/master-data/majors?pageSize=100'),
+      apiRequest('/api/master-data/specializations?pageSize=100'),
+    ])
+
+    academicTerms.value = unwrapItems(termsRes).map(t => ({ value: t.maHocKy, label: t.tenHocKy }))
+    subjects.value = unwrapItems(subjectsRes).map(s => ({
+      value: s.maMonHoc,
+      label: `${s.tenMonHoc} (${s.maCodeMonHoc})`,
+    }))
+    teachers.value = unwrapItems(teachersRes).map(u => ({ value: u.maNguoiDung, label: u.hoTen }))
+    classes.value = unwrapItems(classesRes).map(c => ({ value: c.maLop, label: c.tenLop || c.maCodeLop }))
+    majors.value = unwrapItems(majorsRes).map(n => ({ value: n.maNganh, label: n.tenNganh }))
+    specializations.value = unwrapItems(specsRes).map(cn => ({ value: cn.maChuyenNganh, label: cn.tenChuyenNganh }))
   } finally {
     loadingDropdowns.value = false
   }

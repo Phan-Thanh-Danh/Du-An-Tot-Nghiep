@@ -1,0 +1,24 @@
+{
+  "clicked": {
+    "clicked": true,
+    "labels": [
+      "Thời khóa biểu",
+      "Quản lý khóa học",
+      "Cơ sở vật chất",
+      "Đăng ký môn học",
+      "Đơn từ",
+      "Thông báo",
+      "Lớp & Người dùng",
+      "Cá nhân",
+      "Trợ giúp",
+      "Đăng xuất",
+      "Tìm kiếm",
+      "Light",
+      "PTP12 Test Giáo Vụacademicstaff",
+      "Kiểm tra toàn hệ thống"
+    ]
+  },
+  "initialEmptyState": true,
+  "conflictsPanelText": "đột giảng viên, lớp học, phòng học trước khi xuất bản.\n\nKiểm tra toàn hệ thống\n\nTỔNG XUNG ĐỘT\n\n2\n\nGIẢNG VIÊN\n\n0\n\nPHÒNG HỌC\n\n1\n\nLỚP HỌC\n\n1\n\nTất cả loại\nGiảng viên\nPhòng học\nLớp học\nMọi mức độ\nNghiêm trọng\nTrung bình\nPhòng học\nTrung bình\nPhòng P301\n\n2 buổi trùng phòng học tại Thứ Hai • Ca 1.\n\nChưa xử lý\n\nThứ Hai • Ca 1\n\nLớp học\nTrung bình\nSD1904 - Công nghệ thông tin K2026\n\n2 buổi trùng lớp học tại Thứ Hai • Ca 1.\n\nChưa xử lý\n\nThứ Hai • Ca 1\n\nChọn một xung đột\n\nChọn một dòng bên trái để xem nguyên",
+  "conflictFoundAfterClick": false
+}

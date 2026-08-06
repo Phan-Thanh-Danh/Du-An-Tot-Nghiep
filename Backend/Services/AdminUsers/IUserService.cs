@@ -1,10 +1,13 @@
 using Backend.DTOs.AdminUsers;
 using Backend.DTOs.Common;
+using Backend.DTOs.Rbac;
 
 namespace Backend.Services.AdminUsers;
 
 public interface IUserService
 {
+    Task<IReadOnlyList<RoleDto>> GetAssignableRolesAsync(CancellationToken cancellationToken = default);
+
     Task<PagedResultDto<UserListItemDto>> GetUsersAsync(
         UserQueryParameters parameters,
         CancellationToken cancellationToken = default);

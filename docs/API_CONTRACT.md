@@ -43,13 +43,14 @@ Ghi chú thuật ngữ: `DonVi` là tên bảng/entity kỹ thuật trong backen
 | GET | `/api/account/me` | JWT | Xem hồ sơ tài khoản hiện tại. |
 | PUT | `/api/account/profile` | JWT | Cập nhật email, họ tên, số điện thoại của tài khoản hiện tại. |
 | PUT | `/api/account/change-password` | JWT | Đổi mật khẩu tài khoản hiện tại. |
-| GET | `/api/admin/users` | Admin/SuperAdmin/CampusAdmin | Danh sách user có phân trang, tìm kiếm, lọc role/trạng thái/đơn vị và scope theo cơ sở. |
-| GET | `/api/admin/users/{id}` | Admin/SuperAdmin/CampusAdmin | Chi tiết user, gồm vai trò, đơn vị và lớp hành chính nếu là học sinh. |
-| POST | `/api/admin/users` | Admin/SuperAdmin/CampusAdmin | Tạo user, hash password, gán role và ghi audit. |
-| PUT | `/api/admin/users/{id}` | Admin/SuperAdmin/CampusAdmin | Cập nhật thông tin, đơn vị, lớp, vai trò và ghi audit. |
-| PATCH | `/api/admin/users/{id}/lock` | Admin/SuperAdmin/CampusAdmin | Khóa tài khoản bằng trạng thái `bi_khoa`, không xóa vật lý. |
-| PATCH | `/api/admin/users/{id}/unlock` | Admin/SuperAdmin/CampusAdmin | Mở khóa tài khoản bằng trạng thái `hoat_dong`. |
-| PATCH | `/api/admin/users/{id}/reset-password` | Admin/SuperAdmin/CampusAdmin | Admin đặt lại mật khẩu user và ghi audit. |
+| GET | `/api/admin/users` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Danh sách user có phân trang, tìm kiếm, lọc role/trạng thái/đơn vị và scope theo cơ sở; `UserListItemDto` gồm `maVaiTro`, `maCodeVaiTro`, `maDonVi`, `maLopHanhChinh`, `tenLopHanhChinh`. |
+| GET | `/api/admin/users/roles` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Danh sách vai trò được phép gán trong quản trị tài khoản (không gồm roles nhạy cảm như SuperAdmin/Principal). |
+| GET | `/api/admin/users/{id}` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Chi tiết user, gồm vai trò, đơn vị và lớp hành chính nếu là học sinh. |
+| POST | `/api/admin/users` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Tạo user, hash password, gán role và ghi audit. |
+| PUT | `/api/admin/users/{id}` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Cập nhật thông tin, đơn vị, lớp, vai trò và ghi audit. |
+| PATCH | `/api/admin/users/{id}/lock` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Khóa tài khoản bằng trạng thái `bi_khoa`, không xóa vật lý. |
+| PATCH | `/api/admin/users/{id}/unlock` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Mở khóa tài khoản bằng trạng thái `hoat_dong`. |
+| PATCH | `/api/admin/users/{id}/reset-password` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Admin đặt lại mật khẩu user và ghi audit. |
 | GET | `/api/bgh/users` | Principal/Admin/SuperAdmin | Danh sách user read-only cho BGH, scope theo cơ sở của người dùng hiện tại; không cho mutation qua endpoint BGH. |
 
 ### Dự kiến/cần bổ sung

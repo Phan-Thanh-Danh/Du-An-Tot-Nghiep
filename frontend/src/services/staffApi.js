@@ -62,6 +62,7 @@ export const staffApi = {
   // √ GET /api/thoi-khoa-bieu — ThoiKhoaBieuController
   getSchedules(params = {}) {
     const query = new URLSearchParams()
+    if (params.trangThai || params.TrangThai) query.append('TrangThai', params.trangThai || params.TrangThai)
     if (params.tuan) query.append('tuan', params.tuan)
     if (params.maLop) query.append('maLop', params.maLop)
     if (params.maPhong) query.append('maPhong', params.maPhong)
@@ -91,18 +92,22 @@ export const staffApi = {
     })
   },
 
+  // √ PATCH /api/thoi-khoa-bieu/{id}/cancel — cancel schedule entry
+  cancelSchedule(id) {
+    return apiRequest(`/api/thoi-khoa-bieu/${id}/cancel`, { method: 'PATCH' })
+  },
+
   // √ DELETE /api/thoi-khoa-bieu/{id}
   deleteSchedule(id) {
     return apiRequest(`/api/thoi-khoa-bieu/${id}`, { method: 'DELETE' })
   },
 
-  // √ GET /api/thoi-khoa-bieu/check-xung-dot
-  checkConflicts(params = {}) {
-    const query = new URLSearchParams()
-    if (params.tuan) query.append('tuan', params.tuan)
-    if (params.maPhong) query.append('maPhong', params.maPhong)
-    const qs = query.toString()
-    return apiRequest(`/api/thoi-khoa-bieu/check-xung-dot${qs ? '?' + qs : ''}`)
+  // √ POST /api/thoi-khoa-bieu/check-xung-dot
+  checkConflicts(data) {
+    return apiRequest('/api/thoi-khoa-bieu/check-xung-dot', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
   },
 
   // ── Rooms ──
@@ -146,35 +151,6 @@ export const staffApi = {
     if (params.ngay) query.append('ngay', params.ngay)
     const qs = query.toString()
     return apiRequest(`/api/buoi-hoc${qs ? '?' + qs : ''}`)
-  },
-
-  // ── Applications/Requests ──
-  // √ GET /api/admin/applications — AdminApplicationsController
-  getPendingRequests(params = {}) {
-    const query = new URLSearchParams()
-    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
-    if (params.pageSize) query.append('pageSize', params.pageSize)
-    if (params.status) query.append('status', params.status)
-    const qs = query.toString()
-    return apiRequest(`/api/admin/applications${qs ? '?' + qs : ''}`)
-  },
-
-  getRequestById(id) {
-    return apiRequest(`/api/admin/applications/${id}`)
-  },
-
-  approveRequest(id, payload = {}) {
-    return apiRequest(`/api/admin/applications/${id}/approve`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-  },
-
-  rejectRequest(id, payload = {}) {
-    return apiRequest(`/api/admin/applications/${id}/reject`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
   },
 
   // ── Registration Periods ──

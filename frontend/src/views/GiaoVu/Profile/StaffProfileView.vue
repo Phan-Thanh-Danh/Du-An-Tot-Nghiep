@@ -1,8 +1,8 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { authApi } from '@/services/apiClient'
+import { accountApi } from '@/services/accountApi'
 import { 
   User, 
   Mail, 
@@ -15,7 +15,6 @@ import {
   LogOut,
   ChevronRight,
   ShieldAlert,
-  Camera,
   Save,
   X,
   Lock,
@@ -29,27 +28,53 @@ import PageContainer from '@/components/SinhVien/PageContainer.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 
-import { computed } from 'vue'
-
 // ── Profile Data ────────────────────────────────────────────────
-const profile = computed(() => {
-  const u = authStore.user || {}
-  return {
-    name: u.hoTen || u.fullName || 'Người dùng',
-    code: u.maTaiKhoan || u.username || 'N/A',
-    role: u.vaiTro || u.role || 'Giáo vụ',
-    email: u.email || '',
-    phone: u.soDienThoai || 'N/A',
-    campus: u.donVi || u.campus || 'N/A',
-    joinDate: u.ngayTao ? new Date(u.ngayTao).toLocaleDateString('vi-VN') : 'N/A',
-    avatar: u.avatar || null
-  }
+const profile = ref({
+  name: 'Người dùng',
+  code: 'N/A',
+  role: 'Giáo vụ',
+  email: '',
+  phone: 'N/A',
+  campus: 'N/A',
+  joinDate: 'N/A',
+  avatar: null,
 })
 
-const editForm = ref({ ...profile.value })
+const profileError = ref('')
+const profileLoading = ref(false)
+const profileSaving = ref(false)
+const profileSaved = ref(false)
+
+const editForm = ref({ email: '', phone: '' })
 const editing = ref(false)
 
 const loginHistory = ref([])
+
+async function loadProfile() {
+  profileLoading.value = true
+  profileError.value = ''
+  try {
+    const u = await accountApi.getMe()
+    profile.value = {
+      id: u.id,
+      name: u.hoTen || 'Người dùng',
+      code: u.id ? `#${u.id}` : 'N/A',
+      role: u.vaiTroChinh === 'giao_vien' ? 'Giảng viên' : u.vaiTroChinh === 'hoc_sinh' ? 'Sinh viên' : u.vaiTroChinh === 'hieu_truong' ? 'Phó hiệu trưởng' : 'Giáo vụ',
+      email: u.email || '',
+      phone: u.soDienThoai || 'N/A',
+      campus: u.campus || authStore.user?.donVi || 'N/A',
+      joinDate: 'N/A',
+      avatar: null,
+    }
+    editForm.value = { ...profile.value }
+  } catch (err) {
+    profileError.value = err.message || 'Không thể tải hồ sơ.'
+  } finally {
+    profileLoading.value = false
+  }
+}
+
+onMounted(loadProfile)
 
 // ── Change Password ──────────────────────────────────────────
 const showChangePwd = ref(false)
@@ -102,8 +127,8 @@ async function handleChangePwd() {
 
   changingPwd.value = true
   try {
-    await authApi.changePassword({
-      oldPassword,
+    await accountApi.changePassword({
+      currentPassword: oldPassword,
       newPassword,
       confirmPassword,
     })
@@ -123,9 +148,30 @@ function toggleEdit() {
   editing.value = !editing.value
 }
 
-function saveProfile() {
-  profile.value = { ...editForm.value }
-  editing.value = false
+async function saveProfile() {
+  profileSaving.value = true
+  profileSaved.value = false
+  profileError.value = ''
+  try {
+    const res = await accountApi.updateProfile({
+      email: editForm.value.email,
+      hoTen: editForm.value.name,
+      soDienThoai: editForm.value.phone === 'N/A' ? null : editForm.value.phone,
+    })
+    profile.value = {
+      ...profile.value,
+      name: res.hoTen || editForm.value.name,
+      email: res.email || editForm.value.email,
+      phone: res.soDienThoai || 'N/A',
+    }
+    editForm.value = { ...profile.value }
+    editing.value = false
+    profileSaved.value = true
+  } catch (err) {
+    profileError.value = err.message || 'Lưu hồ sơ thất bại.'
+  } finally {
+    profileSaving.value = false
+  }
 }
 
 function handleLogout() {
@@ -149,10 +195,6 @@ function handleLogout() {
                  <div class="h-full w-full rounded-[22px] surface-card flex items-center justify-center overflow-hidden relative">
                      <User v-if="!profile.avatar" :size="40" class="text-placeholder" />
                     <img v-else :src="profile.avatar" class="h-full w-full object-cover" />
-                    
-                    <button class="absolute inset-0 surface-modal opacity-0 group-hover:opacity-100 flex items-center justify-center text-inverse transition-opacity">
-                       <Camera :size="18" />
-                    </button>
                  </div>
               </div>
            </div>
@@ -210,6 +252,17 @@ function handleLogout() {
             </div>
 
             <div class="p-4 space-y-5">
+               <div v-if="profileError" class="flex items-start gap-2 p-3 rounded-xl bg-(--color-danger-bg) border border-(--color-danger-text)/20">
+                  <AlertCircle :size="14" class="text-(--color-danger-text) shrink-0 mt-0.5" />
+                  <p class="text-[11px] font-semibold text-(--color-danger-text)">{{ profileError }}</p>
+               </div>
+               <div v-if="profileSaved" class="flex items-start gap-2 p-3 rounded-xl bg-(--color-success-bg) border border-(--color-success-text)/20">
+                  <CheckCircle2 :size="14" class="text-(--color-success-text) shrink-0 mt-0.5" />
+                  <p class="text-[11px] font-semibold text-(--color-success-text)">Hồ sơ đã được cập nhật thành công.</p>
+               </div>
+               <div v-if="profileLoading" class="p-3 rounded-xl surface-solid border border-default">
+                  <p class="text-[11px] font-semibold text-label">Đang tải hồ sơ...</p>
+               </div>
                <!-- Grid Info -->
                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div class="space-y-3">
@@ -233,11 +286,12 @@ function handleLogout() {
                              <p v-else class="text-xs font-bold text-heading">{{ profile.phone }}</p>
                          </div>
                       </div>
-                      <div v-if="editing" class="md:col-span-2">
-                          <button @click="saveProfile" class="w-full lg-button-primary py-2 text-xs font-semibold flex items-center justify-center gap-2">
-                             <Save :size="14" /> Lưu thay đổi
-                         </button>
-                      </div>
+<div v-if="editing" class="md:col-span-2">
+                           <button @click="saveProfile" :disabled="profileSaving" class="w-full lg-button-primary py-2 text-xs font-semibold flex items-center justify-center gap-2">
+                              <span v-if="profileSaving" class="h-3 w-3 rounded-full border-2 border-inverse border-t-transparent animate-spin"></span>
+                              <Save v-else :size="14" /> {{ profileSaving ? 'Đang lưu...' : 'Lưu thay đổi' }}
+                          </button>
+                       </div>
                   </div>
 
                   <div class="p-3 surface-solid rounded-2xl border border-default">
@@ -257,7 +311,8 @@ function handleLogout() {
                     <h4 class="text-[10px] font-semibold text-label mb-3 flex items-center gap-2">
                        <Clock :size="14" /> Lịch sử đăng nhập
                    </h4>
-                   <div class="space-y-2">
+                   <p v-if="!loginHistory.length" class="text-[10px] text-muted">Chưa có lịch sử đăng nhập.</p>
+                   <div v-else class="space-y-2">
                       <div v-for="log in loginHistory" :key="log.id" class="flex items-center justify-between p-3 surface-solid rounded-xl border border-default group hover:border-(--border-input-focus) transition-all">
                          <div class="flex items-center gap-3">
                             <div :class="['h-6 w-6 rounded-full flex items-center justify-center', log.status === 'current' ? 'bg-(--color-success-bg) text-(--color-success-text)' : 'surface-solid text-placeholder']">

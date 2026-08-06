@@ -5,19 +5,23 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import { accountApi } from '@/services/accountApi'
 import { usePopupStore } from '@/stores/popup'
 
 const popupStore = usePopupStore()
 const loading = ref(true); const error = ref(null); const rows = ref([])
+const roleOptions = ref([]); const organizationOptions = ref([]); const classOptions = ref([])
 const searchQuery = ref(''); const filterVaiTro = ref(''); const filterKichHoat = ref('')
 const groupByMode = ref('role') // 'role' | 'class' (for students) | 'none'
 
 const showFormModal = ref(false); const formMode = ref('create'); const editingId = ref(null); const submitting = ref(false)
-const formData = ref({ tenDangNhap: '', hoTen: '', email: '', vaiTro: 'GiangVien', donVi: '', kichHoat: true })
+const formData = ref({ hoTen: '', email: '', soDienThoai: '', matKhau: '', vaiTro: null, donVi: null, maLopHanhChinh: null, kichHoat: true })
 const formErrors = ref({})
 
-const vaiTroOptions = accountApi.getVaiTroOptions()
+const showResetModal = ref(false); const resetTarget = ref(null); const resetPassword = ref(''); const resetting = ref(false)
+const resetError = ref('')
+
 const vaiTroBadge = {
   GiangVien: { label: 'Giảng viên', variant: 'primary' },
   AcademicStaff: { label: 'Giáo vụ', variant: 'info' },
@@ -25,9 +29,51 @@ const vaiTroBadge = {
   Principal: { label: 'BGH', variant: 'violet' },
   SuperAdmin: { label: 'Super Admin', variant: 'danger' },
   PhuHuynh: { label: 'Phụ huynh', variant: 'warning' },
+  Admin: { label: 'Admin', variant: 'danger' },
+  CampusAdmin: { label: 'Quản trị cơ sở', variant: 'warning' },
+  Chairman: { label: 'Chủ tịch', variant: 'violet' },
 }
 
-onMounted(fetchData)
+const vaiTroOptions = computed(() => {
+  const codes = roleOptions.value.map(r => r.uiCode).filter(Boolean)
+  return [...new Set(codes)]
+})
+
+const dbCodeToUi = {
+  giao_vien: 'GiangVien', nhan_vien: 'AcademicStaff', hoc_sinh: 'SinhVien',
+  hieu_truong: 'Principal', sieu_quan_tri: 'SuperAdmin', phu_huynh: 'PhuHuynh',
+  quan_tri: 'Admin', quan_tri_co_so: 'CampusAdmin', chu_tich: 'Chairman',
+}
+
+const isStudentRole = computed(() => {
+  const role = roleOptions.value.find(r => r.maVaiTro === Number(formData.value.vaiTro))
+  return role?.maCodeVaiTro === 'hoc_sinh'
+})
+
+onMounted(async () => {
+  await Promise.all([loadMeta(), fetchData()])
+})
+
+async function loadMeta() {
+  try {
+    const [roles, orgs] = await Promise.all([accountApi.getRoles(), accountApi.getOrganizations()])
+    roleOptions.value = roles.map(r => ({ ...r, uiCode: dbCodeToUi[r.maCodeVaiTro] || r.maCodeVaiTro }))
+    organizationOptions.value = orgs.filter(o => o.isActive !== false)
+  } catch (e) {
+    popupStore.error('Lỗi', e.message || 'Không tải được danh mục vai trò/đơn vị.')
+  }
+}
+
+async function loadClasses() {
+  const donVi = formData.value.donVi
+  try {
+    const classes = donVi ? await accountApi.getClasses({ MaKhoa: Number(donVi) }) : await accountApi.getClasses()
+    classOptions.value = classes
+  } catch {
+    classOptions.value = []
+  }
+}
+
 async function fetchData() {
   loading.value = true; error.value = null
   try {
@@ -45,13 +91,12 @@ const filteredRows = computed(() => {
   return list
 })
 
-// ── Group accounts by mode ──────────────────────────────────
 const groupedAccounts = computed(() => {
   const filtered = filteredRows.value
   if (groupByMode.value === 'none') {
     return { ungrouped: filtered }
   }
-  
+
   if (groupByMode.value === 'role') {
     const groups = {}
     filtered.forEach(account => {
@@ -59,7 +104,6 @@ const groupedAccounts = computed(() => {
       if (!groups[role]) groups[role] = []
       groups[role].push(account)
     })
-    // Sort by role importance
     const roleOrder = ['SuperAdmin', 'Principal', 'AcademicStaff', 'GiangVien', 'SinhVien', 'PhuHuynh']
     const sorted = {}
     roleOrder.forEach(role => {
@@ -70,7 +114,7 @@ const groupedAccounts = computed(() => {
     })
     return sorted
   }
-  
+
   if (groupByMode.value === 'class' && filterVaiTro.value === 'SinhVien') {
     const groups = {}
     filtered.forEach(account => {
@@ -80,7 +124,7 @@ const groupedAccounts = computed(() => {
     })
     return groups
   }
-  
+
   return { ungrouped: filtered }
 })
 
@@ -97,49 +141,97 @@ const bgMap = { 'Tổng tài khoản': 'bg-(--color-info-bg)', 'Đang hoạt đ�
 
 function clearFilters() { searchQuery.value = ''; filterVaiTro.value = ''; filterKichHoat.value = '' }
 
-// ── Form ──
-const defaults = () => ({ tenDangNhap: '', hoTen: '', email: '', vaiTro: 'GiangVien', donVi: '', kichHoat: true })
-function resetForm() { formData.value = defaults(); formErrors.value = {} }
-function showDevelopingFeature() { popupStore.info('Chức năng đang phát triển', 'Chức năng đang phát triển') }
+const defaults = () => ({ hoTen: '', email: '', soDienThoai: '', matKhau: '', vaiTro: null, donVi: null, maLopHanhChinh: null, kichHoat: true })
+function resetForm() { formData.value = defaults(); formErrors.value = {}; classOptions.value = [] }
 function openCreate() {
-  
-  resetForm(); formMode.value = 'create'; editingId.value = null; showFormModal.value = true
+  resetForm()
+  formMode.value = 'create'; editingId.value = null; showFormModal.value = true
+  const firstRole = roleOptions.value.find(r => r.uiCode === 'SinhVien') || roleOptions.value[0]
+  if (firstRole) formData.value.vaiTro = firstRole.maVaiTro
+  const firstOrg = organizationOptions.value[0]
+  if (firstOrg) formData.value.donVi = firstOrg.maDonVi
+  if (formData.value.vaiTro) loadClasses()
 }
 function openEdit(r) {
-  
   formMode.value = 'edit'; editingId.value = r.maTaiKhoan
-  formData.value = { tenDangNhap: r.tenDangNhap, hoTen: r.hoTen, email: r.email, vaiTro: r.vaiTro, donVi: r.donVi || '', kichHoat: r.kichHoat }
+  formData.value = {
+    hoTen: r.hoTen, email: r.email, soDienThoai: r.soDienThoai || '', matKhau: '',
+    vaiTro: r.maVaiTro ?? null, donVi: r.maDonVi ?? null, maLopHanhChinh: r.maLopHanhChinh ?? null,
+    kichHoat: r.kichHoat,
+  }
   formErrors.value = {}; showFormModal.value = true
+  loadClasses()
 }
 function closeForm() { showFormModal.value = false; resetForm() }
 
 function validate() {
   const e = {}
-  if (!formData.value.tenDangNhap.trim()) e.tenDangNhap = 'Tên đăng nhập không được để trống'
   if (!formData.value.hoTen.trim()) e.hoTen = 'Họ tên không được để trống'
   if (!formData.value.email.trim()) e.email = 'Email không được để trống'
-  else if (!formData.value.email.includes('@')) e.email = 'Email phải có @'
+  else if (!formData.value.email.includes('@')) e.email = 'Email phải chứa @'
+  if (!formData.value.vaiTro) e.vaiTro = 'Vui lòng chọn vai trò'
+  if (!formData.value.donVi) e.donVi = 'Vui lòng chọn đơn vị'
+  if (formMode.value === 'create') {
+    if (!formData.value.matKhau) e.matKhau = 'Mật khẩu không được để trống'
+    else if (formData.value.matKhau.length < 8) e.matKhau = 'Mật khẩu phải có tối thiểu 8 ký tự'
+  }
+  if (isStudentRole.value && !formData.value.maLopHanhChinh) e.maLopHanhChinh = 'Sinh viên phải được gán lớp hành chính'
   formErrors.value = e; return Object.keys(e).length === 0
 }
+
 async function submitForm() {
   if (!validate()) return; submitting.value = true
   try {
-    if (formMode.value === 'edit') await accountApi.update(editingId.value, formData.value)
-    else await accountApi.create(formData.value)
+    if (formMode.value === 'edit') {
+      await accountApi.update(editingId.value, formData.value)
+    } else {
+      await accountApi.create(formData.value)
+    }
+    popupStore.success(formMode.value === 'edit' ? 'Cập nhật tài khoản' : 'Tạo tài khoản', 'Lưu thành công.')
     closeForm(); await fetchData()
-  } catch (e) { formErrors.value._api = e.message || 'Lỗi khi lưu tài khoản' }
+  } catch (e) {
+    formErrors.value._api = e.message || 'Lỗi khi lưu tài khoản'
+    popupStore.error('Lỗi', e.message || 'Không thể lưu tài khoản.')
+  }
   finally { submitting.value = false }
 }
 
-// ── Actions ──
 async function toggleActive(r) {
-  try { await accountApi.toggleActive(r.maTaiKhoan); await fetchData() }
-  catch { popupStore.error('Lỗi', 'Không thể thay đổi trạng thái.') }
+  try {
+    await accountApi.toggleActive({ maTaiKhoan: r.maTaiKhoan, kichHoat: r.kichHoat })
+    await fetchData()
+    popupStore.success('Trạng thái tài khoản', r.kichHoat ? 'Đã khóa tài khoản.' : 'Đã mở khóa tài khoản.')
+  }
+  catch (e) { popupStore.error('Lỗi', e.message || 'Không thể thay đổi trạng thái.') }
 }
-async function resetPwd(r) {
-  
-  try { await accountApi.resetPassword(r.maTaiKhoan); popupStore.success('Đặt lại mật khẩu', 'Đặt lại mật khẩu thành công.') }
-  catch { popupStore.error('Lỗi', 'Không thể đặt lại mật khẩu.') }
+
+function openResetPwd(r) {
+  resetTarget.value = r; resetPassword.value = ''; resetError.value = ''
+  showResetModal.value = true
+}
+function closeResetPwd() { showResetModal.value = false; resetTarget.value = null; resetPassword.value = ''; resetError.value = '' }
+
+async function submitResetPwd() {
+  if (!resetTarget.value) return
+  if (!resetPassword.value) { resetError.value = 'Mật khẩu mới không được để trống.'; return }
+  if (resetPassword.value.length < 8) { resetError.value = 'Mật khẩu mới phải có tối thiểu 8 ký tự.'; return }
+  resetting.value = true
+  try {
+    await accountApi.resetPassword(resetTarget.value.maTaiKhoan, resetPassword.value)
+    popupStore.success('Đặt lại mật khẩu', 'Đặt lại mật khẩu thành công.')
+    closeResetPwd()
+  } catch (e) {
+    resetError.value = e.message || 'Không thể đặt lại mật khẩu.'
+  } finally { resetting.value = false }
+}
+
+function handleVaiTroChange() {
+  if (!isStudentRole.value) formData.value.maLopHanhChinh = null
+  loadClasses()
+}
+function handleDonViChange() {
+  formData.value.maLopHanhChinh = null
+  loadClasses()
 }
 </script>
 
@@ -202,7 +294,7 @@ async function resetPwd(r) {
         </div>
       </div>
       <div v-else-if="filteredRows.length === 0" class="p-6">
-        <EmptyState title="Không tìm thấy tài khoản nào" description="Thử thay đổi từ khóa hoặc bộ lọc.">
+        <EmptyState title="Không tìm thấy tài khoản nào" description="Thử thay đổi từ khóa hoặc bỏ lọc.">
           <GlassButton variant="primary" @click="openCreate"><Plus :size="15" class="mr-1" /> Thêm tài khoản</GlassButton>
         </EmptyState>
       </div>
@@ -258,7 +350,7 @@ async function resetPwd(r) {
                         <button class="h-8 w-8 rounded-lg hover:bg-(--color-warning-bg) flex items-center justify-center text-muted hover:text-(--color-warning-text) transition-colors" :title="r.kichHoat ? 'Khóa' : 'Kích hoạt'" @click.stop="toggleActive(r)">
                           <component :is="r.kichHoat ? X : Users" :size="15" />
                         </button>
-                        <button class="h-8 w-8 rounded-lg hover:bg-(--color-info-bg) flex items-center justify-center text-muted hover:text-(--color-info-text) transition-colors" title="Đặt lại mật khẩu" @click.stop="resetPwd(r)">
+                        <button class="h-8 w-8 rounded-lg hover:bg-(--color-info-bg) flex items-center justify-center text-muted hover:text-(--color-info-text) transition-colors" title="Đặt lại mật khẩu" @click.stop="openResetPwd(r)">
                           <KeyRound :size="14" />
                         </button>
                       </div>
@@ -307,7 +399,7 @@ async function resetPwd(r) {
                     <button class="h-8 w-8 rounded-lg hover:bg-(--color-warning-bg) flex items-center justify-center text-muted hover:text-(--color-warning-text) transition-colors" :title="r.kichHoat ? 'Khóa' : 'Kích hoạt'" @click.stop="toggleActive(r)">
                       <component :is="r.kichHoat ? X : Users" :size="15" />
                     </button>
-                    <button class="h-8 w-8 rounded-lg hover:bg-(--color-info-bg) flex items-center justify-center text-muted hover:text-(--color-info-text) transition-colors" title="Đặt lại mật khẩu" @click.stop="resetPwd(r)">
+                    <button class="h-8 w-8 rounded-lg hover:bg-(--color-info-bg) flex items-center justify-center text-muted hover:text-(--color-info-text) transition-colors" title="Đặt lại mật khẩu" @click.stop="openResetPwd(r)">
                       <KeyRound :size="14" />
                     </button>
                   </div>
@@ -331,11 +423,6 @@ async function resetPwd(r) {
             <div class="px-6 py-5 overflow-y-auto space-y-4" style="max-height: calc(90vh - 140px)">
               <p v-if="formErrors._api" class="text-sm text-(--color-danger-text) font-semibold">{{ formErrors._api }}</p>
               <div>
-                <label class="block text-xs font-semibold text-(--text-muted) mb-1">Tên đăng nhập <span class="text-(--color-danger-text)">*</span></label>
-                <input v-model="formData.tenDangNhap" type="text" placeholder="VD: nguyen.van.a" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.tenDangNhap ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''" />
-                <p v-if="formErrors.tenDangNhap" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.tenDangNhap }}</p>
-              </div>
-              <div>
                 <label class="block text-xs font-semibold text-(--text-muted) mb-1">Họ tên <span class="text-(--color-danger-text)">*</span></label>
                 <input v-model="formData.hoTen" type="text" placeholder="VD: TS. Nguyễn Văn An" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.hoTen ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''" />
                 <p v-if="formErrors.hoTen" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.hoTen }}</p>
@@ -345,24 +432,37 @@ async function resetPwd(r) {
                 <input v-model="formData.email" type="email" placeholder="VD: an.nv@lms.edu.vn" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.email ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''" />
                 <p v-if="formErrors.email" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.email }}</p>
               </div>
+              <div v-if="formMode === 'create'">
+                <label class="block text-xs font-semibold text-(--text-muted) mb-1">Mật khẩu <span class="text-(--color-danger-text)">*</span></label>
+                <input v-model="formData.matKhau" type="password" placeholder="Tối thiểu 8 ký tự" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.matKhau ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''" />
+                <p v-if="formErrors.matKhau" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.matKhau }}</p>
+                <p class="mt-1 text-xs text-muted">Tên đăng nhập được tạo tự động từ email.</p>
+              </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-xs font-semibold text-(--text-muted) mb-1">Vai trò</label>
-                  <select v-model="formData.vaiTro" class="w-full h-9 px-2 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
-            <option v-for="vt in vaiTroOptions" :key="vt" :value="vt">{{ (vaiTroBadge[vt] || {}).label || vt }}</option>
+                  <label class="block text-xs font-semibold text-(--text-muted) mb-1">Vai trò <span class="text-(--color-danger-text)">*</span></label>
+                  <select v-model="formData.vaiTro" class="w-full h-9 px-2 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.vaiTro ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''" @change="handleVaiTroChange">
+                    <option :value="null" disabled>Chọn vai trò</option>
+                    <option v-for="r in roleOptions" :key="r.maVaiTro" :value="r.maVaiTro">{{ r.tenVaiTro }}</option>
                   </select>
+                  <p v-if="formErrors.vaiTro" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.vaiTro }}</p>
                 </div>
                 <div>
-                  <label class="block text-xs font-semibold text-(--text-muted) mb-1">Đơn vị</label>
-                  <input v-model="formData.donVi" type="text" placeholder="VD: CNTT" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+                  <label class="block text-xs font-semibold text-(--text-muted) mb-1">Đơn vị <span class="text-(--color-danger-text)">*</span></label>
+                  <select v-model="formData.donVi" class="w-full h-9 px-2 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.donVi ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''" @change="handleDonViChange">
+                    <option :value="null" disabled>Chọn đơn vị</option>
+                    <option v-for="o in organizationOptions" :key="o.maDonVi" :value="o.maDonVi">{{ o.tenDonVi }}</option>
+                  </select>
+                  <p v-if="formErrors.donVi" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.donVi }}</p>
                 </div>
               </div>
-              <div class="flex items-center gap-3">
-                <label class="text-xs font-semibold text-(--text-muted)">Kích hoạt</label>
-                <button type="button" class="relative w-10 h-5 rounded-full transition-colors" :class="formData.kichHoat ? 'bg-emerald-500' : 'bg-(--border-default)'" @click="formData.kichHoat = !formData.kichHoat">
-                  <span class="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform" :class="formData.kichHoat ? 'translate-x-5' : 'translate-x-0.5'" />
-                </button>
-                <span class="text-xs text-(--text-muted)">{{ formData.kichHoat ? 'Đang hoạt động' : 'Đã khóa' }}</span>
+              <div v-if="isStudentRole">
+                <label class="block text-xs font-semibold text-(--text-muted) mb-1">Lớp hành chính <span class="text-(--color-danger-text)">*</span></label>
+                <select v-model="formData.maLopHanhChinh" class="w-full h-9 px-2 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.maLopHanhChinh ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''">
+                  <option :value="null" disabled>Chọn lớp</option>
+                  <option v-for="c in classOptions" :key="c.maLop" :value="c.maLop">{{ c.tenLop }}</option>
+                </select>
+                <p v-if="formErrors.maLopHanhChinh" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.maLopHanhChinh }}</p>
               </div>
             </div>
             <div class="px-6 py-4 border-t border-(--border-default) bg-(--surface-modal) flex items-center gap-3 justify-end">
@@ -375,6 +475,25 @@ async function resetPwd(r) {
           </div>
         </div>
       </transition>
+    </Teleport>
+
+    <!-- Reset password modal -->
+    <Teleport to="body">
+      <ConfirmActionDialog
+        :model-value="showResetModal"
+        title="Đặt lại mật khẩu"
+        :message="`Nhập mật khẩu mới cho tài khoản ${resetTarget?.tenDangNhap || ''}.`"
+        confirm-label="Đặt lại"
+        :loading="resetting"
+        @update:model-value="showResetModal = $event"
+        @cancel="closeResetPwd"
+        @confirm="submitResetPwd"
+      >
+        <div class="mt-2">
+          <input v-model="resetPassword" type="password" placeholder="Mật khẩu mới (tối thiểu 8 ký tự)" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" @keydown.enter="submitResetPwd" />
+          <p v-if="resetError" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ resetError }}</p>
+        </div>
+      </ConfirmActionDialog>
     </Teleport>
   </div>
 </template>

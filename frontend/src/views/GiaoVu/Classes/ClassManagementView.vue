@@ -7,19 +7,30 @@ import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { classApi } from '@/services/classApi'
+import { organizationApi } from '@/services/organizationService'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+const campusId = computed(() => authStore.user?.campusId ?? authStore.user?.CampusId ?? 1)
 
 const loading = ref(true); const error = ref(null); const rows = ref([])
 const searchQuery = ref(''); const filterTrangThai = ref(''); const filterKhoa = ref('')
 
 const showFormModal = ref(false); const formMode = ref('create'); const editingId = ref(null); const submitting = ref(false)
-const formData = ref({ maCodeLop: '', tenLop: '', maKhoa: 1, maKhoaHoc: new Date().getFullYear(), siSoToiDa: 50, maGiaoVien: null, tenGiaoVien: '', namNhapHoc: String(new Date().getFullYear()), trangThai: 'moi', ghiChu: '' })
+const formData = ref({ maCodeLop: '', tenLop: '', maKhoa: campusId.value, maKhoaHoc: new Date().getFullYear(), siSoToiDa: 50, maGiaoVien: null, tenGiaoVien: '', namNhapHoc: String(new Date().getFullYear()), trangThai: 'moi', ghiChu: '' })
 const formErrors = ref({})
 const confirmDelete = ref(null)
 
-const khoaOptions = [
-  { ma: 1, ten: 'Công nghệ thông tin' }, { ma: 2, ten: 'Quản trị kinh doanh' },
-  { ma: 3, ten: 'Ngôn ngữ Anh' }, { ma: 4, ten: 'Cơ khí' },
-]
+const khoaOptions = ref([])
+async function loadKhoaOptions() {
+  try {
+    const orgs = await organizationApi.getAll()
+    const list = Array.isArray(orgs) ? orgs : orgs?.data ?? []
+    khoaOptions.value = list
+      .filter((o) => o.isActive !== false)
+      .map((o) => ({ ma: o.id ?? o.maDonVi, ten: o.name ?? o.tenDonVi ?? `Cơ sở ${o.id}`, id: o.id }))
+  } catch { /* giữ rỗng, form vẫn gửi được maKhoa mặc định theo campus */ }
+}
 const statusOptions = [
   { value: 'moi', label: 'Mới' }, { value: 'dang_hoc', label: 'Đang học' },
   { value: 'da_tot_nghiep', label: 'Đã tốt nghiệp' }, { value: 'tam_dung', label: 'Tạm dừng' },
@@ -33,7 +44,7 @@ const trangThaiBadge = {
   da_bi_huy: { label: 'Đã hủy', variant: 'danger' },
 }
 
-onMounted(fetchData)
+onMounted(() => { loadKhoaOptions(); fetchData() })
 async function fetchData() {
   loading.value = true; error.value = null
   try {
@@ -61,7 +72,7 @@ const summaryCards = computed(() => [
 function clearFilters() { searchQuery.value = ''; filterTrangThai.value = ''; filterKhoa.value = '' }
 
 // ── Form ──
-const defaults = () => ({ maCodeLop: '', tenLop: '', maKhoa: 1, maKhoaHoc: new Date().getFullYear(), siSoToiDa: 50, maGiaoVien: null, tenGiaoVien: '', namNhapHoc: String(new Date().getFullYear()), trangThai: 'moi', ghiChu: '' })
+const defaults = () => ({ maCodeLop: '', tenLop: '', maKhoa: campusId.value, maKhoaHoc: new Date().getFullYear(), siSoToiDa: 50, maGiaoVien: null, tenGiaoVien: '', namNhapHoc: String(new Date().getFullYear()), trangThai: 'moi', ghiChu: '' })
 function resetForm() { formData.value = defaults(); formErrors.value = {} }
 function openCreate() { resetForm(); formMode.value = 'create'; editingId.value = null; showFormModal.value = true }
 function openEdit(r) {
@@ -278,7 +289,7 @@ function getSiSoClass(r) { const p = r.siSo / (r.siSoToiDa || 1) * 100; return p
       </transition>
     </Teleport>
 
-    <ConfirmActionDialog v-if="confirmDelete" :show="true" title="Xóa lớp?"
+    <ConfirmActionDialog v-if="confirmDelete" :modelValue="true" title="Xóa lớp?"
       :message="`Lớp &quot;${confirmDelete.maCodeLop} - ${confirmDelete.tenLop}&quot; sẽ bị xóa vĩnh viễn.`"
       confirm-label="Xóa" variant="danger" @confirm="executeDelete" @cancel="confirmDelete = null" />
   </div>

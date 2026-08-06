@@ -288,7 +288,7 @@ async function executeDelete() {
       </transition>
     </Teleport>
 
-    <ConfirmActionDialog v-if="confirmDelete" :show="true" title="Ngừng hoạt động ca học"
+    <ConfirmActionDialog v-if="confirmDelete" :modelValue="true" title="Ngừng hoạt động ca học"
       :message="`Bạn có chắc muốn ngừng hoạt động ca &quot;${confirmDelete.tenCa}&quot;?`"
       confirm-label="Xác nhận" variant="danger" @confirm="executeDelete" @cancel="confirmDelete = null" />
   </div>

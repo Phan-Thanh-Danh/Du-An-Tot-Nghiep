@@ -1,5 +1,6 @@
 using Backend.DTOs.AdminUsers;
 using Backend.DTOs.Common;
+using Backend.DTOs.Rbac;
 using Backend.Services.AdminUsers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +17,14 @@ public class AdminUsersController : ControllerBase
     public AdminUsersController(IUserService userService)
     {
         _userService = userService;
+    }
+
+    [HttpGet("roles")]
+    public async Task<ActionResult<ApiResponseDto<IReadOnlyList<RoleDto>>>> GetRoles(
+        CancellationToken cancellationToken)
+    {
+        var roles = await _userService.GetAssignableRolesAsync(cancellationToken);
+        return Ok(ApiResponseDto<IReadOnlyList<RoleDto>>.Ok(roles));
     }
 
     [HttpGet]
