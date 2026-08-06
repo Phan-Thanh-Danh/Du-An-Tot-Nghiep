@@ -108,6 +108,9 @@ public static class Data
         // Seed GEN101 data for SD1904
         await SeedGEN101DataAsync(context, terms, administrativeClasses);
 
+        // Seed P7 registration workflow (course sections, periods, enrollments)
+        await SeedRegistrationWorkflowAsync(context, hcmCampus, subjects, terms);
+
         await context.SaveChangesAsync();
     }
 
@@ -3025,23 +3028,47 @@ public static class Data
             var buoiHocs = await context.BuoiHocs.Where(b => b.MaKhoaHoc == kh.MaKhoaHoc).ToListAsync();
             if (buoiHocs.Count < 5)
             {
-                for (int i = buoiHocs.Count + 1; i <= 5; i++)
+                var caHoc = await context.CaHocs.FirstOrDefaultAsync(c => c.TenCa == "Ca 1");
+                var phong = await context.PhongHocs.FirstOrDefaultAsync(p => p.MaCodePhong == "P301");
+                var tkb = await context.ThoiKhoaBieus.FirstOrDefaultAsync(t => t.MaKhoaHoc == kh.MaKhoaHoc);
+                if (caHoc != null && phong != null)
                 {
-                    var buoiHoc = new BuoiHoc
+                    if (tkb == null)
                     {
-                        MaKhoaHoc = kh.MaKhoaHoc,
-                        NgayHoc = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(i)),
-                        TrangThaiBuoi = "da_dien_ra",
-                        TrangThaiDiemDanh = "da_khoa",
-                        MaCaHoc = 1,
-                        MaPhong = 1,
-                        MaGiaoVien = 2,
-                        MaTkb = 1
-                    };
-                    context.BuoiHocs.Add(buoiHoc);
-                    buoiHocs.Add(buoiHoc);
+                        tkb = new ThoiKhoaBieu
+                        {
+                            MaKhoaHoc = kh.MaKhoaHoc,
+                            ThuTrongTuan = 2,
+                            MaCaHoc = caHoc.MaCaHoc,
+                            MaPhong = phong.MaPhong,
+                            NgayBatDau = hk1_2026.NgayBatDau,
+                            NgayKetThuc = hk1_2026.NgayKetThuc,
+                            TrangThai = PublishedStatus,
+                            NgayTao = DateTime.UtcNow
+                        };
+                        context.ThoiKhoaBieus.Add(tkb);
+                        await context.SaveChangesAsync();
+                    }
+
+                    for (int i = buoiHocs.Count + 1; i <= 5; i++)
+                    {
+                        var buoiHoc = new BuoiHoc
+                        {
+                            MaTkb = tkb.MaTkb,
+                            MaKhoaHoc = kh.MaKhoaHoc,
+                            NgayHoc = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(i)),
+                            MaCaHoc = tkb.MaCaHoc,
+                            MaPhong = tkb.MaPhong,
+                            MaGiaoVien = kh.MaGiaoVien,
+                            TrangThaiBuoi = "da_dien_ra",
+                            TrangThaiDiemDanh = "da_gui",
+                            NgayTao = DateTime.UtcNow
+                        };
+                        context.BuoiHocs.Add(buoiHoc);
+                        buoiHocs.Add(buoiHoc);
+                    }
+                    await context.SaveChangesAsync();
                 }
-                await context.SaveChangesAsync();
             }
 
             var hasDiemDanh = await context.DiemDanhs.AnyAsync(d => buoiHocs.Select(b => b.MaBuoiHoc).Contains(d.MaBuoiHoc));
@@ -3059,7 +3086,7 @@ public static class Data
 
                         context.DiemDanhs.Add(new DiemDanh
                         {
-                            MaDonVi = 1,
+                            MaDonVi = kh.MaDonVi,
                             MaBuoiHoc = buoiHoc.MaBuoiHoc,
                             MaHocSinh = student.MaNguoiDung,
                             TrangThai = status,
@@ -3071,5 +3098,206 @@ public static class Data
                 await context.SaveChangesAsync();
             }
         }
+    }
+
+    private static async Task SeedRegistrationWorkflowAsync(
+        ApplicationDbContext context,
+        DonVi campus,
+        IReadOnlyDictionary<string, DanhMucMonHoc> subjects,
+        IReadOnlyList<HocKy> terms)
+    {
+        var termsByCode = terms.ToDictionary(x => x.MaCodeHocKy, StringComparer.OrdinalIgnoreCase);
+        if (!termsByCode.TryGetValue("HK1_2026", out var hk1)
+            || !termsByCode.TryGetValue("HK3_2026", out var hk3)
+            || !termsByCode.TryGetValue("HK1_2027", out var hkNext))
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        var studentRole = AuthRoles.ToDatabaseCode(AuthRoles.Student);
+
+        // ── 1. Registration periods (idempotent by MaDonVi + MaHocKy + TrangThai) ──
+        var periodKeys = (await context.GiaiDoanDangKys
+            .Where(p => p.MaDonVi == campus.MaDonVi)
+            .Select(p => new { p.MaHocKy, p.TrangThai })
+            .ToListAsync())
+            .ToHashSet();
+
+        if (!periodKeys.Contains(new { hk1.MaHocKy, TrangThai = "da_dong" }))
+        {
+            context.GiaiDoanDangKys.Add(new GiaiDoanDangKy
+            {
+                MaDonVi = campus.MaDonVi,
+                MaHocKy = hk1.MaHocKy,
+                BatDauLuc = hk1.NgayBatDau.ToDateTime(TimeOnly.MinValue).AddDays(-20),
+                KetThucLuc = hk1.NgayBatDau.ToDateTime(TimeOnly.MinValue).AddDays(-5),
+                TrangThai = "da_dong",
+                SoTinChiToiDa = 24,
+            });
+        }
+        if (!periodKeys.Contains(new { hk3.MaHocKy, TrangThai = "dang_mo" }))
+        {
+            context.GiaiDoanDangKys.Add(new GiaiDoanDangKy
+            {
+                MaDonVi = campus.MaDonVi,
+                MaHocKy = hk3.MaHocKy,
+                BatDauLuc = now.AddDays(-10),
+                KetThucLuc = now.AddDays(20),
+                TrangThai = "dang_mo",
+                SoTinChiToiDa = 24,
+            });
+        }
+        if (!periodKeys.Contains(new { hkNext.MaHocKy, TrangThai = "nhap" }))
+        {
+            context.GiaiDoanDangKys.Add(new GiaiDoanDangKy
+            {
+                MaDonVi = campus.MaDonVi,
+                MaHocKy = hkNext.MaHocKy,
+                BatDauLuc = hkNext.NgayBatDau.ToDateTime(TimeOnly.MinValue).AddDays(-20),
+                KetThucLuc = hkNext.NgayBatDau.ToDateTime(TimeOnly.MinValue).AddDays(-5),
+                TrangThai = "nhap",
+                SoTinChiToiDa = 24,
+            });
+        }
+        await context.SaveChangesAsync();
+
+        // ── 2. Course sections linked to existing KhoaHoc (HK1 + HK3) ──
+        var courses = await context.KhoaHocs
+            .Include(k => k.MonHoc)
+            .Where(k => k.MaDonVi == campus.MaDonVi
+                && (k.MaHocKy == hk1.MaHocKy || k.MaHocKy == hk3.MaHocKy)
+                && !k.MaLopHocPhan.HasValue)
+            .ToListAsync();
+
+        var sectionByCode = new Dictionary<string, LopHocPhan>(StringComparer.OrdinalIgnoreCase);
+        foreach (var course in courses)
+        {
+            var term = course.MaHocKy == hk3.MaHocKy ? hk3 : hk1;
+            var code = $"LHP-{course.MonHoc?.MaCodeMonHoc ?? course.MaMonHoc.ToString()}-{term.MaCodeHocKy}-{course.MaKhoaHoc}";
+            if (sectionByCode.ContainsKey(code))
+            {
+                continue;
+            }
+
+            var section = await context.LopHocPhans.FirstOrDefaultAsync(x => x.MaCodeLopHocPhan == code);
+            if (section is null)
+            {
+                section = new LopHocPhan { MaCodeLopHocPhan = code };
+                context.LopHocPhans.Add(section);
+            }
+
+            section.MaDonVi = campus.MaDonVi;
+            section.MaMonHoc = course.MaMonHoc;
+            section.MaHocKy = course.MaHocKy ?? 0;
+            // Small capacity on COM103-SD1901 (HK3) so a waitlist row exists in the UI
+            section.SucChua = course.MaHocKy == hk3.MaHocKy && course.MaMonHoc == 4 && course.MaLop == 1 ? 1 : 35;
+            section.SoDangKyToiThieu = 15;
+            section.SoDaDangKy = 0;
+            section.TrangThai = ClassSectionOpenStatus;
+            section.QuotaVangToiDa = 10;
+            sectionByCode[code] = section;
+        }
+
+        if (sectionByCode.Count > 0)
+        {
+            await context.SaveChangesAsync();
+            foreach (var course in courses)
+            {
+                var term = course.MaHocKy == hk3.MaHocKy ? hk3 : hk1;
+                var code = $"LHP-{course.MonHoc?.MaCodeMonHoc ?? course.MaMonHoc.ToString()}-{term.MaCodeHocKy}-{course.MaKhoaHoc}";
+                if (sectionByCode.TryGetValue(code, out var section) && section.MaLopHocPhan > 0)
+                {
+                    course.MaLopHocPhan = section.MaLopHocPhan;
+                }
+            }
+            await context.SaveChangesAsync();
+        }
+
+        // ── 3. Deterministic student enrollments (idempotent by MaHocSinh + MaLopHocPhan) ──
+        var students = await context.NguoiDungs
+            .Where(n => n.MaDonVi == campus.MaDonVi && n.VaiTroChinh == studentRole)
+            .ToListAsync();
+
+        var sd1901Courses = courses.Where(c => c.MaLop == 1 && c.MaHocKy == hk3.MaHocKy).OrderBy(c => c.MaKhoaHoc).ToList();
+        var otherCourses = courses.Where(c => c.MaHocKy == hk3.MaHocKy).OrderBy(c => c.MaKhoaHoc).ToList();
+
+        async Task EnrollAsync(NguoiDung student, KhoaHoc course, bool waitlist)
+        {
+            var section = await context.LopHocPhans.FirstOrDefaultAsync(x =>
+                x.MaDonVi == campus.MaDonVi && x.MaLopHocPhan == course.MaLopHocPhan);
+            if (section is null)
+            {
+                return;
+            }
+
+            var exists = await context.DangKyHocPhans.AnyAsync(r =>
+                r.MaHocSinh == student.MaNguoiDung && r.MaLopHocPhan == section.MaLopHocPhan);
+            if (exists)
+            {
+                return;
+            }
+
+            context.DangKyHocPhans.Add(new DangKyHocPhan
+            {
+                MaHocSinh = student.MaNguoiDung,
+                MaLopHocPhan = section.MaLopHocPhan,
+                TrangThai = waitlist ? "danh_sach_cho" : "da_dang_ky",
+                ViTriCho = waitlist ? 1 : null,
+                LaHocLai = false,
+                KiemTraTienQuyet = false,
+                DaKiemTraTienQuyet = true,
+                NgayTao = now.AddDays(-3),
+            });
+            section.SoDaDangKy = waitlist ? section.SoDaDangKy : section.SoDaDangKy + 1;
+        }
+
+        var student01 = students.FirstOrDefault(x => x.Email == "student01@edulms.local");
+        var studentCntt = students.FirstOrDefault(x => x.Email == "student.cntt01@lms.local");
+        var studentP12 = students.FirstOrDefault(x => x.Email == "p12test_student011@lms.local");
+        var studentMkt = students.FirstOrDefault(x => x.Email == "student.mkt01@lms.local");
+
+        // COM103-SD1901 (capacity 1): student01 active, student.cntt01 waitlist
+        var com103Sd1901 = sd1901Courses.FirstOrDefault(c => c.MaMonHoc == 4);
+        if (student01 is not null && com103Sd1901 is not null)
+        {
+            await EnrollAsync(student01, com103Sd1901, waitlist: false);
+        }
+        if (studentCntt is not null && com103Sd1901 is not null)
+        {
+            await EnrollAsync(studentCntt, com103Sd1901, waitlist: true);
+        }
+
+        // COM102-SD1901: both active
+        var com102Sd1901 = sd1901Courses.FirstOrDefault(c => c.MaMonHoc == 3);
+        if (student01 is not null && com102Sd1901 is not null)
+        {
+            await EnrollAsync(student01, com102Sd1901, waitlist: false);
+        }
+        if (studentCntt is not null && com102Sd1901 is not null)
+        {
+            await EnrollAsync(studentCntt, com102Sd1901, waitlist: false);
+        }
+
+        // p12 SD1904: enroll in up to 2 of its HK3 courses
+        if (studentP12 is not null)
+        {
+            foreach (var course in otherCourses.Where(c => c.MaLop == 4).Take(2))
+            {
+                await EnrollAsync(studentP12, course, waitlist: false);
+            }
+        }
+
+        // student.mkt01 (MKT1901): enroll in MKT101
+        if (studentMkt is not null)
+        {
+            var mkt101Mkt1901 = otherCourses.FirstOrDefault(c => c.MaLop == 8 && c.MaMonHoc == 34);
+            if (mkt101Mkt1901 is not null)
+            {
+                await EnrollAsync(studentMkt, mkt101Mkt1901, waitlist: false);
+            }
+        }
+
+        await context.SaveChangesAsync();
     }
 }

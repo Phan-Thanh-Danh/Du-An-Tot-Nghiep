@@ -27,8 +27,8 @@ const form = ref({
 
 const categories = [
   { value: 'hoc_vu', label: 'Học vụ' },
-  { value: 'tai_chinh', label: 'Tài chính' },
-  { value: 'he_thong', label: 'Hệ thống' }
+  { value: 'hoc_phi', label: 'Học phí' },
+  { value: 'system', label: 'Hệ thống' }
 ]
 
 const priorities = [
@@ -46,7 +46,7 @@ const recipientScopeLabel = computed(() => scopes.find((item) => item.value === 
 
 function buildPayload() {
   const scopeMap = {
-    all: { phamViGui: 'toan_he_thong', roleCodes: [] },
+    all: { phamViGui: 'vai_tro', roleCodes: ['hoc_sinh', 'giao_vien'] },
     students: { phamViGui: 'vai_tro', roleCodes: ['hoc_sinh', 'Student'] },
     teachers: { phamViGui: 'vai_tro', roleCodes: ['giao_vien', 'Teacher'] },
   }

@@ -27,20 +27,20 @@ defineProps({
     <div v-else-if="previewData" class="space-y-4">
       <div class="p-4 rounded-lg bg-(--surface-hover)">
         <div class="text-sm text-(--text-muted) mb-1">Tổng số người nhận dự kiến</div>
-        <div class="text-3xl font-bold text-(--lg-primary)">{{ previewData.tongNguoiNhan }}</div>
+        <div class="text-3xl font-bold text-(--lg-primary)">{{ previewData.count ?? previewData.tongNguoiNhan }}</div>
       </div>
-      
-      <div v-if="previewData.tongNguoiNhan === 0" class="flex items-start gap-2 p-3 rounded-lg bg-(--color-warning-bg) text-(--color-warning-text) text-sm">
+
+      <div v-if="(previewData.count ?? previewData.tongNguoiNhan) === 0" class="flex items-start gap-2 p-3 rounded-lg bg-(--color-warning-bg) text-(--color-warning-text) text-sm">
         <AlertCircle class="w-4 h-4 mt-0.5 shrink-0" />
         <p>Cảnh báo: Không tìm thấy người nhận nào khớp với phạm vi đã chọn. Nút Gửi sẽ bị vô hiệu hóa.</p>
       </div>
-      
-      <div v-if="previewData.danhSachMau?.length > 0">
+
+      <div v-if="(previewData.recipients ?? previewData.danhSachMau)?.length > 0">
         <h4 class="text-sm font-medium text-(--text-heading) mb-2">Danh sách mẫu (tối đa 10):</h4>
         <ul class="space-y-2">
-          <li v-for="user in previewData.danhSachMau" :key="user.id" class="text-sm p-2 rounded bg-(--surface-card) border border-(--border-card)">
+          <li v-for="user in (previewData.recipients ?? previewData.danhSachMau)" :key="user.maNguoiNhan ?? user.id" class="text-sm p-2 rounded bg-(--surface-card) border border-(--border-card)">
             <div class="font-medium">{{ user.hoTen }}</div>
-            <div class="text-xs text-(--text-muted)">{{ user.email }} • {{ user.maNguoiDung }}</div>
+            <div class="text-xs text-(--text-muted)">{{ user.email }} • {{ user.maNguoiNhan ?? user.maNguoiDung }}</div>
           </li>
         </ul>
       </div>

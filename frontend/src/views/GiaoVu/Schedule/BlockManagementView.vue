@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { Plus, X, Pencil, Loader2, Calendar } from 'lucide-vue-next'
+import { ref, onMounted, watch } from 'vue'
+import { X, Pencil, Loader2, Calendar } from 'lucide-vue-next'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'

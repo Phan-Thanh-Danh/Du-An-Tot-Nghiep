@@ -8,7 +8,6 @@ import {
   MessageSquare, 
   RefreshCw, 
   MoreVertical,
-  Mail,
   Users,
   X,
   Loader2,
@@ -34,9 +33,11 @@ function mapSection(section) {
     minEnroll: section.minEnroll,
     teacher: section.teacher,
     status: section.status,
-    reason: section.enrolled < section.minEnroll ? 'Không đủ sĩ số tối thiểu' : 'Chờ xử lý học vụ',
-    date: '',
   }
+}
+
+function pendingReason(cls) {
+  return cls.enrolled < cls.minEnroll ? 'Chưa đạt sĩ số tối thiểu' : 'Chờ xử lý hủy'
 }
 
 async function loadClasses() {
@@ -192,7 +193,7 @@ onMounted(() => {
                   <span class="h-1 w-1 rounded-full bg-(--border-default)"></span>
                   <span class="text-xs font-bold text-label">{{ cls.teacher }}</span>
                   <span class="h-1 w-1 rounded-full bg-(--border-default)"></span>
-                  <span class="text-[10px] font-medium text-(--lg-warning)">{{ cls.reason }}</span>
+                  <span class="text-[10px] font-medium text-(--lg-warning)">{{ pendingReason(cls) }}</span>
                 </div>
               </div>
             </div>
@@ -262,8 +263,6 @@ onMounted(() => {
               <tr class="surface-solid">
                 <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Lớp học phần</th>
                 <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Sĩ số lúc hủy</th>
-                <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Ngày hủy</th>
-                <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thông báo</th>
                 <th class="px-4 py-4 text-[10px] font-semibold text-placeholder uppercase tracking-widest border-b border-default">Thao tác</th>
               </tr>
             </thead>
@@ -275,14 +274,6 @@ onMounted(() => {
                 </td>
                 <td class="px-4 py-4">
                    <span class="text-sm font-bold text-label">{{ cls.enrolled }} SV</span>
-                </td>
-                <td class="px-4 py-4">
-                   <span class="text-xs font-medium text-label">{{ cls.date }}</span>
-                </td>
-                <td class="px-4 py-4">
-                   <div class="flex items-center gap-1.5 text-(--lg-success)">
-                      <Mail :size="14" /> <span class="text-[10px] font-semibold uppercase tracking-widest">Đã gửi SV</span>
-                   </div>
                 </td>
                 <td class="px-4 py-4 relative">
                    <div class="flex items-center gap-1">
@@ -507,8 +498,7 @@ onMounted(() => {
                   <XCircle :size="20" />
                 </div>
                 <div>
-                  <p class="text-sm font-bold text-heading">Ngày hủy: {{ detailTarget.date }}</p>
-                  <p class="text-xs text-label mt-0.5">Sĩ số lúc hủy: {{ detailTarget.enrolled }} SV</p>
+                  <p class="text-sm font-bold text-heading">Sĩ số lúc hủy: {{ detailTarget.enrolled }} SV</p>
                 </div>
               </div>
             </div>
@@ -519,7 +509,7 @@ onMounted(() => {
                   <AlertCircle :size="20" />
                 </div>
                 <div>
-                  <p class="text-sm font-bold text-heading">{{ detailTarget.reason }}</p>
+                  <p class="text-sm font-bold text-heading">{{ pendingReason(detailTarget) }}</p>
                   <p class="text-xs text-label mt-0.5">Lớp chỉ đạt {{ detailTarget.enrolled }}/{{ detailTarget.minEnroll }} sĩ số tối thiểu</p>
                 </div>
               </div>

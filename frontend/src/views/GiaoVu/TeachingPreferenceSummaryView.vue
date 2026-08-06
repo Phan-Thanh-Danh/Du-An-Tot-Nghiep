@@ -101,18 +101,17 @@
                 <th class="p-4">Trạng thái</th>
                 <th class="p-4">Nguyện vọng đặc biệt</th>
                 <th class="p-4">Cập nhật lúc</th>
-                <th class="p-4 text-center">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr v-if="filteredTeachers.length === 0">
-                <td colspan="6" class="p-8 text-center text-slate-500">
+                <td colspan="5" class="p-8 text-center text-slate-500">
                   Không tìm thấy dữ liệu phù hợp
                 </td>
               </tr>
               <tr v-for="t in filteredTeachers" :key="t.maGiaoVien" class="hover:bg-slate-50 transition-colors">
                 <td class="p-4">
-                  <div class="font-medium text-slate-800">{{ t.tenGiaoVien }}</div>
+                  <div class="font-medium text-slate-800">{{ t.hoTen }}</div>
                   <div class="text-xs text-slate-500">{{ t.email }}</div>
                 </td>
                 <td class="p-4 text-slate-600">{{ t.tenDonVi }}</td>
@@ -128,10 +127,10 @@
                 </td>
                 <td class="p-4">
                   <div v-if="t.trangThai !== 'unstarted'" class="text-xs space-y-1">
-                    <div v-if="t.soLopToiDaMongMuon" class="text-indigo-600">Tối đa {{ t.soLopToiDaMongMuon }} lớp</div>
-                    <div v-if="t.soCaToiDaMoiTuan" class="text-indigo-600">Tối đa {{ t.soCaToiDaMoiTuan }} ca/tuần</div>
-                    <div v-if="t.tongSoCaDangKy > 0" class="text-slate-500">Đã đăng ký {{ t.tongSoCaDangKy }} ca ({{ t.tongSoCaUuTien }} ưu tiên)</div>
-                    <div v-if="!t.soLopToiDaMongMuon && !t.soCaToiDaMoiTuan && t.tongSoCaDangKy === 0" class="text-slate-400">
+                    <div v-if="t.form?.soLopToiDaMongMuon" class="text-indigo-600">Tối đa {{ t.form.soLopToiDaMongMuon }} lớp</div>
+                    <div v-if="t.form?.soCaToiDaMoiTuan" class="text-indigo-600">Tối đa {{ t.form.soCaToiDaMoiTuan }} ca/tuần</div>
+                    <div v-if="slotStats(t).tong > 0" class="text-slate-500">Đã đăng ký {{ slotStats(t).tong }} ca ({{ slotStats(t).uuTien }} ưu tiên)</div>
+                    <div v-if="!t.form?.soLopToiDaMongMuon && !t.form?.soCaToiDaMoiTuan && slotStats(t).tong === 0" class="text-slate-400">
                       Không có
                     </div>
                   </div>
@@ -139,12 +138,6 @@
                 </td>
                 <td class="p-4 text-slate-500 text-xs">
                   {{ formatDate(t.ngayCapNhat) }}
-                </td>
-                <td class="p-4 text-center">
-                  <button v-if="t.trangThai !== 'unstarted'" @click="viewDetails(t)" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Xem chi tiết">
-                    <Eye class="w-4 h-4" />
-                  </button>
-                  <span v-else class="text-slate-300">-</span>
                 </td>
               </tr>
             </tbody>
@@ -156,9 +149,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { staffApi } from '@/services/staffApi'
-import { Calendar, AlertCircle, CalendarX, Users, CheckCircle, FileEdit, Clock, Eye } from 'lucide-vue-next'
+import { Calendar, AlertCircle, CalendarX, Users, CheckCircle, FileEdit, Clock } from 'lucide-vue-next'
 
 const loading = ref(true)
 const error = ref(null)
@@ -182,6 +175,13 @@ const getStatusLabel = (status) => {
   if (status === 'submitted') return 'Đã chốt'
   if (status === 'draft') return 'Đang nháp'
   return 'Chưa làm'
+}
+
+const slotStats = (t) => {
+  const slots = t.form?.slots || []
+  const uuTien = slots.filter(s => s.mucDo === 'preferred').length
+  const tong = slots.filter(s => s.mucDo !== 'unavailable').length
+  return { tong, uuTien }
 }
 
 const formatDate = (dateStr) => {
@@ -212,12 +212,7 @@ const fetchData = async () => {
     error.value = err.message || 'Lỗi tải dữ liệu tổng hợp nguyện vọng'
   } finally {
     loading.value = false
-    
   }
-}
-
-const viewDetails = (teacher) => {
-  alert(`Tính năng xem chi tiết nguyện vọng của giảng viên ${teacher.tenGiaoVien} đang được phát triển.`)
 }
 
 onMounted(() => {

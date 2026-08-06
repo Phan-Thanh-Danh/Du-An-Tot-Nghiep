@@ -2,6 +2,7 @@ using Backend.Constants;
 using Backend.DTOs.AdminUsers;
 using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
+using Backend.DTOs.Rbac;
 using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.Audit;
@@ -37,6 +38,21 @@ public class UserService : IUserService
         _passwordHasher = passwordHasher;
         _auditLogService = auditLogService;
         _httpContextAccessor = httpContextAccessor;
+    }
+
+    public async Task<IReadOnlyList<RoleDto>> GetAssignableRolesAsync(CancellationToken cancellationToken = default)
+    {
+        return await _repository.QueryRoles()
+            .AsNoTracking()
+            .Where(x => ManageableRoleCodes.Contains(x.MaCodeVaiTro))
+            .OrderBy(x => x.MaVaiTro)
+            .Select(x => new RoleDto
+            {
+                MaVaiTro = x.MaVaiTro,
+                MaCodeVaiTro = x.MaCodeVaiTro,
+                TenVaiTro = x.TenVaiTro
+            })
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<PagedResultDto<UserListItemDto>> GetUsersAsync(

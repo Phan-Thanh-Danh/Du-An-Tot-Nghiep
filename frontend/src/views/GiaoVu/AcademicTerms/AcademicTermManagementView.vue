@@ -5,10 +5,13 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassInput from '@/components/ui/GlassInput.vue'
 import TableShell from '@/components/ui/TableShell.vue'
-import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { academicTermApi } from '@/services/academicTermApi'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+const campusId = computed(() => authStore.user?.campusId ?? authStore.user?.CampusId ?? 1)
 
 const loading = ref(true)
 const forbidden = ref(false)
@@ -20,7 +23,6 @@ const filterStatus = ref('all')
 const showFormModal = ref(false); const formMode = ref('create'); const editingId = ref(null); const submitting = ref(false)
 let formData = ref({ maCodeHocKy: '', tenHocKy: '', namHoc: '', thuTuTrongNam: 1, ngayBatDau: '', ngayKetThuc: '', ngayKetThucBlock5: '', soTinChiToiDa: null, hanRutMon: '', daKhoa: false })
 const formErrors = ref({})
-const confirmDelete = ref(null)
 
 onMounted(fetchTerms)
 async function fetchTerms() {
@@ -78,7 +80,7 @@ function validate() {
   formErrors.value = e; return Object.keys(e).length === 0
 }
 
-function buildPayload() { return { maDonVi: 1, maCodeHocKy: formData.value.maCodeHocKy.trim(), tenHocKy: formData.value.tenHocKy.trim(), namHoc: formData.value.namHoc.trim(), thuTuTrongNam: Number(formData.value.thuTuTrongNam), ngayBatDau: formData.value.ngayBatDau || null, ngayKetThuc: formData.value.ngayKetThuc || null, ngayKetThucBlock5: formData.value.ngayKetThucBlock5 || null, soTinChiToiDa: formData.value.soTinChiToiDa ? Number(formData.value.soTinChiToiDa) : null, hanRutMon: formData.value.hanRutMon || null, daKhoa: formData.value.daKhoa } }
+function buildPayload() { return { maDonVi: campusId.value, maCodeHocKy: formData.value.maCodeHocKy.trim(), tenHocKy: formData.value.tenHocKy.trim(), namHoc: formData.value.namHoc.trim(), thuTuTrongNam: Number(formData.value.thuTuTrongNam), ngayBatDau: formData.value.ngayBatDau || null, ngayKetThuc: formData.value.ngayKetThuc || null, ngayKetThucBlock5: formData.value.ngayKetThucBlock5 || null, soTinChiToiDa: formData.value.soTinChiToiDa ? Number(formData.value.soTinChiToiDa) : null, hanRutMon: formData.value.hanRutMon || null, daKhoa: formData.value.daKhoa } }
 
 async function submitForm() {
   if (!validate()) return; submitting.value = true
@@ -94,13 +96,6 @@ async function submitForm() {
 async function toggleLock(t) {
   try { if (t.daKhoa) await academicTermApi.unlock(t.maHocKy); else await academicTermApi.lock(t.maHocKy); await fetchTerms() }
   catch { /* ignore */ }
-}
-
-function requestDelete(t) { confirmDelete.value = t }
-async function executeDelete() {
-  if (!confirmDelete.value) return
-  try { await academicTermApi.lock(confirmDelete.value.maHocKy); confirmDelete.value = null; await fetchTerms() }
-  catch { confirmDelete.value = null }
 }
 </script>
 
@@ -233,9 +228,6 @@ async function executeDelete() {
                   <button class="h-8 w-8 rounded-lg hover:bg-(--accent-primary-soft) flex items-center justify-center text-muted hover:text-(--sidebar-accent) transition-colors" title="Chỉnh sửa" @click.stop="openEdit(t)">
                     <Pencil :size="15" />
                   </button>
-                  <button v-if="!t.daKhoa" class="h-8 w-8 rounded-lg hover:bg-(--color-danger-bg) flex items-center justify-center text-muted hover:text-(--color-danger-text) transition-colors" title="Khóa" @click.stop="requestDelete(t)">
-                    <X :size="15" />
-                  </button>
                 </div>
               </td>
             </tr>
@@ -324,10 +316,6 @@ async function executeDelete() {
         </div>
       </transition>
     </Teleport>
-
-    <ConfirmActionDialog v-if="confirmDelete" :show="true" title="Khóa học kỳ"
-      :message="`Bạn có chắc muốn khóa &quot;${confirmDelete.tenHocKy}&quot; (${confirmDelete.maCodeHocKy})?`"
-      confirm-label="Xác nhận khóa" variant="danger" @confirm="executeDelete" @cancel="confirmDelete = null" />
   </div>
 </template>
 

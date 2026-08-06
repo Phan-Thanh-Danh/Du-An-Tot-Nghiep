@@ -123,6 +123,8 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `PUT /api/admin/rbac/roles/{id}` — cập nhật vai trò
   - `DELETE /api/admin/rbac/roles/{id}` — xóa vai trò
   - `GET /api/admin/accounts` là endpoint mẫu.
+  - `GET /api/admin/users` (P16B) — danh sách user phân trang + lọc role/trạng thái/đơn vị; `UserListItemDto` có `maVaiTro`, `maCodeVaiTro`, `maDonVi`, `maLopHanhChinh`, `tenLopHanhChinh`.
+  - `GET /api/admin/users/roles` (P16B) — vai trò được phép gán trong quản trị tài khoản.
   - `GET /api/student/dashboard` (P15B — real DB queries, no mock)
   - `GET /api/student/grades` (P15B)
   - `GET /api/student/support-tickets` (P15B)
@@ -147,6 +149,13 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `GET /api/parent/notifications/history` (P15A)
   - `GET /api/parent/profile` (P15A)
   - `GET /api/parent/access-rights` (P15A)
+  - `GET /api/staff/dashboard` (Bước 7 — GiaoVu dashboard, real DB queries, role AcademicStaff)
+  - `GET /api/master-data/buildings`, `GET /api/master-data/buildings/{id}` (đọc: Staff; CRUD: chỉ SuperAdmin/Admin/CampusAdmin/SubCampusAdmin)
+  - `GET /api/master-data/floors`, `GET /api/master-data/buildings/{buildingId}/floors`, `GET /api/master-data/floors/{id}` (roles như buildings)
+  - `GET /api/master-data/rooms`, `GET /api/master-data/rooms/{id}`, `GET /api/master-data/floors/{floorId}/rooms` (roles như buildings)
+  - `GET /api/ca-hoc`, `GET /api/ca-hoc/active`, `GET /api/ca-hoc/{id}`, `POST/PUT /api/ca-hoc`, `PATCH /api/ca-hoc/{id}/toggle-active` (policy AcademicOperations; **không có DELETE** — xóa ca học qua toggle-active)
+  - `GET /api/blocks?maHocKy={id}`, `PUT /api/blocks/{id}` (policy AcademicScheduleConfig; block phải nằm trong khoảng ngày học kỳ)
+  - `GET /api/quy-doi-tin-chi`, `POST/PUT/DELETE /api/quy-doi-tin-chi` (policy AcademicScheduleConfig; soTinChi phải duy nhất 1-20)
 
   - `POST /api/admin/discipline-records/{id}/remove-effect` (DL3)
   - `POST /api/admin/discipline-records/{id}/void-approved` (DL3)
@@ -159,6 +168,8 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `GET /api/bgh/academic/reports` (P15D)
   - `GET /api/bgh/academic/pass-fail` (P15D)
   - `GET /api/bgh/schedule/changes` (P15D)
+  - `POST /api/staff/requests/process-all` `dự kiến` — FE `staffApi.processAllRequests` đánh dấu `× MISSING_BACKEND`, BE chưa có endpoint này (Dashboard giáo vụ không gọi).
+  - `POST /api/student/parent-links/invite`, `PUT /api/student/parent-links/{linkId}/permissions`, `DELETE /api/student/parent-links/{linkId}` `dự kiến` — FE `studentApi` đánh dấu `× MISSING_BACKEND`; BE có entity `LienKetPhuHuynh` + seed nhưng chưa có controller.
   - `POST /api/bgh/grade-unlock-requests/{requestId}/approve` (Phase 3)
   - `POST /api/bgh/grade-unlock-requests/{requestId}/reject` (Phase 3)
 - Endpoint chưa có controller phải ghi `dự kiến`.

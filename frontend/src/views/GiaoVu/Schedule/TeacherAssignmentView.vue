@@ -14,7 +14,7 @@ const loading = ref(true); const error = ref(null); const rows = ref([])
 const searchQuery = ref(''); const filterTrangThai = ref(''); const filterDonVi = ref('')
 
 const showFormModal = ref(false); const formMode = ref('create'); const editingId = ref(null); const submitting = ref(false)
-const formData = ref({ tenLop: '', monHoc: '', maGiangVien: null, giangVien: 'Chưa phân công', soBuoi: 3, donVi: '', lichDay: '', phong: '', siSo: 0, trangThai: 'unassigned' })
+const formData = ref({ maKhoaHoc: null, thuTrongTuan: 1, maCaHoc: null, maPhong: null, ngayBatDau: '', ngayKetThuc: '', trangThai: 'nhap' })
 const formErrors = ref({})
 
 const showAssignModal = ref(false); const assignItem = ref(null); const assignTeacherId = ref(null); const teachers = ref([]); const assigning = ref(false)
@@ -22,18 +22,26 @@ const showAssignModal = ref(false); const assignItem = ref(null); const assignTe
 const showDeleteModal = ref(false); const itemToDelete = ref(null); const deleting = ref(false)
 
 const donViOptions = ref([])
+const courseOptions = ref([]); const caHocOptions = ref([]); const roomOptions = ref([])
 
 const currentPage = ref(1); const pageSize = 10
 
+const thuOptions = [1, 2, 3, 4, 5, 6, 7]
+
 onMounted(async () => {
   await fetchData()
-  donViOptions.value = assignmentApi.getDonViOptions()
+  await Promise.allSettled([
+    assignmentApi.getDonViOptions().then(list => { donViOptions.value = list }),
+    assignmentApi.getCourses().then(list => { courseOptions.value = list }),
+    assignmentApi.getCaHocs().then(list => { caHocOptions.value = list }),
+    assignmentApi.getRooms().then(list => { roomOptions.value = list }),
+  ])
 })
 
 async function fetchData() {
   loading.value = true; error.value = null
   try {
-    const data = await assignmentApi.list({ TrangThai: filterTrangThai.value || undefined, DonVi: filterDonVi.value || undefined })
+    const data = await assignmentApi.list({ TrangThai: filterTrangThai.value || undefined })
     rows.value = Array.isArray(data) ? data : data?.items || data?.data || []
   } catch (e) { error.value = e.message || 'Không thể tải dữ liệu phân công' }
   finally { loading.value = false }
@@ -45,6 +53,7 @@ const filteredRows = computed(() => {
     const q = searchQuery.value.toLowerCase()
     list = list.filter(r => r.monHoc?.toLowerCase().includes(q) || r.tenLop?.toLowerCase().includes(q) || r.giangVien?.toLowerCase().includes(q))
   }
+  if (filterDonVi.value) list = list.filter(r => r.donVi === filterDonVi.value)
   return list
 })
 
@@ -55,43 +64,64 @@ const paginatedRows = computed(() => {
 })
 
 const summaryCards = computed(() => [
-  { label: 'Tổng lớp HP', value: rows.value.length, color: 'text-(--lg-primary)', icon: Users },
-  { label: 'Đã phân công', value: rows.value.filter(r => r.trangThai === 'assigned').length, color: 'text-(--color-success-text)', icon: UserCheck },
-  { label: 'Chưa phân công', value: rows.value.filter(r => r.trangThai !== 'assigned').length, color: 'text-(--color-danger-text)', icon: UserMinus },
-  { label: 'Giảng viên', value: new Set(rows.value.filter(r => r.maGiangVien).map(r => r.maGiangVien)).size, color: 'text-amber-600', icon: Users },
+  { label: 'Tổng buổi dạy', value: rows.value.length, color: 'text-(--lg-primary)', icon: Users },
+  { label: 'Đã phân công', value: rows.value.filter(r => r.trangThai === 'da_xuat_ban').length, color: 'text-(--color-success-text)', icon: UserCheck },
+  { label: 'Bản nháp', value: rows.value.filter(r => r.trangThai === 'nhap').length, color: 'text-(--color-warning-text)', icon: Clock },
+  { label: 'Đã hủy', value: rows.value.filter(r => r.trangThai === 'da_huy').length, color: 'text-(--color-danger-text)', icon: Trash2 },
 ])
 
-const bgMap = { 'Tổng lớp HP': 'bg-(--color-info-bg)', 'Đã phân công': 'bg-(--color-success-bg)', 'Chưa phân công': 'bg-(--color-danger-bg)', 'Giảng viên': 'bg-amber-50' }
+const bgMap = { 'Tổng buổi dạy': 'bg-(--color-info-bg)', 'Đã phân công': 'bg-(--color-success-bg)', 'Bản nháp': 'bg-(--color-warning-bg)', 'Đã hủy': 'bg-(--color-danger-bg)' }
+
+const badgeVariantMap = { nhap: 'warning', da_xuat_ban: 'success', da_huy: 'danger' }
+const trangThaiLabelMap = { nhap: 'Bản nháp', da_xuat_ban: 'Đã phân công', da_huy: 'Đã hủy' }
 
 function clearFilters() { searchQuery.value = ''; filterTrangThai.value = ''; filterDonVi.value = ''; currentPage.value = 1 }
 
 // ── Form ──
-const defaults = () => ({ tenLop: '', monHoc: '', maGiangVien: null, giangVien: 'Chưa phân công', soBuoi: 3, donVi: '', lichDay: '', phong: '', siSo: 0, trangThai: 'unassigned' })
+const defaults = () => ({ maKhoaHoc: null, thuTrongTuan: 1, maCaHoc: null, maPhong: null, ngayBatDau: '', ngayKetThuc: '', trangThai: 'nhap' })
 function resetForm() { formData.value = defaults(); formErrors.value = {} }
-function showDevelopingFeature() { popupStore.info('Chức năng đang phát triển', 'Chức năng đang phát triển') }
 function openCreate() {
-  
   resetForm(); formMode.value = 'create'; editingId.value = null; showFormModal.value = true
 }
 function openEdit(r) {
-  
   formMode.value = 'edit'; editingId.value = r.maPhanCong
-  formData.value = { tenLop: r.tenLop, monHoc: r.monHoc, maGiangVien: r.maGiangVien, giangVien: r.giangVien, soBuoi: r.soBuoi, donVi: r.donVi || '', lichDay: r.lichDay || '', phong: r.phong || '', siSo: r.siSo || 0, trangThai: r.trangThai }
+  formData.value = {
+    maKhoaHoc: r.maKhoaHoc || null,
+    thuTrongTuan: r.thuTrongTuan || 1,
+    maCaHoc: r.maCaHoc || null,
+    maPhong: r.maPhong || null,
+    ngayBatDau: r.ngayBatDau || '',
+    ngayKetThuc: r.ngayKetThuc || '',
+    trangThai: r.trangThai === 'da_huy' ? 'da_huy' : r.trangThai || 'nhap',
+  }
   formErrors.value = {}; showFormModal.value = true
 }
 function closeForm() { showFormModal.value = false; resetForm() }
 
 function validate() {
   const e = {}
-  if (!formData.value.tenLop.trim()) e.tenLop = 'Tên lớp không được để trống'
-  if (!formData.value.monHoc.trim()) e.monHoc = 'Môn học không được để trống'
+  if (!formData.value.maKhoaHoc) e.maKhoaHoc = 'Vui lòng chọn khóa học'
+  if (!formData.value.maCaHoc) e.maCaHoc = 'Vui lòng chọn ca học'
+  if (!formData.value.maPhong) e.maPhong = 'Vui lòng chọn phòng'
   formErrors.value = e; return Object.keys(e).length === 0
 }
 async function submitForm() {
   if (!validate()) return; submitting.value = true
+  const payload = {
+    MaKhoaHoc: formData.value.maKhoaHoc,
+    ThuTrongTuan: formData.value.thuTrongTuan,
+    MaCaHoc: formData.value.maCaHoc,
+    MaPhong: formData.value.maPhong,
+    NgayBatDau: formData.value.ngayBatDau || null,
+    NgayKetThuc: formData.value.ngayKetThuc || null,
+  }
   try {
-    if (formMode.value === 'edit') await assignmentApi.update(editingId.value, formData.value)
-    else await assignmentApi.create(formData.value)
+    if (formMode.value === 'edit') {
+      payload.TrangThai = formData.value.trangThai || 'nhap'
+      await assignmentApi.update(editingId.value, payload)
+    } else {
+      await assignmentApi.create(payload)
+    }
     closeForm(); await fetchData(); popupStore.success('Thành công', formMode.value === 'edit' ? 'Đã cập nhật phân công' : 'Đã thêm phân công mới')
   } catch (e) { formErrors.value._api = e.message || 'Lỗi khi lưu' }
   finally { submitting.value = false }
@@ -99,36 +129,46 @@ async function submitForm() {
 
 // ── Assign Teacher ──
 async function openAssign(r) {
-  
   assignItem.value = r; assignTeacherId.value = r.maGiangVien || null
+  teachers.value = []
   try {
-    const data = await assignmentApi.getTeachers({ DonVi: r.donVi || undefined })
+    const data = await assignmentApi.getTeachers({
+      maMonHoc: r.maMonHoc,
+      maHocKy: r.maHocKy,
+      maLop: r.maLop,
+    })
     teachers.value = Array.isArray(data) ? data : data?.items || data?.data || []
-  } catch { teachers.value = [] }
+  } catch (e) { popupStore.info('Chưa có gợi ý', e.message || 'Không thể tải danh sách giảng viên') }
   showAssignModal.value = true
 }
 function closeAssign() { showAssignModal.value = false; assignItem.value = null; assignTeacherId.value = null }
 async function confirmAssign() {
   if (!assignTeacherId.value) return; assigning.value = true
   try {
-    await assignmentApi.assignTeacher(assignItem.value.maPhanCong, assignTeacherId.value)
+    await assignmentApi.assignTeacher(assignItem.value.maPhanCong, assignTeacherId.value, {
+      maKhoaHoc: assignItem.value.maKhoaHoc,
+    })
     closeAssign(); await fetchData(); popupStore.success('Thành công', 'Đã phân công giảng viên')
   } catch (e) { popupStore.error('Lỗi', e.message || 'Không thể phân công') }
   finally { assigning.value = false }
 }
 
-// ── Delete ──
+// ── Cancel (Hủy lịch) ──
 function requestDelete(r) {
-  
   itemToDelete.value = r; showDeleteModal.value = true
 }
 async function confirmDelete() {
   deleting.value = true
   try {
     await assignmentApi.remove(itemToDelete.value.maPhanCong)
-    showDeleteModal.value = false; itemToDelete.value = null; await fetchData(); popupStore.success('Thành công', 'Đã xóa phân công')
-  } catch (e) { popupStore.error('Lỗi', e.message || 'Không thể xóa') }
+    showDeleteModal.value = false; itemToDelete.value = null; await fetchData(); popupStore.success('Thành công', 'Đã hủy buổi dạy')
+  } catch (e) { popupStore.error('Lỗi', e.message || 'Không thể hủy') }
   finally { deleting.value = false }
+}
+
+function selectedCourseLabel(maKhoaHoc) {
+  const c = courseOptions.value.find(x => x.maKhoaHoc === maKhoaHoc)
+  return c ? `${c.tenLop} — ${c.monHoc}` : ''
 }
 </script>
 
@@ -160,8 +200,9 @@ async function confirmDelete() {
           </div>
           <select v-model="filterTrangThai" class="h-10 px-3 bg-(--surface-card) border border-(--border-input) rounded-xl text-sm outline-none focus:ring-2 focus:ring-(--lg-primary)">
             <option value="">Tất cả trạng thái</option>
-            <option value="assigned">Đã phân công</option>
-            <option value="unassigned">Chưa phân công</option>
+            <option value="nhap">Bản nháp</option>
+            <option value="da_xuat_ban">Đã phân công</option>
+            <option value="da_huy">Đã hủy</option>
           </select>
           <select v-model="filterDonVi" class="h-10 px-3 bg-(--surface-card) border border-(--border-input) rounded-xl text-sm outline-none focus:ring-2 focus:ring-(--lg-primary)">
             <option value="">Tất cả đơn vị</option>
@@ -172,7 +213,7 @@ async function confirmDelete() {
             <X :size="14" /> Xóa lọc
           </button>
           <div class="flex items-center gap-1 ml-auto">
-            <GlassButton variant="primary" class="h-10 shrink-0" @click="openCreate"><Plus :size="15" class="mr-1" /> Phân công mới</GlassButton>
+            <GlassButton variant="primary" class="h-10 shrink-0" @click="openCreate"><Plus :size="15" class="mr-1" /> Lịch dạy mới</GlassButton>
           </div>
         </div>
       </div>
@@ -186,8 +227,8 @@ async function confirmDelete() {
         </div>
       </div>
       <div v-else-if="filteredRows.length === 0" class="p-6">
-        <EmptyState title="Không có phân công nào" description="Thử thay đổi từ khóa hoặc bộ lọc.">
-          <GlassButton variant="primary" @click="openCreate"><Plus :size="15" class="mr-1" /> Phân công mới</GlassButton>
+        <EmptyState title="Không có lịch dạy nào" description="Thử thay đổi từ khóa hoặc bộ lọc.">
+          <GlassButton variant="primary" @click="openCreate"><Plus :size="15" class="mr-1" /> Lịch dạy mới</GlassButton>
         </EmptyState>
       </div>
 
@@ -195,7 +236,7 @@ async function confirmDelete() {
         <table class="w-full text-left text-sm whitespace-nowrap border-collapse">
           <thead class="bg-(--surface-input) border-b border-default text-muted">
             <tr>
-              <th class="px-3 py-4 font-semibold">Mã PC</th>
+              <th class="px-3 py-4 font-semibold">Mã TKB</th>
               <th class="px-3 py-4 font-semibold">Lớp & Môn</th>
               <th class="px-3 py-4 font-semibold">Giảng viên</th>
               <th class="px-3 py-4 font-semibold">Lịch dạy</th>
@@ -212,8 +253,8 @@ async function confirmDelete() {
                 <p class="text-xs text-muted mt-0.5">{{ r.monHoc }}</p>
               </td>
               <td class="px-3 py-3.5">
-                <div class="flex items-center gap-2" :class="r.trangThai !== 'assigned' ? 'text-red-500' : 'text-heading'">
-                  <UserCheck v-if="r.trangThai === 'assigned'" :size="15" class="text-emerald-500 shrink-0" />
+                <div class="flex items-center gap-2" :class="r.maGiangVien ? 'text-heading' : 'text-red-500'">
+                  <UserCheck v-if="r.maGiangVien" :size="15" class="text-emerald-500 shrink-0" />
                   <UserMinus v-else :size="15" class="text-red-500 shrink-0" />
                   <span class="font-bold text-sm truncate max-w-[160px]">{{ r.giangVien }}</span>
                 </div>
@@ -228,19 +269,19 @@ async function confirmDelete() {
               </td>
               <td class="px-3 py-3.5 text-body">{{ r.donVi || '—' }}</td>
               <td class="px-3 py-3.5 text-center">
-                <GlassBadge :variant="r.trangThai === 'assigned' ? 'success' : 'danger'" size="sm">
-                  {{ r.trangThai === 'assigned' ? 'Đã phân công' : 'Chưa phân công' }}
+                <GlassBadge :variant="badgeVariantMap[r.trangThai] || 'neutral'" size="sm">
+                  {{ trangThaiLabelMap[r.trangThai] || r.trangThai }}
                 </GlassBadge>
               </td>
               <td class="px-3 py-3.5">
                 <div class="flex items-center justify-center gap-1">
-                  <button v-if="r.trangThai !== 'assigned'" class="h-8 w-8 rounded-lg hover:bg-(--color-success-bg) flex items-center justify-center text-muted hover:text-(--color-success-text) transition-colors" title="Phân công giảng viên" @click.stop="openAssign(r)">
+                  <button v-if="r.trangThai !== 'da_huy'" class="h-8 w-8 rounded-lg hover:bg-(--color-success-bg) flex items-center justify-center text-muted hover:text-(--color-success-text) transition-colors" title="Phân công giảng viên" @click.stop="openAssign(r)">
                     <UserPlus :size="15" />
                   </button>
-                  <button class="h-8 w-8 rounded-lg hover:bg-(--accent-primary-soft) flex items-center justify-center text-muted hover:text-(--sidebar-accent) transition-colors" title="Sửa" @click.stop="openEdit(r)">
+                  <button v-if="r.trangThai !== 'da_huy'" class="h-8 w-8 rounded-lg hover:bg-(--accent-primary-soft) flex items-center justify-center text-muted hover:text-(--sidebar-accent) transition-colors" title="Sửa" @click.stop="openEdit(r)">
                     <Pencil :size="15" />
                   </button>
-                  <button class="h-8 w-8 rounded-lg hover:bg-(--color-danger-bg) flex items-center justify-center text-muted hover:text-(--color-danger-text) transition-colors" title="Xóa" @click.stop="requestDelete(r)">
+                  <button v-if="r.trangThai !== 'da_huy'" class="h-8 w-8 rounded-lg hover:bg-(--color-danger-bg) flex items-center justify-center text-muted hover:text-(--color-danger-text) transition-colors" title="Hủy" @click.stop="requestDelete(r)">
                     <Trash2 :size="15" />
                   </button>
                 </div>
@@ -267,44 +308,60 @@ async function confirmDelete() {
         <div v-if="showFormModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="closeForm">
           <div class="w-full max-w-lg lg-glass-strong rounded-2xl shadow-2xl border border-(--border-card) overflow-hidden" style="max-height: 90vh">
             <div class="px-6 py-4 border-b border-(--border-default) flex items-center justify-between">
-              <h3 class="text-lg font-bold text-(--text-heading)">{{ formMode === 'create' ? 'Phân công mới' : 'Sửa phân công' }}</h3>
+              <h3 class="text-lg font-bold text-(--text-heading)">{{ formMode === 'create' ? 'Lịch dạy mới' : 'Sửa lịch dạy' }}</h3>
               <button @click="closeForm" class="text-(--text-muted) hover:text-(--text-heading) p-1.5 rounded-lg hover:bg-(--surface-input) transition-colors"><X :size="18" /></button>
             </div>
             <div class="px-6 py-5 overflow-y-auto space-y-4" style="max-height: calc(90vh - 140px)">
               <p v-if="formErrors._api" class="text-sm text-(--color-danger-text) font-semibold">{{ formErrors._api }}</p>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-xs font-semibold text-(--text-muted) mb-1">Lớp <span class="text-(--color-danger-text)">*</span></label>
-                  <input v-model="formData.tenLop" type="text" placeholder="VD: SE1601" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.tenLop ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''" />
-                  <p v-if="formErrors.tenLop" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.tenLop }}</p>
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-(--text-muted) mb-1">Sĩ số</label>
-                  <input v-model.number="formData.siSo" type="number" min="0" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
-                </div>
-              </div>
               <div>
-                <label class="block text-xs font-semibold text-(--text-muted) mb-1">Môn học <span class="text-(--color-danger-text)">*</span></label>
-                <input v-model="formData.monHoc" type="text" placeholder="VD: Lập trình Java" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.monHoc ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''" />
-                <p v-if="formErrors.monHoc" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.monHoc }}</p>
+                <label class="block text-xs font-semibold text-(--text-muted) mb-1">Khóa học <span class="text-(--color-danger-text)">*</span></label>
+                <select v-model.number="formData.maKhoaHoc" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.maKhoaHoc ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''">
+                  <option :value="null" disabled>Chọn khóa học</option>
+                  <option v-for="c in courseOptions" :key="c.maKhoaHoc" :value="c.maKhoaHoc">{{ c.tenLop }} — {{ c.monHoc }}</option>
+                </select>
+                <p v-if="formErrors.maKhoaHoc" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.maKhoaHoc }}</p>
+                <p v-if="formData.maKhoaHoc && selectedCourseLabel(formData.maKhoaHoc)" class="mt-1 text-xs text-muted">GV: {{ courseOptions.find(c => c.maKhoaHoc === formData.maKhoaHoc)?.giangVien }}</p>
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-xs font-semibold text-(--text-muted) mb-1">Số buổi</label>
-                  <input v-model.number="formData.soBuoi" type="number" min="1" max="30" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+                  <label class="block text-xs font-semibold text-(--text-muted) mb-1">Thứ <span class="text-(--color-danger-text)">*</span></label>
+                  <select v-model.number="formData.thuTrongTuan" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
+                    <option v-for="t in thuOptions" :key="t" :value="t">Thứ {{ t }}</option>
+                  </select>
                 </div>
                 <div>
-                  <label class="block text-xs font-semibold text-(--text-muted) mb-1">Đơn vị</label>
-                  <input v-model="formData.donVi" type="text" placeholder="VD: CNTT" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+                  <label class="block text-xs font-semibold text-(--text-muted) mb-1">Ca học <span class="text-(--color-danger-text)">*</span></label>
+                  <select v-model.number="formData.maCaHoc" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.maCaHoc ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''">
+                    <option :value="null" disabled>Chọn ca</option>
+                    <option v-for="c in caHocOptions" :key="c.maCaHoc" :value="c.maCaHoc">{{ c.tenCa }} ({{ c.gioBatDau || '' }}–{{ c.gioKetThuc || '' }})</option>
+                  </select>
+                  <p v-if="formErrors.maCaHoc" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.maCaHoc }}</p>
                 </div>
               </div>
               <div>
-                <label class="block text-xs font-semibold text-(--text-muted) mb-1">Lịch dạy</label>
-                <input v-model="formData.lichDay" type="text" placeholder="VD: T2 (Ca 1-2), T4 (Ca 3)" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+                <label class="block text-xs font-semibold text-(--text-muted) mb-1">Phòng <span class="text-(--color-danger-text)">*</span></label>
+                <select v-model.number="formData.maPhong" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" :class="formErrors.maPhong ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''">
+                  <option :value="null" disabled>Chọn phòng</option>
+                  <option v-for="p in roomOptions" :key="p.maPhong" :value="p.maPhong">{{ p.maCodePhong }} — {{ p.tenPhong }}</option>
+                </select>
+                <p v-if="formErrors.maPhong" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.maPhong }}</p>
               </div>
-              <div>
-                <label class="block text-xs font-semibold text-(--text-muted) mb-1">Phòng</label>
-                <input v-model="formData.phong" type="text" placeholder="VD: Lab 102" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-(--text-muted) mb-1">Ngày bắt đầu</label>
+                  <input v-model="formData.ngayBatDau" type="date" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-(--text-muted) mb-1">Ngày kết thúc</label>
+                  <input v-model="formData.ngayKetThuc" type="date" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)" />
+                </div>
+              </div>
+              <div v-if="formMode === 'edit'">
+                <label class="block text-xs font-semibold text-(--text-muted) mb-1">Trạng thái</label>
+                <select v-model="formData.trangThai" class="w-full h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
+                  <option value="nhap">Bản nháp</option>
+                  <option value="da_xuat_ban">Đã phân công</option>
+                </select>
               </div>
             </div>
             <div class="px-6 py-4 border-t border-(--border-default) bg-(--surface-modal) flex items-center gap-3 justify-end">
@@ -328,7 +385,7 @@ async function confirmDelete() {
             <div class="px-6 py-5 space-y-4">
               <div class="surface-card border border-card rounded-xl p-3 text-sm space-y-1">
                 <p class="text-heading font-bold">{{ assignItem?.tenLop }} — {{ assignItem?.monHoc }}</p>
-                <p class="text-xs text-muted">Sĩ số: {{ assignItem?.siSo }} · Phòng: {{ assignItem?.phong }} · {{ assignItem?.lichDay }}</p>
+                <p class="text-xs text-muted">Lịch: {{ assignItem?.lichDay }} · Phòng: {{ assignItem?.phong }}</p>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-(--text-muted) mb-2">Chọn giảng viên</label>
@@ -338,11 +395,11 @@ async function confirmDelete() {
                     <input type="radio" :value="t.maGiangVien" v-model="assignTeacherId" class="accent-(--lg-primary)" />
                     <div class="flex-1 min-w-0">
                       <p class="text-sm font-bold text-heading truncate">{{ t.hoTen }}</p>
-                      <p class="text-xs text-muted">{{ t.donVi }} · Đã dạy {{ t.soTietDaDay }}/{{ t.tietToiDa }} tiết</p>
+                      <p class="text-xs text-muted">{{ t.chuyenNganh || '—' }}</p>
                     </div>
-                    <span v-if="t.soTietDaDay >= t.tietToiDa" class="text-[10px] font-bold text-(--color-danger-text) shrink-0">Quá tải</span>
+                    <span v-if="!t.isEligible" class="text-[10px] font-bold text-(--color-danger-text) shrink-0">Không đủ điều kiện</span>
                   </label>
-                  <p v-if="teachers.length === 0" class="text-xs text-muted text-center py-4">Không có giảng viên nào.</p>
+                  <p v-if="teachers.length === 0" class="text-xs text-muted text-center py-4">Không có giảng viên phù hợp.</p>
                 </div>
               </div>
             </div>
@@ -355,12 +412,12 @@ async function confirmDelete() {
       </transition>
     </Teleport>
 
-    <!-- Delete Dialog -->
+    <!-- Cancel Dialog -->
     <ConfirmActionDialog
       v-model="showDeleteModal"
-      title="Xóa phân công"
-      :message="`Bạn có chắc muốn xóa phân công cho lớp ${itemToDelete?.tenLop} - ${itemToDelete?.monHoc}?`"
-      confirmLabel="Xóa"
+      title="Hủy buổi dạy"
+      :message="`Bạn có chắc muốn hủy buổi dạy ${itemToDelete?.tenLop} - ${itemToDelete?.monHoc} (${itemToDelete?.lichDay})?`"
+      confirmLabel="Hủy buổi dạy"
       :loading="deleting"
       @confirm="confirmDelete"
     />

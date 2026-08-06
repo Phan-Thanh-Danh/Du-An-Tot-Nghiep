@@ -21,7 +21,7 @@ function mapNotification(item) {
   return {
     id: item.maThongBao ?? item.MaThongBao ?? item.id,
     title: item.tieuDe ?? item.TieuDe ?? item.title ?? '',
-    sentAt: formatDate(item.ngayGui ?? item.NgayGui ?? item.createdAt ?? item.CreatedAt),
+    sentAt: formatDate(item.guiLuc ?? item.GuiLuc ?? item.ngayGui ?? item.NgayGui ?? item.createdAt ?? item.CreatedAt),
     recipientCount: item.recipientCount ?? item.tongNguoiNhan ?? item.TongNguoiNhan ?? 0,
     status: item.trangThai ?? item.TrangThai ?? 'da_gui',
   }

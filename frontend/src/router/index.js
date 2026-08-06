@@ -397,6 +397,7 @@ const router = createRouter({
         
         // Đơn từ (Requests)
         { path: 'requests', name: 'staff-requests', component: () => import('../views/GiaoVu/Requests/PendingRequestsView.vue') , meta: { title: 'Đơn cần xử lý' } },
+        { path: 'requests/:id', name: 'staff-request-detail', component: () => import('../views/GiaoVu/Requests/RequestDetailView.vue') , meta: { title: 'Chi tiết đơn' } },
         { path: 'requests-history', name: 'staff-requests-history', component: () => import('../views/GiaoVu/Requests/RequestHistoryView.vue') , meta: { title: 'Đơn đã xử lý' } },
         { path: 'workflow', name: 'staff-workflow', component: () => import('../views/GiaoVu/Requests/WorkflowConfigView.vue') , meta: { title: 'Cấu hình quy trình' } },
 

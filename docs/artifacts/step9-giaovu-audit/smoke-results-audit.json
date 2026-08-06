@@ -1,0 +1,464 @@
+{
+  "generatedAt": "2026-08-06T04:27:29.066Z",
+  "frontend": "https://localhost:5173",
+  "cdp": "http://127.0.0.1:9222",
+  "browser": "Chrome/150.0.7871.189",
+  "account": "p12test_staff01@lms.local",
+  "totals": {
+    "routes": 28,
+    "passed": 27,
+    "failed": 0,
+    "skipped": 0,
+    "consoleErrors": 0,
+    "runtimeExceptions": 0,
+    "network401": 0,
+    "network403": 0,
+    "network404": 0,
+    "network500": 0
+  },
+  "failSummaries": [],
+  "results": [
+    {
+      "route": "/staff/dashboard",
+      "group": "1-dashboard",
+      "note": "Dashboard GiaoVu",
+      "targetRoute": "/staff/dashboard",
+      "pageLoaded": true,
+      "textLen": 457,
+      "apiCalls": [],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/profile",
+      "group": "1-dashboard",
+      "note": "StaffProfileView",
+      "targetRoute": "/staff/profile",
+      "pageLoaded": true,
+      "textLen": 864,
+      "apiCalls": [
+        "200 /api/staff/dashboard",
+        "200 /api/notifications",
+        "200 /api/account/me"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/notices/send",
+      "group": "1-dashboard",
+      "note": "SendNoticeView",
+      "targetRoute": "/staff/notices/send",
+      "pageLoaded": true,
+      "textLen": 1146,
+      "apiCalls": [],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/notices/history",
+      "group": "1-dashboard",
+      "note": "NoticeHistoryView",
+      "targetRoute": "/staff/notices/history",
+      "pageLoaded": true,
+      "textLen": 553,
+      "apiCalls": [
+        "200 /api/admin/notifications?pageSize=50"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/schedule",
+      "group": "2-schedule",
+      "note": "ScheduleManagerView",
+      "targetRoute": "/staff/schedule",
+      "pageLoaded": true,
+      "textLen": 993,
+      "apiCalls": [],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/schedule/pending",
+      "group": "2-schedule",
+      "note": "PendingSchedulesView",
+      "targetRoute": "/staff/schedule/pending",
+      "pageLoaded": true,
+      "textLen": 828,
+      "apiCalls": [
+        "200 /api/master-data/majors",
+        "200 /api/academic-scheduling/context"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/schedule/published",
+      "group": "2-schedule",
+      "note": "StaffPublishedSchedulesView",
+      "targetRoute": "/staff/schedule/published",
+      "pageLoaded": true,
+      "textLen": 572,
+      "apiCalls": [
+        "200 /api/master-data/academic-terms?pageIndex=1&pageSize=100",
+        "200 /api/courses?PageIndex=1&PageSize=100"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/conflicts",
+      "group": "2-schedule",
+      "note": "ConflictCheckView",
+      "targetRoute": "/staff/conflicts",
+      "pageLoaded": true,
+      "textLen": 940,
+      "apiCalls": [
+        "200 /api/thoi-khoa-bieu?PageIndex=1&PageSize=100&TrangThai=da_xuat_ban"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/shifts",
+      "group": "2-schedule",
+      "note": "ShiftManagementView",
+      "targetRoute": "/staff/shifts",
+      "pageLoaded": true,
+      "textLen": 554,
+      "apiCalls": [],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/blocks",
+      "group": "2-schedule",
+      "note": "BlockManagementView",
+      "targetRoute": "/staff/blocks",
+      "pageLoaded": true,
+      "textLen": 580,
+      "apiCalls": [
+        "200 /api/ca-hoc?pageSize=100"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/credit-mappings",
+      "group": "2-schedule",
+      "note": "CreditMappingView",
+      "targetRoute": "/staff/credit-mappings",
+      "pageLoaded": true,
+      "textLen": 607,
+      "apiCalls": [
+        "200 /api/master-data/academic-terms?pageSize=100",
+        "200 /api/blocks?maHocKy=9",
+        "200 /api/quy-doi-tin-chi"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/buildings",
+      "group": "3-facilities",
+      "note": "BuildingManagementView",
+      "targetRoute": "/staff/buildings",
+      "pageLoaded": true,
+      "textLen": 896,
+      "apiCalls": [
+        "200 /api/master-data/buildings?pageSize=100"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/floors",
+      "group": "3-facilities",
+      "note": "FloorManagementView",
+      "targetRoute": "/staff/floors",
+      "pageLoaded": true,
+      "textLen": 1129,
+      "apiCalls": [
+        "200 /api/master-data/buildings?pageSize=100",
+        "200 /api/master-data/floors?pageSize=100"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/rooms",
+      "group": "3-facilities",
+      "note": "RoomManagementView",
+      "targetRoute": "/staff/rooms",
+      "pageLoaded": true,
+      "textLen": 819,
+      "apiCalls": [],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/assignments",
+      "group": "3-facilities",
+      "note": "TeacherAssignmentView",
+      "targetRoute": "/staff/assignments",
+      "pageLoaded": true,
+      "textLen": 710,
+      "apiCalls": [
+        "200 /api/master-data/buildings?pageSize=100"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/teaching-preferences",
+      "group": "3-facilities",
+      "note": "TeachingPreferenceSummaryView",
+      "targetRoute": "/staff/teaching-preferences",
+      "pageLoaded": true,
+      "textLen": 654,
+      "apiCalls": [
+        "200 /api/thoi-khoa-bieu?PageIndex=1&PageSize=100"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/academic-terms",
+      "group": "4-masterdata",
+      "note": "AcademicTermManagementView",
+      "targetRoute": "/staff/academic-terms",
+      "pageLoaded": true,
+      "textLen": 502,
+      "apiCalls": [
+        "200 /api/academic-scheduling/context",
+        "200 /api/master-data/academic-terms?pageSize=100"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/subjects",
+      "group": "4-masterdata",
+      "note": "SubjectManagementView",
+      "targetRoute": "/staff/subjects",
+      "pageLoaded": true,
+      "textLen": 529,
+      "apiCalls": [],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/courses",
+      "group": "4-masterdata",
+      "note": "CourseManagementView",
+      "targetRoute": "/staff/courses",
+      "pageLoaded": true,
+      "textLen": 693,
+      "apiCalls": [
+        "200 /api/master-data/subjects?pageSize=100",
+        "200 /api/courses?sortBy=ngayTao&sortDir=desc&pageIndex=1&pageSize=20"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/registrations",
+      "group": "5-registration",
+      "note": "RegistrationPeriodsView",
+      "targetRoute": "/staff/registrations",
+      "pageLoaded": true,
+      "textLen": 1390,
+      "apiCalls": [
+        "200 /api/admin/registration-periods"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/capacity",
+      "group": "5-registration",
+      "note": "CapacityAdjustmentView",
+      "targetRoute": "/staff/capacity",
+      "pageLoaded": true,
+      "textLen": 3339,
+      "apiCalls": [
+        "200 /api/admin/course-sections/capacity"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/course-status",
+      "group": "5-registration",
+      "note": "CourseStatusView",
+      "targetRoute": "/staff/course-status",
+      "pageLoaded": true,
+      "textLen": 4794,
+      "apiCalls": [
+        "200 /api/admin/course-sections/capacity"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/requests",
+      "group": "6-requests",
+      "note": "PendingRequestsView",
+      "targetRoute": "/staff/requests",
+      "pageLoaded": true,
+      "textLen": 834,
+      "apiCalls": [
+        "200 /api/admin/applications?pageIndex=1&pageSize=20"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/requests/:id",
+      "group": "6-requests",
+      "note": "RequestDetailView",
+      "result": "SKIP_NO_DATA",
+      "pageProbe": null,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "resolveInfo": {
+        "ok": false,
+        "endpoint": "/api/admin/applications?PageIndex=1&PageSize=5"
+      }
+    },
+    {
+      "route": "/staff/requests-history",
+      "group": "6-requests",
+      "note": "RequestHistoryView",
+      "targetRoute": "/staff/requests-history",
+      "pageLoaded": true,
+      "textLen": 736,
+      "apiCalls": [
+        "200 /api/admin/applications?trangThai=tu_choi&pageSize=50",
+        "200 /api/admin/applications?trangThai=da_duyet&pageSize=50"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/workflow",
+      "group": "6-requests",
+      "note": "WorkflowConfigView",
+      "targetRoute": "/staff/workflow",
+      "pageLoaded": true,
+      "textLen": 593,
+      "apiCalls": [],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/classes",
+      "group": "7-admin",
+      "note": "ClassManagementView",
+      "targetRoute": "/staff/classes",
+      "pageLoaded": true,
+      "textLen": 542,
+      "apiCalls": [
+        "200 /api/organizations"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    },
+    {
+      "route": "/staff/accounts",
+      "group": "7-admin",
+      "note": "AccountManagementView",
+      "targetRoute": "/staff/accounts",
+      "pageLoaded": true,
+      "textLen": 597,
+      "apiCalls": [
+        "200 /api/admin/classes?PageSize=100"
+      ],
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "resolveInfo": null
+    }
+  ]
+}

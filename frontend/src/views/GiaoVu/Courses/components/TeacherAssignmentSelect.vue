@@ -1,9 +1,8 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { Users, Loader2, Check, AlertTriangle, ShieldCheck, ShieldAlert, BadgeInfo, X } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { Users, Loader2, Check, ShieldAlert, X } from 'lucide-vue-next'
 import { courseApi } from '@/services/courseApi'
 import GlassButton from '@/components/ui/GlassButton.vue'
-import LmsSelect from '@/components/LmsSelect.vue'
 
 const props = defineProps({
   modelValue: { type: Number, default: null },
@@ -25,6 +24,23 @@ const localValue = computed({
   set: (val) => emit('update:modelValue', val)
 })
 
+function normalizeCandidate(c) {
+  return {
+    teacherId: c.maGiaoVien,
+    teacherName: c.hoTen,
+    departmentName: c.chuyenNganh,
+    finalScore: c.finalScore,
+    capabilityScore: c.capabilityScore,
+    preferenceScore: c.preferenceScore,
+    reasons: c.reasons || [],
+    warnings: c.warnings || [],
+    experienceScore: c.experienceScore,
+    currentClassCount: c.currentClassCount,
+    currentWeeklyShiftCount: c.currentWeeklyShiftCount,
+    isExcluded: false,
+  }
+}
+
 async function openSuggestions() {
   if (!props.maMonHoc || !props.maHocKy || props.maLopIds.length === 0) {
     errorMsg.value = 'Vui lòng chọn môn học, học kỳ và lớp trước khi phân công'
@@ -44,7 +60,26 @@ async function openSuggestions() {
       maLopIds: props.maLopIds
     }
     const res = await courseApi.getAssignmentSuggestions(payload)
-    candidates.value = res.data?.candidates || res.candidates || []
+    const result = res?.data ?? res ?? {}
+    const rawCandidates = result.candidates || []
+    const excluded = (result.excludedCandidates || []).map(e => ({
+      teacherId: e.maGiaoVien,
+      teacherName: e.hoTen,
+      departmentName: '',
+      finalScore: 0,
+      capabilityScore: 0,
+      preferenceScore: 0,
+      reasons: [e.reasonMessage || e.reasonCode || 'Không đủ điều kiện'],
+      warnings: [],
+      experienceScore: 0,
+      currentClassCount: 0,
+      currentWeeklyShiftCount: 0,
+      isExcluded: true,
+    }))
+    candidates.value = [
+      ...rawCandidates.map((c, i) => ({ ...normalizeCandidate(c), isTop: i === 0 })),
+      ...excluded,
+    ]
   } catch (err) {
     errorMsg.value = err.message || 'Lỗi tải gợi ý phân công'
   } finally {
@@ -53,7 +88,7 @@ async function openSuggestions() {
 }
 
 function selectCandidate(c) {
-  if (c.status === 'Excluded') return
+  if (c.isExcluded) return
   localValue.value = c.teacherId
   showModal.value = false
 }
@@ -123,7 +158,7 @@ const triggerLabel = computed(() => {
                    @click="selectCandidate(c)"
                    class="relative p-4 rounded-xl border transition-all duration-200"
                    :class="[
-                     c.status === 'Excluded' ? 'border-(--border-default) bg-(--surface-input) cursor-not-allowed opacity-75' : 
+                     c.isExcluded ? 'border-(--border-default) bg-(--surface-input) cursor-not-allowed opacity-75' : 
                      localValue === c.teacherId ? 'border-(--lg-primary) bg-blue-50/50 shadow-sm cursor-pointer' : 
                      'border-(--border-card) bg-(--surface-card) hover:border-(--lg-primary)/50 hover:shadow-sm cursor-pointer'
                    ]">
@@ -131,7 +166,7 @@ const triggerLabel = computed(() => {
                 <div class="flex justify-between items-start mb-2">
                   <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full bg-(--lg-primary)/10 text-(--lg-primary) flex items-center justify-center font-bold text-sm">
-                      {{ c.teacherName.charAt(0) }}
+                      {{ (c.teacherName || '?').charAt(0) }}
                     </div>
                     <div>
                       <p class="text-sm font-bold text-heading leading-tight">{{ c.teacherName }}</p>
@@ -140,17 +175,17 @@ const triggerLabel = computed(() => {
                   </div>
                   
                   <div class="flex flex-col items-end">
-                    <span v-if="c.status === 'Recommended'" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-(--color-success-bg) text-(--color-success-text)">
+                    <span v-if="c.isTop" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-(--color-success-bg) text-(--color-success-text)">
                       Gợi ý hàng đầu
                     </span>
-                    <span v-else-if="c.status === 'Eligible'" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-(--color-info-bg) text-(--color-info-text)">
-                      Phù hợp
-                    </span>
-                    <span v-else-if="c.status === 'Excluded'" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-(--color-danger-bg) text-(--color-danger-text)">
+                    <span v-else-if="c.isExcluded" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-(--color-danger-bg) text-(--color-danger-text)">
                       Không đủ ĐK
                     </span>
+                    <span v-else class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-(--color-info-bg) text-(--color-info-text)">
+                      Phù hợp
+                    </span>
                     
-                    <div v-if="c.status !== 'Excluded'" class="mt-1.5 flex items-center gap-1 font-bold text-xl text-(--lg-primary)">
+                    <div v-if="!c.isExcluded" class="mt-1.5 flex items-center gap-1 font-bold text-xl text-(--lg-primary)">
                       {{ Math.round(c.finalScore) }} <span class="text-[10px] font-normal text-muted">điểm</span>
                     </div>
                   </div>
@@ -159,12 +194,12 @@ const triggerLabel = computed(() => {
                 <div class="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-(--border-default)">
                   <div>
                     <p class="text-[10px] font-semibold text-muted uppercase tracking-wider mb-1">Chuyên môn</p>
-                    <p class="text-xs font-medium text-heading">{{ Math.round(c.capabilityScore) }}đ <span class="text-muted font-normal text-[10px]">/ {{ c.experienceYears }} năm</span></p>
+                    <p class="text-xs font-medium text-heading">{{ Math.round(c.capabilityScore) }}đ <span class="text-muted font-normal text-[10px]">/ {{ Math.round(c.experienceScore) }} kinh nghiệm</span></p>
                   </div>
                   <div>
-                    <p class="text-[10px] font-semibold text-muted uppercase tracking-wider mb-1">Workload</p>
-                    <p class="text-xs font-medium" :class="c.workloadScore > 50 ? 'text-(--color-success-text)' : 'text-(--color-warning-text)'">
-                      {{ c.assignedCredits }} / {{ c.maxCredits }} TC
+                    <p class="text-[10px] font-semibold text-muted uppercase tracking-wider mb-1">Tải trọng</p>
+                    <p class="text-xs font-medium" :class="c.currentClassCount >= 4 ? 'text-(--color-warning-text)' : 'text-(--color-success-text)'">
+                      {{ c.currentClassCount }} lớp · {{ c.currentWeeklyShiftCount }} ca/tuần
                     </p>
                   </div>
                 </div>

@@ -49,7 +49,7 @@
             <div :class="['flex h-10 w-10 items-center justify-center rounded-2xl transition-transform group-hover:scale-110', item.bgColor, item.iconColor]">
               <component :is="item.icon" :size="24" stroke-width="2.2" />
             </div>
-            <div :class="['flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold', item.isWarning ? 'bg-(--color-danger-bg) text-(--color-danger-text)' : 'bg-(--color-success-bg) text-(--color-success-text)']">
+            <div v-if="item.trend" :class="['flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold', item.isWarning ? 'bg-(--color-danger-bg) text-(--color-danger-text)' : 'bg-(--color-success-bg) text-(--color-success-text)']">
               {{ item.trend }}
               <ArrowUpRight v-if="!item.isWarning" :size="12" />
               <AlertCircle v-else :size="12" />
@@ -78,7 +78,7 @@
               <router-link to="/staff/schedule" class="text-xs font-bold text-link hover:underline">Xem tất cả</router-link>
             </div>
             <div class="p-3 space-y-3">
-              <div v-for="(item, idx) in scheduleTasks" :key="item.id" 
+              <div v-for="item in scheduleTasks" :key="item.id" 
                    class="group flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-2xl p-4 transition-all surface-solid border border-default">
                 <div :class="['flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl font-bold', item.alert ? 'bg-(--color-danger-bg) text-(--color-danger-text)' : 'bg-(--color-info-bg) text-(--color-info-text)']">
                   <component :is="item.alert ? AlertCircle : Clock" :size="20" />
@@ -108,7 +108,8 @@
                   <h3 class="text-xs font-bold text-heading">Lớp sắp đầy (&gt;90%)</h3>
                   <span class="rounded-full bg-(--color-warning-bg) px-2 py-0.5 text-[10px] font-bold text-(--color-warning-text)">{{ data.stats?.fullClasses ?? 0 }} lớp</span>
                 </div>
-                <div class="space-y-3">
+                <p v-if="!nearFullClasses.length" class="text-xs text-muted">Chưa có lớp nào sắp đầy trong kỳ hiện tại.</p>
+                <div v-else class="space-y-3">
                   <div v-for="cls in nearFullClasses" :key="cls.name" class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
                       <div class="h-1.5 w-1.5 rounded-full bg-(--color-warning-text)"></div>
@@ -117,23 +118,23 @@
                     <span class="text-xs font-bold text-heading">{{ cls.enrolled }}/{{ cls.capacity }}</span>
                   </div>
                 </div>
-                <button class="mt-4 text-xs font-bold text-link hover:underline">Mở thêm sức chứa →</button>
+                <router-link to="/staff/capacity" class="mt-4 inline-block text-xs font-bold text-link hover:underline">Mở rộng sức chứa →</router-link>
               </div>
               <div class="p-4">
                 <div class="flex items-center justify-between mb-3">
-                  <h3 class="text-xs font-bold text-heading">Waitlist cần duyệt</h3>
-                  <span class="rounded-full bg-(--color-info-bg) px-2 py-0.5 text-[10px] font-bold text-(--color-info-text)">{{ data.stats?.waitlistStudents ?? 0 }} SV</span>
+                  <h3 class="text-xs font-bold text-heading">Thông báo mới (7 ngày)</h3>
+                  <span class="rounded-full bg-(--color-info-bg) px-2 py-0.5 text-[10px] font-bold text-(--color-info-text)">{{ data.stats?.newNotices ?? 0 }} thông báo</span>
                 </div>
-                <div class="space-y-3">
-                  <div v-for="cls in waitlistClasses" :key="cls.name" class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <div class="h-1.5 w-1.5 rounded-full bg-(--color-info-text)"></div>
-                      <span class="text-xs text-body">{{ cls.name }}</span>
+                <p v-if="!announcements.length" class="text-xs text-muted">Chưa có thông báo mới trong 7 ngày qua.</p>
+                <div v-else class="space-y-3">
+                  <div v-for="n in announcements.slice(0, 4)" :key="n.title" class="flex items-start justify-between gap-2">
+                    <div class="flex items-start gap-2 min-w-0">
+                      <div class="h-1.5 w-1.5 rounded-full bg-(--color-info-text) mt-1"></div>
+                      <span class="text-xs text-body truncate">{{ n.title }}</span>
                     </div>
-                    <span class="text-xs font-bold text-heading">{{ cls.count }} SV chờ</span>
                   </div>
                 </div>
-                <button class="mt-4 text-xs font-bold text-link hover:underline">Xử lý danh sách chờ →</button>
+                <router-link to="/staff/notices/history" class="mt-4 inline-block text-xs font-bold text-link hover:underline">Xem tất cả →</router-link>
               </div>
             </div>
           </div>
@@ -164,28 +165,30 @@
                 </div>
               </div>
             </div>
-            <button @click="processAllRequests" :disabled="processingAll" class="mt-4 w-full lg-button-primary h-9 rounded-lg text-[11px] font-bold">{{ processingAll ? 'Đang xử lý...' : 'Xử lý toàn bộ đơn' }}</button>
+            <router-link to="/staff/requests" class="mt-4 w-full lg-button-primary h-9 rounded-lg text-[11px] font-bold inline-flex items-center justify-center gap-1.5">Xử lý đơn từ</router-link>
           </div>
 
           <!-- Semester Overview -->
           <div class="rounded-2xl border border-card surface-card shadow-sm p-4">
-            <h3 class="text-base font-bold text-heading">Thống kê Học kỳ</h3>
-            <p class="text-xs text-muted mt-1">Đã hoàn thành xếp lịch cho {{ data.semesterStats?.completed ?? 85 }}% các khoa.</p>
-            
-            <div class="mt-4 flex items-end gap-2 h-20">
-              <div v-for="(h, i) in [60, 40, 80, 50, 70, 95, 65]" :key="i" 
-                   class="flex-1 bg-(--color-info-bg) rounded-t-lg transition-all hover:bg-(--surface-input) cursor-help"
-                   :style="{ height: h + '%' }" />
-            </div>
-            
+            <h3 class="text-base font-bold text-heading">Thống kê học kỳ</h3>
+            <p class="text-xs text-muted mt-1">Tổng quan hoạt động giảng dạy trong kỳ hiện tại.</p>
+
             <div class="mt-4 grid grid-cols-2 gap-3">
               <div class="rounded-xl surface-solid p-3 border border-default">
-                <p class="text-[10px] uppercase font-bold text-muted tracking-wider">Lớp học phần</p>
-                <p class="text-base font-semibold mt-0.5 text-heading">{{ (data.semesterStats?.totalClasses ?? 1240).toLocaleString() }}</p>
+                <p class="text-[10px] uppercase font-bold text-muted tracking-wider">TKB hôm nay</p>
+                <p class="text-base font-semibold mt-0.5 text-heading">{{ (data.semesterStats?.todaySchedules ?? 0).toLocaleString() }}</p>
               </div>
               <div class="rounded-xl surface-solid p-3 border border-default">
-                <p class="text-[10px] uppercase font-bold text-muted tracking-wider">Phòng trống</p>
-                <p class="text-base font-semibold mt-0.5 text-heading">{{ data.semesterStats?.emptyRooms ?? 12 }}%</p>
+                <p class="text-[10px] uppercase font-bold text-muted tracking-wider">Lớp đang mở</p>
+                <p class="text-base font-semibold mt-0.5 text-heading">{{ (data.semesterStats?.activeClasses ?? 0).toLocaleString() }}</p>
+              </div>
+              <div class="rounded-xl surface-solid p-3 border border-default">
+                <p class="text-[10px] uppercase font-bold text-muted tracking-wider">Xung đột lịch</p>
+                <p class="text-base font-semibold mt-0.5 text-heading">{{ data.semesterStats?.conflicts ?? 0 }}</p>
+              </div>
+              <div class="rounded-xl surface-solid p-3 border border-default">
+                <p class="text-[10px] uppercase font-bold text-muted tracking-wider">Đơn chờ duyệt</p>
+                <p class="text-base font-semibold mt-0.5 text-heading">{{ data.semesterStats?.pendingRequests ?? 0 }}</p>
               </div>
             </div>
           </div>
@@ -207,7 +210,7 @@
                 </div>
               </div>
             </div>
-            <button class="mt-4 w-full lg-button-secondary h-9 rounded-lg text-[11px] font-bold">Tất cả thông báo</button>
+            <router-link to="/staff/notices/history" class="mt-4 w-full lg-button-secondary h-9 rounded-lg text-[11px] font-bold inline-flex items-center justify-center">Tất cả thông báo</router-link>
           </div>
 
         </div>
@@ -218,6 +221,9 @@
 </template>
 
 <script setup>
+defineOptions({
+  name: 'StaffDashboard',
+})
 import { 
   Layers, FileStack, Calendar, Clock, AlertCircle, 
   ArrowUpRight, ShieldCheck, Bell, AlertTriangle
@@ -228,24 +234,23 @@ import { useStaffDashboard } from '@/composables/useStaffDashboard'
 
 const {
   loading, error: apiError, data,
-  processingAll, loadDashboard, processAllRequests,
+  loadDashboard,
 } = useStaffDashboard()
 
 const stats = computed(() => {
   const s = data.value.stats
   if (!s) return []
   return [
-    { id: 1, label: 'Lịch học hôm nay', value: String(s.todaySchedules ?? 0), trend: '+12', bgColor: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)', icon: Calendar },
-    { id: 2, label: 'Xung đột lịch', value: String(s.conflicts ?? 0), trend: 'Cần xử lý', isWarning: true, bgColor: 'bg-(--color-danger-bg)', iconColor: 'text-(--color-danger-text)', icon: AlertTriangle },
-    { id: 3, label: 'Lớp đang mở', value: String(s.activeClasses ?? 0), trend: (s.fullClasses ?? 0) + ' lớp đầy', isWarning: true, bgColor: 'bg-(--color-warning-bg)', iconColor: 'text-(--color-warning-text)', icon: Layers },
-    { id: 4, label: 'Đơn từ chờ duyệt', value: String(s.pendingRequests ?? 0), trend: '3 quá hạn', isWarning: true, bgColor: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)', icon: FileStack },
+    { id: 1, label: 'Lịch học hôm nay', value: String(s.todaySchedules ?? 0), bgColor: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)', icon: Calendar },
+    { id: 2, label: 'Xung đột lịch', value: String(s.conflicts ?? 0), trend: (s.conflicts ?? 0) > 0 ? 'Cần xử lý' : '', isWarning: true, bgColor: 'bg-(--color-danger-bg)', iconColor: 'text-(--color-danger-text)', icon: AlertTriangle },
+    { id: 3, label: 'Lớp đang mở', value: String(s.activeClasses ?? 0), trend: (s.fullClasses ?? 0) + ' lớp đầy', bgColor: 'bg-(--color-warning-bg)', iconColor: 'text-(--color-warning-text)', icon: Layers },
+    { id: 4, label: 'Đơn từ chờ duyệt', value: String(s.pendingRequests ?? 0), bgColor: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)', icon: FileStack },
   ]
 })
 
 const scheduleTasks = computed(() => data.value.scheduleTasks)
 const urgentRequests = computed(() => data.value.urgentRequests)
 const nearFullClasses = computed(() => data.value.nearFullClasses)
-const waitlistClasses = computed(() => data.value.waitlistClasses)
 const announcements = computed(() => data.value.announcements)
 </script>
 

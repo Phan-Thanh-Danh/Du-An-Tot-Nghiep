@@ -7,7 +7,6 @@ import {
   TrendingUp, 
   TrendingDown, 
   AlertTriangle, 
-  Building,
   Layers,
   Users,
   Edit3,
@@ -39,7 +38,6 @@ function mapSection(section) {
     status: section.status,
     schedule: section.schedule,
     room: section.room || 'Chưa phân phòng',
-    roomCapacity: section.capacity,
   }
 }
 
@@ -461,13 +459,6 @@ onMounted(() => {
                 <div class="space-y-4">
                   <div class="flex items-center justify-between p-3 surface-card rounded-xl border border-default">
                     <div class="flex items-center gap-3">
-                      <Building :size="18" class="text-placeholder" />
-                      <span class="text-xs font-bold text-label">Giới hạn phòng học</span>
-                    </div>
-                    <span class="text-xs font-semibold text-heading">{{ selectedSection.roomCapacity }} SV</span>
-                  </div>
-                  <div class="flex items-center justify-between p-3 surface-card rounded-xl border border-default">
-                    <div class="flex items-center gap-3">
                       <TrendingUp :size="18" class="text-(--lg-success)" />
                       <span class="text-xs font-bold text-label">Đẩy từ Waitlist</span>
                     </div>
@@ -481,10 +472,6 @@ onMounted(() => {
                     <span class="text-xs font-semibold" :class="newCapacity >= selectedSection.capacity ? 'text-(--lg-success)' : 'text-(--lg-danger)'">
                       {{ newCapacity >= selectedSection.capacity ? '+' : '' }}{{ newCapacity - selectedSection.capacity }}
                     </span>
-                  </div>
-                  <div v-if="newCapacity > selectedSection.roomCapacity" class="p-4 bg-(--color-danger-bg) rounded-xl border border-(--color-danger-bg)/50 flex gap-3">
-                    <AlertTriangle :size="18" class="text-(--lg-danger) shrink-0" />
-                    <p class="text-[11px] font-bold text-(--lg-danger)">Sức chứa mới vượt quá giới hạn của phòng học hiện tại. Vui lòng đổi phòng sau khi cập nhật.</p>
                   </div>
                 </div>
               </div>

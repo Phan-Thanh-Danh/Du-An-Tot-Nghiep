@@ -1,6 +1,28 @@
 import { apiRequest } from './apiClient'
+import { organizationApi } from './organizationService'
+import { classApi } from './classApi'
 
-const vaiTroOptions = ['GiangVien', 'AcademicStaff', 'SinhVien', 'Principal', 'SuperAdmin', 'PhuHuynh']
+const dbCodeToUi = {
+  giao_vien: 'GiangVien',
+  nhan_vien: 'AcademicStaff',
+  hoc_sinh: 'SinhVien',
+  hieu_truong: 'Principal',
+  sieu_quan_tri: 'SuperAdmin',
+  phu_huynh: 'PhuHuynh',
+  quan_tri: 'Admin',
+  quan_tri_co_so: 'CampusAdmin',
+  quan_tri_co_so_con: 'SubCampusAdmin',
+  chu_tich: 'Chairman',
+}
+
+const uiCodeToApi = {
+  GiangVien: 'Teacher',
+  SinhVien: 'Student',
+  PhuHuynh: 'Parent',
+  Admin: 'Admin',
+  CampusAdmin: 'CampusAdmin',
+  Chairman: 'Chairman',
+}
 
 function unwrap(response) {
   return response?.data ?? response?.Data ?? response
@@ -15,7 +37,8 @@ function buildQuery(params = {}) {
   return qs ? `?${qs}` : ''
 }
 
-function toUiRole(role) {
+function toUiRole(value) {
+  if (dbCodeToUi[value]) return dbCodeToUi[value]
   const map = {
     Teacher: 'GiangVien',
     Student: 'SinhVien',
@@ -23,23 +46,21 @@ function toUiRole(role) {
     AcademicStaff: 'AcademicStaff',
     Principal: 'Principal',
     SuperAdmin: 'SuperAdmin',
-    Admin: 'SuperAdmin',
+    Admin: 'Admin',
+    CampusAdmin: 'CampusAdmin',
+    SubCampusAdmin: 'SubCampusAdmin',
+    Chairman: 'Chairman',
   }
-  return map[role] || role
+  return map[value] || value
 }
 
 function toApiRole(role) {
-  const map = {
-    GiangVien: 'Teacher',
-    SinhVien: 'Student',
-    PhuHuynh: 'Parent',
-  }
-  return map[role] || role
+  return uiCodeToApi[role] || role
 }
 
 function normalizeAccount(item) {
-  const role = toUiRole(item.tenVaiTro || item.vaiTro || item.role)
   const status = item.trangThai || ''
+  const role = toUiRole(item.maCodeVaiTro || item.tenVaiTro || item.vaiTro || item.role)
   return {
     ...item,
     maTaiKhoan: item.maNguoiDung ?? item.maTaiKhoan,
@@ -48,7 +69,8 @@ function normalizeAccount(item) {
     email: item.email || '',
     vaiTro: role,
     donVi: item.tenDonVi || item.donVi || '',
-    kichHoat: status !== 'bi_khoa' && status !== 'inactive' && status !== 'locked',
+    lopHanhChinh: item.tenLopHanhChinh || item.lopHanhChinh || '',
+    kichHoat: status !== 'Locked' && status !== 'bi_khoa' && status !== 'locked',
     ngayTao: item.ngayTao,
   }
 }
@@ -59,17 +81,42 @@ function normalizeAccountList(response) {
   return items.map(normalizeAccount)
 }
 
-function unavailable() {
-  throw new Error('Chức năng đang phát triển')
-}
-
 export const accountApi = {
+  getMe() {
+    return apiRequest('/api/account/me').then(unwrap)
+  },
+
+  updateProfile(payload) {
+    return apiRequest('/api/account/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: payload.email,
+        hoTen: payload.hoTen,
+        soDienThoai: payload.soDienThoai ?? null,
+      }),
+    }).then(unwrap)
+  },
+
+  changePassword(payload) {
+    return apiRequest('/api/account/change-password', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        currentPassword: payload.currentPassword,
+        newPassword: payload.newPassword,
+        confirmPassword: payload.confirmPassword,
+      }),
+    })
+  },
+
   list(params = {}) {
     const apiParams = {
+      PageIndex: params.PageIndex || 1,
       PageSize: params.PageSize || 100,
       Keyword: params.Search,
       Role: params.VaiTro ? toApiRole(params.VaiTro) : undefined,
-      TrangThai: params.KichHoat === 'false' || params.KichHoat === false ? 'bi_khoa' : undefined,
+      TrangThai: params.KichHoat === 'false' || params.KichHoat === false ? 'Locked' : undefined,
     }
     return apiRequest(`/api/admin/users${buildQuery(apiParams)}`).then(normalizeAccountList)
   },
@@ -78,12 +125,37 @@ export const accountApi = {
     return apiRequest(`/api/admin/users/${id}`).then(res => normalizeAccount(unwrap(res)))
   },
 
-  create() {
-    return unavailable()
+  create(payload) {
+    const body = {
+      hoTen: payload.hoTen,
+      email: payload.email,
+      soDienThoai: payload.soDienThoai || null,
+      matKhau: payload.matKhau,
+      maVaiTro: Number(payload.maVaiTro),
+      maDonVi: Number(payload.maDonVi),
+      maLopHanhChinh: payload.maLopHanhChinh ? Number(payload.maLopHanhChinh) : null,
+    }
+    return apiRequest('/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(res => normalizeAccount(unwrap(res)))
   },
 
-  update() {
-    return unavailable()
+  update(id, payload) {
+    const body = {
+      hoTen: payload.hoTen,
+      email: payload.email,
+      soDienThoai: payload.soDienThoai || null,
+      maVaiTro: Number(payload.maVaiTro),
+      maDonVi: Number(payload.maDonVi),
+      maLopHanhChinh: payload.maLopHanhChinh ? Number(payload.maLopHanhChinh) : null,
+    }
+    return apiRequest(`/api/admin/users/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(res => normalizeAccount(unwrap(res)))
   },
 
   toggleActive(account) {
@@ -92,11 +164,36 @@ export const accountApi = {
     return apiRequest(`/api/admin/users/${id}/${isActive ? 'lock' : 'unlock'}`, { method: 'PATCH' })
   },
 
-  resetPassword() {
-    return unavailable()
+  resetPassword(id, newPassword) {
+    return apiRequest(`/api/admin/users/${id}/reset-password`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newPassword }),
+    })
+  },
+
+  getRoles() {
+    return apiRequest('/api/admin/users/roles').then(res => {
+      const roles = unwrap(res)
+      return Array.isArray(roles) ? roles : []
+    })
+  },
+
+  getOrganizations() {
+    return organizationApi.getAll().then(list =>
+      (Array.isArray(list) ? list : []).map(item => ({
+        maDonVi: item.id ?? item.maDonVi,
+        tenDonVi: item.name ?? item.tenDonVi,
+        isActive: item.isActive !== false && item.conHoatDong !== false,
+      })),
+    )
+  },
+
+  getClasses(params = {}) {
+    return classApi.list({ PageSize: 100, ...params }).then(list => (Array.isArray(list) ? list : []))
   },
 
   getVaiTroOptions() {
-    return vaiTroOptions
+    return ['GiangVien', 'AcademicStaff', 'SinhVien', 'Principal', 'SuperAdmin', 'PhuHuynh']
   },
 }

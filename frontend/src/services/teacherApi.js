@@ -335,7 +335,9 @@ export const teacherApi = {
       try {
         const errorData = await response.json()
         msg = errorData?.message || msg
-      } catch {}
+      } catch {
+        // response không phải JSON, giữ message mặc định
+      }
       throw new Error(msg)
     }
     

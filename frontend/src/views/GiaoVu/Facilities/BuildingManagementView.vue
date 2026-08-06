@@ -9,6 +9,11 @@ import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { buildingApi } from '@/services/buildingApi'
 import { floorApi } from '@/services/floorApi'
 import { roomApi } from '@/services/roomApi'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+const canManage = computed(() => authStore.hasRole(['SuperAdmin', 'Admin', 'CampusAdmin', 'SubCampusAdmin']))
+const campusId = computed(() => authStore.user?.campusId ?? authStore.user?.CampusId ?? 1)
 
 const loading = ref(true)
 const error = ref(null)
@@ -76,7 +81,7 @@ async function fetchFloors(buildingId) {
   floorLoading[buildingId] = true
   try {
     const res = await floorApi.getByBuilding(buildingId)
-    floorCache[buildingId] = Array.isArray(res) ? res : (res?.items || res?.data || [])
+    floorCache[buildingId] = Array.isArray(res) ? res : (res?.data?.items || res?.items || [])
   } catch {
     floorCache[buildingId] = []
   } finally {
@@ -97,7 +102,7 @@ async function fetchRooms(floorId) {
   roomLoading[key] = true
   try {
     const res = await roomApi.getByFloor(floorId)
-    roomCache[key] = Array.isArray(res) ? res : (res?.items || res?.data || [])
+    roomCache[key] = Array.isArray(res) ? res : (res?.data?.items || res?.items || [])
   } catch {
     roomCache[key] = []
   } finally {
@@ -117,7 +122,7 @@ function getRooms(floorId) {
 const showBuildingModal = ref(false)
 const editingBuilding = ref(null)
 const buildingForm = reactive({
-  maDonVi: 1,
+  maDonVi: campusId.value,
   maCodeToaNha: '',
   tenToaNha: '',
   diaChi: '',
@@ -128,7 +133,7 @@ const isSavingBuilding = ref(false)
 
 function openAddBuilding() {
   editingBuilding.value = null
-  Object.assign(buildingForm, { maDonVi: 1, maCodeToaNha: '', tenToaNha: '', diaChi: '', soTang: null })
+  Object.assign(buildingForm, { maDonVi: campusId.value, maCodeToaNha: '', tenToaNha: '', diaChi: '', soTang: null })
   Object.keys(buildingErrors).forEach(k => delete buildingErrors[k])
   showBuildingModal.value = true
 }
@@ -136,7 +141,7 @@ function openAddBuilding() {
 function openEditBuilding(b) {
   editingBuilding.value = b
   Object.assign(buildingForm, {
-    maDonVi: b.maDonVi || 1,
+    maDonVi: b.maDonVi || campusId.value,
     maCodeToaNha: b.maCodeToaNha || '',
     tenToaNha: b.tenToaNha || '',
     diaChi: b.diaChi || '',
@@ -317,7 +322,7 @@ function navigateToRooms(buildingId, floorId) {
     subtitle="Quản lý danh sách tòa nhà, lầu và phòng học trong cơ sở."
   >
     <template #actions>
-      <button class="lg-button-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2" @click="openAddBuilding">
+      <button v-if="canManage" class="lg-button-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2" @click="openAddBuilding">
         <Plus :size="18" /> Thêm tòa nhà
       </button>
     </template>
@@ -402,11 +407,11 @@ function navigateToRooms(buildingId, floorId) {
               </p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-              <button class="p-2 hover:bg-(--surface-input-focus) rounded-xl text-label transition-colors"
+              <button v-if="canManage" class="p-2 hover:bg-(--surface-input-focus) rounded-xl text-label transition-colors"
                 @click.stop="openEditBuilding(b)">
                 <Pencil :size="15" />
               </button>
-              <button class="p-2 hover:bg-(--color-danger-bg) rounded-xl text-(--lg-danger)/70 hover:text-(--lg-danger) transition-colors"
+              <button v-if="canManage" class="p-2 hover:bg-(--color-danger-bg) rounded-xl text-(--lg-danger)/70 hover:text-(--lg-danger) transition-colors"
                 @click.stop="requestDeleteBuilding(b)">
                 <Trash2 :size="15" />
               </button>
@@ -422,7 +427,7 @@ function navigateToRooms(buildingId, floorId) {
                     Danh sách lầu
                     <span v-if="getFloors(b.maToaNha).length" class="ml-1">({{ getFloors(b.maToaNha).length }})</span>
                   </p>
-                  <button class="flex items-center gap-1.5 text-xs font-bold text-(--lg-primary) hover:underline"
+                  <button v-if="canManage" class="flex items-center gap-1.5 text-xs font-bold text-(--lg-primary) hover:underline"
                     @click="openAddFloor(b.maToaNha)">
                     <Plus :size="14" /> Thêm lầu
                   </button>
@@ -434,7 +439,7 @@ function navigateToRooms(buildingId, floorId) {
                 </div>
 
                 <div v-else-if="getFloors(b.maToaNha).length === 0" class="text-center py-6 text-sm text-placeholder">
-                  Chưa có lầu nào. <button class="text-(--lg-primary) font-semibold hover:underline"
+                  Chưa có lầu nào. <button v-if="canManage" class="text-(--lg-primary) font-semibold hover:underline"
                     @click="openAddFloor(b.maToaNha)">Thêm lầu đầu tiên</button>
                 </div>
 
@@ -457,11 +462,11 @@ function navigateToRooms(buildingId, floorId) {
                           : 'bg-(--color-danger-bg) text-(--color-danger-text)'">
                         {{ f.conHoatDong !== false ? 'Hoạt động' : 'Ngừng' }}
                       </span>
-                      <button class="p-1.5 hover:bg-(--surface-input-focus) rounded-lg text-label transition-colors"
+                      <button v-if="canManage" class="p-1.5 hover:bg-(--surface-input-focus) rounded-lg text-label transition-colors"
                         @click.stop="openEditFloor(f)">
                         <Pencil :size="13" />
                       </button>
-                      <button class="p-1.5 hover:bg-(--color-danger-bg) rounded-lg text-(--lg-danger)/70 hover:text-(--lg-danger) transition-colors"
+                      <button v-if="canManage" class="p-1.5 hover:bg-(--color-danger-bg) rounded-lg text-(--lg-danger)/70 hover:text-(--lg-danger) transition-colors"
                         @click.stop="requestDeleteFloor(f)">
                         <Trash2 :size="13" />
                       </button>
@@ -479,7 +484,7 @@ function navigateToRooms(buildingId, floorId) {
                         <div v-else-if="getRooms(f.maTang).length === 0"
                           class="text-center py-6 text-sm text-placeholder">
                           Chưa có phòng học trên lầu này.
-                          <button class="text-(--lg-primary) font-semibold hover:underline ml-1"
+                          <button v-if="canManage" class="text-(--lg-primary) font-semibold hover:underline ml-1"
                             @click="navigateToRooms(b.maToaNha, f.maTang)">
                             Thêm phòng
                           </button>

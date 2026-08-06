@@ -1,0 +1,116 @@
+{
+  "generatedAt": "2026-08-06T03:32:50.819Z",
+  "frontend": "https://localhost",
+  "cdp": "http://127.0.0.1:9222",
+  "browser": "Chrome/150.0.7871.189",
+  "account": "p12test_staff01@lms.local",
+  "totals": {
+    "routes": 6,
+    "passed": 6,
+    "failed": 0,
+    "consoleErrors": 0,
+    "runtimeExceptions": 0,
+    "network401": 0,
+    "network403": 0,
+    "network404": 0,
+    "network500": 0
+  },
+  "results": [
+    {
+      "route": "/staff/dashboard",
+      "note": "Dashboard GiaoVu (staffApi.dashboard)",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "pageProbe": {
+        "title": "Vite App",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loadingText": false,
+        "path": "/staff/dashboard"
+      }
+    },
+    {
+      "route": "/staff/conflicts",
+      "note": "ConflictCheckView - conflict detection client-side",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "pageProbe": {
+        "title": "Vite App",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loadingText": false,
+        "path": "/staff/conflicts"
+      }
+    },
+    {
+      "route": "/staff/profile",
+      "note": "StaffProfileView - account/me, profile, change-password",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "pageProbe": {
+        "title": "Vite App",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loadingText": false,
+        "path": "/staff/profile"
+      }
+    },
+    {
+      "route": "/staff/schedule/published",
+      "note": "StaffPublishedSchedulesView - published list + cancel",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "pageProbe": {
+        "title": "Vite App",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loadingText": false,
+        "path": "/staff/schedule/published"
+      }
+    },
+    {
+      "route": "/staff/rooms",
+      "note": "RoomManagementView - master-data rooms",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "pageProbe": {
+        "title": "Vite App",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loadingText": false,
+        "path": "/staff/rooms"
+      }
+    },
+    {
+      "route": "/staff/schedule",
+      "note": "ScheduleManagerView - schedule CRUD",
+      "pageLoaded": true,
+      "apiErrors": [],
+      "consoleErrors": [],
+      "runtimeExceptions": [],
+      "result": "PASS",
+      "pageProbe": {
+        "title": "Vite App",
+        "hasRoot": true,
+        "hasVisibleText": true,
+        "loadingText": false,
+        "path": "/staff/schedule"
+      }
+    }
+  ]
+}
