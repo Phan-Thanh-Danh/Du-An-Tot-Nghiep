@@ -55,6 +55,12 @@ const pageSizeOptions = [
   { value: 100, label: '100 / trang' }
 ]
 
+const termTypeOptions = [
+  { value: 1, label: 'Học kỳ 1 (Spring)' },
+  { value: 2, label: 'Học kỳ phụ (Summer)' },
+  { value: 3, label: 'Học kỳ 2 (Fall)' }
+]
+
 const formCampusOptions = computed(() => 
   availableOrganizations.value.map(c => ({ value: c.id, label: c.name }))
 )
@@ -192,7 +198,8 @@ const termForm = ref({
   namHoc: new Date().getFullYear(),
   ngayBatDau: '',
   ngayKetThuc: '',
-  maDonVi: null
+  maDonVi: null,
+  thuTuTrongNam: 1
 })
 
 const isConfirmModalOpen = ref(false)
@@ -215,21 +222,33 @@ const openCreateDrawer = () => {
     namHoc: new Date().getFullYear(),
     ngayBatDau: '',
     ngayKetThuc: '',
-    maDonVi: availableOrganizations.value[0]?.id || null
+    maDonVi: availableOrganizations.value[0]?.id || null,
+    thuTuTrongNam: 1
   }
   isDrawerOpen.value = true
 }
 
 const openEditDrawer = (term) => {
   drawerMode.value = 'edit'
+  let rawNamHoc = term.namHoc || term.NamHoc || String(new Date().getFullYear());
+  let yearVal = new Date().getFullYear();
+  if (typeof rawNamHoc === 'string') {
+    const parts = rawNamHoc.split('-');
+    if (parts.length > 0) {
+      yearVal = parseInt(parts[0]) || yearVal;
+    }
+  } else if (typeof rawNamHoc === 'number') {
+    yearVal = rawNamHoc;
+  }
   termForm.value = {
     id: term.maHocKy || term.MaHocKy,
     maCodeHocKy: term.maCodeHocKy || term.MaCodeHocKy || '',
     tenHocKy: term.tenHocKy || term.TenHocKy || '',
-    namHoc: term.namHoc || term.NamHoc || new Date().getFullYear(),
+    namHoc: yearVal,
     ngayBatDau: toInputDate(term.ngayBatDau || term.NgayBatDau),
     ngayKetThuc: toInputDate(term.ngayKetThuc || term.NgayKetThuc),
-    maDonVi: term.maDonVi || term.MaDonVi || null
+    maDonVi: term.maDonVi || term.MaDonVi || null,
+    thuTuTrongNam: term.thuTuTrongNam || term.ThuTuTrongNam || 1
   }
   isDrawerOpen.value = true
 }
@@ -245,12 +264,14 @@ const submitForm = async () => {
     return
   }
 
+  const yearInput = Number(termForm.value.namHoc)
   const payload = {
     maCodeHocKy: termForm.value.maCodeHocKy.trim(),
     tenHocKy: termForm.value.tenHocKy.trim(),
-    namHoc: Number(termForm.value.namHoc),
-    ngayBatDau: new Date(termForm.value.ngayBatDau).toISOString(),
-    ngayKetThuc: new Date(termForm.value.ngayKetThuc).toISOString(),
+    namHoc: `${yearInput}-${yearInput + 1}`,
+    thuTuTrongNam: Number(termForm.value.thuTuTrongNam),
+    ngayBatDau: termForm.value.ngayBatDau,
+    ngayKetThuc: termForm.value.ngayKetThuc,
     maDonVi: Number(termForm.value.maDonVi)
   }
 
@@ -477,9 +498,15 @@ onMounted(async () => {
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="block text-xs font-bold text-label mb-1">Tên học kỳ <span class="text-rose-500">*</span></label>
-              <input v-model="termForm.tenHocKy" type="text" class="glass-input w-full" placeholder="VD: Học kỳ 1 năm 2028" />
+            <div class="grid grid-cols-2 gap-4">
+              <div class="form-group">
+                <label class="block text-xs font-bold text-label mb-1">Loại học kỳ <span class="text-rose-500">*</span></label>
+                <LmsSelect v-model="termForm.thuTuTrongNam" :options="termTypeOptions" />
+              </div>
+              <div class="form-group">
+                <label class="block text-xs font-bold text-label mb-1">Tên học kỳ <span class="text-rose-500">*</span></label>
+                <input v-model="termForm.tenHocKy" type="text" class="glass-input w-full" placeholder="VD: Học kỳ 1 năm 2028" />
+              </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -549,5 +576,15 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   padding: 1rem;
+}
+
+:global(.modal-content) {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+:global(.dark .modal-content) {
+  background: #0f172a !important;
 }
 </style>
