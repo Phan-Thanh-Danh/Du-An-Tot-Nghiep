@@ -95,7 +95,7 @@
       </div>
 
       <div class="p-4 bg-(--surface-card) flex items-center justify-between text-sm">
-        <span class="text-muted">Hiển thị {{ pagedUsers.length }} / {{ filteredUsers.length }} người dùng</span>
+        <span class="text-muted">Hiển thị {{ pagedUsers.length }} / {{ totalItems }} người dùng</span>
         <div class="flex items-center gap-2">
           <button @click="prevPage" :disabled="currentPage === 1" class="px-3 py-1.5 rounded-lg border border-default hover:bg-(--surface-input) disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang trước</button>
           <span class="px-2 font-bold text-heading">Trang {{ currentPage }} / {{ totalPages }}</span>
@@ -156,7 +156,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { Search, Plus, Edit2, Lock, Unlock, Key, CheckCircle2, AlertTriangle, AlertCircle, X } from 'lucide-vue-next'
 import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import { bghApi } from '@/services/bghApi'
@@ -174,6 +174,9 @@ const roleFilter = ref('')
 const statusFilter = ref('')
 const currentPage = ref(1)
 const pageSize = 15
+const totalItems = ref(0)
+const serverTotalPages = ref(1)
+let searchTimer = null
 
 const showModal = ref(false)
 const modalMode = ref('create')
@@ -190,11 +193,19 @@ async function loadData() {
   error.value = null
   try {
     const [userRes, roleRes, orgRes] = await Promise.all([
-      bghApi.getUsers(),
+      bghApi.getUsers({
+        pageIndex: currentPage.value,
+        pageSize,
+        keyword: keyword.value.trim(),
+        role: roleFilter.value,
+        status: statusFilter.value,
+      }),
       bghApi.getRoles(),
       bghApi.getOrganizations(),
     ])
     users.value = unwrapApiData(userRes) || []
+    totalItems.value = userRes?.pagination?.totalItems ?? users.value.length
+    serverTotalPages.value = Math.max(1, userRes?.pagination?.totalPages ?? 1)
     rolesList.value = (unwrapApiData(roleRes) || []).map(r => ({ maVaiTro: r.maVaiTro, maCodeVaiTro: r.maCodeVaiTro, tenVaiTro: r.tenVaiTro }))
     orgsList.value = (unwrapApiData(orgRes) || []).map(o => ({ maDonVi: o.id, tenDonVi: o.name, capDonVi: o.organizationLevel }))
   } catch (e) {
@@ -216,16 +227,30 @@ const filteredUsers = computed(() => {
   })
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredUsers.value.length / pageSize)))
+const totalPages = computed(() => serverTotalPages.value)
+const pagedUsers = computed(() => filteredUsers.value)
 
-const pagedUsers = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredUsers.value.slice(start, start + pageSize)
+function handleFilter() {
+  currentPage.value = 1
+  loadData()
+}
+function prevPage() {
+  if (currentPage.value > 1) {
+    currentPage.value--
+    loadData()
+  }
+}
+function nextPage() {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+    loadData()
+  }
+}
+
+watch(keyword, () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(handleFilter, 250)
 })
-
-function handleFilter() { currentPage.value = 1 }
-function prevPage() { if (currentPage.value > 1) currentPage.value-- }
-function nextPage() { if (currentPage.value < totalPages.value) currentPage.value++ }
 
 function openCreateModal() {
   if (!canEdit.value) return
@@ -290,6 +315,7 @@ async function submitForm() {
         })
       })
     }
+    bghApi.invalidate('/api/bgh/users')
     closeModal()
     await loadData()
   } catch (e) {
@@ -304,6 +330,7 @@ async function handleToggleLock(user) {
   const isLocking = user.trangThai === 'hoat_dong'
   try {
     await apiRequest(`/api/admin/users/${user.maNguoiDung}/${isLocking ? 'lock' : 'unlock'}`, { method: 'PATCH' })
+    bghApi.invalidate('/api/bgh/users')
     await loadData()
   } catch (e) {
     apiError.value = e?.message || 'Lỗi thực hiện thao tác'
@@ -319,10 +346,12 @@ async function handleResetPassword(user) {
       method: 'PATCH',
       body: JSON.stringify({ matKhauMoi: newPassword })
     })
+    bghApi.invalidate('/api/bgh/users')
   } catch (e) {
     apiError.value = e?.message || 'Lỗi đặt lại mật khẩu'
   }
 }
 
 onMounted(() => { loadData() })
+onUnmounted(() => clearTimeout(searchTimer))
 </script>

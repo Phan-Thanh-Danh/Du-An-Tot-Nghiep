@@ -14,7 +14,7 @@ import {
   AlertCircle,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
-import { exportToExcel, triggerPrint } from '@/services/exportService.js'
+import { exportBghToExcel, printBghPage as triggerPrint } from '@/components/BGH/performance/bghExport.js'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
@@ -100,7 +100,7 @@ function exportReport(rpt) {
     'Ngày tạo': rpt.date,
     'Trạng thái': rpt.status === 'ready' ? 'Sẵn sàng' : 'Đang tạo',
   }]
-  exportToExcel(data, `${rpt.id}.xlsx`, rpt.name)
+  exportBghToExcel(data, `${rpt.id}.xlsx`, rpt.name)
   popup.success('Xuất báo cáo', `Đã xuất "${rpt.name}" thành công.`)
 }
 
@@ -115,7 +115,7 @@ function prepareExcelData() {
 }
 
 function exportExcel() {
-  exportToExcel(prepareExcelData(), `BaoCao-HocTap-${semesterFilter.value}.xlsx`, 'Báo cáo học tập')
+  exportBghToExcel(prepareExcelData(), `BaoCao-HocTap-${semesterFilter.value}.xlsx`, 'Báo cáo học tập')
 }
 </script>
 

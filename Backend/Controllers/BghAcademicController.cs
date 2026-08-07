@@ -4,6 +4,7 @@ using Backend.Data;
 using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
 using Backend.Models;
+using Backend.Services.Bgh;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,10 +17,12 @@ namespace Backend.Controllers;
 public class BghAcademicController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
+    private readonly IBghPerformanceCache _cache;
 
-    public BghAcademicController(ApplicationDbContext db)
+    public BghAcademicController(ApplicationDbContext db, IBghPerformanceCache cache)
     {
         _db = db;
+        _cache = cache;
     }
 
     private (int CampusId, bool IsGlobal) GetUserScope()
@@ -31,6 +34,7 @@ public class BghAcademicController : ControllerBase
     }
 
     [HttpGet("academic/overview")]
+    [BghResponseCache(60)]
     public async Task<ActionResult<ApiResponseDto<AcademicOverviewDto>>> GetAcademicOverview()
     {
         var (campusId, isGlobal) = GetUserScope();
@@ -116,6 +120,7 @@ public class BghAcademicController : ControllerBase
     }
 
     [HttpGet("academic/gpa")]
+    [BghResponseCache(120)]
     public async Task<ActionResult<ApiResponseDto<GpaReportDto>>> GetGpaReports()
     {
         var (campusId, isGlobal) = GetUserScope();
@@ -160,46 +165,108 @@ public class BghAcademicController : ControllerBase
     }
 
     [HttpGet("academic/at-risk")]
-    public async Task<ActionResult<ApiResponseDto<AtRiskReportDto>>> GetAtRiskStudents()
+    public async Task<ActionResult<ApiResponseDto<AtRiskReportDto>>> GetAtRiskStudents(
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] int? studentId = null,
+        [FromQuery] string? keyword = null,
+        CancellationToken cancellationToken = default)
     {
         var (campusId, isGlobal) = GetUserScope();
+        pageIndex = Math.Max(pageIndex, 1);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        var normalizedKeyword = keyword?.Trim();
+        Response.Headers.CacheControl = "private, max-age=15, stale-while-revalidate=45";
 
-        var atRiskStudentIds = await _db.DiemSos
-            .Where(d => d.GpaMonHoc < 4 && (isGlobal || d.MaDonVi == campusId))
-            .Select(d => d.MaHocSinh)
-            .Distinct()
-            .ToListAsync();
+        var cacheKey = BghCacheKey.For(
+            HttpContext,
+            "academic-at-risk",
+            pageIndex,
+            pageSize,
+            studentId,
+            normalizedKeyword);
 
-        var students = await _db.NguoiDungs
-            .Where(u => atRiskStudentIds.Contains(u.MaNguoiDung))
-            .Select(u => new AtRiskStudentDto
+        var data = await _cache.GetOrCreateAsync(
+            cacheKey,
+            TimeSpan.FromSeconds(60),
+            async ct =>
             {
-                Id = u.MaNguoiDung,
-                Name = u.HoTen,
-                Email = u.Email,
-                ClassCode = u.Lop != null ? u.Lop.MaCodeLop : "",
-                AvgGpa = _db.DiemSos.Where(d => d.MaHocSinh == u.MaNguoiDung).Average(d => (decimal?)d.GpaMonHoc) ?? 0,
-                FailCount = _db.DiemSos.Count(d => d.MaHocSinh == u.MaNguoiDung && d.GpaMonHoc < 4)
-            })
-            .OrderBy(u => u.AvgGpa)
-            .ToListAsync();
+                var riskAggregates = _db.DiemSos
+                    .AsNoTracking()
+                    .Where(d => (isGlobal || d.MaDonVi == campusId) &&
+                                (!studentId.HasValue || d.MaHocSinh == studentId.Value))
+                    .GroupBy(d => d.MaHocSinh)
+                    .Select(g => new
+                    {
+                        StudentId = g.Key,
+                        AvgGpa = g.Average(d => d.GpaMonHoc),
+                        FailCount = g.Count(d => d.GpaMonHoc < 4)
+                    })
+                    .Where(x => x.FailCount > 0);
 
-        var data = new AtRiskReportDto
-        {
-            TotalAtRisk = students.Count,
-            Students = students,
-            Summary = new AtRiskSummaryDto
-            {
-                TotalStudents = await _db.NguoiDungs.CountAsync(u => u.VaiTroChinh == "hoc_sinh" && (isGlobal || u.MaDonVi == campusId)),
-                AvgGpaAtRisk = students.Count > 0 ? Math.Round((decimal)students.Average(s => (double)s.AvgGpa), 2) : 0,
-                CriticalCount = students.Count(s => s.FailCount >= 3)
-            }
-        };
+                var query =
+                    from risk in riskAggregates
+                    join student in _db.NguoiDungs.AsNoTracking()
+                        on risk.StudentId equals student.MaNguoiDung
+                    join academicClass in _db.LopHanhChinhs.AsNoTracking()
+                        on student.MaLop equals (int?)academicClass.MaLop into classJoin
+                    from academicClass in classJoin.DefaultIfEmpty()
+                    where (!studentId.HasValue || student.MaNguoiDung == studentId.Value) &&
+                          (string.IsNullOrEmpty(normalizedKeyword) ||
+                           student.HoTen.Contains(normalizedKeyword) ||
+                           student.Email.Contains(normalizedKeyword))
+                    select new AtRiskStudentDto
+                    {
+                        Id = student.MaNguoiDung,
+                        Name = student.HoTen,
+                        Email = student.Email,
+                        ClassCode = academicClass != null ? academicClass.MaCodeLop : "",
+                        AvgGpa = Math.Round(risk.AvgGpa, 2),
+                        FailCount = risk.FailCount
+                    };
+
+                var summary = await query
+                    .GroupBy(_ => 1)
+                    .Select(g => new
+                    {
+                        TotalAtRisk = g.Count(),
+                        AvgGpa = g.Average(x => x.AvgGpa),
+                        CriticalCount = g.Count(x => x.FailCount >= 3)
+                    })
+                    .SingleOrDefaultAsync(ct);
+                var students = await query
+                    .OrderBy(x => x.AvgGpa)
+                    .ThenByDescending(x => x.FailCount)
+                    .ThenBy(x => x.Id)
+                    .Skip((pageIndex - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync(ct);
+                var totalStudents = await _db.NguoiDungs
+                    .AsNoTracking()
+                    .CountAsync(u => u.VaiTroChinh == "hoc_sinh" && (isGlobal || u.MaDonVi == campusId), ct);
+
+                return new AtRiskReportDto
+                {
+                    TotalAtRisk = summary?.TotalAtRisk ?? 0,
+                    PageIndex = pageIndex,
+                    PageSize = pageSize,
+                    TotalPages = pageSize == 0 ? 0 : (int)Math.Ceiling((summary?.TotalAtRisk ?? 0) / (double)pageSize),
+                    Students = students,
+                    Summary = new AtRiskSummaryDto
+                    {
+                        TotalStudents = totalStudents,
+                        AvgGpaAtRisk = Math.Round(summary?.AvgGpa ?? 0, 2),
+                        CriticalCount = summary?.CriticalCount ?? 0
+                    }
+                };
+            },
+            cancellationToken);
 
         return Ok(ApiResponseDto<AtRiskReportDto>.Ok(data));
     }
 
     [HttpGet("academic/reports")]
+    [BghResponseCache(120)]
     public async Task<ActionResult<ApiResponseDto<object>>> GetAcademicReports()
     {
         var (campusId, isGlobal) = GetUserScope();
@@ -230,6 +297,7 @@ public class BghAcademicController : ControllerBase
     }
 
     [HttpGet("academic/pass-fail/filters")]
+    [BghResponseCache(600)]
     public async Task<ActionResult<ApiResponseDto<PassFailFilterOptionsDto>>> GetPassFailFilterOptions(
         [FromQuery] int? majorId = null,
         [FromQuery] int? specializationId = null,
@@ -347,6 +415,7 @@ public class BghAcademicController : ControllerBase
     }
 
     [HttpGet("academic/pass-fail")]
+    [BghResponseCache(120)]
     public async Task<ActionResult<ApiResponseDto<PassFailReportDto>>> GetPassFailRates(
         [FromQuery] int? majorId = null,
         [FromQuery] int? specializationId = null,
@@ -514,6 +583,7 @@ public class BghAcademicController : ControllerBase
     }
 
     [HttpGet("schedule/changes")]
+    [BghResponseCache(20)]
     public async Task<ActionResult<ApiResponseDto<List<ScheduleChangeDto>>>> GetScheduleChanges()
     {
         var (campusId, isGlobal) = GetUserScope();
@@ -586,6 +656,7 @@ public class BghAcademicController : ControllerBase
         }
 
         await _db.SaveChangesAsync();
+        _cache.RemoveByPrefix("bgh:");
 
         return Ok(ApiResponseDto<object>.Ok(new
         {
@@ -618,6 +689,7 @@ public class BghAcademicController : ControllerBase
         yeuCau.NguoiDuyet = userId;
 
         await _db.SaveChangesAsync();
+        _cache.RemoveByPrefix("bgh:");
 
         return Ok(ApiResponseDto<object>.Ok(new
         {
@@ -674,6 +746,9 @@ public class GpaTrendDto
 public class AtRiskReportDto
 {
     public int TotalAtRisk { get; set; }
+    public int PageIndex { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages { get; set; }
     public AtRiskSummaryDto Summary { get; set; } = new();
     public List<AtRiskStudentDto> Students { get; set; } = [];
 }

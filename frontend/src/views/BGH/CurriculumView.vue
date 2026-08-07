@@ -113,7 +113,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { Library, CheckCircle2, FileText, AlertCircle, Eye, Archive, Loader2 } from 'lucide-vue-next'
+import { Library, AlertCircle, Loader2 } from 'lucide-vue-next'
 import { bghApi } from '@/services/bghApi'
 import { apiRequest, unwrapApiData } from '@/services/apiClient'
 

@@ -1266,6 +1266,10 @@ Known limitations:
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
 | GET | `/api/bgh/dashboard` | BGH/Admin/SuperAdmin | Lấy số liệu thống kê tổng quan (sinh viên, giáo viên, tỷ lệ đi học, lớp học). |
+| GET | `/api/bgh/performance/cache-stats` | BGH/Admin/SuperAdmin | Chỉ số cache BGH trong tiến trình hiện tại: hit, miss, factory execution, hit rate và số key đang theo dõi. |
+| GET | `/api/bgh/users` | BGH/Admin/SuperAdmin | Danh sách người dùng phân trang và scope theo cơ sở. Query: `pageIndex` (mặc định 1), `pageSize` (1–100), `keyword`, `role`, `status`. Response có `data` và `pagination`. |
+| GET | `/api/bgh/audit-logs` | BGH/Admin/SuperAdmin | Nhật ký kiểm toán phân trang. Query: `pageIndex`, `pageSize` (1–100), `keyword`, `entityType`, `action`, `fromDate`, `toDate`. |
+| GET | `/api/bgh/schedules` | BGH/Admin/SuperAdmin | Danh sách TKB phân trang. Query: `status`, `pageIndex`, `pageSize` (1–100). |
 | GET | `/api/bgh/evaluations` | BGH/Admin/SuperAdmin | Danh sách tất cả đánh giá giáo viên. |
 | GET | `/api/bgh/evaluations/ranking` | BGH/Admin/SuperAdmin | Xếp hạng giáo viên theo điểm đánh giá. |
 | GET | `/api/bgh/evaluations/{id}` | BGH/Admin/SuperAdmin | Chi tiết một phiếu đánh giá. |
@@ -1273,11 +1277,18 @@ Known limitations:
 | GET | `/api/bgh/evaluations/ai-analysis` | BGH/Admin/SuperAdmin | Phân tích đánh giá bằng AI. |
 | GET | `/api/bgh/academic/overview` | BGH/Admin/SuperAdmin | Tổng quan học vụ (GPA, Pass rate, tín chỉ, chứng chỉ). |
 | GET | `/api/bgh/academic/gpa` | BGH/Admin/SuperAdmin | Báo cáo phổ điểm GPA, trung bình các khóa. |
-| GET | `/api/bgh/academic/at-risk` | BGH/Admin/SuperAdmin | Danh sách sinh viên nguy cơ học thuật. |
+| GET | `/api/bgh/academic/at-risk` | BGH/Admin/SuperAdmin | Danh sách sinh viên nguy cơ học thuật phân trang. Query: `pageIndex` (mặc định 1), `pageSize` (1–100), `studentId`, `keyword`. Response data có `pageIndex`, `pageSize`, `totalPages`, `totalAtRisk`, `students`, `summary`. |
 | GET | `/api/bgh/academic/reports` | BGH/Admin/SuperAdmin | Các báo cáo học vụ chi tiết (môn học rớt nhiều, nợ học phí, bảo lưu). |
 | GET | `/api/bgh/academic/pass-fail/filters` | BGH/Admin/SuperAdmin | Danh sách bộ lọc tầng NganhDaoTao -> ChuyenNganh -> MonHocTrongChuongTrinh -> HocKy cho dashboard Pass/Fail. Query: `majorId`, `specializationId`, `programSubjectId` (tùy chọn). |
 | GET | `/api/bgh/academic/pass-fail` | BGH/Admin/SuperAdmin | Tỷ lệ Đậu/Rớt môn học theo dữ liệu điểm thật. Query: `majorId`, `specializationId`, `programSubjectId`, `semesterId` (tùy chọn). |
 | GET | `/api/bgh/master-data/cohorts` | BGH/Admin/SuperAdmin | Danh sách khóa tuyển sinh có chương trình/lớp thuộc phạm vi cơ sở của người dùng BGH. |
+| GET | `/api/bgh/master-data/training-programs` | BGH/Admin/SuperAdmin | Danh sách chương trình đào tạo theo scope cơ sở; hỗ trợ query `keyword`. |
+| GET | `/api/bgh/master-data/academic-terms` | BGH/Admin/SuperAdmin | Danh sách học kỳ thật theo scope cơ sở. |
+| GET | `/api/bgh/master-data/subjects` | BGH/Admin/SuperAdmin | Danh sách môn học theo scope chương trình/cơ sở; hỗ trợ query `keyword`. |
+| GET | `/api/bgh/master-data/buildings` | BGH/Admin/SuperAdmin | Danh sách tòa nhà theo scope cơ sở. |
+| GET | `/api/bgh/master-data/floors` | BGH/Admin/SuperAdmin | Danh sách tầng theo scope cơ sở. |
+| GET | `/api/bgh/master-data/rooms` | BGH/Admin/SuperAdmin | Danh sách phòng theo scope cơ sở. |
+| GET | `/api/bgh/rbac/roles` | BGH/Admin/SuperAdmin | Danh sách vai trò read-only. |
 | GET | `/api/bgh/schedule/changes` | BGH/Admin/SuperAdmin | Các thay đổi lịch trình (nghỉ, bù, đổi phòng). |
 
 ## Teacher APIs

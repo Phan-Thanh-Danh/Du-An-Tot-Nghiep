@@ -18,7 +18,7 @@ import {
   Loader2,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
-import { exportToExcel, triggerPrint } from '@/services/exportService.js'
+import { exportBghToExcel, printBghPage as triggerPrint } from '@/components/BGH/performance/bghExport.js'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
@@ -155,7 +155,7 @@ function prepareExcelData() {
 }
 
 function exportExcel() {
-  exportToExcel(prepareExcelData(), `TyLe-PassFail-${semesterFilter.value}.xlsx`, 'Pass/Fail')
+  exportBghToExcel(prepareExcelData(), `TyLe-PassFail-${semesterFilter.value}.xlsx`, 'Pass/Fail')
 }
 </script>
 

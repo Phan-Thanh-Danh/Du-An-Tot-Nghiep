@@ -4,9 +4,12 @@ using Backend.Data;
 using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
 using Backend.Models;
+using Backend.Services.Bgh;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
 namespace Backend.ApiTests;
@@ -101,7 +104,10 @@ public class BghPassFailControllerTests
             Status = "hoat_dong"
         };
 
-        return new BghAcademicController(context)
+        var cache = new BghPerformanceCache(
+            new MemoryCache(new MemoryCacheOptions { SizeLimit = 1_000 }),
+            NullLogger<BghPerformanceCache>.Instance);
+        return new BghAcademicController(context, cache)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext }
         };

@@ -93,22 +93,15 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Building2, MapPin, Monitor, Users, Wifi, Coffee, Dumbbell, Car, ChevronDown, ChevronRight, Search, Eye, Layers, AlertCircle } from 'lucide-vue-next'
+import { Building2, Users, ChevronDown, ChevronRight, AlertCircle } from 'lucide-vue-next'
 import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
-import { usePopupStore } from '@/stores/popup'
-import { apiRequest, unwrapApiData } from '@/services/apiClient'
+import { unwrapApiData } from '@/services/apiClient'
 import { bghApi } from '@/services/bghApi'
 
 const loading = ref(false)
 const error = ref(null)
 
-const popup = usePopupStore()
-const searchQuery = ref('')
-const typeFilter = ref('all')
-const statusFilter = ref('all')
 const campusFilter = ref('all')
-const expandedBuildings = ref(new Set())
-const showFilterDetail = ref(false)
 
 const buildings = ref([])
 const floors = ref([])
@@ -120,9 +113,9 @@ async function loadData() {
   error.value = null
   try {
     const [bldRes, flrRes, roomRes, orgRes] = await Promise.all([
-      apiRequest('/api/bgh/master-data/buildings'),
-      apiRequest('/api/bgh/master-data/floors'),
-      apiRequest('/api/bgh/master-data/rooms'),
+      bghApi.getBuildings(),
+      bghApi.getFloors(),
+      bghApi.getRooms(),
       bghApi.getOrganizations(),
     ])
     buildings.value = unwrapApiData(bldRes) || []

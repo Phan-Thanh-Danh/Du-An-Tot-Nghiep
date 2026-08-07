@@ -1,8 +1,16 @@
-import { apiRequest } from './apiClient'
+import { bghDataClient } from '@/components/BGH/performance/bghDataClient'
+
+const SHORT = { freshMs: 15_000, staleMs: 60_000 }
+const REPORT = { freshMs: 60_000, staleMs: 300_000 }
+const MASTER = { freshMs: 300_000, staleMs: 900_000 }
+
+function get(path, policy = SHORT, options = {}) {
+  return bghDataClient.get(path, { ...policy, ...options })
+}
 
 export const bghApi = {
   getDashboard() {
-    return apiRequest('/api/bgh/dashboard')
+    return get('/api/bgh/dashboard')
   },
 
   getUsers(params = {}) {
@@ -10,69 +18,91 @@ export const bghApi = {
     if (params.pageIndex) query.append('pageIndex', params.pageIndex)
     if (params.pageSize) query.append('pageSize', params.pageSize)
     if (params.keyword) query.append('keyword', params.keyword)
+    if (params.role) query.append('role', params.role)
+    if (params.status) query.append('status', params.status)
     const qs = query.toString()
-    return apiRequest(`/api/bgh/users${qs ? '?' + qs : ''}`)
+    return get(`/api/bgh/users${qs ? '?' + qs : ''}`)
   },
 
   getOrganizations() {
-    return apiRequest('/api/organizations')
+    return get('/api/organizations', MASTER)
   },
 
   getOrganizationsTree() {
-    return apiRequest('/api/organizations/tree')
+    return get('/api/organizations/tree', MASTER)
   },
 
   getRoles() {
-    return apiRequest('/api/bgh/rbac/roles')
+    return get('/api/bgh/rbac/roles', MASTER)
   },
 
   getAuditLogs(params = {}) {
     const query = new URLSearchParams()
-    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
-    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const filterKeys = ['pageIndex', 'pageSize', 'keyword', 'entityType', 'action', 'fromDate', 'toDate']
+    filterKeys.forEach((key) => {
+      if (params[key] !== undefined && params[key] !== null && params[key] !== '') query.append(key, params[key])
+    })
     const qs = query.toString()
-    return apiRequest(`/api/bgh/audit-logs${qs ? '?' + qs : ''}`)
+    return get(`/api/bgh/audit-logs${qs ? '?' + qs : ''}`)
   },
 
   getAcademicTerms(params = {}) {
     const query = new URLSearchParams()
     if (params.keyword) query.append('keyword', params.keyword)
     const qs = query.toString()
-    return apiRequest(`/api/bgh/master-data/academic-terms${qs ? '?' + qs : ''}`)
+    return get(`/api/bgh/master-data/academic-terms${qs ? '?' + qs : ''}`, MASTER)
   },
 
   getCohorts() {
-    return apiRequest('/api/bgh/master-data/cohorts')
+    return get('/api/bgh/master-data/cohorts', MASTER)
+  },
+
+  getBuildings() {
+    return get('/api/bgh/master-data/buildings', MASTER)
+  },
+
+  getFloors() {
+    return get('/api/bgh/master-data/floors', MASTER)
+  },
+
+  getRooms() {
+    return get('/api/bgh/master-data/rooms', MASTER)
   },
 
   getSubjects(params = {}) {
     const query = new URLSearchParams()
     if (params.keyword) query.append('keyword', params.keyword)
     const qs = query.toString()
-    return apiRequest(`/api/bgh/master-data/subjects${qs ? '?' + qs : ''}`)
+    return get(`/api/bgh/master-data/subjects${qs ? '?' + qs : ''}`, MASTER)
   },
 
   getPrograms(params = {}) {
     const query = new URLSearchParams()
     if (params.keyword) query.append('keyword', params.keyword)
     const qs = query.toString()
-    return apiRequest(`/api/bgh/master-data/training-programs${qs ? '?' + qs : ''}`)
+    return get(`/api/bgh/master-data/training-programs${qs ? '?' + qs : ''}`, MASTER)
   },
 
   getAcademicOverview() {
-    return apiRequest('/api/bgh/academic/overview')
+    return get('/api/bgh/academic/overview', REPORT)
   },
 
   getGpaReports() {
-    return apiRequest('/api/bgh/academic/gpa')
+    return get('/api/bgh/academic/gpa', REPORT)
   },
 
-  getAtRiskStudents() {
-    return apiRequest('/api/bgh/academic/at-risk')
+  getAtRiskStudents(params = {}, options = {}) {
+    const query = new URLSearchParams()
+    const filterKeys = ['pageIndex', 'pageSize', 'studentId', 'keyword']
+    filterKeys.forEach((key) => {
+      if (params[key] !== undefined && params[key] !== null && params[key] !== '') query.append(key, params[key])
+    })
+    const qs = query.toString()
+    return get(`/api/bgh/academic/at-risk${qs ? '?' + qs : ''}`, SHORT, options)
   },
 
   getAcademicReports() {
-    return apiRequest('/api/bgh/academic/reports')
+    return get('/api/bgh/academic/reports', REPORT)
   },
 
   getPassFailRates(params = {}) {
@@ -84,7 +114,7 @@ export const bghApi = {
       }
     })
     const qs = query.toString()
-    return apiRequest(`/api/bgh/academic/pass-fail${qs ? '?' + qs : ''}`)
+    return get(`/api/bgh/academic/pass-fail${qs ? '?' + qs : ''}`, REPORT)
   },
 
   getPassFailFilterOptions(params = {}) {
@@ -96,40 +126,62 @@ export const bghApi = {
       }
     })
     const qs = query.toString()
-    return apiRequest(`/api/bgh/academic/pass-fail/filters${qs ? '?' + qs : ''}`)
+    return get(`/api/bgh/academic/pass-fail/filters${qs ? '?' + qs : ''}`, MASTER)
   },
 
   getScheduleChanges() {
-    return apiRequest('/api/bgh/schedule/changes')
+    return get('/api/bgh/schedule/changes', SHORT)
   },
 
   getPendingSchedules(params = {}) {
     const query = new URLSearchParams()
     if (params.status) query.append('status', params.status)
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
     const qs = query.toString()
-    return apiRequest(`/api/bgh/schedules${qs ? '?' + qs : ''}`)
+    return get(`/api/bgh/schedules${qs ? '?' + qs : ''}`, SHORT)
   },
 
   getEvaluations(params = {}) {
     const query = new URLSearchParams()
     if (params.teacherId) query.append('teacherId', params.teacherId)
     const qs = query.toString()
-    return apiRequest(`/api/bgh/evaluations${qs ? '?' + qs : ''}`)
+    return get(`/api/bgh/evaluations${qs ? '?' + qs : ''}`, REPORT)
   },
 
   getEvaluationRanking() {
-    return apiRequest('/api/bgh/evaluations/ranking')
+    return get('/api/bgh/evaluations/ranking', REPORT)
   },
 
   getEvaluationDetail(teacherId) {
-    return apiRequest(`/api/bgh/evaluations/${teacherId}`)
+    return get(`/api/bgh/evaluations/${teacherId}`, REPORT)
   },
 
   getEvaluationOverview() {
-    return apiRequest('/api/bgh/evaluations/overview')
+    return get('/api/bgh/evaluations/overview', REPORT)
   },
 
   getEvaluationAiAnalysis() {
-    return apiRequest('/api/bgh/evaluations/ai-analysis')
+    return get('/api/bgh/evaluations/ai-analysis', REPORT)
+  },
+
+  prefetch(path, policy = SHORT) {
+    return bghDataClient.prefetch(path, policy)
+  },
+
+  invalidate(pathPrefix = '') {
+    bghDataClient.invalidate(pathPrefix)
+  },
+
+  abortScope(scope) {
+    bghDataClient.abortScope(scope)
+  },
+
+  clearCache() {
+    bghDataClient.clear()
+  },
+
+  getPerformanceMetrics() {
+    return bghDataClient.getMetrics()
   },
 }

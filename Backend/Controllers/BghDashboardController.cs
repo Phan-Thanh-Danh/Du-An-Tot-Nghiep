@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Constants;
+using Backend.Services.Bgh;
 
 namespace Backend.Controllers;
 
@@ -13,29 +14,49 @@ namespace Backend.Controllers;
 public class BghDashboardController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
+    private readonly IBghPerformanceCache _cache;
 
-    public BghDashboardController(ApplicationDbContext db)
+    public BghDashboardController(ApplicationDbContext db, IBghPerformanceCache cache)
     {
         _db = db;
+        _cache = cache;
     }
 
     [HttpGet("dashboard")]
-    public async Task<ActionResult<ApiResponseDto<BghDashboardDto>>> GetDashboard()
+    public async Task<ActionResult<ApiResponseDto<BghDashboardDto>>> GetDashboard(CancellationToken cancellationToken)
     {
         var user = HttpContext.Items["CurrentUser"] as Backend.DTOs.Auth.CurrentUserContext;
         var isGlobal = user?.Role == AuthRoles.SuperAdmin || user?.Role == AuthRoles.Admin;
         var campusId = user?.CampusId ?? 0;
 
-        var totalTeachers = await _db.NguoiDungs.CountAsync(u => u.VaiTroChinh == "giao_vien" && (isGlobal || u.MaDonVi == campusId));
-        var totalStudents = await _db.NguoiDungs.CountAsync(u => u.VaiTroChinh == "hoc_sinh" && (isGlobal || u.MaDonVi == campusId));
-        var totalClasses = await _db.LopHanhChinhs.CountAsync(l => isGlobal || l.MaDonVi == campusId);
+        Response.Headers.CacheControl = "private, max-age=15, stale-while-revalidate=45";
+        var cacheKey = BghCacheKey.For(HttpContext, "dashboard-summary");
+        var data = await _cache.GetOrCreateAsync(
+            cacheKey,
+            TimeSpan.FromSeconds(45),
+            async ct =>
+            {
+        var roleCounts = await _db.NguoiDungs
+            .AsNoTracking()
+            .Where(u => (u.VaiTroChinh == "giao_vien" || u.VaiTroChinh == "hoc_sinh") &&
+                        (isGlobal || u.MaDonVi == campusId))
+            .GroupBy(u => u.VaiTroChinh)
+            .Select(g => new { Role = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Role, x => x.Count, ct);
+        var totalTeachers = roleCounts.GetValueOrDefault("giao_vien");
+        var totalStudents = roleCounts.GetValueOrDefault("hoc_sinh");
+        var totalClasses = await _db.LopHanhChinhs
+            .AsNoTracking()
+            .CountAsync(l => isGlobal || l.MaDonVi == campusId, ct);
         
         // Note: ThoiKhoaBieu links to KhoaHoc which has MaDonVi
-        var pendingSchedules = await _db.ThoiKhoaBieus.CountAsync(t => t.TrangThai == "nhap" && (isGlobal || (t.KhoaHoc != null && t.KhoaHoc.MaDonVi == campusId)));
+        var pendingSchedules = await _db.ThoiKhoaBieus
+            .AsNoTracking()
+            .CountAsync(t => t.TrangThai == "nhap" && (isGlobal || (t.KhoaHoc != null && t.KhoaHoc.MaDonVi == campusId)), ct);
         var pendingApplicationStatuses = new[] { "da_nop", "dang_xem_xet", "yeu_cau_bo_sung" };
         var pendingRequests = await _db.DonTus.CountAsync(d =>
             pendingApplicationStatuses.Contains(d.TrangThai) &&
-            (isGlobal || (d.HocSinh != null && d.HocSinh.MaDonVi == campusId)));
+            (isGlobal || (d.HocSinh != null && d.HocSinh.MaDonVi == campusId)), ct);
 
         var pendingScheduleItems = await _db.ThoiKhoaBieus
             .AsNoTracking()
@@ -53,13 +74,13 @@ public class BghDashboardController : ControllerBase
                     ? $"{t.KhoaHoc.Lop.MaCodeLop} · {t.NgayTao:dd/MM/yyyy HH:mm}"
                     : $"{t.NgayTao:dd/MM/yyyy HH:mm}"
             })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var recentAuditLogs = await _db.NhatKyKiemToans
             .AsNoTracking()
             .Where(a => isGlobal || a.MaDonVi == campusId)
             .OrderByDescending(a => a.ThoiDiemThayDoi)
-            .Take(10)
+            .Take(5)
             .Select(a => new AuditLogEntryDto
             {
                 Id = a.MaKiemToan,
@@ -70,9 +91,41 @@ public class BghDashboardController : ControllerBase
                 Description = a.MoTa ?? "",
                 PerformedBy = a.NguoiThayDoiNavigation != null ? a.NguoiThayDoiNavigation.HoTen : null
             })
-            .ToListAsync();
+            .ToListAsync(ct);
 
-        var data = new BghDashboardDto
+        var riskAggregates = _db.DiemSos
+            .AsNoTracking()
+            .Where(d => isGlobal || d.MaDonVi == campusId)
+            .GroupBy(d => d.MaHocSinh)
+            .Select(g => new
+            {
+                StudentId = g.Key,
+                AvgGpa = g.Average(d => d.GpaMonHoc),
+                FailCount = g.Count(d => d.GpaMonHoc < 4)
+            })
+            .Where(x => x.FailCount > 0);
+
+        var riskStudents = await (
+                from risk in riskAggregates
+                join student in _db.NguoiDungs.AsNoTracking()
+                    on risk.StudentId equals student.MaNguoiDung
+                join academicClass in _db.LopHanhChinhs.AsNoTracking()
+                    on student.MaLop equals (int?)academicClass.MaLop into classJoin
+                from academicClass in classJoin.DefaultIfEmpty()
+                orderby risk.AvgGpa, risk.FailCount descending, student.MaNguoiDung
+                select new DashboardRiskStudentDto
+                {
+                    Id = student.MaNguoiDung,
+                    Name = student.HoTen,
+                    Email = student.Email,
+                    ClassCode = academicClass != null ? academicClass.MaCodeLop : "",
+                    AvgGpa = Math.Round(risk.AvgGpa, 2),
+                    FailCount = risk.FailCount
+                })
+            .Take(5)
+            .ToListAsync(ct);
+
+        return new BghDashboardDto
         {
             TotalTeachers = totalTeachers,
             TotalStudents = totalStudents,
@@ -80,10 +133,20 @@ public class BghDashboardController : ControllerBase
             PendingSchedules = pendingSchedules,
             PendingRequests = pendingRequests,
             PendingScheduleItems = pendingScheduleItems,
-            RecentAuditLogs = recentAuditLogs
+            RecentAuditLogs = recentAuditLogs,
+            RiskStudents = riskStudents
         };
+            },
+            cancellationToken);
 
         return Ok(ApiResponseDto<BghDashboardDto>.Ok(data));
+    }
+
+    [HttpGet("performance/cache-stats")]
+    public ActionResult<ApiResponseDto<BghCacheMetrics>> GetCacheStats()
+    {
+        Response.Headers.CacheControl = "no-store";
+        return Ok(ApiResponseDto<BghCacheMetrics>.Ok(_cache.GetMetrics()));
     }
 }
 
@@ -96,6 +159,17 @@ public class BghDashboardDto
     public int PendingRequests { get; set; }
     public List<PendingScheduleItemDto> PendingScheduleItems { get; set; } = [];
     public List<AuditLogEntryDto> RecentAuditLogs { get; set; } = [];
+    public List<DashboardRiskStudentDto> RiskStudents { get; set; } = [];
+}
+
+public class DashboardRiskStudentDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string ClassCode { get; set; } = string.Empty;
+    public decimal AvgGpa { get; set; }
+    public int FailCount { get; set; }
 }
 
 public class PendingScheduleItemDto

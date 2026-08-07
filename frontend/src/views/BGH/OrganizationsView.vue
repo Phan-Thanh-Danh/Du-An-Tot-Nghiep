@@ -408,6 +408,7 @@ const saveOrganization = async () => {
         })
       })
     }
+    bghApi.invalidate('/api/organizations')
     formMode.value = 'view'
     await loadData()
     if (formData.value.id) {
@@ -431,6 +432,7 @@ const confirmDelete = async (node) => {
 
   try {
     await apiRequest(`/api/organizations/${node.id}`, { method: 'DELETE' })
+    bghApi.invalidate('/api/organizations')
     await loadData()
     selectedNode.value = null
     formData.value = { id: null, parentId: null, name: '', organizationLevel: '' }

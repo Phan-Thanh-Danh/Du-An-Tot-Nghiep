@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft,
@@ -48,10 +48,10 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const res = await bghApi.getAtRiskStudents()
+    const res = await bghApi.getAtRiskStudents({ studentId, pageIndex: 1, pageSize: 1 })
     const data = unwrapApiData(res)
     if (data?.students) {
-      const found = data.students.find(s => s.id === studentId)
+      const found = data.students[0]
       if (found) {
         student.value = {
           id: found.id,

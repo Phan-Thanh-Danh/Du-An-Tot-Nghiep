@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Search, 
@@ -22,7 +22,7 @@ import {
   AlertCircle,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
-import { exportToExcel, triggerPrint } from '@/services/exportService.js'
+import { exportBghToExcel, printBghPage as triggerPrint } from '@/components/BGH/performance/bghExport.js'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
@@ -35,15 +35,24 @@ const error = ref(null)
 const semesterFilter = ref('all')
 const riskFilter = ref('all')
 const searchQuery = ref('')
+const currentPage = ref(1)
+const pageSize = 20
+const totalPages = ref(1)
+let searchTimer = null
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const res = await bghApi.getAtRiskStudents()
+    const res = await bghApi.getAtRiskStudents({
+      pageIndex: currentPage.value,
+      pageSize,
+      keyword: searchQuery.value.trim(),
+    })
     const data = unwrapApiData(res)
     if (data) {
       totalAtRisk.value = data.totalAtRisk ?? 0
+      totalPages.value = Math.max(1, data.totalPages ?? 1)
       const rawSummary = data.summary || {}
       summaryStats.value = [
         { label: 'Tổng SV nguy cơ', count: data.totalAtRisk ?? 0, unit: 'SV', color: 'text-(--color-danger-text)', bg: 'bg-(--color-danger-bg)' },
@@ -71,6 +80,7 @@ async function loadData() {
   }
 }
 onMounted(() => { loadData() })
+onUnmounted(() => clearTimeout(searchTimer))
 
 const totalAtRisk = ref(0)
 const summaryStats = ref([])
@@ -98,6 +108,28 @@ const filteredStudents = computed(() => {
   return result
 })
 
+function prevPage() {
+  if (currentPage.value > 1) {
+    currentPage.value--
+    loadData()
+  }
+}
+
+function nextPage() {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+    loadData()
+  }
+}
+
+watch(searchQuery, () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    currentPage.value = 1
+    loadData()
+  }, 250)
+})
+
 const getRiskBadge = (risk) => {
   switch (risk) {
     case 'critical': return 'bg-(--color-danger-bg) text-(--color-danger-text) border-(--color-danger-text)/20'
@@ -121,7 +153,7 @@ function prepareExcelData() {
 }
 
 function exportExcel() {
-  exportToExcel(prepareExcelData(), `SV-NguyCo-${semesterFilter.value}.xlsx`, 'Nguy cơ rớt môn')
+  exportBghToExcel(prepareExcelData(), `SV-NguyCo-${semesterFilter.value}.xlsx`, 'Nguy cơ rớt môn')
 }
 
 function viewStudentHistory(st) {
@@ -304,6 +336,12 @@ function sendBulkWarning() {
                 </button>
             </div>
          </div>
+      </div>
+
+      <div v-if="totalPages > 1" class="flex items-center justify-end gap-2 pt-2 text-sm">
+        <button @click="prevPage" :disabled="currentPage === 1" class="px-3 py-1.5 rounded-lg border border-default hover:bg-(--surface-input) disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang trước</button>
+        <span class="px-2 font-bold text-heading">Trang {{ currentPage }} / {{ totalPages }}</span>
+        <button @click="nextPage" :disabled="currentPage >= totalPages" class="px-3 py-1.5 rounded-lg border border-default hover:bg-(--surface-input) disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang sau</button>
       </div>
 
     </div>

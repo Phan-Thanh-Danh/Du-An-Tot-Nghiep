@@ -3,6 +3,7 @@ using Backend.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Backend.Services.Bgh;
 
 namespace Backend.Controllers;
 
@@ -12,10 +13,12 @@ namespace Backend.Controllers;
 public class BghFacadeController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
+    private readonly IBghPerformanceCache _cache;
 
-    public BghFacadeController(ApplicationDbContext db)
+    public BghFacadeController(ApplicationDbContext db, IBghPerformanceCache cache)
     {
         _db = db;
+        _cache = cache;
     }
 
     private (int CampusId, bool IsGlobal) GetUserScope()
@@ -27,12 +30,17 @@ public class BghFacadeController : ControllerBase
     }
 
     [HttpGet("master-data/training-programs")]
-    public async Task<IActionResult> GetTrainingPrograms()
+    [BghResponseCache(600)]
+    public async Task<IActionResult> GetTrainingPrograms([FromQuery] string? keyword = null)
     {
         var (campusId, isGlobal) = GetUserScope();
+        var normalizedKeyword = keyword?.Trim();
         var data = await _db.ChuongTrinhDaoTaos
             .AsNoTracking()
             .Where(x => isGlobal || x.LopHanhChinhs.Any(l => l.MaDonVi == campusId))
+            .Where(x => string.IsNullOrEmpty(normalizedKeyword) ||
+                        x.TenChuongTrinh.Contains(normalizedKeyword) ||
+                        x.MaCodeChuongTrinh.Contains(normalizedKeyword))
             .OrderBy(x => x.TenChuongTrinh)
             .Select(x => new { Id = x.MaChuongTrinh, MaCode = x.MaCodeChuongTrinh, TenChuongTrinh = x.TenChuongTrinh, TrangThai = x.TrangThai })
             .ToListAsync();
@@ -40,6 +48,7 @@ public class BghFacadeController : ControllerBase
     }
 
     [HttpGet("master-data/academic-terms")]
+    [BghResponseCache(600)]
     public async Task<IActionResult> GetAcademicTerms()
     {
         var (campusId, isGlobal) = GetUserScope();
@@ -69,6 +78,7 @@ public class BghFacadeController : ControllerBase
     }
 
     [HttpGet("master-data/cohorts")]
+    [BghResponseCache(600)]
     public async Task<IActionResult> GetCohorts()
     {
         var (campusId, isGlobal) = GetUserScope();
@@ -93,6 +103,7 @@ public class BghFacadeController : ControllerBase
     }
 
     [HttpGet("master-data/buildings")]
+    [BghResponseCache(600)]
     public async Task<IActionResult> GetBuildings()
     {
         var (campusId, isGlobal) = GetUserScope();
@@ -104,6 +115,7 @@ public class BghFacadeController : ControllerBase
     }
 
     [HttpGet("master-data/floors")]
+    [BghResponseCache(600)]
     public async Task<IActionResult> GetFloors()
     {
         var (campusId, isGlobal) = GetUserScope();
@@ -115,6 +127,7 @@ public class BghFacadeController : ControllerBase
     }
 
     [HttpGet("master-data/rooms")]
+    [BghResponseCache(600)]
     public async Task<IActionResult> GetRooms()
     {
         var (campusId, isGlobal) = GetUserScope();
@@ -126,10 +139,13 @@ public class BghFacadeController : ControllerBase
     }
 
     [HttpGet("users")]
+    [BghResponseCache(20)]
     public async Task<IActionResult> GetUsers(
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 100,
-        [FromQuery] string? keyword = null)
+        [FromQuery] string? keyword = null,
+        [FromQuery(Name = "role")] string? roleCode = null,
+        [FromQuery] string? status = null)
     {
         var (campusId, isGlobal) = GetUserScope();
         pageIndex = Math.Max(pageIndex, 1);
@@ -165,6 +181,12 @@ public class BghFacadeController : ControllerBase
                 (x.SoDienThoai != null && x.SoDienThoai.Contains(normalizedKeyword)));
         }
 
+        if (!string.IsNullOrWhiteSpace(roleCode))
+            query = query.Where(x => x.VaiTroChinh == roleCode);
+        if (!string.IsNullOrWhiteSpace(status))
+            query = query.Where(x => x.TrangThai == status);
+
+        var totalItems = await query.CountAsync();
         var data = await query
             .OrderByDescending(x => x.NgayTao)
             .ThenBy(x => x.HoTen)
@@ -172,13 +194,30 @@ public class BghFacadeController : ControllerBase
             .Take(pageSize)
             .ToListAsync();
 
-        return Ok(new { data = data, message = "Success" });
+        return Ok(new
+        {
+            data,
+            pagination = new
+            {
+                pageIndex,
+                pageSize,
+                totalItems,
+                totalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
+            },
+            message = "Success"
+        });
     }
 
     [HttpGet("schedules")]
-    public async Task<IActionResult> GetSchedules([FromQuery] string? status = null)
+    [BghResponseCache(20)]
+    public async Task<IActionResult> GetSchedules(
+        [FromQuery] string? status = null,
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 50)
     {
         var (campusId, isGlobal) = GetUserScope();
+        pageIndex = Math.Max(pageIndex, 1);
+        pageSize = Math.Clamp(pageSize, 1, 100);
         var useClientTimeCalculation =
             _db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
         var query = _db.ThoiKhoaBieus
@@ -197,8 +236,11 @@ public class BghFacadeController : ControllerBase
             _ => query.Where(x => x.Schedule.TrangThai == "nhap")
         };
 
+        var totalItems = await query.CountAsync();
         var data = await query
             .OrderByDescending(x => x.Schedule.NgayTao)
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
             .Select(x => new
             {
                 Id = $"TKB-{x.Schedule.MaTkb:D5}",
@@ -247,18 +289,60 @@ public class BghFacadeController : ControllerBase
                 Campus = x.Course.DonVi != null ? x.Course.DonVi.TenDonVi : ""
             })
             .ToListAsync();
-        return Ok(new { data = data, message = "Success" });
+        return Ok(new
+        {
+            data,
+            pagination = new
+            {
+                pageIndex,
+                pageSize,
+                totalItems,
+                totalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
+            },
+            message = "Success"
+        });
     }
 
     [HttpGet("audit-logs")]
-    public async Task<IActionResult> GetAuditLogs()
+    [BghResponseCache(20)]
+    public async Task<IActionResult> GetAuditLogs(
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string? keyword = null,
+        [FromQuery] string? entityType = null,
+        [FromQuery] string? action = null,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null)
     {
         var (campusId, isGlobal) = GetUserScope();
-        var data = await _db.NhatKyKiemToans
+        pageIndex = Math.Max(pageIndex, 1);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        var query = _db.NhatKyKiemToans
             .AsNoTracking()
-            .Where(x => isGlobal || x.MaDonVi == campusId)
+            .Where(x => isGlobal || x.MaDonVi == campusId);
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var normalizedKeyword = keyword.Trim();
+            query = query.Where(x =>
+                (x.MoTa != null && x.MoTa.Contains(normalizedKeyword)) ||
+                (x.NguoiThayDoiNavigation != null && x.NguoiThayDoiNavigation.HoTen.Contains(normalizedKeyword)));
+        }
+        if (!string.IsNullOrWhiteSpace(entityType))
+            query = query.Where(x => x.LoaiDoiTuong == entityType);
+        if (!string.IsNullOrWhiteSpace(action))
+            query = query.Where(x => x.HanhDong == action);
+        if (fromDate.HasValue)
+            query = query.Where(x => x.ThoiDiemThayDoi >= fromDate.Value.Date);
+        if (toDate.HasValue)
+        {
+            var exclusiveEnd = toDate.Value.Date.AddDays(1);
+            query = query.Where(x => x.ThoiDiemThayDoi < exclusiveEnd);
+        }
+        var totalItems = await query.CountAsync();
+        var data = await query
             .OrderByDescending(x => x.ThoiDiemThayDoi)
-            .Take(500)
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
             .Select(x => new
             {
                 Id = x.MaKiemToan,
@@ -273,32 +357,50 @@ public class BghFacadeController : ControllerBase
                 TenNguoiThayDoi = x.NguoiThayDoiNavigation != null ? x.NguoiThayDoiNavigation.HoTen : null
             })
             .ToListAsync();
-        return Ok(new { data = data, message = "Success" });
+        return Ok(new
+        {
+            data,
+            pagination = new
+            {
+                pageIndex,
+                pageSize,
+                totalItems,
+                totalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
+            },
+            message = "Success"
+        });
     }
 
     [HttpGet("master-data/subjects")]
-    public async Task<IActionResult> GetSubjects()
+    [BghResponseCache(600)]
+    public async Task<IActionResult> GetSubjects([FromQuery] string? keyword = null)
     {
         var (campusId, isGlobal) = GetUserScope();
+        var normalizedKeyword = keyword?.Trim();
         var data = await _db.DanhMucMonHocs
             .AsNoTracking()
             .Where(x => isGlobal || _db.MonHocTrongChuongTrinhs.Any(p =>
                 p.MaMonHoc == x.MaMonHoc &&
                 p.ChuongTrinhDaoTao != null &&
                 p.ChuongTrinhDaoTao.LopHanhChinhs.Any(l => l.MaDonVi == campusId)))
+            .Where(x => string.IsNullOrEmpty(normalizedKeyword) ||
+                        x.TenMonHoc.Contains(normalizedKeyword) ||
+                        x.MaCodeMonHoc.Contains(normalizedKeyword))
             .OrderBy(x => x.TenMonHoc)
             .Select(x => new { Id = x.MaMonHoc, MaCode = x.MaCodeMonHoc, TenMonHoc = x.TenMonHoc, TrangThai = x.ConHoatDong ? "Hoạt động" : "Ngừng" })
             .ToListAsync();
-        return Ok(new { data = data, message = "Success" });
+        return Ok(new { data, message = "Success" });
     }
 
     [HttpGet("rbac/roles")]
+    [BghResponseCache(600)]
     public async Task<IActionResult> GetRoles()
     {
         var data = await _db.VaiTros
+            .AsNoTracking()
             .Select(x => new { Id = x.MaVaiTro, MaCode = x.MaCodeVaiTro, TenVaiTro = x.TenVaiTro })
             .ToListAsync();
-        return Ok(new { data = data, message = "Success" });
+        return Ok(new { data, message = "Success" });
     }
 
 }

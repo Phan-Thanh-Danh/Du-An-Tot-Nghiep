@@ -1,9 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { 
-  Users, Star, MessageCircle, ShieldAlert, PieChart, ChevronRight, CheckCircle2,
-  AlertCircle, Loader2
-} from 'lucide-vue-next'
+import { ShieldAlert, PieChart, ChevronRight, AlertCircle } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'

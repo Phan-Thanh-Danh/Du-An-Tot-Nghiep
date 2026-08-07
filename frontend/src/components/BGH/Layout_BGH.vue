@@ -11,6 +11,8 @@ import AppTopbar from '../SinhVien/AppTopbar.vue'
 import PageContainer from '../SinhVien/PageContainer.vue'
 import AiAssistant from '@/components/ui/AiAssistant.vue'
 import AnnouncementBanner from '@/components/ui/AnnouncementBanner.vue'
+import { bghApi } from '@/services/bghApi'
+import { cancelBghRoutePrefetch } from './performance/bghRoutePrefetch'
 
 // ── Sidebar state ──────────────────────────────────────────
 const sidebarCollapsed = ref(false)
@@ -32,6 +34,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkScreen)
+  document.body.style.overflow = ''
+  cancelBghRoutePrefetch()
+  bghApi.abortScope(route.path)
+  bghApi.abortScope('prefetch')
 })
 
 function toggleSidebar() {
@@ -55,8 +61,11 @@ const currentPageMeta = computed(() => {
 })
 
 // ── Auto-close mobile sidebar on route change ──────────────
-watch(() => route.path, () => {
+watch(() => route.path, (_nextPath, previousPath) => {
   closeMobileSidebar()
+  cancelBghRoutePrefetch()
+  bghApi.abortScope(previousPath)
+  bghApi.abortScope('prefetch')
 })
 
 // ── Body scroll lock when mobile drawer is open ────────────

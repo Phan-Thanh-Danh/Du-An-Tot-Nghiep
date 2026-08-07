@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import {
-  CheckCircle2, XCircle, Eye, X, Search, CalendarDays, AlertCircle, Loader2
+  CheckCircle2, XCircle, Eye, X, CalendarDays, AlertCircle, Loader2
 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
@@ -27,8 +27,6 @@ const filteredSchedules = computed(() => {
   }
   return list
 })
-
-const pendingCount = computed(() => schedules.value.filter(s => s.status === 'pending').length)
 
 async function loadData() {
   loading.value = true

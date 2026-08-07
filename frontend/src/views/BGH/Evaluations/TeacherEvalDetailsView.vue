@@ -12,7 +12,6 @@ import {
   MessageCircle,
   Award,
   AlertCircle,
-  Loader2,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { bghApi } from '@/services/bghApi'

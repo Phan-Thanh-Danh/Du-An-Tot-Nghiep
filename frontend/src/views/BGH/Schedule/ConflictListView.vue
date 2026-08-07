@@ -1,9 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { AlertTriangle, AlertCircle, CheckCircle2, Filter, Building2, CalendarDays, User, Search, ChevronDown, X } from 'lucide-vue-next'
+import { AlertTriangle, AlertCircle, CheckCircle2, Filter, Building2, CalendarDays, User, Search, ChevronDown } from 'lucide-vue-next'
 import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
-import GlassButton from '@/components/ui/GlassButton.vue'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'

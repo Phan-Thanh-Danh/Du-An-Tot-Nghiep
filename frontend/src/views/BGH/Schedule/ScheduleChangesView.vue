@@ -1,8 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Activity, Filter, ArrowRight, Search, CheckCircle2, XCircle, Clock, ChevronDown, Loader2, X } from 'lucide-vue-next'
+import { Activity, Filter, ArrowRight, Search, CheckCircle2, XCircle, Clock, ChevronDown, Loader2 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
-import GlassButton from '@/components/ui/GlassButton.vue'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'

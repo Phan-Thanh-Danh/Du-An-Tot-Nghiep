@@ -249,6 +249,7 @@ const submitForm = async () => {
         body: JSON.stringify({ maCodeVaiTro: formData.value.maCodeVaiTro, tenVaiTro: formData.value.tenVaiTro })
       })
     }
+    bghApi.invalidate('/api/bgh/rbac/roles')
     closeModal()
     await fetchRoles()
   } catch (e) {
@@ -262,6 +263,7 @@ const handleDelete = async (role) => {
   saving.value = true
   try {
     await apiRequest(`/api/admin/rbac/roles/${role.maVaiTro}`, { method: 'DELETE' })
+    bghApi.invalidate('/api/bgh/rbac/roles')
     await fetchRoles()
   } catch (e) {
     apiError.value = e?.message || 'Lỗi xóa vai trò'

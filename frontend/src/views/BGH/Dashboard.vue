@@ -441,7 +441,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
 import {
@@ -579,15 +579,19 @@ function passFailFilterParams() {
 async function loadPassFailFilters() {
   try {
     const response = await bghApi.getPassFailFilterOptions(passFailFilterParams())
-    const data = unwrapApiData(response) || {}
-    passFailFilters.value = {
-      majors: Array.isArray(data.majors) ? data.majors : [],
-      specializations: Array.isArray(data.specializations) ? data.specializations : [],
-      programSubjects: Array.isArray(data.programSubjects) ? data.programSubjects : [],
-      semesters: Array.isArray(data.semesters) ? data.semesters : [],
-    }
+    applyPassFailFilters(response)
   } catch (e) {
     console.error('Lỗi tải bộ lọc Pass/Fail:', e)
+  }
+}
+
+function applyPassFailFilters(response) {
+  const data = unwrapApiData(response) || {}
+  passFailFilters.value = {
+    majors: Array.isArray(data.majors) ? data.majors : [],
+    specializations: Array.isArray(data.specializations) ? data.specializations : [],
+    programSubjects: Array.isArray(data.programSubjects) ? data.programSubjects : [],
+    semesters: Array.isArray(data.semesters) ? data.semesters : [],
   }
 }
 
@@ -611,19 +615,16 @@ watch(selectedMajor, async () => {
   selectedSpec.value = ''
   selectedSubjectFilter.value = ''
   selectedSemesterFilter.value = ''
-  await loadPassFailFilters()
-  await loadPassFailData()
+  await Promise.all([loadPassFailFilters(), loadPassFailData()])
 })
 watch(selectedSpec, async () => {
   selectedSubjectFilter.value = ''
   selectedSemesterFilter.value = ''
-  await loadPassFailFilters()
-  await loadPassFailData()
+  await Promise.all([loadPassFailFilters(), loadPassFailData()])
 })
 watch(selectedSubjectFilter, async () => {
   selectedSemesterFilter.value = ''
-  await loadPassFailFilters()
-  await loadPassFailData()
+  await Promise.all([loadPassFailFilters(), loadPassFailData()])
 })
 watch(selectedSemesterFilter, async () => {
   await loadPassFailData()
@@ -754,6 +755,8 @@ const renderedPassPoints = ref([])
 const renderedFailPoints = ref([])
 
 let morphFrameId = null
+let initialPhaseTimer = null
+let initialDrawTimer = null
 let morphStartTime = 0
 let startPassPoints = []
 let startFailPoints = []
@@ -937,9 +940,15 @@ const tooltipArrowStyle = computed(() => {
 })
 
 onMounted(() => {
-  setTimeout(() => {
+  initialPhaseTimer = setTimeout(() => {
     isInitialPhase.value = false
   }, 1200)
+})
+
+onUnmounted(() => {
+  clearTimeout(initialPhaseTimer)
+  clearTimeout(initialDrawTimer)
+  if (morphFrameId) cancelAnimationFrame(morphFrameId)
 })
 
 // ══════════════════════════════════════
@@ -990,12 +999,29 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const [dashboardRes, rankingRes, riskRes] = await Promise.all([
-      bghApi.getDashboard(),
+    const secondaryRequests = Promise.all([
       bghApi.getEvaluationRanking().catch(() => null),
-      bghApi.getAtRiskStudents().catch(() => null),
+      bghApi.getPassFailFilterOptions(passFailFilterParams()).catch(() => null),
+      bghApi.getPassFailRates({
+        ...passFailFilterParams(),
+        semesterId: selectedSemesterFilter.value,
+      }).catch(() => null),
     ])
+    const dashboardRes = await bghApi.getDashboard()
     apiData.value = unwrapApiData(dashboardRes)
+    const riskItems = Array.isArray(apiData.value?.riskStudents) ? apiData.value.riskStudents : []
+    riskStudents.value = riskItems.slice(0, 5).map(item => ({
+      id: item.id,
+      name: item.name || '',
+      class: item.classCode || '',
+      reason: `GPA ${Number(item.avgGpa || 0).toFixed(1)} · ${item.failCount ?? 0} môn chưa đạt`,
+    }))
+
+    // Hiển thị khung dashboard ngay khi dữ liệu thiết yếu đã sẵn sàng;
+    // xếp hạng và biểu đồ tiếp tục tải song song vào đúng vị trí hiện có.
+    loading.value = false
+
+    const [rankingRes, filterRes, passFailRes] = await secondaryRequests
 
     const rankingData = rankingRes ? unwrapApiData(rankingRes) : null
     if (Array.isArray(rankingData) && rankingData.length) {
@@ -1009,24 +1035,11 @@ async function loadData() {
       }))
     }
 
-    const riskData = riskRes ? unwrapApiData(riskRes) : null
-    const riskItems = Array.isArray(riskData) ? riskData : (Array.isArray(riskData?.students) ? riskData.students : [])
-    if (riskItems.length) {
-      riskStudents.value = riskItems.slice(0, 5).map(item => ({
-        id: item.studentId ?? item.id,
-        name: item.studentName || item.name || '',
-        class: item.className || item.class || item.classCode || '',
-        reason: item.riskReason || item.reason || `GPA ${Number(item.avgGpa || 0).toFixed(1)} · ${item.failCount ?? 0} môn chưa đạt`,
-      }))
-    } else {
-      riskStudents.value = []
-    }
-
-    await loadPassFailFilters()
-    await loadPassFailData()
+    if (filterRes) applyPassFailFilters(filterRes)
+    if (passFailRes) passFailData.value = unwrapApiData(passFailRes)
 
     // Đánh dấu đã xong lần load đầu tiên -> Chuyển animation vẽ đường stroke thành CSS smooth morphing transition
-    setTimeout(() => {
+    initialDrawTimer = setTimeout(() => {
       isInitialDrawFinished.value = true
     }, 1400)
   } catch (e) {

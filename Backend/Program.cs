@@ -15,6 +15,7 @@ using Backend.Services.Audit;
 using Backend.Services.Auth;
 using Backend.Services.Applications;
 using Backend.Services.Buildings;
+using Backend.Services.Bgh;
 using Backend.Services.BuoiHoc;
 using Backend.Services.CaHoc;
 using Backend.Services.CampusSpecializations;
@@ -53,8 +54,8 @@ using Backend.Services.TrainingProgramSubjects;
 
 using Backend.Services.AcademicSchedulingContext;
 using Backend.Services.TeachingPreferences;
-using Backend.Configuration;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -66,6 +67,14 @@ var allowedOrigins =
     ?? ["http://localhost:5173", "http://localhost:5174"];
 
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache(options => options.SizeLimit = 10_000);
+builder.Services.AddSingleton<IBghPerformanceCache, BghPerformanceCache>();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
@@ -426,6 +435,23 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<ExceptionMiddleware>();
+app.UseResponseCompression();
+
+// Mọi mutation thành công có thể làm thay đổi dữ liệu tổng hợp BGH. Invalidate
+// theo prefix để tránh trả dữ liệu cũ giữa các module điểm, lịch, đánh giá và CTĐT.
+app.Use(async (context, next) =>
+{
+    await next();
+    if (!HttpMethods.IsGet(context.Request.Method) &&
+        !HttpMethods.IsHead(context.Request.Method) &&
+        !HttpMethods.IsOptions(context.Request.Method) &&
+        context.Response.StatusCode is >= 200 and < 400)
+    {
+        context.RequestServices
+            .GetRequiredService<IBghPerformanceCache>()
+            .RemoveByPrefix("bgh:");
+    }
+});
 if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
 
 using (var scope = app.Services.CreateScope())

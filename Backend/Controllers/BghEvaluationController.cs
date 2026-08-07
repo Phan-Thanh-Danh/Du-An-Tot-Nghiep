@@ -1,6 +1,7 @@
 using Backend.Constants;
 using Backend.Data;
 using Backend.DTOs.Common;
+using Backend.Services.Bgh;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -28,13 +29,14 @@ public class BghEvaluationController : ControllerBase
     }
 
     [HttpGet("evaluations")]
+    [BghResponseCache(60)]
     public async Task<ActionResult<ApiResponseDto<BghEvaluationListDto>>> GetEvaluations()
     {
         var (campusId, isGlobal) = GetUserScope();
 
-        var totalTeachers = await _db.NguoiDungs.CountAsync(u => u.VaiTroChinh == "giao_vien" && (isGlobal || u.MaDonVi == campusId));
-        var avgRating = await _db.DanhGiaGiaoViens.Where(g => isGlobal || (g.GiaoVien != null && g.GiaoVien.MaDonVi == campusId)).AverageAsync(g => (double?)g.DiemSo) ?? 0;
-        var totalReviews = await _db.DanhGiaGiaoViens.CountAsync(g => isGlobal || (g.GiaoVien != null && g.GiaoVien.MaDonVi == campusId));
+        var totalTeachers = await _db.NguoiDungs.AsNoTracking().CountAsync(u => u.VaiTroChinh == "giao_vien" && (isGlobal || u.MaDonVi == campusId));
+        var avgRating = await _db.DanhGiaGiaoViens.AsNoTracking().Where(g => isGlobal || (g.GiaoVien != null && g.GiaoVien.MaDonVi == campusId)).AverageAsync(g => (double?)g.DiemSo) ?? 0;
+        var totalReviews = await _db.DanhGiaGiaoViens.AsNoTracking().CountAsync(g => isGlobal || (g.GiaoVien != null && g.GiaoVien.MaDonVi == campusId));
 
         var data = new BghEvaluationListDto
         {
@@ -47,11 +49,13 @@ public class BghEvaluationController : ControllerBase
     }
 
     [HttpGet("evaluations/ranking")]
+    [BghResponseCache(120)]
     public async Task<ActionResult<ApiResponseDto<List<TeacherRankingDto>>>> GetEvaluationRanking()
     {
         var (campusId, isGlobal) = GetUserScope();
 
         var rankings = await _db.DanhGiaGiaoViens
+            .AsNoTracking()
             .Where(g => g.GiaoVien != null && (isGlobal || g.GiaoVien.MaDonVi == campusId))
             .GroupBy(g => new { g.MaGiaoVien, HoTen = g.GiaoVien!.HoTen })
             .Select(g => new TeacherRankingDto
@@ -69,6 +73,7 @@ public class BghEvaluationController : ControllerBase
     }
 
     [HttpGet("evaluations/{teacherId:int}")]
+    [BghResponseCache(120)]
     public async Task<ActionResult<ApiResponseDto<TeacherEvalDetailDto>>> GetEvaluationDetail(int teacherId)
     {
         var (campusId, isGlobal) = GetUserScope();
@@ -142,6 +147,7 @@ public class BghEvaluationController : ControllerBase
     }
 
     [HttpGet("evaluations/overview")]
+    [BghResponseCache(120)]
     public async Task<ActionResult<ApiResponseDto<EvalOverviewDto>>> GetEvaluationOverview()
     {
         var (campusId, isGlobal) = GetUserScope();
@@ -186,6 +192,7 @@ public class BghEvaluationController : ControllerBase
     }
 
     [HttpGet("evaluations/ai-analysis")]
+    [BghResponseCache(120)]
     public async Task<ActionResult<ApiResponseDto<EvalAiAnalysisDto>>> GetEvaluationAiAnalysis()
     {
         var (campusId, isGlobal) = GetUserScope();
