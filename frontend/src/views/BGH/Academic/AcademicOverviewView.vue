@@ -27,29 +27,14 @@ import { unwrapApiData } from '@/services/apiClient'
 const loading = ref(false)
 const error = ref(null)
 
-const semesterFilter = ref('spring-2026')
+const semesterFilter = ref('all')
 const departmentFilter = ref('all')
 const campusFilter = ref('all')
 const showExport = ref(false)
 
-const semesters = [
-  { value: 'spring-2026', label: 'Kỳ Spring 2026' },
-  { value: 'fall-2025', label: 'Kỳ Fall 2025' },
-  { value: 'spring-2025', label: 'Kỳ Spring 2025' },
-]
-
-const departments = [
-  { value: 'all', label: 'Tất cả Khoa' },
-  { value: 'cntt', label: 'Khoa CNTT' },
-  { value: 'ktqt', label: 'Khoa Kinh tế & QT' },
-  { value: 'nna', label: 'Khoa Ngôn ngữ Anh' },
-]
-
-const campuses = [
-  { value: 'all', label: 'Tất cả Cơ sở' },
-  { value: 'cs1', label: 'Cơ sở chính' },
-  { value: 'cs2', label: 'Cơ sở 2' },
-]
+const semesters = ref([{ value: 'all', label: 'Tất cả học kỳ' }])
+const departments = [{ value: 'all', label: 'Tất cả Khoa' }]
+const campuses = [{ value: 'all', label: 'Tất cả Cơ sở' }]
 
 const kpis = ref([])
 const distribution = ref([])
@@ -88,6 +73,10 @@ async function loadData() {
         k: t.semester,
         toanTruong: t.avgGpa
       }))
+      semesters.value = [
+        { value: 'all', label: 'Tất cả học kỳ' },
+        ...chartData.value.map(item => ({ value: item.k, label: item.k })),
+      ]
     }
   } catch (e) {
     error.value = e.message

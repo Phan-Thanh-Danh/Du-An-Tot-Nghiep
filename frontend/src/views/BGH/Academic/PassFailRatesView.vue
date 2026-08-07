@@ -1,21 +1,18 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { 
   Search, 
   Filter, 
   ChevronRight, 
-  CheckCircle2, 
   XCircle, 
   BookOpen, 
   Users, 
   ArrowUpRight,
   TrendingDown,
-  Info,
   Download,
   FileText,
   ChevronDown,
   X,
-  GraduationCap,
   BarChart3,
   AlertCircle,
   Loader2,
@@ -27,19 +24,32 @@ import { unwrapApiData } from '@/services/apiClient'
 
 const loading = ref(false)
 const error = ref(null)
-const semesterFilter = ref('spring-2026')
+const semesterFilter = ref('all')
 const departmentFilter = ref('all')
 const searchQuery = ref('')
 const showFilterDetail = ref(false)
 const showDetailModal = ref(false)
 const selectedCourse = ref(null)
-const chartScale = ref('fail')
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const res = await bghApi.getPassFailRates()
+    const filterRes = await bghApi.getPassFailFilterOptions()
+    const filterData = unwrapApiData(filterRes) || {}
+    semesters.value = [
+      { value: 'all', label: 'Tất cả học kỳ' },
+      ...(filterData.semesters || []).map(item => ({ value: String(item.id), label: item.label })),
+    ]
+    departments.value = [
+      { value: 'all', label: 'Tất cả Khoa' },
+      ...(filterData.majors || []).map(item => ({ value: String(item.id), label: item.label })),
+    ]
+
+    const res = await bghApi.getPassFailRates({
+      majorId: departmentFilter.value === 'all' ? undefined : departmentFilter.value,
+      semesterId: semesterFilter.value === 'all' ? undefined : semesterFilter.value,
+    })
     const data = unwrapApiData(res)
     if (data) {
       courseStats.value = (data.courseStats || []).map((c, i) => ({
@@ -52,10 +62,15 @@ async function loadData() {
         fail: c.fail,
         failRate: c.failRate,
         reason: '',
-        dept: '',
+        dept: departmentFilter.value,
         avgGpa: c.avgGpa,
       }))
       overallPassRate.value = data.overallPassRate ?? 0
+      trendData.value = (data.semesterTrend || []).map(item => ({
+        k: item.semesterName || '',
+        pass: Number(item.passRate || 0),
+        fail: Number(item.failRate || 0),
+      }))
     }
   } catch (e) {
     error.value = e.message
@@ -72,18 +87,12 @@ const courseStats = ref([])
 const trendData = ref([])
 const overallPassRate = ref(0)
 
-const semesters = [
-  { value: 'spring-2026', label: 'Kỳ Spring 2026' },
-  { value: 'fall-2025', label: 'Kỳ Fall 2025' },
-  { value: 'spring-2025', label: 'Kỳ Spring 2025' },
-]
+const semesters = ref([{ value: 'all', label: 'Tất cả học kỳ' }])
+const departments = ref([{ value: 'all', label: 'Tất cả Khoa' }])
 
-const departments = [
-  { value: 'all', label: 'Tất cả Khoa' },
-  { value: 'cntt', label: 'Khoa CNTT' },
-  { value: 'ktqt', label: 'Khoa Kinh tế & QT' },
-  { value: 'nna', label: 'Khoa Ngôn ngữ Anh' },
-]
+watch([semesterFilter, departmentFilter], () => {
+  loadData()
+})
 
 const filteredStats = computed(() => {
   let list = courseStats.value
@@ -114,16 +123,10 @@ const avgPassRate = computed(() => {
   return total ? ((passed / total) * 100).toFixed(1) : 0
 })
 
-const avgPassTrend = computed(() => {
-  return '0.0'
-})
-
 const worstCourse = computed(() => {
   if (!filteredStats.value.length) return null
   return [...filteredStats.value].sort((a, b) => b.failRate - a.failRate)[0]
 })
-
-const maxFailRate = computed(() => Math.max(...courseStats.value.map(c => c.failRate), 1))
 
 const getFailRateColor = (rate) => {
   if (rate >= 20) return 'text-(--color-danger-text) bg-(--color-danger-bg) border-(--color-danger-text)/20'
@@ -131,12 +134,7 @@ const getFailRateColor = (rate) => {
   return 'text-(--color-success-text) bg-(--color-success-bg) border-(--color-success-text)/20'
 }
 
-const failCauses = [
-  { label: 'Điểm thi thấp', val: 45, color: '--color-danger-text' },
-  { label: 'Vắng quá 20%', val: 25, color: '--color-warning-text' },
-  { label: 'Thiếu bài tập Lab', val: 20, color: '--color-info-text' },
-  { label: 'Khác', val: 10, color: '--color-muted' },
-]
+const failCauses = []
 
 function viewCourseDetail(stat) {
   selectedCourse.value = stat
@@ -255,7 +253,7 @@ function exportExcel() {
           <div class="absolute inset-0 flex flex-col justify-between pointer-events-none">
             <div v-for="i in 4" :key="i" class="h-px w-full border-t border-dashed border-(--border-default)/40"></div>
           </div>
-          <div v-for="(item, i) in trendData" :key="item.k" class="flex-1 h-full flex flex-col items-center gap-1.5 z-10">
+          <div v-for="item in trendData" :key="item.k" class="flex-1 h-full flex flex-col items-center gap-1.5 z-10">
             <div class="w-full flex flex-col items-center justify-end relative flex-1">
               <div :style="{ height: ((item.pass - item.fail) / 100) * 100 + '%', background: 'linear-gradient(to top, var(--color-success-text), color-mix(in srgb, var(--color-success-text) 60%, transparent))' }" class="w-9 rounded-sm transition-all duration-500 ease-out"></div>
               <div :style="{ height: (item.fail / 30) * 100 + '%', background: 'linear-gradient(to top, var(--color-danger-text), color-mix(in srgb, var(--color-danger-text) 60%, transparent))' }" class="w-9 rounded-sm mt-0.5 transition-all duration-500 ease-out"></div>

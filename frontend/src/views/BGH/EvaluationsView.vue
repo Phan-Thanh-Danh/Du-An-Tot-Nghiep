@@ -21,9 +21,7 @@
         <option v-for="s in semesters" :key="s" :value="s">{{ s }}</option>
       </select>
       <select v-model="campusFilter" class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
-        <option value="">Tất cả cơ sở</option>
-        <option>FPT Polytechnic Hồ Chí Minh</option>
-        <option>FPT Polytechnic Đà Nẵng</option>
+        <option v-for="campus in campuses" :key="campus.value" :value="campus.value">{{ campus.label }}</option>
       </select>
     </div>
 
@@ -178,9 +176,10 @@ const loading = ref(false)
 const error = ref(null)
 
 const router = useRouter()
-const semesterFilter = ref('Spring 2026')
+const semesterFilter = ref('')
 const campusFilter = ref('')
-const semesters = ['Spring 2026', 'Fall 2025', 'Summer 2025', 'Spring 2025']
+const semesters = ref([])
+const campuses = [{ value: '', label: 'Tất cả cơ sở' }]
 
 const stats = ref([])
 const teacherRankings = ref([])
@@ -191,14 +190,54 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const res = await bghApi.getEvaluations()
-    const data = unwrapApiData(res)
-    if (data) {
-      if (data.teacherRankings) teacherRankings.value = data.teacherRankings
-      if (data.stats) stats.value = data.stats
-      if (data.comments) comments.value = data.comments
-      if (data.departmentStats) deptStats.value = data.departmentStats
-    }
+    const [summaryRes, rankingRes, overviewRes] = await Promise.all([
+      bghApi.getEvaluations(),
+      bghApi.getEvaluationRanking(),
+      bghApi.getEvaluationOverview(),
+    ])
+    const summary = unwrapApiData(summaryRes) || {}
+    const rankings = unwrapApiData(rankingRes) || []
+    const overview = unwrapApiData(overviewRes) || {}
+
+    stats.value = [
+      { id: 'teachers', label: 'Tổng giảng viên', value: summary.totalTeachers ?? 0, icon: Users, bg: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)' },
+      { id: 'reviews', label: 'Tổng lượt đánh giá', value: summary.totalReviews ?? 0, icon: MessageSquare, bg: 'bg-(--color-info-bg)', iconColor: 'text-link' },
+      { id: 'average', label: 'Điểm trung bình', value: Number(summary.avgRating ?? 0).toFixed(1), icon: Award, bg: 'bg-(--color-success-bg)', iconColor: 'text-(--color-success-text)' },
+      { id: 'positive', label: 'Đánh giá tích cực', value: (overview.ratingDistribution || []).filter(item => item.rating >= 4).reduce((sum, item) => sum + item.count, 0), icon: ThumbsUp, bg: 'bg-(--color-warning-bg)', iconColor: 'text-(--color-warning-text)' },
+    ]
+    teacherRankings.value = rankings.map(item => ({
+      id: item.teacherId,
+      maCodeGv: String(item.teacherId),
+      hoTen: item.teacherName || '',
+      initials: (item.teacherName || 'GV').trim().split(/\s+/).pop().slice(0, 2).toUpperCase(),
+      khoa: 'Chưa phân khoa',
+      diemTb: Number(item.avgRating || 0),
+      soLuot: item.reviewCount || 0,
+      chatLuong: Number(item.avgRating || 0),
+      phuongPhap: Number(item.avgRating || 0),
+      dungGio: Number(item.avgRating || 0),
+      xuHuong: 0,
+    }))
+    semesters.value = (overview.semesterTrend || []).map(item => item.semester).filter(Boolean)
+    semesterFilter.value = semesters.value.at(-1) || ''
+    deptStats.value = []
+
+    const detailResponses = await Promise.all(
+      rankings.slice(0, 5).map(item => bghApi.getEvaluationDetail(item.teacherId).catch(() => null)),
+    )
+    comments.value = detailResponses.flatMap((response) => {
+      const detail = response ? unwrapApiData(response) : null
+      if (!detail) return []
+      return (detail.recentFeedback || []).slice(0, 2).map((feedback, index) => ({
+        id: `${detail.teacherId}-${index}-${feedback.date}`,
+        initials: (detail.teacherName || 'GV').trim().split(/\s+/).pop().slice(0, 2).toUpperCase(),
+        giangVien: detail.teacherName || '',
+        monHoc: '',
+        ngay: feedback.date ? new Date(feedback.date).toLocaleDateString('vi-VN') : '',
+        noiDung: feedback.comment || '',
+        rating: feedback.rating || 0,
+      }))
+    })
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu đánh giá'
   } finally {

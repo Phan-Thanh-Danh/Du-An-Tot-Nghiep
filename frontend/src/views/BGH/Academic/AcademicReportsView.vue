@@ -12,7 +12,6 @@ import {
   Download,
   FileText,
   AlertCircle,
-  Loader2,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { exportToExcel, triggerPrint } from '@/services/exportService.js'
@@ -27,20 +26,12 @@ const error = ref(null)
 
 const activeTab = ref('Class')
 const reportType = ref('class')
-const semesterFilter = ref('spring-2026')
+const semesterFilter = ref('all')
 const campusFilter = ref('all')
 const generating = ref(false)
 
-const semesters = [
-  { value: 'spring-2026', label: 'Spring 2026' },
-  { value: 'fall-2025', label: 'Fall 2025' },
-]
-
-const campuses = [
-  { value: 'all', label: 'Tất cả cơ sở' },
-  { value: 'hcm', label: 'Cơ sở Hồ Chí Minh' },
-  { value: 'dn', label: 'Cơ sở Đà Nẵng' },
-]
+const semesters = ref([{ value: 'all', label: 'Tất cả học kỳ' }])
+const campuses = [{ value: 'all', label: 'Tất cả cơ sở' }]
 
 const reports = ref([])
 const summaryData = ref(null)
@@ -49,13 +40,27 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const res = await bghApi.getAcademicReports()
-    const data = unwrapApiData(res)
+    const [reportsRes, overviewRes] = await Promise.all([
+      bghApi.getAcademicReports(),
+      bghApi.getAcademicOverview(),
+    ])
+    const data = unwrapApiData(reportsRes)
+    const overview = unwrapApiData(overviewRes) || {}
     if (data) {
       summaryData.value = data.summary || data
       const s = summaryData.value
       reports.value = [
-        { id: 'RPT-001', name: `Tổng quan học tập • ${s.totalStudents || 0} SV, ${s.totalTeachers || 0} GV`, type: 'Toàn trường', date: new Date().toLocaleDateString('vi-VN'), status: 'ready' },
+        { id: 'ACADEMIC-SUMMARY', name: `Tổng quan học tập • ${s.totalStudents || 0} SV, ${s.totalTeachers || 0} GV`, type: 'Toàn trường', date: new Date().toLocaleDateString('vi-VN'), status: 'ready' },
+      ]
+      tabTotalClasses.value = s.totalClasses ?? 0
+      tabTotalTeachers.value = s.totalTeachers ?? 0
+      tabAvgGpa.value = Number(s.avgGpa ?? 0)
+      tabTotalSubjects.value = overview.totalSubjects ?? 0
+      tabPassRate.value = Number(overview.passRate ?? 0)
+      tabHighFailSubjects.value = (overview.topSubjects || []).filter(item => Number(item.failRate || 0) >= 20).length
+      semesters.value = [
+        { value: 'all', label: 'Tất cả học kỳ' },
+        ...(overview.semesterTrend || []).map(item => ({ value: item.semester, label: item.semester })),
       ]
     }
   } catch (e) {
@@ -66,30 +71,21 @@ async function loadData() {
 }
 onMounted(() => { loadData() })
 
-const tabTotalClasses = ref(156)
-const tabTotalTeachers = ref(89)
-const tabAvgGpa = ref(3.12)
-const tabTotalSubjects = ref(245)
-const tabPassRate = ref(88.4)
-const tabHighFailSubjects = ref(12)
+const tabTotalClasses = ref(0)
+const tabTotalTeachers = ref(0)
+const tabAvgGpa = ref(0)
+const tabTotalSubjects = ref(0)
+const tabPassRate = ref(0)
+const tabHighFailSubjects = ref(0)
 
-function generateReport() {
+async function generateReport() {
   generating.value = true
-  const labels = { class: 'Theo Lớp', subject: 'Theo Môn học', campus: 'Theo Cơ sở' }
-  const semesterLabel = semesters.find(s => s.value === semesterFilter.value)?.label || 'Unknown'
-  const newReport = {
-    id: `RPT-${String(reports.value.length + 1).padStart(3, '0')}`,
-    name: `Báo cáo ${labels[reportType]} - ${semesterLabel}`,
-    type: labels[reportType],
-    date: new Date().toLocaleDateString('vi-VN'),
-    status: 'generating',
-  }
-  reports.value.unshift(newReport)
-  setTimeout(() => {
-    const idx = reports.value.findIndex(r => r.id === newReport.id)
-    if (idx !== -1) reports.value[idx].status = 'ready'
+  try {
+    await loadData()
+    popup.success('Làm mới báo cáo', 'Dữ liệu báo cáo đã được truy vấn lại từ hệ thống.')
+  } finally {
     generating.value = false
-  }, 1500)
+  }
 }
 
 function viewReport(rpt) {

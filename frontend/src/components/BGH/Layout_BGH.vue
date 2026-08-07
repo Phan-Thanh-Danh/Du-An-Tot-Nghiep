@@ -186,4 +186,25 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-placeholder);
 }
+
+/* Custom override for BGH Topbar elements to match mockup */
+.lg-topbar button[aria-label="Mở command palette"] {
+  border-radius: 9999px !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+.lg-topbar button[aria-label="Thông báo"],
+.lg-topbar .lg-theme-toggle {
+  border-radius: 9999px !important;
+}
+
+.lg-topbar button[aria-label="Tạo nhanh"] {
+  background: linear-gradient(135deg, #2563eb, #0891b2) !important;
+  border-radius: 9999px !important;
+}
+
+.lg-topbar .app-topbar-avatar {
+  border-radius: 9999px !important;
+}
 </style>

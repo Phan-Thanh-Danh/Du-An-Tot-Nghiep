@@ -32,7 +32,7 @@ const router = useRouter()
 
 const loading = ref(false)
 const error = ref(null)
-const semesterFilter = ref('spring-2026')
+const semesterFilter = ref('all')
 const riskFilter = ref('all')
 const searchQuery = ref('')
 
@@ -76,10 +76,7 @@ const totalAtRisk = ref(0)
 const summaryStats = ref([])
 const riskStudents = ref([])
 
-const semesters = [
-  { value: 'spring-2026', label: 'Kỳ Spring 2026' },
-  { value: 'fall-2025', label: 'Kỳ Fall 2025' },
-]
+const semesters = [{ value: 'all', label: 'Tất cả học kỳ' }]
 
 const filteredStudents = computed(() => {
   let result = riskStudents.value

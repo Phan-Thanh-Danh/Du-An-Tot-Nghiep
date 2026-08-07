@@ -1275,7 +1275,9 @@ Known limitations:
 | GET | `/api/bgh/academic/gpa` | BGH/Admin/SuperAdmin | Báo cáo phổ điểm GPA, trung bình các khóa. |
 | GET | `/api/bgh/academic/at-risk` | BGH/Admin/SuperAdmin | Danh sách sinh viên nguy cơ học thuật. |
 | GET | `/api/bgh/academic/reports` | BGH/Admin/SuperAdmin | Các báo cáo học vụ chi tiết (môn học rớt nhiều, nợ học phí, bảo lưu). |
-| GET | `/api/bgh/academic/pass-fail` | BGH/Admin/SuperAdmin | Tỷ lệ Đậu/Rớt môn học. |
+| GET | `/api/bgh/academic/pass-fail/filters` | BGH/Admin/SuperAdmin | Danh sách bộ lọc tầng NganhDaoTao -> ChuyenNganh -> MonHocTrongChuongTrinh -> HocKy cho dashboard Pass/Fail. Query: `majorId`, `specializationId`, `programSubjectId` (tùy chọn). |
+| GET | `/api/bgh/academic/pass-fail` | BGH/Admin/SuperAdmin | Tỷ lệ Đậu/Rớt môn học theo dữ liệu điểm thật. Query: `majorId`, `specializationId`, `programSubjectId`, `semesterId` (tùy chọn). |
+| GET | `/api/bgh/master-data/cohorts` | BGH/Admin/SuperAdmin | Danh sách khóa tuyển sinh có chương trình/lớp thuộc phạm vi cơ sở của người dùng BGH. |
 | GET | `/api/bgh/schedule/changes` | BGH/Admin/SuperAdmin | Các thay đổi lịch trình (nghỉ, bù, đổi phòng). |
 
 ## Teacher APIs

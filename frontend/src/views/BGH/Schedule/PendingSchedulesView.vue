@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { 
   CheckCircle2, XCircle, Eye, Search, Filter, AlertTriangle, Clock, User, Building2,
-  ChevronDown, Loader2, X
+  ChevronDown, Loader2
 } from 'lucide-vue-next'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
@@ -12,7 +12,6 @@ const loading = ref(false)
 const error = ref(null)
 
 const popup = usePopupStore()
-const router = useRouter()
 
 const pendingSets = ref([])
 
@@ -33,6 +32,7 @@ const searchQuery = ref('')
 const semesterFilter = ref('all')
 const showAdvancedFilter = ref(false)
 const conflictFilter = ref('all')
+const semesters = computed(() => [...new Set(pendingSets.value.map(item => item.semester).filter(Boolean))])
 
 const filteredSets = computed(() => {
   let list = pendingSets.value
@@ -102,8 +102,7 @@ onMounted(() => { loadData() })
            </div>
            <select v-model="semesterFilter" class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
               <option value="all">Tất cả kỳ</option>
-              <option value="Spring 2026">Spring 2026</option>
-              <option value="Fall 2025">Fall 2025</option>
+              <option v-for="semester in semesters" :key="semester" :value="semester">{{ semester }}</option>
            </select>
         </div>
         <button @click="showAdvancedFilter = !showAdvancedFilter" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">

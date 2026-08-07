@@ -38,7 +38,9 @@ public class BghAcademicController : ControllerBase
         var totalStudents = await _db.NguoiDungs.CountAsync(u => u.VaiTroChinh == "hoc_sinh" && (isGlobal || u.MaDonVi == campusId));
         var totalTeachers = await _db.NguoiDungs.CountAsync(u => u.VaiTroChinh == "giao_vien" && (isGlobal || u.MaDonVi == campusId));
         var totalClasses = await _db.LopHanhChinhs.CountAsync(l => isGlobal || l.MaDonVi == campusId);
-        var activeCourses = await _db.KhoaHocs.CountAsync(k => k.TrangThai == "dang_mo" && (isGlobal || k.MaDonVi == campusId));
+        var activeCourses = await _db.KhoaHocs.CountAsync(k =>
+            (k.TrangThai == "dang_mo" || k.TrangThai == "da_xuat_ban") &&
+            (isGlobal || k.MaDonVi == campusId));
 
         var avgGpa = await _db.DiemSos.Where(d => isGlobal || d.MaDonVi == campusId).AverageAsync(d => (decimal?)d.GpaMonHoc) ?? 0;
         var passCount = await _db.DiemSos.CountAsync(d => d.GpaMonHoc >= 4 && (isGlobal || d.MaDonVi == campusId));
@@ -205,7 +207,9 @@ public class BghAcademicController : ControllerBase
         var totalStudents = await _db.NguoiDungs.CountAsync(u => u.VaiTroChinh == "hoc_sinh" && (isGlobal || u.MaDonVi == campusId));
         var totalTeachers = await _db.NguoiDungs.CountAsync(u => u.VaiTroChinh == "giao_vien" && (isGlobal || u.MaDonVi == campusId));
         var totalClasses = await _db.LopHanhChinhs.CountAsync(l => isGlobal || l.MaDonVi == campusId);
-        var activeCourses = await _db.KhoaHocs.CountAsync(k => k.TrangThai == "dang_mo" && (isGlobal || k.MaDonVi == campusId));
+        var activeCourses = await _db.KhoaHocs.CountAsync(k =>
+            (k.TrangThai == "dang_mo" || k.TrangThai == "da_xuat_ban") &&
+            (isGlobal || k.MaDonVi == campusId));
         var avgGpa = await _db.DiemSos.Where(d => isGlobal || d.MaDonVi == campusId).AverageAsync(d => (decimal?)d.GpaMonHoc) ?? 0;
 
         var data = new
@@ -225,21 +229,151 @@ public class BghAcademicController : ControllerBase
         return Ok(ApiResponseDto<object>.Ok(data));
     }
 
-    [HttpGet("academic/pass-fail")]
-    public async Task<ActionResult<ApiResponseDto<PassFailReportDto>>> GetPassFailRates()
+    [HttpGet("academic/pass-fail/filters")]
+    public async Task<ActionResult<ApiResponseDto<PassFailFilterOptionsDto>>> GetPassFailFilterOptions(
+        [FromQuery] int? majorId = null,
+        [FromQuery] int? specializationId = null,
+        [FromQuery] int? programSubjectId = null)
     {
         var (campusId, isGlobal) = GetUserScope();
 
-        var courseStats = await _db.DiemSos
-            .Where(d => d.MonHoc != null && (isGlobal || d.MaDonVi == campusId))
-            .GroupBy(d => new { d.MaMonHoc, TenMon = d.MonHoc!.TenMonHoc })
+        var majors = await (
+                from major in _db.NganhDaoTaos.AsNoTracking()
+                join specialization in _db.ChuyenNganhs.AsNoTracking()
+                    on major.MaNganh equals specialization.MaNganh
+                join program in _db.ChuongTrinhDaoTaos.AsNoTracking()
+                    on specialization.MaChuyenNganh equals program.MaChuyenNganh
+                join academicClass in _db.LopHanhChinhs.AsNoTracking()
+                    on program.MaChuongTrinh equals academicClass.MaChuongTrinh
+                where major.ConHoatDong &&
+                      specialization.ConHoatDong &&
+                      program.ConHoatDong &&
+                      academicClass.ConHoatDong &&
+                      (isGlobal || academicClass.MaDonVi == campusId)
+                select new { major.MaNganh, major.TenNganh })
+            .Distinct()
+            .OrderBy(x => x.TenNganh)
+            .Select(x => new PassFailFilterOptionDto
+            {
+                Id = x.MaNganh,
+                Label = x.TenNganh
+            })
+            .ToListAsync();
+
+        var specializations = await (
+                from specialization in _db.ChuyenNganhs.AsNoTracking()
+                join major in _db.NganhDaoTaos.AsNoTracking()
+                    on specialization.MaNganh equals major.MaNganh
+                join program in _db.ChuongTrinhDaoTaos.AsNoTracking()
+                    on specialization.MaChuyenNganh equals program.MaChuyenNganh
+                join academicClass in _db.LopHanhChinhs.AsNoTracking()
+                    on program.MaChuongTrinh equals academicClass.MaChuongTrinh
+                where major.ConHoatDong &&
+                      specialization.ConHoatDong &&
+                      program.ConHoatDong &&
+                      academicClass.ConHoatDong &&
+                      (isGlobal || academicClass.MaDonVi == campusId) &&
+                      (!majorId.HasValue || major.MaNganh == majorId.Value)
+                select new { specialization.MaChuyenNganh, specialization.TenChuyenNganh })
+            .Distinct()
+            .OrderBy(x => x.TenChuyenNganh)
+            .Select(x => new PassFailFilterOptionDto
+            {
+                Id = x.MaChuyenNganh,
+                Label = x.TenChuyenNganh
+            })
+            .ToListAsync();
+
+        var programSubjects = await _db.MonHocTrongChuongTrinhs
+            .AsNoTracking()
+            .Where(p => p.ConHoatDong &&
+                        p.ChuongTrinhDaoTao != null &&
+                        p.ChuongTrinhDaoTao.ConHoatDong &&
+                        p.ChuongTrinhDaoTao.ChuyenNganh != null &&
+                        p.ChuongTrinhDaoTao.ChuyenNganh.ConHoatDong &&
+                        p.ChuongTrinhDaoTao.ChuyenNganh.NganhDaoTao != null &&
+                        p.ChuongTrinhDaoTao.ChuyenNganh.NganhDaoTao.ConHoatDong &&
+                        p.DanhMucMonHoc != null &&
+                        p.DanhMucMonHoc.ConHoatDong &&
+                        (!majorId.HasValue ||
+                         p.ChuongTrinhDaoTao.ChuyenNganh.MaNganh == majorId.Value) &&
+                        (!specializationId.HasValue ||
+                         p.ChuongTrinhDaoTao.MaChuyenNganh == specializationId.Value) &&
+                        _db.LopHanhChinhs.Any(l =>
+                            l.ConHoatDong &&
+                            l.MaChuongTrinh == p.MaChuongTrinh &&
+                            (isGlobal || l.MaDonVi == campusId)))
+            .OrderBy(p => p.DanhMucMonHoc!.TenMonHoc)
+            .ThenBy(p => p.ChuongTrinhDaoTao!.MaCodeChuongTrinh)
+            .Select(p => new ProgramSubjectFilterOptionDto
+            {
+                Id = p.MaChuongTrinhMonHoc,
+                SubjectId = p.MaMonHoc,
+                Label = p.DanhMucMonHoc!.TenMonHoc,
+                SubjectCode = p.DanhMucMonHoc.MaCodeMonHoc,
+                ProgramCode = p.ChuongTrinhDaoTao!.MaCodeChuongTrinh,
+                ExpectedSemester = p.HocKyDuKien
+            })
+            .ToListAsync();
+
+        var gradeQuery = BuildPassFailGradeQuery(
+            campusId,
+            isGlobal,
+            majorId,
+            specializationId,
+            programSubjectId);
+
+        var availableSemesterIds = gradeQuery.Select(d => d.SemesterId).Distinct();
+        var semesters = await _db.HocKys
+            .AsNoTracking()
+            .Where(h => availableSemesterIds.Contains(h.MaHocKy))
+            .OrderBy(h => h.NamHoc)
+            .ThenBy(h => h.ThuTuTrongNam)
+            .Select(h => new SemesterFilterOptionDto
+            {
+                Id = h.MaHocKy,
+                Label = h.TenHocKy,
+                AcademicYear = h.NamHoc
+            })
+            .ToListAsync();
+
+        return Ok(ApiResponseDto<PassFailFilterOptionsDto>.Ok(new PassFailFilterOptionsDto
+        {
+            Majors = majors,
+            Specializations = specializations,
+            ProgramSubjects = programSubjects,
+            Semesters = semesters
+        }));
+    }
+
+    [HttpGet("academic/pass-fail")]
+    public async Task<ActionResult<ApiResponseDto<PassFailReportDto>>> GetPassFailRates(
+        [FromQuery] int? majorId = null,
+        [FromQuery] int? specializationId = null,
+        [FromQuery] int? programSubjectId = null,
+        [FromQuery] int? semesterId = null)
+    {
+        var (campusId, isGlobal) = GetUserScope();
+
+        var gradeQuery = BuildPassFailGradeQuery(
+            campusId,
+            isGlobal,
+            majorId,
+            specializationId,
+            programSubjectId);
+
+        if (semesterId.HasValue)
+            gradeQuery = gradeQuery.Where(d => d.SemesterId == semesterId.Value);
+
+        var courseStats = await gradeQuery
+            .GroupBy(d => new { d.SubjectId, d.SubjectName })
             .Select(g => new CoursePassFailDto
             {
-                SubjectName = g.Key.TenMon,
+                SubjectName = g.Key.SubjectName,
                 Total = g.Count(),
-                Pass = g.Count(d => d.GpaMonHoc >= 4),
-                Fail = g.Count(d => d.GpaMonHoc < 4),
-                AvgGpa = Math.Round(g.Average(d => (decimal?)d.GpaMonHoc) ?? 0, 2)
+                Pass = g.Count(d => d.Gpa >= 4),
+                Fail = g.Count(d => d.Gpa < 4),
+                AvgGpa = Math.Round(g.Average(d => (decimal?)d.Gpa) ?? 0, 2)
             })
             .OrderByDescending(s => s.Fail)
             .Take(20)
@@ -248,15 +382,135 @@ public class BghAcademicController : ControllerBase
         foreach (var c in courseStats)
             c.FailRate = c.Total > 0 ? Math.Round((double)c.Fail / c.Total * 100, 1) : 0;
 
+        var semesterTrend = await gradeQuery
+            .GroupBy(d => new
+            {
+                d.SemesterId,
+                d.SemesterName,
+                d.AcademicYear,
+                d.SemesterOrder
+            })
+            .Select(g => new PassFailTrendDto
+            {
+                SemesterId = g.Key.SemesterId,
+                SemesterName = g.Key.SemesterName,
+                AcademicYear = g.Key.AcademicYear,
+                SemesterOrder = g.Key.SemesterOrder,
+                Total = g.Count(),
+                Pass = g.Count(d => d.Gpa >= 4),
+                Fail = g.Count(d => d.Gpa < 4)
+            })
+            .OrderBy(t => t.AcademicYear)
+            .ThenBy(t => t.SemesterOrder)
+            .ToListAsync();
+
+        foreach (var point in semesterTrend)
+        {
+            point.PassRate = point.Total > 0
+                ? Math.Round((double)point.Pass / point.Total * 100, 1)
+                : 0;
+            point.FailRate = point.Total > 0
+                ? Math.Round((double)point.Fail / point.Total * 100, 1)
+                : 0;
+        }
+
+        var totals = await gradeQuery
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Total = g.Count(),
+                Pass = g.Count(d => d.Gpa >= 4),
+                Fail = g.Count(d => d.Gpa < 4)
+            })
+            .SingleOrDefaultAsync();
+        var totalGrades = totals?.Total ?? 0;
+        var totalPass = totals?.Pass ?? 0;
+        var totalFail = totals?.Fail ?? 0;
+
         var data = new PassFailReportDto
         {
             CourseStats = courseStats,
-            OverallPassRate = courseStats.Sum(c => c.Pass) > 0
-                ? Math.Round((double)courseStats.Sum(c => c.Pass) / courseStats.Sum(c => c.Total) * 100, 1)
+            SemesterTrend = semesterTrend,
+            TotalResults = totalGrades,
+            TotalPass = totalPass,
+            TotalFail = totalFail,
+            OverallPassRate = totalGrades > 0
+                ? Math.Round((double)totalPass / totalGrades * 100, 1)
+                : 0,
+            OverallFailRate = totalGrades > 0
+                ? Math.Round((double)totalFail / totalGrades * 100, 1)
                 : 0
         };
 
         return Ok(ApiResponseDto<PassFailReportDto>.Ok(data));
+    }
+
+    private IQueryable<PassFailGradeRow> BuildPassFailGradeQuery(
+        int campusId,
+        bool isGlobal,
+        int? majorId,
+        int? specializationId,
+        int? programSubjectId)
+    {
+        return
+            from grade in _db.DiemSos.AsNoTracking()
+            join student in _db.NguoiDungs.AsNoTracking()
+                on grade.MaHocSinh equals student.MaNguoiDung
+            join academicClass in _db.LopHanhChinhs.AsNoTracking()
+                on student.MaLop equals (int?)academicClass.MaLop
+            join program in _db.ChuongTrinhDaoTaos.AsNoTracking()
+                on academicClass.MaChuongTrinh equals (int?)program.MaChuongTrinh
+            join specialization in _db.ChuyenNganhs.AsNoTracking()
+                on program.MaChuyenNganh equals specialization.MaChuyenNganh
+            join major in _db.NganhDaoTaos.AsNoTracking()
+                on specialization.MaNganh equals major.MaNganh
+            join programSubject in _db.MonHocTrongChuongTrinhs.AsNoTracking()
+                on new { program.MaChuongTrinh, grade.MaMonHoc }
+                equals new { programSubject.MaChuongTrinh, programSubject.MaMonHoc }
+            join subject in _db.DanhMucMonHocs.AsNoTracking()
+                on grade.MaMonHoc equals subject.MaMonHoc
+            join semester in _db.HocKys.AsNoTracking()
+                on grade.MaHocKy equals semester.MaHocKy
+            where program.ConHoatDong &&
+                  specialization.ConHoatDong &&
+                  major.ConHoatDong &&
+                  programSubject.ConHoatDong &&
+                  subject.ConHoatDong &&
+                  (isGlobal || grade.MaDonVi == campusId) &&
+                  (!majorId.HasValue || major.MaNganh == majorId.Value) &&
+                  (!specializationId.HasValue || specialization.MaChuyenNganh == specializationId.Value) &&
+                  (!programSubjectId.HasValue || programSubject.MaChuongTrinhMonHoc == programSubjectId.Value)
+            select new PassFailGradeRow
+            {
+                Gpa = grade.GpaMonHoc,
+                SubjectId = subject.MaMonHoc,
+                SubjectName = subject.TenMonHoc,
+                SemesterId = semester.MaHocKy,
+                SemesterName = semester.TenHocKy,
+                AcademicYear = semester.NamHoc,
+                SemesterOrder = semester.ThuTuTrongNam,
+                MajorId = major.MaNganh,
+                MajorName = major.TenNganh,
+                SpecializationId = specialization.MaChuyenNganh,
+                SpecializationName = specialization.TenChuyenNganh,
+                ProgramSubjectId = programSubject.MaChuongTrinhMonHoc
+            };
+    }
+
+    private sealed class PassFailGradeRow
+    {
+        public decimal Gpa { get; init; }
+        public int SubjectId { get; init; }
+        public string SubjectName { get; init; } = "";
+        public int SemesterId { get; init; }
+        public string SemesterName { get; init; } = "";
+        public string AcademicYear { get; init; } = "";
+        public int SemesterOrder { get; init; }
+        public int MajorId { get; init; }
+        public string MajorName { get; init; } = "";
+        public int SpecializationId { get; init; }
+        public string SpecializationName { get; init; } = "";
+        public int ProgramSubjectId { get; init; }
     }
 
     [HttpGet("schedule/changes")]
@@ -444,7 +698,12 @@ public class AtRiskStudentDto
 public class PassFailReportDto
 {
     public List<CoursePassFailDto> CourseStats { get; set; } = [];
+    public List<PassFailTrendDto> SemesterTrend { get; set; } = [];
+    public int TotalResults { get; set; }
+    public int TotalPass { get; set; }
+    public int TotalFail { get; set; }
     public double OverallPassRate { get; set; }
+    public double OverallFailRate { get; set; }
 }
 
 public class CoursePassFailDto
@@ -455,6 +714,46 @@ public class CoursePassFailDto
     public int Fail { get; set; }
     public double FailRate { get; set; }
     public decimal AvgGpa { get; set; }
+}
+
+public class PassFailFilterOptionsDto
+{
+    public List<PassFailFilterOptionDto> Majors { get; set; } = [];
+    public List<PassFailFilterOptionDto> Specializations { get; set; } = [];
+    public List<ProgramSubjectFilterOptionDto> ProgramSubjects { get; set; } = [];
+    public List<SemesterFilterOptionDto> Semesters { get; set; } = [];
+}
+
+public class PassFailFilterOptionDto
+{
+    public int Id { get; set; }
+    public string Label { get; set; } = "";
+}
+
+public class ProgramSubjectFilterOptionDto : PassFailFilterOptionDto
+{
+    public int SubjectId { get; set; }
+    public string SubjectCode { get; set; } = "";
+    public string ProgramCode { get; set; } = "";
+    public int ExpectedSemester { get; set; }
+}
+
+public class SemesterFilterOptionDto : PassFailFilterOptionDto
+{
+    public string AcademicYear { get; set; } = "";
+}
+
+public class PassFailTrendDto
+{
+    public int SemesterId { get; set; }
+    public string SemesterName { get; set; } = "";
+    public string AcademicYear { get; set; } = "";
+    public int SemesterOrder { get; set; }
+    public int Total { get; set; }
+    public int Pass { get; set; }
+    public int Fail { get; set; }
+    public double PassRate { get; set; }
+    public double FailRate { get; set; }
 }
 
 public class ScheduleChangeDto

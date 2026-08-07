@@ -2,8 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
 import { 
-  Search, Filter, Trophy, TrendingUp, TrendingDown, Minus, Star, ChevronRight, ShieldCheck, Building2,
-  AlertCircle, Loader2
+  Search, Trophy, TrendingUp, TrendingDown, Minus, Star, ChevronRight, ShieldCheck, Building2,
+  AlertCircle
 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { bghApi } from '@/services/bghApi'
@@ -16,6 +16,7 @@ const searchQuery = ref('')
 const deptFilter = ref('all')
 
 const rankings = ref([])
+const semesters = ref([])
 
 const filteredRankings = computed(() => {
   let list = rankings.value
@@ -47,8 +48,12 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const res = await bghApi.getEvaluationRanking()
-    const data = unwrapApiData(res)
+    const [rankingRes, overviewRes] = await Promise.all([
+      bghApi.getEvaluationRanking(),
+      bghApi.getEvaluationOverview(),
+    ])
+    const data = unwrapApiData(rankingRes)
+    const overview = unwrapApiData(overviewRes) || {}
     rankings.value = Array.isArray(data)
       ? data.map(item => ({
           id: item.teacherId ?? item.id,
@@ -61,6 +66,7 @@ async function loadData() {
           trend: item.trend || 'stable'
         }))
       : []
+    semesters.value = (overview.semesterTrend || []).map(item => item.semester).filter(Boolean)
   } catch (e) {
     error.value = e.message
   } finally {
@@ -108,8 +114,7 @@ function viewDetail(gv) {
            </select>
         </div>
         <select class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
-           <option>Kỳ Spring 2026</option>
-           <option>Kỳ Fall 2025</option>
+           <option v-for="semester in semesters" :key="semester" :value="semester">{{ semester }}</option>
         </select>
       </div>
 

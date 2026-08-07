@@ -31,10 +31,33 @@ public class BghDashboardController : ControllerBase
         var totalClasses = await _db.LopHanhChinhs.CountAsync(l => isGlobal || l.MaDonVi == campusId);
         
         // Note: ThoiKhoaBieu links to KhoaHoc which has MaDonVi
-        var pendingSchedules = await _db.ThoiKhoaBieus.CountAsync(t => t.TrangThai == "cho_duyet" && (isGlobal || (t.KhoaHoc != null && t.KhoaHoc.MaDonVi == campusId)));
-        var pendingRequests = await _db.DonTus.CountAsync(d => d.TrangThai == "cho_duyet" && (isGlobal || d.MaDonVi == campusId));
+        var pendingSchedules = await _db.ThoiKhoaBieus.CountAsync(t => t.TrangThai == "nhap" && (isGlobal || (t.KhoaHoc != null && t.KhoaHoc.MaDonVi == campusId)));
+        var pendingApplicationStatuses = new[] { "da_nop", "dang_xem_xet", "yeu_cau_bo_sung" };
+        var pendingRequests = await _db.DonTus.CountAsync(d =>
+            pendingApplicationStatuses.Contains(d.TrangThai) &&
+            (isGlobal || (d.HocSinh != null && d.HocSinh.MaDonVi == campusId)));
+
+        var pendingScheduleItems = await _db.ThoiKhoaBieus
+            .AsNoTracking()
+            .Where(t => t.TrangThai == "nhap" && (isGlobal || (t.KhoaHoc != null && t.KhoaHoc.MaDonVi == campusId)))
+            .OrderByDescending(t => t.NgayTao)
+            .Take(3)
+            .Select(t => new PendingScheduleItemDto
+            {
+                Id = t.MaTkb,
+                Title = t.KhoaHoc != null && t.KhoaHoc.MonHoc != null
+                    ? t.KhoaHoc.MonHoc.TenMonHoc
+                    : $"Thời khóa biểu #{t.MaTkb}",
+                Badge = "MỚI",
+                Description = t.KhoaHoc != null && t.KhoaHoc.Lop != null
+                    ? $"{t.KhoaHoc.Lop.MaCodeLop} · {t.NgayTao:dd/MM/yyyy HH:mm}"
+                    : $"{t.NgayTao:dd/MM/yyyy HH:mm}"
+            })
+            .ToListAsync();
 
         var recentAuditLogs = await _db.NhatKyKiemToans
+            .AsNoTracking()
+            .Where(a => isGlobal || a.MaDonVi == campusId)
             .OrderByDescending(a => a.ThoiDiemThayDoi)
             .Take(10)
             .Select(a => new AuditLogEntryDto
@@ -56,6 +79,7 @@ public class BghDashboardController : ControllerBase
             TotalClasses = totalClasses,
             PendingSchedules = pendingSchedules,
             PendingRequests = pendingRequests,
+            PendingScheduleItems = pendingScheduleItems,
             RecentAuditLogs = recentAuditLogs
         };
 
@@ -70,7 +94,16 @@ public class BghDashboardDto
     public int TotalClasses { get; set; }
     public int PendingSchedules { get; set; }
     public int PendingRequests { get; set; }
+    public List<PendingScheduleItemDto> PendingScheduleItems { get; set; } = [];
     public List<AuditLogEntryDto> RecentAuditLogs { get; set; } = [];
+}
+
+public class PendingScheduleItemDto
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Badge { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
 }
 
 public class AuditLogEntryDto

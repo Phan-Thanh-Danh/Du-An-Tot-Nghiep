@@ -41,6 +41,10 @@ export const bghApi = {
     return apiRequest(`/api/bgh/master-data/academic-terms${qs ? '?' + qs : ''}`)
   },
 
+  getCohorts() {
+    return apiRequest('/api/bgh/master-data/cohorts')
+  },
+
   getSubjects(params = {}) {
     const query = new URLSearchParams()
     if (params.keyword) query.append('keyword', params.keyword)
@@ -71,8 +75,28 @@ export const bghApi = {
     return apiRequest('/api/bgh/academic/reports')
   },
 
-  getPassFailRates() {
-    return apiRequest('/api/bgh/academic/pass-fail')
+  getPassFailRates(params = {}) {
+    const query = new URLSearchParams()
+    const filterKeys = ['majorId', 'specializationId', 'programSubjectId', 'semesterId']
+    filterKeys.forEach((key) => {
+      if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+        query.append(key, params[key])
+      }
+    })
+    const qs = query.toString()
+    return apiRequest(`/api/bgh/academic/pass-fail${qs ? '?' + qs : ''}`)
+  },
+
+  getPassFailFilterOptions(params = {}) {
+    const query = new URLSearchParams()
+    const filterKeys = ['majorId', 'specializationId', 'programSubjectId']
+    filterKeys.forEach((key) => {
+      if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+        query.append(key, params[key])
+      }
+    })
+    const qs = query.toString()
+    return apiRequest(`/api/bgh/academic/pass-fail/filters${qs ? '?' + qs : ''}`)
   },
 
   getScheduleChanges() {

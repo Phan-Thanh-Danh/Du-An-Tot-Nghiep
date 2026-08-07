@@ -5,10 +5,8 @@ import {
   Search, 
   Download, 
   TrendingUp, 
-  ChevronRight, 
   Users, 
   Building2, 
-  MapPin, 
   FileText, 
   ArrowUpRight,
   Target,
@@ -25,23 +23,13 @@ import { unwrapApiData } from '@/services/apiClient'
 
 const loading = ref(false)
 const error = ref(null)
-const semesterFilter = ref('spring-2026')
+const semesterFilter = ref('all')
 const departmentFilter = ref('all')
 const searchQuery = ref('')
 const sortBy = ref('gpa-desc')
 
-const semesters = [
-  { value: 'spring-2026', label: 'Kỳ Spring 2026' },
-  { value: 'fall-2025', label: 'Kỳ Fall 2025' },
-  { value: 'spring-2025', label: 'Kỳ Spring 2025' },
-]
-
-const departments = [
-  { value: 'all', label: 'Tất cả Khoa' },
-  { value: 'cntt', label: 'Khoa CNTT' },
-  { value: 'ktqt', label: 'Khoa Kinh tế & QT' },
-  { value: 'nna', label: 'Khoa Ngôn ngữ Anh' },
-]
+const semesters = ref([{ value: 'all', label: 'Tất cả học kỳ' }])
+const departments = [{ value: 'all', label: 'Tất cả Khoa' }]
 
 const gpaStats = ref([])
 const distribution = ref([])
@@ -78,6 +66,10 @@ async function loadData() {
         count: d.count,
         percent: d.percent,
       }))
+      semesters.value = [
+        { value: 'all', label: 'Tất cả học kỳ' },
+        ...gpaStats.value.map(item => ({ value: item.id, label: item.group })),
+      ]
     }
   } catch (e) {
     error.value = e.message

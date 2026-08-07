@@ -453,7 +453,12 @@ using (var scope = app.Services.CreateScope())
 }
 
 var seedProfile = builder.Configuration["SeedProfile"];
-await Data.SeedRolesAsync(app.Services);
+var shouldSeedBase = string.Equals(seedProfile, "Base", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase);
+if (shouldSeedBase)
+{
+    await Data.SeedRolesAsync(app.Services);
+}
 if (string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase))
 {
     app.Logger.LogInformation("Running LargeDemoSeeder...");
