@@ -82,6 +82,12 @@ export const superAdminMenuGroups = [
         route: '/super-admin/training/semesters',
       },
       {
+        id: 'cohorts',
+        label: 'Quản lý khóa tuyển sinh',
+        icon: 'CalendarDays',
+        route: '/super-admin/training/cohorts',
+      },
+      {
         id: 'programs',
         label: 'Cấu trúc chương trình',
         icon: 'BookMarked',

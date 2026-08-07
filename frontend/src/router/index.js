@@ -389,12 +389,12 @@ const router = createRouter({
         { path: 'academic-terms', name: 'staff-academic-terms', component: () => import('../views/GiaoVu/AcademicTerms/AcademicTermManagementView.vue'), meta: { title: 'Quản lý học kỳ' } },
         { path: 'subjects', name: 'staff-subjects', component: () => import('../views/GiaoVu/Subjects/SubjectManagementView.vue'), meta: { title: 'Quản lý môn học' } },
         { path: 'courses', name: 'staff-courses', component: () => import('../views/GiaoVu/Courses/CourseManagementView.vue'), meta: { title: 'Danh sách khóa học', subtitle: 'Quản lý và phân phối môn học cho giảng viên và lớp hành chính' } },
-        
+
         // Đăng ký, Dung lượng, Trạng thái khóa học
         { path: 'registrations', name: 'staff-registrations', component: () => import('../views/GiaoVu/Registration/RegistrationPeriodsView.vue'), meta: { title: 'Quản lý đợt đăng ký', subtitle: 'Cấu hình và quản lý các đợt đăng ký môn học' } },
         { path: 'capacity', name: 'staff-capacity', component: () => import('../views/GiaoVu/Registration/CapacityAdjustmentView.vue'), meta: { title: 'Điều chỉnh dung lượng', subtitle: 'Quản lý sức chứa và danh sách chờ các lớp học' } },
         { path: 'course-status', name: 'staff-course-status', component: () => import('../views/GiaoVu/Registration/CourseStatusView.vue'), meta: { title: 'Trạng thái khóa học', subtitle: 'Giám sát trạng thái các lớp học và xử lý hủy lớp' } },
-        
+
         // Đơn từ (Requests)
         { path: 'requests', name: 'staff-requests', component: () => import('../views/GiaoVu/Requests/PendingRequestsView.vue') , meta: { title: 'Đơn cần xử lý' } },
         { path: 'requests/:id', name: 'staff-request-detail', component: () => import('../views/GiaoVu/Requests/RequestDetailView.vue') , meta: { title: 'Chi tiết đơn' } },
@@ -525,6 +525,12 @@ const router = createRouter({
           name: 'super-admin-training-semesters',
           component: () => import('../views/SuperAdmin/SemestersView.vue'),
           meta: { title: 'Cấu hình học kỳ' },
+        },
+        {
+          path: 'training/cohorts',
+          name: 'super-admin-training-cohorts',
+          component: () => import('../views/SuperAdmin/CohortsView.vue'),
+          meta: { title: 'Quản lý khóa tuyển sinh', subtitle: 'Tạo, sửa và quản lý khóa tuyển sinh' },
         },
         {
           path: 'training/programs',

@@ -76,6 +76,7 @@ const pageTitleMap = {
 
   // 4. Quản lý Đào tạo và Học vụ
   '/super-admin/training/semesters': { title: 'Cấu hình học kỳ', subtitle: 'Quản lý trạng thái đóng/mở/khóa học kỳ' },
+  '/super-admin/training/cohorts': { title: 'Quản lý khóa tuyển sinh', subtitle: 'Tạo, sửa và quản lý khóa tuyển sinh' },
   '/super-admin/training/programs': { title: 'Cấu trúc chương trình', subtitle: 'Quản lý chương trình đào tạo, môn học và điều kiện tiên quyết' },
   '/super-admin/training/subjects': { title: 'Quản lý môn học', subtitle: 'Cấu hình danh mục môn học và trọng số điểm' },
   '/super-admin/training/courses': { title: 'Quản lý khóa học', subtitle: 'Quản trị nội dung, gán giảng viên và tiến độ' },
