@@ -28,10 +28,10 @@ public class SubjectService : ISubjectService
 
         if (!string.IsNullOrWhiteSpace(parameters.Keyword))
         {
-            var keyword = parameters.Keyword.Trim().ToLowerInvariant();
+            var keyword = parameters.Keyword.Trim();
             query = query.Where(x =>
-                x.MaCodeMonHoc.ToLower().Contains(keyword) ||
-                x.TenMonHoc.ToLower().Contains(keyword));
+                EF.Functions.Collate(x.MaCodeMonHoc, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword) ||
+                EF.Functions.Collate(x.TenMonHoc, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword));
         }
 
         if (parameters.ConHoatDong.HasValue)
@@ -75,7 +75,11 @@ public class SubjectService : ISubjectService
                 MaCodeMonHoc = x.MaCodeMonHoc,
                 TenMonHoc = x.TenMonHoc,
                 SoTinChi = x.SoTinChi,
-                ConHoatDong = x.ConHoatDong
+                ConHoatDong = x.ConHoatDong,
+                SoChuong = _context.Chuongs.Count(c => c.MaMonHoc == x.MaMonHoc),
+                SoBaiHoc = _context.BaiHocs.Count(b => _context.Chuongs.Any(c => c.MaMonHoc == x.MaMonHoc && c.MaChuong == b.MaChuong)),
+                SoNoiDung = _context.BaiHocNoiDungs.Count(n => _context.BaiHocs.Any(b => _context.Chuongs.Any(c => c.MaMonHoc == x.MaMonHoc && c.MaChuong == b.MaChuong) && b.MaBaiHoc == n.MaBaiHoc)),
+                SoDeThi = _context.BaiHocNoiDungs.Count(n => (n.MaDeKiemTra != null || n.LoaiNoiDung == "trac_nghiem" || n.LoaiNoiDung == "quiz") && _context.BaiHocs.Any(b => b.MaBaiHoc == n.MaBaiHoc && _context.Chuongs.Any(c => c.MaMonHoc == x.MaMonHoc && c.MaChuong == b.MaChuong)))
             })
             .ToListAsync(cancellationToken);
 
@@ -267,15 +271,22 @@ public class SubjectService : ISubjectService
         }
     }
 
-    private static SubjectDto ToDto(DanhMucMonHoc subject)
+    private SubjectDto ToDto(DanhMucMonHoc subject)
     {
+        var chapterIds = _context.Chuongs.Where(c => c.MaMonHoc == subject.MaMonHoc).Select(c => c.MaChuong);
+        var lessonIds = _context.BaiHocs.Where(b => chapterIds.Contains(b.MaChuong)).Select(b => b.MaBaiHoc);
+
         return new SubjectDto
         {
             MaMonHoc = subject.MaMonHoc,
             MaCodeMonHoc = subject.MaCodeMonHoc,
             TenMonHoc = subject.TenMonHoc,
             SoTinChi = subject.SoTinChi,
-            ConHoatDong = subject.ConHoatDong
+            ConHoatDong = subject.ConHoatDong,
+            SoChuong = chapterIds.Count(),
+            SoBaiHoc = lessonIds.Count(),
+            SoNoiDung = _context.BaiHocNoiDungs.Count(n => lessonIds.Contains(n.MaBaiHoc)),
+            SoDeThi = _context.BaiHocNoiDungs.Count(n => lessonIds.Contains(n.MaBaiHoc) && (n.MaDeKiemTra != null || n.LoaiNoiDung == "trac_nghiem" || n.LoaiNoiDung == "quiz"))
         };
     }
 }

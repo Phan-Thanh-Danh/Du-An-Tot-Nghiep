@@ -20,13 +20,11 @@ const onPreview = () => {
   if (!lesson.value) return
   const subjectId = route.params.subjectId
   
-  const url = router.resolve({
+  router.push({
     name: 'content-council-subject-preview',
     params: { subjectId: subjectId },
     query: { lessonId: lesson.value.id }
-  }).href
-  
-  window.open(url, '_blank')
+  })
 }
 
 const getStatusBadge = (status: string) => {

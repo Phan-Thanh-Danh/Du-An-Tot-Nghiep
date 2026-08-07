@@ -91,6 +91,7 @@ public class QuizManagementService : IQuizManagementService
                 MaHocKy = x.MaHocKy,
                 TenHocKy = x.HocKy != null ? x.HocKy.TenHocKy : null,
                 TieuDe = x.TieuDe,
+                MoTa = QuizConfigurationDto.Parse(x.CauHinhDeThi).MoTa,
                 ThoiGianPhut = x.ThoiGianPhut,
                 TrangThai = x.TrangThai,
                 LoaiDeThi = x.LoaiDeThi,
@@ -102,6 +103,7 @@ public class QuizManagementService : IQuizManagementService
                 TrangThaiDuyet = x.TrangThaiDuyet,
                 NgayTao = x.NgayTao,
                 NgayCapNhat = x.NgayCapNhat,
+                CauHinh = QuizConfigurationDto.Parse(x.CauHinhDeThi),
                 SoCauHoi = _db.CauHoiDeKiemTras.Count(c => c.MaDeKiemTra == x.MaDeKiemTra),
                 TongDiem = _db.CauHoiDeKiemTras.Where(c => c.MaDeKiemTra == x.MaDeKiemTra).Sum(c => c.DiemSo)
             })
@@ -142,6 +144,7 @@ public class QuizManagementService : IQuizManagementService
             TenMonHoc = entity.MonHoc?.TenMonHoc,
             MaHocKy = entity.MaHocKy,
             TieuDe = entity.TieuDe,
+            MoTa = config.MoTa,
             ThoiGianPhut = entity.ThoiGianPhut,
             TrangThai = entity.TrangThai,
             LoaiDeThi = entity.LoaiDeThi,
@@ -192,6 +195,11 @@ public class QuizManagementService : IQuizManagementService
                 throw new ApiException(400, "Tổng tỷ lệ trắc nghiệm và tự luận phải bằng 100");
         }
 
+        if (!string.IsNullOrWhiteSpace(request.MoTa))
+        {
+            request.CauHinh.MoTa = request.MoTa;
+        }
+
         request.CauHinh.Validate();
 
         var entity = new DeKiemTra
@@ -204,7 +212,7 @@ public class QuizManagementService : IQuizManagementService
             HinhThucThi = request.HinhThucThi,
             TyLeTracNghiem = request.TyLeTracNghiem,
             TyLeTuLuan = request.TyLeTuLuan,
-            MaNguoiSoan = userId,
+            MaNguoiSoan = userId > 0 ? userId : null,
             TrangThai = "nhap",
             NgayTao = DateTime.UtcNow,
             CauHinhDeThi = request.CauHinh.ToJson()
@@ -263,6 +271,11 @@ public class QuizManagementService : IQuizManagementService
                 throw new ApiException(400, "Tổng tỷ lệ trắc nghiệm và tự luận phải bằng 100");
         }
 
+        if (request.MoTa != null)
+        {
+            request.CauHinh.MoTa = request.MoTa;
+        }
+
         request.CauHinh.Validate();
 
         var oldValues = new { entity.TieuDe, entity.MaMonHoc, entity.ThoiGianPhut, entity.CauHinhDeThi };
@@ -307,15 +320,13 @@ public class QuizManagementService : IQuizManagementService
         if (inUse)
             throw new ApiException(409, "Đề kiểm tra đã được sử dụng trong lịch thi hoặc phiên làm bài, không thể xóa");
 
-        using var transaction = await _db.Database.BeginTransactionAsync(ct);
-        try
+        await _db.ExecuteInTransactionAsync(async () =>
         {
             var relations = await _db.CauHoiDeKiemTras.Where(x => x.MaDeKiemTra == id).ToListAsync(ct);
             _db.CauHoiDeKiemTras.RemoveRange(relations);
             _db.DeKiemTras.Remove(entity);
 
             await _db.SaveChangesAsync(ct);
-            await transaction.CommitAsync(ct);
 
             await _auditLogService.LogAsync(
                 "DeKiemTra", 
@@ -327,12 +338,7 @@ public class QuizManagementService : IQuizManagementService
                 null, 
                 "Xóa đề kiểm tra", 
                 ct);
-        }
-        catch
-        {
-            await transaction.RollbackAsync(ct);
-            throw;
-        }
+        }, ct);
     }
 
     public async Task<IReadOnlyList<QuizQuestionDto>> GetQuizQuestionsAsync(int quizId, CancellationToken ct)
@@ -378,14 +384,13 @@ public class QuizManagementService : IQuizManagementService
         if (questionsFromDb.Any(x => x.MaMonHoc != quiz.MaMonHoc))
             throw new ApiException(400, "Tất cả câu hỏi phải thuộc cùng môn học với Đề kiểm tra");
 
-        if (quiz.HinhThucThi == "trac_nghiem" && questionsFromDb.Any(x => x.LoaiCauHoi == "tu_luan"))
+        if ((quiz.LoaiDeThi == "trac_nghiem" || quiz.HinhThucThi == "trac_nghiem") && questionsFromDb.Any(x => x.LoaiCauHoi == "tu_luan"))
             throw new ApiException(400, "Đề trắc nghiệm không được chứa câu tự luận");
 
-        if (quiz.HinhThucThi == "tu_luan" && questionsFromDb.Any(x => x.LoaiCauHoi != "tu_luan"))
+        if ((quiz.LoaiDeThi == "tu_luan" || quiz.HinhThucThi == "tu_luan") && questionsFromDb.Any(x => x.LoaiCauHoi != "tu_luan"))
             throw new ApiException(400, "Đề tự luận không được chứa câu trắc nghiệm");
 
-        using var transaction = await _db.Database.BeginTransactionAsync(ct);
-        try
+        return await _db.ExecuteInTransactionAsync(async () =>
         {
             var newRelations = request.Questions.Select(q => new CauHoiDeKiemTra
             {
@@ -397,7 +402,6 @@ public class QuizManagementService : IQuizManagementService
 
             _db.CauHoiDeKiemTras.AddRange(newRelations);
             await _db.SaveChangesAsync(ct);
-            await transaction.CommitAsync(ct);
 
             await _auditLogService.LogAsync(
                 "CauHoiDeKiemTra", 
@@ -409,14 +413,9 @@ public class QuizManagementService : IQuizManagementService
                 null, 
                 "Gán thêm câu hỏi vào đề kiểm tra", 
                 ct);
-        }
-        catch
-        {
-            await transaction.RollbackAsync(ct);
-            throw;
-        }
 
-        return await GetQuizQuestionsAsync(quizId, ct);
+            return await GetQuizQuestionsAsync(quizId, ct);
+        }, ct);
     }
 
     public async Task<IReadOnlyList<QuizQuestionDto>> ReplaceQuestionsAsync(int quizId, AssignQuizQuestionsRequest request, int userId, CancellationToken ct)
@@ -448,14 +447,13 @@ public class QuizManagementService : IQuizManagementService
         if (questionsFromDb.Any(x => x.MaMonHoc != quiz.MaMonHoc))
             throw new ApiException(400, "Tất cả câu hỏi phải thuộc cùng môn học với Đề kiểm tra");
 
-        if (quiz.HinhThucThi == "trac_nghiem" && questionsFromDb.Any(x => x.LoaiCauHoi == "tu_luan"))
+        if ((quiz.LoaiDeThi == "trac_nghiem" || quiz.HinhThucThi == "trac_nghiem") && questionsFromDb.Any(x => x.LoaiCauHoi == "tu_luan"))
             throw new ApiException(400, "Đề trắc nghiệm không được chứa câu tự luận");
 
-        if (quiz.HinhThucThi == "tu_luan" && questionsFromDb.Any(x => x.LoaiCauHoi != "tu_luan"))
+        if ((quiz.LoaiDeThi == "tu_luan" || quiz.HinhThucThi == "tu_luan") && questionsFromDb.Any(x => x.LoaiCauHoi != "tu_luan"))
             throw new ApiException(400, "Đề tự luận không được chứa câu trắc nghiệm");
 
-        using var transaction = await _db.Database.BeginTransactionAsync(ct);
-        try
+        return await _db.ExecuteInTransactionAsync(async () =>
         {
             var oldRelations = await _db.CauHoiDeKiemTras.Where(x => x.MaDeKiemTra == quizId).ToListAsync(ct);
             _db.CauHoiDeKiemTras.RemoveRange(oldRelations);
@@ -470,7 +468,6 @@ public class QuizManagementService : IQuizManagementService
 
             _db.CauHoiDeKiemTras.AddRange(newRelations);
             await _db.SaveChangesAsync(ct);
-            await transaction.CommitAsync(ct);
 
             await _auditLogService.LogAsync(
                 "CauHoiDeKiemTra", 
@@ -482,14 +479,9 @@ public class QuizManagementService : IQuizManagementService
                 null, 
                 "Thay thế toàn bộ câu hỏi trong đề kiểm tra", 
                 ct);
-        }
-        catch
-        {
-            await transaction.RollbackAsync(ct);
-            throw;
-        }
 
-        return await GetQuizQuestionsAsync(quizId, ct);
+            return await GetQuizQuestionsAsync(quizId, ct);
+        }, ct);
     }
 
     public async Task<QuizQuestionDto> UpdateQuestionAsync(int quizId, int questionId, UpdateQuizQuestionRequest request, int userId, CancellationToken ct)
@@ -574,8 +566,7 @@ public class QuizManagementService : IQuizManagementService
         var inUse = await IsQuizInUseAsync(quizId, ct);
         if (inUse) throw new ApiException(409, "Đề kiểm tra đã được sử dụng, không thể thay đổi thứ tự");
 
-        using var transaction = await _db.Database.BeginTransactionAsync(ct);
-        try
+        await _db.ExecuteInTransactionAsync(async () =>
         {
             var oldOrder = relations.Select(x => new { x.MaCauHoi, x.ThuTu }).ToList();
 
@@ -586,7 +577,6 @@ public class QuizManagementService : IQuizManagementService
             }
 
             await _db.SaveChangesAsync(ct);
-            await transaction.CommitAsync(ct);
 
             await _auditLogService.LogAsync(
                 "CauHoiDeKiemTra", 
@@ -598,12 +588,7 @@ public class QuizManagementService : IQuizManagementService
                 null, 
                 "Sắp xếp lại câu hỏi trong đề kiểm tra", 
                 ct);
-        }
-        catch
-        {
-            await transaction.RollbackAsync(ct);
-            throw;
-        }
+        }, ct);
     }
 
     public async Task PublishQuizAsync(int id, int userId, CancellationToken ct)

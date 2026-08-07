@@ -187,6 +187,13 @@ npm run test:unit
 npm run lint
 ```
 
+Docker (Bắt buộc chạy sau mỗi lần sửa Backend hoặc Frontend để cập nhật ngay vào Docker container):
+
+```powershell
+docker compose build --no-cache backend frontend
+docker compose up -d --force-recreate backend frontend
+```
+
 Khi chỉ sửa tài liệu:
 
 ```powershell

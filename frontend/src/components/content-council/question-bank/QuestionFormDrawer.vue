@@ -105,30 +105,85 @@ watch(() => props.isOpen, (val) => {
   }
 })
 
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
+
+// Dialog popup state
+const modalState = ref({
+  isOpen: false,
+  title: 'Thông báo',
+  message: '',
+  variant: 'warning' as 'warning' | 'danger' | 'info' | 'success',
+  confirmText: 'Đồng ý',
+  cancelText: 'Hủy',
+  isAlert: false,
+  onConfirm: () => {}
+})
+
+const showAlert = (msg: string, title = 'Thông báo', variant: 'warning' | 'danger' | 'info' | 'success' = 'warning') => {
+  modalState.value = {
+    isOpen: true,
+    title,
+    message: msg,
+    variant,
+    confirmText: 'Đóng',
+    cancelText: 'Hủy',
+    isAlert: true,
+    onConfirm: () => {}
+  }
+}
+
+const showConfirm = (
+  msg: string,
+  onConfirmAction: () => void,
+  title = 'Xác nhận',
+  variant: 'warning' | 'danger' | 'info' | 'success' = 'warning',
+  confirmText = 'Đồng ý',
+  cancelText = 'Hủy'
+) => {
+  modalState.value = {
+    isOpen: true,
+    title,
+    message: msg,
+    variant,
+    confirmText,
+    cancelText,
+    isAlert: false,
+    onConfirm: onConfirmAction
+  }
+}
+
 const handleTypeChange = (newType: QuestionType) => {
   if (formData.value.type === newType) return
   
-  if (formData.value.content || (formData.value.choices && formData.value.choices[0].content)) {
-    if (!confirm('Chuyển đổi loại câu hỏi sẽ làm mất một số dữ liệu định dạng riêng. Bạn có chắc muốn tiếp tục?')) {
-      // Revert select visually by not updating formData.type, but since v-model updates immediately, it's tricky.
-      // We will just let it change and reset data.
+  const applyTypeChange = () => {
+    formData.value.type = newType
+    if (newType === 'essay') {
+      formData.value.selectionType = undefined
+      formData.value.choices = []
+      formData.value.correctAnswerIds = []
+    } else {
+      formData.value.selectionType = 'single'
+      formData.value.choices = [
+        { id: generateId(), content: '' },
+        { id: generateId(), content: '' },
+        { id: generateId(), content: '' },
+        { id: generateId(), content: '' }
+      ]
+      formData.value.correctAnswerIds = []
     }
   }
 
-  formData.value.type = newType
-  if (newType === 'essay') {
-    formData.value.selectionType = undefined
-    formData.value.choices = []
-    formData.value.correctAnswerIds = []
+  if (formData.value.content || (formData.value.choices && formData.value.choices[0].content)) {
+    showConfirm(
+      'Chuyển đổi loại câu hỏi sẽ làm mất một số dữ liệu định dạng riêng. Bạn có chắc muốn tiếp tục?',
+      applyTypeChange,
+      'Đổi loại câu hỏi',
+      'warning',
+      'Tiếp tục',
+      'Hủy'
+    )
   } else {
-    formData.value.selectionType = 'single'
-    formData.value.choices = [
-      { id: generateId(), content: '' },
-      { id: generateId(), content: '' },
-      { id: generateId(), content: '' },
-      { id: generateId(), content: '' }
-    ]
-    formData.value.correctAnswerIds = []
+    applyTypeChange()
   }
 }
 
@@ -136,7 +191,7 @@ const handleSelectionTypeChange = (newSelection: SelectionType) => {
   if (formData.value.selectionType === newSelection) return
   
   if (newSelection === 'single' && formData.value.correctAnswerIds && formData.value.correctAnswerIds.length > 1) {
-    alert('Đã giữ lại đáp án đúng đầu tiên để phù hợp với kiểu chọn một.')
+    showAlert('Đã giữ lại đáp án đúng đầu tiên để phù hợp với kiểu chọn một.', 'Thông báo', 'info')
     formData.value.correctAnswerIds = [formData.value.correctAnswerIds[0]]
   }
   formData.value.selectionType = newSelection
@@ -144,33 +199,41 @@ const handleSelectionTypeChange = (newSelection: SelectionType) => {
 
 const close = () => {
   if (formData.value.content) {
-    if (!confirm('Bỏ các thay đổi? Các nội dung chưa lưu sẽ bị mất.')) return
+    showConfirm(
+      'Bỏ các thay đổi? Các nội dung chưa lưu sẽ bị mất.',
+      () => emit('update:isOpen', false),
+      'Hủy bỏ thay đổi',
+      'warning',
+      'Bỏ thay đổi',
+      'Tiếp tục chỉnh sửa'
+    )
+    return
   }
   emit('update:isOpen', false)
 }
 
 const validateAndSave = () => {
   const d = formData.value
-  if (!d.subjectId) return alert('Vui lòng chọn môn học.')
-  if (!d.content || !d.content.trim()) return alert('Nội dung câu hỏi không được để trống.')
+  if (!d.subjectId) return showAlert('Vui lòng chọn môn học.', 'Thiếu thông tin', 'warning')
+  if (!d.content || !d.content.trim()) return showAlert('Nội dung câu hỏi không được để trống.', 'Thiếu thông tin', 'warning')
   
   if (d.type === 'multiple_choice') {
-    if (!d.choices || d.choices.length < 2) return alert('Câu hỏi trắc nghiệm phải có ít nhất 2 lựa chọn.')
+    if (!d.choices || d.choices.length < 2) return showAlert('Câu hỏi trắc nghiệm phải có ít nhất 2 lựa chọn.', 'Thiếu lựa chọn', 'warning')
     const emptyChoice = d.choices.find(c => !c.content.trim())
-    if (emptyChoice) return alert('Nội dung các lựa chọn không được để trống.')
+    if (emptyChoice) return showAlert('Nội dung các lựa chọn không được để trống.', 'Thiếu lựa chọn', 'warning')
     
     // Check duplicates
     const contents = d.choices.map(c => c.content.trim().toLowerCase())
     if (new Set(contents).size !== contents.length) {
-      return alert('Các lựa chọn không được trùng lặp nội dung.')
+      return showAlert('Các lựa chọn không được trùng lặp nội dung.', 'Dữ liệu không hợp lệ', 'warning')
     }
 
     if (!d.correctAnswerIds || d.correctAnswerIds.length === 0) {
-      return alert('Vui lòng chọn ít nhất 1 đáp án đúng.')
+      return showAlert('Vui lòng chọn ít nhất 1 đáp án đúng.', 'Thiếu đáp án đúng', 'warning')
     }
 
     if (d.selectionType === 'multiple' && d.correctAnswerIds.length < 2) {
-      return alert('Câu chọn nhiều phải có ít nhất 2 đáp án đúng.')
+      return showAlert('Câu chọn nhiều phải có ít nhất 2 đáp án đúng.', 'Thiếu đáp án đúng', 'warning')
     }
   }
 
@@ -427,5 +490,17 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Confirm / Alert Modal Popup -->
+    <ConfirmModal 
+      v-model:is-open="modalState.isOpen"
+      :title="modalState.title"
+      :message="modalState.message"
+      :variant="modalState.variant"
+      :confirm-text="modalState.confirmText"
+      :cancel-text="modalState.cancelText"
+      :is-alert="modalState.isAlert"
+      @confirm="modalState.onConfirm"
+    />
   </div>
 </template>

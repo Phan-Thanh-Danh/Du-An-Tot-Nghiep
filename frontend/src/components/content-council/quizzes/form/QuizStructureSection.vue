@@ -57,12 +57,16 @@ const updateField = (field: keyof QuizFormData, value: any) => {
     }
   }
   
-  // Keep sum = 100 when adjusting mixed
+  // Keep sum = 100 when adjusting mixed, clamping inputs from 0 to 100%
   if (field === 'multipleChoicePercentage' && newData.format === 'mixed') {
-    const mc = Number(value) || 0
+    const raw = Number(value)
+    const mc = isNaN(raw) ? 0 : Math.min(100, Math.max(0, Math.round(raw)))
+    newData.multipleChoicePercentage = mc
     newData.essayPercentage = 100 - mc
   } else if (field === 'essayPercentage' && newData.format === 'mixed') {
-    const essay = Number(value) || 0
+    const raw = Number(value)
+    const essay = isNaN(raw) ? 0 : Math.min(100, Math.max(0, Math.round(raw)))
+    newData.essayPercentage = essay
     newData.multipleChoicePercentage = 100 - essay
   }
   

@@ -39,11 +39,14 @@ const summary = computed(() => {
       else if (lesson.status === 'draft') draftLessons++
       else if (lesson.status === 'empty') emptyLessons++
       
-      if (lesson.type === 'video') videoCount++
-      else if (lesson.type === 'slide') slideCount++
-      else if (lesson.type === 'pdf') pdfCount++
-      else if (lesson.type === 'text') textCount++
-      else if (lesson.type === 'quiz') quizCount++
+      contents.forEach(c => {
+        const type = c.type
+        if (type === 'video') videoCount++
+        else if (type === 'slide_html' || type === 'slide') slideCount++
+        else if (type === 'document' || type === 'tai_lieu' || type === 'pdf') pdfCount++
+        else if (type === 'text' || type === 'van_ban') textCount++
+        else if (type === 'quiz' || type === 'trac_nghiem' || c.quizId != null) quizCount++
+      })
     })
   })
 

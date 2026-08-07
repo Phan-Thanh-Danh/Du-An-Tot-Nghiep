@@ -56,8 +56,8 @@ export function useQuizBuilderValidation() {
       }
     }
     
-    // 3. Question Count matching
-    if (questionCount !== quiz.questionCount && questionCount > 0) {
+    // 3. Question Count matching (only if configured target question count is specified > 0)
+    if (quiz.questionCount && quiz.questionCount > 0 && questionCount !== quiz.questionCount && questionCount > 0) {
       warnings.push(`Số lượng câu hỏi thực tế (${questionCount}) khác với cấu hình (${quiz.questionCount}).`)
     }
 
@@ -95,7 +95,7 @@ export function useQuizBuilderValidation() {
         errors.push('Hình thức Quiz là Hỗn hợp nhưng thiếu câu hỏi Trắc nghiệm hoặc Tự luận.')
       } else {
         // Warning if ratio is slightly off, Error if completely wrong
-        const configMcRatio = quiz.multipleChoiceQuestionCount && quiz.questionCount 
+        const configMcRatio = quiz.multipleChoiceQuestionCount && quiz.questionCount && quiz.questionCount > 0 
           ? Math.round((quiz.multipleChoiceQuestionCount / quiz.questionCount) * 100) 
           : 70
         

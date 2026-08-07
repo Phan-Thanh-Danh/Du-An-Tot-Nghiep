@@ -132,6 +132,36 @@ namespace Backend.Controllers
             {
                 return StatusCode(500, new { error = ex.Message, inner = ex.InnerException?.Message });
             }
+        }
+
+        [HttpPost("clean-old-quizzes")]
+        public async Task<IActionResult> CleanOldQuizzes([FromQuery] int maxId = 38)
+        {
+            var guard = EnsureDevelopmentOnly();
+            if (guard != null) return guard;
+
+            try
+            {
+                var relations = await _context.CauHoiDeKiemTras.Where(x => x.MaDeKiemTra <= maxId).ToListAsync();
+                _context.CauHoiDeKiemTras.RemoveRange(relations);
+
+                var contents = await _context.BaiHocNoiDungs.Where(x => x.MaDeKiemTra != null && x.MaDeKiemTra <= maxId).ToListAsync();
+                foreach (var c in contents) { c.MaDeKiemTra = null; }
+
+                var attempts = await _context.PhienThiHocSinhs.Where(x => x.MaDeKiemTra <= maxId).ToListAsync();
+                _context.PhienThiHocSinhs.RemoveRange(attempts);
+
+                var oldQuizzes = await _context.DeKiemTras.Where(x => x.MaDeKiemTra <= maxId).ToListAsync();
+                _context.DeKiemTras.RemoveRange(oldQuizzes);
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { success = true, deletedCount = oldQuizzes.Count, message = $"Đã xóa {oldQuizzes.Count} quiz có ID <= {maxId}" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
     }
-}
 }

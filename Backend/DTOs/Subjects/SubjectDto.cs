@@ -7,4 +7,8 @@ public class SubjectDto
     public string TenMonHoc { get; set; } = string.Empty;
     public int SoTinChi { get; set; }
     public bool ConHoatDong { get; set; }
+    public int SoChuong { get; set; }
+    public int SoBaiHoc { get; set; }
+    public int SoNoiDung { get; set; }
+    public int SoDeThi { get; set; }
 }

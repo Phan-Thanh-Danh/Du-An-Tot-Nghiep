@@ -1,6 +1,6 @@
 <script setup>
 import { useAuthStore } from '@/stores/auth'
-import { Menu, Bell, User } from 'lucide-vue-next'
+import { Menu, User } from 'lucide-vue-next'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import Breadcrumbs from '@/components/ui/Breadcrumbs.vue'
 import { ref } from 'vue'
@@ -49,16 +49,7 @@ const toggleUserMenu = () => {
 
     <ThemeToggle />
 
-    <!-- Notification -->
-    <div class="relative">
-      <button
-        class="lg-icon-button surface-input relative h-8 w-8 border border-card text-label shadow-sm focus:outline-none hover:text-link"
-        aria-label="Thông báo"
-      >
-        <Bell :size="15" />
-        <span class="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-(--color-danger-text) text-[8px] font-bold text-inverse ring-2 ring-(--surface-topbar)">1</span>
-      </button>
-    </div>
+
 
     <!-- Profile menu -->
     <div class="relative">

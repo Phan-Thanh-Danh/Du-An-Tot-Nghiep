@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { Video, FileText, AlignLeft, CircleHelp, Presentation } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -8,6 +9,9 @@ const props = defineProps({
     required: true
   }
 })
+
+const router = useRouter()
+const route = useRoute()
 
 const getLessonIcon = (type) => {
   switch (type) {
@@ -52,8 +56,13 @@ const getStatusText = (status) => {
 }
 
 const handleLessonClick = () => {
-  // Alert or toast in real app, per task requirements: highlight or toast
-  alert('Trình soạn bài học sẽ được triển khai ở bước tiếp theo.')
+  const subjectId = route.params.subjectId || props.lesson.subjectId
+  if (subjectId && props.lesson.id) {
+    router.push({
+      path: `/content-council/subjects/${subjectId}/editor`,
+      query: { lessonId: props.lesson.id }
+    })
+  }
 }
 </script>
 

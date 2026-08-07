@@ -33,10 +33,22 @@ provide('curriculumEditor', editor)
 
 onMounted(async () => {
   await store.loadSubjectDetail(props.subjectId)
-  // If there's a lessonId in query, select it
   const queryLessonId = route.query.lessonId
   if (queryLessonId) {
     editor.selectLesson(Number(queryLessonId))
+  } else if (editor.chapters.value.length > 0) {
+    const firstLesson = editor.chapters.value[0]?.lessons?.[0]
+    if (firstLesson) {
+      editor.selectLesson(firstLesson.id)
+    }
+  }
+})
+
+import { watch } from 'vue'
+
+watch(() => route.query.lessonId, (newLessonId) => {
+  if (newLessonId) {
+    editor.selectLesson(Number(newLessonId))
   }
 })
 

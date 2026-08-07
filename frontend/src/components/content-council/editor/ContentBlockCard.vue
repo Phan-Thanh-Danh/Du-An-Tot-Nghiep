@@ -56,18 +56,14 @@ const onPreview = () => {
   isMenuOpen.value = false
   const subjectId = route.params.subjectId
   
-  // Use editor's selected lesson ID instead of props.content.lessonId 
-  // because props.content.lessonId might be incorrect or undefined from the backend API
   const lessonId = editor.selectedLesson.value?.id
   if (!lessonId) return
 
-  const url = router.resolve({
+  router.push({
     name: 'content-council-subject-preview',
     params: { subjectId: subjectId },
     query: { lessonId: lessonId }
-  }).href
-  
-  window.open(url, '_blank')
+  })
 }
 
 const getIcon = (type: string) => {
@@ -76,8 +72,32 @@ const getIcon = (type: string) => {
     case 'slide_html': return PlaySquare
     case 'document': return File
     case 'text': return FileText
-    case 'quiz': return HelpCircle
+    case 'quiz':
+    case 'trac_nghiem': return HelpCircle
     default: return FileText
+  }
+}
+
+const getIconBg = (type: string) => {
+  switch (type) {
+    case 'video': return 'bg-red-50 text-red-600'
+    case 'slide_html': return 'bg-amber-50 text-amber-600'
+    case 'document': return 'bg-blue-50 text-blue-600'
+    case 'quiz':
+    case 'trac_nghiem': return 'bg-emerald-50 text-emerald-600'
+    default: return 'bg-slate-100 text-slate-500'
+  }
+}
+
+const getTypeLabel = (type: string) => {
+  switch (type) {
+    case 'video': return 'Video'
+    case 'slide_html': return 'Slide Html'
+    case 'document': return 'Document'
+    case 'text': return 'Văn bản'
+    case 'quiz':
+    case 'trac_nghiem': return 'Quiz'
+    default: return type
   }
 }
 
@@ -108,14 +128,14 @@ const getStatusBadge = (status: string) => {
     <!-- Content Info -->
     <div class="flex-1 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div class="flex items-start gap-3 min-w-0">
-        <div class="w-10 h-10 rounded bg-slate-100 flex items-center justify-center shrink-0 text-slate-500">
+        <div class="w-10 h-10 rounded flex items-center justify-center shrink-0" :class="getIconBg(content.type)">
           <component :is="getIcon(content.type)" class="w-5 h-5" />
         </div>
         
         <div class="min-w-0 flex-1">
           <h4 class="font-medium text-slate-800 truncate">{{ content.title }}</h4>
           <div class="text-sm text-slate-500 flex items-center gap-2 mt-1 flex-wrap">
-            <span class="capitalize">{{ content.type.replace('_', ' ') }}</span>
+            <span class="font-medium">{{ getTypeLabel(content.type) }}</span>
             <span v-if="content.durationSeconds" class="flex items-center gap-1 before:content-['·'] before:mr-1">
               {{ formatDuration(content.durationSeconds) }}
             </span>

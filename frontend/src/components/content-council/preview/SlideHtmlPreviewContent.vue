@@ -28,7 +28,7 @@ const props = defineProps({
     </div>
 
     <div class="bg-white border border-slate-200 rounded-xl p-6 sm:p-8">
-      <SlideHtmlPreview :jsonData="content.content" />
+      <SlideHtmlPreview :jsonData="content.NoiDungJson" />
     </div>
   </div>
 </template>
