@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onUnmounted, nextTick } from 'vue'
-import { ChevronDown, Check } from 'lucide-vue-next'
+import { ChevronDown, Check, Search } from 'lucide-vue-next'
 import { onClickOutside } from '@vueuse/core'
 
 const props = defineProps({
@@ -21,6 +21,7 @@ const props = defineProps({
   required: Boolean,
   id: String,
   error: String,
+  searchable: Boolean,
 })
 
 const emit = defineEmits(['update:modelValue', 'change'])
@@ -29,21 +30,41 @@ const isOpen = ref(false)
 const dropdownRef = ref(null)
 const menuRef = ref(null)
 const menuStyle = ref({})
+const searchQuery = ref('')
+
+const normalizeText = (s) => String(s || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+
+const filteredOptions = computed(() => {
+  if (!props.searchable) return props.options
+  const q = normalizeText(searchQuery.value)
+  if (!q) return props.options
+  return props.options.filter(o => normalizeText(o.label).includes(q))
+})
 
 onClickOutside(dropdownRef, (event) => {
   if (menuRef.value && menuRef.value.contains(event.target)) return
   closeDropdown()
 })
 
+const normalizeValue = (value) => value === undefined || value === null ? '' : String(value)
+
+const isSelected = (option) => {
+  if (option == null) return false
+  return normalizeValue(option.value) === normalizeValue(props.modelValue)
+}
+
 const selectedOption = computed(() => {
-  return props.options.find(opt => opt.value === props.modelValue)
+  return props.options.find(isSelected) || null
 })
 
 const updatePosition = () => {
   if (!dropdownRef.value || !isOpen.value) return
   const inputEl = dropdownRef.value.querySelector('.lg-input') || dropdownRef.value
   const rect = inputEl.getBoundingClientRect()
-  
+
   menuStyle.value = {
     position: 'fixed',
     top: `${rect.bottom + 4}px`,
@@ -68,6 +89,7 @@ const toggleDropdown = async () => {
 
 const closeDropdown = () => {
   isOpen.value = false
+  searchQuery.value = ''
   removeListeners()
 }
 
@@ -100,7 +122,7 @@ const selectId = computed(() => props.id || `lms-select-${Math.random().toString
       {{ label }}
     </label>
 
-    <div 
+    <div
       :id="selectId"
       class="lg-input flex items-center justify-between cursor-pointer select-none px-4 py-3 text-sm transition-all duration-200"
       :class="[
@@ -116,9 +138,9 @@ const selectId = computed(() => props.id || `lms-select-${Math.random().toString
       <span class="truncate flex-1 text-left" :class="selectedOption ? 'text-(--text-heading)' : 'text-(--text-placeholder)'">
         {{ selectedOption ? selectedOption.label : placeholder }}
       </span>
-      <ChevronDown 
-        class="w-4 h-4 text-(--text-muted) transition-transform duration-200" 
-        :class="{ 'rotate-180': isOpen }" 
+      <ChevronDown
+        class="w-4 h-4 text-(--text-muted) transition-transform duration-200"
+        :class="{ 'rotate-180': isOpen }"
       />
     </div>
 
@@ -132,27 +154,41 @@ const selectId = computed(() => props.id || `lms-select-${Math.random().toString
         leave-from-class="transform scale-100 opacity-100"
         leave-to-class="transform scale-95 opacity-0"
       >
-        <div 
-          v-if="isOpen" 
+        <div
+          v-if="isOpen"
           ref="menuRef"
           :style="menuStyle"
           class="surface-dropdown border border-card rounded-lg shadow-2xl overflow-hidden py-1"
         >
-          <ul class="max-h-60 overflow-y-auto">
-            <li 
-              v-for="option in options" 
+          <div v-if="searchable" class="px-2 pb-2 border-b border-card" @click.stop @mousedown.stop>
+            <div class="relative">
+              <Search class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-(--text-muted)" />
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Nhập mã / tên để tìm..."
+                class="lg-input w-full text-sm pl-8 py-2"
+                @keydown.enter.prevent
+                @keydown.escape.prevent="closeDropdown"
+              />
+            </div>
+          </div>
+          <ul v-if="filteredOptions.length" class="max-h-60 overflow-y-auto">
+            <li
+              v-for="option in filteredOptions"
               :key="option.value"
               @click="selectOption(option)"
               class="px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:bg-(--surface-table-row-hover) transition-colors"
               :class="{
-                'bg-(--surface-table-row-hover) text-(--text-heading) font-semibold': option.value === modelValue,
-                'text-(--text-body)': option.value !== modelValue
+                'bg-(--surface-table-row-hover) text-(--text-heading) font-semibold': isSelected(option),
+                'text-(--text-body)': !isSelected(option)
               }"
             >
               <span class="truncate flex-1 text-left">{{ option.label }}</span>
-              <Check v-if="option.value === modelValue" class="w-4 h-4 text-(--text-heading) shrink-0 ml-2" />
+              <Check v-if="isSelected(option)" class="w-4 h-4 text-(--text-heading) shrink-0 ml-2" />
             </li>
           </ul>
+          <p v-else class="px-4 py-3 text-sm text-(--text-muted)">Không tìm thấy kết quả phù hợp.</p>
         </div>
       </Transition>
     </Teleport>

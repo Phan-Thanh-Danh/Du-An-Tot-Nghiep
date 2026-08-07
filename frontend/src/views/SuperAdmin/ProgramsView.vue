@@ -3,12 +3,13 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { usePopupStore } from '@/stores/popup'
 import { trainingProgramApi } from '@/services/trainingProgramApi'
 import { organizationApi } from '@/services/organizationService'
+import academicSchedulingApi from '@/services/academicSchedulingApi'
 import CurriculumEditorModal from './components/CurriculumEditorModal.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
-import { 
-  BookOpen, Plus, Copy, Edit2, Trash2, CheckCircle2, XCircle, 
-  AlertCircle, Search, RefreshCw, GitCompare, History, Filter, 
-  ChevronLeft, ChevronRight, Send, Lock, Unlock, Archive, ExternalLink, ShieldCheck
+import {
+  BookOpen, Plus, Copy, Edit2, CheckCircle2, XCircle,
+  AlertCircle, Search, RefreshCw, GitCompare, History,
+  ChevronLeft, ChevronRight, Send, Archive, ShieldCheck
 } from 'lucide-vue-next'
 
 const popup = usePopupStore()
@@ -33,6 +34,16 @@ const selectedStatus = ref('')
 // Filter Options
 const campusOptions = ref([{ value: '', label: 'Tất cả cơ sở' }])
 const majorOptions = ref([{ value: '', label: 'Tất cả chuyên ngành' }])
+
+// Create/Edit Modal Major & Specialization Options
+const formMajorOptions = ref([])
+const formSpecializationOptions = ref([])
+const loadingSpecializations = ref(false)
+const submittingProgram = ref(false)
+
+const selectedFormMajorLabel = computed(() => {
+  return formMajorOptions.value.find(o => String(o.value) === String(programForm.value.maNganh))?.label || ''
+})
 const statusOptions = [
   { value: '', label: 'Tất cả trạng thái' },
   { value: 'draft', label: 'Nháp (Draft)' },
@@ -48,6 +59,30 @@ const programOptions = computed(() => {
   }))
 })
 
+const effectivePrograms = computed(() => {
+  const today = new Date().setHours(0, 0, 0, 0)
+  return programs.value.filter(prog => {
+    const status = (prog.trangThai || prog.TrangThai || '').toLowerCase()
+    if (status !== 'active') return false
+
+    const fromValue = prog.ngayHieuLuc || prog.NgayHieuLuc
+    const toValue = prog.ngayHetHieuLuc || prog.NgayHetHieuLuc
+    const fromDate = fromValue ? new Date(fromValue).setHours(0, 0, 0, 0) : null
+    const toDate = toValue ? new Date(toValue).setHours(0, 0, 0, 0) : null
+
+    return (!fromDate || fromDate <= today) && (!toDate || toDate >= today)
+  })
+})
+
+const effectiveProgramsSummary = computed(() => {
+  if (!effectivePrograms.value.length) {
+    return 'Không có chương trình đào tạo nào đang hiệu lực cho thời điểm hiện tại.'
+  }
+
+  const names = effectivePrograms.value.slice(0, 2).map(p => p.tenChuongTrinh || p.TenChuongTrinh || p.maCodeChuongTrinh || p.MaCodeChuongTrinh)
+  return `Hiện có ${effectivePrograms.value.length} chương trình đang hiệu lực, bao gồm ${names.join(', ')}${effectivePrograms.value.length > 2 ? '...' : ''}`
+})
+
 // Modal & Drawer State
 const isCreateEditModalOpen = ref(false)
 const modalMode = ref('create') // 'create', 'edit'
@@ -56,6 +91,7 @@ const programForm = ref({
   maCodeChuongTrinh: '',
   tenChuongTrinh: '',
   version: '1.0',
+  maNganh: '',
   maChuyenNganh: 1,
   maKhoaTuyenSinh: 1,
   soHocKy: 7,
@@ -73,7 +109,7 @@ const cloneForm = ref({
   maCodeChuongTrinh: '',
   tenChuongTrinh: '',
   version: '2.0',
-  maKhoaTuyenSinh: 1,
+  maKhoaTuyenSinhMoi: 1,
   ghiChuThayDoi: ''
 })
 
@@ -136,13 +172,71 @@ const loadOrganizations = async () => {
   }
 }
 
+const loadMajors = async () => {
+  try {
+    const items = await academicSchedulingApi.getMajors()
+    majorOptions.value = [
+      { value: '', label: 'Tất cả chuyên ngành' },
+      ...items.map(item => ({
+        value: item.maChuyenNganh || item.MaChuyenNganh || item.id || item.Id,
+        label: item.tenChuyenNganh || item.TenChuyenNganh || item.tenNganh || item.TenNganh || `Chuyên ngành ${item.maChuyenNganh || item.MaChuyenNganh || item.id || item.Id}`
+      }))
+    ]
+  } catch (err) {
+    console.error('Error loading majors:', err)
+  }
+}
+
+const loadFormMajors = async () => {
+  try {
+    const items = await academicSchedulingApi.getMajors()
+    formMajorOptions.value = items.map(item => ({
+      value: item.maNganh || item.MaNganh || item.id || item.Id,
+      label: `${item.maCodeNganh || item.MaCodeNganh ? `${item.maCodeNganh || item.MaCodeNganh} - ` : ''}${item.tenNganh || item.TenNganh || `Ngành ${item.maNganh || item.MaNganh || item.id || item.Id}`}`
+    }))
+  } catch (err) {
+    console.error('Error loading form majors:', err)
+  }
+}
+
+const loadFormSpecializations = async () => {
+  const maNganh = programForm.value.maNganh
+  if (!maNganh) {
+    formSpecializationOptions.value = []
+    programForm.value.maChuyenNganh = ''
+    return
+  }
+  const previous = programForm.value.maChuyenNganh
+  loadingSpecializations.value = true
+  try {
+    const items = await academicSchedulingApi.getSpecializations(maNganh)
+    formSpecializationOptions.value = items.map(item => ({
+      value: item.maChuyenNganh || item.MaChuyenNganh || item.id || item.Id,
+      label: item.tenChuyenNganh || item.TenChuyenNganh || `Chuyên ngành ${item.maChuyenNganh || item.MaChuyenNganh || item.id || item.Id}`
+    }))
+    if (!formSpecializationOptions.value.some(o => String(o.value) === String(previous))) {
+      programForm.value.maChuyenNganh = ''
+    }
+  } catch (err) {
+    console.error('Error loading specializations:', err)
+  } finally {
+    loadingSpecializations.value = false
+  }
+}
+
 onMounted(() => {
   loadPrograms()
   loadOrganizations()
+  loadMajors()
+  loadFormMajors()
 })
 
 watch([searchQuery, selectedCampus, selectedMajor, selectedStatus, pageIndex, pageSize], () => {
   loadPrograms()
+})
+
+watch(() => programForm.value.maNganh, () => {
+  loadFormSpecializations()
 })
 
 // Action Handlers
@@ -153,7 +247,8 @@ const openCreateModal = () => {
     maCodeChuongTrinh: `CTDT_${new Date().getFullYear()}`,
     tenChuongTrinh: '',
     version: '1.0',
-    maChuyenNganh: 1,
+    maNganh: '',
+    maChuyenNganh: '',
     maKhoaTuyenSinh: 1,
     soHocKy: 7,
     thoiGianDaoTaoThang: 42,
@@ -162,6 +257,7 @@ const openCreateModal = () => {
     soTinChiToiDaMoiKy: 24,
     moTa: ''
   }
+  formSpecializationOptions.value = []
   isCreateEditModalOpen.value = true
 }
 
@@ -172,6 +268,7 @@ const openEditModal = (prog) => {
     maCodeChuongTrinh: prog.maCodeChuongTrinh || prog.MaCodeChuongTrinh || '',
     tenChuongTrinh: prog.tenChuongTrinh || prog.TenChuongTrinh || '',
     version: prog.version || prog.Version || '1.0',
+    maNganh: prog.maNganh || prog.MaNganh || '',
     maChuyenNganh: prog.maChuyenNganh || prog.MaChuyenNganh || 1,
     maKhoaTuyenSinh: prog.maKhoaTuyenSinh || prog.MaKhoaTuyenSinh || 1,
     soHocKy: prog.soHocKy || prog.SoHocKy || 7,
@@ -181,7 +278,9 @@ const openEditModal = (prog) => {
     soTinChiToiDaMoiKy: prog.soTinChiToiDaMoiKy || prog.SoTinChiToiDaMoiKy || 24,
     moTa: prog.moTa || prog.MoTa || ''
   }
+  formSpecializationOptions.value = []
   isCreateEditModalOpen.value = true
+  loadFormSpecializations()
 }
 
 const submitProgramForm = async () => {
@@ -189,36 +288,74 @@ const submitProgramForm = async () => {
     popup.warning('Thiếu thông tin', 'Vui lòng nhập Mã và Tên chương trình đào tạo.')
     return
   }
+  if (!programForm.value.maNganh) {
+    popup.warning('Thiếu thông tin', 'Vui lòng chọn Ngành đào tạo.')
+    return
+  }
+  if (modalMode.value === 'edit' && !programForm.value.maChuyenNganh) {
+    popup.warning('Thiếu thông tin', 'Vui lòng chọn Chuyên ngành.')
+    return
+  }
 
+  const basePayload = {
+    tenChuongTrinh: programForm.value.tenChuongTrinh.trim(),
+    version: programForm.value.version.trim(),
+    maKhoaTuyenSinh: Number(programForm.value.maKhoaTuyenSinh),
+    soHocKy: Number(programForm.value.soHocKy),
+    thoiGianDaoTaoThang: Number(programForm.value.thoiGianDaoTaoThang),
+    tongTinChiYeuCau: Number(programForm.value.tongTinChiYeuCau),
+    soTinChiToiThieuMoiKy: Number(programForm.value.soTinChiToiThieuMoiKy),
+    soTinChiToiDaMoiKy: Number(programForm.value.soTinChiToiDaMoiKy),
+    moTa: programForm.value.moTa
+  }
+
+  submittingProgram.value = true
   try {
     if (modalMode.value === 'create') {
-      await trainingProgramApi.create({
-        maCodeChuongTrinh: programForm.value.maCodeChuongTrinh.trim(),
-        tenChuongTrinh: programForm.value.tenChuongTrinh.trim(),
-        version: programForm.value.version.trim(),
-        maChuyenNganh: Number(programForm.value.maChuyenNganh),
-        maKhoaTuyenSinh: Number(programForm.value.maKhoaTuyenSinh),
-        soHocKy: Number(programForm.value.soHocKy),
-        thoiGianDaoTaoThang: Number(programForm.value.thoiGianDaoTaoThang),
-        tongTinChiYeuCau: Number(programForm.value.tongTinChiYeuCau),
-        soTinChiToiThieuMoiKy: Number(programForm.value.soTinChiToiThieuMoiKy),
-        soTinChiToiDaMoiKy: Number(programForm.value.soTinChiToiDaMoiKy),
-        moTa: programForm.value.moTa
-      })
-      popup.success('Thành công', 'Đã khởi tạo khung chương trình đào tạo mới.')
+      const children = formSpecializationOptions.value
+      if (!children.length) {
+        popup.warning('Chưa có chuyên ngành', 'Ngành đào tạo chưa có chuyên ngành con hoạt động nào để áp dụng.')
+        return
+      }
+      const baseCode = programForm.value.maCodeChuongTrinh.trim().slice(0, 90)
+      const requestedVersion = programForm.value.version.trim()
+      let createdCount = 0
+      const bumpedList = []
+      for (const spec of children) {
+        let version = requestedVersion
+        let created = false
+        for (let attempt = 0; attempt < 20 && !created; attempt++) {
+          try {
+            await trainingProgramApi.create({
+              ...basePayload,
+              version,
+              maCodeChuongTrinh: `${baseCode}-CN${spec.value}`,
+              maChuyenNganh: Number(spec.value)
+            })
+            created = true
+            createdCount++
+            if (version !== requestedVersion) {
+              bumpedList.push(`${spec.label} → v${version}`)
+            }
+          } catch (err) {
+            const isVersionConflict = err?.message && err.message.includes('đã tồn tại cho chuyên ngành, khóa tuyển sinh và phiên bản')
+            if (!isVersionConflict) throw err
+            version = bumpProgramVersion(version)
+          }
+        }
+        if (!created) {
+          throw new Error(`Không thể tạo chương trình cho chuyên ngành "${spec.label}" sau khi thử nhiều phiên bản.`)
+        }
+      }
+      const summary = bumpedList.length
+        ? `${createdCount} chuyên ngành đã tạo. ${bumpedList.length} chuyên ngành đã có chương trình v${requestedVersion} từ trước, hệ thống tự tạo ở phiên bản mới: ${bumpedList.join(', ')}.`
+        : `Đã khởi tạo ${createdCount} khung chương trình đào tạo, áp dụng cho tất cả chuyên ngành con của ngành "${selectedFormMajorLabel.value}".`
+      popup.success('Thành công', summary)
     } else {
       await trainingProgramApi.update(programForm.value.id, {
+        ...basePayload,
         maCodeChuongTrinh: programForm.value.maCodeChuongTrinh.trim(),
-        tenChuongTrinh: programForm.value.tenChuongTrinh.trim(),
-        version: programForm.value.version.trim(),
-        maChuyenNganh: Number(programForm.value.maChuyenNganh),
-        maKhoaTuyenSinh: Number(programForm.value.maKhoaTuyenSinh),
-        soHocKy: Number(programForm.value.soHocKy),
-        thoiGianDaoTaoThang: Number(programForm.value.thoiGianDaoTaoThang),
-        tongTinChiYeuCau: Number(programForm.value.tongTinChiYeuCau),
-        soTinChiToiThieuMoiKy: Number(programForm.value.soTinChiToiThieuMoiKy),
-        soTinChiToiDaMoiKy: Number(programForm.value.soTinChiToiDaMoiKy),
-        moTa: programForm.value.moTa
+        maChuyenNganh: Number(programForm.value.maChuyenNganh)
       })
       popup.success('Thành công', 'Đã cập nhật thông tin chương trình đào tạo.')
     }
@@ -227,6 +364,8 @@ const submitProgramForm = async () => {
   } catch (err) {
     console.error('Error submitting program form:', err)
     popup.error('Lỗi', err.message || 'Không thể lưu chương trình đào tạo.')
+  } finally {
+    submittingProgram.value = false
   }
 }
 
@@ -238,7 +377,7 @@ const openCloneModal = (prog) => {
     maCodeChuongTrinh: `${currentCode}_v2`,
     tenChuongTrinh: `${prog.tenChuongTrinh || prog.TenChuongTrinh} (Sao chép)`,
     version: '2.0',
-    maKhoaTuyenSinh: (prog.maKhoaTuyenSinh || prog.MaKhoaTuyenSinh || 1) + 1,
+    maKhoaTuyenSinhMoi: (prog.maKhoaTuyenSinh || prog.MaKhoaTuyenSinh || 1) + 1,
     ghiChuThayDoi: `Sao chép phiên bản từ ${prog.version || prog.Version || 'v1.0'}`
   }
   isCloneModalOpen.value = true
@@ -256,7 +395,7 @@ const submitCloneForm = async () => {
       maCodeChuongTrinh: cloneForm.value.maCodeChuongTrinh.trim(),
       tenChuongTrinh: cloneForm.value.tenChuongTrinh.trim(),
       version: cloneForm.value.version.trim(),
-      maKhoaTuyenSinh: Number(cloneForm.value.maKhoaTuyenSinh),
+      maKhoaTuyenSinhMoi: Number(cloneForm.value.maKhoaTuyenSinhMoi),
       ghiChuThayDoi: cloneForm.value.ghiChuThayDoi
     })
     popup.success('Nhân bản thành công', 'Đã nhân bản toàn bộ danh mục môn học sang phiên bản mới.')
@@ -352,6 +491,16 @@ const runCompare = async () => {
   }
 }
 
+// Version helpers
+const bumpProgramVersion = (version) => {
+  const parts = String(version || '').trim().split('.')
+  const major = parseInt(parts[0], 10)
+  const minor = parseInt(parts[1], 10)
+  if (isNaN(major)) return `${version}.1`
+  if (isNaN(minor)) return `${major}.1`
+  return `${major}.${minor + 1}`
+}
+
 // Status Badges
 const getStatusBadge = (status) => {
   const s = (status || '').toLowerCase()
@@ -386,9 +535,22 @@ const getStatusBadge = (status) => {
       </div>
     </div>
 
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div class="surface-card border border-card rounded-2xl p-5 shadow-sm">
+        <h2 class="text-base font-semibold text-heading">Quản lý chương trình đào tạo</h2>
+        <p class="text-xs text-label mt-1">
+          Riêng phần này quản lý danh mục chương trình đào tạo và gán cho khóa tuyển sinh. Quản lý lớp hành chính không nằm trong khu vực này.
+        </p>
+      </div>
+      <div class="surface-card border border-card rounded-2xl p-5 shadow-sm">
+        <p class="text-xs font-semibold text-label uppercase tracking-wide">Chương trình hiện hiệu lực</p>
+        <p class="mt-2 text-sm text-body">{{ effectiveProgramsSummary }}</p>
+      </div>
+    </div>
+
     <!-- Navigation Tabs -->
     <div class="flex items-center gap-2 border-b border-slate-500/10">
-      <button 
+      <button
         @click="activeTab = 'list'"
         class="px-4 py-2.5 text-xs font-bold transition flex items-center gap-2 border-b-2"
         :class="activeTab === 'list' ? 'border-teal-600 text-teal-600 dark:text-teal-400' : 'border-transparent text-label hover:text-heading'"
@@ -396,7 +558,7 @@ const getStatusBadge = (status) => {
         <BookOpen :size="16" /> Danh sách Khung CTĐT & Áp dụng
       </button>
 
-      <button 
+      <button
         @click="activeTab = 'compare'"
         class="px-4 py-2.5 text-xs font-bold transition flex items-center gap-2 border-b-2"
         :class="activeTab === 'compare' ? 'border-teal-600 text-teal-600 dark:text-teal-400' : 'border-transparent text-label hover:text-heading'"
@@ -404,7 +566,7 @@ const getStatusBadge = (status) => {
         <GitCompare :size="16" /> So sánh Phiên bản (Compare Diff)
       </button>
 
-      <button 
+      <button
         @click="activeTab = 'audit'"
         class="px-4 py-2.5 text-xs font-bold transition flex items-center gap-2 border-b-2"
         :class="activeTab === 'audit' ? 'border-teal-600 text-teal-600 dark:text-teal-400' : 'border-transparent text-label hover:text-heading'"
@@ -419,10 +581,10 @@ const getStatusBadge = (status) => {
       <div class="surface-card p-4 rounded-2xl border border-card flex flex-wrap items-center gap-3">
         <div class="flex-1 min-w-[220px] relative">
           <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-label" />
-          <input 
-            v-model="searchQuery" 
-            type="text" 
-            placeholder="Tìm theo Mã CTĐT, Tên chương trình, Phiên bản..." 
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Tìm theo Mã CTĐT, Tên chương trình, Phiên bản..."
             class="glass-input pl-9 w-full text-xs"
           />
         </div>
@@ -490,72 +652,82 @@ const getStatusBadge = (status) => {
                 </td>
 
                 <td class="px-4 py-3 text-xs">
-                  <span class="px-2 py-0.5 rounded bg-slate-500/10 text-heading font-medium">
-                    {{ prog.tenKhoa || prog.TenKhoa || `Khóa ${prog.maKhoaTuyenSinh || prog.MaKhoaTuyenSinh}` }}
-                  </span>
+                  <div class="flex flex-col gap-1">
+                    <span class="px-2 py-0.5 rounded bg-slate-500/10 text-heading font-medium">
+                      {{ prog.tenKhoa || prog.TenKhoa || `Khóa ${prog.maKhoaTuyenSinh || prog.MaKhoaTuyenSinh}` }}
+                    </span>
+                    <span v-if="prog.ngayHieuLuc || prog.NgayHieuLuc" class="text-[11px] text-label">
+                      Hiệu lực từ {{ (prog.ngayHieuLuc || prog.NgayHieuLuc) ? new Date(prog.ngayHieuLuc || prog.NgayHieuLuc).toLocaleDateString('vi-VN') : '-' }}
+                    </span>
+                  </div>
                 </td>
 
                 <td class="px-4 py-3 text-xs">
-                  <span :class="getStatusBadge(prog.trangThai || prog.TrangThai).class" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold">
-                    {{ getStatusBadge(prog.trangThai || prog.TrangThai).label }}
-                  </span>
+                  <div class="flex flex-col gap-1">
+                    <span :class="getStatusBadge(prog.trangThai || prog.TrangThai).class" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                      {{ getStatusBadge(prog.trangThai || prog.TrangThai).label }}
+                    </span>
+                    <span v-if="prog.ngayHetHieuLuc || prog.NgayHetHieuLuc" class="text-[11px] text-label">
+                      Đến {{ new Date(prog.ngayHetHieuLuc || prog.NgayHetHieuLuc).toLocaleDateString('vi-VN') }}
+                    </span>
+                  </div>
                 </td>
 
                 <td class="px-4 py-3 text-right">
                   <div class="flex items-center justify-end gap-1">
-                    <button 
-                      @click="openCurriculumEditor(prog)" 
-                      class="action-btn text-teal-600 hover:bg-teal-500/10" 
+                    <button
+                      @click="openCurriculumEditor(prog)"
+                      class="action-btn text-teal-600 hover:bg-teal-500/10"
                       title="Quản lý Môn học theo Học kỳ"
                     >
                       <BookOpen :size="15" />
                     </button>
 
-                    <button 
-                      @click="openCloneModal(prog)" 
-                      class="action-btn text-indigo-600 hover:bg-indigo-500/10" 
+                    <button
+                      @click="openCloneModal(prog)"
+                      class="action-btn text-indigo-600 hover:bg-indigo-500/10"
                       title="Nhân bản (Clone CTĐT)"
                     >
                       <Copy :size="15" />
                     </button>
 
-                    <button 
-                      @click="openAssignModal(prog)" 
-                      class="action-btn text-emerald-600 hover:bg-emerald-500/10" 
+                    <button
+                      @click="openAssignModal(prog)"
+                      class="action-btn text-emerald-600 hover:bg-emerald-500/10"
                       title="Áp dụng cho Khóa / Cơ sở"
                     >
                       <Send :size="15" />
                     </button>
 
-                    <button 
-                      @click="openEditModal(prog)" 
-                      class="action-btn text-amber-600 hover:bg-amber-500/10" 
+                    <button
+                      @click="openEditModal(prog)"
+                      class="action-btn text-amber-600 hover:bg-amber-500/10"
                       title="Chỉnh sửa thông tin"
                     >
                       <Edit2 :size="15" />
                     </button>
 
-                    <button 
-                      v-if="(prog.trangThai || '').toLowerCase() === 'draft'" 
-                      @click="toggleStatus(prog, 'activate')" 
-                      class="action-btn text-emerald-600 hover:bg-emerald-500/10" 
+                    <button
+                      v-if="(prog.trangThai || '').toLowerCase() === 'draft'"
+                      @click="toggleStatus(prog, 'activate')"
+                      class="action-btn text-emerald-600 hover:bg-emerald-500/10"
                       title="Kích hoạt"
                     >
                       <CheckCircle2 :size="15" />
                     </button>
 
-                    <button 
-                      v-if="(prog.trangThai || '').toLowerCase() === 'active'" 
-                      @click="toggleStatus(prog, 'deactivate')" 
-                      class="action-btn text-amber-600 hover:bg-amber-500/10" 
+                    <button
+                      v-if="(prog.trangThai || '').toLowerCase() === 'active'"
+                      @click="toggleStatus(prog, 'deactivate')"
+                      class="action-btn text-amber-600 hover:bg-amber-500/10"
                       title="Tạm ngưng"
                     >
                       <XCircle :size="15" />
                     </button>
 
-                    <button 
-                      @click="toggleStatus(prog, 'archive')" 
-                      class="action-btn text-slate-500 hover:bg-slate-500/10" 
+                    <button
+                      @click="toggleStatus(prog, 'archive')"
+                      class="action-btn text-slate-500 hover:bg-slate-500/10"
                       title="Lưu trữ (Archive)"
                     >
                       <Archive :size="15" />
@@ -573,18 +745,18 @@ const getStatusBadge = (status) => {
             Trang <strong>{{ pageIndex }}</strong> / <strong>{{ totalPages }}</strong> — Tổng số <strong>{{ totalItems }}</strong> chương trình
           </div>
           <div class="flex items-center gap-2">
-            <button 
-              @click="pageIndex > 1 && pageIndex--" 
+            <button
+              @click="pageIndex > 1 && pageIndex--"
               :disabled="pageIndex <= 1"
-              class="glass-btn secondary py-1 px-2.5 text-xs" 
+              class="glass-btn secondary py-1 px-2.5 text-xs"
               :class="{ 'opacity-50 cursor-not-allowed': pageIndex <= 1 }"
             >
               <ChevronLeft :size="14" /> Trước
             </button>
-            <button 
-              @click="pageIndex < totalPages && pageIndex++" 
+            <button
+              @click="pageIndex < totalPages && pageIndex++"
               :disabled="pageIndex >= totalPages"
-              class="glass-btn secondary py-1 px-2.5 text-xs" 
+              class="glass-btn secondary py-1 px-2.5 text-xs"
               :class="{ 'opacity-50 cursor-not-allowed': pageIndex >= totalPages }"
             >
               Sau <ChevronRight :size="14" />
@@ -598,22 +770,22 @@ const getStatusBadge = (status) => {
     <div v-else-if="activeTab === 'compare'" class="space-y-5">
       <div class="surface-card p-5 rounded-2xl border border-card flex flex-col md:flex-row items-center gap-4">
         <div class="flex-1 w-full">
-          <LmsSelect 
-            v-model="compareSourceId" 
-            :options="programOptions" 
-            label="Chọn Phiên bản Nguồn (Gốc / V1)" 
-            placeholder="-- Chọn CTĐT nguồn --" 
+          <LmsSelect
+            v-model="compareSourceId"
+            :options="programOptions"
+            label="Chọn Phiên bản Nguồn (Gốc / V1)"
+            placeholder="-- Chọn CTĐT nguồn --"
           />
         </div>
 
         <div class="text-label text-sm font-bold shrink-0 pt-4">VS</div>
 
         <div class="flex-1 w-full">
-          <LmsSelect 
-            v-model="compareTargetId" 
-            :options="programOptions" 
-            label="Chọn Phiên bản Đích (Mới / V2)" 
-            placeholder="-- Chọn CTĐT đích --" 
+          <LmsSelect
+            v-model="compareTargetId"
+            :options="programOptions"
+            label="Chọn Phiên bản Đích (Mới / V2)"
+            placeholder="-- Chọn CTĐT đích --"
           />
         </div>
 
@@ -730,7 +902,7 @@ const getStatusBadge = (status) => {
     <!-- Modals -->
     <!-- Create / Edit Program Modal -->
     <div v-if="isCreateEditModalOpen" class="modal-overlay" @click.self="isCreateEditModalOpen = false">
-      <div class="modal-content surface-card border border-card p-6 rounded-2xl max-w-lg w-full flex flex-col gap-4">
+      <div class="modal-content border border-card p-6 rounded-2xl max-w-5xl lg:max-w-6xl w-full flex flex-col gap-4">
         <div class="flex items-center justify-between pb-3 border-b border-slate-500/10">
           <h3 class="font-bold text-heading text-lg">
             {{ modalMode === 'create' ? 'Tạo mới Khung Chương trình Đào tạo' : 'Cập nhật Chương trình Đào tạo' }}
@@ -755,6 +927,53 @@ const getStatusBadge = (status) => {
             <input v-model="programForm.tenChuongTrinh" type="text" class="glass-input w-full text-xs" placeholder="VD: Chương trình Đào tạo Công nghệ Thông tin 2026" />
           </div>
 
+          <div v-if="modalMode === 'edit'" class="grid grid-cols-2 gap-3">
+            <div class="form-group">
+              <label class="block text-xs font-bold text-label mb-1">Ngành đào tạo <span class="text-rose-500">*</span></label>
+              <LmsSelect v-model="programForm.maNganh" :options="formMajorOptions" placeholder="Chọn ngành đào tạo" class="w-full" />
+            </div>
+            <div class="form-group">
+              <label class="block text-xs font-bold text-label mb-1">Chuyên ngành <span class="text-rose-500">*</span></label>
+              <LmsSelect
+                v-model="programForm.maChuyenNganh"
+                :options="formSpecializationOptions"
+                :disabled="!programForm.maNganh || loadingSpecializations"
+                :placeholder="loadingSpecializations ? 'Đang tải chuyên ngành...' : 'Chọn chuyên ngành'"
+                class="w-full"
+              />
+            </div>
+          </div>
+
+          <div v-else class="space-y-3">
+            <div class="form-group">
+              <label class="block text-xs font-bold text-label mb-1">Ngành đào tạo <span class="text-rose-500">*</span></label>
+              <LmsSelect v-model="programForm.maNganh" :options="formMajorOptions" placeholder="Chọn ngành đào tạo" class="w-full" />
+            </div>
+
+            <div class="p-3 rounded-xl border border-teal-500/30 bg-teal-500/5 text-xs">
+              <div v-if="loadingSpecializations" class="text-label flex items-center gap-2">
+                <RefreshCw :size="14" class="animate-spin" /> Đang tải chuyên ngành con của ngành...
+              </div>
+              <template v-else-if="programForm.maNganh">
+                <div class="font-bold text-teal-600 dark:text-teal-400 mb-1.5 flex items-center gap-1.5">
+                  <ShieldCheck :size="14" />
+                  Khung chương trình sẽ được áp dụng cho {{ formSpecializationOptions.length }} chuyên ngành con của ngành "{{ selectedFormMajorLabel }}"
+                </div>
+                <div v-if="formSpecializationOptions.length" class="flex flex-wrap gap-1.5">
+                  <span
+                    v-for="spec in formSpecializationOptions"
+                    :key="spec.value"
+                    class="px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-300 font-medium"
+                  >
+                    {{ spec.label }}
+                  </span>
+                </div>
+                <p v-else class="text-label">Ngành đào tạo chưa có chuyên ngành con hoạt động nào.</p>
+              </template>
+              <div v-else class="text-label">Chọn ngành đào tạo để xem phạm vi chuyên ngành con được áp dụng.</div>
+            </div>
+          </div>
+
           <div class="grid grid-cols-3 gap-3">
             <div class="form-group">
               <label class="block text-xs font-bold text-label mb-1">Số Học kỳ chuẩn</label>
@@ -777,8 +996,11 @@ const getStatusBadge = (status) => {
         </div>
 
         <div class="flex gap-2 pt-2 border-t border-slate-500/10">
-          <button @click="isCreateEditModalOpen = false" class="glass-btn secondary flex-1 text-xs justify-center">Hủy</button>
-          <button @click="submitProgramForm" class="glass-btn primary flex-1 text-xs justify-center">Lưu thông tin</button>
+          <button @click="isCreateEditModalOpen = false" :disabled="submittingProgram" class="glass-btn secondary flex-1 text-xs justify-center">Hủy</button>
+          <button @click="submitProgramForm" :disabled="submittingProgram" class="glass-btn primary flex-1 text-xs justify-center inline-flex items-center gap-2">
+            <RefreshCw v-if="submittingProgram" :size="14" class="animate-spin" />
+            {{ submittingProgram ? 'Đang lưu...' : 'Lưu thông tin' }}
+          </button>
         </div>
       </div>
     </div>
@@ -814,6 +1036,11 @@ const getStatusBadge = (status) => {
           </div>
 
           <div class="form-group">
+            <label class="block text-xs font-bold text-label mb-1">Khóa tuyển sinh mới <span class="text-rose-500">*</span></label>
+            <input v-model="cloneForm.maKhoaTuyenSinhMoi" type="number" min="1" class="glass-input w-full text-xs" placeholder="VD: 2027" />
+          </div>
+
+          <div class="form-group">
             <label class="block text-xs font-bold text-label mb-1">Ghi chú thay đổi (Audit Note)</label>
             <input v-model="cloneForm.ghiChuThayDoi" type="text" class="glass-input w-full text-xs" placeholder="Lý do tạo bản sao mới..." />
           </div>
@@ -840,6 +1067,11 @@ const getStatusBadge = (status) => {
           <div class="p-3 surface-input rounded-xl text-xs text-label">
             Áp dụng CTĐT: <strong class="text-heading">{{ assignProgram?.tenChuongTrinh || assignProgram?.TenChuongTrinh }}</strong>
           </div>
+          <div class="rounded-2xl bg-amber-500/10 border border-amber-300 p-3 text-xs text-amber-700">
+            <p class="font-semibold">Lưu ý:</p>
+            <p>Áp dụng chương trình mới cho khóa này có thể ảnh hưởng tới sinh viên mới ghi danh.</p>
+            <p>Chương trình được gán sẽ là khung đào tạo tham chiếu cho sinh viên của khóa tuyển sinh được chọn.</p>
+          </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div class="form-group">
@@ -861,7 +1093,7 @@ const getStatusBadge = (status) => {
     </div>
 
     <!-- Curriculum Editor Modal -->
-    <CurriculumEditorModal 
+    <CurriculumEditorModal
       :is-open="isCurriculumModalOpen"
       :program="activeCurriculumProgram"
       @close="isCurriculumModalOpen = false"
@@ -874,11 +1106,17 @@ const getStatusBadge = (status) => {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.72);
   z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 1.5rem;
+}
+.modal-content {
+  background: var(--surface-modal);
+  border: 1px solid var(--border-card);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.18);
+  backdrop-filter: saturate(180%) blur(24px);
 }
 </style>

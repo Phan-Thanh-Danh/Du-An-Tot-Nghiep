@@ -1,12 +1,11 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { usePopupStore } from '@/stores/popup'
 import { trainingProgramApi } from '@/services/trainingProgramApi'
 import { subjectApi } from '@/services/subjectApi'
-import LmsSelect from '@/components/LmsSelect.vue'
 import { 
-  X, Plus, Trash2, Edit2, BookOpen, AlertCircle, CheckCircle2, 
-  Info, Layers, ChevronRight, RefreshCw, AlertTriangle
+  X, Plus, Trash2, Edit2, BookOpen, 
+  Info, RefreshCw, AlertTriangle, Search
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -75,11 +74,38 @@ const maxSemesters = computed(() => {
 })
 
 const masterSubjectOptions = computed(() => {
-  return availableSubjects.value.map(s => ({
-    value: s.maMonHoc || s.MaMonHoc,
-    label: `${s.maCodeMonHoc || s.MaCodeMonHoc} - ${s.tenMonHoc || s.TenMonHoc} (${s.soTinChi || s.SoTinChi} TCI)`
-  }))
+  const existingIds = new Set(curriculum.value.map(s => s.maMonHoc || s.MaMonHoc))
+  return availableSubjects.value
+    .filter(s => !existingIds.has(s.maMonHoc || s.MaMonHoc))
+    .map(s => ({
+      value: s.maMonHoc || s.MaMonHoc,
+      label: `${s.maCodeMonHoc || s.MaCodeMonHoc} - ${s.tenMonHoc || s.TenMonHoc} (${s.soTinChi || s.SoTinChi} TCI)`
+    }))
 })
+
+const subjectSearchQuery = ref('')
+const selectedSubjectIds = ref([])
+
+const normalizeSubjectText = (s) => String(s || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+
+const filteredMasterSubjects = computed(() => {
+  const q = normalizeSubjectText(subjectSearchQuery.value)
+  if (!q) return masterSubjectOptions.value
+  return masterSubjectOptions.value.filter(o => normalizeSubjectText(o.label).includes(q))
+})
+
+const toggleSelectFiltered = () => {
+  const visibleIds = filteredMasterSubjects.value.map(o => o.value)
+  const allSelected = visibleIds.every(id => selectedSubjectIds.value.includes(id))
+  if (allSelected) {
+    selectedSubjectIds.value = selectedSubjectIds.value.filter(id => !visibleIds.includes(id))
+  } else {
+    selectedSubjectIds.value = [...new Set([...selectedSubjectIds.value, ...visibleIds])]
+  }
+}
 
 const semesterGroups = computed(() => {
   const groups = {}
@@ -106,17 +132,55 @@ const totalCurriculumCredits = computed(() => {
   return curriculum.value.reduce((sum, s) => sum + (s.soTinChi || 0), 0)
 })
 
+const fetchAllPages = async (params) => {
+  const all = []
+  const pageSize = 100
+  let pageIndex = 1
+  while (true) {
+    const res = await subjectApi.list({ ...params, pageIndex, pageSize })
+    const items = Array.isArray(res) ? res : (res?.items || res?.Items || [])
+    all.push(...items)
+    if (items.length < pageSize) break
+    pageIndex++
+  }
+  return all
+}
+
+const loadAvailableSubjects = async () => {
+  const maNganh = props.program?.maNganh || props.program?.MaNganh
+  if (!maNganh) return fetchAllPages({})
+
+  const seen = new Set()
+  const all = []
+  const merge = (items) => {
+    for (const item of items) {
+      const id = item.maMonHoc ?? item.MaMonHoc
+      if (!seen.has(id)) {
+        seen.add(id)
+        all.push(item)
+      }
+    }
+  }
+  const [majorSubjects, genSubjects] = await Promise.all([
+    fetchAllPages({ maNganh }),
+    fetchAllPages({ keyword: 'GEN' })
+  ])
+  merge(majorSubjects)
+  merge(genSubjects)
+  return all
+}
+
 const loadData = async () => {
   if (!props.program) return
   loading.value = true
   try {
     const programId = props.program.maChuongTrinh || props.program.MaChuongTrinh
-    const [currRes, subRes] = await Promise.all([
+    const [currRes, allSubjects] = await Promise.all([
       trainingProgramApi.getCurriculum(programId),
-      subjectApi.list({ pageSize: 500 })
+      loadAvailableSubjects()
     ])
     curriculum.value = currRes?.data || currRes?.Data || (Array.isArray(currRes) ? currRes : [])
-    availableSubjects.value = Array.isArray(subRes) ? subRes : (subRes?.items || subRes?.Items || [])
+    availableSubjects.value = allSubjects
   } catch (err) {
     console.error('Error loading curriculum:', err)
     popup.error('Lỗi', 'Không thể tải chi tiết khung môn học.')
@@ -144,6 +208,8 @@ const openAddSubjectModal = (sem) => {
     ghiChu: '',
     maMonTienQuyetIds: []
   }
+  selectedSubjectIds.value = []
+  subjectSearchQuery.value = ''
   isSubjectModalOpen.value = true
 }
 
@@ -161,34 +227,43 @@ const openEditSubjectModal = (sub) => {
   isSubjectModalOpen.value = true
 }
 
-const onMasterSubjectSelect = (subId) => {
-  const found = availableSubjects.value.find(s => (s.maMonHoc || s.MaMonHoc) === Number(subId))
-  if (found) {
-    subjectForm.value.soTinChi = found.soTinChi || found.SoTinChi || 3
-  }
-}
-
 const saveSubject = async () => {
-  if (!subjectForm.value.maMonHoc) {
-    popup.warning('Thiếu môn học', 'Vui lòng chọn một môn học từ danh mục.')
-    return
-  }
-
   const programId = props.program.maChuongTrinh || props.program.MaChuongTrinh
 
   try {
     if (subjectModalMode.value === 'add') {
-      await trainingProgramApi.addSubject(programId, {
-        maMonHoc: Number(subjectForm.value.maMonHoc),
-        hocKyDuKien: Number(subjectForm.value.hocKyDuKien),
-        soTinChi: Number(subjectForm.value.soTinChi),
-        loaiMonHoc: subjectForm.value.batBuoc ? 'Bắt buộc' : 'Tự chọn',
-        batBuoc: subjectForm.value.batBuoc,
-        thuTu: Number(subjectForm.value.thuTu),
-        ghiChu: subjectForm.value.ghiChu,
-        maMonTienQuyetIds: subjectForm.value.maMonTienQuyetIds
-      })
-      popup.success('Thành công', 'Đã thêm môn học vào khung chương trình.')
+      const ids = selectedSubjectIds.value
+      if (!ids.length) {
+        popup.warning('Chưa chọn môn', 'Vui lòng chọn ít nhất một môn học để thêm vào khung.')
+        return
+      }
+      const existingIds = new Set(curriculum.value.map(s => s.maMonHoc || s.MaMonHoc))
+      const toAdd = ids.filter(id => !existingIds.has(Number(id)))
+      const skipped = ids.filter(id => existingIds.has(Number(id)))
+      if (!toAdd.length) {
+        popup.warning('Môn đã có trong khung', 'Các môn được chọn đều đã tồn tại trong khung chương trình (ở học kỳ khác). Không cần thêm lại.')
+        return
+      }
+      const semSubs = semesterGroups.value[subjectForm.value.hocKyDuKien] || []
+      let added = 0
+      for (let i = 0; i < toAdd.length; i++) {
+        const id = Number(toAdd[i])
+        const found = availableSubjects.value.find(s => (s.maMonHoc || s.MaMonHoc) === id)
+        await trainingProgramApi.addSubject(programId, {
+          maMonHoc: id,
+          hocKyDuKien: Number(subjectForm.value.hocKyDuKien),
+          soTinChi: Number(found?.soTinChi || found?.SoTinChi || 3),
+          loaiMonHoc: subjectForm.value.batBuoc ? 'Bắt buộc' : 'Tự chọn',
+          batBuoc: subjectForm.value.batBuoc,
+          thuTu: semSubs.length + i + 1,
+          ghiChu: subjectForm.value.ghiChu,
+          maMonTienQuyetIds: subjectForm.value.maMonTienQuyetIds
+        })
+        added++
+      }
+      popup.success('Thành công', skipped.length
+        ? `Đã thêm ${added} môn học vào HK${subjectForm.value.hocKyDuKien}. Bỏ qua ${skipped.length} môn đã có trong khung.`
+        : `Đã thêm ${added} môn học vào HK${subjectForm.value.hocKyDuKien}.`)
     } else {
       await trainingProgramApi.updateSubject(programId, subjectForm.value.maMonHoc, {
         hocKyDuKien: Number(subjectForm.value.hocKyDuKien),
@@ -402,13 +477,42 @@ const possiblePrerequisiteOptions = computed(() => {
 
             <div class="flex flex-col gap-3">
               <div v-if="subjectModalMode === 'add'" class="form-group">
-                <LmsSelect 
-                  v-model="subjectForm.maMonHoc" 
-                  :options="masterSubjectOptions"
-                  label="Môn học *"
-                  placeholder="-- Chọn môn học từ danh mục --"
-                  @change="onMasterSubjectSelect"
-                />
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-xs font-bold text-label">Chọn Môn học (chọn được nhiều môn) *</label>
+                  <button v-if="filteredMasterSubjects.length" @click="toggleSelectFiltered" class="text-[11px] font-bold text-teal-600 hover:underline">
+                    {{ filteredMasterSubjects.every(o => selectedSubjectIds.includes(o.value)) ? 'Bỏ chọn tất cả' : `Chọn tất cả (${filteredMasterSubjects.length})` }}
+                  </button>
+                </div>
+                <div class="relative mb-2">
+                  <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-label" />
+                  <input
+                    v-model="subjectSearchQuery"
+                    type="text"
+                    placeholder="Nhập mã / tên môn để tìm..."
+                    class="glass-input w-full text-xs pl-8"
+                  />
+                </div>
+                <div class="max-h-56 overflow-y-auto border border-card rounded-lg p-2 flex flex-col gap-1 text-xs surface-input">
+                  <label
+                    v-for="opt in filteredMasterSubjects"
+                    :key="opt.value"
+                    class="flex items-center gap-2 cursor-pointer hover:bg-slate-500/10 p-1.5 rounded"
+                  >
+                    <input
+                      type="checkbox"
+                      :value="opt.value"
+                      v-model="selectedSubjectIds"
+                      class="text-teal-600 rounded"
+                    />
+                    <span class="text-heading font-medium">{{ opt.label }}</span>
+                  </label>
+                  <span v-if="filteredMasterSubjects.length === 0" class="text-label italic">
+                    {{ subjectSearchQuery ? 'Không tìm thấy môn phù hợp.' : 'Không còn môn nào để thêm (đã có trong khung).' }}
+                  </span>
+                </div>
+                <p class="text-[11px] text-teal-600 dark:text-teal-400 font-bold mt-1.5">
+                  Đã chọn {{ selectedSubjectIds.length }} môn
+                </p>
               </div>
 
               <div class="grid grid-cols-2 gap-3">
