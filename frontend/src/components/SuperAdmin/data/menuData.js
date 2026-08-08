@@ -134,8 +134,8 @@ export const superAdminMenuGroups = [
     children: [
       {
         id: 'approvals-requests',
-        label: 'Đơn cần duyệt',
-        icon: 'Inbox',
+        label: 'Quản lý mẫu đơn từ',
+        icon: 'FileText',
         route: '/super-admin/approvals/requests',
       },
       {

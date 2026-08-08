@@ -158,6 +158,11 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `GET /api/quy-doi-tin-chi`, `POST/PUT/DELETE /api/quy-doi-tin-chi` (policy AcademicScheduleConfig; soTinChi phải duy nhất 1-20)
   - `GET /api/attendance-policy`, `GET /api/attendance-policy/history`, `PUT /api/attendance-policy` (policy AcademicOperations; chính sách điểm danh theo đơn vị — SuperAdmin xem toàn hệ thống, mỗi lần PUT tạo phiên bản mới + ghi audit UPDATE_POLICY; hạn gửi/chỉnh sửa điểm danh và hệ số vắng được AttendanceService đọc từ policy này)
   - `GET /api/pass-fail-rules?maHocKy=&maNganh=&maChuyenNganh=&search=&pageIndex=&pageSize=`, `GET /api/pass-fail-rules/{id}`, `POST /api/pass-fail-rules`, `PUT /api/pass-fail-rules/{id}` (policy AcademicOperations; cấu hình trọng số/ngưỡng đạt/chuyên cần tối thiểu theo môn & học kỳ trên `CauHinhDiemMonHoc` — tổng trọng số phải = 100, ngưỡng 0-10, chuyên cần 0-100; lọc theo ngành/chuyên ngành; ghi audit CREATE/UPDATE_PASS_FAIL_RULE; `TiLeChuyenCanToiThieu > 0` được GradeAggregationService dùng để đánh `rot` khi chuyên cần thấp; không có DELETE)
+  - `GET /api/applications/templates?includeInactive=true` — danh sách mẫu đơn từ (`Maudontu`); `includeInactive=true` trả cả mẫu tạm ẩn kèm `dangHoatDong/ngayTao/ngayCapNhat` (dùng cho màn Quản lý mẫu đơn từ)
+  - `POST /api/applications/templates` (policy AdminOnly) — tạo mẫu đơn mới (loại đơn chưa có mẫu; validate `cauHinhJson` qua `ApplicationTemplateValidator`; `phienBan=1`; không cho tạo trùng loại)
+  - `PUT /api/applications/templates/{loaiDon}` (policy AdminOnly) — cập nhật mẫu đơn (tên, cấu hình JSON, minh chứng, SLA, `dangHoatDong`); đổi `cauHinhJson` → tự tăng `phienBan`; ghi audit `CREATE_APPLICATION_TEMPLATE`/`UPDATE_APPLICATION_TEMPLATE`
+  - `GET /api/applications/schema/types` — danh sách loại đơn chuẩn (dùng cho màn tạo mẫu; lưu ý `/api/applications/schema/options` không tồn tại ở BE — 404)
+  - Lưu ý route: `/super-admin/approvals/requests` là màn **Quản lý mẫu đơn từ** (SuperAdmin); hàng đợi xử lý đơn của sinh viên nằm ở GiaoVu `/staff/requests`
 
   - `POST /api/admin/discipline-records/{id}/remove-effect` (DL3)
   - `POST /api/admin/discipline-records/{id}/void-approved` (DL3)

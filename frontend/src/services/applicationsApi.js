@@ -19,11 +19,26 @@ export const applicationsApi = {
   async getApplicationSchemaOptions() {
     return unwrapApiData(await apiRequest(`${APPLICATION_SCHEMA_BASE}/schema/options`))
   },
+  async getApplicationTypes() {
+    return unwrapApiData(await apiRequest(`${APPLICATION_SCHEMA_BASE}/schema/types`))
+  },
   async getApplicationTemplates(query = {}) {
     return unwrapApiData(await apiRequest(`${APPLICATION_SCHEMA_BASE}/templates${buildQuery(query)}`))
   },
   async getApplicationTemplateDetail(id) {
     return unwrapApiData(await apiRequest(`${APPLICATION_SCHEMA_BASE}/templates/${id}`))
+  },
+  async createApplicationTemplate(payload) {
+    return unwrapApiData(await apiRequest(`${APPLICATION_SCHEMA_BASE}/templates`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }))
+  },
+  async updateApplicationTemplate(loaiDon, payload) {
+    return unwrapApiData(await apiRequest(`${APPLICATION_SCHEMA_BASE}/templates/${loaiDon}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }))
   },
 
   // ── Student ──────────────────────────────────────────────────────

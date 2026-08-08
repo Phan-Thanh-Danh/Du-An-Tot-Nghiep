@@ -34,9 +34,12 @@ public class ApplicationSchemaController : ControllerBase
 
     [HttpGet("templates")]
     public async Task<ActionResult<ApiResponseDto<IReadOnlyList<ApplicationTemplateDto>>>> GetTemplates(
-        CancellationToken cancellationToken)
+        [FromQuery] bool includeInactive = false,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _schemaService.GetActiveTemplatesAsync(cancellationToken);
+        var result = includeInactive
+            ? await _schemaService.GetAllTemplatesAsync(cancellationToken)
+            : await _schemaService.GetActiveTemplatesAsync(cancellationToken);
         return Ok(ApiResponseDto<IReadOnlyList<ApplicationTemplateDto>>.Ok(result, "Lấy danh sách mẫu đơn thành công."));
     }
 
@@ -47,5 +50,26 @@ public class ApplicationSchemaController : ControllerBase
     {
         var result = await _schemaService.GetActiveTemplateByTypeAsync(loaiDon, cancellationToken);
         return Ok(ApiResponseDto<ApplicationTemplateDto>.Ok(result, "Lấy mẫu đơn thành công."));
+    }
+
+    [HttpPost("templates")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<ApiResponseDto<ApplicationTemplateDto>>> CreateTemplate(
+        [FromBody] CreateApplicationTemplateRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _schemaService.CreateTemplateAsync(request, cancellationToken);
+        return Ok(ApiResponseDto<ApplicationTemplateDto>.Ok(result, "Tạo mẫu đơn thành công."));
+    }
+
+    [HttpPut("templates/{loaiDon}")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<ApiResponseDto<ApplicationTemplateDto>>> UpdateTemplate(
+        string loaiDon,
+        [FromBody] UpdateApplicationTemplateRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _schemaService.UpdateTemplateAsync(loaiDon, request, cancellationToken);
+        return Ok(ApiResponseDto<ApplicationTemplateDto>.Ok(result, "Cập nhật mẫu đơn thành công."));
     }
 }

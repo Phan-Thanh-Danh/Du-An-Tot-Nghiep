@@ -609,8 +609,8 @@ const router = createRouter({
         {
           path: 'approvals/requests',
           name: 'super-admin-approvals-requests',
-          component: () => import('../views/SuperAdmin/ApprovalsRequestsView.vue'),
-          meta: { title: 'Đơn cần duyệt' },
+          component: () => import('../views/SuperAdmin/ApplicationTemplatesView.vue'),
+          meta: { title: 'Quản lý mẫu đơn từ' },
         },
         {
           path: 'approvals/history',
