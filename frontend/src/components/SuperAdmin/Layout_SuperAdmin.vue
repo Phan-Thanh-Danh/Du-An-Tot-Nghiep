@@ -82,7 +82,6 @@ const pageTitleMap = {
   '/super-admin/training/courses': { title: 'Quản lý khóa học', subtitle: 'Quản trị nội dung, gán giảng viên và tiến độ' },
   '/super-admin/training/exam-periods': { title: 'Mở/Đóng giai đoạn thi', subtitle: 'Điều phối ca thi và công bố kết quả bài làm' },
   '/super-admin/operations/attendance-policy': { title: 'Quỹ vắng & Chuyên cần', subtitle: 'Cấu hình ngưỡng vắng và duyệt mở khóa điểm danh' },
-  '/super-admin/operations/registration-periods': { title: 'Mở/Đóng đăng ký môn', subtitle: 'Quản lý các đợt đăng ký môn và chốt danh sách lớp' },
   '/super-admin/operations/pass-fail-rules': { title: 'Điều kiện Pass/Fail', subtitle: 'Thiết lập quy tắc đạt/rớt môn dựa trên điểm và chuyên cần' },
 
   // 5. Tài chính và Học phí

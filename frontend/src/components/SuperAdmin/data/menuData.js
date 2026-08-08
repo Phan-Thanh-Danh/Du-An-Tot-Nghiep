@@ -118,12 +118,6 @@ export const superAdminMenuGroups = [
         route: '/super-admin/operations/attendance-policy',
       },
       {
-        id: 'registration-periods',
-        label: 'Mở/Đóng đăng ký môn',
-        icon: 'ListPlus',
-        route: '/super-admin/operations/registration-periods',
-      },
-      {
         id: 'pass-fail-rules',
         label: 'Điều kiện Pass/Fail',
         icon: 'SlidersHorizontal',

@@ -564,12 +564,6 @@ const router = createRouter({
           meta: { title: 'Quỹ vắng & Chuyên cần' },
         },
         {
-          path: 'operations/registration-periods',
-          name: 'super-admin-operations-registration-periods',
-          component: () => import('../views/SuperAdmin/RegistrationPeriodsView.vue'),
-          meta: { title: 'Mở/Đóng đăng ký môn' },
-        },
-        {
           path: 'operations/pass-fail-rules',
           name: 'super-admin-operations-pass-fail-rules',
           component: () => import('../views/SuperAdmin/PassFailRulesView.vue'),
