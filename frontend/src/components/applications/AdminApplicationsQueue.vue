@@ -10,6 +10,7 @@ import {
   Search,
   Send,
   UserCheck,
+  X,
   XCircle,
 } from 'lucide-vue-next'
 
@@ -20,14 +21,38 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import ApplicationFormRenderer from './ApplicationFormRenderer.vue'
+import ApplicationStatusBadge from './ApplicationStatusBadge.vue'
+import ApplicationTimeline from './ApplicationTimeline.vue'
+import ApplicationEvidenceUploader from './ApplicationEvidenceUploader.vue'
 import { applicationsApi } from '@/services/applicationsApi'
 import { usePopupStore } from '@/stores/popup'
-import { formatDate, formatDateTime } from '@/utils/dateFormat'
+import { formatDate } from '@/utils/dateFormat'
 import { getStatusMeta, getStatusOptions } from '@/utils/statusLabels'
 
 const popupStore = usePopupStore()
 const applicationTypes = ref([])
 const assignableUsers = ref([])
+const detailOpen = ref(false)
+const schemaCache = ref({})
+const schemaLoading = ref(false)
+
+const TIMELINE_ACTION_LABELS = {
+  tao_nhap: 'Tạo đơn',
+  cap_nhat: 'Cập nhật đơn',
+  nop: 'Nộp đơn',
+  nop_lai: 'Nộp lại đơn',
+  phan_cong: 'Phân công xử lý',
+  phan_cong_lai: 'Phân công lại',
+  tiep_nhan: 'Tiếp nhận đơn',
+  yeu_cau_bo_sung: 'Yêu cầu bổ sung',
+  bo_sung: 'Bổ sung hồ sơ',
+  phe_duyet: 'Phê duyệt đơn',
+  tu_choi: 'Từ chối đơn',
+  leo_thang: 'Leo thang xử lý',
+  huy: 'Hủy đơn',
+  xu_ly_nghiep_vu: 'Xử lý nghiệp vụ',
+}
 
 function getApplicationTypeLabel(type) {
   return applicationTypes.value.find((item) => item.value === type)?.label || type || 'Không xác định'
@@ -150,6 +175,33 @@ function selectApplication(id) {
   selectedId.value = id
   closeActionForm()
   loadDetail(id)
+}
+
+async function openDetail(application) {
+  selectedId.value = application.id
+  detailOpen.value = true
+  closeActionForm()
+  await Promise.all([loadDetail(application.id), ensureSchema(application.loaiDon)])
+}
+
+async function ensureSchema(type) {
+  if (!type || schemaCache.value[type]) return
+  schemaLoading.value = true
+  try {
+    const template = await applicationsApi.getApplicationTemplateDetail(type)
+    const item = unwrapApiDataSafe(template)
+    const configStr = item?.cauHinhJson ?? item?.CauHinhJson
+    const config = typeof configStr === 'string' ? JSON.parse(configStr) : (configStr || { fields: [] })
+    schemaCache.value[type] = Array.isArray(config.fields) ? config.fields : []
+  } catch {
+    schemaCache.value[type] = []
+  } finally {
+    schemaLoading.value = false
+  }
+}
+
+function closeDetail() {
+  detailOpen.value = false
 }
 
 async function loadDetail(id) {
@@ -334,6 +386,7 @@ function mapApplication(item) {
     sla: sla.status ?? sla.Status ?? item.slaTrangThai ?? item.SlaTrangThai ?? 'none',
     noiDungYeuCauBoSung: item.noiDungYeuCauBoSung ?? item.NoiDungYeuCauBoSung ?? '',
     lyDoTuChoi: item.lyDoTuChoi ?? item.LyDoTuChoi ?? '',
+    rawFormData: formData,
     formData: buildFormData(formData, item),
     evidence: attachments.map((file) => ({
       id: file.maTep ?? file.MaTep,
@@ -341,12 +394,18 @@ function mapApplication(item) {
       size: file.kichThuocByte ? `${Math.round(file.kichThuocByte / 1024)} KB` : '',
       uploadedAt: file.ngayTao ?? file.NgayTao,
     })),
-    timeline: (item.timeline ?? item.Timeline ?? []).map((entry) => ({
-      id: entry.maNkDuyet ?? entry.MaNkDuyet,
-      title: entry.hanhDong ?? entry.HanhDong ?? '',
-      at: entry.ngayTao ?? entry.NgayTao,
-      description: entry.ghiChuCongKhai ?? entry.GhiChuCongKhai ?? entry.ghiChuNoiBo ?? entry.GhiChuNoiBo ?? '',
-    })),
+    timeline: (item.timeline ?? item.Timeline ?? []).map((entry) => {
+      const action = entry.hanhDong ?? entry.HanhDong ?? ''
+      const nguoiThucHien = entry.nguoiThucHien ?? entry.NguoiThucHien ?? null
+      return {
+        id: entry.maNkDuyet ?? entry.MaNkDuyet,
+        loaiSuKien: action.toUpperCase(),
+        tieuDe: TIMELINE_ACTION_LABELS[action] ?? action,
+        thoiGian: entry.ngayTao ?? entry.NgayTao,
+        nguoiThucHien: nguoiThucHien?.hoTen ?? nguoiThucHien?.HoTen ?? '',
+        ghiChu: entry.ghiChuCongKhai ?? entry.GhiChuCongKhai ?? entry.ghiChuNoiBo ?? entry.GhiChuNoiBo ?? '',
+      }
+    }),
     allowedActions: item.allowedActions ?? item.AllowedActions ?? null,
   }
 }
@@ -548,7 +607,7 @@ onMounted(loadApplications)
                 </td>
                 <td>{{ formatDate(application.ngayNop, 'Chưa nộp') }}</td>
                 <td>
-                  <GlassButton variant="secondary" size="sm" @click="selectApplication(application.id)">
+                  <GlassButton variant="secondary" size="sm" @click="openDetail(application)">
                     <template #leading><Eye :size="14" /></template>
                     Xem
                   </GlassButton>
@@ -690,14 +749,7 @@ onMounted(loadApplications)
 
         <section class="detail-section">
           <h3>Timeline</h3>
-          <div class="timeline">
-            <p v-for="item in selectedApplication.timeline" :key="item.id">
-              <span>{{ formatDateTime(item.at) }}</span>
-              <strong>{{ item.title }}</strong>
-              <small>{{ item.description }}</small>
-            </p>
-            <p v-if="!selectedApplication.timeline?.length">Chưa có sự kiện nào trong lịch sử xử lý.</p>
-          </div>
+          <ApplicationTimeline :events="selectedApplication.timeline" />
         </section>
         </template>
       </GlassPanel>
@@ -712,6 +764,65 @@ onMounted(loadApplications)
       @update:model-value="(value) => { if (!value) confirmAction = null }"
       @confirm="confirmAction?.run?.()"
     />
+
+    <div
+      v-if="detailOpen"
+      class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+      @click.self="closeDetail"
+    >
+      <div class="lg-glass-strong border-card flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl border shadow-2xl">
+        <div class="flex items-start justify-between gap-4 border-b border-(--border-card) p-5">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-3">
+              <h2 class="text-heading text-lg font-bold">{{ selectedApplication?.tieuDe }}</h2>
+              <ApplicationStatusBadge v-if="selectedApplication" :status="selectedApplication.trangThai" />
+            </div>
+            <p class="text-label mt-1 text-sm">
+              Mã đơn: {{ selectedApplication?.id }}
+              <span class="mx-1.5">·</span>
+              Sinh viên: {{ selectedApplication?.sinhVien }} ({{ selectedApplication?.maSinhVien }})
+              <span class="mx-1.5">·</span>
+              Loại: {{ getApplicationTypeLabel(selectedApplication?.loaiDon) }}
+            </p>
+          </div>
+          <button class="text-placeholder hover:text-body" @click="closeDetail">
+            <X class="h-5 w-5" />
+          </button>
+        </div>
+
+        <div class="overflow-y-auto p-5">
+          <LoadingSkeleton v-if="detailLoading || schemaLoading" :lines="5" />
+          <template v-else>
+            <section class="detail-section">
+              <h3 class="text-heading flex items-center gap-2 text-sm font-bold">
+                <FileText class="h-4 w-4" /> Nội dung đơn
+              </h3>
+              <GlassPanel variant="flat" density="compact">
+                <ApplicationFormRenderer
+                  :schema="schemaCache[selectedApplication?.loaiDon] || []"
+                  :model-value="selectedApplication?.rawFormData || {}"
+                  readonly
+                />
+              </GlassPanel>
+            </section>
+
+            <section class="detail-section mt-5">
+              <h3 class="text-heading text-sm font-bold">Minh chứng đính kèm</h3>
+              <GlassPanel variant="flat" density="compact">
+                <ApplicationEvidenceUploader :files="selectedApplication?.evidence || []" disabled />
+              </GlassPanel>
+            </section>
+
+            <section class="detail-section mt-5">
+              <h3 class="text-heading text-sm font-bold">Lịch sử xử lý</h3>
+              <GlassPanel variant="flat" density="compact">
+                <ApplicationTimeline :events="selectedApplication?.timeline || []" />
+              </GlassPanel>
+            </section>
+          </template>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
