@@ -57,6 +57,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<HocKy> HocKys => Set<HocKy>();
     public DbSet<Block> Blocks => Set<Block>();
     public DbSet<QuyDoiTinChi> QuyDoiTinChis => Set<QuyDoiTinChi>();
+    public DbSet<QuyDinhChuyenCan> QuyDinhChuyenCans => Set<QuyDinhChuyenCan>();
     public DbSet<KhenThuong> KhenThuongs => Set<KhenThuong>();
     public DbSet<KhoaHoc> KhoaHocs => Set<KhoaHoc>();
     public DbSet<KhoaTuyenSinh> KhoaTuyenSinhs => Set<KhoaTuyenSinh>();
@@ -5970,6 +5971,33 @@ public class ApplicationDbContext : DbContext
                 new QuyDoiTinChi { MaQuyDoi = 3, SoTinChi = 4, SoBlockHoc = 2, SoBuoiMoiTuan = 2, SoCaMoiBuoi = 1 },
                 new QuyDoiTinChi { MaQuyDoi = 4, SoTinChi = 5, SoBlockHoc = 2, SoBuoiMoiTuan = 3, SoCaMoiBuoi = 1 }
             );
+        });
+
+        modelBuilder.Entity<QuyDinhChuyenCan>(entity =>
+        {
+            entity.ToTable("QuyDinhChuyenCan", "dbo");
+            entity.HasKey(e => e.MaQuyDinh).HasName("PK_QuyDinhChuyenCan");
+
+            entity.HasIndex(e => new { e.MaDonVi, e.NgayHieuLuc }).HasDatabaseName("IX_QuyDinhChuyenCan_MaDonVi_NgayHieuLuc");
+
+            entity.Property(e => e.MaQuyDinh).HasColumnName("ma_quy_dinh");
+            entity.Property(e => e.MaDonVi).HasColumnName("ma_don_vi");
+            entity.Property(e => e.NgayHieuLuc).HasColumnName("ngay_hieu_luc");
+            entity.Property(e => e.QuyVangToiDa).HasColumnName("quy_vang_toi_da");
+            entity.Property(e => e.TiLeCanhBao).HasPrecision(5, 2).HasColumnName("ti_le_canh_bao");
+            entity.Property(e => e.HeSoVangKhongPhep).HasPrecision(5, 2).HasColumnName("he_so_vang_khong_phep");
+            entity.Property(e => e.HeSoVangCoPhep).HasPrecision(5, 2).HasColumnName("he_so_vang_co_phep");
+            entity.Property(e => e.HeSoDiMuon).HasPrecision(5, 2).HasColumnName("he_so_di_muon");
+            entity.Property(e => e.HanGuiPhut).HasColumnName("han_gui_phut");
+            entity.Property(e => e.HanChinhSuaPhut).HasColumnName("han_chinh_sua_phut");
+            entity.Property(e => e.GhiChu).HasMaxLength(500).HasColumnName("ghi_chu");
+            entity.Property(e => e.NguoiTao).HasColumnName("nguoi_tao");
+            entity.Property(e => e.TaoLuc).HasColumnName("tao_luc");
+            entity.Property(e => e.NguoiCapNhat).HasColumnName("nguoi_cap_nhat");
+            entity.Property(e => e.CapNhatLuc).HasColumnName("cap_nhat_luc");
+
+            entity.HasOne(e => e.DonVi).WithMany().HasForeignKey(e => e.MaDonVi).HasConstraintName("FK_QuyDinhChuyenCan_DonVi");
+            entity.HasOne(e => e.NguoiTaoNavigation).WithMany().HasForeignKey(e => e.NguoiTao).HasConstraintName("FK_QuyDinhChuyenCan_NguoiTao");
         });
     }
 }

@@ -93,6 +93,7 @@ public static class Data
         await SeedDeKiemTraAsync(context, subjects, terms);
         await SeedDeKiemTraForAllSubjectsAsync(context);
         await BackfillLichThiTongDeThiAsync(context);
+        await SeedAttendancePolicyAsync(context, hcmCampus);
 
         // Seed CaThi & Assign lecturer01 & student01
         // await SeedCaThiTestEnvironmentAsync(context, hcmCampus);
@@ -2690,6 +2691,34 @@ public static class Data
 
             await EnsureExamQuestionsAsync(context, deKiemTra, subject, ct: default);
         }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedAttendancePolicyAsync(ApplicationDbContext context, DonVi campus)
+    {
+        var exists = await context.QuyDinhChuyenCans
+            .AnyAsync(x => x.MaDonVi == campus.MaDonVi);
+        if (exists)
+        {
+            return;
+        }
+
+        context.QuyDinhChuyenCans.Add(new Models.QuyDinhChuyenCan
+        {
+            MaDonVi = campus.MaDonVi,
+            NgayHieuLuc = DateTime.UtcNow,
+            QuyVangToiDa = 4,
+            TiLeCanhBao = 50m,
+            HeSoVangKhongPhep = 1m,
+            HeSoVangCoPhep = 0m,
+            HeSoDiMuon = 0.5m,
+            HanGuiPhut = 15,
+            HanChinhSuaPhut = 10,
+            GhiChu = "Chính sách mặc định khi khởi tạo hệ thống.",
+            NguoiTao = 1,
+            TaoLuc = DateTime.UtcNow
+        });
 
         await context.SaveChangesAsync();
     }

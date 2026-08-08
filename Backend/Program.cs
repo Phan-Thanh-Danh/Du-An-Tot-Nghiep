@@ -126,6 +126,7 @@ builder.Services.AddScoped<IApplicationNotificationService, ApplicationNotificat
 builder.Services.AddScoped<IStudentApplicationService, StudentApplicationService>();
 builder.Services.AddScoped<Backend.Services.Blocks.IBlockService, Backend.Services.Blocks.BlockService>();
 builder.Services.AddScoped<Backend.Services.QuyDoiTinChis.IQuyDoiTinChiService, Backend.Services.QuyDoiTinChis.QuyDoiTinChiService>();
+builder.Services.AddScoped<Backend.Services.AttendancePolicy.IAttendancePolicyService, Backend.Services.AttendancePolicy.AttendancePolicyService>();
 builder.Services.AddScoped<Backend.Services.LopHanhChinhs.ILopHanhChinhService, Backend.Services.LopHanhChinhs.LopHanhChinhService>();
 builder.Services.Configure<SmartTimetableScoringOptions>(
     builder.Configuration.GetSection(SmartTimetableScoringOptions.SectionName));
