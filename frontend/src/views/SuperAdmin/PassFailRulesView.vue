@@ -70,7 +70,7 @@ function unwrapList(response) {
 
 async function loadMajors() {
   try {
-    const result = await apiRequest('/api/master-data/majors', { params: { pageSize: 100 } })
+    const result = await apiRequest('/api/master-data/majors?pageSize=100')
     majors.value = unwrapList(result).filter((m) => m.conHoatDong !== false)
   } catch {
     majors.value = []
@@ -81,7 +81,8 @@ async function loadSpecializations() {
   try {
     const params = { pageSize: 100 }
     if (selectedMajorId.value) params.maNganh = selectedMajorId.value
-    const result = await apiRequest('/api/master-data/specializations', { params })
+    const qs = new URLSearchParams(params).toString()
+    const result = await apiRequest(`/api/master-data/specializations?${qs}`)
     specializations.value = unwrapList(result).filter((s) => s.conHoatDong !== false)
   } catch {
     specializations.value = []
