@@ -94,6 +94,7 @@ public static class Data
         await SeedDeKiemTraForAllSubjectsAsync(context);
         await BackfillLichThiTongDeThiAsync(context);
         await SeedAttendancePolicyAsync(context, hcmCampus);
+        await SeedPassFailRulesAsync(context);
 
         // Seed CaThi & Assign lecturer01 & student01
         // await SeedCaThiTestEnvironmentAsync(context, hcmCampus);
@@ -2690,6 +2691,49 @@ public static class Data
             }
 
             await EnsureExamQuestionsAsync(context, deKiemTra, subject, ct: default);
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Seed quy tắc đạt/rớt mặc định (trọng số 60/0/40, ngưỡng đạt 5.0, chuyên cần tối thiểu 80%)
+    /// cho môn nào chưa có cấu hình điểm ở học kỳ mới nhất (HK3_2026).
+    /// </summary>
+    public static async Task SeedPassFailRulesAsync(ApplicationDbContext context)
+    {
+        var term = await context.HocKys.FirstOrDefaultAsync(t => t.MaCodeHocKy == "HK3_2026");
+        if (term == null)
+        {
+            return;
+        }
+
+        var subjects = await context.DanhMucMonHocs
+            .Where(x => x.ConHoatDong)
+            .OrderBy(x => x.TenMonHoc)
+            .ToListAsync();
+
+        foreach (var subject in subjects)
+        {
+            var exists = await context.CauHinhDiemMonHocs
+                .AnyAsync(x => x.MaMonHoc == subject.MaMonHoc && x.MaHocKy == term.MaHocKy);
+            if (exists)
+            {
+                continue;
+            }
+
+            context.CauHinhDiemMonHocs.Add(new Models.CauHinhDiemMonHoc
+            {
+                MaMonHoc = subject.MaMonHoc,
+                MaHocKy = term.MaHocKy,
+                TrongSoQuaTrinh = 60m,
+                TrongSoGiuaKy = 0m,
+                TrongSoCuoiKy = 40m,
+                NguongDat = 5m,
+                TiLeChuyenCanToiThieu = 80m,
+                NguoiCapNhat = 1,
+                CapNhatLuc = DateTime.UtcNow
+            });
         }
 
         await context.SaveChangesAsync();

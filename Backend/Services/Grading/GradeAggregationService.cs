@@ -102,6 +102,15 @@ public class GradeAggregationService : IGradeAggregationService
 
         diemRecord.TrangThai = diemRecord.GpaMonHoc >= subjectConfig.NguongDat ? "dat" : "rot";
 
+        if (subjectConfig.TiLeChuyenCanToiThieu > 0m)
+        {
+            var attendanceGrade = await CalculateAttendanceGradeAsync(studentId, subjectId, termId, ct);
+            if (attendanceGrade.HasValue && attendanceGrade.Value * 10m < subjectConfig.TiLeChuyenCanToiThieu)
+            {
+                diemRecord.TrangThai = "rot";
+            }
+        }
+
         if (isNew)
         {
             _db.DiemSos.Add(diemRecord);

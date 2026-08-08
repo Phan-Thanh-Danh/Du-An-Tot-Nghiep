@@ -991,10 +991,19 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("nguong_dat")
                 .HasColumnType("decimal(5,2)")
                 .HasDefaultValueSql("5");
+            entity.Property(e => e.TiLeChuyenCanToiThieu)
+                .HasColumnName("ti_le_chuyen_can_toi_thieu")
+                .HasColumnType("decimal(5,2)")
+                .HasDefaultValueSql("0");
+            entity.Property(e => e.NguoiCapNhat)
+                .HasColumnName("nguoi_cap_nhat");
+            entity.Property(e => e.CapNhatLuc)
+                .HasColumnName("cap_nhat_luc");
             entity.ToTable(t => t.HasCheckConstraint("CK_CauHinhDiemMonHoc_trong_so_qua_trinh_1", "[trong_so_qua_trinh] BETWEEN 0 AND 100"));
             entity.ToTable(t => t.HasCheckConstraint("CK_CauHinhDiemMonHoc_trong_so_giua_ky_2", "[trong_so_giua_ky] BETWEEN 0 AND 100"));
             entity.ToTable(t => t.HasCheckConstraint("CK_CauHinhDiemMonHoc_trong_so_cuoi_ky_3", "[trong_so_cuoi_ky] BETWEEN 0 AND 100"));
             entity.ToTable(t => t.HasCheckConstraint("CK_CauHinhDiemMonHoc_nguong_dat_4", "[nguong_dat] BETWEEN 0 AND 10"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_CauHinhDiemMonHoc_ti_le_chuyen_can_toi_thieu_5", "[ti_le_chuyen_can_toi_thieu] BETWEEN 0 AND 100"));
             entity.HasOne(e => e.MonHoc)
                 .WithMany()
                 .HasForeignKey(e => e.MaMonHoc)
@@ -1005,6 +1014,11 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaHocKy)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_CauHinhDiemMonHoc_ma_hoc_ky__HocKy");
+            entity.HasOne(e => e.NguoiCapNhatNavigation)
+                .WithMany()
+                .HasForeignKey(e => e.NguoiCapNhat)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_CauHinhDiemMonHoc_nguoi_cap_nhat__NguoiDung");
         });
 
         modelBuilder.Entity<CauHinhKhenThuong>(entity =>

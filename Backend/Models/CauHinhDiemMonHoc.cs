@@ -9,7 +9,11 @@ public class CauHinhDiemMonHoc
     public decimal TrongSoGiuaKy { get; set; }
     public decimal TrongSoCuoiKy { get; set; }
     public decimal NguongDat { get; set; }
+    public decimal TiLeChuyenCanToiThieu { get; set; }
+    public int? NguoiCapNhat { get; set; }
+    public DateTime? CapNhatLuc { get; set; }
 
     public DanhMucMonHoc? MonHoc { get; set; }
     public HocKy? HocKy { get; set; }
+    public NguoiDung? NguoiCapNhatNavigation { get; set; }
 }

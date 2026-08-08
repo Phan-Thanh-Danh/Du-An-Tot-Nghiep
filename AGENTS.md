@@ -157,6 +157,7 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `GET /api/blocks?maHocKy={id}`, `PUT /api/blocks/{id}` (policy AcademicScheduleConfig; block phải nằm trong khoảng ngày học kỳ)
   - `GET /api/quy-doi-tin-chi`, `POST/PUT/DELETE /api/quy-doi-tin-chi` (policy AcademicScheduleConfig; soTinChi phải duy nhất 1-20)
   - `GET /api/attendance-policy`, `GET /api/attendance-policy/history`, `PUT /api/attendance-policy` (policy AcademicOperations; chính sách điểm danh theo đơn vị — SuperAdmin xem toàn hệ thống, mỗi lần PUT tạo phiên bản mới + ghi audit UPDATE_POLICY; hạn gửi/chỉnh sửa điểm danh và hệ số vắng được AttendanceService đọc từ policy này)
+  - `GET /api/pass-fail-rules?maHocKy=&search=&pageIndex=&pageSize=`, `GET /api/pass-fail-rules/{id}`, `POST /api/pass-fail-rules`, `PUT /api/pass-fail-rules/{id}` (policy AcademicOperations; cấu hình trọng số/ngưỡng đạt/chuyên cần tối thiểu theo môn & học kỳ trên `CauHinhDiemMonHoc` — tổng trọng số phải = 100, ngưỡng 0-10, chuyên cần 0-100; ghi audit CREATE/UPDATE_PASS_FAIL_RULE; `TiLeChuyenCanToiThieu > 0` được GradeAggregationService dùng để đánh `rot` khi chuyên cần thấp; không có DELETE)
 
   - `POST /api/admin/discipline-records/{id}/remove-effect` (DL3)
   - `POST /api/admin/discipline-records/{id}/void-approved` (DL3)
