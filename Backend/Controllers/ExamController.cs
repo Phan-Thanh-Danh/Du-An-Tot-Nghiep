@@ -49,6 +49,30 @@ public class ExamController : ControllerBase
         return Ok(ApiResponseDto<KyThiDto>.Ok(result));
     }
 
+    [HttpGet("ky-thi/{id:int}/lich-thi-tong")]
+    [Authorize(Policy = "AcademicOperations")]
+    public async Task<ActionResult<ApiResponseDto<IReadOnlyList<LichThiTongDto>>>> GetLichThiTongsByKyThi(int id, CancellationToken ct)
+    {
+        var result = await _examService.GetLichThiTongsByKyThiAsync(id, ct);
+        return Ok(ApiResponseDto<IReadOnlyList<LichThiTongDto>>.Ok(result));
+    }
+
+    [HttpPost("ky-thi/{id:int}/publish")]
+    [Authorize(Policy = "AcademicOperations")]
+    public async Task<ActionResult<ApiResponseDto<KyThiDto>>> PublishKyThi(int id, CancellationToken ct)
+    {
+        var result = await _examService.PublishKyThiAsync(id, ct);
+        return Ok(ApiResponseDto<KyThiDto>.Ok(result, "Mở giai đoạn thi thành công"));
+    }
+
+    [HttpPost("ky-thi/{id:int}/close")]
+    [Authorize(Policy = "AcademicOperations")]
+    public async Task<ActionResult<ApiResponseDto<KyThiDto>>> CloseKyThi(int id, CancellationToken ct)
+    {
+        var result = await _examService.CloseKyThiAsync(id, ct);
+        return Ok(ApiResponseDto<KyThiDto>.Ok(result, "Đóng giai đoạn thi thành công"));
+    }
+
     [HttpPost("ky-thi")]
     [Authorize(Policy = "AcademicOperations")]
     public async Task<ActionResult<ApiResponseDto<KyThiDto>>> CreateKyThi(

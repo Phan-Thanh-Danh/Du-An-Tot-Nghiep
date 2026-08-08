@@ -91,6 +91,8 @@ public static class Data
         await SeedProgramTuitionConfigsAsync(context, hcmCampus, programs, terms);
         await SeedTuitionReceivingAccountAsync(context, hcmCampus);
         await SeedDeKiemTraAsync(context, subjects, terms);
+        await SeedDeKiemTraForAllSubjectsAsync(context);
+        await BackfillLichThiTongDeThiAsync(context);
 
         // Seed CaThi & Assign lecturer01 & student01
         // await SeedCaThiTestEnvironmentAsync(context, hcmCampus);
@@ -2619,13 +2621,164 @@ public static class Data
             deKiemTra.CauHinhDeThi =
                 "{\"questions\":[{\"id\":1,\"content\":\"Câu hỏi mẫu trắc nghiệm\",\"type\":\"mcq\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":\"A\"}]}";
             deKiemTra.TrangThai = plan.Status;
+            deKiemTra.TrangThaiDuyet = "da_duyet";
             deKiemTra.LoaiDeThi = plan.ExamType;
             deKiemTra.HinhThucThi = "online_tu_do";
             deKiemTra.TyLeTracNghiem = plan.ExamType == "tu_luan" ? 0m : 70m;
             deKiemTra.TyLeTuLuan = plan.ExamType == "trac_nghiem" ? 0m : 30m;
             deKiemTra.NgayCapNhat = DateTime.UtcNow;
+
+            if (deKiemTra.MaDeKiemTra == 0)
+            {
+                await context.SaveChangesAsync();
+            }
+
+            await EnsureExamQuestionsAsync(context, deKiemTra, subject, CancellationToken.None);
         }
 
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Tạo đề thi cho tất cả môn học của tất cả ngành đang hoạt động (nếu môn chưa có đề cho học kỳ).
+    /// Môn nào chưa có đề thi, hệ thống sẽ tự sinh đề kèm câu hỏi để nghiệp vụ tự gắn đề hoạt động.
+    /// </summary>
+    public static async Task SeedDeKiemTraForAllSubjectsAsync(ApplicationDbContext context)
+    {
+        var term = await context.HocKys.FirstOrDefaultAsync(t => t.MaCodeHocKy == "HK3_2026");
+        if (term == null)
+        {
+            return;
+        }
+
+        var subjects = await context.DanhMucMonHocs
+            .Where(x => x.ConHoatDong)
+            .OrderBy(x => x.TenMonHoc)
+            .ToListAsync();
+
+        foreach (var subject in subjects)
+        {
+            var deKiemTra = await context.DeKiemTras
+                .Where(x => x.MaMonHoc == subject.MaMonHoc && x.MaHocKy == term.MaHocKy)
+                .OrderByDescending(x => x.TrangThaiDuyet == "da_duyet")
+                .ThenByDescending(x => x.NgayTao)
+                .FirstOrDefaultAsync();
+
+            if (deKiemTra == null)
+            {
+                var tracNghiem = subject.MaMonHoc % 2 == 0;
+                deKiemTra = new DeKiemTra
+                {
+                    MaMonHoc = subject.MaMonHoc,
+                    MaHocKy = term.MaHocKy,
+                    TieuDe = $"Đề thi {subject.TenMonHoc}",
+                    ThoiGianPhut = 45,
+                    CauHinhDeThi = "{\"questions\":[]}",
+                    TrangThai = "dang_mo",
+                    TrangThaiDuyet = "da_duyet",
+                    LoaiDeThi = tracNghiem ? "trac_nghiem" : "ket_hop",
+                    HinhThucThi = "online_tap_trung",
+                    TyLeTracNghiem = tracNghiem ? 100m : 70m,
+                    TyLeTuLuan = tracNghiem ? 0m : 30m,
+                    NgayTao = DateTime.UtcNow,
+                    NgayCapNhat = DateTime.UtcNow,
+                };
+
+                context.DeKiemTras.Add(deKiemTra);
+                await context.SaveChangesAsync();
+            }
+
+            await EnsureExamQuestionsAsync(context, deKiemTra, subject, ct: default);
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task BackfillLichThiTongDeThiAsync(ApplicationDbContext context)
+    {
+        var missing = await context.LichThiTongs
+            .Where(l => !l.MaDeKiemTra.HasValue)
+            .Include(l => l.CaThis)
+            .ToListAsync();
+        if (missing.Count == 0)
+        {
+            return;
+        }
+
+        var subjectIds = missing.Select(l => l.MaMonHoc).Distinct().ToList();
+        var des = await context.DeKiemTras
+            .AsNoTracking()
+            .Where(x => x.MaMonHoc.HasValue && subjectIds.Contains(x.MaMonHoc.Value))
+            .ToListAsync();
+
+        foreach (var lichThiTong in missing)
+        {
+            if (lichThiTong.CaThis.Count > 0)
+            {
+                continue;
+            }
+
+            var de = des
+                .Where(x => x.MaMonHoc == lichThiTong.MaMonHoc)
+                .OrderByDescending(x => x.TrangThaiDuyet == "da_duyet")
+                .ThenByDescending(x => x.NgayTao)
+                .FirstOrDefault();
+            if (de != null)
+            {
+                lichThiTong.MaDeKiemTra = de.MaDeKiemTra;
+                lichThiTong.HinhThucThi = de.HinhThucThi;
+            }        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task EnsureExamQuestionsAsync(
+        ApplicationDbContext context,
+        DeKiemTra deKiemTra,
+        DanhMucMonHoc subject,
+        CancellationToken ct)
+    {
+        var hasQuestions = await context.CauHoiDeKiemTras.AnyAsync(x => x.MaDeKiemTra == deKiemTra.MaDeKiemTra, ct);
+        if (hasQuestions || deKiemTra.MaDeKiemTra == 0)
+        {
+            return;
+        }
+
+        var questions = new List<CauHoi>();
+        var links = new List<CauHoiDeKiemTra>();
+        for (var i = 1; i <= 5; i++)
+        {
+            var question = new CauHoi
+            {
+                MaMonHoc = deKiemTra.MaMonHoc,
+                LoaiCauHoi = "trac_nghiem",
+                NoiDung = $"Câu hỏi trắc nghiệm {i} về {subject.TenMonHoc}",
+                KieuLuaChon = "chon_mot",
+                LuaChon = "[{\"id\":\"A\",\"text\":\"Đáp án A\"},{\"id\":\"B\",\"text\":\"Đáp án B\"},{\"id\":\"C\",\"text\":\"Đáp án C\"},{\"id\":\"D\",\"text\":\"Đáp án D\"}]",
+                DapAnDung = "[\"A\"]",
+                GiaiThichDapAn = $"Giải thích câu {i}: đáp án đúng là A.",
+                DoKho = "de",
+                ConHoatDong = true,
+                NgayTao = DateTime.UtcNow,
+            };
+            questions.Add(question);
+        }
+
+        context.CauHois.AddRange(questions);
+        await context.SaveChangesAsync();
+
+        foreach (var question in questions)
+        {
+            links.Add(new CauHoiDeKiemTra
+            {
+                MaDeKiemTra = deKiemTra.MaDeKiemTra,
+                MaCauHoi = question.MaCauHoi,
+                DiemSo = 2m,
+                ThuTu = links.Count + 1
+            });
+        }
+
+        context.CauHoiDeKiemTras.AddRange(links);
         await context.SaveChangesAsync();
     }
 

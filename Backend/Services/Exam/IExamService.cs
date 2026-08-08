@@ -11,6 +11,9 @@ public interface IExamService
     Task<KyThiDto> GetKyThiByIdAsync(int id, CancellationToken ct);
     Task<KyThiDto> CreateKyThiAsync(CreateKyThiRequest request, CancellationToken ct);
     Task<KyThiDto> UpdateKyThiAsync(int id, UpdateKyThiRequest request, CancellationToken ct);
+    Task<KyThiDto> PublishKyThiAsync(int id, CancellationToken ct);
+    Task<KyThiDto> CloseKyThiAsync(int id, CancellationToken ct);
+    Task<IReadOnlyList<LichThiTongDto>> GetLichThiTongsByKyThiAsync(int maKyThi, CancellationToken ct);
 
     // LichThiTong
     Task<PagedResultDto<LichThiTongDto>> GetLichThiTongsAsync(ExamQueryParameters parameters, CancellationToken ct);

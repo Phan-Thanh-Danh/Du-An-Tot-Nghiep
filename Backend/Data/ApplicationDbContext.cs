@@ -5335,6 +5335,8 @@ public class ApplicationDbContext : DbContext
                 .IsRequired();
             entity.Property(e => e.MaHocKy)
                 .HasColumnName("ma_hoc_ky");
+            entity.Property(e => e.MaNganh)
+                .HasColumnName("ma_nganh");
             entity.Property(e => e.LoaiKyThi)
                 .HasColumnName("loai_ky_thi")
                 .HasMaxLength(20)
@@ -5358,6 +5360,11 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaHocKy)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_KyThi_ma_hoc_ky__HocKy");
+            entity.HasOne(e => e.Nganh)
+                .WithMany()
+                .HasForeignKey(e => e.MaNganh)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_KyThi_ma_nganh__NganhDaoTao");
         });
 
         // LichThiTong

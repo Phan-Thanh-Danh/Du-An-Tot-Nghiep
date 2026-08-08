@@ -526,5 +526,7 @@ public static class LargeDemoSeeder
         }
 
         await context.SaveChangesAsync();
+
+        await Data.SeedDeKiemTraForAllSubjectsAsync(context);
     }
 }
