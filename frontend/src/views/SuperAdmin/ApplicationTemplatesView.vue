@@ -8,6 +8,7 @@ import GlassPanel from '@/components/ui/GlassPanel.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ApplicationFormRenderer from '@/components/applications/ApplicationFormRenderer.vue'
+import ApplicationFormBuilder from '@/components/applications/ApplicationFormBuilder.vue'
 import { applicationsApi } from '@/services/applicationsApi'
 import { formatDateTime } from '@/utils/dateFormat'
 import { usePopupStore } from '@/stores/popup'
@@ -21,6 +22,8 @@ const modalOpen = ref(false)
 const modalMode = ref('create')
 const previewOpen = ref(false)
 const editing = ref(null)
+const builderMode = ref('builder')
+const builderKey = ref(0)
 
 const EMPTY_SCHEMA = {
   fields: [
@@ -57,6 +60,24 @@ const previewFields = computed(() => {
     return []
   }
 })
+
+const builderModel = computed({
+  get: () => {
+    try {
+      return JSON.parse(form.value.cauHinhJson)
+    } catch {
+      return { fields: [] }
+    }
+  },
+  set: (value) => {
+    form.value.cauHinhJson = JSON.stringify(value, null, 2)
+  },
+})
+
+function setBuilderMode(mode) {
+  builderMode.value = mode
+  builderKey.value += 1
+}
 
 const parseCauHinh = () => {
   try {
@@ -345,19 +366,49 @@ onMounted(async () => {
             </div>
 
             <div>
-              <div class="mb-1 flex items-center justify-between">
-                <label class="text-label text-sm font-medium">Cấu hình biểu mẫu (JSON) *</label>
-                <GlassButton variant="ghost" size="sm" type="button" @click="previewOpen = !previewOpen">
-                  {{ previewOpen ? 'Ẩn xem trước' : 'Xem trước biểu mẫu' }}
-                </GlassButton>
+              <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <label class="text-label text-sm font-medium">Cấu hình biểu mẫu *</label>
+                <div class="flex items-center gap-3">
+                  <div class="flex overflow-hidden rounded-lg border border-(--border-card)">
+                    <button
+                      :class="builderMode === 'builder' ? 'bg-(--color-info-bg) text-(--color-info-text)' : 'text-(--text-placeholder)'"
+                      class="px-3 py-1.5 text-xs font-medium transition-colors"
+                      @click="setBuilderMode('builder')"
+                    >
+                      Kéo thả
+                    </button>
+                    <button
+                      :class="builderMode === 'json' ? 'bg-(--color-info-bg) text-(--color-info-text)' : 'text-(--text-placeholder)'"
+                      class="border-(--border-card) border-l px-3 py-1.5 text-xs font-medium transition-colors"
+                      @click="setBuilderMode('json')"
+                    >
+                      JSON
+                    </button>
+                  </div>
+                  <GlassButton variant="ghost" size="sm" type="button" @click="previewOpen = !previewOpen">
+                    {{ previewOpen ? 'Ẩn xem trước' : 'Xem trước biểu mẫu' }}
+                  </GlassButton>
+                </div>
               </div>
-              <textarea
-                v-model="form.cauHinhJson"
-                rows="10"
-                spellcheck="false"
-                class="w-full px-3 py-2 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--lg-primary) outline-none text-(--text-body) transition-all resize-y font-mono text-xs"
-                :class="{ 'border-(--color-danger-border)': jsonError }"
-              ></textarea>
+
+              <ApplicationFormBuilder
+                v-if="builderMode === 'builder'"
+                :key="builderKey"
+                v-model="builderModel"
+              />
+
+              <template v-else>
+                <textarea
+                  v-model="form.cauHinhJson"
+                  rows="12"
+                  spellcheck="false"
+                  class="w-full px-3 py-2 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--lg-primary) outline-none text-(--text-body) transition-all resize-y font-mono text-xs"
+                  :class="{ 'border-(--color-danger-border)': jsonError }"
+                ></textarea>
+                <p class="text-placeholder mt-1 text-xs">
+                  Cấu trúc: root.fields là mảng, mỗi field có key, label, type (text/textarea/number/date/email/tel/select/multiselect/boolean/studentInfo).
+                </p>
+              </template>
               <p v-if="jsonError" class="mt-1 text-sm text-(--color-danger-text)">{{ jsonError }}</p>
             </div>
 
