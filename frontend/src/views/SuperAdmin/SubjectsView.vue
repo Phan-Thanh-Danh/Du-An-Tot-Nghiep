@@ -5,7 +5,9 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { subjectApi } from '@/services/subjectApi'
+import academicSchedulingApi from '@/services/academicSchedulingApi'
 
 const loading = ref(true)
 const error = ref(null)
@@ -19,17 +21,74 @@ const editingId = ref(null)
 const submitting = ref(false)
 const confirmDelete = ref(null)
 
-const formData = ref({ maCodeMonHoc: '', tenMonHoc: '', soTinChi: null })
+const formData = ref({ maCodeMonHoc: '', tenMonHoc: '', soTinChi: null, conHoatDong: true, maNganh: null, maChuyenNganh: null })
 const formErrors = ref({})
 
-onMounted(fetchSubjects)
+const majors = ref([])
+const specializations = ref([])
+const loadingMajors = ref(false)
+
+const majorOptions = computed(() => [
+  { value: '', label: 'Môn chung (không thuộc ngành)' },
+  ...majors.value.map(m => ({ value: m.maNganh, label: m.tenNganh }))
+])
+
+const specializationOptions = computed(() => {
+  if (!formData.value.maNganh) return []
+  return specializations.value
+    .filter(s => s.maNganh === formData.value.maNganh)
+    .map(s => ({ value: s.maChuyenNganh, label: s.tenChuyenNganh }))
+})
+
+async function loadMajors() {
+  loadingMajors.value = true
+  try {
+    majors.value = await academicSchedulingApi.getMajors()
+  } catch {
+    majors.value = []
+  } finally {
+    loadingMajors.value = false
+  }
+}
+
+async function loadSpecializations() {
+  if (!formData.value.maNganh) {
+    specializations.value = []
+    formData.value.maChuyenNganh = null
+    return
+  }
+  try {
+    specializations.value = await academicSchedulingApi.getSpecializations(formData.value.maNganh)
+  } catch {
+    specializations.value = []
+  }
+  const stillValid = specializations.value.some(s => s.maChuyenNganh === formData.value.maChuyenNganh)
+  if (!stillValid) formData.value.maChuyenNganh = null
+}
+
+onMounted(() => {
+  fetchSubjects()
+  loadMajors()
+})
+
+async function fetchAllSubjects() {
+  const all = []
+  let pageIndex = 1
+  while (true) {
+    const page = await subjectApi.list({ pageIndex, pageSize: 100 })
+    const items = Array.isArray(page) ? page : (page?.items || page?.data || [])
+    all.push(...items)
+    if (items.length < 100) break
+    pageIndex++
+  }
+  return all
+}
 
 async function fetchSubjects() {
   loading.value = true
   error.value = null
   try {
-    const res = await subjectApi.list({ pageSize: 500 })
-    subjects.value = Array.isArray(res) ? res : (res?.items || res?.data || [])
+    subjects.value = await fetchAllSubjects()
   } catch (e) {
     error.value = e.message || 'Không thể tải danh sách môn học'
   } finally {
@@ -61,7 +120,14 @@ function clearFilters() {
 }
 
 function resetForm() {
-  formData.value = { maCodeMonHoc: '', tenMonHoc: '', soTinChi: null }
+  formData.value = {
+    maCodeMonHoc: '',
+    tenMonHoc: '',
+    soTinChi: null,
+    conHoatDong: true,
+    maNganh: null,
+    maChuyenNganh: null
+  }
   formErrors.value = {}
 }
 
@@ -70,18 +136,20 @@ function openCreate() {
   formMode.value = 'create'
   editingId.value = null
   showFormModal.value = true
-}
-
-function openEdit(s) {
+}function openEdit(s) {
   formMode.value = 'edit'
   editingId.value = s.maMonHoc
   formData.value = {
     maCodeMonHoc: s.maCodeMonHoc,
     tenMonHoc: s.tenMonHoc,
-    soTinChi: s.soTinChi
+    soTinChi: s.soTinChi,
+    conHoatDong: s.conHoatDong,
+    maNganh: s.maNganh ?? null,
+    maChuyenNganh: s.maChuyenNganh ?? null
   }
   formErrors.value = {}
   showFormModal.value = true
+  loadSpecializations()
 }
 
 function closeForm() {
@@ -105,7 +173,12 @@ async function submitForm() {
     const payload = {
       maCodeMonHoc: formData.value.maCodeMonHoc.trim(),
       tenMonHoc: formData.value.tenMonHoc.trim(),
-      soTinChi: Number(formData.value.soTinChi)
+      soTinChi: Number(formData.value.soTinChi),
+      maNganh: formData.value.maNganh || null,
+      maChuyenNganh: formData.value.maChuyenNganh || null
+    }
+    if (formMode.value === 'edit') {
+      payload.conHoatDong = formData.value.conHoatDong
     }
 
     if (formMode.value === 'edit') {
@@ -268,6 +341,8 @@ async function executeDelete() {
             <tr>
               <th class="px-3 py-4 font-semibold">Mã môn</th>
               <th class="px-3 py-4 font-semibold">Tên môn học</th>
+              <th class="px-3 py-4 font-semibold">Ngành đào tạo</th>
+              <th class="px-3 py-4 font-semibold">Chuyên ngành</th>
               <th class="px-3 py-4 font-semibold text-center">Số TC</th>
               <th class="px-3 py-4 font-semibold">Trạng thái</th>
               <th class="px-3 py-4 font-semibold text-center">Thao tác</th>
@@ -281,6 +356,8 @@ async function executeDelete() {
             >
               <td class="px-3 py-3.5 font-mono text-xs font-bold text-muted">{{ s.maCodeMonHoc }}</td>
               <td class="px-3 py-3.5 font-bold text-heading max-w-[300px] truncate">{{ s.tenMonHoc }}</td>
+              <td class="px-3 py-3.5 text-body">{{ s.tenNganh || '—' }}</td>
+              <td class="px-3 py-3.5 text-body">{{ s.tenChuyenNganh || '—' }}</td>
               <td class="px-3 py-3.5 text-center font-bold text-body">{{ s.soTinChi }}</td>
               <td class="px-3 py-3.5">
                 <span
@@ -381,6 +458,33 @@ async function executeDelete() {
                   :class="formErrors.soTinChi ? 'border-(--color-danger-text) bg-(--color-danger-bg)' : ''"
                 />
                 <p v-if="formErrors.soTinChi" class="mt-1 text-xs text-(--color-danger-text) font-semibold">{{ formErrors.soTinChi }}</p>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-label mb-1">
+                  Ngành đào tạo
+                </label>
+                <LmsSelect
+                  v-model="formData.maNganh"
+                  :options="majorOptions"
+                  placeholder="Môn chung (không thuộc ngành)"
+                  searchable
+                  @change="loadSpecializations"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-label mb-1">
+                  Chuyên ngành
+                </label>
+                <LmsSelect
+                  v-model="formData.maChuyenNganh"
+                  :options="specializationOptions"
+                  :disabled="!formData.maNganh"
+                  placeholder="Chọn chuyên ngành (không bắt buộc)"
+                  searchable
+                />
+                <p class="mt-1 text-[11px] text-label">
+                  Môn chung (như môn GEN) không cần thuộc ngành nào.
+                </p>
               </div>
             </div>
             <div class="px-6 py-4 border-t border-(--border-default) bg-(--surface-modal) flex items-center gap-3 justify-end">

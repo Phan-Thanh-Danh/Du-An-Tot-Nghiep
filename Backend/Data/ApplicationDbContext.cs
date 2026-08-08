@@ -1785,8 +1785,24 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.ConHoatDong)
                 .HasColumnName("con_hoat_dong")
                 .HasDefaultValue(true);
+            entity.Property(e => e.MaNganh)
+                .HasColumnName("ma_nganh");
+            entity.Property(e => e.MaChuyenNganh)
+                .HasColumnName("ma_chuyen_nganh");
             entity.HasIndex(e => e.MaCodeMonHoc).IsUnique().HasDatabaseName("UQ_DanhMucMonHoc_1");
+            entity.HasIndex(e => e.MaNganh).HasDatabaseName("IX_DanhMucMonHoc_ma_nganh");
+            entity.HasIndex(e => e.MaChuyenNganh).HasDatabaseName("IX_DanhMucMonHoc_ma_chuyen_nganh");
             entity.ToTable(t => t.HasCheckConstraint("CK_DanhMucMonHoc_so_tin_chi_1", "[so_tin_chi] > 0"));
+            entity.HasOne(e => e.Nganh)
+                .WithMany()
+                .HasForeignKey(e => e.MaNganh)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_DanhMucMonHoc_ma_nganh__NganhDaoTao");
+            entity.HasOne(e => e.ChuyenNganh)
+                .WithMany()
+                .HasForeignKey(e => e.MaChuyenNganh)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_DanhMucMonHoc_ma_chuyen_nganh__ChuyenNganh");
         });
 
         modelBuilder.Entity<DanhSachRuiRoRotMon>(entity =>

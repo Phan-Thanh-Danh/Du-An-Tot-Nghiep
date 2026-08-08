@@ -401,9 +401,9 @@ const possiblePrerequisiteOptions = computed(() => {
             </button>
           </div>
 
-          <div v-else class="overflow-x-auto border border-slate-500/10 rounded-xl surface-card">
+          <div v-else class="overflow-x-auto overflow-y-auto max-h-[46vh] border border-slate-500/10 rounded-xl surface-card">
             <table class="w-full text-left text-sm text-body whitespace-nowrap">
-              <thead class="bg-slate-500/5 text-xs text-label font-bold uppercase border-b border-slate-500/10">
+              <thead class="sticky top-0 z-10 bg-(--surface-card) text-xs text-label font-bold uppercase border-b border-slate-500/10">
                 <tr>
                   <th class="px-4 py-3">STT</th>
                   <th class="px-4 py-3">Mã môn</th>

@@ -41,27 +41,11 @@ public class SubjectService : ISubjectService
 
         if (parameters.MaChuyenNganh.HasValue)
         {
-            var programIds = _context.Set<ChuongTrinhDaoTao>()
-                .Where(c => c.MaChuyenNganh == parameters.MaChuyenNganh.Value)
-                .Select(c => c.MaChuongTrinh);
-
-            var subjectIds = _context.MonHocTrongChuongTrinhs
-                .Where(m => programIds.Contains(m.MaChuongTrinh))
-                .Select(m => m.MaMonHoc);
-
-            query = query.Where(x => subjectIds.Contains(x.MaMonHoc));
+            query = query.Where(x => x.MaChuyenNganh == parameters.MaChuyenNganh.Value);
         }
         else if (parameters.MaNganh.HasValue)
         {
-            var programIds = _context.Set<ChuongTrinhDaoTao>()
-                .Where(c => _context.ChuyenNganhs.Any(cn => cn.MaChuyenNganh == c.MaChuyenNganh && cn.MaNganh == parameters.MaNganh.Value))
-                .Select(c => c.MaChuongTrinh);
-
-            var subjectIds = _context.MonHocTrongChuongTrinhs
-                .Where(m => programIds.Contains(m.MaChuongTrinh))
-                .Select(m => m.MaMonHoc);
-
-            query = query.Where(x => subjectIds.Contains(x.MaMonHoc));
+            query = query.Where(x => x.MaNganh == parameters.MaNganh.Value);
         }
 
         var totalItems = await query.CountAsync(cancellationToken);
@@ -75,7 +59,11 @@ public class SubjectService : ISubjectService
                 MaCodeMonHoc = x.MaCodeMonHoc,
                 TenMonHoc = x.TenMonHoc,
                 SoTinChi = x.SoTinChi,
-                ConHoatDong = x.ConHoatDong
+                ConHoatDong = x.ConHoatDong,
+                MaNganh = x.MaNganh,
+                MaChuyenNganh = x.MaChuyenNganh,
+                TenNganh = x.Nganh != null ? x.Nganh.TenNganh : null,
+                TenChuyenNganh = x.ChuyenNganh != null ? x.ChuyenNganh.TenChuyenNganh : null
             })
             .ToListAsync(cancellationToken);
 
@@ -92,6 +80,8 @@ public class SubjectService : ISubjectService
     {
         var subject = await _context.DanhMucMonHocs
             .AsNoTracking()
+            .Include(x => x.Nganh)
+            .Include(x => x.ChuyenNganh)
             .FirstOrDefaultAsync(x => x.MaMonHoc == subjectId, cancellationToken);
 
         if (subject is null)
@@ -112,13 +102,19 @@ public class SubjectService : ISubjectService
         var subjectName = NormalizeRequiredText(request.TenMonHoc, "Tên môn học");
         ValidateCredits(request.SoTinChi);
         await ValidateSubjectCodeAsync(subjectCode, null, cancellationToken);
+        var (maNganh, maChuyenNganh) = await ValidateMajorsAsync(
+            request.MaNganh,
+            request.MaChuyenNganh,
+            cancellationToken);
 
         var subject = new DanhMucMonHoc
         {
             MaCodeMonHoc = subjectCode,
             TenMonHoc = subjectName,
             SoTinChi = request.SoTinChi,
-            ConHoatDong = true
+            ConHoatDong = true,
+            MaNganh = maNganh,
+            MaChuyenNganh = maChuyenNganh
         };
 
         _context.DanhMucMonHocs.Add(subject);
@@ -139,11 +135,17 @@ public class SubjectService : ISubjectService
         var subjectName = NormalizeRequiredText(request.TenMonHoc, "Tên môn học");
         ValidateCredits(request.SoTinChi);
         await ValidateSubjectCodeAsync(subjectCode, subjectId, cancellationToken);
+        var (maNganh, maChuyenNganh) = await ValidateMajorsAsync(
+            request.MaNganh,
+            request.MaChuyenNganh,
+            cancellationToken);
 
         subject.MaCodeMonHoc = subjectCode;
         subject.TenMonHoc = subjectName;
         subject.SoTinChi = request.SoTinChi;
         subject.ConHoatDong = request.ConHoatDong;
+        subject.MaNganh = maNganh;
+        subject.MaChuyenNganh = maChuyenNganh;
 
         await _context.SaveChangesAsync(cancellationToken);
         return ToDto(subject);
@@ -229,6 +231,52 @@ public class SubjectService : ISubjectService
         }
     }
 
+    private async Task<(int? MaNganh, int? MaChuyenNganh)> ValidateMajorsAsync(
+        int? maNganh,
+        int? maChuyenNganh,
+        CancellationToken cancellationToken)
+    {
+        if (maChuyenNganh.HasValue)
+        {
+            var chuyenNganh = await _context.ChuyenNganhs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.MaChuyenNganh == maChuyenNganh.Value, cancellationToken);
+
+            if (chuyenNganh is null)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "Chuyên ngành không tồn tại.");
+            }
+
+            maNganh ??= chuyenNganh.MaNganh;
+        }
+
+        if (maNganh.HasValue)
+        {
+            var majorExists = await _context.NganhDaoTaos
+                .AsNoTracking()
+                .AnyAsync(x => x.MaNganh == maNganh.Value, cancellationToken);
+
+            if (!majorExists)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "Ngành đào tạo không tồn tại.");
+            }
+
+            if (maChuyenNganh.HasValue)
+            {
+                var belongs = await _context.ChuyenNganhs
+                    .AsNoTracking()
+                    .AnyAsync(x => x.MaChuyenNganh == maChuyenNganh.Value && x.MaNganh == maNganh.Value, cancellationToken);
+
+                if (!belongs)
+                {
+                    throw new ApiException(StatusCodes.Status400BadRequest, "Chuyên ngành không thuộc ngành đào tạo đã chọn.");
+                }
+            }
+        }
+
+        return (maNganh, maChuyenNganh);
+    }
+
     private async Task<bool> HasRelatedDataAsync(int subjectId, CancellationToken cancellationToken)
     {
         return
@@ -275,7 +323,11 @@ public class SubjectService : ISubjectService
             MaCodeMonHoc = subject.MaCodeMonHoc,
             TenMonHoc = subject.TenMonHoc,
             SoTinChi = subject.SoTinChi,
-            ConHoatDong = subject.ConHoatDong
+            ConHoatDong = subject.ConHoatDong,
+            MaNganh = subject.MaNganh,
+            MaChuyenNganh = subject.MaChuyenNganh,
+            TenNganh = subject.Nganh?.TenNganh,
+            TenChuyenNganh = subject.ChuyenNganh?.TenChuyenNganh
         };
     }
 }

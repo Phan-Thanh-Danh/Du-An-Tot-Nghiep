@@ -16,4 +16,8 @@ public class UpdateSubjectRequest
     public int SoTinChi { get; set; }
 
     public bool ConHoatDong { get; set; } = true;
+
+    public int? MaNganh { get; set; }
+
+    public int? MaChuyenNganh { get; set; }
 }

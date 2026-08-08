@@ -106,18 +106,25 @@ public static class LargeDemoSeeder
 
         Console.WriteLine("Seeding Subjects...");
         var subjectDict = new Dictionary<string, DanhMucMonHoc>();
-        foreach(var specs in SpecializationSubjects.Values)
+        foreach(var kvp in SpecializationSubjects)
         {
-            foreach(var sub in specs)
+            var specName = kvp.Key;
+            foreach(var sub in kvp.Value)
             {
                 if (!subjectDict.ContainsKey(sub))
                 {
                     var existingSub = await context.DanhMucMonHocs.FirstOrDefaultAsync(x => x.TenMonHoc == sub);
                     if (existingSub == null)
                     {
-                        existingSub = new DanhMucMonHoc { MaCodeMonHoc = $"SUB_{Guid.NewGuid().ToString().Substring(0,5)}", TenMonHoc = sub, SoTinChi = 3, ConHoatDong = true };
-                        context.DanhMucMonHocs.Add(existingSub);
+                        var newSub = new DanhMucMonHoc { MaCodeMonHoc = $"SUB_{Guid.NewGuid().ToString().Substring(0,5)}", TenMonHoc = sub, SoTinChi = 3, ConHoatDong = true };
+                        if (specDict.TryGetValue(specName, out var spec))
+                        {
+                            newSub.MaNganh = spec.MaNganh;
+                            newSub.MaChuyenNganh = spec.MaChuyenNganh;
+                        }
+                        context.DanhMucMonHocs.Add(newSub);
                         await context.SaveChangesAsync();
+                        existingSub = newSub;
                     }
                     subjectDict[sub] = existingSub;
                 }

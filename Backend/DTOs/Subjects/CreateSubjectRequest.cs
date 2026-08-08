@@ -14,4 +14,8 @@ public class CreateSubjectRequest
 
     [Range(1, int.MaxValue, ErrorMessage = "Số tín chỉ phải lớn hơn 0.")]
     public int SoTinChi { get; set; }
+
+    public int? MaNganh { get; set; }
+
+    public int? MaChuyenNganh { get; set; }
 }

@@ -39,7 +39,7 @@ public static class Data
 
         var cohortK2026 = await GetOrCreateCohortAsync(context);
         var terms = await SeedAcademicTermsAsync(context, hcmCampus);
-        var subjects = await SeedSubjectsAsync(context);
+        var subjects = await SeedSubjectsAsync(context, specializations);
         await SeedLearningContentAsync(context, subjects);
         var programs = await SeedTrainingProgramsAsync(context, cohortK2026, specializations);
 
@@ -793,60 +793,61 @@ public static class Data
     }
 
     private static async Task<Dictionary<string, DanhMucMonHoc>> SeedSubjectsAsync(
-        ApplicationDbContext context
+        ApplicationDbContext context,
+        IReadOnlyDictionary<string, ChuyenNganh> specializations
     )
     {
         var subjectPlans = new[]
         {
-            new SubjectSeed("CTDL101", "Cấu trúc dữ liệu & Giải thuật", 3),
-            new SubjectSeed("COM101", "Nhập môn lập trình", 3),
-            new SubjectSeed("COM102", "Cơ sở dữ liệu", 3),
-            new SubjectSeed("COM103", "Lập trình C#", 3),
-            new SubjectSeed("WEB101", "Thiết kế Web", 3),
-            new SubjectSeed("WEB102", "Lập trình JavaScript", 3),
-            new SubjectSeed("DBI101", "SQL Server căn bản", 3),
-            new SubjectSeed("PRO101", "Dự án mẫu phần mềm", 3),
-            new SubjectSeed("API101", "Xây dựng REST API", 3),
-            new SubjectSeed("FE101", "Vue.js căn bản", 3),
-            new SubjectSeed("BE101", "ASP.NET Core căn bản", 3),
-            new SubjectSeed("MOB101", "Lập trình ứng dụng di động", 3),
-            new SubjectSeed("DEV201", "DevOps và triển khai phần mềm", 3),
-            new SubjectSeed("SEC101", "An toàn thông tin căn bản", 3),
-            new SubjectSeed("CLOUD101", "Điện toán đám mây", 3),
-            new SubjectSeed("CAP101", "Đồ án tốt nghiệp phần mềm", 4),
-            new SubjectSeed("INT101", "Thực tập doanh nghiệp CNTT", 4),
-            new SubjectSeed("DES101", "Nguyên lý thị giác", 2),
-            new SubjectSeed("DES102", "Photoshop căn bản", 3),
-            new SubjectSeed("DES103", "Illustrator căn bản", 3),
-            new SubjectSeed("DES104", "Thiết kế nhận diện thương hiệu", 3),
-            new SubjectSeed("DES105", "Typography", 2),
-            new SubjectSeed("DES106", "UI/UX Design", 3),
-            new SubjectSeed("DES107", "Thiết kế ấn phẩm truyền thông", 3),
-            new SubjectSeed("DES108", "Motion Graphic căn bản", 3),
-            new SubjectSeed("DES109", "Thiết kế portfolio", 2),
-            new SubjectSeed("DES110", "Dự án thiết kế đồ họa", 3),
-            new SubjectSeed("DES111", "Thiết kế sản phẩm số", 3),
-            new SubjectSeed("DES112", "Nghiên cứu người dùng", 3),
-            new SubjectSeed("DES113", "3D căn bản", 3),
-            new SubjectSeed("DES114", "Thiết kế hệ thống thương hiệu", 3),
-            new SubjectSeed("DES115", "Đồ án tốt nghiệp thiết kế", 4),
-            new SubjectSeed("DES116", "Thực tập doanh nghiệp thiết kế", 4),
-            new SubjectSeed("MKT101", "Marketing căn bản", 3),
-            new SubjectSeed("MKT102", "Hành vi khách hàng", 3),
-            new SubjectSeed("MKT103", "Digital Marketing", 3),
-            new SubjectSeed("MKT104", "Content Marketing", 3),
-            new SubjectSeed("MKT105", "SEO căn bản", 2),
-            new SubjectSeed("MKT106", "Quảng cáo mạng xã hội", 3),
-            new SubjectSeed("MKT107", "Marketing Analytics", 3),
-            new SubjectSeed("MKT108", "Kỹ năng bán hàng", 2),
-            new SubjectSeed("MKT109", "Xây dựng thương hiệu", 3),
-            new SubjectSeed("MKT110", "Dự án Marketing tổng hợp", 3),
-            new SubjectSeed("MKT111", "Marketing automation", 3),
-            new SubjectSeed("MKT112", "Quản trị quan hệ khách hàng", 3),
-            new SubjectSeed("MKT113", "Nghiên cứu thị trường", 3),
-            new SubjectSeed("MKT114", "Chiến lược truyền thông tích hợp", 3),
-            new SubjectSeed("MKT115", "Đồ án tốt nghiệp Marketing", 4),
-            new SubjectSeed("MKT116", "Thực tập doanh nghiệp Marketing", 4),
+            new SubjectSeed("CTDL101", "Cấu trúc dữ liệu & Giải thuật", 3, "CNTT_PTPM"),
+            new SubjectSeed("COM101", "Nhập môn lập trình", 3, "CNTT_PTPM"),
+            new SubjectSeed("COM102", "Cơ sở dữ liệu", 3, "CNTT_PTPM"),
+            new SubjectSeed("COM103", "Lập trình C#", 3, "CNTT_PTPM"),
+            new SubjectSeed("WEB101", "Thiết kế Web", 3, "CNTT_WEB"),
+            new SubjectSeed("WEB102", "Lập trình JavaScript", 3, "CNTT_WEB"),
+            new SubjectSeed("DBI101", "SQL Server căn bản", 3, "CNTT_PTPM"),
+            new SubjectSeed("PRO101", "Dự án mẫu phần mềm", 3, "CNTT_PTPM"),
+            new SubjectSeed("API101", "Xây dựng REST API", 3, "CNTT_UDPM"),
+            new SubjectSeed("FE101", "Vue.js căn bản", 3, "CNTT_WEB"),
+            new SubjectSeed("BE101", "ASP.NET Core căn bản", 3, "CNTT_PTPM"),
+            new SubjectSeed("MOB101", "Lập trình ứng dụng di động", 3, "CNTT_UDPM"),
+            new SubjectSeed("DEV201", "DevOps và triển khai phần mềm", 3, "CNTT_PTPM"),
+            new SubjectSeed("SEC101", "An toàn thông tin căn bản", 3, "CNTT_PTPM"),
+            new SubjectSeed("CLOUD101", "Điện toán đám mây", 3, "CNTT_PTPM"),
+            new SubjectSeed("CAP101", "Đồ án tốt nghiệp phần mềm", 4, "CNTT_PTPM"),
+            new SubjectSeed("INT101", "Thực tập doanh nghiệp CNTT", 4, "CNTT_PTPM"),
+            new SubjectSeed("DES101", "Nguyên lý thị giác", 2, "TKDH_BRAND"),
+            new SubjectSeed("DES102", "Photoshop căn bản", 3, "TKDH_BRAND"),
+            new SubjectSeed("DES103", "Illustrator căn bản", 3, "TKDH_BRAND"),
+            new SubjectSeed("DES104", "Thiết kế nhận diện thương hiệu", 3, "TKDH_BRAND"),
+            new SubjectSeed("DES105", "Typography", 2, "TKDH_BRAND"),
+            new SubjectSeed("DES106", "UI/UX Design", 3, "TKDH_UIUX"),
+            new SubjectSeed("DES107", "Thiết kế ấn phẩm truyền thông", 3, "TKDH_BRAND"),
+            new SubjectSeed("DES108", "Motion Graphic căn bản", 3, "TKDH_3D"),
+            new SubjectSeed("DES109", "Thiết kế portfolio", 2, "TKDH_UIUX"),
+            new SubjectSeed("DES110", "Dự án thiết kế đồ họa", 3, "TKDH_BRAND"),
+            new SubjectSeed("DES111", "Thiết kế sản phẩm số", 3, "TKDH_UIUX"),
+            new SubjectSeed("DES112", "Nghiên cứu người dùng", 3, "TKDH_UIUX"),
+            new SubjectSeed("DES113", "3D căn bản", 3, "TKDH_3D"),
+            new SubjectSeed("DES114", "Thiết kế hệ thống thương hiệu", 3, "TKDH_BRAND"),
+            new SubjectSeed("DES115", "Đồ án tốt nghiệp thiết kế", 4, "TKDH_BRAND"),
+            new SubjectSeed("DES116", "Thực tập doanh nghiệp thiết kế", 4, "TKDH_BRAND"),
+            new SubjectSeed("MKT101", "Marketing căn bản", 3, "MKT_DIGITAL"),
+            new SubjectSeed("MKT102", "Hành vi khách hàng", 3, "MKT_SALES"),
+            new SubjectSeed("MKT103", "Digital Marketing", 3, "MKT_DIGITAL"),
+            new SubjectSeed("MKT104", "Content Marketing", 3, "MKT_CONTENT"),
+            new SubjectSeed("MKT105", "SEO căn bản", 2, "MKT_DIGITAL"),
+            new SubjectSeed("MKT106", "Quảng cáo mạng xã hội", 3, "MKT_DIGITAL"),
+            new SubjectSeed("MKT107", "Marketing Analytics", 3, "MKT_DIGITAL"),
+            new SubjectSeed("MKT108", "Kỹ năng bán hàng", 2, "MKT_SALES"),
+            new SubjectSeed("MKT109", "Xây dựng thương hiệu", 3, "MKT_CONTENT"),
+            new SubjectSeed("MKT110", "Dự án Marketing tổng hợp", 3, "MKT_DIGITAL"),
+            new SubjectSeed("MKT111", "Marketing automation", 3, "MKT_DIGITAL"),
+            new SubjectSeed("MKT112", "Quản trị quan hệ khách hàng", 3, "MKT_SALES"),
+            new SubjectSeed("MKT113", "Nghiên cứu thị trường", 3, "MKT_SALES"),
+            new SubjectSeed("MKT114", "Chiến lược truyền thông tích hợp", 3, "MKT_CONTENT"),
+            new SubjectSeed("MKT115", "Đồ án tốt nghiệp Marketing", 4, "MKT_DIGITAL"),
+            new SubjectSeed("MKT116", "Thực tập doanh nghiệp Marketing", 4, "MKT_DIGITAL"),
             new SubjectSeed("GEN101", "Kỹ năng học tập", 2),
             new SubjectSeed("GEN102", "Tin học cơ bản", 2),
             new SubjectSeed("GEN103", "Tiếng Anh cơ bản", 3),
@@ -872,6 +873,14 @@ public static class Data
             subject.TenMonHoc = plan.Name;
             subject.SoTinChi = plan.Credits;
             subject.ConHoatDong = true;
+
+            if (plan.SpecializationCode is not null &&
+                specializations.TryGetValue(plan.SpecializationCode, out var specialization))
+            {
+                subject.MaNganh = specialization.MaNganh;
+                subject.MaChuyenNganh = specialization.MaChuyenNganh;
+            }
+
             result[plan.Code] = subject;
         }
 
@@ -2640,7 +2649,7 @@ public static class Data
         DateOnly EndDate
     );
 
-    private sealed record SubjectSeed(string Code, string Name, int Credits);
+    private sealed record SubjectSeed(string Code, string Name, int Credits, string? SpecializationCode = null);
 
     private sealed record StandardChapterSeed(int Order, string Title, LessonSeed[] Lessons);
 
