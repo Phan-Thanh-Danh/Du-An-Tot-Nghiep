@@ -66,6 +66,15 @@ public class CourseService : ICourseService
             query = query.Where(x => x.Course.MaMonHoc == parameters.MaMonHoc.Value);
         }
 
+        if (parameters.MaChuyenNganh.HasValue)
+        {
+            query = query.Where(x => x.Subject.MaChuyenNganh == parameters.MaChuyenNganh.Value);
+        }
+        else if (parameters.MaNganh.HasValue)
+        {
+            query = query.Where(x => x.Subject.MaNganh == parameters.MaNganh.Value);
+        }
+
         if (parameters.MaGiaoVien.HasValue)
         {
             query = query.Where(x => x.Course.MaGiaoVien == parameters.MaGiaoVien.Value);
