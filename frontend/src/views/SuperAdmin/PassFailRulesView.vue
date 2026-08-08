@@ -12,6 +12,7 @@ import {
 } from 'lucide-vue-next'
 import { passFailRuleApi } from '@/services/passFailRuleApi'
 import { academicTermApi } from '@/services/academicTermApi'
+import { apiRequest } from '@/services/apiClient'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import { SkeletonTable } from '@/components/common/skeleton'
 
@@ -20,6 +21,10 @@ const error = ref('')
 const terms = ref([])
 const selectedTermId = ref(null)
 const search = ref('')
+const majors = ref([])
+const specializations = ref([])
+const selectedMajorId = ref(null)
+const selectedSpecializationId = ref(null)
 const rules = ref([])
 const summary = ref({ tongMonHoc: 0, daCauHinh: 0, chuaCauHinh: 0 })
 
@@ -55,6 +60,40 @@ async function loadTerms() {
   }
 }
 
+function unwrapList(response) {
+  const data = response?.data ?? response?.Data ?? response
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.items)) return data.items
+  if (Array.isArray(data?.Items)) return data.Items
+  return []
+}
+
+async function loadMajors() {
+  try {
+    const result = await apiRequest('/api/master-data/majors', { params: { pageSize: 100 } })
+    majors.value = unwrapList(result).filter((m) => m.conHoatDong !== false)
+  } catch {
+    majors.value = []
+  }
+}
+
+async function loadSpecializations() {
+  try {
+    const params = { pageSize: 100 }
+    if (selectedMajorId.value) params.maNganh = selectedMajorId.value
+    const result = await apiRequest('/api/master-data/specializations', { params })
+    specializations.value = unwrapList(result).filter((s) => s.conHoatDong !== false)
+  } catch {
+    specializations.value = []
+  }
+}
+
+function onMajorChange() {
+  selectedSpecializationId.value = null
+  loadSpecializations()
+  loadRules()
+}
+
 async function loadRules() {
   loading.value = true
   error.value = ''
@@ -62,6 +101,8 @@ async function loadRules() {
     const result = await passFailRuleApi.getRules({
       maHocKy: selectedTermId.value ?? '',
       search: search.value || '',
+      maNganh: selectedMajorId.value ?? '',
+      maChuyenNganh: selectedSpecializationId.value ?? '',
       pageIndex: 1,
       pageSize: 200,
     })
@@ -155,7 +196,8 @@ const formatDateTime = (value) => {
 }
 
 onMounted(async () => {
-  await loadTerms()
+  await Promise.all([loadTerms(), loadMajors()])
+  await loadSpecializations()
   await loadRules()
 })
 </script>
@@ -178,6 +220,32 @@ onMounted(async () => {
         >
           <option v-for="term in terms" :key="term.maHocKy" :value="term.maHocKy">
             {{ term.tenHocKy }}
+          </option>
+        </select>
+        <label class="text-label text-sm">Ngành</label>
+        <select
+          v-model="selectedMajorId"
+          class="border-input surface-input text-body rounded-lg border px-3 py-2 text-sm focus:outline-none"
+          @change="onMajorChange"
+        >
+          <option :value="null">Tất cả ngành</option>
+          <option v-for="major in majors" :key="major.maNganh" :value="major.maNganh">
+            {{ major.tenNganh }}
+          </option>
+        </select>
+        <label class="text-label text-sm">Chuyên ngành</label>
+        <select
+          v-model="selectedSpecializationId"
+          class="border-input surface-input text-body rounded-lg border px-3 py-2 text-sm focus:outline-none"
+          @change="loadRules"
+        >
+          <option :value="null">Tất cả chuyên ngành</option>
+          <option
+            v-for="spec in specializations"
+            :key="spec.maChuyenNganh"
+            :value="spec.maChuyenNganh"
+          >
+            {{ spec.tenChuyenNganh }}
           </option>
         </select>
         <div class="relative">
@@ -224,6 +292,7 @@ onMounted(async () => {
           <thead class="text-placeholder border-b text-xs uppercase">
             <tr>
               <th class="px-4 py-3 font-semibold">Môn học</th>
+              <th class="px-4 py-3 font-semibold">Ngành / Chuyên ngành</th>
               <th class="px-4 py-3 font-semibold">QT %</th>
               <th class="px-4 py-3 font-semibold">GK %</th>
               <th class="px-4 py-3 font-semibold">CK %</th>
@@ -236,13 +305,13 @@ onMounted(async () => {
           <tbody class="text-body divide-y">
             <template v-if="loading">
               <tr v-for="i in 8" :key="i">
-                <td colspan="8" class="px-4 py-2"><SkeletonTable :rows="1" /></td>
+                <td colspan="9" class="px-4 py-2"><SkeletonTable :rows="1" /></td>
               </tr>
             </template>
             <template v-else-if="rules.length === 0">
               <tr>
-                <td colspan="8" class="text-placeholder px-4 py-10 text-center">
-                  Chưa có dữ liệu cho học kỳ này.
+                <td colspan="9" class="text-placeholder px-4 py-10 text-center">
+                  Chưa có dữ liệu cho bộ lọc này.
                 </td>
               </tr>
             </template>
@@ -250,6 +319,10 @@ onMounted(async () => {
               <td class="px-4 py-3">
                 <p class="font-medium">{{ rule.tenMonHoc }}</p>
                 <p class="text-placeholder text-xs">{{ rule.maCodeMonHoc }}</p>
+              </td>
+              <td class="px-4 py-3 text-xs">
+                <p class="text-body">{{ rule.tenNganh ?? '—' }}</p>
+                <p class="text-placeholder">{{ rule.tenChuyenNganh ?? '—' }}</p>
               </td>
               <td class="px-4 py-3">{{ rule.trongSoQuaTrinh }}</td>
               <td class="px-4 py-3">{{ rule.trongSoGiuaKy }}</td>

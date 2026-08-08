@@ -6,6 +6,10 @@ public class PassFailRuleDto
     public int MaMonHoc { get; set; }
     public string? MaCodeMonHoc { get; set; }
     public string? TenMonHoc { get; set; }
+    public int? MaNganh { get; set; }
+    public string? TenNganh { get; set; }
+    public int? MaChuyenNganh { get; set; }
+    public string? TenChuyenNganh { get; set; }
     public int MaHocKy { get; set; }
     public string? TenHocKy { get; set; }
     public decimal TrongSoQuaTrinh { get; set; }

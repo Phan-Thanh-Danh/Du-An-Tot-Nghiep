@@ -24,11 +24,13 @@ public class PassFailRulesController : ControllerBase
     public async Task<IActionResult> GetList(
         [FromQuery] int? maHocKy,
         [FromQuery] string? search,
+        [FromQuery] int? maNganh,
+        [FromQuery] int? maChuyenNganh,
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
-        var result = await _service.GetListAsync(maHocKy, search, pageIndex, pageSize, ct);
+        var result = await _service.GetListAsync(maHocKy, search, maNganh, maChuyenNganh, pageIndex, pageSize, ct);
         return Ok(result);
     }
 

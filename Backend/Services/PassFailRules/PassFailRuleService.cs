@@ -27,6 +27,8 @@ public class PassFailRuleService : IPassFailRuleService
     public async Task<PassFailRuleListResponse> GetListAsync(
         int? maHocKy,
         string? search,
+        int? maNganh,
+        int? maChuyenNganh,
         int pageIndex = 1,
         int pageSize = 20,
         CancellationToken ct = default)
@@ -48,9 +50,31 @@ public class PassFailRuleService : IPassFailRuleService
                 (m.MaCodeMonHoc != null && m.MaCodeMonHoc.Contains(keyword)));
         }
 
+        if (maNganh.HasValue)
+        {
+            subjectQuery = subjectQuery.Where(m => m.MaNganh == maNganh.Value);
+        }
+
+        if (maChuyenNganh.HasValue)
+        {
+            subjectQuery = subjectQuery.Where(m => m.MaChuyenNganh == maChuyenNganh.Value);
+        }
+
         var subjects = await subjectQuery
-            .Select(m => new { m.MaMonHoc, m.MaCodeMonHoc, m.TenMonHoc })
+            .Select(m => new { m.MaMonHoc, m.MaCodeMonHoc, m.TenMonHoc, m.MaNganh, m.MaChuyenNganh })
             .ToListAsync(ct);
+
+        var majorIds = subjects.Select(s => s.MaNganh).Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToList();
+        var specializationIds = subjects.Select(s => s.MaChuyenNganh).Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToList();
+
+        var majors = await _context.NganhDaoTaos
+            .AsNoTracking()
+            .Where(n => majorIds.Contains(n.MaNganh))
+            .ToDictionaryAsync(n => n.MaNganh, n => n.TenNganh, ct);
+        var specializations = await _context.ChuyenNganhs
+            .AsNoTracking()
+            .Where(c => specializationIds.Contains(c.MaChuyenNganh))
+            .ToDictionaryAsync(c => c.MaChuyenNganh, c => c.TenChuyenNganh, ct);
 
         var configs = await _context.CauHinhDiemMonHocs
             .AsNoTracking()
@@ -71,6 +95,10 @@ public class PassFailRuleService : IPassFailRuleService
                     MaMonHoc = subject.MaMonHoc,
                     MaCodeMonHoc = subject.MaCodeMonHoc,
                     TenMonHoc = subject.TenMonHoc,
+                    MaNganh = subject.MaNganh,
+                    TenNganh = subject.MaNganh.HasValue && majors.TryGetValue(subject.MaNganh.Value, out var tenNganh) ? tenNganh : null,
+                    MaChuyenNganh = subject.MaChuyenNganh,
+                    TenChuyenNganh = subject.MaChuyenNganh.HasValue && specializations.TryGetValue(subject.MaChuyenNganh.Value, out var tenChuyenNganh) ? tenChuyenNganh : null,
                     MaHocKy = term?.MaHocKy ?? maHocKy ?? 0,
                     TenHocKy = term?.TenHocKy,
                     TrongSoQuaTrinh = config?.TrongSoQuaTrinh ?? 0m,
@@ -124,6 +152,10 @@ public class PassFailRuleService : IPassFailRuleService
             MaMonHoc = config.MaMonHoc,
             MaCodeMonHoc = config.MonHoc?.MaCodeMonHoc,
             TenMonHoc = config.MonHoc?.TenMonHoc,
+            MaNganh = config.MonHoc?.MaNganh,
+            TenNganh = config.MonHoc?.Nganh?.TenNganh,
+            MaChuyenNganh = config.MonHoc?.MaChuyenNganh,
+            TenChuyenNganh = config.MonHoc?.ChuyenNganh?.TenChuyenNganh,
             MaHocKy = config.MaHocKy,
             TenHocKy = config.HocKy?.TenHocKy,
             TrongSoQuaTrinh = config.TrongSoQuaTrinh,

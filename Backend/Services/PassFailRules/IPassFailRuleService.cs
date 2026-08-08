@@ -7,6 +7,8 @@ public interface IPassFailRuleService
     Task<PassFailRuleListResponse> GetListAsync(
         int? maHocKy,
         string? search,
+        int? maNganh,
+        int? maChuyenNganh,
         int pageIndex = 1,
         int pageSize = 20,
         CancellationToken ct = default);
