@@ -93,7 +93,6 @@ const pageTitleMap = {
   // 6. Hỗ trợ, Đơn từ và Đánh giá
   '/super-admin/support/tickets': { title: 'Ticket hỗ trợ', subtitle: 'Tiếp nhận và xử lý yêu cầu hỗ trợ kỹ thuật/học vụ' },
   '/super-admin/approvals/requests': { title: 'Quản lý mẫu đơn từ', subtitle: 'Thiết kế biểu mẫu đơn hành chính, cấu hình trường nhập liệu và trạng thái hoạt động' },
-  '/super-admin/approvals/history': { title: 'Lịch sử duyệt đơn', subtitle: 'Tra cứu lộ trình xử lý đơn đã kết thúc' },
   '/super-admin/evaluations/config': { title: 'Cấu hình đánh giá GV', subtitle: 'Mở đợt khảo sát và tạo câu hỏi khảo sát giảng viên' },
   '/super-admin/evaluations/results': { title: 'Kết quả đánh giá GV', subtitle: 'Xem báo cáo ẩn danh và phân tích cảm xúc sinh viên' },
   '/super-admin/awards': { title: 'Khen thưởng', subtitle: 'Cấp bằng khen số và quản lý thành tích' },

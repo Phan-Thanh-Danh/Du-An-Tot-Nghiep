@@ -619,11 +619,6 @@ const router = createRouter({
           meta: { title: 'Sửa mẫu đơn từ' },
         },
         {
-          path: 'approvals/history',
-          name: 'super-admin-approvals-history',
-          component: () => import('../views/SuperAdmin/ApprovalsHistoryView.vue'),
-        },
-        {
           path: 'approvals/reports',
           name: 'super-admin-approvals-reports',
           component: () => import('../views/SuperAdmin/ApplicationReportsView.vue'),

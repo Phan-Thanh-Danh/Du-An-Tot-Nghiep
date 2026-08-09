@@ -139,12 +139,6 @@ export const superAdminMenuGroups = [
         route: '/super-admin/approvals/requests',
       },
       {
-        id: 'approvals-history',
-        label: 'Lịch sử duyệt đơn',
-        icon: 'FolderCheck',
-        route: '/super-admin/approvals/history',
-      },
-      {
         id: 'evaluations-config',
         label: 'Cấu hình đánh giá GV',
         icon: 'Star',
