@@ -258,19 +258,23 @@ public class ApplicationSchemaService : IApplicationSchemaService
     {
         if (string.IsNullOrWhiteSpace(loaiDon))
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Loại đơn không hợp lệ.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Loại đơn không được rỗng.");
         }
 
-        var trimmed = loaiDon.Trim();
-        var canonical = ApplicationTypes.All.FirstOrDefault(type =>
-            type.Equals(trimmed, StringComparison.OrdinalIgnoreCase));
+        var trimmed = loaiDon.Trim().ToLowerInvariant();
 
-        if (canonical is null)
+        if (trimmed.Length > 50)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Loại đơn không hợp lệ.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Mã loại đơn không được vượt quá 50 ký tự.");
         }
 
-        return canonical;
+        // Chỉ cho phép chữ thường, số và dấu gạch dưới (slug format)
+        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^[a-z0-9_]+$"))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Mã loại đơn chỉ được chứa chữ thường (a-z), số (0-9) và dấu gạch dưới (_).");
+        }
+
+        return trimmed;
     }
 
     private static ApplicationTemplateDto ToDto(MauDonTu template)

@@ -3415,7 +3415,7 @@ public class ApplicationDbContext : DbContext
                 .IsUnique()
                 .HasFilter("[dang_hoat_dong] = 1")
                 .HasDatabaseName("UX_MauDonTu_loai_don_active");
-            entity.ToTable(t => t.HasCheckConstraint("CK_MauDonTu_loai_don", "[loai_don] IN (N'nghi_phep', N'thi_lai', N'chuyen_truong', N'cap_chung_chi', N'khac', N'phuc_tra_diem', N'bao_luu', N'chuyen_nganh', N'chuyen_co_so', N'xac_nhan', N'rut_hoc')"));
+
             entity.ToTable(t => t.HasCheckConstraint("CK_MauDonTu_cau_hinh_json_ISJSON", "ISJSON([cau_hinh_json]) = 1"));
             entity.ToTable(t => t.HasCheckConstraint("CK_MauDonTu_phien_ban", "[phien_ban] > 0"));
             entity.ToTable(t => t.HasCheckConstraint("CK_MauDonTu_so_tep_toi_da", "[so_tep_toi_da] BETWEEN 0 AND 5"));

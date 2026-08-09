@@ -21,7 +21,6 @@ const popupStore = usePopupStore()
 const loading = ref(true)
 const saving = ref(false)
 const templates = ref([])
-const types = ref([])
 const modalOpen = ref(false)
 const modalMode = ref('create')
 const previewOpen = ref(false)
@@ -49,11 +48,6 @@ const form = ref({
 
 const jsonError = ref('')
 const formError = ref('')
-
-const availableTypes = computed(() => {
-  const used = new Set(templates.value.map((t) => t.loaiDon))
-  return types.value.filter((t) => !used.has(t.loaiDon))
-})
 
 const previewFields = computed(() => {
   try {
@@ -106,13 +100,7 @@ async function loadTemplates() {
   }
 }
 
-async function loadTypes() {
-  try {
-    types.value = await applicationsApi.getApplicationTypes()
-  } catch {
-    types.value = []
-  }
-}
+
 
 function openCreate() {
   modalMode.value = 'create'
@@ -148,8 +136,8 @@ async function saveTemplate() {
     formError.value = 'Tên mẫu đơn không được rỗng.'
     return
   }
-  if (modalMode.value === 'create' && !form.value.loaiDon) {
-    formError.value = 'Phải chọn loại đơn.'
+  if (modalMode.value === 'create' && !form.value.loaiDon.trim()) {
+    formError.value = 'Mã loại đơn không được rỗng.'
     return
   }
   if (!parseCauHinh()) return
@@ -192,7 +180,7 @@ function formatBytes(bytes) {
 }
 
 onMounted(async () => {
-  await Promise.all([loadTemplates(), loadTypes()])
+  await loadTemplates()
 })
 </script>
 
@@ -293,16 +281,12 @@ onMounted(async () => {
           <form class="space-y-4" @submit.prevent="saveTemplate">
             <div v-if="modalMode === 'create'" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label class="text-label mb-1 block text-sm font-medium">Loại đơn *</label>
-                <select
+                <label class="text-label mb-1 block text-sm font-medium">Mã loại đơn *</label>
+                <GlassInput
                   v-model="form.loaiDon"
-                  class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--lg-primary) outline-none text-(--text-body) transition-all"
-                >
-                  <option value="" disabled>Chọn loại đơn...</option>
-                  <option v-for="type in availableTypes" :key="type.loaiDon" :value="type.loaiDon">
-                    {{ type.tenHienThi }} ({{ type.loaiDon }})
-                  </option>
-                </select>
+                  placeholder="VD: nghi_phep, bao_luu, doi_lop"
+                />
+                <p class="mt-1 text-xs text-(--text-placeholder)">Dùng chữ thường (a-z), số (0-9), dấu gạch dưới (_)</p>
               </div>
               <div>
                 <label class="text-label mb-1 block text-sm font-medium">Tên mẫu đơn *</label>
