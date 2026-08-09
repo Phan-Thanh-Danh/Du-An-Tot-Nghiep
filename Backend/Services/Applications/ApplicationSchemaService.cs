@@ -244,6 +244,49 @@ public class ApplicationSchemaService : IApplicationSchemaService
         return dto;
     }
 
+    public async Task<ApplicationTemplateDto> DeleteTemplateAsync(
+        string loaiDon,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        var normalizedType = NormalizeType(loaiDon);
+
+        var entity = await _context.MauDonTus
+            .Where(x => x.LoaiDon == normalizedType)
+            .OrderByDescending(x => x.PhienBan)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (entity is null)
+        {
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy mẫu đơn.");
+        }
+
+        var isUsed = await _context.DonTus
+            .AnyAsync(x => x.MaMauDon == entity.MaMauDon, cancellationToken);
+        if (isUsed)
+        {
+            throw new ApiException(
+                StatusCodes.Status400BadRequest,
+                "Mẫu đơn này đang được đơn từ sử dụng, không thể xóa. Hãy chuyển mẫu sang trạng thái tạm ẩn.");
+        }
+
+        var dto = ToDto(entity);
+        _context.MauDonTus.Remove(entity);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.LogAsync(
+            "MauDonTu",
+            entity.MaMauDon.ToString(),
+            "DELETE_APPLICATION_TEMPLATE",
+            dto,
+            null,
+            currentUser.UserId,
+            currentUser.CampusId,
+            $"Xóa mẫu đơn '{dto.TenMau}' (loại {normalizedType}).",
+            cancellationToken);
+
+        return dto;
+    }
+
     public static string GetTypeLabel(string type)
     {
         return TypeLabels.TryGetValue(type, out var label) ? label : type;

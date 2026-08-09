@@ -72,4 +72,14 @@ public class ApplicationSchemaController : ControllerBase
         var result = await _schemaService.UpdateTemplateAsync(loaiDon, request, cancellationToken);
         return Ok(ApiResponseDto<ApplicationTemplateDto>.Ok(result, "Cập nhật mẫu đơn thành công."));
     }
+
+    [HttpDelete("templates/{loaiDon}")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<ApiResponseDto<ApplicationTemplateDto>>> DeleteTemplate(
+        string loaiDon,
+        CancellationToken cancellationToken)
+    {
+        var result = await _schemaService.DeleteTemplateAsync(loaiDon, cancellationToken);
+        return Ok(ApiResponseDto<ApplicationTemplateDto>.Ok(result, "Xóa mẫu đơn thành công."));
+    }
 }

@@ -16,4 +16,5 @@ public interface IApplicationSchemaService
         string loaiDon,
         UpdateApplicationTemplateRequest request,
         CancellationToken cancellationToken = default);
+    Task<ApplicationTemplateDto> DeleteTemplateAsync(string loaiDon, CancellationToken cancellationToken = default);
 }

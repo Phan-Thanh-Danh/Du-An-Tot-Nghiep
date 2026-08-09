@@ -1,13 +1,14 @@
 <script setup>
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { FileText, Plus, Pencil, Power, X } from 'lucide-vue-next'
+import { FileText, Plus, Pencil, Power, Trash2, X } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassInput from '@/components/ui/GlassInput.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 // Lazy-load để phá vỡ circular chunk giữa FormBuilder và FormRenderer, tránh lỗi TDZ trong production build
 const ApplicationFormRenderer = defineAsyncComponent(() => import('@/components/applications/ApplicationFormRenderer.vue'))
 const ApplicationFormBuilder = defineAsyncComponent(() => import('@/components/applications/ApplicationFormBuilder.vue'))
@@ -174,6 +175,26 @@ async function toggleActive(template) {
   }
 }
 
+const confirmDelete = ref(null)
+
+async function deleteTemplate(template) {
+  confirmDelete.value = template
+}
+
+async function executeDelete() {
+  const template = confirmDelete.value
+  if (!template) return
+  try {
+    await applicationsApi.deleteApplicationTemplate(template.loaiDon)
+    confirmDelete.value = null
+    popupStore.success('Thành công', 'Đã xóa mẫu đơn.')
+    await loadTemplates()
+  } catch (err) {
+    confirmDelete.value = null
+    popupStore.error('Lỗi', err?.message || 'Xóa mẫu đơn thất bại.')
+  }
+}
+
 function formatBytes(bytes) {
   if (!bytes) return '0 KB'
   return `${Math.round(bytes / 1024)} KB`
@@ -252,6 +273,10 @@ onMounted(async () => {
                   <GlassButton variant="secondary" size="sm" @click="toggleActive(template)">
                     <template #leading><Power :size="14" /></template>
                     {{ template.dangHoatDong ? 'Ẩn' : 'Kích hoạt' }}
+                  </GlassButton>
+                  <GlassButton variant="danger" size="sm" @click="deleteTemplate(template)">
+                    <template #leading><Trash2 :size="14" /></template>
+                    Xóa
                   </GlassButton>
                 </div>
               </td>
@@ -392,5 +417,16 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <ConfirmActionDialog
+      v-if="confirmDelete"
+      :model-value="true"
+      title="Xóa mẫu đơn"
+      :message="`Bạn có chắc muốn xóa mẫu &quot;${confirmDelete.tenMau}&quot; (${confirmDelete.loaiDon})? Mẫu đang được đơn từ sử dụng sẽ không thể xóa.`"
+      confirm-label="Xóa"
+      variant="danger"
+      @confirm="executeDelete"
+      @cancel="confirmDelete = null"
+    />
   </div>
 </template>

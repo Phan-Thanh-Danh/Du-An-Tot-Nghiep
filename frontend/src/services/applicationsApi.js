@@ -40,6 +40,11 @@ export const applicationsApi = {
       body: JSON.stringify(payload),
     }))
   },
+  async deleteApplicationTemplate(loaiDon) {
+    return unwrapApiData(await apiRequest(`${APPLICATION_SCHEMA_BASE}/templates/${loaiDon}`, {
+      method: 'DELETE',
+    }))
+  },
 
   // ── Student ──────────────────────────────────────────────────────
   async getMyApplications(query = {}) {
