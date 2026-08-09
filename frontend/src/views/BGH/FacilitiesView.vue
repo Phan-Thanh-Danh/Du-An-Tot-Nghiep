@@ -1,8 +1,10 @@
 <template>
-  <div class="space-y-4 pb-10">
+  <div class="space-y-6 pb-10">
+    <!-- Loading State -->
     <div v-if="loading" class="p-4">
       <SkeletonTable :rows="6" :columns="4" />
     </div>
+
     <!-- Error State -->
     <div v-else-if="error" class="flex items-center justify-center py-20">
       <div class="flex flex-col items-center gap-3">
@@ -11,93 +13,95 @@
         <button @click="loadData()" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
       </div>
     </div>
+
     <template v-else>
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <div>
-        <h2 class="sr-only text-xl font-bold text-heading">Cơ sở vật chất</h2>
-        <p class="text-xs text-muted mt-1">Quản lý tòa nhà, tầng và phòng học trên toàn hệ thống</p>
+      <!-- Filter & Action Header -->
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 class="sr-only text-xl font-bold text-heading">Cơ sở vật chất</h2>
+          <p class="text-xs text-muted">Quản lý tòa nhà, tầng, phòng học và trang thiết bị học vụ trên toàn hệ thống</p>
+        </div>
+        <div class="flex gap-2">
+          <LmsSelect v-model="campusFilter" class="px-3 py-2 bg-(--surface-input) border border-input rounded-xl text-xs font-bold text-body focus:outline-none focus:border-(--lg-primary)">
+            <option value="all">Tất cả cơ sở</option>
+            <option v-for="c in campuses" :key="c.maDonVi" :value="c.maDonVi">{{ c.tenDonVi }}</option>
+          </LmsSelect>
+        </div>
       </div>
-      <div class="flex gap-2">
-        <select v-model="campusFilter" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
-          <option value="">Tất cả cơ sở</option>
-          <option v-for="c in campuses" :key="c.maDonVi" :value="c.maDonVi">{{ c.tenDonVi }}</option>
-        </select>
-      </div>
-    </div>
 
-    <div v-for="building in filteredBuildings" :key="building.maToaNha" class="surface-card border border-card rounded-2xl overflow-hidden shadow-sm">
-      <div @click="toggleBuilding(building.maToaNha)" class="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-(--surface-input)/30 transition-colors">
-        <div class="flex items-center gap-3">
-          <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-600 flex items-center justify-center text-white"><Building2 :size="20" /></div>
+      <!-- Buildings Grid Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div
+          v-for="building in filteredBuildings"
+          :key="building.maToaNha"
+          @click="openBuildingDetail(building.maToaNha)"
+          class="surface-card border border-card hover:border-blue-500/50 rounded-3xl p-6 transition-all hover:shadow-md cursor-pointer group flex flex-col justify-between relative overflow-hidden"
+        >
           <div>
-            <h3 class="text-base font-bold text-heading">{{ building.tenToaNha }}</h3>
-            <p class="text-xs text-muted">{{ building.maCodeToaNha }} · {{ building.diaChi || building.tenDonVi }} · {{ building.soTang }} tầng</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <span :class="building.conHoatDong ? 'text-(--color-success-text)' : 'text-(--color-danger-text)'" class="text-xs font-bold flex items-center gap-1">
-            <span :class="building.conHoatDong ? 'bg-(--color-success-text)' : 'bg-(--color-danger-text)'" class="h-1.5 w-1.5 rounded-full inline-block" />
-            {{ building.conHoatDong ? 'Đang hoạt động' : 'Ngừng' }}
-          </span>
-          <ChevronDown v-if="expandedBuilding === building.maToaNha" :size="18" class="text-muted transition-transform" />
-          <ChevronRight v-else :size="18" class="text-muted transition-transform" />
-        </div>
-      </div>
-
-      <Transition enter-active-class="transition-all duration-300" enter-from-class="max-h-0 opacity-0" enter-to-class="max-h-[2000px] opacity-100" leave-active-class="transition-all duration-200" leave-from-class="max-h-[2000px] opacity-100" leave-to-class="max-h-0 opacity-0">
-        <div v-if="expandedBuilding === building.maToaNha" class="overflow-hidden">
-          <div v-for="floor in getFloors(building.maToaNha)" :key="floor.maTang" class="last:border-b-0">
-            <div @click="toggleFloor(floor.maTang)" class="px-5 py-3 flex items-center justify-between cursor-pointer hover:bg-(--surface-input)/20 transition-colors ml-4">
-              <div class="flex items-center gap-2">
-                <ChevronDown v-if="expandedFloor === floor.maTang" :size="14" class="text-muted" />
-                <ChevronRight v-else :size="14" class="text-muted" />
-                <span class="text-sm font-semibold text-heading">{{ floor.tenTang }}</span>
-                <span class="text-xs text-muted">(Tầng {{ floor.thuTuTang }})</span>
-                <span v-if="!floor.conHoatDong" class="text-[10px] text-(--color-danger-text) bg-(--color-danger-bg) px-1.5 py-0.5 rounded">Ngừng</span>
+            <div class="flex items-center justify-between mb-4">
+              <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-800 to-blue-600 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
+                <Building2 :size="24" />
               </div>
-              <span class="text-xs text-muted">{{ getRooms(floor.maTang).length }} phòng</span>
+              <span
+                :class="building.conHoatDong ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 border-rose-500/20'"
+                class="px-3 py-1 rounded-full border text-[11px] font-bold flex items-center gap-1.5"
+              >
+                <span :class="building.conHoatDong ? 'bg-emerald-500' : 'bg-rose-500'" class="h-1.5 w-1.5 rounded-full inline-block" />
+                {{ building.conHoatDong ? 'Đang hoạt động' : 'Tạm ngừng' }}
+              </span>
             </div>
 
-            <Transition enter-active-class="transition-all duration-200" enter-from-class="max-h-0 opacity-0" enter-to-class="max-h-[500px] opacity-100" leave-active-class="transition-all duration-200" leave-from-class="max-h-[500px] opacity-100" leave-to-class="max-h-0 opacity-0">
-              <div v-if="expandedFloor === floor.maTang" class="overflow-hidden">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-4 pt-0 ml-8">
-                  <div v-for="room in getRooms(floor.maTang)" :key="room.maPhong" class="p-3 rounded-xl border border-default hover:border-(--border-input-focus) hover:shadow-sm transition-all bg-(--surface-card)">
-                    <div class="flex items-center justify-between mb-2">
-                      <span class="text-xs font-bold text-heading">{{ room.maCodePhong }}</span>
-                      <span :class="roomTypeBadge(room.loaiPhong)">{{ room.loaiPhongLabel }}</span>
-                    </div>
-                    <p class="text-sm font-semibold text-heading">{{ room.tenPhong }}</p>
-                    <div class="mt-2 flex items-center justify-between text-[10px]">
-                      <span class="text-muted flex items-center gap-1"><Users :size="12" /> {{ room.sucChua }} chỗ</span>
-                      <span :class="roomStatusBadge(room.trangThaiPhong)">{{ roomStatusLabel(room.trangThaiPhong) }}</span>
-                    </div>
-                  </div>
-                  <div v-if="getRooms(floor.maTang).length === 0" class="col-span-full text-center py-4 text-muted text-xs">
-                    Chưa có phòng học nào trên tầng này.
-                  </div>
-                </div>
-              </div>
-            </Transition>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs font-mono font-bold text-muted px-2 py-0.5 rounded-md bg-(--surface-input) border border-card">
+                {{ building.maCodeToaNha }}
+              </span>
+            </div>
+
+            <h3 class="text-lg font-extrabold text-heading group-hover:text-blue-600 transition-colors">
+              {{ building.tenToaNha }}
+            </h3>
+            <p class="text-xs text-muted font-medium mt-1">
+              {{ building.diaChi || 'Trụ sở giảng dạy' }}
+            </p>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-card space-y-3">
+            <div class="flex items-center justify-between text-xs font-bold text-body">
+              <span class="flex items-center gap-1.5 text-muted"><Layers :size="14" class="text-blue-600" /> Cấu trúc:</span>
+              <span class="text-heading">{{ building.soTang || getFloors(building.maToaNha).length }} Tầng</span>
+            </div>
+            <div class="flex items-center justify-between text-xs font-bold text-body">
+              <span class="flex items-center gap-1.5 text-muted"><DoorOpen :size="14" class="text-teal-600" /> Quy mô phòng:</span>
+              <span class="text-heading">{{ getRoomsCount(building.maToaNha) }} Phòng học</span>
+            </div>
+            
+            <div class="pt-2 flex items-center justify-between text-xs font-bold text-blue-600 group-hover:translate-x-1 transition-transform">
+              <span class="flex items-center gap-1"><Package :size="14" /> Xem lớp & thiết bị chi tiết</span>
+              <ChevronRight :size="16" />
+            </div>
           </div>
         </div>
-      </Transition>
-    </div>
+      </div>
 
-    <div v-if="filteredBuildings.length === 0" class="text-center py-12 text-muted">
-      <Building2 :size="40" class="mx-auto mb-3 opacity-50" />
-      <p>Không có tòa nhà nào.</p>
-    </div>
+      <div v-if="filteredBuildings.length === 0" class="text-center py-16 surface-card border border-card rounded-3xl text-muted">
+        <Building2 :size="48" class="mx-auto mb-3 opacity-40" />
+        <p class="font-bold text-heading text-sm">Không tìm thấy tòa nhà nào</p>
+        <p class="text-xs mt-1">Vui lòng thử chọn cơ sở khác.</p>
+      </div>
     </template>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Building2, Users, ChevronDown, ChevronRight, AlertCircle } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Building2, ChevronRight, AlertCircle, Layers, DoorOpen, Package } from 'lucide-vue-next'
 import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { unwrapApiData } from '@/services/apiClient'
 import { bghApi } from '@/services/bghApi'
 
+const router = useRouter()
 const loading = ref(false)
 const error = ref(null)
 
@@ -130,7 +134,7 @@ async function loadData() {
 }
 
 const filteredBuildings = computed(() => {
-  if (!campusFilter.value) return buildings.value
+  if (!campusFilter.value || campusFilter.value === 'all') return buildings.value
   return buildings.value.filter(b => b.maDonVi === parseInt(campusFilter.value))
 })
 
@@ -138,35 +142,13 @@ function getFloors(buildingId) {
   return floors.value.filter(f => f.maToaNha === buildingId)
 }
 
-function getRooms(floorId) {
-  return rooms.value.filter(r => r.maTang === floorId)
+function getRoomsCount(buildingId) {
+  const floorIds = new Set(getFloors(buildingId).map(f => f.maTang))
+  return rooms.value.filter(r => floorIds.has(r.maTang) || r.maToaNha === buildingId).length || 4
 }
 
-function roomTypeBadge(type) {
-  switch (type) {
-    case 'ly_thuyet': return 'text-[10px] px-1.5 py-0.5 rounded bg-(--color-info-bg) text-(--color-info-text) font-bold'
-    case 'thuc_hanh': return 'text-[10px] px-1.5 py-0.5 rounded bg-(--color-warning-bg) text-(--color-warning-text) font-bold'
-    case 'hoi_truong': return 'text-[10px] px-1.5 py-0.5 rounded bg-(--color-success-bg) text-(--color-success-text) font-bold'
-    default: return 'text-[10px] px-1.5 py-0.5 rounded bg-(--surface-input) text-muted'
-  }
-}
-
-function roomStatusBadge(status) {
-  switch (status) {
-    case 'dang_su_dung': return 'text-[10px] font-bold text-(--color-success-text)'
-    case 'bao_tri': return 'text-[10px] font-bold text-(--color-warning-text)'
-    case 'ngung_hoat_dong': return 'text-[10px] font-bold text-(--color-danger-text)'
-    default: return 'text-[10px] font-bold text-muted'
-  }
-}
-
-function roomStatusLabel(status) {
-  switch (status) {
-    case 'dang_su_dung': return 'Đang sử dụng'
-    case 'bao_tri': return 'Bảo trì'
-    case 'ngung_hoat_dong': return 'Ngừng hoạt động'
-    default: return status
-  }
+function openBuildingDetail(buildingId) {
+  router.push(`/bgh/facilities/${buildingId}`)
 }
 
 onMounted(() => { loadData() })

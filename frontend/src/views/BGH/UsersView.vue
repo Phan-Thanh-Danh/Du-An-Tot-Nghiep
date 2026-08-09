@@ -32,18 +32,18 @@
       </div>
       <div class="w-full sm:w-48">
         <label class="block text-xs font-bold text-heading mb-1.5">Vai trò</label>
-        <select v-model="roleFilter" @change="handleFilter" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
+        <LmsSelect v-model="roleFilter" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả vai trò</option>
           <option v-for="r in rolesList" :key="r.maCodeVaiTro" :value="r.maCodeVaiTro">{{ r.tenVaiTro }}</option>
-        </select>
+        </LmsSelect>
       </div>
       <div class="w-full sm:w-40">
         <label class="block text-xs font-bold text-heading mb-1.5">Trạng thái</label>
-        <select v-model="statusFilter" @change="handleFilter" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
+        <LmsSelect v-model="statusFilter" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả trạng thái</option>
           <option value="hoat_dong">Hoạt động</option>
           <option value="bi_khoa">Bị khóa</option>
-        </select>
+        </LmsSelect>
       </div>
       <button @click="handleFilter" class="px-4 py-2 bg-(--surface-input) border border-input hover:bg-(--surface-input-hover) text-heading text-sm font-bold rounded-lg transition-colors h-10">Lọc dữ liệu</button>
     </div>
@@ -132,17 +132,17 @@
           </div>
           <div>
             <label class="block text-xs font-bold text-heading mb-1.5">Vai trò <span class="text-(--color-danger-text)">*</span></label>
-            <select v-model="formData.maCodeVaiTro" required class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none">
+            <LmsSelect v-model="formData.maCodeVaiTro" required class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none">
               <option value="" disabled>-- Chọn vai trò --</option>
               <option v-for="r in rolesList" :key="r.maCodeVaiTro" :value="r.maCodeVaiTro">{{ r.tenVaiTro }}</option>
-            </select>
+            </LmsSelect>
           </div>
           <div>
             <label class="block text-xs font-bold text-heading mb-1.5">Đơn vị <span class="text-(--color-danger-text)">*</span></label>
-            <select v-model="formData.maDonVi" required class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none">
+            <LmsSelect v-model="formData.maDonVi" required class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none">
               <option value="" disabled>-- Chọn đơn vị --</option>
               <option v-for="org in orgsList" :key="org.maDonVi" :value="org.maDonVi">{{ org.tenDonVi }} ({{ org.capDonVi }})</option>
-            </select>
+            </LmsSelect>
           </div>
         </form>
         <div class="p-4 border-t border-default bg-(--surface-card) flex justify-end gap-3">
@@ -159,6 +159,7 @@
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { Search, Plus, Edit2, Lock, Unlock, Key, CheckCircle2, AlertTriangle, AlertCircle, X } from 'lucide-vue-next'
 import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { bghApi } from '@/services/bghApi'
 import { apiRequest, unwrapApiData } from '@/services/apiClient'
 import { useAuthStore } from '@/stores/auth'
@@ -247,10 +248,7 @@ function nextPage() {
   }
 }
 
-watch(keyword, () => {
-  clearTimeout(searchTimer)
-  searchTimer = setTimeout(handleFilter, 250)
-})
+
 
 function openCreateModal() {
   if (!canEdit.value) return

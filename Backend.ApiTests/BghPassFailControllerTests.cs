@@ -17,6 +17,67 @@ namespace Backend.ApiTests;
 public class BghPassFailControllerTests
 {
     [Test]
+    public async Task AtRiskStudents_ShouldFilterBySemesterAndReturnActualRiskSubject()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new ApplicationDbContext(options);
+        var failedTerm = new HocKy
+        {
+            MaHocKy = 1,
+            MaDonVi = 1,
+            MaCodeHocKy = "HK-FAILED",
+            TenHocKy = "Học kỳ có môn rớt",
+            NamHoc = "2026",
+            ThuTuTrongNam = 1,
+            NgayBatDau = new DateOnly(2026, 1, 1),
+            NgayKetThuc = new DateOnly(2026, 4, 30)
+        };
+        var passedTerm = new HocKy
+        {
+            MaHocKy = 2,
+            MaDonVi = 1,
+            MaCodeHocKy = "HK-PASSED",
+            TenHocKy = "Học kỳ đã đạt",
+            NamHoc = "2026",
+            ThuTuTrongNam = 2,
+            NgayBatDau = new DateOnly(2026, 5, 1),
+            NgayKetThuc = new DateOnly(2026, 8, 31)
+        };
+        var subject = new DanhMucMonHoc
+        {
+            MaMonHoc = 1,
+            MaCodeMonHoc = "DBI",
+            TenMonHoc = "Cơ sở dữ liệu",
+            SoTinChi = 3,
+            ConHoatDong = true
+        };
+        context.DonVis.Add(new DonVi { MaDonVi = 1, TenDonVi = "Campus 1", CapDonVi = "co_so", ConHoatDong = true });
+        context.HocKys.AddRange(failedTerm, passedTerm);
+        context.DanhMucMonHocs.Add(subject);
+        context.NguoiDungs.Add(CreateStudent(1, 1, 0));
+        context.DiemSos.AddRange(
+            CreateGrade(1, 1, 1, subject, failedTerm, 3m),
+            CreateGrade(2, 1, 1, subject, passedTerm, 8m));
+        await context.SaveChangesAsync();
+
+        var controller = CreatePrincipalController(context, 1);
+        var failedAction = await controller.GetAtRiskStudents(semesterId: failedTerm.MaHocKy);
+        var failedResponse = (failedAction.Result as OkObjectResult)?.Value as ApiResponseDto<AtRiskReportDto>;
+        var passedAction = await controller.GetAtRiskStudents(semesterId: passedTerm.MaHocKy);
+        var passedResponse = (passedAction.Result as OkObjectResult)?.Value as ApiResponseDto<AtRiskReportDto>;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(failedResponse?.Data?.TotalAtRisk, Is.EqualTo(1));
+            Assert.That(failedResponse?.Data?.Students.Single().RiskSubjectName, Is.EqualTo("Cơ sở dữ liệu"));
+            Assert.That(passedResponse?.Data?.TotalAtRisk, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
     public async Task PassFailFiltersAndReport_ShouldFollowProgramHierarchyAndCampusScope()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()

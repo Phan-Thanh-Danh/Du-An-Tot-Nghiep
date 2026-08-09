@@ -22,10 +22,10 @@
         <p class="text-xs text-muted mt-1">Danh sách các học kỳ, khóa tuyển sinh trên toàn hệ thống</p>
       </div>
       <div class="flex gap-2">
-        <select v-model="yearFilter" @change="filterData" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
+        <LmsSelect v-model="yearFilter" @change="filterData" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả năm học</option>
           <option v-for="y in academicYears" :key="y" :value="y">{{ y }}</option>
-        </select>
+        </LmsSelect>
       </div>
     </div>
 
@@ -103,6 +103,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { CalendarDays, Lock, Unlock, AlertCircle, Loader2 } from 'lucide-vue-next'
 import { bghApi } from '@/services/bghApi'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { unwrapApiData } from '@/services/apiClient'
 
 const loading = ref(false)

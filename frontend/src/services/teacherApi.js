@@ -191,11 +191,6 @@ export const teacherApi = {
     })
   },
 
-  async endExamSession(examId) {
-    const rawRes = await apiRequest(`/api/exam/ca-thi/${examId}/end-session`, { method: 'POST' })
-    return unwrapApiData(rawRes)
-  },
-
   async getExamSessionReport(examId) {
     const rawRes = await apiRequest(`/api/exam/ca-thi/${examId}/bien-ban-tong-hop`)
     return unwrapApiData(rawRes)

@@ -146,7 +146,7 @@ function downloadInvoicePDF(invoiceId) {
   const statusColor = isPaid ? '#16a34a' : '#dc2626'
 
   const scriptStart = '<script'
-  const scriptEnd = '<\/script>'
+  const scriptEnd = '<' + '/script>'
 
   const html = `<!DOCTYPE html>
 <html lang="vi">

@@ -73,10 +73,10 @@
               :key="role.maVaiTro"
               class="hover:bg-(--surface-input)/50 transition-colors"
             >
-              <td class="px-4 py-3 font-medium">{{ role.maVaiTro }}</td>
+              <td class="px-4 py-3 font-medium">{{ role.id || role.maVaiTro }}</td>
               <td class="px-4 py-3">
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-(--surface-input) text-heading border border-default">
-                  {{ role.maCodeVaiTro }}
+                <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-(--color-info-bg) text-(--color-info-text) border border-(--color-info-text)/20 tracking-wide shadow-2xs">
+                  {{ role.maCode || role.maCodeVaiTro }}
                 </span>
               </td>
               <td class="px-4 py-3 font-bold text-heading">{{ role.tenVaiTro }}</td>

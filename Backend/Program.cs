@@ -372,6 +372,7 @@ builder.Services.AddAuthorization(options =>
                 "AcademicStaff",
                 "CampusAdmin",
                 "Chairman",
+                "Principal",
                 "HoiDongQuanLyNoiDung"
             )
     );
@@ -480,18 +481,45 @@ using (var scope = app.Services.CreateScope())
 
 var seedProfile = builder.Configuration["SeedProfile"];
 var shouldSeedBase = string.Equals(seedProfile, "Base", StringComparison.OrdinalIgnoreCase) ||
-                     string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase);
+                      string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase);
+var continueOnSeedFailure = builder.Configuration.GetValue(
+    "SeedContinueOnError",
+    app.Environment.IsDevelopment());
+var baseSeedSucceeded = true;
 if (shouldSeedBase)
 {
-    await Data.SeedRolesAsync(app.Services);
+    try
+    {
+        app.Logger.LogInformation("Running {SeedProfile} base seed...", seedProfile);
+        await Data.SeedRolesAsync(app.Services);
+        app.Logger.LogInformation("{SeedProfile} base seed completed.", seedProfile);
+    }
+    catch (Exception ex)
+    {
+        baseSeedSucceeded = false;
+        app.Logger.LogError(ex, "{SeedProfile} base seed failed. Backend will {Behavior}.",
+            seedProfile,
+            continueOnSeedFailure ? "continue without terminating" : "stop");
+        if (!continueOnSeedFailure) throw;
+    }
 }
-if (string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase))
+if (baseSeedSucceeded && string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase))
 {
-    app.Logger.LogInformation("Running LargeDemoSeeder...");
-    using var scope = app.Services.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await Backend.Data.Seeders.LargeDemoSeeder.SeedAsync(context);
-    app.Logger.LogInformation("LargeDemoSeeder completed.");
+    try
+    {
+        app.Logger.LogInformation("Running LargeDemoSeeder...");
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        context.Database.SetCommandTimeout(180);
+        await Backend.Data.Seeders.LargeDemoSeeder.SeedAsync(context);
+        app.Logger.LogInformation("LargeDemoSeeder completed.");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "LargeDemoSeeder failed. Backend will {Behavior}.",
+            continueOnSeedFailure ? "continue without terminating" : "stop");
+        if (!continueOnSeedFailure) throw;
+    }
 }
 
 app.UseMiddleware<Backend.Middlewares.SecurityHeadersMiddleware>();

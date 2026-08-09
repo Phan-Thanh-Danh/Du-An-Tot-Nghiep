@@ -1,19 +1,21 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, nextTick, onMounted } from 'vue'
 import { 
   FileSearch, 
   BarChart, 
   Printer, 
-  Calendar, 
-  Building2, 
-  ChevronDown,
   ExternalLink,
   Clock,
   Download,
   FileText,
   AlertCircle,
+  X,
+  PieChart,
+  CheckCircle2,
+  TrendingUp,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { exportBghToExcel, printBghPage as triggerPrint } from '@/components/BGH/performance/bghExport.js'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
@@ -29,47 +31,21 @@ const reportType = ref('class')
 const semesterFilter = ref('all')
 const campusFilter = ref('all')
 const generating = ref(false)
+const showViewModal = ref(false)
+const selectedReport = ref(null)
 
 const semesters = ref([{ value: 'all', label: 'Tất cả học kỳ' }])
-const campuses = [{ value: 'all', label: 'Tất cả cơ sở' }]
+const campuses = ref([{ value: 'all', label: 'Tất cả cơ sở' }])
+const reportTypes = [
+  { value: 'class', label: 'Báo cáo theo Lớp' },
+  { value: 'subject', label: 'Báo cáo theo Môn học' },
+  { value: 'campus', label: 'Báo cáo theo Cơ sở' },
+]
 
 const reports = ref([])
 const summaryData = ref(null)
-
-async function loadData() {
-  loading.value = true
-  error.value = null
-  try {
-    const [reportsRes, overviewRes] = await Promise.all([
-      bghApi.getAcademicReports(),
-      bghApi.getAcademicOverview(),
-    ])
-    const data = unwrapApiData(reportsRes)
-    const overview = unwrapApiData(overviewRes) || {}
-    if (data) {
-      summaryData.value = data.summary || data
-      const s = summaryData.value
-      reports.value = [
-        { id: 'ACADEMIC-SUMMARY', name: `Tổng quan học tập • ${s.totalStudents || 0} SV, ${s.totalTeachers || 0} GV`, type: 'Toàn trường', date: new Date().toLocaleDateString('vi-VN'), status: 'ready' },
-      ]
-      tabTotalClasses.value = s.totalClasses ?? 0
-      tabTotalTeachers.value = s.totalTeachers ?? 0
-      tabAvgGpa.value = Number(s.avgGpa ?? 0)
-      tabTotalSubjects.value = overview.totalSubjects ?? 0
-      tabPassRate.value = Number(overview.passRate ?? 0)
-      tabHighFailSubjects.value = (overview.topSubjects || []).filter(item => Number(item.failRate || 0) >= 20).length
-      semesters.value = [
-        { value: 'all', label: 'Tất cả học kỳ' },
-        ...(overview.semesterTrend || []).map(item => ({ value: item.semester, label: item.semester })),
-      ]
-    }
-  } catch (e) {
-    error.value = e.message
-  } finally {
-    loading.value = false
-  }
-}
-onMounted(() => { loadData() })
+const monthlyStats = ref([])
+const departmentStats = ref([])
 
 const tabTotalClasses = ref(0)
 const tabTotalTeachers = ref(0)
@@ -78,44 +54,158 @@ const tabTotalSubjects = ref(0)
 const tabPassRate = ref(0)
 const tabHighFailSubjects = ref(0)
 
+const formatGpa = (val) => {
+  const num = Number(val)
+  return isNaN(num) ? '0.00' : num.toFixed(2)
+}
+
+async function loadData(isInitial = false) {
+  if (isInitial) loading.value = true
+  error.value = null
+  try {
+    const params = {}
+    if (campusFilter.value !== 'all') params.campusId = campusFilter.value
+    if (semesterFilter.value !== 'all') params.semesterId = semesterFilter.value
+    params.reportType = reportType.value
+
+    const [reportsRes, overviewRes] = await Promise.all([
+      bghApi.getAcademicReports(params),
+      bghApi.getAcademicOverview(params),
+    ])
+    const data = unwrapApiData(reportsRes) || {}
+    const overview = unwrapApiData(overviewRes) || {}
+
+    summaryData.value = data.summary || data
+    monthlyStats.value = data.monthlyStats || []
+    departmentStats.value = data.departmentStats || []
+    const s = summaryData.value || {}
+    reports.value = [
+      { id: 'ACADEMIC-SUMMARY', name: `Tổng quan học tập • ${s.totalStudents || 0} SV, ${s.totalTeachers || 0} GV`, type: 'Toàn trường', date: new Date().toLocaleDateString('vi-VN'), status: 'ready' },
+      { id: 'DEPT-PERFORMANCE', name: `Báo cáo hiệu suất theo Khoa / Ngành đào tạo`, type: 'Chuyên ngành', date: new Date().toLocaleDateString('vi-VN'), status: 'ready' },
+      { id: 'SEMESTER-TREND', name: `Báo cáo xu hướng kết quả học tập qua các kỳ`, type: 'Học kỳ', date: new Date().toLocaleDateString('vi-VN'), status: 'ready' },
+    ]
+    tabTotalClasses.value = s.totalClasses ?? 0
+    tabTotalTeachers.value = s.totalTeachers ?? 0
+    tabAvgGpa.value = Number(s.avgGpa ?? 0)
+    tabTotalSubjects.value = overview.totalSubjects ?? 0
+    tabPassRate.value = Number(overview.passRate ?? 0)
+    tabHighFailSubjects.value = (overview.topSubjects || []).filter(item => Number(item.failRate || 0) >= 20).length
+  } catch (e) {
+    error.value = e?.message || 'Không thể truy vấn báo cáo từ CSDL.'
+    throw e
+  } finally {
+    if (isInitial) loading.value = false
+  }
+}
+
+async function loadFilterOptions() {
+  const [termRes, orgRes] = await Promise.all([
+    bghApi.getAcademicTerms(),
+    bghApi.getOrganizations(),
+  ])
+  semesters.value = [
+    { value: 'all', label: 'Tất cả học kỳ' },
+    ...(unwrapApiData(termRes) || []).map(term => ({
+      value: String(term.maHocKy || term.id),
+      label: `${term.tenHocKy}${term.namHoc ? ` · ${term.namHoc}` : ''}`,
+    })),
+  ]
+  campuses.value = [
+    { value: 'all', label: 'Tất cả cơ sở' },
+    ...(unwrapApiData(orgRes) || []).map(org => ({
+      value: String(org.id || org.maDonVi),
+      label: org.name || org.tenDonVi || 'Cơ sở',
+    })),
+  ]
+}
+
+onMounted(async () => {
+  loading.value = true
+  try {
+    await loadFilterOptions()
+    await loadData(false)
+  } catch (e) {
+    error.value = e?.message || 'Không thể tải báo cáo.'
+  } finally {
+    loading.value = false
+  }
+})
+
 async function generateReport() {
+  if (generating.value) return
   generating.value = true
   try {
     await loadData()
-    popup.success('Làm mới báo cáo', 'Dữ liệu báo cáo đã được truy vấn lại từ hệ thống.')
+    const reportByType = {
+      class: reports.value.find(item => item.id === 'ACADEMIC-SUMMARY'),
+      subject: reports.value.find(item => item.id === 'DEPT-PERFORMANCE'),
+      campus: reports.value.find(item => item.id === 'SEMESTER-TREND'),
+    }
+    selectedReport.value = reportByType[reportType.value] || reports.value[0] || null
+    showViewModal.value = Boolean(selectedReport.value)
+    popup.success('Tạo báo cáo thành công', 'Báo cáo đã được truy vấn từ CSDL và sẵn sàng để xem hoặc xuất file.')
+  } catch (e) {
+    popup.error('Lỗi làm mới báo cáo', e?.message || 'Không thể tải dữ liệu.')
   } finally {
     generating.value = false
   }
 }
 
 function viewReport(rpt) {
-  popup.info(`Báo cáo: ${rpt.name}`, `Mã: ${rpt.id}\nLoại: ${rpt.type}\nNgày tạo: ${rpt.date}\nTrạng thái: ${rpt.status === 'ready' ? 'Sẵn sàng' : 'Đang tạo'}`)
+  selectedReport.value = rpt
+  showViewModal.value = true
 }
 
-function exportReport(rpt) {
-  const data = [{
-    'Mã báo cáo': rpt.id,
-    'Tên báo cáo': rpt.name,
-    'Loại': rpt.type,
-    'Ngày tạo': rpt.date,
-    'Trạng thái': rpt.status === 'ready' ? 'Sẵn sàng' : 'Đang tạo',
-  }]
-  exportBghToExcel(data, `${rpt.id}.xlsx`, rpt.name)
-  popup.success('Xuất báo cáo', `Đã xuất "${rpt.name}" thành công.`)
+async function viewReportInTable(rpt) {
+  selectedReport.value = rpt
+  if (rpt?.id === 'DEPT-PERFORMANCE') activeTab.value = 'Subject'
+  else if (rpt?.id === 'SEMESTER-TREND') activeTab.value = 'Campus'
+  else activeTab.value = 'Class'
+  showViewModal.value = false
+  await nextTick()
+  document.getElementById('bgh-report-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function closeViewModal() {
+  showViewModal.value = false
+  selectedReport.value = null
 }
 
 function prepareExcelData() {
-  return reports.value.map(r => ({
-    'Mã báo cáo': r.id,
-    'Tên báo cáo': r.name,
-    'Loại': r.type,
-    'Ngày tạo': r.date,
-    'Trạng thái': r.status === 'ready' ? 'Sẵn sàng' : 'Đang tạo',
-  }))
+  const result = []
+  result.push({ 'Hạng mục': 'TỔNG QUAN HỌC TẬP', 'Số liệu': '', 'Ghi chú': '' })
+  if (summaryData.value) {
+    result.push({ 'Hạng mục': 'Tổng số sinh viên', 'Số liệu': summaryData.value.totalStudents, 'Ghi chú': 'Toàn hệ thống' })
+    result.push({ 'Hạng mục': 'Tổng số giảng viên', 'Số liệu': summaryData.value.totalTeachers, 'Ghi chú': 'Đang giảng dạy' })
+    result.push({ 'Hạng mục': 'Tổng số lớp học phần', 'Số liệu': summaryData.value.totalClasses, 'Ghi chú': 'Mở trong kỳ' })
+    result.push({ 'Hạng mục': 'GPA Trung bình', 'Số liệu': summaryData.value.avgGpa, 'Ghi chú': 'Thang điểm 10.0' })
+  }
+  result.push({})
+  result.push({ 'Hạng mục': 'THỐNG KÊ THEO HỌC KỲ / LỚP HỌC', 'Số liệu': '', 'Ghi chú': '' })
+  monthlyStats.value.forEach(m => {
+    result.push({ 'Hạng mục': m.semester, 'Số liệu': `${m.totalGrades} lượt chấm`, 'Ghi chú': `${m.passCount} Pass, ${m.failCount} Fail - GPA TB: ${m.avgGpa}` })
+  })
+  result.push({})
+  result.push({ 'Hạng mục': 'THỐNG KÊ THEO KHOA / CHUYÊN NGÀNH', 'Số liệu': '', 'Ghi chú': '' })
+  departmentStats.value.forEach(d => {
+    result.push({ 'Hạng mục': d.departmentName, 'Số liệu': `${d.totalGrades} lượt`, 'Ghi chú': `Pass: ${d.passRate}% - GPA TB: ${d.avgGpa}` })
+  })
+  return result
 }
 
-function exportExcel() {
-  exportBghToExcel(prepareExcelData(), `BaoCao-HocTap-${semesterFilter.value}.xlsx`, 'Báo cáo học tập')
+async function exportReport(rpt) {
+  try {
+    const data = prepareExcelData()
+    if (data.length === 0) throw new Error('Báo cáo chưa có dữ liệu để xuất.')
+    await exportBghToExcel(data, `${rpt ? rpt.id : 'BaoCao-ChiTiet'}.xlsx`, rpt?.type || 'Báo cáo chi tiết')
+    popup.success('Xuất báo cáo thành công', 'File Excel đã được tải xuống thiết bị.')
+  } catch (e) {
+    popup.error('Không thể xuất báo cáo', e?.message || 'Không thể tạo file Excel.')
+  }
+}
+
+async function exportExcel() {
+  await exportReport(selectedReport.value)
 }
 </script>
 
@@ -169,30 +259,19 @@ function exportExcel() {
             <div class="space-y-2">
                <label class="text-[10px] font-semibold text-muted uppercase tracking-widest ml-1">Loại báo cáo</label>
                <div class="relative">
-                  <select v-model="reportType" class="w-full surface-input border border-input rounded-2xl px-5 py-3.5 text-sm font-bold outline-none appearance-none cursor-pointer">
-                     <option value="class">Báo cáo theo Lớp</option>
-                     <option value="subject">Báo cáo theo Môn học</option>
-                     <option value="campus">Báo cáo theo Cơ sở</option>
-                  </select>
-                  <ChevronDown :size="16" class="absolute right-4 top-1/2 -translate-y-1/2 text-placeholder pointer-events-none" />
+                  <LmsSelect v-model="reportType" :options="reportTypes" class="w-full surface-input border border-input rounded-2xl px-5 py-3.5 text-sm font-bold outline-none appearance-none cursor-pointer" />
                </div>
             </div>
             <div class="space-y-2">
                <label class="text-[10px] font-semibold text-muted uppercase tracking-widest ml-1">Học kỳ</label>
                <div class="relative">
-                  <select v-model="semesterFilter" class="w-full surface-input border border-input rounded-2xl px-5 py-3.5 text-sm font-bold outline-none appearance-none cursor-pointer">
-                     <option v-for="s in semesters" :key="s.value" :value="s.value">{{ s.label }}</option>
-                  </select>
-                  <Calendar :size="16" class="absolute right-4 top-1/2 -translate-y-1/2 text-placeholder pointer-events-none" />
+                  <LmsSelect v-model="semesterFilter" :options="semesters" class="w-full surface-input border border-input rounded-2xl px-5 py-3.5 text-sm font-bold outline-none appearance-none cursor-pointer" />
                </div>
             </div>
             <div class="space-y-2">
                <label class="text-[10px] font-semibold text-muted uppercase tracking-widest ml-1">Cơ sở (Campus)</label>
                <div class="relative">
-                  <select v-model="campusFilter" class="w-full surface-input border border-input rounded-2xl px-5 py-3.5 text-sm font-bold outline-none appearance-none cursor-pointer">
-                     <option v-for="c in campuses" :key="c.value" :value="c.value">{{ c.label }}</option>
-                  </select>
-                  <Building2 :size="16" class="absolute right-4 top-1/2 -translate-y-1/2 text-placeholder pointer-events-none" />
+                  <LmsSelect v-model="campusFilter" :options="campuses" class="w-full surface-input border border-input rounded-2xl px-5 py-3.5 text-sm font-bold outline-none appearance-none cursor-pointer" />
                </div>
             </div>
             <div class="flex items-end">
@@ -204,7 +283,7 @@ function exportExcel() {
       </div>
 
       <!-- ── Analysis Content ── -->
-      <div class="space-y-4">
+      <div id="bgh-report-table" class="space-y-4 scroll-mt-4">
          <div class="flex items-center justify-between pb-2 print:hidden">
             <div class="flex gap-8">
                <button 
@@ -239,6 +318,33 @@ function exportExcel() {
                <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">GPA TB theo lớp</p>
              </div>
            </div>
+
+           <!-- Bảng thống kê theo Học kỳ / Lớp -->
+           <div class="lg-table-shell overflow-hidden">
+             <table class="w-full text-left border-collapse">
+               <thead>
+                 <tr class="surface-solid">
+                   <th class="px-4 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Học kỳ / Đơn vị</th>
+                   <th class="px-4 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Tổng lượt đánh giá</th>
+                   <th class="px-4 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Sĩ số đạt (Pass)</th>
+                   <th class="px-4 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Số lượng rớt (Fail)</th>
+                   <th class="px-4 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest">GPA Trung bình</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 <tr v-for="m in monthlyStats" :key="m.semester" class="hover:bg-(--surface-input) transition-colors">
+                   <td class="px-4 py-3.5 font-bold text-heading text-xs">{{ m.semester }}</td>
+                   <td class="px-4 py-3.5 text-xs text-muted font-medium">{{ m.totalGrades }} lượt</td>
+                   <td class="px-4 py-3.5 text-xs font-bold text-(--color-success-text)">{{ m.passCount }} Pass</td>
+                   <td class="px-4 py-3.5 text-xs font-bold text-(--color-danger-text)">{{ m.failCount }} Fail</td>
+                   <td class="px-4 py-3.5 text-xs font-bold text-heading">{{ formatGpa(m.avgGpa) }}</td>
+                 </tr>
+                 <tr v-if="monthlyStats.length === 0">
+                   <td colspan="5" class="py-8 text-center text-xs text-muted">Chưa có dữ liệu thống kê theo lớp học.</td>
+                 </tr>
+               </tbody>
+             </table>
+           </div>
          </div>
          <div v-if="activeTab === 'Subject'" class="space-y-4">
            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -255,16 +361,43 @@ function exportExcel() {
                <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">Môn tỷ lệ rớt cao</p>
              </div>
            </div>
+
+           <!-- Bảng thống kê theo Khoa / Chuyên ngành -->
+           <div class="lg-table-shell overflow-hidden">
+             <table class="w-full text-left border-collapse">
+               <thead>
+                 <tr class="surface-solid">
+                   <th class="px-4 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Khoa / Ngành đào tạo</th>
+                   <th class="px-4 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Tổng lượt chấm điểm</th>
+                   <th class="px-4 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Số bài đạt</th>
+                   <th class="px-4 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Tỷ lệ Pass</th>
+                   <th class="px-4 py-3.5 text-[10px] font-semibold text-placeholder uppercase tracking-widest">GPA TB</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 <tr v-for="d in departmentStats" :key="d.departmentName" class="hover:bg-(--surface-input) transition-colors">
+                   <td class="px-4 py-3.5 font-bold text-heading text-xs">{{ d.departmentName }}</td>
+                   <td class="px-4 py-3.5 text-xs text-muted font-medium">{{ d.totalGrades }} bài</td>
+                   <td class="px-4 py-3.5 text-xs font-bold text-(--color-success-text)">{{ d.passCount }} Pass</td>
+                   <td class="px-4 py-3.5 text-xs font-bold text-(--color-info-text)">{{ d.passRate }}%</td>
+                   <td class="px-4 py-3.5 text-xs font-bold text-heading">{{ formatGpa(d.avgGpa) }}</td>
+                 </tr>
+                 <tr v-if="departmentStats.length === 0">
+                   <td colspan="5" class="py-8 text-center text-xs text-muted">Chưa có dữ liệu thống kê theo khoa/ngành.</td>
+                 </tr>
+               </tbody>
+             </table>
+           </div>
          </div>
          <div v-if="activeTab === 'Campus'" class="space-y-4">
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
              <div class="surface-card border border-card rounded-2xl p-5 text-center">
                <p class="text-2xl font-bold text-heading">{{ summaryData?.totalStudents ?? '—' }}</p>
-               <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">Tổng SV</p>
+               <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">Tổng sinh viên toàn trường</p>
              </div>
              <div class="surface-card border border-card rounded-2xl p-5 text-center">
                <p class="text-2xl font-bold text-heading">{{ summaryData?.activeCourses ?? '—' }}</p>
-               <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">Khóa học đang mở</p>
+               <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mt-1">Khóa học đang hoạt động</p>
              </div>
            </div>
          </div>
@@ -291,7 +424,7 @@ function exportExcel() {
                
                 <div class="mt-6 pt-5 flex items-center justify-between">
                    <div class="flex gap-2">
-                      <button @click="viewReport(rpt)" class="text-[10px] font-semibold text-muted hover:text-link uppercase">View</button>
+                      <button @click="viewReportInTable(rpt)" class="text-[10px] font-semibold text-muted hover:text-link uppercase">View in table</button>
                       <button @click="exportReport(rpt)" class="text-[10px] font-semibold text-muted hover:text-link uppercase">Export</button>
                    </div>
                    <button @click="viewReport(rpt)" class="text-placeholder hover:text-link"><ExternalLink :size="16" /></button>
@@ -302,6 +435,109 @@ function exportExcel() {
            <p class="text-sm text-muted font-medium">Chưa có báo cáo nào. Sử dụng trình tạo báo cáo để tạo mới.</p>
          </div>
       </div>
+
+      <!-- ── View Report Modal ── -->
+      <Teleport to="body">
+        <div v-if="showViewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div class="w-full max-w-3xl surface-card rounded-2xl shadow-2xl border border-card overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-5 bg-(--surface-card) border-b border-card flex justify-between items-center">
+              <div>
+                <h3 class="text-base font-bold text-heading flex items-center gap-2">
+                  <FileSearch :size="20" class="text-link" />
+                  {{ selectedReport?.name || 'Chi tiết báo cáo' }}
+                </h3>
+                <p class="text-xs text-muted mt-0.5">Mã: {{ selectedReport?.id }} · Loại: {{ selectedReport?.type }} · Ngày tạo: {{ selectedReport?.date }}</p>
+              </div>
+              <button @click="closeViewModal" class="p-1.5 hover:bg-(--surface-input) rounded-lg text-muted transition-colors">
+                <X :size="20" />
+              </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-6 flex-1">
+              <!-- KPI Cards -->
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="surface-input p-3 rounded-xl border border-card text-center">
+                  <p class="text-[10px] font-bold text-muted uppercase">Sinh viên</p>
+                  <p class="text-lg font-bold text-heading mt-0.5">{{ summaryData?.totalStudents?.toLocaleString() || '—' }}</p>
+                </div>
+                <div class="surface-input p-3 rounded-xl border border-card text-center">
+                  <p class="text-[10px] font-bold text-muted uppercase">Giảng viên</p>
+                  <p class="text-lg font-bold text-heading mt-0.5">{{ summaryData?.totalTeachers?.toLocaleString() || '—' }}</p>
+                </div>
+                <div class="surface-input p-3 rounded-xl border border-card text-center">
+                  <p class="text-[10px] font-bold text-muted uppercase">Lớp học phần</p>
+                  <p class="text-lg font-bold text-heading mt-0.5">{{ summaryData?.totalClasses?.toLocaleString() || '—' }}</p>
+                </div>
+                <div class="surface-input p-3 rounded-xl border border-card text-center">
+                  <p class="text-[10px] font-bold text-muted uppercase">GPA TB</p>
+                  <p class="text-lg font-bold text-heading mt-0.5">{{ summaryData?.avgGpa ? formatGpa(summaryData.avgGpa) : '—' }}</p>
+                </div>
+              </div>
+
+              <!-- Thống kê học kỳ -->
+              <div>
+                <h4 class="text-xs font-bold text-heading uppercase tracking-wide mb-3">Thống kê kết quả theo Học kỳ / Lớp</h4>
+                <div class="lg-table-shell overflow-hidden">
+                  <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr class="surface-solid">
+                        <th class="px-3 py-2.5 font-bold text-placeholder uppercase">Học kỳ</th>
+                        <th class="px-3 py-2.5 font-bold text-placeholder uppercase">Tổng lượt chấm</th>
+                        <th class="px-3 py-2.5 font-bold text-placeholder uppercase">Số bài Pass</th>
+                        <th class="px-3 py-2.5 font-bold text-placeholder uppercase">Số bài Fail</th>
+                        <th class="px-3 py-2.5 font-bold text-placeholder uppercase">GPA TB</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="m in monthlyStats" :key="m.semester" class="hover:bg-(--surface-input)">
+                        <td class="px-3 py-2.5 font-bold text-heading">{{ m.semester }}</td>
+                        <td class="px-3 py-2.5 text-muted">{{ m.totalGrades }} lượt</td>
+                        <td class="px-3 py-2.5 font-bold text-(--color-success-text)">{{ m.passCount }}</td>
+                        <td class="px-3 py-2.5 font-bold text-(--color-danger-text)">{{ m.failCount }}</td>
+                        <td class="px-3 py-2.5 font-bold text-heading">{{ formatGpa(m.avgGpa) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Thống kê Khoa -->
+              <div>
+                <h4 class="text-xs font-bold text-heading uppercase tracking-wide mb-3">Thống kê theo Khoa / Ngành đào tạo</h4>
+                <div class="lg-table-shell overflow-hidden">
+                  <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr class="surface-solid">
+                        <th class="px-3 py-2.5 font-bold text-placeholder uppercase">Khoa / Ngành</th>
+                        <th class="px-3 py-2.5 font-bold text-placeholder uppercase">Tổng lượt</th>
+                        <th class="px-3 py-2.5 font-bold text-placeholder uppercase">Tỷ lệ Pass</th>
+                        <th class="px-3 py-2.5 font-bold text-placeholder uppercase">GPA TB</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="d in departmentStats" :key="d.departmentName" class="hover:bg-(--surface-input)">
+                        <td class="px-3 py-2.5 font-bold text-heading">{{ d.departmentName }}</td>
+                        <td class="px-3 py-2.5 text-muted">{{ d.totalGrades }} lượt</td>
+                        <td class="px-3 py-2.5 font-bold text-(--color-info-text)">{{ d.passRate }}%</td>
+                        <td class="px-3 py-2.5 font-bold text-heading">{{ formatGpa(d.avgGpa) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 bg-(--surface-card) border-t border-card flex justify-end gap-3">
+              <button @click="closeViewModal" class="px-4 py-2 text-xs font-bold border border-input rounded-lg hover:bg-(--surface-input)">Đóng</button>
+              <button @click="viewReportInTable(selectedReport)" class="px-4 py-2 text-xs font-bold border border-input rounded-lg hover:bg-(--surface-input)">View in table</button>
+              <button @click="exportReport(selectedReport)" class="flex items-center gap-1.5 px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark)">
+                <Download :size="14" />
+                <span>Tải dữ liệu Excel</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
 
     </div>
   </PageContainer>

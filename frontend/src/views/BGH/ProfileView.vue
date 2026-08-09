@@ -224,8 +224,24 @@ async function changePassword() {
     passwordError.value = 'Mật khẩu mới phải có tối thiểu 8 ký tự.'
     return
   }
+  if (!/[A-Z]/.test(passwordForm.newPassword)) {
+    passwordError.value = 'Mật khẩu mới phải chứa ít nhất 1 chữ cái viết hoa.'
+    return
+  }
+  if (!/[a-z]/.test(passwordForm.newPassword)) {
+    passwordError.value = 'Mật khẩu mới phải chứa ít nhất 1 chữ cái viết thường.'
+    return
+  }
+  if (!/[0-9]/.test(passwordForm.newPassword)) {
+    passwordError.value = 'Mật khẩu mới phải chứa ít nhất 1 chữ số.'
+    return
+  }
+  if (!/[^A-Za-z0-9]/.test(passwordForm.newPassword)) {
+    passwordError.value = 'Mật khẩu mới phải chứa ít nhất 1 ký tự đặc biệt.'
+    return
+  }
   if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-    passwordError.value = 'Mật khẩu mới và xác nhận không khớp.'
+    passwordError.value = 'Mật khẩu nhập lại không trùng khớp.'
     return
   }
   try {
@@ -234,6 +250,7 @@ async function changePassword() {
       body: JSON.stringify({
         currentPassword: passwordForm.oldPassword,
         newPassword: passwordForm.newPassword,
+        confirmPassword: passwordForm.confirmPassword,
       }),
     })
     passwordSuccess.value = 'Đổi mật khẩu thành công!'
@@ -266,7 +283,7 @@ function applyProfile(source = {}) {
   profile.soDienThoai = source.soDienThoai ?? source.phone ?? ''
   profile.vaiTroChinh = source.vaiTroChinh ?? source.role ?? auth.user?.role ?? ''
   profile.maDonVi = source.maDonVi ?? null
-  profile.tenDonVi = source.tenDonVi ?? source.donVi ?? ''
+  profile.tenDonVi = source.tenDonVi ?? source.donVi ?? source.campus ?? ''
   profile.trangThai = source.trangThai ?? 'hoat_dong'
   profile.ngayTao = source.ngayTao ? new Date(source.ngayTao).toLocaleDateString('vi-VN') : ''
   profile.initials = auth.initials || (profile.hoTen || profile.email || 'BGH').slice(0, 2).toUpperCase()

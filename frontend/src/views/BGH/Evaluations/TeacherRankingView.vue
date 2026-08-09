@@ -1,22 +1,36 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { 
   Search, Trophy, TrendingUp, TrendingDown, Minus, Star, ChevronRight, ShieldCheck, Building2,
   AlertCircle
 } from 'lucide-vue-next'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
 const router = useRouter()
-const loading = ref(false)
-const error = ref(null)
+const route = useRoute()
 const searchQuery = ref('')
 const deptFilter = ref('all')
-
+const ratingFilter = ref('all')
+const semesterFilter = ref('all')
 const rankings = ref([])
 const semesters = ref([])
+const majorOptions = ref([{ value: 'all', label: 'Tất cả Khoa / Ngành' }])
+const loading = ref(false)
+const error = ref(null)
+
+const ratingOptions = [
+  { value: 'all', label: 'Tất cả mức sao (1-5★)' },
+  { value: '5_star', label: '5 sao (4.5 – 5.0 ★)' },
+  { value: '4_star', label: '4 sao (4.0 – 4.4 ★)' },
+  { value: '3_star', label: '3 sao (3.0 – 3.9 ★)' },
+  { value: '2_star', label: '2 sao (2.0 – 2.9 ★)' },
+  { value: '1_star', label: '1 sao (< 2.0 ★)' },
+  { value: 'warning', label: 'Cảnh báo (Dưới 3.5 ★)' }
+]
 
 const filteredRankings = computed(() => {
   let list = rankings.value
@@ -25,12 +39,28 @@ const filteredRankings = computed(() => {
     list = list.filter(gv => gv.name.toLowerCase().includes(q) || gv.dept.toLowerCase().includes(q))
   }
   if (deptFilter.value !== 'all') {
-    list = list.filter(gv => gv.dept === deptFilter.value)
+    list = list.filter(gv => gv.dept === deptFilter.value || gv.deptId === Number(deptFilter.value))
+  }
+  if (ratingFilter.value === '5_star') {
+    list = list.filter(gv => gv.avgScore >= 4.5)
+  } else if (ratingFilter.value === '4_star') {
+    list = list.filter(gv => gv.avgScore >= 4.0 && gv.avgScore < 4.5)
+  } else if (ratingFilter.value === '3_star') {
+    list = list.filter(gv => gv.avgScore >= 3.0 && gv.avgScore < 4.0)
+  } else if (ratingFilter.value === '2_star') {
+    list = list.filter(gv => gv.avgScore >= 2.0 && gv.avgScore < 3.0)
+  } else if (ratingFilter.value === '1_star') {
+    list = list.filter(gv => gv.avgScore < 2.0)
+  } else if (ratingFilter.value === 'warning') {
+    list = list.filter(gv => gv.avgScore < 3.5)
   }
   return list
 })
 
-const departments = computed(() => ['Tất cả khoa', ...new Set(rankings.value.map(gv => gv.dept))])
+const semesterOptions = computed(() => [
+  { value: 'all', label: 'Tất cả học kỳ' },
+  ...semesters.value.map(s => ({ value: s, label: s }))
+])
 
 const getTrendIcon = (trend) => {
   if (trend === 'up') return TrendingUp
@@ -48,17 +78,21 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const [rankingRes, overviewRes] = await Promise.all([
-      bghApi.getEvaluationRanking(),
-      bghApi.getEvaluationOverview(),
+    const [rankingRes, overviewRes, filterOptionsRes] = await Promise.all([
+      bghApi.getEvaluationRanking().catch(() => null),
+      bghApi.getEvaluationOverview().catch(() => null),
+      bghApi.getPassFailFilterOptions().catch(() => null)
     ])
     const data = unwrapApiData(rankingRes)
     const overview = unwrapApiData(overviewRes) || {}
+    const filterOptions = unwrapApiData(filterOptionsRes) || {}
+
     rankings.value = Array.isArray(data)
       ? data.map(item => ({
           id: item.teacherId ?? item.id,
           name: item.teacherName || item.name || '',
           dept: item.departmentName || item.dept || 'Chưa phân khoa',
+          deptId: item.departmentId ?? item.deptId,
           avgScore: Number(item.avgRating ?? item.avgScore ?? 0),
           evals: item.reviewCount ?? item.evals ?? 0,
           positive: item.positive ?? 0,
@@ -66,14 +100,35 @@ async function loadData() {
           trend: item.trend || 'stable'
         }))
       : []
+
+    if (filterOptions.majors && Array.isArray(filterOptions.majors)) {
+      const opts = filterOptions.majors.map(m => ({
+        value: m.label || m.name || m.tenNganh || String(m.id),
+        label: m.label || m.name || m.tenNganh || `Khoa ${m.id}`
+      }))
+      majorOptions.value = [{ value: 'all', label: 'Tất cả Khoa / Ngành' }, ...opts]
+    } else {
+      const depts = [...new Set(rankings.value.map(gv => gv.dept))]
+      majorOptions.value = [
+        { value: 'all', label: 'Tất cả Khoa / Ngành' },
+        ...depts.map(d => ({ value: d, label: d }))
+      ]
+    }
+
     semesters.value = (overview.semesterTrend || []).map(item => item.semester).filter(Boolean)
   } catch (e) {
-    error.value = e.message
+    error.value = e?.message || 'Không thể tải dữ liệu xếp hạng'
   } finally {
     loading.value = false
   }
 }
-onMounted(() => { loadData() })
+
+onMounted(() => {
+  if (route.query.filter === 'warning') {
+    ratingFilter.value = 'warning'
+  }
+  loadData()
+})
 
 function viewDetail(gv) {
   router.push(`/bgh/evaluations/detail/${gv.id}`)
@@ -109,13 +164,10 @@ function viewDetail(gv) {
               <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
               <input v-model="searchQuery" type="text" placeholder="Tìm tên giảng viên hoặc khoa..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
            </div>
-           <select v-model="deptFilter" class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
-              <option v-for="d in departments" :key="d" :value="d === 'Tất cả khoa' ? 'all' : d">{{ d }}</option>
-           </select>
+           <LmsSelect v-model="deptFilter" :options="majorOptions" class="w-48 surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
+           <LmsSelect v-model="ratingFilter" :options="ratingOptions" class="w-48 surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
         </div>
-        <select class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
-           <option v-for="semester in semesters" :key="semester" :value="semester">{{ semester }}</option>
-        </select>
+        <LmsSelect v-model="semesterFilter" :options="semesterOptions" class="w-44 surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
       </div>
 
       <div class="lg-table-shell overflow-hidden">

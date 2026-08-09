@@ -88,13 +88,14 @@ export function createBghDataClient(request = apiRequest) {
   }
 
   function fetchAndCache(key, path, options) {
-    if (inflight.has(key)) {
+    const existing = inflight.get(key)
+    if (existing && !(options.priority === 'critical' && existing.priority === 'prefetch')) {
       metrics.deduped += 1
-      return inflight.get(key)
+      return existing.task
     }
 
     const controller = new AbortController()
-    const scope = options.scope || (typeof window !== 'undefined' ? window.location.pathname : 'server')
+    const scope = options.scope || (options.priority === 'prefetch' ? 'prefetch' : (typeof window !== 'undefined' ? window.location.pathname : 'server'))
     const task = schedule(async () => {
       if (controller.signal.aborted) throw abortError()
       metrics.requests += 1
@@ -110,11 +111,11 @@ export function createBghDataClient(request = apiRequest) {
       return value
     }, options.priority)
 
-    inflight.set(key, task)
+    inflight.set(key, { task, priority: options.priority })
     controllers.set(key, { controller, scope })
     task.finally(() => {
-      inflight.delete(key)
-      controllers.delete(key)
+      if (inflight.get(key)?.task === task) inflight.delete(key)
+      if (controllers.get(key)?.controller === controller) controllers.delete(key)
     }).catch(() => {})
     return task
   }
@@ -146,7 +147,26 @@ export function createBghDataClient(request = apiRequest) {
     }
 
     metrics.misses += 1
-    return raceWithSignal(fetchAndCache(key, path, normalizedOptions), options.signal)
+    const p = fetchAndCache(key, path, normalizedOptions)
+    if (normalizedOptions.priority === 'critical') {
+      return raceWithSignal(p, options.signal).catch((err) => {
+        if (err?.name === 'AbortError' || err?.message?.includes('cancelled') || err?.message?.includes('aborted')) {
+          cache.delete(key)
+          return request(path).then((val) => {
+            cache.set(key, {
+              value: val,
+              updatedAt: Date.now(),
+              freshMs: normalizedOptions.freshMs,
+              staleMs: normalizedOptions.staleMs,
+              prefetched: false,
+            })
+            return val
+          }).catch(() => null)
+        }
+        throw err
+      })
+    }
+    return raceWithSignal(p, options.signal)
   }
 
   function prefetch(path, options = {}) {

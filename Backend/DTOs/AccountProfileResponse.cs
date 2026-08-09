@@ -8,6 +8,9 @@ public class AccountProfileResponse
     public string? SoDienThoai { get; set; }
     public string VaiTroChinh { get; set; } = string.Empty;
     public string TrangThai { get; set; } = string.Empty;
+    public int MaDonVi { get; set; }
+    public string? TenDonVi { get; set; }
+    public string? DonVi { get; set; }
     public string? ClassName { get; set; }
     public string? Major { get; set; }
     public string? Campus { get; set; }

@@ -17,12 +17,12 @@
     </div>
     <template v-else>
     <div class="flex items-center gap-3">
-      <select v-model="semesterFilter" class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+      <LmsSelect v-model="semesterFilter" class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
         <option v-for="s in semesters" :key="s" :value="s">{{ s }}</option>
-      </select>
-      <select v-model="campusFilter" class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+      </LmsSelect>
+      <LmsSelect v-model="campusFilter" class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
         <option v-for="campus in campuses" :key="campus.value" :value="campus.value">{{ campus.label }}</option>
-      </select>
+      </LmsSelect>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -169,6 +169,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Star, TrendingUp, TrendingDown, ThumbsUp, MessageSquare, Users, Award, AlertCircle, Loader2 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 

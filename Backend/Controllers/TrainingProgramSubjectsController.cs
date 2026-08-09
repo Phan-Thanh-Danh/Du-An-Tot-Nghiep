@@ -9,7 +9,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/master-data/training-program-subjects")]
-[Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Chairman},{AuthRoles.CampusAdmin},{AuthRoles.SubCampusAdmin},{AuthRoles.AcademicStaff}")]
+[Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Chairman},{AuthRoles.CampusAdmin},{AuthRoles.SubCampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Principal}")]
 public class TrainingProgramSubjectsController : ControllerBase
 {
     private readonly ITrainingProgramSubjectService _trainingProgramSubjectService;

@@ -14,14 +14,14 @@
       </div>
       <div class="w-full sm:w-44">
         <label class="block text-xs font-bold text-heading mb-1.5">Đối tượng</label>
-        <select v-model="filters.loaiDoiTuong" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
+        <LmsSelect v-model="filters.loaiDoiTuong" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả</option>
           <option v-for="t in entityTypes" :key="t" :value="t">{{ t }}</option>
-        </select>
+        </LmsSelect>
       </div>
       <div class="w-full sm-w-36">
         <label class="block text-xs font-bold text-heading mb-1.5">Hành động</label>
-        <select v-model="filters.hanhDong" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
+        <LmsSelect v-model="filters.hanhDong" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả</option>
           <option value="CREATE">Tạo mới</option>
           <option value="UPDATE">Cập nhật</option>
@@ -30,7 +30,7 @@
           <option value="UNLOCK">Mở khóa</option>
           <option value="LOGIN">Đăng nhập</option>
           <option value="HTTP_GET">Xem</option>
-        </select>
+        </LmsSelect>
       </div>
       <div class="w-full sm:w-36">
         <label class="block text-xs font-bold text-heading mb-1.5">Từ ngày</label>
@@ -161,6 +161,7 @@ import {
   History, Eye, X, Plus, Lock, Unlock, LogIn, Edit3, Trash2
 } from 'lucide-vue-next'
 import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 

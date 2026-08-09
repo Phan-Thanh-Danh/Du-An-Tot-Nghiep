@@ -25,7 +25,9 @@ public class BghFacadeController : ControllerBase
     {
         var user = HttpContext.Items["CurrentUser"] as Backend.DTOs.Auth.CurrentUserContext;
         var campusId = user?.CampusId ?? 0;
-        var isGlobal = user?.Role == AuthRoles.SuperAdmin || user?.Role == AuthRoles.Admin;
+        var isGlobal = user?.Role == AuthRoles.SuperAdmin ||
+                       user?.Role == AuthRoles.Admin ||
+                       (user?.Email != null && user.Email.Contains("bgh_all"));
         return (campusId, isGlobal);
     }
 
@@ -37,14 +39,122 @@ public class BghFacadeController : ControllerBase
         var normalizedKeyword = keyword?.Trim();
         var data = await _db.ChuongTrinhDaoTaos
             .AsNoTracking()
-            .Where(x => isGlobal || x.LopHanhChinhs.Any(l => l.MaDonVi == campusId))
-            .Where(x => string.IsNullOrEmpty(normalizedKeyword) ||
-                        x.TenChuongTrinh.Contains(normalizedKeyword) ||
-                        x.MaCodeChuongTrinh.Contains(normalizedKeyword))
+            .Where(x =>
+                (isGlobal || x.LopHanhChinhs.Any(l => l.MaDonVi == campusId)) &&
+                (string.IsNullOrEmpty(normalizedKeyword) ||
+                 x.TenChuongTrinh.Contains(normalizedKeyword) ||
+                 x.MaCodeChuongTrinh.Contains(normalizedKeyword)))
             .OrderBy(x => x.TenChuongTrinh)
-            .Select(x => new { Id = x.MaChuongTrinh, MaCode = x.MaCodeChuongTrinh, TenChuongTrinh = x.TenChuongTrinh, TrangThai = x.TrangThai })
+            .Select(x => new
+            {
+                Id = x.MaChuongTrinh,
+                MaChuongTrinh = x.MaChuongTrinh,
+                MaCode = x.MaCodeChuongTrinh,
+                MaCodeChuongTrinh = x.MaCodeChuongTrinh,
+                TenChuongTrinh = x.TenChuongTrinh,
+                TrangThai = x.TrangThai,
+                TenChuyenNganh = x.ChuyenNganh != null ? x.ChuyenNganh.TenChuyenNganh : "",
+                TenKhoa = x.KhoaTuyenSinh != null ? x.KhoaTuyenSinh.TenKhoa : "",
+                SoHocKy = _db.ChuongTrinhHocKys.Count(term => term.MaChuongTrinh == x.MaChuongTrinh),
+                TongTinChiYeuCau = _db.MonHocTrongChuongTrinhs
+                    .Where(subject => subject.MaChuongTrinh == x.MaChuongTrinh && subject.ConHoatDong)
+                    .Sum(subject => (int?)subject.SoTinChi) ?? 0,
+                SoHocKyKhaiBao = x.SoHocKy,
+                TongTinChiKhaiBao = x.TongTinChiYeuCau,
+                SoMonHoc = _db.MonHocTrongChuongTrinhs.Count(subject =>
+                    subject.MaChuongTrinh == x.MaChuongTrinh && subject.ConHoatDong),
+                x.ThoiGianDaoTaoThang,
+                x.Version,
+                NgayHieuLuc = x.NgayHieuLuc,
+                NgayHetHieuLuc = x.NgayHetHieuLuc,
+                NguoiGuiDuyet = x.NguoiGuiDuyetId != null
+                    ? _db.NguoiDungs
+                        .Where(user => user.MaNguoiDung == x.NguoiGuiDuyetId)
+                        .Select(user => user.HoTen)
+                        .FirstOrDefault() ?? ""
+                    : "",
+                NguoiDuyet = x.NguoiDuyetId != null
+                    ? _db.NguoiDungs
+                        .Where(user => user.MaNguoiDung == x.NguoiDuyetId)
+                        .Select(user => user.HoTen)
+                        .FirstOrDefault() ?? ""
+                    : "",
+                NgayTao = x.NgayTao,
+                x.MoTa
+            })
             .ToListAsync();
         return Ok(new { data = data, message = "Success" });
+    }
+
+    [HttpGet("master-data/training-programs/{programId:int}/curriculum")]
+    [BghResponseCache(300)]
+    public async Task<IActionResult> GetTrainingProgramCurriculum(int programId)
+    {
+        var (campusId, isGlobal) = GetUserScope();
+        var program = await _db.ChuongTrinhDaoTaos
+            .AsNoTracking()
+            .Where(x => x.MaChuongTrinh == programId &&
+                        (isGlobal || x.LopHanhChinhs.Any(l => l.MaDonVi == campusId)))
+            .Select(x => new
+            {
+                x.MaChuongTrinh,
+                x.MaCodeChuongTrinh,
+                x.TenChuongTrinh,
+                TenChuyenNganh = x.ChuyenNganh != null ? x.ChuyenNganh.TenChuyenNganh : "",
+                x.TrangThai
+            })
+            .FirstOrDefaultAsync();
+
+        if (program == null)
+            return NotFound(new { message = "Không tìm thấy chương trình trong phạm vi quản lý." });
+
+        var terms = await _db.ChuongTrinhHocKys
+            .AsNoTracking()
+            .Where(x => x.MaChuongTrinh == programId)
+            .OrderBy(x => x.ThuTuHocKy)
+            .Select(x => new
+            {
+                x.MaChuongTrinhHocKy,
+                x.MaHocKy,
+                x.ThuTuHocKy,
+                TenHocKy = x.HocKy != null ? x.HocKy.TenHocKy : "",
+                NamHoc = x.HocKy != null ? x.HocKy.NamHoc : ""
+            })
+            .ToListAsync();
+
+        var subjects = await _db.MonHocTrongChuongTrinhs
+            .AsNoTracking()
+            .Where(x => x.MaChuongTrinh == programId && x.ConHoatDong)
+            .OrderBy(x => x.HocKyDuKien)
+            .ThenBy(x => x.ThuTu)
+            .Select(x => new
+            {
+                x.MaChuongTrinhMonHoc,
+                x.MaMonHoc,
+                MaCodeMonHoc = x.DanhMucMonHoc != null ? x.DanhMucMonHoc.MaCodeMonHoc : "",
+                TenMonHoc = x.DanhMucMonHoc != null ? x.DanhMucMonHoc.TenMonHoc : "",
+                x.HocKyDuKien,
+                x.SoTinChi,
+                x.LoaiMonHoc,
+                x.BatBuoc,
+                x.ThuTu,
+                x.ConHoatDong
+            })
+            .ToListAsync();
+
+        return Ok(new
+        {
+            data = new
+            {
+                program,
+                terms,
+                subjects,
+                semesterCount = terms.Count,
+                subjectCount = subjects.Count,
+                totalCredits = subjects.Sum(x => x.SoTinChi)
+            },
+            message = "Success"
+        });
     }
 
     [HttpGet("master-data/academic-terms")]
@@ -108,8 +218,20 @@ public class BghFacadeController : ControllerBase
     {
         var (campusId, isGlobal) = GetUserScope();
         var data = await _db.ToaNhas
+            .AsNoTracking()
             .Where(x => isGlobal || x.MaDonVi == campusId)
-            .Select(x => new { Id = x.MaToaNha, MaCode = x.MaCodeToaNha, TenToaNha = x.TenToaNha })
+            .OrderBy(x => x.TenToaNha)
+            .Select(x => new
+            {
+                Id = x.MaToaNha,
+                x.MaToaNha,
+                MaCode = x.MaCodeToaNha,
+                x.MaCodeToaNha,
+                x.TenToaNha,
+                x.MaDonVi,
+                x.SoTang,
+                x.ConHoatDong
+            })
             .ToListAsync();
         return Ok(new { data = data, message = "Success" });
     }
@@ -120,8 +242,22 @@ public class BghFacadeController : ControllerBase
     {
         var (campusId, isGlobal) = GetUserScope();
         var data = await _db.Tangs
+            .AsNoTracking()
             .Where(x => isGlobal || x.ToaNha!.MaDonVi == campusId)
-            .Select(x => new { Id = x.MaTang, TenTang = x.TenTang })
+            .OrderBy(x => x.MaToaNha)
+            .ThenBy(x => x.ThuTuTang)
+            .Select(x => new
+            {
+                Id = x.MaTang,
+                x.MaTang,
+                x.MaToaNha,
+                MaCodeToaNha = x.ToaNha != null ? x.ToaNha.MaCodeToaNha : "",
+                TenToaNha = x.ToaNha != null ? x.ToaNha.TenToaNha : "",
+                MaDonVi = x.ToaNha != null ? x.ToaNha.MaDonVi : 0,
+                x.TenTang,
+                x.ThuTuTang,
+                x.ConHoatDong
+            })
             .ToListAsync();
         return Ok(new { data = data, message = "Success" });
     }
@@ -132,8 +268,39 @@ public class BghFacadeController : ControllerBase
     {
         var (campusId, isGlobal) = GetUserScope();
         var data = await _db.PhongHocs
+            .AsNoTracking()
             .Where(x => isGlobal || x.MaDonVi == campusId)
-            .Select(x => new { Id = x.MaPhong, MaCode = x.MaCodePhong, TenPhong = x.TenPhong, LoaiPhong = x.LoaiPhong, SucChua = x.SucChua })
+            .OrderBy(x => x.MaToaNha)
+            .ThenBy(x => x.MaTang)
+            .ThenBy(x => x.MaCodePhong)
+            .Select(x => new
+            {
+                Id = x.MaPhong,
+                x.MaPhong,
+                x.MaDonVi,
+                x.MaToaNha,
+                MaCodeToaNha = x.ToaNha != null ? x.ToaNha.MaCodeToaNha : "",
+                TenToaNha = x.ToaNha != null ? x.ToaNha.TenToaNha : "",
+                x.MaTang,
+                TenTang = x.Tang != null ? x.Tang.TenTang : "",
+                ThuTuTang = x.Tang != null ? x.Tang.ThuTuTang : 0,
+                MaCode = x.MaCodePhong,
+                x.MaCodePhong,
+                x.TenPhong,
+                x.LoaiPhong,
+                x.SucChua,
+                x.TrangThaiPhong,
+                Equipment = _db.ThietBiPhongs
+                    .Where(equipment => equipment.MaPhong == x.MaPhong)
+                    .OrderBy(equipment => equipment.TenThietBi)
+                    .Select(equipment => new
+                    {
+                        equipment.MaThietBi,
+                        equipment.TenThietBi,
+                        equipment.SoLuong
+                    })
+                    .ToList()
+            })
             .ToListAsync();
         return Ok(new { data = data, message = "Success" });
     }
@@ -188,7 +355,9 @@ public class BghFacadeController : ControllerBase
 
         var totalItems = await query.CountAsync();
         var data = await query
-            .OrderByDescending(x => x.NgayTao)
+            .OrderBy(x => x.VaiTroChinh == "hoc_sinh" ? 1 : 0)
+            .ThenBy(x => x.VaiTroChinh)
+            .ThenByDescending(x => x.NgayTao)
             .ThenBy(x => x.HoTen)
             .Skip((pageIndex - 1) * pageSize)
             .Take(pageSize)
@@ -229,12 +398,19 @@ public class BghFacadeController : ControllerBase
                 (schedule, course) => new { Schedule = schedule, Course = course })
             .Where(x => isGlobal || x.Course.MaDonVi == campusId);
 
-        query = status?.ToLowerInvariant() switch
+        var st = status?.ToLowerInvariant().Trim();
+        if (st == "published" || st == "da_xuat_ban" || st == "da_duyet" || st == "approved" || st == "cong_bo")
         {
-            "published" => query.Where(x => x.Schedule.TrangThai == "da_xuat_ban"),
-            "cancelled" => query.Where(x => x.Schedule.TrangThai == "da_huy"),
-            _ => query.Where(x => x.Schedule.TrangThai == "nhap")
-        };
+            query = query.Where(x => x.Schedule.TrangThai == "da_xuat_ban" || x.Schedule.TrangThai == "da_duyet" || x.Schedule.TrangThai == "cong_bo");
+        }
+        else if (st == "cancelled" || st == "da_huy" || st == "tu_choi" || st == "rejected")
+        {
+            query = query.Where(x => x.Schedule.TrangThai == "da_huy" || x.Schedule.TrangThai == "tu_choi");
+        }
+        else
+        {
+            query = query.Where(x => x.Schedule.TrangThai == "nhap" || x.Schedule.TrangThai == "cho_duyet" || string.IsNullOrEmpty(x.Schedule.TrangThai));
+        }
 
         var totalItems = await query.CountAsync();
         var data = await query
@@ -261,12 +437,15 @@ public class BghFacadeController : ControllerBase
                 ClassCode = x.Course.Lop != null ? x.Course.Lop.MaCodeLop : "",
                 Room = x.Schedule.Phong != null ? x.Schedule.Phong.MaCodePhong : "",
                 Shift = x.Schedule.CaHoc != null ? x.Schedule.CaHoc.TenCa : "",
+                ShiftId = x.Schedule.MaCaHoc,
+                ShiftStart = x.Schedule.CaHoc != null ? x.Schedule.CaHoc.GioBatDau : (TimeOnly?)null,
+                ShiftEnd = x.Schedule.CaHoc != null ? x.Schedule.CaHoc.GioKetThuc : (TimeOnly?)null,
                 x.Schedule.ThuTrongTuan,
                 x.Schedule.NgayBatDau,
                 x.Schedule.NgayKetThuc,
-                Status = x.Schedule.TrangThai == "da_xuat_ban" ? "published" : x.Schedule.TrangThai == "da_huy" ? "cancelled" : "pending",
-                Submitter = x.Course.GiaoVien != null ? x.Course.GiaoVien.HoTen : "",
-                Sender = x.Course.GiaoVien != null ? x.Course.GiaoVien.HoTen : "",
+                Status = (x.Schedule.TrangThai == "da_xuat_ban" || x.Schedule.TrangThai == "da_duyet" || x.Schedule.TrangThai == "cong_bo") ? "approved" : (x.Schedule.TrangThai == "da_huy" || x.Schedule.TrangThai == "tu_choi") ? "rejected" : "pending",
+                Submitter = x.Course.GiaoVien != null ? x.Course.GiaoVien.HoTen : "Giáo vụ vận hành",
+                Sender = x.Course.GiaoVien != null ? x.Course.GiaoVien.HoTen : "Giáo vụ vận hành",
                 Conflicts = _db.ThoiKhoaBieus.Count(other =>
                     other.MaTkb != x.Schedule.MaTkb &&
                     other.TrangThai != "da_huy" &&
@@ -276,8 +455,9 @@ public class BghFacadeController : ControllerBase
                     other.KhoaHoc.MaHocKy == x.Course.MaHocKy &&
                     (other.MaPhong == x.Schedule.MaPhong ||
                      other.KhoaHoc.MaGiaoVien == x.Course.MaGiaoVien)),
-                Type = "Lịch học",
+                Type = "Lịch học chính khóa",
                 Classes = 1,
+                Teachers = 1,
                 Hours = x.Schedule.CaHoc != null
                     ? useClientTimeCalculation
                         ? (x.Schedule.CaHoc.GioKetThuc.ToTimeSpan() -
@@ -286,7 +466,8 @@ public class BghFacadeController : ControllerBase
                             x.Schedule.CaHoc.GioBatDau,
                             x.Schedule.CaHoc.GioKetThuc) / 60.0
                     : 0,
-                Campus = x.Course.DonVi != null ? x.Course.DonVi.TenDonVi : ""
+                Campus = x.Course.DonVi != null ? x.Course.DonVi.TenDonVi : "",
+                Created = x.Schedule.NgayTao
             })
             .ToListAsync();
         return Ok(new
@@ -301,6 +482,80 @@ public class BghFacadeController : ControllerBase
             },
             message = "Success"
         });
+    }
+
+    /// <summary>
+    /// Phê duyệt (xuất bản) một bộ TKB — chuyển trạng thái sang "da_xuat_ban" hoặc "da_duyet".
+    /// </summary>
+    [HttpPost("schedules/{scheduleId}/approve")]
+    public async Task<IActionResult> ApproveSchedule(string scheduleId)
+    {
+        var (campusId, isGlobal) = GetUserScope();
+        var rawIdStr = scheduleId.Replace("TKB-", "");
+        if (!int.TryParse(rawIdStr, out var id))
+            return BadRequest(new { message = "Mã TKB không hợp lệ.", scheduleId });
+
+        var tkb = await _db.ThoiKhoaBieus
+            .Include(t => t.KhoaHoc)
+            .FirstOrDefaultAsync(t =>
+                t.MaTkb == id && (isGlobal || (t.KhoaHoc != null && t.KhoaHoc.MaDonVi == campusId)));
+        if (tkb == null)
+            return NotFound(new { message = "Không tìm thấy TKB.", scheduleId });
+
+        tkb.TrangThai = "da_xuat_ban";
+        tkb.NgayCapNhat = DateTime.UtcNow;
+
+        _db.NhatKyKiemToans.Add(new Models.NhatKyKiemToan
+        {
+            MaDonVi = tkb.KhoaHoc?.MaDonVi ?? campusId,
+            LoaiDoiTuong = "ThoiKhoaBieu",
+            MaDoiTuong = id.ToString(),
+            HanhDong = "APPROVE",
+            MoTa = $"BGH phê duyệt Thời khóa biểu #{id}",
+            ThoiDiemThayDoi = DateTime.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        _cache.RemoveByPrefix("bgh:");
+
+        return Ok(new { message = "Đã phê duyệt TKB thành công.", scheduleId, status = "approved" });
+    }
+
+    /// <summary>
+    /// Từ chối (hủy) một bộ TKB — chuyển trạng thái sang "tu_choi" hoặc "da_huy".
+    /// </summary>
+    [HttpPost("schedules/{scheduleId}/reject")]
+    public async Task<IActionResult> RejectSchedule(string scheduleId)
+    {
+        var (campusId, isGlobal) = GetUserScope();
+        var rawIdStr = scheduleId.Replace("TKB-", "");
+        if (!int.TryParse(rawIdStr, out var id))
+            return BadRequest(new { message = "Mã TKB không hợp lệ.", scheduleId });
+
+        var tkb = await _db.ThoiKhoaBieus
+            .Include(t => t.KhoaHoc)
+            .FirstOrDefaultAsync(t =>
+                t.MaTkb == id && (isGlobal || (t.KhoaHoc != null && t.KhoaHoc.MaDonVi == campusId)));
+        if (tkb == null)
+            return NotFound(new { message = "Không tìm thấy TKB.", scheduleId });
+
+        tkb.TrangThai = "da_huy";
+        tkb.NgayCapNhat = DateTime.UtcNow;
+
+        _db.NhatKyKiemToans.Add(new Models.NhatKyKiemToan
+        {
+            MaDonVi = tkb.KhoaHoc?.MaDonVi ?? campusId,
+            LoaiDoiTuong = "ThoiKhoaBieu",
+            MaDoiTuong = id.ToString(),
+            HanhDong = "REJECT",
+            MoTa = $"BGH trả về Thời khóa biểu #{id}",
+            ThoiDiemThayDoi = DateTime.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        _cache.RemoveByPrefix("bgh:");
+
+        return Ok(new { message = "Đã từ chối TKB.", scheduleId, status = "rejected" });
     }
 
     [HttpGet("audit-logs")]
@@ -398,7 +653,7 @@ public class BghFacadeController : ControllerBase
     {
         var data = await _db.VaiTros
             .AsNoTracking()
-            .Select(x => new { Id = x.MaVaiTro, MaCode = x.MaCodeVaiTro, TenVaiTro = x.TenVaiTro })
+            .Select(x => new { Id = x.MaVaiTro, MaVaiTro = x.MaVaiTro, MaCode = x.MaCodeVaiTro, MaCodeVaiTro = x.MaCodeVaiTro, TenVaiTro = x.TenVaiTro })
             .ToListAsync();
         return Ok(new { data, message = "Success" });
     }

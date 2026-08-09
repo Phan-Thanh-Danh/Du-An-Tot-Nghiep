@@ -1,7 +1,9 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, useSlots, useId, Fragment, Text, Comment } from 'vue'
 import { ChevronDown, Check } from 'lucide-vue-next'
 import { onClickOutside } from '@vueuse/core'
+
+defineOptions({ inheritAttrs: false })
 
 const props = defineProps({
   modelValue: {
@@ -10,8 +12,8 @@ const props = defineProps({
   },
   options: {
     type: Array,
-    required: true,
-    // Expected format: [{ value: '...', label: '...' }]
+    default: () => [],
+    // Expected format: [{ value: '...', label: '...', disabled?: false }]
   },
   label: String,
   placeholder: {
@@ -25,6 +27,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'change'])
+const slots = useSlots()
+const generatedId = useId()
 
 const isOpen = ref(false)
 const dropdownRef = ref(null)
@@ -33,8 +37,38 @@ onClickOutside(dropdownRef, () => {
   isOpen.value = false
 })
 
+function flattenVNodes(nodes) {
+  return nodes.flatMap((node) => {
+    if (!node || node.type === Comment) return []
+    if (node.type === Fragment) return flattenVNodes(Array.isArray(node.children) ? node.children : [])
+    return [node]
+  })
+}
+
+function vnodeText(value) {
+  if (typeof value === 'string' || typeof value === 'number') return String(value)
+  if (!Array.isArray(value)) return ''
+  return value.map((child) => {
+    if (typeof child === 'string' || typeof child === 'number') return String(child)
+    if (child?.type === Text) return String(child.children ?? '')
+    return vnodeText(child?.children)
+  }).join('')
+}
+
+const normalizedOptions = computed(() => {
+  if (props.options.length) return props.options
+
+  return flattenVNodes(slots.default?.() ?? [])
+    .filter((node) => node.type === 'option')
+    .map((node) => ({
+      value: node.props?.value ?? '',
+      label: vnodeText(node.children).trim(),
+      disabled: node.props?.disabled === '' || node.props?.disabled === true,
+    }))
+})
+
 const selectedOption = computed(() => {
-  return props.options.find(opt => opt.value === props.modelValue)
+  return normalizedOptions.value.find(opt => opt.value === props.modelValue)
 })
 
 const toggleDropdown = () => {
@@ -44,16 +78,17 @@ const toggleDropdown = () => {
 }
 
 const selectOption = (option) => {
+  if (option.disabled) return
   emit('update:modelValue', option.value)
   emit('change', option.value)
   isOpen.value = false
 }
 
-const selectId = computed(() => props.id || `lms-select-${Math.random().toString(36).substr(2, 9)}`)
+const selectId = computed(() => props.id || `lms-select-${generatedId}`)
 </script>
 
 <template>
-  <div class="space-y-2 relative" ref="dropdownRef">
+  <div class="relative min-w-[180px] space-y-2" ref="dropdownRef">
     <label
       v-if="label"
       :for="selectId"
@@ -100,13 +135,14 @@ const selectId = computed(() => props.id || `lms-select-${Math.random().toString
       >
         <ul class="max-h-60 overflow-y-auto">
           <li 
-            v-for="option in options" 
+            v-for="option in normalizedOptions"
             :key="option.value"
             @click="selectOption(option)"
             class="px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:bg-(--surface-table-row-hover) transition-colors"
             :class="{
               'bg-(--surface-table-row-hover) text-(--text-heading) font-semibold': option.value === modelValue,
-              'text-(--text-body)': option.value !== modelValue
+              'text-(--text-body)': option.value !== modelValue,
+              'cursor-not-allowed opacity-50': option.disabled
             }"
           >
             <span class="truncate flex-1 text-left">{{ option.label }}</span>

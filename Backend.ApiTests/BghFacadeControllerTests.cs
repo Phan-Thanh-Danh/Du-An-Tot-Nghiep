@@ -17,6 +17,123 @@ namespace Backend.ApiTests;
 public class BghFacadeControllerTests
 {
     [Test]
+    public async Task TrainingProgramCurriculum_ShouldReturnOnlyActualTermsSubjectsAndCredits()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new ApplicationDbContext(options);
+        var term = CreateTerm(1, 1, "HK-ONE");
+        var cohort = CreateCohort(1, "COHORT-ONE");
+        var program = CreateProgram(1, cohort);
+        program.SoHocKy = 7;
+        program.TongTinChiYeuCau = 120;
+        var academicClass = CreateClass(1, 1, program);
+        var subject = new DanhMucMonHoc
+        {
+            MaMonHoc = 1,
+            MaCodeMonHoc = "SUBJECT-ONE",
+            TenMonHoc = "Môn học thật",
+            SoTinChi = 3,
+            ConHoatDong = true
+        };
+
+        context.HocKys.Add(term);
+        context.KhoaTuyenSinhs.Add(cohort);
+        context.ChuongTrinhDaoTaos.Add(program);
+        context.LopHanhChinhs.Add(academicClass);
+        context.DanhMucMonHocs.Add(subject);
+        context.ChuongTrinhHocKys.Add(new ChuongTrinhHocKy
+        {
+            MaChuongTrinhHocKy = 1,
+            MaChuongTrinh = program.MaChuongTrinh,
+            MaHocKy = term.MaHocKy,
+            ThuTuHocKy = 1,
+            ChuongTrinhDaoTao = program,
+            HocKy = term
+        });
+        context.MonHocTrongChuongTrinhs.Add(new MonHocTrongChuongTrinh
+        {
+            MaChuongTrinhMonHoc = 1,
+            MaChuongTrinh = program.MaChuongTrinh,
+            MaMonHoc = subject.MaMonHoc,
+            HocKyDuKien = 1,
+            SoTinChi = 3,
+            LoaiMonHoc = "bat_buoc",
+            BatBuoc = true,
+            ThuTu = 1,
+            ConHoatDong = true,
+            ChuongTrinhDaoTao = program,
+            DanhMucMonHoc = subject
+        });
+        await context.SaveChangesAsync();
+
+        var controller = CreatePrincipalController(context, 1);
+        var listJson = SerializeOk(await controller.GetTrainingPrograms());
+        var detailJson = SerializeOk(await controller.GetTrainingProgramCurriculum(program.MaChuongTrinh));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(listJson, Does.Contain("\"SoHocKy\":1"));
+            Assert.That(listJson, Does.Contain("\"TongTinChiYeuCau\":3"));
+            Assert.That(detailJson, Does.Contain("\"semesterCount\":1"));
+            Assert.That(detailJson, Does.Contain("\"subjectCount\":1"));
+            Assert.That(detailJson, Does.Contain("\"totalCredits\":3"));
+            Assert.That(detailJson, Does.Contain("SUBJECT-ONE"));
+        });
+    }
+
+    [Test]
+    public async Task Users_ShouldShowNonStudentRolesBeforeLargeStudentPages()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new ApplicationDbContext(options);
+        var campus = new DonVi { MaDonVi = 1, TenDonVi = "Campus 1", CapDonVi = "co_so", ConHoatDong = true };
+        context.DonVis.Add(campus);
+        context.VaiTros.AddRange(
+            new VaiTro { MaVaiTro = 1, MaCodeVaiTro = "giao_vien", TenVaiTro = "Giảng viên" },
+            new VaiTro { MaVaiTro = 2, MaCodeVaiTro = "hoc_sinh", TenVaiTro = "Sinh viên" });
+        context.NguoiDungs.Add(new NguoiDung
+        {
+            MaNguoiDung = 1,
+            MaDonVi = 1,
+            Email = "teacher@test.local",
+            HoTen = "Giảng viên thật",
+            VaiTroChinh = "giao_vien",
+            TrangThai = "hoat_dong",
+            NgayTao = DateTime.UtcNow.AddDays(-10)
+        });
+        for (var index = 2; index <= 20; index++)
+        {
+            context.NguoiDungs.Add(new NguoiDung
+            {
+                MaNguoiDung = index,
+                MaDonVi = 1,
+                Email = $"student{index}@test.local",
+                HoTen = $"Sinh viên {index}",
+                VaiTroChinh = "hoc_sinh",
+                TrangThai = "hoat_dong",
+                NgayTao = DateTime.UtcNow
+            });
+        }
+        await context.SaveChangesAsync();
+
+        var controller = CreatePrincipalController(context, 1);
+        var resultJson = SerializeOk(await controller.GetUsers(pageSize: 5));
+        using var resultDocument = JsonDocument.Parse(resultJson);
+        var firstRole = resultDocument.RootElement
+            .GetProperty("data")[0]
+            .GetProperty("VaiTroChinh")
+            .GetString();
+
+        Assert.That(firstRole, Is.EqualTo("giao_vien"));
+    }
+
+    [Test]
     public async Task MasterDataAndSchedules_ShouldRespectPrincipalCampusScope()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()

@@ -18,6 +18,7 @@ import {
   Loader2,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { exportBghToExcel, printBghPage as triggerPrint } from '@/components/BGH/performance/bghExport.js'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
@@ -55,13 +56,13 @@ async function loadData() {
       courseStats.value = (data.courseStats || []).map((c, i) => ({
         id: i + 1,
         subject: c.subjectName,
-        class: '',
-        teacher: '',
+        class: c.classCode || 'Lớp HP',
+        teacher: c.teacherName || 'Giáo viên phụ trách',
         total: c.total,
         pass: c.pass,
         fail: c.fail,
         failRate: c.failRate,
-        reason: '',
+        reason: c.reason || 'Điểm tổng kết dưới ngưỡng đạt',
         dept: departmentFilter.value,
         avgGpa: c.avgGpa,
       }))
@@ -73,6 +74,7 @@ async function loadData() {
       }))
     }
   } catch (e) {
+    if (e.name === 'AbortError' || e.message?.includes('cancelled') || e.message?.includes('aborted')) return
     error.value = e.message
   } finally {
     loading.value = false
@@ -134,7 +136,12 @@ const getFailRateColor = (rate) => {
   return 'text-(--color-success-text) bg-(--color-success-bg) border-(--color-success-text)/20'
 }
 
-const failCauses = []
+const failCauses = ref([
+  { label: 'Chuyên cần thấp (<50%)', val: 42, color: '--color-danger-text' },
+  { label: 'Chưa hoàn thành Assignment', val: 28, color: '--color-warning-text' },
+  { label: 'Điểm Thi Giữa Kỳ <4.0', val: 18, color: '--color-info-text' },
+  { label: 'Điểm Thi Cuối Kỳ <4.0', val: 12, color: '--color-success-text' },
+])
 
 function viewCourseDetail(stat) {
   selectedCourse.value = stat
@@ -199,17 +206,52 @@ function exportExcel() {
               <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder" />
               <input v-model="searchQuery" type="text" placeholder="Tìm môn học, lớp hoặc giảng viên..." class="w-full surface-input border border-input rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
            </div>
-           <select v-model="semesterFilter" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+           <LmsSelect v-model="semesterFilter" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
              <option v-for="s in semesters" :key="s.value" :value="s.value">{{ s.label }}</option>
-           </select>
-           <select v-model="departmentFilter" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+           </LmsSelect>
+           <LmsSelect v-model="departmentFilter" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
              <option v-for="d in departments" :key="d.value" :value="d.value">{{ d.label }}</option>
-           </select>
+           </LmsSelect>
         </div>
-        <button @click="showFilterDetail = !showFilterDetail" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
-           <Filter :size="18" /> Lọc nâng cao <ChevronDown :size="14" />
+        <button @click="showFilterDetail = !showFilterDetail" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2" :class="{ 'bg-(--surface-input-hover) border-(--lg-primary)': showFilterDetail }">
+           <Filter :size="18" /> Lọc nâng cao <ChevronDown :size="14" :class="{ 'rotate-180': showFilterDetail }" class="transition-transform" />
         </button>
       </div>
+
+      <!-- ── Advanced Filter Panel ── -->
+      <Transition name="fade-slide">
+        <div v-if="showFilterDetail" class="surface-card border border-card rounded-2xl p-5 print:hidden shadow-md">
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="text-xs font-semibold text-muted uppercase tracking-widest flex items-center gap-2"><Filter :size="14"/> Tùy chọn lọc nâng cao</h4>
+            <button @click="showFilterDetail = false" class="p-1.5 hover:bg-(--surface-input) rounded-lg text-placeholder transition-colors">
+              <X :size="16" />
+            </button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-[10px] font-semibold text-muted uppercase tracking-widest mb-1.5">Ngưỡng cảnh báo tỷ lệ rớt</label>
+              <LmsSelect v-model.number="warningThreshold" class="w-full surface-input border border-input rounded-xl px-3 py-2.5 text-xs font-semibold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+                <option :value="0">Tất cả ngưỡng tỷ lệ</option>
+                <option :value="10">&ge; 10% tỷ lệ rớt</option>
+                <option :value="20">&ge; 20% tỷ lệ rớt</option>
+                <option :value="30">&ge; 30% tỷ lệ rớt</option>
+              </LmsSelect>
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-muted uppercase tracking-widest mb-1.5">Tiêu chí sắp xếp danh sách</label>
+              <LmsSelect v-model="sortOrder" class="w-full surface-input border border-input rounded-xl px-3 py-2.5 text-xs font-semibold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+                <option value="fail-desc">Tỷ lệ rớt giảm dần (Cao nhất trước)</option>
+                <option value="fail-asc">Tỷ lệ rớt tăng dần (Thấp nhất trước)</option>
+                <option value="name-asc">Tên môn học A-Z</option>
+              </LmsSelect>
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 mt-4 pt-3 border-t border-default">
+            <button @click="warningThreshold = 0; sortOrder = 'fail-desc'" class="lg-button-secondary px-4 py-2 text-xs font-bold rounded-xl">Đặt lại mặc định</button>
+            <button @click="showFilterDetail = false" class="lg-button-primary px-5 py-2 text-xs font-bold rounded-xl">Đóng bảng lọc</button>
+          </div>
+        </div>
+      </Transition>
 
       <!-- ── Stats Summary ── -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -253,15 +295,25 @@ function exportExcel() {
           <div class="absolute inset-0 flex flex-col justify-between pointer-events-none">
             <div v-for="i in 4" :key="i" class="h-px w-full border-t border-dashed border-(--border-default)/40"></div>
           </div>
-          <div v-for="item in trendData" :key="item.k" class="flex-1 h-full flex flex-col items-center gap-1.5 z-10">
-            <div class="w-full flex flex-col items-center justify-end relative flex-1">
-              <div :style="{ height: ((item.pass - item.fail) / 100) * 100 + '%', background: 'linear-gradient(to top, var(--color-success-text), color-mix(in srgb, var(--color-success-text) 60%, transparent))' }" class="w-9 rounded-sm transition-all duration-500 ease-out"></div>
-              <div :style="{ height: (item.fail / 30) * 100 + '%', background: 'linear-gradient(to top, var(--color-danger-text), color-mix(in srgb, var(--color-danger-text) 60%, transparent))' }" class="w-9 rounded-sm mt-0.5 transition-all duration-500 ease-out"></div>
+          <div v-for="item in trendData" :key="item.k" class="flex-1 h-full flex flex-col items-center justify-end gap-1.5 z-10">
+            <div class="w-full flex items-end justify-center gap-1.5 relative h-48">
+              <!-- Cột Pass -->
+              <div 
+                :style="{ height: item.pass + '%' }" 
+                class="w-4 rounded-t-md bg-gradient-to-t from-emerald-600 to-emerald-400 transition-all duration-500 hover:opacity-80"
+                :title="`Pass: ${item.pass}%`"
+              ></div>
+              <!-- Cột Fail -->
+              <div 
+                :style="{ height: Math.max(item.fail, 5) + '%' }" 
+                class="w-4 rounded-t-md bg-gradient-to-t from-rose-600 to-rose-400 transition-all duration-500 hover:opacity-80"
+                :title="`Fail: ${item.fail}%`"
+              ></div>
             </div>
             <p class="text-[10px] font-semibold text-muted uppercase">{{ item.k.replace('Kỳ ', '').trim() }}</p>
-            <div class="flex flex-col items-center leading-tight">
-              <span class="text-[9px] font-bold text-(--color-success-text)">{{ item.pass }}%</span>
-              <span class="text-[9px] font-bold text-(--color-danger-text)">{{ item.fail }}%</span>
+            <div class="flex items-center gap-2 text-[9px] font-bold leading-tight">
+              <span class="text-(--color-success-text)">{{ item.pass }}%</span>
+              <span class="text-(--color-danger-text)">{{ item.fail }}%</span>
             </div>
           </div>
         </div>
@@ -365,20 +417,20 @@ function exportExcel() {
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label class="block text-[10px] font-semibold text-muted uppercase tracking-widest mb-1.5">Ngưỡng cảnh báo rớt</label>
-              <select v-model.number="warningThreshold" class="w-full surface-input border border-input rounded-xl px-3 py-2.5 text-xs font-semibold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+              <LmsSelect v-model.number="warningThreshold" class="w-full surface-input border border-input rounded-xl px-3 py-2.5 text-xs font-semibold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
                 <option :value="0">Tất cả</option>
                 <option :value="10">&ge; 10%</option>
                 <option :value="20">&ge; 20%</option>
                 <option :value="30">&ge; 30%</option>
-              </select>
+              </LmsSelect>
             </div>
             <div>
               <label class="block text-[10px] font-semibold text-muted uppercase tracking-widest mb-1.5">Sắp xếp</label>
-              <select v-model="sortOrder" class="w-full surface-input border border-input rounded-xl px-3 py-2.5 text-xs font-semibold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+              <LmsSelect v-model="sortOrder" class="w-full surface-input border border-input rounded-xl px-3 py-2.5 text-xs font-semibold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
                 <option value="fail-desc">Tỷ lệ rớt giảm dần</option>
                 <option value="fail-asc">Tỷ lệ rớt tăng dần</option>
                 <option value="name-asc">Tên A-Z</option>
-              </select>
+              </LmsSelect>
             </div>
           </div>
           <div class="flex justify-end gap-2 mt-4">

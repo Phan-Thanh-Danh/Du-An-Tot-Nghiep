@@ -10,7 +10,6 @@ import {
   Zap,
   Download,
   FileText,
-  ChevronDown,
   Loader2,
   Inbox,
   Send,
@@ -22,6 +21,7 @@ import {
   AlertCircle,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { exportBghToExcel, printBghPage as triggerPrint } from '@/components/BGH/performance/bghExport.js'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
@@ -47,6 +47,7 @@ async function loadData() {
     const res = await bghApi.getAtRiskStudents({
       pageIndex: currentPage.value,
       pageSize,
+      semesterId: semesterFilter.value === 'all' ? null : semesterFilter.value,
       keyword: searchQuery.value.trim(),
     })
     const data = unwrapApiData(res)
@@ -65,7 +66,7 @@ async function loadData() {
         name: s.name,
         code: s.email || '—',
         class: s.classCode || '—',
-        subject: '',
+        subject: s.riskSubjectName || '',
         grade: s.avgGpa,
         attendance: null,
         risk: s.failCount >= 3 ? 'critical' : s.failCount >= 2 ? 'high' : 'medium',
@@ -74,19 +75,47 @@ async function loadData() {
       }))
     }
   } catch (e) {
+    if (e.name === 'AbortError' || e.message?.includes('cancelled') || e.message?.includes('aborted')) return
     error.value = e.message
   } finally {
     loading.value = false
   }
 }
-onMounted(() => { loadData() })
-onUnmounted(() => clearTimeout(searchTimer))
+async function loadSemesters() {
+  const response = await bghApi.getAcademicTerms()
+  semesters.value = [
+    { value: 'all', label: 'Tất cả học kỳ' },
+    ...(unwrapApiData(response) || []).map(term => ({
+      value: String(term.maHocKy || term.id),
+      label: `${term.tenHocKy}${term.namHoc ? ` · ${term.namHoc}` : ''}`,
+    })),
+  ]
+}
+
+onMounted(async () => {
+  try {
+    await loadSemesters()
+  } catch {
+    semesters.value = [{ value: 'all', label: 'Tất cả học kỳ' }]
+  }
+  await loadData()
+})
+onUnmounted(() => {
+  isDrawerOpen.value = false
+  selectedStudent.value = null
+  clearTimeout(searchTimer)
+})
 
 const totalAtRisk = ref(0)
 const summaryStats = ref([])
 const riskStudents = ref([])
 
-const semesters = [{ value: 'all', label: 'Tất cả học kỳ' }]
+const semesters = ref([{ value: 'all', label: 'Tất cả học kỳ' }])
+
+const criticalRate = computed(() => {
+  const criticalCount = Number(summaryStats.value[1]?.count || 0)
+  return totalAtRisk.value > 0 ? Math.round((criticalCount / totalAtRisk.value) * 1000) / 10 : 0
+})
 
 const filteredStudents = computed(() => {
   let result = riskStudents.value
@@ -128,6 +157,11 @@ watch(searchQuery, () => {
     currentPage.value = 1
     loadData()
   }, 250)
+})
+
+watch(semesterFilter, () => {
+  currentPage.value = 1
+  loadData()
 })
 
 const getRiskBadge = (risk) => {
@@ -183,6 +217,7 @@ function sendBulkWarning() {
 </script>
 
 <template>
+  <div>
   <PageContainer 
     title="Sinh viên có nguy cơ rớt môn" 
     subtitle="Hệ thống cảnh báo sớm (AI Early Warning) dựa trên dữ liệu điểm số, chuyên cần và tiến độ học tập."
@@ -237,8 +272,8 @@ function sendBulkWarning() {
             </div>
             <div class="flex flex-wrap justify-center gap-3">
                <div class="px-4 py-3 surface-card rounded-2xl border border-(--color-info-text)/20 text-center">
-                  <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">Độ chính xác</p>
-                  <p class="text-lg font-semibold text-heading">94.2%</p>
+                  <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">Tỷ lệ Critical</p>
+                  <p class="text-lg font-semibold text-heading">{{ criticalRate }}%</p>
                </div>
                <div class="px-4 py-3 surface-card rounded-2xl border border-(--color-info-text)/20 text-center">
                   <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">Cần can thiệp</p>
@@ -255,17 +290,16 @@ function sendBulkWarning() {
               <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
               <input v-model="searchQuery" type="text" placeholder="Tìm tên sinh viên, mã số hoặc lớp..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-(--border-input-focus)">
            </div>
-           <select v-model="semesterFilter" class="surface-input border border-input rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+           <LmsSelect v-model="semesterFilter" class="surface-input border border-input rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
              <option v-for="s in semesters" :key="s.value" :value="s.value">{{ s.label }}</option>
-           </select>
+           </LmsSelect>
            <div class="relative">
-             <select v-model="riskFilter" class="surface-input border border-input rounded-xl px-4 py-2 text-xs font-bold outline-none appearance-none cursor-pointer pr-10">
+             <LmsSelect v-model="riskFilter" class="surface-input border border-input rounded-xl px-4 py-2 text-xs font-bold outline-none appearance-none cursor-pointer pr-10">
                <option value="all">Tất cả mức độ</option>
                <option value="critical">Critical</option>
                <option value="high">High</option>
                <option value="medium">Medium</option>
-             </select>
-             <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-placeholder pointer-events-none" />
+             </LmsSelect>
            </div>
         </div>
         <button @click="sendBulkWarning" class="lg-button-primary py-2.5 px-4 text-sm font-semibold flex items-center gap-2">
@@ -436,6 +470,7 @@ function sendBulkWarning() {
       </div>
     </Transition>
   </Teleport>
+  </div>
 </template>
 
 <style scoped>

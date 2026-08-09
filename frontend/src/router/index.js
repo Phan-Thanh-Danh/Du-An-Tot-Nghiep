@@ -460,6 +460,7 @@ const router = createRouter({
         { path: 'evaluations/ai-analysis', name: 'bgh-evaluations-ai-analysis', component: () => import('../views/BGH/Evaluations/AIFeedbackAnalysisView.vue'), meta: { title: 'Phân tích Feedback AI', subtitle: 'AI phân tích cảm xúc và trích xuất chủ đề từ nhận xét sinh viên', section: 'Phê duyệt & Đánh giá' } },
         // Cơ sở vật chất
         { path: 'facilities', name: 'bgh-facilities', component: () => import('../views/BGH/FacilitiesView.vue'), meta: { title: 'Cơ sở vật chất', subtitle: 'Quản lý Tòa nhà, Tầng và Phòng học', section: 'Cơ sở vật chất' } },
+        { path: 'facilities/:buildingId', name: 'bgh-facility-detail', component: () => import('../views/BGH/Facilities/FacilityDetailView.vue'), meta: { title: 'Chi tiết Tòa nhà & Thiết bị', subtitle: 'Chi tiết phòng học và trang thiết bị tòa nhà', section: 'Cơ sở vật chất' } },
         // Giám sát hệ thống
         { path: 'audit-logs', name: 'bgh-audit-logs', component: () => import('../views/BGH/AuditLogsView.vue'), meta: { title: 'Nhật ký kiểm toán', subtitle: 'Theo dõi lịch sử thay đổi trên hệ thống', section: 'Giám sát hệ thống' } },
         // Cá nhân

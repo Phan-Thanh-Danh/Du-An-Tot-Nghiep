@@ -1,4 +1,5 @@
 import { bghDataClient } from '@/components/BGH/performance/bghDataClient'
+import { apiRequest } from '@/services/apiClient'
 
 const SHORT = { freshMs: 15_000, staleMs: 60_000 }
 const REPORT = { freshMs: 60_000, staleMs: 300_000 }
@@ -83,17 +84,31 @@ export const bghApi = {
     return get(`/api/bgh/master-data/training-programs${qs ? '?' + qs : ''}`, MASTER)
   },
 
-  getAcademicOverview() {
-    return get('/api/bgh/academic/overview', REPORT)
+  getProgramCurriculum(programId) {
+    return get(`/api/bgh/master-data/training-programs/${programId}/curriculum`, MASTER)
   },
 
-  getGpaReports() {
-    return get('/api/bgh/academic/gpa', REPORT)
+  getAcademicOverview(params = {}) {
+    const query = new URLSearchParams()
+    if (params.campusId) query.append('campusId', params.campusId)
+    if (params.semesterId) query.append('semesterId', params.semesterId)
+    if (params.specializationId) query.append('specializationId', params.specializationId)
+    const qs = query.toString()
+    return get(`/api/bgh/academic/overview${qs ? '?' + qs : ''}`, REPORT)
+  },
+
+  getGpaReports(params = {}) {
+    const query = new URLSearchParams()
+    if (params.campusId) query.append('campusId', params.campusId)
+    if (params.semesterId) query.append('semesterId', params.semesterId)
+    if (params.specializationId) query.append('specializationId', params.specializationId)
+    const qs = query.toString()
+    return get(`/api/bgh/academic/gpa${qs ? '?' + qs : ''}`, REPORT)
   },
 
   getAtRiskStudents(params = {}, options = {}) {
     const query = new URLSearchParams()
-    const filterKeys = ['pageIndex', 'pageSize', 'studentId', 'keyword']
+    const filterKeys = ['pageIndex', 'pageSize', 'studentId', 'semesterId', 'keyword']
     filterKeys.forEach((key) => {
       if (params[key] !== undefined && params[key] !== null && params[key] !== '') query.append(key, params[key])
     })
@@ -101,8 +116,17 @@ export const bghApi = {
     return get(`/api/bgh/academic/at-risk${qs ? '?' + qs : ''}`, SHORT, options)
   },
 
-  getAcademicReports() {
-    return get('/api/bgh/academic/reports', REPORT)
+  getAtRiskStudentHistory(studentId) {
+    return get(`/api/bgh/academic/at-risk/${studentId}/history`, REPORT)
+  },
+
+  getAcademicReports(params = {}) {
+    const query = new URLSearchParams()
+    if (params.campusId) query.append('campusId', params.campusId)
+    if (params.semesterId) query.append('semesterId', params.semesterId)
+    if (params.reportType) query.append('reportType', params.reportType)
+    const qs = query.toString()
+    return get(`/api/bgh/academic/reports${qs ? '?' + qs : ''}`, REPORT)
   },
 
   getPassFailRates(params = {}) {
@@ -140,6 +164,36 @@ export const bghApi = {
     if (params.pageSize) query.append('pageSize', params.pageSize)
     const qs = query.toString()
     return get(`/api/bgh/schedules${qs ? '?' + qs : ''}`, SHORT)
+  },
+
+  async approveSchedule(scheduleId) {
+    const response = await apiRequest(`/api/bgh/schedules/${scheduleId}/approve`, { method: 'POST' })
+    bghDataClient.invalidate('/api/bgh/schedules')
+    bghDataClient.invalidate('/api/bgh/dashboard')
+    return response
+  },
+
+  async rejectSchedule(scheduleId) {
+    const response = await apiRequest(`/api/bgh/schedules/${scheduleId}/reject`, { method: 'POST' })
+    bghDataClient.invalidate('/api/bgh/schedules')
+    bghDataClient.invalidate('/api/bgh/dashboard')
+    return response
+  },
+
+  async resolveScheduleConflict(conflictId) {
+    return apiRequest(`/api/bgh/schedule/conflicts/${conflictId}/resolve`, { method: 'POST' })
+  },
+
+  async approveScheduleChange(changeId) {
+    const response = await apiRequest(`/api/bgh/schedule/changes/${changeId}/approve`, { method: 'POST' })
+    bghDataClient.invalidate('/api/bgh/schedule/changes')
+    return response
+  },
+
+  async rejectScheduleChange(changeId) {
+    const response = await apiRequest(`/api/bgh/schedule/changes/${changeId}/reject`, { method: 'POST' })
+    bghDataClient.invalidate('/api/bgh/schedule/changes')
+    return response
   },
 
   getEvaluations(params = {}) {

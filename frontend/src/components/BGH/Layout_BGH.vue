@@ -61,10 +61,9 @@ const currentPageMeta = computed(() => {
 })
 
 // ── Auto-close mobile sidebar on route change ──────────────
-watch(() => route.path, (_nextPath, previousPath) => {
+watch(() => route.path, () => {
   closeMobileSidebar()
   cancelBghRoutePrefetch()
-  bghApi.abortScope(previousPath)
   bghApi.abortScope('prefetch')
 })
 
