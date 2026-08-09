@@ -65,6 +65,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<LopHanhChinh> LopHanhChinhs => Set<LopHanhChinh>();
     public DbSet<LopHocPhan> LopHocPhans => Set<LopHocPhan>();
     public DbSet<MauBangKhen> MauBangKhens => Set<MauBangKhen>();
+    public DbSet<MauDanhGia> MauDanhGias => Set<MauDanhGia>();
     public DbSet<MauDonTu> MauDonTus => Set<MauDonTu>();
     public DbSet<MauThongBao> MauThongBaos => Set<MauThongBao>();
     public DbSet<MonHocTrongChuongTrinh> MonHocTrongChuongTrinhs => Set<MonHocTrongChuongTrinh>();
@@ -3422,6 +3423,34 @@ public class ApplicationDbContext : DbContext
             entity.ToTable(t => t.HasCheckConstraint("CK_MauDonTu_dung_luong_tep", "[dung_luong_tep_toi_da_byte] > 0"));
             entity.ToTable(t => t.HasCheckConstraint("CK_MauDonTu_tong_dung_luong", "[tong_dung_luong_toi_da_byte] >= [dung_luong_tep_toi_da_byte]"));
             entity.ToTable(t => t.HasCheckConstraint("CK_MauDonTu_sla_gio", "[sla_gio] IS NULL OR [sla_gio] >= 0"));
+        });
+
+        modelBuilder.Entity<MauDanhGia>(entity =>
+        {
+            entity.ToTable("MauDanhGia", "dbo");
+            entity.HasKey(e => e.MaMauDanhGia).HasName("PK_MauDanhGia");
+            entity.Property(e => e.MaMauDanhGia)
+                .HasColumnName("ma_mau_danh_gia");
+            entity.Property(e => e.TenMau)
+                .HasColumnName("ten_mau")
+                .HasMaxLength(200)
+                .IsRequired();
+            entity.Property(e => e.CauHinhJson)
+                .HasColumnName("cau_hinh_json")
+                .HasColumnType("nvarchar(max)")
+                .IsRequired();
+            entity.Property(e => e.DangHoatDong)
+                .HasColumnName("dang_hoat_dong")
+                .HasDefaultValue(true);
+            entity.Property(e => e.NgayTao)
+                .HasColumnName("ngay_tao")
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.NgayCapNhat)
+                .HasColumnName("ngay_cap_nhat")
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.ToTable(t => t.HasCheckConstraint("CK_MauDanhGia_cau_hinh_json_ISJSON", "ISJSON([cau_hinh_json]) = 1"));
         });
 
         modelBuilder.Entity<MauBangKhen>(entity =>

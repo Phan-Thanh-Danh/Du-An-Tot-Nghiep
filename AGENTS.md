@@ -173,6 +173,14 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `GET /api/admin/discipline-appeals` (DL3)
   - `GET /api/bgh/evaluations/overview` (P15D)
   - `GET /api/bgh/evaluations/ai-analysis` (P15D)
+  - `GET /api/admin/evaluations/config` — lấy biểu mẫu đánh giá GV hiện hành (bảng `MauDanhGia`, trả `null` nếu chưa có)
+  - `PUT /api/admin/evaluations/config` (policy AdminOnly) — upsert biểu mẫu đánh giá GV (tên, `cauHinhJson` — validate qua `ApplicationTemplateValidator`, `dangHoatDong`); ghi audit `UPSERT_EVALUATION_CONFIG`
+  - `GET /api/admin/evaluations/summary` — tổng quan cấu hình đánh giá GV (số câu hỏi, lượt đánh giá, GV được đánh giá, học kỳ có đánh giá)
+  - `GET /api/admin/evaluations/questions` — danh sách câu hỏi khảo sát kèm `luotSuDung`
+  - `POST /api/admin/evaluations/questions` (policy AdminOnly) — tạo câu hỏi (nội dung 1-500 ký tự, mặc định hoạt động)
+  - `PUT /api/admin/evaluations/questions/{id}` (policy AdminOnly) — sửa nội dung câu hỏi
+  - `POST /api/admin/evaluations/questions/{id}/toggle-active` (policy AdminOnly) — bật/tắt câu hỏi
+  - `DELETE /api/admin/evaluations/questions/{id}` (policy AdminOnly) — xóa câu hỏi (chỉ khi chưa có lượt đánh giá `DanhGiaGiaoVien` dùng; nếu có → 400 yêu cầu tạm ẩn)
   - `GET /api/bgh/academic/overview` (P15D)
   - `GET /api/bgh/academic/gpa` (P15D)
   - `GET /api/bgh/academic/at-risk` (P15D)

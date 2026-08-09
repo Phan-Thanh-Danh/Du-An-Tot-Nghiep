@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
   AlignLeft,
   Calendar,
@@ -450,6 +450,66 @@ function addOption() {
 function removeOption(index) {
   selectedField.value?.options?.splice(index, 1)
 }
+
+// ── Kéo dãn độ rộng 3 cột ─────────────────────────────────────────
+const LAYOUT_KEY = 'ev-builder-layout'
+const paletteWidth = ref(220)
+const inspectorWidth = ref(260)
+const canvasEl = ref(null)
+const resizeSide = ref(null)
+
+function loadLayout() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || 'null')
+    if (saved) {
+      if (typeof saved.paletteWidth === 'number') paletteWidth.value = saved.paletteWidth
+      if (typeof saved.inspectorWidth === 'number') inspectorWidth.value = saved.inspectorWidth
+    }
+  } catch {
+    // bỏ qua layout lưu bị hỏng
+  }
+}
+
+watch(
+  [paletteWidth, inspectorWidth],
+  ([pw, iw]) => {
+    try {
+      localStorage.setItem(LAYOUT_KEY, JSON.stringify({ paletteWidth: pw, inspectorWidth: iw }))
+    } catch {
+      // localStorage không khả dụng
+    }
+  },
+)
+
+function startResize(side) {
+  resizeSide.value = side
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+  window.addEventListener('mousemove', onResizeMove)
+  window.addEventListener('mouseup', stopResize)
+}
+
+function onResizeMove(event) {
+  if (!resizeSide.value || !canvasEl.value) return
+  const rect = canvasEl.value.getBoundingClientRect()
+  if (resizeSide.value === 'palette') {
+    paletteWidth.value = Math.min(340, Math.max(150, event.clientX - rect.left))
+  } else {
+    inspectorWidth.value = Math.min(420, Math.max(180, rect.right - event.clientX))
+  }
+}
+
+function stopResize() {
+  resizeSide.value = null
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  window.removeEventListener('mousemove', onResizeMove)
+  window.removeEventListener('mouseup', stopResize)
+}
+
+onMounted(loadLayout)
+onUnmounted(stopResize)
+
 defineExpose({
   fields,
   openEditDialog,
@@ -459,7 +519,10 @@ defineExpose({
 </script>
 
 <template>
-  <div class="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr_260px]">
+  <div
+    class="grid grid-cols-1 gap-4 md:grid-cols-[var(--ev-palette-w)_10px_1fr_10px_var(--ev-inspector-w)] md:gap-2"
+    :style="{ '--ev-palette-w': `${paletteWidth}px`, '--ev-inspector-w': `${inspectorWidth}px` }"
+  >
     <div class="border-card rounded-xl border bg-(--surface-card)">
       <p class="text-label border-(--border-card) border-b px-3 py-2.5 text-xs font-bold uppercase tracking-wide">
         Trường dữ liệu
@@ -493,7 +556,17 @@ defineExpose({
       </div>
     </div>
 
+    <div class="hidden items-stretch md:flex" title="Kéo để đổi độ rộng cột trái">
+      <button
+        type="button"
+        class="w-full cursor-col-resize rounded-lg bg-transparent transition-colors hover:bg-(--lg-primary)/15"
+        @mousedown.prevent="startResize('palette', $event)"
+        @dblclick="paletteWidth = 220"
+      ></button>
+    </div>
+
     <div
+      ref="canvasEl"
       class="border-card rounded-xl border bg-(--surface-card) p-3"
       @dragover.prevent
       @drop="onDrop($event, fields.length)"
@@ -562,6 +635,15 @@ defineExpose({
           Thêm trường mới
         </button>
       </div>
+    </div>
+
+    <div class="hidden items-stretch md:flex" title="Kéo để đổi độ rộng cột phải">
+      <button
+        type="button"
+        class="w-full cursor-col-resize rounded-lg bg-transparent transition-colors hover:bg-(--lg-primary)/15"
+        @mousedown.prevent="startResize('inspector', $event)"
+        @dblclick="inspectorWidth = 260"
+      ></button>
     </div>
 
     <div class="border-card rounded-xl border bg-(--surface-card) p-4">
