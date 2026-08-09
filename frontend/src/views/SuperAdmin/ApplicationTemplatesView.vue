@@ -1,5 +1,6 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { FileText, Plus, Pencil, Power, X } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
@@ -7,12 +8,15 @@ import GlassInput from '@/components/ui/GlassInput.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import ApplicationFormRenderer from '@/components/applications/ApplicationFormRenderer.vue'
-import ApplicationFormBuilder from '@/components/applications/ApplicationFormBuilder.vue'
+// Lazy-load để phá vỡ circular chunk giữa FormBuilder và FormRenderer, tránh lỗi TDZ trong production build
+const ApplicationFormRenderer = defineAsyncComponent(() => import('@/components/applications/ApplicationFormRenderer.vue'))
+const ApplicationFormBuilder = defineAsyncComponent(() => import('@/components/applications/ApplicationFormBuilder.vue'))
 import { applicationsApi } from '@/services/applicationsApi'
 import { formatDateTime } from '@/utils/dateFormat'
 import { usePopupStore } from '@/stores/popup'
 
+
+const router = useRouter()
 const popupStore = usePopupStore()
 const loading = ref(true)
 const saving = ref(false)
@@ -21,7 +25,6 @@ const types = ref([])
 const modalOpen = ref(false)
 const modalMode = ref('create')
 const previewOpen = ref(false)
-const editing = ref(null)
 const builderMode = ref('builder')
 const builderKey = ref(0)
 
@@ -131,28 +134,11 @@ function openCreate() {
 }
 
 function openEdit(template) {
-  modalMode.value = 'edit'
-  previewOpen.value = false
-  jsonError.value = ''
-  formError.value = ''
-  editing.value = template
-  form.value = {
-    loaiDon: template.loaiDon,
-    tenMau: template.tenMau,
-    cauHinhJson: template.cauHinhJson,
-    batBuocMinhChung: template.batBuocMinhChung,
-    soTepToiDa: template.soTepToiDa,
-    dungLuongTepToiDaByte: template.dungLuongTepToiDaByte,
-    tongDungLuongToiDaByte: template.tongDungLuongToiDaByte,
-    slaGio: template.slaGio,
-    dangHoatDong: template.dangHoatDong,
-  }
-  modalOpen.value = true
+  router.push(`/super-admin/approvals/requests/${encodeURIComponent(template.loaiDon)}`)
 }
 
 function closeModal() {
   modalOpen.value = false
-  editing.value = null
 }
 
 async function saveTemplate() {
@@ -170,13 +156,8 @@ async function saveTemplate() {
 
   saving.value = true
   try {
-    if (modalMode.value === 'create') {
-      await applicationsApi.createApplicationTemplate(form.value)
-      popupStore.success('Thành công', 'Tạo mẫu đơn thành công.')
-    } else {
-      await applicationsApi.updateApplicationTemplate(form.value.loaiDon, form.value)
-      popupStore.success('Thành công', 'Cập nhật mẫu đơn thành công.')
-    }
+    await applicationsApi.createApplicationTemplate(form.value)
+    popupStore.success('Thành công', 'Tạo mẫu đơn thành công.')
     closeModal()
     await loadTemplates()
   } catch (err) {
@@ -297,12 +278,10 @@ onMounted(async () => {
       class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
       @click.self="closeModal"
     >
-      <div class="lg-glass-strong border-card flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl border shadow-2xl">
+      <div class="lg-glass-strong border-card flex max-h-[92vh] w-full max-w-5xl flex-col rounded-2xl border shadow-2xl">
         <div class="flex items-start justify-between gap-4 border-b border-(--border-card) p-5">
           <div>
-            <h3 class="text-heading text-lg font-bold">
-              {{ modalMode === 'create' ? 'Tạo mẫu đơn mới' : `Sửa mẫu: ${editing?.tenMau}` }}
-            </h3>
+            <h3 class="text-heading text-lg font-bold">Tạo mẫu đơn mới</h3>
             <p class="text-label mt-1 text-sm">Cấu hình trường nhập liệu được lưu trong cột cau_hinh_json</p>
           </div>
           <button class="text-(--text-placeholder) hover:text-(--text-heading)" @click="closeModal">

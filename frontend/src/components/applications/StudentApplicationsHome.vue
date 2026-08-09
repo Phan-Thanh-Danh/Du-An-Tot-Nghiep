@@ -139,7 +139,7 @@ watch(
           }
         } else if (field.autoFill === 'availableExamSessions') {
           try {
-            const res = await apiRequest(`/api/student/retake/subjects/${depVal}/exam-sessions`)
+            const res = await apiRequest(`/api/student/retake/courses/${depVal}/exam-sessions`)
             const sessions = res?.data || res || []
             field.options = sessions.reduce((acc, session) => {
               acc[session.id] = session.name
@@ -272,8 +272,14 @@ async function goNext() {
         
         draft.value.dynamicFields = {}
         for (const field of currentTemplate.value.fields || []) {
-          if (field.key === 'co_so_hien_tai') {
-            draft.value.dynamicFields[field.key] = authStore.user?.DonVi?.TenDonVi || ''
+          if (field.autoFill === 'currentCampus') {
+            draft.value.dynamicFields[field.key] = authStore.user?.campusName || authStore.user?.CampusName || authStore.user?.DonVi?.TenDonVi || ''
+          } else if (field.autoFill === 'currentMajor') {
+            draft.value.dynamicFields[field.key] = authStore.user?.majorName || authStore.user?.MajorName || ''
+          } else if (field.autoFill === 'currentClass') {
+            draft.value.dynamicFields[field.key] = authStore.user?.className || authStore.user?.ClassName || ''
+          } else if (field.key === 'co_so_hien_tai') {
+            draft.value.dynamicFields[field.key] = authStore.user?.campusName || authStore.user?.CampusName || authStore.user?.DonVi?.TenDonVi || ''
           } else if (field.type === 'multiselect') {
             draft.value.dynamicFields[field.key] = []
           } else {

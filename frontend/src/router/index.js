@@ -613,6 +613,12 @@ const router = createRouter({
           meta: { title: 'Quản lý mẫu đơn từ' },
         },
         {
+          path: 'approvals/requests/:loaiDon',
+          name: 'super-admin-approvals-request-edit',
+          component: () => import('../views/SuperAdmin/ApplicationTemplateEditorView.vue'),
+          meta: { title: 'Sửa mẫu đơn từ' },
+        },
+        {
           path: 'approvals/history',
           name: 'super-admin-approvals-history',
           component: () => import('../views/SuperAdmin/ApprovalsHistoryView.vue'),

@@ -162,6 +162,9 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `POST /api/applications/templates` (policy AdminOnly) — tạo mẫu đơn mới (loại đơn chưa có mẫu; validate `cauHinhJson` qua `ApplicationTemplateValidator`; `phienBan=1`; không cho tạo trùng loại)
   - `PUT /api/applications/templates/{loaiDon}` (policy AdminOnly) — cập nhật mẫu đơn (tên, cấu hình JSON, minh chứng, SLA, `dangHoatDong`); đổi `cauHinhJson` → tự tăng `phienBan`; ghi audit `CREATE_APPLICATION_TEMPLATE`/`UPDATE_APPLICATION_TEMPLATE`
   - `GET /api/applications/schema/types` — danh sách loại đơn chuẩn (dùng cho màn tạo mẫu; lưu ý `/api/applications/schema/options` không tồn tại ở BE — 404)
+  - `GET /api/student/retake/available-subjects` — danh sách **khóa học** (lớp học phần `KhoaHoc`) có thể thi lại: môn rớt xác định từ `DiemSo` join `CauHinhDiemMonHoc` theo `(MaMonHoc, MaHocKy)` khi `GpaMonHoc < NguongDat`; trả `{id=MaKhoaHoc, name=TieuDe, code=MaCodeMonHoc}`; chỉ giữ khóa học của môn có ca thi `'nhap'/'dang_mo'` với `NgayThi >= hôm nay`
+  - `GET /api/student/retake/courses/{courseId}/exam-sessions` — ca thi mở của khóa học (lấy ca thi theo `LichThiTong.MaMonHoc` của khóa học; 404 nếu khóa học không tồn tại); trả `{id=MaCaThi, name=...}`
+  - Mẫu đơn `thi_lai` dùng field `course_id` (autoFill `availableRetakeSubjects`, relatedEntity `khoa_hoc`) + `exam_session_id` (dependsOn `course_id`); `RetakeExamApplicationSubmissionRule` validate khóa học tồn tại, sinh viên rớt theo ngưỡng cấu hình, ca thi thuộc khóa học & đang mở
   - Lưu ý route: `/super-admin/approvals/requests` là màn **Quản lý mẫu đơn từ** (SuperAdmin); hàng đợi xử lý đơn của sinh viên nằm ở GiaoVu `/staff/requests`
 
   - `POST /api/admin/discipline-records/{id}/remove-effect` (DL3)

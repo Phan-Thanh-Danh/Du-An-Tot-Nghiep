@@ -133,31 +133,60 @@ public class RetakeExamApplicationSubmissionRule : ApplicationSubmissionRuleBase
 
     public override string BuildDuplicateLockKey(ApplicationSubmissionRuleContext context)
     {
-        if (!context.FormData.Values.TryGetInt("subject_id", out var subjectId) ||
+        if (!context.FormData.Values.TryGetInt("course_id", out var courseId) ||
             !context.FormData.Values.TryGetInt("exam_session_id", out var examSessionId))
         {
             return $"{context.Student.MaNguoiDung}|{SupportedType}|invalid";
         }
 
-        return $"{context.Student.MaNguoiDung}|{SupportedType}|{subjectId}|{examSessionId}";
+        return $"{context.Student.MaNguoiDung}|{SupportedType}|{courseId}|{examSessionId}";
     }
 
     public override async Task ValidateAsync(ApplicationSubmissionRuleContext context, CancellationToken cancellationToken = default)
     {
-        if (!context.FormData.Values.TryGetInt("subject_id", out var subjectId) ||
+        if (!context.FormData.Values.TryGetInt("course_id", out var courseId) ||
             !context.FormData.Values.TryGetInt("exam_session_id", out var examSessionId))
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Thiếu môn học hoặc ca thi đăng ký thi lại.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Thiếu khóa học hoặc ca thi đăng ký thi lại.");
         }
 
-        var hasFailedScore = await Context.DiemSos.AsNoTracking().AnyAsync(x =>
-            x.MaHocSinh == context.Student.MaNguoiDung &&
-            x.MaMonHoc == subjectId &&
-            (x.GpaMonHoc < 5.0m || x.DiemCuoiKy < 5.0m),
-            cancellationToken);
+        var course = await Context.KhoaHocs.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.MaKhoaHoc == courseId, cancellationToken);
+        if (course == null)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Khóa học không tồn tại.");
+        }
+
+        var hasFailedScore = await Context.DiemSos.AsNoTracking()
+            .Join(
+                Context.CauHinhDiemMonHocs.AsNoTracking(),
+                d => new { d.MaMonHoc, d.MaHocKy },
+                c => new { c.MaMonHoc, c.MaHocKy },
+                (d, c) => new { d, c })
+            .AnyAsync(x =>
+                x.d.MaHocSinh == context.Student.MaNguoiDung &&
+                x.d.MaMonHoc == course.MaMonHoc &&
+                x.d.GpaMonHoc < x.c.NguongDat,
+                cancellationToken);
         if (!hasFailedScore)
         {
             throw new ApiException(StatusCodes.Status400BadRequest, "Sinh viên chưa có dữ liệu rớt môn này.");
+        }
+
+        var examSession = await Context.CaThis.AsNoTracking()
+            .Include(c => c.LichThiTong)
+            .FirstOrDefaultAsync(c => c.MaCaThi == examSessionId, cancellationToken);
+        if (examSession == null || examSession.LichThiTong == null || examSession.LichThiTong.MaMonHoc != course.MaMonHoc)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Ca thi không thuộc khóa học này.");
+        }
+        if (examSession.TrangThai != "nhap" && examSession.TrangThai != "dang_mo")
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Ca thi này không mở đăng ký thi lại.");
+        }
+        if (examSession.NgayThi < DateTime.Today)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Ca thi đã qua, không thể đăng ký thi lại.");
         }
 
         var candidates = await Context.DonTus.AsNoTracking()
@@ -170,13 +199,13 @@ public class RetakeExamApplicationSubmissionRule : ApplicationSubmissionRuleBase
             .Select(x => new { x.MaDonTu, x.DuLieuBieuMau })
             .ToListAsync(cancellationToken);
         var duplicate = candidates.Any(x =>
-            TryGetJsonInt(x.DuLieuBieuMau, "subject_id", out var existingSubjectId) &&
+            TryGetJsonInt(x.DuLieuBieuMau, "course_id", out var existingCourseId) &&
             TryGetJsonInt(x.DuLieuBieuMau, "exam_session_id", out var existingExamSessionId) &&
-            existingSubjectId == subjectId &&
+            existingCourseId == courseId &&
             existingExamSessionId == examSessionId);
         if (duplicate)
         {
-            throw new ApiException(StatusCodes.Status409Conflict, "Đã tồn tại đơn thi lại đang xử lý cho môn học và ca thi này.");
+            throw new ApiException(StatusCodes.Status409Conflict, "Đã tồn tại đơn thi lại đang xử lý cho khóa học và ca thi này.");
         }
     }
 }
