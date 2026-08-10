@@ -314,62 +314,53 @@ function sendBulkWarning() {
         <p class="text-sm text-placeholder mt-1">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
       </div>
 
-      <!-- ── Risk List ── -->
-      <div v-else class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-         <div 
-           v-for="st in filteredStudents" 
-           :key="st.id" 
-           class="surface-card border border-card rounded-2xl p-5 group hover:border-(--border-input-focus) transition-all shadow-sm"
-         >
-            <div class="flex items-start justify-between mb-4">
-               <div class="flex items-center gap-4">
-                  <div class="h-10 w-10 rounded-2xl surface-solid flex items-center justify-center text-muted group-hover:bg-(--color-info-bg) group-hover:text-(--color-info-text) transition-all">
-                     <User :size="28" />
+      <!-- ── Risk Table View ── -->
+      <div v-else class="surface-card border border-card rounded-2xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-body whitespace-nowrap">
+            <thead class="bg-(--surface-card) border-b border-card sticky top-0 z-10 backdrop-blur-md">
+              <tr>
+                <th class="px-4 py-3 font-bold text-heading text-center w-12">STT</th>
+                <th class="px-4 py-3 font-bold text-heading">Mã SV</th>
+                <th class="px-4 py-3 font-bold text-heading">Họ và tên</th>
+                <th class="px-4 py-3 font-bold text-heading">Lớp hành chính</th>
+                <th class="px-4 py-3 font-bold text-heading">Môn nguy cơ</th>
+                <th class="px-4 py-3 font-bold text-heading text-center">GPA môn</th>
+                <th class="px-4 py-3 font-bold text-heading text-center">Mức nguy cơ</th>
+                <th class="px-4 py-3 font-bold text-heading text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-card">
+              <tr v-for="(st, idx) in filteredStudents" :key="st.id" class="hover:bg-(--surface-input)/50 transition-colors">
+                <td class="px-4 py-3 text-center font-medium text-muted">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+                <td class="px-4 py-3 font-bold text-heading font-mono text-xs">{{ st.code }}</td>
+                <td class="px-4 py-3 font-bold text-heading">
+                  <div class="flex items-center gap-2">
+                    <User :size="16" class="text-muted" />
+                    <span>{{ st.name }}</span>
                   </div>
-                  <div>
-                     <h4 class="text-lg font-semibold text-heading leading-tight group-hover:text-link transition-colors">{{ st.name }}</h4>
-                     <p class="text-[11px] font-bold text-muted uppercase tracking-widest mt-1">{{ st.code }} • Lớp {{ st.class }}</p>
+                </td>
+                <td class="px-4 py-3 text-xs font-semibold">{{ st.class }}</td>
+                <td class="px-4 py-3 text-xs">{{ st.subject || 'Đang cập nhật' }}</td>
+                <td class="px-4 py-3 text-center">
+                  <span class="font-bold text-sm" :class="st.grade < 4 ? 'text-(--color-danger-text)' : 'text-(--color-warning-text)'">{{ st.grade }}</span>
+                </td>
+                <td class="px-4 py-3 text-center">
+                  <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border shadow-xs', getRiskBadge(st.risk)]">
+                    {{ st.risk }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right">
+                  <div class="flex items-center justify-end gap-1">
+                    <button @click="viewStudentHistory(st)" class="p-1.5 hover:bg-(--surface-input) rounded-lg text-muted hover:text-heading transition-colors" title="Lịch sử học tập"><History :size="16" /></button>
+                    <button @click="sendNotification(st)" class="p-1.5 hover:bg-(--surface-input) rounded-lg text-muted hover:text-heading transition-colors" title="Gửi cảnh báo"><Bell :size="16" /></button>
+                    <button @click="openDrawer(st)" class="p-1.5 hover:bg-(--surface-input) rounded-lg text-link hover:underline text-xs font-bold transition-colors" title="Xem chi tiết"><ExternalLink :size="16" /></button>
                   </div>
-               </div>
-               <div :class="['px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest border shadow-sm', getRiskBadge(st.risk)]">
-                  {{ st.risk }}
-               </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 mb-8">
-               <div class="p-4 surface-solid rounded-2xl border border-default">
-                  <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1.5">Môn học hiện tại</p>
-                  <p class="text-xs font-bold text-label">{{ st.subject || 'Đang cập nhật' }}</p>
-               </div>
-               <div class="p-4 surface-solid rounded-2xl border border-default">
-                  <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1.5">GPA TB / Môn rớt</p>
-                  <div class="flex items-center justify-between">
-                     <span class="text-sm font-semibold" :class="st.grade < 4 ? 'text-(--color-danger-text)' : 'text-(--color-warning-text)'">{{ st.grade }}</span>
-                     <div class="text-right">
-                       <span class="text-[10px] font-bold text-label">{{ st.reason }}</span>
-                     </div>
-                  </div>
-               </div>
-            </div>
-
-            <div class="flex items-start gap-3 p-4 bg-(--color-danger-bg) rounded-2xl border border-(--color-danger-text)/20 mb-4">
-               <Zap :size="16" class="text-(--color-danger-text) shrink-0 mt-0.5" />
-               <div>
-                  <p class="text-[10px] font-semibold text-(--color-danger-text) uppercase tracking-widest">Dự đoán của AI</p>
-                  <p class="text-[11px] text-body font-medium leading-relaxed mt-1">{{ st.reason }}</p>
-               </div>
-            </div>
-
-            <div class="flex items-center justify-between pt-6">
-               <div class="flex items-center gap-1">
-                  <button @click="viewStudentHistory(st)" class="p-2 hover:bg-(--surface-input) rounded-lg text-muted" title="Xem lịch sử"><History :size="18" /></button>
-                  <button @click="sendNotification(st)" class="p-2 hover:bg-(--surface-input) rounded-lg text-muted" title="Gửi thông báo"><Bell :size="18" /></button>
-               </div>
-               <button @click="openDrawer(st)" class="text-xs font-semibold text-link uppercase tracking-widest flex items-center gap-1 hover:underline">
-                   Xem chi tiết hồ sơ <ExternalLink :size="14" />
-                </button>
-            </div>
-         </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div v-if="totalPages > 1" class="flex items-center justify-end gap-2 pt-2 text-sm">

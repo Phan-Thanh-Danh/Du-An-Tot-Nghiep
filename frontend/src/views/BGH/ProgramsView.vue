@@ -21,7 +21,17 @@
         <h2 class="sr-only text-xl font-bold text-heading">Ngành & Chuyên ngành</h2>
         <p class="text-xs text-muted mt-1">Chương trình đào tạo theo chuyên ngành và khóa tuyển sinh</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2 items-center">
+        <LmsSelect v-model="industryFilter" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
+          <option value="">Tất cả Ngành</option>
+          <option v-for="ind in industryOptions" :key="ind.id" :value="ind.id">{{ ind.name }}</option>
+        </LmsSelect>
+
+        <LmsSelect v-model="majorFilter" :disabled="!industryFilter" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary) disabled:opacity-50">
+          <option value="">Tất cả Chuyên ngành</option>
+          <option v-for="maj in availableMajors" :key="maj.id" :value="maj.id">{{ maj.name }}</option>
+        </LmsSelect>
+
         <LmsSelect v-model="statusFilter" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả trạng thái</option>
           <option value="active">Đang hoạt động</option>
@@ -94,7 +104,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import {
   BookOpen, Users, Layers, BookMarked, Clock,
   ChevronDown, ChevronRight, FileText, CheckCircle2,
@@ -108,7 +118,41 @@ const loading = ref(false)
 const error = ref(null)
 
 const statusFilter = ref('')
+const industryFilter = ref('')
+const majorFilter = ref('')
 const expandedId = ref(null)
+
+const industryOptions = ref([
+  { id: 'cntt', name: 'Công nghệ thông tin' },
+  { id: 'kt', name: 'Kinh tế & Quản trị' },
+  { id: 'nn', name: 'Ngôn ngữ & Truyền thông' }
+])
+
+const majorsByIndustry = ref({
+  cntt: [
+    { id: 'pm', name: 'Kỹ thuật phần mềm' },
+    { id: 'mmt', name: 'Mạng máy tính & An toàn thông tin' },
+    { id: 'ai', name: 'Trí tuệ nhân tạo & Khoa học dữ liệu' }
+  ],
+  kt: [
+    { id: 'qtkd', name: 'Quản trị kinh doanh' },
+    { id: 'mkt', name: 'Marketing số' },
+    { id: 'tc', name: 'Tài chính - Ngân hàng' }
+  ],
+  nn: [
+    { id: 'nna', name: 'Ngôn ngữ Anh' },
+    { id: 'nnh', name: 'Ngôn ngữ Hàn' }
+  ]
+})
+
+const availableMajors = computed(() => {
+  if (!industryFilter.value) return []
+  return majorsByIndustry.value[industryFilter.value] || []
+})
+
+watch(industryFilter, () => {
+  majorFilter.value = ''
+})
 
 function toggleExpand(id) {
   expandedId.value = expandedId.value === id ? null : id
@@ -135,8 +179,17 @@ async function loadData() {
 }
 
 const filteredPrograms = computed(() => {
-  if (!statusFilter.value) return programs.value
-  return programs.value.filter(p => p.trangThai === statusFilter.value)
+  let result = programs.value
+  if (statusFilter.value) {
+    result = result.filter(p => p.trangThai === statusFilter.value)
+  }
+  if (majorFilter.value) {
+    const majObj = availableMajors.value.find(m => m.id === majorFilter.value)
+    if (majObj) {
+      result = result.filter(p => p.tenChuyenNganh?.toLowerCase().includes(majObj.name.toLowerCase()))
+    }
+  }
+  return result
 })
 
 function statusBadge(status) {

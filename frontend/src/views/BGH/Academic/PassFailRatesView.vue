@@ -26,11 +26,24 @@ import { unwrapApiData } from '@/services/apiClient'
 const loading = ref(false)
 const error = ref(null)
 const semesterFilter = ref('all')
-const departmentFilter = ref('all')
+const industryFilter = ref('all')
+const majorFilter = ref('all')
 const searchQuery = ref('')
 const showFilterDetail = ref(false)
 const showDetailModal = ref(false)
 const selectedCourse = ref(null)
+
+const semesters = ref([{ value: 'all', label: 'Tất cả học kỳ' }])
+const industries = ref([{ value: 'all', label: 'Tất cả Ngành' }])
+const specializations = ref([])
+
+const availableMajors = computed(() => {
+  if (industryFilter.value === 'all') {
+    return [{ value: 'all', label: 'Tất cả Chuyên ngành' }, ...specializations.value]
+  }
+  const filtered = specializations.value.filter(s => String(s.majorId || s.maNganh) === String(industryFilter.value))
+  return [{ value: 'all', label: 'Tất cả Chuyên ngành' }, ...(filtered.length > 0 ? filtered : specializations.value)]
+})
 
 async function loadData() {
   loading.value = true
@@ -42,15 +55,30 @@ async function loadData() {
       { value: 'all', label: 'Tất cả học kỳ' },
       ...(filterData.semesters || []).map(item => ({ value: String(item.id), label: item.label })),
     ]
-    departments.value = [
-      { value: 'all', label: 'Tất cả Khoa' },
-      ...(filterData.majors || []).map(item => ({ value: String(item.id), label: item.label })),
-    ]
+    if (filterData.majors && filterData.majors.length > 0) {
+      industries.value = [
+        { value: 'all', label: 'Tất cả Ngành' },
+        ...filterData.majors.map(m => ({ value: String(m.id || m.maNganh), label: m.label || m.name || m.tenNganh || 'Ngành' }))
+      ]
+    }
+    if (filterData.specializations && filterData.specializations.length > 0) {
+      specializations.value = filterData.specializations.map(s => ({
+        value: String(s.id || s.maChuyenNganh),
+        label: s.label || s.name || s.tenChuyenNganh || 'Chuyên ngành',
+        majorId: s.majorId || s.maNganh
+      }))
+    }
 
-    const res = await bghApi.getPassFailRates({
-      majorId: departmentFilter.value === 'all' ? undefined : departmentFilter.value,
+    const apiParams = {
       semesterId: semesterFilter.value === 'all' ? undefined : semesterFilter.value,
-    })
+    }
+    if (majorFilter.value !== 'all') {
+      apiParams.specializationId = majorFilter.value
+    } else if (industryFilter.value !== 'all') {
+      apiParams.majorId = industryFilter.value
+    }
+
+    const res = await bghApi.getPassFailRates(apiParams)
     const data = unwrapApiData(res)
     if (data) {
       courseStats.value = (data.courseStats || []).map((c, i) => ({
@@ -63,7 +91,7 @@ async function loadData() {
         fail: c.fail,
         failRate: c.failRate,
         reason: c.reason || 'Điểm tổng kết dưới ngưỡng đạt',
-        dept: departmentFilter.value,
+        dept: majorFilter.value !== 'all' ? majorFilter.value : industryFilter.value,
         avgGpa: c.avgGpa,
       }))
       overallPassRate.value = data.overallPassRate ?? 0
@@ -89,10 +117,11 @@ const courseStats = ref([])
 const trendData = ref([])
 const overallPassRate = ref(0)
 
-const semesters = ref([{ value: 'all', label: 'Tất cả học kỳ' }])
-const departments = ref([{ value: 'all', label: 'Tất cả Khoa' }])
+watch(industryFilter, () => {
+  majorFilter.value = 'all'
+})
 
-watch([semesterFilter, departmentFilter], () => {
+watch([semesterFilter, industryFilter, majorFilter], () => {
   loadData()
 })
 
@@ -101,9 +130,6 @@ const filteredStats = computed(() => {
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
     list = list.filter(s => s.subject.toLowerCase().includes(q) || s.class.toLowerCase().includes(q) || s.teacher.toLowerCase().includes(q))
-  }
-  if (departmentFilter.value !== 'all') {
-    list = list.filter(s => s.dept === departmentFilter.value)
   }
   if (warningThreshold.value > 0) {
     list = list.filter(s => s.failRate >= warningThreshold.value)
@@ -209,8 +235,11 @@ function exportExcel() {
            <LmsSelect v-model="semesterFilter" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
              <option v-for="s in semesters" :key="s.value" :value="s.value">{{ s.label }}</option>
            </LmsSelect>
-           <LmsSelect v-model="departmentFilter" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
-             <option v-for="d in departments" :key="d.value" :value="d.value">{{ d.label }}</option>
+           <LmsSelect v-model="industryFilter" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+             <option v-for="i in industries" :key="i.value" :value="i.value">{{ i.label }}</option>
+           </LmsSelect>
+           <LmsSelect v-model="majorFilter" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+             <option v-for="m in availableMajors" :key="m.value" :value="m.value">{{ m.label }}</option>
            </LmsSelect>
         </div>
         <button @click="showFilterDetail = !showFilterDetail" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2" :class="{ 'bg-(--surface-input-hover) border-(--lg-primary)': showFilterDetail }">

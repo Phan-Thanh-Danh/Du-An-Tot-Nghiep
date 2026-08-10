@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { 
   Users, 
   Award, 
@@ -29,13 +29,23 @@ const loading = ref(false)
 const error = ref(null)
 
 const semesterFilter = ref('all')
-const departmentFilter = ref('all')
+const industryFilter = ref('all')
+const majorFilter = ref('all')
 const campusFilter = ref('all')
 const showExport = ref(false)
 
 const semesters = ref([{ value: 'all', label: 'Tất cả học kỳ' }])
-const departments = ref([{ value: 'all', label: 'Tất cả Khoa' }])
+const industries = ref([{ value: 'all', label: 'Tất cả Ngành' }])
+const specializations = ref([])
 const campuses = ref([{ value: 'all', label: 'Tất cả Cơ sở' }])
+
+const availableMajors = computed(() => {
+  if (industryFilter.value === 'all') {
+    return [{ value: 'all', label: 'Tất cả Chuyên ngành' }, ...specializations.value]
+  }
+  const filtered = specializations.value.filter(s => String(s.majorId || s.maNganh) === String(industryFilter.value))
+  return [{ value: 'all', label: 'Tất cả Chuyên ngành' }, ...(filtered.length > 0 ? filtered : specializations.value)]
+})
 
 const kpis = ref([])
 const distribution = ref([])
@@ -51,9 +61,10 @@ async function loadData(isInitial = false) {
     const params = {}
     if (campusFilter.value !== 'all') params.campusId = campusFilter.value
     if (semesterFilter.value !== 'all') params.semesterId = semesterFilter.value
-    if (departmentFilter.value !== 'all') {
-      const cleanVal = departmentFilter.value.replace('major_', '')
-      params.specializationId = cleanVal
+    if (majorFilter.value !== 'all') {
+      params.specializationId = majorFilter.value
+    } else if (industryFilter.value !== 'all') {
+      params.majorId = industryFilter.value
     }
 
     const [res, orgRes, filterOptionsRes] = await Promise.all([
@@ -72,21 +83,22 @@ async function loadData(isInitial = false) {
       ]
     }
 
-    const majorsList = (filterOptions.majors || []).map(m => ({
-      value: `major_${m.id || m.maNganh}`,
-      label: `Khoa ${m.label || m.name || m.tenNganh || m.code || 'Khoa'}`
-    }))
-    const specsList = (filterOptions.specializations || []).map(s => ({
-      value: String(s.id || s.maChuyenNganh),
-      label: `Ngành: ${s.label || s.name || s.tenChuyenNganh || 'Ngành'}`
-    }))
-    const combinedDepts = [...majorsList, ...specsList]
-
-    if (combinedDepts.length > 0) {
-      departments.value = [
-        { value: 'all', label: 'Tất cả Khoa / Ngành' },
-        ...combinedDepts,
+    if (filterOptions.majors && filterOptions.majors.length > 0) {
+      industries.value = [
+        { value: 'all', label: 'Tất cả Ngành' },
+        ...filterOptions.majors.map(m => ({
+          value: String(m.id || m.maNganh),
+          label: m.label || m.name || m.tenNganh || m.code || 'Ngành'
+        }))
       ]
+    }
+
+    if (filterOptions.specializations && filterOptions.specializations.length > 0) {
+      specializations.value = filterOptions.specializations.map(s => ({
+        value: String(s.id || s.maChuyenNganh),
+        label: s.label || s.name || s.tenChuyenNganh || 'Chuyên ngành',
+        majorId: s.majorId || s.maNganh
+      }))
     }
 
     totalTeachersVal.value = data.totalTeachers ?? 0
@@ -137,7 +149,11 @@ async function loadData(isInitial = false) {
   }
 }
 
-watch([semesterFilter, departmentFilter, campusFilter], () => {
+watch(industryFilter, () => {
+  majorFilter.value = 'all'
+})
+
+watch([semesterFilter, industryFilter, majorFilter, campusFilter], () => {
   loadData(false)
 })
 
@@ -220,7 +236,8 @@ const getBarColor = (index) => {
           <BarChart3 :size="16" /> Lọc
         </div>
         <LmsSelect v-model="semesterFilter" :options="semesters" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
-        <LmsSelect v-model="departmentFilter" :options="departments" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
+        <LmsSelect v-model="industryFilter" :options="industries" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
+        <LmsSelect v-model="majorFilter" :options="availableMajors" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
         <LmsSelect v-model="campusFilter" :options="campuses" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
       </div>
 

@@ -13,14 +13,24 @@ import { unwrapApiData } from '@/services/apiClient'
 const router = useRouter()
 const route = useRoute()
 const searchQuery = ref('')
-const deptFilter = ref('all')
+const industryFilter = ref('all')
+const majorFilter = ref('all')
 const ratingFilter = ref('all')
 const semesterFilter = ref('all')
 const rankings = ref([])
 const semesters = ref([])
-const majorOptions = ref([{ value: 'all', label: 'Tất cả Khoa / Ngành' }])
+const industryOptions = ref([{ value: 'all', label: 'Tất cả Ngành' }])
+const specializationOptions = ref([])
 const loading = ref(false)
 const error = ref(null)
+
+const availableMajors = computed(() => {
+  if (industryFilter.value === 'all') {
+    return [{ value: 'all', label: 'Tất cả Chuyên ngành' }, ...specializationOptions.value]
+  }
+  const filtered = specializationOptions.value.filter(s => String(s.majorId || s.maNganh) === String(industryFilter.value))
+  return [{ value: 'all', label: 'Tất cả Chuyên ngành' }, ...(filtered.length > 0 ? filtered : specializationOptions.value)]
+})
 
 const ratingOptions = [
   { value: 'all', label: 'Tất cả mức sao (1-5★)' },
@@ -38,8 +48,16 @@ const filteredRankings = computed(() => {
     const q = searchQuery.value.toLowerCase()
     list = list.filter(gv => gv.name.toLowerCase().includes(q) || gv.dept.toLowerCase().includes(q))
   }
-  if (deptFilter.value !== 'all') {
-    list = list.filter(gv => gv.dept === deptFilter.value || gv.deptId === Number(deptFilter.value))
+  if (majorFilter.value !== 'all') {
+    const selectedSpec = specializationOptions.value.find(s => s.value === majorFilter.value)
+    if (selectedSpec) {
+      list = list.filter(gv => gv.dept.toLowerCase().includes(selectedSpec.label.toLowerCase()))
+    }
+  } else if (industryFilter.value !== 'all') {
+    const selectedInd = industryOptions.value.find(i => i.value === industryFilter.value)
+    if (selectedInd) {
+      list = list.filter(gv => gv.dept.toLowerCase().includes(selectedInd.label.toLowerCase()))
+    }
   }
   if (ratingFilter.value === '5_star') {
     list = list.filter(gv => gv.avgScore >= 4.5)
@@ -102,17 +120,20 @@ async function loadData() {
       : []
 
     if (filterOptions.majors && Array.isArray(filterOptions.majors)) {
-      const opts = filterOptions.majors.map(m => ({
-        value: m.label || m.name || m.tenNganh || String(m.id),
-        label: m.label || m.name || m.tenNganh || `Khoa ${m.id}`
-      }))
-      majorOptions.value = [{ value: 'all', label: 'Tất cả Khoa / Ngành' }, ...opts]
-    } else {
-      const depts = [...new Set(rankings.value.map(gv => gv.dept))]
-      majorOptions.value = [
-        { value: 'all', label: 'Tất cả Khoa / Ngành' },
-        ...depts.map(d => ({ value: d, label: d }))
+      industryOptions.value = [
+        { value: 'all', label: 'Tất cả Ngành' },
+        ...filterOptions.majors.map(m => ({
+          value: String(m.id || m.maNganh),
+          label: m.label || m.name || m.tenNganh || `Ngành ${m.id}`
+        }))
       ]
+    }
+    if (filterOptions.specializations && Array.isArray(filterOptions.specializations)) {
+      specializationOptions.value = filterOptions.specializations.map(s => ({
+        value: String(s.id || s.maChuyenNganh),
+        label: s.label || s.name || s.tenChuyenNganh || 'Chuyên ngành',
+        majorId: s.majorId || s.maNganh
+      }))
     }
 
     semesters.value = (overview.semesterTrend || []).map(item => item.semester).filter(Boolean)
@@ -164,7 +185,8 @@ function viewDetail(gv) {
               <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
               <input v-model="searchQuery" type="text" placeholder="Tìm tên giảng viên hoặc khoa..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
            </div>
-           <LmsSelect v-model="deptFilter" :options="majorOptions" class="w-48 surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
+           <LmsSelect v-model="industryFilter" :options="industryOptions" class="w-44 surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
+           <LmsSelect v-model="majorFilter" :options="availableMajors" class="w-44 surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
            <LmsSelect v-model="ratingFilter" :options="ratingOptions" class="w-48 surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
         </div>
         <LmsSelect v-model="semesterFilter" :options="semesterOptions" class="w-44 surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />

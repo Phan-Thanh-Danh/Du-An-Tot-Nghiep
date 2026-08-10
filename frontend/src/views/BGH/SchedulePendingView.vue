@@ -216,12 +216,21 @@ function getGridItem(dayIdx, shiftId) {
             </div>
           </div>
 
-          <div :class="selectedItem.conflicts > 0 ? 'bg-(--color-danger-bg) border-(--color-danger-text)/20' : 'bg-(--color-success-bg) border-(--color-success-text)/20'" class="p-3 rounded-xl border">
-            <p :class="selectedItem.conflicts > 0 ? 'text-(--color-danger-text)' : 'text-(--color-success-text)'" class="text-xs font-bold mb-1">Kiểm tra xung đột hệ thống</p>
-            <div :class="selectedItem.conflicts > 0 ? 'text-(--color-danger-text)' : 'text-(--color-success-text)'" class="flex items-center gap-2 text-xs font-semibold">
-              <CheckCircle2 v-if="selectedItem.conflicts === 0" :size="16" />
-              <AlertCircle v-else :size="16" />
-              {{ selectedItem.conflicts === 0 ? 'Hoàn toàn hợp lệ (0 xung đột)' : `${selectedItem.conflicts} xung đột cần xử lý` }}
+          <div :class="selectedItem.conflicts > 0 ? 'bg-(--color-danger-bg) border-(--color-danger-text)/30 shadow-sm' : 'bg-(--color-success-bg) border-(--color-success-text)/30 shadow-sm'" class="p-3.5 rounded-xl border transition-all">
+            <div class="flex items-center justify-between mb-1">
+              <p :class="selectedItem.conflicts > 0 ? 'text-(--color-danger-text)' : 'text-(--color-success-text)'" class="text-xs font-extrabold uppercase tracking-wider">
+                Kiểm tra xung đột hệ thống
+              </p>
+              <GlassBadge v-if="selectedItem.conflicts > 0" variant="danger" size="sm">CẢNH BÁO</GlassBadge>
+              <GlassBadge v-else variant="success" size="sm">HỢP LỆ</GlassBadge>
+            </div>
+            <div :class="selectedItem.conflicts > 0 ? 'text-(--color-danger-text)' : 'text-(--color-success-text)'" class="flex items-start gap-2 text-xs font-bold mt-1.5">
+              <CheckCircle2 v-if="selectedItem.conflicts === 0" :size="16" class="shrink-0 mt-0.5" />
+              <AlertCircle v-else :size="16" class="shrink-0 mt-0.5" />
+              <div>
+                <span>{{ selectedItem.conflicts === 0 ? 'Hoàn toàn hợp lệ (0 xung đột phòng học / giảng viên)' : `Phát hiện ${selectedItem.conflicts} xung đột xếp lịch!` }}</span>
+                <p v-if="selectedItem.conflicts > 0" class="text-[11px] text-body font-medium mt-1 leading-relaxed">Vui lòng kiểm tra lại phòng học trùng ca hoặc giảng viên trùng giờ trước khi bấm Duyệt.</p>
+              </div>
             </div>
           </div>
 

@@ -296,9 +296,11 @@ const loadData = async () => {
 const flattenTreeData = (nodes, level = 0, parentPath = []) => {
   let result = []
   for (const node of nodes) {
+    const nodeName = node.name === 'LMS Root' ? 'LMS Khu vực TP. Hồ Chí Minh' : node.name
     const currentPath = [...parentPath, node.id]
     result.push({ 
       ...node, 
+      name: nodeName,
       _level: level, 
       _parentPath: parentPath 
     })

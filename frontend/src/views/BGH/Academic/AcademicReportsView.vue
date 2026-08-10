@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted } from 'vue'
 import { 
   FileSearch, 
   BarChart, 
@@ -30,9 +30,39 @@ const activeTab = ref('Class')
 const reportType = ref('class')
 const semesterFilter = ref('all')
 const campusFilter = ref('all')
+const industryFilter = ref('')
+const majorFilter = ref('')
 const generating = ref(false)
 const showViewModal = ref(false)
 const selectedReport = ref(null)
+
+const industryOptions = ref([
+  { id: 'cntt', name: 'Công nghệ thông tin' },
+  { id: 'kt', name: 'Kinh tế & Quản trị' },
+  { id: 'nn', name: 'Ngôn ngữ & Truyền thông' }
+])
+
+const majorsByIndustry = ref({
+  cntt: [
+    { id: 'pm', name: 'Kỹ thuật phần mềm' },
+    { id: 'mmt', name: 'Mạng máy tính & An toàn thông tin' },
+    { id: 'ai', name: 'Trí tuệ nhân tạo & Khoa học dữ liệu' }
+  ],
+  kt: [
+    { id: 'qtkd', name: 'Quản trị kinh doanh' },
+    { id: 'mkt', name: 'Marketing số' },
+    { id: 'tc', name: 'Tài chính - Ngân hàng' }
+  ],
+  nn: [
+    { id: 'nna', name: 'Ngôn ngữ Anh' },
+    { id: 'nnh', name: 'Ngôn ngữ Hàn' }
+  ]
+})
+
+const availableMajors = computed(() => {
+  if (!industryFilter.value) return []
+  return majorsByIndustry.value[industryFilter.value] || []
+})
 
 const semesters = ref([{ value: 'all', label: 'Tất cả học kỳ' }])
 const campuses = ref([{ value: 'all', label: 'Tất cả cơ sở' }])
@@ -255,28 +285,40 @@ async function exportExcel() {
             </div>
          </div>
 
-         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="space-y-2">
+         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div class="space-y-1.5">
                <label class="text-[10px] font-semibold text-muted uppercase tracking-widest ml-1">Loại báo cáo</label>
                <div class="relative">
-                  <LmsSelect v-model="reportType" :options="reportTypes" class="w-full surface-input border border-input rounded-2xl px-5 py-3.5 text-sm font-bold outline-none appearance-none cursor-pointer" />
+                  <LmsSelect v-model="reportType" :options="reportTypes" class="w-full surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none appearance-none cursor-pointer" />
                </div>
             </div>
-            <div class="space-y-2">
+            <div class="space-y-1.5">
+               <label class="text-[10px] font-semibold text-muted uppercase tracking-widest ml-1">Ngành đào tạo</label>
+               <div class="relative">
+                  <LmsSelect v-model="industryFilter" class="w-full surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none appearance-none cursor-pointer">
+                     <option value="">Tất cả Ngành</option>
+                     <option v-for="ind in industryOptions" :key="ind.id" :value="ind.id">{{ ind.name }}</option>
+                  </LmsSelect>
+               </div>
+            </div>
+            <div class="space-y-1.5">
+               <label class="text-[10px] font-semibold text-muted uppercase tracking-widest ml-1">Chuyên ngành</label>
+               <div class="relative">
+                  <LmsSelect v-model="majorFilter" :disabled="!industryFilter" class="w-full surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none appearance-none cursor-pointer disabled:opacity-50">
+                     <option value="">Tất cả Chuyên ngành</option>
+                     <option v-for="maj in availableMajors" :key="maj.id" :value="maj.id">{{ maj.name }}</option>
+                  </LmsSelect>
+               </div>
+            </div>
+            <div class="space-y-1.5">
                <label class="text-[10px] font-semibold text-muted uppercase tracking-widest ml-1">Học kỳ</label>
                <div class="relative">
-                  <LmsSelect v-model="semesterFilter" :options="semesters" class="w-full surface-input border border-input rounded-2xl px-5 py-3.5 text-sm font-bold outline-none appearance-none cursor-pointer" />
-               </div>
-            </div>
-            <div class="space-y-2">
-               <label class="text-[10px] font-semibold text-muted uppercase tracking-widest ml-1">Cơ sở (Campus)</label>
-               <div class="relative">
-                  <LmsSelect v-model="campusFilter" :options="campuses" class="w-full surface-input border border-input rounded-2xl px-5 py-3.5 text-sm font-bold outline-none appearance-none cursor-pointer" />
+                  <LmsSelect v-model="semesterFilter" :options="semesters" class="w-full surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none appearance-none cursor-pointer" />
                </div>
             </div>
             <div class="flex items-end">
-               <button @click="generateReport" :disabled="generating" class="w-full lg-button-primary py-3.5 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
-                  <BarChart :size="18" /> {{ generating ? 'ĐANG TẠO...' : 'TẠO BÁO CÁO' }}
+               <button @click="generateReport" :disabled="generating" class="w-full lg-button-primary py-2.5 text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-60">
+                  <BarChart :size="16" /> {{ generating ? 'ĐANG TẠO...' : 'TẠO BÁO CÁO' }}
                </button>
             </div>
          </div>
