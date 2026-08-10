@@ -17,6 +17,7 @@ services:
       dockerfile: Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - SeedProfile=LargeDemo
       # Overriding the default connection string to point to the sqlserver container
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=LMS;User Id=sa;Password=Test@123_PassWord!;TrustServerCertificate=True;
       # R2 Storage

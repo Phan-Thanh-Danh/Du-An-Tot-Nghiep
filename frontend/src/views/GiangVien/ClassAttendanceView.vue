@@ -12,6 +12,8 @@ import {
   UserCheck,
   CheckCircle2,
   Clock,
+  User,
+  X
 } from 'lucide-vue-next'
 import { teacherApi } from '@/services/teacherApi'
 
@@ -20,6 +22,7 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 import TeacherClassCard from '@/components/GiangVien/TeacherClassCard.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 
 const loading = ref(false)
 const error = ref('')
@@ -30,19 +33,31 @@ const router = useRouter()
 
 const myClasses = ref([])
 const selectedClassId = ref('')
+const searchQuery = ref('')
+const selectedStudentDetail = ref(null)
 
 const apiTotalSessions = ref(0)
 const totalSessions = computed(() => apiTotalSessions.value > 0 ? apiTotalSessions.value : attendanceData.value.length ? Math.max(...attendanceData.value.map(s => s.present + s.absent)) : 0)
+
+const filteredAttendanceData = computed(() => {
+  if (!searchQuery.value.trim()) return attendanceData.value
+  const q = searchQuery.value.trim().toLowerCase()
+  return attendanceData.value.filter(s =>
+    (s.name || '').toLowerCase().includes(q) ||
+    String(s.id || '').toLowerCase().includes(q)
+  )
+})
+
 const avgAttendance = computed(() => {
-  if (attendanceData.value.length === 0) return 0
+  if (attendanceData.value.length === 0 || totalSessions.value === 0) return 0
   const total = attendanceData.value.reduce((s, st) => s + st.percent, 0)
   return Math.round(total / attendanceData.value.length)
 })
 
 const summaryStats = computed(() => {
   const absences = attendanceData.value.reduce((sum, student) => sum + student.absent, 0)
-  const late = 0
-  const excused = 0
+  const late = attendanceData.value.reduce((sum, student) => sum + (student.late || 0), 0)
+  const excused = attendanceData.value.reduce((sum, student) => sum + (student.excused || 0), 0)
   const risk = attendanceData.value.filter((student) => student.status === 'danger').length
 
   return [
@@ -61,7 +76,6 @@ async function loadAttendance() {
   try {
     let classId = route.query.classId
 
-    // Lấy danh sách lớp
     if (myClasses.value.length === 0) {
       const classesRes = await teacherApi.getTeacherClasses()
       const classesData = classesRes?.data?.data ?? classesRes?.data ?? classesRes?.Data ?? classesRes
@@ -71,7 +85,7 @@ async function loadAttendance() {
     }
 
     if (!classId) {
-      return // Dừng lại ở đây để hiển thị danh sách dạng Card
+      return
     }
 
     selectedClassId.value = classId
@@ -80,10 +94,26 @@ async function loadAttendance() {
     const data = res?.data?.data ?? res?.data ?? res?.Data ?? res
     
     if (data && data.students) {
-      attendanceData.value = data.students
-      apiTotalSessions.value = data.totalSessions ?? 0
+      const tot = data.totalSessions ?? 0
+      attendanceData.value = data.students.map(s => {
+        const pres = s.present ?? 0
+        const abs = s.absent ?? 0
+        const calcPercent = tot > 0 ? Math.round((pres / tot) * 100) : 0
+        const calcStatus = tot === 0 ? 'good' : (calcPercent >= 90 ? 'excellent' : calcPercent >= 80 ? 'good' : calcPercent >= 70 ? 'warning' : 'danger')
+        return {
+          ...s,
+          present: pres,
+          absent: abs,
+          late: s.late ?? 0,
+          excused: s.excused ?? 0,
+          percent: s.percent !== undefined && s.percent !== null ? s.percent : calcPercent,
+          status: s.status ?? calcStatus
+        }
+      })
+      apiTotalSessions.value = tot
     } else {
-      throw new Error('Không có dữ liệu điểm danh')
+      attendanceData.value = []
+      apiTotalSessions.value = 0
     }
   } catch (e) {
     error.value = e?.message || 'Không thể tải điểm danh.'
@@ -119,6 +149,25 @@ const onClassChange = () => {
   if (selectedClassId.value) {
     router.push({ query: { ...route.query, classId: selectedClassId.value } })
   }
+}
+
+function exportCSV() {
+  const headers = ['MSSV', 'Họ tên', 'Có mặt', 'Vắng', 'Đi muộn', 'Có phép', 'Tỷ lệ CC (%)', 'Trạng thái']
+  const rows = filteredAttendanceData.value.map(sv => [
+    sv.id, `"${sv.name}"`, sv.present, sv.absent, sv.late || 0, sv.excused || 0, sv.percent, getStatusText(sv.status)
+  ])
+  const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+  const encodedUri = encodeURI(csvContent)
+  const link = document.createElement('a')
+  link.setAttribute('href', encodedUri)
+  link.setAttribute('download', `Diem_danh_lop_${selectedClassId.value}_${new Date().toISOString().slice(0, 10)}.csv`)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+function openStudentDetail(sv) {
+  selectedStudentDetail.value = sv
 }
 
 watch(() => route.query.classId, (newId) => {
@@ -208,13 +257,13 @@ onMounted(() => {
         </div>
 
         <div class="header-actions">
-          <GlassButton variant="secondary" size="sm">
+          <GlassButton variant="secondary" size="sm" @click="$router.push('/teacher/attendance/history')">
             <template #leading>
               <Calendar :size="16" />
             </template>
             Xem lịch sử
           </GlassButton>
-          <GlassButton variant="primary" size="sm">
+          <GlassButton variant="primary" size="sm" @click="exportCSV">
             <template #leading>
               <Download :size="16" />
             </template>
@@ -232,18 +281,15 @@ onMounted(() => {
         </div>
 
         <div class="filters">
-          <label class="select-shell">
-            <Users :size="16" />
-            <select v-model="selectedClassId" @change="onClassChange">
-              <option v-for="cls in myClasses" :key="cls.classId || cls.id" :value="cls.classId || cls.id">
-                Lớp {{ cls.className }}
-              </option>
-            </select>
-          </label>
+          <LmsSelect v-model="selectedClassId" @change="onClassChange" class="w-48">
+            <option v-for="cls in myClasses" :key="cls.classId || cls.id" :value="cls.classId || cls.id">
+              Lớp {{ cls.className }}
+            </option>
+          </LmsSelect>
 
           <label class="input-shell">
             <Search :size="16" />
-            <input type="text" placeholder="Tìm sinh viên, mã SV..." />
+            <input v-model="searchQuery" type="text" placeholder="Tìm sinh viên, mã SV..." />
           </label>
         </div>
       </GlassPanel>
@@ -276,13 +322,12 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="sv in attendanceData" :key="sv.id">
+              <tr v-for="sv in filteredAttendanceData" :key="sv.id">
                 <td>
                   <div class="student-cell">
                     <span class="student-avatar">{{ sv.name.split(' ').pop()[0] }}</span>
                     <span>
                       <strong>{{ sv.name }}</strong>
-                      <small>Lập trình Java</small>
                     </span>
                   </div>
                 </td>
@@ -302,13 +347,13 @@ onMounted(() => {
                 <td>
                   <span class="metric-cell warning">
                     <Clock :size="14" />
-                    0
+                    {{ sv.late || 0 }}
                   </span>
                 </td>
                 <td>
                   <span class="metric-cell info">
                     <UserCheck :size="14" />
-                    0
+                    {{ sv.excused || 0 }}
                   </span>
                 </td>
                 <td>
@@ -328,7 +373,7 @@ onMounted(() => {
                 </td>
                 <td>
                   <div class="row-actions">
-                    <GlassButton variant="ghost" size="sm">Chi tiết</GlassButton>
+                    <GlassButton variant="ghost" size="sm" @click="openStudentDetail(sv)">Chi tiết</GlassButton>
                   </div>
                 </td>
               </tr>
@@ -337,15 +382,56 @@ onMounted(() => {
         </TableShell>
 
         <div class="table-footer">
-          <span>Hiển thị 1-{{ attendanceData.length }} trong số 42 sinh viên</span>
-          <div class="pagination">
-            <button type="button">Trước</button>
-            <button type="button" class="active">1</button>
-            <button type="button">2</button>
-            <button type="button">Sau</button>
-          </div>
+          <span>Hiển thị 1-{{ filteredAttendanceData.length }} trong số {{ attendanceData.length }} sinh viên</span>
         </div>
       </GlassPanel>
+
+      <!-- Modal Xem Chi Tiết Điểm Danh Sinh Viên -->
+      <div v-if="selectedStudentDetail" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+        <div class="w-full max-w-lg surface-card rounded-2xl shadow-xl border border-default p-6 space-y-4">
+          <div class="flex justify-between items-center border-b border-default pb-3">
+            <h3 class="text-base font-bold text-heading flex items-center gap-2">
+              <User :size="18" class="text-link" /> Chi Tiết Chuyên Cần Sinh Viên
+            </h3>
+            <button @click="selectedStudentDetail = null" class="text-muted hover:text-heading font-bold text-sm">✕</button>
+          </div>
+
+          <div class="space-y-3">
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-(--surface-input) border border-default">
+              <div class="w-12 h-12 rounded-full bg-(--lg-primary)/10 text-(--lg-primary) font-bold text-lg flex items-center justify-center border border-(--lg-primary)/20">
+                {{ selectedStudentDetail.name.split(' ').pop()[0] }}
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-heading">{{ selectedStudentDetail.name }}</h4>
+                <p class="text-xs text-muted">MSSV: <span class="font-bold text-body">{{ selectedStudentDetail.id }}</span></p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+              <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <p class="text-[10px] text-emerald-600 font-bold uppercase">Có mặt</p>
+                <p class="text-base font-black text-emerald-600 mt-0.5">{{ selectedStudentDetail.present }} buổi</p>
+              </div>
+              <div class="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                <p class="text-[10px] text-rose-600 font-bold uppercase">Vắng mặt</p>
+                <p class="text-base font-black text-rose-600 mt-0.5">{{ selectedStudentDetail.absent }} buổi</p>
+              </div>
+              <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <p class="text-[10px] text-amber-600 font-bold uppercase">Đi muộn</p>
+                <p class="text-base font-black text-amber-600 mt-0.5">{{ selectedStudentDetail.late || 0 }} buổi</p>
+              </div>
+              <div class="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20">
+                <p class="text-[10px] text-sky-600 font-bold uppercase">Có phép</p>
+                <p class="text-base font-black text-sky-600 mt-0.5">{{ selectedStudentDetail.excused || 0 }} buổi</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-2">
+            <button @click="selectedStudentDetail = null" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all">Đóng</button>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>

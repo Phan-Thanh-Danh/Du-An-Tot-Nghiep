@@ -26,8 +26,9 @@
       <div class="flex-1 min-w-[200px]">
         <label class="block text-xs font-bold text-heading mb-1.5">Tìm kiếm</label>
         <div class="relative">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-muted" :size="16" />
-          <input v-model="keyword" @keyup.enter="handleFilter" type="text" placeholder="Tên, Email, SĐT..." class="w-full pl-9 pr-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)" />
+          <Loader2 v-if="searchLoading" class="absolute left-3 top-1/2 -translate-y-1/2 text-(--lg-primary) animate-spin" :size="16" />
+          <Search v-else class="absolute left-3 top-1/2 -translate-y-1/2 text-muted" :size="16" />
+          <input v-model="keyword" @input="onSearchInput" @keyup.enter="handleFilter" type="text" placeholder="Tên, Email, SĐT..." class="w-full pl-9 pr-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)" />
         </div>
       </div>
       <div class="w-full sm:w-48">
@@ -62,8 +63,8 @@
               <th v-if="canEdit" class="px-4 py-3 font-bold text-heading text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody>
-            <tr v-if="filteredUsers.length === 0" class="bg-transparent">
+          <tbody class="relative">
+            <tr v-if="!loading && !searchLoading && filteredUsers.length === 0" class="bg-transparent">
               <td colspan="7" class="py-12 text-center text-muted"><p>Không tìm thấy người dùng nào.</p></td>
             </tr>
             <tr v-for="user in pagedUsers" :key="user.maNguoiDung" class="hover:bg-(--surface-input)/50 transition-colors">
@@ -157,7 +158,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
-import { Search, Plus, Edit2, Lock, Unlock, Key, CheckCircle2, AlertTriangle, AlertCircle, X } from 'lucide-vue-next'
+import { Search, Loader2, Plus, Edit2, Lock, Unlock, Key, CheckCircle2, AlertTriangle, AlertCircle, X } from 'lucide-vue-next'
 import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
 import { bghApi } from '@/services/bghApi'
@@ -168,6 +169,7 @@ const authStore = useAuthStore()
 const canEdit = computed(() => authStore.hasRole(['SuperAdmin', 'Admin']))
 
 const loading = ref(false)
+const searchLoading = ref(false)
 const error = ref(null)
 
 const keyword = ref('')
@@ -189,8 +191,8 @@ const rolesList = ref([])
 const orgsList = ref([])
 const users = ref([])
 
-async function loadData() {
-  loading.value = true
+async function loadData(isInitial = false) {
+  if (isInitial) loading.value = true
   error.value = null
   try {
     const [userRes, roleRes, orgRes] = await Promise.all([
@@ -213,26 +215,37 @@ async function loadData() {
     error.value = e?.message || 'Lỗi tải dữ liệu người dùng'
   } finally {
     loading.value = false
+    searchLoading.value = false
   }
 }
 
-const filteredUsers = computed(() => {
-  return users.value.filter(u => {
-    if (keyword.value) {
-      const kw = keyword.value.toLowerCase()
-      if (!u.hoTen.toLowerCase().includes(kw) && !u.email.toLowerCase().includes(kw) && !(u.soDienThoai || '').includes(kw)) return false
-    }
-    if (roleFilter.value && u.vaiTroChinh !== roleFilter.value) return false
-    if (statusFilter.value && u.trangThai !== statusFilter.value) return false
-    return true
-  })
+function onSearchInput(e) {
+  searchLoading.value = true
+  if (e?.target?.value !== undefined) {
+    keyword.value = e.target.value
+  }
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    handleFilter()
+  }, 250)
+}
+
+watch([keyword, roleFilter, statusFilter], () => {
+  searchLoading.value = true
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    handleFilter()
+  }, 250)
 })
+
+const filteredUsers = computed(() => users.value)
 
 const totalPages = computed(() => serverTotalPages.value)
 const pagedUsers = computed(() => filteredUsers.value)
 
 function handleFilter() {
   currentPage.value = 1
+  bghApi.invalidate('/api/bgh/users')
   loadData()
 }
 function prevPage() {
@@ -350,6 +363,6 @@ async function handleResetPassword(user) {
   }
 }
 
-onMounted(() => { loadData() })
+onMounted(() => { loadData(true) })
 onUnmounted(() => clearTimeout(searchTimer))
 </script>

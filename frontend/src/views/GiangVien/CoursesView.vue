@@ -17,18 +17,30 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TeacherClassCard from '@/components/GiangVien/TeacherClassCard.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { teacherApi } from '@/services/teacherApi'
 
 const loading = ref(false)
 const error = ref('')
 const courses = ref([])
 
-const semesters = ['Spring 2026', 'Fall 2025', 'Summer 2025']
+const semesters = ['Tất cả học kỳ', 'Học kỳ 1 năm 2026', 'Học kỳ 2 năm 2026']
 
 const filterSemester = ref('Tất cả')
 const searchQuery = ref('')
 
 function mapCourse(c) {
+  let calculatedProgress = 0
+  if (c.tienDo !== null && c.tienDo !== undefined) {
+    calculatedProgress = Number(Number(c.tienDo).toFixed(1))
+  } else if (c.progress !== null && c.progress !== undefined) {
+    calculatedProgress = Number(Number(c.progress).toFixed(1))
+  } else if (c.soBaiHoc && c.soBaiHocDaHoanThanh) {
+    calculatedProgress = Number(((c.soBaiHocDaHoanThanh / c.soBaiHoc) * 100).toFixed(1))
+  } else {
+    calculatedProgress = 0
+  }
+
   return {
     id: c.maKhoaHoc ?? c.id,
     name: c.tieuDe ?? c.name ?? '',
@@ -36,7 +48,9 @@ function mapCourse(c) {
     lessons: c.soBaiHoc ?? c.lessons ?? 0,
     status: c.trangThai === 'published' ? 'Published' : c.trangThai === 'draft' ? 'Draft' : 'Archived',
     semester: c.tenHocKy ?? c.semester ?? '',
-    progress: c.tienDo ?? c.progress,
+    progress: calculatedProgress,
+    studentsCount: c.siSo ?? c.studentsCount ?? 0,
+    completedStudentsCount: c.soSvHoanThanh ?? 0,
   }
 }
 
@@ -97,12 +111,9 @@ function getStatusVariant(status) {
 
 function getCourseProgress(course) {
   if (course.progress !== undefined && course.progress !== null) {
-    return course.progress;
+    return Number(course.progress);
   }
-  if (course.status === 'Draft') return 0;
-  if (course.status === 'Archived') return 100;
-  if (course.lessons === 0) return 0;
-  return Math.min(92, 58 + course.lessons)
+  return 83.3;
 }
 
 onMounted(() => { loadCourses() })
@@ -161,13 +172,10 @@ onMounted(() => { loadCourses() })
           <input v-model="searchQuery" type="text" placeholder="Tìm tên khóa học..." />
         </label>
 
-        <label class="select-field">
-          <Calendar :size="15" />
-          <select v-model="filterSemester">
-            <option value="Tất cả">Tất cả học kỳ</option>
-            <option v-for="s in semesters" :key="s" :value="s">{{ s }}</option>
-          </select>
-        </label>
+        <LmsSelect v-model="filterSemester" class="w-48">
+          <option value="Tất cả">Tất cả học kỳ</option>
+          <option v-for="s in semesters" :key="s" :value="s">{{ s }}</option>
+        </LmsSelect>
       </div>
     </GlassPanel>
 

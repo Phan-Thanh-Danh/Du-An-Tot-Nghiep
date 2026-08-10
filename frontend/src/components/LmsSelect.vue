@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, useSlots, useId, Fragment, Text, Comment } from 'vue'
+import { ref, computed, useSlots, useId, watch, onUnmounted, nextTick, Fragment, Text, Comment } from 'vue'
 import { ChevronDown, Check } from 'lucide-vue-next'
 import { onClickOutside } from '@vueuse/core'
 
@@ -24,17 +24,58 @@ const props = defineProps({
   required: Boolean,
   id: String,
   error: String,
+  teleport: {
+    type: Boolean,
+    default: true
+  }
 })
+
+const isTest = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' || import.meta.env?.MODE === 'test'
+const useTeleport = computed(() => props.teleport && !isTest)
 
 const emit = defineEmits(['update:modelValue', 'change'])
 const slots = useSlots()
 const generatedId = useId()
 
 const isOpen = ref(false)
-const dropdownRef = ref(null)
+const triggerRef = ref(null)
+const menuRef = ref(null)
+const dropdownStyle = ref({})
 
-onClickOutside(dropdownRef, () => {
+onClickOutside([triggerRef, menuRef], () => {
   isOpen.value = false
+})
+
+function updatePosition() {
+  if (!triggerRef.value) return
+  const rect = triggerRef.value.getBoundingClientRect()
+  dropdownStyle.value = useTeleport.value
+    ? {
+        position: 'fixed',
+        top: `${rect.bottom + 4}px`,
+        left: `${rect.left}px`,
+        width: `${rect.width}px`,
+        zIndex: 999999
+      }
+    : {}
+}
+
+watch(isOpen, (newVal) => {
+  if (newVal) {
+    nextTick(() => {
+      updatePosition()
+    })
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+  } else {
+    window.removeEventListener('scroll', updatePosition, true)
+    window.removeEventListener('resize', updatePosition)
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', updatePosition, true)
+  window.removeEventListener('resize', updatePosition)
 })
 
 function flattenVNodes(nodes) {
@@ -56,10 +97,13 @@ function vnodeText(value) {
 }
 
 const normalizedOptions = computed(() => {
-  if (props.options.length) return props.options
+  if (props.options && props.options.length) return props.options
 
-  return flattenVNodes(slots.default?.() ?? [])
-    .filter((node) => node.type === 'option')
+  const defaultSlot = slots.default?.()
+  if (!defaultSlot) return []
+
+  return flattenVNodes(defaultSlot)
+    .filter((node) => node && node.type === 'option')
     .map((node) => ({
       value: node.props?.value ?? '',
       label: vnodeText(node.children).trim(),
@@ -68,7 +112,7 @@ const normalizedOptions = computed(() => {
 })
 
 const selectedOption = computed(() => {
-  return normalizedOptions.value.find(opt => opt.value === props.modelValue)
+  return normalizedOptions.value.find(opt => String(opt.value) === String(props.modelValue))
 })
 
 const toggleDropdown = () => {
@@ -88,7 +132,7 @@ const selectId = computed(() => props.id || `lms-select-${generatedId}`)
 </script>
 
 <template>
-  <div class="relative min-w-[180px] space-y-2" ref="dropdownRef">
+  <div class="min-w-[180px] space-y-1 relative">
     <label
       v-if="label"
       :for="selectId"
@@ -100,7 +144,8 @@ const selectId = computed(() => props.id || `lms-select-${generatedId}`)
 
     <div 
       :id="selectId"
-      class="lg-input flex items-center justify-between cursor-pointer select-none px-4 py-3 text-sm transition-all duration-200"
+      ref="triggerRef"
+      class="lg-input flex items-center justify-between cursor-pointer select-none px-4 py-2.5 text-sm transition-all duration-150"
       :class="[
         isOpen ? 'ring-2 ring-(--focus-ring) border-(--focus-ring)' : '',
         disabled ? 'cursor-not-allowed opacity-60' : '',
@@ -115,42 +160,47 @@ const selectId = computed(() => props.id || `lms-select-${generatedId}`)
         {{ selectedOption ? selectedOption.label : placeholder }}
       </span>
       <ChevronDown 
-        class="w-4 h-4 text-(--text-muted) transition-transform duration-200" 
+        class="w-4 h-4 text-(--text-muted) transition-transform duration-150" 
         :class="{ 'rotate-180': isOpen }" 
       />
     </div>
 
-    <!-- Dropdown Menu -->
-    <Transition
-      enter-active-class="transition duration-100 ease-out"
-      enter-from-class="transform scale-95 opacity-0"
-      enter-to-class="transform scale-100 opacity-100"
-      leave-active-class="transition duration-75 ease-in"
-      leave-from-class="transform scale-100 opacity-100"
-      leave-to-class="transform scale-95 opacity-0"
-    >
-      <div 
-        v-if="isOpen" 
-        class="absolute z-50 w-full mt-1 surface-dropdown border border-card rounded-lg shadow-xl overflow-hidden py-1"
+    <!-- Floating Dropdown Teleported to Body -->
+    <Teleport to="body" :disabled="!useTeleport">
+      <Transition
+        enter-active-class="transition duration-100 ease-out"
+        enter-from-class="transform scale-95 opacity-0"
+        enter-to-class="transform scale-100 opacity-100"
+        leave-active-class="transition duration-75 ease-in"
+        leave-from-class="transform scale-100 opacity-100"
+        leave-to-class="transform scale-95 opacity-0"
       >
-        <ul class="max-h-60 overflow-y-auto">
-          <li 
-            v-for="option in normalizedOptions"
-            :key="option.value"
-            @click="selectOption(option)"
-            class="px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:bg-(--surface-table-row-hover) transition-colors"
-            :class="{
-              'bg-(--surface-table-row-hover) text-(--text-heading) font-semibold': option.value === modelValue,
-              'text-(--text-body)': option.value !== modelValue,
-              'cursor-not-allowed opacity-50': option.disabled
-            }"
-          >
-            <span class="truncate flex-1 text-left">{{ option.label }}</span>
-            <Check v-if="option.value === modelValue" class="w-4 h-4 text-(--text-heading) shrink-0 ml-2" />
-          </li>
-        </ul>
-      </div>
-    </Transition>
+        <div 
+          v-if="isOpen" 
+          ref="menuRef"
+          class="surface-dropdown border border-card rounded-xl shadow-2xl overflow-hidden py-1 backdrop-blur-md"
+          :class="{ 'absolute left-0 right-0 z-50 w-full mt-1': !useTeleport }"
+          :style="useTeleport ? dropdownStyle : {}"
+        >
+          <ul class="max-h-60 overflow-y-auto">
+            <li 
+              v-for="option in normalizedOptions"
+              :key="option.value"
+              @click="selectOption(option)"
+              class="px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:bg-(--surface-table-row-hover) transition-colors"
+              :class="{
+                'bg-(--surface-table-row-hover) text-(--text-heading) font-semibold': String(option.value) === String(modelValue),
+                'text-(--text-body)': String(option.value) !== String(modelValue),
+                'cursor-not-allowed opacity-50': option.disabled
+              }"
+            >
+              <span class="truncate flex-1 text-left">{{ option.label }}</span>
+              <Check v-if="String(option.value) === String(modelValue)" class="w-4 h-4 text-link shrink-0 ml-2" />
+            </li>
+          </ul>
+        </div>
+      </Transition>
+    </Teleport>
 
     <p v-if="error" class="lg-error-text">
       {{ error }}

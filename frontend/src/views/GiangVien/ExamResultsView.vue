@@ -165,6 +165,31 @@ const filteredStudents = computed(() => {
   return list
 })
 
+function exportCSV() {
+  if (!filteredStudents.value.length) {
+    alert('Không có dữ liệu thí sinh để xuất báo cáo.')
+    return
+  }
+  const headers = ['STT', 'MSSV', 'Họ tên', 'Điểm số', 'Số câu đúng', 'Thời gian làm bài', 'Trạng thái']
+  const rows = filteredStudents.value.map((s, idx) => [
+    idx + 1,
+    s.maSinhVien,
+    `"${s.hoTen}"`,
+    s.diem !== undefined && s.diem !== null ? s.diem : 0,
+    s.tongSoCau ? `"${s.soCauDung}/${s.tongSoCau}"` : '--',
+    `"${s.thoiGianLam || ''}"`,
+    (s.diem || 0) >= 5 ? 'Đạt' : 'Không đạt'
+  ])
+  const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+  const encodedUri = encodeURI(csvContent)
+  const link = document.createElement('a')
+  link.setAttribute('href', encodedUri)
+  link.setAttribute('download', `Bao_cao_ket_qua_ca_thi_${selectedExamId.value}_${new Date().toISOString().slice(0, 10)}.csv`)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
 onMounted(() => {
   loadSessions()
 })
@@ -184,7 +209,7 @@ onMounted(() => {
         </div>
       </div>
       <div class="relative z-10 flex items-center gap-3">
-         <button class="flex items-center gap-2 rounded-2xl surface-input px-5 py-3 border border-input shadow-sm hover:text-link transition-colors font-semibold text-sm text-label">
+         <button @click="exportCSV" class="flex items-center gap-2 rounded-2xl surface-input px-5 py-3 border border-input shadow-sm hover:text-link transition-colors font-semibold text-sm text-label cursor-pointer">
             <Download :size="18" /> Xuất kết quả Báo cáo
          </button>
       </div>

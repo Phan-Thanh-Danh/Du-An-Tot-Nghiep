@@ -2,16 +2,21 @@
   <div class="space-y-6 pb-10">
     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-heading">Lịch giảng dạy</h1>
-        <p class="text-sm text-muted mt-1">Quản lý và theo dõi các ca dạy của bạn</p>
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl font-bold text-heading">Lịch giảng dạy</h1>
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+            <CheckCircle2 :size="13" /> Đã được BGH phê duyệt
+          </span>
+        </div>
+        <p class="text-sm text-muted mt-1">Danh sách các ca giảng dạy chính thức đã được Ban Giám Hiệu phê duyệt</p>
       </div>
       <div class="flex items-center gap-3">
-        <select v-model="selectedTerm" @change="loadSchedule" :disabled="!terms || terms.length === 0" class="rounded-xl border border-input bg-surface-input px-4 py-2 text-sm font-bold text-body outline-none focus:border-(--accent-primary) transition-all cursor-pointer">
+        <LmsSelect v-model="selectedTerm" @change="loadSchedule" :disabled="!terms || terms.length === 0" class="w-64">
           <option v-if="!terms || terms.length === 0" value="null">Chưa có học kỳ có lịch giảng dạy</option>
           <option v-for="term in terms" :key="term.maHocKy" :value="term.maHocKy">
             {{ term.tenHocKy }} {{ term.isCurrent ? '(Hiện tại)' : '' }}
           </option>
-        </select>
+        </LmsSelect>
         <div class="flex items-center rounded-xl border border-card bg-surface-card p-1">
           <button v-for="mode in ['Today', 'Week', 'Term']" :key="mode"
                   @click="setMode(mode)"
@@ -29,11 +34,11 @@
         <input type="text" v-model="searchQuery" placeholder="Tìm môn học, lớp, phòng..." 
                class="w-full rounded-xl border border-input bg-surface-input py-2 pl-9 pr-4 text-sm text-body outline-none focus:border-(--accent-primary) transition-colors" />
       </div>
-      <select v-model="statusFilter" class="rounded-xl border border-input bg-surface-input px-4 py-2 text-sm text-body outline-none focus:border-(--accent-primary) transition-colors">
+      <LmsSelect v-model="statusFilter" class="w-48">
         <option value="">Tất cả trạng thái</option>
         <option value="chua_bat_dau">Sắp diễn ra</option>
         <option value="da_ket_thuc">Đã hoàn thành</option>
-      </select>
+      </LmsSelect>
     </div>
 
     <div v-if="loading" class="flex items-center justify-center min-h-[300px]">
@@ -118,7 +123,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { teacherApi } from '@/services/teacherApi'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
-import { Search, AlertCircle, CalendarX, Calendar, Users, MapPin, Clock, BookOpen } from 'lucide-vue-next'
+import LmsSelect from '@/components/LmsSelect.vue'
+import { Search, AlertCircle, CalendarX, Calendar, Users, MapPin, Clock, BookOpen, CheckCircle2 } from 'lucide-vue-next'
 
 const loading = ref(false)
 const error = ref('')

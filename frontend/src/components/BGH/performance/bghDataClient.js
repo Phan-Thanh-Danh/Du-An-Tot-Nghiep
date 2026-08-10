@@ -152,16 +152,7 @@ export function createBghDataClient(request = apiRequest) {
       return raceWithSignal(p, options.signal).catch((err) => {
         if (err?.name === 'AbortError' || err?.message?.includes('cancelled') || err?.message?.includes('aborted')) {
           cache.delete(key)
-          return request(path).then((val) => {
-            cache.set(key, {
-              value: val,
-              updatedAt: Date.now(),
-              freshMs: normalizedOptions.freshMs,
-              staleMs: normalizedOptions.staleMs,
-              prefetched: false,
-            })
-            return val
-          }).catch(() => null)
+          throw err
         }
         throw err
       })

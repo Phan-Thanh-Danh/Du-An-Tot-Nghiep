@@ -99,12 +99,15 @@ public class TeacherClassesController : ControllerBase
                 int present = studentDiemDanhs.Count(d => d.TrangThai == "co_mat" || d.TrangThai == "di_muon");
                 int absent = studentDiemDanhs.Count(d => d.TrangThai == "vang" || d.TrangThai == "vang_co_phep" || d.TrangThai == "co_phep");
                 
-                int percent = totalSessions > 0 ? (int)Math.Round((double)present / totalSessions * 100) : 100;
+                int percent = totalSessions > 0 ? (int)Math.Round((double)present / totalSessions * 100) : 0;
                 
-                string status = "excellent";
-                if (percent < 50) status = "danger";
-                else if (percent < 70) status = "warning";
-                else if (percent < 90) status = "good";
+                string status = "good";
+                if (totalSessions > 0)
+                {
+                    if (percent < 50) status = "danger";
+                    else if (percent < 70) status = "warning";
+                    else if (percent >= 90) status = "excellent";
+                }
 
                 resultStudents.Add(new ClassAttendanceStudentDto
                 {
@@ -142,6 +145,7 @@ public class TeacherClassesController : ControllerBase
             var query = _context.KhoaHocs
                 .Include(k => k.Lop)
                 .Include(k => k.MonHoc)
+                .Include(k => k.HocKy)
                 .Where(k => k.MaGiaoVien == userId)
                 .AsQueryable();
 
@@ -166,7 +170,7 @@ public class TeacherClassesController : ControllerBase
                     ClassName = k.Lop != null ? k.Lop.TenLop : "",
                     ClassId = k.MaLop,
                     StudentCount = _context.NguoiDungs.Count(n => n.MaLop == k.MaLop),
-                    Semester = "Spring 2026"
+                    Semester = k.HocKy != null ? k.HocKy.TenHocKy : "Học kỳ 1 năm 2026"
                 })
                 .ToListAsync();
 
@@ -525,7 +529,8 @@ public class TeacherClassesController : ControllerBase
                     CoursesCompleted = lessonIds.Count > 0
                         ? _context.TienDoBaiHocs.Count(t => t.MaHocSinh == n.MaNguoiDung && lessonIds.Contains(t.MaBaiHoc) && t.HoanThanhLuc != null)
                         : 0,
-                    Absent = _context.DiemDanhs.Count(d => d.MaHocSinh == n.MaNguoiDung && d.TrangThai == "vang")
+                    Absent = _context.DiemDanhs.Count(d => d.MaHocSinh == n.MaNguoiDung && d.TrangThai == "vang"),
+                    Diem = _context.DiemSos.FirstOrDefault(d => d.MaHocSinh == n.MaNguoiDung && monHocIds.Contains(d.MaMonHoc))
                 })
                 .ToListAsync();
 
@@ -542,7 +547,7 @@ public class TeacherClassesController : ControllerBase
                     name = s.StudentName,
                     email = s.Email,
                     progress = prog,
-                    gpa = 0, // Mock GPA for now
+                    gpa = s.Diem != null ? s.Diem.GpaMonHoc : 0m,
                     absent = s.Absent,
                     status = status
                 };
@@ -613,7 +618,8 @@ public class TeacherClassesController : ControllerBase
                     CoursesCompleted = lessonIds.Count > 0
                         ? _context.TienDoBaiHocs.Count(t => t.MaHocSinh == n.MaNguoiDung && lessonIds.Contains(t.MaBaiHoc) && t.HoanThanhLuc != null)
                         : 0,
-                    Absent = _context.DiemDanhs.Count(d => d.MaHocSinh == n.MaNguoiDung && d.TrangThai == "vang" && d.BuoiHoc != null && d.BuoiHoc.MaKhoaHoc == id)
+                    Absent = _context.DiemDanhs.Count(d => d.MaHocSinh == n.MaNguoiDung && d.TrangThai == "vang" && d.BuoiHoc != null && d.BuoiHoc.MaKhoaHoc == id),
+                    Diem = _context.DiemSos.FirstOrDefault(d => d.MaHocSinh == n.MaNguoiDung && d.MaMonHoc == monHocId)
                 })
                 .ToListAsync();
 
@@ -630,7 +636,7 @@ public class TeacherClassesController : ControllerBase
                     name = s.StudentName,
                     email = s.Email,
                     progress = prog,
-                    gpa = 0, // Mock GPA for now
+                    gpa = s.Diem != null ? s.Diem.GpaMonHoc : 0m,
                     absent = s.Absent,
                     status = status
                 };
@@ -971,7 +977,7 @@ public class TeacherClassesController : ControllerBase
             // Load all DiemSo records for this class/subject/term in one query
             var studentIds = students.Select(s => s.MaNguoiDung).ToList();
             var diemRecords = await _context.DiemSos
-                .Where(d => studentIds.Contains(d.MaHocSinh) && d.MaMonHoc == monHocId && d.MaHocKy == hocKyId.Value)
+                .Where(d => studentIds.Contains(d.MaHocSinh) && d.MaMonHoc == monHocId)
                 .ToListAsync();
 
             var studentGrades = new List<StudentGradeSummaryDto>();

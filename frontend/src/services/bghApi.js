@@ -22,7 +22,7 @@ export const bghApi = {
     if (params.role) query.append('role', params.role)
     if (params.status) query.append('status', params.status)
     const qs = query.toString()
-    return get(`/api/bgh/users${qs ? '?' + qs : ''}`)
+    return get(`/api/bgh/users${qs ? '?' + qs : ''}`, SHORT, { force: true })
   },
 
   getOrganizations() {

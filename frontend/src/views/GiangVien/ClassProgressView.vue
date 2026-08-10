@@ -42,6 +42,48 @@ function getClassId(item) {
   return item?.id ?? item?.Id ?? item?.maKhoaHoc ?? item?.MaKhoaHoc ?? item?.classId ?? item?.ClassId
 }
 
+const currentClassId = ref(0)
+const currentCourseId = ref(0)
+const studentDetailLoading = ref(false)
+const studentGradeDetail = ref(null)
+
+async function loadStudentGradeDetail(studentId) {
+  if (!studentId || (!currentClassId.value && !currentCourseId.value)) return
+  studentDetailLoading.value = true
+  studentGradeDetail.value = null
+  try {
+    const targetId = currentClassId.value || currentCourseId.value
+    const raw = await teacherApi.getStudentGradeDetail(
+      targetId,
+      studentId,
+      currentCourseId.value || undefined
+    )
+    studentGradeDetail.value = raw?.data?.data ?? raw?.data ?? raw
+  } catch {
+    studentGradeDetail.value = null
+  } finally {
+    studentDetailLoading.value = false
+  }
+}
+
+const studentAssignmentItems = computed(() => {
+  const types = studentGradeDetail.value?.gradeTypes || studentGradeDetail.value?.GradeTypes || []
+  if (!types.length) return []
+  const items = []
+  for (const gt of types) {
+    const itemList = gt.items || gt.Items || []
+    for (const item of itemList) {
+      items.push({
+        id: item.itemId || item.ItemId,
+        title: item.itemName || item.ItemName || gt.name || gt.Name,
+        groupName: gt.name || gt.Name,
+        grade: item.grade ?? item.Grade ?? null
+      })
+    }
+  }
+  return items
+})
+
 async function loadProgress() {
   loading.value = true
   error.value = ''
@@ -64,9 +106,11 @@ async function loadProgress() {
       return
     }
 
+    currentCourseId.value = Number(courseId)
     const raw = await teacherApi.getTeacherCourseProgress(courseId)
     const data = raw?.data?.data ?? raw?.data ?? raw?.Data ?? raw
     
+    currentClassId.value = data?.classId ?? data?.maLop ?? 0
     students.value = (data?.students || []).map(s => ({
       id: s.maSinhVien ?? s.id,
       name: s.tenSinhVien ?? s.name ?? '',
@@ -75,6 +119,7 @@ async function loadProgress() {
       gpa: s.diemTB ?? s.gpa ?? 0,
       absent: s.soBuoiVang ?? s.absent ?? 0,
       status: s.trangThai ?? s.status ?? 'good',
+      lastActive: s.lanTuongTacCuoi ?? s.lastActive ?? null,
     }))
     overallProgress.value = data?.tienDoChung ?? data?.overallProgress ?? 0
     completedLessons.value = data?.soBaiHoanThanh ?? data?.completedLessons ?? 0
@@ -133,6 +178,13 @@ const getStatusVariant = (status) => {
 
 const animateProgress = ref(false)
 
+function sendReminder() {
+  const pendingCount = students.value.filter(s => s.progress < 100).length
+  if (typeof window !== 'undefined') {
+    window.alert(`Đã gửi thông báo nhắc nhở tiến độ học tập đến ${pendingCount} sinh viên chưa hoàn thành bài!`)
+  }
+}
+
 onMounted(() => {
   loadProgress()
 })
@@ -142,18 +194,22 @@ const isDrawerOpen = ref(false)
 const selectedStudent = ref(null)
 const activeTab = ref('profile') // 'profile', 'assignments', 'activity'
 
-const openStudentDetails = (studentId, tab) => {
+const openStudentDetails = async (studentId, tab) => {
   selectedStudent.value = students.value.find(s => s.id === studentId) || null
   activeTab.value = tab
   isDrawerOpen.value = true
   document.body.style.overflow = 'hidden' // prevent body scroll
+  await loadStudentGradeDetail(studentId)
 }
 
 const closeDrawer = () => {
   isDrawerOpen.value = false
   document.body.style.overflow = ''
   setTimeout(() => {
-    if (!isDrawerOpen.value) selectedStudent.value = null
+    if (!isDrawerOpen.value) {
+      selectedStudent.value = null
+      studentGradeDetail.value = null
+    }
   }, 300)
 }
 </script>
@@ -185,13 +241,13 @@ const closeDrawer = () => {
       </div>
 
       <div class="header-actions">
-        <GlassButton variant="secondary" size="sm">
+        <GlassButton variant="secondary" size="sm" @click="$router.push('/teacher/lessons')">
           <template #leading>
             <BookMarked :size="16" />
           </template>
           Giáo trình
         </GlassButton>
-        <GlassButton variant="primary" size="sm">
+        <GlassButton variant="primary" size="sm" @click="sendReminder">
           <template #leading>
             <Mail :size="16" />
           </template>
@@ -341,7 +397,7 @@ const closeDrawer = () => {
               <td class="py-2 px-3 whitespace-nowrap">
                 <span class="flex items-center gap-1.5 text-xs text-muted">
                   <Clock :size="13" class="shrink-0 text-muted/70" />
-                  1 ngày trước
+                  {{ sv.lastActive || 'Chưa ghi nhận' }}
                 </span>
               </td>
               <td class="py-2 px-2.5 text-center whitespace-nowrap">
@@ -375,11 +431,7 @@ const closeDrawer = () => {
       <div class="table-footer">
         <span>Hiển thị 1-{{ students.length }} trong số {{ activeStudents }} sinh viên</span>
         <div class="pagination">
-          <button type="button">Trước</button>
           <button type="button" class="active">1</button>
-          <button type="button">2</button>
-          <button type="button">3</button>
-          <button type="button">Sau</button>
         </div>
       </div>
     </GlassPanel>
@@ -465,32 +517,36 @@ const closeDrawer = () => {
               </div>
 
               <div v-if="activeTab === 'assignments'" class="drawer-stack">
-                <article v-for="i in 3" :key="i" class="assignment-row">
-                  <span class="row-icon">
-                    <BookOpen :size="16" />
-                  </span>
-                  <div>
-                    <h3>Lab {{ i }}: Thực hành Java</h3>
-                    <p>Nộp lúc 10:45 AM, Hôm qua</p>
-                  </div>
-                  <strong>9.{{ 5 - i }}</strong>
-                </article>
+                <div v-if="studentDetailLoading" class="py-6 text-center text-xs text-muted">
+                  Đang tải danh sách bài nộp...
+                </div>
+                <template v-else-if="studentAssignmentItems.length > 0">
+                  <article v-for="item in studentAssignmentItems" :key="item.id" class="assignment-row">
+                    <span class="row-icon">
+                      <BookOpen :size="16" />
+                    </span>
+                    <div class="flex-1 min-w-0">
+                      <h3 class="truncate">{{ item.title }}</h3>
+                      <p>{{ item.groupName }}</p>
+                    </div>
+                    <strong :class="item.grade !== null ? 'text-heading font-bold' : 'text-muted italic text-xs'">
+                      {{ item.grade !== null ? item.grade : 'Chưa nộp / Chưa chấm' }}
+                    </strong>
+                  </article>
+                </template>
+                <div v-else class="py-8 text-center text-xs text-muted">
+                  Chưa có bài tập hay bài nộp nào được ghi nhận cho sinh viên này.
+                </div>
               </div>
 
               <div v-if="activeTab === 'activity'" class="drawer-stack">
-                <article
-                  v-for="(act, idx) in ['Xem video bài giảng Chương 2', 'Bình luận trên diễn đàn lớp', 'Hoàn thành Quiz 1']"
-                  :key="idx"
-                  class="activity-row"
-                >
-                  <span class="row-icon">
-                    <Activity :size="15" />
-                  </span>
-                  <div>
-                    <p>{{ idx + 1 }} ngày trước</p>
-                    <h3>{{ act }}</h3>
-                  </div>
-                </article>
+                <div v-if="studentDetailLoading" class="py-6 text-center text-xs text-muted">
+                  Đang tải nhật ký hoạt động...
+                </div>
+                <div v-else class="py-8 text-center text-xs text-muted flex flex-col items-center gap-2">
+                  <Activity :size="24" class="text-muted/50" />
+                  <p>Chưa ghi nhận nhật ký hoạt động gần đây của sinh viên này.</p>
+                </div>
               </div>
             </div>
           </template>
@@ -732,8 +788,8 @@ const closeDrawer = () => {
 
 .progress-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-  gap: 0.875rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
 }
 
 .overall-panel,

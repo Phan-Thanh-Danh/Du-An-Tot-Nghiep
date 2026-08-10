@@ -254,6 +254,14 @@ public class TeacherExamResultsController : ControllerBase
                 var correctAnswers = ParseStringList(q.DapAnDung);
 
                 studentAnswerMap.TryGetValue(rel.MaCauHoi, out var studentSelected);
+                if ((studentSelected == null || !studentSelected.Any()) && q != null)
+                {
+                    studentAnswerMap.TryGetValue(q.MaCauHoi, out var qSelected);
+                    if (qSelected != null && qSelected.Any())
+                    {
+                        studentSelected = qSelected;
+                    }
+                }
                 studentSelected ??= new List<string>();
 
                 var normStudent = studentSelected.OrderBy(x => x).ToList();

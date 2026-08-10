@@ -25,17 +25,39 @@ const loading = ref(false)
 const error = ref('')
 const history = ref([])
 
-const historyStats = computed(() => [
-  { label: 'Tổng yêu cầu', value: history.value.length, variant: 'neutral' },
-  { label: 'Đã duyệt', value: history.value.filter(item => (item.ketQua || item.result) === 'Approved').length, variant: 'success' },
-  { label: 'Từ chối', value: history.value.filter(item => (item.ketQua || item.result) === 'Rejected').length, variant: 'danger' },
-  { label: 'Tháng này', value: 15, variant: 'info' },
-])
+const historyStats = computed(() => {
+  const total = history.value.length
+  const approved = history.value.filter(item => (item.ketQua || item.result || item.trangThai) === 'Approved' || (item.ketQua || item.result || item.trangThai) === 'da_duyet').length
+  const rejected = history.value.filter(item => (item.ketQua || item.result || item.trangThai) === 'Rejected' || (item.ketQua || item.result || item.trangThai) === 'tu_choi').length
+  const thisMonth = history.value.filter(item => {
+    const rawDate = item.ngayXuLy || item.date || item.ngayTao
+    if (!rawDate) return false
+    const d = new Date(rawDate)
+    const now = new Date()
+    return !isNaN(d) && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  }).length
 
-const typeStats = computed(() => [
-  { label: 'Xin vắng học', value: '45%' },
-  { label: 'Phúc khảo', value: '30%' },
-])
+  return [
+    { label: 'Tổng yêu cầu', value: total, variant: 'neutral' },
+    { label: 'Đã duyệt', value: approved, variant: 'success' },
+    { label: 'Từ chối', value: rejected, variant: 'danger' },
+    { label: 'Tháng này', value: thisMonth, variant: 'info' },
+  ]
+})
+
+const typeStats = computed(() => {
+  const total = history.value.length || 1
+  const leaveCount = history.value.filter(item => (item.loaiYeuCau || item.loaiDon || '').toLowerCase().includes('vắng') || (item.loaiYeuCau || item.loaiDon || '').toLowerCase().includes('nghỉ')).length
+  const recheckCount = history.value.filter(item => (item.loaiYeuCau || item.loaiDon || '').toLowerCase().includes('khảo') || (item.loaiYeuCau || item.loaiDon || '').toLowerCase().includes('điểm')).length
+
+  const leavePercent = Math.round((leaveCount / total) * 100)
+  const recheckPercent = Math.round((recheckCount / total) * 100)
+
+  return [
+    { label: 'Xin vắng học', value: `${leavePercent}%` },
+    { label: 'Phúc khảo', value: `${recheckPercent}%` },
+  ]
+})
 
 async function loadHistory() {
   loading.value = true
@@ -52,15 +74,15 @@ async function loadHistory() {
 }
 
 const getStatusText = (status) => {
-  return (status || '') === 'Approved' ? 'Đã duyệt' : 'Từ chối'
+  return (status || '') === 'Approved' || (status || '') === 'da_duyet' ? 'Đã duyệt' : 'Từ chối'
 }
 
 const getStatusVariant = (status) => {
-  return (status || '') === 'Approved' ? 'success' : 'danger'
+  return (status || '') === 'Approved' || (status || '') === 'da_duyet' ? 'success' : 'danger'
 }
 
 const getStatusIcon = (status) => {
-  return (status || '') === 'Approved' ? CheckCircle : XCircle
+  return (status || '') === 'Approved' || (status || '') === 'da_duyet' ? CheckCircle : XCircle
 }
 
 onMounted(() => { loadHistory() })
@@ -125,7 +147,7 @@ onMounted(() => { loadHistory() })
           <div class="panel-heading">
             <div>
               <h2>Tổng quan tháng</h2>
-              <p>15 đơn đã ghi nhận</p>
+              <p>{{ historyStats[3].value }} đơn đã ghi nhận</p>
             </div>
             <Calendar :size="18" />
           </div>
@@ -137,14 +159,14 @@ onMounted(() => { loadHistory() })
               <CheckSquare :size="16" />
             </span>
             <span>Đã duyệt</span>
-            <strong>12</strong>
+            <strong>{{ historyStats[1].value }}</strong>
           </div>
           <div class="summary-row">
             <span class="summary-icon danger">
               <XSquare :size="16" />
             </span>
             <span>Từ chối</span>
-            <strong>3</strong>
+            <strong>{{ historyStats[2].value }}</strong>
           </div>
         </div>
 
@@ -167,7 +189,7 @@ onMounted(() => { loadHistory() })
           <div class="panel-heading">
             <div>
               <h2>Bảng lịch sử</h2>
-              <p>Hiển thị 1-{{ history.length }} trong số 15 kết quả</p>
+              <p>Hiển thị 1-{{ history.length }} trong số {{ history.length }} kết quả</p>
             </div>
             <GlassBadge variant="neutral" size="sm">Archive</GlassBadge>
           </div>
@@ -219,9 +241,9 @@ onMounted(() => { loadHistory() })
                   <span class="type-chip">{{ item.loaiYeuCau || item.type }}</span>
                 </td>
                 <td class="text-right">
-                  <GlassBadge :variant="getStatusVariant(item.ketQua || item.result)" size="sm">
-                    <component :is="getStatusIcon(item.ketQua || item.result)" :size="12" />
-                    {{ getStatusText(item.ketQua || item.result) }}
+                  <GlassBadge :variant="getStatusVariant(item.ketQua || item.result || item.trangThai)" size="sm">
+                    <component :is="getStatusIcon(item.ketQua || item.result || item.trangThai)" :size="12" />
+                    {{ getStatusText(item.ketQua || item.result || item.trangThai) }}
                   </GlassBadge>
                 </td>
               </tr>
@@ -230,13 +252,7 @@ onMounted(() => { loadHistory() })
         </TableShell>
 
         <div class="table-footer">
-          <span>Hiển thị 1-{{ history.length }} trong số 15 kết quả</span>
-          <div class="pager">
-            <button type="button">Trước</button>
-            <button type="button" class="is-active">1</button>
-            <button type="button">2</button>
-            <button type="button">Sau</button>
-          </div>
+          <span>Hiển thị 1-{{ history.length }} trong số {{ history.length }} kết quả</span>
         </div>
       </GlassPanel>
     </div>

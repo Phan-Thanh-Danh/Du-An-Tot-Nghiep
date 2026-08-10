@@ -144,7 +144,7 @@ const filteredStudents = computed(() => {
   const lower = searchQuery.value.toLowerCase()
   return students.value.filter(s => 
     (s.studentName ?? s.StudentName ?? '').toLowerCase().includes(lower) ||
-    (s.studentId ?? s.StudentId ?? '').toLowerCase().includes(lower)
+    String(s.studentId ?? s.StudentId ?? '').toLowerCase().includes(lower)
   )
 })
 

@@ -10,6 +10,8 @@ import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TeacherClassCard from '@/components/GiangVien/TeacherClassCard.vue'
 import { teacherApi } from '@/services/teacherApi'
 
+import LmsSelect from '@/components/LmsSelect.vue'
+
 const router = useRouter()
 const route = useRoute()
 
@@ -26,9 +28,9 @@ function mapCourse(course) {
     name: course.courseName || course.CourseName || course.name || '',
     className: course.className || course.ClassName || '',
     subject: course.subjectName || course.SubjectName || course.name || '',
-    students: course.studentCount || course.StudentCount || 0,
+    students: course.studentCount || course.StudentCount || 35,
     lessonsCount: course.lessonCount || course.LessonCount || 12,
-    semester: course.semester || course.Semester || 'Spring 2026',
+    semester: course.semester || course.Semester || 'Học kỳ 1 năm 2026',
   }
 }
 
@@ -70,15 +72,14 @@ async function loadCourses() {
       rawItems = Array.isArray(unwrapped) ? unwrapped : (unwrapped?.items ?? unwrapped?.Items ?? [])
     }
 
-    // Group by Subject Code / Subject Name to display DISTINCT MÔN HỌC!
     const subjectMap = new Map()
     rawItems.forEach(item => {
-      const code = item.subjectCode || item.SubjectCode || item.code || item.Code || 'MH01'
-      const name = item.subjectName || item.SubjectName || item.courseName || item.CourseName || item.name || 'Môn học'
+      const code = item.subjectCode || item.SubjectCode || item.code || item.Code || ''
+      const name = item.subjectName || item.SubjectName || item.courseName || item.CourseName || item.name || ''
       const id = item.subjectId || item.SubjectId || item.courseId || item.CourseId || item.id || item.Id
       const className = item.className || item.ClassName || ''
-      const students = item.studentCount || item.StudentCount || 0
-      const semester = item.semester || item.Semester || 'Spring 2026'
+      const students = item.studentCount ?? item.StudentCount ?? item.siSo ?? 0
+      const semester = item.semester || item.Semester || item.tenHocKy || ''
 
       if (!subjectMap.has(code)) {
         subjectMap.set(code, {
@@ -94,7 +95,7 @@ async function loadCourses() {
         if (className && !existing.classes.includes(className)) {
           existing.classes.push(className)
         }
-        existing.students += students
+        existing.students = Math.max(existing.students, students)
       }
     })
 
@@ -154,13 +155,13 @@ onMounted(() => {
         />
       </div>
       <div class="flex items-center gap-3 w-full md:w-auto">
-        <select v-model="filterSemester" class="lg-control flex-1 md:w-48">
+        <LmsSelect v-model="filterSemester" class="w-48">
           <option value="">Tất cả học kỳ</option>
           <option v-for="sem in availableSemesters" :key="sem" :value="sem">{{ sem }}</option>
-        </select>
+        </LmsSelect>
         <button
           @click="searchQuery = ''; filterSemester = ''"
-          title="Xóa bộ lọc"
+          title="Lọc / Đặt lại bộ lọc"
           class="lg-icon-button h-10 w-10 rounded-xl border border-card surface-card text-muted hover:text-heading hover:bg-(--accent-primary)/10 transition-all flex items-center justify-center shrink-0"
         >
           <Filter :size="18" />

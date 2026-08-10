@@ -46,7 +46,7 @@ describe('BGH data client', () => {
 
   it('cancels an in-flight route scope', async () => {
     const request = vi.fn((_path, options) => new Promise((resolve, reject) => {
-      options.signal.addEventListener('abort', () => reject(options.signal.reason), { once: true })
+      options.signal.addEventListener('abort', () => reject(options.signal.reason || new Error('Aborted')), { once: true })
       setTimeout(() => resolve({ data: 'late' }), 500)
     }))
     const client = createBghDataClient(request)
