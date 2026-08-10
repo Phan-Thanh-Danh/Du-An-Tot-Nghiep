@@ -9,16 +9,24 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
+  const env = loadEnv(mode, fileURLToPath(new URL('.', import.meta.url)), '')
   const backendOrigin = env.VITE_BACKEND_ORIGIN || 'https://localhost:7150'
 
+  const plugins = [
+    tailwindcss(),
+    vue(),
+    vueJsx(),
+  ]
+
+  // Plugin devtools chỉ bật ở development — khi bundle vào production build
+  // nó hook vào mọi component setup và gây lỗi "subTree, t.$ is undefined"
+  // https://github.com/vitejs/vite-plugin-vue-devtools/issues/173
+  if (mode === 'development') {
+    plugins.push(vueDevTools())
+  }
+
   return {
-    plugins: [
-      tailwindcss(),
-      vue(),
-      vueJsx(),
-      vueDevTools(),
-    ],
+    plugins,
     server: {
       host: '0.0.0.0',
       https: fs.existsSync('../certs/lms.pem') && fs.existsSync('../certs/lms-key.pem') ? {

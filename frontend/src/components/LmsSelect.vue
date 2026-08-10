@@ -49,10 +49,10 @@ const normalizeText = (s) => String(s || '')
   .replace(/[\u0300-\u036f]/g, '')
   .toLowerCase()
 
-onClickOutside([triggerRef, menuRef], () => {
+onClickOutside(triggerRef, () => {
   isOpen.value = false
   searchQuery.value = ''
-})
+}, { ignore: [menuRef] })
 
 function updatePosition() {
   if (!triggerRef.value) return

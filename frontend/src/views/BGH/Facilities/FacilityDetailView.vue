@@ -447,7 +447,6 @@ const building = ref(null)
 const buildingFloors = ref([])
 const buildingRooms = ref([])
 const customEquipmentList = ref([])
-const campuses = ref([])
 const campusName = ref('Cơ sở Đào tạo')
 
 const showRoomModal = ref(false)
@@ -651,17 +650,14 @@ async function saveRoom() {
         loaiPhong: 'ly_thuyet',
         sucChua: 50
       }
-      const res = await apiRequest('/api/master-data/rooms', { method: 'POST', body: JSON.stringify(roomPayload) }).catch(() => null)
+      const res = await apiRequest('/api/master-data/rooms', { method: 'POST', body: JSON.stringify(roomPayload) })
       const created = unwrapApiData(res)
-      newRooms.push(created || {
-        maPhong: Date.now(),
-        maCodePhong: fullCode,
-        tenPhong: `Phòng học ${fullCode}`,
-        loaiPhong: 'ly_thuyet',
-        sucChua: 50,
-        maTang: roomForm.value.maTang,
-        trangThai: 'dang_dung'
-      })
+      if (!created?.maPhong) {
+        roomError.value = 'Không nhận được phản hồi hợp lệ từ máy chủ khi tạo phòng học.'
+        savingRoom.value = false
+        return
+      }
+      newRooms.push(created)
     } else {
       const qty = parseInt(roomForm.value.autoQuantity) || 1
       for (let i = 1; i <= qty; i++) {
@@ -682,22 +678,19 @@ async function saveRoom() {
           loaiPhong: 'ly_thuyet',
           sucChua: 40
         }
-        const res = await apiRequest('/api/master-data/rooms', { method: 'POST', body: JSON.stringify(roomPayload) }).catch(() => null)
+        const res = await apiRequest('/api/master-data/rooms', { method: 'POST', body: JSON.stringify(roomPayload) })
         const created = unwrapApiData(res)
-        newRooms.push(created || {
-          maPhong: Date.now() + i,
-          maCodePhong: fullCode,
-          tenPhong: `Phòng học ${fullCode}`,
-          loaiPhong: 'ly_thuyet',
-          sucChua: 40,
-          maTang: roomForm.value.maTang,
-          trangThai: 'dang_dung'
-        })
+        if (!created?.maPhong) {
+          roomError.value = `Không nhận được phản hồi hợp lệ từ máy chủ khi tạo phòng ${fullCode}.`
+          savingRoom.value = false
+          return
+        }
+        newRooms.push(created)
       }
     }
 
     buildingRooms.value.push(...newRooms)
-    bghApi.invalidate('/api/master-data/rooms')
+    bghApi.invalidate('/api/bgh/master-data/rooms')
     showRoomModal.value = false
   } catch (e) {
     roomError.value = e?.message || 'Lỗi lưu phòng học'
@@ -731,7 +724,7 @@ async function toggleSoftDeleteRoom(room) {
       }
     }
     room.trangThai = isSoftDeleted ? 'dang_dung' : 'tam_dung'
-    bghApi.invalidate('/api/master-data/rooms')
+    bghApi.invalidate('/api/bgh/master-data/rooms')
   } catch (e) {
     alert(e?.message || 'Lỗi thay đổi trạng thái phòng')
   }
@@ -763,26 +756,15 @@ async function loadData() {
     const orgs = unwrapApiData(orgRes) || []
 
     const foundBld = allBuildings.find(b => b.maToaNha === buildingId.value || b.id === buildingId.value)
-    building.value = foundBld || {
-      maToaNha: buildingId.value,
-      tenToaNha: `Tòa nhà N/A`,
-      maCodeToaNha: `TOA-NEW`,
-      soTang: 5,
-      conHoatDong: true,
-      diaChi: 'Khu học xá chính'
+    if (!foundBld) {
+      error.value = `Không tìm thấy tòa nhà (ID: ${buildingId.value}). Tòa nhà này có thể chưa được lưu trên máy chủ hoặc đã bị xóa. Vui lòng quay lại danh sách và chọn tòa nhà hợp lệ.`
+      loading.value = false
+      return
     }
+    building.value = foundBld
 
     const currentBldId = building.value.maToaNha || buildingId.value
     buildingFloors.value = allFloors.filter(f => f.maToaNha === currentBldId)
-    if (buildingFloors.value.length === 0) {
-      const numFloors = building.value?.soTang || 3
-      buildingFloors.value = Array.from({ length: numFloors }, (_, idx) => ({
-        maTang: currentBldId * 100 + (idx + 1),
-        tenTang: `Tầng ${idx + 1}`,
-        thuTuTang: idx + 1,
-        maToaNha: currentBldId
-      }))
-    }
 
     const floorIds = new Set(buildingFloors.value.map(f => f.maTang))
     // Filter rooms for THIS building only, without inserting dummy fallback rooms!

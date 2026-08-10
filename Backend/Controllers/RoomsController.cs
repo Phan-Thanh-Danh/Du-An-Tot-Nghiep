@@ -13,6 +13,7 @@ namespace Backend.Controllers;
 public class RoomsController : ControllerBase
 {
     private const string ReaderRoles =
+        AuthRoles.Principal + "," +
         AuthRoles.SuperAdmin + "," +
         AuthRoles.Admin + "," +
         AuthRoles.CampusAdmin + "," +
@@ -20,6 +21,7 @@ public class RoomsController : ControllerBase
         AuthRoles.AcademicStaff;
 
     private const string ManagerRoles =
+        AuthRoles.Principal + "," +
         AuthRoles.SuperAdmin + "," +
         AuthRoles.Admin + "," +
         AuthRoles.CampusAdmin + "," +

@@ -234,7 +234,21 @@ async function saveBuilding() {
   buildingError.value = ''
   try {
     const code = 'TOA-' + name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
-    const selectedCampusId = campusFilter.value !== 'all' ? parseInt(campusFilter.value) : (campuses.value[0]?.maDonVi || 1)
+    let selectedCampusId = campusFilter.value !== 'all' ? parseInt(campusFilter.value) : 0
+    if (!selectedCampusId) {
+      // Lấy đơn vị (campus) thực tế của user — campuses[0] có thể là org gốc không thuộc scope
+      try {
+        const profileRes = await apiRequest('/api/account/me')
+        const profile = unwrapApiData(profileRes)
+        selectedCampusId = profile?.maDonVi || 0
+      } catch {
+        selectedCampusId = 0
+      }
+    }
+    if (!selectedCampusId) {
+      buildingError.value = 'Không xác định được cơ sở đào tạo của tài khoản. Vui lòng chọn cơ sở trong bộ lọc.'
+      return
+    }
     const res = await apiRequest('/api/master-data/buildings', {
       method: 'POST',
       body: JSON.stringify({
@@ -244,20 +258,15 @@ async function saveBuilding() {
         soTang: buildingForm.value.soTang,
         diaChi: buildingForm.value.diaChi || 'Khu học xá chính'
       })
-    }).catch(() => null)
+    })
     
     const created = unwrapApiData(res)
-    const newBld = created && created.maToaNha ? created : {
-      maToaNha: Date.now(),
-      maDonVi: selectedCampusId,
-      tenToaNha: name,
-      maCodeToaNha: code,
-      soTang: buildingForm.value.soTang,
-      diaChi: buildingForm.value.diaChi || 'Khu học xá chính',
-      conHoatDong: true
+    if (!created?.maToaNha) {
+      buildingError.value = 'Không nhận được phản hồi hợp lệ từ máy chủ khi tạo tòa nhà.'
+      return
     }
-    buildings.value.unshift(newBld)
-    bghApi.invalidate('/api/master-data/buildings')
+    buildings.value.unshift(created)
+    bghApi.invalidate('/api/bgh/master-data/buildings')
     showBuildingModal.value = false
   } catch (e) {
     buildingError.value = e?.message || 'Lỗi lưu tòa nhà'
@@ -290,7 +299,7 @@ async function toggleSoftDeleteBuilding(building, event) {
       }
     }
     building.conHoatDong = !isCurrentlyActive
-    bghApi.invalidate('/api/master-data/buildings')
+    bghApi.invalidate('/api/bgh/master-data/buildings')
   } catch (e) {
     alert(e?.message || 'Lỗi thay đổi trạng thái tòa nhà')
   }

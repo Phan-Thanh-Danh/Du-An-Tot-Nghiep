@@ -128,6 +128,24 @@ public class BuildingService : IBuildingService
         _context.ToaNhas.Add(building);
         await _context.SaveChangesAsync(cancellationToken);
 
+        // Tòa mới tạo tự sinh các tầng theo SoTang (đồng bộ convention seed)
+        if (request.SoTang is > 0)
+        {
+            for (var floorNumber = 1; floorNumber <= request.SoTang; floorNumber++)
+            {
+                _context.Tangs.Add(new Tang
+                {
+                    MaToaNha = building.MaToaNha,
+                    TenTang = $"Tầng {floorNumber}",
+                    ThuTuTang = floorNumber,
+                    MoTa = $"{building.TenToaNha} - Tầng {floorNumber}",
+                    ConHoatDong = true
+                });
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
         return ToDto(building, organization);
     }
 
