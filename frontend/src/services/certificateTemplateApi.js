@@ -40,6 +40,13 @@ export const certificateTemplateApi = {
     }))
   },
 
+  async deleteTemplate(id) {
+    // hard delete endpoint
+    return unwrapApiData(await apiRequest(`${BASE}/${id}/hard`, {
+      method: 'DELETE',
+    }))
+  },
+
   async previewTemplate(id, payload = {}) {
     return unwrapApiData(await apiRequest(`${BASE}/${id}/preview`, {
       method: 'POST',

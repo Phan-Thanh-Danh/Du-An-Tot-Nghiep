@@ -18,6 +18,7 @@ const loading = ref(true)
 const templates = ref([])
 const searchQuery = ref('')
 const confirmDisable = ref(null)
+const confirmDelete = ref(null)
 
 const filteredTemplates = computed(() => {
   if (!searchQuery.value) return templates.value
@@ -51,8 +52,22 @@ async function toggleActive(template) {
     await certificateTemplateApi.disableTemplate(template.maMauBangKhen)
     popupStore.success('Thành công', 'Đã vô hiệu hóa mẫu giấy khen.')
     await loadTemplates()
+    // close confirm dialog
+    confirmDisable.value = null
   } catch (err) {
     popupStore.error('Lỗi', err?.message || 'Vô hiệu hóa mẫu thất bại.')
+  }
+}
+
+async function deleteTemplate(template) {
+  try {
+    await certificateTemplateApi.deleteTemplate(template.maMauBangKhen)
+    popupStore.success('Thành công', 'Đã xóa mẫu giấy khen.')
+    await loadTemplates()
+    // close confirm dialog
+    confirmDelete.value = null
+  } catch (err) {
+    popupStore.error('Lỗi', err?.message || 'Xóa mẫu thất bại.')
   }
 }
 
@@ -151,6 +166,10 @@ watch(() => route.path, () => {
                   <template #leading><Power :size="13" /></template>
                   Kích hoạt
                 </GlassButton>
+                <GlassButton variant="danger" size="sm" @click="confirmDelete = t">
+                  <template #leading>🗑️</template>
+                  Xóa
+                </GlassButton>
               </div>
             </td>
           </tr>
@@ -167,6 +186,17 @@ watch(() => route.path, () => {
       variant="danger"
       @confirm="toggleActive(confirmDisable)"
       @cancel="confirmDisable = null"
+    />
+
+    <ConfirmActionDialog
+      v-if="confirmDelete"
+      :model-value="true"
+      title="Xóa mẫu giấy khen"
+      :message="`Bạn có chắc muốn xóa mẫu &quot;${confirmDelete.tenMau}&quot;? Hành động này không thể hoàn tác.`"
+      confirm-label="Xóa"
+      variant="danger"
+      @confirm="deleteTemplate(confirmDelete)"
+      @cancel="confirmDelete = null"
     />
   </div>
 </template>

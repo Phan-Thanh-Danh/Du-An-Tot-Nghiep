@@ -247,6 +247,42 @@ public partial class CertificateTemplateService : ICertificateTemplateService
         return await LoadDtoAsync(template.MaMauBangKhen, cancellationToken);
     }
 
+    public async Task DeleteAsync(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureSuperAdmin(currentUser);
+
+        var template = await _context.MauBangKhens.FirstOrDefaultAsync(x => x.MaMauBangKhen == id, cancellationToken);
+        if (template is null)
+        {
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy mẫu bằng khen.");
+        }
+
+        // check references: DotKhenThuong (campaigns) and KhenThuong (rewards)
+        var usedInCampaign = await _context.DotKhenThuongs.AnyAsync(x => x.MaMauBangKhen == id, cancellationToken);
+        var usedInRewards = await _context.KhenThuongs.AnyAsync(x => x.MaMauBangKhen == id, cancellationToken);
+        if (usedInCampaign || usedInRewards)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Không thể xóa mẫu vì đang được tham chiếu bởi đợt khen thưởng hoặc bản ghi khen thưởng.");
+        }
+
+        _context.MauBangKhens.Remove(template);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.LogAsync(
+            EntityType,
+            template.MaMauBangKhen.ToString(),
+            "DELETE_CERTIFICATE_TEMPLATE",
+            CreateAuditSnapshot(template),
+            null,
+            currentUser.UserId,
+            null,
+            "Xóa mẫu bằng khen.",
+            cancellationToken);
+    }
+
     public async Task<CertificateTemplatePreviewDto> PreviewAsync(
         int id,
         CertificateTemplatePreviewRequest request,

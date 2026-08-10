@@ -78,6 +78,14 @@ public class AdminCertificateTemplatesController : ControllerBase
             "Vô hiệu hóa mẫu bằng khen thành công."));
     }
 
+    // Hard delete
+    [HttpDelete("{id:int}/hard")]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        await _certificateTemplateService.DeleteAsync(id, cancellationToken);
+        return NoContent();
+    }
+
     [HttpPost("{id:int}/preview")]
     public async Task<ActionResult<ApiResponseDto<CertificateTemplatePreviewDto>>> Preview(
         int id,
