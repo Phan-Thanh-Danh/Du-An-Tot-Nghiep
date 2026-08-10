@@ -6,6 +6,7 @@
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import AppSidebar from './AppSidebar.vue'
 import AppTopbar from '../SinhVien/AppTopbar.vue'
 import PageContainer from '../SinhVien/PageContainer.vue'
@@ -47,23 +48,31 @@ function closeMobileSidebar() {
 }
 
 const route = useRoute()
+const auth = useAuthStore()
 
 const pageTitleMap = {
-  '/teacher/dashboard': { title: 'Tổng quan giảng dạy', subtitle: 'Chào mừng TS. Khoa! Đây là báo cáo công việc giảng dạy của bạn.' },
+  '/teacher/dashboard': { title: 'Tổng quan giảng dạy' },
   '/teacher/classes': { title: 'Lớp học của tôi', subtitle: 'Quản lý các lớp học đang phụ trách' },
   '/teacher/assignments': { title: 'Quản lý bài tập', subtitle: 'Tạo và quản lý bài tập cho sinh viên' },
-  '/teacher/grading': { title: 'Chấm bài', subtitle: 'Danh sách bài nộp cần chấm điểm' },
+  '/teacher/grading-input': { title: 'Chấm bài', subtitle: 'Danh sách bài nộp cần chấm điểm' },
   '/teacher/schedule': { title: 'Thời khóa biểu dạy', subtitle: 'Lịch giảng dạy chi tiết theo tuần' },
   '/teacher/attendance': { title: 'Điểm danh', subtitle: 'Ghi nhận điểm danh sinh viên trong lớp' },
   '/teacher/profile': { title: 'Hồ sơ cá nhân', subtitle: 'Thông tin giảng viên và cài đặt' },
 }
 
 const currentPageMeta = computed(() => {
-  if (pageTitleMap[route.path]) return pageTitleMap[route.path]
-  for (const [key, val] of Object.entries(pageTitleMap)) {
-    if (route.path.startsWith(key + '/')) return val
+  const base = pageTitleMap[route.path] || (() => {
+    for (const [key, val] of Object.entries(pageTitleMap)) {
+      if (route.path.startsWith(key + '/')) return val
+    }
+    return null
+  })()
+  if (base?.subtitle) return base
+  if (route.path === '/teacher/dashboard') {
+    const fullName = auth.user?.fullName || auth.user?.FullName || 'Giảng viên'
+    return { title: base?.title || 'Tổng quan giảng dạy', subtitle: `Chào mừng ${fullName}! Đây là báo cáo công việc giảng dạy của bạn.` }
   }
-  return { title: 'Trang giảng viên', subtitle: '' }
+  return base || { title: 'Trang giảng viên', subtitle: '' }
 })
 </script>
 

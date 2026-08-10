@@ -314,9 +314,4 @@ export const contentCouncilApi = {
   closeQuiz(id) {
     return apiRequest(`/api/exam/de-kiem-tra/${id}/close`, { method: 'POST' })
   },
-
-  // Academic terms (for select options)
-  getAcademicTerms() {
-    return apiRequest('/api/master-data/academic-terms')
-  },
 }

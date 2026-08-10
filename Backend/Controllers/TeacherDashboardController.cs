@@ -51,7 +51,10 @@ public class TeacherDashboardController : ControllerBase
             .Where(b => b.DiemSo == null && b.BaiTap != null && teacherCourseMonHocIds.Contains(b.BaiTap.MaMonHoc))
             .CountAsync();
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var vnTime = TimeZoneInfo.ConvertTimeFromUtc(
+            DateTime.UtcNow,
+            TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
+        var today = DateOnly.FromDateTime(vnTime);
         var todaySessions = await _context.BuoiHocs
             .Where(b => b.MaGiaoVien == userId && b.NgayHoc == today)
             .CountAsync();
