@@ -5874,6 +5874,8 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.MaDraftItem).HasColumnName("ma_draft_item");
             entity.Property(e => e.MaJob).HasColumnName("ma_job");
             entity.Property(e => e.MaKhoaHoc).HasColumnName("ma_khoa_hoc");
+            entity.Property(e => e.MaGiaoVien).HasColumnName("ma_giao_vien");
+            entity.Property(e => e.MucDoPhuHop).HasColumnName("muc_do_phu_hop");
             entity.Property(e => e.ThuTrongTuan).HasColumnName("thu_trong_tuan");
             entity.Property(e => e.MaCaHoc).HasColumnName("ma_ca_hoc");
             entity.Property(e => e.MaPhong).HasColumnName("ma_phong");
@@ -5896,6 +5898,11 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaKhoaHoc)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_ScheduleDraftItem_ma_khoa_hoc__KhoaHoc");
+            entity.HasOne(e => e.GiaoVien)
+                .WithMany()
+                .HasForeignKey(e => e.MaGiaoVien)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_ScheduleDraftItem_ma_giao_vien__NguoiDung");
             entity.HasOne(e => e.CaHoc)
                 .WithMany()
                 .HasForeignKey(e => e.MaCaHoc)

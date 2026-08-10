@@ -2765,10 +2765,16 @@ public static class Data
             ("teacher.cntt@lms.local", "COM101", 100),
             ("teacher.cntt@lms.local", "COM103", 80),
             ("teacher.cntt@lms.local", "WEB102", 90),
+            ("p12test_teacher01@lms.local", "WEB102", 95),
+            ("lecturer01@edulms.local", "COM103", 75),
             ("teacher.csharp.a@lms.local", "COM101", 95),
             ("teacher.csharp.a@lms.local", "COM103", 100),
+            ("teacher.csharp.b@lms.local", "COM103", 95),
             ("teacher.database.c@lms.local", "COM101", 70),
-            ("teacher.database.c@lms.local", "WEB102", 70)
+            ("teacher.database.c@lms.local", "WEB102", 70),
+            ("teacher.database.c@lms.local", "COM102", 95),
+            ("teacher.database.d@lms.local", "COM102", 85),
+            ("teacher.marketing.e@lms.local", "MKT101", 95)
         };
 
         foreach (var cap in capabilities)
@@ -2848,12 +2854,23 @@ public static class Data
             }
             else if (key == "teacher.csharp.a@lms.local")
             {
-                details.Add(new GiaoVienNguyenVongCaDay { NguyenVongId = preference.Id, ThuTrongTuan = 4, MaCaHoc = activeShifts[0].MaCaHoc, MucDo = "preferred", NgayTao = DateTime.UtcNow });
-                if (activeShifts.Count > 2) details.Add(new GiaoVienNguyenVongCaDay { NguyenVongId = preference.Id, ThuTrongTuan = 4, MaCaHoc = activeShifts[2].MaCaHoc, MucDo = "unavailable", NgayTao = DateTime.UtcNow });
+                // Lịch khả dụng đã xác nhận: Thứ 3/5/6, ca 1 và 4.
+                foreach (var day in new[] { 3, 5, 6 })
+                foreach (var shiftIndex in new[] { 0, 3 })
+                {
+                    if (activeShifts.Count > shiftIndex)
+                        details.Add(new GiaoVienNguyenVongCaDay { NguyenVongId = preference.Id, ThuTrongTuan = day, MaCaHoc = activeShifts[shiftIndex].MaCaHoc, MucDo = "available", NgayTao = DateTime.UtcNow });
+                }
             }
             else
             {
-                details.Add(new GiaoVienNguyenVongCaDay { NguyenVongId = preference.Id, ThuTrongTuan = 6, MaCaHoc = activeShifts[0].MaCaHoc, MucDo = "available", NgayTao = DateTime.UtcNow });
+                // Hệ thống hiện có 5 ca/ngày: lịch khả dụng đã xác nhận là Thứ 2/5/6, ca 3 và 5.
+                foreach (var day in new[] { 2, 5, 6 })
+                foreach (var shiftIndex in new[] { 2, 4 })
+                {
+                    if (activeShifts.Count > shiftIndex)
+                        details.Add(new GiaoVienNguyenVongCaDay { NguyenVongId = preference.Id, ThuTrongTuan = day, MaCaHoc = activeShifts[shiftIndex].MaCaHoc, MucDo = "available", NgayTao = DateTime.UtcNow });
+                }
             }
 
             context.GiaoVienNguyenVongCaDays.AddRange(details);

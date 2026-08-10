@@ -5,6 +5,8 @@ public class ScheduleDraftItem
     public int MaDraftItem { get; set; }
     public int MaJob { get; set; }
     public int MaKhoaHoc { get; set; }
+    public int? MaGiaoVien { get; set; }
+    public int? MucDoPhuHop { get; set; }
     public int? ThuTrongTuan { get; set; }
     public int? MaCaHoc { get; set; }
     public int? MaPhong { get; set; }
@@ -17,6 +19,7 @@ public class ScheduleDraftItem
 
     public ScheduleGenerationJob? Job { get; set; }
     public KhoaHoc? KhoaHoc { get; set; }
+    public NguoiDung? GiaoVien { get; set; }
     public CaHoc? CaHoc { get; set; }
     public PhongHoc? Phong { get; set; }
 }

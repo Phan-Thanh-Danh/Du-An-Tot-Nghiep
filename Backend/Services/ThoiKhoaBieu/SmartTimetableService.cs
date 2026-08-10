@@ -1,4 +1,5 @@
 using Backend.Constants;
+using Backend.Configuration;
 using Backend.Data;
 using Backend.DTOs.Auth;
 using Backend.DTOs.SmartTimetable;
@@ -7,6 +8,7 @@ using Backend.Models;
 using Backend.Services.AcademicSchedulingContext;
 using Backend.Services.Audit;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 using Backend.Services.ThoiKhoaBieu.Scoring;
 using Backend.DTOs.SmartTimetable.Suggestions;
@@ -24,6 +26,8 @@ public class SmartTimetableService : ISmartTimetableService
     private readonly ILogger<SmartTimetableService> _logger;
     private readonly IAcademicSchedulingContextService _schedulingContextService;
     private readonly IScheduleCandidateScoringService _scoringService;
+    private readonly IGeneticTimetableSolver _geneticSolver;
+    private readonly SmartTimetableScoringOptions _scoringOptions;
 
     public SmartTimetableService(
         ApplicationDbContext context,
@@ -31,7 +35,9 @@ public class SmartTimetableService : ISmartTimetableService
         IAuditLogService auditLogService,
         ILogger<SmartTimetableService> logger,
         IAcademicSchedulingContextService schedulingContextService,
-        IScheduleCandidateScoringService scoringService)
+        IScheduleCandidateScoringService scoringService,
+        IGeneticTimetableSolver geneticSolver,
+        IOptions<SmartTimetableScoringOptions> scoringOptions)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
@@ -39,7 +45,11 @@ public class SmartTimetableService : ISmartTimetableService
         _logger = logger;
         _schedulingContextService = schedulingContextService;
         _scoringService = scoringService;
+        _geneticSolver = geneticSolver;
+        _scoringOptions = scoringOptions.Value;
     }
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, GenerationProgress> _progressStore = new();
 
     public async Task<ScheduleDraftDto> GenerateAsync(
         GenerateTimetableRequest request,
@@ -63,8 +73,7 @@ public class SmartTimetableService : ISmartTimetableService
             .Where(x => x.TrangThaiPhong == "hoat_dong" && x.MaDonVi == request.MaDonVi)
             .ToListAsync(cancellationToken);
 
-        var map = await BuildOccupationMapAsync(request.MaHocKy, request.MaDonVi, cancellationToken);
-        var draftId = Guid.NewGuid();
+        var draftId = request.ClientDraftId ?? Guid.NewGuid();
 
         var job = new ScheduleGenerationJob
         {
@@ -80,60 +89,88 @@ public class SmartTimetableService : ISmartTimetableService
         _context.ScheduleGenerationJobs.Add(job);
         await _context.SaveChangesAsync(cancellationToken);
 
-        var items = new List<ScheduleDraftItem>();
-        var xepDuoc = 0;
-        var khongXepDuoc = 0;
-
-        var preferences = await LoadPreferencesAsync(request.MaHocKy, request.MaDonVi, courses.Select(x => x.MaGiaoVien), cancellationToken);
+        var skillsByMonHoc = await LoadSkillMatrixAsync(request.MaDonVi, courses.Select(x => x.MaMonHoc).Distinct(), cancellationToken);
         var studentCounts = await GetClassStudentCountsAsync(courses.Select(x => x.MaLop), cancellationToken);
+        var confirmedAvailability = await LoadConfirmedTeachingAvailabilityAsync(
+            request.MaHocKy,
+            request.MaDonVi,
+            skillsByMonHoc.Values.SelectMany(x => x).Select(x => x.MaGiaoVien),
+            cancellationToken);
 
-        var sortedCourses = courses
-            .OrderBy(c => c.MaGiaoVien)
-            .ThenBy(c => c.MaKhoaHoc)
-            .ToList();
+        var quyDoi = await _context.QuyDoiTinChis.AsNoTracking()
+            .ToDictionaryAsync(x => x.SoTinChi, x => x.SoBuoiMoiTuan, cancellationToken);
 
-        foreach (var course in sortedCourses)
+        var requiredSlots = new Dictionary<int, int>();
+        foreach (var course in courses)
         {
-            var suggestions = GetCourseSlotSuggestions(course, map, shifts, rooms, null, preferences, studentCounts, 1);
-            var best = suggestions.Candidates.FirstOrDefault();
+            var soTinChi = course.MonHoc?.SoTinChi ?? 0;
+            requiredSlots[course.MaKhoaHoc] = quyDoi.GetValueOrDefault(soTinChi, 1);
+        }
 
-            var item = new ScheduleDraftItem
+        var progress = new GenerationProgress
+        {
+            TheHeHienTai = 0,
+            TongTheHe = request.TongTheHe ?? 100,
+            BestFitness = 0,
+            XepDuoc = 0,
+            KhongXepDuoc = courses.Count
+        };
+        _progressStore[draftId] = progress;
+
+        var result = _geneticSolver.Solve(
+            courses,
+            shifts,
+            rooms,
+            requiredSlots,
+            skillsByMonHoc,
+            studentCounts,
+            confirmedAvailability,
+            request.TongTheHe ?? 100,
+            request.KichThuocQuanThe ?? 50,
+            request.TyLeCheo ?? 0.5,
+            request.DoTuoiThoToiDa ?? 10,
+            p => _progressStore[draftId] = p);
+
+        _progressStore.TryRemove(draftId, out _);
+
+        var items = new List<ScheduleDraftItem>();
+        var assignedCourseIds = result.Assignments.Select(x => x.MaKhoaHoc).Distinct().ToHashSet();
+
+        foreach (var assignment in result.Assignments)
+        {
+            items.Add(new ScheduleDraftItem
+            {
+                MaJob = job.MaJob,
+                MaKhoaHoc = assignment.MaKhoaHoc,
+                MaGiaoVien = assignment.MaGiaoVien,
+                MucDoPhuHop = assignment.MucDoPhuHop,
+                ThuTrongTuan = assignment.ThuTrongTuan,
+                MaCaHoc = assignment.MaCaHoc,
+                MaPhong = assignment.MaPhong,
+                TrangThai = "xep_duoc",
+                Score = assignment.Score,
+                ScoreBreakdownJson = JsonSerializer.Serialize(assignment.Components),
+                LyDoGoiYJson = JsonSerializer.Serialize(assignment.Reasons),
+                CanhBaoJson = assignment.Warnings.Count > 0 ? JsonSerializer.Serialize(assignment.Warnings) : null
+            });
+        }
+
+        foreach (var course in courses.Where(c => !assignedCourseIds.Contains(c.MaKhoaHoc)))
+        {
+            items.Add(new ScheduleDraftItem
             {
                 MaJob = job.MaJob,
                 MaKhoaHoc = course.MaKhoaHoc,
-                TrangThai = best != null ? "xep_duoc" : "khong_xep_duoc"
-            };
-
-            if (best != null)
-            {
-                item.ThuTrongTuan = best.ThuTrongTuan;
-                item.MaCaHoc = best.MaCaHoc;
-                item.MaPhong = best.MaPhong;
-                item.Score = best.Score;
-                item.ScoreBreakdownJson = JsonSerializer.Serialize(best.Components);
-                item.LyDoGoiYJson = JsonSerializer.Serialize(best.Reasons);
-                item.CanhBaoJson = best.Warnings.Count > 0 ? JsonSerializer.Serialize(best.Warnings) : null;
-                
-                map.OccupyTeacher(request.MaHocKy, best.ThuTrongTuan, best.MaCaHoc, course.MaGiaoVien);
-                map.OccupyClass(request.MaHocKy, best.ThuTrongTuan, best.MaCaHoc, course.MaLop);
-                map.OccupyRoom(request.MaHocKy, best.ThuTrongTuan, best.MaCaHoc, best.MaPhong);
-                
-                xepDuoc++;
-            }
-            else
-            {
-                khongXepDuoc++;
-                item.LoiJson = JsonSerializer.Serialize(new List<string> { "Không tìm được slot trống hoặc vi phạm nguyện vọng." });
-            }
-
-            items.Add(item);
+                TrangThai = "khong_xep_duoc",
+                LoiJson = JsonSerializer.Serialize(new List<string> { "Thuật toán di truyền không tìm đủ slot hợp lệ cho khóa học này." })
+            });
         }
 
         _context.ScheduleDraftItems.AddRange(items);
-        job.SoXepDuoc = xepDuoc;
-        job.SoKhongXepDuoc = khongXepDuoc;
-        
-        // Calculate average score of assigned items
+        job.TrangThai = "draft";
+        job.SoXepDuoc = result.XepDuoc;
+        job.SoKhongXepDuoc = result.KhongXepDuoc;
+
         var assignedItems = items.Where(x => x.TrangThai == "xep_duoc").ToList();
         job.Score = assignedItems.Count > 0 ? assignedItems.Average(x => x.Score ?? 0) : 0;
 
@@ -141,14 +178,52 @@ public class SmartTimetableService : ISmartTimetableService
 
         await _auditLogService.LogAsync(
             "SmartTimetable", draftId.ToString(), "GENERATE",
-            null, new { request.MaHocKy, request.MaDonVi, xepDuoc, khongXepDuoc },
+            null, new { request.MaHocKy, request.MaDonVi, xepDuoc = result.XepDuoc, khongXepDuoc = result.KhongXepDuoc },
             currentUser.UserId, request.MaDonVi,
-            "Sinh thời khóa biểu thông minh.", cancellationToken);
+            "Sinh thời khóa biểu thông minh bằng thuật toán di truyền.", cancellationToken);
 
-        job.TomTatJson = System.Text.Json.JsonSerializer.Serialize(
-            new { xepDuoc, khongXepDuoc, Score = job.Score });
+        job.TomTatJson = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            xepDuoc = result.XepDuoc,
+            khongXepDuoc = result.KhongXepDuoc,
+            Score = job.Score,
+            tongTheHe = request.TongTheHe ?? 100,
+            kichThuocQuanThe = request.KichThuocQuanThe ?? 50,
+            tyLeCheo = request.TyLeCheo ?? 0.5,
+            doTuoiThoToiDa = request.DoTuoiThoToiDa ?? 10,
+            theHeDaChay = result.TheHeDaChay,
+            bestFitness = result.BestFitness,
+            thoiGianChayMs = result.ThoiGianChayMs
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
 
         return await ToDraftDtoAsync(job.MaJob, cancellationToken);
+    }
+
+    public async Task<GenerationProgress> GetGenerationProgressAsync(
+        Guid draftId,
+        CancellationToken cancellationToken = default)
+    {
+        if (_progressStore.TryGetValue(draftId, out var live))
+            return live;
+
+        var job = await _context.ScheduleGenerationJobs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.DraftId == draftId, cancellationToken);
+
+        if (job is null)
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy công việc xếp lịch.");
+
+        return new GenerationProgress
+        {
+            TheHeHienTai = job.TongCourse ?? 0,
+            TongTheHe = job.TongCourse ?? 0,
+            BestFitness = job.Score ?? 0,
+            XepDuoc = job.SoXepDuoc ?? 0,
+            KhongXepDuoc = job.SoKhongXepDuoc ?? 0,
+            ThoiGianChayMs = null
+        };
     }
 
     public async Task<ScheduleDraftDto> GetDraftAsync(
@@ -217,22 +292,58 @@ public class SmartTimetableService : ISmartTimetableService
         if (job.TrangThai == "da_xuat_ban")
             throw new ApiException(StatusCodes.Status400BadRequest, "Bản nháp này đã được xuất bản.");
 
+        if (job.TrangThai != "draft")
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ bản nháp ở trạng thái draft mới được xuất bản.");
+
+        if ((job.SoKhongXepDuoc ?? 0) > 0)
+            throw new ApiException(StatusCodes.Status400BadRequest,
+                "Không thể xuất bản bản nháp chưa xếp đủ tất cả khóa học.");
+
         var items = await _context.ScheduleDraftItems
             .AsNoTracking()
             .Where(x => x.MaJob == job.MaJob && x.TrangThai == "xep_duoc")
             .ToListAsync(cancellationToken);
 
+        if (items.Count == 0)
+            throw new ApiException(StatusCodes.Status400BadRequest, "Bản nháp không có ca học hợp lệ để xuất bản.");
+
         var result = new TimetablePublishResultDto();
+        var giaoVienChanges = new List<object>();
         var strategy = _context.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {
-            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            using var transaction = await _context.Database.BeginTransactionAsync(
+                System.Data.IsolationLevel.Serializable, cancellationToken);
             try
             {
+                var hasPublishedSchedule = await _context.ThoiKhoaBieus
+                    .AnyAsync(x =>
+                        x.KhoaHoc != null &&
+                        x.KhoaHoc.MaHocKy == job.MaHocKy &&
+                        x.KhoaHoc.MaDonVi == job.MaDonVi &&
+                        x.TrangThai == PublishedScheduleStatus,
+                        cancellationToken);
+
+                if (hasPublishedSchedule)
+                    throw new ApiException(StatusCodes.Status409Conflict,
+                        "Học kỳ này đã có thời khóa biểu được xuất bản. Hãy dùng luồng điều chỉnh thời khóa biểu, không thể ghi đè bằng bản nháp mới.");
+
+                // Lần xuất bản đầu chỉ thay thế lịch nháp cũ, không bao giờ thay lịch đã công bố.
+                await _context.ThoiKhoaBieus
+                    .Where(x =>
+                        x.KhoaHoc != null &&
+                        x.KhoaHoc.MaHocKy == job.MaHocKy &&
+                        x.KhoaHoc.MaDonVi == job.MaDonVi &&
+                        x.TrangThai == "nhap")
+                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.TrangThai, "da_huy"), cancellationToken);
+
                 var map = await BuildOccupationMapAsync(job.MaHocKy, job.MaDonVi, cancellationToken);
-                var courses = await _context.KhoaHocs.Include(x => x.MonHoc).AsNoTracking()
+                var courses = await _context.KhoaHocs.AsNoTracking()
                     .Where(x => x.MaHocKy == job.MaHocKy && x.MaDonVi == job.MaDonVi)
                     .ToDictionaryAsync(x => x.MaKhoaHoc, cancellationToken);
+
+                var soTinChiByMonHoc = await _context.DanhMucMonHocs.AsNoTracking()
+                    .ToDictionaryAsync(x => x.MaMonHoc, x => x.SoTinChi, cancellationToken);
                 
                 var quyDoiDict = await _context.QuyDoiTinChis.AsNoTracking()
                     .ToDictionaryAsync(x => x.SoTinChi, x => x.SoBuoiMoiTuan, cancellationToken);
@@ -241,33 +352,54 @@ public class SmartTimetableService : ISmartTimetableService
                     .Where(x => x.MaDonVi == job.MaDonVi)
                     .ToDictionaryAsync(x => x.MaPhong, cancellationToken);
 
-                var existingSchedulesCount = await _context.ThoiKhoaBieus.AsNoTracking()
-                    .Where(x => x.TrangThai != "da_huy")
-                    .GroupBy(x => x.MaKhoaHoc)
-                    .ToDictionaryAsync(g => g.Key, g => g.Count(), cancellationToken);
-
                 var groupedItems = items.GroupBy(x => x.MaKhoaHoc).ToList();
-                var validItems = new List<Models.ScheduleDraftItem>();
+                var activeCourseCount = courses.Count;
+                if (job.TongCourse != activeCourseCount)
+                    throw new ApiException(StatusCodes.Status400BadRequest,
+                        "Không thể xuất bản bản nháp chỉ xếp một phần khóa học của học kỳ.");
+
+                if (groupedItems.Count != activeCourseCount)
+                    throw new ApiException(StatusCodes.Status400BadRequest,
+                            "Bản nháp chưa có đủ ca học cho tất cả khóa học đang hoạt động.");
+
+                var weeklyLoadByTeacher = items
+                    .GroupBy(x => x.MaGiaoVien ?? (courses.TryGetValue(x.MaKhoaHoc, out var course) ? course.MaGiaoVien : 0))
+                    .ToDictionary(x => x.Key, x => x.Count());
+                if (weeklyLoadByTeacher.Any(x => x.Key <= 0 || x.Value > _scoringOptions.WeeklyCapCa))
+                    throw new ApiException(StatusCodes.Status400BadRequest,
+                        $"Bản nháp vượt giới hạn cứng {_scoringOptions.WeeklyCapCa} ca/tuần cho một giảng viên hoặc thiếu giảng viên hợp lệ.");
 
                 foreach (var group in groupedItems)
                 {
-                    if (courses.TryGetValue(group.Key, out var c) && c.MonHoc != null)
-                    {
-                        int soBuoiYeuCau = quyDoiDict.GetValueOrDefault(c.MonHoc.SoTinChi, 0);
-                        int soBuoiHienTai = existingSchedulesCount.GetValueOrDefault(group.Key, 0);
-                        int soBuoiThem = group.Count();
+                    if (!courses.TryGetValue(group.Key, out var c))
+                        throw new ApiException(StatusCodes.Status400BadRequest,
+                            $"MaKhoaHoc {group.Key}: khóa học không tồn tại trong phạm vi xuất bản.");
 
-                        if (soBuoiYeuCau > 0 && (soBuoiHienTai + soBuoiThem) < soBuoiYeuCau)
-                        {
-                            result.BuoiHocLoi += soBuoiThem;
-                            result.ChiTietLoi.Add($"MaKhoaHoc {group.Key}: chưa xếp đủ số buổi/tuần yêu cầu ({soBuoiHienTai + soBuoiThem}/{soBuoiYeuCau}).");
-                            continue;
-                        }
-                    }
-                    validItems.AddRange(group);
+                    var soBuoiYeuCau = quyDoiDict.GetValueOrDefault(
+                        soTinChiByMonHoc.GetValueOrDefault(c.MaMonHoc, 0), 1);
+                    if (group.Count() != soBuoiYeuCau)
+                        throw new ApiException(StatusCodes.Status400BadRequest,
+                            $"MaKhoaHoc {group.Key}: bản nháp phải có đúng {soBuoiYeuCau} ca/tuần (hiện có {group.Count()}).");
                 }
 
-                foreach (var item in validItems)
+                // GA chọn giảng viên cho từng khóa: ghi đè MaGiaoVien của khóa trước khi check conflict
+                var attachedCourses = new HashSet<int>();
+                foreach (var item in items)
+                {
+                    if (!item.MaGiaoVien.HasValue) continue;
+                    if (courses.TryGetValue(item.MaKhoaHoc, out var c) && c.MaGiaoVien != item.MaGiaoVien.Value)
+                    {
+                        giaoVienChanges.Add(new { maKhoaHoc = item.MaKhoaHoc, tuGiaoVien = c.MaGiaoVien, denGiaoVien = item.MaGiaoVien.Value });
+                        c.MaGiaoVien = item.MaGiaoVien.Value;
+                        if (attachedCourses.Add(c.MaKhoaHoc))
+                        {
+                            _context.KhoaHocs.Attach(c);
+                            _context.Entry(c).Property(x => x.MaGiaoVien).IsModified = true;
+                        }
+                    }
+                }
+
+                foreach (var item in items)
                 {
                     if (!item.ThuTrongTuan.HasValue || !item.MaCaHoc.HasValue || !item.MaPhong.HasValue)
                     {
@@ -336,13 +468,10 @@ public class SmartTimetableService : ISmartTimetableService
                 }
 
                 if (result.BuoiHocLoi > 0)
-                {
-                    job.TrangThai = "xuat_ban_mot_phan";
-                }
-                else
-                {
-                    job.TrangThai = "da_xuat_ban";
-                }
+                    throw new ApiException(StatusCodes.Status400BadRequest,
+                        "Bản nháp có dữ liệu không hợp lệ nên không thể xuất bản.");
+
+                job.TrangThai = "da_xuat_ban";
                 job.NgayXuatBan = DateTime.UtcNow;
                 await _context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
@@ -358,7 +487,7 @@ public class SmartTimetableService : ISmartTimetableService
 
         await _auditLogService.LogAsync(
             "SmartTimetable", request.DraftId.ToString(), "PUBLISH",
-            null, result, currentUser.UserId, job.MaDonVi,
+            null, new { publishResult = result, giaoVienChanges }, currentUser.UserId, job.MaDonVi,
             "Xuất bản thời khóa biểu thông minh.", cancellationToken);
 
         return result;
@@ -491,10 +620,11 @@ public class SmartTimetableService : ISmartTimetableService
         var shifts = await LoadShiftsAsync(request.CandidateShiftIds, cancellationToken);
         var rooms = await LoadRoomsAsync(course.MaDonVi, request.CandidateRoomIds, cancellationToken);
         var map = await BuildOccupationMapAsync(course.MaHocKy ?? 0, course.MaDonVi, cancellationToken);
-        var preferences = await LoadPreferencesAsync(course.MaHocKy ?? 0, course.MaDonVi, new[] { course.MaGiaoVien }, cancellationToken);
         var studentCounts = await GetClassStudentCountsAsync(new[] { course.MaLop }, cancellationToken);
+        var confirmedAvailability = await LoadConfirmedTeachingAvailabilityAsync(
+            course.MaHocKy ?? 0, course.MaDonVi, new[] { course.MaGiaoVien }, cancellationToken);
 
-        var result = GetCourseSlotSuggestions(course, map, shifts, rooms, request.CandidateDays, preferences, studentCounts, request.TopN);
+        var result = GetCourseSlotSuggestions(course, map, shifts, rooms, request.CandidateDays, studentCounts, confirmedAvailability, request.TopN);
         return result;
     }
 
@@ -526,9 +656,9 @@ public class SmartTimetableService : ISmartTimetableService
         var shifts = await LoadShiftsAsync(null, cancellationToken);
         var rooms = await LoadRoomsAsync(maDonVi, null, cancellationToken);
         var map = await BuildOccupationMapAsync(maHocKy, maDonVi, cancellationToken);
-        var teacherIds = courses.Select(x => x.MaGiaoVien).Distinct();
-        var preferences = await LoadPreferencesAsync(maHocKy, maDonVi, teacherIds, cancellationToken);
         var studentCounts = await GetClassStudentCountsAsync(courses.Select(x => x.MaLop), cancellationToken);
+        var confirmedAvailability = await LoadConfirmedTeachingAvailabilityAsync(
+            maHocKy, maDonVi, courses.Select(x => x.MaGiaoVien), cancellationToken);
 
         var result = new BatchSlotSuggestionResultDto();
 
@@ -540,7 +670,7 @@ public class SmartTimetableService : ISmartTimetableService
 
         foreach (var course in sortedCourses)
         {
-            var suggestions = GetCourseSlotSuggestions(course, map, shifts, rooms, null, preferences, studentCounts, request.TopNPerCourse);
+            var suggestions = GetCourseSlotSuggestions(course, map, shifts, rooms, null, studentCounts, confirmedAvailability, request.TopNPerCourse);
             var best = suggestions.Candidates.FirstOrDefault();
 
             if (best != null)
@@ -580,8 +710,8 @@ public class SmartTimetableService : ISmartTimetableService
         List<Models.CaHoc> shifts,
         List<Models.PhongHoc> rooms,
         List<int>? candidateDays,
-        Dictionary<int, Dictionary<(int Day, int Shift), (string Level, bool IsDraft)>> preferencesMap,
         Dictionary<int, int> studentCounts,
+        IReadOnlyDictionary<int, IReadOnlySet<(int Day, int Shift)>> confirmedAvailabilityByTeacher,
         int topN)
     {
         var result = new CourseSlotSuggestionResultDto
@@ -592,11 +722,6 @@ public class SmartTimetableService : ISmartTimetableService
             ExpectedStudentCount = studentCounts.GetValueOrDefault(course.MaLop, 0)
         };
 
-        var teacherPrefs = preferencesMap.GetValueOrDefault(course.MaGiaoVien);
-        result.TeacherPreferenceStatus = teacherPrefs != null 
-            ? (teacherPrefs.Values.Any(x => x.IsDraft) ? "draft" : "submitted") 
-            : "unknown";
-
         var days = candidateDays ?? new List<int> { 2, 3, 4, 5, 6, 7 };
         var candidates = new List<ScheduleSlotSuggestionDto>();
 
@@ -604,6 +729,9 @@ public class SmartTimetableService : ISmartTimetableService
         {
             foreach (var shift in shifts)
             {
+                if (map.GetTeacherWeeklyLoad(result.MaHocKy, course.MaGiaoVien) >= _scoringOptions.WeeklyCapCa)
+                    continue;
+
                 if (map.IsTeacherOccupied(result.MaHocKy, day, shift.MaCaHoc, course.MaGiaoVien))
                 {
                     result.RejectedSummary.TeacherConflicts++;
@@ -618,14 +746,16 @@ public class SmartTimetableService : ISmartTimetableService
 
                 foreach (var room in rooms)
                 {
+                    if (confirmedAvailabilityByTeacher.TryGetValue(course.MaGiaoVien, out var availableSlots) &&
+                        !availableSlots.Contains((day, shift.MaCaHoc)))
+                        continue;
+
                     if (map.IsRoomOccupied(result.MaHocKy, day, shift.MaCaHoc, room.MaPhong))
                     {
                         result.RejectedSummary.RoomConflicts++;
                         continue;
                     }
 
-                    var pref = teacherPrefs?.GetValueOrDefault((day, shift.MaCaHoc));
-                    
                     var context = new ScheduleCandidateContext
                     {
                         MaHocKy = result.MaHocKy,
@@ -635,8 +765,6 @@ public class SmartTimetableService : ISmartTimetableService
                         Shift = shift,
                         DayOfWeek = day,
                         ExpectedStudentCount = result.ExpectedStudentCount,
-                        PreferenceLevel = pref?.IsDraft == false ? pref?.Level : null,
-                        HasDraftPreference = pref?.IsDraft == true,
                         TeacherDailyLoad = map.GetTeacherDailyLoad(result.MaHocKy, day, course.MaGiaoVien),
                         ClassDailyLoad = map.GetClassDailyLoad(result.MaHocKy, day, course.MaLop)
                     };
@@ -649,8 +777,7 @@ public class SmartTimetableService : ISmartTimetableService
                     }
                     else
                     {
-                        if (suggestion.Warnings.Any(w => w.Contains("báo bận"))) result.RejectedSummary.UnavailablePreferences++;
-                        else if (suggestion.Warnings.Any(w => w.Contains("Sức chứa"))) result.RejectedSummary.CapacityRejected++;
+                        if (suggestion.Warnings.Any(w => w.Contains("Sức chứa"))) result.RejectedSummary.CapacityRejected++;
                         else if (suggestion.Warnings.Any(w => w.Contains("không hoạt động"))) result.RejectedSummary.InactiveRooms++;
                     }
                 }
@@ -681,30 +808,65 @@ public class SmartTimetableService : ISmartTimetableService
         return await query.ToListAsync(cancellationToken);
     }
 
-    private async Task<Dictionary<int, Dictionary<(int Day, int Shift), (string Level, bool IsDraft)>>> LoadPreferencesAsync(
-        int maHocKy, int maDonVi, IEnumerable<int> teacherIds, CancellationToken cancellationToken)
+    private async Task<Dictionary<int, IReadOnlyList<TeacherSkillCandidate>>> LoadSkillMatrixAsync(
+        int maDonVi,
+        IEnumerable<int> monHocIds,
+        CancellationToken cancellationToken)
     {
-        var teacherIdList = teacherIds.Distinct().ToList();
-        
-        var rawPrefs = await _context.GiaoVienNguyenVongHocKys.AsNoTracking()
-            .Include(x => x.ChiTietNguyenVong)
-            .Where(x => x.MaHocKy == maHocKy && x.MaDonVi == maDonVi && teacherIdList.Contains(x.MaGiaoVien))
+        var ids = monHocIds.Distinct().ToList();
+        if (ids.Count == 0)
+            return new Dictionary<int, IReadOnlyList<TeacherSkillCandidate>>();
+
+        var skillRows = await _context.GiaoVienMonHocs.AsNoTracking()
+            .Where(x => ids.Contains(x.MaMonHoc) && x.ConHoatDong)
             .ToListAsync(cancellationToken);
 
-        var map = new Dictionary<int, Dictionary<(int Day, int Shift), (string Level, bool IsDraft)>>();
-        foreach (var pref in rawPrefs)
-        {
-            var isDraft = pref.TrangThai != "submitted";
-            var details = new Dictionary<(int, int), (string, bool)>();
-            
-            foreach (var detail in pref.ChiTietNguyenVong)
-            {
-                details[(detail.ThuTrongTuan, detail.MaCaHoc)] = (detail.MucDo, isDraft);
-            }
-            map[pref.MaGiaoVien] = details;
-        }
+        var teacherIds = skillRows.Select(x => x.MaGiaoVien).Distinct().ToList();
+        var teachers = teacherIds.Count > 0
+            ? await _context.NguoiDungs.AsNoTracking()
+                .Where(x => teacherIds.Contains(x.MaNguoiDung) && x.MaDonVi == maDonVi && x.VaiTroChinh == "giao_vien" && x.TrangThai == "hoat_dong")
+                .ToDictionaryAsync(x => x.MaNguoiDung, cancellationToken)
+            : new Dictionary<int, NguoiDung>();
 
-        return map;
+        return skillRows
+            .Where(x => teachers.ContainsKey(x.MaGiaoVien))
+            .GroupBy(x => x.MaMonHoc)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<TeacherSkillCandidate>)g
+                    .OrderByDescending(x => x.MucDoPhuHop)
+                    .Select(x => new TeacherSkillCandidate
+                    {
+                        MaGiaoVien = x.MaGiaoVien,
+                        TenGiaoVien = teachers[x.MaGiaoVien].HoTen,
+                        MucDoPhuHop = x.MucDoPhuHop,
+                        LaMonChinh = x.LaMonChinh
+                    })
+                    .ToList());
+    }
+
+    private async Task<Dictionary<int, IReadOnlySet<(int Day, int Shift)>>> LoadConfirmedTeachingAvailabilityAsync(
+        int maHocKy,
+        int maDonVi,
+        IEnumerable<int> teacherIds,
+        CancellationToken cancellationToken)
+    {
+        var ids = teacherIds.Distinct().ToList();
+        if (ids.Count == 0)
+            return new Dictionary<int, IReadOnlySet<(int Day, int Shift)>>();
+
+        var forms = await _context.GiaoVienNguyenVongHocKys.AsNoTracking()
+            .Include(x => x.ChiTietNguyenVong)
+            .Where(x => x.MaHocKy == maHocKy && x.MaDonVi == maDonVi &&
+                ids.Contains(x.MaGiaoVien) && x.TrangThai == "submitted")
+            .ToListAsync(cancellationToken);
+
+        return forms.ToDictionary(
+            x => x.MaGiaoVien,
+            x => (IReadOnlySet<(int Day, int Shift)>)x.ChiTietNguyenVong
+                .Where(slot => slot.MucDo is "available" or "preferred")
+                .Select(slot => (slot.ThuTrongTuan, slot.MaCaHoc))
+                .ToHashSet());
     }
 
     private async Task<List<KhoaHoc>> LoadCoursesAsync(
@@ -715,6 +877,7 @@ public class SmartTimetableService : ISmartTimetableService
     {
         var query = _context.KhoaHocs
             .AsNoTracking()
+            .Include(x => x.MonHoc)
             .Where(x => x.MaHocKy == maHocKy && x.MaDonVi == maDonVi && x.TrangThai != "luu_tru");
 
         if (filter is { Count: > 0 })
@@ -749,13 +912,19 @@ public class SmartTimetableService : ISmartTimetableService
             ? await _context.PhongHocs.AsNoTracking().Where(x => roomIds.Contains(x.MaPhong)).ToListAsync(cancellationToken)
             : new List<Backend.Models.PhongHoc>();
 
-        var shifts = shiftIds.Count > 0
+var shifts = shiftIds.Count > 0
             ? await _context.CaHocs.AsNoTracking().Where(x => shiftIds.Contains(x.MaCaHoc)).ToListAsync(cancellationToken)
             : new List<Backend.Models.CaHoc>();
+
+        var teacherIds = draftItems.Where(x => x.MaGiaoVien.HasValue).Select(x => x.MaGiaoVien!.Value).Distinct().ToList();
+        var teachers = teacherIds.Count > 0
+            ? await _context.NguoiDungs.AsNoTracking().Where(x => teacherIds.Contains(x.MaNguoiDung)).ToListAsync(cancellationToken)
+            : new List<Backend.Models.NguoiDung>();
 
         var courseMap = courses.ToDictionary(x => x.MaKhoaHoc);
         var roomMap = rooms.ToDictionary(x => x.MaPhong);
         var shiftMap = shifts.ToDictionary(x => x.MaCaHoc);
+        var teacherMap = teachers.ToDictionary(x => x.MaNguoiDung);
 
         return new ScheduleDraftDto
         {
@@ -781,6 +950,9 @@ public class SmartTimetableService : ISmartTimetableService
                     MaDraftItem = x.MaDraftItem,
                     MaKhoaHoc = x.MaKhoaHoc,
                     MaKhoaHocCode = null,
+                    MaGiaoVien = x.MaGiaoVien,
+                    TenGiaoVien = teacherMap.TryGetValue(x.MaGiaoVien ?? 0, out var gv) ? gv.HoTen : null,
+                    MucDoPhuHop = x.MucDoPhuHop,
                     ThuTrongTuan = x.ThuTrongTuan,
                     MaCaHoc = x.MaCaHoc,
                     TenCa = shift?.TenCa,
@@ -826,7 +998,7 @@ public class SmartTimetableService : ISmartTimetableService
         if (ids.Count == 0) return new Dictionary<int, int>();
 
         var counts = await _context.NguoiDungs
-            .Where(x => x.MaLop != null && ids.Contains(x.MaLop.Value) && x.TrangThai == "hoat_dong" && x.VaiTroChinh == "HocSinh")
+            .Where(x => x.MaLop != null && ids.Contains(x.MaLop.Value) && x.TrangThai == "hoat_dong" && x.VaiTroChinh == AuthRoles.ToDatabaseCode(AuthRoles.Student))
             .GroupBy(x => x.MaLop!.Value)
             .Select(g => new { MaLop = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.MaLop, x => x.Count, cancellationToken);

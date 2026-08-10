@@ -33,9 +33,6 @@ public class ScheduleCandidateScoringService : IScheduleCandidateScoringService
         result.RawScore += _options.BaseScore;
         result.Reasons.Add("Điểm cơ sở: " + _options.BaseScore);
 
-        // Preference evaluation
-        EvaluatePreferences(context, result);
-        
         // Workload evaluation
         EvaluateWorkload(context, result);
         
@@ -51,38 +48,6 @@ public class ScheduleCandidateScoringService : IScheduleCandidateScoringService
         // If clamped, we should preserve RawScore for tie-breaking.
         
         return result;
-    }
-
-    private void EvaluatePreferences(ScheduleCandidateContext context, ScheduleSlotSuggestionDto result)
-    {
-        if (context.PreferenceLevel == "unavailable")
-        {
-            result.HardConstraintPassed = false;
-            result.Warnings.Add("Giảng viên báo bận vào thời gian này.");
-            return;
-        }
-
-        if (context.PreferenceLevel == "preferred")
-        {
-            result.Components.PreferredShift = _options.PreferredShiftBonus;
-            result.RawScore += _options.PreferredShiftBonus;
-            result.Reasons.Add("Thuộc nguyện vọng ưu tiên của giảng viên.");
-        }
-        else if (context.PreferenceLevel == "available")
-        {
-            result.Components.AvailableShift = _options.AvailableShiftBonus;
-            result.RawScore += _options.AvailableShiftBonus;
-            result.Reasons.Add("Thời gian phù hợp với giảng viên.");
-        }
-
-        if (context.HasDraftPreference)
-        {
-            result.Warnings.Add("Giảng viên có nguyện vọng nháp nhưng chưa gửi chính thức.");
-        }
-        else if (string.IsNullOrEmpty(context.PreferenceLevel))
-        {
-            result.Warnings.Add("Giảng viên chưa gửi nguyện vọng.");
-        }
     }
 
     private void EvaluateWorkload(ScheduleCandidateContext context, ScheduleSlotSuggestionDto result)

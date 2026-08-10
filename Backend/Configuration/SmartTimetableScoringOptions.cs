@@ -20,7 +20,25 @@ public class SmartTimetableScoringOptions
     public double GoodRoomFitBonus { get; set; } = 5;
     public double OversizedRoomPenalty { get; set; } = 5;
     public double OversizedRoomRatio { get; set; } = 2.0;
-    
+
+    // Genetic Algorithm soft penalties (per event)
+    public double SameDayDuplicatePenalty { get; set; } = 60;
+    public double ConsecutiveShiftPenalty { get; set; } = 30;
+    public double UnassignedSlotPenalty { get; set; } = 500;
+    public double HardConflictPenalty { get; set; } = 1000;
+
+    // Teacher skill matrix scoring (GA chọn giảng viên theo kỹ năng)
+    public double SkillScoreWeight { get; set; } = 150;
+    public bool PreferMainSubjectTeacher { get; set; } = true;
+
+    // Ngưỡng chuyên môn tối thiểu: chỉ xếp giảng viên có mức độ phù hợp >= ngưỡng
+    public int MinTeacherSkill { get; set; } = 70;
+
+    // Cân bằng định mức giảng dạy (ca/tuần/GV). WeeklyCapCa là hard constraint.
+    public int WeeklyTargetCa { get; set; } = 5;
+    public double WeeklyLoadPenalty { get; set; } = 15;
+    public int WeeklyCapCa { get; set; } = 6;
+
     public int DefaultTopN { get; set; } = 10;
     public int MaximumTopN { get; set; } = 50;
 }

@@ -1,0 +1,912 @@
+﻿using Backend.Configuration;
+using Backend.DTOs.SmartTimetable.Suggestions;
+using Backend.Models;
+using Backend.Services.ThoiKhoaBieu.Scoring;
+using Microsoft.Extensions.Options;
+
+namespace Backend.Services.ThoiKhoaBieu;
+
+public sealed class GenerationProgress
+{
+    public int TheHeHienTai { get; set; }
+    public int TongTheHe { get; set; }
+    public double BestFitness { get; set; }
+    public int XepDuoc { get; set; }
+    public int KhongXepDuoc { get; set; }
+    public double? ThoiGianChayMs { get; set; }
+}
+
+public sealed class TeacherSkillCandidate
+{
+    public int MaGiaoVien { get; set; }
+    public string? TenGiaoVien { get; set; }
+    public int MucDoPhuHop { get; set; }
+    public bool LaMonChinh { get; set; }
+}
+
+public sealed class TimetableAssignment
+{
+    public int MaKhoaHoc { get; set; }
+    public int MaGiaoVien { get; set; }
+    public string? TenGiaoVien { get; set; }
+    public int MucDoPhuHop { get; set; }
+    public int ThuTrongTuan { get; set; }
+    public int MaCaHoc { get; set; }
+    public int MaPhong { get; set; }
+    public double Score { get; set; }
+    public ScheduleSlotScoreComponentsDto Components { get; set; } = new();
+    public List<string> Reasons { get; set; } = new();
+    public List<string> Warnings { get; set; } = new();
+}
+
+public sealed class GeneticTimetableResult
+{
+    public List<TimetableAssignment> Assignments { get; set; } = new();
+    public int XepDuoc { get; set; }
+    public int KhongXepDuoc { get; set; }
+    public double BestFitness { get; set; }
+    public int TheHeDaChay { get; set; }
+    public double ThoiGianChayMs { get; set; }
+}
+
+public interface IGeneticTimetableSolver
+{
+    GeneticTimetableResult Solve(
+        IReadOnlyList<KhoaHoc> courses,
+        IReadOnlyList<Backend.Models.CaHoc> shifts,
+        IReadOnlyList<PhongHoc> rooms,
+        IReadOnlyDictionary<int, int> requiredSlotsPerCourse,
+        IReadOnlyDictionary<int, IReadOnlyList<TeacherSkillCandidate>> skillsByMonHoc,
+        IReadOnlyDictionary<int, int> studentCounts,
+        IReadOnlyDictionary<int, IReadOnlySet<(int Day, int Shift)>> confirmedAvailabilityByTeacher,
+        int tongTheHe,
+        int kichThuocQuanThe,
+        double tyLeCheo,
+        int doTuoiThoToiDa,
+        Action<GenerationProgress>? onProgress = null);
+}
+
+public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
+{
+    private readonly IScheduleCandidateScoringService _scoringService;
+    private readonly SmartTimetableScoringOptions _options;
+    private readonly Random _random = new(20260701);
+    private readonly double _teacherMutationRate = 0.15;
+
+    private static readonly int[] WeekDays = { 2, 3, 4, 5, 6, 7 };
+
+    public GeneticTimetableSolver(
+        IScheduleCandidateScoringService scoringService,
+        IOptions<SmartTimetableScoringOptions> options)
+    {
+        _scoringService = scoringService;
+        _options = options.Value;
+    }
+
+    public GeneticTimetableResult Solve(
+        IReadOnlyList<KhoaHoc> courses,
+        IReadOnlyList<Backend.Models.CaHoc> shifts,
+        IReadOnlyList<PhongHoc> rooms,
+        IReadOnlyDictionary<int, int> requiredSlotsPerCourse,
+        IReadOnlyDictionary<int, IReadOnlyList<TeacherSkillCandidate>> skillsByMonHoc,
+        IReadOnlyDictionary<int, int> studentCounts,
+        IReadOnlyDictionary<int, IReadOnlySet<(int Day, int Shift)>> confirmedAvailabilityByTeacher,
+        int tongTheHe,
+        int kichThuocQuanThe,
+        double tyLeCheo,
+        int doTuoiThoToiDa,
+        Action<GenerationProgress>? onProgress = null)
+    {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        tongTheHe = Math.Clamp(tongTheHe, 1, 1000);
+        kichThuocQuanThe = Math.Clamp(kichThuocQuanThe, 10, 200);
+        tyLeCheo = Math.Clamp(tyLeCheo, 0.0, 1.0);
+        doTuoiThoToiDa = Math.Clamp(doTuoiThoToiDa, 1, 100);
+
+        var problem = BuildProblem(courses, shifts, rooms, requiredSlotsPerCourse, skillsByMonHoc, studentCounts, confirmedAvailabilityByTeacher);
+        if (problem.Courses.Count == 0)
+            return new GeneticTimetableResult
+            {
+                BestFitness = 0,
+                TheHeDaChay = 0,
+                ThoiGianChayMs = 0,
+                KhongXepDuoc = problem.UnassignableCourseIds.Count
+            };
+
+        var population = Initialize(problem, kichThuocQuanThe);
+        var best = population[0].Clone();
+        var bestFitness = double.NegativeInfinity;
+        var stale = 0;
+        var generationsUsed = 0;
+
+        for (var generation = 1; generation <= tongTheHe; generation++)
+        {
+            generationsUsed = generation;
+
+            var sorted = population.OrderByDescending(c => c.Fitness).ToList();
+            if (sorted[0].Fitness > bestFitness)
+            {
+                bestFitness = sorted[0].Fitness;
+                best = sorted[0].Clone();
+                stale = 0;
+            }
+            else
+            {
+                stale++;
+            }
+
+            var next = new List<Chromosome>(kichThuocQuanThe) { sorted[0].Clone(), sorted[1].Clone() };
+
+            while (next.Count < kichThuocQuanThe)
+            {
+                var parentA = TournamentSelect(sorted, 3);
+                var parentB = TournamentSelect(sorted, 3);
+
+                var (childA, childB) = Crossover(problem, parentA, parentB, tyLeCheo);
+                Mutate(problem, childA, tyLeCheo);
+                Mutate(problem, childB, tyLeCheo);
+
+                Evaluate(problem, childA);
+                Evaluate(problem, childB);
+
+                next.Add(childA);
+                if (next.Count < kichThuocQuanThe)
+                    next.Add(childB);
+            }
+
+            population = next;
+
+            var bestNow = population.OrderByDescending(c => c.Fitness).First();
+            var assignedCourses = CountAssignedCourses(problem, bestNow);
+            onProgress?.Invoke(new GenerationProgress
+            {
+                TheHeHienTai = generation,
+                TongTheHe = tongTheHe,
+                BestFitness = bestNow.Fitness,
+                XepDuoc = assignedCourses,
+                KhongXepDuoc = problem.Courses.Count - assignedCourses,
+                ThoiGianChayMs = stopwatch.Elapsed.TotalMilliseconds
+            });
+
+            if (stale >= doTuoiThoToiDa)
+                break;
+        }
+
+        stopwatch.Stop();
+
+        // Final repair: guarantee conflict-free output
+        RepairGreedy(problem, best);
+
+        var (assignments, xepDuoc, khongXepDuoc) = Decode(problem, best);
+
+        return new GeneticTimetableResult
+        {
+            Assignments = assignments,
+            XepDuoc = xepDuoc,
+            KhongXepDuoc = khongXepDuoc,
+            BestFitness = bestFitness,
+            TheHeDaChay = generationsUsed,
+            ThoiGianChayMs = stopwatch.Elapsed.TotalMilliseconds
+        };
+    }
+
+    // ---- Data model ----
+
+    private sealed class CandidateSlot
+    {
+        public int ThuTrongTuan;
+        public int MaCaHoc;
+        public int MaPhong;
+        public int DayShift;     // (dayIdx * shiftCount) + shiftIdx
+        public int RoomIdx;
+        public int ShiftIdx;
+        public double StaticScore;
+        public HashSet<int> AvailableTeacherIndices { get; } = new();
+    }
+
+    private sealed class CourseDef
+    {
+        public int MaKhoaHoc { get; set; }
+        public int MaMonHoc { get; set; }
+        public int MaGiaoVien { get; set; }
+        public int ClassIdx { get; set; }
+        public int MaLop { get; set; }
+        public int ExpectedStudentCount { get; set; }
+        public int RequiredSlots { get; set; }
+        public List<int> CandidateTeacherIds { get; set; } = new();
+        public List<int> CandidateTeacherIdx { get; set; } = new();
+        public List<int> CandidateSkills { get; set; } = new();
+        public List<string?> CandidateTeacherNames { get; set; } = new();
+        public List<CandidateSlot> Feasible { get; set; } = new();
+        public List<int> FeasibleByScore { get; set; } = new(); // indices into Feasible, desc static score
+
+        public bool IsTeacherAvailable(int teacherIdx, CandidateSlot slot)
+            => slot.AvailableTeacherIndices.Contains(teacherIdx);
+
+        public bool CanTeacherCoverRequiredSlots(int teacherIdx)
+            => Feasible
+                .Where(slot => IsTeacherAvailable(teacherIdx, slot))
+                .Select(slot => slot.DayShift)
+                .Distinct()
+                .Count() >= RequiredSlots;
+    }
+
+    private sealed class TimetableProblem
+    {
+        public List<CourseDef> Courses { get; set; } = new();
+        public List<int> UnassignableCourseIds { get; set; } = new();
+        public List<Backend.Models.CaHoc> Shifts { get; set; } = new();
+        public List<PhongHoc> Rooms { get; set; } = new();
+        public int ShiftCount { get; set; }
+        public int RoomCount { get; set; }
+        public int MaxTeachers { get; set; }
+        public int MaxClasses { get; set; }
+    }
+
+    private sealed class Chromosome
+    {
+        public int[][] Genes { get; set; } = Array.Empty<int[]>();
+        public int[] TeacherGene { get; set; } = Array.Empty<int>();
+        public double Fitness { get; set; }
+
+        public Chromosome Clone()
+        {
+            return new Chromosome
+            {
+                Genes = Genes.Select(g => g.ToArray()).ToArray(),
+                TeacherGene = TeacherGene.ToArray(),
+                Fitness = Fitness
+            };
+        }
+    }
+
+    private TimetableProblem BuildProblem(
+        IReadOnlyList<KhoaHoc> courses,
+        IReadOnlyList<Backend.Models.CaHoc> shifts,
+        IReadOnlyList<PhongHoc> rooms,
+        IReadOnlyDictionary<int, int> requiredSlots,
+        IReadOnlyDictionary<int, IReadOnlyList<TeacherSkillCandidate>> skillsByMonHoc,
+        IReadOnlyDictionary<int, int> studentCounts,
+        IReadOnlyDictionary<int, IReadOnlySet<(int Day, int Shift)>> confirmedAvailabilityByTeacher)
+    {
+        var problem = new TimetableProblem
+        {
+            Shifts = shifts.ToList(),
+            Rooms = rooms.ToList(),
+            ShiftCount = shifts.Count,
+            RoomCount = rooms.Count
+        };
+
+        // Pre-pass: xác định danh sách giảng viên có thể dạy từng khóa (theo ma trận kỹ năng)
+        var candidateIdsByCourse = new Dictionary<int, List<int>>();
+        var teacherIdSet = new SortedSet<int>();
+        foreach (var course in courses)
+        {
+            var candidates = new List<int>();
+            if (skillsByMonHoc.TryGetValue(course.MaMonHoc, out var skillList))
+            {
+                foreach (var entry in skillList)
+                {
+                    if (entry.MucDoPhuHop < _options.MinTeacherSkill) continue;
+                    if (!candidates.Contains(entry.MaGiaoVien))
+                        candidates.Add(entry.MaGiaoVien);
+                }
+            }
+            candidateIdsByCourse[course.MaKhoaHoc] = candidates;
+            foreach (var id in candidates)
+                teacherIdSet.Add(id);
+        }
+
+        var teacherIds = teacherIdSet.ToList();
+        var teacherIndex = teacherIds.Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i);
+        var classIds = courses.Select(x => x.MaLop).Distinct().OrderBy(x => x).ToList();
+        var classIndex = classIds.Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i);
+        problem.MaxTeachers = teacherIds.Count;
+        problem.MaxClasses = classIds.Count;
+
+        foreach (var course in courses)
+        {
+            if (candidateIdsByCourse[course.MaKhoaHoc].Count == 0)
+            {
+                // Không có giảng viên đạt chuẩn chuyên môn là ràng buộc cứng, không fallback GV gốc.
+                problem.UnassignableCourseIds.Add(course.MaKhoaHoc);
+                continue;
+            }
+
+            var def = new CourseDef
+            {
+                MaKhoaHoc = course.MaKhoaHoc,
+                MaMonHoc = course.MaMonHoc,
+                MaGiaoVien = course.MaGiaoVien,
+                MaLop = course.MaLop,
+                ClassIdx = classIndex[course.MaLop],
+                ExpectedStudentCount = studentCounts.GetValueOrDefault(course.MaLop, 0),
+                RequiredSlots = requiredSlots.GetValueOrDefault(course.MaKhoaHoc, 1)
+            };
+            if (def.RequiredSlots <= 0) continue;
+
+            var skillLookup = new Dictionary<int, TeacherSkillCandidate>();
+            if (skillsByMonHoc.TryGetValue(course.MaMonHoc, out var skillList))
+            {
+                foreach (var entry in skillList)
+                    skillLookup[entry.MaGiaoVien] = entry;
+            }
+
+            foreach (var id in candidateIdsByCourse[course.MaKhoaHoc])
+            {
+                def.CandidateTeacherIds.Add(id);
+                def.CandidateTeacherIdx.Add(teacherIndex[id]);
+                def.CandidateSkills.Add(skillLookup.TryGetValue(id, out var entry) ? entry.MucDoPhuHop : 0);
+                def.CandidateTeacherNames.Add(skillLookup.TryGetValue(id, out var entry2) ? entry2.TenGiaoVien : null);
+            }
+
+            var classSize = def.ExpectedStudentCount;
+
+            for (var d = 0; d < WeekDays.Length; d++)
+            {
+                var day = WeekDays[d];
+                for (var s = 0; s < shifts.Count; s++)
+                {
+                    var shift = shifts[s];
+                    for (var r = 0; r < rooms.Count; r++)
+                    {
+                        var room = rooms[r];
+                        if (room.SucChua > 0 && classSize > 0 && room.SucChua < classSize) continue;
+
+                        var slot = new CandidateSlot
+                        {
+                            ThuTrongTuan = day,
+                            MaCaHoc = shift.MaCaHoc,
+                            MaPhong = room.MaPhong,
+                            DayShift = (d * shifts.Count) + s,
+                            ShiftIdx = s,
+                            RoomIdx = r
+                        };
+                        foreach (var teacherId in candidateIdsByCourse[course.MaKhoaHoc])
+                        {
+                            var hasConfirmedAvailability = confirmedAvailabilityByTeacher.TryGetValue(teacherId, out var availableSlots);
+                            if (!hasConfirmedAvailability || availableSlots!.Contains((day, shift.MaCaHoc)))
+                                slot.AvailableTeacherIndices.Add(teacherIndex[teacherId]);
+                        }
+                        if (slot.AvailableTeacherIndices.Count == 0) continue;
+                        slot.StaticScore = ComputeStaticScore(slot, shift, room, classSize);
+                        def.Feasible.Add(slot);
+                    }
+                }
+            }
+
+            def.FeasibleByScore = def.Feasible
+                .Select((c, i) => (c, i))
+                .OrderByDescending(x => x.c.StaticScore)
+                .Select(x => x.i)
+                .ToList();
+
+            if (def.Feasible.Count > 0)
+                problem.Courses.Add(def);
+            else
+                // Không có slot hợp lệ (ví dụ mọi phòng đều thiếu sức chứa) cũng phải
+                // được phản ánh là một khóa không xếp được trong kết quả cuối cùng.
+                problem.UnassignableCourseIds.Add(course.MaKhoaHoc);
+        }
+
+        return problem;
+    }
+
+    private double ComputeStaticScore(CandidateSlot slot, Backend.Models.CaHoc shift, PhongHoc room, int classSize)
+    {
+        double score = _options.BaseScore;
+
+        if (slot.ThuTrongTuan == 7) score -= _options.SaturdayPenalty;
+
+        var isEvening = (shift.Buoi?.Contains("Tối", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (shift.TenCa?.Contains("Tối", StringComparison.OrdinalIgnoreCase) == true);
+        if (isEvening) score -= _options.EveningPenalty;
+
+        if (classSize > 0)
+        {
+            var ratio = room.SucChua > 0 ? (double)room.SucChua / classSize : 1.0;
+            if (ratio >= 1.0 && ratio <= _options.OversizedRoomRatio) score += _options.GoodRoomFitBonus;
+            else if (ratio > _options.OversizedRoomRatio) score -= _options.OversizedRoomPenalty;
+        }
+
+        return score;
+    }
+
+    // ---- Population ----
+
+    private Chromosome CreateChromosome(TimetableProblem problem)
+    {
+        var chromo = new Chromosome
+        {
+            Genes = new int[problem.Courses.Count][],
+            TeacherGene = new int[problem.Courses.Count]
+        };
+        for (var i = 0; i < problem.Courses.Count; i++)
+        {
+            chromo.Genes[i] = new int[problem.Courses[i].RequiredSlots];
+            chromo.TeacherGene[i] = -1;
+        }
+        return chromo;
+    }
+
+    private int ResolveTeacherIdx(TimetableProblem problem, Chromosome chromo, int courseIdx)
+    {
+        var course = problem.Courses[courseIdx];
+        var gene = chromo.TeacherGene[courseIdx];
+        if (gene < 0 || gene >= course.CandidateTeacherIdx.Count)
+            gene = 0;
+        return course.CandidateTeacherIdx[gene];
+    }
+
+    private List<Chromosome> Initialize(TimetableProblem problem, int size)
+    {
+        var population = new List<Chromosome>(size);
+
+        var greedy = CreateChromosome(problem);
+        var occupied = new OccupancyState(problem.MaxTeachers, problem.MaxClasses, problem.RoomCount, problem.ShiftCount);
+
+        var order = Enumerable.Range(0, problem.Courses.Count)
+            .OrderBy(i => problem.Courses[i].Feasible.Count)
+            .ToList();
+
+        foreach (var idx in order)
+        {
+            var course = problem.Courses[idx];
+            var bestT = -1;
+            for (var t = 0; t < course.CandidateTeacherIdx.Count; t++)
+            {
+                if (course.CanTeacherCoverRequiredSlots(course.CandidateTeacherIdx[t]) &&
+                    (bestT < 0 || course.CandidateSkills[t] > course.CandidateSkills[bestT]))
+                    bestT = t;
+            }
+            if (bestT < 0)
+            {
+                for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
+                    greedy.Genes[idx][slotIdx] = -1;
+                continue;
+            }
+            greedy.TeacherGene[idx] = bestT;
+            var teacherIdx = course.CandidateTeacherIdx[bestT];
+
+            var placed = 0;
+            foreach (var candIdx in course.FeasibleByScore)
+            {
+                if (placed >= course.RequiredSlots) break;
+                var cand = course.Feasible[candIdx];
+                if (course.IsTeacherAvailable(teacherIdx, cand) &&
+                    occupied.IsFree(teacherIdx, course.ClassIdx, cand, _options.WeeklyCapCa))
+                {
+                    greedy.Genes[idx][placed] = candIdx;
+                    occupied.Occupy(teacherIdx, course.ClassIdx, cand);
+                    placed++;
+                }
+            }
+            for (; placed < course.RequiredSlots; placed++)
+                greedy.Genes[idx][placed] = -1;
+        }
+        Evaluate(problem, greedy);
+        population.Add(greedy);
+
+        while (population.Count < size)
+        {
+            var chromo = CreateChromosome(problem);
+            for (var i = 0; i < problem.Courses.Count; i++)
+            {
+                var course = problem.Courses[i];
+                chromo.TeacherGene[i] = _random.Next(course.CandidateTeacherIdx.Count);
+                for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
+                    chromo.Genes[i][slotIdx] = _random.Next(course.Feasible.Count);
+            }
+            Evaluate(problem, chromo);
+            population.Add(chromo);
+        }
+
+        return population;
+    }
+
+    private void Evaluate(TimetableProblem problem, Chromosome chromo)
+    {
+        var teacherOcc = new int[problem.MaxTeachers][];
+        var classOcc = new int[problem.MaxClasses][];
+        var roomOcc = new int[problem.RoomCount][];
+        for (var i = 0; i < problem.MaxTeachers; i++) teacherOcc[i] = new int[problem.ShiftCount * 6];
+        for (var i = 0; i < problem.MaxClasses; i++) classOcc[i] = new int[problem.ShiftCount * 6];
+        for (var i = 0; i < problem.RoomCount; i++) roomOcc[i] = new int[problem.ShiftCount * 6];
+
+        double fitness = 0;
+        var conflicts = 0;
+        var weeklyCa = new int[problem.MaxTeachers];
+
+        for (var i = 0; i < problem.Courses.Count; i++)
+        {
+            var course = problem.Courses[i];
+            var teacherIdx = ResolveTeacherIdx(problem, chromo, i);
+            if (!course.CanTeacherCoverRequiredSlots(teacherIdx))
+            {
+                var replacement = Enumerable.Range(0, course.CandidateTeacherIdx.Count)
+                    .Where(index => course.CanTeacherCoverRequiredSlots(course.CandidateTeacherIdx[index]))
+                    .OrderByDescending(index => course.CandidateSkills[index])
+                    .FirstOrDefault(-1);
+                if (replacement >= 0)
+                {
+                    chromo.TeacherGene[i] = replacement;
+                    teacherIdx = course.CandidateTeacherIdx[replacement];
+                }
+            }
+            var assigned = 0;
+
+            // Điểm kỹ năng của giảng viên được chọn cho khóa (chuẩn hóa về 0-20 mặc định)
+            var skill = course.CandidateSkills[Math.Clamp(chromo.TeacherGene[i], 0, course.CandidateSkills.Count - 1)];
+            fitness += _options.SkillScoreWeight * (skill / 100.0);
+
+            for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
+            {
+                var gene = chromo.Genes[i][slotIdx];
+                if (gene < 0 || gene >= course.Feasible.Count)
+                {
+                    fitness -= _options.UnassignedSlotPenalty;
+                    continue;
+                }
+
+                var cand = course.Feasible[gene];
+                if (!course.IsTeacherAvailable(teacherIdx, cand))
+                {
+                    fitness -= _options.HardConflictPenalty;
+                    continue;
+                }
+                teacherOcc[teacherIdx][cand.DayShift]++;
+                classOcc[course.ClassIdx][cand.DayShift]++;
+                roomOcc[cand.RoomIdx][cand.DayShift]++;
+                fitness += cand.StaticScore;
+                assigned++;
+            }
+
+            weeklyCa[teacherIdx] += assigned;
+        }
+
+        // conflicts
+        for (var i = 0; i < problem.Courses.Count; i++)
+        {
+            var course = problem.Courses[i];
+            var teacherIdx = ResolveTeacherIdx(problem, chromo, i);
+            for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
+            {
+                var gene = chromo.Genes[i][slotIdx];
+                if (gene < 0 || gene >= course.Feasible.Count) continue;
+                var cand = course.Feasible[gene];
+                if (!course.IsTeacherAvailable(teacherIdx, cand)) continue;
+                if (teacherOcc[teacherIdx][cand.DayShift] > 1) conflicts++;
+                if (classOcc[course.ClassIdx][cand.DayShift] > 1) conflicts++;
+                if (roomOcc[cand.RoomIdx][cand.DayShift] > 1) conflicts++;
+            }
+        }
+        fitness -= conflicts * _options.HardConflictPenalty;
+
+        // same-day duplicate + consecutive shift penalties per course
+        for (var i = 0; i < problem.Courses.Count; i++)
+        {
+            var course = problem.Courses[i];
+            var teacherIdx = ResolveTeacherIdx(problem, chromo, i);
+            var daySlots = new Dictionary<int, List<int>>();
+            for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
+            {
+                var gene = chromo.Genes[i][slotIdx];
+                if (gene < 0 || gene >= course.Feasible.Count) continue;
+                var cand = course.Feasible[gene];
+                if (!course.IsTeacherAvailable(teacherIdx, cand)) continue;
+                if (!daySlots.TryGetValue(cand.ThuTrongTuan, out var list))
+                    daySlots[cand.ThuTrongTuan] = list = new List<int>();
+                list.Add(cand.ShiftIdx);
+            }
+
+            foreach (var group in daySlots.Values)
+            {
+                if (group.Count > 1)
+                    fitness -= _options.SameDayDuplicatePenalty * (group.Count - 1);
+
+                var ordered = group.Distinct().OrderBy(x => x).ToList();
+                for (var t = 0; t + 1 < ordered.Count; t++)
+                {
+                    if (ordered[t + 1] - ordered[t] == 1)
+                        fitness -= _options.ConsecutiveShiftPenalty;
+                }
+            }
+        }
+
+        // teacher / class daily load penalties
+        for (var i = 0; i < problem.Courses.Count; i++)
+        {
+            var course = problem.Courses[i];
+            var teacherIdx = ResolveTeacherIdx(problem, chromo, i);
+            for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
+            {
+                var gene = chromo.Genes[i][slotIdx];
+                if (gene < 0 || gene >= course.Feasible.Count) continue;
+                var cand = course.Feasible[gene];
+                var dayOffset = cand.DayShift - cand.ShiftIdx;
+                var teacherLoad = 0;
+                var classLoad = 0;
+                for (var s = 0; s < problem.ShiftCount; s++)
+                {
+                    teacherLoad += teacherOcc[teacherIdx][dayOffset + s];
+                    classLoad += classOcc[course.ClassIdx][dayOffset + s];
+                }
+                if (teacherLoad >= _options.TeacherDailyLoadThreshold)
+                    fitness -= _options.TeacherDailyLoadPenalty;
+                if (classLoad >= _options.ClassDailyLoadThreshold)
+                    fitness -= _options.ClassDailyLoadPenalty;
+            }
+        }
+
+        // Cân bằng định mức giảng dạy tuần (mục tiêu ~5 ca/tuần/GV, phạt lệch + vượt cap).
+        // Chỉ tính cho giảng viên đã được gán (rảnh hoàn toàn => không phạt, để GA ưu tiên skill cao).
+        for (var t = 0; t < problem.MaxTeachers; t++)
+        {
+            if (weeklyCa[t] == 0) continue;
+
+            var diff = weeklyCa[t] - _options.WeeklyTargetCa;
+            fitness -= Math.Abs(diff) * _options.WeeklyLoadPenalty;
+        }
+
+        chromo.Fitness = fitness;
+    }
+
+    private Chromosome TournamentSelect(List<Chromosome> sorted, int k)
+    {
+        var best = sorted[_random.Next(sorted.Count)];
+        for (var i = 1; i < k; i++)
+        {
+            var candidate = sorted[_random.Next(sorted.Count)];
+            if (candidate.Fitness > best.Fitness) best = candidate;
+        }
+        return best;
+    }
+
+    private (Chromosome, Chromosome) Crossover(TimetableProblem problem, Chromosome a, Chromosome b, double probability)
+    {
+        var childA = CreateChromosome(problem);
+        var childB = CreateChromosome(problem);
+        for (var i = 0; i < problem.Courses.Count; i++)
+        {
+            var takeA = _random.NextDouble() < probability;
+            childA.Genes[i] = takeA ? a.Genes[i].ToArray() : b.Genes[i].ToArray();
+            childB.Genes[i] = takeA ? b.Genes[i].ToArray() : a.Genes[i].ToArray();
+            childA.TeacherGene[i] = takeA ? a.TeacherGene[i] : b.TeacherGene[i];
+            childB.TeacherGene[i] = takeA ? b.TeacherGene[i] : a.TeacherGene[i];
+        }
+        return (childA, childB);
+    }
+
+    private void Mutate(TimetableProblem problem, Chromosome chromo, double probability)
+    {
+        for (var i = 0; i < problem.Courses.Count; i++)
+        {
+            var course = problem.Courses[i];
+            if (course.Feasible.Count == 0) continue;
+
+            if (_random.NextDouble() < _teacherMutationRate && course.CandidateTeacherIdx.Count > 0)
+                chromo.TeacherGene[i] = _random.Next(course.CandidateTeacherIdx.Count);
+
+            for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
+            {
+                if (_random.NextDouble() < probability)
+                    chromo.Genes[i][slotIdx] = _random.Next(course.Feasible.Count);
+            }
+        }
+    }
+
+    private int CountAssignedCourses(TimetableProblem problem, Chromosome chromo)
+    {
+        var count = 0;
+        for (var i = 0; i < problem.Courses.Count; i++)
+        {
+            var course = problem.Courses[i];
+            var full = true;
+            for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
+            {
+                var gene = chromo.Genes[i][slotIdx];
+                if (gene < 0 || gene >= course.Feasible.Count) { full = false; break; }
+            }
+            if (full) count++;
+        }
+        return count;
+    }
+
+    // ---- Final repair ----
+
+    private void RepairGreedy(TimetableProblem problem, Chromosome chromo)
+    {
+        var occupied = new OccupancyState(problem.MaxTeachers, problem.MaxClasses, problem.RoomCount, problem.ShiftCount);
+        foreach (var genes in chromo.Genes)
+            Array.Fill(genes, -1);
+
+        var order = Enumerable.Range(0, problem.Courses.Count)
+            .OrderBy(i => problem.Courses[i].CandidateTeacherIdx.Count * problem.Courses[i].Feasible.Count)
+            .ThenByDescending(i => problem.Courses[i].RequiredSlots)
+            .ThenBy(i => problem.Courses[i].MaKhoaHoc)
+            .ToList();
+
+        foreach (var courseIdx in order)
+        {
+            var course = problem.Courses[courseIdx];
+            var selectedTeacherGene = -1;
+            List<int>? selectedSlots = null;
+
+            foreach (var teacherGene in Enumerable.Range(0, course.CandidateTeacherIdx.Count)
+                         .OrderByDescending(index => course.CandidateSkills[index]))
+            {
+                var teacherIdx = course.CandidateTeacherIdx[teacherGene];
+                if (!course.CanTeacherCoverRequiredSlots(teacherIdx)) continue;
+
+                var candidateSlots = new List<int>();
+                var usedDayShifts = new HashSet<int>();
+                foreach (var candidateIndex in course.FeasibleByScore)
+                {
+                    var candidate = course.Feasible[candidateIndex];
+                    if (usedDayShifts.Contains(candidate.DayShift) ||
+                        !course.IsTeacherAvailable(teacherIdx, candidate) ||
+                        !occupied.IsFree(teacherIdx, course.ClassIdx, candidate, _options.WeeklyCapCa))
+                        continue;
+
+                    usedDayShifts.Add(candidate.DayShift);
+                    candidateSlots.Add(candidateIndex);
+                    if (candidateSlots.Count == course.RequiredSlots) break;
+                }
+
+                if (candidateSlots.Count != course.RequiredSlots) continue;
+                selectedTeacherGene = teacherGene;
+                selectedSlots = candidateSlots;
+                break;
+            }
+
+            if (selectedTeacherGene < 0 || selectedSlots is null) continue;
+
+            chromo.TeacherGene[courseIdx] = selectedTeacherGene;
+            var selectedTeacherIdx = course.CandidateTeacherIdx[selectedTeacherGene];
+            for (var slotIdx = 0; slotIdx < selectedSlots.Count; slotIdx++)
+            {
+                var candidateIndex = selectedSlots[slotIdx];
+                chromo.Genes[courseIdx][slotIdx] = candidateIndex;
+                occupied.Occupy(selectedTeacherIdx, course.ClassIdx, course.Feasible[candidateIndex]);
+            }
+        }
+    }
+
+    // ---- Decode ----
+
+    private (List<TimetableAssignment>, int, int) Decode(TimetableProblem problem, Chromosome chromo)
+    {
+        var assignments = new List<TimetableAssignment>();
+        var xepDuoc = 0;
+        var khongXepDuoc = 0;
+
+        for (var i = 0; i < problem.Courses.Count; i++)
+        {
+            var course = problem.Courses[i];
+            var full = true;
+            var courseAssignments = new List<TimetableAssignment>();
+            var dayShifts = new HashSet<int>();
+            var conflicts = 0;
+
+            var teacherGene = Math.Clamp(chromo.TeacherGene[i], 0, course.CandidateTeacherIds.Count - 1);
+            var maGiaoVien = course.CandidateTeacherIds[teacherGene];
+            var tenGiaoVien = course.CandidateTeacherNames[teacherGene];
+            var mucDoPhuHop = course.CandidateSkills[teacherGene];
+
+            var teacherDayLoads = new Dictionary<int, int>();
+            var classDayLoads = new Dictionary<int, int>();
+
+            // count loads per day
+            for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
+            {
+                var gene = chromo.Genes[i][slotIdx];
+                if (gene < 0 || gene >= course.Feasible.Count) { full = false; continue; }
+                var cand = course.Feasible[gene];
+                if (!course.IsTeacherAvailable(course.CandidateTeacherIdx[teacherGene], cand)) { full = false; continue; }
+                var dayOffset = cand.DayShift - cand.ShiftIdx;
+                teacherDayLoads.TryGetValue(dayOffset, out var tl);
+                classDayLoads.TryGetValue(dayOffset, out var cl);
+                teacherDayLoads[dayOffset] = tl + 1;
+                classDayLoads[dayOffset] = cl + 1;
+            }
+
+            var teacherReason = tenGiaoVien != null
+                ? $"Giảng viên {tenGiaoVien} được chọn với mức độ phù hợp {mucDoPhuHop}% cho môn học."
+                : $"Giảng viên mã {maGiaoVien} được chọn (không có dữ liệu kỹ năng cho môn học).";
+
+            for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
+            {
+                var gene = chromo.Genes[i][slotIdx];
+                if (gene < 0 || gene >= course.Feasible.Count) continue;
+                var cand = course.Feasible[gene];
+                var dayOffset = cand.DayShift - cand.ShiftIdx;
+
+                var context = new ScheduleCandidateContext
+                {
+                    Course = new KhoaHoc { MaKhoaHoc = course.MaKhoaHoc, MaGiaoVien = maGiaoVien, MaLop = course.MaLop },
+                    Shift = problem.Shifts[cand.ShiftIdx],
+                    Room = problem.Rooms[cand.RoomIdx],
+                    DayOfWeek = cand.ThuTrongTuan,
+                    PreferenceLevel = null,
+                    TeacherDailyLoad = teacherDayLoads.GetValueOrDefault(dayOffset) - 1,
+                    ClassDailyLoad = classDayLoads.GetValueOrDefault(dayOffset) - 1,
+                    ExpectedStudentCount = course.ExpectedStudentCount
+                };
+
+                var suggestion = _scoringService.ScoreCandidate(context);
+
+                if (!dayShifts.Add(cand.DayShift)) conflicts++;
+
+                courseAssignments.Add(new TimetableAssignment
+                {
+                    MaKhoaHoc = course.MaKhoaHoc,
+                    MaGiaoVien = maGiaoVien,
+                    TenGiaoVien = tenGiaoVien,
+                    MucDoPhuHop = mucDoPhuHop,
+                    ThuTrongTuan = cand.ThuTrongTuan,
+                    MaCaHoc = cand.MaCaHoc,
+                    MaPhong = cand.MaPhong,
+                    Score = suggestion.Score,
+                    Components = suggestion.Components,
+                    Reasons = new List<string> { teacherReason }.Concat(suggestion.Reasons).ToList(),
+                    Warnings = suggestion.Warnings
+                });
+            }
+
+            if (full)
+            {
+                xepDuoc++;
+                assignments.AddRange(courseAssignments);
+            }
+            else
+            {
+                khongXepDuoc++;
+            }
+        }
+
+        return (assignments, xepDuoc, khongXepDuoc + problem.UnassignableCourseIds.Count);
+    }
+
+    // ---- Occupancy helper ----
+
+    private sealed class OccupancyState
+    {
+        private readonly int[][] _teacher;
+        private readonly int[][] _class;
+        private readonly int[][] _room;
+        private readonly int[] _teacherWeeklyLoad;
+        private readonly int _shiftCount;
+
+        public OccupancyState(int teachers, int classes, int rooms, int shiftCount)
+        {
+            _shiftCount = shiftCount;
+            var slots = shiftCount * 6;
+            _teacher = Create(teachers, slots);
+            _class = Create(classes, slots);
+            _room = Create(rooms, slots);
+            _teacherWeeklyLoad = new int[teachers];
+        }
+
+        private static int[][] Create(int n, int slots)
+        {
+            var arr = new int[n][];
+            for (var i = 0; i < n; i++) arr[i] = new int[slots];
+            return arr;
+        }
+
+        public bool IsFree(int teacherIdx, int classIdx, CandidateSlot cand, int weeklyCap)
+            => _teacher[teacherIdx][cand.DayShift] == 0 &&
+               _class[classIdx][cand.DayShift] == 0 &&
+               _room[cand.RoomIdx][cand.DayShift] == 0 &&
+               _teacherWeeklyLoad[teacherIdx] < weeklyCap;
+
+        public void Occupy(int teacherIdx, int classIdx, CandidateSlot cand)
+        {
+            _teacher[teacherIdx][cand.DayShift]++;
+            _class[classIdx][cand.DayShift]++;
+            _room[cand.RoomIdx][cand.DayShift]++;
+            _teacherWeeklyLoad[teacherIdx]++;
+        }
+    }
+}

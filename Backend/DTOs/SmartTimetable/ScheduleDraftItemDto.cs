@@ -5,6 +5,9 @@ public class ScheduleDraftItemDto
     public int MaDraftItem { get; set; }
     public int MaKhoaHoc { get; set; }
     public string? MaKhoaHocCode { get; set; }
+    public int? MaGiaoVien { get; set; }
+    public string? TenGiaoVien { get; set; }
+    public int? MucDoPhuHop { get; set; }
     public int? ThuTrongTuan { get; set; }
     public int? MaCaHoc { get; set; }
     public string? TenCa { get; set; }

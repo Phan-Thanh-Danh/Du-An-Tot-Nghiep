@@ -24,7 +24,7 @@ public class P28_PreferenceAwareSmartTimetableTests
     }
 
     [Test]
-    public void ScoreCandidate_ShouldPrioritizePreferredShift()
+    public void ScoreCandidate_ShouldIgnoreDeprecatedTimePreference()
     {
         // Arrange
         var context = new ScheduleCandidateContext
@@ -42,12 +42,12 @@ public class P28_PreferenceAwareSmartTimetableTests
 
         // Assert
         Assert.That(suggestion.HardConstraintPassed, Is.True);
-        Assert.That(suggestion.Score, Is.EqualTo(_options.BaseScore + _options.PreferredShiftBonus + _options.GoodRoomFitBonus));
-        Assert.That(suggestion.Reasons.Any(r => r.Contains("nguyện vọng ưu tiên")), Is.True);
+        Assert.That(suggestion.Score, Is.EqualTo(_options.BaseScore + _options.GoodRoomFitBonus));
+        Assert.That(suggestion.Reasons.Any(r => r.Contains("nguyện vọng")), Is.False);
     }
 
     [Test]
-    public void ScoreCandidate_ShouldRejectUnavailableShift()
+    public void ScoreCandidate_ShouldNotTreatDeprecatedUnavailablePreferenceAsHardConstraint()
     {
         // Arrange
         var context = new ScheduleCandidateContext
@@ -64,8 +64,8 @@ public class P28_PreferenceAwareSmartTimetableTests
         var suggestion = _scoringService.ScoreCandidate(context);
 
         // Assert
-        Assert.That(suggestion.HardConstraintPassed, Is.False);
-        Assert.That(suggestion.Warnings.Any(w => w.Contains("báo bận")), Is.True);
+        Assert.That(suggestion.HardConstraintPassed, Is.True);
+        Assert.That(suggestion.Warnings.Any(w => w.Contains("báo bận")), Is.False);
     }
 
     [Test]

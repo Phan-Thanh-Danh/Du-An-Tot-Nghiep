@@ -9,4 +9,5 @@ public class GenerateTimetableRequest
     public int? DoTuoiThoToiDa { get; set; } = 10;
     public int? KichThuocQuanThe { get; set; } = 50;
     public List<int>? MaKhoaHocFilter { get; set; }
+    public Guid? ClientDraftId { get; set; }
 }

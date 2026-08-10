@@ -89,6 +89,10 @@ export const scheduleApi = {
     return apiRequest(`/api/thoi-khoa-bieu/drafts/${id}`)
   },
 
+  getGenerationProgress(draftId) {
+    return apiRequest(`/api/thoi-khoa-bieu/drafts/${draftId}/progress`).then(res => res.data || res.Data || res)
+  },
+
   publishDraft(data) {
     return apiRequest('/api/thoi-khoa-bieu/publish', {
       method: 'POST',

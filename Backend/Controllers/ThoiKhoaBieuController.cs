@@ -7,7 +7,6 @@ using Backend.Services.BuoiHoc;
 using Backend.Services.ThoiKhoaBieu;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
 namespace Backend.Controllers;
 
 [ApiController]
@@ -131,6 +130,15 @@ public class ThoiKhoaBieuController : ControllerBase
     {
         var draft = await _smartTimetableService.GetDraftAsync(draftId, cancellationToken);
         return Ok(ApiResponseDto<ScheduleDraftDto>.Ok(draft));
+    }
+
+    [HttpGet("drafts/{draftId:guid}/progress")]
+    public async Task<ActionResult<ApiResponseDto<GenerationProgress>>> GetDraftProgress(
+        Guid draftId,
+        CancellationToken cancellationToken)
+    {
+        var progress = await _smartTimetableService.GetGenerationProgressAsync(draftId, cancellationToken);
+        return Ok(ApiResponseDto<GenerationProgress>.Ok(progress));
     }
 
     [HttpGet("drafts")]

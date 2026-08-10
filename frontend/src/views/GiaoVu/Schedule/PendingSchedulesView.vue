@@ -1,12 +1,13 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import {
-  Clock, Filter, AlertCircle, Send, Eye, X, Loader2, CheckCircle
+  Clock, Filter, AlertCircle, Eye, X, Loader2, CheckCircle
 } from 'lucide-vue-next'
 import { useRoute } from 'vue-router'
 import { usePopupStore } from '@/stores/popup'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import { academicTermApi } from '@/services/academicTermApi'
 import { courseApi } from '@/services/courseApi'
@@ -44,6 +45,25 @@ function unwrap(response) {
   if (Array.isArray(data?.data)) return data.data
   if (Array.isArray(data?.Data)) return data.Data
   return []
+}
+
+const scoreComponentMeta = [
+  { key: 'base', label: 'Cơ sở' },
+  { key: 'roomFit', label: 'Phù hợp phòng' },
+  { key: 'preferredShift', label: 'Ca ưa thích' },
+  { key: 'availableShift', label: 'Ca khả dụng' },
+  { key: 'teacherDayLoadPenalty', label: 'Phạt tải GV' },
+  { key: 'classDayLoadPenalty', label: 'Phạt tải lớp' },
+  { key: 'saturdayPenalty', label: 'Phạt T7' },
+  { key: 'eveningPenalty', label: 'Phạt tối' },
+]
+
+function scoreBreakdownOf(item) {
+  const sb = item.scoreBreakdown ?? item.ScoreBreakdown
+  if (!sb) return []
+  return scoreComponentMeta
+    .map(({ key, label }) => ({ label, value: sb[key] ?? sb[(key[0].toUpperCase() + key.slice(1))] }))
+    .filter(c => c.value !== undefined && c.value !== null)
 }
 
 function unwrapList(response) {
@@ -350,8 +370,6 @@ watch(
 
           <!-- Actions -->
           <div class="flex flex-wrap lg:flex-nowrap gap-2 shrink-0 lg:pl-2" @click.stop>
-             <GlassButton v-if="item.status === 'pending'" variant="danger" size="sm" class="flex-1 lg:flex-none justify-center">Thu hồi</GlassButton>
-             <GlassButton v-if="item.status === 'returned'" variant="primary" size="sm" class="flex-1 lg:flex-none justify-center"><Send :size="14" class="mr-1"/>Gửi lại</GlassButton>
              <GlassButton variant="secondary" size="sm" class="flex-1 lg:flex-none justify-center" @click="selectedItem = item"><Eye :size="14" class="mr-1"/>Chi tiết</GlassButton>
           </div>
         </div>
@@ -395,7 +413,19 @@ watch(
                   </div>
                   <div class="text-xs text-(--text-muted) space-y-1">
                     <div v-if="cItem.tenPhong ?? cItem.TenPhong" class="font-medium text-(--text-body)">Phòng: {{ cItem.tenPhong ?? cItem.TenPhong }} | Thứ {{ cItem.thuTrongTuan ?? cItem.ThuTrongTuan }} | {{ cItem.tenCa ?? cItem.TenCa }}</div>
-                    
+
+                    <div v-if="(cItem.scoreBreakdown || cItem.ScoreBreakdown)" class="mt-2">
+                      <p class="font-bold mb-1 opacity-80">Điểm thành phần:</p>
+                      <div class="flex flex-wrap gap-1">
+                        <span
+                          v-for="c in scoreBreakdownOf(cItem)"
+                          :key="c.label"
+                          class="rounded-md px-1.5 py-0.5 font-mono text-[10px]"
+                          :class="c.value < 0 ? 'bg-(--color-danger-bg) text-(--color-danger-text)' : 'bg-(--color-success-bg) text-(--color-success-text)'"
+                        >{{ c.label }} {{ Number(c.value).toFixed(1) }}</span>
+                      </div>
+                    </div>
+
                     <div v-if="cItem.lyDoGoiY?.length || cItem.LyDoGoiY?.length" class="mt-2 text-(--text-body)">
                       <p class="font-bold mb-0.5 opacity-80">Lý do gợi ý:</p>
                       <ul class="list-disc pl-4 opacity-90 space-y-0.5">
@@ -449,7 +479,6 @@ watch(
               <CheckCircle v-else :size="15" class="mr-1.5" />
               Xuất bản lịch
             </GlassButton>
-            <GlassButton variant="secondary" class="w-full justify-center" :disabled="publishing || loading">Chỉnh sửa nội dung</GlassButton>
           </div>
         </div>
       </div>

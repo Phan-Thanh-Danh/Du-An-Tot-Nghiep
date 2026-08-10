@@ -26,6 +26,8 @@ const thuTrongTuanOptions = [
   { value: 6, label: 'Thứ 6' }, { value: 7, label: 'Thứ 7' },
 ]
 
+const dayLabel = (day) => thuTrongTuanOptions.find(o => Number(o.value) === Number(day))?.label || `Thứ ${day}`
+
 // ── State ─────────────────────────────────────────────────────────
 const rows = ref([])
 const loading = ref(false)
@@ -62,8 +64,11 @@ const bulkCreating = ref(false)
 const smartCourseScope = ref('unscheduled')
 const smartCampusId = ref('')
 const smartSelectedCourseIds = ref([])
-const smartOptions = ref({ tongTheHe: 100, kichThuocQuanThe: 50, tyLeCheo: 0.5 })
+const smartOptions = ref({ tongTheHe: 100, kichThuocQuanThe: 50, tyLeCheo: 0.5, doTuoiThoToiDa: 10 })
 const smartDraft = ref(null)
+const generationProgress = ref(null)
+const showProgressModal = ref(false)
+let progressPollTimer = null
 
 // drag state
 const draggingRow = ref(null)
@@ -122,7 +127,6 @@ const selectedCourseTermEnd = computed(() => {
 
 const pendingDraftRoute = computed(() => {
   const draft = smartDraft.value || {}
-
   const draftId =
     draft.draftId ??
     draft.DraftId ??
@@ -147,6 +151,13 @@ const pendingDraftRoute = computed(() => {
       draftId,
     },
   }
+})
+
+const progressPercent = computed(() => {
+  const total = Number(generationProgress.value?.tongTheHe || 0)
+  const current = Number(generationProgress.value?.theHeHienTai || 0)
+  if (!total) return 0
+  return Math.min(100, Math.round((current / total) * 100))
 })
 
 const unscheduledCourses = computed(() => {
@@ -947,6 +958,11 @@ async function suggestBulkCourses() {
           maPhong: bestCandidate.maPhong ?? bestCandidate.MaPhong,
           maCaHoc: bestCandidate.maCaHoc ?? bestCandidate.MaCaHoc,
           thuTrongTuan: bestCandidate.thuTrongTuan ?? bestCandidate.ThuTrongTuan,
+          thuLabel: dayLabel(bestCandidate.thuTrongTuan ?? bestCandidate.ThuTrongTuan),
+          tenCa: bestCandidate.tenCa ?? bestCandidate.TenCa,
+          tenPhong: bestCandidate.tenPhong ?? bestCandidate.TenPhong,
+          score: bestCandidate.score ?? bestCandidate.Score,
+          reasons: bestCandidate.reasons ?? bestCandidate.Reasons ?? [],
         }
       }
       
@@ -1014,7 +1030,22 @@ async function generateSmartDraft() {
     return
   }
 
+  const clientDraftId = crypto.randomUUID()
   generating.value = true
+  generationProgress.value = {
+    draftId: clientDraftId,
+    trangThai: 'pending',
+    theHeHienTai: 0,
+    tongTheHe: Number(smartOptions.value.tongTheHe || 100),
+    kichThuocQuanThe: Number(smartOptions.value.kichThuocQuanThe || 50),
+    tyLeCheo: Number(smartOptions.value.tyLeCheo || 0.5),
+    doTuoiThoToiDa: Number(smartOptions.value.doTuoiThoToiDa || 10),
+    bestFitness: null,
+    xepDuoc: null,
+    khongXepDuoc: null,
+  }
+  showProgressModal.value = true
+  startProgressPolling(clientDraftId)
   try {
     const res = await scheduleApi.generateDraft({
       maHocKy: Number(schedulingContext.schedulableTerm?.maHocKy),
@@ -1023,13 +1054,40 @@ async function generateSmartDraft() {
       tongTheHe: Number(smartOptions.value.tongTheHe || 100),
       kichThuocQuanThe: Number(smartOptions.value.kichThuocQuanThe || 50),
       tyLeCheo: Number(smartOptions.value.tyLeCheo || 0.5),
+      doTuoiThoToiDa: Number(smartOptions.value.doTuoiThoToiDa || 10),
+      clientDraftId,
     })
     smartDraft.value = res?.data ?? res?.Data ?? res
+    await loadData()
     popupStore.success('Đã sinh bản nháp', 'Vui lòng kiểm tra bản nháp trước khi xuất bản.')
   } catch (e) {
     popupStore.error('Lỗi xếp lịch thông minh', e?.message || 'Không thể sinh bản nháp thời khóa biểu.')
   } finally {
+    stopProgressPolling()
     generating.value = false
+    showProgressModal.value = false
+  }
+}
+
+async function startProgressPolling(draftId) {
+  stopProgressPolling()
+  progressPollTimer = setInterval(async () => {
+    try {
+      const p = await scheduleApi.getGenerationProgress(draftId)
+      if (p) generationProgress.value = { ...generationProgress.value, ...p }
+      if (p?.trangThai === 'hoan_tat' || p?.trangThai === 'draft') {
+        stopProgressPolling()
+      }
+    } catch {
+      // backend may not have job yet; keep polling
+    }
+  }, 500)
+}
+
+function stopProgressPolling() {
+  if (progressPollTimer) {
+    clearInterval(progressPollTimer)
+    progressPollTimer = null
   }
 }
 
@@ -1661,6 +1719,9 @@ function thuLabel(thu) {
                   <label class="text-xs font-semibold text-(--text-muted)">Tỷ lệ chéo
                     <input v-model.number="smartOptions.tyLeCheo" type="number" min="0" max="1" step="0.1" class="mt-1 h-9 w-full rounded-lg border border-(--border-input) bg-(--surface-input) px-3 text-sm" />
                   </label>
+                  <label class="text-xs font-semibold text-(--text-muted)">Độ tuổi thọ tối đa
+                    <input v-model.number="smartOptions.doTuoiThoToiDa" type="number" min="1" max="100" class="mt-1 h-9 w-full rounded-lg border border-(--border-input) bg-(--surface-input) px-3 text-sm" />
+                  </label>
                 </div>
                 <div v-if="smartCourseScope === 'manual'" class="max-h-44 overflow-y-auto rounded-xl border border-(--border-default)">
                   <label v-for="course in bulkCandidateCourses" :key="course.maKhoaHoc" class="flex items-center gap-3 border-b border-(--border-default) px-3 py-2 text-sm last:border-b-0">
@@ -1710,6 +1771,50 @@ function thuLabel(thu) {
       @confirm="confirmAction?.run()"
       @cancel="confirmAction = null"
     />
+
+    <Teleport to="body">
+      <transition name="modal-fade">
+        <div v-if="showProgressModal" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div class="w-full max-w-md rounded-2xl border border-(--border-card) bg-(--surface-modal) p-6 shadow-2xl">
+            <div class="mb-4 flex items-center gap-3">
+              <Loader2 class="animate-spin text-(--sidebar-accent)" :size="22" />
+              <div>
+                <h3 class="text-sm font-bold text-(--text-heading)">Đang chạy thuật toán di truyền</h3>
+                <p class="text-xs text-(--text-muted)">Thế hệ {{ generationProgress?.theHeHienTai || 0 }} / {{ generationProgress?.tongTheHe || '—' }}</p>
+              </div>
+            </div>
+            <div class="mb-3 h-2 w-full overflow-hidden rounded-full bg-(--surface-input)">
+              <div
+                class="h-full rounded-full transition-all duration-300"
+                :style="{ width: progressPercent + '%', background: 'linear-gradient(90deg, var(--active-start), var(--active-end))' }"
+              ></div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div class="rounded-lg border border-(--border-default) p-2">
+                <p class="text-(--text-muted)">Quần thể</p>
+                <p class="font-semibold text-(--text-heading)">{{ generationProgress?.kichThuocQuanThe || '—' }}</p>
+              </div>
+              <div class="rounded-lg border border-(--border-default) p-2">
+                <p class="text-(--text-muted)">Tỷ lệ chéo</p>
+                <p class="font-semibold text-(--text-heading)">{{ generationProgress?.tyLeCheo || '—' }}</p>
+              </div>
+              <div class="rounded-lg border border-(--border-default) p-2">
+                <p class="text-(--text-muted)">Độ tuổi thọ</p>
+                <p class="font-semibold text-(--text-heading)">{{ generationProgress?.doTuoiThoToiDa || '—' }}</p>
+              </div>
+              <div class="rounded-lg border border-(--border-default) p-2">
+                <p class="text-(--text-muted)">Fitness tốt nhất</p>
+                <p class="font-semibold text-(--text-heading)">{{ generationProgress?.bestFitness != null ? generationProgress.bestFitness.toFixed(2) : '—' }}</p>
+              </div>
+            </div>
+            <p v-if="generationProgress?.xepDuoc != null" class="mt-3 text-xs text-(--text-muted)">
+              Xếp được: <span class="font-semibold text-(--color-success-text)">{{ generationProgress.xepDuoc }}</span> ·
+              Không xếp được: <span class="font-semibold text-(--color-danger-text)">{{ generationProgress.khongXepDuoc }}</span>
+            </p>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
   </div>
 </template>
 

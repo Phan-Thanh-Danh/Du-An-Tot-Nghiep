@@ -16,6 +16,10 @@ public interface ISmartTimetableService
         GenerateTimetableRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<GenerationProgress> GetGenerationProgressAsync(
+        Guid draftId,
+        CancellationToken cancellationToken = default);
+
     Task<ScheduleDraftDto> GetDraftAsync(
         Guid draftId,
         CancellationToken cancellationToken = default);

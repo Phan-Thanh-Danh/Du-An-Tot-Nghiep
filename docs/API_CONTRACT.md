@@ -284,9 +284,10 @@ Ghi chú: `CaHoc` là danh mục ca học cố định dùng bởi `ThoiKhoaBieu
 | PUT | `/api/thoi-khoa-bieu/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Cập nhật thời khóa biểu chưa bị hủy; không cho duplicate `MaKhoaHoc + ThuTrongTuan + MaCaHoc` với bản ghi chưa `da_huy`. |
 | PATCH | `/api/thoi-khoa-bieu/{id}/cancel` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Hủy thời khóa biểu bằng `TrangThai = da_huy`, không xóa vật lý. |
 | POST | `/api/thoi-khoa-bieu/{id}/generate-sessions` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Sinh `BuoiHoc` từ thời khóa biểu đã `da_xuat_ban`; chỉ tạo các ngày trùng `ThuTrongTuan`, bỏ qua buổi đã tồn tại theo `MaTkb + NgayHoc`. |
-| POST | `/api/thoi-khoa-bieu/generate` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Sinh lịch thông minh batch: xếp tự động các khóa học trong `MaHocKy + MaDonVi` vào các slot trống. Trả về bản nháp (`ScheduleGenerationJob`) với danh sách `ScheduleDraftItem`. Hỗ trợ lọc theo `MaKhoaHocFilter` và tham số genetic (`TongTheHe`, `TyLeCheo`). |
+| POST | `/api/thoi-khoa-bieu/generate` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Sinh lịch thông minh batch bằng thuật toán di truyền: xếp tự động các khóa học trong `MaHocKy + MaDonVi` vào các slot trống. Trả về bản nháp (`ScheduleGenerationJob`) với danh sách `ScheduleDraftItem`. Hỗ trợ lọc theo `MaKhoaHocFilter` và tham số genetic (`TongTheHe`, `KichThuocQuanThe`, `TyLeCheo`, `DoTuoiThoToiDa`, `ClientDraftId`). |
 | GET | `/api/thoi-khoa-bieu/drafts` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Lấy danh sách các bản nháp chưa publish. |
-| GET | `/api/thoi-khoa-bieu/drafts/{draftId}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Xem chi tiết bản nháp. |
+| GET | `/api/thoi-khoa-bieu/drafts/{draftId}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Xem chi tiết bản nháp (danh sách `ScheduleDraftItem`). |
+| GET | `/api/thoi-khoa-bieu/drafts/{draftId}/progress` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Xem tiến trình sinh lịch theo thế hệ (+ fitness tốt nhất) của bản nháp trong khi generate đang chạy hoặc sau khi hoàn tất. Frontend poll mỗi ~500ms để render modal progress. |
 | POST | `/api/thoi-khoa-bieu/publish` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Xuất bản bản nháp: tạo `ThoiKhoaBieu` và `BuoiHoc` trong transaction; rollback nếu có xung đột. |
 | POST | `/api/thoi-khoa-bieu/check-xung-dot-batch` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Kiểm tra xung đột batch cho danh sách đề xuất `MaKhoaHoc + ThuTrongTuan + MaCaHoc + MaPhong` trong `MaHocKy + MaDonVi`. |
 | DELETE | `/api/thoi-khoa-bieu/drafts/{draftId}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Xóa bản nháp xếp lịch thông minh. |
@@ -1233,6 +1234,7 @@ Known limitations:
 - `POST /api/thoi-khoa-bieu/{id}/generate-sessions` - Generate BuoiHoc sessions
 - `POST /api/thoi-khoa-bieu/generate` - Smart timetable generate draft
 - `GET /api/thoi-khoa-bieu/drafts/{draftId}` - Get draft detail
+- `GET /api/thoi-khoa-bieu/drafts/{draftId}/progress` - Get generation progress (live fitness / generation)
 - `GET /api/thoi-khoa-bieu/drafts` - List drafts
 - `POST /api/thoi-khoa-bieu/publish` - Publish draft
 - `POST /api/thoi-khoa-bieu/check-xung-dot-batch` - Batch conflict check

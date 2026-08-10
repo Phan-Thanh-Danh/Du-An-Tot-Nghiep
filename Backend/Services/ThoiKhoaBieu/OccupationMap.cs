@@ -7,6 +7,7 @@ public sealed class OccupationMap
     private readonly HashSet<(int MaHocKy, int ThuTrongTuan, int MaCaHoc, int MaPhong)> _roomSlots = new();
     
     private readonly Dictionary<(int MaHocKy, int ThuTrongTuan, int MaGiaoVien), int> _teacherDailyLoad = new();
+    private readonly Dictionary<(int MaHocKy, int MaGiaoVien), int> _teacherWeeklyLoad = new();
     private readonly Dictionary<(int MaHocKy, int ThuTrongTuan, int MaLop), int> _classDailyLoad = new();
 
     public void OccupyTeacher(int maHocKy, int thuTrongTuan, int maCaHoc, int maGiaoVien)
@@ -14,6 +15,8 @@ public sealed class OccupationMap
         _teacherSlots.Add((maHocKy, thuTrongTuan, maCaHoc, maGiaoVien));
         var key = (maHocKy, thuTrongTuan, maGiaoVien);
         _teacherDailyLoad[key] = _teacherDailyLoad.GetValueOrDefault(key) + 1;
+        var weeklyKey = (maHocKy, maGiaoVien);
+        _teacherWeeklyLoad[weeklyKey] = _teacherWeeklyLoad.GetValueOrDefault(weeklyKey) + 1;
     }
 
     public void OccupyClass(int maHocKy, int thuTrongTuan, int maCaHoc, int maLop)
@@ -40,6 +43,9 @@ public sealed class OccupationMap
     public int GetTeacherDailyLoad(int maHocKy, int thuTrongTuan, int maGiaoVien)
         => _teacherDailyLoad.GetValueOrDefault((maHocKy, thuTrongTuan, maGiaoVien));
 
+    public int GetTeacherWeeklyLoad(int maHocKy, int maGiaoVien)
+        => _teacherWeeklyLoad.GetValueOrDefault((maHocKy, maGiaoVien));
+
     public int GetClassDailyLoad(int maHocKy, int thuTrongTuan, int maLop)
         => _classDailyLoad.GetValueOrDefault((maHocKy, thuTrongTuan, maLop));
 
@@ -53,6 +59,7 @@ public sealed class OccupationMap
         _classSlots.Clear();
         _roomSlots.Clear();
         _teacherDailyLoad.Clear();
+        _teacherWeeklyLoad.Clear();
         _classDailyLoad.Clear();
     }
 }

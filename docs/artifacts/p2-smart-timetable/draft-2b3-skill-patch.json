@@ -1,0 +1,1333 @@
+﻿{
+    "success":  true,
+    "message":  "Sinh thời khóa biểu thông minh thành công.",
+    "data":  {
+                 "maJob":  10,
+                 "draftId":  "782adae7-4e70-4a55-82c0-4d436874bbc0",
+                 "maDonVi":  3,
+                 "maHocKy":  3,
+                 "trangThai":  "draft",
+                 "tongCourse":  12,
+                 "soXepDuoc":  12,
+                 "soKhongXepDuoc":  0,
+                 "score":  97.91666666666667,
+                 "ngayTao":  "2026-08-10T14:42:25.1764806",
+                 "ngayXuatBan":  null,
+                 "items":  [
+                               {
+                                   "maDraftItem":  161,
+                                   "maKhoaHoc":  25,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  20,
+                                   "tenGiaoVien":  "Phạm Minh Cường",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  4,
+                                   "tenCa":  "Ca 4",
+                                   "maPhong":  3,
+                                   "tenPhong":  "Phòng Lab A201",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  95,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  -5,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Phạm Minh Cường được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100",
+                                                    "Phòng quá lớn so với sĩ số."
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  162,
+                                   "maKhoaHoc":  25,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  20,
+                                   "tenGiaoVien":  "Phạm Minh Cường",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  5,
+                                   "tenCa":  "Ca 5",
+                                   "maPhong":  3,
+                                   "tenPhong":  "Phòng Lab A201",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  95,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  -5,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Phạm Minh Cường được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100",
+                                                    "Phòng quá lớn so với sĩ số."
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  163,
+                                   "maKhoaHoc":  25,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  20,
+                                   "tenGiaoVien":  "Phạm Minh Cường",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  3,
+                                   "maCaHoc":  2,
+                                   "tenCa":  "Ca 2",
+                                   "maPhong":  1,
+                                   "tenPhong":  "Phòng A101",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  95,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  -5,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Phạm Minh Cường được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100",
+                                                    "Phòng quá lớn so với sĩ số."
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  164,
+                                   "maKhoaHoc":  26,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  13,
+                                   "tenGiaoVien":  "Nguyễn Văn Lập Trình",
+                                   "mucDoPhuHop":  85,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  1,
+                                   "tenCa":  "Ca 1",
+                                   "maPhong":  5,
+                                   "tenPhong":  "Hội trường A301",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  95,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  -5,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Nguyễn Văn Lập Trình được chọn với mức độ phù hợp 85% cho môn học.",
+                                                    "Điểm cơ sở: 100",
+                                                    "Phòng quá lớn so với sĩ số."
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  165,
+                                   "maKhoaHoc":  26,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  13,
+                                   "tenGiaoVien":  "Nguyễn Văn Lập Trình",
+                                   "mucDoPhuHop":  85,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  2,
+                                   "tenCa":  "Ca 2",
+                                   "maPhong":  5,
+                                   "tenPhong":  "Hội trường A301",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  95,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  -5,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Nguyễn Văn Lập Trình được chọn với mức độ phù hợp 85% cho môn học.",
+                                                    "Điểm cơ sở: 100",
+                                                    "Phòng quá lớn so với sĩ số."
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  166,
+                                   "maKhoaHoc":  26,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  13,
+                                   "tenGiaoVien":  "Nguyễn Văn Lập Trình",
+                                   "mucDoPhuHop":  85,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  3,
+                                   "tenCa":  "Ca 3",
+                                   "maPhong":  5,
+                                   "tenPhong":  "Hội trường A301",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  95,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  -5,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Nguyễn Văn Lập Trình được chọn với mức độ phù hợp 85% cho môn học.",
+                                                    "Điểm cơ sở: 100",
+                                                    "Phòng quá lớn so với sĩ số."
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  167,
+                                   "maKhoaHoc":  27,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  13,
+                                   "tenGiaoVien":  "Nguyễn Văn Lập Trình",
+                                   "mucDoPhuHop":  85,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  4,
+                                   "tenCa":  "Ca 4",
+                                   "maPhong":  4,
+                                   "tenPhong":  "Phòng Lab A202",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Nguyễn Văn Lập Trình được chọn với mức độ phù hợp 85% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  168,
+                                   "maKhoaHoc":  27,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  13,
+                                   "tenGiaoVien":  "Nguyễn Văn Lập Trình",
+                                   "mucDoPhuHop":  85,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  5,
+                                   "tenCa":  "Ca 5",
+                                   "maPhong":  4,
+                                   "tenPhong":  "Phòng Lab A202",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Nguyễn Văn Lập Trình được chọn với mức độ phù hợp 85% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  169,
+                                   "maKhoaHoc":  27,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  13,
+                                   "tenGiaoVien":  "Nguyễn Văn Lập Trình",
+                                   "mucDoPhuHop":  85,
+                                   "thuTrongTuan":  3,
+                                   "maCaHoc":  1,
+                                   "tenCa":  "Ca 1",
+                                   "maPhong":  4,
+                                   "tenPhong":  "Phòng Lab A202",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Nguyễn Văn Lập Trình được chọn với mức độ phù hợp 85% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  170,
+                                   "maKhoaHoc":  28,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  21,
+                                   "tenGiaoVien":  "Đỗ Thị Dung",
+                                   "mucDoPhuHop":  85,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  1,
+                                   "tenCa":  "Ca 1",
+                                   "maPhong":  6,
+                                   "tenPhong":  "Phòng B101",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Đỗ Thị Dung được chọn với mức độ phù hợp 85% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  171,
+                                   "maKhoaHoc":  28,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  21,
+                                   "tenGiaoVien":  "Đỗ Thị Dung",
+                                   "mucDoPhuHop":  85,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  2,
+                                   "tenCa":  "Ca 2",
+                                   "maPhong":  6,
+                                   "tenPhong":  "Phòng B101",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Đỗ Thị Dung được chọn với mức độ phù hợp 85% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  172,
+                                   "maKhoaHoc":  28,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  21,
+                                   "tenGiaoVien":  "Đỗ Thị Dung",
+                                   "mucDoPhuHop":  85,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  3,
+                                   "tenCa":  "Ca 3",
+                                   "maPhong":  6,
+                                   "tenPhong":  "Phòng B101",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Đỗ Thị Dung được chọn với mức độ phù hợp 85% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  173,
+                                   "maKhoaHoc":  20,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  18,
+                                   "tenGiaoVien":  "Nguyễn Văn An",
+                                   "mucDoPhuHop":  100,
+                                   "thuTrongTuan":  3,
+                                   "maCaHoc":  1,
+                                   "tenCa":  "Ca 1",
+                                   "maPhong":  2,
+                                   "tenPhong":  "Phòng A102",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  95,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  -5,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Nguyễn Văn An được chọn với mức độ phù hợp 100% cho môn học.",
+                                                    "Điểm cơ sở: 100",
+                                                    "Phòng quá lớn so với sĩ số."
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  174,
+                                   "maKhoaHoc":  20,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  18,
+                                   "tenGiaoVien":  "Nguyễn Văn An",
+                                   "mucDoPhuHop":  100,
+                                   "thuTrongTuan":  3,
+                                   "maCaHoc":  4,
+                                   "tenCa":  "Ca 4",
+                                   "maPhong":  1,
+                                   "tenPhong":  "Phòng A101",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  95,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  -5,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Nguyễn Văn An được chọn với mức độ phù hợp 100% cho môn học.",
+                                                    "Điểm cơ sở: 100",
+                                                    "Phòng quá lớn so với sĩ số."
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  175,
+                                   "maKhoaHoc":  20,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  18,
+                                   "tenGiaoVien":  "Nguyễn Văn An",
+                                   "mucDoPhuHop":  100,
+                                   "thuTrongTuan":  5,
+                                   "maCaHoc":  1,
+                                   "tenCa":  "Ca 1",
+                                   "maPhong":  1,
+                                   "tenPhong":  "Phòng A101",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  95,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  -5,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Nguyễn Văn An được chọn với mức độ phù hợp 100% cho môn học.",
+                                                    "Điểm cơ sở: 100",
+                                                    "Phòng quá lớn so với sĩ số."
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  176,
+                                   "maKhoaHoc":  21,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  18,
+                                   "tenGiaoVien":  "Nguyễn Văn An",
+                                   "mucDoPhuHop":  100,
+                                   "thuTrongTuan":  5,
+                                   "maCaHoc":  4,
+                                   "tenCa":  "Ca 4",
+                                   "maPhong":  1,
+                                   "tenPhong":  "Phòng A101",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  95,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  -5,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Nguyễn Văn An được chọn với mức độ phù hợp 100% cho môn học.",
+                                                    "Điểm cơ sở: 100",
+                                                    "Phòng quá lớn so với sĩ số."
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  177,
+                                   "maKhoaHoc":  21,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  18,
+                                   "tenGiaoVien":  "Nguyễn Văn An",
+                                   "mucDoPhuHop":  100,
+                                   "thuTrongTuan":  6,
+                                   "maCaHoc":  1,
+                                   "tenCa":  "Ca 1",
+                                   "maPhong":  1,
+                                   "tenPhong":  "Phòng A101",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  95,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  -5,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Nguyễn Văn An được chọn với mức độ phù hợp 100% cho môn học.",
+                                                    "Điểm cơ sở: 100",
+                                                    "Phòng quá lớn so với sĩ số."
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  178,
+                                   "maKhoaHoc":  21,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  18,
+                                   "tenGiaoVien":  "Nguyễn Văn An",
+                                   "mucDoPhuHop":  100,
+                                   "thuTrongTuan":  6,
+                                   "maCaHoc":  4,
+                                   "tenCa":  "Ca 4",
+                                   "maPhong":  1,
+                                   "tenPhong":  "Phòng A101",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  95,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  -5,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Nguyễn Văn An được chọn với mức độ phù hợp 100% cho môn học.",
+                                                    "Điểm cơ sở: 100",
+                                                    "Phòng quá lớn so với sĩ số."
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  179,
+                                   "maKhoaHoc":  22,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  19,
+                                   "tenGiaoVien":  "Trần Thị Bình",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  1,
+                                   "tenCa":  "Ca 1",
+                                   "maPhong":  3,
+                                   "tenPhong":  "Phòng Lab A201",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Trần Thị Bình được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  180,
+                                   "maKhoaHoc":  22,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  19,
+                                   "tenGiaoVien":  "Trần Thị Bình",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  2,
+                                   "tenCa":  "Ca 2",
+                                   "maPhong":  3,
+                                   "tenPhong":  "Phòng Lab A201",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Trần Thị Bình được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  181,
+                                   "maKhoaHoc":  22,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  19,
+                                   "tenGiaoVien":  "Trần Thị Bình",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  3,
+                                   "tenCa":  "Ca 3",
+                                   "maPhong":  3,
+                                   "tenPhong":  "Phòng Lab A201",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Trần Thị Bình được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  182,
+                                   "maKhoaHoc":  23,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  19,
+                                   "tenGiaoVien":  "Trần Thị Bình",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  4,
+                                   "tenCa":  "Ca 4",
+                                   "maPhong":  2,
+                                   "tenPhong":  "Phòng A102",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Trần Thị Bình được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  183,
+                                   "maKhoaHoc":  23,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  19,
+                                   "tenGiaoVien":  "Trần Thị Bình",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  5,
+                                   "tenCa":  "Ca 5",
+                                   "maPhong":  2,
+                                   "tenPhong":  "Phòng A102",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Trần Thị Bình được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  184,
+                                   "maKhoaHoc":  23,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  19,
+                                   "tenGiaoVien":  "Trần Thị Bình",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  3,
+                                   "maCaHoc":  1,
+                                   "tenCa":  "Ca 1",
+                                   "maPhong":  3,
+                                   "tenPhong":  "Phòng Lab A201",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Trần Thị Bình được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  185,
+                                   "maKhoaHoc":  24,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  20,
+                                   "tenGiaoVien":  "Phạm Minh Cường",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  1,
+                                   "tenCa":  "Ca 1",
+                                   "maPhong":  4,
+                                   "tenPhong":  "Phòng Lab A202",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Phạm Minh Cường được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  186,
+                                   "maKhoaHoc":  24,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  20,
+                                   "tenGiaoVien":  "Phạm Minh Cường",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  2,
+                                   "tenCa":  "Ca 2",
+                                   "maPhong":  4,
+                                   "tenPhong":  "Phòng Lab A202",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Phạm Minh Cường được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  187,
+                                   "maKhoaHoc":  24,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  20,
+                                   "tenGiaoVien":  "Phạm Minh Cường",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  3,
+                                   "tenCa":  "Ca 3",
+                                   "maPhong":  4,
+                                   "tenPhong":  "Phòng Lab A202",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Phạm Minh Cường được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  188,
+                                   "maKhoaHoc":  19,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  14,
+                                   "tenGiaoVien":  "P12 Test Giảng Viên",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  1,
+                                   "tenCa":  "Ca 1",
+                                   "maPhong":  2,
+                                   "tenPhong":  "Phòng A102",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên P12 Test Giảng Viên được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  189,
+                                   "maKhoaHoc":  19,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  14,
+                                   "tenGiaoVien":  "P12 Test Giảng Viên",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  2,
+                                   "tenCa":  "Ca 2",
+                                   "maPhong":  2,
+                                   "tenPhong":  "Phòng A102",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên P12 Test Giảng Viên được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  190,
+                                   "maKhoaHoc":  19,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  14,
+                                   "tenGiaoVien":  "P12 Test Giảng Viên",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  3,
+                                   "tenCa":  "Ca 3",
+                                   "maPhong":  2,
+                                   "tenPhong":  "Phòng A102",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên P12 Test Giảng Viên được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  191,
+                                   "maKhoaHoc":  29,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  22,
+                                   "tenGiaoVien":  "Lê Thị Em",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  1,
+                                   "tenCa":  "Ca 1",
+                                   "maPhong":  1,
+                                   "tenPhong":  "Phòng A101",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  95,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  -5,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Lê Thị Em được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100",
+                                                    "Phòng quá lớn so với sĩ số."
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  192,
+                                   "maKhoaHoc":  29,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  22,
+                                   "tenGiaoVien":  "Lê Thị Em",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  2,
+                                   "tenCa":  "Ca 2",
+                                   "maPhong":  1,
+                                   "tenPhong":  "Phòng A101",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  95,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  -5,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Lê Thị Em được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100",
+                                                    "Phòng quá lớn so với sĩ số."
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  193,
+                                   "maKhoaHoc":  29,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  22,
+                                   "tenGiaoVien":  "Lê Thị Em",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  3,
+                                   "tenCa":  "Ca 3",
+                                   "maPhong":  1,
+                                   "tenPhong":  "Phòng A101",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  95,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  -5,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Lê Thị Em được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100",
+                                                    "Phòng quá lớn so với sĩ số."
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  194,
+                                   "maKhoaHoc":  30,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  22,
+                                   "tenGiaoVien":  "Lê Thị Em",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  4,
+                                   "tenCa":  "Ca 4",
+                                   "maPhong":  1,
+                                   "tenPhong":  "Phòng A101",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Lê Thị Em được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  195,
+                                   "maKhoaHoc":  30,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  22,
+                                   "tenGiaoVien":  "Lê Thị Em",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  2,
+                                   "maCaHoc":  5,
+                                   "tenCa":  "Ca 5",
+                                   "maPhong":  1,
+                                   "tenPhong":  "Phòng A101",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Lê Thị Em được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               },
+                               {
+                                   "maDraftItem":  196,
+                                   "maKhoaHoc":  30,
+                                   "maKhoaHocCode":  null,
+                                   "maGiaoVien":  22,
+                                   "tenGiaoVien":  "Lê Thị Em",
+                                   "mucDoPhuHop":  95,
+                                   "thuTrongTuan":  3,
+                                   "maCaHoc":  1,
+                                   "tenCa":  "Ca 1",
+                                   "maPhong":  1,
+                                   "tenPhong":  "Phòng A101",
+                                   "trangThai":  "xep_duoc",
+                                   "score":  100,
+                                   "scoreBreakdown":  {
+                                                          "base":  100,
+                                                          "roomFit":  0,
+                                                          "preferredShift":  0,
+                                                          "availableShift":  0,
+                                                          "teacherDayLoadPenalty":  0,
+                                                          "classDayLoadPenalty":  0,
+                                                          "saturdayPenalty":  0,
+                                                          "eveningPenalty":  0
+                                                      },
+                                   "lyDoGoiY":  [
+                                                    "Giảng viên Lê Thị Em được chọn với mức độ phù hợp 95% cho môn học.",
+                                                    "Điểm cơ sở: 100"
+                                                ],
+                                   "preferenceLevel":  null,
+                                   "canhBao":  [
+                                                   "Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng."
+                                               ],
+                                   "loi":  [
+
+                                           ]
+                               }
+                           ]
+             },
+    "errors":  [
+
+               ]
+}
