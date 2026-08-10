@@ -733,6 +733,11 @@ public partial class CertificateTemplateService : ICertificateTemplateService
 
     private static string NormalizeFileUrl(string value)
     {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
         var normalized = NormalizeRequiredText(value, "File nền", 1000);
         if (normalized.StartsWith("data:", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains(";base64", StringComparison.OrdinalIgnoreCase))

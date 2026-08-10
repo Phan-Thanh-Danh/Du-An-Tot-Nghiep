@@ -96,6 +96,8 @@ const pageTitleMap = {
   '/super-admin/evaluations/config': { title: 'Cấu hình đánh giá GV', subtitle: 'Mở đợt khảo sát và tạo câu hỏi khảo sát giảng viên' },
   '/super-admin/awards': { title: 'Khen thưởng', subtitle: 'Cấp bằng khen số và quản lý thành tích' },
   '/super-admin/awards/certificate-templates': { title: 'Cấu hình giấy khen', subtitle: 'Thiết kế mẫu giấy khen bằng HTML/CSS và quản lý phiên bản' },
+  '/super-admin/awards/certificate-templates/new': { title: 'Tạo mẫu giấy khen', subtitle: 'Thiết kế mẫu giấy khen mới bằng HTML/CSS' },
+  '/super-admin/awards/certificate-templates/:id/edit': { title: 'Sửa mẫu giấy khen', subtitle: 'Chỉnh sửa mẫu giấy khen bằng HTML/CSS' },
   '/super-admin/discipline': { title: 'Kỷ luật', subtitle: 'Quản lý hồ sơ và mức độ vi phạm kỷ luật' },
 
   // 7. Báo cáo và Phân tích (Analytics)

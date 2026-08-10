@@ -667,6 +667,18 @@ const router = createRouter({
           meta: { title: 'Cấu hình giấy khen' },
         },
         {
+          path: 'awards/certificate-templates/new',
+          name: 'super-admin-awards-certificate-templates-new',
+          component: () => import('../views/SuperAdmin/CertificateTemplateEditorView.vue'),
+          meta: { title: 'Tạo mẫu giấy khen' },
+        },
+        {
+          path: 'awards/certificate-templates/:id/edit',
+          name: 'super-admin-awards-certificate-templates-edit',
+          component: () => import('../views/SuperAdmin/CertificateTemplateEditorView.vue'),
+          meta: { title: 'Sửa mẫu giấy khen' },
+        },
+        {
           path: 'discipline',
           name: 'super-admin-discipline',
           component: () => import('../views/SuperAdmin/DisciplineView.vue'),

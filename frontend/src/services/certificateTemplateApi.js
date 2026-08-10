@@ -12,43 +12,43 @@ function buildQuery(params = {}) {
 const BASE = '/api/admin/certificate-templates'
 
 export const certificateTemplateApi = {
-  getTemplates(params = {}) {
-    return unwrapApiData(apiRequest(`${BASE}${buildQuery(params)}`))
+  async getTemplates(params = {}) {
+    return unwrapApiData(await apiRequest(`${BASE}${buildQuery(params)}`))
   },
 
-  getTemplate(id) {
-    return unwrapApiData(apiRequest(`${BASE}/${id}`))
+  async getTemplate(id) {
+    return unwrapApiData(await apiRequest(`${BASE}/${id}`))
   },
 
-  createTemplate(payload) {
-    return unwrapApiData(apiRequest(BASE, {
+  async createTemplate(payload) {
+    return unwrapApiData(await apiRequest(BASE, {
       method: 'POST',
       body: JSON.stringify(payload),
     }))
   },
 
-  updateTemplate(id, payload) {
-    return unwrapApiData(apiRequest(`${BASE}/${id}`, {
+  async updateTemplate(id, payload) {
+    return unwrapApiData(await apiRequest(`${BASE}/${id}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     }))
   },
 
-  disableTemplate(id) {
-    return unwrapApiData(apiRequest(`${BASE}/${id}`, {
+  async disableTemplate(id) {
+    return unwrapApiData(await apiRequest(`${BASE}/${id}`, {
       method: 'DELETE',
     }))
   },
 
-  previewTemplate(id, payload = {}) {
-    return unwrapApiData(apiRequest(`${BASE}/${id}/preview`, {
+  async previewTemplate(id, payload = {}) {
+    return unwrapApiData(await apiRequest(`${BASE}/${id}/preview`, {
       method: 'POST',
       body: JSON.stringify(payload),
     }))
   },
 
-  uploadRewardCertificatePdf(campaignId, payload) {
-    return unwrapApiData(apiRequest(`/api/admin/reward-campaigns/${campaignId}/certificates/upload`, {
+  async uploadRewardCertificatePdf(campaignId, payload) {
+    return unwrapApiData(await apiRequest(`/api/admin/reward-campaigns/${campaignId}/certificates/upload`, {
       method: 'POST',
       body: JSON.stringify(payload),
     }))
