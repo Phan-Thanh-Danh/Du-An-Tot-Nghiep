@@ -85,7 +85,7 @@
             <div v-if="formMode === 'view'" class="text-sm px-3 py-2 bg-(--surface-input) rounded-lg text-body">
               {{ getParentName(formData.parentId) || 'Không có (Cấp cao nhất)' }}
             </div>
-            <select 
+            <LmsSelect
               v-else 
               v-model="formData.parentId"
               class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)"
@@ -94,7 +94,7 @@
               <option v-for="org in flatOrganizationsList" :key="org.id" :value="org.id" :disabled="org.id === formData.id">
                 {{ org.name }}
               </option>
-            </select>
+            </LmsSelect>
           </div>
 
           <!-- Name -->
@@ -122,7 +122,7 @@
                 {{ formData.organizationLevel }}
               </span>
             </div>
-            <select 
+            <LmsSelect
               v-else 
               v-model="formData.organizationLevel"
               required
@@ -130,7 +130,7 @@
             >
               <option value="" disabled>-- Chọn cấp đơn vị --</option>
               <option v-for="lvl in organizationLevels" :key="lvl" :value="lvl">{{ lvl }}</option>
-            </select>
+            </LmsSelect>
           </div>
 
           <!-- Status / Dates (View Only) -->
@@ -229,6 +229,7 @@ import {
   ChevronRight, ChevronDown, Loader2, AlertCircle, Library, Users 
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { bghApi } from '@/services/bghApi'
 import { apiRequest, unwrapApiData } from '@/services/apiClient'
 
@@ -295,9 +296,11 @@ const loadData = async () => {
 const flattenTreeData = (nodes, level = 0, parentPath = []) => {
   let result = []
   for (const node of nodes) {
+    const nodeName = node.name === 'LMS Root' ? 'LMS Khu vực TP. Hồ Chí Minh' : node.name
     const currentPath = [...parentPath, node.id]
     result.push({ 
       ...node, 
+      name: nodeName,
       _level: level, 
       _parentPath: parentPath 
     })
@@ -408,6 +411,7 @@ const saveOrganization = async () => {
         })
       })
     }
+    bghApi.invalidate('/api/organizations')
     formMode.value = 'view'
     await loadData()
     if (formData.value.id) {
@@ -431,6 +435,7 @@ const confirmDelete = async (node) => {
 
   try {
     await apiRequest(`/api/organizations/${node.id}`, { method: 'DELETE' })
+    bghApi.invalidate('/api/organizations')
     await loadData()
     selectedNode.value = null
     formData.value = { id: null, parentId: null, name: '', organizationLevel: '' }

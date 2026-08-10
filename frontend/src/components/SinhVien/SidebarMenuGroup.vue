@@ -115,6 +115,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (hoverTimeout) clearTimeout(hoverTimeout)
   document.removeEventListener('mousedown', handleClickOutside)
   window.removeEventListener('resize', updatePosition)
   window.removeEventListener('close-all-sidebar-flyouts', handleCloseAllFlyouts)

@@ -76,8 +76,8 @@ onMounted(() => { loadClass() })
         </div>
 
         <div class="flex gap-3">
-           <router-link :to="'/teacher/classes/' + classData?.id + '/workspace'" class="rounded-xl bg-(--accent-primary) px-4 py-3 text-sm font-semibold text-inverse hover:opacity-90 transition-all shadow-md">
-              View Class Workspace
+           <router-link :to="'/teacher/classes/' + classData?.id + '/workspace'" class="rounded-xl bg-(--accent-primary) px-4 py-3 text-sm font-semibold text-inverse hover:opacity-90 transition-all shadow-md flex items-center gap-2">
+              <Eye :size="16" /> Vào Workspace lớp học
            </router-link>
         </div>
       </div>
@@ -198,7 +198,10 @@ onMounted(() => { loadClass() })
                </div>
              </template>
              
-             <div class="space-y-4">
+             <div v-if="recentActivities.length === 0" class="py-8 text-center text-xs text-muted">
+               Chưa có hoạt động mới nào được ghi nhận cho lớp này.
+             </div>
+             <div v-else class="space-y-4">
                 <div v-for="act in recentActivities" :key="act.id" class="relative flex items-center gap-3">
                    <div class="flex items-center justify-center w-10 h-10 rounded-full border-2 border-card surface-card text-muted shrink-0 shadow-sm z-10">
                       <FileText v-if="act.type === 'assignment'" :size="14" class="text-link" />

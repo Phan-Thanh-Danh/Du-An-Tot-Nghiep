@@ -334,7 +334,10 @@ public class OrganizationService : IOrganizationService
             .Where(x => x.ConHoatDong)
             .ToListAsync();
 
-        if (currentUser.Role == AuthRoles.SuperAdmin || currentUser.Role == AuthRoles.Admin)
+        if (currentUser.Role == AuthRoles.SuperAdmin ||
+            currentUser.Role == AuthRoles.Principal ||
+            currentUser.Role == AuthRoles.Admin ||
+            currentUser.Role == AuthRoles.Chairman)
         {
             return organizations;
         }

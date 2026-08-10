@@ -140,9 +140,11 @@ const quickActions = [
     },
   },
   {
-    label: 'Cài đặt',
-    icon: Settings,
-    action: () => {},
+    label: 'Xem chi tiết',
+    icon: Eye,
+    action: () => {
+      router.push(`/teacher/classes/${route.params.id}/details`)
+    },
   },
 ]
 
@@ -220,8 +222,8 @@ onMounted(() => { loadWorkspace() })
         <button
           type="button"
           class="back-button"
-          aria-label="Quay lại chi tiết lớp"
-          @click="router.push(`/teacher/classes/${route.params.id}/details`)"
+          aria-label="Quay lại danh sách lớp"
+          @click="router.push('/teacher/classes')"
         >
           <ArrowLeft :size="18" />
         </button>
@@ -518,16 +520,18 @@ onMounted(() => { loadWorkspace() })
               <p class="section-eyebrow">Theo dõi nhanh</p>
               <h2>Cảnh báo lớp</h2>
             </div>
-            <GlassBadge variant="warning">2 mục</GlassBadge>
+            <GlassBadge :variant="absentCount > 0 ? 'warning' : 'success'">
+              {{ absentCount > 0 ? '1 mục' : '0 mục' }}
+            </GlassBadge>
           </div>
           <div class="notice-list">
-            <div class="notice-item">
+            <div v-if="absentCount > 0" class="notice-item">
               <span class="notice-dot warning" />
-              <p>2 sinh viên chưa điểm danh buổi hôm nay.</p>
+              <p>{{ absentCount }} sinh viên chưa điểm danh / vắng mặt hôm nay.</p>
             </div>
-            <div class="notice-item">
-              <span class="notice-dot info" />
-              <p>Bài tập OOP sẽ mở sau khi hoàn tất chương 2.</p>
+            <div v-else class="notice-item">
+              <span class="notice-dot success" />
+              <p>Không có cảnh báo chuyên cần bất thường trong lớp.</p>
             </div>
           </div>
         </GlassPanel>

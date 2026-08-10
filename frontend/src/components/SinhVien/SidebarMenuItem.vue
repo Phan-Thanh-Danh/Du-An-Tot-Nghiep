@@ -116,7 +116,7 @@ function preloadRoute() {
 
     <!-- Active dot for depth > 0 -->
     <div
-      class="h-1.5 w-1.5 rounded-full bg-(--sidebar-indicator) shadow-[0_0_8px_var(--sidebar-focus-ring)] transition-all duration-300 ease-out"
+      class="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-(--sidebar-indicator) shadow-[0_0_8px_var(--sidebar-focus-ring)] transition-all duration-300 ease-out"
       :class="[isActive && depth > 0 && !collapsed ? 'opacity-100 scale-100' : 'opacity-0 scale-0']"
     />
   </router-link>

@@ -1,11 +1,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { 
-  Brain, TrendingUp, PieChart, MapPin, Zap, Search, Download, Filter, ChevronDown, X,
-  AlertCircle, Loader2
+  Brain, TrendingUp, PieChart, MapPin, Zap, Search, Download, AlertCircle
 } from 'lucide-vue-next'
-import { exportToExcel } from '@/services/exportService.js'
+import { exportBghToExcel } from '@/components/BGH/performance/bghExport.js'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
@@ -15,7 +15,6 @@ const loading = ref(false)
 const error = ref(null)
 const searchQuery = ref('')
 const sentimentFilter = ref('all')
-const showFilterDetail = ref(false)
 
 const sentimentSummary = ref({ positive: 0, neutral: 0, negative: 0 })
 const topTopics = ref([])
@@ -52,14 +51,14 @@ async function loadData() {
 }
 onMounted(() => { loadData() })
 
-function exportData() {
+async function exportData() {
   const data = topTopics.value.map(t => ({
     'Chủ đề': t.label,
     'Số lượng': t.count,
     'Cảm xúc': t.sentiment,
     'Thay đổi': t.change,
   }))
-  exportToExcel(data, 'AI-Feedback-Topics.xlsx', 'Topics')
+  await exportBghToExcel(data, 'AI-Feedback-Topics.xlsx', 'Topics')
   popup.success('Xuất Excel', 'Đã xuất dữ liệu chủ đề feedback.')
 }
 </script>
@@ -129,11 +128,11 @@ function exportData() {
                <Search :size="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-placeholder" />
                <input v-model="searchQuery" type="text" placeholder="Tìm chủ đề..." class="w-full surface-input border border-input rounded-lg pl-8 pr-3 py-1.5 text-xs font-medium outline-none focus:ring-2 focus:ring-(--border-focus-ring)">
              </div>
-             <select v-model="sentimentFilter" class="surface-input border border-input rounded-lg px-2 py-1.5 text-[10px] font-bold outline-none">
+             <LmsSelect v-model="sentimentFilter" class="surface-input border border-input rounded-lg px-2 py-1.5 text-[10px] font-bold outline-none">
                <option value="all">All</option>
                <option value="positive">Pos</option>
                <option value="negative">Neg</option>
-             </select>
+             </LmsSelect>
            </div>
            <div class="flex flex-wrap gap-2 max-h-60 overflow-y-auto">
               <div v-for="topic in filteredTopics" :key="topic.label"

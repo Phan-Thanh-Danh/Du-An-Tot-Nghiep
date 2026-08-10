@@ -13,16 +13,10 @@ import {
   ChevronRight,
   ShieldAlert,
   Camera,
-  Award,
-  Users,
-  BarChart3,
-  Globe,
   AlertCircle,
   Loader2,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
-import { bghApi } from '@/services/bghApi'
-import { unwrapApiData } from '@/services/apiClient'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -33,19 +27,14 @@ const profile = ref({
   name: '',
   staffId: '',
   email: '',
-  phone: '0901.234.567',
-  joinDate: '01/01/2020',
+  phone: '',
+  joinDate: '',
   campus: '',
   department: '',
-  bio: 'Tận tâm vì sự nghiệp giáo dục và phát triển thế hệ trẻ. Cam kết xây dựng môi trường học tập hiện đại, minh bạch và chất lượng cao.',
+  bio: '',
 })
 
-const stats = [
-  { label: 'Sinh viên quản lý', value: '12,450', icon: Users, color: 'text-(--color-info-text)', bg: 'bg-(--color-info-bg)' },
-  { label: 'Giảng viên', value: '458', icon: Award, color: 'text-link', bg: 'bg-(--color-info-bg)' },
-  { label: 'GPA Trung bình', value: '3.24', icon: BarChart3, color: 'text-(--color-success-text)', bg: 'bg-(--color-success-bg)' },
-  { label: 'Cơ sở', value: '3', icon: Globe, color: 'text-(--color-warning-text)', bg: 'bg-(--color-warning-bg)' },
-]
+const stats = []
 
 async function loadData() {
   loading.value = true
@@ -71,11 +60,7 @@ async function loadData() {
 }
 onMounted(() => { loadData() })
 
-const loginHistory = ref([
-  { id: 1, device: 'Chrome / Windows 11', ip: '1.55.xxx.xxx', time: '16/05/2026 20:15', status: 'current' },
-  { id: 2, device: 'Safari / MacBook Pro', ip: '1.55.xxx.xxx', time: '15/05/2026 09:45', status: 'previous' },
-  { id: 3, device: 'LMS Mobile App / iOS', ip: '27.72.xxx.xxx', time: '14/05/2026 18:30', status: 'previous' },
-])
+const loginHistory = ref([])
 </script>
 
 <template>

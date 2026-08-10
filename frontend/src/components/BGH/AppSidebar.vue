@@ -11,6 +11,12 @@ import SidebarMenuGroup from '../SinhVien/SidebarMenuGroup.vue'
 import SidebarRecentFavorites from '@/components/ui/SidebarRecentFavorites.vue'
 import { bghMenuGroups } from './data/menuData.js'
 import { useAuthStore } from '@/stores/auth'
+import { bghApi } from '@/services/bghApi'
+import {
+  scheduleBghRoutePrefetch,
+  cancelBghRoutePrefetch,
+  prefetchBghRouteChunk,
+} from './performance/bghRoutePrefetch'
 
 defineProps({
   collapsed: { type: Boolean, default: false },
@@ -22,8 +28,27 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 function logout() {
+  cancelBghRoutePrefetch()
+  bghApi.clearCache()
   authStore.logout()
   router.replace('/login')
+}
+
+function routeFromEvent(event) {
+  const link = event.target.closest?.('a[href^="/bgh/"]')
+  return link?.getAttribute('href') || null
+}
+
+function handlePrefetchIntent(event) {
+  const route = routeFromEvent(event)
+  if (route) {
+    scheduleBghRoutePrefetch(route, 180, () => prefetchBghRouteChunk(router, route))
+  }
+}
+
+function handlePrefetchLeave(event) {
+  const link = event.target.closest?.('a[href^="/bgh/"]')
+  if (!link || !link.contains(event.relatedTarget)) cancelBghRoutePrefetch()
 }
 </script>
 
@@ -67,7 +92,13 @@ function logout() {
     </div>
 
     <!-- ──────────── MENU SCROLL AREA ──────────── -->
-    <nav class="relative flex-1 overflow-y-auto overflow-x-visible px-2 py-2 space-y-0.5 scrollbar-thin">
+    <nav
+      class="relative flex-1 overflow-y-auto overflow-x-visible px-2 py-2 space-y-0.5 scrollbar-thin"
+      @pointerover="handlePrefetchIntent"
+      @pointerout="handlePrefetchLeave"
+      @focusin="handlePrefetchIntent"
+      @focusout="handlePrefetchLeave"
+    >
       <SidebarMenuGroup
         v-for="group in bghMenuGroups"
         :key="group.id"

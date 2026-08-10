@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="space-y-4 pb-10">
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-20">
@@ -21,9 +21,9 @@
         <h2 class="sr-only text-xl font-bold text-heading">Khung chương trình</h2>
         <p class="text-xs text-muted mt-1">Chi tiết môn học theo từng học kỳ trong chương trình đào tạo</p>
       </div>
-      <select v-model="selectedProgram" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary) min-w-[240px]">
-        <option v-for="p in programs" :key="p.maChuongTrinh" :value="p.maChuongTrinh">{{ p.tenChuongTrinh }}</option>
-      </select>
+      <LmsSelect v-model="selectedProgram" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary) min-w-[240px]">
+        <option v-for="p in programs" :key="p.maChuongTrinh || p.id" :value="p.maChuongTrinh || p.id">{{ p.tenChuongTrinh }}</option>
+      </LmsSelect>
     </div>
 
     <div v-if="currentProgram" class="surface-card border border-card rounded-2xl p-5 shadow-sm">
@@ -46,65 +46,72 @@
       <p class="text-sm text-(--color-danger-text) font-medium">{{ curriculumError }}</p>
     </div>
     <template v-else>
-      <div v-for="semester in semesters" :key="semester.maChuongTrinhHocKy" class="surface-card border border-card rounded-2xl overflow-hidden shadow-sm">
-        <div class="px-5 py-3 bg-(--surface-input)/30 flex items-center justify-between">
-          <h3 class="text-sm font-bold text-heading flex items-center gap-2">
-            <span class="h-6 w-6 rounded-lg bg-(--lg-primary) text-white flex items-center justify-center text-[11px] font-bold">{{ semester.thuTuHocKy }}</span>
-            Học kỳ {{ semester.thuTuHocKy }}
-          </h3>
-          <span class="text-xs text-muted">{{ semester.subjects.length }} môn · {{ semester.totalCredits }} tín chỉ</span>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-body whitespace-nowrap">
-            <thead class="bg-(--surface-card)">
-              <tr>
-                <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Mã môn</th>
-                <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Tên môn học</th>
-                <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Số tín chỉ</th>
-                <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Loại môn</th>
-                <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Bắt buộc</th>
-                <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Thứ tự</th>
-                <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="sub in semester.subjects" :key="sub.maChuongTrinhMonHoc" class="hover:bg-(--surface-input)/50 transition-colors">
-                <td class="px-4 py-2.5">
-                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-(--surface-input) text-heading border border-default">{{ sub.maCodeMonHoc }}</span>
-                </td>
-                <td class="px-4 py-2.5 font-semibold text-heading">{{ sub.tenMonHoc }}</td>
-                <td class="px-4 py-2.5">
-                  <span class="font-bold text-heading">{{ sub.soTinChi }}</span>
-                </td>
-                <td class="px-4 py-2.5">
-                  <span class="text-xs px-2 py-0.5 rounded bg-(--surface-input) text-muted border border-default">{{ sub.loaiMonHoc }}</span>
-                </td>
-                <td class="px-4 py-2.5">
-                  <span v-if="sub.batBuoc" class="text-(--color-success-text) bg-(--color-success-bg) px-2 py-0.5 rounded text-xs font-bold">Bắt buộc</span>
-                  <span v-else class="text-muted bg-(--surface-input) px-2 py-0.5 rounded text-xs">Tự chọn</span>
-                </td>
-                <td class="px-4 py-2.5 text-muted">{{ sub.thuTu }}</td>
-                <td class="px-4 py-2.5">
-                  <span :class="sub.conHoatDong ? 'text-(--color-success-text)' : 'text-(--color-danger-text)'" class="text-xs font-bold">
-                    {{ sub.conHoatDong ? 'Hoạt động' : 'Ngừng' }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-            <tfoot v-if="semester.ghiChu">
-              <tr>
-                <td colspan="7" class="px-4 py-2 text-xs text-muted italic">
-                  📝 {{ semester.ghiChu }}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+      <div v-if="semesters.length > 0" class="space-y-4">
+        <div v-for="semester in semesters" :key="semester.maChuongTrinhHocKy" class="surface-card border border-card rounded-2xl overflow-hidden shadow-sm">
+          <div class="px-5 py-3 bg-(--surface-input)/30 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-heading flex items-center gap-2">
+              <span class="h-6 w-6 rounded-lg bg-(--lg-primary) text-white flex items-center justify-center text-[11px] font-bold">{{ semester.thuTuHocKy }}</span>
+              Học kỳ {{ semester.thuTuHocKy }}
+            </h3>
+            <span class="text-xs text-muted">{{ semester.subjects.length }} môn · {{ semester.totalCredits }} tín chỉ</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-body whitespace-nowrap">
+              <thead class="bg-(--surface-card)">
+                <tr>
+                  <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Mã môn</th>
+                  <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Tên môn học</th>
+                  <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Số tín chỉ</th>
+                  <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Loại môn</th>
+                  <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Bắt buộc</th>
+                  <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Thứ tự</th>
+                  <th class="px-4 py-2.5 font-bold text-heading text-[11px] uppercase tracking-wider">Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="sub in semester.subjects" :key="sub.maChuongTrinhMonHoc" class="hover:bg-(--surface-input)/50 transition-colors">
+                  <td class="px-4 py-2.5">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-(--surface-input) text-heading border border-default">{{ sub.maCodeMonHoc }}</span>
+                  </td>
+                  <td class="px-4 py-2.5 font-semibold text-heading">{{ sub.tenMonHoc }}</td>
+                  <td class="px-4 py-2.5">
+                    <span class="font-bold text-heading">{{ sub.soTinChi }}</span>
+                  </td>
+                  <td class="px-4 py-2.5">
+                    <span class="text-xs px-2 py-0.5 rounded bg-(--surface-input) text-muted border border-default">{{ sub.loaiMonHoc }}</span>
+                  </td>
+                  <td class="px-4 py-2.5">
+                    <span v-if="sub.batBuoc" class="text-(--color-success-text) bg-(--color-success-bg) px-2 py-0.5 rounded text-xs font-bold">Bắt buộc</span>
+                    <span v-else class="text-muted bg-(--surface-input) px-2 py-0.5 rounded text-xs">Tự chọn</span>
+                  </td>
+                  <td class="px-4 py-2.5 text-muted">{{ sub.thuTu }}</td>
+                  <td class="px-4 py-2.5">
+                    <span :class="sub.conHoatDong ? 'text-(--color-success-text)' : 'text-(--color-danger-text)'" class="text-xs font-bold">
+                      {{ sub.conHoatDong ? 'Hoạt động' : 'Ngừng' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot v-if="semester.ghiChu">
+                <tr>
+                  <td colspan="7" class="px-4 py-2 text-xs text-muted italic">
+                    📝 {{ semester.ghiChu }}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
       </div>
 
-      <div v-if="!selectedProgram" class="text-center py-12 text-muted">
-        <Library :size="40" class="mx-auto mb-3 opacity-50" />
-        <p>Vui lòng chọn chương trình đào tạo để xem khung chương trình.</p>
+      <div v-else-if="selectedProgram" class="surface-card border border-card rounded-2xl p-12 text-center text-muted">
+        <Library :size="40" class="mx-auto mb-3 opacity-50 text-placeholder" />
+        <p class="text-sm font-semibold">Chương trình đào tạo này chưa được thiết lập học kỳ & danh mục môn học.</p>
+      </div>
+
+      <div v-else class="surface-card border border-card rounded-2xl p-12 text-center text-muted">
+        <Library :size="40" class="mx-auto mb-3 opacity-50 text-placeholder" />
+        <p class="text-sm font-semibold">Vui lòng chọn chương trình đào tạo để xem khung chương trình.</p>
       </div>
     </template>
     </template>
@@ -113,9 +120,10 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { Library, CheckCircle2, FileText, AlertCircle, Eye, Archive, Loader2 } from 'lucide-vue-next'
+import { Library, AlertCircle, Loader2 } from 'lucide-vue-next'
 import { bghApi } from '@/services/bghApi'
-import { apiRequest, unwrapApiData } from '@/services/apiClient'
+import LmsSelect from '@/components/LmsSelect.vue'
+import { unwrapApiData } from '@/services/apiClient'
 
 const loading = ref(false)
 const error = ref(null)
@@ -135,7 +143,8 @@ async function loadData() {
     const progRes = await bghApi.getPrograms()
     programs.value = unwrapApiData(progRes) || []
     if (programs.value.length > 0) {
-      selectedProgram.value = programs.value[0].maChuongTrinh
+      const first = programs.value[0]
+      selectedProgram.value = first.maChuongTrinh || first.id
     }
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu chương trình đào tạo'
@@ -153,22 +162,20 @@ watch(selectedProgram, async (newVal) => {
   loadingCurriculum.value = true
   curriculumError.value = null
   try {
-    const [termsRes, subjectsRes] = await Promise.all([
-      apiRequest(`/api/master-data/training-programs/${newVal}/terms`),
-      apiRequest(`/api/master-data/training-programs/${newVal}/subjects`),
-    ])
-    programTerms.value = unwrapApiData(termsRes) || []
-    programSubjects.value = unwrapApiData(subjectsRes) || []
+    const response = await bghApi.getProgramCurriculum(newVal)
+    const curriculum = unwrapApiData(response) || {}
+    programTerms.value = curriculum.terms || []
+    programSubjects.value = curriculum.subjects || []
   } catch (e) {
-    curriculumError.value = e?.message || 'Lỗi tải dữ liệu khung chương trình'
     programTerms.value = []
     programSubjects.value = []
+    curriculumError.value = e?.message || 'Không thể tải khung chương trình từ CSDL.'
   } finally {
     loadingCurriculum.value = false
   }
 })
 
-const currentProgram = computed(() => programs.value.find(p => p.maChuongTrinh === selectedProgram.value))
+const currentProgram = computed(() => programs.value.find(p => (p.maChuongTrinh || p.id) === selectedProgram.value))
 
 const totalCredits = computed(() => {
   let total = 0

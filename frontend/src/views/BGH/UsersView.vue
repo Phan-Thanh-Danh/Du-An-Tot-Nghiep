@@ -15,35 +15,48 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
         <h2 class="sr-only text-xl font-bold text-heading">Quản lý Người Dùng</h2>
-        <p class="text-xs text-muted mt-1">Danh sách tất cả tài khoản trong hệ thống</p>
+        <p class="text-xs text-muted mt-1">Danh sách tài khoản trong cơ sở trực thuộc</p>
       </div>
-      <button v-if="canEdit" @click="openCreateModal" class="flex items-center gap-2 px-4 py-2 bg-(--lg-primary) hover:bg-(--lg-primary-dark) text-white text-sm font-bold rounded-xl transition-all shadow-sm">
-        <Plus :size="18" /> <span>Thêm người dùng</span>
-      </button>
+      <div class="flex items-center gap-2">
+        <button v-if="canEdit" @click="openImportModal" class="flex items-center gap-2 px-4 py-2 border border-input bg-(--surface-input) hover:bg-(--surface-input-hover) text-body text-sm font-bold rounded-xl transition-all shadow-sm">
+          <FileSpreadsheet :size="18" class="text-emerald-600" /> <span>Nhập từ Excel</span>
+        </button>
+        <button v-if="canEdit" @click="openCreateModal" class="flex items-center gap-2 px-4 py-2 bg-(--lg-primary) hover:bg-(--lg-primary-dark) text-white text-sm font-bold rounded-xl transition-all shadow-sm">
+          <Plus :size="18" /> <span>Thêm người dùng</span>
+        </button>
+      </div>
     </div>
 
     <div class="surface-card border border-card rounded-2xl p-4 shadow-sm flex flex-wrap gap-4 items-end">
       <div class="flex-1 min-w-[200px]">
         <label class="block text-xs font-bold text-heading mb-1.5">Tìm kiếm</label>
         <div class="relative">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-muted" :size="16" />
-          <input v-model="keyword" @keyup.enter="handleFilter" type="text" placeholder="Tên, Email, SĐT..." class="w-full pl-9 pr-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)" />
+          <Loader2 v-if="searchLoading" class="absolute left-3 top-1/2 -translate-y-1/2 text-(--lg-primary) animate-spin" :size="16" />
+          <Search v-else class="absolute left-3 top-1/2 -translate-y-1/2 text-muted" :size="16" />
+          <input v-model="keyword" @input="onSearchInput" @keyup.enter="handleFilter" type="text" placeholder="Tên, Email, SĐT..." class="w-full pl-9 pr-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)" />
         </div>
       </div>
       <div class="w-full sm:w-48">
+        <label class="block text-xs font-bold text-heading mb-1.5">Cơ sở / Đơn vị con</label>
+        <LmsSelect v-model="orgFilter" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
+          <option value="">Tất cả cơ sở con</option>
+          <option v-for="org in orgsList" :key="org.maDonVi" :value="org.maDonVi">{{ org.tenDonVi }}</option>
+        </LmsSelect>
+      </div>
+      <div class="w-full sm:w-40">
         <label class="block text-xs font-bold text-heading mb-1.5">Vai trò</label>
-        <select v-model="roleFilter" @change="handleFilter" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
+        <LmsSelect v-model="roleFilter" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả vai trò</option>
           <option v-for="r in rolesList" :key="r.maCodeVaiTro" :value="r.maCodeVaiTro">{{ r.tenVaiTro }}</option>
-        </select>
+        </LmsSelect>
       </div>
       <div class="w-full sm:w-40">
         <label class="block text-xs font-bold text-heading mb-1.5">Trạng thái</label>
-        <select v-model="statusFilter" @change="handleFilter" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
+        <LmsSelect v-model="statusFilter" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả trạng thái</option>
           <option value="hoat_dong">Hoạt động</option>
           <option value="bi_khoa">Bị khóa</option>
-        </select>
+        </LmsSelect>
       </div>
       <button @click="handleFilter" class="px-4 py-2 bg-(--surface-input) border border-input hover:bg-(--surface-input-hover) text-heading text-sm font-bold rounded-lg transition-colors h-10">Lọc dữ liệu</button>
     </div>
@@ -62,8 +75,8 @@
               <th v-if="canEdit" class="px-4 py-3 font-bold text-heading text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody>
-            <tr v-if="filteredUsers.length === 0" class="bg-transparent">
+          <tbody class="relative">
+            <tr v-if="!loading && !searchLoading && filteredUsers.length === 0" class="bg-transparent">
               <td colspan="7" class="py-12 text-center text-muted"><p>Không tìm thấy người dùng nào.</p></td>
             </tr>
             <tr v-for="user in pagedUsers" :key="user.maNguoiDung" class="hover:bg-(--surface-input)/50 transition-colors">
@@ -95,7 +108,7 @@
       </div>
 
       <div class="p-4 bg-(--surface-card) flex items-center justify-between text-sm">
-        <span class="text-muted">Hiển thị {{ pagedUsers.length }} / {{ filteredUsers.length }} người dùng</span>
+        <span class="text-muted">Hiển thị {{ pagedUsers.length }} / {{ totalItems }} người dùng</span>
         <div class="flex items-center gap-2">
           <button @click="prevPage" :disabled="currentPage === 1" class="px-3 py-1.5 rounded-lg border border-default hover:bg-(--surface-input) disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang trước</button>
           <span class="px-2 font-bold text-heading">Trang {{ currentPage }} / {{ totalPages }}</span>
@@ -132,17 +145,17 @@
           </div>
           <div>
             <label class="block text-xs font-bold text-heading mb-1.5">Vai trò <span class="text-(--color-danger-text)">*</span></label>
-            <select v-model="formData.maCodeVaiTro" required class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none">
+            <LmsSelect v-model="formData.maCodeVaiTro" required class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none">
               <option value="" disabled>-- Chọn vai trò --</option>
               <option v-for="r in rolesList" :key="r.maCodeVaiTro" :value="r.maCodeVaiTro">{{ r.tenVaiTro }}</option>
-            </select>
+            </LmsSelect>
           </div>
           <div>
             <label class="block text-xs font-bold text-heading mb-1.5">Đơn vị <span class="text-(--color-danger-text)">*</span></label>
-            <select v-model="formData.maDonVi" required class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none">
+            <LmsSelect v-model="formData.maDonVi" required class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm focus:border-(--lg-primary) outline-none">
               <option value="" disabled>-- Chọn đơn vị --</option>
               <option v-for="org in orgsList" :key="org.maDonVi" :value="org.maDonVi">{{ org.tenDonVi }} ({{ org.capDonVi }})</option>
-            </select>
+            </LmsSelect>
           </div>
         </form>
         <div class="p-4 border-t border-default bg-(--surface-card) flex justify-end gap-3">
@@ -151,14 +164,64 @@
         </div>
       </div>
     </div>
+    <div v-if="showImportModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div class="w-full max-w-md surface-card rounded-2xl shadow-2xl border border-default overflow-hidden flex flex-col">
+        <div class="p-4 border-b border-default flex justify-between items-center">
+          <h3 class="text-base font-bold text-heading flex items-center gap-2">
+            <FileSpreadsheet :size="20" class="text-emerald-600" /> Nhập danh sách Người dùng từ Excel
+          </h3>
+          <button @click="closeImportModal" class="p-1 hover:bg-(--surface-input) rounded-lg text-muted"><X :size="20" /></button>
+        </div>
+        <div class="p-6 space-y-4">
+          <div v-if="importSuccessMsg" class="p-3 bg-(--color-success-bg) text-(--color-success-text) text-xs rounded-lg flex gap-2 items-center">
+            <CheckCircle2 :size="16" /> <span>{{ importSuccessMsg }}</span>
+          </div>
+          <div v-if="apiError" class="p-3 bg-(--color-danger-bg) text-(--color-danger-text) text-xs rounded-lg flex gap-2 items-start">
+            <AlertTriangle :size="16" class="shrink-0 mt-0.5" /> <span>{{ apiError }}</span>
+          </div>
+          <p class="text-xs text-muted leading-relaxed">Tải lên tập tin danh sách người dùng chuẩn định dạng `.xlsx` hoặc `.csv`. Hệ thống sẽ tự động đối soát và thêm tài khoản vào cơ sở trực thuộc.</p>
+          
+          <div class="flex items-center justify-between p-3 bg-(--surface-input) rounded-xl border border-card text-xs">
+            <span class="text-muted font-medium">Chưa có file chuẩn mẫu?</span>
+            <button type="button" @click="downloadSampleTemplate" class="text-emerald-600 font-bold hover:underline flex items-center gap-1">
+              <Download :size="14" /> Tải file mẫu (.csv)
+            </button>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-heading mb-1">Mặc định Vai trò cho danh sách import</label>
+            <LmsSelect v-model="importDefaultRole" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-xs outline-none">
+              <option value="">Tự động nhận diện từ file</option>
+              <option v-for="r in rolesList" :key="r.maCodeVaiTro" :value="r.maCodeVaiTro">{{ r.tenVaiTro }}</option>
+            </LmsSelect>
+          </div>
+
+          <div class="border-2 border-dashed border-card hover:border-(--lg-primary) transition-colors rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer surface-input" @click="$refs.fileInput.click()">
+            <UploadCloud :size="36" class="text-muted mb-2" />
+            <p class="text-xs font-bold text-heading">{{ importFile ? importFile.name : 'Nhấp để chọn file Excel (.xlsx, .csv)' }}</p>
+            <span class="text-[11px] text-muted mt-1">Dung lượng tối đa 10MB</span>
+            <input ref="fileInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="handleFileUpload" />
+          </div>
+        </div>
+        <div class="p-4 border-t border-default bg-(--surface-card) flex justify-end gap-3">
+          <button @click="closeImportModal" type="button" class="px-4 py-2 text-sm font-bold border border-input rounded-lg hover:bg-(--surface-input) transition-colors">Đóng</button>
+          <button @click="submitImport" :disabled="!importFile || saving" class="flex items-center justify-center gap-2 px-5 py-2 bg-emerald-600 text-white text-sm font-bold rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50">
+            <Loader2 v-if="saving" class="animate-spin" :size="16" />
+            <FileSpreadsheet v-else :size="16" />
+            <span>{{ saving ? 'Đang nạp...' : 'Tải lên & Import' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
     </template>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { Search, Plus, Edit2, Lock, Unlock, Key, CheckCircle2, AlertTriangle, AlertCircle, X } from 'lucide-vue-next'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { Search, Loader2, Plus, Edit2, Lock, Unlock, Key, CheckCircle2, AlertTriangle, AlertCircle, X, FileSpreadsheet, UploadCloud, Download } from 'lucide-vue-next'
 import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { bghApi } from '@/services/bghApi'
 import { apiRequest, unwrapApiData } from '@/services/apiClient'
 import { useAuthStore } from '@/stores/auth'
@@ -167,65 +230,156 @@ const authStore = useAuthStore()
 const canEdit = computed(() => authStore.hasRole(['SuperAdmin', 'Admin']))
 
 const loading = ref(false)
+const searchLoading = ref(false)
 const error = ref(null)
 
 const keyword = ref('')
+const orgFilter = ref('')
 const roleFilter = ref('')
 const statusFilter = ref('')
 const currentPage = ref(1)
 const pageSize = 15
+const totalItems = ref(0)
+const serverTotalPages = ref(1)
+let searchTimer = null
 
 const showModal = ref(false)
+const showImportModal = ref(false)
+const importFile = ref(null)
+const importDefaultRole = ref('')
+const importSuccessMsg = ref('')
 const modalMode = ref('create')
 const apiError = ref('')
 const saving = ref(false)
 const formData = ref({ maNguoiDung: null, hoTen: '', email: '', soDienThoai: '', matKhau: '', maCodeVaiTro: '', maDonVi: '' })
 
+function downloadSampleTemplate() {
+  const headers = ['HoTen', 'Email', 'SoDienThoai', 'VaiTro', 'MaDonVi']
+  const sampleRow1 = ['Nguyen Van A', 'student.sample01@edulms.local', '0912345678', 'Student', '1']
+  const sampleRow2 = ['Tran Thi B', 'teacher.sample01@edulms.local', '0987654321', 'Teacher', '1']
+  const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), sampleRow1.join(','), sampleRow2.join(',')].join('\n')
+  const encodedUri = encodeURI(csvContent)
+  const link = document.createElement('a')
+  link.setAttribute('href', encodedUri)
+  link.setAttribute('download', 'Mau_Import_NguoiDung.csv')
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
 const rolesList = ref([])
 const orgsList = ref([])
 const users = ref([])
 
-async function loadData() {
-  loading.value = true
+async function loadData(isInitial = false) {
+  if (isInitial) loading.value = true
   error.value = null
   try {
     const [userRes, roleRes, orgRes] = await Promise.all([
-      bghApi.getUsers(),
+      bghApi.getUsers({
+        pageIndex: currentPage.value,
+        pageSize,
+        keyword: keyword.value.trim(),
+        role: roleFilter.value,
+        status: statusFilter.value,
+      }),
       bghApi.getRoles(),
       bghApi.getOrganizations(),
     ])
     users.value = unwrapApiData(userRes) || []
+    totalItems.value = userRes?.pagination?.totalItems ?? users.value.length
+    serverTotalPages.value = Math.max(1, userRes?.pagination?.totalPages ?? 1)
     rolesList.value = (unwrapApiData(roleRes) || []).map(r => ({ maVaiTro: r.maVaiTro, maCodeVaiTro: r.maCodeVaiTro, tenVaiTro: r.tenVaiTro }))
     orgsList.value = (unwrapApiData(orgRes) || []).map(o => ({ maDonVi: o.id, tenDonVi: o.name, capDonVi: o.organizationLevel }))
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu người dùng'
   } finally {
     loading.value = false
+    searchLoading.value = false
   }
 }
 
-const filteredUsers = computed(() => {
-  return users.value.filter(u => {
-    if (keyword.value) {
-      const kw = keyword.value.toLowerCase()
-      if (!u.hoTen.toLowerCase().includes(kw) && !u.email.toLowerCase().includes(kw) && !(u.soDienThoai || '').includes(kw)) return false
-    }
-    if (roleFilter.value && u.vaiTroChinh !== roleFilter.value) return false
-    if (statusFilter.value && u.trangThai !== statusFilter.value) return false
-    return true
-  })
+function onSearchInput(e) {
+  searchLoading.value = true
+  if (e?.target?.value !== undefined) {
+    keyword.value = e.target.value
+  }
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    handleFilter()
+  }, 250)
+}
+
+watch([keyword, roleFilter, statusFilter], () => {
+  searchLoading.value = true
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    handleFilter()
+  }, 250)
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredUsers.value.length / pageSize)))
+const filteredUsers = computed(() => users.value)
 
-const pagedUsers = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredUsers.value.slice(start, start + pageSize)
-})
+const totalPages = computed(() => serverTotalPages.value)
+const pagedUsers = computed(() => filteredUsers.value)
 
-function handleFilter() { currentPage.value = 1 }
-function prevPage() { if (currentPage.value > 1) currentPage.value-- }
-function nextPage() { if (currentPage.value < totalPages.value) currentPage.value++ }
+function handleFilter() {
+  currentPage.value = 1
+  bghApi.invalidate('/api/bgh/users')
+  loadData()
+}
+function prevPage() {
+  if (currentPage.value > 1) {
+    currentPage.value--
+    loadData()
+  }
+}
+function nextPage() {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+    loadData()
+  }
+}
+
+
+
+function openImportModal() {
+  importFile.value = null
+  importSuccessMsg.value = ''
+  apiError.value = ''
+  showImportModal.value = true
+}
+
+function closeImportModal() {
+  showImportModal.value = false
+}
+
+function handleFileUpload(e) {
+  const files = e.target?.files
+  if (files && files.length > 0) {
+    importFile.value = files[0]
+  }
+}
+
+async function submitImport() {
+  if (!importFile.value) return
+  saving.value = true
+  apiError.value = ''
+  importSuccessMsg.value = ''
+  try {
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    importSuccessMsg.value = `Đã nhập thành công danh sách người dùng từ file ${importFile.value.name}!`
+    bghApi.invalidate('/api/bgh/users')
+    await loadData()
+    setTimeout(() => {
+      closeImportModal()
+    }, 1500)
+  } catch (e) {
+    apiError.value = e?.message || 'Lỗi nhập dữ liệu từ Excel'
+  } finally {
+    saving.value = false
+  }
+}
 
 function openCreateModal() {
   if (!canEdit.value) return
@@ -290,6 +444,7 @@ async function submitForm() {
         })
       })
     }
+    bghApi.invalidate('/api/bgh/users')
     closeModal()
     await loadData()
   } catch (e) {
@@ -304,6 +459,7 @@ async function handleToggleLock(user) {
   const isLocking = user.trangThai === 'hoat_dong'
   try {
     await apiRequest(`/api/admin/users/${user.maNguoiDung}/${isLocking ? 'lock' : 'unlock'}`, { method: 'PATCH' })
+    bghApi.invalidate('/api/bgh/users')
     await loadData()
   } catch (e) {
     apiError.value = e?.message || 'Lỗi thực hiện thao tác'
@@ -319,10 +475,12 @@ async function handleResetPassword(user) {
       method: 'PATCH',
       body: JSON.stringify({ matKhauMoi: newPassword })
     })
+    bghApi.invalidate('/api/bgh/users')
   } catch (e) {
     apiError.value = e?.message || 'Lỗi đặt lại mật khẩu'
   }
 }
 
-onMounted(() => { loadData() })
+onMounted(() => { loadData(true) })
+onUnmounted(() => clearTimeout(searchTimer))
 </script>

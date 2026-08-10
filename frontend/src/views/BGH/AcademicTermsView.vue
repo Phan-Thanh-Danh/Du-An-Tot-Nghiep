@@ -22,10 +22,10 @@
         <p class="text-xs text-muted mt-1">Danh sách các học kỳ, khóa tuyển sinh trên toàn hệ thống</p>
       </div>
       <div class="flex gap-2">
-        <select v-model="yearFilter" @change="filterData" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
+        <LmsSelect v-model="yearFilter" @change="filterData" class="px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả năm học</option>
           <option v-for="y in academicYears" :key="y" :value="y">{{ y }}</option>
-        </select>
+        </LmsSelect>
       </div>
     </div>
 
@@ -103,6 +103,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { CalendarDays, Lock, Unlock, AlertCircle, Loader2 } from 'lucide-vue-next'
 import { bghApi } from '@/services/bghApi'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { unwrapApiData } from '@/services/apiClient'
 
 const loading = ref(false)
@@ -111,13 +112,18 @@ const error = ref(null)
 const yearFilter = ref('')
 
 const terms = ref([])
+const cohorts = ref([])
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const res = await bghApi.getAcademicTerms()
-    terms.value = unwrapApiData(res) || []
+    const [termsRes, cohortsRes] = await Promise.all([
+      bghApi.getAcademicTerms(),
+      bghApi.getCohorts(),
+    ])
+    terms.value = unwrapApiData(termsRes) || []
+    cohorts.value = unwrapApiData(cohortsRes) || []
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu học kỳ'
   } finally {
@@ -129,13 +135,6 @@ const academicYears = computed(() => {
   const years = new Set(terms.value.map(t => t.namHoc))
   return [...years].sort()
 })
-
-const cohorts = [
-  { maKhoaTuyenSinh: 1, maCodeKhoa: 'K18', tenKhoa: 'Khóa 18 (2023-2026)', namBatDau: 2023, namKetThucDuKien: 2026, moTa: 'Tuyển sinh năm 2023 - hệ Cao đẳng chính quy', conHoatDong: true },
-  { maKhoaTuyenSinh: 2, maCodeKhoa: 'K19', tenKhoa: 'Khóa 19 (2024-2027)', namBatDau: 2024, namKetThucDuKien: 2027, moTa: 'Tuyển sinh năm 2024 - hệ Cao đẳng chính quy', conHoatDong: true },
-  { maKhoaTuyenSinh: 3, maCodeKhoa: 'K20', tenKhoa: 'Khóa 20 (2025-2028)', namBatDau: 2025, namKetThucDuKien: 2028, moTa: 'Tuyển sinh năm 2025 - hệ Cao đẳng chính quy', conHoatDong: true },
-  { maKhoaTuyenSinh: 4, maCodeKhoa: 'K21', tenKhoa: 'Khóa 21 (2026-2029)', namBatDau: 2026, namKetThucDuKien: 2029, moTa: 'Tuyển sinh năm 2026 - hệ Cao đẳng chính quy', conHoatDong: false },
-]
 
 const filteredTerms = computed(() => {
   if (!yearFilter.value) return terms.value

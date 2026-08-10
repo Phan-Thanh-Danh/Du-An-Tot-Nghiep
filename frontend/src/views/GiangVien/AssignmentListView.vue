@@ -45,7 +45,8 @@ const filteredAssignments = computed(() => {
   if (!searchQuery.value) return assignments.value
   const lower = searchQuery.value.toLowerCase()
   return assignments.value.filter(a => 
-    (a.tieuDe ?? a.TieuDe ?? a.name ?? a.Name ?? '').toLowerCase().includes(lower)
+    (a.tieuDe ?? a.TieuDe ?? a.name ?? a.Name ?? '').toLowerCase().includes(lower) ||
+    (a.moTa ?? a.MoTa ?? a.description ?? a.Description ?? '').toLowerCase().includes(lower)
   )
 })
 

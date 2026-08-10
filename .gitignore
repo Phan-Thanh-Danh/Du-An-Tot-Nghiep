@@ -71,6 +71,11 @@ frontend/package-lock.json
 *.trx
 TestResults/
 
+# Local SQL Server backups and machine-specific reseed evidence
+*.bak
+/docs/artifacts/lms-data-reseed/LMS_DATA_RESEED_REPORT.md
+/docs/artifacts/lms-data-reseed/RESTORE_LMS_BACKUP.sql
+
 .aider*
 
 # Scratch and temp files

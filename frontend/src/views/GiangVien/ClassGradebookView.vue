@@ -15,7 +15,8 @@ import {
   Calendar,
   ArrowLeft,
   Eye,
-  X
+  X,
+  FileText
 } from 'lucide-vue-next'
 
 import GlassBadge from '@/components/ui/GlassBadge.vue'
@@ -23,6 +24,7 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 import TeacherClassCard from '@/components/GiangVien/TeacherClassCard.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { teacherApi } from '@/services/teacherApi'
 
 const route = useRoute()
@@ -36,6 +38,8 @@ const selectedCourseName = ref('')
 const gradebook = ref([])
 const gradeColumns = ref([])
 const loading = ref(false)
+const searchQuery = ref('')
+const statusFilter = ref('')
 
 // ── Detail modal ──
 const showDetailModal = ref(false)
@@ -48,36 +52,91 @@ function formatGrade(value) {
   return Number(value).toFixed(2)
 }
 
+const filteredGradebook = computed(() => {
+  let list = gradebook.value
+  if (statusFilter.value) {
+    list = list.filter(sv => sv.status === statusFilter.value)
+  }
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase()
+    list = list.filter(sv =>
+      (sv.name || '').toLowerCase().includes(q) ||
+      String(sv.id || '').toLowerCase().includes(q)
+    )
+  }
+  return list
+})
+
 // ── Detail modal functions ──
 const flatColumns = computed(() => {
   if (!detailData.value) return []
   const gts = detailData.value.gradeTypes ?? detailData.value.GradeTypes ?? []
+  const typeGradesMap = detailData.value.typeGrades ?? detailData.value.TypeGrades ?? {}
   
   const cols = []
   gts.forEach(gt => {
+    const code = gt.code ?? gt.Code
     const items = gt.items ?? gt.Items ?? []
     const typeWeight = gt.weight ?? gt.Weight ?? 0
+    const avgGrade = gt.averageGrade ?? gt.AverageGrade ?? gt.grade ?? gt.Grade ?? typeGradesMap[code] ?? null
+
     if (items.length === 0) {
       cols.push({
-        gtCode: gt.code ?? gt.Code,
+        gtCode: code,
         gtName: gt.name ?? gt.Name,
         weight: typeWeight,
         itemName: '-',
-        grade: null
+        grade: avgGrade
       })
     } else {
       const itemWeight = (typeWeight / items.length)
       items.forEach(item => {
         cols.push({
-          gtCode: gt.code ?? gt.Code,
+          gtCode: code,
           gtName: gt.name ?? gt.Name,
           weight: itemWeight,
-          ...item
+          itemName: item.itemName ?? item.ItemName ?? '-',
+          grade: item.grade ?? item.Grade ?? null
         })
       })
     }
   })
+
+  const dGK = detailData.value.diemGiuaKy ?? detailData.value.DiemGiuaKy
+  const dCK = detailData.value.diemCuoiKy ?? detailData.value.DiemCuoiKy
+
+  if (dGK !== undefined && dGK !== null) {
+    cols.push({ gtCode: 'giua_ky', gtName: 'Điểm Giữa Kỳ', weight: 20, itemName: '-', grade: dGK })
+  }
+  if (dCK !== undefined && dCK !== null) {
+    cols.push({ gtCode: 'cuoi_ky', gtName: 'Điểm Cuối Kỳ', weight: 50, itemName: '-', grade: dCK })
+  }
+
   return cols
+})
+
+const calculatedDetailGpa = computed(() => {
+  if (!detailData.value) return 0
+  const apiGpa = detailData.value.gpaMonHoc ?? detailData.value.GpaMonHoc ?? detailData.value.gpa ?? detailData.value.Gpa
+  if (apiGpa !== null && apiGpa !== undefined && apiGpa !== '') {
+    return Number(apiGpa)
+  }
+  if (flatColumns.value.length > 0) {
+    let weightedSum = 0
+    let totalWeight = 0
+    flatColumns.value.forEach(col => {
+      const g = col.grade ?? col.Grade
+      const w = col.weight || 0
+      if (g !== null && g !== undefined) {
+        weightedSum += Number(g) * (w / 100)
+        totalWeight += w
+      }
+    })
+    if (totalWeight > 0) {
+      return Number(weightedSum.toFixed(2))
+    }
+  }
+  return 0
 })
 
 async function openDetail(sv) {
@@ -89,7 +148,11 @@ async function openDetail(sv) {
     const cls = myClasses.value.find(c => String(c.maKhoaHoc) === String(selectedCourseId.value))
     if (!cls) return
     const res = await teacherApi.getStudentGradeDetail(cls.maLop, sv.id)
-    detailData.value = res?.data ?? res?.Data ?? res
+    const data = res?.data ?? res?.Data ?? res
+    if (data) {
+      data.typeGrades = data.typeGrades ?? data.TypeGrades ?? {}
+    }
+    detailData.value = data
   } catch (error) {
     console.error('Lỗi khi tải chi tiết điểm:', error)
   } finally {
@@ -100,6 +163,12 @@ async function openDetail(sv) {
 function closeDetail() {
   showDetailModal.value = false
   detailData.value = null
+}
+
+function printGradebook() {
+  if (typeof window !== 'undefined') {
+    window.print()
+  }
 }
 
 const avgGPA = computed(() => {
@@ -117,7 +186,6 @@ const passRate = computed(() => {
 const summaryStats = computed(() => {
   const passed = gradebook.value.filter((student) => student.status === 'Pass').length
   const failed = gradebook.value.filter((student) => student.status === 'Fail').length
-  // Assuming 3 credits for the course for demo
   const totalCredits = gradebook.value.length * 3
 
   return [
@@ -179,24 +247,53 @@ async function loadGrades() {
 
   loading.value = true
   try {
-    // Gọi API V2 với classId và courseId
     const res = await teacherApi.getClassGradesV2(cls?.maLop || 0, courseId)
     const data = res?.data ?? res?.Data ?? res
-    gradeColumns.value = data?.gradeColumns ?? data?.GradeColumns ?? []
+    gradeColumns.value = data?.gradeColumns ?? data?.GradeColumns ?? [
+      { code: 'chuyen_can', name: 'Chuyên cần' },
+      { code: 'quiz', name: 'Quiz' },
+      { code: 'lab', name: 'Lab' },
+      { code: 'assignment', name: 'Assignment' }
+    ]
     const items = data?.students ?? data?.Students ?? []
-    gradebook.value = items.map(sv => ({
-      id: sv.studentId,
-      name: sv.studentName,
-      typeGrades: sv.typeGrades,
-      diemQuaTrinh: sv.diemQuaTrinh,
-      diemGiuaKy: sv.diemGiuaKy,
-      diemCuoiKy: sv.diemCuoiKy,
-      gpa: sv.gpaMonHoc,
-      status: sv.trangThai === 'Đạt' ? 'Pass' : sv.trangThai === 'Rớt' ? 'Fail' : 'Pending',
-      trangThai: sv.trangThai,
-      daKhoa: sv.daKhoa,
-      credits: 3 // fixed for demo
-    }))
+    gradebook.value = items.map((sv) => {
+      const typeGrades = sv.typeGrades ?? sv.TypeGrades ?? {}
+      
+      let dQT = sv.diemQuaTrinh ?? sv.DiemQuaTrinh ?? sv.diemQT ?? null
+      let dGK = sv.diemGiuaKy ?? sv.DiemGiuaKy ?? sv.diemGK ?? null
+      let dCK = sv.diemCuoiKy ?? sv.DiemCuoiKy ?? sv.diemCK ?? null
+      let gpaFromDb = sv.gpaMonHoc ?? sv.GpaMonHoc ?? sv.gpa ?? sv.Gpa ?? null
+      
+      // Calculate dQT from typeGrades if dQT is null
+      const validTgValues = Object.values(typeGrades).filter(v => v !== null && v !== undefined && !isNaN(v) && Number(v) > 0)
+      if (dQT === null && validTgValues.length > 0) {
+        const sum = validTgValues.reduce((acc, v) => acc + Number(v), 0)
+        dQT = Number((sum / validTgValues.length).toFixed(2))
+      }
+
+      let calculatedGpa = gpaFromDb !== null && gpaFromDb !== undefined ? Number(gpaFromDb) : null
+      if (calculatedGpa === null && dQT !== null && dGK !== null && dCK !== null) {
+        calculatedGpa = Number((Number(dQT) * 0.3 + Number(dGK) * 0.2 + Number(dCK) * 0.5).toFixed(2))
+      }
+
+      const hasGrades = dQT !== null || dGK !== null || dCK !== null || calculatedGpa !== null
+      const status = !hasGrades ? 'Pending' : (calculatedGpa !== null && calculatedGpa >= 5.0 ? 'Pass' : 'Fail')
+      const trangThai = !hasGrades ? 'Chưa có điểm' : (calculatedGpa !== null && calculatedGpa >= 5.0 ? 'Đạt' : 'Rớt')
+
+      return {
+        id: sv.studentId ?? sv.StudentId ?? sv.id,
+        name: sv.studentName ?? sv.StudentName ?? sv.name,
+        typeGrades: typeGrades,
+        diemQuaTrinh: dQT,
+        diemGiuaKy: dGK,
+        diemCuoiKy: dCK,
+        gpa: calculatedGpa,
+        status: status,
+        trangThai: trangThai,
+        daKhoa: sv.daKhoa ?? false,
+        credits: 3
+      }
+    })
   } catch (error) {
     console.error("Lỗi khi tải bảng điểm:", error)
     gradebook.value = []
@@ -220,14 +317,12 @@ const handleExport = async () => {
   if (!selectedCourseId.value) return
   exporting.value = true
   try {
-    // export API might still need classId, check if needed
     const cls = myClasses.value.find(c => String(c.maKhoaHoc) === String(selectedCourseId.value))
     if (!cls) return
     const blob = await teacherApi.exportClassGrades(cls.maLop)
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    // Use the class name for the file name, replacing spaces with underscores
     const safeName = (selectedCourseName.value || `KhoaHoc_${selectedCourseId.value}`).replace(/ /g, '_')
     a.download = `BangDiem_${safeName}.xlsx`
     document.body.appendChild(a)
@@ -314,7 +409,7 @@ onMounted(loadGrades)
         </div>
   
         <div class="header-actions">
-          <GlassButton variant="secondary" size="sm">
+          <GlassButton variant="secondary" size="sm" @click="printGradebook">
             <template #leading>
               <Printer :size="16" />
             </template>
@@ -370,19 +465,18 @@ onMounted(loadGrades)
         <div class="table-toolbar">
           <div>
             <h2>Bảng kết quả chi tiết</h2>
-            <p>{{ gradebook.length }} sinh viên · Học kỳ hiện tại</p>
+            <p>{{ filteredGradebook.length }} sinh viên · Học kỳ hiện tại</p>
           </div>
           <div class="filters">
             <label class="search-field">
               <Search :size="16" />
-              <input type="text" placeholder="Tìm sinh viên..." />
+              <input v-model="searchQuery" type="text" placeholder="Tìm sinh viên..." />
             </label>
-            <GlassButton variant="secondary" size="sm">
-              <template #leading>
-                <Filter :size="15" />
-              </template>
-              Trạng thái
-            </GlassButton>
+            <LmsSelect v-model="statusFilter" class="w-36">
+              <option value="">Tất cả trạng thái</option>
+              <option value="Pass">Đạt</option>
+              <option value="Fail">Rớt</option>
+            </LmsSelect>
           </div>
         </div>
   
@@ -415,7 +509,7 @@ onMounted(loadGrades)
               </tr>
             </thead>
             <tbody>
-              <tr v-for="sv in gradebook" :key="sv.id">
+              <tr v-for="sv in filteredGradebook" :key="sv.id">
                 <td>
                   <div class="student-cell">
                     <span class="student-avatar">{{ sv.name.split(' ').pop()[0] ?? '?' }}</span>
@@ -461,83 +555,67 @@ onMounted(loadGrades)
       </GlassPanel>
     </template>
     
-    <!-- ═══ MODAL: Xem chi tiết điểm ═══ -->
+    <!-- ═══ MODAL: Xem chi tiết điểm (Glassmorphism Re-design) ═══ -->
     <Teleport to="body">
-      <div v-if="showDetailModal" class="modal-overlay" @click.self="closeDetail" @keydown.esc="closeDetail">
-        <GlassPanel variant="readable" density="comfortable" :clip="false" class="detail-modal">
-          <div class="detail-header">
+      <div v-if="showDetailModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs" @click.self="closeDetail">
+        <div class="w-full max-w-3xl surface-card rounded-2xl shadow-2xl border border-card p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div class="flex justify-between items-center border-b border-card pb-3">
             <div>
-              <h2>Chi tiết điểm</h2>
-              <p>{{ detailStudentName }}</p>
+              <h3 class="text-base font-bold text-heading flex items-center gap-2">
+                <FileText :size="18" class="text-link" /> Bảng Điểm Chi Tiết Sinh Viên
+              </h3>
+              <p class="text-xs text-muted mt-0.5">{{ detailStudentName }}</p>
             </div>
-            <button class="lg-icon-button detail-close" @click="closeDetail" aria-label="Đóng">
-              <X :size="16" />
-            </button>
+            <button @click="closeDetail" class="text-muted hover:text-heading font-bold text-sm">✕</button>
           </div>
 
-          <div v-if="detailLoading" class="py-8 text-center text-muted">
-            Đang tải chi tiết điểm...
+          <div v-if="detailLoading" class="py-8 text-center text-muted text-sm">
+            Đang tải dữ liệu điểm chi tiết...
           </div>
 
           <template v-else-if="detailData">
-            <div class="detail-types-table-wrapper" style="overflow-x: auto; margin-bottom: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: white;">
-              <TableShell density="comfortable" style="width: max-content; min-width: 100%;">
-                <table class="detail-table" style="color: #333;">
-                  <thead>
-                    <tr style="background-color: #f1f5f9;">
-                      <th rowspan="2" class="sticky-col text-center" style="left: 0; min-width: 40px; z-index: 4; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">#</th>
-                      <th rowspan="2" class="sticky-col text-left" style="left: 40px; min-width: 120px; z-index: 4; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Mã sinh viên</th>
-                      <th rowspan="2" class="sticky-col text-left" style="left: 160px; min-width: 180px; z-index: 4; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Họ và tên</th>
-                      
-                      <th v-for="(gt, index) in (detailData.gradeTypes ?? detailData.GradeTypes)" :key="'gt-' + index" 
-                          :colspan="(gt.items ?? gt.Items)?.length || 1" 
-                          class="text-center font-medium text-slate-700"
-                          style="border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
-                        {{ gt.name ?? gt.Name }} <br/><span class="text-xs text-slate-500">({{ gt.weight ?? gt.Weight }}%)</span>
-                      </th>
-                      
-                      <th rowspan="2" class="text-center font-bold text-slate-700" style="min-width: 80px; border-bottom: 1px solid #e2e8f0;">Tổng kết</th>
-                      <th rowspan="2" class="text-center font-bold text-slate-700" style="min-width: 100px; border-bottom: 1px solid #e2e8f0;">Trạng thái</th>
-                    </tr>
-                    <tr style="background-color: #f8fafc;">
-                      <th v-for="(col, index) in flatColumns" :key="'col-' + index" class="text-center text-slate-600 font-medium" style="border-bottom: 1px solid #e2e8f0;">
-                        {{ col.itemName ?? col.ItemName }} <br/>
-                        <span class="text-xs text-slate-500">({{ (col.weight || 0).toFixed(1).replace('.0', '') }}%)</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody style="background: white;">
-                    <tr class="hover:bg-slate-50 transition-colors">
-                      <td class="sticky-col text-center" style="left: 0; border-right: 1px solid #f1f5f9; background: white;">1</td>
-                      <td class="sticky-col text-left font-medium" style="left: 40px; border-right: 1px solid #f1f5f9; background: white;">
-                        {{ (detailData.studentId ?? detailData.StudentId) }}
-                      </td>
-                      <td class="sticky-col text-left font-medium" style="left: 160px; border-right: 1px solid #f1f5f9; background: white;">
-                        {{ (detailData.studentName ?? detailData.StudentName) }}
-                      </td>
-                      <td v-for="(col, index) in flatColumns" :key="'td-' + index" class="text-center">
-                        <span :class="['detail-item-grade font-semibold text-[1.05rem]', (col.grade ?? col.Grade) === null ? 'text-slate-400' : 'text-slate-800']">
-                          {{ (col.grade ?? col.Grade) === null ? '—' : formatGrade(col.grade ?? col.Grade) }}
-                        </span>
-                      </td>
-                      <td class="text-center font-bold text-slate-800">
-                        {{ formatGrade(detailData.gpaMonHoc ?? detailData.GpaMonHoc) }}
-                      </td>
-                      <td class="text-center">
-                        <span :class="(detailData.trangThai ?? detailData.TrangThai) === 'Đạt' ? 'text-success font-medium' : 'text-danger font-medium'">
-                          {{ detailData.trangThai ?? detailData.TrangThai }}
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </TableShell>
+            <div class="overflow-x-auto rounded-xl border border-card surface-card">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="bg-(--surface-input) border-b border-card">
+                    <th class="py-3 px-4 font-bold text-heading">Thành phần điểm</th>
+                    <th class="py-3 px-3 text-center font-bold text-heading">Trọng số</th>
+                    <th class="py-3 px-3 text-center font-bold text-heading">Điểm thành phần</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-card">
+                  <tr v-for="(col, index) in flatColumns" :key="'col-' + index" class="hover:bg-(--surface-input)/50 transition-colors">
+                    <td class="py-2.5 px-4 font-medium text-body">
+                      {{ col.gtName }} <span v-if="col.itemName && col.itemName !== '-'" class="text-muted">({{ col.itemName }})</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-center font-semibold text-muted">
+                      {{ (col.weight || 0).toFixed(1).replace('.0', '') }}%
+                    </td>
+                    <td class="py-2.5 px-3 text-center font-mono font-bold text-heading">
+                      {{ (col.grade ?? col.Grade) === null ? '—' : formatGrade(col.grade ?? col.Grade) }}
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr class="bg-(--accent-primary-soft) border-t border-card">
+                    <td class="py-3 px-4 font-bold text-heading">Tổng kết GPA môn học</td>
+                    <td class="py-3 px-3 text-center font-bold text-heading">100%</td>
+                    <td class="py-3 px-3 text-center font-mono font-black text-lg text-link">
+                      {{ formatGrade(calculatedDetailGpa) }}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           </template>
-          <div v-else class="py-8 text-center text-muted">
-            Không thể tải chi tiết điểm.
+          <div v-else class="py-8 text-center text-muted text-sm">
+            Không thể tải dữ liệu chi tiết điểm.
           </div>
-        </GlassPanel>
+
+          <div class="flex justify-end pt-2">
+            <button @click="closeDetail" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all">Đóng</button>
+          </div>
+        </div>
       </div>
     </Teleport>
   </div>

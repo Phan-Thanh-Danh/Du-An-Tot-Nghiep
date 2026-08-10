@@ -14,14 +14,14 @@
       </div>
       <div class="w-full sm:w-44">
         <label class="block text-xs font-bold text-heading mb-1.5">Đối tượng</label>
-        <select v-model="filters.loaiDoiTuong" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
+        <LmsSelect v-model="filters.loaiDoiTuong" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả</option>
           <option v-for="t in entityTypes" :key="t" :value="t">{{ t }}</option>
-        </select>
+        </LmsSelect>
       </div>
       <div class="w-full sm-w-36">
         <label class="block text-xs font-bold text-heading mb-1.5">Hành động</label>
-        <select v-model="filters.hanhDong" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
+        <LmsSelect v-model="filters.hanhDong" class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)">
           <option value="">Tất cả</option>
           <option value="CREATE">Tạo mới</option>
           <option value="UPDATE">Cập nhật</option>
@@ -30,7 +30,7 @@
           <option value="UNLOCK">Mở khóa</option>
           <option value="LOGIN">Đăng nhập</option>
           <option value="HTTP_GET">Xem</option>
-        </select>
+        </LmsSelect>
       </div>
       <div class="w-full sm:w-36">
         <label class="block text-xs font-bold text-heading mb-1.5">Từ ngày</label>
@@ -94,7 +94,7 @@
 
       <div class="p-4 bg-(--surface-card) flex items-center justify-between text-sm">
         <span class="text-muted">
-          Hiển thị {{ displayedCount }} / {{ filteredLogs.length }} bản ghi
+          Hiển thị {{ displayedCount }} / {{ totalItems }} bản ghi
         </span>
         <div class="flex items-center gap-2">
           <button @click="prevPage" :disabled="currentPage === 1" class="px-3 py-1.5 rounded-lg border border-default hover:bg-(--surface-input) disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang trước</button>
@@ -155,13 +155,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import {
-  Activity, Search, Filter, Calendar, AlertCircle, ArrowLeft,
-  ChevronDown, ArrowUpRight, ArrowDownRight, RefreshCw, Loader2, Download,
+  Search, AlertCircle,
   History, Eye, X, Plus, Lock, Unlock, LogIn, Edit3, Trash2
 } from 'lucide-vue-next'
 import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
@@ -169,14 +169,26 @@ const loading = ref(false)
 const error = ref(null)
 
 const auditLogs = ref([])
-const auditLogsRef = auditLogs
+const totalItems = ref(0)
+const serverTotalPages = ref(1)
+let searchTimer = null
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const res = await bghApi.getAuditLogs()
+    const res = await bghApi.getAuditLogs({
+      pageIndex: currentPage.value,
+      pageSize,
+      keyword: filters.keyword.trim(),
+      entityType: filters.loaiDoiTuong,
+      action: filters.hanhDong,
+      fromDate: filters.fromDate,
+      toDate: filters.toDate,
+    })
     auditLogs.value = unwrapApiData(res) || []
+    totalItems.value = res?.pagination?.totalItems ?? auditLogs.value.length
+    serverTotalPages.value = Math.max(1, res?.pagination?.totalPages ?? 1)
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu nhật ký'
   } finally {
@@ -214,26 +226,34 @@ const filteredLogs = computed(() => {
   })
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredLogs.value.length / pageSize)))
-
-const paginatedLogs = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredLogs.value.slice(start, start + pageSize)
-})
+const totalPages = computed(() => serverTotalPages.value)
+const paginatedLogs = computed(() => filteredLogs.value)
 
 const displayedCount = computed(() => paginatedLogs.value.length)
 
 function applyFilter() {
   currentPage.value = 1
+  loadData()
 }
 
 function prevPage() {
-  if (currentPage.value > 1) currentPage.value--
+  if (currentPage.value > 1) {
+    currentPage.value--
+    loadData()
+  }
 }
 
 function nextPage() {
-  if (currentPage.value < totalPages.value) currentPage.value++
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+    loadData()
+  }
 }
+
+watch(() => filters.keyword, () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(applyFilter, 250)
+})
 
 function viewDetail(log) {
   detailLog.value = log
@@ -267,4 +287,5 @@ function actionIcon(action) {
 }
 
 onMounted(() => { loadData() })
+onUnmounted(() => clearTimeout(searchTimer))
 </script>

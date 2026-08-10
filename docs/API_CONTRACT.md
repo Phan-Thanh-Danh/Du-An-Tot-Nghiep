@@ -1270,17 +1270,40 @@ Known limitations:
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
 | GET | `/api/bgh/dashboard` | BGH/Admin/SuperAdmin | Lấy số liệu thống kê tổng quan (sinh viên, giáo viên, tỷ lệ đi học, lớp học). |
+| GET | `/api/bgh/performance/cache-stats` | BGH/Admin/SuperAdmin | Chỉ số cache BGH trong tiến trình hiện tại: hit, miss, factory execution, hit rate và số key đang theo dõi. |
+| GET | `/api/bgh/users` | BGH/Admin/SuperAdmin | Danh sách người dùng phân trang và scope theo cơ sở. Query: `pageIndex` (mặc định 1), `pageSize` (1–100), `keyword`, `role`, `status`. Response có `data` và `pagination`. |
+| GET | `/api/bgh/audit-logs` | BGH/Admin/SuperAdmin | Nhật ký kiểm toán phân trang. Query: `pageIndex`, `pageSize` (1–100), `keyword`, `entityType`, `action`, `fromDate`, `toDate`. |
+| GET | `/api/bgh/schedules` | BGH/Admin/SuperAdmin | Danh sách TKB phân trang. Query: `status`, `pageIndex`, `pageSize` (1–100). |
 | GET | `/api/bgh/evaluations` | BGH/Admin/SuperAdmin | Danh sách tất cả đánh giá giáo viên. |
-| GET | `/api/bgh/evaluations/ranking` | BGH/Admin/SuperAdmin | Xếp hạng giáo viên theo điểm đánh giá. |
-| GET | `/api/bgh/evaluations/{id}` | BGH/Admin/SuperAdmin | Chi tiết một phiếu đánh giá. |
-| GET | `/api/bgh/evaluations/overview` | BGH/Admin/SuperAdmin | Tổng quan thống kê đánh giá toàn trường. |
+| GET | `/api/bgh/evaluations/ranking` | BGH/Admin/SuperAdmin | Xếp hạng giáo viên theo điểm thật. `positive` là tỷ lệ điểm từ 3,5 trở lên (cột điểm nguyên hiện tại: 4–5), `negative` là tỷ lệ điểm từ 3 trở xuống; `trend`, `trendDelta`, `latestSemesterRating`, `previousSemesterRating` được tính từ hai học kỳ gần nhất có đánh giá. |
+| GET | `/api/bgh/evaluations/{teacherId}` | BGH/Admin/SuperAdmin | Chi tiết đánh giá một giảng viên theo dữ liệu thật: điểm trung bình, tỷ lệ tích cực/tiêu cực/trung lập, tiêu chí, nhận xét gần nhất và lịch sử theo học kỳ. |
+| GET | `/api/bgh/evaluations/overview` | BGH/Admin/SuperAdmin | Tổng quan thống kê đánh giá toàn trường, gồm tỷ lệ tích cực và tiêu cực theo cùng ngưỡng của API ranking. |
 | GET | `/api/bgh/evaluations/ai-analysis` | BGH/Admin/SuperAdmin | Phân tích đánh giá bằng AI. |
 | GET | `/api/bgh/academic/overview` | BGH/Admin/SuperAdmin | Tổng quan học vụ (GPA, Pass rate, tín chỉ, chứng chỉ). |
 | GET | `/api/bgh/academic/gpa` | BGH/Admin/SuperAdmin | Báo cáo phổ điểm GPA, trung bình các khóa. |
-| GET | `/api/bgh/academic/at-risk` | BGH/Admin/SuperAdmin | Danh sách sinh viên nguy cơ học thuật. |
-| GET | `/api/bgh/academic/reports` | BGH/Admin/SuperAdmin | Các báo cáo học vụ chi tiết (môn học rớt nhiều, nợ học phí, bảo lưu). |
-| GET | `/api/bgh/academic/pass-fail` | BGH/Admin/SuperAdmin | Tỷ lệ Đậu/Rớt môn học. |
-| GET | `/api/bgh/schedule/changes` | BGH/Admin/SuperAdmin | Các thay đổi lịch trình (nghỉ, bù, đổi phòng). |
+| GET | `/api/bgh/academic/at-risk` | BGH/Admin/SuperAdmin | Danh sách sinh viên nguy cơ học thuật phân trang. Query: `pageIndex` (mặc định 1), `pageSize` (1–100), `studentId`, `semesterId`, `keyword`. Mỗi sinh viên có GPA, số môn rớt và môn rủi ro thấp điểm nhất trong bộ lọc. |
+| GET | `/api/bgh/academic/at-risk/{studentId}/history` | BGH/Admin/SuperAdmin | Hồ sơ học tập thật của sinh viên trong phạm vi quản lý: tổng số môn rớt, GPA, chi tiết điểm từng môn theo học kỳ, lý do rớt, xác suất rủi ro và thống kê chuyên cần nếu có. |
+| GET | `/api/bgh/academic/reports` | BGH/Admin/SuperAdmin | Báo cáo học vụ truy vấn theo nút tạo báo cáo. Query tùy chọn: `reportType`, `campusId`, `semesterId`; response trả bộ lọc đã áp dụng, thời điểm tạo, tổng quan và thống kê theo học kỳ/ngành. |
+| POST | `/api/bgh/academic/reports` | BGH/Admin/SuperAdmin | Tạo báo cáo và lưu bộ lọc vào bảng `XuatBaoCao`. Body: `{ name?, reportType: "class"|"subject"|"campus", campusId?, semesterId? }`. Response gồm metadata `savedReport` và dữ liệu `report` vừa truy vấn. |
+| GET | `/api/bgh/academic/reports/saved` | BGH/Admin/SuperAdmin | Liệt kê tối đa 200 báo cáo do chính người dùng hiện tại đã lưu, mới nhất trước. |
+| GET | `/api/bgh/academic/reports/saved/{reportId}` | BGH/Admin/SuperAdmin | Mở báo cáo đã lưu: đọc lại bộ lọc từ DB và truy vấn dữ liệu mới nhất trong phạm vi cơ sở hiện tại. |
+| DELETE | `/api/bgh/academic/reports/saved/{reportId}` | BGH/Admin/SuperAdmin | Xóa báo cáo đã lưu do chính người dùng hiện tại tạo. Không xóa dữ liệu học vụ nguồn. |
+| GET | `/api/bgh/academic/pass-fail/filters` | BGH/Admin/SuperAdmin | Danh sách bộ lọc tầng NganhDaoTao -> ChuyenNganh -> MonHocTrongChuongTrinh -> HocKy cho dashboard Pass/Fail. Query: `majorId`, `specializationId`, `programSubjectId` (tùy chọn). |
+| GET | `/api/bgh/academic/pass-fail` | BGH/Admin/SuperAdmin | Tỷ lệ Đậu/Rớt môn học theo dữ liệu điểm thật. Query: `majorId`, `specializationId`, `programSubjectId`, `semesterId` (tùy chọn). |
+| GET | `/api/bgh/master-data/cohorts` | BGH/Admin/SuperAdmin | Danh sách khóa tuyển sinh có chương trình/lớp thuộc phạm vi cơ sở của người dùng BGH. |
+| GET | `/api/bgh/master-data/training-programs` | BGH/Admin/SuperAdmin | Danh sách chương trình đào tạo theo scope cơ sở; hỗ trợ query `keyword`. |
+| GET | `/api/bgh/master-data/training-programs/{programId}/curriculum` | BGH/Admin/SuperAdmin | Khung chương trình thật theo scope cơ sở, gồm danh sách `ChuongTrinhHocKy`, `MonHocTrongChuongTrinh`, tổng học kỳ, số môn và tổng tín chỉ tính từ dữ liệu chi tiết. |
+| GET | `/api/bgh/master-data/academic-terms` | BGH/Admin/SuperAdmin | Danh sách học kỳ thật theo scope cơ sở. |
+| GET | `/api/bgh/master-data/subjects` | BGH/Admin/SuperAdmin | Danh sách môn học theo scope chương trình/cơ sở; hỗ trợ query `keyword`. |
+| GET | `/api/bgh/master-data/buildings` | BGH/Admin/SuperAdmin | Danh sách tòa nhà theo scope cơ sở; trả mã tòa, đơn vị, số tầng và trạng thái hoạt động. |
+| GET | `/api/bgh/master-data/floors` | BGH/Admin/SuperAdmin | Danh sách tầng theo scope cơ sở; trả liên kết tòa nhà, đơn vị, thứ tự tầng và trạng thái hoạt động. |
+| GET | `/api/bgh/master-data/rooms` | BGH/Admin/SuperAdmin | Danh sách phòng theo scope cơ sở; trả liên kết tòa/tầng, loại phòng, sức chứa, trạng thái phòng và danh sách thiết bị trong phòng. |
+| GET | `/api/bgh/rbac/roles` | BGH/Admin/SuperAdmin | Danh sách vai trò read-only. |
+| GET | `/api/bgh/schedule/changes` | BGH/Admin/SuperAdmin | Các thay đổi lịch trình (nghỉ, dạy bù, đổi phòng/ca/giảng viên); trả `status`, `type`, `oldSlot`, `newSlot` để hiển thị và lọc. |
+| POST | `/api/bgh/schedule/changes/{changeId}/approve` | BGH/Admin/SuperAdmin | Phê duyệt yêu cầu và ghi ngày/ca/phòng/giảng viên thay thế đề xuất vào `BuoiHoc`; ghi audit và xóa cache BGH. |
+| POST | `/api/bgh/schedule/changes/{changeId}/reject` | BGH/Admin/SuperAdmin | Từ chối yêu cầu, khôi phục ca/phòng gốc từ TKB, ghi trạng thái quyết định, audit và xóa cache BGH. |
+| POST | `/api/bgh/schedules/{scheduleId}/approve` | BGH/Admin/SuperAdmin | Duyệt TKB sang trạng thái đã xuất bản, ghi audit và xóa cache BGH. |
+| POST | `/api/bgh/schedules/{scheduleId}/reject` | BGH/Admin/SuperAdmin | Từ chối TKB sang trạng thái đã hủy, ghi audit và xóa cache BGH. |
 
 ## Teacher APIs
 

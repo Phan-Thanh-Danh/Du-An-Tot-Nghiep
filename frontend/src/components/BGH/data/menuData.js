@@ -19,7 +19,6 @@ export const bghMenuGroups = [
     children: [
       { id: 'organizations', label: 'Quản lý Đơn vị', icon: 'Building2', route: '/bgh/organizations' },
       { id: 'users', label: 'Quản lý Người dùng', icon: 'Users', route: '/bgh/users' },
-      { id: 'roles', label: 'Vai trò & Phân quyền', icon: 'ShieldCheck', route: '/bgh/roles' },
     ],
   },
 

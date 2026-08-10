@@ -75,19 +75,19 @@
             </div>
             <div>
               <span>Đã điểm danh</span>
-              <strong>-</strong>
+              <strong>{{ session.attendedCount ?? 0 }}</strong>
             </div>
             <div>
               <span>Đang thi</span>
-              <strong>-</strong>
+              <strong>{{ session.inProgressCount ?? 0 }}</strong>
             </div>
             <div>
               <span>Đã nộp</span>
-              <strong>-</strong>
+              <strong>{{ session.submittedCount ?? 0 }}</strong>
             </div>
             <div>
               <span>Vi phạm</span>
-              <strong>-</strong>
+              <strong>{{ session.violationCount ?? 0 }}</strong>
             </div>
           </div>
 
