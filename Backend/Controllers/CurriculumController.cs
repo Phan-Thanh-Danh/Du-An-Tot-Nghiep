@@ -171,4 +171,20 @@ public class CurriculumController : ControllerBase
         await _service.ReorderContentAsync(lessonId, dto, ct);
         return Ok(new { success = true, message = "Sắp xếp thứ tự nội dung thành công." });
     }
+
+    [HttpPost("subjects/{subjectId}/publish")]
+    [Authorize]
+    public async Task<IActionResult> PublishSubject(int subjectId, CancellationToken ct)
+    {
+        await _service.PublishSubjectAsync(subjectId, ct);
+        return Ok(new { success = true, message = "Xuất bản môn học và tất cả các mục thành công." });
+    }
+
+    [HttpPost("subjects/{subjectId}/unpublish")]
+    [Authorize]
+    public async Task<IActionResult> UnpublishSubject(int subjectId, CancellationToken ct)
+    {
+        await _service.UnpublishSubjectAsync(subjectId, ct);
+        return Ok(new { success = true, message = "Hủy xuất bản môn học thành công." });
+    }
 }

@@ -86,6 +86,17 @@ export function useSubjectFilters() {
   watch(pageIndex, async () => {
     await fetchSubjects()
   })
+
+  let debounceTimeout: any = null
+  watch(searchQuery, () => {
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout)
+    }
+    debounceTimeout = setTimeout(async () => {
+      pageIndex.value = 1
+      await fetchSubjects()
+    }, 300)
+  })
   
   // Expose fetchSubjects directly
   const fetchSubjects = async () => {

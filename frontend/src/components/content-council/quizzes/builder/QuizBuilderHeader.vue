@@ -82,14 +82,14 @@ const formatString = computed(() => {
         </button>
 
         <button 
-          v-if="quiz.status === 'draft' || quiz.status === 'published'"
+          v-if="quiz.status === 'draft' || quiz.status === 'nhap' || quiz.status === 'published' || quiz.status === 'da_xuat_ban'"
           @click="emit('publish')"
-          :disabled="isSaving || (!canPublish && quiz.status === 'draft')"
+          :disabled="isSaving || (!canPublish && (quiz.status === 'draft' || quiz.status === 'nhap'))"
           class="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50"
-          :class="{'opacity-50 cursor-not-allowed': !canPublish && quiz.status === 'draft'}"
+          :class="{'opacity-50 cursor-not-allowed': !canPublish && (quiz.status === 'draft' || quiz.status === 'nhap')}"
         >
           <Send class="w-4 h-4" />
-          {{ quiz.status === 'published' ? 'Cập nhật bản xuất bản' : 'Xuất bản' }}
+          {{ (quiz.status === 'published' || quiz.status === 'da_xuat_ban') ? 'Cập nhật bản xuất bản' : 'Xuất bản Quiz' }}
         </button>
       </div>
 

@@ -38,7 +38,8 @@ public class QuestionBankService : IQuestionBankService
 
     public async Task<PagedResultDto<QuestionDto>> GetQuestionsAsync(QuestionFilterDto filter, CancellationToken cancellationToken = default)
     {
-        var query = _context.CauHois.Include(x => x.MonHoc).AsNoTracking();
+        var query = _context.CauHois.Include(x => x.MonHoc).AsNoTracking()
+            .Where(x => x.NoiDung != "undefined" && x.NoiDung != "" && x.NoiDung != null);
 
         if (filter.MaMonHoc.HasValue)
             query = query.Where(x => x.MaMonHoc == filter.MaMonHoc.Value);
@@ -200,23 +201,122 @@ public class QuestionBankService : IQuestionBankService
         wsQuestions.Cells[1, 3].Value = "DoKho";
         wsQuestions.Cells[1, 4].Value = "KieuLuaChon";
         wsQuestions.Cells[1, 5].Value = "NoiDung";
-        wsQuestions.Cells[1, 6].Value = "LuaChon";
-        wsQuestions.Cells[1, 7].Value = "DapAnDung";
-        wsQuestions.Cells[1, 8].Value = "GiaiThichDapAn";
+        wsQuestions.Cells[1, 6].Value = "LuaChonA";
+        wsQuestions.Cells[1, 7].Value = "LuaChonB";
+        wsQuestions.Cells[1, 8].Value = "LuaChonC";
+        wsQuestions.Cells[1, 9].Value = "LuaChonD";
+        wsQuestions.Cells[1, 10].Value = "LuaChonE";
+        wsQuestions.Cells[1, 11].Value = "DapAnDung";
+        wsQuestions.Cells[1, 12].Value = "GiaiThichDapAn";
 
+        // Mẫu 1: Trắc nghiệm (Chọn một)
         wsQuestions.Cells[2, 1].Value = "COM101";
         wsQuestions.Cells[2, 2].Value = "trac_nghiem";
         wsQuestions.Cells[2, 3].Value = "de";
         wsQuestions.Cells[2, 4].Value = "chon_mot";
         wsQuestions.Cells[2, 5].Value = "1+1 bằng mấy?";
-        wsQuestions.Cells[2, 6].Value = "[{\"Id\":\"A\",\"Content\":\"1\"},{\"Id\":\"B\",\"Content\":\"2\"}]";
-        wsQuestions.Cells[2, 7].Value = "[\"B\"]";
-        wsQuestions.Cells[2, 8].Value = "Toán học cơ bản";
+        wsQuestions.Cells[2, 6].Value = "1";
+        wsQuestions.Cells[2, 7].Value = "2";
+        wsQuestions.Cells[2, 8].Value = "3";
+        wsQuestions.Cells[2, 9].Value = "4";
+        wsQuestions.Cells[2, 10].Value = "";
+        wsQuestions.Cells[2, 11].Value = "B";
+        wsQuestions.Cells[2, 12].Value = "Phép tính cộng cơ bản";
+
+        // Mẫu 2: Tự luận
+        wsQuestions.Cells[3, 1].Value = "COM101";
+        wsQuestions.Cells[3, 2].Value = "tu_luan";
+        wsQuestions.Cells[3, 3].Value = "trung_binh";
+        wsQuestions.Cells[3, 4].Value = "";
+        wsQuestions.Cells[3, 5].Value = "Trình bày quy trình phát triển phần mềm theo phương pháp Agile và ưu điểm của mô hình Scrum.";
+        wsQuestions.Cells[3, 6].Value = "";
+        wsQuestions.Cells[3, 7].Value = "";
+        wsQuestions.Cells[3, 8].Value = "";
+        wsQuestions.Cells[3, 9].Value = "";
+        wsQuestions.Cells[3, 10].Value = "";
+        wsQuestions.Cells[3, 11].Value = "";
+        wsQuestions.Cells[3, 12].Value = "Hướng dẫn chấm: Trình bày đủ 4 giá trị cốt lõi của Agile (2.5đ), các vai trò trong Scrum (2.5đ), các sự kiện Scrum (2.5đ) và ưu điểm (2.5đ).";
+
+        // Mẫu 3: Trắc nghiệm (Chọn nhiều)
+        wsQuestions.Cells[4, 1].Value = "COM101";
+        wsQuestions.Cells[4, 2].Value = "trac_nghiem";
+        wsQuestions.Cells[4, 3].Value = "trung_binh";
+        wsQuestions.Cells[4, 4].Value = "chon_nhieu";
+        wsQuestions.Cells[4, 5].Value = "Những ngôn ngữ nào sau đây là ngôn ngữ lập trình hướng đối tượng (OOP)?";
+        wsQuestions.Cells[4, 6].Value = "Java";
+        wsQuestions.Cells[4, 7].Value = "C++";
+        wsQuestions.Cells[4, 8].Value = "HTML";
+        wsQuestions.Cells[4, 9].Value = "CSS";
+        wsQuestions.Cells[4, 10].Value = "";
+        wsQuestions.Cells[4, 11].Value = "A, B";
+        wsQuestions.Cells[4, 12].Value = "Java và C++ là ngôn ngữ OOP, HTML và CSS là ngôn ngữ đánh dấu/trang trí UI.";
 
         var wsGuide = package.Workbook.Worksheets.Add("HuongDan");
-        wsGuide.Cells[1, 1].Value = "Hướng dẫn import câu hỏi";
-        // Bổ sung hướng dẫn cơ bản nếu cần
-        
+        wsGuide.Cells[1, 1].Value = "Cột";
+        wsGuide.Cells[1, 2].Value = "Bắt buộc";
+        wsGuide.Cells[1, 3].Value = "Giá trị hợp lệ";
+        wsGuide.Cells[1, 4].Value = "Mô tả / Ghi chú";
+
+        wsGuide.Cells[2, 1].Value = "MaCodeMonHoc";
+        wsGuide.Cells[2, 2].Value = "Có";
+        wsGuide.Cells[2, 3].Value = "Mã môn học có sẵn (xem sheet DanhSachMonHoc)";
+        wsGuide.Cells[2, 4].Value = "Ví dụ: COM101, WEB201";
+
+        wsGuide.Cells[3, 1].Value = "LoaiCauHoi";
+        wsGuide.Cells[3, 2].Value = "Có";
+        wsGuide.Cells[3, 3].Value = "trac_nghiem | tu_luan";
+        wsGuide.Cells[3, 4].Value = "trac_nghiem: Trắc nghiệm; tu_luan: Tự luận";
+
+        wsGuide.Cells[4, 1].Value = "DoKho";
+        wsGuide.Cells[4, 2].Value = "Có";
+        wsGuide.Cells[4, 3].Value = "de | trung_binh | kho";
+        wsGuide.Cells[4, 4].Value = "de: Dễ; trung_binh: Trung bình; kho: Khó";
+
+        wsGuide.Cells[5, 1].Value = "KieuLuaChon";
+        wsGuide.Cells[5, 2].Value = "Trắc nghiệm";
+        wsGuide.Cells[5, 3].Value = "chon_mot | chon_nhieu";
+        wsGuide.Cells[5, 4].Value = "Dành riêng cho câu hỏi trắc nghiệm. Câu hỏi tự luận ĐỂ TRỐNG.";
+
+        wsGuide.Cells[6, 1].Value = "NoiDung";
+        wsGuide.Cells[6, 2].Value = "Có";
+        wsGuide.Cells[6, 3].Value = "Văn bản đề bài";
+        wsGuide.Cells[6, 4].Value = "Nội dung đề bài câu hỏi";
+
+        wsGuide.Cells[7, 1].Value = "LuaChonA";
+        wsGuide.Cells[7, 2].Value = "Trắc nghiệm";
+        wsGuide.Cells[7, 3].Value = "Văn bản nội dung lựa chọn A";
+        wsGuide.Cells[7, 4].Value = "Nội dung đáp án A. Đề trắc nghiệm cần ít nhất 2 lựa chọn A và B. Tự luận ĐỂ TRỐNG.";
+
+        wsGuide.Cells[8, 1].Value = "LuaChonB";
+        wsGuide.Cells[8, 2].Value = "Trắc nghiệm";
+        wsGuide.Cells[8, 3].Value = "Văn bản nội dung lựa chọn B";
+        wsGuide.Cells[8, 4].Value = "Nội dung đáp án B. Tự luận ĐỂ TRỐNG.";
+
+        wsGuide.Cells[9, 1].Value = "LuaChonC";
+        wsGuide.Cells[9, 2].Value = "Không";
+        wsGuide.Cells[9, 3].Value = "Văn bản nội dung lựa chọn C";
+        wsGuide.Cells[9, 4].Value = "Nội dung đáp án C (nếu có). Tự luận ĐỂ TRỐNG.";
+
+        wsGuide.Cells[10, 1].Value = "LuaChonD";
+        wsGuide.Cells[10, 2].Value = "Không";
+        wsGuide.Cells[10, 3].Value = "Văn bản nội dung lựa chọn D";
+        wsGuide.Cells[10, 4].Value = "Nội dung đáp án D (nếu có). Tự luận ĐỂ TRỐNG.";
+
+        wsGuide.Cells[11, 1].Value = "LuaChonE";
+        wsGuide.Cells[11, 2].Value = "Không";
+        wsGuide.Cells[11, 3].Value = "Văn bản nội dung lựa chọn E";
+        wsGuide.Cells[11, 4].Value = "Nội dung đáp án E (nếu có). Tự luận ĐỂ TRỐNG.";
+
+        wsGuide.Cells[12, 1].Value = "DapAnDung";
+        wsGuide.Cells[12, 2].Value = "Trắc nghiệm";
+        wsGuide.Cells[12, 3].Value = "Ví dụ: B hoặc A, B";
+        wsGuide.Cells[12, 4].Value = "Nhập tên chữ cái của đáp án đúng (ví dụ: B cho chọn một, hoặc A, B cho chọn nhiều). Tự luận ĐỂ TRỐNG.";
+
+        wsGuide.Cells[13, 1].Value = "GiaiThichDapAn";
+        wsGuide.Cells[13, 2].Value = "Không";
+        wsGuide.Cells[13, 3].Value = "Văn bản";
+        wsGuide.Cells[13, 4].Value = "Giải thích đáp án cho trắc nghiệm hoặc Hướng dẫn chấm cho tự luận";
+
         var wsSubjects = package.Workbook.Worksheets.Add("DanhSachMonHoc");
         wsSubjects.Cells[1, 1].Value = "MaCodeMonHoc";
         wsSubjects.Cells[1, 2].Value = "TenMonHoc";
@@ -239,45 +339,148 @@ public class QuestionBankService : IQuestionBankService
         using var stream = new MemoryStream();
         await file.CopyToAsync(stream, cancellationToken);
         using var package = new ExcelPackage(stream);
-        var ws = package.Workbook.Worksheets["Questions"];
-        if (ws == null) throw new ApiException(StatusCodes.Status400BadRequest, "Không tìm thấy sheet Questions");
+        var ws = package.Workbook.Worksheets["Questions"] ?? package.Workbook.Worksheets.FirstOrDefault();
+        if (ws == null) throw new ApiException(StatusCodes.Status400BadRequest, "Không tìm thấy sheet dữ liệu trong file Excel");
 
         int rowCount = ws.Dimension?.Rows ?? 0;
+        int colCount = ws.Dimension?.Columns ?? 0;
         if (rowCount <= 1) throw new ApiException(StatusCodes.Status400BadRequest, "File mẫu trống");
 
+        int colMaCode = 1, colLoai = 2, colDoKho = 3, colKieuLuaChon = 4, colNoiDung = 5;
+        int colLuaChonA = 6, colLuaChonB = 7, colLuaChonC = 8, colLuaChonD = 9, colLuaChonE = 10;
+        int colDapAnDung = 11, colGiaiThich = 12;
+        int colLuaChonLegacy = -1;
+
+        bool hasCustomHeaders = false;
+        for (int c = 1; c <= Math.Max(colCount, 15); c++)
+        {
+            var h = ws.Cells[1, c].Text?.Trim().ToLowerInvariant() ?? "";
+            if (string.IsNullOrEmpty(h)) continue;
+
+            if (h == "macodemonhoc" || h == "mamonhoc" || h == "mã môn" || h == "mã môn học") { colMaCode = c; hasCustomHeaders = true; }
+            else if (h == "loaicauhoi" || h == "loại câu hỏi") { colLoai = c; hasCustomHeaders = true; }
+            else if (h == "dokho" || h == "độ khó") { colDoKho = c; hasCustomHeaders = true; }
+            else if (h == "kieuluachon" || h == "kiểu lựa chọn") { colKieuLuaChon = c; hasCustomHeaders = true; }
+            else if (h == "noidung" || h == "nội dung" || h == "nội dung câu hỏi") { colNoiDung = c; hasCustomHeaders = true; }
+            else if (h == "luachona" || h == "lựa chọn a" || h == "đáp án a" || h == "a") { colLuaChonA = c; hasCustomHeaders = true; }
+            else if (h == "luachonb" || h == "lựa chọn b" || h == "đáp án b" || h == "b") { colLuaChonB = c; hasCustomHeaders = true; }
+            else if (h == "luachonc" || h == "lựa chọn c" || h == "đáp án c" || h == "c") { colLuaChonC = c; hasCustomHeaders = true; }
+            else if (h == "luachond" || h == "lựa chọn d" || h == "đáp án d" || h == "d") { colLuaChonD = c; hasCustomHeaders = true; }
+            else if (h == "luachone" || h == "lựa chọn e" || h == "đáp án e" || h == "e") { colLuaChonE = c; hasCustomHeaders = true; }
+            else if (h == "luachon" || h == "lựa chọn") { colLuaChonLegacy = c; hasCustomHeaders = true; }
+            else if (h == "dapandung" || h == "đáp án đúng" || h == "đáp án") { colDapAnDung = c; hasCustomHeaders = true; }
+            else if (h == "giaithichdapan" || h == "giaithich" || h == "giai thich" || h == "giải thích" || h == "hướng dẫn chấm") { colGiaiThich = c; hasCustomHeaders = true; }
+        }
+
+        if (!hasCustomHeaders && colLuaChonLegacy == -1 && ws.Cells[1, 6].Text?.Trim().Equals("LuaChon", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            colLuaChonLegacy = 6;
+            colDapAnDung = 7;
+            colGiaiThich = 8;
+        }
+
         var questionsToImport = new List<CauHoi>();
-        var monHocDict = await _context.DanhMucMonHocs.AsNoTracking().ToDictionaryAsync(x => x.MaCodeMonHoc, x => x.MaMonHoc, cancellationToken);
+        var monHocList = await _context.DanhMucMonHocs.AsNoTracking().ToListAsync(cancellationToken);
 
         for (int row = 2; row <= rowCount; row++)
         {
-            var maCode = ws.Cells[row, 1].Text?.Trim();
-            if (string.IsNullOrWhiteSpace(maCode)) continue; // skip empty rows
+            var rawMaCode = ws.Cells[row, colMaCode].Text?.Trim();
+            if (string.IsNullOrWhiteSpace(rawMaCode)) continue; // skip empty rows
 
-            if (!monHocDict.TryGetValue(maCode, out int maMonHoc))
-                throw new ApiException(StatusCodes.Status400BadRequest, $"Dòng {row}: Mã môn học {maCode} không tồn tại");
+            var cleanCode = rawMaCode.Split('-')[0].Trim().ToUpper();
+            var monHoc = monHocList.FirstOrDefault(x => x.MaCodeMonHoc.Trim().Equals(cleanCode, StringComparison.OrdinalIgnoreCase));
 
-            var loai = ws.Cells[row, 2].Text?.Trim() ?? "";
-            var doKho = ws.Cells[row, 3].Text?.Trim() ?? "";
-            var kieuLuaChon = ws.Cells[row, 4].Text?.Trim();
-            var noiDung = ws.Cells[row, 5].Text?.Trim() ?? "";
-            var luaChonStr = ws.Cells[row, 6].Text?.Trim();
-            var dapAnDungStr = ws.Cells[row, 7].Text?.Trim();
-            var giaiThich = ws.Cells[row, 8].Text?.Trim();
+            if (monHoc == null)
+            {
+                monHoc = monHocList.FirstOrDefault(x => x.TenMonHoc.Trim().Equals(rawMaCode, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (monHoc == null)
+                throw new ApiException(StatusCodes.Status400BadRequest, $"Dòng {row}: Không tìm thấy môn học với mã/tên '{rawMaCode}'");
+
+            int maMonHoc = monHoc.MaMonHoc;
+
+            var rawLoai = ws.Cells[row, colLoai].Text?.Trim() ?? "";
+            var rawDoKho = ws.Cells[row, colDoKho].Text?.Trim() ?? "";
+            var rawKieuLuaChon = ws.Cells[row, colKieuLuaChon].Text?.Trim();
+            var noiDung = ws.Cells[row, colNoiDung].Text?.Trim() ?? "";
+            var giaiThich = ws.Cells[row, colGiaiThich].Text?.Trim();
 
             List<QuestionChoiceDto>? luaChon = null;
             List<string>? dapAn = null;
-            
-            try
+
+            // 1. Read Choices
+            string? legacyLuaChonStr = colLuaChonLegacy > 0 ? ws.Cells[row, colLuaChonLegacy].Text?.Trim() : null;
+            if (!string.IsNullOrWhiteSpace(legacyLuaChonStr) && legacyLuaChonStr.StartsWith("["))
             {
-                if (!string.IsNullOrWhiteSpace(luaChonStr)) luaChon = JsonSerializer.Deserialize<List<QuestionChoiceDto>>(luaChonStr, JsonOptions);
-                if (!string.IsNullOrWhiteSpace(dapAnDungStr)) dapAn = JsonSerializer.Deserialize<List<string>>(dapAnDungStr, JsonOptions);
+                try
+                {
+                    luaChon = JsonSerializer.Deserialize<List<QuestionChoiceDto>>(legacyLuaChonStr, JsonOptions);
+                }
+                catch
+                {
+                    throw new ApiException(StatusCodes.Status400BadRequest, $"Dòng {row}: Sai định dạng JSON của LuaChon");
+                }
             }
-            catch
+            else
             {
-                throw new ApiException(StatusCodes.Status400BadRequest, $"Dòng {row}: Sai định dạng JSON của LuaChon hoặc DapAnDung");
+                var choiceList = new List<QuestionChoiceDto>();
+                var optA = ws.Cells[row, colLuaChonA].Text?.Trim();
+                var optB = ws.Cells[row, colLuaChonB].Text?.Trim();
+                var optC = ws.Cells[row, colLuaChonC].Text?.Trim();
+                var optD = ws.Cells[row, colLuaChonD].Text?.Trim();
+                var optE = colLuaChonE > 0 ? ws.Cells[row, colLuaChonE].Text?.Trim() : null;
+
+                if (!string.IsNullOrWhiteSpace(optA)) choiceList.Add(new QuestionChoiceDto { Id = "A", Content = optA });
+                if (!string.IsNullOrWhiteSpace(optB)) choiceList.Add(new QuestionChoiceDto { Id = "B", Content = optB });
+                if (!string.IsNullOrWhiteSpace(optC)) choiceList.Add(new QuestionChoiceDto { Id = "C", Content = optC });
+                if (!string.IsNullOrWhiteSpace(optD)) choiceList.Add(new QuestionChoiceDto { Id = "D", Content = optD });
+                if (!string.IsNullOrWhiteSpace(optE)) choiceList.Add(new QuestionChoiceDto { Id = "E", Content = optE });
+
+                if (choiceList.Count > 0) luaChon = choiceList;
             }
 
-            await ValidateQuestionAsync(null, maMonHoc, loai, noiDung, string.IsNullOrWhiteSpace(kieuLuaChon) ? null : kieuLuaChon, luaChon, dapAn, cancellationToken);
+            // 2. Read Correct Answers
+            var rawDapAn = ws.Cells[row, colDapAnDung].Text?.Trim();
+            if (!string.IsNullOrWhiteSpace(rawDapAn))
+            {
+                if (rawDapAn.StartsWith("["))
+                {
+                    try
+                    {
+                        dapAn = JsonSerializer.Deserialize<List<string>>(rawDapAn, JsonOptions);
+                    }
+                    catch
+                    {
+                        throw new ApiException(StatusCodes.Status400BadRequest, $"Dòng {row}: Sai định dạng JSON của DapAnDung");
+                    }
+                }
+                else
+                {
+                    dapAn = rawDapAn
+                        .Split(new[] { ',', ';', ' ', '|' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => s.Trim().ToUpper())
+                        .Where(s => !string.IsNullOrEmpty(s))
+                        .Distinct()
+                        .ToList();
+                }
+            }
+
+            var loai = NormalizeLoaiCauHoi(rawLoai);
+            var doKho = NormalizeDoKho(rawDoKho);
+            var kieuLuaChon = NormalizeKieuLuaChon(loai, rawKieuLuaChon, dapAn?.Count ?? 0);
+
+            try
+            {
+                await ValidateQuestionAsync(null, maMonHoc, loai, noiDung, kieuLuaChon, luaChon, dapAn, cancellationToken);
+            }
+            catch (ApiException ex)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, $"Dòng {row}: {ex.Message}");
+            }
+
+            string? luaChonJson = luaChon != null && luaChon.Count > 0 ? JsonSerializer.Serialize(luaChon, JsonOptions) : null;
+            string? dapAnDungJson = dapAn != null && dapAn.Count > 0 ? JsonSerializer.Serialize(dapAn, JsonOptions) : null;
 
             questionsToImport.Add(new CauHoi
             {
@@ -285,9 +488,9 @@ public class QuestionBankService : IQuestionBankService
                 NguoiTao = currentUser.UserId,
                 LoaiCauHoi = loai,
                 NoiDung = noiDung,
-                KieuLuaChon = string.IsNullOrWhiteSpace(kieuLuaChon) ? null : kieuLuaChon,
-                LuaChon = luaChonStr,
-                DapAnDung = dapAnDungStr,
+                KieuLuaChon = kieuLuaChon,
+                LuaChon = luaChonJson,
+                DapAnDung = dapAnDungJson,
                 GiaiThichDapAn = string.IsNullOrWhiteSpace(giaiThich) ? null : giaiThich,
                 DoKho = doKho,
                 ConHoatDong = true,
@@ -297,12 +500,49 @@ public class QuestionBankService : IQuestionBankService
 
         if (questionsToImport.Count > 0)
         {
-            _context.CauHois.AddRange(questionsToImport);
-            await _context.SaveChangesAsync(cancellationToken);
-            await _auditLogService.AddAsync(currentUser.CampusId, "CauHoi", 0, "IMPORT_QUESTIONS", currentUser.UserId, null, new { Count = questionsToImport.Count }, cancellationToken);
+            try
+            {
+                _context.CauHois.AddRange(questionsToImport);
+                await _context.SaveChangesAsync(cancellationToken);
+                await _auditLogService.AddAsync(currentUser.CampusId, "CauHoi", 0, "IMPORT_QUESTIONS", currentUser.UserId, null, new { Count = questionsToImport.Count }, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                var msg = ex.InnerException?.Message ?? ex.Message;
+                throw new ApiException(StatusCodes.Status400BadRequest, $"Lỗi lưu cơ sở dữ liệu: {msg}");
+            }
         }
 
         return questionsToImport.Count;
+    }
+
+    private static string NormalizeLoaiCauHoi(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return "trac_nghiem";
+        var s = input.Trim().ToLower();
+        if (s.Contains("tu_luan") || s.Contains("tự luận") || s.Contains("essay")) return "tu_luan";
+        return "trac_nghiem";
+    }
+
+    private static string NormalizeDoKho(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return "trung_binh";
+        var s = input.Trim().ToLower();
+        if (s.Contains("de") || s.Contains("dễ") || s.Contains("easy") || s == "1") return "de";
+        if (s.Contains("kho") || s.Contains("khó") || s.Contains("hard") || s == "3") return "kho";
+        return "trung_binh";
+    }
+
+    private static string? NormalizeKieuLuaChon(string loaiCauHoi, string? input, int answerCount)
+    {
+        if (loaiCauHoi == "tu_luan") return null;
+        if (!string.IsNullOrWhiteSpace(input))
+        {
+            var s = input.Trim().ToLower();
+            if (s.Contains("nhieu") || s.Contains("nhiều") || s.Contains("multi") || s == "2") return "chon_nhieu";
+            if (s.Contains("mot") || s.Contains("một") || s.Contains("single") || s == "1") return "chon_mot";
+        }
+        return answerCount > 1 ? "chon_nhieu" : "chon_mot";
     }
 
     private async Task ValidateQuestionAsync(int? id, int? maMonHoc, string loaiCauHoi, string noiDung, string? kieuLuaChon, List<QuestionChoiceDto>? choices, List<string>? answers, CancellationToken cancellationToken)
@@ -310,7 +550,7 @@ public class QuestionBankService : IQuestionBankService
         if (loaiCauHoi != "trac_nghiem" && loaiCauHoi != "tu_luan") throw new ApiException(StatusCodes.Status400BadRequest, "Loại câu hỏi không hợp lệ");
 
         var isDuplicate = await _context.CauHois.AnyAsync(x => x.MaMonHoc == maMonHoc && x.NoiDung.ToLower() == noiDung.ToLower() && x.MaCauHoi != id, cancellationToken);
-        if (isDuplicate) throw new ApiException(StatusCodes.Status400BadRequest, "Nội dung câu hỏi bị trùng lặp trong môn học này");
+        if (isDuplicate) throw new ApiException(StatusCodes.Status400BadRequest, $"Nội dung câu hỏi '{noiDung}' bị trùng lặp trong môn học này");
 
         if (loaiCauHoi == "trac_nghiem")
         {
@@ -321,7 +561,7 @@ public class QuestionBankService : IQuestionBankService
             if (choices.Select(c => c.Id).Distinct().Count() != choices.Count) throw new ApiException(StatusCodes.Status400BadRequest, "ID đáp án không được trùng nhau");
             if (choices.Any(c => string.IsNullOrWhiteSpace(c.Content))) throw new ApiException(StatusCodes.Status400BadRequest, "Nội dung đáp án không được rỗng");
 
-            if (!answers.All(a => choices.Any(c => c.Id == a))) throw new ApiException(StatusCodes.Status400BadRequest, "Đáp án đúng phải tồn tại trong danh sách lựa chọn");
+            if (!answers.All(a => choices.Any(c => c.Id == a))) throw new ApiException(StatusCodes.Status400BadRequest, $"Đáp án đúng ({string.Join(',', answers)}) phải tồn tại trong danh sách lựa chọn ({string.Join(',', choices.Select(c => c.Id))})");
 
             if (kieuLuaChon == "chon_mot" && answers.Count != 1) throw new ApiException(StatusCodes.Status400BadRequest, "Câu chọn một chỉ được phép có 1 đáp án đúng");
             if (kieuLuaChon == "chon_nhieu" && answers.Count < 2) throw new ApiException(StatusCodes.Status400BadRequest, "Câu chọn nhiều phải có ít nhất 2 đáp án đúng");
@@ -334,6 +574,7 @@ public class QuestionBankService : IQuestionBankService
         {
             MaCauHoi = entity.MaCauHoi,
             MaMonHoc = entity.MaMonHoc,
+            MaCodeMonHoc = entity.MonHoc?.MaCodeMonHoc,
             TenMonHoc = entity.MonHoc?.TenMonHoc,
             LoaiCauHoi = entity.LoaiCauHoi,
             NoiDung = entity.NoiDung,

@@ -25,6 +25,10 @@ public interface ICurriculumService
     Task<BaiHocNoiDungDto> UpdateContentAsync(int contentId, BaiHocNoiDungUpdateDto dto, int userId, int? campusId, CancellationToken ct = default);
     Task DeleteContentAsync(int contentId, int userId, int? campusId, CancellationToken ct = default);
 
+    // ─── Publish ─────────────────────────────────────────────
+    Task PublishSubjectAsync(int subjectId, CancellationToken ct = default);
+    Task UnpublishSubjectAsync(int subjectId, CancellationToken ct = default);
+
     // ─── Reorder ─────────────────────────────────────────────
     Task ReorderChaptersAsync(int subjectId, ReorderRequestDto dto, CancellationToken ct = default);
     Task ReorderLessonsAsync(int chapterId, ReorderRequestDto dto, CancellationToken ct = default);

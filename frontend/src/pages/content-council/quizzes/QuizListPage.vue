@@ -90,7 +90,7 @@ onMounted(async () => {
   forbidden.value = false
   apiError.value = ''
   try {
-    await quizStore.init()
+    await quizStore.init(true)
     if (quizStore.error) {
       apiError.value = quizStore.error
     }
@@ -197,10 +197,37 @@ const paginatedQuizzes = computed(() => {
   return sortedQuizzes.value.slice(start, start + pageSize.value)
 })
 
-// ─── Action Handlers ───────────────────────────────────────────────────
-const handleAction = ({ type, quiz }: { type: string, quiz: ContentCouncilQuiz }) => {
+const handleAction = async ({ type, quiz }: { type: string, quiz: ContentCouncilQuiz }) => {
   if (type === 'view') {
-    selectedQuiz.value = quiz
+    try {
+      const res = await contentCouncilApi.getQuizById(quiz.id)
+      const data = res?.data ?? res
+      if (data) {
+        const cfg = data.CauHinh ?? data.cauHinh ?? {}
+        selectedQuiz.value = {
+          ...quiz,
+          totalScore: cfg.TongDiem ?? cfg.tongDiem ?? quiz.totalScore,
+          passingScore: cfg.DiemDat ?? cfg.diemDat ?? quiz.passingScore,
+          minimumCorrectAnswers: cfg.SoCauDungToiThieu ?? cfg.soCauDungToiThieu ?? quiz.minimumCorrectAnswers,
+          unlimitedAttempts: cfg.KhongGioiHanSoLan ?? cfg.khongGioiHanSoLan ?? quiz.unlimitedAttempts,
+          maximumAttempts: cfg.SoLanLamToiDa ?? cfg.soLanLamToiDa ?? quiz.maximumAttempts,
+          finalScoreMethod: cfg.CachTinhDiemCuoi === 'lay_lan_cuoi' ? 'last' : (cfg.CachTinhDiemCuoi === 'lay_trung_binh' ? 'average' : 'highest'),
+          shuffleQuestions: cfg.XaoTronCauHoi ?? cfg.xaoTronCauHoi ?? quiz.shuffleQuestions,
+          shuffleAnswers: cfg.XaoTronDapAn ?? cfg.xaoTronDapAn ?? quiz.shuffleAnswers,
+          showResultAfterSubmit: cfg.HienKetQuaSauKhiNop ?? cfg.hienKetQuaSauKhiNop ?? quiz.showResultAfterSubmit,
+          showCorrectAnswerAfterSubmit: cfg.HienDapAnDungSauKhiNop ?? cfg.hienDapAnDungSauKhiNop ?? quiz.showCorrectAnswerAfterSubmit,
+          openAt: cfg.MoLuc ?? cfg.moLuc ?? quiz.openAt,
+          closeAt: cfg.DongLuc ?? cfg.dongLuc ?? quiz.closeAt,
+          multipleChoiceQuestionCount: data.SoCauTracNghiem ?? data.soCauTracNghiem ?? quiz.multipleChoiceQuestionCount,
+          essayQuestionCount: data.SoCauTuLuan ?? data.soCauTuLuan ?? quiz.essayQuestionCount,
+          questionCount: data.TongSoCauHoi ?? data.tongSoCauHoi ?? data.SoCauHoi ?? data.soCauHoi ?? quiz.questionCount
+        }
+      } else {
+        selectedQuiz.value = quiz
+      }
+    } catch {
+      selectedQuiz.value = quiz
+    }
     isDrawerOpen.value = true
   } 
   else if (type === 'edit') {
@@ -246,11 +273,6 @@ const handleAction = ({ type, quiz }: { type: string, quiz: ContentCouncilQuiz }
     }
   }
   else if (type === 'publish') {
-    if (quiz.trangThaiDuyet !== 'da_xac_thuc') {
-      popupStore.error('Chưa thể xuất bản', 'Quiz cần được Xác thực (Validated) trước khi xuất bản.')
-      return
-    }
-
     dialogState.value = {
       isOpen: true,
       title: 'Xuất bản Quiz?',

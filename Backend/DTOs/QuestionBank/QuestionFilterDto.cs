@@ -7,7 +7,7 @@ public class QuestionFilterDto
     [Range(1, int.MaxValue)]
     public int PageNumber { get; set; } = 1;
 
-    [Range(1, 100)]
+    [Range(1, 1000)]
     public int PageSize { get; set; } = 20;
 
     public int? MaMonHoc { get; set; }

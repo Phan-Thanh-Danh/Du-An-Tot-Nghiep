@@ -3260,43 +3260,43 @@ public static class Data
         var kh = await context.KhoaHocs.FirstOrDefaultAsync(k => k.MaLop == sd1904.MaLop && k.MaMonHoc == gen101.MaMonHoc && k.MaHocKy == hk1_2026.MaHocKy);
         if (kh != null && students.Any())
         {
-            var buoiHocs = await context.BuoiHocs.Where(b => b.MaKhoaHoc == kh.MaKhoaHoc).ToListAsync();
-            if (buoiHocs.Count < 5)
+            var caHoc = await context.CaHocs.FirstOrDefaultAsync();
+            var phongHoc = await context.PhongHocs.FirstOrDefaultAsync();
+            if (caHoc != null && phongHoc != null)
             {
-                var caHoc = await context.CaHocs.FirstOrDefaultAsync(c => c.TenCa == "Ca 1");
-                var phong = await context.PhongHocs.FirstOrDefaultAsync(p => p.MaCodePhong == "P301");
                 var tkb = await context.ThoiKhoaBieus.FirstOrDefaultAsync(t => t.MaKhoaHoc == kh.MaKhoaHoc);
-                if (caHoc != null && phong != null)
+                if (tkb == null)
                 {
-                    if (tkb == null)
+                    tkb = new ThoiKhoaBieu
                     {
-                        tkb = new ThoiKhoaBieu
-                        {
-                            MaKhoaHoc = kh.MaKhoaHoc,
-                            ThuTrongTuan = 2,
-                            MaCaHoc = caHoc.MaCaHoc,
-                            MaPhong = phong.MaPhong,
-                            NgayBatDau = hk1_2026.NgayBatDau,
-                            NgayKetThuc = hk1_2026.NgayKetThuc,
-                            TrangThai = PublishedStatus,
-                            NgayTao = DateTime.UtcNow
-                        };
-                        context.ThoiKhoaBieus.Add(tkb);
-                        await context.SaveChangesAsync();
-                    }
+                        MaKhoaHoc = kh.MaKhoaHoc,
+                        ThuTrongTuan = 2,
+                        MaCaHoc = caHoc.MaCaHoc,
+                        MaPhong = phongHoc.MaPhong,
+                        NgayBatDau = hk1_2026.NgayBatDau,
+                        NgayKetThuc = hk1_2026.NgayKetThuc,
+                        TrangThai = PublishedStatus,
+                        NgayTao = DateTime.UtcNow
+                    };
+                    context.ThoiKhoaBieus.Add(tkb);
+                    await context.SaveChangesAsync();
+                }
 
+                var buoiHocs = await context.BuoiHocs.Where(b => b.MaKhoaHoc == kh.MaKhoaHoc).ToListAsync();
+                if (buoiHocs.Count < 5)
+                {
                     for (int i = buoiHocs.Count + 1; i <= 5; i++)
                     {
                         var buoiHoc = new BuoiHoc
                         {
-                            MaTkb = tkb.MaTkb,
                             MaKhoaHoc = kh.MaKhoaHoc,
                             NgayHoc = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(i)),
-                            MaCaHoc = tkb.MaCaHoc,
-                            MaPhong = tkb.MaPhong,
-                            MaGiaoVien = kh.MaGiaoVien,
                             TrangThaiBuoi = "da_dien_ra",
                             TrangThaiDiemDanh = "da_gui",
+                            MaTkb = tkb.MaTkb,
+                            MaCaHoc = caHoc.MaCaHoc,
+                            MaPhong = phongHoc.MaPhong,
+                            MaGiaoVien = kh.MaGiaoVien,
                             NgayTao = DateTime.UtcNow
                         };
                         context.BuoiHocs.Add(buoiHoc);
@@ -3304,33 +3304,33 @@ public static class Data
                     }
                     await context.SaveChangesAsync();
                 }
-            }
 
-            var hasDiemDanh = await context.DiemDanhs.AnyAsync(d => buoiHocs.Select(b => b.MaBuoiHoc).Contains(d.MaBuoiHoc));
-            if (!hasDiemDanh)
-            {
-                var random = new Random(42);
-                foreach (var student in students)
+                var hasDiemDanh = await context.DiemDanhs.AnyAsync(d => buoiHocs.Select(b => b.MaBuoiHoc).Contains(d.MaBuoiHoc));
+                if (!hasDiemDanh)
                 {
-                    int i = students.IndexOf(student);
-                    foreach (var buoiHoc in buoiHocs)
+                    var random = new Random(42);
+                    foreach (var student in students)
                     {
-                        string status = "co_mat";
-                        if (i >= 10 && i < 20 && random.NextDouble() > 0.8) status = "vang_mat";
-                        else if (i >= 20 && i < 30) status = "vang_mat";
-
-                        context.DiemDanhs.Add(new DiemDanh
+                        int i = students.IndexOf(student);
+                        foreach (var buoiHoc in buoiHocs)
                         {
-                            MaDonVi = kh.MaDonVi,
-                            MaBuoiHoc = buoiHoc.MaBuoiHoc,
-                            MaHocSinh = student.MaNguoiDung,
-                            TrangThai = status,
-                            GhiNhanLuc = DateTime.UtcNow,
-                            NguoiGhiNhan = 1
-                        });
+                            string status = "co_mat";
+                            if (i >= 10 && i < 20 && random.NextDouble() > 0.8) status = "vang_mat";
+                            else if (i >= 20 && i < 30) status = "vang_mat";
+
+                            context.DiemDanhs.Add(new DiemDanh
+                            {
+                                MaBuoiHoc = buoiHoc.MaBuoiHoc,
+                                MaHocSinh = student.MaNguoiDung,
+                                MaDonVi = student.MaDonVi,
+                                TrangThai = status,
+                                GhiNhanLuc = DateTime.UtcNow,
+                                NguoiGhiNhan = 1
+                            });
+                        }
                     }
+                    await context.SaveChangesAsync();
                 }
-                await context.SaveChangesAsync();
             }
         }
     }

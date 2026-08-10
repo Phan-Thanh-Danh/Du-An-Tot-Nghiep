@@ -4,6 +4,7 @@ namespace Backend.DTOs.QuizManagement;
 
 public class QuizConfigurationDto
 {
+    public string MoTa { get; set; } = string.Empty;
     public decimal TongDiem { get; set; } = 10;
     public decimal DiemDat { get; set; } = 5;
     public string CachTinhDat { get; set; } = "theo_diem"; // theo_diem, theo_so_cau_dung

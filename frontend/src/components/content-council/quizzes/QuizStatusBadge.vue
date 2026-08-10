@@ -1,28 +1,39 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { QuizStatus } from '@/types/content-council/quiz'
-import { FileEdit, Send, PlayCircle, Lock, CheckCircle } from 'lucide-vue-next'
+import { FileEdit, Send, PlayCircle, Lock, CheckCircle, Clock } from 'lucide-vue-next'
 
 const props = defineProps<{
-  status: QuizStatus
+  status: QuizStatus | string
   trangThaiDuyet?: string
 }>()
 
 const statusConfig = computed(() => {
-  if (props.status === 'draft' && props.trangThaiDuyet === 'da_xac_thuc') {
+  const st = String(props.status || '').toLowerCase()
+  const duyet = String(props.trangThaiDuyet || '').toLowerCase()
+
+  if ((st === 'nhap' || st === 'draft') && duyet === 'da_xac_thuc') {
     return { label: 'Đã xác thực', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle }
   }
-  switch (props.status) {
+
+  switch (st) {
+    case 'nhap':
     case 'draft':
       return { label: 'Bản nháp', color: 'bg-slate-100 text-slate-700 border-slate-200', icon: FileEdit }
+    case 'da_xuat_ban':
     case 'published':
       return { label: 'Đã xuất bản', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Send }
+    case 'dang_mo':
     case 'open':
       return { label: 'Đang mở', color: 'bg-green-50 text-green-700 border-green-200', icon: PlayCircle }
+    case 'da_len_lich':
+    case 'scheduled':
+      return { label: 'Đã lên lịch', color: 'bg-purple-50 text-purple-700 border-purple-200', icon: Clock }
+    case 'da_dong':
     case 'closed':
       return { label: 'Đã đóng', color: 'bg-slate-100 text-slate-600 border-slate-200', icon: Lock }
     default:
-      return { label: 'Unknown', color: 'bg-slate-100 text-slate-500 border-slate-200', icon: FileEdit }
+      return { label: props.status || 'Bản nháp', color: 'bg-slate-100 text-slate-600 border-slate-200', icon: FileEdit }
   }
 })
 </script>

@@ -4,10 +4,14 @@ import { Video, PlaySquare, File, FileText, HelpCircle, Plus } from 'lucide-vue-
 
 const editor = inject<any>('curriculumEditor')
 
-const addContent = (type: string) => {
-  editor.selectedContentType.value = type
-  editor.editingContent.value = null
-  editor.isContentDrawerOpen.value = true
+const addContent = (type: any) => {
+  if (editor?.openAddContent) {
+    editor.openAddContent(type)
+  } else {
+    editor.selectedContentType.value = type
+    editor.editingContent.value = null
+    editor.isContentDrawerOpen.value = true
+  }
 }
 
 const contentTypes = [

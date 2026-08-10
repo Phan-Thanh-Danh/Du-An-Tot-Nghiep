@@ -57,12 +57,16 @@ const updateField = (field: keyof QuizFormData, value: any) => {
     }
   }
   
-  // Keep sum = 100 when adjusting mixed
+  // Keep sum = 100 when adjusting mixed, clamping inputs from 0 to 100%
   if (field === 'multipleChoicePercentage' && newData.format === 'mixed') {
-    const mc = Number(value) || 0
+    const raw = Number(value)
+    const mc = isNaN(raw) ? 0 : Math.min(100, Math.max(0, Math.round(raw)))
+    newData.multipleChoicePercentage = mc
     newData.essayPercentage = 100 - mc
   } else if (field === 'essayPercentage' && newData.format === 'mixed') {
-    const essay = Number(value) || 0
+    const raw = Number(value)
+    const essay = isNaN(raw) ? 0 : Math.min(100, Math.max(0, Math.round(raw)))
+    newData.essayPercentage = essay
     newData.multipleChoicePercentage = 100 - essay
   }
   
@@ -71,15 +75,15 @@ const updateField = (field: keyof QuizFormData, value: any) => {
 </script>
 
 <template>
-  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6" :class="{'ring-1 ring-red-500': errors['durationMinutes'] || errors['percentages']}">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6" :class="{'ring-1 ring-red-500': errors['durationMinutes']}">
     <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
       <div>
         <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-          2. Cấu trúc và hình thức đề
+          2. Cấu trúc và thời gian làm bài
         </h2>
-        <p class="text-xs text-slate-500 mt-1">Xác định hình thức thi và thời lượng cho phép.</p>
+        <p class="text-xs text-slate-500 mt-1">Xác định loại đề và thời lượng làm bài cho phép (Hình thức: Trắc nghiệm).</p>
       </div>
-      <div v-if="errors['durationMinutes'] || errors['percentages']" class="text-xs font-medium bg-red-100 text-red-700 px-2.5 py-1 rounded-full flex items-center gap-1" role="alert">
+      <div v-if="errors['durationMinutes']" class="text-xs font-medium bg-red-100 text-red-700 px-2.5 py-1 rounded-full flex items-center gap-1" role="alert">
         <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>
         Có lỗi
       </div>
@@ -114,70 +118,6 @@ const updateField = (field: keyof QuizFormData, value: any) => {
             <span class="text-xs text-slate-500">{{ type.desc }}</span>
           </label>
         </div>
-      </div>
-
-      <!-- Hình thức đề -->
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-3">Hình thức đề</label>
-        <div class="flex flex-wrap gap-4">
-          <label 
-            v-for="format in formats" 
-            :key="format.value"
-            class="flex items-center gap-2 cursor-pointer"
-            :class="isReadOnly ? 'opacity-70 cursor-not-allowed' : ''"
-          >
-            <input 
-              type="radio" 
-              :value="format.value" 
-              :checked="formData.format === format.value"
-              @change="updateField('format', format.value)"
-              :disabled="isReadOnly"
-              class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500"
-            >
-            <span class="text-sm font-medium text-slate-700">{{ format.label }}</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- Tỷ lệ câu hỏi -->
-      <div v-if="formData.format === 'mixed'" class="bg-slate-50 p-4 rounded-lg border border-slate-200">
-        <label class="block text-sm font-medium text-slate-700 mb-3">Tỷ lệ cấu trúc câu hỏi</label>
-        
-        <!-- Progress Bar -->
-        <div class="h-2 w-full flex rounded-full overflow-hidden mb-4 bg-slate-200">
-          <div class="bg-blue-500 h-full transition-all duration-300" :style="`width: ${formData.multipleChoicePercentage}%`"></div>
-          <div class="bg-amber-500 h-full transition-all duration-300" :style="`width: ${formData.essayPercentage}%`"></div>
-        </div>
-
-        <div class="flex items-center gap-6">
-          <div class="flex-1 flex items-center gap-2">
-            <span class="w-3 h-3 rounded-full bg-blue-500 shrink-0"></span>
-            <span class="text-sm text-slate-600">Trắc nghiệm (%)</span>
-            <input 
-              type="number" 
-              :value="formData.multipleChoicePercentage"
-              @input="updateField('multipleChoicePercentage', Number(($event.target as HTMLInputElement).value))"
-              :disabled="isReadOnly"
-              min="0" max="100"
-              class="w-20 border border-slate-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              :class="isReadOnly ? 'bg-slate-100' : 'bg-white'"
-            />
-          </div>
-          <div class="flex-1 flex items-center gap-2">
-            <span class="w-3 h-3 rounded-full bg-amber-500 shrink-0"></span>
-            <span class="text-sm text-slate-600">Tự luận (%)</span>
-            <input 
-              type="number" 
-              :value="formData.essayPercentage"
-              @input="updateField('essayPercentage', Number(($event.target as HTMLInputElement).value))"
-              :disabled="isReadOnly"
-              min="0" max="100"
-              class="w-20 border border-slate-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              :class="isReadOnly ? 'bg-slate-100' : 'bg-white'"
-            />
-          </div>
-        </div>
-        <p v-if="errors['percentages']" class="mt-2 text-sm text-red-600">{{ errors['percentages'] }}</p>
       </div>
 
       <!-- Thời gian làm bài -->

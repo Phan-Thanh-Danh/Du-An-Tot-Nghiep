@@ -21,6 +21,8 @@ import BulkAddQuestionDialog from '@/components/content-council/quizzes/builder/
 import PublishQuizFromBuilderDialog from '@/components/content-council/quizzes/builder/PublishQuizFromBuilderDialog.vue'
 import QuestionPreviewDrawer from '@/components/content-council/quizzes/builder/QuestionPreviewDrawer.vue'
 
+import { contentCouncilApi } from '@/services/contentCouncilApi'
+
 const route = useRoute()
 const router = useRouter()
 const quizStore = useQuizStore()
@@ -69,20 +71,92 @@ onMounted(async () => {
     return
   }
 
-  // Simulate network delay removed per UX standard
+  let found = quizStore.getQuizById(qId)
+  
+  if (!found) {
+    try {
+      const res = await contentCouncilApi.getQuizById(qId)
+      const raw = res?.data ?? res
+      if (raw && (raw.MaDeKiemTra || raw.id)) {
+        found = {
+          id: raw.MaDeKiemTra ?? raw.id,
+          code: `QZ-${raw.MaDeKiemTra ?? raw.id}`,
+          title: raw.TieuDe ?? raw.tieuDe ?? '',
+          description: '',
+          subjectId: raw.MaMonHoc ?? raw.maMonHoc ?? 0,
+          subjectCode: raw.MaCodeMonHoc ?? raw.maCodeMonHoc ?? '',
+          subjectName: raw.TenMonHoc ?? raw.tenMonHoc ?? '',
+          status: raw.TrangThai ?? raw.trangThai ?? 'draft',
+          examType: 'lesson_quiz',
+          format: raw.HinhThucThi === 'tu_luan' ? 'essay' : raw.HinhThucThi === 'ket_hop' ? 'mixed' : 'multiple_choice',
+          durationMinutes: raw.ThoiGianPhut ?? 15,
+          multipleChoicePercentage: raw.TyLeTracNghiem ?? 100,
+          essayPercentage: raw.TyLeTuLuan ?? 0,
+          questionCount: raw.TongSoCauHoi ?? raw.SoCauHoi ?? 0,
+          multipleChoiceQuestionCount: raw.SoCauTracNghiem ?? 0,
+          essayQuestionCount: raw.SoCauTuLuan ?? 0,
+          totalScore: raw.CauHinh?.TongDiem ?? 10,
+          passingScore: raw.CauHinh?.DiemDat ?? null,
+          minimumCorrectAnswers: raw.CauHinh?.SoCauDungToiThieu ?? null,
+          passMethod: raw.CauHinh?.CachTinhDat === 'theo_so_cau_dung' ? 'correct_answer_count' : 'score',
+          unlimitedAttempts: raw.CauHinh?.KhongGioiHanSoLan ?? false,
+          maximumAttempts: raw.CauHinh?.SoLanLamToiDa ?? null,
+          finalScoreMethod: 'highest',
+          shuffleQuestions: raw.CauHinh?.XaoTronCauHoi ?? false,
+          shuffleAnswers: raw.CauHinh?.XaoTronDapAn ?? false,
+          showResultAfterSubmit: true,
+          showCorrectAnswerAfterSubmit: false,
+          showExplanationAfterSubmit: false,
+          openAt: null,
+          closeAt: null,
+          usageCount: 0,
+          trangThaiDuyet: 'nhap',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+        quizStore.quizzes.unshift(found)
+      }
+    } catch (e) {
+      console.error('Failed to fetch quiz by ID:', e)
+    }
+  }
 
-  const found = quizStore.getQuizById(qId)
   if (!found) {
     isLoading.value = false
     return
   }
 
   quiz.value = JSON.parse(JSON.stringify(found))
-  
+
+  // Fetch assigned quiz questions from API
+  try {
+    const qRes = await contentCouncilApi.getQuizQuestions(qId)
+    const rawList = qRes?.data ?? qRes?.items ?? qRes ?? []
+    if (Array.isArray(rawList)) {
+      quizStore.quizQuestions[qId] = rawList.map((q: any, idx: number) => ({
+        questionId: q.maCauHoi ?? q.MaCauHoi ?? q.id,
+        questionCode: q.maCauHoiCode ?? q.MaCauHoiCode ?? `Q-${q.maCauHoi ?? q.id}`,
+        questionContent: q.noiDung ?? q.NoiDung ?? '',
+        subjectId: q.maMonHoc ?? q.MaMonHoc ?? quiz.value!.subjectId,
+        questionType: (q.loaiCauHoi === 'tu_luan' || q.LoaiCauHoi === 'tu_luan') ? 'essay' : 'multiple_choice',
+        selectionType: (q.kieuLuaChon === 'chon_nhieu' || q.KieuLuaChon === 'chon_nhieu') ? 'multiple' : 'single',
+        difficulty: (q.doKho === 'kho' || q.DoKho === 'kho') ? 'hard' : (q.doKho === 'de' || q.DoKho === 'de') ? 'easy' : 'medium',
+        score: q.diemSo ?? q.DiemSo ?? 1,
+        order: q.thuTu ?? q.ThuTu ?? (idx + 1),
+        status: 'active',
+        choices: q.luaChon ?? q.LuaChon ?? [],
+        correctAnswerIds: q.dapAnDung ?? q.DapAnDung ?? [],
+        answerExplanation: q.giaiThichDapAn ?? q.GiaiThichDapAn ?? '',
+        sampleAnswer: ''
+      }))
+    }
+  } catch (qErr) {
+    console.error('Failed to fetch quiz questions:', qErr)
+  }
+
   builder = useQuizBuilder(qId, quiz.value!.subjectId)
   builder.init()
 
-  // Set read-only if open or closed
   if (quiz.value?.status === 'open' || quiz.value?.status === 'closed') {
     builder.setReadonly(true)
   }
@@ -256,6 +330,7 @@ const handleBulkAddConfirm = (scorePerQuestion: number) => {
             :can-publish="validationResult.canPublish"
             :errors="validationResult.errors"
             :warnings="validationResult.warnings"
+            @publish="handlePublish"
           />
 
           <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[400px]">

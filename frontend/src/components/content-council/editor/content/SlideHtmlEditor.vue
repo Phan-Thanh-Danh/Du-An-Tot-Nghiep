@@ -12,6 +12,7 @@ import Embed from '@editorjs/embed'
 import CodeTool from '@editorjs/code'
 import Delimiter from '@editorjs/delimiter'
 import Warning from '@editorjs/warning'
+import { storageApi } from '@/services/apiClient'
 
 const props = defineProps({
   modelValue: {
@@ -61,14 +62,27 @@ const initEditor = () => {
         class: ImageTool,
         config: {
           uploader: {
-            uploadByFile(file: File) {
-              // Mock image upload with object URL for frontend task
-              return Promise.resolve({
-                success: 1,
-                file: {
-                  url: URL.createObjectURL(file)
+            async uploadByFile(file: File) {
+              try {
+                const response = await storageApi.upload(file, 'slides')
+                if (response && response.success && response.data) {
+                  const result = Array.isArray(response.data) ? response.data[0] : response.data
+                  const imageUrl = result.url || result.Url
+                  return {
+                    success: 1,
+                    file: {
+                      url: imageUrl
+                    }
+                  }
                 }
-              })
+                throw new Error('Upload failed')
+              } catch (error) {
+                console.error('Editor.js image upload error:', error)
+                return {
+                  success: 0,
+                  message: 'Không thể upload hình ảnh'
+                }
+              }
             }
           }
         }
@@ -100,6 +114,24 @@ onBeforeUnmount(() => {
     editorInstance.destroy()
     editorInstance = null
   }
+})
+
+const saveData = async () => {
+  if (editorInstance) {
+    try {
+      const data = await editorInstance.save()
+      const jsonStr = JSON.stringify(data)
+      emit('update:modelValue', jsonStr)
+      return jsonStr
+    } catch (e) {
+      console.error('Lỗi khi lưu dữ liệu EditorJS:', e)
+    }
+  }
+  return props.modelValue
+}
+
+defineExpose({
+  saveData
 })
 </script>
 

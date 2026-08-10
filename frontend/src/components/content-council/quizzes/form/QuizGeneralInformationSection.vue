@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { QuizFormData } from '@/types/content-council/quizForm'
+import { useSubjectStore } from '@/stores/content-council/subjectStore'
+import { contentCouncilApi } from '@/services/contentCouncilApi'
 
 const props = defineProps<{
   modelValue: QuizFormData
@@ -16,8 +18,52 @@ const formData = computed({
   set: (val) => emit('update:modelValue', val)
 })
 
-const subjects = []
-const semesters = []
+const subjectStore = useSubjectStore()
+const subjects = ref<Array<{ id: number; code: string; name: string }>>([])
+
+onMounted(async () => {
+  fetchSubjects()
+})
+
+const fetchSubjects = async () => {
+  try {
+    const res = await contentCouncilApi.getSubjects({ pageSize: 200 })
+    const rawList = res?.data?.items ?? res?.data?.Items ?? res?.items ?? res?.Items ?? (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []))
+    
+    if (Array.isArray(rawList) && rawList.length > 0) {
+      subjects.value = rawList.map((s: any) => ({
+        id: Number(s.maMonHoc ?? s.MaMonHoc ?? s.id),
+        code: String(s.maCodeMonHoc ?? s.MaCodeMonHoc ?? s.code ?? ''),
+        name: String(s.tenMonHoc ?? s.TenMonHoc ?? s.name ?? '')
+      })).filter(s => s.id > 0 && s.name !== '')
+    }
+
+    if (subjects.value.length === 0) {
+      await subjectStore.fetchSubjects({ pageSize: 200 })
+      if (subjectStore.subjects.length > 0) {
+        subjects.value = subjectStore.subjects.map(s => ({
+          id: s.id,
+          code: s.code,
+          name: s.name
+        }))
+      }
+    }
+  } catch (e) {
+    console.error('Failed to fetch subjects:', e)
+    try {
+      await subjectStore.fetchSubjects({ pageSize: 200 })
+      if (subjectStore.subjects.length > 0) {
+        subjects.value = subjectStore.subjects.map(s => ({
+          id: s.id,
+          code: s.code,
+          name: s.name
+        }))
+      }
+    } catch (err) {
+      console.error('Fallback subject fetch failed:', err)
+    }
+  }
+}
 
 const updateField = (field: keyof QuizFormData, value: any) => {
   if (props.isReadOnly) return
@@ -42,53 +88,30 @@ const updateField = (field: keyof QuizFormData, value: any) => {
     </div>
 
     <div class="p-6 space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Môn học -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">
-            Môn học <span class="text-red-500">*</span>
-          </label>
-          <select
-            :value="formData.subjectId || ''"
-            @change="updateField('subjectId', Number(($event.target as HTMLSelectElement).value))"
-            :disabled="isReadOnly || hasQuestions"
-            class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:outline-none transition-colors"
-            :class="[
-              errors['subjectId'] ? 'border-red-300 focus:ring-red-500' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20',
-              (isReadOnly || hasQuestions) ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-700'
-            ]"
-          >
-            <option value="" disabled>-- Chọn môn học --</option>
-            <option v-for="sub in subjects" :key="sub.id" :value="sub.id">
-              {{ sub.code }} - {{ sub.name }}
-            </option>
-          </select>
-          <p v-if="errors['subjectId']" class="mt-1.5 text-sm text-red-600">{{ errors['subjectId'] }}</p>
-          <p v-else-if="hasQuestions" class="mt-1.5 text-xs text-amber-600">
-            Không thể đổi môn học sau khi Quiz đã có câu hỏi.
-          </p>
-        </div>
-
-        <!-- Học kỳ -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">
-            Học kỳ
-          </label>
-          <select
-            :value="formData.semesterId || ''"
-            @change="updateField('semesterId', Number(($event.target as HTMLSelectElement).value) || null)"
-            :disabled="isReadOnly"
-            class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:outline-none transition-colors"
-            :class="[
-              isReadOnly ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-700 border-slate-300 focus:border-blue-500 focus:ring-blue-500/20'
-            ]"
-          >
-            <option value="">Không gắn học kỳ</option>
-            <option v-for="sem in semesters" :key="sem.id" :value="sem.id">
-              {{ sem.name }} ({{ sem.year }})
-            </option>
-          </select>
-        </div>
+      <!-- Môn học -->
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Môn học <span class="text-red-500">*</span>
+        </label>
+        <select
+          :value="formData.subjectId || ''"
+          @change="updateField('subjectId', Number(($event.target as HTMLSelectElement).value))"
+          :disabled="isReadOnly || hasQuestions"
+          class="w-full border rounded-lg px-3.5 py-2.5 focus:ring-2 focus:outline-none transition-colors"
+          :class="[
+            errors['subjectId'] ? 'border-red-300 focus:ring-red-500' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20',
+            (isReadOnly || hasQuestions) ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-700'
+          ]"
+        >
+          <option value="" disabled>-- Chọn môn học --</option>
+          <option v-for="sub in subjects" :key="sub.id" :value="sub.id">
+            {{ sub.code }} - {{ sub.name }}
+          </option>
+        </select>
+        <p v-if="errors['subjectId']" class="mt-1.5 text-sm text-red-600">{{ errors['subjectId'] }}</p>
+        <p v-else-if="hasQuestions" class="mt-1.5 text-xs text-amber-600">
+          Không thể đổi môn học sau khi Quiz đã có câu hỏi.
+        </p>
       </div>
 
       <!-- Tiêu đề -->
@@ -102,7 +125,7 @@ const updateField = (field: keyof QuizFormData, value: any) => {
           @input="updateField('title', ($event.target as HTMLInputElement).value)"
           :disabled="isReadOnly"
           placeholder="Ví dụ: Quiz chương 1 – Tổng quan LMS"
-          class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:outline-none transition-colors"
+          class="w-full border rounded-lg px-3.5 py-2.5 focus:ring-2 focus:outline-none transition-colors"
           :class="[
             errors['title'] ? 'border-red-300 focus:ring-red-500' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20',
             isReadOnly ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-700'
@@ -127,7 +150,7 @@ const updateField = (field: keyof QuizFormData, value: any) => {
           :disabled="isReadOnly"
           placeholder="Nhập hướng dẫn hoặc mô tả ngắn cho Quiz..."
           rows="3"
-          class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:outline-none transition-colors resize-y"
+          class="w-full border rounded-lg px-3.5 py-2.5 focus:ring-2 focus:outline-none transition-colors resize-y"
           :class="[
             errors['description'] ? 'border-red-300 focus:ring-red-500' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20',
             isReadOnly ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-700'

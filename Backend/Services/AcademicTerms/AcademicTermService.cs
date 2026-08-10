@@ -372,7 +372,12 @@ public class AcademicTermService : IAcademicTermService
         CurrentUserContext currentUser,
         CancellationToken cancellationToken)
     {
-        if (currentUser.Role == AuthRoles.SuperAdmin)
+        if (currentUser.Role == AuthRoles.SuperAdmin ||
+            currentUser.Role == AuthRoles.HoiDongQuanLyNoiDung ||
+            currentUser.Role == AuthRoles.Chairman ||
+            currentUser.Role == AuthRoles.Admin ||
+            currentUser.Role == AuthRoles.AcademicStaff ||
+            currentUser.CampusId == 0)
         {
             return await _context.DonVis
                 .AsNoTracking()
