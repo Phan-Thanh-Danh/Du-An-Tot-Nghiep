@@ -655,12 +655,6 @@ const router = createRouter({
           meta: { title: 'Cấu hình đánh giá GV' },
         },
         {
-          path: 'evaluations/results',
-          name: 'super-admin-evaluations-results',
-          component: () => import('../views/SuperAdmin/EvaluationsResultsView.vue'),
-          meta: { title: 'Kết quả đánh giá GV' },
-        },
-        {
           path: 'awards',
           name: 'super-admin-awards',
           component: () => import('../views/SuperAdmin/AwardsView.vue'),

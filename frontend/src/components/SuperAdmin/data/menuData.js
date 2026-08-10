@@ -145,12 +145,6 @@ export const superAdminMenuGroups = [
         route: '/super-admin/evaluations/config',
       },
       {
-        id: 'evaluations-results',
-        label: 'Kết quả đánh giá GV',
-        icon: 'BarChart',
-        route: '/super-admin/evaluations/results',
-      },
-      {
         id: 'awards',
         label: 'Khen thưởng',
         icon: 'Award',
