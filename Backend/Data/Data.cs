@@ -3689,8 +3689,8 @@ public static class Data
                     foreach (var buoiHoc in buoiHocs)
                     {
                         string status = "co_mat";
-                        if (i >= 10 && i < 20 && random.NextDouble() > 0.8) status = "vang_mat";
-                        else if (i >= 20 && i < 30) status = "vang_mat";
+                        if (i >= 10 && i < 20 && random.NextDouble() > 0.8) status = "vang";
+                        else if (i >= 20 && i < 30) status = "vang";
 
                         context.DiemDanhs.Add(new DiemDanh
                         {

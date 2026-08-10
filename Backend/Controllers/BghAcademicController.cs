@@ -371,7 +371,7 @@ public class BghAcademicController : ControllerBase
                 g.Key.Semester,
                 TotalSessions = g.Count(),
                 PresentSessions = g.Count(x => x.TrangThai == "co_mat" || x.TrangThai == "di_muon"),
-                AbsentSessions = g.Count(x => x.TrangThai == "vang_mat" || x.TrangThai == "vang_co_phep"),
+                AbsentSessions = g.Count(x => x.TrangThai == "vang" || x.TrangThai == "co_phep"),
                 Rate = g.Count() == 0
                     ? 0
                     : Math.Round(g.Count(x => x.TrangThai == "co_mat" || x.TrangThai == "di_muon") * 100.0 / g.Count(), 1)
