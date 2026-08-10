@@ -129,10 +129,12 @@ async function renderCertificatePdf(template, row, campaign) {
     diemXet: row.diemXet ?? row.DiemXet ?? '',
     ngayCap: new Date().toISOString().slice(0, 10),
   }
+  // Loại bỏ tất cả <link> tags từ HTML template để tránh load CSS từ URL không tồn tại
+  const cleanHtml = (template.html || '').replace(/<link[^>]*>/gi, '')
   const doc = [
     '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8">',
     `<style>*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%}${template.css || ''}</style>`,
-    `</head><body>${fillTokens(template.html || '', rowData)}</body></html>`,
+    `</head><body>${fillTokens(cleanHtml, rowData)}</body></html>`,
   ].join('')
 
   const holder = document.createElement('div')

@@ -198,7 +198,9 @@ async function saveTemplate() {
 
 const previewDoc = computed(() => {
   const html = form.value.html.replace(/\{\{\s*([\w]+)\s*\}\}/g, (_, key) => SAMPLE_DATA[key] ?? `{{${key}}}`)
-  return `<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><style>*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%}${form.value.css}</style></head><body>${html}</body></html>`
+  // Loại bỏ tất cả <link> tags để tránh load CSS từ URL không tồn tại
+  const cleanHtml = html.replace(/<link[^>]*>/gi, '')
+  return `<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><style>*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%}${form.value.css}</style></head><body>${cleanHtml}</body></html>`
 })
 
 const previewScale = computed(() => {
