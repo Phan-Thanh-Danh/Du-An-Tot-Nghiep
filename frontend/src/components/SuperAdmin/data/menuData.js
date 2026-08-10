@@ -151,6 +151,12 @@ export const superAdminMenuGroups = [
         route: '/super-admin/awards',
       },
       {
+        id: 'awards-certificate-templates',
+        label: 'Cấu hình giấy khen',
+        icon: 'Palette',
+        route: '/super-admin/awards/certificate-templates',
+      },
+      {
         id: 'discipline',
         label: 'Kỷ luật',
         icon: 'AlertOctagon',

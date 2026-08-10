@@ -31,6 +31,10 @@ export const rewardDisciplineApi = {
     })
   },
 
+  getRewardCertificates(campaignId, params = {}) {
+    return apiRequest(`/api/admin/reward-campaigns/${campaignId}/certificates${buildQuery(params)}`)
+  },
+
   getDisciplineRecords(params = {}) {
     return apiRequest(`/api/admin/discipline-records${buildQuery(params)}`)
   },

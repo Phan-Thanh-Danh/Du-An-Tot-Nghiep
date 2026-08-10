@@ -23,4 +23,9 @@ public interface ICertificateGenerationService
     Task<RewardCertificateDownloadDto> DownloadAsync(
         int rewardId,
         CancellationToken cancellationToken = default);
+
+    Task<RewardCertificateListItemDto> UploadAsync(
+        int campaignId,
+        UploadRewardCertificateRequest request,
+        CancellationToken cancellationToken = default);
 }

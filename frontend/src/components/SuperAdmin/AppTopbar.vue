@@ -72,6 +72,7 @@ const pageTitleMap = {
   '/super-admin/approvals/requests': { title: 'Quản lý mẫu đơn từ', subtitle: 'Thiết kế biểu mẫu đơn hành chính, cấu hình trường nhập liệu và trạng thái hoạt động' },
   '/super-admin/evaluations/config': { title: 'Cấu hình đánh giá GV', subtitle: 'Mở đợt khảo sát và tạo câu hỏi khảo sát giảng viên' },
   '/super-admin/awards': { title: 'Khen thưởng', subtitle: 'Cấp bằng khen số và quản lý thành tích' },
+  '/super-admin/awards/certificate-templates': { title: 'Cấu hình giấy khen', subtitle: 'Thiết kế mẫu giấy khen bằng HTML/CSS và quản lý phiên bản' },
   '/super-admin/discipline': { title: 'Kỷ luật', subtitle: 'Quản lý hồ sơ và mức độ vi phạm kỷ luật' },
 
   // 7. Báo cáo và Phân tích (Analytics)

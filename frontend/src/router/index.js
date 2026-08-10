@@ -661,6 +661,12 @@ const router = createRouter({
           meta: { title: 'Khen thưởng' },
         },
         {
+          path: 'awards/certificate-templates',
+          name: 'super-admin-awards-certificate-templates',
+          component: () => import('../views/SuperAdmin/CertificateTemplatesView.vue'),
+          meta: { title: 'Cấu hình giấy khen' },
+        },
+        {
           path: 'discipline',
           name: 'super-admin-discipline',
           component: () => import('../views/SuperAdmin/DisciplineView.vue'),

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Award, Search, Users } from 'lucide-vue-next'
+import { Award, Search, Users, Loader2 } from 'lucide-vue-next'
+import html2pdf from 'html2pdf.js'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
@@ -8,6 +9,7 @@ import TableShell from '@/components/ui/TableShell.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { rewardDisciplineApi } from '@/services/rewardDisciplineApi'
+import { certificateTemplateApi } from '@/services/certificateTemplateApi'
 import { unwrapApiData } from '@/services/apiClient'
 import { usePopupStore } from '@/stores/popup'
 
@@ -19,6 +21,7 @@ const searchQuery = ref('')
 const filter = ref('all')
 const selectedCampaign = ref(null)
 const candidates = ref([])
+const genProgress = ref(null)
 
 const mapCampaign = (item) => ({
   id: item.maDotKhenThuong ?? item.MaDotKhenThuong,
@@ -27,6 +30,8 @@ const mapCampaign = (item) => ({
   hocKy: item.tenHocKy ?? item.TenHocKy ?? 'Chưa có học kỳ',
   donVi: item.tenDonVi ?? item.TenDonVi,
   trangThai: normalizeCampaignStatus(item.trangThai ?? item.TrangThai ?? 'nhap'),
+  maMauBangKhen: item.maMauBangKhen ?? item.MaMauBangKhen,
+  tenMauBangKhen: item.tenMauBangKhen ?? item.TenMauBangKhen,
   tongUngVien: 0,
   daDuyet: 0,
 })
@@ -88,24 +93,173 @@ const selectCampaign = async (cmp) => {
   }
 }
 
+function parseConfig(json) {
+  try {
+    const value = typeof json === 'string' ? JSON.parse(json) : json
+    return value || null
+  } catch {
+    return null
+  }
+}
+
+function fillTokens(html, data) {
+  return html.replace(/\{\{\s*([\w]+)\s*\}\}/g, (_, key) =>
+    data[key] !== undefined && data[key] !== null ? String(data[key]) : `{{${key}}}`,
+  )
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(String(reader.result).split(',')[1])
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+async function renderCertificatePdf(template, row, campaign) {
+  const width = template.chieuRong || 1123
+  const height = template.chieuCao || 794
+  const rowData = {
+    hoTen: row.hoTen ?? row.HoTen ?? 'Sinh viên',
+    mssv: row.mssv ?? row.Mssv ?? '',
+    tenHocKy: row.tenHocKy ?? row.TenHocKy ?? campaign.hocKy ?? '',
+    danhHieu: row.danhHieu ?? row.DanhHieu ?? 'Top 100 học kỳ',
+    xepHang: row.xepHang ?? row.XepHang ?? '',
+    diemXet: row.diemXet ?? row.DiemXet ?? '',
+    ngayCap: new Date().toISOString().slice(0, 10),
+  }
+  const doc = [
+    '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8">',
+    `<style>*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%}${template.css || ''}</style>`,
+    `</head><body>${fillTokens(template.html || '', rowData)}</body></html>`,
+  ].join('')
+
+  const holder = document.createElement('div')
+  holder.style.cssText = `position:absolute;left:-9999px;top:0;width:${width}px;height:${height}px;overflow:hidden;background:#fff`
+  holder.innerHTML = doc
+  document.body.appendChild(holder)
+
+  const mmPerPx = 25.4 / 96
+  try {
+    const blob = await html2pdf()
+      .set({
+        margin: 0,
+        filename: `bang-khen-${rowData.mssv || row.maKhenThuong || 'khong-ma'}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          width,
+          height,
+          windowWidth: width,
+          windowHeight: height,
+        },
+        jsPDF: {
+          unit: 'mm',
+          format: [Number((width * mmPerPx).toFixed(2)), Number((height * mmPerPx).toFixed(2))],
+        },
+      })
+      .from(holder)
+      .toPdf()
+      .get('pdf')
+      .outputPdf('blob')
+    return blob
+  } finally {
+    holder.remove()
+  }
+}
+
+async function generateCertificatesFrontend(campaign) {
+  const template = await certificateTemplateApi.getTemplate(campaign.maMauBangKhen)
+  const config = parseConfig(template?.cauHinhJson)
+  if (!config || String(config.mode || '').toLowerCase() !== 'html') {
+    await rewardDisciplineApi.generateRewardCertificates(campaign.id, {})
+    return { mode: 'backend' }
+  }
+
+  const certRes = await rewardDisciplineApi.getRewardCertificates(campaign.id, {
+    pageIndex: 1,
+    pageSize: 500,
+  })
+  const certData = unwrapApiData(certRes)
+  const rows = (certData?.items ?? certData?.Items ?? []).filter(
+    (r) => !(r.urlPdfBangKhen ?? r.UrlPdfBangKhen),
+  )
+  if (rows.length === 0) {
+    return { mode: 'frontend', total: 0, failed: [] }
+  }
+
+  const templateConfig = {
+    html: config.html || '',
+    css: config.css || '',
+    chieuRong: template.chieuRong,
+    chieuCao: template.chieuCao,
+  }
+  const failed = []
+  genProgress.value = { total: rows.length, done: 0, current: '', failed: 0 }
+
+  for (const row of rows) {
+    const name = row.hoTen ?? row.HoTen ?? ''
+    genProgress.value.current = name
+    try {
+      const blob = await renderCertificatePdf(templateConfig, row, campaign)
+      const base64 = await blobToBase64(blob)
+      await certificateTemplateApi.uploadRewardCertificatePdf(campaign.id, {
+        MaKhenThuong: row.maKhenThuong ?? row.MaKhenThuong,
+        MaMauBangKhen: campaign.maMauBangKhen,
+        FileBase64: base64,
+        GhiChu: 'FE render html2pdf',
+      })
+    } catch (err) {
+      console.error(err)
+      failed.push(`${name} (${row.mssv ?? row.Mssv ?? ''})`)
+    }
+    genProgress.value.done += 1
+  }
+
+  return { mode: 'frontend', total: rows.length, failed }
+}
+
 const generateCertificates = () => {
   if (!selectedCampaign.value) return
+  const cmp = selectedCampaign.value
+  const hasHtmlTemplate = Boolean(cmp.maMauBangKhen)
   confirmAction.value = {
     title: 'Phát sinh bằng khen',
-    message: `Bạn muốn tạo bằng khen (PDF) cho đợt "${selectedCampaign.value.tenDot}"? Thao tác này sẽ xử lý ${selectedCampaign.value.daDuyet} ứng viên.`,
+    message: hasHtmlTemplate
+      ? `Đợt này dùng mẫu giấy khen "${cmp.tenMauBangKhen || '—'}" (HTML/CSS). Bằng khen sẽ được render tại trình duyệt và tải lên hệ thống cho từng sinh viên.`
+      : `Bạn muốn tạo bằng khen (PDF) cho đợt "${cmp.tenDot}"? Thao tác này sẽ xử lý toàn bộ ứng viên đã duyệt.`,
     label: 'Bắt đầu tạo',
     variant: 'primary',
     run: async () => {
       confirmAction.value = null
       try {
-        await rewardDisciplineApi.generateRewardCertificates(selectedCampaign.value.id, {})
-        popupStore.success('Thành công', 'Đã phát sinh bằng khen.')
-        selectedCampaign.value.trangThai = 'completed'
-      } catch (_e) {
-        console.error(_e)
-        popupStore.error('Lỗi', _e?.message || 'Có lỗi xảy ra khi tạo bằng khen.')
+        const result = await generateCertificatesFrontend(cmp)
+        if (result.mode === 'backend') {
+          popupStore.success('Thành công', 'Đã phát sinh bằng khen.')
+        } else if (result.total === 0) {
+          popupStore.success('Thành công', 'Tất cả bằng khen đã có PDF, không có gì cần cấp phát.')
+        } else {
+          const okCount = result.total - result.failed.length
+          if (result.failed.length === 0) {
+            popupStore.success('Thành công', `Đã cấp phát ${okCount}/${result.total} bằng khen (render HTML tại trình duyệt).`)
+          } else {
+            popupStore.error(
+              'Một số bằng khen thất bại',
+              `Đã cấp ${okCount}/${result.total} bằng khen. Thất bại: ${result.failed.join('; ')}. Bạn có thể bấm lại để thử tiếp.`,
+            )
+          }
+        }
+        cmp.trangThai = 'completed'
+      } catch (err) {
+        console.error(err)
+        popupStore.error('Lỗi', err?.message || 'Có lỗi xảy ra khi tạo bằng khen.')
+      } finally {
+        genProgress.value = null
       }
-    }
+    },
   }
 }
 
@@ -225,6 +379,7 @@ const approveCampaign = () => {
               <div class="space-y-2 text-sm">
                 <div class="flex justify-between"><span class="text-(--text-muted)">Học kỳ</span><span class="font-medium text-(--text-body)">{{ selectedCampaign.hocKy }}</span></div>
                 <div class="flex justify-between"><span class="text-(--text-muted)">Đơn vị</span><span class="font-medium text-(--text-body)">{{ selectedCampaign.donVi || 'Toàn trường' }}</span></div>
+                <div v-if="selectedCampaign.tenMauBangKhen" class="flex justify-between"><span class="text-(--text-muted)">Mẫu giấy khen</span><span class="font-medium text-(--text-body)">{{ selectedCampaign.tenMauBangKhen }}</span></div>
               </div>
             </div>
 
@@ -290,5 +445,24 @@ const approveCampaign = () => {
       @confirm="confirmAction.run"
       @cancel="confirmAction = null"
     />
+
+    <div v-if="genProgress" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+      <div class="lg-glass-strong w-full max-w-md rounded-2xl border border-(--border-card) p-6">
+        <div class="mb-2 flex items-center gap-2">
+          <Loader2 class="h-5 w-5 animate-spin text-(--color-info-text)" />
+          <h3 class="text-heading font-bold">Đang cấp phát bằng khen...</h3>
+        </div>
+        <p class="text-label mb-3 text-sm">
+          Đã xử lý {{ genProgress.done }}/{{ genProgress.total }} —
+          {{ genProgress.current || 'Đang chuẩn bị' }}
+        </p>
+        <div class="h-2 w-full overflow-hidden rounded-full bg-(--surface-input)">
+          <div
+            class="h-full bg-(--color-info-text) transition-all duration-200"
+            :style="{ width: `${genProgress.total ? (genProgress.done / genProgress.total) * 100 : 0}%` }"
+          ></div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

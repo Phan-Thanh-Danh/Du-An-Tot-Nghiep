@@ -203,6 +203,156 @@ public class CertificateGenerationService : ICertificateGenerationService
         };
     }
 
+    public async Task<RewardCertificateListItemDto> UploadAsync(
+        int campaignId,
+        UploadRewardCertificateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureSuperAdmin(currentUser);
+
+        var reward = await _context.KhenThuongs
+            .Include(x => x.HocSinh)
+            .Include(x => x.HocKy)
+            .FirstOrDefaultAsync(
+                x => x.MaKhenThuong == request.MaKhenThuong &&
+                     x.MaDotKhenThuong == campaignId &&
+                     !x.DaHuy,
+                cancellationToken);
+        if (reward is null)
+        {
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy khen thưởng trong đợt này.");
+        }
+
+        var template = await _context.MauBangKhens
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.MaMauBangKhen == request.MaMauBangKhen, cancellationToken);
+        if (template is null)
+        {
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy mẫu bằng khen.");
+        }
+
+        if (!template.ConHoatDong)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Mẫu bằng khen không hoạt động.");
+        }
+
+        if (ResolveTemplateMode(template.CauHinhJson) != RewardDisciplineConstants.CertificateConfigModes.Html)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ mẫu bằng khen chế độ HTML mới tải lên PDF từ trình duyệt.");
+        }
+
+        var pdfBytes = ValidatePdfBase64(request.FileBase64);
+        var stored = await _storage.SaveAsync(reward.MaKhenThuong, pdfBytes, cancellationToken);
+        var now = DateTime.UtcNow;
+
+        reward.MaMauBangKhen = template.MaMauBangKhen;
+        reward.UrlPdfBangKhen = stored.Url;
+        reward.TrangThai = RewardDisciplineConstants.RewardStatuses.PdfGenerated;
+        reward.NgaySinhPdf = now;
+        reward.NgayCapNhat = now;
+        reward.LoiSinhPdf = null;
+        reward.SoLanSinhPdf += 1;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await _auditLogService.LogAsync(
+            RewardEntity,
+            reward.MaKhenThuong.ToString(CultureInfo.InvariantCulture),
+            RewardDisciplineConstants.RewardAuditActions.UploadRewardCertificate,
+            null,
+            new
+            {
+                reward.MaKhenThuong,
+                template.MaMauBangKhen,
+                request.GhiChu
+            },
+            currentUser.UserId,
+            reward.MaDonVi,
+            "Tải lên PDF bằng khen từ trình duyệt.",
+            cancellationToken);
+
+        var row = await BuildCertificateQuery(null)
+            .FirstOrDefaultAsync(x => x.Reward.MaKhenThuong == reward.MaKhenThuong, cancellationToken);
+        if (row is null)
+        {
+            throw new ApiException(StatusCodes.Status500InternalServerError, "Không đọc được khen thưởng sau khi tải lên.");
+        }
+
+        return ToCertificateListItem(row);
+    }
+
+    private static byte[] ValidatePdfBase64(string fileBase64)
+    {
+        if (string.IsNullOrWhiteSpace(fileBase64))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "File PDF là bắt buộc.");
+        }
+
+        byte[] bytes;
+        try
+        {
+            bytes = Convert.FromBase64String(fileBase64);
+        }
+        catch (FormatException)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "File PDF không đúng định dạng base64.");
+        }
+
+        if (bytes.Length == 0)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "File PDF rỗng.");
+        }
+
+        if (bytes.Length > 20 * 1024 * 1024)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "File PDF không được vượt quá 20MB.");
+        }
+
+        if (bytes.Length < 5 ||
+            bytes[0] != (byte)'%' ||
+            bytes[1] != (byte)'P' ||
+            bytes[2] != (byte)'D' ||
+            bytes[3] != (byte)'F' ||
+            bytes[4] != (byte)'-')
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "File không phải PDF hợp lệ.");
+        }
+
+        return bytes;
+    }
+
+    private static string ResolveTemplateMode(string? configJson)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(configJson ?? string.Empty);
+            var root = document.RootElement;
+            if (root.ValueKind == JsonValueKind.Object &&
+                root.TryGetProperty("mode", out var modeElement) &&
+                modeElement.ValueKind == JsonValueKind.String &&
+                modeElement.GetString()!.Trim().Equals(RewardDisciplineConstants.CertificateConfigModes.Html, StringComparison.OrdinalIgnoreCase))
+            {
+                return RewardDisciplineConstants.CertificateConfigModes.Html;
+            }
+
+            foreach (var property in root.EnumerateObject())
+            {
+                if (string.Equals(property.Name, "mode", StringComparison.OrdinalIgnoreCase) &&
+                    property.Value.ValueKind == JsonValueKind.String &&
+                    property.Value.GetString()!.Trim().Equals(RewardDisciplineConstants.CertificateConfigModes.Html, StringComparison.OrdinalIgnoreCase))
+                {
+                    return RewardDisciplineConstants.CertificateConfigModes.Html;
+                }
+            }
+
+            return RewardDisciplineConstants.CertificateConfigModes.Fields;
+        }
+        catch (JsonException)
+        {
+            return RewardDisciplineConstants.CertificateConfigModes.Fields;
+        }
+    }
+
     private async Task<GenerateRewardCertificatesResultDto> GenerateInternalAsync(
         DotKhenThuong campaign,
         CurrentUserContext currentUser,
@@ -256,6 +406,11 @@ public class CertificateGenerationService : ICertificateGenerationService
             {
                 var template = overrideTemplate
                     ?? await ResolveRewardTemplateAsync(reward, campaign, cancellationToken);
+                if (ResolveTemplateMode(template.CauHinhJson) == RewardDisciplineConstants.CertificateConfigModes.Html)
+                {
+                    throw new ApiException(StatusCodes.Status400BadRequest, "Mẫu bằng khen dùng chế độ HTML — cấp phát chứng nhận phải thực hiện từ trình duyệt (tải lên PDF).");
+                }
+
                 var fields = ParseConfigFields(template.CauHinhJson);
                 var data = ResolveRewardData(reward);
                 var pdf = BuildPdf(template, fields, data);
