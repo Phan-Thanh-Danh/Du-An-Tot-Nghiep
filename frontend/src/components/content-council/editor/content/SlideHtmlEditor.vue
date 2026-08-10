@@ -115,6 +115,24 @@ onBeforeUnmount(() => {
     editorInstance = null
   }
 })
+
+const saveData = async () => {
+  if (editorInstance) {
+    try {
+      const data = await editorInstance.save()
+      const jsonStr = JSON.stringify(data)
+      emit('update:modelValue', jsonStr)
+      return jsonStr
+    } catch (e) {
+      console.error('Lỗi khi lưu dữ liệu EditorJS:', e)
+    }
+  }
+  return props.modelValue
+}
+
+defineExpose({
+  saveData
+})
 </script>
 
 <template>

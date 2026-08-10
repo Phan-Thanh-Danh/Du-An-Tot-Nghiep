@@ -109,11 +109,19 @@ const formatDuration = (seconds?: number) => {
 }
 
 const getStatusBadge = (status: string) => {
-  switch (status) {
-    case 'draft': return { text: 'Nháp', class: 'bg-slate-200 text-slate-600' }
-    case 'published': return { text: 'Xuất bản', class: 'bg-green-100 text-green-700' }
-    case 'hidden': return { text: 'Đang ẩn', class: 'bg-red-100 text-red-700' }
-    default: return { text: status, class: 'bg-slate-100 text-slate-500' }
+  const s = String(status || '').toLowerCase()
+  switch (s) {
+    case 'draft':
+    case 'nhap':
+      return { text: 'Nháp', class: 'bg-slate-200 text-slate-600' }
+    case 'published':
+    case 'da_xuat_ban':
+      return { text: 'Xuất bản', class: 'bg-green-100 text-green-700 font-semibold' }
+    case 'hidden':
+    case 'an':
+      return { text: 'Đang ẩn', class: 'bg-red-100 text-red-700' }
+    default:
+      return { text: s === 'da_xuat_ban' ? 'Xuất bản' : (s === 'nhap' ? 'Nháp' : status), class: 'bg-slate-100 text-slate-500' }
   }
 }
 </script>
@@ -149,13 +157,7 @@ const getStatusBadge = (status: string) => {
         </div>
       </div>
 
-      <div class="flex items-center justify-between sm:justify-end gap-4 shrink-0 pl-11 sm:pl-0">
-        <span 
-          class="px-2 py-0.5 text-[11px] rounded uppercase font-semibold"
-          :class="getStatusBadge(content.status).class"
-        >
-          {{ getStatusBadge(content.status).text }}
-        </span>
+      <div class="flex items-center justify-end shrink-0 pl-11 sm:pl-0">
 
         <!-- Action Menu -->
         <div class="relative flex items-center" ref="menuRef" @click.stop>

@@ -14,10 +14,19 @@ const emit = defineEmits(['completed', 'progress'])
 const SEEK_TOLERANCE_SECONDS = 2
 const SAVE_INTERVAL_MS = 5000
 
+function getInitialWatchedSeconds() {
+  const p = props.lesson.progressPercent || 0
+  const d = props.lesson.durationSeconds || props.lesson.totalSeconds || 25
+  if (p >= 80 || props.lesson.status === 'completed' || props.lesson.watchedSeconds >= d) return d
+  if (props.lesson.watchedSeconds) return props.lesson.watchedSeconds
+  return Math.round((p / 100) * d)
+}
+
+const initialW = getInitialWatchedSeconds()
 const videoRef = ref(null)
 const durationSeconds = ref(props.lesson.durationSeconds || props.lesson.totalSeconds || 0)
-const currentTimeSeconds = ref(props.lesson.watchedSeconds || 0)
-const maxWatchedSeconds = ref(props.lesson.maxWatchedSeconds || props.lesson.watchedSeconds || 0)
+const currentTimeSeconds = ref(initialW)
+const maxWatchedSeconds = ref(initialW)
 const savedProgress = ref(props.lesson.progressPercent || 0)
 const focusPauseMessage = ref('')
 const seekGuardMessage = ref('')
@@ -41,9 +50,10 @@ watch(
   () => props.lesson.id,
   () => {
     durationSeconds.value = props.lesson.durationSeconds || props.lesson.totalSeconds || 0
-    currentTimeSeconds.value = props.lesson.watchedSeconds || 0
-    maxWatchedSeconds.value = props.lesson.maxWatchedSeconds || props.lesson.watchedSeconds || 0
     savedProgress.value = props.lesson.progressPercent || 0
+    const initW = getInitialWatchedSeconds()
+    currentTimeSeconds.value = initW
+    maxWatchedSeconds.value = initW
     focusPauseMessage.value = ''
     seekGuardMessage.value = ''
     lastSavedAt = 0
@@ -58,9 +68,15 @@ function formatTime(seconds) {
 
 function onLoadedMetadata() {
   if (!videoRef.value) return
-  durationSeconds.value = Math.round(videoRef.value.duration || durationSeconds.value)
-  if (currentTimeSeconds.value > 0) {
-    videoRef.value.currentTime = Math.min(currentTimeSeconds.value, durationSeconds.value)
+  durationSeconds.value = Math.round(videoRef.value.duration || durationSeconds.value || 0)
+  const initW = getInitialWatchedSeconds()
+  const targetTime = initW > 0 ? Math.min(initW, durationSeconds.value) : 0
+  if (targetTime > 0) {
+    currentTimeSeconds.value = targetTime
+    maxWatchedSeconds.value = Math.max(maxWatchedSeconds.value, targetTime)
+    try {
+      videoRef.value.currentTime = targetTime
+    } catch (e) {}
   }
 }
 

@@ -53,6 +53,7 @@ public class CourseLessonDto
     public string Title { get; set; } = string.Empty;
     public string Duration { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public int ProgressPercent { get; set; }
     public string Type { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
 }

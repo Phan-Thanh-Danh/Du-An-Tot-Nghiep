@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import * as LucideIcons from 'lucide-vue-next'
 import LessonVideoPlayer from '@/components/learning/LessonVideoPlayer.vue'
+import SlideHtmlPreview from '@/components/content-council/editor/content/SlideHtmlPreview.vue'
 import { studentApi } from '@/services/studentApi'
 import {
   canStartLearning,
@@ -22,6 +23,7 @@ const accessNotice = ref(null)
 const pendingEarlyLesson = ref(null)
 const lessonProgressDrafts = ref({})
 const quizSubmitted = ref(false)
+const apiQuizData = ref(null)  // object: { title, durationMinutes, passScore, totalScore, questions[] }
 
 // ── DYNAMIC COURSE LOAD LOGIC ─────────────────────────
 const route = useRoute()
@@ -117,7 +119,8 @@ const courseLessons = computed(() => apiLessons.value || [])
 const apiQuiz = ref(null)
 const apiComments = ref(null)
 
-const quizQuestions = computed(() => (apiQuiz.value && apiQuiz.value.length > 0) ? apiQuiz.value : [])
+const quizQuestions = computed(() => (apiQuizData.value?.questions && apiQuizData.value.questions.length > 0) ? apiQuizData.value.questions : [])
+const quizInfo = computed(() => apiQuizData.value || null)
 
 const currentComments = computed(() => {
   return apiComments.value || []
@@ -211,6 +214,7 @@ function activateLesson(chapter, lesson) {
   currentLesson.value = {
     ...lesson,
     ...lessonProgressDrafts.value[lesson.id],
+    videoUrl: lesson.url || lesson.videoUrl || '',  // map url -> videoUrl cho LessonVideoPlayer
     id: lesson.id,
     chapterId: chapter.id,
     chapterTitle: `${chapter.chapter}: ${chapter.title}`,
@@ -227,23 +231,181 @@ function parseDurationSeconds(duration) {
   return (minutes * 60) + (seconds || 0)
 }
 
-function handleVideoProgress(payload) {
-  lessonProgressDrafts.value[payload.lessonId] = {
+async function handleVideoProgress(payload) {
+  if (!payload) return
+  const lessonId = payload.lessonId || currentLesson.value?.id
+  lessonProgressDrafts.value[lessonId] = {
     watchedSeconds: payload.currentTimeSeconds,
     maxWatchedSeconds: payload.maxWatchedSeconds,
     progressPercent: payload.progressPercent,
     completedAt: payload.completed ? new Date().toISOString() : null,
   }
-  if (payload.lessonId === currentLesson.value.id) {
+  if (lessonId === currentLesson.value.id) {
     currentLesson.value = {
       ...currentLesson.value,
-      ...lessonProgressDrafts.value[payload.lessonId],
+      ...lessonProgressDrafts.value[lessonId],
+    }
+  }
+  if (payload.completed || (payload.progressPercent && payload.progressPercent >= 80)) {
+    await handleVideoCompleted(payload)
+  }
+}
+
+const lessonCompletedItems = ref({})
+
+const slideSeconds = ref(0)
+let slideTimer = null
+
+function startSlideTimer() {
+  if (slideTimer) clearInterval(slideTimer)
+  slideTimer = setInterval(() => {
+    if (activeTab.value === 'slide' && currentLesson.value?.hasSlide) {
+      slideSeconds.value += 1
+      if (slideSeconds.value >= 60) {
+        handleSlideCompleted('timer')
+      }
+    }
+  }, 1000)
+}
+
+function handleSlideScroll(event) {
+  const target = event?.target
+  if (!target) return
+  const isAtBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 40
+  if (isAtBottom) {
+    handleSlideCompleted('scroll')
+  }
+}
+
+async function handleSlideCompleted(reason = 'scroll') {
+  if (!currentLesson.value) return
+  const lessonId = currentLesson.value.id
+  const items = getLessonCompletedItems(lessonId)
+  if (!items.slide) {
+    await updateLessonProgressAndSave('slide')
+  }
+}
+
+watch(() => activeTab.value, (newTab) => {
+  if (newTab === 'slide') {
+    slideSeconds.value = 0
+    startSlideTimer()
+  } else {
+    if (slideTimer) {
+      clearInterval(slideTimer)
+      slideTimer = null
+    }
+  }
+})
+
+function getLessonCompletedItems(lessonId) {
+  if (!lessonId) return { video: false, slide: false, doc: false, quiz: false }
+  if (lessonCompletedItems.value[lessonId]) {
+    return lessonCompletedItems.value[lessonId]
+  }
+
+  const storageKey = `lms_lesson_items_${lessonId}`
+  try {
+    const saved = localStorage.getItem(storageKey)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      lessonCompletedItems.value[lessonId] = parsed
+      return parsed
+    }
+  } catch (e) {}
+
+  const l = currentLesson.value
+  const hasVideo = Boolean(l?.hasVideo || (l?.videoUrl && l?.videoUrl.trim() !== '') || l?.lessonType === 'video')
+  const hasSlide = Boolean(l?.hasSlide || l?.slideHtml)
+  const hasDoc = Boolean(l?.hasDoc || (l?.documentUrl && l?.documentUrl.trim() !== '') || l?.lessonType === 'assignment')
+  const hasQuiz = Boolean(l?.hasQuiz || (apiQuizData.value?.questions?.length > 0) || l?.lessonType === 'quiz')
+
+  const existingP = l?.progressPercent ?? (l?.status === 'completed' ? 100 : 0)
+  const items = { video: false, slide: false, doc: false, quiz: false }
+  if (existingP >= 100) {
+    if (hasVideo) items.video = true
+    if (hasSlide) items.slide = true
+    if (hasDoc) items.doc = true
+    if (hasQuiz) items.quiz = true
+  }
+
+  lessonCompletedItems.value[lessonId] = items
+  return items
+}
+
+function saveLessonCompletedItems(lessonId, items) {
+  if (!lessonId) return
+  lessonCompletedItems.value[lessonId] = { ...items }
+  const storageKey = `lms_lesson_items_${lessonId}`
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(items))
+  } catch (e) {}
+}
+
+function calculateLessonProgress(lessonId) {
+  const items = getLessonCompletedItems(lessonId)
+  const l = currentLesson.value
+  const hasVideo = Boolean(l?.hasVideo || (l?.videoUrl && l?.videoUrl.trim() !== '') || l?.lessonType === 'video')
+  const hasSlide = Boolean(l?.hasSlide || l?.slideHtml)
+  const hasDoc = Boolean(l?.hasDoc || (l?.documentUrl && l?.documentUrl.trim() !== '') || l?.lessonType === 'assignment')
+  const hasQuiz = Boolean(l?.hasQuiz || (apiQuizData.value?.questions?.length > 0) || l?.lessonType === 'quiz')
+
+  let totalAvailable = 0
+  let totalDone = 0
+
+  if (hasVideo) {
+    totalAvailable += 1
+    if (items.video) totalDone += 1
+  }
+  if (hasSlide) {
+    totalAvailable += 1
+    if (items.slide) totalDone += 1
+  }
+  if (hasDoc) {
+    totalAvailable += 1
+    if (items.doc) totalDone += 1
+  }
+  if (hasQuiz) {
+    totalAvailable += 1
+    if (items.quiz || isQuizCompletedFromDb.value) totalDone += 1
+  }
+
+  if (totalAvailable === 0) return 100
+  return Math.min(100, Math.round((totalDone / totalAvailable) * 100))
+}
+
+async function updateLessonProgressAndSave(itemType) {
+  if (!currentLesson.value) return
+  const lessonId = currentLesson.value.id
+  const items = getLessonCompletedItems(lessonId)
+  items[itemType] = true
+  saveLessonCompletedItems(lessonId, items)
+
+  const percent = calculateLessonProgress(lessonId)
+  currentLesson.value.progressPercent = percent
+  if (percent >= 100) {
+    currentLesson.value.status = 'completed'
+  }
+  lessonProgressDrafts.value[lessonId] = {
+    progressPercent: percent,
+    completedAt: percent >= 100 ? new Date().toISOString() : null
+  }
+
+  if (courseId.value && lessonId) {
+    try {
+      await studentApi.completeLesson(courseId.value, lessonId, percent)
+      await reloadCourseData()
+    } catch (err) {
+      console.error('Không thể lưu tiến độ bài học:', err)
     }
   }
 }
 
-function handleVideoCompleted(payload) {
-  handleVideoProgress(payload)
+async function handleVideoCompleted(payload) {
+  const lessonId = payload?.lessonId || currentLesson.value?.id
+  if (lessonId) {
+    await updateLessonProgressAndSave('video')
+  }
 }
 
 function confirmEarlyLesson() {
@@ -264,31 +426,194 @@ function toggleChapter(id) {
 function isQuestionLocked(index) {
   if (index === 0) return false
   for (let i = 0; i < index; i++) {
-    const prevQId = quizQuestions.value[i].id
-    if (quizAnswers.value[prevQId] === undefined || quizAnswers.value[prevQId] === null) {
-      return true
+    const prevQ = quizQuestions.value[i]
+    const prevQId = prevQ?.id || prevQ?.Id
+    const ans = quizAnswers.value[prevQId]
+    const qType = prevQ?.type || prevQ?.Type
+    if (qType === 'essay') {
+      // Tự luận: phải có nội dung
+      if (!ans || String(ans).trim() === '') return true
+    } else if (qType === 'multiple') {
+      // Chọn nhiều: phải chọn ít nhất 1 đáp án
+      if (!Array.isArray(ans) || ans.length === 0) return true
+    } else {
+      if (ans === undefined || ans === null) return true
     }
   }
   return false
 }
 
 const isQuizFullyAnswered = computed(() => {
-  return quizQuestions.value.every(q => quizAnswers.value[q.id] !== undefined && quizAnswers.value[q.id] !== null)
+  return quizQuestions.value.every(q => {
+    const qId = q.id || q.Id
+    const ans = quizAnswers.value[qId]
+    const qType = q.type || q.Type
+    if (qType === 'essay') return Boolean(ans && String(ans).trim().length > 0)
+    if (qType === 'multiple') return Array.isArray(ans) && ans.length > 0
+    return ans !== undefined && ans !== null
+  })
 })
 
-function submitQuiz() {
-  quizSubmitted.value = true
-  if (currentLesson.value) {
-    currentLesson.value.progressPercent = 100
-    lessonProgressDrafts.value[currentLesson.value.id] = {
-      progressPercent: 100,
-      completedAt: new Date().toISOString()
+const quizResult = ref(null)
+
+function calculateQuizResult() {
+  let correctCount = 0
+  const details = {}
+
+  quizQuestions.value.forEach((q) => {
+    const qId = q.id || q.Id
+    const qType = q.type || q.Type
+    const ans = quizAnswers.value[qId]
+
+    let correctIndices = []
+    const rawIndices = q.correctAnswerIndices || q.CorrectAnswerIndices
+    const rawIds = q.correctAnswerIds || q.CorrectAnswerIds
+    const rawSingle = q.correctAnswer ?? q.CorrectAnswer
+
+    if (Array.isArray(rawIndices) && rawIndices.length > 0) {
+      correctIndices = rawIndices
+    } else if (Array.isArray(rawIds) && rawIds.length > 0) {
+      correctIndices = rawIds.map(id => {
+        const u = String(id).trim().toUpperCase()
+        if (u.length === 1 && u >= 'A' && u <= 'Z') return u.charCodeAt(0) - 65
+        return parseInt(u) || 0
+      })
+    } else if (typeof rawSingle === 'number' && rawSingle >= 0) {
+      correctIndices = [rawSingle]
     }
+
+    let isCorrect = false
+
+    if (qType === 'multiple') {
+      const studentAnswers = Array.isArray(ans) ? ans : []
+      if (
+        studentAnswers.length === correctIndices.length &&
+        studentAnswers.every(i => correctIndices.includes(i))
+      ) {
+        isCorrect = true
+      }
+      details[qId] = { isCorrect, correctIndices, studentAnswers }
+    } else {
+      const studentAnswer = typeof ans === 'number' ? ans : -1
+      isCorrect = correctIndices.includes(studentAnswer)
+      details[qId] = { isCorrect, correctIndices, studentAnswers: [studentAnswer] }
+    }
+
+    if (isCorrect) correctCount++
+  })
+
+  const total = quizQuestions.value.length
+  const score10 = total > 0 ? Math.round((correctCount / total) * 10 * 10) / 10 : 0
+  const passScore = quizInfo.value?.passScore || 5
+  const isPassed = score10 >= passScore
+
+  quizResult.value = {
+    total,
+    correctCount,
+    score10,
+    passScore,
+    isPassed,
+    details
+  }
+
+  return quizResult.value
+}
+
+async function reloadCourseData() {
+  if (!courseId.value) return
+  try {
+    const res = await studentApi.getCourseDetail(courseId.value)
+    const isSuccess = res.success === true || res.Success === true
+    if (isSuccess) {
+      const data = res.data || res.Data || {}
+      apiCourse.value = data.course || data.Course || null
+
+      const rawStats = data.stats || data.Stats || null
+      if (rawStats) {
+        apiStats.value = rawStats.map(s => ({
+          label: s.label || s.Label,
+          value: s.value || s.Value,
+          unit: s.unit || s.Unit,
+          icon: s.icon || s.Icon,
+          tone: s.tone || s.Tone,
+          progress: s.progress || s.Progress,
+          hint: s.hint || s.Hint
+        }))
+      }
+
+      const rawLessons = data.lessons || data.Lessons || null
+      if (rawLessons) {
+        apiLessons.value = rawLessons.map(c => ({
+          id: c.id || c.Id,
+          chapter: c.chapter || c.Chapter,
+          title: c.title || c.Title,
+          description: c.description || c.Description,
+          status: c.status || c.Status,
+          badge: c.badge || c.Badge,
+          tone: c.tone || c.Tone,
+          icon: c.icon || c.Icon,
+          meta: c.meta || c.Meta,
+          progress: c.progress || c.Progress,
+          lessons: (c.lessons || c.Lessons || []).map(l => ({
+            id: l.id || l.Id,
+            title: l.title || l.Title,
+            duration: l.duration || l.Duration,
+            status: l.status || l.Status,
+            progressPercent: l.progressPercent || l.ProgressPercent || (l.status === 'completed' ? 100 : 0),
+            type: l.type || l.Type,
+            url: l.url || l.Url
+          }))
+        }))
+      }
+    }
+  } catch (err) {
+    console.error('Failed to reload course data', err)
   }
 }
 
-function selectAnswer(qId, idx) {
-  quizAnswers.value[qId] = idx
+async function submitQuiz() {
+  const result = calculateQuizResult()
+  quizSubmitted.value = true
+  if (result.isPassed && currentLesson.value) {
+    await updateLessonProgressAndSave('quiz')
+  }
+}
+
+async function openDocument() {
+  const url = currentLesson.value?.documentUrl || currentLesson.value?.url || currentLesson.value?.urlTapTin
+  if (url) {
+    window.open(url, '_blank')
+    await updateLessonProgressAndSave('doc')
+  } else {
+    alert('Chưa có file tài liệu đính kèm cho bài học này.')
+  }
+}
+
+function isOptionSelected(q, idx) {
+  const qId = q.id || q.Id
+  const ans = quizAnswers.value[qId]
+  const qType = q.type || q.Type
+  if (qType === 'multiple') {
+    return Array.isArray(ans) && ans.includes(idx)
+  }
+  return ans === idx
+}
+
+function selectAnswer(q, idx) {
+  const qId = q.id || q.Id
+  const qType = q.type || q.Type
+  if (qType === 'multiple') {
+    const current = Array.isArray(quizAnswers.value[qId]) ? [...quizAnswers.value[qId]] : []
+    const existingIndex = current.indexOf(idx)
+    if (existingIndex > -1) {
+      current.splice(existingIndex, 1)
+    } else {
+      current.push(idx)
+    }
+    quizAnswers.value[qId] = current
+  } else {
+    quizAnswers.value[qId] = idx
+  }
 }
 
 function toggleLike(cId) {
@@ -339,7 +664,9 @@ function lessonIcon(lesson) {
 }
 
 function progressWidth(lesson) {
-  return `${Math.max(0, Math.min(100, lessonProgressDrafts.value[lesson.id]?.progressPercent ?? lesson.progressPercent ?? 0))}%`
+  if (!lesson) return '0%'
+  const p = lessonProgressDrafts.value[lesson.id]?.progressPercent ?? lesson.progressPercent ?? (lesson.status === 'completed' ? 100 : 0)
+  return `${Math.max(0, Math.min(100, p))}%`
 }
 
 function lessonTypeLabel(lesson) {
@@ -353,6 +680,7 @@ watch(
     if (!newId) return
     quizAnswers.value = {}
     quizSubmitted.value = false
+    apiQuizData.value = null
     accessNotice.value = null
     pendingEarlyLesson.value = null
 
@@ -380,7 +708,6 @@ watch(
         selectedLessonId.value = foundLesson.id
         
         currentLesson.value = {
-          videoUrl: '',
           durationSeconds: 1200,
           allowSeek: true,
           pauseOnBlur: true,
@@ -390,6 +717,7 @@ watch(
           documentPages: 10,
           documentCurrentPage: 1,
           ...foundLesson,
+          videoUrl: foundLesson.url || '',    // map url -> videoUrl cho LessonVideoPlayer
           id: foundLesson.id,
           chapterId: foundChapter.id,
           chapterTitle: `${foundChapter.chapter}: ${foundChapter.title}`,
@@ -413,7 +741,6 @@ watch(learningLessons, (lessons) => {
       expandedChapters.value = { [firstChapter.id]: true }
       selectedLessonId.value = firstLesson.id
       currentLesson.value = {
-        videoUrl: '',
         durationSeconds: 1200,
         allowSeek: true,
         pauseOnBlur: true,
@@ -423,6 +750,7 @@ watch(learningLessons, (lessons) => {
         documentPages: 10,
         documentCurrentPage: 1,
         ...firstLesson,
+        videoUrl: firstLesson.url || '',       // map url -> videoUrl cho LessonVideoPlayer
         id: firstLesson.id,
         chapterId: firstChapter.id,
         chapterTitle: `${firstChapter.chapter}: ${firstChapter.title}`,
@@ -436,16 +764,99 @@ watch(learningLessons, (lessons) => {
 
 watch(() => currentLesson.value?.id, async (newLessonId) => {
   if (newLessonId && courseId.value) {
-    if (currentLesson.value.lessonType === 'quiz') {
-      try {
-        const res = await studentApi.getLessonQuiz(courseId.value, newLessonId)
-        apiQuiz.value = res.data || res.Data || []
-      } catch (err) {
-        console.error(err)
-        apiQuiz.value = []
+    // Reset quiz data khi chuyển bài
+    apiQuizData.value = null
+    quizAnswers.value = {}
+    quizSubmitted.value = false
+
+    // Load content blocks (video, document, slide, quiz) từ API
+    try {
+      const contentRes = await studentApi.getLessonContent(courseId.value, newLessonId)
+      const blocks = contentRes.data || contentRes.Data || []
+      const isArr = Array.isArray(blocks)
+      const videoBlock = isArr ? blocks.find(b => (b.Type || b.type) === 'video') : null
+      const docBlock = isArr ? blocks.find(b => (b.Type || b.type) === 'tai_lieu' || (b.Type || b.type) === 'pdf' || (b.Type || b.type) === 'document') : null
+      const slideBlock = isArr ? blocks.find(b => (b.Type || b.type) === 'slide_html') : null
+      const quizBlock = isArr ? blocks.find(b => (b.Type || b.type) === 'quiz' || (b.Type || b.type) === 'trac_nghiem' || b.QuizId || b.quizId) : null
+
+      const hasVid = Boolean(videoBlock)
+      const hasSl = Boolean(slideBlock)
+      const hasD = Boolean(docBlock)
+      const hasQ = Boolean(quizBlock) || currentLesson.value?.lessonType === 'quiz'
+
+      const docUrl = docBlock ? (docBlock.DocumentUrl || docBlock.documentUrl || docBlock.UrlTapTin || docBlock.urlTapTin || '') : ''
+      const docTitle = docBlock ? (docBlock.Title || docBlock.title || docUrl.split('/').pop() || currentLesson.value?.documentTitle) : currentLesson.value?.documentTitle
+      const rawSlideData = slideBlock ? (slideBlock.NoiDungJson || slideBlock.noiDungJson || slideBlock.SlideHtml || slideBlock.slideHtml || '') : ''
+
+      currentLesson.value = {
+        ...currentLesson.value,
+        hasVideo: hasVid,
+        hasSlide: hasSl,
+        hasDoc: hasD,
+        hasQuiz: hasQ,
+        slideJsonData: rawSlideData,
+        videoUrl: videoBlock ? (videoBlock.VideoUrl || videoBlock.videoUrl || videoBlock.UrlTapTin || videoBlock.urlTapTin || '') : '',
+        documentTitle: docTitle || '',
+        documentUrl: docUrl || '',
+        slideHtml: slideBlock ? (slideBlock.SlideHtml || slideBlock.slideHtml || slideBlock.NoiDungHtml || slideBlock.noiDungHtml || '') : undefined,
+      }
+
+      // Auto switch activeTab to the first available content block type
+      if (hasVid) {
+        activeTab.value = 'video'
+      } else if (hasSl) {
+        activeTab.value = 'slide'
+      } else if (hasD) {
+        activeTab.value = 'document'
+      } else if (hasQ) {
+        activeTab.value = 'quiz'
+      }
+    } catch (err) {
+      console.error('Không thể tải content blocks:', err)
+    }
+
+    // Khôi phục trạng thái hoàn thành từng mục từ DB
+    const existingP = currentLesson.value?.progressPercent ?? (currentLesson.value?.status === 'completed' ? 100 : 0)
+    const items = getLessonCompletedItems(newLessonId)
+    const hV = currentLesson.value?.hasVideo
+    const hD = currentLesson.value?.hasDoc
+    const hQ = currentLesson.value?.hasQuiz
+
+    if (existingP >= 100) {
+      if (hV) items.video = true
+      if (hD) items.doc = true
+      if (hQ) items.quiz = true
+    } else {
+      if (!hV) items.video = false
+      if (!hD) items.doc = false
+      if (!hQ) items.quiz = false
+    }
+
+    if ((items.video && hV) || existingP > 0) {
+      currentLesson.value = {
+        ...currentLesson.value,
+        progressPercent: existingP,
+        watchedSeconds: items.video && hV ? (currentLesson.value.durationSeconds || 1200) : (currentLesson.value.watchedSeconds || 0),
+        maxWatchedSeconds: items.video && hV ? (currentLesson.value.durationSeconds || 1200) : (currentLesson.value.maxWatchedSeconds || 0),
       }
     }
 
+    // Load quiz cho bài học (thử gọi API getLessonQuiz cho mọi bài học có quiz)
+    try {
+      const res = await studentApi.getLessonQuiz(courseId.value, newLessonId)
+      const raw = res.data || res.Data
+      if (raw && typeof raw === 'object' && !Array.isArray(raw) && raw.questions && raw.questions.length > 0) {
+        apiQuizData.value = raw
+      } else if (Array.isArray(raw) && raw.length > 0) {
+        apiQuizData.value = { questions: raw }
+      } else {
+        apiQuizData.value = null
+      }
+    } catch (err) {
+      apiQuizData.value = null
+    }
+
+    // Load comments
     try {
       const res = await studentApi.getLessonComments(courseId.value, newLessonId)
       apiComments.value = res.data || res.Data || []
@@ -455,6 +866,36 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
     }
   }
 })
+
+const isQuizCompletedFromDb = computed(() => {
+  const p = currentLesson.value?.progressPercent ?? 0
+  const items = getLessonCompletedItems(currentLesson.value?.id)
+  return p >= 100 || items.quiz
+})
+
+async function handleResetCourseProgress() {
+  if (!courseId.value) return
+  if (!confirm(`Bạn có chắc chắn muốn reset tiến độ môn ${courseId.value} về 0% để test lại không?`)) return
+  try {
+    await studentApi.resetCourseProgress(courseId.value)
+    if (apiLessons.value) {
+      apiLessons.value.forEach(ch => {
+        (ch.lessons || []).forEach(l => {
+          try {
+            localStorage.removeItem(`lms_lesson_items_${l.id}`)
+          } catch (e) {}
+        })
+      })
+    }
+    lessonCompletedItems.value = {}
+    lessonProgressDrafts.value = {}
+    await reloadCourseData()
+    alert(`Đã reset tiến độ môn ${courseId.value} về 0% thành công!`)
+  } catch (err) {
+    console.error('Không thể reset tiến độ:', err)
+    alert('Có lỗi khi reset tiến độ.')
+  }
+}
 </script>
 
 <template>
@@ -469,6 +910,10 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
           <component :is="resolveIcon('ClipboardList')" :size="14" />
           Bài tập
         </router-link>
+        <button type="button" class="secondary-action text-xs text-amber-700 border-amber-300 bg-amber-50" @click="handleResetCourseProgress">
+          <component :is="resolveIcon('RotateCcw')" :size="13" />
+          Reset tiến độ (0%)
+        </button>
       </div>
 
       <div class="course-header-main">
@@ -521,43 +966,148 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
           <div class="lesson-tabs" aria-label="Nội dung bài học">
             <button
               v-for="tab in [
-                { key: 'video', label: 'Video', icon: 'PlayCircle' },
-                { key: 'document', label: 'Tài liệu', icon: 'FileText' },
-                { key: 'quiz', label: 'Quiz', icon: 'ListChecks' },
-                { key: 'discussion', label: 'Thảo luận', icon: 'MessagesSquare' },
+                { key: 'video', label: 'Video', icon: 'PlayCircle', done: Boolean(currentLesson.hasVideo && getLessonCompletedItems(currentLesson.id).video) },
+                { key: 'slide', label: 'Slide', icon: 'PlaySquare', done: Boolean(currentLesson.hasSlide && getLessonCompletedItems(currentLesson.id).slide) },
+                { key: 'document', label: 'Tài liệu', icon: 'FileText', done: Boolean(currentLesson.hasDoc && getLessonCompletedItems(currentLesson.id).doc) },
+                { key: 'quiz', label: 'Quiz', icon: 'ListChecks', done: Boolean(currentLesson.hasQuiz && (isQuizCompletedFromDb || getLessonCompletedItems(currentLesson.id).quiz)) },
+                { key: 'discussion', label: 'Thảo luận', icon: 'MessagesSquare', done: false },
               ]"
               :key="tab.key"
               type="button"
               :class="{ active: activeTab === tab.key }"
               @click="activeTab = tab.key"
             >
-              <component :is="resolveIcon(tab.icon)" :size="14" />
+              <component :is="resolveIcon(tab.done ? 'CheckCircle2' : tab.icon)" :size="14" :class="{ 'text-green-600 font-bold': tab.done }" />
               {{ tab.label }}
+              <span v-if="tab.done" class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.2 rounded font-bold ml-1">✓</span>
             </button>
           </div>
 
           <div class="lesson-content">
-            <LessonVideoPlayer
-              v-if="activeTab === 'video'"
-              :key="currentLesson.id"
-              :lesson="currentLesson"
-              @progress="handleVideoProgress"
-              @completed="handleVideoCompleted"
-            />
+            <div v-if="activeTab === 'video'">
+              <div v-if="!currentLesson.hasVideo" class="p-8 text-center surface-card border border-card rounded-xl text-slate-500 my-4">
+                <component :is="resolveIcon('PlayCircle')" :size="40" class="mx-auto text-slate-300 mb-2" />
+                <p class="font-medium text-base text-slate-700">Bài học này không có Video</p>
+                <p class="text-xs text-slate-400 mt-1">Vui lòng chọn tab Slide, Quiz hoặc Nội dung khác để tiếp tục học.</p>
+              </div>
+              <LessonVideoPlayer
+                v-else
+                :key="currentLesson.id"
+                :lesson="currentLesson"
+                @progress="handleVideoProgress"
+                @completed="handleVideoCompleted"
+              />
+            </div>
+
+            <!-- Slide Tab -->
+            <div v-else-if="activeTab === 'slide'" class="slide-viewer">
+              <div v-if="!currentLesson.hasSlide" class="p-8 text-center surface-card border border-card rounded-xl text-slate-500 my-4 w-full">
+                <component :is="resolveIcon('PlaySquare')" :size="40" class="mx-auto text-slate-300 mb-2" />
+                <p class="font-medium text-base text-slate-700">Bài học này không có Slide HTML</p>
+                <p class="text-xs text-slate-400 mt-1">Vui lòng chọn tab Video, Tài liệu hoặc Quiz để xem bài học.</p>
+              </div>
+              <template v-else>
+                <div v-if="getLessonCompletedItems(currentLesson.id).slide" class="p-3 mb-3 rounded-xl bg-green-50 border border-green-200 text-green-800 flex items-center gap-2 text-xs font-bold w-full">
+                  <component :is="resolveIcon('CheckCircle2')" :size="16" class="text-green-600 shrink-0" />
+                  <span>✓ Bạn đã hoàn thành bài Slide này (Đã đọc 1 phút hoặc cuộn hết trang)</span>
+                </div>
+                <div v-else class="p-2.5 mb-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center justify-between text-xs font-medium w-full">
+                  <div class="flex items-center gap-2">
+                    <component :is="resolveIcon('Clock3')" :size="16" class="text-amber-600 shrink-0" />
+                    <span>Xem slide đủ 1 phút ({{ Math.min(60, slideSeconds) }}/60s) hoặc cuộn xuống hết trang để hoàn thành</span>
+                  </div>
+                  <button type="button" @click="handleSlideCompleted('manual')" class="px-2.5 py-1 text-[11px] font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors">
+                    Đã xem xong Slide
+                  </button>
+                </div>
+
+                <div 
+                  class="bg-white border border-slate-200 rounded-xl p-6 sm:p-8 max-h-[650px] overflow-y-auto shadow-inner"
+                  @scroll="handleSlideScroll"
+                >
+                  <SlideHtmlPreview :jsonData="currentLesson.slideJsonData || '{}'" />
+                </div>
+              </template>
+            </div>
 
             <div v-else-if="activeTab === 'document'" class="document-viewer">
-              <div class="document-preview">
-                <component :is="resolveIcon('FileText')" :size="36" />
-                <strong>{{ currentLesson.documentTitle }}</strong>
-                <span>Trang {{ currentLesson.documentCurrentPage }} / {{ currentLesson.documentPages }}</span>
+              <div v-if="!currentLesson.hasDoc" class="p-8 text-center surface-card border border-card rounded-xl text-slate-500 my-4 w-full">
+                <component :is="resolveIcon('FileText')" :size="40" class="mx-auto text-slate-300 mb-2" />
+                <p class="font-medium text-base text-slate-700">Bài học này không có Tài liệu</p>
+                <p class="text-xs text-slate-400 mt-1">Vui lòng chọn tab Slide, Quiz hoặc Nội dung khác để tiếp tục học.</p>
               </div>
-              <button type="button" class="secondary-action">
-                <component :is="resolveIcon('ExternalLink')" :size="15" />
-                Mở tài liệu
-              </button>
+              <template v-else>
+                <div v-if="getLessonCompletedItems(currentLesson.id).doc" class="p-3 mb-3 rounded-xl bg-green-50 border border-green-200 text-green-800 flex items-center gap-2 text-xs font-bold w-full">
+                  <component :is="resolveIcon('CheckCircle2')" :size="16" class="text-green-600 shrink-0" />
+                  <span>✓ Bạn đã xem và tải tài liệu này (Đã ghi nhận tiến độ)</span>
+                </div>
+                <div class="document-preview">
+                  <component :is="resolveIcon('FileText')" :size="36" />
+                  <strong>{{ currentLesson.documentTitle || 'Tài liệu bài học' }}</strong>
+                  <span>Trang {{ currentLesson.documentCurrentPage || 1 }} / {{ currentLesson.documentPages || 1 }}</span>
+                </div>
+                <button type="button" class="secondary-action" @click="openDocument">
+                  <component :is="resolveIcon('ExternalLink')" :size="15" />
+                  Mở tài liệu
+                </button>
+              </template>
             </div>
 
             <div v-else-if="activeTab === 'quiz'" class="quiz-view">
+              <!-- Quiz info header -->
+              <div v-if="quizInfo" class="quiz-info-header">
+                <div class="quiz-stat">
+                  <component :is="resolveIcon('Clock3')" :size="14" />
+                  <span>{{ quizInfo.durationMinutes || 15 }} phút</span>
+                </div>
+                <div class="quiz-stat">
+                  <component :is="resolveIcon('HelpCircle')" :size="14" />
+                  <span>{{ quizQuestions.length }} câu</span>
+                </div>
+                <div class="quiz-stat">
+                  <component :is="resolveIcon('Target')" :size="14" />
+                  <span>Điểm đạt: {{ quizInfo.passScore || 5 }}/{{ quizInfo.totalScore || 10 }}</span>
+                </div>
+              </div>
+
+              <!-- Previous completion notice banner -->
+              <div v-if="isQuizCompletedFromDb && !quizSubmitted" class="quiz-result-banner mb-5 p-4 rounded-xl border bg-green-50 border-green-200 text-green-900 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="p-2.5 rounded-lg shrink-0 bg-green-100 text-green-700">
+                    <component :is="resolveIcon('CheckCircle2')" :size="24" />
+                  </div>
+                  <div>
+                    <h3 class="text-base font-bold text-green-900 flex items-center gap-2">
+                      ✓ Bạn đã hoàn thành bài Quiz này trước đó
+                    </h3>
+                    <p class="text-xs mt-0.5 text-green-700">
+                      Bạn có thể chọn đáp án và bấm Nộp bài Quiz bên dưới nếu muốn làm lại bài Quiz.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Auto grading result banner -->
+              <div v-if="quizSubmitted && quizResult" class="quiz-result-banner mb-5 p-4 rounded-xl border flex items-center justify-between"
+                :class="quizResult.isPassed ? 'bg-green-50 border-green-200 text-green-900' : 'bg-amber-50 border-amber-200 text-amber-900'">
+                <div class="flex items-center gap-3">
+                  <div class="p-2.5 rounded-lg shrink-0" :class="quizResult.isPassed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'">
+                    <component :is="resolveIcon(quizResult.isPassed ? 'CheckCircle2' : 'AlertCircle')" :size="24" />
+                  </div>
+                  <div>
+                    <h3 class="text-base font-bold flex items-center gap-2">
+                      Kết quả Quiz: <span class="text-lg font-extrabold">{{ quizResult.score10 }} / 10 điểm</span>
+                      <span class="text-xs px-2.5 py-0.5 rounded-full font-bold ml-2" :class="quizResult.isPassed ? 'bg-green-200 text-green-800' : 'bg-amber-200 text-amber-800'">
+                        {{ quizResult.isPassed ? 'ĐẠT (Hoàn thành)' : 'CHƯA ĐẠT' }}
+                      </span>
+                    </h3>
+                    <p class="text-xs mt-1 text-slate-600">
+                      Bạn trả lời đúng <strong>{{ quizResult.correctCount }}/{{ quizResult.total }}</strong> câu &middot; Điểm yêu cầu đạt: {{ quizResult.passScore }}/10 điểm
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div
                 v-for="(q, index) in quizQuestions"
                 :key="q.id || q.Id"
@@ -565,26 +1115,41 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
                 :class="{ 'opacity-50 pointer-events-none': isQuestionLocked(index) }"
               >
                 <div class="flex items-center justify-between mb-2">
-                  <p class="font-medium text-heading">Câu {{ index + 1 }}: {{ q.question || q.Text }}</p>
+                  <p class="font-medium text-heading flex items-center gap-2">
+                    Câu {{ index + 1 }}:
+                    <span v-if="(q.type || q.Type) === 'multiple'" class="text-xs font-normal text-slate-500">(Chọn nhiều)</span>
+                    {{ q.text || q.Text || q.question || q.Question }}
+                  </p>
                   <span v-if="isQuestionLocked(index)" class="text-xs text-(--color-warning-text) font-semibold flex items-center gap-1">
                     <component :is="resolveIcon('Lock')" :size="12" /> Làm câu trước đó
                   </span>
                 </div>
+
+                <!-- Câu trắc nghiệm: radio/checkbox buttons -->
                 <div class="quiz-options">
                   <button
                     v-for="(opt, idx) in q.options || q.Options"
                     :key="idx"
                     type="button"
                     :disabled="isQuestionLocked(index)"
-                    :class="{ selected: quizAnswers[q.id || q.Id] === idx }"
-                    @click="selectAnswer(q.id || q.Id, idx)"
+                    :class="{ selected: isOptionSelected(q, idx) }"
+                    @click="selectAnswer(q, idx)"
                   >
                     <span>{{ ['A', 'B', 'C', 'D'][idx] }}</span>
-                    {{ opt }}
+                    {{ typeof opt === 'object' ? (opt?.content || opt?.Content || opt?.text || opt?.Text || JSON.stringify(opt)) : opt }}
                   </button>
                 </div>
               </div>
+              <div v-if="quizQuestions.length === 0 && !apiQuizData" class="quiz-empty-state">
+                <component :is="resolveIcon('HelpCircle')" :size="28" />
+                <p>Đang tải câu hỏi...</p>
+              </div>
+              <div v-else-if="quizQuestions.length === 0 && apiQuizData" class="quiz-empty-state">
+                <component :is="resolveIcon('AlertCircle')" :size="28" />
+                <p>Bài học này chưa có câu hỏi Quiz.</p>
+              </div>
               <button
+                v-if="quizQuestions.length > 0 && !quizSubmitted"
                 type="button"
                 class="primary-action w-full justify-center"
                 :disabled="!isQuizFullyAnswered"
@@ -593,9 +1158,6 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
                 <component :is="resolveIcon('Send')" :size="15" />
                 Nộp bài Quiz
               </button>
-              <p v-if="quizSubmitted" class="text-xs text-(--color-success-text) font-semibold text-center mt-3">
-                Chúc mừng! Bạn đã hoàn thành bài Quiz. Tiến độ bài học đã được cập nhật thành 100%.
-              </p>
             </div>
 
             <div v-else class="discussion-view">
@@ -1733,5 +2295,85 @@ textarea::placeholder {
   .outline-lesson-main {
     flex-basis: calc(100% - 2rem);
   }
+}
+
+.quiz-info-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--surface-input);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.quiz-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-label);
+}
+
+.quiz-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  color: var(--text-placeholder);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  border: 1px dashed var(--border-card);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.quiz-essay-block {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.quiz-essay-textarea {
+  width: 100%;
+  min-height: 8rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border-input);
+  border-radius: 10px;
+  background: var(--surface-input);
+  color: var(--text-body);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  font-family: inherit;
+}
+
+.quiz-essay-textarea:focus {
+  outline: none;
+  border-color: var(--border-input-focus);
+  box-shadow: 0 0 0 3px var(--border-focus-ring);
+}
+
+.quiz-essay-textarea:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.quiz-option-correct {
+  background: #f0fdf4 !important;
+  border-color: #22c55e !important;
+  color: #15803d !important;
+  font-weight: 600;
+}
+
+.quiz-option-wrong {
+  background: #fef2f2 !important;
+  border-color: #f87171 !important;
+  color: #991b1b !important;
+  text-decoration: line-through;
 }
 </style>

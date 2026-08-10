@@ -1,15 +1,9 @@
 <script setup>
-import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Eye, Edit3, Send, RotateCcw } from 'lucide-vue-next'
-import { useSubjectStore } from '@/stores/content-council/subjectStore'
-import { usePopupStore } from '@/stores/popup'
-import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
+import { Eye, Edit3 } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
-const subjectStore = useSubjectStore()
-const popupStore = usePopupStore()
 
 const props = defineProps({
   subject: {
@@ -17,44 +11,6 @@ const props = defineProps({
     required: true
   }
 })
-
-const showConfirmDialog = ref(false)
-
-const isPublished = computed(() => props.subject.status === 'published' || props.subject.status === 'completed')
-
-const dialogTitle = computed(() => {
-  return isPublished.value ? 'Xác nhận chuyển về biên soạn?' : 'Xác nhận xuất bản môn học?'
-})
-
-const dialogMessage = computed(() => {
-  if (isPublished.value) {
-    return `Bạn có chắc chắn muốn chuyển môn học "${props.subject.name}" (${props.subject.code}) về trạng thái Đang biên soạn?`
-  }
-  return `Bạn có chắc chắn muốn xuất bản môn học "${props.subject.name}" (${props.subject.code})? Môn học sau khi xuất bản sẽ chính thức hoạt động và sẵn sàng cho giảng viên, sinh viên.`
-})
-
-const dialogConfirmLabel = computed(() => {
-  return isPublished.value ? 'Chuyển về biên soạn' : 'Xuất bản môn học'
-})
-
-const dialogVariant = computed(() => {
-  return isPublished.value ? 'primary' : 'success'
-})
-
-const openPublishModal = () => {
-  showConfirmDialog.value = true
-}
-
-const handleConfirmPublish = () => {
-  showConfirmDialog.value = false
-  if (isPublished.value) {
-    subjectStore.unpublishSubject(props.subject.id)
-    popupStore.success('Đã chuyển về biên soạn', 'Trạng thái môn học đã quay lại Đang biên soạn.')
-  } else {
-    subjectStore.publishSubject(props.subject.id)
-    popupStore.success('Xuất bản môn học thành công!', 'Môn học đã được xuất bản và sẵn sàng sử dụng.')
-  }
-}
 
 const getStatusBadgeClass = (status) => {
   switch (status) {
@@ -121,16 +77,6 @@ const formatRelativeTime = (isoString) => {
 
     <!-- Actions -->
     <div class="flex items-center gap-3 shrink-0 mb-4 md:mb-0 flex-wrap">
-      <!-- Publish Button -->
-      <button 
-        @click="openPublishModal"
-        class="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg focus:outline-none transition-colors shadow-sm"
-        :class="isPublished ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'"
-      >
-        <component :is="isPublished ? RotateCcw : Send" class="w-4 h-4" />
-        <span>{{ isPublished ? 'Hủy xuất bản' : 'Xuất bản môn học' }}</span>
-      </button>
-
       <button 
         @click="router.push({ name: 'content-council-subject-preview', params: { subjectId: subject.id } })"
         class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-body surface-card border border-card rounded-lg hover:bg-slate-50 focus:outline-none transition-colors"
@@ -157,15 +103,5 @@ const formatRelativeTime = (isoString) => {
         <span>Trình soạn nội dung</span>
       </button>
     </div>
-
-    <!-- Confirm Modal -->
-    <ConfirmActionDialog
-      v-model="showConfirmDialog"
-      :title="dialogTitle"
-      :message="dialogMessage"
-      :confirm-label="dialogConfirmLabel"
-      :variant="dialogVariant"
-      @confirm="handleConfirmPublish"
-    />
   </div>
 </template>

@@ -77,6 +77,9 @@ function mapContentBlock(source: any): EditorContentBlock {
   const rawJson = typeof jsonData === 'string' ? jsonData : (jsonData ? JSON.stringify(jsonData) : undefined)
   const parsedData = parseContentData(jsonData) || {}
 
+  const rawStatus = source.trangThai ?? source.TrangThai ?? source.status ?? 'nhap'
+  const status = (rawStatus === 'da_xuat_ban' || rawStatus === 'published') ? 'da_xuat_ban' : (rawStatus === 'hidden' || rawStatus === 'an' ? 'an' : 'nhap')
+
   return {
     id: source.maNoiDung ?? source.MaNoiDung ?? source.id,
     lessonId: source.maBaiHoc ?? source.MaBaiHoc ?? source.lessonId,
@@ -85,7 +88,7 @@ function mapContentBlock(source: any): EditorContentBlock {
     description: source.description ?? source.moTa ?? source.MoTa ?? parsedData.description ?? parsedData.moTa ?? '',
     quizCompletionRule: source.quizCompletionRule ?? parsedData.quizCompletionRule ?? 'pass',
     order: source.thuTu ?? source.ThuTu ?? source.order ?? 0,
-    status: source.trangThai ?? source.TrangThai ?? source.status ?? 'draft',
+    status,
     html: source.noiDungHtml ?? source.NoiDungHtml ?? source.html,
     fileUrl,
     videoUrl: type === 'video' ? fileUrl : undefined,
@@ -101,13 +104,16 @@ function mapContentBlock(source: any): EditorContentBlock {
 function mapLesson(source: any): EditorLesson {
   const contents = source.noiDungs ?? source.NoiDungs ?? source.contents ?? []
   const lessonTitle = source.tieuDe ?? source.TieuDe ?? source.title ?? ''
+  const rawStatus = source.trangThai ?? source.TrangThai ?? source.status ?? 'nhap'
+  const status = (rawStatus === 'da_xuat_ban' || rawStatus === 'published') ? 'da_xuat_ban' : (rawStatus === 'hidden' || rawStatus === 'an' ? 'an' : 'nhap')
+
   return {
     id: source.maBaiHoc ?? source.MaBaiHoc ?? source.id,
     chapterId: source.maChuong ?? source.MaChuong ?? source.chapterId,
     title: lessonTitle,
     order: source.thuTu ?? source.ThuTu ?? source.order ?? 0,
     type: source.loaiBaiHoc ?? source.LoaiBaiHoc ?? source.type ?? 'van_ban',
-    status: source.trangThai ?? source.TrangThai ?? source.status ?? 'draft',
+    status,
     contents: Array.isArray(contents) ? contents.map(c => {
       const mapped = mapContentBlock(c)
       if (!mapped.title || mapped.title.trim() === '' || mapped.title === 'Nội dung bài học') {
@@ -130,7 +136,7 @@ function mapChapter(source: any, subjectId: number): EditorChapter {
     title: source.tieuDe ?? source.TieuDe ?? source.title ?? '',
     order: source.thuTu ?? source.ThuTu ?? source.order ?? 0,
     hidden: source.daAn ?? source.DaAn ?? source.hidden ?? false,
-    lessons: Array.isArray(lessons) ? lessons.map(mapLesson) : [],
+    lessons: Array.isArray(lessons) ? lessons.map(l => mapLesson(l)) : [],
   }
 }
 
@@ -181,7 +187,6 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
   }
 
   async function loadSubjectDetail(id: number) {
-    if (subjectDetails.value[id]?.chapters) return subjectDetails.value[id]
     try {
       const [subRes, chaptersRes] = await Promise.all([
         contentCouncilApi.getSubjectById(id),
@@ -189,12 +194,15 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
       ])
 
       const sub = mapSubjectDetail(unwrapData(subRes))
+      const publishedIds = getPublishedSubjectIds()
+      const isSubjectPublished = sub.status === 'published' || publishedIds.includes(id)
+
       const { items: rawChapters } = unwrapList(chaptersRes)
       const chapters = rawChapters.map((chapter: any) => mapChapter(chapter, id))
 
       subjectDetails.value = {
         ...subjectDetails.value,
-        [id]: { ...sub, chapters },
+        [id]: { ...sub, status: isSubjectPublished ? 'published' : sub.status, chapters },
       }
       syncSummary(id)
       return subjectDetails.value[id]
@@ -326,7 +334,19 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
         trangThai: payload.status,
       })
       const idx = chapter.lessons.findIndex(l => l.id === lessonId)
-      if (idx !== -1) Object.assign(chapter.lessons[idx], payload)
+      if (idx !== -1) {
+        Object.assign(chapter.lessons[idx], payload)
+        if (payload.status) {
+          chapter.lessons[idx].status = payload.status
+          if (chapter.lessons[idx].contents) {
+            chapter.lessons[idx].contents.forEach(cb => {
+              cb.status = payload.status as any
+            })
+          }
+        }
+      }
+      delete subjectDetails.value[subjectId]
+      await loadSubjectDetail(subjectId)
     } catch (e: any) {
       error.value = e?.message || 'Không thể cập nhật bài học'
     }
@@ -463,7 +483,13 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     }
   }
 
-  function publishSubject(subjectId: number) {
+  async function publishSubject(subjectId: number) {
+    try {
+      await contentCouncilApi.publishSubject(subjectId)
+    } catch (e: any) {
+      console.error('Không thể gọi API xuất bản môn học:', e)
+    }
+
     const publishedIds = getPublishedSubjectIds()
     if (!publishedIds.includes(subjectId)) {
       publishedIds.push(subjectId)
@@ -472,14 +498,33 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     const detail = subjectDetails.value[subjectId]
     if (detail) {
       detail.status = 'published'
+      if (detail.chapters) {
+        detail.chapters.forEach(ch => {
+          ch.lessons?.forEach(l => {
+            l.status = 'da_xuat_ban'
+            l.contents?.forEach(cb => {
+              cb.status = 'da_xuat_ban'
+            })
+          })
+        })
+      }
     }
     const subject = subjects.value.find(s => s.id === subjectId)
     if (subject) {
       subject.status = 'published'
     }
+
+    delete subjectDetails.value[subjectId]
+    await loadSubjectDetail(subjectId)
   }
 
-  function unpublishSubject(subjectId: number) {
+  async function unpublishSubject(subjectId: number) {
+    try {
+      await contentCouncilApi.unpublishSubject(subjectId)
+    } catch (e: any) {
+      console.error('Không thể gọi API hủy xuất bản môn học:', e)
+    }
+
     let publishedIds = getPublishedSubjectIds()
     publishedIds = publishedIds.filter(id => id !== subjectId)
     savePublishedSubjectIds(publishedIds)
@@ -487,11 +532,24 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     const detail = subjectDetails.value[subjectId]
     if (detail) {
       detail.status = 'draft'
+      if (detail.chapters) {
+        detail.chapters.forEach(ch => {
+          ch.lessons?.forEach(l => {
+            l.status = 'nhap'
+            l.contents?.forEach(cb => {
+              cb.status = 'nhap'
+            })
+          })
+        })
+      }
     }
     const subject = subjects.value.find(s => s.id === subjectId)
     if (subject) {
       subject.status = 'draft'
     }
+
+    delete subjectDetails.value[subjectId]
+    await loadSubjectDetail(subjectId)
   }
 
   return {

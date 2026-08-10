@@ -8,7 +8,7 @@ const isOpen = editor.isLessonModalOpen
 
 const formData = ref({
   title: '',
-  type: 'video',
+  type: 'van_ban',
   order: null as number | null,
   status: 'draft'
 })
@@ -38,13 +38,13 @@ watch(() => isOpen.value, (val) => {
       isEdit.value = true
       formData.value = {
         title: editor.editingLesson.value.title,
-        type: editor.editingLesson.value.type,
+        type: editor.editingLesson.value.type || 'van_ban',
         order: editor.editingLesson.value.order,
         status: editor.editingLesson.value.status
       }
     } else {
       isEdit.value = false
-      formData.value = { title: '', type: 'video', order: null, status: 'draft' }
+      formData.value = { title: '', type: 'van_ban', order: null, status: 'draft' }
     }
   }
 })
@@ -92,15 +92,6 @@ const save = async () => {
             @keyup.enter="save"
             autofocus
           >
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Loại nội dung chính</label>
-          <LmsSelect 
-            v-model="formData.type"
-            :options="contentTypes"
-            placeholder="Chọn loại nội dung"
-          />
         </div>
 
         <div v-if="isEdit">

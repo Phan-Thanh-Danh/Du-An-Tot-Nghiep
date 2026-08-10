@@ -60,6 +60,14 @@ export const contentCouncilApi = {
     return apiRequest(`/api/master-data/subjects/${id}`, { method: 'DELETE' })
   },
 
+  publishSubject(subjectId) {
+    return apiRequest(`/api/curriculum/subjects/${subjectId}/publish`, { method: 'POST' })
+  },
+
+  unpublishSubject(subjectId) {
+    return apiRequest(`/api/curriculum/subjects/${subjectId}/unpublish`, { method: 'POST' })
+  },
+
   // Curriculum chapters
   getChapters(subjectId) {
     return apiRequest(`/api/curriculum/subjects/${subjectId}/chapters`)

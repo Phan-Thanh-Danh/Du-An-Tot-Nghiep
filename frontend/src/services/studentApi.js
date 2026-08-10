@@ -90,9 +90,24 @@ export const studentApi = {
       method: 'GET',
     })
   },
+  getLessonContent(courseId, lessonId) {
+    return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/content`, {
+      method: 'GET',
+    })
+  },
   getLessonComments(courseId, lessonId) {
     return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/comments`, {
       method: 'GET',
+    })
+  },
+  completeLesson(courseId, lessonId, percent = 100) {
+    return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/complete?percent=${percent}`, {
+      method: 'POST',
+    })
+  },
+  resetCourseProgress(courseId) {
+    return apiRequest(`/api/student/courses/${courseId}/reset-progress`, {
+      method: 'POST',
     })
   },
   getStudentCurriculum() {

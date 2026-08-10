@@ -55,10 +55,8 @@ const formatIcon = computed(() => {
 })
 
 /** Map FE format value to BE loaiCauHoi value */
-const formatToBeType = (fmt: string) => {
-  if (fmt === 'multiple_choice') return 'trac_nghiem'
-  if (fmt === 'essay') return 'tu_luan'
-  return null // mixed => no filter
+const formatToBeType = (_fmt: string) => {
+  return 'trac_nghiem' // Quiz only supports multiple choice (single / multiple select)
 }
 
 const fetchQuestions = async () => {
@@ -177,7 +175,7 @@ const diffClass = (d: string) => {
         <div>
           <h2 class="text-base font-bold text-slate-800">3. Chọn câu hỏi từ Ngân hàng câu hỏi</h2>
           <p class="text-xs text-slate-500 mt-0.5">
-            Hình thức đề: <span class="font-medium text-blue-600">{{ formatLabel }}</span>
+            Hình thức đề: <span class="font-medium text-blue-600">Trắc nghiệm</span>
             <span v-if="subjectId" class="ml-2">&middot;
               Đã chọn <span class="font-medium text-green-600">{{ selectedCount }}</span> câu hỏi
             </span>

@@ -9,6 +9,7 @@ import ChapterFormModal from '@/components/content-council/editor/ChapterFormMod
 import LessonFormModal from '@/components/content-council/editor/LessonFormModal.vue'
 import ContentFormDrawer from '@/components/content-council/editor/ContentFormDrawer.vue'
 import ContentDeleteDialog from '@/components/content-council/editor/ContentDeleteDialog.vue'
+import ConfirmDraftDialog from '@/components/content-council/editor/ConfirmDraftDialog.vue'
 
 import { useCurriculumEditor } from '@/composables/content-council/useCurriculumEditor'
 import { useSubjectStore } from '@/stores/content-council/subjectStore'
@@ -99,6 +100,7 @@ const goBack = () => {
     <LessonFormModal />
     <ContentFormDrawer />
     <ContentDeleteDialog />
+    <ConfirmDraftDialog />
   </div>
 </template>
 

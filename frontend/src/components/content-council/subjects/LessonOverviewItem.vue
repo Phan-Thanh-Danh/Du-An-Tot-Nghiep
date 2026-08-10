@@ -14,23 +14,31 @@ const router = useRouter()
 const route = useRoute()
 
 const getLessonIcon = (type) => {
-  switch (type) {
+  if (props.lesson.contentCount === 0 || props.lesson.contents?.length === 0) {
+    return FileText
+  }
+  const mainType = props.lesson.contents?.[0]?.type || type
+  switch (mainType) {
     case 'video': return Video
-    case 'pdf': return FileText
-    case 'text': return AlignLeft
-    case 'quiz': return CircleHelp
-    case 'slide': return Presentation
+    case 'pdf': case 'tai_lieu': case 'document': return FileText
+    case 'text': case 'van_ban': return AlignLeft
+    case 'quiz': case 'trac_nghiem': return CircleHelp
+    case 'slide': case 'slide_html': return Presentation
     default: return FileText
   }
 }
 
 const getLessonColor = (type) => {
-  switch (type) {
+  if (props.lesson.contentCount === 0 || props.lesson.contents?.length === 0) {
+    return 'text-slate-400'
+  }
+  const mainType = props.lesson.contents?.[0]?.type || type
+  switch (mainType) {
     case 'video': return 'text-red-500'
-    case 'pdf': return 'text-orange-500'
-    case 'text': return 'text-slate-500'
-    case 'quiz': return 'text-purple-500'
-    case 'slide': return 'text-blue-500'
+    case 'pdf': case 'tai_lieu': case 'document': return 'text-orange-500'
+    case 'text': case 'van_ban': return 'text-slate-500'
+    case 'quiz': case 'trac_nghiem': return 'text-purple-500'
+    case 'slide': case 'slide_html': return 'text-blue-500'
     default: return 'text-slate-500'
   }
 }
@@ -38,8 +46,8 @@ const getLessonColor = (type) => {
 const getStatusBadgeClass = (status) => {
   switch (status) {
     case 'empty': return 'bg-orange-50 text-orange-700 border-orange-200'
-    case 'draft': return 'bg-slate-100 text-slate-700 border-slate-200'
-    case 'published': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    case 'draft': case 'nhap': return 'bg-slate-100 text-slate-700 border-slate-200'
+    case 'published': case 'da_xuat_ban': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
     case 'hidden': return 'bg-purple-50 text-purple-700 border-purple-200'
     default: return 'bg-slate-100 text-slate-600 border-slate-200'
   }
@@ -48,8 +56,8 @@ const getStatusBadgeClass = (status) => {
 const getStatusText = (status) => {
   switch (status) {
     case 'empty': return 'Chưa có nội dung'
-    case 'draft': return 'Nháp'
-    case 'published': return 'Đã xuất bản'
+    case 'draft': case 'nhap': return 'Nháp'
+    case 'published': case 'da_xuat_ban': return 'Đã xuất bản'
     case 'hidden': return 'Đang ẩn'
     default: return status
   }

@@ -83,6 +83,14 @@ watch(() => isOpen.value, (val) => {
     if (editor.editingContent.value) {
       isEdit.value = true
       formData.value = { ...editor.editingContent.value }
+      const currentSt = String(formData.value.status || '').toLowerCase()
+      if (currentSt === 'published' || currentSt === 'da_xuat_ban') {
+        formData.value.status = 'da_xuat_ban'
+      } else if (currentSt === 'hidden' || currentSt === 'an') {
+        formData.value.status = 'an'
+      } else {
+        formData.value.status = 'nhap'
+      }
       
       let parsedJson: any = {}
       if (formData.value.NoiDungJson) {
@@ -138,6 +146,8 @@ watch(() => isOpen.value, (val) => {
   }
 })
 
+const slideEditorRef = ref<any>(null)
+
 const close = () => {
   isOpen.value = false
 }
@@ -148,30 +158,36 @@ const save = async () => {
     return
   }
 
-  if (contentType.value === 'quiz') {
-    if (!formData.value.quizId && !formData.value.maDeKiemTra) {
-      alert('Vui lòng chọn một Quiz / Đề kiểm tra từ danh sách')
-      return
-    }
-    formData.value.maDeKiemTra = Number(formData.value.quizId || formData.value.maDeKiemTra)
-    formData.value.quizId = formData.value.maDeKiemTra
-  }
-
-  const jsonPayload = {
-    description: formData.value.description || '',
-    quizCompletionRule: formData.value.quizCompletionRule || 'pass',
-    quizTitle: formData.value.quizTitle || formData.value.title || '',
-    quizId: formData.value.quizId || formData.value.maDeKiemTra,
-    title: formData.value.title || ''
-  }
-  formData.value.NoiDungJson = JSON.stringify(jsonPayload)
-  formData.value.data = jsonPayload
-
   if (contentType.value === 'slide_html') {
-    if (!formData.value.NoiDungJson || formData.value.NoiDungJson === '{}') {
-      alert('Nội dung slide không được để trống.')
+    if (slideEditorRef.value?.saveData) {
+      const slideJson = await slideEditorRef.value.saveData()
+      if (slideJson) {
+        formData.value.NoiDungJson = slideJson
+      }
+    }
+    if (!formData.value.NoiDungJson || formData.value.NoiDungJson === '{}' || formData.value.NoiDungJson === '{"blocks":[]}') {
+      alert('Nội dung slide không được để trống. Vui lòng nhập thông tin vào trình soạn thảo.')
       return
     }
+  } else {
+    if (contentType.value === 'quiz') {
+      if (!formData.value.quizId && !formData.value.maDeKiemTra) {
+        alert('Vui lòng chọn một Quiz / Đề kiểm tra từ danh sách')
+        return
+      }
+      formData.value.maDeKiemTra = Number(formData.value.quizId || formData.value.maDeKiemTra)
+      formData.value.quizId = formData.value.maDeKiemTra
+    }
+
+    const jsonPayload = {
+      description: formData.value.description || '',
+      quizCompletionRule: formData.value.quizCompletionRule || 'pass',
+      quizTitle: formData.value.quizTitle || formData.value.title || '',
+      quizId: formData.value.quizId || formData.value.maDeKiemTra,
+      title: formData.value.title || ''
+    }
+    formData.value.NoiDungJson = JSON.stringify(jsonPayload)
+    formData.value.data = jsonPayload
   }
   
   isSaving.value = true
@@ -197,11 +213,11 @@ const save = async () => {
     const dataToSave = { ...formData.value }
     delete dataToSave.rawFile
 
-    editor.saveContent(dataToSave)
-  } catch (error: any) {
-    alert('Lỗi upload file: ' + (error.message || 'Vui lòng thử lại sau'))
-  } finally {
+    await editor.saveContent(dataToSave)
     isSaving.value = false
+  } catch (error: any) {
+    isSaving.value = false
+    alert('Lỗi lưu nội dung: ' + (error.message || 'Vui lòng thử lại sau'))
   }
 }
 
@@ -260,24 +276,14 @@ const onFileChange = (e: any) => {
               >
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Trạng thái</label>
-                <LmsSelect 
-                  v-model="formData.status"
-                  :options="statusOptions"
-                  placeholder="Chọn trạng thái"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Thứ tự</label>
-                <input 
-                  v-model.number="formData.order" 
-                  type="number" 
-                  class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Để trống để thêm vào cuối"
-                >
-              </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Thứ tự</label>
+              <input 
+                v-model.number="formData.order" 
+                type="number" 
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Để trống để thêm vào cuối"
+              >
             </div>
 
             <div>
@@ -324,7 +330,7 @@ const onFileChange = (e: any) => {
             <h4 class="font-semibold text-slate-800 mb-2">Trình soạn thảo HTML</h4>
             <div class="min-h-[400px]">
               <!-- We will integrate Editor.js here -->
-              <SlideHtmlEditor v-if="isOpen && contentType === 'slide_html'" v-model="formData.NoiDungJson" />
+              <SlideHtmlEditor v-if="isOpen && contentType === 'slide_html'" ref="slideEditorRef" v-model="formData.NoiDungJson" />
             </div>
           </div>
 
