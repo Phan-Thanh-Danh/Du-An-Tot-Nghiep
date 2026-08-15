@@ -1,4 +1,6 @@
+
 using System.Text.Json;
+using Backend.DTOs.Bgh;
 using Backend.Constants;
 using Backend.Data;
 using Backend.DTOs.Auth;
@@ -1317,6 +1319,79 @@ public class BghAcademicController : ControllerBase
             message = "Đã từ chối yêu cầu mở khoá bảng điểm.",
             requestId = yeuCau.MaYcSuaDiem
         }));
+    }
+    [HttpGet("academic/campus-comparison")]
+    public async Task<ActionResult<ApiResponseDto<List<CampusComparisonDto>>>> GetCampusComparison(CancellationToken cancellationToken)
+    {
+        var cacheKey = "bgh:campus-comparison:v2";
+        var cachedData = await _cache.GetOrCreateAsync(
+            cacheKey,
+            TimeSpan.FromHours(1),
+            async ct =>
+            {
+                var campuses = await _db.DonVis
+                    .Where(d => d.CapDonVi == "co_so" && d.ConHoatDong)
+                    .ToListAsync(cancellationToken);
+
+                var results = new List<CampusComparisonDto>();
+                foreach (var campus in campuses)
+                {
+                    // Students
+                    var students = await _db.NguoiDungs
+                        .Where(u => u.MaDonVi == campus.MaDonVi && u.VaiTroChinh == "hoc_sinh" && u.TrangThai == "hoat_dong")
+                        .CountAsync(cancellationToken);
+
+                    // GPA & PassRate
+                    var diemSos = await _db.DiemSos
+                        .Where(d => d.MaDonVi == campus.MaDonVi && d.TrangThai == "chinh_thuc")
+                        .Select(d => d.GpaMonHoc)
+                        .ToListAsync(cancellationToken);
+                    
+                    decimal gpa = diemSos.Any() ? Math.Round(diemSos.Average(), 2) : 0;
+                    decimal passRate = diemSos.Any() ? Math.Round((decimal)diemSos.Count(d => d >= 4) / diemSos.Count * 100, 1) : 0;
+
+                    // AttendanceRate
+                    var diemDanhs = await _db.DiemDanhs
+                        .Where(d => d.MaDonVi == campus.MaDonVi)
+                        .Select(d => d.TrangThai)
+                        .ToListAsync(cancellationToken);
+                    
+                    decimal attRate = diemDanhs.Any() ? Math.Round((decimal)diemDanhs.Count(d => d != "vang_mat") / diemDanhs.Count * 100, 1) : 0;
+
+                    // Revenue
+                    var hoadons = await _db.HoaDons
+                        .Where(h => h.MaDonVi == campus.MaDonVi && h.TrangThai == "da_thanh_toan")
+                        .Select(h => h.DaThanhToan)
+                        .ToListAsync(cancellationToken);
+                    
+                    decimal revenue = hoadons.Any() ? Math.Round(hoadons.Sum() / 1000000000m, 1) : 0; // Tỷ VNĐ
+
+                    // TeacherScore
+                    var teacherScores = await _db.DanhGiaGiaoViens
+                        .Include(dg => dg.GiaoVien)
+                        .Where(dg => dg.GiaoVien != null && dg.GiaoVien.MaDonVi == campus.MaDonVi)
+                        .Select(dg => dg.DiemSo)
+                        .ToListAsync(cancellationToken);
+                    
+                    decimal teacherScore = teacherScores.Any() ? Math.Round((decimal)teacherScores.Average(), 2) : 0;
+
+                    results.Add(new CampusComparisonDto
+                    {
+                        Id = campus.MaDonVi.ToString(),
+                        Name = campus.TenDonVi,
+                        Students = students,
+                        Gpa = gpa,
+                        PassRate = passRate,
+                        AttendanceRate = attRate,
+                        Revenue = revenue,
+                        TeacherScore = teacherScore
+                    });
+                }
+
+                return results;
+            });
+
+        return Ok(ApiResponseDto<List<CampusComparisonDto>>.Ok(cachedData!));
     }
 }
 

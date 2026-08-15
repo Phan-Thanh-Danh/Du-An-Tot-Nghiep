@@ -4,7 +4,8 @@
  * So sánh hiệu năng giữa các campus — bảng tổng hợp, grouped bar chart CSS,
  * ranking huy chương. Module M18 section 6.1 "So Sánh Campus".
  */
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { bghApi } from '@/services/bghApi'
 import {
   GitCompare, Filter, RotateCcw, Trophy,
   Users, GraduationCap, CalendarCheck2, DollarSign, Star,
@@ -16,13 +17,7 @@ const semesters = ref(['Spring 2026', 'Fall 2025', 'Summer 2025'])
 const filterSemester = ref('Spring 2026')
 
 // --- Campus Selection ---
-const allCampuses = ref([
-  { id: 'hanoi', name: 'Hà Nội', selected: true },
-  { id: 'hoalac', name: 'Hòa Lạc', selected: true },
-  { id: 'hcm', name: 'TP.HCM', selected: true },
-  { id: 'danang', name: 'Đà Nẵng', selected: true },
-])
-
+const allCampuses = ref([])
 const selectedCampuses = computed(() => allCampuses.value.filter(c => c.selected))
 
 const toggleCampus = (campus) => {
@@ -31,11 +26,49 @@ const toggleCampus = (campus) => {
 }
 
 // --- Campus Data ---
-const campusData = ref({
-  hanoi: { name: 'Hà Nội', students: 3200, gpa: 7.45, passRate: 85.2, attendanceRate: 92.5, revenue: 48.5, teacherScore: 4.2, color: 'bg-blue-500', textColor: 'text-blue-500', lightBg: 'bg-blue-500/20' },
-  hoalac: { name: 'Hòa Lạc', students: 4500, gpa: 7.32, passRate: 83.1, attendanceRate: 92.0, revenue: 67.8, teacherScore: 4.0, color: 'bg-violet-500', textColor: 'text-violet-500', lightBg: 'bg-violet-500/20' },
-  hcm: { name: 'TP.HCM', students: 3100, gpa: 7.18, passRate: 80.5, attendanceRate: 91.0, revenue: 46.2, teacherScore: 3.9, color: 'bg-cyan-500', textColor: 'text-cyan-500', lightBg: 'bg-cyan-500/20' },
-  danang: { name: 'Đà Nẵng', students: 1200, gpa: 7.05, passRate: 78.2, attendanceRate: 86.1, revenue: 17.5, teacherScore: 3.7, color: 'bg-amber-500', textColor: 'text-amber-500', lightBg: 'bg-amber-500/20' },
+const campusData = ref({})
+
+const loadData = async () => {
+  try {
+    const response = await bghApi.getCampusComparison()
+    let items = response?.data || response?.Data || response
+    if (!Array.isArray(items)) {
+      items = [items]
+    }
+    const newCampusData = {}
+    const newAllCampuses = []
+    const colors = [
+      { color: 'bg-blue-500', textColor: 'text-blue-500', lightBg: 'bg-blue-500/20' },
+      { color: 'bg-violet-500', textColor: 'text-violet-500', lightBg: 'bg-violet-500/20' },
+      { color: 'bg-cyan-500', textColor: 'text-cyan-500', lightBg: 'bg-cyan-500/20' },
+      { color: 'bg-amber-500', textColor: 'text-amber-500', lightBg: 'bg-amber-500/20' },
+      { color: 'bg-rose-500', textColor: 'text-rose-500', lightBg: 'bg-rose-500/20' }
+    ]
+    
+    items.forEach((item, index) => {
+      const id = 'campus_' + (item.id || item.Id)
+      const cInfo = colors[index % colors.length]
+      newCampusData[id] = {
+        name: item.name || item.Name || id,
+        students: item.students || item.Students || 0,
+        gpa: item.gpa || item.Gpa || 0,
+        passRate: item.passRate ?? item.PassRate ?? 0,
+        attendanceRate: item.attendanceRate ?? item.AttendanceRate ?? 0,
+        revenue: item.revenue ?? item.Revenue ?? 0,
+        teacherScore: item.teacherScore ?? item.TeacherScore ?? 0,
+        ...cInfo
+      }
+      newAllCampuses.push({ id, name: newCampusData[id].name, selected: true })
+    })
+    campusData.value = newCampusData
+    allCampuses.value = newAllCampuses
+  } catch (e) {
+    console.error('Failed to load campus comparison', e)
+  }
+}
+
+onMounted(() => {
+  loadData()
 })
 
 const selectedData = computed(() => {

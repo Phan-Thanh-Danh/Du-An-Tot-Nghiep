@@ -231,8 +231,12 @@ const submitAppeal = async () => {
                   <ShieldAlert v-if="selectedRecord.trangThai === 'active'" :size="18" class="text-(--color-danger-bg)" />
                   <h3 class="text-xl font-bold text-(--text-heading) leading-tight">{{ selectedRecord.tieuDe }}</h3>
                 </div>
-                <div class="bg-(--surface-input) p-4 rounded-lg font-mono text-sm text-(--text-body) leading-relaxed border border-(--border-default)">
+                <div class="bg-(--surface-input) p-4 rounded-lg font-mono text-sm text-(--text-body) leading-relaxed border border-(--border-default) whitespace-pre-wrap">
                   {{ selectedRecord.moTaCongKhai }}
+                </div>
+                <div v-if="selectedRecord.canCuXuLy" class="mt-3 bg-(--surface-input) p-4 rounded-lg text-sm text-(--text-body) leading-relaxed border border-(--border-default)">
+                  <p class="font-bold mb-1 text-(--text-heading)">Căn cứ xử lý:</p>
+                  <p class="font-mono whitespace-pre-wrap">{{ selectedRecord.canCuXuLy }}</p>
                 </div>
               </div>
 

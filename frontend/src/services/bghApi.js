@@ -97,6 +97,10 @@ export const bghApi = {
     return get(`/api/bgh/academic/overview${qs ? '?' + qs : ''}`, REPORT)
   },
 
+  getCampusComparison() {
+    return get(`/api/bgh/academic/campus-comparison`, REPORT)
+  },
+
   getGpaReports(params = {}) {
     const query = new URLSearchParams()
     if (params.campusId) query.append('campusId', params.campusId)
