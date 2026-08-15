@@ -231,6 +231,103 @@ const removeEffect = () => {
   }
 }
 
+const submitRecord = () => {
+  if (!selectedRecord.value) return
+  confirmAction.value = {
+    title: 'Gửi duyệt hồ sơ?',
+    message: `Bạn muốn gửi duyệt hồ sơ "${selectedRecord.value.tieuDe}"?`,
+    label: 'Gửi duyệt',
+    variant: 'primary',
+    run: async () => {
+      try {
+        await rewardDisciplineApi.submitDisciplineRecord(selectedRecord.value.id)
+        selectedRecord.value.trangThai = 'cho_duyet'
+        confirmAction.value = null
+        popupStore.success('Thành công', 'Đã gửi duyệt hồ sơ kỷ luật.')
+      } catch (err) {
+        popupStore.error('Lỗi', err?.message || 'Không thể gửi duyệt hồ sơ.')
+      }
+    }
+  }
+}
+
+const approveRecord = () => {
+  if (!selectedRecord.value) return
+  confirmAction.value = {
+    title: 'Duyệt hồ sơ kỷ luật?',
+    message: `Bạn muốn duyệt hồ sơ "${selectedRecord.value.tieuDe}"?`,
+    label: 'Duyệt',
+    variant: 'success',
+    run: async () => {
+      try {
+        await rewardDisciplineApi.approveDisciplineRecord(selectedRecord.value.id, { ghiChu: 'Duyệt theo quy trình.' })
+        selectedRecord.value.trangThai = 'da_duyet'
+        confirmAction.value = null
+        popupStore.success('Thành công', 'Đã duyệt hồ sơ kỷ luật.')
+      } catch (err) {
+        popupStore.error('Lỗi', err?.message || 'Không thể duyệt hồ sơ.')
+      }
+    }
+  }
+}
+
+const rejectRecord = () => {
+  if (!selectedRecord.value) return
+  confirmAction.value = {
+    title: 'Từ chối hồ sơ kỷ luật?',
+    message: '',
+    type: 'reject',
+    payload: { lyDoTuChoi: '' },
+    label: 'Từ chối',
+    variant: 'danger',
+    run: async () => {
+      if (!confirmAction.value.payload.lyDoTuChoi) {
+        popupStore.error('Lỗi', 'Vui lòng nhập lý do từ chối.')
+        return
+      }
+      try {
+        await rewardDisciplineApi.rejectDisciplineRecord(selectedRecord.value.id, { lyDoTuChoi: confirmAction.value.payload.lyDoTuChoi })
+        selectedRecord.value.trangThai = 'tu_choi'
+        confirmAction.value = null
+        popupStore.success('Thành công', 'Đã từ chối hồ sơ kỷ luật.')
+      } catch (err) {
+        popupStore.error('Lỗi', err?.message || 'Không thể từ chối hồ sơ.')
+      }
+    }
+  }
+}
+
+const activateRecord = () => {
+  if (!selectedRecord.value) return
+  const today = new Date().toISOString().split('T')[0]
+  confirmAction.value = {
+    title: 'Kích hoạt hồ sơ kỷ luật?',
+    message: 'Thiết lập thời gian hiệu lực cho quyết định kỷ luật.',
+    type: 'activate',
+    payload: { ngayBatDau: today, ngayKetThuc: '', ghiChu: '' },
+    label: 'Kích hoạt',
+    variant: 'primary',
+    run: async () => {
+      if (!confirmAction.value.payload.ngayBatDau) {
+        popupStore.error('Lỗi', 'Vui lòng chọn ngày bắt đầu.')
+        return
+      }
+      try {
+        await rewardDisciplineApi.activateDisciplineRecord(selectedRecord.value.id, {
+          ngayBatDau: confirmAction.value.payload.ngayBatDau,
+          ngayKetThuc: confirmAction.value.payload.ngayKetThuc || null,
+          ghiChu: confirmAction.value.payload.ghiChu
+        })
+        selectedRecord.value.trangThai = 'dang_hieu_luc'
+        confirmAction.value = null
+        popupStore.success('Thành công', 'Đã kích hoạt hồ sơ kỷ luật.')
+      } catch (err) {
+        popupStore.error('Lỗi', err?.message || 'Không thể kích hoạt hồ sơ.')
+      }
+    }
+  }
+}
+
 const resolveAppeal = () => {
   if (!selectedAppeal.value) return
   if (!appealResolution.value.reason.trim()) {
@@ -469,17 +566,44 @@ const resolveAppeal = () => {
               </div>
             </div>
 
-            <div class="p-5 mt-auto bg-(--surface-modal) border-t border-(--border-default)">
+            <div class="p-5 mt-auto bg-(--surface-modal) border-t border-(--border-default) space-y-2">
               <button
-                v-if="selectedRecord.trangThai === 'dang_hieu_luc'"
-                class="w-full py-2.5 px-4 rounded-lg border-2 border-red-500 text-red-400 font-semibold text-sm
-                       hover:bg-red-500 hover:text-white transition-all duration-200 cursor-pointer"
+                v-if="selectedRecord.trangThai === 'nhap'"
+                class="w-full py-2.5 px-4 rounded-lg bg-(--lg-primary) text-white font-semibold text-sm hover:opacity-90 transition-all duration-200 cursor-pointer"
+                @click="submitRecord"
+              >
+                Gửi duyệt hồ sơ
+              </button>
+
+              <div v-else-if="selectedRecord.trangThai === 'cho_duyet'" class="flex gap-2">
+                <button
+                  class="flex-1 py-2.5 px-4 rounded-lg bg-emerald-500 text-white font-semibold text-sm hover:opacity-90 transition-all duration-200 cursor-pointer"
+                  @click="approveRecord"
+                >
+                  Duyệt hồ sơ
+                </button>
+                <button
+                  class="flex-1 py-2.5 px-4 rounded-lg border-2 border-red-500 text-red-500 font-semibold text-sm hover:bg-red-500 hover:text-white transition-all duration-200 cursor-pointer"
+                  @click="rejectRecord"
+                >
+                  Từ chối
+                </button>
+              </div>
+
+              <button
+                v-else-if="selectedRecord.trangThai === 'da_duyet'"
+                class="w-full py-2.5 px-4 rounded-lg bg-(--lg-primary) text-white font-semibold text-sm hover:opacity-90 transition-all duration-200 cursor-pointer"
+                @click="activateRecord"
+              >
+                Kích hoạt kỷ luật
+              </button>
+
+              <button
+                v-else-if="selectedRecord.trangThai === 'dang_hieu_luc'"
+                class="w-full py-2.5 px-4 rounded-lg border-2 border-red-500 text-red-400 font-semibold text-sm hover:bg-red-500 hover:text-white transition-all duration-200 cursor-pointer"
                 @click="removeEffect"
               >
                 Gỡ hiệu lực sớm
-              </button>
-              <button v-else class="w-full py-2.5 px-4 rounded-lg border border-(--border-default) text-(--text-muted) text-sm cursor-not-allowed opacity-50" disabled>
-                Đã gỡ hiệu lực
               </button>
             </div>
           </div>
@@ -569,7 +693,25 @@ const resolveAppeal = () => {
       @confirm="confirmAction.run"
       @cancel="confirmAction = null"
       @update:modelValue="confirmAction = null"
-    />
+    >
+      <div v-if="confirmAction.type === 'reject'" class="mt-4">
+        <textarea v-model="confirmAction.payload.lyDoTuChoi" class="w-full bg-(--surface-input) p-3 border border-(--border-default) rounded-md text-sm outline-none focus:ring-1 focus:ring-(--lg-primary)" placeholder="Nhập lý do từ chối (bắt buộc)"></textarea>
+      </div>
+      <div v-else-if="confirmAction.type === 'activate'" class="mt-4 flex flex-col gap-3">
+        <div>
+          <label class="text-xs text-(--text-muted) font-medium mb-1 block">Ngày bắt đầu hiệu lực (*)</label>
+          <input type="date" v-model="confirmAction.payload.ngayBatDau" class="w-full bg-(--surface-input) p-2 border border-(--border-default) rounded-md text-sm outline-none focus:ring-1 focus:ring-(--lg-primary)" />
+        </div>
+        <div>
+          <label class="text-xs text-(--text-muted) font-medium mb-1 block">Ngày kết thúc hiệu lực (Tùy chọn)</label>
+          <input type="date" v-model="confirmAction.payload.ngayKetThuc" class="w-full bg-(--surface-input) p-2 border border-(--border-default) rounded-md text-sm outline-none focus:ring-1 focus:ring-(--lg-primary)" />
+        </div>
+        <div>
+          <label class="text-xs text-(--text-muted) font-medium mb-1 block">Ghi chú kích hoạt</label>
+          <textarea v-model="confirmAction.payload.ghiChu" class="w-full bg-(--surface-input) p-2 border border-(--border-default) rounded-md text-sm outline-none focus:ring-1 focus:ring-(--lg-primary) min-h-[60px]" placeholder="VD: Áp dụng từ học kỳ Fall 2026..."></textarea>
+        </div>
+      </div>
+    </ConfirmActionDialog>
 
     <CreateDisciplineDialog 
       v-model="showCreateDialog" 

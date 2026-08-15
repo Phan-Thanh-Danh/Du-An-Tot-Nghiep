@@ -75,6 +75,33 @@ export const rewardDisciplineApi = {
     })
   },
 
+  submitDisciplineRecord(id) {
+    return apiRequest(`/api/admin/discipline-records/${id}/submit`, {
+      method: 'POST',
+    })
+  },
+
+  approveDisciplineRecord(id, payload = {}) {
+    return apiRequest(`/api/admin/discipline-records/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  rejectDisciplineRecord(id, payload = {}) {
+    return apiRequest(`/api/admin/discipline-records/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  activateDisciplineRecord(id, payload = {}) {
+    return apiRequest(`/api/admin/discipline-records/${id}/activate`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
   getDisciplineRecordsPending(params = {}) {
     return apiRequest(`/api/admin/discipline-records/pending-approval${buildQuery(params)}`)
   },
