@@ -9,12 +9,11 @@ import { bghApi } from '@/services/bghApi'
 import {
   GitCompare, Filter, RotateCcw, Trophy,
   Users, GraduationCap, CalendarCheck2, DollarSign, Star,
-  CheckCircle, X, Check
+  CheckCircle, X, Check, CheckSquare
 } from 'lucide-vue-next'
 
 // --- Filters ---
-const semesters = ref(['Spring 2026', 'Fall 2025', 'Summer 2025'])
-const filterSemester = ref('Spring 2026')
+
 
 // --- Campus Selection ---
 const allCampuses = ref([])
@@ -58,7 +57,7 @@ const loadData = async () => {
         teacherScore: item.teacherScore ?? item.TeacherScore ?? 0,
         ...cInfo
       }
-      newAllCampuses.push({ id, name: newCampusData[id].name, selected: true })
+      newAllCampuses.push({ id, name: newCampusData[id].name, selected: index < 3 })
     })
     campusData.value = newCampusData
     allCampuses.value = newAllCampuses
@@ -133,7 +132,10 @@ const getMedal = (idx) => {
 }
 
 const resetFilters = () => {
-  filterSemester.value = 'Spring 2026'
+  allCampuses.value.forEach((c, index) => c.selected = index < 3)
+}
+
+const selectAll = () => {
   allCampuses.value.forEach(c => c.selected = true)
 }
 </script>
@@ -149,12 +151,11 @@ const resetFilters = () => {
       <!-- Campus Selector + Filters -->
       <div class="lg-glass-soft lg-card p-4 space-y-3">
         <div class="flex flex-wrap items-center gap-3">
-          <component :is="Filter" :size="18" class="text-muted" />
-          <select v-model="filterSemester" class="lg-control text-sm min-w-[150px]">
-            <option v-for="s in semesters" :key="s" :value="s">{{ s }}</option>
-          </select>
           <button @click="resetFilters" class="lg-btn-secondary text-xs flex items-center gap-1 px-3 py-1.5">
             <component :is="RotateCcw" :size="14" /> Đặt lại
+          </button>
+          <button @click="selectAll" class="lg-btn-primary text-xs flex items-center gap-1 px-3 py-1.5">
+            <component :is="CheckSquare" :size="14" /> Chọn tất cả
           </button>
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -229,12 +230,12 @@ const resetFilters = () => {
           <h3 class="text-sm font-semibold text-heading mb-4 flex items-center gap-2">
             <component :is="m.icon" :size="16" class="text-primary" /> {{ m.label }}
           </h3>
-          <div class="space-y-2.5">
+          <div class="space-y-2.5 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
             <div v-for="c in selectedData" :key="c.id + m.key" class="flex items-center gap-3">
-              <span class="text-xs text-label w-[70px] shrink-0 truncate">{{ c.name }}</span>
+              <span class="text-xs text-label w-[100px] shrink-0 truncate" :title="c.name">{{ c.name }}</span>
               <div class="flex-1 h-6 rounded-lg bg-black/5 dark:bg-white/5 overflow-hidden relative">
                 <div
-                  :key="filterSemester + '-' + c.id + '-' + c[m.key]"
+                  :key="c.id + '-' + c[m.key]"
                   class="h-full rounded-lg transition-all duration-700 ease-out flex items-center pl-2 animate-progress"
                   :class="c.color"
                   :style="{ width: getBarWidth(c[m.key], m.key) + '%' }"
@@ -295,5 +296,28 @@ const resetFilters = () => {
 }
 .animate-progress {
   animation: growProgress 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+.dark .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
 }
 </style>
