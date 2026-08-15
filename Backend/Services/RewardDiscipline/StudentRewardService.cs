@@ -52,9 +52,9 @@ public class StudentRewardService : IStudentRewardService
         if (parameters.HasCertificate.HasValue)
         {
             if (parameters.HasCertificate.Value)
-                query = query.Where(k => k.UrlPdfBangKhen != null && k.UrlPdfBangKhen != "");
+                query = query.Where(k => (k.UrlPdfBangKhen != null && k.UrlPdfBangKhen != "") || k.TrangThai == RewardDisciplineConstants.RewardStatuses.PdfGenerated);
             else
-                query = query.Where(k => k.UrlPdfBangKhen == null || k.UrlPdfBangKhen == "");
+                query = query.Where(k => (k.UrlPdfBangKhen == null || k.UrlPdfBangKhen == "") && k.TrangThai != RewardDisciplineConstants.RewardStatuses.PdfGenerated);
         }
 
         if (!string.IsNullOrWhiteSpace(parameters.Keyword))
@@ -83,7 +83,7 @@ public class StudentRewardService : IStudentRewardService
                 DiemXet = k.DiemXet,
                 GpaHocKy = k.GpaDatDuoc,
                 NgayDuyet = k.NgayCapNhat,
-                HasCertificate = k.UrlPdfBangKhen != null && k.UrlPdfBangKhen != "",
+                HasCertificate = (k.UrlPdfBangKhen != null && k.UrlPdfBangKhen != "") || k.TrangThai == RewardDisciplineConstants.RewardStatuses.PdfGenerated,
                 TrangThai = k.TrangThai
             })
             .ToListAsync(cancellationToken);
@@ -119,7 +119,7 @@ public class StudentRewardService : IStudentRewardService
                 DiemXet = k.DiemXet,
                 GpaHocKy = k.GpaDatDuoc,
                 NgayDuyet = k.NgayCapNhat,
-                HasCertificate = k.UrlPdfBangKhen != null && k.UrlPdfBangKhen != "",
+                HasCertificate = (k.UrlPdfBangKhen != null && k.UrlPdfBangKhen != "") || k.TrangThai == RewardDisciplineConstants.RewardStatuses.PdfGenerated,
                 TrangThai = k.TrangThai,
                 HoTenSnapshot = k.HoTenSnapshot,
                 MssvSnapshot = k.MssvSnapshot,
@@ -166,6 +166,48 @@ public class StudentRewardService : IStudentRewardService
 
         if (string.IsNullOrWhiteSpace(reward.UrlPdfBangKhen))
         {
+            if (reward.MaMauBangKhen.HasValue && reward.TrangThai == RewardDisciplineConstants.RewardStatuses.PdfGenerated)
+            {
+                var template = await _context.MauBangKhens.FindAsync(new object[] { reward.MaMauBangKhen.Value }, cancellationToken);
+                if (template != null)
+                {
+                    var campaign = await _context.DotKhenThuongs
+                        .Include(x => x.HocKy)
+                        .FirstOrDefaultAsync(x => x.MaDotKhenThuong == reward.MaDotKhenThuong, cancellationToken);
+
+                    var renderData = new
+                    {
+                        template = template,
+                        student = new
+                        {
+                            hoTen = reward.HoTenSnapshot,
+                            mssv = reward.MssvSnapshot,
+                            xepHang = reward.XepHang,
+                            diemXet = reward.DiemXet,
+                            danhHieu = reward.DanhHieuSnapshot,
+                        },
+                        campaign = new
+                        {
+                            id = campaign?.MaDotKhenThuong,
+                            tenDot = campaign?.TenDot,
+                            hocKy = campaign?.HocKy?.TenHocKy
+                        }
+                    };
+
+                    var json = System.Text.Json.JsonSerializer.Serialize(renderData, new System.Text.Json.JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+                    });
+
+                    return new RewardCertificateDownloadDto
+                    {
+                        Content = System.Text.Encoding.UTF8.GetBytes(json),
+                        ContentType = "application/json",
+                        FileName = $"render-data-{rewardId}.json"
+                    };
+                }
+            }
+
             throw new ApiException(StatusCodes.Status404NotFound, "Bằng khen chưa có file PDF.");
         }
 

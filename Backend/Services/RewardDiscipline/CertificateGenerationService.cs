@@ -408,7 +408,23 @@ public class CertificateGenerationService : ICertificateGenerationService
                     ?? await ResolveRewardTemplateAsync(reward, campaign, cancellationToken);
                 if (ResolveTemplateMode(template.CauHinhJson) == RewardDisciplineConstants.CertificateConfigModes.Html)
                 {
-                    throw new ApiException(StatusCodes.Status400BadRequest, "Mẫu bằng khen dùng chế độ HTML — cấp phát chứng nhận phải thực hiện từ trình duyệt (tải lên PDF).");
+                    var currentTime = DateTime.UtcNow;
+                    reward.MaMauBangKhen = template.MaMauBangKhen;
+                    reward.UrlPdfBangKhen = null;
+                    reward.TrangThai = RewardDisciplineConstants.RewardStatuses.PdfGenerated;
+                    reward.NgaySinhPdf = currentTime;
+                    reward.NgayCapNhat = currentTime;
+                    reward.LoiSinhPdf = null;
+                    reward.SoLanSinhPdf += 1;
+
+                    await _context.SaveChangesAsync(cancellationToken);
+                    items.Add(new RewardCertificateGenerationItemDto
+                    {
+                        MaKhenThuong = reward.MaKhenThuong,
+                        Status = "success",
+                        UrlPdfBangKhen = null
+                    });
+                    continue;
                 }
 
                 var fields = ParseConfigFields(template.CauHinhJson);

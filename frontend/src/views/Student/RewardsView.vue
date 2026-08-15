@@ -1,10 +1,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Trophy, Download, Star, ShieldAlert, AlertTriangle } from 'lucide-vue-next'
+import { Trophy, Download, Star, ShieldAlert, AlertTriangle, Loader2 } from 'lucide-vue-next'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import html2pdf from 'html2pdf.js'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import { studentApi } from '@/services/studentApi'
 import { unwrapApiData } from '@/services/apiClient'
@@ -82,10 +83,125 @@ const selectReward = (r) => {
   selectedReward.value = r
 }
 
-const downloadCertificate = async () => {
-  if (!selectedReward.value?.id) return
+function fillTokens(html, data) {
+  return html.replace(/\{\{\s*([\w]+)\s*\}\}/g, (_, key) =>
+    data[key] !== undefined && data[key] !== null ? String(data[key]) : `{{${key}}}`,
+  )
+}
+
+async function renderCertificatePdf(template, row, campaign) {
+  const width = template.chieuRong || 1123
+  const height = template.chieuCao || 794
+  const rowData = {
+    hoTen: row.hoTen ?? row.HoTen ?? 'Sinh viên',
+    mssv: row.mssv ?? row.Mssv ?? '',
+    tenHocKy: row.tenHocKy ?? row.TenHocKy ?? campaign?.hocKy ?? '',
+    danhHieu: row.danhHieu ?? row.DanhHieu ?? 'Top 100 học kỳ',
+    xepHang: row.xepHang ?? row.XepHang ?? '',
+    diemXet: row.diemXet ?? row.DiemXet ?? '',
+    ngayCap: new Date().toISOString().slice(0, 10),
+  }
+
+  // Strip external link tags, keep inline styles/fonts
+  const cleanHtml = (template.html || '').replace(/<link[^>]*>/gi, '')
+
+  // Create a hidden container directly in the main document so fonts & CORS work
+  const container = document.createElement('div')
+  container.style.cssText = `position:fixed;left:-${width + 200}px;top:0;width:${width}px;height:${height}px;overflow:hidden;z-index:-9999;`
+
+  // Inject a style tag with the template CSS into head so it applies to container
+  const styleTag = document.createElement('style')
+  styleTag.textContent = `
+    #pdf-cert-render { box-sizing: border-box; margin: 0; padding: 0; }
+    #pdf-cert-render * { box-sizing: border-box; }
+    ${template.css || ''}
+  `
+  document.head.appendChild(styleTag)
+
+  container.innerHTML = `<div id="pdf-cert-render" style="width:${width}px;height:${height}px;position:relative;background:white;overflow:hidden;">${fillTokens(cleanHtml, rowData)}</div>`
+  document.body.appendChild(container)
+
+  const mmPerPx = 25.4 / 96
   try {
-    const blob = await studentApi.downloadRewardCertificate(selectedReward.value.id)
+    // Wait for fonts
+    await document.fonts.ready
+
+    // Wait for all images inside the container
+    const images = Array.from(container.querySelectorAll('img'))
+    await Promise.all(
+      images.map((img) =>
+        img.complete
+          ? Promise.resolve()
+          : new Promise((resolve) => {
+              img.onload = resolve
+              img.onerror = resolve
+            })
+      )
+    )
+
+    // Extra settle time for CSS animations / gradients
+    await new Promise((r) => setTimeout(r, 400))
+
+    const wrapper = container.querySelector('#pdf-cert-render')
+    const blob = await html2pdf()
+      .set({
+        margin: 0,
+        filename: `bang-khen-${rowData.mssv || 'khong-ma'}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          width: width,
+          height: height,
+          windowWidth: width,
+          windowHeight: height,
+          scrollX: 0,
+          scrollY: 0,
+          x: 0,
+          y: 0,
+        },
+        jsPDF: {
+          unit: 'mm',
+          format: [Number((width * mmPerPx).toFixed(2)), Number((height * mmPerPx).toFixed(2))],
+          orientation: width > height ? 'l' : 'p',
+        },
+      })
+      .from(wrapper)
+      .toPdf()
+      .get('pdf')
+      .outputPdf('blob')
+    return blob
+  } finally {
+    container.remove()
+    styleTag.remove()
+  }
+}
+
+const downloading = ref(false)
+
+const downloadCertificate = async () => {
+  if (!selectedReward.value?.id || downloading.value) return
+  downloading.value = true
+  try {
+    const responseBlob = await studentApi.downloadRewardCertificate(selectedReward.value.id)
+    let blob = responseBlob
+    
+    if (responseBlob.type === 'application/json') {
+      const text = await responseBlob.text()
+      const renderData = JSON.parse(text)
+      const config = JSON.parse(renderData.template?.cauHinhJson || '{}')
+      const templateConfig = {
+        html: config.html || '',
+        css: config.css || '',
+        chieuRong: renderData.template?.chieuRong,
+        chieuCao: renderData.template?.chieuCao,
+      }
+      blob = await renderCertificatePdf(templateConfig, renderData.student, renderData.campaign)
+    }
+
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
@@ -96,6 +212,8 @@ const downloadCertificate = async () => {
     URL.revokeObjectURL(url)
   } catch (error) {
     window.alert(error?.message || 'Không thể tải bằng khen.')
+  } finally {
+    downloading.value = false
   }
 }
 </script>
@@ -238,9 +356,12 @@ const downloadCertificate = async () => {
             </div>
 
             <div class="pt-4 flex gap-2 relative z-10 mt-auto">
-              <GlassButton v-if="selectedReward.certificateStatus === 'generated'" variant="primary" class="w-full justify-center !bg-amber-600 hover:!bg-amber-700 !text-white !border-none" @click="downloadCertificate">
-                <template #leading><Download :size="18" /></template>
-                Tải bản PDF vinh danh
+              <GlassButton v-if="selectedReward.certificateStatus === 'generated'" variant="primary" class="w-full justify-center !bg-amber-600 hover:!bg-amber-700 !text-white !border-none" @click="downloadCertificate" :disabled="downloading">
+                <template #leading>
+                  <Loader2 v-if="downloading" :size="18" class="animate-spin" />
+                  <Download v-else :size="18" />
+                </template>
+                {{ downloading ? 'Đang tạo bản PDF...' : 'Tải bản PDF vinh danh' }}
               </GlassButton>
               <GlassButton v-else variant="secondary" class="w-full justify-center opacity-70" disabled>
                 Bản mềm chưa sẵn sàng
