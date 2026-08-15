@@ -64,6 +64,14 @@ export const rewardDisciplineApi = {
     return apiRequest(`/api/admin/discipline-records${buildQuery(params)}`)
   },
 
+  getDisciplineRecordDetail(id) {
+    return apiRequest(`/api/admin/discipline-records/${id}`)
+  },
+
+  getDisciplineRecordsPending(params = {}) {
+    return apiRequest(`/api/admin/discipline-records/pending-approval${buildQuery(params)}`)
+  },
+
   removeDisciplineEffect(recordId, payload) {
     return apiRequest(`/api/admin/discipline-records/${recordId}/remove-effect`, {
       method: 'POST',
@@ -73,6 +81,10 @@ export const rewardDisciplineApi = {
 
   getDisciplineAppeals(params = {}) {
     return apiRequest(`/api/admin/discipline-appeals${buildQuery(params)}`)
+  },
+
+  getDisciplineAppealDetail(id) {
+    return apiRequest(`/api/admin/discipline-appeals/${id}`)
   },
 
   resolveDisciplineAppeal(appealId, payload) {
