@@ -68,6 +68,13 @@ export const rewardDisciplineApi = {
     return apiRequest(`/api/admin/discipline-records/${id}`)
   },
 
+  createDisciplineRecord(payload) {
+    return apiRequest('/api/admin/discipline-records', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
   getDisciplineRecordsPending(params = {}) {
     return apiRequest(`/api/admin/discipline-records/pending-approval${buildQuery(params)}`)
   },

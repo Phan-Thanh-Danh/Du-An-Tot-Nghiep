@@ -6,6 +6,7 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
+import CreateDisciplineDialog from './components/CreateDisciplineDialog.vue'
 import { rewardDisciplineApi } from '@/services/rewardDisciplineApi'
 import { unwrapApiData } from '@/services/apiClient'
 import { formatDate } from '@/utils/dateFormat'
@@ -18,7 +19,11 @@ const loading = ref(false)
 const loadingDetail = ref(false)
 const pendingCount = ref(0)
 const confirmAction = ref(null)
-const currentTab = ref('records') // records, appeals
+
+// State
+const showCreateDialog = ref(false)
+
+const currentTab = ref('records') // 'records', 'pending', 'appeals'
 const searchQuery = ref('')
 const filterStatus = ref('all')
 const filterSeverity = ref('all')
@@ -43,7 +48,31 @@ const DISCIPLINE_ACTION_LABEL = {
 const levelLabel = (code) => DISCIPLINE_LEVEL_LABEL[code] ?? code ?? '—'
 const actionLabel = (code) => DISCIPLINE_ACTION_LABEL[code] ?? code ?? '—'
 
-const normalizeRecordStatus = (status) => ['dang_hieu_luc', 'active'].includes(status) ? 'active' : 'expired'
+const normalizeRecordStatus = (status) => status
+
+const statusLabel = (code) => {
+  switch (code) {
+    case 'nhap': return 'Mới tạo'
+    case 'cho_duyet': return 'Chờ duyệt'
+    case 'da_duyet': return 'Đã duyệt'
+    case 'tu_choi': return 'Từ chối'
+    case 'dang_hieu_luc': return 'Đang hiệu lực'
+    case 'het_hieu_luc': return 'Hết hiệu lực'
+    case 'da_go_hieu_luc': return 'Đã gỡ'
+    case 'da_huy': return 'Đã hủy'
+    default: return code || '—'
+  }
+}
+
+const statusVariant = (code) => {
+  switch (code) {
+    case 'dang_hieu_luc': return 'danger'
+    case 'cho_duyet': return 'warning'
+    case 'da_duyet': return 'success'
+    case 'nhap': return 'info'
+    default: return 'neutral'
+  }
+}
 
 // Fix 6 — Bổ sung case da_huy
 const normalizeAppealStatus = (status) => {
@@ -191,9 +220,8 @@ const removeEffect = () => {
       try {
         await rewardDisciplineApi.removeDisciplineEffect(selectedRecord.value.id, {
           reason: 'Gỡ hiệu lực sớm theo thao tác quản trị.',
-          removalNote: 'Thao tác từ giao diện SuperAdmin.',
         })
-        selectedRecord.value.trangThai = 'expired'
+        selectedRecord.value.trangThai = 'da_go_hieu_luc'
         confirmAction.value = null
         popupStore.success('Thành công', 'Đã gỡ hiệu lực kỷ luật.')
       } catch (err) {
@@ -250,7 +278,7 @@ const resolveAppeal = () => {
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[90px] border-l-4 border-[var(--color-danger-bg, #ef4444)]">
         <p class="text-sm font-medium text-(--text-muted) mb-1">Đang hiệu lực</p>
-        <strong class="text-2xl text-(--text-heading)">{{ records.filter(r => r.trangThai === 'active').length }}</strong>
+        <strong class="text-2xl text-(--text-heading)">{{ records.filter(r => r.trangThai === 'dang_hieu_luc').length }}</strong>
       </GlassPanel>
       <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[90px] border-l-4 border-amber-500">
         <p class="text-sm font-medium text-(--text-muted) mb-1">Chờ duyệt hồ sơ</p>
@@ -303,7 +331,7 @@ const resolveAppeal = () => {
           <option value="cancelled">Đã hủy</option>
         </select>
 
-        <GlassButton v-if="currentTab === 'records'" variant="primary" class="h-10" @click="popupStore.info('Thông báo', 'Tính năng lập hồ sơ mới đang phát triển.')">Lập hồ sơ mới</GlassButton>
+        <GlassButton v-if="currentTab === 'records'" variant="primary" class="h-10" @click="showCreateDialog = true">Lập hồ sơ mới</GlassButton>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 min-h-[500px]">
@@ -337,8 +365,8 @@ const resolveAppeal = () => {
                   </td>
                   <td class="text-sm">{{ actionLabel(r.hinhThucXuLy) }}</td>
                   <td>
-                    <GlassBadge :variant="r.trangThai === 'active' ? 'danger' : 'neutral'" size="sm">
-                      {{ r.trangThai === 'active' ? 'Đang hiệu lực' : 'Đã hết/Gỡ' }}
+                    <GlassBadge :variant="statusVariant(r.trangThai)" size="sm">
+                      {{ statusLabel(r.trangThai) }}
                     </GlassBadge>
                   </td>
                 </tr>
@@ -393,7 +421,7 @@ const resolveAppeal = () => {
           <!-- Record Details -->
           <div v-if="currentTab === 'records' && selectedRecord" class="flex flex-col h-full">
             <div class="p-5 border-b border-(--border-default) relative overflow-hidden">
-              <div v-if="selectedRecord.trangThai === 'active'" class="absolute top-0 left-0 w-1 h-full bg-(--color-danger-bg)"></div>
+              <div v-if="selectedRecord.trangThai === 'dang_hieu_luc'" class="absolute top-0 left-0 w-1 h-full bg-(--color-danger-bg)"></div>
               <h3 class="font-bold text-lg text-(--text-heading) leading-tight mb-3">{{ selectedRecord.tieuDe }}</h3>
               
               <div class="flex items-center gap-3 bg-(--surface-modal) p-3 rounded-lg border border-(--border-default)">
@@ -421,10 +449,10 @@ const resolveAppeal = () => {
                   <div class="text-xs text-(--text-muted) mb-1">Ngày vi phạm</div>
                   <div class="text-sm text-(--text-body)">{{ formatDate(selectedRecord.ngayViPham) }}</div>
                 </div>
-                <div>
+                <div class="mb-4">
                   <div class="text-xs text-(--text-muted) mb-1">Trạng thái</div>
-                  <GlassBadge :variant="selectedRecord.trangThai === 'active' ? 'danger' : 'neutral'" size="sm">
-                    {{ selectedRecord.trangThai === 'active' ? 'Đang hiệu lực' : 'Hết hiệu lực' }}
+                  <GlassBadge :variant="statusVariant(selectedRecord.trangThai)" size="sm">
+                    {{ statusLabel(selectedRecord.trangThai) }}
                   </GlassBadge>
                 </div>
               </div>
@@ -443,7 +471,7 @@ const resolveAppeal = () => {
 
             <div class="p-5 mt-auto bg-(--surface-modal) border-t border-(--border-default)">
               <button
-                v-if="selectedRecord.trangThai === 'active'"
+                v-if="selectedRecord.trangThai === 'dang_hieu_luc'"
                 class="w-full py-2.5 px-4 rounded-lg border-2 border-red-500 text-red-400 font-semibold text-sm
                        hover:bg-red-500 hover:text-white transition-all duration-200 cursor-pointer"
                 @click="removeEffect"
@@ -541,6 +569,11 @@ const resolveAppeal = () => {
       @confirm="confirmAction.run"
       @cancel="confirmAction = null"
       @update:modelValue="confirmAction = null"
+    />
+
+    <CreateDisciplineDialog 
+      v-model="showCreateDialog" 
+      @created="fetchData" 
     />
   </div>
 </template>
